@@ -66,7 +66,11 @@ Each phase ends with its own tests passing, plus `npm test` and `tsc -b`.
   - group nesting
   - the unknown-field report
 
-### P0.3 Data API: native ids (InfoPanel fork, separate branch and PR)
+### P0.3 Data API: native ids (InfoPanel fork, on PR #173)
+- **Done** in `F3NN3X/infopanel` `pr/databridge-export` (`9a8b0ee`), the head of upstream
+  [PR #173](https://github.com/habibrehmansg/infopanel/pull/173), on the user's direction instead of a new branch.
+  Libre's ref is the `LibreMonitor.SENSORHASH` key: of two sensors sharing an identifier, the one InfoPanel reads
+  keeps `libre:{identifier}` and the other gets `libre:{identifier}/{name}`. Not yet checked against a live build.
 - Add an optional `Ref` to `DataApiValue` holding InfoPanel's native binding:
   - `libre:/gpu-nvidia/0/load/3`
   - `hwinfo:<remote>/<id>/<instance>/<entry>`
