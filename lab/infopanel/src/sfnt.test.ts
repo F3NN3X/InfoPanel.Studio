@@ -1,56 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFaces } from "./sfnt.ts";
-
-const u16 = (a: number[], v: number) => a.push((v >>> 8) & 0xff, v & 0xff);
-const u32 = (a: number[], v: number) => a.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
-
-/** A font with a name table (Windows, en-US) and an OS/2 table; enough for readFaces. */
-function font(names: Record<number, string>, opts: { weight?: number; italic?: boolean; stringLengthBonus?: number } = {}) {
-  const records: number[] = [];
-  const strings: number[] = [];
-  const ids = Object.keys(names).map(Number).sort((a, b) => a - b);
-  for (const id of ids) {
-    const bytes = [...names[id]].flatMap((c) => [0, c.charCodeAt(0)]);
-    u16(records, 3);
-    u16(records, 1);
-    u16(records, 0x409);
-    u16(records, id);
-    u16(records, bytes.length + (opts.stringLengthBonus ?? 0));
-    u16(records, strings.length);
-    strings.push(...bytes);
-  }
-  const name: number[] = [];
-  u16(name, 0);
-  u16(name, ids.length);
-  u16(name, 6 + records.length);
-  name.push(...records, ...strings);
-
-  const os2 = new Array(78).fill(0);
-  os2[4] = ((opts.weight ?? 400) >>> 8) & 0xff;
-  os2[5] = (opts.weight ?? 400) & 0xff;
-  os2[7] = 5;
-  if (opts.italic) os2[63] = 1;
-
-  const header: number[] = [];
-  u32(header, 0x00010000);
-  u16(header, 2);
-  header.push(0, 0, 0, 0, 0, 0);
-  const tables = [
-    ["OS/2", os2],
-    ["name", name],
-  ] as const;
-  let offset = 12 + tables.length * 16;
-  const body: number[] = [];
-  for (const [tag, data] of tables) {
-    header.push(...[...tag].map((c) => c.charCodeAt(0)));
-    u32(header, 0);
-    u32(header, offset);
-    u32(header, data.length);
-    body.push(...data);
-    offset += data.length;
-  }
-  return new Uint8Array([...header, ...body]);
-}
+import { buildFont as font } from "./__fixtures__/builders.ts";
 
 describe("readFaces", () => {
   it("reads family, face, full name, weight and slant", () => {

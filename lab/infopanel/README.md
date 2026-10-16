@@ -68,3 +68,10 @@ truth comes from InfoPanel itself:
 tested against `skia-reference.json` when it exists; `src/font-loader.ts` gives the browser the exact face files.
 The lab page's Fonts panel lists each request with the face InfoPanel draws, how it got there, and missing fonts
 with the pack that has them.
+
+### Missing fonts
+
+`npm run lab:font-get -- --missing` lists the corpus fonts not installed here and where to get them free;
+`npm run lab:font-get -- "<family>" [--install | --uninstall]` downloads to `fonts/downloads/` and optionally
+installs or removes it for the current user. The Fonts panel shows the same candidates with a preview. Sources and
+caveats: `docs/infopanel-import/research-font-sources.md`.
