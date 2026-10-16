@@ -36,8 +36,10 @@ describe("buildReport", () => {
       dataApi: null,
     });
     expect(r.items).toEqual({ total: 8, byKind: { Text: 2, Group: 1, Sensor: 2, Image: 2, Gauge: 1 } });
-    expect(r.native.stays[0]).toEqual({ reason: "rotated", count: 2 });
-    expect(r.native.possible).toBe(3); // two sensors and the vector gauge
+    // The two images have no URL (one missing, one an absolute path); the rest convert.
+    expect(r.native.stays.reduce((n, s) => n + s.count, 0)).toBe(2);
+    expect(r.native.possible).toBe(5); // two rotated texts, two sensors and the vector gauge
+    expect(r.native.needs).toEqual([{ need: "rotated panel items", count: 2 }, { need: "custom gauge widget", count: 1 }]);
     // The gauge reads a sensor too (unresolved here).
     expect(r.sensors).toEqual({ groups: 3, items: 3, byStatus: { exact: 1, unresolved: 2 }, attention: 2 });
     expect(r.assets).toMatchObject({ files: 1, bytes: 1, unused: 1, missing: ["gone.png"], absolute: ["C:\\x.png"] });

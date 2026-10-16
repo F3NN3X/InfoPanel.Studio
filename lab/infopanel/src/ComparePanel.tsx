@@ -9,7 +9,7 @@ import type { ParsedExport } from "./archive.ts";
 import { EditLayer } from "./editor/EditLayer.tsx";
 import { Inspector } from "./editor/Inspector.tsx";
 import { itemAt, setField, type Path } from "./editor/ops.ts";
-import { isNative, type NativeLayer } from "./native/native.tsx";
+import { describeNative, isNative, type NativeLayer } from "./native/native.tsx";
 import type { Editor } from "./editor/useEditor.ts";
 import { walkItems } from "./parse.ts";
 import { ProfileView, type AssetSource } from "./render/ProfileView.tsx";
@@ -48,13 +48,14 @@ function ModePanel({ item, path, editor, native }: { item: DisplayItem; path: Pa
       {on && c && !c.ok && <div style={{ color: "#fc6" }}>Stays InfoPanel: {c.reason}</div>}
       {on && c?.ok && (
         <div>
-          {c.native.custom ? "custom gauge widget, drawn live from its spec (studio prototype)" : <><code>{c.native.widget.kind}</code> widget</>}
+          {describeNative(c.native)}
           {c.native.widget.sensor && (
             <>
               {" "}
               reading <code>{c.native.widget.sensor}</code>
             </>
           )}
+          {c.native.needs.length > 0 && <div>needs in the app: {c.native.needs.join(", ")}</div>}
           {c.native.lost.length > 0 && (
             <ul style={{ margin: "2px 0" }}>
               {c.native.lost.map((l) => (

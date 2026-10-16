@@ -15,8 +15,11 @@ import type { DataApiInfo } from "./stored.ts";
 
 export interface ImportReport {
   items: { total: number; byKind: Record<string, number> };
-  /** Native where possible: how many convert, and why the rest stay InfoPanel. */
-  native: { possible: number; stays: { reason: string; count: number }[] };
+  /**
+   * Native where possible: how many convert, why the rest stay InfoPanel, and the app features the
+   * conversions rely on (drawn by studio prototypes until the app has them).
+   */
+  native: { possible: number; stays: { reason: string; count: number }[]; needs: { need: string; count: number }[] };
   sensors: { groups: number; items: number; byStatus: Partial<Record<Status, number>>; attention: number };
   assets: { files: number; bytes: number; unused: number; duplicates: number; missing: string[]; urls: number; absolute: string[] };
   fonts: { requests: number; missing: string[]; supplied: number };
@@ -50,7 +53,11 @@ export function buildReport(input: ReportInput): ImportReport {
   const all = [...walkItems(doc.items)];
   const conversions = all.filter(({ item }) => item.kind !== "Group").map(({ item }, i) => convert(item, `r${i}`, input.convertCtx));
   const stays = new Map<string, number>();
-  for (const c of conversions) if (!c.ok) stays.set(reasonOf(c.reason), (stays.get(reasonOf(c.reason)) ?? 0) + 1);
+  const needs = new Map<string, number>();
+  for (const c of conversions) {
+    if (!c.ok) stays.set(reasonOf(c.reason), (stays.get(reasonOf(c.reason)) ?? 0) + 1);
+    else for (const n of c.native.needs) needs.set(n, (needs.get(n) ?? 0) + 1);
+  }
 
   const statuses = input.groups.map((g) => statusOf(g, input.resolved.get(g.id) ?? null, input.overrides));
   const cleanup = analyse(doc);
@@ -63,6 +70,7 @@ export function buildReport(input: ReportInput): ImportReport {
     native: {
       possible: conversions.filter((c) => c.ok).length,
       stays: [...stays].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
+      needs: [...needs].map(([need, count]) => ({ need, count })).sort((a, b) => b.count - a.count),
     },
     sensors: {
       groups: input.groups.length,

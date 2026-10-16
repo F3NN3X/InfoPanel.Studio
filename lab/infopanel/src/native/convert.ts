@@ -1,15 +1,21 @@
 /**
- * Native mode (L5): an InfoPanel item as the nearest dashboard panel widget,
- * at the item's position and size. Items with no native equivalent stay in
- * InfoPanel mode with the reason; a conversion lists what it loses.
+ * Native mode (L5, L11): an InfoPanel item as the nearest dashboard panel
+ * widget, at the item's position and size. Items with no native equivalent
+ * stay in InfoPanel mode with the reason; a conversion lists what it loses.
+ *
+ * Where the app's widgets fall short (a vertical bar, a capsule, a rotated or
+ * flipped item, scrolling text, an image-sequence gauge), the lab draws a
+ * studio prototype of the missing capability and the conversion names it in
+ * `needs`: the import report sums these up as the app work native mode asks for.
  *
  * The widget model is the app's (`@/lib/panel-model`); the item keeps all its
  * InfoPanel fields, so switching back is lossless.
  */
 import type { Widget } from "@/lib/panel-model";
 import { vectorOf } from "../gauges/frames.ts";
-import type { VectorGauge } from "../gauges/vector.ts";
+import { DEFAULT_GAUGE, type VectorGauge } from "../gauges/vector.ts";
 import { cssColor } from "../render/color.ts";
+import type { ShapeType } from "../render/geometry.ts";
 import { imageSource } from "../render/scene.ts";
 import type { DisplayItem } from "../schema.ts";
 import { isBound, type BoundItem } from "../sensors.ts";
@@ -22,13 +28,27 @@ export interface NativeBox {
   h?: number;
 }
 
+/** A capability the app's widgets lack, drawn by a studio prototype. */
+export type Custom =
+  /** The custom gauge widget: a vector spec drawn live (L7). */
+  | { kind: "vector"; gauge: VectorGauge; min: number; max: number }
+  /** An image-sequence gauge: the frame for the value. */
+  | { kind: "frames"; urls: string[]; min: number; max: number }
+  /** A shape the shape widget lacks, from InfoPanel's own geometry. */
+  | { kind: "shape"; type: ShapeType; radius: number; fill: string | null; stroke: { color: string; width: number } | null }
+  /** The widget, scrolling left when wider than the box (InfoPanel's marquee). */
+  | { kind: "marquee"; speed: number; spacing: number };
+
 export interface NativeItem {
   widget: Widget;
   box: NativeBox;
   /** InfoPanel features the widget does not have. */
   lost: string[];
-  /** A vector gauge: the custom gauge widget draws this spec live (studio prototype, L7). */
-  custom?: { gauge: VectorGauge; min: number; max: number };
+  custom?: Custom;
+  /** Turned and mirrored about the box's centre, as InfoPanel does (flip first). */
+  transform?: { rotate: number; flipX: boolean };
+  /** App features this conversion relies on that the app's panel widgets do not have yet. */
+  needs: string[];
 }
 
 export type Conversion = { ok: true; native: NativeItem } | { ok: false; reason: string };
@@ -40,6 +60,8 @@ export interface ConvertContext {
   keyOf(item: BoundItem): string | null;
   /** A URL for an export asset, when the lab can serve it. */
   assetUrl(name: string): string | null;
+  /** An export asset's own size, when known (images drawn at their natural size). */
+  assetSize?(name: string): { width: number; height: number } | null;
 }
 
 /** "#AARRGGBB" → "#RRGGBB" (the widget colours have no alpha). */
@@ -54,13 +76,12 @@ const translucent = (c: string) => {
 
 const no = (reason: string): Conversion => ({ ok: false, reason });
 
-/** Features that block any conversion: the widget cannot draw them at all. */
-function blocker(item: DisplayItem): string | null {
-  if (item.kind !== "Donut" && item.Rotation !== 0) return "rotated";
-  if ("FlipX" in item && item.FlipX) return "flipped";
-  if ("Marquee" in item && item.Marquee) return "marquee (scrolling text)";
-  if ("GlowEnabled" in item && item.GlowEnabled) return "glow";
-  return null;
+/** Rotation and flip, which the app's panel items would need. */
+function transformOf(item: DisplayItem): { transform?: NativeItem["transform"]; needs: string[] } {
+  const rotate = "Rotation" in item ? item.Rotation : 0;
+  const flipX = "FlipX" in item && item.FlipX;
+  if (!rotate && !flipX) return { needs: [] };
+  return { transform: { rotate, flipX }, needs: [...(rotate ? ["rotated panel items"] : []), ...(flipX ? ["flipped panel items"] : [])] };
 }
 
 /** What a text item's widget loses: the dashboard widgets draw in the theme's font. */
@@ -70,6 +91,10 @@ function textLosses(item: Extract<DisplayItem, { Font: string }>): string[] {
   if (translucent(item.Color)) lost.push("colour transparency");
   return lost;
 }
+
+/** InfoPanel scrolls text only in a box with a width. */
+const marqueeOf = (item: Extract<DisplayItem, { Font: string }>): Custom | undefined =>
+  "Marquee" in item && item.Marquee && item.Width > 0 ? { kind: "marquee", speed: Math.max(item.MarqueeSpeed, 1), spacing: item.MarqueeSpacing } : undefined;
 
 const align = (item: Extract<DisplayItem, { Font: string }>): Widget["align"] =>
   item.CenterAlign ? "center" : item.RightAlign ? "right" : "left";
@@ -82,17 +107,28 @@ const textBox = (item: Extract<DisplayItem, { Font: string }>): NativeBox => ({
   ...(item.Height > 0 ? { h: item.Height } : {}),
 });
 
+/** A spec the custom gauge widget draws for a chart InfoPanel draws itself. */
+const spec = (patch: Partial<VectorGauge>): VectorGauge => ({ ...DEFAULT_GAUGE, rounded: false, needle: null, ticks: null, ...patch });
+
 export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Conversion {
   if (item.kind === "Group") return no("a group converts item by item");
-  const blocked = blocker(item);
-  if (blocked) return no(`${blocked}: no dashboard widget draws it`);
+  if ("GlowEnabled" in item && item.GlowEnabled) return no("glow: no dashboard widget draws it");
 
   const base = { id, visible: !item.Hidden, label: undefined } satisfies Partial<Widget>;
   const sensor = isBound(item) ? (ctx.keyOf(item) ?? undefined) : undefined;
-  const ok = (widget: Omit<Widget, "id" | "visible">, box: NativeBox, lost: string[]): Conversion => ({
+  const turned = transformOf(item);
+  const ok = (widget: Omit<Widget, "id" | "visible">, box: NativeBox, lost: string[], extra: { custom?: Custom; needs?: string[] } = {}): Conversion => ({
     ok: true,
-    native: { widget: { ...base, ...widget } as Widget, box, lost },
+    native: {
+      widget: { ...base, ...widget } as Widget,
+      box,
+      lost,
+      ...(extra.custom ? { custom: extra.custom } : {}),
+      ...(turned.transform ? { transform: turned.transform } : {}),
+      needs: [...(extra.needs ?? []), ...turned.needs],
+    },
   });
+  const scrolling = (custom: Custom | undefined) => (custom ? { custom, needs: ["scrolling text"] } : {});
 
   switch (item.kind) {
     case "Text":
@@ -106,6 +142,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
         },
         textBox(item),
         textLosses(item),
+        scrolling(marqueeOf(item)),
       );
 
     case "Sensor": {
@@ -131,6 +168,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
         },
         textBox(item),
         lost,
+        scrolling(marqueeOf(item)),
       );
     }
 
@@ -146,6 +184,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
         },
         textBox(item),
         [...textLosses(item), `format ${item.Format} (the widget follows General settings)`],
+        scrolling(marqueeOf(item)),
       );
 
     case "TableSensor": {
@@ -158,12 +197,31 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
     }
 
     case "Bar": {
-      if (item.Height > item.Width) return no("vertical bar: the dashboard bar fills left to right");
-      const lost = ["frame and background", "the widget adds a label and value row"];
-      if (item.MinValue !== 0) lost.push(`minimum ${item.MinValue}`);
-      if (item.Gradient) lost.push("gradient");
+      const box = { x: item.X, y: item.Y, w: item.Width, h: item.Height };
+      const lost: string[] = [];
+      if (item.MinValue !== 0 && item.Height <= item.Width) lost.push(`minimum ${item.MinValue}`);
+      if (item.AutoValue) lost.push("automatic range");
       if (!sensor) lost.push("no sensor yet: remap it");
-      return ok({ kind: "bar", sensor, max: item.MaxValue, color: hexColor(item.Color) }, { x: item.X, y: item.Y, w: item.Width, h: item.Height }, lost);
+      if (item.Height > item.Width) {
+        // The dashboard bar fills left to right: a vertical one is drawn as the custom gauge widget's bar.
+        const color = hexColor(item.Color) ?? "#FFFFFF";
+        const gauge = spec({
+          shape: "bar", orientation: "vertical", width: item.Width, height: item.Height, thickness: item.Width,
+          track: item.Background ? (hexColor(item.BackgroundColor) ?? null) : null,
+          fill: item.Gradient
+            ? { mode: "gradient", color, stops: [{ at: 0, color }, { at: 100, color: hexColor(item.GradientColor) ?? color }] }
+            : { ...DEFAULT_GAUGE.fill, mode: "solid", color },
+          ...(item.Frame ? { background: { color: null, border: { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: 1 }, radius: item.CornerRadius } } : {}),
+        });
+        if (item.CornerRadius > 0) lost.push(`corner radius ${item.CornerRadius} of the fill`);
+        return ok({ kind: "bar", sensor, max: item.MaxValue, color }, box, lost, {
+          custom: { kind: "vector", gauge, min: item.MinValue, max: item.MaxValue },
+          needs: ["vertical bar"],
+        });
+      }
+      lost.unshift("frame and background", "the widget adds a label and value row");
+      if (item.Gradient) lost.push("gradient");
+      return ok({ kind: "bar", sensor, max: item.MaxValue, color: hexColor(item.Color) }, box, lost);
     }
 
     case "Graph": {
@@ -186,9 +244,12 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
         return no(src.kind === "none" ? src.why : "the image has no URL yet (uploading to the lab asset store, or not an image the widget shows)");
       }
       // InfoPanel draws a 0 × 0 image at its file's size; the widget needs the box.
-      if (item.Width <= 0 || item.Height <= 0) return no("image at its natural size: give it a Width and Height to convert");
-      const w = Math.round((item.Width * item.Scale) / 100);
-      const h = Math.round((item.Height * item.Scale) / 100);
+      const natural = src.kind === "asset" ? (ctx.assetSize?.(src.name) ?? null) : null;
+      const width = item.Width || natural?.width || 0;
+      const height = item.Height || natural?.height || 0;
+      if (width <= 0 || height <= 0) return no("image at its natural size, which is not known: give it a Width and Height to convert");
+      const w = Math.trunc((width * item.Scale) / 100);
+      const h = Math.trunc((height * item.Scale) / 100);
       const lost = item.Layer ? ["colour layer"] : [];
       return ok(
         { kind: "image", text: url ?? undefined, sensor: item.kind === "HttpImage" ? sensor : undefined, height: h },
@@ -199,38 +260,66 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
 
     case "Shape": {
       if (item.ShowGradient) return no("gradient fill: no dashboard widget draws it");
-      const shape = item.Type === "Rectangle" ? "rect" : item.Type === "Ellipse" && item.Width === item.Height ? "circle" : null;
-      if (!shape) return no(`${item.Type === "Ellipse" ? "oval" : item.Type.toLowerCase()} shape: the dashboard has rectangles and circles`);
-      const lost: string[] = [];
-      if (item.ShowFrame && item.FrameThickness > 0) lost.push("frame");
-      if (shape === "rect" && item.CornerRadius > 0) lost.push(`corner radius ${item.CornerRadius}`);
+      const box = { x: item.X, y: item.Y, w: item.Width, h: item.Height };
       const fill = item.ShowFill ? item.FillColor : item.FrameColor;
+      const lost: string[] = [];
       if (cssColor(fill) === null || translucent(fill)) lost.push("colour transparency");
-      return ok(
-        { kind: "shape", shape, color: hexColor(fill), ...(shape === "circle" ? { thickness: item.Width } : {}) },
-        { x: item.X, y: item.Y, w: item.Width, h: item.Height },
-        lost,
-      );
+      const shape = item.Type === "Rectangle" ? "rect" : item.Type === "Ellipse" && item.Width === item.Height ? "circle" : null;
+      if (shape) {
+        if (item.ShowFrame && item.FrameThickness > 0) lost.push("frame");
+        if (shape === "rect" && item.CornerRadius > 0) lost.push(`corner radius ${item.CornerRadius}`);
+        return ok({ kind: "shape", shape, color: hexColor(fill), ...(shape === "circle" ? { thickness: item.Width } : {}) }, box, lost);
+      }
+      // Capsules, ovals and polygons: the shape widget would need them.
+      const name = item.Type === "Ellipse" ? "oval" : item.Type.toLowerCase();
+      return ok({ kind: "shape", shape: "rect", color: hexColor(fill) }, box, lost, {
+        custom: {
+          kind: "shape", type: item.Type, radius: item.CornerRadius,
+          fill: item.ShowFill ? (hexColor(item.FillColor) ?? null) : null,
+          stroke: item.ShowFrame && item.FrameThickness > 0 ? { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: item.FrameThickness } : null,
+        },
+        needs: [`${name} shape`],
+      });
     }
 
-    case "Donut":
-      return no("donut: no dashboard widget has its span, thickness and start angle");
+    case "Donut": {
+      // InfoPanel's donut starts at 3 o'clock and runs clockwise for Span degrees: an arc of the custom gauge widget.
+      const gauge = spec({
+        width: item.Width, height: item.Width, start: 90, sweep: Math.max(1, item.Span), thickness: Math.max(1, item.Thickness),
+        track: item.Background ? (hexColor(item.BackgroundColor) ?? null) : null,
+        fill: { ...DEFAULT_GAUGE.fill, mode: "solid", color: hexColor(item.Color) ?? "#FFFFFF" },
+      });
+      const lost = [...(item.Frame ? ["frame"] : []), ...(item.AutoValue ? ["automatic range"] : []), ...(sensor ? [] : ["no sensor yet: remap it"])];
+      return ok({ kind: "gauge", sensor, max: item.MaxValue }, { x: item.X, y: item.Y, w: item.Width, h: item.Width }, lost, {
+        custom: { kind: "vector", gauge, min: item.MinValue, max: item.MaxValue },
+        needs: ["custom gauge widget"],
+      });
+    }
+
     case "Gauge": {
       const g = vectorOf(item);
-      if (!g) return no("image-sequence gauge: convert it to a vector gauge first (Gauges panel)");
-      const w = Math.floor(((item.Width || g.width) * item.Scale) / 100);
-      const h = Math.floor(((item.Height || g.height) * item.Scale) / 100);
-      // The studio's custom gauge widget (an app phase) draws the spec itself, live; the
-      // app's ring widget is the stand-in kind until then.
-      return {
-        ok: true,
-        native: {
-          widget: { ...base, kind: "gauge", sensor, max: item.MaxValue, color: g.fill.color } as Widget,
-          box: { x: item.X, y: item.Y, w, h },
-          lost: sensor ? [] : ["no sensor yet: remap it"],
-          custom: { gauge: g, min: item.MinValue, max: item.MaxValue },
-        },
-      };
+      if (g) {
+        const w = Math.floor(((item.Width || g.width) * item.Scale) / 100);
+        const h = Math.floor(((item.Height || g.height) * item.Scale) / 100);
+        // The studio's custom gauge widget draws the spec itself, live; the app's ring widget is the stand-in kind.
+        return ok({ kind: "gauge", sensor, max: item.MaxValue, color: g.fill.color }, { x: item.X, y: item.Y, w, h }, sensor ? [] : ["no sensor yet: remap it"], {
+          custom: { kind: "vector", gauge: g, min: item.MinValue, max: item.MaxValue },
+          needs: ["custom gauge widget"],
+        });
+      }
+      if (item.Images.length === 0) return no("gauge without frames");
+      const sources = item.Images.map((img) => imageSource(img));
+      const urls = sources.map((s) => (s.kind === "url" ? s.url : s.kind === "asset" ? ctx.assetUrl(s.name) : null));
+      if (urls.some((u) => u === null)) return no("image-sequence gauge: its frames have no URL yet (uploading to the lab asset store)");
+      const first = sources[0].kind === "asset" ? (ctx.assetSize?.(sources[0].name) ?? null) : null;
+      const w = Math.floor(((item.Width || first?.width || 0) * item.Scale) / 100);
+      const h = Math.floor(((item.Height || first?.height || 0) * item.Scale) / 100);
+      if (w <= 0 || h <= 0) return no("image-sequence gauge at its frames' size, which is not known");
+      const lost = [...(item.AnimationSpeed > 0 ? ["AnimationSpeed (the frame changes at once)"] : []), ...(sensor ? [] : ["no sensor yet: remap it"])];
+      return ok({ kind: "gauge", sensor, max: item.MaxValue }, { x: item.X, y: item.Y, w, h }, lost, {
+        custom: { kind: "frames", urls: urls as string[], min: item.MinValue, max: item.MaxValue },
+        needs: ["image-sequence gauge widget"],
+      });
     }
 
     case "SensorImage":

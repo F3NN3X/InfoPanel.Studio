@@ -114,6 +114,11 @@ function Summary({ parsed, assets: initialAssets, screenshot, source: importSour
       const f = assets.get(name.toLowerCase());
       return f ? (f.url ?? storeUrls.get(f.hash) ?? null) : null;
     },
+    // Images drawn at their natural size (L11): the size sniffed from the file.
+    assetSize: (name) => {
+      const f = assets.get(name.toLowerCase());
+      return f?.width && f.height ? { width: f.width, height: f.height } : null;
+    },
   };
   const native = nativeLayer(items, convertCtx, mode === "live" ? sensorMap(live.catalog) : {});
   const counts = new Map<string, number>();

@@ -183,9 +183,15 @@ all its InfoPanel fields, so switching back is lossless.
 - Text → text, Sensor → value, Clock/Calendar → clock, Bar → bar, Graph → sparkline, TableSensor → table,
   Image/HttpImage → image, plain rectangles and circles → shape. The inspector lists what each conversion loses
   (font, thresholds, frames, formats, ...).
-- Stays InfoPanel, with the reason: rotation, flip, marquee, glow, gradients, other shapes, vertical bars,
-  natural-size images, donuts, image-sequence gauges, threshold images, RTSP. A vector gauge (L7) is drawn live
-  from its spec, as the studio's custom gauge widget will.
+- Where the app's widgets fall short, the lab draws a **studio prototype** of the missing capability (L11) and the
+  conversion names it under *needs in the app*; the import report sums these up as the app work native mode asks
+  for. Rotation and flip turn the widget about its box (as InfoPanel does, flip first); marquee text scrolls when
+  wider than its box; vertical bars and donuts are drawn by the custom gauge widget (a vector spec from the item);
+  capsules, ovals and polygons by a shape widget from InfoPanel's own geometry; image-sequence gauges show the
+  frame for the value (no AnimationSpeed easing); images at their natural size take the file's size. A vector
+  gauge (L7) is the custom gauge widget too.
+- Stays InfoPanel, with the reason: glow, gradient shapes, threshold images, RTSP, images whose size is unknown
+  (URL images at their natural size).
 - The app's table widget reads the flattened text, so native tables do not get L3's structured tables yet (app
   phase).
 

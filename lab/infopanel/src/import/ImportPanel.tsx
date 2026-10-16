@@ -193,6 +193,9 @@ export function ImportPanel(props: ImportPanelProps) {
         <li>
           Items: {report.items.total} ({Object.entries(report.items.byKind).map(([k, n]) => `${n} ${k}`).join(", ")}). Native where possible: {report.native.possible}; the rest stay InfoPanel
           {report.native.stays.length > 0 && <> ({report.native.stays.map((s) => `${s.count} ${s.reason}`).join(", ")})</>}.
+          {report.native.needs.length > 0 && (
+            <> App work native mode asks for (studio prototypes until then): {report.native.needs.map((n) => `${n.need} (${n.count})`).join(", ")}.</>
+          )}
         </li>
         <li>
           Sensors:{" "}

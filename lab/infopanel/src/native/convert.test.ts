@@ -52,18 +52,70 @@ describe("convert", () => {
       const c = convert(one(type, fields), "w", ctx);
       return c.ok ? null : c.reason;
     };
-    expect(why("Text", { Rotation: 90 })).toMatch(/^rotated/);
-    expect(why("Text", { Marquee: true })).toMatch(/^marquee/);
     expect(why("Sensor", { GlowEnabled: true })).toMatch(/^glow/);
     expect(why("Shape")).toMatch(/gradient/); // ShowGradient defaults to true
-    expect(why("Shape", { ShowGradient: false, Type: "Star" })).toMatch(/star shape/);
-    expect(why("Gauge")).toMatch(/image-sequence/);
-    expect(why("Gauge", { Rotation: 0 })).toMatch(/vector gauge first/);
-    expect(why("Donut")).toMatch(/donut/);
+    expect(why("Gauge")).toMatch(/without frames/);
     expect(why("Group")).toMatch(/item by item/);
     expect(why("Image", { Type: "RTSP" })).toMatch(/RTSP/);
-    expect(why("Bar", { Width: 20, Height: 150 })).toMatch(/vertical bar/);
+    // No size, and the file's own size is not known.
     expect(why("Image", { FilePath: "bg.png", RelativePath: true })).toMatch(/natural size/);
+    expect(why("SensorImage")).toMatch(/thresholds/);
+  });
+
+  it("turns and flips an item about its box, which the app's panel items would need", () => {
+    const n = widgetOf("Text", { Rotation: 90, Width: 100, Height: 20 });
+    expect(n.transform).toEqual({ rotate: 90, flipX: false });
+    expect(n.needs).toEqual(["rotated panel items"]);
+    expect(widgetOf("Bar", { FlipX: true, Width: 100, Height: 10 }).needs).toEqual(["flipped panel items"]);
+    expect(widgetOf("Text").transform).toBeUndefined();
+  });
+
+  it("scrolls marquee text in a box with a width, as InfoPanel does", () => {
+    expect(widgetOf("Text", { Marquee: true, Width: 80, MarqueeSpeed: 30, MarqueeSpacing: 12 })).toMatchObject({
+      custom: { kind: "marquee", speed: 30, spacing: 12 }, needs: ["scrolling text"],
+    });
+    // Without a width InfoPanel does not scroll it.
+    expect(widgetOf("Text", { Marquee: true }).custom).toBeUndefined();
+  });
+
+  it("draws a vertical bar and a donut as the custom gauge widget", () => {
+    const bar = widgetOf("Bar", { Width: 20, Height: 150, Color: "#FF00FF00", Background: true, BackgroundColor: "#FF111111", Gradient: false, MinValue: 10, MaxValue: 90 });
+    expect(bar).toMatchObject({
+      needs: ["vertical bar"],
+      custom: { kind: "vector", min: 10, max: 90, gauge: { shape: "bar", orientation: "vertical", width: 20, height: 150, thickness: 20, track: "#111111", fill: { mode: "solid", color: "#00FF00" } } },
+    });
+    const donut = widgetOf("Donut", { Width: 120, Span: 270, Thickness: 12, Color: "#FFFF0000", Rotation: 45 });
+    expect(donut).toMatchObject({
+      box: { w: 120, h: 120 }, transform: { rotate: 45 }, needs: ["custom gauge widget", "rotated panel items"],
+      custom: { kind: "vector", gauge: { shape: "arc", start: 90, sweep: 270, thickness: 12, fill: { color: "#FF0000" } } },
+    });
+  });
+
+  it("draws capsules, ovals and polygons from InfoPanel's geometry", () => {
+    const n = widgetOf("Shape", { ShowGradient: false, Type: "Capsule", Width: 80, Height: 30, CornerRadius: 15, FillColor: "#FF223344", ShowFrame: true, FrameThickness: 2, FrameColor: "#FFFFFFFF" });
+    expect(n).toMatchObject({ needs: ["capsule shape"], custom: { kind: "shape", type: "Capsule", radius: 15, fill: "#223344", stroke: { color: "#FFFFFF", width: 2 } } });
+    expect(widgetOf("Shape", { ShowGradient: false, Type: "Ellipse", Width: 80, Height: 30 }).needs).toEqual(["oval shape"]);
+    expect(widgetOf("Shape", { ShowGradient: false, Type: "Star", Width: 40, Height: 40 }).needs).toEqual(["star shape"]);
+  });
+
+  it("shows an image-sequence gauge's frame for the value, sized from its frames", () => {
+    const sized: ConvertContext = { ...ctx, assetSize: (n) => (n === "f0.png" ? { width: 64, height: 32 } : null) };
+    const item = parseDisplayItemsXml(
+      `<ArrayOfDisplayItem xmlns:xsi="x"><DisplayItem xsi:type="GaugeDisplayItem"><MaxValue>50</MaxValue><AnimationSpeed>5</AnimationSpeed><Images>` +
+        `<ImageDisplayItem><FilePath>f0.png</FilePath><RelativePath>true</RelativePath></ImageDisplayItem>` +
+        `<ImageDisplayItem><FilePath>f1.png</FilePath><RelativePath>true</RelativePath></ImageDisplayItem></Images></DisplayItem></ArrayOfDisplayItem>`,
+    ).items[0];
+    const c = convert(item, "g", sized);
+    expect(c.ok && c.native).toMatchObject({
+      box: { w: 64, h: 32 }, needs: ["image-sequence gauge widget"], lost: ["AnimationSpeed (the frame changes at once)"],
+      custom: { kind: "frames", urls: ["/corpus/p/assets/f0.png", "/corpus/p/assets/f1.png"], min: 0, max: 50 },
+    });
+    expect(convert(item, "g", { ...sized, assetUrl: () => null })).toMatchObject({ ok: false, reason: expect.stringMatching(/no URL yet/) });
+  });
+
+  it("sizes an image drawn at its natural size from the file", () => {
+    const c = convert(one("Image", { FilePath: "bg.png", RelativePath: true, Scale: 50 }), "i", { ...ctx, assetSize: () => ({ width: 200, height: 100 }) });
+    expect(c.ok && c.native.box).toEqual({ x: 100, y: 100, w: 100, h: 50 });
   });
 
   it("makes a vector gauge the custom gauge widget, which draws its spec live, losing nothing", () => {
@@ -73,7 +125,8 @@ describe("convert", () => {
       widget: { kind: "gauge", max: 3000, sensor: "libre.cpu_total" },
       box: { w: 60, h: 50 },
       lost: [],
-      custom: { min: 500, max: 3000, gauge: { shape: "arc", sweep: 270, needle: { length: 0.85 } } },
+      needs: ["custom gauge widget"],
+      custom: { kind: "vector", min: 500, max: 3000, gauge: { shape: "arc", sweep: 270, needle: { length: 0.85 } } },
     });
     expect(gauge({ shape: "bar", orientation: "vertical" })).toMatchObject({ ok: true, native: { custom: { gauge: { orientation: "vertical" } } } });
   });
