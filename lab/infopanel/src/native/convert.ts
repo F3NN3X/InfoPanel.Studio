@@ -183,7 +183,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       const src = imageSource(item);
       const url = src.kind === "url" ? src.url : src.kind === "asset" ? ctx.assetUrl(src.name) : null;
       if (item.kind === "Image" && !url) {
-        return no(src.kind === "none" ? src.why : "the image has no served URL (opened from a file, or edited or added in the lab)");
+        return no(src.kind === "none" ? src.why : "the image has no URL yet (uploading to the lab asset store, or not an image the widget shows)");
       }
       // InfoPanel draws a 0 × 0 image at its file's size; the widget needs the box.
       if (item.Width <= 0 || item.Height <= 0) return no("image at its natural size: give it a Width and Height to convert");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listEntries, readEntry } from "./zip.ts";
+import { crc32, listEntries, readEntry, writeZip } from "./zip.ts";
 import { buildZip } from "./__fixtures__/builders.ts";
 
 const enc = new TextEncoder();
@@ -60,5 +60,17 @@ describe("zip reader", () => {
     const zip = await buildZip([{ name: "a.txt", text: "x", method: 0 }]);
     const [e] = listEntries(zip);
     await expect(readEntry(zip, { ...e, method: 14 })).rejects.toThrow(/method 14/);
+  });
+});
+
+describe("zip writer", () => {
+  it("writes stored entries the reader (and the CRC check) reads back, UTF-8 names included", async () => {
+    const enc = new TextEncoder();
+    const files = [{ name: "Profile.xml", data: enc.encode("<Profile/>") }, { name: "assets/løgo.png", data: new Uint8Array([1, 2, 3]) }, { name: "empty", data: new Uint8Array() }];
+    const zip = writeZip(files);
+    const entries = listEntries(zip);
+    expect(entries.map((e) => [e.name, e.method, e.size])).toEqual([["Profile.xml", 0, 10], ["assets/løgo.png", 0, 3], ["empty", 0, 0]]);
+    expect(await Promise.all(entries.map((e) => readEntry(zip, e)))).toEqual(files.map((f) => f.data));
+    expect(crc32(enc.encode("123456789"))).toBe(0xcbf43926);
   });
 });

@@ -4,7 +4,12 @@ import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from 
 import { walkItems } from "./parse.ts";
 import { tableFromExport, type AssetTable } from "./assets/assets.ts";
 import { AssetPanel } from "./assets/AssetPanel.tsx";
+import { useStoreUrls } from "./assets/store.ts";
 import { GaugePanel } from "./gauges/GaugePanel.tsx";
+import { openBundle } from "./import/bundle.ts";
+import { ImportPanel, type ImportSource } from "./import/ImportPanel.tsx";
+import type { DefaultMode, StoredFont } from "./import/stored.ts";
+import { requestKey } from "./font-supply.ts";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
@@ -50,9 +55,12 @@ interface Opened {
   parsed: ParsedExport;
   /** The export's asset files, read up front so the lab can edit them (L6). */
   assets: AssetTable;
+  source: ImportSource;
+  /** A saved canvas being reopened (L8): its decisions. */
+  restore?: { overrides: Map<string, string>; fonts: StoredFont[]; fontFiles: Map<string, Uint8Array>; defaultMode: DefaultMode; missing: string[] };
 }
 
-function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { screenshot: string | null }) {
+function Summary({ parsed, assets: initialAssets, screenshot, source: importSource, restore }: Opened & { screenshot: string | null }) {
   const { profile, issues } = parsed;
   const editor = useEditor(parsed.items, initialAssets);
   const assets = editor.assets;
@@ -60,6 +68,7 @@ function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { scree
     () => new Map([...assets].map(([k, f]) => [k, { hash: f.hash, read: async () => f.bytes }])),
     [assets],
   );
+  const storeUrls = useStoreUrls(assets);
   const items = editor.items;
   const fontPlan = useFontPlan(items);
   const [mode, setMode] = useState<SensorMode>("unbound");
@@ -68,7 +77,19 @@ function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { scree
   const now = useNow();
   // Remap (L2): the candidate index changes with the set of keys, the groups with
   // the set of bindings, not on every poll or every drag.
-  const [overrides, setOverrides] = useState<Overrides>(new Map());
+  const [overrides, setOverrides] = useState<Overrides>(() => restore?.overrides ?? new Map());
+  const [defaultMode, setDefaultMode] = useState<DefaultMode>(restore?.defaultMode ?? "infopanel");
+  // A reopened canvas: its supplied font files back in the library, and its choices.
+  useEffect(() => {
+    if (!restore || restore.fonts.length === 0) return;
+    const files = [...restore.fontFiles].map(([hash, bytes]) => {
+      const name = restore.fonts.find((f) => f.supplied?.hash === hash)?.supplied?.file || `${hash.slice(0, 12)}.ttf`;
+      return new File([bytes.slice()], name);
+    });
+    void fontPlan.addFiles(files).then(() => {
+      for (const f of restore.fonts) fontPlan.choose(requestKey(f.request), f.use);
+    });
+  }, []);
   const keysSig = Object.keys(live.catalog.sensors).join("\n");
   const index = useMemo(() => indexCatalog(live.catalog), [keysSig]);
   const groups = groupBindings(items);
@@ -88,8 +109,11 @@ function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { scree
   const convertCtx: ConvertContext = {
     fontScale: profile.FontScale,
     keyOf: (item) => resolved.get(groupId(item))?.key ?? null,
-    // The app's image widget loads only served URLs: files edited or added in the lab stay InfoPanel.
-    assetUrl: (name) => assets.get(name.toLowerCase())?.url ?? null,
+    // The app's image widget loads served URLs: the export's own file, else the lab asset store's copy.
+    assetUrl: (name) => {
+      const f = assets.get(name.toLowerCase());
+      return f ? (f.url ?? storeUrls.get(f.hash) ?? null) : null;
+    },
   };
   const native = nativeLayer(items, convertCtx, mode === "live" ? sensorMap(live.catalog) : {});
   const counts = new Map<string, number>();
@@ -102,6 +126,22 @@ function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { scree
         {profile.FontScale.toFixed(2)}, {assets.size} assets
       </p>
       <p>Sensors: {mode} (change below)</p>
+      {restore && restore.missing.length > 0 && <p><b>Missing from the saved canvas: {restore.missing.join(", ")}</b></p>}
+      <ImportPanel
+        editor={editor}
+        profile={profile}
+        issues={issues}
+        groups={stableGroups}
+        resolved={resolved}
+        overrides={overrides}
+        live={mode === "live"}
+        onLive={() => setMode("live")}
+        fonts={fontPlan}
+        convertCtx={convertCtx}
+        source={importSource}
+        defaultMode={defaultMode}
+        onDefaultMode={setDefaultMode}
+      />
       <ComparePanel
         parsed={parsed}
         editor={editor}
@@ -181,15 +221,36 @@ function Lab() {
   const all = [...corpus, ...installed];
 
   /** `served`: the lab server's URL for an entry, for corpus and installed profiles. */
-  const open = (entries: Promise<ExportEntry[]>, shot: string | null = null, served?: (entry: string) => string) => {
+  const open = (entries: Promise<ExportEntry[]>, source: ImportSource, shot: string | null = null, served?: (entry: string) => string) => {
     setScreenshot(shot);
     setOpened(null);
     setError(null);
     setLoads((n) => n + 1);
     entries
       .then(loadExport)
-      .then(async (parsed) => ({ parsed, assets: await tableFromExport(parsed.assets, served) }))
+      .then(async (parsed) => ({ parsed, assets: await tableFromExport(parsed.assets, served), source }))
       .then(setOpened, (e: Error) => setError(e.message));
+  };
+
+  /** A canvas saved by the Import panel (L8). */
+  const openSaved = (file: File) => {
+    setScreenshot(null);
+    setOpened(null);
+    setError(null);
+    setLoads((n) => n + 1);
+    file
+      .arrayBuffer()
+      .then((b) => openBundle(new Uint8Array(b)))
+      .then(
+        (o) =>
+          setOpened({
+            parsed: o.parsed,
+            assets: o.assets,
+            source: { name: o.read.stored.source.name, origin: o.read.stored.source.origin },
+            restore: { overrides: o.overrides, fonts: o.read.stored.fonts, fontFiles: o.fonts, defaultMode: o.read.stored.defaultMode, missing: o.missing },
+          }),
+        (e: Error) => setError(e.message),
+      );
   };
 
   return (
@@ -198,7 +259,7 @@ function Lab() {
       <p>
         <select defaultValue="" onChange={(e) => {
             const p = all[Number(e.target.value)];
-            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null, (name) => servedUrl(p, name));
+            open(Promise.resolve(corpusEntries(p)), { name: p.id, origin: p.base ? "installed" : "corpus" }, p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null, (name) => servedUrl(p, name));
           }}>
           <option value="" disabled>
             Profile…
@@ -227,7 +288,16 @@ function Lab() {
           accept=".infopanel"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) open(f.arrayBuffer().then((b) => entriesFromZip(new Uint8Array(b))));
+            if (f) open(f.arrayBuffer().then((b) => entriesFromZip(new Uint8Array(b))), { name: f.name.replace(/\.infopanel$/i, ""), origin: "file" });
+          }}
+        />{" "}
+        or a saved canvas{" "}
+        <input
+          type="file"
+          accept=".zip"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) openSaved(f);
           }}
         />
       </p>

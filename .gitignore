@@ -32,5 +32,7 @@ lab/infopanel/corpus/
 lab/infopanel/fonts/
 # InfoPanel import lab: the gauge library (gauge-library-plugin.ts)
 lab/infopanel/gauges/
+# InfoPanel import lab: stand-in asset store (asset-store-plugin.ts)
+lab/infopanel/asset-store/
 lab/infopanel/tools/*/bin/
 lab/infopanel/tools/*/obj/

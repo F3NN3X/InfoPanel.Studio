@@ -31,6 +31,9 @@ export interface AssetFile {
 
 export type AssetTable = ReadonlyMap<string, AssetFile>;
 
+/** A SHA-256 as `assetFile` writes it. */
+export const HASH_HEX = /^[0-9a-f]{64}$/;
+
 export const assetKey = (name: string) => name.toLowerCase();
 
 const ascii = (b: Uint8Array, at: number, n: number) => String.fromCharCode(...b.subarray(at, at + n));

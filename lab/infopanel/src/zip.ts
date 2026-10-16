@@ -106,3 +106,80 @@ export async function readEntry(buf: Uint8Array, entry: ZipEntry, limit = Infini
   if (entry.method === DEFLATE) return inflateRaw(raw, limit, entry.name);
   throw new Error(`Unsupported compression method ${entry.method} for ${entry.name}`);
 }
+
+/* ---- writing ---- */
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+export function crc32(data: Uint8Array): number {
+  let c = 0xffffffff;
+  for (const b of data) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+/**
+ * A zip of `files`, stored without compression (the images and fonts in an
+ * export are compressed already). UTF-8 names (flag bit 11); no zip64, so the
+ * whole archive stays under 4 GB.
+ */
+export function writeZip(files: readonly { name: string; data: Uint8Array }[]): Uint8Array {
+  const enc = new TextEncoder();
+  const parts: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const local = new Uint8Array(30 + name.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, LOCAL_SIG, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, STORE, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, f.data.length, true);
+    lv.setUint32(22, f.data.length, true);
+    lv.setUint16(26, name.length, true);
+    local.set(name, 30);
+    const record = new Uint8Array(46 + name.length);
+    const cv = new DataView(record.buffer);
+    cv.setUint32(0, CENTRAL_SIG, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, STORE, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, f.data.length, true);
+    cv.setUint32(24, f.data.length, true);
+    cv.setUint16(28, name.length, true);
+    cv.setUint32(42, offset, true);
+    record.set(name, 46);
+    parts.push(local, f.data);
+    central.push(record);
+    offset += local.length + f.data.length;
+  }
+  if (files.length > 0xfffe || offset > 0xfffffff0) throw new Error("Too large for a zip without zip64");
+  const centralSize = central.reduce((n, c) => n + c.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, EOCD_SIG, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, offset, true);
+  const out = new Uint8Array(offset + centralSize + 22);
+  let at = 0;
+  for (const p of [...parts, ...central, eocd]) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
+}

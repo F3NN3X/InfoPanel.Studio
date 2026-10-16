@@ -237,3 +237,37 @@ AnimationSpeed with a crossfade. Every change is one undo step.
   the library** / **Save all** skip gauges already saved; an entry is used for the selected gauge (its sensor and
   range stay) or inserted as a new gauge with the saved range and AnimationSpeed. Deleting an entry removes the
   frames nothing else uses.
+
+## Import flow (L8)
+
+The **Import** panel (`src/import/`) runs the import end to end, as the app's canvas zone will.
+
+- **Default mode**: Faithful (every item drawn as InfoPanel), Native where possible, or Both (the app makes one
+  canvas of each). Faithful and Native set every item in one undo step.
+- **Report** (`report.ts`): what the Data API offers (exact sensor refs, structured tables, font endpoints), items
+  per kind, how many go native and why the rest stay, sensors by match status (**Check sensors** uses the live
+  Data API), assets (unused, duplicates, missing, URLs, absolute paths), fonts, gauges and parse issues.
+- **Stored form** (`stored.ts`): `infopanel-canvas` v1, the JSON the app saves: source, Data API, default mode,
+  profile, items (unknown fields kept; lab state under `$`: mode, sensor key, vector spec), assets by SHA-256 and
+  fonts with the supplied face's hash. Reading it back checks every field against the schema tables and reports
+  what it drops. **Save stored form** downloads it with its files as `<name>.canvas.zip` (`bundle.ts`:
+  `canvas.json`, `assets/<sha256>`, `fonts/<sha256>`, each checked against its hash on open); open it again under
+  "or a saved canvas" and the mode, remap choices, fonts and assets come back.
+- **Export .infopanel** (`src/export/write.ts`): writes `Profile.xml` and `DisplayItems.xml` in InfoPanel's field
+  order (doubles and floats as .NET prints them, unknown fields kept, lab fields left out) and the assets. Stale
+  vector gauges can be baked first (one undo step); unused assets can be left out. Every corpus profile round-trips
+  through the writer in the tests.
+- **Lab asset store** (`asset-store-plugin.ts`, `src/assets/store.ts`, on `hash-store.ts` shared with the gauge
+  library): stands in for the app's asset store, so native images have a URL; files go to `asset-store/`
+  (gitignored), raster images only, stored by hash and served with nosniff and a sandbox CSP.
+- **import-check** (`tools/import-check/`): reads exports with InfoPanel's own `XmlSerializer` types and writes
+  what InfoPanel then holds:
+
+  ```
+  dotnet run --project lab/infopanel/tools/import-check -p:Platform=x64 -- <out-folder> <a.infopanel> [...]
+  ```
+
+  It builds against the InfoPanel checkout at `E:\GitHub\PublicRepos\infopanel-pr173` (override with
+  `-p:InfoPanelProject=...`). For ARCv2_WIDE, Dashboard,
+  Umbrella_V.2 and [Import]_TheForeverWinter, the lab's export of the untouched profile reads back identical to
+  the original.
