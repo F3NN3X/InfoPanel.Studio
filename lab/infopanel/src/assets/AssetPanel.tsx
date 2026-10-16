@@ -4,15 +4,18 @@
  * oversized and missing files; and the font library managed the same way.
  * Every asset edit is one undo step, together with the item fields it changes.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { itemAt } from "../editor/ops.ts";
 import type { Editor } from "../editor/useEditor.ts";
+import { reviewFont, VERDICT_LABEL, type Verdict } from "../font-licence.ts";
 import { fontFiles } from "../font-supply.ts";
 import type { FontPlan } from "../useFontPlan.ts";
+import { FileButton, IMAGE_ACCEPT, kb, readFiles, reencodable, reencode } from "./asset-kit.tsx";
 import {
-  add, analyse, assetFile, assetKey, assign, MIME, mergeDuplicates, remove, removeWithUses, replace, scanRefs, usesOf,
+  add, analyse, assetKey, assign, MIME, mergeDuplicates, remove, removeWithUses, replace, scanRefs, usesOf,
   type AssetFile, type AssetRef, type Doc, type Oversized,
 } from "./assets.ts";
+import { Polish } from "./Polish.tsx";
 
 /** One object URL per file content, revoked when the panel goes. */
 export function useObjectUrls(): (f: AssetFile) => string {
@@ -31,28 +34,11 @@ export function useObjectUrls(): (f: AssetFile) => string {
   };
 }
 
-const kb = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
-
-const readFiles = (files: readonly File[]) =>
-  Promise.all(files.map(async (f) => assetFile(f.name, new Uint8Array(await f.arrayBuffer()), "added")));
-
-/** Re-encodes an image at the size it is drawn; null when the result is not smaller. */
+/** Re-encodes an image at the size it is drawn (JPEG and WebP at 92); null when the result is not smaller. */
 async function downscale(f: AssetFile, target: { width: number; height: number }): Promise<AssetFile | null> {
-  const bitmap = await createImageBitmap(new Blob([f.bytes.slice()], { type: MIME[f.type] }));
-  const canvas = new OffscreenCanvas(target.width, target.height);
-  const ctx = canvas.getContext("2d")!;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bitmap, 0, 0, target.width, target.height);
-  bitmap.close();
-  // JPEG and WebP stay lossy at high quality; everything else becomes PNG.
-  const type = f.type === "jpeg" || f.type === "webp" ? MIME[f.type] : "image/png";
-  const blob = await canvas.convertToBlob({ type, quality: 0.92 });
-  if (blob.size >= f.bytes.length) return null;
-  return assetFile(f.name, new Uint8Array(await blob.arrayBuffer()), f.origin);
+  const out = await reencode(f, target, "same", 92);
+  return out.bytes.length < f.bytes.length ? out : null;
 }
-
-/** Can the browser re-encode it: a still raster image. */
-const reencodable = (f: AssetFile) => !f.animated && ["png", "jpeg", "webp", "gif", "bmp"].includes(f.type);
 
 function Preview({ file, url }: { file: AssetFile; url: string }) {
   const box = { width: 72, height: 48, objectFit: "contain" as const, display: "block" };
@@ -74,27 +60,6 @@ function Uses({ refs, onSelect }: { refs: AssetRef[]; onSelect(paths: string[]):
   );
 }
 
-function FileButton({ children, multiple, accept, onFiles }: { children: ReactNode; multiple?: boolean; accept: string; onFiles(files: File[]): void }) {
-  const input = useRef<HTMLInputElement>(null);
-  return (
-    <>
-      <button onClick={() => input.current?.click()}>{children}</button>
-      <input
-        ref={input}
-        type="file"
-        multiple={multiple}
-        accept={accept}
-        style={{ display: "none" }}
-        onChange={(e) => {
-          // Copied first: clearing the input empties its live FileList.
-          if (e.target.files?.length) onFiles([...e.target.files]);
-          e.target.value = "";
-        }}
-      />
-    </>
-  );
-}
-
 /** A font's license URL comes from an untrusted file: link only http(s). */
 const webUrl = (u: string | undefined) => {
   try {
@@ -104,8 +69,6 @@ const webUrl = (u: string | undefined) => {
     return undefined;
   }
 };
-
-const IMAGE_ACCEPT = "image/*,video/mp4,video/webm,.ico";
 
 export function AssetPanel({ editor, fonts }: { editor: Editor; fonts: FontPlan }) {
   const urlOf = useObjectUrls();
@@ -222,6 +185,8 @@ export function AssetPanel({ editor, fonts }: { editor: Editor; fonts: FontPlan 
         </li>
       </ul>
 
+      <Polish editor={editor} doc={doc} />
+
       <table>
         <thead>
           <tr>
@@ -311,6 +276,23 @@ function textPaths(editor: Editor, family: string, items = editor.present, prefi
   });
 }
 
+const VERDICT_COLOR: Record<Verdict, string> = { share: "#6c6", check: "#fc6", keep: "#f66" };
+
+function VerdictTag({ verdict, reason }: { verdict: Verdict; reason: string }) {
+  return (
+    <span title={reason} style={{ color: VERDICT_COLOR[verdict], whiteSpace: "nowrap" }}>
+      {VERDICT_LABEL[verdict]}
+    </span>
+  );
+}
+
+const reviewSummary = (verdicts: Verdict[]) =>
+  (["share", "check", "keep"] as const)
+    .map((v) => [v, verdicts.filter((x) => x === v).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([v, n]) => `${n} ${VERDICT_LABEL[v]}`)
+    .join(", ");
+
 /** The font library as assets: per file its origin, license and what draws with it; then the missing families. */
 function FontAssets({ fonts, onSelectFamily }: { fonts: FontPlan; onSelectFamily(family: string): void }) {
   const files = fontFiles(fonts.library, fonts.rows);
@@ -319,6 +301,7 @@ function FontAssets({ fonts, onSelectFamily }: { fonts: FontPlan; onSelectFamily
   return (
     <>
       {used.length === 0 && <p>No library font draws in this profile.</p>}
+      {used.length > 0 && <p>Licence review: {reviewSummary(used.map((f) => reviewFont(f).verdict))}.</p>}
       <table hidden={used.length === 0}>
         <thead>
           <tr>
@@ -327,6 +310,7 @@ function FontAssets({ fonts, onSelectFamily }: { fonts: FontPlan; onSelectFamily
             <th>Faces</th>
             <th>Size</th>
             <th>License</th>
+            <th title="May the file travel with the canvas (a saved canvas holds its supplied fonts)? A hint, not legal advice">Sharing</th>
             <th>Draws</th>
             <th />
           </tr>
@@ -349,6 +333,9 @@ function FontAssets({ fonts, onSelectFamily }: { fonts: FontPlan; onSelectFamily
                   </>
                 )}
                 {f.embedding && f.embedding !== "installable" && <div>embedding: {f.embedding}</div>}
+              </td>
+              <td>
+                <VerdictTag {...reviewFont(f)} />
               </td>
               <td>
                 {f.rows.length ? (

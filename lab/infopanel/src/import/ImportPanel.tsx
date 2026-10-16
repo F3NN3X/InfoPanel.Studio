@@ -8,6 +8,7 @@ import { analyse, assetFile, type Doc } from "../assets/assets.ts";
 import { itemAt, setField, type Path } from "../editor/ops.ts";
 import type { Editor } from "../editor/useEditor.ts";
 import { infopanelExport } from "../export/write.ts";
+import { reviewFont, VERDICT_LABEL } from "../font-licence.ts";
 import { bakeSignature, gaugePaths, isStale, safeStem, setFrameFiles, vectorOf } from "../gauges/frames.ts";
 import { bake } from "../gauges/raster.ts";
 import type { ConvertContext } from "../native/convert.ts";
@@ -135,7 +136,18 @@ export function ImportPanel(props: ImportPanelProps) {
         profile: props.profile, items: editor.present, assets: editor.assets, keyOf: remapKeys(props.resolved, props.overrides), fonts,
       });
       download(`${fileStem(props.profile.Name)}.canvas.zip`, bundle(stored, editor.assets, files));
-      return props.live ? "Saved" : "Saved without sensor keys: the Data API was not used (Check sensors first)";
+      // The saved canvas carries its supplied fonts: say which ones are not clearly free to share (L12).
+      const flagged = [
+        ...new Set(
+          props.fonts.rows.flatMap((r) => {
+            const f = r.use === "supplied" ? r.supplied : null;
+            const review = f && reviewFont({ license: f.license ?? f.licenseText, licenseUrl: f.licenseUrl, embedding: f.embedding });
+            return review && review.verdict !== "share" ? [`${f.file.replace(/^.*\//, "")} (${VERDICT_LABEL[review.verdict]})`] : [];
+          }),
+        ),
+      ];
+      const fontsNote = flagged.length ? `; it holds fonts to review before sharing it: ${flagged.join(", ")}` : "";
+      return (props.live ? "Saved" : "Saved without sensor keys: the Data API was not used (Check sensors first)") + fontsNote;
     });
 
   const stale = gaugePaths(editor.present).filter((p) => isStale(itemAt(editor.present, p)));

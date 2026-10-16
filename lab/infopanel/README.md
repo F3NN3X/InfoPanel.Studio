@@ -216,6 +216,12 @@ one undo step. Nothing is written back yet.
   faces, size, license (the source's, else the font's own name table, with its URL) and embedding permission
   (OS/2 fsType); missing families select their text items. Added and downloaded fonts can be removed. Re-run
   `npm run lab:fonts` for pack sizes and licenses.
+- Polish (L12): **Optimise images** re-encodes every still image (same type, or WebP, at a quality; size kept,
+  capped on the longest side, or a percent; never grown) in one undo step, keeping a file only when it is at
+  least 5 % smaller. **Replace by name** matches picked files to the profile's by name (or by a unique stem when
+  the type differs), lists matches, files already the same, unmatched and ambiguous names, and replaces the
+  matches in one undo step. The fonts table reviews each licence (may share, check, do not share) and the
+  export's save note names the supplied fonts to review before sharing it.
 - Native image widgets load the lab server's URL of the export's own file; a file edited or added in the lab has
   none, so those items stay InfoPanel (the app phase serves them from the asset store).
 

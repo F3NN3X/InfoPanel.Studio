@@ -146,7 +146,7 @@ others). Each phase ends with the lab tests passing; `src/` stays untouched unti
 | L9 | SVG template gauges: the user's own SVG, animated or not, driven by the value through CSS custom properties; live in the studio, baked for InfoPanel |
 | L10 | Gauge creator parity, the basics and groundwork, shaped for the app's widgets: theme colours, threshold fill, scale, value text, tick labels and minor ticks, needle styles, background, glow and shadow, presets, spec files. Later: liquid fill, grid matrix, multi-ring, bar icons and patterns, centre icons |
 | L11 | Native mode coverage: studio prototypes for what the app's widgets lack (rotation and flip, marquee text, vertical bars, donuts, capsule and polygon shapes, image-sequence gauges, natural-size images); each conversion names the app feature it needs, and the import report sums them up |
-| L12 | Asset and font polish: image optimising (resize, recompress), font licence review, bulk replace |
+| L12 | Asset and font polish: image optimising (resize, recompress, WebP; kept only when 5 % smaller), font licence review (fonts table and the export's save note), bulk replace by name |
 
 ### App phases (after the lab is complete)
 
