@@ -66,14 +66,16 @@ describe("convert", () => {
     expect(why("Image", { FilePath: "bg.png", RelativePath: true })).toMatch(/natural size/);
   });
 
-  it("makes a vector arc gauge the ring widget and a vector bar the bar widget", () => {
+  it("makes a vector gauge the custom gauge widget, which draws its spec live, losing nothing", () => {
     const gauge = (vector: object, fields: Record<string, number> = {}) => convert({ ...one("Gauge", { MaxValue: 3000, ...fields }), vector } as never, "g", ctx);
-    const ring = gauge({ shape: "arc", start: 0, sweep: 360, width: 120, height: 100 });
-    expect(ring.ok && ring.native).toMatchObject({ widget: { kind: "gauge", max: 3000, sensor: "libre.cpu_total", fontSize: 100 }, box: { w: 120, h: 100 } });
-    const dial = gauge({ shape: "arc", sweep: 270, needle: {} });
-    expect(dial.ok && dial.native.lost).toEqual(expect.arrayContaining(["needle", expect.stringMatching(/270° arc/)]));
-    expect(gauge({ shape: "bar", width: 300, height: 20 }, { Scale: 50 })).toMatchObject({ ok: true, native: { widget: { kind: "bar" }, box: { w: 150, h: 10 } } });
-    expect(gauge({ shape: "bar", orientation: "vertical" })).toMatchObject({ ok: false });
+    const dial = gauge({ shape: "arc", sweep: 270, needle: {}, width: 120, height: 100 }, { MinValue: 500, Scale: 50 });
+    expect(dial.ok && dial.native).toMatchObject({
+      widget: { kind: "gauge", max: 3000, sensor: "libre.cpu_total" },
+      box: { w: 60, h: 50 },
+      lost: [],
+      custom: { min: 500, max: 3000, gauge: { shape: "arc", sweep: 270, needle: { length: 0.85 } } },
+    });
+    expect(gauge({ shape: "bar", orientation: "vertical" })).toMatchObject({ ok: true, native: { custom: { gauge: { orientation: "vertical" } } } });
   });
 
   it("drops the alpha of .NET colours", () => {

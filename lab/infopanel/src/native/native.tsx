@@ -10,6 +10,8 @@ import type { CSSProperties, ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { WidgetView } from "@/components/widgets/WidgetView";
+import { fraction } from "../gauges/vector.ts";
+import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
 import type { DisplayItem } from "../schema.ts";
 import type { Catalog } from "../sensors.ts";
 import { convert, type Conversion, type ConvertContext } from "./convert.ts";
@@ -63,12 +65,17 @@ export function nativeLayer(items: DisplayItem[], ctx: ConvertContext, sensors: 
     if (!c.ok) return;
     hidden.add(path);
     if (isHidden) return;
-    const { box, widget } = c.native;
+    const { box, widget, custom } = c.native;
     const style: CSSProperties = { position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h, overflow: "visible" };
+    const value = widget.sensor ? sensors[widget.sensor]?.value : undefined;
     elements.set(
       path,
       <div key={`native-${path}`} data-path={path} data-native="" style={style}>
-        <WidgetView widget={widget} sensors={sensors} />
+        {custom ? (
+          <VectorGaugeSvg gauge={custom.gauge} p={fraction(value ?? null, custom.min, custom.max)} width={box.w} height={box.h} id={`native-${path}`} />
+        ) : (
+          <WidgetView widget={widget} sensors={sensors} />
+        )}
       </div>,
     );
   });

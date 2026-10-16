@@ -184,8 +184,8 @@ all its InfoPanel fields, so switching back is lossless.
   Image/HttpImage → image, plain rectangles and circles → shape. The inspector lists what each conversion loses
   (font, thresholds, frames, formats, ...).
 - Stays InfoPanel, with the reason: rotation, flip, marquee, glow, gradients, other shapes, vertical bars,
-  natural-size images, donuts, image-sequence gauges, threshold images, RTSP. A vector gauge (L7) becomes the
-  app's ring (arc) or bar widget, listing what the widget lacks.
+  natural-size images, donuts, image-sequence gauges, threshold images, RTSP. A vector gauge (L7) is drawn live
+  from its spec, as the studio's custom gauge widget will.
 - The app's table widget reads the flattened text, so native tables do not get L3's structured tables yet (app
   phase).
 
@@ -226,10 +226,12 @@ AnimationSpeed with a crossfade. Every change is one undo step.
 - **Vector gauges** (`vector.ts`): arc or bar, segments, solid / gradient / zone colours (placed over the whole
   range, not the filled part), track, needle or marker, ticks, reverse. Ideas from the user's gauge creator
   (`v0-themely-resource-creator`, Canvas 2D, 101 PNG frames); rewritten as pure SVG geometry. A new one starts from
-  a starter; **Convert to vector** puts a spec on an imported gauge. The lab canvas draws the spec live at the
-  value; **Bake** renders it into N PNG frames (frame i at i / (N − 1) of the range, the one InfoPanel picks), so
-  the export works in InfoPanel. The spec lives in the lab field `vector`; a spec changed since baking shows
-  "not baked". **Back to frames only** drops the spec and keeps the frames.
+  a starter; **Convert to vector** puts a spec on an imported gauge. The spec lives in the lab field `vector`.
+- A vector gauge needs no frames: the canvas draws it live at the value, moving at AnimationSpeed percent of the
+  range a second (what 101 baked frames would do in InfoPanel), and native mode draws it as the studio's custom
+  gauge widget (a prototype; the app's widget is an app phase) with nothing lost. **Bake** is only for InfoPanel:
+  it renders N PNG frames (frame i at i / (N − 1) of the range, the one InfoPanel picks); the list says when
+  there are none or they are out of date. **Back to frames only** drops the spec and keeps the frames.
 - **Library** (`library.ts`, `gauge-library-plugin.ts`): saved by the lab dev server in `gauges/` (gitignored):
   `library.json` and each frame once by SHA-256 (the server checks the hash, and every entry on write). **Save to
   the library** / **Save all** skip gauges already saved; an entry is used for the selected gauge (its sensor and

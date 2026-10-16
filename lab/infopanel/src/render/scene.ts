@@ -58,10 +58,11 @@ export interface SceneInput {
   /** Item paths the lab hides (with their children), on top of InfoPanel's own Hidden. */
   hidden?: ReadonlySet<string>;
   /**
-   * The gauge's shown frame index, which may lie between frames while it animates
-   * (AnimationSpeed); by default the target frame.
+   * A gauge's shown position, moving toward `target` at `speed` steps a second
+   * (AnimationSpeed) within 0..count − 1: a frame index, which may lie between
+   * frames, or a vector gauge's percent. By default the target.
    */
-  gaugeIndex?(path: string, target: number, item: GaugeItem): number;
+  gaugeIndex?(path: string, target: number, speed: number, count: number): number;
 }
 
 /** Where an image item's file comes from. */
@@ -273,19 +274,22 @@ export function buildScene(input: SceneInput): DrawNode[] {
         const g = item as GaugeItem;
         const r = state.reading;
         const vector = vectorOf(g);
+        // A vector gauge moves at AnimationSpeed percent of the range a second: what 101 baked frames would do.
+        const shownPercent = (path: string, target: number) =>
+          g.AnimationSpeed > 0 && r && input.gaugeIndex ? input.gaugeIndex(path, target, g.AnimationSpeed, 101) : target;
         if (vector) {
           const width = Math.floor(((g.Width || vector.width) * g.Scale) / 100);
           const height = Math.floor(((g.Height || vector.height) * g.Scale) / 100);
           if (width > 0 && height > 0) {
             nodes.push({
               kind: "vector", path, item, x, y, width, height, rotation: g.Rotation, flipX: g.FlipX,
-              gauge: vector, p: fraction(r ? r.now : null, g.MinValue, g.MaxValue),
+              gauge: vector, p: shownPercent(path, fraction(r ? r.now : null, g.MinValue, g.MaxValue) * 100) / 100,
             });
           }
           return;
         }
         const target = gaugeFrame(g.Images.length, r ? r.now : null, g.MinValue, g.MaxValue);
-        const index = g.Images.length > 1 && r && input.gaugeIndex ? input.gaugeIndex(path, target, g) : target;
+        const index = g.Images.length > 1 && r && input.gaugeIndex ? input.gaugeIndex(path, target, g.AnimationSpeed, g.Images.length) : target;
         const [lower, upper] = [Math.floor(index), Math.ceil(index)];
         const image = g.Images[lower];
         if (!image) return;

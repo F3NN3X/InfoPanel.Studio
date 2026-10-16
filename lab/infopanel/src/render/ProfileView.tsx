@@ -7,7 +7,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSP
 import type { ExportEntry, ParsedExport } from "../archive.ts";
 import { FontLoader, type ResolvedFont } from "../font-loader.ts";
 import { walkItems } from "../parse.ts";
-import type { DisplayItem, GaugeItem } from "../schema.ts";
+import type { DisplayItem } from "../schema.ts";
 import type { BoundItem } from "../sensors.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
 import { cssColor } from "./color.ts";
@@ -224,11 +224,11 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
   const animated = useMemo(() => hasAnimatedGradient(items) || hasAnimatedGauge(items), [items]);
   // Each animating gauge's shown index and when it was last moved, across frames.
   const gauges = useRef(new Map<string, { index: number; at: number }>());
-  const gaugeIndex = (path: string, target: number, g: GaugeItem) => {
+  const gaugeIndex = (path: string, target: number, speed: number, count: number) => {
     const now = performance.now();
     const last = gauges.current.get(path);
     // First evaluation: InfoPanel uses a nominal 1/60 s so smoothing starts at once.
-    const index = smoothIndex(last?.index ?? 0, target, g.AnimationSpeed, last ? (now - last.at) / 1000 : 1 / 60, g.Images.length);
+    const index = smoothIndex(last?.index ?? 0, target, speed, last ? (now - last.at) / 1000 : 1 / 60, count);
     gauges.current.set(path, { index, at: now });
     return index;
   };

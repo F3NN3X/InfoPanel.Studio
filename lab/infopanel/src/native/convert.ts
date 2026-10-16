@@ -8,6 +8,7 @@
  */
 import type { Widget } from "@/lib/panel-model";
 import { vectorOf } from "../gauges/frames.ts";
+import type { VectorGauge } from "../gauges/vector.ts";
 import { cssColor } from "../render/color.ts";
 import { imageSource } from "../render/scene.ts";
 import type { DisplayItem } from "../schema.ts";
@@ -26,6 +27,8 @@ export interface NativeItem {
   box: NativeBox;
   /** InfoPanel features the widget does not have. */
   lost: string[];
+  /** A vector gauge: the custom gauge widget draws this spec live (studio prototype, L7). */
+  custom?: { gauge: VectorGauge; min: number; max: number };
 }
 
 export type Conversion = { ok: true; native: NativeItem } | { ok: false; reason: string };
@@ -217,22 +220,19 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       if (!g) return no("image-sequence gauge: convert it to a vector gauge first (Gauges panel)");
       const w = Math.floor(((item.Width || g.width) * item.Scale) / 100);
       const h = Math.floor(((item.Height || g.height) * item.Scale) / 100);
-      const lost = [
-        ...(item.MinValue !== 0 ? [`minimum ${item.MinValue}`] : []),
-        ...(g.fill.mode !== "solid" ? [`${g.fill.mode} colours (the widget has one colour)`] : []),
-        ...(g.segments > 0 ? ["segments"] : []),
-        ...(g.needle ? ["needle"] : []),
-        ...(g.ticks ? ["ticks"] : []),
-        ...(!sensor ? ["no sensor yet: remap it"] : []),
-      ];
-      const color = g.fill.mode === "solid" ? g.fill.color : g.fill.stops[0]?.color;
-      if (g.shape === "arc") {
-        if (g.sweep < 360 || g.start !== 0) lost.push(`a ${Math.round(g.sweep)}° arc (the widget draws a full ring)`);
-        return ok({ kind: "gauge", sensor, max: item.MaxValue, color, fontSize: Math.min(w, h) }, { x: item.X, y: item.Y, w, h }, lost);
-      }
-      if (g.orientation === "vertical") return no("vertical bar: the dashboard bar fills left to right");
-      return ok({ kind: "bar", sensor, max: item.MaxValue, color }, { x: item.X, y: item.Y, w, h }, [...lost, "the widget adds a label and value row"]);
+      // The studio's custom gauge widget (an app phase) draws the spec itself, live; the
+      // app's ring widget is the stand-in kind until then.
+      return {
+        ok: true,
+        native: {
+          widget: { ...base, kind: "gauge", sensor, max: item.MaxValue, color: g.fill.color } as Widget,
+          box: { x: item.X, y: item.Y, w, h },
+          lost: sensor ? [] : ["no sensor yet: remap it"],
+          custom: { gauge: g, min: item.MinValue, max: item.MaxValue },
+        },
+      };
     }
+
     case "SensorImage":
       return no("image chosen by thresholds: no dashboard widget does that");
   }

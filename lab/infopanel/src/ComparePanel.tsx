@@ -48,7 +48,7 @@ function ModePanel({ item, path, editor, native }: { item: DisplayItem; path: Pa
       {on && c && !c.ok && <div style={{ color: "#fc6" }}>Stays InfoPanel: {c.reason}</div>}
       {on && c?.ok && (
         <div>
-          <code>{c.native.widget.kind}</code> widget
+          {c.native.custom ? "custom gauge widget, drawn live from its spec (studio prototype)" : <><code>{c.native.widget.kind}</code> widget</>}
           {c.native.widget.sensor && (
             <>
               {" "}

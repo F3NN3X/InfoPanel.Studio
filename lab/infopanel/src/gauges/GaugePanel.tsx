@@ -321,8 +321,8 @@ export function GaugePanel({ editor, profileName }: { editor: Editor; profileNam
                   </td>
                   <td>{gauge.Name}</td>
                   <td>
-                    {vectorOf(gauge) ? "vector" : "frames"}
-                    {isStale(gauge) && <span style={{ color: "#fc6" }}> (not baked)</span>}
+                    {vectorOf(gauge) ? "vector, live" : "frames"}
+                    {isStale(gauge) && <span style={{ color: "#999" }}> ({gauge.Images.length ? "InfoPanel frames out of date" : "no InfoPanel frames"})</span>}
                   </td>
                   <td>
                     {gauge.Images.length}
@@ -380,7 +380,7 @@ export function GaugePanel({ editor, profileName }: { editor: Editor; profileNam
                   style={{ width: 64 }}
                   onChange={(e) => editor.set(selected, "AnimationSpeed", Math.max(0, Number(e.target.value) || 0))}
                 />{" "}
-                frames/s (0: jumps at once; InfoPanel crossfades between frames while it moves)
+                {vector ? "% of the range a second (0: jumps at once)" : "frames/s (0: jumps at once; InfoPanel crossfades between frames while it moves)"}
               </p>
               {vector ? (
                 <>
@@ -390,9 +390,9 @@ export function GaugePanel({ editor, profileName }: { editor: Editor; profileNam
                     onCommit={(next) => editor.apply(setVector(editor.present, selected, next))}
                   />
                   <p>
-                    Bake into{" "}
+                    The studio draws this gauge live. For InfoPanel (optional), bake it into{" "}
                     <input type="number" min={2} max={1000} value={bakeCount} style={{ width: 64 }} onChange={(e) => setBakeCount(Math.max(2, Math.min(1000, Number(e.target.value) || 2)))} />{" "}
-                    frames for InfoPanel{" "}
+                    PNG frames{" "}
                     <button
                       onClick={() =>
                         run("Baking", async () => {
@@ -403,7 +403,7 @@ export function GaugePanel({ editor, profileName }: { editor: Editor; profileNam
                     >
                       Bake
                     </button>{" "}
-                    {isStale(g) ? <span style={{ color: "#fc6" }}>InfoPanel shows the old frames until baked</span> : "frames are up to date"} ·{" "}
+                    {!isStale(g) ? "frames are up to date" : g.Images.length ? "the frames are out of date" : "no frames yet"} ·{" "}
                     <button onClick={() => editor.apply(setVector(editor.present, selected, null))} title="Keeps the frames">
                       Back to frames only
                     </button>

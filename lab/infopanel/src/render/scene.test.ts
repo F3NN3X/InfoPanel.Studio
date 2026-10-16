@@ -108,6 +108,17 @@ describe("buildScene", () => {
       elapsedMs: 0,
     });
     expect(node).toMatchObject({ kind: "vector", x: 3, width: 50, height: 10, p: 0.25, gauge: { shape: "bar", width: 100 } });
+    // With AnimationSpeed it moves in percent of the range a second, through gaugeIndex.
+    const [moving] = buildScene({
+      profile: parseProfileXml("<Profile/>").profile,
+      items: [{ ...g, AnimationSpeed: 20 } as typeof g],
+      sensor: () => ({ reading: reading(50), history: [] }),
+      image: () => null,
+      now: new Date(),
+      elapsedMs: 0,
+      gaugeIndex: (_path, target, speed, count) => (expect([target, speed, count]).toEqual([25, 20, 101]), 10),
+    });
+    expect(moving).toMatchObject({ kind: "vector", p: 0.1 });
   });
 
   it("crossfades to the next gauge frame while the shown index lies between frames", () => {
@@ -116,7 +127,7 @@ describe("buildScene", () => {
     const nodes = scene(item("Gauge", `<AnimationSpeed>5</AnimationSpeed><Images>${frames}</Images>`), {
       image,
       state: { reading: reading(100), history: [] },
-      gaugeIndex: (_path, target) => (expect(target).toBe(2), 0.25),
+      gaugeIndex: (_path, target, speed, count) => (expect([target, speed, count]).toEqual([2, 5, 3]), 0.25),
     });
     expect(nodes.map((n) => n.kind === "image" && [n.url, n.opacity])).toEqual([["f0.png", 1], ["f1.png", 0.25]]);
   });
