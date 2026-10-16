@@ -69,7 +69,7 @@ const checkHost = (url: string) => {
  * Fetches only from the known font hosts over HTTPS. Redirects are followed by hand so
  * every hop is checked; a browser hides the target (opaque redirect), so there it fails.
  */
-async function get(fetchImpl: Fetch, url: string): Promise<Response> {
+export async function get(fetchImpl: Fetch, url: string): Promise<Response> {
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     checkHost(url);
     const r = await fetchImpl(url, { redirect: "manual" });
@@ -86,7 +86,7 @@ async function get(fetchImpl: Fetch, url: string): Promise<Response> {
 }
 
 /** The body, read up to MAX_FILE bytes; whatever Content-Length says. */
-async function bytes(fetchImpl: Fetch, url: string): Promise<Uint8Array> {
+export async function bytes(fetchImpl: Fetch, url: string): Promise<Uint8Array> {
   const r = await get(fetchImpl, url);
   if (!r.body) return new Uint8Array();
   return readLimited(r.body, MAX_FILE, url);
@@ -104,13 +104,30 @@ async function list<T>(fetchImpl: Fetch, url: string): Promise<T[] | string> {
   try {
     const r = await get(fetchImpl, url);
     const text = await r.text();
-    if (!text) return `${new URL(url).hostname}: HTTP ${r.status} with no body (throttled?)`;
+    if (!text) return `${new URL(url).hostname}: sent no data (throttled; try again later)`;
     const data: unknown = JSON.parse(text);
     return Array.isArray(data) ? (data as T[]) : `${new URL(url).hostname}: not a list`;
   } catch (e) {
     return `${new URL(url).hostname}: ${(e as Error).message}`;
   }
 }
+
+/** Font Squirrel sends no CORS headers: in the lab page its requests go through the dev server (font-proxy-plugin.ts). */
+const PROXIED = new Set(["www.fontsquirrel.com"]);
+
+/** `fetch` for the lab page: proxied hosts through `/font-proxy`, the rest direct. */
+export const labFetch: Fetch = (url, init) =>
+  PROXIED.has(new URL(url).hostname) ? fetch(`/font-proxy?url=${encodeURIComponent(url)}`) : fetch(url, init);
+
+/** May the dev server fetch this for the page? */
+export const proxyAllowed = (url: string) => {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && PROXIED.has(u.hostname);
+  } catch {
+    return false;
+  }
+};
 
 export async function fetchCatalogs(fetchImpl: Fetch = fetch): Promise<Catalogs> {
   const [fontsource, fontsquirrel] = await Promise.all([

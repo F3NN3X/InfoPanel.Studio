@@ -94,7 +94,10 @@ The Fonts panel and the canvas share one plan (`src/useFontPlan.ts`, `src/font-s
 `npm run lab:font-get -- --missing` lists the corpus fonts not installed here and where to get them free;
 `npm run lab:font-get -- "<family>" [--install | --uninstall]` downloads to `fonts/downloads/` and optionally
 installs or removes it for the current user. The Fonts panel shows the same candidates with a preview. Sources and
-caveats: `docs/infopanel-import/research-font-sources.md`.
+caveats: `docs/infopanel-import/research-font-sources.md`. Font Squirrel sends no CORS headers, so the page reaches it
+through the dev server (`font-proxy-plugin.ts`, Font Squirrel URLs only), which keeps its catalogue in
+`fonts/fontsquirrel-list.json` for a week; while Font Squirrel throttles (an empty 202) the panel lists it as
+unavailable.
 
 ## Renderer (P0.6)
 

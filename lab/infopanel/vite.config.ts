@@ -6,12 +6,13 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
+import { fontProxy } from "./font-proxy-plugin.ts";
 import { gaugeLibrary } from "./gauge-library-plugin.ts";
 import { infopanelData } from "./local-data-plugin.ts";
 
 export default defineConfig({
   root: __dirname,
-  plugins: [react(), tailwindcss(), infopanelData(), gaugeLibrary(path.join(__dirname, "gauges"))],
+  plugins: [react(), tailwindcss(), infopanelData(), gaugeLibrary(path.join(__dirname, "gauges")), fontProxy(path.join(__dirname, "fonts"))],
   resolve: { alias: { "@": path.resolve(__dirname, "../../src") } },
   server: { port: 5174, strictPort: true },
   test: { include: ["src/**/*.test.{ts,tsx}"] },

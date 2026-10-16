@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FontRequest } from "./font-loader.ts";
-import { fetchCatalogs, findCandidates, type Catalogs, type FontCandidate } from "./font-sources.ts";
+import { fetchCatalogs, findCandidates, labFetch, type Catalogs, type FontCandidate } from "./font-sources.ts";
 import type { FontRow, SuppliedFace } from "./font-supply.ts";
 import type { FontPlan } from "./useFontPlan.ts";
 
@@ -104,7 +104,7 @@ function Row({ row, plan }: { row: FontRow; plan: FontPlan }) {
 export function FontPanel({ plan }: { plan: FontPlan }) {
   const [catalogs, setCatalogs] = useState<Catalogs | null>(null);
   useEffect(() => {
-    fetchCatalogs().then(setCatalogs, () => setCatalogs(null));
+    fetchCatalogs(labFetch).then(setCatalogs, () => setCatalogs(null));
   }, []);
 
   if (plan.loader === undefined) return null;
@@ -119,6 +119,7 @@ export function FontPanel({ plan }: { plan: FontPlan }) {
           Add fonts <input type="file" multiple accept=".ttf,.otf,.ttc,.zip" onChange={(e) => e.target.files && void plan.addFiles(e.target.files)} />
         </label>
         {plan.rejected.length > 0 && <span> Not fonts, skipped: {plan.rejected.join(", ")}</span>}
+        {catalogs && catalogs.unavailable.length > 0 && <span style={{ color: "#fc6" }}> Font sources unavailable: {catalogs.unavailable.join("; ")}</span>}
       </p>
       <table>
         <thead>

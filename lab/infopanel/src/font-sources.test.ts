@@ -78,7 +78,7 @@ describe("fetchCatalogs", () => {
     const c = await fetchCatalogs(f);
     expect(c.fontsource).toHaveLength(5);
     expect(c.fontsquirrel).toEqual([]);
-    expect(c.unavailable).toEqual(["www.fontsquirrel.com: HTTP 202 with no body (throttled?)"]);
+    expect(c.unavailable).toEqual(["www.fontsquirrel.com: sent no data (throttled; try again later)"]);
   });
 });
 

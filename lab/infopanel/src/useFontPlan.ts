@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FontLoader, type FontRequest, type ResolvedFont } from "./font-loader.ts";
-import { downloadFamily, searchName, type FontCandidate } from "./font-sources.ts";
+import { downloadFamily, labFetch, searchName, type FontCandidate } from "./font-sources.ts";
 import { facesFromFile, missingFamilies, planFonts, requestKey, type FontRow, type SuppliedFace, type Use } from "./font-supply.ts";
 import { walkItems } from "./parse.ts";
 import type { TextStyle } from "./render/scene.ts";
@@ -137,7 +137,7 @@ export function useFontPlan(items: DisplayItem[]): FontPlan {
   };
 
   const download = async (c: FontCandidate) => {
-    const files = await downloadFamily(c);
+    const files = await downloadFamily(c, labFetch);
     const faces = files
       .filter((f) => f.kind === "font")
       .flatMap((f) => {
