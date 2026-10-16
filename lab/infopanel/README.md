@@ -50,3 +50,21 @@ survey written by `python -I lab/infopanel/scripts/corpus-expected.py`. Re-run i
 Two .NET rules worth knowing: the custom patterns InfoPanel formats values with (`0.00`) round 15 significant
 digits half away from zero (`2.675` → `2.68`), while the standard `N2` used for the thousands separator rounds the
 exact binary value half to even (`2.675` → `2.67`). A negative value that rounds to zero prints `-0`.
+
+## Fonts (P0.5)
+
+InfoPanel picks typefaces through Skia and DirectWrite, whose family and style names cannot be derived from font
+files alone (style names are localized: Arial's styles are "Normal", "Negreta", "Cursiva" here). So the ground
+truth comes from InfoPanel itself:
+
+1. `npm run lab:fonts` extracts the font packs (only font files) to `fonts/packs/`, indexes installed and pack
+   fonts, and collects every font request in the corpus into `fonts/requests.json`.
+2. `dotnet run --project lab/infopanel/tools/skia-fonts -p:Platform=x64 -- lab/infopanel/fonts/requests.json lab/infopanel/fonts/skia-reference.json`
+   runs InfoPanel's own `SkiaGraphics.CreateTypeface` for each request and copies the exact font file Skia draws
+   with to `fonts/faces/`. It builds against an InfoPanel checkout that is not running (default: the
+   `infopanel-pr173` worktree; override with `-p:InfoPanelProject=...`).
+
+`fonts/` is machine-specific and gitignored. `src/fonts.ts` ports the selection logic over Skia's font list and is
+tested against `skia-reference.json` when it exists; `src/font-loader.ts` gives the browser the exact face files.
+The lab page's Fonts panel lists each request with the face InfoPanel draws, how it got there, and missing fonts
+with the pack that has them.

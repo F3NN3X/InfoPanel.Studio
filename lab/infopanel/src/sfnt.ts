@@ -1,0 +1,134 @@
+/**
+ * Reads what font matching needs from a TrueType/OpenType file or collection:
+ * names, weight, width and slant, and the named instances of a variable font
+ * (DirectWrite lists those as separate faces).
+ */
+
+export interface FontFace {
+  /** Family as DirectWrite groups it: WWS name (21), else typographic (16), else legacy (1). */
+  family: string;
+  /** Face (style) name: WWS (22), else typographic (17), else legacy (2). */
+  face: string;
+  /** Legacy family (1) and the full name (4), which CSS `local()` matches. */
+  legacyFamily: string;
+  fullName: string;
+  postscriptName: string;
+  weight: number;
+  /** usWidthClass, 1 (ultra-condensed) … 5 (normal) … 9 (ultra-expanded). */
+  width: number;
+  italic: boolean;
+  /** Index within a .ttc collection. */
+  index: number;
+  /** Named instance coordinates for a variable font, e.g. { wght: 700 }. */
+  variation?: Record<string, number>;
+}
+
+const tag = (dv: DataView, at: number) =>
+  String.fromCharCode(dv.getUint8(at), dv.getUint8(at + 1), dv.getUint8(at + 2), dv.getUint8(at + 3));
+
+function tables(dv: DataView, offset: number): Map<string, { offset: number; length: number }> {
+  const count = dv.getUint16(offset + 4);
+  const out = new Map<string, { offset: number; length: number }>();
+  for (let i = 0; i < count; i++) {
+    const rec = offset + 12 + i * 16;
+    out.set(tag(dv, rec), { offset: dv.getUint32(rec + 8), length: dv.getUint32(rec + 12) });
+  }
+  return out;
+}
+
+const utf16be = new TextDecoder("utf-16be");
+const latin1 = new TextDecoder("latin1");
+
+/** nameID → string, preferring Windows English (US), then any Windows, then Mac Roman. */
+function names(dv: DataView, at: number): Map<number, string> {
+  const count = dv.getUint16(at + 2);
+  const strings = at + dv.getUint16(at + 4);
+  const best = new Map<number, { rank: number; value: string }>();
+  for (let i = 0; i < count; i++) {
+    const r = at + 6 + i * 12;
+    const platform = dv.getUint16(r);
+    const encoding = dv.getUint16(r + 2);
+    const language = dv.getUint16(r + 4);
+    const id = dv.getUint16(r + 6);
+    const bytes = new Uint8Array(dv.buffer, dv.byteOffset + strings + dv.getUint16(r + 10), dv.getUint16(r + 8));
+    let rank: number;
+    let value: string;
+    if (platform === 3 && (encoding === 1 || encoding === 10)) {
+      rank = language === 0x409 ? 0 : 1;
+      value = utf16be.decode(bytes);
+    } else if (platform === 1 && encoding === 0) {
+      rank = 2;
+      value = latin1.decode(bytes);
+    } else continue;
+    const prev = best.get(id);
+    if (!prev || rank < prev.rank) best.set(id, { rank, value });
+  }
+  return new Map([...best].map(([id, { value }]) => [id, value]));
+}
+
+function readFont(dv: DataView, offset: number, index: number): FontFace[] {
+  const t = tables(dv, offset);
+  const nameTable = t.get("name");
+  if (!nameTable) return [];
+  const n = names(dv, nameTable.offset);
+  const os2 = t.get("OS/2");
+  const weight = os2 ? dv.getUint16(os2.offset + 4) : 400;
+  const width = os2 ? dv.getUint16(os2.offset + 6) : 5;
+  const selection = os2 ? dv.getUint16(os2.offset + 62) : 0;
+  const legacyFamily = n.get(1) ?? "";
+  const family = n.get(21) ?? n.get(16) ?? legacyFamily;
+  const base: FontFace = {
+    family,
+    face: n.get(22) ?? n.get(17) ?? n.get(2) ?? "Regular",
+    legacyFamily,
+    fullName: n.get(4) ?? "",
+    postscriptName: n.get(6) ?? "",
+    weight,
+    width,
+    italic: (selection & 0x201) !== 0, // ITALIC or OBLIQUE
+    index,
+  };
+
+  const fvar = t.get("fvar");
+  if (!fvar) return [base];
+  const f = fvar.offset;
+  const axesAt = f + dv.getUint16(f + 4);
+  const axisCount = dv.getUint16(f + 8);
+  const axisSize = dv.getUint16(f + 10);
+  const instanceCount = dv.getUint16(f + 12);
+  const instanceSize = dv.getUint16(f + 14);
+  const axes = Array.from({ length: axisCount }, (_, i) => tag(dv, axesAt + i * axisSize));
+  const instancesAt = axesAt + axisCount * axisSize;
+  return Array.from({ length: instanceCount }, (_, i) => {
+    const at = instancesAt + i * instanceSize;
+    const variation = Object.fromEntries(axes.map((a, k) => [a, dv.getInt32(at + 4 + k * 4) / 65536]));
+    const face = n.get(dv.getUint16(at)) ?? base.face;
+    return {
+      ...base,
+      face,
+      fullName: `${family} ${face}`,
+      weight: variation.wght ?? weight,
+      width: variation.wdth !== undefined ? widthClass(variation.wdth) : width,
+      italic: base.italic || (variation.ital ?? 0) >= 1 || (variation.slnt ?? 0) !== 0,
+      variation,
+    };
+  });
+}
+
+/** OpenType wdth percentage → usWidthClass. */
+function widthClass(percent: number): number {
+  const classes = [50, 62.5, 75, 87.5, 100, 112.5, 125, 150, 200];
+  let best = 0;
+  for (let i = 1; i < classes.length; i++) if (Math.abs(classes[i] - percent) < Math.abs(classes[best] - percent)) best = i;
+  return best + 1;
+}
+
+/** Faces in a .ttf/.otf file or every font of a .ttc collection. */
+export function readFaces(buf: Uint8Array): FontFace[] {
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  if (tag(dv, 0) === "ttcf") {
+    const count = dv.getUint32(8);
+    return Array.from({ length: count }, (_, i) => readFont(dv, dv.getUint32(12 + i * 4), i)).flat();
+  }
+  return readFont(dv, 0, 0);
+}

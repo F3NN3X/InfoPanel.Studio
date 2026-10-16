@@ -27,3 +27,8 @@ src-tauri/resources/
 
 # InfoPanel import lab: extracted sample exports (some are 18 MB)
 lab/infopanel/corpus/
+
+# InfoPanel import lab: font packs and this machine's font index (npm run lab:fonts)
+lab/infopanel/fonts/
+lab/infopanel/tools/*/bin/
+lab/infopanel/tools/*/obj/

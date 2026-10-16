@@ -18,7 +18,8 @@
     "lab:test": "vitest run --config lab/infopanel/vite.config.ts",
     "lab:typecheck": "tsc -p lab/infopanel",
     "lab:extract": "node lab/infopanel/scripts/extract-corpus.mjs",
-    "lab:map": "node lab/infopanel/scripts/map-report.mjs"
+    "lab:map": "node lab/infopanel/scripts/map-report.mjs",
+    "lab:fonts": "node lab/infopanel/scripts/fonts.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

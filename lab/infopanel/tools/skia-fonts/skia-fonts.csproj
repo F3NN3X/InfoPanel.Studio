@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		Ground truth for the lab's font resolver: runs InfoPanel's own
+		SkiaGraphics.CreateTypeface on this machine. See Program.cs.
+		Point InfoPanelProject at an InfoPanel checkout that is not running
+		(the build writes to its bin folder).
+	-->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+		<Platforms>x64</Platforms>
+		<PlatformTarget>x64</PlatformTarget>
+		<UseWPF>true</UseWPF>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<InfoPanelProject Condition="'$(InfoPanelProject)' == ''">..\..\..\..\..\..\PublicRepos\infopanel-pr173\InfoPanel\InfoPanel.csproj</InfoPanelProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="$(InfoPanelProject)" />
+	</ItemGroup>
+
+</Project>

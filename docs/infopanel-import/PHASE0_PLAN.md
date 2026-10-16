@@ -97,6 +97,11 @@ Each phase ends with its own tests passing, plus `npm test` and `tsc -b`.
 - Two sources: mock values with per-sensor sliders, and live values from :3921.
 
 ### P0.5 Fonts
+- **Done.** `fonts.ts` ports InfoPanel's typeface choice and matches InfoPanel's own `CreateTypeface` on all 40
+  corpus font requests on this machine (`tools/skia-fonts`). The lab loads the exact face files Skia draws with.
+  Findings for P0.8: DirectWrite style names are localized (Arial "Regular" falls back to Segoe UI, "Normal"
+  works), so the real import must resolve fonts on the InfoPanel machine, not in the browser; Nunito Sans and
+  ANIME VISION are not installed here, so those profiles render in Segoe UI in InfoPanel too.
 - Load fonts from a local folder (the user's font packs) through `@font-face`, with system fonts as a fallback.
 - Resolve faces the way InfoPanel does: family plus FontStyle name, weight words in the family name, then the
   fallback chain.
