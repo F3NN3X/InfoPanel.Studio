@@ -16,7 +16,11 @@ import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/p
 import type { IncomingMessage } from "node:http";
 import path from "node:path";
 import type { Plugin } from "vite";
+import { MIME, sniff, type AssetType } from "./src/assets/assets.ts";
 import { HASH, ID, parseEntry, type LibraryEntry } from "./src/gauges/library.ts";
+
+/** Frames are raster images only: nothing a browser would run if it opened the URL. */
+const FRAME_TYPES: ReadonlySet<AssetType> = new Set(["png", "jpeg", "gif", "webp", "bmp", "ico"]);
 
 const MAX_FRAME = 20 * 1024 * 1024;
 const MAX_ENTRY = 1024 * 1024;
@@ -92,12 +96,19 @@ export function gaugeLibrary(dir: string): Plugin {
             const file = path.join(frames, parts[1]);
             if (method === "GET") {
               if (!(await hasFrame(parts[1]))) return send(404, "not stored");
+              const data = await readFile(file);
+              const { type } = sniff(new Uint8Array(data));
+              if (!FRAME_TYPES.has(type)) return send(415, "not an image frame");
+              res.setHeader("Content-Type", MIME[type]);
+              res.setHeader("X-Content-Type-Options", "nosniff");
+              res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'");
               res.setHeader("Cache-Control", "no-store");
-              return res.end(await readFile(file));
+              return res.end(data);
             }
             if (method === "PUT") {
               const data = await body(req, MAX_FRAME);
               if (createHash("sha256").update(data).digest("hex") !== parts[1]) return send(400, "the body does not match its hash");
+              if (!FRAME_TYPES.has(sniff(new Uint8Array(data)).type)) return send(415, "frames must be PNG, JPEG, GIF, WebP, BMP or ICO images");
               await mkdir(frames, { recursive: true });
               await writeFile(file, data);
               return send(204, "");
