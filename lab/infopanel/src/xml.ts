@@ -34,11 +34,12 @@ function decodeEntities(s: string, at: number): string {
 }
 
 export class XmlError extends Error {
-  constructor(
-    message: string,
-    readonly offset: number,
-  ) {
+  // A plain field, not a parameter property: Node's type stripping (scripts/) rejects those.
+  readonly offset: number;
+
+  constructor(message: string, offset: number) {
     super(`${message} (offset ${offset})`);
+    this.offset = offset;
   }
 }
 

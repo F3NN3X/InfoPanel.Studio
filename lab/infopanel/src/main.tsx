@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "./archive.ts";
 import { walkItems } from "./parse.ts";
+import { SensorPanel } from "./SensorPanel.tsx";
 
 interface CorpusProfile {
   id: string;
@@ -60,6 +61,7 @@ function Summary({ parsed }: { parsed: ParsedExport }) {
           ))}
         </tbody>
       </table>
+      <SensorPanel items={items} />
     </section>
   );
 }

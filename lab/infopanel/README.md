@@ -34,3 +34,19 @@ enum or item type) the lab keeps going and reports it. Fields from other InfoPan
 
 `src/corpus.test.ts` checks every corpus profile against `src/__fixtures__/corpus-expected.json`, an independent
 survey written by `python -I lab/infopanel/scripts/corpus-expected.py`. Re-run it after the corpus changes.
+
+## Sensors and text (P0.4)
+
+| File | Role |
+|---|---|
+| `src/dotnet-format.ts` | .NET number and date formatting (en-US), checked against real .NET 8 output |
+| `src/sensor-text.ts` | Sensor, Clock and Calendar text and threshold colour, ported from `SensorDisplayItem.cs` |
+| `src/sensors.ts` | Binding → Data API key: exact `ref`, plugin key, HWiNFO name fallback; Data API value → reading |
+| `src/SensorPanel.tsx` | Lab panel: every bound item with its match and text, live from :3921 or from mock sliders |
+
+`npm run lab:map` maps every corpus profile against the live Data API and prints how each binding matched.
+`dotnet run lab/infopanel/scripts/dotnet-reference.cs` regenerates `src/__fixtures__/dotnet-reference.json`.
+
+Two .NET rules worth knowing: the custom patterns InfoPanel formats values with (`0.00`) round 15 significant
+digits half away from zero (`2.675` → `2.68`), while the standard `N2` used for the thousands separator rounds the
+exact binary value half to even (`2.675` → `2.67`). A negative value that rounds to zero prints `-0`.

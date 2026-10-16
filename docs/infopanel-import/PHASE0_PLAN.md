@@ -80,6 +80,10 @@ Each phase ends with its own tests passing, plus `npm test` and `tsc -b`.
 - Tests go in `InfoPanel.Tests`.
 
 ### P0.4 Sensor mapping and value formatting
+- **Done.** `dotnet-format.ts`, `sensor-text.ts`, `sensors.ts` and the lab's sensor panel. Formatting matches
+  real .NET 8 output for every case in `dotnet-reference.json` (culture en-US, as in the user's renders). Against
+  the live Data API, 434 of 659 corpus bindings match by exact ref, and ARCv2_WIDE matches 83 of 84; HWiNFO was not
+  running. The HWiNFO name fallback is applied at every depth, where InfoPanel's import does only the top level.
 - Mapping order:
   1. exact `ref`
   2. plugin id converted to a key

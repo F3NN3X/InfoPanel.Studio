@@ -7,6 +7,7 @@
  * (XmlSerializer deserialises through the setters, so a rejected value leaves
  * the default in place). The item types are derived from these tables.
  */
+import { formatDate, FormatError } from "./dotnet-format.ts";
 
 export type FieldKind = "int" | "uint" | "double" | "float" | "bool" | "string" | "color" | "enum";
 
@@ -21,6 +22,25 @@ export interface FieldSpec<T> {
 }
 
 type Schema = Record<string, FieldSpec<unknown>>;
+
+/**
+ * Clock and Calendar setters try the format on the current time. Clock ignores
+ * one that throws; Calendar lets it throw, which fails InfoPanel's whole
+ * import. Both keep the default here.
+ */
+const dateFormat = (d: string): FieldSpec<string> => ({
+  kind: "string",
+  default: d,
+  accept(v) {
+    try {
+      formatDate(new Date(), v);
+      return v;
+    } catch (e) {
+      if (e instanceof FormatError) return undefined;
+      throw e;
+    }
+  },
+});
 export type Infer<S extends Schema> = { -readonly [K in keyof S]: S[K]["default"] };
 
 const positive = (v: number) => (v <= 0 ? undefined : v);
@@ -160,8 +180,8 @@ const IMAGE = {
 
 export const SCHEMAS = {
   Text: TEXT,
-  Clock: { ...TEXT, Format: str("hh:mm:ss tt") },
-  Calendar: { ...TEXT, Format: str("dd/MM/yyyy") },
+  Clock: { ...TEXT, Format: dateFormat("hh:mm:ss tt") },
+  Calendar: { ...TEXT, Format: dateFormat("dd/MM/yyyy") },
   Sensor: {
     ...TEXT,
     ...BINDING,
