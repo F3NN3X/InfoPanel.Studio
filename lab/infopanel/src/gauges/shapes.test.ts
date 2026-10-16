@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { WIDGET_ICONS } from "@/lib/widget-icons";
 import { STARTERS } from "./presets.ts";
 import { DEFAULT_GRID, DEFAULT_ICON, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
-import { arcGeometry, DEFAULT_GAUGE, GAUGE_ICONS, gaugePrims, normalizeGauge, type Prim, type VectorGauge } from "./vector.ts";
+import { containerPath } from "./geom.ts";
+import { arcGeometry, DEFAULT_GAUGE, GAUGE_ICONS, gaugePrims, normalizeGauge, type Grid, type Liquid, type Prim, type VectorGauge } from "./vector.ts";
 import { gaugeSvg } from "./vector-svg.ts";
 
 const base = (over: Partial<VectorGauge> = {}): VectorGauge => ({ ...DEFAULT_GAUGE, track: null, ...over });
@@ -60,6 +61,61 @@ describe("grid", () => {
   });
 });
 
+describe("liquid extras", () => {
+  const tank = (over: Partial<Liquid> = {}) => base({ shape: "liquid", width: 100, height: 100, liquid: { ...DEFAULT_LIQUID, ...over } });
+
+  it("draws diamond and point-up hexagon containers, and the background in their shape", () => {
+    expect(containerPath("diamond", { x: 0, y: 0, w: 100, h: 100 }, 0)).toBe("M50 0L100 50L50 100L0 50Z");
+    expect(containerPath("hexagon", { x: 0, y: 0, w: 100, h: 100 }, 0).match(/L/g)).toHaveLength(5);
+    expect(containerPath("hexagon", { x: 0, y: 0, w: 100, h: 100 }, 10)).toMatch(/^M50 10L/);
+    const [bg] = gaugePrims({ ...tank({ container: "hexagon" }), background: { color: "#0B1120", border: null, radius: 0 } }, 0);
+    expect(bg).toMatchObject({ kind: "path", fill: "#0B1120", d: containerPath("hexagon", { x: 0, y: 0, w: 100, h: 100 }, 0) });
+  });
+
+  it("strokes a shine along the surface, inside the drifting group", () => {
+    const [group] = gaugePrims(tank({ shine: 0.4 }), 0.5);
+    expect(group.kind === "group" && group.children[1]).toMatchObject({ kind: "path", stroke: "#FFFFFF", opacity: 0.4 });
+  });
+
+  it("spreads bubbles through the liquid, rising live only, none when nearly empty", () => {
+    const g = tank({ bubbles: { count: 6, size: 6, speed: 3 } });
+    const bubbles = gaugePrims(g, 0.6).at(-1)!;
+    expect(bubbles.kind === "group" && bubbles.children).toHaveLength(6);
+    const kids = bubbles.kind === "group" ? bubbles.children : [];
+    // Each rises from under the bottom up to the surface: from > 0, to < 0 of where it is drawn.
+    expect(kids.every((b) => b.kind === "path" && b.rise && b.rise.from > 0 && b.rise.to < 0)).toBe(true);
+    expect(gaugeSvg(g, 0.6, { mode: "live" }).match(/attributeName="opacity"/g)).toHaveLength(6);
+    expect(gaugeSvg(g, 0.6)).not.toContain("<animate");
+    expect(gaugePrims(g, 0.6)).toEqual(gaugePrims(g, 0.6));
+    expect(gaugePrims(g, 0.03).filter((p) => p.kind === "group")).toHaveLength(1);
+  });
+});
+
+describe("grid extras", () => {
+  const grid = (over: Partial<Grid> = {}, g: Partial<VectorGauge> = {}) =>
+    base({ shape: "grid", width: 90, height: 90, gap: 0, track: "#222222", grid: { ...DEFAULT_GRID, rows: 3, cols: 3, cell: "square", ...over }, ...g });
+  const lit = (prims: Prim[]) => of(prims, "rect").filter((r) => r.fill !== "#222222" && r.fill !== null).map((r) => [r.x, r.y]);
+
+  it("lights the middle first when radial, and the outside first reversed", () => {
+    expect(lit(gaugePrims(grid({ lights: "radial" }), 1 / 9))).toEqual([[30.33, 30.33].map((v) => expect.closeTo(v, 1))]);
+    expect(lit(gaugePrims(grid({ lights: "radial" }, { reverse: true }), 8 / 9))).not.toContainEqual([expect.closeTo(30.33, 1), expect.closeTo(30.33, 1)]);
+  });
+
+  it("lights a stable shuffle when random, as many cells as in order", () => {
+    const random = lit(gaugePrims(grid({ lights: "random" }), 4 / 9));
+    expect(random).toHaveLength(4);
+    expect(random).toEqual(lit(gaugePrims(grid({ lights: "random" }), 4 / 9)));
+    expect(random).not.toEqual(lit(gaugePrims(grid(), 4 / 9)));
+  });
+
+  it("outlines every cell, lit or not, even without a track", () => {
+    const rects = of(gaugePrims(grid({ border: { color: "muted", width: 1 } }, { track: null }), 1 / 3), "rect");
+    expect(rects).toHaveLength(9);
+    expect(rects.every((r) => r.stroke === "muted" && r.width === 1)).toBe(true);
+    expect(rects.filter((r) => r.fill === null)).toHaveLength(6);
+  });
+});
+
 describe("rings, patterns and icons", () => {
   it("draws fading rings outside the arc and its ticks, shrinking the arc to fit", () => {
     const g = base({ rings: DEFAULT_RINGS, ticks: { count: 3, length: 5, width: 1, color: "#AAAAAA" } });
@@ -102,7 +158,7 @@ describe("normalizing the shape parts", () => {
     const g = normalizeGauge({
       shape: "grid",
       grid: { rows: 99, cols: 0, order: "diagonal", cell: "circle" },
-      liquid: { container: "hexagon", amplitude: -3, waves: 100, speed: 1 },
+      liquid: { container: "star", amplitude: -3, waves: 100, speed: 1 },
       rings: { count: 3, color: "url(x)" },
       pattern: { style: "plaid", size: 2 },
       icons: { name: "<script>", count: 50, progressive: "yes" },
@@ -116,6 +172,15 @@ describe("normalizing the shape parts", () => {
     expect(g.icons).toEqual({ name: "heart", count: 20, progressive: true });
     expect(g.icon).toEqual({ name: "cpu", size: 40, color: "accent", y: 1 });
     expect("liquid" in normalizeGauge(DEFAULT_GAUGE)).toBe(false);
+    const extras = normalizeGauge({
+      shape: "liquid",
+      liquid: { container: "diamond", bubbles: { count: 99, size: 6, speed: -1 }, shine: 3 },
+      grid: { lights: "spiral", border: { color: "red", width: 99 } },
+    });
+    expect(extras.liquid).toMatchObject({ container: "diamond", bubbles: { count: 40, size: 6, speed: 0 }, shine: 1 });
+    expect(extras.grid).toMatchObject({ border: { color: "muted", width: 16 } });
+    expect("lights" in extras.grid!).toBe(false);
+    expect("bubbles" in normalizeGauge({ liquid: {} }).liquid!).toBe(false);
   });
 
   it("keeps every preset as it is", () => {

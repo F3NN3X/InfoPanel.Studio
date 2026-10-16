@@ -254,14 +254,16 @@ AnimationSpeed with a crossfade. Every change is one undo step.
   keep drawing (and their baked frames stay up to date). One renderer (`vector-svg.ts`) draws live and baked
   gauges. Presets in `presets.ts`; **Export spec** / *from a spec file* save and load one gauge as `.gauge.json`.
 - **Later parts** (L13, `shapes.ts`, `VectorShapes.tsx`; the gauge creator's, as geometry): shape **liquid** (a
-  round or rect container filled with the track, the liquid clipped to it at the value, a wave of a height and
-  count that drifts live) and shape **grid** (rows × columns of square, rounded or round cells, lit from the bottom
-  left along the rows or up the columns, each cell coloured by its place); **rings** outside an arc (decoration
+  round, rect, diamond or point-up hexagon container filled with the track, the liquid clipped to it at the value,
+  a wave of a height and count that drifts live, an optional shine along the surface and bubbles rising to it;
+  baked, the bubbles stay put, spread through the liquid) and shape **grid** (rows × columns of square, rounded or
+  round cells with an optional border, lit from the bottom left along the rows or up the columns, or in a stable
+  random order, or from the middle out; each cell coloured by its place in that order); **rings** outside an arc (decoration
   fading outwards, as in the creator: the value does not drive them); a **pattern** over a bar's continuous fill
   (stripes, dots or chevrons, optionally moving along the fill); a row of **icons** instead of a bar (each lit in
   turn, the one at the value partly when progressive); a **centre icon**. Icons are the app's widget icon set
-  (lucide, `src/lib/widget-icons.ts`). Motion is live only; baked frames are still. Later still: the creator's
-  bubbles and shine, diamond and hexagon containers, random / radial grid fills, cell borders.
+  (lucide, `src/lib/widget-icons.ts`). Motion is live only; baked frames are still. Not ported: the creator's
+  reflection (never drawn there) and its blinking "activity" and "wave" grid fills (not driven by the value alone).
 - The lab draws gauges with the widget colour variables set as the app's Widget shell sets them: the lab page's
   own `--accent` is a shadcn HSL triple, which drew theme-coloured parts black.
 - **SVG templates** (L9, `svg-template.ts`, `SvgTemplateView.tsx`): shape "SVG template" takes the user's own SVG file

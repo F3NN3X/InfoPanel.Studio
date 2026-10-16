@@ -75,7 +75,16 @@ export function gaugeSvg(g: VectorGauge, p: number, opts: SvgOptions = {}): stri
     switch (prim.kind) {
       case "path": {
         const style = prim.fill ? `fill:${paint(prim.fill)}` : `fill:none;stroke:${paint(prim.stroke ?? "#000000")};stroke-width:${fmt(prim.width ?? 1)};stroke-linecap:${prim.cap ?? "butt"}`;
-        return `<path d="${prim.d}" style="${style}"${common(prim)}/>`;
+        if (!(moving && prim.rise && prim.rise.seconds > 0)) return `<path d="${prim.d}" style="${style}"${common(prim)}/>`;
+        // Rising and fading in and out; a negative begin starts each one part way through its loop.
+        const r = prim.rise;
+        const timing = `dur="${fmt(r.seconds)}s" begin="${fmt(-r.delay)}s" repeatCount="indefinite"`;
+        const peak = fmt(clamp(prim.opacity ?? 1, 0, 1));
+        return (
+          `<path d="${prim.d}" style="${style}"${common(prim)}>` +
+          `<animateTransform attributeName="transform" type="translate" from="0 ${fmt(r.from)}" to="0 ${fmt(r.to)}" ${timing}/>` +
+          `<animate attributeName="opacity" values="0;${peak};${peak};0" keyTimes="0;0.15;0.8;1" ${timing}/></path>`
+        );
       }
       case "text": {
         const font = esc(prim.font.replace(/[^\w\s,'.-]/g, "") || DEFAULT_FONT);

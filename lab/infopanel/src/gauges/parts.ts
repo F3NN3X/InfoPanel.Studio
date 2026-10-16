@@ -4,7 +4,7 @@
  * Number formatting follows the app's widgets (en-US grouping; automatic
  * decimals: one below 10, else none).
  */
-import { circlePath, clamp, fmt, polar, polygon } from "./geom.ts";
+import { circlePath, clamp, containerPath, fmt, polar, polygon } from "./geom.ts";
 import type { Prim, Scale, VectorGauge } from "./vector.ts";
 
 export const DEFAULT_SCALE: Scale = { min: 0, max: 100, unit: "", decimals: null };
@@ -34,12 +34,21 @@ export function valueText(g: VectorGauge, p: number): Prim {
   return { kind: "text", x: g.width / 2, y: g.height * t.y, text: formatValue(g, p), size: t.size, color: t.color, font: t.font, weight: t.weight, anchor: "middle" };
 }
 
-/** Behind everything: a disc for an arc or a round liquid container, else a rounded rect. */
+/** Behind everything: a disc for an arc or a round liquid container, a diamond or hexagon container's shape, else a rounded rect. */
 export function backgroundPrims(g: VectorGauge): Prim[] {
   const b = g.background;
   if (!b || (!b.color && !b.border)) return [];
   const inset = b.border ? b.border.width / 2 : 0;
-  if (g.shape === "arc" || (g.shape === "liquid" && g.liquid?.container !== "rect")) {
+  const container = g.liquid?.container;
+  if (g.shape === "liquid" && (container === "diamond" || container === "hexagon")) {
+    // The container's own shape, at the frame's short side.
+    const d = containerPath(container, { x: 0, y: 0, w: g.width, h: g.height }, inset);
+    return [
+      ...(b.color ? [{ kind: "path", d, fill: b.color } as const] : []),
+      ...(b.border ? [{ kind: "path", d, stroke: b.border.color, width: b.border.width } as const] : []),
+    ];
+  }
+  if (g.shape === "arc" || (g.shape === "liquid" && container !== "rect")) {
     const d = circlePath(g.width / 2, g.height / 2, Math.max(1, Math.min(g.width, g.height) / 2 - inset));
     return [
       ...(b.color ? [{ kind: "path", d, fill: b.color } as const] : []),

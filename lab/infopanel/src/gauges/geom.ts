@@ -32,3 +32,18 @@ export function roundedRectPath(x: number, y: number, w: number, h: number, r: n
 
 /** A closed polygon through points. */
 export const polygon = (pts: readonly (readonly [number, number])[]) => `M${pts.map(([x, y]) => `${fmt(x)} ${fmt(y)}`).join("L")}Z`;
+
+export type ContainerShape = "circle" | "rect" | "diamond" | "hexagon";
+
+/**
+ * A container shape in a box, `inset` px inside its edge: a rect fills the box (corners of `radius`); the
+ * others sit centred in it at its short side (a diamond and a point-up hexagon reach its top and bottom).
+ */
+export function containerPath(shape: ContainerShape, box: { x: number; y: number; w: number; h: number }, inset: number, radius = 0): string {
+  if (shape === "rect") return roundedRectPath(box.x + inset, box.y + inset, Math.max(1, box.w - 2 * inset), Math.max(1, box.h - 2 * inset), Math.max(0, radius - inset));
+  const [cx, cy] = [box.x + box.w / 2, box.y + box.h / 2];
+  const r = Math.max(1, Math.min(box.w, box.h) / 2 - inset);
+  if (shape === "circle") return circlePath(cx, cy, r);
+  const step = shape === "diamond" ? 90 : 60;
+  return polygon(Array.from({ length: 360 / step }, (_, i) => polar(cx, cy, r, i * step)));
+}

@@ -1,5 +1,5 @@
 /** Starting points for a new vector gauge (L7, L9, L10, L13). */
-import { DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
+import { BUBBLES, CELL_BORDER, DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "./vector.ts";
 
 /**
@@ -87,6 +87,24 @@ export const STARTERS: { name: string; gauge: VectorGauge }[] = [
   {
     name: "Grid matrix",
     gauge: { ...DEFAULT_GAUGE, shape: "grid", width: 240, height: 120, gap: 3, track: "track", grid: { ...DEFAULT_GRID }, fill: zones },
+  },
+  {
+    name: "Hex tank with bubbles",
+    gauge: {
+      ...DEFAULT_GAUGE, shape: "liquid", track: "#0B1120",
+      liquid: { ...DEFAULT_LIQUID, container: "hexagon", amplitude: 4, bubbles: { ...BUBBLES }, shine: 0.5 },
+      fill: { ...DEFAULT_GAUGE.fill, color: "#0EA5E9" },
+      scale: { min: 0, max: 100, unit: "%", decimals: 0 },
+      text: { size: 32, color: "fg", font: "", weight: 700, y: 0.5, format: "{value}{unit}" },
+      background: { color: null, border: { color: "#38BDF8", width: 2 }, radius: 0 },
+    },
+  },
+  {
+    name: "Radial grid",
+    gauge: {
+      ...DEFAULT_GAUGE, shape: "grid", width: 160, height: 160, gap: 3, track: "track", fill: { ...DEFAULT_GAUGE.fill, mode: "gradient" },
+      grid: { rows: 9, cols: 9, order: "rows", cell: "circle", lights: "radial", border: { ...CELL_BORDER } },
+    },
   },
   {
     name: "Ringed dial",

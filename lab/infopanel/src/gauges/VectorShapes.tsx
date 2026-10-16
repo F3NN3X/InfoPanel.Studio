@@ -4,7 +4,7 @@
  * part's checkbox adds it with defaults or removes it.
  */
 import { binder, Num, PaintField, Row, Toggle } from "./form-kit.tsx";
-import { DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
+import { BUBBLES, CELL_BORDER, DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
 import { GAUGE_ICONS, type CentreIcon, type GaugeIcon, type Grid, type IconRow, type Liquid, type Pattern, type Rings, type VectorGauge } from "./vector.ts";
 
 export interface ShapeExtrasProps {
@@ -37,6 +37,7 @@ export function ShapeExtras({ g, onPreview, onCommit }: ShapeExtrasProps) {
   const toggle = <K extends keyof VectorGauge>(key: K, on: VectorGauge[K]) => () => onCommit(g[key] === undefined ? set({ [key]: on } as Partial<VectorGauge>) : without(g, key));
   const liquid = g.liquid ?? DEFAULT_LIQUID;
   const withLiquid = (patch: Partial<Liquid>) => set({ liquid: { ...liquid, ...patch } });
+  const bubbles = liquid.bubbles;
   const grid = g.grid ?? DEFAULT_GRID;
   const withGrid = (patch: Partial<Grid>) => set({ grid: { ...grid, ...patch } });
   const rings = g.rings;
@@ -53,7 +54,7 @@ export function ShapeExtras({ g, onPreview, onCommit }: ShapeExtrasProps) {
       {g.shape === "liquid" && (
         <>
           <Row label="Container">
-            <Choice value={liquid.container} options={["circle", "rect"] as const} onChange={(container) => onCommit(withLiquid({ container }))} />{" "}
+            <Choice value={liquid.container} options={["circle", "rect", "diamond", "hexagon"] as const} onChange={(container) => onCommit(withLiquid({ container }))} />{" "}
             {liquid.container === "rect" && (
               <>
                 radius <Num {...bind(liquid.radius, (v) => withLiquid({ radius: v }))} min={0} max={1024} />{" "}
@@ -65,6 +66,26 @@ export function ShapeExtras({ g, onPreview, onCommit }: ShapeExtrasProps) {
             height <Num {...bind(liquid.amplitude, (v) => withLiquid({ amplitude: v }))} min={0} max={64} /> px, <Num {...bind(liquid.waves, (v) => withLiquid({ waves: v }))} min={0.5} max={8} step={0.5} /> across, one wave every{" "}
             <Num {...bind(liquid.speed, (v) => withLiquid({ speed: v }))} min={0} max={30} step={0.5} /> s <small>(0: still; baked frames are still)</small>
           </Row>
+          <Row label="Bubbles">
+            <Toggle on={!!bubbles} onChange={() => onCommit(bubbles ? withLiquid({ bubbles: undefined }) : withLiquid({ bubbles: BUBBLES }))} />
+            {bubbles && (
+              <>
+                {" "}
+                <Num {...bind(bubbles.count, (v) => withLiquid({ bubbles: { ...bubbles, count: v } }))} min={1} max={40} /> up to{" "}
+                <Num {...bind(bubbles.size, (v) => withLiquid({ bubbles: { ...bubbles, size: v } }))} min={1} max={64} /> px, rising in about{" "}
+                <Num {...bind(bubbles.speed, (v) => withLiquid({ bubbles: { ...bubbles, speed: v } }))} min={0} max={30} step={0.5} /> s <small>(0: still; baked frames show them still)</small>
+              </>
+            )}
+          </Row>
+          <Row label="Shine">
+            <Toggle on={liquid.shine !== undefined} onChange={() => onCommit(withLiquid({ shine: liquid.shine === undefined ? 0.5 : undefined }))} />
+            {liquid.shine !== undefined && (
+              <>
+                {" "}
+                opacity <Num {...bind(liquid.shine, (v) => withLiquid({ shine: v }))} min={0} max={1} step={0.05} /> <small>(a highlight along the surface)</small>
+              </>
+            )}
+          </Row>
         </>
       )}
       {g.shape === "grid" && (
@@ -73,6 +94,24 @@ export function ShapeExtras({ g, onPreview, onCommit }: ShapeExtrasProps) {
           <Choice value={grid.order} options={["rows", "columns"] as const} onChange={(order) => onCommit(withGrid({ order }))} /> cells{" "}
           <Choice value={grid.cell} options={["square", "rounded", "circle"] as const} onChange={(cell) => onCommit(withGrid({ cell }))} /> gap{" "}
           <Num {...bind(g.gap, (v) => set({ gap: v }))} min={0} max={100} /> px
+        </Row>
+      )}
+      {g.shape === "grid" && (
+        <Row label="Cells">
+          light{" "}
+          <select value={grid.lights ?? ""} onChange={(e) => onCommit(withGrid({ lights: (e.target.value || undefined) as Grid["lights"] }))}>
+            <option value="">in order</option>
+            <option value="random">at random (the same every time)</option>
+            <option value="radial">from the middle out</option>
+          </select>{" "}
+          <Toggle on={!!grid.border} label="border" onChange={() => onCommit(withGrid({ border: grid.border ? undefined : CELL_BORDER }))} />
+          {grid.border && (
+            <>
+              {" "}
+              <PaintField {...bind(grid.border.color, (v) => withGrid({ border: { ...grid.border!, color: v } }))} />{" "}
+              <Num {...bind(grid.border.width, (v) => withGrid({ border: { ...grid.border!, width: v } }))} min={0.5} max={16} step={0.5} /> px
+            </>
+          )}
         </Row>
       )}
       {g.shape === "arc" && (

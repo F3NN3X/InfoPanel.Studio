@@ -14,7 +14,8 @@
  * ok / warn / crit tone, and the scale uses their min, max, unit and decimals.
  * Every part added after L7 is optional, so older specs read and bake as before.
  */
-import { arcPath, circlePath, clamp, fmt, polar } from "./geom.ts";
+import { arcPath, circlePath, clamp, fmt, polar, type ContainerShape } from "./geom.ts";
+export type { ContainerShape } from "./geom.ts";
 import { arcNeedle, arcTicks, backgroundPrims, barTicks, scaleOf, valueText } from "./parts.ts";
 import { centreIcon, gridPrims, iconRowPrims, liquidPrims, normalizeShapeParts, ringPrims } from "./shapes.ts";
 
@@ -113,7 +114,7 @@ export const isGaugeIcon = (v: unknown): v is GaugeIcon => typeof v === "string"
 
 /** Shape "liquid": a container filled to the value, with a wave on its surface. */
 export interface Liquid {
-  container: "circle" | "rect";
+  container: ContainerShape;
   /** Rect corner radius, px. */
   radius: number;
   /** Space between the container's edge and the liquid, px. */
@@ -124,6 +125,10 @@ export interface Liquid {
   waves: number;
   /** Seconds for the wave to travel one wave, live only; 0 keeps it still. Baked frames are still. */
   speed: number;
+  /** Bubbles rising to the surface (live; still, spread through the liquid, when baked). `speed`: seconds per rise. */
+  bubbles?: { count: number; size: number; speed: number };
+  /** A highlight along the surface, its opacity. */
+  shine?: number;
 }
 
 /** Shape "grid": rows × columns of cells, lit from the bottom left. */
@@ -133,6 +138,10 @@ export interface Grid {
   /** "rows": along the bottom row first, then up (a level); "columns": up the first column, then right (a bar chart). */
   order: "rows" | "columns";
   cell: "square" | "rounded" | "circle";
+  /** Light the cells in a stable shuffle, or from the middle out, instead of in order. */
+  lights?: "random" | "radial";
+  /** An outline on every cell. */
+  border?: { color: Paint; width: number };
 }
 
 /** Arc: decorative rings outside it, fading outwards (the creator's multi-ring); the value does not drive them. */
@@ -274,11 +283,20 @@ interface PrimCommon {
  * line of text, an icon (centred on x, y), or a group clipped to a path that can drift (live only).
  */
 export type Prim =
-  | ({ kind: "path"; d: string; fill?: Paint; stroke?: Paint; width?: number; cap?: "round" | "butt" } & PrimCommon)
+  | ({ kind: "path"; d: string; fill?: Paint; stroke?: Paint; width?: number; cap?: "round" | "butt"; rise?: Rise } & PrimCommon)
   | ({ kind: "rect"; x: number; y: number; w: number; h: number; r: number; fill: Paint | LinearGradient | PatternPaint | null; stroke?: Paint; width?: number } & PrimCommon)
   | ({ kind: "text"; x: number; y: number; text: string; size: number; color: Paint; font: string; weight: number; anchor: "start" | "middle" | "end" } & PrimCommon)
   | ({ kind: "icon"; name: GaugeIcon; x: number; y: number; size: number; color: Paint } & PrimCommon)
   | ({ kind: "group"; clip: string; children: Prim[]; drift?: { dx: number; dy: number; seconds: number } } & PrimCommon);
+
+/** Live only: moves up from `from` to `to` px (offsets from where it is drawn), fading in and out, on a loop. */
+export interface Rise {
+  from: number;
+  to: number;
+  seconds: number;
+  /** How far into its loop it starts, s. */
+  delay: number;
+}
 
 /** A pattern tile; `along` is the fill's direction, for chevrons and drift. */
 export interface PatternPaint {
