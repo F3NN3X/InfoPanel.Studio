@@ -24,3 +24,6 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/resources/
 .cache/
+
+# InfoPanel import lab: extracted sample exports (some are 18 MB)
+lab/infopanel/corpus/

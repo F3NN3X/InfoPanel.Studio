@@ -14,8 +14,9 @@ export default defineConfig({
     },
   },
   // Agent worktrees live under .claude/; their copies of the tests are not ours.
+  // lab/ has its own Vitest config (npm run lab:test).
   test: {
-    exclude: [...configDefaults.exclude, ".claude/**"],
+    exclude: [...configDefaults.exclude, ".claude/**", "lab/**"],
   },
   server: {
     port: 5173,
