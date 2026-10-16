@@ -20,6 +20,8 @@ export interface DataApiValue {
   name?: string;
   source?: string;
   ref?: string;
+  /** A plugin table with column names, each cell as InfoPanel draws it (null: not drawn). Fork follow-up to PR #173. */
+  table?: { columns: string[]; rows: (string | null)[][] };
 }
 
 export type BoundItem = Extract<DisplayItem, { SensorType: unknown }>;

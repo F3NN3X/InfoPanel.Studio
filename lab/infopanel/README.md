@@ -56,7 +56,12 @@ exact binary value half to even (`2.675` → `2.67`). A negative value that roun
 
 InfoPanel picks typefaces through Skia and DirectWrite, whose family and style names cannot be derived from font
 files alone (style names are localized: Arial's styles are "Normal", "Negreta", "Cursiva" here). So the ground
-truth comes from InfoPanel itself:
+truth comes from InfoPanel itself.
+
+When InfoPanel runs the fork's `feature/data-api-tables-fonts` build (L3), the lab asks it live:
+`POST /api/fonts/resolve` returns the face InfoPanel draws each request with (and whether it is a fallback, i.e.
+the font is missing), and `GET /api/fonts/{id}` serves that face's file. The Fonts panel's "Via" then reads
+`data-api`. Without the endpoints, the reference file below is used:
 
 1. `npm run lab:fonts` extracts the font packs (only font files) to `fonts/packs/`, indexes installed and pack
    fonts, and collects every font request in the corpus into `fonts/requests.json`.
@@ -98,8 +103,9 @@ show plugin values; compare in Live, not Unbound. Notes:
   frames stop covering each other.
 - Not modelled: the gradual contraction of AutoValue ranges, bar/donut/gauge smoothing between frames, video and
   RTSP images (drawn as the placeholder), the FPS overlay. Glow blend modes CSS lacks draw normally.
-- Tables from the Data API are approximate: it flattens a plugin table to text, without column names, and a cell
-  holding ", " splits. A structured table in the Data API would fix both (input for P0.8).
+- Tables use the Data API's structured `table` (column names, whole cells as InfoPanel draws them) when InfoPanel
+  runs the fork's `feature/data-api-tables-fonts` build (L3); otherwise the flattened text, without column names,
+  where a cell holding ", " splits.
 - Dashboard's fans use animated Spiral gradients; all six types were also checked with a synthetic profile.
 
 ## Comparison (P0.7)

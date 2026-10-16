@@ -99,7 +99,8 @@ export function FontPanel({ items }: { items: DisplayItem[] }) {
       <section>
         <h3>Fonts</h3>
         <p>
-          No font reference. Run <code>npm run lab:fonts</code>, then tools/skia-fonts (see the lab README).
+          No font source: the Data API has no font endpoints and there is no reference file. Run an InfoPanel build
+          with the endpoints, or <code>npm run lab:fonts</code> then tools/skia-fonts (see the lab README).
         </p>
       </section>
     );
@@ -123,8 +124,10 @@ export function FontPanel({ items }: { items: DisplayItem[] }) {
             const r = resolved.get(k);
             // A legacy name ("Spotify Mix Extrabold") resolved to its installed family is not missing.
             const wanted = searchName(request.font).toLowerCase();
+            // InfoPanel's own answer, when the Data API has the font endpoints.
             const missing =
-              !installed.has(request.font.toLowerCase()) && !(wanted && r?.typeface.family.toLowerCase().startsWith(wanted));
+              r?.fallback ??
+              (!installed.has(request.font.toLowerCase()) && !(wanted && r?.typeface.family.toLowerCase().startsWith(wanted)));
             const inPack = missing
               ? packs.find((p) => [p.family, p.legacyFamily].some((n) => n.toLowerCase() === request.font.toLowerCase()))
               : undefined;
@@ -148,6 +151,7 @@ export function FontPanel({ items }: { items: DisplayItem[] }) {
                 <td>
                   {r?.typeface.via}
                   {r && !r.exact && " (approx.)"}
+                  {r?.source === "reference" && " (reference file)"}
                 </td>
                 <td style={r ? { ...r.css, fontSize: 22, whiteSpace: "nowrap" } : undefined}>{SAMPLE}</td>
               </tr>

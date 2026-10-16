@@ -74,6 +74,12 @@ export function tableFromText(text: string): TableData {
   return { columns: Array.from({ length: count }, (_, i) => `Column ${i}`), rows };
 }
 
+/** The structured table when the Data API sends one, else the flattened text. */
+export function tableOf(value: DataApiValue): TableData | null {
+  if (value.table) return { columns: value.table.columns, rows: value.table.rows.map((r) => r.map((c) => c ?? "")) };
+  return value.text !== undefined ? tableFromText(value.text) : null;
+}
+
 export interface SourceInput {
   mode: SensorMode;
   live: Live;
@@ -97,6 +103,6 @@ export function sensorState(item: BoundItem, s: SourceInput): SensorState {
   if (!match) return { reading: null, history: item.SensorType === "Plugin" ? [] : ZEROS };
   const value = s.live.catalog.sensors[match.key];
   const reading = toReading(value);
-  const table = item.kind === "TableSensor" && value?.text !== undefined ? tableFromText(value.text) : null;
+  const table = item.kind === "TableSensor" && value ? tableOf(value) : null;
   return { reading, history: s.live.history.get(match.key) ?? [], table };
 }

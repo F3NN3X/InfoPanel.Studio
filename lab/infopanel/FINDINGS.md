@@ -70,7 +70,9 @@ Group items draw nothing themselves; their children are counted under their own 
   was dropped. A dashboard on another device renders with that device's text settings anyway.
 - **Data API tables.** InfoPanel's table sensors show the plugin's column names and whole cells; the Data API
   flattens a table to text (`", "` between cells, no header), so the lab shows "Column N" headers and splits cells
-  holding `", "`. Fix at the source: a structured table in the Data API (P0.8).
+  holding `", "`. Fix at the source: a structured table in the Data API (P0.8). Done in L3 (fork branch
+  `feature/data-api-tables-fonts`): with that build the lab draws the real headers and whole cells; the
+  percentages above predate it.
 - **Graph history.** InfoPanel's graphs hold the samples since the profile loaded; the lab's Live mode holds the
   samples since the page opened. Same drawing, different window.
 - **Animations.** Spiral fans, GIFs, marquees and clocks are compared for placement only.

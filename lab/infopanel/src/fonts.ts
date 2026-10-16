@@ -30,7 +30,8 @@ export type TypefaceVia =
   | "base-family" // the family with style words stripped
   | "similar" // the first family sharing a word
   | "arial" // nothing matched
-  | "default"; // FontStyle given but not found: SKTypeface.CreateDefault()
+  | "default" // FontStyle given but not found: SKTypeface.CreateDefault()
+  | "data-api"; // InfoPanel resolved it (font-loader.ts)
 
 export interface Typeface extends Omit<SkiaStyle, "name"> {
   family: string;
