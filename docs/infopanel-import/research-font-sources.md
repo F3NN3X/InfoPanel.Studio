@@ -47,10 +47,16 @@ and ANIME VISION (Umbrella_V.2) are missing, so both profiles already render in 
 - **Uninstall** removes exactly what was added, which the lab records in `fonts/installed.json`.
 - **InfoPanel must restart** to pick up a new font. Skia's font manager and InfoPanel's typeface cache keep their
   font lists for the life of the process.
-- **Variable fonts:** Google ships variable files. DirectWrite lists their named instances as styles ("Bold",
-  "SemiBold"…), so InfoPanel's FontStyle lookup works by instance name.
-- **Not verified on this machine:** `--install` has not been run here. It would change how InfoPanel draws the
-  Catppuccin profile, so it waits for the user's go-ahead.
+- **Variable fonts can install without helping InfoPanel.** Installed 2026-10-16 (per user, `--install`), Google's
+  Nunito Sans variable files show up in Skia's DirectWrite list as **"Nunito Sans Normal"**, with the named
+  instances as styles ("Regular", "Bold"…). InfoPanel looks a family up by its exact name, so "Nunito Sans" /
+  "Regular" still falls back to Segoe UI; InfoPanel's own `CreateTypeface` (tools/skia-fonts, a fresh process)
+  confirms it, so a restart does not change it. The profile's font pack holds the same variable files, so the
+  author's InfoPanel most likely drew Segoe UI too, which is what the screenshot shows.
+  - So an install must be checked against the name Skia reports, not the name in the file.
+  - Static files might fix it: Fontsource's per-weight files name the family "Nunito Sans"; Google's statics use
+    "Nunito Sans 12pt" and the like. Not tried.
+  - InfoPanel could match on the typographic family as well (an upstream fix to consider).
 
 ## Where it belongs in the product (for P0.8)
 
