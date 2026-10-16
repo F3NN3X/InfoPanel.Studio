@@ -1,7 +1,8 @@
 # InfoPanel profile import: implementation plan (P0.8)
 
 Status: **draft for approval** (2026-10-16). Phase 0 (the lab) is done on `feat/infopanel-import`; this plan turns it
-into a feature in `src/`. Decisions marked **Open** wait for the user.
+into a feature in `src/`. The user answered the open questions on 2026-10-16 (see "Answers"); decision 1 records
+an interpretation of the answer that needs confirming.
 
 ## What Phase 0 established
 
@@ -23,23 +24,34 @@ into a feature in `src/`. Decisions marked **Open** wait for the user.
 
 ## Decisions
 
-### 1. Where imported profiles live: a canvas zone (recommended)
+### 1. Where imported profiles live: a canvas zone with two render modes per item
 
 A new zone kind, alongside widget, panel and blank: the sentinel module id `infopanel` with a `canvas` field on the
-placement (`Placement.canvas`, optional and additive, so no config version bump). The canvas holds the parsed
-profile: size, background, font defaults and the item tree, plus per-item import data (sensor key, asset ids).
+placement (`Placement.canvas`, optional and additive, so no config version bump). The canvas is an absolutely
+positioned surface at the InfoPanel profile's size, scaled to the zone with its aspect ratio kept. It holds the
+parsed profile (size, background, font defaults, the item tree) and per-item import data (sensor key, asset ids).
 
-- Import creates a new dashboard profile sized like the InfoPanel one (W×H, 1×1 grid, fit `fill`) with one canvas
-  zone filling it. The canvas draws at its native size and scales to the zone, keeping the aspect ratio.
-- Because it is a zone, a canvas can also sit next to widgets in an existing profile, and everything zone-level
-  (pages, save, undo, kiosk, desktop app) works unchanged.
-- The studio stays one zone-based editor (the decision of `506c1d4`); nothing revives the free-canvas editor.
+Each item renders in one of two modes (the user's "hybrid, optional, either or both"):
+- **InfoPanel** (faithful): drawn as InfoPanel draws it, by the ported renderer, untouched by the dashboard theme.
+- **Dashboard widget** (native): converted to the nearest panel widget kind (text, value, bar, gauge, sparkline,
+  image, clock, shape, table) at the item's position and size, styled by the dashboard theme and edited with the
+  widget inspector. Items with no native equivalent (image-sequence gauges, donuts, marquee, glow, gradients,
+  rotation) stay in InfoPanel mode, and the item says why.
 
-Alternatives considered:
-- **Absolute layout in panel JSON**, one panel widget per item: fits the inspector registry, but needs x/y,
-  rotation, z-order and nesting in panels plus about a dozen new widget features; lossy until all exist.
-- **A widget template** ("InfoPanel") with the items in its settings: the settings kit, Library fields and the
-  110/150 px fit checks do not suit a 1920-px canvas and a 600 KB item tree.
+The import asks for a default: **Faithful** (all InfoPanel), **Native where possible**, or **Both** (two canvas
+zones on two pages of the new profile, one per mode, to compare and pick). Any item can be switched later, and the
+canvas zone has a "switch all" action. The stored item keeps its InfoPanel fields in both modes, so switching back
+is lossless.
+
+- Import creates a new dashboard profile sized like the InfoPanel one (W×H, 1×1 grid, fit `fill`) with the canvas
+  zone filling it. A canvas zone can also sit next to widgets in an existing profile.
+- Everything zone-level (pages, save, undo, kiosk, desktop app) works unchanged.
+
+Not chosen as the only model:
+- **Absolute layout in panel JSON** for everything: lossy until panels gain rotation, z-order, nesting and about a
+  dozen widget features. It survives as the native mode, item by item.
+- **A widget template** holding the items: the settings kit and the 110/150 px fit checks do not suit a 1920 px
+  canvas and a 600 KB item tree.
 
 ### 2. Model and code layout
 
@@ -65,9 +77,9 @@ Alternatives considered:
 - With `ref` (PR #173, or the fork until it merges): Libre and HWiNFO bindings map exactly.
 - Without it: plugin bindings still map; Libre and HWiNFO go to the remap step, pre-filled by name where possible.
   The import says which Data API it found (the `ref` field's presence in `/api/sensors`).
-- **Tables (Open):** the Data API flattens plugin tables to text, losing column names and splitting cells holding
-  ", ". Proposal: add a structured `table: { columns, rows }` to `/api/sensors` values in the fork, as a follow-up
-  to PR #173. Until then table sensors draw from the flattened text (headers "Column N").
+- **Tables (decided: yes):** the Data API flattens plugin tables to text, losing column names and splitting cells
+  holding ", ". A follow-up to PR #173 in the fork adds a structured `table: { columns, rows }` to `/api/sensors`
+  values. Without it, table sensors draw from the flattened text (headers "Column N").
 
 ### 5. Assets
 
@@ -80,12 +92,12 @@ Alternatives considered:
 
 ### 6. Fonts
 
-- **Resolution (Open):** the canvas needs, per (Font, FontStyle, Bold, Italic), the face InfoPanel draws. Options:
-  1. **Data API endpoint in the fork** (recommended): InfoPanel runs its own `CreateTypeface` and serves the result
-     and the face file (`/api/fonts/resolve`, `/api/fonts/file`). Exact by construction, and it reflects the fonts
-     installed where InfoPanel runs, wherever the dashboard is viewed.
-  2. The desktop app resolves on the InfoPanel machine with DirectWrite (Rust), porting `CreateTypeface` there.
-  3. Browser only: the ported `createTypeface` over the browser's fonts. Approximate; wrong for localized style names.
+- **Resolution (decided: Data API endpoint):** the canvas needs, per (Font, FontStyle, Bold, Italic), the face
+  InfoPanel draws. The fork's Data API gets a resolve endpoint (requests in; out, the typeface InfoPanel's own
+  `CreateTypeface` picks: family, weight, slant and a face id) and a file endpoint serving that face, as the lab's
+  `tools/skia-fonts` does. Exact by construction, and it reflects the fonts installed where InfoPanel runs. Without
+  the endpoint, the import falls back to the ported `createTypeface` over the browser's fonts and says so.
+  (Not chosen: a Rust port in the desktop app; browser-only resolution.)
 - **Delivery:** resolved faces, uploaded fonts and fonts from an export's font pack go to the asset store
   (extend it to ttf/otf/woff2, each checked as a font by the sfnt parser) and load through `@font-face`, so a
   kiosk on another device draws the same faces.
@@ -102,12 +114,16 @@ Alternatives considered:
   import reads profile, items and assets from there.
 - The import is one undo step and one save.
 
-### 8. Editing scope
+### 8. Editing scope (decided: item editing from the start)
 
-- **Open:** first release = read-only canvas plus remap, per-item hide/show and an import report? Or item editing
-  (position, text, colours) in the inspector from the start, as a registry of InfoPanel item kinds? Recommendation:
-  read-only first; editing follows as its own phase, driven by the same schema tables.
-- Export back to `.infopanel` (round trip) is out of scope for now; the stored form keeps it possible.
+- The canvas zone is editable in the studio: select an item on the canvas or in an item tree (as in the lab's
+  compare panel), move and resize it by drag, nudge it with the arrow keys, hide, show, reorder, group and delete.
+- The inspector edits InfoPanel-mode items through **one registry of InfoPanel item kinds**, generated from the
+  schema tables (field kind, default, setter checks), with hand-written groups and labels on top: no hand-built
+  panel per kind (the inspector rule). Native-mode items use the existing widget inspector.
+- Studio rules apply: one drag or one inspector change is one undo step; shortcuts never fire in inputs; edits
+  auto-push like the rest of the config.
+- Edits keep the stored form valid for an export back to `.infopanel`; the export itself is out of scope for now.
 
 ## Phases
 
@@ -116,12 +132,14 @@ Each ends with `tsc -b`, `npm test` and the lab tests passing.
 | Phase | Content |
 |---|---|
 | P1 | Move model, parser, formatting, sensor mapping, fonts and geometry into `src/lib/infopanel/`; lab imports from there |
-| P2 | Canvas zone kind: `Placement.canvas`, normalization, the renderer in a zone, kiosk and desktop bundles |
-| P3 | Import flow: file picker, asset upload, import report, new profile; one undo step |
-| P4 | Sensor remap step and inspector entry; `sample-history` capacity per key |
-| P5 | Fonts: resolution (per decision 6), font assets and `@font-face`, missing-font report |
-| P6 | Installed-profile import through the server; fork follow-ups (structured tables, font endpoint) |
-| P7 | (If chosen) item editing in the inspector |
+| P2 | Canvas zone kind: `Placement.canvas`, normalization, the faithful renderer in a zone, kiosk and desktop bundles |
+| P3 | Import flow: file picker, mode choice, asset upload, import report, new profile; one undo step |
+| P4 | Canvas editing: selection, item tree, drag, resize and nudge, the InfoPanel item-kind inspector registry |
+| P5 | Native mode: item to panel widget conversion, per-item and "switch all" toggles |
+| P6 | Sensor remap step and inspector entry; `sample-history` capacity per key |
+| P7 | Fork follow-ups to PR #173: structured tables, font resolve and file endpoints |
+| P8 | Fonts in the dashboard: resolution through the endpoint, font assets and `@font-face`, missing-font report |
+| P9 | Installed-profile import through the server |
 
 ## Risks
 
@@ -131,3 +149,12 @@ Each ends with `tsc -b`, `npm test` and the lab tests passing.
 | MEDIUM | Large canvases (600 KB item files, 19 MB of assets) slow the studio | Render only the active page; measure in P2 |
 | MEDIUM | Upstream may not take the fork's Data API additions | Keep them small and optional; degrade as in decision 4 |
 | LOW | ClearType vs grayscale text | Accepted; a viewing device's text settings apply anyway |
+
+## Answers (2026-10-16)
+
+1. **Placement:** "a 1 and 2 hybrid, maybe make it optional or a setting toggle between either or both". Written
+   up as decision 1: one canvas zone, each item in InfoPanel or native widget mode, chosen at import (Faithful,
+   Native where possible, Both) and switchable per item. **To confirm.**
+2. **Fonts:** the Data API endpoint in the fork.
+3. **Tables:** yes, structured tables as a follow-up PR.
+4. **Editing:** item editing from the start.
