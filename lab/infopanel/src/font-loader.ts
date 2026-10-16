@@ -34,6 +34,7 @@ export interface ResolvedFont {
   file: string | null;
 }
 
+const SAFE_LOCAL_NAME = /^[\p{L}\p{N} ._&+-]{1,100}$/u;
 const key = (r: FontRequest) => JSON.stringify([r.font, r.style, r.bold, r.italic]);
 const cssStyle = (s: Slant) => (s === "Italic" ? "italic" : s === "Oblique" ? "oblique" : "normal");
 
@@ -69,8 +70,11 @@ export class FontLoader {
         const info = readFaces(bytes)[ttcIndex];
         const simulatedBold = info !== undefined && typeface.weight >= 600 && info.weight <= typeface.weight - 200;
         const alias = `ip-${id.replace(/\W/g, "-")}`;
-        // A browser loads the first font of a .ttc; for any other, use the installed copy by full name.
-        const source = ttcIndex === 0 ? bytes.buffer : `local("${info?.fullName ?? ""}")`;
+        // A browser loads the first font of a .ttc; for any other, use the installed copy by full
+        // name. The name comes from the (untrusted) file, so only plain names go into local().
+        const fullName = info?.fullName ?? "";
+        if (ttcIndex !== 0 && !SAFE_LOCAL_NAME.test(fullName)) throw new Error(`Unusable font name in ${file}`);
+        const source = ttcIndex === 0 ? bytes.buffer : `local("${fullName}")`;
         const face = new FontFace(alias, source, {
           weight: String(simulatedBold ? info.weight : typeface.weight),
           style: cssStyle(typeface.slant),

@@ -93,7 +93,8 @@ const refs = Object.values(
 );
 
 describe.skipIf(refs.length === 0)("createTypeface matches InfoPanel on this machine", () => {
-  const ref = refs[0];
+  // A skipped describe still runs its body while collecting, so tolerate a missing file.
+  const ref = refs[0] ?? { default: { family: "" }, families: [], results: [] };
   const machine: FontSet = { families: ref.families, defaultFamily: ref.default.family };
   it.each(ref.results.map((r) => [`${r.request.Font} / ${r.request.Style || "-"}${r.request.Bold ? " bold" : ""}`, r] as const))(
     "%s",

@@ -20,7 +20,8 @@ const lab = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const out = path.join(lab, "fonts");
 const FONT = /\.(ttf|otf|ttc)$/i;
 
-await rm(out, { recursive: true, force: true });
+// Keep tools/skia-fonts' output (skia-reference.json, faces/): it takes a separate .NET run.
+await rm(path.join(out, "packs"), { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
 /* ---- font packs ---- */
