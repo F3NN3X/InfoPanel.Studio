@@ -36,6 +36,8 @@ export type Custom =
   | { kind: "vector"; gauge: VectorGauge; min: number; max: number }
   /** An image-sequence gauge: the frame for the value. */
   | { kind: "frames"; urls: string[]; min: number; max: number }
+  /** The image stretched over the box with InfoPanel's colour layer (#AARRGGBB) on top; nothing without an image. */
+  | { kind: "image"; layer: string | null }
   /** A line or histogram graph from InfoPanel's own geometry (the sparkline adds a label row and an area fill). */
   | { kind: "graph"; graph: GraphStyle }
   /** A shape the shape widget lacks, from InfoPanel's own geometry. */
@@ -286,11 +288,16 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       if (width <= 0 || height <= 0) return no("image at its natural size, which is not known: give it a Width and Height to convert");
       const w = Math.trunc((width * item.Scale) / 100);
       const h = Math.trunc((height * item.Scale) / 100);
-      const lost = item.Layer ? ["colour layer"] : [];
+      // Drawn meanwhile as InfoPanel draws it: the app's image widget crops (cover), rounds its corners and shows a
+      // placeholder while there is no image; InfoPanel stretches it over the box, square, under its colour layer.
       return ok(
         { kind: "image", text: url ?? undefined, sensor: item.kind === "HttpImage" ? sensor : undefined, height: h },
-        { x: item.X, y: item.Y, w, h },
-        lost,
+        { x: Math.floor(item.X), y: Math.floor(item.Y), w, h },
+        item.kind === "HttpImage" && !sensor ? ["no sensor yet: remap it"] : [],
+        {
+          custom: { kind: "image", layer: item.Layer ? item.LayerColor : null },
+          needs: ["image stretched to its box, nothing while there is no image", ...(item.Layer ? ["image colour layer"] : [])],
+        },
       );
     }
 

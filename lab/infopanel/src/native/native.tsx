@@ -11,10 +11,11 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
-import { WidgetView } from "@/components/widgets/WidgetView";
+import { imageSrc, WidgetView } from "@/components/widgets/WidgetView";
 import { fraction } from "../gauges/vector.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
 import { gaugeFrame, graphParts, shapeGeometry } from "../render/geometry.ts";
+import { cssColor } from "../render/color.ts";
 import { PathPaint } from "../render/Paint.tsx";
 import { tableColumns } from "../render/scene.ts";
 import { Table, Text, textCss, visibleText, type FontCss } from "../render/Text.tsx";
@@ -76,6 +77,8 @@ export function describeNative(n: NativeItem): string {
       return `${n.widget.kind} widget in InfoPanel's font and placement${n.custom.marquee ? ", scrolling" : ""} (studio prototype)`;
     case "graph":
       return `${n.widget.kind} widget drawn as InfoPanel's ${n.custom.graph.type === "HISTOGRAM" ? "histogram" : "line graph"} (studio prototype)`;
+    case "image":
+      return "image widget, stretched to its box (studio prototype)";
     default:
       return `${n.widget.kind} widget`;
   }
@@ -217,6 +220,17 @@ function CustomView({ custom, n, path, sensors, view }: { custom: Custom; n: Nat
       return <NativeText custom={custom} n={n} sensors={sensors} view={view} />;
     case "graph":
       return <NativeGraph graph={custom.graph} n={n} path={path} view={view} />;
+    case "image": {
+      // The URL the app's image widget would show (its own file, or the sensor's image URL); none: nothing.
+      const src = imageSrc(n.widget, sensors);
+      if (!src) return null;
+      return (
+        <div style={{ position: "relative", width: w, height: h }}>
+          <img src={src} alt="" draggable={false} style={{ display: "block", width: "100%", height: "100%" }} />
+          {custom.layer && <div style={{ position: "absolute", inset: 0, background: cssColor(custom.layer) ?? "transparent" }} />}
+        </div>
+      );
+    }
   }
 }
 

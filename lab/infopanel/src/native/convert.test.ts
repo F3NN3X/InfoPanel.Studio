@@ -164,6 +164,21 @@ describe("convert", () => {
     expect(convert(item, "g", { ...sized, assetUrl: () => null })).toMatchObject({ ok: false, reason: expect.stringMatching(/no URL yet/) });
   });
 
+  it("draws images stretched over their box, under the colour layer, nothing while there is none", () => {
+    expect(widgetOf("Image", { FilePath: "logo.png", RelativePath: true, Width: 200, Height: 100, Layer: true, LayerColor: "#80FF0000" })).toMatchObject({
+      lost: [],
+      custom: { kind: "image", layer: "#80FF0000" },
+      needs: ["image stretched to its box, nothing while there is no image", "image colour layer"],
+    });
+    // A URL image from a sensor converts before it has a URL; its widget reads the sensor's.
+    expect(widgetOf("HttpImage", { Width: 100, Height: 100, Scale: 66, SensorType: "Plugin", PluginSensorId: "/x" })).toMatchObject({
+      widget: { kind: "image", text: undefined, sensor: "libre.cpu_total", height: 66 },
+      box: { w: 66, h: 66 },
+      custom: { kind: "image", layer: null },
+      needs: ["image stretched to its box, nothing while there is no image"],
+    });
+  });
+
   it("sizes an image drawn at its natural size from the file", () => {
     const c = convert(one("Image", { FilePath: "bg.png", RelativePath: true, Scale: 50 }), "i", { ...ctx, assetSize: () => ({ width: 200, height: 100 }) });
     expect(c.ok && c.native.box).toEqual({ x: 100, y: 100, w: 100, h: 50 });

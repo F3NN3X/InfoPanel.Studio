@@ -204,6 +204,9 @@ all its InfoPanel fields, so switching back is lossless.
 - Graphs keep the sparkline kind for the app and are drawn meanwhile with InfoPanel's own graph geometry
   (`graphParts`: line or histogram, Step, Thickness, fill, frame, background, AutoValue) from the key's live
   history; the sparkline would add a label row and an area fill.
+- Images keep the image kind and are drawn meanwhile as InfoPanel draws them: stretched over the box with square
+  corners, under the colour layer, and nothing while a URL image has no image yet (the app widget crops, rounds
+  and shows a placeholder).
 
 ## Assets (L6)
 

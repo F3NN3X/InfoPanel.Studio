@@ -148,7 +148,7 @@ others). Each phase ends with the lab tests passing; `src/` stays untouched unti
 | L11 | Native mode coverage: studio prototypes for what the app's widgets lack (rotation and flip, marquee text, vertical bars, donuts, capsule and polygon shapes, image-sequence gauges, natural-size images); each conversion names the app feature it needs, and the import report sums them up |
 | L12 | Asset and font polish: image optimising (resize, recompress, WebP; kept only when 5 % smaller), font licence review (fonts table and the export's save note), bulk replace by name |
 | L13 | The later gauge parts: liquid and grid shapes, decorative rings around an arc, bar patterns (moving live), a row of icons instead of a bar, a centre icon (the app's widget icons); liquid bubbles and shine, diamond and hexagon containers, random and radial grid fills, cell borders |
-| L14 | Native mode closer to InfoPanel: text items (text, sensors, clocks, dates, tables) in InfoPanel's font, size, colour, placement and text format; every bar (horizontal and vertical) from the bar generator with frame, background, corner radius and gradient; graphs (line and histogram) from InfoPanel's own geometry |
+| L14 | Native mode closer to InfoPanel: text items (text, sensors, clocks, dates, tables) in InfoPanel's font, size, colour, placement and text format; every bar (horizontal and vertical) from the bar generator with frame, background, corner radius and gradient; graphs (line and histogram) from InfoPanel's own geometry; images stretched under their colour layer, empty while a URL image has none |
 
 ### App phases (after the lab is complete)
 
