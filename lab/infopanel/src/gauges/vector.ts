@@ -20,7 +20,8 @@ export interface ColorStop {
 export type FillMode = "solid" | "gradient" | "zones";
 
 export interface VectorGauge {
-  shape: "arc" | "bar";
+  /** "svg": the user's own SVG (`template`), driven by the value; the arc and bar fields do not apply. */
+  shape: "arc" | "bar" | "svg";
   /** Frame size in px. */
   width: number;
   height: number;
@@ -43,6 +44,33 @@ export interface VectorGauge {
   ticks: { count: number; length: number; width: number; color: string } | null;
   /** Fills from the end of the range instead. */
   reverse: boolean;
+  /**
+   * Shape "svg" only: the template, sanitized (svg-template.ts). It reads the value as the CSS custom
+   * properties `--value` (0–1) and `--percent` (0–100, whole), set on its root element.
+   */
+  template?: string;
+}
+
+/** A template's size limit, so a library entry (1 MB of JSON) always holds one. */
+export const MAX_TEMPLATE = 256 * 1024;
+
+/** The value a template sees: reversed like the other shapes, rounded so equal values give equal markup. */
+export function templateVars(g: VectorGauge, p: number): { value: number; percent: number } {
+  const v = clamp(Number.isFinite(p) ? p : 0, 0, 1);
+  const value = Math.round((g.reverse ? 1 - v : v) * 10000) / 10000;
+  return { value, percent: Math.round(value * 100) };
+}
+
+/**
+ * The template with the value set inline on its root element (inline style beats the template's own
+ * defaults), for drawing it as an image. The root tag is the markup's first tag, as XMLSerializer writes it,
+ * with attribute values in double quotes and `>` escaped.
+ */
+export function withValue(template: string, vars: { value: number; percent: number }): string {
+  const decl = `--value:${vars.value};--percent:${vars.percent};`;
+  return template.replace(/^<svg\b[^>]*?(?=\/?>)/, (tag) =>
+    /\sstyle="/.test(tag) ? tag.replace(/(\sstyle=")/, `$1${decl}`) : `${tag} style="${decl}"`,
+  );
 }
 
 export const DEFAULT_GAUGE: VectorGauge = {
@@ -283,6 +311,7 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
 /** The gauge's shapes at `p` (0..1 of the range). */
 export function gaugePrims(g: VectorGauge, p: number): Prim[] {
   const v = clamp(Number.isFinite(p) ? p : 0, 0, 1);
+  if (g.shape === "svg") return [];
   return g.shape === "arc" ? arcPrims(g, v) : barPrims(g, v);
 }
 
@@ -290,6 +319,7 @@ const esc = (s: string) => s.replace(/[<>&"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** The gauge at `p` as a standalone SVG document (for baking frames). */
 export function gaugeSvg(g: VectorGauge, p: number): string {
+  if (g.shape === "svg") return withValue(g.template ?? "", templateVars(g, p));
   const defs: string[] = [];
   const body = gaugePrims(g, p)
     .map((prim, i) => {
@@ -333,8 +363,10 @@ export function normalizeGauge(raw: unknown): VectorGauge {
     : d.fill.stops;
   const needle = obj(o.needle);
   const ticks = obj(o.ticks);
+  // Only checked for shape here (this also runs on the dev server); the browser sanitizes it before use.
+  const template = typeof o.template === "string" && o.template.length <= MAX_TEMPLATE && /^<svg\b/.test(o.template) ? o.template : null;
   return {
-    shape: o.shape === "bar" ? "bar" : "arc",
+    shape: o.shape === "bar" ? "bar" : o.shape === "svg" && template ? "svg" : "arc",
     width: Math.round(num(o.width, d.width, 4, 2048)),
     height: Math.round(num(o.height, d.height, 4, 2048)),
     start: num(o.start, d.start, -360, 360),
@@ -353,8 +385,29 @@ export function normalizeGauge(raw: unknown): VectorGauge {
     needle: needle ? { color: color(needle.color, "#F1F5F9"), length: num(needle.length, 0.85, 0.1, 1.2), width: num(needle.width, 6, 1, 64) } : null,
     ticks: ticks ? { count: Math.round(num(ticks.count, 11, 2, 200)), length: num(ticks.length, 8, 1, 200), width: num(ticks.width, 2, 0.5, 32), color: color(ticks.color, "#94A3B8") } : null,
     reverse: o.reverse === true,
+    ...(o.shape === "svg" && template ? { template } : {}),
   };
 }
+
+/**
+ * The starter template: a dial whose arc and needle follow `--value`, with a glow that pulses on its own
+ * (CSS animation), to show what a template can do.
+ */
+export const SAMPLE_TEMPLATE =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">' +
+  "<style>" +
+  "svg{--value:0.5}" +
+  ".arc{fill:none;stroke:#3B82F6;stroke-width:14;stroke-linecap:round;stroke-dasharray:377px 1000px;stroke-dashoffset:calc((1 - var(--value)) * 377px);transition:stroke-dashoffset .4s}" +
+  ".needle{transform-origin:100px 100px;transform:rotate(calc(var(--value) * 270deg - 135deg));transition:transform .4s}" +
+  ".glow{animation:pulse 2s ease-in-out infinite}" +
+  "@keyframes pulse{50%{opacity:.25}}" +
+  "</style>" +
+  '<circle class="glow" cx="100" cy="100" r="92" fill="none" stroke="#38BDF8" stroke-width="2" opacity=".8"/>' +
+  '<path d="M43.4 156.6A80 80 0 1 1 156.6 156.6" fill="none" stroke="#1E293B" stroke-width="14" stroke-linecap="round"/>' +
+  '<path class="arc" d="M43.4 156.6A80 80 0 1 1 156.6 156.6"/>' +
+  '<g class="needle"><path d="M97 100L100 34L103 100Z" fill="#F1F5F9"/></g>' +
+  '<circle cx="100" cy="100" r="8" fill="#F1F5F9"/>' +
+  "</svg>";
 
 /** Starting points for a new vector gauge. */
 export const STARTERS: { name: string; gauge: VectorGauge }[] = [
@@ -362,5 +415,6 @@ export const STARTERS: { name: string; gauge: VectorGauge }[] = [
   { name: "Dial with needle", gauge: { ...DEFAULT_GAUGE, rounded: false, needle: { color: "#F1F5F9", length: 0.85, width: 6 }, ticks: { count: 11, length: 8, width: 2, color: "#94A3B8" }, fill: { ...DEFAULT_GAUGE.fill, mode: "gradient" } } },
   { name: "Segmented tachometer", gauge: { ...DEFAULT_GAUGE, rounded: false, segments: 24, gap: 2, fill: { ...DEFAULT_GAUGE.fill, mode: "zones" } } },
   { name: "Bar", gauge: { ...DEFAULT_GAUGE, shape: "bar", width: 300, height: 24, thickness: 16 } },
-  { name: "Vertical segments", gauge: { ...DEFAULT_GAUGE, shape: "bar", orientation: "vertical", width: 24, height: 120, thickness: 20, rounded: false, segments: 12, gap: 3, fill: { ...DEFAULT_GAUGE.fill, mode: "zones" } } },
+  { name: "SVG template (animated)", gauge: { ...DEFAULT_GAUGE, shape: "svg", template: SAMPLE_TEMPLATE } },
+  { name: "Vertical segments", gauge:{ ...DEFAULT_GAUGE, shape: "bar", orientation: "vertical", width: 24, height: 120, thickness: 20, rounded: false, segments: 12, gap: 3, fill: { ...DEFAULT_GAUGE.fill, mode: "zones" } } },
 ];

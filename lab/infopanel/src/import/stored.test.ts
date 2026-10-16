@@ -5,7 +5,7 @@ import { parseDisplayItemsXml, parseProfileXml } from "../parse.ts";
 import { groupId } from "../remap/remap.ts";
 import type { DisplayItem } from "../schema.ts";
 import type { BoundItem } from "../sensors.ts";
-import { DEFAULT_GAUGE } from "../gauges/vector.ts";
+import { DEFAULT_GAUGE, STARTERS } from "../gauges/vector.ts";
 import { assetsFrom, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "./stored.ts";
 
 const xml = import.meta.glob<string>("../../corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
@@ -31,6 +31,13 @@ describe("stored form", () => {
     const back = roundTrip(s);
     expect(back.items).toEqual(items);
     expect(back.issues).toEqual([]);
+  });
+
+  it("keeps an SVG template gauge's template", () => {
+    const [gauge] = parse('<DisplayItem xsi:type="GaugeDisplayItem"></DisplayItem>');
+    const svg = STARTERS.find((s) => s.gauge.shape === "svg")!.gauge;
+    const items = [{ ...gauge, vector: svg }] as unknown as DisplayItem[];
+    expect(roundTrip(toStored(input(items))).items).toEqual(items);
   });
 
   it("stores each bound item's key and how it was found; the user's choices come back as overrides", () => {

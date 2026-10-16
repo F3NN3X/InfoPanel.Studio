@@ -232,6 +232,12 @@ AnimationSpeed with a crossfade. Every change is one undo step.
   gauge widget (a prototype; the app's widget is an app phase) with nothing lost. **Bake** is only for InfoPanel:
   it renders N PNG frames (frame i at i / (N − 1) of the range, the one InfoPanel picks); the list says when
   there are none or they are out of date. **Back to frames only** drops the spec and keeps the frames.
+- **SVG templates** (L9, `svg-template.ts`, `SvgTemplateView.tsx`): shape "SVG template" takes the user's own SVG file
+  (starter: an animated dial). It reads `var(--value)` (0–1) and `var(--percent)` (0–100, whole), set on its root
+  element (reverse applies). The studio draws it live in a frame sandboxed without scripts, so its CSS and SMIL
+  animations run and the value changes without a reload; baking draws it as an image at each frame's value.
+  Loading sanitizes it (again when drawn): scripts, foreign content, event handlers and references outside the
+  file (links, `url()`, `@import`; embedded PNG, JPEG, GIF and WebP stay) are removed and listed. Up to 256 KB.
 - **Library** (`library.ts`, `gauge-library-plugin.ts`): saved by the lab dev server in `gauges/` (gitignored):
   `library.json` and each frame once by SHA-256 (the server checks the hash, and every entry on write). **Save to
   the library** / **Save all** skip gauges already saved; an entry is used for the selected gauge (its sensor and

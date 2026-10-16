@@ -1,5 +1,6 @@
 /** A vector gauge as inline SVG, scaled to `width` × `height` (the spec's size by default). */
 import type { CSSProperties } from "react";
+import { SvgTemplateView } from "./SvgTemplateView.tsx";
 import { gaugePrims, type VectorGauge } from "./vector.ts";
 
 export interface VectorGaugeSvgProps {
@@ -14,6 +15,7 @@ export interface VectorGaugeSvgProps {
 }
 
 export function VectorGaugeSvg({ gauge, p, width = gauge.width, height = gauge.height, id, style }: VectorGaugeSvgProps) {
+  if (gauge.shape === "svg") return <SvgTemplateView gauge={gauge} p={p} width={width} height={height} style={style} />;
   const prims = gaugePrims(gauge, p);
   return (
     <svg width={width} height={height} viewBox={`0 0 ${gauge.width} ${gauge.height}`} preserveAspectRatio="none" style={{ display: "block", overflow: "visible", ...style }}>

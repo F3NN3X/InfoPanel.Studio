@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { arcPath, colorAt, DEFAULT_GAUGE, fraction, gaugePrims, gaugeSvg, normalizeGauge, STARTERS, zoneAt, type VectorGauge } from "./vector.ts";
+import {
+  arcPath, colorAt, DEFAULT_GAUGE, fraction, gaugePrims, gaugeSvg, MAX_TEMPLATE, normalizeGauge, SAMPLE_TEMPLATE, STARTERS, templateVars, withValue, zoneAt,
+  type VectorGauge,
+} from "./vector.ts";
 
 const stops = [{ at: 0, color: "#000000" }, { at: 100, color: "#FFFFFF" }];
 const arc = (over: Partial<VectorGauge> = {}): VectorGauge => ({ ...DEFAULT_GAUGE, track: null, ...over });
@@ -85,5 +88,34 @@ describe("svg and specs", () => {
     expect(g.needle).toEqual({ color: "#F1F5F9", length: 0.85, width: 6 });
     expect("extra" in g).toBe(false);
     for (const s of STARTERS) expect(normalizeGauge(s.gauge)).toEqual(s.gauge);
+  });
+});
+
+describe("svg templates", () => {
+  const svg = (over: Partial<VectorGauge> = {}) => arc({ shape: "svg", template: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect/></svg>', ...over });
+
+  it("sets the value inline on the root, keeping an existing style", () => {
+    expect(gaugeSvg(svg(), 0.25)).toBe('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" style="--value:0.25;--percent:25;"><rect/></svg>');
+    expect(withValue('<svg style="fill:red">x</svg>', { value: 1, percent: 100 })).toBe('<svg style="--value:1;--percent:100;fill:red">x</svg>');
+    expect(withValue("<svg/>", { value: 0, percent: 0 })).toBe('<svg style="--value:0;--percent:0;"/>');
+    // Only the root: a later style attribute is left alone.
+    expect(withValue('<svg a="1"><g style="x"/></svg>', { value: 0, percent: 0 })).toBe('<svg a="1" style="--value:0;--percent:0;"><g style="x"/></svg>');
+  });
+
+  it("reverses, clamps and rounds the value it passes", () => {
+    expect(templateVars(svg(), 0.123456)).toEqual({ value: 0.1235, percent: 12 });
+    expect(templateVars(svg({ reverse: true }), 0.25)).toEqual({ value: 0.75, percent: 75 });
+    expect(templateVars(svg(), 7)).toEqual({ value: 1, percent: 100 });
+    expect(templateVars(svg(), NaN)).toEqual({ value: 0, percent: 0 });
+    expect(gaugePrims(svg(), 0.5)).toEqual([]);
+  });
+
+  it("keeps a template only on shape svg, when it is an <svg> within the size limit", () => {
+    expect(normalizeGauge(svg())).toEqual(svg());
+    expect(normalizeGauge({ ...svg(), template: "<html/>" })).toMatchObject({ shape: "arc" });
+    expect("template" in normalizeGauge({ ...svg(), template: "<html/>" })).toBe(false);
+    expect("template" in normalizeGauge({ ...svg(), shape: "bar" })).toBe(false);
+    expect(normalizeGauge({ ...svg(), template: `<svg>${" ".repeat(MAX_TEMPLATE)}</svg>` }).shape).toBe("arc");
+    expect(SAMPLE_TEMPLATE).toMatch(/var\(--value\)/);
   });
 });
