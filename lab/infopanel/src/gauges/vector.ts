@@ -1,23 +1,103 @@
 /**
- * Vector gauges (L7): a gauge described by a small spec and drawn as SVG at
- * any value, instead of a fixed image per step. Ideas from the user's gauge
- * creator (arc and bar shapes, segments, colour zones and gradients, needle,
- * ticks), rewritten as pure geometry so the same shapes draw live on the lab
- * canvas and bake into InfoPanel's image frames.
+ * Vector gauges (L7, L10): a gauge described by a small spec and drawn as SVG
+ * at any value, instead of a fixed image per step. Ideas from the user's gauge
+ * creator (arc and bar shapes, segments, colour zones and gradients, needles,
+ * ticks and labels, value text, glow), rewritten as pure geometry so the same
+ * shapes draw live in the studio and bake into InfoPanel's image frames.
  *
  * Angles are degrees clockwise from 12 o'clock. A fill's colour position is
  * over the whole range (0–100 %), never over the filled part, so a colour sits
  * at the same place whatever the value.
+ *
+ * Shaped for the app's widgets: colours can be theme colours (the widget
+ * tokens `--accent`, `--w-warn`, …), a threshold fill matches the widgets'
+ * ok / warn / crit tone, and the scale uses their min, max, unit and decimals.
+ * Every part added after L7 is optional, so older specs read and bake as before.
  */
+import { arcPath, circlePath, clamp, fmt, polar } from "./geom.ts";
+import { arcNeedle, arcTicks, backgroundPrims, barTicks, scaleOf, valueText } from "./parts.ts";
+
+export { arcPath } from "./geom.ts";
 
 export interface ColorStop {
   /** 0–100 % of the range. */
   at: number;
-  /** #RRGGBB */
+  /** #RRGGBB (stops are interpolated, so no theme colours). */
   color: string;
 }
 
-export type FillMode = "solid" | "gradient" | "zones";
+export type FillMode = "solid" | "gradient" | "zones" | "thresholds";
+
+/** The app's widget colours (src/widgets/core/theme.ts), with the dark-surface value used when baking. */
+export const THEME = {
+  accent: { label: "Accent", css: "var(--accent, #34D399)", hex: "#34D399" },
+  warn: { label: "Warning", css: "var(--w-warn, #EDB232)", hex: "#EDB232" },
+  crit: { label: "Critical", css: "var(--w-crit, #F2665E)", hex: "#F2665E" },
+  fg: { label: "Text", css: "var(--w-fg, #F4F4F5)", hex: "#F4F4F5" },
+  muted: { label: "Muted text", css: "var(--w-muted, #A1A1AA)", hex: "#A1A1AA" },
+  track: { label: "Track", css: "var(--w-track, rgba(255,255,255,.07))", hex: "rgba(255,255,255,.07)" },
+} as const;
+export type ThemeColor = keyof typeof THEME;
+
+/** A colour: #RRGGBB, or a theme colour name that follows the dashboard theme. */
+export type Paint = string;
+export type PaintMode = "live" | "bake";
+
+const HEX = /^#[0-9a-f]{6}$/i;
+export const isThemeColor = (v: unknown): v is ThemeColor => typeof v === "string" && Object.hasOwn(THEME, v);
+export const isPaint = (v: unknown): v is Paint => isThemeColor(v) || (typeof v === "string" && HEX.test(v));
+/** Live: the theme variable (with its default); bake: a fixed colour. Anything that is not a colour draws black. */
+export const resolvePaint = (p: Paint, mode: PaintMode) => (isThemeColor(p) ? THEME[p][mode === "live" ? "css" : "hex"] : HEX.test(p) ? p : "#000000");
+
+/** The value range the labels and value text show (the widgets' min, max, unit and decimals). */
+export interface Scale {
+  min: number;
+  max: number;
+  unit: string;
+  /** null: automatic (one decimal below 10, as the widgets do). */
+  decimals: number | null;
+}
+
+export type NeedleStyle = "taper" | "line" | "arrow" | "blade";
+
+export interface Ticks {
+  /** Major ticks, ends included. */
+  count: number;
+  length: number;
+  width: number;
+  color: Paint;
+  /** Minor ticks between two majors. */
+  minor?: { count: number; length: number; width: number; color: Paint };
+  /** The scale value at each major tick. */
+  labels?: { size: number; color: Paint; font: string };
+}
+
+export interface ValueText {
+  size: number;
+  color: Paint;
+  /** A font family installed where it is drawn; "" uses the default. */
+  font: string;
+  weight: number;
+  /** Where its middle sits, 0–1 of the height. */
+  y: number;
+  /** `{value}` and `{unit}` are replaced. */
+  format: string;
+}
+
+export interface Background {
+  color: Paint | null;
+  border: { color: Paint; width: number } | null;
+  /** Bar corner radius, px (an arc's background is a disc). */
+  radius: number;
+}
+
+export interface Shadow {
+  blur: number;
+  dx: number;
+  dy: number;
+  color: Paint;
+  opacity: number;
+}
 
 export interface VectorGauge {
   /** "svg": the user's own SVG (`template`), driven by the value; the arc and bar fields do not apply. */
@@ -37,13 +117,21 @@ export interface VectorGauge {
   segments: number;
   gap: number;
   /** The unfilled range; null draws none. */
-  track: string | null;
-  fill: { mode: FillMode; color: string; stops: ColorStop[] };
+  track: Paint | null;
+  trackOpacity?: number;
+  /** `color` is the solid colour, and the ok colour of a threshold fill; `warn` and `crit` are scale values. */
+  fill: { mode: FillMode; color: Paint; stops: ColorStop[]; warn?: number; crit?: number };
   /** Arc: a needle from the centre; bar: a marker across the bar. */
-  needle: { color: string; length: number; width: number } | null;
-  ticks: { count: number; length: number; width: number; color: string } | null;
+  needle: { color: Paint; length: number; width: number; style?: NeedleStyle } | null;
+  ticks: Ticks | null;
   /** Fills from the end of the range instead. */
   reverse: boolean;
+  scale?: Scale;
+  text?: ValueText;
+  background?: Background;
+  /** Glow around the fill, blur radius px. */
+  glow?: number;
+  shadow?: Shadow;
   /**
    * Shape "svg" only: the template, sanitized (svg-template.ts). It reads the value as the CSS custom
    * properties `--value` (0–1) and `--percent` (0–100, whole), set on its root element.
@@ -91,10 +179,17 @@ export const DEFAULT_GAUGE: VectorGauge = {
   reverse: false,
 };
 
-/** One SVG element: a path filled or stroked, or a rect with a linear gradient. */
+interface PrimCommon {
+  opacity?: number;
+  /** Drawn with the gauge's glow. */
+  glow?: boolean;
+}
+
+/** One SVG element: a path filled or stroked, a rect (optionally with a linear gradient), or a line of text. */
 export type Prim =
-  | { kind: "path"; d: string; fill?: string; stroke?: string; width?: number; cap?: "round" | "butt" }
-  | { kind: "rect"; x: number; y: number; w: number; h: number; r: number; fill: string | LinearGradient };
+  | ({ kind: "path"; d: string; fill?: Paint; stroke?: Paint; width?: number; cap?: "round" | "butt" } & PrimCommon)
+  | ({ kind: "rect"; x: number; y: number; w: number; h: number; r: number; fill: Paint | LinearGradient | null; stroke?: Paint; width?: number } & PrimCommon)
+  | ({ kind: "text"; x: number; y: number; text: string; size: number; color: Paint; font: string; weight: number; anchor: "start" | "middle" | "end" } & PrimCommon);
 
 export interface LinearGradient {
   x1: number;
@@ -103,10 +198,6 @@ export interface LinearGradient {
   y2: number;
   stops: ColorStop[];
 }
-
-const HEX = /^#[0-9a-f]{6}$/i;
-const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
-const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
 /** The stop colours interpolated at `at` (0–100). */
 export function colorAt(stops: readonly ColorStop[], at: number): string {
@@ -131,10 +222,20 @@ export function zoneAt(stops: readonly ColorStop[], at: number): string {
   return color.toUpperCase();
 }
 
-/** The fill's colour at a position of the range. */
-function colorOf(g: VectorGauge, at: number, value: number): string {
+/** The widgets' tone: crit at or above `crit`, warn at or above `warn`, else the ok colour. */
+export function thresholdPaint(g: VectorGauge, at: number): Paint {
+  const s = scaleOf(g);
+  const v = s.min + (at / 100) * (s.max - s.min);
+  if (g.fill.crit !== undefined && v >= g.fill.crit) return "crit";
+  if (g.fill.warn !== undefined && v >= g.fill.warn) return "warn";
+  return g.fill.color;
+}
+
+/** The fill's colour at a position of the range (segments), or for the whole fill at `value` (continuous). */
+function colorOf(g: VectorGauge, at: number, value: number): Paint {
   if (g.fill.mode === "gradient") return colorAt(g.fill.stops, at);
   if (g.fill.mode === "zones") return zoneAt(g.fill.stops, g.segments > 0 ? at : value);
+  if (g.fill.mode === "thresholds") return thresholdPaint(g, g.segments > 0 ? at : value);
   return g.fill.color;
 }
 
@@ -144,27 +245,13 @@ export const fraction = (value: number | null, min: number, max: number) =>
 
 /* ---- arc ---- */
 
-const rad = (deg: number) => (deg * Math.PI) / 180;
-
-function arcGeometry(g: VectorGauge) {
+export function arcGeometry(g: VectorGauge) {
   const cx = g.width / 2;
   const cy = g.height / 2;
   const outside = g.ticks ? g.ticks.length + 2 : 0;
   const r = Math.max(1, Math.min(g.width, g.height) / 2 - g.thickness / 2 - outside - 1);
-  const at = (deg: number, radius = r) => [cx + radius * Math.sin(rad(deg)), cy - radius * Math.cos(rad(deg))] as const;
+  const at = (deg: number, radius = r) => polar(cx, cy, radius, deg);
   return { cx, cy, r, at };
-}
-
-/** An SVG arc path from `a0` to `a1` degrees (clockwise); a full turn is two halves. */
-export function arcPath(cx: number, cy: number, r: number, a0: number, a1: number): string {
-  const span = a1 - a0;
-  if (span <= 0) return "";
-  const pt = (deg: number) => `${fmt(cx + r * Math.sin(rad(deg)))} ${fmt(cy - r * Math.cos(rad(deg)))}`;
-  if (span >= 360) {
-    const mid = a0 + 180;
-    return `M${pt(a0)}A${fmt(r)} ${fmt(r)} 0 1 1 ${pt(mid)}A${fmt(r)} ${fmt(r)} 0 1 1 ${pt(a0 + 359.99)}`;
-  }
-  return `M${pt(a0)}A${fmt(r)} ${fmt(r)} 0 ${span > 180 ? 1 : 0} 1 ${pt(a1)}`;
 }
 
 function arcPrims(g: VectorGauge, p: number): Prim[] {
@@ -172,25 +259,28 @@ function arcPrims(g: VectorGauge, p: number): Prim[] {
   const sweep = clamp(g.sweep, 1, 360);
   const out: Prim[] = [];
   const cap = g.rounded ? "round" : "butt";
-  const stroke = (a0: number, a1: number, color: string, c: "round" | "butt" = cap): Prim => ({
+  const glow = (g.glow ?? 0) > 0;
+  const stroke = (a0: number, a1: number, color: Paint, c: "round" | "butt" = cap): Prim => ({
     kind: "path", d: arcPath(cx, cy, r, a0, a1), stroke: color, width: g.thickness, cap: c,
   });
+  const lit = (prim: Prim): Prim => (glow ? { ...prim, glow } : prim);
+  const track = (prim: Prim): Prim => (g.trackOpacity !== undefined ? { ...prim, opacity: g.trackOpacity } : prim);
   const valueAt = (fracOfRange: number) => (g.reverse ? g.start + sweep * (1 - fracOfRange) : g.start + sweep * fracOfRange);
 
   if (g.segments > 0) {
     const n = Math.round(g.segments);
     const gap = clamp(g.gap, 0, sweep / n - 0.5);
     const each = (sweep - gap * (n - (sweep >= 360 ? 0 : 1))) / n;
-    const lit = Math.round(p * n);
+    const count = Math.round(p * n);
     for (let i = 0; i < n; i++) {
       // Segment i in fill order; reversed gauges fill from the end.
       const k = g.reverse ? n - 1 - i : i;
       const a0 = g.start + k * (each + gap);
-      const color = i < lit ? colorOf(g, ((i + 0.5) / n) * 100, p * 100) : g.track;
-      if (color) out.push(stroke(a0, a0 + each, color));
+      if (i < count) out.push(lit(stroke(a0, a0 + each, colorOf(g, ((i + 0.5) / n) * 100, p * 100))));
+      else if (g.track) out.push(track(stroke(a0, a0 + each, g.track)));
     }
   } else {
-    if (g.track) out.push(stroke(g.start, g.start + sweep, g.track));
+    if (g.track) out.push(track(stroke(g.start, g.start + sweep, g.track)));
     const [a0, a1] = g.reverse ? [valueAt(p), g.start + sweep] : [g.start, valueAt(p)];
     if (a1 - a0 > 0.01) {
       if (g.fill.mode === "gradient") {
@@ -201,50 +291,29 @@ function arcPrims(g: VectorGauge, p: number): Prim[] {
           const s = a0 + i * step;
           const mid = ((s + step / 2 - g.start) / sweep) * 100;
           // A hair of overlap hides the seams between pieces.
-          out.push(stroke(s, Math.min(a1, s + step + 0.3), colorAt(g.fill.stops, mid), "butt"));
+          out.push(lit(stroke(s, Math.min(a1, s + step + 0.3), colorAt(g.fill.stops, mid), "butt")));
         }
         if (g.rounded) {
           for (const [deg, pos] of [[a0, ((a0 - g.start) / sweep) * 100], [a1, ((a1 - g.start) / sweep) * 100]] as const) {
             const [x, y] = at(deg);
-            out.push({ kind: "path", d: circlePath(x, y, g.thickness / 2), fill: colorAt(g.fill.stops, pos) });
+            out.push(lit({ kind: "path", d: circlePath(x, y, g.thickness / 2), fill: colorAt(g.fill.stops, pos) }));
           }
         }
-      } else out.push(stroke(a0, a1, colorOf(g, 0, p * 100)));
+      } else out.push(lit(stroke(a0, a1, colorOf(g, 0, p * 100))));
     }
   }
 
-  if (g.ticks && g.ticks.count >= 2) {
-    const t = g.ticks;
-    const inner = r + g.thickness / 2 + 1;
-    const d = Array.from({ length: Math.round(t.count) }, (_, i) => {
-      const deg = g.start + (sweep * i) / (sweep >= 360 ? t.count : t.count - 1);
-      const [x0, y0] = at(deg, inner);
-      const [x1, y1] = at(deg, inner + t.length);
-      return `M${fmt(x0)} ${fmt(y0)}L${fmt(x1)} ${fmt(y1)}`;
-    }).join("");
-    out.push({ kind: "path", d, stroke: t.color, width: t.width, cap: "butt" });
-  }
-
-  if (g.needle) {
-    const n = g.needle;
-    const deg = valueAt(p);
-    const [tx, ty] = at(deg, r * clamp(n.length, 0.1, 1.2));
-    const [lx, ly] = at(deg - 90, n.width / 2);
-    const [rx, ry] = at(deg + 90, n.width / 2);
-    out.push({ kind: "path", d: `M${fmt(lx)} ${fmt(ly)}L${fmt(tx)} ${fmt(ty)}L${fmt(rx)} ${fmt(ry)}Z`, fill: n.color });
-    out.push({ kind: "path", d: circlePath(cx, cy, n.width), fill: n.color });
-  }
+  if (g.ticks && g.ticks.count >= 2) out.push(...arcTicks(g, { cx, cy, r, sweep }));
+  if (g.needle) out.push(...arcNeedle(g, { cx, cy, r }, valueAt(p)));
   return out;
 }
-
-const circlePath = (x: number, y: number, r: number) =>
-  `M${fmt(x - r)} ${fmt(y)}a${fmt(r)} ${fmt(r)} 0 1 0 ${fmt(2 * r)} 0a${fmt(r)} ${fmt(r)} 0 1 0 ${fmt(-2 * r)} 0Z`;
 
 /* ---- bar ---- */
 
 function barPrims(g: VectorGauge, p: number): Prim[] {
   const vertical = g.orientation === "vertical";
-  const pad = g.ticks ? g.ticks.length + 2 : 0;
+  const labels = g.ticks?.labels ? g.ticks.labels.size * (vertical ? 2.4 : 1.4) + 2 : 0;
+  const pad = g.ticks ? g.ticks.length + 2 + labels : 0;
   // The bar runs along the long axis, `thickness` across, centred.
   const length = (vertical ? g.height : g.width) - 2;
   const across = Math.min(g.thickness, (vertical ? g.width : g.height) - pad);
@@ -257,20 +326,24 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
       : { x: 1 + a, y: offset, w: b - a, h: across };
   };
   const radius = g.rounded ? across / 2 : 0;
+  const glow = (g.glow ?? 0) > 0;
   const out: Prim[] = [];
-  const rect = (from: number, to: number, fill: string | LinearGradient, r = radius): Prim => ({ kind: "rect", ...box(from, to), r: Math.min(r, (to - from) / 2), fill });
+  const rect = (from: number, to: number, fill: Paint | LinearGradient, r = radius): Prim => ({ kind: "rect", ...box(from, to), r: Math.min(r, (to - from) / 2), fill });
+  const lit = (prim: Prim): Prim => (glow ? { ...prim, glow } : prim);
+  const track = (prim: Prim): Prim => (g.trackOpacity !== undefined ? { ...prim, opacity: g.trackOpacity } : prim);
 
   if (g.segments > 0) {
     const n = Math.round(g.segments);
     const gap = clamp(g.gap, 0, length / n - 1);
     const each = (length - gap * (n - 1)) / n;
-    const lit = Math.round(p * n);
+    const count = Math.round(p * n);
     for (let i = 0; i < n; i++) {
-      const color = i < lit ? colorOf(g, ((i + 0.5) / n) * 100, p * 100) : g.track;
-      if (color) out.push(rect(i * (each + gap), i * (each + gap) + each, color, Math.min(radius, each / 2)));
+      const r = Math.min(radius, each / 2);
+      if (i < count) out.push(lit(rect(i * (each + gap), i * (each + gap) + each, colorOf(g, ((i + 0.5) / n) * 100, p * 100), r)));
+      else if (g.track) out.push(track(rect(i * (each + gap), i * (each + gap) + each, g.track, r)));
     }
   } else {
-    if (g.track) out.push(rect(0, length, g.track));
+    if (g.track) out.push(track(rect(0, length, g.track)));
     const filled = length * p;
     if (filled > 0.01) {
       if (g.fill.mode === "gradient") {
@@ -279,22 +352,12 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
         const [x1, y1, x2, y2] = vertical
           ? g.reverse ? [0, whole.y, 0, whole.y + whole.h] : [0, whole.y + whole.h, 0, whole.y]
           : g.reverse ? [whole.x + whole.w, 0, whole.x, 0] : [whole.x, 0, whole.x + whole.w, 0];
-        out.push(rect(0, filled, { x1, y1, x2, y2, stops: g.fill.stops }));
-      } else out.push(rect(0, filled, colorOf(g, 0, p * 100)));
+        out.push(lit(rect(0, filled, { x1, y1, x2, y2, stops: g.fill.stops })));
+      } else out.push(lit(rect(0, filled, colorOf(g, 0, p * 100))));
     }
   }
 
-  if (g.ticks && g.ticks.count >= 2) {
-    const t = g.ticks;
-    const base = offset + across + 1;
-    const d = Array.from({ length: Math.round(t.count) }, (_, i) => {
-      const along = 1 + (length * i) / (t.count - 1);
-      return vertical
-        ? `M${fmt(base)} ${fmt(g.height - along)}h${fmt(t.length)}`
-        : `M${fmt(along)} ${fmt(base)}v${fmt(t.length)}`;
-    }).join("");
-    out.push({ kind: "path", d, stroke: t.color, width: t.width, cap: "butt" });
-  }
+  if (g.ticks && g.ticks.count >= 2) out.push(...barTicks(g, { length, base: offset + across + 1, vertical }));
 
   if (g.needle) {
     const n = g.needle;
@@ -308,63 +371,51 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
   return out;
 }
 
-/** The gauge's shapes at `p` (0..1 of the range). */
+/** The gauge's shapes at `p` (0..1 of the range): background, the shape, ticks and needle, then the value text. */
 export function gaugePrims(g: VectorGauge, p: number): Prim[] {
   const v = clamp(Number.isFinite(p) ? p : 0, 0, 1);
   if (g.shape === "svg") return [];
-  return g.shape === "arc" ? arcPrims(g, v) : barPrims(g, v);
-}
-
-const esc = (s: string) => s.replace(/[<>&"]/g, (c) => `&#${c.charCodeAt(0)};`);
-
-/** The gauge at `p` as a standalone SVG document (for baking frames). */
-export function gaugeSvg(g: VectorGauge, p: number): string {
-  if (g.shape === "svg") return withValue(g.template ?? "", templateVars(g, p));
-  const defs: string[] = [];
-  const body = gaugePrims(g, p)
-    .map((prim, i) => {
-      if (prim.kind === "path") {
-        const paint = prim.fill ? `fill="${esc(prim.fill)}"` : `fill="none" stroke="${esc(prim.stroke ?? "none")}" stroke-width="${fmt(prim.width ?? 1)}" stroke-linecap="${prim.cap ?? "butt"}"`;
-        return `<path d="${prim.d}" ${paint}/>`;
-      }
-      let fill: string;
-      if (typeof prim.fill === "string") fill = esc(prim.fill);
-      else {
-        const lg = prim.fill;
-        defs.push(
-          `<linearGradient id="g${i}" gradientUnits="userSpaceOnUse" x1="${fmt(lg.x1)}" y1="${fmt(lg.y1)}" x2="${fmt(lg.x2)}" y2="${fmt(lg.y2)}">` +
-            [...lg.stops].sort((a, b) => a.at - b.at).map((s) => `<stop offset="${clamp(s.at, 0, 100)}%" stop-color="${esc(s.color)}"/>`).join("") +
-            `</linearGradient>`,
-        );
-        fill = `url(#g${i})`;
-      }
-      return `<rect x="${fmt(prim.x)}" y="${fmt(prim.y)}" width="${fmt(Math.max(0, prim.w))}" height="${fmt(Math.max(0, prim.h))}" rx="${fmt(prim.r)}" fill="${fill}"/>`;
-    })
-    .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${g.width}" height="${g.height}" viewBox="0 0 ${g.width} ${g.height}">${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body}</svg>`;
+  const body = g.shape === "arc" ? arcPrims(g, v) : barPrims(g, v);
+  return [...backgroundPrims(g), ...body, ...(g.text ? [valueText(g, v)] : [])];
 }
 
 /**
  * A spec from untrusted JSON (the library, an import): known fields only,
- * numbers in range, colours as #RRGGBB; anything else takes the default.
+ * numbers in range, colours as #RRGGBB or theme colours; anything else takes
+ * the default. Optional parts stay absent unless given.
  */
 export function normalizeGauge(raw: unknown): VectorGauge {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const d = DEFAULT_GAUGE;
   const num = (v: unknown, def: number, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) ? clamp(v, lo, hi) : def);
-  const color = (v: unknown, def: string) => (typeof v === "string" && HEX.test(v) ? v.toUpperCase() : def);
+  const color = (v: unknown, def: Paint): Paint => (isThemeColor(v) ? v : typeof v === "string" && HEX.test(v) ? v.toUpperCase() : def);
+  const hex = (v: unknown) => (typeof v === "string" && HEX.test(v) ? v.toUpperCase() : null);
   const obj = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : null);
+  // Font names and text: printable, no markup or CSS punctuation that could end a declaration.
+  const font = (v: unknown) => (typeof v === "string" && /^[\w\s,'.-]{0,80}$/.test(v) ? v : "");
+  const text = (v: unknown, def: string, max: number) => (typeof v === "string" ? v.replace(/[\p{Cc}]/gu, "").slice(0, max) : def);
+  const finite = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   const fill = obj(o.fill) ?? {};
   const stops = Array.isArray(fill.stops)
     ? fill.stops.flatMap((s) => {
         const so = obj(s);
-        return so && typeof so.at === "number" && typeof so.color === "string" && HEX.test(so.color) ? [{ at: clamp(so.at, 0, 100), color: so.color.toUpperCase() }] : [];
+        const c = so && hex(so.color);
+        return so && typeof so.at === "number" && c ? [{ at: clamp(so.at, 0, 100), color: c }] : [];
       }).slice(0, 16)
     : d.fill.stops;
   const needle = obj(o.needle);
   const ticks = obj(o.ticks);
+  const minor = obj(ticks?.minor);
+  const labels = obj(ticks?.labels);
+  const scale = obj(o.scale);
+  const vt = obj(o.text);
+  const bg = obj(o.background);
+  const border = obj(bg?.border);
+  const shadow = obj(o.shadow);
+  const [warn, crit] = [finite(fill.warn), finite(fill.crit)];
   // Only checked for shape here (this also runs on the dev server); the browser sanitizes it before use.
   const template = typeof o.template === "string" && o.template.length <= MAX_TEMPLATE && /^<svg\b/.test(o.template) ? o.template : null;
+  const scaleMin = num(scale?.min, 0, -1e9, 1e9);
   return {
     shape: o.shape === "bar" ? "bar" : o.shape === "svg" && template ? "svg" : "arc",
     width: Math.round(num(o.width, d.width, 4, 2048)),
@@ -377,44 +428,50 @@ export function normalizeGauge(raw: unknown): VectorGauge {
     segments: Math.round(num(o.segments, d.segments, 0, 200)),
     gap: num(o.gap, d.gap, 0, 100),
     track: o.track === null ? null : color(o.track, d.track!),
+    ...(o.trackOpacity !== undefined ? { trackOpacity: num(o.trackOpacity, 1, 0, 1) } : {}),
     fill: {
-      mode: fill.mode === "gradient" || fill.mode === "zones" ? fill.mode : "solid",
+      mode: fill.mode === "gradient" || fill.mode === "zones" || fill.mode === "thresholds" ? fill.mode : "solid",
       color: color(fill.color, d.fill.color),
       stops: stops.length ? stops : d.fill.stops,
+      ...(warn !== undefined ? { warn } : {}),
+      ...(crit !== undefined ? { crit } : {}),
     },
-    needle: needle ? { color: color(needle.color, "#F1F5F9"), length: num(needle.length, 0.85, 0.1, 1.2), width: num(needle.width, 6, 1, 64) } : null,
-    ticks: ticks ? { count: Math.round(num(ticks.count, 11, 2, 200)), length: num(ticks.length, 8, 1, 200), width: num(ticks.width, 2, 0.5, 32), color: color(ticks.color, "#94A3B8") } : null,
+    needle: needle
+      ? {
+          color: color(needle.color, "#F1F5F9"), length: num(needle.length, 0.85, 0.1, 1.2), width: num(needle.width, 6, 1, 64),
+          ...(needle.style === "line" || needle.style === "arrow" || needle.style === "blade" ? { style: needle.style } : {}),
+        }
+      : null,
+    ticks: ticks
+      ? {
+          count: Math.round(num(ticks.count, 11, 2, 200)), length: num(ticks.length, 8, 1, 200), width: num(ticks.width, 2, 0.5, 32), color: color(ticks.color, "#94A3B8"),
+          ...(minor ? { minor: { count: Math.round(num(minor.count, 4, 1, 20)), length: num(minor.length, 4, 1, 200), width: num(minor.width, 1, 0.5, 32), color: color(minor.color, "muted") } } : {}),
+          ...(labels ? { labels: { size: num(labels.size, 12, 4, 200), color: color(labels.color, "muted"), font: font(labels.font) } } : {}),
+        }
+      : null,
     reverse: o.reverse === true,
+    ...(scale ? { scale: { min: scaleMin, max: num(scale.max, 100, -1e9, 1e9), unit: text(scale.unit, "", 16), decimals: scale.decimals === null ? null : Math.round(num(scale.decimals, 0, 0, 4)) } } : {}),
+    ...(vt
+      ? {
+          text: {
+            size: num(vt.size, 32, 4, 400), color: color(vt.color, "fg"), font: font(vt.font), weight: Math.round(num(vt.weight, 700, 100, 900) / 100) * 100,
+            y: num(vt.y, 0.5, 0, 1), format: text(vt.format, "{value}{unit}", 40),
+          },
+        }
+      : {}),
+    ...(bg
+      ? {
+          background: {
+            color: bg.color === null ? null : color(bg.color, "#0F172A"),
+            border: border ? { color: color(border.color, "muted"), width: num(border.width, 2, 0.5, 64) } : null,
+            radius: num(bg.radius, 8, 0, 1024),
+          },
+        }
+      : {}),
+    ...(o.glow !== undefined ? { glow: num(o.glow, 0, 0, 64) } : {}),
+    ...(shadow
+      ? { shadow: { blur: num(shadow.blur, 6, 0, 64), dx: num(shadow.dx, 0, -64, 64), dy: num(shadow.dy, 2, -64, 64), color: color(shadow.color, "#000000"), opacity: num(shadow.opacity, 0.5, 0, 1) } }
+      : {}),
     ...(o.shape === "svg" && template ? { template } : {}),
   };
 }
-
-/**
- * The starter template: a dial whose arc and needle follow `--value`, with a glow that pulses on its own
- * (CSS animation), to show what a template can do.
- */
-export const SAMPLE_TEMPLATE =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">' +
-  "<style>" +
-  "svg{--value:0.5}" +
-  ".arc{fill:none;stroke:#3B82F6;stroke-width:14;stroke-linecap:round;stroke-dasharray:377px 1000px;stroke-dashoffset:calc((1 - var(--value)) * 377px);transition:stroke-dashoffset .4s}" +
-  ".needle{transform-origin:100px 100px;transform:rotate(calc(var(--value) * 270deg - 135deg));transition:transform .4s}" +
-  ".glow{animation:pulse 2s ease-in-out infinite}" +
-  "@keyframes pulse{50%{opacity:.25}}" +
-  "</style>" +
-  '<circle class="glow" cx="100" cy="100" r="92" fill="none" stroke="#38BDF8" stroke-width="2" opacity=".8"/>' +
-  '<path d="M43.4 156.6A80 80 0 1 1 156.6 156.6" fill="none" stroke="#1E293B" stroke-width="14" stroke-linecap="round"/>' +
-  '<path class="arc" d="M43.4 156.6A80 80 0 1 1 156.6 156.6"/>' +
-  '<g class="needle"><path d="M97 100L100 34L103 100Z" fill="#F1F5F9"/></g>' +
-  '<circle cx="100" cy="100" r="8" fill="#F1F5F9"/>' +
-  "</svg>";
-
-/** Starting points for a new vector gauge. */
-export const STARTERS: { name: string; gauge: VectorGauge }[] = [
-  { name: "Ring", gauge: { ...DEFAULT_GAUGE, start: 0, sweep: 360 } },
-  { name: "Dial with needle", gauge: { ...DEFAULT_GAUGE, rounded: false, needle: { color: "#F1F5F9", length: 0.85, width: 6 }, ticks: { count: 11, length: 8, width: 2, color: "#94A3B8" }, fill: { ...DEFAULT_GAUGE.fill, mode: "gradient" } } },
-  { name: "Segmented tachometer", gauge: { ...DEFAULT_GAUGE, rounded: false, segments: 24, gap: 2, fill: { ...DEFAULT_GAUGE.fill, mode: "zones" } } },
-  { name: "Bar", gauge: { ...DEFAULT_GAUGE, shape: "bar", width: 300, height: 24, thickness: 16 } },
-  { name: "SVG template (animated)", gauge: { ...DEFAULT_GAUGE, shape: "svg", template: SAMPLE_TEMPLATE } },
-  { name: "Vertical segments", gauge:{ ...DEFAULT_GAUGE, shape: "bar", orientation: "vertical", width: 24, height: 120, thickness: 20, rounded: false, segments: 12, gap: 3, fill: { ...DEFAULT_GAUGE.fill, mode: "zones" } } },
-];

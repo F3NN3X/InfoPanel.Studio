@@ -144,7 +144,7 @@ others). Each phase ends with the lab tests passing; `src/` stays untouched unti
 | L7 | Custom gauges: vector gauges drawn live as SVG; a gauge library to save and reuse gauges, fed by the image-sequence gauges in imports; editing imported gauges (recolour, retime, swap frames). Prior art: the user's gauge creator, `E:\GitHub\MyRepos\v0-themely-resource-creator` |
 | L8 | The import flow end to end: mode choice, import report, and the stored form the app will save |
 | L9 | SVG template gauges: the user's own SVG, animated or not, driven by the value through CSS custom properties; live in the studio, baked for InfoPanel |
-| L10 | Gauge creator parity: more of `v0-themely-resource-creator` (styles, presets, frame-set export) |
+| L10 | Gauge creator parity, the basics and groundwork, shaped for the app's widgets: theme colours, threshold fill, scale, value text, tick labels and minor ticks, needle styles, background, glow and shadow, presets, spec files. Later: liquid fill, grid matrix, multi-ring, bar icons and patterns, centre icons |
 | L11 | Native mode coverage: fewer items that stay InfoPanel (vertical bars, capsule shapes, flips, marquee text, image-sequence gauges) |
 | L12 | Asset and font polish: image optimising (resize, recompress), font licence review, bulk replace |
 

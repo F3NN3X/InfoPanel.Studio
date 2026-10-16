@@ -17,9 +17,19 @@ import {
 } from "./frames.ts";
 import { deleteEntry, entrySignature, fetchFrame, fetchLibrary, newId, saveEntry, type LibraryEntry } from "./library.ts";
 import { bake, NO_RECOLOUR, recolourFilter, recolourFrames, type Recolour } from "./raster.ts";
-import { STARTERS } from "./vector.ts";
+import { STARTERS } from "./presets.ts";
+import { readSpecFile, specFile } from "./spec-file.ts";
 import { VectorForm } from "./VectorForm.tsx";
 import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
+
+function downloadText(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
 
 const filesOf = (g: GaugeItem, assets: AssetTable) => frameNames(g).map((n) => (n ? assets.get(n) ?? null : null));
 
@@ -289,7 +299,24 @@ export function GaugePanel({ editor, profileName }: { editor: Editor; profileNam
           }}
         >
           Add
-        </button>
+        </button>{" "}
+        or from a spec file{" "}
+        <input
+          type="file"
+          accept=".json,application/json"
+          title="A .gauge.json spec (Export spec on a vector gauge)"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file)
+              run("Importing the spec", async () => {
+                const { name, gauge } = readSpecFile(await file.text());
+                const r = insertVectorGauge(editor.present, gauge, name);
+                editor.apply(r.items, [r.path]);
+                return `Added ${name}`;
+              });
+          }}
+        />
         {paths.length > 0 && (
           <>
             {" "}
@@ -406,7 +433,8 @@ export function GaugePanel({ editor, profileName }: { editor: Editor; profileNam
                     {!isStale(g) ? "frames are up to date" : g.Images.length ? "the frames are out of date" : "no frames yet"} ·{" "}
                     <button onClick={() => editor.apply(setVector(editor.present, selected, null))} title="Keeps the frames">
                       Back to frames only
-                    </button>
+                    </button>{" "}
+                    · <button onClick={() => downloadText(`${safeStem(g.Name)}.gauge.json`, specFile(g.Name || "Gauge", vector))}>Export spec</button>
                   </p>
                 </>
               ) : (

@@ -3,7 +3,8 @@
  * frames and recolouring frames, both through a canvas.
  */
 import { assetFile, MIME, type AssetFile } from "../assets/assets.ts";
-import { gaugeSvg, type VectorGauge } from "./vector.ts";
+import type { VectorGauge } from "./vector.ts";
+import { gaugeSvg } from "./vector-svg.ts";
 
 async function pngOf(canvas: OffscreenCanvas): Promise<Uint8Array> {
   return new Uint8Array(await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer());

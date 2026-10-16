@@ -5,7 +5,8 @@ import { parseDisplayItemsXml, parseProfileXml } from "../parse.ts";
 import { groupId } from "../remap/remap.ts";
 import type { DisplayItem } from "../schema.ts";
 import type { BoundItem } from "../sensors.ts";
-import { DEFAULT_GAUGE, STARTERS } from "../gauges/vector.ts";
+import { STARTERS } from "../gauges/presets.ts";
+import { DEFAULT_GAUGE } from "../gauges/vector.ts";
 import { assetsFrom, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "./stored.ts";
 
 const xml = import.meta.glob<string>("../../corpus/*/*.xml", { query: "?raw", import: "default", eager: true });

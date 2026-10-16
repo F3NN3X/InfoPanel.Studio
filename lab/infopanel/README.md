@@ -232,6 +232,15 @@ AnimationSpeed with a crossfade. Every change is one undo step.
   gauge widget (a prototype; the app's widget is an app phase) with nothing lost. **Bake** is only for InfoPanel:
   it renders N PNG frames (frame i at i / (N − 1) of the range, the one InfoPanel picks); the list says when
   there are none or they are out of date. **Back to frames only** drops the spec and keeps the frames.
+- **Gauge parts** (L10, `parts.ts`, `VectorParts.tsx`, shaped for the app's widgets): colours can be theme colours
+  (accent, warning, critical, text, muted, track: the widgets' `--accent`, `--w-*` variables, live in the studio and
+  their dark-surface values when baked); a threshold fill uses the ok colour below `warn`, then warning and critical,
+  like the widgets' tone; a scale (min, max, unit, decimals: automatic is one decimal below 10) feeds tick labels,
+  value text (`{value}{unit}`) and thresholds, independent of the item's MinValue / MaxValue. Also minor ticks,
+  needle styles (taper, line, arrow, blade), a background (disc or rounded rect, with a border), glow around the
+  fill, a drop shadow and track opacity. Text may use any installed font. Every part is optional: specs from before
+  keep drawing (and their baked frames stay up to date). One renderer (`vector-svg.ts`) draws live and baked
+  gauges. Presets in `presets.ts`; **Export spec** / *from a spec file* save and load one gauge as `.gauge.json`.
 - **SVG templates** (L9, `svg-template.ts`, `SvgTemplateView.tsx`): shape "SVG template" takes the user's own SVG file
   (starter: an animated dial). It reads `var(--value)` (0–1) and `var(--percent)` (0–100, whole), set on its root
   element (reverse applies). The studio draws it live in a frame sandboxed without scripts, so its CSS and SMIL

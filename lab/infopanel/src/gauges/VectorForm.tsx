@@ -1,11 +1,14 @@
 /**
- * The vector gauge spec as a form. Typing previews; a field commits when it
- * is left or Enter is pressed (selects and switches at once), so each change
- * is one undo step.
+ * The vector gauge spec as a form: shape, track and fill here, the optional
+ * parts (scale, value text, labels, background, effects) in VectorParts.
+ * Each committed change is one undo step.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useState } from "react";
+import { binder, Color, Num, PaintField, Row, Toggle } from "./form-kit.tsx";
+import { SAMPLE_TEMPLATE } from "./presets.ts";
 import { sanitizeTemplate } from "./svg-template.ts";
-import { DEFAULT_GAUGE, SAMPLE_TEMPLATE, type ColorStop, type FillMode, type VectorGauge } from "./vector.ts";
+import { DEFAULT_GAUGE, type ColorStop, type FillMode, type NeedleStyle, type VectorGauge } from "./vector.ts";
+import { PartsRows } from "./VectorParts.tsx";
 
 export interface VectorFormProps {
   gauge: VectorGauge;
@@ -13,82 +16,10 @@ export interface VectorFormProps {
   onCommit(g: VectorGauge): void;
 }
 
-/** A number field: local text, previewed while typing, committed on leave or Enter. */
-function Num({ value, onPreview, onCommit, min, max, step = 1 }: {
-  value: number;
-  onPreview(v: number | null): void;
-  onCommit(v: number): void;
-  min: number;
-  max: number;
-  step?: number;
-}) {
-  const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
-  const parse = (t: string) => {
-    const v = Number(t);
-    return t.trim() !== "" && Number.isFinite(v) ? Math.min(Math.max(v, min), max) : null;
-  };
-  const commit = () => {
-    const v = parse(text);
-    onPreview(null);
-    if (v === null) setText(String(value));
-    else if (v !== value) onCommit(v);
-  };
-  return (
-    <input
-      type="number"
-      value={text}
-      min={min}
-      max={max}
-      step={step}
-      style={{ width: 64 }}
-      onChange={(e) => {
-        setText(e.target.value);
-        onPreview(parse(e.target.value));
-      }}
-      onBlur={commit}
-      onKeyDown={(e) => e.key === "Enter" && commit()}
-    />
-  );
-}
-
-/** A colour field: previewed while the picker moves, committed when it closes (blur). */
-function Color({ value, onPreview, onCommit }: { value: string; onPreview(v: string | null): void; onCommit(v: string): void }) {
-  const [v, setV] = useState(value);
-  useEffect(() => setV(value), [value]);
-  return (
-    <input
-      type="color"
-      value={v.toLowerCase()}
-      onChange={(e) => {
-        setV(e.target.value.toUpperCase());
-        onPreview(e.target.value.toUpperCase());
-      }}
-      onBlur={() => {
-        onPreview(null);
-        if (v !== value) onCommit(v);
-      }}
-    />
-  );
-}
-
-const Row = ({ label, children }: { label: string; children: ReactNode }) => (
-  <tr>
-    <td>{label}</td>
-    <td>{children}</td>
-  </tr>
-);
-
 export function VectorForm({ gauge: g, onPreview, onCommit }: VectorFormProps) {
-  // Field helpers: `with(patch)` is the spec with a change.
-  const withPatch = (patch: Partial<VectorGauge>): VectorGauge => ({ ...g, ...patch });
-  const num = (key: "width" | "height" | "start" | "sweep" | "thickness" | "segments" | "gap", min: number, max: number) => (
-    <Num value={g[key]} min={min} max={max} onPreview={(v) => onPreview(v === null ? null : withPatch({ [key]: v }))} onCommit={(v) => onCommit(withPatch({ [key]: v }))} />
-  );
-  const setStops = (stops: ColorStop[]) => withPatch({ fill: { ...g.fill, stops } });
-  const needle = g.needle ?? { color: "#F1F5F9", length: 0.85, width: 6 };
-  const ticks = g.ticks ?? { count: 11, length: 8, width: 2, color: "#94A3B8" };
-
+  const bind = binder(onPreview, onCommit);
+  const set = (patch: Partial<VectorGauge>): VectorGauge => ({ ...g, ...patch });
+  const size = (key: "width" | "height") => <Num {...bind(g[key], (v) => set({ [key]: v }))} min={4} max={2048} />;
   return (
     <table>
       <tbody>
@@ -99,19 +30,24 @@ export function VectorForm({ gauge: g, onPreview, onCommit }: VectorFormProps) {
             <option value="svg">SVG template</option>
           </select>{" "}
           {g.shape === "bar" && (
-            <select value={g.orientation} onChange={(e) => onCommit(withPatch({ orientation: e.target.value as VectorGauge["orientation"] }))}>
+            <select value={g.orientation} onChange={(e) => onCommit(set({ orientation: e.target.value as VectorGauge["orientation"] }))}>
               <option value="horizontal">horizontal</option>
               <option value="vertical">vertical</option>
             </select>
           )}{" "}
-          <label>
-            <input type="checkbox" checked={g.reverse} onChange={() => onCommit(withPatch({ reverse: !g.reverse }))} /> reverse
-          </label>
+          <Toggle on={g.reverse} label="reverse" onChange={() => onCommit(set({ reverse: !g.reverse }))} />
         </Row>
         <Row label="Frame size">
-          {num("width", 4, 2048)} × {num("height", 4, 2048)} px
+          {size("width")} × {size("height")} px
         </Row>
-        {g.shape === "svg" ? <TemplateRows gauge={g} onCommit={onCommit} /> : <ShapeRows {...{ g, num, withPatch, setStops, needle, ticks, onPreview, onCommit }} />}
+        {g.shape === "svg" ? (
+          <TemplateRows gauge={g} onCommit={onCommit} />
+        ) : (
+          <>
+            <ShapeRows g={g} onPreview={onPreview} onCommit={onCommit} />
+            <PartsRows g={g} onPreview={onPreview} onCommit={onCommit} />
+          </>
+        )}
       </tbody>
     </table>
   );
@@ -155,19 +91,25 @@ function TemplateRows({ gauge: g, onCommit }: { gauge: VectorGauge; onCommit(g: 
 
 const kb = (n: number) => `${Math.max(1, Math.round(n / 1024))} KB`;
 
-interface ShapeRowsProps {
-  g: VectorGauge;
-  num(key: "width" | "height" | "start" | "sweep" | "thickness" | "segments" | "gap", min: number, max: number): ReactNode;
-  withPatch(patch: Partial<VectorGauge>): VectorGauge;
-  setStops(stops: ColorStop[]): VectorGauge;
-  needle: NonNullable<VectorGauge["needle"]>;
-  ticks: NonNullable<VectorGauge["ticks"]>;
-  onPreview(g: VectorGauge | null): void;
-  onCommit(g: VectorGauge): void;
-}
+const NEEDLE_STYLES: { value: NeedleStyle; label: string }[] = [
+  { value: "taper", label: "taper" },
+  { value: "line", label: "line" },
+  { value: "arrow", label: "arrow" },
+  { value: "blade", label: "blade" },
+];
 
-/** The arc and bar fields. */
-function ShapeRows({ g, num, withPatch, setStops, needle, ticks, onPreview, onCommit }: ShapeRowsProps) {
+/** The arc and bar fields: geometry, track, fill, needle and major ticks. */
+function ShapeRows({ g, onPreview, onCommit }: { g: VectorGauge; onPreview(g: VectorGauge | null): void; onCommit(g: VectorGauge): void }) {
+  const bind = binder(onPreview, onCommit);
+  const set = (patch: Partial<VectorGauge>): VectorGauge => ({ ...g, ...patch });
+  const num = (key: "start" | "sweep" | "thickness" | "segments" | "gap", min: number, max: number) => <Num {...bind(g[key], (v) => set({ [key]: v }))} min={min} max={max} />;
+  const fill = (patch: Partial<VectorGauge["fill"]>) => set({ fill: { ...g.fill, ...patch } });
+  const setStop = (i: number, patch: Partial<ColorStop>) => fill({ stops: g.fill.stops.map((s, k) => (k === i ? { ...s, ...patch } : s)) });
+  const needle = g.needle ?? { color: "#F1F5F9", length: 0.85, width: 6 };
+  const ticks = g.ticks ?? { count: 11, length: 8, width: 2, color: "#94A3B8" };
+  const withNeedle = (patch: Partial<typeof needle>) => set({ needle: { ...needle, ...patch } });
+  const withTicks = (patch: Partial<typeof ticks>) => set({ ticks: { ...ticks, ...patch } });
+
   return (
     <>
       {g.shape === "arc" && (
@@ -176,81 +118,89 @@ function ShapeRows({ g, num, withPatch, setStops, needle, ticks, onPreview, onCo
         </Row>
       )}
       <Row label="Thickness">
-        {num("thickness", 1, 1024)} px{" "}
-        <label>
-          <input type="checkbox" checked={g.rounded} onChange={() => onCommit(withPatch({ rounded: !g.rounded }))} /> rounded
-        </label>
+        {num("thickness", 1, 1024)} px <Toggle on={g.rounded} label="rounded" onChange={() => onCommit(set({ rounded: !g.rounded }))} />
       </Row>
       <Row label="Segments">
         {num("segments", 0, 200)} gap {num("gap", 0, 100)} {g.shape === "arc" ? "°" : "px"} (0 segments: continuous)
       </Row>
       <Row label="Track">
-        <label>
-          <input type="checkbox" checked={g.track !== null} onChange={() => onCommit(withPatch({ track: g.track === null ? DEFAULT_GAUGE.track : null }))} /> show
-        </label>{" "}
-        {g.track !== null && <Color value={g.track} onPreview={(v) => onPreview(v === null ? null : withPatch({ track: v }))} onCommit={(v) => onCommit(withPatch({ track: v }))} />}
+        <Toggle on={g.track !== null} onChange={() => onCommit(set({ track: g.track === null ? DEFAULT_GAUGE.track : null }))} />{" "}
+        {g.track !== null && (
+          <>
+            <PaintField {...bind(g.track, (v) => set({ track: v }))} /> opacity{" "}
+            <Num {...bind(g.trackOpacity ?? 1, (v) => set({ trackOpacity: v }))} min={0} max={1} step={0.05} />
+          </>
+        )}
       </Row>
       <Row label="Fill">
-        <select value={g.fill.mode} onChange={(e) => onCommit(withPatch({ fill: { ...g.fill, mode: e.target.value as FillMode } }))}>
+        <select
+          value={g.fill.mode}
+          onChange={(e) => {
+            const mode = e.target.value as FillMode;
+            // Thresholds start at the values the fields show.
+            onCommit(fill({ mode, ...(mode === "thresholds" ? { warn: g.fill.warn ?? 70, crit: g.fill.crit ?? 90 } : {}) }));
+          }}
+        >
           <option value="solid">solid</option>
+          <option value="thresholds">thresholds (ok / warning / critical)</option>
           <option value="gradient">gradient over the range</option>
           <option value="zones">colour zones</option>
         </select>{" "}
-        {g.fill.mode === "solid" ? (
-          <Color value={g.fill.color} onPreview={(v) => onPreview(v === null ? null : withPatch({ fill: { ...g.fill, color: v } }))} onCommit={(v) => onCommit(withPatch({ fill: { ...g.fill, color: v } }))} />
+        {g.fill.mode === "solid" || g.fill.mode === "thresholds" ? (
+          <>
+            <PaintField {...bind(g.fill.color, (v) => fill({ color: v }))} />
+            {g.fill.mode === "thresholds" && (
+              <>
+                {" "}
+                warning from <Num {...bind(g.fill.warn ?? 70, (v) => fill({ warn: v }))} min={-1e9} max={1e9} /> critical from{" "}
+                <Num {...bind(g.fill.crit ?? 90, (v) => fill({ crit: v }))} min={-1e9} max={1e9} /> (scale values)
+              </>
+            )}
+          </>
         ) : (
           <span>
             {g.fill.stops.map((s, i) => (
               <span key={i} style={{ whiteSpace: "nowrap", marginRight: 8 }}>
                 {g.fill.mode === "zones" ? "from " : "at "}
-                <Num
-                  value={s.at}
-                  min={0}
-                  max={100}
-                  onPreview={(v) => onPreview(v === null ? null : setStops(g.fill.stops.map((t, k) => (k === i ? { ...t, at: v } : t))))}
-                  onCommit={(v) => onCommit(setStops(g.fill.stops.map((t, k) => (k === i ? { ...t, at: v } : t))))}
-                />
-                %{" "}
-                <Color
-                  value={s.color}
-                  onPreview={(v) => onPreview(v === null ? null : setStops(g.fill.stops.map((t, k) => (k === i ? { ...t, color: v } : t))))}
-                  onCommit={(v) => onCommit(setStops(g.fill.stops.map((t, k) => (k === i ? { ...t, color: v } : t))))}
-                />
+                <Num {...bind(s.at, (v) => setStop(i, { at: v }))} min={0} max={100} />% <Color {...bind(s.color, (v) => setStop(i, { color: v }))} />
                 {g.fill.stops.length > 1 && (
-                  <button title="Remove this stop" onClick={() => onCommit(setStops(g.fill.stops.filter((_, k) => k !== i)))}>
+                  <button title="Remove this stop" onClick={() => onCommit(fill({ stops: g.fill.stops.filter((_, k) => k !== i) }))}>
                     ✕
                   </button>
                 )}
               </span>
             ))}
-            {g.fill.stops.length < 16 && <button onClick={() => onCommit(setStops([...g.fill.stops, { at: 100, color: "#FFFFFF" }]))}>Add stop</button>}
+            {g.fill.stops.length < 16 && <button onClick={() => onCommit(fill({ stops: [...g.fill.stops, { at: 100, color: "#FFFFFF" }] }))}>Add stop</button>}
           </span>
         )}
       </Row>
       <Row label={g.shape === "arc" ? "Needle" : "Marker"}>
-        <label>
-          <input type="checkbox" checked={g.needle !== null} onChange={() => onCommit(withPatch({ needle: g.needle ? null : needle }))} /> show
-        </label>
+        <Toggle on={g.needle !== null} onChange={() => onCommit(set({ needle: g.needle ? null : needle }))} />
         {g.needle && (
           <>
             {" "}
-            <Color value={needle.color} onPreview={(v) => onPreview(v === null ? null : withPatch({ needle: { ...needle, color: v } }))} onCommit={(v) => onCommit(withPatch({ needle: { ...needle, color: v } }))} /> length{" "}
-            <Num value={needle.length} min={0.1} max={g.shape === "arc" ? 1.2 : 2} step={0.05} onPreview={(v) => onPreview(v === null ? null : withPatch({ needle: { ...needle, length: v } }))} onCommit={(v) => onCommit(withPatch({ needle: { ...needle, length: v } }))} /> width{" "}
-            <Num value={needle.width} min={1} max={64} onPreview={(v) => onPreview(v === null ? null : withPatch({ needle: { ...needle, width: v } }))} onCommit={(v) => onCommit(withPatch({ needle: { ...needle, width: v } }))} />
+            {g.shape === "arc" && (
+              <select value={needle.style ?? "taper"} onChange={(e) => onCommit(withNeedle({ style: e.target.value as NeedleStyle }))}>
+                {NEEDLE_STYLES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            )}{" "}
+            <PaintField {...bind(needle.color, (v) => withNeedle({ color: v }))} /> length{" "}
+            <Num {...bind(needle.length, (v) => withNeedle({ length: v }))} min={0.1} max={g.shape === "arc" ? 1.2 : 2} step={0.05} /> width{" "}
+            <Num {...bind(needle.width, (v) => withNeedle({ width: v }))} min={1} max={64} />
           </>
         )}
       </Row>
       <Row label="Ticks">
-        <label>
-          <input type="checkbox" checked={g.ticks !== null} onChange={() => onCommit(withPatch({ ticks: g.ticks ? null : ticks }))} /> show
-        </label>
+        <Toggle on={g.ticks !== null} onChange={() => onCommit(set({ ticks: g.ticks ? null : ticks }))} />
         {g.ticks && (
           <>
             {" "}
-            <Num value={ticks.count} min={2} max={200} onPreview={(v) => onPreview(v === null ? null : withPatch({ ticks: { ...ticks, count: v } }))} onCommit={(v) => onCommit(withPatch({ ticks: { ...ticks, count: v } }))} /> ticks, length{" "}
-            <Num value={ticks.length} min={1} max={200} onPreview={(v) => onPreview(v === null ? null : withPatch({ ticks: { ...ticks, length: v } }))} onCommit={(v) => onCommit(withPatch({ ticks: { ...ticks, length: v } }))} /> width{" "}
-            <Num value={ticks.width} min={0.5} max={32} step={0.5} onPreview={(v) => onPreview(v === null ? null : withPatch({ ticks: { ...ticks, width: v } }))} onCommit={(v) => onCommit(withPatch({ ticks: { ...ticks, width: v } }))} />{" "}
-            <Color value={ticks.color} onPreview={(v) => onPreview(v === null ? null : withPatch({ ticks: { ...ticks, color: v } }))} onCommit={(v) => onCommit(withPatch({ ticks: { ...ticks, color: v } }))} />
+            <Num {...bind(ticks.count, (v) => withTicks({ count: v }))} min={2} max={200} /> major, length <Num {...bind(ticks.length, (v) => withTicks({ length: v }))} min={1} max={200} /> width{" "}
+            <Num {...bind(ticks.width, (v) => withTicks({ width: v }))} min={0.5} max={32} step={0.5} /> <PaintField {...bind(ticks.color, (v) => withTicks({ color: v }))} />
           </>
         )}
       </Row>

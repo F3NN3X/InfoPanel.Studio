@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  arcPath, colorAt, DEFAULT_GAUGE, fraction, gaugePrims, gaugeSvg, MAX_TEMPLATE, normalizeGauge, SAMPLE_TEMPLATE, STARTERS, templateVars, withValue, zoneAt,
-  type VectorGauge,
-} from "./vector.ts";
+import { SAMPLE_TEMPLATE, STARTERS } from "./presets.ts";
+import { arcPath, colorAt, DEFAULT_GAUGE, fraction, gaugePrims, MAX_TEMPLATE, normalizeGauge, templateVars, withValue, zoneAt, type VectorGauge } from "./vector.ts";
+import { gaugeSvg } from "./vector-svg.ts";
 
 const stops = [{ at: 0, color: "#000000" }, { at: 100, color: "#FFFFFF" }];
 const arc = (over: Partial<VectorGauge> = {}): VectorGauge => ({ ...DEFAULT_GAUGE, track: null, ...over });
@@ -79,7 +78,7 @@ describe("svg and specs", () => {
     const svg = gaugeSvg(arc({ shape: "bar", width: 102, height: 20, fill: { mode: "gradient", color: "#000000", stops } }), 1);
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" width="102" height="20"/);
     expect(svg).toContain('<linearGradient id="g0" gradientUnits="userSpaceOnUse"');
-    expect(svg).toContain('fill="url(#g0)"');
+    expect(svg).toContain('style="fill:url(#g0)"');
   });
 
   it("normalizes untrusted specs: known fields, clamped numbers, hex colours", () => {
