@@ -4,16 +4,17 @@
  * (font-loader), images come from the export's assets or their URLs.
  */
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { ExportEntry, ParsedExport } from "../archive.ts";
-import { FontLoader, type ResolvedFont } from "../font-loader.ts";
-import { walkItems } from "../parse.ts";
-import type { DisplayItem } from "../schema.ts";
-import type { BoundItem } from "../sensors.ts";
+import type { ExportEntry, ParsedExport } from "@/lib/infopanel/archive.ts";
+import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
+import { DATA_API } from "../sensor-source.ts";
+import { walkItems } from "@/lib/infopanel/parse.ts";
+import type { DisplayItem } from "@/lib/infopanel/schema.ts";
+import type { BoundItem } from "@/lib/infopanel/sensors.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
-import { cssColor } from "./color.ts";
+import { cssColor } from "@/lib/infopanel/render/color.ts";
 import { PathPaint } from "./Paint.tsx";
-import { smoothIndex } from "./geometry.ts";
-import { buildScene, hasAnimatedGauge, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "./scene.ts";
+import { smoothIndex } from "@/lib/infopanel/render/geometry.ts";
+import { buildScene, hasAnimatedGauge, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "@/lib/infopanel/render/scene.ts";
 import { Table, Text, type FontCss } from "./Text.tsx";
 
 const fontKey = (s: TextStyle) => JSON.stringify([s.font.font, s.font.style, s.font.bold, s.font.italic]);
@@ -37,7 +38,7 @@ function useFonts(items: DisplayItem[]): FontCss {
     let stop = false;
     const requests = latest.current;
     if (requests.size === 0) return;
-    FontLoader.fetch()
+    FontLoader.fetch("/fonts", DATA_API)
       .then(async (loader) => {
         if (!loader) return;
         const pairs = await Promise.all([...requests].map(async ([k, r]) => [k, await loader.resolve(r)] as const));

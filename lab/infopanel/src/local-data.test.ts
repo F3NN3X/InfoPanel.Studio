@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isAssetName, isGuid, profilesFromXml } from "./local-data.ts";
-import { parseProfileXml } from "./parse.ts";
+import { parseProfileXml } from "@/lib/infopanel/parse.ts";
 
 const G1 = "70538526-f13f-4074-bb42-f6892d6e42d4";
 

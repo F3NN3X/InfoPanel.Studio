@@ -5,19 +5,19 @@
  * library. Every change is one undo step.
  */
 import { useEffect, useRef, useState } from "react";
-import { assetFile, type AssetFile, type AssetTable, type Doc } from "../assets/assets.ts";
+import { assetFile, type AssetFile, type AssetTable, type Doc } from "@/lib/infopanel/assets/assets.ts";
 import { useObjectUrls } from "../assets/AssetPanel.tsx";
-import { itemAt, setField, type Path } from "../editor/ops.ts";
+import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops.ts";
 import type { Editor } from "../editor/useEditor.ts";
-import { gaugeFrame, smoothIndex } from "../render/geometry.ts";
-import type { GaugeItem } from "../schema.ts";
+import { gaugeFrame, smoothIndex } from "@/lib/infopanel/render/geometry.ts";
+import type { GaugeItem } from "@/lib/infopanel/schema.ts";
 import {
   bakeSignature, duplicateOrder, frameNames, gaugePaths, insertFramesGauge, insertVectorGauge, isGauge, isStale, moveOrder,
   removeOrder, reorderFrames, resampleOrder, reverseOrder, safeStem, setFrameFile, setFrameFiles, setVector, vectorOf,
-} from "./frames.ts";
+} from "@/lib/infopanel/gauges/frames.ts";
 import { deleteEntry, entrySignature, fetchFrame, fetchLibrary, newId, saveEntry, type LibraryEntry } from "./library.ts";
-import { bake, NO_RECOLOUR, recolourFilter, recolourFrames, type Recolour } from "./raster.ts";
-import { STARTERS } from "./vector.ts";
+import { bake, NO_RECOLOUR, recolourFilter, recolourFrames, type Recolour } from "@/lib/infopanel/gauges/raster.ts";
+import { STARTERS } from "@/lib/infopanel/gauges/vector.ts";
 import { VectorForm } from "./VectorForm.tsx";
 import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
 

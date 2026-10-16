@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseDisplayItemsXml, parseProfileXml } from "../parse.ts";
 import type { SensorReading } from "../sensor-text.ts";
-import { tableFromText } from "../sensor-source.ts";
-import { buildScene, hasAnimatedGradient, imageSource, type DrawNode, type ImageSource, type SceneInput, type SensorState } from "./scene.ts";
-import { visibleText } from "./Text.tsx";
+import { buildScene, hasAnimatedGradient, imageSource, tableFromText, tableOf, visibleText, type DrawNode, type ImageSource, type SceneInput, type SensorState } from "./scene.ts";
 
 const parse = (body: string) =>
   parseDisplayItemsXml('<ArrayOfDisplayItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' + body + "</ArrayOfDisplayItem>").items;
@@ -162,5 +160,19 @@ describe("visibleText", () => {
     expect(visibleText("a\nb", true, true)).toBe("a\u2026");
     expect(visibleText("a\r\nb", true, false)).toBe("a");
     expect(visibleText("a\nb", false, true)).toBe("a\nb");
+  });
+});
+
+describe("tableOf", () => {
+  it("uses the structured table, a null cell drawing nothing", () => {
+    expect(tableOf({ text: "a, b, c", table: { columns: ["Name", "Note"], rows: [["a, b", null]] } })).toEqual({
+      columns: ["Name", "Note"],
+      rows: [["a, b", ""]],
+    });
+  });
+
+  it("falls back to the flattened text", () => {
+    expect(tableOf({ text: "a, b\nc, d" })).toEqual({ columns: ["Column 0", "Column 1"], rows: [["a", "b"], ["c", "d"]] });
+    expect(tableOf({ value: 1 })).toBeNull();
   });
 });

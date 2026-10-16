@@ -1,6 +1,6 @@
 /** A vector gauge as inline SVG, scaled to `width` × `height` (the spec's size by default). */
 import type { CSSProperties } from "react";
-import { gaugePrims, type VectorGauge } from "./vector.ts";
+import { gaugePrims, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 
 export interface VectorGaugeSvgProps {
   gauge: VectorGauge;

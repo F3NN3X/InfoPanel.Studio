@@ -1,28 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "./archive.ts";
-import { walkItems } from "./parse.ts";
-import { tableFromExport, type AssetTable } from "./assets/assets.ts";
+import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "@/lib/infopanel/archive.ts";
+import { walkItems } from "@/lib/infopanel/parse.ts";
+import { tableFromExport, type AssetTable } from "@/lib/infopanel/assets/assets.ts";
 import { AssetPanel } from "./assets/AssetPanel.tsx";
 import { useStoreUrls } from "./assets/store.ts";
 import { GaugePanel } from "./gauges/GaugePanel.tsx";
 import { openBundle } from "./import/bundle.ts";
 import { ImportPanel, type ImportSource } from "./import/ImportPanel.tsx";
-import type { DefaultMode, StoredFont } from "./import/stored.ts";
-import { requestKey } from "./font-supply.ts";
+import type { DefaultMode, StoredFont } from "@/lib/infopanel/import/stored.ts";
+import { requestKey } from "@/lib/infopanel/font-supply.ts";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
 import { useFontPlan } from "./useFontPlan.ts";
-import type { ConvertContext } from "./native/convert.ts";
+import type { ConvertContext } from "@/lib/infopanel/native/convert.ts";
 import { convertible, nativeLayer, sensorMap } from "./native/native.tsx";
-import { groupId } from "./remap/remap.ts";
+import { groupId } from "@/lib/infopanel/remap/remap.ts";
 import "@/index.css";
-import { groupBindings, indexCatalog, resolveAll, type Overrides } from "./remap/remap.ts";
+import { groupBindings, indexCatalog, resolveAll, type Overrides } from "@/lib/infopanel/remap/remap.ts";
 import { RemapPanel } from "./remap/RemapPanel.tsx";
 import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
 import { SensorPanel } from "./SensorPanel.tsx";
-import type { BoundItem } from "./sensors.ts";
+import type { BoundItem } from "@/lib/infopanel/sensors.ts";
 
 interface CorpusProfile {
   id: string;

@@ -5,10 +5,10 @@
  * fields commit on Enter or leaving the field, so each change is one undo step.
  */
 import { useState } from "react";
-import { cssColor } from "../render/color.ts";
-import type { DisplayItem } from "../schema.ts";
-import type { Path } from "./ops.ts";
-import { checkValue, fieldsOf, valueOf, type FieldDef } from "./registry.ts";
+import { cssColor } from "@/lib/infopanel/render/color.ts";
+import type { DisplayItem } from "@/lib/infopanel/schema.ts";
+import type { Path } from "@/lib/infopanel/editor/ops.ts";
+import { checkValue, fieldsOf, valueOf, type FieldDef } from "@/lib/infopanel/editor/registry.ts";
 
 export interface InspectorProps {
   item: DisplayItem;

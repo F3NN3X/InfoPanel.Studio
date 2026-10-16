@@ -6,8 +6,8 @@
  * gradient from the already rotated path.
  */
 import type { ReactNode } from "react";
-import { cssColor } from "./color.ts";
-import type { Paint, Stop } from "./geometry.ts";
+import { cssColor } from "@/lib/infopanel/render/color.ts";
+import type { Paint, Stop } from "@/lib/infopanel/render/geometry.ts";
 
 export interface PathPaintProps {
   id: string;

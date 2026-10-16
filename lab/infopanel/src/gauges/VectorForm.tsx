@@ -4,7 +4,7 @@
  * is one undo step.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { DEFAULT_GAUGE, type ColorStop, type FillMode, type VectorGauge } from "./vector.ts";
+import { DEFAULT_GAUGE, type ColorStop, type FillMode, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 
 export interface VectorFormProps {
   gauge: VectorGauge;

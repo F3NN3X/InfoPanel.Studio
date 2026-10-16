@@ -8,9 +8,9 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseDisplayItemsXml, walkItems } from "../src/parse.ts";
-import { groupBindings, indexCatalog, resolveAll, statusOf } from "../src/remap/remap.ts";
-import { buildCatalog, isBound, mapBinding } from "../src/sensors.ts";
+import { parseDisplayItemsXml, walkItems } from "../../../src/lib/infopanel/parse.ts";
+import { groupBindings, indexCatalog, resolveAll, statusOf } from "../../../src/lib/infopanel/remap/remap.ts";
+import { buildCatalog, isBound, mapBinding } from "../../../src/lib/infopanel/sensors.ts";
 
 const args = process.argv.slice(2);
 const showSuggestions = args.includes("--suggestions");

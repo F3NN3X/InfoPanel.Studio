@@ -5,14 +5,14 @@
  * Every asset edit is one undo step, together with the item fields it changes.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { itemAt } from "../editor/ops.ts";
+import { itemAt } from "@/lib/infopanel/editor/ops.ts";
 import type { Editor } from "../editor/useEditor.ts";
-import { fontFiles } from "../font-supply.ts";
+import { fontFiles } from "@/lib/infopanel/font-supply.ts";
 import type { FontPlan } from "../useFontPlan.ts";
 import {
   add, analyse, assetFile, assetKey, assign, MIME, mergeDuplicates, remove, removeWithUses, replace, scanRefs, usesOf,
   type AssetFile, type AssetRef, type Doc, type Oversized,
-} from "./assets.ts";
+} from "@/lib/infopanel/assets/assets.ts";
 
 /** One object URL per file content, revoked when the panel goes. */
 export function useObjectUrls(): (f: AssetFile) => string {

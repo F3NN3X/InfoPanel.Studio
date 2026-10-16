@@ -5,7 +5,7 @@
  * renderer needs no editing code. Coordinates are profile pixels.
  */
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
-import { itemAt, moveBy, setBox, type Box, type Path } from "./ops.ts";
+import { itemAt, moveBy, setBox, type Box, type Path } from "@/lib/infopanel/editor/ops.ts";
 import { isTyping, type Editor } from "./useEditor.ts";
 
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";

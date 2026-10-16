@@ -3,7 +3,7 @@
  * and returns their URLs, as the app will upload imported assets to its own.
  */
 import { useEffect, useState } from "react";
-import type { AssetFile, AssetTable, AssetType } from "./assets.ts";
+import type { AssetFile, AssetTable, AssetType } from "@/lib/infopanel/assets/assets.ts";
 
 const EXT: Partial<Record<AssetType, string>> = { png: ".png", jpeg: ".jpg", gif: ".gif", webp: ".webp", bmp: ".bmp", ico: ".ico" };
 

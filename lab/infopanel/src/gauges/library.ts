@@ -4,7 +4,7 @@
  * The lab dev server keeps it in `lab/infopanel/gauges/` (gauge-library-plugin.ts);
  * every entry is checked here on both sides.
  */
-import { normalizeGauge, type VectorGauge } from "./vector.ts";
+import { normalizeGauge, type VectorGauge } from "../../../../src/lib/infopanel/gauges/vector.ts";
 
 export interface LibraryFrame {
   /** SHA-256 of the file, hex: its name in the store. */

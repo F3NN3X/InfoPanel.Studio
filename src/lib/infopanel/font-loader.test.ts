@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FontLoader, remoteTypeface, type RemoteFont } from "./font-loader.ts";
-import { tableOf } from "./sensor-source.ts";
 
 const API = "http://api.test";
 const answer = (family: string, extra: Partial<RemoteFont> = {}): RemoteFont => ({
@@ -48,19 +47,5 @@ describe("FontLoader with the Data API", () => {
 
   it("reads italic as Skia's slant", () => {
     expect(remoteTypeface(answer("Arial", { italic: true, weight: 700 }))).toMatchObject({ slant: "Italic", weight: 700 });
-  });
-});
-
-describe("tableOf", () => {
-  it("uses the structured table, a null cell drawing nothing", () => {
-    expect(tableOf({ text: "a, b, c", table: { columns: ["Name", "Note"], rows: [["a, b", null]] } })).toEqual({
-      columns: ["Name", "Note"],
-      rows: [["a, b", ""]],
-    });
-  });
-
-  it("falls back to the flattened text", () => {
-    expect(tableOf({ text: "a, b\nc, d" })).toEqual({ columns: ["Column 0", "Column 1"], rows: [["a", "b"], ["c", "d"]] });
-    expect(tableOf({ value: 1 })).toBeNull();
   });
 });

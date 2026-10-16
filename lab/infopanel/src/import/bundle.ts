@@ -3,10 +3,10 @@
  * `canvas.json`, `assets/<sha256>` and `fonts/<sha256>`. The app keeps the
  * same parts in its config and asset store; the zip only stands in for them.
  */
-import { assetFile, tableOf, type AssetTable } from "../assets/assets.ts";
-import type { ParsedExport } from "../archive.ts";
-import { listEntries, readEntry, writeZip } from "../zip.ts";
-import { assetsFrom, overridesFrom, readStored, type ReadStored, type StoredCanvas } from "./stored.ts";
+import { assetFile, tableOf, type AssetTable } from "@/lib/infopanel/assets/assets.ts";
+import type { ParsedExport } from "@/lib/infopanel/archive.ts";
+import { listEntries, readEntry, writeZip } from "@/lib/infopanel/zip.ts";
+import { assetsFrom, overridesFrom, readStored, type ReadStored, type StoredCanvas } from "@/lib/infopanel/import/stored.ts";
 
 const MAX_ENTRY = 64 * 1024 * 1024;
 const enc = new TextEncoder();

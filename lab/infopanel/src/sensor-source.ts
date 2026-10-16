@@ -3,9 +3,9 @@
  * corpus screenshots show), mock values, or the live Data API.
  */
 import { useEffect, useRef, useState } from "react";
-import type { TableData, SensorState } from "./render/scene.ts";
-import { groupId } from "./remap/remap.ts";
-import { buildCatalog, toReading, type BoundItem, type Catalog, type DataApiValue, type Match } from "./sensors.ts";
+import { tableOf, type SensorState } from "@/lib/infopanel/render/scene.ts";
+import { groupId } from "@/lib/infopanel/remap/remap.ts";
+import { buildCatalog, toReading, type BoundItem, type Catalog, type DataApiValue, type Match } from "@/lib/infopanel/sensors.ts";
 
 export const DATA_API = "http://127.0.0.1:3921";
 export type SensorMode = "unbound" | "mock" | "live";
@@ -62,22 +62,6 @@ export function useNow(): Date {
     return () => clearInterval(id);
   }, []);
   return now;
-}
-
-/**
- * A plugin table from the Data API's flattened text (one row per line, cells joined
- * with ", "). Lossy: column names are not exported, and a cell holding ", " splits.
- */
-export function tableFromText(text: string): TableData {
-  const rows = text.split("\n").map((line) => line.split(", "));
-  const count = Math.max(0, ...rows.map((r) => r.length));
-  return { columns: Array.from({ length: count }, (_, i) => `Column ${i}`), rows };
-}
-
-/** The structured table when the Data API sends one, else the flattened text. */
-export function tableOf(value: DataApiValue): TableData | null {
-  if (value.table) return { columns: value.table.columns, rows: value.table.rows.map((r) => r.map((c) => c ?? "")) };
-  return value.text !== undefined ? tableFromText(value.text) : null;
 }
 
 export interface SourceInput {

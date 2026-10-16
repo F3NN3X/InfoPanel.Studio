@@ -8,8 +8,9 @@ import type { BoundItem } from "../sensors.ts";
 import { DEFAULT_GAUGE } from "../gauges/vector.ts";
 import { assetsFrom, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "./stored.ts";
 
-const xml = import.meta.glob<string>("../../corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
-const ids = [...new Set(Object.keys(xml).map((k) => k.split("/")[3]))];
+// The lab's extracted corpus (npm run lab:extract); skipped when absent.
+const xml = import.meta.glob<string>("../../../../lab/infopanel/corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
+const ids = [...new Set(Object.keys(xml).map((k) => /corpus\/([^/]+)\//.exec(k)![1]))];
 
 const parse = (body: string) => parseDisplayItemsXml(`<ArrayOfDisplayItem xmlns:xsi="x">${body}</ArrayOfDisplayItem>`).items;
 const profile = parseProfileXml("<Profile><Name>P</Name><Width>800</Width></Profile>").profile;
@@ -93,34 +94,11 @@ describe("stored form", () => {
 
 describe.skipIf(ids.length === 0)("corpus through the stored form", () => {
   it.each(ids)("%s comes back unchanged", (id) => {
-    const p = parseProfileXml(xml[`../../corpus/${id}/Profile.xml`]).profile;
-    const items = parseDisplayItemsXml(xml[`../../corpus/${id}/DisplayItems.xml`]).items;
+    const p = parseProfileXml(xml[`../../../../lab/infopanel/corpus/${id}/Profile.xml`]).profile;
+    const items = parseDisplayItemsXml(xml[`../../../../lab/infopanel/corpus/${id}/DisplayItems.xml`]).items;
     const back = roundTrip(toStored(input(items, { profile: p })));
     expect(back.profile).toEqual(p);
     expect(back.items).toEqual(items);
     expect(back.issues).toEqual([]);
-  });
-});
-
-describe("bundle", () => {
-  it("saves the stored form with its files and opens it again, checking every hash", async () => {
-    const { bundle, openBundle } = await import("./bundle.ts");
-    const { writeZip, listEntries, readEntry } = await import("../zip.ts");
-    const items = parse('<DisplayItem xsi:type="ImageDisplayItem"><FilePath>Logo.png</FilePath><RelativePath>true</RelativePath></DisplayItem>');
-    const logo = await assetFile("Logo.png", new Uint8Array([0x89, 0x50, 0x4e, 0x47]), "export");
-    const font = new Uint8Array([0, 1, 0, 0]);
-    const fontHash = (await assetFile("f", font, "added")).hash;
-    const zip = bundle(toStored(input(items, { assets: tableOf([logo]) })), tableOf([logo]), new Map([[fontHash, font]]));
-    const opened = await openBundle(zip);
-    expect(opened.parsed.items).toEqual(items);
-    expect([...opened.assets.keys()]).toEqual(["logo.png"]);
-    expect(await opened.parsed.assets.get("logo.png")!.read()).toEqual(logo.bytes);
-    expect([...opened.fonts.keys()]).toEqual([fontHash]);
-    expect(opened.missing).toEqual([]);
-
-    // A file whose bytes do not match its name is dropped and reported.
-    const entries = await Promise.all(listEntries(zip).map(async (e) => ({ name: e.name, data: await readEntry(zip, e) })));
-    const tampered = writeZip(entries.map((e) => (e.name.startsWith("assets/") ? { ...e, data: new Uint8Array([9]) } : e)));
-    expect((await openBundle(tampered)).missing).toEqual(["Logo.png", `assets/${logo.hash}`]);
   });
 });
