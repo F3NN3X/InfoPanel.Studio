@@ -182,3 +182,27 @@ all its InfoPanel fields, so switching back is lossless.
   natural-size images, donuts, image-sequence gauges (vector gauges are L7), threshold images, RTSP.
 - The app's table widget reads the flattened text, so native tables do not get L3's structured tables yet (app
   phase).
+
+## Assets (L6)
+
+The **Assets** panel (`src/assets/`) manages the profile's files. The export's `assets/` are read up front into a
+table that lives in the editor's history with the items, so every asset edit, with the item fields it changes, is
+one undo step. Nothing is written back yet.
+
+- Each file with a preview, its type and pixel size (read from the file's header, not its name), size and uses (an
+  image item or a gauge frame; the count selects them). Images loaded from URLs or absolute paths are listed apart.
+- **Add files** stores files under a free name; bytes already in the profile are not stored twice. **Use for
+  selection** points the selected image items at a file. **Replace…** puts new bytes under the same name, so every
+  use follows; another type (a PNG replaced by a JPEG) takes the new extension and every use is repointed.
+  **Remove** on a used file also clears its uses' FilePath.
+- Cleanup: unused files, identical files (merged into the plainest name, uses repointed), files larger than drawn
+  (1.5× the largest drawn size in both directions, when every use fixes a size; natural-size uses draw the whole
+  file) or over 1 MB, and uses whose file is missing. **Downscale** re-encodes a still image at the drawn size
+  (JPEG and WebP stay lossy at 0.92, others become PNG) and keeps it only when smaller. Animated files are not
+  re-encoded.
+- Fonts as assets: the library files that draw something, plus every added or downloaded one, with origin,
+  faces, size, license (the source's, else the font's own name table, with its URL) and embedding permission
+  (OS/2 fsType); missing families select their text items. Added and downloaded fonts can be removed. Re-run
+  `npm run lab:fonts` for pack sizes and licenses.
+- Native image widgets load the lab server's URL of the export's own file; a file edited or added in the lab has
+  none, so those items stay InfoPanel (the app phase serves them from the asset store).

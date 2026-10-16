@@ -13,6 +13,13 @@ describe("readFaces", () => {
     expect(face).toMatchObject({ family: "X WWS", face: "Light Italic", italic: true });
   });
 
+  it("reads the font's license and embedding permission", () => {
+    const [face] = readFaces(font({ 1: "A", 2: "Regular", 13: "SIL Open Font License 1.1", 14: "https://openfontlicense.org" }, { fsType: 0x0004 }));
+    expect(face).toMatchObject({ licenseText: "SIL Open Font License 1.1", licenseUrl: "https://openfontlicense.org", embedding: "preview & print" });
+    expect(readFaces(font({ 1: "A", 2: "Regular" }))[0]).toMatchObject({ embedding: "installable" });
+    expect(readFaces(font({ 1: "A", 2: "Regular" }))[0].licenseText).toBeUndefined();
+  });
+
   it("returns no faces for malformed files instead of reading past them", () => {
     const good = font({ 1: "A", 2: "Regular" });
     expect(readFaces(good.subarray(0, 40))).toEqual([]);

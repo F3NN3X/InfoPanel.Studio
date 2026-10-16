@@ -57,7 +57,10 @@ function useFonts(items: DisplayItem[]): FontCss {
  * Loads images on first request; a failed or impossible one is null (the placeholder).
  * Keyed to one export: the parent remounts the view for another.
  */
-function useImages(assets: ReadonlyMap<string, ExportEntry>): (source: ImageSource) => ImageInfo | null | undefined {
+/** Asset files by lower-case name; `hash` tells a replaced file from the one it replaced. */
+export type AssetSource = ReadonlyMap<string, Pick<ExportEntry, "read"> & { hash?: string }>;
+
+function useImages(assets: AssetSource): (source: ImageSource) => ImageInfo | null | undefined {
   const [cache, setCache] = useState<ReadonlyMap<string, ImageInfo | null>>(new Map());
   const pending = useRef(new Set<string>());
   const objectUrls = useRef<string[]>([]);
@@ -65,7 +68,7 @@ function useImages(assets: ReadonlyMap<string, ExportEntry>): (source: ImageSour
 
   return (source) => {
     if (source.kind === "none") return null;
-    const key = source.kind === "asset" ? `asset:${source.name}` : `url:${source.url}`;
+    const key = source.kind === "asset" ? `asset:${source.name}#${assets.get(source.name)?.hash ?? ""}` : `url:${source.url}`;
     if (cache.has(key)) return cache.get(key);
     if (!pending.current.has(key)) {
       pending.current.add(key);
@@ -183,6 +186,8 @@ export interface ProfileViewProps {
   font?: FontCss;
   /** Items drawn by other means (native widgets), by path; drawn in tree order among the rest. */
   native?: ReadonlyMap<string, ReactNode>;
+  /** The asset files, when they differ from the export's (edited in the lab). */
+  assets?: AssetSource;
 }
 
 /** Faithful nodes and native elements, in the items' tree order (paths compare numerically per level). */
@@ -198,11 +203,11 @@ function merge(nodes: (readonly [string, ReactNode])[], native: ReadonlyMap<stri
 }
 const order = (path: string) => path.split(".").map(Number);
 
-export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls, font: given, native }: ProfileViewProps) {
+export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls, font: given, native, assets }: ProfileViewProps) {
   const uid = useId().replace(/:/g, "");
   const own = useFonts(given ? [] : items);
   const font = given ?? own;
-  const image = useImages(parsed.assets);
+  const image = useImages(assets ?? parsed.assets);
   const [start] = useState(() => performance.now());
   const [elapsed, setElapsed] = useState(0);
   const animated = useMemo(() => hasAnimatedGradient(items), [items]);

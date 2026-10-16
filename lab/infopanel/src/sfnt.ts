@@ -21,6 +21,21 @@ export interface FontFace {
   index: number;
   /** Named instance coordinates for a variable font, e.g. { wght: 700 }. */
   variation?: Record<string, number>;
+  /** The font's own license description (name 13) and URL (name 14), when it has them. */
+  licenseText?: string;
+  licenseUrl?: string;
+  /** OS/2 fsType: what the license allows when the font is embedded in a document. */
+  embedding?: Embedding;
+}
+
+export type Embedding = "installable" | "restricted" | "preview & print" | "editable";
+
+/** OS/2 fsType bits 1–3 (OpenType spec); 0 is installable. */
+function embeddingOf(fsType: number): Embedding {
+  if (fsType & 0x0008) return "editable";
+  if (fsType & 0x0004) return "preview & print";
+  if (fsType & 0x0002) return "restricted";
+  return "installable";
 }
 
 /** Font files are untrusted: every table and string must lie inside the file. */
@@ -95,6 +110,7 @@ function readFont(dv: DataView, offset: number, index: number): FontFace[] {
   const weight = os2 ? dv.getUint16(os2.offset + 4) : 400;
   const width = os2 ? dv.getUint16(os2.offset + 6) : 5;
   const selection = os2 ? dv.getUint16(os2.offset + 62) : 0;
+  const fsType = os2 ? dv.getUint16(os2.offset + 8) : 0;
   const legacyFamily = n.get(1) ?? "";
   const family = n.get(21) ?? n.get(16) ?? legacyFamily;
   const base: FontFace = {
@@ -107,6 +123,9 @@ function readFont(dv: DataView, offset: number, index: number): FontFace[] {
     width,
     italic: (selection & 0x201) !== 0, // ITALIC or OBLIQUE
     index,
+    ...(n.get(13) ? { licenseText: n.get(13) } : {}),
+    ...(n.get(14) ? { licenseUrl: n.get(14) } : {}),
+    embedding: embeddingOf(fsType),
   };
 
   const fvar = t.get("fvar");

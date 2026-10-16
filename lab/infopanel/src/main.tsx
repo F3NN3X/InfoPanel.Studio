@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "./archive.ts";
 import { walkItems } from "./parse.ts";
+import { tableFromExport, type AssetTable } from "./assets/assets.ts";
+import { AssetPanel } from "./assets/AssetPanel.tsx";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
@@ -30,20 +32,33 @@ interface CorpusProfile {
 
 const baseOf = (p: CorpusProfile) => p.base ?? `/corpus/${encodeURIComponent(p.id)}`;
 
+const servedUrl = (p: CorpusProfile, name: string) => `${baseOf(p)}/${name.split("/").map(encodeURIComponent).join("/")}`;
+
 function corpusEntries(p: CorpusProfile): ExportEntry[] {
   return p.entries.map((name) => ({
     name,
     read: async () => {
-      const r = await fetch(`${baseOf(p)}/${name.split("/").map(encodeURIComponent).join("/")}`);
+      const r = await fetch(servedUrl(p, name));
       if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     },
   }));
 }
 
-function Summary({ parsed, screenshot, assetBase }: { parsed: ParsedExport; screenshot: string | null; assetBase: string | null }) {
-  const { profile, assets, issues } = parsed;
-  const editor = useEditor(parsed.items);
+interface Opened {
+  parsed: ParsedExport;
+  /** The export's asset files, read up front so the lab can edit them (L6). */
+  assets: AssetTable;
+}
+
+function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { screenshot: string | null }) {
+  const { profile, issues } = parsed;
+  const editor = useEditor(parsed.items, initialAssets);
+  const assets = editor.assets;
+  const assetSource = useMemo(
+    () => new Map([...assets].map(([k, f]) => [k, { hash: f.hash, read: async () => f.bytes }])),
+    [assets],
+  );
   const items = editor.items;
   const fontPlan = useFontPlan(items);
   const [mode, setMode] = useState<SensorMode>("unbound");
@@ -72,7 +87,8 @@ function Summary({ parsed, screenshot, assetBase }: { parsed: ParsedExport; scre
   const convertCtx: ConvertContext = {
     fontScale: profile.FontScale,
     keyOf: (item) => resolved.get(groupId(item))?.key ?? null,
-    assetUrl: (name) => (assetBase ? `${assetBase}/assets/${encodeURIComponent(name)}` : null),
+    // The app's image widget loads only served URLs: files edited or added in the lab stay InfoPanel.
+    assetUrl: (name) => assets.get(name.toLowerCase())?.url ?? null,
   };
   const native = nativeLayer(items, convertCtx, mode === "live" ? sensorMap(live.catalog) : {});
   const counts = new Map<string, number>();
@@ -94,6 +110,7 @@ function Summary({ parsed, screenshot, assetBase }: { parsed: ParsedExport; scre
         font={fontPlan.css}
         native={native}
         convertible={() => convertible(editor.present, convertCtx)}
+        assets={assetSource}
       />
       {mode === "live" ? (
         <RemapPanel groups={stableGroups} resolved={resolved} index={index} overrides={overrides} onChoose={choose} onSelect={editor.select} />
@@ -129,6 +146,7 @@ function Summary({ parsed, screenshot, assetBase }: { parsed: ParsedExport; scre
           ))}
         </tbody>
       </table>
+      <AssetPanel editor={editor} fonts={fontPlan} />
       <FontPanel plan={fontPlan} />
       <SensorPanel
         items={items}
@@ -144,11 +162,10 @@ function Summary({ parsed, screenshot, assetBase }: { parsed: ParsedExport; scre
 function Lab() {
   const [corpus, setCorpus] = useState<CorpusProfile[]>([]);
   const [installed, setInstalled] = useState<CorpusProfile[]>([]);
-  const [parsed, setParsed] = useState<ParsedExport | null>(null);
+  const [opened, setOpened] = useState<Opened | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);
   const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [assetBase, setAssetBase] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/corpus/index.json")
@@ -161,14 +178,16 @@ function Lab() {
   }, []);
   const all = [...corpus, ...installed];
 
-  /** `base`: where the profile's entries are served (corpus and installed profiles), for native image widgets. */
-  const open = (entries: Promise<ExportEntry[]>, shot: string | null = null, base: string | null = null) => {
+  /** `served`: the lab server's URL for an entry, for corpus and installed profiles. */
+  const open = (entries: Promise<ExportEntry[]>, shot: string | null = null, served?: (entry: string) => string) => {
     setScreenshot(shot);
-    setAssetBase(base);
-    setParsed(null);
+    setOpened(null);
     setError(null);
     setLoads((n) => n + 1);
-    entries.then(loadExport).then(setParsed, (e: Error) => setError(e.message));
+    entries
+      .then(loadExport)
+      .then(async (parsed) => ({ parsed, assets: await tableFromExport(parsed.assets, served) }))
+      .then(setOpened, (e: Error) => setError(e.message));
   };
 
   return (
@@ -177,7 +196,7 @@ function Lab() {
       <p>
         <select defaultValue="" onChange={(e) => {
             const p = all[Number(e.target.value)];
-            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null, baseOf(p));
+            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null, (name) => servedUrl(p, name));
           }}>
           <option value="" disabled>
             Profile…
@@ -211,7 +230,7 @@ function Lab() {
         />
       </p>
       {error && <p>{error}</p>}
-      {parsed && <Summary key={loads} parsed={parsed} screenshot={screenshot} assetBase={assetBase} />}
+      {opened && <Summary key={loads} {...opened} screenshot={screenshot} />}
     </main>
   );
 }

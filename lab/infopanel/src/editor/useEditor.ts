@@ -4,6 +4,7 @@
  * and the selection.
  */
 import { useCallback, useEffect, useState } from "react";
+import type { AssetTable, Doc } from "../assets/assets.ts";
 import type { DisplayItem } from "../schema.ts";
 import { commit, redo, start, undo, type History } from "./history.ts";
 import { duplicate, group, itemAt, moveBy, removeAll, reorder, setField, ungroup, type Path } from "./ops.ts";
@@ -12,6 +13,8 @@ export interface Editor {
   /** What to draw: the preview while a drag runs, else the present. */
   items: DisplayItem[];
   present: DisplayItem[];
+  /** The profile's asset files (L6); in the same history as the items. */
+  assets: AssetTable;
   selection: Path[];
   canUndo: boolean;
   canRedo: boolean;
@@ -19,6 +22,8 @@ export interface Editor {
   /** Click selection: `additive` toggles the path in the selection. */
   pick(path: Path, additive: boolean): void;
   apply(next: DisplayItem[], selection?: Path[]): void;
+  /** Commits items and assets together, as one undo step. */
+  applyDoc(next: Doc): void;
   preview(next: DisplayItem[] | null): void;
   set(path: Path, field: string, value: unknown): void;
   undo(): void;
@@ -35,23 +40,30 @@ export interface Editor {
 export const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(t.tagName));
 
-export function useEditor(initial: DisplayItem[]): Editor {
-  const [history, setHistory] = useState<History<DisplayItem[]>>(() => start(initial));
+const NO_ASSETS: AssetTable = new Map();
+
+export function useEditor(initial: DisplayItem[], initialAssets: AssetTable = NO_ASSETS): Editor {
+  const [history, setHistory] = useState<History<Doc>>(() => start({ items: initial, assets: initialAssets }));
   const [preview, setPreview] = useState<DisplayItem[] | null>(null);
   const [selection, setSelection] = useState<Path[]>([]);
-  const present = history.present;
+  const present = history.present.items;
   // Selections that no longer resolve (after undo, say) are dropped.
   const valid = selection.filter((p) => itemAt(present, p));
 
   const apply = useCallback((next: DisplayItem[], sel?: Path[]) => {
     setPreview(null);
-    setHistory((h) => commit(h, next));
+    setHistory((h) => (next === h.present.items ? h : commit(h, { ...h.present, items: next })));
     if (sel) setSelection(sel);
+  }, []);
+  const applyDoc = useCallback((next: Doc) => {
+    setPreview(null);
+    setHistory((h) => (next.items === h.present.items && next.assets === h.present.assets ? h : commit(h, next)));
   }, []);
 
   const editor: Editor = {
     items: preview ?? present,
     present,
+    assets: history.present.assets,
     selection: valid,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
@@ -59,6 +71,7 @@ export function useEditor(initial: DisplayItem[]): Editor {
     pick: (path, additive) =>
       setSelection((s) => (additive ? (s.includes(path) ? s.filter((p) => p !== path) : [...s, path]) : [path])),
     apply,
+    applyDoc,
     preview: setPreview,
     set: (path, field, value) => apply(setField(present, path, field, value)),
     undo: () => setHistory(undo),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFont, buildZip } from "./__fixtures__/builders.ts";
 import type { ResolvedFont } from "./font-loader.ts";
-import { facesFromFile, fontSetOf, matchSupplied, missingFamilies, planFonts, requestKey, type SuppliedFace } from "./font-supply.ts";
+import { facesFromFile, fontFiles, fontSetOf, matchSupplied, missingFamilies, planFonts, requestKey, type SuppliedFace } from "./font-supply.ts";
 
 const face = (family: string, faceName: string, weight: number, extra: Partial<SuppliedFace> = {}): SuppliedFace => ({
   family, face: faceName, legacyFamily: weight === 400 || weight === 700 ? family : `${family} ${faceName}`,
@@ -100,5 +100,18 @@ describe("planFonts", () => {
     expect(shown[0].use).toBe("infopanel");
 
     expect(missingFamilies(rows).map((m) => [m.family, m.items])).toEqual([["Nunito Sans", 2], ["Gone Font", 2]]);
+
+    // The library as files: the used one first, its own license unless the source gave one.
+    const library = [...nunito, face("Extra", "Regular", 400, { origin: "download", license: "OFL-1.1", licenseText: "own text", size: 10 })];
+    const files = fontFiles(library, rows);
+    expect(files.map((f) => [f.file, f.items, f.rows.length])).toEqual([
+      ["Nunito Sans-Bold.ttf", 2, 1],
+      ["Extra-Regular.ttf", 0, 0],
+      ["Nunito Sans-Italic.ttf", 0, 0],
+      ["Nunito Sans-Light.ttf", 0, 0],
+      ["Nunito Sans-Regular.ttf", 0, 0],
+    ]);
+    expect(files[1]).toMatchObject({ origin: "download", license: "OFL-1.1", size: 10 });
+    expect(fontFiles([face("A", "Regular", 400, { licenseText: "own text" })], [])[0].license).toBe("own text");
   });
 });

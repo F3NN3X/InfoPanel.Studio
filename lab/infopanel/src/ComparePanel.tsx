@@ -12,7 +12,7 @@ import { itemAt, setField, type Path } from "./editor/ops.ts";
 import { isNative, type NativeLayer } from "./native/native.tsx";
 import type { Editor } from "./editor/useEditor.ts";
 import { walkItems } from "./parse.ts";
-import { ProfileView } from "./render/ProfileView.tsx";
+import { ProfileView, type AssetSource } from "./render/ProfileView.tsx";
 import type { FontCss } from "./render/Text.tsx";
 import type { SensorState } from "./render/scene.ts";
 import type { DisplayItem } from "./schema.ts";
@@ -31,6 +31,8 @@ export interface ComparePanelProps {
   native?: NativeLayer;
   /** Paths that can be drawn natively, for "switch all". */
   convertible?(): Path[];
+  /** The edited asset files (L6). */
+  assets?: AssetSource;
 }
 
 /** Native mode of the selected item: the switch, and what converting keeps or loses (L5). */
@@ -140,7 +142,7 @@ function Toolbar({ editor, convertible }: { editor: Editor; convertible?(): Path
   );
 }
 
-export function ComparePanel({ parsed, editor, sensor, now, screenshot, font, native, convertible }: ComparePanelProps) {
+export function ComparePanel({ parsed, editor, sensor, now, screenshot, font, native, convertible, assets }: ComparePanelProps) {
   const [zoom, setZoom] = useState(1);
   const [opacity, setOpacity] = useState(0.5);
   const [blend, setBlend] = useState<"normal" | "difference">("normal");
@@ -204,6 +206,7 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot, font, na
           font={font}
           hidden={native?.hidden}
           native={native?.elements}
+          assets={assets}
         />
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>

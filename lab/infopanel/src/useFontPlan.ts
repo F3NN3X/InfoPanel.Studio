@@ -27,6 +27,8 @@ export interface FontPlan {
   addFiles(files: FileList | File[]): Promise<void>;
   download(candidate: FontCandidate): Promise<void>;
   choose(key: string, use: Use): void;
+  /** Drops an uploaded or downloaded file from the library (packs stay). */
+  removeFile(file: string): void;
 }
 
 const cssStyle = (italic: boolean) => (italic ? "italic" : "normal");
@@ -140,7 +142,7 @@ export function useFontPlan(items: DisplayItem[]): FontPlan {
       .filter((f) => f.kind === "font")
       .flatMap((f) => {
         const url = URL.createObjectURL(new Blob([f.data.slice()]));
-        return readFaces(f.data).map((face): SuppliedFace => ({ ...face, origin: "download", file: f.name, url, license: c.license }));
+        return readFaces(f.data).map((face): SuppliedFace => ({ ...face, origin: "download", file: f.name, url, license: c.license, size: f.data.length }));
       });
     setAdded((a) => [...faces, ...a]);
   };
@@ -155,5 +157,10 @@ export function useFontPlan(items: DisplayItem[]): FontPlan {
     addFiles,
     download,
     choose: (key, use) => setChoices((m) => new Map(m).set(key, use)),
+    removeFile: (file) =>
+      setAdded((a) => {
+        for (const url of new Set(a.filter((f) => f.file === file).map((f) => f.url))) URL.revokeObjectURL(url);
+        return a.filter((f) => f.file !== file);
+      }),
   };
 }

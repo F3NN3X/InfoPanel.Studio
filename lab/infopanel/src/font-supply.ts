@@ -23,6 +23,8 @@ export interface SuppliedFace extends SfntFace {
   url: string;
   /** License text or name, when the source gave one. */
   license?: string;
+  /** File size in bytes, when known. */
+  size?: number;
 }
 
 export const requestKey = (r: FontRequest) => JSON.stringify([r.font, r.style, r.bold, r.italic]);
@@ -107,7 +109,7 @@ export async function facesFromFile(
       return;
     }
     const url = toUrl(data);
-    for (const f of found) faces.push({ ...f, origin: "upload", file, url });
+    for (const f of found) faces.push({ ...f, origin: "upload", file, url, size: data.length });
   };
 
   if (/\.zip$/i.test(name)) {
@@ -168,4 +170,40 @@ export function missingFamilies(rows: readonly FontRow[]): { family: string; row
     out.set(row.request.font, [...(out.get(row.request.font) ?? []), row]);
   }
   return [...out].map(([family, rs]) => ({ family, rows: rs, items: rs.reduce((n, r) => n + r.count, 0) }));
+}
+
+/** A font file of the library, as an asset: where it came from, its license, and what draws with it. */
+export interface FontFile {
+  file: string;
+  origin: FaceOrigin;
+  faces: SuppliedFace[];
+  size?: number;
+  /** The source's license (downloads), else the font's own (name table). */
+  license?: string;
+  licenseUrl?: string;
+  embedding?: SfntFace["embedding"];
+  /** Requests the canvas draws with one of its faces. */
+  rows: FontRow[];
+  items: number;
+}
+
+/** The library grouped by file, used files first. */
+export function fontFiles(library: readonly SuppliedFace[], rows: readonly FontRow[]): FontFile[] {
+  const out = new Map<string, FontFile>();
+  for (const f of library) {
+    const entry = out.get(f.file) ?? {
+      file: f.file, origin: f.origin, faces: [], size: f.size,
+      license: f.license ?? f.licenseText, licenseUrl: f.licenseUrl, embedding: f.embedding, rows: [], items: 0,
+    };
+    entry.faces.push(f);
+    out.set(f.file, entry);
+  }
+  for (const row of rows) {
+    const file = row.use === "supplied" ? row.supplied?.file : undefined;
+    const entry = file ? out.get(file) : undefined;
+    if (!entry) continue;
+    entry.rows.push(row);
+    entry.items += row.count;
+  }
+  return [...out.values()].sort((a, b) => b.items - a.items || a.file.localeCompare(b.file));
 }

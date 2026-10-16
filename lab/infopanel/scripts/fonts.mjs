@@ -38,7 +38,7 @@ for (const zip of (await readdir(source)).filter((f) => f.toLowerCase().endsWith
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, data);
     const url = "/" + path.relative(lab, file).split(path.sep).join("/");
-    for (const face of readFaces(data)) faces.push({ ...face, source: "pack", url });
+    for (const face of readFaces(data)) faces.push({ ...face, source: "pack", url, size: data.length });
   }
   console.log(`${zip}: ${fonts.length} font files`);
 }
