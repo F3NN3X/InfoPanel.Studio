@@ -61,9 +61,3 @@ plan and decisions are in
   A template that cannot name its keys is `readsAll`; one that needs no data belongs in `SENSORLESS`.
 - **Fit:** no overflow at cell 110 and 150 in any skin or variant. Check with the `?widget-qa` page
   and `window.__qaOverflow()` (`docs/redesign/phase9/qa.md`, including the full-sweep script).
-
-## InfoPanel import
-
-Plan: `docs/infopanel-import/PLAN.md` (lab phases L1–L8 done, app phases A1–A6). The model and logic are in
-`src/lib/infopanel/` (not used by the app yet); the lab page in `lab/infopanel/` (`npm run lab`, `lab:test`,
-`lab:typecheck`) imports them. Internal imports there keep `.ts` extensions so the lab's Node scripts can load them.

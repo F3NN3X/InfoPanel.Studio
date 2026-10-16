@@ -9,6 +9,7 @@
  *    browser find the family by name: close, not exact.
  */
 import { createTypeface, type FontSet, type Slant, type Typeface } from "./fonts.ts";
+import { DATA_API } from "./sensor-source.ts";
 import { readFaces } from "./sfnt.ts";
 
 export interface FontRequest {
@@ -90,7 +91,7 @@ export class FontLoader {
     }
   }
 
-  static async fetch(base: string, api: string): Promise<FontLoader | null> {
+  static async fetch(base = "/fonts", api = DATA_API): Promise<FontLoader | null> {
     const [reference, hasApi] = await Promise.all([
       fetch(`${base}/skia-reference.json`).then((r) => (r.ok ? (r.json() as Promise<Reference>) : null), () => null),
       FontLoader.probe(api),

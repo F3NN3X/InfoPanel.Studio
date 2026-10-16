@@ -148,7 +148,7 @@ others). Each phase ends with the lab tests passing; `src/` stays untouched unti
 
 | Phase | Content |
 |---|---|
-| A1 | Move the lab's model and logic into `src/lib/infopanel/`; the lab imports from there (done) |
+| A1 | Move the lab's model and logic into `src/lib/infopanel/`; the lab imports from there |
 | A2 | Canvas zone kind: `Placement.canvas`, normalization, the renderer in a zone, kiosk and desktop bundles |
 | A3 | Import flow, asset upload and font assets in the studio; one undo step |
 | A4 | Canvas editing and the inspector registry in the studio |

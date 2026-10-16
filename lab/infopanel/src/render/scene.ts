@@ -10,7 +10,7 @@ import { vectorOf } from "../gauges/frames.ts";
 import { fraction, type VectorGauge } from "../gauges/vector.ts";
 import type { DisplayItem, GaugeItem, ImageItem, Profile } from "../schema.ts";
 import { dateText, sensorColor, sensorText, type SensorReading } from "../sensor-text.ts";
-import { isBound, type BoundItem, type DataApiValue } from "../sensors.ts";
+import { isBound, type BoundItem } from "../sensors.ts";
 import {
   autoRange,
   barParts,
@@ -368,27 +368,4 @@ export function hasAnimatedGradient(items: DisplayItem[]): boolean {
 /** Gauges that move between frames over time (AnimationSpeed). */
 export function hasAnimatedGauge(items: DisplayItem[]): boolean {
   return items.some((i) => (i.kind === "Group" ? hasAnimatedGauge(i.DisplayItems) : i.kind === "Gauge" && i.AnimationSpeed > 0));
-}
-
-/**
- * A plugin table from the Data API's flattened text (one row per line, cells joined
- * with ", "). Lossy: column names are not exported, and a cell holding ", " splits.
- */
-export function tableFromText(text: string): TableData {
-  const rows = text.split("\n").map((line) => line.split(", "));
-  const count = Math.max(0, ...rows.map((r) => r.length));
-  return { columns: Array.from({ length: count }, (_, i) => `Column ${i}`), rows };
-}
-
-/** The structured table when the Data API sends one, else the flattened text. */
-export function tableOf(value: DataApiValue): TableData | null {
-  if (value.table) return { columns: value.table.columns, rows: value.table.rows.map((r) => r.map((c) => c ?? "")) };
-  return value.text !== undefined ? tableFromText(value.text) : null;
-}
-
-/** A text item's first line only when MaxLines is 1 (InfoPanel's one-line text). */
-export function visibleText(text: string, oneLine: boolean, ellipsis: boolean): string {
-  const nl = text.search(/\r?\n/);
-  if (!oneLine || nl < 0) return text;
-  return text.slice(0, nl) + (ellipsis ? "…" : "");
 }

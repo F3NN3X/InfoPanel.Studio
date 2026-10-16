@@ -5,18 +5,18 @@
  * opacity slider and a difference blend.
  */
 import { useState } from "react";
-import type { ParsedExport } from "@/lib/infopanel/archive.ts";
+import type { ParsedExport } from "./archive.ts";
 import { EditLayer } from "./editor/EditLayer.tsx";
 import { Inspector } from "./editor/Inspector.tsx";
-import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops.ts";
+import { itemAt, setField, type Path } from "./editor/ops.ts";
 import { isNative, type NativeLayer } from "./native/native.tsx";
 import type { Editor } from "./editor/useEditor.ts";
-import { walkItems } from "@/lib/infopanel/parse.ts";
+import { walkItems } from "./parse.ts";
 import { ProfileView, type AssetSource } from "./render/ProfileView.tsx";
 import type { FontCss } from "./render/Text.tsx";
-import type { SensorState } from "@/lib/infopanel/render/scene.ts";
-import type { DisplayItem } from "@/lib/infopanel/schema.ts";
-import type { BoundItem } from "@/lib/infopanel/sensors.ts";
+import type { SensorState } from "./render/scene.ts";
+import type { DisplayItem } from "./schema.ts";
+import type { BoundItem } from "./sensors.ts";
 
 export interface ComparePanelProps {
   parsed: ParsedExport;

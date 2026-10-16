@@ -10,11 +10,11 @@ import type { CSSProperties, ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { WidgetView } from "@/components/widgets/WidgetView";
-import { fraction } from "@/lib/infopanel/gauges/vector.ts";
+import { fraction } from "../gauges/vector.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
-import type { DisplayItem } from "@/lib/infopanel/schema.ts";
-import type { Catalog } from "@/lib/infopanel/sensors.ts";
-import { convert, type Conversion, type ConvertContext } from "@/lib/infopanel/native/convert.ts";
+import type { DisplayItem } from "../schema.ts";
+import type { Catalog } from "../sensors.ts";
+import { convert, type Conversion, type ConvertContext } from "./convert.ts";
 
 /** The lab's mode flag on an item (not an InfoPanel field). */
 export const isNative = (item: DisplayItem) => (item as { native?: boolean }).native === true;

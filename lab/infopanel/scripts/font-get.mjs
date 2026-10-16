@@ -12,9 +12,9 @@ import { execFileSync } from "node:child_process";
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTypeface } from "../../../src/lib/infopanel/fonts.ts";
-import { downloadFamily, fetchCatalogs, findCandidates, searchName } from "../../../src/lib/infopanel/font-sources.ts";
-import { readFaces } from "../../../src/lib/infopanel/sfnt.ts";
+import { createTypeface } from "../src/fonts.ts";
+import { downloadFamily, fetchCatalogs, findCandidates, searchName } from "../src/font-sources.ts";
+import { readFaces } from "../src/sfnt.ts";
 
 const lab = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fontsDir = path.join(lab, "fonts");

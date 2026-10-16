@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
-import { MIME, sniff, type AssetType } from "../../src/lib/infopanel/assets/assets.ts";
+import { MIME, sniff, type AssetType } from "./src/assets/assets.ts";
 
 export const HASH = /^[0-9a-f]{64}$/;
 export const RASTER: ReadonlySet<AssetType> = new Set(["png", "jpeg", "gif", "webp", "bmp", "ico"]);

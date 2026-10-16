@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { walkItems } from "@/lib/infopanel/parse.ts";
-import { cssColor } from "@/lib/infopanel/render/color.ts";
-import type { DisplayItem } from "@/lib/infopanel/schema.ts";
+import { walkItems } from "./parse.ts";
+import { cssColor } from "./render/color.ts";
+import type { DisplayItem } from "./schema.ts";
 import { DATA_API, liveMatch, sensorState, type SensorMode, type SourceInput } from "./sensor-source.ts";
-import { dateText, sensorColor, sensorText } from "@/lib/infopanel/sensor-text.ts";
-import { bindingRef, isBound, type BoundItem } from "@/lib/infopanel/sensors.ts";
+import { dateText, sensorColor, sensorText } from "./sensor-text.ts";
+import { bindingRef, isBound, type BoundItem } from "./sensors.ts";
 
 interface Row {
   path: string;

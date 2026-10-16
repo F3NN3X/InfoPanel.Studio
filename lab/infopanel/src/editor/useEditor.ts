@@ -4,10 +4,10 @@
  * and the selection.
  */
 import { useCallback, useEffect, useState } from "react";
-import type { AssetTable, Doc } from "@/lib/infopanel/assets/assets.ts";
-import type { DisplayItem } from "@/lib/infopanel/schema.ts";
-import { commit, redo, start, undo, type History } from "@/lib/infopanel/editor/history.ts";
-import { duplicate, group, itemAt, moveBy, removeAll, reorder, setField, ungroup, type Path } from "@/lib/infopanel/editor/ops.ts";
+import type { AssetTable, Doc } from "../assets/assets.ts";
+import type { DisplayItem } from "../schema.ts";
+import { commit, redo, start, undo, type History } from "./history.ts";
+import { duplicate, group, itemAt, moveBy, removeAll, reorder, setField, ungroup, type Path } from "./ops.ts";
 
 export interface Editor {
   /** What to draw: the preview while a drag runs, else the present. */

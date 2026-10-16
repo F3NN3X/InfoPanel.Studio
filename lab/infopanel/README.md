@@ -14,12 +14,8 @@ here reaches `npm run build`, `desktop:build` or the app's `tsc -b`.
 The default corpus folder is `G:\win_user-folders\Downloads\infopanel-profiles`; override it with the argument or
 `INFOPANEL_CORPUS`. Tests that read the corpus skip when it has not been extracted.
 
-Layout: the model and logic (parsing, schema, fonts, scene, editor operations, assets, gauges, native conversion,
-remap, export, stored form, report) live in the app at `src/lib/infopanel/` (A1), in the same tree as below, with
-their tests (`npm test`); their corpus tests read this folder's `corpus/`. `src/` here holds the lab page: the
-React panels and hooks, the renderer, the Data API source and the clients of the dev-server plugins. `scripts/`
-holds the Node tools (run with Node's built-in type stripping, so they import the `.ts` files directly). Paths in
-the sections below are relative to whichever of the two holds the file.
+Layout: `src/` holds the lab code and its tests, `scripts/` the Node tools (run with Node's built-in type
+stripping, so they can import `src/*.ts`).
 
 ## Parser (P0.2)
 

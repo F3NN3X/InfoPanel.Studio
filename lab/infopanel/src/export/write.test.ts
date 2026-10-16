@@ -4,9 +4,8 @@ import { loadExport, entriesFromZip } from "../archive.ts";
 import { parseDisplayItemsXml, parseProfileXml } from "../parse.ts";
 import { displayItemsXml, dotnetDouble, dotnetFloat, infopanelExport, profileXml } from "./write.ts";
 
-// The lab's extracted corpus (npm run lab:extract); skipped when absent.
-const xml = import.meta.glob<string>("../../../../lab/infopanel/corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
-const ids = [...new Set(Object.keys(xml).map((k) => /corpus\/([^/]+)\//.exec(k)![1]))];
+const xml = import.meta.glob<string>("../../corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
+const ids = [...new Set(Object.keys(xml).map((k) => k.split("/")[3]))];
 
 describe("number formats", () => {
   it("writes doubles and floats as XmlConvert does", () => {
@@ -29,8 +28,8 @@ describe("writer", () => {
 
 describe.skipIf(ids.length === 0)("corpus round trip", () => {
   it.each(ids)("%s reads back the same after writing", async (id) => {
-    const profile = parseProfileXml(xml[`../../../../lab/infopanel/corpus/${id}/Profile.xml`]);
-    const items = parseDisplayItemsXml(xml[`../../../../lab/infopanel/corpus/${id}/DisplayItems.xml`]);
+    const profile = parseProfileXml(xml[`../../corpus/${id}/Profile.xml`]);
+    const items = parseDisplayItemsXml(xml[`../../corpus/${id}/DisplayItems.xml`]);
     const back = await loadExport(entriesFromZip(infopanelExport(profile.profile, items.items, [{ name: "x.png", bytes: new Uint8Array([1]) }])));
     expect(back.profile).toEqual(profile.profile);
     expect(back.items).toEqual(items.items);
