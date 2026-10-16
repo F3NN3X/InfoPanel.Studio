@@ -62,19 +62,47 @@ export function listEntries(buf: Uint8Array): ZipEntry[] {
   return entries;
 }
 
-async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+/** Reads a stream into one buffer, failing as soon as it passes `limit` bytes. */
+export async function readLimited(stream: ReadableStream<Uint8Array>, limit: number, what: string): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  const reader = stream.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > limit) {
+      await reader.cancel();
+      throw new Error(`${what}: more than ${limit} bytes`);
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let p = 0;
+  for (const c of chunks) {
+    out.set(c, p);
+    p += c.length;
+  }
+  return out;
 }
 
-export async function readEntry(buf: Uint8Array, entry: ZipEntry): Promise<Uint8Array> {
+function inflateRaw(data: Uint8Array, limit: number, name: string): Promise<Uint8Array> {
+  return readLimited(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw")), limit, name);
+}
+
+/** The entry's bytes. `limit` caps the inflated size, whatever the header claims. */
+export async function readEntry(buf: Uint8Array, entry: ZipEntry, limit = Infinity): Promise<Uint8Array> {
+  if (entry.size > limit) throw new Error(`${entry.name}: ${entry.size} bytes is too large`);
   const dv = view(buf);
   const h = entry.headerOffset;
   if (dv.getUint32(h, true) !== LOCAL_SIG) throw new Error(`Bad local header for ${entry.name}`);
   // The local extra field can differ from the central one; read its own lengths.
   const start = h + 30 + dv.getUint16(h + 26, true) + dv.getUint16(h + 28, true);
   const raw = buf.subarray(start, start + entry.compressedSize);
-  if (entry.method === STORE) return raw.slice();
-  if (entry.method === DEFLATE) return inflateRaw(raw);
+  if (entry.method === STORE) {
+    if (raw.length > limit) throw new Error(`${entry.name}: too large`);
+    return raw.slice();
+  }
+  if (entry.method === DEFLATE) return inflateRaw(raw, limit, entry.name);
   throw new Error(`Unsupported compression method ${entry.method} for ${entry.name}`);
 }

@@ -141,4 +141,49 @@ describe("downloadFamily", () => {
     });
     await expect(downloadFamily(candidate({}), redirect)).rejects.toThrow(/Refusing to fetch https:\/\/evil.example/);
   });
+
+  it("checks every redirect hop against the allowlist", async () => {
+    const hop = (to: string) => () => new Response(null, { status: 302, headers: { location: to } });
+    const manifest = JSON.stringify({ manifest: { files: [], fileRefs: [{ filename: "x.ttf", url: "https://fonts.gstatic.com/x.ttf" }] } });
+    const ok = mockFetch({
+      "https://fonts.google.com/download/list?family=X": manifest,
+      "https://fonts.gstatic.com/x.ttf": hop("/y.ttf"),
+      "https://fonts.gstatic.com/y.ttf": fontBytes,
+    });
+    expect((await downloadFamily(candidate({}), ok)).map((f) => f.name)).toEqual(["x.ttf"]);
+
+    const away = mockFetch({
+      "https://fonts.google.com/download/list?family=X": manifest,
+      "https://fonts.gstatic.com/x.ttf": hop("https://evil.example/x.ttf"),
+    });
+    await expect(downloadFamily(candidate({}), away)).rejects.toThrow(/Refusing to fetch https:\/\/evil.example/);
+    expect(away.calls).not.toContain("https://evil.example/x.ttf");
+  });
+
+  it("stops reading a body past the size cap, whatever Content-Length says", async () => {
+    let pulled = 0;
+    const endless = () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(c) {
+            pulled++;
+            c.enqueue(new Uint8Array(1024 * 1024));
+          },
+        }),
+        { headers: { "content-length": "10" } },
+      );
+    const f = mockFetch({
+      "https://fonts.google.com/download/list?family=X": JSON.stringify({ manifest: { files: [], fileRefs: [{ filename: "x.ttf", url: "https://fonts.gstatic.com/x.ttf" }] } }),
+      "https://fonts.gstatic.com/x.ttf": endless,
+    });
+    await expect(downloadFamily(candidate({}), f)).rejects.toThrow(/more than 31457280 bytes/);
+    expect(pulled).toBeLessThan(40);
+  });
+
+  it("refuses zip entries that inflate past the cap", async () => {
+    const big = new Uint8Array(31 * 1024 * 1024);
+    const zip = await buildZip([{ name: "bomb.ttf", data: big, method: 8 }]);
+    const f = mockFetch({ "https://www.fontsquirrel.com/fonts/download/Orbitron": zip });
+    await expect(downloadFamily(candidate({ source: "fontsquirrel", id: "Orbitron" }), f)).rejects.toThrow(/too large/);
+  });
 });

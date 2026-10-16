@@ -48,6 +48,14 @@ describe("zip reader", () => {
     expect(() => listEntries(enc.encode("not a zip at all, just text"))).toThrow(/end of central directory/);
   });
 
+  it("caps the inflated size even when the header understates it", async () => {
+    const zip = await buildZip([{ name: "a.txt", text: "x".repeat(5000), method: 8 }]);
+    const [e] = listEntries(zip);
+    await expect(readEntry(zip, { ...e, size: 10 }, 100)).rejects.toThrow(/more than 100 bytes/);
+    await expect(readEntry(zip, e, 100)).rejects.toThrow(/5000 bytes is too large/);
+    expect((await readEntry(zip, e, 5000)).length).toBe(5000);
+  });
+
   it("rejects unknown compression methods", async () => {
     const zip = await buildZip([{ name: "a.txt", text: "x", method: 0 }]);
     const [e] = listEntries(zip);

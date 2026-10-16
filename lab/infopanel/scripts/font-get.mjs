@@ -20,6 +20,18 @@ const lab = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fontsDir = path.join(lab, "fonts");
 const installedLog = path.join(fontsDir, "installed.json");
 const REG_FONTS = "HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
+const REG_SYSTEM_FONTS = "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
+const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+/** True when a font registration with this value name exists, for the user or the machine. */
+const registered = (value) =>
+  [REG_FONTS, REG_SYSTEM_FONTS].some((key) => {
+    try {
+      execFileSync("reg", ["query", key, "/v", value], { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -122,9 +134,20 @@ if (flag("--install")) {
       console.log(`skip ${f.name}: a file with that name is already installed`);
       continue;
     }
-    await copyFile(path.join(dir, f.name), dest);
+    // The registry name comes from the downloaded file: it must name the family we asked for,
+    // be plain text, and not take over an existing registration (a system font, say).
     const face = readFaces(f.data)[0];
-    const value = `${face.fullName || face.family} (${/\.otf$/i.test(f.name) ? "OpenType" : "TrueType"})`;
+    const name = face.fullName || face.family;
+    if (!norm(face.family).startsWith(norm(pick.family)) || !/^[\p{L}\p{N} ._&+-]{1,100}$/u.test(name)) {
+      console.log(`skip ${f.name}: it names itself "${face.family}" / "${name}", not ${pick.family}`);
+      continue;
+    }
+    const value = `${name} (${/\.otf$/i.test(f.name) ? "OpenType" : "TrueType"})`;
+    if (registered(value)) {
+      console.log(`skip ${f.name}: "${value}" is already registered`);
+      continue;
+    }
+    await copyFile(path.join(dir, f.name), dest);
     execFileSync("reg", ["add", REG_FONTS, "/v", value, "/t", "REG_SZ", "/d", dest, "/f"], { stdio: "ignore" });
     done.push({ path: dest, value });
     console.log(`installed ${dest}`);

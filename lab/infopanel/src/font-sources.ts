@@ -13,7 +13,7 @@
  * left to the user: the import asks for the file instead.
  */
 import { readFaces } from "./sfnt.ts";
-import { listEntries, readEntry } from "./zip.ts";
+import { listEntries, readEntry, readLimited } from "./zip.ts";
 
 export type SourceId = "google" | "fontsource" | "fontsquirrel";
 
@@ -51,28 +51,52 @@ export interface Catalogs {
   unavailable: string[];
 }
 
-export type Fetch = (url: string) => Promise<Response>;
+export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
 const OPEN_LICENSES = new Set(["ofl-1.1", "apache-2.0", "ufl-1.0", "cc0-1.0", "mit", "unlicense"]);
 const HOSTS = new Set(["api.fontsource.org", "cdn.jsdelivr.net", "fonts.google.com", "fonts.gstatic.com", "www.fontsquirrel.com"]);
 const MAX_FILE = 30 * 1024 * 1024;
+/** All files of one family together. */
+const MAX_FAMILY = 100 * 1024 * 1024;
+const MAX_REDIRECTS = 3;
 
-/** Fetches only from the known font hosts over HTTPS. */
-async function get(fetchImpl: Fetch, url: string): Promise<Response> {
+const checkHost = (url: string) => {
   const u = new URL(url);
   if (u.protocol !== "https:" || !HOSTS.has(u.hostname)) throw new Error(`Refusing to fetch ${url}`);
-  const r = await fetchImpl(url);
-  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
-  return r;
+};
+
+/**
+ * Fetches only from the known font hosts over HTTPS. Redirects are followed by hand so
+ * every hop is checked; a browser hides the target (opaque redirect), so there it fails.
+ */
+async function get(fetchImpl: Fetch, url: string): Promise<Response> {
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    checkHost(url);
+    const r = await fetchImpl(url, { redirect: "manual" });
+    const location = r.status >= 300 && r.status < 400 ? r.headers.get("location") : null;
+    if (location) {
+      url = new URL(location, url).href;
+      continue;
+    }
+    if (r.type === "opaqueredirect") throw new Error(`${url}: redirected`);
+    if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+    return r;
+  }
+  throw new Error(`${url}: too many redirects`);
 }
 
+/** The body, read up to MAX_FILE bytes; whatever Content-Length says. */
 async function bytes(fetchImpl: Fetch, url: string): Promise<Uint8Array> {
   const r = await get(fetchImpl, url);
-  const length = Number(r.headers.get("content-length") ?? 0);
-  if (length > MAX_FILE) throw new Error(`${url}: ${length} bytes is too large`);
-  const data = new Uint8Array(await r.arrayBuffer());
-  if (data.length > MAX_FILE) throw new Error(`${url}: too large`);
-  return data;
+  if (!r.body) return new Uint8Array();
+  return readLimited(r.body, MAX_FILE, url);
+}
+
+/** Fails once the family's files together pass MAX_FAMILY. */
+function capTotal(files: DownloadedFile[]): DownloadedFile[] {
+  const total = files.reduce((n, f) => n + f.data.length, 0);
+  if (total > MAX_FAMILY) throw new Error(`The family's files total ${total} bytes, over ${MAX_FAMILY}`);
+  return files;
 }
 
 /** A JSON list, or the reason it could not be read. Font Squirrel answers 202 with no body when it throttles. */
@@ -195,7 +219,7 @@ export async function downloadFamily(c: FontCandidate, fetchImpl: Fetch = fetch)
     const licenses = manifest.files
       .filter((f) => LICENSE_FILE.test(f.filename))
       .map((f): DownloadedFile => ({ name: safeName(f.filename), data: new TextEncoder().encode(f.contents), kind: "license" }));
-    return [...fonts, ...licenses];
+    return capTotal([...fonts, ...licenses]);
   }
 
   if (c.source === "fontsource") {
@@ -207,6 +231,7 @@ export async function downloadFamily(c: FontCandidate, fetchImpl: Fetch = fetch)
       for (const [style, subsets] of Object.entries(styles)) {
         const url = (subsets[info.defSubset] ?? Object.values(subsets)[0])?.url.ttf;
         if (url) files.push(checked(`${info.id}-${weight}-${style}.ttf`, await bytes(fetchImpl, url)));
+        capTotal(files);
       }
     }
     return files;
@@ -215,8 +240,9 @@ export async function downloadFamily(c: FontCandidate, fetchImpl: Fetch = fetch)
   const zip = await bytes(fetchImpl, `https://www.fontsquirrel.com/fonts/download/${encodeURIComponent(c.id)}`);
   const files: DownloadedFile[] = [];
   for (const e of listEntries(zip)) {
-    if (FONT_FILE.test(e.name)) files.push(checked(e.name, await readEntry(zip, e)));
-    else if (LICENSE_FILE.test(e.name)) files.push({ name: safeName(e.name), data: await readEntry(zip, e), kind: "license" });
+    if (FONT_FILE.test(e.name)) files.push(checked(e.name, await readEntry(zip, e, MAX_FILE)));
+    else if (LICENSE_FILE.test(e.name)) files.push({ name: safeName(e.name), data: await readEntry(zip, e, MAX_FILE), kind: "license" });
+    capTotal(files);
   }
   return files;
 }
