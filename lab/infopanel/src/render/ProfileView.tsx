@@ -3,7 +3,7 @@
  * per draw node in InfoPanel's order. Text uses the faces InfoPanel draws with
  * (font-loader), images come from the export's assets or their URLs.
  */
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { ExportEntry, ParsedExport } from "../archive.ts";
 import { FontLoader, type ResolvedFont } from "../font-loader.ts";
 import { walkItems } from "../parse.ts";
@@ -125,7 +125,7 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
         ...boxTransform(node.width, node.height, node.rotation, node.flipX),
       };
       return (
-        <div style={box}>
+        <div data-path={node.path} style={box}>
           {node.url ? <img src={node.url} alt="" draggable={false} style={{ display: "block", width: "100%", height: "100%" }} /> : <Placeholder width={node.width} height={node.height} />}
           {node.layer && <div style={{ position: "absolute", inset: 0, background: cssColor(node.layer) ?? "transparent" }} />}
         </div>
@@ -134,6 +134,7 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
     case "chart":
       return (
         <svg
+          data-path={node.path}
           width={node.width}
           height={node.height}
           style={{ position: "absolute", left: node.x, top: node.y, overflow: "hidden", ...boxTransform(node.width, node.height, node.rotation, node.flipX) }}
@@ -147,8 +148,10 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
       const rotate = { deg: node.rotation, cx: node.cx, cy: node.cy };
       return (
         <svg width={canvas.width} height={canvas.height} style={{ position: "absolute", left: 0, top: 0, overflow: "visible", pointerEvents: "none" }}>
-          {node.fill && <PathPaint id={`${id}-f`} d={node.d} paint={node.fill} rotate={rotate} space={canvas} />}
-          {node.stroke && <PathPaint id={`${id}-s`} d={node.d} paint={node.stroke.paint} stroke={node.stroke.width} rotate={rotate} space={canvas} />}
+          <g data-path={node.path} style={{ pointerEvents: "visiblePainted" }}>
+            {node.fill && <PathPaint id={`${id}-f`} d={node.d} paint={node.fill} rotate={rotate} space={canvas} />}
+            {node.stroke && <PathPaint id={`${id}-s`} d={node.d} paint={node.stroke.paint} stroke={node.stroke.width} rotate={rotate} space={canvas} />}
+          </g>
         </svg>
       );
     }
@@ -159,9 +162,44 @@ export interface ProfileViewProps {
   parsed: ParsedExport;
   sensor(item: BoundItem): SensorState;
   now: Date;
+  /** Item paths to leave out, with their children. */
+  hidden?: ReadonlySet<string>;
+  /** The item (or group) to outline. */
+  selected?: string | null;
+  onPick?(path: string): void;
+  /** Drawn over the profile, ignoring the pointer (a screenshot to compare with). */
+  overlay?: ReactNode;
 }
 
-export function ProfileView({ parsed, sensor, now }: ProfileViewProps) {
+/** The outline of an item's elements, a group's children included, in profile pixels. */
+function useOutline(root: RefObject<HTMLDivElement | null>, selected: string | null | undefined, width: number) {
+  const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el || selected == null) return setBox(null);
+    // An SVG group's own box includes canvas-sized gradient layers; measure its drawn paths.
+    const parts = [...el.querySelectorAll(`[data-path="${selected}"], [data-path^="${selected}."]`)]
+      .flatMap((e) => (e instanceof SVGGElement ? [...e.querySelectorAll(":scope > path, :scope > g > path")] : [e]))
+      .map((e) => e.getBoundingClientRect())
+      .filter((r) => r.width > 0 || r.height > 0);
+    if (parts.length === 0) return setBox(null);
+    const r = el.getBoundingClientRect();
+    // An ancestor's CSS zoom scales client rects; the outline is placed in profile pixels.
+    const k = width / r.width;
+    const l = Math.min(...parts.map((p) => p.left));
+    const t = Math.min(...parts.map((p) => p.top));
+    const next = {
+      left: (l - r.left) * k,
+      top: (t - r.top) * k,
+      width: (Math.max(...parts.map((p) => p.right)) - l) * k,
+      height: (Math.max(...parts.map((p) => p.bottom)) - t) * k,
+    };
+    setBox((b) => (b && Object.entries(next).every(([key, v]) => Math.abs(b[key as keyof typeof b] - v) < 0.5) ? b : next));
+  });
+  return box;
+}
+
+export function ProfileView({ parsed, sensor, now, hidden, selected, onPick, overlay }: ProfileViewProps) {
   const uid = useId().replace(/:/g, "");
   const font = useFonts(parsed);
   const image = useImages(parsed.assets);
@@ -192,11 +230,16 @@ export function ProfileView({ parsed, sensor, now }: ProfileViewProps) {
   });
 
   const { profile } = parsed;
-  const nodes = buildScene({ profile, items: parsed.items, sensor, image, now, elapsedMs: elapsed });
+  const nodes = buildScene({ profile, items: parsed.items, sensor, image, now, elapsedMs: elapsed, hidden });
   const canvas = { width: profile.Width, height: profile.Height };
+  const outline = useOutline(root, selected, profile.Width);
   return (
     <div
       ref={root}
+      onClick={(e) => {
+        const path = (e.target as Element).closest("[data-path]")?.getAttribute("data-path");
+        if (path != null) onPick?.(path);
+      }}
       style={{
         marginLeft: nudge.x,
         marginTop: nudge.y,
@@ -211,6 +254,12 @@ export function ProfileView({ parsed, sensor, now }: ProfileViewProps) {
       {nodes.map((n) => (
         <Node key={n.path} node={n} id={`${uid}-${n.path}`} font={font} canvas={canvas} />
       ))}
+      {overlay && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{overlay}</div>}
+      {outline && (
+        <div
+          style={{ position: "absolute", ...outline, outline: "2px dashed #ff00ff", outlineOffset: 1, pointerEvents: "none", mixBlendMode: "normal" }}
+        />
+      )}
     </div>
   );
 }

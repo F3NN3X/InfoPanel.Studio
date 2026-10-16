@@ -98,7 +98,11 @@ export function Text({ node, font, canvasWidth }: { node: TextNode; font: FontCs
   if (!node.text) return null;
   if (node.marquee) return <Marquee node={node} font={font} canvasWidth={canvasWidth} />;
   const text = visibleText(node.text, node.oneLine, node.ellipsis);
-  return <div style={{ ...layoutCss(node, canvasWidth), ...textCss(node.style, font) }}>{text}</div>;
+  return (
+    <div data-path={node.path} style={{ ...layoutCss(node, canvasWidth), ...textCss(node.style, font) }}>
+      {text}
+    </div>
+  );
 }
 
 /**
@@ -126,7 +130,9 @@ function Marquee({ node, font, canvasWidth }: { node: TextNode; font: FontCss; c
     return (
       <>
         {measure}
-        <div style={{ ...layoutCss(node, canvasWidth), ...css }}>{node.text}</div>
+        <div data-path={node.path} style={{ ...layoutCss(node, canvasWidth), ...css }}>
+          {node.text}
+        </div>
       </>
     );
   }
@@ -136,7 +142,10 @@ function Marquee({ node, font, canvasWidth }: { node: TextNode; font: FontCss; c
   return (
     <>
       {measure}
-      <div style={{ position: "absolute", left: node.x, top: node.y, width: node.width, height: node.height > 0 ? node.height : size?.h, overflow: "hidden" }}>
+      <div
+        data-path={node.path}
+        style={{ position: "absolute", left: node.x, top: node.y, width: node.width, height: node.height > 0 ? node.height : size?.h, overflow: "hidden" }}
+      >
         <div
           style={{
             ...css,
@@ -172,6 +181,7 @@ export function Table({ node, font, canvasWidth }: { node: TableNode; font: Font
   const cell = (text: string, key: string, dx: number, width: number, row: number, first: boolean) => (
     <div
       key={key}
+      data-path={node.path}
       style={{
         ...layoutCss(
           {

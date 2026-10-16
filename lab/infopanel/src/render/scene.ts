@@ -53,6 +53,8 @@ export interface SceneInput {
   now: Date;
   /** Time since the profile started drawing, for animated gradients. */
   elapsedMs: number;
+  /** Item paths the lab hides (with their children), on top of InfoPanel's own Hidden. */
+  hidden?: ReadonlySet<string>;
 }
 
 /** Where an image item's file comes from. */
@@ -182,6 +184,7 @@ export function buildScene(input: SceneInput): DrawNode[] {
   const nodes: DrawNode[] = [];
 
   const draw = (item: DisplayItem, path: string) => {
+    if (input.hidden?.has(path)) return;
     const x = Math.floor(item.X);
     const y = Math.floor(item.Y);
     const state = isBound(item) ? input.sensor(item) : NO_STATE;

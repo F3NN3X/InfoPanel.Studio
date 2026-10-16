@@ -86,7 +86,7 @@ export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProp
               {shape("white")}
             </mask>
           </defs>
-          <foreignObject x={0} y={0} width={space.width} height={space.height} mask={`url(#${id})`}>
+          <foreignObject x={0} y={0} width={space.width} height={space.height} mask={`url(#${id})`} style={{ pointerEvents: "none" }}>
             <div
               style={{
                 width: "100%",
@@ -95,6 +95,8 @@ export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProp
               }}
             />
           </foreignObject>
+          {/* The mask does not clip hit testing: an invisible copy of the path takes the pointer. */}
+          {shape("transparent")}
         </>
       );
     }

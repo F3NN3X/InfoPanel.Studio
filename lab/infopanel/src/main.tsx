@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "./archive.ts";
 import { walkItems } from "./parse.ts";
 import { FontPanel } from "./FontPanel.tsx";
-import { ProfileView } from "./render/ProfileView.tsx";
+import { ComparePanel } from "./ComparePanel.tsx";
 import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
 import { SensorPanel } from "./SensorPanel.tsx";
 import type { BoundItem } from "./sensors.ts";
@@ -14,6 +14,8 @@ interface CorpusProfile {
   bytes: number;
   entries: string[];
   skipped: string[];
+  /** InfoPanel's own render of the profile, when one was supplied. */
+  screenshot?: string | null;
 }
 
 function corpusEntries(p: CorpusProfile): ExportEntry[] {
@@ -27,11 +29,10 @@ function corpusEntries(p: CorpusProfile): ExportEntry[] {
   }));
 }
 
-function Summary({ parsed }: { parsed: ParsedExport }) {
+function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: string | null }) {
   const { profile, items, assets, issues } = parsed;
   const [mode, setMode] = useState<SensorMode>("unbound");
   const [mock, setMock] = useState<ReadonlyMap<BoundItem, number>>(new Map());
-  const [zoom, setZoom] = useState(1);
   const live = useLiveCatalog(mode === "live");
   const now = useNow();
   const source = { mode, live, mock };
@@ -45,20 +46,8 @@ function Summary({ parsed }: { parsed: ParsedExport }) {
         {profile.Width}×{profile.Height}, background <code>{profile.BackgroundColor}</code>, FontScale{" "}
         {profile.FontScale.toFixed(2)}, {assets.size} assets
       </p>
-      <p>
-        Zoom{" "}
-        <select value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
-          {[1, 0.75, 0.5, 0.25].map((z) => (
-            <option key={z} value={z}>
-              {z * 100}%
-            </option>
-          ))}
-        </select>{" "}
-        sensors: {mode}
-      </p>
-      <div style={{ overflow: "auto", maxWidth: "100%", zoom }}>
-        <ProfileView parsed={parsed} sensor={sensor} now={now} />
-      </div>
+      <p>Sensors: {mode} (change below)</p>
+      <ComparePanel parsed={parsed} sensor={sensor} now={now} screenshot={screenshot} />
       <table>
         <tbody>
           {[...counts].sort().map(([k, n]) => (
@@ -103,6 +92,7 @@ function Lab() {
   const [parsed, setParsed] = useState<ParsedExport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);
+  const [screenshot, setScreenshot] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/corpus/index.json")
@@ -110,7 +100,8 @@ function Lab() {
       .then(setCorpus, (e: Error) => setError(`No corpus (${e.message}). Run npm run lab:extract.`));
   }, []);
 
-  const open = (entries: Promise<ExportEntry[]>) => {
+  const open = (entries: Promise<ExportEntry[]>, shot: string | null = null) => {
+    setScreenshot(shot);
     setParsed(null);
     setError(null);
     setLoads((n) => n + 1);
@@ -121,13 +112,17 @@ function Lab() {
     <main>
       <h1>InfoPanel import lab</h1>
       <p>
-        <select defaultValue="" onChange={(e) => open(Promise.resolve(corpusEntries(corpus[Number(e.target.value)])))}>
+        <select defaultValue="" onChange={(e) => {
+            const p = corpus[Number(e.target.value)];
+            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `/corpus/${encodeURIComponent(p.id)}/${p.screenshot}` : null);
+          }}>
           <option value="" disabled>
             Corpus profile…
           </option>
           {corpus.map((p, i) => (
             <option key={p.id} value={i}>
               {p.id}
+              {p.screenshot ? " (screenshot)" : ""}
             </option>
           ))}
         </select>{" "}
@@ -142,7 +137,7 @@ function Lab() {
         />
       </p>
       {error && <p>{error}</p>}
-      {parsed && <Summary key={loads} parsed={parsed} />}
+      {parsed && <Summary key={loads} parsed={parsed} screenshot={screenshot} />}
     </main>
   );
 }

@@ -99,4 +99,12 @@ show plugin values; compare in Live, not Unbound. Notes:
   RTSP images (drawn as the placeholder), the FPS overlay. Glow blend modes CSS lacks draw normally.
 - Tables from the Data API are approximate: it flattens a plugin table to text, without column names, and a cell
   holding ", " splits. A structured table in the Data API would fix both (input for P0.8).
-- No corpus profile turns on a shape gradient; all six types were checked with a synthetic profile.
+- Dashboard's fans use animated Spiral gradients; all six types were also checked with a synthetic profile.
+
+## Comparison (P0.7)
+
+Corpus profiles with a screenshot of InfoPanel's own render (`npm run lab:extract` attaches a `.png` from the
+corpus folder whose name matches the profile, allowing one typo, and whose size matches) are marked in the
+picker. The compare panel lays the screenshot over the render with an opacity slider and a difference blend
+(any other screenshot can be loaded from a file). Click an item, or pick it in the item tree, to outline it and
+list its parsed fields; the tree's checkboxes hide items and groups. Results: `FINDINGS.md`.
