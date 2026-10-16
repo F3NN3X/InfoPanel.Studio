@@ -9,6 +9,8 @@ import { SAMPLE_TEMPLATE } from "./presets.ts";
 import { sanitizeTemplate } from "./svg-template.ts";
 import { DEFAULT_GAUGE, type ColorStop, type FillMode, type NeedleStyle, type VectorGauge } from "./vector.ts";
 import { PartsRows } from "./VectorParts.tsx";
+import { ShapeExtras } from "./VectorShapes.tsx";
+import { DEFAULT_GRID, DEFAULT_LIQUID } from "./shapes.ts";
 
 export interface VectorFormProps {
   gauge: VectorGauge;
@@ -27,6 +29,8 @@ export function VectorForm({ gauge: g, onPreview, onCommit }: VectorFormProps) {
           <select value={g.shape} onChange={(e) => onCommit(withShape(g, e.target.value as VectorGauge["shape"]))}>
             <option value="arc">arc</option>
             <option value="bar">bar</option>
+            <option value="liquid">liquid</option>
+            <option value="grid">grid</option>
             <option value="svg">SVG template</option>
           </select>{" "}
           {g.shape === "bar" && (
@@ -45,6 +49,7 @@ export function VectorForm({ gauge: g, onPreview, onCommit }: VectorFormProps) {
         ) : (
           <>
             <ShapeRows g={g} onPreview={onPreview} onCommit={onCommit} />
+            <ShapeExtras g={g} onPreview={onPreview} onCommit={onCommit} />
             <PartsRows g={g} onPreview={onPreview} onCommit={onCommit} />
           </>
         )}
@@ -53,9 +58,11 @@ export function VectorForm({ gauge: g, onPreview, onCommit }: VectorFormProps) {
   );
 }
 
-/** Leaving "svg" drops the template; choosing it starts from the sample. */
+/** Leaving "svg" drops the template; choosing it starts from the sample. Liquid and grid start with their defaults. */
 function withShape(g: VectorGauge, shape: VectorGauge["shape"]): VectorGauge {
   const { template, ...rest } = g;
+  if (shape === "liquid") return { ...rest, shape, liquid: g.liquid ?? { ...DEFAULT_LIQUID } };
+  if (shape === "grid") return { ...rest, shape, grid: g.grid ?? { ...DEFAULT_GRID } };
   if (shape !== "svg") return { ...rest, shape };
   return template ? { ...g, shape } : { ...rest, shape, template: SAMPLE_TEMPLATE, width: 200, height: 200 };
 }
@@ -117,12 +124,16 @@ function ShapeRows({ g, onPreview, onCommit }: { g: VectorGauge; onPreview(g: Ve
           start {num("start", -360, 360)}° sweep {num("sweep", 1, 360)}° (0° is 12 o'clock, clockwise)
         </Row>
       )}
-      <Row label="Thickness">
-        {num("thickness", 1, 1024)} px <Toggle on={g.rounded} label="rounded" onChange={() => onCommit(set({ rounded: !g.rounded }))} />
-      </Row>
-      <Row label="Segments">
-        {num("segments", 0, 200)} gap {num("gap", 0, 100)} {g.shape === "arc" ? "°" : "px"} (0 segments: continuous)
-      </Row>
+      {(g.shape === "arc" || g.shape === "bar") && (
+        <>
+          <Row label="Thickness">
+            {num("thickness", 1, 1024)} px <Toggle on={g.rounded} label="rounded" onChange={() => onCommit(set({ rounded: !g.rounded }))} />
+          </Row>
+          <Row label="Segments">
+            {num("segments", 0, 200)} gap {num("gap", 0, 100)} {g.shape === "arc" ? "°" : "px"} (0 segments: continuous)
+          </Row>
+        </>
+      )}
       <Row label="Track">
         <Toggle on={g.track !== null} onChange={() => onCommit(set({ track: g.track === null ? DEFAULT_GAUGE.track : null }))} />{" "}
         {g.track !== null && (
@@ -174,36 +185,40 @@ function ShapeRows({ g, onPreview, onCommit }: { g: VectorGauge; onPreview(g: Ve
           </span>
         )}
       </Row>
-      <Row label={g.shape === "arc" ? "Needle" : "Marker"}>
-        <Toggle on={g.needle !== null} onChange={() => onCommit(set({ needle: g.needle ? null : needle }))} />
-        {g.needle && (
-          <>
-            {" "}
-            {g.shape === "arc" && (
-              <select value={needle.style ?? "taper"} onChange={(e) => onCommit(withNeedle({ style: e.target.value as NeedleStyle }))}>
-                {NEEDLE_STYLES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            )}{" "}
-            <PaintField {...bind(needle.color, (v) => withNeedle({ color: v }))} /> length{" "}
-            <Num {...bind(needle.length, (v) => withNeedle({ length: v }))} min={0.1} max={g.shape === "arc" ? 1.2 : 2} step={0.05} /> width{" "}
-            <Num {...bind(needle.width, (v) => withNeedle({ width: v }))} min={1} max={64} />
-          </>
-        )}
-      </Row>
-      <Row label="Ticks">
-        <Toggle on={g.ticks !== null} onChange={() => onCommit(set({ ticks: g.ticks ? null : ticks }))} />
-        {g.ticks && (
-          <>
-            {" "}
-            <Num {...bind(ticks.count, (v) => withTicks({ count: v }))} min={2} max={200} /> major, length <Num {...bind(ticks.length, (v) => withTicks({ length: v }))} min={1} max={200} /> width{" "}
-            <Num {...bind(ticks.width, (v) => withTicks({ width: v }))} min={0.5} max={32} step={0.5} /> <PaintField {...bind(ticks.color, (v) => withTicks({ color: v }))} />
-          </>
-        )}
-      </Row>
+      {(g.shape === "arc" || g.shape === "bar") && (
+        <>
+          <Row label={g.shape === "arc" ? "Needle" : "Marker"}>
+            <Toggle on={g.needle !== null} onChange={() => onCommit(set({ needle: g.needle ? null : needle }))} />
+            {g.needle && (
+              <>
+                {" "}
+                {g.shape === "arc" && (
+                  <select value={needle.style ?? "taper"} onChange={(e) => onCommit(withNeedle({ style: e.target.value as NeedleStyle }))}>
+                    {NEEDLE_STYLES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                )}{" "}
+                <PaintField {...bind(needle.color, (v) => withNeedle({ color: v }))} /> length{" "}
+                <Num {...bind(needle.length, (v) => withNeedle({ length: v }))} min={0.1} max={g.shape === "arc" ? 1.2 : 2} step={0.05} /> width{" "}
+                <Num {...bind(needle.width, (v) => withNeedle({ width: v }))} min={1} max={64} />
+              </>
+            )}
+          </Row>
+          <Row label="Ticks">
+            <Toggle on={g.ticks !== null} onChange={() => onCommit(set({ ticks: g.ticks ? null : ticks }))} />
+            {g.ticks && (
+              <>
+                {" "}
+                <Num {...bind(ticks.count, (v) => withTicks({ count: v }))} min={2} max={200} /> major, length <Num {...bind(ticks.length, (v) => withTicks({ length: v }))} min={1} max={200} /> width{" "}
+                <Num {...bind(ticks.width, (v) => withTicks({ width: v }))} min={0.5} max={32} step={0.5} /> <PaintField {...bind(ticks.color, (v) => withTicks({ color: v }))} />
+              </>
+            )}
+          </Row>
+        </>
+      )}
     </>
   );
 }

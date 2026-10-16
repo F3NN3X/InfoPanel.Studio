@@ -34,12 +34,12 @@ export function valueText(g: VectorGauge, p: number): Prim {
   return { kind: "text", x: g.width / 2, y: g.height * t.y, text: formatValue(g, p), size: t.size, color: t.color, font: t.font, weight: t.weight, anchor: "middle" };
 }
 
-/** Behind everything: a disc for an arc, a rounded rect for a bar. */
+/** Behind everything: a disc for an arc or a round liquid container, else a rounded rect. */
 export function backgroundPrims(g: VectorGauge): Prim[] {
   const b = g.background;
   if (!b || (!b.color && !b.border)) return [];
   const inset = b.border ? b.border.width / 2 : 0;
-  if (g.shape === "arc") {
+  if (g.shape === "arc" || (g.shape === "liquid" && g.liquid?.container !== "rect")) {
     const d = circlePath(g.width / 2, g.height / 2, Math.max(1, Math.min(g.width, g.height) / 2 - inset));
     return [
       ...(b.color ? [{ kind: "path", d, fill: b.color } as const] : []),

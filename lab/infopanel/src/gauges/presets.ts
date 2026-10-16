@@ -1,4 +1,5 @@
-/** Starting points for a new vector gauge (L7, L9, L10). */
+/** Starting points for a new vector gauge (L7, L9, L10, L13). */
+import { DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "./vector.ts";
 
 /**
@@ -70,6 +71,42 @@ export const STARTERS: { name: string; gauge: VectorGauge }[] = [
       ticks: { count: 5, length: 5, width: 1, color: "muted", labels: { size: 11, color: "muted", font: "" } },
       scale: { min: 0, max: 100, unit: "°C", decimals: 0 },
       shadow: { blur: 6, dx: 0, dy: 2, color: "#000000", opacity: 0.5 },
+    },
+  },
+  // L13: the creator's later parts.
+  {
+    name: "Liquid tank",
+    gauge: {
+      ...DEFAULT_GAUGE, shape: "liquid", track: "track", liquid: { ...DEFAULT_LIQUID },
+      fill: { ...DEFAULT_GAUGE.fill, mode: "thresholds", color: "accent", warn: 70, crit: 90 },
+      scale: { min: 0, max: 100, unit: "%", decimals: 0 },
+      text: { size: 36, color: "fg", font: "", weight: 700, y: 0.5, format: "{value}{unit}" },
+      background: { color: null, border: { color: "muted", width: 2 }, radius: 0 },
+    },
+  },
+  {
+    name: "Grid matrix",
+    gauge: { ...DEFAULT_GAUGE, shape: "grid", width: 240, height: 120, gap: 3, track: "track", grid: { ...DEFAULT_GRID }, fill: zones },
+  },
+  {
+    name: "Ringed dial",
+    gauge: { ...DEFAULT_GAUGE, track: "track", fill: { ...DEFAULT_GAUGE.fill, color: "accent" }, rings: { ...DEFAULT_RINGS, color: "accent" }, glow: 4 },
+  },
+  {
+    name: "Striped loading bar",
+    gauge: { ...DEFAULT_GAUGE, shape: "bar", width: 300, height: 24, thickness: 18, track: "track", fill: { ...DEFAULT_GAUGE.fill, color: "accent" }, pattern: { ...DEFAULT_PATTERN, speed: 1 } },
+  },
+  {
+    name: "Hearts",
+    gauge: { ...DEFAULT_GAUGE, shape: "bar", width: 200, height: 40, thickness: 36, track: "track", fill: { ...DEFAULT_GAUGE.fill, color: "crit" }, icons: { ...DEFAULT_ICONS } },
+  },
+  {
+    name: "Ring with icon",
+    gauge: {
+      ...DEFAULT_GAUGE, start: 0, sweep: 360, thickness: 12, track: "track", fill: { ...DEFAULT_GAUGE.fill, color: "accent" },
+      icon: { ...DEFAULT_ICON },
+      scale: { min: 0, max: 100, unit: "%", decimals: 0 },
+      text: { size: 30, color: "fg", font: "", weight: 700, y: 0.62, format: "{value}{unit}" },
     },
   },
 ];

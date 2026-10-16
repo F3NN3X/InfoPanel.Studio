@@ -16,6 +16,7 @@
  */
 import { arcPath, circlePath, clamp, fmt, polar } from "./geom.ts";
 import { arcNeedle, arcTicks, backgroundPrims, barTicks, scaleOf, valueText } from "./parts.ts";
+import { centreIcon, gridPrims, iconRowPrims, liquidPrims, normalizeShapeParts, ringPrims } from "./shapes.ts";
 
 export { arcPath } from "./geom.ts";
 
@@ -99,9 +100,86 @@ export interface Shadow {
   opacity: number;
 }
 
+/**
+ * The icons a gauge can draw: the app's widget icon set (src/lib/widget-icons.ts, lucide), by name.
+ * Kept here as names only so the spec stays plain data; vector-svg draws them.
+ */
+export const GAUGE_ICONS = [
+  "activity", "bluetooth", "brain", "cpu", "gauge", "gamepad", "headphones", "heart", "leaf",
+  "monitor", "moon", "music", "radio", "snowflake", "sun", "thermometer", "wifi", "zap",
+] as const;
+export type GaugeIcon = (typeof GAUGE_ICONS)[number];
+export const isGaugeIcon = (v: unknown): v is GaugeIcon => typeof v === "string" && (GAUGE_ICONS as readonly string[]).includes(v);
+
+/** Shape "liquid": a container filled to the value, with a wave on its surface. */
+export interface Liquid {
+  container: "circle" | "rect";
+  /** Rect corner radius, px. */
+  radius: number;
+  /** Space between the container's edge and the liquid, px. */
+  inset: number;
+  /** Wave height, px; 0 is a flat surface. */
+  amplitude: number;
+  /** Waves across the container. */
+  waves: number;
+  /** Seconds for the wave to travel one wave, live only; 0 keeps it still. Baked frames are still. */
+  speed: number;
+}
+
+/** Shape "grid": rows × columns of cells, lit from the bottom left. */
+export interface Grid {
+  rows: number;
+  cols: number;
+  /** "rows": along the bottom row first, then up (a level); "columns": up the first column, then right (a bar chart). */
+  order: "rows" | "columns";
+  cell: "square" | "rounded" | "circle";
+}
+
+/** Arc: decorative rings outside it, fading outwards (the creator's multi-ring); the value does not drive them. */
+export interface Rings {
+  count: number;
+  /** Distance between rings, px. */
+  spacing: number;
+  width: number;
+  color: Paint;
+  /** The innermost ring's opacity; each next one fades by an equal step. */
+  opacity: number;
+}
+
+/** Bar: a pattern over the continuous fill. */
+export interface Pattern {
+  style: "stripes" | "dots" | "chevrons";
+  color: Paint;
+  opacity: number;
+  /** Tile size, px. */
+  size: number;
+  /** Seconds per tile of travel along the fill, live only; 0 keeps it still. */
+  speed: number;
+}
+
+/** Bar: a row of icons instead of the bar; each fills in turn. */
+export interface IconRow {
+  name: GaugeIcon;
+  count: number;
+  /** The icon at the value fills partly (clipped); else each icon is lit or not. */
+  progressive: boolean;
+}
+
+/** An icon in the middle of the gauge. */
+export interface CentreIcon {
+  name: GaugeIcon;
+  size: number;
+  color: Paint;
+  /** Where its middle sits, 0–1 of the height. */
+  y: number;
+}
+
 export interface VectorGauge {
-  /** "svg": the user's own SVG (`template`), driven by the value; the arc and bar fields do not apply. */
-  shape: "arc" | "bar" | "svg";
+  /**
+   * "svg": the user's own SVG (`template`), driven by the value; the arc and bar fields do not apply.
+   * "liquid" and "grid" use `liquid` / `grid` with the track, fill, scale, text, icon, background and effects.
+   */
+  shape: "arc" | "bar" | "svg" | "liquid" | "grid";
   /** Frame size in px. */
   width: number;
   height: number;
@@ -132,6 +210,12 @@ export interface VectorGauge {
   /** Glow around the fill, blur radius px. */
   glow?: number;
   shadow?: Shadow;
+  liquid?: Liquid;
+  grid?: Grid;
+  rings?: Rings;
+  pattern?: Pattern;
+  icons?: IconRow;
+  icon?: CentreIcon;
   /**
    * Shape "svg" only: the template, sanitized (svg-template.ts). It reads the value as the CSS custom
    * properties `--value` (0–1) and `--percent` (0–100, whole), set on its root element.
@@ -185,11 +269,25 @@ interface PrimCommon {
   glow?: boolean;
 }
 
-/** One SVG element: a path filled or stroked, a rect (optionally with a linear gradient), or a line of text. */
+/**
+ * One SVG element: a path filled or stroked, a rect (optionally with a linear gradient or a pattern), a
+ * line of text, an icon (centred on x, y), or a group clipped to a path that can drift (live only).
+ */
 export type Prim =
   | ({ kind: "path"; d: string; fill?: Paint; stroke?: Paint; width?: number; cap?: "round" | "butt" } & PrimCommon)
-  | ({ kind: "rect"; x: number; y: number; w: number; h: number; r: number; fill: Paint | LinearGradient | null; stroke?: Paint; width?: number } & PrimCommon)
-  | ({ kind: "text"; x: number; y: number; text: string; size: number; color: Paint; font: string; weight: number; anchor: "start" | "middle" | "end" } & PrimCommon);
+  | ({ kind: "rect"; x: number; y: number; w: number; h: number; r: number; fill: Paint | LinearGradient | PatternPaint | null; stroke?: Paint; width?: number } & PrimCommon)
+  | ({ kind: "text"; x: number; y: number; text: string; size: number; color: Paint; font: string; weight: number; anchor: "start" | "middle" | "end" } & PrimCommon)
+  | ({ kind: "icon"; name: GaugeIcon; x: number; y: number; size: number; color: Paint } & PrimCommon)
+  | ({ kind: "group"; clip: string; children: Prim[]; drift?: { dx: number; dy: number; seconds: number } } & PrimCommon);
+
+/** A pattern tile; `along` is the fill's direction, for chevrons and drift. */
+export interface PatternPaint {
+  pattern: Pattern["style"];
+  color: Paint;
+  size: number;
+  seconds: number;
+  along: "right" | "left" | "up" | "down";
+}
 
 export interface LinearGradient {
   x1: number;
@@ -232,10 +330,15 @@ export function thresholdPaint(g: VectorGauge, at: number): Paint {
 }
 
 /** The fill's colour at a position of the range (segments), or for the whole fill at `value` (continuous). */
-function colorOf(g: VectorGauge, at: number, value: number): Paint {
+export function colorOf(g: VectorGauge, at: number, value: number): Paint {
+  return g.fill.mode === "gradient" ? colorAt(g.fill.stops, at) : placeColor(g, g.segments > 0 ? at : value);
+}
+
+/** The fill's colour for a piece at its own place in the range (a segment, a grid cell, an icon). */
+export function placeColor(g: VectorGauge, at: number): Paint {
   if (g.fill.mode === "gradient") return colorAt(g.fill.stops, at);
-  if (g.fill.mode === "zones") return zoneAt(g.fill.stops, g.segments > 0 ? at : value);
-  if (g.fill.mode === "thresholds") return thresholdPaint(g, g.segments > 0 ? at : value);
+  if (g.fill.mode === "zones") return zoneAt(g.fill.stops, at);
+  if (g.fill.mode === "thresholds") return thresholdPaint(g, at);
   return g.fill.color;
 }
 
@@ -248,8 +351,8 @@ export const fraction = (value: number | null, min: number, max: number) =>
 export function arcGeometry(g: VectorGauge) {
   const cx = g.width / 2;
   const cy = g.height / 2;
-  const outside = g.ticks ? g.ticks.length + 2 : 0;
-  const r = Math.max(1, Math.min(g.width, g.height) / 2 - g.thickness / 2 - outside - 1);
+  const outside = (g.ticks ? g.ticks.length + 2 : 0) + (g.rings ? g.rings.count * g.rings.spacing + g.rings.width / 2 : 0);
+  const r =Math.max(1, Math.min(g.width, g.height) / 2 - g.thickness / 2 - outside - 1);
   const at = (deg: number, radius = r) => polar(cx, cy, radius, deg);
   return { cx, cy, r, at };
 }
@@ -267,6 +370,7 @@ function arcPrims(g: VectorGauge, p: number): Prim[] {
   const track = (prim: Prim): Prim => (g.trackOpacity !== undefined ? { ...prim, opacity: g.trackOpacity } : prim);
   const valueAt = (fracOfRange: number) => (g.reverse ? g.start + sweep * (1 - fracOfRange) : g.start + sweep * fracOfRange);
 
+  if (g.rings) out.push(...ringPrims(g, { cx, cy, r, sweep }));
   if (g.segments > 0) {
     const n = Math.round(g.segments);
     const gap = clamp(g.gap, 0, sweep / n - 0.5);
@@ -328,11 +432,13 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
   const radius = g.rounded ? across / 2 : 0;
   const glow = (g.glow ?? 0) > 0;
   const out: Prim[] = [];
-  const rect = (from: number, to: number, fill: Paint | LinearGradient, r = radius): Prim => ({ kind: "rect", ...box(from, to), r: Math.min(r, (to - from) / 2), fill });
+  const rect = (from: number, to: number, fill: Paint | LinearGradient | PatternPaint, r = radius): Prim => ({ kind: "rect", ...box(from, to), r: Math.min(r, (to - from) / 2), fill });
   const lit = (prim: Prim): Prim => (glow ? { ...prim, glow } : prim);
   const track = (prim: Prim): Prim => (g.trackOpacity !== undefined ? { ...prim, opacity: g.trackOpacity } : prim);
 
-  if (g.segments > 0) {
+  if (g.icons) {
+    out.push(...iconRowPrims(g, p, { length, across, offset, vertical }));
+  } else if (g.segments > 0) {
     const n = Math.round(g.segments);
     const gap = clamp(g.gap, 0, length / n - 1);
     const each = (length - gap * (n - 1)) / n;
@@ -354,6 +460,11 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
           : g.reverse ? [whole.x + whole.w, 0, whole.x, 0] : [whole.x, 0, whole.x + whole.w, 0];
         out.push(lit(rect(0, filled, { x1, y1, x2, y2, stops: g.fill.stops })));
       } else out.push(lit(rect(0, filled, colorOf(g, 0, p * 100))));
+      if (g.pattern) {
+        const pt = g.pattern;
+        const along = vertical ? (g.reverse ? "down" : "up") : g.reverse ? "left" : "right";
+        out.push({ ...rect(0, filled, { pattern: pt.style, color: pt.color, size: pt.size, seconds: pt.speed, along }), opacity: pt.opacity });
+      }
     }
   }
 
@@ -375,8 +486,8 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
 export function gaugePrims(g: VectorGauge, p: number): Prim[] {
   const v = clamp(Number.isFinite(p) ? p : 0, 0, 1);
   if (g.shape === "svg") return [];
-  const body = g.shape === "arc" ? arcPrims(g, v) : barPrims(g, v);
-  return [...backgroundPrims(g), ...body, ...(g.text ? [valueText(g, v)] : [])];
+  const body = g.shape === "arc" ? arcPrims(g, v) : g.shape === "liquid" ? liquidPrims(g, v) : g.shape === "grid" ? gridPrims(g, v) : barPrims(g, v);
+  return [...backgroundPrims(g), ...body, ...(g.icon && g.shape !== "bar" ? [centreIcon(g)] : []), ...(g.text ? [valueText(g, v)] : [])];
 }
 
 /**
@@ -417,7 +528,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
   const template = typeof o.template === "string" && o.template.length <= MAX_TEMPLATE && /^<svg\b/.test(o.template) ? o.template : null;
   const scaleMin = num(scale?.min, 0, -1e9, 1e9);
   return {
-    shape: o.shape === "bar" ? "bar" : o.shape === "svg" && template ? "svg" : "arc",
+    shape: o.shape === "bar" || o.shape === "liquid" || o.shape === "grid" ? o.shape : o.shape === "svg" && template ? "svg" : "arc",
     width: Math.round(num(o.width, d.width, 4, 2048)),
     height: Math.round(num(o.height, d.height, 4, 2048)),
     start: num(o.start, d.start, -360, 360),
@@ -472,6 +583,14 @@ export function normalizeGauge(raw: unknown): VectorGauge {
     ...(shadow
       ? { shadow: { blur: num(shadow.blur, 6, 0, 64), dx: num(shadow.dx, 0, -64, 64), dy: num(shadow.dy, 2, -64, 64), color: color(shadow.color, "#000000"), opacity: num(shadow.opacity, 0.5, 0, 1) } }
       : {}),
+    ...normalizeShapeParts(o, { num, color, obj }),
     ...(o.shape === "svg" && template ? { template } : {}),
   };
+}
+
+/** The checks normalizeGauge lends to the shape parts' normalizer. */
+export interface Checks {
+  num(v: unknown, def: number, lo: number, hi: number): number;
+  color(v: unknown, def: Paint): Paint;
+  obj(v: unknown): Record<string, unknown> | null;
 }

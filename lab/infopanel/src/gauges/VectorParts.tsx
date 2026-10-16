@@ -112,7 +112,7 @@ export function PartsRows({ g, onPreview, onCommit }: PartsRowsProps) {
                 <Num {...bind(bg.border.width, (v) => withBg({ border: { ...bg.border!, width: v } }))} min={0.5} max={64} step={0.5} /> px
               </>
             )}
-            {g.shape === "bar" && (
+            {(g.shape === "bar" || g.shape === "grid" || g.liquid?.container === "rect") && (
               <>
                 {" "}
                 radius <Num {...bind(bg.radius, (v) => withBg({ radius: v }))} min={0} max={1024} />

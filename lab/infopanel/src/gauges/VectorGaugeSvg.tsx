@@ -4,7 +4,7 @@
  */
 import { useMemo, type CSSProperties } from "react";
 import { SvgTemplateView } from "./SvgTemplateView.tsx";
-import type { VectorGauge } from "./vector.ts";
+import { THEME, type VectorGauge } from "./vector.ts";
 import { gaugeSvg } from "./vector-svg.ts";
 
 export interface VectorGaugeSvgProps {
@@ -25,5 +25,13 @@ export function VectorGaugeSvg({ gauge, p, width = gauge.width, height = gauge.h
     [gauge, p, id, width, height],
   );
   if (gauge.shape === "svg") return <SvgTemplateView gauge={gauge} p={p} width={width} height={height} style={style} />;
-  return <span style={{ display: "block", width, height, lineHeight: 0, overflow: "visible", ...style }} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <span style={{ display: "block", width, height, lineHeight: 0, overflow: "visible", ...WIDGET_SCOPE, ...style }} dangerouslySetInnerHTML={{ __html: html }} />;
 }
+
+/**
+ * The widget colours a gauge reads, as the app's Widget shell sets them (and its viz gallery, outside a
+ * shell). The lab has no shell, and the page's own `--accent` is a shadcn HSL triple, not a colour.
+ */
+const WIDGET_SCOPE = Object.fromEntries(
+  (["accent", "warn", "crit", "fg", "muted", "track"] as const).map((k) => [THEME[k].css.slice(4, THEME[k].css.indexOf(",")), THEME[k].hex]),
+) as CSSProperties;
