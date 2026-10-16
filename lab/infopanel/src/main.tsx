@@ -5,6 +5,7 @@ import { walkItems } from "./parse.ts";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
+import { useFontPlan } from "./useFontPlan.ts";
 import { groupBindings, indexCatalog, resolveAll, type Overrides } from "./remap/remap.ts";
 import { RemapPanel } from "./remap/RemapPanel.tsx";
 import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
@@ -40,6 +41,7 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
   const { profile, assets, issues } = parsed;
   const editor = useEditor(parsed.items);
   const items = editor.items;
+  const fontPlan = useFontPlan(items);
   const [mode, setMode] = useState<SensorMode>("unbound");
   const [mock, setMock] = useState<ReadonlyMap<BoundItem, number>>(new Map());
   const live = useLiveCatalog(mode === "live");
@@ -72,7 +74,7 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
         {profile.FontScale.toFixed(2)}, {assets.size} assets
       </p>
       <p>Sensors: {mode} (change below)</p>
-      <ComparePanel parsed={parsed} editor={editor} sensor={sensor} now={now} screenshot={screenshot} />
+      <ComparePanel parsed={parsed} editor={editor} sensor={sensor} now={now} screenshot={screenshot} font={fontPlan.css} />
       {mode === "live" ? (
         <RemapPanel groups={stableGroups} resolved={resolved} index={index} overrides={overrides} onChoose={choose} onSelect={editor.select} />
       ) : (
@@ -107,7 +109,7 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
           ))}
         </tbody>
       </table>
-      <FontPanel items={items} />
+      <FontPanel plan={fontPlan} />
       <SensorPanel
         items={items}
         source={source}

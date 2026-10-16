@@ -34,6 +34,7 @@ function useFonts(items: DisplayItem[]): FontCss {
   useEffect(() => {
     let stop = false;
     const requests = latest.current;
+    if (requests.size === 0) return;
     FontLoader.fetch()
       .then(async (loader) => {
         if (!loader) return;
@@ -178,11 +179,14 @@ export interface ProfileViewProps {
   overlay?: ReactNode;
   /** Drawn on top, taking the pointer (the editing layer). */
   controls?: ReactNode;
+  /** The faces to draw text with (the lab's font plan); by default, InfoPanel's. */
+  font?: FontCss;
 }
 
-export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls }: ProfileViewProps) {
+export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls, font: given }: ProfileViewProps) {
   const uid = useId().replace(/:/g, "");
-  const font = useFonts(items);
+  const own = useFonts(given ? [] : items);
+  const font = given ?? own;
   const image = useImages(parsed.assets);
   const [start] = useState(() => performance.now());
   const [elapsed, setElapsed] = useState(0);
@@ -200,6 +204,9 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
   // every half-pixel stroke, so nudge it onto the device pixel grid.
   const root = useRef<HTMLDivElement>(null);
   const [nudge, setNudge] = useState({ x: 0, y: 0 });
+  // Scroll anchoring can answer a margin change by scrolling, so the offset need not
+  // settle; give up after a few corrections in a row instead of looping.
+  const corrections = useRef(0);
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
@@ -209,7 +216,11 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
     const s = r.width / el.offsetWidth || 1;
     const frac = (v: number) => (Math.ceil(v * dpr) - v * dpr) / dpr / s;
     const next = { x: frac(r.left - nudge.x * s), y: frac(r.top - nudge.y * s) };
-    if (Math.abs(next.x - nudge.x) > 0.01 || Math.abs(next.y - nudge.y) > 0.01) setNudge(next);
+    if (Math.abs(next.x - nudge.x) <= 0.01 && Math.abs(next.y - nudge.y) <= 0.01) {
+      corrections.current = 0;
+      return;
+    }
+    if (corrections.current++ < 3) setNudge(next);
   });
 
   const { profile } = parsed;

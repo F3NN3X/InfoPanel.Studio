@@ -12,6 +12,7 @@ import { itemAt, type Path } from "./editor/ops.ts";
 import type { Editor } from "./editor/useEditor.ts";
 import { walkItems } from "./parse.ts";
 import { ProfileView } from "./render/ProfileView.tsx";
+import type { FontCss } from "./render/Text.tsx";
 import type { SensorState } from "./render/scene.ts";
 import type { DisplayItem } from "./schema.ts";
 import type { BoundItem } from "./sensors.ts";
@@ -23,6 +24,8 @@ export interface ComparePanelProps {
   now: Date;
   /** The corpus screenshot, if one matched the profile. */
   screenshot: string | null;
+  /** The faces the canvas draws text with (the font plan). */
+  font?: FontCss;
 }
 
 /** Tree order of every path, for Shift range selection. */
@@ -82,7 +85,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
-export function ComparePanel({ parsed, editor, sensor, now, screenshot }: ComparePanelProps) {
+export function ComparePanel({ parsed, editor, sensor, now, screenshot, font }: ComparePanelProps) {
   const [zoom, setZoom] = useState(1);
   const [opacity, setOpacity] = useState(0.5);
   const [blend, setBlend] = useState<"normal" | "difference">("normal");
@@ -143,6 +146,7 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot }: Compar
           now={now}
           overlay={shot && opacity > 0 ? <img src={shot} alt="InfoPanel" style={{ display: "block", opacity, mixBlendMode: blend }} /> : null}
           controls={<EditLayer editor={editor} profileWidth={parsed.profile.Width} />}
+          font={font}
         />
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>

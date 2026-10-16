@@ -75,6 +75,20 @@ tested against `skia-reference.json` when it exists; `src/font-loader.ts` gives 
 The lab page's Fonts panel lists each request with the face InfoPanel draws, how it got there, and missing fonts
 with the pack that has them.
 
+### Font library and the canvas (L4)
+
+The Fonts panel and the canvas share one plan (`src/useFontPlan.ts`, `src/font-supply.ts`):
+
+- Per request, InfoPanel's answer first. A font InfoPanel draws with another family is listed under **Missing
+  fonts** (a legacy or variant name it resolves to its family, such as "Spotify Mix Extrabold", is not).
+- For a missing font, the canvas draws a face from the **library** when one fits: the corpus packs
+  (`fonts/packs`), files added with **Add fonts** (ttf, otf, ttc, or a zip pack; every file is checked by the sfnt
+  parser, anything else is listed as skipped), and **Get from Fontsource** downloads (with their license). The
+  match is the one InfoPanel would make if the library were installed, then, for badly named files, faces whose
+  names start with the requested family. Each such row can be switched back to InfoPanel's fallback.
+- Fontsource's static Nunito Sans files are instanced from the variable font and named "Nunito Sans 12pt
+  ExtraLight 12pt", so installing them would not fix InfoPanel either; the canvas uses them fine.
+
 ### Missing fonts
 
 `npm run lab:font-get -- --missing` lists the corpus fonts not installed here and where to get them free;
