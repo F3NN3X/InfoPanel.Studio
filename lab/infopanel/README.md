@@ -106,8 +106,23 @@ show plugin values; compare in Live, not Unbound. Notes:
 Corpus profiles with a screenshot of InfoPanel's own render (`npm run lab:extract` attaches a `.png` from the
 corpus folder whose name matches the profile, allowing one typo, and whose size matches) are marked in the
 picker. The compare panel lays the screenshot over the render with an opacity slider and a difference blend
-(any other screenshot can be loaded from a file). Click an item, or pick it in the item tree, to outline it and
-list its parsed fields; the tree's checkboxes hide items and groups. Results: `FINDINGS.md`.
+(any other screenshot can be loaded from a file). Results: `FINDINGS.md`.
+
+## Editing (L1)
+
+The compare panel is also the editor (`src/editor/`). Edits stay in the page; nothing is written back yet.
+
+- Click an item on the canvas or in the tree to select it; Shift or Ctrl adds (Shift in the tree selects a
+  range). Drag to move, drag a handle to resize (one unrotated, unlocked, non-group item). Locked items select
+  but do not move.
+- Toolbar and keys: Undo `Ctrl+Z`, Redo `Ctrl+Y`/`Ctrl+Shift+Z`, Duplicate `Ctrl+D`, Group `Ctrl+G`, Ungroup
+  `Ctrl+Shift+G`, Delete, Up/Down (draw order), arrows nudge 1 px (Shift 10). Keys never fire while typing in a
+  field. A drag, a nudge, or a field change is one undo step.
+- The tree's checkboxes set InfoPanel's own `Hidden` field (undoable).
+- The inspector lists every schema field of the item's kind, grouped (`registry.ts`); text fields commit on
+  Enter or leaving the field. A value InfoPanel's setter would ignore is shown as an error and not stored.
+  Fields the lab does not know are kept and shown read-only.
+- Resizing writes InfoPanel's fields: images and gauges divide by `Scale`; text keeps an automatic (0) height.
 
 ## Installed profiles
 

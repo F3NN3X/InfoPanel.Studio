@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { itemAt } from "./ComparePanel.tsx";
-import { parseDisplayItemsXml } from "./parse.ts";
+import { itemAt } from "./ops.ts";
+import { parseDisplayItemsXml } from "../parse.ts";
 
 const item = (type: string, fields = "") => `<DisplayItem xsi:type="${type}DisplayItem">${fields}</DisplayItem>`;
 const { items } = parseDisplayItemsXml(

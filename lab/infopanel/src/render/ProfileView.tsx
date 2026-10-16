@@ -3,10 +3,11 @@
  * per draw node in InfoPanel's order. Text uses the faces InfoPanel draws with
  * (font-loader), images come from the export's assets or their URLs.
  */
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ExportEntry, ParsedExport } from "../archive.ts";
 import { FontLoader, type ResolvedFont } from "../font-loader.ts";
 import { walkItems } from "../parse.ts";
+import type { DisplayItem } from "../schema.ts";
 import type { BoundItem } from "../sensors.ts";
 import { cssColor } from "./color.ts";
 import { PathPaint } from "./Paint.tsx";
@@ -15,17 +16,24 @@ import { Table, Text, type FontCss } from "./Text.tsx";
 
 const fontKey = (s: TextStyle) => JSON.stringify([s.font.font, s.font.style, s.font.bold, s.font.italic]);
 
-/** Resolves every text item's font once; until then, text falls back to the family name. */
-function useFonts(parsed: ParsedExport): FontCss {
+/**
+ * Resolves every text item's font; until then, text falls back to the family name.
+ * Keyed on the set of fonts asked for, so moving an item does not resolve again.
+ */
+function useFonts(items: DisplayItem[]): FontCss {
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedFont>>(new Map());
+  const wanted = new Map<string, TextStyle["font"]>();
+  for (const { item } of walkItems(items)) {
+    if ("Font" in item) wanted.set(JSON.stringify([item.Font, item.FontStyle, item.Bold, item.Italic]), {
+      font: item.Font, style: item.FontStyle, bold: item.Bold, italic: item.Italic,
+    });
+  }
+  const key = JSON.stringify([...wanted.keys()].sort());
+  const latest = useRef(wanted);
+  latest.current = wanted;
   useEffect(() => {
     let stop = false;
-    const requests = new Map<string, TextStyle["font"]>();
-    for (const { item } of walkItems(parsed.items)) {
-      if ("Font" in item) requests.set(JSON.stringify([item.Font, item.FontStyle, item.Bold, item.Italic]), {
-        font: item.Font, style: item.FontStyle, bold: item.Bold, italic: item.Italic,
-      });
-    }
+    const requests = latest.current;
     FontLoader.fetch()
       .then(async (loader) => {
         if (!loader) return;
@@ -36,7 +44,7 @@ function useFonts(parsed: ParsedExport): FontCss {
     return () => {
       stop = true;
     };
-  }, [parsed]);
+  }, [key]);
   return (style) => {
     const r = resolved.get(fontKey(style));
     if (r) return r.css;
@@ -160,52 +168,25 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
 
 export interface ProfileViewProps {
   parsed: ParsedExport;
+  /** The items to draw, when they differ from the export's (an edited copy). */
+  items?: DisplayItem[];
   sensor(item: BoundItem): SensorState;
   now: Date;
   /** Item paths to leave out, with their children. */
   hidden?: ReadonlySet<string>;
-  /** The item (or group) to outline. */
-  selected?: string | null;
-  onPick?(path: string): void;
   /** Drawn over the profile, ignoring the pointer (a screenshot to compare with). */
   overlay?: ReactNode;
+  /** Drawn on top, taking the pointer (the editing layer). */
+  controls?: ReactNode;
 }
 
-/** The outline of an item's elements, a group's children included, in profile pixels. */
-function useOutline(root: RefObject<HTMLDivElement | null>, selected: string | null | undefined, width: number) {
-  const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
-  useLayoutEffect(() => {
-    const el = root.current;
-    if (!el || selected == null) return setBox(null);
-    // An SVG group's own box includes canvas-sized gradient layers; measure its drawn paths.
-    const parts = [...el.querySelectorAll(`[data-path="${selected}"], [data-path^="${selected}."]`)]
-      .flatMap((e) => (e instanceof SVGGElement ? [...e.querySelectorAll(":scope > path, :scope > g > path")] : [e]))
-      .map((e) => e.getBoundingClientRect())
-      .filter((r) => r.width > 0 || r.height > 0);
-    if (parts.length === 0) return setBox(null);
-    const r = el.getBoundingClientRect();
-    // An ancestor's CSS zoom scales client rects; the outline is placed in profile pixels.
-    const k = width / r.width;
-    const l = Math.min(...parts.map((p) => p.left));
-    const t = Math.min(...parts.map((p) => p.top));
-    const next = {
-      left: (l - r.left) * k,
-      top: (t - r.top) * k,
-      width: (Math.max(...parts.map((p) => p.right)) - l) * k,
-      height: (Math.max(...parts.map((p) => p.bottom)) - t) * k,
-    };
-    setBox((b) => (b && Object.entries(next).every(([key, v]) => Math.abs(b[key as keyof typeof b] - v) < 0.5) ? b : next));
-  });
-  return box;
-}
-
-export function ProfileView({ parsed, sensor, now, hidden, selected, onPick, overlay }: ProfileViewProps) {
+export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls }: ProfileViewProps) {
   const uid = useId().replace(/:/g, "");
-  const font = useFonts(parsed);
+  const font = useFonts(items);
   const image = useImages(parsed.assets);
   const [start] = useState(() => performance.now());
   const [elapsed, setElapsed] = useState(0);
-  const animated = useMemo(() => hasAnimatedGradient(parsed.items), [parsed]);
+  const animated = useMemo(() => hasAnimatedGradient(items), [items]);
   useEffect(() => {
     if (!animated) return;
     let frame = requestAnimationFrame(function tick() {
@@ -224,22 +205,19 @@ export function ProfileView({ parsed, sensor, now, hidden, selected, onPick, ove
     if (!el) return;
     const r = el.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    const frac = (v: number) => (Math.ceil(v * dpr) - v * dpr) / dpr;
-    const next = { x: frac(r.left - nudge.x), y: frac(r.top - nudge.y) };
+    // Client pixels per CSS pixel: an ancestor's CSS zoom scales the margin too.
+    const s = r.width / el.offsetWidth || 1;
+    const frac = (v: number) => (Math.ceil(v * dpr) - v * dpr) / dpr / s;
+    const next = { x: frac(r.left - nudge.x * s), y: frac(r.top - nudge.y * s) };
     if (Math.abs(next.x - nudge.x) > 0.01 || Math.abs(next.y - nudge.y) > 0.01) setNudge(next);
   });
 
   const { profile } = parsed;
-  const nodes = buildScene({ profile, items: parsed.items, sensor, image, now, elapsedMs: elapsed, hidden });
+  const nodes = buildScene({ profile, items, sensor, image, now, elapsedMs: elapsed, hidden });
   const canvas = { width: profile.Width, height: profile.Height };
-  const outline = useOutline(root, selected, profile.Width);
   return (
     <div
       ref={root}
-      onClick={(e) => {
-        const path = (e.target as Element).closest("[data-path]")?.getAttribute("data-path");
-        if (path != null) onPick?.(path);
-      }}
       style={{
         marginLeft: nudge.x,
         marginTop: nudge.y,
@@ -255,11 +233,7 @@ export function ProfileView({ parsed, sensor, now, hidden, selected, onPick, ove
         <Node key={n.path} node={n} id={`${uid}-${n.path}`} font={font} canvas={canvas} />
       ))}
       {overlay && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{overlay}</div>}
-      {outline && (
-        <div
-          style={{ position: "absolute", ...outline, outline: "2px dashed #ff00ff", outlineOffset: 1, pointerEvents: "none", mixBlendMode: "normal" }}
-        />
-      )}
+      {controls}
     </div>
   );
 }

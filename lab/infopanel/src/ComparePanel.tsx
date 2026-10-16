@@ -1,10 +1,16 @@
 /**
- * P0.7: lays a screenshot of InfoPanel's own render over the lab's, with an
- * opacity slider and a difference blend. Click an item (or pick it in the tree)
- * to outline it and see its parsed fields; items and groups can be hidden.
+ * The lab's editor (L1) and screenshot comparison (P0.7): the profile with an
+ * editing layer (select, drag, resize), a toolbar, the item tree and the
+ * inspector. A screenshot of InfoPanel's own render can be laid over it with an
+ * opacity slider and a difference blend.
  */
 import { useState } from "react";
 import type { ParsedExport } from "./archive.ts";
+import { EditLayer } from "./editor/EditLayer.tsx";
+import { Inspector } from "./editor/Inspector.tsx";
+import { itemAt, type Path } from "./editor/ops.ts";
+import type { Editor } from "./editor/useEditor.ts";
+import { walkItems } from "./parse.ts";
 import { ProfileView } from "./render/ProfileView.tsx";
 import type { SensorState } from "./render/scene.ts";
 import type { DisplayItem } from "./schema.ts";
@@ -12,31 +18,25 @@ import type { BoundItem } from "./sensors.ts";
 
 export interface ComparePanelProps {
   parsed: ParsedExport;
+  editor: Editor;
   sensor(item: BoundItem): SensorState;
   now: Date;
   /** The corpus screenshot, if one matched the profile. */
   screenshot: string | null;
 }
 
-/** The item at a scene path ("2.0" = first child of the third item). */
-export function itemAt(items: DisplayItem[], path: string): DisplayItem | undefined {
-  let list = items;
-  let found: DisplayItem | undefined;
-  for (const i of path.split(".").map(Number)) {
-    found = list[i];
-    if (!found) return undefined;
-    list = found.kind === "Group" ? found.DisplayItems : [];
-  }
-  return found;
-}
+/** Tree order of every path, for Shift range selection. */
+const flatPaths = (items: DisplayItem[], prefix = ""): Path[] =>
+  items.flatMap((item, i) => {
+    const path = prefix ? `${prefix}.${i}` : String(i);
+    return [path, ...(item.kind === "Group" ? flatPaths(item.DisplayItems, path) : [])];
+  });
 
-function Tree({ items, prefix, hidden, selected, onToggle, onSelect }: {
+function Tree({ items, prefix, editor, onSelect }: {
   items: DisplayItem[];
   prefix: string;
-  hidden: ReadonlySet<string>;
-  selected: string | null;
-  onToggle(path: string): void;
-  onSelect(path: string): void;
+  editor: Editor;
+  onSelect(path: Path, e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }): void;
 }) {
   return (
     <ul style={{ listStyle: "none", margin: 0, paddingLeft: prefix ? 16 : 0 }}>
@@ -44,16 +44,19 @@ function Tree({ items, prefix, hidden, selected, onToggle, onSelect }: {
         const path = prefix ? `${prefix}.${i}` : String(i);
         return (
           <li key={path}>
-            <label style={{ background: selected === path ? "#523" : undefined, opacity: item.Hidden ? 0.5 : 1 }}>
-              <input type="checkbox" checked={!hidden.has(path)} onChange={() => onToggle(path)} />{" "}
-              <span onClick={(e) => (e.preventDefault(), onSelect(path))} style={{ cursor: "pointer" }}>
+            <label style={{ background: editor.selection.includes(path) ? "#523" : undefined, opacity: item.Hidden ? 0.5 : 1 }}>
+              <input
+                type="checkbox"
+                title="Shown (InfoPanel's Hidden field)"
+                checked={!item.Hidden}
+                onChange={() => editor.set(path, "Hidden", !item.Hidden)}
+              />{" "}
+              <span onClick={(e) => (e.preventDefault(), onSelect(path, e))} style={{ cursor: "pointer" }}>
                 <code>{path}</code> {item.kind} {item.Name}
-                {item.Hidden && " (hidden in InfoPanel)"}
+                {item.IsLocked && " (locked)"}
               </span>
             </label>
-            {item.kind === "Group" && (
-              <Tree items={item.DisplayItems} prefix={path} hidden={hidden} selected={selected} onToggle={onToggle} onSelect={onSelect} />
-            )}
+            {item.kind === "Group" && <Tree items={item.DisplayItems} prefix={path} editor={editor} onSelect={onSelect} />}
           </li>
         );
       })}
@@ -61,45 +64,44 @@ function Tree({ items, prefix, hidden, selected, onToggle, onSelect }: {
   );
 }
 
-function Fields({ item, path }: { item: DisplayItem; path: string }) {
-  const rows = Object.entries(item).map(([k, v]): [string, string] => [
-    k,
-    Array.isArray(v) ? `${v.length} items` : k === "unknown" ? JSON.stringify(v) : String(v),
-  ]);
+function Toolbar({ editor }: { editor: Editor }) {
+  const n = editor.selection.length;
+  const one = n === 1 ? itemAt(editor.present, editor.selection[0]) : undefined;
   return (
-    <table>
-      <caption style={{ textAlign: "left" }}>
-        <code>{path}</code>
-      </caption>
-      <tbody>
-        {rows.map(([k, v]) => (
-          <tr key={k}>
-            <td>{k}</td>
-            <td>
-              <code>{v}</code>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <p>
+      <button disabled={!editor.canUndo} onClick={editor.undo} title="Ctrl+Z">Undo</button>{" "}
+      <button disabled={!editor.canRedo} onClick={editor.redo} title="Ctrl+Y">Redo</button>{" "}
+      · <button disabled={!n} onClick={editor.duplicate} title="Ctrl+D">Duplicate</button>{" "}
+      <button disabled={n < 2} onClick={editor.group} title="Ctrl+G">Group</button>{" "}
+      <button disabled={one?.kind !== "Group"} onClick={editor.ungroup} title="Ctrl+Shift+G">Ungroup</button>{" "}
+      <button disabled={!one} onClick={() => editor.reorder(-1)} title="Draw earlier">Up</button>{" "}
+      <button disabled={!one} onClick={() => editor.reorder(1)} title="Draw later">Down</button>{" "}
+      <button disabled={!n} onClick={editor.remove} title="Delete">Delete</button>{" "}
+      · {n ? `${n} selected` : "click an item to select; Shift or Ctrl adds; arrows nudge (Shift ×10)"}
+    </p>
   );
 }
 
-export function ComparePanel({ parsed, sensor, now, screenshot }: ComparePanelProps) {
+export function ComparePanel({ parsed, editor, sensor, now, screenshot }: ComparePanelProps) {
   const [zoom, setZoom] = useState(1);
   const [opacity, setOpacity] = useState(0.5);
   const [blend, setBlend] = useState<"normal" | "difference">("normal");
   const [upload, setUpload] = useState<string | null>(null);
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
-  const [selected, setSelected] = useState<string | null>(null);
+  const [anchor, setAnchor] = useState<Path | null>(null);
   const shot = upload ?? screenshot;
-  const item = selected ? itemAt(parsed.items, selected) : undefined;
-  const toggle = (path: string) =>
-    setHidden((h) => {
-      const next = new Set(h);
-      if (!next.delete(path)) next.add(path);
-      return next;
-    });
+  const single = editor.selection.length === 1 ? editor.selection[0] : null;
+  const item = single ? itemAt(editor.items, single) : undefined;
+  const fonts = [...new Set([...walkItems(editor.present)].flatMap(({ item: i }) => ("Font" in i ? [i.Font] : [])))].sort();
+
+  const selectInTree = (path: Path, e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => {
+    if (e.shiftKey && anchor) {
+      const all = flatPaths(editor.present);
+      const [a, b] = [all.indexOf(anchor), all.indexOf(path)].sort((x, y) => x - y);
+      if (a >= 0) return editor.select(all.slice(a, b + 1));
+    }
+    editor.pick(path, e.ctrlKey || e.metaKey);
+    setAnchor(path);
+  };
 
   return (
     <section>
@@ -130,30 +132,25 @@ export function ComparePanel({ parsed, sensor, now, screenshot }: ComparePanelPr
             const f = e.target.files?.[0];
             if (f) setUpload(URL.createObjectURL(f));
           }}
-        />{" "}
-        {hidden.size > 0 && <button onClick={() => setHidden(new Set())}>Show all</button>}
+        />
       </p>
+      <Toolbar editor={editor} />
       <div style={{ overflow: "auto", maxWidth: "100%", zoom }}>
         <ProfileView
           parsed={parsed}
+          items={editor.items}
           sensor={sensor}
           now={now}
-          hidden={hidden}
-          selected={selected}
-          onPick={setSelected}
-          overlay={
-            shot && opacity > 0 ? (
-              <img src={shot} alt="InfoPanel" style={{ display: "block", opacity, mixBlendMode: blend }} />
-            ) : null
-          }
+          overlay={shot && opacity > 0 ? <img src={shot} alt="InfoPanel" style={{ display: "block", opacity, mixBlendMode: blend }} /> : null}
+          controls={<EditLayer editor={editor} profileWidth={parsed.profile.Width} />}
         />
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
         <details open style={{ maxHeight: 480, overflow: "auto", minWidth: 380 }}>
           <summary>Items</summary>
-          <Tree items={parsed.items} prefix="" hidden={hidden} selected={selected} onToggle={toggle} onSelect={setSelected} />
+          <Tree items={editor.present} prefix="" editor={editor} onSelect={selectInTree} />
         </details>
-        {item && selected && <Fields item={item} path={selected} />}
+        {item && single && <Inspector item={item} path={single} fonts={fonts} onChange={(field, v) => editor.set(single, field, v)} />}
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from 
 import { walkItems } from "./parse.ts";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
+import { useEditor } from "./editor/useEditor.ts";
 import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
 import { SensorPanel } from "./SensorPanel.tsx";
 import type { BoundItem } from "./sensors.ts";
@@ -34,7 +35,9 @@ function corpusEntries(p: CorpusProfile): ExportEntry[] {
 }
 
 function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: string | null }) {
-  const { profile, items, assets, issues } = parsed;
+  const { profile, assets, issues } = parsed;
+  const editor = useEditor(parsed.items);
+  const items = editor.items;
   const [mode, setMode] = useState<SensorMode>("unbound");
   const [mock, setMock] = useState<ReadonlyMap<BoundItem, number>>(new Map());
   const live = useLiveCatalog(mode === "live");
@@ -51,7 +54,7 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
         {profile.FontScale.toFixed(2)}, {assets.size} assets
       </p>
       <p>Sensors: {mode} (change below)</p>
-      <ComparePanel parsed={parsed} sensor={sensor} now={now} screenshot={screenshot} />
+      <ComparePanel parsed={parsed} editor={editor} sensor={sensor} now={now} screenshot={screenshot} />
       <table>
         <tbody>
           {[...counts].sort().map(([k, n]) => (
