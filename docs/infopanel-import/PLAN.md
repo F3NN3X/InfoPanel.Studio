@@ -140,8 +140,8 @@ others). Each phase ends with the lab tests passing; `src/` stays untouched unti
 | L3 | Fork follow-ups to PR #173: structured tables, font resolve and file endpoints; the lab uses them |
 | L4 | Fonts end to end: faces from the endpoint, uploaded and pack fonts, missing-font report |
 | L5 | Native mode: item to panel widget conversion, rendered with the app's widget components, per-item toggles |
-| L6 | Profile asset management (scope to settle) |
-| L7 | Custom gauges (scope to settle) |
+| L6 | Profile asset management: browse and preview (thumbnails, size, type, which items use each); add, replace everywhere, remove; cleanup (unused, duplicate bytes, oversized) and optimising; fonts managed the same way (bundled, uploaded, missing, licences) |
+| L7 | Custom gauges: vector gauges drawn live as SVG; a gauge library to save and reuse gauges, fed by the image-sequence gauges in imports; editing imported gauges (recolour, retime, swap frames). Prior art: the user's gauge creator, `E:\GitHub\MyRepos\v0-themely-resource-creator` |
 | L8 | The import flow end to end: mode choice, import report, and the stored form the app will save |
 
 ### App phases (after the lab is complete)
