@@ -14,7 +14,8 @@ import type { SensorMap } from "@/modules/types";
 import { WidgetView } from "@/components/widgets/WidgetView";
 import { fraction } from "../gauges/vector.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
-import { gaugeFrame, shapeGeometry } from "../render/geometry.ts";
+import { gaugeFrame, graphParts, shapeGeometry } from "../render/geometry.ts";
+import { PathPaint } from "../render/Paint.tsx";
 import { tableColumns } from "../render/scene.ts";
 import { Table, Text, textCss, visibleText, type FontCss } from "../render/Text.tsx";
 import { tableOf } from "../sensor-source.ts";
@@ -22,7 +23,7 @@ import { dateText, sensorColor, sensorText } from "../sensor-text.ts";
 import { toReading, type DataApiValue } from "../sensors.ts";
 import type { DisplayItem } from "../schema.ts";
 import type { Catalog } from "../sensors.ts";
-import { convert, type Conversion, type ConvertContext, type Custom, type NativeItem, type TextSource } from "./convert.ts";
+import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "./convert.ts";
 
 /** The lab's mode flag on an item (not an InfoPanel field). */
 export const isNative = (item: DisplayItem) => (item as { native?: boolean }).native === true;
@@ -73,6 +74,8 @@ export function describeNative(n: NativeItem): string {
       return `shape widget with ${n.needs[0] ?? "this shape"} (studio prototype)`;
     case "text":
       return `${n.widget.kind} widget in InfoPanel's font and placement${n.custom.marquee ? ", scrolling" : ""} (studio prototype)`;
+    case "graph":
+      return `${n.widget.kind} widget drawn as InfoPanel's ${n.custom.graph.type === "HISTOGRAM" ? "histogram" : "line graph"} (studio prototype)`;
     default:
       return `${n.widget.kind} widget`;
   }
@@ -120,6 +123,21 @@ function Marquee({ speed, spacing, width, children }: { speed: number; spacing: 
 export interface NativeView {
   font: FontCss;
   now: Date;
+  /** A sensor key's recent values, oldest first (graphs). */
+  history(key: string): readonly number[];
+}
+
+/** InfoPanel's graph (render/geometry.ts graphParts) in the native box, from the key's history. */
+function NativeGraph({ graph, n, path, view }: { graph: GraphStyle; n: NativeItem; path: string; view: NativeView }) {
+  const [width, height] = [n.box.w ?? 0, n.box.h ?? 0];
+  const parts = graphParts({ ...graph, width, height, samples: n.widget.sensor ? view.history(n.widget.sensor) : [] });
+  return (
+    <svg width={width} height={height} style={{ display: "block", overflow: "hidden" }}>
+      {parts.map((p, i) => (
+        <PathPaint key={i} id={`native-${path}-${i}`} d={p.d} paint={p.paint} stroke={p.op === "stroke" ? p.width : undefined} space={{ width, height }} />
+      ))}
+    </svg>
+  );
 }
 
 /** The item's text as InfoPanel draws it, and its colour (a sensor's thresholds); a table draws its own. */
@@ -197,6 +215,8 @@ function CustomView({ custom, n, path, sensors, view }: { custom: Custom; n: Nat
     }
     case "text":
       return <NativeText custom={custom} n={n} sensors={sensors} view={view} />;
+    case "graph":
+      return <NativeGraph graph={custom.graph} n={n} path={path} view={view} />;
   }
 }
 

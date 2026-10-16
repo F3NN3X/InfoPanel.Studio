@@ -201,7 +201,9 @@ all its InfoPanel fields, so switching back is lossless.
   bar's gradient direction (InfoPanel runs it across), colour transparency of bars, AutoValue.
 - Stays InfoPanel, with the reason: glow, gradient shapes, threshold images, RTSP, images whose size is unknown
   (URL images at their natural size).
-- Graphs are still the app's sparkline (it adds a label row and an area fill).
+- Graphs keep the sparkline kind for the app and are drawn meanwhile with InfoPanel's own graph geometry
+  (`graphParts`: line or histogram, Step, Thickness, fill, frame, background, AutoValue) from the key's live
+  history; the sparkline would add a label row and an area fill.
 
 ## Assets (L6)
 

@@ -15,7 +15,7 @@ import type { Widget } from "@/lib/panel-model";
 import { vectorOf } from "../gauges/frames.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "../gauges/vector.ts";
 import { cssColor } from "../render/color.ts";
-import type { ShapeType } from "../render/geometry.ts";
+import type { GraphInput, ShapeType } from "../render/geometry.ts";
 import { imageSource, textStyle, type TextStyle } from "../render/scene.ts";
 import type { DisplayItem } from "../schema.ts";
 import { isBound, type BoundItem } from "../sensors.ts";
@@ -36,6 +36,8 @@ export type Custom =
   | { kind: "vector"; gauge: VectorGauge; min: number; max: number }
   /** An image-sequence gauge: the frame for the value. */
   | { kind: "frames"; urls: string[]; min: number; max: number }
+  /** A line or histogram graph from InfoPanel's own geometry (the sparkline adds a label row and an area fill). */
+  | { kind: "graph"; graph: GraphStyle }
   /** A shape the shape widget lacks, from InfoPanel's own geometry. */
   | { kind: "shape"; type: ShapeType; radius: number; fill: string | null; stroke: { color: string; width: number } | null }
   /**
@@ -54,6 +56,9 @@ export type Custom =
       ellipsis: boolean;
       marquee: { speed: number; spacing: number } | null;
     };
+
+/** A graph's look, as InfoPanel's PanelDraw takes it; the samples are the sensor's history, the size the box's. */
+export type GraphStyle = Omit<GraphInput, "width" | "height" | "samples">;
 
 /** The items native text draws. */
 export type TextSource = Extract<DisplayItem, { kind: "Text" | "Sensor" | "Clock" | "Calendar" | "TableSensor" }>;
@@ -253,13 +258,16 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
     }
 
     case "Graph": {
-      const lost = ["frame, background and fill colour"];
-      if (item.Type === "HISTOGRAM") lost.push("histogram bars (drawn as a line)");
-      if (!sensor) lost.push("no sensor yet: remap it");
+      const graph: GraphStyle = {
+        type: item.Type, min: item.MinValue, max: item.MaxValue, auto: item.AutoValue, thickness: item.Thickness, step: item.Step,
+        fill: item.Fill, fillColor: item.FillColor, color: item.Color,
+        frame: item.Frame, frameColor: item.FrameColor, background: item.Background, backgroundColor: item.BackgroundColor,
+      };
       return ok(
-        { kind: "sparkline", sensor, history: Math.max(2, Math.floor(item.Width / item.Step)), color: hexColor(item.Color) },
-        { x: item.X, y: item.Y, w: item.Width, h: item.Height },
-        lost,
+        { kind: "sparkline", sensor, history: Math.max(2, Math.floor(item.Width / Math.max(item.Step, 1))), color: hexColor(item.Color) },
+        { x: Math.floor(item.X), y: Math.floor(item.Y), w: item.Width, h: item.Height },
+        sensor ? [] : ["no sensor yet: remap it"],
+        { custom: { kind: "graph", graph }, needs: [`InfoPanel graph style (${item.Type === "HISTOGRAM" ? "histogram, " : ""}step, thickness, frame, background, fill)`] },
       );
     }
 

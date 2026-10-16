@@ -123,6 +123,25 @@ describe("convert", () => {
     });
   });
 
+  it("draws a graph with InfoPanel's own geometry, keeping its look for the sparkline-to-be", () => {
+    const n = widgetOf("Graph", {
+      Type: "HISTOGRAM", Width: 300, Height: 50, Step: 3, Thickness: 2, Fill: true, FillColor: "#FF112233", Color: "#FFFF0000",
+      Frame: true, FrameColor: "#FFFFFFFF", Background: false, MinValue: 0, MaxValue: 100, AutoValue: true, FlipX: true,
+    });
+    expect(n).toMatchObject({
+      widget: { kind: "sparkline", history: 100 },
+      box: { x: 100, y: 100, w: 300, h: 50 },
+      lost: [],
+      transform: { flipX: true },
+      needs: ["InfoPanel graph style (histogram, step, thickness, frame, background, fill)", "flipped panel items"],
+      custom: {
+        kind: "graph",
+        graph: { type: "HISTOGRAM", step: 3, thickness: 2, fill: true, fillColor: "#FF112233", color: "#FFFF0000", frame: true, background: false, min: 0, max: 100, auto: true },
+      },
+    });
+    expect(widgetOf("Graph", { Type: "LINE", Width: 100 }).needs[0]).toBe("InfoPanel graph style (step, thickness, frame, background, fill)");
+  });
+
   it("draws capsules, ovals and polygons from InfoPanel's geometry", () => {
     const n = widgetOf("Shape", { ShowGradient: false, Type: "Capsule", Width: 80, Height: 30, CornerRadius: 15, FillColor: "#FF223344", ShowFrame: true, FrameThickness: 2, FrameColor: "#FFFFFFFF" });
     expect(n).toMatchObject({ needs: ["capsule shape"], custom: { kind: "shape", type: "Capsule", radius: 15, fill: "#223344", stroke: { color: "#FFFFFF", width: 2 } } });
