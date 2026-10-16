@@ -95,6 +95,16 @@ function FileButton({ children, multiple, accept, onFiles }: { children: ReactNo
   );
 }
 
+/** A font's license URL comes from an untrusted file: link only http(s). */
+const webUrl = (u: string | undefined) => {
+  try {
+    const url = new URL(u ?? "");
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const IMAGE_ACCEPT = "image/*,video/mp4,video/webm,.ico";
 
 export function AssetPanel({ editor, fonts }: { editor: Editor; fonts: FontPlan }) {
@@ -330,10 +340,10 @@ function FontAssets({ fonts, onSelectFamily }: { fonts: FontPlan; onSelectFamily
               <td>{f.size ? kb(f.size) : ""}</td>
               <td title={f.license}>
                 {f.license ? (f.license.length > 40 ? `${f.license.slice(0, 40)}…` : f.license) : <span style={{ color: "#fc6" }}>none in the file</span>}
-                {f.licenseUrl && (
+                {webUrl(f.licenseUrl) && (
                   <>
                     {" "}
-                    <a href={f.licenseUrl} target="_blank" rel="noreferrer">
+                    <a href={webUrl(f.licenseUrl)} target="_blank" rel="noopener noreferrer">
                       link
                     </a>
                   </>
