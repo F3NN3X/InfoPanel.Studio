@@ -456,3 +456,16 @@ export function gaugeFrame(count: number, value: number | null, min: number, max
   const percent = ((value - min) / (max - min)) * 100;
   return clamp(toInt(roundHalfEven(percent / step)), 0, count - 1);
 }
+
+/**
+ * GaugeDisplayItem.EvaluateImageFrame's smoothing: the shown index moves toward
+ * the target at `speed` frames per second (0: at once). Between two frames
+ * InfoPanel draws the lower one and the upper one over it at the fraction.
+ */
+export function smoothIndex(current: number, target: number, speed: number, seconds: number, count: number): number {
+  if (!(speed > 0) || !(seconds > 0)) return target;
+  const maxStep = speed * seconds;
+  const diff = target - current;
+  const next = Math.abs(diff) <= maxStep ? target : current + Math.sign(diff) * maxStep;
+  return Math.min(Math.max(next, 0), count - 1);
+}

@@ -58,11 +58,22 @@ describe("convert", () => {
     expect(why("Shape")).toMatch(/gradient/); // ShowGradient defaults to true
     expect(why("Shape", { ShowGradient: false, Type: "Star" })).toMatch(/star shape/);
     expect(why("Gauge")).toMatch(/image-sequence/);
+    expect(why("Gauge", { Rotation: 0 })).toMatch(/vector gauge first/);
     expect(why("Donut")).toMatch(/donut/);
     expect(why("Group")).toMatch(/item by item/);
     expect(why("Image", { Type: "RTSP" })).toMatch(/RTSP/);
     expect(why("Bar", { Width: 20, Height: 150 })).toMatch(/vertical bar/);
     expect(why("Image", { FilePath: "bg.png", RelativePath: true })).toMatch(/natural size/);
+  });
+
+  it("makes a vector arc gauge the ring widget and a vector bar the bar widget", () => {
+    const gauge = (vector: object, fields: Record<string, number> = {}) => convert({ ...one("Gauge", { MaxValue: 3000, ...fields }), vector } as never, "g", ctx);
+    const ring = gauge({ shape: "arc", start: 0, sweep: 360, width: 120, height: 100 });
+    expect(ring.ok && ring.native).toMatchObject({ widget: { kind: "gauge", max: 3000, sensor: "libre.cpu_total", fontSize: 100 }, box: { w: 120, h: 100 } });
+    const dial = gauge({ shape: "arc", sweep: 270, needle: {} });
+    expect(dial.ok && dial.native.lost).toEqual(expect.arrayContaining(["needle", expect.stringMatching(/270° arc/)]));
+    expect(gauge({ shape: "bar", width: 300, height: 20 }, { Scale: 50 })).toMatchObject({ ok: true, native: { widget: { kind: "bar" }, box: { w: 150, h: 10 } } });
+    expect(gauge({ shape: "bar", orientation: "vertical" })).toMatchObject({ ok: false });
   });
 
   it("drops the alpha of .NET colours", () => {

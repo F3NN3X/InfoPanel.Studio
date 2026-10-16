@@ -7,6 +7,7 @@
  * InfoPanel fields, so switching back is lossless.
  */
 import type { Widget } from "@/lib/panel-model";
+import { vectorOf } from "../gauges/frames.ts";
 import { cssColor } from "../render/color.ts";
 import { imageSource } from "../render/scene.ts";
 import type { DisplayItem } from "../schema.ts";
@@ -211,8 +212,27 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
 
     case "Donut":
       return no("donut: no dashboard widget has its span, thickness and start angle");
-    case "Gauge":
-      return no("image-sequence gauge: a vector gauge is planned (L7)");
+    case "Gauge": {
+      const g = vectorOf(item);
+      if (!g) return no("image-sequence gauge: convert it to a vector gauge first (Gauges panel)");
+      const w = Math.floor(((item.Width || g.width) * item.Scale) / 100);
+      const h = Math.floor(((item.Height || g.height) * item.Scale) / 100);
+      const lost = [
+        ...(item.MinValue !== 0 ? [`minimum ${item.MinValue}`] : []),
+        ...(g.fill.mode !== "solid" ? [`${g.fill.mode} colours (the widget has one colour)`] : []),
+        ...(g.segments > 0 ? ["segments"] : []),
+        ...(g.needle ? ["needle"] : []),
+        ...(g.ticks ? ["ticks"] : []),
+        ...(!sensor ? ["no sensor yet: remap it"] : []),
+      ];
+      const color = g.fill.mode === "solid" ? g.fill.color : g.fill.stops[0]?.color;
+      if (g.shape === "arc") {
+        if (g.sweep < 360 || g.start !== 0) lost.push(`a ${Math.round(g.sweep)}° arc (the widget draws a full ring)`);
+        return ok({ kind: "gauge", sensor, max: item.MaxValue, color, fontSize: Math.min(w, h) }, { x: item.X, y: item.Y, w, h }, lost);
+      }
+      if (g.orientation === "vertical") return no("vertical bar: the dashboard bar fills left to right");
+      return ok({ kind: "bar", sensor, max: item.MaxValue, color }, { x: item.X, y: item.Y, w, h }, [...lost, "the widget adds a label and value row"]);
+    }
     case "SensorImage":
       return no("image chosen by thresholds: no dashboard widget does that");
   }

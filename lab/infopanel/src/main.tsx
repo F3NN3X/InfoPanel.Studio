@@ -4,6 +4,7 @@ import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from 
 import { walkItems } from "./parse.ts";
 import { tableFromExport, type AssetTable } from "./assets/assets.ts";
 import { AssetPanel } from "./assets/AssetPanel.tsx";
+import { GaugePanel } from "./gauges/GaugePanel.tsx";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
@@ -146,6 +147,7 @@ function Summary({ parsed, assets: initialAssets, screenshot }: Opened & { scree
           ))}
         </tbody>
       </table>
+      <GaugePanel editor={editor} profileName={profile.Name} />
       <AssetPanel editor={editor} fonts={fontPlan} />
       <FontPanel plan={fontPlan} />
       <SensorPanel

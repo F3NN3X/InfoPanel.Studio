@@ -6,6 +6,7 @@ import {
   donutParts,
   donutPercent,
   gaugeFrame,
+  smoothIndex,
   gradientAngle,
   gradientPaint,
   graphParts,
@@ -130,6 +131,11 @@ describe("gauge frame", () => {
     // 5 frames: step 25; 37.5 / 25 = 1.5 → 2; 62.5 / 25 = 2.5 → 2.
     expect(gaugeFrame(5, 37.5, 0, 100)).toBe(2);
     expect(gaugeFrame(5, 62.5, 0, 100)).toBe(2);
+    // AnimationSpeed: frames per second toward the target, clamped to the frames.
+    expect(smoothIndex(0, 10, 0, 0.5, 20)).toBe(10);
+    expect(smoothIndex(0, 10, 4, 0.5, 20)).toBe(2);
+    expect(smoothIndex(9.5, 10, 4, 0.5, 20)).toBe(10);
+    expect(smoothIndex(5, 0, 4, 0.25, 20)).toBe(4);
     expect(gaugeFrame(5, 87.5, 0, 100)).toBe(4);
   });
   it("clamps, and an empty range or a missing reading shows the first frame", () => {

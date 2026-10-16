@@ -30,5 +30,7 @@ lab/infopanel/corpus/
 
 # InfoPanel import lab: font packs and this machine's font index (npm run lab:fonts)
 lab/infopanel/fonts/
+# InfoPanel import lab: the gauge library (gauge-library-plugin.ts)
+lab/infopanel/gauges/
 lab/infopanel/tools/*/bin/
 lab/infopanel/tools/*/obj/

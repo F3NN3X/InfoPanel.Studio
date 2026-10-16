@@ -7,11 +7,13 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSP
 import type { ExportEntry, ParsedExport } from "../archive.ts";
 import { FontLoader, type ResolvedFont } from "../font-loader.ts";
 import { walkItems } from "../parse.ts";
-import type { DisplayItem } from "../schema.ts";
+import type { DisplayItem, GaugeItem } from "../schema.ts";
 import type { BoundItem } from "../sensors.ts";
+import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
 import { cssColor } from "./color.ts";
 import { PathPaint } from "./Paint.tsx";
-import { buildScene, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "./scene.ts";
+import { smoothIndex } from "./geometry.ts";
+import { buildScene, hasAnimatedGauge, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "./scene.ts";
 import { Table, Text, type FontCss } from "./Text.tsx";
 
 const fontKey = (s: TextStyle) => JSON.stringify([s.font.font, s.font.style, s.font.bold, s.font.italic]);
@@ -143,6 +145,15 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
         </div>
       );
     }
+    case "vector":
+      return (
+        <div
+          data-path={node.path}
+          style={{ position: "absolute", left: node.x, top: node.y, width: node.width, height: node.height, ...boxTransform(node.width, node.height, node.rotation, node.flipX) }}
+        >
+          <VectorGaugeSvg gauge={node.gauge} p={node.p} width={node.width} height={node.height} id={id} />
+        </div>
+      );
     case "chart":
       return (
         <svg
@@ -210,7 +221,17 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
   const image = useImages(assets ?? parsed.assets);
   const [start] = useState(() => performance.now());
   const [elapsed, setElapsed] = useState(0);
-  const animated = useMemo(() => hasAnimatedGradient(items), [items]);
+  const animated = useMemo(() => hasAnimatedGradient(items) || hasAnimatedGauge(items), [items]);
+  // Each animating gauge's shown index and when it was last moved, across frames.
+  const gauges = useRef(new Map<string, { index: number; at: number }>());
+  const gaugeIndex = (path: string, target: number, g: GaugeItem) => {
+    const now = performance.now();
+    const last = gauges.current.get(path);
+    // First evaluation: InfoPanel uses a nominal 1/60 s so smoothing starts at once.
+    const index = smoothIndex(last?.index ?? 0, target, g.AnimationSpeed, last ? (now - last.at) / 1000 : 1 / 60, g.Images.length);
+    gauges.current.set(path, { index, at: now });
+    return index;
+  };
   useEffect(() => {
     if (!animated) return;
     let frame = requestAnimationFrame(function tick() {
@@ -244,7 +265,7 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
   });
 
   const { profile } = parsed;
-  const nodes = buildScene({ profile, items, sensor, image, now, elapsedMs: elapsed, hidden });
+  const nodes = buildScene({ profile, items, sensor, image, now, elapsedMs: elapsed, hidden, gaugeIndex });
   const canvas = { width: profile.Width, height: profile.Height };
   return (
     <div
@@ -261,7 +282,13 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
       }}
     >
       {merge(
-        nodes.map((n) => [n.path, <Node key={n.path} node={n} id={`${uid}-${n.path}`} font={font} canvas={canvas} />] as const),
+        nodes.map((n, i) => {
+          // A path can draw several nodes (a gauge crossfading between two frames).
+          let k = 0;
+          while (i - k > 0 && nodes[i - k - 1].path === n.path) k++;
+          const part = k ? `-${k}` : "";
+          return [n.path, <Node key={n.path + part} node={n} id={`${uid}-${n.path}${part}`} font={font} canvas={canvas} />] as const;
+        }),
         native,
         order,
       )}

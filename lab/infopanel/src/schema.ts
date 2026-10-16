@@ -294,3 +294,10 @@ export type DisplayItem =
   | GaugeItem
   | GroupItem;
 export type Profile = Infer<typeof PROFILE> & ItemExtras;
+
+/** A new item of `kind` with InfoPanel's defaults, as the constructor makes it. */
+export function defaultItem<K extends ItemKind>(kind: K): Extract<DisplayItem, { kind: K }> {
+  const fields = Object.fromEntries(Object.entries(SCHEMAS[kind] as Schema).map(([k, s]) => [k, s.default]));
+  const lists = kind === "Gauge" ? { Images: [] } : kind === "Group" ? { DisplayItems: [] } : {};
+  return { kind, ...fields, ...lists, unknown: {} } as unknown as Extract<DisplayItem, { kind: K }>;
+}

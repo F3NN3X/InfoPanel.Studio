@@ -18,6 +18,7 @@ function scene(body: string, opts: Partial<Omit<SceneInput, "items" | "profile">
     image: opts.image ?? (() => ({ url: "blob:x", width: 40, height: 30 })),
     now: opts.now ?? new Date(2026, 9, 16, 15, 4, 5),
     elapsedMs: opts.elapsedMs ?? 0,
+    gaugeIndex: opts.gaugeIndex,
   });
 }
 
@@ -93,6 +94,31 @@ describe("buildScene", () => {
     const [g] = scene(item("Gauge", `<Scale>50</Scale><MaxValue>100</MaxValue><Images>${frames}</Images>`), { image, state: { reading: reading(80), history: [] } });
     expect(seen).toEqual([{ kind: "asset", name: "f2.png" }]);
     expect(g).toMatchObject({ kind: "image", width: 50, height: 25 });
+  });
+
+  it("draws a vector gauge live at the value instead of its frames, at its spec size × Scale", () => {
+    const items = parse(item("Gauge", "<MinValue>0</MinValue><MaxValue>200</MaxValue><Scale>50</Scale><X>3</X>"));
+    const g = { ...items[0], vector: { shape: "bar", width: 100, height: 20 } };
+    const [node] = buildScene({
+      profile: parseProfileXml("<Profile/>").profile,
+      items: [g],
+      sensor: () => ({ reading: reading(50), history: [] }),
+      image: () => null,
+      now: new Date(),
+      elapsedMs: 0,
+    });
+    expect(node).toMatchObject({ kind: "vector", x: 3, width: 50, height: 10, p: 0.25, gauge: { shape: "bar", width: 100 } });
+  });
+
+  it("crossfades to the next gauge frame while the shown index lies between frames", () => {
+    const frames = ["f0", "f1", "f2"].map((f) => `<ImageDisplayItem><FilePath>${f}.png</FilePath><RelativePath>true</RelativePath></ImageDisplayItem>`).join("");
+    const image = (s: ImageSource) => ({ url: s.kind === "asset" ? s.name : "", width: 10, height: 10 });
+    const nodes = scene(item("Gauge", `<AnimationSpeed>5</AnimationSpeed><Images>${frames}</Images>`), {
+      image,
+      state: { reading: reading(100), history: [] },
+      gaugeIndex: (_path, target) => (expect(target).toBe(2), 0.25),
+    });
+    expect(nodes.map((n) => n.kind === "image" && [n.url, n.opacity])).toEqual([["f0.png", 1], ["f1.png", 0.25]]);
   });
 
   it("drops a graph without samples and keeps a bar", () => {

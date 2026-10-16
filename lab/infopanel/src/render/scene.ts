@@ -6,6 +6,8 @@
  * Positions are whole pixels: InfoPanel floors X and Y (scale 1).
  */
 import type { FontRequest } from "../font-loader.ts";
+import { vectorOf } from "../gauges/frames.ts";
+import { fraction, type VectorGauge } from "../gauges/vector.ts";
 import type { DisplayItem, GaugeItem, ImageItem, Profile } from "../schema.ts";
 import { dateText, sensorColor, sensorText, type SensorReading } from "../sensor-text.ts";
 import { isBound, type BoundItem } from "../sensors.ts";
@@ -55,6 +57,11 @@ export interface SceneInput {
   elapsedMs: number;
   /** Item paths the lab hides (with their children), on top of InfoPanel's own Hidden. */
   hidden?: ReadonlySet<string>;
+  /**
+   * The gauge's shown frame index, which may lie between frames while it animates
+   * (AnimationSpeed); by default the target frame.
+   */
+  gaugeIndex?(path: string, target: number, item: GaugeItem): number;
 }
 
 /** Where an image item's file comes from. */
@@ -106,6 +113,19 @@ export type DrawNode =
       header: boolean;
       /** Columns in TableFormat order, with their x offset and width. */
       columns: { title: string; cells: string[]; dx: number; width: number }[];
+    })
+  | (Base & {
+      /** A vector gauge (L7), drawn live at the value. */
+      kind: "vector";
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rotation: number;
+      flipX: boolean;
+      gauge: VectorGauge;
+      /** 0..1 of the range. */
+      p: number;
     })
   | (Base & {
       kind: "image";
@@ -252,17 +272,33 @@ export function buildScene(input: SceneInput): DrawNode[] {
       case "Gauge": {
         const g = item as GaugeItem;
         const r = state.reading;
-        const frame = gaugeFrame(g.Images.length, r ? r.now : null, g.MinValue, g.MaxValue);
-        const image = g.Images[frame];
+        const vector = vectorOf(g);
+        if (vector) {
+          const width = Math.floor(((g.Width || vector.width) * g.Scale) / 100);
+          const height = Math.floor(((g.Height || vector.height) * g.Scale) / 100);
+          if (width > 0 && height > 0) {
+            nodes.push({
+              kind: "vector", path, item, x, y, width, height, rotation: g.Rotation, flipX: g.FlipX,
+              gauge: vector, p: fraction(r ? r.now : null, g.MinValue, g.MaxValue),
+            });
+          }
+          return;
+        }
+        const target = gaugeFrame(g.Images.length, r ? r.now : null, g.MinValue, g.MaxValue);
+        const index = g.Images.length > 1 && r && input.gaugeIndex ? input.gaugeIndex(path, target, g) : target;
+        const [lower, upper] = [Math.floor(index), Math.ceil(index)];
+        const image = g.Images[lower];
         if (!image) return;
         const info = input.image(imageSource(image));
         if (!info) return;
         const w = Math.floor(((g.Width || info.width) * g.Scale) / 100);
         const h = Math.floor(((g.Height || info.height) * g.Scale) / 100);
-        nodes.push({
-          kind: "image", path, item, x, y, width: w, height: h, rotation: g.Rotation, flipX: g.FlipX,
-          url: info.url, opacity: 1, layer: null,
-        });
+        const node = { kind: "image", path, item, x, y, width: w, height: h, rotation: g.Rotation, flipX: g.FlipX, layer: null } as const;
+        nodes.push({ ...node, url: info.url, opacity: 1 });
+        // The next frame over it, at the fraction (InfoPanel's crossfade while animating).
+        const next = upper !== lower ? g.Images[upper] : undefined;
+        const nextInfo = next ? input.image(imageSource(next)) : null;
+        if (nextInfo && nextInfo.url !== info.url) nodes.push({ ...node, url: nextInfo.url, opacity: index - lower });
         return;
       }
 
@@ -323,4 +359,9 @@ export function hasAnimatedGradient(items: DisplayItem[]): boolean {
   return items.some((i) =>
     i.kind === "Group" ? hasAnimatedGradient(i.DisplayItems) : i.kind === "Shape" && i.ShowGradient && i.GradientAnimationSpeed !== 0,
   );
+}
+
+/** Gauges that move between frames over time (AnimationSpeed). */
+export function hasAnimatedGauge(items: DisplayItem[]): boolean {
+  return items.some((i) => (i.kind === "Group" ? hasAnimatedGauge(i.DisplayItems) : i.kind === "Gauge" && i.AnimationSpeed > 0));
 }

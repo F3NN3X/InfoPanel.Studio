@@ -115,7 +115,9 @@ show plugin values; compare in Live, not Unbound. Notes:
   with Ellipsis trims characters ("Moderate R..."); missing glyphs fall back to Segoe UI.
 - The view is nudged onto whole device pixels; at a fractional offset half-pixel strokes blur and overlapping
   frames stop covering each other.
-- Not modelled: the gradual contraction of AutoValue ranges, bar/donut/gauge smoothing between frames, video and
+- Gauges follow AnimationSpeed as InfoPanel does: the shown frame moves toward the value at that many frames a
+  second, the next frame crossfaded over it (L7).
+- Not modelled: the gradual contraction of AutoValue ranges, bar/donut smoothing between frames, video and
   RTSP images (drawn as the placeholder), the FPS overlay. Glow blend modes CSS lacks draw normally.
 - Tables use the Data API's structured `table` (column names, whole cells as InfoPanel draws them) when InfoPanel
   runs the fork's `feature/data-api-tables-fonts` build (L3); otherwise the flattened text, without column names,
@@ -179,7 +181,8 @@ all its InfoPanel fields, so switching back is lossless.
   Image/HttpImage → image, plain rectangles and circles → shape. The inspector lists what each conversion loses
   (font, thresholds, frames, formats, ...).
 - Stays InfoPanel, with the reason: rotation, flip, marquee, glow, gradients, other shapes, vertical bars,
-  natural-size images, donuts, image-sequence gauges (vector gauges are L7), threshold images, RTSP.
+  natural-size images, donuts, image-sequence gauges, threshold images, RTSP. A vector gauge (L7) becomes the
+  app's ring (arc) or bar widget, listing what the widget lacks.
 - The app's table widget reads the flattened text, so native tables do not get L3's structured tables yet (app
   phase).
 
@@ -206,3 +209,26 @@ one undo step. Nothing is written back yet.
   `npm run lab:fonts` for pack sizes and licenses.
 - Native image widgets load the lab server's URL of the export's own file; a file edited or added in the lab has
   none, so those items stay InfoPanel (the app phase serves them from the asset store).
+
+## Gauges (L7)
+
+The **Gauges** panel (`src/gauges/`) lists the profile's gauges; selecting one (there or on the canvas) opens it
+with a preview at any value (slider or **play**), drawn as InfoPanel would: the frame for the value, moving at
+AnimationSpeed with a crossfade. Every change is one undo step.
+
+- **Retime**: AnimationSpeed (frames per second; 0 jumps at once). **Frames**: move, duplicate, remove or replace
+  one frame, reverse all, resample to a frame count (picked evenly, first and last kept). **Recolour**: hue,
+  saturation and brightness, previewed live, applied to every frame as new PNG files (animated frames are refused).
+  Replaced frames stay in the assets until the cleanup removes them.
+- **Vector gauges** (`vector.ts`): arc or bar, segments, solid / gradient / zone colours (placed over the whole
+  range, not the filled part), track, needle or marker, ticks, reverse. Ideas from the user's gauge creator
+  (`v0-themely-resource-creator`, Canvas 2D, 101 PNG frames); rewritten as pure SVG geometry. A new one starts from
+  a starter; **Convert to vector** puts a spec on an imported gauge. The lab canvas draws the spec live at the
+  value; **Bake** renders it into N PNG frames (frame i at i / (N − 1) of the range, the one InfoPanel picks), so
+  the export works in InfoPanel. The spec lives in the lab field `vector`; a spec changed since baking shows
+  "not baked". **Back to frames only** drops the spec and keeps the frames.
+- **Library** (`library.ts`, `gauge-library-plugin.ts`): saved by the lab dev server in `gauges/` (gitignored):
+  `library.json` and each frame once by SHA-256 (the server checks the hash, and every entry on write). **Save to
+  the library** / **Save all** skip gauges already saved; an entry is used for the selected gauge (its sensor and
+  range stay) or inserted as a new gauge with the saved range and AnimationSpeed. Deleting an entry removes the
+  frames nothing else uses.
