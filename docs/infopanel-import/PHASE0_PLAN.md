@@ -54,7 +54,8 @@ Each phase ends with its own tests passing, plus `npm test` and `tsc -b`.
   gitignored because some exports are 18 MB.
 
 ### P0.2 Parser
-- Write `xml.ts`, `zip.ts` and `types.ts` fresh from `research-infopanel-format.md`, using the browser's DOMParser.
+- **Done.** Written fresh from the C# models (`schema.ts`, `parse.ts`, `archive.ts`). XML uses a small reader
+  (`xml.ts`) instead of DOMParser, which neither Node nor the Vitest setup has.
   `fffb966` is a reference for the C# quirks, not a source to copy.
 - Input is a `.infopanel` file or an extracted folder. Entry names are matched case-insensitively, and both `assets/`
   and `assets\` are accepted.
