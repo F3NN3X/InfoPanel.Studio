@@ -190,10 +190,18 @@ all its InfoPanel fields, so switching back is lossless.
   capsules, ovals and polygons by a shape widget from InfoPanel's own geometry; image-sequence gauges show the
   frame for the value (no AnimationSpeed easing); images at their natural size take the file's size. A vector
   gauge (L7) is the custom gauge widget too.
+- **Text and bars as InfoPanel draws them** (L14). Text, Sensor, Clock, Calendar and TableSensor items keep their
+  widget kind for the app, and are drawn meanwhile by a text prototype: InfoPanel's font (the lab's font plan),
+  size × FontScale, colour with alpha, bold / italic / underline / strikeout, alignment, Width and wrapping, at
+  X / Y, ending at X when right-aligned without a Width; the text is InfoPanel's own (a sensor's name, unit,
+  precision, modifiers, value type and threshold colours; a clock's format; Uppercase only on clocks and dates,
+  as InfoPanel does), and tables keep their column widths and row step. Every bar, horizontal or vertical, is the
+  bar generator's bar (`barSpec`): the frame as a 1 px border that insets it, background, corner radius on both,
+  and a gradient from Color (held to the middle) to GradientColor over the filled part. Still lost: a vertical
+  bar's gradient direction (InfoPanel runs it across), colour transparency of bars, AutoValue.
 - Stays InfoPanel, with the reason: glow, gradient shapes, threshold images, RTSP, images whose size is unknown
   (URL images at their natural size).
-- The app's table widget reads the flattened text, so native tables do not get L3's structured tables yet (app
-  phase).
+- Graphs are still the app's sparkline (it adds a label row and an area fill).
 
 ## Assets (L6)
 

@@ -96,6 +96,18 @@ function TemplateRows({ gauge: g, onCommit }: { gauge: VectorGauge; onCommit(g: 
   );
 }
 
+/** Back to `rounded`: the corner radius removed. */
+function withoutRadius(g: VectorGauge): VectorGauge {
+  const { radius: _, ...rest } = g;
+  return rest;
+}
+
+/** A gradient over the filled part, or over the whole range. */
+function withOver(g: VectorGauge, over: boolean): VectorGauge {
+  const { over: _, ...fill } = g.fill;
+  return { ...g, fill: over ? { ...fill, over: "fill" } : fill };
+}
+
 const kb = (n: number) => `${Math.max(1, Math.round(n / 1024))} KB`;
 
 const NEEDLE_STYLES: { value: NeedleStyle; label: string }[] = [
@@ -127,7 +139,14 @@ function ShapeRows({ g, onPreview, onCommit }: { g: VectorGauge; onPreview(g: Ve
       {(g.shape === "arc" || g.shape === "bar") && (
         <>
           <Row label="Thickness">
-            {num("thickness", 1, 1024)} px <Toggle on={g.rounded} label="rounded" onChange={() => onCommit(set({ rounded: !g.rounded }))} />
+            {num("thickness", 1, 1024)} px <Toggle on={g.rounded} label="rounded" onChange={() => onCommit(withoutRadius(set({ rounded: !g.rounded })))} />
+            {g.shape === "bar" && (
+              <>
+                {" "}
+                <Toggle on={g.radius !== undefined} label="corner radius" onChange={() => onCommit(g.radius !== undefined ? withoutRadius(g) : set({ radius: 4, rounded: false }))} />{" "}
+                {g.radius !== undefined && <Num {...bind(g.radius, (v) => set({ radius: v }))} min={0} max={1024} />}
+              </>
+            )}
           </Row>
           <Row label="Segments">
             {num("segments", 0, 200)} gap {num("gap", 0, 100)} {g.shape === "arc" ? "°" : "px"} (0 segments: continuous)
@@ -170,6 +189,11 @@ function ShapeRows({ g, onPreview, onCommit }: { g: VectorGauge; onPreview(g: Ve
           </>
         ) : (
           <span>
+            {g.fill.mode === "gradient" && (
+              <>
+                <Toggle on={g.fill.over === "fill"} label="over the filled part" onChange={() => onCommit(withOver(g, g.fill.over !== "fill"))} />{" "}
+              </>
+            )}
             {g.fill.stops.map((s, i) => (
               <span key={i} style={{ whiteSpace: "nowrap", marginRight: 8 }}>
                 {g.fill.mode === "zones" ? "from " : "at "}

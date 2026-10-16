@@ -16,7 +16,7 @@ import { vectorOf } from "../gauges/frames.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "../gauges/vector.ts";
 import { cssColor } from "../render/color.ts";
 import type { ShapeType } from "../render/geometry.ts";
-import { imageSource } from "../render/scene.ts";
+import { imageSource, textStyle, type TextStyle } from "../render/scene.ts";
 import type { DisplayItem } from "../schema.ts";
 import { isBound, type BoundItem } from "../sensors.ts";
 
@@ -26,6 +26,8 @@ export interface NativeBox {
   y: number;
   w?: number;
   h?: number;
+  /** "end": `x` is the right edge (InfoPanel's right-aligned text with no Width ends at X). */
+  anchor?: "end";
 }
 
 /** A capability the app's widgets lack, drawn by a studio prototype. */
@@ -36,8 +38,25 @@ export type Custom =
   | { kind: "frames"; urls: string[]; min: number; max: number }
   /** A shape the shape widget lacks, from InfoPanel's own geometry. */
   | { kind: "shape"; type: ShapeType; radius: number; fill: string | null; stroke: { color: string; width: number } | null }
-  /** The widget, scrolling left when wider than the box (InfoPanel's marquee). */
-  | { kind: "marquee"; speed: number; spacing: number };
+  /**
+   * Text in InfoPanel's own font, size, colour and placement, with InfoPanel's text for the item (a sensor's
+   * value as InfoPanel formats it, a clock's format), scrolling when it has a marquee: the app's text widgets
+   * draw in the theme font and their own format.
+   */
+  | {
+      kind: "text";
+      item: TextSource;
+      style: TextStyle;
+      /** InfoPanel's Width: 0 sizes the box to the text. */
+      width: number;
+      align: "left" | "center" | "right";
+      oneLine: boolean;
+      ellipsis: boolean;
+      marquee: { speed: number; spacing: number } | null;
+    };
+
+/** The items native text draws. */
+export type TextSource = Extract<DisplayItem, { kind: "Text" | "Sensor" | "Clock" | "Calendar" | "TableSensor" }>;
 
 export interface NativeItem {
   widget: Widget;
@@ -84,31 +103,67 @@ function transformOf(item: DisplayItem): { transform?: NativeItem["transform"]; 
   return { transform: { rotate, flipX }, needs: [...(rotate ? ["rotated panel items"] : []), ...(flipX ? ["flipped panel items"] : [])] };
 }
 
-/** What a text item's widget loses: the dashboard widgets draw in the theme's font. */
-function textLosses(item: Extract<DisplayItem, { Font: string }>): string[] {
-  const lost = [`font ${item.Font || "default"}${item.Bold ? " bold" : ""}${item.Italic ? " italic" : ""} (widgets use the theme font)`];
-  if (item.Underline || item.Strikeout) lost.push("underline / strikeout");
-  if (translucent(item.Color)) lost.push("colour transparency");
-  return lost;
-}
-
-/** InfoPanel scrolls text only in a box with a width. */
-const marqueeOf = (item: Extract<DisplayItem, { Font: string }>): Custom | undefined =>
-  "Marquee" in item && item.Marquee && item.Width > 0 ? { kind: "marquee", speed: Math.max(item.MarqueeSpeed, 1), spacing: item.MarqueeSpacing } : undefined;
-
-const align = (item: Extract<DisplayItem, { Font: string }>): Widget["align"] =>
+const align = (item: Extract<DisplayItem, { Font: string }>): NonNullable<Widget["align"]> =>
   item.CenterAlign ? "center" : item.RightAlign ? "right" : "left";
 
-/** InfoPanel text boxes: 0 means "as wide/tall as the text". */
+/**
+ * InfoPanel text boxes, at whole pixels as it draws them: Width 0 is "as wide as the text", starting at X,
+ * or ending at X when right-aligned; Height is only the rotation pivot (and a marquee's clip).
+ */
 const textBox = (item: Extract<DisplayItem, { Font: string }>): NativeBox => ({
-  x: item.X,
-  y: item.Y,
+  x: Math.floor(item.X),
+  y: Math.floor(item.Y),
   ...(item.Width > 0 ? { w: item.Width } : {}),
   ...(item.Height > 0 ? { h: item.Height } : {}),
+  ...(item.Width <= 0 && item.RightAlign && !item.CenterAlign ? { anchor: "end" as const } : {}),
 });
+
+/** The studio's text prototype for a text item: its own font, size, colour and placement. */
+const textCustom = (item: TextSource, fontScale: number): Extract<Custom, { kind: "text" }> => ({
+  kind: "text",
+  item,
+  style: textStyle(item, fontScale),
+  width: item.Width,
+  align: align(item),
+  oneLine: item.Wrap,
+  ellipsis: item.Ellipsis,
+  // InfoPanel scrolls text only in a box with a width.
+  marquee: item.Marquee && item.Width > 0 ? { speed: Math.max(item.MarqueeSpeed, 1), spacing: item.MarqueeSpacing } : null,
+});
+
+/** What the app's text widgets would need to draw a text item as InfoPanel does. */
+const textNeeds = (item: TextSource, format?: string) => [
+  "text font and style",
+  ...(format ? [format] : []),
+  ...(item.Marquee && item.Width > 0 ? ["scrolling text"] : []),
+];
 
 /** A spec the custom gauge widget draws for a chart InfoPanel draws itself. */
 const spec = (patch: Partial<VectorGauge>): VectorGauge => ({ ...DEFAULT_GAUGE, rounded: false, needle: null, ticks: null, ...patch });
+
+/**
+ * InfoPanel's bar (PanelDraw, render/geometry.ts barParts) as a bar of the bar generator: taller than wide
+ * fills bottom up; the frame is a 1 px border that insets the bar by a pixel; background and fill share the
+ * corner radius; a gradient runs from Color (held to the middle) to GradientColor over the filled part.
+ */
+export function barSpec(item: Extract<DisplayItem, { kind: "Bar" }>): VectorGauge {
+  const vertical = item.Height > item.Width;
+  const frame = item.Frame ? 1 : 0;
+  const color = hexColor(item.Color) ?? "#FFFFFF";
+  return spec({
+    shape: "bar",
+    orientation: vertical ? "vertical" : "horizontal",
+    width: Math.max(4, item.Width),
+    height: Math.max(4, item.Height),
+    thickness: Math.max(1, (vertical ? item.Width : item.Height) - 2 * frame),
+    radius: Math.max(0, item.CornerRadius - frame),
+    track: item.Background ? (hexColor(item.BackgroundColor) ?? null) : null,
+    fill: item.Gradient
+      ? { mode: "gradient", color, over: "fill", stops: [{ at: 0, color }, { at: 50, color }, { at: 100, color: hexColor(item.GradientColor) ?? color }] }
+      : { ...DEFAULT_GAUGE.fill, mode: "solid", color },
+    ...(item.Frame ? { background: { color: null, border: { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: 1 }, radius: item.CornerRadius } } : {}),
+  });
+}
 
 export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Conversion {
   if (item.kind === "Group") return no("a group converts item by item");
@@ -128,31 +183,17 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       needs: [...(extra.needs ?? []), ...turned.needs],
     },
   });
-  const scrolling = (custom: Custom | undefined) => (custom ? { custom, needs: ["scrolling text"] } : {});
-
+  // Text items: the app widget they become, drawn meanwhile by the text prototype in InfoPanel's font and place.
   switch (item.kind) {
     case "Text":
       return ok(
-        {
-          kind: "text",
-          text: item.Uppercase ? item.Name.toUpperCase() : item.Name,
-          fontSize: Math.round(item.FontSize * ctx.fontScale),
-          color: hexColor(item.Color),
-          align: align(item),
-        },
+        { kind: "text", text: item.Name, fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item) },
         textBox(item),
-        textLosses(item),
-        scrolling(marqueeOf(item)),
+        [],
+        { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item) },
       );
 
     case "Sensor": {
-      const lost = textLosses(item);
-      if (item.Threshold1 > 0 || item.Threshold2 > 0) lost.push("threshold colours");
-      if (item.AdditionModifier !== 0) lost.push(`adding ${item.AdditionModifier}`);
-      if (!item.ShowUnit) lost.push("hidden unit (the widget shows it)");
-      if (item.ValueType !== "NOW") lost.push(`${item.ValueType} value (the widget shows the current one)`);
-      if (item.ShowName) lost.push("the name before the value (shown as the label)");
-      if (!sensor) lost.push("no sensor yet: remap it");
       const scale = item.DivisionToggle ? 1 / (item.MultiplicationModifier || 1) : item.MultiplicationModifier;
       return ok(
         {
@@ -167,61 +208,48 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
           align: align(item),
         },
         textBox(item),
-        lost,
-        scrolling(marqueeOf(item)),
+        sensor ? [] : ["no sensor yet: remap it"],
+        { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item, "InfoPanel value format (name, unit, precision, thresholds)") },
       );
     }
 
     case "Clock":
     case "Calendar":
       return ok(
-        {
-          kind: "clock",
-          clock: item.kind === "Clock" ? "time" : "date",
-          fontSize: Math.round(item.FontSize * ctx.fontScale),
-          color: hexColor(item.Color),
-          align: align(item),
-        },
+        { kind: "clock", clock: item.kind === "Clock" ? "time" : "date", fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item) },
         textBox(item),
-        [...textLosses(item), `format ${item.Format} (the widget follows General settings)`],
-        scrolling(marqueeOf(item)),
+        [],
+        { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item, "date and time format") },
       );
 
     case "TableSensor": {
       const columns = item.TableFormat.split("|").filter((p) => /^\d+:\d+$/.test(p)).length;
+      // Drawn meanwhile as InfoPanel lays it out: its columns at their widths, rows at the font's line step.
       return ok(
         { kind: "table", sensor, rows: item.MaxRows, columns, fontSize: Math.round(item.FontSize * ctx.fontScale), align: align(item) },
-        textBox(item),
-        [...textLosses(item), "column widths", ...(item.ShowHeader ? ["the plugin's column headers"] : [])],
+        { x: Math.floor(item.X), y: Math.floor(item.Y) },
+        sensor ? [] : ["no sensor yet: remap it"],
+        { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item, "InfoPanel table layout (column widths, headers)") },
       );
     }
 
     case "Bar": {
-      const box = { x: item.X, y: item.Y, w: item.Width, h: item.Height };
+      // The bar generator's bar (the custom gauge widget): the app's bar widget adds a label and value row and
+      // has no frame, background, corner radius, gradient or vertical bar.
+      const box = { x: Math.floor(item.X), y: Math.floor(item.Y), w: item.Width, h: item.Height };
+      const gauge = barSpec(item);
+      const vertical = gauge.orientation === "vertical";
       const lost: string[] = [];
-      if (item.MinValue !== 0 && item.Height <= item.Width) lost.push(`minimum ${item.MinValue}`);
       if (item.AutoValue) lost.push("automatic range");
-      if (!sensor) lost.push("no sensor yet: remap it");
-      if (item.Height > item.Width) {
-        // The dashboard bar fills left to right: a vertical one is drawn as the custom gauge widget's bar.
-        const color = hexColor(item.Color) ?? "#FFFFFF";
-        const gauge = spec({
-          shape: "bar", orientation: "vertical", width: item.Width, height: item.Height, thickness: item.Width,
-          track: item.Background ? (hexColor(item.BackgroundColor) ?? null) : null,
-          fill: item.Gradient
-            ? { mode: "gradient", color, stops: [{ at: 0, color }, { at: 100, color: hexColor(item.GradientColor) ?? color }] }
-            : { ...DEFAULT_GAUGE.fill, mode: "solid", color },
-          ...(item.Frame ? { background: { color: null, border: { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: 1 }, radius: item.CornerRadius } } : {}),
-        });
-        if (item.CornerRadius > 0) lost.push(`corner radius ${item.CornerRadius} of the fill`);
-        return ok({ kind: "bar", sensor, max: item.MaxValue, color }, box, lost, {
-          custom: { kind: "vector", gauge, min: item.MinValue, max: item.MaxValue },
-          needs: ["vertical bar"],
-        });
+      if ([item.Color, ...(item.Gradient ? [item.GradientColor] : []), ...(item.Background ? [item.BackgroundColor] : []), ...(item.Frame ? [item.FrameColor] : [])].some(translucent)) {
+        lost.push("colour transparency");
       }
-      lost.unshift("frame and background", "the widget adds a label and value row");
-      if (item.Gradient) lost.push("gradient");
-      return ok({ kind: "bar", sensor, max: item.MaxValue, color: hexColor(item.Color) }, box, lost);
+      if (vertical && item.Gradient) lost.push("gradient direction (InfoPanel runs a vertical bar's gradient across it)");
+      if (!sensor) lost.push("no sensor yet: remap it");
+      return ok({ kind: "bar", sensor, max: item.MaxValue, color: hexColor(item.Color) }, box, lost, {
+        custom: { kind: "vector", gauge, min: item.MinValue, max: item.MaxValue },
+        needs: ["custom gauge widget"],
+      });
     }
 
     case "Graph": {

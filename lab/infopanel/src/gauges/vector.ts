@@ -200,6 +200,8 @@ export interface VectorGauge {
   /** Arc stroke or bar thickness, px. */
   thickness: number;
   rounded: boolean;
+  /** Bar: corner radius in px, instead of `rounded` (InfoPanel's CornerRadius). */
+  radius?: number;
   /** 0: a continuous fill; else that many segments with `gap` between (degrees on an arc, px on a bar). */
   segments: number;
   gap: number;
@@ -207,7 +209,8 @@ export interface VectorGauge {
   track: Paint | null;
   trackOpacity?: number;
   /** `color` is the solid colour, and the ok colour of a threshold fill; `warn` and `crit` are scale values. */
-  fill: { mode: FillMode; color: Paint; stops: ColorStop[]; warn?: number; crit?: number };
+  /** `over: "fill"`: a gradient spans the filled part (as InfoPanel's bar does), not the whole range. */
+  fill: { mode: FillMode; color: Paint; stops: ColorStop[]; warn?: number; crit?: number; over?: "fill" };
   /** Arc: a needle from the centre; bar: a marker across the bar. */
   needle: { color: Paint; length: number; width: number; style?: NeedleStyle } | null;
   ticks: Ticks | null;
@@ -406,17 +409,19 @@ function arcPrims(g: VectorGauge, p: number): Prim[] {
     const [a0, a1] = g.reverse ? [valueAt(p), g.start + sweep] : [g.start, valueAt(p)];
     if (a1 - a0 > 0.01) {
       if (g.fill.mode === "gradient") {
+        const overFill = g.fill.over === "fill";
         // Short butt-capped pieces, each in the colour of its place in the range.
         const pieces = clamp(Math.ceil((a1 - a0) / 3), 1, 120);
         const step = (a1 - a0) / pieces;
         for (let i = 0; i < pieces; i++) {
           const s = a0 + i * step;
-          const mid = ((s + step / 2 - g.start) / sweep) * 100;
+          const mid = ((s + step / 2 - (overFill ? a0 : g.start)) / (overFill ? a1 - a0 : sweep)) * 100;
           // A hair of overlap hides the seams between pieces.
           out.push(lit(stroke(s, Math.min(a1, s + step + 0.3), colorAt(g.fill.stops, mid), "butt")));
         }
         if (g.rounded) {
-          for (const [deg, pos] of [[a0, ((a0 - g.start) / sweep) * 100], [a1, ((a1 - g.start) / sweep) * 100]] as const) {
+          const ends = overFill ? [[a0, 0], [a1, 100]] : [[a0, ((a0 - g.start) / sweep) * 100], [a1, ((a1 - g.start) / sweep) * 100]];
+          for (const [deg, pos] of ends as [number, number][]) {
             const [x, y] = at(deg);
             out.push(lit({ kind: "path", d: circlePath(x, y, g.thickness / 2), fill: colorAt(g.fill.stops, pos) }));
           }
@@ -447,7 +452,7 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
       ? { x: offset, y: 1 + (length - b), w: across, h: b - a }
       : { x: 1 + a, y: offset, w: b - a, h: across };
   };
-  const radius = g.rounded ? across / 2 : 0;
+  const radius = g.radius !== undefined ? Math.min(g.radius, across / 2) : g.rounded ? across / 2 : 0;
   const glow = (g.glow ?? 0) > 0;
   const out: Prim[] = [];
   const rect = (from: number, to: number, fill: Paint | LinearGradient | PatternPaint, r = radius): Prim => ({ kind: "rect", ...box(from, to), r: Math.min(r, (to - from) / 2), fill });
@@ -471,8 +476,8 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
     const filled = length * p;
     if (filled > 0.01) {
       if (g.fill.mode === "gradient") {
-        // The gradient spans the whole bar, so each colour keeps its place.
-        const whole = box(0, length);
+        // Over the whole bar, so each colour keeps its place; or over the filled part.
+        const whole = box(0, g.fill.over === "fill" ? filled : length);
         const [x1, y1, x2, y2] = vertical
           ? g.reverse ? [0, whole.y, 0, whole.y + whole.h] : [0, whole.y + whole.h, 0, whole.y]
           : g.reverse ? [whole.x + whole.w, 0, whole.x, 0] : [whole.x, 0, whole.x + whole.w, 0];
@@ -554,6 +559,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
     orientation: o.orientation === "vertical" ? "vertical" : "horizontal",
     thickness: num(o.thickness, d.thickness, 1, 1024),
     rounded: typeof o.rounded === "boolean" ? o.rounded : d.rounded,
+    ...(o.radius !== undefined ? { radius: num(o.radius, 0, 0, 1024) } : {}),
     segments: Math.round(num(o.segments, d.segments, 0, 200)),
     gap: num(o.gap, d.gap, 0, 100),
     track: o.track === null ? null : color(o.track, d.track!),
@@ -562,6 +568,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
       mode: fill.mode === "gradient" || fill.mode === "zones" || fill.mode === "thresholds" ? fill.mode : "solid",
       color: color(fill.color, d.fill.color),
       stops: stops.length ? stops : d.fill.stops,
+      ...(fill.over === "fill" ? { over: "fill" as const } : {}),
       ...(warn !== undefined ? { warn } : {}),
       ...(crit !== undefined ? { crit } : {}),
     },

@@ -24,13 +24,30 @@ describe("convert", () => {
     });
     expect(n.widget).toMatchObject({ id: "w1", kind: "value", sensor: "libre.cpu_total", decimals: 1, scale: 0.001, fontSize: 30, color: "#00FF00", align: "center", visible: true });
     expect(n.box).toEqual({ x: 10, y: 20 });
-    expect(n.lost).toContain("threshold colours");
+    // Drawn meanwhile in InfoPanel's font, size and format (thresholds included), which the value widget lacks.
+    expect(n.lost).toEqual([]);
+    expect(n.needs).toEqual(["text font and style", "InfoPanel value format (name, unit, precision, thresholds)"]);
+    expect(n.custom).toMatchObject({ kind: "text", style: { size: 30, color: "#FF00FF00" }, width: 0, align: "center" });
   });
 
-  it("keeps text, upper-cased as InfoPanel shows it, and sizes from the item", () => {
-    const n = widgetOf("Text", { Name: "Cpu", Uppercase: true, Width: 120, Height: 30, RightAlign: true });
-    expect(n.widget).toMatchObject({ kind: "text", text: "CPU", align: "right" });
+  it("keeps text as InfoPanel shows it (Uppercase is for clocks and dates), in its font, sized from the item", () => {
+    const n = widgetOf("Text", { Name: "Cpu", Uppercase: true, Width: 120, Height: 30, RightAlign: true, Font: "Barlow", FontStyle: "Medium", Bold: true, Underline: true });
+    expect(n.widget).toMatchObject({ kind: "text", text: "Cpu", align: "right" });
     expect(n.box).toEqual({ x: 100, y: 100, w: 120, h: 30 });
+    expect(n.custom).toMatchObject({ kind: "text", width: 120, align: "right", style: { font: { font: "Barlow", style: "Medium", bold: true }, underline: true } });
+    expect(n.needs).toEqual(["text font and style"]);
+  });
+
+  it("ends right-aligned text without a Width at X, as InfoPanel draws it", () => {
+    expect(widgetOf("Text", { X: 50, Y: 20, RightAlign: true }).box).toEqual({ x: 50, y: 20, anchor: "end" });
+    // Centred without a Width starts at X.
+    expect(widgetOf("Text", { X: 50, Y: 20, RightAlign: true, CenterAlign: true }).box).toEqual({ x: 50, y: 20 });
+    expect(widgetOf("Clock", { Format: "HH:mm" })).toMatchObject({ widget: { kind: "clock" }, custom: { kind: "text" }, needs: ["text font and style", "date and time format"] });
+    // A table keeps its X and lays out its own columns.
+    expect(widgetOf("TableSensor", { X: 30, Y: 40, RightAlign: true, TableFormat: "0:100|1:50", FontSize: 12 })).toMatchObject({
+      box: { x: 30, y: 40 }, lost: [], custom: { kind: "text", item: { kind: "TableSensor" }, style: { size: 18 } },
+      needs: ["text font and style", "InfoPanel table layout (column widths, headers)"],
+    });
   });
 
   it("maps charts, clocks, tables, images and plain shapes", () => {
@@ -65,25 +82,40 @@ describe("convert", () => {
   it("turns and flips an item about its box, which the app's panel items would need", () => {
     const n = widgetOf("Text", { Rotation: 90, Width: 100, Height: 20 });
     expect(n.transform).toEqual({ rotate: 90, flipX: false });
-    expect(n.needs).toEqual(["rotated panel items"]);
-    expect(widgetOf("Bar", { FlipX: true, Width: 100, Height: 10 }).needs).toEqual(["flipped panel items"]);
+    expect(n.needs).toEqual(["text font and style", "rotated panel items"]);
+    expect(widgetOf("Bar", { FlipX: true, Width: 100, Height: 10 }).needs).toEqual(["custom gauge widget", "flipped panel items"]);
     expect(widgetOf("Text").transform).toBeUndefined();
   });
 
   it("scrolls marquee text in a box with a width, as InfoPanel does", () => {
     expect(widgetOf("Text", { Marquee: true, Width: 80, MarqueeSpeed: 30, MarqueeSpacing: 12 })).toMatchObject({
-      custom: { kind: "marquee", speed: 30, spacing: 12 }, needs: ["scrolling text"],
+      custom: { kind: "text", marquee: { speed: 30, spacing: 12 } }, needs: ["text font and style", "scrolling text"],
     });
     // Without a width InfoPanel does not scroll it.
-    expect(widgetOf("Text", { Marquee: true }).custom).toBeUndefined();
+    expect(widgetOf("Text", { Marquee: true })).toMatchObject({ custom: { marquee: null }, needs: ["text font and style"] });
   });
 
-  it("draws a vertical bar and a donut as the custom gauge widget", () => {
-    const bar = widgetOf("Bar", { Width: 20, Height: 150, Color: "#FF00FF00", Background: true, BackgroundColor: "#FF111111", Gradient: false, MinValue: 10, MaxValue: 90 });
+  it("draws every bar with the bar generator, as InfoPanel draws it", () => {
+    const bar = widgetOf("Bar", { Width: 20, Height: 150, Color: "#FF00FF00", Background: true, BackgroundColor: "#FF111111", Gradient: false, Frame: false, MinValue: 10, MaxValue: 90 });
     expect(bar).toMatchObject({
-      needs: ["vertical bar"],
-      custom: { kind: "vector", min: 10, max: 90, gauge: { shape: "bar", orientation: "vertical", width: 20, height: 150, thickness: 20, track: "#111111", fill: { mode: "solid", color: "#00FF00" } } },
+      needs: ["custom gauge widget"],
+      lost: [],
+      custom: { kind: "vector", min: 10, max: 90, gauge: { shape: "bar", orientation: "vertical", width: 20, height: 150, thickness: 20, radius: 0, track: "#111111", fill: { mode: "solid", color: "#00FF00" } } },
     });
+    // Horizontal, framed (a 1 px border that insets the bar), rounded, with a gradient over the filled part.
+    const framed = widgetOf("Bar", {
+      Width: 200, Height: 10, Color: "#FFFF0000", Gradient: true, GradientColor: "#FF0000FF", Frame: true, FrameColor: "#FFFFFFFF", CornerRadius: 4, Background: false,
+    });
+    expect(framed.custom).toMatchObject({
+      kind: "vector",
+      gauge: {
+        orientation: "horizontal", thickness: 8, radius: 3, track: null,
+        fill: { mode: "gradient", over: "fill", stops: [{ at: 0, color: "#FF0000" }, { at: 50, color: "#FF0000" }, { at: 100, color: "#0000FF" }] },
+        background: { color: null, border: { color: "#FFFFFF", width: 1 }, radius: 4 },
+      },
+    });
+    expect(widgetOf("Bar", { Width: 20, Height: 150, Gradient: true }).lost).toContain("gradient direction (InfoPanel runs a vertical bar's gradient across it)");
+    expect(widgetOf("Bar", { Width: 200, Height: 10, Color: "#80FF0000" }).lost).toContain("colour transparency");
     const donut = widgetOf("Donut", { Width: 120, Span: 270, Thickness: 12, Color: "#FFFF0000", Rotation: 45 });
     expect(donut).toMatchObject({
       box: { w: 120, h: 120 }, transform: { rotate: 45 }, needs: ["custom gauge widget", "rotated panel items"],

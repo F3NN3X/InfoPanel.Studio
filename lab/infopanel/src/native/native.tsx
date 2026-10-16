@@ -15,9 +15,14 @@ import { WidgetView } from "@/components/widgets/WidgetView";
 import { fraction } from "../gauges/vector.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
 import { gaugeFrame, shapeGeometry } from "../render/geometry.ts";
+import { tableColumns } from "../render/scene.ts";
+import { Table, Text, textCss, visibleText, type FontCss } from "../render/Text.tsx";
+import { tableOf } from "../sensor-source.ts";
+import { dateText, sensorColor, sensorText } from "../sensor-text.ts";
+import { toReading, type DataApiValue } from "../sensors.ts";
 import type { DisplayItem } from "../schema.ts";
 import type { Catalog } from "../sensors.ts";
-import { convert, type Conversion, type ConvertContext, type Custom, type NativeItem } from "./convert.ts";
+import { convert, type Conversion, type ConvertContext, type Custom, type NativeItem, type TextSource } from "./convert.ts";
 
 /** The lab's mode flag on an item (not an InfoPanel field). */
 export const isNative = (item: DisplayItem) => (item as { native?: boolean }).native === true;
@@ -66,8 +71,8 @@ export function describeNative(n: NativeItem): string {
       return "image-sequence gauge widget (studio prototype)";
     case "shape":
       return `shape widget with ${n.needs[0] ?? "this shape"} (studio prototype)`;
-    case "marquee":
-      return `${n.widget.kind} widget, scrolling (studio prototype)`;
+    case "text":
+      return `${n.widget.kind} widget in InfoPanel's font and placement${n.custom.marquee ? ", scrolling" : ""} (studio prototype)`;
     default:
       return `${n.widget.kind} widget`;
   }
@@ -111,7 +116,68 @@ function Marquee({ speed, spacing, width, children }: { speed: number; spacing: 
   );
 }
 
-function CustomView({ custom, n, path, sensors }: { custom: Custom; n: NativeItem; path: string; sensors: SensorMap }) {
+/** What the native widgets draw with besides the live values: the faces (the lab's font plan) and the time. */
+export interface NativeView {
+  font: FontCss;
+  now: Date;
+}
+
+/** The item's text as InfoPanel draws it, and its colour (a sensor's thresholds); a table draws its own. */
+function textOf(item: Exclude<TextSource, { kind: "TableSensor" }>, value: SensorValue | undefined, now: Date): { text: string; color?: string } {
+  switch (item.kind) {
+    case "Text":
+      return { text: item.Name };
+    case "Clock":
+    case "Calendar":
+      return { text: dateText(item, now) };
+    case "Sensor": {
+      // Read as the faithful renderer reads the Data API value (a text sensor shows its first line).
+      const r = toReading(value as DataApiValue | undefined);
+      return { text: sensorText(item, r), color: sensorColor(item, r) };
+    }
+  }
+}
+
+/** A plugin table as InfoPanel lays it out (render/Text.tsx Table), at the native box; "Invalid sensor" without one. */
+function NativeTable({ custom, item, value, view }: { custom: Extract<Custom, { kind: "text" }>; item: Extract<TextSource, { kind: "TableSensor" }>; value: SensorValue | undefined; view: NativeView }) {
+  const table = value ? tableOf(value as DataApiValue) : null;
+  const common = { path: "", item, x: 0, y: 0, style: custom.style, rightAlign: item.RightAlign, centerAlign: item.CenterAlign, oneLine: item.Wrap, ellipsis: item.Ellipsis };
+  if (!table) {
+    const node = { ...common, kind: "text", text: "Invalid sensor", width: item.Width, height: item.Height, rotation: 0, marquee: null } as const;
+    return <Text node={node} font={view.font} canvasWidth={0} />;
+  }
+  const node = { ...common, kind: "table", header: item.ShowHeader, columns: tableColumns(item.TableFormat, table, item.MaxRows) } as const;
+  return <Table node={node} font={view.font} canvasWidth={0} />;
+}
+
+/**
+ * The text prototype: InfoPanel's DrawString (render/Text.tsx) in the native box, anchored at its top left,
+ * or ending at the box's x when right-aligned without a Width.
+ */
+function NativeText({ custom, n, sensors, view }: { custom: Extract<Custom, { kind: "text" }>; n: NativeItem; sensors: SensorMap; view: NativeView }) {
+  const value = n.widget.sensor ? sensors[n.widget.sensor] : undefined;
+  if (custom.item.kind === "TableSensor") return <NativeTable custom={custom} item={custom.item} value={value} view={view} />;
+  const { text, color } = textOf(custom.item, value, view.now);
+  const face = textCss(color ? { ...custom.style, color } : custom.style, view.font);
+  if (custom.marquee) {
+    return (
+      <Marquee speed={custom.marquee.speed} spacing={custom.marquee.spacing} width={custom.width}>
+        <div style={{ ...face, whiteSpace: "pre" }}>{text}</div>
+      </Marquee>
+    );
+  }
+  const css: CSSProperties = {
+    ...face,
+    ...(custom.width > 0
+      ? { width: custom.width, whiteSpace: "pre-wrap", overflowWrap: "anywhere", textAlign: custom.align }
+      : { width: "max-content", whiteSpace: "pre", textAlign: custom.align === "right" ? "right" : "left" }),
+    // RichTextKit's one line: an ellipsis trims until it fits; without one the first wrapped line stays.
+    ...(custom.oneLine ? (custom.ellipsis ? { whiteSpace: "pre", overflow: "hidden", textOverflow: "ellipsis" } : { maxHeight: "1lh", overflow: "hidden" }) : {}),
+  };
+  return <div style={css}>{visibleText(text, custom.oneLine, custom.ellipsis)}</div>;
+}
+
+function CustomView({ custom, n, path, sensors, view }: { custom: Custom; n: NativeItem; path: string; sensors: SensorMap; view: NativeView }) {
   const value = n.widget.sensor ? sensors[n.widget.sensor]?.value : undefined;
   const { w, h } = n.box;
   switch (custom.kind) {
@@ -129,25 +195,23 @@ function CustomView({ custom, n, path, sensors }: { custom: Custom; n: NativeIte
         </svg>
       );
     }
-    case "marquee":
-      return (
-        <Marquee speed={custom.speed} spacing={custom.spacing} width={w}>
-          <WidgetView widget={n.widget} sensors={sensors} />
-        </Marquee>
-      );
+    case "text":
+      return <NativeText custom={custom} n={n} sensors={sensors} view={view} />;
   }
 }
 
 /** InfoPanel turns and mirrors about the box's integer centre, flipping first. */
 function transformCss(n: NativeItem): CSSProperties {
-  if (!n.transform) return {};
+  // Anchored at its right edge: moved left by its own width.
+  const shift = n.box.anchor === "end" ? "translateX(-100%)" : "";
+  if (!n.transform) return shift ? { transform: shift } : {};
   const { rotate, flipX } = n.transform;
-  const t = [flipX && "scaleX(-1)", rotate !== 0 && `rotate(${rotate}deg)`].filter(Boolean).join(" ");
+  const t = [shift, flipX && "scaleX(-1)", rotate !== 0 && `rotate(${rotate}deg)`].filter(Boolean).join(" ");
   const origin = n.box.w !== undefined && n.box.h !== undefined ? `${Math.trunc(n.box.w / 2)}px ${Math.trunc(n.box.h / 2)}px` : "50% 50%";
   return { transform: t, transformOrigin: origin };
 }
 
-export function nativeLayer(items: DisplayItem[], ctx: ConvertContext, sensors: SensorMap): NativeLayer {
+export function nativeLayer(items: DisplayItem[], ctx: ConvertContext, sensors: SensorMap, view: NativeView): NativeLayer {
   const conversions = new Map<string, Conversion>();
   const hidden = new Set<string>();
   const elements = new Map<string, ReactNode>();
@@ -163,7 +227,7 @@ export function nativeLayer(items: DisplayItem[], ctx: ConvertContext, sensors: 
     elements.set(
       path,
       <div key={`native-${path}`} data-path={path} data-native="" style={style}>
-        {n.custom ? <CustomView custom={n.custom} n={n} path={path} sensors={sensors} /> : <WidgetView widget={n.widget} sensors={sensors} />}
+        {n.custom ? <CustomView custom={n.custom} n={n} path={path} sensors={sensors} view={view} /> : <WidgetView widget={n.widget} sensors={sensors} />}
       </div>,
     );
   });

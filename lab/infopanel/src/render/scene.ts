@@ -154,11 +154,11 @@ export type DrawNode =
 
 const NO_STATE: SensorState = { reading: null, history: [] };
 
-/** A text item's style. */
-function textStyle(item: Extract<DisplayItem, { Font: string }>, profile: Profile): TextStyle {
+/** A text item's style (native mode draws the same, L14). */
+export function textStyle(item: Extract<DisplayItem, { Font: string }>, fontScale: number): TextStyle {
   return {
     font: { font: item.Font, style: item.FontStyle, bold: item.Bold, italic: item.Italic },
-    size: item.FontSize * profile.FontScale,
+    size: item.FontSize * fontScale,
     color: item.Color,
     underline: item.Underline,
     strikeout: item.Strikeout,
@@ -184,8 +184,8 @@ function rawValue(item: { ValueType: string }, r: SensorReading): number {
   return item.ValueType === "MIN" ? r.min : item.ValueType === "MAX" ? r.max : item.ValueType === "AVERAGE" ? r.avg : r.now;
 }
 
-/** TableFormat `col:width|…` entries that name an existing column. */
-function tableColumns(format: string, table: TableData, maxRows: number) {
+/** TableFormat `col:width|…` entries that name an existing column (native tables draw the same, L14). */
+export function tableColumns(format: string, table: TableData, maxRows: number) {
   const out: { title: string; cells: string[]; dx: number; width: number }[] = [];
   let dx = 0;
   for (const part of format.split("|")) {
@@ -220,7 +220,7 @@ export function buildScene(input: SceneInput): DrawNode[] {
       case "Calendar":
       case "Sensor":
       case "TableSensor": {
-        const style = textStyle(item, profile);
+        const style = textStyle(item, profile.FontScale);
         if (item.kind === "TableSensor" && state.table) {
           nodes.push({
             kind: "table", path, item, x, y, style,

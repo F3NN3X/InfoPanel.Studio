@@ -120,7 +120,7 @@ function Summary({ parsed, assets: initialAssets, screenshot, source: importSour
       return f?.width && f.height ? { width: f.width, height: f.height } : null;
     },
   };
-  const native = nativeLayer(items, convertCtx, mode === "live" ? sensorMap(live.catalog) : {});
+  const native = nativeLayer(items, convertCtx, mode === "live" ? sensorMap(live.catalog) : {}, { font: fontPlan.css, now });
   const counts = new Map<string, number>();
   for (const { item } of walkItems(items)) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
   return (
