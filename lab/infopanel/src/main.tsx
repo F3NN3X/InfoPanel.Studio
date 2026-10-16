@@ -6,6 +6,10 @@ import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
 import { useFontPlan } from "./useFontPlan.ts";
+import type { ConvertContext } from "./native/convert.ts";
+import { convertible, nativeLayer, sensorMap } from "./native/native.tsx";
+import { groupId } from "./remap/remap.ts";
+import "@/index.css";
 import { groupBindings, indexCatalog, resolveAll, type Overrides } from "./remap/remap.ts";
 import { RemapPanel } from "./remap/RemapPanel.tsx";
 import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
@@ -37,7 +41,7 @@ function corpusEntries(p: CorpusProfile): ExportEntry[] {
   }));
 }
 
-function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: string | null }) {
+function Summary({ parsed, screenshot, assetBase }: { parsed: ParsedExport; screenshot: string | null; assetBase: string | null }) {
   const { profile, assets, issues } = parsed;
   const editor = useEditor(parsed.items);
   const items = editor.items;
@@ -64,6 +68,13 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
     });
   const source = { mode, live, mock, resolved };
   const sensor = useCallback((item: BoundItem) => sensorState(item, { mode, live, mock, resolved }), [mode, live, mock, resolved]);
+  // Native mode (L5): flagged items drawn by the app's widgets, reading the remapped keys.
+  const convertCtx: ConvertContext = {
+    fontScale: profile.FontScale,
+    keyOf: (item) => resolved.get(groupId(item))?.key ?? null,
+    assetUrl: (name) => (assetBase ? `${assetBase}/assets/${encodeURIComponent(name)}` : null),
+  };
+  const native = nativeLayer(items, convertCtx, mode === "live" ? sensorMap(live.catalog) : {});
   const counts = new Map<string, number>();
   for (const { item } of walkItems(items)) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
   return (
@@ -74,7 +85,16 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
         {profile.FontScale.toFixed(2)}, {assets.size} assets
       </p>
       <p>Sensors: {mode} (change below)</p>
-      <ComparePanel parsed={parsed} editor={editor} sensor={sensor} now={now} screenshot={screenshot} font={fontPlan.css} />
+      <ComparePanel
+        parsed={parsed}
+        editor={editor}
+        sensor={sensor}
+        now={now}
+        screenshot={screenshot}
+        font={fontPlan.css}
+        native={native}
+        convertible={() => convertible(editor.present, convertCtx)}
+      />
       {mode === "live" ? (
         <RemapPanel groups={stableGroups} resolved={resolved} index={index} overrides={overrides} onChoose={choose} onSelect={editor.select} />
       ) : (
@@ -128,6 +148,7 @@ function Lab() {
   const [error, setError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);
   const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [assetBase, setAssetBase] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/corpus/index.json")
@@ -140,8 +161,10 @@ function Lab() {
   }, []);
   const all = [...corpus, ...installed];
 
-  const open = (entries: Promise<ExportEntry[]>, shot: string | null = null) => {
+  /** `base`: where the profile's entries are served (corpus and installed profiles), for native image widgets. */
+  const open = (entries: Promise<ExportEntry[]>, shot: string | null = null, base: string | null = null) => {
     setScreenshot(shot);
+    setAssetBase(base);
     setParsed(null);
     setError(null);
     setLoads((n) => n + 1);
@@ -154,7 +177,7 @@ function Lab() {
       <p>
         <select defaultValue="" onChange={(e) => {
             const p = all[Number(e.target.value)];
-            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null);
+            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null, baseOf(p));
           }}>
           <option value="" disabled>
             Profile…
@@ -188,7 +211,7 @@ function Lab() {
         />
       </p>
       {error && <p>{error}</p>}
-      {parsed && <Summary key={loads} parsed={parsed} screenshot={screenshot} />}
+      {parsed && <Summary key={loads} parsed={parsed} screenshot={screenshot} assetBase={assetBase} />}
     </main>
   );
 }

@@ -166,3 +166,19 @@ choice fixes every item in the group, and the item count selects those items on 
 - The key picker shows suggestions ranked for the group, or searches keys, names and refs (every word must
   match, the group's best fits first), with live values; arrows and Enter pick.
 - Choices live in the page for now; the stored form (a key per item, the original binding kept) is L8.
+
+## Native mode (L5)
+
+Any item can be drawn as a dashboard widget instead (`src/native/`): the item's **Draw as a dashboard widget**
+switch in the inspector, or **All native where possible** / **All InfoPanel** in the toolbar (one undo step). The
+widget is the app's own `WidgetView` (imported read-only through `@/`, with the app's CSS and default theme), at
+the item's position and size and in its draw order, reading the remapped sensor key (live mode). The item keeps
+all its InfoPanel fields, so switching back is lossless.
+
+- Text → text, Sensor → value, Clock/Calendar → clock, Bar → bar, Graph → sparkline, TableSensor → table,
+  Image/HttpImage → image, plain rectangles and circles → shape. The inspector lists what each conversion loses
+  (font, thresholds, frames, formats, ...).
+- Stays InfoPanel, with the reason: rotation, flip, marquee, glow, gradients, other shapes, vertical bars,
+  natural-size images, donuts, image-sequence gauges (vector gauges are L7), threshold images, RTSP.
+- The app's table widget reads the flattened text, so native tables do not get L3's structured tables yet (app
+  phase).

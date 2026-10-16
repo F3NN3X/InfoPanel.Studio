@@ -1,12 +1,17 @@
 /// <reference types="vitest/config" />
 // The InfoPanel import lab: its own Vite root, never part of the app build.
+// It imports the app's widget components (native mode, L5) through "@/", with the
+// app's Tailwind CSS, read-only: the app itself is not changed by the lab.
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "node:path";
 import { infopanelData } from "./local-data-plugin.ts";
 
 export default defineConfig({
   root: __dirname,
-  plugins: [react(), infopanelData()],
+  plugins: [react(), tailwindcss(), infopanelData()],
+  resolve: { alias: { "@": path.resolve(__dirname, "../../src") } },
   server: { port: 5174, strictPort: true },
   test: { include: ["src/**/*.test.{ts,tsx}"] },
 });

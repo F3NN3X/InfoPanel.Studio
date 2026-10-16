@@ -8,7 +8,8 @@ import { useState } from "react";
 import type { ParsedExport } from "./archive.ts";
 import { EditLayer } from "./editor/EditLayer.tsx";
 import { Inspector } from "./editor/Inspector.tsx";
-import { itemAt, type Path } from "./editor/ops.ts";
+import { itemAt, setField, type Path } from "./editor/ops.ts";
+import { isNative, type NativeLayer } from "./native/native.tsx";
 import type { Editor } from "./editor/useEditor.ts";
 import { walkItems } from "./parse.ts";
 import { ProfileView } from "./render/ProfileView.tsx";
@@ -26,6 +27,43 @@ export interface ComparePanelProps {
   screenshot: string | null;
   /** The faces the canvas draws text with (the font plan). */
   font?: FontCss;
+  /** Items drawn as dashboard widgets (native mode). */
+  native?: NativeLayer;
+  /** Paths that can be drawn natively, for "switch all". */
+  convertible?(): Path[];
+}
+
+/** Native mode of the selected item: the switch, and what converting keeps or loses (L5). */
+function ModePanel({ item, path, editor, native }: { item: DisplayItem; path: Path; editor: Editor; native: NativeLayer }) {
+  if (item.kind === "Group") return <p>Groups switch item by item (or use "All native" above).</p>;
+  const on = isNative(item);
+  const c = native.conversions.get(path);
+  return (
+    <div>
+      <label>
+        <input type="checkbox" checked={on} onChange={() => editor.set(path, "native", !on)} /> Draw as a dashboard widget
+      </label>
+      {on && c && !c.ok && <div style={{ color: "#fc6" }}>Stays InfoPanel: {c.reason}</div>}
+      {on && c?.ok && (
+        <div>
+          <code>{c.native.widget.kind}</code> widget
+          {c.native.widget.sensor && (
+            <>
+              {" "}
+              reading <code>{c.native.widget.sensor}</code>
+            </>
+          )}
+          {c.native.lost.length > 0 && (
+            <ul style={{ margin: "2px 0" }}>
+              {c.native.lost.map((l) => (
+                <li key={l}>loses {l}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Tree order of every path, for Shift range selection. */
@@ -67,11 +105,28 @@ function Tree({ items, prefix, editor, onSelect }: {
   );
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+/** Sets the native flag on many items as one undo step. */
+const setModes = (editor: Editor, paths: Path[], on: boolean) =>
+  editor.apply(paths.reduce((items, p) => (isNative(itemAt(items, p)!) === on ? items : setField(items, p, "native", on)), editor.present));
+
+function nativePaths(items: DisplayItem[], prefix = ""): Path[] {
+  return items.flatMap((item, i) => {
+    const path = prefix ? `${prefix}.${i}` : String(i);
+    return [...(isNative(item) ? [path] : []), ...(item.kind === "Group" ? nativePaths(item.DisplayItems, path) : [])];
+  });
+}
+
+function Toolbar({ editor, convertible }: { editor: Editor; convertible?(): Path[] }) {
   const n = editor.selection.length;
   const one = n === 1 ? itemAt(editor.present, editor.selection[0]) : undefined;
   return (
     <p>
+      {convertible && (
+        <>
+          Mode: <button onClick={() => setModes(editor, convertible(), true)} title="Every item a dashboard widget can draw">All native where possible</button>{" "}
+          <button onClick={() => setModes(editor, nativePaths(editor.present), false)}>All InfoPanel</button> ·{" "}
+        </>
+      )}
       <button disabled={!editor.canUndo} onClick={editor.undo} title="Ctrl+Z">Undo</button>{" "}
       <button disabled={!editor.canRedo} onClick={editor.redo} title="Ctrl+Y">Redo</button>{" "}
       · <button disabled={!n} onClick={editor.duplicate} title="Ctrl+D">Duplicate</button>{" "}
@@ -85,7 +140,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
-export function ComparePanel({ parsed, editor, sensor, now, screenshot, font }: ComparePanelProps) {
+export function ComparePanel({ parsed, editor, sensor, now, screenshot, font, native, convertible }: ComparePanelProps) {
   const [zoom, setZoom] = useState(1);
   const [opacity, setOpacity] = useState(0.5);
   const [blend, setBlend] = useState<"normal" | "difference">("normal");
@@ -137,7 +192,7 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot, font }: 
           }}
         />
       </p>
-      <Toolbar editor={editor} />
+      <Toolbar editor={editor} convertible={convertible} />
       <div style={{ overflow: "auto", maxWidth: "100%", zoom }}>
         <ProfileView
           parsed={parsed}
@@ -147,6 +202,8 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot, font }: 
           overlay={shot && opacity > 0 ? <img src={shot} alt="InfoPanel" style={{ display: "block", opacity, mixBlendMode: blend }} /> : null}
           controls={<EditLayer editor={editor} profileWidth={parsed.profile.Width} />}
           font={font}
+          hidden={native?.hidden}
+          native={native?.elements}
         />
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
@@ -154,7 +211,12 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot, font }: 
           <summary>Items</summary>
           <Tree items={editor.present} prefix="" editor={editor} onSelect={selectInTree} />
         </details>
-        {item && single && <Inspector item={item} path={single} fonts={fonts} onChange={(field, v) => editor.set(single, field, v)} />}
+        {item && single && (
+          <div>
+            {native && <ModePanel item={item} path={single} editor={editor} native={native} />}
+            <Inspector item={item} path={single} fonts={fonts} onChange={(field, v) => editor.set(single, field, v)} />
+          </div>
+        )}
       </div>
     </section>
   );

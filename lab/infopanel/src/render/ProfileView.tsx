@@ -181,9 +181,24 @@ export interface ProfileViewProps {
   controls?: ReactNode;
   /** The faces to draw text with (the lab's font plan); by default, InfoPanel's. */
   font?: FontCss;
+  /** Items drawn by other means (native widgets), by path; drawn in tree order among the rest. */
+  native?: ReadonlyMap<string, ReactNode>;
 }
 
-export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls, font: given }: ProfileViewProps) {
+/** Faithful nodes and native elements, in the items' tree order (paths compare numerically per level). */
+function merge(nodes: (readonly [string, ReactNode])[], native: ReadonlyMap<string, ReactNode> | undefined, order: (p: string) => number[]): ReactNode[] {
+  if (!native || native.size === 0) return nodes.map(([, n]) => n);
+  const all = [...nodes, ...native];
+  const cmp = (a: number[], b: number[]) => {
+    for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
+    return a.length - b.length;
+  };
+  // A stable sort keeps a node's own parts (several per path) in their order.
+  return all.sort((a, b) => cmp(order(a[0]), order(b[0]))).map(([, n]) => n);
+}
+const order = (path: string) => path.split(".").map(Number);
+
+export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls, font: given, native }: ProfileViewProps) {
   const uid = useId().replace(/:/g, "");
   const own = useFonts(given ? [] : items);
   const font = given ?? own;
@@ -240,9 +255,11 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
         flex: "none",
       }}
     >
-      {nodes.map((n) => (
-        <Node key={n.path} node={n} id={`${uid}-${n.path}`} font={font} canvas={canvas} />
-      ))}
+      {merge(
+        nodes.map((n) => [n.path, <Node key={n.path} node={n} id={`${uid}-${n.path}`} font={font} canvas={canvas} />] as const),
+        native,
+        order,
+      )}
       {overlay && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>{overlay}</div>}
       {controls}
     </div>
