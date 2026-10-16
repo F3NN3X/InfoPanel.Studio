@@ -153,9 +153,13 @@ Libre's average is always 0 (`Models/SensorReader.cs:31`).
 Each chart renders into its own WxH bitmap, which is drawn at (X,Y) and rotated about its center.
 
 - **Graph:** Type (LINE or HISTOGRAM), Thickness (2), Step (4), Fill (true), FillColor (#3C888DFF).
-  - The newest sample is at the right edge.
-  - LINE: `x = W - i*Step`, `y = H - (round(norm*(H-Thickness)) + Thickness/2)`. The polygon is closed to the
-    bottom, filled, then stroked.
+  - The window's **oldest** sample is at the right edge (`i = 0` is the oldest of the last `size` samples), so the
+    newest sits furthest left. Corrected in P0.6 from `GraphDraw.cs`; an earlier note here had it reversed.
+  - LINE: `x = W - i*Step`, `y = (int)(H - (round(norm*(H-Thickness)) + Thickness/2))`. The value is clamped
+    against MaxValue rather than the span, so a raised MinValue can overshoot the top. The path starts and ends
+    below the bitmap, is filled, then stroked.
+  - A graph with no samples draws nothing, not even its frame. Unbound HWiNFO and Libre graphs still sample 0;
+    unbound plugin graphs do not.
   - HISTOGRAM: bars Thickness wide with a Step gap and a 1px outline. Height is `round(norm*(H-3))`.
 - **Bar:** CornerRadius (0), Gradient (**true**), GradientColor (#3B3B3B).
   - Height>Width means vertical, filled from the bottom.

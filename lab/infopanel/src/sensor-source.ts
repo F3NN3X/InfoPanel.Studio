@@ -1,0 +1,98 @@
+/**
+ * Where the lab's sensor values come from: InfoPanel's unbound output (what the
+ * corpus screenshots show), mock values, or the live Data API.
+ */
+import { useEffect, useRef, useState } from "react";
+import type { TableData, SensorState } from "./render/scene.ts";
+import { buildCatalog, mapBinding, toReading, type BoundItem, type Catalog, type DataApiValue, type Match } from "./sensors.ts";
+
+export const DATA_API = "http://127.0.0.1:3921";
+export type SensorMode = "unbound" | "mock" | "live";
+
+const EMPTY = buildCatalog({});
+/** InfoPanel keeps 4096 samples per graph. */
+const HISTORY = 4096;
+const ZEROS: readonly number[] = new Array(HISTORY).fill(0);
+
+export interface Live {
+  catalog: Catalog;
+  error: string | null;
+  /** Numeric samples per Data API key, oldest first, one per poll. */
+  history: ReadonlyMap<string, readonly number[]>;
+}
+
+export function useLiveCatalog(enabled: boolean): Live {
+  const [catalog, setCatalog] = useState<Catalog>(EMPTY);
+  const [error, setError] = useState<string | null>(null);
+  const history = useRef(new Map<string, number[]>());
+  useEffect(() => {
+    if (!enabled) return;
+    let stop = false;
+    const tick = () =>
+      fetch(`${DATA_API}/api/sensors`)
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((s: { sensors: Record<string, DataApiValue> }) => {
+          if (stop) return;
+          for (const [key, v] of Object.entries(s.sensors)) {
+            if (typeof v.value !== "number") continue;
+            const list = history.current.get(key) ?? [];
+            list.push(v.value);
+            if (list.length > HISTORY) list.shift();
+            history.current.set(key, list);
+          }
+          setCatalog(buildCatalog(s.sensors));
+          setError(null);
+        })
+        .catch((e: Error) => !stop && setError(`${DATA_API}: ${e.message}`));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+  }, [enabled]);
+  return { catalog, error, history: history.current };
+}
+
+export function useNow(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+/**
+ * A plugin table from the Data API's flattened text (one row per line, cells joined
+ * with ", "). Lossy: column names are not exported, and a cell holding ", " splits.
+ */
+export function tableFromText(text: string): TableData {
+  const rows = text.split("\n").map((line) => line.split(", "));
+  const count = Math.max(0, ...rows.map((r) => r.length));
+  return { columns: Array.from({ length: count }, (_, i) => `Column ${i}`), rows };
+}
+
+export interface SourceInput {
+  mode: SensorMode;
+  live: Live;
+  /** Mock value per item. */
+  mock: ReadonlyMap<BoundItem, number>;
+}
+
+/** The binding's match in the live catalog, when in live mode. */
+export const liveMatch = (item: BoundItem, s: SourceInput): Match | null => (s.mode === "live" ? mapBinding(item, s.live.catalog) : null);
+
+/** What InfoPanel would read for an item. Unbound: no reading; HWiNFO and Libre graphs still fill with zeros. */
+export function sensorState(item: BoundItem, s: SourceInput): SensorState {
+  if (s.mode === "mock") {
+    const v = s.mock.get(item) ?? 0;
+    return { reading: { now: v, min: v, max: v, avg: v, unit: "" }, history: new Array(600).fill(v) };
+  }
+  const match = liveMatch(item, s);
+  if (!match) return { reading: null, history: item.SensorType === "Plugin" ? [] : ZEROS };
+  const value = s.live.catalog.sensors[match.key];
+  const reading = toReading(value);
+  const table = item.kind === "TableSensor" && value?.text !== undefined ? tableFromText(value.text) : null;
+  return { reading, history: s.live.history.get(match.key) ?? [], table };
+}

@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "./archive.ts";
 import { walkItems } from "./parse.ts";
 import { FontPanel } from "./FontPanel.tsx";
+import { ProfileView } from "./render/ProfileView.tsx";
+import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
 import { SensorPanel } from "./SensorPanel.tsx";
+import type { BoundItem } from "./sensors.ts";
 
 interface CorpusProfile {
   id: string;
@@ -26,6 +29,13 @@ function corpusEntries(p: CorpusProfile): ExportEntry[] {
 
 function Summary({ parsed }: { parsed: ParsedExport }) {
   const { profile, items, assets, issues } = parsed;
+  const [mode, setMode] = useState<SensorMode>("unbound");
+  const [mock, setMock] = useState<ReadonlyMap<BoundItem, number>>(new Map());
+  const [zoom, setZoom] = useState(1);
+  const live = useLiveCatalog(mode === "live");
+  const now = useNow();
+  const source = { mode, live, mock };
+  const sensor = useCallback((item: BoundItem) => sensorState(item, { mode, live, mock }), [mode, live, mock]);
   const counts = new Map<string, number>();
   for (const { item } of walkItems(items)) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
   return (
@@ -35,6 +45,20 @@ function Summary({ parsed }: { parsed: ParsedExport }) {
         {profile.Width}×{profile.Height}, background <code>{profile.BackgroundColor}</code>, FontScale{" "}
         {profile.FontScale.toFixed(2)}, {assets.size} assets
       </p>
+      <p>
+        Zoom{" "}
+        <select value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
+          {[1, 0.75, 0.5, 0.25].map((z) => (
+            <option key={z} value={z}>
+              {z * 100}%
+            </option>
+          ))}
+        </select>{" "}
+        sensors: {mode}
+      </p>
+      <div style={{ overflow: "auto", maxWidth: "100%", zoom }}>
+        <ProfileView parsed={parsed} sensor={sensor} now={now} />
+      </div>
       <table>
         <tbody>
           {[...counts].sort().map(([k, n]) => (
@@ -63,7 +87,13 @@ function Summary({ parsed }: { parsed: ParsedExport }) {
         </tbody>
       </table>
       <FontPanel items={items} />
-      <SensorPanel items={items} />
+      <SensorPanel
+        items={items}
+        source={source}
+        now={now}
+        onMode={setMode}
+        onMock={(item, v) => setMock((m) => new Map(m).set(item, v))}
+      />
     </section>
   );
 }
@@ -72,6 +102,7 @@ function Lab() {
   const [corpus, setCorpus] = useState<CorpusProfile[]>([]);
   const [parsed, setParsed] = useState<ParsedExport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loads, setLoads] = useState(0);
 
   useEffect(() => {
     fetch("/corpus/index.json")
@@ -82,6 +113,7 @@ function Lab() {
   const open = (entries: Promise<ExportEntry[]>) => {
     setParsed(null);
     setError(null);
+    setLoads((n) => n + 1);
     entries.then(loadExport).then(setParsed, (e: Error) => setError(e.message));
   };
 
@@ -110,7 +142,7 @@ function Lab() {
         />
       </p>
       {error && <p>{error}</p>}
-      {parsed && <Summary parsed={parsed} />}
+      {parsed && <Summary key={loads} parsed={parsed} />}
     </main>
   );
 }

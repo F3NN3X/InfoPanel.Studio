@@ -75,3 +75,28 @@ with the pack that has them.
 `npm run lab:font-get -- "<family>" [--install | --uninstall]` downloads to `fonts/downloads/` and optionally
 installs or removes it for the current user. The Fonts panel shows the same candidates with a preview. Sources and
 caveats: `docs/infopanel-import/research-font-sources.md`.
+
+## Renderer (P0.6)
+
+The lab page draws the chosen profile under its summary: positioned DOM at the profile's size, in InfoPanel's
+draw order. Pick the sensor source in the Sensors panel: **Unbound** (InfoPanel with no sensors), **Live** (the
+Data API on 127.0.0.1:3921, graphs fill as it polls) or **Mock** (sliders).
+
+- `src/render/geometry.ts`: C# numerics, shape paths, bar, graph, donut, gauge frame and gradients (pure, tested).
+- `src/render/scene.ts`: items to draw nodes; sensors, images and time come from the caller (tested).
+- `src/render/Paint.tsx`, `Text.tsx`, `ProfileView.tsx`: SVG and DOM output, fonts via `font-loader`, images from
+  the export's assets or their URLs.
+
+Checked against InfoPanel's screenshots of ARCv2_WIDE, Catppuccin_Mocha, Dashboard and Umbrella_V.2 in Live mode:
+layout, fonts, charts, gauges, images and placeholders match. Plugin bindings are portable, so those screenshots
+show plugin values; compare in Live, not Unbound. Notes:
+
+- Text: RichTextKit's line height is ascent + descent + leading, as CSS `line-height: normal`. Wrap (one line)
+  with Ellipsis trims characters ("Moderate R..."); missing glyphs fall back to Segoe UI.
+- The view is nudged onto whole device pixels; at a fractional offset half-pixel strokes blur and overlapping
+  frames stop covering each other.
+- Not modelled: the gradual contraction of AutoValue ranges, bar/donut/gauge smoothing between frames, video and
+  RTSP images (drawn as the placeholder), the FPS overlay. Glow blend modes CSS lacks draw normally.
+- Tables from the Data API are approximate: it flattens a plugin table to text, without column names, and a cell
+  holding ", " splits. A structured table in the Data API would fix both (input for P0.8).
+- No corpus profile turns on a shape gradient; all six types were checked with a synthetic profile.
