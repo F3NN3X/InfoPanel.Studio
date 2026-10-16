@@ -108,3 +108,10 @@ corpus folder whose name matches the profile, allowing one typo, and whose size 
 picker. The compare panel lays the screenshot over the render with an opacity slider and a difference blend
 (any other screenshot can be loaded from a file). Click an item, or pick it in the item tree, to outline it and
 list its parsed fields; the tree's checkboxes hide items and groups. Results: `FINDINGS.md`.
+
+## Installed profiles
+
+The picker's "Installed in InfoPanel" group lists the profiles of the InfoPanel on this machine. The dev server
+(`local-data-plugin.ts`) reads them live and read-only from `%LOCALAPPDATA%\InfoPanel` (or `INFOPANEL_DATA_DIR`):
+`profiles.xml`, `profiles/<guid>.xml` and `assets/<guid>/`, served in the corpus layout so everything else works
+the same. Images with absolute paths outside that folder draw the placeholder, as on any other machine.

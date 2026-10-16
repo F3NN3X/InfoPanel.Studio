@@ -10,6 +10,8 @@ import type { BoundItem } from "./sensors.ts";
 
 interface CorpusProfile {
   id: string;
+  /** Where its entries are served: /corpus/<id> for exports, /local/<guid> for InfoPanel's installed profiles. */
+  base?: string;
   file: string;
   bytes: number;
   entries: string[];
@@ -18,11 +20,13 @@ interface CorpusProfile {
   screenshot?: string | null;
 }
 
+const baseOf = (p: CorpusProfile) => p.base ?? `/corpus/${encodeURIComponent(p.id)}`;
+
 function corpusEntries(p: CorpusProfile): ExportEntry[] {
   return p.entries.map((name) => ({
     name,
     read: async () => {
-      const r = await fetch(`/corpus/${encodeURIComponent(p.id)}/${name.split("/").map(encodeURIComponent).join("/")}`);
+      const r = await fetch(`${baseOf(p)}/${name.split("/").map(encodeURIComponent).join("/")}`);
       if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     },
@@ -89,6 +93,7 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
 
 function Lab() {
   const [corpus, setCorpus] = useState<CorpusProfile[]>([]);
+  const [installed, setInstalled] = useState<CorpusProfile[]>([]);
   const [parsed, setParsed] = useState<ParsedExport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);
@@ -98,7 +103,12 @@ function Lab() {
     fetch("/corpus/index.json")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setCorpus, (e: Error) => setError(`No corpus (${e.message}). Run npm run lab:extract.`));
+    // Profiles installed in InfoPanel on this machine (local-data-plugin.ts).
+    fetch("/local/index.json")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setInstalled, () => setInstalled([]));
   }, []);
+  const all = [...corpus, ...installed];
 
   const open = (entries: Promise<ExportEntry[]>, shot: string | null = null) => {
     setScreenshot(shot);
@@ -113,18 +123,29 @@ function Lab() {
       <h1>InfoPanel import lab</h1>
       <p>
         <select defaultValue="" onChange={(e) => {
-            const p = corpus[Number(e.target.value)];
-            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `/corpus/${encodeURIComponent(p.id)}/${p.screenshot}` : null);
+            const p = all[Number(e.target.value)];
+            open(Promise.resolve(corpusEntries(p)), p.screenshot ? `${baseOf(p)}/${p.screenshot}` : null);
           }}>
           <option value="" disabled>
-            Corpus profile…
+            Profile…
           </option>
-          {corpus.map((p, i) => (
-            <option key={p.id} value={i}>
-              {p.id}
-              {p.screenshot ? " (screenshot)" : ""}
-            </option>
-          ))}
+          <optgroup label="Corpus exports">
+            {corpus.map((p, i) => (
+              <option key={p.id} value={i}>
+                {p.id}
+                {p.screenshot ? " (screenshot)" : ""}
+              </option>
+            ))}
+          </optgroup>
+          {installed.length > 0 && (
+            <optgroup label="Installed in InfoPanel">
+              {installed.map((p, i) => (
+                <option key={p.base} value={corpus.length + i}>
+                  {p.id}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>{" "}
         or{" "}
         <input
