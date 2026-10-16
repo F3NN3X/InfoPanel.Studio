@@ -180,7 +180,7 @@ export function imageSource(item: ImageItem | Extract<DisplayItem, { kind: "Http
 }
 
 /** The value a SensorImage compares with its thresholds: the raw reading by ValueType. */
-function rawValue(item: { ValueType: string }, r: SensorReading): number {
+export function rawValue(item: { ValueType: string }, r: SensorReading): number {
   return item.ValueType === "MIN" ? r.min : item.ValueType === "MAX" ? r.max : item.ValueType === "AVERAGE" ? r.avg : r.now;
 }
 

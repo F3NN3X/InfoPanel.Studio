@@ -13,7 +13,7 @@ export type SensorMode = "unbound" | "mock" | "live";
 const EMPTY = buildCatalog({});
 /** InfoPanel keeps 4096 samples per graph. */
 const HISTORY = 4096;
-const ZEROS: readonly number[] = new Array(HISTORY).fill(0);
+export const ZEROS: readonly number[] = new Array(HISTORY).fill(0);
 
 export interface Live {
   catalog: Catalog;

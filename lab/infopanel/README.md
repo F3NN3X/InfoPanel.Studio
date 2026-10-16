@@ -198,15 +198,24 @@ all its InfoPanel fields, so switching back is lossless.
   as InfoPanel does), and tables keep their column widths and row step. Every bar, horizontal or vertical, is the
   bar generator's bar (`barSpec`): the frame as a 1 px border that insets it, background, corner radius on both,
   and a gradient from Color (held to the middle) to GradientColor over the filled part. Still lost: a vertical
-  bar's gradient direction (InfoPanel runs it across), colour transparency of bars, AutoValue.
-- Stays InfoPanel, with the reason: glow, gradient shapes, threshold images, RTSP, images whose size is unknown
-  (URL images at their natural size).
+  bar's gradient direction (InfoPanel runs it across), partial colour transparency of bars, AutoValue. A fully
+  transparent background or frame (`#00……`, the only kind in the corpus) is left out; the frame still insets.
+- Stays InfoPanel, with the reason: glow, RTSP, images whose size is unknown (URL images at their natural size).
 - Graphs keep the sparkline kind for the app and are drawn meanwhile with InfoPanel's own graph geometry
   (`graphParts`: line or histogram, Step, Thickness, fill, frame, background, AutoValue) from the key's live
-  history; the sparkline would add a label row and an area fill.
+  history; the sparkline would add a label row and an area fill. Unbound, a HWiNFO or Libre graph is drawn from
+  zeros (background and a flat line) and a plugin graph not at all, as in the faithful view.
 - Images keep the image kind and are drawn meanwhile as InfoPanel draws them: stretched over the box with square
   corners, under the colour layer, and nothing while a URL image has no image yet (the app widget crops, rounds
-  and shows a placeholder).
+  and shows a placeholder). A threshold image (SensorImage) shows only while its value, by ValueType, is within
+  Threshold1..Threshold2.
+- Shapes the shape widget cannot draw yet (a frame, a rectangle's corner radius, transparency, gradients, shapes
+  other than rectangles and circles) are drawn from InfoPanel's geometry and paints, turned about their centre with
+  the gradient over the turned bounds as Skia does, animated gradients moving; plain opaque rectangles and circles
+  stay the app widget.
+- Checked across the corpus: faithful and all-native screenshots of the 14 profiles differ in 0.5–1.9 % of pixels
+  (live values moving between shots), except Catppuccin and Terminal (~7–11 %), where the faithful view draws its
+  placeholder for an empty URL image and native draws nothing, as InfoPanel does.
 
 ## Assets (L6)
 

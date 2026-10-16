@@ -15,7 +15,7 @@ import type { Widget } from "@/lib/panel-model";
 import { vectorOf } from "../gauges/frames.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "../gauges/vector.ts";
 import { cssColor } from "../render/color.ts";
-import type { GraphInput, ShapeType } from "../render/geometry.ts";
+import type { GradientType, GraphInput, ShapeType } from "../render/geometry.ts";
 import { imageSource, textStyle, type TextStyle } from "../render/scene.ts";
 import type { DisplayItem } from "../schema.ts";
 import { isBound, type BoundItem } from "../sensors.ts";
@@ -37,11 +37,27 @@ export type Custom =
   /** An image-sequence gauge: the frame for the value. */
   | { kind: "frames"; urls: string[]; min: number; max: number }
   /** The image stretched over the box with InfoPanel's colour layer (#AARRGGBB) on top; nothing without an image. */
-  | { kind: "image"; layer: string | null }
+  | {
+      kind: "image";
+      layer: string | null;
+      /** A SensorImage: drawn only while its value (by ValueType) is within min..max, as InfoPanel does. */
+      show?: { min: number; max: number; valueType: string };
+    }
   /** A line or histogram graph from InfoPanel's own geometry (the sparkline adds a label row and an area fill). */
-  | { kind: "graph"; graph: GraphStyle }
-  /** A shape the shape widget lacks, from InfoPanel's own geometry. */
-  | { kind: "shape"; type: ShapeType; radius: number; fill: string | null; stroke: { color: string; width: number } | null }
+  /** zeros: unbound, InfoPanel still draws a HWiNFO or Libre graph from zeros. */
+  | { kind: "graph"; graph: GraphStyle; zeros: boolean }
+  /**
+   * A shape the shape widget cannot draw yet, from InfoPanel's own geometry and paints: colours as InfoPanel
+   * writes them (#AARRGGBB), a gradient over the turned shape's bounds, turned about its centre like InfoPanel.
+   */
+  | {
+      kind: "shape";
+      type: ShapeType;
+      radius: number;
+      fill: string | null;
+      stroke: { color: string; width: number } | null;
+      gradient: { color2: string; color3: string; angle: number; speed: number; type: GradientType } | null;
+    }
   /**
    * Text in InfoPanel's own font, size, colour and placement, with InfoPanel's text for the item (a sensor's
    * value as InfoPanel formats it, a clock's format), scrolling when it has a marquee: the app's text widgets
@@ -99,6 +115,10 @@ const translucent = (c: string) => {
   const m = /^#?([0-9a-f]{2})[0-9a-f]{6}$/i.exec(c.trim());
   return m !== null && m[1].toUpperCase() !== "FF";
 };
+/** Alpha 00: InfoPanel draws nothing in this colour. */
+const clear = (c: string) => /^#?00[0-9a-f]{6}$/i.test(c.trim());
+/** A colour the spec can draw, or null for a fully transparent one. */
+const shown = (c: string) => (clear(c) ? null : (hexColor(c) ?? null));
 
 const no = (reason: string): Conversion => ({ ok: false, reason });
 
@@ -155,7 +175,7 @@ const spec = (patch: Partial<VectorGauge>): VectorGauge => ({ ...DEFAULT_GAUGE, 
  */
 export function barSpec(item: Extract<DisplayItem, { kind: "Bar" }>): VectorGauge {
   const vertical = item.Height > item.Width;
-  const frame = item.Frame ? 1 : 0;
+  const frame = item.Frame ? 1 : 0; // a transparent frame still insets the bar
   const color = hexColor(item.Color) ?? "#FFFFFF";
   return spec({
     shape: "bar",
@@ -164,11 +184,11 @@ export function barSpec(item: Extract<DisplayItem, { kind: "Bar" }>): VectorGaug
     height: Math.max(4, item.Height),
     thickness: Math.max(1, (vertical ? item.Width : item.Height) - 2 * frame),
     radius: Math.max(0, item.CornerRadius - frame),
-    track: item.Background ? (hexColor(item.BackgroundColor) ?? null) : null,
+    track: item.Background ? shown(item.BackgroundColor) : null,
     fill: item.Gradient
       ? { mode: "gradient", color, over: "fill", stops: [{ at: 0, color }, { at: 50, color }, { at: 100, color: hexColor(item.GradientColor) ?? color }] }
       : { ...DEFAULT_GAUGE.fill, mode: "solid", color },
-    ...(item.Frame ? { background: { color: null, border: { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: 1 }, radius: item.CornerRadius } } : {}),
+    ...(item.Frame && !clear(item.FrameColor) ? { background: { color: null, border: { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: 1 }, radius: item.CornerRadius } } : {}),
   });
 }
 
@@ -248,7 +268,8 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       const vertical = gauge.orientation === "vertical";
       const lost: string[] = [];
       if (item.AutoValue) lost.push("automatic range");
-      if ([item.Color, ...(item.Gradient ? [item.GradientColor] : []), ...(item.Background ? [item.BackgroundColor] : []), ...(item.Frame ? [item.FrameColor] : [])].some(translucent)) {
+      // A fully transparent track or frame is simply left out; any other translucency is lost.
+      if ([item.Color, ...(item.Gradient ? [item.GradientColor] : [])].some(translucent) || [...(item.Background ? [item.BackgroundColor] : []), ...(item.Frame ? [item.FrameColor] : [])].some((c) => translucent(c) && !clear(c))) {
         lost.push("colour transparency");
       }
       if (vertical && item.Gradient) lost.push("gradient direction (InfoPanel runs a vertical bar's gradient across it)");
@@ -269,16 +290,17 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
         { kind: "sparkline", sensor, history: Math.max(2, Math.floor(item.Width / Math.max(item.Step, 1))), color: hexColor(item.Color) },
         { x: Math.floor(item.X), y: Math.floor(item.Y), w: item.Width, h: item.Height },
         sensor ? [] : ["no sensor yet: remap it"],
-        { custom: { kind: "graph", graph }, needs: [`InfoPanel graph style (${item.Type === "HISTOGRAM" ? "histogram, " : ""}step, thickness, frame, background, fill)`] },
+        { custom: { kind: "graph", graph, zeros: item.SensorType !== "Plugin" }, needs: [`InfoPanel graph style (${item.Type === "HISTOGRAM" ? "histogram, " : ""}step, thickness, frame, background, fill)`] },
       );
     }
 
     case "Image":
-    case "HttpImage": {
+    case "HttpImage":
+    case "SensorImage": {
       if (item.Type === "RTSP") return no("RTSP video: no dashboard widget plays it");
       const src = imageSource(item);
       const url = src.kind === "url" ? src.url : src.kind === "asset" ? ctx.assetUrl(src.name) : null;
-      if (item.kind === "Image" && !url) {
+      if (item.kind !== "HttpImage" && !url) {
         return no(src.kind === "none" ? src.why : "the image has no URL yet (uploading to the lab asset store, or not an image the widget shows)");
       }
       // InfoPanel draws a 0 × 0 image at its file's size; the widget needs the box.
@@ -291,37 +313,47 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       // Drawn meanwhile as InfoPanel draws it: the app's image widget crops (cover), rounds its corners and shows a
       // placeholder while there is no image; InfoPanel stretches it over the box, square, under its colour layer.
       return ok(
-        { kind: "image", text: url ?? undefined, sensor: item.kind === "HttpImage" ? sensor : undefined, height: h },
+        { kind: "image", text: url ?? undefined, sensor: item.kind !== "Image" ? sensor : undefined, height: h },
         { x: Math.floor(item.X), y: Math.floor(item.Y), w, h },
-        item.kind === "HttpImage" && !sensor ? ["no sensor yet: remap it"] : [],
+        item.kind !== "Image" && !sensor ? ["no sensor yet: remap it"] : [],
         {
-          custom: { kind: "image", layer: item.Layer ? item.LayerColor : null },
-          needs: ["image stretched to its box, nothing while there is no image", ...(item.Layer ? ["image colour layer"] : [])],
+          custom: {
+            kind: "image",
+            layer: item.Layer ? item.LayerColor : null,
+            ...(item.kind === "SensorImage" ? { show: { min: item.Threshold1, max: item.Threshold2, valueType: item.ValueType } } : {}),
+          },
+          needs: [
+            "image stretched to its box, nothing while there is no image",
+            ...(item.Layer ? ["image colour layer"] : []),
+            ...(item.kind === "SensorImage" ? ["image shown by value thresholds"] : []),
+          ],
         },
       );
     }
 
     case "Shape": {
-      if (item.ShowGradient) return no("gradient fill: no dashboard widget draws it");
-      const box = { x: item.X, y: item.Y, w: item.Width, h: item.Height };
-      const fill = item.ShowFill ? item.FillColor : item.FrameColor;
-      const lost: string[] = [];
-      if (cssColor(fill) === null || translucent(fill)) lost.push("colour transparency");
-      const shape = item.Type === "Rectangle" ? "rect" : item.Type === "Ellipse" && item.Width === item.Height ? "circle" : null;
-      if (shape) {
-        if (item.ShowFrame && item.FrameThickness > 0) lost.push("frame");
-        if (shape === "rect" && item.CornerRadius > 0) lost.push(`corner radius ${item.CornerRadius}`);
-        return ok({ kind: "shape", shape, color: hexColor(fill), ...(shape === "circle" ? { thickness: item.Width } : {}) }, box, lost);
-      }
-      // Capsules, ovals and polygons: the shape widget would need them.
-      const name = item.Type === "Ellipse" ? "oval" : item.Type.toLowerCase();
-      return ok({ kind: "shape", shape: "rect", color: hexColor(fill) }, box, lost, {
+      const box = { x: Math.floor(item.X), y: Math.floor(item.Y), w: item.Width, h: item.Height };
+      const fill = item.ShowFill ? item.FillColor : null;
+      const stroke = item.ShowFrame && item.FrameThickness > 0 ? { color: item.FrameColor, width: item.FrameThickness } : null;
+      const plain = item.Type === "Rectangle" ? "rect" : item.Type === "Ellipse" && item.Width === item.Height ? "circle" : null;
+      const widget = { kind: "shape", shape: plain ?? "rect", color: hexColor(fill ?? item.FrameColor), ...(plain === "circle" ? { thickness: item.Width } : {}) } as const;
+      // What the app's shape widget would need to draw it; a plain opaque rectangle or circle it draws already.
+      const needs = [
+        ...(plain ? [] : [`${item.Type === "Ellipse" ? "oval" : item.Type.toLowerCase()} shape`]),
+        ...(stroke ? ["shape frame"] : []),
+        ...(plain === "rect" && item.CornerRadius > 0 ? ["shape corner radius"] : []),
+        ...([fill, stroke?.color].some((c) => c && (cssColor(c) === null || translucent(c))) ? ["colour transparency"] : []),
+        ...(item.ShowGradient ? [item.GradientAnimationSpeed !== 0 ? "animated gradient shapes" : "gradient shapes"] : []),
+      ];
+      if (needs.length === 0) return ok(widget, box, []);
+      return ok(widget, box, [], {
         custom: {
-          kind: "shape", type: item.Type, radius: item.CornerRadius,
-          fill: item.ShowFill ? (hexColor(item.FillColor) ?? null) : null,
-          stroke: item.ShowFrame && item.FrameThickness > 0 ? { color: hexColor(item.FrameColor) ?? "#FFFFFF", width: item.FrameThickness } : null,
+          kind: "shape", type: item.Type, radius: item.CornerRadius, fill, stroke,
+          gradient: item.ShowGradient
+            ? { color2: item.GradientColor, color3: item.GradientColor2, angle: item.GradientAngle, speed: item.GradientAnimationSpeed, type: item.GradientType }
+            : null,
         },
-        needs: [`${name} shape`],
+        needs,
       });
     }
 
@@ -365,7 +397,5 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       });
     }
 
-    case "SensorImage":
-      return no("image chosen by thresholds: no dashboard widget does that");
   }
 }

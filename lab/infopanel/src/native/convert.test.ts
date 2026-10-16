@@ -70,13 +70,22 @@ describe("convert", () => {
       return c.ok ? null : c.reason;
     };
     expect(why("Sensor", { GlowEnabled: true })).toMatch(/^glow/);
-    expect(why("Shape")).toMatch(/gradient/); // ShowGradient defaults to true
     expect(why("Gauge")).toMatch(/without frames/);
     expect(why("Group")).toMatch(/item by item/);
     expect(why("Image", { Type: "RTSP" })).toMatch(/RTSP/);
     // No size, and the file's own size is not known.
     expect(why("Image", { FilePath: "bg.png", RelativePath: true })).toMatch(/natural size/);
-    expect(why("SensorImage")).toMatch(/thresholds/);
+    // A threshold image needs its file's URL, like any image.
+    expect(why("SensorImage")).toMatch(/no file/);
+  });
+
+  it("shows a threshold image only within its thresholds, by its value type", () => {
+    const n = widgetOf("SensorImage", { FilePath: "hot.png", RelativePath: true, Width: 40, Height: 40, Threshold1: 80, Threshold2: 100, ValueType: "MAX", SensorType: "Plugin", PluginSensorId: "/t" });
+    expect(n).toMatchObject({
+      widget: { kind: "image", text: "/corpus/p/assets/hot.png", sensor: "libre.cpu_total" },
+      custom: { kind: "image", show: { min: 80, max: 100, valueType: "MAX" } },
+      needs: ["image stretched to its box, nothing while there is no image", "image shown by value thresholds"],
+    });
   });
 
   it("turns and flips an item about its box, which the app's panel items would need", () => {
@@ -116,6 +125,12 @@ describe("convert", () => {
     });
     expect(widgetOf("Bar", { Width: 20, Height: 150, Gradient: true }).lost).toContain("gradient direction (InfoPanel runs a vertical bar's gradient across it)");
     expect(widgetOf("Bar", { Width: 200, Height: 10, Color: "#80FF0000" }).lost).toContain("colour transparency");
+    // A fully transparent track or frame draws nothing, so it is left out rather than lost; the frame still insets.
+    const clear = widgetOf("Bar", { Width: 20, Height: 150, Background: true, BackgroundColor: "#00FFFFFF", Frame: true, FrameColor: "#00FFFFFF", Gradient: false });
+    expect(clear.lost).not.toContain("colour transparency");
+    expect(clear.custom).toMatchObject({ gauge: { track: null, thickness: 18 } });
+    expect((clear.custom as { gauge: object }).gauge).not.toHaveProperty("background.border");
+    expect(widgetOf("Bar", { Width: 20, Height: 150, Background: true, BackgroundColor: "#80FFFFFF" }).lost).toContain("colour transparency");
     const donut = widgetOf("Donut", { Width: 120, Span: 270, Thickness: 12, Color: "#FFFF0000", Rotation: 45 });
     expect(donut).toMatchObject({
       box: { w: 120, h: 120 }, transform: { rotate: 45 }, needs: ["custom gauge widget", "rotated panel items"],
@@ -140,13 +155,36 @@ describe("convert", () => {
       },
     });
     expect(widgetOf("Graph", { Type: "LINE", Width: 100 }).needs[0]).toBe("InfoPanel graph style (step, thickness, frame, background, fill)");
+    // Unbound, InfoPanel draws a HWiNFO or Libre graph from zeros and a plugin graph not at all.
+    expect(widgetOf("Graph", { SensorType: "HwInfo" }).custom).toMatchObject({ zeros: true });
+    expect(widgetOf("Graph", { SensorType: "Plugin" }).custom).toMatchObject({ zeros: false });
   });
 
   it("draws capsules, ovals and polygons from InfoPanel's geometry", () => {
     const n = widgetOf("Shape", { ShowGradient: false, Type: "Capsule", Width: 80, Height: 30, CornerRadius: 15, FillColor: "#FF223344", ShowFrame: true, FrameThickness: 2, FrameColor: "#FFFFFFFF" });
-    expect(n).toMatchObject({ needs: ["capsule shape"], custom: { kind: "shape", type: "Capsule", radius: 15, fill: "#223344", stroke: { color: "#FFFFFF", width: 2 } } });
-    expect(widgetOf("Shape", { ShowGradient: false, Type: "Ellipse", Width: 80, Height: 30 }).needs).toEqual(["oval shape"]);
-    expect(widgetOf("Shape", { ShowGradient: false, Type: "Star", Width: 40, Height: 40 }).needs).toEqual(["star shape"]);
+    // Colours as InfoPanel writes them: the prototype keeps their alpha.
+    expect(n).toMatchObject({
+      needs: ["capsule shape", "shape frame"],
+      custom: { kind: "shape", type: "Capsule", radius: 15, fill: "#FF223344", stroke: { color: "#FFFFFFFF", width: 2 }, gradient: null },
+    });
+    expect(widgetOf("Shape", { ShowGradient: false, ShowFrame: false, Type: "Ellipse", Width: 80, Height: 30 }).needs).toEqual(["oval shape"]);
+    expect(widgetOf("Shape", { ShowGradient: false, ShowFrame: false, Type: "Star", Width: 40, Height: 40 }).needs).toEqual(["star shape"]);
+  });
+
+  it("draws frames, corner radii, transparency and gradients the shape widget lacks; a plain shape stays the widget", () => {
+    const plain = { ShowGradient: false, ShowFrame: false, Type: "Rectangle", CornerRadius: 0, FillColor: "#FF112233" };
+    expect(widgetOf("Shape", plain)).toMatchObject({ widget: { kind: "shape", shape: "rect", color: "#112233" }, needs: [] });
+    expect(widgetOf("Shape", plain).custom).toBeUndefined();
+    // An outline circle: no fill, a frame (InfoPanel's default thickness 5).
+    expect(widgetOf("Shape", { ...plain, Type: "Ellipse", Width: 50, Height: 50, ShowFill: false, ShowFrame: true })).toMatchObject({
+      needs: ["shape frame"], custom: { kind: "shape", fill: null, stroke: { width: 5 } },
+    });
+    expect(widgetOf("Shape", { ...plain, CornerRadius: 8, FillColor: "#80112233" }).needs).toEqual(["shape corner radius", "colour transparency"]);
+    expect(widgetOf("Shape", { ...plain, ShowGradient: true, GradientType: "Sweep", GradientAngle: 30, GradientAnimationSpeed: 0, GradientColor: "#FF00FF00", GradientColor2: "#FF0000FF" })).toMatchObject({
+      needs: ["gradient shapes"],
+      custom: { gradient: { color2: "#FF00FF00", color3: "#FF0000FF", angle: 30, speed: 0, type: "Sweep" } },
+    });
+    expect(widgetOf("Shape", { ...plain, ShowGradient: true, Rotation: 20 }).needs).toEqual(["animated gradient shapes", "rotated panel items"]);
   });
 
   it("shows an image-sequence gauge's frame for the value, sized from its frames", () => {
