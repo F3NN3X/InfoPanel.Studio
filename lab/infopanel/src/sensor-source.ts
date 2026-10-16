@@ -4,7 +4,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { TableData, SensorState } from "./render/scene.ts";
-import { buildCatalog, mapBinding, toReading, type BoundItem, type Catalog, type DataApiValue, type Match } from "./sensors.ts";
+import { groupId } from "./remap/remap.ts";
+import { buildCatalog, toReading, type BoundItem, type Catalog, type DataApiValue, type Match } from "./sensors.ts";
 
 export const DATA_API = "http://127.0.0.1:3921";
 export type SensorMode = "unbound" | "mock" | "live";
@@ -78,10 +79,13 @@ export interface SourceInput {
   live: Live;
   /** Mock value per item. */
   mock: ReadonlyMap<BoundItem, number>;
+  /** The live key per binding group (remap.ts `resolveAll`). */
+  resolved: ReadonlyMap<string, Match | null>;
 }
 
 /** The binding's match in the live catalog, when in live mode. */
-export const liveMatch = (item: BoundItem, s: SourceInput): Match | null => (s.mode === "live" ? mapBinding(item, s.live.catalog) : null);
+export const liveMatch = (item: BoundItem, s: SourceInput): Match | null =>
+  s.mode === "live" ? (s.resolved.get(groupId(item)) ?? null) : null;
 
 /** What InfoPanel would read for an item. Unbound: no reading; HWiNFO and Libre graphs still fill with zeros. */
 export function sensorState(item: BoundItem, s: SourceInput): SensorState {

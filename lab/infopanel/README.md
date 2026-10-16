@@ -44,7 +44,8 @@ survey written by `python -I lab/infopanel/scripts/corpus-expected.py`. Re-run i
 | `src/sensors.ts` | Binding → Data API key: exact `ref`, plugin key, HWiNFO name fallback; Data API value → reading |
 | `src/SensorPanel.tsx` | Lab panel: every bound item with its match and text, live from :3921 or from mock sliders |
 
-`npm run lab:map` maps every corpus profile against the live Data API and prints how each binding matched.
+`npm run lab:map` maps every corpus profile against the live Data API and prints how each binding matched,
+plus the remap step's result per profile (`-- --suggestions` lists each suggested key).
 `dotnet run lab/infopanel/scripts/dotnet-reference.cs` regenerates `src/__fixtures__/dotnet-reference.json`.
 
 Two .NET rules worth knowing: the custom patterns InfoPanel formats values with (`0.00`) round 15 significant
@@ -130,3 +131,18 @@ The picker's "Installed in InfoPanel" group lists the profiles of the InfoPanel 
 (`local-data-plugin.ts`) reads them live and read-only from `%LOCALAPPDATA%\InfoPanel` (or `INFOPANEL_DATA_DIR`):
 `profiles.xml`, `profiles/<guid>.xml` and `assets/<guid>/`, served in the corpus layout so everything else works
 the same. Images with absolute paths outside that folder draw the placeholder, as on any other machine.
+
+## Sensor remap (L2)
+
+**Remap sensors** (live mode) lists the profile's bindings grouped by the sensor they read (`src/remap/`); one
+choice fixes every item in the group, and the item count selects those items on the canvas.
+
+- Each group resolves in order: your choice, then the automatic mapping (exact `ref`, plugin key, HWiNFO name),
+  then a suggestion when exactly one candidate is strong. Strong means the same Libre reading type and hardware
+  family with the same sensor name (an AMD GPU's "GPU Core" temperature → the NVIDIA one's), or the same plugin
+  and reading under another instance (another drive letter, network adapter or weather location).
+- Name matches and suggestions are shown as "check" until confirmed (one by one or all at once); groups with no
+  candidate are "unresolved". A group can also be left unbound on purpose, or reset to the automatic result.
+- The key picker shows suggestions ranked for the group, or searches keys, names and refs (every word must
+  match, the group's best fits first), with live values; arrows and Enter pick.
+- Choices live in the page for now; the stored form (a key per item, the original binding kept) is L8.

@@ -33,7 +33,7 @@ export function SensorPanel({ items, source, now, onMode, onMock }: SensorPanelP
     return out;
   }, [items]);
 
-  const counts = { ref: 0, "plugin-key": 0, name: 0, unmapped: 0 };
+  const counts = { ref: 0, "plugin-key": 0, name: 0, suggested: 0, chosen: 0, unmapped: 0 };
   const view = rows.map((row) => {
     const { item } = row;
     if (!isBound(item)) {
@@ -59,7 +59,7 @@ export function SensorPanel({ items, source, now, onMode, onMock }: SensorPanelP
       <p>
         {radio("unbound", "Unbound (as in the screenshots)")} {radio("live", `Live (${DATA_API})`)} {radio("mock", "Mock")}
         {mode === "live" &&
-          ` — ref ${counts.ref}, plugin key ${counts["plugin-key"]}, name ${counts.name}, unmapped ${counts.unmapped}`}
+          ` — ref ${counts.ref}, plugin key ${counts["plugin-key"]}, name ${counts.name}, suggested ${counts.suggested}, chosen ${counts.chosen}, unmapped ${counts.unmapped}`}
       </p>
       {mode === "live" && source.live.error && <p>{source.live.error}</p>}
       <table>

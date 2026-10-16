@@ -46,7 +46,8 @@ export const pluginKey = (id: string) => "plugins." + id.replace(/^\/+/, "").rep
 /** `SensorSnapshotBuilder.CleanName`: control characters dropped, whitespace collapsed. */
 const cleanName = (s: string) => s.replace(/[\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim();
 
-export type MatchVia = "ref" | "plugin-key" | "name";
+/** How a key was found; "suggested" and "chosen" come from the remap step (src/remap). */
+export type MatchVia = "ref" | "plugin-key" | "name" | "suggested" | "chosen";
 export interface Match {
   key: string;
   via: MatchVia;

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "./archive.ts";
 import { walkItems } from "./parse.ts";
 import { FontPanel } from "./FontPanel.tsx";
 import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
+import { groupBindings, indexCatalog, resolveAll, type Overrides } from "./remap/remap.ts";
+import { RemapPanel } from "./remap/RemapPanel.tsx";
 import { sensorState, useLiveCatalog, useNow, type SensorMode } from "./sensor-source.ts";
 import { SensorPanel } from "./SensorPanel.tsx";
 import type { BoundItem } from "./sensors.ts";
@@ -42,8 +44,24 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
   const [mock, setMock] = useState<ReadonlyMap<BoundItem, number>>(new Map());
   const live = useLiveCatalog(mode === "live");
   const now = useNow();
-  const source = { mode, live, mock };
-  const sensor = useCallback((item: BoundItem) => sensorState(item, { mode, live, mock }), [mode, live, mock]);
+  // Remap (L2): the candidate index changes with the set of keys, the groups with
+  // the set of bindings, not on every poll or every drag.
+  const [overrides, setOverrides] = useState<Overrides>(new Map());
+  const keysSig = Object.keys(live.catalog.sensors).join("\n");
+  const index = useMemo(() => indexCatalog(live.catalog), [keysSig]);
+  const groups = groupBindings(items);
+  const groupsSig = groups.map((g) => `${g.id}=${g.paths.join(",")}`).join("\n");
+  const stableGroups = useMemo(() => groups, [groupsSig]);
+  const resolved = useMemo(() => resolveAll(stableGroups, index, overrides), [stableGroups, index, overrides]);
+  const choose = (id: string, key: string | null) =>
+    setOverrides((o) => {
+      const next = new Map(o);
+      if (key === null) next.delete(id);
+      else next.set(id, key);
+      return next;
+    });
+  const source = { mode, live, mock, resolved };
+  const sensor = useCallback((item: BoundItem) => sensorState(item, { mode, live, mock, resolved }), [mode, live, mock, resolved]);
   const counts = new Map<string, number>();
   for (const { item } of walkItems(items)) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
   return (
@@ -55,6 +73,13 @@ function Summary({ parsed, screenshot }: { parsed: ParsedExport; screenshot: str
       </p>
       <p>Sensors: {mode} (change below)</p>
       <ComparePanel parsed={parsed} editor={editor} sensor={sensor} now={now} screenshot={screenshot} />
+      {mode === "live" ? (
+        <RemapPanel groups={stableGroups} resolved={resolved} index={index} overrides={overrides} onChoose={choose} onSelect={editor.select} />
+      ) : (
+        <p>
+          <button onClick={() => setMode("live")}>Remap sensors</button> (uses the live Data API)
+        </p>
+      )}
       <table>
         <tbody>
           {[...counts].sort().map(([k, n]) => (
