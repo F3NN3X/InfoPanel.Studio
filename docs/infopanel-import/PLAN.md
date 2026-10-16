@@ -1,8 +1,8 @@
 # InfoPanel profile import: implementation plan (P0.8)
 
-Status: **draft for approval** (2026-10-16). Phase 0 (the lab) is done on `feat/infopanel-import`; this plan turns it
-into a feature in `src/`. The user answered the open questions on 2026-10-16 (see "Answers"); decision 1 records
-an interpretation of the answer that needs confirming.
+Status: **approved** (2026-10-16), with decision 1 as written and the lab-first order under "Phases". Phase 0
+(the lab) is done on `feat/infopanel-import`; this plan grows the lab into the complete feature, then moves it into
+`src/`.
 
 ## What Phase 0 established
 
@@ -127,19 +127,33 @@ Not chosen as the only model:
 
 ## Phases
 
-Each ends with `tsc -b`, `npm test` and the lab tests passing.
+**Lab first** (user, 2026-10-16): every feature is built and working in `lab/infopanel/` before anything moves
+into `src/`. The lab is also where new features are tried out (custom gauges, profile asset management and
+others). Each phase ends with the lab tests passing; `src/` stays untouched until the app phases.
+
+### Lab phases
 
 | Phase | Content |
 |---|---|
-| P1 | Move model, parser, formatting, sensor mapping, fonts and geometry into `src/lib/infopanel/`; lab imports from there |
-| P2 | Canvas zone kind: `Placement.canvas`, normalization, the faithful renderer in a zone, kiosk and desktop bundles |
-| P3 | Import flow: file picker, mode choice, asset upload, import report, new profile; one undo step |
-| P4 | Canvas editing: selection, item tree, drag, resize and nudge, the InfoPanel item-kind inspector registry |
-| P5 | Native mode: item to panel widget conversion, per-item and "switch all" toggles |
-| P6 | Sensor remap step and inspector entry; `sample-history` capacity per key |
-| P7 | Fork follow-ups to PR #173: structured tables, font resolve and file endpoints |
-| P8 | Fonts in the dashboard: resolution through the endpoint, font assets and `@font-face`, missing-font report |
-| P9 | Installed-profile import through the server |
+| L1 | Canvas editing: selection, item tree, drag, resize and nudge, undo, the InfoPanel item-kind inspector registry |
+| L2 | Sensor remap: unresolved and name-matched bindings grouped by sensor, key picker with live values |
+| L3 | Fork follow-ups to PR #173: structured tables, font resolve and file endpoints; the lab uses them |
+| L4 | Fonts end to end: faces from the endpoint, uploaded and pack fonts, missing-font report |
+| L5 | Native mode: item to panel widget conversion, rendered with the app's widget components, per-item toggles |
+| L6 | Profile asset management (scope to settle) |
+| L7 | Custom gauges (scope to settle) |
+| L8 | The import flow end to end: mode choice, import report, and the stored form the app will save |
+
+### App phases (after the lab is complete)
+
+| Phase | Content |
+|---|---|
+| A1 | Move the lab's model and logic into `src/lib/infopanel/`; the lab imports from there |
+| A2 | Canvas zone kind: `Placement.canvas`, normalization, the renderer in a zone, kiosk and desktop bundles |
+| A3 | Import flow, asset upload and font assets in the studio; one undo step |
+| A4 | Canvas editing and the inspector registry in the studio |
+| A5 | Native mode, sensor remap, `sample-history` capacity per key |
+| A6 | Installed-profile import through the server; the features proven in L6 and L7 |
 
 ## Risks
 
@@ -154,7 +168,7 @@ Each ends with `tsc -b`, `npm test` and the lab tests passing.
 
 1. **Placement:** "a 1 and 2 hybrid, maybe make it optional or a setting toggle between either or both". Written
    up as decision 1: one canvas zone, each item in InfoPanel or native widget mode, chosen at import (Faithful,
-   Native where possible, Both) and switchable per item. **To confirm.**
+   Native where possible, Both) and switchable per item. Confirmed with the approval.
 2. **Fonts:** the Data API endpoint in the fork.
 3. **Tables:** yes, structured tables as a follow-up PR.
 4. **Editing:** item editing from the start.
