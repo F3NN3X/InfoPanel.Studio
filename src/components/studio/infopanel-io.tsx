@@ -4,7 +4,7 @@ import { useToast } from "@/components/ui/toast";
 import { createLibraryItem } from "@/lib/library";
 import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
 import type { ImportCommit, ImportSource } from "@/components/infopanel/import/import-dialog";
-import { canvasZoneOf, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
+import { canvasZoneOf, countItems, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
 
 // The dialogs carry the InfoPanel parser and writer: loaded on first open, never in the kiosk bundle.
 const ImportDialog = lazy(() => import("@/components/infopanel/import/import-dialog").then((m) => ({ default: m.ImportDialog })));
@@ -50,7 +50,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
         name: c.name,
         data: c.canvas,
         files: c.files,
-        meta: { width: c.size.width, height: c.size.height, items: c.canvas.items.length, source: c.canvas.source.origin },
+        meta: { width: c.size.width, height: c.size.height, items: countItems(c.canvas.items), source: c.canvas.source.origin },
       }).then(
         () => toast(`Saved ${c.name} to the Library`),
         (e: Error) => toast(`Not saved to the Library: ${e.message}`),

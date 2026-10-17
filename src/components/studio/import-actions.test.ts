@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CANVAS_ID, defaultConfig, mergeConfig, newProfile, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
-import { canvasRect, canvasZoneOf, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
+import { canvasRect, canvasZoneOf, countItems, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
 
 const canvas = (name = "Arc") =>
   ({
@@ -102,5 +102,12 @@ describe("canvasZoneOf and withCanvas", () => {
     expect(next.profiles[0].pages[0].placements[2].canvas?.source.name).toBe("baked");
     expect(next.profiles[0].pages[0].placements[1]).toBe(c.profiles[0].pages[0].placements[1]);
     expect(withCanvas(c, "nope", canvas())).toBe(c);
+  });
+});
+
+describe("countItems", () => {
+  it("counts the items inside groups too", () => {
+    const items = [{ kind: "Text" }, { kind: "Group", DisplayItems: [{ kind: "Text" }, { kind: "Group", DisplayItems: [{ kind: "Bar" }] }] }] as unknown as StoredCanvas["items"];
+    expect(countItems(items)).toBe(5);
   });
 });

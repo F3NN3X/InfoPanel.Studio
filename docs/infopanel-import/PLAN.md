@@ -170,6 +170,8 @@ passing, and is reviewed before the next starts.
 | A7 | Gauges page (§6): browse and editor, presets, image-sequence tools, bake |
 | A8 | The states in §10, responsive rules, docs and `FEATURE_MAP.md` rows |
 
+Open gaps and deviations the phases leave are listed in [GAPS.md](GAPS.md).
+
 ## Risks
 
 | Level | Risk | Mitigation |

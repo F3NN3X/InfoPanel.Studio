@@ -64,7 +64,7 @@ plan and decisions are in
 
 ## InfoPanel import
 
-Plan: `docs/infopanel-import/PLAN.md` (lab phases done; app phases A1–A8 follow the studio spec in
+Plan: `docs/infopanel-import/PLAN.md`, open gaps in `GAPS.md` (add a row when a phase leaves something out) (lab phases done; app phases A1–A8 follow the studio spec in
 `docs/infopanel-import/studio/SPEC.md`, concept `Studio Lab.dc.html`). The model and logic are in `src/lib/infopanel/`;
 the lab page in `lab/infopanel/` (`npm run lab`, `lab:test`, `lab:typecheck`) imports them and stays as a dev tool.
 Internal imports there keep `.ts` extensions so the lab's Node scripts can load them.
