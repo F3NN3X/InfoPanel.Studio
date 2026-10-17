@@ -959,26 +959,33 @@ same files as the studio.
 |---|---|
 | `POST /api/assets` | Raw file body with its `Content-Type`. `200 { id, url, type, size }` (also for a file already stored); 403, 413, 415, 400 for an empty or aborted body |
 | `GET /api/assets` | `[{ id, url, type, kind, size, mtime }]`, newest first |
-| `GET /api/assets?unused=1` | The same, minus every id the saved `config.json` text contains as `/api/assets/<id>` |
+| `GET /api/assets?unused=1` | The same, minus every file whose hash the saved `config.json` or a library item mentions (in an asset URL, an asset id, or bare: a canvas zone names its assets by hash) |
 | `GET` / `HEAD /api/assets/<id>` | The file: its sniffed type, `Cache-Control: public, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, `Accept-Ranges: bytes`; a `Range: bytes=…` header gets 206 with `Content-Range`, or 416 past the end |
 | `DELETE /api/assets/<id>` | 204, or 404 when it is not there |
 
 Rules the server enforces:
 
 - **Type by content.** The first bytes decide the type (`sniffType`): PNG,
-  JPEG, GIF, WebP, AVIF, MP4 (ISO-BMFF video brands) and WebM. Any Matroska
-  EBML header counts as WebM (DocType `webm` or `matroska`: tools write the
-  latter into `.webm` files, and Chromium plays both), and `video/x-matroska`
-  is declared WebM. SVG, HTML, HEIC, QuickTime and anything else are refused
-  (415), and the declared `Content-Type` must name the same type.
-- **Size.** Images up to 25 MB, videos up to 300 MB (413). A `Content-Length`
+  JPEG, GIF, WebP, AVIF, BMP, ICO, MP4 (ISO-BMFF video brands), WebM, and
+  the fonts TTF, OTF, TTC, WOFF and WOFF2 (for imported InfoPanel profiles
+  and the library). Any Matroska EBML header counts as WebM (DocType `webm`
+  or `matroska`: tools write the latter into `.webm` files, and Chromium
+  plays both), and `video/x-matroska` is declared WebM. SVG is text: it is
+  taken when its first element is `<svg>` (after an XML prologue, comments
+  and a doctype, `isSvgText`), and always served with
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline';
+  img-src data:; sandbox`, so opened on its own it runs nothing. HTML,
+  HEIC, QuickTime and anything else are refused (415), and the declared
+  `Content-Type` must name the same type.
+- **Size.** Images up to 25 MB, SVG up to 256 KB, videos up to 300 MB, fonts
+  up to 30 MB (413). A `Content-Length`
   over the limit is refused before reading; otherwise the body is streamed to
   a temp file while it is hashed (never held in memory) and the upload stops
   at the limit. The temp file is deleted on any refusal and renamed to the id
   on success; temp files left by a restart are removed when the server
   starts.
 - **Paths.** A file path is only built from an id matching
-  `^[a-f0-9]{64}\.(png|jpg|gif|webp|avif|mp4|webm)$`; anything else under
+  `^[a-f0-9]{64}\.(png|jpg|gif|webp|avif|bmp|ico|svg|mp4|webm|ttf|otf|ttc|woff|woff2)$`; anything else under
   `/api/assets/` is 404. There is no directory listing other than the JSON
   list.
 - **Writes.** `POST` and `DELETE` need the header `X-Dashboard-Asset: 1`
@@ -994,6 +1001,28 @@ Rules the server enforces:
   read.
 - **Read errors.** A file that vanishes while being streamed (a concurrent
   delete) destroys that response; it never crashes the server.
+
+### For the InfoPanel import (`server/library.mjs`, `infopanel-local.mjs`, `font-proxy.mjs`)
+
+| Route | Answer |
+|---|---|
+| `GET /api/library` | My library: every item, newest first; `data` over 256 KB (an imported canvas) is left out and its size given as `dataSize` |
+| `GET /api/library/<id>` | One item, whole |
+| `POST /api/library` | JSON `{ kind, name, files?, meta?, data?, copies? }` → 201 with the item (id and stamps made here) |
+| `PUT /api/library/<id>` | The fields to change → 200; `kind` cannot change |
+| `DELETE /api/library/<id>` | 204, or 404 |
+| `GET /api/infopanel/installed` | The profiles of the InfoPanel installed here: `[{ guid, name, bytes, assets }]` (this machine only) |
+| `GET /api/infopanel/installed/<guid>/Profile.xml`, `DisplayItems.xml`, `assets/<name>` | Its files, read-only |
+| `GET /api/font-proxy?url=` | A Font Squirrel URL fetched for the page (no CORS there); redirects stay on font hosts, 30 MB cap, the catalogue cached a week in `<data dir>\cache` |
+
+A library item (`kind`: image, video, font, svg, gauge, panel, style,
+canvas) is one JSON file in `<data dir>\library`, named by its id
+(`lib_` + 12 characters, the only thing a path is built from). Its bytes
+live in the asset store, named in `files` by asset id; `meta` (tags, sizes,
+colours, at most 64 KB) is what the Library page filters by; `copies` lists
+where it was placed (copy semantics: a profile never points back). Writes
+need `X-Dashboard-Library: 1` and JSON, from loopback unless
+`ALLOW_REMOTE_UPLOAD=1`; an item is at most 8 MB.
 
 #### Request gate (`server/request-guard.mjs`)
 

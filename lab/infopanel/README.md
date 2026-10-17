@@ -99,7 +99,8 @@ The Fonts panel and the canvas share one plan (`src/useFontPlan.ts`, `src/font-s
 `npm run lab:font-get -- "<family>" [--install | --uninstall]` downloads to `fonts/downloads/` and optionally
 installs or removes it for the current user. The Fonts panel shows the same candidates with a preview. Sources and
 caveats: `docs/infopanel-import/research-font-sources.md`. Font Squirrel sends no CORS headers, so the page reaches it
-through the dev server (`font-proxy-plugin.ts`, Font Squirrel URLs only), which keeps its catalogue in
+through the dev server (`font-proxy-plugin.ts`, Font Squirrel URLs only, on the dashboard server's own
+`server/font-proxy.mjs`), which keeps its catalogue in
 `fonts/fontsquirrel-list.json` for a week; while Font Squirrel throttles (an empty 202) the panel lists it as
 unavailable.
 
@@ -157,7 +158,7 @@ The compare panel is also the editor (`src/editor/`). Edits stay in the page; no
 ## Installed profiles
 
 The picker's "Installed in InfoPanel" group lists the profiles of the InfoPanel on this machine. The dev server
-(`local-data-plugin.ts`) reads them live and read-only from `%LOCALAPPDATA%\InfoPanel` (or `INFOPANEL_DATA_DIR`):
+(`local-data-plugin.ts`, on the dashboard server's own `server/infopanel-local.mjs`) reads them live and read-only from `%LOCALAPPDATA%\InfoPanel` (or `INFOPANEL_DATA_DIR`):
 `profiles.xml`, `profiles/<guid>.xml` and `assets/<guid>/`, served in the corpus layout so everything else works
 the same. Images with absolute paths outside that folder draw the placeholder, as on any other machine.
 

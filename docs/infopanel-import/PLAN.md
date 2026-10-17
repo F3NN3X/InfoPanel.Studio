@@ -163,7 +163,7 @@ passing, and is reviewed before the next starts.
 |---|---|
 | A1 | Move the lab's model and logic into `src/lib/infopanel/`; the lab imports from there (done) |
 | A2 | Canvas zone kind: `Placement.canvas`, normalization, the renderer in a zone, kiosk and desktop bundles (done) |
-| A3 | Server: My library store (items, copy counts, files by SHA-256), the asset store for fonts and SVG, installed profiles, the font proxy |
+| A3 | Server: My library store (items, copy counts, files by SHA-256), the asset store for fonts and SVG, installed profiles, the font proxy (done) |
 | A4 | Import dialog (spec §4), sensor remap (§5), Export dialog (§9); Import / Export in the top bar, the Add panel card |
 | A5 | Canvas zone editing (§7): item tree, toolbar, modes, compare, mock sensors; the inspector registry extended with InfoPanel kinds |
 | A6 | Library page (§3): My library, profile assets, fonts, drag to the canvas (§8) |

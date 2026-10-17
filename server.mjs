@@ -15,6 +15,10 @@
 // The extras (server/extras.mjs) connect to OBS and fetch the calendar links
 // for the Dynamic Island; their secrets live in integrations.json, which no
 // page ever downloads.
+// For the InfoPanel import: the user's library (server/library.mjs), the
+// profiles of the InfoPanel installed here, read-only
+// (server/infopanel-local.mjs), and a proxy to Font Squirrel, which sends no
+// CORS headers (server/font-proxy.mjs).
 //
 // Node built-ins only. Environment:
 //   PORT  listen port (default 3922)
@@ -26,6 +30,7 @@
 //   DASHBOARD_DIST  folder to serve instead of ./dist
 //   DASHBOARD_DATA_DIR  folder for config.json, assets and the other state files
 //   DASHBOARD_DEBUG=1  log each request and SSE connection; GET /api/debug/stats (this machine only)
+//   INFOPANEL_DATA_DIR  InfoPanel's data folder (default %LOCALAPPDATA%\InfoPanel)
 
 import http from "node:http";
 import fs from "node:fs";
@@ -40,6 +45,9 @@ import { createAgentUsage } from "./server/agent-usage.mjs";
 import { createDebug } from "./server/debug.mjs";
 import { readVersion, resolveDataDir, resolveDist } from "./server/env.mjs";
 import { createExtras } from "./server/extras.mjs";
+import { createFontProxy } from "./server/font-proxy.mjs";
+import { createInstalledProfiles, createInstalledRoutes, infopanelDataDir } from "./server/infopanel-local.mjs";
+import { createLibrary, createLibraryStore } from "./server/library.mjs";
 import { resolveProxyType } from "./server/proxy.mjs";
 import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, isLoopback, parseAllowedHosts } from "./server/request-guard.mjs";
 
@@ -57,6 +65,8 @@ const ASSETS_DIR = path.join(DATA_DIR, "assets");
 const CONTROL_FILE = path.join(DATA_DIR, "control.json");
 const ALERTS_FILE = path.join(DATA_DIR, "alerts.json");
 const INTEGRATIONS_FILE = path.join(DATA_DIR, "integrations.json");
+const LIBRARY_DIR = path.join(DATA_DIR, "library");
+const CACHE_DIR = path.join(DATA_DIR, "cache");
 
 const MAX_CONFIG_BYTES = 5 * 1024 * 1024;
 const MAX_PROXY_BYTES = 25 * 1024 * 1024;
@@ -267,7 +277,11 @@ function readBody(req, limit) {
 
 /* ---------------- routes ---------------- */
 
-const handleAssets = createAssets({ dir: ASSETS_DIR, configFile: CONFIG_FILE, send });
+const library = createLibraryStore(LIBRARY_DIR);
+const handleAssets = createAssets({ dir: ASSETS_DIR, configFile: CONFIG_FILE, send, references: () => library.texts() });
+const handleLibrary = createLibrary({ store: library, send, readBody });
+const handleInstalled = createInstalledRoutes({ installed: createInstalledProfiles(infopanelDataDir(process.env)), send });
+const handleFontProxy = createFontProxy({ cacheDir: CACHE_DIR, send });
 
 async function handleConfig(req, res) {
   if (req.method === "GET") {
@@ -432,6 +446,9 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/assets" || pathname.startsWith("/api/assets/")) {
       return await handleAssets(req, res, pathname, searchParams);
     }
+    if (pathname === "/api/library" || pathname.startsWith("/api/library/")) return await handleLibrary(req, res, pathname);
+    if (pathname === "/api/infopanel/installed" || pathname.startsWith("/api/infopanel/installed/")) return await handleInstalled(req, res, pathname);
+    if (pathname === "/api/font-proxy") return await handleFontProxy(req, res, searchParams);
     if (pathname.startsWith("/api/")) return send(res, 404);
     return serveStatic(req, res, pathname);
   } catch (err) {

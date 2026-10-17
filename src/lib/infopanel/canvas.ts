@@ -16,7 +16,7 @@ import { readStored, type ItemImport, type StoredCanvas } from "./import/stored.
 const ASSETS_URL = "/api/assets";
 
 /** The asset store's extension per stored type; types it does not hold yet have none. */
-const STORE_EXT: Partial<Record<AssetType, string>> = { png: "png", jpeg: "jpg", gif: "gif", webp: "webp", video: "mp4" };
+const STORE_EXT: Partial<Record<AssetType, string>> = { png: "png", jpeg: "jpg", gif: "gif", webp: "webp", bmp: "bmp", ico: "ico", svg: "svg", video: "mp4" };
 
 export interface CanvasAsset {
   hash: string;

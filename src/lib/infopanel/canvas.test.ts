@@ -30,7 +30,7 @@ function stored(over: Partial<StoreInput> = {}) {
     ...over,
   });
   // As the config holds it: plain JSON.
-  return JSON.parse(JSON.stringify({ ...s, assets: [{ name: "Logo.PNG", hash: HASH, type: "png", size: 10 }, { name: "x.svg", hash: HASH, type: "svg", size: 1 }] }));
+  return JSON.parse(JSON.stringify({ ...s, assets: [{ name: "Logo.PNG", hash: HASH, type: "png", size: 10 }, { name: "x.svg", hash: HASH, type: "svg", size: 1 }, { name: "notes.txt", hash: HASH, type: "other", size: 1 }] }));
 }
 
 describe("openCanvas", () => {
@@ -54,7 +54,8 @@ describe("openCanvas", () => {
   it("maps assets by lower-case name to the asset store, none for types it does not take", () => {
     const c = openCanvas(stored());
     expect(c.assets.get("logo.png")).toEqual({ hash: HASH, url: `/api/assets/${HASH}.png` });
-    expect(c.assets.get("x.svg")?.url).toBeNull();
+    expect(c.assets.get("x.svg")?.url).toBe(`/api/assets/${HASH}.svg`);
+    expect(c.assets.get("notes.txt")?.url).toBeNull();
   });
 
   it("throws for something that is not a stored canvas", () => {
@@ -76,7 +77,8 @@ describe("storedCanvasKeys", () => {
 describe("assetUrl", () => {
   it("uses the asset store's extensions", () => {
     expect(assetUrl(HASH, "jpeg")).toBe(`/api/assets/${HASH}.jpg`);
-    expect(assetUrl(HASH, "bmp")).toBeNull();
+    expect(assetUrl(HASH, "bmp")).toBe(`/api/assets/${HASH}.bmp`);
+    expect(assetUrl(HASH, "other")).toBeNull();
   });
 });
 
