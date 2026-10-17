@@ -17,6 +17,8 @@ import {
   editKeyOf,
   editKeys,
   flatPaths,
+  freeAssetName,
+  withDroppedImage,
   itemModes,
   itemOverrides,
   livePaths,
@@ -202,5 +204,34 @@ describe("remap on edited items", () => {
   it("a field edit keeps the item's record", () => {
     const items = editItems(canvas());
     expect(editKeyOf(setField(items, "0", "Name", "renamed")[0])).toBe("libre.cpu");
+  });
+});
+
+describe("library drops", () => {
+  const file = { name: "logo.png", hash: "f".repeat(64), type: "png" as const, size: 10, width: 1600, height: 400 };
+
+  it("names a file apart from the canvas's own, ignoring case", () => {
+    const assets = [{ name: "Logo.png", hash: "a".repeat(64), type: "png" as const, size: 1 }, { name: "logo (2).png", hash: "b".repeat(64), type: "png" as const, size: 1 }];
+    expect(freeAssetName(assets, "logo.png")).toBe("logo (3).png");
+    expect(freeAssetName(assets, "other")).toBe("other");
+  });
+
+  it("adds an Image item centred on the drop, at most half the profile, with its file", () => {
+    const open = canvas();
+    const r = withDroppedImage(open.stored, open.profile, editItems(open), file, { x: 400, y: 240 });
+    expect(r.path).toBe("3");
+    const again = openCanvas(JSON.parse(JSON.stringify(r.stored)));
+    const img = again.items[3] as Extract<DisplayItem, { kind: "Image" }>;
+    expect([img.kind, img.FilePath, img.RelativePath, img.Width, img.Height, img.X, img.Y]).toEqual(["Image", "logo.png", true, 400, 100, 200, 190]);
+    expect(r.stored.assets.at(-1)).toMatchObject({ name: "logo.png", hash: file.hash });
+    expect(storedCanvasKeys(r.stored)).toEqual(["libre.cpu", "libre.gpu"]);
+  });
+
+  it("reuses a file the canvas already has", () => {
+    const open = canvas();
+    const first = withDroppedImage(open.stored, open.profile, editItems(open), file, { x: 0, y: 0 });
+    const reopened = openCanvas(JSON.parse(JSON.stringify(first.stored)));
+    const second = withDroppedImage(reopened.stored, reopened.profile, editItems(reopened), { ...file, name: "copy.png" }, { x: 0, y: 0 });
+    expect(second.stored.assets).toHaveLength(first.stored.assets.length);
   });
 });

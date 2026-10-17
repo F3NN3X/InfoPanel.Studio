@@ -8,10 +8,11 @@ import type { OpenCanvas } from "./canvas.ts";
 import type { Path } from "./editor/ops.ts";
 import { itemAt, setField } from "./editor/ops.ts";
 import { fontRequests } from "./import/session.ts";
-import { toStored, type ItemImport, type KeyOf, type StoredCanvas, type StoredFont } from "./import/stored.ts";
+import { toStored, type ItemImport, type KeyOf, type StoredAsset, type StoredCanvas, type StoredFont } from "./import/stored.ts";
+import type { AssetType } from "./assets/assets.ts";
 import { convert, type Conversion, type ConvertContext } from "./native/convert.ts";
 import { isNative, walkPaths } from "./native/modes.ts";
-import type { DisplayItem, Profile } from "./schema.ts";
+import { defaultItem, type DisplayItem, type Profile } from "./schema.ts";
 import { groupId } from "./remap/remap.ts";
 import { isBound, type BoundItem, type DataApiValue } from "./sensors.ts";
 
@@ -172,6 +173,67 @@ export function checkGeometry(kind: DisplayItem["kind"], field: GeoField, raw: s
   return { ok: true, value: n };
 }
 
+
+/* ---- drops ---- */
+
+/** A file dropped from My library (spec §8): its store hash and what the Library read from it. */
+export interface DroppedFile {
+  name: string;
+  hash: string;
+  type: AssetType;
+  size: number;
+  /** The asset store's extension (a WebM video). */
+  ext?: string;
+  width?: number;
+  height?: number;
+}
+
+/** A name not yet used by the canvas's files (ignoring case): "logo.png", "logo (2).png" … */
+export function freeAssetName(assets: readonly StoredAsset[], name: string): string {
+  const taken = new Set(assets.map((a) => a.name.toLowerCase()));
+  if (!taken.has(name.toLowerCase())) return name;
+  const dot = name.lastIndexOf(".");
+  const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  for (let n = 2; ; n++) {
+    const next = `${stem} (${n})${ext}`;
+    if (!taken.has(next.toLowerCase())) return next;
+  }
+}
+
+/**
+ * A library image or video dropped into the canvas editor: a FILE Image item centred on `at`,
+ * drawn at the file's size (at most half the profile, keeping its shape), on top of the rest; its
+ * file joins the canvas's assets (the same bytes already there are reused). Returns the stored
+ * form to commit and the new item's path.
+ */
+export function withDroppedImage(
+  stored: StoredCanvas,
+  profile: Profile,
+  items: readonly DisplayItem[],
+  file: DroppedFile,
+  at: { x: number; y: number },
+): { stored: StoredCanvas; path: Path } {
+  const same = stored.assets.find((a) => a.hash === file.hash);
+  const name = same?.name ?? freeAssetName(stored.assets, file.name);
+  const assets = same ? stored.assets : [...stored.assets, { name, hash: file.hash, type: file.type, size: file.size, ...(file.ext ? { ext: file.ext } : {}) }];
+  const w0 = file.width && file.width > 0 ? file.width : Math.round(profile.Width / 4);
+  const h0 = file.height && file.height > 0 ? file.height : Math.round(profile.Height / 4);
+  const k = Math.min(1, profile.Width / 2 / w0, profile.Height / 2 / h0);
+  const width = Math.max(1, Math.round(w0 * k));
+  const height = Math.max(1, Math.round(h0 * k));
+  const item = {
+    ...defaultItem("Image"),
+    Name: name,
+    FilePath: name,
+    RelativePath: true,
+    X: Math.round(at.x - width / 2),
+    Y: Math.round(at.y - height / 2),
+    Width: width,
+    Height: height,
+  } as DisplayItem;
+  const next = [...items, item];
+  return { stored: storeItems({ ...stored, assets }, profile, next), path: String(next.length - 1) };
+}
 
 /* ---- sensors ---- */
 

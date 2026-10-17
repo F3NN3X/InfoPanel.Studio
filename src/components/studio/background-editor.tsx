@@ -1,3 +1,8 @@
+import type { DragEvent } from "react";
+import type { LibraryItem } from "@/lib/library";
+import { recordCopy } from "@/lib/my-library/copies";
+import { activeLibraryDrag, libraryDragKind, libraryDragOf, setActiveLibraryDrag } from "@/lib/my-library/drag";
+import { fileUrl } from "@/lib/my-library/model";
 import {
   BACKGROUND_DEFAULTS,
   MAX_BLUR,
@@ -35,10 +40,19 @@ interface BackgroundEditorProps {
   /** The types offered (a profile's own background has no "None" here). */
   types: BackgroundType[];
   onChange: (bg: PageBackground) => void;
+  /** Where a dropped library image or video lands ("ARCv2 › Background"), for its copy count. */
+  copyLabel?: string;
+}
+
+/** A My library image or video dragged onto the slot (spec §8): it becomes the background. */
+function libraryMedia(e: DragEvent): LibraryItem | null {
+  const drag = libraryDragOf((t) => e.dataTransfer.getData(t));
+  const item = activeLibraryDrag();
+  return drag && item?.id === drag.libraryItemId && (item.kind === "image" || item.kind === "video") ? item : null;
 }
 
 /** The fields of one background: type, then that type's options and effects. */
-export function BackgroundEditor({ value, types, onChange }: BackgroundEditorProps) {
+export function BackgroundEditor({ value, types, onChange, copyLabel = "Background" }: BackgroundEditorProps) {
   const patch = (p: Partial<PageBackground>) => onChange({ ...value, ...p });
   const gradient = value.gradient ?? BACKGROUND_DEFAULTS.gradient;
   const position = value.position ?? BACKGROUND_DEFAULTS.position;
@@ -46,7 +60,22 @@ export function BackgroundEditor({ value, types, onChange }: BackgroundEditorPro
   const isMedia = value.type === "image" || value.type === "video";
   const noun = value.type === "video" ? "video" : "image";
   return (
-    <div className="space-y-2">
+    <div
+      className="space-y-2"
+      onDragOver={(e) => {
+        const k = libraryDragKind(e.dataTransfer.types);
+        if ((k === "image" || k === "video") && types.includes(k)) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        const item = libraryMedia(e);
+        if (!item || !types.includes(item.kind as BackgroundType)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setActiveLibraryDrag(null);
+        onChange({ ...value, type: item.kind as BackgroundType, src: fileUrl(item) });
+        void recordCopy(item, { profileId: "*", label: copyLabel });
+      }}
+    >
       <SegmentedRow
         label="Type"
         options={types.map((t) => ({ value: t, label: TYPE_LABELS[t] }))}

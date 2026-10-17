@@ -13,6 +13,7 @@ import { FontLoader } from "@/lib/infopanel/font-loader.ts";
 import type { ConvertContext } from "@/lib/infopanel/native/convert.ts";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored.ts";
 import { nativeLayer } from "./native.tsx";
+import { useSuppliedFonts, withSupplied } from "./supplied-fonts";
 import { ProfileView, useFonts, type AssetSource } from "./ProfileView.tsx";
 
 export interface CanvasZoneProps {
@@ -43,7 +44,7 @@ function CanvasView({ canvas, sensors }: { canvas: OpenCanvas; sensors: SensorMa
   const now = useNow();
   const history = useHistory(canvas, sensors);
   const fontLoader = useCallback(() => FontLoader.fetch(null, getApiBase()), []);
-  const font = useFonts(canvas.items, fontLoader);
+  const font = withSupplied(useFonts(canvas.items, fontLoader), useSuppliedFonts(canvas.stored.fonts));
   const assets: AssetSource = useMemo(
     () => new Map([...canvas.assets].flatMap(([name, a]) => (a.url ? [[name, { hash: a.hash, url: a.url }] as const] : []))),
     [canvas],
@@ -63,6 +64,8 @@ function CanvasView({ canvas, sensors }: { canvas: OpenCanvas; sensors: SensorMa
     <div ref={ref} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
       {w > 0 && h > 0 && (
         <div
+          // The studio finds the profile under a drop by this (library-drop.ts).
+          data-ip-canvas=""
           style={{
             position: "absolute",
             left: (w - profile.Width * scale) / 2,

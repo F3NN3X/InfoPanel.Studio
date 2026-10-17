@@ -403,6 +403,44 @@ or an `.infopanel` for InfoPanel, which carries no fonts. Baking stale
 vector gauges first uploads the new frames and puts them on the zone as one
 undo step. Both download through the browser.
 
+### The Library page
+
+The rail's Library opens a full page (`src/components/library/`, lazy-loaded, studio mode
+`library`) in place of the canvas, drawer and inspector; the studio's zone shortcuts are held back
+while it is open.
+
+- **My library** (`use-my-library.ts`): the server's items (`/api/library`, `src/lib/library.ts`)
+  plus the config's saved panels and style presets shown as items (ids `cfg-panel:` / `cfg-style:`,
+  read-only stand-ins). Uploads run two at a time behind the tray: each file is classified from
+  its bytes (`src/lib/my-library/intake.ts`: refuses a bad font, an SVG over 256 KB or with
+  scripts), read in the browser (`decode.ts`: size, video length, a 64 px pixel sample for the
+  stats and the perceptual hash, a font's faces and licence), uploaded to the asset store and
+  saved as an item; identical bytes keep the existing item. An `.infopanel` opens the Import dialog.
+- **Model** (`src/lib/my-library/model.ts`, pure): the auto tags, the sidebar collections (an item
+  can sit in several), search (every word must match name, kind, type, pixel size or a tag),
+  duplicates (identical SHA-256, or the same size and a dHash within 4 bits), the cleanup counts and
+  the sort orders. `theme-suggest.ts` ranks backgrounds for the profile's theme (text contrast at
+  the median luminance ≥ 4.5:1, then hue closeness to the accent, then low detail) with a reason.
+- **Actions** (`library-actions.ts`): Set as background, Add to profile / canvas (a saved panel, or
+  an image as a panel zone with one image widget), Apply to selection (a style), Open canvas and
+  Re-import (the Import dialog with the saved canvas), Export (the Export dialog on the stored
+  form), Duplicate as variant, Optimise (WebP, kept only when 5 % smaller), Merge duplicates. Each
+  placement is one `setConfig` and counts a copy on the item (`copies`; "jump to" selects it).
+- **Profile assets** (`profile-assets.tsx`, `profile-assets/`, logic in
+  `src/lib/infopanel/assets/stored-doc.ts`): a canvas zone's files as the lab's table, with the
+  findings, Add files, Replace by name, Optimise and Clean up, each one `withCanvas` change.
+- **Fonts** (`fonts-view.tsx`, `fonts/`): the requests of the page's canvas zones, My fonts, Add
+  fonts and Get a font (Fontsource, Font Squirrel through `/api/font-proxy`).
+- **Drag** (spec §8, `src/lib/my-library/drag.ts`): a card carries `{ libraryItemId, kind }` under
+  `application/x-infopanel-library`. Dragged over "Drag here to place it on the canvas", the page
+  makes way and the drag goes on to the canvas, which sizes its ghost from the card being dragged
+  (`library-drop.ts`): an image or panel becomes a zone at the ghost, a style applies to the zone
+  under the pointer, a video becomes the background. Over an imported canvas zone (found by
+  `CanvasZone`'s `data-ip-canvas` mark, `canvasPointAt`) or in the canvas editor, an image, SVG or
+  video becomes an InfoPanel Image item at the pointer (`withDroppedImage`); on Page background it
+  sets the background. The inspector keeps its hand-opened sections while the Library page
+  replaces it, so the drag can reach that slot.
+
 ### Editing a canvas zone
 
 Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",

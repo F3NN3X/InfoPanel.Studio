@@ -31,7 +31,8 @@ import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
 import { KEYS } from "./use-studio-shortcuts";
 
-export type StudioMode = "design" | "sources";
+/** Library is a full page of its own, opened from the rail (not part of the Design | Sources switch). */
+export type StudioMode = "design" | "sources" | "library";
 
 interface StudioTopBarProps {
   profiles: MonitorProfile[];

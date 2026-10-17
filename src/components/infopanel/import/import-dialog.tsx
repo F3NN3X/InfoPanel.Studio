@@ -46,7 +46,12 @@ export interface ImportDialogProps {
   initialDest?: Dest;
   /** Commit; resolves to an error to show (no room), or null when the import landed. */
   onImport: (commit: ImportCommit) => Promise<string | null>;
+  /** Open with this source already chosen (the Library: a dropped profile, a saved canvas). */
+  initialSource?: ImportSource;
 }
+
+/** A source the dialog opens with. */
+export type ImportSource = { file: File } | { canvasId: string; name?: string };
 
 const STEPS = ["Source", "Mode", "Review", "Sensors", "Save"] as const;
 const TITLES = ["Choose a source", "How should it be drawn?", "Review before importing", "Fix sensors", "Save"];
@@ -308,7 +313,7 @@ function SourceStep({
   );
 }
 
-function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
+function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<SourceKind>("file");
   const [opening, setOpening] = useState<Opening | null>(null);
@@ -332,6 +337,21 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
       (e: unknown) => id === run.current && setOpening({ label, size, error: e instanceof Error ? e.message : String(e) }),
     );
   };
+
+  // A source handed over by the Library opens straight away.
+  useEffect(() => {
+    if (!initialSource) return;
+    if ("file" in initialSource) {
+      const f = initialSource.file;
+      setKind("file");
+      open(f.name, f.size, async () => openZip(f.name, await bytesOf(f)));
+    } else {
+      const id = initialSource.canvasId;
+      setKind("canvas");
+      open(initialSource.name ?? "Saved canvas", undefined, async () => openStored((await getLibraryItem<StoredCanvas>(id)).data, (h, e, t) => readStoreFile(h, e, t)));
+    }
+    // Once, on open.
+  }, []);
 
   const uploading = !!state && !state.upload.finished;
   // Offline, every group is unresolved: the import goes on and the zone's Remap fixes them later.

@@ -44,9 +44,18 @@ import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
 import { sheetHeight } from "./studio-layout";
+import { zoneName } from "./inspector/zone-meta";
+import { dataOf, type StudioBridge } from "@/components/library/library-actions";
+import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
+import { recordCopy } from "@/lib/my-library/copies";
+import { useToast } from "@/components/ui/toast";
+import type { LibraryCopy } from "@/lib/library";
+import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 
 /** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
+/** The Library page (A6), loaded when the rail first opens it. */
+const LibraryPage = lazy(() => import("@/components/library/library-page"));
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -96,6 +105,7 @@ function StudioViewBody({
   pushPending,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
+  const toast = useToast();
   // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history.
   const control = useControl();
   // The canvas island plays only test alerts (Test in the rule editor); live ones show on kiosks.
@@ -144,7 +154,7 @@ function StudioViewBody({
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, drawer } = ui;
+  const { studioLayout, showSources, showLibrary, fullPage, drawer } = ui;
   /** The data point the inspector's Bound data row opened in Sources mode. */
   const [focusPointKey, setFocusPointKey] = useState<string>();
   useEffect(() => {
@@ -194,11 +204,26 @@ function StudioViewBody({
    * inspector's place. It closes when the zone goes (an undo past its import, another page).
    */
   const [editingCanvas, setEditingCanvas] = useState<string | null>(null);
+  /** Items the editor opens with selected (the Library's "uses"). */
+  const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(undefined);
   const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
   useEffect(() => {
-    if (editingCanvas && (!canvasZone || showSources)) setEditingCanvas(null);
-  }, [editingCanvas, canvasZone, showSources]);
+    if (editingCanvas && (!canvasZone || fullPage)) setEditingCanvas(null);
+  }, [editingCanvas, canvasZone, fullPage]);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
+
+  /** The Library's way into the studio: placing a card copies it into this profile (one undo step). */
+  const libraryBridge: StudioBridge = {
+    config,
+    profile,
+    profileId: storedProfile.id,
+    setConfig,
+    updateProfile: edit.updateProfile,
+    selection: sel.selection,
+    select: (id) => sel.select(id),
+    toast,
+    addCopy: (item, copy) => void recordCopy(item, copy),
+  };
 
   /** The one selected zone, when it is blank: the Add panel's click fills it. */
   const blankZoneId = selected && sel.selection.length === 1 && selected.module === BLANK_MODULE ? selected.id : undefined;
@@ -341,8 +366,8 @@ function StudioViewBody({
       onDragBegin={history.begin}
       onDragCommit={history.commit}
       onDragCancel={history.cancel}
-      dropSizeOf={edit.dropSizeOf}
-      onDropItem={edit.dropItem}
+      dropSizeOf={(d) => (d.kind === "mylib" ? librarySizeOf(d.item, profile) : edit.dropSizeOf(d))}
+      onDropItem={(d, rect, cell, inCanvas) => (d.kind === "mylib" ? void dropLibraryItem(libraryBridge, d, rect, cell, inCanvas) : edit.dropItem(d, rect))}
       onContextMenu={menus.open}
       onOpenAdd={() => ui.setDrawer("add")}
       onUseSample={() => runCommand({ type: "sample-layout" })}
@@ -420,12 +445,68 @@ function StudioViewBody({
         zone={{ ...canvasZone, canvas: canvasZone.canvas }}
         setConfig={setConfig}
         history={history}
-        onDone={() => setEditingCanvas(null)}
+        initialSelection={canvasSelection}
+        onDone={() => {
+          setEditingCanvas(null);
+          setCanvasSelection(undefined);
+        }}
       />
     </Suspense>
   );
 
-  const bar = showSources || canvasEditor ? null : (
+  /** Where a library copy went: "ARCv2 › Page 1 › Background". */
+  const copyLabel = (c: LibraryCopy) => {
+    const p = config.profiles.find((x) => x.id === c.profileId);
+    if (!p) return c.label ?? "A removed profile";
+    const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
+    const zone = page?.placements.find((z) => z.id === c.zoneId);
+    return [p.name, p.pages.length > 1 ? page?.name : null, zone ? zoneName(zone) : c.label].filter(Boolean).join(" › ");
+  };
+  /** Jump to a copy: its profile and page, then its zone selected (a background opens the profile's settings). */
+  const jumpToCopy = (c: LibraryCopy) => {
+    ui.setMode("design");
+    const p = config.profiles.find((x) => x.id === c.profileId);
+    if (!p) return;
+    if (p.id !== storedProfile.id) activateProfile(p.id);
+    const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
+    if (page && page.id !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(page.id);
+    if (c.zoneId) setPendingZone(c.zoneId);
+    else openProfileSettings();
+  };
+  const canvasZones = profile.placements.filter(
+    (z): z is typeof z & { canvas: NonNullable<typeof z.canvas> } => z.module === CANVAS_ID && !!z.canvas,
+  );
+  const libraryEl = showLibrary && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+      <LibraryPage
+        bridge={libraryBridge}
+        onShowCanvas={() => ui.setMode("design")}
+        theme={resolveTheme(config, profile).tokens}
+        profileName={storedProfile.name}
+        onImport={(source) => io.openImport("new", source)}
+        onExportCanvas={(item) =>
+          void dataOf<StoredCanvas>(item).then((canvas) =>
+            canvas
+              ? io.openExport({ id: item.id, module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, canvas })
+              : undefined,
+          )
+        }
+        copyLabel={copyLabel}
+        onJump={jumpToCopy}
+        assets={{
+          zones: canvasZones,
+          setConfig,
+          onSelectUses: (zoneId, paths) => {
+            ui.setMode("design");
+            setCanvasSelection(paths);
+            setEditingCanvas(zoneId);
+          },
+        }}
+      />
+    </Suspense>
+  );
+
+  const bar = fullPage || canvasEditor ? null : (
     <>
     <ZoomToolbar
       zoom={ui.zoom}
@@ -482,15 +563,15 @@ function StudioViewBody({
         layout={studioLayout}
         rail={
           <LeftRail
-            active={showSources ? "sources" : drawer}
+            active={showSources ? "sources" : showLibrary ? "library" : drawer}
             onSelect={ui.onRail}
             onShortcuts={() => ui.setShortcutsOpen(true)}
           />
         }
-        drawer={!showSources && !canvasEditor && drawer && drawerEl}
-        main={canvasEditor || mainEl}
+        drawer={!fullPage && !canvasEditor && drawer && drawerEl}
+        main={libraryEl || canvasEditor || mainEl}
         bar={bar}
-        inspector={showSources || canvasEditor ? null : inspectorAside}
+        inspector={fullPage || canvasEditor ? null : inspectorAside}
       />
 
       <WidgetPickerDialog

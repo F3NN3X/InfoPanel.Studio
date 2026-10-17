@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
+import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
 import type { Placement } from "@/lib/layout";
 import { filterCounts, remapRows, resolveAll } from "@/lib/infopanel/remap/remap";
@@ -27,14 +28,17 @@ export interface CanvasEditorProps {
   setConfig: HistorySetter;
   history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void };
   onDone: () => void;
+  /** Items selected on open (the Library's "uses", a font's text items). */
+  initialSelection?: string[];
 }
 
 const isTyping = (el: Element | null) =>
   el instanceof HTMLElement && (el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, onDone }: CanvasEditorProps) {
-  const editor = useCanvasEditor(zone, setConfig, withCanvas);
+export default function CanvasEditorView({ zone, setConfig, history, onDone, initialSelection }: CanvasEditorProps) {
+  const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection);
+  const toast = useToast();
   const [showModes, setShowModes] = useState(false);
   const [compareOn, setCompareOn] = useState(false);
   const [compare, setCompare] = useState<Compare | null>(null);
@@ -113,7 +117,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone }: C
         />
         {showModes && <ModesStrip editor={editor} />}
         {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
-        <EditCanvas editor={editor} ctx={view.ctx} values={view.values} showModes={showModes} compare={compareOn ? compare : null} />
+        <EditCanvas editor={editor} ctx={view.ctx} values={view.values} showModes={showModes} compare={compareOn ? compare : null} onRefused={toast} />
       </div>
       <aside aria-label="Item" className="flex w-[308px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">
         <ItemInspector editor={editor} live={live} onRemap={() => setRemapOpen(true)} />

@@ -63,6 +63,8 @@ export interface CanvasEditor {
   /** One undo step; a `key` coalesces repeats (typing, arrow nudges). */
   commit(items: DisplayItem[], key?: string, selection?: Path[]): void;
   setField(path: Path, field: string, value: unknown, key?: string): void;
+  /** A whole new stored form (items and assets changed together, e.g. a dropped library image): one step. */
+  commitStored(stored: StoredCanvas, selection?: Path[]): void;
   duplicate(): void;
   group(): void;
   ungroup(): void;
@@ -81,11 +83,16 @@ export interface CanvasEditor {
   setMock(groupId: string, value: number): void;
 }
 
-export function useCanvasEditor(zone: Placement & { canvas: StoredCanvas }, setConfig: HistorySetter, replace: ReplaceCanvas): CanvasEditor {
+export function useCanvasEditor(
+  zone: Placement & { canvas: StoredCanvas },
+  setConfig: HistorySetter,
+  replace: ReplaceCanvas,
+  initialSelection: Path[] = [],
+): CanvasEditor {
   const open = useMemo(() => openCanvas(zone.canvas), [zone.canvas]);
   const committed = useMemo(() => editItems(open), [open]);
   const [draft, setDraft] = useState<DisplayItem[] | null>(null);
-  const [rawSelection, setSelection] = useState<Path[]>([]);
+  const [rawSelection, setSelection] = useState<Path[]>(initialSelection);
   const [anchor, setAnchor] = useState<Path | null>(null);
   const [sensorMode, setSensorMode] = useState<SensorMode>("live");
   const [mock, setMockMap] = useState<ReadonlyMap<string, number>>(new Map());
@@ -127,6 +134,11 @@ export function useCanvasEditor(zone: Placement & { canvas: StoredCanvas }, setC
     preview: setDraft,
     commit,
     setField: (path, field, value, key) => commit(setField(committed, path, field, value), key),
+    commitStored: (stored, nextSelection) => {
+      setDraft(null);
+      if (nextSelection) setSelection(nextSelection);
+      setConfig((c) => replace(c, zone.id, stored));
+    },
     duplicate: () => {
       if (!selection.length) return;
       const r = duplicateItems(committed, selection);

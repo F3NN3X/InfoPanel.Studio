@@ -2,8 +2,8 @@ import { lazy, Suspense, useState } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
 import { createLibraryItem } from "@/lib/library";
-import type { DashboardConfig, ProfileView } from "@/lib/layout";
-import type { ImportCommit } from "@/components/infopanel/import/import-dialog";
+import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
+import type { ImportCommit, ImportSource } from "@/components/infopanel/import/import-dialog";
 import { canvasZoneOf, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
 
 // The dialogs carry the InfoPanel parser and writer: loaded on first open, never in the kiosk bundle.
@@ -24,7 +24,10 @@ interface InfoPanelIoDeps {
 export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLanded }: InfoPanelIoDeps) {
   const toast = useToast();
   const [importDest, setImportDest] = useState<"new" | "zone" | null>(null);
+  const [importSource, setImportSource] = useState<ImportSource | undefined>(undefined);
   const [exportOpen, setExportOpen] = useState(false);
+  /** A canvas from the Library, exported without placing it. */
+  const [exportOverride, setExportOverride] = useState<Placement | null>(null);
   const exportZone = canvasZoneOf(profile, selectedId);
 
   const commit = async (c: ImportCommit): Promise<string | null> => {
@@ -65,6 +68,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
           profileName={profile.name}
           profileSize={{ width: profile.width, height: profile.height }}
           initialDest={importDest}
+          initialSource={importSource}
           onImport={commit}
         />
       )}
@@ -72,7 +76,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
         <ExportDialog
           open
           onOpenChange={setExportOpen}
-          zone={exportZone}
+          zone={exportOverride ?? exportZone}
           onBaked={(zoneId, canvas) => setConfig((cfg) => withCanvas(cfg, zoneId, canvas))}
           onDone={toast}
         />
@@ -81,8 +85,14 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
   );
 
   return {
-    openImport: (dest: "new" | "zone" = "new") => setImportDest(dest),
-    openExport: () => setExportOpen(true),
+    openImport: (dest: "new" | "zone" = "new", source?: ImportSource) => {
+      setImportSource(source);
+      setImportDest(dest);
+    },
+    openExport: (zone?: Placement) => {
+      setExportOverride(zone ?? null);
+      setExportOpen(true);
+    },
     canExport: exportZone !== undefined,
     dialogs,
   };

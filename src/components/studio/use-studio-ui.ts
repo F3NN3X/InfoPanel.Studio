@@ -20,6 +20,9 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const toast = useToast();
   const [mode, setMode] = useState<StudioMode>("design");
   const showSources = mode === "sources";
+  const showLibrary = mode === "library";
+  /** Sources or Library: a full page in place of the canvas, drawer and inspector. */
+  const fullPage = mode !== "design";
   const toggleSources = () => setMode((m) => (m === "sources" ? "design" : "sources"));
   const [drawer, setDrawer] = useStoredDrawer();
   const [drawerWidth, setDrawerWidth] = useStoredDrawerWidth();
@@ -87,8 +90,8 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const studioLayout = useStudioLayout({
     page,
     rail: RAIL_WIDTH,
-    drawer: !showSources && drawer ? drawerWidth : 0,
-    quickBar: quickBar && !showSources,
+    drawer: !fullPage && drawer ? drawerWidth : 0,
+    quickBar: quickBar && !fullPage,
   });
   const zoom = useCanvasZoom(page, studioLayout.layout.inset);
 
@@ -123,7 +126,11 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
       toggleSources();
       return;
     }
-    if (showSources) {
+    if (item === "library") {
+      setMode((m) => (m === "library" ? "design" : "library"));
+      return;
+    }
+    if (fullPage) {
       setMode("design");
       setDrawer(item);
       return;
@@ -133,8 +140,8 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
 
   /** The zoom bar's left-panel toggle: close the panel, or reopen the last one. */
   const toggleLeft = () => {
-    if (showSources) setMode("design");
-    setDrawer(drawer && !showSources ? null : lastDrawer.current);
+    if (fullPage) setMode("design");
+    setDrawer(drawer && !fullPage ? null : lastDrawer.current);
   };
 
   const revealEditor = () => revealWidgetEditor(inspectorRef.current);
@@ -143,6 +150,8 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     mode,
     setMode,
     showSources,
+    showLibrary,
+    fullPage,
     toggleSources,
     drawer,
     setDrawer,

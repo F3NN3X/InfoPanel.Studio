@@ -157,6 +157,12 @@ function Footer({ advanced, onAdvanced }: { advanced: boolean; onAdvanced: (on: 
 }
 
 /**
+ * Each context's hand-opened sections, so the inspector reopens as it was left after the Library
+ * or Sources page replaced it (a drag from the Library can then reach the section's drop slot).
+ */
+const handOpened = new Map<string, Record<string, boolean>>();
+
+/**
  * The registry-driven inspector shared by every context, one column: the
  * header, search and the Changed filter on one row, the tabs (hidden while
  * filtering), a line saying what the filter found, then accordion sections
@@ -187,8 +193,14 @@ export function InspectorView({
   const [storedTab, setTab] = useInspectorTab(contextKey);
   const root = useRef<HTMLDivElement>(null);
   const [flash, setFlash] = useState<string | null>(null);
-  /** Sections opened or closed by hand (the rest follow the default). */
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  /** Sections opened or closed by hand (the rest follow the default), kept over a remount. */
+  const [openMap, setOpenState] = useState<Record<string, boolean>>(() => handOpened.get(contextKey) ?? {});
+  const setOpenMap = (fn: (m: Record<string, boolean>) => Record<string, boolean>) =>
+    setOpenState((m) => {
+      const next = fn(m);
+      handOpened.set(contextKey, next);
+      return next;
+    });
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
