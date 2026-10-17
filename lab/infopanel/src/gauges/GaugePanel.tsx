@@ -20,7 +20,7 @@ import { bake, NO_RECOLOUR, recolourFilter, recolourFrames, type Recolour } from
 import { STARTERS } from "@/lib/infopanel/gauges/presets.ts";
 import { readSpecFile, specFile } from "@/lib/infopanel/gauges/spec-file.ts";
 import { VectorForm } from "./VectorForm.tsx";
-import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
+import { VectorGaugeSvg } from "@/components/infopanel/VectorGaugeSvg.tsx";
 
 function downloadText(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));

@@ -1,5 +1,5 @@
 import { modules } from "@/modules";
-import { CARDS_ID, type Placement } from "@/lib/layout";
+import { canvasTitle, CARDS_ID, type Placement } from "@/lib/layout";
 
 /** A placeable widget: its minimum zone footprint and the Library fields it declares. */
 export interface ModuleMeta {
@@ -48,6 +48,7 @@ export function panelTitle(p: Placement): string {
 export function placementTitle(p: Placement): string {
   return (
     (p.panel ? panelTitle(p) : undefined) ??
+    canvasTitle(p) ??
     ALL_MODULES.find((m) => m.id === p.module)?.title ??
     p.module
   );

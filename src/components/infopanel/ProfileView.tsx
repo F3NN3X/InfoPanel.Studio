@@ -4,12 +4,12 @@
  * (font-loader), images come from the export's assets or their URLs.
  */
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { ExportEntry, ParsedExport } from "@/lib/infopanel/archive.ts";
+import type { ExportEntry } from "@/lib/infopanel/archive.ts";
 import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
-import type { DisplayItem } from "@/lib/infopanel/schema.ts";
+import type { DisplayItem, Profile } from "@/lib/infopanel/schema.ts";
 import type { BoundItem } from "@/lib/infopanel/sensors.ts";
-import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
+import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import { PathPaint } from "./Paint.tsx";
 import { smoothIndex } from "@/lib/infopanel/render/geometry.ts";
@@ -22,7 +22,7 @@ const fontKey = (s: TextStyle) => JSON.stringify([s.font.font, s.font.style, s.f
  * Resolves every text item's font; until then, text falls back to the family name.
  * Keyed on the set of fonts asked for, so moving an item does not resolve again.
  */
-function useFonts(items: DisplayItem[]): FontCss {
+export function useFonts(items: DisplayItem[], load: () => Promise<FontLoader | null> = () => FontLoader.fetch()): FontCss {
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedFont>>(new Map());
   const wanted = new Map<string, TextStyle["font"]>();
   for (const { item } of walkItems(items)) {
@@ -31,13 +31,13 @@ function useFonts(items: DisplayItem[]): FontCss {
     });
   }
   const key = JSON.stringify([...wanted.keys()].sort());
-  const latest = useRef(wanted);
-  latest.current = wanted;
+  const latest = useRef({ wanted, load });
+  latest.current = { wanted, load };
   useEffect(() => {
     let stop = false;
-    const requests = latest.current;
+    const { wanted: requests, load: fetchLoader } = latest.current;
     if (requests.size === 0) return;
-    FontLoader.fetch()
+    fetchLoader()
       .then(async (loader) => {
         if (!loader) return;
         const pairs = await Promise.all([...requests].map(async ([k, r]) => [k, await loader.resolve(r)] as const));
@@ -56,11 +56,15 @@ function useFonts(items: DisplayItem[]): FontCss {
 }
 
 /**
+ * Asset files by lower-case name; `hash` tells a replaced file from the one it replaced. A file
+ * with a `url` (the app's asset store) loads from it; one without is read into an object URL.
+ */
+export type AssetSource = ReadonlyMap<string, Partial<Pick<ExportEntry, "read">> & { hash?: string; url?: string }>;
+
+/**
  * Loads images on first request; a failed or impossible one is null (the placeholder).
  * Keyed to one export: the parent remounts the view for another.
  */
-/** Asset files by lower-case name; `hash` tells a replaced file from the one it replaced. */
-export type AssetSource = ReadonlyMap<string, Pick<ExportEntry, "read"> & { hash?: string }>;
 
 function useImages(assets: AssetSource): (source: ImageSource) => ImageInfo | null | undefined {
   const [cache, setCache] = useState<ReadonlyMap<string, ImageInfo | null>>(new Map());
@@ -75,10 +79,13 @@ function useImages(assets: AssetSource): (source: ImageSource) => ImageInfo | nu
     if (!pending.current.has(key)) {
       pending.current.add(key);
       const done = (info: ImageInfo | null) => setCache((c) => new Map(c).set(key, info));
+      const file = source.kind === "asset" ? assets.get(source.name) : undefined;
       const url =
         source.kind === "url"
           ? Promise.resolve(source.url)
-          : assets.get(source.name)?.read().then((b) => {
+          : file?.url
+            ? Promise.resolve(file.url)
+            : file?.read?.().then((b) => {
               const u = URL.createObjectURL(new Blob([b.slice()]));
               objectUrls.current.push(u);
               return u;
@@ -182,9 +189,8 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
 }
 
 export interface ProfileViewProps {
-  parsed: ParsedExport;
-  /** The items to draw, when they differ from the export's (an edited copy). */
-  items?: DisplayItem[];
+  profile: Profile;
+  items: DisplayItem[];
   sensor(item: BoundItem): SensorState;
   now: Date;
   /** Item paths to leave out, with their children. */
@@ -197,8 +203,10 @@ export interface ProfileViewProps {
   font?: FontCss;
   /** Items drawn by other means (native widgets), by path; drawn in tree order among the rest. */
   native?: ReadonlyMap<string, ReactNode>;
-  /** The asset files, when they differ from the export's (edited in the lab). */
-  assets?: AssetSource;
+  /** The asset files the items draw. */
+  assets: AssetSource;
+  /** Where InfoPanel's faces come from when `font` is not given (FontLoader.fetch by default). */
+  fontLoader?: () => Promise<FontLoader | null>;
 }
 
 /** Faithful nodes and native elements, in the items' tree order (paths compare numerically per level). */
@@ -214,11 +222,11 @@ function merge(nodes: (readonly [string, ReactNode])[], native: ReadonlyMap<stri
 }
 const order = (path: string) => path.split(".").map(Number);
 
-export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden, overlay, controls, font: given, native, assets }: ProfileViewProps) {
+export function ProfileView({ profile, items, sensor, now, hidden, overlay, controls, font: given, native, assets, fontLoader }: ProfileViewProps) {
   const uid = useId().replace(/:/g, "");
-  const own = useFonts(given ? [] : items);
+  const own = useFonts(given ? [] : items, fontLoader);
   const font = given ?? own;
-  const image = useImages(assets ?? parsed.assets);
+  const image = useImages(assets);
   const [start] = useState(() => performance.now());
   const [elapsed, setElapsed] = useState(0);
   const animated = useMemo(() => hasAnimatedGradient(items) || hasAnimatedGauge(items), [items]);
@@ -264,7 +272,6 @@ export function ProfileView({ parsed, items = parsed.items, sensor, now, hidden,
     if (corrections.current++ < 3) setNudge(next);
   });
 
-  const { profile } = parsed;
   const nodes = buildScene({ profile, items, sensor, image, now, elapsedMs: elapsed, hidden, gaugeIndex });
   const canvas = { width: profile.Width, height: profile.Height };
   return (

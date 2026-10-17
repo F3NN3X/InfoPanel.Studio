@@ -3,7 +3,7 @@
  * corpus screenshots show), mock values, or the live Data API.
  */
 import { useEffect, useRef, useState } from "react";
-import { tableOf, type SensorState } from "@/lib/infopanel/render/scene.ts";
+import { GRAPH_HISTORY as HISTORY, tableOf, ZEROS, type SensorState } from "@/lib/infopanel/render/scene.ts";
 import { DATA_API } from "@/lib/infopanel/sensors.ts";
 import { groupId } from "@/lib/infopanel/remap/remap.ts";
 import { buildCatalog, toReading, type BoundItem, type Catalog, type DataApiValue, type Match } from "@/lib/infopanel/sensors.ts";
@@ -11,9 +11,6 @@ import { buildCatalog, toReading, type BoundItem, type Catalog, type DataApiValu
 export type SensorMode = "unbound" | "mock" | "live";
 
 const EMPTY = buildCatalog({});
-/** InfoPanel keeps 4096 samples per graph. */
-const HISTORY = 4096;
-export const ZEROS: readonly number[] = new Array(HISTORY).fill(0);
 
 export interface Live {
   catalog: Catalog;

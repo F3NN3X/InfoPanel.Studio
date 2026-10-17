@@ -9,11 +9,11 @@ import type { ParsedExport } from "@/lib/infopanel/archive.ts";
 import { EditLayer } from "./editor/EditLayer.tsx";
 import { Inspector } from "./editor/Inspector.tsx";
 import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops.ts";
-import { describeNative, isNative, type NativeLayer } from "./native/native.tsx";
+import { describeNative, isNative, type NativeLayer } from "@/components/infopanel/native.tsx";
 import type { Editor } from "./editor/useEditor.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
-import { ProfileView, type AssetSource } from "./render/ProfileView.tsx";
-import type { FontCss } from "./render/Text.tsx";
+import { ProfileView, type AssetSource } from "@/components/infopanel/ProfileView.tsx";
+import type { FontCss } from "@/components/infopanel/Text.tsx";
 import type { SensorState } from "@/lib/infopanel/render/scene.ts";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { BoundItem } from "@/lib/infopanel/sensors.ts";
@@ -198,7 +198,7 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot, font, na
       <Toolbar editor={editor} convertible={convertible} />
       <div style={{ overflow: "auto", maxWidth: "100%", zoom }}>
         <ProfileView
-          parsed={parsed}
+          profile={parsed.profile}
           items={editor.items}
           sensor={sensor}
           now={now}
@@ -207,7 +207,7 @@ export function ComparePanel({ parsed, editor, sensor, now, screenshot, font, na
           font={font}
           hidden={native?.hidden}
           native={native?.elements}
-          assets={assets}
+          assets={assets ?? parsed.assets}
         />
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>

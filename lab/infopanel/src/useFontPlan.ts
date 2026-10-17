@@ -10,7 +10,7 @@ import { downloadFamily, searchName, type FontCandidate } from "@/lib/infopanel/
 import { facesFromFile, missingFamilies, planFonts, requestKey, type FontRow, type SuppliedFace, type Use } from "@/lib/infopanel/font-supply.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
 import type { TextStyle } from "@/lib/infopanel/render/scene.ts";
-import type { FontCss } from "./render/Text.tsx";
+import type { FontCss } from "@/components/infopanel/Text.tsx";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import { readFaces } from "@/lib/infopanel/sfnt.ts";
 

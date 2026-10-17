@@ -111,8 +111,8 @@ Data API on 127.0.0.1:3921, graphs fill as it polls) or **Mock** (sliders).
 
 - `src/render/geometry.ts`: C# numerics, shape paths, bar, graph, donut, gauge frame and gradients (pure, tested).
 - `src/render/scene.ts`: items to draw nodes; sensors, images and time come from the caller (tested).
-- `src/render/Paint.tsx`, `Text.tsx`, `ProfileView.tsx`: SVG and DOM output, fonts via `font-loader`, images from
-  the export's assets or their URLs.
+- `Paint.tsx`, `Text.tsx`, `ProfileView.tsx` (in the app's `src/components/infopanel/` since A2, with the gauge
+  views and `native.tsx`): SVG and DOM output, fonts via `font-loader`, images from the export's assets or URLs.
 
 Checked against InfoPanel's screenshots of ARCv2_WIDE, Catppuccin_Mocha, Dashboard and Umbrella_V.2 in Live mode:
 layout, fonts, charts, gauges, images and placeholders match. Plugin bindings are portable, so those screenshots

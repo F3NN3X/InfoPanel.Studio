@@ -392,3 +392,8 @@ export function visibleText(text: string, oneLine: boolean, ellipsis: boolean): 
   if (!oneLine || nl < 0) return text;
   return text.slice(0, nl) + (ellipsis ? "…" : "");
 }
+
+/** InfoPanel keeps 4096 samples per graph. */
+export const GRAPH_HISTORY = 4096;
+/** An unbound HWiNFO or Libre graph: InfoPanel fills it with zeros. */
+export const ZEROS: readonly number[] = new Array(GRAPH_HISTORY).fill(0);

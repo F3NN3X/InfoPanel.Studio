@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, type CSSProperties, type ReactNode } from "react";
 import { OtherSensors } from "@/modules/other-sensors";
 import { isClaimed, moduleReads, modules } from "@/modules";
 import { chromeOf } from "@/modules/standard-settings";
@@ -9,12 +9,15 @@ import { useSensors } from "@/hooks/useSensors";
 import { PanelView } from "@/components/widgets/PanelView";
 import type { PanelSelection } from "@/components/widgets/panel-parts";
 import { YR_FORECAST_KEY, YR_FORECAST_PREFIX } from "@/lib/sensors";
-import { CARDS_ID, BLANK_MODULE, type Placement } from "@/lib/layout";
+import { CARDS_ID, BLANK_MODULE, CANVAS_ID, canvasTitle, type Placement } from "@/lib/layout";
+import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import { resolveWith, type Appearance } from "@/lib/style-resolve";
 import { safeRender } from "@/components/zone-error-boundary";
 
 const moduleById = new Map(modules.map((m) => [m.id, m]));
+// The InfoPanel renderer loads only when a canvas zone is drawn.
+const CanvasZone = lazy(() => import("@/components/infopanel/CanvasZone"));
 
 export interface PlacementRender {
   content: ReactNode;
@@ -34,6 +37,7 @@ export interface PlacementRender {
  */
 export function placementPrefixes(p: Placement): string[] | null {
   if (p.module === BLANK_MODULE) return [];
+  if (p.module === CANVAS_ID) return storedCanvasKeys(p.canvas);
   if (p.panel) {
     const keys = new Set<string>();
     for (const w of p.panel.widgets) {
@@ -75,6 +79,20 @@ export function placementContent(
     // A drawn, unfilled zone: nothing to render (the kiosk shows open
     // space, the studio shows the dashed zone chrome).
     return { content: null, hasData: false, title: "Blank zone" };
+  }
+  if (p.module === CANVAS_ID) {
+    // Drawn as InfoPanel draws it: the dashboard style does not reach the canvas.
+    const title = canvasTitle(p) ?? "InfoPanel canvas";
+    if (!p.canvas) return { content: null, hasData: false, title };
+    return {
+      content: (
+        <Suspense fallback={null}>
+          <CanvasZone canvas={p.canvas} sensors={sensors} />
+        </Suspense>
+      ),
+      hasData: true,
+      title,
+    };
   }
   if (p.panel) {
     // A custom panel renders its own widgets; it "has data" when at least

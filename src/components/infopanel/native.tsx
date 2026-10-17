@@ -13,14 +13,13 @@ import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { imageSrc, WidgetView } from "@/components/widgets/WidgetView";
 import { fraction } from "@/lib/infopanel/gauges/vector.ts";
-import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
+import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
 import { boundsOf, gaugeFrame, gradientAngle, gradientPaint, graphParts, rotatePoints, shapeGeometry, type Paint } from "@/lib/infopanel/render/geometry.ts";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
-import { PathPaint } from "../render/Paint.tsx";
+import { PathPaint } from "./Paint.tsx";
 import { rawValue, tableColumns } from "@/lib/infopanel/render/scene.ts";
-import { Table, Text, textCss, type FontCss } from "../render/Text.tsx";
-import { tableOf, visibleText } from "@/lib/infopanel/render/scene.ts";
-import { ZEROS } from "../sensor-source.ts";
+import { Table, Text, textCss, type FontCss } from "./Text.tsx";
+import { tableOf, visibleText, ZEROS } from "@/lib/infopanel/render/scene.ts";
 import { dateText, sensorColor, sensorText } from "@/lib/infopanel/sensor-text.ts";
 import { toReading, type DataApiValue } from "@/lib/infopanel/sensors.ts";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
@@ -113,12 +112,12 @@ function Marquee({ speed, spacing, width, children }: { speed: number; spacing: 
         ref={probe}
         style={{
           display: "flex", width: "max-content",
-          ...(scrolls ? { animation: `lab-marquee ${(content + spacing) / speed}s linear infinite` } : {}),
+          ...(scrolls ? { animation: `ip-marquee ${(content + spacing) / speed}s linear infinite` } : {}),
         }}
       >
         {scrolls ? [copy("a"), copy("b")] : children}
       </div>
-      <style>{"@keyframes lab-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}"}</style>
+      <style>{"@keyframes ip-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}"}</style>
     </div>
   );
 }

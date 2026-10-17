@@ -91,9 +91,10 @@ export class FontLoader {
     }
   }
 
-  static async fetch(base = "/fonts", api = DATA_API): Promise<FontLoader | null> {
+  /** `base`: the folder holding `skia-reference.json` (the lab's), or null for none (the app). */
+  static async fetch(base: string | null = "/fonts", api = DATA_API): Promise<FontLoader | null> {
     const [reference, hasApi] = await Promise.all([
-      fetch(`${base}/skia-reference.json`).then((r) => (r.ok ? (r.json() as Promise<Reference>) : null), () => null),
+      base === null ? null : fetch(`${base}/skia-reference.json`).then((r) => (r.ok ? (r.json() as Promise<Reference>) : null), () => null),
       FontLoader.probe(api),
     ]);
     return reference || hasApi ? new FontLoader(reference, hasApi ? api : null) : null;

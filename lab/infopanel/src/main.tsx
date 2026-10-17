@@ -15,7 +15,7 @@ import { ComparePanel } from "./ComparePanel.tsx";
 import { useEditor } from "./editor/useEditor.ts";
 import { useFontPlan } from "./useFontPlan.ts";
 import type { ConvertContext } from "@/lib/infopanel/native/convert.ts";
-import { convertible, nativeLayer, sensorMap } from "./native/native.tsx";
+import { convertible, nativeLayer, sensorMap } from "@/components/infopanel/native.tsx";
 import { groupId } from "@/lib/infopanel/remap/remap.ts";
 import "@/index.css";
 import { groupBindings, indexCatalog, resolveAll, type Overrides } from "@/lib/infopanel/remap/remap.ts";
