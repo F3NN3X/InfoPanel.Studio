@@ -7,6 +7,8 @@ import { openCanvas } from "./canvas.ts";
 import { storedCanvasKeys } from "./canvas-keys.ts";
 import { duplicate, group, itemAt, moveBy, setField } from "./editor/ops.ts";
 import { groupId } from "./remap/remap.ts";
+import { STARTERS } from "./gauges/presets.ts";
+import { normalizeGauge } from "./gauges/vector.ts";
 import {
   allMode,
   changedGroups,
@@ -18,6 +20,7 @@ import {
   editKeys,
   flatPaths,
   freeAssetName,
+  withDroppedGauge,
   withDroppedImage,
   itemModes,
   itemOverrides,
@@ -30,6 +33,7 @@ import {
   withGroupKeys,
 } from "./canvas-edit.ts";
 
+const DEFAULT_GAUGE_SPEC = normalizeGauge(STARTERS[0].gauge);
 const gid = (item: DisplayItem) => groupId(item as BoundItem);
 const parse = (body: string) => parseDisplayItemsXml(`<ArrayOfDisplayItem xmlns:xsi="x">${body}</ArrayOfDisplayItem>`).items;
 const profile = parseProfileXml("<Profile><Name>P</Name><Width>800</Width><Height>480</Height></Profile>").profile;
@@ -233,5 +237,41 @@ describe("library drops", () => {
     const reopened = openCanvas(JSON.parse(JSON.stringify(first.stored)));
     const second = withDroppedImage(reopened.stored, reopened.profile, editItems(reopened), { ...file, name: "copy.png" }, { x: 0, y: 0 });
     expect(second.stored.assets).toHaveLength(first.stored.assets.length);
+  });
+
+  describe("a gauge", () => {
+    const frame = (c: string, name: string) => ({ name, hash: c.repeat(64), type: "png" as const, size: 5, width: 200, height: 100 });
+    const range = { min: 10, max: 90, animationSpeed: 4 };
+    const gaugeAt = (r: { stored: ReturnType<typeof canvas>["stored"]; path: string }) => openCanvas(JSON.parse(JSON.stringify(r.stored))).items[Number(r.path)] as Extract<DisplayItem, { kind: "Gauge" }> & { vector?: { width: number } };
+
+    it("a vector spec becomes a Gauge item at the spec's size, centred, keeping the spec and the range", () => {
+      const open = canvas();
+      const vector = { ...DEFAULT_GAUGE_SPEC, width: 200, height: 200 };
+      const r = withDroppedGauge(open.stored, open.profile, editItems(open), { name: "Ring", vector, ...range }, { x: 400, y: 240 });
+      expect(r.path).toBe("3");
+      const g = gaugeAt(r);
+      expect([g.kind, g.Name, g.X, g.Y, g.Width, g.Height, g.MinValue, g.MaxValue, g.AnimationSpeed]).toEqual(["Gauge", "Ring", 300, 140, 200, 200, 10, 90, 4]);
+      expect(g.vector?.width).toBe(200);
+      expect(g.Images).toHaveLength(0);
+      expect(storedCanvasKeys(r.stored)).toEqual(["libre.cpu", "libre.gpu"]);
+    });
+
+    it("limits the size to half the profile, keeping the shape", () => {
+      const open = canvas();
+      const vector = { ...DEFAULT_GAUGE_SPEC, width: 1600, height: 400 };
+      const g = gaugeAt(withDroppedGauge(open.stored, open.profile, editItems(open), { name: "Wide", vector, ...range }, { x: 400, y: 240 }));
+      expect([g.Width, g.Height]).toEqual([400, 100]);
+    });
+
+    it("frames join the canvas's files as the Images list; the same bytes are reused", () => {
+      const open = canvas();
+      const frames = [frame("a", "f0.png"), frame("b", "f1.png"), frame("a", "f0-copy.png")];
+      const r = withDroppedGauge(open.stored, open.profile, editItems(open), { name: "Seq", frames, ...range }, { x: 400, y: 240 });
+      const g = gaugeAt(r);
+      expect(g.Images.map((i) => [i.FilePath, i.Type, i.RelativePath])).toEqual([["f0.png", "FILE", true], ["f1.png", "FILE", true], ["f0.png", "FILE", true]]);
+      expect([g.Width, g.Height]).toEqual([200, 100]);
+      expect(r.stored.assets.slice(-2).map((a) => a.name)).toEqual(["f0.png", "f1.png"]);
+      expect(r.stored.assets).toHaveLength(open.stored.assets.length + 2);
+    });
   });
 });

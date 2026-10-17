@@ -21,7 +21,8 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const [mode, setMode] = useState<StudioMode>("design");
   const showSources = mode === "sources";
   const showLibrary = mode === "library";
-  /** Sources or Library: a full page in place of the canvas, drawer and inspector. */
+  const showGauges = mode === "gauges";
+  /** Sources, Library or Gauges: a full page in place of the canvas, drawer and inspector. */
   const fullPage = mode !== "design";
   const toggleSources = () => setMode((m) => (m === "sources" ? "design" : "sources"));
   const [drawer, setDrawer] = useStoredDrawer();
@@ -126,8 +127,8 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
       toggleSources();
       return;
     }
-    if (item === "library") {
-      setMode((m) => (m === "library" ? "design" : "library"));
+    if (item === "library" || item === "gauges") {
+      setMode((m) => (m === item ? "design" : item));
       return;
     }
     if (fullPage) {
@@ -151,6 +152,7 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     setMode,
     showSources,
     showLibrary,
+    showGauges,
     fullPage,
     toggleSources,
     drawer,

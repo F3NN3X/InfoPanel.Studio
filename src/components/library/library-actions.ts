@@ -10,6 +10,8 @@ import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import { getLibraryItem } from "@/lib/library";
 import type { PanelDef, UserPanelPreset } from "@/lib/panel-model";
 import { userPanelPreset, type PanelPreset } from "@/lib/panelPresets";
+import { CUSTOM_GAUGE_ID } from "@/lib/gauge-studio/model";
+import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import { fileUrl, metaOf } from "@/lib/my-library/model";
 import type { ModuleSettings } from "@/modules/types";
 import * as studio from "@/components/studio/studio-actions";
@@ -120,6 +122,29 @@ export async function addToProfile(b: StudioBridge, item: LibraryItem, rect?: Zo
   const preset = await presetOf(item, { cols: b.profile.cols, rows: b.profile.rows, width: b.profile.width, height: b.profile.height });
   if (!preset) return b.toast("This item can’t be placed on the page");
   placePreset(b, item, preset, rect);
+}
+
+/**
+ * A Custom gauge zone for a vector spec, in `rect` or the first free spot, selected: one undo step.
+ * Records a copy only when the gauge came from the library (`item`).
+ */
+export function addGaugeZone(b: StudioBridge, name: string, gauge: VectorGauge, rect?: ZoneRect, item?: LibraryItem): string | null {
+  const id = uid("gauge");
+  const settings: ModuleSettings = { gauge: JSON.stringify(gauge), label: name };
+  let placed = false;
+  b.updateProfile((p) => {
+    const next = rect ? studio.addModuleAt(p, id, CUSTOM_GAUGE_ID, rect) : studio.addModulePlacement(p, id, CUSTOM_GAUGE_ID, { cols: 1, rows: 1 });
+    placed = next.placements.some((z) => z.id === id);
+    return { ...next, placements: next.placements.map((z) => (z.id === id ? { ...z, settings } : z)) };
+  });
+  if (!placed) {
+    b.toast("No free space: resize or remove a widget first");
+    return null;
+  }
+  b.select(id);
+  if (item) b.addCopy(item, copyHere(b, name, id));
+  b.toast(`Added ${name}`);
+  return id;
 }
 
 /** A style preset onto the selected zones (or `zoneIds`), one undo step. */

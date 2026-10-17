@@ -46,6 +46,7 @@ import { ZoomToolbar } from "./zoom-toolbar";
 import { sheetHeight } from "./studio-layout";
 import { zoneName } from "./inspector/zone-meta";
 import { dataOf, type StudioBridge } from "@/components/library/library-actions";
+import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
 import { useToast } from "@/components/ui/toast";
@@ -56,6 +57,7 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
+const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -154,7 +156,7 @@ function StudioViewBody({
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, showLibrary, fullPage, drawer } = ui;
+  const { studioLayout, showSources, showLibrary, showGauges, fullPage, drawer } = ui;
   /** The data point the inspector's Bound data row opened in Sources mode. */
   const [focusPointKey, setFocusPointKey] = useState<string>();
   useEffect(() => {
@@ -212,6 +214,13 @@ function StudioViewBody({
   }, [editingCanvas, canvasZone, fullPage]);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
 
+  /** The gauge the Gauges page opens in its editor ("Edit gauge…" from a zone or a canvas item). */
+  const [gaugeToOpen, setGaugeToOpen] = useState<GaugeSource | null>(null);
+  const openGauge = (source: GaugeSource) => {
+    setGaugeToOpen(source);
+    ui.setMode("gauges");
+  };
+
   /** The Library's way into the studio: placing a card copies it into this profile (one undo step). */
   const libraryBridge: StudioBridge = {
     config,
@@ -248,6 +257,7 @@ function StudioViewBody({
         ui.setMode("sources");
       }}
       onEditCanvas={setEditingCanvas}
+      onEditGauge={(zoneId) => openGauge({ kind: "widget", zoneId })}
     />
   );
 
@@ -446,6 +456,7 @@ function StudioViewBody({
         setConfig={setConfig}
         history={history}
         initialSelection={canvasSelection}
+        onEditGauge={(path) => openGauge({ kind: "canvas", zoneId: canvasZone.id, path })}
         onDone={() => {
           setEditingCanvas(null);
           setCanvasSelection(undefined);
@@ -484,6 +495,7 @@ function StudioViewBody({
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
         onImport={(source) => io.openImport("new", source)}
+        onOpenGauge={(itemId) => openGauge({ kind: "library", itemId })}
         onExportCanvas={(item) =>
           void dataOf<StoredCanvas>(item).then((canvas) =>
             canvas
@@ -502,6 +514,19 @@ function StudioViewBody({
             setEditingCanvas(zoneId);
           },
         }}
+      />
+    </Suspense>
+  );
+
+  const gaugesEl = showGauges && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+      <GaugesPage
+        bridge={libraryBridge}
+        profileName={storedProfile.name}
+        theme={resolveTheme(config, profile).tokens}
+        initial={gaugeToOpen}
+        onOpened={() => setGaugeToOpen(null)}
+        onShowCanvas={() => ui.setMode("design")}
       />
     </Suspense>
   );
@@ -563,13 +588,13 @@ function StudioViewBody({
         layout={studioLayout}
         rail={
           <LeftRail
-            active={showSources ? "sources" : showLibrary ? "library" : drawer}
+            active={showSources ? "sources" : showLibrary ? "library" : showGauges ? "gauges" : drawer}
             onSelect={ui.onRail}
             onShortcuts={() => ui.setShortcutsOpen(true)}
           />
         }
         drawer={!fullPage && !canvasEditor && drawer && drawerEl}
-        main={libraryEl || canvasEditor || mainEl}
+        main={libraryEl || gaugesEl || canvasEditor || mainEl}
         bar={bar}
         inspector={fullPage || canvasEditor ? null : inspectorAside}
       />

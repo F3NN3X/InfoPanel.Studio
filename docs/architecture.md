@@ -441,6 +441,31 @@ while it is open.
   sets the background. The inspector keeps its hand-opened sections while the Library page
   replaces it, so the drag can reach that slot.
 
+### The Gauges page
+
+The rail's Gauges item opens a full page (`src/components/gauges/`, lazy-loaded, spec §6). The model is
+`src/lib/gauge-studio/`: a gauge lives in one of four places (`GaugeSource`): a preset (read-only;
+customising makes a copy), a My library item (`kind: "gauge"`, `data` = `{ vector?, frames?, min, max,
+animationSpeed }`, frames by asset id), a Gauge item in an imported canvas zone (its spec in the item's `$.vector`,
+its frames the item's Images), or a **Custom gauge** widget zone (`src/widgets/CustomGauge.tsx`, the spec as a JSON
+string in its hidden `gauge` setting, bound to any one sensor).
+
+- **Browse:** Presets, In <profile> (`profileGauges`), My library; a right pane with a live preview, Customise a copy
+  / Edit, Add to canvas (`addGaugeZone`), Duplicate, Export (`.gauge.json`, the lab's `VectorGauge`).
+- **Editor:** a preset strip, the parts list (Core · Indicator · Scale · Text · Decor · Effects · Liquid; parts that
+  don't apply to the shape are hidden), a stage with play and a scrubber, and an inspector for the selected part.
+  A profile gauge writes through (`withGauge`, one `setConfig` per committed change, slider drags coalesced by key,
+  studio undo). Anything else is a working copy with its own undo (`working-copy.ts`), kept while the page is closed
+  (`session.ts`); back with unsaved changes asks Save to library / Discard / Cancel.
+- **Image sequences:** a filmstrip with Reverse, Resample, Duplicate, Replace and Remove, frames per second, Recolour
+  (previewed with a CSS filter, applied to every frame at once) and Convert to vector (a preset closest in shape,
+  scaled to the frame size; the frames stay). A canvas gauge's frame edits go through the zone's asset `Doc`
+  (`profile-doc-io.ts`, shared with Profile assets), so each is one undo step.
+- **Bake bar:** a canvas gauge with a spec shows whether its frames match it (`$.vectorBaked`) and bakes them for the
+  `.infopanel` export; the dashboard always draws the spec live.
+- "Edit gauge…" in a Custom gauge zone's inspector, on a canvas Gauge item and on a library card opens the editor
+  (`openGauge` in `studio-view.tsx`). Uploads run at most two at once (`uploadBytes`), the server's limit.
+
 ### Editing a canvas zone
 
 Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",

@@ -43,6 +43,8 @@ const MANIFEST: Record<string, Record<string, string>> = {
   Forecast: { location: "location", days: "days", units: "units" },
   SensorValue: { sensor: "sensor", label: "label", display: "display", min: "min", max: "max", warn: "warn", crit: "crit", decimals: "decimals", unit: "unit" },
   SensorGroup: { sensors: "sensors", layout: "groupLayout", bars: "bars" },
+  // Designed on the Gauges page: no spec doc; the title is the standard label.
+  CustomGauge: {},
 };
 // Spec props with no setting of their own: the standard custom title carries SensorValue's label.
 const STANDARD_CARRIED = new Set(["SensorValue.label"]);

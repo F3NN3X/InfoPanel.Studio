@@ -28,6 +28,8 @@ interface StudioInspectorProps {
   onOpenPoint?: (key: string) => void;
   /** Open a canvas zone's items in the canvas editor. */
   onEditCanvas?: (zoneId: string) => void;
+  /** Open a Custom gauge zone's spec in the Gauges page. */
+  onEditGauge?: (zoneId: string) => void;
 }
 
 /**
@@ -45,6 +47,7 @@ export function StudioInspector({
   setScopeStyle,
   onOpenPoint,
   onEditCanvas,
+  onEditGauge,
 }: StudioInspectorProps) {
   const { selected, selectedWidgetId, selection } = sel;
   const { mode, sheet, setFloatOpen } = ui.studioLayout;
@@ -131,6 +134,7 @@ export function StudioInspector({
         onOpenPoint={onOpenPoint ?? openExplorer}
         onOpenExplorer={openExplorer}
         onEditCanvas={onEditCanvas && (() => onEditCanvas(selected.id))}
+        onEditGauge={onEditGauge && (() => onEditGauge(selected.id))}
       />
     ) : (
       <DocumentInspector

@@ -1,0 +1,95 @@
+/**
+ * The Gauges page's right pane (spec §6): a large live preview with play and a scrubber, name,
+ * "kind · where", copies placed, the primary action (Customise a copy / Edit) and Add to canvas,
+ * Duplicate and Export.
+ */
+import { Copy, Pencil, Plus, Upload, Eye, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { KIND_LABEL, type GaugeEntry } from "@/lib/gauge-studio/model";
+import { GaugeView } from "./gauge-view";
+import { PlayControls } from "./play-controls";
+import { usePlayback } from "./use-playback";
+
+export interface GaugeDetailProps {
+  entry: GaugeEntry;
+  /** Copies placed, for a library gauge (undefined for the others). */
+  copies?: number;
+  scope: Record<string, string>;
+  onEdit: () => void;
+  onAddToCanvas: () => void;
+  onDuplicate: () => void;
+  onExport: () => void;
+}
+
+interface Action {
+  label: string;
+  icon: LucideIcon;
+  run: () => void;
+  disabled?: boolean;
+  title?: string;
+}
+
+export function GaugeDetail({ entry, copies, scope, onEdit, onAddToCanvas, onDuplicate, onExport }: GaugeDetailProps) {
+  const playback = usePlayback();
+  const vector = entry.gauge !== null;
+  // A canvas image sequence copies to the library when the asset store holds all its frames.
+  const copyable = vector || entry.source.kind === "library" || entry.files !== undefined;
+  const secondary: Action[] = [
+    { label: "Add to canvas", icon: Plus, run: onAddToCanvas, title: vector ? undefined : "An image sequence goes into a canvas zone" },
+    { label: "Duplicate", icon: Copy, run: onDuplicate, disabled: !copyable, title: copyable ? undefined : "Some of its frames are not files in the asset store" },
+    { label: "Export", icon: Upload, run: onExport, disabled: !vector, title: vector ? "Download as .gauge.json" : "An image sequence has no spec to export: its frames go out with the .infopanel export" },
+  ];
+  return (
+    <aside aria-label="Gauge details" className="flex w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
+      <div className="flex aspect-square w-full items-center justify-center rounded-[10px] border border-ui-subtle bg-[#0b0b0e]">
+        <GaugeView gauge={entry.gauge} frames={entry.frames} p={playback.p} size={248} scope={scope} />
+      </div>
+      <PlayControls playback={playback} />
+      <div>
+        <div className="truncate text-[14px] font-semibold text-ui-1">{entry.name}</div>
+        <div className="font-ui-mono text-[11px] text-ui-4">
+          {KIND_LABEL[entry.kind]} · {entry.where}
+        </div>
+        {copies !== undefined && (
+          <div className="mt-1 text-[12px] text-ui-3">
+            {copies === 0 ? "Not placed yet" : `${copies} cop${copies === 1 ? "y" : "ies"} placed`}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex h-[34px] w-full items-center justify-center gap-2 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
+        >
+          <Pencil className="h-4 w-4" strokeWidth={1.75} />
+          {entry.source.kind === "preset" ? "Customise a copy" : "Edit"}
+        </button>
+        <div className="grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
+          {secondary.map((a) => (
+            <button
+              key={a.label}
+              type="button"
+              onClick={a.run}
+              disabled={a.disabled}
+              title={a.title}
+              className={cn("flex h-[34px] items-center justify-center gap-2 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40")}
+            >
+              <a.icon className="h-4 w-4" strokeWidth={1.75} />
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+export function EmptyDetail() {
+  return (
+    <aside className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center font-ui text-[12.5px] text-ui-4">
+      <Eye className="h-5 w-5" />
+      Select a gauge to see it here. Double-click one to edit it.
+    </aside>
+  );
+}

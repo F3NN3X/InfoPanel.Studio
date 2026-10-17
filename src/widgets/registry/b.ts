@@ -19,6 +19,7 @@ import * as Weather from "../Weather";
 import * as Forecast from "../Forecast";
 import * as SensorValue from "../SensorValue";
 import * as SensorGroup from "../SensorGroup";
+import * as CustomGauge from "../CustomGauge";
 
 const THRESHOLDS = "Thresholds";
 
@@ -308,5 +309,16 @@ export const GROUP_B: DashboardModule[] = [
       layout: oneOf(s.groupLayout, ["auto", "rows", "grid"]),
       sensors: sensorItems(s),
     }),
+  }),
+  templateModule({
+    meta: CustomGauge.meta,
+    Component: CustomGauge.default,
+    settings: [
+      // The standard `label` is the title, as for Sensor.
+      sensorSetting("sensor", "Sensor", { group: "Custom gauge" }),
+      // The spec is edited on the Gauges page: the raw JSON never shows as a field.
+      textSetting("gauge", "Gauge", JSON.stringify(CustomGauge.DEFAULT_GAUGE_SPEC), { group: "Custom gauge", visibleIf: () => false }),
+    ],
+    toProps: (s): Partial<CustomGauge.CustomGaugeProps> => ({ ...pass<Partial<CustomGauge.CustomGaugeProps>>("sensor")(s), gauge: CustomGauge.parseGaugeSetting(s.gauge) }),
   }),
 ];

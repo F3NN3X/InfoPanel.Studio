@@ -3,13 +3,11 @@
  * written back as the zone's stored form in a single `setConfig`, so each action is one undo step.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { withCanvas } from "@/components/studio/import-actions";
 import type { HistorySetter } from "@/hooks/use-config-history";
-import { uploadBytes } from "@/lib/assets";
-import { openCanvas, readStoreFile } from "@/lib/infopanel/canvas";
-import { MIME, type Doc } from "@/lib/infopanel/assets/assets";
-import { docFromStored, storedFromDoc } from "@/lib/infopanel/assets/stored-doc";
+import { openCanvas } from "@/lib/infopanel/canvas";
+import type { Doc } from "@/lib/infopanel/assets/assets";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
+import { loadDoc, writeDoc } from "./profile-doc-io";
 
 export interface Edit {
   doc: Doc;
@@ -31,18 +29,11 @@ export function useProfileDoc(zoneId: string, stored: StoredCanvas, setConfig: H
   const [doc, setDoc] = useState<Doc | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  /** File bytes by hash: an edit reloads the doc, and only new files need fetching. */
   const bytes = useRef(new Map<string, Uint8Array>());
 
   useEffect(() => {
     let live = true;
-    docFromStored(open, async (a) => {
-      const hit = bytes.current.get(a.hash);
-      if (hit) return hit;
-      const got = await readStoreFile(a.hash, a.ext, a.type).catch(() => null);
-      if (got) bytes.current.set(a.hash, got);
-      return got;
-    }).then((d) => live && setDoc(d));
+    loadDoc(open, bytes.current).then((d) => live && setDoc(d));
     return () => {
       live = false;
     };
@@ -55,14 +46,7 @@ export function useProfileDoc(zoneId: string, stored: StoredCanvas, setConfig: H
       setNote(`${what}…`);
       try {
         const edit = await build(doc);
-        if (edit.doc !== doc) {
-          const next = await storedFromDoc(open.stored, open.profile, edit.doc, async (f) => {
-            const id = (await uploadBytes(f.bytes, MIME[f.type])).id;
-            bytes.current.set(f.hash, f.bytes);
-            return id;
-          });
-          setConfig((c) => withCanvas(c, zoneId, next));
-        }
+        if (edit.doc !== doc) await writeDoc(open, edit.doc, bytes.current, setConfig, zoneId);
         setNote(edit.message ?? null);
       } catch (e) {
         setNote(`${what} failed: ${e instanceof Error ? e.message : String(e)}`);

@@ -6,7 +6,9 @@
  */
 import type { OpenCanvas } from "./canvas.ts";
 import type { Path } from "./editor/ops.ts";
-import { itemAt, setField } from "./editor/ops.ts";
+import { itemAt, setField, updateAt } from "./editor/ops.ts";
+import { insertVectorGauge } from "./gauges/frames.ts";
+import type { VectorGauge } from "./gauges/vector.ts";
 import { fontRequests } from "./import/session.ts";
 import { toStored, type ItemImport, type KeyOf, type StoredAsset, type StoredCanvas, type StoredFont } from "./import/stored.ts";
 import type { AssetType } from "./assets/assets.ts";
@@ -200,6 +202,14 @@ export function freeAssetName(assets: readonly StoredAsset[], name: string): str
   }
 }
 
+/** The canvas's files with `file` among them: the same bytes already there are reused (and keep their name). */
+function withAsset(assets: StoredAsset[], file: DroppedFile): { assets: StoredAsset[]; name: string } {
+  const same = assets.find((a) => a.hash === file.hash);
+  if (same) return { assets, name: same.name };
+  const name = freeAssetName(assets, file.name);
+  return { assets: [...assets, { name, hash: file.hash, type: file.type, size: file.size, ...(file.ext ? { ext: file.ext } : {}) }], name };
+}
+
 /**
  * A library image or video dropped into the canvas editor: a FILE Image item centred on `at`,
  * drawn at the file's size (at most half the profile, keeping its shape), on top of the rest; its
@@ -213,9 +223,7 @@ export function withDroppedImage(
   file: DroppedFile,
   at: { x: number; y: number },
 ): { stored: StoredCanvas; path: Path } {
-  const same = stored.assets.find((a) => a.hash === file.hash);
-  const name = same?.name ?? freeAssetName(stored.assets, file.name);
-  const assets = same ? stored.assets : [...stored.assets, { name, hash: file.hash, type: file.type, size: file.size, ...(file.ext ? { ext: file.ext } : {}) }];
+  const { assets, name } = withAsset(stored.assets, file);
   const w0 = file.width && file.width > 0 ? file.width : Math.round(profile.Width / 4);
   const h0 = file.height && file.height > 0 ? file.height : Math.round(profile.Height / 4);
   const k = Math.min(1, profile.Width / 2 / w0, profile.Height / 2 / h0);
@@ -233,6 +241,58 @@ export function withDroppedImage(
   } as DisplayItem;
   const next = [...items, item];
   return { stored: storeItems({ ...stored, assets }, profile, next), path: String(next.length - 1) };
+}
+
+/** A library gauge dropped into the canvas editor: its spec, its frames (files) or both, and its range. */
+export interface DroppedGauge {
+  name: string;
+  vector?: VectorGauge;
+  frames?: readonly DroppedFile[];
+  min: number;
+  max: number;
+  animationSpeed: number;
+}
+
+/**
+ * A library gauge dropped into the canvas editor: a Gauge item centred on `at`, drawn at the spec's
+ * size (else the first frame's), at most half the profile keeping its shape, on top of the rest. A
+ * vector spec is kept on the item; frames join the canvas's files and become its Images list.
+ */
+export function withDroppedGauge(
+  stored: StoredCanvas,
+  profile: Profile,
+  items: readonly DisplayItem[],
+  gauge: DroppedGauge,
+  at: { x: number; y: number },
+): { stored: StoredCanvas; path: Path } {
+  const files = gauge.frames ?? [];
+  const added = files.reduce<{ assets: StoredAsset[]; names: string[] }>(
+    (acc, f) => {
+      const r = withAsset(acc.assets, f);
+      return { assets: r.assets, names: [...acc.names, r.name] };
+    },
+    { assets: stored.assets, names: [] },
+  );
+  const w0 = gauge.vector?.width ?? (files[0]?.width || Math.round(profile.Width / 4));
+  const h0 = gauge.vector?.height ?? (files[0]?.height || Math.round(profile.Height / 4));
+  const k = Math.min(1, profile.Width / 2 / w0, profile.Height / 2 / h0);
+  const width = Math.max(1, Math.round(w0 * k));
+  const height = Math.max(1, Math.round(h0 * k));
+  const base = gauge.vector
+    ? insertVectorGauge(items, gauge.vector, gauge.name)
+    : { items: [...items, { ...defaultItem("Gauge"), Name: gauge.name } as DisplayItem], path: String(items.length) };
+  const next = updateAt(base.items, base.path, (item) => ({
+    ...item,
+    X: Math.round(at.x - width / 2),
+    Y: Math.round(at.y - height / 2),
+    Width: width,
+    Height: height,
+    MinValue: gauge.min,
+    MaxValue: gauge.max,
+    AnimationSpeed: gauge.animationSpeed,
+    Images: added.names.map((name) => ({ ...defaultItem("Image"), Name: name, Type: "FILE", FilePath: name, RelativePath: true })),
+  }) as DisplayItem);
+  return { stored: storeItems({ ...stored, assets: added.assets }, profile, next), path: base.path };
 }
 
 /* ---- sensors ---- */

@@ -39,6 +39,24 @@ checked live), **risk** (works, may not hold).
 | G16 | Dropping a style preset on a zone | unverified | Not tried live: no saved style presets in the test data. |
 | G17 | Faces supplied through Get a font upload twice | risk | The asset store dedupes by hash, so only time is lost. |
 
+## Gauges (A7)
+
+| # | Gap | Status | Notes / likely fix |
+|---|---|---|---|
+| G19 | The Custom gauge widget is a zone only; it can't go inside a custom panel | open | Add a panel-widget kind that draws a `VectorGauge`, sharing the widget's drawing. |
+| G20 | A library gauge with both a spec and frames, dropped on the grid, becomes a widget from the spec; its frames are dropped | decide | Fine for the dashboard (it draws live); say so in the drop toast, or keep the frames on the item. |
+| G21 | A vector gauge dropped into a canvas zone has no frames until baked | open | InfoPanel draws nothing for it until the bake bar's Bake frames runs; bake on drop, or flag it in the canvas. |
+| G22 | `.gauge.json` is the lab's `VectorGauge`, not the concept's flat `GaugeRender` object (§6) | decide | The lab format is richer and already round-trips; reading the concept's object too would need a converter. |
+| G23 | Gauge cards on the Gauges page can't be dragged to the canvas (§8 lists gauge thumbnails as drag sources) | open | Library cards drag; presets and profile gauges need the same `LIBRARY_MIME`-style drag and the spring-load pill. |
+| G24 | SVG-template gauges show only the Shape part: no scale (min, max, unit) fields | open | Add the Scale part for `shape: "svg"`; `templateVars` already reads the scale. |
+| G25 | A profile gauge's name can't be edited on the Gauges page | open | A canvas item's name is its `Name`; a widget's is its label. Write them through `withGauge`'s siblings. |
+| G26 | The Gauges page UI has no component tests; only its pure logic in `src/lib/gauge-studio/` is tested | risk | Add render tests for the editor's part toggles and the unsaved-changes dialog. |
+| G27 | "Edit gauge…" while another gauge's working copy has unsaved changes replaces it silently | open | Ask Save / Discard / Cancel first, as back does. |
+| G28 | The filmstrip has no keyboard shortcuts (select, move, delete frames) | open | Arrows / Shift+arrows / Delete, never while typing. |
+| G29 | "Add to canvas" for an image sequence only says it goes into a canvas zone | open | Offer the profile's canvas zones to insert it into (`withDroppedGauge`). |
+| G30 | Image sequences can't be exported from the Gauges page (`.gauge.json` holds a spec only) | decide | Export the frames as a zip with a manifest, or convert to vector first. |
+| G31 | The editor header shows only "Vector" for a library gauge (no "· My library") | open | Cosmetic: show `entry.where` for library sources too. |
+
 ## Tests and tooling
 
 | # | Gap | Status | Notes / likely fix |

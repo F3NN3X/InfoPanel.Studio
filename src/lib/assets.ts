@@ -153,10 +153,27 @@ export async function uploadAsset(
 /** Tries of an upload the server turns away as busy (429: it runs two at a time). */
 const BUSY_TRIES = 6;
 
+/** Uploads in flight at once: the server takes two, so a burst (87 baked frames) queues here instead of being refused. */
+const UPLOAD_SLOTS = 2;
+let uploading = 0;
+const queued: (() => void)[] = [];
+
+/** `run` once one of the upload slots is free. */
+async function inSlot<T>(run: () => Promise<T>): Promise<T> {
+  if (uploading >= UPLOAD_SLOTS) await new Promise<void>((r) => queued.push(r));
+  uploading++;
+  try {
+    return await run();
+  } finally {
+    uploading--;
+    queued.shift()?.();
+  }
+}
+
 /**
  * Upload bytes of a known type (an imported profile's asset, a font, an SVG): the
  * server sniffs them and refuses a mismatch. Resolves with the stored asset id and URL.
- * A busy server (429) is asked again after a growing pause.
+ * A busy server (429) is asked again after a growing pause; at most two uploads run at once.
  */
 export async function uploadBytes(
   bytes: Uint8Array,
@@ -164,23 +181,25 @@ export async function uploadBytes(
   wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))
 ): Promise<Pick<Asset, "id" | "url" | "type" | "size">> {
   const body = new Blob([bytes.slice()], { type: mime });
-  for (let attempt = 1; ; attempt++) {
-    let res: Response;
-    try {
-      res = await fetch(ASSETS_URL, { method: "POST", headers: { ...WRITE_HEADERS, "Content-Type": mime }, body });
-    } catch {
-      throw new AssetError("The dashboard server could not be reached.");
+  return inSlot(async () => {
+    for (let attempt = 1; ; attempt++) {
+      let res: Response;
+      try {
+        res = await fetch(ASSETS_URL, { method: "POST", headers: { ...WRITE_HEADERS, "Content-Type": mime }, body });
+      } catch {
+        throw new AssetError("The dashboard server could not be reached.");
+      }
+      if (res.status === 429 && attempt < BUSY_TRIES) {
+        await wait(250 * attempt);
+        continue;
+      }
+      if (!res.ok) {
+        const messages: Record<number, string> = { 404: OUTDATED, 405: OUTDATED, 415: "The server does not take this file type.", 429: "The server stayed busy: try again." };
+        throw new AssetError(messages[res.status] ?? assetErrorMessage(res.status));
+      }
+      return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
     }
-    if (res.status === 429 && attempt < BUSY_TRIES) {
-      await wait(250 * attempt);
-      continue;
-    }
-    if (!res.ok) {
-      const messages: Record<number, string> = { 404: OUTDATED, 405: OUTDATED, 415: "The server does not take this file type.", 429: "The server stayed busy: try again." };
-      throw new AssetError(messages[res.status] ?? assetErrorMessage(res.status));
-    }
-    return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
-  }
+  });
 }
 
 /** Every uploaded asset, newest first. */

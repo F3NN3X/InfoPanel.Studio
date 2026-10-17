@@ -16,7 +16,7 @@
  */
 import { arcPath, circlePath, clamp, fmt, polar, type ContainerShape } from "./geom.ts";
 export type { ContainerShape } from "./geom.ts";
-import { arcNeedle, arcTicks, backgroundPrims, barTicks, scaleOf, valueText } from "./parts.ts";
+import { arcNeedle, arcTicks, backgroundPrims, barTicks, scaleOf, titleText, valueText } from "./parts.ts";
 import { centreIcon, gridPrims, iconRowPrims, liquidPrims, normalizeShapeParts, ringPrims } from "./shapes.ts";
 
 export { arcPath } from "./geom.ts";
@@ -84,6 +84,15 @@ export interface ValueText {
   y: number;
   /** `{value}` and `{unit}` are replaced. */
   format: string;
+}
+
+/** A caption drawn on the gauge (not the value). */
+export interface Title {
+  text: string;
+  size: number;
+  color: Paint;
+  /** Where its middle sits, 0–1 of the height. */
+  y: number;
 }
 
 export interface Background {
@@ -218,6 +227,7 @@ export interface VectorGauge {
   reverse: boolean;
   scale?: Scale;
   text?: ValueText;
+  title?: Title;
   background?: Background;
   /** Glow around the fill, blur radius px. */
   glow?: number;
@@ -510,7 +520,7 @@ export function gaugePrims(g: VectorGauge, p: number): Prim[] {
   const v = clamp(Number.isFinite(p) ? p : 0, 0, 1);
   if (g.shape === "svg") return [];
   const body = g.shape === "arc" ? arcPrims(g, v) : g.shape === "liquid" ? liquidPrims(g, v) : g.shape === "grid" ? gridPrims(g, v) : barPrims(g, v);
-  return [...backgroundPrims(g), ...body, ...(g.icon && g.shape !== "bar" ? [centreIcon(g)] : []), ...(g.text ? [valueText(g, v)] : [])];
+  return [...backgroundPrims(g), ...body, ...(g.icon && g.shape !== "bar" ? [centreIcon(g)] : []), ...(g.title?.text ? [titleText(g)] : []), ...(g.text ? [valueText(g, v)] : [])];
 }
 
 /**
@@ -543,6 +553,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
   const labels = obj(ticks?.labels);
   const scale = obj(o.scale);
   const vt = obj(o.text);
+  const title = obj(o.title);
   const bg = obj(o.background);
   const border = obj(bg?.border);
   const shadow = obj(o.shadow);
@@ -595,6 +606,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
           },
         }
       : {}),
+    ...(title ? { title: { text: text(title.text, "", 60), size: num(title.size, 14, 4, 400), color: color(title.color, "muted"), y: num(title.y, 0.12, 0, 1) } } : {}),
     ...(bg
       ? {
           background: {

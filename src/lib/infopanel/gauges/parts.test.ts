@@ -122,3 +122,21 @@ describe("normalizing the new parts", () => {
     for (const s of STARTERS) expect(normalizeGauge(s.gauge), s.name).toEqual(s.gauge);
   });
 });
+
+describe("title", () => {
+  const title = { text: "CPU", size: 14, color: "muted", y: 0.2 };
+
+  it("draws the caption at its row, before the value text, and escapes it in the markup", () => {
+    const g = arc({ title: { ...title, text: "<b>CPU" }, text: { size: 20, color: "fg", font: "", weight: 700, y: 0.5, format: "{value}" } });
+    const prims = gaugePrims(g, 0.5);
+    expect(texts(prims)).toEqual(["<b>CPU", "50"]);
+    expect(prims.find((p) => p.kind === "text")).toMatchObject({ x: 100, y: 40, size: 14, weight: 600 });
+    expect(gaugeSvg(g, 0.5)).toContain("&#60;b&#62;CPU");
+  });
+
+  it("draws nothing for an empty caption, and normalizes a bad one", () => {
+    expect(texts(gaugePrims(arc({ title: { ...title, text: "" } }), 0.5))).toEqual([]);
+    expect(normalizeGauge({ ...DEFAULT_GAUGE, title: { text: "x".repeat(99), size: 9999, color: "url(x)", y: -1 } }).title).toEqual({ text: "x".repeat(60), size: 400, color: "muted", y: 0 });
+    expect(normalizeGauge(DEFAULT_GAUGE).title).toBeUndefined();
+  });
+});

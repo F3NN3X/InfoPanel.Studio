@@ -164,4 +164,25 @@ describe("uploadBytes", () => {
     respond(415);
     await expect(uploadBytes(new Uint8Array([1]), "image/svg+xml", async () => {})).rejects.toThrow(/does not take this file type/);
   });
+
+  it("runs at most two uploads at once, queueing the rest", async () => {
+    let inFlight = 0;
+    let most = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      most = Math.max(most, ++inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight--;
+      return new Response(JSON.stringify({ id: ID }), { status: 200 });
+    }));
+    const all = await Promise.all(Array.from({ length: 7 }, () => uploadBytes(new Uint8Array([1]), "image/png")));
+    expect(all).toHaveLength(7);
+    expect(most).toBe(2);
+  });
+
+  it("frees its slot when an upload fails", async () => {
+    respond(415);
+    await Promise.allSettled([1, 2, 3].map(() => uploadBytes(new Uint8Array([1]), "image/png", async () => {})));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ id: ID }), { status: 200 })));
+    await expect(uploadBytes(new Uint8Array([1]), "image/png")).resolves.toEqual({ id: ID });
+  });
 });

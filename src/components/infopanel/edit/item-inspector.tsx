@@ -28,6 +28,8 @@ interface ItemInspectorProps {
   /** Live values by Data API key (the Sensor button's reading). */
   live: Readonly<Record<string, DataApiValue>>;
   onRemap: () => void;
+  /** A Gauge item's "Edit gauge…" (opens it in the Gauges page). */
+  onEditGauge?: (path: Path) => void;
 }
 
 const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
@@ -43,7 +45,7 @@ function Placeholder({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-export function ItemInspector({ editor, live, onRemap }: ItemInspectorProps) {
+export function ItemInspector({ editor, live, onRemap, onEditGauge }: ItemInspectorProps) {
   const { selection } = editor;
   if (selection.length === 0) {
     return (
@@ -62,10 +64,10 @@ export function ItemInspector({ editor, live, onRemap }: ItemInspectorProps) {
   const path = selection[0];
   const item = itemAt(editor.committed, path);
   // Keyed by path: a draft or an error never carries over to another item.
-  return item ? <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} /> : null;
+  return item ? <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onEditGauge={onEditGauge} /> : null;
 }
 
-function ItemFields({ editor, path, item, live, onRemap }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
+function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const [changedOnly, setChangedOnly] = useState(false);
@@ -121,7 +123,14 @@ function ItemFields({ editor, path, item, live, onRemap }: ItemInspectorProps & 
       case "ipPosition":
         return { top: <PositionGrid editor={editor} path={path} item={item} />, bottom: errorsOf(s) };
       case "ipSensor":
-        return { body: <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} /> };
+        return {
+          body: (
+            <>
+              <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} />
+              {item.kind === "Gauge" && onEditGauge && <EditGaugeButton onClick={() => onEditGauge(path)} />}
+            </>
+          ),
+        };
       case "ipUnknown":
         return {
           body: (
@@ -304,6 +313,22 @@ function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path
           </label>
         )}
       </div>
+    </div>
+  );
+}
+
+/** A Gauge item's way into the Gauges page, styled as the Sensor button. */
+function EditGaugeButton({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="px-4 pb-3">
+      <button
+        type="button"
+        onClick={onClick}
+        title="Open this gauge on the Gauges page"
+        className="flex w-full items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-left text-[12px] text-ui-1 hover:border-ui-strong"
+      >
+        Edit gauge…
+      </button>
     </div>
   );
 }

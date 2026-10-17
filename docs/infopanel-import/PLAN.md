@@ -167,7 +167,7 @@ passing, and is reviewed before the next starts.
 | A4 | Import dialog (spec §4), sensor remap (§5), Export dialog (§9); Import / Export in the top bar, the Add panel card (done; the Remap dialog's entry point, the zone toolbar, comes with A5) |
 | A5 | Canvas zone editing (§7): item tree, toolbar, modes, compare, mock sensors; the inspector registry extended with InfoPanel kinds (done; "Edit gauge…" comes with A7) |
 | A6 | Library page (§3): My library, profile assets, fonts, drag to the canvas (§8) (done; gauge items open, export and drop with A7) |
-| A7 | Gauges page (§6): browse and editor, presets, image-sequence tools, bake |
+| A7 | Gauges page (§6): browse and editor, presets, image-sequence tools, bake; the Custom gauge widget (done) |
 | A8 | The states in §10, responsive rules, docs and `FEATURE_MAP.md` rows |
 
 Open gaps and deviations the phases leave are listed in [GAPS.md](GAPS.md).

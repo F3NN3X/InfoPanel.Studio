@@ -34,6 +34,12 @@ export function valueText(g: VectorGauge, p: number): Prim {
   return { kind: "text", x: g.width / 2, y: g.height * t.y, text: formatValue(g, p), size: t.size, color: t.color, font: t.font, weight: t.weight, anchor: "middle" };
 }
 
+/** The title: a caption in the middle of its row, in the weight of a label. */
+export function titleText(g: VectorGauge): Prim {
+  const t = g.title!;
+  return { kind: "text", x: g.width / 2, y: g.height * t.y, text: t.text, size: t.size, color: t.color, font: "", weight: 600, anchor: "middle" };
+}
+
 /** Behind everything: a disc for an arc or a round liquid container, a diamond or hexagon container's shape, else a rounded rect. */
 export function backgroundPrims(g: VectorGauge): Prim[] {
   const b = g.background;

@@ -4,7 +4,7 @@
  * sidebar, the grid or shelves, and the detail pane. Fonts is a collection with its own view; the
  * profile assets tab is the active profile's canvas files. Lazy-loaded.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Copy,
   Download,
@@ -42,7 +42,9 @@ import {
   type SortId,
 } from "@/lib/my-library/model";
 import { suggestBackgrounds } from "@/lib/my-library/theme-suggest";
-import { addToProfile, applyStyle, setAsBackground, type StudioBridge } from "./library-actions";
+import { downloadSpec } from "@/components/gauges/gauge-files";
+import { gaugeDataOf } from "@/lib/gauge-studio/model";
+import { addToProfile, applyStyle, dataOf, setAsBackground, type StudioBridge } from "./library-actions";
 import { LibraryDetail, type DetailAction } from "./library-detail";
 import { GridView, LibrarySidebar, ShelvesView, fileDrop } from "./library-views";
 import { optimiseItem } from "./optimise";
@@ -51,29 +53,7 @@ import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
 import { UploadTray } from "./upload-tray";
 import { useMyLibrary } from "./use-my-library";
 import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
-import { canvasKeyAction } from "@/components/infopanel/edit/canvas-keys";
-
-const isTyping = (el: Element | null) =>
-  el instanceof HTMLElement && (el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
-
-/**
- * The studio's zone shortcuts (Del, Ctrl+D, arrows …) would act on the canvas hidden behind the
- * page: hold them back while it is open. Undo, redo, save and the palette still pass.
- */
-function useHoldZoneShortcuts() {
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing) return;
-      const action = canvasKeyAction(
-        { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey },
-        { typing: isTyping(document.activeElement), overlay: document.querySelector('[role="dialog"], [role="menu"]') !== null },
-      );
-      if (action && action.type !== "escape") e.preventDefault();
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, []);
-}
+import { useHoldZoneShortcuts } from "./use-hold-zone-shortcuts";
 
 export interface LibraryPageProps {
   bridge: StudioBridge;
@@ -84,6 +64,8 @@ export interface LibraryPageProps {
   profileName: string;
   /** Open the Import dialog: a profile file, or a saved canvas from the library. */
   onImport: (source?: { file: File } | { canvasId: string }) => void;
+  /** Open a library gauge in the Gauges page's editor. */
+  onOpenGauge: (itemId: string) => void;
   /** Export a saved canvas (download) without placing it. */
   onExportCanvas: (item: LibraryItem) => void;
   copyLabel: (copy: LibraryCopy) => string;
@@ -145,7 +127,7 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "video":
         return { label: "Set as background", icon: Wallpaper, run: () => setAsBackground(bridge, item) };
       case "gauge":
-        return { label: "Open in editor", icon: Gauge, run: () => {}, disabled: true, title: "The gauge editor comes with the Gauges page" };
+        return { label: "Open in editor", icon: Gauge, run: () => p.onOpenGauge(item.id) };
       case "canvas":
         return { label: "Open canvas", icon: MonitorPlay, run: () => p.onImport({ canvasId: item.id }) };
       case "style":
@@ -194,7 +176,20 @@ export default function LibraryPage(p: LibraryPageProps) {
             (e: Error) => toast(`Not optimised: ${e.message}`),
           ),
       });
-    if (item.kind === "gauge") out.push({ label: "Export .gauge.json", icon: Download, run: () => {}, disabled: true, title: "Comes with the Gauges page" });
+    if (item.kind === "gauge")
+      out.push({
+        label: "Export .gauge.json",
+        icon: Download,
+        run: () =>
+          void dataOf(item).then(
+            (raw) => {
+              const spec = gaugeDataOf(raw)?.vector;
+              if (spec) downloadSpec(item.name, spec);
+              else toast("An image sequence has no spec to export: its frames go out with the .infopanel export");
+            },
+            (e: Error) => toast(`Not exported: ${e.message}`),
+          ),
+      });
     if (item.kind === "canvas") {
       out.push({ label: "Export…", icon: Download, run: () => p.onExportCanvas(item) });
       out.push({ label: "Re-import…", icon: FolderInput, run: () => p.onImport({ canvasId: item.id }) });
