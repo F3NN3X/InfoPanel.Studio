@@ -1,6 +1,6 @@
 /** Shared pieces of the asset panels: reading picked files, re-encoding images (browser only), a file picker button. */
 import { useRef, type ReactNode } from "react";
-import { assetFile, MIME, type AssetFile } from "./assets.ts";
+import { assetFile, MIME, type AssetFile } from "@/lib/infopanel/assets/assets.ts";
 
 export const kb = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
 

@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseDisplayItemsXml, parseProfileXml } from "../parse.ts";
 import type { SensorReading } from "../sensor-text.ts";
-import { tableFromText } from "../sensor-source.ts";
-import { buildScene, hasAnimatedGradient, imageSource, type DrawNode, type ImageSource, type SceneInput, type SensorState } from "./scene.ts";
-import { visibleText } from "./Text.tsx";
+import { buildScene, hasAnimatedGradient, imageSource, type DrawNode, type ImageSource, type SceneInput, type SensorState, tableFromText, visibleText } from "./scene.ts";
 
 const parse = (body: string) =>
   parseDisplayItemsXml('<ArrayOfDisplayItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' + body + "</ArrayOfDisplayItem>").items;

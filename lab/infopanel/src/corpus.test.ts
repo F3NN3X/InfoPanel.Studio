@@ -3,8 +3,8 @@
 // survey (scripts/corpus-expected.py). Skips when `npm run lab:extract` has
 // not been run.
 import { describe, expect, it } from "vitest";
-import { loadExport, type ExportEntry } from "./archive.ts";
-import { walkItems } from "./parse.ts";
+import { loadExport, type ExportEntry } from "@/lib/infopanel/archive.ts";
+import { walkItems } from "@/lib/infopanel/parse.ts";
 import expected from "./__fixtures__/corpus-expected.json";
 
 const xml = import.meta.glob<string>("../corpus/*/*.xml", { query: "?raw", import: "default", eager: true });

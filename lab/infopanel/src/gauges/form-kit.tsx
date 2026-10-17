@@ -4,7 +4,7 @@
  * is one undo step.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { isThemeColor, THEME, type Paint, type VectorGauge } from "./vector.ts";
+import { isThemeColor, THEME, type Paint, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 
 export interface FieldProps<T> {
   value: T;

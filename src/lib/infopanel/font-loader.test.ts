@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FontLoader, remoteTypeface, type RemoteFont } from "./font-loader.ts";
-import { tableOf } from "./sensor-source.ts";
+import { tableOf } from "./render/scene.ts";
 
 const API = "http://api.test";
 const answer = (family: string, extra: Partial<RemoteFont> = {}): RemoteFont => ({

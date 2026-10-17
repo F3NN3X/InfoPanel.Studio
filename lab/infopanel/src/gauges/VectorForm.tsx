@@ -5,12 +5,12 @@
  */
 import { useState } from "react";
 import { binder, Color, Num, PaintField, Row, Toggle } from "./form-kit.tsx";
-import { SAMPLE_TEMPLATE } from "./presets.ts";
-import { sanitizeTemplate } from "./svg-template.ts";
-import { DEFAULT_GAUGE, type ColorStop, type FillMode, type NeedleStyle, type VectorGauge } from "./vector.ts";
+import { SAMPLE_TEMPLATE } from "@/lib/infopanel/gauges/presets.ts";
+import { sanitizeTemplate } from "@/lib/infopanel/gauges/svg-template.ts";
+import { DEFAULT_GAUGE, type ColorStop, type FillMode, type NeedleStyle, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 import { PartsRows } from "./VectorParts.tsx";
 import { ShapeExtras } from "./VectorShapes.tsx";
-import { DEFAULT_GRID, DEFAULT_LIQUID } from "./shapes.ts";
+import { DEFAULT_GRID, DEFAULT_LIQUID } from "@/lib/infopanel/gauges/shapes.ts";
 
 export interface VectorFormProps {
   gauge: VectorGauge;

@@ -4,8 +4,8 @@
  */
 import { useMemo, type CSSProperties } from "react";
 import { SvgTemplateView } from "./SvgTemplateView.tsx";
-import { THEME, type VectorGauge } from "./vector.ts";
-import { gaugeSvg } from "./vector-svg.ts";
+import { THEME, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
+import { gaugeSvg } from "@/lib/infopanel/gauges/vector-svg.ts";
 
 export interface VectorGaugeSvgProps {
   gauge: VectorGauge;

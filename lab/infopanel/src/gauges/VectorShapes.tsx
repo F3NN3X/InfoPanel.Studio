@@ -4,8 +4,8 @@
  * part's checkbox adds it with defaults or removes it.
  */
 import { binder, Num, PaintField, Row, Toggle } from "./form-kit.tsx";
-import { BUBBLES, CELL_BORDER, DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
-import { GAUGE_ICONS, type CentreIcon, type GaugeIcon, type Grid, type IconRow, type Liquid, type Pattern, type Rings, type VectorGauge } from "./vector.ts";
+import { BUBBLES, CELL_BORDER, DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "@/lib/infopanel/gauges/shapes.ts";
+import { GAUGE_ICONS, type CentreIcon, type GaugeIcon, type Grid, type IconRow, type Liquid, type Pattern, type Rings, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 
 export interface ShapeExtrasProps {
   g: VectorGauge;

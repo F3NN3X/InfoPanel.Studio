@@ -4,24 +4,24 @@
  * an export back to `.infopanel`, where vector gauges can be baked into frames.
  */
 import { useEffect, useState } from "react";
-import { analyse, assetFile, type Doc } from "../assets/assets.ts";
-import { itemAt, setField, type Path } from "../editor/ops.ts";
+import { analyse, assetFile, type Doc } from "@/lib/infopanel/assets/assets.ts";
+import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops.ts";
 import type { Editor } from "../editor/useEditor.ts";
-import { infopanelExport } from "../export/write.ts";
-import { reviewFont, VERDICT_LABEL } from "../font-licence.ts";
-import { bakeSignature, gaugePaths, isStale, safeStem, setFrameFiles, vectorOf } from "../gauges/frames.ts";
-import { bake } from "../gauges/raster.ts";
-import type { ConvertContext } from "../native/convert.ts";
+import { infopanelExport } from "@/lib/infopanel/export/write.ts";
+import { reviewFont, VERDICT_LABEL } from "@/lib/infopanel/font-licence.ts";
+import { bakeSignature, gaugePaths, isStale, safeStem, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames.ts";
+import { bake } from "@/lib/infopanel/gauges/raster.ts";
+import type { ConvertContext } from "@/lib/infopanel/native/convert.ts";
 import { convertible, isNative } from "../native/native.tsx";
-import type { Issue } from "../parse.ts";
-import type { Group, Overrides } from "../remap/remap.ts";
-import type { GaugeItem, Profile } from "../schema.ts";
-import { DATA_API } from "../sensor-source.ts";
-import type { Match } from "../sensors.ts";
+import type { Issue } from "@/lib/infopanel/parse.ts";
+import type { Group, Overrides } from "@/lib/infopanel/remap/remap.ts";
+import type { GaugeItem, Profile } from "@/lib/infopanel/schema.ts";
+import { DATA_API } from "@/lib/infopanel/sensors.ts";
+import type { Match } from "@/lib/infopanel/sensors.ts";
 import type { FontPlan } from "../useFontPlan.ts";
-import { bundle } from "./bundle.ts";
-import { buildReport, dataApiInfo } from "./report.ts";
-import { remapKeys, toStored, type DataApiInfo, type DefaultMode, type StoredCanvas, type StoredFont } from "./stored.ts";
+import { bundle } from "@/lib/infopanel/import/bundle.ts";
+import { buildReport, dataApiInfo } from "@/lib/infopanel/import/report.ts";
+import { remapKeys, toStored, type DataApiInfo, type DefaultMode, type StoredCanvas, type StoredFont } from "@/lib/infopanel/import/stored.ts";
 
 export interface ImportSource {
   name: string;

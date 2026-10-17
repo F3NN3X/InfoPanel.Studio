@@ -7,7 +7,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { Plugin } from "vite";
-import { isAssetName, isGuid, profilesFromXml } from "./src/local-data.ts";
+import { isAssetName, isGuid, profilesFromXml } from "../../src/lib/infopanel/local-data.ts";
 
 export function infopanelData(dir = process.env.INFOPANEL_DATA_DIR ?? path.join(process.env.LOCALAPPDATA ?? "", "InfoPanel")): Plugin {
   const profiles = async () => profilesFromXml(await readFile(path.join(dir, "profiles.xml"), "utf8"));

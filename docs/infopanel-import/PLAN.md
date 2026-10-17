@@ -152,14 +152,23 @@ others). Each phase ends with the lab tests passing; `src/` stays untouched unti
 
 ### App phases (after the lab is complete)
 
+The studio design for these phases is `docs/infopanel-import/studio/SPEC.md` (Library page, Import and Export
+dialogs, sensor remap, Gauges page, canvas zone editing), with the concept `Studio Lab.dc.html` beside it. Where
+it differs from the decisions above, the spec wins: **Both** is one canvas whose items keep both forms (not two
+canvas zones), and the user's reusable content lives in a server-side **My library** with copy semantics. The lab
+stays as a dev tool, importing the model and logic from `src/`. Each phase ends with the app built and tests
+passing, and is reviewed before the next starts.
+
 | Phase | Content |
 |---|---|
-| A1 | Move the lab's model and logic into `src/lib/infopanel/`; the lab imports from there |
+| A1 | Move the lab's model and logic into `src/lib/infopanel/`; the lab imports from there (done) |
 | A2 | Canvas zone kind: `Placement.canvas`, normalization, the renderer in a zone, kiosk and desktop bundles |
-| A3 | Import flow, asset upload and font assets in the studio; one undo step |
-| A4 | Canvas editing and the inspector registry in the studio |
-| A5 | Native mode, sensor remap, `sample-history` capacity per key |
-| A6 | Installed-profile import through the server; the features proven in L6 and L7 |
+| A3 | Server: My library store (items, copy counts, files by SHA-256), the asset store for fonts and SVG, installed profiles, the font proxy |
+| A4 | Import dialog (spec §4), sensor remap (§5), Export dialog (§9); Import / Export in the top bar, the Add panel card |
+| A5 | Canvas zone editing (§7): item tree, toolbar, modes, compare, mock sensors; the inspector registry extended with InfoPanel kinds |
+| A6 | Library page (§3): My library, profile assets, fonts, drag to the canvas (§8) |
+| A7 | Gauges page (§6): browse and editor, presets, image-sequence tools, bake |
+| A8 | The states in §10, responsive rules, docs and `FEATURE_MAP.md` rows |
 
 ## Risks
 

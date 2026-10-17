@@ -113,3 +113,6 @@ export function toReading(v: DataApiValue | undefined): SensorReading | null {
   }
   return { now: v.value ?? 0, min: v.min ?? 0, max: v.max ?? 0, avg: v.avg ?? 0, unit: v.unit ?? "" };
 }
+
+/** InfoPanel's Data API on this machine. */
+export const DATA_API = "http://127.0.0.1:3921";

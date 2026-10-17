@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Orbitron:wght@500;700&family=Rajdhani:wght@500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300,0..1,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0c0c0e}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#2a2a31 transparent}
+a{color:oklch(0.74 0.14 255)}a:hover{color:oklch(0.82 0.12 255)}
+select option{background:#17171b;color:#ededf0}
+input,select,textarea,button{font-family:inherit}
+input[type=range]{accent-color:oklch(0.72 0.15 255)}
+</style>
+</helmet>
+<div style="height:100vh; display:flex; flex-direction:column; background:#0c0c0e; color:#ededf0; font-family:'Geist',system-ui,sans-serif; font-size:13px; overflow:hidden">
+<div style="flex:none; display:flex; align-items:center; gap:4px; padding:5px 10px; background:#08080a; border-bottom:1px solid #1a1a1f; overflow-x:auto">
+  <span style="font-size:10.5px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:#5f5f69; padding-right:8px; white-space:nowrap">Concept screens</span>
+  <sc-for list="{{ nav }}" as="n" hint-placeholder-count="10">
+    <button onClick="{{ n.pick }}" style="display:flex; align-items:center; gap:6px; height:24px; padding:0 9px; border:none; border-radius:6px; background:{{ n.bg }}; color:{{ n.fg }}; font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap">
+      <sc-if value="{{ n.hasId }}"><span style="font-family:'Geist Mono',monospace; font-size:10px; padding:1px 4px; border-radius:4px; background:oklch(0.72 0.15 255 / 0.18); color:oklch(0.80 0.12 255)">{{ n.id }}</span></sc-if>{{ n.label }}</button>
+  </sc-for>
+</div>
+
+<header style="height:48px; flex:none; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; padding:0 12px; border-bottom:1px solid #1f1f24; background:#0f0f12">
+  <div style="display:flex; align-items:center; gap:10px; min-width:0">
+    <div style="width:26px; height:26px; border-radius:7px; background:oklch(0.72 0.15 255); flex:none"></div>
+    <button style="display:flex; align-items:center; gap:4px; background:none; border:none; color:#ededf0; font-size:13px; font-weight:600; padding:4px 6px; border-radius:6px; cursor:pointer" style-hover="background:#1a1a1f">ARCv2<span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#7c7c86">expand_more</span></button>
+    <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">1920 × 550 · Canvas zone · 86 items</span>
+  </div>
+  <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:8px; padding:2px">
+    <button style="border:none; border-radius:6px; padding:5px 14px; font-size:12.5px; font-weight:500; background:#2a2a31; color:#ededf0">Design</button>
+    <button style="border:none; border-radius:6px; padding:5px 14px; font-size:12.5px; font-weight:500; background:transparent; color:#8f8f99">Sources</button>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px">
+    <button onClick="{{ openImport }}" title="Import an InfoPanel profile" style="display:flex; align-items:center; gap:6px; height:32px; padding:0 11px; background:none; border:none; border-radius:7px; color:#c9c9cf; font-size:12.5px; font-weight:500; cursor:pointer" style-hover="background:#1a1a1f"><span style="font-family:'Material Symbols Rounded'; font-size:18px">download</span>Import</button>
+    <button onClick="{{ openExport }}" title="Export" style="display:flex; align-items:center; gap:6px; height:32px; padding:0 11px; background:none; border:none; border-radius:7px; color:#c9c9cf; font-size:12.5px; font-weight:500; cursor:pointer" style-hover="background:#1a1a1f"><span style="font-family:'Material Symbols Rounded'; font-size:18px">ios_share</span>Export</button>
+    <div style="width:1px; height:20px; background:#24242a; margin:0 4px"></div>
+    <button onClick="{{ save }}" style="display:flex; align-items:center; gap:7px; height:32px; padding:0 14px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer"><span style="width:6px; height:6px; border-radius:50%; background:oklch(0.62 0.17 255)"></span>Save</button>
+  </div>
+</header>
+
+<div style="flex:1; display:flex; min-height:0; position:relative">
+  <nav style="width:52px; flex:none; border-right:1px solid #1f1f24; background:#0f0f12; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 0">
+    <sc-for list="{{ rail }}" as="r" hint-placeholder-count="5">
+      <button onClick="{{ r.pick }}" title="{{ r.label }}" style="width:38px; height:38px; display:grid; place-items:center; border:none; border-radius:9px; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:21px; background:{{ r.bg }}; color:{{ r.fg }}" style-hover="background:#1a1a1f">{{ r.icon }}</button>
+    </sc-for>
+  </nav>
+  <sc-if value="{{ showLib }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; background:#0c0c0e">
+  <div style="height:56px; flex:none; display:flex; align-items:center; gap:14px; padding:0 16px; border-bottom:1px solid #1f1f24; background:#0f0f12">
+    <span style="font-size:15px; font-weight:600; flex:none">Library</span>
+    <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:8px; padding:2px">
+      <sc-for list="{{ libTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.pick }}" style="border:none; border-radius:6px; padding:5px 12px; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap; background:{{ t.bg }}; color:{{ t.fg }}">{{ t.label }}</button></sc-for>
+    </div>
+    <div style="flex:1 1 160px; min-width:0; max-width:520px; display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; background:#0c0c0e; border:1px solid #26262c; border-radius:8px">
+      <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#7c7c86">search</span>
+      <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Search everything: names, tags, colours, sizes" style="flex:1; min-width:0; background:none; border:none; outline:none; color:#ededf0; font-size:12.5px">
+      <sc-if value="{{ hasQ }}"><button onClick="{{ clearQ }}" style="border:none; background:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">close</button></sc-if>
+    </div>
+    <sc-if value="{{ libMine }}"><div title="View" style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:8px; padding:2px"><sc-for list="{{ libViewSeg }}" as="v" hint-placeholder-count="2"><button onClick="{{ v.pick }}" title="{{ v.label }}" style="display:flex; align-items:center; gap:5px; border:none; border-radius:6px; padding:4px 9px; font-size:12px; font-weight:500; cursor:pointer; background:{{ v.bg }}; color:{{ v.fg }}"><span style="font-family:'Material Symbols Rounded'; font-size:16px">{{ v.icon }}</span>{{ v.label }}</button></sc-for></div></sc-if>
+    <div style="flex:1"></div>
+    <button onClick="{{ openImport }}" title="Import profile" style="flex:none; height:32px; padding:0 12px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap" style-hover="background:#1e1e24"><span style="font-family:'Material Symbols Rounded'; font-size:17px">download</span><span style="white-space:nowrap">Import</span></button>
+    <button onClick="{{ upload }}" style="flex:none; height:32px; padding:0 13px; display:flex; align-items:center; gap:6px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap"><span style="font-family:'Material Symbols Rounded'; font-size:17px">upload</span>Upload</button>
+  </div>
+
+  <sc-if value="{{ libMine }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1; min-height:0; display:grid; grid-template-columns:216px minmax(0,1fr) 320px">
+    <aside style="border-right:1px solid #1f1f24; background:#0f0f12; overflow:auto; padding:12px 8px; display:flex; flex-direction:column; gap:14px">
+      <sc-for list="{{ collSecs }}" as="cs" hint-placeholder-count="3">
+        <div style="display:flex; flex-direction:column; gap:1px">
+          <span style="font-size:10.5px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#6f6f79; padding:0 8px 6px">{{ cs.sec }}</span>
+          <sc-for list="{{ cs.items }}" as="ci" hint-placeholder-count="5">
+            <button onClick="{{ ci.pick }}" style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border:none; border-radius:7px; background:{{ ci.bg }}; color:{{ ci.fg }}; font-size:12.5px; cursor:pointer; text-align:left" style-hover="background:#18181d">
+              <span style="font-family:'Material Symbols Rounded'; font-size:17px; color:{{ ci.ic }}">{{ ci.icon }}</span><span style="flex:1">{{ ci.label }}</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#6f6f79">{{ ci.count }}</span></button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </aside>
+
+    <main style="min-width:0; overflow:auto; display:flex; flex-direction:column">
+      <sc-if value="{{ showItems }}" hint-placeholder-val="{{ true }}">
+        <sc-if value="{{ showShelves }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:18px 20px 28px; display:flex; flex-direction:column; gap:26px">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px">
+              <sc-for list="{{ attention }}" as="at" hint-placeholder-count="3">
+                <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:#121215; border:1px solid #24242a; border-radius:10px">
+                  <span style="width:32px; height:32px; flex:none; border-radius:8px; display:grid; place-items:center; background:oklch(0.80 0.13 80 / 0.12); color:oklch(0.80 0.13 80); font-family:'Material Symbols Rounded'; font-size:18px">{{ at.icon }}</span>
+                  <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:600">{{ at.t }}</span><span style="font-size:11.5px; color:#8f8f99; text-wrap:pretty">{{ at.d }}</span></div>
+                  <button onClick="{{ at.run }}" style="height:28px; padding:0 10px; background:#1c1c22; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">{{ at.act }}</button>
+                </div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ shelves }}" as="sh" hint-placeholder-count="3">
+              <section style="display:flex; flex-direction:column; gap:10px">
+                <div style="display:flex; align-items:baseline; gap:10px">
+                  <span style="font-size:14px; font-weight:600">{{ sh.title }}</span><span style="font-size:12px; color:#7c7c86">{{ sh.sub }}</span>
+                  <span style="flex:1"></span>
+                  <button onClick="{{ sh.seeAll }}" style="border:none; background:none; color:#9696a0; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:2px" style-hover="color:#ededf0">See all<span style="font-family:'Material Symbols Rounded'; font-size:16px">chevron_right</span></button>
+                </div>
+                <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:6px">
+                  <sc-for list="{{ sh.cards }}" as="c" hint-placeholder-count="4">
+                    <div draggable="true" onDragStart="{{ c.dragStart }}" onClick="{{ c.pick }}" onDoubleClick="{{ c.open }}" title="Drag onto the canvas" style="flex:none; width:196px; display:flex; flex-direction:column; gap:8px; padding:6px 6px 10px; border-radius:11px; border:1px solid {{ c.bd }}; background:{{ c.bg }}; cursor:pointer" style-hover="background:#17171c">
+                      <div style="position:relative; aspect-ratio:16/10; border-radius:7px; overflow:hidden"><dc-import name="AssetThumb" style="width:100%; height:100%" item="{{ c.item }}" hint-size="100%,100%"></dc-import>
+                        <sc-if value="{{ c.hasFlag }}"><span style="position:absolute; top:6px; right:6px; padding:1px 6px; border-radius:5px; background:rgba(12,12,14,.8); font-size:10.5px; color:{{ c.flagC }}">{{ c.flag }}</span></sc-if></div>
+                      <div style="padding:0 4px; display:flex; flex-direction:column; gap:2px; min-width:0">
+                        <span style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.name }}</span>
+                        <sc-if value="{{ sh.isSuggest }}"><span style="display:flex; align-items:center; gap:4px; font-size:11px; color:oklch(0.80 0.12 255)"><span style="font-family:'Material Symbols Rounded'; font-size:13px">auto_awesome</span>{{ c.reason }}</span></sc-if>
+                        <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.meta }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ true }}">
+          <div style="position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:10px; padding:14px 20px 12px; background:#0c0c0e; flex-wrap:wrap">
+            <span style="font-size:14px; font-weight:600; white-space:nowrap">{{ collLabel }}</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; white-space:nowrap">{{ listCount }}</span>
+            <span style="width:1px; height:16px; background:#24242a; margin:0 4px"></span>
+            <div style="display:flex; gap:5px; flex-wrap:wrap">
+              <sc-for list="{{ tagChips }}" as="tc" hint-placeholder-count="5"><button onClick="{{ tc.pick }}" style="height:24px; padding:0 9px; border:1px solid {{ tc.bd }}; background:{{ tc.bg }}; border-radius:12px; color:{{ tc.fg }}; font-size:11.5px; cursor:pointer">{{ tc.label }}</button></sc-for>
+            </div>
+            <span style="flex:1"></span>
+            <select style="height:28px; background:#141418; border:1px solid #26262c; border-radius:7px; color:#c9c9cf; font-size:12px; padding:0 6px"><option>Recently added</option><option>Name</option><option>File size</option><option>Most used</option></select>
+          </div>
+          <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
+            <div style="margin:0 20px 12px; display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid #26262c; background:#111114; border-radius:9px">
+              <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:oklch(0.80 0.13 80)">cleaning_services</span>
+              <span style="flex:1; font-size:12.5px; color:#c9c9cf">{{ banner }}</span>
+              <button onClick="{{ reviewDups }}" style="height:26px; padding:0 9px; background:none; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Duplicates</button>
+              <button onClick="{{ reviewUnused }}" style="height:26px; padding:0 9px; background:none; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Unused</button>
+            </div>
+          </sc-if>
+          <div style="padding:0 20px 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(176px, 1fr)); gap:12px">
+            <button onClick="{{ upload }}" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:170px; border:1.5px dashed #2e2e36; border-radius:11px; background:none; color:#8f8f99; cursor:pointer; font-size:12px; padding:12px; text-align:center" style-hover="border-color:#4a4a54; color:#ededf0">
+              <span style="font-family:'Material Symbols Rounded'; font-size:26px">add_photo_alternate</span><span style="font-weight:500">Drop files or click</span><span style="font-size:11px; color:#6f6f79; text-wrap:pretty">Images, video, SVG, fonts, .gauge.json, .infopanel</span></button>
+            <sc-for list="{{ cards }}" as="c" hint-placeholder-count="10">
+              <div draggable="true" onDragStart="{{ c.dragStart }}" onClick="{{ c.pick }}" onDoubleClick="{{ c.open }}" title="Drag onto the canvas · double-click to open" style="display:flex; flex-direction:column; gap:8px; padding:6px 6px 10px; border-radius:11px; border:1px solid {{ c.bd }}; background:{{ c.bg }}; cursor:pointer; min-width:0" style-hover="background:#17171c">
+                <div style="position:relative; aspect-ratio:16/10; border-radius:7px; overflow:hidden"><dc-import name="AssetThumb" style="width:100%; height:100%" item="{{ c.item }}" hint-size="100%,100%"></dc-import>
+                  <sc-if value="{{ c.hasFlag }}"><span style="position:absolute; top:6px; right:6px; padding:1px 6px; border-radius:5px; background:rgba(12,12,14,.8); font-size:10.5px; color:{{ c.flagC }}">{{ c.flag }}</span></sc-if></div>
+                <div style="padding:0 4px; display:flex; flex-direction:column; gap:2px; min-width:0">
+                  <span style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.name }}</span>
+                  <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.meta }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ isEmpty }}"><div style="padding:30px 20px; color:#7c7c86; font-size:12.5px">Nothing matches. Every word must match a name, tag, type or size.</div></sc-if>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ showFonts }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px 20px 28px; display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:center; gap:10px">
+            <span style="font-size:14px; font-weight:600">Fonts</span>
+            <sc-if value="{{ hasMissing }}"><span style="padding:2px 7px; border-radius:5px; background:oklch(0.68 0.17 25 / 0.14); color:oklch(0.74 0.15 25); font-size:11px">1 missing</span></sc-if>
+            <span style="flex:1"></span>
+            <button onClick="{{ upload }}" style="height:30px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">add</span>Add fonts</button>
+            <button onClick="{{ openGet }}" style="height:30px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">travel_explore</span>Get a font</button>
+          </div>
+          <section style="display:flex; flex-direction:column; border:1px solid #1f1f24; border-radius:10px; overflow:hidden">
+            <div style="display:grid; grid-template-columns:minmax(150px,1.3fr) minmax(130px,1.1fr) minmax(150px,1.3fr) 64px 110px 120px; gap:10px; padding:9px 14px; background:#111114; font-size:11px; color:#7c7c86; border-bottom:1px solid #1f1f24"><span>Requested by ARCv2</span><span>Drawn with</span><span>How</span><span>Items</span><span>Licence</span><span></span></div>
+            <sc-for list="{{ freq }}" as="f" hint-placeholder-count="5">
+              <div onClick="{{ f.pick }}" style="display:grid; grid-template-columns:minmax(150px,1.3fr) minmax(130px,1.1fr) minmax(150px,1.3fr) 64px 110px 120px; gap:10px; align-items:center; padding:9px 14px; border-bottom:1px solid #18181c; background:{{ f.bg }}; cursor:pointer; font-size:12.5px" style-hover="background:#141418">
+                <span style="display:flex; align-items:center; gap:8px; min-width:0"><span style="width:7px; height:7px; border-radius:50%; flex:none; background:{{ f.stDot }}"></span><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.req }}</span></span>
+                <span style="color:{{ f.faceC }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.face }}</span>
+                <span style="color:#9696a0; font-size:12px">{{ f.how }}</span>
+                <button onClick="{{ f.selItems }}" title="Select these items on the canvas" style="justify-self:start; border:none; background:#1c1c22; border-radius:5px; padding:2px 7px; color:#c9c9cf; font-family:'Geist Mono',monospace; font-size:11px; cursor:pointer">{{ f.items }}</button>
+                <span style="font-size:11.5px; color:{{ f.licC }}">{{ f.lic }}</span>
+                <span style="display:flex; justify-content:flex-end">
+                  <sc-if value="{{ f.isMissing }}"><button onClick="{{ f.get }}" style="height:26px; padding:0 9px; background:#ededf0; border:none; border-radius:6px; color:#0c0c0e; font-size:12px; font-weight:600; cursor:pointer">Get Rajdhani</button></sc-if>
+                  <sc-if value="{{ f.isFallback }}"><span style="font-size:11.5px; color:#8f8f99">InfoPanel fallback</span></sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </section>
+          <section style="display:flex; flex-direction:column; gap:8px">
+            <span style="font-size:13px; font-weight:600">My fonts</span>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:10px">
+              <sc-for list="{{ flib }}" as="fl" hint-placeholder-count="5">
+                <div onClick="{{ fl.pick }}" style="display:flex; flex-direction:column; gap:10px; padding:14px; border:1px solid #22222a; border-radius:10px; background:{{ fl.bg }}; cursor:pointer" style-hover="background:#141418">
+                  <span style="font-family:{{ fl.ff }}; font-size:26px; line-height:1.1; white-space:nowrap; overflow:hidden">14:32 54°C</span>
+                  <div style="display:flex; align-items:center; gap:8px"><span style="font-size:12.5px; font-weight:500; flex:1">{{ fl.fam }}</span><span style="font-size:11px; color:{{ fl.licC }}">{{ fl.licL }}</span></div>
+                  <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ fl.faces }} faces · {{ fl.size }} · {{ fl.origin }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+    </main>
+
+    <aside style="border-left:1px solid #1f1f24; background:#111114; overflow:auto; min-height:0">
+      <sc-if value="{{ showItems }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:16px; display:flex; flex-direction:column; gap:16px">
+          <div style="border-radius:10px; overflow:hidden; aspect-ratio:{{ d.thumbTall }}; border:1px solid #22222a"><dc-import name="AssetThumb" style="width:100%; height:100%" item="{{ d.item }}" size="lg" hint-size="100%,100%"></dc-import></div>
+          <div style="display:flex; flex-direction:column; gap:3px"><span style="font-size:14px; font-weight:600; word-break:break-all">{{ d.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">{{ d.meta }}</span></div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <button onClick="{{ d.prim.run }}" style="height:34px; display:flex; align-items:center; justify-content:center; gap:7px; background:#ededf0; border:none; border-radius:8px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:18px">{{ d.prim.icon }}</span>{{ d.prim.label }}</button>
+            <div style="display:flex; flex-wrap:wrap; gap:6px">
+              <sc-for list="{{ d.secs }}" as="a" hint-placeholder-count="3"><button onClick="{{ a.run }}" title="{{ a.label }}" style="flex:1 1 auto; min-width:0; padding:0 8px; height:30px; display:flex; align-items:center; justify-content:center; gap:5px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer; white-space:nowrap" style-hover="background:#1e1e24"><span style="font-family:'Material Symbols Rounded'; font-size:16px">{{ a.icon }}</span><span style="overflow:hidden; text-overflow:ellipsis">{{ a.label }}</span></button></sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ d.hasDup }}"><div style="display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:8px; background:oklch(0.80 0.13 80 / 0.08); border:1px solid oklch(0.80 0.13 80 / 0.3)"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:oklch(0.80 0.13 80)">content_copy</span><span style="flex:1; font-size:12px; color:#ddd6c6">{{ d.dupText }}</span><button onClick="{{ d.merge }}" style="height:24px; padding:0 8px; border:none; border-radius:6px; background:#ededf0; color:#0c0c0e; font-size:11.5px; font-weight:600; cursor:pointer">Merge</button></div></sc-if>
+          <sc-if value="{{ d.hasSuggest }}"><div style="display:flex; align-items:center; gap:8px; font-size:12px; color:oklch(0.82 0.11 255)"><span style="font-family:'Material Symbols Rounded'; font-size:16px">auto_awesome</span>{{ d.suggest }}</div></sc-if>
+          <sc-if value="{{ d.isVideo }}">
+            <div style="display:flex; flex-direction:column; gap:2px; border-top:1px solid #1f1f24; padding-top:12px">
+              <div style="display:flex; align-items:center; height:30px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">Loop</span><button onClick="{{ togLoop }}" style="width:30px; height:18px; border:none; border-radius:9px; position:relative; cursor:pointer; background:{{ loopBg }}"><span style="position:absolute; top:2px; left:{{ loopX }}; width:14px; height:14px; border-radius:50%; background:#fff"></span></button></div>
+              <div style="display:flex; align-items:center; height:30px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">Muted</span><button onClick="{{ togMute }}" style="width:30px; height:18px; border:none; border-radius:9px; position:relative; cursor:pointer; background:{{ muteBg }}"><span style="position:absolute; top:2px; left:{{ muteX }}; width:14px; height:14px; border-radius:50%; background:#fff"></span></button></div>
+              <div style="display:flex; align-items:center; height:30px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">Poster frame</span><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">0:03</span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.isSvg }}"><div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap"><span style="font-size:12px; color:#9696a0">Driven by</span><sc-for list="{{ d.vars }}" as="v"><span style="font-family:'Geist Mono',monospace; font-size:11px; padding:2px 6px; border-radius:5px; background:#1c1c22; color:#c9c9cf">{{ v.v }}</span></sc-for></div></sc-if>
+          <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid #1f1f24; padding-top:12px">
+            <sc-for list="{{ d.facts }}" as="f" hint-placeholder-count="5"><div style="display:flex; gap:10px; font-size:12px"><span style="width:76px; color:#7c7c86">{{ f.k }}</span><span style="flex:1; min-width:0; color:#c9c9cf; font-family:'Geist Mono',monospace; font-size:11.5px; overflow:hidden; text-overflow:ellipsis">{{ f.v }}</span></div></sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid #1f1f24; padding-top:12px">
+            <span style="font-size:11px; color:#7c7c86">Tags · auto</span>
+            <div style="display:flex; gap:5px; flex-wrap:wrap"><sc-for list="{{ d.tags }}" as="t"><span style="height:22px; display:inline-flex; align-items:center; padding:0 8px; border-radius:11px; background:#1a1a20; border:1px solid #26262c; font-size:11.5px; color:#b4b4bd">{{ t }}</span></sc-for></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; border-top:1px solid #1f1f24; padding-top:12px">
+            <span style="font-size:11px; color:#7c7c86; padding-bottom:4px">{{ d.usesLabel }}</span>
+            <sc-for list="{{ d.usedIn }}" as="u" hint-placeholder-count="2"><button onClick="{{ u.jump }}" style="display:flex; align-items:center; gap:8px; height:30px; padding:0 8px; border:none; background:#16161a; border-radius:7px; color:#d6d6dc; font-size:12px; cursor:pointer; text-align:left" style-hover="background:#1c1c22"><span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ u.label }}</span><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#7c7c86">arrow_outward</span></button></sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ showFonts }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ fontGet }}">
+          <div style="padding:16px; display:flex; flex-direction:column; gap:14px">
+            <div style="display:flex; align-items:center"><span style="flex:1; font-size:14px; font-weight:600">Get a font</span><button onClick="{{ closeGet }}" style="border:none; background:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px">close</button></div>
+            <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:8px; padding:2px"><sc-for list="{{ fontSrcSeg }}" as="o"><button onClick="{{ o.pick }}" style="flex:1; border:none; border-radius:6px; padding:5px 8px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+            <div style="display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; background:#0c0c0e; border:1px solid #26262c; border-radius:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">search</span><span style="font-size:12.5px">Rajdhani</span></div>
+            <div style="display:flex; flex-direction:column; gap:12px; padding:14px; border:1px solid #26262c; border-radius:10px; background:#0f0f12">
+              <span style="font-family:'Rajdhani'; font-weight:500; font-size:34px; line-height:1">GPU 61°C · 14:32</span>
+              <div style="display:flex; align-items:center; gap:8px"><span style="flex:1; font-size:12.5px; font-weight:500">Rajdhani · Indian Type Foundry</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:7px; background:oklch(0.75 0.14 155 / 0.1)"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.75 0.14 155)">verified</span><span style="font-size:12px; color:#cfe6d6; text-wrap:pretty">SIL Open Font License 1.1. You may embed and share it in exports.</span></div>
+              <div style="display:flex; flex-direction:column; gap:2px">
+                <span style="font-size:11px; color:#7c7c86; padding-bottom:4px">Faces</span>
+                <sc-for list="{{ faces }}" as="fc" hint-placeholder-count="5"><button onClick="{{ fc.toggle }}" style="display:flex; align-items:center; gap:9px; height:28px; border:none; background:none; color:#d6d6dc; font-size:12.5px; cursor:pointer; padding:0"><span style="width:15px; height:15px; border-radius:4px; border:1.5px solid {{ fc.bd }}; background:{{ fc.bg }}; display:grid; place-items:center; color:#0c0c0e; font-family:'Material Symbols Rounded'; font-size:13px">check</span>{{ fc.label }}<sc-if value="{{ fc.need }}"><span style="font-size:11px; color:oklch(0.80 0.12 255)">needed by 9 items</span></sc-if></button></sc-for>
+              </div>
+            </div>
+            <button onClick="{{ addFont }}" style="height:34px; background:#ededf0; border:none; border-radius:8px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer">{{ addFontLabel }}</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasFdet }}">
+          <div style="padding:16px; display:flex; flex-direction:column; gap:14px">
+            <div style="padding:20px 16px; border-radius:10px; background:#0c0c0e; border:1px solid #22222a; display:flex; flex-direction:column; gap:6px">
+              <span style="font-family:{{ fdet.ff }}; font-size:44px; line-height:1">Aa 54°</span>
+              <span style="font-family:{{ fdet.ff }}; font-size:14px; color:#9696a0">The quick brown fox · 0123456789</span>
+            </div>
+            <span style="font-size:14px; font-weight:600">{{ fdet.fam }}</span>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <div style="display:flex; font-size:12px"><span style="width:90px; color:#7c7c86">Origin</span><span style="color:#c9c9cf">{{ fdet.origin }}</span></div>
+              <div style="display:flex; font-size:12px"><span style="width:90px; color:#7c7c86">Faces</span><span style="color:#c9c9cf">{{ fdet.faces }}</span></div>
+              <div style="display:flex; font-size:12px"><span style="width:90px; color:#7c7c86">Size</span><span style="color:#c9c9cf">{{ fdet.size }}</span></div>
+              <div style="display:flex; font-size:12px"><span style="width:90px; color:#7c7c86">Embedding</span><span style="color:#c9c9cf">{{ fdet.embed }}</span></div>
+              <div style="display:flex; font-size:12px"><span style="width:90px; color:#7c7c86">Licence</span><span style="color:{{ fdet.licC }}">{{ fdet.lic }}</span></div>
+            </div>
+            <span style="font-size:12px; line-height:1.5; color:#9696a0; text-wrap:pretty">{{ fdet.licNote }}</span>
+          </div>
+        </sc-if>
+      </sc-if>
+    </aside>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ libProfile }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1; min-height:0; position:relative; display:flex; flex-direction:column">
+    <div style="flex:none; display:flex; align-items:center; gap:10px; padding:14px 20px; flex-wrap:wrap; border-bottom:1px solid #1a1a1f">
+      <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ paSummary }}</span>
+      <span style="width:1px; height:16px; background:#24242a"></span>
+      <sc-for list="{{ findChips }}" as="fc" hint-placeholder-count="5"><button onClick="{{ fc.pick }}" style="height:26px; display:flex; align-items:center; gap:6px; padding:0 9px; border:1px solid {{ fc.bd }}; background:{{ fc.bg }}; border-radius:13px; color:#d6d6dc; font-size:11.5px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:{{ fc.c }}">{{ fc.icon }}</span>{{ fc.label }}<span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:{{ fc.c }}">{{ fc.n }}</span></button></sc-for>
+      <span style="flex:1"></span>
+      <button onClick="{{ upload }}" style="height:30px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">add</span>Add files</button>
+      <button onClick="{{ openRbn }}" style="height:30px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">find_replace</span>Replace by name…</button>
+      <button onClick="{{ openOpt }}" style="height:30px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">compress</span>Optimise images…</button>
+      <sc-if value="{{ hasFixable }}"><button onClick="{{ cleanup }}" style="height:30px; padding:0 12px; display:flex; align-items:center; gap:6px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">cleaning_services</span>Clean up {{ fixable }}</button></sc-if>
+    </div>
+    <div style="flex:1; overflow:auto; padding:0 20px 24px">
+      <div style="display:grid; grid-template-columns:52px minmax(150px,1.5fr) 110px 100px 100px 72px 54px minmax(150px,1.4fr) 120px; gap:12px; padding:10px 8px; font-size:11px; color:#7c7c86; position:sticky; top:0; background:#0c0c0e; z-index:1; border-bottom:1px solid #1f1f24"><span></span><span>Name</span><span>Type</span><span>Pixels</span><span>Drawn at</span><span>Size</span><span>Uses</span><span>Findings</span><span></span></div>
+      <sc-for list="{{ paRows }}" as="r" hint-placeholder-count="10">
+        <div style="display:grid; grid-template-columns:52px minmax(150px,1.5fr) 110px 100px 100px 72px 54px minmax(150px,1.4fr) 120px; gap:12px; align-items:center; padding:7px 8px; border-bottom:1px solid #16161a; font-size:12.5px" style-hover="background:#111114">
+          <div style="width:52px; height:34px; border-radius:5px; overflow:hidden; border:1px solid #22222a"><dc-import name="AssetThumb" style="width:100%; height:100%" item="{{ r.thumb }}" size="sm" hint-size="100%,100%"></dc-import></div>
+          <span style="color:{{ r.nameC }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:'Geist Mono',monospace; font-size:12px">{{ r.name }}</span>
+          <span style="color:#9696a0; font-size:12px">{{ r.type }}</span>
+          <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">{{ r.px }}</span>
+          <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ r.drawn }}</span>
+          <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">{{ r.size }}</span>
+          <button onClick="{{ r.jump }}" title="Select uses on the canvas" style="justify-self:start; border:none; background:#1a1a20; border-radius:5px; padding:2px 8px; color:{{ r.usesC }}; font-family:'Geist Mono',monospace; font-size:11px; cursor:pointer">{{ r.usesLabel }}</button>
+          <div style="display:flex; gap:4px; flex-wrap:wrap"><sc-for list="{{ r.chips }}" as="ch"><span style="padding:1px 7px; border-radius:5px; border:1px solid {{ ch.c }}; color:{{ ch.c }}; font-size:11px; white-space:nowrap">{{ ch.label }}</span></sc-for></div>
+          <div style="display:flex; gap:2px; justify-content:flex-end">
+            <button title="Save a copy to My library" style="width:26px; height:26px; border:none; background:none; border-radius:6px; color:#8f8f99; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px" style-hover="background:#1e1e24; color:#ededf0">bookmark_add</button>
+            <button title="Use for selection" style="width:26px; height:26px; border:none; background:none; border-radius:6px; color:#8f8f99; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px" style-hover="background:#1e1e24; color:#ededf0">ads_click</button>
+            <button title="Replace… (every use follows)" style="width:26px; height:26px; border:none; background:none; border-radius:6px; color:#8f8f99; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px" style-hover="background:#1e1e24; color:#ededf0">swap_horiz</button>
+            <button title="Remove (clears its uses)" style="width:26px; height:26px; border:none; background:none; border-radius:6px; color:#8f8f99; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px" style-hover="background:#1e1e24; color:#ededf0">delete</button>
+          </div>
+        </div>
+      </sc-for>
+      <div style="padding:20px 8px 8px; font-size:12px; font-weight:600; color:#c9c9cf">Outside the profile</div>
+      <sc-for list="{{ paExt }}" as="e" hint-placeholder-count="2">
+        <div style="display:flex; align-items:center; gap:12px; padding:8px; border-bottom:1px solid #16161a; font-size:12px">
+          <span style="width:92px; flex:none; padding:1px 7px; border-radius:5px; background:#1a1a20; color:#b4b4bd; font-size:11px; text-align:center">{{ e.kind }}</span>
+          <span style="flex:1; min-width:0; font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ e.name }}</span>
+          <span style="color:#8f8f99">{{ e.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ hasDrawer }}">
+      <div style="position:absolute; inset:0; background:rgba(0,0,0,.35); z-index:5" onClick="{{ closeDrawer }}"></div>
+      <div style="position:absolute; top:0; right:0; bottom:0; width:min(440px, 100%); z-index:6; background:#111114; border-left:1px solid #26262c; box-shadow:-20px 0 40px rgba(0,0,0,.4); display:flex; flex-direction:column">
+        <sc-if value="{{ drawerOpt }}">
+          <div style="padding:16px 18px 12px; display:flex; align-items:center; border-bottom:1px solid #1f1f24"><span style="flex:1; font-size:14px; font-weight:600">Optimise images</span><button onClick="{{ closeDrawer }}" style="border:none; background:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px">close</button></div>
+          <div style="padding:14px 18px; display:flex; flex-direction:column; gap:12px; border-bottom:1px solid #1f1f24">
+            <div style="display:flex; align-items:center; gap:10px"><span style="width:84px; font-size:12.5px; color:#c9c9cf">Format</span><div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ optFmtSeg }}" as="o"><button onClick="{{ o.pick }}" style="border:none; border-radius:5px; padding:4px 10px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div>
+            <div style="display:flex; align-items:center; gap:10px"><span style="width:84px; font-size:12.5px; color:#c9c9cf">Quality</span><input type="range" min="40" max="100" value="{{ optQ }}" onChange="{{ setOptQ }}" style="flex:1"><span style="width:30px; text-align:right; font-family:'Geist Mono',monospace; font-size:11.5px">{{ optQ }}</span></div>
+            <div style="display:flex; align-items:center; gap:10px"><span style="width:84px; font-size:12.5px; color:#c9c9cf">Size cap</span><div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ optCapSeg }}" as="o"><button onClick="{{ o.pick }}" style="border:none; border-radius:5px; padding:4px 10px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div>
+          </div>
+          <div style="flex:1; overflow:auto; padding:8px 18px">
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) 64px 64px 110px; gap:8px; padding:6px 0; font-size:11px; color:#7c7c86"><span>File</span><span>Before</span><span>After</span><span style="text-align:right">Change</span></div>
+            <sc-for list="{{ optRows }}" as="o" hint-placeholder-count="8"><div style="display:grid; grid-template-columns:minmax(0,1fr) 64px 64px 110px; gap:8px; padding:6px 0; border-bottom:1px solid #18181c; font-size:12px; align-items:center"><span style="font-family:'Geist Mono',monospace; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ o.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#9696a0">{{ o.before }}</span><span style="font-family:'Geist Mono',monospace; font-size:11px">{{ o.after }}</span><span style="text-align:right; font-size:11.5px; color:{{ o.c }}">{{ o.save }}</span></div></sc-for>
+          </div>
+          <div style="padding:14px 18px; border-top:1px solid #1f1f24; display:flex; align-items:center; gap:10px"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:600">{{ optSummary }}</span><span style="font-size:11.5px; color:#7c7c86">Kept only when at least 5 % smaller · 1 undo step</span></div><button onClick="{{ applyOpt }}" style="height:32px; padding:0 14px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer">Apply</button></div>
+        </sc-if>
+        <sc-if value="{{ drawerRbn }}">
+          <div style="padding:16px 18px 12px; display:flex; align-items:center; border-bottom:1px solid #1f1f24"><span style="flex:1; font-size:14px; font-weight:600">Replace by name</span><button onClick="{{ closeDrawer }}" style="border:none; background:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px">close</button></div>
+          <div style="padding:12px 18px; font-size:12px; color:#9696a0; border-bottom:1px solid #1f1f24">11 files picked from <span style="font-family:'Geist Mono',monospace; color:#c9c9cf">ARC-red-skin/</span> · matched by name, then by stem</div>
+          <div style="flex:1; overflow:auto; padding:10px 18px; display:flex; flex-direction:column; gap:16px">
+            <div style="display:flex; flex-direction:column; gap:4px"><span style="font-size:11.5px; font-weight:600; color:oklch(0.75 0.14 155)">Will replace · 6</span>
+              <div style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf; display:flex; flex-direction:column; gap:5px"><span>background.jpg → background.jpg</span><span>ring_000…100.png → ring_000…100.png (101)</span><span>logo.png → logo.png</span><span>grid_overlay.png → grid_overlay.png</span><span>button_glow.gif → button_glow.gif</span><span>fan_spin.gif → fan_spin.webp · type changes, uses repoint</span></div></div>
+            <div style="display:flex; flex-direction:column; gap:4px"><span style="font-size:11.5px; font-weight:600; color:#9696a0">Identical, skipped · 2</span><div style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#8f8f99">noise.png · cam_poster.jpg</div></div>
+            <div style="display:flex; flex-direction:column; gap:4px"><span style="font-size:11.5px; font-weight:600; color:oklch(0.80 0.13 80)">Ambiguous · 1</span><div style="display:flex; align-items:center; gap:8px; font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">bg.png →<select style="height:26px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:11.5px"><option>Pick a target…</option><option>background.jpg</option><option>bg_v1.jpg</option></select></div></div>
+            <div style="display:flex; flex-direction:column; gap:4px"><span style="font-size:11.5px; font-weight:600; color:#8f8f99">No match · 2</span><div style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#8f8f99">thumb.db · readme.txt</div></div>
+          </div>
+          <div style="padding:14px 18px; border-top:1px solid #1f1f24; display:flex; align-items:center; gap:10px"><span style="flex:1; font-size:11.5px; color:#7c7c86">Every use follows · 1 undo step</span><button onClick="{{ applyRbn }}" style="height:32px; padding:0 14px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer">Replace 6</button></div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+  <sc-if value="{{ showCanvas }}" hint-placeholder-val="{{ false }}">
+<aside style="width:256px; flex:none; background:#111114; border-right:1px solid #1f1f24; display:flex; flex-direction:column; min-height:0">
+  <div style="display:flex; align-items:baseline; gap:8px; padding:14px 14px 10px"><span style="font-weight:600; font-size:13px">Items</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">Canvas · ARCv2</span></div>
+  <div style="flex:1; overflow:auto; padding:0 6px 8px; display:flex; flex-direction:column; gap:1px">
+    <sc-for list="{{ tree }}" as="t" hint-placeholder-count="12">
+      <div onClick="{{ t.pick }}" style="display:flex; align-items:center; gap:7px; height:30px; padding-right:4px; padding-left:{{ t.pad }}; border-radius:7px; cursor:pointer; background:{{ t.bg }}" style-hover="background:#18181d">
+        <sc-if value="{{ t.isGroup }}"><button onClick="{{ t.toggleGroup }}" style="width:16px; height:16px; border:none; background:none; padding:0; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">{{ t.chev }}</button></sc-if>
+        <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8f8f99">{{ t.icon }}</span>
+        <span style="flex:1; min-width:0; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:{{ t.fg }}">{{ t.name }}</span>
+        <span title="{{ t.modeTitle }}" style="width:6px; height:6px; border-radius:50%; background:{{ t.modeDot }}"></span>
+        <span title="Locked items select but don’t move" style="font-family:'Material Symbols Rounded'; font-size:14px; color:{{ t.lockC }}">{{ t.lockIcon }}</span>
+        <button onClick="{{ t.toggleHide }}" title="Visible (InfoPanel Hidden flag)" style="width:22px; height:22px; border:none; background:none; padding:0; color:{{ t.eyeC }}; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">{{ t.eye }}</button>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding:10px 14px; border-top:1px solid #1f1f24; display:flex; flex-direction:column; gap:6px; font-size:11px; color:#8f8f99">
+    <div style="display:flex; align-items:center; gap:7px"><span style="width:6px; height:6px; border-radius:50%; background:oklch(0.72 0.15 255)"></span>Native widget<span style="width:6px; height:6px; border-radius:50%; background:oklch(0.80 0.13 80); margin-left:8px"></span>InfoPanel</div>
+    <div style="display:flex; align-items:center; gap:7px"><span style="width:6px; height:6px; border-radius:50%; background:oklch(0.68 0.17 25)"></span>Can’t convert yet</div>
+  </div>
+</aside>
+
+<div style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; background:#0c0c0e">
+  <div style="flex:none; display:flex; align-items:center; gap:6px; padding:8px 12px; border-bottom:1px solid #1a1a1f; flex-wrap:wrap">
+    <button onClick="{{ undo }}" title="Undo (Ctrl+Z)" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">undo</button>
+    <button onClick="{{ redo }}" title="Redo (Ctrl+Y)" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">redo</button>
+    <span style="width:1px; height:18px; background:#24242a; margin:0 2px"></span>
+    <button onClick="{{ dup }}" title="Duplicate (Ctrl+D)" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">content_copy</button>
+    <button onClick="{{ grp }}" title="Group (Ctrl+G)" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">folder</button>
+    <button onClick="{{ ungrp }}" title="Ungroup (Ctrl+Shift+G)" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">folder_open</button>
+    <button onClick="{{ up }}" title="Draw order up" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">flip_to_front</button>
+    <button onClick="{{ dn }}" title="Draw order down" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">flip_to_back</button>
+    <button onClick="{{ del }}" title="Delete" style="width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1a1a1f; color:#ededf0">delete</button>
+    <span style="flex:1"></span>
+    <span style="font-size:11.5px; color:#7c7c86; white-space:nowrap">Draw all as</span>
+    <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ allSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="border:none; border-radius:5px; padding:4px 10px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+    <button onClick="{{ togModes }}" title="Tint every item by how it's drawn" style="height:30px; display:flex; align-items:center; gap:6px; padding:0 10px; border:1px solid {{ modesBd }}; background:{{ modesBg }}; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">layers</span><span style="white-space:nowrap">Show modes</span></button>
+    <span style="width:1px; height:18px; background:#24242a; margin:0 2px"></span>
+    <span style="font-size:11.5px; color:#7c7c86; white-space:nowrap">Sensors</span>
+    <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ srcSeg }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="border:none; border-radius:5px; padding:4px 9px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+    <button onClick="{{ openRemap }}" style="height:30px; display:flex; align-items:center; gap:6px; padding:0 10px; border:1px solid #2a2a31; background:#17171b; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">cable</span>Remap<sc-if value="{{ hasRemapBadge }}"><span style="min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:oklch(0.68 0.17 25); color:#fff; font-size:10.5px; font-weight:600; display:grid; place-items:center">{{ remapBadge }}</span></sc-if></button>
+    <button onClick="{{ togCompare }}" title="Lay InfoPanel's screenshot over the render" style="height:30px; display:flex; align-items:center; gap:6px; padding:0 10px; border:1px solid #2a2a31; background:{{ cmpBg }}; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">compare</span>Compare</button>
+  </div>
+  <sc-if value="{{ showModes }}"><div style="flex:none; display:flex; align-items:center; gap:14px; padding:6px 14px; font-size:11.5px; color:#9696a0; border-bottom:1px solid #1a1a1f; background:#0f0f12"><span style="display:flex; align-items:center; gap:6px"><span style="width:12px; height:9px; border-radius:2px; background:oklch(0.72 0.15 255 / 0.3); border:1px solid oklch(0.72 0.15 255)"></span>Native</span><span style="display:flex; align-items:center; gap:6px"><span style="width:12px; height:9px; border-radius:2px; background:oklch(0.80 0.13 80 / 0.3); border:1px solid oklch(0.80 0.13 80)"></span>InfoPanel</span><span style="display:flex; align-items:center; gap:6px"><span style="width:12px; height:9px; border-radius:2px; background:repeating-linear-gradient(45deg, oklch(0.68 0.17 25 / 0.5) 0 3px, transparent 3px 6px); border:1px solid oklch(0.68 0.17 25)"></span>Can’t convert</span><span style="flex:1"></span><span style="font-family:'Geist Mono',monospace">{{ modesStat }}</span></div></sc-if>
+  <sc-if value="{{ compare }}"><div style="flex:none; display:flex; align-items:center; gap:10px; padding:6px 14px; font-size:11.5px; color:#9696a0; border-bottom:1px solid #1a1a1f; background:#0f0f12"><span>InfoPanel screenshot</span><input type="range" min="0" max="100" value="{{ cmpOp }}" onChange="{{ setCmp }}" style="width:160px"><span style="font-family:'Geist Mono',monospace">{{ cmpOp }} %</span><span style="color:#6f6f79">· Difference blend</span></div></sc-if>
+  <div onPointerDown="{{ deselect }}" style="flex:1; min-height:0; overflow:auto; display:grid; place-items:center; padding:28px">
+    <div ref="{{ cvRef }}" style="position:relative; width:100%; max-width:1400px; aspect-ratio:1920/550; container-type:inline-size; box-shadow:0 0 0 1px #24242a, 0 20px 50px rgba(0,0,0,.5); user-select:none">
+      <sc-for list="{{ cItems }}" as="c" hint-placeholder-count="0">
+        <div onPointerDown="{{ c.down }}" style="position:absolute; left:{{ c.left }}; top:{{ c.top }}; width:{{ c.width }}; height:{{ c.height }}; outline:{{ c.outline }}; outline-offset:1px; cursor:default">
+          <sc-if value="{{ c.isBg }}"><div style="position:absolute; inset:0; background:radial-gradient(60% 120% at 18% 10%, #1d4ed8 0%, transparent 60%), radial-gradient(50% 100% at 85% 90%, #0e7490 0%, transparent 60%), linear-gradient(135deg, #050b1c, #081633)"></div><div style="position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size:2.5cqw 2.5cqw"></div></sc-if>
+          <sc-if value="{{ c.isText }}"><div style="height:100%; display:flex; align-items:center; font-family:{{ c.ff }}; font-size:{{ c.fsz }}; font-weight:{{ c.fw }}; color:{{ c.tc }}; letter-spacing:{{ c.ls }}; text-shadow:{{ c.glow }}; line-height:1; white-space:nowrap">{{ c.txt }}</div></sc-if>
+          <sc-if value="{{ c.isGauge }}"><dc-import name="GaugeRender" style="width:100%; height:100%" g="{{ c.gG }}" v="{{ c.gV }}" pal="{{ c.gPal }}" uid="{{ c.uid }}" hint-size="100%,100%"></dc-import></sc-if>
+          <sc-if value="{{ c.isBar }}"><div style="position:absolute; inset:0; border-radius:{{ c.barR }}; background:{{ c.barBg }}; border:{{ c.barBd }}; overflow:hidden"><div style="height:100%; width:{{ c.barW }}; background:{{ c.barFg }}; border-radius:{{ c.barR }}"></div></div></sc-if>
+          <sc-if value="{{ c.isGraph }}"><svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:100%; height:100%; display:block"><path d="M0 24 L8 22 L16 25 L24 18 L32 20 L40 12 L48 16 L56 9 L64 14 L72 6 L80 11 L88 8 L100 13 L100 30 L0 30 Z" fill="{{ c.areaC }}"></path><path d="M0 24 L8 22 L16 25 L24 18 L32 20 L40 12 L48 16 L56 9 L64 14 L72 6 L80 11 L88 8 L100 13" fill="none" stroke="{{ c.lineC }}" strokeWidth="1.2" vectorEffect="non-scaling-stroke"></path></svg></sc-if>
+          <sc-if value="{{ c.isVideo }}"><div style="position:absolute; inset:0; background:linear-gradient(135deg, #111, #27272a); display:flex; align-items:center; justify-content:center; gap:0.6cqw; color:#a1a1aa; font-size:1.1cqw"><span style="font-family:'Material Symbols Rounded'; font-size:2cqw">videocam</span>rtsp://192.168.1.40/live</div></sc-if>
+          <sc-if value="{{ c.isLogo }}"><div style="position:absolute; inset:0; background:#e11d48; border-radius:20%"></div></sc-if>
+          <sc-if value="{{ c.showTint }}"><div style="position:absolute; inset:0; background:{{ c.tintBg }}; border:{{ c.tintBd }}; pointer-events:none"></div></sc-if>
+          <sc-if value="{{ c.sel }}">
+            <span style="position:absolute; left:-2px; top:-24px; white-space:nowrap; padding:2px 7px; border-radius:5px; background:#16161b; border:1px solid {{ c.badgeC }}; color:#ededf0; font-size:11px; font-family:'Geist',sans-serif">{{ c.badge }}</span>
+            <sc-if value="{{ c.lockOn }}"><span style="position:absolute; right:-2px; top:-24px; padding:2px 5px; border-radius:5px; background:#16161b; font-family:'Material Symbols Rounded'; font-size:13px; color:#b4b4bd">lock</span></sc-if>
+            <sc-if value="{{ c.handles }}">
+              <span style="position:absolute; left:-5px; top:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:nwse-resize"></span><span style="position:absolute; right:-5px; top:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:nesw-resize"></span>
+              <span style="position:absolute; left:-5px; bottom:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:nesw-resize"></span><span style="position:absolute; right:-5px; bottom:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:nwse-resize"></span>
+              <span style="position:absolute; left:calc(50% - 4px); top:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:ns-resize"></span><span style="position:absolute; left:calc(50% - 4px); bottom:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:ns-resize"></span>
+              <span style="position:absolute; top:calc(50% - 4px); left:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:ew-resize"></span><span style="position:absolute; top:calc(50% - 4px); right:-5px; width:8px; height:8px; background:#fff; border:1.5px solid oklch(0.72 0.15 255); cursor:ew-resize"></span>
+            </sc-if>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ compare }}"><div style="position:absolute; inset:0; pointer-events:none; mix-blend-mode:difference; opacity:{{ cmpOpacity }}; background:linear-gradient(135deg, #050b1c, #0a1a3a); display:grid; place-items:center; color:#ffffff55; font-size:1.2cqw; font-family:'Geist Mono',monospace">InfoPanel screenshot · ARCv2.png</div></sc-if>
+    </div>
+  </div>
+  <div style="flex:none; padding:7px 14px; border-top:1px solid #1a1a1f; font-size:11px; color:#6f6f79; display:flex; gap:16px"><span>Drag to move · arrows nudge 1 px, Shift 10 px</span><span>Shift/Ctrl adds to the selection</span></div>
+</div>
+
+<aside style="width:308px; flex:none; background:#111114; border-left:1px solid #1f1f24; overflow:auto; min-height:0">
+  <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+    <div style="position:sticky; top:0; z-index:1; background:#111114; padding:14px 16px 12px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:10px">
+      <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:13.5px; font-weight:600">{{ insp.name }}</span><span style="font-size:11.5px; color:#7c7c86">InfoPanel · {{ insp.ip }}</span></div>
+      <sc-if value="{{ insp.isGroup }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#9696a0">Groups keep InfoPanel’s nesting. Select an item inside to edit it.</span></sc-if>
+    </div>
+    <sc-if value="{{ insp.isGroup }}" hint-placeholder-val="{{ false }}"></sc-if>
+    <div style="padding:14px 16px; display:flex; flex-direction:column; gap:12px; border-bottom:1px solid #1f1f24">
+      <div style="display:flex; align-items:center; gap:10px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">Draw as</span>
+        <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ insp.modeSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="border:none; border-radius:5px; padding:4px 10px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div>
+      <sc-if value="{{ insp.isNative }}">
+        <div style="display:flex; flex-direction:column; gap:8px; padding:10px 11px; border-radius:8px; background:#141419; border:1px solid #24242a">
+          <span style="font-size:12px; color:#c9c9cf">Drawn by the dashboard <b style="font-weight:600; color:#ededf0">{{ insp.widget }}</b>, following the theme. Every InfoPanel field is kept.</span>
+          <sc-if value="{{ insp.hasLosses }}"><div style="display:flex; flex-direction:column; gap:4px"><span style="font-size:11px; color:oklch(0.80 0.13 80)">Lost while native</span><sc-for list="{{ insp.losses }}" as="l"><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#ddd6c6"><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:oklch(0.80 0.13 80)">remove</span>{{ l.l }}</span></sc-for></div></sc-if>
+          <sc-if value="{{ insp.hasNeeds }}"><div style="display:flex; flex-direction:column; gap:4px"><span style="font-size:11px; color:#7c7c86">Uses app feature</span><div style="display:flex; gap:5px; flex-wrap:wrap"><sc-for list="{{ insp.needs }}" as="n"><span style="padding:2px 8px; border-radius:5px; background:#1d1d24; font-size:11.5px; color:#c9c9cf">{{ n.n }}</span></sc-for></div></div></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ insp.isFaithful }}"><span style="font-size:12px; color:#9696a0; text-wrap:pretty">Drawn exactly as InfoPanel draws it. The dashboard theme doesn’t apply.</span></sc-if>
+      <sc-if value="{{ insp.stuck }}"><div style="display:flex; gap:8px; padding:10px 11px; border-radius:8px; background:oklch(0.68 0.17 25 / 0.08); border:1px solid oklch(0.68 0.17 25 / 0.3)"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:oklch(0.72 0.15 25)">info</span><div style="display:flex; flex-direction:column; gap:3px"><span style="font-size:12px; color:#ecd7d3">{{ insp.stuckText }}</span><span style="font-size:11.5px; color:#9696a0">Needs: {{ insp.need }}</span></div></div></sc-if>
+    </div>
+    <sc-if value="{{ insp.hasGeo }}">
+      <div style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid #1f1f24">
+        <span style="font-size:12px; font-weight:600">Position</span>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px">
+          <sc-for list="{{ insp.geoF }}" as="f" hint-placeholder-count="4"><label style="display:flex; align-items:center; gap:6px; height:30px; padding:0 8px; background:#0c0c0e; border:1px solid {{ f.bd }}; border-radius:7px"><span style="font-size:11px; color:#7c7c86; width:12px">{{ f.label }}</span><input value="{{ f.val }}" onChange="{{ f.onChange }}" onBlur="{{ f.onBlur }}" style="flex:1; min-width:0; background:none; border:none; outline:none; color:#ededf0; font-family:'Geist Mono',monospace; font-size:12px"></label></sc-for>
+        </div>
+        <sc-if value="{{ insp.geoErr }}"><span style="display:flex; gap:6px; font-size:11.5px; color:oklch(0.74 0.15 25)"><span style="font-family:'Material Symbols Rounded'; font-size:15px">error</span>{{ insp.geoErrText }}</span></sc-if>
+        <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#9696a0"><span style="flex:1">Rotation · Flip</span><span style="font-family:'Geist Mono',monospace; color:#c9c9cf">0° · None</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ insp.hasBind }}">
+      <div style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #1f1f24">
+        <span style="font-size:12px; font-weight:600">Sensor</span>
+        <button onClick="{{ openRemap }}" style="display:flex; align-items:center; gap:9px; padding:8px 10px; border:1px solid #26262c; background:#0f0f12; border-radius:8px; color:#ededf0; cursor:pointer; text-align:left">
+          <span style="width:7px; height:7px; border-radius:50%; flex:none; background:{{ insp.bC }}"></span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px"><span style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ insp.bKey }}</span><span style="font-size:11px; color:#7c7c86">{{ insp.bSt }} · was {{ insp.bName }}</span></span>
+          <span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">{{ insp.bLive }}</span>
+        </button>
+      </div>
+    </sc-if>
+    <div style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:4px; border-bottom:1px solid #1f1f24">
+      <span style="font-size:12px; font-weight:600; padding-bottom:4px">{{ insp.kindLabel }}</span>
+      <sc-for list="{{ insp.kindF }}" as="f" hint-placeholder-count="4"><div style="display:flex; align-items:center; gap:10px; min-height:30px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">{{ f.k }}</span><span style="max-width:60%; padding:4px 8px; border-radius:6px; background:#0c0c0e; border:1px solid #26262c; font-family:'Geist Mono',monospace; font-size:11.5px; color:#ededf0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.v }}</span></div></sc-for>
+      <sc-if value="{{ insp.isGauge }}"><button onClick="{{ insp.editGauge }}" style="margin-top:6px; height:30px; display:flex; align-items:center; justify-content:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:16px">tune</span>Edit gauge…</button></sc-if>
+    </div>
+    <sc-if value="{{ insp.hasColours }}">
+      <div style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:4px; border-bottom:1px solid #1f1f24">
+        <span style="font-size:12px; font-weight:600; padding-bottom:4px">Colours</span>
+        <sc-for list="{{ insp.colours }}" as="c"><div style="display:flex; align-items:center; gap:10px; min-height:30px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">{{ c.label }}</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#9696a0">{{ c.name }}</span><span style="width:18px; height:18px; border-radius:50%; background:{{ c.c }}; box-shadow:0 0 0 1px #34343b"></span></div></sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ insp.hasUnknown }}">
+      <div style="padding:12px 16px 16px; display:flex; flex-direction:column; gap:6px">
+        <span style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600">Unknown fields<span style="font-weight:400; font-size:11px; color:#7c7c86">read-only · exported as they came</span></span>
+        <sc-for list="{{ insp.unknown }}" as="u"><div style="display:flex; gap:8px; font-family:'Geist Mono',monospace; font-size:11.5px; color:#8f8f99"><span style="flex:1">{{ u.k }}</span><span>{{ u.v }}</span></div></sc-for>
+      </div>
+    </sc-if>
+  </sc-if>
+</aside>
+</sc-if>
+  <sc-if value="{{ showGauge }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ gBrowse }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; background:#0c0c0e">
+  <div style="flex:none; display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid #1a1a1f">
+    <span style="font-size:15px; font-weight:600; white-space:nowrap">Gauges &amp; bars</span>
+    <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:8px; padding:2px"><sc-for list="{{ gModeSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="border:none; border-radius:6px; padding:4px 12px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+    <span style="flex:1"></span>
+    <button onClick="{{ importGauge }}" style="flex:none; height:30px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">upload</span><span style="white-space:nowrap">Import .gauge.json / SVG</span></button>
+    <button onClick="{{ newGauge }}" style="flex:none; height:30px; padding:0 12px; display:flex; align-items:center; gap:6px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12px; font-weight:600; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">add</span><span style="white-space:nowrap">New gauge</span></button>
+  </div>
+  <div style="flex:1; min-height:0; overflow:auto; padding:18px 20px 28px; display:flex; flex-direction:column; gap:24px">
+    <sc-for list="{{ galSecs }}" as="gs" hint-placeholder-count="3">
+      <section style="display:flex; flex-direction:column; gap:10px">
+        <div style="display:flex; align-items:baseline; gap:10px"><span style="font-size:13.5px; font-weight:600">{{ gs.sec }}</span><span style="font-size:12px; color:#7c7c86">{{ gs.sub }}</span></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px">
+          <sc-for list="{{ gs.cards }}" as="c" hint-placeholder-count="6">
+            <div onClick="{{ c.pick }}" onDoubleClick="{{ c.edit }}" title="Double-click to edit" style="display:flex; flex-direction:column; gap:7px; padding:6px 6px 9px; border:1px solid {{ c.bd }}; background:{{ c.bg }}; border-radius:11px; cursor:pointer; min-width:0" style-hover="background:#17171c">
+              <div style="aspect-ratio:1; border-radius:7px; overflow:hidden"><dc-import name="AssetThumb" style="width:100%; height:100%" item="{{ c.item }}" hint-size="100%,100%"></dc-import></div>
+              <div style="padding:0 3px; display:flex; flex-direction:column; gap:1px; min-width:0"><span style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.name }}</span><span style="font-size:11px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.sub }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </div>
+</div>
+<aside style="width:316px; flex:none; background:#111114; border-left:1px solid #1f1f24; overflow:auto; min-height:0; padding:16px; display:flex; flex-direction:column; gap:14px">
+  <div style="aspect-ratio:1; border-radius:14px; background:radial-gradient(circle at 50% 40%, #16161c, #0c0c0e 70%); border:1px solid #1f1f24; padding:26px">
+    <sc-if value="{{ gDet.isVec }}"><dc-import name="GaugeRender" style="width:100%; height:100%" g="{{ gDet.cfg }}" v="{{ gV }}" pal="{{ gPal }}" phase="{{ gPhase }}" uid="det" hint-size="100%,100%"></dc-import></sc-if>
+    <sc-if value="{{ gDet.isSeq }}"><dc-import name="GaugeRender" style="width:100%; height:100%" g="{{ seqG }}" v="{{ gV }}" pal="{{ seqPal }}" uid="detseq" hint-size="100%,100%"></dc-import></sc-if>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px">
+    <button onClick="{{ play }}" title="Play through 0–100" style="width:30px; height:30px; flex:none; border:none; border-radius:50%; background:#ededf0; color:#0c0c0e; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px">{{ playIcon }}</button>
+    <input type="range" min="0" max="100" value="{{ gV }}" onChange="{{ setGVal }}" style="flex:1; min-width:0">
+    <span style="width:40px; text-align:right; font-family:'Geist Mono',monospace; font-size:11.5px">{{ gValLabel }}</span>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:3px"><span style="font-size:14px; font-weight:600">{{ gDet.name }}</span><span style="font-size:11.5px; color:#7c7c86">{{ gDet.meta }}</span><span style="font-size:11.5px; color:#7c7c86">{{ gDet.uses }}</span></div>
+  <button onClick="{{ gDet.edit }}" style="height:34px; display:flex; align-items:center; justify-content:center; gap:7px; background:#ededf0; border:none; border-radius:8px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:18px">tune</span><span style="white-space:nowrap">{{ gDet.editLabel }}</span></button>
+  <div style="display:flex; gap:6px">
+    <button onClick="{{ gDet.add }}" style="flex:1; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">Add to canvas</button>
+    <button onClick="{{ gDet.dup }}" style="flex:1; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">Duplicate</button>
+    <button onClick="{{ gDet.exp }}" title="Export .gauge.json" style="width:34px; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">download</button>
+  </div>
+  <span style="font-size:11.5px; line-height:1.5; color:#7c7c86; text-wrap:pretty">Everything placed from the library is a copy. Edit a placed gauge freely; save it back as a new variant.</span>
+</aside>
+</sc-if>
+<sc-if value="{{ gEdit }}" hint-placeholder-val="{{ false }}">
+<aside style="width:256px; flex:none; background:#111114; border-right:1px solid #1f1f24; display:flex; flex-direction:column; min-height:0">
+  <sc-if value="{{ gEdit }}">
+    <div style="padding:14px 14px 8px; display:flex; align-items:baseline; gap:8px"><span style="font-weight:600; font-size:13px">Parts</span><span style="font-size:11px; color:#7c7c86">toggle on, select to edit</span></div>
+    <div style="flex:1; overflow:auto; padding:0 8px 12px; display:flex; flex-direction:column; gap:10px">
+      <sc-for list="{{ partGroups }}" as="pg" hint-placeholder-count="5">
+        <div style="display:flex; flex-direction:column; gap:1px">
+          <span style="font-size:10.5px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#6f6f79; padding:0 8px 4px">{{ pg.sec }}</span>
+          <sc-for list="{{ pg.items }}" as="pi" hint-placeholder-count="3">
+            <div onClick="{{ pi.pick }}" style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border-radius:7px; cursor:pointer; background:{{ pi.bg }}" style-hover="background:#18181d">
+              <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:{{ pi.ic }}">{{ pi.icon }}</span>
+              <span style="flex:1; font-size:12.5px; color:{{ pi.fg }}">{{ pi.l }}</span>
+              <button onClick="{{ pi.toggle }}" style="width:26px; height:16px; border:none; border-radius:8px; position:relative; cursor:pointer; padding:0; opacity:{{ pi.tOp }}; background:{{ pi.tBg }}"><span style="position:absolute; top:2px; left:{{ pi.tX }}; width:12px; height:12px; border-radius:50%; background:#fff"></span></button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+</aside>
+<div style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; background:#0c0c0e">
+  <div style="flex:none; display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #1a1a1f"><button onClick="{{ toBrowse }}" title="Back to all gauges" style="flex:none; width:30px; height:30px; border:none; background:none; border-radius:7px; color:#9696a0; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:19px" style-hover="background:#1a1a1f; color:#ededf0">arrow_back</button>
+    <div style="flex:1; display:flex; flex-direction:column; gap:1px; min-width:0; overflow:hidden"><span style="font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ gName }}</span><span style="font-size:11.5px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ gKindLabel }}</span></div>
+        <button onClick="{{ importGauge }}" style="flex:none; height:30px; padding:0 10px; display:flex; align-items:center; gap:6px; background:none; border:none; border-radius:7px; color:#c9c9cf; font-size:12px; cursor:pointer" style-hover="background:#1a1a1f"><span style="font-family:'Material Symbols Rounded'; font-size:17px">upload</span><span style="white-space:nowrap">Import</span></button>
+    <button onClick="{{ exportGauge }}" style="flex:none; height:30px; padding:0 10px; display:flex; align-items:center; gap:6px; background:none; border:none; border-radius:7px; color:#c9c9cf; font-size:12px; cursor:pointer" style-hover="background:#1a1a1f"><span style="font-family:'Material Symbols Rounded'; font-size:17px">download</span>Export</button>
+    <button onClick="{{ saveGauge }}" style="flex:none; height:30px; padding:0 12px; display:flex; align-items:center; gap:6px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12px; font-weight:600; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:17px">bookmark_add</span><span style="white-space:nowrap">Save to library</span></button>
+  </div>
+  <sc-if value="{{ gEdit }}"><div style="flex:none; display:flex; gap:8px; padding:10px 16px; overflow-x:auto; border-bottom:1px solid #1a1a1f"><sc-for list="{{ presets }}" as="p" hint-placeholder-count="8">
+    <button onClick="{{ p.pick }}" title="{{ p.name }}" style="flex:none; display:flex; align-items:center; gap:8px; padding:4px 10px 4px 4px; border:1px solid {{ p.bd }}; background:{{ p.bg }}; border-radius:9px; cursor:pointer; color:#ededf0"><div style="width:34px; height:34px; border-radius:6px; overflow:hidden"><dc-import name="AssetThumb" style="width:100%; height:100%" item="{{ p.item }}" size="sm" hint-size="100%,100%"></dc-import></div><span style="font-size:11.5px; white-space:nowrap">{{ p.name }}</span></button>
+  </sc-for></div></sc-if>
+  <div style="flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:safe center; gap:18px; padding:24px">
+    <div style="width:min(340px, 100%); flex:none; aspect-ratio:1; border-radius:18px; background:radial-gradient(circle at 50% 40%, #16161c, #0c0c0e 70%); border:1px solid #1f1f24; padding:28px; display:grid; place-items:center">
+      <sc-if value="{{ isVector }}"><div style="width:100%; height:100%"><dc-import name="GaugeRender" style="width:100%; height:100%" g="{{ g }}" v="{{ gV }}" pal="{{ gPal }}" phase="{{ gPhase }}" uid="main" hint-size="100%,100%"></dc-import></div></sc-if>
+      <sc-if value="{{ isSeq }}"><div style="width:100%; height:100%; filter:{{ seqFilter }}"><dc-import name="GaugeRender" style="width:100%; height:100%" g="{{ seqG }}" v="{{ gV }}" pal="{{ seqPal }}" uid="seq" hint-size="100%,100%"></dc-import></div></sc-if>
+    </div>
+    <div style="width:min(420px, 100%); display:flex; align-items:center; gap:12px">
+      <button onClick="{{ play }}" title="Play through 0–100" style="width:34px; height:34px; flex:none; border:none; border-radius:50%; background:#ededf0; color:#0c0c0e; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:20px">{{ playIcon }}</button>
+      <input type="range" min="0" max="100" value="{{ gV }}" onChange="{{ setGVal }}" style="flex:1">
+      <span style="width:46px; text-align:right; font-family:'Geist Mono',monospace; font-size:12px">{{ gValLabel }}</span>
+    </div>
+    <sc-if value="{{ isVector }}"><div style="display:flex; align-items:center; gap:8px; font-size:11.5px; color:#8f8f99"><span style="width:8px; height:8px; border-radius:50%; background:oklch(0.72 0.15 255)"></span>Theme colours follow “{{ themeName }}” · drawn live on the dashboard</div></sc-if>
+    <sc-if value="{{ isSeq }}">
+      <div style="width:100%; max-width:760px; display:flex; flex-direction:column; gap:10px">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+          <span style="font-size:12px; font-weight:600">Frames</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">101 · 17 selected</span><span style="flex:1"></span>
+          <button onClick="{{ reverse }}" style="height:28px; padding:0 9px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Reverse</button>
+          <button onClick="{{ resample }}" style="height:28px; padding:0 9px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Resample…</button>
+          <button style="height:28px; padding:0 9px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Duplicate</button>
+          <button style="height:28px; padding:0 9px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Replace…</button>
+          <button style="height:28px; padding:0 9px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px; cursor:pointer">Remove</button>
+        </div>
+        <div style="display:flex; gap:5px; overflow-x:auto; padding-bottom:4px"><sc-for list="{{ frames }}" as="f" hint-placeholder-count="20"><div style="flex:none; width:46px; display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 3px; border:1px solid {{ f.bd }}; background:{{ f.bg }}; border-radius:6px"><div style="width:32px; height:32px; border-radius:50%; background:{{ f.ring }}; display:grid; place-items:center"><div style="width:20px; height:20px; border-radius:50%; background:#0c0c0e"></div></div><span style="font-family:'Geist Mono',monospace; font-size:9.5px; color:{{ f.cur }}">{{ f.n }}</span></div></sc-for></div>
+      </div>
+    </sc-if>
+  </div>
+  <div style="flex:none; display:flex; align-items:center; gap:10px; padding:10px 16px; border-top:1px solid #1a1a1f">
+    <span style="width:7px; height:7px; border-radius:50%; background:{{ bakeC }}"></span><span style="font-size:12px; color:#c9c9cf">InfoPanel export · {{ bakeText }}</span>
+    
+    <span style="flex:1"></span>
+    <button onClick="{{ bake }}" style="height:28px; padding:0 10px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:16px">burst_mode</span>Bake frames</button>
+  </div>
+</div>
+
+<aside style="width:316px; flex:none; background:#111114; border-left:1px solid #1f1f24; overflow:auto; min-height:0">
+  <sc-if value="{{ isSeq }}">
+    <div style="padding:14px 16px; display:flex; flex-direction:column; gap:14px">
+      <span style="font-size:13px; font-weight:600">Image sequence</span>
+      <div style="display:flex; align-items:center; gap:10px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">Frames per second</span><input value="{{ fps }}" onChange="{{ setFps }}" style="width:64px; height:28px; padding:0 8px; background:#0c0c0e; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-family:'Geist Mono',monospace; font-size:12px"></div>
+      <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid #1f1f24; padding-top:12px"><span style="font-size:12px; font-weight:600">Recolour</span>
+        <sc-for list="{{ seqSliders }}" as="f" hint-placeholder-count="3"><div style="display:flex; align-items:center; gap:10px; min-height:30px"><span style="width:76px; font-size:12.5px; color:#c9c9cf">{{ f.label }}</span><input type="range" min="{{ f.min }}" max="{{ f.max }}" value="{{ f.val }}" onChange="{{ f.onInput }}" style="flex:1; min-width:0"><span style="width:46px; text-align:right; font-family:'Geist Mono',monospace; font-size:11px">{{ f.disp }}</span></div></sc-for>
+        <span style="font-size:11.5px; color:#7c7c86">Previewed live; applied to all 101 frames in one undo step.</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid #1f1f24; padding-top:12px">
+        <span style="font-size:12px; font-weight:600">Convert to vector</span>
+        <span style="font-size:12px; color:#9696a0; text-wrap:pretty">Rebuilds it as a vector gauge that follows the theme and needs no frames. The original frames stay in the profile.</span>
+        <button onClick="{{ toVector }}" style="height:32px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer">Convert to vector</button>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ isVector }}">
+    <sc-if value="{{ gEdit }}">
+      <div style="padding:14px 16px; display:flex; align-items:center; gap:9px; border-bottom:1px solid #1f1f24"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#9696a0">{{ selPart.icon }}</span><span style="flex:1; font-size:13px; font-weight:600">{{ selPart.l }}</span><button onClick="{{ selPart.toggle }}" style="height:26px; padding:0 9px; background:#17171b; border:1px solid #2a2a31; border-radius:6px; color:#c9c9cf; font-size:11.5px; cursor:pointer">{{ selPart.actLabel }}</button></div>
+      <sc-if value="{{ selPartOff }}"><div style="padding:14px 16px; font-size:12px; color:#8f8f99">This part is off. Turn it on in the list or with Add part.</div></sc-if>
+      <div style="padding:14px 16px; display:flex; flex-direction:column; gap:8px">
+        <sc-for list="{{ selPart.fields }}" as="f" hint-placeholder-count="2">
+          <sc-if value="{{ f.isSeg }}"><div style="display:flex; flex-direction:column; gap:5px"><span style="font-size:12px; color:#9696a0">{{ f.label }}</span><div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ f.opts }}" as="o"><button onClick="{{ o.pick }}" style="flex:1 1 auto; border:none; border-radius:5px; padding:4px 6px; font-size:12px; cursor:pointer; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div></sc-if>
+          <sc-if value="{{ f.isSlider }}"><div style="display:flex; align-items:center; gap:10px; min-height:30px"><span style="width:76px; font-size:12.5px; color:#c9c9cf">{{ f.label }}</span><input type="range" min="{{ f.min }}" max="{{ f.max }}" value="{{ f.val }}" onChange="{{ f.onInput }}" style="flex:1; min-width:0"><span style="width:44px; text-align:right; font-family:'Geist Mono',monospace; font-size:11px">{{ f.disp }}</span></div></sc-if>
+          <sc-if value="{{ f.isSwatch }}"><div style="display:flex; align-items:center; gap:10px; min-height:30px"><span style="width:76px; font-size:12.5px; color:#c9c9cf">{{ f.label }}</span><div style="display:flex; gap:7px"><sc-for list="{{ f.sw }}" as="w"><button onClick="{{ w.pick }}" style="width:24px; height:24px; border-radius:50%; border:2px solid {{ w.bd }}; background:{{ w.bg }}; cursor:pointer; padding:0"></button></sc-for></div></div></sc-if>
+          <sc-if value="{{ f.isToggle }}"><div style="display:flex; align-items:center; min-height:30px"><span style="flex:1; font-size:12.5px; color:#c9c9cf">{{ f.label }}</span><button onClick="{{ f.toggle }}" style="width:30px; height:18px; border:none; border-radius:9px; position:relative; cursor:pointer; background:{{ f.bg }}"><span style="position:absolute; top:2px; left:{{ f.x }}; width:14px; height:14px; border-radius:50%; background:#fff"></span></button></div></sc-if>
+          <sc-if value="{{ f.isText }}"><div style="display:flex; align-items:center; gap:10px; min-height:30px"><span style="width:76px; font-size:12.5px; color:#c9c9cf">{{ f.label }}</span><input value="{{ f.val }}" onChange="{{ f.onChange }}" style="flex:1; min-width:0; height:28px; padding:0 8px; background:#0c0c0e; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; font-size:12px"></div></sc-if>
+          <sc-if value="{{ f.isNote }}"><span style="font-size:12px; color:#8f8f99">{{ f.label }}</span></sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+  </sc-if>
+</aside>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute; inset:0; z-index:40; background:rgba(5,5,7,.68); display:grid; place-items:center; padding:24px">
+  <div style="width:min(960px, 100%); height:min(640px, 100%); display:grid; grid-template-columns:210px minmax(0,1fr); background:#111114; border:1px solid #26262c; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.6); overflow:hidden">
+    <div style="background:#0f0f12; border-right:1px solid #1f1f24; padding:18px 12px; display:flex; flex-direction:column; gap:4px">
+      <span style="font-size:13.5px; font-weight:600; padding:0 8px 2px">Import InfoPanel</span>
+      <span style="font-size:11.5px; color:#7c7c86; padding:0 8px 14px">Review before commit</span>
+      <sc-for list="{{ stepper }}" as="st" hint-placeholder-count="5">
+        <button onClick="{{ st.pick }}" style="display:flex; align-items:center; gap:10px; padding:8px; border:none; border-radius:8px; background:{{ st.bg }}; color:{{ st.fg }}; cursor:pointer; text-align:left">
+          <span style="width:22px; height:22px; flex:none; border-radius:50%; display:grid; place-items:center; background:{{ st.dotBg }}; border:1.5px solid {{ st.dotBd }}; color:{{ st.dotFg }}; font-size:11px; font-weight:600; font-family:'Geist Mono',monospace">{{ st.icon }}</span>
+          <span style="display:flex; flex-direction:column; gap:1px; min-width:0"><span style="font-size:12.5px; font-weight:500">{{ st.label }}</span><span style="font-size:11px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ st.sub }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display:flex; flex-direction:column; min-height:0">
+      <div style="padding:18px 22px 14px; display:flex; flex-direction:column; gap:4px; border-bottom:1px solid #1f1f24">
+        <span style="font-size:16px; font-weight:600">{{ stepTitle }}</span><span style="font-size:12.5px; color:#9696a0; text-wrap:pretty">{{ stepSub }}</span>
+      </div>
+      <div style="flex:1; min-height:0; overflow:auto; padding:18px 22px">
+        <sc-if value="{{ step0 }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; gap:16px">
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px">
+              <sc-for list="{{ srcs }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="display:flex; flex-direction:column; gap:6px; padding:14px; border:1px solid {{ o.bd }}; background:{{ o.bg }}; border-radius:10px; color:#ededf0; cursor:pointer; text-align:left"><span style="font-family:'Material Symbols Rounded'; font-size:22px; color:{{ o.ic }}">{{ o.icon }}</span><span style="font-size:13px; font-weight:600">{{ o.t }}</span><span style="font-size:11.5px; color:#8f8f99; text-wrap:pretty">{{ o.d }}</span></button></sc-for>
+            </div>
+            <sc-if value="{{ srcFile }}">
+              <div style="display:flex; flex-direction:column; gap:10px; padding:14px; border:1px solid #26262c; border-radius:10px; background:#0f0f12">
+                <div style="display:flex; align-items:center; gap:10px"><span style="font-family:'Material Symbols Rounded'; font-size:20px; color:#9696a0">folder_zip</span><span style="flex:1; font-family:'Geist Mono',monospace; font-size:12.5px">ARCv2.infopanel</span><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#7c7c86">19.4 MB</span></div>
+                <div style="height:6px; border-radius:3px; background:#1f1f25; overflow:hidden"><div style="height:100%; width:{{ uploadW }}; background:{{ uploadC }}; border-radius:3px"></div></div>
+                <div style="display:flex; font-size:11.5px; color:#9696a0"><span style="flex:1">{{ uploadText }}</span><span style="font-family:'Geist Mono',monospace">{{ uploadPct }}</span></div>
+              </div>
+              <span style="font-size:11.5px; color:#6f6f79">Or drop an extracted folder or a .canvas.zip here.</span>
+            </sc-if>
+            <sc-if value="{{ srcInstalled }}">
+              <div style="display:flex; flex-direction:column; border:1px solid #26262c; border-radius:10px; overflow:hidden">
+                <div style="padding:8px 12px; font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; background:#0f0f12; border-bottom:1px solid #1f1f24">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
+                <sc-for list="{{ installed }}" as="p" hint-placeholder-count="4"><button onClick="{{ p.pick }}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border:none; border-bottom:1px solid #18181c; background:{{ p.bg }}; color:#ededf0; cursor:pointer; text-align:left"><span style="width:14px; height:14px; border-radius:50%; border:1.5px solid {{ p.radio }}; display:grid; place-items:center"><span style="width:6px; height:6px; border-radius:50%; background:oklch(0.72 0.15 255); display:{{ p.dot }}"></span></span><span style="flex:1; font-size:12.5px; font-weight:500">{{ p.n }}</span><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ p.sz }}</span><span style="width:70px; font-size:11.5px; color:#7c7c86">{{ p.it }}</span><span style="width:50px; font-size:11.5px; color:#7c7c86">{{ p.m }}</span></button></sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ srcCanvas }}"><div style="padding:14px; border:1px solid #26262c; border-radius:10px; font-size:12.5px; color:#9696a0">Saved canvases are in <a href="#" style="color:oklch(0.80 0.12 255)">Library › Imported canvases</a>. Opening one restores its mode, remap choices, fonts and assets; each file is checked against its SHA-256.</div></sc-if>
+          </div>
+        </sc-if>
+        <sc-if value="{{ step1 }}">
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ modes }}" as="m" hint-placeholder-count="3">
+              <button onClick="{{ m.pick }}" style="display:flex; align-items:flex-start; gap:14px; padding:16px; border:1px solid {{ m.bd }}; background:{{ m.bg }}; border-radius:10px; color:#ededf0; cursor:pointer; text-align:left">
+                <span style="margin-top:2px; width:16px; height:16px; flex:none; border-radius:50%; border:1.5px solid {{ m.radio }}; display:grid; place-items:center"><span style="width:8px; height:8px; border-radius:50%; background:oklch(0.72 0.15 255); display:{{ m.dot }}"></span></span>
+                <span style="flex:1; display:flex; flex-direction:column; gap:4px"><span style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600">{{ m.t }}<sc-if value="{{ m.rec }}"><span style="padding:1px 6px; border-radius:4px; background:oklch(0.72 0.15 255 / 0.16); color:oklch(0.82 0.11 255); font-size:10.5px; font-weight:500">Recommended</span></sc-if></span><span style="font-size:12.5px; color:#9696a0; text-wrap:pretty">{{ m.d }}</span></span>
+                <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; white-space:nowrap">{{ m.m }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ step2 }}">
+          <div style="display:flex; flex-direction:column; gap:14px">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:8px">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6"><div style="display:flex; flex-direction:column; gap:3px; padding:11px 12px; border:1px solid #24242a; border-radius:9px; background:#0f0f12"><span style="display:flex; align-items:center; gap:6px; font-size:11px; color:#7c7c86">{{ t.k }}<span style="width:6px; height:6px; border-radius:50%; background:{{ t.dot }}"></span></span><span style="font-size:19px; font-weight:600">{{ t.v }}</span><span style="font-size:11px; color:{{ t.c }}">{{ t.d }}</span></div></sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; border:1px solid #22222a; border-radius:10px; overflow:hidden">
+              <sc-for list="{{ rep }}" as="r" hint-placeholder-count="7">
+                <div style="border-bottom:1px solid #1a1a1f">
+                  <button onClick="{{ r.toggle }}" style="width:100%; display:flex; align-items:center; gap:10px; height:42px; padding:0 14px; border:none; background:none; color:#ededf0; cursor:pointer; text-align:left" style-hover="background:#141418"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#8f8f99">{{ r.icon }}</span><span style="flex:1; font-size:12.5px; font-weight:500">{{ r.t }}</span><span style="font-size:11.5px; color:#7c7c86">{{ r.sum }}</span><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#7c7c86">{{ r.chev }}</span></button>
+                  <sc-if value="{{ r.open }}"><div style="padding:0 14px 12px 41px; display:flex; flex-direction:column; gap:5px"><sc-for list="{{ r.rows }}" as="x"><div style="display:flex; gap:12px; font-size:12px"><span style="flex:1; color:#c9c9cf">{{ x.a }}</span><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#ededf0">{{ x.b }}</span><span style="width:190px; color:#7c7c86">{{ x.c }}</span></div></sc-for></div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ step3 }}"><div style="display:flex; flex-direction:column; gap:12px; height:100%">
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+    <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ rFilters }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:6px; border:none; border-radius:5px; padding:4px 10px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}<span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ o.n }}</span></button></sc-for></div>
+    <span style="font-size:11.5px; color:#7c7c86">{{ remapSummary }}</span>
+    <span style="flex:1"></span>
+    <sc-if value="{{ hasCheck }}"><button onClick="{{ confirmAll }}" style="height:28px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.80 0.13 80)">done_all</span>Confirm all {{ checkCount }} suggestions</button></sc-if>
+  </div>
+  <div style="flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr); gap:14px">
+    <div style="min-height:0; overflow:auto; border:1px solid #22222a; border-radius:10px">
+      <sc-for list="{{ rRows }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.pick }}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid #18181c; background:{{ r.bg }}; box-shadow:inset 2px 0 0 {{ r.bd }}; cursor:pointer" style-hover="background:#141418">
+          <span style="width:8px; height:8px; flex:none; border-radius:50%; background:{{ r.c }}"></span>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+            <span style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r.name }}<span style="font-weight:400; color:#7c7c86"> · {{ r.hw }}</span></span>
+            <span style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:{{ r.keyC }}; white-space:nowrap; overflow:hidden"><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#6f6f79">subdirectory_arrow_right</span>{{ r.keyName }}<span style="color:#7c7c86">{{ r.keyHw }}</span></span>
+          </div>
+          <sc-if value="{{ r.hasLive }}"><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">{{ r.live }}</span></sc-if>
+          <span style="width:84px; font-size:11px; color:{{ r.c }}">{{ r.st }}</span>
+          <button onClick="{{ r.selectItems }}" title="Select these items on the canvas" style="border:none; background:#1c1c22; border-radius:5px; padding:2px 7px; color:#c9c9cf; font-family:'Geist Mono',monospace; font-size:11px; cursor:pointer; white-space:nowrap">{{ r.items }}</button>
+          <sc-if value="{{ r.isCheck }}"><button onClick="{{ r.confirm }}" title="Confirm suggestion" style="width:26px; height:26px; border:1px solid #2a2a31; background:#17171b; border-radius:6px; color:oklch(0.80 0.13 80); cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">check</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="min-height:0; display:flex; flex-direction:column; gap:10px; border:1px solid #22222a; border-radius:10px; padding:14px; background:#0f0f12">
+      <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:13px; font-weight:600">{{ rSel.name }}</span><span style="font-size:11.5px; color:#8f8f99">{{ rSel.hw }} · {{ rSel.src }} · {{ rSel.items }} items</span><span style="font-size:11.5px; color:{{ rSel.c }}">{{ rSel.st }} · {{ rSel.how }}</span></div>
+      <div style="display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; background:#0c0c0e; border:1px solid #2a2a31; border-radius:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">search</span><input value="{{ rq }}" onChange="{{ setRq }}" onKeyDown="{{ rKey }}" placeholder="Search keys, names, refs" style="flex:1; min-width:0; background:none; border:none; outline:none; color:#ededf0; font-size:12.5px"><span style="font-size:10.5px; color:#6f6f79">↑↓ Enter</span></div>
+      <span style="font-size:11px; color:#7c7c86">{{ candTitle }}</span>
+      <div style="flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:2px">
+        <sc-for list="{{ candRows }}" as="k" hint-placeholder-count="4">
+          <button onClick="{{ k.pick }}" style="display:flex; align-items:center; gap:10px; padding:8px; border:none; border-radius:7px; background:{{ k.bg }}; color:#ededf0; cursor:pointer; text-align:left" style-hover="background:#1a1a20">
+            <span style="width:16px; font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.72 0.15 255)">{{ k.check }}</span>
+            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px"><span style="font-size:12.5px">{{ k.n }} <span style="color:#7c7c86">· {{ k.hw }}</span></span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#6f6f79; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ k.k }}</span><sc-if value="{{ k.hasWhy }}"><span style="font-size:11px; color:oklch(0.80 0.12 255)">{{ k.why }}</span></sc-if></span>
+            <span style="font-family:'Geist Mono',monospace; font-size:12px; color:#ededf0">{{ k.v }}</span>
+          </button>
+        </sc-for>
+        <sc-if value="{{ noCands }}"><span style="padding:8px; font-size:12px; color:#7c7c86">No strong candidate. Search, or leave it unbound.</span></sc-if>
+      </div>
+      <div style="display:flex; gap:6px; border-top:1px solid #1f1f24; padding-top:10px">
+        <button onClick="{{ leaveUnbound }}" style="flex:1; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">Leave unbound</button>
+        <button onClick="{{ resetAuto }}" style="flex:1; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">Reset to automatic</button>
+      </div>
+    </div>
+  </div>
+</div></sc-if>
+        <sc-if value="{{ step4 }}">
+          <div style="display:flex; flex-direction:column; gap:16px; max-width:560px">
+            <label style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; color:#9696a0">Name</span><input value="ARCv2" style="height:34px; padding:0 10px; background:#0c0c0e; border:1px solid #2a2a31; border-radius:8px; color:#ededf0; font-size:13px"></label>
+            <div style="display:flex; flex-direction:column; gap:8px"><span style="font-size:12px; color:#9696a0">Lands in</span>
+              <sc-for list="{{ dests }}" as="d" hint-placeholder-count="2"><button onClick="{{ d.pick }}" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid {{ d.bd }}; background:#0f0f12; border-radius:9px; color:#ededf0; cursor:pointer; text-align:left"><span style="width:16px; height:16px; border-radius:50%; border:1.5px solid {{ d.radio }}; display:grid; place-items:center"><span style="width:8px; height:8px; border-radius:50%; background:oklch(0.72 0.15 255); display:{{ d.dot }}"></span></span><span style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:600">{{ d.t }}</span><span style="font-size:11.5px; color:#8f8f99">{{ d.d }}</span></span></button></sc-for>
+            </div>
+            <button onClick="{{ togZip }}" style="display:flex; align-items:center; gap:10px; border:none; background:none; color:#d6d6dc; font-size:12.5px; cursor:pointer; padding:0; text-align:left"><span style="width:16px; height:16px; border-radius:4px; border:1.5px solid {{ zipBd }}; background:{{ zipBg }}; display:grid; place-items:center; color:#0c0c0e; font-family:'Material Symbols Rounded'; font-size:13px">check</span>Also save the stored form (ARCv2.canvas.zip) to the Library</button>
+            <div style="padding:12px 14px; border-radius:9px; background:#0f0f12; border:1px solid #22222a; font-size:12px; color:#9696a0; line-height:1.6">86 items · 71 native, 15 InfoPanel · 38 assets (identical pair merged) · 5 fonts · 11 sensor groups. Import is one undo step.</div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="flex:none; display:flex; align-items:center; gap:10px; padding:12px 22px; border-top:1px solid #1f1f24">
+        <button onClick="{{ cancel }}" style="height:32px; padding:0 12px; background:none; border:none; border-radius:7px; color:#9696a0; font-size:12.5px; cursor:pointer">Cancel</button>
+        <sc-if value="{{ hasFootNote }}"><span style="font-size:11.5px; color:#9696a0">{{ footNote }}</span></sc-if>
+        <span style="flex:1"></span>
+        <sc-if value="{{ hasBack }}"><button onClick="{{ back }}" style="height:32px; padding:0 12px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; cursor:pointer">Back</button></sc-if>
+        <button onClick="{{ next }}" style="height:32px; padding:0 16px; background:{{ nextBg }}; border:none; border-radius:7px; color:{{ nextFg }}; font-size:12.5px; font-weight:600; cursor:{{ nextCursor }}">{{ nextLabel }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ remapOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute; inset:0; z-index:40; background:rgba(5,5,7,.6); display:grid; place-items:center; padding:24px">
+  <div style="width:min(980px, 100%); height:min(640px, 100%); display:flex; flex-direction:column; background:#111114; border:1px solid #26262c; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.6); overflow:hidden">
+    <div style="padding:16px 20px; display:flex; align-items:center; gap:10px; border-bottom:1px solid #1f1f24"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:15px; font-weight:600">Sensor remap · ARCv2</span><span style="font-size:12px; color:#8f8f99">Profiles from another PC read other hardware. One choice fixes every item in a group.</span></div><button onClick="{{ closeRemap }}" style="height:32px; padding:0 14px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer">Done</button></div>
+    <div style="flex:1; min-height:0; overflow:auto; padding:16px 20px"><div style="display:flex; flex-direction:column; gap:12px; height:100%">
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+    <div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ rFilters }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:6px; border:none; border-radius:5px; padding:4px 10px; font-size:12px; font-weight:500; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}<span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ o.n }}</span></button></sc-for></div>
+    <span style="font-size:11.5px; color:#7c7c86">{{ remapSummary }}</span>
+    <span style="flex:1"></span>
+    <sc-if value="{{ hasCheck }}"><button onClick="{{ confirmAll }}" style="height:28px; padding:0 11px; display:flex; align-items:center; gap:6px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.80 0.13 80)">done_all</span>Confirm all {{ checkCount }} suggestions</button></sc-if>
+  </div>
+  <div style="flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr); gap:14px">
+    <div style="min-height:0; overflow:auto; border:1px solid #22222a; border-radius:10px">
+      <sc-for list="{{ rRows }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.pick }}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid #18181c; background:{{ r.bg }}; box-shadow:inset 2px 0 0 {{ r.bd }}; cursor:pointer" style-hover="background:#141418">
+          <span style="width:8px; height:8px; flex:none; border-radius:50%; background:{{ r.c }}"></span>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+            <span style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r.name }}<span style="font-weight:400; color:#7c7c86"> · {{ r.hw }}</span></span>
+            <span style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:{{ r.keyC }}; white-space:nowrap; overflow:hidden"><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#6f6f79">subdirectory_arrow_right</span>{{ r.keyName }}<span style="color:#7c7c86">{{ r.keyHw }}</span></span>
+          </div>
+          <sc-if value="{{ r.hasLive }}"><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">{{ r.live }}</span></sc-if>
+          <span style="width:84px; font-size:11px; color:{{ r.c }}">{{ r.st }}</span>
+          <button onClick="{{ r.selectItems }}" title="Select these items on the canvas" style="border:none; background:#1c1c22; border-radius:5px; padding:2px 7px; color:#c9c9cf; font-family:'Geist Mono',monospace; font-size:11px; cursor:pointer; white-space:nowrap">{{ r.items }}</button>
+          <sc-if value="{{ r.isCheck }}"><button onClick="{{ r.confirm }}" title="Confirm suggestion" style="width:26px; height:26px; border:1px solid #2a2a31; background:#17171b; border-radius:6px; color:oklch(0.80 0.13 80); cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">check</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="min-height:0; display:flex; flex-direction:column; gap:10px; border:1px solid #22222a; border-radius:10px; padding:14px; background:#0f0f12">
+      <div style="display:flex; flex-direction:column; gap:2px"><span style="font-size:13px; font-weight:600">{{ rSel.name }}</span><span style="font-size:11.5px; color:#8f8f99">{{ rSel.hw }} · {{ rSel.src }} · {{ rSel.items }} items</span><span style="font-size:11.5px; color:{{ rSel.c }}">{{ rSel.st }} · {{ rSel.how }}</span></div>
+      <div style="display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; background:#0c0c0e; border:1px solid #2a2a31; border-radius:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">search</span><input value="{{ rq }}" onChange="{{ setRq }}" onKeyDown="{{ rKey }}" placeholder="Search keys, names, refs" style="flex:1; min-width:0; background:none; border:none; outline:none; color:#ededf0; font-size:12.5px"><span style="font-size:10.5px; color:#6f6f79">↑↓ Enter</span></div>
+      <span style="font-size:11px; color:#7c7c86">{{ candTitle }}</span>
+      <div style="flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:2px">
+        <sc-for list="{{ candRows }}" as="k" hint-placeholder-count="4">
+          <button onClick="{{ k.pick }}" style="display:flex; align-items:center; gap:10px; padding:8px; border:none; border-radius:7px; background:{{ k.bg }}; color:#ededf0; cursor:pointer; text-align:left" style-hover="background:#1a1a20">
+            <span style="width:16px; font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.72 0.15 255)">{{ k.check }}</span>
+            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px"><span style="font-size:12.5px">{{ k.n }} <span style="color:#7c7c86">· {{ k.hw }}</span></span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#6f6f79; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ k.k }}</span><sc-if value="{{ k.hasWhy }}"><span style="font-size:11px; color:oklch(0.80 0.12 255)">{{ k.why }}</span></sc-if></span>
+            <span style="font-family:'Geist Mono',monospace; font-size:12px; color:#ededf0">{{ k.v }}</span>
+          </button>
+        </sc-for>
+        <sc-if value="{{ noCands }}"><span style="padding:8px; font-size:12px; color:#7c7c86">No strong candidate. Search, or leave it unbound.</span></sc-if>
+      </div>
+      <div style="display:flex; gap:6px; border-top:1px solid #1f1f24; padding-top:10px">
+        <button onClick="{{ leaveUnbound }}" style="flex:1; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">Leave unbound</button>
+        <button onClick="{{ resetAuto }}" style="flex:1; height:30px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12px; cursor:pointer">Reset to automatic</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ exportOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute; inset:0; z-index:40; background:rgba(5,5,7,.6); display:grid; place-items:center; padding:24px">
+  <div style="width:min(720px, 100%); max-height:100%; display:flex; flex-direction:column; background:#111114; border:1px solid #26262c; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.6); overflow:hidden">
+    <div style="padding:16px 20px; display:flex; align-items:center; border-bottom:1px solid #1f1f24"><span style="flex:1; font-size:15px; font-weight:600">Export ARCv2</span><button onClick="{{ closeExport }}" style="border:none; background:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:20px">close</button></div>
+    <div style="flex:1; min-height:0; overflow:auto; padding:18px 20px; display:flex; flex-direction:column; gap:18px">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <sc-for list="{{ outs }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="display:flex; flex-direction:column; gap:6px; padding:14px; border:1px solid {{ o.bd }}; background:{{ o.bg }}; border-radius:10px; color:#ededf0; cursor:pointer; text-align:left"><span style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:20px; color:#9696a0">{{ o.icon }}</span><span style="flex:1; font-size:13px; font-weight:600">{{ o.t }}</span><span style="width:16px; height:16px; border-radius:50%; border:1.5px solid {{ o.radio }}; display:grid; place-items:center"><span style="width:8px; height:8px; border-radius:50%; background:oklch(0.72 0.15 255); display:{{ o.dot }}"></span></span></span><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ o.f }}</span><span style="font-size:12px; color:#8f8f99; text-wrap:pretty">{{ o.d }}</span></button></sc-for>
+      </div>
+      <sc-if value="{{ isInfopanel }}">
+        <div style="display:flex; flex-direction:column; border:1px solid #22222a; border-radius:10px">
+          <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid #1a1a1f"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:500">Bake stale vector gauges first</span><span style="font-size:11.5px; color:oklch(0.80 0.13 80)">3 gauges have frames out of date</span></div><button onClick="{{ bakeT.toggle }}" style="width:30px; height:18px; border:none; border-radius:9px; position:relative; cursor:pointer; background:{{ bakeT.bg }}"><span style="position:absolute; top:2px; left:{{ bakeT.x }}; width:14px; height:14px; border-radius:50%; background:#fff"></span></button></div>
+          <div style="display:flex; align-items:center; gap:12px; padding:12px 14px"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:500">Leave unused assets out</span><span style="font-size:11.5px; color:#8f8f99">3 files · 5.1 MB</span></div><button onClick="{{ unusedT.toggle }}" style="width:30px; height:18px; border:none; border-radius:9px; position:relative; cursor:pointer; background:{{ unusedT.bg }}"><span style="position:absolute; top:2px; left:{{ unusedT.x }}; width:14px; height:14px; border-radius:50%; background:#fff"></span></button></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <span style="font-size:12.5px; font-weight:600">Font licences</span><span style="font-size:11.5px; color:#8f8f99; margin-top:-4px">Review the supplied fonts before sharing this file.</span>
+          <div style="display:flex; flex-direction:column; border:1px solid #22222a; border-radius:10px">
+            <sc-for list="{{ fontRows }}" as="f" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:8px; padding:10px 14px; border-bottom:1px solid #1a1a1f">
+                <div style="display:flex; align-items:center; gap:10px"><span style="width:7px; height:7px; border-radius:50%; background:{{ f.c }}"></span><span style="width:140px; font-size:12.5px; font-weight:500">{{ f.fam }}</span><span style="flex:1; font-size:12px; color:#9696a0">{{ f.how }}</span><span style="font-size:11.5px; color:{{ f.c }}">{{ f.lic }}</span></div>
+                <sc-if value="{{ f.hasChoice }}"><div style="display:flex; gap:2px; background:#17171b; border:1px solid #24242a; border-radius:7px; padding:2px; margin-left:17px; align-self:flex-start"><sc-for list="{{ f.opts }}" as="o"><button onClick="{{ o.pick }}" style="border:none; border-radius:5px; padding:4px 10px; font-size:12px; cursor:pointer; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ licWarn }}"><span style="display:flex; gap:6px; font-size:12px; color:oklch(0.74 0.15 25)"><span style="font-family:'Material Symbols Rounded'; font-size:16px">warning</span>Digital-7’s licence doesn’t allow sharing. The save note will name it.</span></sc-if>
+        </div>
+      </sc-if>
+      <div style="display:flex; flex-direction:column; gap:5px; padding:12px 14px; border-radius:10px; background:#0f0f12; border:1px solid #1f1f24">
+        <sc-for list="{{ contents }}" as="c" hint-placeholder-count="3"><div style="display:flex; gap:12px; font-size:12px"><span style="width:140px; font-family:'Geist Mono',monospace; font-size:11.5px; color:#c9c9cf">{{ c.a }}</span><span style="color:#8f8f99">{{ c.b }}</span></div></sc-for>
+      </div>
+    </div>
+    <div style="padding:12px 20px; border-top:1px solid #1f1f24; display:flex; align-items:center; gap:10px"><span style="font-family:'Geist Mono',monospace; font-size:12px; color:#c9c9cf">{{ exportName }}</span><span style="font-size:11.5px; color:#7c7c86">{{ exportSize }}</span><span style="flex:1"></span><button onClick="{{ closeExport }}" style="height:32px; padding:0 12px; background:none; border:none; color:#9696a0; font-size:12.5px; cursor:pointer">Cancel</button><button onClick="{{ doExport }}" style="height:32px; padding:0 16px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer">Export</button></div>
+  </div>
+</div>
+</sc-if>
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; left:50%; bottom:22px; transform:translateX(-50%); z-index:80; display:flex; align-items:center; gap:10px; padding:9px 14px; background:#1d1d23; border:1px solid #303038; border-radius:9px; box-shadow:0 12px 32px rgba(0,0,0,.5); font-size:12.5px; color:#ededf0; white-space:nowrap"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:oklch(0.75 0.14 155)">check_circle</span>{{ toast }}</div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const A='oklch(0.72 0.15 255)',OK='oklch(0.75 0.14 155)',WARN='oklch(0.80 0.13 80)',BAD='oklch(0.68 0.17 25)',MUT='#7c7c86';
+const ab=(c,p)=>`color-mix(in oklch, ${c} ${p}%, transparent)`;
+const PALS=[['oklch(0.72 0.15 255)','oklch(0.80 0.12 200)'],['oklch(0.82 0.15 80)','oklch(0.66 0.20 28)'],['oklch(0.80 0.15 160)','oklch(0.80 0.11 205)'],['oklch(0.72 0.16 300)','oklch(0.72 0.17 355)']];
+const G0={shape:'arc',sweep:270,thick:14,tank:'round',order:'linear',fill:'gradient',color:0,follow:true,track:true,trackOp:18,needle:false,needleStyle:'taper',marker:false,ticks:true,tickCount:11,labels:false,value:true,valueSize:34,suffix:'%',title:false,titleText:'CPU',background:false,rings:false,pattern:false,patternKind:'stripes',iconRow:false,centreIcon:false,glow:false,glowAmt:8,shadow:false,wave:true,shine:true,bubbles:false};
+const ITEMS=[
+ {id:'bg-aurora',kind:'image',cats:['image','background'],name:'Aurora blue.jpg',type:'JPEG',px:'1920 × 550',bytes:'1.8 MB',uses:2,usedIn:['ARCv2 › Page 1 › Background','Kiosk strip › Background'],tags:['Dark','Blue','Wide','Background'],colors:['#081633','#1d4ed8','#22d3ee'],large:true,added:'Oct 12'},
+ {id:'vid-nebula',kind:'video',cats:['video','background'],name:'Nebula loop.mp4',type:'MP4 · H.264',px:'1920 × 550',dur:'0:12',bytes:'8.4 MB',uses:1,usedIn:['Sample 1920×550 › Background'],tags:['Dark','Violet','Loop','Background'],colors:['#120a2a','#6d28d9','#db2777'],large:true,added:'Oct 15'},
+ {id:'bg-dusk',kind:'image',cats:['image','background'],name:'Dusk gradient.webp',type:'WebP',px:'1920 × 550',bytes:'220 KB',uses:0,usedIn:[],tags:['Dark','Blue','Gradient','Background'],colors:['#0b1020','#1e3a8a','#0e7490'],suggest:'Same blues as the Midnight accent',added:'Oct 9'},
+ {id:'img-logo',kind:'image',cats:['image'],name:'ROG logo.png',type:'PNG · alpha',px:'512 × 512',bytes:'140 KB',uses:3,usedIn:['ARCv2 › Header','ARCv2 › Footer','Main display › Title'],tags:['Transparent','Red','Square'],colors:['#1a0b0e','#e11d48','#1a0b0e'],added:'Oct 12'},
+ {id:'img-logo2',kind:'image',cats:['image'],name:'rog_logo (1).png',type:'PNG · alpha',px:'512 × 512',bytes:'140 KB',uses:1,usedIn:['Kiosk strip › Header'],tags:['Transparent','Red','Square'],colors:['#1a0b0e','#e11d48','#1a0b0e'],dup:'img-logo',added:'Oct 14'},
+ {id:'vid-rain',kind:'video',cats:['video','background'],name:'Rain on glass.webm',type:'WebM · VP9',px:'1920 × 1080',dur:'0:20',bytes:'14.1 MB',uses:0,usedIn:[],tags:['Dark','Grey','Loop','Background'],colors:['#0d1117','#334155','#64748b'],large:true,suggest:'Low contrast; keeps values readable',added:'Sep 30'},
+ {id:'bg-carbon',kind:'image',cats:['image','background'],name:'Carbon weave.png',type:'PNG',px:'1920 × 1080',bytes:'2.6 MB',uses:1,usedIn:['Main display › Background'],tags:['Dark','Grey','Texture','Background'],colors:['#0a0a0a','#2a2a2a','#151515'],large:true,suggest:'Neutral; lets the accent lead',added:'Sep 22'},
+ {id:'img-gpu',kind:'image',cats:['image'],name:'RTX render.png',type:'PNG',px:'1200 × 800',bytes:'1.1 MB',uses:1,usedIn:['ARCv2 › GPU group'],tags:['Green','Product'],colors:['#05140b','#16a34a','#0f172a'],large:true,added:'Oct 12'},
+ {id:'ic-cpu',kind:'icon',cats:['icon'],name:'cpu',glyph:'memory',type:'SVG icon',px:'24 × 24',bytes:'1 KB',uses:6,usedIn:['ARCv2 › CPU group','Sample › FPS rings'],tags:['Hardware','Line'],added:'Oct 2'},
+ {id:'ic-fan',kind:'icon',cats:['icon'],name:'fan',glyph:'mode_fan',type:'SVG icon',px:'24 × 24',bytes:'1 KB',uses:2,usedIn:['ARCv2 › Cooling'],tags:['Hardware','Line'],added:'Oct 2'},
+ {id:'ic-temp',kind:'icon',cats:['icon'],name:'thermometer',glyph:'device_thermostat',type:'SVG icon',px:'24 × 24',bytes:'1 KB',uses:0,usedIn:[],tags:['Sensor','Line'],added:'Oct 2'},
+ {id:'svg-ring',kind:'svg',cats:['svg'],name:'Pulse ring.svg',glyph:'motion_photos_on',type:'SVG template',px:'200 × 200',bytes:'8 KB',uses:1,usedIn:['Sample › FPS rings'],tags:['Animated','--percent'],vars:['--value','--percent'],added:'Oct 6'},
+ {id:'svg-battery',kind:'svg',cats:['svg'],name:'Battery cells.svg',glyph:'battery_5_bar',type:'SVG template',px:'120 × 60',bytes:'4 KB',uses:0,usedIn:[],tags:['--value'],vars:['--value'],added:'Oct 6'},
+ {id:'g-arc',kind:'gauge',cats:['gauge'],name:'CPU arc',gshape:'arc',pct:0.62,type:'Vector gauge · arc',px:'Any size',bytes:'3 KB',uses:2,usedIn:['ARCv2 › CPU group','Main display › CPU'],tags:['Gradient','Follows theme'],added:'Oct 16'},
+ {id:'g-tank',kind:'gauge',cats:['gauge'],name:'Coolant tank',gshape:'liquid',pct:0.48,type:'Vector gauge · liquid',px:'Any size',bytes:'4 KB',uses:1,usedIn:['ARCv2 › Cooling'],tags:['Wave','Hex tank'],added:'Oct 16'},
+ {id:'g-seq',kind:'gauge',cats:['gauge'],name:'ARC ring',gshape:'seq',pct:0.7,type:'Image sequence · 101 frames',px:'300 × 300',bytes:'3.2 MB',uses:2,usedIn:['ARCv2 › CPU group','ARCv2 › GPU group'],tags:['Imported','30 fps'],large:true,added:'Oct 12'},
+ {id:'g-bar',kind:'gauge',cats:['gauge'],name:'Segment bar',gshape:'bar',pct:0.74,type:'Vector gauge · bar',px:'Any size',bytes:'2 KB',uses:4,usedIn:['ARCv2 › CPU group','ARCv2 › GPU group','Kiosk strip › RAM','Kiosk strip › VRAM'],tags:['Stripes','Zones'],added:'Oct 16'},
+ {id:'p-sys',kind:'panel',cats:['panel'],name:'System 4×2',type:'Saved panel',px:'4 × 2 cells',bytes:'—',uses:2,usedIn:['Main display','Sample 1920×550'],tags:['CPU','GPU','RAM'],cells:[[0,0,2,2],[2,0,2,1],[2,1,1,1],[3,1,1,1]],added:'Oct 3'},
+ {id:'p-net',kind:'panel',cats:['panel'],name:'Network duo',type:'Saved panel',px:'2 × 1 cells',bytes:'—',uses:1,usedIn:['Kiosk strip'],tags:['Network'],cells:[[0,0,1,1],[1,0,1,1]],added:'Oct 4'},
+ {id:'st-glass',kind:'style',cats:['style'],name:'Frosted glass',type:'Style preset',px:'Look keys',bytes:'—',uses:5,usedIn:['Main display · 5 widgets'],tags:['Blur','Soft border'],added:'Oct 1'},
+ {id:'st-neon',kind:'style',cats:['style'],name:'Neon edge',type:'Style preset',px:'Look keys',bytes:'—',uses:0,usedIn:[],tags:['Glow','Accent border'],added:'Oct 8'},
+ {id:'cv-arc',kind:'canvas',cats:['canvas'],name:'ARCv2',type:'Imported canvas',px:'1920 × 550',bytes:'19 MB',uses:1,usedIn:['Profile ARCv2'],tags:['86 items','71 native','InfoPanel'],colors:['#081633','#1d4ed8','#e11d48'],added:'Oct 12'},
+ {id:'cv-tall',kind:'canvas',cats:['canvas'],name:'Tall sidebar',type:'Imported canvas',px:'480 × 1920',bytes:'6.2 MB',uses:0,usedIn:[],tags:['41 items','Faithful'],colors:['#0f0f0f','#f97316','#0f0f0f'],tall:true,added:'Oct 5'},
+ {id:'f-orbitron',kind:'font',cats:['fonts'],name:'Orbitron',ff:"'Orbitron'",type:'Font · 4 faces',px:'OFL',bytes:'412 KB',uses:14,usedIn:['ARCv2 · 14 text items'],tags:['Display','May share'],added:'Oct 12'},
+ {id:'f-digital',kind:'font',cats:['fonts'],name:'Digital-7',ff:"'Share Tech Mono'",type:'Font · 1 face',px:'Personal use',bytes:'38 KB',uses:3,usedIn:['ARCv2 · 3 text items'],tags:['Mono','Do not share'],added:'Oct 12'},
+];
+const RECENT=['g-arc','g-tank','g-bar','vid-nebula','img-logo2','bg-dusk','cv-arc','svg-ring'];
+const COLLS=[
+ {sec:'Smart',items:[['all','All items','apps'],['recent','Recent','schedule'],['unused','Unused','block'],['large','Large files','weight'],['dups','Duplicates','content_copy'],['suggest','Suggested for theme','auto_awesome']]},
+ {sec:'Media',items:[['image','Images','image'],['video','Videos','movie'],['background','Backgrounds','wallpaper'],['icon','Icons','interests'],['svg','SVG templates','code_blocks'],['fonts','Fonts','text_fields']]},
+ {sec:'Made by you',items:[['gauge','Gauges & bars','speed'],['panel','Saved panels','dashboard_customize'],['style','Style presets','format_paint'],['canvas','Imported canvases','layers']]}];
+const PA=[
+ {id:'a-bg',name:'background.jpg',type:'JPEG',px:'1920 × 550',drawn:'1920 × 550',mb:1.8,uses:1,find:[],colors:['#081633','#1d4ed8','#22d3ee'],k:'image',comp:1},
+ {id:'a-ring',name:'ring_000…100.png',type:'PNG × 101',px:'300 × 300',drawn:'250 × 250',mb:3.2,uses:2,find:['larger','over'],colors:['#1a0b0e','#e11d48','#111'],k:'image',comp:1},
+ {id:'a-gpu',name:'rtx_render.png',type:'PNG',px:'1200 × 800',drawn:'420 × 280',mb:1.1,uses:1,find:['larger','over'],colors:['#05140b','#16a34a','#0f172a'],k:'image',comp:1},
+ {id:'a-logo',name:'logo.png',type:'PNG · alpha',px:'512 × 512',drawn:'60 × 60',mb:0.14,uses:2,find:['larger'],colors:['#1a0b0e','#e11d48','#1a0b0e'],k:'image',comp:1},
+ {id:'a-logo2',name:'logo_old.png',type:'PNG · alpha',px:'512 × 512',drawn:'—',mb:0.14,uses:0,find:['unused','identical'],colors:['#1a0b0e','#e11d48','#1a0b0e'],k:'image',comp:1},
+ {id:'a-grid',name:'grid_overlay.png',type:'PNG · alpha',px:'1920 × 550',drawn:'1920 × 550',mb:0.42,uses:1,find:[],colors:['#0c0c0e','#1f2937','#0c0c0e'],k:'image',comp:1.5},
+ {id:'a-btn',name:'button_glow.gif',type:'GIF · 24 frames',px:'160 × 48',drawn:'160 × 48',mb:0.31,uses:1,find:[],colors:['#0c0c0e','#e11d48','#0c0c0e'],k:'image',anim:true},
+ {id:'a-fan',name:'fan_spin.gif',type:'GIF · 36 frames',px:'256 × 256',drawn:'64 × 64',mb:0.88,uses:1,find:['larger'],colors:['#111','#475569','#111'],k:'image',anim:true},
+ {id:'a-old',name:'bg_v1.jpg',type:'JPEG',px:'1920 × 550',drawn:'—',mb:1.6,uses:0,find:['unused','over'],colors:['#140b24','#7c3aed','#0b1020'],k:'image',comp:1},
+ {id:'a-cam',name:'cam_poster.jpg',type:'JPEG',px:'1280 × 720',drawn:'610 × 120',mb:0.36,uses:1,find:['larger'],colors:['#111','#3f3f46','#18181b'],k:'image',comp:1},
+ {id:'a-noise',name:'noise.png',type:'PNG',px:'512 × 512',drawn:'Tiled',mb:0.09,uses:1,find:[],colors:['#18181b','#27272a','#18181b'],k:'image',comp:1.6},
+ {id:'a-miss',name:'cpu_icon.png',type:'—',px:'—',drawn:'48 × 48',mb:0,uses:1,find:['missing'],k:'image',missing:true},
+];
+const PA_EXT=[{name:'https://cdn.weather.example/icons/03d.png',kind:'URL',uses:1,note:'Size unknown until it loads; stays InfoPanel'},{name:'C:\\Users\\Joran\\Pictures\\cam_mask.png',kind:'Absolute path',uses:1,note:'Not inside the profile. Add it to include it'}];
+const FINDS=[['unused','Unused','block',WARN],['identical','Identical','content_copy',WARN],['larger','Larger than drawn','photo_size_select_large',WARN],['over','Over 1 MB','weight',WARN],['missing','Missing','broken_image',BAD]];
+const LIC={share:['May share',OK],check:['Check licence',WARN],noshare:['Do not share',BAD]};
+const FREQ=[
+ {id:'Orbitron',req:'Orbitron · Bold',face:'Orbitron Bold',how:'Asked from InfoPanel (Data API)',lic:'share',st:'ok',items:14,ff:"'Orbitron'"},
+ {id:'Rajdhani',req:'Rajdhani · Medium',face:null,how:'Not on this PC',lic:'share',st:'missing',items:9,ff:"'Rajdhani'"},
+ {id:'Digital-7',req:'Digital-7 · Regular',face:'Digital-7 Regular',how:'Supplied with the profile',lic:'noshare',st:'ok',items:3,ff:"'Share Tech Mono'"},
+ {id:'Segoe UI Variable',req:'Segoe UI Variable · Semibold',face:'Segoe UI Variable',how:'System font',lic:'check',st:'ok',items:22,ff:"'Segoe UI', system-ui"},
+ {id:'Bahnschrift',req:'Bahnschrift · Light',face:'Segoe UI (InfoPanel fallback)',how:'Switched to fallback',lic:'check',st:'fallback',items:2,ff:'system-ui'}];
+const FLIB=[
+ {fam:'Orbitron',faces:4,size:'412 KB',origin:'Corpus pack',lic:'share',embed:'Installable',ff:"'Orbitron'"},
+ {fam:'Digital-7',faces:1,size:'38 KB',origin:'From ARCv2',lic:'noshare',embed:'Restricted',ff:"'Share Tech Mono'"},
+ {fam:'Share Tech Mono',faces:1,size:'24 KB',origin:'Fontsource',lic:'share',embed:'Installable',ff:"'Share Tech Mono'"},
+ {fam:'JetBrains Mono',faces:8,size:'1.1 MB',origin:'Fontsource',lic:'share',embed:'Installable',ff:"'Geist Mono'"},
+ {fam:'Geist',faces:3,size:'180 KB',origin:'Built in',lic:'share',embed:'Installable',ff:"'Geist'"}];
+const KEYS=[
+ {k:'hwinfo:cpu0/temp/package',n:'CPU Package',hw:'Intel Core i9-13900K',v:'54 °C',t:'temp'},
+ {k:'hwinfo:cpu0/usage/total',n:'Total CPU Usage',hw:'Intel Core i9-13900K',v:'23 %',t:'usage'},
+ {k:'nvidia:gpu0/temp/core',n:'GPU Temperature',hw:'NVIDIA RTX 4070 Ti',v:'61 °C',t:'temp'},
+ {k:'nvidia:gpu0/temp/hotspot',n:'GPU Hot Spot',hw:'NVIDIA RTX 4070 Ti',v:'72 °C',t:'temp'},
+ {k:'nvidia:gpu0/mem/used',n:'GPU Memory Used',hw:'NVIDIA RTX 4070 Ti',v:'5.8 GB',t:'data'},
+ {k:'hwinfo:nvme0/temp',n:'Drive Temperature',hw:'WD SN850X (C:)',v:'41 °C',t:'temp'},
+ {k:'hwinfo:nvme1/temp',n:'Drive Temperature',hw:'Samsung 990 Pro (D:)',v:'44 °C',t:'temp'},
+ {k:'net:realtek-2.5g/down',n:'Download rate',hw:'Realtek 2.5GbE',v:'18.4 MB/s',t:'rate'},
+ {k:'hwinfo:mb/fan/cpu',n:'CPU Fan',hw:'ASUS Z790-E',v:'1140 rpm',t:'fan'},
+ {k:'hwinfo:mb/fan/pump',n:'AIO Pump',hw:'ASUS Z790-E',v:'2610 rpm',t:'fan'},
+ {k:'hwinfo:mb/temp/t_sensor',n:'T_Sensor (coolant)',hw:'ASUS Z790-E',v:'31 °C',t:'temp'},
+ {k:'hwinfo:mem/used',n:'Physical Memory Used',hw:'System',v:'18.2 GB',t:'data'},
+ {k:'weather:local/temp',n:'Temperature',hw:'Weather plugin',v:'12 °C',t:'temp'}];
+const GROUPS=[
+ {id:'g1',name:'CPU Package',hw:'Intel Core i9-12900K',src:'HWiNFO',items:6,auto:'matched',key:'hwinfo:cpu0/temp/package',how:'Exact ref',t:'temp',sel:'s-cpu'},
+ {id:'g2',name:'Total CPU Usage',hw:'Intel Core i9-12900K',src:'HWiNFO',items:4,auto:'matched',key:'hwinfo:cpu0/usage/total',how:'Exact ref',t:'usage',sel:'b-cpu'},
+ {id:'g3',name:'GPU Temperature',hw:'NVIDIA RTX 3080',src:'NVIDIA',items:5,auto:'check',key:'nvidia:gpu0/temp/core',how:'Same reading, other GPU',t:'temp',sel:'s-gpu'},
+ {id:'g4',name:'GPU Hot Spot',hw:'NVIDIA RTX 3080',src:'NVIDIA',items:2,auto:'check',key:'nvidia:gpu0/temp/hotspot',how:'Same reading, other GPU',t:'temp',sel:'g-gpu'},
+ {id:'g5',name:'GPU Memory Used',hw:'NVIDIA RTX 3080',src:'NVIDIA',items:2,auto:'check',key:'nvidia:gpu0/mem/used',how:'Name match',t:'data',sel:'b-gpu'},
+ {id:'g6',name:'Drive Temperature',hw:'Samsung 980 Pro (C:)',src:'HWiNFO',items:1,auto:'unresolved',key:null,how:'2 candidates, none strong',t:'temp',sel:'title'},
+ {id:'g7',name:'Download rate',hw:'Intel I225-V',src:'Network',items:3,auto:'check',key:'net:realtek-2.5g/down',how:'Same reading, other adapter',t:'rate',sel:'graph'},
+ {id:'g8',name:'CPU_OPT Fan',hw:'MSI Z690 Tomahawk',src:'HWiNFO',items:2,auto:'unresolved',key:null,how:'No strong match',t:'fan',sel:'date'},
+ {id:'g9',name:'Coolant Temperature',hw:'Corsair H150i',src:'HWiNFO',items:2,auto:'unresolved',key:null,how:'Hardware not found',t:'temp',sel:'clock'},
+ {id:'g10',name:'Physical Memory Used',hw:'System',src:'HWiNFO',items:3,auto:'matched',key:'hwinfo:mem/used',how:'Exact ref',t:'data',sel:'b-gpu'},
+ {id:'g11',name:'Temperature',hw:'Weather plugin',src:'Plugin',items:1,auto:'matched',key:'weather:local/temp',how:'Plugin key',t:'temp',sel:'date'}];
+const STM={matched:['Matched',OK],confirmed:['Confirmed',OK],picked:['Your choice',A],check:['Check',WARN],unresolved:['Unresolved',BAD],unbound:['Left unbound','#8f8f99']};
+const CI=[
+ {id:'bg',name:'Background',kind:'image',ip:'Image',x:0,y:0,w:1920,h:550,lock:true,depth:0},
+ {id:'grp-cpu',name:'CPU',kind:'group',ip:'Group',depth:0,group:true},
+ {id:'t-cpu',name:'CPU label',kind:'text',ip:'Text',x:70,y:40,w:220,h:56,txt:'CPU',fs:40,depth:1,parent:'grp-cpu'},
+ {id:'g-cpu',name:'CPU ring',kind:'gauge',ip:'Image-sequence gauge',x:70,y:110,w:240,h:240,pct:0.23,depth:1,parent:'grp-cpu'},
+ {id:'s-cpu',name:'CPU temp',kind:'value',ip:'Sensor',x:350,y:140,w:320,h:100,txt:'54°C',fs:84,depth:1,parent:'grp-cpu',bind:'g1'},
+ {id:'b-cpu',name:'CPU usage bar',kind:'bar',ip:'Bar',x:356,y:268,w:320,h:24,pct:0.23,depth:1,parent:'grp-cpu',bind:'g2'},
+ {id:'grp-gpu',name:'GPU',kind:'group',ip:'Group',depth:0,group:true},
+ {id:'t-gpu',name:'GPU label',kind:'text',ip:'Text',x:780,y:40,w:220,h:56,txt:'GPU',fs:40,depth:1,parent:'grp-gpu'},
+ {id:'g-gpu',name:'GPU ring',kind:'gauge',ip:'Image-sequence gauge',x:780,y:110,w:240,h:240,pct:0.61,depth:1,parent:'grp-gpu',bind:'g4'},
+ {id:'s-gpu',name:'GPU temp',kind:'value',ip:'Sensor',x:1060,y:140,w:320,h:100,txt:'61°C',fs:84,depth:1,parent:'grp-gpu',bind:'g3'},
+ {id:'b-gpu',name:'VRAM bar',kind:'bar',ip:'Bar',x:1066,y:268,w:320,h:24,pct:0.61,depth:1,parent:'grp-gpu',bind:'g5'},
+ {id:'clock',name:'Clock',kind:'text',ip:'Clock',x:1480,y:30,w:400,h:140,txt:'14:32',fs:132,depth:0},
+ {id:'date',name:'Date',kind:'text',ip:'Calendar',x:1486,y:176,w:400,h:44,txt:'FRI 17 OCT',fs:32,depth:0},
+ {id:'graph',name:'Network graph',kind:'graph',ip:'Graph · line',x:1486,y:250,w:394,h:110,depth:0,bind:'g7'},
+ {id:'title',name:'ARC title',kind:'text',ip:'Text · glow',x:70,y:410,w:420,h:100,txt:'ARC//V2',fs:72,depth:0,stuck:'Glow isn’t drawn by dashboard widgets yet.',need:'Text glow'},
+ {id:'cam',name:'Room cam',kind:'video',ip:'RTSP video',x:780,y:400,w:606,h:120,depth:0,lock:true,stuck:'RTSP streams stay InfoPanel.',need:'RTSP video widget'},
+ {id:'logo',name:'Logo',kind:'image',ip:'Image',x:1820,y:460,w:60,h:60,depth:0,logo:true}];
+const LOSS={bar:[['Vertical gradient direction'],['Partial transparency'],['Auto range']],gauge:[['Frame easing']],text:[],value:[],graph:[],image:[]};
+const NEED={bar:['Custom gauge widget'],gauge:['Custom gauge widget'],text:['Text font and style'],value:['Text font and style'],graph:['Sparkline from live history'],image:[]};
+const PRESETS=[
+ {id:'arc',name:'Classic arc',g:{shape:'arc',sweep:270,thick:14,fill:'gradient',ticks:true}},
+ {id:'needle',name:'Needle dial',g:{shape:'arc',sweep:240,thick:6,fill:'zones',ticks:true,labels:true,needle:true,rings:true,valueSize:26}},
+ {id:'ring',name:'Thin ring',g:{shape:'arc',sweep:360,thick:7,fill:'solid',ticks:false,glow:true,marker:true}},
+ {id:'seg',name:'Segment bar',g:{shape:'bar',thick:18,fill:'zones',ticks:true,labels:true}},
+ {id:'stripe',name:'Striped bar',g:{shape:'bar',thick:22,fill:'gradient',pattern:true,ticks:false,glow:true}},
+ {id:'tank',name:'Round tank',g:{shape:'liquid',tank:'round',fill:'gradient',bubbles:true}},
+ {id:'hex',name:'Hex tank',g:{shape:'liquid',tank:'hex',fill:'solid',shine:false}},
+ {id:'cells',name:'Cell grid',g:{shape:'grid',order:'middle',fill:'zones'}}];
+const PARTS=[
+ {sec:'Core',items:[['shape','Shape','category',1],['fill','Fill','format_color_fill',1],['track','Track','radio_button_unchecked']]},
+ {sec:'Indicator',items:[['needle','Needle','navigation'],['marker','Marker','location_on']]},
+ {sec:'Scale',items:[['ticks','Ticks','straighten'],['labels','Labels','pin']]},
+ {sec:'Text',items:[['value','Value text','123'],['title','Title','title']]},
+ {sec:'Decor',items:[['background','Background','crop_square'],['rings','Rings','adjust'],['pattern','Pattern','texture'],['iconRow','Icon row','more_horiz'],['centreIcon','Centre icon','center_focus_strong']]},
+ {sec:'Effects',items:[['glow','Glow','flare'],['shadow','Shadow','shadow']]},
+ {sec:'Liquid',items:[['wave','Wave','waves'],['shine','Shine','light_mode'],['bubbles','Bubbles','bubble_chart']]}];
+const REL={needle:['arc'],marker:['arc','bar'],ticks:['arc','bar'],labels:['arc','bar'],track:['arc','bar'],pattern:['arc','bar'],iconRow:['bar'],centreIcon:['arc','liquid'],wave:['liquid'],shine:['liquid'],bubbles:['liquid'],title:['arc','liquid','grid']};
+const PROF_G=[{id:'seq-cpu',name:'CPU ring',sub:'Image sequence · 101 frames',kind:'seq',pct:0.23},{id:'seq-gpu',name:'GPU ring',sub:'Image sequence · 101 frames',kind:'seq',pct:0.61},{id:'v-bar',name:'CPU usage bar',sub:'Converted bar · vector',kind:'vector',pct:0.23}];
+const hash=s=>{let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return (h>>>0).toString(16).padStart(8,'0');};
+const mb=n=>n>=1?n.toFixed(1)+' MB':Math.round(n*1024)+' KB';
+
+class Component extends DCLogic {
+  state={screen:'library',libView:'grid',gMode:'browse',gSel:'pr-arc',gEditName:'Classic arc',libTab:'mine',coll:'all',sel:'bg-aurora',q:'',tag:null,merged:false,vLoop:true,vMute:true,
+    pFind:null,pClean:false,drawer:null,optFmt:'webp',optQ:82,optCap:'drawn',fontSel:'Rajdhani',fontGet:false,fontAdded:false,fontSrc:'fontsource',fontFaces:{Medium:true},
+    step:0,src:'file',srcPick:'ARCv2',upload:0.38,mode:'native',repOpen:'native',
+    remap:{},rFilter:'all',rSel:'g6',rq:'',rIdx:0,dest:'new',alsoZip:true,
+    cSel:'b-cpu',showModes:false,modes:{},hidden:{logo:true},collapsed:{},sensorSrc:'live',compare:false,cmpOp:50,geom:{},drafts:{},
+    gVar:'a',gTab:'presets',gPreset:'arc',gKind:'vector',gVal:62,playing:false,phase:0,gOpen:'shape',gPart:'fill',g:{...G0},rev:1,baked:0,
+    seq:{fps:30,hue:0,sat:100,bri:100,rev:false},
+    out:'infopanel',bake:true,leaveUnused:true,fontFix:{'Digital-7':'swap'},toast:null};
+  componentDidMount(){
+    this.cv=React.createRef();
+    this.tick=setInterval(()=>{const s=this.state;
+      if(s.screen==='import'&&s.upload<1)this.setState({upload:Math.min(1,s.upload+0.015)});
+      if(s.playing)this.setState(st=>{let v=st.gVal+(st.dir||1)*1.6,dir=st.dir||1;if(v>=100){v=100;dir=-1;}if(v<=0){v=0;dir=1;}return{gVal:v,dir,phase:st.phase+2};});
+      else if(s.screen==='gauge'&&s.g.shape==='liquid')this.setState(st=>({phase:st.phase+1.2}));
+    },60);
+    this.onKey=e=>{const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'))return;
+      if(this.state.screen!=='canvas')return;const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+      if(d){const it=CI.find(c=>c.id===this.state.cSel);if(!it||it.group||it.lock)return;e.preventDefault();const m=e.shiftKey?10:1;this.moveBy(it,d[0]*m,d[1]*m);}};
+    window.addEventListener('keydown',this.onKey);
+  }
+  componentWillUnmount(){clearInterval(this.tick);window.removeEventListener('keydown',this.onKey);clearTimeout(this.tt);}
+  toast(msg){clearTimeout(this.tt);this.setState({toast:msg});this.tt=setTimeout(()=>this.setState({toast:null}),2600);}
+  geo(it){return {x:it.x,y:it.y,w:it.w,h:it.h,...(this.state.geom[it.id]||{})};}
+  moveBy(it,dx,dy){const g=this.geo(it);this.setState(s=>({geom:{...s.geom,[it.id]:{...g,x:g.x+dx,y:g.y+dy}}}));}
+  setG(o){this.setState(s=>({g:{...s.g,...o},rev:s.rev+1}));}
+  modeOf(it){if(it.stuck)return 'faithful';if(this.state.modes[it.id])return this.state.modes[it.id];return this.state.mode==='faithful'?'faithful':'native';}
+  gst(g){const r=this.state.remap[g.id];return r?r.st:g.auto;}
+  gkey(g){const r=this.state.remap[g.id];if(r&&r.st==='unbound')return null;return (r&&r.key)||g.key;}
+
+  renderVals(){
+    const s=this.state,set=o=>this.setState(o);
+    const scr=s.screen;
+    // review nav
+    const curKey=scr==='library'?(s.libTab==='profile'?'assets':s.coll==='fonts'?'fonts':'library'):scr==='gauge'?'gauge-'+s.gMode:scr;
+    const nav=[['library','','Library',()=>set({screen:'library',libTab:'mine',coll:'all',q:'',tag:null})],
+      ['assets','','Profile assets',()=>set({screen:'library',libTab:'profile',drawer:null})],
+      ['fonts','','Fonts',()=>set({screen:'library',libTab:'mine',coll:'fonts',fontGet:false})],
+      ['import','','Import',()=>set({screen:'import',step:0,upload:0.38})],
+      ['remap','','Sensor remap',()=>set({screen:'remap'})],
+      ['canvas','','Canvas zone',()=>set({screen:'canvas'})],
+      ['gauge-browse','','Gauges',()=>set({screen:'gauge',gMode:'browse'})],
+      ['gauge-edit','','Gauge editor',()=>set({screen:'gauge',gMode:'edit'})],
+      ['export','','Export',()=>set({screen:'export'})]]
+      .map(([k,id,label,pick])=>({id,hasId:!!id,label,pick,bg:curKey===k?'#2a2a31':'transparent',fg:curKey===k?'#ededf0':'#8f8f99'}));
+    const railKey=['canvas','remap','export'].includes(scr)?'layers':'library';
+    const rail=[['layers','layers','Layers',()=>set({screen:'canvas'})],['widgets','add_box','Add',null],['profiles','devices','Profiles',null],['library','photo_library','Library',()=>set({screen:'library'})],['sources','database','Data sources',null]]
+      .map(([k,icon,label,pick])=>({icon,label,pick:pick||(()=>this.toast(label+' is unchanged in this concept')),bg:railKey===k?'#1f1f25':'transparent',fg:railKey===k?'#ededf0':'#7c7c86'}));
+    const out={nav,rail,toast:s.toast,hasToast:!!s.toast,
+      showLib:scr==='library'||scr==='import',showCanvas:['canvas','remap','export'].includes(scr),showGauge:scr==='gauge',
+      openImport:()=>set({screen:'import',step:0,upload:0.38}),openExport:()=>set({screen:'export'}),
+      save:()=>this.toast('Pushed to server')};
+    Object.assign(out,this.libVals(s,set),this.importVals(s,set),this.canvasVals(s,set),this.gaugeVals(s,set),this.exportVals(s,set));
+    return out;
+  }
+
+  libVals(s,set){
+    const items=ITEMS.filter(i=>!(s.merged&&i.id==='img-logo2'));
+    const isDup=it=>!!it.dup||items.some(o=>o.dup===it.id);
+    const inColl=(it,c)=>c==='all'?true:c==='recent'?RECENT.includes(it.id):c==='unused'?it.uses===0:c==='large'?!!it.large:c==='dups'?isDup(it):c==='suggest'?!!it.suggest:it.cats.includes(c);
+    const words=s.q.toLowerCase().split(/\s+/).filter(Boolean);
+    const match=it=>{const h=(it.name+' '+it.type+' '+it.px+' '+it.tags.join(' ')+' '+it.kind).toLowerCase();return words.every(w=>h.includes(w));};
+    let base=items.filter(it=>inColl(it,s.coll)&&match(it));
+    if(s.coll==='recent')base.sort((a,b)=>RECENT.indexOf(a.id)-RECENT.indexOf(b.id));
+    const tc={};base.forEach(it=>it.tags.forEach(t=>tc[t]=(tc[t]||0)+1));
+    const tagChips=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([t])=>({label:t,on:s.tag===t,pick:()=>set({tag:s.tag===t?null:t}),bg:s.tag===t?ab(A,16):'#141418',bd:s.tag===t?ab(A,55):'#24242a',fg:s.tag===t?'#ededf0':'#a9a9b2'}));
+    const list=base.filter(it=>!s.tag||it.tags.includes(s.tag));
+    const metaOf=it=>it.kind==='video'?`${it.dur} · ${it.px} · ${it.bytes}`:it.kind==='gauge'?it.type:it.kind==='panel'?it.px:it.kind==='style'?it.tags.join(' · '):it.kind==='canvas'?`${it.px} · ${it.tags[0]}`:it.kind==='font'?it.type:it.kind==='icon'?`Icon · ${it.uses} uses`:`${it.px} · ${it.bytes}`;
+    const card=it=>{const on=s.sel===it.id;const fl=it.uses===0?['Unused',WARN]:isDup(it)?['Duplicate',WARN]:null;
+      return {name:it.name,item:it,meta:metaOf(it),hasFlag:!!fl,flag:fl?fl[0]:'',flagC:fl?fl[1]:'',reason:it.suggest||'Dark, low detail',
+        pick:()=>set({sel:it.id}),open:()=>{if(it.kind==='gauge')set({screen:'gauge'});else if(it.kind==='font')set({coll:'fonts',fontSel:it.name,fontGet:false});},
+        dragStart:e=>{try{e.dataTransfer.setData('text/plain',it.id);}catch(_){}},bd:on?A:'#1f1f24',bg:on?ab(A,9):'#111114'};};
+    const cnt=c=>items.filter(it=>inColl(it,c)).length;
+    const collSecs=COLLS.map(sec=>({sec:sec.sec,items:sec.items.map(([k,label,icon])=>({label,icon,count:k==='fonts'?FLIB.length:cnt(k),pick:()=>set({coll:k,tag:null,fontGet:false}),bg:s.coll===k?'#1f1f25':'transparent',fg:s.coll===k?'#ededf0':'#b4b4bd',ic:s.coll===k?A:'#7c7c86'}))}));
+    const collLabel=(COLLS.flatMap(x=>x.items).find(x=>x[0]===s.coll)||['','All items'])[1];
+    const d=items.find(i=>i.id===s.sel)||items[0];
+    const orig=d.dup?items.find(i=>i.id===d.dup):null,copy=items.find(o=>o.dup===d.id);
+    const k=d.kind;
+    const act=(l,i,fn)=>({label:l,icon:i,run:fn||(()=>this.toast(l+' · done'))});
+    const prim=k==='image'||k==='video'?act('Set as background','wallpaper',()=>this.toast(`Copied ${d.name} into ARCv2 as its background · Undo`)):k==='gauge'?act('Open in gauge builder','tune',()=>set({screen:'gauge'})):k==='canvas'?act('Open canvas','open_in_new',()=>set({screen:'canvas'})):k==='style'?act('Apply to selection','format_paint'):k==='panel'?act('Add to profile','add'):k==='font'?act('Show font','text_fields',()=>set({coll:'fonts',fontSel:d.name})):act('Add to canvas','add');
+    const secs=k==='image'?[act('Add to canvas','add'),act('Duplicate','content_copy'),act('Optimise','compress')]:k==='video'?[act('Add to canvas','add'),act('Replace…','swap_horiz')]:k==='gauge'?[act('Duplicate','content_copy'),act('Export .gauge.json','download')]:k==='canvas'?[act('Export…','ios_share',()=>set({screen:'export'})),act('Re-import…','sync',()=>set({screen:'import',step:0}))]:k==='svg'?[act('Add to canvas','add'),act('Replace…','swap_horiz')]:[act('Rename','edit'),act('Duplicate','content_copy')];
+    const facts=[['Type',d.type],['Size',d.px],['Length',d.dur],['File size',d.bytes],['Added',d.added],['Stored as','sha256 '+hash(d.id)+'…']].filter(f=>f[1]&&f[1]!=='—').map(([k2,v])=>({k:k2,v}));
+    const shelves=[
+      {title:'Suggested backgrounds',sub:'For the Midnight theme on ARCv2',coll:'suggest',items:items.filter(i=>i.suggest)},
+      {title:'Recent',sub:'Added or edited this week',coll:'recent',items:RECENT.map(id=>items.find(i=>i.id===id)).filter(Boolean)},
+      {title:'Gauges & bars',sub:'Built here or imported',coll:'gauge',items:items.filter(i=>i.kind==='gauge')},
+      {title:'Videos',sub:'Loops for backgrounds',coll:'video',items:items.filter(i=>i.kind==='video')},
+      {title:'Saved panels & styles',sub:'Shared by all profiles',coll:'panel',items:items.filter(i=>i.kind==='panel'||i.kind==='style')}]
+      .map(sh=>({...sh,cards:sh.items.map(card),seeAll:()=>set({coll:sh.coll,tag:null}),isSuggest:sh.coll==='suggest'}));
+    const attention=[
+      !s.merged&&{icon:'content_copy',t:'1 duplicate',d:'rog_logo (1).png is identical to ROG logo.png',act:'Merge',run:()=>{set({merged:true,sel:'img-logo'});this.toast('Merged · 1 use repointed to ROG logo.png · Undo');}},
+      {icon:'block',t:`${items.filter(i=>i.uses===0).length} unused`,d:'Not used by any profile',act:'Review',run:()=>set({coll:'unused'})},
+      {icon:'weight',t:`${items.filter(i=>i.large).length} large files`,d:'31 MB · 2 stored bigger than drawn',act:'Review',run:()=>set({coll:'large'})}].filter(Boolean);
+    // profile assets
+    const pa=PA.filter(a=>!(s.pClean&&a.find.includes('unused'))).map(a=>({...a,find:s.pClean?a.find.filter(f=>f!=='larger'&&f!=='identical'):a.find}));
+    const fCount=f=>pa.filter(a=>a.find.includes(f)).length;
+    const findChips=FINDS.map(([kk,l,i,c])=>({label:l,icon:i,n:fCount(kk),c,show:fCount(kk)>0,on:s.pFind===kk,pick:()=>set({pFind:s.pFind===kk?null:kk}),bg:s.pFind===kk?ab(c,16):'#141418',bd:s.pFind===kk?ab(c,60):'#26262c'})).filter(x=>x.show);
+    const paRows=pa.filter(a=>!s.pFind||a.find.includes(s.pFind)).map(a=>({...a,thumb:{kind:'image',colors:a.colors,missing:a.missing,id:a.id},size:a.missing?'—':mb(a.mb),usesLabel:String(a.uses),usesC:a.uses?'#c9c9cf':WARN,
+      chips:a.find.map(f=>{const F=FINDS.find(x=>x[0]===f);return {label:F[1],c:F[3]};}),hasChips:a.find.length>0,jump:()=>a.uses&&set({screen:'canvas',cSel:a.id==='a-gpu'?'g-gpu':'bg'}),nameC:a.missing?BAD:'#ededf0'}));
+    const totalMb=pa.reduce((t,a)=>t+a.mb,0),fixable=pa.filter(a=>a.find.some(f=>['unused','identical','larger'].includes(f))).length;
+    const fac=a=>{let f=(s.optFmt==='webp'?0.42:0.74)*(0.55+s.optQ/200);if(s.optCap==='drawn'&&a.find.includes('larger'))f*=0.42;if(s.optCap==='half')f*=0.5;return Math.min(1.2,f*(a.comp||1));};
+    const optRows=pa.filter(a=>!a.missing).map(a=>{if(a.anim)return {name:a.name,before:mb(a.mb),after:'—',save:'Animated · skipped',c:MUT,keep:false};const f=fac(a),keep=f<=0.95;return {name:a.name,before:mb(a.mb),after:keep?mb(a.mb*f):mb(a.mb),save:keep?`−${Math.round((1-f)*100)} %`:'< 5 % · kept as is',c:keep?OK:MUT,keep};});
+    const kept=pa.filter(a=>!a.missing&&!a.anim&&fac(a)<=0.95),saved=kept.reduce((t,a)=>t+a.mb*(1-fac(a)),0);
+    const seg=(cur,opts,key)=>opts.map(([v,l])=>({label:l,pick:()=>set({[key]:v}),bg:cur===v?'#2a2a31':'transparent',fg:cur===v?'#ededf0':'#8f8f99'}));
+    // fonts
+    const freq=FREQ.map(f=>{const fixed=f.id==='Rajdhani'&&s.fontAdded;const st=fixed?'ok':f.st;const L=LIC[f.lic];
+      return {...f,face:fixed?'Rajdhani Medium':(f.face||'Missing'),how:fixed?'Fontsource · added just now':f.how,faceC:st==='missing'?BAD:'#ededf0',stDot:st==='missing'?BAD:st==='fallback'?WARN:OK,
+        lic:L[0],licC:L[1],isMissing:st==='missing',isFallback:st==='fallback',get:()=>set({fontGet:true,fontSel:'Rajdhani'}),pick:()=>set({fontSel:f.id,fontGet:false}),bg:s.fontSel===f.id?'#17171c':'transparent',
+        selItems:()=>{set({screen:'canvas',cSel:'title'});this.toast(`Selected ${f.items} text items using ${f.id}`);}};});
+    const flib=[...FLIB,...(s.fontAdded?[{fam:'Rajdhani',faces:1,size:'64 KB',origin:'Fontsource',lic:'share',embed:'Installable',ff:"'Rajdhani'"}]:[])].map(f=>({...f,licL:LIC[f.lic][0],licC:LIC[f.lic][1],pick:()=>set({fontSel:f.fam,fontGet:false}),bg:s.fontSel===f.fam?'#17171c':'transparent'}));
+    const fsel=flib.find(f=>f.fam===s.fontSel)||FREQ.find(f=>f.id===s.fontSel);
+    const fdet=fsel?{fam:fsel.fam||fsel.id,ff:fsel.ff,origin:fsel.origin||'Not installed',faces:String(fsel.faces||'—'),size:fsel.size||'—',lic:LIC[fsel.lic][0],licC:LIC[fsel.lic][1],embed:fsel.embed||'—',
+      licNote:fsel.lic==='share'?'Open licence. It can be embedded in exports and shared.':fsel.lic==='noshare'?'Personal-use licence. The export will warn and offer a swap.':'System or unknown licence. Check before sharing an export.'}:null;
+    const faces=['Light','Regular','Medium','SemiBold','Bold'].map(f=>({label:f,on:!!s.fontFaces[f],need:f==='Medium',toggle:()=>set({fontFaces:{...s.fontFaces,[f]:!s.fontFaces[f]}}),bg:s.fontFaces[f]?A:'transparent',bd:s.fontFaces[f]?A:'#3a3a42'}));
+    const nFaces=Object.values(s.fontFaces).filter(Boolean).length;
+    return {
+      libTabs:seg(s.libTab,[['mine','My library'],['profile','Profile assets · ARCv2']],'libTab'),libMine:s.libTab==='mine',libProfile:s.libTab==='profile',
+      q:s.q,setQ:e=>set({q:e.target.value}),clearQ:()=>set({q:''}),hasQ:!!s.q,collSecs,collLabel,listCount:`${list.length} item${list.length===1?'':'s'}`,tagChips,
+      showFonts:s.coll==='fonts',showItems:s.coll!=='fonts',showShelves:s.libView==='shelves'&&s.coll==='all'&&!s.q&&!s.tag,showGrid:!(s.libView==='shelves'&&s.coll==='all'&&!s.q&&!s.tag),
+      libViewSeg:[['grid','grid_view','Grid'],['shelves','view_agenda','Shelves']].map(([k,icon,l])=>({icon,label:l,pick:()=>set({libView:k,coll:'all',tag:null}),bg:s.libView===k?'#2a2a31':'transparent',fg:s.libView===k?'#ededf0':'#8f8f99'})),
+      cards:list.map(card),isEmpty:list.length===0,shelves,attention,showBanner:s.libView==='grid'&&s.coll==='all'&&!s.q,
+      banner:`${s.merged?0:1} duplicate · ${items.filter(i=>i.uses===0).length} unused · ${items.filter(i=>i.large).length} large files`,reviewDups:()=>set({coll:'dups'}),reviewUnused:()=>set({coll:'unused'}),
+      d:{...d,item:d,meta:metaOf(d),facts,tags:d.tags,usedIn:d.usedIn.map(u=>({label:u,jump:()=>set({screen:'canvas'})})),hasUses:d.usedIn.length>0,usesLabel:d.uses?`${d.uses} copies placed · editing this one changes none of them`:'Not placed anywhere yet',
+        prim,secs,isVideo:k==='video',isSvg:k==='svg',vars:(d.vars||[]).map(v=>({v})),hasDup:!!orig||!!copy,dupText:orig?`Identical to ${orig.name}`:copy?`${copy.name} is an identical copy`:'',
+        merge:()=>{set({merged:true,sel:'img-logo'});this.toast('Merged · 1 use repointed · Undo');},hasSuggest:!!d.suggest,suggest:d.suggest,thumbTall:d.kind==='canvas'&&d.tall?'1/1':'16/10'},
+      vLoop:s.vLoop,vMute:s.vMute,togLoop:()=>set({vLoop:!s.vLoop}),togMute:()=>set({vMute:!s.vMute}),loopBg:s.vLoop?A:'#34343b',muteBg:s.vMute?A:'#34343b',loopX:s.vLoop?'14px':'2px',muteX:s.vMute?'14px':'2px',
+      paRows,findChips,paSummary:`${pa.length} files · ${mb(totalMb)} · 2 external`,fixable,hasFixable:fixable>0,
+      cleanup:()=>{set({pClean:true,pFind:null});this.toast('Cleaned up · 2 removed, 4 downscaled, 1 merged · −5.0 MB · Undo');},
+      openOpt:()=>set({drawer:'opt'}),openRbn:()=>set({drawer:'rbn'}),closeDrawer:()=>set({drawer:null}),drawerOpt:s.drawer==='opt',drawerRbn:s.drawer==='rbn',hasDrawer:!!s.drawer,
+      optFmtSeg:seg(s.optFmt,[['same','Same type'],['webp','WebP']],'optFmt'),optCapSeg:seg(s.optCap,[['none','No cap'],['drawn','Drawn size'],['half','50 %']],'optCap'),
+      optQ:s.optQ,setOptQ:e=>set({optQ:+e.target.value}),optRows,optSummary:`Saves ${mb(saved)} across ${kept.length} files`,applyOpt:()=>{set({drawer:null});this.toast(`Optimised ${kept.length} images · −${mb(saved)} · 1 undo step`);},
+      applyRbn:()=>{set({drawer:null});this.toast('Replaced 6 files by name · every use followed · Undo');},
+      paExt:PA_EXT,
+      freq,flib,fdet,hasFdet:!!fdet&&!s.fontGet,fontGet:s.fontGet,openGet:()=>set({fontGet:true}),closeGet:()=>set({fontGet:false}),faces,
+      fontSrcSeg:seg(s.fontSrc,[['fontsource','Fontsource'],['squirrel','Font Squirrel']],'fontSrc'),addFont:()=>{set({fontAdded:true,fontGet:false,fontSel:'Rajdhani'});this.toast('Rajdhani added · 9 text items now draw with it');},
+      addFontLabel:`Add Rajdhani · ${nFaces} face${nFaces===1?'':'s'}`,missingCount:s.fontAdded?0:1,hasMissing:!s.fontAdded,
+      upload:()=>this.toast('Drop files anywhere, or pick: images, video, SVG, fonts, .gauge.json, .infopanel')};
+  }
+
+  remapVals(s,set,compact){
+    const gs=GROUPS.map(g=>({g,st:this.gst(g)}));
+    const isDone=st=>['matched','confirmed','picked','unbound'].includes(st);
+    const n={all:gs.length,check:gs.filter(x=>x.st==='check').length,unresolved:gs.filter(x=>x.st==='unresolved').length,done:gs.filter(x=>isDone(x.st)).length};
+    const filters=[['all','All'],['check','Check'],['unresolved','Unresolved'],['done','Done']].map(([k,l])=>({label:l,n:n[k],pick:()=>set({rFilter:k}),bg:s.rFilter===k?'#2a2a31':'transparent',fg:s.rFilter===k?'#ededf0':'#8f8f99'}));
+    const sel=GROUPS.find(g=>g.id===s.rSel)||GROUPS[0];
+    const rows=gs.filter(x=>s.rFilter==='all'||(s.rFilter==='done'?isDone(x.st):x.st===s.rFilter)).map(({g,st})=>{const key=this.gkey(g),K=KEYS.find(k=>k.k===key);const M=STM[st];const on=s.rSel===g.id;
+      return {name:g.name,hw:g.hw,src:g.src,items:`${g.items} items`,st:M[0],c:M[1],keyName:K?K.n:(st==='unbound'?'No sensor':'Pick a sensor'),keyHw:K?K.hw:'',live:K?K.v:'',hasLive:!!K,keyC:K?'#ededf0':(st==='unbound'?'#8f8f99':BAD),
+        how:st==='picked'?'Your choice':st==='confirmed'?'Confirmed':g.how,isCheck:st==='check',
+        confirm:e=>{e.stopPropagation();set({remap:{...s.remap,[g.id]:{st:'confirmed',key:g.key}}});},
+        pick:()=>set({rSel:g.id,rq:'',rIdx:0}),bg:on?'#17171c':'transparent',bd:on?ab(A,55):'transparent',
+        selectItems:e=>{e.stopPropagation();set({screen:'canvas',cSel:g.sel});this.toast(`Selected ${g.items} items reading ${g.name}`);}};});
+    const words=s.rq.toLowerCase().split(/\s+/).filter(Boolean);
+    const score=k=>(k.t===sel.t?3:0)+sel.name.toLowerCase().split(/\s+/).filter(w=>k.n.toLowerCase().includes(w)).length*2;
+    let cands=words.length?KEYS.filter(k=>words.every(w=>(k.n+' '+k.k+' '+k.hw).toLowerCase().includes(w))):KEYS.filter(k=>score(k)>=3).sort((a,b)=>score(b)-score(a)).slice(0,5);
+    const cur=this.gkey(sel);
+    const pickKey=k=>set({remap:{...s.remap,[sel.id]:{st:'picked',key:k}}});
+    const candRows=cands.map((k,i)=>({n:k.n,hw:k.hw,k:k.k,v:k.v,why:words.length?'':(score(k)>=5?'Strong · same reading type and name':'Same reading type'),hasWhy:!words.length,
+      pick:()=>pickKey(k.k),bg:i===s.rIdx?'#1e1e25':'transparent',on:k.k===cur,check:k.k===cur?'check':''}));
+    return {
+      rFilters:filters,rRows:rows,rSel:{...sel,st:STM[this.gst(sel)][0],c:STM[this.gst(sel)][1]},rq:s.rq,
+      setRq:e=>set({rq:e.target.value,rIdx:0}),rKey:e=>{if(e.key==='ArrowDown'){e.preventDefault();set({rIdx:Math.min(cands.length-1,s.rIdx+1)});}else if(e.key==='ArrowUp'){e.preventDefault();set({rIdx:Math.max(0,s.rIdx-1)});}else if(e.key==='Enter'&&cands[s.rIdx])pickKey(cands[s.rIdx].k);},
+      candRows,noCands:candRows.length===0,candTitle:words.length?`${candRows.length} matching sensors`:'Suggested',
+      leaveUnbound:()=>set({remap:{...s.remap,[sel.id]:{st:'unbound'}}}),resetAuto:()=>{const r={...s.remap};delete r[sel.id];set({remap:r});},
+      confirmAll:()=>{const r={...s.remap};GROUPS.forEach(g=>{if(this.gst(g)==='check')r[g.id]={st:'confirmed',key:g.key};});set({remap:r});this.toast('Confirmed all suggestions');},
+      checkCount:n.check,hasCheck:n.check>0,unresolvedCount:n.unresolved,remapSummary:`${GROUPS.reduce((t,g)=>t+g.items,0)} bindings in ${GROUPS.length} groups · ${n.done} done · ${n.check} to check · ${n.unresolved} unresolved`,
+      sensorsBlocked:n.unresolved>0};
+  }
+
+  importVals(s,set){
+    const steps=['Source','Mode','Review','Sensors','Save'];
+    const rv=this.remapVals(s,set);
+    const stepper=steps.map((l,i)=>({n:String(i+1),label:l,pick:()=>i<s.step&&set({step:i}),done:i<s.step,cur:i===s.step,
+      bg:i===s.step?'#1c1c22':'transparent',fg:i<=s.step?'#ededf0':'#7c7c86',dotBg:i<s.step?A:i===s.step?'#ededf0':'transparent',dotFg:i<s.step||i===s.step?'#0c0c0e':'#7c7c86',dotBd:i<=s.step?'transparent':'#3a3a42',icon:i<s.step?'check':String(i+1),
+      sub:i===0?'ARCv2.infopanel':i===1?({faithful:'Faithful',native:'Native where possible',both:'Both'}[s.mode]):i===2?'86 items':i===3?`${rv.unresolvedCount} unresolved`:'New profile'}));
+    const srcs=[['file','upload_file','File or folder','.infopanel, extracted folder or .canvas.zip'],['installed','computer','Installed in InfoPanel','Read-only from %LOCALAPPDATA%\\InfoPanel'],['canvas','inventory_2','Saved canvas','Reopens with its mode, remap and fonts']]
+      .map(([k,icon,t,d])=>({icon,t,d,pick:()=>set({src:k}),bd:s.src===k?A:'#26262c',bg:s.src===k?ab(A,8):'#121215',ic:s.src===k?A:'#9696a0'}));
+    const installed=[['ARCv2','1920 × 550','86 items','Oct 12'],['Tall sidebar','480 × 1920','41 items','Oct 5'],['Ultrawide 3440','3440 × 1440','63 items','Sep 28'],['Default','1280 × 480','12 items','Aug 2']]
+      .map(([n,sz,it,m])=>({n,sz,it,m,pick:()=>set({srcPick:n}),bg:s.srcPick===n?'#1c1c22':'transparent',radio:s.srcPick===n?A:'#3a3a42',dot:s.srcPick===n?'inline-block':'none'}));
+    const modes=[['faithful','Faithful','Drawn exactly as InfoPanel draws it. The dashboard theme doesn’t touch it.','86 items as InfoPanel'],
+      ['native','Native where possible','Items become dashboard widgets that follow your theme. The rest stay InfoPanel and say why.','71 native · 15 InfoPanel'],
+      ['both','Both','One canvas; each item keeps both forms. Starts native, and you can flip any item or all and compare.','Per-item toggle']]
+      .map(([k,t,d,m])=>({t,d,m,rec:k==='native',pick:()=>set({mode:k}),bd:s.mode===k?A:'#26262c',bg:s.mode===k?ab(A,8):'#121215',radio:s.mode===k?A:'#3a3a42',dot:s.mode===k?'block':'none'}));
+    const tiles=[['Items','86','12 kinds',null],['Native','71','15 stay InfoPanel',null],['Sensors',`${rv.unresolvedCount+rv.checkCount}`,`to fix · ${rv.unresolvedCount} unresolved`,rv.unresolvedCount?BAD:null],['Assets','19.0 MB','38 files · 6 findings',WARN],['Fonts','5','1 missing',WARN],['Gauges','6','2 image-sequence',null]]
+      .map(([k,v,d,c])=>({k,v,d,c:c||'#7c7c86',dot:c||'transparent'}));
+    const rep=[
+      ['native','block','Why 15 items stay InfoPanel','Glow · RTSP · URL images',[['Text with glow','8','Needs: text glow'],['RTSP video','1','Needs: RTSP video widget'],['URL image, size unknown','6','Size known only after load']]],
+      ['needs','construction','App features native mode needs','4 features',[['Custom gauge widget','10 items','Bars, donuts, image-sequence'],['Text font and style','34 items','InfoPanel fonts, weight, wrap'],['Shape frame','4 items','Frames on shapes'],['Sparkline from live history','2 items','Graph geometry']]],
+      ['kinds','category','Items by kind','86 items',[['Text · Sensor · Clock','42',''],['Bar · Graph','12',''],['Gauge','6','2 image-sequence, 4 donut'],['Image · Shape','23',''],['Video · Group','3','']]],
+      ['assets','photo_library','Assets','19.0 MB · 6 findings',[['Unused','3','5.1 MB'],['Identical pair','1','Merged on import'],['Larger than drawn','4','Downscale later'],['Missing','1','cpu_icon.png'],['URL · absolute path','2','Listed apart']]],
+      ['fonts','text_fields','Fonts','5 requested · 1 missing',[['Rajdhani Medium','Missing','Fontsource has it'],['Digital-7','Supplied','Licence: do not share']]],
+      ['api','lan','Data API on this PC','InfoPanel 1.3.2 · port 3921',[['Exact sensor refs','Yes',''],['Structured tables','Yes',''],['Font endpoint','Yes','Fonts drawn as InfoPanel does']]],
+      ['issues','description','Parse notes','2 unknown fields kept',[['Unknown fields','2','Kept read-only and exported back'],['Errors','0','']]]]
+      .map(([k,icon,t,sum,rows])=>({icon,t,sum,open:s.repOpen===k,chev:s.repOpen===k?'expand_less':'expand_more',toggle:()=>set({repOpen:s.repOpen===k?null:k}),rows:rows.map(([a,b,c])=>({a,b,c}))}));
+    const canNext=s.step===0?s.upload>=1:s.step===3?!rv.sensorsBlocked:true;
+    const dests=[['new','New profile','1920 × 550, the canvas fills it'],['zone','Canvas zone in “Main display”','Sits beside your widgets; 1920 × 1080']].map(([k,t,d])=>({t,d,pick:()=>set({dest:k}),radio:s.dest===k?A:'#3a3a42',dot:s.dest===k?'block':'none',bd:s.dest===k?A:'#26262c'}));
+    return {...rv,
+      importOpen:s.screen==='import',remapOpen:s.screen==='remap',stepper,step0:s.step===0,step1:s.step===1,step2:s.step===2,step3:s.step===3,step4:s.step===4,
+      stepTitle:['Choose a source','How should it be drawn?','Review before importing','Fix sensors','Save'][s.step],
+      stepSub:['Nothing is lost on the way. Unknown fields are kept and exports go back to InfoPanel.','Every item gets this mode in one undo step. You can switch any item later.','Open any row for detail. Nothing is committed until Save.','Profiles from another PC read other hardware. One choice fixes every item in a group.','Choose where it lands.'][s.step],
+      srcs,srcFile:s.src==='file',srcInstalled:s.src==='installed',srcCanvas:s.src==='canvas',installed,
+      uploadPct:Math.round(s.upload*100)+'%',uploadW:(s.upload*100).toFixed(1)+'%',uploadText:s.upload>=1?'Read · 86 items, 38 assets, 5 fonts':`Uploading assets · ${(19*s.upload).toFixed(1)} of 19.0 MB`,uploadDone:s.upload>=1,uploadC:s.upload>=1?OK:A,
+      modes,tiles,rep,dests,alsoZip:s.alsoZip,togZip:()=>set({alsoZip:!s.alsoZip}),zipBg:s.alsoZip?A:'transparent',zipBd:s.alsoZip?A:'#3a3a42',
+      back:()=>set({step:Math.max(0,s.step-1)}),hasBack:s.step>0,cancel:()=>set({screen:'library'}),
+      next:()=>{if(!canNext)return;if(s.step<4)set({step:s.step+1});else{set({screen:'canvas',mode:s.mode==='both'?'native':s.mode});this.toast('Imported ARCv2 · new profile 1920 × 550 · 1 undo step');}},
+      nextLabel:s.step===4?'Import ARCv2':s.step===2?'Looks right, continue':'Continue',nextBg:canNext?'#ededf0':'#2a2a31',nextFg:canNext?'#0c0c0e':'#6f6f79',nextCursor:canNext?'pointer':'not-allowed',
+      footNote:s.step===0&&s.upload<1?'Large assets keep uploading while you read':s.step===3&&rv.sensorsBlocked?`${rv.unresolvedCount} groups need a sensor, or Leave unbound`:'',hasFootNote:(s.step===0&&s.upload<1)||(s.step===3&&rv.sensorsBlocked),
+      closeRemap:()=>set({screen:'canvas'})};
+  }
+
+  canvasVals(s,set){
+    const rv=this.remapVals(s,set);
+    const vis=CI.filter(c=>!c.group);
+    const tint={native:A,faithful:WARN,stuck:BAD};
+    const cItems=vis.filter(c=>!s.hidden[c.id]).map(it=>{const g=this.geo(it),m=this.modeOf(it),nat=m==='native',on=s.cSel===it.id;const tk=it.stuck?'stuck':m;
+      const fsz=it.fs?(it.fs/19.2).toFixed(3)+'cqw':'0';
+      return {id:it.id,left:(g.x/19.2).toFixed(3)+'%',top:(g.y/5.5).toFixed(3)+'%',width:(g.w/19.2).toFixed(3)+'%',height:(g.h/5.5).toFixed(3)+'%',
+        isBg:it.id==='bg',isText:it.kind==='text'||it.kind==='value',isGauge:it.kind==='gauge',isBar:it.kind==='bar',isGraph:it.kind==='graph',isVideo:it.kind==='video',isLogo:!!it.logo,
+        txt:it.id==='clock'?'14:32':it.txt,fsz,ff:nat?"'Geist', sans-serif":(it.id==='date'||it.kind==='value'?"'Rajdhani', sans-serif":"'Orbitron', sans-serif"),fw:nat?(it.kind==='value'||it.id==='clock'?'600':'500'):'700',
+        tc:nat?(it.kind==='text'&&it.id!=='clock'?'#9fb3d9':'#ededf0'):(it.kind==='value'?'#ffffff':it.id==='title'?'#ff3355':'#ff5a76'),
+        ls:nat?'0':'0.04em',glow:it.id==='title'?'0 0 0.6cqw #ff3355, 0 0 1.6cqw #ff335599':'none',
+        gG:nat?{shape:'arc',sweep:270,thick:12,fill:'gradient',ticks:false,value:true,valueSize:36}:{shape:'arc',sweep:360,thick:22,fill:'solid',ticks:false,value:true,valueSize:34,seg:true,trackOp:14},
+        gPal:nat?undefined:['#ff3355','#ff8099'],gV:Math.round((it.pct||0)*100),uid:'cv-'+it.id+m,
+        barR:nat?'999px':'0',barBg:nat?'rgba(255,255,255,.1)':'#2a0d14',barFg:nat?`linear-gradient(90deg, ${A}, oklch(0.80 0.12 200))`:'#ff3355',barBd:nat?'none':'1px solid #ff335588',barW:Math.round((it.pct||0)*100)+'%',
+        lineC:nat?A:'#ff5a76',areaC:nat?ab(A,18):'#ff335522',
+        outline:on?`1.5px solid ${A}`:'none',showTint:s.showModes&&it.id!=='bg',tintBg:it.stuck?`repeating-linear-gradient(45deg, ${ab(BAD,26)} 0 6px, transparent 6px 12px)`:ab(tint[tk],16),tintBd:`1px solid ${ab(tint[tk],70)}`,
+        sel:on,handles:on&&!it.lock&&it.id!=='bg',badge:it.stuck?'InfoPanel · '+it.ip:(nat?'Native · ':'InfoPanel · ')+it.ip,badgeC:it.stuck?BAD:nat?A:WARN,lockOn:on&&!!it.lock,
+        down:e=>{e.stopPropagation();set({cSel:it.id});if(it.lock||it.id==='bg')return;const el=this.cv.current;if(!el)return;const sc=1920/el.getBoundingClientRect().width;const sx=e.clientX,sy=e.clientY,g0=this.geo(it);
+          const mv=ev=>{this.setState(st=>({geom:{...st.geom,[it.id]:{...g0,x:Math.round(g0.x+(ev.clientX-sx)*sc),y:Math.round(g0.y+(ev.clientY-sy)*sc)}}}));};
+          const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);};window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);}};});
+    const tree=[];CI.forEach(it=>{if(it.parent&&s.collapsed[it.parent])return;const m=it.group?null:this.modeOf(it);const on=s.cSel===it.id;
+      tree.push({name:it.name,pad:(8+it.depth*16)+'px',isGroup:!!it.group,chev:s.collapsed[it.id]?'chevron_right':'expand_more',
+        toggleGroup:e=>{e.stopPropagation();set({collapsed:{...s.collapsed,[it.id]:!s.collapsed[it.id]}});},
+        icon:{group:'folder',text:'text_fields',value:'speed',gauge:'donut_large',bar:'linear_scale',graph:'show_chart',image:'image',video:'videocam'}[it.kind],
+        modeDot:it.group?'transparent':it.stuck?BAD:m==='native'?A:WARN,modeTitle:it.group?'':it.stuck?'Stays InfoPanel':m==='native'?'Native':'Faithful',
+        pick:()=>set({cSel:it.id}),bg:on?'#1f1f26':'transparent',fg:s.hidden[it.id]?'#6f6f79':'#d6d6dc',
+        locked:!!it.lock,lockIcon:it.lock?'lock':'lock_open',lockC:it.lock?'#b4b4bd':'#3f3f47',
+        hid:!!s.hidden[it.id],eye:s.hidden[it.id]?'check_box_outline_blank':'check_box',eyeC:s.hidden[it.id]?'#6f6f79':'#9696a0',
+        toggleHide:e=>{e.stopPropagation();set({hidden:{...s.hidden,[it.id]:!s.hidden[it.id]}});}});});
+    const nNative=vis.filter(c=>this.modeOf(c)==='native').length,nStuck=vis.filter(c=>c.stuck).length;
+    const allMode=vis.every(c=>c.stuck||this.modeOf(c)==='native')?'native':vis.every(c=>this.modeOf(c)==='faithful')?'faithful':'mixed';
+    const switchAll=m=>{const o={};vis.forEach(c=>{if(!c.stuck)o[c.id]=m;});set({modes:o});this.toast(`Drew ${vis.length-nStuck} items as ${m==='native'?'dashboard widgets':'InfoPanel'} · 1 undo step`);};
+    const allSeg=[['faithful','InfoPanel'],['native','Native']].map(([k,l])=>({label:l,pick:()=>switchAll(k),bg:allMode===k?'#2a2a31':'transparent',fg:allMode===k?'#ededf0':'#8f8f99'}));
+    const srcSeg=[['unbound','Unbound'],['live','Live'],['mock','Mock']].map(([k,l])=>({label:l,pick:()=>set({sensorSrc:k}),bg:s.sensorSrc===k?'#2a2a31':'transparent',fg:s.sensorSrc===k?'#ededf0':'#8f8f99'}));
+    // inspector
+    const it=CI.find(c=>c.id===s.cSel)||CI[4];const m=this.modeOf(it),g=it.group?{}:this.geo(it);
+    const num=(key,label,unit)=>{const dk=it.id+'.'+key,raw=s.drafts[dk]!==undefined?s.drafts[dk]:String(g[key]);const n=Number(raw);const bad=raw.trim()===''||isNaN(n)||((key==='w'||key==='h')&&n<1);
+      return {label,val:raw,unit:unit||'',err:bad,bd:bad?BAD:'#2a2a31',
+        onChange:e=>{const v=e.target.value;const nn=Number(v);const ok=v.trim()!==''&&!isNaN(nn)&&!((key==='w'||key==='h')&&nn<1);
+          this.setState(st=>({drafts:{...st.drafts,[dk]:v},geom:ok?{...st.geom,[it.id]:{...this.geo(it),[key]:Math.round(nn)}}:st.geom}));},
+        onBlur:()=>{const d={...s.drafts};delete d[dk];set({drafts:d});}};};
+    const geoF=it.group?[]:[num('x','X'),num('y','Y'),num('w','W'),num('h','H')];
+    const geoErr=geoF.find(f=>f.err);
+    const B=it.bind?GROUPS.find(x=>x.id===it.bind):null,BK=B?KEYS.find(k=>k.k===this.gkey(B)):null,BS=B?STM[this.gst(B)]:null;
+    const sw=(label,c,name)=>({label,c,name});
+    const kindF=it.kind==='bar'?[['Min','0'],['Max','100'],['Direction','Left → right'],['Corner radius','0'],['Frame','On · 1 px']]:it.kind==='gauge'?[['Frames','101'],['AnimationSpeed','150 ms'],['Start frame','0']]:it.kind==='graph'?[['Type','Line'],['History','60 s'],['Fill','On']]:it.kind==='video'?[['Stream','rtsp://192.168.1.40/live'],['Fit','Cover']]:it.group?[['Items',String(CI.filter(c=>c.parent===it.id).length)]]:[['Text',it.txt||''],['Font',m==='native'?'Theme · Geist':'Orbitron'],['Size',String(it.fs||'')],['Style','Bold'],['Align','Left'],['Wrap','Off']].concat(it.kind==='value'?[['Format','{0:0}°C']]:[]);
+    const colours=it.kind==='bar'?[sw('Foreground','#ff3355','#FF3355'),sw('Background','#2a0d14','#2A0D14'),sw('Frame','#ff335588','#FF3355 · 53 %')]:it.kind==='text'||it.kind==='value'?[sw('Colour',it.id==='title'?'#ff3355':'#ffffff',it.id==='title'?'#FF3355':'#FFFFFF')]:it.kind==='gauge'?[sw('Tint','#ff3355','None')]:[];
+    const unknown=it.kind==='bar'?[['BarShadowOffset','2'],['LegacyFlags','0x14']]:it.kind==='text'?[['ClearTypeHint','true']]:[];
+    const kindLabel={bar:'Bar',gauge:'Gauge',graph:'Graph',video:'Video',group:'Group',text:'Text',value:'Value',image:'Image'}[it.kind];
+    const insp={name:it.name,ip:it.ip,isGroup:!!it.group,stuck:!!it.stuck,stuckText:it.stuck||'',need:it.need||'',
+      modeSeg:[['faithful','InfoPanel'],['native','Native']].map(([k,l])=>({label:l,pick:()=>!it.stuck&&set({modes:{...s.modes,[it.id]:k}}),bg:m===k?'#2a2a31':'transparent',fg:it.stuck&&k==='native'?'#4a4a52':m===k?'#ededf0':'#8f8f99'})),
+      isNative:m==='native'&&!it.stuck,isFaithful:m==='faithful'&&!it.stuck,
+      losses:(LOSS[it.kind]||[]).map(([l])=>({l})),hasLosses:(LOSS[it.kind]||[]).length>0,needs:(NEED[it.kind]||[]).map(n=>({n})),hasNeeds:(NEED[it.kind]||[]).length>0,
+      widget:{bar:'bar widget',gauge:'gauge widget',text:it.ip==='Clock'||it.ip==='Calendar'?'clock widget':'text widget',value:'value widget',graph:'sparkline widget',image:'image widget'}[it.kind]||'widget',
+      geoF,hasGeo:geoF.length>0,geoErr:!!geoErr,geoErrText:geoErr?`InfoPanel needs ${geoErr.label} ≥ 1. The value isn’t stored.`:'',
+      hasBind:!!B,bName:B?B.name:'',bKey:BK?BK.n+' · '+BK.hw:'No sensor',bLive:BK?BK.v:'',bSt:BS?BS[0]:'',bC:BS?BS[1]:'',
+      kindLabel,kindF:kindF.map(([k,v])=>({k,v})),colours,hasColours:colours.length>0,unknown:unknown.map(([k,v])=>({k,v})),hasUnknown:unknown.length>0,
+      isGauge:it.kind==='gauge',editGauge:()=>set({screen:'gauge',gKind:'seq',gTab:'profile'})};
+    return {cItems,tree,cvRef:this.cv,deselect:()=>set({cSel:null}),allSeg,srcSeg,showModes:s.showModes,togModes:()=>set({showModes:!s.showModes}),modesBg:s.showModes?ab(A,16):'#17171b',modesBd:s.showModes?ab(A,55):'#2a2a31',
+      modesStat:`${nNative} native · ${vis.length-nNative-nStuck} InfoPanel · ${nStuck} can’t convert`,
+      compare:s.compare,togCompare:()=>set({compare:!s.compare}),cmpBg:s.compare?ab(A,16):'#17171b',cmpOp:s.cmpOp,setCmp:e=>set({cmpOp:+e.target.value}),cmpOpacity:(s.cmpOp/100).toFixed(2),
+      openRemap:()=>set({screen:'remap'}),remapBadge:String(rv.unresolvedCount+rv.checkCount),hasRemapBadge:rv.unresolvedCount+rv.checkCount>0,
+      insp,hasSel:!!s.cSel,
+      tbAct:a=>()=>this.toast(a),dup:()=>this.toast('Duplicated · Ctrl+D'),grp:()=>this.toast('Grouped · Ctrl+G'),ungrp:()=>this.toast('Ungrouped · Ctrl+Shift+G'),del:()=>this.toast('Deleted · Undo'),up:()=>this.toast('Moved up in draw order'),dn:()=>this.toast('Moved down in draw order'),
+      undo:()=>this.toast('Undo'),redo:()=>this.toast('Redo')};
+  }
+
+  gaugeVals(s,set){
+    const g={...G0,...s.g},pal=PALS[g.color];
+    const rel=id=>!REL[id]||REL[id].includes(g.shape);
+    const seg=(key,opts)=>({isSeg:true,opts:opts.map(([v,l])=>({label:l,pick:()=>this.setG({[key]:v}),bg:g[key]===v?'#2a2a31':'transparent',fg:g[key]===v?'#ededf0':'#8f8f99'}))});
+    const sl=(key,label,min,max,unit)=>({isSlider:true,label,val:g[key],min,max,onInput:e=>this.setG({[key]:+e.target.value}),disp:g[key]+(unit||'')});
+    const tg=(key,label)=>({isToggle:true,label,on:g[key],toggle:()=>this.setG({[key]:!g[key]}),bg:g[key]?A:'#34343b',x:g[key]?'14px':'2px'});
+    const tx=(key,label)=>({isText:true,label,val:g[key],onChange:e=>this.setG({[key]:e.target.value})});
+    const lab=(f,l)=>({...f,label:l});
+    const F={
+      shape:[lab(seg('shape',[['arc','Arc'],['bar','Bar'],['liquid','Liquid'],['grid','Grid']]),'Type'),...(g.shape==='arc'?[sl('sweep','Sweep',90,360,'°'),sl('thick','Thickness',2,30)]:[]),...(g.shape==='bar'?[sl('thick','Thickness',4,30)]:[]),
+        ...(g.shape==='liquid'?[lab(seg('tank',[['round','Round'],['rect','Rect'],['diamond','Diamond'],['hex','Hex']]),'Tank')]:[]),...(g.shape==='grid'?[lab(seg('order',[['linear','In order'],['random','Random'],['middle','Middle']]),'Light cells')]:[])],
+      fill:[lab(seg('fill',[['solid','Solid'],['gradient','Gradient'],['zones','Zones'],['thresholds','Thresh.']]),'Fill'),{isSwatch:true,label:'Colours',sw:PALS.map((p,i)=>({bg:`linear-gradient(135deg, ${p[0]}, ${p[1]})`,bd:g.color===i?'#ededf0':'transparent',pick:()=>this.setG({color:i})}))},tg('follow','Follow dashboard theme')],
+      track:[sl('trackOp','Opacity',0,60,' %')],needle:[lab(seg('needleStyle',[['line','Line'],['taper','Taper'],['arrow','Arrow'],['dot','Dot']]),'Style')],marker:[{isNote:true,label:'Dot at the value, sized to the track'}],
+      ticks:[sl('tickCount','Count',3,21)],labels:[{isNote:true,label:'On major ticks, 0–100'}],value:[sl('valueSize','Size',16,56),tx('suffix','Suffix')],title:[tx('titleText','Text')],
+      background:[{isNote:true,label:'Rounded plate behind the gauge'}],rings:[{isNote:true,label:'Two decorative rings'}],pattern:[lab(seg('patternKind',[['stripes','Stripes'],['dots','Dots'],['chevrons','Chevrons']]),'Pattern')],
+      iconRow:[{isNote:true,label:'Five icons lit with the value'}],centreIcon:[{isNote:true,label:'Icon above the value'}],glow:[sl('glowAmt','Strength',2,24,' px')],shadow:[{isNote:true,label:'Soft drop shadow'}],
+      wave:[{isNote:true,label:'Animated surface'}],shine:[{isNote:true,label:'Highlight on the tank'}],bubbles:[{isNote:true,label:'Rising bubbles'}]};
+    const all=PARTS.flatMap(p=>p.items.map(([id,l,icon,core])=>({id,l,icon,core:!!core,sec:p.sec})));
+    const isOn=p=>p.core||!!g[p.id];
+    const sections=all.filter(p=>rel(p.id)&&isOn(p)).map(p=>({id:p.id,title:p.l,icon:p.icon,canRemove:!p.core,open:s.gOpen===p.id,chev:s.gOpen===p.id?'expand_less':'expand_more',
+      toggle:()=>set({gOpen:s.gOpen===p.id?null:p.id}),remove:e=>{e.stopPropagation();this.setG({[p.id]:false});},fields:F[p.id]||[]}));
+    const addable=all.filter(p=>rel(p.id)&&!isOn(p)).map(p=>({label:p.l,icon:p.icon,add:()=>{this.setG({[p.id]:true});set({gOpen:p.id});}}));
+    const partGroups=PARTS.map(sec=>({sec:sec.sec,items:sec.items.filter(([id])=>rel(id)).map(([id,l,icon,core])=>{const on=core||!!g[id];const selp=s.gPart===id;
+      return {l,icon,core:!!core,on,pick:()=>set({gPart:id}),toggle:e=>{e.stopPropagation();if(!core){this.setG({[id]:!g[id]});set({gPart:id});}},bg:selp?'#1f1f26':'transparent',fg:on?'#ededf0':'#7c7c86',ic:on?'#c9c9cf':'#4f4f58',
+        tBg:on?A:'#34343b',tX:on?'12px':'2px',tOp:core?'0.35':'1'};})})).filter(x=>x.items.length);
+    const selPart=all.find(p=>p.id===s.gPart)||all[1];
+    const presets=PRESETS.map(p=>({name:p.name,item:{kind:'gauge',g:{...G0,...p.g,value:false},pct:0.65,id:'pr-'+p.id},pick:()=>{set({gPreset:p.id,gKind:'vector',g:{...G0,...p.g,color:s.g.color},rev:s.rev+1,gEditName:p.name+' copy'});},bd:s.gPreset===p.id&&s.gKind==='vector'?A:'#24242a',bg:s.gPreset===p.id&&s.gKind==='vector'?ab(A,8):'#121215'}));
+    const gTabs=[['presets','Presets'],['profile','In ARCv2'],['mine','My library']].map(([k,l])=>({label:l,pick:()=>set({gTab:k}),bg:s.gTab===k?'#2a2a31':'transparent',fg:s.gTab===k?'#ededf0':'#8f8f99'}));
+    const profG=PROF_G.map(p=>({name:p.name,sub:p.sub,item:{kind:'gauge',gshape:p.kind==='seq'?'seq':'bar',pct:p.pct,id:'pg-'+p.id},stale:p.kind==='vector',pick:()=>set({gKind:p.kind==='seq'?'seq':'vector',g:p.kind==='seq'?s.g:{...G0,shape:'bar',thick:20,fill:'solid',color:1,ticks:false},gPreset:null}),bd:(s.gKind==='seq'&&p.kind==='seq'&&p.id==='seq-cpu')?A:'#24242a'}));
+    const myG=ITEMS.filter(i=>i.kind==='gauge').map(i=>({name:i.name,sub:i.type,item:i,uses:`${i.uses} uses`,pick:()=>i.gshape==='seq'?set({gKind:'seq'}):set({gKind:'vector',g:{...G0,...(i.gshape==='bar'?{shape:'bar',thick:22,fill:'zones',pattern:true,ticks:false}:i.gshape==='liquid'?{shape:'liquid',tank:'hex'}:{})}})}));
+    const isSeq=s.gKind==='seq',q=s.seq;
+    const frames=[...Array(26).keys()].map(i=>{const f=Math.round(i*4);const p=f/100;const inSel=f>=40&&f<=56;return {n:String(f),ring:`conic-gradient(#ff3355 0 ${Math.round(p*360)}deg, #2a0d14 ${Math.round(p*360)}deg 360deg)`,bd:inSel?A:'#26262c',bg:inSel?ab(A,10):'#121215',cur:Math.abs(f-s.gVal)<2?'#ededf0':'#7c7c86'};});
+    const sqs=(key,label,min,max,unit)=>({label,val:q[key],min,max,disp:q[key]+unit,onInput:e=>set({seq:{...q,[key]:+e.target.value}})});
+    const stale=s.baked<s.rev;
+    const libG=ITEMS.filter(i=>i.kind==='gauge');
+    const cfgOf=i=>i.gshape==='bar'?{...G0,shape:'bar',thick:22,fill:'zones',pattern:true,ticks:false}:i.gshape==='liquid'?{...G0,shape:'liquid',tank:'hex'}:{...G0};
+    const gal=[
+      {sec:'Presets',sub:'Customising one makes your own copy',items:PRESETS.map(p=>({id:'pr-'+p.id,name:p.name,sub:'Preset',src:'Preset',seq:false,cfg:{...G0,...p.g},preset:p.id,item:{kind:'gauge',g:{...G0,...p.g,value:false},pct:0.65,id:'gal-'+p.id}}))},
+      {sec:'In ARCv2',sub:'Gauges this profile uses',items:PROF_G.map(p=>({id:p.id,name:p.name,sub:p.sub,src:'ARCv2',seq:p.kind==='seq',cfg:{...G0,shape:'bar',thick:20,fill:'solid',color:1,ticks:false},item:{kind:'gauge',gshape:p.kind==='seq'?'seq':'bar',pct:p.pct,id:'galp-'+p.id},uses:'Used here'}))},
+      {sec:'My library',sub:'Saved copies, reusable in any profile',items:libG.map(i=>({id:i.id,name:i.name,sub:i.type,src:'My library',seq:i.gshape==='seq',cfg:cfgOf(i),item:i,uses:i.uses+' copies placed'}))}];
+    const flat=gal.flatMap(x=>x.items);
+    const gs=flat.find(x=>x.id===s.gSel)||flat[0];
+    const openEdit=x=>{if(x.seq)set({gMode:'edit',gKind:'seq',gEditName:x.name});else set({gMode:'edit',gKind:'vector',g:{...x.cfg,color:s.g.color},gPreset:x.preset||null,gEditName:x.preset?x.name+' copy':x.name,rev:s.rev+1});};
+    const galSecs=gal.map(sec=>({sec:sec.sec,sub:sec.sub,cards:sec.items.map(x=>({name:x.name,sub:x.sub,item:x.item,pick:()=>set({gSel:x.id}),edit:()=>openEdit(x),bd:gs.id===x.id?A:'#1f1f24',bg:gs.id===x.id?ab(A,9):'#111114'}))}));
+    const gDet={name:gs.name,meta:gs.sub===gs.src?gs.sub:gs.sub+' · '+gs.src,isSeq:gs.seq,isVec:!gs.seq,cfg:{...gs.cfg,color:undefined},editLabel:gs.preset?'Customise a copy':'Edit',edit:()=>openEdit(gs),uses:gs.uses||'Built in',
+      dup:()=>this.toast('Duplicated as a variant in My library'),add:()=>this.toast('Copied onto the canvas · ARCv2'),exp:()=>this.toast('Exported '+gs.name+'.gauge.json')};
+    return {galSecs,gDet,gBrowse:s.gMode==='browse',gEdit:s.gMode==='edit',toBrowse:()=>set({gMode:'browse',playing:false}),newGauge:()=>set({gMode:'edit',gKind:'vector',g:{...G0},gPreset:'arc',gEditName:'New gauge'}),
+      gModeSeg:[['browse','Gauges'],['edit','Editor']].map(([k,l])=>({label:l,pick:()=>set({gMode:k}),bg:s.gMode===k?'#2a2a31':'transparent',fg:s.gMode===k?'#ededf0':'#8f8f99'})),
+      g,gPal:pal,gV:Math.round(s.gVal),gPhase:s.phase,gValLabel:Math.round(s.gVal)+' %',setGVal:e=>set({gVal:+e.target.value,playing:false}),
+      play:()=>set({playing:!s.playing}),playIcon:s.playing?'pause':'play_arrow',gVarA:s.gVar==='a',gVarB:s.gVar==='b',
+      sections,addable,hasAddable:addable.length>0,partGroups,selPart:{l:selPart.l,icon:selPart.icon,fields:F[selPart.id]||[],on:isOn(selPart),core:selPart.core,
+        toggle:()=>!selPart.core&&this.setG({[selPart.id]:!g[selPart.id]}),actLabel:isOn(selPart)?(selPart.core?'Always on':'Remove part'):'Add part'},selPartOff:!isOn(selPart),
+      presets,gTabs,gTabPresets:s.gTab==='presets',gTabProfile:s.gTab==='profile',gTabMine:s.gTab==='mine',profG,myG,
+      gName:s.gEditName,gKindLabel:isSeq?'Image sequence · 101 frames · 300 × 300':'Vector · drawn live as SVG',
+      isSeq,isVector:!isSeq,frames,seqFilter:`hue-rotate(${q.hue}deg) saturate(${q.sat}%) brightness(${q.bri}%)`,seqG:{shape:'arc',sweep:360,thick:22,fill:'solid',ticks:false,value:true,seg:true,trackOp:14,valueSize:34},seqPal:['#ff3355','#ff8099'],
+      seqSliders:[sqs('hue','Hue',-180,180,'°'),sqs('sat','Saturation',0,200,' %'),sqs('bri','Brightness',40,160,' %')],fps:q.fps,setFps:e=>set({seq:{...q,fps:+e.target.value||1}}),
+      seqTool:l=>()=>this.toast(l),reverse:()=>this.toast('Frames reversed · 1 undo step'),resample:()=>this.toast('Resampled to 61 frames'),toVector:()=>{set({gKind:'vector',gPreset:null,g:{...G0,shape:'arc',sweep:360,thick:20,fill:'solid',color:1,ticks:false,marker:false}});this.toast('Converted to vector · original frames kept');},
+      bakeStale:stale,bakeText:stale?'Frames out of date':'Frames baked · 101',bakeC:stale?WARN:OK,bake:()=>{set({baked:s.rev});this.toast('Baked 101 PNG frames for InfoPanel');},
+      saveGauge:()=>this.toast('Saved a copy to My library · Gauges & bars'),exportGauge:()=>this.toast('Exported custom-gauge.gauge.json'),importGauge:()=>this.toast('Pick a .gauge.json or SVG template (≤ 256 KB)'),
+      themeName:'Midnight',followTheme:g.follow};
+  }
+
+  exportVals(s,set){
+    const outs=[['stored','inventory_2','Stored form','ARCv2.canvas.zip','Reopens here exactly as it is: mode, remap choices, fonts and assets, each checked by SHA-256.'],['infopanel','ios_share','.infopanel for InfoPanel','ARCv2.infopanel','Profile.xml + DisplayItems.xml in InfoPanel’s field order, with assets. Native items go back as their InfoPanel fields.']]
+      .map(([k,icon,t,f,d])=>({icon,t,f,d,pick:()=>set({out:k}),bd:s.out===k?A:'#26262c',bg:s.out===k?ab(A,8):'#121215',radio:s.out===k?A:'#3a3a42',dot:s.out===k?'block':'none'}));
+    const tog=(key)=>({on:s[key],toggle:()=>set({[key]:!s[key]}),bg:s[key]?A:'#34343b',x:s[key]?'14px':'2px'});
+    const fx=s.fontFix['Digital-7'];
+    const fontRows=[{fam:'Orbitron',how:'Supplied · 4 faces',lic:'May share',c:OK,hasChoice:false},{fam:'Rajdhani',how:s.fontAdded?'Supplied · from Fontsource':'Missing · uses fallback',lic:s.fontAdded?'May share':'—',c:s.fontAdded?OK:WARN,hasChoice:false},
+      {fam:'Digital-7',how:'Supplied with the profile',lic:'Do not share',c:BAD,hasChoice:true,opts:[['include','Include anyway'],['leave','Leave out'],['swap','Swap · Share Tech Mono']].map(([k,l])=>({label:l,pick:()=>set({fontFix:{...s.fontFix,'Digital-7':k}}),bg:fx===k?'#2a2a31':'transparent',fg:fx===k?'#ededf0':'#8f8f99'}))},
+      {fam:'Segoe UI Variable',how:'System font · not included',lic:'Check licence',c:WARN,hasChoice:false}];
+    const size=(s.out==='stored'?19.0:(s.leaveUnused?13.9:19.0))+(s.bake&&s.out==='infopanel'?0.6:0);
+    return {exportOpen:s.screen==='export',outs,isInfopanel:s.out==='infopanel',bakeT:tog('bake'),unusedT:tog('leaveUnused'),fontRows,
+      contents:(s.out==='stored'?[['canvas.json','infopanel-canvas v1'],['assets/','38 files · by SHA-256'],['fonts/','3 families']]:[['Profile.xml','Size, background, font defaults'],['DisplayItems.xml','86 items, InfoPanel field order'],['assets/',s.leaveUnused?'35 files':'38 files'],['fonts/',fx==='include'?'3 families':'2 families']]).map(([a,b])=>({a,b})),
+      contentsFix:0,exportSize:`≈ ${size.toFixed(1)} MB`,exportName:s.out==='stored'?'ARCv2.canvas.zip':'ARCv2.infopanel',
+      licWarn:s.out==='infopanel'&&fx==='include',closeExport:()=>set({screen:'canvas'}),
+      doExport:()=>{set({screen:'canvas'});this.toast(`Exported ${s.out==='stored'?'ARCv2.canvas.zip':'ARCv2.infopanel'}`);}};
+  }
+}
+</script>
+</body>
+</html>

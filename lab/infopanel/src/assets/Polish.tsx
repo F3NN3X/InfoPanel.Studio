@@ -6,8 +6,8 @@
 import { useState } from "react";
 import type { Editor } from "../editor/useEditor.ts";
 import { FileButton, IMAGE_ACCEPT, kb, readFiles, reencodable, reencode, type EncodeFormat } from "./asset-kit.tsx";
-import { assetKey, replace, type AssetFile, type Doc } from "./assets.ts";
-import { applyBulk, matchByName, resizeTarget, worthKeeping, type BulkPlan, type ResizeRule } from "./bulk.ts";
+import { assetKey, replace, type AssetFile, type Doc } from "@/lib/infopanel/assets/assets.ts";
+import { applyBulk, matchByName, resizeTarget, worthKeeping, type BulkPlan, type ResizeRule } from "@/lib/infopanel/assets/bulk.ts";
 
 export function Polish({ editor, doc }: { editor: Editor; doc: Doc }) {
   const [format, setFormat] = useState<EncodeFormat>("same");

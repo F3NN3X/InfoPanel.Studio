@@ -6,8 +6,9 @@
  * line height is ascent + descent + leading, which is CSS `line-height: normal`.
  */
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { cssColor } from "./color.ts";
-import type { DrawNode, TextStyle } from "./scene.ts";
+import { cssColor } from "@/lib/infopanel/render/color.ts";
+import type { DrawNode, TextStyle } from "@/lib/infopanel/render/scene.ts";
+import { visibleText } from "@/lib/infopanel/render/scene.ts";
 
 export type FontCss = (style: TextStyle) => CSSProperties;
 
@@ -87,12 +88,6 @@ export function layoutCss(l: Layout, canvasWidth: number): CSSProperties {
   return css;
 }
 
-/** MaxLines = 1 keeps the first line, with an ellipsis when more were cut. */
-export function visibleText(text: string, oneLine: boolean, ellipsis: boolean): string {
-  const nl = text.search(/\r?\n/);
-  if (!oneLine || nl < 0) return text;
-  return text.slice(0, nl) + (ellipsis ? "…" : "");
-}
 
 export function Text({ node, font, canvasWidth }: { node: TextNode; font: FontCss; canvasWidth: number }) {
   if (!node.text) return null;

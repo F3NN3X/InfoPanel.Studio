@@ -4,8 +4,8 @@
  * group. Clicking a group's item count selects those items on the canvas.
  */
 import { useState } from "react";
-import type { DataApiValue, Match } from "../sensors.ts";
-import { needsAttention, search, statusOf, suggest, type CatalogIndex, type Group, type Overrides, type Status } from "./remap.ts";
+import type { DataApiValue, Match } from "@/lib/infopanel/sensors.ts";
+import { needsAttention, search, statusOf, suggest, type CatalogIndex, type Group, type Overrides, type Status } from "@/lib/infopanel/remap/remap.ts";
 
 export interface RemapPanelProps {
   groups: Group[];

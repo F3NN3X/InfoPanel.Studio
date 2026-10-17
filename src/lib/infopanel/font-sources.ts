@@ -112,12 +112,8 @@ async function list<T>(fetchImpl: Fetch, url: string): Promise<T[] | string> {
   }
 }
 
-/** Font Squirrel sends no CORS headers: in the lab page its requests go through the dev server (font-proxy-plugin.ts). */
-const PROXIED = new Set(["www.fontsquirrel.com"]);
-
-/** `fetch` for the lab page: proxied hosts through `/font-proxy`, the rest direct. */
-export const labFetch: Fetch = (url, init) =>
-  PROXIED.has(new URL(url).hostname) ? fetch(`/font-proxy?url=${encodeURIComponent(url)}`) : fetch(url, init);
+/** Font Squirrel sends no CORS headers: pages reach it through a same-origin proxy. */
+export const PROXIED = new Set(["www.fontsquirrel.com"]);
 
 /** May the dev server fetch this for the page? */
 export const proxyAllowed = (url: string) => {

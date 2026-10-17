@@ -10,9 +10,9 @@ import { execFileSync } from "node:child_process";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseDisplayItemsXml, walkItems } from "../src/parse.ts";
-import { readFaces } from "../src/sfnt.ts";
-import { listEntries, readEntry } from "../src/zip.ts";
+import { parseDisplayItemsXml, walkItems } from "../../../src/lib/infopanel/parse.ts";
+import { readFaces } from "../../../src/lib/infopanel/sfnt.ts";
+import { listEntries, readEntry } from "../../../src/lib/infopanel/zip.ts";
 
 const DEFAULT_SOURCE = "G:/win_user-folders/Downloads/infopanel-profiles";
 const source = path.resolve(process.argv[2] ?? process.env.INFOPANEL_CORPUS ?? DEFAULT_SOURCE);

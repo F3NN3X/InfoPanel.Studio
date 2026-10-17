@@ -12,19 +12,20 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { imageSrc, WidgetView } from "@/components/widgets/WidgetView";
-import { fraction } from "../gauges/vector.ts";
+import { fraction } from "@/lib/infopanel/gauges/vector.ts";
 import { VectorGaugeSvg } from "../gauges/VectorGaugeSvg.tsx";
-import { boundsOf, gaugeFrame, gradientAngle, gradientPaint, graphParts, rotatePoints, shapeGeometry, type Paint } from "../render/geometry.ts";
-import { cssColor } from "../render/color.ts";
+import { boundsOf, gaugeFrame, gradientAngle, gradientPaint, graphParts, rotatePoints, shapeGeometry, type Paint } from "@/lib/infopanel/render/geometry.ts";
+import { cssColor } from "@/lib/infopanel/render/color.ts";
 import { PathPaint } from "../render/Paint.tsx";
-import { rawValue, tableColumns } from "../render/scene.ts";
-import { Table, Text, textCss, visibleText, type FontCss } from "../render/Text.tsx";
-import { tableOf, ZEROS } from "../sensor-source.ts";
-import { dateText, sensorColor, sensorText } from "../sensor-text.ts";
-import { toReading, type DataApiValue } from "../sensors.ts";
-import type { DisplayItem } from "../schema.ts";
-import type { Catalog } from "../sensors.ts";
-import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "./convert.ts";
+import { rawValue, tableColumns } from "@/lib/infopanel/render/scene.ts";
+import { Table, Text, textCss, type FontCss } from "../render/Text.tsx";
+import { tableOf, visibleText } from "@/lib/infopanel/render/scene.ts";
+import { ZEROS } from "../sensor-source.ts";
+import { dateText, sensorColor, sensorText } from "@/lib/infopanel/sensor-text.ts";
+import { toReading, type DataApiValue } from "@/lib/infopanel/sensors.ts";
+import type { DisplayItem } from "@/lib/infopanel/schema.ts";
+import type { Catalog } from "@/lib/infopanel/sensors.ts";
+import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "@/lib/infopanel/native/convert.ts";
 
 /** The lab's mode flag on an item (not an InfoPanel field). */
 export const isNative = (item: DisplayItem) => (item as { native?: boolean }).native === true;

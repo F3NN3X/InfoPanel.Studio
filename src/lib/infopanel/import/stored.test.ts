@@ -9,8 +9,8 @@ import { STARTERS } from "../gauges/presets.ts";
 import { DEFAULT_GAUGE } from "../gauges/vector.ts";
 import { assetsFrom, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "./stored.ts";
 
-const xml = import.meta.glob<string>("../../corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
-const ids = [...new Set(Object.keys(xml).map((k) => k.split("/")[3]))];
+const xml = import.meta.glob<string>("../../../../lab/infopanel/corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
+const ids = [...new Set(Object.keys(xml).map((k) => k.split("/").at(-2)!))];
 
 const parse = (body: string) => parseDisplayItemsXml(`<ArrayOfDisplayItem xmlns:xsi="x">${body}</ArrayOfDisplayItem>`).items;
 const profile = parseProfileXml("<Profile><Name>P</Name><Width>800</Width></Profile>").profile;
@@ -101,8 +101,8 @@ describe("stored form", () => {
 
 describe.skipIf(ids.length === 0)("corpus through the stored form", () => {
   it.each(ids)("%s comes back unchanged", (id) => {
-    const p = parseProfileXml(xml[`../../corpus/${id}/Profile.xml`]).profile;
-    const items = parseDisplayItemsXml(xml[`../../corpus/${id}/DisplayItems.xml`]).items;
+    const p = parseProfileXml(xml[`../../../../lab/infopanel/corpus/${id}/Profile.xml`]).profile;
+    const items = parseDisplayItemsXml(xml[`../../../../lab/infopanel/corpus/${id}/DisplayItems.xml`]).items;
     const back = roundTrip(toStored(input(items, { profile: p })));
     expect(back.profile).toEqual(p);
     expect(back.items).toEqual(items);

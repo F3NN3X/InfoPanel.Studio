@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<svg viewBox="0 0 200 200" style="width:100%; height:100%; display:block; overflow:visible; filter:{{ fx }}">
+  <defs>
+    <linearGradient id="{{ gid }}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="{{ c1 }}"></stop><stop offset="1" stopColor="{{ c2 }}"></stop></linearGradient>
+    <pattern id="{{ pid }}" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="{{ patTf }}"><rect width="3.5" height="9" fill="#ffffff" fillOpacity="0.28"></rect></pattern>
+    <clipPath id="{{ cid }}"><path d="{{ tankPath }}"></path></clipPath>
+  </defs>
+  <sc-if value="{{ bgOn }}"><rect x="3" y="3" width="194" height="194" rx="{{ bgRx }}" fill="#141419" stroke="#26262c"></rect></sc-if>
+  <sc-if value="{{ ringsOn }}"><circle cx="100" cy="100" r="95" fill="none" stroke="#ffffff" strokeOpacity="0.16" strokeDasharray="1 4"></circle><circle cx="100" cy="100" r="52" fill="none" stroke="#ffffff" strokeOpacity="0.08"></circle></sc-if>
+  <sc-if value="{{ isArc }}">
+    <sc-if value="{{ trackOn }}"><circle cx="100" cy="100" r="80" fill="none" stroke="#ffffff" strokeOpacity="{{ trackOp }}" strokeWidth="{{ T }}" strokeLinecap="{{ cap }}" strokeDasharray="{{ arcTrack }}" transform="{{ arcRot }}"></circle></sc-if>
+    <circle cx="100" cy="100" r="80" fill="none" stroke="{{ paint }}" strokeWidth="{{ T }}" strokeLinecap="{{ cap }}" strokeDasharray="{{ arcFill }}" transform="{{ arcRot }}"></circle>
+    <sc-if value="{{ patOn }}"><circle cx="100" cy="100" r="80" fill="none" stroke="{{ patUrl }}" strokeWidth="{{ T }}" strokeLinecap="{{ cap }}" strokeDasharray="{{ arcFill }}" transform="{{ arcRot }}"></circle></sc-if>
+    <sc-if value="{{ segOn }}"><circle cx="100" cy="100" r="80" fill="none" stroke="#0c0c0e" strokeWidth="{{ T2 }}" strokeDasharray="1.6 5.4"></circle></sc-if>
+    <sc-if value="{{ ticksOn }}"><sc-for list="{{ ticks }}" as="t" hint-placeholder-count="0"><line x1="{{ t.x1 }}" y1="{{ t.y1 }}" x2="{{ t.x2 }}" y2="{{ t.y2 }}" stroke="#ffffff" strokeOpacity="{{ t.op }}" strokeWidth="{{ t.w }}" strokeLinecap="round"></line></sc-for></sc-if>
+    
+    <sc-if value="{{ markerOn }}"><circle cx="{{ mx }}" cy="{{ my }}" r="{{ mr }}" fill="#ffffff"></circle></sc-if>
+    <sc-if value="{{ needleOn }}"><polygon points="{{ needlePts }}" fill="#ededf0"></polygon><circle cx="100" cy="100" r="6" fill="#ededf0"></circle><circle cx="100" cy="100" r="2.4" fill="#0c0c0e"></circle></sc-if>
+  </sc-if>
+  <sc-if value="{{ isBar }}">
+    <sc-if value="{{ trackOn }}"><rect x="12" y="{{ by }}" width="176" height="{{ bh }}" rx="{{ brx }}" fill="#ffffff" fillOpacity="{{ trackOp }}"></rect></sc-if>
+    <rect x="12" y="{{ by }}" width="{{ bfw }}" height="{{ bh }}" rx="{{ brx }}" fill="{{ paint }}"></rect>
+    <sc-if value="{{ patOn }}"><rect x="12" y="{{ by }}" width="{{ bfw }}" height="{{ bh }}" rx="{{ brx }}" fill="{{ patUrl }}"></rect></sc-if>
+    <sc-if value="{{ markerOn }}"><rect x="{{ bmx }}" y="{{ bmy }}" width="3" height="{{ bmh }}" rx="1.5" fill="#ffffff"></rect></sc-if>
+    <sc-if value="{{ ticksOn }}"><sc-for list="{{ barTicks }}" as="t" hint-placeholder-count="0"><line x1="{{ t.x }}" y1="{{ t.y1 }}" x2="{{ t.x }}" y2="{{ t.y2 }}" stroke="#ffffff" strokeOpacity="{{ t.op }}" strokeWidth="{{ t.w }}"></line></sc-for></sc-if>
+    
+  </sc-if>
+  <sc-if value="{{ isLiquid }}">
+    <path d="{{ tankPath }}" fill="#ffffff" fillOpacity="0.04" stroke="#ffffff" strokeOpacity="0.22" strokeWidth="2"></path>
+    <g clipPath="{{ clipUrl }}">
+      <path d="{{ wave2 }}" fill="{{ c2 }}" fillOpacity="0.4"></path>
+      <path d="{{ wave }}" fill="{{ paint }}"></path>
+      <sc-if value="{{ bubblesOn }}"><sc-for list="{{ bubbles }}" as="b" hint-placeholder-count="0"><circle cx="{{ b.x }}" cy="{{ b.y }}" r="{{ b.r }}" fill="#ffffff" fillOpacity="0.35"></circle></sc-for></sc-if>
+    </g>
+    <sc-if value="{{ shineOn }}"><path d="M62 52 Q74 40 92 36" fill="none" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="5" strokeLinecap="round"></path></sc-if>
+  </sc-if>
+  <sc-if value="{{ isGrid }}">
+    <sc-for list="{{ cells }}" as="c" hint-placeholder-count="0"><rect x="{{ c.x }}" y="{{ c.y }}" width="14" height="14" rx="3" fill="{{ c.f }}"></rect></sc-for>
+  </sc-if>
+  <sc-if value="{{ iconRowOn }}"><sc-for list="{{ iconRow }}" as="ir" hint-placeholder-count="0"><text x="{{ ir.x }}" y="{{ ir.y }}" textAnchor="middle" dominantBaseline="central" fontSize="13" fill="{{ ir.f }}" fontFamily="Material Symbols Rounded">bolt</text></sc-for></sc-if>
+  {{ textLayer }}
+</svg>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:240},&quot;g&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;v&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:62,&quot;min&quot;:0,&quot;max&quot;:100},&quot;pal&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;uid&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;g&quot;},&quot;phase&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;}}">
+const D={shape:'arc',sweep:270,thick:14,tank:'round',order:'linear',fill:'gradient',track:true,trackOp:18,needle:false,needleStyle:'taper',marker:false,ticks:true,tickCount:11,labels:false,value:true,valueSize:34,suffix:'%',title:false,titleText:'CPU',background:false,rings:false,pattern:false,patternKind:'stripes',glow:false,glowAmt:8,shadow:false,wave:true,shine:true,bubbles:false,iconRow:false,centreIcon:false,seg:false};
+class Component extends DCLogic {
+  renderVals() {
+    const g = { ...D, ...(this.props.g || {}) };
+    const v = Math.max(0, Math.min(100, Number(this.props.v ?? 62))), p = v / 100;
+    const pal = this.props.pal || ['oklch(0.72 0.15 255)', 'oklch(0.80 0.12 200)'];
+    const uid = String(this.props.uid || 'g').replace(/[^a-z0-9-]/gi, '');
+    const ph = Number(this.props.phase || 0);
+    const zone = p < 0.6 ? 'oklch(0.75 0.14 155)' : p < 0.85 ? 'oklch(0.80 0.13 80)' : 'oklch(0.68 0.17 25)';
+    const paint = g.fill === 'gradient' ? `url(#${uid}-gf)` : g.fill === 'zones' ? zone : g.fill === 'thresholds' ? (p < 0.85 ? pal[0] : 'oklch(0.68 0.17 25)') : pal[0];
+    const T = g.thick, r = 80, C = 2 * Math.PI * r, sw = Math.max(30, Math.min(360, g.sweep)), L = C * sw / 360, start = 90 + (360 - sw) / 2;
+    const rad = d => d * Math.PI / 180, f1 = n => n.toFixed(1);
+    const ang = rad(start + sw * p), pp = ang + Math.PI / 2;
+    const nx = 100 + (r - 6) * Math.cos(ang), ny = 100 + (r - 6) * Math.sin(ang);
+    const bw = g.needleStyle === 'taper' ? 5 : g.needleStyle === 'arrow' ? 3.5 : 1.4, tail = g.needleStyle === 'arrow' ? 16 : 0;
+    const tx = 100 - tail * Math.cos(ang), ty = 100 - tail * Math.sin(ang);
+    const needlePts = g.needleStyle === 'dot' ? `${f1(nx - 1)},${f1(ny - 1)} ${f1(nx + 1)},${f1(ny + 1)} ${f1(nx)},${f1(ny)}` : `${f1(tx + bw * Math.cos(pp))},${f1(ty + bw * Math.sin(pp))} ${f1(nx)},${f1(ny)} ${f1(tx - bw * Math.cos(pp))},${f1(ty - bw * Math.sin(pp))}`;
+    const n = Math.max(2, g.tickCount | 0), full = sw >= 360, step = Math.max(1, Math.round((n - 1) / 5));
+    const ticks = [], labels = [], barTicks = [], barLabels = [];
+    const r1 = r - T / 2 - 5;
+    const bh = Math.max(4, T * 1.1), by = 100 - bh / 2;
+    for (let i = 0; i < n; i++) {
+      const f = full ? i / n : i / (n - 1), a = rad(start + sw * f), major = i % step === 0 || i === n - 1, r2 = r1 - (major ? 8 : 4);
+      ticks.push({ x1: f1(100 + r1 * Math.cos(a)), y1: f1(100 + r1 * Math.sin(a)), x2: f1(100 + r2 * Math.cos(a)), y2: f1(100 + r2 * Math.sin(a)), w: major ? 1.6 : 1, op: major ? 0.55 : 0.28 });
+      if (major) labels.push({ x: f1(100 + (r2 - 9) * Math.cos(a)), y: f1(100 + (r2 - 9) * Math.sin(a)), t: String(Math.round(f * 100)) });
+      const bf = i / (n - 1), x = f1(12 + 176 * bf);
+      barTicks.push({ x, y1: f1(by + bh + 5), y2: f1(by + bh + (major ? 11 : 8)), w: major ? 1.4 : 1, op: major ? 0.5 : 0.25 });
+      if (major) barLabels.push({ x, y: f1(by + bh + 22), t: String(Math.round(bf * 100)) });
+    }
+    const tanks = { round: 'M100 30 A70 70 0 1 1 99.9 30 Z', rect: 'M48 32 H152 Q166 32 166 46 V156 Q166 170 152 170 H48 Q34 170 34 156 V46 Q34 32 48 32 Z', diamond: 'M100 24 L176 100 L100 176 L24 100 Z', hex: 'M100 26 L166 64 L166 136 L100 174 L34 136 L34 64 Z' };
+    const ly = 174 - 148 * p, amp = g.wave ? 6 : 0;
+    const mkWave = (o, a) => { let d = `M${f1(-80 + o)} ${f1(ly)}`; for (let k = 0; k < 6; k++) d += ` q 20 ${-a} 40 0 t 40 0`; return d + ` V 230 H ${f1(-80 + o)} Z`; };
+    const off = ph % 80;
+    const bubbles = [[76, 20, 3], [112, 44, 2.2], [130, 14, 2.8], [92, 60, 1.8]].map(([x, d, rr], i) => ({ x, y: f1(Math.min(168, ly + 10 + ((d + ph * (0.6 + i * 0.2)) % 60))), r: rr }));
+    const cols = 10, rows = 6, x0 = (200 - (cols * 17 - 3)) / 2, y0 = (200 - (rows * 17 - 3)) / 2 - (g.value ? 14 : 0);
+    const lit = Math.round(p * cols * rows);
+    const idx = [...Array(cols * rows).keys()];
+    let rank;
+    if (g.order === 'random') rank = idx.map(i => (i * 37 + 11) % 60);
+    else if (g.order === 'middle') { const d = idx.map(i => ({ i, d: Math.hypot((i % cols) - 4.5, Math.floor(i / cols) - 2.5) })).sort((a, b) => a.d - b.d); rank = []; d.forEach((o, k) => { rank[o.i] = k; }); }
+    else rank = idx.map(i => (i % cols) * rows + (rows - 1 - Math.floor(i / cols)));
+    const cells = idx.map(i => ({ x: f1(x0 + (i % cols) * 17), y: f1(y0 + Math.floor(i / cols) * 17), f: rank[i] < lit ? paint : 'rgba(255,255,255,0.07)' }));
+    const fx = [g.glow ? `drop-shadow(0 0 ${g.glowAmt}px ${pal[0]})` : '', g.shadow ? 'drop-shadow(0 8px 10px rgba(0,0,0,.6))' : ''].filter(Boolean).join(' ') || 'none';
+    const isArc = g.shape === 'arc', isBar = g.shape === 'bar', isLiquid = g.shape === 'liquid', isGrid = g.shape === 'grid';
+    const vs = isBar ? Math.min(g.valueSize * 0.8, 34) : isGrid ? 20 : g.valueSize;
+    const vy = isBar ? by - 26 : isGrid ? y0 + rows * 17 + 14 : isLiquid ? 100 : (g.title ? 108 : 102);
+    const mAng = rad(start + sw * p);
+    const E = React.createElement, T2 = [];
+    const mono = { fontFamily: 'Geist Mono, monospace' };
+    if (g.labels && isArc) labels.forEach((l, i) => T2.push(E('text', { key: 'l' + i, x: l.x, y: l.y, textAnchor: 'middle', dominantBaseline: 'central', fontSize: 8.5, fill: '#9696a0', style: mono }, l.t)));
+    if (g.labels && isBar) barLabels.forEach((l, i) => T2.push(E('text', { key: 'b' + i, x: l.x, y: l.y, textAnchor: 'middle', fontSize: 8.5, fill: '#9696a0', style: mono }, l.t)));
+    if (g.centreIcon && (isArc || isLiquid)) T2.push(E('text', { key: 'ci', x: 100, y: g.value ? 66 : 100, textAnchor: 'middle', dominantBaseline: 'central', fontSize: 22, fill: '#c9c9cf', style: { fontFamily: 'Material Symbols Rounded' } }, 'memory'));
+    if (g.title && !isBar) T2.push(E('text', { key: 'ti', x: 100, y: isGrid ? y0 - 10 : 134, textAnchor: 'middle', fontSize: 11, fontWeight: 500, letterSpacing: 1.5, fill: '#9696a0', style: { fontFamily: 'Geist, sans-serif' } }, String(g.titleText || '')));
+    if (g.value) T2.push(E('text', { key: 'v', x: vy ? 100 : 100, y: vy.toFixed(1), textAnchor: 'middle', dominantBaseline: 'central', fontSize: vs, fontWeight: 600, fill: '#ededf0', style: { fontFamily: 'Geist, sans-serif' } }, String(Math.round(v)), E('tspan', { fontSize: Math.round(vs * 0.5), fill: '#9696a0', dx: 1 }, String(g.suffix || ''))));
+    return {
+      textLayer: E('g', null, ...T2),
+      fx, gid: uid + '-gf', pid: uid + '-pt', cid: uid + '-cl', clipUrl: `url(#${uid}-cl)`, patUrl: `url(#${uid}-pt)`, c1: pal[0], c2: pal[1],
+      patTf: g.patternKind === 'dots' ? 'rotate(0)' : g.patternKind === 'chevrons' ? 'rotate(-45)' : `rotate(45) translate(${f1(ph % 9)} 0)`,
+      tankPath: tanks[g.tank] || tanks.round,
+      bgOn: g.background, bgRx: 24, ringsOn: g.rings,
+      isArc, isBar, isLiquid, isGrid, trackOn: g.track && !isLiquid && !isGrid, trackOp: (g.trackOp / 100).toFixed(2), T, T2: T + 2, cap: g.seg ? 'butt' : (g.cap || 'round'),
+      arcTrack: `${f1(L)} ${f1(C)}`, arcFill: `${f1(Math.max(0.01, L * p))} ${f1(C)}`, arcRot: `rotate(${f1(start)} 100 100)`,
+      paint, patOn: g.pattern && (isArc || isBar), segOn: g.seg && isArc,
+      ticksOn: g.ticks, ticks, labelsOn: g.labels, labels, barTicks, barLabels,
+      markerOn: g.marker, mx: f1(100 + r * Math.cos(mAng)), my: f1(100 + r * Math.sin(mAng)), mr: Math.max(3, T / 2 + 1),
+      bmx: f1(12 + 176 * p - 1.5), bmy: f1(by - 4), bmh: f1(bh + 8),
+      needleOn: g.needle && isArc, needlePts,
+      by: f1(by), bh: f1(bh), brx: f1(Math.min(bh / 2, 6)), bfw: f1(Math.max(0.01, 176 * p)),
+      wave: mkWave(off, amp), wave2: mkWave(off - 40, amp * 0.8), bubblesOn: g.bubbles, bubbles, shineOn: g.shine,
+      cells,
+      centreOn: g.centreIcon && (isArc || isLiquid), iconName: 'memory', iconY: g.value ? 66 : 100,
+      titleOn: g.title && !isBar, titleText: g.titleText, titleY: isGrid ? y0 - 10 : 134,
+      valueOn: g.value, vy: f1(vy), vs, vs2: Math.round(vs * 0.5), vText: String(Math.round(v)), suffix: g.suffix,
+      iconRowOn: g.iconRow && isBar, iconRow: [0, 1, 2, 3, 4].map(i => ({ x: 26 + i * 18, y: f1(by + bh + 22), f: (i + 0.5) / 5 <= p ? pal[0] : '#3a3a42' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

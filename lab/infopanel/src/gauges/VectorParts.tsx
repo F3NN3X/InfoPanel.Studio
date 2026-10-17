@@ -4,8 +4,8 @@
  * it with defaults or removes it, so older specs keep none of them.
  */
 import { binder, Num, PaintField, Row, Text, Toggle } from "./form-kit.tsx";
-import { DEFAULT_SCALE } from "./parts.ts";
-import type { Background, Scale, Shadow, Ticks, ValueText, VectorGauge } from "./vector.ts";
+import { DEFAULT_SCALE } from "@/lib/infopanel/gauges/parts.ts";
+import type { Background, Scale, Shadow, Ticks, ValueText, VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 
 export interface PartsRowsProps {
   g: VectorGauge;

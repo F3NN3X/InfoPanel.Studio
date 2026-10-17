@@ -89,7 +89,7 @@ interface Reference {
   }[];
 }
 const refs = Object.values(
-  import.meta.glob<Reference>("../fonts/skia-reference.json", { import: "default", eager: true }),
+  import.meta.glob<Reference>("../../../lab/infopanel/fonts/skia-reference.json", { import: "default", eager: true }),
 );
 
 describe.skipIf(refs.length === 0)("createTypeface matches InfoPanel on this machine", () => {

@@ -12,7 +12,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Plugin } from "vite";
-import { bytes, proxyAllowed } from "./src/font-sources.ts";
+import { bytes, proxyAllowed } from "../../src/lib/infopanel/font-sources.ts";
 
 const CATALOGUE = "https://www.fontsquirrel.com/api/fontlist/all";
 const WEEK = 7 * 24 * 3600 * 1000;

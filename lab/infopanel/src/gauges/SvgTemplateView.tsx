@@ -5,8 +5,8 @@
  * so a change moves the drawing without reloading it.
  */
 import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
-import { sanitizeTemplate } from "./svg-template.ts";
-import { templateVars, type VectorGauge } from "./vector.ts";
+import { sanitizeTemplate } from "@/lib/infopanel/gauges/svg-template.ts";
+import { templateVars, type VectorGauge } from "@/lib/infopanel/gauges/vector.ts";
 
 export interface SvgTemplateViewProps {
   gauge: VectorGauge;

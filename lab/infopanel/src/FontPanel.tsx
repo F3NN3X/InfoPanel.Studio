@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import type { FontRequest } from "./font-loader.ts";
-import { fetchCatalogs, findCandidates, labFetch, type Catalogs, type FontCandidate } from "./font-sources.ts";
-import type { FontRow, SuppliedFace } from "./font-supply.ts";
+import type { FontRequest } from "@/lib/infopanel/font-loader.ts";
+import { labFetch } from "./lab-fetch.ts";
+import { fetchCatalogs, findCandidates, type Catalogs, type FontCandidate } from "@/lib/infopanel/font-sources.ts";
+import type { FontRow, SuppliedFace } from "@/lib/infopanel/font-supply.ts";
 import type { FontPlan } from "./useFontPlan.ts";
 
 const SAMPLE = "CPU 45°C · GPU 1,234 RPM · 12:30:45 PM";

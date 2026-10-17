@@ -4,14 +4,15 @@
  * downloads), and which face each request draws with.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FontLoader, type FontRequest, type ResolvedFont } from "./font-loader.ts";
-import { downloadFamily, labFetch, searchName, type FontCandidate } from "./font-sources.ts";
-import { facesFromFile, missingFamilies, planFonts, requestKey, type FontRow, type SuppliedFace, type Use } from "./font-supply.ts";
-import { walkItems } from "./parse.ts";
-import type { TextStyle } from "./render/scene.ts";
+import { FontLoader, type FontRequest, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
+import { labFetch } from "./lab-fetch.ts";
+import { downloadFamily, searchName, type FontCandidate } from "@/lib/infopanel/font-sources.ts";
+import { facesFromFile, missingFamilies, planFonts, requestKey, type FontRow, type SuppliedFace, type Use } from "@/lib/infopanel/font-supply.ts";
+import { walkItems } from "@/lib/infopanel/parse.ts";
+import type { TextStyle } from "@/lib/infopanel/render/scene.ts";
 import type { FontCss } from "./render/Text.tsx";
-import type { DisplayItem } from "./schema.ts";
-import { readFaces } from "./sfnt.ts";
+import type { DisplayItem } from "@/lib/infopanel/schema.ts";
+import { readFaces } from "@/lib/infopanel/sfnt.ts";
 
 const TEXT_KINDS = new Set(["Text", "Clock", "Calendar", "Sensor", "TableSensor"]);
 

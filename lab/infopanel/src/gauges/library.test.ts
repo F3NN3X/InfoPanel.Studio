@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { entrySignature, parseEntry } from "./library.ts";
-import { DEFAULT_GAUGE } from "./vector.ts";
+import { DEFAULT_GAUGE } from "@/lib/infopanel/gauges/vector.ts";
 
 const hash = "a".repeat(64);
 
