@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useToast } from "@/components/ui/toast";
 import { useSensorCatalog } from "@/lib/catalog";
-import { BLANK_MODULE, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
 import { withPanelField } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
 import { modules } from "@/modules";
@@ -93,6 +93,8 @@ interface ZoneInspectorProps {
   onOpenExplorer: () => void;
   /** Show a tab, and maybe the data picker, whenever `seq` changes (the zone context menu). */
   request?: { tab: InspectorTab; picker: boolean; seq: number };
+  /** A canvas zone: open its items in the canvas editor. */
+  onEditCanvas?: () => void;
 }
 
 /** The custom cards of a special section as one body (a caption over each when several share it). */
@@ -154,6 +156,7 @@ export function ZoneInspector({
   onOpenPoint,
   onOpenExplorer,
   request,
+  onEditCanvas,
 }: ZoneInspectorProps) {
   const toast = useToast();
   const [picker, setPicker] = useState(false);
@@ -331,8 +334,17 @@ export function ZoneInspector({
     ["boundData", "panelData", "blankPick", "zoneFrame"].includes(s.special) ||
     (cards.get(s.special)?.length ?? 0) > 0;
 
-  const notes = (tab: Parameters<typeof inspectorNotes>[1]) =>
-    inspectorNotes(context, tab, { mode: zone.styleMode, enforce }).map((n) => (
+  const canvasNote = zone.module === CANVAS_ID && zone.canvas && onEditCanvas && (
+    <InspectorNote key="canvas">
+      An imported InfoPanel profile. Its items, modes and sensors are edited in the canvas editor.{" "}
+      <button type="button" onClick={onEditCanvas} className="font-medium text-ui-accent-text hover:underline">
+        Edit items
+      </button>
+    </InspectorNote>
+  );
+  const notes = (tab: Parameters<typeof inspectorNotes>[1]) => [
+    tab === "content" || tab === undefined ? canvasNote : null,
+    ...inspectorNotes(context, tab, { mode: zone.styleMode, enforce }).map((n) => (
       <InspectorNote key={n.kind}>
         {n.text}
         {n.kind === "follow" && (
@@ -344,7 +356,8 @@ export function ZoneInspector({
           </>
         )}
       </InspectorNote>
-    ));
+    )),
+  ];
 
   const hasLabel = defs.some((d) => d.key === "label");
   const onName = zone.panel

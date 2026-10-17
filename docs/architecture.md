@@ -403,6 +403,45 @@ or an `.infopanel` for InfoPanel, which carries no fonts. Baking stale
 vector gauges first uploads the new frames and puts them on the zone as one
 undo step. Both download through the browser.
 
+### Editing a canvas zone
+
+Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",
+opens the canvas editor (`src/components/infopanel/edit/`, lazy-loaded) in
+place of the studio canvas, drawer and inspector. Done or Esc (with nothing
+selected) closes it; so do Sources mode and an undo that takes the zone away.
+
+- **State** (`use-canvas-editor.ts`): the zone's stored form opened
+  (`openCanvas`) and its items as edited (`editItems`,
+  `src/lib/infopanel/canvas-edit.ts`). Each bound item carries its import
+  record (Data API key, how it was found) on the item under `$import` while
+  edited, so duplicate, group and reorder keep it. Every commit writes the
+  zone's new stored form (`storeItems`, through `withCanvas`) with one
+  `setConfig`, so the studio's undo, redo and auto-save cover it: one drag,
+  one field, one bulk action (Draw all as, a remap choice) is one step;
+  typing in a field and arrow nudges coalesce by key.
+- **Canvas** (`edit-canvas.tsx`, `edit-layer.tsx`): `ProfileView` and
+  `nativeLayer` as the zone draws, with the edit layer over it. The layer
+  finds items through the drawn `data-path` attributes, previews a drag and
+  commits once. Show modes tints each item (native, InfoPanel, can't
+  convert); Compare lays a chosen InfoPanel screenshot over the render with
+  a difference blend.
+- **Sensors**: Unbound, Live or Mock (`sensorView`). Live subscribes to
+  the items' keys through `useSensors`; Mock gives each binding group one
+  slider value. Remap (`src/components/infopanel/remap-dialog.tsx`) wraps
+  the import's `RemapPanel`; `withGroupKeys` rewrites only the groups whose
+  choice changed, and with the Data API offline it takes no choices.
+- **Inspector** (`item-inspector.tsx`): `InspectorView` with the
+  `infopanel` context of `inspector-model.ts`. The kind's field groups come
+  from the InfoPanel schema registry (`inspector/infopanel-defs.ts`, no
+  panel per kind); Draw as, Position (with `checkGeometry`'s refusals),
+  Sensor and the unknown fields are its special sections. A value
+  InfoPanel's setter would refuse is shown with its message and not stored.
+- **Keys** (`canvas-keys.ts`, capture phase): Ctrl+D, Ctrl+G,
+  Ctrl+Shift+G, Del, arrows (Shift: 10 px), Esc. The studio's other zone
+  shortcuts are held back while the editor is open; undo, redo, save, the
+  palette and the cheat sheet pass through. Nothing fires while typing or
+  with a dialog open.
+
 ### The render pipeline of a panel zone
 
 A custom panel (`module: "panel"`) carries its own widget tree in

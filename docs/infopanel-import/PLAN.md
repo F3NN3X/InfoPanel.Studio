@@ -165,7 +165,7 @@ passing, and is reviewed before the next starts.
 | A2 | Canvas zone kind: `Placement.canvas`, normalization, the renderer in a zone, kiosk and desktop bundles (done) |
 | A3 | Server: My library store (items, copy counts, files by SHA-256), the asset store for fonts and SVG, installed profiles, the font proxy (done) |
 | A4 | Import dialog (spec §4), sensor remap (§5), Export dialog (§9); Import / Export in the top bar, the Add panel card (done; the Remap dialog's entry point, the zone toolbar, comes with A5) |
-| A5 | Canvas zone editing (§7): item tree, toolbar, modes, compare, mock sensors; the inspector registry extended with InfoPanel kinds |
+| A5 | Canvas zone editing (§7): item tree, toolbar, modes, compare, mock sensors; the inspector registry extended with InfoPanel kinds (done; "Edit gauge…" comes with A7) |
 | A6 | Library page (§3): My library, profile assets, fonts, drag to the canvas (§8) |
 | A7 | Gauges page (§6): browse and editor, presets, image-sequence tools, bake |
 | A8 | The states in §10, responsive rules, docs and `FEATURE_MAP.md` rows |

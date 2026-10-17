@@ -21,7 +21,7 @@ export interface CanvasZoneProps {
   sensors: SensorMap;
 }
 
-function useNow(): Date {
+export function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);

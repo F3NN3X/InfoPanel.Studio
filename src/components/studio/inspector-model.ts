@@ -69,7 +69,16 @@ export type InspectorContext =
   | { kind: "blank" }
   /** Several zones: the shared look only, no tabs. */
   | { kind: "multi"; defs: ModuleSetting[] }
-  | { kind: "dashboard"; scope: "all" | "profile"; profileName?: string };
+  | { kind: "dashboard"; scope: "all" | "profile"; profileName?: string }
+  /** An item of a canvas zone (an imported InfoPanel profile): its kind's fields, from the InfoPanel schema. */
+  | {
+      kind: "infopanel";
+      groups: { id: string; title: string; defs: ModuleSetting[]; advanced: boolean }[];
+      /** A group draws nothing itself: no mode, position or kind fields beyond its own. */
+      group: boolean;
+      bound: boolean;
+      unknown: boolean;
+    };
 
 /** The context of a selected widget zone. */
 export const widgetContext = (mod: DashboardModule): InspectorContext => ({
@@ -107,7 +116,11 @@ export type SpecialSection =
   | "clock"
   | "display"
   | "studio"
-  | "connection";
+  | "connection"
+  | "ipMode"
+  | "ipPosition"
+  | "ipSensor"
+  | "ipUnknown";
 
 /** Custom UI placed inside a section next to its settings. */
 export type ExtraKind = "widgetPicker" | "visible" | "styleMode" | "styleTools" | "zoneFrame";
@@ -160,7 +173,12 @@ const section = (s: Partial<InspectorSection> & Pick<InspectorSection, "id" | "t
 
 /** The tabs of a context, in order (none for a blank zone or several zones). */
 export function inspectorTabs(context: InspectorContext): { id: TabId; label: string }[] {
-  const ids = context.kind === "dashboard" ? DASHBOARD_TABS : context.kind === "blank" || context.kind === "multi" ? [] : ZONE_TABS;
+  const ids =
+    context.kind === "dashboard"
+      ? DASHBOARD_TABS
+      : context.kind === "blank" || context.kind === "multi" || context.kind === "infopanel"
+        ? []
+        : ZONE_TABS;
   return ids.map((id) => ({ id, label: TAB_LABELS[id] }));
 }
 
@@ -370,7 +388,30 @@ export function allSections(context: InspectorContext): InspectorSection[] {
       return multiSections(context);
     case "dashboard":
       return dashboardSections();
+    case "infopanel":
+      return infopanelSections(context);
   }
+}
+
+/**
+ * A canvas item: how it draws, where, what it reads, then its kind's field groups as the
+ * InfoPanel schema has them (the registry, not a panel per kind), and the unknown fields.
+ */
+function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel" }>): InspectorSection[] {
+  const ip = (id: string, title: string, special: SpecialSection, terms: string[]) => section({ id, title, tab: "content", special, terms });
+  // The Position group's other fields (scale, corner radius) are rows under the X / Y / W / H grid.
+  const position = context.group ? undefined : context.groups.find((g) => g.id === "ip-position");
+  return [
+    ...(context.group ? [] : [ip("ip-mode", "Draw as", "ipMode", ["Native", "InfoPanel", "Faithful", "Mode", "Convert"])]),
+    ...(context.group
+      ? []
+      : [{ ...ip("ip-position", "Position", "ipPosition", ["X", "Y", "W", "H", "Width", "Height", "Rotation", "Flip"]), settings: position?.defs ?? [] }]),
+    ...(context.bound ? [ip("ip-binding", "Sensor", "ipSensor", ["Sensor", "Remap", "Data API key"])] : []),
+    ...context.groups
+      .filter((g) => g !== position)
+      .map((g) => section({ id: g.id, title: g.title, tab: "content", settings: g.defs, advanced: g.advanced })),
+    ...(context.unknown ? [ip("ip-unknown", "Unknown fields", "ipUnknown", ["Unknown", "Kept"])] : []),
+  ];
 }
 
 /** The sections of one tab (all of them for a context without tabs). */

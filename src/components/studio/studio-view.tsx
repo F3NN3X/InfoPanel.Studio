@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 import { useConfigHistory } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
 import { SourcesPanel } from "./sources-panel";
 import {
   BLANK_MODULE,
+  CANVAS_ID,
   defaultConfig,
   resolveProfile,
   type DashboardConfig,
@@ -43,6 +44,9 @@ import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
 import { sheetHeight } from "./studio-layout";
+
+/** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
+const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -185,6 +189,17 @@ function StudioViewBody({
       setPendingZone(zoneId);
     },
   });
+  /**
+   * The canvas zone whose items are being edited: the editor takes the canvas, drawer and
+   * inspector's place. It closes when the zone goes (an undo past its import, another page).
+   */
+  const [editingCanvas, setEditingCanvas] = useState<string | null>(null);
+  const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
+  useEffect(() => {
+    if (editingCanvas && (!canvasZone || showSources)) setEditingCanvas(null);
+  }, [editingCanvas, canvasZone, showSources]);
+  const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
+
   /** The one selected zone, when it is blank: the Add panel's click fills it. */
   const blankZoneId = selected && sel.selection.length === 1 && selected.module === BLANK_MODULE ? selected.id : undefined;
 
@@ -207,6 +222,7 @@ function StudioViewBody({
         setFocusPointKey(key);
         ui.setMode("sources");
       }}
+      onEditCanvas={setEditingCanvas}
     />
   );
 
@@ -311,7 +327,7 @@ function StudioViewBody({
         }
         sel.select(id, how);
       }}
-      onOpenSettings={studioLayout.showInspector}
+      onOpenSettings={(id) => (isCanvasZone(id) ? setEditingCanvas(id) : studioLayout.showInspector())}
       inset={studioLayout.layout.inset}
       selectedWidgetId={selectedWidgetId}
       onSelectWidget={sel.selectWidget}
@@ -397,7 +413,19 @@ function StudioViewBody({
     </>
   );
 
-  const bar = showSources ? null : (
+  const canvasEditor = canvasZone?.canvas && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+      <CanvasEditorView
+        key={canvasZone.id}
+        zone={{ ...canvasZone, canvas: canvasZone.canvas }}
+        setConfig={setConfig}
+        history={history}
+        onDone={() => setEditingCanvas(null)}
+      />
+    </Suspense>
+  );
+
+  const bar = showSources || canvasEditor ? null : (
     <>
     <ZoomToolbar
       zoom={ui.zoom}
@@ -459,10 +487,10 @@ function StudioViewBody({
             onShortcuts={() => ui.setShortcutsOpen(true)}
           />
         }
-        drawer={!showSources && drawer && drawerEl}
-        main={mainEl}
+        drawer={!showSources && !canvasEditor && drawer && drawerEl}
+        main={canvasEditor || mainEl}
         bar={bar}
-        inspector={showSources ? null : inspectorAside}
+        inspector={showSources || canvasEditor ? null : inspectorAside}
       />
 
       <WidgetPickerDialog
