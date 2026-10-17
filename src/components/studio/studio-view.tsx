@@ -25,6 +25,7 @@ import { StudioInspector } from "./studio-inspector";
 import { StudioShell } from "./studio-shell";
 import { QuickBar } from "./quick-bar";
 import { ShortcutsDialog } from "./shortcuts-dialog";
+import { useInfoPanelIo } from "./infopanel-io";
 import { useStudioCommands } from "./use-studio-commands";
 import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
@@ -174,6 +175,16 @@ function StudioViewBody({
     const section = islandSectionId(modules.find((m) => m.id === zone?.module));
     if (section) requestAnimationFrame(() => ui.jumpInspector(section, ISLAND_SETTING));
   }, [pendingZone, profile.placements]);
+  const io = useInfoPanelIo({
+    config,
+    profile,
+    setConfig,
+    selectedId: sel.primaryId ?? undefined,
+    onLanded: (zoneId, newProfile) => {
+      if (newProfile) ui.fitZoom();
+      setPendingZone(zoneId);
+    },
+  });
   /** The one selected zone, when it is blank: the Add panel's click fills it. */
   const blankZoneId = selected && sel.selection.length === 1 && selected.module === BLANK_MODULE ? selected.id : undefined;
 
@@ -213,6 +224,8 @@ function StudioViewBody({
         onDeletePreset: edit.deleteSavedPanel,
         blankZoneId,
         onFillBlank: edit.fillBlank,
+        onImportCanvas: () => io.openImport("zone"),
+        profileName: profile.name,
       }}
       layers={{
         placements: profile.placements,
@@ -426,6 +439,9 @@ function StudioViewBody({
         onExitStudio={onExitStudio}
         onExport={() => exportConfigFile(config)}
         onImport={() => startConfigImport(ui.importRef.current, setConfig)}
+        onImportInfoPanel={() => io.openImport("new")}
+        onExportInfoPanel={io.openExport}
+        canExportInfoPanel={io.canExport}
         onReset={() => setConfig(defaultConfig())}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
@@ -481,6 +497,7 @@ function StudioViewBody({
         />
       )}
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
+      {io.dialogs}
       <input
         ref={ui.importRef}
         type="file"

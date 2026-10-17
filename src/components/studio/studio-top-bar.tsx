@@ -5,6 +5,8 @@ import {
   ChevronDown,
   Copy,
   Download,
+  FileInput,
+  FileOutput,
   Info,
   Keyboard,
   Maximize,
@@ -52,6 +54,11 @@ interface StudioTopBarProps {
   onExport: () => void;
   /** Open the file picker for "Import config…". */
   onImport: () => void;
+  /** Import an InfoPanel profile (the Import dialog). */
+  onImportInfoPanel: () => void;
+  /** Export the profile's canvas zone (the Export dialog); off without one. */
+  onExportInfoPanel: () => void;
+  canExportInfoPanel: boolean;
   onReset: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -183,6 +190,9 @@ function MoreMenu({
   profile,
   onExport,
   onImport,
+  onImportInfoPanel,
+  onExportInfoPanel,
+  canExportInfoPanel,
   onReset,
   onPalette,
   onShortcuts,
@@ -192,7 +202,19 @@ function MoreMenu({
   onRedo,
 }: Pick<
   StudioTopBarProps,
-  "profile" | "onExport" | "onImport" | "onReset" | "onPalette" | "onShortcuts" | "canUndo" | "canRedo" | "onUndo" | "onRedo"
+  | "profile"
+  | "onExport"
+  | "onImport"
+  | "onImportInfoPanel"
+  | "onExportInfoPanel"
+  | "canExportInfoPanel"
+  | "onReset"
+  | "onPalette"
+  | "onShortcuts"
+  | "canUndo"
+  | "canRedo"
+  | "onUndo"
+  | "onRedo"
 >) {
   const [copied, setCopied] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -235,6 +257,12 @@ function MoreMenu({
               <Menu.Item className={ITEM} onClick={onImport}>
                 <Upload className="h-3.5 w-3.5" /> Import config…
               </Menu.Item>
+              <Menu.Item className={ITEM} onClick={onImportInfoPanel}>
+                <FileInput className="h-3.5 w-3.5" /> Import InfoPanel profile…
+              </Menu.Item>
+              <Menu.Item className={ITEM} disabled={!canExportInfoPanel} onClick={onExportInfoPanel}>
+                <FileOutput className="h-3.5 w-3.5" /> Export InfoPanel canvas…
+              </Menu.Item>
               <Menu.Item className={ITEM} onClick={copyProfile}>
                 <Copy className="h-3.5 w-3.5" /> Copy profile JSON
               </Menu.Item>
@@ -271,6 +299,10 @@ function MoreMenu({
     </>
   );
 }
+
+/** Import / Export: plain text buttons before Save; hidden on a phone (they stay in the "⋯" menu). */
+const TEXT_BUTTON =
+  "flex h-8 items-center whitespace-nowrap rounded-[7px] px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:text-ui-5 disabled:hover:bg-transparent max-md:hidden";
 
 /** Undo / redo: #c9c9cf when they can act, #4a4a52 when they cannot. */
 const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
@@ -328,6 +360,23 @@ export function StudioTopBar(props: StudioTopBarProps) {
           className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 max-sm:px-2"
         >
           <Maximize className="h-[17px] w-[17px]" strokeWidth={1.75} /> <span className="max-sm:sr-only">Kiosk view</span>
+        </button>
+        <button
+          type="button"
+          onClick={props.onImportInfoPanel}
+          title="Import an InfoPanel profile: .infopanel, folder, installed or saved canvas"
+          className={TEXT_BUTTON}
+        >
+          Import
+        </button>
+        <button
+          type="button"
+          onClick={props.onExportInfoPanel}
+          disabled={!props.canExportInfoPanel}
+          title={props.canExportInfoPanel ? "Export the canvas zone as .infopanel or .canvas.zip" : "Export needs a canvas zone on this page"}
+          className={TEXT_BUTTON}
+        >
+          Export
         </button>
         <button
           type="button"

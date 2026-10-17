@@ -150,6 +150,39 @@ export async function uploadAsset(
   return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
 }
 
+/** Tries of an upload the server turns away as busy (429: it runs two at a time). */
+const BUSY_TRIES = 6;
+
+/**
+ * Upload bytes of a known type (an imported profile's asset, a font, an SVG): the
+ * server sniffs them and refuses a mismatch. Resolves with the stored asset id and URL.
+ * A busy server (429) is asked again after a growing pause.
+ */
+export async function uploadBytes(
+  bytes: Uint8Array,
+  mime: string,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))
+): Promise<Pick<Asset, "id" | "url" | "type" | "size">> {
+  const body = new Blob([bytes.slice()], { type: mime });
+  for (let attempt = 1; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(ASSETS_URL, { method: "POST", headers: { ...WRITE_HEADERS, "Content-Type": mime }, body });
+    } catch {
+      throw new AssetError("The dashboard server could not be reached.");
+    }
+    if (res.status === 429 && attempt < BUSY_TRIES) {
+      await wait(250 * attempt);
+      continue;
+    }
+    if (!res.ok) {
+      const messages: Record<number, string> = { 404: OUTDATED, 405: OUTDATED, 415: "The server does not take this file type.", 429: "The server stayed busy: try again." };
+      throw new AssetError(messages[res.status] ?? assetErrorMessage(res.status));
+    }
+    return (await res.json()) as Pick<Asset, "id" | "url" | "type" | "size">;
+  }
+}
+
 /** Every uploaded asset, newest first. */
 export async function listAssets(): Promise<Asset[]> {
   const res = await request(ASSETS_URL, { cache: "no-store" });

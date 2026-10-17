@@ -350,353 +350,7 @@ A canvas zone (`module: "infopanel"`, `CANVAS_ID`) holds an imported
 InfoPanel profile in `Placement.canvas`: the stored form
 (`src/lib/infopanel/import/stored.ts`, `infopanel-canvas` v1), with
 InfoPanel's own field names, unknown fields kept, and the import's
-decisions per item under `# Architecture
-
-How sensor data reaches a zone, how a zone is rendered, and how the layout
-config is stored and synced. Everything here is read from the code; file
-paths are given so you can check.
-
-```
-InfoPanel Data API  (default http://127.0.0.1:3921)
-   /events?prefix=…   /api/sensors   /api/sources   /api/images/…
-        │  read straight from the browser (CORS)
-        ▼
- browser page ──── /api/config, /events/config, /api/image-proxy, /api/assets ────▶ dashboard server
- (kiosk or studio)                                                                   (server.mjs, 127.0.0.1:3922)
-```
-
-Sensor data never passes through the dashboard server. `server.mjs` serves
-the build, stores the config and uploaded media, and proxies cover-art
-images; the page talks to the Data API directly.
-
-## 1. The InfoPanel Data API
-
-The base URL is the `dataApiUrl` setting of the config, default
-`http://127.0.0.1:3921` (`src/lib/data-api.ts`). `normalizeApiBase` accepts
-only http(s) URLs and trims trailing slashes; anything else falls back to the
-default. `App` applies the saved value before the first connection and
-follows later changes (`setApiBase`), so changing the URL in the studio
-reconnects without a reload.
-
-| Endpoint | Used for | Code |
-|---|---|---|
-| `/events?prefix=<ns>&interval=1000` | Live sensor values (one stream per namespace) | `sensor-store.ts` |
-| `/events` | The unfiltered stream, a full snapshot every second (fallback, see below) | `sensor-store.ts` |
-| `/events?prefix=plugins.wavelink-plugin.wavelink.&interval=100` | Wave Link meters, their own stream | `wavelink.ts` |
-| `/api/sensors` | Discovery of top-level sources; one snapshot for the studio's pickers | `sensor-store.ts`, `catalog.ts` |
-| `/api/sources` | Plugin, container and entry names and types for the studio's pickers | `catalog.ts`, `sources.ts` |
-| `/api` | "Test connection" (`testApiBase` expects status 200) | `data-api.ts` |
-| `/api/images/{pluginId}/{imageId}` | Images a plugin hands to InfoPanel | `image.ts` |
-
-### Prefix streams (`src/lib/sensor-store.ts`, `sensor-stream.ts`)
-
-`sensorStore` is the page's one connection to sensor values. It does not poll
-and does not read the full snapshot; it opens a filtered change stream per
-namespace that mounted widgets read.
-
-- **Namespace.** `namespaceOf` maps a key prefix to its stream prefix:
-  `plugins.<first id segment>.` for plugin keys (`plugins.spotify-plugin.`),
-  otherwise the top-level source (`libre.`, `system.`, `hwinfo.`, `spotify.`).
-- **Messages.** Each message is `{ timestamp, sensors?, removed? }`. The first
-  message after every (re)connect is the full set under the prefix; later
-  ones carry only changed keys and removed keys. `mergeEvent` merges them
-  copy-on-write: unchanged readings keep their old object, and a message that
-  changes nothing returns the previous map itself. After a (re)connect, keys
-  under the prefix that the full set does not carry are dropped.
-- **Reference counting.** `retain(prefixes)` returns a release function.
-  A stream opens (in a microtask, so a grid mounting many zones is planned
-  once) with its first reader and closes 2 s after its last reader goes
-  (`CLOSE_DELAY_MS`), so a quick re-mount reuses it. When a stream closes,
-  values only that stream kept current are dropped.
-- **Connection limit.** Browsers allow six connections per host over plain
-  HTTP. `MAX_STREAMS` is 4, leaving room for the Wave Link stream.
-  `planStreams` handles more namespaces than that: first it folds all plugin
-  namespaces into one `plugins.` stream; if that is still too many, it uses
-  the single unfiltered `/events` stream. A `plugins.` stream already covers
-  every plugin namespace, so narrower plugin streams are dropped when it is
-  wanted.
-- **Reconnection.** `EventSource` reconnects on its own after a dropped
-  connection, and the next message is a full set again. If the server refuses
-  a stream and the `EventSource` closes for good, the store reopens it after
-  5 s while it is still wanted. The last values stay on screen meanwhile;
-  `useSensorsConnected` is true only while every open stream is open (and
-  vacuously true with none), which drives the header badge.
-- **Discovery ("every sensor").** The "Other sensors" catch-all zone reads
-  every key (`useSensors(null)`). While it is mounted the store opens the
-  base namespaces `plugins.`, `libre.` and `system.`, fetches `/api/sensors`
-  to list the top-level sources that exist, and re-lists every 30 s to catch
-  sources that start late (retrying after 5 s on failure).
-- **URL change.** `setBase` closes every stream, clears all values, notifies
-  subscribers and reconnects against the new base.
-
-### The studio's catalog (`src/lib/catalog.ts`)
-
-The studio's pickers (the Data Explorer, the bind picker, a widget's source
-select) do not use the streams. `useSensorCatalog` fetches `/api/sources` and
-one `/api/sensors` snapshot together, reuses a copy younger than 10 s, shares
-one in-flight fetch, and starts over when the Data API URL changes.
-
-### Images
-
-`isImageUrl` decides which text sensor values are images (a URL with an image
-extension, a sensor key naming an image field, a known image CDN, or a Data
-API image path). `resolveImageUrl` resolves a root-relative
-`/api/images/…` path against the Data API URL rather than the dashboard
-server. To sample colors from cover art, the Now Playing widget fetches it
-(`src/widgets/NowPlaying/art-tint.ts`) through `/api/image-proxy?url=` on the
-dashboard server (https anywhere, http only on loopback), except same-origin
-images, which it loads directly. The proxy relays only images (`server/proxy.mjs`):
-`image/*` except SVG, or `application/octet-stream` / no type when the bytes are
-png, jpeg, gif, webp or avif (served with the sniffed type); anything else is 406.
-Responses carry `X-Content-Type-Options: nosniff`.
-
-## 2. Per-zone rendering
-
-A zone only re-renders when one of the keys it reads changes.
-
-- A module declares `prefixes` (keys it owns) and optionally `reads` (further
-  prefixes it reads without owning). `moduleReads(mod)` is both
-  (`src/modules/index.ts`). The "Other sensors" catch-all skips the keys of
-  the plugins a built-in widget covers (`isClaimed`, a fixed prefix list).
-- `placementPrefixes(placement)` returns what a placement subscribes to
-  (`src/components/studio/placement-content.tsx`): `[]` for a blank zone,
-  the bound sensor keys of the visible widgets for a custom panel,
-  `null` (every sensor) for the "cards" catch-all, and `moduleReads` for a
-  module. A widget template that needs data but cannot name its keys up front
-  (a bound sensor, discovered hardware: System overview, Vitals, Thermals,
-  Sensor value, …) is marked `readsAll` by `templateModule` and gets `null`, so
-  it subscribes to every stream. A module with no prefixes and no data need
-  (Web Page; Wave Link, which reads its own stream)
-  subscribes to nothing and opens no sensor stream.
-- `LivePlacement` calls `useSensors(prefixes)` (`src/hooks/useSensors.ts`).
-  That retains the namespaces for the lifetime of the component and wraps the
-  store in `useSyncExternalStore`, notifying only when a changed key starts
-  with one of its prefixes. The returned map holds every streamed key, so
-  modules read it as a plain `SensorMap`.
-
-The kiosk grid (`App.tsx`) and the studio canvas both render zones through
-`LivePlacement`.
-
-### Style resolution (`src/lib/style-resolve.ts`)
-
-Every zone's look is resolved before it renders. Only the look keys
-(`PROFILE_STYLE_KEYS`) are layered, lowest first:
-
-```
-module default            (a panel: its legacy PanelDef accent / background)
-  → dashboard style       DashboardConfig.style
-  → profile style         MonitorProfile.style
-  → the widget's own      Placement.settings - skipped when Placement.styleMode is
-                          "follow" or the global style is forced
-```
-
-`resolveStyle({ moduleDefaults, dashboard, profile, own, mode, enforce })`
-returns the settings (content keys always from `own`) and a per-key
-`source` (`default` / `dashboard` / `profile` / `own`) that the
-inspector's dots show. `appearanceOf(config, profile)` collects the two
-style layers and the force switch (`profile.styleEnforce ?? config.styleEnforce`)
-into an `Appearance`; `App.tsx` and the studio canvas pass it to
-`LivePlacement`, and `placementContent` resolves each zone with
-`resolveWith(appearance, own, placement.styleMode, moduleDefaults)`. A
-`styleMode` of `"custom"` or none keeps the per-key order; `"follow"`
-ignores the widget's own look values but keeps them stored.
-
-### Where each setting comes from
-
-Every layered setting resolves the same way, lowest first; the first level
-that sets a value wins from the right:
-
-| Setting | App default | Dashboard (`DashboardConfig`) | Profile (`MonitorProfile`) | Widget (`Placement`) | Resolved by |
-|---|---|---|---|---|---|
-| Look keys (surface, accent, font, …) | the module's defaults | `style` | `style` | `settings` (unless `styleMode: "follow"` or forced) | `resolveStyle` (style-resolve.ts) |
-| Force global style | off | `styleEnforce` | `styleEnforce` | - | `isEnforced` |
-| Theme colours, corner radius | `DEFAULT_THEME`, 0.5 rem | `theme`, `radius` | `theme` (partial, over the dashboard's), `radius` | - | `resolveTheme` (theme.ts) |
-| Page background | none (the theme's page colour) | `background` | `background` (`{ type: "none" }` turns it off) | - (a widget's own background image is a look key) | `resolveBackground` (appearance.ts) |
-| Grid gap, padding | 12 px; padding per mode (`profilePadding`) | - | `gap`, `padding` | - | `profileGap` / `profilePadding` (profile-grid.ts) |
-| General (font, clock, locale, motion, cursor) | `GENERAL_DEFAULTS` | `general` | - | - (a widget's Font look key beats the page font) | `resolveGeneral` (general.ts) |
-
-### The render pipeline of a module zone
-
-```
-Placement.settings
-  → resolveWith(appearance, settings, styleMode) dashboard → profile → own (see above)
-  → mod.render(sensors, settings)
-       → hasKeys(sensors, prefixes)               no key under the prefixes: null (no data)
-       → <TemplateZone>                           src/widgets/module.tsx (templateModule)
-            → toFlat(sensors), toNames(sensors)   the data adapter, memoised per map
-            → useZoneLook(defs, settings)         effectiveSettings; a chosen skin brings its
-                                                  surface; skin fonts are loaded
-            → <Component data names {...shellProps(look)} {...toProps(look)} look>
-                 → <Widget {...shell(p)}>         the shell (below): chromeOf(look) → zoom,
-                                                  surface box, text variables, header
-                      → content / <CompactView> / <StudioView>
-  → PlacementFrame                                grid position, the zone's re-scoped tokens
-                                                  (PlacementRender.scope); studio chrome or kiosk plain
-```
-
-- `effectiveSettings` is in `src/modules/types.ts`,
-  `chromeOf` in `src/modules/standard-settings.ts`, `surfaceBox`, `tokenScope`
-  and the `--wp-*` helpers in `src/components/widget-style.ts`, and the
-  shared materials (`makeSurface`, the theme surface, `surfaceColors` /
-  `surfaceTokens`) in `src/components/surfaces.ts`. The keys and their effects
-  are in [widget-settings.md](widget-settings.md).
-- Every zone type that is a module goes this way: the library templates and the
-  "Other sensors" catch-all (`src/modules/other-sensors.tsx`, one `SensorValue`
-  per unclaimed key). Only custom panels take the other pipeline (below).
-- `ModernChrome` (`src/components/modern-chrome.tsx`) is now the root of
-  panel zones; library widgets get the same `chrome` object from the shell.
-- A `render` that returns `null` means "no data": the studio shows a
-  placeholder, the kiosk leaves the zone empty (`PlacementFrame` renders
-  nothing when `hasData` is false or the zone is blank). A template renders
-  nothing only while no key under its prefixes exists; `SENSORLESS` ids
-  (Clock, Calendar, Web Page, Wave Link) always render.
-- `Placement.design` (accent, background, title header) is applied by
-  `PlacementFrame` around the content, separately from the widget settings.
-- **Errors.** `PlacementFrame` wraps each zone in a boundary
-  (`src/components/zone-error-boundary.tsx`): a widget that throws shows a
-  small error tile and the other zones keep rendering.
-
-### The widget shell
-
-`src/widgets/` is the widget library: 50 templates, each a component over flat
-string data, drawn inside one `<Widget>` (`src/widgets/core/Widget.tsx`).
-`src/widgets/kit.ts` re-exports what a widget file needs from `core/`.
-
-- **Measuring.** `useBox` observes the shell's outer size and returns a
-  `Box`: `w`, `h`, a size tier (`xs` < 220×140 ≤ `sm` < 340×210 ≤ `md` <
-  500×320 ≤ `lg`) and a shape from the zone's aspect (`tile` under
-  240×240, `strip` at ratio ≥ 2.6 and under 160px tall — one row of a square
-  grid — `column` at ratio ≤ 0.62 and under 260px wide, else `box`). On a
-  grid of short rows (a 1920×550 strip profile, ~156×42px cells) a wide zone
-  of several rows is therefore a `box` and shows the widget, not the
-  one-line summary. The standard `layout` option forces the tier. The
-  content callback receives the *inner* size (after padding and header) too,
-  so a widget counts its rows from the room that exists.
-- **Views.** Besides its normal layout a widget gives the shell a `compact`
-  descriptor (a tile, strip or column summary, the **Summary card**) and a
-  `studio` descriptor (the dense variant). `summaryShape` (`core/layout.ts`)
-  picks the card's form from `compactView`: `auto` for a tile, strip or column
-  zone, `off` never, `on` always (a box becomes a strip when wide, a column
-  when tall, else a tile). `CompactView` and `StudioView` (`core/views.tsx`) draw them.
-- **The look.** The shell maps the standard look keys onto the zone
-  (`core/look.ts`): `chromeVars`, the surface box with border, glow, opacity and
-  blur (`lookBox`), text colors, font and weight (replacing the skin's), label
-  case, padding and gap (overriding the tier padding), `stroke` (scaling ring
-  and graph strokes), the background image with a scrim, the scoped custom CSS
-  and the header icon and title. Size % zooms the content box; the tier and
-  shape are measured after the zoom.
-- **Text colors.** The shell sets `--w-fg`, `--w-muted`, `--w-faint` and
-  `--w-track` from the surface's tone (dark, light or theme), so text stays
-  legible on matte-light and on a light theme. Widgets use these variables, not
-  fixed greys; the fixed colors are `STATE` (ok, warn, crit).
-
-### Skins and surfaces
-
-A skin (`core/skins/<name>.ts`, 14 of them, registered in `SKIN_PACKS` in
-`core/theme.ts`) is a bundle of tokens: surface, radius, accent, fonts (UI and
-numerals), numeral weight and glow, graph and meter style, header style and ring
-thickness, plus `numWide` (the numeral face's width against a normal sans, for
-wide faces such as Orbitron, so fitted numbers still fit). `skinContext` merges it with the look into the `SkinCtx` that the
-primitives (`Num`, `Bar`, `Spark`, `Ring`, `LedLadder`, …) read, so a widget
-draws the same data in every skin. `resolveSurface` picks the surface:
-the `surface` setting, else the skin's, else `glass`. The app's four
-materials (`glass`, `matte-light`, `matte-dark`, `theme`) are registered in the
-same table beside the skins' own, so a stored surface keeps its meaning.
-
-Skin and surface overlap only in the card: the skin owns type, numerals,
-graphs, meters, header and decorations and brings a card; the surface replaces
-just the card. The `surface` setting offers `auto` (the skin's card; same as
-unset), the four materials and the generic cards of `BASE_SURFACES`; panels and
-plain cards keep the four. Picking a skin sets `surface: "auto"` (the skin
-option's `applies`), so a skin shows whole until a surface is chosen again.
-The other look keys that override a skin token when set: accent, font,
-value weight, graph, meter, stroke. The card's corner is the look's `radius`,
-else the profile's (`var(--radius)`, Profile › Corner radius, falling back to the
-dashboard `radius`), like panels;
-the skins' `radius` token no longer reaches the shell. Appearance › Theme &
-surface also sets the global `surfaceOpacity` and `blur` (Background opacity
-and blur), which let a page image or video show through the cards. `smoothing` (Graph updates: Stepped / Smooth) sets `SkinCtx.smooth`; `Spark` then
-draws line / area / step graphs through `SmoothGraph`, which scrolls them by time: each sample
-sits at its arrival time and the right edge moves at real-time speed about two measured intervals
-(`FeedClock`) behind the feed (`SmoothScroll`), drifting at most ±5 % to keep that lag, so readings
-that arrive early, late or repeated never jump it back or stop it; the lag's interval is eased
-twice (~4 s) and the window width's far slower (~30 s), because uneven feeds (2–3 s apart) move the
-measured interval on every reading and a width that followed it would shift every point; the window keeps the full history's width (`HISTORY_LEN`) while a
-history fills, so the graph fills in from the right instead of rescaling per sample; React writes
-the path only on mount (the loop owns it after), so a new sample never flashes the static layout;
-the auto range eases (`core/smoothing.ts`, after the widget
-sampler, whose per-sample glide stalled on jitter). `Bar` / `Ring` glide linearly; reduced
-motion keeps graphs stepped.
-
-Throughput sensors (`libre.*_download_speed`, `_upload_speed`, `_read_rate`, `_write_rate`) are
-**bytes per second**, although the source labels them "KB/s" (an Ethernet max of 107,450,768
-would be 102 GB/s; as bytes it is 860 Mb/s, and only bytes match the adapter's
-`network_utilization` of its link). `fmtRate` (`core/data.ts`) formats them with decimal prefixes,
-`auto` or a fixed `RateUnit` (MB/s, Mb/s, KB/s, Kb/s, Mbps; Network Traffic's `rateUnit`), and `toMBps`
-gives the number for widgets that print the unit apart.
-`variant` (Dense summary) is a layout mode
-under Size & alignment, not a style. In the studio, Appearance › Skins draws
-every skin live (`skin-gallery.tsx`) above the user's saved looks, and Theme &
-surface shows surface and theme swatches (`surface-picker.tsx`,
-`theme-panel.tsx`) over the editable theme colours.
-A skin's accent applies only when no accent is set and the surface is not
-light. Skin fonts load lazily (`ensureSkinFonts`). Custom panels use the skin
-through `components/widgets/panel-skin.tsx` when a skin is set; with `auto`
-they render as before.
-
-### Data adapter (`src/widgets/data-adapter.ts`)
-
-Templates read `Record<string, string>`, the app has `SensorMap`
-(`{ value, text, unit, name }` per key). `toFlat(map)` turns a reading into its
-text, else the number plus its unit, and leaves out keys with neither. It
-also leaves out a power, temperature or clock (W, °C, MHz) that has read 0
-with min and max 0 (`neverReported`): the source has never read it (for
-example no low-level CPU access), so widgets show "–" instead of a real-looking
-0. `toNames(map)` carries the sensors' display names for auto-discovered rows. Both
-are memoised per map identity. The data is the page's shared stream (the zone's
-`useSensors`); the adapter never opens another connection. Image URLs go
-through `resolveImageUrl`. Plugins whose containers are dynamic (files, device
-serials) are looked up with `entryText` and `containers`
-(`src/widgets/entries.ts`).
-
-### QA harness
-
-`?widget-qa` (a lazy chunk, `src/widgets/widget-qa.tsx`, never linked) renders
-every module at a set of spans through `placementContent` from fixture sensors
-(`src/widgets/__fixtures__/`), in both variants, any skin and surface, and on a
-light theme (`theme=paper`). `window.__qaOverflow()` reports, per zone, what
-pokes out of it (`exceeds`), leaf text that overlaps (`overlaps`) and content
-cut off by `overflow: hidden` (`clipped`); the geometry is pure
-(`qa-geometry.ts`, unit-tested). Parameters, the screenshot recipe and the
-probe are in [redesign/phase9/qa.md](redesign/phase9/qa.md). It is a
-development tool only.
-
-### Audio visualiser (`src/widgets/core/viz/`)
-
-One engine draws every visualiser (NowPlaying through `MediaProgress`,
-GameSpotlight's music card, the Visualizer widget); it replaces `MiniViz`, `BarVisualizer` and
-`LiveWaveform` and their sources (`sensor-visual-source`, `bar-levels`, `history-playback`).
-
-- `use-viz-input.ts`: per row, the live source in order capture (Web Audio, `useMediaVisualSource`,
-  bands on the plugin's -80..0 dBFS scale) > the AudioMeter plugin's `spectrum` > its level > none.
-  `input.ts` (pure) shapes the bands with `dynamics.ts` (back to dB, a treble tilt in dB/oct around
-  1 kHz, floor..ceiling to 0..1, a slow auto-gain that never lifts silence), eases them by time and
-  keeps a 50 ms level history for `scroll`. It runs in the frame loop's update phase while an engine
-  reads it.
-- `engine.ts`: a canvas painted in the paint phase, DPR-aware, asleep off-screen and while hidden;
-  `palette.ts` resolves the Follow / Custom colours through a probe at most every 500 ms, so a theme
-  or skin change repaints live; `draw.ts` has one drawing per style. Reduced motion jumps the easing
-  and the peak caps. Nothing is synthesised: every pixel comes from the bands, the waveform or the
-  level history.
-- `?viz-gallery` (a lazy dev page, `viz-gallery.tsx`) draws every style under four skins and three
-  Custom looks from a deterministic test signal.
-- Capture: `getSharedAudioContext` starts suspended until a user gesture; `resumeOnGesture` resumes it
-  on the first pointerdown / keydown / touchstart, and `useMediaVisualSource` reports `"blocked"`
-  (with `GESTURE_HINT`) until then instead of waiting on `resume()`.
-- In dev, `window.__vizInputs()` lists every live input (device, source, raw and shaped peak band,
-  bands), for checking a test tone against the bands.
-
- (mode, Data API key). `placementContent`
+decisions per item under `$` (mode, Data API key). `placementContent`
 subscribes the zone to the keys its items read (`canvas-keys.ts`, read
 straight from the JSON) and lazy-loads `CanvasZone`
 (`src/components/infopanel/`), so the InfoPanel renderer is its own chunk.
@@ -708,6 +362,46 @@ native items through the app's widgets (`native.tsx`). Assets load from
 the asset store by SHA-256 (`/api/assets/<hash>.<ext>`), fonts from the
 Data API's resolve endpoint when InfoPanel offers it, graph history from a
 per-zone `KeyHistory` (InfoPanel's 4096 samples per key).
+
+### Importing and exporting an InfoPanel profile
+
+Import (top bar Import, the "⋯" menu, or the Add panel's "Canvas zone ·
+Import .infopanel" card) is a five-step dialog,
+`src/components/infopanel/import/`, loaded on first open so neither the
+kiosk nor the studio's first paint carries the parser. Nothing reaches the
+config until the last step:
+
+- **Source** (`src/lib/infopanel/import/session.ts`): an `.infopanel` or a
+  saved `.canvas.zip` (told apart by `canvas.json`), an extracted folder
+  (entries relative to the folder holding `Profile.xml`), a profile
+  installed in InfoPanel (`/api/infopanel/installed`), or a canvas from My
+  library (`openStored`, every file read back from the asset store and
+  checked against its SHA-256). As soon as a source opens, its files upload
+  to the asset store in the background, two at a time (the server's
+  `MAX_IN_FLIGHT`; `uploadBytes` asks again after a 429). Continue waits
+  for the upload; a refused file is listed and its items draw without it.
+- **Mode**: Faithful, Native where possible, or Both (starts native);
+  `withMode` (`native/modes.ts`) sets the flag on every item that converts.
+- **Review**: `buildReport` (`import/report.ts`) as tiles and rows.
+- **Sensors**: `RemapPanel` (`src/components/infopanel/remap-panel.tsx`)
+  over the studio's sensor catalog (`useSensorCatalog`). Continue waits
+  while a group is unresolved; with the Data API unreachable the import goes
+  on and the groups stay unresolved.
+- **Save**: `buildCanvas` writes the stored form (the remapped keys, the
+  store's extension where it differs, e.g. a WebM video), and
+  `src/components/studio/import-actions.ts` lands it in one `setConfig` (one
+  undo step): a new profile the InfoPanel size (2 × 1 cells, fill, the zone
+  spanning both), or a canvas zone in the free box of the current page that
+  draws it largest. "Also save … to the Library" posts it to
+  `/api/library` as a `canvas` item whose files are the uploaded asset ids.
+
+Export (`src/components/infopanel/export-dialog.tsx`, helpers in
+`src/lib/infopanel/export/studio-export.ts`) writes the selected canvas
+zone, else the page's first: the stored form as `<name>.canvas.zip` (with
+the supplied fonts the canvas still draws with, after the licence review),
+or an `.infopanel` for InfoPanel, which carries no fonts. Baking stale
+vector gauges first uploads the new frames and puts them on the zone as one
+undo step. Both download through the browser.
 
 ### The render pipeline of a panel zone
 

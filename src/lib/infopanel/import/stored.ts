@@ -43,6 +43,8 @@ export interface StoredAsset {
   hash: string;
   type: AssetType;
   size: number;
+  /** The app's asset store extension, when it differs from the type's usual one (a WebM video). */
+  ext?: string;
 }
 
 export interface StoredFont {
@@ -288,7 +290,8 @@ export function readStored(raw: unknown): ReadStored {
     const ao = obj(a);
     const name = fileName(ao?.name);
     if (!ao || !name || typeof ao.hash !== "string" || !HASH_HEX.test(ao.hash) || typeof ao.type !== "string" || !ASSET_TYPES.has(ao.type)) return [];
-    return [{ name, hash: ao.hash, type: ao.type as AssetType, size: typeof ao.size === "number" ? ao.size : 0 }];
+    const ext = typeof ao.ext === "string" && /^[a-z0-9]{2,5}$/.test(ao.ext) ? { ext: ao.ext } : {};
+    return [{ name, hash: ao.hash, type: ao.type as AssetType, size: typeof ao.size === "number" ? ao.size : 0, ...ext }];
   });
   const fonts: StoredFont[] = (Array.isArray(o.fonts) ? o.fonts : []).flatMap((f) => {
     const fo = obj(f);

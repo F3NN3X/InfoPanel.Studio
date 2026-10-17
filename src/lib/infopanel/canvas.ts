@@ -44,8 +44,8 @@ export interface OpenCanvas {
 }
 
 /** The asset store URL of a stored asset, or null when the store does not take its type. */
-export function assetUrl(hash: string, type: AssetType): string | null {
-  const ext = STORE_EXT[type];
+export function assetUrl(hash: string, type: AssetType, storeExt?: string): string | null {
+  const ext = storeExt ?? STORE_EXT[type];
   return ext ? `${ASSETS_URL}/${hash}.${ext}` : null;
 }
 
@@ -86,7 +86,7 @@ export function openCanvas(raw: unknown): OpenCanvas {
   if (cached) return cached;
   const { stored, profile, items, keys: imports, issues } = readStored(raw);
   const assets = new Map<string, CanvasAsset>();
-  for (const a of stored.assets) assets.set(a.name.toLowerCase(), { hash: a.hash, url: assetUrl(a.hash, a.type) });
+  for (const a of stored.assets) assets.set(a.name.toLowerCase(), { hash: a.hash, url: assetUrl(a.hash, a.type, a.ext) });
   const open: OpenCanvas = { stored, profile, items, issues, imports, assets, ...index(items, imports) };
   opened.set(raw as object, open);
   return open;
@@ -143,4 +143,12 @@ export class KeyHistory {
 export function fitScale(profile: Pick<Profile, "Width" | "Height">, w: number, h: number): number {
   if (profile.Width <= 0 || profile.Height <= 0 || w <= 0 || h <= 0) return 1;
   return Math.min(w / profile.Width, h / profile.Height);
+}
+
+/** A stored file's bytes from the asset store (fonts by their file's extension), or null when it is not there. */
+export async function readStoreFile(hash: string, ext: string | undefined, type: AssetType, fetchImpl: typeof fetch = fetch): Promise<Uint8Array | null> {
+  const url = type === "other" ? (ext ? `${ASSETS_URL}/${hash}.${ext}` : null) : assetUrl(hash, type, ext);
+  if (!url) return null;
+  const res = await fetchImpl(url);
+  return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
 }

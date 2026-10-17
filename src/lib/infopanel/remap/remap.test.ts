@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { parseDisplayItemsXml } from "../parse.ts";
 import { buildCatalog } from "../sensors.ts";
-import { groupBindings, indexCatalog, needsAttention, resolveAll, resolveGroup, search, statusOf, suggest } from "./remap.ts";
+import {
+  candidateReason,
+  confirmAll,
+  filterCounts,
+  groupBindings,
+  inFilter,
+  indexCatalog,
+  needsAttention,
+  remapRows,
+  resolveAll,
+  resolveGroup,
+  search,
+  statusOf,
+  suggest,
+  withChoice,
+} from "./remap.ts";
 
 const item = (type: string, fields: Record<string, string | number> = {}) =>
   `<DisplayItem xsi:type="${type}DisplayItem">${Object.entries(fields)
@@ -118,5 +133,42 @@ describe("search", () => {
     const [load] = groupBindings(parse(item("Sensor", libre("GPU Core", "/gpu-amd/0/load/0"))));
     expect(search(index, "gpu core")).toEqual(["libre.rtx_gpu_core", "libre.rtx_gpu_core_load"]);
     expect(search(index, "gpu core", 50, load)).toEqual(["libre.rtx_gpu_core_load", "libre.rtx_gpu_core"]);
+  });
+});
+
+describe("the remap panel's rows", () => {
+  const items = parse(
+    item("Sensor", plugin("FPS", "/fps-plugin/fps/fps")) +
+      item("Sensor", libre("GPU Core", "/gpu-amd/0/temperature/0")) +
+      item("Sensor", libre("Nothing like it", "/nvme/0/data/9")) +
+      item("Sensor", plugin("Gone", "/gone-plugin/x/y")),
+  );
+  const groups = groupBindings(items);
+  const [fps, gpu, none, gone] = groups.map((g) => g.id);
+
+  it("states each group: Matched, Check, Unresolved; Confirmed when the user accepts the automatic key", () => {
+    const rows = remapRows(groups, index, resolveAll(groups, index, new Map()), new Map());
+    expect(rows.map((r) => r.state)).toEqual(["matched", "check", "unresolved", "unresolved"]);
+    const confirmed = confirmAll(rows, new Map());
+    expect(confirmed).toEqual(new Map([[gpu, rows[1].match!.key]]));
+    const after = remapRows(groups, index, resolveAll(groups, index, confirmed), confirmed);
+    expect(after.map((r) => r.state)).toEqual(["matched", "confirmed", "unresolved", "unresolved"]);
+  });
+
+  it("a different key is Your choice, '' is Left unbound, and both count as done", () => {
+    const overrides = withChoice(withChoice(new Map(), none, "libre.nct_fan_1"), gone, "");
+    const rows = remapRows(groups, index, resolveAll(groups, index, overrides), overrides);
+    expect(rows.map((r) => r.state)).toEqual(["matched", "check", "chosen", "unbound"]);
+    expect(filterCounts(rows)).toEqual({ all: 4, check: 1, unresolved: 0, done: 3 });
+    expect(rows.filter((r) => inFilter(r.state, "done")).map((r) => r.group.id)).toEqual([fps, none, gone]);
+    expect(withChoice(overrides, none, null)).toEqual(new Map([[gone, ""]]));
+  });
+
+  it("explains a candidate in a few words", () => {
+    const g = groups[1];
+    const [best] = suggest(g, index);
+    expect(candidateReason(g, best)).toBe(best.strong ? "Strong · same reading type and name" : best.score >= 4 ? "Same reading type" : "Similar name");
+    expect(candidateReason(groups[0], { key: "k", score: 1, strong: true })).toBe("Strong · same plugin and reading");
+    expect(candidateReason(g, { key: "k", score: 1, strong: false })).toBe("Similar name");
   });
 });

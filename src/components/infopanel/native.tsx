@@ -25,9 +25,7 @@ import { toReading, type DataApiValue } from "@/lib/infopanel/sensors.ts";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { Catalog } from "@/lib/infopanel/sensors.ts";
 import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "@/lib/infopanel/native/convert.ts";
-
-/** The lab's mode flag on an item (not an InfoPanel field). */
-export const isNative = (item: DisplayItem) => (item as { native?: boolean }).native === true;
+import { isNative, walkPaths } from "@/lib/infopanel/native/modes.ts";
 
 export interface NativeLayer {
   /** Per flagged item: what it converted to, or why it stays faithful. */
@@ -42,25 +40,6 @@ export interface NativeLayer {
 export function sensorMap(catalog: Catalog): SensorMap {
   const out: SensorMap = {};
   for (const [key, v] of Object.entries(catalog.sensors)) out[key] = { ...v, unit: v.unit ?? "" } as SensorValue;
-  return out;
-}
-
-/** `hidden`: the item or a group around it is hidden in InfoPanel. */
-function walk(items: DisplayItem[], prefix: string, visit: (item: DisplayItem, path: string, hidden: boolean) => void, parentHidden = false) {
-  items.forEach((item, i) => {
-    const path = prefix ? `${prefix}.${i}` : String(i);
-    const hidden = parentHidden || item.Hidden;
-    visit(item, path, hidden);
-    if (item.kind === "Group") walk(item.DisplayItems, path, visit, hidden);
-  });
-}
-
-/** Paths of the items that can be drawn natively (for "switch all"). */
-export function convertible(items: DisplayItem[], ctx: ConvertContext): string[] {
-  const out: string[] = [];
-  walk(items, "", (item, path) => {
-    if (convert(item, path, ctx).ok) out.push(path);
-  });
   return out;
 }
 
@@ -287,7 +266,7 @@ export function nativeLayer(items: DisplayItem[], ctx: ConvertContext, sensors: 
   const conversions = new Map<string, Conversion>();
   const hidden = new Set<string>();
   const elements = new Map<string, ReactNode>();
-  walk(items, "", (item, path, isHidden) => {
+  walkPaths(items, (item, path, isHidden) => {
     if (!isNative(item)) return;
     const c = convert(item, path, ctx);
     conversions.set(path, c);

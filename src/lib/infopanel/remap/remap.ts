@@ -183,3 +183,68 @@ export function statusOf(g: Group, match: Match | null, overrides: Overrides): S
 
 /** Groups the remap step asks about. */
 export const needsAttention = (s: Status) => s === "name" || s === "suggested" || s === "unresolved";
+
+/**
+ * A group's state as the remap panel shows it: Matched (exact), Confirmed (the user accepted the
+ * automatic answer), Your choice, Check (by name or suggested), Unresolved, Left unbound.
+ */
+export type RemapState = "matched" | "confirmed" | "chosen" | "check" | "unresolved" | "unbound";
+
+export function remapState(g: Group, index: CatalogIndex, resolved: Match | null, overrides: Overrides): RemapState {
+  const status = statusOf(g, resolved, overrides);
+  if (status === "exact") return "matched";
+  if (status === "name" || status === "suggested") return "check";
+  if (status !== "chosen") return status;
+  return resolveGroup(g, index, new Map())?.key === overrides.get(g.id) ? "confirmed" : "chosen";
+}
+
+/** Settled: nothing left to decide (Matched, Confirmed, Your choice, Left unbound). */
+export const remapDone = (s: RemapState) => s === "matched" || s === "confirmed" || s === "chosen" || s === "unbound";
+
+/** Why a candidate is offered, in a few words. */
+export function candidateReason(g: Group, c: Candidate): string {
+  if (c.strong) return g.type === "Plugin" ? "Strong · same plugin and reading" : "Strong · same reading type and name";
+  return c.score >= 4 ? "Same reading type" : "Similar name";
+}
+
+export type RemapFilter = "all" | "check" | "unresolved" | "done";
+
+export interface RemapRow {
+  group: Group;
+  match: Match | null;
+  state: RemapState;
+}
+
+export function remapRows(groups: readonly Group[], index: CatalogIndex, resolved: ReadonlyMap<string, Match | null>, overrides: Overrides): RemapRow[] {
+  return groups.map((group) => {
+    const match = resolved.get(group.id) ?? null;
+    return { group, match, state: remapState(group, index, match, overrides) };
+  });
+}
+
+export function inFilter(state: RemapState, filter: RemapFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "done") return remapDone(state);
+  return state === filter;
+}
+
+/** Rows per filter, for the filter segment. */
+export function filterCounts(rows: readonly RemapRow[]): Record<RemapFilter, number> {
+  const count = (f: RemapFilter) => rows.filter((r) => inFilter(r.state, f)).length;
+  return { all: rows.length, check: count("check"), unresolved: count("unresolved"), done: count("done") };
+}
+
+/** The choices "Confirm all suggestions" makes: every Check row's automatic key, as one change. */
+export function confirmAll(rows: readonly RemapRow[], overrides: Overrides): Map<string, string> {
+  const next = new Map(overrides);
+  for (const r of rows) if (r.state === "check" && r.match) next.set(r.group.id, r.match.key);
+  return next;
+}
+
+/** The overrides with one group's choice set: a key, "" to leave unbound, or null back to automatic. */
+export function withChoice(overrides: Overrides, groupId: string, key: string | null): Map<string, string> {
+  const next = new Map(overrides);
+  if (key === null) next.delete(groupId);
+  else next.set(groupId, key);
+  return next;
+}

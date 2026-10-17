@@ -11,6 +11,7 @@ import {
   listAssets,
   unusedAssets,
   uploadAsset,
+  uploadBytes,
 } from "./assets";
 
 const ID = `${"a".repeat(64)}.png`;
@@ -137,5 +138,30 @@ describe("helpers", () => {
     expect(assetIdOf(`http://127.0.0.1:3922/api/assets/${ID}`)).toBe(ID);
     expect(assetIdOf("https://example.com/a.png")).toBeUndefined();
     expect(assetIdOf(undefined)).toBeUndefined();
+  });
+});
+
+describe("uploadBytes", () => {
+  it("posts the bytes with their type, and asks again while the server is busy", async () => {
+    const answers = [429, 429, 200];
+    const fetch = vi.fn(async () => {
+      const status = answers.shift()!;
+      return new Response(status === 200 ? JSON.stringify({ id: ID }) : null, { status });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const waits: number[] = [];
+    const out = await uploadBytes(new Uint8Array([1, 2]), "image/png", async (ms) => void waits.push(ms));
+    expect(out).toEqual({ id: ID });
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(waits).toEqual([250, 500]);
+    const init = (fetch.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.headers).toEqual({ "X-Dashboard-Asset": "1", "Content-Type": "image/png" });
+  });
+
+  it("gives up on a server that stays busy, and says why for other refusals", async () => {
+    respond(429);
+    await expect(uploadBytes(new Uint8Array([1]), "image/png", async () => {})).rejects.toThrow(/stayed busy/);
+    respond(415);
+    await expect(uploadBytes(new Uint8Array([1]), "image/svg+xml", async () => {})).rejects.toThrow(/does not take this file type/);
   });
 });

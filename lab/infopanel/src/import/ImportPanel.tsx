@@ -12,7 +12,7 @@ import { reviewFont, VERDICT_LABEL } from "@/lib/infopanel/font-licence.ts";
 import { bakeSignature, gaugePaths, isStale, safeStem, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames.ts";
 import { bake } from "@/lib/infopanel/gauges/raster.ts";
 import type { ConvertContext } from "@/lib/infopanel/native/convert.ts";
-import { convertible, isNative } from "@/components/infopanel/native.tsx";
+import { convertible, isNative } from "@/lib/infopanel/native/modes.ts";
 import type { Issue } from "@/lib/infopanel/parse.ts";
 import type { Group, Overrides } from "@/lib/infopanel/remap/remap.ts";
 import type { GaugeItem, Profile } from "@/lib/infopanel/schema.ts";
