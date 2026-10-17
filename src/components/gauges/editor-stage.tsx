@@ -14,7 +14,7 @@ export interface EditorStageProps {
 
 export function EditorStage({ gauge, playback, scope, themeName }: EditorStageProps) {
   return (
-    <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col items-center bg-ui-app p-5 font-ui">
+    <section aria-label="Preview" className="flex min-w-0 flex-1 flex-col items-center bg-ui-app p-5 font-ui max-[899px]:min-h-[420px] max-[899px]:flex-none">
       <div className="flex w-full min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[12px] border border-ui-subtle bg-[#0b0b0e]">
         <GaugeView gauge={gauge} p={playback.p} size={360} scope={scope} />
       </div>

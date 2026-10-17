@@ -126,7 +126,7 @@ function FramesEditor({ ref, edit, tools, write, onBack, onSaved }: FramesEditor
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
       <EditorHeader edit={edit} gauge={null} saving={shell.saving} onBack={shell.requestBack} onSave={() => void shell.save()} />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <FramesStage tools={tools} playback={playback} filter={filter} />
         <FramesInspector tools={tools} recolour={recolour} onRecolour={setRecolour} />
       </div>
@@ -164,7 +164,7 @@ function VectorEditor({ ref, edit, gauge: g, write, below, theme, onBack, onSave
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
       <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={shell.requestBack} onImported={imported} onExport={() => downloadSpec(edit.name, g)} onSave={() => void shell.save()} />
       <PresetStrip scope={scope} onPick={pick} />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <PartsList g={g} selected={selectable(g, part)} onSelect={setPart} set={set} />
         <EditorStage gauge={g} playback={playback} scope={scope} themeName={themeNameOf(theme)} />
         <PartInspector part={selectable(g, part)} g={g} set={set} />

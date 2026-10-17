@@ -8,6 +8,9 @@
 /** Docked: a right column. Floating: a card over the canvas, opened on demand. Sheet: a bottom sheet. */
 export type InspectorMode = "docked" | "floating" | "sheet";
 
+/** Below this viewport width the Library's and Gauges' detail panes become bottom sheets (the Gauges editor stacks). */
+export const NARROW_PAGE_WIDTH = 900;
+
 /** The studio width from which the inspector docks beside the canvas. */
 export const DOCKED_MIN_WIDTH = 1100;
 /** The studio width from which it floats over the canvas (a bottom sheet below). */

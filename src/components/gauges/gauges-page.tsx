@@ -13,6 +13,9 @@ import { editorOpenOf, newGaugeOpen, type EditorOpen } from "@/lib/gauge-studio/
 import { previewScope } from "@/lib/gauge-studio/preview";
 import { closeSession, openSession, sessionEditor, type EditorSlot } from "@/lib/gauge-studio/session";
 import type { ThemeTokens } from "@/lib/theme";
+import { useViewportBelow } from "@/hooks/use-viewport-below";
+import { PaneSheet } from "@/components/studio/pane-sheet";
+import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
 import { GaugeDetail, EmptyDetail } from "./gauge-detail";
 import { GaugeEditor, type EditorHandle } from "./gauge-editor";
 import { downloadSpec, ImportGaugeButton } from "./gauge-files";
@@ -46,6 +49,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
   const [editor, setEditor] = useState<EditorSlot | null>(sessionEditor);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   useGaugeKeys({});
+  const narrow = useViewportBelow(NARROW_PAGE_WIDTH);
 
   // Copies counted through the page's list, so the counts update in place.
   const bridge: StudioBridge = { ...studio, addCopy: lib.addCopy };
@@ -92,6 +96,20 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     if (e.gauge || e.files) void saveGauge({ name: `${e.name} copy`, gauge: e.gauge, from: e }).then((copy) => done(`library:${copy.id}`), failed);
   };
 
+  const detail = (entry: GaugeEntry, sheet: boolean) => (
+    <GaugeDetail
+      key={entry.key}
+      entry={entry}
+      sheet={sheet}
+      copies={library.itemOf(entry.key)?.copies.length}
+      scope={scope}
+      onEdit={() => openEditor(editorOpenOf(entry))}
+      onAddToCanvas={() => addToCanvas(entry)}
+      onDuplicate={() => duplicate(entry)}
+      onExport={() => entry.gauge && downloadSpec(entry.name, entry.gauge)}
+    />
+  );
+
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4">
@@ -134,7 +152,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
       {editor ? (
         <GaugeEditor key={editor.id} ref={editorRef} bridge={bridge} open={editor.open} editorId={editor.id} theme={theme} onBack={closeEditor} onSaved={lib.refresh} />
       ) : (
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">
             {lib.error && (
               <div role="alert" className="m-4 mb-0 rounded-lg border border-ui-danger/40 bg-ui-danger/10 px-3 py-2 text-[12.5px] text-ui-2">
@@ -144,18 +162,15 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
             <GaugesBrowse sections={sections} selectedKey={selected?.key ?? null} p={clock} scope={scope} onSelect={(e) => setSelectedKey(e.key)} onOpen={(e) => openEditor(editorOpenOf(e))} />
           </div>
           {selected ? (
-            <GaugeDetail
-              key={selected.key}
-              entry={selected}
-              copies={library.itemOf(selected.key)?.copies.length}
-              scope={scope}
-              onEdit={() => openEditor(editorOpenOf(selected))}
-              onAddToCanvas={() => addToCanvas(selected)}
-              onDuplicate={() => duplicate(selected)}
-              onExport={() => selected.gauge && downloadSpec(selected.name, selected.gauge)}
-            />
+            narrow ? (
+              <PaneSheet label="Gauge details" onClose={() => setSelectedKey(null)}>
+                {detail(selected, true)}
+              </PaneSheet>
+            ) : (
+              detail(selected, false)
+            )
           ) : (
-            <EmptyDetail />
+            !narrow && <EmptyDetail />
           )}
         </div>
       )}

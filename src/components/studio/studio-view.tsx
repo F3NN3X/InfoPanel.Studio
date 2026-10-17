@@ -74,6 +74,8 @@ interface StudioViewProps {
   onSave: (config: DashboardConfig) => Promise<boolean>;
   /** Edits the server does not have yet (the dot on Save). */
   pushPending: boolean;
+  /** The last push could not reach the server (the top bar says so). */
+  offline: boolean;
 }
 
 /**
@@ -105,6 +107,7 @@ function StudioViewBody({
   onExitStudio,
   onSave,
   pushPending,
+  offline,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
   const toast = useToast();
@@ -569,6 +572,7 @@ function StudioViewBody({
         onMode={ui.setMode}
         saved={ui.saved}
         unsaved={pushPending}
+        offline={offline}
         onSave={ui.handleSave}
         onExitStudio={onExitStudio}
         onExport={() => exportConfigFile(config)}

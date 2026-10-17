@@ -12,12 +12,13 @@ import { buildCatalog, type DataApiValue } from "@/lib/infopanel/sensors";
 import { RemapPanel } from "./remap-panel";
 
 /** The Data API catalog, indexed for remapping; `online` is false until it has answered. */
-export function useRemapIndex(): { index: CatalogIndex; online: boolean } {
+/** `unreachable`: the Data API did not answer (not merely still loading). */
+export function useRemapIndex(): { index: CatalogIndex; online: boolean; unreachable: boolean } {
   const catalog = useSensorCatalog();
   const sensors = catalog.sensors as Record<string, DataApiValue>;
   const keysSig = Object.keys(sensors).join("\n");
   const index = useMemo(() => indexCatalog(buildCatalog(sensors)), [keysSig]);
-  return { index, online: catalog.status === "ready" };
+  return { index, online: catalog.status === "ready", unreachable: catalog.status === "error" };
 }
 
 export interface RemapDialogProps {

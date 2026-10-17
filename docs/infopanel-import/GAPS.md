@@ -12,7 +12,7 @@ checked live), **risk** (works, may not hold).
 | # | Gap | Status | Notes / likely fix |
 |---|---|---|---|
 | G1 | Export's font licence review has no "Swap for <alternative>" | open | Needs a picker of My library fonts (A6 has them now): offer same-category library fonts, rewrite the requests on export. |
-| G2 | Import with the Data API unreachable goes ahead, its sensors left unresolved | decide | Spec §10's offline row doesn't say whether to block. Settle in A8 with the other §10 states. |
+| G2 | Import with the Data API unreachable goes ahead, its sensors left unresolved | decided | Settled in A8: the import proceeds (§10 asks only for "Not reachable" and Live disabled, both done); remap later from the canvas editor. |
 | G3 | Exports download through the browser; never tried in the desktop app | unverified | 💡 A native save-file command for binary files (the existing one writes JSON only) would make it reliable. |
 | G4 | The font licence review shows only for `.canvas.zip` | decide | An `.infopanel` carries no font files, so there is nothing to review; confirm that is the intent. |
 
@@ -57,13 +57,21 @@ checked live), **risk** (works, may not hold).
 | G30 | Image sequences can't be exported from the Gauges page (`.gauge.json` holds a spec only) | decide | Export the frames as a zip with a manifest, or convert to vector first. |
 | G31 | The editor header shows only "Vector" for a library gauge (no "· My library") | open | Cosmetic: show `entry.where` for library sources too. |
 
+## States and narrow screens (A8)
+
+| # | Gap | Status | Notes / likely fix |
+|---|---|---|---|
+| G32 | The canvas editor toolbar is clipped on the right below about 1100 px | open | Move the less used groups (Compare, Sensors) into an overflow menu when the toolbar is narrow. |
+| G33 | The canvas editor's inspector modes switch on the editor's own width, about 52 px (the rail) later than the studio's | risk | Measure the studio body instead, or accept it. |
+| G34 | The bottom sheets and stacked layouts have no component tests (the suite has no DOM / matchMedia environment) | risk | Add a jsdom project for these, or cover them in a Playwright check. |
+| G35 | XML entity errors point at the start of the text node, not at the `&` | open | Track the entity offset in `xml.ts`. |
+
 ## Tests and tooling
 
 | # | Gap | Status | Notes / likely fix |
 |---|---|---|---|
 | G18 | `server/server.test.mjs` "serves /api/debug/stats…" fails now and then with `fetch failed` | risk | It picks a free port, then starts the server on it: a race under load. Listen on port 0 and read the bound port. |
 
-## Still to come
+## After A8
 
-A7 (Gauges page, spec §6) and A8 (§10 states, responsive rules, docs, `FEATURE_MAP.md` rows) are not
-started; rows from them land here as they are found.
+A1–A8 are done. Gaps found later are added here the same way.

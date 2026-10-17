@@ -466,6 +466,16 @@ string in its hidden `gauge` setting, bound to any one sensor).
 - "Edit gauge…" in a Custom gauge zone's inspector, on a canvas Gauge item and on a library card opens the editor
   (`openGauge` in `studio-view.tsx`). Uploads run at most two at once (`uploadBytes`), the server's limit.
 
+### Narrow screens and edge states (A8)
+
+Below 900 px (`NARROW_PAGE_WIDTH`, `useViewportBelow`) the Library and Gauges detail panes open as a bottom sheet
+(`pane-sheet.tsx`, over the shared `BottomSheet`) and the gauge editor stacks parts, stage and inspector. The canvas
+editor's inspector follows the studio inspector's modes (`inspectorMode`): docked from 1100 px, a floating card from
+640 px, a sheet below. A push the server never answered (`isUnreachable` in `dashboard-server.ts`, not a refusal)
+shows "Offline · edits kept locally" in the top bar until the next push lands. A canvas image whose file can't load
+draws a hatched tile with a broken-image icon (`MissingImage.tsx`); with the Data API unreachable the canvas editor's
+Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesign/FEATURE_MAP.md` §20.
+
 ### Editing a canvas zone
 
 Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",

@@ -138,6 +138,8 @@ export type DrawNode =
       flipX: boolean;
       /** null: InfoPanel's "no image" placeholder. */
       url: string | null;
+      /** A file or URL the item names could not be loaded (the canvas draws a hatched placeholder, not InfoPanel's). */
+      missing?: true;
       opacity: number;
       layer: string | null;
     })
@@ -255,7 +257,8 @@ export function buildScene(input: SceneInput): DrawNode[] {
           const v = rawValue(item, r);
           if (!(v >= item.Threshold1 && v <= item.Threshold2)) return;
         }
-        const info = input.image(imageSource(item, state));
+        const source = imageSource(item, state);
+        const info = input.image(source);
         if (info === undefined) return;
         // ImageDisplayItem.EvaluateSize: 0 takes the image's own size, then Scale applies.
         let w = item.Width || (info?.width ?? 0);
@@ -265,7 +268,8 @@ export function buildScene(input: SceneInput): DrawNode[] {
         if (w <= 0 || h <= 0) return;
         nodes.push({
           kind: "image", path, item, x, y, width: w, height: h, rotation: item.Rotation, flipX: false,
-          url: info?.url ?? null, opacity: 1, layer: info && item.Layer ? item.LayerColor : null,
+          url: info?.url ?? null, ...(!info && source.kind !== "none" ? { missing: true as const } : {}),
+          opacity: 1, layer: info && item.Layer ? item.LayerColor : null,
         });
         return;
       }

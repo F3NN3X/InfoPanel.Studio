@@ -6,6 +6,7 @@
  * first bundle.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
@@ -15,6 +16,9 @@ import { editKeys, sensorView } from "@/lib/infopanel/canvas-edit";
 import type { Path } from "@/lib/infopanel/editor/ops";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
+import { useElementSize } from "@/hooks/use-element-size";
+import { PaneSheet } from "@/components/studio/pane-sheet";
+import { inspectorMode } from "@/components/studio/studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
 import { canvasKeyAction } from "./canvas-keys";
@@ -46,7 +50,22 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, ini
   const [compareOn, setCompareOn] = useState(false);
   const [compare, setCompare] = useState<Compare | null>(null);
   const [remapOpen, setRemapOpen] = useState(false);
-  const { index, online } = useRemapIndex();
+  const { index, online, unreachable } = useRemapIndex();
+  // The studio inspector's modes, for the editor's own width: docked column, floating card, bottom sheet.
+  const { ref: rootRef, w: width } = useElementSize();
+  const mode = inspectorMode(width);
+  // The floating card opens with a selection; closing it holds until the selection changes.
+  const selectionKey = editor.selection.join("\n");
+  const [closedFor, setClosedFor] = useState<string | null>(null);
+  const hasSelection = editor.selection.length > 0;
+  const floatOpen = hasSelection && closedFor !== selectionKey;
+
+  // Live needs the Data API: when it is not reachable the toolbar disables it and the editor leaves it.
+  useEffect(() => {
+    if (!unreachable || editor.sensorMode !== "live") return;
+    editor.setSensorMode("unbound");
+    toast("Data API not reachable: sensors set to Unbound");
+  }, [unreachable, editor.sensorMode]);
 
   // Live values for the keys the items read, from the shared sensor store (no stream per item).
   const keys = useMemo(() => editKeys(editor.committed), [editor.committed]);
@@ -103,8 +122,9 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, ini
   useEffect(() => () => void (shot.current && URL.revokeObjectURL(shot.current.src)), []);
 
   const name = editor.open.stored.source.name;
+  const inspector = <ItemInspector editor={editor} live={live} onRemap={() => setRemapOpen(true)} onEditGauge={onEditGauge} />;
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 bg-ui-app">
+    <div ref={rootRef} className="relative flex min-h-0 min-w-0 flex-1 bg-ui-app">
       <ItemsTree editor={editor} name={name} />
       <div className="flex min-w-0 flex-1 flex-col">
         <CanvasToolbar
@@ -116,15 +136,41 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, ini
           onCompare={setCompareOn}
           remapCount={remapCount}
           onRemap={() => setRemapOpen(true)}
+          apiUnreachable={unreachable}
           onDone={onDone}
         />
         {showModes && <ModesStrip editor={editor} />}
         {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
         <EditCanvas editor={editor} ctx={view.ctx} values={view.values} showModes={showModes} compare={compareOn ? compare : null} onRefused={toast} />
       </div>
-      <aside aria-label="Item" className="flex w-[308px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">
-        <ItemInspector editor={editor} live={live} onRemap={() => setRemapOpen(true)} onEditGauge={onEditGauge} />
-      </aside>
+      {mode === "docked" && (
+        <aside aria-label="Item" className="flex w-[308px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">
+          {inspector}
+        </aside>
+      )}
+      {mode === "floating" && floatOpen && (
+        <aside
+          aria-label="Item"
+          className="absolute bottom-3 right-3 top-3 z-40 flex w-[320px] flex-col overflow-y-auto rounded-xl border border-ui-strong bg-ui-panel shadow-[0_16px_40px_rgba(0,0,0,.5)]"
+        >
+          <div className="flex shrink-0 justify-end px-2 pt-2">
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => setClosedFor(selectionKey)}
+              className="flex h-7 w-7 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {inspector}
+        </aside>
+      )}
+      {mode === "sheet" && hasSelection && (
+        <PaneSheet label="Item" onClose={() => editor.select([])}>
+          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{inspector}</div>
+        </PaneSheet>
+      )}
       <RemapDialog
         open={remapOpen}
         onOpenChange={setRemapOpen}

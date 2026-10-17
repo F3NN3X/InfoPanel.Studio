@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchConfig, pushConfig } from "./dashboard-server";
+import { ConfigRejectedError, NewerConfigError, fetchConfig, isUnreachable, pushConfig } from "./dashboard-server";
 import type { DashboardConfig } from "./layout";
 
 const respond = (status: number, body?: unknown) =>
@@ -42,5 +42,20 @@ describe("pushConfig", () => {
   it("throws on a refusal", async () => {
     respond(403);
     await expect(pushConfig({} as DashboardConfig)).rejects.toThrow("403");
+  });
+});
+
+describe("isUnreachable", () => {
+  it("is true for a network failure, false for any answer from the server", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))));
+    expect(await pushConfig({} as DashboardConfig).catch(isUnreachable)).toBe(true);
+    respond(422);
+    const refused = await pushConfig({} as DashboardConfig).catch((e: unknown) => e);
+    expect(refused).toBeInstanceOf(ConfigRejectedError);
+    expect(isUnreachable(refused)).toBe(false);
+    respond(409);
+    const newer = await pushConfig({} as DashboardConfig).catch((e: unknown) => e);
+    expect(newer).toBeInstanceOf(NewerConfigError);
+    expect(isUnreachable(newer)).toBe(false);
   });
 });

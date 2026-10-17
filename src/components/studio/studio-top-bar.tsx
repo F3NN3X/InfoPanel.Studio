@@ -50,6 +50,8 @@ interface StudioTopBarProps {
   saved: boolean;
   /** Edits the server does not have yet (the dot on Save). */
   unsaved: boolean;
+  /** The last push could not reach the server: "Offline · edits kept locally". */
+  offline: boolean;
   onSave: () => void;
   onExitStudio: () => void;
   onExport: () => void;
@@ -313,7 +315,7 @@ const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-
  * undo / redo, Kiosk view, Save and the "⋯" menu.
  */
 export function StudioTopBar(props: StudioTopBarProps) {
-  const { profile, mode, onMode, saved, unsaved, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
+  const { profile, mode, onMode, saved, unsaved, offline, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
   return (
     // In the desktop app this bar is the window's title bar: its empty space drags the window
     // (data-tauri-drag-region only acts on the element itself) and the caption buttons sit at the end.
@@ -330,6 +332,12 @@ export function StudioTopBar(props: StudioTopBarProps) {
         <span data-tauri-drag-region className="min-w-0 truncate font-ui-mono text-[11px] text-ui-4 max-sm:hidden">
           {profileSummary(profile)}
         </span>
+        {offline && (
+          <span role="status" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11.5px] text-ui-3 max-sm:hidden">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ui-warning" />
+            Offline · edits kept locally
+          </span>
+        )}
       </div>
 
       <ModeSwitch mode={mode} onMode={onMode} />

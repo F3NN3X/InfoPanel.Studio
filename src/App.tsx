@@ -25,6 +25,7 @@ import { trackEventSource } from "@/lib/sensor-store";
 import {
   CONFIG_EVENTS_URL,
   fetchConfig,
+  isUnreachable,
   NewerConfigError,
   pushConfig,
 } from "@/lib/dashboard-server";
@@ -220,6 +221,8 @@ export default function App() {
   // `pushPending` is true from an edit until its push lands (the studio's
   // Save dot); a newer edit supersedes an older push still in flight.
   const [pushPending, setPushPending] = useState(false);
+  // The last push failed because the server couldn't be reached; cleared by the next one that lands.
+  const [offline, setOffline] = useState(false);
   // The newest config, to tell whether a finished push is still the latest state.
   // A newer dashboard version saved the server copy: stop pushing until a reload.
   const [refused, setRefused] = useState(false);
@@ -236,8 +239,12 @@ export default function App() {
     setPushPending(true);
     const t = window.setTimeout(() => {
       pushConfig(config)
-        .then(() => !superseded && setPushPending(false))
+        .then(() => {
+          setOffline(false);
+          if (!superseded) setPushPending(false);
+        })
         .catch((err) => {
+          setOffline(isUnreachable(err));
           if (err instanceof NewerConfigError) setRefused(true);
           // Otherwise the server is offline — kiosk pages keep their last copy.
         });
@@ -321,11 +328,13 @@ export default function App() {
     saveConfig(cfg); // local copy first (offline fallback)
     return pushConfig(cfg)
       .then(() => {
+        setOffline(false);
         // An edit made since the click is still unpushed (its debounced push clears the dot).
         if (latestConfig.current === cfg) setPushPending(false);
         return true;
       })
       .catch((err) => {
+        setOffline(isUnreachable(err));
         if (err instanceof NewerConfigError) setRefused(true);
         return false;
       }); // Server offline — kiosk pages keep their last copy; the dot stays.
@@ -378,6 +387,7 @@ export default function App() {
             onExitStudio={exitStudio}
             onSave={handleStudioSave}
             pushPending={pushPending}
+            offline={offline}
           />
         </Suspense>
       </GeneralProvider>

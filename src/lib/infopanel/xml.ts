@@ -38,7 +38,7 @@ export class XmlError extends Error {
   readonly offset: number;
 
   constructor(message: string, offset: number) {
-    super(`${message} (offset ${offset})`);
+    super(message);
     this.offset = offset;
   }
 }
@@ -46,9 +46,21 @@ export class XmlError extends Error {
 const NAME = /[^\s/>=]+/y;
 const ATTR = /\s*([^\s/>=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/y;
 
-/** Parses a document and returns its root element. */
+/** Parses a document and returns its root element; a failure reports its 1-based line and column. */
 export function parseXml(source: string): XmlElement {
   const s = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
+  try {
+    return parseDocument(s);
+  } catch (e) {
+    if (!(e instanceof XmlError)) throw e;
+    const before = s.slice(0, e.offset);
+    const line = before.split("\n").length;
+    const column = e.offset - (before.lastIndexOf("\n") + 1) + 1;
+    throw new XmlError(`${e.message} (line ${line}, column ${column})`, e.offset);
+  }
+}
+
+function parseDocument(s: string): XmlElement {
   let i = 0;
   const stack: XmlElement[] = [];
   let root: XmlElement | null = null;

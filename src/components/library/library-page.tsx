@@ -53,6 +53,9 @@ import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
 import { UploadTray } from "./upload-tray";
 import { useMyLibrary } from "./use-my-library";
 import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
+import { useViewportBelow } from "@/hooks/use-viewport-below";
+import { PaneSheet } from "@/components/studio/pane-sheet";
+import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
 import { useHoldZoneShortcuts } from "./use-hold-zone-shortcuts";
 
 export interface LibraryPageProps {
@@ -88,6 +91,7 @@ export default function LibraryPage(p: LibraryPageProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   useHoldZoneShortcuts();
+  const narrow = useViewportBelow(NARROW_PAGE_WIDTH);
 
   // Copies counted through the page's list, so the counts update in place.
   const bridge: StudioBridge = { ...p.bridge, addCopy: lib.addCopy };
@@ -222,7 +226,29 @@ export default function LibraryPage(p: LibraryPageProps) {
     { id: "panels" as const, title: "Saved panels & styles", note: "Yours to reuse", items: [...collectionItems("panels", index), ...collectionItems("styles", index)] },
   ];
 
+  const detail = (item: LibraryItem, sheet: boolean) => (
+    <LibraryDetail
+      key={item.id}
+      item={item}
+      sheet={sheet}
+      index={index}
+      primary={primaryOf(item)}
+      secondary={secondaryOf(item)}
+      onRename={(name) => lib.rename(item, name)}
+      onRemove={() => {
+        lib.remove(item);
+        setSelectedId(null);
+      }}
+      onMerge={(group) => void lib.merge(group).then(() => toast(`Merged into ${group[0].name}`))}
+      onVideo={(patch) => void lib.update(item, { meta: { ...item.meta, ...patch } })}
+      copyLabel={p.copyLabel}
+      onJump={p.onJump}
+    />
+  );
+
   const title = searching ? `Results for “${query.trim()}”` : (COLLECTIONS.find((x) => x.id === collection)?.label ?? "All items");
+  // First run: the grid's wide upload tile fills the page; the view choice is kept for when items exist.
+  const empty = !lib.loading && lib.items.length === 0;
   const fonts = !searching && collection === "fonts" && tab === "mine";
 
   return (
@@ -277,7 +303,7 @@ export default function LibraryPage(p: LibraryPageProps) {
             )}
           </label>
         )}
-        {tab === "mine" && (
+        {tab === "mine" && !empty && (
           <div role="radiogroup" aria-label="View" className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
             {(
               [
@@ -345,7 +371,7 @@ export default function LibraryPage(p: LibraryPageProps) {
                       {lib.error}
                     </div>
                   )}
-                  {view === "shelves" && !searching ? (
+                  {view === "shelves" && !searching && !empty ? (
                     <ShelvesView
                       index={index}
                       shelves={shelves}
@@ -372,32 +398,25 @@ export default function LibraryPage(p: LibraryPageProps) {
                       onOpen={open}
                       onFiles={addFiles}
                       searching={searching}
-                      empty={!lib.loading && lib.items.length === 0}
+                      empty={empty}
                     />
                   )}
                 </div>
                 {selected ? (
-                  <LibraryDetail
-                    key={selected.id}
-                    item={selected}
-                    index={index}
-                    primary={primaryOf(selected)}
-                    secondary={secondaryOf(selected)}
-                    onRename={(name) => lib.rename(selected, name)}
-                    onRemove={() => {
-                      lib.remove(selected);
-                      setSelectedId(null);
-                    }}
-                    onMerge={(group) => void lib.merge(group).then(() => toast(`Merged into ${group[0].name}`))}
-                    onVideo={(patch) => void lib.update(selected, { meta: { ...selected.meta, ...patch } })}
-                    copyLabel={p.copyLabel}
-                    onJump={p.onJump}
-                  />
+                  narrow ? (
+                    <PaneSheet label="Item details" onClose={() => setSelectedId(null)}>
+                      {detail(selected, true)}
+                    </PaneSheet>
+                  ) : (
+                    detail(selected, false)
+                  )
                 ) : (
-                  <aside className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center text-[12.5px] text-ui-4">
-                    <Eye className="h-5 w-5" />
-                    Select an item to see it here. Drag a card onto the canvas to place a copy.
-                  </aside>
+                  !narrow && (
+                    <aside className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-2 border-l border-ui-subtle bg-ui-panel p-6 text-center text-[12.5px] text-ui-4">
+                      <Eye className="h-5 w-5" />
+                      Select an item to see it here. Drag a card onto the canvas to place a copy.
+                    </aside>
+                  )
                 )}
               </>
             )}

@@ -24,6 +24,8 @@ export interface DetailAction {
 
 export interface DetailProps {
   item: LibraryItem;
+  /** Shown in a bottom sheet (a narrow viewport): fills it instead of a 320 px side column. */
+  sheet?: boolean;
   index: LibraryIndex;
   primary: DetailAction | null;
   secondary: DetailAction[];
@@ -78,7 +80,13 @@ export function LibraryDetail(p: DetailProps) {
   const tags = tagsOf(item);
   const copies = config ? [] : item.copies;
   return (
-    <aside aria-label="Item details" className="flex w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
+    <aside
+      aria-label="Item details"
+      className={cn(
+        "flex flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui",
+        p.sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle",
+      )}
+    >
       <AssetThumb item={item} size="lg" className="aspect-[16/10] w-full border border-ui-subtle" />
       <div>
         <input

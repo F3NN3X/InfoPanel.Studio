@@ -12,6 +12,8 @@ import { usePlayback } from "./use-playback";
 
 export interface GaugeDetailProps {
   entry: GaugeEntry;
+  /** Shown in a bottom sheet (a narrow viewport): fills it instead of a 320 px side column. */
+  sheet?: boolean;
   /** Copies placed, for a library gauge (undefined for the others). */
   copies?: number;
   scope: Record<string, string>;
@@ -29,7 +31,7 @@ interface Action {
   title?: string;
 }
 
-export function GaugeDetail({ entry, copies, scope, onEdit, onAddToCanvas, onDuplicate, onExport }: GaugeDetailProps) {
+export function GaugeDetail({ entry, sheet, copies, scope, onEdit, onAddToCanvas, onDuplicate, onExport }: GaugeDetailProps) {
   const playback = usePlayback();
   const vector = entry.gauge !== null;
   // A canvas image sequence copies to the library when the asset store holds all its frames.
@@ -40,8 +42,14 @@ export function GaugeDetail({ entry, copies, scope, onEdit, onAddToCanvas, onDup
     { label: "Export", icon: Upload, run: onExport, disabled: !vector, title: vector ? "Download as .gauge.json" : "An image sequence has no spec to export: its frames go out with the .infopanel export" },
   ];
   return (
-    <aside aria-label="Gauge details" className="flex w-[320px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-ui-subtle bg-ui-panel p-4 font-ui">
-      <div className="flex aspect-square w-full items-center justify-center rounded-[10px] border border-ui-subtle bg-[#0b0b0e]">
+    <aside
+      aria-label="Gauge details"
+      className={cn(
+        "flex flex-col gap-4 overflow-y-auto bg-ui-panel p-4 font-ui",
+        sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle",
+      )}
+    >
+      <div className={cn("flex aspect-square w-full items-center justify-center rounded-[10px] border border-ui-subtle bg-[#0b0b0e]", sheet && "max-w-[248px] self-center")}>
         <GaugeView gauge={entry.gauge} frames={entry.frames} p={playback.p} size={248} scope={scope} />
       </div>
       <PlayControls playback={playback} />

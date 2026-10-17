@@ -41,4 +41,12 @@ describe("parseXml", () => {
   ])("rejects %s", (src, err) => {
     expect(() => parseXml(src)).toThrow(err);
   });
+
+  it("reports a 1-based line and column, not the offset", () => {
+    expect(() => parseXml("<a>\n  <b>\n  </a>")).toThrow("Mismatched closing tag </a> (line 3, column 3)");
+    expect(() => parseXml("<a><b/><c></a>")).toThrow("(line 1, column 11)");
+    expect(() => parseXml("")).toThrow("No root element (line 1, column 1)");
+    expect(() => parseXml("<a>\r\n<b>&nope;</b></a>")).toThrow(/Unknown entity &nope; \(line 2, column 4\)/);
+    expect(() => parseXml("<a>")).not.toThrow(/offset/);
+  });
 });

@@ -68,7 +68,7 @@ export function Segmented<T extends string>({
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cn(
-            "h-full rounded-[6px] px-2.5 text-[12px] text-ui-3 hover:text-ui-1 disabled:pointer-events-none disabled:opacity-35",
+            "h-full rounded-[6px] px-2.5 text-[12px] text-ui-3 hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-35",
             value === o.value && "bg-ui-active text-ui-1",
           )}
         >
@@ -93,10 +93,12 @@ export interface CanvasToolbarProps {
   /** Binding groups that still need a look (the Remap badge). */
   remapCount: number;
   onRemap: () => void;
+  /** The Data API did not answer: the Live sensor source is off. */
+  apiUnreachable: boolean;
   onDone: () => void;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, onDone }: CanvasToolbarProps) {
+export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, onDone }: CanvasToolbarProps) {
   const { selection } = editor;
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
@@ -131,7 +133,7 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
         value={editor.sensorMode}
         options={[
           { value: "unbound", label: "Unbound", title: "As InfoPanel draws with no sensor" },
-          { value: "live", label: "Live" },
+          { value: "live", label: "Live", disabled: apiUnreachable, title: apiUnreachable ? "Data API not reachable" : undefined },
           { value: "mock", label: "Mock", title: "A slider per sensor in the inspector" },
         ]}
         onChange={editor.setSensorMode}

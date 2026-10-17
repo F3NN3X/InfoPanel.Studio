@@ -14,6 +14,7 @@ import { cssColor } from "@/lib/infopanel/render/color.ts";
 import { PathPaint } from "./Paint.tsx";
 import { smoothIndex } from "@/lib/infopanel/render/geometry.ts";
 import { buildScene, hasAnimatedGauge, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "@/lib/infopanel/render/scene.ts";
+import { MissingImage } from "./MissingImage.tsx";
 import { Table, Text, type FontCss } from "./Text.tsx";
 
 const fontKey = (s: TextStyle) => JSON.stringify([s.font.font, s.font.style, s.font.bold, s.font.italic]);
@@ -147,7 +148,13 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
       };
       return (
         <div data-path={node.path} style={box}>
-          {node.url ? <img src={node.url} alt="" draggable={false} style={{ display: "block", width: "100%", height: "100%" }} /> : <Placeholder width={node.width} height={node.height} />}
+          {node.url ? (
+            <img src={node.url} alt="" draggable={false} style={{ display: "block", width: "100%", height: "100%" }} />
+          ) : node.missing ? (
+            <MissingImage width={node.width} height={node.height} id={id} />
+          ) : (
+            <Placeholder width={node.width} height={node.height} />
+          )}
           {node.layer && <div style={{ position: "absolute", inset: 0, background: cssColor(node.layer) ?? "transparent" }} />}
         </div>
       );

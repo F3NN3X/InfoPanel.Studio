@@ -78,6 +78,14 @@ describe("buildScene", () => {
     expect(scene(item("Image"), { image })).toEqual([]);
   });
 
+  it("marks an image whose file cannot load as missing, but not one InfoPanel itself draws no image for", () => {
+    const image = () => null;
+    const named = item("Image", "<FilePath>A.png</FilePath><RelativePath>true</RelativePath><Width>10</Width><Height>10</Height>");
+    expect(scene(named, { image })[0]).toMatchObject({ url: null, missing: true });
+    expect(scene(item("Image", "<Width>10</Width><Height>10</Height>"), { image })[0]).not.toHaveProperty("missing");
+    expect(scene(named)[0]).not.toHaveProperty("missing");
+  });
+
   it("shows a sensor image only while the raw value is within its thresholds", () => {
     const si = item("SensorImage", "<Threshold1>10</Threshold1><Threshold2>20</Threshold2><FilePath>a.png</FilePath><RelativePath>true</RelativePath>");
     expect(scene(si)).toEqual([]);

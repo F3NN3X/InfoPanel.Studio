@@ -19,7 +19,7 @@ export function FramesInspector({ tools, recolour, onRecolour }: FramesInspector
   const apply = () => void tools.recolour(recolour).then((ok) => ok && onRecolour(NO_RECOLOUR));
   return (
     <InspectorChromeProvider value={{ mode: "docked" }}>
-      <aside aria-label="Image sequence settings" className="flex w-[300px] shrink-0 flex-col border-l border-ui-subtle bg-ui-panel font-ui">
+      <aside aria-label="Image sequence settings" className="flex w-[300px] shrink-0 flex-col border-l border-ui-subtle bg-ui-panel font-ui max-[899px]:w-full max-[899px]:border-l-0 max-[899px]:border-t">
         <header className="flex h-11 shrink-0 items-center border-b border-ui-subtle px-4">
           <h2 className="truncate text-[13px] font-semibold text-ui-1">Image sequence</h2>
         </header>

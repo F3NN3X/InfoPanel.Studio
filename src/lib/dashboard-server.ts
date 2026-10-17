@@ -29,6 +29,21 @@ export class NewerConfigError extends Error {
   }
 }
 
+/** The server answered a save with an error status (it was reached). */
+export class ConfigRejectedError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`config save failed: ${status}`);
+    this.status = status;
+  }
+}
+
+/** A failed push means the server could not be reached (a network error), not that it answered with a refusal. */
+export function isUnreachable(err: unknown): boolean {
+  return !(err instanceof NewerConfigError) && !(err instanceof ConfigRejectedError);
+}
+
 /** Save the config on the server, where every kiosk page reads it. */
 export async function pushConfig(config: DashboardConfig): Promise<void> {
   const res = await fetch(CONFIG_URL, {
@@ -38,5 +53,5 @@ export async function pushConfig(config: DashboardConfig): Promise<void> {
     body: JSON.stringify(config),
   });
   if (res.status === 409) throw new NewerConfigError();
-  if (!res.ok) throw new Error(`config save failed: ${res.status}`);
+  if (!res.ok) throw new ConfigRejectedError(res.status);
 }
