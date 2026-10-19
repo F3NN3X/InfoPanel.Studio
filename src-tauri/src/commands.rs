@@ -160,9 +160,16 @@ pub fn restart_server(app: AppHandle) {
 }
 
 #[tauri::command]
-pub fn use_foreign_server(app: AppHandle) {
+pub async fn use_foreign_server(app: AppHandle) -> CmdResult<StopResult> {
     log::debug!("ipc: use_foreign_server");
-    control::use_foreign(&app);
+    blocking(move || match control::use_foreign(&app) {
+        Ok(()) => StopResult {
+            ok: true,
+            message: String::new(),
+        },
+        Err(message) => StopResult { ok: false, message },
+    })
+    .await
 }
 
 #[derive(Debug, Serialize)]
@@ -189,6 +196,8 @@ pub struct ForeignInfo {
     pub name: String,
     /// node.exe holding the port: the page may offer to stop it.
     pub stoppable: bool,
+    /// node.exe of the current user holding the port: the page may offer to use it.
+    pub adoptable: bool,
 }
 
 #[tauri::command]
@@ -202,6 +211,7 @@ pub async fn foreign_server_info(app: AppHandle) -> CmdResult<Option<ForeignInfo
             pid,
             exe: info.exe.clone().unwrap_or_else(|| info.name.clone()),
             stoppable: probe::is_node(&info),
+            adoptable: probe::may_adopt(&info),
             name: info.name,
         })
     })

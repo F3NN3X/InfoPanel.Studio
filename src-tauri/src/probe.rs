@@ -101,20 +101,31 @@ pub struct ProcessInfo {
     /// The command line arguments (empty when Windows doesn't let us read them).
     #[serde(skip)]
     pub cmd: Vec<String>,
+    /// Owned by the same user as this app; false when either owner is unknown.
+    #[serde(skip)]
+    pub same_user: bool,
 }
 
 pub fn process_info(pid: u32) -> Option<ProcessInfo> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
     let mut sys = System::new();
     let spid = Pid::from_u32(pid);
+    let own = Pid::from_u32(std::process::id());
+    // The same pid twice makes sysinfo find neither.
+    let pids = if spid == own { vec![spid] } else { vec![spid, own] };
     sys.refresh_processes_specifics(
-        ProcessesToUpdate::Some(&[spid]),
+        ProcessesToUpdate::Some(&pids),
         true,
         ProcessRefreshKind::nothing()
             .with_exe(UpdateKind::Always)
-            .with_cmd(UpdateKind::Always),
+            .with_cmd(UpdateKind::Always)
+            .with_user(UpdateKind::Always),
     );
     let p = sys.process(spid)?;
+    let same_user = match (p.user_id(), sys.process(own).and_then(|o| o.user_id())) {
+        (Some(a), Some(b)) => a == b,
+        _ => false,
+    };
     Some(ProcessInfo {
         pid,
         name: p.name().to_string_lossy().into_owned(),
@@ -124,12 +135,18 @@ pub fn process_info(pid: u32) -> Option<ProcessInfo> {
             .iter()
             .map(|a| a.to_string_lossy().into_owned())
             .collect(),
+        same_user,
     })
 }
 
 /// Only a node.exe may be stopped for the user.
 pub fn is_node(info: &ProcessInfo) -> bool {
     info.name.eq_ignore_ascii_case("node.exe")
+}
+
+/// Only a node.exe owned by the current user may be adopted as the session's server.
+pub fn may_adopt(info: &ProcessInfo) -> bool {
+    is_node(info) && info.same_user
 }
 
 /// A node.exe running the dashboard's `server.mjs` (as start-dashboard.bat and `npm start` do),
@@ -227,10 +244,40 @@ Active Connections
             name: name.into(),
             exe: None,
             cmd: Vec::new(),
+            same_user: false,
         };
         assert!(is_node(&info("node.exe")));
         assert!(is_node(&info("NODE.EXE")));
         assert!(!is_node(&info("InfoPanel.exe")));
+    }
+
+    #[test]
+    fn only_a_node_of_the_same_user_is_adoptable() {
+        let info = |name: &str, same_user: bool| ProcessInfo {
+            pid: 1,
+            name: name.into(),
+            exe: None,
+            cmd: Vec::new(),
+            same_user,
+        };
+        assert!(may_adopt(&info("node.exe", true)));
+        assert!(!may_adopt(&info("node.exe", false)));
+        assert!(!may_adopt(&info("InfoPanel.exe", true)));
+    }
+
+    #[test]
+    fn reads_the_owner_of_a_real_process() {
+        // A child this test starts is, by definition, the current user's.
+        let mut child = std::process::Command::new("cmd")
+            .args(["/C", "ping -n 3 127.0.0.1 >NUL"])
+            .spawn()
+            .expect("spawn");
+        let info = process_info(child.id());
+        let own = process_info(std::process::id());
+        let _ = child.kill();
+        let info = info.expect("child process");
+        assert!(info.same_user, "child not seen as the same user");
+        assert!(own.is_some(), "own process not found");
     }
 
     #[test]
@@ -240,6 +287,7 @@ Active Connections
             name: name.into(),
             exe: None,
             cmd: cmd.iter().map(|a| a.to_string()).collect(),
+            same_user: false,
         };
         assert!(runs_dashboard_server(&info(
             "node.exe",

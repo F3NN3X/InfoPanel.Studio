@@ -282,9 +282,29 @@ fn watch(app: &AppHandle, generation: u64) {
     }
 }
 
-/// Uses a dashboard server the app did not start, until the next restart.
-pub fn use_foreign(app: &AppHandle) {
-    let generation = lock(&app.state::<AppState>().server).generation;
+/// Uses a dashboard server the app did not start, until the next restart. Re-checks the listener
+/// first: only a node.exe owned by the current user is adopted.
+pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
+    let st = app.state::<AppState>();
+    let port = st.settings().port;
+    let pid = probe::listener_pid(port)
+        .ok_or_else(|| format!("Could not find the process that holds port {port}."))?;
+    let info = probe::process_info(pid).ok_or_else(|| format!("Process {pid} has gone."))?;
+    if lock(&st.server).sidecar.as_ref().map(|sc| sc.pid) == Some(pid) {
+        return Err("That is the app's own server.".into());
+    }
+    if !probe::may_adopt(&info) {
+        let why = if probe::is_node(&info) {
+            "running as another user"
+        } else {
+            "which is not node.exe"
+        };
+        return Err(format!(
+            "Port {port} is held by {} (PID {pid}), {why}; it was not used.",
+            info.name
+        ));
+    }
+    let generation = lock(&st.server).generation;
     if set_status(app, generation, |status| {
         status.state = Phase::Running;
         status.owned = false;
@@ -293,6 +313,7 @@ pub fn use_foreign(app: &AppHandle) {
     }) {
         on_running(app);
     }
+    Ok(())
 }
 
 /// The server answers: allow the studio's IPC on its origin, load it, refresh the agent hooks.

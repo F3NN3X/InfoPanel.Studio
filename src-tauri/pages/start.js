@@ -37,6 +37,8 @@ async function describeForeign(status) {
   $("foreign-process").textContent = foreign ? `Process: ${foreign.exe} (PID ${foreign.pid})` : "";
   // Stopping is only offered for a node.exe that answers as a dashboard server.
   show($("stop"), Boolean(foreign && foreign.stoppable));
+  // Using it is only offered for a node.exe owned by the current user.
+  show($("use"), Boolean(foreign && foreign.adoptable));
 }
 
 $("stop").addEventListener("click", () => {
@@ -57,7 +59,12 @@ $("confirm-stop").addEventListener("click", async () => {
   box.textContent = result.ok ? "" : result.message;
 });
 
-$("use").addEventListener("click", () => call("use_foreign_server"));
+$("use").addEventListener("click", async () => {
+  const result = await call("use_foreign_server").catch((e) => ({ ok: false, message: String(e) }));
+  const box = $("stop-result");
+  show(box, !result.ok);
+  box.textContent = result.ok ? "" : result.message;
+});
 $("retry").addEventListener("click", () => call("restart_server"));
 for (const b of document.querySelectorAll(".retry-port")) b.addEventListener("click", () => call("restart_server"));
 for (const b of document.querySelectorAll(".open-settings")) b.addEventListener("click", () => call("open_settings"));
