@@ -48,6 +48,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - Coding Agents rings beside the sessions keep their reset times, in a line under each ring when there is no room
   beside them (#22).
 - Token usage appears as soon as the server's first scan finishes, instead of up to 30 seconds after a restart.
+- "Use it for this session" is only offered for, and only adopts, a node.exe owned by the current user, so
+  another user on the machine cannot squat the port and be loaded with the studio's IPC capability (#27).
 
 ### Removed
 - The legacy widget modules; zones that still name one are migrated to its template on load.
