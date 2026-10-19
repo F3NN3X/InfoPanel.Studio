@@ -17,6 +17,8 @@ export default defineConfig({
   // lab/ has its own Vitest config (npm run lab:test).
   test: {
     exclude: [...configDefaults.exclude, ".claude/**", "lab/**"],
+    // Component tests opt into a DOM per file (`// @vitest-environment happy-dom`); the setup is a no-op in Node.
+    setupFiles: ["src/test/dom-setup.ts"],
   },
   server: {
     port: 5173,

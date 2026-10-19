@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+- Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
+  Gauges page and the narrow-layout sheet now have them (#50).
+
 ### Fixed
 - Profile import's XML errors for a bad entity point at its `&`, in text and in attribute values, and a character
   reference beyond Unicode is reported instead of crashing the parser (#52).

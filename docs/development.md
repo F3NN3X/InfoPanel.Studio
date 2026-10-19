@@ -123,9 +123,17 @@ any path. `dist/` is git-ignored, as are `node_modules/`, `*.tsbuildinfo` and
 
 ## Tests
 
-Vitest, run with `npm test`. There is no Vitest config file and no DOM
-environment package in `devDependencies`; the tests exercise pure logic, not
-rendered components. Tests sit beside the code they cover:
+Vitest, run with `npm test`. Most tests exercise pure logic, or render with
+`renderToString` in Node. A component test that needs a DOM opts in per file with
+the docblock pragma `// @vitest-environment happy-dom` on its first line, and uses
+Testing Library (`@testing-library/react`, `@testing-library/user-event`); there
+is no global DOM switch. `src/test/dom-setup.ts` (in `test.setupFiles`, a no-op in
+Node) stubs `matchMedia`, `ResizeObserver` (reports 800 x 600), `IntersectionObserver`
+and `URL.createObjectURL`, and unmounts rendered trees after each test.
+`setViewport(width)` from that file sets the width `matchMedia` answers for (1280
+by default, reset before each test) and fires `change` on the queries it flips, so
+call it inside `act` to cross a breakpoint after render. Assertions use plain
+matchers (no jest-dom). Tests sit beside the code they cover:
 
 | Area | Test files |
 |---|---|
@@ -138,6 +146,7 @@ rendered components. Tests sit beside the code they cover:
 | Data layer and history | `src/lib/data-points.test.ts` (normalising the catalog, health, search), `src/lib/data-usage.test.ts` (Used by, bind / unbind), `src/lib/sample-history.test.ts`, `src/lib/fonts.test.ts` (the font catalog), `src/hooks/config-history.test.ts` (undo stacks, coalescing, transactions) |
 | Page background and media | `src/lib/appearance.test.ts` (background layers, video style and `videoPolicy`), `src/lib/assets.test.ts` (upload / library requests with a mocked `fetch`) |
 | InfoPanel import | `src/lib/infopanel/**/*.test.ts` (parsing, formatting, fonts, canvas model and editing, remap, export, gauges, assets; a few read the lab's gitignored `corpus/` and skip without it), `src/lib/gauge-studio/`, `src/widgets/registry/*.schema.test.ts` (settings schema per widget group) |
+| Component (DOM) | `src/components/gauges/gauges-page.test.tsx` (open a gauge, toggle a part, the Save / Discard / Cancel dialog, details pane vs sheet), `src/components/studio/pane-sheet.test.tsx` (stacked vs side-by-side at the 900px breakpoint, the bottom sheet's handle and Close) |
 | Server | `server/*.test.mjs`: `assets.test.mjs` (magic-byte sniffing, asset id validation against traversal, `Range` parsing, loopback check), `library`, `infopanel-local`, `font-proxy`, `proxy`, `config-guard` and the rest beside their modules. Vitest's default pattern picks up `.test.mjs`, so `npm test` runs it |
 
 `npm test` prints the current number of test files and tests; all of them
