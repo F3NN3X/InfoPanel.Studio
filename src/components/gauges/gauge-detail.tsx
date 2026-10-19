@@ -35,11 +35,12 @@ export function GaugeDetail({ entry, sheet, copies, scope, onEdit, onAddToCanvas
   const playback = usePlayback();
   const vector = entry.gauge !== null;
   // A canvas image sequence copies to the library when the asset store holds all its frames.
+  const exportable = vector || !!entry.frames?.length;
   const copyable = vector || entry.source.kind === "library" || entry.files !== undefined;
   const secondary: Action[] = [
     { label: "Add to canvas", icon: Plus, run: onAddToCanvas, title: vector ? undefined : "An image sequence goes into a canvas zone" },
     { label: "Duplicate", icon: Copy, run: onDuplicate, disabled: !copyable, title: copyable ? undefined : "Some of its frames are not files in the asset store" },
-    { label: "Export", icon: Upload, run: onExport, disabled: !vector, title: vector ? "Download as .gauge.json" : "An image sequence has no spec to export: its frames go out with the .infopanel export" },
+    { label: "Export", icon: Upload, run: onExport, disabled: !exportable, title: vector ? "Download as .gauge.json" : exportable ? "Download the frames as a .gauge-frames.zip" : "This image sequence has no frames to export" },
   ];
   return (
     <aside

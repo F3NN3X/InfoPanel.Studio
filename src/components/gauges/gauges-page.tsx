@@ -9,6 +9,8 @@ import { addGaugeZone, type StudioBridge } from "@/components/library/library-ac
 import { useMyLibrary } from "@/components/library/use-my-library";
 import { useToast } from "@/components/ui/toast";
 import { presetGauges, profileGauges, sourceKey, type GaugeEntry, type GaugeSource } from "@/lib/gauge-studio/model";
+import type { FramesFile } from "@/lib/gauge-studio/frames-zip";
+import { assetFile } from "@/lib/infopanel/assets/assets";
 import { editorOpenOf, newGaugeOpen, type EditorOpen } from "@/lib/gauge-studio/open";
 import { previewScope } from "@/lib/gauge-studio/preview";
 import { closeSession, openSession, sessionEditor, type EditorSlot } from "@/lib/gauge-studio/session";
@@ -18,8 +20,9 @@ import { PaneSheet } from "@/components/studio/pane-sheet";
 import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
 import { GaugeDetail, EmptyDetail } from "./gauge-detail";
 import { GaugeEditor, type EditorHandle } from "./gauge-editor";
-import { downloadSpec, ImportGaugeButton } from "./gauge-files";
+import { downloadFrames, downloadSpec, ImportFramesButton, ImportGaugeButton } from "./gauge-files";
 import { GaugesBrowse, type GaugeSection } from "./gauges-browse";
+import { uploadFrame } from "./frame-files";
 import { saveGauge } from "./save-gauge";
 import { useGaugeKeys } from "./use-gauge-keys";
 import { useLibraryGauges } from "./use-library-gauges";
@@ -96,6 +99,19 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     if (e.gauge || e.files) void saveGauge({ name: `${e.name} copy`, gauge: e.gauge, from: e }).then((copy) => done(`library:${copy.id}`), failed);
   };
 
+  const exportEntry = (e: GaugeEntry) => {
+    if (e.gauge) return downloadSpec(e.name, e.gauge);
+    downloadFrames(e).catch((err: Error) => toast(`Not exported: ${err.message}`));
+  };
+  // The zip's frames go to the asset store and the sequence into My library, selected.
+  const importFrames = async (got: FramesFile) => {
+    const files = await Promise.all(got.frames.map(async (bytes, i) => uploadFrame(await assetFile(`${i + 1}.png`, bytes, "added"))));
+    const item = await saveGauge({ name: got.name, gauge: null, frames: files, min: got.min, max: got.max, animationSpeed: got.animationSpeed });
+    lib.refresh();
+    setSelectedKey(`library:${item.id}`);
+    toast(`Imported ${got.name} (${files.length} frames)`);
+  };
+
   const detail = (entry: GaugeEntry, sheet: boolean) => (
     <GaugeDetail
       key={entry.key}
@@ -106,7 +122,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
       onEdit={() => openEditor(editorOpenOf(entry))}
       onAddToCanvas={() => addToCanvas(entry)}
       onDuplicate={() => duplicate(entry)}
-      onExport={() => entry.gauge && downloadSpec(entry.name, entry.gauge)}
+      onExport={() => exportEntry(entry)}
     />
   );
 
@@ -139,6 +155,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
         {!editor && (
           <>
             <ImportGaugeButton className={HEADER_BUTTON} onImported={(got) => openEditor({ kind: "copy", name: got.name, gauge: got.gauge, origin: null })} />
+            <ImportFramesButton className={HEADER_BUTTON} onImported={importFrames} />
             <button
               type="button"
               onClick={() => openEditor(newGaugeOpen())}

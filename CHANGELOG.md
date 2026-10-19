@@ -15,7 +15,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   asset and the canvas remembers it, so Compare starts on it and "Change screenshot…" still picks another. The
   `.canvas.zip` carries neither the screenshot nor its id, and a screenshot whose file is gone falls back to choosing one (#43).
 
+- Image-sequence gauges export from the Gauges page as `<name>.gauge-frames.zip` (PNG frames plus a `manifest.json`)
+  and import back with "Import frames (.zip)", validated and capped like the other importers (#49).
+
 ### Changed
+- The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
+  internal (#49).
 - Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
   Gauges page and the narrow-layout sheet now have them (#50).
 
