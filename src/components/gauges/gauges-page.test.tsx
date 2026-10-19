@@ -19,7 +19,7 @@ const saved = vi.hoisted(() => ({
   files: [],
   meta: {},
   copies: [],
-  data: { vector: undefined as unknown, min: 0, max: 100, animationSpeed: 0 },
+  data: { vector: undefined as unknown, frames: undefined as unknown, min: 0, max: 100, animationSpeed: 0 },
 }));
 const library = vi.hoisted(() => ({
   listLibrary: vi.fn(async () => [saved]),
@@ -52,6 +52,7 @@ const flippable = () => within(screen.getByRole("navigation", { name: "Parts" })
 
 beforeEach(() => {
   saved.data.vector = STARTERS[0].gauge;
+  saved.data.frames = undefined;
   closeSession();
   library.createLibraryItem.mockClear();
 });
@@ -141,6 +142,21 @@ describe("Gauges page", () => {
       expect(library.createLibraryItem).toHaveBeenCalledWith(expect.objectContaining({ kind: "gauge", name: "New gauge" }));
       expect(screen.queryByRole("textbox", { name: "Gauge name" })).toBeNull();
     });
+  });
+
+  it("offers frames import in the header and a frames-zip export for an image sequence", async () => {
+    const user = userEvent.setup();
+    saved.data.vector = undefined;
+    saved.data.frames = [{ id: `${"a".repeat(64)}.png`, name: "1.png" }, { id: `${"b".repeat(64)}.png`, name: "2.png" }];
+    renderPage();
+    expect(await screen.findByRole("button", { name: /Import frames/ })).toBeTruthy();
+    expect(document.querySelector('input[aria-label="Import frames zip"]')).toBeTruthy();
+
+    const mine = await screen.findByRole("region", { name: "My library" });
+    await user.click(await within(mine).findByRole("button", { name: /Saved ring/ }));
+    const exportButton = within(await screen.findByRole("complementary", { name: "Gauge details" })).getByRole("button", { name: "Export" }) as HTMLButtonElement;
+    expect(exportButton.disabled).toBe(false);
+    expect(exportButton.title).toContain(".gauge-frames.zip");
   });
 
   it("shows the gauge details beside the list when wide and as a sheet when narrow", async () => {

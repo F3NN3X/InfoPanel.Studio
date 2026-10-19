@@ -12,7 +12,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - Library › Fonts reads the licence column from the font file itself (name table, as declared: "OFL (declared)" or the
   declared text in a tooltip) for Data API and supplied fonts, not only those also in My library (#41).
 
+- Image-sequence gauges export from the Gauges page as `<name>.gauge-frames.zip` (PNG frames plus a `manifest.json`)
+  and import back with "Import frames (.zip)", validated and capped like the other importers (#49).
+
 ### Changed
+- The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
+  internal (#49).
 - Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
   Gauges page and the narrow-layout sheet now have them (#50).
 

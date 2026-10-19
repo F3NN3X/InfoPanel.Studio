@@ -11,6 +11,9 @@ export interface SaveGauge {
   /** The frames: an update keeps the item's when none are given, a new item from `from` takes that gauge's. */
   frames?: LibraryFrame[];
   animationSpeed?: number;
+  /** The range of a new item with no `from` to take it from. */
+  min?: number;
+  max?: number;
   itemId?: string;
   /** Where a new one came from: a profile gauge records its profile as the item's `source`. */
   from?: GaugeEntry;
@@ -28,8 +31,8 @@ export async function saveGauge(p: SaveGauge): Promise<LibraryItem<GaugeLibraryD
   const data = gaugeDataFor({
     gauge: p.gauge,
     frames: p.frames ?? from?.files,
-    min: from?.min,
-    max: from?.max,
+    min: from?.min ?? p.min,
+    max: from?.max ?? p.max,
     animationSpeed: p.animationSpeed ?? from?.animationSpeed,
     ...(from && inProfile ? { source: from.where } : {}),
   });

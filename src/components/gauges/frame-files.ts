@@ -41,3 +41,10 @@ export async function uploadFrame(file: AssetFile): Promise<LibraryFrame> {
   const { id } = await uploadBytes(file.bytes, MIME[file.type]);
   return { id, name: file.name };
 }
+
+/** The bytes served at `url` (a frame of a gauge on the page). */
+export async function fetchFrameBytes(url: string): Promise<Uint8Array> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("A frame could not be read");
+  return new Uint8Array(await res.arrayBuffer());
+}
