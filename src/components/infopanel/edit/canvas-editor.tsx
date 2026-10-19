@@ -17,9 +17,9 @@ import { editKeys, sensorView } from "@/lib/infopanel/canvas-edit";
 import type { Path } from "@/lib/infopanel/editor/ops";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
-import { useElementSize } from "@/hooks/use-element-size";
+import { useViewportBelow } from "@/hooks/use-viewport-below";
 import { PaneSheet } from "@/components/studio/pane-sheet";
-import { inspectorMode } from "@/components/studio/studio-layout";
+import { DOCKED_MIN_WIDTH, FLOATING_MIN_WIDTH, type InspectorMode } from "@/components/studio/studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
 import { canvasKeyAction } from "./canvas-keys";
@@ -55,9 +55,11 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
   const [compare, setCompare] = useState<Compare | null>(() => keptScreenshot(zone.canvas));
   const [remapOpen, setRemapOpen] = useState(false);
   const { index, online, unreachable } = useRemapIndex();
-  // The studio inspector's modes, for the editor's own width: docked column, floating card, bottom sheet.
-  const { ref: rootRef, w: width } = useElementSize(true);
-  const mode = inspectorMode(width);
+  // The studio inspector's modes (docked column, floating card, bottom sheet) on the studio's viewport
+  // breakpoints, not the editor's own width: that changes when the inspector docks, which flipped the mode back.
+  const belowDocked = useViewportBelow(DOCKED_MIN_WIDTH);
+  const belowFloating = useViewportBelow(FLOATING_MIN_WIDTH);
+  const mode: InspectorMode = !belowDocked ? "docked" : !belowFloating ? "floating" : "sheet";
   // The floating card opens with a selection; closing it holds until the selection changes.
   const selectionKey = editor.selection.join("\n");
   const [closedFor, setClosedFor] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
   const name = editor.open.stored.source.name;
   const inspector = <ItemInspector editor={editor} live={live} onRemap={() => setRemapOpen(true)} onEditGauge={onEditGauge} />;
   return (
-    <div ref={rootRef} className="relative flex min-h-0 min-w-0 flex-1 bg-ui-app">
+    <div className="relative flex min-h-0 min-w-0 flex-1 bg-ui-app">
       <ItemsTree editor={editor} name={name} />
       <div className="flex min-w-0 flex-1 flex-col">
         <CanvasToolbar

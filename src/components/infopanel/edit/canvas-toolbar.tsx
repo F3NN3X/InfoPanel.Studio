@@ -1,9 +1,10 @@
 /**
  * The canvas zone editor's toolbar (spec §7), left to right: undo / redo (the studio's history),
  * duplicate, group, ungroup, draw order, delete, Draw all as, Show modes, the sensor source,
- * Remap with its badge, Compare; then Done. Show modes and Compare open a strip below it.
+ * Remap with its badge, Compare; then Done. Show modes and Compare open a strip below it. When the
+ * row does not fit, the sensor source and Compare move into a "More" menu.
  */
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -13,6 +14,7 @@ import {
   Copy,
   Group,
   Layers,
+  MoreHorizontal,
   Redo2,
   Trash2,
   Undo2,
@@ -21,9 +23,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { allMode, modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
+import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { itemAt, topmost } from "@/lib/infopanel/editor/ops";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
+import { useToolbarFit } from "./use-toolbar-fit";
 
 function ToolButton({ icon: Icon, label, onClick, disabled, active }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean; active?: boolean }) {
   return (
@@ -103,8 +107,30 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
   const convertible = [...editor.modes.values()].some((m) => m.state !== "stuck");
+  const { ref, collapsed } = useToolbarFit();
+  const more = useRef<HTMLButtonElement>(null);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const sensorOptions: { value: SensorMode; label: string; disabled?: boolean; title?: string }[] = [
+    { value: "unbound", label: "Unbound", title: "As InfoPanel draws with no sensor" },
+    { value: "live", label: "Live", disabled: apiUnreachable, title: apiUnreachable ? "Data API not reachable" : undefined },
+    { value: "mock", label: "Mock", title: "A slider per sensor in the inspector" },
+  ];
+  const moreEntries: ContextMenuEntry[] = [
+    {
+      id: "sensors",
+      label: "Sensors",
+      submenu: sensorOptions.map((o) => ({
+        id: `sensors-${o.value}`,
+        label: o.label,
+        icon: editor.sensorMode === o.value ? <Check /> : undefined,
+        disabled: o.disabled,
+        onSelect: () => editor.setSensorMode(o.value),
+      })),
+    },
+    { id: "compare", label: "Compare", icon: compare ? <Check /> : <Contrast />, onSelect: () => onCompare(!compare) },
+  ];
   return (
-    <div role="toolbar" aria-label="Canvas items" className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-ui-subtle bg-ui-panel px-3 font-ui">
+    <div ref={ref} role="toolbar" aria-label="Canvas items" className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-ui-subtle bg-ui-panel px-3 font-ui">
       <ToolButton icon={Undo2} label="Undo (Ctrl+Z)" onClick={history.undo} disabled={!history.canUndo} />
       <ToolButton icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={history.redo} disabled={!history.canRedo} />
       <Sep />
@@ -127,17 +153,12 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
       />
       <ToolButton icon={Layers} label="Show modes" onClick={() => onShowModes(!showModes)} active={showModes} />
       <Sep />
-      <Label>Sensors</Label>
-      <Segmented<SensorMode>
-        label="Sensors"
-        value={editor.sensorMode}
-        options={[
-          { value: "unbound", label: "Unbound", title: "As InfoPanel draws with no sensor" },
-          { value: "live", label: "Live", disabled: apiUnreachable, title: apiUnreachable ? "Data API not reachable" : undefined },
-          { value: "mock", label: "Mock", title: "A slider per sensor in the inspector" },
-        ]}
-        onChange={editor.setSensorMode}
-      />
+      {!collapsed && (
+        <>
+          <Label>Sensors</Label>
+          <Segmented<SensorMode> label="Sensors" value={editor.sensorMode} options={sensorOptions} onChange={editor.setSensorMode} />
+        </>
+      )}
       <button
         type="button"
         onClick={onRemap}
@@ -148,19 +169,39 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
         Remap
         {remapCount > 0 && <span className="rounded-full bg-ui-warning/20 px-1.5 font-ui-mono text-[10px] text-ui-warning">{remapCount}</span>}
       </button>
-      <button
-        type="button"
-        aria-pressed={compare}
-        title="Lay InfoPanel’s screenshot over the render"
-        onClick={() => onCompare(!compare)}
-        className={cn(
-          "flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover",
-          compare && "border-ui-accent bg-ui-accent-soft text-ui-1",
-        )}
-      >
-        <Contrast className="h-3.5 w-3.5" />
-        Compare
-      </button>
+      {!collapsed && (
+        <button
+          type="button"
+          aria-pressed={compare}
+          title="Lay InfoPanel’s screenshot over the render"
+          onClick={() => onCompare(!compare)}
+          className={cn(
+            "flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover",
+            compare && "border-ui-accent bg-ui-accent-soft text-ui-1",
+          )}
+        >
+          <Contrast className="h-3.5 w-3.5" />
+          Compare
+        </button>
+      )}
+      {collapsed && (
+        <button
+          ref={more}
+          type="button"
+          aria-label="More"
+          aria-haspopup="menu"
+          aria-expanded={menuAt !== null}
+          title="More"
+          onClick={() => {
+            const r = more.current!.getBoundingClientRect();
+            setMenuAt({ x: r.left, y: r.bottom + 4 });
+          }}
+          className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[8px] border border-ui-default text-ui-2 hover:bg-ui-hover"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      )}
+      {collapsed && menuAt && <ContextMenu x={menuAt.x} y={menuAt.y} entries={moreEntries} onClose={() => setMenuAt(null)} />}
       <span className="flex-1" />
       <button
         type="button"

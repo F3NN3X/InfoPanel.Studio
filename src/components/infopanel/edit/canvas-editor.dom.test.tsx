@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setViewport } from "@/test/dom-setup";
 import { ToastProvider } from "@/components/ui/toast";
 import type { Placement } from "@/lib/layout";
 import { parseDisplayItemsXml, parseProfileXml } from "@/lib/infopanel/parse";
@@ -73,5 +74,37 @@ describe("the canvas editor while the Library covers it", () => {
     act(() => void fireEvent.error(container.querySelector("img")!));
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Choose InfoPanel screenshot…")).toBeTruthy();
+  });
+});
+
+describe("the canvas editor's inspector mode", () => {
+  beforeEach(() => void vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline")))));
+
+  // The editor measures a roomy 800 px here, which the old element-based rule would have floated below 1100.
+  const kind = () => {
+    const aside = screen.queryByRole("complementary", { name: "Item" });
+    if (!aside) return "sheet";
+    return within(aside).queryByRole("button", { name: "Close" }) ? "floating" : "docked";
+  };
+
+  it("switches at the studio's breakpoints, whatever the editor measures", () => {
+    setup();
+    expect(kind()).toBe("docked");
+    act(() => setViewport(1099));
+    expect(kind()).toBe("floating");
+    act(() => setViewport(639));
+    expect(kind()).toBe("sheet");
+    act(() => setViewport(640));
+    expect(kind()).toBe("floating");
+    act(() => setViewport(1100));
+    expect(kind()).toBe("docked");
+  });
+
+  it("stays docked when the inspector opens or closes", () => {
+    act(() => setViewport(1100));
+    setup();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryAllByRole("treeitem").filter((n) => n.getAttribute("aria-selected") === "true")).toHaveLength(0);
+    expect(kind()).toBe("docked");
   });
 });
