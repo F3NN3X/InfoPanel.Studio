@@ -1,27 +1,32 @@
 import { PROFILE_STYLE_KEYS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import {
+  isMore,
   settingKeys,
+  type CompactShape,
   type DashboardModule,
+  type HeaderMode,
   type InspectorTab,
   type ModuleSetting,
   type ModuleSettings,
+  type SharedSectionId,
 } from "@/modules/types";
 import { followsGlobal, resolveStyle, type StyleMode, type StyleSource } from "@/lib/style-resolve";
 import {
   categorize,
-  categoryAdvanced,
   categoryTab,
+  isTrailing,
   tabOf,
-  withGeneral,
+  withHeaderMode,
+  withShared,
   type InspectorCategory,
 } from "./inspector-categories";
 import { matchesQuery, rowMatches, SET_HERE, settingStateOf, type SettingState } from "./settings-model";
 
 /**
  * The tabbed inspector as data: which tabs a selection has, the ordered
- * sections of each tab, search across tabs, the Advanced filter and the
- * "N changed" counts. Pure: the inspector UI renders what this describes.
+ * sections of each tab, search across tabs, each section's "More" rows and
+ * the "N changed" counts. Pure: the inspector UI renders what this describes.
  * Sections are built from the existing categories (`categorize`); custom
  * card UIs (panel editor, presets gallery, ...) are markers (`special`,
  * `extras`) the UI fills in with the components it already has.
@@ -31,16 +36,17 @@ export type DashboardTab = "profile" | "appearance" | "gstyle" | "general";
 export type TabId = InspectorTab | DashboardTab;
 
 export const TAB_LABELS: Record<TabId, string> = {
-  content: "Content",
+  show: "Show",
   style: "Style",
   data: "Data",
+  behaviour: "Behaviour",
   profile: "Profile",
   appearance: "Appearance",
   gstyle: "Global style",
   general: "General",
 };
 
-const ZONE_TABS: readonly TabId[] = ["content", "style", "data"];
+const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
 const DASHBOARD_TABS: readonly TabId[] = ["profile", "appearance", "gstyle", "general"];
 
 /**
@@ -53,7 +59,15 @@ export type PanelLayoutKind = "stack" | "grid" | "overlay";
 
 /** What is selected, with what the sections depend on. */
 export type InspectorContext =
-  | { kind: "widget"; defs: ModuleSetting[]; reducedStyle?: boolean }
+  | {
+      kind: "widget";
+      defs: ModuleSetting[];
+      reducedStyle?: boolean;
+      /** Whether the widget draws a header (`DashboardModule.header`); unset: "yes". */
+      header?: HeaderMode;
+      /** What it draws in small zones (`DashboardModule.compact`). */
+      compact?: CompactShape;
+    }
   | {
       kind: "panel";
       /** The panel zone's own settings (`PANEL_SETTINGS`). */
@@ -85,6 +99,8 @@ export const widgetContext = (mod: DashboardModule): InspectorContext => ({
   kind: "widget",
   defs: mod.settings ?? [],
   reducedStyle: REDUCED_STYLE_MODULES.has(mod.id),
+  header: mod.header,
+  compact: mod.compact,
 });
 
 /** Custom UI a whole section stands for (not a list of settings). */
@@ -127,8 +143,9 @@ export type ExtraKind = "widgetPicker" | "visible" | "styleMode" | "styleTools" 
 
 export interface SectionExtra {
   kind: ExtraKind;
-  advanced: boolean;
-  /** How many fields it stands for (counts for hidden-advanced totals). */
+  /** Listed after the section's "More (n)" link. */
+  more: boolean;
+  /** How many fields it stands for (counts in "More (n)"). */
   count: number;
 }
 
@@ -140,16 +157,14 @@ const EXTRA_TERMS: Record<ExtraKind, string[]> = {
   zoneFrame: ["Zone frame", "Frame accent", "Frame background", "Title header"],
 };
 
-const extra = (kind: ExtraKind, advanced = false, count = 1): SectionExtra => ({ kind, advanced, count });
+const extra = (kind: ExtraKind, more = false, count = 1): SectionExtra => ({ kind, more, count });
 
 export interface InspectorSection {
   /** Stable and unique within a context. */
   id: string;
   title: string;
   tab: TabId;
-  /** The whole section only shows with Advanced settings on. */
-  advanced: boolean;
-  /** One of the general categories (the same on every zone). */
+  /** One of the shared sections (the same on every zone). */
   general: boolean;
   hint?: string;
   settings: ModuleSetting[];
@@ -163,7 +178,6 @@ export interface InspectorSection {
 }
 
 const section = (s: Partial<InspectorSection> & Pick<InspectorSection, "id" | "title" | "tab">): InspectorSection => ({
-  advanced: false,
   general: false,
   settings: [],
   extras: [],
@@ -184,21 +198,25 @@ export function inspectorTabs(context: InspectorContext): { id: TabId; label: st
 
 // -- sections from categories ------------------------------------------------
 
-/** The extras the general cards of a zone carry. */
+/** The extras the shared cards of a zone carry. */
 function extrasOf(category: InspectorCategory, context: InspectorContext): SectionExtra[] {
   if (!category.general) return [];
   const zone = context.kind === "widget" || context.kind === "panel";
   switch (category.id) {
-    case "widget":
-      return context.kind === "widget" ? [extra("widgetPicker"), extra("visible")] : zone ? [extra("visible")] : [];
+    case "header":
+      return identityExtras(context);
     case "colors":
       return zone ? [extra("styleMode"), extra("styleTools")] : context.kind === "multi" ? [extra("styleMode")] : [];
-    case "effects":
+    case "border":
       return zone ? [extra("zoneFrame", true, 3)] : [];
     default:
       return [];
   }
 }
+
+/** The widget picker and Visible (the Header section's, or another's on a widget without one). */
+const identityExtras = (context: InspectorContext): SectionExtra[] =>
+  context.kind === "widget" ? [extra("widgetPicker"), extra("visible")] : context.kind === "panel" ? [extra("visible")] : [];
 
 /**
  * A category as sections, one per tab its settings sit in (usually one).
@@ -214,19 +232,14 @@ function categorySections(
   const tabs = new Set<InspectorTab>(category.defs.map((d) => tabOf(d, category)));
   if (category.defs.length === 0) tabs.add(main);
   return [...tabs].map((tab) => {
-    const settings = category.defs.filter((d) => tabOf(d, category) === tab);
     const extras = tab === main ? extrasOf(category, context) : [];
-    const advanced =
-      categoryAdvanced(category) ||
-      (settings.length > 0 && settings.every((d) => d.advanced) && extras.every((e) => e.advanced));
     return section({
       id: `${idPrefix}${category.id}${tabs.size > 1 && tab !== main ? `@${tab}` : ""}`,
       title: category.title,
       tab,
-      advanced,
       general: category.general,
       hint: category.hint,
-      settings,
+      settings: category.defs.filter((d) => tabOf(d, category) === tab),
       extras,
       terms: extras.flatMap((e) => EXTRA_TERMS[e.kind]),
     });
@@ -236,27 +249,58 @@ function categorySections(
 const sectionsOfCategories = (categories: InspectorCategory[], context: InspectorContext, idPrefix = "") =>
   categories.flatMap((c) => categorySections(c, context, idPrefix));
 
-/** Widget and panel zones: the Widget card, the look cards and any widget-own categories. */
-function zoneCategories(defs: ModuleSetting[]): InspectorCategory[] {
-  return withGeneral(categorize(defs), ["widget", "colors", "effects"]);
+/** Widget and panel zones: the shared cards (Header, Colors, Border & glow always) and the widget's own. */
+function zoneCategories(defs: ModuleSetting[], header = true): InspectorCategory[] {
+  return withShared(categorize(defs), header ? ["header", "colors", "border"] : ["colors", "border"]);
 }
 
 const inTab = (sections: InspectorSection[], tab: InspectorTab) => sections.filter((s) => s.tab === tab);
 
-function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>): InspectorSection[] {
-  const sections = sectionsOfCategories(zoneCategories(context.defs), context);
+/** A tab's sections in order: the leading shared ones, `lead`, the widget's own, then the trailing shared ones. */
+function ordered(sections: InspectorSection[], tab: InspectorTab, lead: InspectorSection[] = []): InspectorSection[] {
+  const here = inTab(sections, tab);
   return [
-    ...inTab(sections, "content"),
-    ...inTab(sections, "style"),
+    ...here.filter((s) => s.general && !isTrailing(s)),
+    ...lead,
+    ...here.filter((s) => !s.general),
+    ...here.filter((s) => isTrailing(s)),
+  ];
+}
+
+/** A zone's sections tab by tab, its Bound data card leading the Data tab. */
+const zoneTabs = (sections: InspectorSection[], bound: InspectorSection) => [
+  ...ordered(sections, "show"),
+  ...ordered(sections, "style"),
+  ...ordered(sections, "data", [bound]),
+  ...ordered(sections, "behaviour"),
+];
+
+/**
+ * A widget without a header has no Header section: its widget picker and
+ * Visible go to its first Show section instead (an empty Header when it has none).
+ */
+function withIdentity(sections: InspectorSection[], context: InspectorContext): InspectorSection[] {
+  if (sections.some((s) => s.id === "header")) return sections;
+  const host = ordered(sections, "show")[0];
+  const extras = identityExtras(context);
+  const terms = extras.flatMap((e) => EXTRA_TERMS[e.kind]);
+  if (!host) return [section({ id: "header", title: "Header", tab: "show", general: true, extras, terms }), ...sections];
+  return sections.map((s) => (s === host ? { ...s, extras: [...extras, ...s.extras], terms: [...terms, ...s.terms] } : s));
+}
+
+function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>): InspectorSection[] {
+  const defs = withHeaderMode(context.defs, context.header, context.compact);
+  const sections = withIdentity(sectionsOfCategories(zoneCategories(defs, context.header !== "none"), context), context);
+  return zoneTabs(
+    sections,
     section({
       id: "bound",
       title: "Bound data",
       tab: "data",
       special: "boundData",
       terms: ["Sensors", "Used by", "Data points", "Source"],
-    }),
-    ...inTab(sections, "data"),
-  ];
+    })
+  );
 }
 
 const PANEL_WIDGET_CARDS: [SpecialSection, string, string[]][] = [
@@ -270,52 +314,54 @@ const PANEL_WIDGET_CARDS: [SpecialSection, string, string[]][] = [
 function panelSections(context: Extract<InspectorContext, { kind: "panel" }>): InspectorSection[] {
   const sections = sectionsOfCategories(zoneCategories(context.defs), context);
   const visual = !context.codeView;
-  const content = (id: string, title: string, special: SpecialSection, terms: string[] = [], advanced = false) =>
-    section({ id, title, tab: "content", special, advanced, terms });
+  const show = (id: string, title: string, special: SpecialSection, terms: string[] = []) =>
+    section({ id, title, tab: "show", special, terms });
   return [
-    content("panel", "Panel", "panel", ["Visual", "Code", "JSON", "Fill", "Hug", "Gap", "Padding"]),
-    ...(visual ? [content("layout", "Layout", "panelLayout", ["Stack", "Grid", "Overlay", "Direction", "Columns"])] : []),
-    ...(visual && context.layout === "overlay" ? [content("background", "Background", "panelBackground", ["Image", "Dim"])] : []),
-    ...(visual ? [content("widgets", "Widgets", "panelWidgets", ["Add panel widget"])] : []),
-    ...(!visual ? [content("json", "Panel JSON", "panelJson", ["Apply"])] : []),
+    show("panel", "Panel", "panel", ["Visual", "Code", "JSON", "Fill", "Hug", "Gap", "Padding"]),
+    ...(visual ? [show("layout", "Layout", "panelLayout", ["Stack", "Grid", "Overlay", "Direction", "Columns"])] : []),
+    ...(visual && context.layout === "overlay" ? [show("background", "Background", "panelBackground", ["Image", "Dim"])] : []),
+    ...(visual ? [show("widgets", "Widgets", "panelWidgets", ["Add panel widget"])] : []),
+    ...(!visual ? [show("json", "Panel JSON", "panelJson", ["Apply"])] : []),
     ...(visual && context.selectedWidget
       ? PANEL_WIDGET_CARDS.map(([special, title, terms]) =>
-          content(
-            `item-${special}`,
-            special === "widgetKind" ? `Selected · ${context.selectedLabel ?? "widget"}` : title,
-            special,
-            terms,
-            special === "widgetAdvanced"
-          )
+          show(`item-${special}`, special === "widgetKind" ? `Selected · ${context.selectedLabel ?? "widget"}` : title, special, terms)
         )
       : []),
-    ...inTab(sections, "content"),
-    ...inTab(sections, "style"),
-    section({
-      id: "panel-data",
-      title: "Bound data",
-      tab: "data",
-      special: "panelData",
-      terms: ["Sensors", "Data points"],
-    }),
-    ...inTab(sections, "data"),
+    ...zoneTabs(
+      sections,
+      section({
+        id: "panel-data",
+        title: "Bound data",
+        tab: "data",
+        special: "panelData",
+        terms: ["Sensors", "Data points"],
+      })
+    ),
   ];
 }
 
 const blankSections = (): InspectorSection[] => [
-  section({ id: "pick", title: "Widget", tab: "content", special: "blankPick", terms: ["Pick a widget", "Blank zone"] }),
+  section({ id: "pick", title: "Widget", tab: "show", special: "blankPick", terms: ["Pick a widget", "Blank zone"] }),
   section({
     id: "frame",
     title: "Zone frame",
-    tab: "content",
+    tab: "show",
     special: "zoneFrame",
     terms: EXTRA_TERMS.zoneFrame,
   }),
 ];
 
+/** The shared sections of the look, in order: what several zones, and the global style, edit together. */
+const LOOK_SECTIONS: readonly SharedSectionId[] = ["skin", "colors", "surface", "type", "spacing", "border", "css", "fit", "motion"];
+
+function lookCategories(defs: ModuleSetting[]): InspectorCategory[] {
+  const categories = categorize(defs);
+  return LOOK_SECTIONS.flatMap((id) => categories.filter((c) => c.general && c.id === id));
+}
+
 /** Several zones: just the shared look cards. */
 function multiSections(context: Extract<InspectorContext, { kind: "multi" }>): InspectorSection[] {
-  return inTab(sectionsOfCategories(categorize(context.defs).filter((c) => c.general), context), "style");
+  return sectionsOfCategories(lookCategories(context.defs), context);
 }
 
 // -- the dashboard (nothing selected) -----------------------------------------
@@ -331,7 +377,7 @@ const dashboardMarker = (
 ) => section({ id, title, tab, special, terms, cardId });
 
 function dashboardSections(): InspectorSection[] {
-  const look = categorize(PROFILE_STYLE_SETTINGS).filter((c) => c.general && categoryTab(c) === "style");
+  const look = lookCategories(PROFILE_STYLE_SETTINGS);
   const styleContext: InspectorContext = { kind: "dashboard", scope: "all" };
   return [
     dashboardMarker("profile", "profile", "Profile", "profileFields", [
@@ -398,7 +444,7 @@ export function allSections(context: InspectorContext): InspectorSection[] {
  * InfoPanel schema has them (the registry, not a panel per kind), and the unknown fields.
  */
 function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel" }>): InspectorSection[] {
-  const ip = (id: string, title: string, special: SpecialSection, terms: string[]) => section({ id, title, tab: "content", special, terms });
+  const ip = (id: string, title: string, special: SpecialSection, terms: string[]) => section({ id, title, tab: "show", special, terms });
   // The Position group's other fields (scale, corner radius) are rows under the X / Y / W / H grid.
   const position = context.group ? undefined : context.groups.find((g) => g.id === "ip-position");
   return [
@@ -409,7 +455,8 @@ function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel
     ...(context.bound ? [ip("ip-binding", "Sensor", "ipSensor", ["Sensor", "Remap", "Data API key"])] : []),
     ...context.groups
       .filter((g) => g !== position)
-      .map((g) => section({ id: g.id, title: g.title, tab: "content", settings: g.defs, advanced: g.advanced })),
+      // An advanced group's fields all sit behind its "More (n)".
+      .map((g) => section({ id: g.id, title: g.title, tab: "show", settings: g.advanced ? g.defs.map((d) => ({ ...d, more: true })) : g.defs })),
     ...(context.unknown ? [ip("ip-unknown", "Unknown fields", "ipUnknown", ["Unknown", "Kept"])] : []),
   ];
 }
@@ -466,39 +513,24 @@ export function searchAll(context: InspectorContext, query: string): SearchResul
   return { groups: hits.map((h) => h.group), total: hits.reduce((n, h) => n + sizeOf(h.group, h.marks), 0) };
 }
 
-// -- advanced -----------------------------------------------------------------
+// -- more ---------------------------------------------------------------------
 
-/** How many fields a section stands for. */
-export function sectionSize(s: InspectorSection): number {
-  return s.settings.length + s.extras.reduce((n, e) => n + e.count, 0) + (s.special ? 1 : 0);
+/** A section's rows before its "More (n)" link and after it; `count` is the n (rows and extras flagged `more`). */
+export function splitMore(s: InspectorSection): { rows: ModuleSetting[]; more: ModuleSetting[]; count: number } {
+  const more = s.settings.filter(isMore);
+  return {
+    rows: s.settings.filter((d) => !isMore(d)),
+    more,
+    count: more.length + s.extras.filter((e) => e.more).reduce((n, e) => n + e.count, 0),
+  };
 }
 
-/**
- * With Advanced settings off, the advanced sections, settings and extras
- * drop out (a section left with nothing goes too); `hiddenCount` is how many
- * fields that hid ("Show N advanced settings").
- */
-export function applyAdvanced(
-  sections: InspectorSection[],
-  showAdvanced: boolean
-): { sections: InspectorSection[]; hiddenCount: number } {
-  if (showAdvanced) return { sections, hiddenCount: 0 };
-  let hiddenCount = 0;
-  const visible: InspectorSection[] = [];
-  for (const s of sections) {
-    if (s.advanced) {
-      hiddenCount += sectionSize(s);
-      continue;
-    }
-    const settings = s.settings.filter((d) => !d.advanced);
-    const extras = s.extras.filter((e) => !e.advanced);
-    const dropped =
-      s.settings.length - settings.length + s.extras.filter((e) => e.advanced).reduce((n, e) => n + e.count, 0);
-    hiddenCount += dropped;
-    if (dropped === 0) visible.push(s);
-    else if (settings.length > 0 || extras.length > 0 || s.special) visible.push({ ...s, settings, extras });
-  }
-  return { sections: visible, hiddenCount };
+/** The tabs with the ones that have no section disabled (shown dimmed, never picked by default). */
+export function tabStates(
+  tabs: { id: TabId; label: string }[],
+  sections: InspectorSection[]
+): { id: TabId; label: string; disabled: boolean }[] {
+  return tabs.map((t) => ({ ...t, disabled: !sections.some((s) => s.tab === t.id) }));
 }
 
 // -- source states and counts ---------------------------------------------------
@@ -572,7 +604,7 @@ export const changedCount = (s: InspectorSection, values: LookValues): number =>
 export const resetKeysOfSection = (s: InspectorSection, values: LookValues): string[] =>
   changedSettings(s, values).flatMap(settingKeys);
 
-/** The changed-count pill of each tab (every section counts, advanced or not). */
+/** The changed-count pill of each tab (every section counts, More rows too). */
 export function tabChangedCounts(sections: InspectorSection[], values: LookValues): Partial<Record<TabId, number>> {
   const counts: Partial<Record<TabId, number>> = {};
   for (const s of sections) counts[s.tab] = (counts[s.tab] ?? 0) + changedCount(s, values);

@@ -1,8 +1,8 @@
 import type { Placement } from "@/lib/layout";
-import type { ModuleSetting } from "@/modules/types";
+import { STANDARD_KEYS } from "@/modules/standard-settings";
+import { isMore, type ModuleSetting } from "@/modules/types";
 import { pinsOf } from "./inspector/inspector-prefs";
 import { sharedDefs } from "./inspector-model";
-import { GENERAL_CATEGORIES } from "./inspector-categories";
 
 /**
  * A widget type's default quick set (the quick bar before the user pins
@@ -14,26 +14,13 @@ import { GENERAL_CATEGORIES } from "./inspector-categories";
 /** Setting types the quick bar shows as a compact control. */
 export const QUICK_TYPES: ReadonlySet<string> = new Set(["boolean", "select", "number", "color"]);
 
-/** Standard settings without a group that are not quick picks (a preset bundle, the card surface). */
-const NOT_QUICK = new Set(["preset", "surface"]);
-
-const GENERAL_TITLES = new Set(GENERAL_CATEGORIES.map((c) => c.title));
-
 /** Whether a setting can sit in the quick bar. */
 export const quickable = (def: ModuleSetting): boolean => QUICK_TYPES.has(def.type) && !def.multiple && !def.keyY && !def.optionsFrom;
 
 export function defaultQuickKeys(defs: readonly ModuleSetting[]): string[] {
   const has = (key: string) => defs.some((d) => d.key === key);
   const own = defs
-    .filter(
-      (d) =>
-        quickable(d) &&
-        !d.advanced &&
-        !NOT_QUICK.has(d.key) &&
-        d.key !== "layout" &&
-        !(d.group && GENERAL_TITLES.has(d.group)) &&
-        !(d.group === undefined && ["layout", "accent"].includes(d.key))
-    )
+    .filter((d) => quickable(d) && !isMore(d) && !STANDARD_KEYS.has(d.key))
     .slice(0, 2)
     .map((d) => d.key);
   return [...(has("layout") ? ["layout"] : []), ...(has("accent") ? ["accent"] : []), ...own].slice(0, 4);

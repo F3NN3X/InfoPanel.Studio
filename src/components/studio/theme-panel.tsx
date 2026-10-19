@@ -1,6 +1,6 @@
 import { hslToHex, hexToHsl, THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
-import { useInspectorAdvanced } from "./inspector/inspector-prefs";
 import { ColorPill } from "./inspector/color-pill";
+import { MoreRows, moreKey } from "./inspector/more-rows";
 import { cn } from "@/lib/utils";
 import { InlineRow } from "./setting-rows";
 import { ADVANCED_TOKENS, themeRows, type TokenRow } from "./theme-rows";
@@ -78,10 +78,9 @@ function ThemeSwatches({ presetName, edited, onPreset }: { presetName: string; e
  * Appearance › Theme (shadcn-themer style): a theme preset that changes
  * the colours only (the corner radius is per profile, in the Profile tab),
  * and per-token colour pickers — the main ones always, the
- * rest as Advanced. Changes apply live through the CSS variables.
+ * rest behind "More". Changes apply live through the CSS variables.
  */
 export function ThemePanel({ tokens, presetName, onToken, onPreset, query = "" }: ThemePanelProps) {
-  const [advanced, setAdvanced] = useInspectorAdvanced();
   const edited = presetName === "custom";
   const row = ([key, label]: TokenRow) => (
     <TokenRow key={key} label={label} value={tokens[key]} onChange={(v) => onToken(key, v)} />
@@ -96,16 +95,12 @@ export function ThemePanel({ tokens, presetName, onToken, onPreset, query = "" }
     <div className="space-y-2">
       {showPreset && <ThemeSwatches presetName={presetName} edited={edited} onPreset={onPreset} />}
       {visibleTokens.map(row)}
-      {advanced || filtering ? (
+      {filtering ? (
         hiddenTokens.map(row)
       ) : (
-        <button
-          type="button"
-          onClick={() => setAdvanced(true)}
-          className="w-full rounded-[7px] border border-dashed border-ui-strong p-[9px] text-[12px] text-ui-3 hover:border-[#3a3a44] hover:text-ui-1"
-        >
-          Show {ADVANCED_TOKENS.length} advanced colors
-        </button>
+        <MoreRows storeKey={moreKey("dashboard", "ap-theme")} count={ADVANCED_TOKENS.length} className="pl-0">
+          <div className="space-y-2">{hiddenTokens.map(row)}</div>
+        </MoreRows>
       )}
     </div>
   );

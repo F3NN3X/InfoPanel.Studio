@@ -13,41 +13,30 @@ import { settingKeys, type ModuleSetting, type ModuleSettings } from "./types";
  *   settings: [...STANDARD_SETTINGS, ...MODULE_SPECIFIC]
  *
  * Keys are plain config values, read back via `effectiveSettings` and
- * turned into the component's `chrome` prop by `chromeOf`:
+ * turned into the component's `chrome` prop by `chromeOf`. Each one names
+ * the shared inspector section it is filed in (`section`, see
+ * `inspector-categories.ts`); "More" rows sit behind the section's link:
  *
- * - `preset` / `layout` / `surface` — style preset, layout variant, surface
- * - Widget: `label`, `icon`
- * - Look: `skin`, `variant`, `graph`, `meter`, `compactView` (the template widgets' shell; `compactView` files under Size)
- * - Size & alignment: `autoScale`, `scale`, `alignX`, `alignY`
- * - Typography: `textColor`, `mutedColor`, `font`, `fontWeight`, `labelCase`
- * - Spacing & shape: `padding`, `gap`, `radius`, `stroke`
- * - Colors & surface: `accent`, `background`, `backgroundOn`, `surfaceOpacity`,
- *   `blur` (the last two on surfaced widgets only)
- * - Border & effects: `borderWidth`, `borderColor`, `glow`, `glowColor`
+ * - Header: `showTitle`, `label`; More: `icon`
+ * - Fit: `layout`, `variant`, `compactView` (the template widgets' shell)
+ * - Skin & graphics: `skin`, `stroke`; More: `graph`, `meter`
+ * - Colors: `accent`, `textColor`, `mutedColor`; More: `preset`
+ * - Surface: `surface`, `surfaceOpacity`, `blur` (the last two on surfaced
+ *   widgets only); More: `background`, `backgroundOn`
+ * - Typography: `font`, `fontWeight`, `labelCase`
+ * - Size & spacing: `scale`, `alignX` / `alignY`, `padding`, `gap`, `radius`; More: `autoScale`
+ * - Border & glow: `borderWidth`, `borderColor`, `glow`, `glowColor`
  *   (surfaced widgets only)
- * - Advanced: `customCss` (every widget)
+ * - Custom CSS: More: `customCss` (every widget)
+ * - Motion (Behaviour): `smoothing`
  *
  * Widgets without layout variants or surfaces (the plain modules) spread
  * `STYLE_SETTINGS` only. Module-specific options come after these and keep
- * their own keys and their own `group` (the inspector category, see
- * `inspector-categories.ts`).
+ * their own keys and their own `group` (their inspector section).
  *
  * The keys in `PROFILE_STYLE_KEYS` can also be set once per profile
  * (`MonitorProfile.style`); a widget's own value overrides the profile's.
  */
-
-/**
- * The general inspector categories (see `inspector-categories.ts`). Module
- * settings use their own group names instead; these are the standard block's.
- */
-export const GROUP_WIDGET = "Widget";
-export const GROUP_LOOK = "Look";
-export const GROUP_SIZE = "Size & alignment";
-export const GROUP_TYPOGRAPHY = "Typography";
-export const GROUP_SPACING = "Spacing & shape";
-export const GROUP_COLORS = "Colors & surface";
-export const GROUP_EFFECTS = "Border & effects";
-export const GROUP_ADVANCED = "Advanced";
 
 /** "auto" plus pixel steps, for the spacing selects. */
 const pxOptions = (values: number[]) => [
@@ -80,7 +69,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     default: "auto",
     options: autoOptions(SKIN_PACKS.map((p) => p.name)).map((o) => ({ ...o, applies: { surface: "auto" } })),
     keywords: ["theme", "style", "look", ...SKIN_PACKS.map((p) => p.name)],
-    group: GROUP_LOOK,
+    section: "skin",
   },
   {
     // A layout mode, not a style: "studio" swaps the layout for the dense summary (`StudioView`).
@@ -94,7 +83,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     ],
     hint: "Swaps the layout for a dense, uniform summary",
     keywords: ["variant", "studio", "dense", "summary"],
-    group: GROUP_SIZE,
+    section: "fit",
   },
   {
     key: "graph",
@@ -103,8 +92,8 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     default: "auto",
     options: autoOptions(["area", "line", "step", "bars", "dots", "braille"]),
     keywords: ["chart", "sparkline", "skin"],
-    advanced: true,
-    group: GROUP_LOOK,
+    more: true,
+    section: "skin",
   },
   {
     key: "meter",
@@ -113,8 +102,8 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     default: "auto",
     options: autoOptions(["bar", "pill", "segments", "blocks", "hair", "wave", "square"]),
     keywords: ["gauge", "progress", "skin"],
-    advanced: true,
-    group: GROUP_LOOK,
+    more: true,
+    section: "skin",
   },
   {
     // New key (default stepped = how graphs always drew); smooth glides between samples.
@@ -128,7 +117,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     ],
     hint: "Smooth glides graphs, bars and rings between readings; reduced motion keeps them stepped",
     keywords: ["smooth", "smoothing", "animation", "glide", "interpolate", "stepped", "motion"],
-    group: GROUP_LOOK,
+    section: "motion",
   },
   {
     // Key and values kept (auto / off) for saved configs; `on` (Always) is new.
@@ -143,15 +132,15 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     ],
     hint: "Auto swaps 1×1, one-row and one-column zones to a summary card; Never keeps the full layout; Always shows the card at any size",
     keywords: ["small", "summary", "tile", "compact", "card"],
-    group: GROUP_SIZE,
+    section: "fit",
   },
   {
     key: "autoScale",
     label: "Scale with the zone",
     type: "boolean",
     default: true,
-    advanced: true,
-    group: GROUP_SIZE,
+    more: true,
+    section: "spacing",
   },
   {
     key: "scale",
@@ -161,7 +150,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     min: 50,
     max: 200,
     step: 5,
-    group: GROUP_SIZE,
+    section: "spacing",
   },
   {
     // One 3×3 picker for both axes; "Spread" (alignX "between") is a toggle.
@@ -171,7 +160,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     type: "align",
     default: "auto",
     keywords: ["horizontal", "vertical", "left", "right", "top", "bottom", "middle", "center", "spread"],
-    group: GROUP_SIZE,
+    section: "spacing",
   },
   {
     key: "padding",
@@ -179,7 +168,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     type: "select",
     default: "auto",
     options: pxOptions([0, 4, 8, 12, 16, 20, 24, 32, 48]),
-    group: GROUP_SPACING,
+    section: "spacing",
   },
   {
     key: "gap",
@@ -187,7 +176,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     type: "select",
     default: "auto",
     options: pxOptions([0, 4, 8, 12, 16, 24, 32, 48]),
-    group: GROUP_SPACING,
+    section: "spacing",
   },
   {
     key: "radius",
@@ -195,10 +184,10 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     type: "select",
     default: "auto",
     options: [...pxOptions([0, 4, 8, 12, 16, 20, 28]), { value: "999", label: "Pill" }],
-    group: GROUP_SPACING,
+    section: "spacing",
   },
-  { key: "textColor", label: "Text color", type: "color", default: "", group: GROUP_TYPOGRAPHY },
-  { key: "mutedColor", label: "Secondary text color", type: "color", default: "", group: GROUP_TYPOGRAPHY },
+  { key: "textColor", label: "Text color", type: "color", default: "", section: "colors" },
+  { key: "mutedColor", label: "Secondary text color", type: "color", default: "", section: "colors" },
   {
     key: "font",
     label: "Font",
@@ -208,7 +197,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
       { value: "auto", label: "Theme" },
       ...FONT_CATALOG.filter((f) => f.id !== "system").map((f) => ({ value: f.id, label: f.label })),
     ],
-    group: GROUP_TYPOGRAPHY,
+    section: "type",
   },
   {
     key: "fontWeight",
@@ -223,7 +212,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
       { value: "700", label: "Bold" },
       { value: "800", label: "Heavy" },
     ],
-    group: GROUP_TYPOGRAPHY,
+    section: "type",
   },
   {
     key: "labelCase",
@@ -236,7 +225,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
       { value: "none", label: "As written" },
       { value: "capitalize", label: "Capitalized" },
     ],
-    group: GROUP_TYPOGRAPHY,
+    section: "type",
   },
   {
     key: "stroke",
@@ -246,7 +235,7 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     min: 50,
     max: 250,
     step: 10,
-    group: GROUP_SPACING,
+    section: "skin",
   },
   {
     key: "customCss",
@@ -254,7 +243,8 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     type: "text",
     multiline: true,
     default: "",
-    group: GROUP_ADVANCED,
+    section: "css",
+    more: true,
   },
 ];
 
@@ -266,9 +256,9 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
     type: "select",
     default: "auto",
     options: pxOptions([0, 1, 2, 3, 4, 6]),
-    group: GROUP_EFFECTS,
+    section: "border",
   },
-  { key: "borderColor", label: "Border color", type: "color", default: "", group: GROUP_EFFECTS },
+  { key: "borderColor", label: "Border color", type: "color", default: "", section: "border" },
   {
     key: "glow",
     label: "Edge glow",
@@ -279,7 +269,7 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
       { value: "soft", label: "Soft" },
       { value: "strong", label: "Strong" },
     ],
-    group: GROUP_EFFECTS,
+    section: "border",
   },
   {
     key: "glowColor",
@@ -288,7 +278,7 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
     default: "",
     hint: "Auto uses the accent",
     visibleIf: (values) => (values.glow ?? "none") !== "none",
-    group: GROUP_EFFECTS,
+    section: "border",
   },
   {
     key: "surfaceOpacity",
@@ -298,7 +288,7 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
     min: 0,
     max: 100,
     step: 5,
-    group: GROUP_COLORS,
+    section: "surface",
   },
   {
     key: "blur",
@@ -306,7 +296,7 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
     type: "select",
     default: "auto",
     options: pxOptions([0, 4, 8, 16, 24, 40]),
-    group: GROUP_COLORS,
+    section: "surface",
   },
 ];
 
@@ -327,6 +317,8 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
         applies: { surface: "matte-dark", tint: false, accent: "#fafafa" },
       },
     ],
+    section: "colors",
+    more: true,
   },
   {
     key: "layout",
@@ -341,6 +333,7 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
       { value: "compact", label: "Compact bar" },
       { value: "simple", label: "Simple" },
     ],
+    section: "fit",
   },
   {
     // Unset stays glass (stored configs unchanged); Auto = the skin's own card, glass without a skin.
@@ -353,19 +346,20 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
       ...APP_SURFACE_OPTIONS,
       ...Object.keys(BASE_SURFACES).map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })),
     ],
+    section: "surface",
   },
-  { key: "showTitle", label: "Show title", type: "boolean", default: true, group: GROUP_WIDGET },
-  { key: "label", label: "Custom title", type: "text", default: "", group: GROUP_WIDGET, visibleIf: (values) => values.showTitle !== false },
-  { key: "icon", label: "Icon", type: "icon", default: "", group: GROUP_WIDGET },
-  { key: "accent", label: "Accent color", type: "color", default: "", group: GROUP_COLORS },
-  { key: "background", label: "Background image", type: "image", default: "", group: GROUP_COLORS, advanced: true },
+  { key: "showTitle", label: "Show title", type: "boolean", default: true, section: "header" },
+  { key: "label", label: "Custom title", type: "text", default: "", section: "header", visibleIf: (values) => values.showTitle !== false },
+  { key: "icon", label: "Icon", type: "icon", default: "", section: "header", more: true },
+  { key: "accent", label: "Accent color", type: "color", default: "", section: "colors" },
+  { key: "background", label: "Background image", type: "image", default: "", section: "surface", more: true },
   {
     key: "backgroundOn",
     label: "Use as background",
     type: "boolean",
     default: false,
-    advanced: true,
-    group: GROUP_COLORS,
+    more: true,
+    section: "surface",
   },
   ...STYLE_SETTINGS,
   ...SURFACE_SETTINGS,
@@ -422,6 +416,9 @@ export const PROFILE_STYLE_KEYS: ReadonlySet<string> = new Set([
   ...STYLE_SETTINGS.flatMap(settingKeys),
   ...SURFACE_SETTINGS.flatMap(settingKeys),
 ]);
+
+/** Every key of the standard block (a widget's own settings are the rest). */
+export const STANDARD_KEYS: ReadonlySet<string> = new Set(STANDARD_SETTINGS.flatMap(settingKeys));
 
 /** The standard settings a profile can set (see `PROFILE_STYLE_KEYS`). */
 export const PROFILE_STYLE_SETTINGS: ModuleSetting[] = STANDARD_SETTINGS.filter((s) =>

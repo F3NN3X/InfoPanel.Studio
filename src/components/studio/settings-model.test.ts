@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  GROUP_EFFECTS,
-  PROFILE_STYLE_KEYS,
-  STANDARD_SETTINGS,
-} from "@/modules/standard-settings";
+import { PROFILE_STYLE_KEYS, STANDARD_SETTINGS } from "@/modules/standard-settings";
 import { effectiveSettings, type ModuleSetting } from "@/modules/types";
 import {
   dropKeys,
@@ -22,6 +18,7 @@ const def = (key: string, extra: Partial<ModuleSetting> = {}): ModuleSetting => 
 });
 
 describe("filterSettings", () => {
+  const GROUP_EFFECTS = "Border & effects";
   const defs = [
     def("glow", { label: "Edge glow", group: GROUP_EFFECTS }),
     def("glowColor", { label: "Glow color (empty = accent)", group: GROUP_EFFECTS }),

@@ -1,5 +1,5 @@
 import {
-  AppWindow,
+  Activity,
   Bell,
   Blocks,
   Brush,
@@ -7,14 +7,18 @@ import {
   Code,
   Database,
   Frame,
+  Heading,
   Image,
+  Layers,
   LayoutGrid,
   LayoutTemplate,
   type LucideIcon,
+  Maximize2,
   Monitor,
   MousePointerClick,
   Palette,
   PanelTop,
+  Pill,
   Plug,
   Repeat,
   Ruler,
@@ -24,6 +28,8 @@ import {
   SlidersHorizontal,
   Sparkles,
   SquareDashed,
+  SwatchBook,
+  TriangleAlert,
   Type,
   UserRound,
   Wand2,
@@ -33,19 +39,25 @@ import type { InspectorSection } from "../inspector-model";
 /**
  * Each inspector section's icon (its accordion header) and one-word label
  * (the phone sheet's tool tiles). Sections are matched by their id without
- * the Global style prefix (`gs-`) or a split tab's suffix (`@content`);
+ * the Global style prefix (`gs-`) or a split tab's suffix (`@data`);
  * a widget's own categories fall back to a generic icon and their title's
  * first word.
  */
 const BY_ID: Record<string, { icon: LucideIcon; short: string }> = {
-  widget: { icon: AppWindow, short: "Widget" },
-  look: { icon: Brush, short: "Look" },
-  size: { icon: Scaling, short: "Size" },
-  typography: { icon: Type, short: "Type" },
-  spacing: { icon: Ruler, short: "Shape" },
+  header: { icon: Heading, short: "Header" },
+  fit: { icon: Maximize2, short: "Fit" },
+  skin: { icon: Brush, short: "Skin" },
   colors: { icon: Palette, short: "Colors" },
-  effects: { icon: Sparkles, short: "Effects" },
-  advanced: { icon: Code, short: "Advanced" },
+  palette: { icon: SwatchBook, short: "Widget" },
+  surface: { icon: Layers, short: "Surface" },
+  type: { icon: Type, short: "Type" },
+  spacing: { icon: Scaling, short: "Spacing" },
+  border: { icon: Sparkles, short: "Border" },
+  css: { icon: Code, short: "CSS" },
+  format: { icon: Ruler, short: "Format" },
+  thresholds: { icon: TriangleAlert, short: "Alerts" },
+  motion: { icon: Activity, short: "Motion" },
+  island: { icon: Pill, short: "Island" },
   bound: { icon: Database, short: "Data" },
   "panel-data": { icon: Database, short: "Data" },
   pick: { icon: MousePointerClick, short: "Widget" },
@@ -84,7 +96,7 @@ export function sectionIcon(section: Pick<InspectorSection, "id">): LucideIcon {
   return BY_ID[baseId(section.id)]?.icon ?? SlidersHorizontal;
 }
 
-/** One word for a tool tile ("Colors & surface" → "Colors"). */
+/** One word for a tool tile ("Skin & graphics" → "Skin"). */
 export function sectionShort(section: Pick<InspectorSection, "id" | "title">): string {
   return BY_ID[baseId(section.id)]?.short ?? (section.title.split(/[\s&·,/]+/).find(Boolean) ?? section.title);
 }

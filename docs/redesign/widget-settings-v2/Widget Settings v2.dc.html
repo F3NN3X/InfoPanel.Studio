@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Instrument+Serif&family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;800&family=Inter:wght@500;700&family=Manrope:wght@600;800&family=IBM+Plex+Sans:wght@500;700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0e;color:#ededf0;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.84 0.12 255)}a:hover{color:#ededf0}
+.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;font-feature-settings:'liga'}
+input,select,textarea,button{font-family:inherit}
+input[type=range]{accent-color:oklch(0.72 0.15 255)}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#0c0c0e">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #1f1f24;background:#111114;position:sticky;top:0;z-index:5">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:26px;height:26px;border-radius:7px;background:oklch(0.72 0.15 255 / 0.18);display:grid;place-items:center;color:oklch(0.84 0.12 255)"><span class="ms" style="font-size:17px">tune</span></div>
+      <div style="font-size:13.5px;font-weight:600;white-space:nowrap">Widget settings v2</div>
+    </div>
+    <div style="display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+        <button onClick="{{ n.onClick }}" style="height:28px;padding:0 12px;border:0;border-radius:6px;background:{{ n.bg }};color:{{ n.fg }};font-size:12.5px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap"><span class="ms" style="font-size:16px">{{ n.icon }}</span>{{ n.label }}</button>
+      </sc-for>
+    </div>
+    <div style="flex:1;min-width:0"></div>
+    <div style="font-size:11.5px;color:#6f6f79;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Concept · see SPEC.md</div>
+  </div>
+
+  <sc-if value="{{ isModel }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1120px;width:100%;margin:0 auto;padding:40px 28px 80px;box-sizing:border-box;display:flex;flex-direction:column;gap:44px">
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:760px">
+        <div style="font-size:12px;color:#8a8a94;letter-spacing:.04em;text-transform:uppercase">Settings model</div>
+        <div style="font-size:30px;font-weight:600;letter-spacing:-0.02em;line-height:1.15;text-wrap:pretty">Every widget gets the same four tabs. A theme owns the look and the formats, and each widget follows it section by section.</div>
+        <div style="font-size:14px;color:#9696a0;line-height:1.55;text-wrap:pretty">Today: 34 standard rows on every widget, 334 own rows in 9 inspector categories plus one category per group name, and look keys alone layering from profile and dashboard. New: four task tabs, sections that follow the theme as a unit, and content preferences (units, thresholds, motion) that can be set once per profile.</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:15px;font-weight:600">1 · Four tabs, filed by the question they answer</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span class="ms" style="font-size:18px;color:oklch(0.84 0.12 255)">visibility</span><span style="font-size:14px;font-weight:600">Show</span></div>
+            <div style="font-size:12.5px;color:#9696a0;line-height:1.5">What is on the widget. Widget-specific content first.</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#c9c9cf"><div>Header · title, icon (only if it draws one)</div><div>Widget content sections</div><div>Fit · small zones, density</div></div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span class="ms" style="font-size:18px;color:oklch(0.84 0.12 255)">palette</span><span style="font-size:14px;font-weight:600">Style</span></div>
+            <div style="font-size:12.5px;color:#9696a0;line-height:1.5">How it looks. Every section can follow the theme.</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#c9c9cf"><div>Skin & graphics · Colors · Widget colors</div><div>Surface · Typography · Size & spacing</div><div>Border & glow · Custom CSS</div></div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span class="ms" style="font-size:18px;color:oklch(0.84 0.12 255)">sensors</span><span style="font-size:14px;font-weight:600">Data</span></div>
+            <div style="font-size:12.5px;color:#9696a0;line-height:1.5">Where values come from and how they are written.</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#c9c9cf"><div>Device · sensors · source / provider</div><div>Units & format (follows theme)</div></div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span class="ms" style="font-size:18px;color:oklch(0.84 0.12 255)">bolt</span><span style="font-size:14px;font-weight:600">Behaviour</span></div>
+            <div style="font-size:12.5px;color:#9696a0;line-height:1.5">How it reacts over time and what it tells you.</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#c9c9cf"><div>Thresholds (follows theme)</div><div>History · dynamics · Dynamic Island</div><div>Motion (follows theme)</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:15px;font-weight:600">2 · Inheritance is per section</div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1fr);align-items:stretch;gap:0">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:#8a8a94;text-transform:uppercase;letter-spacing:.05em">Profile theme</div><div style="font-size:13px;font-weight:600">Desk · 2560×1440</div><div style="font-size:12px;color:#9696a0;line-height:1.5">Every themed key has a value here. A section can be locked so widgets cannot customise it.</div></div>
+          <div style="display:grid;place-items:center;color:#4a4a52"><span class="ms" style="font-size:20px">arrow_forward</span></div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:#8a8a94;text-transform:uppercase;letter-spacing:.05em">Dashboard theme</div><div style="font-size:13px;font-weight:600">Gaming</div><div style="font-size:12px;color:#9696a0;line-height:1.5">Each section follows the profile, or is custom for this dashboard.</div></div>
+          <div style="display:grid;place-items:center;color:#4a4a52"><span class="ms" style="font-size:20px">arrow_forward</span></div>
+          <div style="background:#111114;border:1px solid oklch(0.72 0.15 255 / 0.4);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;color:#8a8a94;text-transform:uppercase;letter-spacing:.05em">Widget section</div><div style="font-size:13px;font-weight:600">Follows · or Custom</div><div style="font-size:12px;color:#9696a0;line-height:1.5">Customize copies the theme values in and unlocks the rows. Use theme hides them again but keeps them stored.</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px 24px;font-size:12.5px;color:#b4b4bc;line-height:1.5">
+          <div>Followable sections: Skin & graphics, Colors, Widget colors, Surface, Typography, Size & spacing, Border & glow, Custom CSS, Units & format, Thresholds, Motion.</div>
+          <div>Rows with no theme value (Tint from cover art, Background image) stay editable inside a following section.</div>
+          <div>Widget colors follow theme roles: Series 1–6, OK, Warning, Critical. A CPU colour is "Series 1" until customised.</div>
+          <div>Replaces <span style="font-family:'Geist Mono';font-size:11.5px">styleMode</span> (follow / custom / unset) and <span style="font-family:'Geist Mono';font-size:11.5px">styleEnforce</span>. Migration in SPEC §6.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:15px;font-weight:600">3 · Shared controls</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;font-weight:600">Thresholds</div>
+            <div style="height:8px;border-radius:4px;display:flex;overflow:hidden"><div style="width:80%;background:oklch(0.74 0.16 150 / 0.7)"></div><div style="width:12%;background:oklch(0.78 0.15 75 / 0.8)"></div><div style="width:8%;background:oklch(0.68 0.19 25 / 0.85)"></div></div>
+            <div style="font-size:12px;color:#9696a0;line-height:1.5">One control for every warn / crit pair. Keyed by quantity (Load %, Temperature °C, Fullness %, Audio level dB, Value). Replaces seven key schemes, text-vs-slider, and the 0 = off / blank = off conventions.</div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;font-weight:600">Device picker</div>
+            <div style="display:flex;flex-direction:column;gap:4px;font-size:12px"><div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:7px;background:oklch(0.72 0.15 255 / 0.12)"><span>Auto · loudest live device</span><span style="font-family:'Geist Mono';color:#9696a0">now Stream Mix</span></div><div style="display:flex;justify-content:space-between;padding:6px 8px"><span style="color:#c9c9cf">Speakers (Realtek)</span><span style="font-family:'Geist Mono';color:#9696a0">−18 dB</span></div></div>
+            <div style="font-size:12px;color:#9696a0;line-height:1.5">One key, <span style="font-family:'Geist Mono'">device</span>. Auto says what it means and what it picks right now.</div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;font-weight:600">Small zones</div>
+            <div style="display:flex;gap:2px;padding:2px;background:#0c0c0e;border:1px solid #24242a;border-radius:7px;font-size:12px"><div style="flex:1;text-align:center;padding:4px;border-radius:5px;background:#2a2a31">Auto</div><div style="flex:1;text-align:center;padding:4px;color:#9696a0">Full</div><div style="flex:1;text-align:center;padding:4px;color:#9696a0">Card</div><div style="flex:1;text-align:center;padding:4px;color:#9696a0">Dense</div></div>
+            <div style="font-size:12px;color:#9696a0;line-height:1.5">Merges Dense summary + Summary card. Options a widget can't draw are left out (no Card on System Overview).</div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:13px;font-weight:600">Per-section More</div>
+            <div style="font-size:12px;color:oklch(0.84 0.12 255)">More (4)</div>
+            <div style="font-size:12px;color:#9696a0;line-height:1.5">Replaces the global Advanced switch. Former advanced rows sit at the end of their own section; search and Changed always include them.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:15px;font-weight:600">4 · Clean-ups applied</div>
+        <div style="display:flex;flex-direction:column;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+          <sc-for list="{{ cleanups }}" as="c" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr);gap:16px;padding:11px 14px;border-top:1px solid #1c1c21;background:#111114;font-size:12.5px">
+              <div style="font-weight:500">{{ c.t }}</div><div style="color:#9696a0;line-height:1.5">{{ c.d }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isWork }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:grid;grid-template-columns:minmax(190px,232px) minmax(0,1fr) 344px;height:calc(100vh - 52px);min-height:0">
+      <div style="border-right:1px solid #1f1f24;background:#0e0e11;overflow:auto;padding:12px 8px;display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:11px;color:#6f6f79;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px 8px">{{ leftTitle }}</div>
+        <sc-for list="{{ leftItems }}" as="l" hint-placeholder-count="6">
+          <button onClick="{{ l.onClick }}" style="display:flex;align-items:center;gap:10px;padding:8px;border:0;border-radius:8px;background:{{ l.bg }};color:#ededf0;text-align:left;cursor:pointer">
+            <div style="width:28px;height:28px;flex:none;border-radius:7px;background:#1a1a1f;display:grid;place-items:center;color:{{ l.iconFg }}"><span class="ms" style="font-size:17px">{{ l.icon }}</span></div>
+            <div style="min-width:0;display:flex;flex-direction:column;gap:2px"><div style="font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.label }}</div><div style="font-size:11px;color:#8a8a94;font-family:'Geist Mono';white-space:nowrap">{{ l.sub }}</div></div>
+          </button>
+        </sc-for>
+        <div style="font-size:11.5px;color:#6f6f79;line-height:1.5;padding:12px 8px">{{ leftNote }}</div>
+      </div>
+
+      <div style="overflow:auto;padding:28px;display:flex;flex-direction:column;gap:24px;align-items:center">
+        <sc-if value="{{ hasProbes }}">
+          <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;width:100%">
+            <sc-for list="{{ probes }}" as="p" hint-placeholder-count="1">
+              <div style="display:flex;flex-direction:column;gap:10px;width:300px">
+                <div style="font-size:11px;color:#6f6f79;text-transform:uppercase;letter-spacing:.05em">{{ p.caption }}</div>
+                <div style="height:200px;display:grid;place-items:center;background:#08080a;border:1px solid #1c1c21;border-radius:12px;background-image:radial-gradient(#1a1a1f 1px,transparent 1px);background-size:14px 14px">
+                  <div style="width:240px;zoom:{{ p.zoom }};box-sizing:border-box;padding:{{ p.pad }};border-radius:{{ p.radius }};background:{{ p.bg }};border:{{ p.border }};box-shadow:{{ p.shadow }};backdrop-filter:{{ p.blur }};color:{{ p.text }};font-family:{{ p.font }};display:flex;flex-direction:column;gap:{{ p.gap }};align-items:{{ p.alignI }};text-align:{{ p.alignT }}">
+                    <sc-if value="{{ p.hasHeader }}"><div style="display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:11px;letter-spacing:.06em;text-transform:{{ p.case }};color:{{ p.muted }}"><span class="ms" style="font-size:15px;color:{{ p.accent }}">{{ p.icon }}</span>{{ p.headerText }}</div></sc-if>
+                    <div style="display:flex;align-items:baseline;gap:4px"><span style="font-size:38px;font-weight:{{ p.weight }};letter-spacing:-0.02em;line-height:1">{{ p.big }}</span><span style="font-size:14px;color:{{ p.muted }}">{{ p.unit }}</span></div>
+                    <div style="font-size:12px;color:{{ p.muted }};text-transform:{{ p.case2 }}">{{ p.sub }}</div>
+                    <sc-if value="{{ p.hasBar }}"><div style="width:100%;height:{{ p.barH }};border-radius:99px;background:rgba(127,127,140,.22);overflow:hidden"><div style="height:100%;width:{{ p.pct }};background:{{ p.barColor }};border-radius:99px"></div></div></sc-if>
+                  </div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px">
+                  <sc-for list="{{ p.sources }}" as="src">
+                    <div style="display:flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:5px;font-size:10.5px;white-space:nowrap;background:{{ src.bg }};color:{{ src.fg }}"><span class="ms" style="font-size:12px">{{ src.icon }}</span>{{ src.t }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasNotes }}">
+          <div style="width:100%;max-width:640px;background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid #1f1f24">
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px"><div style="font-size:11px;color:#8a8a94">Today</div><div style="font-family:'Geist Mono';font-size:18px">{{ cmp.today }}</div><div style="font-size:11px;color:#6f6f79">rows · {{ cmp.todayCats }} categories</div></div>
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px;border-left:1px solid #1f1f24"><div style="font-size:11px;color:#8a8a94">Visible now</div><div style="font-family:'Geist Mono';font-size:18px;color:oklch(0.84 0.12 255)">{{ cmp.visible }}</div><div style="font-size:11px;color:#6f6f79">rows · {{ cmp.sections }} sections</div></div>
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px;border-left:1px solid #1f1f24"><div style="font-size:11px;color:#8a8a94">Behind More</div><div style="font-family:'Geist Mono';font-size:18px">{{ cmp.more }}</div><div style="font-size:11px;color:#6f6f79">rows</div></div>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:9px">
+              <div style="font-size:12px;font-weight:600;color:#c9c9cf">What changes for {{ cmp.name }}</div>
+              <sc-for list="{{ notes }}" as="nt" hint-placeholder-count="3">
+                <div style="display:flex;gap:9px;font-size:12.5px;color:#b4b4bc;line-height:1.5"><span style="width:4px;height:4px;border-radius:50%;background:#6f6f79;flex:none;margin-top:8px"></span><span style="text-wrap:pretty">{{ nt.t }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasOverrides }}">
+          <div style="width:100%;max-width:640px;background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+            <div style="padding:12px 16px;border-bottom:1px solid #1f1f24;display:flex;flex-direction:column;gap:3px"><div style="font-size:13px;font-weight:600">Who doesn't follow the theme</div><div style="font-size:11.5px;color:#8a8a94">Per section, the widgets on this dashboard that are custom. Customise a section in Widget inspector to see it here.</div></div>
+            <sc-for list="{{ overrides }}" as="ov" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid #1c1c21;font-size:12.5px">
+                <span class="ms" style="font-size:16px;color:#7c7c86">{{ ov.icon }}</span>
+                <div style="width:150px;flex:none">{{ ov.title }}</div>
+                <div style="flex:1;min-width:0;color:{{ ov.fg }};font-size:12px">{{ ov.who }}</div>
+                <sc-if value="{{ ov.lockedTag }}"><span style="font-size:10.5px;color:#9696a0;display:flex;align-items:center;gap:3px"><span class="ms" style="font-size:13px">lock</span>Locked</span></sc-if>
+                <sc-if value="{{ ov.hasReset }}"><button onClick="{{ ov.onReset }}" style="height:24px;padding:0 9px;border-radius:6px;border:1px solid #2a2a31;background:#1a1a1f;color:#c9c9cf;font-size:11.5px;cursor:pointer">Reset to theme</button></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isPanel }}">
+          <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:560px">
+            <div style="font-size:11px;color:#6f6f79;text-transform:uppercase;letter-spacing:.05em">Custom panel “Rig” · stack, row, wrap</div>
+            <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">
+              <sc-for list="{{ pitems }}" as="it" hint-placeholder-count="5">
+                <div onClick="{{ it.onClick }}" style="cursor:pointer;flex:{{ it.flex }};min-width:96px;box-sizing:border-box;padding:10px 12px;border-radius:9px;outline:{{ it.outline }};outline-offset:3px;display:flex;flex-direction:column;gap:6px;align-items:{{ it.alignI }};text-align:{{ it.alignT }}">
+                  <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#8a8a94">{{ it.label }}</div>
+                  <sc-if value="{{ it.isNum }}"><div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:{{ it.fs }};font-weight:600;font-family:'Geist Mono';color:{{ it.color }}">{{ it.value }}</span><span style="font-size:11px;color:#8a8a94">{{ it.unit }}</span></div></sc-if>
+                  <sc-if value="{{ it.isBar }}"><div style="align-self:stretch;height:6px;border-radius:3px;background:rgba(127,127,140,.22);overflow:hidden"><div style="height:100%;width:{{ it.pct }};background:{{ it.color }}"></div></div></sc-if>
+                  <sc-if value="{{ it.isGauge }}"><div style="width:58px;height:58px;border-radius:50%;background:{{ it.conic }};display:grid;place-items:center"><div style="width:46px;height:46px;border-radius:50%;background:#16161a;display:grid;place-items:center;font-family:'Geist Mono';font-size:13px">{{ it.value }}</div></div></sc-if>
+                  <sc-if value="{{ it.isSpark }}"><div style="align-self:stretch;display:flex;align-items:flex-end;gap:2px;height:30px"><sc-for list="{{ it.spark }}" as="h"><div style="flex:1;height:{{ h.h }};background:{{ it.color }};opacity:.75;border-radius:1px"></div></sc-for></div></sc-if>
+                  <sc-if value="{{ it.isClock }}"><div style="font-size:{{ it.fs }};font-weight:600;font-family:'Geist Mono';color:{{ it.color }}">{{ it.clock }}</div></sc-if>
+                  <sc-if value="{{ it.isOther }}"><div style="font-size:12px;color:#9696a0">{{ it.kindLabel }}</div></sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:12px;color:#8a8a94;line-height:1.5">Panel items use the same four tabs. Typography, Color, Units & format and Thresholds follow the panel, which follows the dashboard theme. Thresholds are new for stat, value, bar and gauge.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="border-left:1px solid #1f1f24;background:#111114;display:flex;flex-direction:column;min-height:0">
+        <div style="padding:14px 14px 10px;display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:8px;background:#1a1a1f;display:grid;place-items:center;color:oklch(0.84 0.12 255)"><span class="ms" style="font-size:19px">{{ ip.icon }}</span></div>
+          <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">{{ ip.title }}</div><div style="font-size:11px;color:#8a8a94">{{ ip.sub }}</div></div>
+        </div>
+        <div style="padding:0 14px 10px;display:flex;gap:6px">
+          <div style="flex:1;height:32px;display:flex;align-items:center;gap:6px;padding:0 9px;background:#0c0c0e;border:1px solid #24242a;border-radius:8px"><span class="ms" style="font-size:16px;color:#6f6f79">search</span><input value="{{ q }}" onChange="{{ onQ }}" placeholder="Search all settings" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#ededf0;font-size:12.5px"></div>
+          <button onClick="{{ onChanged }}" style="height:32px;padding:0 9px;display:flex;align-items:center;gap:5px;border-radius:8px;border:1px solid {{ chBd }};background:{{ chBg }};color:{{ chFg }};font-size:12px;cursor:pointer"><span class="ms" style="font-size:15px">history</span>Changed<span style="font-family:'Geist Mono';font-size:11px">{{ ip.changed }}</span></button>
+        </div>
+        <sc-if value="{{ showTabs }}">
+          <div style="margin:0 14px 10px;display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.onClick }}" style="flex:1;height:26px;border:0;border-radius:6px;background:{{ t.bg }};color:{{ t.fg }};opacity:{{ t.op }};font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px">{{ t.label }}<sc-if value="{{ t.hasCount }}"><span style="font-family:'Geist Mono';font-size:10px;padding:0 4px;border-radius:4px;background:oklch(0.72 0.15 255 / 0.25);color:oklch(0.84 0.12 255)">{{ t.count }}</span></sc-if></button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasFilterLine }}"><div style="padding:0 16px 8px;font-size:11.5px;color:#8a8a94">{{ filterLine }}</div></sc-if>
+        <div style="flex:1;overflow:auto;border-top:1px solid #1f1f24">
+          <sc-for list="{{ sections }}" as="s" hint-placeholder-count="4">
+            <div style="border-bottom:1px solid #1c1c21">
+              <div style="position:sticky;top:0;z-index:1;background:#111114;height:42px;display:flex;align-items:center;gap:9px;padding:0 10px 0 14px">
+                <div onClick="{{ s.onHead }}" style="flex:1;min-width:0;display:flex;align-items:center;gap:9px;cursor:pointer;height:100%">
+                  <span class="ms" style="font-size:17px;color:#7c7c86">{{ s.icon }}</span>
+                  <span style="font-size:12.5px;font-weight:600;white-space:nowrap">{{ s.title }}</span>
+                  <sc-if value="{{ s.hasTabLabel }}"><span style="font-size:10.5px;color:#6f6f79">{{ s.tabLabel }}</span></sc-if>
+                  <sc-if value="{{ s.hasPill }}"><span style="display:flex;align-items:center;gap:3px;height:18px;padding:0 6px;border-radius:5px;font-size:10.5px;background:{{ s.pillBg }};color:{{ s.pillFg }}"><span class="ms" style="font-size:12px">{{ s.pillIcon }}</span>{{ s.pill }}</span></sc-if>
+                  <sc-if value="{{ s.isNew }}"><span style="height:18px;padding:0 6px;border-radius:5px;font-size:10.5px;background:oklch(0.78 0.15 75 / 0.16);color:oklch(0.85 0.12 75);display:flex;align-items:center">New</span></sc-if>
+                  <sc-if value="{{ s.hasChanged }}"><span style="font-family:'Geist Mono';font-size:10.5px;color:oklch(0.84 0.12 255)">{{ s.changedN }}</span></sc-if>
+                  <div style="flex:1"></div>
+                  <span class="ms" style="font-size:18px;color:#6f6f79">{{ s.chev }}</span>
+                </div>
+                <sc-if value="{{ s.hasChanged }}"><button onClick="{{ s.onReset }}" title="Reset this section" style="width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#8a8a94;cursor:pointer;display:grid;place-items:center"><span class="ms" style="font-size:16px">restart_alt</span></button></sc-if>
+              </div>
+              <sc-if value="{{ s.open }}">
+                <div style="padding-bottom:8px">
+                  <sc-if value="{{ s.hasBar }}">
+                    <div style="margin:0 12px 6px 14px;padding:6px 6px 6px 9px;border-radius:8px;background:{{ s.barBg }};display:flex;align-items:center;gap:7px">
+                      <span class="ms" style="font-size:15px;color:{{ s.barFg }}">{{ s.barIcon }}</span>
+                      <span style="flex:1;min-width:0;font-size:11.5px;color:{{ s.barFg }}">{{ s.barText }}</span>
+                      <sc-if value="{{ s.hasBtn2 }}"><button onClick="{{ s.onBtn2 }}" style="white-space:nowrap;flex:none;height:24px;padding:0 8px;border-radius:6px;border:1px solid #2a2a31;background:#17171b;color:#c9c9cf;font-size:11.5px;cursor:pointer">{{ s.btn2 }}</button></sc-if>
+                      <sc-if value="{{ s.hasBtn }}"><button onClick="{{ s.onBtn }}" style="white-space:nowrap;flex:none;height:24px;padding:0 9px;border-radius:6px;border:1px solid {{ s.btnBd }};background:{{ s.btnBg }};color:{{ s.btnFg }};font-size:11.5px;font-weight:500;cursor:pointer">{{ s.btn }}</button></sc-if>
+                    </div>
+                  </sc-if>
+                  <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="3">
+                    <sc-if value="{{ r.isMoreBtn }}">
+                      <div style="padding:2px 14px 2px 29px"><button onClick="{{ r.onMore }}" style="border:0;background:transparent;padding:6px 0;color:oklch(0.84 0.12 255);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px"><span class="ms" style="font-size:15px">{{ r.moreIcon }}</span>{{ r.moreLabel }}</button></div>
+                    </sc-if>
+                    <sc-if value="{{ r.isRow }}">
+                      <div style="display:flex;flex-direction:column;gap:6px;padding:4px 12px 4px 14px;opacity:{{ r.op }};pointer-events:{{ r.pe }};background:{{ r.rowBg }}">
+                        <div style="display:flex;align-items:center;gap:8px;min-height:30px">
+                          <span onClick="{{ r.reset }}" title="{{ r.dotTitle }}" style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ r.dotBg }};box-shadow:inset 0 0 0 1px {{ r.dotRing }};cursor:pointer"></span>
+                          <div style="flex:1;min-width:0;font-size:12.5px;color:{{ r.labelColor }}">{{ r.label }}</div>
+                          <sc-if value="{{ r.isToggle }}"><div onClick="{{ r.onToggle }}" style="width:30px;height:18px;border-radius:9px;background:{{ r.tBg }};position:relative;cursor:pointer;flex:none"><div style="position:absolute;top:2px;left:{{ r.tX }};width:14px;height:14px;border-radius:50%;background:#ededf0"></div></div></sc-if>
+                          <sc-if value="{{ r.isSelect }}"><select value="{{ r.value }}" onChange="{{ r.onSelect }}" style="height:28px;max-width:150px;background:#1a1a1f;border:1px solid #2a2a31;border-radius:7px;color:#ededf0;font-size:12px;padding:0 6px"><sc-for list="{{ r.opts }}" as="o"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
+                          <sc-if value="{{ r.isSlider }}"><div style="display:flex;align-items:center;gap:6px;flex:none"><input type="range" min="{{ r.min }}" max="{{ r.max }}" step="{{ r.step }}" value="{{ r.value }}" onChange="{{ r.onSlide }}" style="width:90px"><div style="min-width:46px;height:24px;padding:0 5px;box-sizing:border-box;border-radius:6px;background:#0c0c0e;border:1px solid #24242a;font-family:'Geist Mono';font-size:11px;display:grid;place-items:center;color:#c9c9cf">{{ r.valText }}</div></div></sc-if>
+                          <sc-if value="{{ r.isColor }}"><button onClick="{{ r.onColor }}" style="height:28px;display:flex;align-items:center;gap:7px;padding:0 5px 0 9px;border-radius:7px;border:1px solid #2a2a31;background:#1a1a1f;color:#c9c9cf;font-size:11.5px;cursor:pointer;flex:none">{{ r.colorName }}<span style="width:18px;height:18px;border-radius:5px;background:{{ r.swatch }};box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)"></span></button></sc-if>
+                          <sc-if value="{{ r.isSegInline }}"><div style="display:flex;gap:2px;padding:2px;background:#0c0c0e;border:1px solid #24242a;border-radius:7px;flex:none"><sc-for list="{{ r.segs }}" as="o"><button onClick="{{ o.onClick }}" style="height:22px;padding:0 8px;border:0;border-radius:5px;background:{{ o.bg }};color:{{ o.fg }};font-size:11.5px;cursor:pointer;white-space:nowrap">{{ o.l }}</button></sc-for></div></sc-if>
+                        </div>
+                        <sc-if value="{{ r.isSegBlock }}"><div style="display:flex;gap:2px;padding:2px;margin-left:15px;background:#0c0c0e;border:1px solid #24242a;border-radius:7px;overflow-x:auto"><sc-for list="{{ r.segs }}" as="o"><button onClick="{{ o.onClick }}" style="flex:1 1 auto;height:24px;padding:0 8px;border:0;border-radius:5px;background:{{ o.bg }};color:{{ o.fg }};font-size:11.5px;cursor:pointer;white-space:nowrap;font-style:{{ o.fst }}">{{ o.l }}</button></sc-for></div></sc-if>
+                        <sc-if value="{{ r.colorOpen }}"><div style="display:flex;gap:7px;margin-left:15px;padding:4px 0"><sc-for list="{{ r.swatches }}" as="sw"><div onClick="{{ sw.onClick }}" title="{{ sw.t }}" style="width:20px;height:20px;border-radius:6px;background:{{ sw.bg }};box-shadow:{{ sw.ring }};cursor:pointer"></div></sc-for></div></sc-if>
+                        <sc-if value="{{ r.isText }}"><input value="{{ r.value }}" onChange="{{ r.onText }}" placeholder="{{ r.placeholder }}" style="margin-left:15px;height:30px;padding:0 9px;background:#0c0c0e;border:1px solid #24242a;border-radius:7px;color:#ededf0;font-size:12.5px;outline:none"></sc-if>
+                        <sc-if value="{{ r.isCode }}"><textarea value="{{ r.value }}" onChange="{{ r.onText }}" placeholder=":scope { }" rows="4" style="margin-left:15px;padding:8px 9px;background:#0c0c0e;border:1px solid #24242a;border-radius:7px;color:#ededf0;font-family:'Geist Mono';font-size:11.5px;outline:none;resize:vertical"></textarea></sc-if>
+                        <sc-if value="{{ r.isInfo }}"><div style="margin-left:15px;padding:8px 10px;border-radius:7px;background:#0c0c0e;border:1px solid #24242a;font-size:12px;color:#b4b4bc;display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.74 0.16 150)"></span>{{ r.text }}</div></sc-if>
+                        <sc-if value="{{ r.isSensorOne }}"><div style="margin-left:15px;height:30px;padding:0 9px;border-radius:7px;background:#0c0c0e;border:1px solid #24242a;display:flex;align-items:center;gap:7px;font-family:'Geist Mono';font-size:11px;color:#c9c9cf"><span class="ms" style="font-size:15px;color:#7c7c86">sensors</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.value }}</span><span class="ms" style="font-size:16px;color:#6f6f79">expand_more</span></div></sc-if>
+                        <sc-if value="{{ r.isChips }}"><div style="display:flex;flex-wrap:wrap;gap:5px;margin-left:15px"><sc-for list="{{ r.chips }}" as="ch"><button onClick="{{ ch.onClick }}" style="height:26px;padding:0 9px;border-radius:13px;border:1px solid {{ ch.bd }};background:{{ ch.bg }};color:{{ ch.fg }};font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:5px"><sc-if value="{{ ch.hasN }}"><span style="font-family:'Geist Mono';font-size:10px;opacity:.8">{{ ch.n }}</span></sc-if><sc-if value="{{ ch.hasIcon }}"><span class="ms" style="font-size:14px">{{ ch.icon }}</span></sc-if>{{ ch.l }}</button></sc-for></div></sc-if>
+                        <sc-if value="{{ r.isDevice }}"><div style="margin-left:15px;display:flex;flex-direction:column;gap:2px;padding:3px;border-radius:8px;background:#0c0c0e;border:1px solid #24242a"><sc-for list="{{ r.devs }}" as="dv"><div onClick="{{ dv.onClick }}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:{{ dv.bg }};cursor:pointer"><span style="width:12px;height:12px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 {{ dv.ringW }} {{ dv.ring }}"></span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12px;color:#ededf0">{{ dv.name }}</span><sc-if value="{{ dv.hasSub }}"><span style="font-size:10.5px;color:#8a8a94">{{ dv.sub }}</span></sc-if></div><span style="font-family:'Geist Mono';font-size:10.5px;color:#9696a0">{{ dv.live }}</span></div></sc-for></div></sc-if>
+                        <sc-if value="{{ r.isThr }}">
+                          <div style="margin-left:15px;display:flex;flex-direction:column;gap:7px;padding:9px 10px;border-radius:8px;background:#0c0c0e;border:1px solid #24242a">
+                            <div style="height:6px;border-radius:3px;display:flex;overflow:hidden"><div style="width:{{ r.gW }};background:oklch(0.74 0.16 150 / 0.65)"></div><div style="width:{{ r.aW }};background:oklch(0.78 0.15 75 / 0.8)"></div><div style="width:{{ r.rW }};background:oklch(0.68 0.19 25 / 0.85)"></div></div>
+                            <div style="display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:2px;background:oklch(0.78 0.15 75)"></span><span style="font-size:11.5px;color:#b4b4bc;width:52px">Warning</span><input type="range" min="{{ r.min }}" max="{{ r.max }}" step="{{ r.step }}" value="{{ r.warn }}" onChange="{{ r.onWarn }}" style="flex:1;min-width:0"><span style="font-family:'Geist Mono';font-size:11px;min-width:52px;text-align:right;color:#c9c9cf">{{ r.warnText }}</span></div>
+                            <div style="display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:2px;background:oklch(0.68 0.19 25)"></span><span style="font-size:11.5px;color:#b4b4bc;width:52px">Critical</span><input type="range" min="{{ r.min }}" max="{{ r.max }}" step="{{ r.step }}" value="{{ r.crit }}" onChange="{{ r.onCrit }}" style="flex:1;min-width:0"><span style="font-family:'Geist Mono';font-size:11px;min-width:52px;text-align:right;color:#c9c9cf">{{ r.critText }}</span></div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ r.isAlign }}"><div style="margin-left:15px;display:grid;grid-template-columns:repeat(3,22px);gap:4px;padding:6px;width:max-content;border-radius:8px;background:#0c0c0e;border:1px solid #24242a"><sc-for list="{{ r.cells }}" as="ce"><div onClick="{{ ce.onClick }}" style="width:22px;height:22px;border-radius:5px;display:grid;place-items:center;cursor:pointer;background:{{ ce.bg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ ce.dot }}"></span></div></sc-for></div></sc-if>
+                        <sc-if value="{{ r.isSensors }}">
+                          <div style="margin-left:15px;display:flex;flex-direction:column;gap:4px">
+                            <sc-for list="{{ r.sensorRows }}" as="sr">
+                              <div style="border-radius:8px;background:#0c0c0e;border:1px solid #24242a;display:flex;flex-direction:column">
+                                <div style="display:flex;align-items:center;gap:8px;padding:6px 6px 6px 9px">
+                                  <span class="ms" style="font-size:15px;color:#4a4a52">drag_indicator</span>
+                                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12px">{{ sr.name }}</span><span style="font-family:'Geist Mono';font-size:10px;color:#6f6f79;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sr.key }}</span></div>
+                                  <span style="font-family:'Geist Mono';font-size:11px;color:#9696a0">{{ sr.live }}</span>
+                                  <button onClick="{{ sr.onTune }}" style="width:24px;height:24px;border:0;border-radius:5px;background:{{ sr.tuneBg }};color:{{ sr.tuneFg }};cursor:pointer;display:grid;place-items:center"><span class="ms" style="font-size:15px">tune</span></button>
+                                  <button onClick="{{ sr.onRemove }}" style="width:24px;height:24px;border:0;border-radius:5px;background:transparent;color:#6f6f79;cursor:pointer;display:grid;place-items:center"><span class="ms" style="font-size:15px">close</span></button>
+                                </div>
+                                <sc-if value="{{ sr.open }}">
+                                  <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:6px;padding:0 8px 8px">
+                                    <input value="{{ sr.oLabel }}" onChange="{{ sr.onLabel }}" placeholder="Label" style="height:26px;padding:0 7px;background:#141418;border:1px solid #24242a;border-radius:6px;color:#ededf0;font-size:11.5px;outline:none;min-width:0">
+                                    <input value="{{ sr.oWarn }}" onChange="{{ sr.onWarn }}" placeholder="Warn · shared" style="height:26px;padding:0 7px;background:#141418;border:1px solid #24242a;border-radius:6px;color:#ededf0;font-size:11.5px;outline:none;min-width:0">
+                                    <input value="{{ sr.oCrit }}" onChange="{{ sr.onCrit }}" placeholder="Crit · shared" style="height:26px;padding:0 7px;background:#141418;border:1px solid #24242a;border-radius:6px;color:#ededf0;font-size:11.5px;outline:none;min-width:0">
+                                  </div>
+                                </sc-if>
+                              </div>
+                            </sc-for>
+                            <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{ r.sensorAdd }}" as="sa"><button onClick="{{ sa.onClick }}" style="height:24px;padding:0 8px;border-radius:12px;border:1px dashed #34343b;background:transparent;color:#9696a0;font-size:11.5px;cursor:pointer;display:flex;align-items:center;gap:3px"><span class="ms" style="font-size:14px">add</span>{{ sa.l }}</button></sc-for></div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ r.hasHint }}"><div style="margin-left:15px;font-size:11px;color:#6f6f79;line-height:1.45;text-wrap:pretty">{{ r.hint }}</div></sc-if>
+                      </div>
+                    </sc-if>
+                  </sc-for>
+                  <sc-if value="{{ s.empty }}"><div style="padding:6px 16px 4px 29px;font-size:12px;color:#6f6f79">{{ s.emptyText }}</div></sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noResults }}"><div style="padding:28px 20px;text-align:center;font-size:12.5px;color:#8a8a94">{{ noResultsText }}</div></sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    D: null, screen: 'widget', wid: 'SystemOverview', tab: 'show', open: {}, more: {}, q: '', changed: false,
+    vals: { CpuMonitor: { accent: 'oklch(0.72 0.15 190)' }, NowPlaying: { progress: 'visualizer', vizColorMode: 'gradient' }, SystemOverview: { sections: 'cpu,gpu,ram,disk' }, SensorGroup: { sensors: 'libre.amd_7950x.temperature.package,libre.gpu_4080.temperature.hotspot,libre.nct6799.fan.cpu' } },
+    follow: { CpuMonitor: { colors: false }, NowPlaying: { palette: false } },
+    profile: {}, dash: { accent: 'oklch(0.72 0.15 295)' }, dashFollow: { colors: false }, locks: {}, scope: 'profile',
+    colorOpen: null, sensorOpen: null, pid: 'p1', pvals: {}, pbase: {}, pfollow: {},
+  };
+  componentDidMount() {
+    import('./widget-settings-data.js').then((m) => {
+      const pvals = {}; m.PANEL_ITEMS.forEach((p) => { pvals[p.id] = { kind: p.kind, label: p.label, sensor: p.sensor, unit: p.unit }; });
+      this.setState({ D: m, pbase: pvals, pvals: {} });
+    });
+  }
+  // ---------- theme resolution ----------
+  prof(k) { const s = this.state; return s.profile[k] !== undefined ? s.profile[k] : s.D.THEME_DEFAULTS[k]; }
+  dashFollows(sec) { return this.state.dashFollow[sec] !== false; }
+  themeVal(k, sec, row) {
+    const s = this.state; let v = this.dashFollows(sec) ? this.prof(k) : (s.dash[k] !== undefined ? s.dash[k] : this.prof(k));
+    if (v === undefined && row) v = row.def;
+    return v;
+  }
+  themeSrc(sec) { return this.dashFollows(sec) ? 'Follows the profile theme · Desk' : 'Follows the dashboard theme · Gaming'; }
+  keySec() {
+    if (this._ks) return this._ks; const D = this.state.D, m = {};
+    D.STYLE.forEach((s) => s.rows.forEach((r) => { m[r.key] = s.id; }));
+    D.PALETTE_ROLES.forEach(([k]) => { m[k] = 'palette'; });
+    Object.keys(D.FORMAT_ROWS).forEach((k) => { m[k] = 'format'; });
+    Object.keys(D.QUANTITIES).forEach((q) => { m['warn.' + q] = 'thresholds'; m['crit.' + q] = 'thresholds'; });
+    Object.keys(D.MOTION_ROWS).forEach((k) => { m[k] = 'motion'; });
+    return (this._ks = m);
+  }
+  thrRow(q) { return { key: 'thr.' + q, label: this.state.D.QUANTITIES[q].label, type: 'thr', q }; }
+  // ---------- tab definitions ----------
+  widgetTabs(w) {
+    const D = this.state.D;
+    const show = [D.headerSection(w.header), ...w.show, w.id === 'WebPage' ? null : D.fitSection(w)].filter(Boolean);
+    let style = D.STYLE.slice();
+    if (w.styleOnly) {
+      const m = {}; w.styleOnly.forEach((x) => { const [id, keys] = x.split(':'); m[id] = keys ? keys.split(',') : null; });
+      style = style.filter((s) => s.id in m).map((s) => (m[s.id] ? { ...s, rows: s.rows.filter((r) => m[s.id].includes(r.key)) } : s));
+    }
+    if (w.palette.length) { const i = style.findIndex((s) => s.id === 'colors'); style.splice(i + 1, 0, { id: 'palette', title: 'Widget colors', icon: 'invert_colors', follow: true, rows: w.palette }); }
+    const data = [...w.data]; if (w.fmt.length) data.push({ id: 'format', title: 'Units & format', icon: 'straighten', follow: true, rows: w.fmt.map((k) => D.FORMAT_ROWS[k]) });
+    const behave = []; if (w.thr.length) behave.push({ id: 'thresholds', title: 'Thresholds', icon: 'warning', follow: true, rows: w.thr.map((t) => this.thrRow(t.q)) });
+    behave.push(...w.behave); if (w.motion.length) behave.push({ id: 'motion', title: 'Motion', icon: 'animation', follow: true, rows: w.motion.map((k) => D.MOTION_ROWS[k]) });
+    return [{ id: 'show', label: 'Show', sections: show }, { id: 'style', label: 'Style', sections: style }, { id: 'data', label: 'Data', sections: data }, { id: 'behave', label: 'Behaviour', sections: behave }];
+  }
+  themeTabs() {
+    const D = this.state.D;
+    const style = D.STYLE.map((s) => ({ ...s, rows: s.rows.filter((r) => !r.perWidget && r.key !== 'preset').map((r) => (r.more && s.id === 'css' ? { ...r, more: false } : r)) }));
+    style.splice(2, 0, { id: 'palette', title: 'Status & series colors', icon: 'invert_colors', follow: true, rows: D.PALETTE_ROLES.map(([k, l]) => ({ key: k, label: l, type: 'color' })) });
+    return [
+      { id: 'style', label: 'Style', sections: style },
+      { id: 'data', label: 'Data', sections: [{ id: 'format', title: 'Units & format', icon: 'straighten', follow: true, rows: Object.values(D.FORMAT_ROWS) }] },
+      { id: 'behave', label: 'Behaviour', sections: [{ id: 'thresholds', title: 'Thresholds', icon: 'warning', follow: true, rows: Object.keys(D.QUANTITIES).map((q) => this.thrRow(q)) }, { id: 'motion', title: 'Motion', icon: 'animation', follow: true, rows: Object.values(D.MOTION_ROWS) }] },
+    ];
+  }
+  kindTabs() { const K = this.state.D.KIND_TABS; return [{ id: 'show', label: 'Show', sections: K.show }, { id: 'style', label: 'Style', sections: K.style }, { id: 'data', label: 'Data', sections: K.data }, { id: 'behave', label: 'Behaviour', sections: K.behave }]; }
+  // ---------- contexts ----------
+  indexOf(tabs) { const idx = {}; tabs.forEach((t) => t.sections.forEach((sec) => sec.rows.forEach((r) => { if (r.type === 'thr') { idx['warn.' + r.q] = { sec, row: r }; idx['crit.' + r.q] = { sec, row: r }; } else idx[r.key] = { sec, row: r }; }))); return idx; }
+  mkOwnCtx(key, own, fol, setOwn, setFol, tabs, srcText, customText, changedSrc) {
+    const s = this.state; const chg = changedSrc || own;
+    const following = (sec) => !!sec.follow && (!!s.locks[sec.id] || fol[sec.id] !== false);
+    const tkey = (k, row) => (row.role && k === row.key ? row.role : k);
+    const get = (k, sec, row) => {
+      if (sec.follow && !row.perWidget) { const tv = this.themeVal(tkey(k, row), sec.id, row); return following(sec) ? tv : (own[k] !== undefined ? own[k] : tv); }
+      return own[k] !== undefined ? own[k] : row.def;
+    };
+    const idx = this.indexOf(tabs);
+    const ks = this.keySec();
+    const ctx = {
+      key, tabs, get, own,
+      locked: (sec, row) => following(sec) && !row.perWidget,
+      isOwn: (k, sec, row) => chg[k] !== undefined && (!sec.follow || row.perWidget || !following(sec)),
+      set: setOwn, reset: (k) => setOwn(k, undefined),
+      v: (k) => (idx[k] ? get(k, idx[k].sec, idx[k].row) : (own[k] !== undefined ? own[k] : this.themeVal(k, ks[k]))),
+      bar: (sec) => {
+        if (!sec.follow) return null;
+        if (s.locks[sec.id]) return { icon: 'lock', text: 'Locked by the profile theme', fg: '#9696a0', bg: '#17171b', pill: 'Locked', pillIcon: 'lock', pillBg: '#1e1e24', pillFg: '#9696a0' };
+        if (following(sec)) return { icon: 'link', text: srcText(sec), fg: '#9696a0', bg: '#17171b', btn: 'Customize', onBtn: () => setFol(sec.id, false), pill: 'Theme', pillIcon: 'link', pillBg: '#1e1e24', pillFg: '#8a8a94' };
+        return { icon: 'tune', text: customText, fg: 'oklch(0.84 0.12 255)', bg: 'oklch(0.72 0.15 255 / 0.10)', btn: 'Use theme', onBtn: () => setFol(sec.id, true), pill: 'Custom', pillIcon: 'tune', pillBg: 'oklch(0.72 0.15 255 / 0.18)', pillFg: 'oklch(0.84 0.12 255)', accentBtn: true };
+      },
+    };
+    return ctx;
+  }
+  widgetCtx(w) {
+    const s = this.state, own = s.vals[w.id] || {}, fol = s.follow[w.id] || {};
+    return this.mkOwnCtx('w:' + w.id, own, fol, (k, v) => this.setOwn(w.id, k, v), (sec, f) => this.setFollow(w.id, sec, f), this.widgetTabs(w), (sec) => this.themeSrc(sec.id), 'Custom for this widget');
+  }
+  panelCtx() {
+    const s = this.state, pid = s.pid, ov = s.pvals[pid] || {}, own = { ...s.pbase[pid], ...ov }, fol = s.pfollow[pid] || {};
+    return this.mkOwnCtx('p:' + pid, own, fol, (k, v) => this.setState((st) => ({ pvals: { ...st.pvals, [pid]: this.put(st.pvals[pid], k, v) } })), (sec, f) => this.setState((st) => ({ pfollow: { ...st.pfollow, [pid]: { ...(st.pfollow[pid] || {}), [sec]: f } } })), this.kindTabs(), () => 'Follows panel “Rig”', 'Custom for this item', ov);
+  }
+  themeCtx() {
+    const s = this.state, tabs = this.themeTabs(), isDash = s.scope === 'dash';
+    const ctx = {
+      key: 't:' + s.scope, tabs,
+      get: (k, sec) => (isDash ? this.themeVal(k, sec.id) : this.prof(k)),
+      locked: (sec) => isDash && this.dashFollows(sec.id),
+      isOwn: (k, sec) => (isDash ? s.dash[k] !== undefined && !this.dashFollows(sec.id) : s.profile[k] !== undefined),
+      set: (k, v) => this.setState((st) => (isDash ? { dash: this.put(st.dash, k, v) } : { profile: this.put(st.profile, k, v) })),
+      reset: (k) => ctx.set(k, undefined),
+      v: (k) => (isDash ? this.themeVal(k, this.keySec()[k]) : this.prof(k)),
+      bar: (sec) => {
+        const n = this.state.D.WIDGETS.filter((w) => (s.follow[w.id] || {})[sec.id] === false).length;
+        const lockBtn = { btn2: s.locks[sec.id] ? 'Unlock' : 'Lock', onBtn2: () => this.setState((st) => ({ locks: { ...st.locks, [sec.id]: !st.locks[sec.id] } })) };
+        if (!isDash) return s.locks[sec.id]
+          ? { icon: 'lock', text: 'Locked: every widget uses these', fg: '#9696a0', bg: '#17171b', pill: 'Locked', pillIcon: 'lock', pillBg: '#1e1e24', pillFg: '#9696a0', ...lockBtn }
+          : { icon: 'public', text: n ? `Default for all widgets · ${n} custom` : 'Default for all widgets', fg: '#9696a0', bg: '#17171b', ...lockBtn };
+        if (this.dashFollows(sec.id)) return { icon: 'link', text: 'Follows the profile theme', fg: '#9696a0', bg: '#17171b', btn: 'Customize', onBtn: () => this.setState((st) => ({ dashFollow: { ...st.dashFollow, [sec.id]: false } })), pill: 'Profile', pillIcon: 'link', pillBg: '#1e1e24', pillFg: '#8a8a94' };
+        return { icon: 'tune', text: 'Custom for Gaming', fg: 'oklch(0.84 0.12 255)', bg: 'oklch(0.72 0.15 255 / 0.10)', btn: 'Use profile', onBtn: () => this.setState((st) => ({ dashFollow: { ...st.dashFollow, [sec.id]: true } })), pill: 'Custom', pillIcon: 'tune', pillBg: 'oklch(0.72 0.15 255 / 0.18)', pillFg: 'oklch(0.84 0.12 255)', accentBtn: true };
+      },
+    };
+    return ctx;
+  }
+  put(obj, k, v) { const o = { ...(obj || {}) }; if (v === undefined) delete o[k]; else o[k] = v; return o; }
+  setOwn(wid, k, v) { this.setState((st) => ({ vals: { ...st.vals, [wid]: this.put(st.vals[wid], k, v) } })); }
+  setFollow(wid, sec, f) { this.setState((st) => ({ follow: { ...st.follow, [wid]: { ...(st.follow[wid] || {}), [sec]: f } } })); }
+  // ---------- rows ----------
+  rowOwn(ctx, r, sec) { return r.type === 'thr' ? ctx.isOwn('warn.' + r.q, sec, r) || ctx.isOwn('crit.' + r.q, sec, r) : ctx.isOwn(r.key, sec, r); }
+  rowReset(ctx, r) { if (r.type === 'thr') { ctx.reset('warn.' + r.q); ctx.reset('crit.' + r.q); } else ctx.reset(r.key); }
+  buildRow(r, sec, ctx, isMore) {
+    const s = this.state, D = s.D, A = 'oklch(0.72 0.15 255)';
+    const locked = ctx.locked(sec, r), own = this.rowOwn(ctx, r, sec);
+    const val = r.type === 'thr' ? null : ctx.get(r.key, sec, r);
+    const set = (v) => ctx.set(r.key, v);
+    const o = {
+      isRow: true, label: r.label, hint: r.hint || '', hasHint: !!r.hint && !locked, op: locked ? 0.5 : 1, pe: locked ? 'none' : 'auto', rowBg: isMore ? '#0f0f12' : 'transparent',
+      dotBg: own ? A : 'transparent', dotRing: own ? A : '#34343b', dotTitle: own ? 'Changed. Click to reset' : '', labelColor: own ? '#ededf0' : '#c9c9cf',
+      reset: () => own && this.rowReset(ctx, r),
+    };
+    const t = r.type;
+    if (t === 'toggle') { const on = val !== false && val !== undefined ? !!val : false; Object.assign(o, { isToggle: true, tBg: on ? A : '#2a2a31', tX: on ? '14px' : '2px', onToggle: () => set(!on) }); }
+    else if (t === 'select') Object.assign(o, { isSelect: true, value: String(val ?? ''), opts: r.opts.map(([v, l]) => ({ v, l })), onSelect: (e) => set(e.target.value) });
+    else if (t === 'slider') { const n = Number(val ?? r.min); Object.assign(o, { isSlider: true, value: n, min: r.min, max: r.max, step: r.step, valText: r.zero && n === 0 ? r.zero : `${n}${r.unit ? (r.unit === '%' || r.unit === '×' ? r.unit : ' ' + r.unit) : ''}`, onSlide: (e) => set(Number(e.target.value)) }); }
+    else if (t === 'seg' || t === 'preset') {
+      let active = val, opts = r.opts;
+      if (t === 'preset') { const m = Object.entries(r.bundles).find(([, b]) => Object.entries(b).every(([kk, vv]) => (ctx.v(kk) !== false) === vv)); active = m ? m[0] : '__custom'; if (!m) opts = [...opts, ['__custom', 'Custom']]; }
+      const segs = opts.map(([v, l]) => ({ l, bg: String(active) === v ? '#2a2a31' : 'transparent', fg: String(active) === v ? '#ededf0' : '#9696a0', fst: v === '__custom' ? 'italic' : 'normal', onClick: () => { if (v === '__custom') return; if (t === 'preset') Object.entries(r.bundles[v]).forEach(([kk, vv]) => ctx.set(kk, vv)); set(v); } }));
+      const block = opts.length > 3 || opts.some(([, l]) => l.length > 9) || r.label.length > 16;
+      Object.assign(o, { segs, isSegInline: !block, isSegBlock: block });
+    } else if (t === 'color') {
+      const ck = ctx.key + ':' + r.key, roleName = r.role ? (D.PALETTE_ROLES.find(([k]) => k === r.role) || [0, 'Accent'])[1] : '';
+      const nm = val ? (D.COLOR_NAMES[val] || 'Custom') : 'Auto';
+      const following = locked && r.role;
+      Object.assign(o, {
+        isColor: true, swatch: val || 'linear-gradient(135deg,#3a3a42 50%,#1a1a1f 50%)', colorName: following ? roleName : nm,
+        onColor: () => this.setState({ colorOpen: s.colorOpen === ck ? null : ck }), colorOpen: s.colorOpen === ck && !locked,
+        swatches: ['', ...D.HUES, '#f4f4f5'].map((c) => ({ bg: c || 'linear-gradient(135deg,#3a3a42 50%,#1a1a1f 50%)', t: c ? (D.COLOR_NAMES[c] || c) : 'Auto', ring: (val || '') === c ? '0 0 0 2px #111114, 0 0 0 4px #ededf0' : 'inset 0 0 0 1px rgba(255,255,255,.12)', onClick: () => set(c === '' ? undefined : c) })),
+      });
+    } else if (t === 'text') Object.assign(o, { isText: true, value: val ?? '', placeholder: r.placeholder || '', onText: (e) => set(e.target.value || undefined) });
+    else if (t === 'code') Object.assign(o, { isCode: true, value: val ?? '', onText: (e) => set(e.target.value || undefined) });
+    else if (t === 'info') Object.assign(o, { isInfo: true, text: r.text });
+    else if (t === 'sensorOne') Object.assign(o, { isSensorOne: true, value: val || 'None' });
+    else if (t === 'chips') {
+      const list = String(val || '').split(',').filter(Boolean);
+      Object.assign(o, { isChips: true, chips: r.opts.map(([v, l]) => { const i = list.indexOf(v); return { l, n: i + 1, hasN: i >= 0, hasIcon: false, bd: i >= 0 ? 'oklch(0.72 0.15 255 / 0.5)' : '#2a2a31', bg: i >= 0 ? 'oklch(0.72 0.15 255 / 0.14)' : 'transparent', fg: i >= 0 ? 'oklch(0.86 0.10 255)' : '#9696a0', onClick: () => set((i >= 0 ? list.filter((x) => x !== v) : [...list, v]).join(',')) }; }) });
+    } else if (t === 'kinds') Object.assign(o, { isChips: true, chips: D.KINDS.map(([v, l, ic]) => ({ l, icon: ic, hasIcon: true, hasN: false, bd: val === v ? 'oklch(0.72 0.15 255 / 0.5)' : '#2a2a31', bg: val === v ? 'oklch(0.72 0.15 255 / 0.14)' : 'transparent', fg: val === v ? 'oklch(0.86 0.10 255)' : '#9696a0', onClick: () => set(v) })) });
+    else if (t === 'device') {
+      const dk = D.DEVICES[r.kind], cur = val || 'auto';
+      const mk = (id, name, sub, live) => ({ name, sub, hasSub: !!sub, live, bg: cur === id ? 'oklch(0.72 0.15 255 / 0.12)' : 'transparent', ring: cur === id ? A : '#3a3a42', ringW: cur === id ? '4px' : '1.5px', onClick: () => set(id === 'auto' ? undefined : id) });
+      Object.assign(o, { isDevice: true, devs: [mk('auto', 'Auto', `${dk.auto} · now ${dk.list[r.kind === 'audio' ? 1 : 0][1]}`, ''), ...dk.list.map(([id, n, l]) => mk(id, n, '', l))] });
+    } else if (t === 'thr') {
+      const Q = D.QUANTITIES[r.q], w = Number(ctx.get('warn.' + r.q, sec, r)), c = Number(ctx.get('crit.' + r.q, sec, r));
+      const pct = (x) => Math.max(0, Math.min(100, ((x - Q.min) / (Q.max - Q.min)) * 100));
+      const u = Q.unit === 'unit' ? '' : (Q.unit === '%' ? '%' : ' ' + Q.unit);
+      Object.assign(o, { isThr: true, label: `${Q.label}${Q.unit === 'unit' ? ' · sensor unit' : ' · ' + Q.unit}`, min: Q.min, max: Q.max, step: Q.step, warn: w, crit: c, warnText: w + u, critText: c + u, gW: pct(w) + '%', aW: Math.max(0, pct(c) - pct(w)) + '%', rW: 100 - pct(c) + '%', onWarn: (e) => ctx.set('warn.' + r.q, Math.min(Number(e.target.value), c)), onCrit: (e) => ctx.set('crit.' + r.q, Math.max(Number(e.target.value), w)) });
+    } else if (t === 'align') {
+      const cur = val || 'mc';
+      Object.assign(o, { isAlign: true, cells: ['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br'].map((k) => ({ bg: cur === k ? 'oklch(0.72 0.15 255 / 0.2)' : '#17171b', dot: cur === k ? A : '#3a3a42', onClick: () => set(k) })) });
+    } else if (t === 'sensors') {
+      const list = String(val || '').split(',').filter(Boolean), items = ctx.own.items || {};
+      const setItem = (k, f, v) => ctx.set('items', { ...items, [k]: { ...(items[k] || {}), [f]: v } });
+      Object.assign(o, {
+        isSensors: true,
+        sensorRows: list.map((k) => { const m = D.SENSORS.find((x) => x[0] === k) || [k, k, '']; const it = items[k] || {}, open = s.sensorOpen === k, has = Object.values(it).some(Boolean);
+          return { key: k, name: it.label || m[1], live: m[2], open, tuneBg: open || has ? 'oklch(0.72 0.15 255 / 0.16)' : 'transparent', tuneFg: open || has ? 'oklch(0.84 0.12 255)' : '#6f6f79', onTune: () => this.setState({ sensorOpen: open ? null : k }), onRemove: () => set(list.filter((x) => x !== k).join(',')), oLabel: it.label || '', oWarn: it.warn || '', oCrit: it.crit || '', onLabel: (e) => setItem(k, 'label', e.target.value), onWarn: (e) => setItem(k, 'warn', e.target.value), onCrit: (e) => setItem(k, 'crit', e.target.value) }; }),
+        sensorAdd: D.SENSORS.filter((x) => !list.includes(x[0])).map((x) => ({ l: x[1], onClick: () => set([...list, x[0]].join(',')) })),
+      });
+    }
+    return o;
+  }
+  buildSection(sec, ctx, i, filter, tabLabel) {
+    const s = this.state;
+    if (sec.if && !sec.if(ctx.v)) return null;
+    let rows = sec.rows.filter((r) => r && (!r.if || r.if(ctx.v)));
+    if (filter) { const titleHit = filter.title && filter.title(sec); rows = rows.filter((r) => (titleHit && !filter.changed) || filter.row(r, sec)); if (!rows.length) return null; }
+    const openKey = ctx.key + ':' + sec.id, moreKey = openKey;
+    const open = filter ? true : (s.open[openKey] !== undefined ? s.open[openKey] : i === 0);
+    const base = filter ? rows : rows.filter((r) => !r.more), more = filter ? [] : rows.filter((r) => r.more);
+    const moreOpen = !!s.more[moreKey];
+    const out = base.map((r) => this.buildRow(r, sec, ctx, false));
+    if (more.length) { out.push({ isMoreBtn: true, moreLabel: moreOpen ? 'Less' : `More (${more.length})`, moreIcon: moreOpen ? 'expand_less' : 'expand_more', onMore: () => this.setState((st) => ({ more: { ...st.more, [moreKey]: !moreOpen } })) }); if (moreOpen) more.forEach((r) => out.push(this.buildRow(r, sec, ctx, true))); }
+    const changedRows = rows.filter((r) => this.rowOwn(ctx, r, sec));
+    const bar = ctx.bar(sec);
+    return {
+      id: sec.id, title: sec.title, icon: sec.icon, open, chev: filter ? '' : (open ? 'expand_less' : 'expand_more'), isNew: !!sec.isNew,
+      onHead: () => !filter && this.setState((st) => ({ open: { ...st.open, [openKey]: !open } })),
+      hasTabLabel: !!tabLabel, tabLabel: tabLabel || '',
+      hasPill: !!(bar && bar.pill), pill: bar?.pill || '', pillIcon: bar?.pillIcon || '', pillBg: bar?.pillBg || '', pillFg: bar?.pillFg || '',
+      hasBar: !!bar, barIcon: bar?.icon || '', barText: bar?.text || '', barFg: bar?.fg || '', barBg: bar?.bg || '',
+      hasBtn: !!bar?.btn, btn: bar?.btn || '', onBtn: bar?.onBtn, btnBg: bar?.accentBtn ? '#17171b' : 'oklch(0.72 0.15 255 / 0.16)', btnFg: bar?.accentBtn ? '#c9c9cf' : 'oklch(0.86 0.10 255)', btnBd: bar?.accentBtn ? '#2a2a31' : 'oklch(0.72 0.15 255 / 0.45)',
+      hasBtn2: !!bar?.btn2, btn2: bar?.btn2 || '', onBtn2: bar?.onBtn2,
+      hasChanged: changedRows.length > 0, changedN: changedRows.length, onReset: () => changedRows.forEach((r) => this.rowReset(ctx, r)),
+      rows: out, empty: false, emptyText: '', _rows: rows,
+    };
+  }
+  buildInspector(ctx) {
+    const s = this.state, tabs = ctx.tabs, q = s.q.trim().toLowerCase();
+    const built = tabs.map((t) => ({ ...t, built: t.sections.map((sec, i) => this.buildSection(sec, ctx, i)).filter(Boolean) }));
+    const total = built.reduce((n, t) => n + t.built.reduce((m, sc) => m + sc.changedN, 0), 0);
+    let tabId = s.tab; const cur = built.find((t) => t.id === tabId && t.built.length); if (!cur) tabId = (built.find((t) => t.built.length) || built[0]).id;
+    const tabsOut = built.map((t) => { const n = t.built.reduce((m, sc) => m + sc.changedN, 0), dis = !t.built.length; return { label: t.label, count: n, hasCount: n > 0, bg: t.id === tabId ? '#2a2a31' : 'transparent', fg: t.id === tabId ? '#ededf0' : '#9696a0', op: dis ? 0.35 : 1, onClick: () => !dis && this.setState({ tab: t.id }) }; });
+    let sections, filterLine = '', noResults = false, noResultsText = '';
+    if (q || s.changed) {
+      const filter = { title: q ? (sec) => sec.title.toLowerCase().includes(q) : null, changed: s.changed, row: (r, sec) => (!q || (r.label || '').toLowerCase().includes(q) || (r.key || '').toLowerCase().includes(q)) && (!s.changed || this.rowOwn(ctx, r, sec)) };
+      sections = []; tabs.forEach((t) => t.sections.forEach((sec, i) => { const b = this.buildSection(sec, ctx, i, filter, t.label); if (b) sections.push(b); }));
+      const n = sections.reduce((m, sc) => m + sc._rows.length, 0);
+      filterLine = q ? `${n} matching setting${n === 1 ? '' : 's'}${s.changed ? ' (changed only)' : ''}` : `${n} changed setting${n === 1 ? '' : 's'}`;
+      noResults = !sections.length; noResultsText = q ? `No settings match "${s.q}".` : 'Nothing changed yet. Everything uses its default or the theme.';
+    } else sections = built.find((t) => t.id === tabId).built;
+    return { tabs: tabsOut, sections, total, filterLine, hasFilterLine: !!(q || s.changed), noResults, noResultsText, showTabs: !(q || s.changed), built };
+  }
+  // ---------- previews ----------
+  probe(w, caption) {
+    const s = this.state, D = s.D, ctx = this.widgetCtx(w), g = (k) => ctx.v(k), p = w.probe;
+    const SKIN_F = { tui: "'JetBrains Mono'", retro: 'VT323', ink: "'Instrument Serif'", synth: 'Orbitron', brutal: "'Space Grotesk'", hud: "'Geist Mono'", instrument: "'IBM Plex Sans'" };
+    const SKIN_R = { macos: 22, ios: 24, android: 28, brutal: 0, cyber: 0, tui: 6, retro: 6, hud: 2, fluent: 8, ink: 14, synth: 14, nixie: 12, instrument: 10 };
+    const FAM = { geist: 'Geist', 'geist-mono': "'Geist Mono'", 'space-grotesk': "'Space Grotesk'", 'instrument-serif': "'Instrument Serif'", 'jetbrains-mono': "'JetBrains Mono'", orbitron: 'Orbitron', inter: 'Inter', manrope: 'Manrope', 'ibm-plex-sans': "'IBM Plex Sans'", vt323: 'VT323' };
+    const skin = g('skin'), accent = g('accent') || D.THEME_DEFAULTS.accent, surf = g('surface');
+    const SURF = { glass: 'rgba(255,255,255,0.06)', 'matte-dark': '#17171b', 'matte-light': '#e8e8ec', theme: '#141418', solid: '#1d1d23', outline: 'rgba(0,0,0,0)', flat: '#121215', tinted: `color-mix(in oklch, ${accent} 18%, #141418)`, carbon: '#1a1a1a', inset: '#0e0e11', terminal: '#08100a', auto: '#18181d' };
+    const light = surf === 'matte-light', op = Number(g('surfaceOpacity') ?? 100);
+    const bw = g('borderWidth'), bwPx = bw === 'auto' || bw === undefined ? 1 : Number(bw);
+    const gl = g('glow'), gc = g('glowColor') || accent;
+    const rad = g('radius'), radius = rad === 'auto' ? (SKIN_R[skin] ?? 12) : Number(rad);
+    const font = g('font'), fam = font === 'auto' || !font ? (SKIN_F[skin] || 'Geist') : FAM[font] || 'Geist';
+    const pad = g('padding'), gap = g('gap'), al = g('align') || 'mc';
+    const lc = g('labelCase'), fw = g('fontWeight');
+    const blur = g('blur');
+    let big = p.text || '', unit = p.unit || '', sub = p.sub || '';
+    let stateCol = accent, stateTxt = '';
+    if (p.value !== undefined) {
+      let v = p.value;
+      if (p.isTemp) { const f = g('tempUnit') === 'f'; v = f ? v * 9 / 5 + 32 : v; unit = f ? '°F' : '°C'; }
+      const dec = g('decimals'); big = dec && dec !== 'auto' ? Number(v).toFixed(Number(dec)) : String(Math.round(v * 10) / 10);
+      if (p.q && w.thr.length) { const wv = Number(g('warn.' + p.q)), cv = Number(g('crit.' + p.q)); const T = (k) => this.themeVal(k, 'palette');
+        if (p.value >= cv) { stateCol = T('crit'); stateTxt = 'Critical'; } else if (p.value >= wv) { stateCol = T('warn'); stateTxt = 'Warning'; } else { stateTxt = 'OK'; } sub = `${p.label} · ${stateTxt} (warn ${wv}, crit ${cv})`; }
+      else sub = p.label;
+    }
+    if (p.secs) big = g('showSeconds') === false ? '3d 04:12' : '3d 04:12:37';
+    if (w.id === 'WebPage') big = '▶';
+    const tabs = ctx.tabs, srcs = [];
+    tabs.forEach((t) => t.sections.forEach((sec) => { if (!sec.follow) return; if (sec.if && !sec.if(ctx.v)) return; const lk = !!s.locks[sec.id], f = lk || (s.follow[w.id] || {})[sec.id] !== false;
+      srcs.push({ t: sec.title, icon: lk ? 'lock' : f ? 'link' : 'tune', bg: f ? '#17171b' : 'oklch(0.72 0.15 255 / 0.16)', fg: f ? '#8a8a94' : 'oklch(0.86 0.10 255)' }); }));
+    const hasHeader = w.header === 'yes' ? g('showTitle') !== false : w.header === 'title-only' ? !!g('label') : false;
+    const ax = al[1], ay = al[0];
+    return {
+      caption, zoom: Number(g('scale') || 100) / 100, pad: (pad === 'auto' || pad === undefined ? 16 : Number(pad)) + 'px', gap: (gap === 'auto' || gap === undefined ? 8 : Number(gap)) + 'px', radius: Math.min(radius, 40) + 'px',
+      bg: `color-mix(in srgb, ${SURF[surf] || SURF.auto} ${op}%, transparent)`, border: `${bwPx}px solid ${g('borderColor') || (light ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.09)')}`,
+      shadow: gl === 'strong' ? `0 0 0 1px ${gc}, 0 0 28px 0 ${gc}` : gl === 'soft' ? `0 0 22px -4px ${gc}` : 'none', blur: blur && blur !== 'auto' ? `blur(${blur}px)` : 'blur(12px)',
+      text: g('textColor') || (light ? '#18181b' : '#ededf0'), muted: g('mutedColor') || (light ? '#5a5a63' : '#8a8a94'), font: fam, accent,
+      weight: fw && fw !== 'auto' ? fw : 600, case: lc === 'auto' || !lc ? 'uppercase' : lc, case2: 'none',
+      hasHeader, headerText: g('label') || w.name, icon: g('icon') || w.icon, big, unit, sub,
+      hasBar: p.pct !== undefined, pct: p.pct + '%', barColor: stateCol, barH: Math.round(6 * Number(g('stroke') || 100) / 100) + 'px',
+      alignI: ax === 'l' ? 'flex-start' : ax === 'r' ? 'flex-end' : ay === 'm' && ax === 'c' ? 'stretch' : 'center', alignT: ax === 'l' ? 'left' : ax === 'r' ? 'right' : 'left',
+      sources: srcs,
+    };
+  }
+  countRows(ctx) { let vis = 0, more = 0, secs = 0; ctx.tabs.forEach((t) => t.sections.forEach((sec) => { if (!sec || (sec.if && !sec.if(ctx.v))) return; secs++; sec.rows.forEach((r) => { if (r.if && !r.if(ctx.v)) return; r.more ? more++ : vis++; }); })); return { vis, more, secs }; }
+  renderVals() {
+    const s = this.state, D = s.D;
+    const navDef = [['model', 'Model', 'account_tree'], ['widget', 'Widget inspector', 'widgets'], ['theme', 'Theme', 'palette'], ['panel', 'Panel widgets', 'dashboard_customize']];
+    const nav = navDef.map(([id, label, icon]) => ({ label, icon, bg: s.screen === id ? '#2a2a31' : 'transparent', fg: s.screen === id ? '#ededf0' : '#9696a0', onClick: () => this.setState({ screen: id, q: '', changed: false, colorOpen: null }) }));
+    const cleanups = [
+      { t: 'Drop autoScale', d: '"Scale with the zone" had no effect in template widgets. Removed from the schema, the profile style keys and the migration reads it as nothing.' },
+      { t: 'Small zones (one control)', d: 'variant (Dense summary) + compactView (Summary card) → compact: auto / full / card / dense. Options the widget cannot draw are omitted.' },
+      { t: 'Header only where it exists', d: 'No Header section on the 8 widgets that never draw one. Clock and System Overview get Title only (a header appears when it is set).' },
+      { t: 'One Thresholds control', d: 'warn / crit per quantity (load, temp, full, db, value). Keys warn.<q> / crit.<q>; unset = theme, "off" = disabled. Replaces 7 key schemes.' },
+      { t: 'One device picker', d: 'cpu / gpu / disk / adapter / drive / audio / device / liveSource → device. Auto states its rule and shows the current pick.' },
+      { t: 'Global content preferences', d: 'Units & format, Thresholds and Motion are themed like look keys: tempUnit, rateUnit, decimals, clock, warn.*, crit.*, smoothing, meterBallistics.' },
+      { t: 'Advanced → per-section More', d: 'The global Advanced switch goes. Each former advanced row sits behind its section\'s More link.' },
+    ];
+    const base = { nav, cleanups, isModel: s.screen === 'model', isWork: s.screen !== 'model' && !!D, q: s.q, onQ: (e) => this.setState({ q: e.target.value }), onChanged: () => this.setState({ changed: !s.changed }), chBg: s.changed ? 'oklch(0.72 0.15 255 / 0.16)' : 'transparent', chBd: s.changed ? 'oklch(0.72 0.15 255 / 0.5)' : '#2a2a31', chFg: s.changed ? 'oklch(0.86 0.10 255)' : '#9696a0' };
+    if (!D || s.screen === 'model') return { ...base, leftItems: [], probes: [], notes: [], overrides: [], pitems: [], tabs: [], sections: [], ip: {}, cmp: {} };
+    let ctx, ip, leftItems, leftTitle, leftNote = '', probes = [], notes = [], cmp = {}, overrides = [], pitems = [];
+    if (s.screen === 'widget') {
+      const w = D.WIDGETS.find((x) => x.id === s.wid); ctx = this.widgetCtx(w);
+      leftTitle = 'Sample widgets';
+      leftItems = D.WIDGETS.map((x) => { const c = this.countRows(this.widgetCtx(x)); return { label: x.name, icon: x.icon, sub: `${x.today.rows} → ${c.vis}${c.more ? ' + ' + c.more : ''}`, bg: x.id === s.wid ? '#1e1e24' : 'transparent', iconFg: x.id === s.wid ? 'oklch(0.84 0.12 255)' : '#8a8a94', onClick: () => this.setState({ wid: x.id, q: '', colorOpen: null }) }; });
+      leftNote = 'Numbers: rows in the inspector today → visible now + behind More, for the current values.';
+      probes = [this.probe(w, 'Live preview · resolved values')];
+      const c = this.countRows(ctx); cmp = { name: w.name, today: w.today.rows, todayCats: w.today.cats, visible: c.vis, more: c.more, sections: c.secs };
+      notes = w.notes.map((t) => ({ t }));
+      ip = { icon: w.icon, title: w.name, sub: '' };
+    } else if (s.screen === 'theme') {
+      ctx = this.themeCtx(); leftTitle = 'Scope';
+      leftItems = [
+        { label: 'Profile theme', icon: 'desktop_windows', sub: 'Desk · 2560×1440', bg: s.scope === 'profile' ? '#1e1e24' : 'transparent', iconFg: s.scope === 'profile' ? 'oklch(0.84 0.12 255)' : '#8a8a94', onClick: () => this.setState({ scope: 'profile', colorOpen: null }) },
+        { label: 'Dashboard theme', icon: 'space_dashboard', sub: 'Gaming', bg: s.scope === 'dash' ? '#1e1e24' : 'transparent', iconFg: s.scope === 'dash' ? 'oklch(0.84 0.12 255)' : '#8a8a94', onClick: () => this.setState({ scope: 'dash', colorOpen: null }) },
+      ];
+      leftNote = 'The profile sets every themed value. A dashboard follows it section by section or customises one. Lock forces a section on every widget.';
+      probes = ['CpuMonitor', 'Weather', 'AudioMeter'].map((id) => { const w = D.WIDGETS.find((x) => x.id === id); return this.probe(w, w.name); });
+      const secs = []; this.themeTabs().forEach((t) => t.sections.forEach((sec) => secs.push(sec)));
+      overrides = secs.map((sec) => { const who = D.WIDGETS.filter((w) => (s.follow[w.id] || {})[sec.id] === false); const title = sec.id === 'palette' ? 'Widget colors' : sec.title;
+        return { title, icon: sec.icon, who: who.length ? who.map((w) => w.name).join(', ') : 'All follow', fg: who.length ? 'oklch(0.86 0.10 255)' : '#6f6f79', hasReset: who.length > 0 && !s.locks[sec.id], lockedTag: !!s.locks[sec.id], onReset: () => this.setState((st) => { const f = { ...st.follow }; who.forEach((w) => { f[w.id] = { ...(f[w.id] || {}), [sec.id]: true }; }); return { follow: f }; }) }; });
+      ip = { icon: s.scope === 'profile' ? 'desktop_windows' : 'space_dashboard', title: s.scope === 'profile' ? 'Profile theme' : 'Gaming dashboard', sub: '' };
+    } else {
+      ctx = this.panelCtx(); leftTitle = 'Panel “Rig” · widgets';
+      leftItems = D.PANEL_ITEMS.map((p) => { const pv = { ...s.pbase[p.id], ...(s.pvals[p.id] || {}) }, kd = D.KINDS.find((k) => k[0] === pv.kind); return { label: pv.label || kd[1], icon: kd[2], sub: kd[1], bg: p.id === s.pid ? '#1e1e24' : 'transparent', iconFg: p.id === s.pid ? 'oklch(0.84 0.12 255)' : '#8a8a94', onClick: () => this.setState({ pid: p.id, colorOpen: null }) }; });
+      leftNote = 'Changing Kind keeps label, sensor, unit, colour and placement (convertKind).';
+      const spark = [30, 45, 38, 60, 52, 70, 64, 80, 58, 66, 74, 50, 62, 78, 85, 72];
+      pitems = D.PANEL_ITEMS.map((p) => {
+        const pv = { ...s.pbase[p.id], ...(s.pvals[p.id] || {}) }, kind = pv.kind, sel = p.id === s.pid;
+        const pc = this.mkOwnCtx('x', pv, s.pfollow[p.id] || {}, () => {}, () => {}, this.kindTabs(), () => '', '');
+        const col = pc.v('color') || this.themeVal('accent', 'colors'), dec = pc.v('decimals'), wv = Number(pc.v('warn.value')), cv = Number(pc.v('crit.value'));
+        const thrOn = ['stat', 'value', 'bar', 'gauge'].includes(kind); const T = (k) => this.themeVal(k, 'palette');
+        const c = thrOn && p.live >= cv ? T('crit') : thrOn && p.live >= wv ? T('warn') : col;
+        const fsz = pc.v('fontSize'); const ta = pc.v('textAlign') || 'left';
+        return { onClick: () => this.setState({ pid: p.id, colorOpen: null }), outline: sel ? '2px solid oklch(0.72 0.15 255)' : '1px solid transparent', flex: pv.boxW === 'fill' || ['bar', 'sparkline'].includes(kind) && pv.boxW !== 'hug' ? '1 1 160px' : '0 0 auto',
+          label: pv.label || '', color: c, value: dec && dec !== 'auto' ? p.live.toFixed(Number(dec)) : String(p.live), unit: pv.unit === undefined ? p.unit : pv.unit, pct: Math.min(100, p.live) + '%', conic: `conic-gradient(${c} ${Math.min(100, p.live) * 3.6}deg, rgba(127,127,140,.22) 0)`,
+          spark: spark.map((h) => ({ h: h + '%' })), clock: pc.v('clockShow') === 'date' ? 'Mon 19 Oct' : pc.v('clockShow') === 'time' ? '14:32' : '14:32 · Mon 19',
+          fs: fsz && fsz !== 'auto' ? fsz + 'px' : (kind === 'stat' ? '28px' : '18px'), alignI: ta === 'center' ? 'center' : ta === 'right' ? 'flex-end' : 'flex-start', alignT: ta,
+          isNum: ['stat', 'value', 'bar', 'sparkline', 'text'].includes(kind), isBar: kind === 'bar', isGauge: kind === 'gauge', isSpark: kind === 'sparkline', isClock: kind === 'clock', isOther: ['table', 'image', 'shape'].includes(kind), kindLabel: (D.KINDS.find((k) => k[0] === kind) || [])[1] + ' (preview omitted)' };
+      });
+      const pv = { ...s.pbase[s.pid], ...(s.pvals[s.pid] || {}) }, kd = D.KINDS.find((k) => k[0] === pv.kind);
+      ip = { icon: kd[2], title: pv.label || kd[1], sub: '' };
+    }
+    const ins = this.buildInspector(ctx);
+    ip.changed = ins.total; ip.sub = (s.screen === 'widget' ? D.WIDGETS.find((x) => x.id === s.wid).cat : s.screen === 'theme' ? 'Theme' : 'Panel item') + ' · ' + (ins.total ? `${ins.total} changed` : 'defaults');
+    return {
+      ...base, leftItems, leftTitle, leftNote, probes, hasProbes: probes.length > 0, notes, hasNotes: s.screen === 'widget', cmp, overrides, hasOverrides: s.screen === 'theme', isPanel: s.screen === 'panel', pitems,
+      ip, tabs: ins.tabs, showTabs: ins.showTabs, sections: ins.sections, filterLine: ins.filterLine, hasFilterLine: ins.hasFilterLine, noResults: ins.noResults, noResultsText: ins.noResultsText,
+    };
+  }
+}
+</script>
+</body>
+</html>

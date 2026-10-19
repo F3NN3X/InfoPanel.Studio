@@ -112,7 +112,7 @@ const ACCORDION_MODES = [
 /**
  * The inspector with nothing selected: the Dashboard, in the tabs Profile ·
  * Appearance · Global style · General (README §4.7), with the same
- * sections, dots, search and Advanced filter as a zone. The registry
+ * sections, dots, search and More rows as a zone. The registry
  * places the existing cards (scope and force, presets, theme, page
  * background, general, connection) into its sections.
  */

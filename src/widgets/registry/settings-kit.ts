@@ -52,7 +52,7 @@ export const numberSetting = (key: string, label: string, def: number, extra: Ex
 /** A text field. */
 export const textSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "text", default: def, ...extra });
 
-/** A colour; "" = the widget's own. Filed in Style, tucked away as advanced. */
+/** A colour; "" = the widget's own. Filed in Style › Widget colors, behind More. */
 export const colorSetting = (key: string, label: string, extra: Extra = {}): ModuleSetting => ({ key, label, type: "color", default: "", tab: "style", advanced: true, ...extra });
 
 /** A bound sensor key ("" = none); `multiple` = ordered, comma-separated keys. On the Data tab. */

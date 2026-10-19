@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_PINS,
   parseAccordion,
-  parseAdvanced,
   parsePins,
   parseQuickBar,
   parseTabs,
@@ -10,15 +9,6 @@ import {
   pinsOf,
   togglePin,
 } from "./inspector-prefs";
-
-describe("parseAdvanced", () => {
-  it("is off unless stored as on", () => {
-    expect(parseAdvanced("true")).toBe(true);
-    expect(parseAdvanced("false")).toBe(false);
-    expect(parseAdvanced(null)).toBe(false);
-    expect(parseAdvanced("yes")).toBe(false);
-  });
-});
 
 describe("parseTabs", () => {
   it("reads a map of tab ids per context", () => {
@@ -34,14 +24,25 @@ describe("parseTabs", () => {
     expect(parseTabs("nope")).toEqual({});
     expect(parseTabs('["style"]')).toEqual({});
   });
+
+  it("reads a remembered Content tab as Show", () => {
+    expect(parseTabs('{"widget":"content","panel":"style"}')).toEqual({ widget: "show", panel: "style" });
+  });
 });
 
 describe("pickTab", () => {
   it("keeps the remembered tab while the context has it, else the first", () => {
-    expect(pickTab("style", ["content", "style", "data"])).toBe("style");
-    expect(pickTab("appearance", ["content", "style", "data"])).toBe("content");
+    expect(pickTab("style", ["show", "style", "data", "behaviour"])).toBe("style");
+    expect(pickTab("appearance", ["show", "style", "data", "behaviour"])).toBe("show");
     expect(pickTab(undefined, ["profile", "general"])).toBe("profile");
     expect(pickTab("style", [])).toBeUndefined();
+  });
+
+  it("skips a disabled (empty) tab, remembered or first", () => {
+    const tabs = ["show", "style", "data", "behaviour"];
+    expect(pickTab("behaviour", tabs, new Set(["behaviour"]))).toBe("show");
+    expect(pickTab(undefined, tabs, new Set(["show"]))).toBe("style");
+    expect(pickTab("data", tabs, new Set(["show"]))).toBe("data");
   });
 });
 

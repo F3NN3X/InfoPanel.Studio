@@ -144,8 +144,8 @@ function cardParts(cards: SheetCard[], editor: boolean): SectionParts {
 /**
  * The inspector of one zone (README §4.6–4.7): the header (icon, editable
  * name, meta, Hide / Duplicate / Delete, the panel crumbs) and placement
- * row, then the registry's tabs — Content · Style · Data for widgets and
- * panels, Widget + Zone frame for a blank zone. The zone's custom UI
+ * row, then the registry's tabs — Show · Style · Data · Behaviour for widgets
+ * and panels, Widget + Zone frame for a blank zone. The zone's custom UI
  * (widget picker, Follow / Custom, style tools, zone frame, a panel's
  * editors, Bound data) fills the sections the registry marks for it.
  */
@@ -220,10 +220,10 @@ export function ZoneInspector({
         ? widgetContext(mod)
         : { kind: "widget", defs };
 
-  // A panel widget picked on the canvas: its editor is in Content.
+  // A panel widget picked on the canvas: its editor is in Show.
   useEffect(() => {
     if (selectedWidgetId === null) return;
-    setInspectorTab("panel", "content");
+    setInspectorTab("panel", "show");
     requestAnimationFrame(() =>
       document.querySelector("[data-widget-editor]")?.scrollIntoView({ block: "nearest", inline: "nearest" })
     );
@@ -280,7 +280,7 @@ export function ZoneInspector({
     />
   );
 
-  const extraNode = (e: SectionExtra): { at: "top" | "bottom" | "actions"; node: ReactNode } => {
+  const extraNode = (e: SectionExtra): { at: "top" | "bottom" | "more" | "actions"; node: ReactNode } => {
     switch (e.kind) {
       case "widgetPicker":
         return { at: "top", node: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
@@ -311,8 +311,8 @@ export function ZoneInspector({
           ),
         };
       case "zoneFrame":
-        // A panel draws its own card (Colors & surface › Surface): no frame background around it.
-        return { at: "bottom", node: frameFields(!zone.panel) };
+        // A panel draws its own card (Surface): no frame background around it.
+        return { at: "more", node: frameFields(!zone.panel) };
     }
   };
 
@@ -345,17 +345,17 @@ export function ZoneInspector({
         return cardParts(cards.get(s.special) ?? [], s.special === "widgetKind");
     }
     const placed = s.extras.map(extraNode);
-    const at = (where: "top" | "bottom" | "actions") => {
+    const at = (where: "top" | "bottom" | "more" | "actions") => {
       const nodes = placed.filter((p) => p.at === where).map((p, i) => <div key={i}>{p.node}</div>);
       return nodes.length > 0 ? nodes : undefined;
     };
     const frame = s.extras.some((e) => e.kind === "zoneFrame") ? zoneFrame(!zone.panel) : {};
     // A panel can be replaced by a widget too (Change).
     const top =
-      zone.panel && s.id === "widget"
+      zone.panel && s.id === "header"
         ? [<WidgetPicker key="picker" placement={zone} onPickWidget={onPickWidget} />, ...(at("top") ?? [])]
         : at("top");
-    return { ...frame, top, bottom: at("bottom"), actions: at("actions") };
+    return { ...frame, top, bottom: at("bottom"), more: at("more"), actions: at("actions") };
   };
 
   const present = (s: InspectorSection) =>
@@ -373,8 +373,8 @@ export function ZoneInspector({
   );
   const gaugeNote = zone.module === CUSTOM_GAUGE_ID && onEditGauge && <GaugeNote key="gauge" zone={zone} onEdit={onEditGauge} />;
   const notes = (tab: Parameters<typeof inspectorNotes>[1]) => [
-    tab === "content" || tab === undefined ? canvasNote : null,
-    tab === "content" || tab === undefined ? gaugeNote : null,
+    tab === "show" || tab === undefined ? canvasNote : null,
+    tab === "show" || tab === undefined ? gaugeNote : null,
     ...inspectorNotes(context, tab, { mode: zone.styleMode, enforce }).map((n) => (
       <InspectorNote key={n.kind}>
         {n.text}
@@ -425,6 +425,7 @@ export function ZoneInspector({
     <InspectorView
       context={context}
       contextKey={context.kind}
+      moreScope={pinType}
       header={header}
       fields={fields}
       visible={(def) => isVisible(def, effective)}

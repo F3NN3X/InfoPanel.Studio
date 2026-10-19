@@ -43,6 +43,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   internal (#49).
 - Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
   Gauges page and the narrow-layout sheet now have them (#50).
+- Widget inspector tabs are Show · Style · Data · Behaviour (was Content · Style · Data); a remembered Content tab
+  opens Show, and a tab with nothing in it is dimmed and never picked by default. Sections follow the widget settings
+  v2 spec: Header and Fit in Show; Skin & graphics, Colors, Widget colors, Surface, Typography, Size & spacing,
+  Border & glow and Custom CSS in Style; Units & format in Data; Thresholds, Dynamic Island and Motion (Graph updates)
+  in Behaviour. A widget's color groups and Style rows land in Widget colors (no longer hidden as advanced), its
+  Thresholds group, GPU Monitor's temperatures, System Overview's Trends and the visualizer dynamics in Behaviour.
+- "More (n)" at the end of a section replaces the Advanced settings switch and its "Show N advanced settings"
+  button (also for the extra theme colors): open per section and widget type for the session; Search and Changed
+  list More rows inline.
+- Widgets declare whether they draw a header and what they draw in small zones. Clock and System Overview show only
+  Title (a title draws their header); Calendar, Game Spotlight, KPI Tiles, Menu Bar, OSD Strip, Steam Game, Vitals
+  and Web Page have no Header section: Title and Icon close Fit, and Show title is gone from all ten.
+- The phone sheet's tiles use the new short labels (Header, Fit, Skin, Colors, Widget, Surface, Type, Spacing,
+  Border, CSS, Format, Alerts, Motion, Island).
 
 ### Fixed
 - "Edit gauge…" over an editor with unsaved changes now asks (Save to library, Discard, Cancel) instead of replacing

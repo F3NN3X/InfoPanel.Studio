@@ -1,17 +1,15 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The inspector's remembered preferences (README §5.9): the Advanced
- * toggle and the open tab of each context ("widget", "panel",
- * "dashboard"). localStorage, read and written defensively: private mode or
- * a full quota keeps the session state.
+ * The inspector's remembered preferences (README §5.9): the open tab of
+ * each context ("widget", "panel", "dashboard"). localStorage, read and
+ * written defensively: private mode or a full quota keeps the session state.
  */
 
-const ADVANCED_KEY = "studio.inspectorAdvanced";
 const TABS_KEY = "studio.inspectorTabs";
 
-/** The stored Advanced toggle: off unless it was turned on. */
-export const parseAdvanced = (raw: string | null): boolean => raw === "true";
+/** Tabs that were renamed: a stored old id reads as the new one (Content is Show). */
+const RENAMED_TABS: Record<string, string> = { content: "show" };
 
 /** The stored tab per context; anything malformed reads as empty. */
 export function parseTabs(raw: string | null): Record<string, string> {
@@ -20,16 +18,26 @@ export function parseTabs(raw: string | null): Record<string, string> {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     return Object.fromEntries(
-      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+      Object.entries(parsed)
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string")
+        .map(([context, tab]) => [context, RENAMED_TABS[tab] ?? tab])
     );
   } catch {
     return {};
   }
 }
 
-/** The tab to show: the remembered one while the context still has it, else the first. */
-export function pickTab<T extends string>(stored: string | undefined, tabs: readonly T[]): T | undefined {
-  return tabs.find((t) => t === stored) ?? tabs[0];
+/**
+ * The tab to show: the remembered one while the context still has it and it
+ * is not disabled (empty), else the first enabled one.
+ */
+export function pickTab<T extends string>(
+  stored: string | undefined,
+  tabs: readonly T[],
+  disabled: ReadonlySet<string> = new Set()
+): T | undefined {
+  const enabled = tabs.filter((t) => !disabled.has(t));
+  return enabled.find((t) => t === stored) ?? enabled[0] ?? tabs[0];
 }
 
 /** One localStorage value shared by every subscriber. */
@@ -62,13 +70,7 @@ function storedValue<T>(key: string, parse: (raw: string | null) => T, serialize
   return { read, write, subscribe };
 }
 
-const advancedStore = storedValue(ADVANCED_KEY, parseAdvanced, String);
 const tabsStore = storedValue(TABS_KEY, parseTabs, JSON.stringify);
-
-/** "Advanced settings" (off by default, remembered). */
-export function useInspectorAdvanced(): [boolean, (on: boolean) => void] {
-  return [useSyncExternalStore(advancedStore.subscribe, advancedStore.read, advancedStore.read), advancedStore.write];
-}
 
 /** Remember a context's tab (also from outside it: "Edit global theme" opens the dashboard's Appearance). */
 export function setInspectorTab(contextKey: string, tab: string) {

@@ -5,5 +5,10 @@ import { GROUP_B } from "./registry/b";
 import { GROUP_C } from "./registry/c";
 import { GROUP_D } from "./registry/d";
 import { GROUP_E } from "./registry/e";
+import { INSPECTOR_META } from "./registry/inspector-meta";
 
-export const TEMPLATE_MODULES: DashboardModule[] = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D, ...GROUP_E];
+/** Each with its inspector metadata (header, small zones, ...; `inspector-meta.ts`). */
+export const TEMPLATE_MODULES: DashboardModule[] = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D, ...GROUP_E].map((m) => ({
+  ...m,
+  ...INSPECTOR_META[m.id],
+}));
