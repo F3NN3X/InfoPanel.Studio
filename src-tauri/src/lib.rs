@@ -152,6 +152,7 @@ pub fn run() {
             commands::quit_app,
             commands::open_settings,
             commands::save_text_file,
+            commands::save_binary_file,
             commands::open_text_file,
             commands::log_frontend,
             commands::report_metrics,

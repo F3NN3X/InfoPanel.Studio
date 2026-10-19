@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Archive, Share, TriangleAlert, X } from "lucide-react";
+import { isTauri, saveBinaryFile } from "@/lib/desktop";
 import { formatBytes, uploadBytes } from "@/lib/assets";
 import type { Placement } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,16 @@ export interface ExportDialogProps {
 
 type Output = "stored" | "infopanel";
 
-function download(name: string, data: Uint8Array, type: string) {
+/** Desktop: the native Save As (a cancel does nothing; an error falls back to the browser). Else a download. */
+export async function download(name: string, data: Uint8Array, type: string): Promise<void> {
+  if (isTauri()) {
+    try {
+      await saveBinaryFile(name, name.endsWith(".zip") ? "zip" : "infopanel", data);
+      return;
+    } catch (e) {
+      console.error("Native save failed, downloading instead", e);
+    }
+  }
   const url = URL.createObjectURL(new Blob([data.slice()], { type }));
   const a = document.createElement("a");
   a.href = url;
@@ -126,7 +136,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
     try {
       if (out === "stored") {
         const stored = withFontChoices(canvas, choices);
-        download(fileName, canvasZip(stored, opened.assets, fontFiles), "application/zip");
+        await download(fileName, canvasZip(stored, opened.assets, fontFiles), "application/zip");
         onDone(`Exported ${fileName}${included.length ? ` · it holds ${included.map((r) => r.family).join(", ")}, not cleared for sharing` : ""}`);
         onClose();
         return;
@@ -154,7 +164,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
       setBusy("Writing…");
       const leaveOut = leaveUnused ? unusedFiles(next).names : [];
       const file = infopanelFile(opened.parsed.profile, next, leaveOut);
-      download(fileName, file.bytes, "application/octet-stream");
+      await download(fileName, file.bytes, "application/octet-stream");
       const left = bakeFirst ? 0 : stale.length;
       onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} vector gauges keep their old frames` : ""}`);
       onClose();

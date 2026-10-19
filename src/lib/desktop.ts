@@ -33,6 +33,19 @@ export const openSettings = (): Promise<void | undefined> => call<void>("open_se
 export const saveTextFile = async (defaultName: string, contents: string): Promise<boolean> =>
   (await call<boolean>("save_text_file", { defaultName, contents })) === true;
 
+/**
+ * Native Save As for raw bytes (`zip` or `infopanel`); the bytes are the IPC body, the name and
+ * extension ride in headers. Resolves to whether a file was written.
+ */
+export const saveBinaryFile = async (name: string, ext: "zip" | "infopanel", bytes: Uint8Array): Promise<boolean> => {
+  if (!isTauri()) return false;
+  const { invoke } = await import("@tauri-apps/api/core");
+  const saved = await invoke<boolean>("save_binary_file", bytes, {
+    headers: { "x-file-name": name, "x-file-ext": ext },
+  });
+  return saved === true;
+};
+
 /** Native open dialog; resolves to the file's text, or null when cancelled. */
 export const openTextFile = async (): Promise<string | null> =>
   (await call<string | null>("open_text_file")) ?? null;
