@@ -19,6 +19,7 @@ fn main() {
         "quit_app",
         "open_settings",
         "save_text_file",
+        "save_binary_file",
         "open_text_file",
         "log_frontend",
         "report_metrics",

@@ -26,6 +26,7 @@ import {
   onStudioFlush,
   openSettings,
   openTextFile,
+  saveBinaryFile,
   saveTextFile,
 } from "./desktop";
 
@@ -55,6 +56,7 @@ describe("wrappers in a browser", () => {
     await flushDone();
     expect(await saveTextFile("a.json", "{}")).toBe(false);
     expect(await openTextFile()).toBeNull();
+    expect(await saveBinaryFile("a.zip", "zip", new Uint8Array())).toBe(false);
     expect(await getDebug()).toBe(false);
     const off = await onStudioFlush(() => {});
     off();
@@ -74,6 +76,17 @@ describe("wrappers in the desktop app", () => {
     expect(await getDebug()).toBe(true);
     await flushDone();
     expect(invoke).toHaveBeenLastCalledWith("flush_done", undefined);
+  });
+
+  it("sends binary saves as the raw body with the name and kind in headers", async () => {
+    vi.stubGlobal("window", { __TAURI_INTERNALS__: {} });
+    const bytes = new Uint8Array([1, 2]);
+    invoke.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    expect(await saveBinaryFile("a.canvas.zip", "zip", bytes)).toBe(true);
+    expect(invoke).toHaveBeenCalledWith("save_binary_file", bytes, {
+      headers: { "x-file-name": "a.canvas.zip", "x-file-ext": "zip" },
+    });
+    expect(await saveBinaryFile("a.infopanel", "infopanel", bytes)).toBe(false);
   });
 
   it("listens for the flush event and returns the unsubscribe", async () => {

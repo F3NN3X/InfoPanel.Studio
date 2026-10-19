@@ -409,6 +409,67 @@ pub async fn save_text_file(
     .await?
 }
 
+/// Largest file `save_binary_file` writes (a canvas zip holds its assets and fonts).
+const MAX_SAVE_BINARY_BYTES: usize = 200 * 1024 * 1024;
+
+/// Saves raw bytes (the IPC body) through a Save As dialog. The `x-file-name` and `x-file-ext`
+/// headers carry the suggested name and the kind (`zip` or `infopanel`). False when cancelled.
+#[tauri::command]
+pub async fn save_binary_file(app: AppHandle, request: tauri::ipc::Request<'_>) -> CmdResult<bool> {
+    let header = |key: &str| {
+        request
+            .headers()
+            .get(key)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default()
+            .to_string()
+    };
+    let (name, ext) = (header("x-file-name"), header("x-file-ext"));
+    log::debug!("ipc: save_binary_file {name}");
+    let Some(ext) = binary_extension(&ext) else {
+        return Err("This kind of file can't be saved.".into());
+    };
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("No file contents were sent.".into());
+    };
+    if bytes.len() > MAX_SAVE_BINARY_BYTES {
+        return Err("The file is too large to save.".into());
+    }
+    let bytes = bytes.clone();
+    let default_name = binary_file_name(&name, ext);
+    blocking(move || {
+        let label = if ext == "zip" {
+            "Canvas zip"
+        } else {
+            "InfoPanel"
+        };
+        let mut dialog = app
+            .dialog()
+            .file()
+            .set_file_name(&default_name)
+            .add_filter(label, &[ext]);
+        if let Some(w) = app.get_webview_window(windows::MAIN) {
+            dialog = dialog.set_parent(&w);
+        }
+        let Some(path) = dialog.blocking_save_file() else {
+            return Ok(false);
+        };
+        let mut path = path.into_path().map_err(|e| e.to_string())?;
+        if !path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+        {
+            let mut full = path.into_os_string();
+            full.push(format!(".{ext}"));
+            path = full.into();
+        }
+        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+        log::info!("saved {}", path.display());
+        Ok(true)
+    })
+    .await?
+}
+
 #[tauri::command]
 pub async fn open_text_file(app: AppHandle) -> CmdResult<Option<String>> {
     log::debug!("ipc: open_text_file");
@@ -445,6 +506,30 @@ pub(crate) fn json_file_name(name: &str) -> String {
         base.to_string()
     } else {
         format!("{base}.json")
+    }
+}
+
+/// The allow-listed extension for a binary save, or None.
+pub(crate) fn binary_extension(ext: &str) -> Option<&'static str> {
+    ["zip", "infopanel"]
+        .into_iter()
+        .find(|e| e.eq_ignore_ascii_case(ext.trim().trim_start_matches('.')))
+}
+
+/// The suggested name without folders, always ending in `.{ext}` (`x.canvas.zip` stays whole).
+pub(crate) fn binary_file_name(name: &str, ext: &str) -> String {
+    let base = name
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .trim_matches('.');
+    let base = if base.is_empty() { "export" } else { base };
+    let suffix = format!(".{ext}");
+    if base.to_ascii_lowercase().ends_with(&suffix) {
+        base.to_string()
+    } else {
+        format!("{base}{suffix}")
     }
 }
 
@@ -533,5 +618,32 @@ mod save_name_tests {
         assert_eq!(json_file_name("a/b/c.JSON"), "c.JSON");
         assert_eq!(json_file_name(".."), "dashboard.json");
         assert_eq!(json_file_name(""), "dashboard.json");
+    }
+}
+
+#[cfg(test)]
+mod save_binary_tests {
+    use super::{binary_extension, binary_file_name};
+
+    #[test]
+    fn only_zip_and_infopanel_are_saved() {
+        assert_eq!(binary_extension("zip"), Some("zip"));
+        assert_eq!(binary_extension(".InfoPanel"), Some("infopanel"));
+        for bad in ["", "exe", "json", "bat", "zip.exe"] {
+            assert_eq!(binary_extension(bad), None);
+        }
+    }
+
+    #[test]
+    fn suggested_names_lose_folders_and_keep_the_double_extension() {
+        assert_eq!(binary_file_name("my.canvas.zip", "zip"), "my.canvas.zip");
+        assert_eq!(binary_file_name("my", "zip"), "my.zip");
+        assert_eq!(binary_file_name("a.infopanel", "infopanel"), "a.infopanel");
+        assert_eq!(binary_file_name("x.bat", "infopanel"), "x.bat.infopanel");
+        assert_eq!(
+            binary_file_name(r"..\..\x/y.INFOPANEL", "infopanel"),
+            "y.INFOPANEL"
+        );
+        assert_eq!(binary_file_name("..", "zip"), "export.zip");
     }
 }

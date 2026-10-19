@@ -11,6 +11,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   Gauges page and the narrow-layout sheet now have them (#50).
 
 ### Fixed
+- Exports (`.canvas.zip`, `.infopanel`) save through a native Save As dialog in the desktop app instead of a silent
+  browser download; cancelling the dialog does nothing (#42).
 - Profile import's XML errors for a bad entity point at its `&`, in text and in attribute values, and a character
   reference beyond Unicode is reported instead of crashing the parser (#52).
 - The server accepts `PORT=0` (a free port, logged on start); its test uses it, so it no longer races another process
