@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import { createIslandBus } from "@/lib/island/bus";
+import { fakeClock } from "@/lib/island/test-clock";
 import { ISLAND_DEFAULTS, type IslandConfig } from "@/lib/island/config";
 import type { IslandItem } from "@/lib/island/types";
 import { GeneralProvider } from "@/hooks/use-general";
@@ -68,6 +69,51 @@ describe("DynamicIsland", () => {
     expect(html).toContain("Song");
     expect(html).toContain("Artist");
     expect(html).toContain("width:50%");
+  });
+
+  describe("a badge beside an activity", () => {
+    const activity = { source: "agents", id: "top", title: "Codex", subtitle: "api", color: "#22c55e" };
+    /** A bus whose waiting notice has closed to a badge, with or without the activity. */
+    const held = (withActivity: boolean, withBadge = true) => {
+      const { clock, advance } = fakeClock();
+      const bus = createIslandBus(clock);
+      if (withBadge) bus.notify({ source: "agents-waiting", id: "s1", severity: "warning", title: "Codex needs you", ttl: 1000, badge: true });
+      if (withActivity) bus.setActivity(activity);
+      advance(1000);
+      return bus;
+    };
+
+    it("shows the time, the activity and the badge, in that order", () => {
+      const html = render(held(true));
+      expect(html).toContain('data-island="compact"');
+      const at = (s: string) => html.indexOf(s);
+      expect(at("Codex")).toBeGreaterThan(at(":"));
+      expect(at("api")).toBeGreaterThan(at("Codex"));
+      expect(at('aria-label="1 active alerts"')).toBeGreaterThan(at("api"));
+      expect(html).toContain("background:#22c55e");
+    });
+
+    it("lets the activity text shrink while the time and the badge keep their width", () => {
+      const html = render(held(true));
+      expect(html).toContain('<span class="min-w-0 truncate text-right">');
+      expect(html).toContain('<span class="flex shrink-0"><span class="min-w-0 truncate tabular-nums');
+      expect(html).toMatch(/<span class="flex shrink-0 items-center[^"]*" aria-label="1 active alerts">/);
+      expect(html).toContain("max-w-full");
+    });
+
+    it("shows only the badge without an activity", () => {
+      const html = render(held(false));
+      expect(html).toContain('data-island="compact"');
+      expect(html).toContain('aria-label="1 active alerts"');
+      expect(html).not.toContain("Codex");
+    });
+
+    it("shows only the activity without a badge", () => {
+      const html = render(held(true, false));
+      expect(html).toContain('data-island="activity"');
+      expect(html).toContain("Codex");
+      expect(html).not.toContain("active alerts");
+    });
   });
 
   it("pulses a critical notice only with motion", () => {
@@ -150,6 +196,14 @@ describe("island model", () => {
     expect(islandMode({ ...empty, activity }, "hidden")).toBe("activity");
     // A held notice wins over the activity.
     expect(islandMode({ ...empty, pending: [item], activity }, "time")).toBe("compact");
+  });
+
+  it("gives a badge beside an activity the activity's width", () => {
+    const compact = islandBox("compact", "m", look("time"));
+    const both = islandBox("compact", "m", look("time"), true);
+    expect(both.width).toBeGreaterThan(compact.width);
+    expect(both.width).toBe(islandBox("activity", "m", look("time")).width);
+    expect(both.height).toBe(compact.height);
   });
 
   it("grows from idle to compact to expanded", () => {

@@ -127,7 +127,7 @@ function useExiting(key: string, node: ReactNode, width: number, animate: boolea
 function IslandPill({ mode, snap, config, size, placement, onAck, bus }: IslandPillProps) {
   const reduced = useReducedMotion();
   const peekAt = useRef(0);
-  const box = islandBox(mode, size, config);
+  const box = islandBox(mode, size, config, mode === "compact" && snap.activity !== null);
   const item = snap.expanded;
   const strongest = item ?? snap.pending[0];
   const accent = strongest ? severityColor(strongest.severity) : undefined;
@@ -154,12 +154,14 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus }: IslandP
     }
   };
 
-  const key = item ? `x:${item.key}` : mode === "activity" && snap.activity ? `a:${snap.activity.source}:${snap.activity.id}` : mode;
+  const key = item ? `x:${item.key}` : mode === "compact" && snap.activity ? `c:${snap.activity.source}:${snap.activity.id}` : mode === "activity" && snap.activity ? `a:${snap.activity.source}:${snap.activity.id}` : mode;
   const content =
     mode === "line" ? null : item ? (
       <Expanded item={item} />
     ) : mode === "activity" && snap.activity ? (
       <Activity activity={snap.activity} config={config} />
+    ) : mode === "compact" && snap.activity ? (
+      <Activity activity={snap.activity} config={config} pending={snap.pending.length} accent={accent} />
     ) : (
       <Idle config={config} pending={snap.pending.length} accent={accent} animate={animate} />
     );
@@ -300,13 +302,19 @@ function Idle({ config, pending, accent, animate }: { config: IslandConfig; pend
       ) : (
         config.idle === "sensor" && <IslandStats stats={config.stats} />
       )}
-      {pending > 0 && (
-        <span className="flex shrink-0 items-center gap-[0.35em] font-semibold tabular-nums" aria-label={`${pending} active alerts`}>
-          <span className="h-[0.6em] w-[0.6em] rounded-full" style={{ background: accent }} />
-          {pending}
-        </span>
-      )}
+      <Badge pending={pending} accent={accent} />
     </div>
+  );
+}
+
+/** The count of held notices beside the time, in the strongest one's colour; never shrinks or truncates. */
+function Badge({ pending, accent }: { pending: number; accent?: string }) {
+  if (pending <= 0) return null;
+  return (
+    <span className="flex shrink-0 items-center gap-[0.35em] font-semibold tabular-nums" aria-label={`${pending} active alerts`}>
+      <span className="h-[0.6em] w-[0.6em] rounded-full" style={{ background: accent }} />
+      {pending}
+    </span>
   );
 }
 
@@ -377,10 +385,13 @@ function IslandStats({ stats }: { stats: readonly IslandStat[] }) {
   );
 }
 
-function Activity({ activity, config }: { activity: IslandActivity; config: IslandConfig }) {
+/** The activity beside the time; with held notices the badge follows it, and the activity text gives way first. */
+function Activity({ activity, config, pending = 0, accent }: { activity: IslandActivity; config: IslandConfig; pending?: number; accent?: string }) {
   return (
-    <div className="flex w-full min-w-0 items-center gap-[0.7em] pl-[1em] pr-[0.45em]">
-      <IslandClock config={config} date={false} />
+    <div className={cn("flex w-full min-w-0 items-center gap-[0.7em] pl-[1em]", pending > 0 ? "pr-[1em]" : "pr-[0.45em]")}>
+      <span className="flex shrink-0">
+        <IslandClock config={config} date={false} />
+      </span>
       <div className="flex min-w-0 flex-1 items-center justify-end gap-[0.5em]">
         <span className="min-w-0 truncate text-right">
           <span className="[font-weight:var(--island-weight)]">{activity.title}</span>
@@ -395,6 +406,7 @@ function Activity({ activity, config }: { activity: IslandActivity; config: Isla
           />
         )}
       </div>
+      <Badge pending={pending} accent={accent} />
       {activity.progress !== undefined && (
         <span className="absolute inset-x-[1.2em] bottom-[0.18em] h-[2px] overflow-hidden rounded-full bg-current/15" aria-hidden>
           <span className="block h-full bg-current/70" style={{ width: `${Math.round(activity.progress * 100)}%` }} />

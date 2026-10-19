@@ -11,6 +11,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   title and the desktop app's messages. Config, its folder (`%LOCALAPPDATA%\InfoPanel\Dashboard`), the browser
   storage key and the server's `/api/health` app id are unchanged, so existing setups keep working.
 - A config export is saved as `infopanel-studio-config.json`; older exports still import.
+- The island shows the agent activity beside the waiting badge (`15:17 · Codex · api · ● 1`) instead of dropping it;
+  the activity text shortens first when the pill is narrow, the time and the badge never do (#17).
 
 ### Added
 - Coding Agents shows each session's cost and model, dims limits the agent has not reported lately and resets
