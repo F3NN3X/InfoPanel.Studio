@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-19
+
 ### Changed
 - The project is now **InfoPanel Studio** (formerly InfoPanel Dashboard): the repo, the package name, the page
   title and the desktop app's messages. Config, its folder (`%LOCALAPPDATA%\InfoPanel\Dashboard`), the browser
