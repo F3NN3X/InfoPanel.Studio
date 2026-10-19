@@ -26,8 +26,19 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   into one row with a frame count that expands, and a "Tiled" badge and filter mark the file the page background tiles (#46 part B).
 - Tests pin near-duplicate detection (a re-encode is caught; a resize is not, by the same-pixel-size rule) and a
   style preset dropped on a widget (#46 part B).
+- A "Custom gauge" panel widget draws a gauge from the Gauges page inside a custom panel, with the same drawing as the
+  Custom gauge zone widget; pick a preset in its Kind card, set its width, bind a sensor. Like the zone widget it is
+  drawn live and has no `.infopanel` export (#47).
+- Gauge cards on the Gauges page (presets, profile gauges and My library) drag to the canvas with the "Drag here to
+  place it on the canvas" pill, and drop as a library gauge does (#47).
+- "Add to canvas" for an image-sequence gauge offers the page's canvas zones and inserts the gauge into the one picked
+  (#47).
 
 ### Changed
+- A vector gauge dropped into a canvas zone is baked to frames at the drop, so InfoPanel draws it at once: if baking
+  fails the drop is cancelled with the error, and a drop with its bake is one undo step (#47).
+- A library gauge with both a spec and frames, dropped on the grid, keeps its frames on the Custom gauge zone for a
+  later export (#47).
 - The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
   internal (#49).
 - Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the

@@ -9,6 +9,7 @@
 import { gaugeDataOf, type GaugeLibraryData, type LibraryFrame } from "@/lib/gauge-studio/model";
 import { getLibraryItem, type LibraryItem } from "@/lib/library";
 import type { AssetType } from "@/lib/infopanel/assets/assets";
+import type { DashboardConfig } from "@/lib/layout";
 import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { UserPanelPreset } from "@/lib/panel-model";
@@ -64,7 +65,7 @@ export async function dropLibraryItem(
   const item = drop.item ?? (await getLibraryItem(drop.id).catch(() => null));
   if (!item) return b.toast("That library item is no longer there");
   const target = inCanvas && (item.kind === "image" || item.kind === "svg" || item.kind === "video" || item.kind === "gauge") ? b.profile.placements.find((z) => z.id === inCanvas.zoneId && z.canvas) : undefined;
-  if (inCanvas && target?.canvas) return item.kind === "gauge" ? dropGaugeIntoCanvas(b, item, target.id, target.canvas, inCanvas) : dropIntoCanvas(b, item, target.id, target.canvas, inCanvas);
+  if (inCanvas && target?.canvas) return item.kind === "gauge" ? dropGaugeIntoCanvas(b, item, target.id, inCanvas) : dropIntoCanvas(b, item, target.id, target.canvas, inCanvas);
   switch (item.kind) {
     case "image":
     case "svg":
@@ -112,7 +113,7 @@ async function dropGaugeOnGrid(b: StudioBridge, item: LibraryItem, rect: ZoneRec
   if (!data) return;
   if (!data.vector) return b.toast("Image-sequence gauges go into a canvas zone");
   if (!rect) return b.toast("No room there");
-  addGaugeZone(b, item.name, data.vector, rect, item);
+  addGaugeZone(b, item.name, data.vector, rect, item, data.frames);
 }
 
 const FRAME_TYPES: Record<string, AssetType> = { png: "png", jpg: "jpeg", jpeg: "jpeg", gif: "gif", webp: "webp", bmp: "bmp", ico: "ico", svg: "svg" };
@@ -123,16 +124,41 @@ const frameFile = (f: LibraryFrame): DroppedFile => {
   return { name: f.name, hash: f.id.slice(0, 64), type: FRAME_TYPES[ext] ?? "other", size: 0, ext };
 };
 
+/** A canvas zone's stored canvas in `config`, wherever its page is. */
+function canvasIn(config: DashboardConfig, zoneId: string): StoredCanvas | undefined {
+  for (const p of config.profiles) for (const pg of p.pages) for (const z of pg.placements) if (z.id === zoneId) return z.canvas;
+  return undefined;
+}
+
 /** A Gauge item in a canvas zone, centred on the drop point: one undo step, one copy. */
-async function dropGaugeIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: string, canvas: StoredCanvas, at: CanvasPoint): Promise<void> {
+async function dropGaugeIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: string, at: CanvasPoint): Promise<void> {
   const data = await gaugeOf(b, item);
   if (!data) return;
   const [{ openCanvas }, { editItems, withDroppedGauge }] = await Promise.all([import("@/lib/infopanel/canvas"), import("@/lib/infopanel/canvas-edit")]);
-  const open = openCanvas(canvas);
-  const point = { x: at.fx * open.profile.Width, y: at.fy * open.profile.Height };
-  const gauge = { name: item.name, vector: data.vector, frames: data.frames?.map(frameFile), min: data.min, max: data.max, animationSpeed: data.animationSpeed };
-  const r = withDroppedGauge(open.stored, open.profile, editItems(open), gauge, point);
-  b.setConfig((c) => withCanvas(c, zoneId, r.stored));
-  b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId, itemPath: r.path, label: `${open.stored.source.name} › ${item.name}` });
-  b.toast(`Added ${item.name} to ${open.stored.source.name}`);
+  let frames = data.frames?.map(frameFile);
+  let baked: string | undefined;
+  // A spec with no frames draws nothing in InfoPanel: bake it now, and drop nothing if that fails.
+  if (data.vector && !frames?.length) {
+    b.toast(`Baking ${item.name}…`);
+    try {
+      ({ frames, baked } = await (await import("@/components/gauges/bake-on-drop")).bakeForDrop(data.vector, item.name));
+    } catch (e) {
+      return b.toast(`Couldn’t bake ${item.name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  const gauge = { name: item.name, vector: data.vector, frames, baked, min: data.min, max: data.max, animationSpeed: data.animationSpeed };
+  // The canvas as it is now, not as it was at the drop: edits made while baking stay, and a zone removed meanwhile
+  // takes nothing. The history setter runs the updater at once, so `placed` is set when it returns.
+  let placed: { path: ReturnType<typeof withDroppedGauge>["path"]; name: string } | undefined;
+  b.setConfig((c) => {
+    const current = canvasIn(c, zoneId);
+    if (!current) return c;
+    const open = openCanvas(current);
+    const r = withDroppedGauge(open.stored, open.profile, editItems(open), gauge, { x: at.fx * open.profile.Width, y: at.fy * open.profile.Height });
+    placed = { path: r.path, name: open.stored.source.name };
+    return withCanvas(c, zoneId, r.stored);
+  });
+  if (!placed) return b.toast(`The canvas zone is gone, so ${item.name} wasn’t added`);
+  b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId, itemPath: placed.path, label: `${placed.name} › ${item.name}` });
+  b.toast(`Added ${item.name} to ${placed.name}`);
 }

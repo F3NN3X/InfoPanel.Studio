@@ -1,13 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { openCanvas } from "@/lib/infopanel/canvas";
 import { tableOf } from "@/lib/infopanel/assets/assets";
 import { toStored } from "@/lib/infopanel/import/stored";
 import { parseProfileXml } from "@/lib/infopanel/parse";
+import { bakeSignature, isStale } from "@/lib/infopanel/gauges/frames";
+import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import { CUSTOM_GAUGE_ID } from "@/lib/gauge-studio/model";
 import { STARTERS } from "@/lib/infopanel/gauges/presets";
 import { libraryDragKind, libraryDragOf, LIBRARY_MIME } from "@/lib/my-library/drag";
+import { withCanvas } from "@/components/studio/import-actions";
 import type { StudioBridge } from "./library-actions";
 import { dropLibraryItem, librarySizeOf, zoneAtCell } from "./library-drop";
 
@@ -88,7 +91,23 @@ describe("library drops on a canvas zone", () => {
   });
 });
 
+// Baking and storing frames are the canvas/network edge: a stand-in that yields two stored frames, or fails.
+const baking = vi.hoisted(() => ({ bakeForDrop: vi.fn() }));
+vi.mock("@/components/gauges/bake-on-drop", () => baking);
+const bakedFrames = (g: VectorGauge) => ({
+  frames: [
+    { name: "ring_0.png", hash: "c".repeat(64), type: "png" as const, size: 10, ext: "png" },
+    { name: "ring_1.png", hash: "d".repeat(64), type: "png" as const, size: 10, ext: "png" },
+  ],
+  baked: bakeSignature(g, 2),
+});
+
 describe("library gauge drops", () => {
+  beforeEach(() => {
+    baking.bakeForDrop.mockReset();
+    baking.bakeForDrop.mockImplementation(async (g: VectorGauge) => bakedFrames(g));
+  });
+
   const profile = parseProfileXml("<Profile><Name>P</Name><Width>800</Width><Height>400</Height></Profile>").profile;
   const canvas = toStored({ name: "Rig", origin: "file", dataApi: null, defaultMode: "infopanel", profile, items: [], fonts: [], assets: tableOf([]), keyOf: () => null });
   const zone = { id: "z1", module: "infopanel", colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true, canvas } as Placement;
@@ -153,7 +172,7 @@ describe("library gauge drops", () => {
     expect(b.updateProfile).not.toHaveBeenCalled();
   });
 
-  it("over a canvas zone a vector gauge becomes a Gauge item at the pointer: one change, one copy", async () => {
+  it("over a canvas zone a vector gauge is baked on drop: it arrives with its frames, not stale", async () => {
     const { b, after } = bridge();
     const g = gauge({ vector: { ...vector, width: 100, height: 100 }, min: 5, max: 50, animationSpeed: 2 });
     await dropLibraryItem(b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
@@ -161,6 +180,66 @@ describe("library gauge drops", () => {
     const open = openCanvas(JSON.parse(JSON.stringify(after().profiles[0].pages[0].placements[0].canvas!)));
     expect(open.items[0]).toMatchObject({ kind: "Gauge", Name: "Ring", X: 350, Y: 150, Width: 100, Height: 100, MinValue: 5, MaxValue: 50, AnimationSpeed: 2 });
     expect(b.addCopy).toHaveBeenCalledWith(g, expect.objectContaining({ zoneId: "z1", itemPath: "0" }));
+    expect(baking.bakeForDrop).toHaveBeenCalledTimes(1);
+    expect((open.items[0] as { Images: { FilePath: string }[] }).Images.map((i) => i.FilePath)).toEqual(["ring_0.png", "ring_1.png"]);
+    expect(isStale(open.items[0])).toBe(false);
+  });
+
+  it("a failed bake aborts the drop: nothing is added, no copy, the error is toasted", async () => {
+    baking.bakeForDrop.mockRejectedValueOnce(new Error("The dashboard server could not be reached."));
+    const { b } = bridge();
+    const g = gauge({ vector, min: 0, max: 100, animationSpeed: 0 });
+    await dropLibraryItem(b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
+    expect(b.setConfig).not.toHaveBeenCalled();
+    expect(b.addCopy).not.toHaveBeenCalled();
+    expect(b.toast).toHaveBeenCalledWith(expect.stringContaining("The dashboard server could not be reached."));
+  });
+
+  it("edits made to the canvas while baking are kept; a zone removed meanwhile takes nothing", async () => {
+    const renamed = { ...canvas, source: { ...canvas.source, name: "Rig 2" } };
+    const { b, after } = bridge();
+    baking.bakeForDrop.mockImplementationOnce(async (g: VectorGauge) => {
+      b.setConfig((c) => withCanvas(c, "z1", renamed));
+      return bakedFrames(g);
+    });
+    const g = gauge({ vector, min: 0, max: 100, animationSpeed: 0 });
+    await dropLibraryItem(b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
+    const stored = after().profiles[0].pages[0].placements[0].canvas!;
+    expect(stored.source.name).toBe("Rig 2");
+    expect(openCanvas(JSON.parse(JSON.stringify(stored))).items).toHaveLength(1);
+
+    const gone = bridge();
+    baking.bakeForDrop.mockImplementationOnce(async (v: VectorGauge) => {
+      gone.b.setConfig((c) => ({ ...c, profiles: [{ ...c.profiles[0], pages: [{ ...c.profiles[0].pages[0], placements: [] }] }] }));
+      return bakedFrames(v);
+    });
+    await dropLibraryItem(gone.b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
+    expect(gone.after().profiles[0].pages[0].placements).toHaveLength(0);
+    expect(gone.b.addCopy).not.toHaveBeenCalled();
+    expect(gone.b.toast).toHaveBeenCalledWith("The canvas zone is gone, so Ring wasn’t added");
+  });
+
+  it("the bake and the item are one undo step: one setConfig", async () => {
+    const { b } = bridge();
+    const g = gauge({ vector, min: 0, max: 100, animationSpeed: 0 });
+    await dropLibraryItem(b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
+    expect(b.setConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it("a gauge that already has frames keeps them and is not baked again", async () => {
+    const { b } = bridge();
+    const g = gauge({ vector, frames: [{ id: frameId("a"), name: "f0.png" }], min: 0, max: 100, animationSpeed: 0 });
+    await dropLibraryItem(b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
+    expect(baking.bakeForDrop).not.toHaveBeenCalled();
+  });
+
+  it("on the grid a gauge with a spec and frames keeps its frames on the zone", async () => {
+    const { b, zones } = bridge();
+    const frames = [{ id: frameId("a"), name: "f0.png" }, { id: frameId("b"), name: "f1.png" }];
+    const g = gauge({ vector, frames, min: 0, max: 100, animationSpeed: 0 });
+    await dropLibraryItem(b, { id: g.id, item: g }, rect, { col: 1, row: 2 });
+    const added = zones().find((z) => z.module === CUSTOM_GAUGE_ID)!;
+    expect(JSON.parse(String(added.settings?.frames))).toEqual(frames);
   });
 
   it("over a canvas zone an image sequence adds its frames as the canvas's files", async () => {

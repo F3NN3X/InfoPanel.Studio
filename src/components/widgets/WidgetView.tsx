@@ -1,6 +1,8 @@
-import { type CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 import { Image as ImageIcon } from "lucide-react";
 import { Gauge } from "@/components/Gauge";
+import { DEFAULT_GAUGE_SPEC, FittedVectorGauge } from "@/widgets/CustomGauge";
+import { fraction } from "@/lib/infopanel/gauges/vector";
 import { Bar as SkinBar, Ring, Spark } from "@/widgets/core/primitives";
 import { useHistory } from "@/widgets/core/layout";
 import { isImageUrl, resolveImageUrl } from "@/lib/image";
@@ -219,6 +221,21 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
         size={widget.fontSize ?? 80}
         fontSize={widget.fontSize ? Math.round(widget.fontSize * 0.28) : undefined}
       />
+    </div>
+  );
+}
+
+/** A panel's Custom gauge: the zone widget's drawing at `fontSize` px wide (default 120). */
+function VectorGaugeWidget({ widget, sensor }: { widget: Widget; sensor?: SensorValue }) {
+  const id = useId();
+  const g = widget.vector ?? DEFAULT_GAUGE_SPEC;
+  const value = sensor?.value;
+  const frac = fraction(value !== undefined && Number.isFinite(value) ? value : null, g.scale?.min ?? 0, g.scale?.max ?? 100);
+  const w = widget.fontSize ?? 120;
+  return (
+    <div className="wp-gauge flex shrink-0 flex-col items-center gap-1.5" style={{ width: w }}>
+      <FittedVectorGauge gauge={g} p={frac} id={id} width={w} height={Math.round((w * g.height) / g.width)} />
+      {widget.label && <span className="wp-label text-[10px] uppercase tracking-wide text-muted-foreground">{widget.label}</span>}
     </div>
   );
 }
@@ -579,7 +596,7 @@ interface WidgetViewProps {
 }
 
 /** Kinds that show nothing useful without a bound sensor (or static text). */
-const SENSOR_KINDS: ReadonlySet<Widget["kind"]> = new Set(["stat", "value", "bar", "gauge", "sparkline", "table"]);
+const SENSOR_KINDS: ReadonlySet<Widget["kind"]> = new Set(["stat", "value", "bar", "gauge", "customGauge", "sparkline", "table"]);
 
 /**
  * Resolve a widget's bound sensor + display text, then dispatch to the
@@ -620,6 +637,8 @@ function WidgetBody({ widget, sensors }: Omit<WidgetViewProps, "studio">) {
       return <Bar {...ctx} />;
     case "gauge":
       return <GaugeWidget {...ctx} />;
+    case "customGauge":
+      return <VectorGaugeWidget widget={widget} sensor={s} />;
     case "sparkline":
       return <Sparkline widget={widget} sensor={s} />;
     case "table": {

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { PANEL_ID, mergeConfig, type Placement } from "./layout";
 import { arcv2Profile } from "./__fixtures__/arcv2-profile";
 import { sampleProfile } from "./__fixtures__/sample-profile";
+import { STARTERS } from "./infopanel/gauges/presets";
+import { normalizeGauge } from "./infopanel/gauges/vector";
 import { allPlacements } from "./pages";
 import {
   convertKind,
@@ -360,5 +362,24 @@ describe("parsePanelJson", () => {
     expect(r.panel.widgets.map((w) => w.id)).toEqual(["new-1", "a", "new-2"]);
     expect(r.panel.widgets.every((w) => w.visible)).toBe(true);
     expect(r.panel).toMatchObject({ id: "new-3", title: "", titleVisible: true, visible: true, background: "panel" });
+  });
+});
+
+describe("customGauge widget (a vector gauge in a panel)", () => {
+  const vector = normalizeGauge(STARTERS[1].gauge);
+
+  it("round-trips its spec through the Code view's JSON", () => {
+    const p = panel({ widgets: [widget("customGauge", { sensor: "cpu.load", vector, fontSize: 140 })] });
+    const r = parsePanelJson(JSON.stringify(p), () => "fresh");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.panel.widgets[0]).toMatchObject({ kind: "customGauge", sensor: "cpu.load", fontSize: 140 });
+    expect(r.panel.widgets[0].vector).toEqual(vector);
+  });
+
+  it("keeps its spec and size on a change to another kind and back only where the kind reads them", () => {
+    const g = widget("customGauge", { sensor: "cpu.load", vector, fontSize: 140 });
+    expect(convertKind(g, "bar").vector).toBeUndefined();
+    expect(convertKind(widget("bar", { sensor: "cpu.load" }), "customGauge")).toMatchObject({ kind: "customGauge", sensor: "cpu.load" });
   });
 });

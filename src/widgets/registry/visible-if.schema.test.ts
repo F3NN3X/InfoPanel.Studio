@@ -60,8 +60,8 @@ describe("dependent settings are gated", () => {
             : [],
       ),
     ];
-    // CustomGauge.gauge is the spec's JSON, edited on the Gauges page: hidden on purpose, never a field.
-    it.each(settings.filter((d) => d.visibleIf && !(mod.id === "CustomGauge" && d.key === "gauge")).map((d) => [d.key, d] as const))("%s is shown in some mode and hidden in another", (_key, def) => {
+    // CustomGauge.gauge (the spec's JSON, edited on the Gauges page) and .frames (kept for an export) are hidden on purpose, never fields.
+    it.each(settings.filter((d) => d.visibleIf && !(mod.id === "CustomGauge" && (d.key === "gauge" || d.key === "frames"))).map((d) => [d.key, d] as const))("%s is shown in some mode and hidden in another", (_key, def) => {
       const seen = new Set(variants.map((v) => def.visibleIf!(v)));
       expect([...seen].sort()).toEqual([false, true]);
     });

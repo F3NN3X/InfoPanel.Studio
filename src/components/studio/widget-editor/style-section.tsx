@@ -4,7 +4,7 @@ import { ColorInput, Field, InlineField, NumberInput, TextInput } from "./fields
 import type { WidgetSectionProps } from "./types";
 
 /** Kinds that read `fontSize` (a gauge's ring diameter). */
-const SIZED: ReadonlySet<WidgetKind> = new Set(["stat", "value", "gauge", "table", "text", "clock"]);
+const SIZED: ReadonlySet<WidgetKind> = new Set(["stat", "value", "gauge", "customGauge", "table", "text", "clock"]);
 
 /** Kinds that read `color`. */
 const COLORED: ReadonlySet<WidgetKind> = new Set([
@@ -36,14 +36,14 @@ export const hasColor = (widget: WidgetSectionProps["widget"]) => COLORED.has(wi
 /** Font size (a gauge's ring size). */
 export function TypographyFields({ widget, set }: WidgetSectionProps) {
   return (
-    <InlineField label={widget.kind === "gauge" ? "Ring size (px)" : "Font size (px)"}>
+    <InlineField label={widget.kind === "gauge" ? "Ring size (px)" : widget.kind === "customGauge" ? "Width (px)" : "Font size (px)"}>
       <NumberInput
         value={widget.fontSize}
         min={8}
         max={200}
         optional
         fallback={8}
-        placeholder="auto"
+        placeholder={widget.kind === "customGauge" ? "120" : "auto"}
         onChange={(v) => set("fontSize", v)}
       />
     </InlineField>

@@ -10,6 +10,9 @@ import type { StudioBridge } from "@/components/library/library-actions";
 import { STARTERS } from "@/lib/infopanel/gauges/presets";
 import { CUSTOM_GAUGE_ID, presetGauges, withGaugeName, type GaugeSource } from "@/lib/gauge-studio/model";
 import type { DashboardConfig, Placement } from "@/lib/layout";
+import { tableOf } from "@/lib/infopanel/assets/assets";
+import { toStored } from "@/lib/infopanel/import/stored";
+import { parseProfileXml } from "@/lib/infopanel/parse";
 import GaugesPage from "./gauges-page";
 
 // Only the network edge is replaced: the library list and the item write behind "Save to library".
@@ -177,6 +180,45 @@ describe("Gauges page", () => {
     const exportButton = within(await screen.findByRole("complementary", { name: "Gauge details" })).getByRole("button", { name: "Export" }) as HTMLButtonElement;
     expect(exportButton.disabled).toBe(false);
     expect(exportButton.title).toContain(".gauge-frames.zip");
+  });
+
+  describe("Add to canvas for an image sequence", () => {
+    const profile = parseProfileXml("<Profile><Name>P</Name><Width>800</Width><Height>400</Height></Profile>").profile;
+    const canvas = toStored({ name: "Rig", origin: "file", dataApi: null, defaultMode: "infopanel", profile, items: [], fonts: [], assets: tableOf([]), keyOf: () => null });
+    const zone = { id: "z1", module: "infopanel", colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true, canvas } as Placement;
+    const withZones = (placements: Placement[]) => {
+      const config = { profiles: [{ id: "p", pages: [{ id: "pg", placements }] }], panelPresets: [], stylePresets: [] } as unknown as DashboardConfig;
+      return { ...bridge, config, profile: { id: "p", name: "Main", pageId: "pg", placements }, setConfig: vi.fn() } as unknown as StudioBridge;
+    };
+    const openSequence = async (b: StudioBridge) => {
+      const user = userEvent.setup();
+      saved.data.vector = undefined;
+      saved.data.frames = [{ id: `${"a".repeat(64)}.png`, name: "1.png" }, { id: `${"b".repeat(64)}.png`, name: "2.png" }];
+      renderPage(b);
+      const mine = await screen.findByRole("region", { name: "My library" });
+      await user.click(await within(mine).findByRole("button", { name: /Saved ring/ }));
+      const details = await screen.findByRole("complementary", { name: "Gauge details" });
+      return { user, add: within(details).getByRole("button", { name: "Add to canvas" }) as HTMLButtonElement, details };
+    };
+
+    it("lists the page's canvas zones and inserts the sequence into the one picked", async () => {
+      const b = withZones([zone]);
+      const { user, add, details } = await openSequence(b);
+      expect(add.disabled).toBe(false);
+      await user.click(add);
+      await user.click(within(within(details).getByRole("group", { name: "Canvas zones" })).getByRole("button", { name: "Rig" }));
+      await act(async () => {});
+      expect(b.setConfig).toHaveBeenCalledTimes(1);
+      const next = (b.setConfig as ReturnType<typeof vi.fn>).mock.calls[0][0](b.config) as DashboardConfig;
+      const stored = next.profiles[0].pages[0].placements[0].canvas!;
+      expect(stored.assets.map((a) => a.name)).toEqual(["1.png", "2.png"]);
+    });
+
+    it("is disabled, saying why, when the page has no canvas zone", async () => {
+      const { add } = await openSequence(withZones([]));
+      expect(add.disabled).toBe(true);
+      expect(add.title).toContain("this page has none");
+    });
   });
 
   it("shows the gauge details beside the list when wide and as a sheet when narrow", async () => {

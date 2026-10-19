@@ -10,7 +10,7 @@ import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import { getLibraryItem } from "@/lib/library";
 import type { PanelDef, UserPanelPreset } from "@/lib/panel-model";
 import { userPanelPreset, type PanelPreset } from "@/lib/panelPresets";
-import { CUSTOM_GAUGE_ID } from "@/lib/gauge-studio/model";
+import { CUSTOM_GAUGE_ID, type LibraryFrame } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import { fileUrl, metaOf } from "@/lib/my-library/model";
 import type { ModuleSettings } from "@/modules/types";
@@ -128,9 +128,10 @@ export async function addToProfile(b: StudioBridge, item: LibraryItem, rect?: Zo
  * A Custom gauge zone for a vector spec, in `rect` or the first free spot, selected: one undo step.
  * Records a copy only when the gauge came from the library (`item`).
  */
-export function addGaugeZone(b: StudioBridge, name: string, gauge: VectorGauge, rect?: ZoneRect, item?: LibraryItem): string | null {
+export function addGaugeZone(b: StudioBridge, name: string, gauge: VectorGauge, rect?: ZoneRect, item?: LibraryItem, frames?: readonly LibraryFrame[]): string | null {
   const id = uid("gauge");
-  const settings: ModuleSettings = { gauge: JSON.stringify(gauge), label: name };
+  // A gauge with frames as well keeps them on the zone (the dashboard draws the spec; an export can use the frames).
+  const settings: ModuleSettings = { gauge: JSON.stringify(gauge), label: name, ...(frames?.length ? { frames: JSON.stringify(frames) } : {}) };
   let placed = false;
   b.updateProfile((p) => {
     const next = rect ? studio.addModuleAt(p, id, CUSTOM_GAUGE_ID, rect) : studio.addModulePlacement(p, id, CUSTOM_GAUGE_ID, { cols: 1, rows: 1 });

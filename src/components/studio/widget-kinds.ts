@@ -1,6 +1,7 @@
 import {
   Activity,
   Baseline,
+  CircleDot,
   Clock,
   Gauge,
   Hash,
@@ -23,6 +24,7 @@ export const KIND_INFO: Record<WidgetKind, { label: string; icon: LucideIcon; hi
   value: { label: "Value", icon: Baseline, hint: "Compact inline readout" },
   bar: { label: "Bar", icon: RectangleHorizontal, hint: "Label, value and a fill bar" },
   gauge: { label: "Gauge", icon: Gauge, hint: "Circular ring with the value" },
+  customGauge: { label: "Custom gauge", icon: CircleDot, hint: "A gauge designed on the Gauges page" },
   sparkline: { label: "Sparkline", icon: Activity, hint: "Rolling mini line graph" },
   table: { label: "Table", icon: Table2, hint: "Rows from a multi-line sensor" },
   text: { label: "Text", icon: Type, hint: "Static or sensor-bound text" },
