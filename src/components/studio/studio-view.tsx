@@ -575,8 +575,8 @@ function StudioViewBody({
         offline={offline}
         onSave={ui.handleSave}
         onExitStudio={onExitStudio}
-        onExport={() => exportConfigFile(config)}
-        onImport={() => startConfigImport(ui.importRef.current, setConfig)}
+        onExport={() => exportConfigFile(config, toast)}
+        onImport={() => startConfigImport(ui.importRef.current, setConfig, toast)}
         onImportInfoPanel={() => io.openImport("new")}
         onExportInfoPanel={io.openExport}
         canExportInfoPanel={io.canExport}
@@ -643,7 +643,7 @@ function StudioViewBody({
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) importConfigFile(file, setConfig);
+          if (file) importConfigFile(file, setConfig, toast);
           e.target.value = "";
         }}
       />

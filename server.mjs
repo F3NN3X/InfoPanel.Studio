@@ -15,6 +15,8 @@
 // The extras (server/extras.mjs) connect to OBS and fetch the calendar links
 // for the Dynamic Island; their secrets live in integrations.json, which no
 // page ever downloads.
+// Imported canvases live in their own files, the config holding only a ref
+// (server/canvases.mjs).
 // For the InfoPanel import: the user's library (server/library.mjs), the
 // profiles of the InfoPanel installed here, read-only
 // (server/infopanel-local.mjs), and a proxy to Font Squirrel, which sends no
@@ -39,6 +41,7 @@ import { fileURLToPath } from "node:url";
 import os from "node:os";
 import { createAlerts } from "./server/alerts.mjs";
 import { createAssets } from "./server/assets.mjs";
+import { createCanvases, createCanvasStore, referencedCanvasIds, SWEEP_EVERY_MS } from "./server/canvases.mjs";
 import { versionRefusal } from "./server/config-guard.mjs";
 import { createControl } from "./server/control.mjs";
 import { createAgentUsage } from "./server/agent-usage.mjs";
@@ -66,6 +69,7 @@ const CONTROL_FILE = path.join(DATA_DIR, "control.json");
 const ALERTS_FILE = path.join(DATA_DIR, "alerts.json");
 const INTEGRATIONS_FILE = path.join(DATA_DIR, "integrations.json");
 const LIBRARY_DIR = path.join(DATA_DIR, "library");
+const CANVASES_DIR = path.join(DATA_DIR, "canvases");
 const CACHE_DIR = path.join(DATA_DIR, "cache");
 
 const MAX_CONFIG_BYTES = 5 * 1024 * 1024;
@@ -110,6 +114,23 @@ function saveConfig(json) {
   for (const res of configListeners) res.write(event);
   control.configChanged();
   alerts.configChanged();
+  sweepCanvases();
+}
+
+// Canvas files the config no longer references (server/canvases.mjs `sweep`): at start and
+// after saves, at most every SWEEP_EVERY_MS, off the request that triggered it.
+let lastSweep = -Infinity;
+function sweepCanvases() {
+  const now = Date.now();
+  if (now - lastSweep < SWEEP_EVERY_MS) return;
+  lastSweep = now;
+  setImmediate(() => {
+    try {
+      if (fs.existsSync(CONFIG_FILE)) canvases.sweep(fs.readFileSync(CONFIG_FILE, "utf8"), now);
+    } catch (err) {
+      console.error("canvas sweep failed:", err);
+    }
+  });
 }
 
 function readConfigFile() {
@@ -279,8 +300,12 @@ function readBody(req, limit) {
 /* ---------------- routes ---------------- */
 
 const library = createLibraryStore(LIBRARY_DIR);
-const handleAssets = createAssets({ dir: ASSETS_DIR, configFile: CONFIG_FILE, send, references: () => library.texts() });
+const canvases = createCanvasStore(CANVASES_DIR);
+// Every canvas file counts, referenced or not: an asset is only "unused" when no canvas could draw it.
+const handleAssets = createAssets({ dir: ASSETS_DIR, configFile: CONFIG_FILE, send, references: () => [...library.texts(), ...canvases.texts()] });
 const handleLibrary = createLibrary({ store: library, send, readBody });
+const handleCanvases = createCanvases({ store: canvases, send, readBody });
+sweepCanvases();
 const handleInstalled = createInstalledRoutes({ installed: createInstalledProfiles(infopanelDataDir(process.env)), send });
 const handleFontProxy = createFontProxy({ cacheDir: CACHE_DIR, send });
 
@@ -313,6 +338,9 @@ async function handleConfig(req, res) {
     const stale = versionRefusal(fs.readFileSync(CONFIG_FILE, "utf8"), parsed);
     if (stale) return send(res, stale.status, stale.message);
   }
+  // Every canvasRef must name a file in the canvas store, or its zone would save blank.
+  const missing = [...(referencedCanvasIds(body) ?? [])].filter((id) => !canvases.has(id));
+  if (missing.length > 0) return send(res, 422, `canvas files missing from the store: ${missing.slice(0, 5).join(", ")}`);
   saveConfig(body);
   send(res, 200, JSON.stringify({ ok: true, version: configVersion }), TYPES[".json"]);
 }
@@ -443,6 +471,7 @@ const server = http.createServer(async (req, res) => {
       return await handleAssets(req, res, pathname, searchParams);
     }
     if (pathname === "/api/library" || pathname.startsWith("/api/library/")) return await handleLibrary(req, res, pathname);
+    if (pathname === "/api/canvases" || pathname.startsWith("/api/canvases/")) return await handleCanvases(req, res, pathname);
     if (pathname === "/api/infopanel/installed" || pathname.startsWith("/api/infopanel/installed/")) return await handleInstalled(req, res, pathname);
     if (pathname === "/api/font-proxy") return await handleFontProxy(req, res, searchParams);
     if (pathname.startsWith("/api/")) return send(res, 404);

@@ -99,7 +99,7 @@ describe("mergeConfig pages migration", () => {
 
   it("stamps the current version and is stable when merged again", () => {
     const once = mergeConfig({ version: 2, profiles: [{ ...base, placements: [zone("a")] }] });
-    expect(once.version).toBe(4);
+    expect(once.version).toBe(5);
     expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(JSON.parse(JSON.stringify(once)));
   });
 

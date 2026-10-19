@@ -19,6 +19,10 @@ describe("versionRefusal", () => {
     expect(versionRefusal(text(4), { version: 4 })).toBeNull();
     expect(versionRefusal(text(3), { version: 4 })).toBeNull();
   });
+  it("refuses a v4 client once a v5 build saved (canvases moved to the canvas store)", () => {
+    expect(versionRefusal(text(5), { version: 4 })?.status).toBe(409);
+    expect(versionRefusal(text(4), { version: 5 })).toBeNull();
+  });
   it("accepts an equal or newer save", () => {
     expect(versionRefusal(text(3), { version: 3 })).toBeNull();
     expect(versionRefusal(text(2), { version: 3 })).toBeNull();

@@ -363,6 +363,34 @@ the asset store by SHA-256 (`/api/assets/<hash>.<ext>`), fonts from the
 Data API's resolve endpoint when InfoPanel offers it, graph history from a
 per-zone `KeyHistory` (InfoPanel's 4096 samples per key).
 
+Only the page holds `Placement.canvas`. The server's config keeps a
+`canvasRef` in its place (config v5), so it stays under its 5 MB cap and
+its push to every kiosk stays small: each canvas is a file in
+`DATA_DIR/canvases`, named by the SHA-256 of its bytes
+(`server/canvases.mjs`; POST `/api/canvases` from this machine,
+GET `/api/canvases/<id>` from any). `src/lib/canvas-store.ts` swaps the
+two at the edge: `fetchConfig` loads the refs (cached by ref), `pushConfig`
+saves each new or edited canvas and then the config with its refs, on the
+config's own debounced cadence. An edit is a new file and a new ref, so
+the config event stream brings it to the kiosks. A config saved before the
+store still holds its canvases inline; the studio's first push after it
+loads moves them, files first, so a push that fails half-way leaves the
+inline copy (retried next push; the file written is simply reused). A v4
+build is then refused by the version guard. A config export carries the
+canvases inline and an import is lifted on its first push; a canvas that
+can't be loaded keeps its ref (logged; an import names the zones, an export
+refuses to write a file without it), and `POST /api/config` answers 422 for
+a ref with no file. The browser's own copy (`saveConfig`) keeps canvases
+inline, falling back to refs only when that is over the storage quota. A
+studio on another machine, whose canvas writes are refused (asked once per
+session), keeps the refs it has and inlines only canvases never stored. Files the
+stored config no longer references (an earlier edit, a deleted zone) are
+swept at server start and after config saves, at most every 10 minutes and
+only once an hour old, so a canvas saved just before its config is never
+caught in between; a config that does not parse sweeps nothing. A studio
+sends a canvas again (renewing its file) when its ref is over 10 minutes
+old or was loaded rather than sent, so undo never points at a swept file.
+
 ### Importing and exporting an InfoPanel profile
 
 Import (top bar Import, the "⋯" menu, or the Add panel's "Canvas zone ·

@@ -24,6 +24,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   reference beyond Unicode is reported instead of crashing the parser (#52).
 - The server accepts `PORT=0` (a free port, logged on start); its test uses it, so it no longer races another process
   for the port it picked (#51).
+- Imported canvases no longer count against the config's 5 MB cap, so several imports save again: each is stored as
+  its own file under `canvases/` in the data folder and the config holds a reference. An existing config moves its
+  canvases on the studio's first save; older builds then refuse to overwrite it (#44).
 
 ## [1.1.0] - 2026-10-19
 

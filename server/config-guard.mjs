@@ -2,7 +2,8 @@
 //
 // An older build that loads a newer config can drop what it does not know
 // (v3 added profile pages; v4 rewrote the legacy module ids to templates,
-// which a v3 build cannot render) and push that copy back. The server refuses a
+// which a v3 build cannot render; v5 moved canvases to the canvas store,
+// leaving a ref a v4 build cannot draw) and push that copy back. The server refuses a
 // save whose `version` is below the stored config's; the studio then asks
 // for a reload instead of overwriting.
 //
