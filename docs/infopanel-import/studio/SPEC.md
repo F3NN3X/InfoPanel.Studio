@@ -222,6 +222,7 @@ The page header has a segment **[Gauges | Editor]**.
   - **.infopanel for InfoPanel:** `Profile.xml` + `DisplayItems.xml` in InfoPanel's field order, with numbers printed as .NET prints them.
 - **.infopanel options:** Bake stale vector gauges first (with a count) · Leave unused assets out (count · size).
 - **Font licences review:** one row per font (family, how it was supplied, licence). A "do not share" font gets a choice: **Include anyway | Leave out | Swap for <alternative>**. Including one shows a warning, and the save note names it.
+- **`.infopanel` and fonts:** the licence review applies to `.canvas.zip` only, the package that carries font files; an `.infopanel` export says in one line that fonts are not included and InfoPanel uses the PC's installed fonts.
 - **Contents summary** (mono file list) · file name · estimated size · Export.
 
 ---
@@ -255,7 +256,7 @@ The responsive rules from `handoff_widget_editing/SPEC.md` apply to the canvas z
 | Remap sensors | Groups, statuses, key picker, confirm all | Remap (§5) |
 | Gauges | List, preview/play, retime, frames, recolour, vector builder, presets, library, convert, .gauge.json, SVG templates, bake | Gauges page (§6) |
 | Assets | Files table, uses, cleanup, downscale, optimise, replace, replace by name, URL/absolute lists | Library › Profile assets (§3) |
-| Fonts | Requests, resolved faces, missing + pack, library, add, Fontsource/Font Squirrel, licence, embedding, fallback switch | Library › Fonts; Export licence review |
+| Fonts | Requests, resolved faces, missing + pack, library, add, Fontsource/Font Squirrel, licence (declared by the file), embedding, fallback switch | Library › Fonts; Export licence review |
 | Sensors | Unbound / Live / Mock, bindings | Canvas toolbar; inspector Sensor section; Remap |
 
 ## 12. Files

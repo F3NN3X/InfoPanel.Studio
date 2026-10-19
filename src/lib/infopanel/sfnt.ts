@@ -26,7 +26,11 @@ export interface FontFace {
   licenseUrl?: string;
   /** OS/2 fsType: what the license allows when the font is embedded in a document. */
   embedding?: Embedding;
+  /** A rough kind of design from OS/2 (family class, PANOSE proportion); "other" when the font does not say. */
+  category?: FontCategory;
 }
+
+export type FontCategory = "monospace" | "serif" | "sans" | "script" | "other";
 
 export type Embedding = "installable" | "restricted" | "preview & print" | "editable";
 
@@ -36,6 +40,16 @@ function embeddingOf(fsType: number): Embedding {
   if (fsType & 0x0004) return "preview & print";
   if (fsType & 0x0002) return "restricted";
   return "installable";
+}
+
+/** OS/2 sFamilyClass (high byte) and PANOSE proportion 9 (monospaced). */
+function categoryOf(familyClass: number, proportion: number): FontCategory {
+  if (proportion === 9) return "monospace";
+  const cls = familyClass >> 8;
+  if ((cls >= 1 && cls <= 5) || cls === 7) return "serif";
+  if (cls === 8) return "sans";
+  if (cls === 10) return "script";
+  return "other";
 }
 
 /** Font files are untrusted: every table and string must lie inside the file. */
@@ -111,6 +125,7 @@ function readFont(dv: DataView, offset: number, index: number): FontFace[] {
   const width = os2 ? dv.getUint16(os2.offset + 6) : 5;
   const selection = os2 ? dv.getUint16(os2.offset + 62) : 0;
   const fsType = os2 ? dv.getUint16(os2.offset + 8) : 0;
+  const category = categoryOf(os2 ? dv.getInt16(os2.offset + 30) : 0, os2 ? dv.getUint8(os2.offset + 35) : 0);
   const legacyFamily = n.get(1) ?? "";
   const family = n.get(21) ?? n.get(16) ?? legacyFamily;
   const base: FontFace = {
@@ -126,6 +141,7 @@ function readFont(dv: DataView, offset: number, index: number): FontFace[] {
     ...(n.get(13) ? { licenseText: n.get(13) } : {}),
     ...(n.get(14) ? { licenseUrl: n.get(14) } : {}),
     embedding: embeddingOf(fsType),
+    category,
   };
 
   const fvar = t.get("fvar");

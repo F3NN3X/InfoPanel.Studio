@@ -6,7 +6,7 @@
  */
 import { cn } from "@/lib/utils";
 import type { LibraryItem } from "@/lib/library";
-import { reviewFont, type Verdict } from "@/lib/infopanel/font-licence";
+import { reviewFont, type Declared, type Verdict } from "@/lib/infopanel/font-licence";
 import type { FontRequest } from "@/lib/infopanel/font-loader";
 import { describeRequest, isMissing, LICENCE_LABEL, type RequestEntry } from "@/lib/infopanel/font-requests";
 import type { Use } from "@/lib/infopanel/font-supply";
@@ -35,13 +35,17 @@ export function requestLabel(r: FontRequest): string {
   return `${r.font} · ${r.style}${flags ? ` + ${flags}` : ""}`;
 }
 
-/** The licence a request's font is under: the supplied face's, else a library font of that family. */
+/**
+ * The licence a request's font is under: a library font of that family, else the supplied face's
+ * source licence. Without either, the table shows what the font file declares, else a supplied
+ * face's "check".
+ */
 function licenceOf(entry: RequestEntry, fonts: readonly LibraryItem[]): { verdict: Verdict; embedding?: string } | null {
   const family = (entry.supplied?.family ?? entry.request.font).toLowerCase();
   const own = fonts.find((f) => metaOf(f).family?.toLowerCase() === family);
   const m = own && metaOf(own);
   if (m?.licence) return { verdict: m.licence, embedding: m.embedding };
-  if (entry.supplied) return { verdict: reviewFont({ license: entry.supplied.license }).verdict };
+  if (entry.supplied?.license) return { verdict: reviewFont({ license: entry.supplied.license }).verdict };
   return null;
 }
 
@@ -49,12 +53,14 @@ export interface RequestedTableProps {
   zone: ZoneRequests;
   answers: FontAnswers;
   fonts: readonly LibraryItem[];
+  /** What each request's font file declares about its licence, once read. */
+  declared?: ReadonlyMap<string, Declared | null>;
   onSelectItems: (zoneId: string, paths: string[]) => void;
   onGet: (family: string) => void;
   onUse: (zoneId: string, key: string, use: Use) => void;
 }
 
-export function RequestedTable({ zone, answers, fonts, onSelectItems, onGet, onUse }: RequestedTableProps) {
+export function RequestedTable({ zone, answers, fonts, declared, onSelectItems, onGet, onUse }: RequestedTableProps) {
   return (
     <div role="table" aria-label={`Fonts requested by ${zone.title}`} className="overflow-hidden rounded-[12px] border border-ui-subtle bg-ui-panel text-[12.5px]">
       <div role="row" className={cn(COLUMNS, "border-b border-ui-subtle px-3.5 py-2 text-[11px] text-ui-4")}>
@@ -71,6 +77,8 @@ export function RequestedTable({ zone, answers, fonts, onSelectItems, onGet, onU
         const missing = isMissing(answers.loader, entry.request, r);
         const s = describeRequest(entry, r, missing, answers.ready);
         const licence = licenceOf(entry, fonts);
+        const own = licence ? null : (declared?.get(entry.key) ?? null);
+        const shown = licence ?? (!own && entry.supplied ? { verdict: "check" as Verdict, embedding: undefined } : null);
         return (
           <div key={entry.key} role="row" className={cn(COLUMNS, "border-b border-ui-subtle px-3.5 py-2.5 last:border-b-0", s.status === "missing" && "bg-ui-hover")}>
             <span role="cell" className="flex min-w-0 items-center gap-2 text-ui-1">
@@ -94,9 +102,13 @@ export function RequestedTable({ zone, answers, fonts, onSelectItems, onGet, onU
               </button>
             </span>
             <span role="cell" className="min-w-0">
-              {licence ? (
-                <span className={cn("block truncate", VERDICT_TONE[licence.verdict])} title={licence.embedding ? `Embedding: ${licence.embedding}` : undefined}>
-                  {LICENCE_LABEL[licence.verdict]}
+              {shown ? (
+                <span className={cn("block truncate", VERDICT_TONE[shown.verdict])} title={shown.embedding ? `Embedding: ${shown.embedding}` : undefined}>
+                  {LICENCE_LABEL[shown.verdict]}
+                </span>
+              ) : own ? (
+                <span className="block truncate text-ui-3" title={own.full}>
+                  {own.label}
                 </span>
               ) : (
                 <span className="text-ui-5">—</span>

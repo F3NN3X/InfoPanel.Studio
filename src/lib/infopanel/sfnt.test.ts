@@ -20,6 +20,15 @@ describe("readFaces", () => {
     expect(readFaces(font({ 1: "A", 2: "Regular" }))[0].licenseText).toBeUndefined();
   });
 
+  it("reads a rough category from the family class and PANOSE proportion", () => {
+    const category = (opts: { familyClass?: number; monospaced?: boolean }) => readFaces(font({ 1: "A", 2: "Regular" }, opts))[0].category;
+    expect(category({ familyClass: 8 })).toBe("sans");
+    expect(category({ familyClass: 3 })).toBe("serif");
+    expect(category({ familyClass: 10 })).toBe("script");
+    expect(category({ familyClass: 8, monospaced: true })).toBe("monospace");
+    expect(category({})).toBe("other");
+  });
+
   it("returns no faces for malformed files instead of reading past them", () => {
     const good = font({ 1: "A", 2: "Regular" });
     expect(readFaces(good.subarray(0, 40))).toEqual([]);

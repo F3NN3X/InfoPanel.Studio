@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import type { Doc } from "@/lib/infopanel/assets/assets";
 import { readStoreFile } from "@/lib/infopanel/canvas";
 import { itemAt } from "@/lib/infopanel/editor/ops";
-import { VERDICT_LABEL } from "@/lib/infopanel/font-licence";
 import { bakeSignature, safeStem, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames";
 import { bake } from "@/lib/infopanel/gauges/raster";
 import {
@@ -25,12 +24,15 @@ import {
   staleGauges,
   unusedFiles,
   withFontChoices,
+  withSwapFiles,
   type FontChoice,
 } from "@/lib/infopanel/export/studio-export";
 import { extOverrides, openStored, type OpenedSource } from "@/lib/infopanel/import/session";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { GaugeItem } from "@/lib/infopanel/schema";
+import { FontLicenceReview } from "./font-licence-review";
 import { Radio } from "./import/import-steps";
+import { useSwapTargets } from "./use-swap-targets";
 
 export interface ExportDialogProps {
   open: boolean;
@@ -78,18 +80,16 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) 
   );
 }
 
-const LICENCE_TONE = { share: "text-ui-success", check: "text-ui-warning", keep: "text-ui-danger" };
-const LICENCE_DOT = { share: "bg-ui-success", check: "bg-ui-warning", keep: "bg-ui-danger" };
-
 function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placement; canvas: StoredCanvas; onClose: () => void } & Pick<ExportDialogProps, "onBaked" | "onDone">) {
   const [opened, setOpened] = useState<OpenedSource | Error | null>(null);
   const [out, setOut] = useState<Output>("infopanel");
   const [bakeFirst, setBakeFirst] = useState(true);
   const [leaveUnused, setLeaveUnused] = useState(true);
-  const licences = fontLicences(canvas);
+  const licences = fontLicences(canvas, opened instanceof Error ? undefined : opened?.restore?.fontFiles);
   const [choices, setChoices] = useState<Map<string, FontChoice>>(() => new Map(licences.map((r) => [r.hash, defaultFontChoice(r)])));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const targets = useSwapTargets(out === "stored" && licences.some((r) => r.verdict === "keep"));
 
   useEffect(() => {
     let stop = false;
@@ -113,9 +113,12 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
   const unused = unusedFiles(doc);
   const fontFiles = opened.restore?.fontFiles ?? new Map<string, Uint8Array>();
   const keptFonts = licences.filter((r) => choices.get(r.hash) !== "leave");
-  const included = keptFonts.filter((r) => r.verdict === "keep");
+  const included = keptFonts.filter((r) => r.verdict === "keep" && typeof choices.get(r.hash) !== "object");
   const assetBytes = [...doc.assets.values()].reduce((n, f) => n + f.bytes.length, 0);
-  const fontBytes = keptFonts.reduce((n, r) => n + (fontFiles.get(r.hash)?.length ?? 0), 0);
+  const fontBytes = keptFonts.reduce((n, r) => {
+    const c = choices.get(r.hash);
+    return n + (typeof c === "object" ? c.swap.bytes.length : (fontFiles.get(r.hash)?.length ?? 0));
+  }, 0);
   const size = out === "stored" ? assetBytes + fontBytes : assetBytes - (leaveUnused ? unused.bytes : 0);
   const missing = opened.restore?.missing ?? [];
   const contents: [string, string][] =
@@ -136,7 +139,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
     try {
       if (out === "stored") {
         const stored = withFontChoices(canvas, choices);
-        await download(fileName, canvasZip(stored, opened.assets, fontFiles), "application/zip");
+        await download(fileName, canvasZip(stored, opened.assets, withSwapFiles(fontFiles, choices)), "application/zip");
         onDone(`Exported ${fileName}${included.length ? ` · it holds ${included.map((r) => r.family).join(", ")}, not cleared for sharing` : ""}`);
         onClose();
         return;
@@ -254,52 +257,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
         {out === "infopanel" && (
           <p className="text-[11.5px] text-ui-4">InfoPanel draws with the fonts installed on its PC: an .infopanel carries no font files.</p>
         )}
-        {out === "stored" && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[12.5px] font-semibold text-ui-1">Font licences</span>
-            <span className="-mt-1 text-[11.5px] text-ui-4">Review the supplied fonts before sharing this file.</span>
-            <div className="flex flex-col rounded-[10px] border border-ui-default">
-              {licences.length === 0 && <span className="px-3.5 py-2.5 text-[12px] text-ui-4">No supplied fonts: the canvas draws InfoPanel’s faces.</span>}
-              {licences.map((r) => {
-                const choice = choices.get(r.hash) ?? "include";
-                return (
-                  <div key={r.hash} className="flex flex-col gap-2 border-b border-ui-subtle px-3.5 py-2.5 last:border-b-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className={cn("h-[7px] w-[7px] rounded-full", LICENCE_DOT[r.verdict])} />
-                      <span className="w-[140px] truncate text-[12.5px] font-medium text-ui-1">{r.family}</span>
-                      <span className="flex-1 truncate text-[12px] text-ui-3" title={r.reason}>
-                        Supplied · {r.file}
-                      </span>
-                      <span className={cn("text-[11.5px] capitalize", LICENCE_TONE[r.verdict])}>{VERDICT_LABEL[r.verdict]}</span>
-                    </div>
-                    {r.verdict !== "share" && (
-                      <div role="radiogroup" aria-label={`${r.family} in the export`} className="ml-[17px] flex gap-0.5 self-start rounded-[7px] border border-ui-default bg-ui-raised p-0.5">
-                        {(["include", "leave"] as const).map((c) => (
-                          <button
-                            key={c}
-                            type="button"
-                            role="radio"
-                            aria-checked={choice === c}
-                            onClick={() => setChoices(new Map(choices).set(r.hash, c))}
-                            className={cn("whitespace-nowrap rounded-[5px] px-2.5 py-1 text-[12px]", choice === c ? "bg-ui-active text-ui-1" : "text-ui-4 hover:text-ui-1")}
-                          >
-                            {c === "include" ? "Include anyway" : "Leave out"}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {included.length > 0 && (
-              <span className="flex gap-1.5 text-[12px] text-ui-danger">
-                <TriangleAlert className="h-4 w-4 shrink-0" />
-                {included.map((r) => r.family).join(", ")}: the licence doesn’t allow sharing. The save note will name it.
-              </span>
-            )}
-          </div>
-        )}
+        {out === "stored" && <FontLicenceReview rows={licences} choices={choices} targets={targets} onChoose={(hash, c) => setChoices(new Map(choices).set(hash, c))} />}
         <div className="flex flex-col gap-[5px] rounded-[10px] border border-ui-subtle bg-ui-chrome px-3.5 py-3">
           {contents.map(([a, b]) => (
             <div key={a} className="flex gap-3 text-[12px]">

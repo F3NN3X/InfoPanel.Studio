@@ -66,8 +66,8 @@ export interface MyLibrary {
   refresh(): void;
   uploads: UploadRow[];
   clearUploads(): void;
-  /** Add files: images, videos, SVG and fonts become items; an .infopanel goes to `onProfile`. */
-  addFiles(files: readonly File[], onProfile?: (file: File) => void): void;
+  /** Add files: images, videos, SVG and fonts become items; an .infopanel goes to `onProfile`. `uploaded`: files already in the asset store, by asset id. */
+  addFiles(files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>): void;
   /** A copy was placed (the item's copy count goes up by one). */
   addCopy(item: LibraryItem, copy: LibraryCopy): void;
   duplicate(item: LibraryItem): Promise<LibraryItem | null>;
@@ -86,7 +86,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   const [error, setError] = useState<string | null>(null);
   const [uploads, setUploads] = useState<UploadRow[]>([]);
   const nextId = useRef(0);
-  const queue = useRef<{ row: number; file: File }[]>([]);
+  const queue = useRef<{ row: number; file: File; id?: string }[]>([]);
   const running = useRef(0);
   const known = useRef<LibraryItem[]>([]);
   known.current = server;
@@ -109,7 +109,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   const patchRow = (id: number, patch: Partial<UploadRow>) => setUploads((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const upsert = (item: LibraryItem) => setServer((list) => [item, ...list.filter((i) => i.id !== item.id)]);
 
-  const work = async (row: number, file: File) => {
+  const work = async (row: number, file: File, id?: string) => {
     patchRow(row, { state: "reading" });
     const bytes = new Uint8Array(await file.arrayBuffer());
     const intake = classify(file.name, file.type, bytes);
@@ -117,7 +117,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     if (intake.kind === "infopanel") return patchRow(row, { state: "error", message: "A profile: open it with Import" });
     const meta = await readMeta(intake, bytes);
     patchRow(row, { state: "uploading" });
-    const stored = await uploadBytes(bytes, intake.mime);
+    const stored = id ? { id } : await uploadBytes(bytes, intake.mime);
     const hash = stored.id.slice(0, 64);
     const same = known.current.find((i) => hashOf(i) === hash);
     if (same) return patchRow(row, { state: "duplicate", message: "Already in your library, kept the existing copy", itemId: same.id });
@@ -133,7 +133,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     while (running.current < WORKERS && queue.current.length > 0) {
       const next = queue.current.shift()!;
       running.current++;
-      work(next.row, next.file)
+      work(next.row, next.file, next.id)
         .catch((e: Error) => patchRow(next.row, { state: "error", message: e.message }))
         .finally(() => {
           running.current--;
@@ -142,7 +142,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     }
   };
 
-  const addFiles = (files: readonly File[], onProfile?: (file: File) => void) => {
+  const addFiles = (files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>) => {
     const rows: UploadRow[] = [];
     for (const file of files) {
       if (onProfile && /\.infopanel$/i.test(file.name)) {
@@ -151,7 +151,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
       }
       const id = nextId.current++;
       rows.push({ id, name: file.name, size: file.size, state: "queued" });
-      queue.current.push({ row: id, file });
+      queue.current.push({ row: id, file, id: uploaded?.get(file) });
     }
     if (rows.length) setUploads((r) => [...r, ...rows]);
     pump();

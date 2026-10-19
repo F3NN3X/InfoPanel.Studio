@@ -20,6 +20,7 @@ import { FontDetail } from "./fonts/font-detail";
 import { GetFont } from "./fonts/get-font";
 import { MyFonts } from "./fonts/my-fonts";
 import { RequestedTable, type ZoneRequests } from "./fonts/requested-table";
+import { useDeclaredLicences } from "./fonts/use-declared-licences";
 import { useFontAnswers } from "./fonts/use-font-answers";
 import { mapCanvas } from "./fonts/zone-canvas";
 import type { MyLibrary } from "./use-my-library";
@@ -50,6 +51,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
   );
   const requests = useMemo(() => new Map(requested.flatMap((z) => z.entries.map((e): [string, FontRequest] => [e.key, e.request]))), [requested]);
   const answers = useFontAnswers(requests);
+  const declared = useDeclaredLicences(useMemo(() => requested.flatMap((z) => z.entries), [requested]), answers);
 
   // Requests InfoPanel draws with another family and nothing supplied is drawing: what Get a font fills.
   const open = requested.flatMap((z) =>
@@ -94,17 +96,21 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
   // The chosen faces into the store (their hashes), then to My library and, as one config update, to the requests.
   const addFaces = async (candidate: FontCandidate, picked: FamilyFace[]) => {
     const files: File[] = [];
+    const uploaded = new Map<File, string>();
     const supplied: SuppliedFile[] = [];
     for (const face of picked) {
       const data = await face.load();
       const { id } = await uploadBytes(data, mimeOf(face.file));
       const { faces } = await facesFromFile(face.file, data, () => "");
       supplied.push({ hash: id.slice(0, 64), faces, license: candidate.license });
-      files.push(new File([data.slice()], face.file));
+      const file = new File([data.slice()], face.file);
+      files.push(file);
+      uploaded.set(file, id);
     }
     const keys = new Set(missingKeys);
     setConfig((c) => zones.reduce((next, z) => mapCanvas(next, z.id, (canvas) => supplyFonts(canvas, keys, supplied)), c));
-    library.addFiles(files);
+    // They are in the store already: My library only records the items.
+    library.addFiles(files, undefined, uploaded);
   };
 
   const selected = pane.kind === "font" ? fonts.find((f) => f.id === pane.id) : undefined;
@@ -149,7 +155,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
         <div className="flex flex-col gap-4">
           {requested.length === 0 && <p className="text-[12.5px] text-ui-4">No canvas on this page asks for fonts.</p>}
           {requested.map((z) => (
-            <RequestedTable key={z.zoneId} zone={z} answers={answers} fonts={fonts} onSelectItems={onSelectItems} onGet={getFamily} onUse={setUse} />
+            <RequestedTable key={z.zoneId} zone={z} answers={answers} fonts={fonts} declared={declared} onSelectItems={onSelectItems} onGet={getFamily} onUse={setUse} />
           ))}
         </div>
         <h3 className="mb-3 mt-6 text-[12.5px] font-semibold text-ui-1">My fonts</h3>
