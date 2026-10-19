@@ -1,5 +1,6 @@
 /** The editor's header (spec §6): back, name and kind, undo/redo of a working copy, Import, Export, Save to library. An image sequence has no spec to import or export. */
 import { ArrowLeft, Redo2, Save, Undo2, Upload } from "lucide-react";
+import { useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ImportedGauge } from "@/lib/gauge-studio/import-file";
 import { KIND_LABEL, kindOf } from "@/lib/gauge-studio/model";
@@ -20,8 +21,17 @@ export interface EditorHeaderProps {
   onSave: () => void;
 }
 
+/** Where the gauge lives (a profile gauge's canvas or page, "My library"), else whether the working copy is unsaved. */
+function where(edit: GaugeEdit): string {
+  const place = edit.writeThrough && edit.entry ? edit.entry.where : edit.origin?.kind === "library" ? "My library" : null;
+  return `${place ? ` · ${place}` : ""}${edit.dirty ? " · unsaved" : ""}`;
+}
+
 export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport, onSave }: EditorHeaderProps) {
   const history = edit.history;
+  // What's typed while the field has focus: a profile gauge's name reads back with a fallback ("Custom gauge") when
+  // emptied, which would otherwise snap into the field mid-edit.
+  const [draft, setDraft] = useState<string | null>(null);
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4 font-ui">
       <IconButton label="Back to Gauges" size={32} onClick={onBack}>
@@ -29,15 +39,18 @@ export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport
       </IconButton>
       <input
         aria-label="Gauge name"
-        value={edit.name}
-        disabled={edit.writeThrough}
-        title={edit.writeThrough ? "A gauge in the profile is named where it is placed" : undefined}
-        onChange={(e) => edit.rename(e.target.value)}
-        className="h-8 w-[240px] min-w-0 rounded-[6px] border border-transparent bg-transparent px-1.5 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent disabled:hover:border-transparent"
+        value={draft ?? edit.name}
+        onFocus={() => setDraft(edit.name)}
+        onBlur={() => setDraft(null)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          edit.rename(e.target.value);
+        }}
+        className="h-8 w-[240px] min-w-0 rounded-[6px] border border-transparent bg-transparent px-1.5 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
       />
       <span className="font-ui-mono text-[11px] text-ui-4">
         {KIND_LABEL[kindOf(gauge)]}
-        {edit.writeThrough && edit.entry ? ` · ${edit.entry.where}` : edit.dirty ? " · unsaved" : ""}
+        {where(edit)}
       </span>
       <span className="flex-1" />
       {history && (

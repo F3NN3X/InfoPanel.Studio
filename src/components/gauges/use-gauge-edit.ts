@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { StudioBridge } from "@/components/library/library-actions";
-import { profileGauges, sourceKey, withGauge, type GaugeEntry } from "@/lib/gauge-studio/model";
+import { profileGauges, sourceKey, withGauge, withGaugeName, type GaugeEntry } from "@/lib/gauge-studio/model";
 import type { EditorOpen } from "@/lib/gauge-studio/open";
 import { keepCopy, sessionCopy } from "@/lib/gauge-studio/session";
 import { canRedo, canUndo, editCopy, isDirty, markSaved, openCopy, redoCopy, renameCopy, undoCopy, type WorkingCopy } from "@/lib/gauge-studio/working-copy";
@@ -53,7 +53,7 @@ export function useGaugeEdit(bridge: StudioBridge, open: Editable, editorId: num
       dirty: false,
       history: null,
       commit: (next, key) => bridge.setConfig((c) => withGauge(c, source, next) ?? c, key ? `gauge:${sourceKey(source)}:${key}` : undefined),
-      rename: () => {},
+      rename: (name) => bridge.setConfig((c) => withGaugeName(c, source, name) ?? c, `gauge:${sourceKey(source)}:name`),
       saved: () => {},
     };
   }

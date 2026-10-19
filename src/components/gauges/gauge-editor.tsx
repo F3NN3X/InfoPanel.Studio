@@ -55,7 +55,7 @@ export function GaugeEditor(props: GaugeEditorProps) {
 }
 
 function Gone({ ref, onBack }: { ref?: Ref<EditorHandle>; onBack: () => void }) {
-  useImperativeHandle(ref, () => ({ requestBack: onBack }), [onBack]);
+  useImperativeHandle(ref, () => ({ requestBack: (then) => (then ?? onBack)() }), [onBack]);
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-ui-app font-ui text-center">
       <p className="text-[12.5px] text-ui-3">This gauge is no longer on the page.</p>
@@ -125,7 +125,7 @@ function FramesEditor({ ref, edit, tools, write, onBack, onSaved }: FramesEditor
   const filter = recolour === NO_RECOLOUR ? undefined : recolourFilter(recolour);
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
-      <EditorHeader edit={edit} gauge={null} saving={shell.saving} onBack={shell.requestBack} onSave={() => void shell.save()} />
+      <EditorHeader edit={edit} gauge={null} saving={shell.saving} onBack={() => shell.requestBack()} onSave={() => void shell.save()} />
       <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <FramesStage tools={tools} playback={playback} filter={filter} />
         <FramesInspector tools={tools} recolour={recolour} onRecolour={setRecolour} />
@@ -162,7 +162,7 @@ function VectorEditor({ ref, edit, gauge: g, write, below, theme, onBack, onSave
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
-      <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={shell.requestBack} onImported={imported} onExport={() => downloadSpec(edit.name, g)} onSave={() => void shell.save()} />
+      <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={() => shell.requestBack()} onImported={imported} onExport={() => downloadSpec(edit.name, g)} onSave={() => void shell.save()} />
       <PresetStrip scope={scope} onPick={pick} />
       <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <PartsList g={g} selected={selectable(g, part)} onSelect={setPart} set={set} />

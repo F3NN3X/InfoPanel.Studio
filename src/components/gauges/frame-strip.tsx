@@ -6,10 +6,11 @@ import { useRef, useState, type ReactNode } from "react";
 import { ArrowLeftRight, Copy, ImageUp, Shrink, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  canRemove, clampSel, duplicateEdit, isSelected, removeEdit, resampleEdit, reverseEdit, selectedIndexes, selectFrame, type FrameEdit, type FrameSel,
+  canRemove, clampSel, duplicateEdit, isSelected, moveEdit, removeEdit, resampleEdit, reverseEdit, selectedIndexes, selectFrame, selectOne, type FrameEdit, type FrameSel,
 } from "@/lib/gauge-studio/frame-select";
 import { FRAME_ACCEPT } from "./frame-files";
 import type { FramesTools } from "./frames-tools";
+import { useFrameKeys } from "./use-gauge-keys";
 
 const TOOL = "flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
 
@@ -34,6 +35,28 @@ export function FrameStrip({ tools, sel, onSelect, current, filter }: FrameStrip
     tools.reorder(what, e.order);
     onSelect(e.sel);
   };
+  useFrameKeys((key) => {
+    const focus = picked.focus;
+    switch (key) {
+      case "previous":
+      case "next": {
+        const to = Math.min(Math.max(focus + (key === "next" ? 1 : -1), 0), n - 1);
+        if (n === 0) return false;
+        onSelect(selectOne(to));
+        return true;
+      }
+      case "movePrevious":
+      case "moveNext": {
+        const edit = off ? null : moveEdit(n, picked, key === "moveNext" ? 1 : -1);
+        if (edit) apply("Moving", edit);
+        return true;
+      }
+      case "delete":
+        if (off || !canRemove(n, picked)) return true;
+        apply("Removing", removeEdit(n, picked));
+        return true;
+    }
+  });
   const scope = idx.length > 1 ? "the selected frames" : "every frame";
 
   return (
