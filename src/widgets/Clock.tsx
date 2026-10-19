@@ -1,3 +1,5 @@
+import { useGeneral } from "@/hooks/use-general";
+import { localeHour12 } from "@/lib/general";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, get, num, Num, type ShellProps, type WidgetMeta } from "./kit";
 
@@ -44,7 +46,8 @@ export function timePx(size: keyof typeof TIME_PX, w: number, h: number, secs: b
 
 export interface ClockProps extends ShellProps {
   look?: ModuleSettings;
-  format?: "24h" | "12h";
+  /** `auto`: the date & time locale's choice (General › Date locale). */
+  format?: "24h" | "12h" | "auto";
   showSeconds?: boolean;
   showDate?: boolean;
   face?: "digital" | "analog";
@@ -59,7 +62,8 @@ export default function Clock(p: ClockProps) {
     day = k("day"),
     mon = k("month"),
     yr = k("year");
-  const h12 = p.format === "12h";
+  const { locale } = useGeneral();
+  const h12 = p.format === "12h" || (p.format === "auto" && localeHour12(locale));
   const hh = h12 ? k("12-hour") : H;
   const pad = (v: number) => String(Number.isFinite(v) ? v : 0).padStart(2, "0");
   const date = new Date(yr, mon - 1, day);

@@ -5,6 +5,7 @@ import { Toggle } from "@/components/ui/toggle";
 import type { Placement, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
+import { ALIGN_CODES } from "@/modules/setting-readers";
 import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { ColorSwatches, swatchBackground } from "./inspector/color-swatches";
 import { useQuickPins } from "./inspector/inspector-prefs";
@@ -33,6 +34,11 @@ interface QuickBarProps {
 
 /** A choice with this many options or fewer shows as buttons; more is a select. */
 const SEGMENT_MAX = 4;
+
+const ROW_NAMES: Record<string, string> = { t: "Top", m: "Middle", b: "Bottom" };
+const COL_NAMES: Record<string, string> = { l: "left", c: "center", r: "right" };
+/** An alignment's cells as choices (the quick bar's select; the spread toggle stays in the inspector). */
+const ALIGN_OPTIONS = [{ value: "auto", label: "Auto" }, ...ALIGN_CODES.map((c) => ({ value: c, label: `${ROW_NAMES[c[0]]} ${COL_NAMES[c[1]]}` }))];
 
 /** One setting as a compact control: toggle, buttons or a select, a slider with its value, a colour swatch, text. */
 function QuickControl({
@@ -98,6 +104,21 @@ function QuickControl({
         </span>
       );
     }
+    case "align":
+      return (
+        <select
+          aria-label={def.label}
+          value={String(value)}
+          onChange={(e) => fields.onPatch({ [def.key]: e.target.value })}
+          className="h-[26px] max-w-[150px] cursor-pointer rounded-md border border-ui-strong bg-ui-hover px-1.5 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+        >
+          {ALIGN_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      );
     case "select": {
       const options = def.options ?? [];
       if (options.length > 0 && options.length <= SEGMENT_MAX)
@@ -147,8 +168,8 @@ function ThemeValue({ def, value }: { def: ModuleSetting; value: ModuleSettingVa
       ? value === true
         ? "On"
         : "Off"
-      : def.type === "select"
-        ? (def.options?.find((o) => o.value === String(value))?.label ?? String(value))
+      : def.type === "select" || def.type === "align"
+        ? ((def.type === "align" ? ALIGN_OPTIONS : def.options)?.find((o) => o.value === String(value))?.label ?? String(value))
         : def.type === "number"
           ? `${value}${splitUnit(def.label).unit ?? ""}`
           : String(value) || "—";

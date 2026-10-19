@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { isVisible } from "@/components/studio/inspector-model";
 import { STANDARD_SETTINGS } from "@/modules/standard-settings";
-import { effectiveSettings, type ModuleSettings, type SensorMap } from "@/modules/types";
+import { effectiveSettings, settingKeys, type ModuleSettings, type SensorMap } from "@/modules/types";
 import { fixtureSensors } from "../__fixtures__";
 import { GROUP_C } from "./c";
 
@@ -21,10 +21,10 @@ function specProps(id: string): string[] {
 
 // Per template: the stored setting key behind each spec prop, or null for a shell-level callback.
 const MANIFEST: Record<string, Record<string, string | null>> = {
-  NowPlaying: { source: "source", showArt: "showArt", layout: "playerLayout", progress: "progress", vizMode: "waveformVariant", vizDevice: "liveSource", vizRamp: "vizRamp", showTimeline: "showTimeline" },
+  NowPlaying: { source: "source", showArt: "showArt", layout: "playerLayout", progress: "progress", vizMode: "waveformVariant", vizDevice: "device", vizRamp: "vizRamp", showTimeline: "showTimeline" },
   AudioMeter: { device: "device", mode: "mode", segments: "segments", meterStyle: "meterStyle" },
   VolumeMixer: { onSetVolume: null, onToggleMute: null },
-  MeterBridge: { channels: "channels", orientation: "orientation", floor: "floor", segments: "segments", holdMs: "holdMs", warnDb: "warnDb", clipDb: "clipDb", showScale: "showScale", showVolume: "showVolume", ladder: "ladder" },
+  MeterBridge: { channels: "devices", orientation: "orientation", floor: "floor", segments: "segments", holdMs: "holdMs", warnDb: "warn.db", clipDb: "crit.db", showScale: "showScale", showVolume: "showVolume", ladder: "ladder" },
   Visualizer: { mode: "mode", device: "device", bands: "bands", ramp: "ramp", sensitivity: "sensitivity", peaks: "peaks" },
   WaveLink: {},
 };
@@ -41,7 +41,7 @@ describe.each(Object.entries(MANIFEST))("%s schema", (id, props) => {
   });
 
   it("reaches every spec prop through exactly one setting", () => {
-    for (const key of Object.values(props)) if (key) expect(settings.filter((d) => d.key === key)).toHaveLength(1);
+    for (const key of Object.values(props)) if (key) expect(settings.flatMap(settingKeys).filter((k) => k === key)).toHaveLength(1);
   });
 
   it("has unique keys; own keys do not collide with a standard key", () => {
@@ -66,7 +66,7 @@ describe("group C dependent settings", () => {
     const mod = GROUP_C.find((m) => m.id === id)!;
     return (mod.settings ?? []).filter((d) => isVisible(d, { ...effectiveSettings(mod, {}), ...values })).map((d) => d.key);
   };
-  const VIZ_KEYS = ["waveformVariant", "liveSource", "showTimeline", "vizShape", "vizGap", "vizPeaks", "vizColorMode", "vizFloorDb", "liveCapture"];
+  const VIZ_KEYS = ["waveformVariant", "device", "showTimeline", "vizShape", "vizGap", "vizPeaks", "vizColorMode", "vizFloorDb", "liveCapture"];
 
   it("shows the NowPlaying visualiser settings only for the Visualizer progress row", () => {
     for (const k of VIZ_KEYS) expect(shown("NowPlaying", { progress: "bar" }), k).not.toContain(k);
@@ -74,8 +74,8 @@ describe("group C dependent settings", () => {
   });
 
   it("shows the capture devices only with Live capture, and the cover switch only where it is drawn", () => {
-    expect(shown("NowPlaying", { progress: "visualizer" })).not.toContain("liveSources");
-    expect(shown("NowPlaying", { progress: "visualizer", liveCapture: true })).toContain("liveSources");
+    expect(shown("NowPlaying", { progress: "visualizer" })).not.toContain("devices");
+    expect(shown("NowPlaying", { progress: "visualizer", liveCapture: true })).toContain("devices");
     for (const playerLayout of ["card", "wave"]) expect(shown("NowPlaying", { playerLayout })).toContain("showArt");
     for (const playerLayout of ["vinyl", "backdrop"]) expect(shown("NowPlaying", { playerLayout })).not.toContain("showArt");
   });

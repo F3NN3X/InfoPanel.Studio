@@ -3,6 +3,7 @@
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { VIZ_STYLES, type VizLook, type VizStyle } from "../core/viz/types";
 import type { NowPlayingProps } from "../NowPlaying";
+import { devicesOf } from "@/modules/setting-readers";
 import { boolSetting, deviceSetting, enumSetting, numberOf, oneOf } from "../registry/settings-kit";
 import { vizLookOf } from "../registry/viz-settings";
 
@@ -254,7 +255,8 @@ export const MEDIA_SETTINGS: ModuleSetting[] = [
     group: "Audio source",
   },
   {
-    key: "liveSources",
+    // `liveSources` until config v7 (`devices`, the shared multi-device key).
+    key: "devices",
 
     tab: "data",
     label: "Capture devices (one visualizer row each)",
@@ -285,15 +287,16 @@ export const PLAYER_LAYOUT: ModuleSetting = {
 const STYLE_OPTIONS = VIZ_STYLES.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1), applies: { vizEngine: "mini" } }));
 
 /**
- * The template's own props: `vizMode` and `vizDevice` are stored under the legacy keys `waveformVariant` and
- * `liveSource` (PHASE9_PLAN §3.2), here with the template's full option set.
+ * The template's own props: `vizMode` is stored under the legacy key `waveformVariant` (PHASE9_PLAN §3.2),
+ * `vizDevice` under the shared `device` (the legacy `liveSource` until config v7), here with the template's
+ * full option set.
  */
 export const NOW_PLAYING_OWN: ModuleSetting[] = [
   enumSetting("source", "Source", "auto", [{ value: "auto", label: "Auto" }, { value: "media", label: "Windows Media" }, { value: "spotify", label: "Spotify" }, { value: "pushed", label: "Pushed" }], { group: "Now playing" }),
   boolSetting("showArt", "Cover art", true, { group: "Now playing" }),
   enumSetting("progress", "Progress row", "bar", [{ value: "bar", label: "Bar" }, { value: "wave", label: "Wavy progress bar" }, { value: "visualizer", label: "Visualizer" }], { group: "Now playing" }),
   enumSetting("waveformVariant", "Visualizer style", "bars", STYLE_OPTIONS, { group: "Visualizer" }),
-  deviceSetting("liveSource", "Visualizer device", "audio", { group: "Visualizer" }),
+  deviceSetting("Visualizer device", "audio", { group: "Visualizer" }),
   boolSetting("showTimeline", "Timeline under the visualizer", true, { group: "Visualizer" }),
 ];
 
@@ -350,16 +353,12 @@ export function tuningLookOf(s: ModuleSettings): Partial<VizLook> {
 
 /**
  * The pinned Web Audio capture devices (one visualizer row each). Only active while `liveCapture`
- * is on; the comma-separated `liveSources` value is split into stable device ids. Empty → the
- * single sensor row.
+ * is on; the comma-separated `devices` (the old `liveSources`) value is split into stable device ids.
+ * Empty → the single sensor row.
  */
 export function captureDeviceIdsOf(s: ModuleSettings): string[] | undefined {
   if (!s.liveCapture) return undefined;
-  const ids = String(s.liveSources ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
-  return ids.length > 0 ? ids : undefined;
+  return devicesOf(s, "liveSources");
 }
 
 /** The props the template reads from the shared keys; `tuning` = where the old engines' keys are read (`tuningLookOf`). */

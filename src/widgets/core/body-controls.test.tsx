@@ -18,9 +18,14 @@ describe("bodyFlags", () => {
   });
 
   it("flags each chosen option, the horizontal one with its value", () => {
+    expect(bodyFlags(chromeOf(look({ alignSpread: true })))).toEqual({ "data-wp-x": "between" });
+    expect(bodyFlags(chromeOf(look({ align: "bc" })))).toEqual({ "data-wp-x": "center", "data-wp-y": "end" });
+    expect(bodyFlags(chromeOf(look({ gap: "0" })))).toEqual({ "data-wp-gap": "" });
+  });
+
+  it("still reads the old two axes while the new key is Auto (until PR 8)", () => {
     expect(bodyFlags(chromeOf(look({ alignX: "between" })))).toEqual({ "data-wp-x": "between" });
     expect(bodyFlags(chromeOf(look({ alignY: "end" })))).toEqual({ "data-wp-y": "end" });
-    expect(bodyFlags(chromeOf(look({ gap: "0" })))).toEqual({ "data-wp-gap": "" });
   });
 });
 
@@ -48,7 +53,7 @@ describe("the widget body", () => {
   });
 
   it("flags the chosen alignment and gap", () => {
-    const b = body({ alignX: "end", alignY: "start", gap: "16" });
+    const b = body({ align: "tr", gap: "16" });
     expect(b).toContain('data-wp-x="end"');
     expect(b).toContain('data-wp-y="start"');
     expect(b).toContain('data-wp-gap=""');

@@ -27,6 +27,9 @@ describe("NowPlaying visualiser device", () => {
     expect(propsFor({}).vizDevice).toBe("");
     expect(propsFor({ liveSource: "" }).vizDevice).toBe("");
     expect(propsFor({ liveSource: "audio-meter-x" }).vizDevice).toBe("audio-meter-x");
+    // the shared key since config v7 (Auto = "auto")
+    expect(propsFor({ device: "audio-meter-x" }).vizDevice).toBe("audio-meter-x");
+    expect(propsFor({ device: "auto" }).vizDevice).toBe("");
   });
 
   it("picks the loudest device for Auto, not the silent default", () => {

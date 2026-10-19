@@ -130,7 +130,7 @@ export function placementContent(
   }
   const mod = moduleById.get(p.module);
   if (!mod) return { content: null, hasData: false, title: p.module };
-  const settings = resolveWith(appearance, p.settings, p.follow);
+  const settings = resolveWith(appearance, p.settings, p.follow, undefined, mod.settings);
   const content = safeRender(mod.title, () => mod.render(sensors, settings));
   // Only the module's own keys (a stored color it has no option for stays inert).
   const cfg = effectiveSettings(mod, settings);

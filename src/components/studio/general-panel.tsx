@@ -17,6 +17,14 @@ interface GeneralPanelProps {
   onChange: <K extends keyof GeneralSettings>(key: K, value: GeneralSettings[K]) => void;
 }
 
+/** The clocks' 12 / 24 h choice: the themed `clock` of the all-profiles style (config v7, owner decision Q4). */
+export interface GeneralClock {
+  /** The stored value (auto | 24 | 12); undefined = Locale. */
+  value: string | undefined;
+  /** Set it (undefined = back to Locale). */
+  onChange: (value: string | undefined) => void;
+}
+
 const FONTS = FONT_CATALOG.map((f) => ({ value: f.id, label: f.label }));
 
 const CLOCKS = [
@@ -47,9 +55,9 @@ function localeOptions(current: string): { value: string; label: string }[] {
  * cursor. Each row has a dot (set here / default; click to reset) and
  * each card counts the keys set in it and resets just those.
  */
-export function generalCards(general: GeneralSettings | undefined, onChange: GeneralPanelProps["onChange"]): SheetCard[] {
+export function generalCards(general: GeneralSettings | undefined, onChange: GeneralPanelProps["onChange"], hours: GeneralClock): SheetCard[] {
   const g = resolveGeneral({ general });
-  const clock = g.hour12 === undefined ? "auto" : g.hour12 ? "12" : "24";
+  const clock = hours.value === "12" || hours.value === "24" ? hours.value : "auto";
   const dot = (key: keyof GeneralSettings) => (
     <SourceDot
       state={general?.[key] !== undefined ? "here" : "default"}
@@ -59,7 +67,7 @@ export function generalCards(general: GeneralSettings | undefined, onChange: Gen
   const set = (keys: (keyof GeneralSettings)[]) => keys.filter((k) => general?.[k] !== undefined);
   const reset = (keys: (keyof GeneralSettings)[]) => () => keys.forEach((k) => onChange(k, undefined));
   const type = ["font"] as const;
-  const clockKeys = ["hour12", "showSeconds", "locale"] as const;
+  const clockKeys = ["showSeconds", "locale"] as const;
   const display = ["motion", "hideCursor", "kioskPageNav"] as const;
 
   return [
@@ -86,17 +94,20 @@ export function generalCards(general: GeneralSettings | undefined, onChange: Gen
       title: "Clock & date",
       hint: "How clocks and dates read",
       terms: ["Clock", "Date", "Time", "Locale", "Show seconds", "12 h", "24 h"],
-      changed: set([...clockKeys]).length,
-      onReset: reset([...clockKeys]),
+      changed: set([...clockKeys]).length + (hours.value !== undefined ? 1 : 0),
+      onReset: () => {
+        reset([...clockKeys])();
+        hours.onChange(undefined);
+      },
       node: (
         <>
           <SegmentedRow
             label="Clock"
-            lead={dot("hour12")}
-            hint="Locale follows the date & time locale below"
+            lead={<SourceDot state={hours.value !== undefined ? "here" : "default"} onReset={() => hours.onChange(undefined)} />}
+            hint="Locale follows the date & time locale below. Every clock that follows the theme's Units & format reads it."
             options={CLOCKS}
             value={clock}
-            onChange={(v) => onChange("hour12", v === "auto" ? undefined : v === "12")}
+            onChange={(v) => hours.onChange(v === "auto" ? undefined : v)}
           />
           <ToggleRow
             label="Show seconds"

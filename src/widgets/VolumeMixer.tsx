@@ -1,4 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
+import { alignOf } from "@/modules/setting-readers";
 import { bodyGap, useFitRows, Widget, shell, get, num, fmt, Num, Ring, Icon, Dot, Chip, STATE, type ShellProps, type WidgetMeta } from "./kit";
 import { guidOf } from "./audio-data";
 
@@ -74,7 +75,8 @@ export default function VolumeMixer(p: VolumeMixerProps) {
           );
         // The look's gap spaces the rows; a placed or spread list (or a custom gap) moves rows to the edges, so leave it a little room.
         const g = bodyGap(p.look, 10, h),
-          placed = p.look?.alignX === "between" || (!!p.look?.alignY && p.look.alignY !== "auto") || g !== 10,
+          align = alignOf(p.look ?? {}),
+          placed = align.alignX === "between" || align.alignY !== "auto" || g !== 10,
           n = useFitRows(h - (placed ? 6 : 0), size === "lg" ? 34 : 30, g);
         return (
           <ul className="flex h-full flex-col gap-2.5 overflow-hidden">

@@ -1,14 +1,14 @@
-import { Square, SquareCheck } from "lucide-react";
+import { Circle, CircleDot, Square, SquareCheck } from "lucide-react";
 import { useAudioDevices } from "@/hooks/use-audio-devices";
 import { useSensors } from "@/hooks/useSensors";
 import { useSensorCatalog } from "@/lib/catalog";
 import { parseNameList } from "@/lib/name-list";
-import { deviceOptions } from "@/lib/device-options";
+import { AUTO_RULES, autoDevice, deviceOptions, deviceReading } from "@/lib/device-options";
 import { cn } from "@/lib/utils";
 import { meterKey, useWavelinkState } from "@/lib/wavelink";
 import type { DeviceKind, ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { ChipsField } from "./alerts-fields";
-import { SELECT as SELECT_BASE, SelectRow, StackRow, type RowLabelProps } from "./setting-rows";
+import { SELECT as SELECT_BASE, StackRow, type RowLabelProps } from "./setting-rows";
 
 /** A comma-separated list ("" = none) as its items. */
 const splitList = (value: string): string[] => (value ? value.split(",").map((s) => s.trim()).filter(Boolean) : []);
@@ -132,15 +132,62 @@ export function WavelinkMeterPicker({ def, value, onChange, lead, hint }: Picker
   );
 }
 
+/** One row of the device picker: a radio (one device) or a checkbox (several), the name and a muted detail. */
+function DeviceRow({ on, multi, label, detail, onClick }: { on: boolean; multi: boolean; label: string; detail?: string; onClick: () => void }) {
+  const Mark = multi ? (on ? SquareCheck : Square) : on ? CircleDot : Circle;
+  return (
+    <button
+      type="button"
+      role={multi ? "checkbox" : "radio"}
+      aria-checked={on}
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-md px-0.5 py-1 text-left text-[12px] text-[#d4d4da] hover:bg-ui-hover"
+    >
+      <Mark className={cn("h-4 w-4 shrink-0", on ? "text-ui-accent" : "text-ui-4")} />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {detail && <span className="max-w-[55%] shrink-0 truncate text-[11px] text-ui-4" title={detail}>{detail}</span>}
+    </button>
+  );
+}
+
 /**
- * Picker for a hardware / audio / drive device found in the live keys ("" = Auto first). A stored
- * value that is not live right now stays listed, so opening the inspector never rewrites it.
+ * Picker for a hardware / audio / drive device found in the live keys (SPEC §4.5): Auto first with its
+ * rule and what it picks right now, then the live devices with a live reading. One device stores its id
+ * (Auto: "auto"); `def.multiple` ticks several (`devices`, comma-separated, none = all). A stored device
+ * that is not live right now stays listed, so opening the inspector never rewrites it.
  */
 export function DevicePicker({ def, kind, value, onChange, lead, hint }: PickerProps & { kind: DeviceKind }) {
   const { sensors } = useSensorCatalog();
-  const live = deviceOptions(kind, sensors);
-  const options = live.some((o) => o.value === value) ? live : [...live, { value, label: `${value} (not live)` }];
-  return <SelectRow label={def.label} lead={lead} hint={hint} options={options} value={value} onChange={onChange} />;
+  const live = deviceOptions(kind, sensors).filter((o) => o.value !== "");
+  const labelOf = (id: string) => live.find((o) => o.value === id)?.label ?? `${id} (not live)`;
+  const stored = def.multiple ? splitList(value) : value && value !== "auto" ? [value] : [];
+  const listed = [...live.map((o) => o.value), ...stored.filter((id) => !live.some((o) => o.value === id))];
+  const rows = listed.map((id) => ({ id, label: labelOf(id), detail: deviceReading(kind, id, sensors) }));
+  if (def.multiple) {
+    const toggle = (id: string) => onChange((stored.includes(id) ? stored.filter((v) => v !== id) : [...stored, id]).join(","));
+    return (
+      <StackRow label={def.label} lead={lead} hint={hint}>
+        <div role="group" aria-label={def.label} className="flex flex-col">
+          <DeviceRow on={stored.length === 0} multi label="All devices" detail="None ticked = every live device" onClick={() => onChange("")} />
+          {rows.map((r) => (
+            <DeviceRow key={r.id} on={stored.includes(r.id)} multi label={r.label} detail={r.detail} onClick={() => toggle(r.id)} />
+          ))}
+        </div>
+      </StackRow>
+    );
+  }
+  const now = autoDevice(kind, sensors);
+  const rule = `${AUTO_RULES[kind]}${now ? ` · now ${labelOf(now)}` : ""}`;
+  return (
+    <StackRow label={def.label} lead={lead} hint={hint}>
+      <div role="radiogroup" aria-label={def.label} className="flex flex-col">
+        <DeviceRow on={stored.length === 0} multi={false} label="Auto" detail={rule} onClick={() => onChange("auto")} />
+        {rows.map((r) => (
+          <DeviceRow key={r.id} on={stored[0] === r.id} multi={false} label={r.label} detail={r.detail} onClick={() => onChange(r.id)} />
+        ))}
+      </div>
+    </StackRow>
+  );
 }
 
 /** A list of names as chips (stored comma-separated), suggested from the names at `def.suggestKey`. */

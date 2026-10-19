@@ -46,8 +46,9 @@ export interface SystemOverviewProps extends ShellProps {
   /** Temperature warning / critical, °C. */
   tempWarn?: number;
   tempCrit?: number;
-  /** VRAM / drive fullness warning, percent; red at `crit`. */
+  /** VRAM / drive fullness warning and critical, percent (critical unset: the load's `crit`). */
   vramWarn?: number;
+  vramCrit?: number;
   tempUnit?: "c" | "f";
   /** Decimals on percentages and temperatures. */
   decimals?: 0 | 1;
@@ -166,7 +167,8 @@ export default function SystemOverview(p: SystemOverviewProps) {
     crit = p.crit ?? 92;
   const tempWarn = p.tempWarn ?? 80,
     tempCrit = p.tempCrit ?? 90,
-    capWarn = p.vramWarn ?? warn;
+    capWarn = p.vramWarn ?? warn,
+    capCrit = p.vramCrit ?? crit;
   const pct = (v: number) => `${fmt(v, dec)}%`;
   // Thresholds are in °C; the text follows the chosen unit.
   const temp = (l: string, c: number | undefined, bare = false): Stat[] => (c === undefined ? [] : [{ l, v: formatTemp(c, p.tempUnit ?? "c", dec), t: tone(c, tempWarn, tempCrit), bare }]);
@@ -184,7 +186,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
     name: driveName(x.name),
     used: x.used ?? NaN,
     text: x.used === undefined ? "–" : pct(x.used),
-    t: tone(x.used ?? NaN, capWarn, crit),
+    t: tone(x.used ?? NaN, capWarn, capCrit),
     details: [
       ...(on("diskTemp") ? temp("Temp", x.temp, true) : []),
       ...stat(on("diskIo"), x.read, (v) => ({ l: "R", v: fmtRate(v) })),
@@ -249,7 +251,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
   const skinned = p.skin && p.skin !== "default";
   const col = (k: Section): string | undefined => (p.unifiedColor ? undefined : p.colors?.[k] || (skinned ? (p.skin === "ink" ? undefined : sectionColor(k)) : DEF[k]));
   const vars = (k: Section) => (col(k) ? ({ "--accent": col(k) } as CSSProperties) : undefined);
-  const toneOf = (k: Section) => tone(ALL[k].v, ALL[k].capacity ? capWarn : warn, crit);
+  const toneOf = (k: Section) => (ALL[k].capacity ? tone(ALL[k].v, capWarn, capCrit) : tone(ALL[k].v, warn, crit));
   const shown = (k: Section) => ALL[k].big ?? pct(ALL[k].v);
   const coreView = p.coreView ?? "heatmap";
   const sparkline = p.sparkline !== false;

@@ -6,7 +6,8 @@ import { DEFAULT_STATE, type QaState } from "./params";
 
 const optionsOf = (key: string) => (STYLE_SETTINGS.find((s) => s.key === key)?.options ?? []).filter((o) => o.value !== "auto").map((o) => o.value);
 const SKINS = optionsOf("skin");
-const VARIANTS = optionsOf("variant");
+// The dense view as the QA page names it (`variant`, read by `compactOf` since the standard row became Small zones).
+const VARIANTS = ["default", "studio"];
 const GRAPHS = optionsOf("graph");
 const METERS = optionsOf("meter");
 const RADII = optionsOf("radius");

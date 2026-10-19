@@ -1,4 +1,5 @@
 import {
+  defaultOf,
   settingKeys,
   type ModuleSetting,
   type ModuleSettingValue,
@@ -33,7 +34,7 @@ export function rowMatches(def: ModuleSetting, query: string): boolean {
   return matchesQuery(
     [
       def.label,
-      def.key,
+      ...settingKeys(def),
       ...(def.options?.map((o) => o.label) ?? []),
       ...(def.keywords ?? []),
       ...(def.type === "sensor" ? SENSOR_KEYWORDS : []),
@@ -105,7 +106,7 @@ export function settingStateOf(
   ignoreOwn?: boolean
 ): SettingState {
   return settingKeys(def)
-    .map((key) => settingState(key, own, inherited, def.default, inheritedFrom, ignoreOwn))
+    .map((key) => settingState(key, own, inherited, defaultOf(def, key), inheritedFrom, ignoreOwn))
     .reduce((a, b) => (STATE_RANK[b] > STATE_RANK[a] ? b : a), "default" as SettingState);
 }
 

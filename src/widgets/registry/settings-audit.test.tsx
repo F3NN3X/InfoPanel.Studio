@@ -19,18 +19,18 @@ describe("Network Traffic: Session totals decides, at every tier", () => {
     expect(mod("NetworkThroughput").settings!.some((d) => d.key === "view")).toBe(false);
   });
 
-  it.each(["standard", "card", "compact"])("%s: on shows the totals, off hides them", (layout) => {
-    expect(markup("NetworkThroughput", { layout, showTotals: true })).toContain("Downloaded");
-    expect(markup("NetworkThroughput", { layout, showTotals: false })).not.toContain("Downloaded");
+  it.each(["md", "lg", "sm"])("%s: on shows the totals, off hides them", (sizeTier) => {
+    expect(markup("NetworkThroughput", { sizeTier, showTotals: true })).toContain("Downloaded");
+    expect(markup("NetworkThroughput", { sizeTier, showTotals: false })).not.toContain("Downloaded");
   });
 
   it("at the small tier the totals give way to the sparkline; larger tiers show both", () => {
-    expect(markup("NetworkThroughput", { layout: "compact", showTotals: true, sparkline: true })).not.toContain("Downloaded");
-    expect(markup("NetworkThroughput", { layout: "card", showTotals: true, sparkline: true })).toContain("Downloaded");
+    expect(markup("NetworkThroughput", { sizeTier: "sm", showTotals: true, sparkline: true })).not.toContain("Downloaded");
+    expect(markup("NetworkThroughput", { sizeTier: "lg", showTotals: true, sparkline: true })).toContain("Downloaded");
   });
 
   it("a stored legacy view is ignored", () => {
-    expect(markup("NetworkThroughput", { layout: "compact", showTotals: true, view: "speeds" })).toContain("Downloaded");
+    expect(markup("NetworkThroughput", { sizeTier: "sm", showTotals: true, view: "speeds" })).toContain("Downloaded");
   });
 });
 
@@ -50,8 +50,8 @@ describe("view presets set every switch they bundle", () => {
 
 describe("CPU Monitor: Thread metric Clock", () => {
   // The fixture has cores without an effective-clock reading; one NaN used to poison every bar.
-  it.each(["standard", "card"])("%s: draws no NaN bar", (layout) => {
-    const html = markup("CpuMonitor", { layout, coreView: "bars", coreMetric: "clock" });
+  it.each(["md", "lg"])("%s: draws no NaN bar", (sizeTier) => {
+    const html = markup("CpuMonitor", { sizeTier, coreView: "bars", coreMetric: "clock" });
     expect(html).toContain("height:");
     expect(html).not.toMatch(/NaN/);
   });
@@ -74,7 +74,7 @@ describe("Menu Bar", () => {
     const other = detect(flat, /^libre\.(.+)_download_speed$/).find((a) => a !== busiest);
     if (!other) return;
     const [value] = fmtRate(speed(other), "KB/s").split(" ");
-    expect(markup("MenuBar", { items: "down", rateUnit: "KB/s", adapter: other })).toContain(`${value}<small`);
+    expect(markup("MenuBar", { items: "down", rateUnit: "KB/s", device: other })).toContain(`${value}<small`);
   });
 
   it("shows the Active item selected without a click; none by default", () => {
@@ -86,7 +86,7 @@ describe("Menu Bar", () => {
 
   it("offers the network settings only while Down or Up is in the bar", () => {
     const def = (key: string) => mod("MenuBar").settings!.find((d) => d.key === key)!;
-    for (const key of ["adapter", "rateUnit"]) {
+    for (const key of ["device", "rateUnit"]) {
       expect(def(key).visibleIf!({ items: "cpu,down" }), key).toBe(true);
       expect(def(key).visibleIf!({ items: "cpu,gpu" }), key).toBe(false);
     }

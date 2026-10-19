@@ -1,8 +1,9 @@
-import type { ModuleSettings } from "@/modules/types";
+import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import {
   following,
   sectionOfKey,
   THEMED_KEYS,
+  themeKeyOf,
   type SectionFlags,
   type SectionId,
   type ThemeLevels,
@@ -19,7 +20,9 @@ import {
  * A widget section that follows the theme (the default, and always while
  * the profile locks it) skips the widget's own values for its keys — they
  * stay stored, inactive. Other keys (sensor, layout, title, …) always come
- * from the widget.
+ * from the widget. With the widget's schema (`defs`), a per-widget row
+ * keeps its own value while its section follows, and a colour row with a
+ * palette role reads the role's theme colour (SPEC §3.2 `themeKey`).
  */
 
 /** The layer a resolved look value comes from ("dashboard": the all-profiles style). */
@@ -39,7 +42,12 @@ export interface StyleInput {
   own?: ModuleSettings;
   /** The widget's follow flags (absent: every section follows). */
   follow?: SectionFlags;
+  /** The widget's schema, for `perWidget` rows and palette `role`s (absent: neither applies). */
+  defs?: readonly Pick<ModuleSetting, "key" | "role" | "perWidget">[];
 }
+
+/** A row of the schema as the resolution reads it. */
+type RowDef = Pick<ModuleSetting, "key" | "role" | "perWidget">;
 
 export interface ResolvedStyle {
   /** Other keys from `own`, themed keys from the strongest layer that applies. */
@@ -82,6 +90,20 @@ export function resolveStyle(input: StyleInput): ResolvedStyle {
   const levels = input.levels ?? {};
   const settings: ModuleSettings = {};
   const source: Record<string, StyleSource> = {};
+  const perWidget = new Set((input.defs ?? []).filter((d) => d.perWidget).map((d) => d.key));
+  /** The strongest layer of a themed key, the widget's own value only where `ownApplies`. */
+  const layerOf = (key: string, ownValue: unknown, ownApplies: boolean): [StyleSource, unknown] | undefined => {
+    const sec = sectionOfKey(key)!;
+    const pageOwn = levels.page?.follow?.[sec] === false;
+    const layers: [StyleSource, unknown][] = [
+      ["own", ownApplies ? ownValue : undefined],
+      ["page", pageOwn ? levels.page?.values?.[key] : undefined],
+      ["profile", levels.profile?.values?.[key]],
+      ["dashboard", levels.base?.[key]],
+      ["default", input.moduleDefaults?.[key]],
+    ];
+    return layers.find(([, value]) => value !== undefined);
+  };
   for (const [key, value] of Object.entries(input.own ?? {})) {
     if (!THEMED_KEYS.has(key)) settings[key] = value;
   }
@@ -95,20 +117,25 @@ export function resolveStyle(input: StyleInput): ResolvedStyle {
   for (const key of keys) {
     const sec = sectionOfKey(key);
     if (!sec) continue;
-    const pageOwn = levels.page?.follow?.[sec] === false;
-    const layers: [StyleSource, unknown][] = [
-      ["own", following(levels, input.follow, sec) ? undefined : input.own?.[key]],
-      ["page", pageOwn ? levels.page?.values?.[key] : undefined],
-      ["profile", levels.profile?.values?.[key]],
-      ["dashboard", levels.base?.[key]],
-      ["default", input.moduleDefaults?.[key]],
-    ];
-    const hit = layers.find(([, value]) => value !== undefined);
+    const hit = layerOf(key, input.own?.[key], perWidget.has(key) || !following(levels, input.follow, sec));
     if (!hit) continue;
     settings[key] = hit[1] as ModuleSettings[string];
     source[key] = hit[0];
   }
+  for (const def of input.defs ?? []) withRole(def);
   return { settings, source };
+
+  /** A colour row with a palette role: the role's theme colour, its own value only while its section is custom. */
+  function withRole(def: RowDef) {
+    const role = themeKeyOf(def);
+    const sec = sectionOfKey(role);
+    if (role === def.key || !sec || def.perWidget) return;
+    const hit = layerOf(role, input.own?.[def.key], !following(levels, input.follow, sec));
+    if (hit) {
+      settings[def.key] = hit[1] as ModuleSettings[string];
+      source[def.key] = hit[0];
+    } else delete settings[def.key];
+  }
 }
 
 /**
@@ -120,24 +147,27 @@ export function zoneResolver(
   profile: {
     widgetTheme?: WidgetTheme;
     pages: { widgetTheme?: WidgetTheme; placements: { id: string }[] }[];
-  }
-): (p: { id: string; settings?: ModuleSettings; follow?: SectionFlags }) => ModuleSettings | undefined {
+  },
+  /** A zone's schema (its module's settings), for per-widget rows and palette roles. */
+  defsOf?: (p: { id: string; module?: string }) => readonly RowDef[] | undefined
+): (p: { id: string; module?: string; settings?: ModuleSettings; follow?: SectionFlags }) => ModuleSettings | undefined {
   const pageOf = new Map(profile.pages.flatMap((pg) => pg.placements.map((z) => [z.id, pg] as const)));
   return (p) => {
     const page = pageOf.get(p.id);
     if (!page) return p.settings;
-    return resolveWith({ base: config.style, profile: profile.widgetTheme, page: page.widgetTheme }, p.settings, p.follow);
+    return resolveWith({ base: config.style, profile: profile.widgetTheme, page: page.widgetTheme }, p.settings, p.follow, undefined, defsOf?.(p));
   };
 }
 
-/** A widget's settings under a theme (`own` with its follow flags). */
+/** A widget's settings under a theme (`own` with its follow flags; `defs` its schema, see `StyleInput`). */
 export function resolveWith(
   appearance: ThemeLevels | undefined,
   own: ModuleSettings | undefined,
   follow: SectionFlags | undefined,
-  moduleDefaults?: ModuleSettings
+  moduleDefaults?: ModuleSettings,
+  defs?: readonly RowDef[]
 ): ModuleSettings | undefined {
   if (!appearance) return own;
-  const { settings } = resolveStyle({ moduleDefaults, levels: appearance, own, follow });
+  const { settings } = resolveStyle({ moduleDefaults, levels: appearance, own, follow, defs });
   return Object.keys(settings).length > 0 ? settings : undefined;
 }

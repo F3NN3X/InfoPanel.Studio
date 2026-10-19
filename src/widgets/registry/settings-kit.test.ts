@@ -4,6 +4,9 @@ import {
   colorSettings,
   colorsOf,
   deviceSetting,
+  devicesSetting,
+  formatSetting,
+  thresholdSetting,
   enumSetting,
   joinKeys,
   listOf,
@@ -54,7 +57,13 @@ describe("builders", () => {
     expect(boolSetting("k", "K", true)).toMatchObject({ type: "boolean", default: true });
     expect(numberSetting("k", "K", 3, { min: 1 })).toMatchObject({ type: "number", default: 3, min: 1 });
     expect(sensorSetting("k", "K", { multiple: true })).toMatchObject({ type: "sensor", default: "", multiple: true });
-    expect(deviceSetting("cpu", "CPU", "cpu")).toMatchObject({ type: "select", default: "", optionsFrom: "cpu" });
+    expect(deviceSetting("CPU", "cpu")).toMatchObject({ key: "device", type: "select", default: "auto", optionsFrom: "cpu" });
+    expect(devicesSetting("Channels", "audio")).toMatchObject({ key: "devices", type: "select", default: "", optionsFrom: "audio", multiple: true });
+    expect(thresholdSetting("temp")).toMatchObject({ key: "warn.temp", keyY: "crit.temp", type: "thresholds", quantity: "temp", default: 80, defaultY: 90, section: "thresholds" });
+    expect(thresholdSetting("value", { default: "off", defaultY: "off" })).toMatchObject({ default: "off", defaultY: "off" });
+    expect(formatSetting("tempUnit")).toMatchObject({ key: "tempUnit", default: "c", section: "format" });
+    expect(formatSetting("clock", { default: "24" })).toMatchObject({ key: "clock", default: "24", section: "format" });
+    expect(formatSetting("rateUnit")).toMatchObject({ key: "rateUnit", default: "auto", section: "format" });
   });
 
   it("flattens a colour object to one setting per entry and rebuilds it", () => {

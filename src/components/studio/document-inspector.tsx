@@ -184,7 +184,12 @@ function DocumentSheet({
   const effective = shownValues(values, THEME_SETTINGS);
   // The scope's stored look, no defaults: an unset surface is not glass when a skin is chosen.
   const scoped: ModuleSettings = { ...values.inherited, ...values.own };
-  const generalById = new Map(generalCards(general, onGeneral).map((c) => [c.id, c] as const));
+  // The clocks' 12 / 24 h is the all-profiles style's themed `clock` (config v7).
+  const hours = {
+    value: dashboardStyle?.clock === undefined ? undefined : String(dashboardStyle.clock),
+    onChange: (v: string | undefined) => onStyle("all", (s) => (v === undefined ? (dropKeys(s, new Set(["clock"])) ?? {}) : { ...s, clock: v })),
+  };
+  const generalById = new Map(generalCards(general, onGeneral, hours).map((c) => [c.id, c] as const));
 
   const themeEditor = all ? (
     <ThemePanel

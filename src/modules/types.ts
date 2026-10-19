@@ -65,13 +65,18 @@ export const isDeviceKind = (v: string | undefined): v is DeviceKind =>
 export interface ModuleSetting {
   key: string;
   label: string;
-  type: "text" | "number" | "select" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "sensorItems";
+  type: "text" | "number" | "select" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "sensorItems" | "thresholds";
   default: ModuleSettingValue;
   /**
-   * For type "align": the vertical key, written together with `key` (the
-   * horizontal one) by a 3×3 alignment picker. Both default to `default`.
+   * A second key the row writes together with `key`: for type "align" the
+   * spread toggle (`alignSpread`), for type "thresholds" the critical level
+   * (`crit.<q>`, `key` being `warn.<q>`). Its default is `defaultY`.
    */
   keyY?: string;
+  /** The default of `keyY` (unset: `default`). */
+  defaultY?: ModuleSettingValue;
+  /** For type "thresholds": the quantity (`theme-model.ts` `QUANTITIES`). */
+  quantity?: ThresholdQuantity;
   /**
    * For type "sensorItems": the key of the multi-sensor setting whose sensors get one
    * override row each. The overrides are stored as a JSON object string under `key`.
@@ -190,10 +195,12 @@ export interface DashboardModule {
   header?: HeaderMode;
   /** What it draws in small zones (the inspector's Fit section); unset: neither. */
   compact?: CompactShape;
-  /** The Units & format rows it renders (not read yet). */
+  /** The Units & format rows it renders (its schema has one row per key). */
   fmt?: FormatKey[];
-  /** The threshold quantities it colours by (not read yet). */
+  /** The threshold quantities it colours by (its schema has one Thresholds row per quantity). */
   thr?: ThresholdQuantity[];
+  /** The device kind its `device` (or `devices`) row picks from. */
+  deviceKind?: DeviceKind;
   /** The look sections it offers when not all of them (`section` or `section:key,key`; not read yet). */
   styleSubset?: string[];
 }
@@ -201,10 +208,14 @@ export interface DashboardModule {
 /** Whether a setting sits behind its section's "More (n)" (`more`, or the old `advanced`). */
 export const isMore = (def: ModuleSetting): boolean => def.more ?? def.advanced ?? false;
 
-/** The keys a setting stores (two for an "align" picker). */
+/** The keys a setting stores (two for an "align" picker or a thresholds row). */
 export function settingKeys(def: ModuleSetting): string[] {
   return def.keyY ? [def.key, def.keyY] : [def.key];
 }
+
+/** The default of one of a setting's keys (`defaultY` for its `keyY`). */
+export const defaultOf = (def: ModuleSetting, key: string): ModuleSettingValue =>
+  key === def.keyY && def.defaultY !== undefined ? def.defaultY : def.default;
 
 /** The module's defaults, merged with a placement's saved settings. */
 export function effectiveSettings(
@@ -213,7 +224,7 @@ export function effectiveSettings(
 ): ModuleSettings {
   const out: ModuleSettings = {};
   for (const def of mod.settings ?? []) {
-    for (const key of settingKeys(def)) out[key] = saved?.[key] ?? def.default;
+    for (const key of settingKeys(def)) out[key] = saved?.[key] ?? defaultOf(def, key);
   }
   return out;
 }

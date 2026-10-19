@@ -1,9 +1,10 @@
 // Template widgets, group C: media / audio (see docs/redesign/phase9/brief-9.3c-templates.md).
 import { BALLISTICS } from "@/lib/audio/ballistics";
+import { deviceOf, devicesOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
 import { audioSettings, ballisticsOf, WAVELINK_SETTINGS, wavelinkToProps } from "./audio-settings";
-import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, numberOf, numberSetting, oneOf, pick, splitKeys, stringOf } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, deviceSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, pick, stringOf, thresholdSetting } from "./settings-kit";
 import AudioMeter, { meta as audioMeter, type AudioMeterProps } from "../AudioMeter";
 import MeterBridge, { meta as meterBridge, type MeterBridgeProps } from "../MeterBridge";
 import NowPlaying, { meta as nowPlaying, type NowPlayingProps } from "../NowPlaying";
@@ -45,6 +46,12 @@ const TEMPLATE_GROUPS: Record<string, Partial<ModuleSetting>> = {
   tint: { default: false },
   liveCapture: { hint: "Needs the profile set to Interactive once, then Allow in the prompt; captures an input device (a loopback such as a Wave Link output)." },
 };
+const DEVICE = "Device";
+/** The bridge's warning and clip levels: the Audio level threshold (the old `warnDb` / `clipDb`). */
+function dbLevels(s: ModuleSettings): Pick<MeterBridgeProps, "warnDb" | "clipDb"> {
+  const { warn, crit } = thresholdsOf(s, "db", ["warnDb", "clipDb"]);
+  return { warnDb: warn, clipDb: crit };
+}
 /** The single-device meter: the bridge draws its own LED ladders and reads no device or style. */
 const single = (v: ModuleSettings) => v.mode !== "bridge";
 const METER_STYLES = ["led", "bar", "solid", "vu", "ring", "mirror", "wave"] as const;
@@ -79,7 +86,7 @@ const gateNowPlaying = (d: ModuleSetting): ModuleSetting => {
   const own = d.visibleIf;
   if (d.key === "showArt") return { ...d, visibleIf: (v) => ART_LAYOUTS.includes(String(v.playerLayout)) };
   if (!VIZ_ONLY_GROUPS.includes(d.group ?? "")) return d;
-  const live = d.key === "liveSources" ? (v: ModuleSettings) => Boolean(v.liveCapture) : () => true;
+  const live = d.key === "devices" ? (v: ModuleSettings) => Boolean(v.liveCapture) : () => true;
   return { ...d, visibleIf: (v) => v.progress === "visualizer" && live(v) && (own?.(v) ?? true) };
 };
 
@@ -112,7 +119,7 @@ export const GROUP_C: DashboardModule[] = [
       vizLook: { ...shared.vizLook, colorMode: colorModeOf(s, saved), peaks: boolOf(s.vizPeaks) },
       vizMode: vizStyleOf(hidden),
       // unset / Auto = "" (the loudest live device); undefined would pin default-audio
-      vizDevice: String(s.liveSource ?? ""),
+      vizDevice: deviceOf(hidden, "liveSource") ?? "",
       vizRamp: stringOf(s.vizRamp),
       };
     },
@@ -121,7 +128,7 @@ export const GROUP_C: DashboardModule[] = [
     meta: audioMeter,
     Component: AudioMeter,
     settings: [
-      deviceSetting("device", "Device", "audio", { group: "Audio meter", visibleIf: single }),
+      deviceSetting("Device", "audio", { group: DEVICE, visibleIf: single }),
       enumSetting("mode", "Mode", "single", [{ value: "single", label: "Single device" }, { value: "bridge", label: "Bridge (all devices)" }], { group: "Audio meter" }),
       enumSetting("meterStyle", "Meter style", "led", opts(METER_STYLES), { group: "Audio meter", visibleIf: single }),
       numberSetting("segments", "Segments (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Audio meter", visibleIf: (v) => single(v) && v.meterStyle === "led" }),
@@ -130,7 +137,7 @@ export const GROUP_C: DashboardModule[] = [
     ],
     toProps: (s) => ({
       ...pick<AudioMeterProps>(["showDevice", "showDetails", "showVolume", "showMute", "levelColor", "hotColor"])(s),
-      device: stringOf(s.device),
+      device: deviceOf(s),
       mode: oneOf(s.mode, ["single", "bridge"]),
       meterStyle: oneOf(s.meterStyle, METER_STYLES),
       segments: autoCount(s.segments),
@@ -143,18 +150,18 @@ export const GROUP_C: DashboardModule[] = [
     Component: VolumeMixer,
     // a lone colour would be a one-setting category: it sits in Content with the toggles
     settings: [
-      deviceSetting("device", "Device (Auto = all)", "audio", { group: "Volume mixer" }),
+      deviceSetting("Device (Auto = all)", "audio", { group: DEVICE }),
       ...audioSettings("showDevice", "showMute", "levelColor").map((d) => (d.key === "levelColor" ? { ...d, group: "Content" } : d.key === "showMute" ? { ...d, label: "Show mute state" } : d)),
     ],
     // read-only: the volume plugin has no write path
-    toProps: (s) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), device: stringOf(s.device) }),
+    toProps: (s) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), device: deviceOf(s) }),
     island: volumeMixerIsland,
   }),
   templateModule({
     meta: meterBridge,
     Component: MeterBridge,
     settings: [
-      deviceSetting("channels", "Channels (none = all devices)", "audio", { multiple: true, group: "Meter bridge" }),
+      devicesSetting("Channels (none = all devices)", "audio", { group: DEVICE }),
       boolSetting("includeDefault", "Include the default device", false, { group: "Meter bridge" }),
       enumSetting("orientation", "Orientation", "vertical", [{ value: "vertical", label: "Columns" }, { value: "horizontal", label: "Rows" }], { group: "Meter bridge" }),
       enumSetting("ladder", "Ladder", "led", [{ value: "led", label: "LED" }, { value: "smooth", label: "Smooth" }], { group: "Meter bridge" }),
@@ -163,21 +170,19 @@ export const GROUP_C: DashboardModule[] = [
       boolSetting("showVolume", "Volume", true, { group: "Meter bridge" }),
       numberSetting("holdMs", "Peak hold (ms)", BALLISTICS.peak.peakHoldMs, { min: 0, max: 5000, step: 100, group: "Meter", visibleIf: (v) => ballisticsOf(v) === "peak" }),
       numberSetting("floor", "Floor (dB)", -60, { min: -120, max: -20, step: 1, group: "Thresholds" }),
-      numberSetting("warnDb", "Warn above (dB)", -18, { min: -60, max: 0, step: 1, group: "Thresholds" }),
-      numberSetting("clipDb", "Clip above (dB)", -6, { min: -60, max: 0, step: 1, group: "Thresholds" }),
+      thresholdSetting("db"),
       ...audioSettings("showDevice", "showDetails", "showMute", "meterBallistics", "levelColor", "hotColor"),
     ],
     toProps: (s, saved) => ({
       ...pick<MeterBridgeProps>(["includeDefault", "showScale", "showVolume", "showDetails", "showMute", "levelColor", "hotColor"])(s),
-      channels: splitKeys(s.channels).length ? splitKeys(s.channels) : undefined,
+      channels: devicesOf(s, "channels"),
       orientation: oneOf(s.orientation, ["vertical", "horizontal"]),
       ladder: oneOf(s.ladder, ["led", "smooth"]),
       segments: autoCount(s.segments),
       // only a stored hold overrides the preset's own, and only the Peak response keeps one
       holdMs: ballisticsOf(s) === "peak" ? numberOf(saved?.holdMs) : undefined,
       floor: numberOf(s.floor),
-      warnDb: numberOf(s.warnDb),
-      clipDb: numberOf(s.clipDb),
+      ...dbLevels(s),
       showName: s.showDevice as boolean,
       ballistics: ballisticsOf(s),
     }),
@@ -187,7 +192,7 @@ export const GROUP_C: DashboardModule[] = [
     Component: Visualizer,
     settings: [
       enumSetting("mode", "Mode", "bars", opts(VIZ_MODES), { group: "Visualizer" }),
-      deviceSetting("device", "Audio device", "audio", { group: "Visualizer" }),
+      deviceSetting("Audio device", "audio", { group: DEVICE }),
       numberSetting("bands", "Bands (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Visualizer" }),
       numberSetting("sensitivity", "Sensitivity", 1.4, { min: 0.2, max: 4, step: 0.1, group: "Visualizer" }),
       boolSetting("peaks", "Peak caps", true, { group: "Visualizer" }),
@@ -199,7 +204,7 @@ export const GROUP_C: DashboardModule[] = [
       ...pick<VisualizerProps>(["peaks"])(s),
       vizLook: vizLookOf(s, saved),
       mode: oneOf(s.mode, VIZ_MODES),
-      device: stringOf(s.device),
+      device: deviceOf(s),
       bands: autoCount(s.bands),
       ramp: stringOf(s.ramp),
       sensitivity: numberOf(s.sensitivity),

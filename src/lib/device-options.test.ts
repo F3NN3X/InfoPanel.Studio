@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deviceOptions } from "./device-options";
+import { AUTO_RULES, autoDevice, deviceOptions, deviceReading } from "./device-options";
 import type { SensorMap } from "@/modules/types";
 
 const t = (text: string) => ({ text, unit: "" });
@@ -43,5 +43,34 @@ describe("deviceOptions", () => {
 
   it("is just Auto with no live keys", () => {
     expect(deviceOptions("cpu", {})).toEqual([{ value: "", label: "Auto" }]);
+  });
+});
+
+describe("Auto (SPEC §4.5)", () => {
+  const live: SensorMap = {
+    ...sensors,
+    "libre.wifi_download_speed": { value: 900, unit: "KB/s" },
+    "libre.wifi_upload_speed": { value: 100, unit: "KB/s" },
+    "plugins.audio-level-meter.default-audio.audio-level": { value: 10, unit: "%" },
+    "plugins.audio-level-meter.dev-1.audio-level": { value: 60, unit: "%" },
+  };
+
+  it("states its rule per kind", () => {
+    expect(AUTO_RULES.adapter).toBe("Busiest adapter");
+    expect(AUTO_RULES.audio).toBe("Loudest live device");
+    expect(AUTO_RULES.cpu).toBe("First detected processor");
+  });
+
+  it("picks the busiest adapter, the loudest audio device, else the first", () => {
+    expect(autoDevice("adapter", live)).toBe("wifi");
+    expect(autoDevice("audio", live)).toBe("dev-1");
+    expect(autoDevice("cpu", live)).toBe("amd_ryzen_9_9950x3d");
+    expect(autoDevice("gpu", {})).toBeUndefined();
+  });
+
+  it("reads each device's live value", () => {
+    expect(deviceReading("cpu", "amd_ryzen_9_9950x3d", live)).toBe("3 %");
+    expect(deviceReading("audio", "dev-1", live)).toBe("60 %");
+    expect(deviceReading("gpu", "missing", live)).toBeUndefined();
   });
 });

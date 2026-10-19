@@ -42,8 +42,8 @@ const webpage = widgetContext(mod("WebPage"));
 const panel: InspectorContext = { kind: "panel", defs: PANEL_SETTINGS };
 
 describe("every setting is in exactly one section of exactly one tab", () => {
-  // A widget without a header has no Show title row; a title-only one keeps it behind More (a stored "off" stays reachable).
-  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !(d.key === "showTitle" && m.header === "none"));
+  // A widget without a header, or with a title-only one, has no Show title row (config v7 dropped a stored one).
+  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")));
   const contexts: [string, InspectorContext, ModuleSetting[]][] = [
     ...modules.map((m): [string, InspectorContext, ModuleSetting[]] => [m.id, widgetContext(m), shown(m)]),
     ["cards", { kind: "widget", defs: CARD_SETTINGS }, CARD_SETTINGS],
@@ -107,7 +107,7 @@ describe("widget sections", () => {
   it("files Header, the widget's own sections and Fit in Show", () => {
     expect(titles(sectionsFor(spotify, "show"))).toEqual(["Header", "Now playing", "Visualizer", "Cover art", "Visualizer shape", "Fit"]);
     expect(find(sectionsFor(spotify, "show"), "Header").extras.map((e) => e.kind)).toEqual(["widgetPicker", "visible"]);
-    expect(keysOf([find(sectionsFor(spotify, "show"), "Fit")])).toEqual(["layout", "variant", "compactView"]);
+    expect(keysOf([find(sectionsFor(spotify, "show"), "Fit")])).toEqual(["compact", "sizeTier"]);
   });
 
   it("files the look sections in Style, the widget's colors as Widget colors", () => {
@@ -142,25 +142,27 @@ describe("widget sections", () => {
     }
   });
 
-  it("keeps the meter's colors in Show, behind its More one by one", () => {
-    const meter = find(sectionsFor(widgetContext(mod("AudioMeter")), "show"), "Meter");
-    expect(meter.settings.filter(isMore).map((d) => d.key)).toEqual(["levelColor", "hotColor"]);
+  it("files the meter's colors in Widget colors once its response moved to Motion (a colour-only group)", () => {
+    const audio = widgetContext(mod("AudioMeter"));
+    expect(titles(sectionsFor(audio, "show"))).not.toContain("Meter");
+    expect(keysOf([find(sectionsFor(audio, "style"), "Widget colors")])).toEqual(["levelColor", "hotColor"]);
+    expect(keysOf([find(sectionsFor(audio, "behaviour"), "Motion")])).toEqual(["smoothing", "meterBallistics"]);
   });
 
   it("files the device and Audio source in Data, after the bound data", () => {
     const data = sectionsFor(spotify, "data");
     expect(titles(data)).toEqual(["Bound data", "Visualizer", "Audio source"]);
     expect(data[0]).toMatchObject({ special: "boundData" });
-    expect(keysOf(data)).toEqual(["liveSource", "liveCapture", "liveSources"]);
+    expect(keysOf(data)).toEqual(["device", "liveCapture", "devices"]);
     expect(titles(sectionsFor(spotify, "show"))).not.toContain("Audio source");
   });
 
   it("files thresholds, the widget's behaviour, the island and graph updates in Behaviour", () => {
     expect(titles(sectionsFor(system, "behaviour"))).toEqual(["Thresholds", "Trends", "Motion"]);
-    expect(keysOf([find(sectionsFor(system, "behaviour"), "Thresholds")])).toEqual(["tempWarn", "tempCrit", "vramWarn", "loadWarn", "loadCrit"]);
+    expect(keysOf([find(sectionsFor(system, "behaviour"), "Thresholds")])).toEqual(["warn.load", "warn.temp", "warn.full"]);
     expect(titles(sectionsFor(spotify, "behaviour"))).toEqual(["Visualizer dynamics", "Dynamic Island", "Motion"]);
     expect(keysOf([find(sectionsFor(spotify, "behaviour"), "Motion")])).toEqual(["smoothing"]);
-    expect(keysOf(sectionsFor(widgetContext(mod("GpuMonitor")), "behaviour"))).toEqual(["warnTemp", "critTemp", "smoothing"]);
+    expect(keysOf(sectionsFor(widgetContext(mod("GpuMonitor")), "behaviour"))).toEqual(["warn.temp", "smoothing"]);
     expect(sectionsFor(webpage, "behaviour")).toEqual([]);
   });
 
@@ -172,15 +174,15 @@ describe("widget sections", () => {
     }
   });
 
-  it("offers no Hide when idle (removed), and Layout only to adaptive ones", () => {
+  it("offers no Hide when idle (removed), and Density only to adaptive ones", () => {
     for (const m of modules) {
       const sections = allSections(widgetContext(m));
       const keys = keysOf(sections);
       expect(keys.includes("hideWhenIdle"), `${m.id} idle`).toBe(false);
-      const adaptive = (m.settings ?? []).some((d) => d.key === "layout");
-      expect(keys.includes("layout"), `${m.id} layout`).toBe(adaptive);
+      const adaptive = (m.settings ?? []).some((d) => d.key === "sizeTier");
+      expect(keys.includes("sizeTier"), `${m.id} sizeTier`).toBe(adaptive);
     }
-    const adaptive = modules.filter((m) => (m.settings ?? []).some((d) => d.key === "layout")).map((m) => m.id);
+    const adaptive = modules.filter((m) => (m.settings ?? []).some((d) => d.key === "sizeTier")).map((m) => m.id);
     expect(adaptive).toContain("NowPlaying");
     expect(adaptive).not.toContain("WebPage");
   });
@@ -225,13 +227,12 @@ describe("header modes", () => {
     expect(header.settings.map((d) => [d.key, isMore(d)])).toEqual([["showTitle", false], ["label", false], ["icon", true]]);
   });
 
-  it("shows Title (with its hint) and Icon on a title-only widget, Show title behind More", () => {
+  it("shows Title (with its hint) and Icon on a title-only widget, no Show title", () => {
     for (const id of TITLE_ONLY) {
       const header = find(sectionsFor(widgetContext(mod(id)), "show"), "Header");
-      expect(header.settings.map((d) => d.key), id).toEqual(["showTitle", "label", "icon"]);
-      expect(header.settings[0].more, id).toBe(true);
-      expect(header.settings[1].hint, id).toBe(TITLE_ONLY_HINT);
-      expect(isVisible(header.settings[1], { showTitle: false }), id).toBe(true);
+      expect(header.settings.map((d) => d.key), id).toEqual(["label", "icon"]);
+      expect(header.settings[0].hint, id).toBe(TITLE_ONLY_HINT);
+      expect(isVisible(header.settings[0], { showTitle: false }), id).toBe(true);
     }
   });
 
@@ -437,11 +438,11 @@ describe("source states and changed counts", () => {
     expect(tabChangedCounts(sections, values)).toEqual({ show: 0, style: 0, data: 0, behaviour: 0 });
   });
 
-  it("lists the stored keys a custom section's Reset drops (both axes of an alignment), none while it follows", () => {
+  it("lists the stored keys a custom section's Reset drops (an alignment's cell and spread), none while it follows", () => {
     const sections = allSections(spotify);
-    const own = { alignX: "start", alignY: "end", scale: 120 };
+    const own = { align: "bl", alignSpread: true, scale: 120 };
     const values = widgetLookValues({ own, levels: {}, follow: { spacing: false } });
-    expect(resetKeysOfSection(find(sections, "Size & spacing"), values).sort()).toEqual(["alignX", "alignY", "scale"]);
+    expect(resetKeysOfSection(find(sections, "Size & spacing"), values).sort()).toEqual(["align", "alignSpread", "scale"]);
     expect(resetKeysOfSection(find(sections, "Size & spacing"), widgetLookValues({ own, levels: {} }))).toEqual([]);
   });
 });
@@ -482,8 +483,8 @@ describe("More rows", () => {
   it("splits a section at its More (n) link, the More extras counting too", () => {
     const style = sectionsFor(system, "style");
     const spacing = splitMore(find(style, "Size & spacing"));
-    expect(spacing.rows.map((d) => d.key)).toEqual(["scale", "alignX", "padding", "gap", "radius"]);
-    expect([spacing.more.map((d) => d.key), spacing.count]).toEqual([["autoScale"], 1]);
+    expect(spacing.rows.map((d) => d.key)).toEqual(["scale", "align", "padding", "gap", "radius"]);
+    expect([spacing.more.map((d) => d.key), spacing.count]).toEqual([[], 0]);
     // The zone frame (3 fields) waits behind Border & glow's More.
     expect(splitMore(find(style, "Border & glow"))).toMatchObject({ more: [], count: 3 });
     expect(splitMore(find(style, "Custom CSS"))).toMatchObject({ rows: [], count: 1 });
@@ -598,8 +599,8 @@ describe("inspectorNotes", () => {
 describe("settingKeys coverage", () => {
   it("never lists an align picker's second key as a separate setting", () => {
     const keys = allSections(spotify).flatMap((s) => s.settings.flatMap(settingKeys));
-    expect(keys).toContain("alignY");
-    expect(keysOf(allSections(spotify))).not.toContain("alignY");
+    expect(keys).toContain("alignSpread");
+    expect(keysOf(allSections(spotify))).not.toContain("alignSpread");
   });
 });
 

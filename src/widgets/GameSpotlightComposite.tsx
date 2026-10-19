@@ -8,7 +8,7 @@ export type CompositeVariant = "card" | "standard" | "compact" | "simple";
 export interface CompositeProps {
   w: number;
   h: number;
-  /** A forced variant from the standard `layout` setting; anything else adapts to the zone. */
+  /** A forced variant from the standard Density (`sizeTier`, the old `layout`); anything else adapts to the zone. */
   forced?: unknown;
   /** Colour of the big playtime when the accent was set explicitly. */
   accent?: string;
@@ -37,10 +37,12 @@ export interface CompositeProps {
 }
 
 const VARIANTS: readonly CompositeVariant[] = ["card", "standard", "compact", "simple"];
+/** The variant each Density tier forces (Roomy = card … Minimal = simple). */
+const TIER_VARIANT: Readonly<Record<string, CompositeVariant>> = { lg: "card", md: "standard", sm: "compact", xs: "simple" };
 
-/** The legacy pick: forced by the standard layout, else from the zone's size and shape. */
+/** The legacy pick: forced by the standard Density (a tier or an old layout name), else from the zone's size and shape. */
 export function pickVariant(w: number, h: number, forced?: unknown): CompositeVariant {
-  const f = VARIANTS.find((v) => v === forced);
+  const f = TIER_VARIANT[String(forced)] ?? VARIANTS.find((v) => v === forced);
   if (f) return f;
   if (!w || !h) return "standard";
   if (h <= 72) return "compact";

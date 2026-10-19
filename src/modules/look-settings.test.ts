@@ -6,7 +6,7 @@ import { SKIN_PACKS } from "@/widgets/core/theme";
 import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_KEYS, STANDARD_SETTINGS, STYLE_SETTINGS } from "./standard-settings";
 import { isMore } from "./types";
 
-const LOOK_DEFAULTS = { skin: "auto", variant: "default", graph: "auto", meter: "auto", compactView: "auto" };
+const LOOK_DEFAULTS = { skin: "auto", graph: "auto", meter: "auto" };
 const find = (defs: typeof STYLE_SETTINGS, key: string) => defs.find((d) => d.key === key)!;
 const values = (defs: typeof STYLE_SETTINGS, key: string) => find(defs, key).options!.map((o) => o.value);
 
@@ -23,12 +23,13 @@ describe("look settings", () => {
     expect(find(STYLE_SETTINGS, "skin").options![1].label).toBe("Default");
   });
 
-  it("offer the graph, meter and variant choices", () => {
+  it("offer the graph and meter choices; Small zones and Density are the template widgets' own (no look keys)", () => {
     expect(values(STYLE_SETTINGS, "graph")).toEqual(["auto", "area", "line", "step", "bars", "dots", "braille"]);
     expect(values(STYLE_SETTINGS, "meter")).toEqual(["auto", "bar", "pill", "segments", "blocks", "hair", "wave", "square"]);
-    expect(values(STYLE_SETTINGS, "variant")).toEqual(["default", "studio"]);
-    expect(values(STYLE_SETTINGS, "compactView")).toEqual(["auto", "off", "on"]);
-    expect(find(STYLE_SETTINGS, "compactView").label).toBe("Summary card");
+    expect(values(STANDARD_SETTINGS, "compact")).toEqual(["auto", "full", "card", "dense"]);
+    expect(find(STANDARD_SETTINGS, "compact").label).toBe("Small zones");
+    expect(values(STANDARD_SETTINGS, "sizeTier")).toEqual(["auto", "lg", "md", "sm", "xs"]);
+    for (const key of ["compact", "sizeTier", "variant", "compactView", "layout", "autoScale"]) expect(PROFILE_STYLE_KEYS.has(key), key).toBe(false);
   });
 
   it("reach widgets, cards and (skin, graph, meter only) panels", () => {
@@ -38,8 +39,10 @@ describe("look settings", () => {
     }
     const panel = PANEL_SETTINGS.map((d) => d.key);
     expect(["skin", "graph", "meter"].every((k) => panel.includes(k))).toBe(true);
-    expect(panel).not.toContain("variant");
-    expect(panel).not.toContain("compactView");
+    for (const key of ["compact", "sizeTier"]) {
+      expect(panel).not.toContain(key);
+      expect(CARD_SETTINGS.some((d) => d.key === key), key).toBe(false);
+    }
   });
 
   it("file under Skin & graphics in Style, with graph and meter behind More, and graph updates in Motion", () => {

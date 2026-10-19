@@ -16,16 +16,16 @@ const TEXT_ONLY: Record<string, string> = {
   TextFile: "a preformatted text block from the sm tier",
 };
 
-const TIERS = ["simple", "compact", "standard", "card"] as const;
+const TIERS = ["xs", "sm", "md", "lg"] as const;
 // Web Page offers none of these controls (its settings are its own short list).
-const OFFERING = TEMPLATE_MODULES.filter((m) => (m.settings ?? []).some((d) => d.key === "alignX"));
+const OFFERING = TEMPLATE_MODULES.filter((m) => (m.settings ?? []).some((d) => d.key === "align"));
 const SENSORS = fixtureSensors();
 const defaults = (m: DashboardModule): ModuleSettings => ({ ...STANDARD_DEFAULTS, ...Object.fromEntries((m.settings ?? []).map((d) => [d.key, d.default])) });
 
 /** The body's root element per forced tier: its tag and class list. */
 function roots(m: DashboardModule, over: ModuleSettings = {}): { tag: string; cls: string[] }[] {
-  return TIERS.map((layout) => {
-    const out = renderToStaticMarkup(m.render(SENSORS, { ...defaults(m), layout, ...over }) as never);
+  return TIERS.map((sizeTier) => {
+    const out = renderToStaticMarkup(m.render(SENSORS, { ...defaults(m), sizeTier, ...over }) as never);
     const at = out.search(/data-wp-body/);
     const tag = out.slice(out.indexOf(">", at) + 1).match(/^<(\w+)(?:[^>]*?class="([^"]*)")?/);
     return { tag: tag?.[1] ?? "", cls: (tag?.[2] ?? "").split(/\s+/) };
@@ -47,7 +47,8 @@ describe("templates honour the standard alignment and gap", () => {
   it("every template offering them flags its body with the chosen options", () => {
     expect(OFFERING.length).toBe(TEMPLATE_MODULES.length - 1);
     for (const m of OFFERING) {
-      const out = renderToStaticMarkup(m.render(SENSORS, { ...defaults(m), alignX: "end", alignY: "start", gap: "8" }) as never);
+      // Top right: the horizontal axis at the end, the vertical at the start.
+      const out = renderToStaticMarkup(m.render(SENSORS, { ...defaults(m), align: "tr", gap: "8" }) as never);
       expect(out, m.id).toMatch(/data-wp-body="" data-wp-x="end" data-wp-y="start" data-wp-gap=""/);
     }
   });

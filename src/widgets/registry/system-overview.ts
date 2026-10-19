@@ -1,10 +1,10 @@
 // SystemOverview's stored settings (the detail switches keep the old System widget's keys) and the
 // mapping to template props.
+import { decimalsOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { Detail, Section, SystemOverviewProps } from "../SystemOverview";
-import { boolSetting, colorSetting, enumSetting, numberSetting, oneOf, splitKeys, textSetting } from "./settings-kit";
+import { boolSetting, colorSetting, enumSetting, formatSetting, oneOf, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
 
-const GROUP_THRESHOLDS = "Thresholds";
 const GROUP_UNITS = "Units & labels";
 
 /** The detail switches, each stored under the old System widget's key. */
@@ -62,58 +62,11 @@ const DETAIL_SETTINGS: ModuleSetting[] = [
     group: "Trends",
     tab: "behaviour",
   },
-  {
-    key: "tempWarn",
-    label: "Temperature warning (°C)",
-    type: "number",
-    default: 80,
-    min: 50,
-    max: 100,
-    step: 5,
-    group: GROUP_THRESHOLDS,
-  },
-  {
-    key: "tempCrit",
-    label: "Temperature critical (°C)",
-    type: "number",
-    default: 90,
-    min: 50,
-    max: 110,
-    step: 5,
-    group: GROUP_THRESHOLDS,
-  },
-  {
-    key: "vramWarn",
-    label: "VRAM / drive full warning (%)",
-    type: "number",
-    default: 90,
-    min: 10,
-    max: 100,
-    step: 5,
-    group: GROUP_THRESHOLDS,
-  },
-  {
-    key: "tempUnit",
-    label: "Temperature unit",
-    type: "select",
-    default: "c",
-    options: [
-      { value: "c", label: "Celsius (°C)" },
-      { value: "f", label: "Fahrenheit (°F)" },
-    ],
-    group: GROUP_UNITS,
-  },
-  {
-    key: "decimals",
-    label: "Decimals",
-    type: "select",
-    default: "0",
-    options: [
-      { value: "0", label: "None" },
-      { value: "1", label: "One" },
-    ],
-    group: GROUP_UNITS,
-  },
+  thresholdSetting("load"),
+  thresholdSetting("temp"),
+  thresholdSetting("full", { hint: "VRAM and drive fullness" }),
+  formatSetting("tempUnit"),
+  formatSetting("decimals", { options: ["auto", "0", "1"].map((value) => ({ value, label: value === "auto" ? "Auto" : value })), hint: "Auto: none" }),
   { key: "cpuLabel", label: "CPU label", type: "text", default: "", group: GROUP_UNITS },
   { key: "gpuLabel", label: "GPU label", type: "text", default: "", group: GROUP_UNITS },
   { key: "ramLabel", label: "RAM label", type: "text", default: "", group: GROUP_UNITS },
@@ -127,14 +80,12 @@ const DETAIL_SETTINGS: ModuleSetting[] = [
 
 const GROUP_OVERVIEW = "System Overview";
 
-/** Sections, core view, ring, detail level, load thresholds, NET label and colour. */
+/** Sections, core view, ring, detail level, NET label and colour. */
 const OVERVIEW_ONLY: ModuleSetting[] = [
   enumSetting("sections", "Sections", "cpu,gpu,ram", SECTIONS.map((v) => ({ value: v, label: v === "disk" ? "Disks" : v === "net" ? "Network" : v.toUpperCase() })), { multiple: true, group: GROUP_OVERVIEW }),
   enumSetting("details", "Detail level", "auto", [{ value: "auto", label: "Auto" }, { value: "min", label: "Minimal" }, { value: "full", label: "Full" }], { group: GROUP_OVERVIEW }),
   enumSetting("ring", "Load rings", "ring", [{ value: "ring", label: "Rings" }, { value: "none", label: "None" }], { group: GROUP_OVERVIEW }),
   enumSetting("coreView", "CPU threads view", "heatmap", [{ value: "heatmap", label: "Heatmap" }, { value: "bars", label: "Bars" }, { value: "off", label: "Off" }], { group: GROUP_OVERVIEW }),
-  numberSetting("loadWarn", "Load warning (%)", 80, { min: 10, max: 100, step: 5, group: GROUP_THRESHOLDS }),
-  numberSetting("loadCrit", "Load critical (%)", 92, { min: 10, max: 100, step: 5, group: GROUP_THRESHOLDS }),
   textSetting("netLabel", "Network label", "", { group: GROUP_UNITS }),
   boolSetting("unifiedColor", "Accent for every section", false, { group: "Device colors", tab: "style", advanced: true }),
   enumSetting("heatRamp", "Thread heat ramp", "accent", [{ value: "accent", label: "Accent" }, { value: "thermal", label: "Thermal" }], { group: "Device colors", tab: "style", advanced: true }),
@@ -149,7 +100,7 @@ const SECTION_OF: Record<string, readonly Section[]> = {
   ...Object.fromEntries(["showDiskTemp", "showDiskIo", "showDiskLife", "diskFilter", "diskLabel", "diskColor"].map((k) => [k, ["disk"]])),
   ...Object.fromEntries(["netLabel", "netColor"].map((k) => [k, ["net"]])),
   vramColor: ["vram"],
-  vramWarn: ["vram", "disk"],
+  "warn.full": ["vram", "disk"],
 };
 /** Further conditions: the thread ramp colours the heatmap, the length sizes the sparklines. */
 const ALSO: Record<string, (v: ModuleSettings) => boolean> = {
@@ -183,13 +134,17 @@ export function systemOverviewProps(s: ModuleSettings): Partial<SystemOverviewPr
   if (Object.keys(show).length) out.show = show;
   if (s.sparkline !== undefined) out.sparkline = Boolean(s.sparkline);
   if (has(s, "historyLength")) out.historyLength = Math.max(12, Math.round(Number(s.historyLength) || 48));
-  if (has(s, "loadWarn")) out.warn = Number(s.loadWarn) || 80;
-  if (has(s, "loadCrit")) out.crit = Number(s.loadCrit) || 95;
-  if (has(s, "tempWarn")) out.tempWarn = Number(s.tempWarn) || 80;
-  if (has(s, "tempCrit")) out.tempCrit = Number(s.tempCrit) || 90;
-  if (has(s, "vramWarn")) out.vramWarn = Number(s.vramWarn) || 90;
-  if (has(s, "tempUnit")) out.tempUnit = s.tempUnit === "f" ? "f" : "c";
-  if (has(s, "decimals")) out.decimals = Number(s.decimals) === 1 ? 1 : 0;
+  const load = thresholdsOf(s, "load", ["loadWarn", "loadCrit"]);
+  const temp = thresholdsOf(s, "temp", ["tempWarn", "tempCrit"]);
+  const full = thresholdsOf(s, "full", ["vramWarn", "vramCrit"]);
+  if (load.warn !== undefined) out.warn = load.warn;
+  if (load.crit !== undefined) out.crit = load.crit;
+  if (temp.warn !== undefined) out.tempWarn = temp.warn;
+  if (temp.crit !== undefined) out.tempCrit = temp.crit;
+  if (full.warn !== undefined) out.vramWarn = full.warn;
+  if (full.crit !== undefined) out.vramCrit = full.crit;
+  out.tempUnit = tempUnitOf(s);
+  out.decimals = decimalsOf(s) === 1 ? 1 : 0;
   if (has(s, "diskFilter")) out.diskFilter = String(s.diskFilter);
   const labels = Object.fromEntries((Object.entries(LABEL_KEYS) as [Section, string][]).filter(([, key]) => text(s[key])).map(([k, key]) => [k, text(s[key])]));
   if (Object.keys(labels).length) out.labels = labels;

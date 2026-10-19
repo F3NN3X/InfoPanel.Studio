@@ -14,7 +14,8 @@ const METER_BALLISTICS: ModuleSetting = {
     { value: "vu", label: "VU (slow)" },
     { value: "instant", label: "Instant" },
   ],
-  group: "Meter",
+  // Themed since config v7: Behaviour › Motion, with Graph updates.
+  section: "motion",
 };
 
 const METER_VARIANT: ModuleSetting = {

@@ -3,7 +3,14 @@ import { normalizeBackground, type PageBackground } from "./appearance";
 import { normalizeAppearancePresets, type AppearancePreset } from "./appearance-presets";
 import type { ModuleSettings } from "@/modules/types";
 import type { SectionFlags, WidgetTheme } from "./theme-model";
-import { migrateBaseStyleV6, migrateProfileV6, type LegacyProfileFields } from "./settings-migrate";
+import {
+  migrateBaseStyleV6,
+  migrateGeneralV7,
+  migrateProfileV6,
+  migrateProfileV7,
+  migrateStyleV7,
+  type LegacyProfileFields,
+} from "./settings-migrate";
 import { normalizeApiBase } from "./data-api";
 import { normalizeGeneral, type GeneralSettings } from "./general";
 import { normalizeSpacing } from "./profile-grid";
@@ -202,8 +209,11 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  * v5: the server's copy holds canvas zones as `canvasRef`; a v4 build would push them back empty.
  * v6: the widget theme (`settings-migrate.ts`): `styleMode` → `follow`, a profile's `style` /
  *     `styleEnforce` → `widgetTheme`; a v5 build would read every widget as its own look.
+ * v7: the shared keys (`settings-migrate.ts`): Small zones, Density, one alignment key, the
+ *     thresholds, devices, units and decimals under their shared names, `general.hour12` →
+ *     the themed `clock`; a v6 build would read none of them.
  */
-export const CONFIG_VERSION = 6;
+export const CONFIG_VERSION = 7;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -464,8 +474,8 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * migrations: v1→v2 fills explicit zone boxes + rows on legacy profiles,
  * v2→v3 moves a profile's zones onto its first page, v3→v4 rewrites the
  * legacy module ids to their templates, v5→v6 moves the style onto the
- * widget theme (`settings-migrate.ts`); a pin to a missing profile falls
- * back to Auto.
+ * widget theme, v6→v7 renames the shared keys (`settings-migrate.ts`); a
+ * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
   const parsed = migrateAssetUrls(input);
@@ -483,7 +493,10 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
         base: isSettings(parsed.style) ? parsed.style : undefined,
         enforce: parsed.styleEnforce === true,
       })
-    );
+    )
+    .map((p) => migrateProfileV7(p, { legacy: (parsed.version ?? 0) < 7 }));
+  // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
+  const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
   // A pin to a profile that is gone falls back to Auto.
   const byId = new Set(profiles.map((p) => p.id));
   let activeProfile = parsed.activeProfile ?? defaults.activeProfile;
@@ -497,12 +510,14 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
     theme: { ...DEFAULT_THEME, ...parsed.theme },
     radius: parsed.radius ?? defaults.radius,
     dataApiUrl: normalizeApiBase(parsed.dataApiUrl) ?? undefined,
-    stylePresets: Array.isArray(parsed.stylePresets) ? parsed.stylePresets : undefined,
+    stylePresets: Array.isArray(parsed.stylePresets)
+      ? parsed.stylePresets.map((p) => (isSettings(p?.settings) ? { ...p, settings: migrateStyleV7(p.settings) } : p))
+      : undefined,
     panelPresets: normalizePanelPresets(parsed.panelPresets),
     background: normalizeBackground(parsed.background),
-    style: isSettings(parsed.style) ? migrateBaseStyleV6(parsed.style) : undefined,
+    style: v7.style,
     appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
-    general: normalizeGeneral(parsed.general),
+    general: normalizeGeneral(v7.general),
     alerts: normalizeAlerts(parsed.alerts),
   };
 }

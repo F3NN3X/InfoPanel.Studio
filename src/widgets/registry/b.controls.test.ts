@@ -18,13 +18,13 @@ const drive = (usedPct: number): SensorMap => {
 const critical = /1(<!-- -->)? critical/;
 
 describe("DriveSpace thresholds", () => {
-  it("uses the documented 92 for the critical pill, not 90", () => {
-    expect(renderModule(mod("DriveSpace"), {}, drive(91))).not.toMatch(critical);
-    expect(renderModule(mod("DriveSpace"), {}, drive(93))).toMatch(critical);
+  it("uses the theme's Fullness critical (95) for the pill until the widget sets its own", () => {
+    expect(renderModule(mod("DriveSpace"), {}, drive(94))).not.toMatch(critical);
+    expect(renderModule(mod("DriveSpace"), {}, drive(96))).toMatch(critical);
   });
-  it("still parses thresholds stored as text, and blank means the default", () => {
-    expect(renderModule(mod("DriveSpace"), { crit: "90" }, drive(91))).toMatch(critical);
-    expect(renderModule(mod("DriveSpace"), { crit: "", warn: "" }, drive(91))).not.toMatch(critical);
+  it("reads its own level, and Off never trips", () => {
+    expect(renderModule(mod("DriveSpace"), { "crit.full": 90 }, drive(91))).toMatch(critical);
+    expect(renderModule(mod("DriveSpace"), { "crit.full": "off" }, drive(99))).not.toMatch(critical);
   });
 });
 
@@ -95,7 +95,7 @@ describe("DiskIO", () => {
     const disk = (id: string, name: string): SensorMap => ({ [`libre.${id}_power_on_hours`]: { value: 1, unit: "" }, [`libre.${id}_read_rate`]: { value: 1, unit: "KB/s" }, [`libre.${id}_write_rate`]: { value: 1, unit: "KB/s" }, [`libre.${id}_total_activity`]: { value: name.length, unit: "%" } });
     const sensors = { ...disk("alpha_1", "a"), ...disk("bravo_2", "b") };
     expect(renderModule(mod("DiskIO"), {}, sensors)).toContain("Alpha");
-    const pinned = renderModule(mod("DiskIO"), { disk: "bravo_2" }, sensors);
+    const pinned = renderModule(mod("DiskIO"), { device: "bravo_2" }, sensors);
     expect(pinned).toContain("Bravo");
     expect(pinned).not.toContain("Alpha");
   });

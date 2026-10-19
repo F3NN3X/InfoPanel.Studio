@@ -3,6 +3,7 @@ import { IconGrid, type IconGridItem } from "@/components/ui/icon-grid";
 import type { ApiSources } from "@/lib/catalog";
 import { sourceOptions } from "@/lib/sources";
 import { WIDGET_ICONS } from "@/lib/widget-icons";
+import { alignAxes, alignCodeOf } from "@/modules/setting-readers";
 import { isDeviceKind, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
 import { AlignGrid } from "./align-grid";
 import { splitUnit } from "./inspector/number-box";
@@ -21,6 +22,7 @@ import { DevicePicker, MediaDevicePicker, MultiSelect, NameListField, WavelinkMe
 import { SensorField } from "./widget-editor/sensor-field";
 import { SensorItemsField } from "./widget-editor/sensor-items-field";
 import { SensorListField } from "./widget-editor/sensor-list-field";
+import { ThresholdsRow } from "./thresholds-control";
 
 /** The icon grid's cells: "none" first, then every widget icon. */
 const ICONS: IconGridItem[] = [
@@ -51,10 +53,11 @@ export function SettingRow({
   trail,
   changed,
   hint,
+  tempUnit,
 }: {
   def: ModuleSetting;
   value: ModuleSettingValue;
-  /** Type "align": the value of `def.keyY`. */
+  /** Types "align" and "thresholds": the value of `def.keyY`. */
   valueY?: ModuleSettingValue;
   /** `editKey` names the field edited, so the undo step coalesces per field (type "sensorItems"). */
   onChange: (value: ModuleSettingValue, editKey?: string) => void;
@@ -62,7 +65,7 @@ export function SettingRow({
   refValue?: ModuleSettingValue;
   /** Preset bundles: apply extra key/values alongside the selected one. */
   onApply?: (bundle: ModuleSettings) => void;
-  /** Type "align": write both keys as one change. */
+  /** Types "align" and "thresholds": write both keys as one change. */
   onPatch?: (patch: ModuleSettings) => void;
   /** Type "sensor": the data picker's "Open data explorer". */
   onOpenExplorer?: () => void;
@@ -74,23 +77,45 @@ export function SettingRow({
   /** The value is set here (a brighter label). */
   changed?: boolean;
   hint?: string;
+  /** Type "thresholds": the widget's resolved temperature unit (a temperature reads in °F for f). */
+  tempUnit?: "c" | "f";
 }) {
   const label: RowLabelProps = { label: def.label, lead, trail, changed, hint };
   switch (def.type) {
     case "align": {
-      const auto = String(def.default);
+      // One cell code (`align`) and the spread toggle (`keyY`, `alignSpread`): the grid edits them as two axes.
+      const { alignX, alignY } = alignAxes(value);
+      const spread = valueY === true;
       return (
         <StackRow {...label}>
           <AlignGrid
             label={def.label}
-            x={String(value)}
-            y={String(valueY ?? def.default)}
+            x={spread ? "between" : alignX}
+            y={alignY}
             spread="x"
-            onChange={(x, y) => onPatch?.({ [def.key]: x ?? auto, [def.keyY ?? def.key]: y ?? auto })}
+            onChange={(x, y) => onPatch?.({ [def.key]: alignCodeOf(x, y), ...(def.keyY ? { [def.keyY]: x === "between" } : {}) })}
           />
         </StackRow>
       );
     }
+
+    case "thresholds":
+      return (
+        <ThresholdsRow
+          {...label}
+          quantity={def.quantity ?? "value"}
+          warn={value}
+          crit={valueY}
+          defaults={{ warn: def.default, crit: def.defaultY }}
+          tempUnit={tempUnit}
+          onChange={(patch) =>
+            onPatch?.({
+              ...(patch.warn !== undefined ? { [def.key]: patch.warn } : {}),
+              ...(patch.crit !== undefined && def.keyY ? { [def.keyY]: patch.crit } : {}),
+            })
+          }
+        />
+      );
 
     case "sensorItems":
       return <SensorItemsField {...label} value={String(value)} keys={String(refValue ?? "")} onChange={onChange} />;
@@ -146,8 +171,8 @@ export function SettingRow({
       if (def.optionsFrom === "wavelink") {
         return <WavelinkMeterPicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
       }
-      // Hardware / audio / drive devices found in the live keys, "" = Auto.
-      if (isDeviceKind(def.optionsFrom) && !def.multiple) {
+      // Hardware / audio / drive devices found in the live keys: Auto and its pick, or a checkbox list.
+      if (isDeviceKind(def.optionsFrom)) {
         return <DevicePicker def={def} kind={def.optionsFrom} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
       }
       // Dynamic options resolved from live sensor data (a plugin's
@@ -169,14 +194,9 @@ export function SettingRow({
         const applies = def.options?.find((o) => o.value === v)?.applies;
         if (applies) onApply?.(applies);
       };
-      // Layout's "Auto (fit to zone)" shows as "Auto" (the cell is narrow); the full text is the tooltip.
-      const choices = options.map((o) => ({
-        value: o.value,
-        label: def.key === "layout" && o.value === "auto" ? "Auto" : o.label,
-        title: o.label,
-      }));
-      // Up to four options share a row; Layout (five) does too, the other long lists are selects.
-      return (options.length <= 4 || def.key === "layout") && options.length > 0 ? (
+      const choices = options.map((o) => ({ value: o.value, label: o.label, title: o.label }));
+      // Up to four options share a row; Density (five) does too, the other long lists are selects.
+      return (options.length <= 4 || def.key === "sizeTier") && options.length > 0 ? (
         <SegmentedRow {...label} options={choices} value={String(value)} onChange={apply} />
       ) : (
         <SelectRow {...label} options={choices} value={String(value)} onChange={apply} />

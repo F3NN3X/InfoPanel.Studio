@@ -264,7 +264,7 @@ describe("migration through pushConfig", () => {
     const urls = server.fetchMock.mock.calls.map(([u]) => u);
     expect(urls.lastIndexOf("/api/canvases")).toBeLessThan(urls.indexOf("/api/config"));
     const saved = JSON.parse(server.state.config!) as DashboardConfig;
-    expect(saved.version).toBe(6);
+    expect(saved.version).toBe(7);
     expect(zonesOf(saved).map((z) => [z.canvas, server.canvases.has(z.canvasRef!)])).toEqual([
       [undefined, true],
       [undefined, true],

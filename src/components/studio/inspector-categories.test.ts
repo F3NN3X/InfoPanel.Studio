@@ -33,8 +33,8 @@ const std = (key: string) => STANDARD_SETTINGS.find((d) => d.key === key)!;
 const color = (key: string, group?: string): ModuleSetting => ({ key, label: key, type: "color", default: "", group });
 
 const SHARED_TITLES = new Set(SHARED_SECTIONS.map((c) => c.title));
-/** The shared sections only the standard block fills. */
-const STANDARD_ONLY = new Set(["header", "fit", "skin", "colors", "surface", "type", "spacing", "border", "css", "motion"]);
+/** The shared sections only the standard block fills (Motion also holds the audio meters' response). */
+const STANDARD_ONLY = new Set(["header", "fit", "skin", "colors", "surface", "type", "spacing", "border", "css"]);
 
 const sheets: [string, ModuleSetting[]][] = [
   ...modules.map((m): [string, ModuleSetting[]] => [m.id, m.settings ?? []]),
@@ -79,7 +79,7 @@ describe("shared sections", () => {
   it("files the standard keys per spec §2.2, with smoothing in Motion", () => {
     const keysOf = (id: string) => STANDARD_SETTINGS.filter((d) => d.section === id).map((d) => d.key);
     expect(keysOf("header")).toEqual(["showTitle", "label", "icon"]);
-    expect(keysOf("fit")).toEqual(["layout", "variant", "compactView"]);
+    expect(keysOf("fit")).toEqual(["compact", "sizeTier"]);
     expect(keysOf("skin").sort()).toEqual(["graph", "meter", "skin", "stroke"]);
     expect(keysOf("colors").sort()).toEqual(["accent", "mutedColor", "preset", "textColor"]);
     expect(keysOf("surface").sort()).toEqual(["background", "backgroundOn", "blur", "surface", "surfaceOpacity"]);
@@ -91,7 +91,7 @@ describe("shared sections", () => {
 
   it("puts the spec's More rows behind More", () => {
     const more = STANDARD_SETTINGS.filter((d) => d.more).map((d) => d.key).sort();
-    expect(more).toEqual(["autoScale", "background", "backgroundOn", "customCss", "graph", "icon", "meter", "preset"]);
+    expect(more).toEqual(["background", "backgroundOn", "customCss", "graph", "icon", "meter", "preset", "sizeTier"]);
     expect(STANDARD_SETTINGS.some((d) => d.advanced)).toBe(false);
   });
 
@@ -267,7 +267,7 @@ describe("data settings", () => {
 });
 
 describe("withHeaderMode", () => {
-  const defs = [std("layout"), std("showTitle"), std("label"), std("icon"), def("own", "Own")];
+  const defs = [std("compact"), std("showTitle"), std("label"), std("icon"), def("own", "Own")];
   const keys = (list: ModuleSetting[]) => list.map((d) => `${d.key}:${d.section ?? "-"}`);
 
   it("keeps a header widget's rows", () => {
@@ -275,22 +275,21 @@ describe("withHeaderMode", () => {
     expect(withHeaderMode(defs)).toBe(defs);
   });
 
-  it("moves Show title behind More on a title-only widget and keeps Title visible with a hint", () => {
+  it("drops Show title on a title-only widget and keeps Title visible with a hint", () => {
     const out = withHeaderMode(defs, "title-only");
-    expect(keys(out)).toEqual(["layout:fit", "showTitle:header", "label:header", "icon:header", "own:-"]);
-    expect(out.find((d) => d.key === "showTitle")!.more).toBe(true);
+    expect(keys(out)).toEqual(["compact:fit", "label:header", "icon:header", "own:-"]);
     const title = out.find((d) => d.key === "label")!;
     expect(title.hint).toBe(TITLE_ONLY_HINT);
     expect(title.visibleIf).toBeUndefined();
   });
 
   it("moves Title and Icon to the end of Fit on a widget without a header that has a summary view", () => {
-    expect(keys(withHeaderMode(defs, "none", { card: true, dense: "fallback" }))).toEqual(["layout:fit", "own:-", "label:fit", "icon:fit"]);
-    expect(keys(withHeaderMode(defs, "none", { card: false, dense: true }))).toEqual(["layout:fit", "own:-", "label:fit", "icon:fit"]);
+    expect(keys(withHeaderMode(defs, "none", { card: true, dense: "fallback" }))).toEqual(["compact:fit", "own:-", "label:fit", "icon:fit"]);
+    expect(keys(withHeaderMode(defs, "none", { card: false, dense: true }))).toEqual(["compact:fit", "own:-", "label:fit", "icon:fit"]);
   });
 
   it("drops them when there is no summary view to name", () => {
-    expect(keys(withHeaderMode(defs, "none", { card: false, dense: false }))).toEqual(["layout:fit", "own:-"]);
-    expect(keys(withHeaderMode(defs, "none"))).toEqual(["layout:fit", "own:-"]);
+    expect(keys(withHeaderMode(defs, "none", { card: false, dense: false }))).toEqual(["compact:fit", "own:-"]);
+    expect(keys(withHeaderMode(defs, "none"))).toEqual(["compact:fit", "own:-"]);
   });
 });

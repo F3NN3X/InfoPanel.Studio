@@ -1,11 +1,14 @@
 /**
  * General settings — dashboard-wide preferences that aren't a look: the
- * page font, how clocks read (12 / 24 h, seconds, date locale), motion
- * and the kiosk cursor. Stored on `DashboardConfig.general` with only the
- * changed keys; `resolveGeneral` fills the defaults.
+ * page font, how clocks read (seconds, date locale), motion and the kiosk
+ * cursor. Stored on `DashboardConfig.general` with only the changed keys;
+ * `resolveGeneral` fills the defaults. The 12 / 24 h choice is the themed
+ * `clock` of the all-profiles style since config v7 (owner decision Q4).
  */
 
 import { ensureFont, FONT_CATALOG, FONT_IDS, fontById, type FontId } from "@/lib/fonts";
+import { hour12Of } from "@/modules/setting-readers";
+import type { ModuleSettings } from "@/modules/types";
 
 export type GeneralFont = FontId;
 export type MotionChoice = "system" | "reduce" | "full";
@@ -13,8 +16,6 @@ export type MotionChoice = "system" | "reduce" | "full";
 export interface GeneralSettings {
   /** The page font every widget's "Theme" (auto) font inherits ("system" = the browser's). */
   font?: GeneralFont;
-  /** 12-hour clocks; unset = the locale's own choice. */
-  hour12?: boolean;
   /** Clocks show seconds (default on). */
   showSeconds?: boolean;
   /** BCP 47 locale for dates and times; "" / unset = the system's. */
@@ -27,7 +28,7 @@ export interface GeneralSettings {
   kioskPageNav?: boolean;
 }
 
-/** GeneralSettings with every default filled (`hour12` stays optional). */
+/** GeneralSettings with every default filled, and the clocks' 12-hour switch (undefined: the locale's choice). */
 export interface ResolvedGeneral {
   font: GeneralFont;
   hour12: boolean | undefined;
@@ -75,9 +76,18 @@ export function isSupportedLocale(locale: string): boolean {
   }
 }
 
-/** The settings with defaults filled. */
-export function resolveGeneral(config: { general?: GeneralSettings }): ResolvedGeneral {
-  return { ...GENERAL_DEFAULTS, ...config.general };
+/** The settings with defaults filled; the 12-hour switch from the all-profiles style's `clock` (auto | 24 | 12). */
+export function resolveGeneral(config: { general?: GeneralSettings; style?: ModuleSettings }): ResolvedGeneral {
+  return { ...GENERAL_DEFAULTS, ...config.general, hour12: hour12Of(config.style?.clock) };
+}
+
+/** Whether the locale writes times with a 12-hour clock ("" = the system's). */
+export function localeHour12(locale: string): boolean {
+  try {
+    return new Intl.DateTimeFormat(locale || undefined, { hour: "numeric" }).resolvedOptions().hour12 === true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -89,7 +99,6 @@ export function normalizeGeneral(input: unknown): GeneralSettings | undefined {
   const v = input as Record<string, unknown>;
   const out: GeneralSettings = {};
   if (FONTS.includes(v.font as GeneralFont)) out.font = v.font as GeneralFont;
-  if (typeof v.hour12 === "boolean") out.hour12 = v.hour12;
   if (typeof v.showSeconds === "boolean") out.showSeconds = v.showSeconds;
   if (typeof v.locale === "string" && isSupportedLocale(v.locale.trim())) out.locale = v.locale.trim();
   if (MOTIONS.includes(v.motion as MotionChoice)) out.motion = v.motion as MotionChoice;

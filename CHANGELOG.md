@@ -33,8 +33,27 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   place it on the canvas" pill, and drop as a library gauge does (#47).
 - "Add to canvas" for an image-sequence gauge offers the page's canvas zones and inserts the gauge into the one picked
   (#47).
+- Widget settings v2 shared controls: a Thresholds control (zone bar, Warning / Critical sliders with an Off chip,
+  Critical never below Warning, temperatures in °F when the widget reads °F), a device picker that states what Auto
+  picks ("Busiest adapter · now Wi-Fi") with live readings and a checkbox list for multi-device rows, Small zones
+  (Auto / Full / Card / Dense, Card only where the widget has a summary card) and Density in the Fit section, a 9-cell
+  alignment with Spread (quick-bar-able), and Units & format rows (temperature unit, rate unit, decimals, clock)
+  where the widget formats them. Thresholds, units and format, the meters' response and palette roles are themed.
+- Thermals has "Use sensor limits" (on by default) instead of "0 = per sensor".
 
 ### Changed
+- Config v7 renames the shared keys (`variant` + `compactView` → `compact`, `layout` → `sizeTier`, `alignX` /
+  `alignY` → `align` + `alignSpread`, thresholds → `warn.<quantity>` / `crit.<quantity>`, device keys → `device` /
+  `devices`, `units` → `tempUnit`, a Clock's `format` → `clock`) and drops the unused `autoScale`. Settings > General's
+  12-hour clock moves to the theme's Clock format. Widgets that stored a value keep it as a custom section; an own
+  value equal to the old widget default is dropped, so the widget follows the theme. A Clock set to the old explicit
+  24-hour format is one of those: it now follows the clock format (General's 12-hour setting, else the theme).
+- Default thresholds now come from the theme, which shifts these unstored defaults: System status and CPU monitor
+  load 75 / 90 → 80 / 92; Drive space (and its Dynamic Island source) 80 / 92 → 85 / 95; GPU monitor temperature
+  75 / 85 → 80 / 90 °C; System overview VRAM warning 90 (critical at the load level 92) → 85 / 95; Meter bridge
+  −18 / −6 dB → −9 / −2 dB; Status tracker tracks 1–2 50 / 80 → the load threshold 80 / 92. Stored levels are kept,
+  and where only one level of a pair was stored the other keeps its old default. A Thermals widget with one level set
+  (the other per sensor) gets the CPU sensor's old limit (80 / 90 °C) for the other.
 - A vector gauge dropped into a canvas zone is baked to frames at the drop, so InfoPanel draws it at once: if baking
   fails the drop is cancelled with the error, and a drop with its bake is one undo step (#47).
 - A library gauge with both a spec and frames, dropped on the grid, keeps its frames on the Custom gauge zone for a

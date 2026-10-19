@@ -1,4 +1,4 @@
-import type { ModuleSetting, ModuleSettingValue, ModuleSettings } from "@/modules/types";
+import type { ModuleSetting, ModuleSettingValue, ModuleSettings, ThresholdQuantity } from "@/modules/types";
 
 /**
  * The widget theme (widget settings v2, SPEC §3): which look keys a theme
@@ -68,23 +68,58 @@ export interface ThemeLevels {
   page?: WidgetTheme;
 }
 
+/** A threshold quantity's control (SPEC §4.4): label, unit, slider range and theme default. */
+export interface QuantitySpec {
+  label: string;
+  /** Stored in this unit (°C for temperatures; shown in °F when the resolved `tempUnit` is f). */
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  warn: number;
+  crit: number;
+}
+
+/** The threshold quantities (SPEC §4.4); `value` slides over a sensor's own range. */
+export const QUANTITIES: Readonly<Record<ThresholdQuantity, QuantitySpec>> = {
+  load: { label: "Load", unit: "%", min: 0, max: 100, step: 5, warn: 80, crit: 92 },
+  temp: { label: "Temperature", unit: "°C", min: 30, max: 110, step: 5, warn: 80, crit: 90 },
+  full: { label: "Fullness", unit: "%", min: 0, max: 100, step: 5, warn: 85, crit: 95 },
+  db: { label: "Audio level", unit: "dB", min: -40, max: 0, step: 1, warn: -9, crit: -2 },
+  value: { label: "Value", unit: "", min: 0, max: 100, step: 5, warn: 70, crit: 90 },
+};
+
+export const THRESHOLD_QUANTITIES = Object.keys(QUANTITIES) as ThresholdQuantity[];
+
+/** A quantity's warning and critical keys (`warn.<q>` / `crit.<q>`; absent = the theme's). */
+export const warnKey = (q: ThresholdQuantity): string => `warn.${q}`;
+export const critKey = (q: ThresholdQuantity): string => `crit.${q}`;
+
+/** A threshold level that is switched off (stored instead of a number). */
+export const OFF = "off";
+
+/** The theme palette roles (Style › Widget colors; SPEC §4.3); `accent` is the Colors accent. */
+export const PALETTE_ROLES: readonly string[] = ["s1", "s2", "s3", "s4", "s5", "s6", "ok", "warn", "crit"];
+
 /**
- * The themed keys of each section. Today's look keys (the old
- * `PROFILE_STYLE_KEYS` minus `autoScale`, `variant` and `compactView`);
- * Units & format, Thresholds and the palette roles join in PR 3.
+ * The themed keys of each section: today's look keys (the old
+ * `PROFILE_STYLE_KEYS` minus `autoScale`, `variant` and `compactView`;
+ * `alignX` / `alignY` stay readable until PR 8, `align` + `alignSpread`
+ * replace them), Units & format, the thresholds of every quantity, the
+ * palette roles and the meters' response.
  */
 export const SECTION_KEYS: Readonly<Record<SectionId, readonly string[]>> = {
   skin: ["skin", "stroke", "graph", "meter"],
   colors: ["accent", "textColor", "mutedColor"],
-  palette: [],
+  palette: PALETTE_ROLES,
   surface: ["surface", "surfaceOpacity", "blur"],
   type: ["font", "fontWeight", "labelCase"],
-  spacing: ["scale", "alignX", "alignY", "padding", "gap", "radius"],
+  spacing: ["scale", "align", "alignSpread", "alignX", "alignY", "padding", "gap", "radius"],
   border: ["borderWidth", "borderColor", "glow", "glowColor"],
   css: ["customCss"],
-  format: [],
-  thresholds: [],
-  motion: ["smoothing"],
+  format: ["tempUnit", "rateUnit", "decimals", "clock"],
+  thresholds: THRESHOLD_QUANTITIES.flatMap((q) => [warnKey(q), critKey(q)]),
+  motion: ["smoothing", "meterBallistics"],
 };
 
 const SECTION_OF: ReadonlyMap<string, SectionId> = new Map(
@@ -99,9 +134,11 @@ export const sectionOfKey = (key: string): SectionId | undefined => SECTION_OF.g
 
 /**
  * The value of each themed key when no level sets it: today's defaults
- * (owner decision Q2), so nothing repaints on upgrade. A widget kind with
- * a default of its own (the cards' Theme surface, a panel's Card) keeps
- * it: `valueOf` falls back to the row's default first.
+ * (owner decision Q2), so nothing repaints on upgrade; the thresholds take
+ * the spec's (owner decision Q3, the shifts are in the CHANGELOG), the
+ * palette roles "" (each widget's own colour). A widget kind with a
+ * default of its own (the cards' Theme surface, a panel's Card, a Clock's
+ * 24 h) keeps it: `valueOf` falls back to the row's default first.
  */
 export const THEME_DEFAULTS: Readonly<ModuleSettings> = {
   skin: "auto",
@@ -111,6 +148,7 @@ export const THEME_DEFAULTS: Readonly<ModuleSettings> = {
   accent: "",
   textColor: "",
   mutedColor: "",
+  ...Object.fromEntries(PALETTE_ROLES.map((role) => [role, ""])),
   surface: "glass",
   surfaceOpacity: 100,
   blur: "auto",
@@ -118,6 +156,8 @@ export const THEME_DEFAULTS: Readonly<ModuleSettings> = {
   fontWeight: "auto",
   labelCase: "auto",
   scale: 100,
+  align: "auto",
+  alignSpread: false,
   alignX: "auto",
   alignY: "auto",
   padding: "auto",
@@ -128,12 +168,18 @@ export const THEME_DEFAULTS: Readonly<ModuleSettings> = {
   glow: "none",
   glowColor: "",
   customCss: "",
+  tempUnit: "c",
+  rateUnit: "auto",
+  decimals: "auto",
+  clock: "auto",
+  ...Object.fromEntries(THRESHOLD_QUANTITIES.flatMap((q) => [[warnKey(q), QUANTITIES[q].warn], [critKey(q), QUANTITIES[q].crit]])),
   smoothing: "stepped",
+  meterBallistics: "peak",
 };
 
-/** The theme key a row reads: its palette role once roles are themed (PR 3), else its own key. */
+/** The theme key a row reads: its palette role (`accent`: the Colors accent), else its own key. */
 export function themeKeyOf(def: Pick<ModuleSetting, "key" | "role">, key = def.key): string {
-  return def.role && key === def.key && SECTION_KEYS.palette.includes(def.role) ? def.role : key;
+  return def.role && key === def.key && (def.role === "accent" || PALETTE_ROLES.includes(def.role)) ? def.role : key;
 }
 
 /** Whether a page uses its own values for a section (else the profile's). */

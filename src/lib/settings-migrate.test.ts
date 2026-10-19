@@ -86,9 +86,10 @@ describe("v6: profile style and force", () => {
     ];
     const c = mergeConfig(v5(zones, { style: { compactView: "on" } }, { style: { variant: "studio" } }));
     const [plain, ownV, follows, blank] = zonesOf(c);
-    expect(plain.settings).toEqual({ variant: "studio", compactView: "on" });
-    expect(ownV.settings).toEqual({ variant: "default", compactView: "on" });
-    expect(follows.settings).toEqual({ variant: "studio", compactView: "on" });
+    // v7 then folds them into `compact`: studio wins (dense), default + Card on = card.
+    expect(plain.settings).toEqual({ compact: "dense" });
+    expect(ownV.settings).toEqual({ compact: "card" });
+    expect(follows.settings).toEqual({ compact: "dense" });
     expect(blank.settings).toBeUndefined();
     // The style had nothing themed left: the profile keeps a style of its own, empty.
     expect(c.profiles[0].widgetTheme).toEqual({ values: {} });

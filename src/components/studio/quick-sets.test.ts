@@ -9,9 +9,9 @@ import { defaultQuickKeys, pinTypeOf, quickDefsFor, quickable } from "./quick-se
 const defsOf = (id: string) => modules.find((m) => m.id === id)?.settings ?? [];
 
 describe("defaultQuickKeys", () => {
-  it("starts with Layout and Accent, then the widget's own compact settings", () => {
+  it("starts with Density and Accent, then the widget's own compact settings", () => {
     const keys = defaultQuickKeys(defsOf("NowPlaying"));
-    expect(keys.slice(0, 2)).toEqual(["layout", "accent"]);
+    expect(keys.slice(0, 2)).toEqual(["sizeTier", "accent"]);
     expect(keys.length).toBeGreaterThan(2);
     expect(keys.length).toBeLessThanOrEqual(4);
   });
@@ -28,7 +28,7 @@ describe("defaultQuickKeys", () => {
   it("picks no other standard key and no More row", () => {
     for (const m of modules) {
       const defs = m.settings ?? [];
-      for (const k of defaultQuickKeys(defs).filter((k) => k !== "layout" && k !== "accent")) {
+      for (const k of defaultQuickKeys(defs).filter((k) => k !== "sizeTier" && k !== "accent")) {
         expect(STANDARD_KEYS.has(k), `${m.id}.${k}`).toBe(false);
         expect(isMore(defs.find((d) => d.key === k)!), `${m.id}.${k}`).toBe(false);
       }
@@ -54,12 +54,12 @@ describe("quickDefsFor", () => {
   });
 
   it("follows the type's pins, in pin order", () => {
-    const keys = quickDefsFor([zone("a", "Clock")], { Clock: ["accent", "layout"] }, zoneDefs).map((d) => d.key);
-    expect(keys).toEqual(["accent", "layout"]);
+    const keys = quickDefsFor([zone("a", "Clock")], { Clock: ["accent", "sizeTier", "align"] }, zoneDefs).map((d) => d.key);
+    expect(keys).toEqual(["accent", "sizeTier", "align"]);
   });
 
   it("keeps only the pins every selected type shares", () => {
-    const pins = { Clock: ["layout", "accent"], Weather: ["accent", "skin"] };
+    const pins = { Clock: ["sizeTier", "accent"], Weather: ["accent", "skin"] };
     expect(quickDefsFor([zone("a", "Clock"), zone("b", "Weather")], pins, zoneDefs).map((d) => d.key)).toEqual(["accent"]);
   });
 

@@ -149,28 +149,34 @@ describe("chromeOf", () => {
   it("parses the saved settings, rejecting unknown values", () => {
     const c = chromeOf({
       scale: 150,
-      autoScale: false,
       padding: "12",
       gap: "auto",
       radius: "999",
-      alignX: "sideways",
+      align: "sideways",
       fontWeight: "700",
       stroke: 50,
     });
     expect(c).toMatchObject({
       scale: 1.5,
-      autoScale: false,
       padding: 12,
       gap: undefined,
       radius: 999,
       alignX: "auto",
+      alignY: "auto",
       fontWeight: "700",
       stroke: 0.5,
     });
   });
 
-  it("defaults a module without the style block to no change", () => {
-    expect(chromeOf({})).toMatchObject({ autoScale: true, scale: 1, stroke: 1, padding: undefined });
+  it("reads the alignment's cell code and spread as the two axes", () => {
+    expect(chromeOf({ align: "bl" })).toMatchObject({ alignX: "start", alignY: "end" });
+    expect(chromeOf({ align: "tc", alignSpread: true })).toMatchObject({ alignX: "between", alignY: "start" });
+    expect(chromeOf({ align: "auto", alignSpread: true })).toMatchObject({ alignX: "between", alignY: "auto" });
+  });
+
+  it("defaults a module without the style block to no change (no scale with the zone any more)", () => {
+    expect(chromeOf({})).toMatchObject({ scale: 1, stroke: 1, padding: undefined });
+    expect(chromeOf({ autoScale: false })).not.toHaveProperty("autoScale");
   });
 
   it("parses the surface options, allowing a fully transparent surface", () => {

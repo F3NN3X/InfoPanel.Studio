@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dropRetiredPrefs,
   MAX_PINS,
   parseAccordion,
   parsePins,
@@ -82,5 +83,13 @@ describe("pins", () => {
   it("uses a type's default set until it has pins of its own", () => {
     expect(pinsOf({}, "Clock", ["fmt"])).toEqual(["fmt"]);
     expect(pinsOf({ Clock: [] }, "Clock", ["fmt"])).toEqual([]);
+  });
+});
+
+describe("dropRetiredPrefs", () => {
+  it("drops the retired Advanced settings switch", () => {
+    const removed: string[] = [];
+    dropRetiredPrefs({ removeItem: (key) => removed.push(key) });
+    expect(removed).toEqual(["studio.inspectorAdvanced"]);
   });
 });

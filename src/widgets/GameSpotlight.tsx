@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Widget, GlassPill, shell, get, num, fmt, has, Img, Icon, Bar, Ring, Dot, MediaProgress, KenBurns, Logo, type ShellProps, type WidgetMeta } from "./kit";
 import type { ModuleSettings } from "@/modules/types";
+import { sizeTierOf } from "@/modules/setting-readers";
 import type { VizStyle } from "./core/viz/types";
 import { widgetImage } from "./data-adapter";
 import { CompositeView } from "./GameSpotlightComposite";
@@ -41,7 +42,7 @@ export interface GameSpotlightProps extends ShellProps {
   showStats?: boolean;
   /** Composite: the news line; default on. */
   showNews?: boolean;
-  /** The zone's resolved look; its `layout` forces the composite variant. */
+  /** The zone's resolved look; its Density (`sizeTier`) forces the composite variant. */
   look?: ModuleSettings;
 }
 
@@ -113,7 +114,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
             <CompositeView
               w={w}
               h={h}
-              forced={p.look?.layout}
+              forced={p.look && sizeTierOf(p.look)}
               accent={p.accent}
               name={P("player-name")}
               status={P("online-status")}
