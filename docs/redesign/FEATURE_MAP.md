@@ -419,7 +419,7 @@ See `docs/redesign/island/PLAN.md`.
 ## 20. InfoPanel import, Library and Gauges (A1–A8)
 
 New capabilities from the InfoPanel import (`docs/infopanel-import/PLAN.md`, spec
-`docs/infopanel-import/studio/SPEC.md`). Open gaps are in `docs/infopanel-import/GAPS.md`.
+`docs/infopanel-import/studio/SPEC.md`). Open gaps are GitHub issues.
 
 | Capability | Where | Status |
 |---|---|---|

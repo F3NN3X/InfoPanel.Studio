@@ -21,7 +21,7 @@ The project overview, install steps and server endpoints are in the
 - [Dynamic Island](redesign/island/PLAN.md) - the island's design and internals: decisions, the config model, the notice queue and bus, the widget source contract (how to make another widget send to the island) and the QA checklist.
 - [Studio design: zones and widgets](studio-redesign-zones-widgets.md) - the grid model that still holds (zones, no overlap, fluid fill, config v2); the rest is superseded by the redesign.
 
-- [InfoPanel import](infopanel-import/PLAN.md) - the plan and phase status (lab L1–L14, app A1–A8, all done), the Library and Gauges [studio spec](infopanel-import/studio/SPEC.md), the [open gaps](infopanel-import/GAPS.md) and the research notes (format, fonts, corpus). The architecture chapters on the canvas zone, the Import / Export dialogs, the Library and Gauges pages and the library routes are in [architecture](architecture.md); the lab is `lab/infopanel/README.md`.
+- [InfoPanel import](infopanel-import/PLAN.md) - the plan and phase status (lab L1–L14, app A1–A8, all done), the Library and Gauges [studio spec](infopanel-import/studio/SPEC.md) and the research notes (format, fonts, corpus). The architecture chapters on the canvas zone, the Import / Export dialogs, the Library and Gauges pages and the library routes are in [architecture](architecture.md); the lab is `lab/infopanel/README.md`.
 
 ## Development
 
