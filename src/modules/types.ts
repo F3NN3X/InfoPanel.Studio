@@ -8,7 +8,49 @@ export type ModuleSettingValue = string | number | boolean;
 export type ModuleSettings = Record<string, ModuleSettingValue>;
 
 /** The inspector tabs of a widget or panel zone. */
-export type InspectorTab = "content" | "style" | "data";
+export type InspectorTab = "show" | "style" | "data" | "behaviour";
+
+/**
+ * The shared inspector sections (the same on every widget, `inspector-categories.ts`):
+ * Header and Fit in Show, the look in Style, Units & format in Data, Thresholds,
+ * Dynamic Island and Motion in Behaviour. `palette` is Style › Widget colors.
+ */
+export type SharedSectionId =
+  | "header"
+  | "fit"
+  | "skin"
+  | "colors"
+  | "palette"
+  | "surface"
+  | "type"
+  | "spacing"
+  | "border"
+  | "css"
+  | "format"
+  | "thresholds"
+  | "island"
+  | "motion";
+
+/** A theme palette colour a widget colour row stands for (Style › Widget colors). */
+export type PaletteRole = "s1" | "s2" | "s3" | "s4" | "s5" | "s6" | "ok" | "warn" | "crit" | "accent";
+
+/** Whether a widget draws a header: always, only when a title is set, or never. */
+export type HeaderMode = "yes" | "title-only" | "none";
+
+/**
+ * What a widget can draw in a small zone: a summary card (`compact` descriptor), and
+ * a dense view (`studio` descriptor; "fallback" = the dense view shows the card).
+ */
+export interface CompactShape {
+  card: boolean;
+  dense: boolean | "fallback";
+}
+
+/** The Units & format rows a widget renders. */
+export type FormatKey = "tempUnit" | "rateUnit" | "decimals" | "clock";
+
+/** The threshold quantities a widget colours by. */
+export type ThresholdQuantity = "load" | "temp" | "full" | "db" | "value";
 
 /** The device kinds a select can list from the live keys (`optionsFrom`). */
 export type DeviceKind = "cpu" | "gpu" | "disk" | "adapter" | "audio" | "drive";
@@ -82,19 +124,26 @@ export interface ModuleSetting {
   max?: number;
   step?: number;
   /**
-   * Inspector section this setting belongs to ("" / unset = the top list).
+   * The widget's own inspector section this setting belongs to (its title).
    * Settings sharing a group render together in a collapsible section,
    * placed where the group first appears.
    */
   group?: string;
+  /** The shared section it is filed in instead of a group (the standard block's keys, a moved row). */
+  section?: SharedSectionId;
   /**
-   * The inspector tab it sits in. Unset: its category's tab (general
-   * categories by their kind, a widget's own categories in Content, those made
-   * of color pickers in Style) — see `inspector-categories.ts`.
+   * The inspector tab of a widget's own setting. Unset: Data for data settings, else
+   * Show. `style` files it in Style › Widget colors — see `inspector-categories.ts`.
    */
   tab?: InspectorTab;
-  /** Tucked away until "Advanced settings" is on (its category's flag also counts). */
+  /** Listed after its section's "More (n)" link. */
+  more?: boolean;
+  /** The old name of `more`, read the same. */
   advanced?: boolean;
+  /** For a colour row: the theme palette colour it stands for. */
+  role?: PaletteRole;
+  /** Never comes from a theme (Tint from cover art, Background image): stays editable while its section follows. */
+  perWidget?: boolean;
   /** One-line explanation, shown behind an info icon. */
   hint?: string;
   /** Shown only while this holds for the zone's effective values (default: always). */
@@ -137,7 +186,20 @@ export interface DashboardModule {
   defaultSize?: [number, number];
   /** What the widget sends to the Dynamic Island when its "Send to island" is on (`src/lib/island/sources.ts`). */
   island?: IslandSourceDef;
+  /** Whether it draws a header (the inspector's Header section); unset: "yes". */
+  header?: HeaderMode;
+  /** What it draws in small zones (the inspector's Fit section); unset: neither. */
+  compact?: CompactShape;
+  /** The Units & format rows it renders (not read yet). */
+  fmt?: FormatKey[];
+  /** The threshold quantities it colours by (not read yet). */
+  thr?: ThresholdQuantity[];
+  /** The look sections it offers when not all of them (`section` or `section:key,key`; not read yet). */
+  styleSubset?: string[];
 }
+
+/** Whether a setting sits behind its section's "More (n)" (`more`, or the old `advanced`). */
+export const isMore = (def: ModuleSetting): boolean => def.more ?? def.advanced ?? false;
 
 /** The keys a setting stores (two for an "align" picker). */
 export function settingKeys(def: ModuleSetting): string[] {

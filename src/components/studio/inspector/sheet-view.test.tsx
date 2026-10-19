@@ -11,8 +11,7 @@ const def = (key: string, label: string): ModuleSetting => ({ key, label, type: 
 const section = (id: string, title: string, settings: ModuleSetting[]): InspectorSection => ({
   id,
   title,
-  tab: "content",
-  advanced: false,
+  tab: "show",
   general: false,
   settings,
   extras: [],
@@ -20,7 +19,7 @@ const section = (id: string, title: string, settings: ModuleSetting[]): Inspecto
 });
 
 const sections = [
-  section("look", "Look", [def("glow", "Glow")]),
+  section("look", "Look", [def("glow", "Glow"), { ...def("halo", "Halo"), more: true }]),
   section("colors", "Colors & surface", [def("tint", "Tint")]),
 ];
 
@@ -47,6 +46,7 @@ function render(sheet: Partial<SheetChrome>, extra: Partial<SheetIdentity> = {},
         fields={fields}
         sources={null}
         quickKeys={quickKeys}
+        moreScope="Weather"
       />
     </InspectorChromeProvider>
   );
@@ -73,6 +73,12 @@ describe("SheetView", () => {
   it("at half shows the chosen section's fields, and falls back to Quick when the zone lacks it", () => {
     expect(render({ snap: "half", tool: "look" })).toContain('data-setting-key="glow"');
     expect(render({ snap: "half", tool: "missing" })).toContain('data-setting-key="tint"');
+  });
+
+  it("keeps a section's More rows behind its More (n) link", () => {
+    const out = render({ snap: "half", tool: "look" });
+    expect(out).toContain("More (1)");
+    expect(out).not.toContain('data-setting-key="halo"');
   });
 
   it("says what to pin when the Quick set is empty", () => {

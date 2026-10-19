@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
 import type { Placement } from "@/lib/layout";
+import { STANDARD_KEYS } from "@/modules/standard-settings";
+import { isMore } from "@/modules/types";
 import { zoneDefs } from "./inspector/zone-fields";
 import { defaultQuickKeys, pinTypeOf, quickDefsFor, quickable } from "./quick-sets";
 
@@ -20,6 +22,16 @@ describe("defaultQuickKeys", () => {
       const keys = defaultQuickKeys(defs);
       expect(keys.length, m.id).toBeGreaterThan(0);
       for (const k of keys) expect(quickable(defs.find((d) => d.key === k)!), `${m.id}.${k}`).toBe(true);
+    }
+  });
+
+  it("picks no other standard key and no More row", () => {
+    for (const m of modules) {
+      const defs = m.settings ?? [];
+      for (const k of defaultQuickKeys(defs).filter((k) => k !== "layout" && k !== "accent")) {
+        expect(STANDARD_KEYS.has(k), `${m.id}.${k}`).toBe(false);
+        expect(isMore(defs.find((d) => d.key === k)!), `${m.id}.${k}`).toBe(false);
+      }
     }
   });
 

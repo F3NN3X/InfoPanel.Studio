@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CircleHelp, History } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
-import { Toggle } from "@/components/ui/toggle";
 import { useSensorCatalog } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
-import type { ModuleSetting } from "@/modules/types";
+import { isMore, type ModuleSetting } from "@/modules/types";
 import { INSPECTOR_SCROLL, useInspectorChrome } from "../inspector-layout";
 import {
   allSections,
-  applyAdvanced,
   changedCount,
   changedSettings,
   extraMatches,
@@ -16,6 +14,8 @@ import {
   jumpTarget,
   resetKeysOfSection,
   searchAll,
+  splitMore,
+  tabStates,
   visibleSections,
   TAB_LABELS,
   type InspectorContext,
@@ -25,7 +25,8 @@ import {
 import { SETTING_CARD, SettingSection } from "../setting-card";
 import { SettingField, type FieldsApi } from "../settings-panel";
 import { SettingsSearch } from "../zone-inspector-parts";
-import { pickTab, useAccordionPref, useInspectorAdvanced, useInspectorTab } from "./inspector-prefs";
+import { pickTab, useAccordionPref, useInspectorTab } from "./inspector-prefs";
+import { MoreRows, moreKey, setMoreOpen } from "./more-rows";
 import { sectionIcon } from "./section-icons";
 import { SheetView, type SheetIdentity } from "./sheet-view";
 import { DotLegend } from "./source-dot";
@@ -36,8 +37,10 @@ export interface SectionParts {
   top?: ReactNode;
   /** The custom UI of a special section, after any rows. */
   body?: ReactNode;
-  /** Below the rows (Visible, the zone frame). */
+  /** Below the rows (Visible). */
   bottom?: ReactNode;
+  /** With the section's More rows (the zone frame). */
+  more?: ReactNode;
   /** Header controls before Reset (the style tools). */
   actions?: ReactNode;
   /** Changed fields the custom UI holds (added to the rows'). */
@@ -54,6 +57,8 @@ interface InspectorViewProps {
   context: InspectorContext;
   /** The remembered-tab key ("widget", "panel", "dashboard"). */
   contextKey: string;
+  /** Whose sections' More rows stay open together for the session (the zone type); default `contextKey`. */
+  moreScope?: string;
   /** The header (icon, name, actions, placement row); a function gets the count of own values. */
   header: ReactNode | ((changed: number) => ReactNode);
   fields: FieldsApi;
@@ -97,14 +102,14 @@ function Count({ n }: { n: number }) {
   return <span className="rounded-lg bg-ui-accent/[.18] px-[5px] py-px font-ui-mono text-[10px] text-ui-accent-text">{n}</span>;
 }
 
-/** The tabs as a segmented pill, each with its changed count. */
+/** The tabs as a segmented pill, each with its changed count; an empty tab is dimmed and disabled. */
 function Tabs({
   tabs,
   active,
   counts,
   onTab,
 }: {
-  tabs: { id: TabId; label: string }[];
+  tabs: { id: TabId; label: string; disabled: boolean }[];
   active: TabId | undefined;
   counts: Partial<Record<TabId, number>>;
   onTab: (tab: TabId) => void;
@@ -121,10 +126,12 @@ function Tabs({
               type="button"
               role="tab"
               aria-selected={selected}
+              disabled={t.disabled}
               onClick={() => onTab(t.id)}
               className={cn(
                 "flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors",
-                selected ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:text-ui-1"
+                selected ? "bg-ui-active text-ui-1" : "text-[#8f8f99] enabled:hover:text-ui-1",
+                t.disabled && "opacity-35"
               )}
             >
               {t.label}
@@ -137,8 +144,8 @@ function Tabs({
   );
 }
 
-/** The footer: the dot legend and the Advanced settings switch. */
-function Footer({ advanced, onAdvanced }: { advanced: boolean; onAdvanced: (on: boolean) => void }) {
+/** The footer: the dot legend. */
+function Footer() {
   return (
     <footer className="flex h-10 shrink-0 items-center gap-2 border-t border-ui-subtle px-4">
       <Popover
@@ -150,8 +157,7 @@ function Footer({ advanced, onAdvanced }: { advanced: boolean; onAdvanced: (on: 
       >
         <DotLegend />
       </Popover>
-      <span className="flex-1 text-[12px] text-ui-3">Advanced settings</span>
-      <Toggle checked={advanced} onChange={onAdvanced} label="Advanced settings" />
+      <span className="flex-1 text-[12px] text-ui-3">What the dots mean</span>
     </footer>
   );
 }
@@ -166,12 +172,14 @@ const handOpened = new Map<string, Record<string, boolean>>();
  * The registry-driven inspector shared by every context, one column: the
  * header, search and the Changed filter on one row, the tabs (hidden while
  * filtering), a line saying what the filter found, then accordion sections
- * of field rows with the context's custom UI. A search runs across every tab;
- * Changed keeps only the values set here, across every tab too.
+ * of field rows with the context's custom UI, each closing with its "More (n)"
+ * rows. A search runs across every tab; Changed keeps only the values set
+ * here, across every tab too. Both list More rows inline.
  */
 export function InspectorView({
   context,
   contextKey,
+  moreScope = contextKey,
   header,
   fields,
   visible = always,
@@ -188,7 +196,6 @@ export function InspectorView({
 }: InspectorViewProps) {
   const { sources } = useSensorCatalog();
   const { sheet } = useInspectorChrome();
-  const [advanced, setAdvanced] = useInspectorAdvanced();
   const [accordion] = useAccordionPref();
   const [storedTab, setTab] = useInspectorTab(contextKey);
   const root = useRef<HTMLDivElement>(null);
@@ -204,11 +211,15 @@ export function InspectorView({
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const tabs = inspectorTabs(context);
-  const tab = pickTab(storedTab, tabs.map((t) => t.id));
   const searching = query.trim() !== "";
   const filtering = searching || changedOnly;
   const all = visibleSections(allSections(context), visible).filter(present);
+  const tabs = tabStates(inspectorTabs(context), all);
+  const tab = pickTab(
+    storedTab,
+    tabs.map((t) => t.id),
+    new Set(tabs.filter((t) => t.disabled).map((t) => t.id))
+  );
   const full = new Map(all.map((s) => [s.id, s] as const));
 
   const changedOf = (s: InspectorSection) => changedCount(s, fields.values) + (parts(s).changed ?? 0);
@@ -227,13 +238,11 @@ export function InspectorView({
       ? all
       : all.filter((s) => s.tab === tab);
   // Changed keeps a section's own values (and custom UI that holds some).
-  const listed = changedOnly
+  const sections = changedOnly
     ? matched
         .filter((s) => changedOf(full.get(s.id) ?? s) > 0)
         .map((s) => ({ ...s, settings: changedSettings(s, fields.values) }))
     : matched;
-  // Filtering lists every match, advanced or not.
-  const { sections, hiddenCount } = applyAdvanced(listed, advanced || filtering);
   const tabLabel = (s: InspectorSection) =>
     tabs.length === 0 ? "" : (result?.groups.find((g) => g.section.id === s.id)?.tabLabel ?? TAB_LABELS[s.tab]);
   const shownCount = sections.reduce(
@@ -263,7 +272,7 @@ export function InspectorView({
     lastJump.current = jumpTo.seq;
     const target = jumpTarget(all, jumpTo.id);
     if (!target) return;
-    if (target.advanced && !advanced) setAdvanced(true);
+    if (target.settings.some((d) => d.key === jumpTo.key && isMore(d))) setMoreOpen(moreKey(moreScope, target.id), true);
     if (tabs.length > 0) setTab(target.tab);
     if (changedOnly) onChangedOnly(false);
     setOpenMap((m) => (accordion === "one" ? { [target.id]: true } : { ...m, [target.id]: true }));
@@ -304,6 +313,9 @@ export function InspectorView({
     const whole = full.get(s.id) ?? s;
     // In the Changed view custom UI shows only while it holds values set here.
     const custom = !changedOnly || (p.changed ?? 0) > 0;
+    // Filtering lists More rows inline; otherwise they follow the section's "More (n)".
+    const split = splitMore(s);
+    const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
     if (p.plain)
       return (
         <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-[#1c1c21] px-4 pb-3.5 pt-3">
@@ -327,11 +339,17 @@ export function InspectorView({
         flash={flash === s.id}
       >
         {!changedOnly && pad(p.top)}
-        {s.settings.map((def) => (
-          <SettingField key={def.key} def={def} fields={fields} sources={sources} />
-        ))}
+        {(filtering ? s.settings : split.rows).map(field)}
         {custom && pad(p.body)}
         {custom && pad(p.bottom)}
+        {filtering ? (
+          custom && pad(p.more)
+        ) : (
+          <MoreRows storeKey={moreKey(moreScope, s.id)} count={split.count}>
+            {split.more.map(field)}
+            {pad(p.more)}
+          </MoreRows>
+        )}
       </SettingSection>
     );
   };
@@ -342,7 +360,8 @@ export function InspectorView({
       <SheetView
         sheet={sheet}
         identity={identity}
-        sections={applyAdvanced(all, advanced).sections}
+        sections={all}
+        moreScope={moreScope}
         parts={parts}
         changedOf={changedOf}
         changed={ownAll}
@@ -402,19 +421,8 @@ export function InspectorView({
         {!filtering && notes?.(tab)}
         {empty && <p className="px-4 py-6 text-[12.5px] text-[#8a8a94]">{empty}</p>}
         {sections.map(renderSection)}
-        {hiddenCount > 0 && (
-          <div className="p-4">
-            <button
-              type="button"
-              onClick={() => setAdvanced(true)}
-              className="w-full rounded-[7px] border border-dashed border-ui-strong p-[9px] text-[12px] text-ui-3 hover:border-[#3a3a44] hover:text-ui-1"
-            >
-              Show {hiddenCount} advanced setting{hiddenCount === 1 ? "" : "s"}
-            </button>
-          </div>
-        )}
       </div>
-      <Footer advanced={advanced} onAdvanced={setAdvanced} />
+      <Footer />
     </div>
   );
 }

@@ -192,7 +192,7 @@ export const gpuRingsProps = (s: ModuleSettings): Partial<GpuRingsProps> => ({
   colors: colorsOf(s, RING_COLORS),
 });
 
-export const GPUMONITOR_SETTINGS: ModuleSetting[] = [deviceSetting("gpu", "Graphics card", "gpu", { group: "GPU monitor" }), ...warnCrit("warnTemp", "critTemp", 75, 85, "°C", 120, "GPU monitor")];
+export const GPUMONITOR_SETTINGS: ModuleSetting[] = [deviceSetting("gpu", "Graphics card", "gpu", { group: "GPU monitor" }), ...warnCrit("warnTemp", "critTemp", 75, 85, "°C", 120, "Thresholds")];
 export const gpuMonitorProps = (s: ModuleSettings): Partial<GpuMonitorProps> => ({ gpu: stringOf(s.gpu), warnTemp: numberOf(s.warnTemp), critTemp: numberOf(s.critTemp) });
 
 /* ───────── Thermals (after the view / discover / fan settings it shares with Hardware) ───────── */

@@ -50,7 +50,7 @@ const DETAIL_SETTINGS: ModuleSetting[] = [
     default: "",
     group: "Drives",
   },
-  { key: "sparkline", label: "Trend sparklines", type: "boolean", default: true, group: "Trends" },
+  { key: "sparkline", label: "Trend sparklines", type: "boolean", default: true, group: "Trends", tab: "behaviour" },
   {
     key: "historyLength",
     label: "Sparkline length (samples)",
@@ -60,6 +60,7 @@ const DETAIL_SETTINGS: ModuleSetting[] = [
     max: 120,
     step: 12,
     group: "Trends",
+    tab: "behaviour",
   },
   {
     key: "tempWarn",

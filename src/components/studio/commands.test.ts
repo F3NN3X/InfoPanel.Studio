@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PANEL_ID, type Placement, type Widget } from "@/lib/layout";
+import { modules } from "@/modules";
 import type { ModuleSetting } from "@/modules/types";
+import { widgetContext } from "./inspector-model";
 import { buildCommands, matchScore, rankCommands, type CommandState } from "./commands";
 import { insertables } from "./insert-panel";
 
@@ -108,7 +110,7 @@ describe("buildCommands", () => {
   });
 
   it("adds the selected zone's actions and its settings and the card jumps", () => {
-    const glow = setting("glow", "Glow", "Border, glow & CSS");
+    const glow: ModuleSetting = { ...setting("glow", "Glow", "Border, glow & CSS"), section: "border" };
     const threshold = setting("warnAt", "Warn at", "Thresholds");
     const commands = buildCommands({
       ...base,
@@ -122,11 +124,20 @@ describe("buildCommands", () => {
     expect(byId.has("zone:pick")).toBe(true);
     const glowId = [...byId.keys()].find((id) => id.endsWith(":glow"))!;
     expect(byId.get(glowId)?.action).toMatchObject({ type: "goto-setting", key: "glow" });
-    expect(byId.get(glowId)?.hint).toBe("Border & effects");
+    expect(byId.get(glowId)?.hint).toBe("Border & glow");
     expect(byId.get("zone:card:colors")?.action).toEqual({ type: "goto-card", id: "colors" });
     const warnId = [...byId.keys()].find((id) => id.endsWith(":warnAt"))!;
     expect(byId.get(warnId)?.action).toMatchObject({ type: "goto-setting", key: "warnAt" });
     expect(byId.get(warnId)?.hint).toBe("Thresholds");
+  });
+
+  it("lists Go to Header settings only for a widget that has a Header section", () => {
+    const of = (id: string) => widgetContext(modules.find((m) => m.id === id)!);
+    const withHeader = ids({ ...base, selected: zone("a", 1, 1), context: of("CpuMonitor") });
+    const without = ids({ ...base, selected: zone("a", 1, 1), context: of("KpiTiles") });
+    expect(withHeader).toContain("zone:card:header");
+    expect(without).not.toContain("zone:card:header");
+    expect(without).toContain("zone:card:colors");
   });
 
   it("offers Go to setting for a panel and for the Dashboard, each jumping to its section", () => {

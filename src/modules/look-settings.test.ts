@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { categorize, categoryAdvanced, categoryTab, isAdvanced } from "@/components/studio/inspector-categories";
+import { categorize, categoryTab } from "@/components/studio/inspector-categories";
 import { settingStateOf } from "@/components/studio/settings-model";
 import { resolveStyle } from "@/lib/style-resolve";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_KEYS, STANDARD_SETTINGS, STYLE_SETTINGS } from "./standard-settings";
+import { isMore } from "./types";
 
 const LOOK_DEFAULTS = { skin: "auto", variant: "default", graph: "auto", meter: "auto", compactView: "auto" };
 const find = (defs: typeof STYLE_SETTINGS, key: string) => defs.find((d) => d.key === key)!;
@@ -41,13 +42,16 @@ describe("look settings", () => {
     expect(panel).not.toContain("compactView");
   });
 
-  it("file under a Look category in Style, with graph and meter advanced", () => {
-    const look = categorize(STANDARD_SETTINGS).find((c) => c.title === "Look")!;
-    expect(look.general).toBe(true);
-    expect(look.defs.map((d) => d.key)).toEqual(["skin", "graph", "meter", "smoothing"]);
-    expect(categoryTab(look)).toBe("style");
-    expect(categoryAdvanced(look)).toBe(false);
-    expect(look.defs.filter((d) => isAdvanced(d, look)).map((d) => d.key)).toEqual(["graph", "meter"]);
+  it("file under Skin & graphics in Style, with graph and meter behind More, and graph updates in Motion", () => {
+    const categories = categorize(STANDARD_SETTINGS);
+    const skin = categories.find((c) => c.title === "Skin & graphics")!;
+    expect(skin.general).toBe(true);
+    expect(skin.defs.map((d) => d.key)).toEqual(["skin", "graph", "meter", "stroke"]);
+    expect(categoryTab(skin)).toBe("style");
+    expect(skin.defs.filter(isMore).map((d) => d.key)).toEqual(["graph", "meter"]);
+    const motion = categories.find((c) => c.title === "Motion")!;
+    expect(motion.defs.map((d) => d.key)).toEqual(["smoothing"]);
+    expect(categoryTab(motion)).toBe("behaviour");
   });
 
   it("resolve dashboard, then profile, then the widget, with source dots", () => {

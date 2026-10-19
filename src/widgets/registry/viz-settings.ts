@@ -1,5 +1,5 @@
 // The visualiser look settings shared by the NowPlaying template and the Visualizer widget: colours
-// (Style, advanced), shape and the dynamics. Colour 1 stays each widget's own key (`vizRamp` / `ramp`).
+// (Style, More), shape and the dynamics (Behaviour, More). Colour 1 stays each widget's own key (`vizRamp` / `ramp`).
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { VizLook } from "../core/viz/types";
 import { boolOf, boolSetting, colorSetting, enumSetting, numberOf, numberSetting, oneOf, stringOf } from "./settings-kit";
@@ -16,7 +16,7 @@ const custom = (v: ModuleSettings) => v.vizColorMode === "gradient" || v.vizColo
 /** The styles that draw bars, so the only ones the bar shape and gap reach. */
 const BAR_STYLES = ["bars", "mirror", "scroll"];
 const style = { tab: "style", advanced: true, group: VIZ_COLORS_GROUP } as const;
-const dynamics = { advanced: true, group: VIZ_DYNAMICS_GROUP } as const;
+const dynamics = { tab: "behaviour", advanced: true, group: VIZ_DYNAMICS_GROUP } as const;
 
 /** The colour settings, with the widget's colour-1 setting moved in as the first colour. */
 export function vizColorSettings(color1: ModuleSetting): ModuleSetting[] {

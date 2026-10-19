@@ -224,8 +224,12 @@ function styleCommands(): Command[] {
   ];
 }
 
-/** `widgetKeys`: Ctrl+D / Del act on the selected widget, so the zone's show no key. */
-function selectedCommands(selected: Placement, widgetKeys: boolean): Command[] {
+/**
+ * `widgetKeys`: Ctrl+D / Del act on the selected widget, so the zone's show no key. The "Go to" commands are listed
+ * only when the inspector has that section (a widget with no header has no Header section).
+ */
+function selectedCommands(selected: Placement, widgetKeys: boolean, context: InspectorContext | null): Command[] {
+  const has = new Set(context ? allSections(context).map((s) => s.id) : ["header", "colors"]);
   const zone = (id: string, label: string, action: CommandAction, hint?: string): Command => ({
     id: `zone:${id}`,
     label,
@@ -244,8 +248,8 @@ function selectedCommands(selected: Placement, widgetKeys: boolean): Command[] {
       KEYS.hide
     ),
     zone("remove", "Remove zone", { type: "remove" }, widgetKeys ? undefined : KEYS.remove),
-    zone("card:widget", "Go to Widget settings", { type: "goto-card", id: "widget" }),
-    zone("card:colors", "Go to Colors & surface (style)", { type: "goto-card", id: "colors" }),
+    ...(has.has("header") ? [zone("card:header", "Go to Header settings", { type: "goto-card", id: "header" })] : []),
+    ...(has.has("colors") ? [zone("card:colors", "Go to Colors (style)", { type: "goto-card", id: "colors" })] : []),
   ];
 }
 
@@ -325,7 +329,7 @@ export function buildCommands(s: CommandState): Command[] {
     ...((s.selection?.length ?? 0) > 1
       ? selectionCommands(s.selection!)
       : s.selected
-        ? selectedCommands(s.selected, s.widget !== null)
+        ? selectedCommands(s.selected, s.widget !== null, s.context)
         : []),
     ...(s.context ? settingCommands(s.context, s.selected ? "Selected zone" : "Dashboard") : []),
     ...(s.selected ? styleCommands() : []),

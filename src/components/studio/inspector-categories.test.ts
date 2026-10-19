@@ -4,20 +4,22 @@ import {
   CARD_SETTINGS,
   PANEL_SETTINGS,
   PROFILE_STYLE_KEYS,
+  STANDARD_KEYS,
   STANDARD_SETTINGS,
 } from "@/modules/standard-settings";
 import { settingKeys, type ModuleSetting } from "@/modules/types";
 import {
   categorize,
+  categoryTab,
   categoryTitleOf,
   filterCategories,
-  GENERAL_CATEGORIES,
   OTHER_TITLE,
-  withGeneral,
-  categoryAdvanced,
-  categoryTab,
-  isAdvanced,
+  SHARED_SECTIONS,
+  sharedSectionOf,
   tabOf,
+  TITLE_ONLY_HINT,
+  withHeaderMode,
+  withShared,
 } from "./inspector-categories";
 
 const def = (key: string, group?: string, label = key): ModuleSetting => ({
@@ -27,14 +29,12 @@ const def = (key: string, group?: string, label = key): ModuleSetting => ({
   default: false,
   group,
 });
+const std = (key: string) => STANDARD_SETTINGS.find((d) => d.key === key)!;
+const color = (key: string, group?: string): ModuleSetting => ({ key, label: key, type: "color", default: "", group });
 
-const GENERAL_TITLES = new Set(GENERAL_CATEGORIES.map((c) => c.title));
-
-/**
- * Module categories that deliberately hold one setting: the plain card
- * widgets and the template widgets whose spec has a single option of their own.
- */
-const SINGLE_SETTING_OK = new Set(["WebPage:Page", "TextFile:Content", "Departures:Content", "Calendar:Calendar", "StorageHealth:Storage health", "PowerDraw:Power", "ServiceHealth:Service health", "SteamLibrary:Steam library", "Uptime:Uptime", "Vitals:Vitals"]);
+const SHARED_TITLES = new Set(SHARED_SECTIONS.map((c) => c.title));
+/** The shared sections only the standard block fills. */
+const STANDARD_ONLY = new Set(["header", "fit", "skin", "colors", "surface", "type", "spacing", "border", "css", "motion"]);
 
 const sheets: [string, ModuleSetting[]][] = [
   ...modules.map((m): [string, ModuleSetting[]] => [m.id, m.settings ?? []]),
@@ -42,67 +42,112 @@ const sheets: [string, ModuleSetting[]][] = [
   ["panel", PANEL_SETTINGS],
 ];
 
-describe("general categories", () => {
-  it("keeps the canonical order and unique ids / titles", () => {
-    expect(GENERAL_CATEGORIES.map((c) => c.title)).toEqual([
-      "Widget",
-      "Look",
-      "Size & alignment",
-      "Typography",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-      "Advanced",
+describe("shared sections", () => {
+  it("keeps the canonical order, unique ids and the spec's tabs", () => {
+    expect(SHARED_SECTIONS.map((c) => [c.tab, c.title])).toEqual([
+      ["show", "Header"],
+      ["show", "Fit"],
+      ["style", "Skin & graphics"],
+      ["style", "Colors"],
+      ["style", "Widget colors"],
+      ["style", "Surface"],
+      ["style", "Typography"],
+      ["style", "Size & spacing"],
+      ["style", "Border & glow"],
+      ["style", "Custom CSS"],
+      ["data", "Units & format"],
+      ["behaviour", "Thresholds"],
+      ["behaviour", "Dynamic Island"],
+      ["behaviour", "Motion"],
     ]);
-    expect(new Set(GENERAL_CATEGORIES.map((c) => c.id)).size).toBe(GENERAL_CATEGORIES.length);
+    expect(new Set(SHARED_SECTIONS.map((c) => c.id)).size).toBe(SHARED_SECTIONS.length);
   });
 
-  it("holds every standard setting exactly once, in the category its group names", () => {
-    const keys = GENERAL_CATEGORIES.flatMap((c) => c.keys);
-    expect(new Set(keys).size).toBe(keys.length);
+  it("puts Header and the Behaviour leads before a widget's own sections, Fit, Units, Island and Motion after", () => {
+    expect(SHARED_SECTIONS.filter((s) => s.place === "trail").map((s) => s.id)).toEqual(["fit", "format", "island", "motion"]);
+  });
+
+  it("files every standard setting by the section it names", () => {
+    const ids = new Set(SHARED_SECTIONS.map((s) => s.id));
     for (const d of STANDARD_SETTINGS) {
-      const cat = GENERAL_CATEGORIES.find((c) => c.keys.includes(d.key));
-      expect(cat, d.key).toBeDefined();
-      if (d.group) expect(cat?.title, d.key).toBe(d.group);
+      expect(d.section, d.key).toBeDefined();
+      expect(ids.has(d.section!), d.key).toBe(true);
+      expect(categoryTitleOf(d), d.key).toBe(SHARED_SECTIONS.find((s) => s.id === d.section)!.title);
     }
   });
 
+  it("files the standard keys per spec §2.2, with smoothing in Motion", () => {
+    const keysOf = (id: string) => STANDARD_SETTINGS.filter((d) => d.section === id).map((d) => d.key);
+    expect(keysOf("header")).toEqual(["showTitle", "label", "icon"]);
+    expect(keysOf("fit")).toEqual(["layout", "variant", "compactView"]);
+    expect(keysOf("skin").sort()).toEqual(["graph", "meter", "skin", "stroke"]);
+    expect(keysOf("colors").sort()).toEqual(["accent", "mutedColor", "preset", "textColor"]);
+    expect(keysOf("surface").sort()).toEqual(["background", "backgroundOn", "blur", "surface", "surfaceOpacity"]);
+    expect(keysOf("type")).toEqual(["font", "fontWeight", "labelCase"]);
+    expect(keysOf("border")).toEqual(["borderWidth", "borderColor", "glow", "glowColor"]);
+    expect(keysOf("css")).toEqual(["customCss"]);
+    expect(keysOf("motion")).toEqual(["smoothing"]);
+  });
+
+  it("puts the spec's More rows behind More", () => {
+    const more = STANDARD_SETTINGS.filter((d) => d.more).map((d) => d.key).sort();
+    expect(more).toEqual(["autoScale", "background", "backgroundOn", "customCss", "graph", "icon", "meter", "preset"]);
+    expect(STANDARD_SETTINGS.some((d) => d.advanced)).toBe(false);
+  });
+
   it("covers every profile style key", () => {
-    const keys = new Set(GENERAL_CATEGORIES.flatMap((c) => c.keys));
     for (const key of PROFILE_STYLE_KEYS) {
-      expect(keys.has(key) || key === "alignY", key).toBe(true);
+      const d = STANDARD_SETTINGS.find((s) => settingKeys(s).includes(key));
+      expect(d?.section, key).toBeDefined();
     }
   });
 });
 
+describe("sharedSectionOf", () => {
+  it("files a widget's own rows by the mechanical rules", () => {
+    expect(sharedSectionOf({ ...def("x", "Mine"), section: "thresholds" })).toBe("thresholds");
+    expect(sharedSectionOf(def("island", "Mine"))).toBe("island");
+    expect(sharedSectionOf(def("islandFaders", "Mine"))).toBe("island");
+    expect(sharedSectionOf(def("islander", "Mine"))).toBeUndefined();
+    expect(sharedSectionOf({ ...def("tint", "Mine"), tab: "style" })).toBe("palette");
+    expect(sharedSectionOf(def("warn", "Thresholds"))).toBe("thresholds");
+    expect(sharedSectionOf(def("x", "Mine"))).toBeUndefined();
+  });
+});
+
 describe("categorize", () => {
-  it("puts general categories first in canonical order, then the widget's own as they appear", () => {
+  it("puts shared sections first in canonical order, then the widget's own as they appear", () => {
     const cats = categorize([
       def("tempWarn", "Thresholds"),
-      def("customCss"),
+      std("customCss"),
       def("showFans", "Fans"),
-      def("label"),
+      std("label"),
       def("tempCrit", "Thresholds"),
-      def("preset"),
+      std("preset"),
+      std("smoothing"),
     ]);
     expect(cats.map((c) => [c.title, c.defs.map((d) => d.key)])).toEqual([
-      ["Widget", ["label"]],
-      ["Colors & surface", ["preset"]],
-      ["Advanced", ["customCss"]],
+      ["Header", ["label"]],
+      ["Colors", ["preset"]],
+      ["Custom CSS", ["customCss"]],
       ["Thresholds", ["tempWarn", "tempCrit"]],
+      ["Motion", ["smoothing"]],
       ["Fans", ["showFans"]],
     ]);
-    expect(cats.map((c) => c.general)).toEqual([true, true, true, false, false]);
+    expect(cats.map((c) => c.general)).toEqual([true, true, true, true, true, false]);
+  });
+
+  it("files a group of color pickers, and rows of the Style tab, as Widget colors in schema order", () => {
+    const cats = categorize([color("cpuColor", "Device colors"), { ...def("unified", "Device colors"), tab: "style" }, color("gpuColor", "Device colors"), color("dot", "Meter"), def("hold", "Meter")]);
+    expect(cats.map((c) => [c.id, c.defs.map((d) => d.key)])).toEqual([
+      ["palette", ["cpuColor", "unified", "gpuColor"]],
+      ["module:meter", ["dot", "hold"]],
+    ]);
   });
 
   it("files unfiled settings last under Other", () => {
-    const cats = categorize([def("x"), def("y", "Own"), def("label")]);
-    expect(cats.map((c) => c.title)).toEqual(["Widget", "Own", OTHER_TITLE]);
-  });
-
-  it("files a standard key by its key, whatever group it carries", () => {
-    expect(categoryTitleOf(def("font", "Whatever"))).toBe("Typography");
-    expect(categoryTitleOf(def("custom", "Mine"))).toBe("Mine");
+    const cats = categorize([def("x"), def("y", "Own"), std("label")]);
+    expect(cats.map((c) => c.title)).toEqual(["Header", "Own", OTHER_TITLE]);
   });
 
   it("is deterministic", () => {
@@ -118,37 +163,24 @@ describe("every widget's settings", () => {
     // Nothing lost or duplicated.
     const filed = cats.flatMap((c) => c.defs.flatMap(settingKeys));
     expect(filed.sort()).toEqual(defs.flatMap(settingKeys).sort());
-    // Own categories never reuse a general title.
-    for (const c of cats.filter((c) => !c.general)) expect(GENERAL_TITLES.has(c.title)).toBe(false);
-    // General ones hold only standard keys.
-    for (const c of cats.filter((c) => c.general)) {
-      const spec = GENERAL_CATEGORIES.find((g) => g.id === c.id)!;
-      for (const d of c.defs) expect(spec.keys).toContain(d.key);
-    }
+    // Own categories never reuse a shared title (a widget's "Thresholds" group is the shared one).
+    for (const c of cats.filter((c) => !c.general)) expect(SHARED_TITLES.has(c.title), c.title).toBe(false);
+    // The look sections hold only standard keys; no standard key lands in a widget's own section.
+    for (const c of cats.filter((c) => STANDARD_ONLY.has(c.id))) for (const d of c.defs) expect(STANDARD_KEYS.has(d.key), d.key).toBe(true);
+    for (const c of cats.filter((c) => !c.general)) for (const d of c.defs) expect(STANDARD_KEYS.has(d.key), d.key).toBe(false);
   });
 
-  it.each(sheets)("%s: own categories are not single-setting ones", (id, defs) => {
-    for (const c of categorize(defs).filter((c) => !c.general)) {
-      if (c.defs.length === 1) expect(SINGLE_SETTING_OK.has(`${id}:${c.title}`), `${id}:${c.title}`).toBe(true);
-      expect(c.defs.length, `${id}:${c.title}`).toBeLessThanOrEqual(12);
-    }
-  });
-
-  it("only allow-lists single-setting categories that exist", () => {
-    for (const entry of SINGLE_SETTING_OK) {
-      const [id, title] = entry.split(":");
-      const cats = categorize(sheets.find(([sid]) => sid === id)?.[1] ?? []);
-      expect(cats.find((c) => c.title === title)?.defs).toHaveLength(1);
-    }
+  it.each(sheets)("%s: own categories stay short", (id, defs) => {
+    for (const c of categorize(defs).filter((c) => !c.general)) expect(c.defs.length, `${id}:${c.title}`).toBeLessThanOrEqual(12);
   });
 });
 
 describe("filterCategories", () => {
   const cats = categorize([
-    def("glow", undefined, "Edge glow"),
-    def("borderWidth", undefined, "Border width"),
-    def("tempWarn", "Thresholds", "Warning at"),
-    def("tempCrit", "Thresholds", "Critical at"),
+    { ...std("glow"), label: "Edge glow" },
+    { ...std("borderWidth"), label: "Border width" },
+    def("tempWarn", "Overheat", "Warning at"),
+    def("tempCrit", "Overheat", "Critical at"),
   ]);
 
   it("keeps everything for a blank query", () => {
@@ -157,12 +189,12 @@ describe("filterCategories", () => {
 
   it("returns matching rows in their categories", () => {
     const hit = filterCategories(cats, "glow");
-    expect(hit.map((c) => [c.title, c.defs.map((d) => d.key)])).toEqual([["Border & effects", ["glow"]]]);
+    expect(hit.map((c) => [c.title, c.defs.map((d) => d.key)])).toEqual([["Border & glow", ["glow"]]]);
   });
 
   it("returns a whole category when only its title matches", () => {
-    const hit = filterCategories(cats, "thresholds");
-    expect(hit.map((c) => [c.title, c.defs.length])).toEqual([["Thresholds", 2]]);
+    const hit = filterCategories(cats, "overheat");
+    expect(hit.map((c) => [c.title, c.defs.length])).toEqual([["Overheat", 2]]);
   });
 
   it("prefers row matches over a title match", () => {
@@ -175,60 +207,49 @@ describe("filterCategories", () => {
   });
 });
 
-describe("withGeneral", () => {
-  const cats = categorize([def("customCss"), def("tempWarn", "Thresholds")]);
+describe("withShared", () => {
+  const cats = categorize([std("customCss"), def("tempWarn", "Overheat")]);
 
-  it("adds the named general categories at their canonical place", () => {
-    const out = withGeneral(cats, ["widget", "effects"]);
-    expect(out.map((c) => c.title)).toEqual(["Widget", "Border & effects", "Advanced", "Thresholds"]);
+  it("adds the named shared sections at their canonical place", () => {
+    const out = withShared(cats, ["header", "border"]);
+    expect(out.map((c) => c.title)).toEqual(["Header", "Border & glow", "Custom CSS", "Overheat"]);
     expect(out[0].defs).toEqual([]);
   });
 
-  it("keeps existing ones and adds nothing for unknown ids", () => {
-    expect(withGeneral(cats, ["advanced", "nope"])).toEqual(cats);
+  it("keeps existing ones", () => {
+    expect(withShared(cats, ["css"])).toEqual(cats);
   });
 });
 
-describe("tabs and advanced", () => {
-  const cat = (defs: ModuleSetting[], title = "Own") => categorize(defs.map((d) => ({ ...d, group: d.group ?? title })))[0];
-  const color = (key: string): ModuleSetting => ({ key, label: key, type: "color", default: "" });
+describe("tabs", () => {
+  const own = categorize([def("x", "Own")])[0];
 
-  it("files the Widget card in Content and the look cards in Style", () => {
-    const tabs = Object.fromEntries(
-      categorize(STANDARD_SETTINGS).map((c) => [c.title, categoryTab(c)])
-    );
-    expect(tabs).toMatchObject({
-      Widget: "content",
-      "Size & alignment": "style",
+  it("files each shared section in its tab and a widget's own in Show", () => {
+    const tabs = Object.fromEntries(categorize(STANDARD_SETTINGS).map((c) => [c.title, categoryTab(c)]));
+    expect(tabs).toEqual({
+      Header: "show",
+      Fit: "show",
+      "Skin & graphics": "style",
+      Colors: "style",
+      Surface: "style",
       Typography: "style",
-      "Spacing & shape": "style",
-      "Colors & surface": "style",
-      "Border & effects": "style",
-      Advanced: "style",
+      "Size & spacing": "style",
+      "Border & glow": "style",
+      "Custom CSS": "style",
+      Motion: "behaviour",
     });
+    expect(categoryTab(own)).toBe("show");
   });
 
-  it("files a widget's own categories in Content, those of color pickers in Style as advanced", () => {
-    const plain = cat([def("showFans")]);
-    expect([categoryTab(plain), categoryAdvanced(plain)]).toEqual(["content", false]);
-    const colors = cat([color("a"), color("b")], "Device colors");
-    expect([categoryTab(colors), categoryAdvanced(colors)]).toEqual(["style", true]);
-    const mixed = cat([color("a"), def("b")], "Meter");
-    expect([categoryTab(mixed), categoryAdvanced(mixed)]).toEqual(["content", false]);
-  });
-
-  it("only the Advanced general category is advanced by itself", () => {
-    const advanced = categorize(STANDARD_SETTINGS).filter(categoryAdvanced);
-    expect(advanced.map((c) => c.title)).toEqual(["Advanced"]);
-  });
-
-  it("lets a setting's own tab and advanced flag win", () => {
-    const own = cat([def("x")]);
+  it("lets a widget's own setting name Data or Behaviour", () => {
     expect(tabOf({ ...def("x"), tab: "data" }, own)).toBe("data");
-    expect(tabOf(def("x"), own)).toBe("content");
-    expect(isAdvanced({ ...def("x"), advanced: true }, own)).toBe(true);
-    expect(isAdvanced(def("x"), own)).toBe(false);
-    expect(isAdvanced(def("x"), cat([color("a")]))).toBe(true);
+    expect(tabOf({ ...def("x"), tab: "behaviour" }, own)).toBe("behaviour");
+    expect(tabOf(def("x"), own)).toBe("show");
+  });
+
+  it("keeps a shared section's rows in its own tab", () => {
+    const thresholds = categorize([{ ...def("warn", "Thresholds"), tab: "data" }])[0];
+    expect(tabOf(thresholds.defs[0], thresholds)).toBe("behaviour");
   });
 });
 
@@ -240,7 +261,36 @@ describe("data settings", () => {
   it("default to the Data tab, an explicit tab still wins", () => {
     expect(tabOf(sensor, category)).toBe("data");
     expect(tabOf(device, category)).toBe("data");
-    expect(tabOf(def("title", "Value"), category)).toBe("content");
-    expect(tabOf({ ...sensor, tab: "content" }, category)).toBe("content");
+    expect(tabOf(def("title", "Value"), category)).toBe("show");
+    expect(tabOf({ ...sensor, tab: "show" }, category)).toBe("show");
+  });
+});
+
+describe("withHeaderMode", () => {
+  const defs = [std("layout"), std("showTitle"), std("label"), std("icon"), def("own", "Own")];
+  const keys = (list: ModuleSetting[]) => list.map((d) => `${d.key}:${d.section ?? "-"}`);
+
+  it("keeps a header widget's rows", () => {
+    expect(withHeaderMode(defs, "yes")).toBe(defs);
+    expect(withHeaderMode(defs)).toBe(defs);
+  });
+
+  it("moves Show title behind More on a title-only widget and keeps Title visible with a hint", () => {
+    const out = withHeaderMode(defs, "title-only");
+    expect(keys(out)).toEqual(["layout:fit", "showTitle:header", "label:header", "icon:header", "own:-"]);
+    expect(out.find((d) => d.key === "showTitle")!.more).toBe(true);
+    const title = out.find((d) => d.key === "label")!;
+    expect(title.hint).toBe(TITLE_ONLY_HINT);
+    expect(title.visibleIf).toBeUndefined();
+  });
+
+  it("moves Title and Icon to the end of Fit on a widget without a header that has a summary view", () => {
+    expect(keys(withHeaderMode(defs, "none", { card: true, dense: "fallback" }))).toEqual(["layout:fit", "own:-", "label:fit", "icon:fit"]);
+    expect(keys(withHeaderMode(defs, "none", { card: false, dense: true }))).toEqual(["layout:fit", "own:-", "label:fit", "icon:fit"]);
+  });
+
+  it("drops them when there is no summary view to name", () => {
+    expect(keys(withHeaderMode(defs, "none", { card: false, dense: false }))).toEqual(["layout:fit", "own:-"]);
+    expect(keys(withHeaderMode(defs, "none"))).toEqual(["layout:fit", "own:-"]);
   });
 });

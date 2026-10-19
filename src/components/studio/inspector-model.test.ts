@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
-import { settingKeys, type DashboardModule, type ModuleSetting } from "@/modules/types";
+import { isMore, settingKeys, type DashboardModule, type ModuleSetting } from "@/modules/types";
+import { TITLE_ONLY_HINT } from "./inspector-categories";
 import {
   allSections,
-  applyAdvanced,
   changedCount,
   extraMatches,
   jumpTarget,
@@ -17,10 +17,11 @@ import {
   lookEditPatch,
   resetKeysOfSection,
   searchAll,
-  sectionSize,
   sectionsFor,
   sourceState,
+  splitMore,
   tabChangedCounts,
+  tabStates,
   widgetContext,
   widgetLookValues,
   type InspectorContext,
@@ -39,9 +40,10 @@ const webpage = widgetContext(mod("WebPage"));
 const panel: InspectorContext = { kind: "panel", defs: PANEL_SETTINGS };
 
 describe("every setting is in exactly one section of exactly one tab", () => {
+  // A widget without a header has no Show title row; a title-only one keeps it behind More (a stored "off" stays reachable).
+  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !(d.key === "showTitle" && m.header === "none"));
   const contexts: [string, InspectorContext, ModuleSetting[]][] = [
-    ...modules
-      .map((m): [string, InspectorContext, ModuleSetting[]] => [m.id, widgetContext(m), m.settings ?? []]),
+    ...modules.map((m): [string, InspectorContext, ModuleSetting[]] => [m.id, widgetContext(m), shown(m)]),
     ["cards", { kind: "widget", defs: CARD_SETTINGS }, CARD_SETTINGS],
     ["panel", panel, PANEL_SETTINGS],
   ];
@@ -73,12 +75,13 @@ describe("every setting is in exactly one section of exactly one tab", () => {
 });
 
 describe("inspectorTabs", () => {
-  it("has Content, Style and Data for widgets and panels", () => {
+  it("has Show, Style, Data and Behaviour for widgets and panels", () => {
     for (const context of [spotify, panel]) {
       expect(inspectorTabs(context)).toEqual([
-        { id: "content", label: "Content" },
+        { id: "show", label: "Show" },
         { id: "style", label: "Style" },
         { id: "data", label: "Data" },
+        { id: "behaviour", label: "Behaviour" },
       ]);
     }
   });
@@ -99,56 +102,47 @@ describe("inspectorTabs", () => {
 });
 
 describe("widget sections", () => {
-  it("files the Widget card and the widget's own categories in Content", () => {
-    expect(titles(sectionsFor(spotify, "content"))).toEqual([
-      "Widget",
-      "Now playing",
-      "Visualizer",
-      "Cover art",
-      "Visualizer shape",
-      "Visualizer dynamics",
-    ]);
-    expect(find(sectionsFor(spotify, "content"), "Widget").extras.map((e) => e.kind)).toEqual([
-      "widgetPicker",
-      "visible",
-    ]);
+  it("files Header, the widget's own sections and Fit in Show", () => {
+    expect(titles(sectionsFor(spotify, "show"))).toEqual(["Header", "Now playing", "Visualizer", "Cover art", "Visualizer shape", "Fit"]);
+    expect(find(sectionsFor(spotify, "show"), "Header").extras.map((e) => e.kind)).toEqual(["widgetPicker", "visible"]);
+    expect(keysOf([find(sectionsFor(spotify, "show"), "Fit")])).toEqual(["layout", "variant", "compactView"]);
   });
 
-  it("files the look cards in Style, then the color categories, as advanced", () => {
+  it("files the look sections in Style, the widget's colors as Widget colors", () => {
     const style = sectionsFor(system, "style");
     expect(titles(style)).toEqual([
-      "Look",
-      "Size & alignment",
+      "Skin & graphics",
+      "Colors",
+      "Widget colors",
+      "Surface",
       "Typography",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-      "Advanced",
-      "Device colors",
+      "Size & spacing",
+      "Border & glow",
+      "Custom CSS",
     ]);
-    expect(style.filter((s) => s.advanced).map((s) => s.title)).toEqual(["Advanced", "Device colors"]);
-    expect(find(style, "Colors & surface").extras.map((e) => e.kind)).toEqual(["styleMode", "styleTools"]);
-    expect(find(style, "Border & effects").extras).toEqual([{ kind: "zoneFrame", advanced: true, count: 3 }]);
+    expect(find(style, "Widget colors").settings.map((d) => d.key)).toContain("cpuColor");
+    expect(find(style, "Colors").extras.map((e) => e.kind)).toEqual(["styleMode", "styleTools"]);
+    expect(find(style, "Border & glow").extras).toEqual([{ kind: "zoneFrame", more: true, count: 3 }]);
   });
 
-  it("files the other color-picker categories in Style too", () => {
-    for (const [id, title] of [
-      ["SensorGroup", "Dot colors"],
-      ["FpsMonitor", "Gauge colors"],
-      ["Bluetooth", "Battery colors"],
-      ["NetworkThroughput", "Speed colors"],
-    ]) {
+  it("files the other color-picker groups in Widget colors too, not behind More", () => {
+    for (const [id, keys] of [
+      ["SensorGroup", ["tempColor", "fanColor", "powerColor"]],
+      ["FpsMonitor", ["ringColor", "sparkColor"]],
+      ["Bluetooth", ["batteryMidColor", "batteryLowColor"]],
+      ["NetworkThroughput", ["downloadColor", "uploadColor"]],
+    ] as const) {
       const context = widgetContext(mod(id));
-      expect(titles(sectionsFor(context, "content")), id).not.toContain(title);
-      const section = find(sectionsFor(context, "style"), title);
-      expect(section.advanced, id).toBe(true);
+      expect(keysOf(sectionsFor(context, "show")), id).not.toContain(keys[0]);
+      const palette = find(sectionsFor(context, "style"), "Widget colors");
+      expect(palette.settings.map((d) => d.key), id).toEqual(expect.arrayContaining([...keys]));
+      expect(palette.settings.filter(isMore), id).toEqual([]);
     }
   });
 
-  it("keeps the meter's colors in Content, flagged advanced one by one", () => {
-    const meter = find(sectionsFor(widgetContext(mod("AudioMeter")), "content"), "Meter");
-    expect(meter.advanced).toBe(false);
-    expect(meter.settings.filter((d) => d.advanced).map((d) => d.key)).toEqual(["levelColor", "hotColor"]);
+  it("keeps the meter's colors in Show, behind its More one by one", () => {
+    const meter = find(sectionsFor(widgetContext(mod("AudioMeter")), "show"), "Meter");
+    expect(meter.settings.filter(isMore).map((d) => d.key)).toEqual(["levelColor", "hotColor"]);
   });
 
   it("files the device and Audio source in Data, after the bound data", () => {
@@ -156,7 +150,24 @@ describe("widget sections", () => {
     expect(titles(data)).toEqual(["Bound data", "Visualizer", "Audio source"]);
     expect(data[0]).toMatchObject({ special: "boundData" });
     expect(keysOf(data)).toEqual(["liveSource", "liveCapture", "liveSources"]);
-    expect(titles(sectionsFor(spotify, "content"))).not.toContain("Audio source");
+    expect(titles(sectionsFor(spotify, "show"))).not.toContain("Audio source");
+  });
+
+  it("files thresholds, the widget's behaviour, the island and graph updates in Behaviour", () => {
+    expect(titles(sectionsFor(system, "behaviour"))).toEqual(["Thresholds", "Trends", "Motion"]);
+    expect(keysOf([find(sectionsFor(system, "behaviour"), "Thresholds")])).toEqual(["tempWarn", "tempCrit", "vramWarn", "loadWarn", "loadCrit"]);
+    expect(titles(sectionsFor(spotify, "behaviour"))).toEqual(["Visualizer dynamics", "Dynamic Island", "Motion"]);
+    expect(keysOf([find(sectionsFor(spotify, "behaviour"), "Motion")])).toEqual(["smoothing"]);
+    expect(keysOf(sectionsFor(widgetContext(mod("GpuMonitor")), "behaviour"))).toEqual(["warnTemp", "critTemp", "smoothing"]);
+    expect(sectionsFor(webpage, "behaviour")).toEqual([]);
+  });
+
+  it("files every island setting in Behaviour › Dynamic Island", () => {
+    for (const m of modules) {
+      const island = allSections(widgetContext(m)).filter((s) => s.settings.some((d) => d.key === "island"));
+      if (island.length === 0) continue;
+      expect(island.map((s) => [s.tab, s.title]), m.id).toEqual([["behaviour", "Dynamic Island"]]);
+    }
   });
 
   it("offers no Hide when idle (removed), and Layout only to adaptive ones", () => {
@@ -172,41 +183,93 @@ describe("widget sections", () => {
     expect(adaptive).not.toContain("WebPage");
   });
 
-  it("still has a Widget card when the schema has no setting in it (the picker lives there)", () => {
-    const sections = sectionsFor(webpage, "content");
-    expect(titles(sections)).toEqual(["Widget", "Page"]);
+  it("still has a Header when the schema has no setting in it (the picker lives there)", () => {
+    const sections = sectionsFor({ kind: "widget", defs: [] }, "show");
+    expect(titles(sections)).toEqual(["Header"]);
     expect(sections[0].settings).toEqual([]);
+    expect(sections[0].extras.map((e) => e.kind)).toEqual(["widgetPicker", "visible"]);
+  });
+});
+
+describe("tabs of every widget", () => {
+  it.each(modules.map((m) => [m.id, m] as const))("%s: four tabs, an empty one disabled", (id, m) => {
+    const context = widgetContext(m);
+    const sections = allSections(context);
+    const tabs = tabStates(inspectorTabs(context), sections);
+    expect(tabs.map((t) => t.id)).toEqual(["show", "style", "data", "behaviour"]);
+    for (const t of tabs) expect(t.disabled, `${id} ${t.id}`).toBe(!sections.some((s) => s.tab === t.id));
+    // Only the Web Page has nothing to do in Behaviour (no graph updates, island or thresholds).
+    expect(tabs.filter((t) => t.disabled).map((t) => t.id)).toEqual(id === "WebPage" ? ["behaviour"] : []);
+  });
+});
+
+describe("header modes", () => {
+  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "SteamGame", "Vitals", "WebPage"];
+  const TITLE_ONLY = ["Clock", "SystemOverview"];
+
+  it("declares the header and small-zone shape of every widget", () => {
+    for (const m of modules) {
+      expect(m.header, m.id).toBeDefined();
+      expect(m.compact, m.id).toBeDefined();
+    }
+    expect(modules.filter((m) => m.header === "none").map((m) => m.id).sort()).toEqual(NO_HEADER);
+    expect(modules.filter((m) => m.header === "title-only").map((m) => m.id).sort()).toEqual(TITLE_ONLY);
+    const noCard = modules.filter((m) => !m.compact?.card).map((m) => m.id).sort();
+    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
+  });
+
+  it("shows Show title, Title and Icon (More) on a widget with a header", () => {
+    const header = find(sectionsFor(spotify, "show"), "Header");
+    expect(header.settings.map((d) => [d.key, isMore(d)])).toEqual([["showTitle", false], ["label", false], ["icon", true]]);
+  });
+
+  it("shows Title (with its hint) and Icon on a title-only widget, Show title behind More", () => {
+    for (const id of TITLE_ONLY) {
+      const header = find(sectionsFor(widgetContext(mod(id)), "show"), "Header");
+      expect(header.settings.map((d) => d.key), id).toEqual(["showTitle", "label", "icon"]);
+      expect(header.settings[0].more, id).toBe(true);
+      expect(header.settings[1].hint, id).toBe(TITLE_ONLY_HINT);
+      expect(isVisible(header.settings[1], { showTitle: false }), id).toBe(true);
+    }
+  });
+
+  it("has no Header on a widget without one: Title and Icon close Fit, the picker moves to the first Show section", () => {
+    for (const id of NO_HEADER) {
+      const show = sectionsFor(widgetContext(mod(id)), "show");
+      expect(titles(show), id).not.toContain("Header");
+      expect(keysOf(show), id).not.toContain("showTitle");
+      expect(show[0].extras.map((e) => e.kind), id).toEqual(["widgetPicker", "visible"]);
+      if (id === "WebPage") continue;
+      expect(keysOf([find(show, "Fit")]).slice(-2), id).toEqual(["label", "icon"]);
+    }
   });
 });
 
 describe("Web Page", () => {
   it("offers only the few look settings it has, each in its normal section, and no custom CSS", () => {
-    expect(titles(sectionsFor(webpage, "style"))).toEqual([
-      "Size & alignment",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-    ]);
+    expect(titles(sectionsFor(webpage, "style"))).toEqual(["Colors", "Size & spacing", "Border & glow"]);
     expect(keysOf(sectionsFor(webpage, "style"))).toContain("scale");
     expect(keysOf(sectionsFor(webpage, "style"))).not.toContain("customCss");
-    expect(keysOf(sectionsFor(webpage, "content"))).toEqual(["url"]);
+    expect(titles(sectionsFor(webpage, "show"))).toEqual(["Page"]);
+    expect(keysOf(sectionsFor(webpage, "show"))).toEqual(["url"]);
   });
 
   it("says so in a note on the Style tab", () => {
     expect(inspectorNotes(webpage, "style").map((n) => n.kind)).toEqual(["reduced"]);
-    expect(inspectorNotes(webpage, "content")).toEqual([]);
+    expect(inspectorNotes(webpage, "show")).toEqual([]);
   });
 });
 
 describe("panel sections", () => {
-  it("lists Panel, Layout and Widgets, then the Widget card, in Content", () => {
-    expect(titles(sectionsFor(panel, "content"))).toEqual(["Panel", "Layout", "Widgets", "Widget"]);
-    expect(find(sectionsFor(panel, "content"), "Widget").extras.map((e) => e.kind)).toEqual(["visible"]);
+  it("lists Panel, Layout and Widgets, then the Header, in Show", () => {
+    expect(titles(sectionsFor(panel, "show"))).toEqual(["Panel", "Layout", "Widgets", "Header"]);
+    expect(find(sectionsFor(panel, "show"), "Header").extras.map((e) => e.kind)).toEqual(["visible"]);
+    expect(keysOf([find(sectionsFor(panel, "show"), "Header")])).toEqual(["label", "icon"]);
   });
 
   it("adds Background for an overlay and the selected widget's cards after the list", () => {
     const overlay: InspectorContext = { ...panel, layout: "overlay", selectedWidget: true } as InspectorContext;
-    expect(titles(sectionsFor(overlay, "content"))).toEqual([
+    expect(titles(sectionsFor(overlay, "show"))).toEqual([
       "Panel",
       "Layout",
       "Background",
@@ -216,31 +279,31 @@ describe("panel sections", () => {
       "Size & placement",
       "Typography & colors",
       "Selected · Advanced",
-      "Widget",
+      "Header",
     ]);
     expect(
-      titles(sectionsFor({ ...overlay, selectedLabel: "Slider" } as InspectorContext, "content")).filter((t) => t.startsWith("Selected ·"))
+      titles(sectionsFor({ ...overlay, selectedLabel: "Slider" } as InspectorContext, "show")).filter((t) => t.startsWith("Selected ·"))
     ).toEqual(["Selected · Slider", "Selected · Advanced"]);
-    expect(sectionsFor(overlay, "content").filter((s) => s.advanced).map((s) => s.special)).toEqual(["widgetAdvanced"]);
   });
 
   it("swaps the layout and widget cards for the JSON in the code view", () => {
     const code: InspectorContext = { ...panel, codeView: true } as InspectorContext;
-    expect(titles(sectionsFor(code, "content"))).toEqual(["Panel", "Panel JSON", "Widget"]);
+    expect(titles(sectionsFor(code, "show"))).toEqual(["Panel", "Panel JSON", "Header"]);
   });
 
-  it("has the same look cards as a widget and lists its sensors in Data", () => {
+  it("has the same look sections as a widget, lists its sensors in Data and its graph updates in Behaviour", () => {
     expect(titles(sectionsFor(panel, "style"))).toEqual([
-      "Look",
-      "Size & alignment",
+      "Skin & graphics",
+      "Colors",
+      "Surface",
       "Typography",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-      "Advanced",
+      "Size & spacing",
+      "Border & glow",
+      "Custom CSS",
     ]);
     expect(sectionsFor(panel, "data")).toHaveLength(1);
     expect(sectionsFor(panel, "data")[0].special).toBe("panelData");
+    expect(titles(sectionsFor(panel, "behaviour"))).toEqual(["Motion"]);
   });
 });
 
@@ -252,19 +315,21 @@ describe("blank zone and several zones", () => {
     expect(inspectorNotes({ kind: "blank" }, undefined)[0].kind).toBe("blank");
   });
 
-  it("shows only the Style sections for several zones", () => {
+  it("shows only the shared look sections for several zones", () => {
     const sections = sectionsFor({ kind: "multi", defs: spotify.kind === "widget" ? spotify.defs : [] });
-    expect(sections.every((s) => s.tab === "style")).toBe(true);
     expect(titles(sections)).toEqual([
-      "Look",
-      "Size & alignment",
+      "Skin & graphics",
+      "Colors",
+      "Surface",
       "Typography",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-      "Advanced",
+      "Size & spacing",
+      "Border & glow",
+      "Custom CSS",
+      "Fit",
+      "Motion",
     ]);
-    expect(find(sections, "Colors & surface").extras.map((e) => e.kind)).toEqual(["styleMode"]);
+    expect(keysOf(sections)).not.toContain("label");
+    expect(find(sections, "Colors").extras.map((e) => e.kind)).toEqual(["styleMode"]);
   });
 });
 
@@ -284,16 +349,18 @@ describe("dashboard sections", () => {
     expect(find(sectionsFor(dash, "general"), "Studio").terms).toContain("Quick bar");
   });
 
-  it("has the look categories as the global style, without Follow, Preset or the Widget card", () => {
+  it("has the look sections as the global style, without Follow, Preset or the Header", () => {
     const style = sectionsFor(dash, "gstyle");
     expect(titles(style)).toEqual([
-      "Look",
-      "Size & alignment",
+      "Skin & graphics",
+      "Colors",
+      "Surface",
       "Typography",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-      "Advanced",
+      "Size & spacing",
+      "Border & glow",
+      "Custom CSS",
+      "Fit",
+      "Motion",
     ]);
     expect(keysOf(style)).not.toContain("preset");
     expect(keysOf(style)).not.toContain("layout");
@@ -345,73 +412,70 @@ describe("source states and changed counts", () => {
     const context: InspectorContext = { kind: "widget", defs: [...CARD_SETTINGS, url] };
     const sections = allSections(context);
     const custom = widgetLookValues({ own });
-    expect(changedCount(find(sections, "Colors & surface"), custom)).toBe(1);
-    expect(changedCount(find(sections, "Border & effects"), custom)).toBe(1);
+    expect(changedCount(find(sections, "Colors"), custom)).toBe(1);
+    expect(changedCount(find(sections, "Border & glow"), custom)).toBe(1);
     expect(changedCount(find(sections, "Typography"), custom)).toBe(0);
-    expect(tabChangedCounts(sections, custom)).toEqual({ content: 1, style: 2, data: 0 });
+    expect(tabChangedCounts(sections, custom)).toEqual({ show: 1, style: 2, data: 0, behaviour: 0 });
     expect(tabChangedCounts(sections, widgetLookValues({ own, mode: "follow" }))).toEqual({
-      content: 1,
+      show: 1,
       style: 2,
       data: 0,
+      behaviour: 0,
     });
   });
 
   it("does not count defaults or inherited values", () => {
     const sections = allSections(system);
     const values = widgetLookValues({ own: { accent: "" }, dashboard: { glow: "soft" } });
-    expect(tabChangedCounts(sections, values)).toEqual({ content: 0, style: 0, data: 0 });
+    expect(tabChangedCounts(sections, values)).toEqual({ show: 0, style: 0, data: 0, behaviour: 0 });
   });
 
   it("lists the stored keys a section's Reset drops (both axes of an alignment)", () => {
     const sections = allSections(spotify);
     const values = widgetLookValues({ own: { alignX: "start", alignY: "end", scale: 120 } });
-    expect(resetKeysOfSection(find(sections, "Size & alignment"), values).sort()).toEqual(["alignX", "alignY", "scale"]);
+    expect(resetKeysOfSection(find(sections, "Size & spacing"), values).sort()).toEqual(["alignX", "alignY", "scale"]);
   });
 });
 
-describe("applyAdvanced", () => {
-  it("shows everything when Advanced is on", () => {
-    const sections = allSections(system);
-    expect(applyAdvanced(sections, true)).toEqual({ sections, hiddenCount: 0 });
+describe("More rows", () => {
+  it("splits a section at its More (n) link, the More extras counting too", () => {
+    const style = sectionsFor(system, "style");
+    const spacing = splitMore(find(style, "Size & spacing"));
+    expect(spacing.rows.map((d) => d.key)).toEqual(["scale", "alignX", "padding", "gap", "radius"]);
+    expect([spacing.more.map((d) => d.key), spacing.count]).toEqual([["autoScale"], 1]);
+    // The zone frame (3 fields) waits behind Border & glow's More.
+    expect(splitMore(find(style, "Border & glow"))).toMatchObject({ more: [], count: 3 });
+    expect(splitMore(find(style, "Custom CSS"))).toMatchObject({ rows: [], count: 1 });
   });
 
-  it("drops advanced sections, settings and extras, and counts what it hid", () => {
-    const sections = sectionsFor(system, "style");
-    const { sections: shown, hiddenCount } = applyAdvanced(sections, false);
-    expect(titles(shown)).toEqual([
-      "Look",
-      "Size & alignment",
-      "Typography",
-      "Spacing & shape",
-      "Colors & surface",
-      "Border & effects",
-    ]);
-    expect(find(shown, "Size & alignment").settings.map((d) => d.key)).toEqual(["layout", "variant", "compactView", "scale", "alignX"]);
-    expect(find(shown, "Colors & surface").settings.map((d) => d.key)).not.toContain("background");
-    expect(find(shown, "Border & effects").extras).toEqual([]);
-    // autoScale + background + backgroundOn + frame (3) + custom CSS + 3 device color options + graph, meter
-    expect(hiddenCount).toBe(1 + 2 + 3 + 1 + 3 + 2);
-    const total = sections.reduce((n, s) => n + sectionSize(s), 0);
-    expect(shown.reduce((n, s) => n + sectionSize(s), 0) + hiddenCount).toBe(total);
+  it("reads the old advanced flag as More", () => {
+    const visualizer = splitMore(find(sectionsFor(spotify, "show"), "Visualizer"));
+    expect(visualizer.more.map((d) => d.key)).toEqual(["visualizerMinLevel", "visualizerOrientation"]);
+    expect(splitMore(find(sectionsFor(spotify, "behaviour"), "Visualizer dynamics"))).toMatchObject({ rows: [], count: 6 });
   });
 
-  it("hides the visualizer dynamics and the advanced visualizer fields in Content", () => {
-    const { sections, hiddenCount } = applyAdvanced(sectionsFor(spotify, "content"), false);
-    expect(titles(sections)).not.toContain("Visualizer dynamics");
-    expect(find(sections, "Visualizer").settings.map((d) => d.key)).toEqual([
-      "waveformVariant",
-      "showTimeline",
-      "waveformSensitivity",
-      "visualizerBarCount",
-      "visualizerAlign",
-    ]);
-    expect(find(sections, "Visualizer shape").settings.map((d) => d.key)).toEqual(["vizShape", "vizGap", "vizPeaks"]);
-    expect(hiddenCount).toBe(2 + 3 + 6);
+  it("keeps every section, a whole-advanced card included", () => {
+    const overlay = { ...panel, selectedWidget: true } as InspectorContext;
+    expect(titles(sectionsFor(overlay, "show"))).toContain("Selected · Advanced");
+    expect(splitMore(find(sectionsFor(overlay, "show"), "Selected · Advanced")).count).toBe(0);
   });
 
-  it("drops a section left with nothing but keeps custom-only ones", () => {
-    const { sections } = applyAdvanced(sectionsFor(panel, "content"), false);
-    expect(titles(sections)).toEqual(["Panel", "Layout", "Widgets", "Widget"]);
+  it("puts an advanced canvas item group's fields behind More", () => {
+    const field: ModuleSetting = { key: "f", label: "F", type: "boolean", default: false };
+    const context: InspectorContext = {
+      kind: "infopanel",
+      groups: [{ id: "ip-style", title: "Style", defs: [field], advanced: true }],
+      group: true,
+      bound: false,
+      unknown: false,
+    };
+    expect(splitMore(find(allSections(context), "Style"))).toMatchObject({ rows: [], count: 1 });
+  });
+
+  it("are found by search and listed with the other matches", () => {
+    const { groups } = searchAll(spotify, "orientation");
+    const visualizer = groups.find((g) => g.section.title === "Visualizer")!;
+    expect(visualizer.section.settings.map((d) => [d.key, isMore(d)])).toEqual([["visualizerOrientation", true]]);
   });
 });
 
@@ -419,12 +483,12 @@ describe("searchAll", () => {
   it("searches every tab and labels each result with its tab", () => {
     const { groups, total } = searchAll(spotify, "mirror");
     // "Visualizer style" matches by its Mirror option; "peak" by the labels in Content and Style.
-    expect(groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["Content", "Visualizer"]]);
+    expect(groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["Show", "Visualizer"]]);
     expect(total).toBe(groups.reduce((n, g) => n + g.section.settings.length, 0));
     expect(keysOf(groups.map((g) => g.section))).toEqual(["waveformVariant"]);
     expect(searchAll(spotify, "peak").groups.map((g) => [g.tabLabel, g.section.title])).toEqual([
-      ["Content", "Visualizer shape"],
-      ["Style", "Visualizer colors"],
+      ["Show", "Visualizer shape"],
+      ["Style", "Widget colors"],
     ]);
   });
 
@@ -435,7 +499,7 @@ describe("searchAll", () => {
     expect(searchAll(spotify, "capture").groups.map((g) => g.tabLabel)).toEqual(["Data"]);
   });
 
-  it("includes advanced settings whatever the Advanced toggle says", () => {
+  it("includes More rows", () => {
     expect(keysOf(searchAll(spotify, "fade").groups.map((g) => g.section))).toEqual(["waveformFadeEdges", "waveformFadeWidth"]);
   });
 
@@ -451,12 +515,12 @@ describe("searchAll", () => {
     expect(groups[0].section.settings.length).toBeGreaterThan(1);
   });
 
-  it("finds custom cards by title and terms, and the Look extra by name", () => {
+  it("finds custom cards by title and terms, and the Follow extra by name", () => {
     const dash = searchAll({ kind: "dashboard", scope: "all" }, "quick bar");
     expect(dash.groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["General", "Studio"]]);
     expect(dash.total).toBe(1);
     const follow = searchAll(spotify, "follow global");
-    expect(follow.groups.map((g) => g.section.title)).toEqual(["Colors & surface"]);
+    expect(follow.groups.map((g) => g.section.title)).toEqual(["Colors"]);
     expect(follow.groups[0].section.settings).toEqual([]);
   });
 
@@ -501,7 +565,7 @@ describe("inspectorNotes", () => {
     expect(inspectorNotes(spotify, "style", { mode: "follow" }).map((n) => n.kind)).toEqual(["follow"]);
     expect(inspectorNotes(spotify, "style", { mode: "follow", enforce: true }).map((n) => n.kind)).toEqual(["forced"]);
     expect(inspectorNotes(spotify, "style", { mode: "custom" })).toEqual([]);
-    expect(inspectorNotes(spotify, "content", { mode: "follow" })).toEqual([]);
+    expect(inspectorNotes(spotify, "show", { mode: "follow" })).toEqual([]);
   });
 });
 
@@ -532,7 +596,8 @@ describe("view helpers", () => {
   });
 
   it("jumpTarget finds a section by id, document card or split id", () => {
-    expect(jumpTarget(allSections(spotify), "colors")?.title).toBe("Colors & surface");
+    expect(jumpTarget(allSections(spotify), "colors")?.title).toBe("Colors");
+    expect(jumpTarget(allSections(spotify), "module:visualizer")?.tab).toBe("show");
     const dashboard = allSections({ kind: "dashboard", scope: "all" });
     expect(jumpTarget(dashboard, "doc:type")?.tab).toBe("general");
     expect(jumpTarget(dashboard, "doc:background")?.id).toBe("ap-bg");
@@ -540,8 +605,8 @@ describe("view helpers", () => {
   });
 
   it("extraMatches searches custom UI by its terms", () => {
-    expect(extraMatches({ kind: "zoneFrame", advanced: true, count: 3 }, "frame")).toBe(true);
-    expect(extraMatches({ kind: "zoneFrame", advanced: true, count: 3 }, "glow")).toBe(false);
-    expect(extraMatches({ kind: "visible", advanced: false, count: 1 }, "")).toBe(true);
+    expect(extraMatches({ kind: "zoneFrame", more: true, count: 3 }, "frame")).toBe(true);
+    expect(extraMatches({ kind: "zoneFrame", more: true, count: 3 }, "glow")).toBe(false);
+    expect(extraMatches({ kind: "visible", more: false, count: 1 }, "")).toBe(true);
   });
 });
