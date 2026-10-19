@@ -67,10 +67,12 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     closeSession();
     setEditor(null);
   };
+  // Replacing an open editor asks about its unsaved changes, as Back does.
+  const replaceEditor = (open: EditorOpen) => (editorRef.current ? editorRef.current.requestBack(() => openEditor(open)) : openEditor(open));
   useEffect(() => {
     if (!initial) return;
     const entry = all.find((e) => e.key === sourceKey(initial));
-    if (entry) openEditor(editorOpenOf(entry));
+    if (entry) replaceEditor(editorOpenOf(entry));
     // A library gauge may still be on its way: the list loads, and a large spec is fetched after it.
     else if (initial.kind === "library" && (lib.loading || lib.items.some((i) => i.id === initial.itemId))) return;
     else toast("That gauge is not in your library any more");

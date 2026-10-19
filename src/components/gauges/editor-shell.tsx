@@ -8,15 +8,15 @@ import type { LibraryItem } from "@/lib/library";
 import type { GaugeEdit } from "./use-gauge-edit";
 import { UnsavedDialog } from "./unsaved-dialog";
 
-/** What the page can ask of the editor: leave it (asking about unsaved changes). */
+/** What the page can ask of the editor: leave it (asking about unsaved changes), or run `then` instead of closing it. */
 export interface EditorHandle {
-  requestBack: () => void;
+  requestBack: (then?: () => void) => void;
 }
 
 export interface EditorShell {
   asking: boolean;
   saving: boolean;
-  requestBack: () => void;
+  requestBack: (then?: () => void) => void;
   save: () => Promise<boolean>;
   dialog: ReactNode;
 }
@@ -31,10 +31,15 @@ export function useEditorShell(p: {
 }): EditorShell {
   const toast = useToast();
   const { edit, onBack } = p;
-  const [asking, setAsking] = useState(false);
+  // What happens once the user has settled the question: leaving, or the page's `then`.
+  const [pending, setPending] = useState<{ go: () => void } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const requestBack = () => (edit.dirty ? setAsking(true) : onBack());
+  const requestBack = (then?: () => void) => {
+    const go = then ?? onBack;
+    if (edit.dirty) setPending({ go });
+    else go();
+  };
   useImperativeHandle(p.ref, () => ({ requestBack }));
 
   const save = async (): Promise<boolean> => {
@@ -55,22 +60,22 @@ export function useEditorShell(p: {
 
   const dialog = (
     <UnsavedDialog
-      open={asking}
+      open={pending !== null}
       name={edit.name}
       saving={saving}
-      onCancel={() => setAsking(false)}
+      onCancel={() => setPending(null)}
       onDiscard={() => {
-        setAsking(false);
-        onBack();
+        setPending(null);
+        pending?.go();
       }}
       onSave={() =>
         void save().then((ok) => {
           if (!ok) return;
-          setAsking(false);
-          onBack();
+          setPending(null);
+          pending?.go();
         })
       }
     />
   );
-  return { asking, saving, requestBack, save, dialog };
+  return { asking: pending !== null, saving, requestBack, save, dialog };
 }

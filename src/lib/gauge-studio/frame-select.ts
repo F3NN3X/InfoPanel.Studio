@@ -84,6 +84,20 @@ export function removeEdit(n: number, sel: FrameSel): FrameEdit {
   return { order, sel: selectOne(Math.min(Math.min(sel.anchor, sel.focus), order.length - 1)) };
 }
 
+/** The selected range moved one place earlier or later (the frame it passes goes the other way); null at the end. */
+export function moveEdit(n: number, sel: FrameSel, step: -1 | 1): FrameEdit | null {
+  const idx = selectedIndexes(sel, n);
+  if (idx.length === 0) return null;
+  const lo = idx[0];
+  const hi = idx[idx.length - 1];
+  if (lo + step < 0 || hi + step >= n) return null;
+  const ids = identity(n);
+  const block = ids.slice(lo, hi + 1);
+  const order = step < 0 ? [...ids.slice(0, lo - 1), ...block, lo - 1, ...ids.slice(hi + 1)] : [...ids.slice(0, lo), hi + 1, ...block, ...ids.slice(hi + 2)];
+  const { anchor, focus } = clampSel(sel, n);
+  return { order, sel: { anchor: anchor + step, focus: focus + step } };
+}
+
 /** `frames` with the first `files.length` of the `indexes` replaced by `files` in order (extra files are ignored). */
 export function replaceAt<T>(frames: readonly T[], indexes: readonly number[], files: readonly T[]): T[] {
   const put = new Map(indexes.slice(0, files.length).map((i, k) => [i, files[k]] as const));

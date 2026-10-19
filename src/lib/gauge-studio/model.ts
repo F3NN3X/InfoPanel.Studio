@@ -251,6 +251,23 @@ export function canvasWithSpeed(stored: StoredCanvas, path: Path, speed: number)
   return storeItems(open.stored, open.profile, setField(editItems(open), path, "AnimationSpeed", speed));
 }
 
+/** A canvas zone's stored form with the gauge at `path` named `name`. */
+export function canvasWithName(stored: StoredCanvas, path: Path, name: string): StoredCanvas {
+  const open = openCanvas(stored);
+  return storeItems(open.stored, open.profile, setField(editItems(open), path, "Name", name));
+}
+
+/** The config with a profile gauge renamed: a canvas Gauge item's `Name`, or a Custom gauge widget's label. Other sources have no name to set (null). */
+export function withGaugeName(config: DashboardConfig, source: GaugeSource, name: string): DashboardConfig | null {
+  if (source.kind === "canvas") {
+    return withZone(config, source.zoneId, (z) => (z.canvas ? { ...z, canvas: canvasWithName(z.canvas, source.path, name) } : z));
+  }
+  if (source.kind === "widget") {
+    return withZone(config, source.zoneId, (z) => ({ ...z, settings: { ...z.settings, label: name } }));
+  }
+  return null;
+}
+
 /** The config with a canvas Gauge item's AnimationSpeed set (other sources have none to set: unchanged). */
 export function withGaugeSpeed(config: DashboardConfig, source: GaugeSource, speed: number): DashboardConfig {
   if (source.kind !== "canvas") return config;

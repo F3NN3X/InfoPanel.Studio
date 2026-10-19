@@ -9,7 +9,7 @@ import { toStored } from "@/lib/infopanel/import/stored";
 import { parseProfileXml } from "@/lib/infopanel/parse";
 import { defaultItem } from "@/lib/infopanel/schema";
 import {
-  CUSTOM_GAUGE_ID, gaugeDataOf, gaugeEntryOf, libraryGauges, presetGauges, profileGauges, sourceKey, widgetGauge, withGauge, withGaugeSpeed,
+  CUSTOM_GAUGE_ID, gaugeDataOf, gaugeEntryOf, libraryGauges, presetGauges, profileGauges, sourceKey, widgetGauge, withGauge, withGaugeName, withGaugeSpeed,
 } from "./model";
 
 const profile = parseProfileXml("<Profile><Name>Rig</Name><Width>800</Width><Height>480</Height></Profile>").profile;
@@ -63,6 +63,15 @@ describe("gauge sources", () => {
     expect(next.profiles[0].pages[0].placements[1]).toBe(widget);
     expect(withGaugeSpeed(config, { kind: "widget", zoneId: "w1" }, 5)).toBe(config);
     expect(profileGauges({ name: "Rig", placements: [next.profiles[0].pages[0].placements[0]] })[0].animationSpeed).toBe(24);
+  });
+
+  it("renames a canvas gauge's Name or a widget's label in one change, leaving other sources alone", () => {
+    const next = withGaugeName(config, { kind: "canvas", zoneId: "c1", path: "0" }, "Renamed")!;
+    expect(profileGauges({ name: "Rig", placements: [next.profiles[0].pages[0].placements[0]] })[0]).toMatchObject({ name: "Renamed", min: 10 });
+    expect(next.profiles[0].pages[0].placements[1]).toBe(widget);
+    const labelled = withGaugeName(config, { kind: "widget", zoneId: "w1" }, "GPU")!;
+    expect(profileGauges({ name: "Rig", placements: [labelled.profiles[0].pages[0].placements[1]] })[0].name).toBe("GPU");
+    expect(withGaugeName(config, { kind: "library", itemId: "x" }, "n")).toBeNull();
   });
 
   it("writes a canvas gauge's spec back in one change, keeping the rest", () => {

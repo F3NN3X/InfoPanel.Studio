@@ -10,7 +10,7 @@ import { DEFAULT_GAUGE, type Background, type Shadow, type Ticks, type Title, ty
 export type PartId =
   | "shape" | "fill" | "track"
   | "needle" | "marker"
-  | "ticks" | "labels"
+  | "ticks" | "labels" | "scale"
   | "text" | "title"
   | "background" | "rings" | "pattern" | "icons" | "icon"
   | "glow" | "shadow"
@@ -39,6 +39,7 @@ export const PARTS: readonly PartDef[] = [
   { id: "marker", label: "Marker", group: "Indicator", shapes: ["bar"] },
   { id: "ticks", label: "Ticks", group: "Scale", shapes: ["arc", "bar"] },
   { id: "labels", label: "Labels", group: "Scale", shapes: ["arc", "bar"] },
+  { id: "scale", label: "Scale", group: "Scale", shapes: ["svg"] },
   { id: "text", label: "Value text", group: "Text", shapes: DRAWN },
   { id: "title", label: "Title", group: "Text", shapes: DRAWN },
   { id: "background", label: "Background", group: "Decor", shapes: DRAWN },
@@ -55,8 +56,8 @@ export const PARTS: readonly PartDef[] = [
 
 export const GROUPS: readonly PartGroup[] = ["Core", "Indicator", "Scale", "Text", "Decor", "Effects", "Liquid"];
 
-/** Shape and Fill are always on (an SVG template has only its shape). */
-export const ALWAYS_ON: readonly PartId[] = ["shape", "fill"];
+/** Shape and Fill are always on (an SVG template has only its shape and its scale). */
+export const ALWAYS_ON: readonly PartId[] = ["shape", "fill", "scale"];
 
 /** The parts the shape has, in list order. */
 export const partsFor = (shape: Shape): PartDef[] => PARTS.filter((p) => p.shapes.includes(shape));
@@ -74,6 +75,7 @@ export function hasPart(g: VectorGauge, id: PartId): boolean {
   switch (id) {
     case "shape":
     case "fill":
+    case "scale":
       return true;
     case "track": return g.track !== null;
     case "needle":

@@ -17,6 +17,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 - Image-sequence gauges export from the Gauges page as `<name>.gauge-frames.zip` (PNG frames plus a `manifest.json`)
   and import back with "Import frames (.zip)", validated and capped like the other importers (#49).
+- The Gauges page editor: an SVG template gauge has a Scale part (min, max, unit, decimals); a profile gauge's name is
+  editable in the header and lands in the canvas item's Name or the widget's label; the filmstrip takes Left / Right
+  to select, Shift+Left / Right to move and Delete / Backspace to remove frames, never while typing; and a library
+  gauge shows "· My library" in the header (#48).
 
 ### Changed
 - The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
@@ -25,6 +29,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   Gauges page and the narrow-layout sheet now have them (#50).
 
 ### Fixed
+- "Edit gauge…" over an editor with unsaved changes now asks (Save to library, Discard, Cancel) instead of replacing
+  the working copy silently (#48).
 - The canvas editor at narrow widths: when the toolbar no longer fits, the sensor source and Compare move into a "More"
   menu instead of being clipped, and the inspector docks, floats or becomes a sheet at the studio's own viewport
   breakpoints, so opening it no longer flips the mode back (#45).

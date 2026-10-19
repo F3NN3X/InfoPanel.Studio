@@ -18,8 +18,8 @@ describe("which parts a shape has", () => {
     expect(ids("grid")).not.toContain("needle");
   });
 
-  it("gives an SVG template only its shape, and groups the rest in the spec order", () => {
-    expect(ids("svg")).toEqual(["shape"]);
+  it("gives an SVG template only its shape and scale, and groups the rest in the spec order", () => {
+    expect(ids("svg")).toEqual(["shape", "scale"]);
     expect(groupedParts("liquid").map((g) => g.group)).toEqual(["Core", "Text", "Decor", "Effects", "Liquid"]);
     expect(groupedParts("arc")[0].parts.map((p) => p.id)).toEqual(["shape", "fill", "track"]);
   });

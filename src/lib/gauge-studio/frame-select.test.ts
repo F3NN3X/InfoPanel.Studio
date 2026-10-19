@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  canRemove, clampSel, duplicateEdit, isSelected, removeEdit, reordered, replaceAt, resampleEdit, reverseEdit, selectedIndexes, selectFrame, selectOne,
+  canRemove, clampSel, duplicateEdit, isSelected, moveEdit, removeEdit, reordered, replaceAt, resampleEdit, reverseEdit, selectedIndexes, selectFrame, selectOne,
 } from "./frame-select";
 
 const sel = (anchor: number, focus = anchor) => ({ anchor, focus });
@@ -78,5 +78,18 @@ describe("applying an order and replacing frames", () => {
   it("puts picked files into the selected positions in order, ignoring extra files", () => {
     expect(replaceAt(frames(5), [1, 2, 3], ["a", "b"])).toEqual(["f0", "a", "b", "f3", "f4"]);
     expect(replaceAt(frames(3), [1], ["a", "b", "c"])).toEqual(["f0", "a", "f2"]);
+  });
+});
+
+describe("moveEdit", () => {
+  it("moves the selected range past its neighbour and takes the selection along", () => {
+    expect(moveEdit(5, sel(1, 2), 1)).toEqual({ order: [0, 3, 1, 2, 4], sel: sel(2, 3) });
+    expect(moveEdit(5, sel(2, 1), -1)).toEqual({ order: [1, 2, 0, 3, 4], sel: sel(1, 0) });
+  });
+
+  it("does nothing at either end", () => {
+    expect(moveEdit(3, sel(0), -1)).toBeNull();
+    expect(moveEdit(3, sel(1, 2), 1)).toBeNull();
+    expect(moveEdit(0, sel(0), 1)).toBeNull();
   });
 });
