@@ -27,7 +27,7 @@ async function start(env) {
   let out = "";
   child.stdout.on("data", (c) => (out += c));
   child.stderr.on("data", (c) => (out += c));
-  for (let i = 0; i < 100 && !out.includes("InfoPanel dashboard on"); i++) await new Promise((r) => setTimeout(r, 50));
+  for (let i = 0; i < 100 && !out.includes("InfoPanel Studio on"); i++) await new Promise((r) => setTimeout(r, 50));
   return { port, base: `http://127.0.0.1:${port}`, output: () => out, stop: () => child.kill() };
 }
 

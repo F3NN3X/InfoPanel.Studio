@@ -1,14 +1,14 @@
 import { mergeConfig, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { isTauri, openTextFile, saveTextFile } from "@/lib/desktop";
 
-const EXPORT_NAME = "infopanel-dashboard-config.json";
+const EXPORT_NAME = "infopanel-studio-config.json";
 
 /** Copy one profile (zones, style) to the clipboard as JSON. */
 export function copyProfileJson(profile: MonitorProfile): Promise<void> {
   return navigator.clipboard.writeText(JSON.stringify(profile, null, 2));
 }
 
-/** Save the config as `infopanel-dashboard-config.json`: a native dialog in the desktop app, a download in a browser. */
+/** Save the config as `infopanel-studio-config.json`: a native dialog in the desktop app, a download in a browser. */
 export function exportConfigFile(config: DashboardConfig): void {
   const json = JSON.stringify(config, null, 2);
   if (isTauri()) {

@@ -21,12 +21,18 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: Check the tag matches package.json
+      - name: Check the tag matches package.json and CHANGELOG.md
         shell: bash
         run: |
           version=$(node -p "require('./package.json').version")
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+          # The notes are this version's CHANGELOG.md section, from its heading to the next one.
+          awk -v v="$version" '/^## \[/ { if (found) exit; found = index($0, "## [" v "]") == 1; next } found' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version"
             exit 1
           fi
 
@@ -46,4 +52,4 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             src-tauri/target/release/bundle/nsis/*-setup.exe \
             --title "InfoPanel Studio $GITHUB_REF_NAME" \
-            --generate-notes
+            --notes-file notes.md

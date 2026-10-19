@@ -17,7 +17,7 @@ async function render(status) {
     starting: `Starting the dashboard server on ${address}…`,
     running: "Opening the studio…",
     failed: "The dashboard server is not running",
-    foreign_dashboard: "Another InfoPanel Dashboard server is running on this port",
+    foreign_dashboard: "Another InfoPanel Studio server is running on this port",
     port_in_use: `Port ${status.port} is used by another program`,
   };
   $("title").textContent = titles[state] ?? state;

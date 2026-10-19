@@ -51,7 +51,7 @@ export function hopAllowed(url) {
 export async function fetchBytes(url, fetchImpl = fetch) {
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (!hopAllowed(url)) throw new Error(`refusing to fetch ${url}`);
-    const r = await fetchImpl(url, { redirect: "manual", headers: { "User-Agent": "infopanel-dashboard" } });
+    const r = await fetchImpl(url, { redirect: "manual", headers: { "User-Agent": "infopanel-studio" } });
     const location = r.status >= 300 && r.status < 400 ? r.headers.get("location") : null;
     if (location) {
       url = new URL(location, url).href;

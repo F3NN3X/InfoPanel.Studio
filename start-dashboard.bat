@@ -1,5 +1,5 @@
 @echo off
-rem Starts the InfoPanel dashboard on http://127.0.0.1:3922 (see server.mjs).
+rem Starts the InfoPanel Studio server on http://127.0.0.1:3922 (see server.mjs).
 rem Installs dependencies and builds dist\ on first run.
 rem   start-dashboard.bat rebuild   rebuild dist\ before starting
 rem   set PORT / HOST beforehand to change where it listens

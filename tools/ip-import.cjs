@@ -3,8 +3,8 @@
  *
  * Reads a profile's item tree + registry entry + asset folder from the
  * InfoPanel install (%LOCALAPPDATA%\InfoPanel) and emits:
- *   - infopanel-dashboard/src/lib/ip/imported/<slug>.ts  (typed IPProfile)
- *   - infopanel-dashboard/public/assets/ip/<slug>/*      (image assets)
+ *   - infopanel-studio/src/lib/ip/imported/<slug>.ts  (typed IPProfile)
+ *   - infopanel-studio/public/assets/ip/<slug>/*      (image assets)
  *
  * Usage:
  *   node tools/ip-import.cjs <profileGuid> [slug]

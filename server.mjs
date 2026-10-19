@@ -1,4 +1,4 @@
-// Standalone server for the InfoPanel dashboard.
+// Standalone server for InfoPanel Studio: the studio, the kiosk dashboard and their config.
 //
 // Serves the production build (dist/), stores the studio config so every
 // view of the dashboard (a browser tab, InfoPanel's native WebView2 page)
@@ -380,6 +380,7 @@ async function handleImageProxy(req, res, query) {
 /** GET /api/health → what is running here; the desktop app uses it to recognise its own server. */
 function handleHealth(req, res) {
   if (req.method !== "GET") return send(res, 405);
+  // The id predates the InfoPanel Studio name; the desktop app matches on it (src-tauri/src/probe.rs).
   send(res, 200, JSON.stringify({ app: "infopanel-dashboard", version: VERSION, configVersion }), TYPES[".json"]);
 }
 
@@ -459,6 +460,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`InfoPanel dashboard on http://${HOST}:${PORT} (config: ${CONFIG_FILE})`);
+  console.log(`InfoPanel Studio on http://${HOST}:${PORT} (config: ${CONFIG_FILE})`);
   if (debug.enabled) console.log("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
 });

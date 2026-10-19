@@ -18,7 +18,7 @@ pub enum Phase {
     Running,
     /// The app's server did not start or crashed too often.
     Failed,
-    /// Another InfoPanel Dashboard server (e.g. start-dashboard.bat) holds the port.
+    /// Another InfoPanel Studio server (e.g. start-dashboard.bat) holds the port.
     ForeignDashboard,
     /// Some other program holds the port.
     PortInUse,
