@@ -1,5 +1,5 @@
 /** The Import dialog's Mode, Review and Save steps (§4). */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Box,
   ChevronDown,
@@ -12,7 +12,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import { formatBytes } from "@/lib/assets";
+import { acceptOf, formatBytes } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 import type { ImportReport } from "@/lib/infopanel/import/report";
 import type { DefaultMode } from "@/lib/infopanel/import/stored";
@@ -254,6 +254,16 @@ export interface SaveChoices {
   name: string;
   dest: Dest;
   toLibrary: boolean;
+  /** Keep InfoPanel's screenshot for Compare (off by default). */
+  keepShot: boolean;
+  /** The screenshot chosen and stored: its file name and asset store id. */
+  shot?: { name: string; id: string };
+}
+
+/** The screenshot's upload: running, or why it failed. */
+export interface ShotState {
+  busy: boolean;
+  error?: string;
 }
 
 export function SaveStep({
@@ -262,13 +272,18 @@ export function SaveStep({
   onChoices,
   profileName,
   profileSize,
+  shotState,
+  onPickShot,
 }: {
   state: ImportState;
   choices: SaveChoices;
   onChoices: (next: SaveChoices) => void;
   profileName: string;
   profileSize: { width: number; height: number };
+  shotState: ShotState;
+  onPickShot: (file: File) => void;
 }) {
+  const shotInput = useRef<HTMLInputElement>(null);
   const { profile } = state.source.parsed;
   const { items, native } = state.counts;
   const drawnNative = state.mode === "infopanel" ? 0 : native;
@@ -314,6 +329,42 @@ export function SaveStep({
         />
         Also save the stored form (.canvas.zip) to the Library
       </label>
+      <label className="flex cursor-pointer items-center gap-2.5 text-[12.5px] text-ui-2">
+        <input
+          type="checkbox"
+          checked={choices.keepShot}
+          onChange={(e) => onChoices({ ...choices, keepShot: e.target.checked })}
+          className="h-4 w-4 accent-[var(--ui-accent)]"
+        />
+        Keep InfoPanel&apos;s screenshot for Compare
+      </label>
+      {choices.keepShot && (
+        <div className="flex items-center gap-2.5 pl-6 text-[12px] text-ui-3">
+          <button
+            type="button"
+            disabled={shotState.busy}
+            onClick={() => shotInput.current?.click()}
+            className="h-7 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:opacity-50"
+          >
+            {choices.shot ? "Change screenshot…" : "Choose screenshot…"}
+          </button>
+          <input
+            ref={shotInput}
+            type="file"
+            accept={acceptOf("image")}
+            aria-label="Screenshot file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) onPickShot(f);
+            }}
+          />
+          <span className={shotState.error ? "text-ui-danger" : undefined}>
+            {shotState.busy ? "Uploading…" : (shotState.error ?? choices.shot?.name ?? "None chosen: the canvas keeps no screenshot")}
+          </span>
+        </div>
+      )}
       <div className="rounded-[9px] border border-ui-default bg-ui-chrome px-3.5 py-3 text-[12px] leading-relaxed text-ui-3">
         {plural(items, "item")} · {drawnNative} native, {items - drawnNative} InfoPanel · {plural(state.source.assets.size, "asset")} ·{" "}
         {plural(state.report.fonts.requests, "font")} · {plural(state.groups.length, "sensor group")}. Import is one undo step.

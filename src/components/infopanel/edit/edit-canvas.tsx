@@ -40,10 +40,12 @@ interface EditCanvasProps {
   compare: Compare | null;
   /** A drop the canvas can't take, said to the user. */
   onRefused?: (message: string) => void;
+  /** The screenshot would not load (a kept one whose file is gone). */
+  onCompareFailed?: () => void;
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, compare, onRefused }: EditCanvasProps) {
-  const { ref, w, h } = useElementSize();
+export function EditCanvas({ editor, ctx, values, showModes, compare, onRefused, onCompareFailed }: EditCanvasProps) {
+  const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
   const history = useMemo(() => new KeyHistory(), [ctx]);
@@ -118,6 +120,7 @@ export function EditCanvas({ editor, ctx, values, showModes, compare, onRefused 
                 <img
                   src={compare.src}
                   alt="InfoPanel screenshot"
+                  onError={onCompareFailed}
                   style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: compare.opacity, mixBlendMode: "difference", pointerEvents: "none" }}
                 />
               ) : null

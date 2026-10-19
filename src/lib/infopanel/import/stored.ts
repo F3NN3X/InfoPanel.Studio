@@ -74,6 +74,8 @@ export interface StoredCanvas {
   items: StoredItem[];
   assets: StoredAsset[];
   fonts: StoredFont[];
+  /** The asset store id of InfoPanel's screenshot of the profile, kept for Compare (opt-in at import). */
+  screenshot?: string;
 }
 
 type Spec = { kind: string; default: unknown; values?: readonly string[]; accept?(v: unknown): unknown };
@@ -142,6 +144,7 @@ export interface StoreInput {
   assets: AssetTable;
   keyOf: KeyOf;
   fonts: StoredFont[];
+  screenshot?: string;
   now?: Date;
 }
 
@@ -156,6 +159,7 @@ export function toStored(input: StoreInput): StoredCanvas {
     items: input.items.map((i) => encodeItem(i, input.keyOf)),
     assets: [...input.assets.values()].map((f) => ({ name: f.name, hash: f.hash, type: f.type, size: f.bytes.length })),
     fonts: input.fonts,
+    ...(input.screenshot ? { screenshot: input.screenshot } : {}),
   };
 }
 
@@ -271,6 +275,7 @@ export interface ReadStored {
 }
 
 const ASSET_TYPES = new Set(["png", "jpeg", "gif", "webp", "bmp", "ico", "svg", "video", "other"]);
+const SCREENSHOT_ID = /^[a-f0-9]{64}\.[a-z0-9]{2,5}$/;
 const fileName = (v: unknown) => (typeof v === "string" ? v.replace(/^.*[\\/]/, "").replace(/^\.+/, "").slice(0, 200) : "");
 
 /** The stored form from untrusted JSON. Throws only when it is not one at all. */
@@ -319,6 +324,7 @@ export function readStored(raw: unknown): ReadStored {
     items: o.items as StoredItem[],
     assets,
     fonts,
+    ...(typeof o.screenshot === "string" && SCREENSHOT_ID.test(o.screenshot) ? { screenshot: o.screenshot } : {}),
   };
   return { stored, profile, items, keys, issues };
 }

@@ -58,6 +58,7 @@ export function restoreStored(
       return k && (k.key !== undefined || k.via) ? { ...(k.key !== undefined ? { key: k.key } : {}), ...(k.via ? { via: k.via } : {}) } : null;
     },
     fonts: stored.fonts,
+    screenshot: stored.screenshot,
   });
   return {
     ...next,

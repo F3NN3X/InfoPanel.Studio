@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 import { useConfigHistory } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
 import { SourcesPanel } from "./sources-panel";
@@ -18,6 +18,7 @@ import { resolveTheme, themeVars } from "@/lib/theme";
 import { CommandPalette } from "./command-palette";
 import { exportConfigFile, importConfigFile, startConfigImport } from "./config-file";
 import { useDocumentProps } from "./use-document-props";
+import { cn } from "@/lib/utils";
 import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar } from "./studio-top-bar";
 import { LeftRail } from "./left-rail";
@@ -182,6 +183,8 @@ function StudioViewBody({
    * on another page waits for the page switch (it clears the selection) before it is selected.
    */
   const [pendingZone, setPendingZone] = useState<string | null>(null);
+  /** The zone an import just made: it opens in the canvas editor once it is on the page. */
+  const openOnLand = useRef<string | null>(null);
   const openZone = (pageId: string, zoneId: string) => {
     if (pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
     setPendingZone(zoneId);
@@ -190,6 +193,13 @@ function StudioViewBody({
     if (!pendingZone || !profile.placements.some((p) => p.id === pendingZone)) return;
     setPendingZone(null);
     focusZone(pendingZone);
+    if (openOnLand.current === pendingZone) {
+      // A fresh import opens its canvas zone in the editor (spec §4).
+      openOnLand.current = null;
+      ui.setMode("design");
+      setCanvasSelection(undefined);
+      setEditingCanvas(pendingZone);
+    }
     const zone = profile.placements.find((p) => p.id === pendingZone);
     const section = islandSectionId(modules.find((m) => m.id === zone?.module));
     if (section) requestAnimationFrame(() => ui.jumpInspector(section, ISLAND_SETTING));
@@ -201,6 +211,7 @@ function StudioViewBody({
     selectedId: sel.primaryId ?? undefined,
     onLanded: (zoneId, newProfile) => {
       if (newProfile) ui.fitZoom();
+      openOnLand.current = zoneId;
       setPendingZone(zoneId);
     },
   });
@@ -213,8 +224,11 @@ function StudioViewBody({
   const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(undefined);
   const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
   useEffect(() => {
-    if (editingCanvas && (!canvasZone || fullPage)) setEditingCanvas(null);
-  }, [editingCanvas, canvasZone, fullPage]);
+    // The Library page covers the editor without closing it, so a Library drag can land in it.
+    if (editingCanvas && (!canvasZone || (fullPage && !showLibrary))) setEditingCanvas(null);
+  }, [editingCanvas, canvasZone, fullPage, showLibrary]);
+  /** Bumped to reopen the editor with new initial selection (the Library's "uses" while it is mounted). */
+  const [editorEpoch, setEditorEpoch] = useState(0);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
 
   /** The gauge the Gauges page opens in its editor ("Edit gauge…" from a zone or a canvas item). */
@@ -454,7 +468,8 @@ function StudioViewBody({
   const canvasEditor = canvasZone?.canvas && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
       <CanvasEditorView
-        key={canvasZone.id}
+        key={`${canvasZone.id}:${editorEpoch}`}
+        hidden={showLibrary}
         zone={{ ...canvasZone, canvas: canvasZone.canvas }}
         setConfig={setConfig}
         history={history}
@@ -514,6 +529,7 @@ function StudioViewBody({
           onSelectUses: (zoneId, paths) => {
             ui.setMode("design");
             setCanvasSelection(paths);
+            setEditorEpoch((n) => n + 1);
             setEditingCanvas(zoneId);
           },
         }}
@@ -598,7 +614,19 @@ function StudioViewBody({
           />
         }
         drawer={!fullPage && !canvasEditor && drawer && drawerEl}
-        main={libraryEl || gaugesEl || canvasEditor || mainEl}
+        main={gaugesEl || (
+          <>
+            {libraryEl}
+            {canvasEditor ? (
+              // Mounted but hidden while the Library shows, so its selection and undo survive the visit.
+              <div hidden={showLibrary} inert={showLibrary} className={cn("min-h-0 min-w-0 flex-1 flex-col", showLibrary ? "hidden" : "flex")}>
+                {canvasEditor}
+              </div>
+            ) : (
+              !libraryEl && mainEl
+            )}
+          </>
+        )}
         bar={bar}
         inspector={fullPage || canvasEditor ? null : inspectorAside}
       />

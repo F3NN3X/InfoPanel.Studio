@@ -49,6 +49,11 @@ export function assetUrl(hash: string, type: AssetType, storeExt?: string): stri
   return ext ? `${ASSETS_URL}/${hash}.${ext}` : null;
 }
 
+/** The screenshot a canvas kept for Compare, ready to lay over the render; null when it kept none. */
+export function keptScreenshot(stored: { screenshot?: string }, opacity = 0.5): { src: string; opacity: number } | null {
+  return stored.screenshot ? { src: `${ASSETS_URL}/${stored.screenshot}`, opacity } : null;
+}
+
 const HISTORY_KINDS = new Set(["Bar", "Graph", "Donut"]);
 
 function index(items: DisplayItem[], imports: ReadonlyMap<string, ItemImport>) {

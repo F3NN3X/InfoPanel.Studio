@@ -11,12 +11,18 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   fonts from My library replace it in the exported package only, and the package carries the alternative's file (#41).
 - Library › Fonts reads the licence column from the font file itself (name table, as declared: "OFL (declared)" or the
   declared text in a tooltip) for Data API and supplied fonts, not only those also in My library (#41).
+- Import › Save has "Keep InfoPanel's screenshot for Compare" (off by default): the chosen screenshot is stored as an
+  asset and the canvas remembers it, so Compare starts on it and "Change screenshot…" still picks another. The
+  `.canvas.zip` carries neither the screenshot nor its id, and a screenshot whose file is gone falls back to choosing one (#43).
 
 ### Changed
 - Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
   Gauges page and the narrow-layout sheet now have them (#50).
 
 ### Fixed
+- After an import lands, the canvas editor opens on the new zone, as the spec says (#43).
+- Opening the Library no longer closes the canvas editor: it stays mounted but hidden (keys off, size kept) and
+  returns, with its selection and undo history, when the Library closes, so a Library drag can land in it (#43).
 - A font added through Get a font is uploaded once, not once for the canvas and again for My library (#41).
 - Exports (`.canvas.zip`, `.infopanel`) save through a native Save As dialog in the desktop app instead of a silent
   browser download; cancelling the dialog does nothing (#42).

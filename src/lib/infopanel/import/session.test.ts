@@ -4,6 +4,7 @@ import { assetFile, tableOf } from "../assets/assets.ts";
 import { convertible } from "../native/modes.ts";
 import { groupBindings } from "../remap/remap.ts";
 import { bundle } from "./bundle.ts";
+import { listEntries, readEntry } from "../zip.ts";
 import {
   buildCanvas,
   extOverrides,
@@ -77,6 +78,21 @@ describe("opening a source", () => {
     expect(reopened.restore?.defaultMode).toBe("infopanel");
     expect(reopened.restore?.keys.get("1")).toEqual({ key: "plugins.fps", via: "chosen" });
     expect([...reopened.assets.keys()]).toEqual(["a.png"]);
+  });
+
+  it("keeps a screenshot id on the stored form, but a .canvas.zip carries neither the id nor the file", async () => {
+    const shot = `${"d".repeat(64)}.png`;
+    const source = await openZip("Arc.infopanel", await exportZip());
+    const base = { source, name: "Arc", mode: "infopanel" as const, resolved: new Map(), overrides: new Map(), dataApi: null, uploaded: new Map() };
+    const stored = buildCanvas({ ...base, screenshot: shot });
+    expect(stored.screenshot).toBe(shot);
+    expect(buildCanvas(base)).not.toHaveProperty("screenshot");
+    const zip = bundle(stored, source.assets, new Map());
+    expect(listEntries(zip).some((e) => e.name.includes("d".repeat(64)))).toBe(false);
+    const reopened = await openZip("Arc.canvas.zip", zip);
+    expect(reopened.restore?.screenshot).toBeUndefined();
+    expect(JSON.stringify(stored)).toContain(shot);
+    expect(new TextDecoder().decode(await readEntry(zip, listEntries(zip).find((e) => e.name === "canvas.json")!))).not.toContain(shot);
   });
 
   it("finds the export inside a picked folder, one level down too", async () => {

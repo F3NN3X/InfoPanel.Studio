@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload } from "lucide-react";
-import { formatBytes } from "@/lib/assets";
+import { formatBytes, uploadAsset } from "@/lib/assets";
 import { getLibraryItem, listLibrary, type LibraryItem } from "@/lib/library";
 import { readStoreFile } from "@/lib/infopanel/canvas";
 import {
@@ -22,7 +22,7 @@ import {
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { cn } from "@/lib/utils";
 import { RemapPanel } from "../remap-panel";
-import { ModeStep, Radio, ReviewStep, SaveStep, type Dest, type SaveChoices } from "./import-steps";
+import { ModeStep, Radio, ReviewStep, SaveStep, type Dest, type SaveChoices, type ShotState } from "./import-steps";
 import { useImport, type ImportState } from "./use-import";
 
 export interface ImportCommit {
@@ -318,7 +318,8 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
   const [kind, setKind] = useState<SourceKind>("file");
   const [opening, setOpening] = useState<Opening | null>(null);
   const [source, setSource] = useState<OpenedSource | null>(null);
-  const [choices, setChoices] = useState<SaveChoices>({ name: "", dest: initialDest, toLibrary: false });
+  const [choices, setChoices] = useState<SaveChoices>({ name: "", dest: initialDest, toLibrary: false, keepShot: false });
+  const [shotState, setShotState] = useState<ShotState>({ busy: false });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const run = useRef(0);
@@ -332,7 +333,12 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
       (s) => {
         if (id !== run.current) return;
         setSource(s);
-        setChoices((c) => ({ ...c, name: s.parsed.profile.Name || s.name }));
+        const kept = s.restore?.screenshot;
+        setChoices((c) => ({
+          ...c,
+          name: s.parsed.profile.Name || s.name,
+          ...(kept ? { keepShot: true, shot: { name: "Saved with the canvas", id: kept } } : { keepShot: false, shot: undefined }),
+        }));
       },
       (e: unknown) => id === run.current && setOpening({ label, size, error: e instanceof Error ? e.message : String(e) }),
     );
@@ -353,11 +359,22 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
     // Once, on open.
   }, []);
 
+  const pickShot = (file: File) => {
+    setShotState({ busy: true });
+    uploadAsset(file, "image").then(
+      (a) => {
+        setChoices((c) => ({ ...c, shot: { name: file.name, id: a.id } }));
+        setShotState({ busy: false });
+      },
+      (e: unknown) => setShotState({ busy: false, error: e instanceof Error ? e.message : String(e) }),
+    );
+  };
+
   const uploading = !!state && !state.upload.finished;
   // Offline, every group is unresolved: the import goes on and the zone's Remap fixes them later.
   const sensorsBlocked = !!state && state.online && state.unresolved > 0;
   const canNext =
-    step === 0 ? !!state && !uploading : step === 3 ? !sensorsBlocked : step === 4 ? !!state && !uploading && choices.name.trim() !== "" && !busy : true;
+    step === 0 ? !!state && !uploading : step === 3 ? !sensorsBlocked : step === 4 ? !!state && !uploading && choices.name.trim() !== "" && !busy && !shotState.busy : true;
 
   const commit = async () => {
     if (!state) return;
@@ -365,13 +382,14 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
     setBusy(true);
     setError(null);
     const { profile } = state.source.parsed;
+    const screenshot = choices.keepShot ? choices.shot?.id : undefined;
     const error = await onImport({
-      canvas: state.build(name),
+      canvas: state.build(name, screenshot),
       name,
       dest: choices.dest,
       size: { width: profile.Width, height: profile.Height },
       toLibrary: choices.toLibrary,
-      files: [...new Set(state.upload.ids.values())],
+      files: [...new Set([...state.upload.ids.values(), ...(screenshot ? [screenshot] : [])])],
     }).catch((e: unknown) => (e instanceof Error ? e.message : String(e)));
     setBusy(false);
     setError(error);
@@ -449,7 +467,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
           {step === 3 && state && (
             <RemapPanel groups={state.groups} resolved={state.resolved} index={state.index} overrides={state.overrides} onOverrides={state.setOverrides} />
           )}
-          {step === 4 && state && <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} />}
+          {step === 4 && state && <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} shotState={shotState} onPickShot={pickShot} />}
         </div>
         <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-[22px] py-3">
           <button type="button" onClick={onClose} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">

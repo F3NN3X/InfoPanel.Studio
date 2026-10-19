@@ -4,7 +4,7 @@ import type { DisplayItem } from "./schema.ts";
 import { isBound, type BoundItem } from "./sensors.ts";
 import { toStored, type StoreInput } from "./import/stored.ts";
 import { ZEROS } from "./render/scene.ts";
-import { assetUrl, canvasSensor, fitScale, keyOf, KeyHistory, openCanvas } from "./canvas.ts";
+import { assetUrl, canvasSensor, fitScale, keptScreenshot, keyOf, KeyHistory, openCanvas } from "./canvas.ts";
 import { storedCanvasKeys } from "./canvas-keys.ts";
 
 const parse = (body: string) => parseDisplayItemsXml(`<ArrayOfDisplayItem xmlns:xsi="x">${body}</ArrayOfDisplayItem>`).items;
@@ -122,5 +122,17 @@ describe("fitScale", () => {
     expect(fitScale({ Width: 800, Height: 480 }, 400, 400)).toBe(0.5);
     expect(fitScale({ Width: 800, Height: 480 }, 1600, 480)).toBe(1);
     expect(fitScale({ Width: 0, Height: 480 }, 100, 100)).toBe(1);
+  });
+});
+
+describe("Compare's screenshot", () => {
+  it("starts on the screenshot the canvas kept, at half opacity", () => {
+    const id = `${HASH}.png`;
+    expect(keptScreenshot({ screenshot: id })).toEqual({ src: `/api/assets/${id}`, opacity: 0.5 });
+    expect(keptScreenshot({ screenshot: id }, 0.8)?.opacity).toBe(0.8);
+  });
+
+  it("is none for a canvas that kept none, so the user is asked as before", () => {
+    expect(keptScreenshot({})).toBeNull();
   });
 });
