@@ -160,10 +160,11 @@ export function parseAgents(raw: unknown): Agents {
   return { sessions, plan, usage };
 }
 
-/** A model's display name: "opus-5-5" is "Opus 5.5", "gpt-5.5" and the statusline's "Opus 5.5" stay as they are. */
+/** A model's display name: "opus-5-5" is "Opus 5.5", "gpt-5.5" and the statusline's "Opus 5.5" stay as they are, and a trailing "(1M context)" goes. */
 export function modelLabel(id: string): string {
-  const m = /^(opus|sonnet|haiku|fable)-(\d+(?:-\d+)*)$/.exec(id);
-  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2].replace(/-/g, ".")}` : id;
+  const name = id.replace(/\s*\([^)]*\)\s*$/, "") || id;
+  const m = /^(opus|sonnet|haiku|fable)-(\d+(?:-\d+)*)$/.exec(name);
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2].replace(/-/g, ".")}` : name;
 }
 
 /** "45s", "3m", "1h 5m". */
@@ -202,3 +203,25 @@ export function sessionStatus(s: AgentSession, now: number): string {
 /** The order sessions matter in: waiting, working, error, done, idle; then the newest. */
 const RANK: Record<AgentState, number> = { waiting: 0, working: 1, error: 2, done: 3, idle: 4 };
 export const bySalience = (a: AgentSession, b: AgentSession): number => RANK[a.state] - RANK[b.state] || b.since - a.since;
+
+/** Plan numbers older than this are shown dimmed: the agent has not reported since. */
+export const STALE_PLAN_MS = 10 * 60_000;
+export const FIVE_HOUR_MS = 5 * 3_600_000;
+export const SEVEN_DAY_MS = 7 * 86_400_000;
+
+/** A window as of `now`: reset to 0 once its reset time has passed (the real figure is unknown until the agent reports), and how stale the report is. */
+export function planView(w: PlanWindow, at: number, now: number): { used: number; reset: boolean; stale: boolean; age: number } {
+  const reset = w.resetsAt !== undefined && now >= w.resetsAt;
+  // An `at` of 0 is "never reported" (the server sent none): not stale, as there is nothing to date.
+  const age = at > 0 ? now - at : 0;
+  return { used: reset ? 0 : w.used, reset, stale: age > STALE_PLAN_MS, age };
+}
+
+/** When the window would reach 100 % at its average rate so far (ms), or null: too early to tell, nothing used, full already, or it resets first. */
+export function paceHit(w: PlanWindow, at: number, windowMs: number): number | null {
+  if (w.resetsAt === undefined || w.used < 5 || w.used >= 100) return null;
+  const elapsed = at - (w.resetsAt - windowMs);
+  if (elapsed < (windowMs <= FIVE_HOUR_MS ? 15 * 60_000 : 6 * 3_600_000)) return null;
+  const hit = at + ((100 - w.used) * elapsed) / w.used;
+  return hit < w.resetsAt ? hit : null;
+}

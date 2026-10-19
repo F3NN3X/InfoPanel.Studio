@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from "react";
-import { AGENT_COLORS, AGENT_IDS, AGENT_NAMES, bySalience, sessionStatus, shortTokens, type AgentId, type AgentSession, type Agents } from "@/lib/agents";
+import { AGENT_COLORS, AGENT_IDS, AGENT_NAMES, bySalience, modelLabel, planView, sessionStatus, shortTokens, type AgentId, type AgentSession, type Agents } from "@/lib/agents";
 import { extras } from "@/lib/extras";
 import { useNow } from "@/components/widgets/hooks";
 import { Empty, Widget, fitRows, shell, type ShellProps, type WidgetMeta } from "./kit";
 import { BarLimits, RingLimits, barDensity, densityH, ringLayout, type Density, type LimitStyle, type Percent, type PlanEntry, type RingLayout } from "./CodingAgents/limits";
+import { Breakdown, breakdownH, breakdownOf, tokensToday } from "./CodingAgents/breakdown";
 import { BARS_H, DailyBars, HEADER_H, Heatmap, HistoryHeader, dayKey, heatmapFit, heatmapWeeks, type HeatFit, type HistoryStyle } from "./CodingAgents/history";
 
 export { resetText } from "./CodingAgents/limits";
@@ -17,7 +18,7 @@ export const meta: WidgetMeta = {
   defaultSize: [3, 3],
   minSize: [1, 1],
   description:
-    "Claude Code and Codex: each session working, waiting for you or done, the plan's 5-hour and weekly use, and tokens per day. Connect them once with node tools/agent-install.mjs.",
+    "Claude Code and Codex: each session working, waiting for you or done (with its model and cost), the plan's 5-hour and weekly use, tokens per day, and this week's split by model and project. Connect them once with node tools/agent-install.mjs.",
 };
 
 export type AgentFilter = "both" | AgentId;
@@ -35,6 +36,8 @@ export interface CodingAgentsProps extends ShellProps {
   limitStyle?: LimitStyle;
   /** The limits as used (default) or left. */
   percent?: Percent;
+  /** This week's tokens by model and project, and today's by type; default on. */
+  showBreakdown?: boolean;
   /** Tokens per day as bars (default) or a weekday heatmap. */
   history?: HistoryStyle;
 }
@@ -51,8 +54,21 @@ export function shownAgents(a: Agents, filter: AgentFilter): AgentId[] {
   return ids.filter((id) => a.plan[id] || a.usage[id] || a.sessions.some((s) => s.agent === id));
 }
 
-function SessionRow({ s, now, wide }: { s: AgentSession; now: number; wide: boolean }) {
+/** A session's cost: "$0.42", "$3.10", "$12" from ten dollars up; empty for none. */
+export function costText(cost: number | undefined): string {
+  const cents = Math.round((cost ?? 0) * 100) / 100;
+  if (!(cents > 0)) return "";
+  return cents >= 10 ? `$${Math.round(cents)}` : `$${cents.toFixed(2)}`;
+}
+
+/** Past this width the model shows after the context; the cost from COST_W on. The context always shows (from 220). */
+const MODEL_W = 420;
+const COST_W = 260;
+
+export function SessionRow({ s, now, width }: { s: AgentSession; now: number; width: number }) {
   const color = dotColor(s);
+  const wide = width >= 220;
+  const cost = width >= COST_W ? costText(s.cost) : "";
   return (
     <li className="flex min-w-0 items-center gap-2 text-xs">
       <span
@@ -65,6 +81,8 @@ function SessionRow({ s, now, wide }: { s: AgentSession; now: number; wide: bool
         {sessionStatus(s, now)}
       </span>
       {wide && s.context !== undefined && <span className="shrink-0 tabular-nums text-[10.5px] text-[color:var(--w-faint)]">{Math.round(s.context)}% ctx</span>}
+      {wide && width >= MODEL_W && s.model && <span className="max-w-[28%] shrink-0 truncate text-[10.5px] text-[color:var(--w-muted)]">{modelLabel(s.model)}</span>}
+      {wide && cost && <span className="shrink-0 tabular-nums text-[10.5px] text-[color:var(--w-muted)]">{cost}</span>}
     </li>
   );
 }
@@ -82,6 +100,20 @@ function fitLimits(style: LimitStyle, n: number, w: number, room: number): Limit
 }
 const limitsH = (f: LimitsFit) => (f.kind === "rings" ? f.layout.h : f.h);
 
+/** Most project rows in the breakdown, and the width the by-type line needs. */
+const MAX_PROJECT_ROWS = 3;
+const TOKENS_W = 260;
+
+/** The breakdown in `room` px: as many project rows (down to one) as fit, with the by-type line when there is room for it; null when not even one row fits. */
+export function fitBreakdown(room: number, withTokens: boolean, withModels = true): { rows: number; withTokens: boolean; h: number } | null {
+  for (let rows = MAX_PROJECT_ROWS; rows >= 1; rows--) {
+    for (const t of withTokens ? [true, false] : [false]) {
+      if (breakdownH(rows, t, withModels) <= room) return { rows, withTokens: t, h: breakdownH(rows, t, withModels) };
+    }
+  }
+  return null;
+}
+
 export default function CodingAgents(p: CodingAgentsProps) {
   return <CodingAgentsView {...p} all={useAgents()} />;
 }
@@ -97,6 +129,7 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
   const showUsage = p.showUsage ?? true;
   const limitStyle = p.limitStyle ?? "bars";
   const percent = p.percent ?? "used";
+  const showBreakdown = p.showBreakdown ?? true;
   const history = p.history ?? "bars";
   const plans: PlanEntry[] = ids.flatMap((id) => (all.plan[id] ? [[id, all.plan[id]] as const] : []));
   const active = sessions.filter((s) => s.state === "working" || s.state === "waiting");
@@ -111,8 +144,12 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
   const color = AGENT_COLORS[ids[0] ?? "claude"];
   const waiting = sessions.filter((s) => s.state === "waiting").length;
   const headline = waiting ? `${waiting} waiting` : active.length ? `${active.length} working` : "idle";
-  const top = plans[0]?.[1].fiveHour;
+  const topPlan = plans[0]?.[1];
+  const top = topPlan?.fiveHour && planView(topPlan.fiveHour, topPlan.at, now);
   const shownPct = (used: number) => Math.round(percent === "left" ? 100 - used : used);
+  const usages = ids.map((id) => all.usage[id]);
+  const bd = showBreakdown ? breakdownOf(usages) : null;
+  const tokens = tokensToday(usages, todayKey);
 
   return (
     <Widget
@@ -169,7 +206,18 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
           }
         }
         if (bottom && h - (limits ? limitsH(limits) + GAP : 0) < bottom.h) bottom = null;
-        const room = h - (limits && !split ? limitsH(limits) + GAP : 0) - (bottom ? bottom.h + GAP : 0);
+        const room0 = h - (limits && !split ? limitsH(limits) + GAP : 0) - (bottom ? bottom.h + GAP : 0);
+
+        // The breakdown goes last: in the heatmap's column when there is one, else under the sessions once they keep two rows.
+        const reserve = showSessions && !split ? Math.max(1, Math.min(sessions.length, 2)) : 0;
+        const sessionsReserve = reserve ? reserve * SESSION_H + (reserve - 1) * 8 + GAP : 0;
+        const sideW = side ? Math.max(side.w, 150) : 0;
+        // The side column drops its "this week" footer for the breakdown, which has the total in its header.
+        const rowH = Math.max(limits ? limitsH(limits) : 0, SESSION_H);
+        const avail = side ? h - HEADER_H - side.h - 12 : split ? h - rowH - GAP - (bottom ? bottom.h + GAP : 0) : room0 - sessionsReserve;
+        const breakdown = bd ? fitBreakdown(avail, (side ? sideW : mainW) >= TOKENS_W && tokens !== null, bd.models.length > 0) : null;
+        // Beside the limits the sessions keep the row's height; the breakdown goes under that row.
+        const room = side || !breakdown ? room0 : split ? Math.min(room0, rowH) : room0 - breakdown.h - GAP;
         const rows = showSessions && room >= SESSION_H ? Math.min(sessions.length, fitRows(room, SESSION_H, 8)) : 0;
         const sessionsW = split ? mainW - limitsW - 2 * GAP : mainW;
 
@@ -184,7 +232,7 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
           (rows > 0 && sessions.length > 0 ? (
             <ul className="flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden" style={split ? { flex: 1 } : undefined}>
               {sessions.slice(0, rows).map((s) => (
-                <SessionRow key={s.key} s={s} now={now} wide={sessionsW >= 220} />
+                <SessionRow key={s.key} s={s} now={now} width={sessionsW} />
               ))}
             </ul>
           ) : (
@@ -206,6 +254,7 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
                 {sessionsEl}
               </>
             )}
+            {bd && breakdown && !side && <Breakdown data={bd} rows={breakdown.rows} tokens={breakdown.withTokens ? tokens : null} />}
             {bottom && (
               <div className="mt-auto flex shrink-0 flex-col gap-1.5">
                 <HistoryHeader today={today} week={week} wide={wide} />
@@ -221,9 +270,13 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
             <div className="flex shrink-0 flex-col gap-1.5" style={{ width: Math.max(side.w, 150) }}>
               <HistoryHeader today={today} week={week} wide={false} />
               <Heatmap weeks={weeks} fit={side} color={color} todayKey={todayKey} />
-              <span className="truncate text-[10.5px] tabular-nums text-[color:var(--w-faint)]" style={{ height: HEADER_H }}>
-                <span className="text-[color:var(--w-muted)]">{shortTokens(week)}</span> this week
-              </span>
+              {bd && breakdown ? (
+                <Breakdown data={bd} rows={breakdown.rows} tokens={breakdown.withTokens ? tokens : null} />
+              ) : (
+                <span className="truncate text-[10.5px] tabular-nums text-[color:var(--w-faint)]" style={{ height: HEADER_H }}>
+                  <span className="text-[color:var(--w-muted)]">{shortTokens(week)}</span> this week
+                </span>
+              )}
             </div>
           </div>
         );
