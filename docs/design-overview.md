@@ -1,4 +1,4 @@
-# InfoPanel Dashboard — widgets, panels, layouts & presets
+# InfoPanel Studio — widgets, panels, layouts & presets
 
 As of 2026-10-12. The current building blocks of the dashboard and studio, as reference for the redesign.
 

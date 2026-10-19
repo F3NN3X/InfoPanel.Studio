@@ -53,11 +53,15 @@ the servers on 3921 or 3922. See [desktop/README.md](desktop/README.md).
 `windows-latest` for every pull request and every push to `main`.
 
 `.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless
-the tag matches `version` in `package.json`, then runs `npm test` and
-`npm run desktop:build` on `windows-latest` and creates a GitHub release with
-the NSIS installer (`InfoPanel Studio_<version>_x64-setup.exe`) attached. To
-release: bump `version` in `package.json`,
-commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+the tag matches `version` in `package.json` and `CHANGELOG.md` has a `## [X.Y.Z]`
+section, then runs `npm test` and `npm run desktop:build` on `windows-latest` and
+creates a GitHub release with that section as its notes and the NSIS installer
+(`InfoPanel Studio_<version>_x64-setup.exe`) attached. Both workflows run in the
+`en-150` locale, which the clock snapshot tests were taken in.
+
+To release: bump `version` in `package.json` (and `npm install` to update the
+lockfile), move the **Unreleased** entries in `CHANGELOG.md` under
+`## [X.Y.Z] - YYYY-MM-DD`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 ## Dev server vs the standalone server
 

@@ -1,20 +1,28 @@
-# InfoPanel Dashboard
+# InfoPanel Studio
 
-A modern web dashboard (React, Tailwind, shadcn/ui) for live InfoPanel data, with a studio for designing layouts. It runs on its own: a small Node server serves the page, and the sensor data comes from InfoPanel's native Data API.
+A studio for designing live sensor dashboards for [InfoPanel](https://github.com/habibrehmansg/infopanel), and the server that shows them. Build layouts from 54 widgets, panels and imported InfoPanel profiles, then show them full screen as a kiosk page — in InfoPanel's Web Page mode, a browser, or any screen on your network. The sensor data comes from InfoPanel's native Data API.
+
+It started as a web dashboard and grew into a full editor: profiles and pages, a widget library with skins and a shared style system, a Dynamic Island, alerts, a canvas that imports and exports InfoPanel profiles, a gauge editor, and a Windows desktop app.
 
 ```
 InfoPanel Data API (127.0.0.1:3921)  ◀──sensors / SSE──┐
                                                         │
-Dashboard server (127.0.0.1:3922) ──page, config──▶ browser / InfoPanel web page profile
+Studio server (127.0.0.1:3922) ──studio, kiosk page, config──▶ desktop app / browser / InfoPanel web page profile
 ```
+
+## Install
+
+Download `InfoPanel Studio_<version>_x64-setup.exe` from [Releases](https://github.com/F3NN3X/InfoPanel.Studio/releases) and run it. It installs per user (no admin), ships its own Node and server, opens the studio in its own window, and keeps the server running from the tray so kiosk pages keep updating with the window closed; it can start at login. The installer is unsigned, so SmartScreen warns on first run. Settings and debug mode are in [docs/desktop/README.md](docs/desktop/README.md).
+
+Your config lives in `%LOCALAPPDATA%\InfoPanel\Dashboard` and is shared by the desktop app and the server run from source, so switching between them keeps your layouts.
 
 ## Requirements
 
-- Node.js 20 or newer
 - InfoPanel with its Data API enabled (it provides `/api/sensors` and `/events`, by default on `http://127.0.0.1:3921`)
+- To run from source: Node.js 20 or newer
 - Optional: the `wavelink-plugin` for the Wave Link widget, the `yr-weather-plugin` for the weather forecast, and `InfoPanel.Notifications` 2.0+ for alerts on Windows notifications
 
-## Run it
+## Run from source
 
 ```bash
 npm install
@@ -23,20 +31,17 @@ npm run serve      # build, then start the server
 
 Open http://127.0.0.1:3922. After the first build, `npm start` starts the server without rebuilding.
 
-On Windows you can double-click `start-dashboard.bat` instead. On the first run it installs the dependencies and builds the dashboard, then starts the server. Run `start-dashboard.bat rebuild` to build again after an update.
+On Windows you can double-click `start-dashboard.bat` instead. On the first run it installs the dependencies and builds the studio, then starts the server. Run `start-dashboard.bat rebuild` to build again after an update. The desktop app replaces it; it still works.
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Vite dev server on http://localhost:5173 with hot reload. Config and image-proxy requests are forwarded to the running dashboard server, so start that too. |
+| `npm run dev` | Vite dev server on http://localhost:5173 with hot reload. Config and image-proxy requests are forwarded to the running server, so start that too. |
 | `npm run build` | Type-checks and builds `dist/`. |
 | `npm start` | Serves `dist/` on port 3922. |
 | `npm run serve` | Both of the above. |
+| `npm run desktop:build` | Builds the desktop installer (see [docs/desktop/README.md](docs/desktop/README.md)). |
 
 The server listens on `127.0.0.1:3922`; set `PORT` or `HOST` to change it.
-
-## Desktop app
-
-**InfoPanel Studio** is a Windows installer that needs no Node, repo or `start-dashboard.bat`: it ships its own Node and this server, runs it, and opens the studio in its own window. The server keeps running from the tray, so the page InfoPanel shows keeps updating with the window closed, and it can start at login. It replaces `start-dashboard.bat`, which still works. Your config in `%LOCALAPPDATA%\InfoPanel\Dashboard` is picked up as it is. Building the installer, its settings and its debug mode are in [docs/desktop/README.md](docs/desktop/README.md).
 
 ## Show it in InfoPanel
 
@@ -95,7 +100,7 @@ The weather forecast comes from the yr plugin (`plugins.yr-weather-plugin.<locat
 
 ## Development and releases
 
-Scripts, tests and the verification checklist are in [docs/development.md](docs/development.md). CI (`.github/workflows/ci.yml`) runs the build and the tests on pull requests and on `main`. Pushing a tag `vX.Y.Z` that matches the `version` in `package.json` runs the release workflow (`.github/workflows/release.yml`): it builds the InfoPanel Studio installer with `npm run desktop:build` on `windows-latest` and attaches it to a GitHub release.
+Scripts, tests and the verification checklist are in [docs/development.md](docs/development.md). CI (`.github/workflows/ci.yml`) runs the build and the tests on pull requests and on `main`. Changes are recorded in [CHANGELOG.md](CHANGELOG.md). Pushing a tag `vX.Y.Z` that matches the `version` in `package.json` runs the release workflow (`.github/workflows/release.yml`): it builds the InfoPanel Studio installer with `npm run desktop:build` on `windows-latest` and publishes a GitHub release with that version's changelog section as its notes.
 
 ## Documentation
 

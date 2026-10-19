@@ -17,7 +17,7 @@
     "active": true,
     "targets": ["nsis"],
     "publisher": "F3NN3X",
-    "shortDescription": "InfoPanel Dashboard studio and server",
+    "shortDescription": "InfoPanel Studio and its dashboard server",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

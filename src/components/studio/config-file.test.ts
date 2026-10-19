@@ -23,7 +23,7 @@ describe("desktop export", () => {
     const config = defaultConfig();
     exportConfigFile(config);
     expect(desktop.saveTextFile).toHaveBeenCalledWith(
-      "infopanel-dashboard-config.json",
+      "infopanel-studio-config.json",
       JSON.stringify(config, null, 2)
     );
   });

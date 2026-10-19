@@ -76,10 +76,10 @@ Tauri app (Rust)
      the studio. If it exits early or times out, show start.html with its last log lines, Retry and
      "Open settings".
    - **A dashboard answers that the app did not start** (for example the old
-     `start-dashboard.bat`) → show start.html: "Another InfoPanel Dashboard server is running on this
+     `start-dashboard.bat`) → show start.html: "Another InfoPanel Studio server is running on this
      port." with **"Stop it and start InfoPanel Studio's server"** (a confirmation names the process
      and PID first), "Use it for this session" and "Open settings" (change port). Stopping is only
-     offered when the health answer says it is an InfoPanel Dashboard server and the PID that owns
+     offered when the health answer says it is an InfoPanel Studio server and the PID that owns
      the port is a `node.exe`; anything else is never killed. The screen also says to remove the
      .bat from startup.
    - **Something else answers** (wrong body, 404, 421) → "Port <port> is used by another program",

@@ -6,6 +6,8 @@ use std::time::Duration;
 
 pub const HEALTH_PATH: &str = "/api/health";
 pub const PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
+/// The app id servers answer with on /api/health. It keeps the pre-rename name so every installed
+/// version still recognises the others as its own server.
 pub const DASHBOARD_APP: &str = "infopanel-dashboard";
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -13,7 +15,7 @@ pub const DASHBOARD_APP: &str = "infopanel-dashboard";
 pub enum Probe {
     /// Nothing listens: the app can start its server.
     Free,
-    /// An InfoPanel Dashboard server answers.
+    /// An InfoPanel Studio server answers.
     Dashboard { version: Option<String> },
     /// Something else holds the port (wrong body, 404, 421, no answer).
     Other { detail: String },
@@ -35,7 +37,7 @@ pub fn classify_probe(result: &Result<Response, HttpError>) -> Probe {
                     }
                 }
                 _ => Probe::Other {
-                    detail: "it answered, but not as an InfoPanel Dashboard server".into(),
+                    detail: "it answered, but not as an InfoPanel Studio server".into(),
                 },
             }
         }

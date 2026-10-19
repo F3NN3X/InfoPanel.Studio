@@ -136,7 +136,7 @@ fn run_start(app: &AppHandle) {
                 status.state = Phase::ForeignDashboard;
                 status.foreign_version = version;
                 status.message = Some(format!(
-                    "Another InfoPanel Dashboard server is running on port {}.",
+                    "Another InfoPanel Studio server is running on port {}.",
                     s.port
                 ));
             });
@@ -376,7 +376,7 @@ fn stop_dashboard_on_port(app: &AppHandle) -> Result<String, String> {
     );
     if !probe::is_node(&info) || !(answers || probe::runs_dashboard_server(&info)) {
         return Err(format!(
-            "Port {} is held by {} (PID {pid}), which is not an InfoPanel Dashboard server; it was not stopped.",
+            "Port {} is held by {} (PID {pid}), which is not an InfoPanel Studio server; it was not stopped.",
             s.port, info.name
         ));
     }
