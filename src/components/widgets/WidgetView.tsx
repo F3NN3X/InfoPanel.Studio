@@ -225,13 +225,13 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
   );
 }
 
-/** A panel's Custom gauge: the zone widget's drawing at `fontSize` px wide (default 120). */
+/** A panel's Custom gauge: the zone widget's drawing at `width` px wide (default 120). */
 function VectorGaugeWidget({ widget, sensor }: { widget: Widget; sensor?: SensorValue }) {
   const id = useId();
   const g = widget.vector ?? DEFAULT_GAUGE_SPEC;
   const value = sensor?.value;
   const frac = fraction(value !== undefined && Number.isFinite(value) ? value : null, g.scale?.min ?? 0, g.scale?.max ?? 100);
-  const w = widget.fontSize ?? 120;
+  const w = widget.width ?? 120;
   return (
     <div className="wp-gauge flex shrink-0 flex-col items-center gap-1.5" style={{ width: w }}>
       <FittedVectorGauge gauge={g} p={frac} id={id} width={w} height={Math.round((w * g.height) / g.width)} />

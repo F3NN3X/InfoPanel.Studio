@@ -4,8 +4,8 @@ import { VectorGaugeSvg } from "@/components/infopanel/VectorGaugeSvg";
 import { useSensorCatalog } from "@/lib/catalog";
 import { CUSTOM_GAUGE_ID, widgetGauge } from "@/lib/gauge-studio/model";
 import { BLANK_MODULE, CANVAS_ID, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
-import { withPanelField } from "@/lib/panel-model";
-import { lockedIn, type Appearance } from "@/lib/style-resolve";
+import { convertKind, withPanelField } from "@/lib/panel-model";
+import type { Appearance } from "@/lib/style-resolve";
 import { modules } from "@/modules";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
 import type { AppearanceTarget } from "./appearance-panel";
@@ -13,6 +13,7 @@ import type { SheetCard } from "./category-sheet";
 import { BoundData } from "./inspector/bound-data";
 import { setInspectorTab } from "./inspector/inspector-prefs";
 import { InspectorNote, InspectorView, type SectionParts } from "./inspector/inspector-view";
+import { ItemInspector } from "./item-inspector";
 import { cardsBySection, panelState } from "./inspector/panel-cards";
 import { useZoneData } from "./inspector/use-zone-data";
 import { followFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
@@ -123,7 +124,7 @@ function GaugeNote({ zone, onEdit }: { zone: Placement; onEdit: () => void }) {
 }
 
 /** The custom cards of a special section as one body (a caption over each when several share it). */
-function cardParts(cards: SheetCard[], editor: boolean): SectionParts {
+function cardParts(cards: SheetCard[]): SectionParts {
   return {
     body: cards.map((c) => (
       <div key={c.id} className="space-y-2">
@@ -134,7 +135,6 @@ function cardParts(cards: SheetCard[], editor: boolean): SectionParts {
       cards.some((c) => c.actions) ? <span className="flex items-center gap-1">{cards.map((c) => c.actions && <span key={c.id}>{c.actions}</span>)}</span> : undefined,
     changed: cards.reduce((n, c) => n + (c.changed ?? 0), 0),
     onReset: () => cards.forEach((c) => c.onReset?.()),
-    editor,
   };
 }
 
@@ -144,7 +144,8 @@ function cardParts(cards: SheetCard[], editor: boolean): SectionParts {
  * row, then the registry's tabs — Show · Style · Data · Behaviour for widgets
  * and panels, Widget + Zone frame for a blank zone. The zone's custom UI
  * (widget picker, Follow / Custom, style tools, zone frame, a panel's
- * editors, Bound data) fills the sections the registry marks for it.
+ * editors, Bound data) fills the sections the registry marks for it. A
+ * selected panel widget swaps in its own inspector (`ItemInspector`).
  */
 export function ZoneInspector({
   placement: zone,
@@ -192,8 +193,6 @@ export function ZoneInspector({
   const blank = zone.module === BLANK_MODULE;
   const defs = zoneDefs(zone);
   const styleKeys = new Set(defs.flatMap(settingKeys));
-  // A locked Colors section forces a panel's widget colours too.
-  const enforce = lockedIn(appearance, "colors");
   const groups =
     usePanelSheet({
       placement: zone,
@@ -205,23 +204,27 @@ export function ZoneInspector({
       presetNaming,
       onPresetNaming,
       onSavePreset: onSavePanelPreset,
-      enforce,
-      onOpenExplorer,
     }) ?? [];
   const cards = cardsBySection(groups);
+  const panelView = zone.panel ? panelState(groups, zone.panel.layout) : undefined;
+  // A selected panel widget has its own inspector (not over the Code view).
+  const selectedWidget = zone.panel?.widgets.find((w) => w.id === selectedWidgetId);
+  const item = panelView && !panelView.codeView ? selectedWidget : undefined;
 
   const context: InspectorContext = blank
     ? { kind: "blank" }
-    : zone.panel
-      ? { kind: "panel", defs, ...panelState(groups, zone.panel.layout) }
-      : mod
-        ? widgetContext(mod)
-        : { kind: "widget", defs };
+    : item && panelView
+      ? { kind: "item", widget: item, layout: panelView.layout }
+      : zone.panel && panelView
+        ? { kind: "panel", defs, ...panelView }
+        : mod
+          ? widgetContext(mod)
+          : { kind: "widget", defs };
 
-  // A panel widget picked on the canvas: its editor is in Show.
+  // A panel widget picked on the canvas: its inspector opens on Kind.
   useEffect(() => {
     if (selectedWidgetId === null) return;
-    setInspectorTab("panel", "show");
+    setInspectorTab("item", "show");
     requestAnimationFrame(() =>
       document.querySelector("[data-widget-editor]")?.scrollIntoView({ block: "nearest", inline: "nearest" })
     );
@@ -337,7 +340,7 @@ export function ZoneInspector({
       case undefined:
         break;
       default:
-        return cardParts(cards.get(s.special) ?? [], s.special === "widgetKind");
+        return cardParts(cards.get(s.special) ?? []);
     }
     const placed = s.extras.map(extraNode);
     const at = (where: "top" | "bottom" | "more" | "actions") => {
@@ -379,10 +382,9 @@ export function ZoneInspector({
     : hasLabel
       ? (name: string) => update((p) => withSettings(p, { label: name }), "setting:label")
       : undefined;
-  const selectedWidget = zone.panel?.widgets.find((w) => w.id === selectedWidgetId);
   const Icon = moduleIcon(zone.module);
 
-  const typeName = blank ? "Blank zone" : zone.panel ? "Panel" : (mod?.title ?? zone.module);
+  const typeName = blank ? "Blank zone" : item ? "Panel item" : zone.panel ? "Panel" : (mod?.title ?? zone.module);
   const header = (changed: number) => (
     <>
       <ZoneHeader
@@ -403,6 +405,32 @@ export function ZoneInspector({
       <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />
     </>
   );
+
+  if (item)
+    return (
+      <ItemInspector
+        zone={zone}
+        widget={item}
+        appearance={appearance}
+        header={header}
+        bound={bound}
+        update={update}
+        onChangeKind={(kind) => update((p) => ({ ...p, panel: { ...p.panel!, widgets: p.panel!.widgets.map((w) => (w.id === item.id ? convertKind(w, kind) : w)) } }))}
+        onOpenExplorer={onOpenExplorer}
+        query={query}
+        onQuery={onQuery}
+        changedOnly={changedOnly}
+        onChangedOnly={onChangedOnly}
+        jumpTo={jumpTo}
+        identity={{
+          icon: <Icon />,
+          name: widgetName(item, catalog),
+          meta: (changed) => `Panel item · ${changedLabel(changed)}`,
+          hidden: !item.visible,
+          onToggleVisible,
+        }}
+      />
+    );
 
   return (
     <InspectorView

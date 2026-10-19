@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { PanelDef } from "@/lib/layout";
+import type { SectionFlags } from "@/lib/theme-model";
 import type { ModuleSettings, SensorMap } from "@/modules/types";
 import { chromeOf } from "@/modules/standard-settings";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import {
   panelSurfaceOf,
   panelVars,
 } from "./panel-layout";
+import { resolvedPanel, tonedPanel } from "./panel-items";
 import { PanelOverlay } from "./panel-overlay";
 import { PANEL_SKIN_VARS, PanelSkin, panelSkinOf } from "./panel-skin";
 import type { PanelSelection } from "./panel-parts";
@@ -29,6 +31,8 @@ interface PanelViewProps {
    * to the resolved accent and text colors (`enforcedPanel`).
    */
   enforced?: boolean;
+  /** The profile theme's locks: a locked section's widgets follow the panel (SPEC §8). */
+  locks?: SectionFlags;
   sensors: SensorMap;
   /** Show a hint for empty panels (studio only). */
   studio?: boolean;
@@ -51,16 +55,22 @@ const joinCss = (...parts: (string | undefined)[]) => parts.filter((p) => p?.tri
  * (`ModernChrome`: Size %, colors, font, custom CSS, background image;
  * the card via `surfaceBox`); the arrangement from the PanelDef.
  *
+ * Each widget follows the panel's look section by section (`panel-item.ts`):
+ * a following Typography / Color / Units & format shows the panel's, and a
+ * stat, value, bar or gauge past its thresholds takes the warning /
+ * critical colour.
+ *
  * CSS hooks: `.wp-panel[data-panel-layout][data-panel-id]` (the card),
  * `.wp-panel-title`, `.wp-panel-bg`, `.wp-panel-scrim`, `.wp-band[data-band]`
  * and `.wp-widget.wp-widget--{kind}[data-widget-id][data-widget-kind]`.
  */
-export function PanelView({ panel: own, settings, sensors, studio, selection, enforced }: PanelViewProps) {
+export function PanelView({ panel: own, settings, sensors, studio, selection, enforced, locks }: PanelViewProps) {
   const cfg = settings ?? {};
   const title = String(cfg.label ?? (own.titleVisible ? own.title : ""));
   const surface = panelSurfaceOf(cfg.surface ?? own.background);
   const chrome = chromeOf({ accent: own.accent ?? "", ...cfg });
-  const panel = enforced ? enforcedPanel(own, chrome.accent || undefined) : own;
+  const items = resolvedPanel(own, cfg, locks);
+  const panel = tonedPanel(enforced ? enforcedPanel(items, chrome.accent || undefined) : items, cfg, sensors, locks);
   const overlay = panel.layout === "overlay";
   const hug = panel.fit === "hug";
   const layout = overlay ? "overlay" : panel.layout === "grid" ? "grid" : "stack";

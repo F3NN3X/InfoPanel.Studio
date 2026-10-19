@@ -1,5 +1,5 @@
 import { uid, type PanelDef, type Placement, type Widget, type WidgetKind } from "@/lib/layout";
-import { convertKind, duplicateWidget, insertAfter, moveWidget } from "@/lib/panel-model";
+import { convertKind, duplicateWidget, insertAfter, moveWidget, normalizeWidget } from "@/lib/panel-model";
 
 /** What the widget actions read and drive (the studio owns the selection). */
 export interface PanelWidgetDeps {
@@ -59,10 +59,10 @@ export function panelWidgetActions(d: PanelWidgetDeps) {
     if (w) d.onCopyWidget(w);
   };
 
-  /** Paste the copied widget (under a new id) after `afterId`. */
+  /** Paste the copied widget (under a new id, brought up to the current model) after `afterId`. */
   const paste = (afterId: string | null) => {
     if (!d.widgetClipboard) return;
-    const w = { ...d.widgetClipboard, id: newId() };
+    const w = normalizeWidget({ ...d.widgetClipboard, id: newId() });
     updatePanel((p) => insertAfter(p, afterId, w));
     d.onSelectWidget(w.id);
   };

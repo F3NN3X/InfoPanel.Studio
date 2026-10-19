@@ -216,8 +216,10 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  * v8: the sample widgets refiled (`settings-migrate.ts`): NowPlaying's visualiser keys under their v2
  *     names, SensorGroup's `mode`, Widget colors custom where an own colour now has a palette role;
  *     a v7 build would read the old names.
+ * v9: panel widgets (`settings-migrate.ts` `migrateWidgetV9`): a Custom gauge widget's width under
+ *     its own `width`, off `fontSize`; a v8 build would draw it at the default width.
  */
-export const CONFIG_VERSION = 8;
+export const CONFIG_VERSION = 9;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -478,7 +480,8 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * migrations: v1→v2 fills explicit zone boxes + rows on legacy profiles,
  * v2→v3 moves a profile's zones onto its first page, v3→v4 rewrites the
  * legacy module ids to their templates, v5→v6 moves the style onto the
- * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets' (`settings-migrate.ts`); a
+ * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
+ * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it); a
  * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
