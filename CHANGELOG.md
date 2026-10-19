@@ -36,5 +36,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - A standalone server, the Data API URL setting, and Wave Link and forecast data from the native InfoPanel
   plugins.
 
+### Fixed
+- The image proxy follows redirects by hand and checks every hop, so an https image URL can no longer
+  redirect it to plain http on the LAN or a metadata address (#26).
+
 ### Removed
 - The legacy widget modules; zones that still name one are migrated to its template on load.

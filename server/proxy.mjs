@@ -9,6 +9,40 @@
 // image server (http on loopback) may send application/octet-stream or no type at all, so that one
 // type is allowed when the bytes themselves are a png/jpeg/gif/webp/avif image, and the response
 // then carries the sniffed type rather than the upstream one.
+//
+// Targets: https anywhere, plain http only on loopback. Redirects are followed by hand (at most
+// three) and every hop is checked the same way, so an https URL cannot bounce to a LAN host or
+// 169.254.169.254.
+
+const MAX_REDIRECTS = 3;
+
+/** Whether the proxy may fetch `url` (a URL object): https anywhere, plain http only on loopback. */
+export function isValidProxyTarget(url) {
+  if (url.protocol === "https:") return true;
+  if (url.protocol !== "http:") return false;
+  return ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+}
+
+/**
+ * The final upstream response for `target` (a URL object), following redirects by hand and checking
+ * each hop, or null when a hop is refused or there are too many. Network errors throw.
+ */
+export async function fetchProxied(target, { signal, fetchImpl = fetch } = {}) {
+  let url = target;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (!isValidProxyTarget(url)) return null;
+    const res = await fetchImpl(url, { signal, redirect: "manual" });
+    const location = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
+    if (!location) return res;
+    await res.body?.cancel();
+    try {
+      url = new URL(location, url);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 /** Whether an upstream media type (no parameters) may be relayed as it is. */
 export function isAllowedProxyType(type) {

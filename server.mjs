@@ -48,7 +48,7 @@ import { createExtras } from "./server/extras.mjs";
 import { createFontProxy } from "./server/font-proxy.mjs";
 import { createInstalledProfiles, createInstalledRoutes, infopanelDataDir } from "./server/infopanel-local.mjs";
 import { createLibrary, createLibraryStore } from "./server/library.mjs";
-import { resolveProxyType } from "./server/proxy.mjs";
+import { fetchProxied, isValidProxyTarget, resolveProxyType } from "./server/proxy.mjs";
 import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, isLoopback, parseAllowedHosts } from "./server/request-guard.mjs";
 
 const PORT = Number(process.env.PORT) || 3922;
@@ -333,13 +333,6 @@ function handleConfigEvents(req, res) {
   });
 }
 
-// https anywhere; plain http only on loopback (a plugin's local image server).
-function isValidProxyTarget(url) {
-  if (url.protocol === "https:") return true;
-  if (url.protocol !== "http:") return false;
-  return ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-}
-
 async function handleImageProxy(req, res, query) {
   if (req.method !== "GET") return send(res, 405);
   let target;
@@ -352,10 +345,11 @@ async function handleImageProxy(req, res, query) {
 
   let upstream;
   try {
-    upstream = await fetch(target, { signal: AbortSignal.timeout(PROXY_TIMEOUT_MS) });
+    upstream = await fetchProxied(target, { signal: AbortSignal.timeout(PROXY_TIMEOUT_MS) });
   } catch {
     return send(res, 504);
   }
+  if (!upstream) return send(res, 502, "redirect refused");
   if (!upstream.ok) return send(res, upstream.status);
   if (Number(upstream.headers.get("content-length")) > MAX_PROXY_BYTES) return send(res, 413);
 
