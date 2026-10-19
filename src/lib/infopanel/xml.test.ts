@@ -49,4 +49,15 @@ describe("parseXml", () => {
     expect(() => parseXml("<a>\r\n<b>&nope;</b></a>")).toThrow(/Unknown entity &nope; \(line 2, column 4\)/);
     expect(() => parseXml("<a>")).not.toThrow(/offset/);
   });
+
+  it("points an entity error at its '&', in text and in attributes", () => {
+    expect(() => parseXml("<a>long text before &nope; here</a>")).toThrow(/Unknown entity &nope; \(line 1, column 21\)/);
+    expect(() => parseXml("<a>one\ntwo x & y</a>")).toThrow(/Bare '&' in text \(line 2, column 7\)/);
+    expect(() => parseXml('<a k="v &bad; w"/>')).toThrow(/Unknown entity &bad; \(line 1, column 9\)/);
+    expect(() => parseXml("<a k='x' j='&'/>")).toThrow(/Bare '&' in text \(line 1, column 13\)/);
+  });
+
+  it("rejects a character reference beyond Unicode instead of crashing", () => {
+    expect(() => parseXml("<a>&#xFFFFFFFF;</a>")).toThrow(/Invalid character reference &#xFFFFFFFF; \(line 1, column 4\)/);
+  });
 });

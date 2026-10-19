@@ -6,6 +6,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+- Profile import's XML errors for a bad entity point at its `&`, in text and in attribute values, and a character
+  reference beyond Unicode is reported instead of crashing the parser (#52).
+- The server accepts `PORT=0` (a free port, logged on start); its test uses it, so it no longer races another process
+  for the port it picked (#51).
+
 ## [1.1.0] - 2026-10-19
 
 ### Changed

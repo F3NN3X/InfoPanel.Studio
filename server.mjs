@@ -21,7 +21,7 @@
 // CORS headers (server/font-proxy.mjs).
 //
 // Node built-ins only. Environment:
-//   PORT  listen port (default 3922)
+//   PORT  listen port (default 3922; 0 picks a free one, logged on start)
 //   HOST  listen address (default 127.0.0.1)
 //   ALLOW_REMOTE_UPLOAD=1  accept media uploads / deletes from other machines
 //   ALLOWED_HOSTS  extra Host names to accept, comma separated (see
@@ -51,7 +51,7 @@ import { createLibrary, createLibraryStore } from "./server/library.mjs";
 import { fetchProxied, isValidProxyTarget, resolveProxyType } from "./server/proxy.mjs";
 import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, isLoopback, parseAllowedHosts } from "./server/request-guard.mjs";
 
-const PORT = Number(process.env.PORT) || 3922;
+const PORT = process.env.PORT === undefined || process.env.PORT === "" ? 3922 : Number(process.env.PORT);
 const HOST = process.env.HOST || "127.0.0.1";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -455,6 +455,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`InfoPanel Studio on http://${HOST}:${PORT} (config: ${CONFIG_FILE})`);
+  console.log(`InfoPanel Studio on http://${HOST}:${server.address().port} (config: ${CONFIG_FILE})`);
   if (debug.enabled) console.log("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
 });
