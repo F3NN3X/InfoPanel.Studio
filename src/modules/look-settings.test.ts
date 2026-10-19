@@ -55,14 +55,16 @@ describe("look settings", () => {
   });
 
   it("resolve dashboard, then profile, then the widget, with source dots", () => {
-    const dashboard = { skin: "tui" };
-    const profile = { skin: "hud" };
-    expect(resolveStyle({ dashboard })).toMatchObject({ settings: { skin: "tui" }, source: { skin: "dashboard" } });
-    expect(resolveStyle({ dashboard, profile })).toMatchObject({ settings: { skin: "hud" }, source: { skin: "profile" } });
+    const base = { skin: "tui" };
+    const profile = { values: { skin: "hud" } };
+    expect(resolveStyle({ levels: { base } })).toMatchObject({ settings: { skin: "tui" }, source: { skin: "dashboard" } });
+    expect(resolveStyle({ levels: { base, profile } })).toMatchObject({ settings: { skin: "hud" }, source: { skin: "profile" } });
     const own = { skin: "ink" };
-    expect(resolveStyle({ dashboard, profile, own, mode: "custom" })).toMatchObject({ settings: { skin: "ink" }, source: { skin: "own" } });
-    expect(resolveStyle({ dashboard, profile, own, mode: "follow" }).settings.skin).toBe("hud");
-    expect(resolveStyle({ dashboard, profile, own, mode: "custom", enforce: true }).settings.skin).toBe("hud");
+    const custom = { skin: false };
+    expect(resolveStyle({ levels: { base, profile }, own, follow: custom })).toMatchObject({ settings: { skin: "ink" }, source: { skin: "own" } });
+    expect(resolveStyle({ levels: { base, profile }, own }).settings.skin).toBe("hud");
+    const locked = { base, profile: { ...profile, locks: { skin: true } } };
+    expect(resolveStyle({ levels: locked, own, follow: custom }).settings.skin).toBe("hud");
   });
 
   it("show the layer a skin comes from", () => {

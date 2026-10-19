@@ -1,31 +1,20 @@
-import { SegmentedRow } from "./setting-rows";
+import { SegmentedRow, ToggleRow } from "./setting-rows";
 
 /** Which global style (or background) a card edits. */
 export type AppearanceTarget = "all" | "profile";
-
-/** A profile's force switch: the dashboard's, or its own on / off. */
-type EnforceChoice = "inherit" | "on" | "off";
 
 export const SCOPES = [
   { value: "all" as const, label: "All profiles" },
   { value: "profile" as const, label: "This profile" },
 ];
 
-const ENFORCE_CHOICES = [
-  { value: "inherit" as const, label: "Inherit", title: "Use the dashboard's choice (off unless it is forced)" },
-  { value: "on" as const, label: "On", title: "Force the global style in this profile" },
-  { value: "off" as const, label: "Off", title: "Don't force it in this profile" },
-];
-
-const enforceChoice = (v: boolean | undefined): EnforceChoice => (v === undefined ? "inherit" : v ? "on" : "off");
-
 interface GlobalStyleScopeProps {
   target: AppearanceTarget;
   onTarget: (target: AppearanceTarget) => void;
-  dashboardEnforce: boolean | undefined;
-  profileEnforce: boolean | undefined;
-  /** Set the force switch (a profile's `undefined` = the dashboard's). */
-  onEnforce: (target: AppearanceTarget, value: boolean | undefined) => void;
+  /** Every section of the target's profile theme is locked (of every profile, for "All profiles"). */
+  forced: boolean;
+  /** Lock every section of the target's profile themes, or none. */
+  onEnforce: (target: AppearanceTarget, on: boolean) => void;
   /** What still hides this scope's global style: widgets with their own look, profile styles. */
   overrides: { widgets: number; profiles: number };
   /** Make the overriding widgets follow the global style. */
@@ -33,34 +22,20 @@ interface GlobalStyleScopeProps {
 }
 
 const FORCE_LABEL = "Force global style";
-const FORCE_HINT = "Every widget shows the global style; their own look values are ignored";
+const FORCE_HINT = "Locks every section of the profile theme: every widget shows it, and none can customize a section";
 
 /**
  * Appearance › Scope: which style the presets, theme, background and
  * Global style tab edit (all profiles, or this one over the dashboard's)
- * and its "Force global style" switch. A widget's own look overrides the
- * style unless the widget follows it or the style is forced.
+ * and its "Force global style" switch (every section of the profile theme
+ * locked). A widget's custom section shows its own values unless the
+ * profile locks the section.
  */
-export function GlobalStyleScope({
-  target,
-  onTarget,
-  dashboardEnforce,
-  profileEnforce,
-  onEnforce,
-  overrides,
-  onFollowAll,
-}: GlobalStyleScopeProps) {
-  const all = target === "all";
+export function GlobalStyleScope({ target, onTarget, forced, onEnforce, overrides, onFollowAll }: GlobalStyleScopeProps) {
   return (
     <div className="space-y-3">
       <SegmentedRow label="Apply to" options={SCOPES} value={target} onChange={(v) => onTarget(v as AppearanceTarget)} />
-      <SegmentedRow
-        label={FORCE_LABEL}
-        hint={FORCE_HINT}
-        options={ENFORCE_CHOICES}
-        value={enforceChoice(all ? dashboardEnforce : profileEnforce)}
-        onChange={(c) => onEnforce(target, c === "inherit" ? undefined : c === "on")}
-      />
+      <ToggleRow label={FORCE_LABEL} hint={FORCE_HINT} value={forced} onChange={(on) => onEnforce(target, on)} />
       <FollowAllRow overrides={overrides} onFollowAll={onFollowAll} />
     </div>
   );

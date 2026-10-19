@@ -84,18 +84,18 @@ describe("placementContent", () => {
     }
   });
 
-  it("resolves the look under the global style (frame tokens follow it)", () => {
+  it("resolves the look under the theme (frame tokens follow it)", () => {
     const accent = (p: Placement, a: Parameters<typeof placementContent>[3]) =>
       (placementContent(p, paused, [], a).scope as Record<string, string> | undefined)?.["--accent"];
-    const global = { dashboard: { accent: "#ff0000" }, profile: { accent: "#00ff00" }, enforce: false };
+    const global = { base: { accent: "#ff0000" }, profile: { values: { accent: "#00ff00" } } };
     const media = place({ module: "NowPlaying" });
     expect(accent(media, undefined)).toBeUndefined();
-    expect(accent(media, { dashboard: { accent: "#ff0000" }, enforce: false })).toBe("0 100% 50%");
+    expect(accent(media, { base: { accent: "#ff0000" } })).toBe("0 100% 50%");
     expect(accent(media, global)).toBe("120 100% 50%");
-    const own = place({ module: "NowPlaying", settings: { source: "media", accent: "#0000ff", hideWhenIdle: true } });
+    const own = place({ module: "NowPlaying", settings: { source: "media", accent: "#0000ff", hideWhenIdle: true }, follow: { colors: false } });
     expect(accent(own, global)).toBe("240 100% 50%");
-    expect(accent({ ...own, styleMode: "follow" }, global)).toBe("120 100% 50%");
-    expect(accent(own, { ...global, enforce: true })).toBe("120 100% 50%");
+    expect(accent({ ...own, follow: undefined }, global)).toBe("120 100% 50%");
+    expect(accent(own, { ...global, profile: { ...global.profile, locks: { colors: true } } })).toBe("120 100% 50%");
   });
 });
 

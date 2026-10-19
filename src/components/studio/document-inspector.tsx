@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { PageBackground } from "@/lib/appearance";
 import type { GeneralSettings } from "@/lib/general";
 import type { PageRotate, ProfilePage, ProfileView } from "@/lib/layout";
+import type { WidgetTheme } from "@/lib/theme-model";
 import { THEME_PRESETS, resolveTheme, type ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import { AppearanceGallery, type CurrentLook } from "./appearance-gallery";
@@ -32,7 +33,7 @@ import type { AppearancePresetsApi } from "./use-appearance-presets";
 import { LayoutDashboard } from "lucide-react";
 import { DashboardHeader, changedLabel } from "./zone-inspector-parts";
 import { shownValue, shownValues } from "./inspector/zone-fields";
-import { PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
+import { THEME_SETTINGS } from "@/modules/standard-settings";
 
 /** The parts of the dashboard inspector the palette's "Appearance…" and friends jump to. */
 export type DocumentTab = "appearance" | "background" | "general" | "connection";
@@ -60,20 +61,20 @@ export interface DocumentInspectorProps {
   onThemePreset: (name: string) => void;
   /** The dashboard style (defaults for every widget of every profile). */
   dashboardStyle: ModuleSettings | undefined;
-  dashboardEnforce: boolean | undefined;
+  /** Whether the target's force switch is on (every section of its profile themes locked). */
+  forced: (target: AppearanceTarget) => boolean;
   onStyle: (target: AppearanceTarget, fn: (style: ModuleSettings) => ModuleSettings) => void;
-  onEnforce: (target: AppearanceTarget, value: boolean | undefined) => void;
+  onEnforce: (target: AppearanceTarget, on: boolean) => void;
   /** The appearance presets gallery. */
   presets: AppearancePresetsApi;
   /** The dashboard's page background (every profile without its own). */
   background: PageBackground | undefined;
-  /** The active profile (its own background and style, and its name). */
+  /** The active profile (its own background and widget theme, and its name). */
   profile: {
     id: string;
     name: string;
     background?: PageBackground;
-    style?: ModuleSettings;
-    styleEnforce?: boolean;
+    widgetTheme?: WidgetTheme;
     theme?: Partial<ThemeTokens>;
     radius?: number;
   };
@@ -132,7 +133,7 @@ function DocumentSheet({
   onToken,
   onThemePreset,
   dashboardStyle,
-  dashboardEnforce,
+  forced,
   onStyle,
   onEnforce,
   presets,
@@ -158,13 +159,14 @@ function DocumentSheet({
   const [accordion, setAccordion] = useAccordionPref();
   const [target, setTarget] = useState<AppearanceTarget>(
     // A profile with its own look or background opens on it: editing "All profiles" would not show there.
-    profile.style || profile.styleEnforce !== undefined || profile.background ? "profile" : "all"
+    profile.widgetTheme || profile.background ? "profile" : "all"
   );
   const all = target === "all";
   const context: InspectorContext = { kind: "dashboard", scope: target, profileName: profile.name };
 
   const change = (fn: (style: ModuleSettings) => ModuleSettings) => onStyle(target, fn);
-  const values = globalStyleValues(target, dashboardStyle, profile.style);
+  const profileStyle = profile.widgetTheme?.values;
+  const values = globalStyleValues(target, dashboardStyle, profileStyle);
   const fields: FieldsApi = {
     values,
     shown: (key, def) => shownValue(values, key, def),
@@ -177,9 +179,9 @@ function DocumentSheet({
   const currentLook: CurrentLook = {
     tokens: shownTheme.tokens,
     radius: shownTheme.radius,
-    style: all ? dashboardStyle : { ...dashboardStyle, ...profile.style },
+    style: all ? dashboardStyle : { ...dashboardStyle, ...profileStyle },
   };
-  const effective = shownValues(values, PROFILE_STYLE_SETTINGS);
+  const effective = shownValues(values, THEME_SETTINGS);
   // The scope's stored look, no defaults: an unset surface is not glass when a skin is chosen.
   const scoped: ModuleSettings = { ...values.inherited, ...values.own };
   const generalById = new Map(generalCards(general, onGeneral).map((c) => [c.id, c] as const));
@@ -252,8 +254,7 @@ function DocumentSheet({
             <GlobalStyleScope
               target={target}
               onTarget={setTarget}
-              dashboardEnforce={dashboardEnforce}
-              profileEnforce={profile.styleEnforce}
+              forced={forced(target)}
               onEnforce={onEnforce}
               overrides={presets.overrides(target)}
               onFollowAll={() => presets.clearOverrides(target)}

@@ -8,7 +8,7 @@ import { defaultQuickKeys } from "./quick-sets";
 const zone = (id: string, module: string, visible = true): Placement =>
   ({ id, module, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible }) as Placement;
 
-const appearance = { dashboard: {}, enforce: false };
+const appearance = { base: { accent: "#ff0000" } };
 const noop = () => {};
 
 const render = (zones: Placement[], allSettings?: { open: boolean; onToggle: () => void }) =>
@@ -27,6 +27,15 @@ describe("QuickBar", () => {
     expect(out).toContain('aria-label="Hide"');
     // Docked: the inspector is already there, no "All settings".
     expect(out).not.toContain("All settings");
+  });
+
+  it("shows a pinned row of a following section as the theme's value, a way to its section (SPEC §5)", () => {
+    const following = render([zone("a", "NowPlaying")]);
+    expect(following).toContain('aria-label="Accent color: follows the theme"');
+    expect(following).not.toContain('aria-label="Accent color colour"');
+    const custom = render([{ ...zone("a", "NowPlaying"), follow: { colors: false } }]);
+    expect(custom).toContain('aria-label="Accent color colour"');
+    expect(custom).not.toContain("follows the theme");
   });
 
   it("says how many widgets a multi-selection has, and Show when all are hidden", () => {

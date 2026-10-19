@@ -1,4 +1,4 @@
-import { PROFILE_STYLE_KEYS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
+import { THEME_SETTINGS } from "@/modules/standard-settings";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import {
   isMore,
@@ -11,7 +11,18 @@ import {
   type ModuleSettings,
   type SharedSectionId,
 } from "@/modules/types";
-import { followsGlobal, resolveStyle, type StyleMode, type StyleSource } from "@/lib/style-resolve";
+import { resolveStyle, type Appearance, type StyleSource } from "@/lib/style-resolve";
+import {
+  following,
+  isLocked,
+  isSectionId,
+  ownApplies,
+  sectionOfKey,
+  themeKeyOf,
+  type SectionFlags,
+  type SectionId,
+  type ThemeLevels,
+} from "@/lib/theme-model";
 import {
   categorize,
   categoryTab,
@@ -139,7 +150,7 @@ export type SpecialSection =
   | "ipUnknown";
 
 /** Custom UI placed inside a section next to its settings. */
-export type ExtraKind = "widgetPicker" | "visible" | "styleMode" | "styleTools" | "zoneFrame";
+export type ExtraKind = "widgetPicker" | "visible" | "styleTools" | "zoneFrame";
 
 export interface SectionExtra {
   kind: ExtraKind;
@@ -152,7 +163,6 @@ export interface SectionExtra {
 const EXTRA_TERMS: Record<ExtraKind, string[]> = {
   widgetPicker: ["Widget type", "Change widget"],
   visible: ["Visible", "Hide"],
-  styleMode: ["Look", "Follow global", "Custom"],
   styleTools: ["Copy style", "Paste style", "Save style", "Style preset"],
   zoneFrame: ["Zone frame", "Frame accent", "Frame background", "Title header"],
 };
@@ -206,7 +216,7 @@ function extrasOf(category: InspectorCategory, context: InspectorContext): Secti
     case "header":
       return identityExtras(context);
     case "colors":
-      return zone ? [extra("styleMode"), extra("styleTools")] : context.kind === "multi" ? [extra("styleMode")] : [];
+      return zone ? [extra("styleTools")] : [];
     case "border":
       return zone ? [extra("zoneFrame", true, 3)] : [];
     default:
@@ -377,7 +387,7 @@ const dashboardMarker = (
 ) => section({ id, title, tab, special, terms, cardId });
 
 function dashboardSections(): InspectorSection[] {
-  const look = lookCategories(PROFILE_STYLE_SETTINGS);
+  const look = lookCategories(THEME_SETTINGS);
   const styleContext: InspectorContext = { kind: "dashboard", scope: "all" };
   return [
     dashboardMarker("profile", "profile", "Profile", "profileFields", [
@@ -542,36 +552,38 @@ export interface LookValues {
   /** What it sits over (the dashboard + profile style). */
   inherited?: ModuleSettings;
   inheritedFrom?: Record<string, StyleSource>;
-  /** The widget follows the global style (or it is forced): its look values are ignored. */
-  ignoreOwn?: boolean;
+  /**
+   * A zone: whether its own value of a key applies (the key is not themed,
+   * or its section is custom). Unset: every own value applies.
+   */
+  applies?: (key: string) => boolean;
 }
 
-const isLookDef = (def: ModuleSetting) => settingKeys(def).some((k) => PROFILE_STYLE_KEYS.has(k));
-
-/** The source state of a setting (only look settings can be ignored). */
+/**
+ * The source state of a setting. On a zone only own values that apply
+ * count, as one dot: the section's Follow bar says where the rest comes from.
+ */
 export function sourceState(def: ModuleSetting, values: LookValues): SettingState {
-  return settingStateOf(def, values.own, values.inherited, values.inheritedFrom, values.ignoreOwn && isLookDef(def));
+  const applies = values.applies;
+  if (!applies) return settingStateOf(def, values.own, values.inherited, values.inheritedFrom);
+  const own = values.own && Object.fromEntries(Object.entries(values.own).filter(([key]) => def.perWidget || applies(key)));
+  const state = settingStateOf(def, own, values.inherited, values.inheritedFrom);
+  return state === "overriding" ? "here" : state === "dashboard" || state === "profile" ? "default" : state;
 }
 
-/** A widget's values: its settings over the layers it inherits (`resolveStyle`). */
+/** A widget's values: its settings over the theme it follows (`resolveStyle`). */
 export function widgetLookValues(input: {
   own: ModuleSettings | undefined;
-  dashboard?: ModuleSettings;
-  profile?: ModuleSettings;
+  levels: ThemeLevels;
   moduleDefaults?: ModuleSettings;
-  mode?: StyleMode;
-  enforce?: boolean;
+  follow?: SectionFlags;
 }): LookValues {
-  const { settings, source } = resolveStyle({
-    moduleDefaults: input.moduleDefaults,
-    dashboard: input.dashboard,
-    profile: input.profile,
-  });
+  const { settings, source } = resolveStyle({ moduleDefaults: input.moduleDefaults, levels: input.levels });
   return {
     own: input.own,
     inherited: settings,
     inheritedFrom: source,
-    ignoreOwn: followsGlobal(input.mode, input.enforce),
+    applies: (key) => ownApplies(input.levels, { follow: input.follow }, key),
   };
 }
 
@@ -592,7 +604,7 @@ export function globalStyleValues(
 /** Whether a setting shows given the current values (`visibleIf`, e.g. glow color only with a glow). */
 export const isVisible = (def: ModuleSetting, values: ModuleSettings): boolean => def.visibleIf?.(values) ?? true;
 
-/** The settings of a section set on the widget itself (including ignored ones). */
+/** The settings of a section set on the widget itself (own values that apply). */
 export function changedSettings(s: InspectorSection, values: LookValues): ModuleSetting[] {
   return s.settings.filter((d) => SET_HERE.has(sourceState(d, values)));
 }
@@ -613,37 +625,50 @@ export function tabChangedCounts(sections: InspectorSection[], values: LookValue
 
 // -- follow / custom ----------------------------------------------------------
 
+/** The theme section a row reads from (undefined: a per-widget row, or a key no theme sets). */
+export function rowSection(def: ModuleSetting): SectionId | undefined {
+  if (def.perWidget) return undefined;
+  const secs = settingKeys(def).map((key) => sectionOfKey(themeKeyOf(def, key)));
+  return secs.every((sec) => sec !== undefined && sec === secs[0]) ? secs[0] : undefined;
+}
+
 /**
- * Editing a look setting while the widget follows the global style makes it
- * Custom: otherwise the edit would be stored but ignored. Returns what to
- * merge into the placement beside the edit (nothing when the edit is not a
- * look key, the widget is already Custom, or the style is forced, where
- * Custom would change nothing).
+ * The followable section an inspector section stands for: a shared section
+ * of SPEC §2.1 with a row the theme sets (else there is nothing to follow).
  */
-export function lookEditPatch(
-  keys: string | readonly string[],
-  mode: StyleMode | undefined,
-  enforce: boolean | undefined
-): { styleMode?: StyleMode } {
-  const edited = typeof keys === "string" ? [keys] : keys;
-  return mode === "follow" && !enforce && edited.some((k) => PROFILE_STYLE_KEYS.has(k))
-    ? { styleMode: "custom" }
-    : {};
+export function followSection(s: InspectorSection): SectionId | undefined {
+  const id = s.id.split("@")[0];
+  if (!s.general || !isSectionId(id)) return undefined;
+  return s.settings.some((d) => rowSection(d) === id) ? id : undefined;
+}
+
+/** A widget section's state: following the theme, custom, or locked by the profile. */
+export type FollowMode = "theme" | "custom" | "locked";
+
+export interface FollowInfo {
+  mode: FollowMode;
+  /** The theme it follows: "the profile theme · Desk", "the page theme · Gaming". */
+  from: string;
+}
+
+/** The Follow bar of a widget section (SPEC §4.1): a page custom for the section names the page's theme. */
+export function followInfo(appearance: Appearance, follow: SectionFlags | undefined, sec: SectionId): FollowInfo {
+  const named = (level: string, name: string | undefined) => `the ${level} theme${name ? ` · ${name}` : ""}`;
+  if (isLocked(appearance, sec)) return { mode: "locked", from: named("profile", appearance.profileName) };
+  const from =
+    appearance.page?.follow?.[sec] === false ? named("page", appearance.pageName) : named("profile", appearance.profileName);
+  return { mode: following(appearance, follow, sec) ? "theme" : "custom", from };
 }
 
 // -- notes ----------------------------------------------------------------------
 
 export interface InspectorNote {
-  kind: "follow" | "forced" | "reduced" | "blank" | "gstyle";
+  kind: "reduced" | "blank" | "gstyle";
   text: string;
 }
 
-/** The banners and context notes of a tab. */
-export function inspectorNotes(
-  context: InspectorContext,
-  tab: TabId | undefined,
-  state: { mode?: StyleMode; enforce?: boolean } = {}
-): InspectorNote[] {
+/** The banners and context notes of a tab (whether a section follows the theme is its Follow bar). */
+export function inspectorNotes(context: InspectorContext, tab: TabId | undefined): InspectorNote[] {
   if (context.kind === "blank") return [{ kind: "blank", text: "This zone is blank. Pick a widget or a panel to fill it." }];
   if (context.kind === "dashboard") {
     if (tab !== "gstyle") return [];
@@ -659,14 +684,6 @@ export function inspectorNotes(
   }
   if (tab !== "style") return [];
   const notes: InspectorNote[] = [];
-  if (state.enforce) {
-    notes.push({ kind: "forced", text: "Force global style is on — this widget's own look values are ignored." });
-  } else if (state.mode === "follow") {
-    notes.push({
-      kind: "follow",
-      text: "Following the global style. Editing a look setting below switches this widget to Custom.",
-    });
-  }
   if (context.kind === "widget" && context.reducedStyle) {
     notes.push({ kind: "reduced", text: "Web Page widgets have reduced style options." });
   }

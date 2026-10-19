@@ -2,7 +2,7 @@ import { modules } from "@/modules";
 import { BLANK_MODULE } from "@/lib/layout";
 import { blankSensorRule } from "@/lib/alert-presets";
 import { useToast } from "@/components/ui/toast";
-import { styleOf } from "@/modules/standard-settings";
+import { allLocked } from "@/lib/theme-model";
 import type { DashboardConfig, ProfileView } from "@/lib/layout";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import type { Appearance } from "@/lib/style-resolve";
@@ -15,6 +15,7 @@ import { insertables } from "./insert-panel";
 import { widgetContext, type InspectorContext } from "./inspector-model";
 import { zoneDefs } from "./inspector/zone-fields";
 import { panelWidgetActions } from "./panel-widget-actions";
+import { ownStyle } from "./studio-actions";
 import type { useDocumentProps } from "./use-document-props";
 import type { StudioMutations } from "./use-studio-mutations";
 import type { StudioSelection } from "./use-studio-selection";
@@ -234,7 +235,7 @@ export function useStudioCommands({
         ui.setMode("design");
         return ui.requestInspectorTab("data", true);
       case "copy-style":
-        ui.setStyleClipboard(styleOf(selected.settings));
+        ui.setStyleClipboard(ownStyle(selected, appearance));
         return toast("Style copied");
       case "paste-style":
         if (!ui.styleClipboard) return;
@@ -243,7 +244,7 @@ export function useStudioCommands({
       case "follow-global":
         return edit.followGlobalSelection();
       case "use-global": {
-        const style = styleOf(selected.settings);
+        const style = ownStyle(selected, appearance);
         setScopeStyle(action.target, () => style);
         return toast(action.target === "all" ? "Style is now the global style" : "Style is now this profile's global style");
       }
@@ -303,7 +304,7 @@ export function useStudioCommands({
         canRedo: history.canRedo,
         showGrid: ui.showGrid,
         showSources: ui.showSources,
-        enforced: appearance.enforce,
+        enforced: allLocked(appearance.profile),
         appearancePresets: appearancePresets.presets,
       })
     : [];

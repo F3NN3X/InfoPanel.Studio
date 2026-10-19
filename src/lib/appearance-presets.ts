@@ -1,12 +1,13 @@
-import { PROFILE_STYLE_KEYS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
+import { THEME_SETTINGS } from "@/modules/standard-settings";
+import { THEMED_KEYS } from "./theme-model";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { color, normalizeBackground, type PageBackground } from "./appearance";
 import { DEFAULT_THEME, THEME_PRESETS, type ThemePresetName, type ThemeTokens } from "./theme";
 
 /**
  * Appearance presets — a whole dashboard look in one click: theme colours
- * and corner radius (dashboard-wide), the global widget style (the look
- * keys, `PROFILE_STYLE_KEYS`) and optionally a page background. They are
+ * and corner radius (dashboard-wide), the global widget style (the themed
+ * keys, `THEMED_KEYS`) and optionally a page background. They are
  * the user's saved looks, in `config.appearancePresets`. Applying
  * one is `applyAppearancePreset` (appearance-preset-apply.ts).
  *
@@ -23,7 +24,7 @@ export interface AppearancePreset {
   theme: ThemeTokens | ThemePresetName;
   /** Theme corner radius in rem (`config.radius`). */
   radius: number;
-  /** The global style: look keys only. */
+  /** The global style: themed keys only (a stored preset's others are dropped on load). */
   style: ModuleSettings;
   /** A suggested page background (complete, as stored on the config). */
   background?: PageBackground;
@@ -44,7 +45,7 @@ export function presetTokens(preset: Pick<AppearancePreset, "theme">): ThemeToke
 /* ---------------- validation ---------------- */
 
 const STYLE_DEFS = new Map<string, ModuleSetting>(
-  PROFILE_STYLE_SETTINGS.flatMap((d) => (d.keyY ? [[d.key, d], [d.keyY, d]] : [[d.key, d]]))
+  THEME_SETTINGS.flatMap((d) => (d.keyY ? [[d.key, d], [d.keyY, d]] : [[d.key, d]]))
 );
 const ALIGN_X = ["auto", "start", "center", "end", "between"];
 const ALIGN_Y = ["auto", "start", "center", "end"];
@@ -52,7 +53,7 @@ const ALIGN_Y = ["auto", "start", "center", "end"];
 /** Whether a value is one the look setting `key` offers. */
 export function isValidStyleValue(key: string, value: unknown): boolean {
   const def = STYLE_DEFS.get(key);
-  if (!def || !PROFILE_STYLE_KEYS.has(key)) return false;
+  if (!def || !THEMED_KEYS.has(key)) return false;
   switch (def.type) {
     case "select":
       return typeof value === "string" && (def.options ?? []).some((o) => o.value === value);

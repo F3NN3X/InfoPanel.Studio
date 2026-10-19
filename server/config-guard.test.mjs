@@ -23,6 +23,10 @@ describe("versionRefusal", () => {
     expect(versionRefusal(text(5), { version: 4 })?.status).toBe(409);
     expect(versionRefusal(text(4), { version: 5 })).toBeNull();
   });
+  it("refuses a v5 client once a v6 build saved (widget style moved onto the widget theme)", () => {
+    expect(versionRefusal(text(6), { version: 5 })?.status).toBe(409);
+    expect(versionRefusal(text(5), { version: 6 })).toBeNull();
+  });
   it("accepts an equal or newer save", () => {
     expect(versionRefusal(text(3), { version: 3 })).toBeNull();
     expect(versionRefusal(text(2), { version: 3 })).toBeNull();

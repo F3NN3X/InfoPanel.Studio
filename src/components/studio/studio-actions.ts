@@ -9,8 +9,10 @@ import {
 } from "@/lib/layout";
 import type { LayoutTemplate } from "@/lib/sample-layout";
 import { normalizePanelPlacement } from "@/lib/panel-model";
+import { followFromOwn } from "@/lib/settings-migrate";
+import { ownApplies, sectionsWithValues, THEMED_KEYS, withThemeValues, type ThemeLevels } from "@/lib/theme-model";
 import { modules } from "@/modules";
-import { PROFILE_STYLE_KEYS, CARD_SETTINGS, PANEL_SETTINGS, replaceStyle } from "@/modules/standard-settings";
+import { CARD_SETTINGS, PANEL_SETTINGS, replaceStyle, styleOf } from "@/modules/standard-settings";
 import { settingKeys } from "@/modules/types";
 import type { PanelPreset } from "@/lib/panelPresets";
 import type { ModuleSettings } from "@/modules/types";
@@ -83,14 +85,18 @@ export function addModulePlacement(
 /**
  * A zone holding a fresh panel from the preset, migrated like a loaded
  * one: normalized, with its look in the settings (title → label, …).
- * A saved preset brings its own settings.
+ * A saved preset brings its own settings, and shows them: the sections
+ * they set are custom (`followFromOwn`).
  */
 function withPreset(p: Placement, preset: PanelPreset): Placement {
+  const follow = followFromOwn(preset.settings);
+  const { follow: _old, ...zone } = p;
   return normalizePanelPlacement({
-    ...p,
+    ...zone,
     module: PANEL_ID,
     panel: preset.make(),
     settings: preset.settings ? { ...preset.settings } : undefined,
+    ...(follow ? { follow } : {}),
   });
 }
 
@@ -437,13 +443,34 @@ export function changeRows(
   };
 }
 
-/** Update the profile style; an empty style is stored as undefined. */
-export function setProfileStyle<P extends Pick<ProfileView, "style">>(
+/** Update the profile theme's values; empty values are stored as none. */
+export function setProfileStyle<P extends Pick<ProfileView, "widgetTheme">>(
   profile: P,
   fn: (style: ModuleSettings) => ModuleSettings
 ): P {
-  const style = fn(profile.style ?? {});
-  return { ...profile, style: Object.keys(style).length > 0 ? style : undefined };
+  const style = fn(profile.widgetTheme?.values ?? {});
+  return { ...profile, widgetTheme: withThemeValues(profile.widgetTheme, Object.keys(style).length > 0 ? style : undefined) };
+}
+
+/**
+ * The look a zone shows of its own: its style keys whose values apply
+ * (a themed key only where its section is custom). What Copy style, Save
+ * style and "Use as global style" take.
+ */
+export function ownStyle(p: Placement, levels: ThemeLevels): ModuleSettings {
+  return Object.fromEntries(Object.entries(styleOf(p.settings)).filter(([key]) => ownApplies(levels, p, key)));
+}
+
+/**
+ * A zone with a copied style (see `replaceStyle`): the sections the style
+ * sets become custom, so it shows; the others follow the theme as before.
+ */
+export function withPastedStyle(p: Placement, style: ModuleSettings, supported: ReadonlySet<string>): Placement {
+  const settings = replaceStyle(p.settings, style, supported);
+  const custom = sectionsWithValues(Object.fromEntries(Object.entries(styleOf(style)).filter(([key]) => supported.has(key))));
+  const follow = { ...p.follow, ...Object.fromEntries(custom.map((sec) => [sec, false])) };
+  const { settings: _s, follow: _f, ...rest } = p;
+  return { ...rest, ...(settings ? { settings } : {}), ...(Object.keys(follow).length > 0 ? { follow } : {}) };
 }
 
 /** The look keys a zone's widget (or panel) has settings for. */
@@ -457,9 +484,9 @@ export function zoneStyleKeys(p: Placement): ReadonlySet<string> {
 }
 
 /**
- * Give each zone of the set the copied style (see `replaceStyle`); a zone
- * that followed the global style switches to custom so it shows. Blank
- * zones have no look and are skipped.
+ * Give each zone of the set the copied style (`withPastedStyle`: the
+ * sections it sets turn custom so it shows). Blank zones have no look and
+ * are skipped.
  */
 export function pasteStyleToZones(
   profile: ProfileView,
@@ -470,25 +497,21 @@ export function pasteStyleToZones(
   return {
     ...profile,
     placements: profile.placements.map((p) =>
-      set.has(p.id) && p.module !== BLANK_MODULE
-        ? {
-            ...p,
-            settings: replaceStyle(p.settings, style, zoneStyleKeys(p)),
-            styleMode: p.styleMode === "follow" ? "custom" : p.styleMode,
-          }
-        : p
+      set.has(p.id) && p.module !== BLANK_MODULE ? withPastedStyle(p, style, zoneStyleKeys(p)) : p
     ),
   };
 }
 
-/** The zones follow the global style, and their own look overrides are cleared. */
+/** The zones follow the theme in every section, and their own themed values are cleared. */
 export function followGlobalStyle(profile: ProfileView, ids: readonly string[]): ProfileView {
   const set = new Set(ids);
   return {
     ...profile,
-    placements: profile.placements.map((p) =>
-      set.has(p.id) ? { ...p, styleMode: "follow", settings: dropKeys(p.settings, PROFILE_STYLE_KEYS) } : p
-    ),
+    placements: profile.placements.map((p) => {
+      if (!set.has(p.id)) return p;
+      const { follow: _f, ...rest } = p;
+      return { ...rest, settings: dropKeys(p.settings, THEMED_KEYS) };
+    }),
   };
 }
 

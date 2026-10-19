@@ -29,6 +29,7 @@ import { pickTab, useAccordionPref, useInspectorTab } from "./inspector-prefs";
 import { MoreRows, moreKey, setMoreOpen } from "./more-rows";
 import { sectionIcon } from "./section-icons";
 import { SheetView, type SheetIdentity } from "./sheet-view";
+import { FollowBar, FollowPill } from "./follow-bar";
 import { DotLegend } from "./source-dot";
 
 /** What a context adds to one of its sections around the schema's rows. */
@@ -81,6 +82,8 @@ interface InspectorViewProps {
   identity: SheetIdentity;
   /** The sheet's Quick tool: the pinned settings, in order. */
   quickKeys?: readonly string[];
+  /** A Follow bar's theme name: open the theme being followed. */
+  onTheme?: () => void;
 }
 
 /** How long a jumped-to section stays outlined. */
@@ -193,6 +196,7 @@ export function InspectorView({
   jumpTo,
   identity,
   quickKeys = [],
+  onTheme,
 }: InspectorViewProps) {
   const { sources } = useSensorCatalog();
   const { sheet } = useInspectorChrome();
@@ -316,6 +320,7 @@ export function InspectorView({
     // Filtering lists More rows inline; otherwise they follow the section's "More (n)".
     const split = splitMore(s);
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
+    const bar = fields.follow?.(whole);
     if (p.plain)
       return (
         <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-[#1c1c21] px-4 pb-3.5 pt-3">
@@ -330,6 +335,7 @@ export function InspectorView({
         icon={sectionIcon(s)}
         tabLabel={tabLabel(s) || undefined}
         changed={changedOf(whole)}
+        pill={bar && <FollowPill mode={bar.mode} />}
         actions={p.actions}
         onReset={() => resetSection(whole)}
         open={isOpen(s)}
@@ -338,6 +344,7 @@ export function InspectorView({
         editor={p.editor}
         flash={flash === s.id}
       >
+        {!changedOnly && bar && pad(<FollowBar bar={bar} onTheme={onTheme} />)}
         {!changedOnly && pad(p.top)}
         {(filtering ? s.settings : split.rows).map(field)}
         {custom && pad(p.body)}

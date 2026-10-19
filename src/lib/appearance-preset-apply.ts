@@ -1,11 +1,11 @@
-import { PROFILE_STYLE_SETTINGS, styleOf } from "@/modules/standard-settings";
+import { THEME_SETTINGS } from "@/modules/standard-settings";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
 import type { BackgroundScope, PageBackground } from "./appearance";
 import { presetTokens, type AppearancePreset } from "./appearance-presets";
 import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
 import { allPlacements, mapPlacements } from "./pages";
-import { followsGlobal, isEnforced } from "./style-resolve";
 import { resolveTheme } from "./theme";
+import { ownApplies, themedOf, withThemeValues, type ThemeLevels } from "./theme-model";
 
 /**
  * Applying an appearance preset, and the widgets that would hide it.
@@ -16,9 +16,9 @@ import { resolveTheme } from "./theme";
  * - "All profiles": theme tokens + radius, `config.style` (replaced
  *   wholesale) and, see below, `config.background`.
  * - "This profile": the profile's own theme colours + radius
- *   (`MonitorProfile.theme` / `radius`, over the dashboard's), its
- *   `style` and `background`; other profiles keep theirs. Look keys the
- *   dashboard style sets but the preset doesn't are written as their
+ *   (`MonitorProfile.theme` / `radius`, over the dashboard's), its widget
+ *   theme's values and `background`; other profiles keep theirs. Look keys
+ *   the dashboard style sets but the preset doesn't are written as their
  *   defaults, so the profile shows the preset's look, not a blend.
  *
  * The background is written only when asked (`includeBackground`) or,
@@ -53,7 +53,7 @@ function nextBackground(
 }
 
 const LOOK_DEFAULTS: ModuleSettings = Object.fromEntries(
-  PROFILE_STYLE_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, s.default]))
+  THEME_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, s.default]))
 );
 
 /** A profile's style for a preset: the dashboard's keys it leaves unset reset to their defaults. */
@@ -72,7 +72,7 @@ export function applyAppearancePreset(
   scope: PresetScope,
   options: ApplyOptions = {}
 ): DashboardConfig {
-  const style = styleOf(preset.style);
+  const style = themedOf(preset.style);
   if (scope.kind === "all") {
     return {
       ...config,
@@ -90,7 +90,7 @@ export function applyAppearancePreset(
             ...p,
             theme: { ...presetTokens(preset) },
             radius: preset.radius,
-            style: orNone(profileStyle(config, style)),
+            widgetTheme: withThemeValues(p.widgetTheme, orNone(profileStyle(config, style))),
             background: nextBackground(p.background, preset, scope, options),
           }
         : p
@@ -103,22 +103,25 @@ export function applyAppearancePreset(
 const inScope = (config: DashboardConfig, scope: PresetScope): MonitorProfile[] =>
   scope.kind === "all" ? config.profiles : config.profiles.filter((p) => p.id === scope.profileId);
 
-/** A widget whose own look shows over the global style (it doesn't follow, nothing forces it). */
-function hidesGlobal(p: Placement, enforced: boolean): boolean {
-  return !followsGlobal(p.styleMode, enforced) && Object.keys(styleOf(p.settings)).length > 0;
+/** A widget whose own look shows over the global style: own themed values in a custom, unlocked section. */
+function hidesGlobal(p: Placement, levels: ThemeLevels): boolean {
+  return Object.keys(themedOf(p.settings)).some((key) => ownApplies(levels, p, key));
 }
+
+/** The levels a profile's widgets resolve under, as far as following goes (its locks). */
+const levelsOf = (profile: MonitorProfile): ThemeLevels => ({ profile: profile.widgetTheme });
 
 /** The widgets in a scope whose own look hides the global style. */
 export function countOverrides(config: DashboardConfig, scope: PresetScope): number {
   return inScope(config, scope).reduce((n, profile) => {
-    const enforced = isEnforced(config, profile);
-    return n + allPlacements(profile).filter((p) => hidesGlobal(p, enforced)).length;
+    const levels = levelsOf(profile);
+    return n + allPlacements(profile).filter((p) => hidesGlobal(p, levels)).length;
   }, 0);
 }
 
-/** Whether a profile has its own look (style, theme colours or radius) over the dashboard's. */
+/** Whether a profile has its own look (theme values, theme colours or radius) over the dashboard's. */
 const hasOwnLook = (p: MonitorProfile): boolean =>
-  (p.style !== undefined && Object.keys(p.style).length > 0) || p.theme !== undefined || p.radius !== undefined;
+  Object.keys(p.widgetTheme?.values ?? {}).length > 0 || p.theme !== undefined || p.radius !== undefined;
 
 /** "All profiles" only: the profiles whose own look overrides the dashboard's. */
 export function countProfileOverrides(config: DashboardConfig, scope: PresetScope): number {
@@ -127,9 +130,10 @@ export function countProfileOverrides(config: DashboardConfig, scope: PresetScop
 }
 
 /**
- * Let the global style through: the overriding widgets follow it (their
- * own looks stay stored) and, for "All profiles", the profiles' own
- * styles, theme colours and radius are dropped.
+ * Let the global style through: the overriding widgets follow it in every
+ * section (their own looks stay stored) and, for "All profiles", the
+ * profiles' own theme values, theme colours and radius are dropped (their
+ * locks stay).
  */
 export function clearOverrides(config: DashboardConfig, scope: PresetScope): DashboardConfig {
   const ids = new Set(inScope(config, scope).map((p) => p.id));
@@ -137,12 +141,14 @@ export function clearOverrides(config: DashboardConfig, scope: PresetScope): Das
     ...config,
     profiles: config.profiles.map((profile) => {
       if (!ids.has(profile.id)) return profile;
-      const enforced = isEnforced(config, profile);
-      const followed = mapPlacements(profile, (p) =>
-        hidesGlobal(p, enforced) ? { ...p, styleMode: "follow" as const } : p
-      );
+      const levels = levelsOf(profile);
+      const followed = mapPlacements(profile, (p) => {
+        if (!hidesGlobal(p, levels)) return p;
+        const { follow: _f, ...rest } = p;
+        return rest;
+      });
       return scope.kind === "all"
-        ? { ...followed, style: undefined, theme: undefined, radius: undefined }
+        ? { ...followed, widgetTheme: withThemeValues(followed.widgetTheme, undefined), theme: undefined, radius: undefined }
         : followed;
     }),
   };
@@ -150,7 +156,7 @@ export function clearOverrides(config: DashboardConfig, scope: PresetScope): Das
 
 /* ---------------- the user's presets ---------------- */
 
-/** The current look of a scope as a preset (the profile's own theme and style over the dashboard's). */
+/** The current look of a scope as a preset (the profile's own theme and theme values over the dashboard's). */
 export function presetFromCurrent(
   config: DashboardConfig,
   scope: PresetScope,
@@ -158,7 +164,7 @@ export function presetFromCurrent(
   name: string
 ): AppearancePreset {
   const profile = scope.kind === "profile" ? config.profiles.find((p) => p.id === scope.profileId) : undefined;
-  const style = styleOf({ ...config.style, ...profile?.style });
+  const style = themedOf({ ...config.style, ...profile?.widgetTheme?.values });
   const background = profile?.background ?? config.background;
   const theme = resolveTheme(config, profile);
   return {

@@ -57,7 +57,7 @@ export function ColorFields({ widget, set, enforce }: WidgetSectionProps) {
       <ColorInput label="Color" value={widget.color} onChange={(v) => set("color", v)} />
       {enforce && (
         <p className="text-[11.5px] leading-snug text-ui-warning">
-          Force global style is on — this widget's own look values are ignored.
+          The profile theme locks Colors — this widget's own color is ignored.
         </p>
       )}
     </>

@@ -117,15 +117,20 @@ export interface IslandFeed {
 /**
  * The widgets that feed the island from these zones (every page of the profile): visible zones whose
  * template has a source and whose "Send to island" is on. One per template, the first zone, so two
- * Now Playing zones raise each track once.
+ * Now Playing zones raise each track once. `resolved` gives a zone's settings under its theme
+ * (`resolveWith`; not imported, the registry imports this file); unset: its own.
  */
-export function islandFeeds(placements: readonly Placement[], modules: readonly DashboardModule[]): IslandFeed[] {
+export function islandFeeds(
+  placements: readonly Placement[],
+  modules: readonly DashboardModule[],
+  resolved: (p: Placement) => ModuleSettings | undefined = (p) => p.settings
+): IslandFeed[] {
   const byId = new Map(modules.map((m) => [m.id, m]));
   const feeds = new Map<string, IslandFeed>();
   for (const p of placements) {
     const mod = byId.get(p.module);
     if (!p.visible || !mod?.island || feeds.has(mod.id)) continue;
-    const settings = effectiveSettings(mod, p.settings);
+    const settings = effectiveSettings(mod, resolved(p));
     if (settings[ISLAND_SETTING] !== true) continue;
     feeds.set(mod.id, { module: mod as IslandFeed["module"], settings });
   }

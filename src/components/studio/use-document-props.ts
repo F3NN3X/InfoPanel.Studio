@@ -6,6 +6,7 @@ import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import {
   enforceKey,
+  isForced,
   styleKey,
   withScopeStyle,
   withStyleEnforce,
@@ -37,9 +38,9 @@ export function useDocumentProps(
   const setScopeStyle = (target: AppearanceTarget, fn: (style: ModuleSettings) => ModuleSettings) =>
     setConfig((c) => withScopeStyle(c, styleScope(target), fn), styleKey(styleScope(target)));
 
-  /** Set the force switch of the dashboard or this profile. */
-  const setEnforce = (target: AppearanceTarget, value: boolean | undefined) =>
-    setConfig((c) => withStyleEnforce(c, styleScope(target), value), enforceKey(styleScope(target)));
+  /** Lock every section of every profile's theme, or of this profile's (or unlock them). */
+  const setEnforce = (target: AppearanceTarget, on: boolean) =>
+    setConfig((c) => withStyleEnforce(c, styleScope(target), on), enforceKey(styleScope(target)));
 
   const appearancePresets = useAppearancePresets(config, profile.id, setConfig);
 
@@ -69,7 +70,7 @@ export function useDocumentProps(
       setConfig((c) => ({ ...c, theme: { ...c.theme, [key]: value } as ThemeTokens }), `theme:${key}`),
     onThemePreset: applyPreset,
     dashboardStyle: config.style,
-    dashboardEnforce: config.styleEnforce,
+    forced: (target) => isForced(config, styleScope(target)),
     onStyle: setScopeStyle,
     onEnforce: setEnforce,
     presets: appearancePresets,

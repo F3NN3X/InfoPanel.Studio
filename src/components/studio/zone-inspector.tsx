@@ -5,19 +5,17 @@ import { useSensorCatalog } from "@/lib/catalog";
 import { CUSTOM_GAUGE_ID, widgetGauge } from "@/lib/gauge-studio/model";
 import { BLANK_MODULE, CANVAS_ID, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
 import { withPanelField } from "@/lib/panel-model";
-import type { Appearance } from "@/lib/style-resolve";
+import { lockedIn, type Appearance } from "@/lib/style-resolve";
 import { modules } from "@/modules";
-import { replaceStyle, styleOf } from "@/modules/standard-settings";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
 import type { AppearanceTarget } from "./appearance-panel";
-import { withStyleMode } from "./appearance-actions";
 import type { SheetCard } from "./category-sheet";
 import { BoundData } from "./inspector/bound-data";
 import { setInspectorTab } from "./inspector/inspector-prefs";
 import { InspectorNote, InspectorView, type SectionParts } from "./inspector/inspector-view";
 import { cardsBySection, panelState } from "./inspector/panel-cards";
 import { useZoneData } from "./inspector/use-zone-data";
-import { shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
+import { followFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
 import { zoneMeta, zoneName } from "./inspector/zone-meta";
 import {
   inspectorNotes,
@@ -31,8 +29,7 @@ import type { InspectorTab } from "@/modules/types";
 import { usePanelSheet } from "./panel-sheet";
 import { ToggleRow } from "./setting-rows";
 import type { FieldsApi } from "./settings-panel";
-import { zoneMinSize } from "./studio-actions";
-import { StyleModeBar } from "./style-mode-bar";
+import { ownStyle, withPastedStyle, zoneMinSize } from "./studio-actions";
 import { StyleTools } from "./style-tools";
 import { widgetName } from "./widget-kinds";
 import { ZoneFrameFields, zoneFrameSet } from "./zone-design-section";
@@ -47,7 +44,7 @@ interface ZoneInspectorProps {
   config: DashboardConfig;
   /** The active profile (its grid limits the placement row; its zones the data usage). */
   profile: ProfileView;
-  /** The global style (dashboard + profile, forced or not) the widget inherits. */
+  /** The theme (all-profiles style, profile and page theme) the widget follows. */
   appearance: Appearance;
   stylePresets: StylePreset[];
   /** Open and reveal a section (the selection chip's Style, the palette) whenever `seq` changes. */
@@ -88,7 +85,7 @@ interface ZoneInspectorProps {
   onPresetNaming: (open: boolean) => void;
   /** Save this panel zone to My panels. */
   onSavePanelPreset: (name: string) => void;
-  /** The Follow banner's "Edit global theme": Dashboard › Appearance. */
+  /** A Follow bar's theme name: Dashboard › Global style. */
   onEditGlobalTheme: () => void;
   /** Open a bound point in Sources mode. */
   onOpenPoint: (key: string) => void;
@@ -195,7 +192,8 @@ export function ZoneInspector({
   const blank = zone.module === BLANK_MODULE;
   const defs = zoneDefs(zone);
   const styleKeys = new Set(defs.flatMap(settingKeys));
-  const enforce = appearance.enforce;
+  // A locked Colors section forces a panel's widget colours too.
+  const enforce = lockedIn(appearance, "colors");
   const groups =
     usePanelSheet({
       placement: zone,
@@ -254,9 +252,10 @@ export function ZoneInspector({
   const fields: FieldsApi = {
     values,
     shown: (key, def) => shownValue(values, key, def),
-    onChange: (key, v, editKey) => update((p) => withSettings(p, { [key]: v }, enforce), `setting:${editKey ?? key}`),
-    onPatch: (patch) => update((p) => withSettings(p, patch, enforce), `setting:${Object.keys(patch).join()}`),
+    onChange: (key, v, editKey) => update((p) => withSettings(p, { [key]: v }), `setting:${editKey ?? key}`),
+    onPatch: (patch) => update((p) => withSettings(p, patch), `setting:${Object.keys(patch).join()}`),
     onClear: (keys) => update((p) => withoutSettings(p, keys)),
+    ...followFields(zone, appearance, update),
     onOpenExplorer,
     pins: blank
       ? undefined
@@ -264,9 +263,10 @@ export function ZoneInspector({
   };
   const effective = shownValues(values, defs);
 
-  /** Replace the widget's style (see `replaceStyle`). */
-  const applyStyle = (next: ModuleSettings) =>
-    update((p) => ({ ...p, settings: replaceStyle(p.settings, next, styleKeys) }));
+  /** Replace the widget's style (see `withPastedStyle`). */
+  const applyStyle = (next: ModuleSettings) => update((p) => withPastedStyle(p, next, styleKeys));
+  /** The look this widget shows of its own (its custom sections' values). */
+  const style = ownStyle(zone, appearance);
 
   const zoneFrame = (showBackground: boolean): SectionParts => ({
     changed: zoneFrameSet(zone.design, showBackground),
@@ -286,11 +286,6 @@ export function ZoneInspector({
         return { at: "top", node: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
       case "visible":
         return { at: "bottom", node: <ToggleRow label="Visible" hint="Hidden zones stay editable but do not show in kiosk mode" value={zone.visible} onChange={onToggleVisible} /> };
-      case "styleMode":
-        return {
-          at: "top",
-          node: <StyleModeBar mode={zone.styleMode} onMode={(mode) => update((p) => withStyleMode(p, mode), "style-mode")} />,
-        };
       case "styleTools":
         return {
           at: "actions",
@@ -298,10 +293,10 @@ export function ZoneInspector({
             <StyleTools
               canPaste={styleClipboard !== null}
               presets={stylePresets}
-              onCopy={() => onCopyStyle(styleOf(zone.settings))}
+              onCopy={() => onCopyStyle(style)}
               onPaste={() => styleClipboard && applyStyle(styleClipboard)}
-              onUseAsGlobal={(target) => onUseAsGlobal(target, styleOf(zone.settings))}
-              onSavePreset={(name) => onSavePreset(name, styleOf(zone.settings))}
+              onUseAsGlobal={(target) => onUseAsGlobal(target, style)}
+              onSavePreset={(name) => onSavePreset(name, style)}
               onApplyPreset={(id) => {
                 const preset = stylePresets.find((p) => p.id === id);
                 if (preset) applyStyle(preset.settings);
@@ -375,26 +370,14 @@ export function ZoneInspector({
   const notes = (tab: Parameters<typeof inspectorNotes>[1]) => [
     tab === "show" || tab === undefined ? canvasNote : null,
     tab === "show" || tab === undefined ? gaugeNote : null,
-    ...inspectorNotes(context, tab, { mode: zone.styleMode, enforce }).map((n) => (
-      <InspectorNote key={n.kind}>
-        {n.text}
-        {n.kind === "follow" && (
-          <>
-            {" "}
-            <button type="button" onClick={onEditGlobalTheme} className="text-ui-accent-text hover:underline">
-              Edit global theme
-            </button>
-          </>
-        )}
-      </InspectorNote>
-    )),
+    ...inspectorNotes(context, tab).map((n) => <InspectorNote key={n.kind}>{n.text}</InspectorNote>),
   ];
 
   const hasLabel = defs.some((d) => d.key === "label");
   const onName = zone.panel
     ? (name: string) => update((p) => withPanelField(p, "title", name), "panel:title")
     : hasLabel
-      ? (name: string) => update((p) => withSettings(p, { label: name }, enforce), "setting:label")
+      ? (name: string) => update((p) => withSettings(p, { label: name }), "setting:label")
       : undefined;
   const selectedWidget = zone.panel?.widgets.find((w) => w.id === selectedWidgetId);
   const Icon = moduleIcon(zone.module);
@@ -445,6 +428,7 @@ export function ZoneInspector({
         onToggleVisible,
       }}
       quickKeys={blank ? [] : pinned}
+      onTheme={onEditGlobalTheme}
     />
   );
 }

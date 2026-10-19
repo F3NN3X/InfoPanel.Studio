@@ -41,7 +41,7 @@ const userProfile = (extra: Partial<StoredProfile> = {}): StoredProfile => ({
 describe("mergeConfig", () => {
   it("fills a missing config with the defaults: one blank profile", () => {
     const c = mergeConfig({});
-    expect(c.version).toBe(5);
+    expect(c.version).toBe(6);
     expect(c.activeProfile).toBe("auto");
     expect(c.profiles).toHaveLength(1);
     expect(c.profiles[0]).toMatchObject({ id: "main", width: 1920, height: 1080 });
@@ -81,7 +81,7 @@ describe("mergeConfig", () => {
       ],
     };
     const c = mergeConfig({ version: 3, profiles: [stored] });
-    expect(c.version).toBe(5);
+    expect(c.version).toBe(6);
     const [one, two] = c.profiles[0].pages;
     expect(one.placements[0]).toMatchObject({ id: "s", module: "SystemOverview", settings: { coreView: "heatmap", sections: "cpu,gpu,vram,ram" } });
     expect(one.placements[0].settings).not.toHaveProperty("showCores");
@@ -128,13 +128,14 @@ describe("mergeConfig", () => {
   });
 
 
-  it("keeps the dashboard style and its force switch, dropping malformed ones", () => {
+  it("keeps the dashboard style, its force switch becoming the profiles' locks, dropping malformed ones", () => {
     const merged = mergeConfig({ profiles: [userProfile()], style: { accent: "#ff0000" }, styleEnforce: true });
     expect(merged.style).toEqual({ accent: "#ff0000" });
-    expect(merged.styleEnforce).toBe(true);
+    expect(merged).not.toHaveProperty("styleEnforce");
+    expect(merged.profiles[0].widgetTheme?.locks?.colors).toBe(true);
     const bad = mergeConfig({ profiles: [userProfile()], style: ["x"], styleEnforce: "yes" } as never);
     expect(bad.style).toBeUndefined();
-    expect(bad.styleEnforce).toBeUndefined();
+    expect(bad.profiles[0].widgetTheme).toBeUndefined();
   });
 
   it("unpins a profile that no longer exists", () => {

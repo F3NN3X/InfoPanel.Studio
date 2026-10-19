@@ -1,20 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
-import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
+import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS, THEME_SETTINGS } from "@/modules/standard-settings";
 import { isMore, settingKeys, type DashboardModule, type ModuleSetting } from "@/modules/types";
 import { TITLE_ONLY_HINT } from "./inspector-categories";
 import {
   allSections,
   changedCount,
   extraMatches,
+  followInfo,
+  followSection,
   jumpTarget,
+  rowSection,
   sharedDefs,
   visibleSections,
   globalStyleValues,
   isVisible,
   inspectorNotes,
   inspectorTabs,
-  lookEditPatch,
   resetKeysOfSection,
   searchAll,
   sectionsFor,
@@ -70,7 +72,7 @@ describe("every setting is in exactly one section of exactly one tab", () => {
       expect(new Set(listed).size).toBe(listed.length);
     }
     const global = keysOf(sectionsFor({ kind: "dashboard", scope: "all" }, "gstyle"));
-    expect([...global].sort()).toEqual(PROFILE_STYLE_SETTINGS.map((d) => d.key).sort());
+    expect([...global].sort()).toEqual(THEME_SETTINGS.map((d) => d.key).sort());
   });
 });
 
@@ -121,7 +123,7 @@ describe("widget sections", () => {
       "Custom CSS",
     ]);
     expect(find(style, "Widget colors").settings.map((d) => d.key)).toContain("cpuColor");
-    expect(find(style, "Colors").extras.map((e) => e.kind)).toEqual(["styleMode", "styleTools"]);
+    expect(find(style, "Colors").extras.map((e) => e.kind)).toEqual(["styleTools"]);
     expect(find(style, "Border & glow").extras).toEqual([{ kind: "zoneFrame", more: true, count: 3 }]);
   });
 
@@ -329,7 +331,7 @@ describe("blank zone and several zones", () => {
       "Motion",
     ]);
     expect(keysOf(sections)).not.toContain("label");
-    expect(find(sections, "Colors").extras.map((e) => e.kind)).toEqual(["styleMode"]);
+    expect(find(sections, "Colors").extras).toEqual([]);
   });
 });
 
@@ -349,7 +351,7 @@ describe("dashboard sections", () => {
     expect(find(sectionsFor(dash, "general"), "Studio").terms).toContain("Quick bar");
   });
 
-  it("has the look sections as the global style, without Follow, Preset or the Header", () => {
+  it("has the themed sections as the global style, without Fit, Preset or the Header", () => {
     const style = sectionsFor(dash, "gstyle");
     expect(titles(style)).toEqual([
       "Skin & graphics",
@@ -359,10 +361,11 @@ describe("dashboard sections", () => {
       "Size & spacing",
       "Border & glow",
       "Custom CSS",
-      "Fit",
       "Motion",
     ]);
     expect(keysOf(style)).not.toContain("preset");
+    expect(keysOf(style)).not.toContain("variant");
+    expect(keysOf(style)).not.toContain("autoScale");
     expect(keysOf(style)).not.toContain("layout");
     expect(style.flatMap((s) => s.extras)).toEqual([]);
     expect(style.every((s) => s.id.startsWith("gs-"))).toBe(true);
@@ -391,49 +394,87 @@ describe("source states and changed counts", () => {
   const url = mod("WebPage").settings!.find((d) => d.key === "url")!;
   const own = { accent: "#ff0000", glow: "soft", url: "https://example.com" };
 
-  it("reads here, overriding and the inherited layers", () => {
-    const custom = widgetLookValues({ own, dashboard: { glow: "strong", radius: "8" }, profile: { radius: "12" } });
+  const CUSTOM = { colors: false, border: false, spacing: false } as const;
+  const theme = { base: { glow: "strong", radius: "8" }, profile: { values: { radius: "12" } } };
+
+  it("reads one dot for themed keys: an own value that applies, else none", () => {
+    const custom = widgetLookValues({ own, levels: theme, follow: CUSTOM });
     expect(sourceState(accent, custom)).toBe("here");
-    expect(sourceState(CARD_SETTINGS.find((d) => d.key === "glow")!, custom)).toBe("overriding");
-    expect(sourceState(CARD_SETTINGS.find((d) => d.key === "radius")!, custom)).toBe("profile");
+    expect(sourceState(CARD_SETTINGS.find((d) => d.key === "glow")!, custom)).toBe("here");
+    expect(sourceState(CARD_SETTINGS.find((d) => d.key === "radius")!, custom)).toBe("default");
     expect(sourceState(CARD_SETTINGS.find((d) => d.key === "blur")!, custom)).toBe("default");
   });
 
-  it("marks set look values ignored while the widget follows or the style is forced", () => {
-    for (const input of [{ mode: "follow" as const }, { enforce: true }]) {
-      const values = widgetLookValues({ own, ...input });
-      expect(sourceState(accent, values)).toBe("ignored");
-    }
-    // Content settings are never ignored.
-    expect(sourceState(url, widgetLookValues({ own, mode: "follow" }))).toBe("here");
+  it("shows no dot for own values a following or locked section ignores", () => {
+    expect(sourceState(accent, widgetLookValues({ own, levels: theme }))).toBe("default");
+    const locked = { ...theme, profile: { ...theme.profile, locks: { colors: true } } };
+    expect(sourceState(accent, widgetLookValues({ own, levels: locked, follow: CUSTOM }))).toBe("default");
+    // Content settings always apply.
+    expect(sourceState(url, widgetLookValues({ own, levels: theme }))).toBe("here");
   });
 
-  it("counts only the fields set here, ignored ones included, per section and tab", () => {
+  it("counts only own values that apply, per section and tab (SPEC §9: Changed)", () => {
     const context: InspectorContext = { kind: "widget", defs: [...CARD_SETTINGS, url] };
     const sections = allSections(context);
-    const custom = widgetLookValues({ own });
+    const custom = widgetLookValues({ own, levels: {}, follow: CUSTOM });
     expect(changedCount(find(sections, "Colors"), custom)).toBe(1);
     expect(changedCount(find(sections, "Border & glow"), custom)).toBe(1);
     expect(changedCount(find(sections, "Typography"), custom)).toBe(0);
     expect(tabChangedCounts(sections, custom)).toEqual({ show: 1, style: 2, data: 0, behaviour: 0 });
-    expect(tabChangedCounts(sections, widgetLookValues({ own, mode: "follow" }))).toEqual({
+    // Following: the stored look values don't apply, so they don't count.
+    expect(tabChangedCounts(sections, widgetLookValues({ own, levels: {} }))).toEqual({ show: 1, style: 0, data: 0, behaviour: 0 });
+    expect(tabChangedCounts(sections, widgetLookValues({ own, levels: {}, follow: { colors: false } }))).toEqual({
       show: 1,
-      style: 2,
+      style: 1,
       data: 0,
       behaviour: 0,
     });
   });
 
-  it("does not count defaults or inherited values", () => {
+  it("does not count defaults or theme values", () => {
     const sections = allSections(system);
-    const values = widgetLookValues({ own: { accent: "" }, dashboard: { glow: "soft" } });
+    const values = widgetLookValues({ own: { accent: "" }, levels: { base: { glow: "soft" } }, follow: CUSTOM });
     expect(tabChangedCounts(sections, values)).toEqual({ show: 0, style: 0, data: 0, behaviour: 0 });
   });
 
-  it("lists the stored keys a section's Reset drops (both axes of an alignment)", () => {
+  it("lists the stored keys a custom section's Reset drops (both axes of an alignment), none while it follows", () => {
     const sections = allSections(spotify);
-    const values = widgetLookValues({ own: { alignX: "start", alignY: "end", scale: 120 } });
+    const own = { alignX: "start", alignY: "end", scale: 120 };
+    const values = widgetLookValues({ own, levels: {}, follow: { spacing: false } });
     expect(resetKeysOfSection(find(sections, "Size & spacing"), values).sort()).toEqual(["alignX", "alignY", "scale"]);
+    expect(resetKeysOfSection(find(sections, "Size & spacing"), widgetLookValues({ own, levels: {} }))).toEqual([]);
+  });
+});
+
+describe("follow bars", () => {
+  const sections = allSections(spotify);
+
+  it("rowSection: the theme section a row reads (none for a per-widget or unthemed row)", () => {
+    const def = (key: string, extra: Partial<ModuleSetting> = {}): ModuleSetting => ({ key, label: key, type: "text", default: "", ...extra });
+    expect(rowSection(def("accent"))).toBe("colors");
+    expect(rowSection(def("alignX", { keyY: "alignY" }))).toBe("spacing");
+    expect(rowSection(def("accent", { perWidget: true }))).toBeUndefined();
+    expect(rowSection(def("tint"))).toBeUndefined();
+  });
+
+  it("followSection: the shared sections with a themed row; not Header, Fit or the widget's own", () => {
+    expect(followSection(find(sections, "Colors"))).toBe("colors");
+    expect(followSection(find(sections, "Size & spacing"))).toBe("spacing");
+    expect(followSection(find(sections, "Motion"))).toBe("motion");
+    expect(followSection(find(sections, "Header"))).toBeUndefined();
+    expect(followSection(find(sections, "Fit"))).toBeUndefined();
+    expect(sections.filter((s) => !s.general).every((s) => followSection(s) === undefined)).toBe(true);
+  });
+
+  it("followInfo: Theme, Custom or Locked, naming the theme followed", () => {
+    const appearance = { profileName: "Desk", pageName: "Gaming" };
+    expect(followInfo(appearance, undefined, "colors")).toEqual({ mode: "theme", from: "the profile theme · Desk" });
+    expect(followInfo(appearance, { colors: false }, "colors")).toEqual({ mode: "custom", from: "the profile theme · Desk" });
+    const page = { ...appearance, page: { follow: { colors: false } } };
+    expect(followInfo(page, undefined, "colors").from).toBe("the page theme · Gaming");
+    const locked = { ...appearance, profile: { locks: { colors: true } } };
+    expect(followInfo(locked, { colors: false }, "colors")).toEqual({ mode: "locked", from: "the profile theme · Desk" });
+    expect(followInfo({}, undefined, "type").from).toBe("the profile theme");
   });
 });
 
@@ -515,11 +556,11 @@ describe("searchAll", () => {
     expect(groups[0].section.settings.length).toBeGreaterThan(1);
   });
 
-  it("finds custom cards by title and terms, and the Follow extra by name", () => {
+  it("finds custom cards by title and terms, and the style tools by name", () => {
     const dash = searchAll({ kind: "dashboard", scope: "all" }, "quick bar");
     expect(dash.groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["General", "Studio"]]);
     expect(dash.total).toBe(1);
-    const follow = searchAll(spotify, "follow global");
+    const follow = searchAll(spotify, "copy style");
     expect(follow.groups.map((g) => g.section.title)).toEqual(["Colors"]);
     expect(follow.groups[0].section.settings).toEqual([]);
   });
@@ -546,26 +587,11 @@ describe("isVisible", () => {
   });
 });
 
-describe("lookEditPatch", () => {
-  it("switches a following widget to Custom when a look key is edited", () => {
-    expect(lookEditPatch("accent", "follow", false)).toEqual({ styleMode: "custom" });
-    expect(lookEditPatch(["alignX", "alignY"], "follow", undefined)).toEqual({ styleMode: "custom" });
-  });
-
-  it("leaves content keys, Custom widgets and a forced style alone", () => {
-    expect(lookEditPatch("url", "follow", false)).toEqual({});
-    expect(lookEditPatch("accent", "custom", false)).toEqual({});
-    expect(lookEditPatch("accent", undefined, false)).toEqual({});
-    expect(lookEditPatch("accent", "follow", true)).toEqual({});
-  });
-});
-
 describe("inspectorNotes", () => {
-  it("warns on the Style tab while following, and when the style is forced", () => {
-    expect(inspectorNotes(spotify, "style", { mode: "follow" }).map((n) => n.kind)).toEqual(["follow"]);
-    expect(inspectorNotes(spotify, "style", { mode: "follow", enforce: true }).map((n) => n.kind)).toEqual(["forced"]);
-    expect(inspectorNotes(spotify, "style", { mode: "custom" })).toEqual([]);
-    expect(inspectorNotes(spotify, "show", { mode: "follow" })).toEqual([]);
+  it("has no follow banner (each section's Follow bar says it); the reduced note stays", () => {
+    expect(inspectorNotes(spotify, "style")).toEqual([]);
+    expect(inspectorNotes(webpage, "style").map((n) => n.kind)).toEqual(["reduced"]);
+    expect(inspectorNotes(webpage, "show")).toEqual([]);
   });
 });
 

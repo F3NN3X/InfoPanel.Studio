@@ -16,6 +16,7 @@ import {
   canToggleZonesVisible,
   followGlobalStyle,
   moveZonesToPage,
+  ownStyle,
   pasteStyleToZones,
   withSampleZones,
   addModulePlacement,
@@ -156,9 +157,10 @@ describe("addPresetPlacement", () => {
     });
   });
 
-  it("adds a saved panel as a fresh copy with its own look", () => {
+  it("adds a saved panel as a fresh copy with its own look, shown: its sections are custom", () => {
     const after = addPresetPlacement(profile([]), "pnl", saved).placements[0];
     expect(after).toMatchObject({ colSpan: 3, rowSpan: 2, settings: { label: "Mine", surface: "glass", accent: "#ff0000" } });
+    expect(after.follow).toEqual({ colors: false, surface: false });
     expect(after.panel).toMatchObject({ layout: "grid", columns: 2 });
     expect(after.panel!.id).not.toBe("panel");
     expect(after.panel!.widgets).toHaveLength(1);
@@ -337,10 +339,12 @@ describe("changeCols / changeRows", () => {
 });
 
 describe("setProfileStyle", () => {
-  it("stores the style, or undefined when it is empty", () => {
+  it("stores the theme values, or none when they are empty (the locks stay)", () => {
     const styled = setProfileStyle(profile([]), (s) => ({ ...s, surface: "glass" }));
-    expect(styled.style).toEqual({ surface: "glass" });
-    expect(setProfileStyle(styled, () => ({})).style).toBeUndefined();
+    expect(styled.widgetTheme).toEqual({ values: { surface: "glass" } });
+    expect(setProfileStyle(styled, () => ({})).widgetTheme).toBeUndefined();
+    const locked = { ...profile([]), widgetTheme: { locks: { colors: true } } };
+    expect(setProfileStyle(locked, () => ({ accent: "#fff" })).widgetTheme).toEqual({ locks: { colors: true }, values: { accent: "#fff" } });
   });
 });
 
@@ -457,17 +461,29 @@ describe("pasteStyleToZones", () => {
     expect(out.placements[2]).toBe(p.placements[2]);
   });
 
-  it("switches a following zone to custom", () => {
-    const p = profile([zone("a", 1, 1, 2, 1, { module: "FpsMonitor", styleMode: "follow" })]);
-    expect(pasteStyleToZones(p, ["a"], { accent: "#00f" }).placements[0].styleMode).toBe("custom");
+  it("makes the sections the style sets custom, so it shows; the others keep their state", () => {
+    const p = profile([zone("a", 1, 1, 2, 1, { module: "FpsMonitor", follow: { type: false } })]);
+    expect(pasteStyleToZones(p, ["a"], { accent: "#00f", glow: "soft" }).placements[0].follow).toEqual({
+      type: false,
+      colors: false,
+      border: false,
+    });
+  });
+});
+
+describe("ownStyle", () => {
+  it("takes the look values that apply: custom sections and the per-widget look keys", () => {
+    const z = zone("a", 1, 1, 2, 1, { settings: { accent: "#f00", glow: "soft", variant: "studio", sensor: "x" }, follow: { colors: false } });
+    expect(ownStyle(z, {})).toEqual({ accent: "#f00", variant: "studio" });
+    expect(ownStyle(z, { profile: { locks: { colors: true } } })).toEqual({ variant: "studio" });
   });
 });
 
 describe("followGlobalStyle", () => {
-  it("sets follow and drops the look keys, keeping content settings", () => {
-    const p = profile([zone("a", 1, 1, 2, 1, { module: "cpu", settings: { accent: "#f00", sensor: "x" } })]);
+  it("follows in every section and drops the themed keys, keeping the rest", () => {
+    const p = profile([zone("a", 1, 1, 2, 1, { module: "cpu", settings: { accent: "#f00", sensor: "x" }, follow: { colors: false } })]);
     const out = followGlobalStyle(p, ["a"]).placements[0];
-    expect(out.styleMode).toBe("follow");
+    expect(out.follow).toBeUndefined();
     expect(out.settings).toEqual({ sensor: "x" });
   });
 

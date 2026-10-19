@@ -12,7 +12,7 @@ import { YR_FORECAST_KEY, YR_FORECAST_PREFIX } from "@/lib/sensors";
 import { CARDS_ID, BLANK_MODULE, CANVAS_ID, canvasTitle, type Placement } from "@/lib/layout";
 import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
-import { resolveWith, type Appearance } from "@/lib/style-resolve";
+import { lockedIn, resolveWith, type Appearance } from "@/lib/style-resolve";
 import { safeRender } from "@/components/zone-error-boundary";
 
 const moduleById = new Map(modules.map((m) => [m.id, m]));
@@ -63,7 +63,7 @@ function frameScope(settings: ModuleSettings | undefined): CSSProperties | undef
 /**
  * Render the content of a placement (module or the "cards" catch-all grid).
  * Shared by the kiosk grid and the studio canvas. `appearance` is the
- * global style the placement's look resolves under (`resolveStyle`).
+ * theme the placement's look resolves under (`resolveStyle`).
  */
 export function placementContent(
   p: Placement,
@@ -98,14 +98,14 @@ export function placementContent(
     // A custom panel renders its own widgets; it "has data" when at least
     // one widget is visible (an empty panel is hidden in kiosk mode).
     const hasData = p.panel.widgets.some((w) => w.visible);
-    // The legacy PanelDef look is the lowest layer, under the global style.
-    const settings = resolveWith(appearance, panelOwnSettings(p), p.styleMode, panelLegacyLook(p));
+    // The legacy PanelDef look is the lowest layer, under the theme.
+    const settings = resolveWith(appearance, panelOwnSettings(p), p.follow, panelLegacyLook(p));
     return {
       content: (
         <PanelView
           panel={p.panel}
           settings={settings}
-          enforced={appearance?.enforce}
+          enforced={lockedIn(appearance, "colors")}
           sensors={sensors}
           studio={studio}
           selection={selection}
@@ -120,7 +120,7 @@ export function placementContent(
     if (unclaimed.length === 0)
       return { content: null, hasData: false, title: "Other sensors" };
     const subCols = p.colSpan >= 8 ? 4 : p.colSpan >= 4 ? 3 : 2;
-    const cfg = resolveWith(appearance, p.settings, p.styleMode) ?? {};
+    const cfg = resolveWith(appearance, p.settings, p.follow) ?? {};
     return {
       hasData: true,
       title: "Other sensors",
@@ -130,7 +130,7 @@ export function placementContent(
   }
   const mod = moduleById.get(p.module);
   if (!mod) return { content: null, hasData: false, title: p.module };
-  const settings = resolveWith(appearance, p.settings, p.styleMode);
+  const settings = resolveWith(appearance, p.settings, p.follow);
   const content = safeRender(mod.title, () => mod.render(sensors, settings));
   // Only the module's own keys (a stored color it has no option for stays inert).
   const cfg = effectiveSettings(mod, settings);
@@ -144,7 +144,7 @@ export function placementContent(
 
 interface LivePlacementProps {
   placement: Placement;
-  /** The global style (dashboard + profile style, forced or not). */
+  /** The theme (all-profiles style, profile and page theme). */
   appearance?: Appearance;
   /** On the studio canvas (see `placementContent`). */
   studio?: boolean;

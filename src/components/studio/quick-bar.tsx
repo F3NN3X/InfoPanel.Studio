@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { BoxSelect, Eye, EyeOff, LayoutDashboard, SlidersHorizontal } from "lucide-react";
+import { BoxSelect, Eye, EyeOff, LayoutDashboard, Link2, SlidersHorizontal } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import type { Placement, ProfileView } from "@/lib/layout";
@@ -10,7 +10,7 @@ import { ColorSwatches, swatchBackground } from "./inspector/color-swatches";
 import { useQuickPins } from "./inspector/inspector-prefs";
 import { selectionFields, shownValues, zoneDefs } from "./inspector/zone-fields";
 import { zoneName } from "./inspector/zone-meta";
-import { isVisible, sharedDefs, sourceState } from "./inspector-model";
+import { isVisible, rowSection, sharedDefs, sourceState } from "./inspector-model";
 import { splitUnit } from "./inspector/number-box";
 import { quickDefsFor } from "./quick-sets";
 import { SET_HERE } from "./settings-model";
@@ -27,6 +27,8 @@ interface QuickBarProps {
   allSettings?: { open: boolean; onToggle: () => void };
   /** Keep this much room on the right (the open floating inspector). */
   insetRight?: number;
+  /** A pinned row whose section follows the theme: open the inspector at that section. */
+  onOpenSection?: (section: string, key: string) => void;
 }
 
 /** A choice with this many options or fewer shows as buttons; more is a select. */
@@ -136,6 +138,23 @@ function QuickControl({
   }
 }
 
+/** A following row's theme value, read-only: a swatch, On / Off, the option or the number. */
+function ThemeValue({ def, value }: { def: ModuleSetting; value: ModuleSettingValue }) {
+  if (def.type === "color")
+    return <span aria-hidden className="h-[18px] w-[18px] shrink-0 rounded-full" style={{ background: swatchBackground(String(value ?? "")) }} />;
+  const text =
+    def.type === "boolean"
+      ? value === true
+        ? "On"
+        : "Off"
+      : def.type === "select"
+        ? (def.options?.find((o) => o.value === String(value))?.label ?? String(value))
+        : def.type === "number"
+          ? `${value}${splitUnit(def.label).unit ?? ""}`
+          : String(value) || "—";
+  return <span className="max-w-[120px] truncate font-ui-mono text-[11.5px]">{text}</span>;
+}
+
 function Divider() {
   return <span aria-hidden className="h-6 w-px shrink-0 bg-ui-strong" />;
 }
@@ -161,7 +180,7 @@ function Identity({ icon, name }: { icon: ReactNode; name: string }) {
  * dashboard and opens its settings. A colour opens a swatch row under the
  * bar; a click anywhere else closes it first.
  */
-export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, allSettings, insetRight = 0 }: QuickBarProps) {
+export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, allSettings, insetRight = 0, onOpenSection }: QuickBarProps) {
   const pins = useQuickPins();
   const [colorKey, setColorKey] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -222,6 +241,8 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
               ) : (
                 shown.map((def) => {
                   const changed = SET_HERE.has(sourceState(def, fields.values));
+                  // Following the theme: the theme's value, and a way to the section's Customize.
+                  const section = fields.readOnly?.(def) ? rowSection(def) : undefined;
                   return (
                     <span
                       key={def.key}
@@ -229,13 +250,26 @@ export function QuickBar({ zones, appearance, updateProfile, onToggleVisible, al
                     >
                       {changed && <span aria-hidden className="h-[5px] w-[5px] rounded-full bg-ui-accent" />}
                       <span className="whitespace-nowrap text-[11.5px] text-ui-3">{splitUnit(def.label).label}</span>
-                      <QuickControl
-                        def={def}
-                        value={fields.shown(def.key, def)}
-                        fields={fields}
-                        colorOpen={colorKey === def.key}
-                        onColor={() => setColorKey((k) => (k === def.key ? null : def.key))}
-                      />
+                      {section ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenSection?.(section, def.key)}
+                          title="Follows the theme: open its section to customize"
+                          aria-label={`${def.label}: follows the theme`}
+                          className="flex items-center gap-1.5 text-ui-3 hover:text-ui-1"
+                        >
+                          <ThemeValue def={def} value={fields.shown(def.key, def)} />
+                          <Link2 className="h-3 w-3 shrink-0" aria-hidden />
+                        </button>
+                      ) : (
+                        <QuickControl
+                          def={def}
+                          value={fields.shown(def.key, def)}
+                          fields={fields}
+                          colorOpen={colorKey === def.key}
+                          onColor={() => setColorKey((k) => (k === def.key ? null : def.key))}
+                        />
+                      )}
                     </span>
                   );
                 })
