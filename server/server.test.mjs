@@ -1,7 +1,6 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
-import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,23 +10,23 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 
-const freePort = () =>
-  new Promise((ok) => {
-    const s = net.createServer();
-    s.listen(0, "127.0.0.1", () => {
-      const { port } = s.address();
-      s.close(() => ok(port));
-    });
-  });
-
-// Starts server.mjs on a free port with the given env; it never touches the real data folder.
+// Starts server.mjs with the given env on a port the OS picks (PORT=0), read back from its start
+// line, so no other process can take the port between choosing and binding it. It never touches
+// the real data folder.
 async function start(env) {
-  const port = await freePort();
-  const child = spawn(process.execPath, [path.join(root, "server.mjs")], { env: { ...process.env, ...env, PORT: String(port), HOST: "127.0.0.1" } });
+  const child = spawn(process.execPath, [path.join(root, "server.mjs")], { env: { ...process.env, ...env, PORT: "0", HOST: "127.0.0.1" } });
   let out = "";
   child.stdout.on("data", (c) => (out += c));
   child.stderr.on("data", (c) => (out += c));
-  for (let i = 0; i < 100 && !out.includes("InfoPanel Studio on"); i++) await new Promise((r) => setTimeout(r, 50));
+  let port = null;
+  for (let i = 0; i < 200 && !port; i++) {
+    await new Promise((r) => setTimeout(r, 50));
+    port = Number(/InfoPanel Studio on http:\/\/[^:]+:(\d+)/.exec(out)?.[1]) || null;
+  }
+  if (!port) {
+    child.kill();
+    throw new Error(`server.mjs did not start:\n${out}`);
+  }
   return { port, base: `http://127.0.0.1:${port}`, output: () => out, stop: () => child.kill() };
 }
 

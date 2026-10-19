@@ -19,16 +19,18 @@ export interface XmlElement {
 
 const NAMED: Record<string, string> = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
 
+/** `s` with its entities decoded; `at` is where `s` starts in the document, so an error points at its `&`. */
 function decodeEntities(s: string, at: number): string {
   if (!s.includes("&")) return s;
-  return s.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);|&/g, (m, ref: string | undefined) => {
-    if (!ref) throw new XmlError("Bare '&' in text", at);
+  return s.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);|&/g, (m, ref: string | undefined, offset: number) => {
+    if (!ref) throw new XmlError("Bare '&' in text", at + offset);
     if (ref[0] === "#") {
       const code = ref[1] === "x" ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+      if (code > 0x10ffff) throw new XmlError(`Invalid character reference ${m}`, at + offset);
       return String.fromCodePoint(code);
     }
     const named = NAMED[ref];
-    if (named === undefined) throw new XmlError(`Unknown entity ${m}`, at);
+    if (named === undefined) throw new XmlError(`Unknown entity ${m}`, at + offset);
     return named;
   });
 }
@@ -112,7 +114,9 @@ function parseDocument(s: string): XmlElement {
         ATTR.lastIndex = p;
         const a = ATTR.exec(s);
         if (!a) break;
-        el.attrs[a[1]] = decodeEntities(a[2] ?? a[3], p);
+        const value = a[2] ?? a[3];
+        // The value ends just before the closing quote.
+        el.attrs[a[1]] = decodeEntities(value, ATTR.lastIndex - 1 - value.length);
         p = ATTR.lastIndex;
       }
       while (/\s/.test(s[p] ?? "")) p++;
