@@ -10,6 +10,7 @@ import { YR_FORECAST_KEY } from "./sensors";
 import { mainPage, normalizeRotate } from "./pages";
 import { normalizeAlerts, type AlertsConfig } from "./alerts";
 import { migrateLegacyZones } from "./legacy-zones";
+import { storageCopy } from "./canvas-store";
 import { normalizeIsland, type IslandConfig } from "./island/config";
 import {
   normalizePanelPlacement,
@@ -97,9 +98,12 @@ export interface Placement {
   /**
    * Present when this placement is a canvas zone (CANVAS_ID): an imported
    * InfoPanel profile in its stored form, checked against InfoPanel's schema
-   * when drawn (src/lib/infopanel/canvas.ts).
+   * when drawn (src/lib/infopanel/canvas.ts). Only in memory and in exported
+   * files: the server's copy holds `canvasRef` instead (src/lib/canvas-store.ts).
    */
   canvas?: StoredCanvas;
+  /** The canvas's file in the server's canvas store (server/canvases.mjs), in place of `canvas`. */
+  canvasRef?: string;
   /**
    * "follow": the dashboard / profile style only — the widget's own look
    * values stay stored but are ignored; "custom": its own look wins.
@@ -190,8 +194,11 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
   pageId?: string;
 };
 
-/** v4: the legacy module ids are migrated to their templates on load (`legacy-zones.ts`). */
-export const CONFIG_VERSION = 4;
+/**
+ * v4: the legacy module ids are migrated to their templates on load (`legacy-zones.ts`).
+ * v5: the server's copy holds canvas zones as `canvasRef`; a v4 build would push them back empty.
+ */
+export const CONFIG_VERSION = 5;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -499,11 +506,23 @@ export function loadConfig(): DashboardConfig {
   }
 }
 
+const isQuotaError = (err: unknown): boolean => err instanceof DOMException && err.name === "QuotaExceededError";
+
+/**
+ * Keep the config in this browser's storage (the offline fallback), canvases inline so an
+ * offline start still draws them. When that is over the storage quota, the canvases the
+ * store holds are kept as refs (`storageCopy`), which only the server can resolve.
+ */
 export function saveConfig(config: DashboardConfig): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  } catch {
-    // Storage unavailable (private mode) — the session just won't persist.
+  } catch (err) {
+    if (!isQuotaError(err)) return; // Storage unavailable (private mode) — the session just won't persist.
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(storageCopy(config)));
+    } catch {
+      // Still too large — the copy from before stays.
+    }
   }
 }
 

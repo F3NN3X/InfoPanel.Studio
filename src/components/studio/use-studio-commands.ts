@@ -147,9 +147,9 @@ export function useStudioCommands({
       case "save":
         return ui.handleSave();
       case "export":
-        return exportConfigFile(config);
+        return exportConfigFile(config, toast);
       case "import":
-        return startConfigImport(ui.importRef.current, setConfig);
+        return startConfigImport(ui.importRef.current, setConfig, toast);
       case "copy-profile":
         copyProfileJson(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).catch(() => {});
         return;

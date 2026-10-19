@@ -90,6 +90,39 @@ describe("server.mjs", () => {
     expect((await proxy("/escape")).status).toBe(502);
   });
 
+  it("keeps canvases apart from the config, so twenty imports fit under its cap", async () => {
+    const canvas = (i) => JSON.stringify({ format: "infopanel-canvas", version: 1, source: { name: `ARCv2 ${i}` }, items: [], pad: "x".repeat(310 * 1024) });
+    const post = (url, body, header) => fetch(`${plain.base}${url}`, { method: "POST", headers: { "Content-Type": "application/json", [header]: "1" }, body });
+    const zone = (i, extra) => ({ id: `c${i}`, module: "infopanel-canvas", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, ...extra });
+    const config = (zones) => JSON.stringify({ version: 5, profiles: [{ id: "p", pages: [{ id: "one", placements: zones }] }] });
+
+    const inline = Array.from({ length: 20 }, (_, i) => zone(i, { canvas: JSON.parse(canvas(i)) }));
+    // Inline, the config is over the server's 5 MB cap (MAX_CONFIG_BYTES).
+    expect(Buffer.byteLength(config(inline))).toBeGreaterThan(5 * 1024 * 1024);
+
+    const refs = [];
+    for (let i = 0; i < 20; i++) {
+      const res = await post("/api/canvases", canvas(i), "X-Dashboard-Canvas");
+      expect(res.status).toBe(200);
+      refs.push((await res.json()).id);
+    }
+    expect((await post("/api/config", config(refs.map((ref, i) => zone(i, { canvasRef: ref }))), "X-Dashboard-Config")).status).toBe(200);
+
+    const saved = await (await fetch(`${plain.base}/api/config`)).json();
+    const ref = saved.profiles[0].pages[0].placements[3].canvasRef;
+    expect(ref).toBe(refs[3]);
+    const back = await fetch(`${plain.base}/api/canvases/${ref}`);
+    expect(back.status).toBe(200);
+    expect(await back.text()).toBe(canvas(3));
+    expect((await fetch(`${plain.base}/api/canvases/cnv_ffffffffffffffffffffffffffffffff`)).status).toBe(404);
+    // A ref with no file in the store is refused, and the stored config stays.
+    const dangling = await post("/api/config", config([zone(0, { canvasRef: refs[0] }), zone(1, { canvasRef: "cnv_ffffffffffffffffffffffffffffffff" })]), "X-Dashboard-Config");
+    expect(dangling.status).toBe(422);
+    expect(await dangling.text()).toContain("cnv_ffffffffffffffffffffffffffffffff");
+    expect((await (await fetch(`${plain.base}/api/config`)).json()).profiles[0].pages[0].placements).toHaveLength(20);
+    expect((await fetch(`${plain.base}/api/canvases`, { method: "POST", headers: { "Content-Type": "application/json" }, body: canvas(0) })).status).toBe(403);
+  });
+
   it("serves /api/debug/stats only in debug mode and logs requests", async () => {
     expect((await fetch(`${plain.base}/api/debug/stats`)).status).toBe(404);
     const sse = await fetch(`${debug.base}/events/config`);
