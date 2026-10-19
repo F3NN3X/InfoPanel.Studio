@@ -6,6 +6,7 @@ import { DeviceChecklist } from "@/components/ui/device-checklist";
 import type { PageRotate, Placement, ProfileView } from "@/lib/layout";
 import { MAX_SPACING, normalizeSpacing, profileGap, profilePadding } from "@/lib/profile-grid";
 import type { ThemeTokens } from "@/lib/theme";
+import { withThemeValues } from "@/lib/theme-model";
 import { cn } from "@/lib/utils";
 import type { BackgroundTarget } from "../background-panel";
 import type { ProfileTheme } from "../profile-theme-panel";
@@ -229,9 +230,12 @@ export function ProfileInherit({
       <SegmentedRow
         label="Style"
         options={INHERIT_CUSTOM}
-        value={profile.style ? "custom" : "inherit"}
+        value={profile.widgetTheme?.values ? "custom" : "inherit"}
         onChange={(mode) =>
-          updateProfile((p) => ({ ...p, style: mode === "inherit" ? undefined : (p.style ?? {}) }), "profile:style")
+          updateProfile(
+            (p) => ({ ...p, widgetTheme: withThemeValues(p.widgetTheme, mode === "inherit" ? undefined : (p.widgetTheme?.values ?? {})) }),
+            "profile:style"
+          )
         }
       />
       <SegmentedRow

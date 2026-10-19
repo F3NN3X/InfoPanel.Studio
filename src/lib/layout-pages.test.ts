@@ -20,12 +20,13 @@ describe("mergeConfig pages migration", () => {
   it("wraps a v2 profile's placements into one Main page, keeping every zone as it was", () => {
     const zones = [
       zone("a", { colStart: 1, settings: { accent: "#ff0000" }, design: { accent: "#00ff00" } }),
-      zone("b", { colStart: 5, rowStart: 2, colSpan: 3, rowSpan: 1, styleMode: "follow" }),
+      zone("b", { colStart: 5, rowStart: 2, colSpan: 3, rowSpan: 1, follow: { colors: false } }),
     ];
     const merged = mergeOne({ ...base, placements: zones });
     expect(merged.pages).toHaveLength(1);
     expect(merged.pages[0]).toMatchObject({ id: "main", name: "Main" });
-    expect(merged.pages[0].placements).toEqual(zones);
+    // v6: the own accent won before, so its section is custom.
+    expect(merged.pages[0].placements).toEqual([{ ...zones[0], follow: { colors: false } }, zones[1]]);
     expect(merged).not.toHaveProperty("placements");
   });
 
@@ -99,7 +100,7 @@ describe("mergeConfig pages migration", () => {
 
   it("stamps the current version and is stable when merged again", () => {
     const once = mergeConfig({ version: 2, profiles: [{ ...base, placements: [zone("a")] }] });
-    expect(once.version).toBe(5);
+    expect(once.version).toBe(6);
     expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(JSON.parse(JSON.stringify(once)));
   });
 

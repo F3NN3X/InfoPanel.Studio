@@ -57,6 +57,24 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   and Web Page have no Header section: Title and Icon close Fit, and Show title is gone from all ten.
 - The phone sheet's tiles use the new short labels (Header, Fit, Skin, Colors, Widget, Surface, Type, Spacing,
   Border, CSS, Format, Alerts, Motion, Island).
+- Widgets follow a widget theme per section instead of the Follow global / Custom switch: each themed section (Skin &
+  graphics, Colors, Surface, Typography, Size & spacing, Border & glow, Custom CSS, Motion) has a Theme / Custom /
+  Locked pill and a bar ("Follows the profile theme · Desk" + Customize, "Custom for this widget" + Use theme).
+  Following rows show the theme's values, read-only; Customize starts at them, or at the widget's own values kept
+  from before; Use theme keeps those values stored. Editing a look row no longer flips the widget to Custom, the
+  Changed count and section reset count only own values that apply, and a pinned quick-bar row of a following
+  section shows the theme's value and opens its section. Copy style, Save style and Use as global style take the
+  look the widget shows of its own; Paste style makes the sections it sets custom.
+- The profile's style is its widget theme, over the all-profiles style; "Force global style" locks every section of
+  the profile theme (All profiles: of every profile), and the old Inherit choice is gone. Pages can carry a theme of
+  their own per section (no editor yet). The Global style tab no longer lists Dense summary, Summary card and Scale
+  with the zone: they are per widget now. The island reads widgets' resolved settings.
+- Config version 6 (a v5 build is refused saving over it): `styleMode` becomes per-section `follow` (Follow → every
+  section follows; Custom or unset → the sections with own look values are custom), a profile's `style` and
+  `styleEnforce` become `widgetTheme` values and locks (the dashboard's force switch locks the profiles without
+  their own), and a global Dense summary, Summary card or Scale with the zone is written into the widgets that
+  rendered with it. Nothing renders differently after the upgrade. Saved panels placed from the Library show their
+  own look as custom sections; appearance presets keep themed keys only.
 
 ### Fixed
 - "Edit gauge…" over an editor with unsaved changes now asks (Save to library, Discard, Cancel) instead of replacing

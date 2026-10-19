@@ -2,16 +2,17 @@ import { describe, expect, it } from "vitest";
 import type { DashboardConfig, MonitorProfile, Placement } from "@/lib/layout";
 import { mainPage, profileWithPage } from "@/lib/pages";
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
+import { allLocked } from "@/lib/theme-model";
 import {
   activePresetId,
   appliedMessage,
   enforceKey,
   followAll,
+  isForced,
   styleKey,
   toggleEnforce,
   withScopeStyle,
   withStyleEnforce,
-  withStyleMode,
 } from "./appearance-actions";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -33,7 +34,7 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
   cols: 12,
   rows: 6,
   fit: "scroll",
-  pages: [mainPage([zone("a"), zone("b", { styleMode: "custom", settings: { accent: "#ff0000" } })])],
+  pages: [mainPage([zone("a"), zone("b", { follow: { colors: false }, settings: { accent: "#ff0000" } })])],
   ...extra,
 });
 
@@ -56,45 +57,44 @@ describe("withScopeStyle", () => {
   it("edits the dashboard style and stores an empty one as none", () => {
     const set = withScopeStyle(config(), ALL, (s) => ({ ...s, accent: "#00ff00" }));
     expect(set.style).toEqual({ accent: "#00ff00" });
-    expect(set.profiles[0].style).toBeUndefined();
+    expect(set.profiles[0].widgetTheme).toBeUndefined();
     expect(withScopeStyle(set, ALL, () => ({})).style).toBeUndefined();
   });
 
-  it("edits one profile's style only", () => {
+  it("edits one profile's theme values only, and keeps its locks", () => {
     const set = withScopeStyle(config(), P1, (s) => ({ ...s, radius: "8" }));
     expect(set.style).toBeUndefined();
-    expect(set.profiles.map((p) => p.style)).toEqual([{ radius: "8" }, undefined]);
+    expect(set.profiles.map((p) => p.widgetTheme)).toEqual([{ values: { radius: "8" } }, undefined]);
+    const locked = withScopeStyle(withStyleEnforce(config(), P1, true), P1, () => ({}));
+    expect(allLocked(locked.profiles[0].widgetTheme)).toBe(true);
+    expect(locked.profiles[0].widgetTheme?.values).toBeUndefined();
   });
 });
 
-describe("withStyleEnforce / toggleEnforce", () => {
-  it("sets the dashboard switch (off = unset) and a profile's (unset = the dashboard's)", () => {
-    expect(withStyleEnforce(config(), ALL, true).styleEnforce).toBe(true);
-    expect(withStyleEnforce(config({ styleEnforce: true }), ALL, false).styleEnforce).toBeUndefined();
-    const off = withStyleEnforce(config(), P1, false);
-    expect(off.profiles[0].styleEnforce).toBe(false);
-    expect(withStyleEnforce(off, P1, undefined).profiles[0].styleEnforce).toBeUndefined();
+describe("withStyleEnforce / isForced / toggleEnforce", () => {
+  it("locks every section of every profile, or of one", () => {
+    const all = withStyleEnforce(config(), ALL, true);
+    expect(all.profiles.every((p) => allLocked(p.widgetTheme))).toBe(true);
+    expect(isForced(all, ALL)).toBe(true);
+    expect(withStyleEnforce(all, ALL, false).profiles.map((p) => p.widgetTheme)).toEqual([undefined, undefined]);
+    const one = withStyleEnforce(config(), P1, true);
+    expect(isForced(one, P1)).toBe(true);
+    expect(isForced(one, ALL)).toBe(false);
+    expect(one.profiles[1].widgetTheme).toBeUndefined();
   });
 
-  it("toggles the profile's switch when it has one, else the dashboard's", () => {
+  it("toggles this profile's lock-all", () => {
     const c = config();
-    expect(toggleEnforce(c, c.profiles[0]).styleEnforce).toBe(true);
-    const own = withStyleEnforce(c, P1, true);
-    const toggled = toggleEnforce(own, own.profiles[0]);
-    expect(toggled.profiles[0].styleEnforce).toBe(false);
-    expect(toggled.styleEnforce).toBeUndefined();
+    const on = toggleEnforce(c, c.profiles[0]);
+    expect(allLocked(on.profiles[0].widgetTheme)).toBe(true);
+    expect(toggleEnforce(on, on.profiles[0]).profiles[0].widgetTheme).toBeUndefined();
   });
 });
 
-describe("withStyleMode / followAll", () => {
-  it("sets the mode and keeps the own look stored", () => {
-    const z = withStyleMode(zone("b", { settings: { accent: "#ff0000" } }), "follow");
-    expect(z).toMatchObject({ styleMode: "follow", settings: { accent: "#ff0000" } });
-  });
-
-  it("makes every widget of a profile follow, and is a no-op when they all do", () => {
+describe("followAll", () => {
+  it("makes every section of every widget follow, keeps the own look stored, and is a no-op when they all do", () => {
     const p = followAll(profileWithPage(profile("p1")));
-    expect(p.placements.map((z) => z.styleMode)).toEqual(["follow", "follow"]);
+    expect(p.placements.map((z) => z.follow)).toEqual([undefined, undefined]);
     expect(p.placements[1].settings).toEqual({ accent: "#ff0000" });
     expect(followAll(p)).toBe(p);
   });

@@ -32,7 +32,7 @@ interface PanelSheetArgs {
   onPresetNaming: (open: boolean) => void;
   /** Save this panel zone to My panels under a name. */
   onSavePreset: (name: string) => void;
-  /** Force global style is on: a widget's own color is ignored. */
+  /** The profile theme locks Colors: a widget's own color is ignored. */
   enforce?: boolean;
   /** Open Sources mode (the sensor field's data picker offers it). */
   onOpenExplorer: () => void;

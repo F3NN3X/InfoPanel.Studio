@@ -5,7 +5,7 @@ export interface WidgetSectionProps {
   widget: Widget;
   /** The widget's panel (its layout decides which fields apply). */
   panel: PanelDef;
-  /** Force global style is on: the widget's own color is ignored. */
+  /** The profile theme locks Colors: the widget's own color is ignored. */
   enforce?: boolean;
   /** Open Sources mode (the sensor field's data picker offers it). */
   onOpenExplorer: () => void;

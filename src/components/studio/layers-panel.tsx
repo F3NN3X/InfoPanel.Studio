@@ -94,13 +94,13 @@ export function LayersPanel({
               <span className={cn("min-w-0 flex-1 truncate text-[12.5px]", selected ? "text-white" : "text-[#d4d4da]")}>
                 {placementTitle(p)}
               </span>
-              {p.styleMode === "custom" && (
+              {Object.values(p.follow ?? {}).includes(false) && (
                 <Paintbrush
                   className="h-3.5 w-3.5 shrink-0 text-[#8a8a94]"
                   aria-label="Custom style"
                   // The SVG title carries the tooltip.
                 >
-                  <title>Custom style — not following theme</title>
+                  <title>Custom style — a section does not follow the theme</title>
                 </Paintbrush>
               )}
               <span className="shrink-0 font-ui-mono text-[10.5px] text-[#6f6f79]">

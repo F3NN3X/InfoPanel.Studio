@@ -2,6 +2,7 @@ import type { ModernChrome } from "@/components/modern-chrome";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { BASE_SURFACES } from "@/widgets/core/surfaces";
 import { SKIN_PACKS } from "@/widgets/core/theme";
+import { THEMED_KEYS } from "@/lib/theme-model";
 import { settingKeys, type ModuleSetting, type ModuleSettings } from "./types";
 
 /**
@@ -34,8 +35,9 @@ import { settingKeys, type ModuleSetting, type ModuleSettings } from "./types";
  * `STYLE_SETTINGS` only. Module-specific options come after these and keep
  * their own keys and their own `group` (their inspector section).
  *
- * The keys in `PROFILE_STYLE_KEYS` can also be set once per profile
- * (`MonitorProfile.style`); a widget's own value overrides the profile's.
+ * The themed keys among them (`THEMED_KEYS`, `lib/theme-model.ts`) are set
+ * once by the profile's widget theme; a widget section follows it unless
+ * the widget makes the section custom.
  */
 
 /** "auto" plus pixel steps, for the spacing selects. */
@@ -423,6 +425,11 @@ export const STANDARD_KEYS: ReadonlySet<string> = new Set(STANDARD_SETTINGS.flat
 /** The standard settings a profile can set (see `PROFILE_STYLE_KEYS`). */
 export const PROFILE_STYLE_SETTINGS: ModuleSetting[] = STANDARD_SETTINGS.filter((s) =>
   PROFILE_STYLE_KEYS.has(s.key)
+);
+
+/** The standard settings a widget theme sets (the Global style tab's rows). */
+export const THEME_SETTINGS: ModuleSetting[] = PROFILE_STYLE_SETTINGS.filter((s) =>
+  settingKeys(s).every((key) => THEMED_KEYS.has(key))
 );
 
 /** Just the style keys of a settings map. */

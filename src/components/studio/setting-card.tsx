@@ -14,6 +14,8 @@ interface SettingSectionProps {
   tabLabel?: string;
   /** Own values in the section; 0 hides the count and the reset. */
   changed: number;
+  /** After the title (a followable section's Theme / Custom / Locked pill). */
+  pill?: ReactNode;
   /** Header controls before the reset (the style tools). */
   actions?: ReactNode;
   /** Drop just this section's own values. */
@@ -41,6 +43,7 @@ export function SettingSection({
   icon: Icon,
   tabLabel,
   changed,
+  pill,
   actions,
   onReset,
   open,
@@ -72,6 +75,7 @@ export function SettingSection({
           <Icon className="h-[17px] w-[17px] shrink-0 text-[#7c7c86]" strokeWidth={1.75} />
           <span className="truncate text-[12.5px] font-semibold">{title}</span>
           {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-5">{tabLabel}</span>}
+          {pill}
           {changed > 0 && (
             <span className="shrink-0 rounded-lg bg-ui-accent/[.18] px-[5px] py-px font-ui-mono text-[10px] text-ui-accent-text">
               {changed}

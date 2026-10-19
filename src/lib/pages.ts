@@ -34,16 +34,20 @@ export function pageOf(profile: MonitorProfile, pageId?: string): ProfilePage {
 export function profileWithPage(profile: MonitorProfile, pageId?: string): ProfileView {
   const { pages: _pages, ...rest } = profile;
   const page = pageOf(profile, pageId);
-  return { ...rest, placements: page.placements, pageId: page.id };
+  return { ...rest, placements: page.placements, pageId: page.id, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}) };
 }
 
-/** The view's profile fields back on the profile, its zones into its page. */
+/** The view's profile fields back on the profile, its zones and page theme into its page. */
 export function applyView(profile: MonitorProfile, view: ProfileView): MonitorProfile {
-  const { placements, pageId, ...rest } = view;
+  const { placements, pageId, pageTheme, ...rest } = view;
   const target = pageOf(profile, pageId).id;
+  const onto = (p: ProfilePage): ProfilePage => {
+    const { widgetTheme: _old, ...page } = p;
+    return { ...page, placements, ...(pageTheme ? { widgetTheme: pageTheme } : {}) };
+  };
   return {
     ...rest,
-    pages: profile.pages.map((p) => (p.id === target ? { ...p, placements } : p)),
+    pages: profile.pages.map((p) => (p.id === target ? onto(p) : p)),
   };
 }
 

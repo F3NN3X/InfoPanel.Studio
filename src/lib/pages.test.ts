@@ -38,9 +38,9 @@ const profile = (): MonitorProfile => ({
   cols: 12,
   rows: 6,
   fit: "scroll",
-  style: { accent: "#ff0000" },
+  widgetTheme: { values: { accent: "#ff0000" } },
   pages: [
-    { id: "a", name: "A", placements: [zone("a1"), zone("a2")] },
+    { id: "a", name: "A", placements: [zone("a1"), zone("a2")], widgetTheme: { values: { accent: "#00ff00" }, follow: { colors: false } } },
     { id: "b", name: "B", icon: "Home", placements: [zone("b1")] },
   ],
 });
@@ -67,8 +67,10 @@ describe("pageOf / profileWithPage", () => {
     expect(view).not.toHaveProperty("pages");
     expect(view.placements).toBe(p.pages[1].placements);
     expect(view.pageId).toBe("b");
-    expect(view.style).toBe(p.style);
+    expect(view.widgetTheme).toBe(p.widgetTheme);
+    expect(view.pageTheme).toBeUndefined();
     expect(profileWithPage(p, "gone").pageId).toBe("a");
+    expect(profileWithPage(p, "a").pageTheme).toBe(p.pages[0].widgetTheme);
   });
 });
 
@@ -82,6 +84,15 @@ describe("applyView", () => {
     expect(next.pages[0]).toBe(p.pages[0]);
     expect(next).not.toHaveProperty("placements");
     expect(next).not.toHaveProperty("pageId");
+  });
+
+  it("writes the view's page theme back onto its page (and clears it there)", () => {
+    const p = profile();
+    const theme = { values: { glow: "soft" } };
+    expect(applyView(p, { ...profileWithPage(p, "b"), pageTheme: theme }).pages[1].widgetTheme).toBe(theme);
+    const cleared = applyView(p, { ...profileWithPage(p, "a"), pageTheme: undefined });
+    expect(cleared.pages[0]).not.toHaveProperty("widgetTheme");
+    expect(cleared).not.toHaveProperty("pageTheme");
   });
 
   it("targets the first page when the view has no page id", () => {

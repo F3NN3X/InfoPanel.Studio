@@ -13,7 +13,7 @@ import { islandFeeds } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
 import { resolveBackground } from "@/lib/appearance";
-import { appearanceOf } from "@/lib/style-resolve";
+import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
 import { fontStack, formatClock, resolveGeneral } from "@/lib/general";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
@@ -141,9 +141,9 @@ export default function App() {
   const islandLive = useMemo(
     () =>
       kiosk && island
-        ? { feeds: islandFeeds(stored.pages.flatMap((p) => p.placements), modules), quietHours, page: pageName, layoutVersion }
+        ? { feeds: islandFeeds(stored.pages.flatMap((p) => p.placements), modules, zoneResolver(config, stored)), quietHours, page: pageName, layoutVersion }
         : undefined,
-    [kiosk, island, stored.pages, quietHours, pageName, layoutVersion]
+    [kiosk, island, stored, config, quietHours, pageName, layoutVersion]
   );
   const islandPage = useMemo(() => ({ width: profile.width, height: profile.height }), [profile.width, profile.height]);
   const reserve = islandReserve(island, islandPage);

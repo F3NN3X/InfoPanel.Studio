@@ -6,6 +6,7 @@ import type { ModuleSetting } from "@/modules/types";
 import { splitMore, type InspectorSection } from "../inspector-model";
 import { INSPECTOR_SCROLL, type SheetChrome } from "../inspector-layout";
 import { SettingField, type FieldsApi } from "../settings-panel";
+import { FollowBar } from "./follow-bar";
 import { sectionIcon, sectionShort } from "./section-icons";
 import type { SectionParts } from "./inspector-view";
 import { MoreRows, moreKey } from "./more-rows";
@@ -121,8 +122,10 @@ export function SheetView({ sheet, identity, sections, parts, changedOf, changed
     if (p.plain) return <div className="px-4 py-3">{p.body}</div>;
     const split = splitMore(active);
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
+    const bar = fields.follow?.(active);
     return (
       <>
+        {bar && pad(<FollowBar bar={bar} />)}
         {pad(p.top)}
         {split.rows.map(field)}
         {pad(p.body)}

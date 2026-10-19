@@ -20,13 +20,13 @@ import { PanelStack } from "./panel-stack";
 interface PanelViewProps {
   panel: PanelDef;
   /**
-   * The placement's resolved settings (legacy look, dashboard and profile
-   * style, own — see `resolveStyle`): the panel's look.
+   * The placement's resolved settings (legacy look, the theme, own — see
+   * `resolveStyle`): the panel's look.
    */
   settings?: ModuleSettings;
   /**
-   * The global style is forced: the widgets' own colors give way to the
-   * resolved accent and text colors (`enforcedPanel`).
+   * The profile locks the Colors section: the widgets' own colors give way
+   * to the resolved accent and text colors (`enforcedPanel`).
    */
   enforced?: boolean;
   sensors: SensorMap;

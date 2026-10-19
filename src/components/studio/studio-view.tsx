@@ -426,6 +426,10 @@ function StudioViewBody({
       onToggleVisible={() => (sel.selection.length === 1 ? edit.toggleVisible(sel.selection[0].id) : edit.toggleSelectionVisible())}
       allSettings={inspectorMode === "floating" ? { open: floatOpen, onToggle: () => studioLayout.setFloatOpen(!floatOpen) } : undefined}
       insetRight={inspectorMode === "floating" && floatOpen ? 344 : 0}
+      onOpenSection={(section, key) => {
+        studioLayout.showInspector();
+        ui.jumpInspector(section, key);
+      }}
     />
   );
 

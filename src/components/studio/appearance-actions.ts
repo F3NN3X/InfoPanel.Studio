@@ -1,16 +1,17 @@
 import type { BackgroundScope } from "@/lib/appearance";
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
-import type { DashboardConfig, MonitorProfile, ProfileView, Placement } from "@/lib/layout";
-import type { StyleMode } from "@/lib/style-resolve";
+import type { DashboardConfig, MonitorProfile, ProfileView } from "@/lib/layout";
+import { allLocked, withAllLocked } from "@/lib/theme-model";
 import type { ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import { setProfileStyle } from "./studio-actions";
 
 /**
- * Edits of the global style: the dashboard's ("All profiles") or a
- * profile's style and force switch, and the widgets' follow / custom
- * choice. Pure config → config updates, each one undo step (same-key
- * edits coalesce: `appearance-style:<scope>`, `style-enforce:<scope>`).
+ * Edits of the global style: the dashboard's ("All profiles") style or a
+ * profile's theme values, the force switch (every section of the profile
+ * theme locked), and the widgets' follow choice. Pure config → config
+ * updates, each one undo step (same-key edits coalesce:
+ * `appearance-style:<scope>`, `style-enforce:<scope>`).
  */
 
 /** Which global style an edit targets (the page background's scopes). */
@@ -53,37 +54,30 @@ export function withScopeStyle(
   );
 }
 
-/** Set (or, for a profile, clear with `undefined`: the dashboard's) the force switch. */
-export function withStyleEnforce(
-  config: DashboardConfig,
-  scope: StyleScope,
-  value: boolean | undefined
-): DashboardConfig {
-  return inScope(
-    config,
-    scope,
-    (c) => ({ ...c, styleEnforce: value || undefined }),
-    (p) => ({ ...p, styleEnforce: value })
-  );
+/** Lock every section of the profile theme, or none: of every profile ("All profiles") or one. */
+export function withStyleEnforce(config: DashboardConfig, scope: StyleScope, on: boolean): DashboardConfig {
+  const lock = (p: MonitorProfile): MonitorProfile => ({ ...p, widgetTheme: withAllLocked(p.widgetTheme, on) });
+  return inScope(config, scope, (c) => ({ ...c, profiles: c.profiles.map(lock) }), lock);
 }
 
-/** A placement's follow / custom choice. */
-export const withStyleMode = (p: Placement, mode: StyleMode): Placement => ({ ...p, styleMode: mode });
+/** Whether the force switch of a scope is on: every section locked (in every profile, for "All profiles"). */
+export function isForced(config: DashboardConfig, scope: StyleScope): boolean {
+  const profiles = scope.kind === "all" ? config.profiles : config.profiles.filter((p) => p.id === scope.profileId);
+  return profiles.length > 0 && profiles.every((p) => allLocked(p.widgetTheme));
+}
 
-/** Every widget of a profile follows the global style (their own looks stay stored). */
+/** Every widget of a profile follows the theme in every section (their own values stay stored). */
 export function followAll(profile: ProfileView): ProfileView {
-  if (profile.placements.every((p) => p.styleMode === "follow")) return profile;
-  return { ...profile, placements: profile.placements.map((p) => withStyleMode(p, "follow")) };
+  if (profile.placements.every((p) => p.follow === undefined)) return profile;
+  return {
+    ...profile,
+    placements: profile.placements.map(({ follow: _f, ...p }) => p),
+  };
 }
 
-/**
- * The palette's force toggle: the profile's switch when it has its own,
- * else the dashboard's.
- */
-export function toggleEnforce(config: DashboardConfig, profile: Pick<ProfileView, "id" | "styleEnforce">): DashboardConfig {
-  if (profile.styleEnforce !== undefined)
-    return withStyleEnforce(config, { kind: "profile", profileId: profile.id }, !profile.styleEnforce);
-  return withStyleEnforce(config, { kind: "all" }, !config.styleEnforce);
+/** The palette's force toggle: this profile's sections all locked, or none. */
+export function toggleEnforce(config: DashboardConfig, profile: Pick<ProfileView, "id" | "widgetTheme">): DashboardConfig {
+  return withStyleEnforce(config, { kind: "profile", profileId: profile.id }, !allLocked(profile.widgetTheme));
 }
 
 /** The toast after applying a preset. */

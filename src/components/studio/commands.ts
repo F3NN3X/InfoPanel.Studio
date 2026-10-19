@@ -101,7 +101,7 @@ export interface CommandState {
   canRedo: boolean;
   showGrid: boolean;
   showSources: boolean;
-  /** The global style is forced on every widget of the profile. */
+  /** Every section of the profile theme is locked (the old "Force global style"). */
   enforced: boolean;
   /** Built-in and saved appearance presets (applied to all profiles). */
   appearancePresets: { id: string; name: string }[];

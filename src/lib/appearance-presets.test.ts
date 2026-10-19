@@ -43,14 +43,14 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
   pages: [mainPage([
     zone("plain"),
     zone("content-only", { settings: { label: "CPU", sensor: "x" } }),
-    zone("own-look", { settings: { accent: "#ff0000", label: "Net" } }),
-    zone("follows", { styleMode: "follow", settings: { accent: "#ff0000" } }),
+    zone("own-look", { settings: { accent: "#ff0000", label: "Net" }, follow: { colors: false } }),
+    zone("follows", { settings: { accent: "#ff0000" } }),
   ])],
   ...extra,
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
-  version: 5,
+  version: 6,
   activeProfile: "auto",
   profiles: [profile("p1"), profile("p2")],
   theme: DEFAULT_THEME,
@@ -113,7 +113,7 @@ describe("applyAppearancePreset — All profiles", () => {
   });
 
   it("leaves profiles and widgets (content keys included) untouched", () => {
-    const before = config({ profiles: [profile("p1", { style: { font: "serif" } })] });
+    const before = config({ profiles: [profile("p1", { widgetTheme: { values: { font: "serif" } } })] });
     const next = applyAppearancePreset(before, glass, ALL);
     expect(next.profiles).toBe(before.profiles);
   });
@@ -139,7 +139,7 @@ describe("applyAppearancePreset — All profiles", () => {
 });
 
 describe("applyAppearancePreset — This profile", () => {
-  it("writes the profile's theme, style and background, not the dashboard's or other profiles", () => {
+  it("writes the profile's theme, theme values and background, not the dashboard's or other profiles", () => {
     const before = config();
     const next = applyAppearancePreset(before, glass, P1);
     expect(next.theme).toBe(before.theme);
@@ -148,7 +148,7 @@ describe("applyAppearancePreset — This profile", () => {
     expect(next.background).toBeUndefined();
     expect(next.profiles[0].theme).toEqual(presetTokens(glass));
     expect(next.profiles[0].radius).toBe(glass.radius);
-    expect(next.profiles[0].style).toEqual(glass.style);
+    expect(next.profiles[0].widgetTheme).toEqual({ values: glass.style });
     expect(next.profiles[0].background).toEqual(glass.background);
     expect(next.profiles[0].pages).toBe(before.profiles[0].pages);
     expect(next.profiles[1]).toBe(before.profiles[1]);
@@ -164,7 +164,7 @@ describe("applyAppearancePreset — This profile", () => {
 
   it("resets the dashboard's look keys the preset leaves unset", () => {
     const next = applyAppearancePreset(config({ style: { glow: "strong", surface: "glass" } }), light, P1);
-    expect(next.profiles[0].style).toEqual({ glow: "none", surface: "theme" });
+    expect(next.profiles[0].widgetTheme?.values).toEqual({ glow: "none", surface: "theme" });
   });
 
   it("keeps a profile's deliberate 'no background'", () => {
@@ -174,21 +174,22 @@ describe("applyAppearancePreset — This profile", () => {
 
   it("only applies look keys", () => {
     const sneaky: AppearancePreset = { ...light, style: { surface: "theme", label: "x", sensor: "y" } };
-    expect(applyAppearancePreset(config(), sneaky, P1).profiles[0].style).toEqual({ surface: "theme" });
+    expect(applyAppearancePreset(config(), sneaky, P1).profiles[0].widgetTheme?.values).toEqual({ surface: "theme" });
+    const locked = config({ profiles: [profile("p1", { widgetTheme: { locks: { colors: true } } })] });
+    expect(applyAppearancePreset(locked, sneaky, P1).profiles[0].widgetTheme?.locks).toEqual({ colors: true });
   });
 });
 
 describe("overrides", () => {
-  it("counts widgets whose own look shows over the global style", () => {
+  it("counts widgets whose own look shows over the global style (custom, unlocked sections)", () => {
     expect(countOverrides(config(), P1)).toBe(1);
     expect(countOverrides(config(), ALL)).toBe(2);
-    expect(countOverrides(config({ styleEnforce: true }), ALL)).toBe(0);
-    const p1Forced = config({ profiles: [profile("p1", { styleEnforce: true }), profile("p2")] });
-    expect(countOverrides(p1Forced, ALL)).toBe(1);
+    const p1Locked = config({ profiles: [profile("p1", { widgetTheme: { locks: { colors: true } } }), profile("p2")] });
+    expect(countOverrides(p1Locked, ALL)).toBe(1);
   });
 
-  it("counts profile styles for All profiles only", () => {
-    const c = config({ profiles: [profile("p1", { style: { font: "mono" } }), profile("p2")] });
+  it("counts profile theme values for All profiles only", () => {
+    const c = config({ profiles: [profile("p1", { widgetTheme: { values: { font: "mono" } } }), profile("p2")] });
     expect(countProfileOverrides(c, ALL)).toBe(1);
     expect(countProfileOverrides(c, P1)).toBe(0);
   });
@@ -204,19 +205,20 @@ describe("overrides", () => {
   });
 
   it("clears them by following, keeping the widgets' data", () => {
-    const c = config({ profiles: [profile("p1", { style: { font: "mono" } }), profile("p2")] });
+    const c = config({ profiles: [profile("p1", { widgetTheme: { values: { font: "mono" }, locks: { css: true } } }), profile("p2")] });
     const one = clearOverrides(c, P1);
     expect(countOverrides(one, P1)).toBe(0);
-    expect(one.profiles[0].style).toEqual({ font: "mono" });
+    expect(one.profiles[0].widgetTheme?.values).toEqual({ font: "mono" });
     expect(one.profiles[1]).toBe(c.profiles[1]);
     const own = allPlacements(one.profiles[0]).find((p) => p.id === "own-look")!;
-    expect(own.styleMode).toBe("follow");
+    expect(own.follow).toBeUndefined();
     expect(own.settings).toEqual({ accent: "#ff0000", label: "Net" });
-    expect(allPlacements(one.profiles[0]).find((p) => p.id === "content-only")?.styleMode).toBeUndefined();
 
     const all = clearOverrides(c, ALL);
     expect(countOverrides(all, ALL)).toBe(0);
     expect(countProfileOverrides(all, ALL)).toBe(0);
+    // The values go, the locks stay.
+    expect(all.profiles[0].widgetTheme).toEqual({ locks: { css: true } });
   });
 });
 
@@ -225,7 +227,7 @@ describe("the user's presets", () => {
     const c = config({
       style: { surface: "glass", accent: "#00ff00" },
       background: { type: "color", color: "#101010" },
-      profiles: [profile("p1", { style: { accent: "#0000ff" }, background: { type: "none" } })],
+      profiles: [profile("p1", { widgetTheme: { values: { accent: "#0000ff" } }, background: { type: "none" } })],
     });
     const all = presetFromCurrent(c, ALL, "u1", "Mine");
     expect(all).toMatchObject({ id: "u1", name: "Mine", radius: 0.5, style: { surface: "glass", accent: "#00ff00" } });

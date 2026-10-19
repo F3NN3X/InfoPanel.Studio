@@ -1,16 +1,14 @@
 import { BoxSelect } from "lucide-react";
 import type { ProfileView, Placement } from "@/lib/layout";
-import type { Appearance, StyleMode } from "@/lib/style-resolve";
+import type { Appearance } from "@/lib/style-resolve";
 import type { ModuleSettings } from "@/modules/types";
-import { withStyleMode } from "../appearance-actions";
-import { isVisible, sharedDefs, type InspectorContext, type InspectorSection } from "../inspector-model";
+import { isVisible, sharedDefs, type InspectorContext } from "../inspector-model";
 import type { FieldsApi } from "../settings-panel";
-import { StyleModeBar } from "../style-mode-bar";
 import { MultiHeader } from "../zone-inspector-parts";
 import { quickDefsFor } from "../quick-sets";
 import { useQuickPins } from "./inspector-prefs";
-import { InspectorView, type SectionParts } from "./inspector-view";
-import { shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./zone-fields";
+import { InspectorView } from "./inspector-view";
+import { followFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./zone-fields";
 import { zoneName } from "./zone-meta";
 
 interface MultiInspectorProps {
@@ -33,9 +31,9 @@ interface MultiInspectorProps {
 
 /**
  * Several zones selected: no tabs, only the Style sections of the look
- * they share. The rows show the primary zone's values; every edit applies
- * to each selected zone in one undo step (a look edit switches a following
- * zone to Custom, as on one zone).
+ * they share. The rows and Follow bars show the primary zone's state; every
+ * edit (Customize and Use theme too) applies to each selected zone in one
+ * undo step.
  */
 export function MultiInspector({
   zones,
@@ -57,7 +55,6 @@ export function MultiInspector({
   const defs = sharedDefs(zones.map(zoneDefs));
   const context: InspectorContext = { kind: "multi", defs };
   const values = zoneLookValues(primary, appearance);
-  const enforce = appearance.enforce;
 
   /** Every selected zone through `fn`, as one change. */
   const each = (fn: (z: Placement) => Placement, key?: string) =>
@@ -66,24 +63,12 @@ export function MultiInspector({
   const fields: FieldsApi = {
     values,
     shown: (key, def) => shownValue(values, key, def),
-    onChange: (key, v) => each((z) => withSettings(z, { [key]: v }, enforce), `multi-setting:${key}`),
-    onPatch: (patch: ModuleSettings) =>
-      each((z) => withSettings(z, patch, enforce), `multi-setting:${Object.keys(patch).join()}`),
+    onChange: (key, v) => each((z) => withSettings(z, { [key]: v }), `multi-setting:${key}`),
+    onPatch: (patch: ModuleSettings) => each((z) => withSettings(z, patch), `multi-setting:${Object.keys(patch).join()}`),
     onClear: (keys) => each((z) => withoutSettings(z, keys)),
+    ...followFields(primary, appearance, each),
   };
   const effective = shownValues(values, defs);
-
-  const parts = (s: InspectorSection): SectionParts =>
-    s.extras.some((e) => e.kind === "styleMode")
-      ? {
-          top: (
-            <StyleModeBar
-              mode={primary.styleMode}
-              onMode={(mode: StyleMode) => each((z) => withStyleMode(z, mode), "multi-style-mode")}
-            />
-          ),
-        }
-      : {};
 
   return (
     <InspectorView
@@ -100,7 +85,7 @@ export function MultiInspector({
       }
       fields={fields}
       visible={(def) => isVisible(def, effective)}
-      parts={parts}
+      parts={() => ({})}
       query={query}
       onQuery={onQuery}
       changedOnly={changedOnly}

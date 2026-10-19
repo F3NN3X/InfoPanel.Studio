@@ -17,7 +17,7 @@ type DocumentState = ReturnType<typeof useDocumentProps>;
 interface StudioInspectorProps {
   config: DashboardConfig;
   profile: ProfileView;
-  /** The global style the zones render under. */
+  /** The theme the zones render under. */
   appearance: Appearance;
   ui: StudioUi;
   sel: StudioSelection;
@@ -72,9 +72,9 @@ export function StudioInspector({
   }, [tabRequest]);
 
   const openExplorer = () => ui.setMode("sources");
-  /** The Follow banner's "Edit global theme": Dashboard › Appearance. */
+  /** A Follow bar's theme name: Dashboard › Global style. */
   const editGlobalTheme = () => {
-    setInspectorTab("dashboard", "appearance");
+    setInspectorTab("dashboard", "gstyle");
     sel.select(null);
   };
 

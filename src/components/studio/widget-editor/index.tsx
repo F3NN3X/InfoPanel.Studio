@@ -13,7 +13,7 @@ interface WidgetCardsProps {
   /** `field`: the edited field (quick edits to one field are one undo step). */
   onChange: (fn: (w: Widget) => Widget, field?: string) => void;
   onChangeKind: (kind: WidgetKind) => void;
-  /** Force global style is on (the color is ignored). */
+  /** The profile theme locks Colors (the color is ignored). */
   enforce?: boolean;
   /** Open Sources mode (the sensor field's data picker offers it). */
   onOpenExplorer: () => void;

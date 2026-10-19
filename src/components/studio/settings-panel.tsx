@@ -8,7 +8,7 @@ import {
   type ModuleSettings,
 } from "@/modules/types";
 import { SourceDot } from "./inspector/source-dot";
-import { sourceState, type LookValues } from "./inspector-model";
+import { sourceState, type FollowInfo, type InspectorSection, type LookValues } from "./inspector-model";
 import { SET_HERE } from "./settings-model";
 import { SettingRow } from "./setting-control";
 
@@ -28,6 +28,16 @@ export interface FieldsApi {
   onOpenExplorer?: () => void;
   /** The quick bar's pins of this widget type (none where the context has no quick bar). */
   pins?: { has: (key: string) => boolean; toggle: (key: string) => void };
+  /** A zone: the Follow bar of a followable section (undefined: nothing in it follows a theme). */
+  follow?: (section: InspectorSection) => FollowBar | undefined;
+  /** A zone: whether a row shows its theme value read-only (its section follows the theme). */
+  readOnly?: (def: ModuleSetting) => boolean;
+}
+
+/** A section's Follow bar: its state and the switch between the theme and custom values. */
+export interface FollowBar extends FollowInfo {
+  onCustomize: () => void;
+  onUseTheme: () => void;
 }
 
 /** Setting types whose value is one plain key (a toggle, number, colour, choice, text or icon). */
@@ -75,7 +85,8 @@ function PinButton({ pinned, label, onToggle }: { pinned: boolean; label: string
  * One setting as a field row (padding 3px 10px 3px 16px): the source dot
  * (clicking one set here resets the setting), the label (brighter when set
  * here), the hint, the control chosen by its schema type, and the quick-bar
- * pin where the context has a quick bar.
+ * pin where the context has a quick bar. A row whose section follows the
+ * theme shows the theme's value, dimmed and disabled (`fields.readOnly`).
  */
 export function SettingField({
   def,
@@ -88,8 +99,14 @@ export function SettingField({
 }) {
   const state = sourceState(def, fields.values);
   const pins = fields.pins;
+  const readOnly = fields.readOnly?.(def) ?? false;
   return (
-    <div data-setting-key={def.key} className="py-[3px] pl-4 pr-2.5">
+    <fieldset
+      data-setting-key={def.key}
+      disabled={readOnly}
+      title={readOnly ? "Follows the theme: Customize the section to change it" : undefined}
+      className={cn("m-0 min-w-0 border-0 py-[3px] pl-4 pr-2.5", readOnly && "opacity-50")}
+    >
       <SettingRow
         def={def}
         value={fields.shown(def.key, def)}
@@ -105,6 +122,6 @@ export function SettingField({
         lead={<SourceDot state={state} onReset={() => fields.onClear(settingKeys(def))} />}
         trail={pins && <PinButton pinned={pins.has(def.key)} label={def.label} onToggle={() => pins.toggle(def.key)} />}
       />
-    </div>
+    </fieldset>
   );
 }

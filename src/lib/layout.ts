@@ -2,7 +2,8 @@ import { DEFAULT_THEME, normalizeThemePatch, type ThemeTokens } from "./theme";
 import { normalizeBackground, type PageBackground } from "./appearance";
 import { normalizeAppearancePresets, type AppearancePreset } from "./appearance-presets";
 import type { ModuleSettings } from "@/modules/types";
-import type { StyleMode } from "./style-resolve";
+import type { SectionFlags, WidgetTheme } from "./theme-model";
+import { migrateBaseStyleV6, migrateProfileV6, type LegacyProfileFields } from "./settings-migrate";
 import { normalizeApiBase } from "./data-api";
 import { normalizeGeneral, type GeneralSettings } from "./general";
 import { normalizeSpacing } from "./profile-grid";
@@ -105,11 +106,11 @@ export interface Placement {
   /** The canvas's file in the server's canvas store (server/canvases.mjs), in place of `canvas`. */
   canvasRef?: string;
   /**
-   * "follow": the dashboard / profile style only — the widget's own look
-   * values stay stored but are ignored; "custom": its own look wins.
-   * Unset: its own values win key by key (as "custom").
+   * Per followable section (`theme-model.ts`): `false` = custom, the
+   * widget's own values apply; absent / `true` = it follows the theme (its
+   * own values stay stored, ignored). Replaces the v5 `styleMode`.
    */
-  styleMode?: StyleMode;
+  follow?: SectionFlags;
 }
 
 export interface ProfilePage {
@@ -118,6 +119,11 @@ export interface ProfilePage {
   /** lucide icon name (page switcher, Stream Deck keys); unset = none. */
   icon?: string;
   placements: Placement[];
+  /**
+   * The page's widget theme: values plus, per section, `follow: false` to
+   * use them instead of the profile's (unset: the profile's theme).
+   */
+  widgetTheme?: WidgetTheme;
 }
 
 /** Auto-rotate through pages; `enabled: false` keeps the interval and list stored. */
@@ -153,16 +159,11 @@ export interface MonitorProfile {
   /** Auto-rotate through the pages; unset = off. */
   rotate?: PageRotate;
   /**
-   * Style defaults for every widget in the profile (the look-only keys of
-   * the standard settings, see `PROFILE_STYLE_KEYS`). A widget's own
-   * value overrides them (see `resolveStyle`).
+   * The profile's widget theme (`theme-model.ts`): values for the themed
+   * keys over the dashboard's style, and the sections it locks (widgets
+   * then always follow them). Replaces the v5 `style` / `styleEnforce`.
    */
-  style?: ModuleSettings;
-  /**
-   * Force the global style on every widget of this profile (own looks
-   * ignored); unset = the dashboard's choice.
-   */
-  styleEnforce?: boolean;
+  widgetTheme?: WidgetTheme;
   /**
    * This profile's page background, replacing the dashboard's
    * (`{ type: "none" }`: none for this profile; unset: the dashboard's).
@@ -192,13 +193,17 @@ export interface MonitorProfile {
 export type ProfileView = Omit<MonitorProfile, "pages"> & {
   placements: Placement[];
   pageId?: string;
+  /** That page's widget theme (`ProfilePage.widgetTheme`). */
+  pageTheme?: WidgetTheme;
 };
 
 /**
  * v4: the legacy module ids are migrated to their templates on load (`legacy-zones.ts`).
  * v5: the server's copy holds canvas zones as `canvasRef`; a v4 build would push them back empty.
+ * v6: the widget theme (`settings-migrate.ts`): `styleMode` → `follow`, a profile's `style` /
+ *     `styleEnforce` → `widgetTheme`; a v5 build would read every widget as its own look.
  */
-export const CONFIG_VERSION = 5;
+export const CONFIG_VERSION = 6;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -224,12 +229,10 @@ export interface DashboardConfig {
   /** Page background behind every profile's grid (see appearance.ts). */
   background?: PageBackground;
   /**
-   * Style defaults for every widget in every profile (the look keys); a
-   * profile's `style` and a widget's own values override them.
+   * The all-profiles style: the themed keys every profile's widget theme
+   * sits on (the base layer, no locks; see `theme-model.ts`).
    */
   style?: ModuleSettings;
-  /** Force the global style on every widget (a profile can override it). */
-  styleEnforce?: boolean;
   /** Whole looks the user saved (Appearance gallery; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
   /** Font, clock format, locale, motion and kiosk cursor (see general.ts). */
@@ -290,9 +293,9 @@ export function defaultConfig(): DashboardConfig {
   };
 }
 
-/** A profile as stored: v3 (`pages`) or legacy (`placements`). */
+/** A profile as stored: v3 (`pages`) or legacy (`placements`), maybe with the v5 style fields. */
 export type StoredProfile = Partial<Pick<MonitorProfile, "pages">> &
-  Omit<MonitorProfile, "pages"> & { placements?: Placement[] };
+  Omit<MonitorProfile, "pages"> & { placements?: Placement[] } & LegacyProfileFields;
 
 /**
  * v1→v2 profile normalization: legacy profiles auto-flowed their
@@ -371,7 +374,7 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
   });
 }
 
-function normalizeProfile(input: StoredProfile): MonitorProfile {
+function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyProfileFields {
   const { placements: _legacy, ...p } = input;
   const cols = Math.max(2, p.cols ?? 12);
   const rows = Math.max(1, p.rows ?? (p.height <= 700 ? 4 : 6));
@@ -421,6 +424,8 @@ const LEGACY_FORECAST_KEYS = [
 export type StoredConfig = Omit<Partial<DashboardConfig>, "version" | "profiles"> & {
   version?: number;
   profiles?: StoredProfile[];
+  /** v5: force the global style on every widget (→ every profile's sections locked). */
+  styleEnforce?: boolean;
 };
 
 function migrateAssetUrls(config: StoredConfig): StoredConfig {
@@ -443,8 +448,8 @@ const hasSurface = (style: ModuleSettings | undefined): boolean =>
   style?.surface !== undefined && style.surface !== "" && style.surface !== "auto";
 
 /** v3→v4: every page's legacy zones become their templates' (see `migrateLegacyZones`). */
-function migrateProfileZones(p: MonitorProfile, dashboardSurface: boolean): MonitorProfile {
-  const ctx = { styledSurface: dashboardSurface || hasSurface(p.style) };
+function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: P, dashboardSurface: boolean): P {
+  const ctx = { styledSurface: dashboardSurface || hasSurface(p.style ?? p.widgetTheme?.values) };
   const pages = p.pages.map((pg) => {
     const placements = migrateLegacyZones(pg.placements, ctx);
     return placements === pg.placements ? pg : { ...pg, placements };
@@ -458,8 +463,9 @@ function migrateProfileZones(p: MonitorProfile, dashboardSurface: boolean): Moni
  * kiosk pages pull the studio's latest state this way). Also runs the
  * migrations: v1→v2 fills explicit zone boxes + rows on legacy profiles,
  * v2→v3 moves a profile's zones onto its first page, v3→v4 rewrites the
- * legacy module ids to their templates; a pin to a missing profile
- * falls back to Auto.
+ * legacy module ids to their templates, v5→v6 moves the style onto the
+ * widget theme (`settings-migrate.ts`); a pin to a missing profile falls
+ * back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
   const parsed = migrateAssetUrls(input);
@@ -470,7 +476,14 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
       : defaults.profiles
   )
     .map(normalizeProfile)
-    .map((p) => migrateProfileZones(p, isSettings(parsed.style) && hasSurface(parsed.style)));
+    .map((p) => migrateProfileZones(p, isSettings(parsed.style) && hasSurface(parsed.style)))
+    .map((p) =>
+      migrateProfileV6(p, {
+        legacy: (parsed.version ?? 0) < 6,
+        base: isSettings(parsed.style) ? parsed.style : undefined,
+        enforce: parsed.styleEnforce === true,
+      })
+    );
   // A pin to a profile that is gone falls back to Auto.
   const byId = new Set(profiles.map((p) => p.id));
   let activeProfile = parsed.activeProfile ?? defaults.activeProfile;
@@ -487,8 +500,7 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
     stylePresets: Array.isArray(parsed.stylePresets) ? parsed.stylePresets : undefined,
     panelPresets: normalizePanelPresets(parsed.panelPresets),
     background: normalizeBackground(parsed.background),
-    style: isSettings(parsed.style) ? parsed.style : undefined,
-    styleEnforce: typeof parsed.styleEnforce === "boolean" ? parsed.styleEnforce : undefined,
+    style: isSettings(parsed.style) ? migrateBaseStyleV6(parsed.style) : undefined,
     appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
     general: normalizeGeneral(parsed.general),
     alerts: normalizeAlerts(parsed.alerts),

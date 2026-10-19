@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { appearanceOf, followsGlobal, isEnforced, resolveStyle, resolveWith } from "./style-resolve";
+import { appearanceOf, lockedIn, resolveStyle, resolveWith, zoneResolver } from "./style-resolve";
+import type { ThemeLevels } from "./theme-model";
 
-const dashboard = { accent: "#ff0000", surface: "theme", radius: "8" };
-const profile = { accent: "#00ff00", textColor: "#ffffff" };
+const base = { accent: "#ff0000", surface: "theme", radius: "8" };
+const profile = { values: { accent: "#00ff00", textColor: "#ffffff" } };
 const own = { accent: "#0000ff", font: "mono", sensor: "libre.cpu", layout: "compact" };
 const moduleDefaults = { surface: "bordered", padding: "4", label: "Legacy" };
+const levels: ThemeLevels = { base, profile };
+const CUSTOM = { colors: false, type: false } as const;
 
 describe("resolveStyle", () => {
-  it("layers default → dashboard → profile → own when the mode is unset", () => {
-    const { settings, source } = resolveStyle({ moduleDefaults, dashboard, profile, own });
+  it("layers default → dashboard → profile → own for custom sections", () => {
+    const { settings, source } = resolveStyle({ moduleDefaults, levels, own, follow: CUSTOM });
     expect(settings).toEqual({
       surface: "theme",
       padding: "4",
@@ -29,84 +32,110 @@ describe("resolveStyle", () => {
     });
   });
 
-  it("treats custom like the unset mode", () => {
-    expect(resolveStyle({ dashboard, profile, own, mode: "custom" })).toEqual(
-      resolveStyle({ dashboard, profile, own })
-    );
-  });
-
-  it("ignores the widget's own look when it follows", () => {
-    const { settings, source } = resolveStyle({ dashboard, profile, own, mode: "follow" });
+  it("ignores the widget's own values in a following section (the default)", () => {
+    const { settings, source } = resolveStyle({ levels, own });
     expect(settings.accent).toBe("#00ff00");
     expect(settings.font).toBeUndefined();
     expect(source.accent).toBe("profile");
     expect(Object.values(source)).not.toContain("own");
   });
 
-  it("ignores every widget's own look while the style is forced", () => {
-    for (const mode of [undefined, "custom", "follow"] as const) {
-      const { settings, source } = resolveStyle({ dashboard, profile, own, mode, enforce: true });
-      expect(settings.accent).toBe("#00ff00");
-      expect(settings.font).toBeUndefined();
-      expect(source.radius).toBe("dashboard");
+  it("follows per section: Colors custom, Typography following", () => {
+    const { settings } = resolveStyle({ levels, own, follow: { colors: false } });
+    expect(settings.accent).toBe("#0000ff");
+    expect(settings.font).toBeUndefined();
+  });
+
+  it("ignores own values in a section the profile locks, custom or not", () => {
+    const locked: ThemeLevels = { base, profile: { ...profile, locks: { colors: true } } };
+    const { settings, source } = resolveStyle({ levels: locked, own, follow: CUSTOM });
+    expect(settings.accent).toBe("#00ff00");
+    expect(settings.font).toBe("mono");
+    expect(source.radius).toBe("dashboard");
+  });
+
+  it("takes a page's values only for the sections the page makes its own", () => {
+    const page = { values: { accent: "#123456", font: "serif" }, follow: { colors: false } };
+    const { settings, source } = resolveStyle({ levels: { base, profile, page }, own });
+    expect(settings.accent).toBe("#123456");
+    expect(source.accent).toBe("page");
+    expect(settings.font).toBeUndefined();
+  });
+
+  it("always keeps the other keys from the widget, never from a layer", () => {
+    for (const follow of [undefined, CUSTOM]) {
+      const { settings, source } = resolveStyle({ moduleDefaults, levels: { base: { ...base, sensor: "x" } }, own, follow });
+      expect(settings.sensor).toBe("libre.cpu");
+      expect(settings.layout).toBe("compact");
+      expect(settings.label).toBeUndefined();
+      expect(source.sensor).toBeUndefined();
     }
   });
 
-  it("always keeps the content keys from the widget, never from a layer", () => {
-    for (const enforce of [false, true]) {
-      for (const mode of [undefined, "custom", "follow"] as const) {
-        const { settings, source } = resolveStyle({ moduleDefaults, dashboard: { ...dashboard, sensor: "x" }, own, mode, enforce });
-        expect(settings.sensor).toBe("libre.cpu");
-        expect(settings.layout).toBe("compact");
-        expect(settings.label).toBeUndefined();
-        expect(source.sensor).toBeUndefined();
-      }
-    }
+  it("no longer layers autoScale, variant and compactView (per widget from v6)", () => {
+    const { settings } = resolveStyle({ levels: { base: { variant: "studio" } }, own: { compactView: "on" } });
+    expect(settings).toEqual({ compactView: "on" });
   });
 
   it("skips undefined values and empty layers", () => {
     expect(resolveStyle({})).toEqual({ settings: {}, source: {} });
-    const { source } = resolveStyle({ dashboard: { accent: undefined as never }, own: { accent: "#123456" } });
+    const { source } = resolveStyle({ levels: { base: { accent: undefined as never } }, own: { accent: "#123456" }, follow: CUSTOM });
     expect(source).toEqual({ accent: "own" });
   });
 });
 
 describe("resolveWith", () => {
-  it("passes the own settings through without a global style", () => {
-    expect(resolveWith(undefined, own, "follow")).toBe(own);
+  it("passes the own settings through without a theme", () => {
+    expect(resolveWith(undefined, own, undefined)).toBe(own);
   });
 
-  it("resolves under an appearance and returns undefined when empty", () => {
-    const a = { dashboard, profile, enforce: false };
-    expect(resolveWith(a, own, "follow")?.accent).toBe("#00ff00");
-    expect(resolveWith({ enforce: false }, undefined, undefined)).toBeUndefined();
-    expect(resolveWith({ enforce: false }, undefined, undefined, moduleDefaults)).toEqual({
-      surface: "bordered",
-      padding: "4",
-    });
+  it("resolves under a theme and returns undefined when empty", () => {
+    expect(resolveWith(levels, own, undefined)?.accent).toBe("#00ff00");
+    expect(resolveWith(levels, own, { colors: false })?.accent).toBe("#0000ff");
+    expect(resolveWith({}, undefined, undefined)).toBeUndefined();
+    expect(resolveWith({}, undefined, undefined, moduleDefaults)).toEqual({ surface: "bordered", padding: "4" });
   });
 });
 
-describe("appearanceOf / isEnforced / followsGlobal", () => {
-  it("takes the profile's force choice over the dashboard's", () => {
-    expect(isEnforced({}, undefined)).toBe(false);
-    expect(isEnforced({ styleEnforce: true }, {})).toBe(true);
-    expect(isEnforced({ styleEnforce: true }, { styleEnforce: false })).toBe(false);
-    expect(isEnforced({}, { styleEnforce: true })).toBe(true);
-  });
+describe("appearanceOf / lockedIn", () => {
+  const config = { style: base, profiles: [{ id: "p", pages: [{ id: "a", name: "Desk" }, { id: "b", name: "Gaming" }] }] };
 
-  it("collects both style layers", () => {
-    expect(appearanceOf({ style: dashboard, styleEnforce: true }, { style: profile })).toEqual({
-      dashboard,
+  it("collects the levels and the names a Follow bar shows", () => {
+    const page = { values: { accent: "#123456" }, follow: { colors: false } };
+    expect(appearanceOf(config, { id: "p", name: "Main", widgetTheme: profile, pageId: "b", pageTheme: page })).toEqual({
+      base,
       profile,
-      enforce: true,
+      page,
+      profileName: "Main",
+      pageName: "Gaming",
     });
+    expect(appearanceOf(config, { id: "p", name: "Main" }).pageName).toBe("Desk");
+    expect(appearanceOf({}, undefined)).toEqual({ base: undefined, profile: undefined, page: undefined, profileName: undefined, pageName: undefined });
   });
 
-  it("follows when set to follow or forced", () => {
-    expect(followsGlobal(undefined, false)).toBe(false);
-    expect(followsGlobal("custom", false)).toBe(false);
-    expect(followsGlobal("follow", false)).toBe(true);
-    expect(followsGlobal("custom", true)).toBe(true);
+  it("says whether the profile locks a section", () => {
+    expect(lockedIn({ profile: { locks: { colors: true } } }, "colors")).toBe(true);
+    expect(lockedIn({ profile: { locks: { colors: true } } }, "type")).toBe(false);
+    expect(lockedIn(undefined, "colors")).toBe(false);
+  });
+});
+
+describe("zoneResolver", () => {
+  it("resolves each zone under the theme of its own page", () => {
+    const z1 = { id: "z1", settings: { accent: "#0000ff" }, follow: { colors: false } };
+    const z2 = { id: "z2", settings: { accent: "#0000ff" } };
+    const resolve = zoneResolver(
+      { style: base },
+      {
+        widgetTheme: profile,
+        pages: [
+          { placements: [z1] },
+          { placements: [z2], widgetTheme: { values: { accent: "#abcdef" }, follow: { colors: false } } },
+        ],
+      }
+    );
+    expect(resolve(z1)?.accent).toBe("#0000ff");
+    expect(resolve(z2)?.accent).toBe("#abcdef");
+    expect(resolve({ id: "elsewhere", settings: { accent: "#111111" } })).toEqual({ accent: "#111111" });
   });
 });
