@@ -44,6 +44,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ### Fixed
 - The image proxy follows redirects by hand and checks every hop, so an https image URL can no longer
   redirect it to plain http on the LAN or a metadata address (#26).
+- Coding Agents draws its full layout in 2x2 and 2x4 cells instead of only the summary card (#21).
+- Coding Agents rings beside the sessions keep their reset times, in a line under each ring when there is no room
+  beside them (#22).
+- Token usage appears as soon as the server's first scan finishes, instead of up to 30 seconds after a restart.
 
 ### Removed
 - The legacy widget modules; zones that still name one are migrated to its template on load.

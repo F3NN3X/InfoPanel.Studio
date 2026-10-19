@@ -152,6 +152,18 @@ describe("createAgentUsage", () => {
     expect(usage.totals().claude.breakdown.today.projects).toEqual([{ name: "repo", total: 30 }]);
   });
 
+  it("calls onScan after each scan, with the new totals in place", async () => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "agent-usage-"));
+    const now = Date.parse("2026-10-15T12:00:00");
+    const dir = path.join(home, ".claude", "projects", "x");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "s.jsonl"), assistant("r1", new Date(now).toISOString(), { input_tokens: 7 }) + "\n");
+    const seen = [];
+    const usage = createAgentUsage({ home, now: () => now, onScan: () => seen.push(usage.totals().claude?.today) });
+    await usage.scan();
+    expect(seen).toEqual([7]);
+  });
+
   it("is empty without any agent folders", async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), "agent-usage-"));
     const usage = createAgentUsage({ home });

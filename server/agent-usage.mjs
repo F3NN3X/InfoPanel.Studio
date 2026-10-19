@@ -150,9 +150,10 @@ async function newLines(file, offset, size) {
 
 /**
  * The usage reader. `totals()` is the last scan's result (cheap, for every publish): per agent the
- * tokens today, over the history, and per day; `codexLimits()` Codex's newest rate limits.
+ * tokens today, over the history, and per day; `codexLimits()` Codex's newest rate limits. `onScan` runs
+ * after each scan, so a fresh result is published without waiting for the next sweep.
  */
-export function createAgentUsage({ home = os.homedir(), now = () => Date.now(), scanMs = SCAN_MS } = {}) {
+export function createAgentUsage({ home = os.homedir(), now = () => Date.now(), scanMs = SCAN_MS, onScan = () => {} } = {}) {
   const claudeDir = path.join(home, ".claude", "projects");
   const codexDir = path.join(home, ".codex", "sessions");
   /** Per file: where reading stopped, the tokens by day, and (Claude) the requests counted; (Codex) the last cumulative total. */
@@ -277,6 +278,7 @@ export function createAgentUsage({ home = os.homedir(), now = () => Date.now(), 
     const claude = summarize(claudeDir);
     const codex = summarize(codexDir);
     result = { ...(claude ? { claude } : {}), ...(codex ? { codex } : {}) };
+    onScan();
   };
 
   let timer = null;

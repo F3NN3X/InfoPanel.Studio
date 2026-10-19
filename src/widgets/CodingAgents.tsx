@@ -114,6 +114,11 @@ export function fitBreakdown(room: number, withTokens: boolean, withModels = tru
   return null;
 }
 
+/** Whether a cell the shell would give the summary card is big enough for the full body: a tile or column at least 200 px each way, unless the summary is forced on. */
+export function wantsBody(box: { shape: string; w: number; h: number }, compactView: ShellProps["compactView"]): boolean {
+  return compactView !== "on" && (box.shape === "tile" || box.shape === "column") && box.w >= 200 && box.h >= 200;
+}
+
 export default function CodingAgents(p: CodingAgentsProps) {
   return <CodingAgentsView {...p} all={useAgents()} />;
 }
@@ -157,7 +162,7 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
       title={p.title ?? "Coding agents"}
       icon="smart_toy"
       studio={{ label: "Agents", value: String(active.length), unit: "active", sub: `${shortTokens(today)} tokens today`, rows: sessions.slice(0, 4).map((s) => ({ n: s.project, v: sessionStatus(s, now), dot: true })) }}
-      compact={{ label: "Agents", value: top ? `${shownPct(top.used)}%` : String(active.length), unit: top ? `5h ${percent}` : "active", sub: headline, icon: "smart_toy" }}
+      compact={(box) => (wantsBody(box, p.compactView) ? undefined : { label: "Agents", value: top ? `${shownPct(top.used)}%` : String(active.length), unit: top ? `5h ${percent}` : "active", sub: headline, icon: "smart_toy" })}
     >
       {({ w: w0, h: h0 }) => {
         // An unmeasured box (0, server render) lays out as a roomy one.
