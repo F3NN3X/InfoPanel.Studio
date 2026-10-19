@@ -1,8 +1,8 @@
 # InfoPanel profile import: implementation plan (P0.8)
 
 Status: **approved** (2026-10-16), with decision 1 as written and the lab-first order under "Phases". Phase 0
-(the lab) is done on `feat/infopanel-import`; this plan grows the lab into the complete feature, then moves it into
-`src/`.
+(the lab) is done on `feat/infopanel-import`; this plan grew the lab into the complete feature and moved it into
+`src/`. The lab phases L1–L14 and the app phases A1–A8 are done.
 
 ## What Phase 0 established
 

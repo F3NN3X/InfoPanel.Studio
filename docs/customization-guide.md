@@ -45,11 +45,11 @@ The bar along the top holds, from left to right:
   leave the studio, so export first). The menu also shows the build id.
 
 The **icon rail** (52 px) at the left opens one **left panel** at a time -
-**Layers**, **Add**, **Profiles**, **Dynamic Island** and **Alerts** - or switches to **Sources**; the
+**Layers**, **Add**, **Profiles**, **Dynamic Island** and **Alerts** - or switches to the full pages **Library**, **Gauges** and **Sources**; the
 keyboard icon at its bottom opens the shortcut list. Click the open panel's
 icon again to collapse it and give the canvas the full width. The studio
 remembers the open panel, also after a reload. The left panel stays beside
-the rail in every inspector placement.
+the rail in every inspector placement. **Library** (your saved images, fonts, gauges, panels and imported InfoPanel canvases) and **Gauges** (design a Custom gauge or edit a profile's) replace the canvas; **Import** and **Export** in the top bar bring an `.infopanel` profile in as a canvas zone and write one out. They are described in [architecture](architecture.md#importing-and-exporting-an-infopanel-profile) and [docs/infopanel-import](infopanel-import/PLAN.md).
 
 A **floating zoom bar** sits over the bottom of the canvas, centred. It
 toggles the left panel, the grid and the rulers, zooms out and in (or

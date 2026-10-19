@@ -206,7 +206,7 @@ Placement.settings
 
 ### The widget shell
 
-`src/widgets/` is the widget library: 50 templates, each a component over flat
+`src/widgets/` is the widget library: 54 templates, each a component over flat
 string data, drawn inside one `<Widget>` (`src/widgets/core/Widget.tsx`).
 `src/widgets/kit.ts` re-exports what a widget file needs from `core/`.
 

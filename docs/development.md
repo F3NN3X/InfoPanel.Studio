@@ -21,6 +21,11 @@ From `package.json`:
 | `npm start` | `node server.mjs` | Serves `dist/` and the config endpoints |
 | `npm run serve` | `npm run build && node server.mjs` | Build, then start |
 
+InfoPanel import lab (`lab/infopanel/`, a dev tool over `src/lib/infopanel/`; see its
+[README](../lab/infopanel/README.md)): `npm run lab` (page on http://localhost:5174),
+`lab:test`, `lab:typecheck`, and the Node tools `lab:extract`, `lab:map`, `lab:fonts`
+and `lab:font-get`. None of it reaches `npm run build`.
+
 ## Desktop app scripts
 
 | Script | What it does |
@@ -41,6 +46,18 @@ To run the app without touching the live setup set `INFOPANEL_STUDIO_CONFIG_DIR`
 (settings and logs), `INFOPANEL_STUDIO_DATA_DIR` (the server's `DASHBOARD_DATA_DIR`),
 `INFOPANEL_STUDIO_DEBUG=1` and a spare port in `settings.json`; never stop
 the servers on 3921 or 3922. See [desktop/README.md](desktop/README.md).
+
+## CI and releases
+
+`.github/workflows/ci.yml` runs `npm ci`, `npm run build` and `npm test` on
+`windows-latest` for every pull request and every push to `main`.
+
+`.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless
+the tag matches `version` in `package.json`, then runs `npm test` and
+`npm run desktop:build` on `windows-latest` and creates a GitHub release with
+the NSIS installer (`InfoPanel Studio_<version>_x64-setup.exe`) attached. To
+release: bump `version` in `package.json`,
+commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 ## Dev server vs the standalone server
 
@@ -116,7 +133,8 @@ rendered components. Tests sit beside the code they cover:
 | Studio | `src/components/studio/placement-content.test.ts` (per-zone prefixes and content), `src/components/studio/inspector-model.test.ts` (tabs, sections, search, Advanced, source dots) and `inspector-categories.test.ts` (every module's settings resolve to a known category), `studio-layout.test.ts` (Side / Bottom / Auto, fit zoom), `use-studio-shortcuts.test.ts`, `zone-menu.test.ts`, and the other `*.test.ts` beside the studio modules (commands, zone geometry, studio and appearance actions, the explorer model, …) |
 | Data layer and history | `src/lib/data-points.test.ts` (normalising the catalog, health, search), `src/lib/data-usage.test.ts` (Used by, bind / unbind), `src/lib/sample-history.test.ts`, `src/lib/fonts.test.ts` (the font catalog), `src/hooks/config-history.test.ts` (undo stacks, coalescing, transactions) |
 | Page background and media | `src/lib/appearance.test.ts` (background layers, video style and `videoPolicy`), `src/lib/assets.test.ts` (upload / library requests with a mocked `fetch`) |
-| Server | `server/assets.test.mjs` (magic-byte sniffing, asset id validation against traversal, `Range` parsing, loopback check). Vitest's default pattern picks up `.test.mjs`, so `npm test` runs it |
+| InfoPanel import | `src/lib/infopanel/**/*.test.ts` (parsing, formatting, fonts, canvas model and editing, remap, export, gauges, assets; a few read the lab's gitignored `corpus/` and skip without it), `src/lib/gauge-studio/`, `src/widgets/registry/*.schema.test.ts` (settings schema per widget group) |
+| Server | `server/*.test.mjs`: `assets.test.mjs` (magic-byte sniffing, asset id validation against traversal, `Range` parsing, loopback check), `library`, `infopanel-local`, `font-proxy`, `proxy`, `config-guard` and the rest beside their modules. Vitest's default pattern picks up `.test.mjs`, so `npm test` runs it |
 
 `npm test` prints the current number of test files and tests; all of them
 should pass.

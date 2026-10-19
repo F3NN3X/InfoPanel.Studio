@@ -58,6 +58,10 @@ With nothing selected, the Dashboard inspector sets the look of every profile or
 
 Each profile can show a **Dynamic Island** (Dashboard → Profile → Dynamic Island): a notch-style pill at the top centre with the time, the date or one live value. On kiosk pages it springs open for alerts with the Island display style, a Data API disconnect, widgets with **Send to island** on (Now Playing, Steam Friends, Wave Link, FPS Monitor, Achievements, Steam News, Drive Space, Network, Volume Mixer, Weather, Notifications, Timer), and the dashboard notices you switch on (page name, layout updated, plugin back, OBS on air, a calendar countdown, Claude Code and Codex sessions). Tap it to acknowledge or dismiss. See [the island in the customization guide](docs/customization-guide.md#dynamic-island).
 
+## InfoPanel profiles, Library and Gauges
+
+**Import** (top bar) brings an InfoPanel `.infopanel` profile in as a **canvas zone** that draws it as InfoPanel does, with live sensors; a remap step matches its sensors to your Data API, and **Export** writes the canvas back as a `.canvas.zip` or an `.infopanel`. The rail's **Library** page keeps your images, fonts, gauges, panels and imported canvases on the server (My library), shows a profile's assets and fonts, and lets you drag items onto the canvas. The **Gauges** page browses gauge presets and edits vector or image-sequence gauges; a **Custom gauge** widget draws one live from any sensor. The import is described in [docs/infopanel-import/PLAN.md](docs/infopanel-import/PLAN.md) and [the architecture](docs/architecture.md#importing-and-exporting-an-infopanel-profile).
+
 The studio config is stored by the server in `%LOCALAPPDATA%\InfoPanel\Dashboard\config.json`.
 
 ### Data API URL
@@ -85,6 +89,13 @@ The weather forecast comes from the yr plugin (`plugins.yr-weather-plugin.<locat
 | GET | `/api/debug/stats` | Memory, SSE clients and event-loop numbers; only with `DASHBOARD_DEBUG=1`, this machine only |
 | GET / POST | `/api/assets` | List uploaded images and videos (`?unused=1`: those the saved config doesn't use), or upload one (header `X-Dashboard-Asset: 1`, loopback only unless `ALLOW_REMOTE_UPLOAD=1`) |
 | GET / DELETE | `/api/assets/<id>` | Serve an uploaded file (immutable cache, `Range` support) or delete it |
+| GET / POST / PUT / DELETE | `/api/library`, `/api/library/<id>` | My library items for the Library page (writes need header `X-Dashboard-Library: 1`) |
+| GET | `/api/infopanel/installed`, `/api/infopanel/installed/<guid>/…` | Profiles of the InfoPanel installed on this machine, read-only; this machine only |
+| GET | `/api/font-proxy?url=` | Fetches a Font Squirrel font for the Library's Get a font |
+
+## Development and releases
+
+Scripts, tests and the verification checklist are in [docs/development.md](docs/development.md). CI (`.github/workflows/ci.yml`) runs the build and the tests on pull requests and on `main`. Pushing a tag `vX.Y.Z` that matches the `version` in `package.json` runs the release workflow (`.github/workflows/release.yml`): it builds the InfoPanel Studio installer with `npm run desktop:build` on `windows-latest` and attaches it to a GitHub release.
 
 ## Documentation
 
@@ -96,5 +107,6 @@ The [docs index](docs/README.md) lists everything; the main entries:
 - [Architecture](docs/architecture.md) and [development](docs/development.md)
 - [Desktop app](docs/desktop/README.md) (InfoPanel Studio) and its [design](docs/desktop/TAURI_PLAN.md)
 - [Studio design](docs/redesign/README.md) (the redesign spec) and [zones and widgets](docs/studio-redesign-zones-widgets.md) (the grid model)
+- [InfoPanel import](docs/infopanel-import/PLAN.md) - the plan, the studio [spec](docs/infopanel-import/studio/SPEC.md) and the [open gaps](docs/infopanel-import/GAPS.md); `lab/infopanel/README.md` covers the lab (`npm run lab`).
 - `tools/ip-import.cjs` imports an InfoPanel profile as a dashboard layout.
 - `tools/gen-bg.mjs` regenerates the background image of the Glass and Frosted presets.

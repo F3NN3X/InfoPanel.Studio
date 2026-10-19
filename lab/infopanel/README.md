@@ -1,7 +1,7 @@
 # InfoPanel import lab
 
 Phase 0 of the `.infopanel` import (`docs/infopanel-import/PHASE0_PLAN.md`): parse InfoPanel exports and redraw
-them at native size, then compare against InfoPanel's own render. Nothing here is imported by `src/`, and nothing
+them at native size, then compare against InfoPanel's own render. The lab is now a dev tool over the app's `src/lib/infopanel/`; nothing in `src/` imports it, and nothing
 here reaches `npm run build`, `desktop:build` or the app's `tsc -b`.
 
 | Command | What it does |
