@@ -42,6 +42,8 @@ describe("server.mjs", () => {
     upstream = http.createServer((req, res) => {
       if (req.url === "/png") res.writeHead(200, { "Content-Type": "application/octet-stream" }).end(png);
       else if (req.url === "/jpg") res.writeHead(200, { "Content-Type": "image/jpeg" }).end(png);
+      else if (req.url === "/hop") res.writeHead(302, { Location: "/jpg" }).end();
+      else if (req.url === "/escape") res.writeHead(302, { Location: "http://169.254.169.254/latest/meta-data" }).end();
       else if (req.url === "/bin") res.writeHead(200, { "Content-Type": "application/octet-stream" }).end("<html>");
       else res.writeHead(200, { "Content-Type": "text/html" }).end("<html>");
     });
@@ -79,6 +81,14 @@ describe("server.mjs", () => {
     expect(sniffed.headers.get("content-type")).toBe("image/png");
     expect((await proxy("/bin")).status).toBe(406);
     expect((await proxy("/html")).status).toBe(406);
+  });
+
+  it("follows image-proxy redirects only to allowed targets", async () => {
+    const proxy = (p) => fetch(`${plain.base}/api/image-proxy?url=${encodeURIComponent(`http://127.0.0.1:${upstreamPort}${p}`)}`);
+    const hop = await proxy("/hop");
+    expect(hop.status).toBe(200);
+    expect(hop.headers.get("content-type")).toBe("image/jpeg");
+    expect((await proxy("/escape")).status).toBe(502);
   });
 
   it("serves /api/debug/stats only in debug mode and logs requests", async () => {
