@@ -8,6 +8,7 @@ const props = {
   onTarget: () => {},
   dashboard: { type: "image" as const, src: "/a.webp" },
   profileName: "Main",
+  profileId: "p1",
   onChange: () => {},
 };
 

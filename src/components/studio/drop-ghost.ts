@@ -96,3 +96,14 @@ export function canvasPointAt(x: number, y: number): CanvasPoint | null {
   if (box.width <= 0 || box.height <= 0) return null;
   return { zoneId, fx: (x - box.left) / box.width, fy: (y - box.top) / box.height };
 }
+
+/** Library kinds an imported canvas zone takes as items (an Image, or a Gauge item). */
+const CANVAS_DROP_KINDS: readonly string[] = ["image", "svg", "video", "gauge"];
+
+/**
+ * Whether the canvas zone under the pointer takes this drag itself (dropped as an item in it), so
+ * the grid's placement ghost, and its "No room", would be wrong there.
+ */
+export function canvasTakesDrop(dragged: CanvasDrop | null, over: CanvasPoint | null): boolean {
+  return !!over && dragged?.kind === "mylib" && !!dragged.item && CANVAS_DROP_KINDS.includes(dragged.item.kind);
+}
