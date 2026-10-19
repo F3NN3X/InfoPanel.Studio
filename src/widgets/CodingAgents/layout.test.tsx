@@ -1,9 +1,16 @@
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import type { Agents } from "@/lib/agents";
-import { CodingAgentsView } from "../CodingAgents";
+import { describe, expect, it, vi } from "vitest";
+import type { AgentSession, Agents } from "@/lib/agents";
+import { CodingAgentsView, SessionRow, fitBreakdown } from "../CodingAgents";
 import { dayKey, heatmapFit, heatmapWeeks, levelOf } from "./history";
 import { barDensity, resetIn, ringLayout, shown } from "./limits";
+
+/** The measured box the widget lays out in; 0 × 0 (the default) is an unmeasured one. */
+const box = vi.hoisted(() => ({ w: 0, h: 0 }));
+vi.mock("../core/layout", async (orig) => {
+  const mod = await orig<typeof import("../core/layout")>();
+  return { ...mod, useBox: () => [{ current: null }, box.w || box.h ? mod.boxOf(box.w, box.h, undefined) : { w: 0, h: 0, size: "md", shape: "box" }] };
+});
 
 const text = (el: Parameters<typeof renderToString>[0]) => renderToString(el).replace(/<!-- -->/g, "");
 
@@ -33,6 +40,12 @@ describe("Coding Agents limits", () => {
     expect(ringLayout(1, 120, 40)).toBeNull();
     expect(ringLayout(1, 500, 150)?.details).toBe(true);
     expect(ringLayout(1, 160, 150)?.details).toBe(false);
+  });
+
+  it("adds a pace line to the ring details only with room for it", () => {
+    expect(ringLayout(1, 500, 150)?.pace).toBe(true);
+    expect(ringLayout(1, 500, 100)).toMatchObject({ details: true, pace: false });
+    expect(ringLayout(1, 160, 150)?.pace).toBe(false);
   });
 });
 
@@ -91,5 +104,122 @@ describe("Coding Agents settings", () => {
     expect(html).not.toContain("-rotate-90");
     expect(html).not.toContain('aria-label="Tokens per day"');
     expect(html).toContain("Resets in 1h");
+  });
+});
+
+describe("Coding Agents breakdown layout", () => {
+  const at = Date.now();
+  const AGENTS: Agents = {
+    sessions: [{ key: "a", agent: "claude", project: "app", state: "working", since: at, tool: "Bash" }],
+    plan: { claude: { fiveHour: { used: 30, resetsAt: at + 3_600_000 }, sevenDay: { used: 20 }, at } },
+    usage: {
+      claude: {
+        today: 1e6,
+        history: 2e6,
+        days: [{ day: dayKey(new Date(at)), input: 12_000, output: 40_000, cacheRead: 3_000_000, cacheWrite: 100_000, total: 3.2e6 }],
+        breakdown: { week: { projects: [{ name: "app", total: 410 }, { name: "api", total: 300 }], models: [{ name: "opus-5-5", total: 620 }, { name: "sonnet-5-5", total: 380 }] } },
+      },
+    },
+  };
+  const at_ = (w: number, h: number, extra = {}, all = AGENTS) => {
+    box.w = w;
+    box.h = h;
+    try {
+      return text(<CodingAgentsView data={{}} all={all} {...extra} />);
+    } finally {
+      box.w = 0;
+      box.h = 0;
+    }
+  };
+
+  it("fits project rows to the room and the by-type line after them", () => {
+    expect(fitBreakdown(200, true)).toMatchObject({ rows: 3, withTokens: true });
+    expect(fitBreakdown(90, true)).toMatchObject({ rows: 2, withTokens: false });
+    expect(fitBreakdown(68, false)).toMatchObject({ rows: 1, withTokens: false });
+    expect(fitBreakdown(67, false)).toBeNull();
+    // No models: the model bar's 30 px are not reserved.
+    expect(fitBreakdown(38, false, false)).toMatchObject({ rows: 1 });
+    expect(fitBreakdown(37, false, false)).toBeNull();
+  });
+
+  it("shows under the sessions with room, with today's tokens by type on a wide box", () => {
+    const html = at_(340, 460);
+    expect(html).toContain("This week");
+    expect(html).toContain("Opus 5.5 62%");
+    expect(html).toContain("in 12k · out 40k · cache 3.1M");
+    expect(html).toContain("Today");
+  });
+
+  it("shows a session's model from 420 px and its cost from 260, the context first", () => {
+    const s: AgentSession = { ...AGENTS.sessions[0], context: 37, cost: 3.1, model: "opus-5-5" };
+    const row = (width: number) => text(<ul><SessionRow s={s} now={at} width={width} /></ul>);
+    expect(row(420)).toContain("Opus 5.5");
+    expect(row(420)).toContain("$3.10");
+    expect(row(419)).not.toContain("Opus 5.5");
+    expect(row(260)).toContain("$3.10");
+    expect(row(259)).not.toContain("$3.10");
+    expect(row(220)).toContain("37% ctx");
+    expect(row(219)).not.toContain("37% ctx");
+  });
+
+  it("is dropped before the history in a small box", () => {
+    const html = at_(340, 230);
+    expect(html).not.toContain("This week");
+    expect(html).toContain("Today");
+    expect(html).toContain(">1.0M<");
+    expect(at_(340, 460)).toContain(">1.0M<");
+  });
+
+  it("keeps the by-type line off a narrow box and can be switched off", () => {
+    expect(at_(255, 460)).not.toContain("cache 3.1M");
+    expect(at_(340, 460, { showBreakdown: false })).not.toContain("Opus 5.5");
+  });
+
+  it("is absent when the server sent no breakdown", () => {
+    const bare: Agents = { ...AGENTS, usage: { claude: { ...AGENTS.usage.claude!, breakdown: undefined } } };
+    expect(at_(340, 460, {}, bare)).not.toContain("Opus 5.5");
+  });
+
+  it("budgets the breakdown under the limits row beside the sessions, never over the history", () => {
+    // 700 wide splits the limits and sessions; the limits (106) and the history (64 with its gap) leave 78 at 260 and 58 at 240.
+    expect(at_(700, 260)).toContain("This week");
+    expect(at_(700, 240)).not.toContain("This week");
+    expect(at_(700, 240)).toContain("Today");
+  });
+
+  it("goes under the heatmap in a wide box when that column has the height", () => {
+    const html = at_(700, 330, { history: "heatmap" });
+    expect(html).toContain('aria-label="Tokens per day"');
+    expect(html).toContain("Opus 5.5 62%");
+  });
+});
+
+describe("Coding Agents limit freshness", () => {
+  const at = Date.now();
+  const plan = (reportedAt: number, resetsAt: number, used = 50): Agents => ({ sessions: [], plan: { claude: { fiveHour: { used, resetsAt }, sevenDay: { used: 20 }, at: reportedAt } }, usage: {} });
+
+  it("shows a passed window as new, at 0 %", () => {
+    const html = text(<CodingAgentsView data={{}} all={plan(at, at - 1000, 90)} />);
+    expect(html).toContain("New window");
+    expect(html).toContain(">0%<");
+    expect(html).not.toContain(">90%<");
+  });
+
+  it("dims a stale report and says how old it is", () => {
+    const html = text(<CodingAgentsView data={{}} all={plan(at - 12 * 60_000, at + 3_600_000)} />);
+    expect(html).toContain("as of 12m");
+    expect(html).toContain("opacity:0.55");
+  });
+
+  it("drops a projected full time that has already passed", () => {
+    // 95 % two hours in projects full 6 minutes after the report, which was 9 minutes ago.
+    const reportedAt = at - 9 * 60_000;
+    expect(text(<CodingAgentsView data={{}} all={plan(reportedAt, reportedAt + 3 * 3_600_000, 95)} />)).not.toContain("at this pace");
+  });
+
+  it("projects the window to full when it burns faster than its time passes", () => {
+    const html = text(<CodingAgentsView data={{}} all={plan(at, at + 3 * 3_600_000, 60)} />);
+    expect(html).toContain("at this pace");
+    expect(text(<CodingAgentsView data={{}} all={plan(at, at + 3_600_000, 10)} />)).not.toContain("at this pace");
   });
 });

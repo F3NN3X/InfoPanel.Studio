@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bySalience, EMPTY_AGENTS, modelLabel, parseAgents, sessionStatus, shortDuration, shortTokens, type AgentSession } from "./agents";
+import { bySalience, EMPTY_AGENTS, FIVE_HOUR_MS, modelLabel, paceHit, parseAgents, planView, SEVEN_DAY_MS, sessionStatus, shortDuration, shortTokens, type AgentSession } from "./agents";
 import { parseExtras } from "./extras";
 import { AGENT_DONE_MIN_MS, agentsUpdate } from "./island/dashboard-notices";
 
@@ -81,5 +81,53 @@ describe("agentsUpdate", () => {
     expect(agentsUpdate(at(82), at(90), 0).notices).toEqual([]);
     expect(agentsUpdate(at(70), at(96), 0).notices).toHaveLength(1);
     expect(agentsUpdate(at(70), at(96), 0).notices?.[0].id).toContain(":95:");
+  });
+});
+
+describe("modelLabel", () => {
+  it("drops a trailing parenthetical", () => {
+    expect(modelLabel("Opus 5.5 (1M context)")).toBe("Opus 5.5");
+    expect(modelLabel("opus-5-5 (1M)")).toBe("Opus 5.5");
+  });
+});
+
+describe("planView", () => {
+  const now = 1_000_000_000;
+  it("reads a fresh window as it is", () => {
+    expect(planView({ used: 40, resetsAt: now + 60_000 }, now - 60_000, now)).toEqual({ used: 40, reset: false, stale: false, age: 60_000 });
+  });
+  it("zeroes a window whose reset time has passed", () => {
+    expect(planView({ used: 90, resetsAt: now - 1 }, now - 60_000, now)).toMatchObject({ used: 0, reset: true });
+    expect(planView({ used: 90, resetsAt: now }, now - 60_000, now)).toMatchObject({ used: 0, reset: true });
+    expect(planView({ used: 90 }, now - 60_000, now)).toMatchObject({ used: 90, reset: false });
+  });
+  it("does not call a report with no time stale", () => {
+    expect(planView({ used: 40 }, 0, now)).toMatchObject({ stale: false, age: 0 });
+  });
+  it("marks a report older than ten minutes stale", () => {
+    expect(planView({ used: 40 }, now - 10 * 60_000, now).stale).toBe(false);
+    expect(planView({ used: 40 }, now - 12 * 60_000, now)).toMatchObject({ stale: true, age: 12 * 60_000 });
+  });
+});
+
+describe("paceHit", () => {
+  const at = 1_000_000_000;
+  const resetsAt = at + 3 * 3_600_000; // two hours into the five
+  it("projects the window's average rate to 100 %", () => {
+    expect(paceHit({ used: 50, resetsAt }, at, FIVE_HOUR_MS)).toBe(at + 2 * 3_600_000);
+  });
+  it("gives nothing when it would not run out before the reset", () => {
+    expect(paceHit({ used: 40, resetsAt }, at, FIVE_HOUR_MS)).toBeNull();
+    expect(paceHit({ used: 20, resetsAt }, at, FIVE_HOUR_MS)).toBeNull();
+  });
+  it("gives nothing without a reset time, too early, with little use or when full", () => {
+    expect(paceHit({ used: 50 }, at, FIVE_HOUR_MS)).toBeNull();
+    expect(paceHit({ used: 50, resetsAt: at + FIVE_HOUR_MS - 10 * 60_000 }, at, FIVE_HOUR_MS)).toBeNull();
+    expect(paceHit({ used: 4, resetsAt }, at, FIVE_HOUR_MS)).toBeNull();
+    expect(paceHit({ used: 100, resetsAt }, at, FIVE_HOUR_MS)).toBeNull();
+  });
+  it("waits six hours into the week", () => {
+    expect(paceHit({ used: 30, resetsAt: at + SEVEN_DAY_MS - 5 * 3_600_000 }, at, SEVEN_DAY_MS)).toBeNull();
+    expect(paceHit({ used: 80, resetsAt: at + SEVEN_DAY_MS - 12 * 3_600_000 }, at, SEVEN_DAY_MS)).toBe(at + 3 * 3_600_000);
   });
 });

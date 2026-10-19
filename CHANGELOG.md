@@ -13,6 +13,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - A config export is saved as `infopanel-studio-config.json`; older exports still import.
 
 ### Added
+- Coding Agents shows each session's cost and model, dims limits the agent has not reported lately and resets
+  expired windows, projects when a window would fill at its pace so far, and this week's tokens by model and
+  project with today's by type (#18).
 - Coding Agents reads per-project and per-model token shares and lists live Claude Code sessions from
   `~/.claude/sessions`, all from local files.
 - CI builds and tests every pull request and `main`; pushing a `vX.Y.Z` tag builds the Windows installer and
