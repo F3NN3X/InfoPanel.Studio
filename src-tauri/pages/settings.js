@@ -1,4 +1,4 @@
-// settings.html: server address, startup, coding agents, debug mode, diagnostics and the log.
+// settings.html: server address, startup, updates, coding agents, debug mode, diagnostics and the log.
 "use strict";
 
 let saved = null;
@@ -53,7 +53,7 @@ function fillForm(s) {
   $("host").value = s.host;
   $("port").value = s.port;
   $("allowed").value = s.allowedHosts.join(", ");
-  for (const key of ["startAtLogin", "openStudioOnLaunch", "closeToTray"]) $(key).checked = s[key];
+  for (const key of ["startAtLogin", "openStudioOnLaunch", "closeToTray", "checkForUpdates"]) $(key).checked = s[key];
   $("agents").checked = s.agents.enabled;
   $("debug").checked = s.debug;
   syncHostUi();
@@ -88,6 +88,7 @@ function formSettings() {
     startAtLogin: $("startAtLogin").checked,
     openStudioOnLaunch: $("openStudioOnLaunch").checked,
     closeToTray: $("closeToTray").checked,
+    checkForUpdates: $("checkForUpdates").checked,
   };
 }
 
@@ -124,6 +125,45 @@ $("form").addEventListener("submit", (e) => {
   save(formSettings());
 });
 $("restart").addEventListener("click", () => call("restart_server"));
+
+// ---- Updates ----
+
+function renderUpdate(info) {
+  $("update-result").textContent = info ? `Version ${info.version} is available.` : "You're up to date.";
+  $("update-notes").textContent = info?.notes ?? "";
+  show($("update-notes"), Boolean(info?.notes));
+  show($("install-update"), Boolean(info));
+}
+
+function updateBusy(text) {
+  $("update-busy-text").textContent = text ?? "";
+  show($("update-busy"), Boolean(text));
+  $("check-update").disabled = Boolean(text);
+  $("install-update").disabled = Boolean(text);
+}
+
+$("check-update").addEventListener("click", async () => {
+  updateBusy("Checking…");
+  $("update-result").textContent = "";
+  try {
+    renderUpdate(await call("check_for_update"));
+  } catch (e) {
+    $("update-result").textContent = `Could not check for updates: ${e}`;
+    show($("install-update"), false);
+  } finally {
+    updateBusy(null);
+  }
+});
+
+$("install-update").addEventListener("click", async () => {
+  updateBusy("Downloading and installing. The app restarts when it is done…");
+  try {
+    await call("install_update");
+  } catch (e) {
+    $("update-result").textContent = `Could not install the update: ${e}`;
+    updateBusy(null);
+  }
+});
 
 // ---- Coding agents ----
 
@@ -271,8 +311,12 @@ async function init() {
   const s = await call("get_settings");
   await fillHosts(s.host);
   fillForm(s);
-  renderStatus(await call("server_status"));
+  const status = await call("server_status");
+  renderStatus(status);
   onStatus(renderStatus);
+  $("app-version").textContent = status.appVersion;
+  const pending = await call("pending_update");
+  if (pending) renderUpdate(pending);
   refreshDiagnostics();
   refreshLog();
   setInterval(() => {

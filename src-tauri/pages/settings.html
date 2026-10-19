@@ -66,6 +66,22 @@
         </label>
       </section>
 
+      <section class="card">
+        <h2>Updates</h2>
+        <p>Version <span id="app-version"></span></p>
+        <label class="check">
+          <input id="checkForUpdates" type="checkbox" />
+          <span>Check for updates at startup</span>
+        </label>
+        <div class="row actions">
+          <button id="check-update" type="button">Check now</button>
+          <button id="install-update" type="button" class="primary hidden">Install and restart</button>
+        </div>
+        <div id="update-busy" class="row hidden"><div class="spinner"></div><span id="update-busy-text" class="muted">Working…</span></div>
+        <p id="update-result" class="muted"></p>
+        <p id="update-notes" class="hint muted hidden"></p>
+      </section>
+
       <div class="row save-bar">
         <button id="save" type="submit" class="primary">Save</button>
         <span id="save-result" class="muted"></span>

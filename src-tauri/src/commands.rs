@@ -6,6 +6,7 @@ use crate::debug::SeriesStats;
 use crate::probe::{self, ProcessInfo};
 use crate::settings::{self, FieldError, Settings};
 use crate::state::{lock, AppState, Phase, Status};
+use crate::updater::{self, UpdateInfo};
 use crate::{agents, control, debug, windows};
 use serde::Serialize;
 use serde_json::Value;
@@ -333,6 +334,24 @@ pub fn list_local_addresses() -> Vec<String> {
     list.sort();
     list.dedup();
     list
+}
+
+#[tauri::command]
+pub async fn check_for_update(app: AppHandle) -> CmdResult<Option<UpdateInfo>> {
+    log::debug!("ipc: check_for_update");
+    updater::check(&app).await
+}
+
+#[tauri::command]
+pub fn pending_update(app: AppHandle) -> Option<UpdateInfo> {
+    log::debug!("ipc: pending_update");
+    updater::pending(&app)
+}
+
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> CmdResult<()> {
+    log::debug!("ipc: install_update");
+    updater::install(&app).await
 }
 
 #[tauri::command]

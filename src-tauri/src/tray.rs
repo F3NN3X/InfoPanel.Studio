@@ -1,15 +1,20 @@
-// Tray icon: Open studio · Open kiosk in browser · Settings · Restart server · Quit.
+// Tray icon: Open studio · Open kiosk in browser · Settings · Check for updates · Restart server · Quit.
 
 use crate::state::{AppState, Phase, Status};
 use crate::{control, windows};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_opener::OpenerExt;
 
 const TRAY: &str = "main";
+const CHECK_LABEL: &str = "Check for updates…";
+
+/// The menu entry that offers the update; kept so its text can follow the check.
+struct UpdateItem(MenuItem<Wry>);
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
+    let update = MenuItem::with_id(app, "update", CHECK_LABEL, true, None::<&str>)?;
     let menu = Menu::with_items(
         app,
         &[
@@ -22,6 +27,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 None::<&str>,
             )?,
             &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
+            &update,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "restart", "Restart server", true, None::<&str>)?,
             &MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?,
@@ -41,7 +47,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                         log::warn!("could not open the kiosk: {e}");
                     }
                 }
-                "settings" => windows::show_settings(app),
+                "settings" | "update" => windows::show_settings(app),
                 "restart" => control::restart(app),
                 "quit" => {
                     let app = app.clone();
@@ -64,7 +70,19 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         builder = builder.icon(icon.clone());
     }
     builder.build(app)?;
+    app.manage(UpdateItem(update));
     Ok(())
+}
+
+/// `Update to vX.Y.Z…` while an update waits, the plain check entry otherwise.
+pub fn set_update(app: &AppHandle, version: Option<&str>) {
+    if let Some(item) = app.try_state::<UpdateItem>() {
+        let _ = item.0.set_text(update_label(version));
+    }
+}
+
+fn update_label(version: Option<&str>) -> String {
+    version.map_or_else(|| CHECK_LABEL.to_owned(), |v| format!("Update to v{v}…"))
 }
 
 pub fn tooltip(status: &Status) -> String {
@@ -107,6 +125,12 @@ mod tests {
             debug: false,
             pid: None,
         }
+    }
+
+    #[test]
+    fn update_label_names_the_version() {
+        assert_eq!(update_label(None), "Check for updates…");
+        assert_eq!(update_label(Some("1.2.0")), "Update to v1.2.0…");
     }
 
     #[test]
