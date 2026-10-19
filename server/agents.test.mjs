@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { codexPlan, createAgents, DONE_KEEP_MS, emptyAgents, expireAgents, projectOf, publicAgents, reduceAgents, reduceStatusline, STALE_MS } from "./agents.mjs";
+import { codexPlan, createAgents, DONE_KEEP_MS, emptyAgents, expireAgents, mergeClaudeSessions, projectOf, publicAgents, reduceAgents, reduceStatusline, STALE_MS } from "./agents.mjs";
 import { agentWriteRefusal, isLoopback } from "./request-guard.mjs";
 
 const ev = (hook_event_name, more = {}) => ({ hook_event_name, session_id: "s1", cwd: "E:\\GitHub\\MyRepos\\InfoPanel.Dashboard", transcript_path: "C:\\secret\\t.jsonl", prompt: "secret prompt", ...more });
@@ -70,6 +70,60 @@ describe("agent sessions", () => {
     expect(projectOf("C:\\Users\\me\\repo\\")).toBe("repo");
     expect(projectOf("/srv/app")).toBe("app");
     expect(projectOf(42)).toBe("");
+  });
+});
+
+describe("Claude session files", () => {
+  const live = (over = {}) => ({ id: "f1", pid: 9, project: "repo", state: "working", updatedAt: 500, ...over });
+  const key = "claude:f1";
+
+  it("adds a live session that has no hooks, with the file's state and time", () => {
+    const s = mergeClaudeSessions(emptyAgents(), [live()], 1000);
+    expect(s.sessions[key]).toEqual({ agent: "claude", id: "f1", project: "repo", state: "working", since: 500, turnStart: 500, tool: "", subagents: 0, lastTurnMs: null, lastSeen: 1000 });
+    expect(mergeClaudeSessions(emptyAgents(), [live({ state: "idle", updatedAt: null })], 1000).sessions[key]).toMatchObject({ since: 1000, turnStart: null });
+  });
+
+  it("follows the file for an unhooked session, moving since only on a change", () => {
+    const a = mergeClaudeSessions(emptyAgents(), [live()], 1000);
+    expect(mergeClaudeSessions(a, [live()], 1000)).toBe(a);
+    const later = mergeClaudeSessions(a, [live()], 2000);
+    expect(later.sessions[key]).toMatchObject({ lastSeen: 2000, since: 500 });
+    const waiting = mergeClaudeSessions(later, [live({ state: "waiting" })], 3000);
+    expect(waiting.sessions[key]).toMatchObject({ state: "waiting", since: 3000 });
+  });
+
+  it("keeps a hooked session's own state but refreshes lastSeen; removes an unhooked dead one", () => {
+    const hooked = reduceAgents(emptyAgents(), "claude", { hook_event_name: "Stop", session_id: "f1", cwd: "/x/repo" }, 10);
+    expect(hooked.sessions[key].hooked).toBe(true);
+    expect(mergeClaudeSessions(hooked, [live({ state: "working" })], 99).sessions[key]).toMatchObject({ state: "done", lastSeen: 99 });
+    expect(mergeClaudeSessions(hooked, [], 99)).toBe(hooked);
+    const unhooked = mergeClaudeSessions(emptyAgents(), [live()], 1000);
+    expect(mergeClaudeSessions(unhooked, [], 2000).sessions).toEqual({});
+  });
+
+  it("drops any session whose file shows its process ended, hooked or not", () => {
+    const hooked = reduceAgents(emptyAgents(), "claude", { hook_event_name: "UserPromptSubmit", session_id: "f1" }, 0);
+    expect(mergeClaudeSessions(hooked, [live({ alive: false })], 99).sessions).toEqual({});
+    expect(mergeClaudeSessions(emptyAgents(), [live({ alive: false })], 99)).toEqual(emptyAgents());
+  });
+
+  it("publishes no pid, hook flag or session id", () => {
+    const s = mergeClaudeSessions(reduceAgents(emptyAgents(), "claude", { hook_event_name: "Stop", session_id: "f1" }, 0), [live({ id: "g2" })], 1);
+    const out = JSON.stringify(publicAgents(s));
+    for (const leak of ["pid", "hooked", "f1", "g2", '"id"']) expect(out).not.toContain(leak);
+  });
+
+  it("createAgents stamps Codex's plan with when Codex reported it, not the sweep", () => {
+    const limits = { primary: { used_percent: 9, window_minutes: 300 } };
+    const agents = createAgents({ onChange: () => {}, now: () => 9_000, codexLimits: () => limits, codexLimitsAt: () => 1_000 });
+    expect(agents.state().plan.codex).toEqual({ fiveHour: { used: 9 }, at: 1_000 });
+    agents.stop();
+  });
+
+  it("createAgents lists live sessions at creation", () => {
+    const agents = createAgents({ onChange: () => {}, now: () => 5, claudeSessions: () => [live()] });
+    expect(agents.state().sessions).toHaveLength(1);
+    agents.stop();
   });
 });
 

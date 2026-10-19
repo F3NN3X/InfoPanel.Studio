@@ -1,11 +1,12 @@
 // Coding agents (Claude Code, Codex) for the island and the Agents widget. Their hooks post each
 // lifecycle event here (scripts/agent-status.mjs forwards a hook's stdin), their statusline posts
-// the plan and context use, and the server reads the transcripts' token counts (agent-usage.mjs).
+// the plan and context use, and the server reads the transcripts' token counts (agent-usage.mjs)
+// and Claude Code's live session files (claude-sessions.mjs), which cover sessions without hooks.
 //
 // Only metadata reaches the kiosks: the agent, the project folder's name, the state, the tool's
 // name, times and numbers. Prompts, replies, tool inputs and paths stay here.
 //
-// Node built-ins only. `reduceAgents` and `publicAgents` are pure.
+// Node built-ins only. `reduceAgents`, `mergeClaudeSessions` and `publicAgents` are pure.
 
 import { createHash } from "node:crypto";
 
@@ -45,7 +46,7 @@ export function reduceAgents(state, agent, event, now) {
     return { ...state, sessions };
   }
   const prev = sessions[key] ?? { agent, id, project: "", state: "idle", since: now, turnStart: null, tool: "", subagents: 0, lastTurnMs: null };
-  const next = { ...prev, project: projectOf(event.cwd) || prev.project, lastSeen: now };
+  const next = { ...prev, project: projectOf(event.cwd) || prev.project, lastSeen: now, hooked: true };
   const to = (s) => {
     if (next.state !== s) next.since = now;
     next.state = s;
@@ -114,6 +115,66 @@ function trim(sessions) {
   const all = Object.entries(sessions);
   if (all.length <= MAX_SESSIONS) return sessions;
   return Object.fromEntries(all.sort((a, b) => b[1].lastSeen - a[1].lastSeen).slice(0, MAX_SESSIONS));
+}
+
+/**
+ * Claude Code's session files (`live`, from readClaudeSessions) into the sessions: a live session
+ * without hooks is added and follows its file; a live one is not expired; one whose file shows its
+ * process ended (a crash), or an unhooked one whose file is gone, is dropped. Hooked sessions
+ * without a file are left to `expireAgents`.
+ */
+export function mergeClaudeSessions(state, live, now) {
+  const sessions = { ...state.sessions };
+  let changed = false;
+  const liveKeys = new Set();
+  for (const l of live) {
+    const key = `claude:${l.id}`;
+    if (l.alive === false) {
+      if (sessions[key]) {
+        delete sessions[key];
+        changed = true;
+      }
+      continue;
+    }
+    liveKeys.add(key);
+    const prev = sessions[key];
+    if (!prev) {
+      sessions[key] = {
+        agent: "claude",
+        id: l.id,
+        project: l.project,
+        state: l.state,
+        since: l.updatedAt ?? now,
+        turnStart: l.state === "working" ? (l.updatedAt ?? now) : null,
+        tool: "",
+        subagents: 0,
+        lastTurnMs: null,
+        lastSeen: now,
+      };
+      changed = true;
+      continue;
+    }
+    const next = { ...prev, lastSeen: now };
+    if (!prev.hooked) {
+      next.project = l.project || prev.project;
+      if (prev.state !== l.state) {
+        next.state = l.state;
+        next.since = now;
+        next.turnStart = l.state === "working" ? (prev.turnStart ?? now) : null;
+      }
+    }
+    if (JSON.stringify(next) !== JSON.stringify(prev)) {
+      sessions[key] = next;
+      changed = true;
+    }
+  }
+  for (const [key, s] of Object.entries(sessions)) {
+    if (s.agent === "claude" && !s.hooked && !liveKeys.has(key)) {
+      delete sessions[key];
+      changed = true;
+    }
+  }
+  return changed ? { ...state, sessions: trim(sessions) } : state;
 }
 
 /** Drop sessions gone quiet (working or waiting past `STALE_MS`, finished past `DONE_KEEP_MS`). */
@@ -205,9 +266,10 @@ export function publicAgents(state) {
 /**
  * The live agents: hook events and statusline payloads in, a change callback out (throttled so a
  * burst of tool calls is one publish). `usage()` supplies the token totals (agent-usage.mjs);
- * `codexLimits()` Codex's latest rate limits from its session files.
+ * `codexLimits()` Codex's latest rate limits from its session files (reported at `codexLimitsAt()`); `claudeSessions()` the live
+ * Claude Code sessions (claude-sessions.mjs).
  */
-export function createAgents({ onChange, usage = () => ({}), codexLimits = () => null, now = () => Date.now(), throttleMs = 250 }) {
+export function createAgents({ onChange, usage = () => ({}), codexLimits = () => null, codexLimitsAt = () => null, claudeSessions = () => [], now = () => Date.now(), throttleMs = 250 }) {
   let state = emptyAgents();
   let timer = null;
   const changed = () => {
@@ -220,14 +282,17 @@ export function createAgents({ onChange, usage = () => ({}), codexLimits = () =>
   };
   const refresh = () => {
     const t = now();
-    let next = expireAgents(state, t);
-    next = codexPlan(next, codexLimits(), t);
+    let next = mergeClaudeSessions(state, claudeSessions(), t);
+    next = expireAgents(next, t);
+    // Stamped with when Codex reported them, so the widget can tell old numbers from fresh ones.
+    next = codexPlan(next, codexLimits(), codexLimitsAt() ?? t);
     next = { ...next, usage: usage() };
-    if (JSON.stringify(next) !== JSON.stringify(state)) {
-      state = next;
-      changed();
-    }
+    // Only what the kiosks get decides a publish: a live session's `lastSeen` moves on every sweep.
+    const publish = JSON.stringify(publicAgents(next)) !== JSON.stringify(publicAgents(state));
+    state = next;
+    if (publish) changed();
   };
+  refresh();
   const sweep = setInterval(refresh, 30_000);
   sweep.unref?.();
   return {
