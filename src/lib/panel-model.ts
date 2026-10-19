@@ -1,6 +1,7 @@
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import type { ModuleSettings } from "@/modules/types";
 import type { Placement } from "./layout";
+import { migrateWidgetV9 } from "./settings-migrate";
 
 /* ---------------------------------------------------------------- *
  * Panels + widgets — the "layers and groups" model.
@@ -38,6 +39,23 @@ export type BoxSize = "hug" | "fill" | number;
 
 /** Cross-axis placement of a widget (or of all widgets, `PanelDef.align`). */
 export type BoxAlign = "start" | "center" | "end" | "stretch";
+
+/**
+ * The sections of a widget that follow its panel (SPEC §8), which follows
+ * the theme: Typography, Color, Units & format and Thresholds.
+ */
+export type ItemSection = "type" | "colors" | "format" | "thresholds";
+
+export const ITEM_SECTIONS: readonly ItemSection[] = ["type", "colors", "format", "thresholds"];
+
+/** A threshold level of a widget: a value, or "off" (that level never trips). */
+export type ItemLevel = number | "off";
+
+/** A widget's own warning and critical levels (each unset: the panel's). */
+export interface ItemThresholds {
+  warn?: ItemLevel;
+  crit?: ItemLevel;
+}
 
 /** How a widget sits in its panel's stack or grid. */
 export interface WidgetBox {
@@ -92,6 +110,8 @@ export interface Widget {
   rowSpan?: number;
   /** "customGauge": the gauge spec it draws (the default spec when absent). */
   vector?: VectorGauge;
+  /** "customGauge": the drawing's width in px (default 120; config v9 moved it off `fontSize`). */
+  width?: number;
   /** Shape kind for "shape". */
   shape?: ShapeType;
   /** Thickness (bars) / diameter (circle), in px. */
@@ -114,6 +134,17 @@ export interface Widget {
   css?: string;
   /** Extra class names on the widget's cell (hooks for panel CSS). */
   className?: string;
+  /**
+   * Stat, value, bar and gauge: the levels that colour the value / fill
+   * warning or critical (the bound sensor's unit picks the quantity, see
+   * `panel-item.ts`). Read while Thresholds is custom; absent: the panel's.
+   */
+  thr?: ItemThresholds;
+  /**
+   * Per section: false = the widget's own values, true = the panel's (own
+   * values stay stored). Unset: custom while it has own values there.
+   */
+  follow?: Partial<Record<ItemSection, boolean>>;
   visible: boolean;
 }
 
@@ -210,7 +241,41 @@ export const FULL_ROW: ReadonlySet<WidgetKind> = new Set(["bar", "table", "image
 /** A widget's width when its box doesn't set one. */
 export const defaultBoxW = (kind: WidgetKind): BoxSize => (FULL_ROW.has(kind) ? "fill" : "hug");
 
-function normalizeWidget(w: Widget): Widget {
+/** Kinds whose value or fill colours by thresholds. */
+export const THRESHOLD_KINDS: ReadonlySet<WidgetKind> = new Set(["stat", "value", "bar", "gauge"]);
+
+const isLevel = (v: unknown): v is ItemLevel => v === "off" || (typeof v === "number" && Number.isFinite(v));
+
+/** Stored levels, guarded (undefined when none is usable). */
+function normalizeThr(v: unknown): ItemThresholds | undefined {
+  if (!isObject(v)) return undefined;
+  const thr: ItemThresholds = {
+    ...(isLevel(v.warn) ? { warn: v.warn } : {}),
+    ...(isLevel(v.crit) ? { crit: v.crit } : {}),
+  };
+  return Object.keys(thr).length > 0 ? thr : undefined;
+}
+
+/** Stored follow flags, guarded: booleans of the widget's sections (undefined when none). */
+function normalizeItemFlags(v: unknown): Widget["follow"] {
+  if (!isObject(v)) return undefined;
+  const kept = Object.entries(v).filter(([sec, on]) => ITEM_SECTIONS.includes(sec as ItemSection) && typeof on === "boolean");
+  return kept.length > 0 ? Object.fromEntries(kept) : undefined;
+}
+
+/**
+ * One widget brought up to the current model (idempotent): config v9's
+ * Custom gauge width (`migrateWidgetV9`), `thr` and `follow` guarded (`thr`
+ * on the threshold kinds only), and `box.w: "fill"` on the full-row kinds.
+ */
+export function normalizeWidget(input: Widget): Widget {
+  let w = migrateWidgetV9(input);
+  if (w.thr !== undefined || w.follow !== undefined) {
+    const { thr: _thr, follow: _follow, ...rest } = w;
+    const thr = THRESHOLD_KINDS.has(w.kind) ? normalizeThr(w.thr) : undefined;
+    const follow = normalizeItemFlags(w.follow);
+    w = { ...rest, ...(thr ? { thr } : {}), ...(follow ? { follow } : {}) };
+  }
   if (!FULL_ROW.has(w.kind) || w.box?.w !== undefined) return w;
   return { ...w, box: { ...w.box, w: "fill" } };
 }
@@ -219,7 +284,7 @@ function normalizeWidget(w: Widget): Widget {
  * Bring a saved panel up to the current model. Idempotent, and every
  * field it doesn't know is kept:
  * - "wrap" / no layout → a wrapping row stack (the old inline flow);
- * - the full-row kinds (bar, table, image, sparkline) get `box.w: "fill"`.
+ * - each widget as `normalizeWidget` has it.
  */
 export function normalizePanel(panel: PanelDef): PanelDef {
   const legacyFlow = panel.layout === undefined || panel.layout === "wrap";
@@ -407,15 +472,16 @@ const SHARED_FIELDS: ReadonlySet<keyof Widget> = new Set<keyof Widget>([
   "box",
   "css",
   "className",
+  "follow",
 ]);
 
 /** The further fields each kind reads. */
 const KIND_FIELDS: Record<WidgetKind, readonly (keyof Widget)[]> = {
-  stat: ["subSensor", "decimals", "scale", "fontSize", "align"],
-  value: ["subSensor", "decimals", "scale", "fontSize", "align"],
-  bar: ["decimals", "scale", "max", "inverted"],
-  gauge: ["decimals", "scale", "max", "inverted", "fontSize"],
-  customGauge: ["vector", "fontSize"],
+  stat: ["subSensor", "decimals", "scale", "fontSize", "align", "thr"],
+  value: ["subSensor", "decimals", "scale", "fontSize", "align", "thr"],
+  bar: ["decimals", "scale", "max", "inverted", "thr"],
+  gauge: ["decimals", "scale", "max", "inverted", "fontSize", "thr"],
+  customGauge: ["vector", "width"],
   sparkline: ["decimals", "scale", "history"],
   table: ["text", "rows", "columns", "header", "align", "fontSize"],
   text: ["text", "decimals", "scale", "align", "fontSize"],
@@ -425,9 +491,9 @@ const KIND_FIELDS: Record<WidgetKind, readonly (keyof Widget)[]> = {
 };
 
 /**
- * The widget as another kind: label, sensor, unit, color, layout and CSS
- * stay; fields the new kind doesn't read are dropped (a shape gets its
- * defaults).
+ * The widget as another kind: label, sensor, unit, color, layout, CSS and
+ * the follow flags stay; fields the new kind doesn't read are dropped (a
+ * shape gets its defaults).
  */
 export function convertKind(w: Widget, kind: WidgetKind): Widget {
   if (w.kind === kind) return w;

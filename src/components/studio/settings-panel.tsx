@@ -43,14 +43,18 @@ export interface FieldsApi {
 export interface FollowBar extends FollowInfo {
   onCustomize: () => void;
   onUseTheme: () => void;
-  /** The theme editor's bar (SPEC §4.1 profile and page scope); absent: a widget's. */
+  /** The theme editor's bar (SPEC §4.1 profile and page scope) or a panel widget's; absent: a widget's. */
   scope?: ThemeScopeBar;
 }
 
-/** A profile theme section (the listed page's custom widgets, Lock / Unlock), or a page theme's (Customize / Use profile). */
+/**
+ * A profile theme section (the listed page's custom widgets, Lock / Unlock), a page theme's
+ * (Customize / Use profile), or a panel widget's (it follows its panel: Customize / Use panel).
+ */
 export type ThemeScopeBar =
   | { kind: "profile"; custom: number; pageName: string; onLock: (on: boolean) => void }
-  | { kind: "page"; pageName: string };
+  | { kind: "page"; pageName: string }
+  | { kind: "item"; panelName: string };
 
 /** Setting types whose value is one plain key (a toggle, number, colour, choice, text or icon). */
 const PLAIN_TYPES = new Set(["boolean", "number", "color", "select", "text", "icon"]);

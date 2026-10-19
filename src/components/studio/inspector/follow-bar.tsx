@@ -12,16 +12,17 @@ const PILL: Record<FollowMode, { label: string; icon: typeof Link2; className: s
 
 /**
  * A followable section's header pill: Theme, Custom or Locked (SPEC §4.1);
- * a page theme's following section reads Profile, a profile theme's
- * unlocked section has none (it is the theme).
+ * a page theme's following section reads Profile, a panel widget's Panel,
+ * a profile theme's unlocked section has none (it is the theme).
  */
 export function FollowPill({ mode, scope }: { mode: FollowMode; scope?: ThemeScopeBar["kind"] }) {
   if (scope === "profile" && mode !== "locked") return null;
   const { label, icon: Icon, className } = PILL[mode];
+  const following = mode === "theme" ? (scope === "page" ? "Profile" : scope === "item" ? "Panel" : label) : label;
   return (
     <span className={cn("flex shrink-0 items-center gap-1 rounded-lg px-[5px] py-px text-[10px] font-medium", className)}>
       <Icon className="h-3 w-3" strokeWidth={2} aria-hidden />
-      {scope === "page" && mode === "theme" ? "Profile" : label}
+      {following}
     </span>
   );
 }
@@ -42,7 +43,7 @@ function BarButton({ accent, onClick, children }: { accent: boolean; onClick: ()
   );
 }
 
-/** What the bar says and its switch: a widget's, or a profile / page theme's (the theme editor). */
+/** What the bar says and its switch: a widget's, a panel widget's, or a profile / page theme's (the theme editor). */
 function barContent(bar: FollowBarState, from: ReactNode): { text: ReactNode; button?: { label: string; accent: boolean; onClick: () => void } } {
   const custom = bar.mode === "custom";
   const locked = bar.mode === "locked";
@@ -58,6 +59,12 @@ function barContent(bar: FollowBarState, from: ReactNode): { text: ReactNode; bu
       ? { text: `Custom for ${scope.pageName}`, button: { label: "Use profile", accent: false, onClick: bar.onUseTheme } }
       : { text: "Follows the profile theme", button: { label: "Customize", accent: true, onClick: bar.onCustomize } };
   }
+  if (scope?.kind === "item") {
+    if (locked) return { text: "Locked by the profile theme" };
+    return custom
+      ? { text: "Custom for this item", button: { label: "Use panel", accent: false, onClick: bar.onUseTheme } }
+      : { text: `Follows panel “${scope.panelName}”`, button: { label: "Customize", accent: true, onClick: bar.onCustomize } };
+  }
   if (locked) return { text: <>Locked by {from}</> };
   return custom
     ? { text: "Custom for this widget", button: { label: "Use theme", accent: false, onClick: bar.onUseTheme } }
@@ -71,7 +78,8 @@ function barContent(bar: FollowBarState, from: ReactNode): { text: ReactNode; bu
  * from before). Custom: "Custom for this widget" and Use theme (the own
  * values stay stored). Locked by the profile: no switch. The theme editor's
  * profile scope reads "Default for all widgets · N custom" with Lock, its
- * page scope "Follows the profile theme" / "Custom for <page>".
+ * page scope "Follows the profile theme" / "Custom for <page>"; a panel
+ * widget's "Follows panel “Rig”" / "Custom for this item" with Use panel.
  */
 export function FollowBar({ bar, onTheme }: { bar: FollowBarState; onTheme?: (level: FollowBarState["level"]) => void }) {
   const custom = bar.mode === "custom";

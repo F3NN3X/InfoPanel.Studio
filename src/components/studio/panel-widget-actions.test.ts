@@ -84,7 +84,19 @@ describe("panelWidgetActions", () => {
     expect(paste.state.selected).toBe("new1");
   });
 
-  it("does nothing on paste with an empty clipboard", () => {
+  it("pastes a copied widget with its thresholds and follow flags, brought up to the current model", () => {
+    const clip = widget("x", { kind: "customGauge", fontSize: 150, follow: { colors: true } });
+    const paste = setup([widget("a")], { widgetClipboard: clip });
+    paste.actions.paste("a");
+    const pasted = paste.state.placement.panel!.widgets[1];
+    expect(pasted).toMatchObject({ kind: "customGauge", width: 150, follow: { colors: true } });
+    expect(pasted).not.toHaveProperty("fontSize");
+    const stat = setup([widget("a")], { widgetClipboard: widget("y", { thr: { warn: 60, crit: "off" } }) });
+    stat.actions.paste("a");
+    expect(stat.state.placement.panel!.widgets[1].thr).toEqual({ warn: 60, crit: "off" });
+  });
+
+    it("does nothing on paste with an empty clipboard", () => {
     const { state, actions } = setup([widget("a")]);
     actions.paste("a");
     expect(state.keys).toEqual([]);

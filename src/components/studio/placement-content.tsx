@@ -106,6 +106,7 @@ export function placementContent(
           panel={p.panel}
           settings={settings}
           enforced={lockedIn(appearance, "colors")}
+          locks={appearance?.profile?.locks}
           sensors={sensors}
           studio={studio}
           selection={selection}

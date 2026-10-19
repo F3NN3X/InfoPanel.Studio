@@ -7,7 +7,6 @@ import { PanelLayers } from "./panel-layers";
 import { PanelBackgroundFields, PanelLayoutFields, PanelMainFields } from "./panel-layout-section";
 import { PanelMenu, PresetNameInput } from "./panel-preset-tools";
 import { panelWidgetActions } from "./panel-widget-actions";
-import { widgetCards } from "./widget-editor";
 import { AddWidgetSelect } from "./widget-kind-menu";
 import { widgetName } from "./widget-kinds";
 import { useSensorCatalog } from "@/lib/catalog";
@@ -32,19 +31,15 @@ interface PanelSheetArgs {
   onPresetNaming: (open: boolean) => void;
   /** Save this panel zone to My panels under a name. */
   onSavePreset: (name: string) => void;
-  /** The profile theme locks Colors: a widget's own color is ignored. */
-  enforce?: boolean;
-  /** Open Sources mode (the sensor field's data picker offers it). */
-  onOpenExplorer: () => void;
 }
 
 /**
  * A panel zone's own cards: Panel (Visual / Code, size, gap, padding,
- * preset), Layout, Background (overlay), Widgets (the layers), and the
- * selected widget's editor cards. The inspector places each in the Content
- * section the registry marks for it (`inspector/panel-cards.ts`). In the
- * Code view the layout, widget and editor cards give way to one wide code
- * card. `undefined` for other zones.
+ * preset), Layout, Background (overlay) and Widgets (the layers). The
+ * inspector places each in the section the registry marks for it
+ * (`inspector/panel-cards.ts`); a selected widget has an inspector of its
+ * own (`inspector/item-model.ts`). In the Code view the layout and widget
+ * cards give way to one wide code card. `undefined` for other zones.
  * (Title, accent and surface are the Widget and Colors & surface cards.)
  */
 export function usePanelSheet({
@@ -57,8 +52,6 @@ export function usePanelSheet({
   presetNaming,
   onPresetNaming,
   onSavePreset,
-  enforce,
-  onOpenExplorer,
 }: PanelSheetArgs): SheetGroup[] | undefined {
   const [view, setView] = useState<"visual" | "code">("visual");
   const catalog = useSensorCatalog();
@@ -74,7 +67,6 @@ export function usePanelSheet({
     onCopyWidget,
   });
   const { updatePanel, updateWidget } = actions;
-  const selectedWidget = panel.widgets.find((w) => w.id === selectedWidgetId) ?? null;
   const layout = panel.layout === "wrap" || !panel.layout ? "stack" : panel.layout;
 
   const setPanelField = <K extends keyof PanelDef>(key: K, value: PanelDef[K]) =>
@@ -164,22 +156,5 @@ export function usePanelSheet({
     });
   }
 
-  return [
-    { heading: "Panel", cards: panelCards },
-    ...(visual && selectedWidget
-      ? [
-          {
-            heading: "Selected widget",
-            cards: widgetCards({
-              widget: selectedWidget,
-              panel,
-              onChange: (fn, field) => updateWidget(selectedWidget.id, fn, field),
-              onChangeKind: (kind) => actions.changeKind(selectedWidget.id, kind),
-              enforce,
-              onOpenExplorer,
-            }),
-          },
-        ]
-      : []),
-  ];
+  return [{ heading: "Panel", cards: panelCards }];
 }

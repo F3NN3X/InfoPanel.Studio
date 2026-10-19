@@ -84,8 +84,21 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   "Go to setting" reaches every theme row (Accent, Glow, thresholds…) and opens the editor there; a widget's Follow
   bar link opens the theme it names (the page's or the profile's).
 - A colour row that follows its palette role names the role ("Series 1") instead of "Auto".
+- Widget settings v2 for panel widgets: a selected panel widget has the zone's four tabs (Show: Kind chips, Content,
+  Size & placement; Style: Typography, Color, Custom CSS; Data: Bound data, Binding, Units & format; Behaviour:
+  Thresholds, History, Fill), only the sections its kind reads, so a change of kind drops the rest. Typography,
+  Color, Units & format and Thresholds follow the panel, which follows the theme ("Follows panel “Rig”" + Customize,
+  "Custom for this item" + Use panel, Locked by the profile theme). New Thresholds for stat, value, bar and gauge:
+  the bound sensor's unit picks the quantity (% load, ° temperature, else value) and the value or fill takes the
+  palette's warning / critical colour. A widget that follows Thresholds is off until a theme level sets that
+  quantity's levels. The Custom gauge kind chip shows only on a widget that already is one.
 
 ### Changed
+- Config version 9 (a v8 build is refused saving over it): a Custom gauge panel widget's width is its own `width`, no
+  longer `fontSize`, so changing it to another kind no longer carries the width over as a font size (a 140 px text).
+  Panels saved earlier (configs, My panels, Library panels, pasted widgets, the Code view) move it on load. A panel
+  widget saved before the follow flags keeps its own font size, alignment, colour and decimals (those sections read
+  as custom), so nothing renders differently.
 - The Dashboard inspector has no Global style tab: its rows are the theme editor's All profiles and profile theme
   scopes. Appearance › Scope keeps "Apply to" for skins, presets, theme colours and surface and opens the theme
   editor. "Force global style" is gone: locking is per profile now (a profile theme locks its own sections, Lock /

@@ -24,7 +24,7 @@ describe("a Custom gauge widget in a panel", () => {
 
   it("draws the spec it holds, wide as the widget's size says", () => {
     const bar = normalizeGauge(STARTERS.find((s) => s.name === "Bar")!.gauge);
-    const html = draw(panelOf({ vector: bar, fontSize: 200 }));
+    const html = draw(panelOf({ vector: bar, width: 200 }));
     expect(html).toContain('style="width:200px"');
     expect(html).not.toBe(draw(panelOf({})));
   });

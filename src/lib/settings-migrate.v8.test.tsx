@@ -231,10 +231,10 @@ describe("v8: idempotence", () => {
     zone("c", "SystemOverview", { settings: { cpuColor: "#ff0000" } }),
   ]);
 
-  it("a migrated config migrates to itself, at version 8", () => {
+  it("a migrated config migrates to itself, at the current version", () => {
     const once = mergeConfig(legacy);
     expect(once.version).toBe(CONFIG_VERSION);
-    expect(CONFIG_VERSION).toBe(8);
+    expect(CONFIG_VERSION).toBeGreaterThanOrEqual(8);
     expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });
 

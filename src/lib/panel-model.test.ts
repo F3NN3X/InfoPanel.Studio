@@ -13,6 +13,7 @@ import {
   normalizePanel,
   normalizePanelPlacement,
   normalizePanelPresets,
+  normalizeWidget,
   panelLegacyLook,
   panelOwnSettings,
   panelSettings,
@@ -368,18 +369,77 @@ describe("parsePanelJson", () => {
 describe("customGauge widget (a vector gauge in a panel)", () => {
   const vector = normalizeGauge(STARTERS[1].gauge);
 
-  it("round-trips its spec through the Code view's JSON", () => {
+  it("round-trips its spec and width through the Code view's JSON (an old fontSize width moves to width)", () => {
     const p = panel({ widgets: [widget("customGauge", { sensor: "cpu.load", vector, fontSize: 140 })] });
     const r = parsePanelJson(JSON.stringify(p), () => "fresh");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.panel.widgets[0]).toMatchObject({ kind: "customGauge", sensor: "cpu.load", fontSize: 140 });
+    expect(r.panel.widgets[0]).toMatchObject({ kind: "customGauge", sensor: "cpu.load", width: 140 });
+    expect(r.panel.widgets[0].fontSize).toBeUndefined();
     expect(r.panel.widgets[0].vector).toEqual(vector);
   });
 
   it("keeps its spec and size on a change to another kind and back only where the kind reads them", () => {
-    const g = widget("customGauge", { sensor: "cpu.load", vector, fontSize: 140 });
+    const g = widget("customGauge", { sensor: "cpu.load", vector, width: 140 });
     expect(convertKind(g, "bar").vector).toBeUndefined();
+    // Its width is no font size: a text made from it keeps its own size.
+    expect(convertKind(g, "text")).not.toHaveProperty("width");
+    expect(convertKind(g, "text").fontSize).toBeUndefined();
     expect(convertKind(widget("bar", { sensor: "cpu.load" }), "customGauge")).toMatchObject({ kind: "customGauge", sensor: "cpu.load" });
+  });
+});
+
+describe("normalizeWidget (thresholds, follow flags, config v9)", () => {
+  it("keeps usable levels and flags, drops the rest", () => {
+    const w = normalizeWidget(widget("stat", { thr: { warn: 70, crit: "off" }, follow: { colors: false } }));
+    expect(w.thr).toEqual({ warn: 70, crit: "off" });
+    expect(w.follow).toEqual({ colors: false });
+    const junk = normalizeWidget(widget("stat", { thr: { warn: "x", crit: Number.NaN }, follow: { colors: "no", skin: false } } as never));
+    expect(junk).not.toHaveProperty("thr");
+    expect(junk).not.toHaveProperty("follow");
+    expect(normalizeWidget(widget("stat", { thr: "70" } as never))).not.toHaveProperty("thr");
+  });
+
+  it("keeps thresholds on the kinds that colour by them only", () => {
+    for (const kind of ["stat", "value", "bar", "gauge"] as const)
+      expect(normalizeWidget(widget(kind, { thr: { warn: 1 } })).thr).toEqual({ warn: 1 });
+    for (const kind of ["sparkline", "text", "clock", "customGauge"] as const)
+      expect(normalizeWidget(widget(kind, { thr: { warn: 1 } }))).not.toHaveProperty("thr");
+  });
+
+  it("moves a Custom gauge's width off fontSize; a width already set wins; idempotent", () => {
+    const once = normalizeWidget(widget("customGauge", { fontSize: 140 }));
+    expect(once).toMatchObject({ width: 140 });
+    expect(once).not.toHaveProperty("fontSize");
+    expect(normalizeWidget(once)).toEqual(once);
+    expect(normalizeWidget(widget("customGauge", { fontSize: 140, width: 90 }))).toEqual(widget("customGauge", { width: 90 }));
+    // Other kinds keep their font size.
+    expect(normalizeWidget(widget("stat", { fontSize: 40 })).fontSize).toBe(40);
+    const plain = widget("stat");
+    expect(normalizeWidget(plain)).toBe(plain);
+  });
+
+  it("runs where panels enter: a loaded v8 config, its saved panels, the Code view", () => {
+    const gauge = () => widget("customGauge", { fontSize: 160 });
+    const stored = {
+      version: 8,
+      profiles: [{ ...sampleProfile(), pages: [{ id: "pg", name: "Main", placements: [placement(panel({ widgets: [gauge()] }))] }] }],
+      panelPresets: [{ id: "u1", name: "Mine", panel: panel({ widgets: [gauge()] }) }],
+    };
+    const loaded = mergeConfig(stored as never);
+    const zoneWidget = loaded.profiles[0].pages[0].placements[0].panel!.widgets[0];
+    expect(zoneWidget).toMatchObject({ width: 160 });
+    expect(zoneWidget).not.toHaveProperty("fontSize");
+    expect(loaded.panelPresets![0].panel.widgets[0]).toMatchObject({ width: 160 });
+    expect(mergeConfig(JSON.parse(JSON.stringify(loaded)))).toEqual(loaded);
+    const r = parsePanelJson(JSON.stringify(panel({ widgets: [gauge()] })), () => "n");
+    expect(r.ok && r.panel.widgets[0].width).toBe(160);
+  });
+
+  it("a change of kind keeps the follow flags and drops thresholds where the kind has none", () => {
+    const w = widget("stat", { thr: { warn: 70 }, follow: { colors: true } });
+    expect(convertKind(w, "bar")).toMatchObject({ thr: { warn: 70 }, follow: { colors: true } });
+    expect(convertKind(w, "sparkline")).not.toHaveProperty("thr");
+    expect(convertKind(w, "sparkline").follow).toEqual({ colors: true });
   });
 });

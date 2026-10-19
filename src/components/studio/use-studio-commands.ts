@@ -287,6 +287,11 @@ export function useStudioCommands({
     if (sel.selection.length > 1) return null;
     if (!selected) return { kind: "dashboard", scope: "all" };
     if (selected.module === BLANK_MODULE) return null;
+    // A selected panel widget: its own inspector (the layout only shows which rows it has).
+    if (selected.panel && selectedWidget) {
+      const layout = selected.panel.layout;
+      return { kind: "item", widget: selectedWidget, layout: layout === "grid" || layout === "overlay" ? layout : "stack" };
+    }
     const mod = selected.panel ? undefined : modules.find((m) => m.id === selected.module);
     if (mod) return widgetContext(mod);
     return { kind: selected.panel ? "panel" : "widget", defs: zoneDefs(selected) } as InspectorContext;

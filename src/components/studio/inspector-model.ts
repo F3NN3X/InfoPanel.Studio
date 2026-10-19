@@ -32,6 +32,7 @@ import {
   type InspectorCategory,
 } from "./inspector-categories";
 import { matchesQuery, rowMatches, SET_HERE, settingStateOf, type SettingState } from "./settings-model";
+import { itemSections, type ItemContext } from "./inspector/item-model";
 import { STATUS_COLORS_TITLE, THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
 
 /**
@@ -87,11 +88,9 @@ export type InspectorContext =
       layout?: PanelLayoutKind;
       /** The panel is shown as JSON (Code): the layout and widget cards give way to it. */
       codeView?: boolean;
-      /** A panel widget is selected: its cards follow the list. */
-      selectedWidget?: boolean;
-      /** The selected panel widget's kind name (the titles of its cards). */
-      selectedLabel?: string;
     }
+  /** A widget of a panel (SPEC §8): its kind's sections (`inspector/item-model.ts`). */
+  | ItemContext
   | { kind: "blank" }
   /** Several zones: the shared look only, no tabs. */
   | { kind: "multi"; defs: ModuleSetting[] }
@@ -125,11 +124,7 @@ export type SpecialSection =
   | "panelLayout"
   | "panelBackground"
   | "panelWidgets"
-  | "widgetKind"
-  | "widgetDisplay"
-  | "widgetPlacement"
-  | "widgetColors"
-  | "widgetAdvanced"
+  | "itemKind"
   | "boundData"
   | "panelData"
   | "blankPick"
@@ -320,14 +315,6 @@ function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>):
   );
 }
 
-const PANEL_WIDGET_CARDS: [SpecialSection, string, string[]][] = [
-  ["widgetKind", "Selected", ["Kind", "Change kind"]],
-  ["widgetDisplay", "Display", ["Label", "Sensor", "Unit"]],
-  ["widgetPlacement", "Size & placement", ["Sizing", "Span", "Band"]],
-  ["widgetColors", "Typography & colors", ["Color"]],
-  ["widgetAdvanced", "Selected · Advanced", ["Class names", "Custom CSS"]],
-];
-
 function panelSections(context: Extract<InspectorContext, { kind: "panel" }>): InspectorSection[] {
   const sections = sectionsOfCategories(zoneCategories(context.defs), context);
   const visual = !context.codeView;
@@ -339,11 +326,6 @@ function panelSections(context: Extract<InspectorContext, { kind: "panel" }>): I
     ...(visual && context.layout === "overlay" ? [show("background", "Background", "panelBackground", ["Image", "Dim"])] : []),
     ...(visual ? [show("widgets", "Widgets", "panelWidgets", ["Add panel widget"])] : []),
     ...(!visual ? [show("json", "Panel JSON", "panelJson", ["Apply"])] : []),
-    ...(visual && context.selectedWidget
-      ? PANEL_WIDGET_CARDS.map(([special, title, terms]) =>
-          show(`item-${special}`, special === "widgetKind" ? `Selected · ${context.selectedLabel ?? "widget"}` : title, special, terms)
-        )
-      : []),
     ...zoneTabs(
       sections,
       section({
@@ -450,6 +432,8 @@ export function allSections(context: InspectorContext): InspectorSection[] {
       return widgetSections(context);
     case "panel":
       return panelSections(context);
+    case "item":
+      return itemSections(context);
     case "blank":
       return blankSections();
     case "multi":

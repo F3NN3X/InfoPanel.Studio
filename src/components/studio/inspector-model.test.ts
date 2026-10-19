@@ -275,23 +275,9 @@ describe("panel sections", () => {
     expect(keysOf([find(sectionsFor(panel, "show"), "Header")])).toEqual(["label", "icon"]);
   });
 
-  it("adds Background for an overlay and the selected widget's cards after the list", () => {
-    const overlay: InspectorContext = { ...panel, layout: "overlay", selectedWidget: true } as InspectorContext;
-    expect(titles(sectionsFor(overlay, "show"))).toEqual([
-      "Panel",
-      "Layout",
-      "Background",
-      "Widgets",
-      "Selected · widget",
-      "Display",
-      "Size & placement",
-      "Typography & colors",
-      "Selected · Advanced",
-      "Header",
-    ]);
-    expect(
-      titles(sectionsFor({ ...overlay, selectedLabel: "Slider" } as InspectorContext, "show")).filter((t) => t.startsWith("Selected ·"))
-    ).toEqual(["Selected · Slider", "Selected · Advanced"]);
+  it("adds Background for an overlay (a selected widget has an inspector of its own)", () => {
+    const overlay: InspectorContext = { ...panel, layout: "overlay" } as InspectorContext;
+    expect(titles(sectionsFor(overlay, "show"))).toEqual(["Panel", "Layout", "Background", "Widgets", "Header"]);
   });
 
   it("swaps the layout and widget cards for the JSON in the code view", () => {
@@ -527,10 +513,12 @@ describe("More rows", () => {
     expect(isMore({ ...old, more: false })).toBe(false);
   });
 
-  it("keeps every section, a whole-advanced card included", () => {
-    const overlay = { ...panel, selectedWidget: true } as InspectorContext;
-    expect(titles(sectionsFor(overlay, "show"))).toContain("Selected · Advanced");
-    expect(splitMore(find(sectionsFor(overlay, "show"), "Selected · Advanced")).count).toBe(0);
+  it("keeps a section whose rows are all More (a panel widget's Custom CSS)", () => {
+    const item: InspectorContext = { kind: "item", widget: { id: "w", kind: "stat", visible: true }, layout: "stack" };
+    expect(titles(sectionsFor(item, "style"))).toContain("Custom CSS");
+    const css = splitMore(find(sectionsFor(item, "style"), "Custom CSS"));
+    expect(css.rows).toEqual([]);
+    expect(css.count).toBe(2);
   });
 
   it("puts an advanced canvas item group's fields behind More", () => {
