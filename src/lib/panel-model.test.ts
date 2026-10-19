@@ -419,6 +419,20 @@ describe("normalizeWidget (thresholds, follow flags, config v9)", () => {
     expect(normalizeWidget(plain)).toBe(plain);
   });
 
+  it("moves a Gauge's ring size off fontSize; a size already set wins; idempotent; a change of kind carries no font size", () => {
+    const once = normalizeWidget(widget("gauge", { fontSize: 56 }));
+    expect(once).toMatchObject({ size: 56 });
+    expect(once).not.toHaveProperty("fontSize");
+    expect(normalizeWidget(once)).toEqual(once);
+    expect(normalizeWidget(widget("gauge", { fontSize: 56, size: 90 }))).toEqual(widget("gauge", { size: 90 }));
+    const text = convertKind(once, "text");
+    expect(text).not.toHaveProperty("size");
+    expect(text.fontSize).toBeUndefined();
+    expect(convertKind(widget("stat", { fontSize: 40 }), "gauge")).not.toHaveProperty("fontSize");
+    const r = parsePanelJson(JSON.stringify(panel({ widgets: [widget("gauge", { fontSize: 56 })] })), () => "n");
+    expect(r.ok && r.panel.widgets[0].size).toBe(56);
+  });
+
   it("runs where panels enter: a loaded v8 config, its saved panels, the Code view", () => {
     const gauge = () => widget("customGauge", { fontSize: 160 });
     const stored = {

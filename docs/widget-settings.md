@@ -1,7 +1,7 @@
 # Widget Settings (Standardized)
 
 The schema, controls, and shared block behind every widget's settings in
-the studio inspector (tabs of collapsible sections, driven by one registry). One reference for: what a setting *is*, what every
+the studio inspector (four tabs of collapsible sections, driven by one registry). One reference for: what a setting *is*, what every
 widget gets for free, and how a new widget adopts it.
 
 Companion to [`redesign/`](redesign/README.md) (the studio's design) and [`module-catalog.md`](module-catalog.md) (the what, per module).
@@ -12,10 +12,9 @@ A module declares `settings: ModuleSetting[]` (`src/modules/types.ts`). The
 studio's inspector renders one control per entry, as a compact row in a
 section (`inspector-model.ts` builds the sections and `setting-control.tsx` /
 `setting-rows.tsx` draw the rows). The section is the setting's *category*:
-standard keys are filed by key in the general
-categories (`GENERAL_CATEGORIES` in
-`src/components/studio/inspector-categories.ts`), module-specific ones by
-their `group` (`categorize`); values are stored **per placement**
+standard keys name a shared section (`section`; `SHARED_SECTIONS` in
+`src/components/studio/inspector-categories.ts`), module-specific ones their
+own `group` (`categorize`); values are stored **per placement**
 (`Placement.settings`) and merged over the defaults at render time via
 `effectiveSettings`.
 
@@ -23,13 +22,30 @@ their `group` (`categorize`); values are stored **per placement**
 |---|---|---|---|
 | `text` | text input; with `suggestKey`, a list of names as chips | string (with `suggestKey`: names, comma-separated) | `multiline`; `suggestKey` (a sensor key holding a JSON array or comma list of names, offered while typing) |
 | `number` | slider (when `min`/`max` set), else number field | number | `min`, `max`, `step` |
-| `sensorItems` | one row per sensor of the multi-sensor setting named in `of`: label, max, warn, crit, decimals, reset | JSON string `{ [sensorKey]: { label?, max?, warn?, crit?, decimals? } }`, `""` = none; overrides of unbound keys are kept and ignored | `of` |
+| `preset` | a segmented / dropdown choice whose option writes a bundle of other settings (`applies`); reads Custom when the toggles no longer match any bundle | string option value | `options[]` with `applies` |
+| `thresholds` | the Thresholds control: a zone bar and Warning / Critical sliders, an Off chip per level, critical never below warning, °F when the widget reads °F | `warn.<q>` / `crit.<q>` (`keyY`): a number, or `"off"` | `quantity` |
+| `sensor` | a sensor picker (the widget's source rows, and each listed sensor's inline tune button) | sensor key | — |
+| `status` | read-only line (Steam profile's API status) from `sourcePlugin`'s containers | — | `sourcePlugin` |
 | `select` | segmented (≤ 4 options) else dropdown; `multiple: true` renders a checkbox list (value stored comma-separated) | string option value | `options[]`, `optionsFrom: "sources"` + `sourcePlugin` (live sensor device list — see below), or `optionsFrom: "media"` (the browser's audio-capture devices) |
 | `boolean` | toggle | boolean | — |
 | `color` | native color picker | `#rrggbb` (empty = auto) | — |
 | `icon` | icon grid (18 lucide icons + "none") | icon key from `lib/widget-icons.ts` | — |
 | `image` | URL field + live thumbnail | image URL (empty = none) | — |
-| `align` | 3×3 alignment picker + Spread toggle | `key` holds the horizontal value, `keyY` the vertical one (both written as one change) | `keyY` |
+| `align` | 3×3 alignment picker + Spread toggle | `key` holds the cell code (`tl`…`br`, `auto`), `keyY` (`alignSpread`) the Spread flag (both written as one change) | `keyY` |
+
+A setting can also set where and how its row shows:
+
+| Field | Effect |
+|---|---|
+| `section` | The shared section it is filed in (`header`, `fit`, `skin`, `colors`, `palette`, `surface`, `type`, `spacing`, `border`, `css`, `format`, `thresholds`, `island`, `motion`) instead of a `group` of the widget's own. |
+| `tab` | `"show"`, `"style"`, `"data"` or `"behaviour"`. Unset: Data for a sensor or device, else Show. `style` files a widget colour or look toggle in Style › Widget colors. |
+| `more` | Listed after the section's **More (n)** link (`advanced` is read as the same). |
+| `role` | A colour row's palette colour (`s1`…`s6`, `ok`, `warn`, `crit`): following the theme it shows that colour, custom its own, Auto = the role. |
+| `perWidget` | Never comes from a theme (a tint, a background image): editable while the section follows. |
+| `keyY` / `defaultY` | The second key of a two-keyed row (`align` + `alignSpread`, `warn.<q>` + `crit.<q>`). |
+| `hidden` | Kept in the schema (default, stored value) but not listed (Custom gauge's `gauge`). |
+| `hint` | One-line explanation behind the row's info icon; searched too. |
+| `visibleIf(values)` | The row shows only while this holds for the zone's resolved values (for example glow colour only when glow is not none). |
 
 Any setting can also list `keywords`: extra terms the settings search
 matches besides the label, key and option names.
@@ -85,78 +101,131 @@ Every widget spreads
 `STANDARD_SETTINGS` (`src/modules/standard-settings.ts`) into its
 `settings`, so every widget offers the same core customization:
 
-| key | type | default | what it does |
-|---|---|---|---|
-| `preset` | select | `default` | one-click bundle — see presets below |
-| `layout` | select | `auto` | auto / card / standard / compact / simple |
-| `surface` | select | `glass` | glass / matte-light / matte-dark / theme (from the theme tokens) |
-| `showTitle` | boolean | `true` | Show title: off hides the header and the title line of the studio and compact cards (not offered on panels, whose empty title hides it) |
-| `label` | text | `""` | custom title line (empty = the widget's own header; hidden while Show title is off) |
-| `icon` | icon | `""` | header icon (empty = none) |
-| `accent` | color | `""` | accent for fills / header icon (empty = auto) |
-| `background` | image | `""` | background image URL |
-| `backgroundOn` | boolean | `false` | use that image behind the surface |
-| `skin` | select | `auto` | auto / one of the 14 skins (see Look below) |
-| `smoothing` | select | `stepped` | Graph updates: stepped (jump to each reading) / smooth (line, area and step graphs scroll by time at a constant speed two measured intervals behind the feed, with an eased range; bars and rings glide linearly). Reduced motion keeps it stepped (`core/smoothing.ts`) |
-| `variant` | select | `default` | Dense summary: default (Off) / studio (On); under Size & alignment |
-| `graph` | select | `auto` | graph style: auto / area / line / step / bars / dots / braille (Advanced) |
-| `meter` | select | `auto` | meter style: auto / bar / pill / segments / blocks / hair / wave / square (Advanced) |
-| `compactView` | select | `auto` | Summary card: auto (small zones) / off (never) / on (always), in Size & alignment |
-| `autoScale` | boolean | `true` | kept for older configs; see Scaling |
-| `scale` | number | `100` | size %, 50–200, on top of auto-scale |
-| `alignX` + `alignY` | align | `auto` | one picker: left / center / right / spread × top / middle / bottom |
-| `padding` | select | `auto` | inner padding, px |
-| `gap` | select | `auto` | gap between items, px |
-| `radius` | select | `auto` | corner radius, px or pill |
-| `textColor` | color | `""` | main text color |
-| `mutedColor` | color | `""` | secondary text color |
-| `font` | select | `auto` | theme (the page font, General > Font) / sans / rounded / serif / mono |
-| `fontWeight` | select | `auto` | weight of the big values |
-| `labelCase` | select | `auto` | caption case: UPPERCASE / as written / Capitalized |
-| `stroke` | number | `100` | ring / bar thickness %, 50–250 |
-| `customCss` | text (multi-line) | `""` | CSS scoped to this widget (`:scope` = its root) |
-| `borderWidth` | select | `auto` | surface edge width, px (auto = 1px) |
-| `borderColor` | color | `""` | surface edge color |
-| `glow` | select | `none` | inner edge glow: none / soft / strong |
-| `glowColor` | color | `""` | glow color (empty = accent) |
-| `surfaceOpacity` | number | `100` | surface background opacity %, 0–100 |
-| `blur` | select | `auto` | backdrop blur, px |
+| key | type | default | section | what it does |
+|---|---|---|---|---|
+| `showTitle` | boolean | `true` | Header | Show title: off hides the header and the title line of the studio and compact cards (not offered on panels, whose empty title hides it) |
+| `label` | text | `""` | Header | custom title line (empty = the widget's own header; hidden while Show title is off) |
+| `icon` | icon | `""` | Header (More) | header icon (empty = none) |
+| `compact` | select | `auto` | Fit | Small zones: Auto (1×1, one-row and one-column zones show the summary card) / Full (never) / Card (always, only where the widget has a card) / Dense (a dense summary) |
+| `sizeTier` | select | `auto` | Fit (More) | Density: Auto / Roomy / Standard / Compact / Minimal forces the size class |
+| `skin` | select | `auto` | Skin & graphics | auto / one of the 14 skins (see Look below) |
+| `stroke` | number | `100` | Skin & graphics | ring / bar thickness %, 50–250 |
+| `graph` | select | `auto` | Skin & graphics (More) | graph style: auto / area / line / step / bars / dots / braille |
+| `meter` | select | `auto` | Skin & graphics (More) | meter style: auto / bar / pill / segments / blocks / hair / wave / square |
+| `accent` | color | `""` | Colors | accent for fills / header icon (empty = auto) |
+| `textColor` | color | `""` | Colors | main text color |
+| `mutedColor` | color | `""` | Colors | secondary text color |
+| `preset` | select | `default` | Colors (More) | one-click bundle — see presets below |
+| `surface` | select | `glass` | Surface | glass / matte-light / matte-dark / theme (from the theme tokens) |
+| `surfaceOpacity` | number | `100` | Surface | surface background opacity %, 0–100 |
+| `blur` | select | `auto` | Surface | backdrop blur, px |
+| `background` | image | `""` | Surface (More) | background image URL (per widget) |
+| `backgroundOn` | boolean | `false` | Surface (More) | use that image behind the surface (per widget) |
+| `font` | select | `auto` | Typography | theme (the page font, General > Font) / sans / rounded / serif / mono |
+| `fontWeight` | select | `auto` | Typography | weight of the big values |
+| `labelCase` | select | `auto` | Typography | caption case: UPPERCASE / as written / Capitalized |
+| `scale` | number | `100` | Size & spacing | size %, 50–200 |
+| `align` + `alignSpread` | align | `auto` | Size & spacing | one 3×3 picker (cell codes `tl`…`br`) and Spread |
+| `padding` | select | `auto` | Size & spacing | inner padding, px |
+| `gap` | select | `auto` | Size & spacing | gap between items, px |
+| `radius` | select | `auto` | Size & spacing | corner radius, px or pill |
+| `borderWidth` | select | `auto` | Border & glow | surface edge width, px (auto = 1px) |
+| `borderColor` | color | `""` | Border & glow | surface edge color |
+| `glow` | select | `none` | Border & glow | inner edge glow: none / soft / strong |
+| `glowColor` | color | `""` | Border & glow | glow color (empty = accent) |
+| `customCss` | text (multi-line) | `""` | Custom CSS (More) | CSS scoped to this widget (`:scope` = its root) |
+| `smoothing` | select | `stepped` | Motion | Graph updates: stepped (jump to each reading) / smooth (line, area and step graphs scroll by time at a constant speed two measured intervals behind the feed, with an eased range; bars and rings glide linearly). Reduced motion keeps it stepped (`core/smoothing.ts`) |
 
-Everything from `skin` through `customCss` is `STYLE_SETTINGS`; the
-surface keys after it are `SURFACE_SETTINGS` (widgets with a surface box).
-The plain card modules (Departures, notifications, text file, Stream Deck) add
-`CARD_SETTINGS` after their own options, and the "Other sensors" cards use it
-alone: `surface` (default `theme`, the shadcn card they always had), `accent`,
-`STYLE_SETTINGS` and `SURFACE_SETTINGS`. Web page takes `scale`, `radius`,
-`accent` and the border / glow keys (an edge drawn over the frame). In the studio the standard options sit in the **general
-categories**, the same sections on every widget (`group` carries the title; the
-keys are listed in `GENERAL_CATEGORIES`):
+`STYLE_SETTINGS` is the look block, `SURFACE_SETTINGS` the surface keys (widgets
+with a surface box). The plain card modules (Departures, notifications, text
+file, Stream Deck) add `CARD_SETTINGS` after their own options, and the "Other
+sensors" cards use it alone: `surface` (default `theme`, the shadcn card they
+always had), `accent`, `STYLE_SETTINGS` and `SURFACE_SETTINGS`. Web page takes
+the sections its `styleSubset` names (the accent, `scale` and `radius`, and the
+border / glow keys: an edge drawn over the frame).
 
-| Category | Keys |
+The shared sections live in four tabs, in this order (`SHARED_SECTIONS`):
+
+| Tab | Sections |
 |---|---|
-| Widget | `showTitle`, `label`, `icon` (plus the type picker and *Visible*, added by the zone) |
-| Look | `skin`, `graph`, `meter` (the last two are Advanced); `variant` and `compactView` sit in Size & alignment |
-| Size & alignment | `layout`, `autoScale`, `scale`, `alignX` / `alignY` |
-| Typography | `textColor`, `mutedColor`, `font`, `fontWeight`, `labelCase` |
-| Spacing & shape | `padding`, `gap`, `radius`, `stroke` |
-| Colors & surface | `preset`, `surface`, `accent`, `background`, `backgroundOn`, `surfaceOpacity`, `blur` (plus Follow / Custom and the style tools) |
-| Border & effects | `borderWidth`, `borderColor`, `glow`, `glowColor` (plus the zone frame) |
-| Advanced | `customCss` |
+| Show | Header · the widget's own sections · Fit |
+| Style | Skin & graphics · Colors · Widget colors · Surface · Typography · Size & spacing · Border & glow · Custom CSS |
+| Data | the widget's source sections (Device, Sensors…) · Units & format |
+| Behaviour | Thresholds · the widget's own behaviour sections (History, Dynamics, Sorting, Interaction…) · Dynamic Island · Motion |
 
-`preset`, `layout` and `surface` carry no `group` and are
-filed by key. "Auto" / empty always means the widget's own look. The
-constants are `GROUP_WIDGET`, `GROUP_SIZE`, `GROUP_TYPOGRAPHY`,
-`GROUP_SPACING`, `GROUP_COLORS`, `GROUP_EFFECTS` and `GROUP_ADVANCED`.
+A tab with no sections is disabled. How a widget fills the shared sections is
+its `InspectorMeta` (`src/widgets/registry/inspector-meta.ts`): `header`
+(`yes`; `title-only` for Clock and System overview: Title and Icon, a header only
+when a title is set; `none` for Calendar, Game spotlight, KPI tiles, Menu bar,
+OSD strip, Steam game, Vitals and Web page, whose Title and Icon move into Fit
+when the widget has a card or dense view), `compact` (`{ card, dense }`, which
+Small zones choices exist; without a card the Card choice is gone), `fmt` (the
+Units & format rows it draws) and `thr` (the threshold quantities it draws).
+Fit is omitted for Web page.
+
+`preset` and `surface` carry no `group`. "Auto" / empty always means the
+widget's own look. A widget's own row never lands in a section named like a
+shared one, like the widget, or "Content": the audit tests
+(`refile-audit.test.ts`, `inspector-categories.test.ts`) fail for such a
+section, for a colour row without a `role`, and for an empty section.
 
 There is no idle hiding: `hideWhenIdle` (and `DashboardModule.isIdle`) was
 removed; a stored value is ignored.
 
-### Look: skin, variant, graph and meter
+### Followable sections and the theme
+
+Eleven sections are *themed* and can follow a widget theme instead of being set
+per widget: `skin`, `colors`, `palette` (Widget colors), `surface`, `type`,
+`spacing`, `border`, `css`, `format` (Units & format), `thresholds` and
+`motion` (`SECTION_KEYS` in `src/lib/theme-model.ts` lists the keys of each).
+Header, Fit, a widget's own sections and Dynamic Island are never themed, and
+neither are Small zones and Density (they depend on the zone's shape).
+
+A widget section follows its theme unless `Placement.follow[section]` is
+`false`, and always while the profile locks the section. The Follow bar at the
+top of each themed section shows the state (see [the customization
+guide](customization-guide.md#where-the-options-are)). The levels are
+`THEME_DEFAULTS` (today's defaults, so nothing repaints), the all-profiles style
+(`DashboardConfig.style`), the profile theme (`MonitorProfile.widgetTheme`:
+`values` and `locks`), a page theme (`ProfilePage.widgetTheme`: `values` and
+`follow`), then the widget. Rows with `perWidget` stay editable while their
+section follows. A colour row with a `role` follows the palette colour of that
+role. Panel items follow the panel's resolved look the same way
+(`Widget.follow`, `panel-item.ts`).
+
+### Shared controls
+
+One control per concept, with the same key and label in every widget
+(`src/modules/setting-readers.ts` reads them for the renderers):
+
+- **Thresholds** - `warn.<q>` / `crit.<q>` for each quantity the widget draws:
+  `load` (%, theme 80 / 92), `temp` (°C, shown in °F when `tempUnit` is `f`,
+  80 / 90), `full` (%, 85 / 95), `db` (audio level, −9 / −2) and `value` (the
+  sensor's unit; off in the theme). `"off"` disables a level. Per-sensor
+  overrides (Sensor group's `items`) keep `{ warn, crit }` per sensor, blank =
+  the group's. Status tracker's per-track levels are `track.N.warn` /
+  `track.N.crit`. Thermals has `sensorLimits` ("Use sensor limits", on): each
+  sensor's own limits instead of fixed levels. Audio meter and Meter bridge use
+  `warn.db` / `crit.db`.
+- **Device** - one `device` key for every single-device select (`cpu`, `gpu`,
+  `disk`, `adapter`, `drive`, audio); the list starts with **Auto** stating its
+  rule and the current pick ("Busiest adapter · now Wi-Fi"), then the live
+  devices with a reading. Multi-device rows (Meter bridge channels, Now playing
+  live sources) use the same rows as a checkbox list under `devices`, empty =
+  all.
+- **Small zones** and **Density** - `compact` and `sizeTier` (above).
+- **Align** - `align` (a 3×3 cell code) and `alignSpread`.
+- **Units & format** - `tempUnit` (c / f), `rateUnit`, `decimals` (auto, 0, 1,
+  2; SensorValue keeps 3–4) and `clock` (auto / 24 / 12), each only where the
+  widget declares it in `fmt`, and themed. Seconds (`showSeconds`) stays a
+  per-widget row.
+
+### Look: skin, graph and meter
 
 The Look keys restyle a widget's whole drawing, not just its colors. They are
-ordinary look keys: they resolve default → dashboard → profile → widget, obey
-Follow / Custom and Force global style, show source dots, and are saved in
-style presets and appearance presets. Their defaults (`auto` / `default`)
+themed keys: they resolve default → all profiles → profile → page → widget, obey
+Follow / Customize and the profile's locks, show source dots, and are saved in
+style presets and appearance presets. Their defaults (`auto`)
 leave a widget looking as it always did.
 
 - **Skin** — `auto` or one of 14: `default`, `tui`, `macos`, `fluent`, `hud`,
@@ -167,44 +236,45 @@ leave a widget looking as it always did.
   saved, the skin's surface is used; a saved `surface` always wins, and the
   default stays `glass` while the skin is `auto`. A skin's own accent applies
   only while no accent is set and the surface is not light.
-- **Variant** — `default`, or `studio`, a dense summary of the same data (a
-  headline value, a trend and a few rows) drawn instead of the normal layout.
 - **Graph style** and **Meter style** — override the skin's choice for every
   sparkline-type graph and for bars and meters in the widget (`auto` = the
   skin's).
-- **Summary card** (`compactView`, Size & alignment) — **Auto**: zones of 1 x 1,
-  strip or column shape swap to a summary card of tile, strip or column form;
-  **Never** (`off`) keeps the full layout; **Always** (`on`) shows the summary
-  card at any size (a wide zone gets the strip form, otherwise the tile form).
-  Widgets without a compact descriptor ignore it; the Studio variant ignores it.
+- **Small zones** (`compact`, Fit) — **Auto**: zones of 1 x 1, strip or column
+  shape swap to a summary card of tile, strip or column form; **Full** keeps
+  the full layout; **Card** shows the summary card at any size (a wide zone gets
+  the strip form, otherwise the tile form); **Dense** draws a dense, uniform
+  summary of the same data (a headline value, a trend and a few rows), or the
+  card where the widget has no dense view. Widgets without a compact descriptor
+  never offer Card.
 
-Skin, variant, graph, meter and compact view are drawn by the shared widget
-shell (below). They have no effect on custom panel zones, which hide
-`variant` and `compactView` (`NOT_FOR_PANELS`); with a skin set, a panel's bars,
-sparklines, gauges and numerals take the skin's primitives (see
+Skin, graph, meter and the Fit choices are drawn by the shared widget shell
+(below). They have no effect on custom panel zones, which hide `compact` and
+`sizeTier` (`NOT_FOR_PANELS`); with a skin set, a panel's bars, sparklines,
+gauges and numerals take the skin's primitives (see
 [architecture.md](architecture.md#the-widget-shell)).
 
-### Global style, copy / paste and style presets
+### The theme, copy / paste and style presets
 
-The look-only keys (`PROFILE_STYLE_KEYS`: `surface`, `accent` and every
-key of `STYLE_SETTINGS` / `SURFACE_SETTINGS`) can be set once for every
-profile (`DashboardConfig.style`) and per profile (`MonitorProfile.style`),
-in the Dashboard inspector (nothing selected: **Appearance** for the scope
-(All profiles / This profile), **Global style** for the values). Resolution order (`resolveStyle`,
-`src/lib/style-resolve.ts`): module default → dashboard style → profile
-style → the widget's own value. A placement's `styleMode: "follow"` skips
-its own look values (kept stored); `styleEnforce` (dashboard, or the
-profile's when set) does that for every widget and also drops a panel's
-own widget colors. The inspector marks each row with a dot (own value,
-from the dashboard style, from the profile style, or own value overriding
-them), and a hover reset drops an own value.
+The look keys (`PROFILE_STYLE_KEYS` and the format / threshold / palette keys of
+`SECTION_KEYS`) can be set once for every profile
+(`DashboardConfig.style`), per profile (`MonitorProfile.widgetTheme.values`)
+and per page (`ProfilePage.widgetTheme.values`), in the theme editor (Studio ›
+Theme). Resolution order (`resolveStyle`, `src/lib/style-resolve.ts`) is in
+[architecture.md](architecture.md#style-resolution-srclibtheme-modelts-srclibstyle-resolvets):
+a widget section that follows (`Placement.follow`, default) skips its own
+values, which stay stored; a profile **lock** makes the section follow
+everywhere, including on pages. The inspector marks each row with a dot (own
+value, from the dashboard style, from the profile style, or own value
+overriding them), and a hover reset drops an own value.
 
 The inspector's style tools copy a widget's style (Copy / Paste), make it
-the global style (Use as global… → All profiles / This profile), and save /
+the theme of a level (Use as global… → All profiles / This profile), and save /
 apply named presets (`DashboardConfig.stylePresets`). Paste and Apply
 replace the widget's style wholesale (`replaceStyle`): unset keys fall back
-to the global style / defaults again, content settings are untouched, and keys the widget has
-no setting for are skipped.
+to the theme / defaults again, content settings are untouched, and keys the widget has
+no setting for are skipped. Outside data goes through the same migrations
+(`withPastedStyle`, `followFromOwn`) so a pasted old-format style lands as
+current keys.
 
 Appearance presets (`DashboardConfig.appearancePresets` and the built-ins in
 `src/lib/appearance-presets.ts`) work one level up: they set the theme, the
@@ -214,42 +284,35 @@ look keys, and every value must be one of the setting's options
 (`isValidStyleValue`); a new look option therefore becomes available to
 presets automatically.
 
-Four optional fields place a row in the inspector (everything else about the
-registry is in [architecture.md](architecture.md#adding-a-setting-to-a-module)):
-
-| Field | Effect |
-|---|---|
-| `tab` | `"content"`, `"style"` or `"data"`. Unset, the category decides: general categories by their kind, a widget's own categories in Content, those made only of color pickers in Style. Put data-related options in Data. |
-| `advanced` | Tucked away until the inspector's **Advanced settings** toggle is on (counted in "Show N advanced settings"). |
-| `hint` | One-line explanation behind the row's info icon; it is searched too. |
-| `visibleIf(values)` | The row shows only while this holds for the zone's effective values (e.g. glow colour only when glow is not none). |
-
 Module-specific options follow the standard block and keep their own keys
 (`tint`, `showTimes`, `forecastDays`, `dimBanner`, `maxRows`, …). Give each
-one a `group`: its own category section (aim for 2-10 options each; a section
-named like a general one is not allowed). The test
-`inspector-categories.test.ts` fails for an unfiled option or a one-option
-category that is not on its allow-list. Per-element colors (e.g. the System
-widget's CPU / GPU / RAM / VRAM colors) get a category of their own
-("Device colors"), not the general Colors & surface section. Examples: Media -
-*Now playing*, *Cover art*, *Waveform*, *Visualizer*, *Waveform shape*,
-*Audio source*; System - *Devices*, *CPU*, *GPU*, *Memory*, *Drives*,
-*Trends*, *Thresholds*, *Units & labels*, *Device colors*.
+one a `group`: its own section in the tab it belongs to (aim for 2-10 options
+each; a section named like a shared one is not allowed), or file it in a shared
+section with `section`. File by task: what is shown goes to Show, sensors and
+devices to Data, levels, history, sorting, dynamics and click behaviour to
+Behaviour, colours to Style › Widget colors (with a `role`), and the
+less-used rows behind `more`. The tests `inspector-categories.test.ts` and
+`refile-audit.test.ts` fail for an unfiled option, a one-option category that
+is not on its allow-list, or a colour row without a role. Per-element colors
+(e.g. the System widget's CPU / GPU / RAM / VRAM colors) are Widget colors
+rows, each with a palette role. Examples: Media - *Player*, *Visualizer*,
+*Player source*; System - *Sections*, *CPU*, *GPU*, *Memory*, *Drives*,
+*Trends*.
 
 ### Panels (`PANEL_SETTINGS`)
 
 A custom panel zone's look is its placement's `settings` too, rendered on
 the general sections from `PANEL_SETTINGS` (`src/modules/standard-settings.ts`):
-the standard block without `preset`, `layout`, `autoScale` and `stroke`
-(a panel has no layout variants, design size or rings of its own), with
-two changes:
+the standard block without `preset`, `compact`, `sizeTier`, `stroke` and
+`showTitle` (a panel has no small-zone views, size tiers or rings of its own),
+with two changes:
 
 | key | change |
 |---|---|
 | `label` | "Title (empty = hidden)": the panel's title line (`.wp-panel-title`) |
 | `surface` | default `panel`; options `none` / `panel` (card) / `bordered` (bordered card) before glass / matte-light / matte-dark / theme |
 
-`alignX` + `alignY` place a panel whose **Fit in zone** is Hug; `padding`
+`align` (with `alignSpread`) places a panel whose **Fit in zone** is Hug; `padding`
 and `gap` are the fallbacks for the panel's own Gap / Padding fields;
 `customCss` is scoped to the zone like any widget's, and the PanelDef's
 `css` (the Code view, saved panels) joins it. The panel's arrangement and
@@ -261,8 +324,8 @@ Panels saved before the look moved here keep `title` / `titleVisible` /
 `label` (`normalizePanelPlacement`); the accent and background stay the
 panel's lowest style layer (`panelLegacyLook`, below the dashboard and
 profile style), read at render time. Panels migrated by older builds hold
-`accent` / `surface` copies as their own values; following the global
-style lets it through. A saved panel preset
+`accent` / `surface` copies as their own values; following the theme
+lets it through. A saved panel preset
 (`DashboardConfig.panelPresets`) stores these settings with the panel.
 
 The panel editor's alignment pickers (stack alignment, grid cell
@@ -519,8 +582,8 @@ font sizes come from the room that is really there. `ModernChrome`
 - **Scaling** — the content box gets `zoom: s`, where `s` is the user's Size %
   (50–200). The tier and shape are measured after the zoom, and the padding
   option is not scaled by it. Library widgets adapt to their zone by tier and
-  shape rather than by scaling, so `autoScale` has no effect on them (the
-  key stays stored for older configs).
+  shape rather than by scaling. The old `autoScale` key did nothing and was
+  dropped (config v7).
 - **Style variables** — the chosen options become `--wp-pad`, `--wp-gap`,
   `--wp-radius`, `--wp-fg`, `--wp-muted`, `--wp-weight`, `--wp-label-case`,
   `--wp-x` / `--wp-y` (+ `-cross`), `--wp-text-align`, `--wp-flex`, and the
@@ -535,7 +598,7 @@ font sizes come from the room that is really there. `ModernChrome`
   `--muted-foreground` (as the HSL triplets the theme uses). Anything inside
   that reads the theme — Tailwind's `text-foreground`, `hsl(var(--accent))`,
   the theme surface, a panel's widgets — follows the widget's colors, and
-  so the global style. `placementContent` returns the same tokens as
+  so the theme. `placementContent` returns the same tokens as
   `scope` for the zone frame.
 - **Template bodies** — library templates honour alignment, label case and
   gap in their body as well as their header. The shell marks the body with
@@ -611,7 +674,7 @@ the Look keys, the shell props and the empty state:
 
 ```ts
 export const MY_SETTINGS: ModuleSetting[] = [
-  { key: "showUnit", label: "Show unit", type: "boolean", default: true, group: "Content" },
+  { key: "showUnit", label: "Show unit", type: "boolean", default: true, group: "Unit" },
 ];
 
 templateModule({
@@ -631,6 +694,10 @@ templateModule({
   prop named like a standard key (`layout`, `icon`, `label`, `surface`,
   `style`) is stored under another name (Now Playing `playerLayout`, Game
   Spotlight `spotlightLayout`).
+- Add the widget to `INSPECTOR_META` (`header`, `compact`, and `fmt` / `thr` for
+  the units and thresholds it draws) and file its rows (`group`, `tab`, `more`,
+  a `role` on every colour row); `refile-audit.test.ts` checks the list covers
+  every widget.
 - Colors and sizes come from the primitives and CSS variables, never from
   fixed greys or fonts: the shell sets `--w-fg`, `--w-muted`, `--w-faint` and
   `--w-track` from the surface, so text stays legible on light surfaces.

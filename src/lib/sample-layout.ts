@@ -110,19 +110,19 @@ function samplePanelPlacement(
  */
 export function sampleLayout(): LayoutTemplate {
   // — Left column, row 2: FPS rings — six gauges in a single row. A gauge's
-  //   fontSize is its ring diameter: 56px fills the ~64px-tall strip row.
+  //   size is its ring diameter: 56px fills the ~64px-tall strip row.
   const fpsRings = sp({
     title: "FPS rings",
     accent: SAMPLE_ACCENT,
     layout: "grid",
     columns: 6,
     widgets: [
-      sw({ kind: "gauge", sensor: RTSS("fps"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: RTSS("avg-fps"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: RTSS("1% low fps"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: RTSS("refreshrate"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: NVIDIA("gpu_core"), max: 100, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: NVIDIA("gpu_memory_junction"), max: 100, fontSize: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("fps"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("avg-fps"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("1% low fps"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("refreshrate"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: NVIDIA("gpu_core"), max: 100, size: 56 }),
+      sw({ kind: "gauge", sensor: NVIDIA("gpu_memory_junction"), max: 100, size: 56 }),
     ],
   });
 

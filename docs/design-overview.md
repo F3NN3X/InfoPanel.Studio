@@ -129,15 +129,16 @@ An appearance preset applies to All profiles or This profile in one undo step. I
 
 ## Styling model
 
-A widget's look is resolved in four layers, lowest first; content settings (sensors, views, labels) always come from the widget itself.
+A widget's look (and its units, thresholds and motion) is resolved in five layers, lowest first, per section; content settings (sensors, views, labels) always come from the widget itself.
 
 1. Widget default
 2. Dashboard style (All profiles)
-3. Profile style (This profile)
-4. The widget's own look settings
+3. Profile theme (This profile)
+4. Page theme
+5. The widget's own settings, where its section is custom
 
-- **Follow global / Custom:** a widget set to Follow ignores its own look values (they stay stored); Custom lets them win key by key.
-- **Force global style:** makes every widget follow; set for the dashboard or per profile (Inherit / On / Off). It also overrides panel widgets' own colors (fills take the accent).
+- **Follow / Customize:** a widget section that follows the theme ignores its own values (they stay stored); Customize lets them win key by key. A page can have its own theme sections between the profile and the widget.
+- **Lock:** a profile can lock a section so every widget follows it, on every page. A locked Colors section also overrides panel widgets' own colors (fills take the accent).
 - **Setting dots:** each row shows where its value comes from — default, set here, dashboard, profile or overriding — and hovering a set dot resets it.
 
 | Surface | Look |
@@ -178,6 +179,6 @@ Selecting a zone opens one sheet: a fixed header, then the seven general cards e
 - **Panel:** a Panel group (Panel with Visual/Code, Layout, Background for Overlay, Widgets list), then a Selected widget group (the widget's kind card, Display, Size & placement, Typography, Colors, Advanced).
 - **Blank zone:** only Widget (Pick a widget) and the zone frame.
 
-**Nothing selected:** the same sheet shows Appearance (scope All profiles / This profile, Force global style, Presets gallery), Global style (the general cards at dashboard or profile level), Page (Theme colors, Background), General (Type, Clock & date, Display) and Connection (Data API URL).
+**Nothing selected:** the same sheet shows Appearance (scope All profiles / This profile, Presets gallery), Page (Theme colors, Background), General (Type, Clock & date, Display) and Connection (Data API URL).
 
 **Studio layout:** the inspector's placement follows the studio width: docked (a 320 px column, collapses with Ctrl+\) from 1100 px, a floating card over the canvas from 640 px, a bottom sheet below that. A quick bar over the canvas holds the pinned settings of the selection.

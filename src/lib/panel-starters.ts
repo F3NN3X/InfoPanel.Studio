@@ -89,7 +89,7 @@ export const layoutStarters: PanelPreset[] = [
         justify: "between",
         align: "center",
         gap: 12,
-        widgets: [0, 1, 2].map(() => sw("gauge", { max: 100, fontSize: 64 })),
+        widgets: [0, 1, 2].map(() => sw("gauge", { max: 100, size: 64 })),
       }),
   },
   {

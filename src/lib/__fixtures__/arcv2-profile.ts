@@ -198,12 +198,12 @@ export function arcv2Profile(): MonitorProfile {
     layout: "grid",
     columns: 6,
     widgets: [
-      sw({ kind: "gauge", sensor: RTSS("fps"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: RTSS("avg-fps"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: RTSS("1% low fps"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: RTSS("refreshrate"), max: 240, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: NVIDIA("gpu_core"), max: 3500, fontSize: 56 }),
-      sw({ kind: "gauge", sensor: NVIDIA("gpu_memory_junction"), max: 100, fontSize: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("fps"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("avg-fps"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("1% low fps"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: RTSS("refreshrate"), max: 240, size: 56 }),
+      sw({ kind: "gauge", sensor: NVIDIA("gpu_core"), max: 3500, size: 56 }),
+      sw({ kind: "gauge", sensor: NVIDIA("gpu_memory_junction"), max: 100, size: 56 }),
     ],
   });
 

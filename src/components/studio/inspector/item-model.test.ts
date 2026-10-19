@@ -59,7 +59,7 @@ describe("KIND_TABS: the sections of each kind", () => {
     expect(keys(sections(widget("bar")), "format")).toEqual(["unit", "decimals", "max", "scale"]);
     const decimals = sections(widget("stat")).flatMap((sec) => sec.settings).find((d) => d.key === "decimals")!;
     expect(decimals.options?.map((o) => o.value)).toEqual(["auto", "0", "1", "2", "3", "4", "5", "6"]);
-    expect(keys(sections(widget("gauge")), "type")).toEqual(["fontSize"]);
+    expect(keys(sections(widget("gauge")), "type")).toEqual(["size"]);
   });
 
   it("places by the panel's layout: size and self in a stack, span and cell in a grid, the band in an overlay", () => {
@@ -122,6 +122,8 @@ describe("the item's values", () => {
     expect(withItemValues(w, { decimals: "2" }).decimals).toBe(2);
     expect(withItemValues(widget("stat", { decimals: 2 }), { decimals: "auto" })).not.toHaveProperty("decimals");
     expect(withItemValues(w, { fontSize: 0 })).not.toHaveProperty("fontSize");
+    expect(withItemValues(widget("gauge"), { size: 64 }).size).toBe(64);
+    expect(withItemValues(widget("gauge", { size: 64 }), { size: 0 })).not.toHaveProperty("size");
     expect(withItemValues(w, { fontSize: 32, align: "center", label: "" })).toMatchObject({ fontSize: 32, align: "center" });
     expect(withItemValues(w, { "thr.warn": 70, "thr.crit": "off" }).thr).toEqual({ warn: 70, crit: "off" });
     expect(withItemValues(widget("image"), { band: "bottom", asBackground: true })).toMatchObject({ overlayZone: "bottom", asBackground: true });

@@ -98,8 +98,7 @@ export interface Widget {
   /** Sparkline sample count. */
   history?: number;
   /**
-   * Font size in px for the value/text (ring diameter for "gauge").
-   * The label scales with it.
+   * Font size in px for the value/text. The label scales with it.
    */
   fontSize?: number;
   /** Text alignment for "text", "table" and "clock". */
@@ -110,6 +109,8 @@ export interface Widget {
   rowSpan?: number;
   /** "customGauge": the gauge spec it draws (the default spec when absent). */
   vector?: VectorGauge;
+  /** "gauge": the ring's diameter in px (default 80; config v9 moved it off `fontSize`). */
+  size?: number;
   /** "customGauge": the drawing's width in px (default 120; config v9 moved it off `fontSize`). */
   width?: number;
   /** Shape kind for "shape". */
@@ -265,7 +266,7 @@ function normalizeItemFlags(v: unknown): Widget["follow"] {
 
 /**
  * One widget brought up to the current model (idempotent): config v9's
- * Custom gauge width (`migrateWidgetV9`), `thr` and `follow` guarded (`thr`
+ * Custom gauge width and Gauge ring size (`migrateWidgetV9`), `thr` and `follow` guarded (`thr`
  * on the threshold kinds only), and `box.w: "fill"` on the full-row kinds.
  */
 export function normalizeWidget(input: Widget): Widget {
@@ -480,7 +481,7 @@ const KIND_FIELDS: Record<WidgetKind, readonly (keyof Widget)[]> = {
   stat: ["subSensor", "decimals", "scale", "fontSize", "align", "thr"],
   value: ["subSensor", "decimals", "scale", "fontSize", "align", "thr"],
   bar: ["decimals", "scale", "max", "inverted", "thr"],
-  gauge: ["decimals", "scale", "max", "inverted", "fontSize", "thr"],
+  gauge: ["decimals", "scale", "max", "inverted", "size", "thr"],
   customGauge: ["vector", "width"],
   sparkline: ["decimals", "scale", "history"],
   table: ["text", "rows", "columns", "header", "align", "fontSize"],
