@@ -41,3 +41,27 @@ export function reviewFont(f: LicenceInfo): Review {
 }
 
 export const VERDICT_LABEL: Record<Verdict, string> = { share: "may share", check: "check", keep: "do not share" };
+
+export interface Declared {
+  /** Short, for a table cell: "OFL (declared)", else the declared text cut short. */
+  label: string;
+  /** The whole declaration, for a tooltip. */
+  full: string;
+}
+
+const OFL = /\b(ofl(-1\.[01])?|sil open font licen[cs]e)\b/i;
+const SHORT = 28;
+
+/**
+ * What a font file says about its own licence (name table 13 and 14), as declared: shown, never
+ * a verdict. Null when the file declares nothing.
+ */
+export function declaredLicence(f: { licenseText?: string; licenseUrl?: string; embedding?: Embedding }): Declared | null {
+  const text = (f.licenseText ?? "").replace(/\s+/g, " ").trim();
+  const url = (f.licenseUrl ?? "").trim();
+  if (!text && !url) return null;
+  const full = [text, url].filter(Boolean).join(" · ");
+  if (OFL.test(text) || /^https?:\/\/(scripts\.sil\.org\/ofl|openfontlicense\.org)/i.test(url)) return { label: "OFL (declared)", full };
+  const shown = text || url;
+  return { label: `${shown.length > SHORT ? `${shown.slice(0, SHORT - 1)}…` : shown} (declared)`, full };
+}

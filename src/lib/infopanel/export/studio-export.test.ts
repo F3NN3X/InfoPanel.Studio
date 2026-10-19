@@ -14,9 +14,13 @@ import {
   infopanelFile,
   restoreStored,
   staleGauges,
+  swapOptions,
+  swapTargetOf,
   unusedFiles,
   withFontChoices,
+  withSwapFiles,
 } from "./studio-export.ts";
+import { buildFont } from "../__fixtures__/builders.ts";
 
 const parse = (body: string) => parseDisplayItemsXml(`<ArrayOfDisplayItem xmlns:xsi="x">${body}</ArrayOfDisplayItem>`).items;
 const profile = parseProfileXml("<Profile><Name>Arc</Name><Width>800</Width><Height>480</Height></Profile>").profile;
@@ -108,6 +112,48 @@ describe("export helpers", () => {
     expect([...back.assets.keys()].sort()).toEqual(["a.png", "spare.png"]);
     // The font entries are checked against their hash: these fake ones are refused, the left-out one is absent.
     expect(back.missing).toEqual([`fonts/${"a".repeat(64)}`]);
+  });
+
+  it("swaps a restricted font for a same-category library font in the export only", async () => {
+    const { doc, stored } = await setup();
+    const shut = "b".repeat(64);
+    const own = buildFont({ 1: "Shut", 2: "Regular" }, { familyClass: 8 });
+    const rows = fontLicences(stored, new Map([[shut, own]]));
+    expect(rows.map((r) => [r.family, r.category])).toEqual([["Open", undefined], ["Shut", "sans"]]);
+
+    const sans = swapTargetOf("Plain.ttf", "c".repeat(64), buildFont({ 1: "Plain", 2: "Regular", 13: "SIL Open Font License 1.1" }, { familyClass: 8 }))!;
+    const serif = swapTargetOf("Serif.ttf", "d".repeat(64), buildFont({ 1: "Serif", 2: "Regular" }, { familyClass: 2 }))!;
+    const locked = swapTargetOf("Locked.ttf", "e".repeat(64), buildFont({ 1: "Locked", 2: "Regular" }, { familyClass: 8, fsType: 2 }))!;
+    const mono = swapTargetOf("Mono.ttf", "f".repeat(64), buildFont({ 1: "Mono", 2: "Regular" }, { monospaced: true }))!;
+    expect([sans.category, serif.category, mono.category]).toEqual(["sans", "serif", "monospace"]);
+    // Same category only, never one that may not be shared either, never the font itself.
+    expect(swapOptions(rows[1], [sans, serif, locked, mono]).map((t) => t.family)).toEqual(["Plain"]);
+    // A font that doesn't classify itself may be swapped for any shareable one.
+    const unclassified = { ...rows[1], category: "other" as const };
+    expect(swapOptions(unclassified, [sans, serif, locked, mono]).map((t) => t.hash)).toEqual(
+      [sans, serif, mono].filter((t) => t.hash !== rows[1].hash).map((t) => t.hash),
+    );
+
+    const choices = new Map([[shut, { swap: sans }]]);
+    const swapped = withFontChoices(stored, choices);
+    expect(swapped.fonts[1]).toEqual({
+      request: request("Shut"),
+      use: "supplied",
+      supplied: { hash: sans.hash, file: "Plain.ttf", index: 0, family: "Plain", face: "Regular", license: "SIL Open Font License 1.1" },
+    });
+    expect(swapped.fonts[0]).toBe(stored.fonts[0]);
+    // The studio's own canvas keeps the original.
+    expect(stored.fonts[1].supplied?.hash).toBe(shut);
+
+    const back = await openBundle(canvasZip(swapped, doc.assets, withSwapFiles(new Map([["a".repeat(64), bytes("open")], [shut, own]]), choices)));
+    // Fake hashes are refused on reading back, so what the package carries shows as "missing": the original is not among it.
+    expect(back.missing).toEqual([`fonts/${"a".repeat(64)}`, `fonts/${sans.hash}`]);
+  });
+
+  it("draws a swapped request as InfoPanel's face when the alternative has no face for it", async () => {
+    const { stored } = await setup();
+    const empty = { ...swapTargetOf("P.ttf", "c".repeat(64), buildFont({ 1: "P", 2: "Regular" }))!, faces: [] };
+    expect(withFontChoices(stored, new Map([["b".repeat(64), { swap: empty }]])).fonts[1]).toEqual({ request: request("Shut"), use: "infopanel" });
   });
 
   it("makes a file name from a profile name", () => {

@@ -78,7 +78,7 @@ const u16 = (a: number[], v: number) => a.push((v >>> 8) & 0xff, v & 0xff);
 const u32 = (a: number[], v: number) => a.push((v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff);
 
 /** A font with a name table (Windows, en-US) and an OS/2 table; enough for readFaces. */
-export function buildFont(names: Record<number, string>, opts: { weight?: number; italic?: boolean; fsType?: number; stringLengthBonus?: number } = {}) {
+export function buildFont(names: Record<number, string>, opts: { weight?: number; italic?: boolean; fsType?: number; stringLengthBonus?: number; familyClass?: number; monospaced?: boolean } = {}) {
   const records: number[] = [];
   const strings: number[] = [];
   const ids = Object.keys(names).map(Number).sort((a, b) => a - b);
@@ -104,6 +104,8 @@ export function buildFont(names: Record<number, string>, opts: { weight?: number
   os2[7] = 5;
   if (opts.italic) os2[63] = 1;
   os2[9] = (opts.fsType ?? 0) & 0xff;
+  os2[30] = (opts.familyClass ?? 0) & 0xff;
+  if (opts.monospaced) os2[35] = 9;
 
   const header: number[] = [];
   u32(header, 0x00010000);
