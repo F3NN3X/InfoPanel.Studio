@@ -112,6 +112,6 @@ The [docs index](docs/README.md) lists everything; the main entries:
 - [Architecture](docs/architecture.md) and [development](docs/development.md)
 - [Desktop app](docs/desktop/README.md) (InfoPanel Studio) and its [design](docs/desktop/TAURI_PLAN.md)
 - [Studio design](docs/redesign/README.md) (the redesign spec) and [zones and widgets](docs/studio-redesign-zones-widgets.md) (the grid model)
-- [InfoPanel import](docs/infopanel-import/PLAN.md) - the plan, the studio [spec](docs/infopanel-import/studio/SPEC.md) and the [open gaps](docs/infopanel-import/GAPS.md); `lab/infopanel/README.md` covers the lab (`npm run lab`).
+- [InfoPanel import](docs/infopanel-import/PLAN.md) - the plan, the studio [spec](docs/infopanel-import/studio/SPEC.md) and the open gaps are [GitHub issues](https://github.com/F3NN3X/InfoPanel.Studio/issues); `lab/infopanel/README.md` covers the lab (`npm run lab`).
 - `tools/ip-import.cjs` imports an InfoPanel profile as a dashboard layout.
 - `tools/gen-bg.mjs` regenerates the background image of the Glass and Frosted presets.

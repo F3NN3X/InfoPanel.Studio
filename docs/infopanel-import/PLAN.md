@@ -170,7 +170,8 @@ passing, and is reviewed before the next starts.
 | A7 | Gauges page (§6): browse and editor, presets, image-sequence tools, bake; the Custom gauge widget (done) |
 | A8 | The states in §10, responsive rules, docs and `FEATURE_MAP.md` rows (done) |
 
-Open gaps and deviations the phases leave are listed in [GAPS.md](GAPS.md).
+Open gaps and deviations the phases left are tracked as [GitHub issues](https://github.com/F3NN3X/InfoPanel.Studio/issues)
+(#41–#52, each listing its gap numbers G1–G35); new ones are filed there too.
 
 ## Risks
 
