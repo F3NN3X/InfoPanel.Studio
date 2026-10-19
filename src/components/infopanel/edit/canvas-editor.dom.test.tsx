@@ -22,7 +22,7 @@ function setup(hidden = false) {
   const setConfig = vi.fn();
   const view = (h: boolean) => (
     <ToastProvider>
-      <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} hidden={h} initialSelection={["0"]} />
+      <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" hidden={h} initialSelection={["0"]} />
     </ToastProvider>
   );
   const r = render(view(hidden));
@@ -63,7 +63,7 @@ describe("the canvas editor while the Library covers it", () => {
     const kept = { ...zone, canvas: { ...canvas, screenshot: id } };
     const { container } = render(
       <ToastProvider>
-        <CanvasEditorView zone={kept} setConfig={vi.fn()} history={history} onDone={vi.fn()} />
+        <CanvasEditorView zone={kept} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     act(() => screen.getAllByRole("button", { name: /Compare/ })[0].click());

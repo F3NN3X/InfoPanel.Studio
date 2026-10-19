@@ -207,7 +207,10 @@ export function LibraryDetail(p: DetailProps) {
                 key={`${c.profileId}:${c.zoneId ?? ""}:${i}`}
                 type="button"
                 onClick={() => p.onJump(c)}
-                className="flex h-[30px] items-center gap-2 rounded-[7px] border border-ui-subtle px-2.5 text-left text-[12px] text-ui-2 hover:bg-ui-hover"
+                // Copies recorded before profiles were tracked ("*") have nowhere to jump to.
+                disabled={c.profileId === "*"}
+                title={c.profileId === "*" ? "Recorded without a profile" : undefined}
+                className="flex h-[30px] items-center gap-2 rounded-[7px] border border-ui-subtle px-2.5 text-left text-[12px] text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-60"
               >
                 <span className="min-w-0 flex-1 truncate">{p.copyLabel(c)}</span>
                 <ArrowUpRight className="h-3.5 w-3.5 text-ui-4" />

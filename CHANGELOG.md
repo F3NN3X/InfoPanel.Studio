@@ -28,6 +28,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - The canvas editor at narrow widths: when the toolbar no longer fits, the sensor source and Compare move into a "More"
   menu instead of being clipped, and the inspector docks, floats or becomes a sheet at the studio's own viewport
   breakpoints, so opening it no longer flips the mode back (#45).
+- Library copies made on the Page background or inside the canvas editor now record the real profile, so "jump to
+  copy" reaches them; older copies recorded without one are still listed but can't be jumped to (#46, part A: G12).
+- Dragging a Library image, video or gauge over a canvas zone no longer shows the red "No room" grid ghost, since the
+  zone takes the drop as an item (#46, part A: G14).
 - After an import lands, the canvas editor opens on the new zone, as the spec says (#43).
 - Opening the Library no longer closes the canvas editor: it stays mounted but hidden (keys off, size kept) and
   returns, with its selection and undo history, when the Library closes, so a Library drag can land in it (#43).

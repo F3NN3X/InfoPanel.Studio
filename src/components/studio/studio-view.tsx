@@ -470,6 +470,7 @@ function StudioViewBody({
       <CanvasEditorView
         key={`${canvasZone.id}:${editorEpoch}`}
         hidden={showLibrary}
+        profileId={storedProfile.id}
         zone={{ ...canvasZone, canvas: canvasZone.canvas }}
         setConfig={setConfig}
         history={history}

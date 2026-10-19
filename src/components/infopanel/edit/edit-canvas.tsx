@@ -37,6 +37,8 @@ interface EditCanvasProps {
   ctx: ConvertContext;
   values: Record<string, DataApiValue>;
   showModes: boolean;
+  /** The active profile: where the Library's "jump to copy" goes. */
+  profileId: string;
   compare: Compare | null;
   /** A drop the canvas can't take, said to the user. */
   onRefused?: (message: string) => void;
@@ -44,7 +46,7 @@ interface EditCanvasProps {
   onCompareFailed?: () => void;
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, compare, onRefused, onCompareFailed }: EditCanvasProps) {
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -78,7 +80,7 @@ export function EditCanvas({ editor, ctx, values, showModes, compare, onRefused,
     const at = { x: (e.clientX - box.left - (w - profile.Width * scale) / 2) / scale, y: (e.clientY - box.top - (h - profile.Height * scale) / 2) / scale };
     const r = withDroppedImage(open.stored, profile, editor.committed, file, at);
     editor.commitStored(r.stored, [r.path]);
-    void recordCopy(item, { profileId: "*", zoneId: editor.zone.id, itemPath: r.path, label: `${open.stored.source.name} › ${file.name}` });
+    void recordCopy(item, { profileId, zoneId: editor.zone.id, itemPath: r.path, label: `${open.stored.source.name} › ${file.name}` });
   };
   // A press on the empty area around the profile clears the selection.
   const onBackground = (e: PointerEvent<HTMLDivElement>) => {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Placement } from "@/lib/layout";
 import { DND_MIME, DND_MIME_PANEL, ALL_MODULES } from "./studio-modules";
-import { dropGhost, dropSize, libraryItemOf } from "./drop-ghost";
+import type { LibraryItem as MyLibraryItem } from "@/lib/library";
+import { canvasTakesDrop, dropGhost, dropSize, libraryItemOf } from "./drop-ghost";
 
 const zone = (
   id: string,
@@ -66,5 +67,22 @@ describe("libraryItemOf", () => {
   it("ignores unknown widgets and other drags", () => {
     expect(libraryItemOf(data({ [DND_MIME]: "nope" }))).toBeNull();
     expect(libraryItemOf(data({}))).toBeNull();
+  });
+});
+
+describe("canvasTakesDrop", () => {
+  const over = { zoneId: "c", fx: 0.5, fy: 0.5 };
+  const card = (kind: string) => ({ kind: "mylib" as const, id: "i", item: { kind } as MyLibraryItem });
+
+  it("hides the grid ghost over a canvas zone for a card it takes as an item", () => {
+    for (const kind of ["image", "svg", "video", "gauge"]) expect(canvasTakesDrop(card(kind), over)).toBe(true);
+  });
+
+  it("keeps the ghost off a canvas zone, for cards it doesn't take, and for widgets", () => {
+    expect(canvasTakesDrop(card("image"), null)).toBe(false);
+    expect(canvasTakesDrop(card("panel"), over)).toBe(false);
+    expect(canvasTakesDrop({ kind: "mylib", id: "i" }, over)).toBe(false);
+    expect(canvasTakesDrop({ kind: "module", id: "m" }, over)).toBe(false);
+    expect(canvasTakesDrop(null, over)).toBe(false);
   });
 });

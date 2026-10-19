@@ -298,6 +298,7 @@ function DocumentSheet({
               dashboard={background}
               profileBackground={profile.background}
               profileName={profile.name}
+              profileId={profile.id}
               onChange={onBackground}
             />
           ),

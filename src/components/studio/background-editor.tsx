@@ -42,6 +42,8 @@ interface BackgroundEditorProps {
   onChange: (bg: PageBackground) => void;
   /** Where a dropped library image or video lands ("ARCv2 › Background"), for its copy count. */
   copyLabel?: string;
+  /** The active profile: where the Library's "jump to copy" goes. */
+  profileId: string;
 }
 
 /** A My library image or video dragged onto the slot (spec §8): it becomes the background. */
@@ -52,7 +54,7 @@ function libraryMedia(e: DragEvent): LibraryItem | null {
 }
 
 /** The fields of one background: type, then that type's options and effects. */
-export function BackgroundEditor({ value, types, onChange, copyLabel = "Background" }: BackgroundEditorProps) {
+export function BackgroundEditor({ value, types, onChange, copyLabel = "Background", profileId }: BackgroundEditorProps) {
   const patch = (p: Partial<PageBackground>) => onChange({ ...value, ...p });
   const gradient = value.gradient ?? BACKGROUND_DEFAULTS.gradient;
   const position = value.position ?? BACKGROUND_DEFAULTS.position;
@@ -73,7 +75,7 @@ export function BackgroundEditor({ value, types, onChange, copyLabel = "Backgrou
         e.stopPropagation();
         setActiveLibraryDrag(null);
         onChange({ ...value, type: item.kind as BackgroundType, src: fileUrl(item) });
-        void recordCopy(item, { profileId: "*", label: copyLabel });
+        void recordCopy(item, { profileId, label: copyLabel });
       }}
     >
       <SegmentedRow

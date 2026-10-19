@@ -33,7 +33,7 @@ import { LivePlacement } from "./placement-content";
 import { RulerLabels } from "./rulers";
 import { ScreenFold } from "./screen-fold";
 import { EmptyLayoutCard, QuickTipsCard } from "./canvas-cards";
-import { canvasPointAt, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint } from "./drop-ghost";
+import { canvasPointAt, canvasTakesDrop, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint } from "./drop-ghost";
 import { activeLibraryDrag, LIBRARY_MIME } from "@/lib/my-library/drag";
 import { DND_MIME, DND_MIME_PANEL, placementTitle } from "./studio-modules";
 import type { SelectMode } from "./selection";
@@ -342,7 +342,8 @@ export function StudioCanvas({
     const active = activeLibraryDrag();
     const dragged = dragItem.current ?? (active && e.dataTransfer.types.includes(LIBRARY_MIME) ? { kind: "mylib" as const, id: active.id, item: active } : null);
     const size = (dragged && dropSizeOf(dragged)) ?? dropSize({ cols: 1, rows: 1 }, profile);
-    const next = cell ? dropGhost(cell, size, profile, profile.placements) : null;
+    // Over a canvas zone that takes the drop as an item, the grid ghost would only say "No room".
+    const next = cell && !canvasTakesDrop(dragged, canvasPointAt(e.clientX, e.clientY)) ? dropGhost(cell, size, profile, profile.placements) : null;
     setDropPreview((prev) =>
       prev?.ok === next?.ok &&
       prev?.rect.col === next?.rect.col &&
