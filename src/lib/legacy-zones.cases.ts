@@ -20,9 +20,9 @@ export const CASES: LegacyCase[] = [
   { name: "spotifymodern defaults", module: "spotifymodern" },
   // The Sample profile's zone, as stored in the live config.
   { name: "spotifymodern (Sample profile)", module: "spotifymodern", settings: { layout: "compact" } },
-  { name: "spotifymodern bar visualizer", module: "spotifymodern", settings: { visualizer: true, visualizerMirrored: true, tint: false }, unlisted: ["visualizerMirrored", "vizEngine"] },
+  { name: "spotifymodern bar visualizer", module: "spotifymodern", settings: { visualizer: true, visualizerMirrored: true, tint: false } },
   { name: "mediamodern defaults", module: "mediamodern" },
-  { name: "mediamodern live waveform", module: "mediamodern", settings: { waveform: true, waveformMode: "static", waveformVariant: "line" }, unlisted: ["waveformMode", "vizEngine"] },
+  { name: "mediamodern live waveform", module: "mediamodern", settings: { waveform: true, waveformMode: "static", waveformVariant: "line" } },
   { name: "weathermodern defaults", module: "weathermodern" },
   { name: "weathermodern now", module: "weathermodern", settings: { view: "now", showForecast: false, forecastDays: 3 } },
   { name: "steammodern defaults", module: "steammodern" },

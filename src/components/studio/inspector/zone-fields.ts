@@ -1,7 +1,7 @@
 import { CARDS_ID, type Placement, type ProfileView } from "@/lib/layout";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
-import { withFlag, type SectionId } from "@/lib/theme-model";
+import { themeKeyOf, withFlag, type SectionId } from "@/lib/theme-model";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
 import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
@@ -33,10 +33,14 @@ export function zoneLookValues(zone: Placement, appearance: Appearance): LookVal
   });
 }
 
-/** The value a row shows: the own value (where it applies), else the theme's, else the default. */
+/**
+ * The value a row shows: the own value (where it applies), else the theme's, else the default.
+ * A colour row with a palette role reads its role (`themeKeyOf`) from the theme.
+ */
 export function shownValue(values: LookValues, key: string, def: ModuleSetting): ModuleSettingValue {
-  const applies = def.perWidget || (values.applies?.(key) ?? true);
-  return (applies ? values.own?.[key] : undefined) ?? values.inherited?.[key] ?? defaultOf(def, key);
+  const themeKey = themeKeyOf(def, key);
+  const applies = def.perWidget || (values.applies?.(themeKey) ?? true);
+  return (applies ? values.own?.[key] : undefined) ?? values.inherited?.[themeKey] ?? defaultOf(def, key);
 }
 
 /** Every shown value of a schema (what `visibleIf` reads: the resolved values). */

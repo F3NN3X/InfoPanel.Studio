@@ -26,6 +26,8 @@ describe("levels as shown", () => {
     expect(levelText("off", "load")).toBe("Off");
     expect(levelText(80, "load")).toBe("80%");
     expect(levelText(-9, "db")).toBe("-9 dB");
+    // a widget's own default between steps (Audio Meter's old hot zone)
+    expect(levelText(20 * Math.log10(0.9), "db")).toBe("-0.9 dB");
     expect(levelText(90, "temp")).toBe("90°C");
     expect(levelText(90, "temp", "f")).toBe("194°F");
   });

@@ -1,30 +1,9 @@
-// The hardware readings' settings: SensorGroup's auto-discovered list and the Thermals gauges, under the
-// keys and defaults the old Hardware widget stored (LibreHardwareMonitor / HWiNFO, `libre.*` / `hwinfo.*`).
+// The Thermals gauges' settings, under the keys and defaults the old Hardware widget stored
+// (LibreHardwareMonitor / HWiNFO, `libre.*` / `hwinfo.*`). SensorGroup's auto-discovered list is in b.ts.
 import type { ModuleSetting } from "@/modules/types";
+import { colorSetting } from "./settings-kit";
 
-const MAX_ROWS: ModuleSetting = {
-  key: "maxRows",
-  label: "Max rows (0 = all)",
-  type: "number",
-  default: 12,
-  min: 0,
-  max: 100,
-  step: 2,
-  group: "Content",
-};
-const SHOW_FANS: ModuleSetting = { key: "showFans", label: "Fan readings", type: "boolean", default: true, group: "Content" };
-const TEMP_COLOR: ModuleSetting = { key: "tempColor", label: "Temperature dot color", type: "color", default: "", group: "Dot colors" };
-const FAN_COLOR: ModuleSetting = { key: "fanColor", label: "Fan dot color", type: "color", default: "", group: "Dot colors" };
-const POWER_COLOR: ModuleSetting = { key: "powerColor", label: "Power dot color", type: "color", default: "", group: "Dot colors" };
-
-/** The SensorGroup template's own settings: the auto-discovered list. */
-export const SENSOR_GROUP_SETTINGS: ModuleSetting[] = [
-  { key: "auto", label: "Auto-discover hardware readings", type: "boolean", default: false, group: "Content" },
-  { ...MAX_ROWS, visibleIf: (v) => Boolean(v.auto) },
-  { ...TEMP_COLOR, visibleIf: (v) => Boolean(v.auto) },
-  { ...FAN_COLOR, visibleIf: (v) => Boolean(v.auto) },
-  { ...POWER_COLOR, visibleIf: (v) => Boolean(v.auto) },
-];
+const gauges = (v: { view?: unknown }): boolean => v.view === "gauges";
 
 /** The Thermals template's own settings: gauges, every sensor, the fan row. */
 export const THERMALS_SETTINGS: ModuleSetting[] = [
@@ -37,9 +16,10 @@ export const THERMALS_SETTINGS: ModuleSetting[] = [
       { value: "bars", label: "Bars" },
       { value: "gauges", label: "Temp gauges" },
     ],
-    group: "Content",
+    group: "Readings",
   },
-  { key: "discover", label: "All temperature sensors", type: "boolean", default: false, group: "Content" },
-  { ...SHOW_FANS, visibleIf: (v) => v.view === "gauges" },
-  { ...FAN_COLOR, group: "Content", visibleIf: (v) => v.view === "gauges" },
+  { key: "discover", label: "All temperature sensors", type: "boolean", default: false, group: "Readings" },
+  { key: "showFans", label: "Fan readings", type: "boolean", default: true, group: "Readings", visibleIf: gauges },
+  // The fan dot follows the theme's Series 3 ("" = the widget's own colour).
+  colorSetting("fanColor", "Fan dot", { role: "s3", more: false, visibleIf: gauges }),
 ];

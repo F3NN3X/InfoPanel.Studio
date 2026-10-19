@@ -1,3 +1,4 @@
+import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
 import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, has, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, type ShellProps, type WidgetMeta } from "./kit";
 
@@ -20,6 +21,10 @@ export interface CpuMonitorProps extends ShellProps {
   heatRamp?: "accent" | "thermal";
   warn?: number;
   crit?: number;
+  /** The unit its temperatures read in (default °C). */
+  tempUnit?: "c" | "f";
+  /** The temperatures' decimals; unset: none in the header and card, one for Tctl/Tdie. */
+  decimals?: number;
 }
 
 interface Core {
@@ -64,13 +69,15 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   const warn = p.warn ?? 75,
     crit = p.crit ?? 90;
   const name = p.title ?? pretty(id).replace(/^AMD Ryzen (\d) /, "Ryzen $1 ");
+  /** A °C reading in the temperature unit, with the chosen decimals (else `auto`). */
+  const deg = (c: number, auto: number, space = "") => `${fmt(inUnit(c, p.tempUnit ?? "c"), p.decimals ?? auto)}${space}°${p.tempUnit === "f" ? "F" : "C"}`;
   return (
     <Widget
       {...shell(p)}
       title={name}
       icon="memory"
-      compact={{ label: "CPU", value: total, unit: "%", sub: Number.isFinite(temp) && temp > 0 ? `${fmt(temp, 0)}°C · ${fmt(power, 0)} W` : `${fmt(power, 0)} W`, hist, min: 0, max: 100, t: tone(total, warn, crit) }}
-      right={Number.isFinite(temp) && temp > 0 && <span className="tabular-nums text-[color:var(--w-fg)]">{fmt(temp, 0)}°C</span>}
+      compact={{ label: "CPU", value: total, unit: "%", sub: Number.isFinite(temp) && temp > 0 ? `${deg(temp, 0)} · ${fmt(power, 0)} W` : `${fmt(power, 0)} W`, hist, min: 0, max: 100, t: tone(total, warn, crit) }}
+      right={Number.isFinite(temp) && temp > 0 && <span className="tabular-nums text-[color:var(--w-fg)]">{deg(temp, 0)}</span>}
     >
       {({ size, h }) =>
         size === "xs" ? (
@@ -140,9 +147,9 @@ export default function CpuMonitor(p: CpuMonitorProps) {
               <StatGrid
                 cols={4}
                 items={[
-                  { label: "Tctl/Tdie", value: `${fmt(temp, 1)} °C` },
+                  { label: "Tctl/Tdie", value: deg(temp, 1, " ") },
                   { label: "Core VID", value: `${fmt(cores[0]?.vid ?? NaN, 2)} V` },
-                  { label: "VRM", value: Number.isFinite(vrm) ? `${fmt(vrm, 0)} °C` : "–" },
+                  { label: "VRM", value: Number.isFinite(vrm) ? deg(vrm, 0, " ") : "–" },
                   { label: "CPU fan", value: Number.isFinite(fan) ? `${fmt(fan, 0)} RPM` : "–" },
                 ]}
               />

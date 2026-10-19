@@ -4,7 +4,7 @@
 import type { CompactShape, DashboardModule, HeaderMode, ModuleSetting } from "@/modules/types";
 
 export type InspectorMeta = Required<Pick<DashboardModule, "header" | "compact">> &
-  Pick<DashboardModule, "fmt" | "thr" | "styleSubset">;
+  Pick<DashboardModule, "fmt" | "thr" | "styleSubset" | "noData">;
 
 /** A summary card and a dense view of its own (`compact` and `studio` descriptors). */
 const BOTH: CompactShape = { card: true, dense: true };
@@ -29,9 +29,10 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   Vitals: as("none", BOTH),
   ServiceHealth: yes(BOTH),
   ProcessList: yes(BOTH),
-  Uptime: yes(CARD),
-  // Draws its temperatures in °C with fixed decimals (no unit or decimals option yet).
-  CpuMonitor: yes(CARD, { thr: ["load"] }),
+  // Its one reading is the plugin's uptime: nothing to pick or bind.
+  Uptime: yes(CARD, { noData: true }),
+  // The unit and decimals of its temperatures.
+  CpuMonitor: yes(CARD, { fmt: ["tempUnit", "decimals"], thr: ["load"] }),
   CoreHeatmap: yes(DENSE),
   GpuRings: yes(DENSE),
   GpuMonitor: yes(CARD, { thr: ["temp"] }),
@@ -56,8 +57,8 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   CustomGauge: yes(NONE),
   // Group C: media / audio
   NowPlaying: yes(BOTH),
-  // Its hot zone is a fixed share of the meter, not a dB level yet (PR 4).
-  AudioMeter: yes(BOTH),
+  // Its amber and hot zones are the Audio level threshold (config v8).
+  AudioMeter: yes(BOTH, { thr: ["db"] }),
   VolumeMixer: yes(BOTH),
   MeterBridge: yes(DENSE, { thr: ["db"] }),
   Visualizer: yes(DENSE),
@@ -75,7 +76,8 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   SteamLibrary: yes(CARD),
   SteamNews: yes(BOTH),
   // Group E: the plain plugin cards
-  WebPage: as("none", NONE, { styleSubset: ["colors:accent", "spacing:scale,radius", "border"] }),
+  // A URL, no sensor data: its Data tab is empty too.
+  WebPage: as("none", NONE, { styleSubset: ["colors:accent", "spacing:scale,radius", "border"], noData: true }),
   TextFile: yes(BOTH),
   Notifications: yes(BOTH),
   Departures: yes(BOTH),

@@ -15,6 +15,13 @@ export const meta: WidgetMeta = {
   description: "L/R level, peak, RMS and peak-hold for one device, or a meter bridge for all devices.",
 };
 
+/** The amber and hot zones' defaults in dBFS: the LED ladder's 72 % and 90 % of full scale (before config v8 fixed). */
+export const AUDIO_WARN_DB = 20 * Math.log10(0.72);
+export const AUDIO_HOT_DB = 20 * Math.log10(0.9);
+
+/** A dBFS level as the meter's % of full scale (linear amplitude, as Meter Bridge reads the levels), to 0.001 %; off (Infinity) never trips. */
+const pctOf = (db: number): number => (Number.isFinite(db) ? Math.round(100 * 10 ** (db / 20) * 1000) / 1000 : db > 0 ? Number.POSITIVE_INFINITY : 0);
+
 const P = (a: number, r: number, cx = 50, cy = 56): [number, number] => [cx + r * Math.sin((a * Math.PI) / 180), cy - r * Math.cos((a * Math.PI) / 180)];
 // Analog VU: needle springs with a slight overshoot
 function Vu({ v, label, color, hot }: { v: number; label: string; color: string; hot: string }) {
@@ -64,6 +71,13 @@ export interface AudioMeterProps extends ShellProps {
   levelColor?: string;
   /** Colour of the hot zone (clip / above 85 %), default red. */
   hotColor?: string;
+  /**
+   * The Audio level threshold, dBFS: where the LED ladders turn amber and hot (default 72 % / 90 % of
+   * full scale); the mirror ladders' zones and the ring's and solid bar's hot point scale with them.
+   * The VU dial and the bar gradient keep their fixed scale.
+   */
+  warnDb?: number;
+  hotDb?: number;
 }
 
 export default function AudioMeter(p: AudioMeterProps) {
@@ -78,6 +92,11 @@ export default function AudioMeter(p: AudioMeterProps) {
   const st = p.meterStyle ?? "led";
   const lc = p.levelColor || "var(--accent)";
   const hc = p.hotColor || STATE.crit;
+  const warnAt = pctOf(p.warnDb ?? AUDIO_WARN_DB),
+    hotAt = pctOf(p.hotDb ?? AUDIO_HOT_DB);
+  const zones: [number, number] = [warnAt, hotAt];
+  const mirrorZones: [number, number] = [(warnAt * 62) / 72, (hotAt * 81) / 90];
+  const hotFill = (hotAt * 85) / 90;
   const showDevice = p.showDevice !== false,
     showDetails = p.showDetails !== false,
     showMute = p.showMute !== false;
@@ -141,8 +160,8 @@ export default function AudioMeter(p: AudioMeterProps) {
                       </span>
                     )}
                     <div className="flex h-full flex-col gap-[2px]">
-                      <LedLadder value={l.v} n={size === "lg" ? 32 : 20} color={lc} hotColor={hc} hold={l.hold} />
-                      <LedLadder value={r.v} n={size === "lg" ? 32 : 20} color={lc} hotColor={hc} hold={r.hold} />
+                      <LedLadder zones={zones} value={l.v} n={size === "lg" ? 32 : 20} color={lc} hotColor={hc} hold={l.hold} />
+                      <LedLadder zones={zones} value={r.v} n={size === "lg" ? 32 : 20} color={lc} hotColor={hc} hold={r.hold} />
                     </div>
                     {/* leading-none: the 12px level and 10px dB on one baseline otherwise make a 19px line, taller than a 16px row */}
                     <span className="flex items-baseline justify-end gap-1.5 whitespace-nowrap text-right leading-none tabular-nums">
@@ -166,10 +185,10 @@ export default function AudioMeter(p: AudioMeterProps) {
                     <span className="text-[11px] font-semibold tabular-nums">{fmt(m.level)}%</span>
                     <div className="flex min-h-0 w-full flex-1 justify-center gap-[3px]">
                       <div className="flex w-2">
-                        <LedLadder value={l.v} vertical n={size === "lg" ? 28 : 16} color={lc} hotColor={hc} hold={l.hold} />
+                        <LedLadder zones={zones} value={l.v} vertical n={size === "lg" ? 28 : 16} color={lc} hotColor={hc} hold={l.hold} />
                       </div>
                       <div className="flex w-2">
-                        <LedLadder value={r.v} vertical n={size === "lg" ? 28 : 16} color={lc} hotColor={hc} hold={r.hold} />
+                        <LedLadder zones={zones} value={r.v} vertical n={size === "lg" ? 28 : 16} color={lc} hotColor={hc} hold={r.hold} />
                       </div>
                     </div>
                     {size !== "xs" && showDevice && (
@@ -189,10 +208,10 @@ export default function AudioMeter(p: AudioMeterProps) {
           return (
             <div className="flex h-full flex-col justify-center gap-1.5">
               <div className="flex h-2">
-                <LedLadder value={ls.v} n={16} color={lc} hotColor={hc} />
+                <LedLadder zones={zones} value={ls.v} n={16} color={lc} hotColor={hc} />
               </div>
               <div className="flex h-2">
-                <LedLadder value={rs.v} n={16} color={lc} hotColor={hc} />
+                <LedLadder zones={zones} value={rs.v} n={16} color={lc} hotColor={hc} />
               </div>
             </div>
           );
@@ -219,7 +238,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                     return (
                       <g key={r}>
                         <circle cx="50" cy="50" r={r} fill="none" stroke="var(--w-track)" strokeWidth="8" />
-                        <circle cx="50" cy="50" r={r} fill="none" stroke={v > 85 ? hc : lc} strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v) / 100)} style={{ transition: "stroke-dashoffset .25s" }} />
+                        <circle cx="50" cy="50" r={r} fill="none" stroke={v > hotFill ? hc : lc} strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v) / 100)} style={{ transition: "stroke-dashoffset .25s" }} />
                       </g>
                     );
                   })}
@@ -240,11 +259,11 @@ export default function AudioMeter(p: AudioMeterProps) {
                 {[0, 1, 2].map((row) => (
                   <div key={row} className="flex h-full max-h-4 items-stretch gap-[3px]">
                     <div className="flex flex-1">
-                      <LedLadder value={ls.v * (1 - row * 0.18)} n={16} zones={[62, 81]} reverse color={lc} hotColor={hc} />
+                      <LedLadder value={ls.v * (1 - row * 0.18)} n={16} zones={mirrorZones} reverse color={lc} hotColor={hc} />
                     </div>
                     <span className="w-px bg-[color:var(--w-faint)]" />
                     <div className="flex flex-1">
-                      <LedLadder value={rs.v * (1 - row * 0.18)} n={16} zones={[62, 81]} color={lc} hotColor={hc} />
+                      <LedLadder value={rs.v * (1 - row * 0.18)} n={16} zones={mirrorZones} color={lc} hotColor={hc} />
                     </div>
                   </div>
                 ))}
@@ -270,7 +289,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                           className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
                           style={
                             st === "solid"
-                              ? { width: `${clamp(v)}%`, background: v > 85 ? hc : lc }
+                              ? { width: `${clamp(v)}%`, background: v > hotFill ? hc : lc }
                               : { width: `${clamp(v)}%`, background: `linear-gradient(90deg, ${lc} 0%, ${lc} 60%, ${STATE.warn} 82%, ${hc} 100%)`, backgroundSize: `${(100 / Math.max(1, v)) * 100}% 100%` }
                           }
                         />
@@ -278,7 +297,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                       </div>
                     ) : (
                       <div className="flex h-full flex-1">
-                        <LedLadder value={v} n={p.segments ?? (size === "sm" ? 20 : 32)} color={lc} hotColor={hc} hold={marker} />
+                        <LedLadder zones={zones} value={v} n={p.segments ?? (size === "sm" ? 20 : 32)} color={lc} hotColor={hc} hold={marker} />
                       </div>
                     )}
                   </div>

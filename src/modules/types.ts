@@ -65,26 +65,31 @@ export const isDeviceKind = (v: string | undefined): v is DeviceKind =>
 export interface ModuleSetting {
   key: string;
   label: string;
-  type: "text" | "number" | "select" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "sensorItems" | "thresholds";
+  /** "preset": a bundle of toggles (see `options`); "status": a read-only line about the data source, never stored. */
+  type: "text" | "number" | "select" | "preset" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "thresholds" | "status";
   default: ModuleSettingValue;
   /**
    * A second key the row writes together with `key`: for type "align" the
    * spread toggle (`alignSpread`), for type "thresholds" the critical level
-   * (`crit.<q>`, `key` being `warn.<q>`). Its default is `defaultY`.
+   * (`crit.<q>`, `key` being `warn.<q>`), for a `multiple` "sensor" row the
+   * per-sensor overrides (a JSON object string, edited inline on each
+   * sensor). Its default is `defaultY`.
    */
   keyY?: string;
   /** The default of `keyY` (unset: `default`). */
   defaultY?: ModuleSettingValue;
   /** For type "thresholds": the quantity (`theme-model.ts` `QUANTITIES`). */
   quantity?: ThresholdQuantity;
-  /**
-   * For type "sensorItems": the key of the multi-sensor setting whose sensors get one
-   * override row each. The overrides are stored as a JSON object string under `key`.
-   */
-  of?: string;
   /** Extra search terms (the settings search also matches label, key and options). */
   keywords?: string[];
-  /** Options for type "select". */
+  /**
+   * Options for type "select" and "preset". A "preset" row stores its option
+   * but shows the toggles it writes: the option whose bundle (`applies`)
+   * they match reads selected, none "Custom". Its default option's bundle
+   * holds the bundled keys' defaults; `bundleDefaults` holds those it leaves
+   * out (a default option that applies nothing).
+   */
+  bundleDefaults?: ModuleSettings;
   options?: {
     value: string;
     label: string;
@@ -109,7 +114,7 @@ export interface ModuleSetting {
    *   found in the live keys (`deviceOptions`), "" = Auto first. Data tab by default.
    */
   optionsFrom?: "sources" | "media" | "wavelink" | DeviceKind;
-  /** Key prefix whose containers become the dynamic select's options. */
+  /** Key prefix whose containers become the dynamic select's options (type "status": whose containers it lists). */
   sourcePlugin?: string;
   /**
    * For type "select" (or "sensor"): allow picking several options. The value
@@ -149,6 +154,8 @@ export interface ModuleSetting {
   role?: PaletteRole;
   /** Never comes from a theme (Tint from cover art, Background image): stays editable while its section follows. */
   perWidget?: boolean;
+  /** Kept in the schema (its default, its stored value) but never listed in the inspector (CustomGauge `gauge`). */
+  hidden?: boolean;
   /** One-line explanation, shown behind an info icon. */
   hint?: string;
   /** Shown only while this holds for the zone's effective values (default: always). */
@@ -201,8 +208,10 @@ export interface DashboardModule {
   thr?: ThresholdQuantity[];
   /** The device kind its `device` (or `devices`) row picks from. */
   deviceKind?: DeviceKind;
-  /** The look sections it offers when not all of them (`section` or `section:key,key`; not read yet). */
+  /** The look sections it offers when not all of them (`section` or `section:key,key`, `styleSubsetSettings`). */
   styleSubset?: string[];
+  /** Binds and picks nothing: no Bound data card, so its Data tab is empty (shown disabled). */
+  noData?: boolean;
 }
 
 /** Whether a setting sits behind its section's "More (n)" (`more`, or the old `advanced`). */

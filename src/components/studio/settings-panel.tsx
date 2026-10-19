@@ -10,7 +10,7 @@ import {
 } from "@/modules/types";
 import { SourceDot } from "./inspector/source-dot";
 import { sourceState, type FollowInfo, type InspectorSection, type LookValues } from "./inspector-model";
-import { SET_HERE } from "./settings-model";
+import { presetDefaults, SET_HERE } from "./settings-model";
 import { SettingRow } from "./setting-control";
 
 /** What a Thresholds row reads for its temperature unit (the widget's, else the theme's). */
@@ -65,6 +65,13 @@ export function writeField(fields: FieldsApi, def: ModuleSetting, value: ModuleS
   else fields.onChange(def.key, value, editKey);
 }
 
+/** A preset row's bundled keys as the zone shows them (their defaults: the default option's bundle). */
+function bundleOf(def: ModuleSetting, fields: FieldsApi): ModuleSettings {
+  return Object.fromEntries(
+    Object.entries(presetDefaults(def)).map(([key, fallback]) => [key, fields.shown(key, { key, label: key, type: "boolean", default: fallback })])
+  );
+}
+
 /** The quick-bar pin at a row's end: grey outline, or filled accent when pinned. */
 function PinButton({ pinned, label, onToggle }: { pinned: boolean; label: string; onToggle: () => void }) {
   const title = pinned ? `Unpin ${label} from the quick bar` : `Pin ${label} to the quick bar`;
@@ -115,7 +122,7 @@ export function SettingField({
         def={def}
         value={fields.shown(def.key, def)}
         valueY={def.keyY ? fields.shown(def.keyY, def) : undefined}
-        refValue={def.of ? fields.shown(def.of, { ...def, key: def.of, default: "" }) : undefined}
+        bundle={def.type === "preset" ? bundleOf(def, fields) : undefined}
         onChange={(v, editKey) => writeField(fields, def, v, editKey)}
         onPatch={fields.onPatch}
         onApply={fields.onPatch}

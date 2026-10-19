@@ -1,14 +1,15 @@
 // FpsMonitor's look settings and their mapping to props (same keys, defaults and groups as the old FPS
 // widget).
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
+import { colorSetting } from "./registry/settings-kit";
 import type { FpsMonitorProps } from "./FpsMonitor";
 
-/** showMetrics, sparkline and the two colours. */
+/** showMetrics, sparkline and the two colours (the ring follows the theme's Series 1, the sparkline Series 2). */
 export const FPS_LOOK_SETTINGS: ModuleSetting[] = [
-  { key: "showMetrics", label: "Extra metrics", type: "boolean", default: true, group: "Content" },
-  { key: "sparkline", label: "Trend sparkline", type: "boolean", default: false, group: "Content" },
-  { key: "ringColor", label: "Ring color", type: "color", default: "", group: "Gauge colors" },
-  { key: "sparkColor", label: "Trend sparkline color", type: "color", default: "", group: "Gauge colors" },
+  { key: "showMetrics", label: "Extra metrics", type: "boolean", default: true, group: "Display" },
+  { key: "sparkline", label: "Trend sparkline", type: "boolean", default: false, group: "Display" },
+  colorSetting("ringColor", "Ring", { role: "s1", more: false }),
+  colorSetting("sparkColor", "Trend sparkline", { role: "s2", more: false }),
 ];
 
 type FpsLookProps = Pick<FpsMonitorProps, "view" | "showMetrics" | "sparkline" | "ringColor" | "sparkColor">;

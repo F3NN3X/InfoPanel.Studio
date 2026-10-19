@@ -1,11 +1,9 @@
 // SystemOverview's stored settings (the detail switches keep the old System widget's keys) and the
 // mapping to template props.
 import { decimalsOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
-import type { ModuleSetting, ModuleSettings } from "@/modules/types";
+import type { ModuleSetting, ModuleSettings, PaletteRole } from "@/modules/types";
 import type { Detail, Section, SystemOverviewProps } from "../SystemOverview";
-import { boolSetting, colorSetting, enumSetting, formatSetting, oneOf, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
-
-const GROUP_UNITS = "Units & labels";
+import { boolSetting, colorSetting, enumSetting, formatSetting, numberSetting, oneOf, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
 
 /** The detail switches, each stored under the old System widget's key. */
 const DETAIL_KEYS: Record<Detail, string> = {
@@ -28,68 +26,57 @@ const LABEL_KEYS: Partial<Record<Section, string>> = { cpu: "cpuLabel", gpu: "gp
 const COLOR_KEYS: Partial<Record<Section, string>> = { cpu: "cpuColor", gpu: "gpuColor", ram: "ramColor", disk: "diskColor", vram: "vramColor", net: "netColor" };
 const SECTIONS: readonly Section[] = ["cpu", "gpu", "ram", "vram", "disk", "net"];
 
-/** The details, graphs, thresholds, units, labels and colours (a new zone shows every detail and its graphs). */
-const DETAIL_SETTINGS: ModuleSetting[] = [
-  { key: "showNames", label: "Hardware names", type: "boolean", default: true, group: "Devices" },
-  { key: "showTemps", label: "Temperatures", type: "boolean", default: true, group: "Devices" },
-  { key: "showPower", label: "Power draw", type: "boolean", default: true, group: "Devices" },
-  { key: "showClock", label: "GPU clock", type: "boolean", default: true, group: "GPU" },
-  { key: "showHotspot", label: "GPU hotspot (memory junction)", type: "boolean", default: true, group: "GPU" },
-  { key: "showFans", label: "GPU fans", type: "boolean", default: true, group: "GPU" },
-  { key: "showMemClock", label: "GPU memory clock", type: "boolean", default: true, group: "GPU" },
-  { key: "showPowerLimit", label: "GPU power (% of limit)", type: "boolean", default: true, group: "GPU" },
-  { key: "showMemory", label: "Memory used / total", type: "boolean", default: true, group: "Memory" },
-  { key: "showPageFile", label: "RAM page file", type: "boolean", default: true, group: "Memory" },
-  { key: "showDiskTemp", label: "Drive temperature", type: "boolean", default: true, group: "Drives" },
-  { key: "showDiskIo", label: "Drive read / write rate", type: "boolean", default: true, group: "Drives" },
-  { key: "showDiskLife", label: "Drive life remaining", type: "boolean", default: true, group: "Drives" },
-  {
-    key: "diskFilter",
-    label: "Drives to show (names, comma-separated; empty = all)",
-    type: "text",
-    default: "",
-    group: "Drives",
-  },
-  { key: "sparkline", label: "Trend sparklines", type: "boolean", default: true, group: "Trends", tab: "behaviour" },
-  {
-    key: "historyLength",
-    label: "Sparkline length (samples)",
-    type: "number",
-    default: 60,
-    min: 12,
-    max: 120,
-    step: 12,
-    group: "Trends",
-    tab: "behaviour",
-  },
+const choices = (pairs: [string, string][]) => pairs.map(([value, label]) => ({ value, label }));
+/** A section's label override (More of its section; "" = the section's own name). */
+const labelSetting = (key: string, group: string, name: string): ModuleSetting => textSetting(key, "Label", "", { group, more: true, hint: `Empty = ${name}` });
+/** A section's colour (Style › Widget colors): its theme series colour ("" = the widget's palette). */
+const sectionColor = (key: string, label: string, role: PaletteRole): ModuleSetting => colorSetting(key, label, { role, more: false });
+
+/**
+ * The SystemOverview zone's rows (SPEC §6.3): which sections show, then one Show section per device
+ * section (its label behind More), the device colours (theme series 1–6) in Widget colors, the drive
+ * filter in Data, the trends in Behaviour. The detail switches keep the old System widget's keys.
+ */
+const OVERVIEW_SETTINGS: ModuleSetting[] = [
+  enumSetting("sections", "Show", "cpu,gpu,ram", SECTIONS.map((v) => ({ value: v, label: v === "disk" ? "Disks" : v === "net" ? "Network" : v.toUpperCase() })), { multiple: true, group: "Sections", hint: "Order follows the click order." }),
+  enumSetting("details", "Detail level", "auto", choices([["auto", "Auto"], ["min", "Minimal"], ["full", "Full"]]), { group: "Sections" }),
+  enumSetting("ring", "Load rings", "ring", choices([["ring", "Rings"], ["none", "None"]]), { group: "Sections" }),
+  boolSetting("showNames", "Hardware names", true, { group: "Sections" }),
+  boolSetting("showTemps", "Temperatures", true, { group: "Sections" }),
+  boolSetting("showPower", "Power draw", true, { group: "Sections" }),
+  enumSetting("coreView", "Threads", "heatmap", choices([["heatmap", "Heatmap"], ["bars", "Bars"], ["off", "Off"]]), { group: "CPU" }),
+  labelSetting("cpuLabel", "CPU", "CPU"),
+  boolSetting("showClock", "Core clock", true, { group: "GPU" }),
+  boolSetting("showHotspot", "Hotspot", true, { group: "GPU", hint: "The memory junction temperature" }),
+  boolSetting("showFans", "Fans", true, { group: "GPU" }),
+  boolSetting("showMemClock", "Memory clock", true, { group: "GPU", more: true }),
+  boolSetting("showPowerLimit", "Power (% of limit)", true, { group: "GPU", more: true }),
+  labelSetting("gpuLabel", "GPU", "GPU"),
+  boolSetting("showMemory", "Used / total", true, { group: "Memory" }),
+  boolSetting("showPageFile", "Page file", true, { group: "Memory" }),
+  labelSetting("ramLabel", "Memory", "RAM"),
+  boolSetting("showDiskTemp", "Temperature", true, { group: "Drives" }),
+  boolSetting("showDiskIo", "Read / write rate", true, { group: "Drives" }),
+  boolSetting("showDiskLife", "Life remaining", true, { group: "Drives" }),
+  labelSetting("diskLabel", "Drives", "Disks"),
+  // Not in the concept: the Network section draws nothing else to set, but its label is still read.
+  labelSetting("netLabel", "Network", "NET"),
+  boolSetting("unifiedColor", "One accent for every section", false, { tab: "style", perWidget: true }),
+  sectionColor("cpuColor", "CPU", "s1"),
+  sectionColor("gpuColor", "GPU", "s2"),
+  sectionColor("ramColor", "RAM", "s3"),
+  sectionColor("vramColor", "VRAM", "s4"),
+  sectionColor("diskColor", "Disks", "s5"),
+  sectionColor("netColor", "Network", "s6"),
+  enumSetting("heatRamp", "Thread heat ramp", "accent", choices([["accent", "Accent"], ["thermal", "Thermal"]]), { tab: "style", more: true, perWidget: true }),
+  textSetting("diskFilter", "Drives to show", "", { group: "Drives", tab: "data", hint: "Names, comma-separated; empty = all" }),
+  boolSetting("sparkline", "Trend sparklines", true, { group: "Trends", tab: "behaviour" }),
+  numberSetting("historyLength", "Length (samples)", 60, { min: 12, max: 120, step: 12, group: "Trends", tab: "behaviour" }),
   thresholdSetting("load"),
   thresholdSetting("temp"),
   thresholdSetting("full", { hint: "VRAM and drive fullness" }),
   formatSetting("tempUnit"),
   formatSetting("decimals", { options: ["auto", "0", "1"].map((value) => ({ value, label: value === "auto" ? "Auto" : value })), hint: "Auto: none" }),
-  { key: "cpuLabel", label: "CPU label", type: "text", default: "", group: GROUP_UNITS },
-  { key: "gpuLabel", label: "GPU label", type: "text", default: "", group: GROUP_UNITS },
-  { key: "ramLabel", label: "RAM label", type: "text", default: "", group: GROUP_UNITS },
-  { key: "diskLabel", label: "Disks label", type: "text", default: "", group: GROUP_UNITS },
-  { key: "cpuColor", label: "CPU color", type: "color", default: "", group: "Device colors" },
-  { key: "gpuColor", label: "GPU color", type: "color", default: "", group: "Device colors" },
-  { key: "ramColor", label: "RAM color", type: "color", default: "", group: "Device colors" },
-  { key: "diskColor", label: "Disks color", type: "color", default: "", group: "Device colors" },
-  { key: "vramColor", label: "VRAM color", type: "color", default: "", group: "Device colors" },
-];
-
-const GROUP_OVERVIEW = "System Overview";
-
-/** Sections, core view, ring, detail level, NET label and colour. */
-const OVERVIEW_ONLY: ModuleSetting[] = [
-  enumSetting("sections", "Sections", "cpu,gpu,ram", SECTIONS.map((v) => ({ value: v, label: v === "disk" ? "Disks" : v === "net" ? "Network" : v.toUpperCase() })), { multiple: true, group: GROUP_OVERVIEW }),
-  enumSetting("details", "Detail level", "auto", [{ value: "auto", label: "Auto" }, { value: "min", label: "Minimal" }, { value: "full", label: "Full" }], { group: GROUP_OVERVIEW }),
-  enumSetting("ring", "Load rings", "ring", [{ value: "ring", label: "Rings" }, { value: "none", label: "None" }], { group: GROUP_OVERVIEW }),
-  enumSetting("coreView", "CPU threads view", "heatmap", [{ value: "heatmap", label: "Heatmap" }, { value: "bars", label: "Bars" }, { value: "off", label: "Off" }], { group: GROUP_OVERVIEW }),
-  textSetting("netLabel", "Network label", "", { group: GROUP_UNITS }),
-  boolSetting("unifiedColor", "Accent for every section", false, { group: "Device colors", tab: "style", advanced: true }),
-  enumSetting("heatRamp", "Thread heat ramp", "accent", [{ value: "accent", label: "Accent" }, { value: "thermal", label: "Thermal" }], { group: "Device colors", tab: "style", advanced: true }),
-  colorSetting("netColor", "Network color", { group: "Device colors" }),
 ];
 
 /** The sections a setting draws in: it is offered only while one of them is shown (unlisted = always). */
@@ -102,10 +89,11 @@ const SECTION_OF: Record<string, readonly Section[]> = {
   vramColor: ["vram"],
   "warn.full": ["vram", "disk"],
 };
-/** Further conditions: the thread ramp colours the heatmap, the length sizes the sparklines. */
+/** Further conditions: the thread ramp colours the heatmap, the length sizes the sparklines, one accent replaces the section colours. */
 const ALSO: Record<string, (v: ModuleSettings) => boolean> = {
   heatRamp: (v) => splitKeys(v.sections ?? "cpu,gpu,ram").includes("cpu") && (v.coreView ?? "heatmap") === "heatmap",
   historyLength: (v) => v.sparkline !== false,
+  ...Object.fromEntries((Object.values(COLOR_KEYS) as string[]).map((k) => [k, (v: ModuleSettings) => !v.unifiedColor])),
 };
 const offered = (d: ModuleSetting): ModuleSetting => {
   const secs = SECTION_OF[d.key];
@@ -114,8 +102,8 @@ const offered = (d: ModuleSetting): ModuleSetting => {
   return { ...d, visibleIf: (v) => (!secs || secs.some((x) => splitKeys(v.sections ?? "cpu,gpu,ram").includes(x))) && (!also || also(v)) };
 };
 
-/** The SystemOverview zone's settings: the details, then its own; each offered only while it can show. */
-export const SYSTEM_OVERVIEW_SETTINGS: ModuleSetting[] = [...DETAIL_SETTINGS, ...OVERVIEW_ONLY].map(offered);
+/** The SystemOverview zone's settings, each offered only while it can show. */
+export const SYSTEM_OVERVIEW_SETTINGS: ModuleSetting[] = OVERVIEW_SETTINGS.map(offered);
 
 const text = (v: unknown) => String(v ?? "").trim();
 const has = (s: ModuleSettings, key: string) => s[key] !== undefined && s[key] !== "";

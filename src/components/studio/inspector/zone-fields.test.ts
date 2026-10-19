@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Placement } from "@/lib/layout";
 import { PANEL_SETTINGS } from "@/modules/standard-settings";
 import type { ModuleSetting } from "@/modules/types";
-import { allSections, widgetContext } from "../inspector-model";
+import { allSections, sourceState, widgetContext } from "../inspector-model";
 import { modules } from "@/modules";
 import {
   followFields,
@@ -70,6 +70,21 @@ describe("shownValue", () => {
   it("falls back to the default and collects every key", () => {
     const values = zoneLookValues(zone({}), {});
     expect(shownValues(values, [accent, title])).toEqual({ accent: "", label: "" });
+  });
+
+  it("reads a colour row with a palette role from its role while Widget colors follows", () => {
+    const cpu = modules.find((m) => m.id === "SystemOverview")!.settings!.find((d) => d.key === "cpuColor")!;
+    expect(cpu.role).toBe("s1");
+    const own = zone({ settings: { cpuColor: "#ff0000" } });
+    const theme = { profile: { values: { s1: "#0000ff" } } };
+    expect(shownValue(zoneLookValues(own, theme), "cpuColor", cpu)).toBe("#0000ff");
+    // no theme colour: the row's default ("" = the widget's own palette), not the inactive own value
+    expect(shownValue(zoneLookValues(own, {}), "cpuColor", cpu)).toBe("");
+    expect(sourceState(cpu, zoneLookValues(own, theme))).toBe("default");
+    const custom = { ...own, follow: { palette: false } };
+    expect(shownValue(zoneLookValues(custom, theme), "cpuColor", cpu)).toBe("#ff0000");
+    expect(sourceState(cpu, zoneLookValues(custom, theme))).toBe("here");
+    expect(followFields(own, {}, () => {}).readOnly?.(cpu)).toBe(true);
   });
 
   it("gives visibleIf the resolved values (Glow color shows for a theme glow)", () => {

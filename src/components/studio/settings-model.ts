@@ -118,3 +118,20 @@ export function dropKeys(
   const rest = Object.entries(settings ?? {}).filter(([key]) => !keys.has(key));
   return rest.length > 0 ? Object.fromEntries(rest) : undefined;
 }
+
+/** The keys a preset row's options write, with their defaults: the default option's bundle (`ModuleSetting.options`). */
+export function presetDefaults(def: ModuleSetting): ModuleSettings {
+  const keys = [...new Set((def.options ?? []).flatMap((o) => Object.keys(o.applies ?? {})))];
+  const base = { ...def.bundleDefaults, ...def.options?.find((o) => o.value === def.default)?.applies };
+  return Object.fromEntries(keys.flatMap((key) => (base[key] !== undefined ? [[key, base[key]]] : [])));
+}
+
+/**
+ * The option a preset row reads: the stored one while the shown toggles
+ * (`shown`) still match its bundle, else the first option they match, else
+ * "custom".
+ */
+export function presetChoice(def: ModuleSetting, stored: string, shown: ModuleSettings): string {
+  const matches = (def.options ?? []).filter((o) => o.applies && Object.entries(o.applies).every(([key, v]) => shown[key] === v));
+  return (matches.find((o) => o.value === stored) ?? matches[0])?.value ?? "custom";
+}

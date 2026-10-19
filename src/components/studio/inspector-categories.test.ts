@@ -37,7 +37,7 @@ const SHARED_TITLES = new Set(SHARED_SECTIONS.map((c) => c.title));
 const STANDARD_ONLY = new Set(["header", "fit", "skin", "colors", "surface", "type", "spacing", "border", "css"]);
 
 const sheets: [string, ModuleSetting[]][] = [
-  ...modules.map((m): [string, ModuleSetting[]] => [m.id, m.settings ?? []]),
+  ...modules.map((m): [string, ModuleSetting[]] => [m.id, (m.settings ?? []).filter((d) => !d.hidden)]),
   ["cards", CARD_SETTINGS],
   ["panel", PANEL_SETTINGS],
 ];

@@ -45,6 +45,9 @@ describe("NowPlaying visualiser device", () => {
 
 describe("NowPlaying visualiser colour", () => {
   it("keeps a saved colour showing when no colour mode was ever chosen", () => {
+    expect(propsFor({ vizColor1: "#d10a0a" }).vizLook?.colorMode).toBe("ramp");
+    expect(propsFor({ vizColor1: "#d10a0a" }).vizRamp).toBe("#d10a0a");
+    // the key before config v8, still read
     expect(propsFor({ vizRamp: "#d10a0a" }).vizLook?.colorMode).toBe("ramp");
   });
   it("honours an explicit colour mode over the saved colour", () => {

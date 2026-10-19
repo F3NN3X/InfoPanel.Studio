@@ -3,6 +3,7 @@
 import type { BallisticsPreset } from "@/lib/audio/ballistics";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { WaveLinkProps } from "../WaveLink";
+import { colorSetting } from "./settings-kit";
 
 const METER_BALLISTICS: ModuleSetting = {
   key: "meterBallistics",
@@ -32,19 +33,17 @@ const METER_VARIANT: ModuleSetting = {
 };
 
 const AUDIO_SETTINGS: ModuleSetting[] = [
-  { key: "showDevice", label: "Device name", type: "boolean", default: true, group: "Content" },
+  { key: "showDevice", label: "Device name", type: "boolean", default: true, group: "Details" },
   {
     key: "showDetails",
     label: "Peak / RMS & L/R/volume details",
     type: "boolean",
     default: true,
-    group: "Content",
+    group: "Details",
   },
-  { key: "showVolume", label: "Volume bar", type: "boolean", default: false, group: "Content" },
-  { key: "showMute", label: "Mute indicator", type: "boolean", default: true, group: "Content" },
+  { key: "showVolume", label: "Volume bar", type: "boolean", default: false, group: "Details" },
+  { key: "showMute", label: "Mute indicator", type: "boolean", default: true, group: "Details" },
   METER_BALLISTICS,
-  { key: "levelColor", label: "Level bar color", type: "color", default: "", group: "Meter", advanced: true },
-  { key: "hotColor", label: "Hot level color", type: "color", default: "", group: "Meter", advanced: true },
 ];
 
 /** The shared audio settings by key, for a template's own list. */
@@ -55,34 +54,25 @@ export const ballisticsOf = (s: ModuleSettings): BallisticsPreset => (s.meterBal
 
 export const WAVELINK_SETTINGS: ModuleSetting[] = [
   {
-    key: "source",
-    label: "Meters to show",
-    type: "select",
-    default: "",
-    multiple: true,
-    optionsFrom: "wavelink",
-    group: "Content",
-  },
-  {
     key: "showReadout",
     label: "dB readouts & scale",
     type: "boolean",
     default: true,
-    group: "Content",
+    group: "Details",
   },
   {
     key: "showFader",
     label: "Fader level",
     type: "boolean",
     default: true,
-    group: "Content",
+    group: "Details",
   },
   {
     key: "showMixes",
     label: "Mixes (routes & output mixers)",
     type: "boolean",
     default: true,
-    group: "Content",
+    group: "Details",
   },
   METER_VARIANT,
   {
@@ -96,9 +86,21 @@ export const WAVELINK_SETTINGS: ModuleSetting[] = [
     ],
     group: "Meter",
   },
+  // Follow the theme's OK and Critical ("" = the accent, green and red); the level colour also carries the old Wave Link widget's teal (config v4, `legacy-zones.ts`).
+  colorSetting("levelColor", "Level", { role: "ok", more: false }),
+  colorSetting("liveColor", "Live indicator", { role: "ok", more: false }),
+  colorSetting("muteColor", "Muted / offline", { role: "crit", more: false }),
+  {
+    key: "source",
+    label: "Meters to show",
+    type: "select",
+    default: "",
+    multiple: true,
+    optionsFrom: "wavelink",
+    group: "Meters",
+    tab: "data",
+  },
   METER_BALLISTICS,
-  { key: "liveColor", label: "Live indicator color", type: "color", default: "", group: "Meter", advanced: true },
-  { key: "muteColor", label: "Muted / offline color", type: "color", default: "", group: "Meter", advanced: true },
 ];
 
 export const wavelinkToProps = (s: ModuleSettings): Partial<WaveLinkProps> => ({

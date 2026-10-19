@@ -1,5 +1,6 @@
 // The visualiser look settings shared by the NowPlaying template and the Visualizer widget: colours
-// (Style, More), shape and the dynamics (Behaviour, More). Colour 1 stays each widget's own key (`vizRamp` / `ramp`).
+// (Style, More), shape and the dynamics (Behaviour, More). Colour 1 stays each widget's own key (`vizColor1`, the
+// old `vizRamp` until config v8 / `ramp`).
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { VizLook } from "../core/viz/types";
 import { boolOf, boolSetting, colorSetting, enumSetting, numberOf, numberSetting, oneOf, stringOf } from "./settings-kit";
@@ -33,6 +34,18 @@ export function vizColorSettings(color1: ModuleSetting): ModuleSetting[] {
   ];
 }
 
+/** The visualiser's colour rows in Style › Widget colors: theme roles Series 1–3 and Critical for the peak caps; `color1Key` is the widget's colour-1 key. */
+export const vizColorRows = (color1Key: string): Readonly<Record<string, Partial<ModuleSetting>>> => ({
+  vizColorMode: { label: "Visualizer colors", more: false, perWidget: true },
+  vizGradient: { perWidget: true },
+  [color1Key]: { label: "Color 1", role: "s1", more: false },
+  vizColor2: { label: "Color 2", role: "s2", more: false },
+  vizColor3: { label: "Color 3", role: "s3", more: false },
+  vizPeakColor: { label: "Peak cap", role: "crit", more: true },
+  vizOpacity: { label: "Visualizer opacity (%)", perWidget: true },
+  vizGlow: { perWidget: true },
+});
+
 /** The shape and gap; `modeKey` is the widget's own style key, which decides whether they are drawn. */
 export const vizShapeSettings = (modeKey: string): ModuleSetting[] => {
   const bars = (v: ModuleSettings) => BAR_STYLES.includes(String(v[modeKey]));
@@ -53,14 +66,16 @@ export const vizDynamicsSettings = (): ModuleSetting[] => [
 ];
 
 /**
- * The colour mode: the saved choice; else Ramp when colour 1 (`vizRamp` / `ramp`) is set, which is how
+ * The colour mode: the saved choice; else Ramp when colour 1 (`vizColor1` / `vizRamp` / `ramp`) is set, which is how
  * the renderers before the look settings drew that colour, so a saved colour keeps showing; else unset
  * (Follow). `saved` holds the raw stored values, since the resolved look fills the default in.
  */
 export function colorModeOf(s: ModuleSettings, saved?: ModuleSettings): VizLook["colorMode"] | undefined {
-  const chosen = oneOf((saved ?? s).vizColorMode, COLOR_MODES);
+  const own = saved ?? s;
+  const chosen = oneOf(own.vizColorMode, COLOR_MODES);
   if (chosen) return chosen;
-  return stringOf(s.vizRamp) || stringOf(s.ramp) ? "ramp" : undefined;
+  // A theme's Series 1 is no saved colour: only an own one keeps the old Ramp.
+  return stringOf(own.vizColor1) || stringOf(own.vizRamp) || stringOf(own.ramp) ? "ramp" : undefined;
 }
 
 /** The look from the shared keys; unset keys stay unset (the renderer's defaults apply). */

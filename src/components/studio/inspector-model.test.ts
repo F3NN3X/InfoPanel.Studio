@@ -43,7 +43,8 @@ const panel: InspectorContext = { kind: "panel", defs: PANEL_SETTINGS };
 
 describe("every setting is in exactly one section of exactly one tab", () => {
   // A widget without a header, or with a title-only one, has no Show title row (config v7 dropped a stored one).
-  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")));
+  // A hidden row (CustomGauge `gauge`) is in the schema but never listed.
+  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !d.hidden).filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")));
   const contexts: [string, InspectorContext, ModuleSetting[]][] = [
     ...modules.map((m): [string, InspectorContext, ModuleSetting[]] => [m.id, widgetContext(m), shown(m)]),
     ["cards", { kind: "widget", defs: CARD_SETTINGS }, CARD_SETTINGS],
@@ -105,7 +106,7 @@ describe("inspectorTabs", () => {
 
 describe("widget sections", () => {
   it("files Header, the widget's own sections and Fit in Show", () => {
-    expect(titles(sectionsFor(spotify, "show"))).toEqual(["Header", "Now playing", "Visualizer", "Cover art", "Visualizer shape", "Fit"]);
+    expect(titles(sectionsFor(spotify, "show"))).toEqual(["Header", "Player", "Visualizer", "Fit"]);
     expect(find(sectionsFor(spotify, "show"), "Header").extras.map((e) => e.kind)).toEqual(["widgetPicker", "visible"]);
     expect(keysOf([find(sectionsFor(spotify, "show"), "Fit")])).toEqual(["compact", "sizeTier"]);
   });
@@ -142,19 +143,19 @@ describe("widget sections", () => {
     }
   });
 
-  it("files the meter's colors in Widget colors once its response moved to Motion (a colour-only group)", () => {
+  it("files the meter's colors in Widget colors and its response in Motion", () => {
     const audio = widgetContext(mod("AudioMeter"));
-    expect(titles(sectionsFor(audio, "show"))).not.toContain("Meter");
+    expect(titles(sectionsFor(audio, "show"))).toEqual(["Header", "Meter", "Details", "Fit"]);
     expect(keysOf([find(sectionsFor(audio, "style"), "Widget colors")])).toEqual(["levelColor", "hotColor"]);
     expect(keysOf([find(sectionsFor(audio, "behaviour"), "Motion")])).toEqual(["smoothing", "meterBallistics"]);
   });
 
-  it("files the device and Audio source in Data, after the bound data", () => {
+  it("files the player source and the visualiser's audio in Data, after the bound data", () => {
     const data = sectionsFor(spotify, "data");
-    expect(titles(data)).toEqual(["Bound data", "Visualizer", "Audio source"]);
+    expect(titles(data)).toEqual(["Bound data", "Player source", "Visualizer audio"]);
     expect(data[0]).toMatchObject({ special: "boundData" });
-    expect(keysOf(data)).toEqual(["device", "liveCapture", "devices"]);
-    expect(titles(sectionsFor(spotify, "show"))).not.toContain("Audio source");
+    expect(keysOf(data)).toEqual(["source", "device", "liveCapture", "devices"]);
+    expect(titles(sectionsFor(spotify, "show"))).not.toContain("Visualizer audio");
   });
 
   it("files thresholds, the widget's behaviour, the island and graph updates in Behaviour", () => {
@@ -202,8 +203,8 @@ describe("tabs of every widget", () => {
     const tabs = tabStates(inspectorTabs(context), sections);
     expect(tabs.map((t) => t.id)).toEqual(["show", "style", "data", "behaviour"]);
     for (const t of tabs) expect(t.disabled, `${id} ${t.id}`).toBe(!sections.some((s) => s.tab === t.id));
-    // Only the Web Page has nothing to do in Behaviour (no graph updates, island or thresholds).
-    expect(tabs.filter((t) => t.disabled).map((t) => t.id)).toEqual(id === "WebPage" ? ["behaviour"] : []);
+    // Only the Web Page has nothing to do in Behaviour (no graph updates, island or thresholds); it and Uptime bind nothing (Data).
+    expect(tabs.filter((t) => t.disabled).map((t) => t.id)).toEqual(id === "WebPage" ? ["data", "behaviour"] : id === "Uptime" ? ["data"] : []);
   });
 });
 
@@ -490,10 +491,18 @@ describe("More rows", () => {
     expect(splitMore(find(style, "Custom CSS"))).toMatchObject({ rows: [], count: 1 });
   });
 
-  it("reads the old advanced flag as More", () => {
+  it("lists a section's More rows after its link", () => {
     const visualizer = splitMore(find(sectionsFor(spotify, "show"), "Visualizer"));
-    expect(visualizer.more.map((d) => d.key)).toEqual(["visualizerMinLevel", "visualizerOrientation"]);
-    expect(splitMore(find(sectionsFor(spotify, "behaviour"), "Visualizer dynamics"))).toMatchObject({ rows: [], count: 6 });
+    expect(visualizer.more.map((d) => d.key)).toEqual(["vizShape", "vizGap", "vizOrientation", "vizMinLevel", "vizLine", "vizFade", "vizFadeWidth"]);
+    const dynamics = splitMore(find(sectionsFor(spotify, "behaviour"), "Visualizer dynamics"));
+    expect(dynamics.rows.map((d) => d.key)).toEqual(["vizGain", "vizAutoGain"]);
+    expect(dynamics.count).toBe(5);
+  });
+
+  it("reads the old advanced flag as More", () => {
+    const old: ModuleSetting = { key: "f", label: "F", type: "boolean", default: false, advanced: true };
+    expect(isMore(old)).toBe(true);
+    expect(isMore({ ...old, more: false })).toBe(false);
   });
 
   it("keeps every section, a whole-advanced card included", () => {
@@ -517,19 +526,19 @@ describe("More rows", () => {
   it("are found by search and listed with the other matches", () => {
     const { groups } = searchAll(spotify, "orientation");
     const visualizer = groups.find((g) => g.section.title === "Visualizer")!;
-    expect(visualizer.section.settings.map((d) => [d.key, isMore(d)])).toEqual([["visualizerOrientation", true]]);
+    expect(visualizer.section.settings.map((d) => [d.key, isMore(d)])).toEqual([["vizOrientation", true]]);
   });
 });
 
 describe("searchAll", () => {
   it("searches every tab and labels each result with its tab", () => {
     const { groups, total } = searchAll(spotify, "mirror");
-    // "Visualizer style" matches by its Mirror option; "peak" by the labels in Content and Style.
+    // The visualiser's Style matches by its Mirror option; "peak" by the labels in Show and Style.
     expect(groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["Show", "Visualizer"]]);
     expect(total).toBe(groups.reduce((n, g) => n + g.section.settings.length, 0));
-    expect(keysOf(groups.map((g) => g.section))).toEqual(["waveformVariant"]);
+    expect(keysOf(groups.map((g) => g.section))).toEqual(["vizStyle"]);
     expect(searchAll(spotify, "peak").groups.map((g) => [g.tabLabel, g.section.title])).toEqual([
-      ["Show", "Visualizer shape"],
+      ["Show", "Visualizer"],
       ["Style", "Widget colors"],
     ]);
   });
@@ -542,7 +551,7 @@ describe("searchAll", () => {
   });
 
   it("includes More rows", () => {
-    expect(keysOf(searchAll(spotify, "fade").groups.map((g) => g.section))).toEqual(["waveformFadeEdges", "waveformFadeWidth"]);
+    expect(keysOf(searchAll(spotify, "fade").groups.map((g) => g.section))).toEqual(["vizFade", "vizFadeWidth"]);
   });
 
   it("lists matching rows only, not their whole category", () => {

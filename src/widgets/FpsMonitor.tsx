@@ -195,7 +195,8 @@ export default function FpsMonitor(p: FpsMonitorProps) {
   const pct = Number.isFinite(target) && target > 0 ? fps / target : 1;
   const t: Tone = pct >= 0.9 ? "ok" : pct >= 0.5 ? "warn" : "crit";
   const gauge = p.view === "gauge" || p.view === "trend";
-  const spark = p.sparkline || p.view === "trend";
+  // The trend view stores `sparkline: true` (v8 migration), so the toggle alone decides.
+  const spark = p.sparkline === true;
   // the gauge's full scale and tone: the fps target when set, else the refresh rate
   const targeted = p.target !== undefined && p.target > 0;
   const maxFps = targeted ? p.target! : hz > 0 ? hz : 144;

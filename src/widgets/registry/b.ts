@@ -2,8 +2,7 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { SENSOR_GROUP_SETTINGS } from "./hardware-settings";
-import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, itemsSetting, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
 import { timerIsland } from "../island/timer";
@@ -22,8 +21,6 @@ import * as SensorValue from "../SensorValue";
 import * as SensorGroup from "../SensorGroup";
 import * as CustomGauge from "../CustomGauge";
 
-const DEVICE = "Device";
-
 /** "5, 15, 25" → [5, 15, 25]: whole minutes 1-1440, at most eight. */
 export const presetsOf = (v: unknown): number[] | undefined => {
   const list = String(v ?? "")
@@ -41,9 +38,9 @@ const numbersOf = <K extends string>(s: ModuleSettings, keys: readonly K[]): Par
   Object.fromEntries(keys.flatMap((k) => (numberOf(s[k]) === undefined ? [] : [[k, numberOf(s[k])]]))) as Partial<Record<K, number>>;
 
 const DRIVE_SETTINGS: ModuleSetting[] = [
-  deviceSetting("Drive", "drive", { group: DEVICE, hint: "Pin one volume; Auto lists all" }),
-  enumSetting("sort", "Sort", "usage", [{ value: "usage", label: "By usage" }, { value: "name", label: "By name" }], { group: "Drive space" }),
-  boolSetting("neutral", "Neutral below thresholds", true, { group: "Drive space" }),
+  deviceSetting("Drive", "drive", { group: "Drive", hint: "Pin one volume; Auto lists all" }),
+  enumSetting("sort", "Sort", "usage", [{ value: "usage", label: "By usage" }, { value: "name", label: "By name" }], { group: "Sorting", tab: "behaviour" }),
+  boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true }),
   thresholdSetting("full"),
 ];
 
@@ -56,25 +53,33 @@ const valueThresholds = (extra: Partial<ModuleSetting> = {}): ModuleSetting => t
 const ranged = (v: ModuleSettings): boolean => v.display === "gauge" || v.display === "bar";
 
 const SENSOR_VALUE_SETTINGS: ModuleSetting[] = [
-  sensorSetting("sensor", "Sensor", { group: "Sensor value" }),
-  enumSetting("display", "Display", "value", [{ value: "value", label: "Value" }, { value: "gauge", label: "Gauge" }, { value: "bar", label: "Bar" }, { value: "spark", label: "Spark" }], { group: "Sensor value" }),
-  optional("unit", "Unit override", "Sensor value", "Blank = the unit read from the value"),
-  numberSetting("min", "Minimum", 0, { group: "Sensor value", visibleIf: ranged }),
-  numberSetting("max", "Maximum", 0, { group: "Sensor value", hint: "0 = automatic", visibleIf: ranged }),
+  enumSetting("display", "Display", "value", [{ value: "value", label: "Value" }, { value: "gauge", label: "Gauge" }, { value: "bar", label: "Bar" }, { value: "spark", label: "Spark" }], { group: "Display" }),
+  optional("unit", "Unit override", "Display", "Blank = the unit read from the value"),
+  sensorSetting("sensor", "Sensor", { group: "Reading" }),
+  numberSetting("min", "Minimum", 0, { group: "Bar scale", tab: "data", visibleIf: ranged }),
+  numberSetting("max", "Maximum", 0, { group: "Bar scale", tab: "data", hint: "0 = automatic", visibleIf: ranged }),
   FINE_DECIMALS,
   valueThresholds(),
 ];
 
 // SensorGroup's `sensors` are stored as ordered keys (labelled from the sensor display name); the bar range, decimals and thresholds are shared by every item, and `items` overrides them (and the label) per sensor.
-/** The reading list is the Auto-discover mode's alternative. */
-const listed = (v: ModuleSettings): boolean => !v.auto;
-const SENSOR_GROUP_OWN: ModuleSetting[] = [
-  sensorSetting("sensors", "Sensors", { group: "Sensor group", multiple: true, hint: "Empty = CPU, GPU, memory and volume", visibleIf: listed }),
-  itemsSetting("items", "Per-sensor overrides", "sensors", { group: "Sensor group", hint: "Blank = the shared value; an override of an unbound sensor is kept but ignored", visibleIf: listed }),
-  enumSetting("groupLayout", "Layout", "auto", [{ value: "auto", label: "Auto" }, { value: "rows", label: "Rows" }, { value: "grid", label: "Grid" }], { group: "Sensor group", visibleIf: listed }),
-  boolSetting("bars", "Bar per item", true, { group: "Sensor group", visibleIf: listed }),
-  numberSetting("groupMax", "Bar maximum", 0, { group: "Sensor group", hint: "Every item; 0 = automatic (100 for % and °, else no bar)", visibleIf: listed }),
-  formatSetting("tempUnit", { visibleIf: listed }),
+/** Pick sensors (the list) or Auto-discover (every hardware reading); `mode` was the `auto` toggle until config v8. */
+const discovered = (v: ModuleSettings): boolean => v.mode === "auto";
+const listed = (v: ModuleSettings): boolean => !discovered(v);
+const SENSOR_GROUP_SETTINGS: ModuleSetting[] = [
+  enumSetting("mode", "Readings", "pick", [{ value: "pick", label: "Pick sensors" }, { value: "auto", label: "Auto-discover" }], { group: "Readings" }),
+  enumSetting("groupLayout", "Layout", "auto", [{ value: "auto", label: "Auto" }, { value: "rows", label: "Rows" }, { value: "grid", label: "Grid" }], { group: "Readings", visibleIf: listed }),
+  boolSetting("bars", "Bar per item", true, { group: "Readings", visibleIf: listed }),
+  numberSetting("maxRows", "Max rows (0 = all)", 12, { min: 0, max: 100, step: 2, group: "Readings", visibleIf: discovered }),
+  // The dots of the discovered list: the theme's Critical, Series 3 and Series 5 ("" = red, blue, amber).
+  colorSetting("tempColor", "Temperature dot", { role: "crit", more: false, visibleIf: discovered }),
+  colorSetting("fanColor", "Fan dot", { role: "s3", more: false, visibleIf: discovered }),
+  colorSetting("powerColor", "Power dot", { role: "s5", more: false, visibleIf: discovered }),
+  // `items` (per-sensor overrides, a JSON object string) is tuned inline on each listed sensor.
+  sensorSetting("sensors", "Sensors", { keyY: "items", defaultY: "", group: "Sensors", tab: "data", multiple: true, hint: "Empty = CPU, GPU, memory and volume. Tune a row to override its label, bar maximum, thresholds or decimals.", visibleIf: listed }),
+  numberSetting("groupMax", "Bar maximum", 0, { min: 0, max: 500, step: 10, group: "Bar scale", tab: "data", hint: "Every item; 0 = Auto (100 for % and °, else no bar)", visibleIf: listed }),
+  // Discovered temperatures read in the unit too.
+  formatSetting("tempUnit"),
   { ...FINE_DECIMALS, visibleIf: listed },
   valueThresholds({ visibleIf: listed }),
 ];
@@ -93,45 +98,34 @@ function sensorItems(s: ModuleSettings): SensorGroup.SensorGroupProps["sensors"]
 /** NetworkThroughput's view and toggles, under the old Network widget's keys. */
 // The old `view` select (speeds / totals) only bundled these two switches; a stored `view` is ignored.
 const NETWORK_SETTINGS: ModuleSetting[] = [
-  { key: "showTotals", label: "Session totals", type: "boolean", default: true, group: "Content" },
-  { key: "sparkline", label: "Trend sparkline", type: "boolean", default: false, group: "Content" },
+  { key: "showTotals", label: "Session totals", type: "boolean", default: true, group: "Traffic" },
+  { key: "sparkline", label: "Trend sparkline", type: "boolean", default: false, group: "Traffic" },
+  // The speeds follow the theme's Series 1 and 2 ("" = the widget's own colours).
+  colorSetting("downloadColor", "Download", { role: "s1", more: false }),
+  colorSetting("uploadColor", "Upload", { role: "s2", more: false }),
   rateUnitSetting(),
-  { key: "downloadColor", label: "Download color", type: "color", default: "", group: "Speed colors" },
-  { key: "uploadColor", label: "Upload color", type: "color", default: "", group: "Speed colors" },
 ];
 
 /** Weather's view and toggles, under the old Weather widget's keys. */
 const WEATHER_SETTINGS: ModuleSetting[] = [
   {
     key: "view",
-    label: "View",
-    type: "select",
+    label: "Preset",
+    type: "preset",
     default: "full",
     options: [
-      // Each view sets every switch it bundles, so picking one always shows it (Full used to set none).
+      // Each view sets the three toggles in place; changed afterwards, the row reads Custom. Full = their defaults.
       { value: "full", label: "Full", applies: { showForecast: true, showStats: true, showFeels: true } },
-      {
-        value: "now",
-        label: "Now",
-        applies: { showForecast: false, showStats: true, showFeels: true },
-      },
-      {
-        value: "forecast",
-        label: "Forecast",
-        applies: { showForecast: true, showStats: false, forecastDays: 7 },
-      },
-      {
-        value: "minimal",
-        label: "Minimal",
-        applies: { showStats: false, showForecast: false, showFeels: false },
-      },
+      { value: "now", label: "Now", applies: { showForecast: false, showStats: true, showFeels: true } },
+      { value: "forecast", label: "Forecast", applies: { showForecast: true, showStats: false, showFeels: false } },
+      { value: "minimal", label: "Minimal", applies: { showForecast: false, showStats: false, showFeels: false } },
     ],
     group: "Display",
+    hint: "Sets the three toggles below. Change one and the preset reads Custom.",
   },
-  { key: "tint", label: "Tint from conditions", type: "boolean", default: true, group: "Display" },
-  { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Current conditions" },
-  { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Current conditions" },
-  { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Forecast" },
+  { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Display" },
+  { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Display" },
+  { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Display" },
   {
     key: "forecastDays",
     label: "Forecast days",
@@ -140,8 +134,10 @@ const WEATHER_SETTINGS: ModuleSetting[] = [
     min: 1,
     max: 7,
     step: 1,
-    group: "Forecast",
+    group: "Display",
+    visibleIf: (v) => v.showForecast !== false,
   },
+  { key: "tint", label: "Tint from conditions", type: "boolean", default: true, tab: "style", perWidget: true },
 ];
 
 /** The stored settings as the Weather template's props (`forecastDays` is its `days`). */
@@ -167,15 +163,16 @@ export const GROUP_B: DashboardModule[] = [
     island: driveSpaceIsland,
   }),
   // any vendor's drive: the keys are read, not owned (the fallback grid keeps the rest of `libre.`)
-  templateModule({ meta: StorageHealth.meta, Component: StorageHealth.default, prefixes: ["libre."], settings: [deviceSetting("Disk", "disk", { group: DEVICE })], toProps: (s): Partial<StorageHealth.StorageHealthProps> => ({ disk: deviceOf(s, "disk") }) }),
+  templateModule({ meta: StorageHealth.meta, Component: StorageHealth.default, prefixes: ["libre."], settings: [deviceSetting("Disk", "disk", { group: "Disk" })], toProps: (s): Partial<StorageHealth.StorageHealthProps> => ({ disk: deviceOf(s, "disk") }) }),
   templateModule({
     meta: DiskIO.meta,
     Component: DiskIO.default,
     settings: [
-      deviceSetting("Disk", "disk", { group: DEVICE, hint: "Auto = every detected drive" }),
-      boolSetting("showHistory", "Combined history", true, { group: "Disk I/O" }),
-      colorSetting("readColor", "Read color", { group: "Disk I/O" }),
-      colorSetting("writeColor", "Write color", { group: "Disk I/O" }),
+      boolSetting("showHistory", "Combined history", true, { group: "Chart" }),
+      // Read and write follow the theme's Series 1 and 2 ("" = the widget's own colours).
+      colorSetting("readColor", "Read", { role: "s1", more: false }),
+      colorSetting("writeColor", "Write", { role: "s2", more: false }),
+      deviceSetting("Disk", "disk", { group: "Disk", hint: "Auto = every detected drive" }),
     ],
     toProps: (s): Partial<DiskIO.DiskIOProps> => ({ ...pass<Partial<DiskIO.DiskIOProps>>("readColor", "writeColor")(s), disk: deviceOf(s, "disk"), showHistory: boolOf(s.showHistory) }),
   }),
@@ -184,8 +181,8 @@ export const GROUP_B: DashboardModule[] = [
     Component: NetworkThroughput.default,
     settings: [
       ...NETWORK_SETTINGS,
-      deviceSetting("Adapter", "adapter", { group: DEVICE }),
-      enumSetting("chart", "Chart", "overlay", [{ value: "overlay", label: "Overlay" }, { value: "mirrored", label: "Mirrored" }], { group: "Content", visibleIf: (v) => Boolean(v.sparkline) }),
+      deviceSetting("Adapter", "adapter", { group: "Adapter" }),
+      enumSetting("chart", "Chart", "overlay", [{ value: "overlay", label: "Overlay" }, { value: "mirrored", label: "Mirrored" }], { group: "Traffic", visibleIf: (v) => Boolean(v.sparkline) }),
     ],
     toProps: (s) => ({
       ...pass<Partial<NetworkThroughput.NetworkThroughputProps>>("chart", "showTotals", "sparkline", "downloadColor", "uploadColor")(s),
@@ -198,9 +195,9 @@ export const GROUP_B: DashboardModule[] = [
     meta: NetworkAdapters.meta,
     Component: NetworkAdapters.default,
     settings: [
-      boolSetting("showDown", "Show adapters that are down", false, { group: "Network adapters" }),
-      enumSetting("showIpv6", "IPv6 count", "auto", [{ value: "auto", label: "Large zones" }, { value: "show", label: "Show" }, { value: "hide", label: "Hide" }], { group: "Network adapters" }),
-      boolSetting("hideIp", "Blur addresses", false, { group: "Network adapters", hint: "Privacy: addresses stay blurred" }),
+      boolSetting("showDown", "Show adapters that are down", false, { group: "Adapters" }),
+      enumSetting("showIpv6", "IPv6 count", "auto", [{ value: "auto", label: "Large zones" }, { value: "show", label: "Show" }, { value: "hide", label: "Hide" }], { group: "Addresses" }),
+      boolSetting("hideIp", "Blur addresses", false, { group: "Addresses", hint: "Privacy: addresses stay blurred" }),
     ],
     toProps: (s): Partial<NetworkAdapters.NetworkAdaptersProps> => ({ ...pass<Partial<NetworkAdapters.NetworkAdaptersProps>>("showDown", "hideIp")(s), showIpv6: s.showIpv6 === "show" ? true : s.showIpv6 === "hide" ? false : undefined }),
     island: networkAdaptersIsland,
@@ -209,9 +206,9 @@ export const GROUP_B: DashboardModule[] = [
     meta: Clock.meta,
     Component: Clock.default,
     settings: [
-      enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }], { group: "Clock" }),
-      boolSetting("showSeconds", "Seconds", true, { group: "Clock" }),
-      boolSetting("showDate", "Date", true, { group: "Clock" }),
+      enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }], { group: "Face" }),
+      boolSetting("showSeconds", "Seconds", true, { group: "Time & date" }),
+      boolSetting("showDate", "Date", true, { group: "Time & date" }),
       // Themed (config v7 moved the Clock's `format` here); 24 h stays this widget's own default.
       formatSetting("clock", { default: "24" }),
     ],
@@ -224,10 +221,10 @@ export const GROUP_B: DashboardModule[] = [
     meta: Timer.meta,
     Component: Timer.default,
     settings: [
-      textSetting("presets", "Presets (minutes)", "5, 15, 25", { group: "Timer", hint: "The buttons, comma separated" }),
-      boolSetting("pomodoro", "Pomodoro button", false, { group: "Timer", hint: "Focus and break rounds until stopped" }),
-      numberSetting("focusMin", "Focus (min)", 25, { min: 5, max: 90, step: 5, group: "Timer", visibleIf: (v) => v.pomodoro === true }),
-      numberSetting("breakMin", "Break (min)", 5, { min: 1, max: 30, step: 1, group: "Timer", visibleIf: (v) => v.pomodoro === true }),
+      textSetting("presets", "Presets (minutes)", "5, 15, 25", { group: "Presets", hint: "The buttons, comma separated" }),
+      boolSetting("pomodoro", "Pomodoro button", false, { group: "Pomodoro", hint: "Focus and break rounds until stopped" }),
+      numberSetting("focusMin", "Focus (min)", 25, { min: 5, max: 90, step: 5, group: "Pomodoro", visibleIf: (v) => v.pomodoro === true }),
+      numberSetting("breakMin", "Break (min)", 5, { min: 1, max: 30, step: 1, group: "Pomodoro", visibleIf: (v) => v.pomodoro === true }),
     ],
     toProps: (s): Partial<Timer.TimerProps> => ({
       presets: presetsOf(s.presets),
@@ -252,18 +249,18 @@ export const GROUP_B: DashboardModule[] = [
         ],
         { group: "Agents" }
       ),
-      boolSetting("showPlan", "Plan use", true, { group: "Agents", hint: "The 5-hour and weekly windows, from the statusline (Claude) and the session files (Codex)" }),
-      boolSetting("showSessions", "Sessions", true, { group: "Agents", hint: "Each session: working with its tool, waiting for you, done" }),
-      boolSetting("showUsage", "Tokens per day", true, { group: "Agents", hint: "Today's tokens and the last five weeks, read from the transcripts" }),
-      boolSetting("showBreakdown", "Breakdown", true, { group: "Agents", hint: "This week's tokens by model and project, and today's by type, read from the transcripts" }),
+      boolSetting("showPlan", "Plan use", true, { group: "Plan limits", hint: "The 5-hour and weekly windows, from the statusline (Claude) and the session files (Codex)" }),
+      boolSetting("showSessions", "Sessions", true, { group: "Sessions", hint: "Each session: working with its tool, waiting for you, done" }),
+      boolSetting("showUsage", "Tokens per day", true, { group: "Tokens", hint: "Today's tokens and the last five weeks, read from the transcripts" }),
+      boolSetting("showBreakdown", "Breakdown", true, { group: "Tokens", hint: "This week's tokens by model and project, and today's by type, read from the transcripts" }),
       enumSetting("limitStyle", "Limit style", "bars", [{ value: "bars", label: "Bars" }, { value: "rings", label: "Rings" }], {
-        group: "Agents",
+        group: "Plan limits",
         hint: "Rings fall back to bars when the cell is too small for them",
         visibleIf: (v) => v.showPlan !== false,
       }),
-      enumSetting("percent", "Show limits as", "used", [{ value: "used", label: "Used" }, { value: "left", label: "Left" }], { group: "Agents", visibleIf: (v) => v.showPlan !== false }),
+      enumSetting("percent", "Show limits as", "used", [{ value: "used", label: "Used" }, { value: "left", label: "Left" }], { group: "Plan limits", visibleIf: (v) => v.showPlan !== false }),
       enumSetting("history", "History", "bars", [{ value: "bars", label: "Daily bars" }, { value: "heatmap", label: "Heatmap" }], {
-        group: "Agents",
+        group: "Tokens",
         hint: "The heatmap moves beside the rest in a wide cell, and falls back to bars when it does not fit",
         visibleIf: (v) => v.showUsage !== false,
       }),
@@ -284,7 +281,7 @@ export const GROUP_B: DashboardModule[] = [
     Component: Calendar.default,
     // the date comes from the clock plugin, owned by Clock
     prefixes: ["plugins.clock-plugin."],
-    settings: [enumSetting("weekStart", "Week starts on", "1", [{ value: "1", label: "Monday" }, { value: "0", label: "Sunday" }], { group: "Calendar" })],
+    settings: [enumSetting("weekStart", "Week starts on", "1", [{ value: "1", label: "Monday" }, { value: "0", label: "Sunday" }], { group: "Week" })],
     toProps: (s): Partial<Calendar.CalendarProps> => ({ weekStart: numberOf(oneOf(String(s.weekStart), ["0", "1"])) }),
   }),
   templateModule({
@@ -302,7 +299,7 @@ export const GROUP_B: DashboardModule[] = [
   templateModule({
     meta: Forecast.meta,
     Component: Forecast.default,
-    settings: [yrLocation("Weather"), numberSetting("days", "Days", 0, { min: 0, max: 7, step: 1, group: "Weather", hint: "0 = as many as fit" }), formatSetting("tempUnit")],
+    settings: [numberSetting("days", "Days", 0, { min: 0, max: 7, step: 1, group: "Days", hint: "0 = as many as fit" }), yrLocation("Location"), formatSetting("tempUnit")],
     toProps: (s): Partial<Forecast.ForecastProps> => ({ ...pass<Partial<Forecast.ForecastProps>>("location")(s), units: unitsOf(s), days: numberOf(s.days) || undefined }),
   }),
   templateModule({
@@ -323,9 +320,10 @@ export const GROUP_B: DashboardModule[] = [
   templateModule({
     meta: SensorGroup.meta,
     Component: SensorGroup.default,
-    settings: [...SENSOR_GROUP_SETTINGS, ...SENSOR_GROUP_OWN],
+    settings: SENSOR_GROUP_SETTINGS,
     toProps: (s): Partial<SensorGroup.SensorGroupProps> => ({
-      ...pass<Partial<SensorGroup.SensorGroupProps>>("bars", "auto", "maxRows", "tempColor", "fanColor", "powerColor")(s),
+      ...pass<Partial<SensorGroup.SensorGroupProps>>("bars", "maxRows", "tempColor", "fanColor", "powerColor")(s),
+      auto: discovered(s),
       layout: oneOf(s.groupLayout, ["auto", "rows", "grid"]),
       sensors: sensorItems(s),
       tempUnit: tempUnitOf(s),
@@ -336,11 +334,11 @@ export const GROUP_B: DashboardModule[] = [
     Component: CustomGauge.default,
     settings: [
       // The standard `label` is the title, as for Sensor.
-      sensorSetting("sensor", "Sensor", { group: "Custom gauge" }),
+      sensorSetting("sensor", "Sensor", { group: "Sensor" }),
       // The spec is edited on the Gauges page: the raw JSON never shows as a field.
-      textSetting("gauge", "Gauge", JSON.stringify(CustomGauge.DEFAULT_GAUGE_SPEC), { group: "Custom gauge", visibleIf: () => false }),
+      textSetting("gauge", "Gauge", JSON.stringify(CustomGauge.DEFAULT_GAUGE_SPEC), { hidden: true }),
       // Frames a library gauge arrived with (JSON): kept for an export, never shown or drawn.
-      textSetting("frames", "Frames", "", { group: "Custom gauge", visibleIf: () => false }),
+      textSetting("frames", "Frames", "", { hidden: true }),
     ],
     toProps: (s): Partial<CustomGauge.CustomGaugeProps> => ({ ...pass<Partial<CustomGauge.CustomGaugeProps>>("sensor")(s), gauge: CustomGauge.parseGaugeSetting(s.gauge) }),
   }),

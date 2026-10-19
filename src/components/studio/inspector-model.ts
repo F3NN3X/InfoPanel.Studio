@@ -60,12 +60,6 @@ export const TAB_LABELS: Record<TabId, string> = {
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
 const DASHBOARD_TABS: readonly TabId[] = ["profile", "appearance", "gstyle", "general"];
 
-/**
- * The modules with reduced style options: their schema simply offers fewer
- * look settings (the note says so); every one it has keeps its normal section.
- */
-const REDUCED_STYLE_MODULES: ReadonlySet<string> = new Set(["WebPage"]);
-
 export type PanelLayoutKind = "stack" | "grid" | "overlay";
 
 /** What is selected, with what the sections depend on. */
@@ -73,7 +67,10 @@ export type InspectorContext =
   | {
       kind: "widget";
       defs: ModuleSetting[];
+      /** It offers a look subset (`DashboardModule.styleSubset`): the note says so; every row it has keeps its section. */
       reducedStyle?: boolean;
+      /** It binds nothing (`DashboardModule.noData`): no Bound data card. */
+      noData?: boolean;
       /** Whether the widget draws a header (`DashboardModule.header`); unset: "yes". */
       header?: HeaderMode;
       /** What it draws in small zones (`DashboardModule.compact`). */
@@ -108,8 +105,9 @@ export type InspectorContext =
 /** The context of a selected widget zone. */
 export const widgetContext = (mod: DashboardModule): InspectorContext => ({
   kind: "widget",
-  defs: mod.settings ?? [],
-  reducedStyle: REDUCED_STYLE_MODULES.has(mod.id),
+  defs: (mod.settings ?? []).filter((d) => !d.hidden),
+  reducedStyle: mod.styleSubset !== undefined,
+  noData: mod.noData,
   header: mod.header,
   compact: mod.compact,
 });
@@ -277,11 +275,11 @@ function ordered(sections: InspectorSection[], tab: InspectorTab, lead: Inspecto
   ];
 }
 
-/** A zone's sections tab by tab, its Bound data card leading the Data tab. */
-const zoneTabs = (sections: InspectorSection[], bound: InspectorSection) => [
+/** A zone's sections tab by tab, its Bound data card (if any) leading the Data tab. */
+const zoneTabs = (sections: InspectorSection[], bound?: InspectorSection) => [
   ...ordered(sections, "show"),
   ...ordered(sections, "style"),
-  ...ordered(sections, "data", [bound]),
+  ...ordered(sections, "data", bound ? [bound] : []),
   ...ordered(sections, "behaviour"),
 ];
 
@@ -303,13 +301,15 @@ function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>):
   const sections = withIdentity(sectionsOfCategories(zoneCategories(defs, context.header !== "none"), context), context);
   return zoneTabs(
     sections,
-    section({
-      id: "bound",
-      title: "Bound data",
-      tab: "data",
-      special: "boundData",
-      terms: ["Sensors", "Used by", "Data points", "Source"],
-    })
+    context.noData
+      ? undefined
+      : section({
+          id: "bound",
+          title: "Bound data",
+          tab: "data",
+          special: "boundData",
+          terms: ["Sensors", "Used by", "Data points", "Source"],
+        })
   );
 }
 
@@ -562,11 +562,12 @@ export interface LookValues {
 /**
  * The source state of a setting. On a zone only own values that apply
  * count, as one dot: the section's Follow bar says where the rest comes from.
+ * A colour row with a palette role applies by its role's section.
  */
 export function sourceState(def: ModuleSetting, values: LookValues): SettingState {
   const applies = values.applies;
   if (!applies) return settingStateOf(def, values.own, values.inherited, values.inheritedFrom);
-  const own = values.own && Object.fromEntries(Object.entries(values.own).filter(([key]) => def.perWidget || applies(key)));
+  const own = values.own && Object.fromEntries(Object.entries(values.own).filter(([key]) => def.perWidget || applies(themeKeyOf(def, key))));
   const state = settingStateOf(def, own, values.inherited, values.inheritedFrom);
   return state === "overriding" ? "here" : state === "dashboard" || state === "profile" ? "default" : state;
 }
