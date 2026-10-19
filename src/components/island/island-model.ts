@@ -3,7 +3,8 @@ import type { IslandSnapshot } from "@/lib/island/types";
 
 /**
  * What the island is showing: open for a notice, the time with a badge, the time with a live
- * activity, the time alone ("line": a hairline), or nothing.
+ * activity, the time alone ("line": a hairline), or nothing. A badge and an activity at once is
+ * "compact" with the activity beside the time.
  */
 export type IslandMode = "expanded" | "compact" | "activity" | "idle" | "line" | "none";
 
@@ -51,15 +52,19 @@ function idleExtra(size: IslandSize, look: IslandLook): number {
 
 /**
  * The pill's box per mode. Fixed sizes so width, height and radius can animate between modes; the
- * view caps the width to the page.
+ * view caps the width to the page. A badge beside an activity takes the activity's width, so the
+ * activity has room next to the time and the badge.
  */
-export function islandBox(mode: IslandMode, size: IslandSize, look: IslandLook): Box {
+export function islandBox(mode: IslandMode, size: IslandSize, look: IslandLook, withActivity = false): Box {
   const k = look.scale / 100;
   if (mode === "expanded") return scaled(EXPANDED[size], k);
   if (mode === "line") return scaled(LINE, k);
   const base = IDLE[size];
   const extra = idleExtra(size, look);
-  if (mode === "compact") return scaled({ width: base.width + extra + BADGE_EXTRA[size], height: base.height }, k);
+  if (mode === "compact") {
+    const width = base.width + extra + BADGE_EXTRA[size];
+    return scaled({ width: withActivity ? Math.max(width, EXPANDED[size].width) : width, height: base.height }, k);
+  }
   if (mode === "activity") return scaled({ width: EXPANDED[size].width, height: base.height }, k);
   if (mode === "idle") return scaled({ width: base.width + extra, height: base.height }, k);
   return { width: 0, height: 0 };
