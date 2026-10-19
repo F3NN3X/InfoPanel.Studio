@@ -25,6 +25,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   Gauges page and the narrow-layout sheet now have them (#50).
 
 ### Fixed
+- The canvas editor at narrow widths: when the toolbar no longer fits, the sensor source and Compare move into a "More"
+  menu instead of being clipped, and the inspector docks, floats or becomes a sheet at the studio's own viewport
+  breakpoints, so opening it no longer flips the mode back (#45).
 - After an import lands, the canvas editor opens on the new zone, as the spec says (#43).
 - Opening the Library no longer closes the canvas editor: it stays mounted but hidden (keys off, size kept) and
   returns, with its selection and undo history, when the Library closes, so a Library drag can land in it (#43).
