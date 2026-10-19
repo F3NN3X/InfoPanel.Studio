@@ -680,9 +680,10 @@ export function migrateProfileV8<P extends MigratableProfile>(p: P, ctx: { legac
 
 /**
  * v9 (SPEC §8), per panel widget and keyed on the old field's presence: a
- * Custom gauge widget drew at `fontSize` px wide, which a change of kind
- * carried over as a font size (a 140 px text); the width moves to its own
- * `width` (one already set wins). Runs wherever a panel is normalised
+ * Custom gauge widget drew at `fontSize` px wide and a Gauge's ring was
+ * `fontSize` px across, which a change of kind carried over as a font size
+ * (a 140 px text); the width moves to its own `width` and the ring to its own
+ * `size` (one already set wins). Runs wherever a panel is normalised
  * (`normalizeWidget`): loaded configs and saved panels, Library panels,
  * built-in presets, the Code view and a pasted widget. Thresholds (`thr`)
  * and the follow flags are new fields with nothing to migrate: without
@@ -690,8 +691,10 @@ export function migrateProfileV8<P extends MigratableProfile>(p: P, ctx: { legac
  * applying), and a widget following Thresholds is off unless a theme level
  * sets the quantity's levels (`panel-item.ts`), so nothing repaints.
  */
-export function migrateWidgetV9<W extends { kind: string; fontSize?: number; width?: number }>(w: W): W {
-  if (w.kind !== "customGauge" || w.fontSize === undefined) return w;
+export function migrateWidgetV9<W extends { kind: string; fontSize?: number; width?: number; size?: number }>(w: W): W {
+  if (w.fontSize === undefined) return w;
   const { fontSize, ...rest } = w;
-  return (w.width !== undefined ? rest : { ...rest, width: fontSize }) as W;
+  if (w.kind === "customGauge") return (w.width !== undefined ? rest : { ...rest, width: fontSize }) as W;
+  if (w.kind === "gauge") return (w.size !== undefined ? rest : { ...rest, size: fontSize }) as W;
+  return w;
 }

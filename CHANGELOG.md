@@ -33,47 +33,49 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   place it on the canvas" pill, and drop as a library gauge does (#47).
 - "Add to canvas" for an image-sequence gauge offers the page's canvas zones and inserts the gauge into the one picked
   (#47).
-- Widget settings v2 shared controls: a Thresholds control (zone bar, Warning / Critical sliders with an Off chip,
+- Widget settings v2, shared controls: a Thresholds control (zone bar, Warning / Critical sliders with an Off chip,
   Critical never below Warning, temperatures in °F when the widget reads °F), a device picker that states what Auto
   picks ("Busiest adapter · now Wi-Fi") with live readings and a checkbox list for multi-device rows, Small zones
   (Auto / Full / Card / Dense, Card only where the widget has a summary card) and Density in the Fit section, a 9-cell
   alignment with Spread (quick-bar-able), and Units & format rows (temperature unit, rate unit, decimals, clock)
   where the widget formats them. Thresholds, units and format, the meters' response and palette roles are themed.
 - Thermals has "Use sensor limits" (on by default) instead of "0 = per sensor".
-- Widget settings v2 for the nine sample widgets (System overview, Now playing, Sensor group, Audio meter, Weather,
-  CPU monitor, Uptime, Steam profile, Web page): their rows are filed by task as drawn in the concept, with per-section
-  More rows. Their colour rows follow the theme palette (System overview CPU…Network = Series 1–6, Sensor group dots
-  = Critical / Series 3 / Series 5, Audio meter level / hot = OK / Critical, Now playing visualiser colours = Series 1–3
-  and Critical for the peak caps); look toggles (tints, cover background, heat ramps) stay per widget. Weather's view
-  is a preset that sets its three toggles in place and reads Custom when they differ; Sensor group's Auto-discover is
-  a Readings mode, and each listed sensor has a tune button for its own label, bar maximum, thresholds and decimals;
-  Steam profile's Data tab shows whether the Steam API is connected; Uptime and Web page, which bind nothing, have a
-  disabled Data tab.
 - Audio meter's amber and hot zones are an Audio level threshold (dB), defaulting to the old 72 % / 90 % of full scale.
 - CPU monitor has Units & format (temperature unit and decimals of its temperatures).
-- Widget settings v2 for the system and hardware widgets (Menu bar, KPI tiles, Status tracker, System status, Vitals,
-  Service health, Process list, Core heatmap, GPU rings, GPU monitor, Memory usage, Thermals, Power draw, Fans): rows
-  are filed by task. Sorting, history length, the fan spin and the menu bar's click behaviour are in Behaviour; bar
-  scales and the Thermals / Fans full-scale values are in Data; the GPU rings and the Thermals fan dot follow the
-  theme palette (Series 1 and 2, Series 3), the core heatmap ramp stays per widget. Status tracker's per-track levels
-  are More rows of Thresholds.
-- Widget settings v2 for the storage, network, info and audio widgets (Drive space, Storage health, Disk I/O, Network
-  throughput, Network adapters, Clock, Timer, Coding agents, Calendar, Forecast, Sensor value, Custom gauge, Volume
-  mixer, Meter bridge, Visualizer, Wave Link): rows are filed by task. Drive sort order, the Meter bridge peak hold and
-  the Visualizer dynamics are in Behaviour; bar scales, the Meter bridge floor and the Wave Link meters are in Data;
-  the Drive space neutral tint is a per-widget look toggle. Their colour rows follow the theme palette (Disk I/O read /
-  write and Network download / upload = Series 1 and 2, the audio level colours = OK, hot / clip and muted = Critical,
-  Visualizer colours = Series 1-3 and Critical for the peak caps). Custom gauge's gauge and frames data is no longer
-  listed in the inspector.
-- Widget settings v2 for the gaming and plugin-card widgets (FPS monitor, Game spotlight, OSD strip, Frame pacing,
-  Playtime share, Steam friends, Steam game, Achievements, Steam library, Steam news, Text file, Notifications,
-  Departures, Bluetooth, Stream Deck): rows are filed by task. FPS monitor's View and Bluetooth's View are presets that
-  set their toggles (and read Custom once one is changed), the FPS target is in Data, Steam friends' sort order,
-  Notifications' history length, Frame pacing's samples and Game spotlight's Ken Burns motion are in Behaviour, and the
-  scrim darkness is a per-widget look row. Their colour rows follow the theme palette (FPS ring and sparkline = Series 1
-  and 2, playtime slices = Series 1-6, friend statuses = Series 1 / OK / Warning / Critical / Series 2, Bluetooth
-  battery = Warning and Critical).
-- Widget settings v2 theme editor (Studio › Theme in the rail, a page's Theme… in its menu, "Edit theme" on the
+- Widget settings v2 files all 54 widgets' rows by task (never under a shared "Content" group), with their colour rows on the
+  theme palette:
+  - The nine sample widgets (System overview, Now playing, Sensor group, Audio meter, Weather,
+    CPU monitor, Uptime, Steam profile, Web page): their rows are filed by task as drawn in the concept, with per-section
+    More rows. Their colour rows follow the theme palette (System overview CPU…Network = Series 1–6, Sensor group dots
+    = Critical / Series 3 / Series 5, Audio meter level / hot = OK / Critical, Now playing visualiser colours = Series 1–3
+    and Critical for the peak caps); look toggles (tints, cover background, heat ramps) stay per widget. Weather's view
+    is a preset that sets its three toggles in place and reads Custom when they differ; Sensor group's Auto-discover is
+    a Readings mode, and each listed sensor has a tune button for its own label, bar maximum, thresholds and decimals;
+    Steam profile's Data tab shows whether the Steam API is connected; Uptime and Web page, which bind nothing, have a
+    disabled Data tab.
+  - The system and hardware widgets (Menu bar, KPI tiles, Status tracker, System status, Vitals,
+    Service health, Process list, Core heatmap, GPU rings, GPU monitor, Memory usage, Thermals, Power draw, Fans): rows
+    are filed by task. Sorting, history length, the fan spin and the menu bar's click behaviour are in Behaviour; bar
+    scales and the Thermals / Fans full-scale values are in Data; the GPU rings and the Thermals fan dot follow the
+    theme palette (Series 1 and 2, Series 3), the core heatmap ramp stays per widget. Status tracker's per-track levels
+    are More rows of Thresholds.
+  - The storage, network, info and audio widgets (Drive space, Storage health, Disk I/O, Network
+    throughput, Network adapters, Clock, Timer, Coding agents, Calendar, Forecast, Sensor value, Custom gauge, Volume
+    mixer, Meter bridge, Visualizer, Wave Link): rows are filed by task. Drive sort order, the Meter bridge peak hold and
+    the Visualizer dynamics are in Behaviour; bar scales, the Meter bridge floor and the Wave Link meters are in Data;
+    the Drive space neutral tint is a per-widget look toggle. Their colour rows follow the theme palette (Disk I/O read /
+    write and Network download / upload = Series 1 and 2, the audio level colours = OK, hot / clip and muted = Critical,
+    Visualizer colours = Series 1-3 and Critical for the peak caps). Custom gauge's gauge and frames data is no longer
+    listed in the inspector.
+  - The gaming and plugin-card widgets (FPS monitor, Game spotlight, OSD strip, Frame pacing,
+    Playtime share, Steam friends, Steam game, Achievements, Steam library, Steam news, Text file, Notifications,
+    Departures, Bluetooth, Stream Deck): rows are filed by task. FPS monitor's View and Bluetooth's View are presets that
+    set their toggles (and read Custom once one is changed), the FPS target is in Data, Steam friends' sort order,
+    Notifications' history length, Frame pacing's samples and Game spotlight's Ken Burns motion are in Behaviour, and the
+    scrim darkness is a per-widget look row. Their colour rows follow the theme palette (FPS ring and sparkline = Series 1
+    and 2, playtime slices = Series 1-6, friend statuses = Series 1 / OK / Warning / Critical / Series 2, Bluetooth
+    battery = Warning and Critical).
+- Widget settings v2, the theme editor (Studio › Theme in the rail, a page's Theme… in its menu, "Edit theme" on the
   canvas, the palette's "Theme editor…"): a scope list (All profiles, the profile theme, each page), live previews of
   CPU Monitor, Weather and Audio Meter under the edited values with Theme / Custom / Locked chips per section, "Who
   doesn't follow the theme" per section with Reset to theme (the widgets follow again and keep their own values), and
@@ -93,47 +95,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   palette's warning / critical colour. A widget that follows Thresholds is off until a theme level sets that
   quantity's levels. The Custom gauge kind chip shows only on a widget that already is one.
 
+- A Gauge panel widget has its own Ring size (`size`), instead of sharing the font size row with text kinds, so changing
+  its kind no longer carries the ring size over as a font size.
+
 ### Changed
-- Config version 9 (a v8 build is refused saving over it): a Custom gauge panel widget's width is its own `width`, no
-  longer `fontSize`, so changing it to another kind no longer carries the width over as a font size (a 140 px text).
-  Panels saved earlier (configs, My panels, Library panels, pasted widgets, the Code view) move it on load. A panel
-  widget saved before the follow flags keeps its own font size, alignment, colour and decimals (those sections read
-  as custom), so nothing renders differently.
-- The Dashboard inspector has no Global style tab: its rows are the theme editor's All profiles and profile theme
-  scopes. Appearance › Scope keeps "Apply to" for skins, presets, theme colours and surface and opens the theme
-  editor. "Force global style" is gone: locking is per profile now (a profile theme locks its own sections, Lock /
-  Unlock per section or Lock all), so the old All-profiles Force, which locked every profile at once, has no one-click
-  equivalent; lock each profile instead. "Make all widgets follow" is Reset to theme per section in the editor. The
-  palette's force toggle reads "Lock / Unlock every theme section" (this profile).
-- A section the profile theme locks is the profile's on every page too: a page's own values for it stay stored but
-  no longer apply (before, a custom page section still showed under the lock).
-- Config v8 renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,
-  `waveformSensitivity` → `vizGain`, `visualizerBarCount` → `vizBars`, `visualizerAlign` → `vizAlign`,
-  `visualizerOrientation` → `vizOrientation`, `visualizerMinLevel` → `vizMinLevel`, `waveformLineWidth` → `vizLine`,
-  `waveformFadeEdges` → `vizFade`, `waveformFadeWidth` → `vizFadeWidth`) and reads the old engines' keys once into what
-  they drew, and Sensor group's `auto` → `mode`, and stores FPS monitor's Trend view with its sparkline on (what it drew). A widget with an own colour in a row that now follows a palette role
-  gets Widget colors set to custom, so nothing repaints. Weather's Forecast preset no longer sets 7 forecast days.
-  Sensor group's temperature unit also applies to auto-discovered temperatures.
-- Config v7 renames the shared keys (`variant` + `compactView` → `compact`, `layout` → `sizeTier`, `alignX` /
-  `alignY` → `align` + `alignSpread`, thresholds → `warn.<quantity>` / `crit.<quantity>`, device keys → `device` /
-  `devices`, `units` → `tempUnit`, a Clock's `format` → `clock`) and drops the unused `autoScale`. Settings > General's
-  12-hour clock moves to the theme's Clock format. Widgets that stored a value keep it as a custom section; an own
-  value equal to the old widget default is dropped, so the widget follows the theme. A Clock set to the old explicit
-  24-hour format is one of those: it now follows the clock format (General's 12-hour setting, else the theme).
-- Default thresholds now come from the theme, which shifts these unstored defaults: System status and CPU monitor
-  load 75 / 90 → 80 / 92; Drive space (and its Dynamic Island source) 80 / 92 → 85 / 95; GPU monitor temperature
-  75 / 85 → 80 / 90 °C; System overview VRAM warning 90 (critical at the load level 92) → 85 / 95; Meter bridge
-  −18 / −6 dB → −9 / −2 dB; Status tracker tracks 1–2 50 / 80 → the load threshold 80 / 92. Stored levels are kept,
-  and where only one level of a pair was stored the other keeps its old default. A Thermals widget with one level set
-  (the other per sensor) gets the CPU sensor's old limit (80 / 90 °C) for the other.
-- A vector gauge dropped into a canvas zone is baked to frames at the drop, so InfoPanel draws it at once: if baking
-  fails the drop is cancelled with the error, and a drop with its bake is one undo step (#47).
-- A library gauge with both a spec and frames, dropped on the grid, keeps its frames on the Custom gauge zone for a
-  later export (#47).
-- The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
-  internal (#49).
-- Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
-  Gauges page and the narrow-layout sheet now have them (#50).
 - Widget inspector tabs are Show · Style · Data · Behaviour (was Content · Style · Data); a remembered Content tab
   opens Show, and a tab with nothing in it is dimmed and never picked by default. Sections follow the widget settings
   v2 spec: Header and Fit in Show; Skin & graphics, Colors, Widget colors, Surface, Typography, Size & spacing,
@@ -160,12 +125,55 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   the profile theme (All profiles: of every profile), and the old Inherit choice is gone. Pages can carry a theme of
   their own per section (no editor yet). The Global style tab no longer lists Dense summary, Summary card and Scale
   with the zone: they are per widget now. The island reads widgets' resolved settings.
-- Config version 6 (a v5 build is refused saving over it): `styleMode` becomes per-section `follow` (Follow → every
-  section follows; Custom or unset → the sections with own look values are custom), a profile's `style` and
-  `styleEnforce` become `widgetTheme` values and locks (the dashboard's force switch locks the profiles without
-  their own), and a global Dense summary, Summary card or Scale with the zone is written into the widgets that
-  rendered with it. Nothing renders differently after the upgrade. Saved panels placed from the Library show their
-  own look as custom sections; appearance presets keep themed keys only.
+- The Dashboard inspector has no Global style tab: its rows are the theme editor's All profiles and profile theme
+  scopes. Appearance › Scope keeps "Apply to" for skins, presets, theme colours and surface and opens the theme
+  editor. "Force global style" is gone: locking is per profile now (a profile theme locks its own sections, Lock /
+  Unlock per section or Lock all), so the old All-profiles Force, which locked every profile at once, has no one-click
+  equivalent; lock each profile instead. "Make all widgets follow" is Reset to theme per section in the editor. The
+  palette's force toggle reads "Lock / Unlock every theme section" (this profile).
+- A section the profile theme locks is the profile's on every page too: a page's own values for it stay stored but
+  no longer apply (before, a custom page section still showed under the lock).
+- Default thresholds now come from the theme, which shifts these unstored defaults: System status and CPU monitor
+  load 75 / 90 → 80 / 92; Drive space (and its Dynamic Island source) 80 / 92 → 85 / 95; GPU monitor temperature
+  75 / 85 → 80 / 90 °C; System overview VRAM warning 90 (critical at the load level 92) → 85 / 95; Meter bridge
+  −18 / −6 dB → −9 / −2 dB; Status tracker tracks 1–2 50 / 80 → the load threshold 80 / 92. Stored levels are kept,
+  and where only one level of a pair was stored the other keeps its old default. A Thermals widget with one level set
+  (the other per sensor) gets the CPU sensor's old limit (80 / 90 °C) for the other.
+- The stored config moves to version 9 over four steps (a build of an older version is refused saving over it), each
+  keyed on the old keys and run on load:
+  - Version 6: `styleMode` becomes per-section `follow` (Follow → every
+    section follows; Custom or unset → the sections with own look values are custom), a profile's `style` and
+    `styleEnforce` become `widgetTheme` values and locks (the dashboard's force switch locks the profiles without
+    their own), and a global Dense summary, Summary card or Scale with the zone is written into the widgets that
+    rendered with it. Nothing renders differently after the upgrade. Saved panels placed from the Library show their
+    own look as custom sections; appearance presets keep themed keys only.
+
+  - Version 7: renames the shared keys (`variant` + `compactView` → `compact`, `layout` → `sizeTier`, `alignX` /
+    `alignY` → `align` + `alignSpread`, thresholds → `warn.<quantity>` / `crit.<quantity>`, device keys → `device` /
+    `devices`, `units` → `tempUnit`, a Clock's `format` → `clock`) and drops the unused `autoScale`. Settings > General's
+    12-hour clock moves to the theme's Clock format. Widgets that stored a value keep it as a custom section; an own
+    value equal to the old widget default is dropped, so the widget follows the theme. A Clock set to the old explicit
+    24-hour format is one of those: it now follows the clock format (General's 12-hour setting, else the theme).
+  - Version 8: renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,
+    `waveformSensitivity` → `vizGain`, `visualizerBarCount` → `vizBars`, `visualizerAlign` → `vizAlign`,
+    `visualizerOrientation` → `vizOrientation`, `visualizerMinLevel` → `vizMinLevel`, `waveformLineWidth` → `vizLine`,
+    `waveformFadeEdges` → `vizFade`, `waveformFadeWidth` → `vizFadeWidth`) and reads the old engines' keys once into what
+    they drew, and Sensor group's `auto` → `mode`, and stores FPS monitor's Trend view with its sparkline on (what it drew). A widget with an own colour in a row that now follows a palette role
+    gets Widget colors set to custom, so nothing repaints. Weather's Forecast preset no longer sets 7 forecast days.
+    Sensor group's temperature unit also applies to auto-discovered temperatures.
+  - Version 9: a Custom gauge panel widget's width is its own `width` and a Gauge panel widget's ring size its own `size`, no
+    longer `fontSize`, so changing either to another kind no longer carries the size over as a font size (a 140 px text).
+    Panels saved earlier (configs, My panels, Library panels, pasted widgets, the Code view) move it on load. A panel
+    widget saved before the follow flags keeps its own font size, alignment, colour and decimals (those sections read
+    as custom), so nothing renders differently.
+- A vector gauge dropped into a canvas zone is baked to frames at the drop, so InfoPanel draws it at once: if baking
+  fails the drop is cancelled with the error, and a drop with its bake is one undo step (#47).
+- A library gauge with both a spec and frames, dropped on the grid, keeps its frames on the Custom gauge zone for a
+  later export (#47).
+- The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
+  internal (#49).
+- Component tests run in happy-dom per file (`// @vitest-environment happy-dom`, with a `setViewport` helper), and the
+  Gauges page and the narrow-layout sheet now have them (#50).
 
 ### Fixed
 - "Edit gauge…" over an editor with unsaved changes now asks (Save to library, Discard, Cancel) instead of replacing

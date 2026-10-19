@@ -7,6 +7,17 @@ key and default.** The prototype was not used as a source.
 Companion docs: `docs/redesign/DATA_MODEL.md` (what exists), `docs/redesign/FEATURE_MAP.md` (where
 it lives), `docs/redesign/IMPLEMENTATION_PLAN.md` (Phase 2).
 
+> **Superseded in part by widget settings v2** (config v6-v9; see
+> [widget-settings.md](widget-settings.md) and
+> [redesign/widget-settings-v2/STATUS.md](redesign/widget-settings-v2/STATUS.md)). This file is the
+> Phase 0 snapshot. What changed since: the zone inspector has four tabs (Show · Style · Data ·
+> Behaviour) of shared sections, **More** replaces Advanced, `styleMode` became per-section
+> `Placement.follow`, `style` / `styleEnforce` became `widgetTheme` (values and locks, per profile
+> and page), the Global style tab became the theme editor, and the standard keys were renamed
+> (`variant` + `compactView` → `compact`, `layout` → `sizeTier`, `alignX` + `alignY` → `align`,
+> thresholds → `warn.<q>` / `crit.<q>`, device keys → `device`, `autoScale` dropped). Rows below use
+> the old names; the migrations in `src/lib/settings-migrate.ts` map them.
+
 ## How to read this
 
 **Stored at** (the "Level" column):
@@ -274,7 +285,7 @@ widget:layout, widget:typography, widget:colors, widget:advanced.
 | shape | `shape` | Shape | segmented | vbar (V-bar), hbar (H-bar), rect (Rect), circle (Circle) | `vbar` | C › Display |
 | shape | `thickness` | Thickness / diameter (px) | number | 1–120 | `4` | C › Display |
 | stat, value, table, text, clock | `fontSize` | Font size (px) | number, empty = auto | 8–200 | unset | C › Typography & colors |
-| gauge | `fontSize` | Ring size (px) | number, empty = auto | 8–200 | unset | C › Typography & colors |
+| gauge | `size` | Ring size (px) | number, empty = auto | 0–200 | unset (config v9: was `fontSize`) | Style › Typography |
 | stat, value, bar, gauge, sparkline, text, clock, shape | `color` | Color | color | | unset (global style overrides it when Force global style is on; fills take the accent) | C › Typography & colors |
 
 Kinds not listed for a field do not show it (`hasData`, `hasDisplay`, `hasTypography`, `hasColor`
@@ -323,7 +334,7 @@ pinned profile or **Auto (match window)**; `DashboardConfig.activeProfile` holds
 | `sourcePrefs` | §5.8 | unset | Sources mode |
 | `stylePresets`, `appearancePresets`, `panelPresets` | §6 | unset | see §6 |
 
-### 5.2 Global style (Dash › Global style)
+### 5.2 Global style (Dash › Global style; now the theme editor, see the note at the top)
 
 Edits `DashboardConfig.style` (scope All profiles) or `MonitorProfile.style` (scope This profile)
 with the look keys of §1.5, rendered from `PROFILE_STYLE_SETTINGS`: the same rows and categories as

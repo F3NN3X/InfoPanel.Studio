@@ -270,7 +270,7 @@ then act on the widget).
 ## Where the options are
 
 The inspector is driven by one registry: the widget's own `settings` (each
-with a `tab`, `advanced`, `hint` and `visibleIf`), the general look settings
+with a `tab`, `section`, `more`, `hint` and `visibleIf`), the general look settings
 every widget shares, the panel and panel-widget fields, and the dashboard
 settings. It never hard-codes a panel per widget.
 
@@ -280,9 +280,12 @@ settings. It never hard-codes a panel per widget.
 grid cells; values are checked against neighbours and minimum sizes). A
 **Search all settings** box and a **Changed N** toggle share one row below it.
 
-**Tabs.** A widget or panel zone has **Content**, **Style** and **Data**; a
-small pill on a tab counts the options set on this zone. The open tab is
-remembered per kind of selection. A blank zone and a multi-selection have no
+**Tabs.** A widget or panel zone has **Show**, **Style**, **Data** and **Behaviour**
+(Show: what is on the widget; Style: how it looks; Data: where the values
+come from and how they are written; Behaviour: how it reacts and what it
+tells you). A small pill on a tab counts the options set on this zone, and
+a tab with no sections is dimmed and skipped. The open tab is remembered per
+kind of selection. A blank zone and a multi-selection have no
 tabs. **Search** looks through all tabs at once: the tabs give way to the
 matching options, each section labelled with its tab, and a line says "N
 matching settings". It covers labels, keys and option names, and the custom
@@ -315,70 +318,92 @@ row adds it to the [quick bar](#the-quick-bar).
 - violet - from the profile style;
 - blue - set here (on this widget, or in the scope being edited);
 - blue with a ring - set here, overriding a global value;
-- amber ring - set here but **ignored** (the widget follows the global style,
-  or the global style is forced).
 
-Click a dot that is set here to reset that option.
+A value stored on a widget section that follows the theme applies to
+nothing, so it shows no dot (it comes back on **Customize**). Click a dot
+that is set here to reset that option.
 
-**Advanced.** The footer has an **Advanced settings** toggle (off by default
-and remembered). While it is off, advanced options are tucked away and a
-dashed **Show N advanced settings** button at the end of the list reveals
-them.
+**More.** A section's less-used rows sit behind a **More (n)** link at the
+end of the section; **Less** folds them again. Whether a section is
+expanded is remembered for the session, per section and kind of zone.
+Search and **Changed** always include the More rows, expanded.
+
+**Follow bar.** A section whose look comes from the [widget
+theme](#widget-theme) has a pill in its header (**Theme**, **Custom**, or
+**Locked**) and a bar as its first line:
+
+- *Follows the profile theme · Desk* (or *the page theme · Gaming*) with
+  **Customize**: the rows show the theme's values, dimmed and read-only,
+  apart from rows that never come from a theme (the tint from cover art,
+  the background image). **Customize** unlocks them, starting from the
+  theme's values.
+- *Custom for this widget* with **Use theme**: the widget's own values
+  apply. **Use theme** follows again and keeps them stored; **Customize**
+  brings them back. A section's reset button clears them.
+- *Locked by the profile theme*: no switch; the profile decides.
+
+With several zones selected, an edit (and **Customize** / **Use theme**)
+applies to each of them; the bar shows the primary zone's state.
 
 **What each context shows:**
 
 - **Widget zone** -
-  - *Content*: **Widget** (type, **Show title** (off hides the title
-    everywhere the widget shows it), custom title, icon, **Visible**), then the
-    widget's own categories (for example Media: *Now playing*, *Cover art*,
-    *Waveform*, *Visualizer*, *Audio source*; System: *Devices*, *CPU*,
-    *GPU*, *Memory*, *Drives*, *Trends*, *Thresholds*, *Units & labels*;
-    Weather: *Display*, *Current conditions*, *Forecast*).
-  - *Style*: **Look** (**Skin**, **Graph updates**; **Graph style**, **Meter
-    style** are advanced - see [Skins and
-    variants](#skins-and-variants)), **Size & alignment** (**Layout**, **Dense
-    summary**, **Summary card**, **Scale with the zone**, **Size %**, the 3×3 **Alignment**),
-    **Typography** (**Text color**, **Secondary text color**, **Font**,
-    **Value weight**, **Label case**), **Spacing & shape** (**Inner
-    padding**, **Gap between items**, **Corner radius**, **Ring / bar
-    thickness**), **Colors & surface** (**Follow global | Custom**, the style
-    tools, **Preset**, **Surface**, **Accent color**, **Background image** with
-    **Use as background**, **Surface opacity** and **Background blur**),
-    **Border & effects** (**Border width** and **color**, **Edge glow** and
-    **Glow color** - only while the glow is not none - and the **Zone
-    frame**: **Frame accent**, **Frame background**, **Frame title
-    header**) and **Advanced** (**Custom CSS**, see [Custom CSS](#custom-css));
-    the widget's own color pickers (e.g. the System widget's device colors)
-    sit here too, marked advanced.
+  - *Show*: **Header** (**Show title**, which off hides the title everywhere
+    the widget shows it, **Title** and, under More, **Icon**; a widget that
+    draws no header, or only a title, has fewer rows), the widget's own
+    sections (for example Media: *Player*, *Visualizer*; System: *Sections*,
+    *CPU*, *GPU*, *Memory*, *Drives*; Weather: *Forecast*, *Current
+    conditions*) and **Fit** (**Small zones**: Auto, Full, Card or Dense,
+    with Card only where the widget has a summary card; **Density** under
+    More).
+  - *Style*: **Skin & graphics** (**Skin**, **Ring / bar thickness**; **Graph
+    style** and **Meter style** under More, see [Skins and
+    variants](#skins-and-variants)), **Colors** (**Accent color**, **Text
+    color**, **Secondary text color**; **Preset** under More), **Widget
+    colors** (the widget's own colors, each standing for a palette color such
+    as *Series 1* or *Critical*, plus look toggles such as the tint),
+    **Surface** (**Surface**, **Surface opacity**, **Background blur**;
+    **Background image** and **Use as background** under More),
+    **Typography** (**Font**, **Value weight**, **Label case**), **Size &
+    spacing** (**Size %**, the 3×3 **Alignment** with **Spread**, **Inner
+    padding**, **Gap between items**, **Corner radius**), **Border & glow**
+    (**Border width** and **color**, **Edge glow** and **Glow color** - only
+    while the glow is not none) and **Custom CSS** (under More, see [Custom
+    CSS](#custom-css)); the **Zone frame** (**Frame accent**, **Frame
+    background**, **Frame title header**) sits with them.
   - *Data*: **Bound data** (see [Data Explorer and
-    binding](#data-explorer-and-binding)) and data-related own categories
-    (for example *Audio source*).
-  - **Web Page** has reduced styling: Colors & surface, Border & effects and
-    Advanced only. The plain card widgets (Departures, Notifications, Text
-    File, Stream Deck and the *Other sensors* cards) offer fewer of the
-    standard options than the other widgets.
-- **Panel zone** - *Content*: **Panel** (Visual or Code, Fill or Hug, gap,
+    binding](#data-explorer-and-binding)), the widget's own source sections
+    (a **Device** picker that says what Auto picks, sensors, the audio
+    source) and **Units & format** (temperature unit, rate unit, decimals and
+    clock, only those the widget draws).
+  - *Behaviour*: **Thresholds** (see [Thresholds](#thresholds)), the
+    widget's own behaviour sections (history, sorting, dynamics, click
+    behaviour), **Dynamic Island** and **Motion** (**Graph updates**).
+  - **Web Page** has reduced styling: its Style tab has the accent, size and
+    corner radius, and the border. The plain card widgets (Departures,
+    Notifications, Text File, Stream Deck and the *Other sensors* cards)
+    offer fewer of the standard options than the other widgets.
+- **Panel zone** - *Show*: **Panel** (Visual or Code, Fill or Hug, gap,
   padding), **Layout** (Stack / Grid / Overlay options), **Background**
-  (Overlay only), **Widgets**, and with a widget selected its cards under
-  **Selected widget** (see [Panels](#panels)); *Style*: the same look
-  sections as a widget; *Data*: **Sensors used** by its widgets.
+  (Overlay only), **Widgets**; *Style*: the same look sections as a widget;
+  *Data*: **Sensors used** by its widgets. With a widget selected the
+  inspector shows [that item's own four tabs](#editing-widgets) instead.
 - **Blank zone** - **Widget** with a **Pick a widget** button, and **Zone
   frame**.
-- **Several zones** - only the shared Style sections.
+- **Several zones** - only the shared Style sections, with the follow state
+  of the primary zone.
 - **Nothing selected: the Dashboard inspector.** Click empty canvas or press
   Esc. Its tabs:
   - **Profile** - the profile's name, design size, grid, fit, gap,
     padding and corner radius; **This profile** (Theme / Style / Background: **Inherit** or
     custom); and **Profile selection** (**Auto-pick by window size**).
-  - **Appearance** - **Scope** (**All profiles | This profile**, plus **Force
-    global style**, see [Appearance (global style)](#appearance-global-style)),
-    **Skins** (a gallery of the fourteen skins, then your saved looks, see
-    [Skins and saved looks](#skins-and-saved-looks)), **Theme & surface**
-    (surface, background opacity and blur, theme colors, see [Theme colours
-    per profile](#theme-colours-per-profile)) and **Page background** (see
-    [Page background](#page-background)).
-  - **Global style** - the look itself, in the same sections as a widget's
-    Style tab, written at the dashboard or profile level by the Scope.
+  - **Appearance** - **Scope** (**Apply to** All profiles | This profile, and
+    a button to the [theme editor](#theme-editor)), **Skins** (a gallery of
+    the fourteen skins, then your saved looks, see [Skins and saved
+    looks](#skins-and-saved-looks)), **Theme & surface** (surface, background
+    opacity and blur, theme colours, see [Theme colours per
+    profile](#theme-colours-per-profile)) and **Page background** (see [Page
+    background](#page-background)).
   - **General** - *Type*, *Clock & date*, *Display*, *Studio* (the **Quick bar**
     switch and **Inspector sections**: One open / Many open) and *Connection* (the Data API URL and
     its test); see [General settings](#general-settings).
@@ -465,15 +490,15 @@ panel widget selected).
 
 ### The panel sections
 
-The panel's **title** (empty = hidden) is the *Widget* section's **Custom
-title**, and its card and accent are *Colors & surface*'s **Surface**
-(none / card / bordered card, glass, matte, theme) and **Accent color**;
+The panel's **title** (empty = hidden) is the *Header* section's **Title**,
+and its card and accent are *Surface*'s **Surface**
+(none / card / bordered card, glass, matte, theme) and *Colors*' **Accent color**;
 the panel sections below do not repeat them. The **Panel** section has **Visual
 / Code**, which switches between the editors and the panel as JSON (see
 [Code view](#code-view)), and **...** with Save as panel preset. **Layout**
 is the arrangement (next section), **Background** (overlay panels) picks the
 image widget that fills the overlay and the dark scrim - not to be
-confused with *Colors & surface*'s **Background image**, which is a
+confused with *Surface*'s **Background image** (under More), which is a
 picture behind the whole panel - and **Widgets** lists the widgets (see
 [Editing widgets](#editing-widgets)).
 
@@ -513,7 +538,7 @@ picture behind the whole panel - and **Widgets** lists the widgets (see
 For every layout:
 
 - **Gap (px)**: space between the widgets, and **Padding (px)**: space
-  inside the panel's card. Empty (auto) uses *Spacing & shape*, then
+  inside the panel's card. Empty (auto) uses *Size & spacing*, then
   the layout's own spacing.
 - **Fit in zone**: **Fill** (default) stretches the panel over the whole
   zone; **Hug** shrinks it to its content.
@@ -526,7 +551,7 @@ stack.
 
 1. **The panel in its zone.** A panel fills its zone unless **Fit in zone**
    is **Hug**. A hugging panel is placed by the zone's own alignment, the
-   3×3 picker in *Size & alignment* (left / center / right × top /
+   3×3 picker in *Size & spacing* (left / center / right × top /
    middle / bottom).
 2. **The content in the panel.** The layout's alignment (Stack:
    *Alignment*; Grid: *Cell alignment*; Overlay: *Band alignment*) places
@@ -546,24 +571,31 @@ stack.
   Delete. **Add widget** (at the top of the section) inserts the chosen kind
   after the selected widget. An unlabeled widget is listed by its sensor's
   name.
-- The selected widget's editor is a set of sections under **Selected widget**,
-  in the same order as a zone's own (only the cards its kind uses):
-  - **<Kind> widget** (with **Change kind**): label, sensor, sub sensor
-    (shown small below the value), unit, decimals, scale (multiplier, e.g.
-    bytes to GB), max (the 100 % of a bar or gauge), invert fill, and the
-    static text or image URL;
-  - **Display**: the kind's own options (shape and thickness, image max
-    height, table rows / columns / header, sparkline history, clock time /
-    date, text alignment);
-  - **Size & placement**: width, height and align self (see above), in a
-    grid the column / row span and start column / row, in an overlay the
-    band and *Use as panel background*;
-  - **Typography**: font size (a gauge's ring diameter);
-  - **Colors**: the widget's color;
-  - **Advanced**: **Class names** (hooks for the panel's CSS) and **Custom
-    CSS** scoped to the widget, with the list of hooks.
-  **Change kind** (in the first section or the layer's **...**) keeps the
-  label, sensor, unit, color, layout and CSS.
+- The selected widget's editor is its own four-tab inspector (the zone's
+  header and tabs give way to it; the header's actions still act on the
+  zone). The rows are the shared ones, the same as a zone's, filed by what
+  the kind uses:
+  - *Show*: **Kind** (chips; **Change kind** keeps the label, sensor, unit,
+    color, layout, CSS and follow flags, and drops what the new kind does
+    not read), **Content** (label, clock time / date, static text or image
+    URL, shape and thickness, table rows; columns and header under More) and
+    **Size & placement** (width, height and align self, see below; in a
+    grid the column / row span, start column / row under More, in an overlay
+    the band and *Use as panel background*);
+  - *Style*: **Typography** (font size, or a gauge's **Ring size**, and text
+    alignment), **Color** (the widget's color, role *accent*) and **Custom
+    CSS** (class names and CSS under More, with the list of hooks);
+  - *Data*: **Binding** (the sensor and, under More, a sub sensor shown small
+    below the value; **Bind data...** opens the picker) and **Units & format**
+    (unit, decimals, **Maximum**, the 100 % of a bar or gauge, and **Multiply
+    by**, e.g. bytes to GB);
+  - *Behaviour*: **Thresholds** (stat, value, bar and gauge), **History**
+    (sparkline samples) and **Fill** (invert).
+  Typography, Color, Units & format and Thresholds follow the panel, like a
+  widget follows its theme: the Follow bar reads *Follows panel "CPU"* with
+  **Customize**, and *Custom for this item* with **Use panel**. An item's
+  thresholds are off until the panel's theme level sets them; the quantity
+  (load, temperature, value) comes from the bound sensor's unit.
 - With **Code** chosen in the *Panel* section, the layout, widgets and widget
   sections give way to one wide **Code** section (see [Code view](#code-view)).
 
@@ -574,8 +606,7 @@ widget of an unselected panel does both at once). The widget gets an outline
 (the others show a faint one on hover), the selection chip and the inspector
 header show *Zone > Widget* (click the zone crumb to go back to the panel,
 the widget crumb to scroll to its editor), and the inspector shows its
-sections under **Selected widget** (the widget's data, display, size &
-placement, typography, color and advanced sections, in the zone's own order). Clicking empty space in the panel selects the panel again; dragging
+four tabs (see [Editing widgets](#editing-widgets)). Clicking empty space in the panel selects the panel again; dragging
 still moves the zone.
 
 With a widget selected:
@@ -603,15 +634,14 @@ JSON has the fields the editor sets (`layout`, `direction`, `wrap`,
 `justify`, `align`, `gap`, `padding`, `columns`, `gridCols`, `gridRows`,
 `overlayAlign`, `scrim`, `bottomGridCols`, `fit`, and per widget `box`,
 `span`, `rowSpan`, `overlayZone`, …) plus `css`: CSS for the panel that
-travels with it into saved panels. It works like *Advanced* > Custom CSS (both
+travels with it into saved panels. It works like the zone's Custom CSS (both
 apply).
 
 ### Styling panels with CSS
 
-Panel CSS (*Advanced* > **Custom CSS**, or the Code
+Panel CSS (Style > **Custom CSS**, or the Code
 view's `css`) is scoped to the zone: `:scope` is the zone's root and the
-selectors below match inside it. A widget's own **Custom CSS** (its *Advanced*
-card) is scoped to that widget's cell: `:scope` is the
+selectors below match inside it. A widget's own **Custom CSS** (its Style tab) is scoped to that widget's cell: `:scope` is the
 `.wp-widget` element.
 
 ```
@@ -652,7 +682,7 @@ Inside a widget (by kind):
 | shape | `.wp-shape` |
 
 The panel's layout fields are CSS variables on `.wp-panel`, read with the
-Spacing & shape value and then the built-in spacing as fallbacks:
+Size & spacing value and then the built-in spacing as fallbacks:
 
 | Variable | From | Used for |
 |---|---|---|
@@ -710,7 +740,7 @@ Four examples (each tried in the kiosk):
 
 Example 2 leaves a widget with its own **Color** as it is (the color is
 set on the element); to target a few widgets only, give them a class name
-(*Advanced* > **Class names**, e.g. `hot`) and select `.wp-widget.hot` in the
+(Style > Custom CSS > **Class names**, e.g. `hot`) and select `.wp-widget.hot` in the
 panel's CSS.
 
 ## Scaling with the zone and Size %
@@ -719,13 +749,13 @@ Widgets fit themselves to their zone: each one measures its zone, picks a
 layout for that size and shape (a 1×1 zone gets a compact tile, a wide strip a
 row, a larger box the full layout) and sizes its text, rings and rows from the
 room that is there. Making a zone bigger therefore shows more, not just larger
-content. The **Layout** option (Auto, Card, Standard, Compact, Simple) fixes
+content. **Density** (Fit, under More: Auto, Roomy, Standard, Compact, Minimal) fixes
 the size class instead of measuring it.
 
 **Size (%)** (50-200) zooms the content on top of that, and the layout is
 chosen from the zoomed size: 150 % in a zone makes the widget behave as if the
-zone were smaller. **Scale with the zone** is kept for older dashboards and
-changes nothing for widgets; only Size % applies.
+zone were smaller. The old **Scale with the zone** option did nothing and is
+gone; only Size % applies.
 
 ## Alignment
 
@@ -741,37 +771,39 @@ its start.
 
 ## Skins and variants
 
-The **Look** section (Style tab) restyles a whole widget, not just its colors.
+The **Skin & graphics** section (Style tab) restyles a whole widget, not just its colors.
 It resolves like every other look setting: you can set it once for the
-dashboard or a profile (Global style) and let widgets follow it.
+profile or a page (the [widget theme](#widget-theme)) and let widgets follow it.
 
-- **Skin** - Auto, or one of fourteen, each with its own fonts, corner
+- **Skin** (Skin & graphics) - Auto, or one of fourteen, each with its own fonts, corner
   radius, header and graph and meter style: `default` (studio card), `tui`
   (btop-style terminal), `macos`, `fluent` (Windows 11), `hud` (sci-fi HUD),
   `ink` (monochrome editorial), `retro` (CRT terminal), `ios`, `android`
   (Material You), `synth` (synthwave), `cyber` (cyberpunk), `nixie`, `brutal`
   (neo-brutalist) and `instrument` (instrument rack). A skin brings its own
-  card (see below) unless you pick a surface under *Colors & surface*,
+  card (see below) unless you pick a surface under *Surface*,
   and its own accent unless you set an accent. Its fonts load on first use; offline, the widget
   falls back to the standard stack. **Font** under *Typography* overrides the
   skin's fonts.
-- **Dense summary** (under *Size & alignment*) - Off, or On: a dense summary
-  of the same data (a headline value, a trend and a few rows). Its labels use
-  the widget's font.
-- **Graph updates** - Stepped (the default) or Smooth. Smooth scrolls line,
+- **Small zones** (Fit, Show tab) - what the widget draws in a small zone.
+  *Auto* swaps a zone of 1 x 1, a one-row strip or a one-column zone to a
+  summary card of tile, strip or column form; *Full* keeps the full layout at
+  any size; *Card* shows the summary card at any size (a wide zone gets the
+  strip form, otherwise the tile form) and is offered only by widgets that
+  have one; *Dense* draws a dense summary of the same data (a headline
+  value, a trend and a few rows), or the card where the widget has no dense
+  view. **Density** (under More) picks the size tier of the layout. Small
+  zones belongs to the zone's shape, not its look, so no theme sets it.
+- **Graph updates** (Motion, Behaviour tab) - Stepped (the default) or Smooth. Smooth scrolls line,
   area and step graphs at a constant speed, about two readings behind the
   feed, so each new reading slides in without the line jumping or pausing;
   the axis eases, and bars and rings glide (about 1 s). Reduced motion
   (**General > Motion** or the system setting) keeps graphs stepped. Braille,
-  bars and dots graphs and numbers are unchanged. It can be set globally too.
-- **Graph style** (advanced) - Auto, area, line, step, bars, dots or braille:
+  bars and dots graphs and numbers are unchanged. The theme sets it too.
+- **Graph style** (More) - Auto, area, line, step, bars, dots or braille:
   how trends are drawn.
-- **Meter style** (advanced) - Auto, bar, pill, segments, blocks, hair, wave
+- **Meter style** (More) - Auto, bar, pill, segments, blocks, hair, wave
   or square: how bars and level meters are drawn.
-- **Summary card** (Size & alignment) - Auto, Never or Always. Auto swaps a
-  small zone (1 x 1, a one-row strip or a one-column zone) to a summary card;
-  Never keeps the full layout at any size; Always shows the summary card even
-  in a large zone.
 
 A skin is more than a card: type, numerals, graph and meter style, header and
 decorations, and it brings its own card. The **Surface** setting is only the
@@ -795,7 +827,7 @@ radius wins.
 
 ## Colors and type
 
-- **Accent color** (in *Colors & surface*) tints the widget's main fill,
+- **Accent color** (in *Colors*) tints the widget's main fill,
   such as the progress bar or the big temperature; each widget decides where
   it lands.
 - **Text color** and **Secondary text color** override the surface's text.
@@ -820,7 +852,7 @@ radius wins.
 
 ## Border, glow, opacity and blur
 
-In *Border & effects* (border and glow) and *Colors & surface* (opacity
+In *Border & glow* and *Surface* (opacity
 and blur), for widgets with a surface box:
 
 - **Border width** and **Border color** (the default is a 1 px edge).
@@ -832,7 +864,7 @@ and blur), for widgets with a surface box:
 - **Background blur** blurs what is behind the surface (visible on glass or a
   faded surface).
 
-A **background image** (in *Colors & surface*) needs both the image URL and
+A **background image** (in *Surface*, under More) needs both the image URL and
 **Use as background**. Glass surfaces let it show through; matte ones cover
 it. The field takes a URL, or upload a file with **Upload...** or by dropping
 it on the field, or pick an uploaded one from the library button; see
@@ -1011,7 +1043,7 @@ unused.
 
 The Dashboard inspector's **Appearance** tab has these sections: **Scope**,
 **Skins**, **Theme & surface** and **Page background**. The tab opens on
-*This profile* when the active profile has its own style, force setting or
+*This profile* when the active profile has its own style, locked sections or
 background.
 
 **Skins** is a gallery of the fourteen skins, each drawn live. Click one to
@@ -1032,7 +1064,7 @@ opacity** and **Background blur**, and the page background.
   *Custom (edited)* note when the colours match none, then the editable token
   colours.
 
-All of them write the scope's global style, so a widget can still set its own.
+All of them write the scope's style, so a widget can still set its own.
 The corner radius is no longer here: it is on the Profile tab (see [Grid
 spacing](#grid-spacing-gap-and-padding)).
 
@@ -1059,8 +1091,8 @@ whole previous look back.
 Widgets with their own look still win over a skin or a saved look. After you
 apply a saved look, a banner counts them - for example *3 widgets keep their
 own style* (and, for All profiles, *1 profile has its own look*: its own style
-or theme colours) - with **Make them follow**: those widgets switch to [Follow
-global](#follow-global-or-custom) (their own values stay saved) and, for
+or theme colours) - with **Make them follow**: those widgets switch to
+[follow the theme](#follow-or-customize) (their own values stay saved) and, for
 All profiles, the profiles' own styles, theme colours and corner radius are
 cleared. That is one undo step too.
 
@@ -1078,75 +1110,100 @@ a saved look sets the whole dashboard's (or profile's) look; a style preset
 restyles the one widget you apply it to. The theme swatches are a third, smaller
 step: they change the colours only.
 
-## Appearance (global style)
+## Widget theme
 
-Look-only options can be set once for every widget instead of per widget.
-With nothing selected, the Dashboard inspector's **Global style** tab lists them: surface, accent,
-size and alignment, spacing, colors and type, border, glow, opacity, blur
-and custom CSS. Content settings, layout, title, icon and the background
-image are always per widget.
+Look and content preferences can be set once instead of per widget. A theme
+holds a value for each *themed* setting: the look sections (skin, colors, widget
+colors, surface, typography, size & spacing, border & glow, custom CSS) and
+the content ones (units & format, thresholds, motion). Per-widget content,
+layout, title, icon, the background image and a widget's look toggles (the
+tint, the heat ramp) are never themed, and neither is **Small zones**.
 
-A switch (**Scope**, on the Appearance tab) picks what you edit:
+The levels, lowest first (`resolveStyle`, `src/lib/style-resolve.ts`):
 
-- **All profiles** - the dashboard style, for every widget in every profile.
-- **This profile** - this profile's style, over the dashboard's. Rows the
-  dashboard style sets show its value with a teal dot until you set them
-  here.
+1. the defaults (today's look, so nothing repaints on upgrade);
+2. **All profiles** - the dashboard style, for every widget in every profile;
+3. **Profile** - the profile's theme, over the dashboard's, with per-section
+   locks;
+4. **Page** - a page's theme: per section, follow the profile or use the
+   page's own values;
+5. **Widget** - each section follows or is custom (see below).
 
-The order of precedence is: the widget's default, then the dashboard style,
-then the profile style, then the widget's own value (unless the widget
-follows the global style, see below). A panel's older card and accent
-choices count as its default, so the global style reaches it.
+Items in a panel follow the panel (the panel's own resolved look), which
+follows the same levels.
 
-**Force global style on every widget** (one per scope) makes every widget
-ignore its own look values - they stay saved and come back when you turn it
-off. Under **All profiles** it is a switch; under **This profile** it is
-**Inherit** (the dashboard's choice), **On** or **Off**. While it is on, a
-panel's own widget colours (**Color** of a stat, bar, shape, …) also give
-way: fills take the global accent, text the global text colour.
+### Follow or customize
 
-A dot left of an option says where its value comes from (hover it for the
+A widget section either follows the theme (the default) or is custom. The
+[Follow bar](#where-the-options-are) switches it: **Customize** unlocks the
+rows at the theme's values, **Use theme** follows again and keeps the widget's
+own values stored. Editing a themed row of a following section is not
+possible; customize it first. Panels saved by earlier
+versions keep their card and accent as their own values: those sections open
+as *Custom*.
+
+A profile can **lock** a section: every widget on every page then follows it,
+the widgets' switch becomes *Locked by the profile theme* and their own
+values stay stored, inactive. Locking is profile-only; a locked section is
+the profile's on a page too. The profile's locks replace the old **Force
+global style** switch. A locked **Colors** section also overrides a
+panel's own item colors where the panel gives way (fills take the accent).
+
+The source dot of a row says where its value comes from (hover it for the
 explanation):
 
 - no dot - the default;
-- blue dot - set here (on this widget, or in this scope);
+- blue dot - set here (on this widget, or in the scope being edited);
 - teal dot - from the dashboard style (All profiles);
 - violet dot - from the profile style;
-- blue dot with a ring - set here, overriding the global style;
-- amber ring - set here but ignored (the widget follows the global style, or
-  it is forced).
+- blue dot with a ring - set here, overriding the theme.
 
-Clicking a dot that is set here resets it: it drops the value, so the option
-falls back to the global style (or the default). On the Global style tab the
-same dots and reset apply to the scope's own values, and **Search settings**
-filters them (for example "radius").
+Clicking a dot that is set here resets it: the option falls back to the
+theme (or the default).
 
-Each section's **Reset** there clears that section's options of the scope
-being edited.
+### Theme editor
 
-### Follow global or custom
+The theme editor is a page of its own. Open it from **Theme** in the rail, a
+page's **Theme...** menu item, **Edit theme** on the canvas, **Theme editor...**
+in the command palette, the theme name on a widget's Follow bar, or the
+button in Dashboard › Appearance › Scope.
 
-The top of a widget's *Colors & surface* section has **Follow global | Custom**:
+- A **scope list** picks what you edit: *All profiles*, the profile's theme,
+  or one of its pages. The profile and a page show the follow / lock bars
+  (**Lock** / **Unlock** on the profile; *Follows the profile theme* with
+  **Customize**, or *Custom for <page>* with **Use profile** on a page); *All
+  profiles* has none.
+- The inspector is the widget inspector without a Show tab. Style adds
+  **Status & series colors** (Series 1-6, OK, Warning, Critical: the palette
+  the widgets' colors stand for) after Colors; Data holds **Units &
+  format**; Behaviour holds **Thresholds** and **Motion**.
+- Live **previews** of a CPU monitor, a weather widget and an audio meter,
+  taken from the page when it has them, draw under the edited values. Each
+  carries Theme / Custom / Locked chips per section.
+- **Who doesn't follow the theme** lists, per section, the widgets on the page
+  with a custom section; **Reset to theme** makes them follow again and keeps
+  their own values. Together with **Lock all** it replaces the old Global
+  style tab.
 
-- **Custom** (also what a widget without a choice does) - the widget's own
-  values win, option by option.
-- **Follow global** - only the dashboard / profile style applies. The
-  widget's own values stay saved but ignored (their dots get the amber
-  ring), and a banner on the Style tab says so, with a link to **Edit global
-  theme** (Dashboard › Appearance). Editing a look option while the widget
-  follows switches it to Custom; **Follow global style** in the zone menu
-  clears the widget's look overrides.
+### Thresholds
 
-Panels saved by earlier versions keep their card and accent as their own
-values, so the global surface doesn't reach them until they follow: set
-them to **Follow global**, or run **Make all widgets follow global style**
-from the command palette (all zones of this profile, one undo step). The
-palette also has **Force global style on every widget** (it toggles this
-profile's switch when the profile has its own, else the dashboard's) and
-**Appearance...**.
+One control per quantity: a zone bar (green, amber, red, widths from the
+values) and a **Warning** and a **Critical** slider; critical never goes below
+warning, and **Off** disables a level. The quantities and their theme
+defaults:
 
-Each scope's style edits, its force switch and each zone's Follow / Custom
-choice are separate undo steps.
+| Quantity | Unit | Warning / Critical |
+|---|---|---|
+| Load | % | 80 / 92 |
+| Temperature | °C, shown in °F when the temperature unit is °F | 80 / 90 |
+| Fullness | % | 85 / 95 |
+| Audio level | dB | -9 / -2 |
+| Value | the sensor's unit | off (SensorValue, Sensor group) |
+
+A widget lists the quantities it draws. Thermals has **Use sensor limits** (on
+by default): each sensor's own limits instead of fixed levels. A panel item
+follows the panel's levels for its quantity, and is off until a theme level
+sets them.
 
 ### Theme colours per profile
 
@@ -1233,7 +1290,7 @@ page.
 
 ## Copy, Paste, Use as global and presets
 
-The buttons at the top of the *Colors & surface* section work on a
+The style tools in the header of the *Colors* section work on a
 widget's look-only options:
 
 - **Copy** remembers the selected widget's style; **Paste** replaces another

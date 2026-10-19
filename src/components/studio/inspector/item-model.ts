@@ -168,7 +168,7 @@ const SECTIONS: readonly ItemSectionSpec[] = [
     tab: "style",
     kinds: SIZED,
     rows: ({ w }) => [
-      row("fontSize", w.kind === "gauge" ? "Ring size (px)" : "Font size (px)", "number", 0, { min: 0, max: 200, hint: "0 = the kind's own size" }),
+      row(w.kind === "gauge" ? "size" : "fontSize", w.kind === "gauge" ? "Ring size (px)" : "Font size (px)", "number", 0, { min: 0, max: 200, hint: "0 = the kind's own size" }),
       is(w, ALIGNABLE) && select("align", "Text alignment", [["left", "Left"], ["center", "Center"], ["right", "Right"]], "left"),
     ],
   },
@@ -245,6 +245,7 @@ export const kindChoices = (all: readonly WidgetKind[], current: WidgetKind): Wi
 /** The section a key's own value belongs to (the colour row reads its role, `accent`). */
 const KEY_SECTION: Readonly<Record<string, ItemSection>> = {
   fontSize: "type",
+  size: "type",
   align: "type",
   color: "colors",
   accent: "colors",
@@ -292,6 +293,7 @@ export function itemOwn(w: Widget, layout: PanelLayoutKind): ModuleSettings {
     ["band", w.overlayZone],
     ["asBackground", w.asBackground],
     ["fontSize", w.fontSize],
+    ["size", w.size],
     ["align", w.align],
     ["color", w.color],
     ["className", w.className],
@@ -384,6 +386,7 @@ function withKey(w: Widget, key: string, v: ModuleSettingValue | undefined): Wid
     case "columns":
     case "height":
     case "fontSize":
+    case "size":
       return put(w, key, positive(v));
     case "decimals":
       return put(w, "decimals", v === "auto" ? undefined : num(v));

@@ -125,29 +125,38 @@ A zone only re-renders when one of the keys it reads changes.
 The kiosk grid (`App.tsx`) and the studio canvas both render zones through
 `LivePlacement`.
 
-### Style resolution (`src/lib/style-resolve.ts`)
+### Style resolution (`src/lib/theme-model.ts`, `src/lib/style-resolve.ts`)
 
-Every zone's look is resolved before it renders. Only the look keys
-(`PROFILE_STYLE_KEYS`) are layered, lowest first:
+Every zone's look is resolved before it renders. Only the themed keys
+(`THEMED_KEYS`, grouped into the followable sections `SectionId`: `skin`,
+`colors`, `palette`, `surface`, `type`, `spacing`, `border`, `css`,
+`format`, `thresholds`, `motion`) are layered, lowest first:
 
 ```
-module default            (a panel: its legacy PanelDef accent / background)
-  → dashboard style       DashboardConfig.style
-  → profile style         MonitorProfile.style
-  → the widget's own      Placement.settings - skipped when Placement.styleMode is
-                          "follow" or the global style is forced
+THEME_DEFAULTS            (today's defaults; a panel: its legacy PanelDef accent / background)
+  → all-profiles style    DashboardConfig.style (no locks)
+  → profile theme         MonitorProfile.widgetTheme  { values, locks }
+  → page theme            ProfilePage.widgetTheme     { values, follow }
+  → the widget's own      Placement.settings, per section - skipped while
+                          Placement.follow[section] !== false, or the profile locks it
 ```
 
-`resolveStyle({ moduleDefaults, dashboard, profile, own, mode, enforce })`
-returns the settings (content keys always from `own`) and a per-key
-`source` (`default` / `dashboard` / `profile` / `own`) that the
-inspector's dots show. `appearanceOf(config, profile)` collects the two
-style layers and the force switch (`profile.styleEnforce ?? config.styleEnforce`)
-into an `Appearance`; `App.tsx` and the studio canvas pass it to
-`LivePlacement`, and `placementContent` resolves each zone with
-`resolveWith(appearance, own, placement.styleMode, moduleDefaults)`. A
-`styleMode` of `"custom"` or none keeps the per-key order; `"follow"`
-ignores the widget's own look values but keeps them stored.
+A section of a widget follows the theme unless its flag is `false`, and
+always while the profile locks it; a page's own values for a section apply
+only if the page made the section its own (`follow[section] === false`) and
+the profile does not lock it. Values a following section skips stay stored.
+`resolveStyle({ moduleDefaults, levels, own, follow, defs })` returns the
+settings (other keys always from `own`; with the schema `defs`, a `perWidget`
+row keeps its own value and a colour row with a palette `role` reads the
+role's colour) and a per-key `source` (`default` / `dashboard` / `profile` /
+`page` / `own`) that the inspector's dots show. `appearanceOf(config,
+profile)` (a `ProfileView` carries its page's theme) collects the levels into an `Appearance`; `App.tsx` and the
+studio canvas pass it to `LivePlacement`, and `placementContent` resolves each
+zone with `resolveWith(appearance, own, placement.follow, moduleDefaults)`.
+Panel items follow the panel's resolved look (`src/lib/panel-item.ts`:
+`Widget.follow` per item section, `Widget.thr`), which follows the same
+levels. The Dynamic Island reads the resolved settings too
+(`zoneResolver`, each zone under its own page's theme).
 
 ### Where each setting comes from
 
@@ -156,8 +165,7 @@ that sets a value wins from the right:
 
 | Setting | App default | Dashboard (`DashboardConfig`) | Profile (`MonitorProfile`) | Widget (`Placement`) | Resolved by |
 |---|---|---|---|---|---|
-| Look keys (surface, accent, font, …) | the module's defaults | `style` | `style` | `settings` (unless `styleMode: "follow"` or forced) | `resolveStyle` (style-resolve.ts) |
-| Force global style | off | `styleEnforce` | `styleEnforce` | - | `isEnforced` |
+| Themed keys (surface, accent, font, units, thresholds, …) | `THEME_DEFAULTS` | `style` | `widgetTheme.values` (and per-section `locks`); a page's `widgetTheme` (`values`, `follow`) over it | `settings`, per section unless `follow[section]` is not `false` or the profile locks it | `resolveStyle` (style-resolve.ts) |
 | Theme colours, corner radius | `DEFAULT_THEME`, 0.5 rem | `theme`, `radius` | `theme` (partial, over the dashboard's), `radius` | - | `resolveTheme` (theme.ts) |
 | Page background | none (the theme's page colour) | `background` | `background` (`{ type: "none" }` turns it off) | - (a widget's own background image is a look key) | `resolveBackground` (appearance.ts) |
 | Grid gap, padding | 12 px; padding per mode (`profilePadding`) | - | `gap`, `padding` | - | `profileGap` / `profilePadding` (profile-grid.ts) |
@@ -167,7 +175,7 @@ that sets a value wins from the right:
 
 ```
 Placement.settings
-  → resolveWith(appearance, settings, styleMode) dashboard → profile → own (see above)
+  → resolveWith(appearance, settings, follow) dashboard → profile → page → own (see above)
   → mod.render(sensors, settings)
        → hasKeys(sensors, prefixes)               no key under the prefixes: null (no data)
        → <TemplateZone>                           src/widgets/module.tsx (templateModule)
@@ -217,15 +225,16 @@ string data, drawn inside one `<Widget>` (`src/widgets/core/Widget.tsx`).
   grid — `column` at ratio ≤ 0.62 and under 260px wide, else `box`). On a
   grid of short rows (a 1920×550 strip profile, ~156×42px cells) a wide zone
   of several rows is therefore a `box` and shows the widget, not the
-  one-line summary. The standard `layout` option forces the tier. The
+  one-line summary. The standard `sizeTier` option (Density) forces the tier. The
   content callback receives the *inner* size (after padding and header) too,
   so a widget counts its rows from the room that exists.
 - **Views.** Besides its normal layout a widget gives the shell a `compact`
   descriptor (a tile, strip or column summary, the **Summary card**) and a
-  `studio` descriptor (the dense variant). `summaryShape` (`core/layout.ts`)
-  picks the card's form from `compactView`: `auto` for a tile, strip or column
-  zone, `off` never, `on` always (a box becomes a strip when wide, a column
-  when tall, else a tile). `CompactView` and `StudioView` (`core/views.tsx`) draw them.
+  `studio` descriptor (the dense view). `summaryShape` (`core/layout.ts`)
+  picks the card's form from `compact` (Small zones, read by `compactOf`):
+  `auto` for a tile, strip or column zone, `full` never, `card` always (a box
+  becomes a strip when wide, a column when tall, else a tile), `dense` the
+  dense view. `CompactView` and `StudioView` (`core/views.tsx`) draw them.
 - **The look.** The shell maps the standard look keys onto the zone
   (`core/look.ts`): `chromeVars`, the surface box with border, glow, opacity and
   blur (`lookBox`), text colors, font and weight (replacing the skin's), label
@@ -282,8 +291,8 @@ would be 102 GB/s; as bytes it is 860 Mb/s, and only bytes match the adapter's
 `network_utilization` of its link). `fmtRate` (`core/data.ts`) formats them with decimal prefixes,
 `auto` or a fixed `RateUnit` (MB/s, Mb/s, KB/s, Kb/s, Mbps; Network Traffic's `rateUnit`), and `toMBps`
 gives the number for widgets that print the unit apart.
-`variant` (Dense summary) is a layout mode
-under Size & alignment, not a style. In the studio, Appearance › Skins draws
+`compact` (Small zones, with `dense` the dense view) is a layout mode
+under Fit, not a style, and no theme sets it. In the studio, Appearance › Skins draws
 every skin live (`skin-gallery.tsx`) above the user's saved looks, and Theme &
 surface shows surface and theme swatches (`surface-picker.tsx`,
 `theme-panel.tsx`) over the editable theme colours.
@@ -559,13 +568,13 @@ view's guard (`parsePanelJson`).
 ```
 Placement.panel + Placement.settings
   → panelOwnSettings(placement)                  own settings; legacy title as the label fallback
-  → resolveWith(appearance, …, styleMode, panelLegacyLook(placement))
+  → resolveWith(appearance, …, follow, panelLegacyLook(placement))
                                                  legacy accent / background as the lowest layer
-  → <PanelView enforced>                         src/components/widgets/PanelView.tsx; forced:
+  → <PanelView enforced>                         src/components/widgets/PanelView.tsx; Colors locked:
                                                  enforcedPanel drops the widgets' own colors
        → chromeOf(cfg) → <ModernChrome>          no design size: Size %, --wp-* variables,
                                                   custom CSS + panel.css, background image
-            → div                                 places a hugging panel (fit: "hug") by alignX / alignY
+            → div                                 places a hugging panel (fit: "hug") by the zone's alignment
                  → .wp-panel                      panelCardStyle (surface box, padding, radius),
                                                   panelVars (--panel-*); the tokens are re-scoped
                                                   on the ModernChrome root
@@ -619,8 +628,10 @@ least one widget is visible.
   page operations.
 - `Placement` - `module` (a registry id, `cards`, `blank` or `panel`), the zone
   box (`colStart`, `rowStart`, `colSpan`, `rowSpan`), `visible`, `settings`,
-  `design`, `panel`, `styleMode?` (`"follow"` / `"custom"`, see [Style
-  resolution](#style-resolution-srclibstyle-resolvets)).
+  `design`, `panel`, `follow?` (per-section follow flags, see [Style
+  resolution](#style-resolution-srclibtheme-modelts-srclibstyle-resolvets)).
+  A profile has `widgetTheme?` (the widget theme: `values` and `locks`), a
+  page has `widgetTheme?` (`values` and `follow`).
 - `StylePreset` - `{ id, name, settings }`, a named set of look-only keys.
 - `GeneralSettings` (`src/lib/general.ts`) - `font?` (`system`, `sans`,
   `rounded`, `serif`, `mono`), `hour12?` (unset = the locale's choice),
@@ -674,9 +685,9 @@ call without a coalescing key, so one undo step reverts a whole preset:
 - placements (and with them all content keys) are never touched.
 
 `countOverrides(config, scope)` counts the widgets whose own look keys show
-over the global style (not following, not forced); `countProfileOverrides`
+over the theme (a section not following, not locked); `countProfileOverrides`
 counts, for "all", profiles with their own look (style, theme or radius).
-`clearOverrides` sets those widgets to `styleMode: "follow"` (their values
+`clearOverrides` sets those widgets' sections to follow (their values
 stay) and, for "all", drops the profiles' styles, themes and radii.
 `presetFromCurrent` captures the resolved theme of the scope (a profile's
 own colours over the dashboard's). `saveAppearancePreset`, `renameAppearancePreset` and
@@ -1102,31 +1113,39 @@ Esc or window blur cancel it.
 `document-inspector.tsx`, `studio-inspector.tsx`). One registry drives every
 inspector. `inspector-model.ts` is pure: given an `InspectorContext` (a
 widget zone with its module's `settings`, a panel, a blank zone, several
-zones, or the dashboard) it returns the tabs (`inspectorTabs`: Content /
-Style / Data for a widget or panel; Profile / Appearance / Global style /
-General for the dashboard; none for a blank or multi selection) and the
-ordered `InspectorSection`s of each (`allSections`, `sectionsFor`). A section
-is a list of `ModuleSetting`s, optional `extras` (the widget picker, Visible,
-Follow / Custom, the style tools, the zone frame) and optionally a `special`
-marker for custom UI (the panel editor, Bound data, the presets gallery, the
-theme editor, ...). `searchAll` searches every tab at once;
-`applyAdvanced` hides advanced settings and counts them for "Show N advanced
-settings"; `sourceState` and `changedCount` give each row's source dot and
-the "N changed" counts. Sections come from `inspector-categories.ts`:
-`GENERAL_CATEGORIES` (Widget, Size & alignment, Typography, Spacing & shape,
-Colors & surface, Border & effects, Advanced) own the standard keys,
-`categorize(defs)` returns them in that order and then the module's own
-categories in first-appearance order, and `categoryTab` / `ModuleSetting.tab`
-decide the tab (see [Adding a setting](#adding-a-setting-to-a-module)).
+zones, the dashboard, a panel item or the theme editor's scope) it returns
+the tabs (`inspectorTabs`: Show / Style / Data / Behaviour for a widget or
+panel, a tab with no sections disabled; Profile / Appearance / General for
+the dashboard; none for a blank or multi selection) and the ordered
+`InspectorSection`s of each (`allSections`, `sectionsFor`). A section is a
+list of `ModuleSetting`s, optional `extras` (the widget picker, Visible,
+the style tools, the zone frame), the Follow bar of a followable section
+(`followInfo`) and optionally a `special` marker for custom UI (the panel
+editor, Bound data, the presets gallery, ...). `searchAll` searches every tab
+at once, More rows included; `splitMore` splits a section into its rows and
+its More rows; `sourceState` and `changedCount` give each row's source dot and
+the "N changed" counts (own values that apply only). Sections come from
+`inspector-categories.ts`: `SHARED_SECTIONS` (Header, Fit, Skin & graphics,
+Colors, Widget colors, Surface, Typography, Size & spacing, Border & glow,
+Custom CSS, Units & format, Thresholds, Dynamic Island, Motion) own the
+standard keys (`ModuleSetting.section`, or `sharedSectionOf` for a widget's
+own row such as a colour or a threshold), each in its fixed tab and before
+(`lead`) or after (`trail`) the widget's own sections; `categorize(defs)`
+returns them with the module's own `group`s in first-appearance order
+(see [Adding a setting](#adding-a-setting-to-a-module)). The module's
+`InspectorMeta` (`widgets/registry/inspector-meta.ts`) says how a widget
+fills the shared sections: `header` (`yes`, `title-only`, `none`), `compact`
+(`{ card, dense }`), `fmt` (the units & format rows it draws), `thr` (the
+threshold quantities) and `styleSubset` (Web page's reduced look).
 `inspector/inspector-view.tsx` renders the result as one column (header,
 search with the "Changed" toggle, the tabs pill, the sections as an accordion
-with sticky headers, the Advanced footer with the dot legend) in the docked
+with sticky headers, the dot legend in the footer) in the docked
 and floating placements; `inspector/sheet-view.tsx` is the bottom sheet's
 peek / half body (a tool strip of Quick plus one tile per section, then that
 section's fields). Search runs across every tab and hides the tabs; "Changed"
 lists only the values set here, across every tab. `source-dot.tsx` draws the
-dots; `inspector-prefs.ts` keeps the Advanced flag and the open tab per
-context in localStorage (`studio.inspectorAdvanced`, `studio.inspectorTabs`)
+dots; `inspector-prefs.ts` keeps the open tab per
+context in localStorage (`studio.inspectorTabs`)
 and the accordion mode (`studio.accordion`, one open or many open, default
 one). The open section is plain component state; there is no scroll-spy.
 
@@ -1163,18 +1182,32 @@ rows are `boundRows` (a panel's widgets' sensors, or the keys a widget zone
 claims, from `data-usage.ts`), and `data-picker.tsx` is the bind dialog
 (widget mode: multi-toggle; item mode: a panel widget's Sensor field).
 Several zones use `inspector/multi-inspector.tsx` (the shared Style sections,
-written to every selected zone).
+written to every selected zone; the Follow bar shows the primary zone's state).
+
+*Panel items* (`item-inspector.tsx` over `inspector/item-model.ts`). A selected
+panel widget gets the same four tabs from the item sections
+(`itemSections`, `itemFields`): Kind chips, Content, Size & placement,
+Typography, Color, Custom CSS, Binding, Units & format, Thresholds, History,
+Fill, built from the shared rows and written back by `withItemValues`.
+`panel-item.ts` holds the follow rules (`ITEM_SECTION_FIELDS`: type, colors,
+format, thresholds), so the renderer and the inspector agree.
+
+*Theme editor* (`theme-editor.tsx`, a studio mode; `theme-editor-model.ts`,
+`theme-editor-settings.ts`). Pure scope edits (`ThemeScope`: `base` = all
+profiles, `profile`, `page`; `withScopeValues`, `withLock`, `withPageFollow`,
+`withZonesFollowing`), the rows of the Style / Data / Behaviour tabs
+(`THEME_EDITOR_SETTINGS`, with Status & series colors) and the previews
+(`previewZones` through `LivePlacement` under the scope's levels). It
+replaces the former Global style tab.
 
 *Dashboard inspector* (`document-inspector.tsx`, nothing selected, over
 `use-document-props.ts` for its data and edits). Profile
 (`inspector/profile-sections.tsx`: profile fields, This profile
-Inherit / Custom, Auto-pick), Appearance (`appearance-panel.tsx`'s scope and
-Force switch, the presets gallery `appearance-gallery.tsx`, `theme-panel.tsx` /
+Inherit / Custom, Auto-pick), Appearance (`appearance-panel.tsx`'s Apply to
+scope, with a button to the theme editor, the presets gallery `appearance-gallery.tsx`, `theme-panel.tsx` /
 `profile-theme-panel.tsx`, and the page background `background-panel.tsx`,
 `background-editor.tsx`, `background-video.tsx`; background edits go through
-`withBackground`, undo-keyed per scope by `backgroundKey`), Global style (the
-look sections over `PROFILE_STYLE_SETTINGS`, written at the dashboard or
-profile level) and General (`general-panel.tsx`: Type, Clock & date, Display,
+`withBackground`, undo-keyed per scope by `backgroundKey`) and General (`general-panel.tsx`: Type, Clock & date, Display,
 Studio = the Quick bar and Inspector sections switches, Connection = the Data API URL). See the
 [customization guide](customization-guide.md).
 
@@ -1413,18 +1446,31 @@ Settings are plain `ModuleSetting` entries in a module's `settings` array
 (`src/modules/types.ts`); the inspector renders them with no UI code. Besides
 the usual `key`, `label`, `type` and `default`:
 
-- `group` names the section (category) it joins; settings that share a group
-  render together, placed where the group first appears.
-- `tab` (`"content" | "style" | "data"`) picks the inspector tab. Unset, a
-  setting follows its category: the general categories by their kind, a
-  widget's own categories in Content, those made only of colour pickers in
-  Style. Put a data-related category in Data explicitly.
-- `advanced: true` tucks it away until the Advanced toggle is on (a category
-  can be advanced as a whole).
+- `group` names the section it joins in the widget's own part of a tab;
+  settings that share a group render together, placed where the group first
+  appears. A group must not be a shared section's title, a widget's name or
+  "Content".
+- `section` files the setting in a shared section (`SharedSectionId`)
+  instead: the standard block's keys, and any widget row that belongs there.
+- `tab` (`"show" | "style" | "data" | "behaviour"`) picks the inspector tab.
+  Unset, a data setting (a sensor or device) goes to Data and the rest to
+  Show; `style` files a colour or look toggle in Style › Widget colors.
+- `more: true` lists it behind its section's "More (n)" link (`advanced` is
+  read as the same).
+- `role` (a colour row): the palette colour it stands for (`s1`…`s6`, `ok`,
+  `warn`, `crit`). While the section follows, the row shows the role's colour;
+  custom, its own colour, Auto = the role.
+- `perWidget: true` marks a row that never comes from a theme (a tint, a
+  background image): it stays editable while its section follows.
+- `keyY` (+ `defaultY`) makes a row two-keyed: `align`/`alignSpread`,
+  `warn.<q>`/`crit.<q>`.
+- `hidden: true` keeps a row in the schema (default, stored value) without
+  listing it (Custom gauge's `gauge`).
 - `hint` is the one-line explanation behind the row's info icon, and is
   searched.
 - `visibleIf(values)` shows the row only while it holds for the zone's
-  effective values (for example the glow colour only when glow is not none).
+  effective values (for example the glow colour only when glow is not none);
+  it reads the resolved values, so a themed row works either way.
 
 `inspector-categories.test.ts` checks every module resolves to a known
 category. Keys that are look settings (`PROFILE_STYLE_KEYS`) take part in the

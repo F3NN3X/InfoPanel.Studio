@@ -192,13 +192,13 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
   const sk = usePanelSkin();
   if (sk) {
     // The core ring: its thickness scales with the skin's `ring`; the number sits inside, the label under it.
-    const size = widget.fontSize ?? 80;
+    const size = widget.size ?? 80;
     return (
       <div className="wp-gauge flex shrink-0 flex-col items-center gap-1.5" style={{ width: size }}>
         <Ring value={pct} thickness={8} color={widget.color ?? "hsl(var(--accent))"} className="w-full">
           <span
             className="tabular-nums text-foreground"
-            style={{ fontSize: widget.fontSize ? Math.round(widget.fontSize * 0.28) : 14, ...panelNum(sk, 600) }}
+            style={{ fontSize: widget.size ? Math.round(widget.size * 0.28) : 14, ...panelNum(sk, 600) }}
           >
             {text}
             {unit && <span className="ml-0.5 font-normal text-muted-foreground" style={{ fontSize: "0.7em" }}>{unit}</span>}
@@ -218,8 +218,8 @@ function GaugeWidget({ widget, sensor, text, unit }: Ctx) {
         value={text}
         unit={unit}
         percent={pct}
-        size={widget.fontSize ?? 80}
-        fontSize={widget.fontSize ? Math.round(widget.fontSize * 0.28) : undefined}
+        size={widget.size ?? 80}
+        fontSize={widget.size ? Math.round(widget.size * 0.28) : undefined}
       />
     </div>
   );

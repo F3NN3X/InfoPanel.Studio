@@ -14,7 +14,7 @@ import { critKey, OFF, warnKey, type SectionFlags } from "./theme-model";
 
 /** The widget's own fields of each section (the per-widget rows — unit, maximum, multiply by — always apply). */
 export const ITEM_SECTION_FIELDS: Readonly<Record<ItemSection, readonly (keyof Widget)[]>> = {
-  type: ["fontSize", "align"],
+  type: ["fontSize", "size", "align"],
   colors: ["color"],
   format: ["decimals"],
   thresholds: ["thr"],

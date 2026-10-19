@@ -217,7 +217,8 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     names, SensorGroup's `mode`, Widget colors custom where an own colour now has a palette role;
  *     a v7 build would read the old names.
  * v9: panel widgets (`settings-migrate.ts` `migrateWidgetV9`): a Custom gauge widget's width under
- *     its own `width`, off `fontSize`; a v8 build would draw it at the default width.
+ *     its own `width` and a Gauge widget's ring under `size`, both off `fontSize`; a v8 build would
+ *     draw them at the default size.
  */
 export const CONFIG_VERSION = 9;
 
