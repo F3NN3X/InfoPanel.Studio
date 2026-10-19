@@ -5,7 +5,8 @@ import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { WaveLinkProps } from "../WaveLink";
 import { colorSetting } from "./settings-kit";
 
-const METER_BALLISTICS: ModuleSetting = {
+/** The meters' response (Behaviour › Motion), themed: the theme editor lists it too. */
+export const METER_BALLISTICS: ModuleSetting = {
   key: "meterBallistics",
   label: "Meter response",
   type: "select",

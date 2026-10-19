@@ -82,7 +82,7 @@ export function generalCards(general: GeneralSettings | undefined, onChange: Gen
         <SelectRow
           label="Font"
           lead={dot("font")}
-          hint="Every widget whose Font is Theme uses it; a Font set on the widget or in the global style still wins."
+          hint="Every widget whose Font is Theme uses it; a Font set on the widget or in the widget theme still wins."
           options={FONTS}
           value={g.font}
           onChange={(v) => onChange("font", v === "system" ? undefined : (v as GeneralFont))}

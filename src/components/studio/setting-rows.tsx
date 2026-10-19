@@ -248,11 +248,14 @@ export function SelectRow({
  */
 export function ColorRow({
   value,
+  name,
   onChange,
   onReset,
   ...label
 }: RowLabelProps & {
   value: string;
+  /** What the button calls the value instead of its colour name (a palette role followed: "Series 1"). */
+  name?: string;
   onChange: (value: string) => void;
   /** Back to Auto, for rows without a source dot. */
   onReset?: () => void;
@@ -261,7 +264,7 @@ export function ColorRow({
   return (
     <div className="space-y-1.5">
       <InlineRow {...label}>
-        <ColorButton value={value} open={open} label={label.label} onClick={() => setOpen((o) => !o)} />
+        <ColorButton value={value} name={name} open={open} label={label.label} onClick={() => setOpen((o) => !o)} />
       </InlineRow>
       {open && <ColorSwatches value={value} label={label.label} onChange={(v) => (v === "" && onReset ? onReset() : onChange(v))} />}
     </div>

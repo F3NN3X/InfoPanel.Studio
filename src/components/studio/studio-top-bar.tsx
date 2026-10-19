@@ -31,8 +31,8 @@ import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
 import { KEYS } from "./use-studio-shortcuts";
 
-/** Library and Gauges are full pages of their own, opened from the rail (not part of the Design | Sources switch). */
-export type StudioMode = "design" | "sources" | "library" | "gauges";
+/** Library, Gauges and Theme are full pages of their own, opened from the rail (not part of the Design | Sources switch). */
+export type StudioMode = "design" | "sources" | "library" | "gauges" | "theme";
 
 interface StudioTopBarProps {
   profiles: MonitorProfile[];

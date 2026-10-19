@@ -4,14 +4,7 @@ import { withGeneral, type GeneralSettings } from "@/lib/general";
 import type { DashboardConfig, ProfileView } from "@/lib/layout";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
-import {
-  enforceKey,
-  isForced,
-  styleKey,
-  withScopeStyle,
-  withStyleEnforce,
-  type StyleScope,
-} from "./appearance-actions";
+import { styleKey, withScopeStyle, type StyleScope } from "./appearance-actions";
 import type { AppearanceTarget } from "./appearance-panel";
 import type { BackgroundTarget } from "./background-panel";
 import type { DocumentInspectorProps } from "./document-inspector";
@@ -37,10 +30,6 @@ export function useDocumentProps(
   /** Edit the dashboard's or this profile's style (same-scope edits coalesce). */
   const setScopeStyle = (target: AppearanceTarget, fn: (style: ModuleSettings) => ModuleSettings) =>
     setConfig((c) => withScopeStyle(c, styleScope(target), fn), styleKey(styleScope(target)));
-
-  /** Lock every section of every profile's theme, or of this profile's (or unlock them). */
-  const setEnforce = (target: AppearanceTarget, on: boolean) =>
-    setConfig((c) => withStyleEnforce(c, styleScope(target), on), enforceKey(styleScope(target)));
 
   const appearancePresets = useAppearancePresets(config, profile.id, setConfig);
 
@@ -70,9 +59,7 @@ export function useDocumentProps(
       setConfig((c) => ({ ...c, theme: { ...c.theme, [key]: value } as ThemeTokens }), `theme:${key}`),
     onThemePreset: applyPreset,
     dashboardStyle: config.style,
-    forced: (target) => isForced(config, styleScope(target)),
     onStyle: setScopeStyle,
-    onEnforce: setEnforce,
     presets: appearancePresets,
     background: config.background,
     profile,
@@ -83,5 +70,5 @@ export function useDocumentProps(
     dataApiUrl: config.dataApiUrl,
     onDataApiUrl: (dataApiUrl) => setConfig((c) => ({ ...c, dataApiUrl }), "data-api-url"),
   };
-  return { props, setScopeStyle, setEnforce, appearancePresets };
+  return { props, setScopeStyle, appearancePresets };
 }

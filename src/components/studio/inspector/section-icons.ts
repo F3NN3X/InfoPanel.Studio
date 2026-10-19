@@ -39,7 +39,7 @@ import type { InspectorSection } from "../inspector-model";
 /**
  * Each inspector section's icon (its accordion header) and one-word label
  * (the phone sheet's tool tiles). Sections are matched by their id without
- * the Global style prefix (`gs-`) or a split tab's suffix (`@data`);
+ * a split tab's suffix (`@data`);
  * a widget's own categories fall back to a generic icon and their title's
  * first word.
  */
@@ -89,8 +89,8 @@ const BY_ID: Record<string, { icon: LucideIcon; short: string }> = {
   alerts: { icon: Bell, short: "Alerts" },
 };
 
-/** A section's id without the Global style prefix and a split tab's suffix. */
-const baseId = (id: string) => id.replace(/^gs-/, "").replace(/@.*$/, "");
+/** A section's id without a split tab's suffix. */
+const baseId = (id: string) => id.replace(/@.*$/, "");
 
 export function sectionIcon(section: Pick<InspectorSection, "id">): LucideIcon {
   return BY_ID[baseId(section.id)]?.icon ?? SlidersHorizontal;

@@ -48,6 +48,8 @@ export type CommandAction =
   | { type: "toggle-enforce" }
   | { type: "apply-appearance"; id: string }
   | { type: "goto-setting"; section: string; key?: string }
+  /** A theme editor row: Studio › Theme at its current scope, that section and row. */
+  | { type: "goto-theme-setting"; section: string; key: string }
   | { type: "use-global"; target: AppearanceTarget }
   | { type: "edit-style" }
   | { type: "bind-data" }
@@ -101,7 +103,7 @@ export interface CommandState {
   canRedo: boolean;
   showGrid: boolean;
   showSources: boolean;
-  /** Every section of the profile theme is locked (the old "Force global style"). */
+  /** Every section of the profile theme is locked (the palette's lock-all). */
   enforced: boolean;
   /** Built-in and saved appearance presets (applied to all profiles). */
   appearancePresets: { id: string; name: string }[];
@@ -140,10 +142,11 @@ function generalCommands(s: CommandState): Command[] {
     general("appearance", "Appearance…", { type: "document-tab", tab: "appearance" }),
     general("general", "General settings…", { type: "document-tab", tab: "general" }, "font, clock, motion"),
     general("connection", "Connection…", { type: "document-tab", tab: "connection" }, "Data API URL"),
-    general("follow-all", "Make all widgets follow global style", { type: "follow-all" }, "this profile"),
+    general("theme", "Theme editor…", { type: "edit-theme" }, "profile and page themes, locks"),
+    general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this profile"),
     general(
       "toggle-enforce",
-      s.enforced ? "Stop forcing global style" : "Force global style on every widget",
+      s.enforced ? "Unlock every theme section" : "Lock every theme section",
       { type: "toggle-enforce" }
     ),
     general("sources", s.showSources ? "Back to Design" : "Open Sources", { type: "sources" }),
@@ -283,6 +286,21 @@ function settingCommands(context: InspectorContext, group: string): Command[] {
   ]);
 }
 
+/** "Go to setting: …" for every theme editor row (the theme's look, units, thresholds and motion). */
+function themeSettingCommands(): Command[] {
+  return allSections({ kind: "theme", scope: "profile" }).flatMap((s) =>
+    s.settings.map(
+      (def): Command => ({
+        id: `theme-setting:${s.id}:${def.key}`,
+        label: `Go to setting: ${def.label}`,
+        group: "Theme",
+        hint: `Theme › ${s.title}`,
+        action: { type: "goto-theme-setting", section: s.id, key: def.key },
+      })
+    )
+  );
+}
+
 /** The selected panel widget's actions (Move only where it can go). */
 function widgetCommands(widgets: Widget[], widget: Widget, canPaste: boolean): Command[] {
   const cmd = (id: string, label: string, action: CommandAction, hint?: string): Command => ({
@@ -332,6 +350,7 @@ export function buildCommands(s: CommandState): Command[] {
         ? selectedCommands(s.selected, s.widget !== null, s.context)
         : []),
     ...(s.context ? settingCommands(s.context, s.selected ? "Selected zone" : "Dashboard") : []),
+    ...themeSettingCommands(),
     ...(s.selected ? styleCommands() : []),
     ...selectWidgetCommands(widgets),
     ...generalCommands(s),

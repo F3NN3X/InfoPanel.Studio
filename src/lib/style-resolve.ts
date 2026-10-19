@@ -1,6 +1,7 @@
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import {
   following,
+  pageCustom,
   sectionOfKey,
   THEMED_KEYS,
   themeKeyOf,
@@ -15,7 +16,8 @@ import {
  * Only the themed keys are layered, lowest first:
  *
  *   module default → all-profiles style → profile theme → page theme
- *   (only for a section the page made its own) → the widget's own
+ *   (only for a section the page made its own and the profile does not
+ *   lock) → the widget's own
  *
  * A widget section that follows the theme (the default, and always while
  * the profile locks it) skips the widget's own values for its keys — they
@@ -94,7 +96,7 @@ export function resolveStyle(input: StyleInput): ResolvedStyle {
   /** The strongest layer of a themed key, the widget's own value only where `ownApplies`. */
   const layerOf = (key: string, ownValue: unknown, ownApplies: boolean): [StyleSource, unknown] | undefined => {
     const sec = sectionOfKey(key)!;
-    const pageOwn = levels.page?.follow?.[sec] === false;
+    const pageOwn = pageCustom(levels, sec);
     const layers: [StyleSource, unknown][] = [
       ["own", ownApplies ? ownValue : undefined],
       ["page", pageOwn ? levels.page?.values?.[key] : undefined],

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import type { Placement, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
+import { FollowBar } from "./follow-bar";
 import { MultiInspector } from "./multi-inspector";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -56,6 +57,14 @@ async function openColors() {
 }
 
 describe("Follow bar", () => {
+  it("the theme name opens the theme it names (the page's, or the profile's)", async () => {
+    const opened: string[] = [];
+    const bar = { mode: "theme" as const, from: "the page theme · Gaming", level: "page" as const, onCustomize: () => {}, onUseTheme: () => {} };
+    render(<FollowBar bar={bar} onTheme={(level) => opened.push(level)} />);
+    await userEvent.click(screen.getByRole("button", { name: "the page theme · Gaming" }));
+    expect(opened).toEqual(["page"]);
+  });
+
   it("Customize unlocks the rows at the kept values; Use theme follows again and keeps them; Customize brings them back", async () => {
     const latest = setup({ profileName: "Desk", base: { accent: "#00ff00" } });
     await openColors();

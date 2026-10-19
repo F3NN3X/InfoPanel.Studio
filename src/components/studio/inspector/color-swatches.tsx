@@ -37,11 +37,14 @@ export const swatchBackground = (value: string) => (value ? value : AUTO_BG);
 /** The inline colour button: the colour's name and an 18 px swatch. */
 export function ColorButton({
   value,
+  name,
   open,
   label,
   onClick,
 }: {
   value: string;
+  /** Shown instead of the colour's name (a palette role: "Series 1"). */
+  name?: string;
   open: boolean;
   label: string;
   onClick: () => void;
@@ -50,14 +53,14 @@ export function ColorButton({
     <button
       type="button"
       aria-expanded={open}
-      aria-label={`${label}: ${colorName(value)}`}
+      aria-label={`${label}: ${name ?? colorName(value)}`}
       onClick={onClick}
       className={cn(
         "flex h-7 shrink-0 items-center gap-[7px] rounded-md border bg-ui-hover pl-[9px] pr-1 text-[11.5px] text-ui-2",
         open ? "border-ui-accent" : "border-ui-strong hover:border-ui-menu"
       )}
     >
-      <span className={cn(!SWATCHES.some((s) => same(s.value, value)) && "font-ui-mono text-[11px]")}>{colorName(value)}</span>
+      <span className={cn(!name && !SWATCHES.some((s) => same(s.value, value)) && "font-ui-mono text-[11px]")}>{name ?? colorName(value)}</span>
       <span className="h-[18px] w-[18px] rounded-full" style={{ background: swatchBackground(value) }} />
     </button>
   );

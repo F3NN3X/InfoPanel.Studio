@@ -85,8 +85,8 @@ interface ZoneInspectorProps {
   onPresetNaming: (open: boolean) => void;
   /** Save this panel zone to My panels. */
   onSavePanelPreset: (name: string) => void;
-  /** A Follow bar's theme name: Dashboard › Global style. */
-  onEditGlobalTheme: () => void;
+  /** A Follow bar's theme name: Studio › Theme. */
+  onEditGlobalTheme: (level: "profile" | "page") => void;
   /** Open a bound point in Sources mode. */
   onOpenPoint: (key: string) => void;
   onOpenExplorer: () => void;

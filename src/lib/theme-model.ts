@@ -14,7 +14,9 @@ import type { ModuleSetting, ModuleSettingValue, ModuleSettings, ThresholdQuanti
  *
  * A widget section follows the theme unless `follow[section] === false`,
  * and always while the profile locks the section. A following section's
- * own values stay stored but do not apply.
+ * own values stay stored but do not apply. A locked section is the
+ * profile's on every page too: a page's own values for it stay stored,
+ * inactive, like a widget's.
  */
 
 /** The followable sections (SPEC §2.1). */
@@ -101,6 +103,20 @@ export const OFF = "off";
 /** The theme palette roles (Style › Widget colors; SPEC §4.3); `accent` is the Colors accent. */
 export const PALETTE_ROLES: readonly string[] = ["s1", "s2", "s3", "s4", "s5", "s6", "ok", "warn", "crit"];
 
+/** What a role is called: the theme editor's rows, and a following colour row's value ("Series 1"). */
+export const ROLE_LABELS: Readonly<Record<string, string>> = {
+  s1: "Series 1",
+  s2: "Series 2",
+  s3: "Series 3",
+  s4: "Series 4",
+  s5: "Series 5",
+  s6: "Series 6",
+  ok: "OK",
+  warn: "Warning",
+  crit: "Critical",
+  accent: "Accent",
+};
+
 /**
  * The themed keys of each section: today's look keys (the old
  * `PROFILE_STYLE_KEYS` minus `autoScale`, `variant` and `compactView`;
@@ -182,8 +198,9 @@ export function themeKeyOf(def: Pick<ModuleSetting, "key" | "role">, key = def.k
   return def.role && key === def.key && (def.role === "accent" || PALETTE_ROLES.includes(def.role)) ? def.role : key;
 }
 
-/** Whether a page uses its own values for a section (else the profile's). */
-const pageCustom = (levels: ThemeLevels, sec: SectionId): boolean => levels.page?.follow?.[sec] === false;
+/** Whether a page uses its own values for a section (else the profile's, always while the profile locks it). */
+export const pageCustom = (levels: ThemeLevels, sec: SectionId): boolean =>
+  levels.page?.follow?.[sec] === false && !isLocked(levels, sec);
 
 /**
  * The value the theme levels set for a key (undefined: none sets it):
@@ -274,7 +291,20 @@ export function withThemeValues(theme: WidgetTheme | undefined, values: ModuleSe
   return Object.keys(next).length > 0 ? next : undefined;
 }
 
-/** A theme with every section locked, or none (the old "Force global style"). */
+/** A theme with one section's flag set: a page's `follow` (default true) or a profile's `locks` (default false). */
+export function withSectionFlag(
+  theme: WidgetTheme | undefined,
+  field: "follow" | "locks",
+  sec: SectionId,
+  value: boolean
+): WidgetTheme | undefined {
+  const { [field]: old, ...rest } = theme ?? {};
+  const flags = withFlag(old, sec, value, field === "follow");
+  const next: WidgetTheme = flags ? { ...rest, [field]: flags } : rest;
+  return Object.keys(next).length > 0 ? next : undefined;
+}
+
+/** A theme with every section locked, or none (the profile theme's "Lock all"). */
 export function withAllLocked(theme: WidgetTheme | undefined, on: boolean): WidgetTheme | undefined {
   const { locks: _old, ...rest } = theme ?? {};
   const next: WidgetTheme = on ? { ...rest, locks: Object.fromEntries(SECTION_IDS.map((sec) => [sec, true])) } : rest;

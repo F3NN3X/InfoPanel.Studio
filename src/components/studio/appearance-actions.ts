@@ -7,11 +7,10 @@ import type { ModuleSettings } from "@/modules/types";
 import { setProfileStyle } from "./studio-actions";
 
 /**
- * Edits of the global style: the dashboard's ("All profiles") style or a
- * profile's theme values, the force switch (every section of the profile
- * theme locked), and the widgets' follow choice. Pure config → config
- * updates, each one undo step (same-key edits coalesce:
- * `appearance-style:<scope>`, `style-enforce:<scope>`).
+ * Edits of the Appearance tab's style: the dashboard's ("All profiles")
+ * style or a profile's theme values, the palette's lock-all of the profile
+ * theme, and the widgets' follow choice. Pure config → config updates, each
+ * one undo step (same-key edits coalesce: `appearance-style:<scope>`).
  */
 
 /** Which global style an edit targets (the page background's scopes). */
@@ -21,9 +20,6 @@ const scopeId = (scope: StyleScope) => (scope.kind === "all" ? "all" : scope.pro
 
 /** Undo-coalescing key for style edits in a scope. */
 export const styleKey = (scope: StyleScope): string => `appearance-style:${scopeId(scope)}`;
-
-/** Undo-coalescing key for the force switch of a scope. */
-export const enforceKey = (scope: StyleScope): string => `style-enforce:${scopeId(scope)}`;
 
 /** Map the profile a scope targets (the config itself for "all"). */
 function inScope(
@@ -54,18 +50,6 @@ export function withScopeStyle(
   );
 }
 
-/** Lock every section of the profile theme, or none: of every profile ("All profiles") or one. */
-export function withStyleEnforce(config: DashboardConfig, scope: StyleScope, on: boolean): DashboardConfig {
-  const lock = (p: MonitorProfile): MonitorProfile => ({ ...p, widgetTheme: withAllLocked(p.widgetTheme, on) });
-  return inScope(config, scope, (c) => ({ ...c, profiles: c.profiles.map(lock) }), lock);
-}
-
-/** Whether the force switch of a scope is on: every section locked (in every profile, for "All profiles"). */
-export function isForced(config: DashboardConfig, scope: StyleScope): boolean {
-  const profiles = scope.kind === "all" ? config.profiles : config.profiles.filter((p) => p.id === scope.profileId);
-  return profiles.length > 0 && profiles.every((p) => allLocked(p.widgetTheme));
-}
-
 /** Every widget of a profile follows the theme in every section (their own values stay stored). */
 export function followAll(profile: ProfileView): ProfileView {
   if (profile.placements.every((p) => p.follow === undefined)) return profile;
@@ -75,9 +59,11 @@ export function followAll(profile: ProfileView): ProfileView {
   };
 }
 
-/** The palette's force toggle: this profile's sections all locked, or none. */
+/** The palette's lock-all toggle: this profile's theme sections all locked, or none (locks are per profile). */
 export function toggleEnforce(config: DashboardConfig, profile: Pick<ProfileView, "id" | "widgetTheme">): DashboardConfig {
-  return withStyleEnforce(config, { kind: "profile", profileId: profile.id }, !allLocked(profile.widgetTheme));
+  const on = !allLocked(profile.widgetTheme);
+  const lock = (p: MonitorProfile): MonitorProfile => ({ ...p, widgetTheme: withAllLocked(p.widgetTheme, on) });
+  return { ...config, profiles: config.profiles.map((p) => (p.id === profile.id ? lock(p) : p)) };
 }
 
 /** The toast after applying a preset. */
