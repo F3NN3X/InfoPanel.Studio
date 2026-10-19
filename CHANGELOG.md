@@ -15,6 +15,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   the activity text shortens first when the pill is narrow, the time and the badge never do (#17).
 
 ### Added
+- In-app updates: the desktop app checks GitHub releases shortly after it starts (a setting turns it off), the tray
+  offers `Update to vX.Y.Z…`, and Settings has an Updates card to check now and install. Installing stops the
+  app's server, runs the installer and restarts the app. Updates are verified against the project's updater key (#29).
 - Coding Agents shows each session's cost and model, dims limits the agent has not reported lately and resets
   expired windows, projects when a window would fill at its pace so far, and this week's tokens by model and
   project with today's by type (#18).

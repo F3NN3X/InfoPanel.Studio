@@ -39,11 +39,24 @@ Open them from the tray, the studio's ⋯ menu ("Desktop app settings") or the s
   reloads the studio.
 - **Startup:** start at login (default on, starts hidden in the tray), open the studio on launch, close
   to tray.
+- **Updates:** the installed version, "Check for updates at startup" (default on; one check about 15 seconds after launch,
+  in the background) and a "Check now" / "Install and restart" pair. A found update also shows in the tray as
+  `Update to vX.Y.Z…`. Installing stops the app's server, runs the installer and relaunches the app.
 - **Coding agents:** off by default. Turning it on writes the Claude Code and Codex hooks (backing up
   `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's own Node and the current
   port. They are rewritten after a port change or an app update, and removed when you turn it off or
   uninstall the app.
 - **Debug mode:** see below.
+
+## Releases and updates
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds the installer and publishes it with its
+`.sig` and `latest.json` (the manifest the app reads from `releases/latest/download/latest.json`). Update packages
+are signed with Tauri's updater key, not a Windows code-signing certificate: the public half is in
+`tauri.conf.json` (`plugins.updater.pubkey`), the private half is the repository secret
+`TAURI_SIGNING_PRIVATE_KEY` (the workflow fails early without it). Never commit the private key. Losing it means
+installed apps can no longer verify updates, so keep a copy outside the repository. A local `npm run desktop:build`
+does not make updater artifacts and needs no key.
 
 ## Another server on the port
 

@@ -13,6 +13,13 @@
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEwNjRFQUEzMUU3NTgwMzcKUldRM2dIVWVvK3BrRUlJT0JsaUJzM2FBTHVNK3E4elpISGJDb3lzTzlxUVJwL1lDbGY1elMyUE0K",
+      "endpoints": ["https://github.com/F3NN3X/InfoPanel.Studio/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],

@@ -112,7 +112,11 @@ pub fn process_info(pid: u32) -> Option<ProcessInfo> {
     let spid = Pid::from_u32(pid);
     let own = Pid::from_u32(std::process::id());
     // The same pid twice makes sysinfo find neither.
-    let pids = if spid == own { vec![spid] } else { vec![spid, own] };
+    let pids = if spid == own {
+        vec![spid]
+    } else {
+        vec![spid, own]
+    };
     sys.refresh_processes_specifics(
         ProcessesToUpdate::Some(&pids),
         true,

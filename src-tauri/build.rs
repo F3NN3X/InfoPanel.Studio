@@ -24,6 +24,9 @@ fn main() {
         "report_metrics",
         "get_debug",
         "flush_done",
+        "check_for_update",
+        "pending_update",
+        "install_update",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("failed to run the Tauri build script");

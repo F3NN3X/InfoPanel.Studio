@@ -12,6 +12,7 @@ mod settings;
 mod sidecar;
 mod state;
 mod tray;
+mod updater;
 mod windows;
 
 use crate::state::{lock, AppState, Phase};
@@ -132,6 +133,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::save_settings,
@@ -155,6 +157,9 @@ pub fn run() {
             commands::report_metrics,
             commands::get_debug,
             commands::flush_done,
+            commands::check_for_update,
+            commands::pending_update,
+            commands::install_update,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -167,15 +172,20 @@ pub fn run() {
             );
             let open_window = !hidden && s.open_studio_on_launch;
             let start_at_login = s.start_at_login;
+            let check_updates = s.check_for_updates;
             let st = AppState::new(paths, version, s, forced, hidden);
             apply_log_level(st.debug());
             app.manage(st);
+            app.manage(updater::Pending::default());
             commands::sync_autostart(&handle, start_at_login);
             tray::create(&handle)?;
             if open_window {
                 windows::show_main(&handle);
             }
             control::start(&handle);
+            if check_updates {
+                updater::check_soon(&handle);
+            }
             let sampler = handle.clone();
             std::thread::spawn(move || run_sampler(sampler));
             Ok(())

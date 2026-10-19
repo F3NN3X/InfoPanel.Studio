@@ -42,7 +42,35 @@ jobs:
         run: Set-Culture en-150
       - run: npm ci
       - run: npm test
-      - run: npm run desktop:build
+      - name: Check the updater signing key is set
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::The TAURI_SIGNING_PRIVATE_KEY secret is not set; the updater artifacts cannot be signed"
+            exit 1
+          fi
+
+      # src-tauri/tauri.updater.conf.json is merged over tauri.conf.json: the updater artifacts (and the
+      # signature that needs the private key) are only made here, so a local desktop:build works without
+      # the key. (Tauri 2 ignores a TAURI_CONFIG variable; --config takes the file.)
+      - name: Build the installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: npm run desktop:build -- --config src-tauri/tauri.updater.conf.json
+
+      # GitHub turns the spaces of an asset name into dots, so upload space-free names; latest.json
+      # (tools/updater-manifest.mjs) points the updater at the installer by that name.
+      - name: Stage the release files
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir release
+          cp "src-tauri/target/release/bundle/nsis/InfoPanel Studio_${version}_x64-setup.exe" "release/InfoPanel-Studio_${version}_x64-setup.exe"
+          cp "src-tauri/target/release/bundle/nsis/InfoPanel Studio_${version}_x64-setup.exe.sig" "release/InfoPanel-Studio_${version}_x64-setup.exe.sig"
+          node tools/updater-manifest.mjs --version="$version" --sig="release/InfoPanel-Studio_${version}_x64-setup.exe.sig" --notes=notes.md --out=release/latest.json
 
       - name: Publish the GitHub release
         shell: bash
@@ -50,6 +78,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            src-tauri/target/release/bundle/nsis/*-setup.exe \
+            release/*-setup.exe release/*-setup.exe.sig release/latest.json \
             --title "InfoPanel Studio $GITHUB_REF_NAME" \
             --notes-file notes.md

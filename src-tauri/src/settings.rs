@@ -23,6 +23,8 @@ pub struct Settings {
     pub start_at_login: bool,
     pub open_studio_on_launch: bool,
     pub close_to_tray: bool,
+    /// Look for a new version shortly after the app starts.
+    pub check_for_updates: bool,
     pub agents: AgentSettings,
     pub debug: bool,
     /// The one-time "closing stops the kiosk" warning was shown (close to tray off).
@@ -55,6 +57,7 @@ impl Default for Settings {
             start_at_login: true,
             open_studio_on_launch: true,
             close_to_tray: true,
+            check_for_updates: true,
             agents: AgentSettings::default(),
             debug: false,
             close_warning_shown: false,
@@ -222,6 +225,7 @@ mod tests {
         assert!(s.start_at_login);
         assert!(s.open_studio_on_launch);
         assert!(s.close_to_tray);
+        assert!(s.check_for_updates);
         assert!(!s.agents.enabled);
         assert!(!s.debug);
     }
@@ -241,6 +245,14 @@ mod tests {
         assert_eq!(s.host, "127.0.0.1");
         assert!(s.start_at_login);
         assert_eq!(s.version, SETTINGS_VERSION);
+    }
+
+    #[test]
+    fn update_check_defaults_on_for_older_files() {
+        let older = load_from_str(r#"{ "port": 3942 }"#).unwrap();
+        assert!(older.check_for_updates);
+        let off = load_from_str(r#"{ "checkForUpdates": false }"#).unwrap();
+        assert!(!off.check_for_updates);
     }
 
     #[test]
