@@ -320,6 +320,8 @@ export const GROUP_B: DashboardModule[] = [
       sensorSetting("sensor", "Sensor", { group: "Custom gauge" }),
       // The spec is edited on the Gauges page: the raw JSON never shows as a field.
       textSetting("gauge", "Gauge", JSON.stringify(CustomGauge.DEFAULT_GAUGE_SPEC), { group: "Custom gauge", visibleIf: () => false }),
+      // Frames a library gauge arrived with (JSON): kept for an export, never shown or drawn.
+      textSetting("frames", "Frames", "", { group: "Custom gauge", visibleIf: () => false }),
     ],
     toProps: (s): Partial<CustomGauge.CustomGaugeProps> => ({ ...pass<Partial<CustomGauge.CustomGaugeProps>>("sensor")(s), gauge: CustomGauge.parseGaugeSetting(s.gauge) }),
   }),

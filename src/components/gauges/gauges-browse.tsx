@@ -1,6 +1,7 @@
 /** The Gauges page's main area (spec §6): Presets, In <profile> and My library, each a grid of live square thumbnails. */
 import { cn } from "@/lib/utils";
 import type { GaugeEntry } from "@/lib/gauge-studio/model";
+import { draggableGauge } from "./gauge-drag";
 import { GaugeView } from "./gauge-view";
 
 export interface GaugeSection {
@@ -20,9 +21,11 @@ export interface GaugesBrowseProps {
   scope: Record<string, string>;
   onSelect: (entry: GaugeEntry) => void;
   onOpen: (entry: GaugeEntry) => void;
+  /** A card is dragged (to the canvas). */
+  onDragStart: (entry: GaugeEntry, dt: DataTransfer) => void;
 }
 
-export function GaugesBrowse({ sections, selectedKey, p, scope, onSelect, onOpen }: GaugesBrowseProps) {
+export function GaugesBrowse({ sections, selectedKey, p, scope, onSelect, onOpen, onDragStart }: GaugesBrowseProps) {
   return (
     <div className="min-w-0 flex-1 overflow-y-auto p-6 font-ui">
       {sections.map((s) => (
@@ -37,7 +40,7 @@ export function GaugesBrowse({ sections, selectedKey, p, scope, onSelect, onOpen
           ) : (
             <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-3">
               {s.entries.map((e) => (
-                <Thumb key={e.key} entry={e} selected={e.key === selectedKey} p={p} scope={scope} onSelect={onSelect} onOpen={onOpen} />
+                <Thumb key={e.key} entry={e} selected={e.key === selectedKey} p={p} scope={scope} onSelect={onSelect} onOpen={onOpen} onDragStart={onDragStart} />
               ))}
             </div>
           )}
@@ -47,11 +50,13 @@ export function GaugesBrowse({ sections, selectedKey, p, scope, onSelect, onOpen
   );
 }
 
-function Thumb({ entry, selected, p, scope, onSelect, onOpen }: { entry: GaugeEntry; selected: boolean; p: number; scope: Record<string, string>; onSelect: (e: GaugeEntry) => void; onOpen: (e: GaugeEntry) => void }) {
+function Thumb({ entry, selected, p, scope, onSelect, onOpen, onDragStart }: { entry: GaugeEntry; selected: boolean; p: number; scope: Record<string, string>; onSelect: (e: GaugeEntry) => void; onOpen: (e: GaugeEntry) => void; onDragStart: (e: GaugeEntry, dt: DataTransfer) => void }) {
   return (
     <button
       type="button"
       aria-pressed={selected}
+      draggable={draggableGauge(entry)}
+      onDragStart={(e) => onDragStart(entry, e.dataTransfer)}
       title={`${entry.name}: double-click to ${entry.source.kind === "preset" ? "customise" : "edit"}`}
       onClick={() => onSelect(entry)}
       onDoubleClick={() => onOpen(entry)}

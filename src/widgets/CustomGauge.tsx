@@ -35,6 +35,16 @@ export function parseGaugeSetting(raw: unknown): VectorGauge {
   }
 }
 
+/** The spec's shape scaled to fit a `w` × `h` body (before it is measured: its own size, clipped). */
+export function FittedVectorGauge({ gauge, p, id, width, height }: { gauge: VectorGauge; p: number; id: string; width: number; height: number }) {
+  const k = width > 0 && height > 0 ? Math.min(width / gauge.width, height / gauge.height) : 1;
+  return (
+    <div className="flex h-full w-full items-center justify-center overflow-hidden">
+      <VectorGaugeSvg gauge={gauge} p={p} id={id} width={Math.floor(gauge.width * k)} height={Math.floor(gauge.height * k)} />
+    </div>
+  );
+}
+
 export default function CustomGauge(p: CustomGaugeProps) {
   const id = useId();
   const g = p.gauge ?? DEFAULT_GAUGE_SPEC;
@@ -43,15 +53,7 @@ export default function CustomGauge(p: CustomGaugeProps) {
   const label = p.label ?? p.title ?? String(p.sensor ?? "").split(".").pop()!.replace(/[_-]+/g, " ");
   return (
     <Widget {...shell(p)} title={label} icon="gauge">
-      {({ w, h }) => {
-        // The spec's shape, scaled to fit the body (before it is measured: its own size, clipped).
-        const k = w > 0 && h > 0 ? Math.min(w / g.width, h / g.height) : 1;
-        return (
-          <div className="flex h-full w-full items-center justify-center overflow-hidden">
-            <VectorGaugeSvg gauge={g} p={frac} id={id} width={Math.floor(g.width * k)} height={Math.floor(g.height * k)} />
-          </div>
-        );
-      }}
+      {({ w, h }) => <FittedVectorGauge gauge={g} p={frac} id={id} width={w} height={h} />}
     </Widget>
   );
 }

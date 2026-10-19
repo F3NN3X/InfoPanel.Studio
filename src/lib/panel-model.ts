@@ -1,3 +1,4 @@
+import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
 import type { ModuleSettings } from "@/modules/types";
 import type { Placement } from "./layout";
 
@@ -21,6 +22,7 @@ export type WidgetKind =
   | "value" // compact inline readout
   | "bar" // label + value + horizontal fill
   | "gauge" // circular ring
+  | "customGauge" // a gauge designed on the Gauges page (the Custom gauge widget's drawing)
   | "sparkline" // rolling mini line graph
   | "table" // rows from a multi-line text sensor
   | "text" // static or bound text
@@ -88,6 +90,8 @@ export interface Widget {
   span?: number;
   /** Grid layout: number of panel rows this widget spans. */
   rowSpan?: number;
+  /** "customGauge": the gauge spec it draws (the default spec when absent). */
+  vector?: VectorGauge;
   /** Shape kind for "shape". */
   shape?: ShapeType;
   /** Thickness (bars) / diameter (circle), in px. */
@@ -342,6 +346,7 @@ export const WIDGET_KINDS: readonly WidgetKind[] = [
   "value",
   "bar",
   "gauge",
+  "customGauge",
   "sparkline",
   "table",
   "text",
@@ -410,6 +415,7 @@ const KIND_FIELDS: Record<WidgetKind, readonly (keyof Widget)[]> = {
   value: ["subSensor", "decimals", "scale", "fontSize", "align"],
   bar: ["decimals", "scale", "max", "inverted"],
   gauge: ["decimals", "scale", "max", "inverted", "fontSize"],
+  customGauge: ["vector", "fontSize"],
   sparkline: ["decimals", "scale", "history"],
   table: ["text", "rows", "columns", "header", "align", "fontSize"],
   text: ["text", "decimals", "scale", "align", "fontSize"],

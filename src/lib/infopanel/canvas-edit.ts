@@ -252,6 +252,8 @@ export interface DroppedGauge {
   min: number;
   max: number;
   animationSpeed: number;
+  /** What `frames` were baked from (`bakeSignature`), so the item is not flagged stale. */
+  baked?: string;
 }
 
 /**
@@ -292,6 +294,7 @@ export function withDroppedGauge(
     MaxValue: gauge.max,
     AnimationSpeed: gauge.animationSpeed,
     Images: added.names.map((name) => ({ ...defaultItem("Image"), Name: name, Type: "FILE", FilePath: name, RelativePath: true })),
+    ...(gauge.baked !== undefined ? { vectorBaked: gauge.baked } : {}),
   }) as DisplayItem);
   return { stored: storeItems({ ...stored, assets: added.assets }, profile, next), path: base.path };
 }

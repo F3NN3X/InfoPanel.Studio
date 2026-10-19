@@ -3,6 +3,7 @@
  * "kind · where", copies placed, the primary action (Customise a copy / Edit) and Add to canvas,
  * Duplicate and Export.
  */
+import { useState } from "react";
 import { Copy, Pencil, Plus, Upload, Eye, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KIND_LABEL, type GaugeEntry } from "@/lib/gauge-studio/model";
@@ -18,7 +19,11 @@ export interface GaugeDetailProps {
   copies?: number;
   scope: Record<string, string>;
   onEdit: () => void;
+  /** The page's canvas zones: where an image sequence can go. */
+  canvasZones: { id: string; name: string }[];
   onAddToCanvas: () => void;
+  /** Insert an image sequence into one of `canvasZones`. */
+  onAddToZone: (zoneId: string) => void;
   onDuplicate: () => void;
   onExport: () => void;
 }
@@ -31,14 +36,23 @@ interface Action {
   title?: string;
 }
 
-export function GaugeDetail({ entry, sheet, copies, scope, onEdit, onAddToCanvas, onDuplicate, onExport }: GaugeDetailProps) {
+export function GaugeDetail({ entry, sheet, copies, scope, onEdit, canvasZones, onAddToCanvas, onAddToZone, onDuplicate, onExport }: GaugeDetailProps) {
   const playback = usePlayback();
+  const [picking, setPicking] = useState(false);
   const vector = entry.gauge !== null;
   // A canvas image sequence copies to the library when the asset store holds all its frames.
   const exportable = vector || !!entry.frames?.length;
   const copyable = vector || entry.source.kind === "library" || entry.files !== undefined;
   const secondary: Action[] = [
-    { label: "Add to canvas", icon: Plus, run: onAddToCanvas, title: vector ? undefined : "An image sequence goes into a canvas zone" },
+    vector
+      ? { label: "Add to canvas", icon: Plus, run: onAddToCanvas }
+      : {
+          label: "Add to canvas",
+          icon: Plus,
+          run: () => setPicking((p) => !p),
+          disabled: canvasZones.length === 0 || !entry.files?.length,
+          title: canvasZones.length === 0 ? "An image sequence goes into a canvas zone: this page has none" : !entry.files?.length ? "Some of its frames are not files in the asset store" : "Choose the canvas zone to put it in",
+        },
     { label: "Duplicate", icon: Copy, run: onDuplicate, disabled: !copyable, title: copyable ? undefined : "Some of its frames are not files in the asset store" },
     { label: "Export", icon: Upload, run: onExport, disabled: !exportable, title: vector ? "Download as .gauge.json" : exportable ? "Download the frames as a .gauge-frames.zip" : "This image sequence has no frames to export" },
   ];
@@ -89,6 +103,23 @@ export function GaugeDetail({ entry, sheet, copies, scope, onEdit, onAddToCanvas
             </button>
           ))}
         </div>
+        {picking && !vector && (
+          <div role="group" aria-label="Canvas zones" className="flex flex-col gap-1 rounded-[8px] border border-ui-subtle p-1">
+            {canvasZones.map((z) => (
+              <button
+                key={z.id}
+                type="button"
+                onClick={() => {
+                  setPicking(false);
+                  onAddToZone(z.id);
+                }}
+                className="h-8 truncate rounded-[6px] px-2 text-left text-[12.5px] text-ui-1 hover:bg-ui-hover"
+              >
+                {z.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </aside>
   );

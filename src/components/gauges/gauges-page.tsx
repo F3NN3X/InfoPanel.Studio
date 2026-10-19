@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addGaugeZone, type StudioBridge } from "@/components/library/library-actions";
+import { dropLibraryItem } from "@/components/library/library-drop";
 import { useMyLibrary } from "@/components/library/use-my-library";
 import { useToast } from "@/components/ui/toast";
 import { presetGauges, profileGauges, sourceKey, type GaugeEntry, type GaugeSource } from "@/lib/gauge-studio/model";
@@ -18,6 +19,9 @@ import type { ThemeTokens } from "@/lib/theme";
 import { useViewportBelow } from "@/hooks/use-viewport-below";
 import { PaneSheet } from "@/components/studio/pane-sheet";
 import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
+import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
+import { CanvasDropPill } from "./canvas-drop-pill";
+import { gaugeDragItem, startGaugeDrag } from "./gauge-drag";
 import { GaugeDetail, EmptyDetail } from "./gauge-detail";
 import { GaugeEditor, type EditorHandle } from "./gauge-editor";
 import { downloadFrames, downloadSpec, ImportFramesButton, ImportGaugeButton } from "./gauge-files";
@@ -42,7 +46,7 @@ export interface GaugesPageProps {
 
 const HEADER_BUTTON = "flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover";
 
-export default function GaugesPage({ bridge: studio, profileName, theme, initial, onOpened }: GaugesPageProps) {
+export default function GaugesPage({ bridge: studio, profileName, theme, initial, onOpened, onShowCanvas }: GaugesPageProps) {
   const toast = useToast();
   const lib = useMyLibrary(studio.config);
   const library = useLibraryGauges(lib.items);
@@ -53,9 +57,11 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   useGaugeKeys({});
   const narrow = useViewportBelow(NARROW_PAGE_WIDTH);
+  const [dragging, setDragging] = useState(false);
 
   // Copies counted through the page's list, so the counts update in place.
-  const bridge: StudioBridge = { ...studio, addCopy: lib.addCopy };
+  // A transient (preset, profile) gauge has no library item to count a copy on.
+  const bridge: StudioBridge = { ...studio, addCopy: (item, copy) => (item.id.startsWith("cfg-") ? undefined : lib.addCopy(item, copy)) };
   const scope = previewScope(theme);
   const presets = useMemo(presetGauges, []);
   const inProfile = useMemo(() => profileGauges(studio.profile), [studio.profile]);
@@ -86,8 +92,13 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
   ];
 
   const addToCanvas = (e: GaugeEntry) => {
-    if (!e.gauge) return toast("An image sequence goes into a canvas zone: add it there");
-    addGaugeZone(bridge, e.name, e.gauge, undefined, library.itemOf(e.key));
+    if (e.gauge) addGaugeZone(bridge, e.name, e.gauge, undefined, library.itemOf(e.key));
+  };
+  // An image sequence goes into one of the page's canvas zones, centred, as a drop there would.
+  const canvasZones = studio.profile.placements.filter((z) => z.canvas).map((z) => ({ id: z.id, name: z.canvas!.source.name }));
+  const addToZone = (e: GaugeEntry, zoneId: string) => {
+    const item = gaugeDragItem(e, library.itemOf(e.key));
+    void dropLibraryItem(bridge, { id: item.id, item }, null, null, { zoneId, fx: 0.5, fy: 0.5 });
   };
   const duplicate = (e: GaugeEntry) => {
     const item = library.itemOf(e.key);
@@ -122,14 +133,23 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
       copies={library.itemOf(entry.key)?.copies.length}
       scope={scope}
       onEdit={() => openEditor(editorOpenOf(entry))}
+      canvasZones={canvasZones}
       onAddToCanvas={() => addToCanvas(entry)}
+      onAddToZone={(zoneId) => addToZone(entry, zoneId)}
       onDuplicate={() => duplicate(entry)}
       onExport={() => exportEntry(entry)}
     />
   );
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
+    <div
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui"
+      onDragStart={(e) => setDragging(e.dataTransfer.types.includes(LIBRARY_MIME))}
+      onDragEnd={() => {
+        setDragging(false);
+        setActiveLibraryDrag(null);
+      }}
+    >
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4">
         <h1 className="text-[15px] font-semibold text-ui-1">Gauges</h1>
         <div role="tablist" aria-label="Gauges" className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
@@ -178,7 +198,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
                 {lib.error}
               </div>
             )}
-            <GaugesBrowse sections={sections} selectedKey={selected?.key ?? null} p={clock} scope={scope} onSelect={(e) => setSelectedKey(e.key)} onOpen={(e) => openEditor(editorOpenOf(e))} />
+            <GaugesBrowse sections={sections} selectedKey={selected?.key ?? null} p={clock} scope={scope} onSelect={(e) => setSelectedKey(e.key)} onOpen={(e) => openEditor(editorOpenOf(e))} onDragStart={(e, dt) => startGaugeDrag(dt, e, library.itemOf(e.key))} />
           </div>
           {selected ? (
             narrow ? (
@@ -191,6 +211,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
           ) : (
             !narrow && <EmptyDetail />
           )}
+          {dragging && <CanvasDropPill onShowCanvas={onShowCanvas} />}
         </div>
       )}
     </div>

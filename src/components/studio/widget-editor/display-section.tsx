@@ -1,14 +1,17 @@
 import { Segmented } from "@/components/ui/segmented";
 import type { Widget, WidgetKind } from "@/lib/panel-model";
 import { SEGMENTED_CLASS } from "../setting-rows";
-import { Field, InlineField, NumberInput, Switch, TextInput } from "./fields";
+import { STARTERS } from "@/lib/infopanel/gauges/presets";
+import { normalizeGauge } from "@/lib/infopanel/gauges/vector";
+import { DEFAULT_GAUGE_SPEC } from "@/widgets/CustomGauge";
+import { Field, INPUT, InlineField, NumberInput, Switch, TextInput } from "./fields";
 import type { WidgetSectionProps } from "./types";
 
 /** Kinds whose text lines up left / center / right. */
 const ALIGNABLE: ReadonlySet<WidgetKind> = new Set(["stat", "value", "table", "text", "clock"]);
 
 /** Kinds with fields of their own (the Kind card): display options, static text, the fill's maximum. */
-const HAS_KIND_FIELDS: ReadonlySet<WidgetKind> = new Set([...ALIGNABLE, "image", "shape", "sparkline", "bar", "gauge"]);
+const HAS_KIND_FIELDS: ReadonlySet<WidgetKind> = new Set([...ALIGNABLE, "image", "shape", "sparkline", "bar", "gauge", "customGauge"]);
 
 /** Whether the widget's kind has fields of its own. */
 export const hasKindFields = (widget: WidgetSectionProps["widget"]) => HAS_KIND_FIELDS.has(widget.kind);
@@ -98,6 +101,28 @@ export function KindFields({ widget, set }: WidgetSectionProps) {
             />
           </Field>
         </>
+      )}
+
+      {widget.kind === "customGauge" && (
+        <Field label="Gauge" hint="start from a preset; design it on the Gauges page">
+          <select
+            className={INPUT}
+            value={STARTERS.find((s) => JSON.stringify(normalizeGauge(s.gauge)) === JSON.stringify(widget.vector ?? DEFAULT_GAUGE_SPEC))?.name ?? ""}
+            onChange={(e) => {
+              const s = STARTERS.find((x) => x.name === e.target.value);
+              if (s) set("vector", normalizeGauge(s.gauge));
+            }}
+          >
+            <option value="" disabled>
+              Custom
+            </option>
+            {STARTERS.map((s) => (
+              <option key={s.name} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
       )}
 
       {widget.kind === "sparkline" && (
