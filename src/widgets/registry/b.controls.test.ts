@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderModule } from "@/widgets/test-render";
 import type { SensorMap } from "@/modules/types";
 import { fixtureSensors } from "../__fixtures__";
+import { DEFAULT_GAUGE_SPEC, parseGaugeSetting } from "../CustomGauge";
 import { autoDecimals } from "../SensorGroup";
 import { GROUP_A } from "./a";
 import { GROUP_B } from "./b";
@@ -56,6 +57,29 @@ describe("SensorValue", () => {
     const sensors: SensorMap = { "x.t": { value: 61.234, unit: "°C" } };
     expect(renderModule(mod("SensorValue"), { sensor: "x.t", decimals: "2" }, sensors)).toContain("61.23");
     expect(renderModule(mod("SensorValue"), { sensor: "x.t", decimals: "", max: "", warn: "0", crit: "0" }, sensors)).toContain("61");
+  });
+});
+
+describe("CustomGauge", () => {
+  const spec = { ...DEFAULT_GAUGE_SPEC, scale: { min: 0, max: 200, unit: "W", decimals: 0 } };
+  it("reads the gauge setting as JSON, and falls back to the default spec for blank or bad JSON", () => {
+    const toProps = (gauge: unknown) => {
+      const m = mod("CustomGauge") as unknown as { settings: { key: string; default: unknown }[] };
+      expect(m.settings.find((d) => d.key === "gauge")?.default).toBe(JSON.stringify(DEFAULT_GAUGE_SPEC));
+      return parseGaugeSetting(gauge);
+    };
+    expect(toProps(JSON.stringify(spec)).scale).toMatchObject({ max: 200, unit: "W" });
+    expect(toProps("{not json")).toEqual(DEFAULT_GAUGE_SPEC);
+    expect(toProps("")).toEqual(DEFAULT_GAUGE_SPEC);
+    expect(toProps(undefined)).toEqual(DEFAULT_GAUGE_SPEC);
+  });
+  it("draws the bound value on the spec's scale, and 0 for no value", () => {
+    const sensors: SensorMap = { "x.w": { value: 100, unit: "W" } };
+    const bound = renderModule(mod("CustomGauge"), { sensor: "x.w", gauge: JSON.stringify(spec) }, sensors);
+    const unbound = renderModule(mod("CustomGauge"), { gauge: JSON.stringify(spec) }, sensors);
+    expect(bound).toContain("<svg");
+    expect(unbound).toContain("<svg");
+    expect(bound).not.toBe(unbound);
   });
 });
 

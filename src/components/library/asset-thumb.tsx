@@ -1,0 +1,147 @@
+/**
+ * A library item's thumbnail (the concept's AssetThumb): an image or video frame filling the box
+ * (a tall one centred on dark), a play badge with the length on videos, an SVG or icon contained,
+ * "Aa" in a font's own face, a panel's cell grid, a style's sample tile, a gauge's first frame.
+ */
+import { useEffect, useState } from "react";
+import { Gauge, ImageOff, Monitor, Play } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { LibraryItem } from "@/lib/library";
+import { fileUrl, metaOf } from "@/lib/my-library/model";
+
+export type ThumbSize = "sm" | "md" | "lg";
+
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+
+/** A font file loaded once as a face named after the item. */
+const loaded = new Map<string, Promise<string | null>>();
+export function useLibraryFont(item: Pick<LibraryItem, "id" | "kind" | "files">): string | null {
+  const [family, setFamily] = useState<string | null>(null);
+  const url = item.kind === "font" ? fileUrl(item) : undefined;
+  useEffect(() => {
+    if (!url || typeof FontFace === "undefined") return;
+    const name = `lib-${item.id}`;
+    let p = loaded.get(name);
+    if (!p) {
+      p = new FontFace(name, `url(${url})`)
+        .load()
+        .then((face) => {
+          document.fonts.add(face);
+          return name;
+        })
+        .catch(() => null);
+      loaded.set(name, p);
+    }
+    let live = true;
+    void p.then((f) => live && setFamily(f));
+    return () => {
+      live = false;
+    };
+  }, [url, item.id]);
+  return family;
+}
+
+const PLAY: Record<ThumbSize, string> = { sm: "h-[22px] w-[22px]", md: "h-[34px] w-[34px]", lg: "h-[52px] w-[52px]" };
+const AA: Record<ThumbSize, string> = { sm: "text-[18px]", md: "text-[38px]", lg: "text-[72px]" };
+
+export function AssetThumb({ item, size = "md", className }: { item: LibraryItem; size?: ThumbSize; className?: string }) {
+  const m = metaOf(item);
+  const url = fileUrl(item);
+  const family = useLibraryFont(item);
+  const [broken, setBroken] = useState(false);
+  const tall = (m.height ?? 0) > (m.width ?? 0) * 1.2;
+  const box = cn("relative flex items-center justify-center overflow-hidden rounded-[8px] bg-[#141418]", className);
+
+  if (broken) {
+    return (
+      <div className={cn(box, "bg-[#1a1214]")}>
+        <ImageOff className="h-1/3 w-1/3 text-ui-danger/70" strokeWidth={1.5} aria-label="Missing file" />
+      </div>
+    );
+  }
+  switch (item.kind) {
+    case "image":
+    case "svg":
+      return (
+        <div className={cn(box, tall || item.kind === "svg" ? "bg-[#101013]" : "")}>
+          {url && (
+            <img
+              src={url}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              onError={() => setBroken(true)}
+              className={cn("h-full w-full", tall || item.kind === "svg" || (m.width ?? 999) <= 256 ? "object-contain p-[8%]" : "object-cover")}
+            />
+          )}
+        </div>
+      );
+    case "video":
+      return (
+        <div className={box}>
+          {url && (
+            <video
+              src={`${url}#t=${m.poster ?? 1}`}
+              preload="metadata"
+              muted
+              playsInline
+              onError={() => setBroken(true)}
+              className="h-full w-full object-cover"
+            />
+          )}
+          <span className={cn("absolute grid place-items-center rounded-full bg-black/55 text-white", PLAY[size])}>
+            <Play className="h-1/2 w-1/2 translate-x-[1px]" fill="currentColor" />
+          </span>
+          {m.duration !== undefined && size !== "sm" && (
+            <span className="absolute bottom-1.5 right-1.5 rounded bg-black/60 px-1 font-ui-mono text-[10px] text-white">{clock(m.duration)}</span>
+          )}
+        </div>
+      );
+    case "font":
+      return (
+        <div className={box}>
+          <span className={cn("text-ui-1", AA[size])} style={{ fontFamily: family ? `"${family}"` : undefined }}>
+            Aa
+          </span>
+        </div>
+      );
+    case "panel": {
+      const cols = Math.max(1, Math.min(8, Number(m.cols) || 2));
+      const rows = Math.max(1, Math.min(6, Number(m.rows) || 1));
+      return (
+        <div className={box}>
+          <div className="grid h-[62%] w-[72%] gap-1" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
+            {Array.from({ length: cols * rows }, (_, i) => (
+              <span key={i} className="rounded-[3px] border border-white/10 bg-white/[.06]" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+    case "style":
+      return (
+        <div className={box}>
+          <span className="flex h-[52%] w-[62%] flex-col justify-center gap-1.5 rounded-[8px] border border-white/20 bg-slate-400/15 px-[10%] shadow-[0_8px_20px_rgba(0,0,0,.35)]">
+            <span className="h-1.5 w-1/2 rounded bg-slate-300/70" />
+            <span className="h-1.5 w-3/4 rounded bg-slate-300/40" />
+          </span>
+        </div>
+      );
+    case "gauge":
+      return (
+        <div className={cn(box, "bg-[#111115]")}>
+          {url ? (
+            <img src={url} alt="" loading="lazy" draggable={false} onError={() => setBroken(true)} className="h-[84%] w-[84%] object-contain" />
+          ) : (
+            <Gauge className="h-2/5 w-2/5 text-ui-4" strokeWidth={1.25} />
+          )}
+        </div>
+      );
+    default:
+      return (
+        <div className={cn(box, "bg-[linear-gradient(135deg,#18181d_0%,#22222a_55%,#18181d_100%)]")}>
+          <Monitor className="h-1/3 w-1/3 text-ui-4" strokeWidth={1.25} />
+        </div>
+      );
+  }
+}

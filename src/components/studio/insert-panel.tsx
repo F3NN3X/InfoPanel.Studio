@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Frame, Search } from "lucide-react";
 import { BLANK_MODULE, CARDS_ID } from "@/lib/layout";
 import type { UserPanelPreset } from "@/lib/panel-model";
 import { allPanelPresets, type PanelPreset } from "@/lib/panelPresets";
@@ -304,6 +304,9 @@ interface InsertPanelProps {
   blankZoneId?: string;
   /** Fill the blank zone with the card's widget or panel ("module:<id>" / "preset:<id>" for `assignWidget`). */
   onFillBlank?: (zoneId: string, item: Insertable) => void;
+  /** "Canvas zone · Import .infopanel": the Import dialog, landing in this profile (`profileName`). */
+  onImportCanvas?: () => void;
+  profileName?: string;
 }
 
 /** The Add panel: search and filter widgets and panels, drag or click them in. */
@@ -316,6 +319,8 @@ export function InsertPanel({
   onDeletePreset,
   blankZoneId,
   onFillBlank,
+  onImportCanvas,
+  profileName,
 }: InsertPanelProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<InsertCategory>("All");
@@ -331,6 +336,19 @@ export function InsertPanel({
         <InsertFilters query={query} onQuery={setQuery} category={category} onCategory={setCategory} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-3.5">
+        {onImportCanvas && (
+          <button
+            type="button"
+            onClick={onImportCanvas}
+            className="mb-4 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-[#3a3a44] px-2.5 py-2 text-left transition-colors hover:border-ui-accent hover:bg-ui-hover"
+          >
+            <Frame className="h-4 w-4 shrink-0 text-ui-3" />
+            <span className="flex min-w-0 flex-col">
+              <span className="text-[12.5px] font-medium text-ui-1">Canvas zone · Import .infopanel</span>
+              <span className="truncate text-[11px] text-ui-4">An InfoPanel profile, drawn in {profileName ? `“${profileName}”` : "this profile"}</span>
+            </span>
+          </button>
+        )}
         <InsertList
           items={filterInsertables(insertables(savedPanels), query, category)}
           context="drawer"

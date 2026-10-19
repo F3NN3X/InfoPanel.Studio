@@ -90,7 +90,7 @@ export function BackgroundPanel({
             </button>
           </div>
         )}
-        <BackgroundEditor value={dashboardBg} types={ALL_TYPES} onChange={(bg) => onChange("all", bg)} />
+        <BackgroundEditor value={dashboardBg} types={ALL_TYPES} onChange={(bg) => onChange("all", bg)} copyLabel="Dashboard › Background" />
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function BackgroundPanel({
         <p className="text-[12px] text-ui-3">No background on this profile; the theme&apos;s background color shows.</p>
       )}
       {mode === "custom" && profileBackground && (
-        <BackgroundEditor value={profileBackground} types={OWN_TYPES} onChange={(bg) => onChange("profile", bg)} />
+        <BackgroundEditor value={profileBackground} types={OWN_TYPES} onChange={(bg) => onChange("profile", bg)} copyLabel={`${profileName} › Background`} />
       )}
     </div>
   );

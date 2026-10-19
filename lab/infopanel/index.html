@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InfoPanel Import Lab</title>
+    <style>
+      body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: #111; color: #ddd; }
+      main { padding: 16px; }
+      table { border-collapse: collapse; }
+      td, th { padding: 2px 12px 2px 0; text-align: left; }
+      code { color: #9cf; }
+      a { color: #9cf; }
+      @keyframes ip-marquee { to { transform: translateX(var(--ip-marquee)); } }
+      /* The app's CSS (native widgets, L5) brings Tailwind's preflight; these unlayered
+         rules give the lab's plain page its headings and controls back. */
+      h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; }
+      h2 { font-size: 1.5em; font-weight: 700; margin: 0.83em 0; }
+      h3 { font-size: 1.17em; font-weight: 700; margin: 1em 0; }
+      h4 { font-weight: 700; margin: 1.33em 0; }
+      p { margin: 1em 0; }
+      ul { margin: 0.5em 0; padding-left: 24px; list-style: disc; }
+      button, select, input:not([type]), input[type=text], input[type=number], input[type=file] {
+        border: 1px solid #555; border-radius: 3px; background: #222; color: #ddd; padding: 1px 6px;
+      }
+      button:disabled { opacity: 0.45; }
+      button:not(:disabled):hover { background: #333; }
+      details > summary { cursor: pointer; }
+      input[type=checkbox], input[type=radio] { vertical-align: middle; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

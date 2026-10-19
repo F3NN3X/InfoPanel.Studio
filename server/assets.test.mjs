@@ -8,7 +8,8 @@ import {
   dirBytes,
   isLoopback,
   parseRange,
-  referencedIds,
+  isSvgText,
+  referencedHashes,
   sniffType,
   uploadQuotaRefusal,
 } from "./assets.mjs";
@@ -56,6 +57,14 @@ const SAMPLES = {
   avif: ftyp("avif", "mif1", "miaf"),
   mp4: ftyp("isom", "iso2", "avc1", "mp41"),
   webm: bytes([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 1, 0x42, 0x82, 0x84], "webm"),
+  bmp: bytes("BM", [0x36, 0, 0, 0, 0, 0, 0, 0, 0x36, 0, 0, 0, 40, 0, 0, 0]),
+  ico: bytes([0, 0, 1, 0, 1, 0, 16, 16]),
+  svg: bytes('<?xml version="1.0"?>\n<!-- made by hand -->\n<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
+  ttf: bytes([0, 1, 0, 0, 0, 12]),
+  otf: bytes("OTTO", [0, 12]),
+  ttc: bytes("ttcf", [0, 1, 0, 0]),
+  woff: bytes("wOFF", [0, 1, 0, 0]),
+  woff2: bytes("wOF2", [0, 1, 0, 0]),
 };
 
 const ID = `${"a".repeat(64)}.png`;
@@ -74,11 +83,17 @@ describe("sniffType", () => {
     expect(sniffType(ftyp("mif1", "avif", "miaf"))?.ext).toBe("avif");
   });
 
-  it("refuses SVG, HTML, text and garbage", () => {
+  it("reports a font's kind and an SVG's own size limit", () => {
+    expect(sniffType(SAMPLES.woff2)).toEqual({ ext: "woff2", mime: "font/woff2", kind: "font" });
+    expect(sniffType(SAMPLES.svg)).toEqual({ ext: "svg", mime: "image/svg+xml", kind: "image", limit: 256 * 1024 });
+  });
+
+  it("refuses HTML, HTML holding SVG, text and garbage", () => {
     for (const bad of [
-      bytes('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
-      bytes('<?xml version="1.0"?><svg/>'),
       bytes("<!doctype html><script>alert(1)</script>"),
+      bytes("<html><svg></svg></html>"),
+      bytes("<!-- x --><div><svg/></div>"),
+      bytes("BM but not a bitmap"),
       bytes("hello world, not an image at all"),
       bytes([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]),
       Buffer.alloc(0),
@@ -107,10 +122,13 @@ describe("declaredType", () => {
     expect(declaredType("image/png")?.ext).toBe("png");
     expect(declaredType("Video/MP4; codecs=avc1")?.ext).toBe("mp4");
     expect(declaredType("video/x-matroska")).toEqual({ ext: "webm", mime: "video/webm", kind: "video" });
+    expect(declaredType("image/svg+xml")?.ext).toBe("svg");
+    expect(declaredType("application/x-font-ttf")?.ext).toBe("ttf");
+    expect(declaredType("font/woff2")?.ext).toBe("woff2");
   });
 
   it("refuses everything else", () => {
-    for (const bad of [undefined, "", "image/svg+xml", "text/html", "application/octet-stream", "image/jpg"]) {
+    for (const bad of [undefined, "", "text/html", "application/xhtml+xml", "application/octet-stream", "image/jpg"]) {
       expect(declaredType(bad)).toBeNull();
     }
   });
@@ -142,7 +160,7 @@ describe("assetPath", () => {
       `C:\\${ID}`,
       `${ID}/`,
       `${ID}\u0000`,
-      `${"a".repeat(64)}.svg`,
+      `${"a".repeat(64)}.svgz`,
       `${"a".repeat(64)}.html`,
       `${"a".repeat(64)}.PNG`,
       `${"A".repeat(64)}.png`,
@@ -158,11 +176,25 @@ describe("assetPath", () => {
   });
 });
 
-describe("referencedIds", () => {
-  it("collects the asset ids a config refers to", () => {
-    const other = `${"b".repeat(64)}.mp4`;
-    const text = JSON.stringify({ background: { src: `/api/assets/${ID}`, poster: `http://x/api/assets/${other}` }, s: "/api/assets/nope.png" });
-    expect(referencedIds(text)).toEqual(new Set([ID, other]));
+describe("referencedHashes", () => {
+  it("collects the hashes in asset URLs, asset ids and bare hashes (an imported canvas)", () => {
+    const [a, b, c] = ["a", "b", "c"].map((x) => x.repeat(64));
+    const text = JSON.stringify({ background: { src: `/api/assets/${a}.png`, poster: `http://x/api/assets/${b}.mp4` }, canvas: { assets: [{ hash: c }] }, s: "/api/assets/nope.png" });
+    expect(referencedHashes(text)).toEqual(new Set([a, b, c]));
+  });
+
+  it("takes no part of a longer hex run", () => {
+    expect(referencedHashes("f".repeat(65))).toEqual(new Set());
+  });
+});
+
+describe("isSvgText", () => {
+  it("allows a BOM, a prologue, comments and a doctype before <svg>", () => {
+    expect(isSvgText(String.fromCharCode(0xfeff) + '  <?xml version="1.0"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "x"><!-- c --><svg viewBox="0 0 1 1"/>')).toBe(true);
+  });
+
+  it("refuses anything else first, and a prologue cut short", () => {
+    for (const bad of ["<svgx>", "text <svg>", "<!-- unfinished <svg>", "<html><svg/></html>"]) expect(isSvgText(bad)).toBe(false);
   });
 });
 

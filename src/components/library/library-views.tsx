@@ -1,0 +1,368 @@
+/**
+ * My library's sidebar, Grid and Shelves views (spec §3). Single-click selects a card,
+ * double-click opens it, and every card drags onto the canvas (§8).
+ */
+import { useRef, type DragEvent, type ReactNode } from "react";
+import {
+  Ban,
+  ChevronRight,
+  Clock,
+  Copy,
+  Film,
+  FileCode,
+  Gauge,
+  HardDrive,
+  Image,
+  ImagePlus,
+  Layers,
+  LayoutDashboard,
+  LayoutGrid,
+  Paintbrush,
+  Shapes,
+  Sparkles,
+  SprayCan,
+  Type,
+  Wallpaper,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { LibraryItem } from "@/lib/library";
+import { setActiveLibraryDrag, setLibraryDrag } from "@/lib/my-library/drag";
+import { COLLECTIONS, SORTS, cleanupCounts, flagOf, metaLine, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
+import { AssetThumb } from "./asset-thumb";
+
+export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
+  all: LayoutGrid,
+  recent: Clock,
+  unused: Ban,
+  large: HardDrive,
+  duplicates: Copy,
+  suggested: Sparkles,
+  images: Image,
+  videos: Film,
+  backgrounds: Wallpaper,
+  icons: Shapes,
+  svg: FileCode,
+  fonts: Type,
+  gauges: Gauge,
+  panels: LayoutDashboard,
+  styles: Paintbrush,
+  canvases: Layers,
+};
+
+/* ---- sidebar ---- */
+
+export function LibrarySidebar({ active, counts, onPick }: { active: CollectionId | null; counts: Record<CollectionId, number>; onPick: (id: CollectionId) => void }) {
+  const sections = ["Smart", "Media", "Made by you"] as const;
+  return (
+    <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui">
+      {sections.map((s) => (
+        <div key={s}>
+          <div className="px-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-[.08em] text-ui-4">{s}</div>
+          {COLLECTIONS.filter((c) => c.section === s).map((c) => {
+            const Icon = COLLECTION_ICON[c.id];
+            return (
+              <button
+                key={c.id}
+                type="button"
+                aria-current={active === c.id ? "page" : undefined}
+                onClick={() => onPick(c.id)}
+                className={cn(
+                  "flex h-[30px] w-full items-center gap-2.5 rounded-[7px] px-2 text-left text-[12.5px] text-ui-2 hover:bg-ui-hover",
+                  active === c.id && "bg-ui-active text-ui-1 hover:bg-ui-active",
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />
+                <span className="min-w-0 flex-1 truncate">{c.label}</span>
+                <span className="font-ui-mono text-[11px] text-ui-4">{counts[c.id]}</span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+/* ---- cards ---- */
+
+interface CardProps {
+  item: LibraryItem;
+  index: LibraryIndex;
+  selected: boolean;
+  onSelect: () => void;
+  onOpen: () => void;
+  /** A suggestion's reason line (Shelves). */
+  reason?: string;
+  className?: string;
+}
+
+export function LibraryCard({ item, index, selected, onSelect, onOpen, reason, className }: CardProps) {
+  const flag = flagOf(item, index);
+  return (
+    <div
+      role="option"
+      aria-selected={selected}
+      tabIndex={0}
+      draggable
+      onDragStart={(e) => {
+        setLibraryDrag(e.dataTransfer, { libraryItemId: item.id, kind: item.kind });
+        setActiveLibraryDrag(item);
+      }}
+      onClick={onSelect}
+      onDoubleClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen();
+        if (e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={cn(
+        "group flex cursor-pointer flex-col gap-2 rounded-[12px] border border-ui-subtle bg-ui-panel p-1.5 pb-2.5 outline-none hover:border-ui-default focus-visible:border-ui-accent",
+        selected && "border-ui-accent bg-ui-accent/[.06] hover:border-ui-accent",
+        className,
+      )}
+    >
+      <div className="relative">
+        <AssetThumb item={item} className="aspect-[16/10] w-full" />
+        {flag && (
+          <span
+            className={cn(
+              "absolute right-1.5 top-1.5 rounded-[4px] px-1.5 py-px text-[10.5px] font-medium",
+              flag === "Duplicate" ? "bg-ui-warning text-black" : "bg-[#2a1d0a] text-ui-warning",
+            )}
+          >
+            {flag}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 px-1">
+        <div className="truncate text-[12.5px] font-medium text-ui-1">{item.name}</div>
+        {reason && (
+          <div className="mt-0.5 flex gap-1 text-[11px] leading-snug text-ui-accent-text">
+            <Sparkles className="mt-px h-3 w-3 shrink-0" />
+            {reason}
+          </div>
+        )}
+        <div className="truncate font-ui-mono text-[10.5px] text-ui-4">{metaLine(item)}</div>
+      </div>
+    </div>
+  );
+}
+
+/** The dashed first tile: drop files or click. */
+export function UploadTile({ onFiles, wide }: { onFiles: (files: File[]) => void; wide?: boolean }) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <button
+      type="button"
+      onClick={() => input.current?.click()}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 rounded-[12px] border border-dashed border-ui-strong bg-transparent p-4 text-center text-ui-3 hover:border-ui-accent hover:text-ui-1",
+        wide ? "col-span-full min-h-[220px]" : "min-h-[180px]",
+      )}
+    >
+      <ImagePlus className="h-6 w-6" strokeWidth={1.5} />
+      <span className="text-[12.5px]">{wide ? "Drop images, videos, fonts or an .infopanel here" : "Drop files or click"}</span>
+      <span className="text-[11px] text-ui-4">Images, video, SVG, fonts, .infopanel</span>
+      <input
+        ref={input}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = [...(e.target.files ?? [])];
+          e.target.value = "";
+          if (files.length) onFiles(files);
+        }}
+      />
+    </button>
+  );
+}
+
+/* ---- grid ---- */
+
+export interface GridViewProps {
+  title: string;
+  items: LibraryItem[];
+  index: LibraryIndex;
+  tags: string[];
+  tag: string | null;
+  onTag: (tag: string | null) => void;
+  sort: SortId;
+  onSort: (sort: SortId) => void;
+  /** All items, no search: the cleanup banner shows. */
+  showCleanup: boolean;
+  onCollection: (id: CollectionId) => void;
+  selectedId: string | null;
+  onSelect: (item: LibraryItem) => void;
+  onOpen: (item: LibraryItem) => void;
+  onFiles: (files: File[]) => void;
+  /** A search found nothing. */
+  searching: boolean;
+  /** The library is empty: the upload tile fills the grid. */
+  empty: boolean;
+}
+
+export function GridView(p: GridViewProps) {
+  const c = cleanupCounts(p.index);
+  const cleanup = p.showCleanup && c.duplicates + c.unused + c.large > 0;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="sticky top-0 z-10 flex min-h-[52px] shrink-0 flex-wrap items-center gap-2 border-b border-ui-subtle bg-ui-app/95 px-5 py-2 backdrop-blur">
+        <h2 className="text-[15px] font-semibold text-ui-1">{p.title}</h2>
+        <span className="mr-2 font-ui-mono text-[11px] text-ui-4">{p.items.length} items</span>
+        {p.tags.map((t) => (
+          <button
+            key={t}
+            type="button"
+            aria-pressed={p.tag === t}
+            onClick={() => p.onTag(p.tag === t ? null : t)}
+            className={cn(
+              "h-[26px] rounded-full border border-ui-default px-2.5 text-[11.5px] text-ui-2 hover:border-ui-strong",
+              p.tag === t && "border-ui-accent bg-ui-accent/15 text-ui-1",
+            )}
+          >
+            {t}
+          </button>
+        ))}
+        <span className="flex-1" />
+        <label className="flex items-center gap-1.5 text-[11.5px] text-ui-4">
+          <span className="sr-only">Sort</span>
+          <select
+            value={p.sort}
+            onChange={(e) => p.onSort(e.target.value as SortId)}
+            className="h-[28px] rounded-[7px] border border-ui-default bg-ui-panel px-2 text-[12px] text-ui-2"
+          >
+            {SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        {cleanup && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-ui-subtle bg-ui-panel px-4 py-2.5 text-[12.5px] text-ui-2">
+            <SprayCan className="h-4 w-4 text-ui-warning" />
+            <span className="flex-1">
+              {[
+                c.duplicates && `${c.duplicates} duplicate${c.duplicates === 1 ? "" : "s"}`,
+                c.unused && `${c.unused} unused`,
+                c.large && `${c.large} large file${c.large === 1 ? "" : "s"}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+            {c.duplicates > 0 && <BannerButton onClick={() => p.onCollection("duplicates")}>Duplicates</BannerButton>}
+            {c.unused > 0 && <BannerButton onClick={() => p.onCollection("unused")}>Unused</BannerButton>}
+            {c.large > 0 && <BannerButton onClick={() => p.onCollection("large")}>Large files</BannerButton>}
+          </div>
+        )}
+        {p.searching && p.items.length === 0 ? (
+          <p className="py-16 text-center text-[13px] text-ui-4">Nothing matches. Every word must match a name, tag, type or size.</p>
+        ) : (
+          <div role="listbox" aria-label={p.title} className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3">
+            {!p.searching && <UploadTile onFiles={p.onFiles} wide={p.empty} />}
+            {p.items.map((item) => (
+              <LibraryCard
+                key={item.id}
+                item={item}
+                index={p.index}
+                selected={p.selectedId === item.id}
+                onSelect={() => p.onSelect(item)}
+                onOpen={() => p.onOpen(item)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const BannerButton = ({ onClick, children }: { onClick: () => void; children: ReactNode }) => (
+  <button type="button" onClick={onClick} className="h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+    {children}
+  </button>
+);
+
+/* ---- shelves ---- */
+
+export interface ShelvesViewProps {
+  index: LibraryIndex;
+  shelves: { id: CollectionId; title: string; note: string; items: LibraryItem[] }[];
+  /** "Needs attention": one card per finding with its action. */
+  attention: { id: string; title: string; text: string; action: string; onAction: () => void }[];
+  selectedId: string | null;
+  onSelect: (item: LibraryItem) => void;
+  onOpen: (item: LibraryItem) => void;
+  onSeeAll: (id: CollectionId) => void;
+}
+
+export function ShelvesView(p: ShelvesViewProps) {
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      {p.attention.length > 0 && (
+        <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3">
+          {p.attention.map((a) => (
+            <div key={a.id} className="flex items-center gap-3 rounded-[12px] border border-ui-subtle bg-ui-panel p-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] bg-ui-warning/15 text-ui-warning">
+                {a.id === "duplicates" ? <Copy className="h-4 w-4" /> : a.id === "unused" ? <Ban className="h-4 w-4" /> : <HardDrive className="h-4 w-4" />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[12.5px] font-semibold text-ui-1">{a.title}</div>
+                <div className="text-[11.5px] leading-snug text-ui-4">{a.text}</div>
+              </div>
+              <BannerButton onClick={a.onAction}>{a.action}</BannerButton>
+            </div>
+          ))}
+        </div>
+      )}
+      {p.shelves
+        .filter((s) => s.items.length > 0)
+        .map((s) => (
+          <section key={s.id} aria-label={s.title} className="mb-6">
+            <div className="mb-2.5 flex items-baseline gap-2">
+              <h3 className="text-[14px] font-semibold text-ui-1">{s.title}</h3>
+              <span className="text-[12px] text-ui-4">{s.note}</span>
+              <span className="flex-1" />
+              <button type="button" onClick={() => p.onSeeAll(s.id)} className="flex items-center gap-0.5 text-[12px] text-ui-3 hover:text-ui-1">
+                See all <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div role="listbox" aria-label={s.title} className="flex gap-3 overflow-x-auto pb-2">
+              {s.items.map((item) => (
+                <LibraryCard
+                  key={item.id}
+                  item={item}
+                  index={p.index}
+                  selected={p.selectedId === item.id}
+                  onSelect={() => p.onSelect(item)}
+                  onOpen={() => p.onOpen(item)}
+                  reason={s.id === "suggested" ? p.index.suggested.find((x) => x.item.id === item.id)?.reason : undefined}
+                  className="w-[196px] shrink-0"
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+    </div>
+  );
+}
+
+/** Files dropped anywhere on a page area. */
+export function fileDrop(onFiles: (files: File[]) => void) {
+  return {
+    onDragOver: (e: DragEvent) => {
+      if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+    },
+    onDrop: (e: DragEvent) => {
+      if (!e.dataTransfer.files.length) return;
+      e.preventDefault();
+      onFiles([...e.dataTransfer.files]);
+    },
+  };
+}

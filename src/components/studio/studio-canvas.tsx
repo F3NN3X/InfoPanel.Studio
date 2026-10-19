@@ -33,7 +33,8 @@ import { LivePlacement } from "./placement-content";
 import { RulerLabels } from "./rulers";
 import { ScreenFold } from "./screen-fold";
 import { EmptyLayoutCard, QuickTipsCard } from "./canvas-cards";
-import { dropGhost, dropSize, libraryItemOf, type LibraryItem } from "./drop-ghost";
+import { canvasPointAt, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint } from "./drop-ghost";
+import { activeLibraryDrag, LIBRARY_MIME } from "@/lib/my-library/drag";
 import { DND_MIME, DND_MIME_PANEL, placementTitle } from "./studio-modules";
 import type { SelectMode } from "./selection";
 import { SelectionChipLayer } from "./selection-chip";
@@ -108,9 +109,13 @@ interface StudioCanvasProps {
   /** Open the widget picker for a (blank) zone. */
   onPickWidget: (id: string) => void;
   /** The footprint a library item drops with on this grid (null = unknown item). */
-  dropSizeOf: (item: LibraryItem) => { cols: number; rows: number } | null;
-  /** A library item was dropped: at the ghost's box, or null when the ghost said no room. */
-  onDropItem: (item: LibraryItem, rect: ZoneRect | null) => void;
+  dropSizeOf: (item: CanvasDrop) => { cols: number; rows: number } | null;
+  /**
+   * A library item was dropped: at the ghost's box, or null when the ghost said no room; `cell`
+   * is the cell under the pointer (a style card applies to the zone there).
+   */
+  /** `inCanvas`: the drop point as a fraction of a canvas zone's profile, when it fell on one. */
+  onDropItem: (item: CanvasDrop, rect: ZoneRect | null, cell: { col: number; row: number } | null, inCanvas: CanvasPoint | null) => void;
   /** Right-click (viewport px) on a zone, or on empty canvas (null). */
   onContextMenu: (id: string | null, x: number, y: number) => void;
   /** Open the Add drawer (the empty canvas card). */
@@ -183,7 +188,7 @@ export function StudioCanvas({
   // The page's size in design px, for the ruler labels.
   const [canvas, setCanvas] = useState({ w: 0, h: 0 });
   /** The library item being dragged (read at its dragstart; dragover can't read data). */
-  const dragItem = useRef<LibraryItem | null>(null);
+  const dragItem = useRef<CanvasDrop | null>(null);
   const [dropPreview, setDropPreview] = useState<{ rect: ZoneRect; ok: boolean } | null>(null);
 
   // Measure the grid for resize calculations and alignment guides, in
@@ -219,7 +224,7 @@ export function StudioCanvas({
   useEffect(() => {
     const onStart = (e: globalThis.DragEvent) => {
       const data = e.dataTransfer;
-      dragItem.current = data ? libraryItemOf((type) => data.getData(type)) : null;
+      dragItem.current = data ? (libraryItemOf((type) => data.getData(type)) ?? myLibraryDropOf((type) => data.getData(type))) : null;
     };
     const onEnd = () => {
       dragItem.current = null;
@@ -326,14 +331,17 @@ export function StudioCanvas({
   };
 
   const isLibraryDrag = (e: DragEvent) =>
-    e.dataTransfer.types.includes(DND_MIME) || e.dataTransfer.types.includes(DND_MIME_PANEL);
+    e.dataTransfer.types.includes(DND_MIME) || e.dataTransfer.types.includes(DND_MIME_PANEL) || e.dataTransfer.types.includes(LIBRARY_MIME);
 
   /** Library drag over the board: the ghost follows the pointer's cell. */
   const onCanvasDragOver = (e: DragEvent) => {
     if (!isLibraryDrag(e)) return;
     e.preventDefault();
     const cell = cellAt(e.clientX, e.clientY);
-    const size = (dragItem.current && dropSizeOf(dragItem.current)) ?? dropSize({ cols: 1, rows: 1 }, profile);
+    // A card dragged in from the Library page started before this canvas was there.
+    const active = activeLibraryDrag();
+    const dragged = dragItem.current ?? (active && e.dataTransfer.types.includes(LIBRARY_MIME) ? { kind: "mylib" as const, id: active.id, item: active } : null);
+    const size = (dragged && dropSizeOf(dragged)) ?? dropSize({ cols: 1, rows: 1 }, profile);
     const next = cell ? dropGhost(cell, size, profile, profile.placements) : null;
     setDropPreview((prev) =>
       prev?.ok === next?.ok &&
@@ -351,13 +359,14 @@ export function StudioCanvas({
     e.preventDefault();
     dragItem.current = null;
     setDropPreview(null);
-    const item = libraryItemOf((type) => e.dataTransfer.getData(type));
+    const read = (type: string) => e.dataTransfer.getData(type);
+    const item = libraryItemOf(read) ?? myLibraryDropOf(read);
     if (!item) return;
     // Sized from the dropped item itself: a drag from another window had no ghost size.
     const cell = cellAt(e.clientX, e.clientY);
-    const size = dropSizeOf(item);
+    const size = dropSizeOf(item) ?? (item.kind === "mylib" ? dropSize({ cols: 1, rows: 1 }, profile) : null);
     const ghost = cell && size ? dropGhost(cell, size, profile, profile.placements) : null;
-    onDropItem(item, ghost?.ok ? ghost.rect : null);
+    onDropItem(item, ghost?.ok ? ghost.rect : null, cell, canvasPointAt(e.clientX, e.clientY));
   };
 
   // The profile's spacing (as the kiosk page shows it): the gap between

@@ -1,4 +1,5 @@
-// Uploaded media (images and videos used as backgrounds) for server.mjs.
+// Uploaded media (backgrounds, imported InfoPanel assets, library files and
+// fonts) for server.mjs.
 //
 // Files live in DATA_DIR/assets, named by content: the SHA-256 of the
 // bytes plus the extension of the sniffed type, so the same file uploaded
@@ -8,9 +9,14 @@
 //
 // Security rules:
 // - The type comes from the file's magic bytes (png, jpeg, gif, webp,
-//   avif, mp4, webm); SVG, HTML and everything else is refused, and the
-//   declared Content-Type has to agree. Matroska (.mkv, and WebM files
-//   that are Matroska inside) is stored as webm: browsers play both.
+//   avif, bmp, ico, mp4, webm, and the font formats ttf, otf, ttc, woff,
+//   woff2); HTML and everything else is refused, and the declared
+//   Content-Type has to agree. Matroska (.mkv, and WebM files that are
+//   Matroska inside) is stored as webm: browsers play both.
+// - SVG is text: it is accepted when its first element is <svg> (after an
+//   XML prologue, comments and a doctype), up to 256 KB, and always served
+//   with a sandboxing Content-Security-Policy, so opened on its own it runs
+//   no script. The studio sanitizes it before drawing it inline.
 // - Uploads and deletes need the `X-Dashboard-Asset: 1` header. A custom
 //   header makes a cross-site request preflight, and this server never
 //   answers preflights, so another site can't upload from a visitor's
@@ -26,10 +32,13 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-export const ID_RE = /^[a-f0-9]{64}\.(png|jpg|gif|webp|avif|mp4|webm)$/;
+export const ID_RE = /^[a-f0-9]{64}\.(png|jpg|gif|webp|avif|bmp|ico|svg|mp4|webm|ttf|otf|ttc|woff|woff2)$/;
 
-/** The upload limit per kind, in bytes. */
-export const LIMITS = { image: 25 * 1024 * 1024, video: 300 * 1024 * 1024 };
+/** The upload limit per kind, in bytes (a type's own `limit` wins). */
+export const LIMITS = { image: 25 * 1024 * 1024, video: 300 * 1024 * 1024, font: 30 * 1024 * 1024 };
+
+/** The largest SVG accepted (SVG templates and icons). */
+export const SVG_LIMIT = 256 * 1024;
 
 /** Extension -> MIME type and kind of every accepted type. */
 export const TYPES = {
@@ -38,12 +47,23 @@ export const TYPES = {
   gif: { mime: "image/gif", kind: "image" },
   webp: { mime: "image/webp", kind: "image" },
   avif: { mime: "image/avif", kind: "image" },
+  bmp: { mime: "image/bmp", kind: "image" },
+  ico: { mime: "image/x-icon", kind: "image" },
+  svg: { mime: "image/svg+xml", kind: "image", limit: SVG_LIMIT },
   mp4: { mime: "video/mp4", kind: "video" },
   webm: { mime: "video/webm", kind: "video" },
+  ttf: { mime: "font/ttf", kind: "font" },
+  otf: { mime: "font/otf", kind: "font" },
+  ttc: { mime: "font/collection", kind: "font" },
+  woff: { mime: "font/woff", kind: "font" },
+  woff2: { mime: "font/woff2", kind: "font" },
 };
 
-/** How many leading bytes the sniffer looks at. */
-export const HEAD_BYTES = 256;
+/** How many leading bytes the sniffer looks at (an SVG's prologue and comments can be long). */
+export const HEAD_BYTES = 1024;
+
+/** Served with every SVG: no script, no outside requests, inline styles and data: images only. */
+export const SVG_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
 
 /** Uploads running at once, before the next one gets 429. */
 export const MAX_IN_FLIGHT = 2;
@@ -75,6 +95,22 @@ function sniffFtyp(buf) {
 }
 
 /**
+ * Whether text starts with an <svg> element: an optional BOM, XML
+ * declaration, processing instructions, comments and a doctype may come
+ * first, nothing else. Unfinished prologue (cut by the sniff window) is not SVG.
+ */
+export function isSvgText(text) {
+  let s = String(text).replace(/^﻿/, "");
+  for (;;) {
+    s = s.replace(/^\s+/, "");
+    const m = /^(<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE\s[^<>]*(?:\[[\s\S]*?\])?\s*>)/i.exec(s);
+    if (!m) break;
+    s = s.slice(m[0].length);
+  }
+  return /^<svg[\s>/]/.test(s);
+}
+
+/**
  * The type of a file from its first bytes (`HEAD_BYTES` is plenty), as
  * `{ ext, mime, kind }`, or null when it is not an accepted type.
  */
@@ -84,15 +120,35 @@ export function sniffType(buf) {
   else if (startsWith(buf, [0xff, 0xd8, 0xff])) ext = "jpg";
   else if (["GIF87a", "GIF89a"].includes(ascii(buf, 0, 6))) ext = "gif";
   else if (ascii(buf, 0, 4) === "RIFF" && ascii(buf, 8, 12) === "WEBP") ext = "webp";
+  // BITMAPFILEHEADER followed by a header size of a known BITMAPINFOHEADER kind.
+  else if (ascii(buf, 0, 2) === "BM" && buf.length >= 18 && [12, 40, 52, 56, 64, 108, 124].includes(buf.readUInt32LE(14))) ext = "bmp";
+  // ICONDIR: reserved 0, type 1 (icon), at least one image.
+  else if (startsWith(buf, [0, 0, 1, 0]) && buf.length >= 6 && buf.readUInt16LE(4) > 0) ext = "ico";
   // Matroska EBML header, DocType "webm" or "matroska": many tools write
   // the latter into .webm files, and the browser plays either.
   else if (startsWith(buf, [0x1a, 0x45, 0xdf, 0xa3])) ext = "webm";
+  else if (startsWith(buf, [0, 1, 0, 0]) || ascii(buf, 0, 4) === "true") ext = "ttf";
+  else if (ascii(buf, 0, 4) === "OTTO") ext = "otf";
+  else if (ascii(buf, 0, 4) === "ttcf") ext = "ttc";
+  else if (ascii(buf, 0, 4) === "wOFF") ext = "woff";
+  else if (ascii(buf, 0, 4) === "wOF2") ext = "woff2";
+  else if (isSvgText(buf.toString("utf8"))) ext = "svg";
   else ext = sniffFtyp(buf);
   return ext ? { ext, ...TYPES[ext] } : null;
 }
 
 // Other names browsers give accepted types (Matroska is stored as webm).
-const MIME_ALIASES = { "video/x-matroska": "webm", "video/matroska": "webm" };
+const MIME_ALIASES = {
+  "video/x-matroska": "webm",
+  "video/matroska": "webm",
+  "image/x-ms-bmp": "bmp",
+  "image/vnd.microsoft.icon": "ico",
+  "font/sfnt": "ttf",
+  "application/x-font-ttf": "ttf",
+  "application/x-font-otf": "otf",
+  "application/vnd.ms-opentype": "otf",
+  "application/font-woff": "woff",
+};
 
 /** The accepted type a Content-Type header declares, or null. */
 export function declaredType(header) {
@@ -108,11 +164,17 @@ export function assetPath(dir, id) {
   return file.startsWith(dir + path.sep) ? file : null;
 }
 
-/** The asset ids a text (the saved config JSON) refers to. */
-export function referencedIds(text) {
-  const re = /\/api\/assets\/([a-f0-9]{64}\.(?:png|jpg|gif|webp|avif|mp4|webm))/g;
-  return new Set(Array.from(String(text).matchAll(re), (m) => m[1]));
+/**
+ * The content hashes a text (the saved config, the library) refers to: in an
+ * asset URL, an asset id, or bare (an imported canvas names its assets and
+ * fonts by hash). Any 64-hex run counts, so a file is kept rather than lost.
+ */
+export function referencedHashes(text) {
+  return new Set(Array.from(String(text).matchAll(/(?<![a-f0-9])[a-f0-9]{64}(?![a-f0-9])/g), (m) => m[0]));
 }
+
+/** The hash part of an asset id. */
+export const hashOf = (id) => id.slice(0, 64);
 
 /**
  * A `Range: bytes=…` header against a file of `size` bytes: `{ start, end }`
@@ -233,9 +295,10 @@ function receive(req, tmp, limit, expected) {
 
 /**
  * The /api/assets routes. `send(res, status, body, type)` is the server's
- * plain response helper; `configFile` is scanned by `?unused=1`.
+ * plain response helper; `configFile` and the texts `references()` returns
+ * (the library's items) are scanned by `?unused=1`.
  */
-export function createAssets({ dir, configFile, send }) {
+export function createAssets({ dir, configFile, send, references = () => [] }) {
   const allowRemote = process.env.ALLOW_REMOTE_UPLOAD === "1";
   const maxBytes = Number(process.env.ASSETS_MAX_BYTES) > 0 ? Number(process.env.ASSETS_MAX_BYTES) : DEFAULT_MAX_BYTES;
   let inFlight = 0;
@@ -271,8 +334,9 @@ export function createAssets({ dir, configFile, send }) {
   function handleList(res, query) {
     let assets = list();
     if (query.get("unused") === "1") {
-      const used = referencedIds(fs.existsSync(configFile) ? fs.readFileSync(configFile, "utf8") : "");
-      assets = assets.filter((a) => !used.has(a.id));
+      const texts = [fs.existsSync(configFile) ? fs.readFileSync(configFile, "utf8") : "", ...references()];
+      const used = referencedHashes(texts.join("\n"));
+      assets = assets.filter((a) => !used.has(hashOf(a.id)));
     }
     json(res, 200, assets);
   }
@@ -281,8 +345,8 @@ export function createAssets({ dir, configFile, send }) {
     const refusal = writeRefusal(req);
     if (refusal) return send(res, 403, refusal);
     const declared = declaredType(req.headers["content-type"]);
-    if (!declared) return send(res, 415, "unsupported type: png, jpeg, gif, webp, avif, mp4, webm or mkv");
-    const limit = LIMITS[declared.kind];
+    if (!declared) return send(res, 415, "unsupported type: png, jpeg, gif, webp, avif, bmp, ico, svg, mp4, webm, mkv, ttf, otf, ttc, woff or woff2");
+    const limit = declared.limit ?? LIMITS[declared.kind];
     // Close the connection after an early answer instead of reading the rest.
     if (Number(req.headers["content-length"]) > limit) {
       res.setHeader("Connection", "close");
@@ -349,6 +413,7 @@ export function createAssets({ dir, configFile, send }) {
       "Content-Type": TYPES[path.extname(file).slice(1)].mime,
       "Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
+      ...(file.endsWith(".svg") && { "Content-Security-Policy": SVG_CSP }),
       "Accept-Ranges": "bytes",
     };
     const range = parseRange(req.headers.range, stat.size);

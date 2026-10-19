@@ -5,6 +5,8 @@ import {
   ChevronDown,
   Copy,
   Download,
+  FileInput,
+  FileOutput,
   Info,
   Keyboard,
   Maximize,
@@ -29,7 +31,8 @@ import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
 import { KEYS } from "./use-studio-shortcuts";
 
-export type StudioMode = "design" | "sources";
+/** Library and Gauges are full pages of their own, opened from the rail (not part of the Design | Sources switch). */
+export type StudioMode = "design" | "sources" | "library" | "gauges";
 
 interface StudioTopBarProps {
   profiles: MonitorProfile[];
@@ -47,11 +50,18 @@ interface StudioTopBarProps {
   saved: boolean;
   /** Edits the server does not have yet (the dot on Save). */
   unsaved: boolean;
+  /** The last push could not reach the server: "Offline · edits kept locally". */
+  offline: boolean;
   onSave: () => void;
   onExitStudio: () => void;
   onExport: () => void;
   /** Open the file picker for "Import config…". */
   onImport: () => void;
+  /** Import an InfoPanel profile (the Import dialog). */
+  onImportInfoPanel: () => void;
+  /** Export the profile's canvas zone (the Export dialog); off without one. */
+  onExportInfoPanel: () => void;
+  canExportInfoPanel: boolean;
   onReset: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -183,6 +193,9 @@ function MoreMenu({
   profile,
   onExport,
   onImport,
+  onImportInfoPanel,
+  onExportInfoPanel,
+  canExportInfoPanel,
   onReset,
   onPalette,
   onShortcuts,
@@ -192,7 +205,19 @@ function MoreMenu({
   onRedo,
 }: Pick<
   StudioTopBarProps,
-  "profile" | "onExport" | "onImport" | "onReset" | "onPalette" | "onShortcuts" | "canUndo" | "canRedo" | "onUndo" | "onRedo"
+  | "profile"
+  | "onExport"
+  | "onImport"
+  | "onImportInfoPanel"
+  | "onExportInfoPanel"
+  | "canExportInfoPanel"
+  | "onReset"
+  | "onPalette"
+  | "onShortcuts"
+  | "canUndo"
+  | "canRedo"
+  | "onUndo"
+  | "onRedo"
 >) {
   const [copied, setCopied] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -235,6 +260,12 @@ function MoreMenu({
               <Menu.Item className={ITEM} onClick={onImport}>
                 <Upload className="h-3.5 w-3.5" /> Import config…
               </Menu.Item>
+              <Menu.Item className={ITEM} onClick={onImportInfoPanel}>
+                <FileInput className="h-3.5 w-3.5" /> Import InfoPanel profile…
+              </Menu.Item>
+              <Menu.Item className={ITEM} disabled={!canExportInfoPanel} onClick={onExportInfoPanel}>
+                <FileOutput className="h-3.5 w-3.5" /> Export InfoPanel canvas…
+              </Menu.Item>
               <Menu.Item className={ITEM} onClick={copyProfile}>
                 <Copy className="h-3.5 w-3.5" /> Copy profile JSON
               </Menu.Item>
@@ -272,6 +303,10 @@ function MoreMenu({
   );
 }
 
+/** Import / Export: plain text buttons before Save; hidden on a phone (they stay in the "⋯" menu). */
+const TEXT_BUTTON =
+  "flex h-8 items-center whitespace-nowrap rounded-[7px] px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:text-ui-5 disabled:hover:bg-transparent max-md:hidden";
+
 /** Undo / redo: #c9c9cf when they can act, #4a4a52 when they cannot. */
 const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
 
@@ -280,7 +315,7 @@ const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-
  * undo / redo, Kiosk view, Save and the "⋯" menu.
  */
 export function StudioTopBar(props: StudioTopBarProps) {
-  const { profile, mode, onMode, saved, unsaved, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
+  const { profile, mode, onMode, saved, unsaved, offline, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
   return (
     // In the desktop app this bar is the window's title bar: its empty space drags the window
     // (data-tauri-drag-region only acts on the element itself) and the caption buttons sit at the end.
@@ -297,6 +332,12 @@ export function StudioTopBar(props: StudioTopBarProps) {
         <span data-tauri-drag-region className="min-w-0 truncate font-ui-mono text-[11px] text-ui-4 max-sm:hidden">
           {profileSummary(profile)}
         </span>
+        {offline && (
+          <span role="status" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11.5px] text-ui-3 max-sm:hidden">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ui-warning" />
+            Offline · edits kept locally
+          </span>
+        )}
       </div>
 
       <ModeSwitch mode={mode} onMode={onMode} />
@@ -328,6 +369,23 @@ export function StudioTopBar(props: StudioTopBarProps) {
           className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 max-sm:px-2"
         >
           <Maximize className="h-[17px] w-[17px]" strokeWidth={1.75} /> <span className="max-sm:sr-only">Kiosk view</span>
+        </button>
+        <button
+          type="button"
+          onClick={props.onImportInfoPanel}
+          title="Import an InfoPanel profile: .infopanel, folder, installed or saved canvas"
+          className={TEXT_BUTTON}
+        >
+          Import
+        </button>
+        <button
+          type="button"
+          onClick={props.onExportInfoPanel}
+          disabled={!props.canExportInfoPanel}
+          title={props.canExportInfoPanel ? "Export the canvas zone as .infopanel or .canvas.zip" : "Export needs a canvas zone on this page"}
+          className={TEXT_BUTTON}
+        >
+          Export
         </button>
         <button
           type="button"

@@ -13,7 +13,14 @@
     "desktop:prepare": "node tools/desktop-prepare.mjs",
     "desktop:web": "tsc -b && vite build --outDir .cache/desktop/dist --emptyOutDir",
     "desktop:dev": "npm run desktop:web && npm run desktop:prepare && tauri dev",
-    "desktop:build": "npm run desktop:web && npm run desktop:prepare && tauri build"
+    "desktop:build": "npm run desktop:web && npm run desktop:prepare && tauri build",
+    "lab": "vite --config lab/infopanel/vite.config.ts",
+    "lab:test": "vitest run --config lab/infopanel/vite.config.ts",
+    "lab:typecheck": "tsc -p lab/infopanel",
+    "lab:extract": "node lab/infopanel/scripts/extract-corpus.mjs",
+    "lab:map": "node lab/infopanel/scripts/map-report.mjs",
+    "lab:fonts": "node lab/infopanel/scripts/fonts.mjs",
+    "lab:font-get": "node lab/infopanel/scripts/font-get.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

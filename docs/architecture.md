@@ -206,7 +206,7 @@ Placement.settings
 
 ### The widget shell
 
-`src/widgets/` is the widget library: 50 templates, each a component over flat
+`src/widgets/` is the widget library: 54 templates, each a component over flat
 string data, drawn inside one `<Widget>` (`src/widgets/core/Widget.tsx`).
 `src/widgets/kit.ts` re-exports what a widget file needs from `core/`.
 
@@ -343,6 +343,177 @@ GameSpotlight's music card, the Visualizer widget); it replaces `MiniViz`, `BarV
   (with `GESTURE_HINT`) until then instead of waiting on `resume()`.
 - In dev, `window.__vizInputs()` lists every live input (device, source, raw and shaped peak band,
   bands), for checking a test tone against the bands.
+
+### The render pipeline of a canvas zone
+
+A canvas zone (`module: "infopanel"`, `CANVAS_ID`) holds an imported
+InfoPanel profile in `Placement.canvas`: the stored form
+(`src/lib/infopanel/import/stored.ts`, `infopanel-canvas` v1), with
+InfoPanel's own field names, unknown fields kept, and the import's
+decisions per item under `$` (mode, Data API key). `placementContent`
+subscribes the zone to the keys its items read (`canvas-keys.ts`, read
+straight from the JSON) and lazy-loads `CanvasZone`
+(`src/components/infopanel/`), so the InfoPanel renderer is its own chunk.
+`openCanvas` (`src/lib/infopanel/canvas.ts`) checks the stored form
+against the schema once per stored object; the zone draws the profile at
+its own size, scaled to fit with its aspect kept: faithful items through
+`ProfileView` (InfoPanel's draw order, untouched by the dashboard theme),
+native items through the app's widgets (`native.tsx`). Assets load from
+the asset store by SHA-256 (`/api/assets/<hash>.<ext>`), fonts from the
+Data API's resolve endpoint when InfoPanel offers it, graph history from a
+per-zone `KeyHistory` (InfoPanel's 4096 samples per key).
+
+### Importing and exporting an InfoPanel profile
+
+Import (top bar Import, the "⋯" menu, or the Add panel's "Canvas zone ·
+Import .infopanel" card) is a five-step dialog,
+`src/components/infopanel/import/`, loaded on first open so neither the
+kiosk nor the studio's first paint carries the parser. Nothing reaches the
+config until the last step:
+
+- **Source** (`src/lib/infopanel/import/session.ts`): an `.infopanel` or a
+  saved `.canvas.zip` (told apart by `canvas.json`), an extracted folder
+  (entries relative to the folder holding `Profile.xml`), a profile
+  installed in InfoPanel (`/api/infopanel/installed`), or a canvas from My
+  library (`openStored`, every file read back from the asset store and
+  checked against its SHA-256). As soon as a source opens, its files upload
+  to the asset store in the background, two at a time (the server's
+  `MAX_IN_FLIGHT`; `uploadBytes` asks again after a 429). Continue waits
+  for the upload; a refused file is listed and its items draw without it.
+- **Mode**: Faithful, Native where possible, or Both (starts native);
+  `withMode` (`native/modes.ts`) sets the flag on every item that converts.
+- **Review**: `buildReport` (`import/report.ts`) as tiles and rows.
+- **Sensors**: `RemapPanel` (`src/components/infopanel/remap-panel.tsx`)
+  over the studio's sensor catalog (`useSensorCatalog`). Continue waits
+  while a group is unresolved; with the Data API unreachable the import goes
+  on and the groups stay unresolved.
+- **Save**: `buildCanvas` writes the stored form (the remapped keys, the
+  store's extension where it differs, e.g. a WebM video), and
+  `src/components/studio/import-actions.ts` lands it in one `setConfig` (one
+  undo step): a new profile the InfoPanel size (2 × 1 cells, fill, the zone
+  spanning both), or a canvas zone in the free box of the current page that
+  draws it largest. "Also save … to the Library" posts it to
+  `/api/library` as a `canvas` item whose files are the uploaded asset ids.
+
+Export (`src/components/infopanel/export-dialog.tsx`, helpers in
+`src/lib/infopanel/export/studio-export.ts`) writes the selected canvas
+zone, else the page's first: the stored form as `<name>.canvas.zip` (with
+the supplied fonts the canvas still draws with, after the licence review),
+or an `.infopanel` for InfoPanel, which carries no fonts. Baking stale
+vector gauges first uploads the new frames and puts them on the zone as one
+undo step. Both download through the browser.
+
+### The Library page
+
+The rail's Library opens a full page (`src/components/library/`, lazy-loaded, studio mode
+`library`) in place of the canvas, drawer and inspector; the studio's zone shortcuts are held back
+while it is open.
+
+- **My library** (`use-my-library.ts`): the server's items (`/api/library`, `src/lib/library.ts`)
+  plus the config's saved panels and style presets shown as items (ids `cfg-panel:` / `cfg-style:`,
+  read-only stand-ins). Uploads run two at a time behind the tray: each file is classified from
+  its bytes (`src/lib/my-library/intake.ts`: refuses a bad font, an SVG over 256 KB or with
+  scripts), read in the browser (`decode.ts`: size, video length, a 64 px pixel sample for the
+  stats and the perceptual hash, a font's faces and licence), uploaded to the asset store and
+  saved as an item; identical bytes keep the existing item. An `.infopanel` opens the Import dialog.
+- **Model** (`src/lib/my-library/model.ts`, pure): the auto tags, the sidebar collections (an item
+  can sit in several), search (every word must match name, kind, type, pixel size or a tag),
+  duplicates (identical SHA-256, or the same size and a dHash within 4 bits), the cleanup counts and
+  the sort orders. `theme-suggest.ts` ranks backgrounds for the profile's theme (text contrast at
+  the median luminance ≥ 4.5:1, then hue closeness to the accent, then low detail) with a reason.
+- **Actions** (`library-actions.ts`): Set as background, Add to profile / canvas (a saved panel, or
+  an image as a panel zone with one image widget), Apply to selection (a style), Open canvas and
+  Re-import (the Import dialog with the saved canvas), Export (the Export dialog on the stored
+  form), Duplicate as variant, Optimise (WebP, kept only when 5 % smaller), Merge duplicates. Each
+  placement is one `setConfig` and counts a copy on the item (`copies`; "jump to" selects it).
+- **Profile assets** (`profile-assets.tsx`, `profile-assets/`, logic in
+  `src/lib/infopanel/assets/stored-doc.ts`): a canvas zone's files as the lab's table, with the
+  findings, Add files, Replace by name, Optimise and Clean up, each one `withCanvas` change.
+- **Fonts** (`fonts-view.tsx`, `fonts/`): the requests of the page's canvas zones, My fonts, Add
+  fonts and Get a font (Fontsource, Font Squirrel through `/api/font-proxy`).
+- **Drag** (spec §8, `src/lib/my-library/drag.ts`): a card carries `{ libraryItemId, kind }` under
+  `application/x-infopanel-library`. Dragged over "Drag here to place it on the canvas", the page
+  makes way and the drag goes on to the canvas, which sizes its ghost from the card being dragged
+  (`library-drop.ts`): an image or panel becomes a zone at the ghost, a style applies to the zone
+  under the pointer, a video becomes the background. Over an imported canvas zone (found by
+  `CanvasZone`'s `data-ip-canvas` mark, `canvasPointAt`) or in the canvas editor, an image, SVG or
+  video becomes an InfoPanel Image item at the pointer (`withDroppedImage`); on Page background it
+  sets the background. The inspector keeps its hand-opened sections while the Library page
+  replaces it, so the drag can reach that slot.
+
+### The Gauges page
+
+The rail's Gauges item opens a full page (`src/components/gauges/`, lazy-loaded, spec §6). The model is
+`src/lib/gauge-studio/`: a gauge lives in one of four places (`GaugeSource`): a preset (read-only;
+customising makes a copy), a My library item (`kind: "gauge"`, `data` = `{ vector?, frames?, min, max,
+animationSpeed }`, frames by asset id), a Gauge item in an imported canvas zone (its spec in the item's `$.vector`,
+its frames the item's Images), or a **Custom gauge** widget zone (`src/widgets/CustomGauge.tsx`, the spec as a JSON
+string in its hidden `gauge` setting, bound to any one sensor).
+
+- **Browse:** Presets, In <profile> (`profileGauges`), My library; a right pane with a live preview, Customise a copy
+  / Edit, Add to canvas (`addGaugeZone`), Duplicate, Export (`.gauge.json`, the lab's `VectorGauge`).
+- **Editor:** a preset strip, the parts list (Core · Indicator · Scale · Text · Decor · Effects · Liquid; parts that
+  don't apply to the shape are hidden), a stage with play and a scrubber, and an inspector for the selected part.
+  A profile gauge writes through (`withGauge`, one `setConfig` per committed change, slider drags coalesced by key,
+  studio undo). Anything else is a working copy with its own undo (`working-copy.ts`), kept while the page is closed
+  (`session.ts`); back with unsaved changes asks Save to library / Discard / Cancel.
+- **Image sequences:** a filmstrip with Reverse, Resample, Duplicate, Replace and Remove, frames per second, Recolour
+  (previewed with a CSS filter, applied to every frame at once) and Convert to vector (a preset closest in shape,
+  scaled to the frame size; the frames stay). A canvas gauge's frame edits go through the zone's asset `Doc`
+  (`profile-doc-io.ts`, shared with Profile assets), so each is one undo step.
+- **Bake bar:** a canvas gauge with a spec shows whether its frames match it (`$.vectorBaked`) and bakes them for the
+  `.infopanel` export; the dashboard always draws the spec live.
+- "Edit gauge…" in a Custom gauge zone's inspector, on a canvas Gauge item and on a library card opens the editor
+  (`openGauge` in `studio-view.tsx`). Uploads run at most two at once (`uploadBytes`), the server's limit.
+
+### Narrow screens and edge states (A8)
+
+Below 900 px (`NARROW_PAGE_WIDTH`, `useViewportBelow`) the Library and Gauges detail panes open as a bottom sheet
+(`pane-sheet.tsx`, over the shared `BottomSheet`) and the gauge editor stacks parts, stage and inspector. The canvas
+editor's inspector follows the studio inspector's modes (`inspectorMode`): docked from 1100 px, a floating card from
+640 px, a sheet below. A push the server never answered (`isUnreachable` in `dashboard-server.ts`, not a refusal)
+shows "Offline · edits kept locally" in the top bar until the next push lands. A canvas image whose file can't load
+draws a hatched tile with a broken-image icon (`MissingImage.tsx`); with the Data API unreachable the canvas editor's
+Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesign/FEATURE_MAP.md` §20.
+
+### Editing a canvas zone
+
+Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",
+opens the canvas editor (`src/components/infopanel/edit/`, lazy-loaded) in
+place of the studio canvas, drawer and inspector. Done or Esc (with nothing
+selected) closes it; so do Sources mode and an undo that takes the zone away.
+
+- **State** (`use-canvas-editor.ts`): the zone's stored form opened
+  (`openCanvas`) and its items as edited (`editItems`,
+  `src/lib/infopanel/canvas-edit.ts`). Each bound item carries its import
+  record (Data API key, how it was found) on the item under `$import` while
+  edited, so duplicate, group and reorder keep it. Every commit writes the
+  zone's new stored form (`storeItems`, through `withCanvas`) with one
+  `setConfig`, so the studio's undo, redo and auto-save cover it: one drag,
+  one field, one bulk action (Draw all as, a remap choice) is one step;
+  typing in a field and arrow nudges coalesce by key.
+- **Canvas** (`edit-canvas.tsx`, `edit-layer.tsx`): `ProfileView` and
+  `nativeLayer` as the zone draws, with the edit layer over it. The layer
+  finds items through the drawn `data-path` attributes, previews a drag and
+  commits once. Show modes tints each item (native, InfoPanel, can't
+  convert); Compare lays a chosen InfoPanel screenshot over the render with
+  a difference blend.
+- **Sensors**: Unbound, Live or Mock (`sensorView`). Live subscribes to
+  the items' keys through `useSensors`; Mock gives each binding group one
+  slider value. Remap (`src/components/infopanel/remap-dialog.tsx`) wraps
+  the import's `RemapPanel`; `withGroupKeys` rewrites only the groups whose
+  choice changed, and with the Data API offline it takes no choices.
+- **Inspector** (`item-inspector.tsx`): `InspectorView` with the
+  `infopanel` context of `inspector-model.ts`. The kind's field groups come
+  from the InfoPanel schema registry (`inspector/infopanel-defs.ts`, no
+  panel per kind); Draw as, Position (with `checkGeometry`'s refusals),
+  Sensor and the unknown fields are its special sections. A value
+  InfoPanel's setter would refuse is shown with its message and not stored.
+- **Keys** (`canvas-keys.ts`, capture phase): Ctrl+D, Ctrl+G,
+  Ctrl+Shift+G, Del, arrows (Shift: 10 px), Esc. The studio's other zone
+  shortcuts are held back while the editor is open; undo, redo, save, the
+  palette and the cheat sheet pass through. Nothing fires while typing or
+  with a dialog open.
 
 ### The render pipeline of a panel zone
 
@@ -594,26 +765,33 @@ same files as the studio.
 |---|---|
 | `POST /api/assets` | Raw file body with its `Content-Type`. `200 { id, url, type, size }` (also for a file already stored); 403, 413, 415, 400 for an empty or aborted body |
 | `GET /api/assets` | `[{ id, url, type, kind, size, mtime }]`, newest first |
-| `GET /api/assets?unused=1` | The same, minus every id the saved `config.json` text contains as `/api/assets/<id>` |
+| `GET /api/assets?unused=1` | The same, minus every file whose hash the saved `config.json` or a library item mentions (in an asset URL, an asset id, or bare: a canvas zone names its assets by hash) |
 | `GET` / `HEAD /api/assets/<id>` | The file: its sniffed type, `Cache-Control: public, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`, `Accept-Ranges: bytes`; a `Range: bytes=…` header gets 206 with `Content-Range`, or 416 past the end |
 | `DELETE /api/assets/<id>` | 204, or 404 when it is not there |
 
 Rules the server enforces:
 
 - **Type by content.** The first bytes decide the type (`sniffType`): PNG,
-  JPEG, GIF, WebP, AVIF, MP4 (ISO-BMFF video brands) and WebM. Any Matroska
-  EBML header counts as WebM (DocType `webm` or `matroska`: tools write the
-  latter into `.webm` files, and Chromium plays both), and `video/x-matroska`
-  is declared WebM. SVG, HTML, HEIC, QuickTime and anything else are refused
-  (415), and the declared `Content-Type` must name the same type.
-- **Size.** Images up to 25 MB, videos up to 300 MB (413). A `Content-Length`
+  JPEG, GIF, WebP, AVIF, BMP, ICO, MP4 (ISO-BMFF video brands), WebM, and
+  the fonts TTF, OTF, TTC, WOFF and WOFF2 (for imported InfoPanel profiles
+  and the library). Any Matroska EBML header counts as WebM (DocType `webm`
+  or `matroska`: tools write the latter into `.webm` files, and Chromium
+  plays both), and `video/x-matroska` is declared WebM. SVG is text: it is
+  taken when its first element is `<svg>` (after an XML prologue, comments
+  and a doctype, `isSvgText`), and always served with
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline';
+  img-src data:; sandbox`, so opened on its own it runs nothing. HTML,
+  HEIC, QuickTime and anything else are refused (415), and the declared
+  `Content-Type` must name the same type.
+- **Size.** Images up to 25 MB, SVG up to 256 KB, videos up to 300 MB, fonts
+  up to 30 MB (413). A `Content-Length`
   over the limit is refused before reading; otherwise the body is streamed to
   a temp file while it is hashed (never held in memory) and the upload stops
   at the limit. The temp file is deleted on any refusal and renamed to the id
   on success; temp files left by a restart are removed when the server
   starts.
 - **Paths.** A file path is only built from an id matching
-  `^[a-f0-9]{64}\.(png|jpg|gif|webp|avif|mp4|webm)$`; anything else under
+  `^[a-f0-9]{64}\.(png|jpg|gif|webp|avif|bmp|ico|svg|mp4|webm|ttf|otf|ttc|woff|woff2)$`; anything else under
   `/api/assets/` is 404. There is no directory listing other than the JSON
   list.
 - **Writes.** `POST` and `DELETE` need the header `X-Dashboard-Asset: 1`
@@ -629,6 +807,28 @@ Rules the server enforces:
   read.
 - **Read errors.** A file that vanishes while being streamed (a concurrent
   delete) destroys that response; it never crashes the server.
+
+### For the InfoPanel import (`server/library.mjs`, `infopanel-local.mjs`, `font-proxy.mjs`)
+
+| Route | Answer |
+|---|---|
+| `GET /api/library` | My library: every item, newest first; `data` over 256 KB (an imported canvas) is left out and its size given as `dataSize` |
+| `GET /api/library/<id>` | One item, whole |
+| `POST /api/library` | JSON `{ kind, name, files?, meta?, data?, copies? }` → 201 with the item (id and stamps made here) |
+| `PUT /api/library/<id>` | The fields to change → 200; `kind` cannot change |
+| `DELETE /api/library/<id>` | 204, or 404 |
+| `GET /api/infopanel/installed` | The profiles of the InfoPanel installed here: `[{ guid, name, bytes, assets }]` (this machine only) |
+| `GET /api/infopanel/installed/<guid>/Profile.xml`, `DisplayItems.xml`, `assets/<name>` | Its files, read-only |
+| `GET /api/font-proxy?url=` | A Font Squirrel URL fetched for the page (no CORS there); redirects stay on font hosts, 30 MB cap, the catalogue cached a week in `<data dir>\cache` |
+
+A library item (`kind`: image, video, font, svg, gauge, panel, style,
+canvas) is one JSON file in `<data dir>\library`, named by its id
+(`lib_` + 12 characters, the only thing a path is built from). Its bytes
+live in the asset store, named in `files` by asset id; `meta` (tags, sizes,
+colours, at most 64 KB) is what the Library page filters by; `copies` lists
+where it was placed (copy semantics: a profile never points back). Writes
+need `X-Dashboard-Library: 1` and JSON, from loopback unless
+`ALLOW_REMOTE_UPLOAD=1`; an item is at most 8 MB.
 
 #### Request gate (`server/request-guard.mjs`)
 

@@ -19,6 +19,7 @@ import {
   type Widget,
   type WidgetKind,
 } from "./panel-model";
+import type { StoredCanvas } from "./infopanel/import/stored.ts";
 
 /**
  * Layout engine — the dashboard is a grid of *placements*. Each placement
@@ -34,6 +35,14 @@ export const CARDS_ID = "cards";
 export const PANEL_ID = "panel";
 /** Sentinel module id for a zone with no widget (a drawn, unfilled region). */
 export const BLANK_MODULE = "blank";
+/** Sentinel module id for a canvas zone: an imported InfoPanel profile (`Placement.canvas`). */
+export const CANVAS_ID = "infopanel";
+/** A canvas zone's title: the imported profile's name (undefined for other zones). */
+export function canvasTitle(p: Pick<Placement, "module" | "canvas">): string | undefined {
+  if (p.module !== CANVAS_ID) return undefined;
+  const name: unknown = p.canvas?.source?.name;
+  return typeof name === "string" && name ? name : "InfoPanel canvas";
+}
 /** Fixed row height (design px) for "scroll" profiles — the page scrolls. */
 export const SCROLL_ROW_H = 120;
 
@@ -66,8 +75,8 @@ export interface Placement {
   /** Unique instance id (React key). */
   id: string;
   /**
-   * Registry module id, CARDS_ID, BLANK_MODULE, or PANEL_ID (custom panel)
-   * — the widget the zone hosts.
+   * Registry module id, CARDS_ID, BLANK_MODULE, PANEL_ID (custom panel) or
+   * CANVAS_ID (canvas zone) — the widget the zone hosts.
    */
   module: string;
   /** 1-based grid column this zone starts in. */
@@ -85,6 +94,12 @@ export interface Placement {
   design?: PlacementDesign;
   /** Present when this placement renders a custom panel (group). */
   panel?: PanelDef;
+  /**
+   * Present when this placement is a canvas zone (CANVAS_ID): an imported
+   * InfoPanel profile in its stored form, checked against InfoPanel's schema
+   * when drawn (src/lib/infopanel/canvas.ts).
+   */
+  canvas?: StoredCanvas;
   /**
    * "follow": the dashboard / profile style only — the widget's own look
    * values stay stored but are ignored; "custom": its own look wins.

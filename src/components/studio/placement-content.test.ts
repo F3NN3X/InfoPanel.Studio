@@ -1,7 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { placementContent, placementPrefixes } from "./placement-content";
-import { BLANK_MODULE, CARDS_ID, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, CARDS_ID, type Placement } from "@/lib/layout";
 import { YR_FORECAST_KEY } from "@/lib/sensors";
 import { SENSORLESS } from "@/widgets/module";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
@@ -53,6 +53,21 @@ describe("placementPrefixes", () => {
     // the visualiser's levels (it read them only when another zone on the profile opened that stream)
     expect(placementPrefixes(place({ module: "NowPlaying" }))).toContain("plugins.audio-level-meter.");
     expect(placementPrefixes(place({ module: "Calendar" }))).toEqual(["plugins.clock-plugin."]);
+  });
+
+  it("subscribes a canvas zone to the keys its items read", () => {
+    const canvas = { items: [{ kind: "Sensor", $: { key: "libre.cpu" } }, { kind: "Group", DisplayItems: [{ kind: "Bar", $: { key: "libre.gpu" } }] }] };
+    expect(placementPrefixes(place({ module: CANVAS_ID, canvas: canvas as never }))).toEqual(["libre.cpu", "libre.gpu"]);
+    expect(placementPrefixes(place({ module: CANVAS_ID }))).toEqual([]);
+  });
+});
+
+describe("canvas zones", () => {
+  it("names the zone after the imported profile and draws nothing without a canvas", () => {
+    const canvas = { format: "infopanel-canvas", version: 1, source: { name: "ARCv2" }, items: [] } as never;
+    const r = placementContent(place({ module: CANVAS_ID, canvas }), {}, []);
+    expect(r).toMatchObject({ hasData: true, title: "ARCv2" });
+    expect(placementContent(place({ module: CANVAS_ID }), {}, [])).toMatchObject({ content: null, hasData: false, title: "InfoPanel canvas" });
   });
 });
 

@@ -26,6 +26,10 @@ interface StudioInspectorProps {
   setScopeStyle: DocumentState["setScopeStyle"];
   /** Open a data point in Sources mode (a Bound data row); without it, Sources just opens. */
   onOpenPoint?: (key: string) => void;
+  /** Open a canvas zone's items in the canvas editor. */
+  onEditCanvas?: (zoneId: string) => void;
+  /** Open a Custom gauge zone's spec in the Gauges page. */
+  onEditGauge?: (zoneId: string) => void;
 }
 
 /**
@@ -42,6 +46,8 @@ export function StudioInspector({
   documentProps,
   setScopeStyle,
   onOpenPoint,
+  onEditCanvas,
+  onEditGauge,
 }: StudioInspectorProps) {
   const { selected, selectedWidgetId, selection } = sel;
   const { mode, sheet, setFloatOpen } = ui.studioLayout;
@@ -127,6 +133,8 @@ export function StudioInspector({
         onEditGlobalTheme={editGlobalTheme}
         onOpenPoint={onOpenPoint ?? openExplorer}
         onOpenExplorer={openExplorer}
+        onEditCanvas={onEditCanvas && (() => onEditCanvas(selected.id))}
+        onEditGauge={onEditGauge && (() => onEditGauge(selected.id))}
       />
     ) : (
       <DocumentInspector

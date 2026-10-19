@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative; width:100%; height:100%; background:{{ bg }}; display:grid; place-items:center; overflow:hidden">
+  <sc-if value="{{ media }}"><div style="position:absolute; inset:0; background:radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.16), transparent 55%), radial-gradient(90% 70% at 90% 100%, rgba(0,0,0,.5), transparent 60%)"></div></sc-if>
+  <sc-if value="{{ tall }}"><div style="position:relative; height:86%; aspect-ratio:1/4; border-radius:3px; background:{{ grad }}; box-shadow:0 0 0 1px rgba(255,255,255,.12)"></div></sc-if>
+  <sc-if value="{{ video }}">
+    <span style="position:relative; width:{{ playSize }}; height:{{ playSize }}; border-radius:50%; background:rgba(0,0,0,.45); backdrop-filter:blur(4px); display:grid; place-items:center; font-family:'Material Symbols Rounded'; font-size:{{ playIcon }}; color:#fff">play_arrow</span>
+    <span style="position:absolute; right:6px; bottom:6px; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.6); font-family:'Geist Mono',monospace; font-size:10px; color:#fff">{{ dur }}</span>
+  </sc-if>
+  <sc-if value="{{ glyph }}"><span style="font-family:'Material Symbols Rounded'; font-weight:300; font-size:{{ glyphSize }}; color:#c8c8ce">{{ glyphName }}</span></sc-if>
+  <sc-if value="{{ font }}"><span style="font-family:{{ ff }}; font-size:{{ fontSize }}; color:#ededf0; line-height:1">Aa</span></sc-if>
+  <sc-if value="{{ gauge }}"><div style="width:{{ gW }}; height:{{ gH }}"><dc-import name="GaugeRender" style="width:100%; height:100%" g="{{ g }}" v="{{ v }}" pal="{{ pal }}" uid="{{ uid }}" hint-size="100%,100%"></dc-import></div></sc-if>
+  <sc-if value="{{ panel }}"><div style="width:72%; height:66%; display:grid; gap:4px; grid-template-columns:{{ gCols }}; grid-template-rows:{{ gRows }}"><sc-for list="{{ cells }}" as="c" hint-placeholder-count="3"><div style="grid-column:{{ c.col }}; grid-row:{{ c.row }}; border-radius:4px; background:#24242b; border:1px solid #34343c"></div></sc-for></div></sc-if>
+  <sc-if value="{{ style }}"><div style="width:58%; height:58%; border-radius:9px; background:{{ sBg }}; border:1px solid {{ sBd }}; box-shadow:{{ sSh }}; display:flex; flex-direction:column; justify-content:flex-end; gap:5px; padding:9px"><span style="width:50%; height:5px; border-radius:3px; background:{{ sFg }}"></span><span style="width:80%; height:5px; border-radius:3px; background:rgba(255,255,255,.18)"></span></div></sc-if>
+  <sc-if value="{{ missing }}"><span style="font-family:'Material Symbols Rounded'; font-size:20px; color:oklch(0.68 0.17 25)">broken_image</span></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:200,&quot;height&quot;:125},&quot;item&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sm&quot;,&quot;md&quot;,&quot;lg&quot;],&quot;default&quot;:&quot;md&quot;},&quot;pal&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const it = this.props.item || {}, big = this.props.size === 'lg', sm = this.props.size === 'sm';
+    const c = it.colors || ['#18181d', '#22222a', '#18181d'];
+    const grad = `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 55%, ${c[2]} 100%)`;
+    const k = it.kind, missing = !!it.missing;
+    const media = ['image', 'video', 'canvas'].includes(k) && !missing && !it.tall;
+    const gs = it.gshape;
+    let g = it.g;
+    if (!g) g = gs === 'seq' ? { shape: 'arc', sweep: 360, thick: 22, fill: 'solid', ticks: false, value: false, seg: true, trackOp: 14 }
+      : gs === 'bar' ? { shape: 'bar', thick: 24, fill: 'zones', ticks: false, value: false, pattern: true }
+      : gs === 'liquid' ? { shape: 'liquid', tank: 'hex', fill: 'gradient', value: false }
+      : { shape: 'arc', sweep: 270, thick: 18, fill: 'gradient', ticks: false, value: false };
+    const cells = (it.cells || []).map(([x, y, w, h]) => ({ col: `${x + 1} / span ${w}`, row: `${y + 1} / span ${h}` }));
+    const cw = Math.max(1, ...(it.cells || [[0, 0, 1, 1]]).map(a => a[0] + a[2])), rh = Math.max(1, ...(it.cells || [[0, 0, 1, 1]]).map(a => a[1] + a[3]));
+    const neon = it.id === 'st-neon';
+    return {
+      bg: missing ? '#1a1214' : media ? grad : it.tall ? '#101013' : k === 'gauge' ? '#111115' : '#141418', grad, media, tall: !!it.tall && !missing,
+      video: k === 'video', dur: it.dur || '', playSize: big ? '52px' : sm ? '22px' : '34px', playIcon: big ? '30px' : sm ? '14px' : '20px',
+      glyph: k === 'icon' || k === 'svg', glyphName: it.glyph || 'image', glyphSize: big ? '64px' : sm ? '20px' : '34px',
+      font: k === 'font', ff: it.ff || 'Geist', fontSize: big ? '72px' : sm ? '18px' : '38px',
+      gauge: k === 'gauge', g, v: Math.round((it.pct ?? 0.65) * 100), pal: gs === 'seq' ? ['#e11d48', '#fb7185'] : (this.props.pal || undefined), uid: 'th-' + (it.id || 'x') + (this.props.size || ''),
+      gW: big ? '62%' : '58%', gH: big ? '78%' : '84%',
+      panel: k === 'panel', cells, gCols: `repeat(${cw}, 1fr)`, gRows: `repeat(${rh}, 1fr)`,
+      style: k === 'style', sBg: neon ? '#0a0a0f' : 'rgba(148,163,184,.14)', sBd: neon ? '#22d3ee' : 'rgba(255,255,255,.18)', sSh: neon ? '0 0 14px rgba(34,211,238,.45)' : '0 8px 20px rgba(0,0,0,.35)', sFg: neon ? '#22d3ee' : '#cbd5e1',
+      missing
+    };
+  }
+}
+</script>
+</body>
+</html>

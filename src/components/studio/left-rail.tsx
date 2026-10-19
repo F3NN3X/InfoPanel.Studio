@@ -1,6 +1,6 @@
 import { useCallback, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Bell, Database, Keyboard, Layers, PanelTop, SquarePlus, Monitor, type LucideIcon } from "lucide-react";
+import { Bell, Database, Gauge, Images, Keyboard, Layers, PanelTop, SquarePlus, Monitor, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** The left panel's width: the original 256px is the least, a drag widens it up to the most. */
@@ -45,7 +45,7 @@ export function useStoredDrawerWidth() {
 
 /** The left panels; Sources is a canvas mode, not a panel. */
 export type Drawer = "add" | "layers" | "profiles" | "island" | "alerts";
-export type RailItem = Drawer | "sources";
+export type RailItem = Drawer | "library" | "gauges" | "sources";
 
 const RAIL: { id: RailItem; label: string; icon: LucideIcon }[] = [
   { id: "layers", label: "Layers", icon: Layers },
@@ -53,6 +53,8 @@ const RAIL: { id: RailItem; label: string; icon: LucideIcon }[] = [
   { id: "profiles", label: "Profiles", icon: Monitor },
   { id: "island", label: "Dynamic Island", icon: PanelTop },
   { id: "alerts", label: "Alerts", icon: Bell },
+  { id: "library", label: "Library", icon: Images },
+  { id: "gauges", label: "Gauges", icon: Gauge },
   { id: "sources", label: "Data sources", icon: Database },
 ];
 

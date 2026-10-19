@@ -1,6 +1,8 @@
 import { BLANK_MODULE, type Placement } from "@/lib/layout";
 import { DND_MIME, DND_MIME_PANEL, ALL_MODULES } from "./studio-modules";
 import { zoneFits, type ZoneRect } from "./zone-geometry";
+import type { LibraryItem as MyLibraryItem } from "@/lib/library";
+import { activeLibraryDrag, libraryDragOf } from "@/lib/my-library/drag";
 
 type Size = { cols: number; rows: number };
 
@@ -8,6 +10,20 @@ type Size = { cols: number; rows: number };
 export interface LibraryItem {
   kind: "module" | "panel";
   id: string;
+}
+
+/**
+ * What the canvas takes in a drop: an Add panel widget or panel preset, or a My library card
+ * (spec §8; `item` is the card when this window started the drag, else only its id is known).
+ */
+export type CanvasDrop = LibraryItem | { kind: "mylib"; id: string; item?: MyLibraryItem };
+
+/** A My library card's drag, from its data (at the drop) or the card this window is dragging. */
+export function myLibraryDropOf(getData: (type: string) => string): CanvasDrop | null {
+  const drag = libraryDragOf(getData);
+  if (!drag) return null;
+  const active = activeLibraryDrag();
+  return { kind: "mylib", id: drag.libraryItemId, item: active?.id === drag.libraryItemId ? active : undefined };
 }
 
 /**
@@ -62,4 +78,21 @@ export function dropGhost(
     rows: size.rows,
   };
   return { rect, ok: zoneFits(rect, placements, grid.cols, grid.rows) };
+}
+
+/** A drop point inside a canvas zone's drawn profile, as a fraction of its width and height. */
+export interface CanvasPoint {
+  zoneId: string;
+  fx: number;
+  fy: number;
+}
+
+/** The canvas zone profile under a screen point (CanvasZone marks it `data-ip-canvas`). */
+export function canvasPointAt(x: number, y: number): CanvasPoint | null {
+  const el = document.elementsFromPoint(x, y).find((e) => e.hasAttribute("data-ip-canvas"));
+  const zoneId = el?.closest("[data-zone-id]")?.getAttribute("data-zone-id");
+  if (!el || !zoneId) return null;
+  const box = el.getBoundingClientRect();
+  if (box.width <= 0 || box.height <= 0) return null;
+  return { zoneId, fx: (x - box.left) / box.width, fy: (y - box.top) / box.height };
 }
