@@ -85,6 +85,8 @@ export interface RingLayout {
   details: boolean;
   /** Room for a pace line under each reset. */
   pace: boolean;
+  /** Without room beside the rings: the reset time in a line under each ring. */
+  below: boolean;
   h: number;
 }
 const RING_MIN = 44;
@@ -95,6 +97,8 @@ const DETAILS_W = 150;
 const DETAILS_H = 66;
 /** The same with a pace line under each reset. */
 const PACE_H = 96;
+/** The reset line under a ring. */
+const BELOW_H = 14;
 
 /** The biggest rings that fit `w` × `room` (agents stacked or side by side), or null when they would be too small. */
 export function ringLayout(n: number, w: number, room: number): RingLayout | null {
@@ -102,11 +106,15 @@ export function ringLayout(n: number, w: number, room: number): RingLayout | nul
     const colW = across ? (w - (n - 1) * AGENT_GAP) / n : w;
     const rows = across ? 1 : n;
     const byH = (room - rows * (HEAD_H + 4) - (rows - 1) * AGENT_GAP) / rows;
-    const d = Math.floor(Math.min(byH, (colW - RING_GAP) / 2, RING_MAX));
+    const wide = Math.floor(Math.min(byH, (colW - RING_GAP) / 2, RING_MAX));
     // The reset times beside the rings need their own height, and width.
-    const details = colW - 2 * d - RING_GAP - 16 >= DETAILS_W && byH >= DETAILS_H;
+    const details = colW - 2 * wide - RING_GAP - 16 >= DETAILS_W && byH >= DETAILS_H;
     const pace = details && byH >= PACE_H;
-    return { d, across, details, pace, h: rows * (HEAD_H + 4 + Math.max(d, details ? (pace ? PACE_H : DETAILS_H) : 0)) + (rows - 1) * AGENT_GAP };
+    // Else they go under the rings, if the rings stay big enough with the line's height taken off.
+    const under = Math.floor(Math.min(byH - BELOW_H, (colW - RING_GAP) / 2, RING_MAX));
+    const below = !details && under >= RING_MIN;
+    const d = below ? under : wide;
+    return { d, across, details, pace, below, h: rows * (HEAD_H + 4 + Math.max(d + (below ? BELOW_H : 0), details ? (pace ? PACE_H : DETAILS_H) : 0)) + (rows - 1) * AGENT_GAP };
   };
   const best = [fit(false), ...(n > 1 ? [fit(true)] : [])].reduce((a, b) => (b.d > a.d ? b : a));
   return best.d >= RING_MIN ? best : null;
@@ -227,17 +235,24 @@ function RingPair({ id, plan, percent, now, layout }: { id: AgentId; plan: Agent
       <AgentName id={id} />
       <div className="flex min-w-0 items-center" style={{ gap: RING_GAP }}>
         {wins.map(({ k, short, view }) => (
-          <div key={k} className={`shrink-0 ${dimmed(view) ? DIM_CLASS : ""}`} style={{ width: d, height: d }}>
-            <Ring value={shown(view.w, percent)} t={toneOf(view.w)} thickness={d >= 72 ? 9 : 11} className="h-full w-full">
-              {d >= 56 && (
-                <span className="mb-1 leading-none text-[color:var(--w-muted)]" style={{ fontSize: small }}>
-                  {short}
+          <div key={k} className="shrink-0" style={{ width: d }}>
+            <div className={dimmed(view) ? DIM_CLASS : ""} style={{ width: d, height: d }}>
+              <Ring value={shown(view.w, percent)} t={toneOf(view.w)} thickness={d >= 72 ? 9 : 11} className="h-full w-full">
+                {d >= 56 && (
+                  <span className="mb-1 leading-none text-[color:var(--w-muted)]" style={{ fontSize: small }}>
+                    {short}
+                  </span>
+                )}
+                <span className="leading-none" style={{ fontSize: big }}>
+                  <Pct view={{ ...view, stale: false }} percent={percent} />
                 </span>
-              )}
-              <span className="leading-none" style={{ fontSize: big }}>
-                <Pct view={{ ...view, stale: false }} percent={percent} />
-              </span>
-            </Ring>
+              </Ring>
+            </div>
+            {layout.below && (
+              <div className={`truncate text-center text-[11px] tabular-nums leading-[14px] text-[color:var(--w-faint)] ${dimmed(view) ? DIM_CLASS : ""}`} style={{ height: BELOW_H }}>
+                {view.reset ? "New window" : view.w.resetsAt !== undefined ? resetIn(Math.max(0, view.w.resetsAt - now)) : ""}
+              </div>
+            )}
           </div>
         ))}
         {layout.details && (

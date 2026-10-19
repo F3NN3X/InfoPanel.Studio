@@ -127,9 +127,10 @@ const MAX_CONTROL_BYTES = 4096;
 const CONTROL_ACTIONS = new Set(["page", "profile", "rotate", "touch", "alert"]);
 const alerts = createAlerts({ file: ALERTS_FILE, readConfig: readConfigFile, control });
 // The coding agents' token use, read from their own session files under the user's home.
-const agentUsage = createAgentUsage();
-agentUsage.start();
+// Each scan publishes at once; started after `extras` exists, as a scan with no files ends synchronously.
+const agentUsage = createAgentUsage({ onScan: () => extras.agents.refresh() });
 const extras = createExtras({ file: INTEGRATIONS_FILE, log: (m) => console.log(m), agentUsage });
+agentUsage.start();
 const MAX_INTEGRATIONS_BYTES = 16 * 1024;
 /** A hook's or statusline's JSON (a tool's input can be large; only metadata is kept). */
 const MAX_AGENT_BYTES = 512 * 1024;

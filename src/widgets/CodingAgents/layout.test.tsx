@@ -1,7 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { AgentSession, Agents } from "@/lib/agents";
-import { CodingAgentsView, SessionRow, fitBreakdown } from "../CodingAgents";
+import { CodingAgentsView, SessionRow, fitBreakdown, wantsBody } from "../CodingAgents";
 import { dayKey, heatmapFit, heatmapWeeks, levelOf } from "./history";
 import { barDensity, resetIn, ringLayout, shown } from "./limits";
 
@@ -40,6 +40,17 @@ describe("Coding Agents limits", () => {
     expect(ringLayout(1, 120, 40)).toBeNull();
     expect(ringLayout(1, 500, 150)?.details).toBe(true);
     expect(ringLayout(1, 160, 150)?.details).toBe(false);
+  });
+
+  it("puts the reset under each ring when there is no room beside them", () => {
+    // A 4x2 cell beside the sessions: the limits column is about 312 wide.
+    expect(ringLayout(1, 312, 150)).toMatchObject({ below: true, details: false });
+    expect(ringLayout(1, 312, 150)!.d).toBeGreaterThanOrEqual(44);
+    expect(ringLayout(1, 500, 150)).toMatchObject({ details: true, below: false });
+    expect(ringLayout(1, 100, 70)).toMatchObject({ details: false, below: false });
+    expect(ringLayout(1, 312, 50)).toBeNull();
+    const l = ringLayout(1, 312, 150)!;
+    expect(l.h).toBeLessThanOrEqual(150);
   });
 
   it("adds a pace line to the ring details only with room for it", () => {
@@ -221,5 +232,55 @@ describe("Coding Agents limit freshness", () => {
     const html = text(<CodingAgentsView data={{}} all={plan(at, at + 3 * 3_600_000, 60)} />);
     expect(html).toContain("at this pace");
     expect(text(<CodingAgentsView data={{}} all={plan(at, at + 3_600_000, 10)} />)).not.toContain("at this pace");
+  });
+});
+
+describe("Coding Agents small cells", () => {
+  const at = Date.now();
+  const AGENTS: Agents = {
+    sessions: [{ key: "a", agent: "claude", project: "myproject", state: "working", since: at, tool: "Bash" }],
+    plan: { claude: { fiveHour: { used: 31, resetsAt: at + 3 * 3_600_000 }, sevenDay: { used: 67 }, at } },
+    usage: { claude: { today: 1e6, history: 2e6, days: [{ day: dayKey(new Date(at)), input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 1e6 }] } },
+  };
+  const render = (w: number, h: number, extra = {}) => {
+    box.w = w;
+    box.h = h;
+    try {
+      return text(<CodingAgentsView data={{}} all={AGENTS} {...extra} />);
+    } finally {
+      box.w = 0;
+      box.h = 0;
+    }
+  };
+
+  it("wants the body from 200 px in a tile or column, and the summary elsewhere", () => {
+    expect(wantsBody({ shape: "tile", w: 228, h: 228 }, "auto")).toBe(true);
+    expect(wantsBody({ shape: "column", w: 228, h: 464 }, undefined)).toBe(true);
+    expect(wantsBody({ shape: "column", w: 110, h: 228 }, "auto")).toBe(false);
+    expect(wantsBody({ shape: "tile", w: 110, h: 110 }, "auto")).toBe(false);
+    expect(wantsBody({ shape: "strip", w: 464, h: 110 }, "auto")).toBe(false);
+    expect(wantsBody({ shape: "tile", w: 228, h: 228 }, "on")).toBe(false);
+  });
+
+  it("lays out the limits and a session at 2x2 and 2x4, not the summary card", () => {
+    for (const [w, h] of [[228, 228], [228, 464]]) {
+      const html = render(w, h);
+      expect(html).toContain('data-wp-view="body"');
+      expect(html).toContain(">31%<");
+      expect(html).toContain(">67%<");
+      expect(html).toContain("myproject");
+    }
+    expect(render(228, 228)).not.toContain("This week");
+  });
+
+  it("keeps the summary at 1x1 and when it is forced on", () => {
+    expect(render(110, 110)).toContain('data-wp-view="compact"');
+    expect(render(228, 228, { compactView: "on" })).toContain('data-wp-view="compact"');
+  });
+
+  it("draws the reset under rings beside the sessions at 4x2", () => {
+    const html = render(624, 308, { limitStyle: "rings" });
+    expect(html).toContain("leading-[14px]");
+    expect(html).toContain("myproject");
   });
 });
