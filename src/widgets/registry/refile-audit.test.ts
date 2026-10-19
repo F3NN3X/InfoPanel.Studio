@@ -2,16 +2,25 @@ import { describe, expect, it } from "vitest";
 import { allSections, inspectorTabs, tabStates, widgetContext } from "@/components/studio/inspector-model";
 import { OTHER_TITLE } from "@/components/studio/inspector-categories";
 import { modules } from "@/modules";
+import { INSPECTOR_META } from "./inspector-meta";
 
 // The audit of the refile (widget settings v2, SPEC §6.4 and §9), over every widget filed so far:
-// the nine sample widgets and the batches of the rest. Each batch adds its widgets here.
+// the nine sample widgets and the three batches of the rest: all 54.
 const REFILED = [
   "SystemOverview", "NowPlaying", "SensorGroup", "AudioMeter", "Weather", "CpuMonitor", "Uptime", "SteamProfile", "WebPage",
   // Batch A
   "MenuBar", "KpiTiles", "StatusTracker", "SystemStatus", "Vitals", "ServiceHealth", "ProcessList", "CoreHeatmap", "GpuRings", "GpuMonitor", "MemoryUsage", "Thermals", "PowerDraw", "Fans",
   // Batch B
   "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "CodingAgents", "Calendar", "Forecast", "SensorValue", "CustomGauge", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink",
+  // Batch C
+  "FpsMonitor", "GameSpotlight", "OsdStrip", "FramePacing", "PlaytimeShare", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews", "TextFile", "Notifications", "Departures", "Bluetooth", "StreamDeck",
 ];
+
+it("covers all 54 widgets", () => {
+  expect(REFILED).toHaveLength(54);
+  expect(new Set(REFILED).size).toBe(54);
+  expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
+});
 
 describe.each(REFILED)("%s", (id) => {
   const mod = modules.find((m) => m.id === id)!;

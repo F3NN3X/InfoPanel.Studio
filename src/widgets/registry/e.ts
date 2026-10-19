@@ -5,7 +5,7 @@ import { styleSubsetSettings } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting } from "@/modules/types";
 import { templateModule, type TemplateOptions } from "../module";
 import { INSPECTOR_META } from "./inspector-meta";
-import { boolOf, boolSetting, enumSetting, numberOf, numberSetting, stringOf, textSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, numberOf, numberSetting, stringOf, textSetting } from "./settings-kit";
 import Bluetooth, { meta as bluetoothMeta, type BluetoothProps } from "../Bluetooth";
 import Departures, { meta as departuresMeta, type DeparturesProps } from "../Departures";
 import Notifications, { meta as notificationsMeta, type NotificationsProps } from "../Notifications";
@@ -30,7 +30,7 @@ export const webPageOptions: TemplateOptions<Pick<WebPageProps, "url">> = {
   toProps: (s) => ({ url: String(s.url ?? "") }),
 };
 
-export const TEXTFILE_SETTINGS: ModuleSetting[] = [boolSetting("showMeta", "Size / lines / status header", true, { group: "Content" })];
+export const TEXTFILE_SETTINGS: ModuleSetting[] = [boolSetting("showMeta", "Size / lines / status header", true, { group: "Details" })];
 
 export const textFileOptions: TemplateOptions<Pick<TextFileProps, "showMeta">> = {
   meta: textFileMeta,
@@ -40,8 +40,8 @@ export const textFileOptions: TemplateOptions<Pick<TextFileProps, "showMeta">> =
 };
 
 export const NOTIFICATIONS_SETTINGS: ModuleSetting[] = [
-  boolSetting("showHistory", "History list", true, { group: "Content" }),
-  numberSetting("maxLines", "Max history lines", 50, { min: 1, max: 200, step: 5, group: "Content" }),
+  boolSetting("showHistory", "History list", true, { group: "History list" }),
+  numberSetting("maxLines", "Max history lines", 50, { min: 1, max: 200, step: 5, group: "History", tab: "behaviour" }),
 ];
 
 export const notificationsOptions: TemplateOptions<Pick<NotificationsProps, "showHistory" | "maxLines">> = {
@@ -52,7 +52,7 @@ export const notificationsOptions: TemplateOptions<Pick<NotificationsProps, "sho
   island: notificationsIsland,
 };
 
-export const DEPARTURES_SETTINGS: ModuleSetting[] = [boolSetting("showStatus", "Status line", true, { group: "Content" })];
+export const DEPARTURES_SETTINGS: ModuleSetting[] = [boolSetting("showStatus", "Status line", true, { group: "Status line" })];
 
 export const departuresOptions: TemplateOptions<Pick<DeparturesProps, "showStatus">> = {
   meta: departuresMeta,
@@ -61,24 +61,27 @@ export const departuresOptions: TemplateOptions<Pick<DeparturesProps, "showStatu
   toProps: (s) => ({ showStatus: boolOf(s.showStatus) }),
 };
 
-/** `view` bundles the three toggles through `applies` (each view sets all three), as the legacy widget did; the toggles carry the behaviour. */
+/** `view` is a preset: it sets the three toggles (each view sets all three), as the legacy widget did; changed afterwards, the row reads Custom. */
 export const BLUETOOTH_SETTINGS: ModuleSetting[] = [
-  enumSetting(
-    "view",
-    "View",
-    "full",
-    [
+  {
+    key: "view",
+    label: "Preset",
+    type: "preset",
+    default: "full",
+    options: [
       { value: "full", label: "Status + devices", applies: { showStatus: true, showDevices: true, showBattery: true } },
       { value: "devices", label: "Devices + battery", applies: { showStatus: false, showDevices: true, showBattery: true } },
       { value: "status", label: "Status only", applies: { showStatus: true, showDevices: false, showBattery: false } },
     ],
-    { group: "Content" },
-  ),
-  boolSetting("showStatus", "Bluetooth status", true, { group: "Content" }),
-  boolSetting("showDevices", "Paired devices", true, { group: "Content" }),
-  boolSetting("showBattery", "Battery levels", true, { group: "Content" }),
-  { key: "batteryMidColor", label: "Battery medium color", type: "color", default: "", group: "Battery colors" },
-  { key: "batteryLowColor", label: "Battery low color", type: "color", default: "", group: "Battery colors" },
+    group: "Display",
+    hint: "Sets the three toggles below. Change one and the preset reads Custom.",
+  },
+  boolSetting("showStatus", "Bluetooth status", true, { group: "Display" }),
+  boolSetting("showDevices", "Paired devices", true, { group: "Display" }),
+  boolSetting("showBattery", "Battery levels", true, { group: "Display" }),
+  // The battery levels follow the theme's Warning and Critical ("" = the widget's own amber and red).
+  colorSetting("batteryMidColor", "Battery medium", { role: "warn", more: false }),
+  colorSetting("batteryLowColor", "Battery low", { role: "crit", more: false }),
 ];
 
 export const bluetoothOptions: TemplateOptions<Pick<BluetoothProps, "showStatus" | "showDevices" | "showBattery" | "batteryMidColor" | "batteryLowColor">> = {
@@ -95,8 +98,8 @@ export const bluetoothOptions: TemplateOptions<Pick<BluetoothProps, "showStatus"
 };
 
 export const STREAMDECK_SETTINGS: ModuleSetting[] = [
-  boolSetting("showProfile", "Active profile", true, { group: "Content" }),
-  boolSetting("showLabels", "Button labels", true, { group: "Content" }),
+  boolSetting("showProfile", "Active profile", true, { group: "Profile" }),
+  boolSetting("showLabels", "Button labels", true, { group: "Buttons" }),
 ];
 
 export const streamDeckOptions: TemplateOptions<Pick<StreamDeckProps, "showProfile" | "showLabels">> = {

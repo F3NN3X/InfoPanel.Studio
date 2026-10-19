@@ -65,13 +65,21 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   write and Network download / upload = Series 1 and 2, the audio level colours = OK, hot / clip and muted = Critical,
   Visualizer colours = Series 1-3 and Critical for the peak caps). Custom gauge's gauge and frames data is no longer
   listed in the inspector.
+- Widget settings v2 for the gaming and plugin-card widgets (FPS monitor, Game spotlight, OSD strip, Frame pacing,
+  Playtime share, Steam friends, Steam game, Achievements, Steam library, Steam news, Text file, Notifications,
+  Departures, Bluetooth, Stream Deck): rows are filed by task. FPS monitor's View and Bluetooth's View are presets that
+  set their toggles (and read Custom once one is changed), the FPS target is in Data, Steam friends' sort order,
+  Notifications' history length, Frame pacing's samples and Game spotlight's Ken Burns motion are in Behaviour, and the
+  scrim darkness is a per-widget look row. Their colour rows follow the theme palette (FPS ring and sparkline = Series 1
+  and 2, playtime slices = Series 1-6, friend statuses = Series 1 / OK / Warning / Critical / Series 2, Bluetooth
+  battery = Warning and Critical).
 
 ### Changed
 - Config v8 renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,
   `waveformSensitivity` → `vizGain`, `visualizerBarCount` → `vizBars`, `visualizerAlign` → `vizAlign`,
   `visualizerOrientation` → `vizOrientation`, `visualizerMinLevel` → `vizMinLevel`, `waveformLineWidth` → `vizLine`,
   `waveformFadeEdges` → `vizFade`, `waveformFadeWidth` → `vizFadeWidth`) and reads the old engines' keys once into what
-  they drew, and Sensor group's `auto` → `mode`. A widget with an own colour in a row that now follows a palette role
+  they drew, and Sensor group's `auto` → `mode`, and stores FPS monitor's Trend view with its sparkline on (what it drew). A widget with an own colour in a row that now follows a palette role
   gets Widget colors set to custom, so nothing repaints. Weather's Forecast preset no longer sets 7 forecast days.
   Sensor group's temperature unit also applies to auto-discovered temperatures.
 - Config v7 renames the shared keys (`variant` + `compactView` → `compact`, `layout` → `sizeTier`, `alignX` /

@@ -582,6 +582,10 @@ const ROLE_KEYS: Readonly<Record<string, readonly string[]>> = {
   MeterBridge: ["levelColor", "hotColor"],
   Visualizer: ["ramp", "vizColor2", "vizColor3", "vizPeakColor"],
   WaveLink: ["levelColor", "liveColor", "muteColor"],
+  FpsMonitor: ["ringColor", "sparkColor"],
+  PlaytimeShare: ["color1", "color2", "color3", "color4", "color5", "color6"],
+  SteamFriends: ["ingameColor", "onlineColor", "awayColor", "busyColor", "offlineColor"],
+  Bluetooth: ["batteryMidColor", "batteryLowColor"],
 };
 
 /** A stored number, or undefined. */
@@ -646,6 +650,8 @@ export function migrateSettingsV8(module: string, input: ModuleSettings | undefi
     if (s.auto === true && s.mode === undefined) s.mode = "auto";
     delete s.auto;
   }
+  // The Trend view is a preset now: it reads as its bundle (the sparkline on), which is what it drew.
+  if (module === "FpsMonitor" && s.view === "trend") s.sparkline = true;
   const ownColor = (ROLE_KEYS[module] ?? []).some((key) => typeof s[key] === "string" && String(s[key]).trim() !== "");
   return { settings: orNone(s), custom: legacy && ownColor && follow?.palette !== false ? ["palette"] : [] };
 }

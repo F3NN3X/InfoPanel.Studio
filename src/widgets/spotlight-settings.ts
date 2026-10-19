@@ -3,8 +3,8 @@ import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { GameSpotlightProps } from "./GameSpotlight";
 
 export const SPOTLIGHT_COMPOSITE_SETTINGS: ModuleSetting[] = [
-  { key: "showStats", label: "Stats", type: "boolean", default: true, group: "Content" },
-  { key: "showNews", label: "News line", type: "boolean", default: true, group: "Content" },
+  { key: "showStats", label: "Stats", type: "boolean", default: true, group: "Composite" },
+  { key: "showNews", label: "News line", type: "boolean", default: true, group: "Composite" },
 ];
 
 /** The template's own `layout` prop is stored as `spotlightLayout`; `layout` keeps the standard meaning. */
@@ -21,7 +21,7 @@ export const SPOTLIGHT_LAYOUT_SETTING: ModuleSetting = {
     { value: "combo", label: "Combo (with music)" },
     { value: "composite", label: "Composite (profile, stats, news)" },
   ],
-  group: "Content",
+  group: "Layout",
 };
 
 type CompositeProps = Pick<GameSpotlightProps, "showStats" | "showNews">;

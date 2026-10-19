@@ -11,7 +11,10 @@ const BATCH_A = ["MenuBar", "KpiTiles", "StatusTracker", "SystemStatus", "Vitals
 // Batch B: storage, network, info, generic and audio (`b.ts`, `c.ts`).
 const BATCH_B = ["DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "CodingAgents", "Calendar", "Forecast", "SensorValue", "CustomGauge", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink"];
 
-const row = (d: ModuleSetting): string => [d.key, isMore(d) ? "more" : "", d.role ? `role ${d.role}` : "", d.perWidget ? "per widget" : ""].filter(Boolean).join(" · ");
+// Batch C: gaming and the plain plugin cards (`d.ts`, `e.ts`).
+const BATCH_C = ["FpsMonitor", "GameSpotlight", "OsdStrip", "FramePacing", "PlaytimeShare", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews", "TextFile", "Notifications", "Departures", "Bluetooth", "StreamDeck"];
+
+const row = (d: ModuleSetting): string => [d.key, isMore(d) ? "more" : "", d.role ? `role ${d.role}` : "", d.perWidget ? "per widget" : "", d.type === "preset" || d.type === "status" ? d.type : ""].filter(Boolean).join(" · ");
 
 function schemaOf(id: string) {
   const context = widgetContext(modules.find((m) => m.id === id)!);
@@ -24,7 +27,7 @@ function schemaOf(id: string) {
   );
 }
 
-describe.each([...BATCH_A, ...BATCH_B])("%s", (id) => {
+describe.each([...BATCH_A, ...BATCH_B, ...BATCH_C])("%s", (id) => {
   it("files its rows by the rules", () => {
     expect(schemaOf(id)).toMatchSnapshot();
   });
@@ -67,5 +70,27 @@ describe("batch B", () => {
   it("files the look-only Neutral toggle of DriveSpace under Widget colors, per widget", () => {
     const neutral = modules.find((m) => m.id === "DriveSpace")!.settings!.find((d) => d.key === "neutral")!;
     expect([neutral.tab, neutral.perWidget]).toEqual(["style", true]);
+  });
+});
+
+describe("batch C", () => {
+  const colors = (id: string) => modules.find((m) => m.id === id)!.settings!.filter((d) => d.type === "color" && !d.section).map((d) => [d.key, d.role]);
+
+  it("files the colour rows under Widget colors with their roles", () => {
+    expect(colors("FpsMonitor")).toEqual([["ringColor", "s1"], ["sparkColor", "s2"]]);
+    expect(colors("PlaytimeShare")).toEqual([1, 2, 3, 4, 5, 6].map((n) => [`color${n}`, `s${n}`]));
+    expect(colors("SteamFriends")).toEqual([["ingameColor", "s1"], ["onlineColor", "ok"], ["awayColor", "warn"], ["busyColor", "crit"], ["offlineColor", "s2"]]);
+    expect(colors("Bluetooth")).toEqual([["batteryMidColor", "warn"], ["batteryLowColor", "crit"]]);
+  });
+
+  it("files the view bundles of FpsMonitor and Bluetooth as presets", () => {
+    for (const id of ["FpsMonitor", "Bluetooth"]) expect(modules.find((m) => m.id === id)!.settings!.find((d) => d.key === "view")!.type, id).toBe("preset");
+  });
+
+  it("files the look-only scrims under Widget colors, per widget", () => {
+    for (const id of ["GameSpotlight", "SteamGame"]) {
+      const scrim = modules.find((m) => m.id === id)!.settings!.find((d) => d.key === "scrim")!;
+      expect([scrim.tab, scrim.perWidget], id).toEqual(["style", true]);
+    }
   });
 });

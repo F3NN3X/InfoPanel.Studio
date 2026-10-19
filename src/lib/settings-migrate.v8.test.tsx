@@ -144,6 +144,17 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
     ["WaveLink", { levelColor: "#ff0000" }],
     ["WaveLink", { liveColor: "#00ff00" }],
     ["WaveLink", { muteColor: "#0000ff" }],
+    ["FpsMonitor", { ringColor: "#ff0000" }],
+    ["FpsMonitor", { sparkColor: "#00ff00" }],
+    ["PlaytimeShare", { color1: "#ff0000" }],
+    ["PlaytimeShare", { color6: "#00ff00" }],
+    ["SteamFriends", { ingameColor: "#ff0000" }],
+    ["SteamFriends", { onlineColor: "#00ff00" }],
+    ["SteamFriends", { awayColor: "#0000ff" }],
+    ["SteamFriends", { busyColor: "#ff00ff" }],
+    ["SteamFriends", { offlineColor: "#ffff00" }],
+    ["Bluetooth", { batteryMidColor: "#ff0000" }],
+    ["Bluetooth", { batteryLowColor: "#00ff00" }],
   ] as const)("%s %j", (module, settings) => {
     expect(one(module, settings).follow).toEqual({ palette: false });
     // a v7 flag said follow, but the colour applied regardless
@@ -153,7 +164,10 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
   it("not without an own colour, nor for a colour row without a role", () => {
     expect(one("SystemOverview", { cpuColor: "", label: "X" }).follow).toBeUndefined();
     expect(one("AudioMeter", { showMute: false }).follow).toBeUndefined();
-    expect(one("Bluetooth", { batteryLowColor: "#ff0000" }).follow).toBeUndefined();
+    expect(one("Bluetooth", { view: "status", batteryLowColor: "" }).follow).toBeUndefined();
+    expect(one("FpsMonitor", { view: "gauge", ringColor: "" }).follow).toBeUndefined();
+    expect(one("SteamFriends", { sort: "name" }).follow).toBeUndefined();
+    expect(one("PlaytimeShare", { color2: "" }).follow).toBeUndefined();
     expect(one("GpuRings", { outer: "load" }).follow).toBeUndefined();
     expect(one("Thermals", { fanColor: "" }).follow).toBeUndefined();
     expect(one("DiskIO", { showHistory: false }).follow).toBeUndefined();
@@ -164,6 +178,24 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
   it("keeps the other flags, and an explicit Use theme on v8 data", () => {
     expect(one("SystemOverview", { cpuColor: "#ff0000" }, { follow: { colors: false } }).follow).toEqual({ colors: false, palette: false });
     expect(migrateSettingsV8("SystemOverview", { cpuColor: "#ff0000" }, false).custom).toEqual([]);
+  });
+});
+
+describe("v8 FpsMonitor: the Trend view reads as its preset", () => {
+  it.each([[undefined], [false], [true]])("view trend with sparkline %s stores the sparkline on", (sparkline) => {
+    const settings = { view: "trend", ...(sparkline === undefined ? {} : { sparkline }) };
+    expect(v8("FpsMonitor", settings)).toEqual({ view: "trend", sparkline: true });
+  });
+
+  it("leaves the other views, and other widgets with a view, alone", () => {
+    expect(v8("FpsMonitor", { view: "gauge" })).toEqual({ view: "gauge" });
+    expect(v8("FpsMonitor", { view: "frametime", sparkline: false })).toEqual({ view: "frametime", sparkline: false });
+    expect(v8("Bluetooth", { view: "trend" })).toEqual({ view: "trend" });
+  });
+
+  it("is idempotent", () => {
+    const once = v8("FpsMonitor", { view: "trend" })!;
+    expect(v8("FpsMonitor", once)).toEqual(once);
   });
 });
 

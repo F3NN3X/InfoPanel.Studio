@@ -1,7 +1,7 @@
 // Template widgets, group D: gaming (see docs/redesign/phase9/brief-9.3c-templates.md).
-import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
+import type { DashboardModule, ModuleSetting, ModuleSettings, PaletteRole } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSettings, colorsOf, enumSetting, listOf, numberOf, numberSetting, oneOf, splitKeys, textSetting, type ColorEntry } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, colorsOf, enumSetting, listOf, numberOf, numberSetting, oneOf, splitKeys, textSetting, type ColorEntry } from "./settings-kit";
 import Achievements, { meta as achievementsMeta, type AchievementsProps } from "../Achievements";
 import FpsMonitor, { meta as fpsMonitorMeta, type FpsMonitorProps } from "../FpsMonitor";
 import FramePacing, { meta as framePacingMeta, type FramePacingProps } from "../FramePacing";
@@ -25,7 +25,7 @@ const targetOf = (v: unknown): number | undefined => {
   const n = numberOf(v);
   return n !== undefined && n > 0 ? n : undefined;
 };
-const targetSetting = (group: string) => numberSetting("target", "FPS target (0 = refresh rate)", 0, { min: 0, max: 360, step: 5, group });
+const targetSetting = numberSetting("target", "FPS target (0 = refresh rate)", 0, { min: 0, max: 360, step: 5, group: "Target", tab: "data" });
 
 /** The gauge and trend views read the metrics, sparkline and colours; the frame-time graph reads none of them. */
 const gaugeOnly = (d: ModuleSetting): ModuleSetting => ({ ...d, visibleIf: (v) => v.view !== "frametime" });
@@ -33,17 +33,20 @@ const gaugeOnly = (d: ModuleSetting): ModuleSetting => ({ ...d, visibleIf: (v) =
 const FIXED_SCRIM = ["ticker", "poster"];
 const layoutIs = (...layouts: string[]) => (v: ModuleSettings) => layouts.includes(String(v.spotlightLayout));
 
-const FRIEND_COLOR_ENTRIES: ColorEntry[] = (
+/** The friend statuses' colours follow the theme: in-game Series 1, online OK, away Warning, busy Critical, offline Series 2. */
+const FRIEND_COLOR_ENTRIES: (ColorEntry & { role: PaletteRole })[] = (
   [
-    ["ingame", "In-game color"],
-    ["online", "Online color"],
-    ["away", "Away color"],
-    ["busy", "Busy color"],
-    ["offline", "Offline color"],
-  ] satisfies [FriendStatus, string][]
-).map(([entry, label]) => ({ entry, key: `${entry}Color`, label }));
+    ["ingame", "In-game", "s1"],
+    ["online", "Online", "ok"],
+    ["away", "Away", "warn"],
+    ["busy", "Busy", "crit"],
+    ["offline", "Offline", "s2"],
+  ] satisfies [FriendStatus, string, PaletteRole][]
+).map(([entry, label, role]) => ({ entry, key: `${entry}Color`, label, role }));
 
-const PLAYTIME_COLORS: ColorEntry[] = PALETTE.map((_, i) => ({ entry: String(i), key: `color${i + 1}`, label: `Slice ${i + 1} color` }));
+/** The slices follow the theme's Series 1 to 6. */
+const PLAYTIME_ROLES = ["s1", "s2", "s3", "s4", "s5", "s6"] as const satisfies readonly PaletteRole[];
+const PLAYTIME_COLORS: ColorEntry[] = PALETTE.map((_, i) => ({ entry: String(i), key: `color${i + 1}`, label: `Slice ${i + 1}` }));
 /** The slice colours: a stored `colors` list, else the per-slice colours (an unset slice keeps its default). */
 function playtimeColors(s: ModuleSettings): string[] | undefined {
   const list = listOf(s.colors, (x) => (typeof x === "string" && x ? x : undefined));
@@ -66,17 +69,19 @@ export const GROUP_D: DashboardModule[] = [
       {
         key: "view",
         label: "View",
-        type: "select",
+        type: "preset",
         default: "frametime",
         options: [
-          { value: "frametime", label: "Frame-time graph" },
-          { value: "gauge", label: "Gauge" },
+          // The frame-time graph draws none of the toggles, so any of their values suits it.
+          { value: "frametime", label: "Frame-time graph", applies: {} },
+          { value: "gauge", label: "Gauge", applies: { sparkline: false } },
           { value: "trend", label: "Trend", applies: { sparkline: true } },
         ],
-        group: "Content",
+        group: "Display",
+        hint: "Trend is the gauge with the sparkline on.",
       },
-      targetSetting("Content"),
       ...FPS_LOOK_SETTINGS.map(gaugeOnly),
+      targetSetting,
     ],
     toProps: (s: ModuleSettings) => ({ target: targetOf(s.target), ...fpsLookProps(s) }),
     island: fpsIsland,
@@ -86,12 +91,12 @@ export const GROUP_D: DashboardModule[] = [
     Component: GameSpotlight,
     settings: [
       SPOTLIGHT_LAYOUT_SETTING,
-      boolSetting("motion", "Ken Burns motion", true, { group: "Content", visibleIf: (v) => v.spotlightLayout !== "poster" }),
-      numberSetting("scrim", "Scrim darkness", 0.6, { min: 0, max: 1, step: 0.05, group: "Content", visibleIf: (v) => !FIXED_SCRIM.includes(String(v.spotlightLayout)) }),
       ...SPOTLIGHT_COMPOSITE_SETTINGS.map((d) => ({ ...d, visibleIf: layoutIs("composite") })),
       enumSetting("music", "Music source", "media", [{ value: "media", label: "Media" }, { value: "spotify", label: "Spotify" }], { group: "Music card", visibleIf: layoutIs("combo") }),
       enumSetting("progress", "Music progress", "wave", [{ value: "wave", label: "Wave" }, { value: "visualizer", label: "Visualizer" }], { group: "Music card", visibleIf: layoutIs("combo") }),
       enumSetting("vizMode", "Visualizer mode", "bars", ["bars", "mirror", "wave", "dots", "line"].map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })), { group: "Music card", visibleIf: (v) => layoutIs("combo")(v) && v.progress === "visualizer" }),
+      numberSetting("scrim", "Scrim darkness", 0.6, { min: 0, max: 1, step: 0.05, tab: "style", perWidget: true, visibleIf: (v) => !FIXED_SCRIM.includes(String(v.spotlightLayout)) }),
+      boolSetting("motion", "Ken Burns motion", true, { group: "Dynamics", tab: "behaviour", visibleIf: (v) => v.spotlightLayout !== "poster" }),
     ],
     toProps: (s) => ({
       // The standard `layout` keeps its meaning; the template's own layout is stored as `spotlightLayout`.
@@ -121,9 +126,9 @@ export const GROUP_D: DashboardModule[] = [
           { value: "vram", label: "VRAM" },
           { value: "display", label: "Display" },
         ],
-        { multiple: true, group: "OSD strip" },
+        { multiple: true, group: "Cells" },
       ),
-      targetSetting("OSD strip"),
+      targetSetting,
     ],
     toProps: (s) => {
       // A stored list (older configs) or the multi-select's comma-separated string; empty keeps every cell.
@@ -135,15 +140,15 @@ export const GROUP_D: DashboardModule[] = [
     meta: framePacingMeta,
     Component: FramePacing,
     settings: [
-      textSetting("budgets", "Budget lines (Hz, comma-separated)", "", { group: "Frame pacing", hint: "Empty = refresh rate and 60" }),
-      numberSetting("window", "Samples", 120, { min: 30, max: 600, step: 10, group: "Frame pacing" }),
+      textSetting("budgets", "Budget lines (Hz, comma-separated)", "", { group: "Budget lines", hint: "Empty = refresh rate and 60" }),
+      numberSetting("window", "Samples", 120, { min: 30, max: 600, step: 10, group: "History", tab: "behaviour" }),
     ],
     toProps: (s) => ({ budgets: hzList(s.budgets), window: numberOf(s.window) }),
   }),
   templateModule<Pick<PlaytimeShareProps, "colors">>({
     meta: playtimeShareMeta,
     Component: PlaytimeShare,
-    settings: colorSettings(PLAYTIME_COLORS, { group: "Slice colors" }),
+    settings: PLAYTIME_COLORS.map((c, i) => colorSetting(c.key, c.label, { role: PLAYTIME_ROLES[i], more: false })),
     toProps: (s) => ({ colors: playtimeColors(s) }),
   }),
   // No own settings: Data shows where the profile comes from (read-only), so the tab is not empty.
@@ -157,12 +162,12 @@ export const GROUP_D: DashboardModule[] = [
     meta: steamFriendsMeta,
     Component: SteamFriends,
     settings: [
-      enumSetting("view", "View", "list", [{ value: "list", label: "List" }, { value: "table", label: "Table" }], { group: "Steam friends" }),
-      enumSetting("sort", "Sort", "status", [{ value: "status", label: "Status (in-game first)" }, { value: "name", label: "Name" }, { value: "plugin", label: "Plugin order" }], { group: "Steam friends" }),
-      boolSetting("ingameOnly", "In-game only", false, { group: "Steam friends" }),
-      boolSetting("showTime", "Last online", true, { group: "Steam friends" }),
-      boolSetting("showCounts", "Counts row", false, { group: "Steam friends" }),
-      ...colorSettings(FRIEND_COLOR_ENTRIES, { group: "Status colors" }),
+      enumSetting("view", "View", "list", [{ value: "list", label: "List" }, { value: "table", label: "Table" }], { group: "Friends" }),
+      boolSetting("ingameOnly", "In-game only", false, { group: "Friends" }),
+      boolSetting("showTime", "Last online", true, { group: "Friends" }),
+      boolSetting("showCounts", "Counts row", false, { group: "Friends" }),
+      ...FRIEND_COLOR_ENTRIES.map((c) => colorSetting(c.key, c.label, { role: c.role, more: false })),
+      enumSetting("sort", "Sort", "status", [{ value: "status", label: "Status (in-game first)" }, { value: "name", label: "Name" }, { value: "plugin", label: "Plugin order" }], { group: "Sorting", tab: "behaviour" }),
     ],
     island: steamFriendsIsland,
     toProps: (s) => ({
@@ -178,15 +183,15 @@ export const GROUP_D: DashboardModule[] = [
     meta: steamGameMeta,
     Component: SteamGame,
     settings: [
-      enumSetting("art", "Artwork", "banner", [{ value: "banner", label: "Banner" }, { value: "grid", label: "Grid" }, { value: "none", label: "None" }], { group: "Steam game" }),
-      numberSetting("scrim", "Scrim darkness", 0.55, { min: 0, max: 1, step: 0.05, group: "Steam game" }),
+      enumSetting("art", "Artwork", "banner", [{ value: "banner", label: "Banner" }, { value: "grid", label: "Grid" }, { value: "none", label: "None" }], { group: "Artwork" }),
+      numberSetting("scrim", "Scrim darkness", 0.55, { min: 0, max: 1, step: 0.05, tab: "style", perWidget: true }),
     ],
     toProps: (s) => ({ art: oneOf(s.art, ["banner", "grid", "none"]), scrim: numberOf(s.scrim) }),
   }),
   templateModule<Pick<AchievementsProps, "display">>({
     meta: achievementsMeta,
     Component: Achievements,
-    settings: [enumSetting("display", "Progress display", "ring", [{ value: "ring", label: "Ring" }, { value: "pips", label: "Pips" }], { group: "Achievements" })],
+    settings: [enumSetting("display", "Progress display", "ring", [{ value: "ring", label: "Ring" }, { value: "pips", label: "Pips" }], { group: "Progress" })],
     toProps: (s) => ({ display: oneOf(s.display, ["ring", "pips"]) }),
     island: achievementsIsland,
   }),
@@ -194,14 +199,14 @@ export const GROUP_D: DashboardModule[] = [
     meta: steamLibraryMeta,
     Component: SteamLibrary,
     settings: [
-      enumSetting("showNews", "News list", "auto", [{ value: "auto", label: "Auto (large only)" }, { value: "on", label: "On" }, { value: "off", label: "Off" }], { group: "Steam library" }),
+      enumSetting("showNews", "News list", "auto", [{ value: "auto", label: "Auto (large only)" }, { value: "on", label: "On" }, { value: "off", label: "Off" }], { group: "News list" }),
     ],
     toProps: (s) => ({ showNews: s.showNews === "on" || s.showNews === true ? true : s.showNews === "off" || s.showNews === false ? false : undefined }),
   }),
   templateModule<Pick<SteamNewsProps, "lines">>({
     meta: steamNewsMeta,
     Component: SteamNews,
-    settings: [numberSetting("lines", "Title lines", 2, { min: 1, max: 4, step: 1, group: "Steam news" })],
+    settings: [numberSetting("lines", "Title lines", 2, { min: 1, max: 4, step: 1, group: "Headlines" })],
     toProps: (s) => ({ lines: numberOf(s.lines) }),
     island: steamNewsIsland,
   }),
