@@ -3,7 +3,7 @@
  * Each action is one edit of the zone's file table, written back as one `setConfig` (one undo step).
  */
 import { useMemo, useState, type ReactNode } from "react";
-import { Ban, Copy, HardDrive, ImageOff, Minimize2, Plus, Replace, Sparkles, type LucideIcon } from "lucide-react";
+import { Ban, Copy, Grid2x2, HardDrive, ImageOff, Minimize2, Plus, Replace, Sparkles, type LucideIcon } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import type { Placement } from "@/lib/layout";
 import { formatBytes } from "@/lib/assets";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { BUTTON, PRIMARY } from "./profile-assets/drawer";
 import { readFiles, reencodable, reencode } from "./profile-assets/encode";
 import { FilePick } from "./profile-assets/file-pick";
-import { FilesTable, FINDING_LABEL } from "./profile-assets/files-table";
+import { FilesTable, FINDING_LABEL, isTiled } from "./profile-assets/files-table";
 import { OptimiseDrawer } from "./profile-assets/optimise-drawer";
 import { ReplaceDrawer } from "./profile-assets/replace-drawer";
 import { useProfileDoc } from "./profile-assets/use-profile-doc";
@@ -28,6 +28,12 @@ export interface ProfileAssetsProps {
   onSelectUses: (zoneId: string, paths: string[]) => void;
   /** "Save a copy to My library": the file goes through the library's upload. */
   onSaveToLibrary: (files: File[]) => void;
+  /** The page background's image when it is tiled (`fit: "tile"`): the file served from it shows "Tiled". */
+  tiledSrc?: string;
+  /** "Use for selection": apply the file's stored image to what is selected in the studio. */
+  onUse: (file: AssetFile) => void;
+  /** Why nothing selected takes an image, or undefined when something does. */
+  useBlocked?: string;
 }
 
 const CHIPS: [Finding, LucideIcon][] = [
@@ -41,7 +47,7 @@ const CHIPS: [Finding, LucideIcon][] = [
 /** The stored file as a `File` for the library's upload. */
 const fileOf = (f: AssetFile) => new File([f.bytes.slice()], f.name, { type: MIME[f.type] });
 
-export function ProfileAssets({ zones, setConfig, onSelectUses, onSaveToLibrary }: ProfileAssetsProps) {
+export function ProfileAssets({ zones, setConfig, onSelectUses, onSaveToLibrary, tiledSrc, onUse, useBlocked }: ProfileAssetsProps) {
   const [zoneId, setZoneId] = useState<string | null>(null);
   const zone = zones.find((z) => z.id === zoneId) ?? zones[0];
   if (!zone) {
@@ -75,6 +81,9 @@ export function ProfileAssets({ zones, setConfig, onSelectUses, onSaveToLibrary 
       setConfig={setConfig}
       onSelectUses={(paths) => onSelectUses(zone.id, paths)}
       onSaveToLibrary={onSaveToLibrary}
+      tiledSrc={tiledSrc}
+      onUse={onUse}
+      useBlocked={useBlocked}
     />
   );
 }
@@ -86,11 +95,15 @@ interface ZoneProps {
   setConfig: HistorySetter;
   onSelectUses: (paths: string[]) => void;
   onSaveToLibrary: (files: File[]) => void;
+  tiledSrc?: string;
+  onUse: (file: AssetFile) => void;
+  useBlocked?: string;
 }
 
-function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToLibrary }: ZoneProps) {
+function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToLibrary, tiledSrc, onUse, useBlocked }: ZoneProps) {
   const { doc, busy, note, commit } = useProfileDoc(zoneId, stored, setConfig);
   const [filter, setFilter] = useState<Finding | null>(null);
+  const [tiledOnly, setTiledOnly] = useState(false);
   const [drawer, setDrawer] = useState<"optimise" | null>(null);
   const [picked, setPicked] = useState<AssetFile[] | null>(null);
   const found = useMemo(() => (doc ? findingsOf(doc) : null), [doc]);
@@ -101,6 +114,7 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
 
   const total = [...doc.assets.values()].reduce((n, f) => n + f.bytes.length, 0);
   const external = new Set(scanRefs(doc.items).others.map((o) => `${o.kind}:${o.value}`)).size;
+  const tiled = [...doc.assets.values()].filter((f) => isTiled(f, tiledSrc)).length;
   const cleanable = cleanupCount(found, shrinkable.map((o) => o.name));
 
   const addFiles = (list: File[]) =>
@@ -157,6 +171,23 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
                 <span className="font-ui-mono text-[11px] text-ui-warning">{found.counts[id]}</span>
               </button>
             ))}
+            {tiledSrc && (
+              <button
+                type="button"
+                aria-pressed={tiledOnly}
+                disabled={tiled === 0 && !tiledOnly}
+                title="Files used as the page background's tile"
+                onClick={() => setTiledOnly(!tiledOnly)}
+                className={cn(
+                  "flex h-[28px] items-center gap-1.5 rounded-full border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40",
+                  tiledOnly && "border-ui-accent bg-ui-accent/10 text-ui-1",
+                )}
+              >
+                <Grid2x2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Tiled
+                <span className="font-ui-mono text-[11px] text-ui-warning">{tiled}</span>
+              </button>
+            )}
           </div>
           <span className="flex-1" />
           <FilePick multiple disabled={busy !== null} className={BUTTON} onFiles={addFiles}>
@@ -182,6 +213,10 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
         found={found}
         uses={uses}
         filter={filter}
+        tiledOnly={tiledOnly}
+        tiledSrc={tiledSrc}
+        useBlocked={useBlocked}
+        onUse={onUse}
         disabled={busy !== null}
         onSelectUses={onSelectUses}
         onSave={(f) => onSaveToLibrary([fileOf(f)])}

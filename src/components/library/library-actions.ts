@@ -157,3 +157,24 @@ export async function applyStyle(b: StudioBridge, item: LibraryItem, zoneIds?: s
   ids.forEach((id) => b.addCopy(item, copyHere(b, `${item.name} style`, id)));
   b.toast(`Applied ${item.name} to ${ids.length === 1 ? "the widget" : `${ids.length} widgets`}`);
 }
+
+/** The selected zones that draw a picture: a panel with an image widget. */
+export const imageZones = (selection: readonly Placement[]): Placement[] => selection.filter((z) => z.panel?.widgets.some((w) => w.kind === "image"));
+
+/** Why "Use for selection" is off, or undefined when the selection takes an image. */
+export const useForSelectionBlocked = (selection: readonly Placement[]): string | undefined =>
+  imageZones(selection).length > 0 ? undefined : selection.length === 0 ? "Select an image widget on the canvas first" : "The selected widget doesn’t show an image";
+
+/** A stored image as the picture of the selected image widgets (the first image widget of each), one undo step. */
+export function useForSelection(b: StudioBridge, name: string, src: string): void {
+  const ids = new Set(imageZones(b.selection).map((z) => z.id));
+  if (ids.size === 0) return b.toast(useForSelectionBlocked(b.selection)!);
+  b.updateProfile((p) => ({
+    ...p,
+    placements: p.placements.map((z) => {
+      const at = ids.has(z.id) ? z.panel?.widgets.findIndex((w) => w.kind === "image") : undefined;
+      return z.panel && at !== undefined && at >= 0 ? { ...z, panel: { ...z.panel, widgets: z.panel.widgets.map((w, i) => (i === at ? { ...w, text: src } : w)) } } : z;
+    }),
+  }));
+  b.toast(`${name} is the picture of ${ids.size === 1 ? "the widget" : `${ids.size} widgets`}`);
+}

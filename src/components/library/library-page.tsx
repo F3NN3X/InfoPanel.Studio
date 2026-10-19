@@ -44,7 +44,7 @@ import {
 import { suggestBackgrounds } from "@/lib/my-library/theme-suggest";
 import { downloadSpec } from "@/components/gauges/gauge-files";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
-import { addToProfile, applyStyle, dataOf, setAsBackground, type StudioBridge } from "./library-actions";
+import { addToProfile, applyStyle, dataOf, setAsBackground, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
 import { LibraryDetail, type DetailAction } from "./library-detail";
 import { GridView, LibrarySidebar, ShelvesView, fileDrop } from "./library-views";
 import { optimiseItem } from "./optimise";
@@ -74,7 +74,7 @@ export interface LibraryPageProps {
   copyLabel: (copy: LibraryCopy) => string;
   onJump: (copy: LibraryCopy) => void;
   /** The profile assets tab's studio side. */
-  assets: Omit<ProfileAssetsProps, "onSaveToLibrary">;
+  assets: Omit<ProfileAssetsProps, "onSaveToLibrary" | "onUse" | "useBlocked" | "tiledSrc">;
 }
 
 type Tab = "mine" | "profile";
@@ -101,6 +101,9 @@ export default function LibraryPage(p: LibraryPageProps) {
     const suggested = suggestBackgrounds(lib.items, { foreground: p.theme.foreground, accent: p.theme.accent, name: themeName });
     return buildIndex(lib.items, suggested);
   }, [lib.items, p.theme.foreground, p.theme.accent, themeName]);
+  // A tiled page background: the profile asset served from its image is the tile.
+  const background = p.bridge.config.profiles.find((x) => x.id === p.bridge.profileId)?.background;
+  const tiledSrc = background?.type === "image" && background.fit === "tile" ? background.src : undefined;
   const counts = useMemo(() => collectionCounts(index), [index]);
 
   const searching = query.trim().length > 0;
@@ -357,7 +360,13 @@ export default function LibraryPage(p: LibraryPageProps) {
       </header>
       <div className="relative flex min-h-0 flex-1">
         {tab === "profile" ? (
-          <ProfileAssets {...p.assets} onSaveToLibrary={(files) => addFiles(files)} />
+          <ProfileAssets
+            {...p.assets}
+            onSaveToLibrary={(files) => addFiles(files)}
+            tiledSrc={tiledSrc}
+            onUse={(file) => file.url && useForSelection(bridge, file.name, file.url)}
+            useBlocked={useForSelectionBlocked(p.bridge.selection)}
+          />
         ) : (
           <>
             <LibrarySidebar active={searching ? null : collection} counts={counts} onPick={pickCollection} />
