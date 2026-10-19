@@ -576,6 +576,12 @@ const ROLE_KEYS: Readonly<Record<string, readonly string[]>> = {
   AudioMeter: ["levelColor", "hotColor"],
   GpuRings: ["outerColor", "innerColor"],
   Thermals: ["fanColor"],
+  DiskIO: ["readColor", "writeColor"],
+  NetworkThroughput: ["downloadColor", "uploadColor"],
+  VolumeMixer: ["levelColor"],
+  MeterBridge: ["levelColor", "hotColor"],
+  Visualizer: ["ramp", "vizColor2", "vizColor3", "vizPeakColor"],
+  WaveLink: ["levelColor", "liveColor", "muteColor"],
 };
 
 /** A stored number, or undefined. */

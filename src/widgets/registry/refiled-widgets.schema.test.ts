@@ -8,6 +8,9 @@ import { isMore, type ModuleSetting } from "@/modules/types";
 // Batch A: system and hardware (`a.ts`).
 const BATCH_A = ["MenuBar", "KpiTiles", "StatusTracker", "SystemStatus", "Vitals", "ServiceHealth", "ProcessList", "CoreHeatmap", "GpuRings", "GpuMonitor", "MemoryUsage", "Thermals", "PowerDraw", "Fans"];
 
+// Batch B: storage, network, info, generic and audio (`b.ts`, `c.ts`).
+const BATCH_B = ["DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "CodingAgents", "Calendar", "Forecast", "SensorValue", "CustomGauge", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink"];
+
 const row = (d: ModuleSetting): string => [d.key, isMore(d) ? "more" : "", d.role ? `role ${d.role}` : "", d.perWidget ? "per widget" : ""].filter(Boolean).join(" · ");
 
 function schemaOf(id: string) {
@@ -21,7 +24,7 @@ function schemaOf(id: string) {
   );
 }
 
-describe.each(BATCH_A)("%s", (id) => {
+describe.each([...BATCH_A, ...BATCH_B])("%s", (id) => {
   it("files its rows by the rules", () => {
     expect(schemaOf(id)).toMatchSnapshot();
   });
@@ -38,5 +41,31 @@ describe("batch A", () => {
     const sections = allSections(widgetContext(modules.find((m) => m.id === "StatusTracker")!));
     const thresholds = sections.find((s) => s.title === "Thresholds")!;
     expect(thresholds.settings.filter(isMore).map((d) => d.key)).toEqual(["track.1.warn", "track.1.crit", "track.2.warn", "track.2.crit", "track.3.warn", "track.3.crit"]);
+  });
+});
+
+describe("batch B", () => {
+  const colors = (id: string) => modules.find((m) => m.id === id)!.settings!.filter((d) => d.type === "color" && !d.section).map((d) => [d.key, d.role]);
+
+  it("files the colour rows that gained a role under Widget colors", () => {
+    expect(colors("DiskIO")).toEqual([["readColor", "s1"], ["writeColor", "s2"]]);
+    expect(colors("NetworkThroughput")).toEqual([["downloadColor", "s1"], ["uploadColor", "s2"]]);
+    expect(colors("VolumeMixer")).toEqual([["levelColor", "ok"]]);
+    expect(colors("MeterBridge")).toEqual([["levelColor", "ok"], ["hotColor", "crit"]]);
+    expect(colors("WaveLink")).toEqual([["levelColor", "ok"], ["liveColor", "ok"], ["muteColor", "crit"]]);
+    expect(colors("Visualizer")).toEqual([["ramp", "s1"], ["vizColor2", "s2"], ["vizColor3", "s3"], ["vizPeakColor", "crit"]]);
+  });
+
+  it("keeps CustomGauge's gauge and frames in the schema but out of the inspector", () => {
+    const mod = modules.find((m) => m.id === "CustomGauge")!;
+    expect(mod.settings!.filter((d) => d.hidden).map((d) => d.key)).toEqual(["gauge", "frames"]);
+    const listed = allSections(widgetContext(mod)).flatMap((s) => s.settings.map((d) => d.key));
+    expect(listed).not.toContain("gauge");
+    expect(listed).not.toContain("frames");
+  });
+
+  it("files the look-only Neutral toggle of DriveSpace under Widget colors, per widget", () => {
+    const neutral = modules.find((m) => m.id === "DriveSpace")!.settings!.find((d) => d.key === "neutral")!;
+    expect([neutral.tab, neutral.perWidget]).toEqual(["style", true]);
   });
 });

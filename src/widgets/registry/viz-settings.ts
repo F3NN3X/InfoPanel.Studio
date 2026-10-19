@@ -34,6 +34,18 @@ export function vizColorSettings(color1: ModuleSetting): ModuleSetting[] {
   ];
 }
 
+/** The visualiser's colour rows in Style › Widget colors: theme roles Series 1–3 and Critical for the peak caps; `color1Key` is the widget's colour-1 key. */
+export const vizColorRows = (color1Key: string): Readonly<Record<string, Partial<ModuleSetting>>> => ({
+  vizColorMode: { label: "Visualizer colors", more: false, perWidget: true },
+  vizGradient: { perWidget: true },
+  [color1Key]: { label: "Color 1", role: "s1", more: false },
+  vizColor2: { label: "Color 2", role: "s2", more: false },
+  vizColor3: { label: "Color 3", role: "s3", more: false },
+  vizPeakColor: { label: "Peak cap", role: "crit", more: true },
+  vizOpacity: { label: "Visualizer opacity (%)", perWidget: true },
+  vizGlow: { perWidget: true },
+});
+
 /** The shape and gap; `modeKey` is the widget's own style key, which decides whether they are drawn. */
 export const vizShapeSettings = (modeKey: string): ModuleSetting[] => {
   const bars = (v: ModuleSettings) => BAR_STYLES.includes(String(v[modeKey]));

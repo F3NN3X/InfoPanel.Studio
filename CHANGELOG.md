@@ -57,6 +57,14 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   scales and the Thermals / Fans full-scale values are in Data; the GPU rings and the Thermals fan dot follow the
   theme palette (Series 1 and 2, Series 3), the core heatmap ramp stays per widget. Status tracker's per-track levels
   are More rows of Thresholds.
+- Widget settings v2 for the storage, network, info and audio widgets (Drive space, Storage health, Disk I/O, Network
+  throughput, Network adapters, Clock, Timer, Coding agents, Calendar, Forecast, Sensor value, Custom gauge, Volume
+  mixer, Meter bridge, Visualizer, Wave Link): rows are filed by task. Drive sort order, the Meter bridge peak hold and
+  the Visualizer dynamics are in Behaviour; bar scales, the Meter bridge floor and the Wave Link meters are in Data;
+  the Drive space neutral tint is a per-widget look toggle. Their colour rows follow the theme palette (Disk I/O read /
+  write and Network download / upload = Series 1 and 2, the audio level colours = OK, hot / clip and muted = Critical,
+  Visualizer colours = Series 1-3 and Critical for the peak caps). Custom gauge's gauge and frames data is no longer
+  listed in the inspector.
 
 ### Changed
 - Config v8 renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,

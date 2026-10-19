@@ -94,9 +94,9 @@ describe("group C dependent settings", () => {
     for (const mode of ["wave", "dots", "radial", "line", "blob"]) for (const k of ["vizShape", "vizGap"]) expect(shown("Visualizer", { mode })).not.toContain(k);
   });
 
-  it("shows MeterBridge Peak hold in the Meter group, for the Peak response only", () => {
+  it("files MeterBridge Peak hold under Behaviour › Dynamics, for the Peak response only", () => {
     const hold = GROUP_C.find((m) => m.id === "MeterBridge")!.settings!.find((d) => d.key === "holdMs")!;
-    expect(hold.group).toBe("Meter");
+    expect([hold.group, hold.tab]).toEqual(["Dynamics", "behaviour"]);
     expect(shown("MeterBridge", { meterBallistics: "peak" })).toContain("holdMs");
     for (const meterBallistics of ["vu", "instant"]) expect(shown("MeterBridge", { meterBallistics })).not.toContain("holdMs");
   });

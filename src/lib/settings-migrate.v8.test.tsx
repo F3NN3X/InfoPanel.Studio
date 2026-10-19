@@ -130,6 +130,20 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
     ["GpuRings", { outerColor: "#ff0000" }],
     ["GpuRings", { innerColor: "#00ff00" }],
     ["Thermals", { fanColor: "#00ff00" }],
+    ["DiskIO", { readColor: "#ff0000" }],
+    ["DiskIO", { writeColor: "#00ff00" }],
+    ["NetworkThroughput", { downloadColor: "#ff0000" }],
+    ["NetworkThroughput", { uploadColor: "#00ff00" }],
+    ["VolumeMixer", { levelColor: "#ff0000" }],
+    ["MeterBridge", { levelColor: "#ff0000" }],
+    ["MeterBridge", { hotColor: "#00ff00" }],
+    ["Visualizer", { ramp: "thermal" }],
+    ["Visualizer", { vizColor2: "#00ff00" }],
+    ["Visualizer", { vizColor3: "#00ff00" }],
+    ["Visualizer", { vizPeakColor: "#ffffff" }],
+    ["WaveLink", { levelColor: "#ff0000" }],
+    ["WaveLink", { liveColor: "#00ff00" }],
+    ["WaveLink", { muteColor: "#0000ff" }],
   ] as const)("%s %j", (module, settings) => {
     expect(one(module, settings).follow).toEqual({ palette: false });
     // a v7 flag said follow, but the colour applied regardless
@@ -142,6 +156,9 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
     expect(one("Bluetooth", { batteryLowColor: "#ff0000" }).follow).toBeUndefined();
     expect(one("GpuRings", { outer: "load" }).follow).toBeUndefined();
     expect(one("Thermals", { fanColor: "" }).follow).toBeUndefined();
+    expect(one("DiskIO", { showHistory: false }).follow).toBeUndefined();
+    expect(one("Visualizer", { ramp: "", mode: "wave" }).follow).toBeUndefined();
+    expect(one("WaveLink", { showFader: false }).follow).toBeUndefined();
   });
 
   it("keeps the other flags, and an explicit Use theme on v8 data", () => {

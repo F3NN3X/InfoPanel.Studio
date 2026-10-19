@@ -5,7 +5,7 @@ import { VIZ_STYLES, type VizLook, type VizStyle } from "../core/viz/types";
 import type { NowPlayingProps } from "../NowPlaying";
 import { devicesOf } from "@/modules/setting-readers";
 import { boolSetting, colorSetting, deviceSetting, enumSetting, numberOf, numberSetting, oneOf } from "../registry/settings-kit";
-import { VIZ_COLORS_GROUP, VIZ_DYNAMICS_GROUP, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "../registry/viz-settings";
+import { VIZ_COLORS_GROUP, VIZ_DYNAMICS_GROUP, vizColorRows, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "../registry/viz-settings";
 
 /** The audio-level-meter plugin, which drives the visualizers' live level. */
 export const AUDIO_LEVEL = "plugins.audio-level-meter.";
@@ -30,17 +30,7 @@ const PLAYER = "Player";
 const VISUALIZER = "Visualizer";
 const AUDIO_SOURCE = "Visualizer audio";
 
-/** The visualiser's colour rows (Style › Widget colors): theme roles Series 1–3 and Critical for the peak caps. */
-const COLOR_ROWS: Readonly<Record<string, Partial<ModuleSetting>>> = {
-  vizColorMode: { label: "Visualizer colors", more: false, perWidget: true },
-  vizGradient: { perWidget: true },
-  vizColor1: { label: "Color 1", role: "s1", more: false },
-  vizColor2: { label: "Color 2", role: "s2", more: false },
-  vizColor3: { label: "Color 3", role: "s3", more: false },
-  vizPeakColor: { label: "Peak cap", role: "crit", more: true },
-  vizOpacity: { label: "Visualizer opacity (%)", perWidget: true },
-  vizGlow: { perWidget: true },
-};
+const COLOR_ROWS = vizColorRows("vizColor1");
 
 /** The dynamics rows (Behaviour › Visualizer dynamics): Sensitivity and Auto gain up front, the rest behind More. */
 const DYNAMICS = vizDynamicsSettings();

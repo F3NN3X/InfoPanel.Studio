@@ -152,6 +152,8 @@ export interface ModuleSetting {
   role?: PaletteRole;
   /** Never comes from a theme (Tint from cover art, Background image): stays editable while its section follows. */
   perWidget?: boolean;
+  /** Kept in the schema (its default, its stored value) but never listed in the inspector (CustomGauge `gauge`). */
+  hidden?: boolean;
   /** One-line explanation, shown behind an info icon. */
   hint?: string;
   /** Shown only while this holds for the zone's effective values (default: always). */

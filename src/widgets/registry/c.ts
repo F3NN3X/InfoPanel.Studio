@@ -9,7 +9,7 @@ import AudioMeter, { AUDIO_HOT_DB, AUDIO_WARN_DB, meta as audioMeter, type Audio
 import MeterBridge, { meta as meterBridge, type MeterBridgeProps } from "../MeterBridge";
 import NowPlaying, { meta as nowPlaying, type NowPlayingProps } from "../NowPlaying";
 import { NOW_PLAYING_SETTINGS, sharedPropsOf, vizStyleOf } from "../NowPlaying/settings";
-import { colorModeOf, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "./viz-settings";
+import { colorModeOf, VIZ_DYNAMICS_GROUP, vizColorRows, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "./viz-settings";
 import Visualizer, { meta as visualizer, type VisualizerProps } from "../Visualizer";
 import VolumeMixer, { meta as volumeMixer, type VolumeMixerProps } from "../VolumeMixer";
 import WaveLink, { meta as waveLink } from "../WaveLink";
@@ -39,6 +39,12 @@ const autoCount = (v: unknown): number | undefined => {
   const n = numberOf(v);
   return n !== undefined && n > 0 ? n : undefined;
 };
+
+const SPECTRUM = "Spectrum";
+/** The Visualizer's colour rows (its colour 1 is `ramp`); Sensitivity and Auto gain stay out of More. */
+const VIZ_COLOR_ROWS = vizColorRows("ramp");
+const DYNAMICS = vizDynamicsSettings();
+const AUTO_GAIN = DYNAMICS.find((d) => d.key === "vizAutoGain")!;
 
 /**
  * Where the template reads the keys it no longer offers: the saved values under the resolved ones, with
@@ -107,10 +113,11 @@ export const GROUP_C: DashboardModule[] = [
   templateModule({
     meta: volumeMixer,
     Component: VolumeMixer,
-    // a lone colour would be a one-setting category: it sits in Content with the toggles
     settings: [
+      ...audioSettings("showDevice", "showMute").map((d) => (d.key === "showMute" ? { ...d, label: "Show mute state" } : d)),
+      // The level follows the theme's OK ("" = the accent).
+      colorSetting("levelColor", "Level", { role: "ok", more: false }),
       deviceSetting("Device (Auto = all)", "audio", { group: DEVICE }),
-      ...audioSettings("showDevice", "showMute", "levelColor").map((d) => (d.key === "levelColor" ? { ...d, group: "Content" } : d.key === "showMute" ? { ...d, label: "Show mute state" } : d)),
     ],
     // read-only: the volume plugin has no write path
     toProps: (s) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), device: deviceOf(s) }),
@@ -120,17 +127,21 @@ export const GROUP_C: DashboardModule[] = [
     meta: meterBridge,
     Component: MeterBridge,
     settings: [
-      devicesSetting("Channels (none = all devices)", "audio", { group: DEVICE }),
-      boolSetting("includeDefault", "Include the default device", false, { group: "Meter bridge" }),
-      enumSetting("orientation", "Orientation", "vertical", [{ value: "vertical", label: "Columns" }, { value: "horizontal", label: "Rows" }], { group: "Meter bridge" }),
-      enumSetting("ladder", "Ladder", "led", [{ value: "led", label: "LED" }, { value: "smooth", label: "Smooth" }], { group: "Meter bridge" }),
-      numberSetting("segments", "Segments (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Meter bridge" }),
-      boolSetting("showScale", "dB scale", true, { group: "Meter bridge" }),
-      boolSetting("showVolume", "Volume", true, { group: "Meter bridge" }),
-      numberSetting("holdMs", "Peak hold (ms)", BALLISTICS.peak.peakHoldMs, { min: 0, max: 5000, step: 100, group: "Meter", visibleIf: (v) => ballisticsOf(v) === "peak" }),
-      numberSetting("floor", "Floor (dB)", -60, { min: -120, max: -20, step: 1, group: "Thresholds" }),
+      enumSetting("orientation", "Orientation", "vertical", [{ value: "vertical", label: "Columns" }, { value: "horizontal", label: "Rows" }], { group: "Meter" }),
+      enumSetting("ladder", "Ladder", "led", [{ value: "led", label: "LED" }, { value: "smooth", label: "Smooth" }], { group: "Meter" }),
+      numberSetting("segments", "Segments (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Meter" }),
+      boolSetting("showScale", "dB scale", true, { group: "Meter" }),
+      boolSetting("showVolume", "Volume", true, { group: "Details" }),
+      ...audioSettings("showDevice", "showDetails", "showMute"),
+      // The level and clip colours follow the theme's OK and Critical ("" = the accent and red).
+      colorSetting("levelColor", "Level", { role: "ok", more: false }),
+      colorSetting("hotColor", "Clip level", { role: "crit", more: false }),
+      devicesSetting("Channels (none = all devices)", "audio", { group: "Channels" }),
+      boolSetting("includeDefault", "Include the default device", false, { group: "Channels", tab: "data" }),
+      numberSetting("floor", "Floor (dB)", -60, { min: -120, max: -20, step: 1, group: "Bar scale", tab: "data" }),
+      numberSetting("holdMs", "Peak hold (ms)", BALLISTICS.peak.peakHoldMs, { min: 0, max: 5000, step: 100, group: "Dynamics", tab: "behaviour", visibleIf: (v) => ballisticsOf(v) === "peak" }),
       thresholdSetting("db"),
-      ...audioSettings("showDevice", "showDetails", "showMute", "meterBallistics", "levelColor", "hotColor"),
+      ...audioSettings("meterBallistics"),
     ],
     toProps: (s, saved) => ({
       ...pick<MeterBridgeProps>(["includeDefault", "showScale", "showVolume", "showDetails", "showMute", "levelColor", "hotColor"])(s),
@@ -150,14 +161,15 @@ export const GROUP_C: DashboardModule[] = [
     meta: visualizer,
     Component: Visualizer,
     settings: [
-      enumSetting("mode", "Mode", "bars", opts(VIZ_MODES), { group: "Visualizer" }),
-      deviceSetting("Audio device", "audio", { group: DEVICE }),
-      numberSetting("bands", "Bands (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Visualizer" }),
-      numberSetting("sensitivity", "Sensitivity", 1.4, { min: 0.2, max: 4, step: 0.1, group: "Visualizer" }),
-      boolSetting("peaks", "Peak caps", true, { group: "Visualizer" }),
-      ...vizShapeSettings("mode"),
-      ...vizColorSettings(colorSetting("ramp", "Color")),
-      ...vizDynamicsSettings(),
+      enumSetting("mode", "Style", "bars", opts(VIZ_MODES), { group: SPECTRUM }),
+      numberSetting("bands", "Bands (0 = auto)", 0, { min: 0, max: 64, step: 1, group: SPECTRUM }),
+      boolSetting("peaks", "Peak caps", true, { group: SPECTRUM }),
+      ...vizShapeSettings("mode").map((d) => ({ ...d, group: SPECTRUM, more: true })),
+      ...vizColorSettings(colorSetting("ramp", "Color")).map((d) => ({ ...d, ...VIZ_COLOR_ROWS[d.key] })),
+      deviceSetting("Audio device", "audio", { group: "Audio device" }),
+      numberSetting("sensitivity", "Sensitivity", 1.4, { min: 0.2, max: 4, step: 0.1, group: VIZ_DYNAMICS_GROUP, tab: "behaviour" }),
+      { ...AUTO_GAIN, more: false },
+      ...DYNAMICS.filter((d) => d !== AUTO_GAIN),
     ],
     toProps: (s, saved) => ({
       ...pick<VisualizerProps>(["peaks"])(s),
@@ -172,8 +184,7 @@ export const GROUP_C: DashboardModule[] = [
   templateModule({
     meta: waveLink,
     Component: WaveLink,
-    // the level colour also carries the old Wave Link widget's teal (config v4, `legacy-zones.ts`)
-    settings: [...WAVELINK_SETTINGS, colorSetting("levelColor", "Level color", { group: "Meter" })],
+    settings: WAVELINK_SETTINGS,
     island: waveLinkIsland,
     toProps: (s) => ({ ...wavelinkToProps(s), levelColor: stringOf(s.levelColor) }),
   }),

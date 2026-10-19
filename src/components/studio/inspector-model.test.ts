@@ -43,7 +43,8 @@ const panel: InspectorContext = { kind: "panel", defs: PANEL_SETTINGS };
 
 describe("every setting is in exactly one section of exactly one tab", () => {
   // A widget without a header, or with a title-only one, has no Show title row (config v7 dropped a stored one).
-  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")));
+  // A hidden row (CustomGauge `gauge`) is in the schema but never listed.
+  const shown = (m: DashboardModule) => (m.settings ?? []).filter((d) => !d.hidden).filter((d) => !(d.key === "showTitle" && (m.header === "none" || m.header === "title-only")));
   const contexts: [string, InspectorContext, ModuleSetting[]][] = [
     ...modules.map((m): [string, InspectorContext, ModuleSetting[]] => [m.id, widgetContext(m), shown(m)]),
     ["cards", { kind: "widget", defs: CARD_SETTINGS }, CARD_SETTINGS],

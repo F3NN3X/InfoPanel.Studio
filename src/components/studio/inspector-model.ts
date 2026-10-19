@@ -105,7 +105,7 @@ export type InspectorContext =
 /** The context of a selected widget zone. */
 export const widgetContext = (mod: DashboardModule): InspectorContext => ({
   kind: "widget",
-  defs: mod.settings ?? [],
+  defs: (mod.settings ?? []).filter((d) => !d.hidden),
   reducedStyle: mod.styleSubset !== undefined,
   noData: mod.noData,
   header: mod.header,
