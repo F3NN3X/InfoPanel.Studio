@@ -1,0 +1,1418 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CoreHeatmap > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Thresholds": [
+        "hotOutline",
+      ],
+    },
+    {
+      "History": [
+        "history",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Processor": [
+        "device",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Cells": [
+        "shape",
+        "metric",
+        "showValues",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Widget colors": [
+        "ramp · more · per widget",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`Fans > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Dynamics": [
+        "spin",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Bar scale": [
+        "maxRpm",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`GpuMonitor > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Thresholds": [
+        "warn.temp",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Graphics card": [
+        "device",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`GpuRings > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Graphics card": [
+        "device",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Rings": [
+        "outer",
+        "inner",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Widget colors": [
+        "outerColor · role s1",
+        "innerColor · role s2",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`KpiTiles > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "History": [
+        "lookback",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Tiles": [
+        "metrics",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+        "label",
+        "icon · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`MemoryUsage > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Thresholds": [
+        "warn.load",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`MenuBar > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Interaction": [
+        "dropdown",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Network adapter": [
+        "device",
+      ],
+    },
+    {
+      "Units & format": [
+        "rateUnit",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Items": [
+        "items",
+        "active",
+        "stacked",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+        "label",
+        "icon · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`PowerDraw > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Budget": [
+        "budget",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`ProcessList > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Sorting": [
+        "sort",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Rows": [
+        "rows",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`ServiceHealth > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Services": [
+        "healthLayout",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`StatusTracker > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Thresholds": [
+        "warn.load",
+        "track.1.warn · more",
+        "track.1.crit · more",
+        "track.2.warn · more",
+        "track.2.crit · more",
+        "track.3.warn · more",
+        "track.3.crit · more",
+      ],
+    },
+    {
+      "History": [
+        "samples",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Sensors": [
+        "track1Key",
+        "track2Key",
+        "track3Key",
+        "track4Key",
+        "track5Key",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Tracks": [
+        "track1Label",
+        "track2Label",
+        "track3Label",
+        "track4Label",
+        "track5Label",
+        "track4Up",
+        "track5Up",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`SystemStatus > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Thresholds": [
+        "warn.load",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`Thermals > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Thresholds": [
+        "sensorLimits",
+        "warn.temp",
+      ],
+    },
+    {
+      "Sorting": [
+        "sortBy",
+      ],
+    },
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+    {
+      "Bar scale": [
+        "max",
+      ],
+    },
+    {
+      "Units & format": [
+        "tempUnit",
+      ],
+    },
+  ],
+  "Show": [
+    {
+      "Header": [
+        "showTitle",
+        "label",
+        "icon · more",
+      ],
+    },
+    {
+      "Readings": [
+        "view",
+        "discover",
+        "showFans",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Widget colors": [
+        "fanColor · role s3",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;
+
+exports[`Vitals > files its rows by the rules 1`] = `
+{
+  "Behaviour": [
+    {
+      "Motion": [
+        "smoothing",
+      ],
+    },
+  ],
+  "Data": [
+    {
+      "Bound data [boundData]": [],
+    },
+  ],
+  "Show": [
+    {
+      "Metrics": [
+        "metrics",
+      ],
+    },
+    {
+      "Fit": [
+        "compact",
+        "sizeTier · more",
+        "label",
+        "icon · more",
+      ],
+    },
+  ],
+  "Style": [
+    {
+      "Skin & graphics": [
+        "skin",
+        "graph · more",
+        "meter · more",
+        "stroke",
+      ],
+    },
+    {
+      "Colors": [
+        "preset · more",
+        "accent",
+        "textColor",
+        "mutedColor",
+      ],
+    },
+    {
+      "Surface": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
+      ],
+    },
+    {
+      "Typography": [
+        "font",
+        "fontWeight",
+        "labelCase",
+      ],
+    },
+    {
+      "Size & spacing": [
+        "scale",
+        "align",
+        "padding",
+        "gap",
+        "radius",
+      ],
+    },
+    {
+      "Border & glow": [
+        "borderWidth",
+        "borderColor",
+        "glow",
+        "glowColor",
+      ],
+    },
+    {
+      "Custom CSS": [
+        "customCss · more",
+      ],
+    },
+  ],
+}
+`;

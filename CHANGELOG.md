@@ -51,6 +51,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   disabled Data tab.
 - Audio meter's amber and hot zones are an Audio level threshold (dB), defaulting to the old 72 % / 90 % of full scale.
 - CPU monitor has Units & format (temperature unit and decimals of its temperatures).
+- Widget settings v2 for the system and hardware widgets (Menu bar, KPI tiles, Status tracker, System status, Vitals,
+  Service health, Process list, Core heatmap, GPU rings, GPU monitor, Memory usage, Thermals, Power draw, Fans): rows
+  are filed by task. Sorting, history length, the fan spin and the menu bar's click behaviour are in Behaviour; bar
+  scales and the Thermals / Fans full-scale values are in Data; the GPU rings and the Thermals fan dot follow the
+  theme palette (Series 1 and 2, Series 3), the core heatmap ramp stays per widget. Status tracker's per-track levels
+  are More rows of Thresholds.
 
 ### Changed
 - Config v8 renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,

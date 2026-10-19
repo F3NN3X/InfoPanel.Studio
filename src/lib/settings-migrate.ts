@@ -574,6 +574,8 @@ const ROLE_KEYS: Readonly<Record<string, readonly string[]>> = {
   NowPlaying: ["vizColor1", "vizColor2", "vizColor3", "vizPeakColor"],
   SensorGroup: ["tempColor", "fanColor", "powerColor"],
   AudioMeter: ["levelColor", "hotColor"],
+  GpuRings: ["outerColor", "innerColor"],
+  Thermals: ["fanColor"],
 };
 
 /** A stored number, or undefined. */

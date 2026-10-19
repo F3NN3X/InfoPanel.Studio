@@ -127,6 +127,9 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
     ["NowPlaying", { vizPeakColor: "#ffffff" }],
     ["SensorGroup", { fanColor: "#00ff00" }],
     ["AudioMeter", { hotColor: "#ff00ff" }],
+    ["GpuRings", { outerColor: "#ff0000" }],
+    ["GpuRings", { innerColor: "#00ff00" }],
+    ["Thermals", { fanColor: "#00ff00" }],
   ] as const)("%s %j", (module, settings) => {
     expect(one(module, settings).follow).toEqual({ palette: false });
     // a v7 flag said follow, but the colour applied regardless
@@ -137,6 +140,8 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
     expect(one("SystemOverview", { cpuColor: "", label: "X" }).follow).toBeUndefined();
     expect(one("AudioMeter", { showMute: false }).follow).toBeUndefined();
     expect(one("Bluetooth", { batteryLowColor: "#ff0000" }).follow).toBeUndefined();
+    expect(one("GpuRings", { outer: "load" }).follow).toBeUndefined();
+    expect(one("Thermals", { fanColor: "" }).follow).toBeUndefined();
   });
 
   it("keeps the other flags, and an explicit Use theme on v8 data", () => {

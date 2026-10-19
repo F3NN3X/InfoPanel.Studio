@@ -21,7 +21,6 @@ import type { UptimeProps } from "../Uptime";
 import type { VitalsProps } from "../Vitals";
 
 const opts = (...pairs: [string, string][]) => pairs.map(([value, label]) => ({ value, label }));
-const DEVICE = "Device";
 /** A stored comma-separated pick as its valid items; undefined while unset (the template's own list). */
 const listPick = <T extends string>(v: unknown, allowed: readonly T[]): T[] | undefined => (v === undefined ? undefined : splitKeys(v).flatMap((k) => oneOf(k, allowed) ?? []));
 
@@ -31,11 +30,11 @@ const MENU_LABELS: [string, string][] = [["cpu", "CPU"], ["gpu", "GPU"], ["temp"
 /** Download or Upload is in the bar: the network settings apply. */
 const showsNet = (v: ModuleSettings): boolean => splitKeys(v.items ?? MENU_ITEMS.join(",")).some((k) => k === "down" || k === "up");
 export const MENUBAR_SETTINGS: ModuleSetting[] = [
-  enumSetting("items", "Items", MENU_ITEMS.join(","), opts(...MENU_LABELS), { multiple: true, group: "Menu bar" }),
-  enumSetting("active", "Active item", "", opts(["", "None"], ...MENU_LABELS), { group: "Menu bar", hint: "Shown selected, with its detail when the zone is tall enough: for screens nobody clicks" }),
-  enumSetting("stacked", "Label placement", "auto", opts(["auto", "Auto"], ["stacked", "Stacked"], ["inline", "Inline"]), { group: "Menu bar" }),
-  boolSetting("dropdown", "Detail dropdown on click", true, { group: "Menu bar" }),
-  deviceSetting("Network adapter", "adapter", { group: DEVICE, visibleIf: showsNet }),
+  enumSetting("items", "Items", MENU_ITEMS.join(","), opts(...MENU_LABELS), { multiple: true, group: "Items" }),
+  enumSetting("active", "Active item", "", opts(["", "None"], ...MENU_LABELS), { group: "Items", hint: "Shown selected, with its detail when the zone is tall enough: for screens nobody clicks" }),
+  enumSetting("stacked", "Label placement", "auto", opts(["auto", "Auto"], ["stacked", "Stacked"], ["inline", "Inline"]), { group: "Items" }),
+  deviceSetting("Network adapter", "adapter", { group: "Network adapter", visibleIf: showsNet }),
+  boolSetting("dropdown", "Detail dropdown on click", true, { group: "Interaction", tab: "behaviour" }),
   rateUnitSetting({ visibleIf: showsNet }),
 ];
 export const menuBarProps = (s: ModuleSettings): Partial<MenuBarProps> => ({
@@ -50,8 +49,8 @@ export const menuBarProps = (s: ModuleSettings): Partial<MenuBarProps> => ({
 /* ───────── KpiTiles ───────── */
 const KPI_METRICS = ["cpu", "gpu", "ram", "net", "vram", "power"] as const;
 export const KPITILES_SETTINGS: ModuleSetting[] = [
-  enumSetting("metrics", "Tiles", "cpu,gpu,ram,net", opts(["cpu", "CPU"], ["gpu", "GPU"], ["ram", "Memory"], ["net", "Network"], ["vram", "VRAM"], ["power", "Power"]), { multiple: true, group: "KPI tiles" }),
-  numberSetting("lookback", "Change over (readings)", 10, { min: 2, max: 60, step: 1, group: "KPI tiles" }),
+  enumSetting("metrics", "Tiles", "cpu,gpu,ram,net", opts(["cpu", "CPU"], ["gpu", "GPU"], ["ram", "Memory"], ["net", "Network"], ["vram", "VRAM"], ["power", "Power"]), { multiple: true, group: "Tiles" }),
+  numberSetting("lookback", "Change over (readings)", 10, { min: 2, max: 60, step: 1, group: "History", tab: "behaviour" }),
 ];
 export const kpiTilesProps = (s: ModuleSettings): Partial<KpiTilesProps> => ({ metrics: listPick(s.metrics, KPI_METRICS), lookback: numberOf(s.lookback) });
 
@@ -70,20 +69,16 @@ const SLOTS: Slot[] = [
   { n: 4, label: "Ethernet", kind: "status", up: "Up" },
   { n: 5, label: "Data API", kind: "status", up: "running" },
 ];
-/** A track's own level (`track.N.warn` / `track.N.crit`, config v7); blank = the theme's Load threshold. */
-const trackLevel = (n: number, level: "warn" | "crit", group: string): ModuleSetting =>
-  textSetting(`track.${n}.${level}`, level === "warn" ? "Warning" : "Critical", "", { group, hint: "Blank = the Load threshold (Behaviour › Thresholds); off = never" });
+/** A track's own level (`track.N.warn` / `track.N.crit`, config v7), a More row of Thresholds; blank = the theme's Load threshold. */
+const trackLevel = (t: Slot, level: "warn" | "crit"): ModuleSetting =>
+  textSetting(`track.${t.n}.${level}`, `${t.label}: ${level === "warn" ? "warning" : "critical"}`, "", { section: "thresholds", more: true, hint: "Blank = the Load threshold; off = never" });
 export const STATUSTRACKER_SETTINGS: ModuleSetting[] = [
-  numberSetting("samples", "History length (samples)", 60, { min: 10, max: 240, step: 10, group: "Tracks" }),
-  ...SLOTS.flatMap((t): ModuleSetting[] => {
-    const g = `Track ${t.n}`;
-    return [
-      textSetting(`track${t.n}Label`, `Track ${t.n} label`, t.label, { group: "Tracks" }),
-      sensorSetting(`track${t.n}Key`, "Sensor (empty = the default)", { group: g }),
-      ...(t.kind === "threshold" ? [trackLevel(t.n, "warn", g), trackLevel(t.n, "crit", g)] : [textSetting(`track${t.n}Up`, "Value that means up", t.up, { group: g })]),
-    ];
-  }),
+  ...SLOTS.map((t) => textSetting(`track${t.n}Label`, `Track ${t.n} label`, t.label, { group: "Tracks" })),
+  ...SLOTS.filter((t) => t.kind === "status").map((t) => textSetting(`track${t.n}Up`, `Track ${t.n}: value that means up`, t.up, { group: "Tracks" })),
+  ...SLOTS.map((t) => sensorSetting(`track${t.n}Key`, `Track ${t.n} sensor (empty = the default)`, { group: "Sensors" })),
+  numberSetting("samples", "History length (samples)", 60, { min: 10, max: 240, step: 10, group: "History", tab: "behaviour" }),
   thresholdSetting("load"),
+  ...SLOTS.filter((t) => t.kind === "threshold").flatMap((t) => [trackLevel(t, "warn"), trackLevel(t, "crit")]),
 ];
 /** A track's level: its own (`track.N.*`, else the old `trackN*`), `off` = never, else the Load threshold. */
 const trackLevelOf = (s: ModuleSettings, n: number, level: "warn" | "crit", load: number | undefined): number | undefined => {
@@ -112,32 +107,32 @@ export const systemStatusProps = (s: ModuleSettings): Partial<SystemStatusProps>
 export const MEMORYUSAGE_SETTINGS: ModuleSetting[] = [thresholdSetting("load")];
 export const memoryUsageProps = (s: ModuleSettings): Partial<MemoryUsageProps> => thresholdsOf(s, "load", ["warn", "crit"]);
 
-export const POWERDRAW_SETTINGS: ModuleSetting[] = [numberSetting("budget", "Power budget (W)", 750, { min: 100, max: 2000, step: 50, group: "Power" })];
+export const POWERDRAW_SETTINGS: ModuleSetting[] = [numberSetting("budget", "Power budget (W)", 750, { min: 100, max: 2000, step: 50, group: "Budget" })];
 export const powerDrawProps = (s: ModuleSettings): Partial<PowerDrawProps> => ({ budget: numberOf(s.budget) });
 
 export const UPTIME_SETTINGS: ModuleSetting[] = [boolSetting("showSeconds", "Seconds", true, { group: "Time" })];
 export const uptimeProps = (s: ModuleSettings): Partial<UptimeProps> => ({ showSeconds: boolOf(s.showSeconds) });
 
 export const FANS_SETTINGS: ModuleSetting[] = [
-  numberSetting("maxRpm", "Full-scale speed (RPM)", 3000, { min: 500, max: 6000, step: 100, group: "Fans" }),
-  boolSetting("spin", "Spin the fan icons", true, { group: "Fans" }),
+  boolSetting("spin", "Spin the fan icons", true, { group: "Dynamics", tab: "behaviour" }),
+  numberSetting("maxRpm", "Full-scale speed (RPM)", 3000, { min: 500, max: 6000, step: 100, group: "Bar scale", tab: "data" }),
 ];
 export const fansProps = (s: ModuleSettings): Partial<FansProps> => ({ maxRpm: numberOf(s.maxRpm), spin: boolOf(s.spin) });
 
 /** The template's `layout` is stored as `healthLayout` (the standard `layout` keeps its meaning). */
-export const SERVICEHEALTH_SETTINGS: ModuleSetting[] = [enumSetting("healthLayout", "Services as", "list", opts(["list", "List"], ["pills", "Pills"]), { group: "Service health" })];
+export const SERVICEHEALTH_SETTINGS: ModuleSetting[] = [enumSetting("healthLayout", "Services as", "list", opts(["list", "List"], ["pills", "Pills"]), { group: "Services" })];
 export const serviceHealthProps = (s: ModuleSettings): Partial<ServiceHealthProps> => ({ layout: oneOf(s.healthLayout, ["list", "pills"]) });
 
 export const PROCESSLIST_SETTINGS: ModuleSetting[] = [
-  enumSetting("sort", "Sort by", "cpu", opts(["cpu", "CPU"], ["utility", "CPU utility"], ["memory", "Memory"]), { group: "Process list" }),
-  numberSetting("rows", "Rows (0 = fit the height)", 0, { min: 0, max: 30, step: 1, group: "Process list" }),
+  numberSetting("rows", "Rows (0 = fit the height)", 0, { min: 0, max: 30, step: 1, group: "Rows" }),
+  enumSetting("sort", "Sort by", "cpu", opts(["cpu", "CPU"], ["utility", "CPU utility"], ["memory", "Memory"]), { group: "Sorting", tab: "behaviour" }),
 ];
 export const processListProps = (s: ModuleSettings): Partial<ProcessListProps> => ({ sort: oneOf(s.sort, ["cpu", "utility", "memory"]), rows: numberOf(s.rows) || undefined });
 
 /* ───────── Vitals ───────── */
 const VITALS_METRICS = ["cpu", "gpu", "ram", "net", "vram", "fps"] as const;
 export const VITALS_SETTINGS: ModuleSetting[] = [
-  enumSetting("metrics", "Vitals", "cpu,gpu,ram,net", opts(["cpu", "CPU"], ["gpu", "GPU"], ["ram", "RAM"], ["net", "Network"], ["vram", "VRAM"], ["fps", "FPS"]), { multiple: true, group: "Vitals" }),
+  enumSetting("metrics", "Metrics", "cpu,gpu,ram,net", opts(["cpu", "CPU"], ["gpu", "GPU"], ["ram", "RAM"], ["net", "Network"], ["vram", "VRAM"], ["fps", "FPS"]), { multiple: true, group: "Metrics" }),
 ];
 export const vitalsProps = (s: ModuleSettings): Partial<VitalsProps> => ({ metrics: listPick(s.metrics, VITALS_METRICS) });
 
@@ -163,13 +158,13 @@ export const cpuMonitorProps = (s: ModuleSettings): Partial<CpuMonitorProps> => 
 
 const RAMPS = ["accent", "thermal", "viridis", "magma", "ice", "synth", "mono"] as const;
 export const COREHEATMAP_SETTINGS: ModuleSetting[] = [
-  deviceSetting("Processor", "cpu", { group: DEVICE }),
-  enumSetting("shape", "Shape", "grid", opts(["grid", "Grid"], ["hex", "Hexagons"], ["radial", "Radial"], ["waterfall", "Waterfall"]), { group: "Core heatmap" }),
-  enumSetting("metric", "Metric", "load", opts(["load", "Load"], ["clock", "Clock"], ["power", "Power"], ["vid", "Voltage (VID)"]), { group: "Core heatmap" }),
-  enumSetting("showValues", "Values in cells", "auto", opts(["auto", "Auto"], ["on", "Show"], ["off", "Hide"]), { group: "Core heatmap", visibleIf: (v) => v.shape === "grid" || v.shape === "hex" }),
-  numberSetting("history", "Waterfall columns", 60, { min: 10, max: 240, step: 10, group: "Core heatmap", visibleIf: (v) => v.shape === "waterfall" }),
-  numberSetting("hotOutline", "Outline cells above (%)", 80, { min: 0, max: 100, step: 5, group: "Core heatmap", hint: "Share of the metric's highest value (load: percent)", visibleIf: (v) => v.shape === "grid" }),
-  enumSetting("ramp", "Color ramp", "accent", RAMPS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })), { tab: "style", advanced: true, group: "Core heatmap" }),
+  enumSetting("shape", "Shape", "grid", opts(["grid", "Grid"], ["hex", "Hexagons"], ["radial", "Radial"], ["waterfall", "Waterfall"]), { group: "Cells" }),
+  enumSetting("metric", "Metric", "load", opts(["load", "Load"], ["clock", "Clock"], ["power", "Power"], ["vid", "Voltage (VID)"]), { group: "Cells" }),
+  enumSetting("showValues", "Values in cells", "auto", opts(["auto", "Auto"], ["on", "Show"], ["off", "Hide"]), { group: "Cells", visibleIf: (v) => v.shape === "grid" || v.shape === "hex" }),
+  enumSetting("ramp", "Color ramp", "accent", RAMPS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })), { tab: "style", more: true, perWidget: true }),
+  deviceSetting("Processor", "cpu", { group: "Processor" }),
+  numberSetting("history", "Waterfall columns", 60, { min: 10, max: 240, step: 10, group: "History", tab: "behaviour", visibleIf: (v) => v.shape === "waterfall" }),
+  numberSetting("hotOutline", "Outline cells above (%)", 80, { min: 0, max: 100, step: 5, section: "thresholds", hint: "Share of the metric's highest value (load: percent)", visibleIf: (v) => v.shape === "grid" }),
 ];
 export const coreHeatmapProps = (s: ModuleSettings): Partial<CoreHeatmapProps> => ({
   cpu: deviceOf(s, "cpu"),
@@ -183,14 +178,16 @@ export const coreHeatmapProps = (s: ModuleSettings): Partial<CoreHeatmapProps> =
 
 /* ───────── GpuRings / GpuMonitor ───────── */
 const RING_COLORS: ColorEntry[] = [
-  { entry: "outer", key: "outerColor", label: "Outer ring color" },
-  { entry: "inner", key: "innerColor", label: "Inner ring color" },
+  { entry: "outer", key: "outerColor", label: "Outer ring" },
+  { entry: "inner", key: "innerColor", label: "Inner ring" },
 ];
+/** The rings follow the theme's Series 1 and 2 ("" = the widget's own colours). */
+const RING_ROLES = { outerColor: "s1", innerColor: "s2" } as const;
 export const GPURINGS_SETTINGS: ModuleSetting[] = [
-  deviceSetting("Graphics card", "gpu", { group: DEVICE }),
-  enumSetting("outer", "Outer ring", "vram", opts(["vram", "VRAM"], ["load", "Load"], ["power", "Power"]), { group: "GPU rings" }),
-  enumSetting("inner", "Inner ring", "load", opts(["load", "Load"], ["vram", "VRAM"], ["fan", "Fan"]), { group: "GPU rings" }),
-  ...RING_COLORS.map((e) => colorSetting(e.key, e.label, { group: "GPU rings" })),
+  enumSetting("outer", "Outer ring", "vram", opts(["vram", "VRAM"], ["load", "Load"], ["power", "Power"]), { group: "Rings" }),
+  enumSetting("inner", "Inner ring", "load", opts(["load", "Load"], ["vram", "VRAM"], ["fan", "Fan"]), { group: "Rings" }),
+  ...RING_COLORS.map((e) => colorSetting(e.key, e.label, { role: RING_ROLES[e.key as keyof typeof RING_ROLES], more: false })),
+  deviceSetting("Graphics card", "gpu", { group: "Graphics card" }),
 ];
 export const gpuRingsProps = (s: ModuleSettings): Partial<GpuRingsProps> => ({
   gpu: deviceOf(s, "gpu"),
@@ -199,7 +196,7 @@ export const gpuRingsProps = (s: ModuleSettings): Partial<GpuRingsProps> => ({
   colors: colorsOf(s, RING_COLORS),
 });
 
-export const GPUMONITOR_SETTINGS: ModuleSetting[] = [deviceSetting("Graphics card", "gpu", { group: DEVICE }), thresholdSetting("temp")];
+export const GPUMONITOR_SETTINGS: ModuleSetting[] = [deviceSetting("Graphics card", "gpu", { group: "Graphics card" }), thresholdSetting("temp")];
 export const gpuMonitorProps = (s: ModuleSettings): Partial<GpuMonitorProps> => {
   const { warn, crit } = thresholdsOf(s, "temp", ["warnTemp", "critTemp"]);
   return { gpu: deviceOf(s, "gpu"), warnTemp: warn, critTemp: crit };
@@ -207,8 +204,8 @@ export const gpuMonitorProps = (s: ModuleSettings): Partial<GpuMonitorProps> => 
 
 /* ───────── Thermals (after the view / discover / fan settings it shares with Hardware) ───────── */
 export const THERMALS_EXTRA_SETTINGS: ModuleSetting[] = [
-  enumSetting("sortBy", "Order", "hottest", opts(["hottest", "Hottest first"], ["fixed", "Fixed"]), { group: "Content" }),
-  numberSetting("max", "Bar scale (°C)", 100, { min: 40, max: 150, step: 5, group: "Content" }),
+  enumSetting("sortBy", "Order", "hottest", opts(["hottest", "Hottest first"], ["fixed", "Fixed"]), { group: "Sorting", tab: "behaviour" }),
+  numberSetting("max", "Bar scale (°C)", 100, { min: 40, max: 150, step: 5, group: "Bar scale", tab: "data" }),
   // Replaces "0 = per sensor" (config v7, owner decision Q3): on, each sensor keeps its own limits.
   boolSetting("sensorLimits", "Use sensor limits", true, { section: "thresholds", hint: "Each sensor's own warning and critical levels; off: the Temperature threshold for every sensor" }),
   thresholdSetting("temp", { visibleIf: (v) => v.sensorLimits === false }),
