@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { SensorItemsField } from "@/components/studio/widget-editor/sensor-items-field";
+import { SensorOverride } from "@/components/studio/widget-editor/sensor-items-field";
+import { SensorListField } from "@/components/studio/widget-editor/sensor-list-field";
 import { renderModule } from "@/widgets/test-render";
 import { effectiveSettings } from "@/modules/types";
 import { GROUP_B } from "./b";
@@ -40,25 +41,37 @@ describe("per-sensor overrides (items)", () => {
   it("ignores an override of a sensor that is not bound", () => {
     expect(one({ items: JSON.stringify({ "x.other": { label: "Nope" } }) })).not.toContain("Nope");
   });
-  it("registers the control after the sensor list and hides it in Auto-discover", () => {
-    const def = mod.settings!.find((d) => d.key === "items")!;
-    expect(def).toMatchObject({ type: "sensorItems", of: "sensors", default: "" });
+  it("stores them as the sensor list's second key, tuned inline, and hides the list in Auto-discover", () => {
+    const def = mod.settings!.find((d) => d.key === "sensors")!;
+    expect(def).toMatchObject({ type: "sensor", multiple: true, keyY: "items", defaultY: "" });
+    expect(mod.settings!.some((d) => d.key === "items")).toBe(false);
     expect(def.visibleIf!(effectiveSettings(mod, {}))).toBe(true);
-    expect(def.visibleIf!(effectiveSettings(mod, { auto: true }))).toBe(false);
+    expect(def.visibleIf!(effectiveSettings(mod, { mode: "auto" }))).toBe(false);
   });
 });
 
-describe("SensorItemsField", () => {
-  const html = (keys: string, value = "") => renderToString(createElement(SensorItemsField, { label: "Per-sensor", keys, value, onChange: () => {} }));
-  it("renders one row per bound sensor with its inputs", () => {
+describe("SensorListField with overrides", () => {
+  const html = (keys: string, value = "") => renderToString(createElement(SensorListField, { label: "Sensors", value: keys, onChange: () => {}, onOpenExplorer: () => {}, items: { value, onChange: () => {} } }));
+  it("renders one row per bound sensor with its live value and a tune button", () => {
     const out = html("x.fan,x.pump", JSON.stringify({ "x.fan": { label: "Radiator", max: 1200 } }));
     expect(out.match(/<li /g)).toHaveLength(2);
+    expect(out.match(/aria-label="Tune /g)).toHaveLength(2);
+    // the override's label names the row
+    expect(out).toContain("Radiator");
+    expect(out).toContain("600");
+  });
+  it("offers no tune button without overrides", () => {
+    const out = renderToString(createElement(SensorListField, { label: "Sensors", value: "x.fan", onChange: () => {}, onOpenExplorer: () => {} }));
+    expect(out).not.toContain("Tune ");
+  });
+});
+
+describe("SensorOverride", () => {
+  it("renders one sensor's inputs from the stored overrides", () => {
+    const out = renderToString(createElement(SensorOverride, { sensorKey: "x.fan", name: "CPU fan", value: JSON.stringify({ "x.fan": { label: "Radiator", max: 1200 } }), onChange: () => {} }));
     expect(out).toContain('value="Radiator"');
     expect(out).toContain('value="1200"');
     expect(out).toContain("Reset");
     expect(out).toContain("Auto");
-  });
-  it("asks for sensors when none are bound", () => {
-    expect(html("")).toContain("Bind sensors first");
   });
 });

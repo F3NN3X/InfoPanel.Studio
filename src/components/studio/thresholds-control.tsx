@@ -52,7 +52,9 @@ export function zoneWidths(levels: Levels, range: { min: number; max: number }):
 export function levelText(level: Level, q: ThresholdQuantity, tempUnit: "c" | "f" = "c"): string {
   if (level === OFF) return "Off";
   if (q === "temp") return `${Math.round(inUnit(level, tempUnit))}${tempUnit === "f" ? "°F" : "°C"}`;
-  return `${level}${QUANTITIES[q].unit === "dB" ? " dB" : QUANTITIES[q].unit}`;
+  // A widget's own default can sit between steps (Audio Meter's old hot zone, −0.9 dB).
+  if (q === "db") return `${Math.round(level * 10) / 10} dB`;
+  return `${level}${QUANTITIES[q].unit}`;
 }
 
 const ZONES = { ok: "oklch(0.74 0.16 150)", warn: "oklch(0.78 0.15 75)", crit: "oklch(0.68 0.19 25)" };

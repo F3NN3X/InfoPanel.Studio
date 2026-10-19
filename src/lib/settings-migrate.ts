@@ -509,3 +509,154 @@ export function migrateGeneralV7<G extends object>(
   const next = clock && style?.clock === undefined ? { ...style, clock } : style;
   return { general: rest as G, style: next };
 }
+
+/* ───────── v8: the sample widgets refiled (widget settings v2 PR 4) ───────── */
+
+/**
+ * v8 (SPEC §6.3), per placement and keyed on the old keys' presence:
+ * - NowPlaying: the visualiser keys under their v2 names (`VIZ_RENAMES`).
+ *   The old engines' keys are read once into what they drew — the style
+ *   (`vizStyle`), the bar gap and shape (`vizGap`, `vizShape`), and two keys
+ *   no row offers: `vizMinPx` (the minimum bar height) and `vizScrollAs`
+ *   (the Scroll style drawn as a line) — then dropped (`VIZ_DROPPED`), with
+ *   the switches nothing reads any more.
+ * - SensorGroup: the `auto` toggle → `mode` (auto, else pick: absent).
+ * - Colour rows that gained a palette role (`ROLE_KEYS`) read the role's
+ *   theme colour while Widget colors follows. Until now they applied
+ *   whatever the flag said, so a widget with an own colour in one of them
+ *   turns the section custom (pre-v8 only: on v8 data a following section
+ *   is an explicit Use theme). The roles' theme defaults are "" (the
+ *   widget's own colour), so a widget without own colours looks the same.
+ * AudioMeter's hot zone needs no rename: it was a fixed share of the
+ * meter, and its Audio level row defaults to that share in dB.
+ */
+
+/** NowPlaying's old visualiser keys and their v2 names (frozen at v8). */
+const VIZ_RENAMES: Readonly<Record<string, string>> = {
+  vizRamp: "vizColor1",
+  waveformSensitivity: "vizGain",
+  visualizerBarCount: "vizBars",
+  visualizerAlign: "vizAlign",
+  visualizerOrientation: "vizOrientation",
+  visualizerMinLevel: "vizMinLevel",
+  waveformLineWidth: "vizLine",
+  waveformFadeEdges: "vizFade",
+  waveformFadeWidth: "vizFadeWidth",
+};
+
+/** The old engines' keys and the switches nothing reads: read once (`nowPlayingV8`), then dropped. */
+const VIZ_DROPPED: readonly string[] = [
+  "vizEngine",
+  "waveform",
+  "visualizer",
+  "waveformVariant",
+  "visualizerMirrored",
+  "liveSource",
+  "waveformMode",
+  "waveformBarWidth",
+  "waveformBarGap",
+  "waveformBarRadius",
+  "waveformMinBarHeight",
+  "waveformActive",
+  "visualizerIdle",
+  "visualizerLoading",
+];
+
+/** The visualiser styles at v8. */
+const VIZ_STYLES_V8: readonly string[] = ["bars", "mirror", "wave", "line", "dots", "radial", "blob", "scroll"];
+
+/** The old shape keys' defaults: a value equal to one was not a choice (the skin kept the shape). */
+const VIZ_SHAPE_DEFAULTS = { waveformBarWidth: 3, waveformBarGap: 1, waveformBarRadius: 1.5, waveformMinBarHeight: 4 } as const;
+
+/** The colour rows that gained a palette role in v8, per widget. */
+const ROLE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  SystemOverview: ["cpuColor", "gpuColor", "ramColor", "vramColor", "diskColor", "netColor"],
+  NowPlaying: ["vizColor1", "vizColor2", "vizColor3", "vizPeakColor"],
+  SensorGroup: ["tempColor", "fanColor", "powerColor"],
+  AudioMeter: ["levelColor", "hotColor"],
+};
+
+/** A stored number, or undefined. */
+const numOf = (v: ModuleSettingValue | undefined): number | undefined =>
+  v === undefined || v === "" || typeof v === "boolean" || !Number.isFinite(Number(v)) ? undefined : Number(v);
+
+/** An old shape key's stored value when it was a choice (away from its default). */
+function chosenShape(s: ModuleSettings, key: keyof typeof VIZ_SHAPE_DEFAULTS): number | undefined {
+  const n = numOf(s[key]);
+  return n === undefined || n === VIZ_SHAPE_DEFAULTS[key] ? undefined : n;
+}
+
+/**
+ * The style the old keys drew: `vizEngine` waveform (the live waveform): scrolling = scroll, static =
+ * bars, line or mirror; bars (the bar visualiser): bars, or mirror; mini (or none): `waveformVariant`.
+ */
+function vizStyleV8(s: ModuleSettings): string {
+  const engine = s.vizEngine === "waveform" || s.vizEngine === "bars" ? s.vizEngine : "mini";
+  const v = String(s.waveformVariant);
+  if (engine === "waveform") return (s.waveformMode ?? "scrolling") !== "static" ? "scroll" : v === "line" || v === "mirror" ? v : "bars";
+  if (engine === "bars") return v === "mirror" || Boolean(s.visualizerMirrored) ? "mirror" : "bars";
+  return VIZ_STYLES_V8.includes(v) ? v : "bars";
+}
+
+/** NowPlaying at v8, in place (see the v8 comment); a key already under its v2 name wins. */
+function nowPlayingV8(s: ModuleSettings): void {
+  const put = (key: string, value: ModuleSettingValue | undefined) => {
+    if (value !== undefined && s[key] === undefined) s[key] = value;
+  };
+  for (const [old, key] of Object.entries(VIZ_RENAMES)) {
+    if (s[old] === undefined) continue;
+    put(key, s[old]);
+    delete s[old];
+  }
+  if (!VIZ_DROPPED.some((key) => s[key] !== undefined)) return;
+  if (["vizEngine", "waveformVariant", "waveformMode", "visualizerMirrored"].some((key) => s[key] !== undefined)) {
+    const style = vizStyleV8(s);
+    if (style !== "bars") put("vizStyle", style);
+    if (style === "scroll" && s.waveformVariant === "line") put("vizScrollAs", "line");
+  }
+  const width = chosenShape(s, "waveformBarWidth");
+  const gap = chosenShape(s, "waveformBarGap");
+  const radius = chosenShape(s, "waveformBarRadius");
+  // The gap as a share of the bar slot (`vizGap` is a percent).
+  if (width !== undefined || gap !== undefined) put("vizGap", (100 * (gap ?? 1)) / ((width ?? 3) + (gap ?? 1)));
+  const shaped = s.vizShape !== undefined && s.vizShape !== "" && s.vizShape !== "auto";
+  if (radius !== undefined && !shaped) s.vizShape = radius === 0 ? "square" : "round";
+  put("vizMinPx", chosenShape(s, "waveformMinBarHeight"));
+  for (const key of VIZ_DROPPED) delete s[key];
+}
+
+/**
+ * v8 for one widget's settings (see the v8 comment); `legacy`: the stored
+ * config predates v8; `follow`: the widget's flags (Widget colors already
+ * custom stays as it is).
+ */
+export function migrateSettingsV8(module: string, input: ModuleSettings | undefined, legacy: boolean, follow?: SectionFlags): SettingsMigration {
+  if (!input) return { settings: input, custom: [] };
+  const s: ModuleSettings = { ...input };
+  if (module === "NowPlaying") nowPlayingV8(s);
+  if (module === "SensorGroup" && s.auto !== undefined) {
+    if (s.auto === true && s.mode === undefined) s.mode = "auto";
+    delete s.auto;
+  }
+  const ownColor = (ROLE_KEYS[module] ?? []).some((key) => typeof s[key] === "string" && String(s[key]).trim() !== "");
+  return { settings: orNone(s), custom: legacy && ownColor && follow?.palette !== false ? ["palette"] : [] };
+}
+
+/** v8 for one placement: its settings migrated (`migrateSettingsV8`), Widget colors custom where its own colours must still apply. */
+export function migratePlacementV8<P extends MigratablePlacement>(p: P, ctx: { legacy: boolean }): P {
+  if (!p.settings || p.panel || NO_LOOK.has(p.module)) return p;
+  const { settings, custom } = migrateSettingsV8(p.module, p.settings, ctx.legacy, p.follow);
+  if (custom.length === 0 && JSON.stringify(settings) === JSON.stringify(p.settings)) return p;
+  const follow = custom.reduce<SectionFlags | undefined>((f, sec) => withFlag(f, sec, false), p.follow);
+  const { settings: _s, follow: _f, ...rest } = p;
+  return { ...rest, ...(settings ? { settings } : {}), ...(follow ? { follow } : {}) } as P;
+}
+
+/** v8 for one profile: its zones. */
+export function migrateProfileV8<P extends MigratableProfile>(p: P, ctx: { legacy: boolean }): P {
+  const pages = p.pages.map((pg) => {
+    const placements = pg.placements.map((pl) => migratePlacementV8(pl, ctx));
+    return placements.every((pl, i) => pl === pg.placements[i]) ? pg : { ...pg, placements };
+  });
+  return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
+}

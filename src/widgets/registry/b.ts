@@ -2,8 +2,7 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { SENSOR_GROUP_SETTINGS } from "./hardware-settings";
-import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, itemsSetting, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
 import { timerIsland } from "../island/timer";
@@ -66,15 +65,23 @@ const SENSOR_VALUE_SETTINGS: ModuleSetting[] = [
 ];
 
 // SensorGroup's `sensors` are stored as ordered keys (labelled from the sensor display name); the bar range, decimals and thresholds are shared by every item, and `items` overrides them (and the label) per sensor.
-/** The reading list is the Auto-discover mode's alternative. */
-const listed = (v: ModuleSettings): boolean => !v.auto;
-const SENSOR_GROUP_OWN: ModuleSetting[] = [
-  sensorSetting("sensors", "Sensors", { group: "Sensor group", multiple: true, hint: "Empty = CPU, GPU, memory and volume", visibleIf: listed }),
-  itemsSetting("items", "Per-sensor overrides", "sensors", { group: "Sensor group", hint: "Blank = the shared value; an override of an unbound sensor is kept but ignored", visibleIf: listed }),
-  enumSetting("groupLayout", "Layout", "auto", [{ value: "auto", label: "Auto" }, { value: "rows", label: "Rows" }, { value: "grid", label: "Grid" }], { group: "Sensor group", visibleIf: listed }),
-  boolSetting("bars", "Bar per item", true, { group: "Sensor group", visibleIf: listed }),
-  numberSetting("groupMax", "Bar maximum", 0, { group: "Sensor group", hint: "Every item; 0 = automatic (100 for % and °, else no bar)", visibleIf: listed }),
-  formatSetting("tempUnit", { visibleIf: listed }),
+/** Pick sensors (the list) or Auto-discover (every hardware reading); `mode` was the `auto` toggle until config v8. */
+const discovered = (v: ModuleSettings): boolean => v.mode === "auto";
+const listed = (v: ModuleSettings): boolean => !discovered(v);
+const SENSOR_GROUP_SETTINGS: ModuleSetting[] = [
+  enumSetting("mode", "Readings", "pick", [{ value: "pick", label: "Pick sensors" }, { value: "auto", label: "Auto-discover" }], { group: "Readings" }),
+  enumSetting("groupLayout", "Layout", "auto", [{ value: "auto", label: "Auto" }, { value: "rows", label: "Rows" }, { value: "grid", label: "Grid" }], { group: "Readings", visibleIf: listed }),
+  boolSetting("bars", "Bar per item", true, { group: "Readings", visibleIf: listed }),
+  numberSetting("maxRows", "Max rows (0 = all)", 12, { min: 0, max: 100, step: 2, group: "Readings", visibleIf: discovered }),
+  // The dots of the discovered list: the theme's Critical, Series 3 and Series 5 ("" = red, blue, amber).
+  colorSetting("tempColor", "Temperature dot", { role: "crit", more: false, visibleIf: discovered }),
+  colorSetting("fanColor", "Fan dot", { role: "s3", more: false, visibleIf: discovered }),
+  colorSetting("powerColor", "Power dot", { role: "s5", more: false, visibleIf: discovered }),
+  // `items` (per-sensor overrides, a JSON object string) is tuned inline on each listed sensor.
+  sensorSetting("sensors", "Sensors", { keyY: "items", defaultY: "", group: "Sensors", tab: "data", multiple: true, hint: "Empty = CPU, GPU, memory and volume. Tune a row to override its label, bar maximum, thresholds or decimals.", visibleIf: listed }),
+  numberSetting("groupMax", "Bar maximum", 0, { min: 0, max: 500, step: 10, group: "Bar scale", tab: "data", hint: "Every item; 0 = Auto (100 for % and °, else no bar)", visibleIf: listed }),
+  // Discovered temperatures read in the unit too.
+  formatSetting("tempUnit"),
   { ...FINE_DECIMALS, visibleIf: listed },
   valueThresholds({ visibleIf: listed }),
 ];
@@ -104,34 +111,22 @@ const NETWORK_SETTINGS: ModuleSetting[] = [
 const WEATHER_SETTINGS: ModuleSetting[] = [
   {
     key: "view",
-    label: "View",
-    type: "select",
+    label: "Preset",
+    type: "preset",
     default: "full",
     options: [
-      // Each view sets every switch it bundles, so picking one always shows it (Full used to set none).
+      // Each view sets the three toggles in place; changed afterwards, the row reads Custom. Full = their defaults.
       { value: "full", label: "Full", applies: { showForecast: true, showStats: true, showFeels: true } },
-      {
-        value: "now",
-        label: "Now",
-        applies: { showForecast: false, showStats: true, showFeels: true },
-      },
-      {
-        value: "forecast",
-        label: "Forecast",
-        applies: { showForecast: true, showStats: false, forecastDays: 7 },
-      },
-      {
-        value: "minimal",
-        label: "Minimal",
-        applies: { showStats: false, showForecast: false, showFeels: false },
-      },
+      { value: "now", label: "Now", applies: { showForecast: false, showStats: true, showFeels: true } },
+      { value: "forecast", label: "Forecast", applies: { showForecast: true, showStats: false, showFeels: false } },
+      { value: "minimal", label: "Minimal", applies: { showForecast: false, showStats: false, showFeels: false } },
     ],
     group: "Display",
+    hint: "Sets the three toggles below. Change one and the preset reads Custom.",
   },
-  { key: "tint", label: "Tint from conditions", type: "boolean", default: true, group: "Display" },
-  { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Current conditions" },
-  { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Current conditions" },
-  { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Forecast" },
+  { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Display" },
+  { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Display" },
+  { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Display" },
   {
     key: "forecastDays",
     label: "Forecast days",
@@ -140,8 +135,10 @@ const WEATHER_SETTINGS: ModuleSetting[] = [
     min: 1,
     max: 7,
     step: 1,
-    group: "Forecast",
+    group: "Display",
+    visibleIf: (v) => v.showForecast !== false,
   },
+  { key: "tint", label: "Tint from conditions", type: "boolean", default: true, tab: "style", perWidget: true },
 ];
 
 /** The stored settings as the Weather template's props (`forecastDays` is its `days`). */
@@ -323,9 +320,10 @@ export const GROUP_B: DashboardModule[] = [
   templateModule({
     meta: SensorGroup.meta,
     Component: SensorGroup.default,
-    settings: [...SENSOR_GROUP_SETTINGS, ...SENSOR_GROUP_OWN],
+    settings: SENSOR_GROUP_SETTINGS,
     toProps: (s): Partial<SensorGroup.SensorGroupProps> => ({
-      ...pass<Partial<SensorGroup.SensorGroupProps>>("bars", "auto", "maxRows", "tempColor", "fanColor", "powerColor")(s),
+      ...pass<Partial<SensorGroup.SensorGroupProps>>("bars", "maxRows", "tempColor", "fanColor", "powerColor")(s),
+      auto: discovered(s),
       layout: oneOf(s.groupLayout, ["auto", "rows", "grid"]),
       sensors: sensorItems(s),
       tempUnit: tempUnitOf(s),

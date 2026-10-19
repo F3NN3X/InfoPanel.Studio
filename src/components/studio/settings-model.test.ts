@@ -5,6 +5,8 @@ import {
   dropKeys,
   filterSettings,
   matchesQuery,
+  presetChoice,
+  presetDefaults,
   settingState,
   settingStateOf,
 } from "./settings-model";
@@ -186,5 +188,30 @@ describe("sensor settings search", () => {
   it("answers to sensor, data and bind", () => {
     for (const q of ["sensor", "data", "bind"]) expect(filterSettings([sensor], q)).toEqual([sensor]);
     expect(filterSettings([{ ...sensor, type: "text" }], "bind")).toEqual([]);
+  });
+});
+
+describe("preset rows", () => {
+  const view: ModuleSetting = {
+    key: "view",
+    label: "Preset",
+    type: "preset",
+    default: "full",
+    options: [
+      { value: "full", label: "Full", applies: { a: true, b: true } },
+      { value: "now", label: "Now", applies: { a: false, b: true } },
+      { value: "same", label: "Same as now", applies: { a: false, b: true } },
+    ],
+  };
+
+  it("takes the bundled keys' defaults from the default option", () => {
+    expect(presetDefaults(view)).toEqual({ a: true, b: true });
+  });
+
+  it("reads the stored option while the toggles match it, else the first that matches, else Custom", () => {
+    expect(presetChoice(view, "full", { a: true, b: true })).toBe("full");
+    expect(presetChoice(view, "same", { a: false, b: true })).toBe("same");
+    expect(presetChoice(view, "full", { a: false, b: true })).toBe("now");
+    expect(presetChoice(view, "now", { a: true, b: false })).toBe("custom");
   });
 });

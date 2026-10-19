@@ -40,8 +40,26 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   alignment with Spread (quick-bar-able), and Units & format rows (temperature unit, rate unit, decimals, clock)
   where the widget formats them. Thresholds, units and format, the meters' response and palette roles are themed.
 - Thermals has "Use sensor limits" (on by default) instead of "0 = per sensor".
+- Widget settings v2 for the nine sample widgets (System overview, Now playing, Sensor group, Audio meter, Weather,
+  CPU monitor, Uptime, Steam profile, Web page): their rows are filed by task as drawn in the concept, with per-section
+  More rows. Their colour rows follow the theme palette (System overview CPU…Network = Series 1–6, Sensor group dots
+  = Critical / Series 3 / Series 5, Audio meter level / hot = OK / Critical, Now playing visualiser colours = Series 1–3
+  and Critical for the peak caps); look toggles (tints, cover background, heat ramps) stay per widget. Weather's view
+  is a preset that sets its three toggles in place and reads Custom when they differ; Sensor group's Auto-discover is
+  a Readings mode, and each listed sensor has a tune button for its own label, bar maximum, thresholds and decimals;
+  Steam profile's Data tab shows whether the Steam API is connected; Uptime and Web page, which bind nothing, have a
+  disabled Data tab.
+- Audio meter's amber and hot zones are an Audio level threshold (dB), defaulting to the old 72 % / 90 % of full scale.
+- CPU monitor has Units & format (temperature unit and decimals of its temperatures).
 
 ### Changed
+- Config v8 renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,
+  `waveformSensitivity` → `vizGain`, `visualizerBarCount` → `vizBars`, `visualizerAlign` → `vizAlign`,
+  `visualizerOrientation` → `vizOrientation`, `visualizerMinLevel` → `vizMinLevel`, `waveformLineWidth` → `vizLine`,
+  `waveformFadeEdges` → `vizFade`, `waveformFadeWidth` → `vizFadeWidth`) and reads the old engines' keys once into what
+  they drew, and Sensor group's `auto` → `mode`. A widget with an own colour in a row that now follows a palette role
+  gets Widget colors set to custom, so nothing repaints. Weather's Forecast preset no longer sets 7 forecast days.
+  Sensor group's temperature unit also applies to auto-discovered temperatures.
 - Config v7 renames the shared keys (`variant` + `compactView` → `compact`, `layout` → `sizeTier`, `alignX` /
   `alignY` → `align` + `alignSpread`, thresholds → `warn.<quantity>` / `crit.<quantity>`, device keys → `device` /
   `devices`, `units` → `tempUnit`, a Clock's `format` → `clock`) and drops the unused `autoScale`. Settings > General's

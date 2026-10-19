@@ -258,7 +258,7 @@ describe("v7: idempotence", () => {
   it("a migrated config migrates to itself", () => {
     const once = mergeConfig(legacy);
     expect(once.version).toBe(CONFIG_VERSION);
-    expect(CONFIG_VERSION).toBe(7);
+    expect(CONFIG_VERSION).toBeGreaterThanOrEqual(7);
     expect(mergeConfig(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });
 

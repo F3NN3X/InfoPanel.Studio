@@ -404,6 +404,19 @@ export const PROFILE_STYLE_KEYS: ReadonlySet<string> = new Set([
   ...SURFACE_SETTINGS.flatMap(settingKeys),
 ]);
 
+/**
+ * The standard rows of a look subset (`DashboardModule.styleSubset`): each
+ * entry is a shared section (`border`), or a section and the keys it keeps
+ * (`spacing:scale,radius`).
+ */
+export function styleSubsetSettings(subset: readonly string[]): ModuleSetting[] {
+  const entries = subset.map((entry) => {
+    const [section, keys] = entry.split(":");
+    return { section, keys: keys?.split(",") };
+  });
+  return STANDARD_SETTINGS.filter((d) => entries.some((e) => d.section === e.section && (!e.keys || e.keys.includes(d.key))));
+}
+
 /** Every key of the standard block (a widget's own settings are the rest). */
 export const STANDARD_KEYS: ReadonlySet<string> = new Set(STANDARD_SETTINGS.flatMap(settingKeys));
 

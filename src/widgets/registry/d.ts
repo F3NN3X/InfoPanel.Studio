@@ -146,7 +146,13 @@ export const GROUP_D: DashboardModule[] = [
     settings: colorSettings(PLAYTIME_COLORS, { group: "Slice colors" }),
     toProps: (s) => ({ colors: playtimeColors(s) }),
   }),
-  templateModule<Pick<SteamProfileProps, never>>({ meta: steamProfileMeta, Component: SteamProfile, settings: [], toProps: () => ({}) }),
+  // No own settings: Data shows where the profile comes from (read-only), so the tab is not empty.
+  templateModule<Pick<SteamProfileProps, never>>({
+    meta: steamProfileMeta,
+    Component: SteamProfile,
+    settings: [{ key: "account", label: "Steam API", type: "status", default: "", sourcePlugin: "plugins.InfoPanel.SteamAPI.", group: "Account", tab: "data" }],
+    toProps: () => ({}),
+  }),
   templateModule<Pick<SteamFriendsProps, "view" | "sort" | "showCounts" | "ingameOnly" | "showTime" | "colors">>({
     meta: steamFriendsMeta,
     Component: SteamFriends,

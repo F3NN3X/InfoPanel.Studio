@@ -2,6 +2,7 @@ import { Ban } from "lucide-react";
 import { IconGrid, type IconGridItem } from "@/components/ui/icon-grid";
 import type { ApiSources } from "@/lib/catalog";
 import { sourceOptions } from "@/lib/sources";
+import { presetChoice } from "./settings-model";
 import { WIDGET_ICONS } from "@/lib/widget-icons";
 import { alignAxes, alignCodeOf } from "@/modules/setting-readers";
 import { isDeviceKind, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
@@ -20,7 +21,6 @@ import {
 } from "./setting-rows";
 import { DevicePicker, MediaDevicePicker, MultiSelect, NameListField, WavelinkMeterPicker } from "./setting-pickers";
 import { SensorField } from "./widget-editor/sensor-field";
-import { SensorItemsField } from "./widget-editor/sensor-items-field";
 import { SensorListField } from "./widget-editor/sensor-list-field";
 import { ThresholdsRow } from "./thresholds-control";
 
@@ -38,12 +38,26 @@ const PLACEHOLDERS: Record<string, string> = {
 const placeholderOf = (def: ModuleSetting): string | undefined =>
   def.label.startsWith("Title") ? undefined : PLACEHOLDERS[def.key];
 
+/** What a preset row reads when the toggles match none of its options. */
+const CUSTOM = "custom";
+
+/** A data source's state, read-only: connected with the containers it reports, or not. */
+function StatusRow({ sources, prefix, ...label }: RowLabelProps & { sources: ApiSources | null; prefix: string }) {
+  const containers = sourceOptions(sources, prefix).slice(1);
+  const text = sources === null ? "Checking the Data API…" : containers.length > 0 ? `Connected · ${containers.map((c) => c.label).join(", ")}` : "Not connected: no data from this plugin yet";
+  return (
+    <StackRow {...label}>
+      <span className="block text-[11.5px] text-ui-3">{text}</span>
+    </StackRow>
+  );
+}
+
 /** The control for one setting, chosen by its schema type. */
 export function SettingRow({
   def,
   value,
   valueY,
-  refValue,
+  bundle,
   onChange,
   onApply,
   onPatch,
@@ -57,15 +71,15 @@ export function SettingRow({
 }: {
   def: ModuleSetting;
   value: ModuleSettingValue;
-  /** Types "align" and "thresholds": the value of `def.keyY`. */
+  /** Types "align" and "thresholds" (and a sensor list's overrides): the value of `def.keyY`. */
   valueY?: ModuleSettingValue;
-  /** `editKey` names the field edited, so the undo step coalesces per field (type "sensorItems"). */
+  /** `editKey` names the field edited, so the undo step coalesces per field. */
   onChange: (value: ModuleSettingValue, editKey?: string) => void;
-  /** Type "sensorItems": the value of the sensor setting `def.of`. */
-  refValue?: ModuleSettingValue;
+  /** Type "preset": the shown values of the keys its options write. */
+  bundle?: ModuleSettings;
   /** Preset bundles: apply extra key/values alongside the selected one. */
   onApply?: (bundle: ModuleSettings) => void;
-  /** Types "align" and "thresholds": write both keys as one change. */
+  /** Types "align" and "thresholds" (and a sensor list's overrides): write both keys as one change. */
   onPatch?: (patch: ModuleSettings) => void;
   /** Type "sensor": the data picker's "Open data explorer". */
   onOpenExplorer?: () => void;
@@ -117,13 +131,12 @@ export function SettingRow({
         />
       );
 
-    case "sensorItems":
-      return <SensorItemsField {...label} value={String(value)} keys={String(refValue ?? "")} onChange={onChange} />;
-
     case "sensor": {
       const explorer = onOpenExplorer ?? (() => {});
+      // A list with `keyY` tunes each sensor inline (its per-sensor overrides).
+      const items = def.keyY ? { value: String(valueY ?? ""), onChange: (v: string) => onPatch?.({ [def.keyY!]: v }) } : undefined;
       return def.multiple ? (
-        <SensorListField {...label} value={String(value)} onChange={onChange} onOpenExplorer={explorer} />
+        <SensorListField {...label} value={String(value)} onChange={onChange} onOpenExplorer={explorer} items={items} />
       ) : (
         <SensorField
           {...label}
@@ -133,6 +146,29 @@ export function SettingRow({
         />
       );
     }
+
+    case "preset": {
+      // The bundle the shown toggles match, else Custom (not a choice: picking an option sets them back).
+      const choice = presetChoice(def, String(value), bundle ?? {});
+      const options = (def.options ?? []).map((o) => ({ value: o.value, label: o.label, title: o.label }));
+      const pick = (v: string) => {
+        const applies = def.options?.find((o) => o.value === v)?.applies;
+        if (!applies) return;
+        onChange(v);
+        onApply?.(applies);
+      };
+      return (
+        <SegmentedRow
+          {...label}
+          options={choice === CUSTOM ? [...options, { value: CUSTOM, label: "Custom", title: "The toggles below differ from every preset" }] : options}
+          value={choice}
+          onChange={pick}
+        />
+      );
+    }
+
+    case "status":
+      return <StatusRow {...label} sources={sources} prefix={def.sourcePlugin ?? ""} />;
 
     case "boolean":
       return <ToggleRow {...label} value={value === true} onChange={onChange} />;

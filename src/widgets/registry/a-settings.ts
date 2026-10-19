@@ -1,6 +1,6 @@
 // Inspector settings of the group A templates: every widget-specific prop of the spec as a setting,
 // with the adapters back to props (docs/redesign/phase9/brief-9.5-inspector.md). SystemOverview's are in system-overview.ts.
-import { deviceOf, levelOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
+import { decimalsOf, deviceOf, levelOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { boolOf, boolSetting, colorSetting, colorsOf, deviceSetting, enumSetting, formatSetting, numberOf, numberSetting, oneOf, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, type ColorEntry } from "./settings-kit";
 import type { CoreHeatmapProps } from "../CoreHeatmap";
@@ -115,7 +115,7 @@ export const memoryUsageProps = (s: ModuleSettings): Partial<MemoryUsageProps> =
 export const POWERDRAW_SETTINGS: ModuleSetting[] = [numberSetting("budget", "Power budget (W)", 750, { min: 100, max: 2000, step: 50, group: "Power" })];
 export const powerDrawProps = (s: ModuleSettings): Partial<PowerDrawProps> => ({ budget: numberOf(s.budget) });
 
-export const UPTIME_SETTINGS: ModuleSetting[] = [boolSetting("showSeconds", "Seconds", true, { group: "Uptime" })];
+export const UPTIME_SETTINGS: ModuleSetting[] = [boolSetting("showSeconds", "Seconds", true, { group: "Time" })];
 export const uptimeProps = (s: ModuleSettings): Partial<UptimeProps> => ({ showSeconds: boolOf(s.showSeconds) });
 
 export const FANS_SETTINGS: ModuleSetting[] = [
@@ -143,11 +143,13 @@ export const vitalsProps = (s: ModuleSettings): Partial<VitalsProps> => ({ metri
 
 /* ───────── CpuMonitor / CoreHeatmap ───────── */
 export const CPUMONITOR_SETTINGS: ModuleSetting[] = [
-  deviceSetting("Processor", "cpu", { group: DEVICE }),
-  enumSetting("coreView", "Threads view", "bars", opts(["bars", "Bars"], ["heatmap", "Heatmap"], ["off", "Off"]), { group: "CPU monitor" }),
-  enumSetting("coreMetric", "Thread metric", "load", opts(["load", "Load"], ["clock", "Clock"]), { group: "CPU monitor", visibleIf: (v) => v.coreView !== "off" }),
-  enumSetting("heatRamp", "Heatmap ramp", "accent", opts(["accent", "Accent"], ["thermal", "Thermal"]), { tab: "style", advanced: true, group: "CPU monitor", visibleIf: (v) => v.coreView === "heatmap" }),
+  enumSetting("coreView", "Threads", "bars", opts(["bars", "Bars"], ["heatmap", "Heatmap"], ["off", "Off"]), { group: "Threads" }),
+  enumSetting("coreMetric", "Metric", "load", opts(["load", "Load"], ["clock", "Clock"]), { group: "Threads", visibleIf: (v) => v.coreView !== "off" }),
+  enumSetting("heatRamp", "Heatmap ramp", "accent", opts(["accent", "Accent"], ["thermal", "Thermal"]), { tab: "style", perWidget: true, visibleIf: (v) => v.coreView === "heatmap" }),
+  deviceSetting("Processor", "cpu", { group: "Processor" }),
   thresholdSetting("load"),
+  formatSetting("tempUnit"),
+  formatSetting("decimals"),
 ];
 export const cpuMonitorProps = (s: ModuleSettings): Partial<CpuMonitorProps> => ({
   cpu: deviceOf(s, "cpu"),
@@ -155,6 +157,8 @@ export const cpuMonitorProps = (s: ModuleSettings): Partial<CpuMonitorProps> => 
   coreMetric: oneOf(s.coreMetric, ["load", "clock"]),
   heatRamp: oneOf(s.heatRamp, ["accent", "thermal"]),
   ...thresholdsOf(s, "load", ["warn", "crit"]),
+  tempUnit: tempUnitOf(s),
+  decimals: decimalsOf(s),
 });
 
 const RAMPS = ["accent", "thermal", "viridis", "magma", "ice", "synth", "mono"] as const;

@@ -227,6 +227,3 @@ export function clearItem(stored: unknown, key: string): string {
   const { [key]: _old, ...rest } = itemsOf(stored);
   return encode(rest);
 }
-
-/** Per-sensor rows for the multi-sensor setting `of`, stored as a JSON string ("" = none). */
-export const itemsSetting = (key: string, label: string, of: string, extra: Extra = {}): ModuleSetting => ({ key, label, type: "sensorItems", default: "", of, ...extra });

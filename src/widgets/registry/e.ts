@@ -1,9 +1,10 @@
 // Template widgets, group E: the plain plugin cards that had no template (see docs/redesign/phase9/gaps.md).
 // Each module's options are exported for the schema tests (`e.schema.test.ts`).
 import { notificationsIsland } from "../island/info";
-import { CARD_SETTINGS, STYLE_SETTINGS, SURFACE_SETTINGS } from "@/modules/standard-settings";
+import { styleSubsetSettings } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting } from "@/modules/types";
 import { templateModule, type TemplateOptions } from "../module";
+import { INSPECTOR_META } from "./inspector-meta";
 import { boolOf, boolSetting, enumSetting, numberOf, numberSetting, stringOf, textSetting } from "./settings-kit";
 import Bluetooth, { meta as bluetoothMeta, type BluetoothProps } from "../Bluetooth";
 import Departures, { meta as departuresMeta, type DeparturesProps } from "../Departures";
@@ -12,18 +13,13 @@ import StreamDeck, { meta as streamDeckMeta, type StreamDeckProps } from "../Str
 import TextFile, { meta as textFileMeta, type TextFileProps } from "../TextFile";
 import WebPage, { meta as webPageMeta, type WebPageProps } from "../WebPage";
 
-/** The frame's edge: border and glow only (the page covers any surface). */
-const EDGE_KEYS: ReadonlySet<string> = new Set(["borderWidth", "borderColor", "glow", "glowColor"]);
-
 /**
- * A web page has no layout of its own: a URL, its size and corners, an accent and the frame's edge
- * (no auto-scale, which would zoom the embedded page itself).
+ * A web page has no layout of its own: a URL, and its declared look subset (size and corners, an
+ * accent, the frame's edge; the page covers any surface). No header, no small-zone views.
  */
 export const WEBPAGE_SETTINGS: ModuleSetting[] = [
   textSetting("url", "URL", "", { group: "Page" }),
-  ...STYLE_SETTINGS.filter((d) => d.key === "scale" || d.key === "radius"),
-  ...CARD_SETTINGS.filter((d) => d.key === "accent"),
-  ...SURFACE_SETTINGS.filter((d) => EDGE_KEYS.has(d.key)),
+  ...styleSubsetSettings(INSPECTOR_META.WebPage.styleSubset ?? []),
 ];
 
 export const webPageOptions: TemplateOptions<Pick<WebPageProps, "url">> = {

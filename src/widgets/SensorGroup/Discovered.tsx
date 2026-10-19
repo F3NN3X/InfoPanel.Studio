@@ -1,6 +1,7 @@
 // SensorGroup in auto-discovery mode: every `libre.*` / `hwinfo.*` reading as a dot-and-value row,
 // temperatures first, then fans, power and the rest (the hardware list).
 import { cn } from "@/lib/utils";
+import { inUnit } from "@/modules/setting-readers";
 import { useFitRows, Widget, shell, Num, Empty, STATE } from "../kit";
 import { readings, type Reading, type ReadingKind } from "../hardware-readings";
 import type { SensorGroupProps } from "../SensorGroup";
@@ -8,8 +9,15 @@ import type { SensorGroupProps } from "../SensorGroup";
 const DOTS: Record<ReadingKind, string> = { temp: STATE.crit, fan: "#38bdf8", power: STATE.warn, other: "var(--accent)" };
 const GAP = 6;
 
+/** A °C temperature in °F when the unit is f (to one decimal, as the list reads), else as read. */
+function inTempUnit(r: Reading, unit: SensorGroupProps["tempUnit"]): Reading {
+  if (unit !== "f" || r.kind !== "temp" || !/^°C?$/.test(r.unit) || !Number.isFinite(r.value)) return r;
+  const value = inUnit(r.value, "f");
+  return { ...r, value, unit: "°F", text: `${value.toLocaleString("en-US", { maximumFractionDigits: 1 })} °F` };
+}
+
 export default function Discovered(p: SensorGroupProps) {
-  const all = readings(p.data, p.names);
+  const all = readings(p.data, p.names).map((r) => inTempUnit(r, p.tempUnit));
   const list = p.maxRows && p.maxRows > 0 ? all.slice(0, p.maxRows) : all;
   const dot = (r: Reading) => (p.tempColor && r.kind === "temp" ? p.tempColor : p.fanColor && r.kind === "fan" ? p.fanColor : p.powerColor && r.kind === "power" ? p.powerColor : DOTS[r.kind]);
   const first = list[0];
