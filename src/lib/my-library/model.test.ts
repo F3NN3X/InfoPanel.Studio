@@ -233,3 +233,52 @@ describe("intake", () => {
     expect(svgVars("a{fill:var(--value)} b{width:calc(var( --percent) * 1%)} c{x:var(--value)}")).toEqual(["--value", "--percent"]);
   });
 });
+
+describe("near-duplicate images (G15)", () => {
+  // A smooth, asymmetric picture; a "re-encode" nudges every channel by a few levels, a "resize" halves it.
+  const picture = (w: number, h: number, noise = 0): Pixels => {
+    const data = new Uint8ClampedArray(w * h * 4);
+    let seed = 7;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        const jitter = noise ? (seed % (2 * noise + 1)) - noise : 0;
+        const u = x / w;
+        const v = y / h;
+        data.set([128 + 100 * Math.sin(6 * u + v) + jitter, 128 + 100 * Math.cos(5 * v - u * 2) + jitter, 60 + 150 * u * v + jitter, 255], (y * w + x) * 4);
+      }
+    return { width: w, height: h, data };
+  };
+  const half = (p: Pixels): Pixels => {
+    const w = p.width / 2;
+    const h = p.height / 2;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) data[(y * w + x) * 4 + c] = p.data[(2 * y * p.width + 2 * x) * 4 + c];
+    return { width: w, height: h, data };
+  };
+  const inverted = (p: Pixels): Pixels => ({ ...p, data: p.data.map((v, i) => (i % 4 === 3 ? v : 255 - v)) });
+  const base = picture(128, 96);
+  const as = (name: string, hash: string, px: Pixels, width: number, height: number) =>
+    item({ name, files: [`${H(hash)}.png`], meta: { type: "png", size: 1000, width, height, phash: dHash(px) } });
+
+  it("groups the same pixels re-encoded (different bytes, same size)", () => {
+    const a = as("photo.png", "a", base, 1024, 768);
+    const b = as("photo-reencoded.png", "b", picture(128, 96, 3), 1024, 768);
+    expect(hamming(metaPhash(a), metaPhash(b))).toBeLessThanOrEqual(4);
+    expect(duplicateGroups([a, b]).map((g) => g.map((i) => i.name))).toEqual([["photo.png", "photo-reencoded.png"]]);
+  });
+
+  it("does not group a resize: the hashes agree but the pixel size differs, so it is kept apart", () => {
+    const a = as("photo.png", "a", base, 1024, 768);
+    const small = as("photo-small.png", "c", half(base), 512, 384);
+    expect(hamming(metaPhash(a), metaPhash(small))).toBeLessThanOrEqual(4);
+    expect(duplicateGroups([a, small])).toEqual([]);
+  });
+
+  it("does not group a different picture of the same size", () => {
+    const a = as("photo.png", "a", base, 1024, 768);
+    expect(duplicateGroups([a, as("other.png", "d", inverted(base), 1024, 768)])).toEqual([]);
+  });
+});
+
+const metaPhash = (i: LibraryItem) => String((i.meta as { phash?: string }).phash);

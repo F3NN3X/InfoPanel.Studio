@@ -21,6 +21,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   editable in the header and lands in the canvas item's Name or the widget's label; the filmstrip takes Left / Right
   to select, Shift+Left / Right to move and Delete / Backspace to remove frames, never while typing; and a library
   gauge shows "· My library" in the header (#48).
+- Library › Profile assets: "Use for selection" sets a stored file as the picture of the selected image widgets (off,
+  with the reason, when nothing selected shows an image), numbered frame series (three or more, `fan_000.png`, `fan_001.png`, ... without gaps) collapse
+  into one row with a frame count that expands, and a "Tiled" badge and filter mark the file the page background tiles (#46 part B).
+- Tests pin near-duplicate detection (a re-encode is caught; a resize is not, by the same-pixel-size rule) and a
+  style preset dropped on a widget (#46 part B).
 
 ### Changed
 - The studio spec now says `.gauge.json` is the lab's `VectorGauge` shape, and the concept's `GaugeRender` object is
