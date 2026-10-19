@@ -86,8 +86,10 @@ export interface ModuleSetting {
    * Options for type "select" and "preset". A "preset" row stores its option
    * but shows the toggles it writes: the option whose bundle (`applies`)
    * they match reads selected, none "Custom". Its default option's bundle
-   * holds the bundled keys' defaults.
+   * holds the bundled keys' defaults; `bundleDefaults` holds those it leaves
+   * out (a default option that applies nothing).
    */
+  bundleDefaults?: ModuleSettings;
   options?: {
     value: string;
     label: string;

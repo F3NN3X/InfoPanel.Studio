@@ -197,6 +197,11 @@ describe("v8 FpsMonitor: the Trend view reads as its preset", () => {
     const once = v8("FpsMonitor", { view: "trend" })!;
     expect(v8("FpsMonitor", once)).toEqual(once);
   });
+
+  it("keeps a v8 Trend zone's sparkline switched off across loads", () => {
+    const off = { view: "trend", sparkline: false };
+    expect(migrateSettingsV8("FpsMonitor", off, false).settings).toEqual(off);
+  });
 });
 
 describe("v8: the chain from v3", () => {

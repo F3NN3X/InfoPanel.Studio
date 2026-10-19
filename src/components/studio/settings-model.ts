@@ -122,7 +122,7 @@ export function dropKeys(
 /** The keys a preset row's options write, with their defaults: the default option's bundle (`ModuleSetting.options`). */
 export function presetDefaults(def: ModuleSetting): ModuleSettings {
   const keys = [...new Set((def.options ?? []).flatMap((o) => Object.keys(o.applies ?? {})))];
-  const base = def.options?.find((o) => o.value === def.default)?.applies ?? {};
+  const base = { ...def.bundleDefaults, ...def.options?.find((o) => o.value === def.default)?.applies };
   return Object.fromEntries(keys.flatMap((key) => (base[key] !== undefined ? [[key, base[key]]] : [])));
 }
 

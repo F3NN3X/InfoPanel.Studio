@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { modules } from "@/modules";
 import { PROFILE_STYLE_KEYS, STANDARD_SETTINGS } from "@/modules/standard-settings";
 import { effectiveSettings, type ModuleSetting } from "@/modules/types";
 import {
@@ -206,6 +207,14 @@ describe("preset rows", () => {
 
   it("takes the bundled keys' defaults from the default option", () => {
     expect(presetDefaults(view)).toEqual({ a: true, b: true });
+  });
+
+  it("takes the defaults a default option leaves out from bundleDefaults (FPS Monitor's View)", () => {
+    const fps = modules.find((m) => m.id === "FpsMonitor")!.settings!.find((d) => d.key === "view")!;
+    expect(presetDefaults(fps)).toEqual({ sparkline: false });
+    expect(presetChoice(fps, "gauge", { sparkline: false })).toBe("gauge");
+    expect(presetChoice(fps, "trend", { sparkline: true })).toBe("trend");
+    expect(presetChoice(fps, "frametime", { sparkline: false })).toBe("frametime");
   });
 
   it("reads the stored option while the toggles match it, else the first that matches, else Custom", () => {

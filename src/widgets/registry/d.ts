@@ -71,6 +71,7 @@ export const GROUP_D: DashboardModule[] = [
         label: "View",
         type: "preset",
         default: "frametime",
+        bundleDefaults: { sparkline: false },
         options: [
           // The frame-time graph draws none of the toggles, so any of their values suits it.
           { value: "frametime", label: "Frame-time graph", applies: {} },

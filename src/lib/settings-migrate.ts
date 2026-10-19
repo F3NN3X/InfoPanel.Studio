@@ -650,8 +650,9 @@ export function migrateSettingsV8(module: string, input: ModuleSettings | undefi
     if (s.auto === true && s.mode === undefined) s.mode = "auto";
     delete s.auto;
   }
-  // The Trend view is a preset now: it reads as its bundle (the sparkline on), which is what it drew.
-  if (module === "FpsMonitor" && s.view === "trend") s.sparkline = true;
+  // The Trend view is a preset now: it reads as its bundle (the sparkline on), which is what it drew. Pre-v8 only:
+  // from v8 the sparkline toggle alone decides, so a Trend zone with it switched off stays off across loads.
+  if (legacy && module === "FpsMonitor" && s.view === "trend") s.sparkline = true;
   const ownColor = (ROLE_KEYS[module] ?? []).some((key) => typeof s[key] === "string" && String(s[key]).trim() !== "");
   return { settings: orNone(s), custom: legacy && ownColor && follow?.palette !== false ? ["palette"] : [] };
 }
