@@ -135,7 +135,7 @@ export interface ImportState {
   online: boolean;
   dataApi: DataApiInfo | null;
   report: ImportReport;
-  build: (name: string) => StoredCanvas;
+  build: (name: string, screenshot?: string) => StoredCanvas;
 }
 
 /** The import's working state for an opened source (null until one is open). */
@@ -194,6 +194,6 @@ export function useImport(source: OpenedSource | null): ImportState | null {
     online,
     dataApi,
     report,
-    build: (name) => buildCanvas({ source, name, mode, resolved, overrides, dataApi, uploaded: upload.ids }),
+    build: (name, screenshot) => buildCanvas({ source, name, mode, resolved, overrides, dataApi, uploaded: upload.ids, screenshot }),
   };
 }

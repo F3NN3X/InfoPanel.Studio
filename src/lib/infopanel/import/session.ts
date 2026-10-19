@@ -30,6 +30,8 @@ export interface Restore {
   missing: string[];
   /** What the import decided per item path (key, how it was found). */
   keys: Map<string, ItemImport>;
+  /** The saved canvas's screenshot (an asset store id). */
+  screenshot?: string;
 }
 
 export interface OpenedSource {
@@ -65,7 +67,7 @@ export async function openZip(fileName: string, bytes: Uint8Array): Promise<Open
       origin: s.source.origin,
       parsed: o.parsed,
       assets: o.assets,
-      restore: { overrides: o.overrides, defaultMode: s.defaultMode, fonts: s.fonts, fontFiles: o.fonts, missing: o.missing, keys: o.read.keys },
+      restore: { overrides: o.overrides, defaultMode: s.defaultMode, fonts: s.fonts, fontFiles: o.fonts, missing: o.missing, keys: o.read.keys, screenshot: s.screenshot },
     };
   }
   return openEntries(stemOf(fileName), entriesFromZip(bytes), "file");
@@ -210,6 +212,8 @@ export interface BuildInput {
   dataApi: DataApiInfo | null;
   /** Asset store ids by hash, from the upload. */
   uploaded: ReadonlyMap<string, string>;
+  /** The asset store id of InfoPanel's screenshot to keep for Compare. */
+  screenshot?: string;
   now?: Date;
 }
 
@@ -236,6 +240,7 @@ export function buildCanvas(input: BuildInput): StoredCanvas {
     assets: source.assets,
     keyOf: remapKeys(input.resolved, input.overrides),
     fonts,
+    screenshot: input.screenshot,
     now: input.now,
   });
   return { ...stored, assets: stored.assets.map((a) => (exts.has(a.hash) ? { ...a, ext: exts.get(a.hash) } : a)) };
@@ -286,6 +291,6 @@ export async function openStored(raw: unknown, read: (hash: string, ext: string 
     origin: r.stored.source.origin,
     parsed,
     assets: tableOf(files),
-    restore: { overrides: overridesFrom(r.items, r.keys), defaultMode: r.stored.defaultMode, fonts: r.stored.fonts, fontFiles, missing, keys: r.keys },
+    restore: { overrides: overridesFrom(r.items, r.keys), defaultMode: r.stored.defaultMode, fonts: r.stored.fonts, fontFiles, missing, keys: r.keys, screenshot: r.stored.screenshot },
   };
 }

@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
 import type { Placement } from "@/lib/layout";
 import { filterCounts, remapRows, resolveAll } from "@/lib/infopanel/remap/remap";
+import { keptScreenshot } from "@/lib/infopanel/canvas";
 import { editKeys, sensorView } from "@/lib/infopanel/canvas-edit";
 import type { Path } from "@/lib/infopanel/editor/ops";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -33,6 +34,8 @@ export interface CanvasEditorProps {
   setConfig: HistorySetter;
   history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void };
   onDone: () => void;
+  /** The Library page covers the editor: it stays mounted but its keys do nothing. */
+  hidden?: boolean;
   /** Items selected on open (the Library's "uses", a font's text items). */
   initialSelection?: string[];
   /** A Gauge item's "Edit gauge…": open it in the Gauges page. */
@@ -43,16 +46,17 @@ const isTyping = (el: Element | null) =>
   el instanceof HTMLElement && (el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, onDone, initialSelection, onEditGauge }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, onDone, hidden = false, initialSelection, onEditGauge }: CanvasEditorProps) {
   const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection);
   const toast = useToast();
   const [showModes, setShowModes] = useState(false);
   const [compareOn, setCompareOn] = useState(false);
-  const [compare, setCompare] = useState<Compare | null>(null);
+  // The screenshot the canvas kept at import is Compare's start; "choose another" replaces it.
+  const [compare, setCompare] = useState<Compare | null>(() => keptScreenshot(zone.canvas));
   const [remapOpen, setRemapOpen] = useState(false);
   const { index, online, unreachable } = useRemapIndex();
   // The studio inspector's modes, for the editor's own width: docked column, floating card, bottom sheet.
-  const { ref: rootRef, w: width } = useElementSize();
+  const { ref: rootRef, w: width } = useElementSize(true);
   const mode = inspectorMode(width);
   // The floating card opens with a selection; closing it holds until the selection changes.
   const selectionKey = editor.selection.join("\n");
@@ -83,11 +87,11 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, ini
   }, [online, editor.groups, index, editor.overrides]);
 
   // The editor's keys, in the capture phase so the studio's zone shortcuts never see them.
-  const latest = useRef({ editor, onDone });
-  latest.current = { editor, onDone };
+  const latest = useRef({ editor, onDone, hidden });
+  latest.current = { editor, onDone, hidden };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing) return;
+      if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
       const action = canvasKeyAction(
         { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey, altGraph: e.getModifierState("AltGraph") },
         { typing: isTyping(document.activeElement), overlay: hasOverlay() },
@@ -141,7 +145,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, ini
         />
         {showModes && <ModesStrip editor={editor} />}
         {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
-        <EditCanvas editor={editor} ctx={view.ctx} values={view.values} showModes={showModes} compare={compareOn ? compare : null} onRefused={toast} />
+        <EditCanvas editor={editor} ctx={view.ctx} values={view.values} showModes={showModes} compare={compareOn ? compare : null} onRefused={toast} onCompareFailed={() => setCompare(null)} />
       </div>
       {mode === "docked" && (
         <aside aria-label="Item" className="flex w-[308px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">

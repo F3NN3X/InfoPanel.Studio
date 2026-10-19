@@ -95,6 +95,14 @@ describe("editItems / storeItems", () => {
     expect(again.items[0].Y).toBe(open.items[0].Y - 3);
   });
 
+  it("keeps the screenshot the canvas kept for Compare through an edit", () => {
+    const shot = `${"d".repeat(64)}.png`;
+    const open = canvas();
+    const stored = storeItems({ ...open.stored, screenshot: shot }, open.profile, editItems(open));
+    expect(stored.screenshot).toBe(shot);
+    expect(storeItems(open.stored, open.profile, editItems(open))).not.toHaveProperty("screenshot");
+  });
+
   it("lists the fonts the items ask for, keeping a known font's choice", () => {
     const open = canvas();
     const stored = storeItems(open.stored, open.profile, editItems(open));

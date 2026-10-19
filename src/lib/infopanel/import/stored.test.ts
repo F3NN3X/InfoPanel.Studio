@@ -59,6 +59,15 @@ describe("stored form", () => {
     expect(overridesFrom(unbound.items, unbound.keys)).toEqual(new Map([[c, ""]]));
   });
 
+  it("keeps the screenshot kept for Compare through a round trip, and drops a malformed id", () => {
+    const shot = `${"d".repeat(64)}.png`;
+    expect(roundTrip(toStored(input([], { screenshot: shot }))).stored.screenshot).toBe(shot);
+    expect(toStored(input([]))).not.toHaveProperty("screenshot");
+    const raw = JSON.parse(JSON.stringify(toStored(input([], { screenshot: shot }))));
+    expect(readStored({ ...raw, screenshot: "../../etc/passwd" }).stored).not.toHaveProperty("screenshot");
+    expect(readStored({ ...raw, screenshot: 5 }).stored).not.toHaveProperty("screenshot");
+  });
+
   it("carries non-finite doubles through JSON", () => {
     const [s] = parse('<DisplayItem xsi:type="SensorDisplayItem"><Threshold1>INF</Threshold1></DisplayItem>');
     const back = roundTrip(toStored(input([s])));

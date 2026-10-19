@@ -66,6 +66,7 @@ export function storeItems(stored: StoredCanvas, profile: Profile, items: readon
     assets: new Map(),
     keyOf: (item) => pick(importOf(item) as ItemImport | undefined),
     fonts,
+    screenshot: stored.screenshot,
   });
   return { ...next, source: stored.source, assets: stored.assets };
 }

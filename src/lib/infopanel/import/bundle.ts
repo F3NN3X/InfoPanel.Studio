@@ -12,7 +12,9 @@ const MAX_ENTRY = 64 * 1024 * 1024;
 const enc = new TextEncoder();
 
 export function bundle(stored: StoredCanvas, assets: AssetTable, fonts: ReadonlyMap<string, Uint8Array>): Uint8Array {
-  const files = new Map<string, Uint8Array>([["canvas.json", enc.encode(JSON.stringify(stored, null, 1))]]);
+  // The screenshot kept for Compare is not bundled, so its id must not travel: it would point at nothing.
+  const { screenshot: _screenshot, ...portable } = stored;
+  const files = new Map<string, Uint8Array>([["canvas.json", enc.encode(JSON.stringify(portable, null, 1))]]);
   for (const f of assets.values()) files.set(`assets/${f.hash}`, f.bytes);
   for (const [hash, bytes] of fonts) files.set(`fonts/${hash}`, bytes);
   return writeZip([...files].map(([name, data]) => ({ name, data })));
