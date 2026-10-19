@@ -3,7 +3,8 @@ import { FONT_CATALOG } from "@/lib/fonts";
 import { BASE_SURFACES } from "@/widgets/core/surfaces";
 import { SKIN_PACKS } from "@/widgets/core/theme";
 import { THEMED_KEYS } from "@/lib/theme-model";
-import { settingKeys, type ModuleSetting, type ModuleSettings } from "./types";
+import { alignOf } from "./setting-readers";
+import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettings } from "./types";
 
 /**
  * The standard per-widget customization block. Every modern widget adopts
@@ -19,13 +20,13 @@ import { settingKeys, type ModuleSetting, type ModuleSettings } from "./types";
  * `inspector-categories.ts`); "More" rows sit behind the section's link:
  *
  * - Header: `showTitle`, `label`; More: `icon`
- * - Fit: `layout`, `variant`, `compactView` (the template widgets' shell)
+ * - Fit: `compact` (Small zones), `sizeTier` (Density; the template widgets' shell)
  * - Skin & graphics: `skin`, `stroke`; More: `graph`, `meter`
  * - Colors: `accent`, `textColor`, `mutedColor`; More: `preset`
  * - Surface: `surface`, `surfaceOpacity`, `blur` (the last two on surfaced
  *   widgets only); More: `background`, `backgroundOn`
  * - Typography: `font`, `fontWeight`, `labelCase`
- * - Size & spacing: `scale`, `alignX` / `alignY`, `padding`, `gap`, `radius`; More: `autoScale`
+ * - Size & spacing: `scale`, `align` (+ `alignSpread`), `padding`, `gap`, `radius`
  * - Border & glow: `borderWidth`, `borderColor`, `glow`, `glowColor`
  *   (surfaced widgets only)
  * - Custom CSS: More: `customCss` (every widget)
@@ -74,20 +75,6 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     section: "skin",
   },
   {
-    // A layout mode, not a style: "studio" swaps the layout for the dense summary (`StudioView`).
-    key: "variant",
-    label: "Dense summary",
-    type: "select",
-    default: "default",
-    options: [
-      { value: "default", label: "Off" },
-      { value: "studio", label: "On" },
-    ],
-    hint: "Swaps the layout for a dense, uniform summary",
-    keywords: ["variant", "studio", "dense", "summary"],
-    section: "fit",
-  },
-  {
     key: "graph",
     label: "Graph style",
     type: "select",
@@ -122,29 +109,6 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     section: "motion",
   },
   {
-    // Key and values kept (auto / off) for saved configs; `on` (Always) is new.
-    key: "compactView",
-    label: "Summary card",
-    type: "select",
-    default: "auto",
-    options: [
-      { value: "auto", label: "Auto (small zones)" },
-      { value: "off", label: "Never" },
-      { value: "on", label: "Always" },
-    ],
-    hint: "Auto swaps 1×1, one-row and one-column zones to a summary card; Never keeps the full layout; Always shows the card at any size",
-    keywords: ["small", "summary", "tile", "compact", "card"],
-    section: "fit",
-  },
-  {
-    key: "autoScale",
-    label: "Scale with the zone",
-    type: "boolean",
-    default: true,
-    more: true,
-    section: "spacing",
-  },
-  {
     key: "scale",
     label: "Size (%)",
     type: "number",
@@ -155,12 +119,13 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     section: "spacing",
   },
   {
-    // One 3×3 picker for both axes; "Spread" (alignX "between") is a toggle.
-    key: "alignX",
-    keyY: "alignY",
+    // One 3×3 picker: a cell code (tl…br, "auto"), and "Spread" (between) as the second key.
+    key: "align",
+    keyY: "alignSpread",
     label: "Alignment",
     type: "align",
     default: "auto",
+    defaultY: false,
     keywords: ["horizontal", "vertical", "left", "right", "top", "bottom", "middle", "center", "spread"],
     section: "spacing",
   },
@@ -323,18 +288,38 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
     more: true,
   },
   {
-    key: "layout",
-    label: "Layout",
+    // Replaces `variant` + `compactView` (config v7): the card or dense view in small zones.
+    // The registry drops the choices a widget cannot draw (`fitSettings`, inspector-meta.ts).
+    key: "compact",
+    label: "Small zones",
     type: "select",
     default: "auto",
-    hint: "Adaptive widgets pick a layout from their measured size; this forces one",
     options: [
-      { value: "auto", label: "Auto (fit to zone)" },
+      { value: "auto", label: "Auto" },
+      { value: "full", label: "Full" },
       { value: "card", label: "Card" },
-      { value: "standard", label: "Standard" },
-      { value: "compact", label: "Compact bar" },
-      { value: "simple", label: "Simple" },
+      { value: "dense", label: "Dense" },
     ],
+    hint: "Auto: 1×1, one-row and one-column zones show the summary card; Full keeps the full layout; Card shows the card at any size; Dense swaps the layout for a dense, uniform summary",
+    keywords: ["small", "summary", "tile", "compact", "card", "dense", "studio", "variant"],
+    section: "fit",
+  },
+  {
+    // Replaces `layout` (config v7): forces a size tier instead of measuring the zone.
+    key: "sizeTier",
+    label: "Density",
+    type: "select",
+    default: "auto",
+    hint: "Auto picks from the zone size",
+    options: [
+      { value: "auto", label: "Auto" },
+      { value: "lg", label: "Roomy" },
+      { value: "md", label: "Standard" },
+      { value: "sm", label: "Compact" },
+      { value: "xs", label: "Minimal" },
+    ],
+    keywords: ["layout", "size", "tier", "card", "standard", "compact", "simple"],
+    more: true,
     section: "fit",
   },
   {
@@ -367,8 +352,8 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
   ...SURFACE_SETTINGS,
 ];
 
-/** Standard keys a panel has no use for (no layout variants, design size or rings of its own; an empty title hides a panel's). */
-const NOT_FOR_PANELS: ReadonlySet<string> = new Set(["preset", "layout", "autoScale", "stroke", "variant", "compactView", "showTitle"]);
+/** Standard keys a panel has no use for (no small-zone views, size tiers or rings of its own; an empty title hides a panel's). */
+const NOT_FOR_PANELS: ReadonlySet<string> = new Set(["preset", "compact", "sizeTier", "stroke", "showTitle"]);
 
 /**
  * A custom panel's look (its placement's settings): the standard block
@@ -458,7 +443,7 @@ export function replaceStyle(
 
 /** The standard block as a settings map (defaults only). */
 export const STANDARD_DEFAULTS: ModuleSettings = Object.fromEntries(
-  STANDARD_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, s.default]))
+  STANDARD_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, defaultOf(s, key)]))
 );
 
 /** A px select value ("auto" → undefined). */
@@ -497,10 +482,8 @@ export function chromeOf(cfg: ModuleSettings): ModernChrome {
     accent: String(cfg.accent ?? ""),
     background: String(cfg.background ?? ""),
     backgroundOn: Boolean(cfg.backgroundOn),
-    autoScale: cfg.autoScale === undefined ? true : Boolean(cfg.autoScale),
     scale: percent(cfg.scale),
-    alignX: pick(cfg.alignX, ["auto", "start", "center", "end", "between"] as const, "auto"),
-    alignY: pick(cfg.alignY, ["auto", "start", "center", "end"] as const, "auto"),
+    ...alignOf(cfg),
     padding: px(cfg.padding),
     gap: px(cfg.gap),
     radius: px(cfg.radius),

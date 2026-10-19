@@ -29,7 +29,7 @@ interface SharedSection {
  */
 export const SHARED_SECTIONS: readonly SharedSection[] = [
   { id: "header", tab: "show", place: "lead", title: "Header", hint: "Title and icon" },
-  { id: "fit", tab: "show", place: "trail", title: "Fit", hint: "Layout, dense summary and summary card in small zones" },
+  { id: "fit", tab: "show", place: "trail", title: "Fit", hint: "Small zones (summary card, dense view) and density" },
   { id: "skin", tab: "style", place: "lead", title: "Skin & graphics", hint: "Skin, ring and bar thickness, graph and meter style" },
   { id: "colors", tab: "style", place: "lead", title: "Colors", hint: "Accent and text colors, quick preset" },
   { id: "palette", tab: "style", place: "lead", title: "Widget colors", hint: "The widget's own colors and look toggles" },
@@ -147,16 +147,16 @@ export const TITLE_ONLY_HINT = "This widget draws a header only when a title is 
 
 /**
  * A widget's settings for its header mode. `title-only` keeps Title always
- * visible (a title draws the header) and moves Show title behind More, so a
- * stored "off" can still be turned back on; `none` drops Show
- * title and moves Title and Icon to the end of Fit (they still name the
- * summary views), or drops them when the widget has no summary view at all.
+ * visible (a title draws the header) and drops Show title (config v7 dropped
+ * a stored one); `none` drops Show title and moves Title and Icon to the end
+ * of Fit (they still name the summary views), or drops them when the widget
+ * has no summary view at all.
  */
 export function withHeaderMode(defs: ModuleSetting[], mode: HeaderMode = "yes", compact?: CompactShape): ModuleSetting[] {
   if (mode === "yes") return defs;
   if (mode === "title-only")
     return defs.flatMap((d): ModuleSetting[] =>
-      d.section !== "header" ? [d] : d.key === "showTitle" ? [{ ...d, more: true }] : d.key === "label" ? [{ ...d, hint: TITLE_ONLY_HINT, visibleIf: undefined }] : [d]
+      d.section !== "header" ? [d] : d.key === "showTitle" ? [] : d.key === "label" ? [{ ...d, hint: TITLE_ONLY_HINT, visibleIf: undefined }] : [d]
     );
   const header = defs.filter((d) => d.section === "header" && d.key !== "showTitle");
   const rest = defs.filter((d) => d.section !== "header");

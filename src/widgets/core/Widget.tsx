@@ -72,7 +72,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
   const chrome = useMemo(() => (look ? chromeOf(look) : undefined), [look]);
   // Size % zooms the content; the tier and shape are taken from the zoomed size.
   const zoom = chrome ? zoomFor({ w: 0, h: 0 }, undefined, chrome) : 1;
-  const [ref, box] = useBox(forcedTier(look?.layout, size), zoom);
+  const [ref, box] = useBox(forcedTier(look, size), zoom);
   // tier/shape come from the outer box; layouts get the inner content size (after padding + header)
   const cref = useRef<HTMLDivElement | null>(null);
   const [inner, setInner] = useState({ w: 0, h: 0 });

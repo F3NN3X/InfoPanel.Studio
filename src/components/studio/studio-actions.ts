@@ -9,7 +9,7 @@ import {
 } from "@/lib/layout";
 import type { LayoutTemplate } from "@/lib/sample-layout";
 import { normalizePanelPlacement } from "@/lib/panel-model";
-import { followFromOwn } from "@/lib/settings-migrate";
+import { followFromOwn, migrateSettingsV7, migrateStyleV7 } from "@/lib/settings-migrate";
 import { ownApplies, sectionsWithValues, THEMED_KEYS, withThemeValues, type ThemeLevels } from "@/lib/theme-model";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS, replaceStyle, styleOf } from "@/modules/standard-settings";
@@ -85,17 +85,18 @@ export function addModulePlacement(
 /**
  * A zone holding a fresh panel from the preset, migrated like a loaded
  * one: normalized, with its look in the settings (title → label, …).
- * A saved preset brings its own settings, and shows them: the sections
- * they set are custom (`followFromOwn`).
+ * A saved preset brings its own settings (under today's keys, config v7),
+ * and shows them: the sections they set are custom (`followFromOwn`).
  */
 function withPreset(p: Placement, preset: PanelPreset): Placement {
-  const follow = followFromOwn(preset.settings);
+  const settings = migrateSettingsV7(PANEL_ID, preset.settings, false).settings;
+  const follow = followFromOwn(settings);
   const { follow: _old, ...zone } = p;
   return normalizePanelPlacement({
     ...zone,
     module: PANEL_ID,
     panel: preset.make(),
-    settings: preset.settings ? { ...preset.settings } : undefined,
+    settings: settings ? { ...settings } : undefined,
     ...(follow ? { follow } : {}),
   });
 }
@@ -465,7 +466,9 @@ export function ownStyle(p: Placement, levels: ThemeLevels): ModuleSettings {
  * A zone with a copied style (see `replaceStyle`): the sections the style
  * sets become custom, so it shows; the others follow the theme as before.
  */
-export function withPastedStyle(p: Placement, style: ModuleSettings, supported: ReadonlySet<string>): Placement {
+export function withPastedStyle(p: Placement, pasted: ModuleSettings, supported: ReadonlySet<string>): Placement {
+  // A style copied or saved before config v7 names the alignment's two axes.
+  const style = migrateStyleV7(pasted);
   const settings = replaceStyle(p.settings, style, supported);
   const custom = sectionsWithValues(Object.fromEntries(Object.entries(styleOf(style)).filter(([key]) => supported.has(key))));
   const follow = { ...p.follow, ...Object.fromEntries(custom.map((sec) => [sec, false])) };

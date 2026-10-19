@@ -4,7 +4,7 @@ import type { Appearance } from "@/lib/style-resolve";
 import { withFlag, type SectionId } from "@/lib/theme-model";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
-import { settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
+import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
 import { followInfo, followSection, rowSection, widgetLookValues, type LookValues } from "../inspector-model";
 import { dropKeys } from "../settings-model";
 import type { FieldsApi } from "../settings-panel";
@@ -36,7 +36,7 @@ export function zoneLookValues(zone: Placement, appearance: Appearance): LookVal
 /** The value a row shows: the own value (where it applies), else the theme's, else the default. */
 export function shownValue(values: LookValues, key: string, def: ModuleSetting): ModuleSettingValue {
   const applies = def.perWidget || (values.applies?.(key) ?? true);
-  return (applies ? values.own?.[key] : undefined) ?? values.inherited?.[key] ?? def.default;
+  return (applies ? values.own?.[key] : undefined) ?? values.inherited?.[key] ?? defaultOf(def, key);
 }
 
 /** Every shown value of a schema (what `visibleIf` reads: the resolved values). */

@@ -1,4 +1,6 @@
 import { THEME_SETTINGS } from "@/modules/standard-settings";
+import { ALIGN_CODES } from "@/modules/setting-readers";
+import { migrateStyleV7 } from "./settings-migrate";
 import { THEMED_KEYS } from "./theme-model";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { color, normalizeBackground, type PageBackground } from "./appearance";
@@ -47,8 +49,7 @@ export function presetTokens(preset: Pick<AppearancePreset, "theme">): ThemeToke
 const STYLE_DEFS = new Map<string, ModuleSetting>(
   THEME_SETTINGS.flatMap((d) => (d.keyY ? [[d.key, d], [d.keyY, d]] : [[d.key, d]]))
 );
-const ALIGN_X = ["auto", "start", "center", "end", "between"];
-const ALIGN_Y = ["auto", "start", "center", "end"];
+const ALIGN: readonly string[] = ["auto", ...ALIGN_CODES];
 
 /** Whether a value is one the look setting `key` offers. */
 export function isValidStyleValue(key: string, value: unknown): boolean {
@@ -69,7 +70,8 @@ export function isValidStyleValue(key: string, value: unknown): boolean {
     case "boolean":
       return typeof value === "boolean";
     case "align":
-      return typeof value === "string" && (key === def.keyY ? ALIGN_Y : ALIGN_X).includes(value);
+      // The cell code, and the spread toggle as its second key.
+      return key === def.keyY ? typeof value === "boolean" : typeof value === "string" && ALIGN.includes(value);
     default:
       return typeof value === "string";
   }
@@ -103,8 +105,9 @@ function preset(v: unknown): AppearancePreset | undefined {
   if (typeof v.name !== "string" || !v.name.trim()) return undefined;
   const t = theme(v.theme);
   if (!t) return undefined;
+  // A preset saved before config v7 still names the alignment's two axes.
   const style = isObject(v.style)
-    ? Object.fromEntries(Object.entries(v.style).filter(([key, value]) => isValidStyleValue(key, value)))
+    ? Object.fromEntries(Object.entries(migrateStyleV7(v.style as ModuleSettings)).filter(([key, value]) => isValidStyleValue(key, value)))
     : {};
   const radius = typeof v.radius === "number" && Number.isFinite(v.radius) ? Math.min(2, Math.max(0, v.radius)) : 0.5;
   const background = normalizeBackground(v.background);

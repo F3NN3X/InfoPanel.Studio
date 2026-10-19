@@ -137,9 +137,9 @@ describe("settingState", () => {
 
   it("ranks the dashboard state under the profile one", () => {
     const def = STANDARD_SETTINGS.find((s) => s.type === "align")!;
-    const from = { alignX: "dashboard", alignY: "profile" } as const;
-    expect(settingStateOf(def, {}, { alignX: "start", alignY: "end" }, from)).toBe("profile");
-    expect(settingStateOf(def, {}, { alignX: "start" }, from)).toBe("dashboard");
+    const from = { align: "dashboard", alignSpread: "profile" } as const;
+    expect(settingStateOf(def, {}, { align: "tl", alignSpread: true }, from)).toBe("profile");
+    expect(settingStateOf(def, {}, { align: "tl" }, from)).toBe("dashboard");
   });
 });
 
@@ -157,12 +157,14 @@ describe("dropKeys", () => {
 describe("the alignment picker setting", () => {
   const align = STANDARD_SETTINGS.find((s) => s.type === "align")!;
 
-  it("stores both axes under the old keys", () => {
-    expect([align.key, align.keyY]).toEqual(["alignX", "alignY"]);
-    expect(PROFILE_STYLE_KEYS.has("alignX")).toBe(true);
-    expect(PROFILE_STYLE_KEYS.has("alignY")).toBe(true);
+  it("stores the cell and the spread (config v7: one key for both axes)", () => {
+    expect([align.key, align.keyY]).toEqual(["align", "alignSpread"]);
+    expect(PROFILE_STYLE_KEYS.has("align")).toBe(true);
+    expect(PROFILE_STYLE_KEYS.has("alignSpread")).toBe(true);
+    expect(PROFILE_STYLE_KEYS.has("alignX")).toBe(false);
     const mod = { id: "m", title: "M", prefixes: [], render: () => null, settings: [align] };
-    expect(effectiveSettings(mod, { alignY: "end" })).toEqual({ alignX: "auto", alignY: "end" });
+    expect(effectiveSettings(mod, { alignSpread: true })).toEqual({ align: "auto", alignSpread: true });
+    expect(effectiveSettings(mod, {})).toEqual({ align: "auto", alignSpread: false });
   });
 
   it("is found by the search for either axis", () => {
@@ -172,10 +174,10 @@ describe("the alignment picker setting", () => {
 
   it("takes the strongest state of its keys", () => {
     expect(settingStateOf(align, undefined, undefined)).toBe("default");
-    expect(settingStateOf(align, { alignY: "end" }, undefined)).toBe("here");
-    expect(settingStateOf(align, { alignY: "end" }, { alignX: "start" })).toBe("here");
-    expect(settingStateOf(align, { alignX: "end" }, { alignX: "start" })).toBe("overriding");
-    expect(settingStateOf(align, {}, { alignY: "start" })).toBe("profile");
+    expect(settingStateOf(align, { alignSpread: true }, undefined)).toBe("here");
+    expect(settingStateOf(align, { alignSpread: true }, { align: "tl" })).toBe("here");
+    expect(settingStateOf(align, { align: "br" }, { align: "tl" })).toBe("overriding");
+    expect(settingStateOf(align, {}, { alignSpread: true })).toBe("profile");
   });
 });
 

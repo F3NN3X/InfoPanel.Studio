@@ -1,6 +1,7 @@
 // The factory that turns a template widget (a component over flat data, `kit.ts`) into a
 // DashboardModule: standard look settings, shell props from the resolved settings, Library fields.
 import { useEffect, useMemo, type ComponentType } from "react";
+import { compactOf } from "@/modules/setting-readers";
 import { STANDARD_SETTINGS } from "@/modules/standard-settings";
 import { islandSettings, type IslandSourceDef } from "@/lib/island/sources";
 import { effectiveSettings, type DashboardModule, type ModuleSetting, type ModuleSettings, type SensorMap } from "@/modules/types";
@@ -33,15 +34,17 @@ const chosen = (v: unknown): string | undefined => (v === undefined || v === "" 
 /** The shell props the standard look settings set; `auto` / empty leave the shell's own choice. */
 export function shellProps(s: ModuleSettings): Partial<ShellProps> {
   const radius = Number(chosen(s.radius));
+  // Small zones (`compact`): dense = the studio view, card / full = the summary card always / never.
+  const compact = compactOf(s);
   return {
     accent: chosen(s.accent),
     surface: chosen(s.surface),
     radius: chosen(s.radius) !== undefined && Number.isFinite(radius) ? radius : undefined,
     skin: chosen(s.skin),
-    variant: s.variant === "studio" ? "studio" : s.variant === "default" ? "default" : undefined,
+    variant: compact === "dense" ? "studio" : compact === "full" ? "default" : undefined,
     graph: chosen(s.graph),
     meter: chosen(s.meter),
-    compactView: s.compactView === "off" || s.compactView === "on" ? s.compactView : undefined,
+    compactView: compact === "card" ? "on" : compact === "full" ? "off" : undefined,
     title: chosen(s.label),
   };
 }
@@ -71,8 +74,12 @@ function hasKeys(sensors: SensorMap, prefixes: readonly string[]): boolean {
 }
 
 /** A zone's look: the defaults under `saved` with the surface decided (see `withSkinSurface`), the chosen skin's fonts loaded. */
+/** A lone old alignment axis v7 left in place (no 9-cell code says it): carried to the look for `alignOf` (until PR 8). */
+const LEGACY_ALIGN = ["alignX", "alignY"];
+
 export function useZoneLook(defs: ModuleSetting[], saved: ModuleSettings | undefined, surfaceDefault: string): ModuleSettings {
-  const look = withSkinSurface(effectiveSettings({ settings: defs }, saved), saved, surfaceDefault);
+  const legacy = Object.fromEntries(LEGACY_ALIGN.flatMap((k) => (saved?.[k] !== undefined ? [[k, saved[k]]] : [])));
+  const look = withSkinSurface({ ...effectiveSettings({ settings: defs }, saved), ...legacy }, saved, surfaceDefault);
   const skin = chosen(look.skin);
   useEffect(() => {
     if (skin) ensureSkinFonts(skin);

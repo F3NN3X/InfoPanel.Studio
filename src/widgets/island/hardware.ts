@@ -2,6 +2,7 @@
 // drive filling up, an adapter connecting or dropping, the public IP changing and a big download.
 // Each `derive` is pure; `prev` null is the baseline and raises nothing.
 import type { DataSourceDef, SourceNotice } from "@/lib/island/sources";
+import { deviceOf, thresholdsOf } from "@/modules/setting-readers";
 import type { Data } from "../core/types";
 import { adapterOf, fmtMB, fmtRate, get, has, num, pretty } from "../core/data";
 import { boolSetting, numberSetting } from "../registry/settings-kit";
@@ -33,9 +34,9 @@ export const driveSpaceIsland: DataSourceDef = {
   group: "Drive space",
   derive(prev, next, settings) {
     if (!prev) return {};
-    const warn = Number(settings.warn) || 80;
-    const crit = Number(settings.crit) || 92;
-    const pinned = typeof settings.drive === "string" && settings.drive ? settings.drive.toLowerCase().replace(":", "") : "";
+    // The widget's Fullness levels as it resolves them under its theme (an Off level never trips).
+    const { warn = 85, crit = 95 } = thresholdsOf(settings, "full");
+    const pinned = deviceOf(settings)?.toLowerCase().replace(":", "") ?? "";
     const level = (pct: number) => (pct >= crit ? 2 : pct >= warn ? 1 : 0);
     const before = drivesOf(prev);
     const notices: SourceNotice[] = [];
@@ -100,7 +101,7 @@ export const networkThroughputIsland: DataSourceDef = {
   group: "Content",
   options: [numberSetting("islandMinRate", "Show above (MB/s)", 5, { min: 1, max: 500, step: 1, hint: "The download shows while it is faster than this" })],
   derive(_prev, next, settings) {
-    const id = adapterOf(next, typeof settings.adapter === "string" && settings.adapter ? settings.adapter : undefined);
+    const id = adapterOf(next, deviceOf(settings));
     if (!id) return { activity: null };
     const down = num(get(next, `libre.${id}_download_speed`));
     const min = (Number(settings.islandMinRate) || 5) * 1e6;

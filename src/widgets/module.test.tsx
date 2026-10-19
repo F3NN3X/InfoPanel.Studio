@@ -54,10 +54,10 @@ describe("templateModule", () => {
   });
 
   it("renders the component with flat data, the shell props and its own props", () => {
-    const saved = { skin: "tui", label: "Hi", unit: "y", compactView: "off", radius: "12" };
+    const saved = { skin: "tui", label: "Hi", unit: "y", compact: "full", radius: "12" };
     renderToStaticMarkup(mod.render({ "demo.a": { value: 5, unit: "W" } }, saved) as never);
     expect(seen().data).toEqual({ "demo.a": "5 W" });
-    expect(seen()).toMatchObject({ skin: "tui", title: "Hi", unit: "y", compactView: "off", radius: 12 });
+    expect(seen()).toMatchObject({ skin: "tui", title: "Hi", unit: "y", compactView: "off", variant: "default", radius: 12 });
     expect(seen().look).toEqual({ ...effectiveSettings(mod, saved), surface: "tui" });
   });
 
@@ -101,13 +101,13 @@ describe("templateModule with no data", () => {
 describe("shellProps", () => {
   it("turns auto and empty into undefined", () => {
     expect(
-      shellProps({ accent: "", surface: "auto", radius: "auto", skin: "auto", variant: "default", graph: "auto", meter: "auto", compactView: "auto", label: "" })
+      shellProps({ accent: "", surface: "auto", radius: "auto", skin: "auto", compact: "auto", graph: "auto", meter: "auto", label: "" })
     ).toEqual({
       accent: undefined,
       surface: undefined,
       radius: undefined,
       skin: undefined,
-      variant: "default",
+      variant: undefined,
       graph: undefined,
       meter: undefined,
       compactView: undefined,
@@ -117,7 +117,7 @@ describe("shellProps", () => {
 
   it("passes chosen values through", () => {
     expect(
-      shellProps({ accent: "#fff", surface: "glass", radius: "999", skin: "ink", variant: "studio", graph: "braille", meter: "wave", compactView: "off", label: "CPU" })
+      shellProps({ accent: "#fff", surface: "glass", radius: "999", skin: "ink", compact: "dense", graph: "braille", meter: "wave", label: "CPU" })
     ).toEqual({
       accent: "#fff",
       surface: "glass",
@@ -126,13 +126,20 @@ describe("shellProps", () => {
       variant: "studio",
       graph: "braille",
       meter: "wave",
-      compactView: "off",
+      compactView: undefined,
       title: "CPU",
     });
   });
 
-  it("passes the summary card's Always through", () => {
-    expect(shellProps({ compactView: "on" }).compactView).toBe("on");
+  it("maps Small zones onto the shell: card = the summary card always, full = never, dense = the studio view", () => {
+    expect(shellProps({ compact: "card" })).toMatchObject({ compactView: "on", variant: undefined });
+    expect(shellProps({ compact: "full" })).toMatchObject({ compactView: "off", variant: "default" });
+    expect(shellProps({ compact: "dense" })).toMatchObject({ compactView: undefined, variant: "studio" });
+  });
+
+  it("still reads the old variant / compactView while Small zones is Auto (until PR 8)", () => {
+    expect(shellProps({ compact: "auto", compactView: "on" }).compactView).toBe("on");
+    expect(shellProps({ compactView: "off", variant: "studio" }).variant).toBe("studio");
   });
 });
 
@@ -142,11 +149,11 @@ describe("Summary card", () => {
 
   it("Always shows the summary card where Auto shows the full layout", () => {
     expect(view({})).toBe("body");
-    expect(view({ compactView: "on" })).toBe("compact");
+    expect(view({ compact: "card" })).toBe("compact");
   });
 
-  it("is ignored by the Studio variant", () => {
-    expect(view({ compactView: "on", variant: "studio" })).toBe("studio");
+  it("Dense shows the studio view", () => {
+    expect(view({ compact: "dense" })).toBe("studio");
   });
 });
 

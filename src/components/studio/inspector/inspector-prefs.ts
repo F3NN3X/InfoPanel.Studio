@@ -85,6 +85,20 @@ export function useInspectorTab(contextKey: string): [string | undefined, (tab: 
 
 // -- studio preferences (per viewer, not per dashboard) ------------------------
 
+/** The removed global "Advanced settings" switch (widget settings v2 PR 1): its stored value is dropped once. */
+const RETIRED_KEYS = ["studio.inspectorAdvanced"];
+
+/** Drop the preferences nothing reads any more. */
+export function dropRetiredPrefs(storage?: Pick<Storage, "removeItem">): void {
+  try {
+    const store = storage ?? globalThis.localStorage;
+    for (const key of RETIRED_KEYS) store?.removeItem(key);
+  } catch {
+    // Storage unavailable: nothing to drop.
+  }
+}
+dropRetiredPrefs();
+
 const QUICK_BAR_KEY = "studio.quickBar";
 const ACCORDION_KEY = "studio.accordion";
 const PINS_KEY = "studio.quickPins";
@@ -99,7 +113,17 @@ export type AccordionMode = "one" | "many";
 export const parseQuickBar = (raw: string | null): boolean => raw !== "false";
 export const parseAccordion = (raw: string | null): AccordionMode => (raw === "many" ? "many" : "one");
 
-/** The stored pins per widget type; anything malformed reads as empty. */
+/** Pinned keys config v7 renamed: a stored old key reads as the new one (Density, Small zones, Alignment, Temperature). */
+const RENAMED_PINS: Record<string, string> = {
+  layout: "sizeTier",
+  variant: "compact",
+  compactView: "compact",
+  alignX: "align",
+  alignY: "align",
+  units: "tempUnit",
+};
+
+/** The stored pins per widget type (renamed keys read as their new name, once); anything malformed reads as empty. */
 export function parsePins(raw: string | null): Record<string, string[]> {
   if (!raw) return {};
   try {
@@ -108,7 +132,10 @@ export function parsePins(raw: string | null): Record<string, string[]> {
     return Object.fromEntries(
       Object.entries(parsed)
         .filter((entry): entry is [string, unknown[]] => Array.isArray(entry[1]))
-        .map(([type, keys]) => [type, keys.filter((k): k is string => typeof k === "string").slice(-MAX_PINS)])
+        .map(([type, keys]) => {
+          const named = keys.filter((k): k is string => typeof k === "string").map((k) => RENAMED_PINS[k] ?? k);
+          return [type, [...new Set(named)].slice(-MAX_PINS)];
+        })
     );
   } catch {
     return {};

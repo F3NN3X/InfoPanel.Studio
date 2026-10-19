@@ -1,3 +1,4 @@
+import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
 import { useFitRows, Widget, shell, get, num, fmt, detect, diskShort, tone, TONES, useHistory, Empty, Ring, Num, hw, type Tone, type ShellProps, type WidgetMeta } from "./kit";
 import { readings } from "./hardware-readings";
@@ -16,9 +17,11 @@ export const meta: WidgetMeta = {
 export interface ThermalsProps extends ShellProps {
   look?: ModuleSettings;
   sortBy?: "hottest" | "fixed";
-  /** Overrides the per-sensor warn / crit. */
+  /** Overrides the per-sensor warn / crit (°C; Infinity = that level is off). */
   warn?: number;
   crit?: number;
+  /** The unit the temperatures read in (the levels and the bar scale stay °C). */
+  tempUnit?: "c" | "f";
   /** Bar scale, default 100. */
   max?: number;
   /** `gauges` draws the hottest four sensors as rings with a fan row under them. */
@@ -59,6 +62,10 @@ export default function Thermals(p: ThermalsProps) {
   const top = list[0];
   const hist = useHistory(top?.v ?? NaN);
   const max = p.max ?? 100;
+  const unit = p.tempUnit ?? "c";
+  const deg = unit === "f" ? "°F" : "°C";
+  /** A temperature as shown, in the chosen unit. */
+  const T = (c: number) => fmt(inUnit(c, unit), 0);
   if (!top)
     return (
       <Widget {...shell(p)} title="Thermals" icon="device_thermostat">
@@ -70,8 +77,8 @@ export default function Thermals(p: ThermalsProps) {
       {...shell(p)}
       title={p.title ?? "Thermals"}
       icon="device_thermostat"
-      studio={{ label: "Thermals", value: top.v, unit: "°C", sub: `Hottest · ${top.label}`, t: top.t, rows: list.map((x) => ({ n: x.label, v: `${fmt(x.v, 0)}°C`, pct: (x.v / max) * 100 })) }}
-      compact={{ label: `Hottest · ${top.label}`, value: top.v, unit: "°C", sub: list.slice(1, 3).map((x) => `${x.label} ${fmt(x.v, 0)}°`).join(" · "), hist, t: top.t }}
+      studio={{ label: "Thermals", value: inUnit(top.v, unit), unit: deg, sub: `Hottest · ${top.label}`, t: top.t, rows: list.map((x) => ({ n: x.label, v: `${T(x.v)}${deg}`, pct: (x.v / max) * 100 })) }}
+      compact={{ label: `Hottest · ${top.label}`, value: inUnit(top.v, unit), unit: deg, sub: list.slice(1, 3).map((x) => `${x.label} ${T(x.v)}°`).join(" · "), hist, t: top.t }}
     >
       {({ size, w, h }) => {
         if (p.view === "gauges") {
@@ -84,7 +91,7 @@ export default function Thermals(p: ThermalsProps) {
                   <div key={x.id} className="flex flex-col items-center gap-1">
                     <div style={{ width: ring }}>
                       <Ring value={x.v} max={max} thickness={9} t={x.t}>
-                        <Num className="text-sm font-semibold">{fmt(x.v, 0)}°</Num>
+                        <Num className="text-sm font-semibold">{T(x.v)}°</Num>
                       </Ring>
                     </div>
                     <span className="max-w-[96px] truncate text-[11px] text-[color:var(--w-muted)]" title={x.label}>
@@ -118,11 +125,12 @@ export default function Thermals(p: ThermalsProps) {
                 {!narrow && (
                   <div className="relative h-2 overflow-hidden rounded-full bg-[color:var(--w-track)]">
                     <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out" style={{ width: `${(x.v / max) * 100}%`, background: `linear-gradient(90deg, ${TONES.ok}, ${TONES[x.t]})` }} />
-                    <div className="absolute inset-y-0 w-0.5" style={{ left: `${((p.warn ?? x.warn) / max) * 100}%`, background: "color-mix(in oklab, #f59e0b 80%, var(--w-fg))" }} />
+                    {Number.isFinite(p.warn ?? x.warn) && <div className="absolute inset-y-0 w-0.5" style={{ left: `${((p.warn ?? x.warn) / max) * 100}%`, background: "color-mix(in oklab, #f59e0b 80%, var(--w-fg))" }} />}
                   </div>
                 )}
                 <span className="text-right font-medium tabular-nums" style={x.t !== "ok" ? { color: TONES[x.t] } : undefined}>
-                  {fmt(x.v, 0)}°C
+                  {T(x.v)}
+                  {deg}
                 </span>
               </li>
             ))}

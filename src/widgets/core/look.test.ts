@@ -58,15 +58,19 @@ describe("fadeBackground", () => {
 });
 
 describe("forcedTier", () => {
-  it("maps the standard layouts to tiers", () => {
-    expect(forcedTier("card", undefined)).toBe("lg");
-    expect(forcedTier("standard", undefined)).toBe("md");
-    expect(forcedTier("compact", "lg")).toBe("sm");
-    expect(forcedTier("simple", undefined)).toBe("xs");
+  it("forces the Density tier", () => {
+    expect(forcedTier({ sizeTier: "lg" }, undefined)).toBe("lg");
+    expect(forcedTier({ sizeTier: "sm" }, "lg")).toBe("sm");
+  });
+  it("still reads the old layout choices (until PR 8)", () => {
+    expect(forcedTier({ layout: "card" }, undefined)).toBe("lg");
+    expect(forcedTier({ layout: "standard" }, undefined)).toBe("md");
+    expect(forcedTier({ layout: "compact" }, "lg")).toBe("sm");
+    expect(forcedTier({ layout: "simple" }, undefined)).toBe("xs");
   });
   it("leaves auto to the size prop / measurement", () => {
-    expect(forcedTier("auto", undefined)).toBeUndefined();
-    expect(forcedTier("auto", "md")).toBe("md");
+    expect(forcedTier({ sizeTier: "auto" }, undefined)).toBeUndefined();
+    expect(forcedTier({ sizeTier: "auto" }, "md")).toBe("md");
     expect(forcedTier(undefined, "auto")).toBe("auto");
   });
 });

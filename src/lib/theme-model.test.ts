@@ -26,10 +26,15 @@ import {
 const def = (key: string, extra: Partial<ModuleSetting> = {}): ModuleSetting => ({ key, label: key, type: "color", default: "", ...extra });
 
 describe("themed keys and sections", () => {
-  it("are today's look keys minus autoScale, variant and compactView", () => {
+  it("are today's look keys, Units & format, the thresholds, the palette roles and the meters' response (config v7)", () => {
+    const thresholds = ["load", "temp", "full", "db", "value"].flatMap((q) => [`warn.${q}`, `crit.${q}`]);
+    const roles = ["s1", "s2", "s3", "s4", "s5", "s6", "ok", "warn", "crit"];
+    // alignX / alignY stay readable until PR 8 (align + alignSpread replace them).
+    const legacy = ["alignX", "alignY"];
     expect([...THEMED_KEYS].sort()).toEqual(
-      [...PROFILE_STYLE_KEYS].filter((k) => !["autoScale", "variant", "compactView"].includes(k)).sort()
+      [...PROFILE_STYLE_KEYS, ...legacy, "tempUnit", "rateUnit", "decimals", "clock", ...thresholds, ...roles, "meterBallistics"].sort()
     );
+    for (const key of ["autoScale", "variant", "compactView", "compact", "sizeTier", "layout"]) expect(THEMED_KEYS.has(key), key).toBe(false);
   });
 
   it("file each key in one followable section (SPEC §2.2)", () => {
@@ -43,14 +48,28 @@ describe("themed keys and sections", () => {
     expect(SECTION_IDS).toHaveLength(11);
   });
 
-  it("default to today's standard defaults (nothing repaints on upgrade)", () => {
+  it("default to today's standard defaults (nothing repaints on upgrade), the spec's thresholds (owner decision Q3)", () => {
     expect(Object.keys(THEME_DEFAULTS).sort()).toEqual([...THEMED_KEYS].sort());
-    for (const [key, value] of Object.entries(THEME_DEFAULTS)) expect(STANDARD_DEFAULTS[key], key).toBe(value);
+    for (const [key, value] of Object.entries(THEME_DEFAULTS)) if (key in STANDARD_DEFAULTS) expect(STANDARD_DEFAULTS[key], key).toBe(value);
+    expect(THEME_DEFAULTS).toMatchObject({ "warn.load": 80, "crit.load": 92, "warn.temp": 80, "crit.temp": 90, "warn.full": 85, "crit.full": 95, "warn.db": -9, "crit.db": -2, "warn.value": 70, "crit.value": 90 });
+    expect(THEME_DEFAULTS).toMatchObject({ tempUnit: "c", rateUnit: "auto", decimals: "auto", clock: "auto", meterBallistics: "peak", s1: "", ok: "", crit: "" });
   });
 
-  it("read a row's own key until palette roles are themed (PR 3)", () => {
-    expect(themeKeyOf(def("cpuColor", { role: "s1" }))).toBe("cpuColor");
-    expect(themeKeyOf(def("ringColor", { role: "accent" }))).toBe("ringColor");
+  it("file the new keys in their sections", () => {
+    expect(sectionOfKey("tempUnit")).toBe("format");
+    expect(sectionOfKey("warn.temp")).toBe("thresholds");
+    expect(sectionOfKey("crit.db")).toBe("thresholds");
+    expect(sectionOfKey("s3")).toBe("palette");
+    expect(sectionOfKey("meterBallistics")).toBe("motion");
+    expect(sectionOfKey("align")).toBe("spacing");
+    expect(sectionOfKey("alignSpread")).toBe("spacing");
+  });
+
+  it("read a colour row's palette role, the accent role the Colors accent", () => {
+    expect(themeKeyOf(def("cpuColor", { role: "s1" }))).toBe("s1");
+    expect(themeKeyOf(def("hotColor", { role: "crit" }))).toBe("crit");
+    expect(themeKeyOf(def("ringColor", { role: "accent" }))).toBe("accent");
+    expect(themeKeyOf(def("plain"))).toBe("plain");
   });
 });
 

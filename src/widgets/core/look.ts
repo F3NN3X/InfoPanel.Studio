@@ -5,6 +5,7 @@ import type { ModernChrome } from "@/components/modern-chrome";
 import { SCRIM } from "@/components/modern-chrome";
 import { fadeColors, surfaceBox } from "@/components/widget-style";
 import { FONT_STACKS } from "@/lib/general";
+import { sizeTierOf } from "@/modules/setting-readers";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
 import type { Box } from "./layout";
@@ -45,12 +46,9 @@ export function untitled<T extends Compact | Studio>(c: T, titled: boolean): T {
   return titled ? c : { ...c, label: "" };
 }
 
-/** The standard `layout` choices that force a tier; `auto` (or anything else) = measured. */
-export const LAYOUT_TIERS: Record<string, Tier> = { card: "lg", standard: "md", compact: "sm", simple: "xs" };
-
-/** The tier to force: the look's `layout` when it names one, else the `size` prop. */
-export function forcedTier(layout: unknown, size: Tier | "auto" | undefined): Tier | "auto" | undefined {
-  return LAYOUT_TIERS[String(layout)] ?? size;
+/** The tier to force: the look's Density (`sizeTier`, the old `layout`) when it names one, else the `size` prop. */
+export function forcedTier(look: ModuleSettings | undefined, size: Tier | "auto" | undefined): Tier | "auto" | undefined {
+  return (look && sizeTierOf(look)) ?? size;
 }
 
 /**

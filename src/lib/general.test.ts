@@ -16,9 +16,11 @@ describe("resolveGeneral", () => {
     expect(GENERAL_DEFAULTS.showSeconds).toBe(true);
   });
 
-  it("keeps the set keys over the defaults", () => {
-    const g = resolveGeneral({ general: { font: "serif", hour12: true, motion: "reduce" } });
+  it("keeps the set keys over the defaults, the 12-hour switch from the style's clock (config v7)", () => {
+    const g = resolveGeneral({ general: { font: "serif", motion: "reduce" }, style: { clock: "12" } });
     expect(g).toMatchObject({ font: "serif", hour12: true, motion: "reduce", showSeconds: true, locale: "" });
+    expect(resolveGeneral({ style: { clock: "24" } }).hour12).toBe(false);
+    expect(resolveGeneral({ style: { clock: "auto" } }).hour12).toBeUndefined();
   });
 });
 
@@ -51,10 +53,10 @@ describe("normalizeGeneral", () => {
         extra: 1,
       })
     ).toEqual({ showSeconds: false, locale: "de-DE", hideCursor: true });
+    // The 12 / 24 h switch moved into the themed clock (config v7): a stored one is not kept here.
     expect(normalizeGeneral({ font: "mono", motion: "full", hour12: false })).toEqual({
       font: "mono",
       motion: "full",
-      hour12: false,
     });
   });
 
@@ -71,7 +73,7 @@ describe("withGeneral", () => {
   it("sets a key and clears it back to the default", () => {
     const g = withGeneral(undefined, "font", "serif");
     expect(g).toEqual({ font: "serif" });
-    expect(withGeneral(g, "hour12", true)).toEqual({ font: "serif", hour12: true });
+    expect(withGeneral(g, "motion", "full")).toEqual({ font: "serif", motion: "full" });
     expect(withGeneral(g, "font", undefined)).toBeUndefined();
   });
 });

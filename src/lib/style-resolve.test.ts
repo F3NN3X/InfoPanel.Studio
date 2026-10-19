@@ -139,3 +139,25 @@ describe("zoneResolver", () => {
     expect(resolve({ id: "elsewhere", settings: { accent: "#111111" } })).toEqual({ accent: "#111111" });
   });
 });
+
+describe("resolveStyle: the schema's perWidget rows and palette roles", () => {
+  it("a perWidget row keeps its own value while its section follows", () => {
+    const defs = [{ key: "accent", perWidget: true }];
+    expect(resolveStyle({ levels, own: { accent: "#0000ff" }, defs }).settings.accent).toBe("#0000ff");
+    expect(resolveStyle({ levels, own: { accent: "#0000ff" } }).settings.accent).toBe("#00ff00");
+  });
+
+  it("a colour row with a role reads the role's theme colour, its own value only while custom", () => {
+    const defs = [{ key: "hotColor", role: "crit" as const }];
+    const roleLevels: ThemeLevels = { profile: { values: { crit: "#ff0000" } } };
+    expect(resolveStyle({ levels: roleLevels, own: { hotColor: "#123456" }, defs }).settings.hotColor).toBe("#ff0000");
+    expect(resolveStyle({ levels: roleLevels, own: { hotColor: "#123456" }, follow: { palette: false }, defs }).settings.hotColor).toBe("#123456");
+  });
+
+  it("a threshold follows the theme until Thresholds is custom", () => {
+    const own = { "warn.load": 70 };
+    const theme: ThemeLevels = { profile: { values: { "warn.load": 85 } } };
+    expect(resolveWith(theme, own, undefined)?.["warn.load"]).toBe(85);
+    expect(resolveWith(theme, own, { thresholds: false })?.["warn.load"]).toBe(70);
+  });
+});

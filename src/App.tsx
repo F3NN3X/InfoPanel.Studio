@@ -141,7 +141,7 @@ export default function App() {
   const islandLive = useMemo(
     () =>
       kiosk && island
-        ? { feeds: islandFeeds(stored.pages.flatMap((p) => p.placements), modules, zoneResolver(config, stored)), quietHours, page: pageName, layoutVersion }
+        ? { feeds: islandFeeds(stored.pages.flatMap((p) => p.placements), modules, zoneResolver(config, stored, (z) => modules.find((m) => m.id === z.module)?.settings)), quietHours, page: pageName, layoutVersion }
         : undefined,
     [kiosk, island, stored, config, quietHours, pageName, layoutVersion]
   );
@@ -150,7 +150,7 @@ export default function App() {
   const fill = profile.fit === "fill";
   const background = resolveBackground(config, profile);
   const appearance = appearanceOf(config, profile);
-  const general = useMemo(() => resolveGeneral({ general: config.general }), [config.general]);
+  const general = useMemo(() => resolveGeneral({ general: config.general, style: config.style }), [config.general, config.style]);
 
   // Page dots and swipe: only with the setting on, 2+ pages, and no ?page= pin.
   const pageNav =

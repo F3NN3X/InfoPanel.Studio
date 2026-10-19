@@ -1,6 +1,7 @@
 // What the inspector needs to know about each template widget beyond its settings (widget settings v2):
-// whether it draws a header, what it draws in small zones, and (read from PR 3 on) its units, thresholds and look subset.
-import type { CompactShape, DashboardModule, HeaderMode } from "@/modules/types";
+// whether it draws a header, what it draws in small zones, the units and thresholds it renders (its schema has
+// one Units & format / Thresholds row each; checked against what each renderer draws) and its look subset.
+import type { CompactShape, DashboardModule, HeaderMode, ModuleSetting } from "@/modules/types";
 
 export type InspectorMeta = Required<Pick<DashboardModule, "header" | "compact">> &
   Pick<DashboardModule, "fmt" | "thr" | "styleSubset">;
@@ -29,18 +30,19 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   ServiceHealth: yes(BOTH),
   ProcessList: yes(BOTH),
   Uptime: yes(CARD),
-  CpuMonitor: yes(CARD, { fmt: ["tempUnit", "decimals"], thr: ["load"] }),
+  // Draws its temperatures in °C with fixed decimals (no unit or decimals option yet).
+  CpuMonitor: yes(CARD, { thr: ["load"] }),
   CoreHeatmap: yes(DENSE),
   GpuRings: yes(DENSE),
-  GpuMonitor: yes(CARD, { fmt: ["tempUnit"], thr: ["temp"] }),
+  GpuMonitor: yes(CARD, { thr: ["temp"] }),
   MemoryUsage: yes(CARD, { thr: ["load"] }),
   Thermals: yes(BOTH, { fmt: ["tempUnit"], thr: ["temp"] }),
   PowerDraw: yes(CARD),
   Fans: yes(BOTH),
   // Group B: storage, network, info, generic
   DriveSpace: yes(BOTH, { thr: ["full"] }),
-  StorageHealth: yes(CARD, { fmt: ["tempUnit"] }),
-  DiskIO: yes(BOTH, { fmt: ["rateUnit"] }),
+  StorageHealth: yes(CARD),
+  DiskIO: yes(BOTH),
   NetworkThroughput: yes(CARD, { fmt: ["rateUnit"] }),
   NetworkAdapters: yes(BOTH),
   Clock: as("title-only", DENSE, { fmt: ["clock"] }),
@@ -54,7 +56,8 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   CustomGauge: yes(NONE),
   // Group C: media / audio
   NowPlaying: yes(BOTH),
-  AudioMeter: yes(BOTH, { thr: ["db"] }),
+  // Its hot zone is a fixed share of the meter, not a dB level yet (PR 4).
+  AudioMeter: yes(BOTH),
   VolumeMixer: yes(BOTH),
   MeterBridge: yes(DENSE, { thr: ["db"] }),
   Visualizer: yes(DENSE),
@@ -79,3 +82,21 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   Bluetooth: yes(BOTH),
   StreamDeck: yes(BOTH),
 };
+
+/**
+ * A widget's Fit rows for its small-zone shape (SPEC §4.6): Small zones
+ * without the choices it cannot draw (Card without a summary card, Dense
+ * without a dense view); with only Auto / Full left the row goes and
+ * Density stops being a More row.
+ */
+export function fitSettings(defs: ModuleSetting[], compact: CompactShape): ModuleSetting[] {
+  const drawn = (value: string) => (value === "card" ? compact.card : value === "dense" ? compact.dense !== false : true);
+  const row = defs.find((d) => d.key === "compact");
+  const options = row?.options?.filter((o) => drawn(o.value)) ?? [];
+  const keep = options.length > 2;
+  return defs.flatMap((d): ModuleSetting[] => {
+    if (d === row) return keep ? [{ ...d, options }] : [];
+    if (d.key === "sizeTier" && !keep) return [{ ...d, more: false }];
+    return [d];
+  });
+}

@@ -1,6 +1,7 @@
 // Shared helpers of the registry groups: narrowing stored settings into widget props, and builders for
 // the inspector schema (docs/redesign/phase9/brief-9.5-inspector.md).
-import type { DeviceKind, ModuleSetting, ModuleSettings } from "@/modules/types";
+import { critKey, QUANTITIES, warnKey } from "@/lib/theme-model";
+import type { DeviceKind, FormatKey, ModuleSetting, ModuleSettings, ThresholdQuantity } from "@/modules/types";
 import { RATE_UNITS, type RateUnit } from "../core/data";
 
 /* ───────── stored settings → props ───────── */
@@ -58,9 +59,8 @@ export const colorSetting = (key: string, label: string, extra: Extra = {}): Mod
 /** A bound sensor key ("" = none); `multiple` = ordered, comma-separated keys. On the Data tab. */
 export const sensorSetting = (key: string, label: string, extra: Extra = {}): ModuleSetting => ({ key, label, type: "sensor", default: "", ...extra });
 
-/** A device found in the live keys ("" = Auto). On the Data tab. */
-/** A throughput's unit (Network Traffic, Menu Bar): the readings are bytes per second (`fmtRate`). */
-export const rateUnitSetting = (group: string, extra: Extra = {}): ModuleSetting => ({
+/** A throughput's unit (Network Traffic, Menu Bar), in Units & format: the readings are bytes per second (`fmtRate`). */
+export const rateUnitSetting = (extra: Extra = {}): ModuleSetting => ({
   key: "rateUnit",
   label: "Speed units",
   type: "select",
@@ -75,12 +75,76 @@ export const rateUnitSetting = (group: string, extra: Extra = {}): ModuleSetting
   ],
   hint: "From the raw bytes per second; decimal prefixes (1 MB = 1,000,000 bytes)",
   keywords: ["unit", "mbps", "megabit", "megabyte", "bits", "bytes", "speed"],
-  group,
+  section: "format",
   ...extra,
 });
 export const rateUnitOf = (v: unknown): RateUnit | undefined => oneOf(v, RATE_UNITS);
 
-export const deviceSetting = (key: string, label: string, from: DeviceKind, extra: Extra = {}): ModuleSetting => ({ key, label, type: "select", default: "", optionsFrom: from, ...extra });
+/** The Units & format rows (SPEC §4.7) besides Speed units: themed, so a profile sets them once. */
+const FORMAT_ROWS: Record<Exclude<FormatKey, "rateUnit">, ModuleSetting> = {
+  tempUnit: {
+    key: "tempUnit",
+    label: "Temperature",
+    type: "select",
+    default: "c",
+    options: [
+      { value: "c", label: "°C" },
+      { value: "f", label: "°F" },
+    ],
+    keywords: ["unit", "celsius", "fahrenheit", "units"],
+    section: "format",
+  },
+  decimals: {
+    key: "decimals",
+    label: "Decimals",
+    type: "select",
+    default: "auto",
+    options: ["auto", "0", "1", "2"].map((value) => ({ value, label: value === "auto" ? "Auto" : value })),
+    keywords: ["precision", "digits"],
+    section: "format",
+  },
+  clock: {
+    key: "clock",
+    label: "Clock",
+    type: "select",
+    default: "auto",
+    options: [
+      { value: "auto", label: "Locale" },
+      { value: "24", label: "24 h" },
+      { value: "12", label: "12 h" },
+    ],
+    keywords: ["hours", "12-hour", "24-hour", "format", "time"],
+    section: "format",
+  },
+};
+
+/** A Units & format row: `tempUnit`, `rateUnit`, `decimals` or `clock`. */
+export const formatSetting = (key: FormatKey, extra: Extra & { default?: ModuleSetting["default"] } = {}): ModuleSetting =>
+  key === "rateUnit" ? rateUnitSetting(extra) : { ...FORMAT_ROWS[key], ...extra };
+
+/**
+ * A quantity's Thresholds row (SPEC §4.4): one control writing `warn.<q>`
+ * and `crit.<q>`, defaulting to the theme's levels (a row default replaces
+ * them where the widget's old behaviour must stay, e.g. "off").
+ */
+export const thresholdSetting = (q: ThresholdQuantity, extra: Partial<ModuleSetting> = {}): ModuleSetting => ({
+  key: warnKey(q),
+  keyY: critKey(q),
+  label: QUANTITIES[q].label,
+  type: "thresholds",
+  quantity: q,
+  default: QUANTITIES[q].warn,
+  defaultY: QUANTITIES[q].crit,
+  keywords: ["threshold", "warning", "critical", "warn", "crit", "alert"],
+  section: "thresholds",
+  ...extra,
+});
+
+/** The device a widget reads (`device`; absent / "auto" = Auto, SPEC §4.5), found in the live keys. On the Data tab. */
+export const deviceSetting = (label: string, from: DeviceKind, extra: Extra = {}): ModuleSetting => ({ key: "device", label, type: "select", default: "auto", optionsFrom: from, ...extra });
+
+/** Several devices (`devices`, comma-separated; empty = all): the device picker's checkbox list. */
+export const devicesSetting = (label: string, from: DeviceKind, extra: Extra = {}): ModuleSetting => ({ key: "devices", label, type: "select", default: "", optionsFrom: from, multiple: true, ...extra });
 
 /* ───────── flattened colour objects ───────── */
 

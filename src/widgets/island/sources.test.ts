@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { IslandUpdate } from "@/lib/island/sources";
+import { islandFeeds, type IslandUpdate } from "@/lib/island/sources";
+import type { Placement } from "@/lib/layout";
+import { zoneResolver } from "@/lib/style-resolve";
+import { modules } from "@/modules";
 import type { ModuleSettings } from "@/modules/types";
 import type { Data } from "../core/types";
 import { volumeMixerIsland } from "./audio";
@@ -89,8 +92,16 @@ describe("Drive Space on the island", () => {
 
   it("uses the widget's thresholds and pinned drive", () => {
     const both = (c: number, d: number) => ({ ...drive("c", c), ...drive("d", d) });
-    expect(derive(driveSpaceIsland, both(500, 500), both(650, 650), { warn: 60 }).notices).toHaveLength(2);
-    expect(derive(driveSpaceIsland, both(500, 500), both(650, 650), { warn: 60, drive: "D:" }).notices?.map((n) => n.id)).toEqual(["drive:d"]);
+    expect(derive(driveSpaceIsland, both(500, 500), both(650, 650), { "warn.full": 60 }).notices).toHaveLength(2);
+    expect(derive(driveSpaceIsland, both(500, 500), both(650, 650), { "warn.full": 60, device: "D:" }).notices?.map((n) => n.id)).toEqual(["drive:d"]);
+  });
+
+  it("reads the levels the widget resolves under its theme, never a palette colour named warn", () => {
+    const zone = { id: "z", module: "DriveSpace", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, settings: { island: true, warn: "#ff0000" } } as Placement;
+    const profile = { widgetTheme: { values: { "warn.full": 60 } }, pages: [{ placements: [zone] }] };
+    const [feed] = islandFeeds([zone], modules, zoneResolver({}, profile, (z) => modules.find((m) => m.id === z.module)?.settings));
+    expect(feed.settings["warn.full"]).toBe(60);
+    expect(derive(driveSpaceIsland, drive("c", 500), drive("c", 650), feed.settings).notices).toHaveLength(1);
   });
 });
 

@@ -472,10 +472,10 @@ describe("pasteStyleToZones", () => {
 });
 
 describe("ownStyle", () => {
-  it("takes the look values that apply: custom sections and the per-widget look keys", () => {
-    const z = zone("a", 1, 1, 2, 1, { settings: { accent: "#f00", glow: "soft", variant: "studio", sensor: "x" }, follow: { colors: false } });
-    expect(ownStyle(z, {})).toEqual({ accent: "#f00", variant: "studio" });
-    expect(ownStyle(z, { profile: { locks: { colors: true } } })).toEqual({ variant: "studio" });
+  it("takes the look values that apply: custom sections only (Small zones is no look key since config v7)", () => {
+    const z = zone("a", 1, 1, 2, 1, { settings: { accent: "#f00", glow: "soft", compact: "dense", sensor: "x" }, follow: { colors: false } });
+    expect(ownStyle(z, {})).toEqual({ accent: "#f00" });
+    expect(ownStyle(z, { profile: { locks: { colors: true } } })).toEqual({});
   });
 });
 

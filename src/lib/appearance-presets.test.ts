@@ -50,7 +50,7 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
-  version: 6,
+  version: 7,
   activeProfile: "auto",
   profiles: [profile("p1"), profile("p2")],
   theme: DEFAULT_THEME,
@@ -97,8 +97,11 @@ describe("isValidStyleValue", () => {
     expect(isValidStyleValue("surfaceOpacity", 140)).toBe(false);
     expect(isValidStyleValue("accent", "")).toBe(true);
     expect(isValidStyleValue("accent", "url(x)")).toBe(false);
-    expect(isValidStyleValue("alignX", "between")).toBe(true);
-    expect(isValidStyleValue("alignY", "between")).toBe(false);
+    expect(isValidStyleValue("align", "br")).toBe(true);
+    expect(isValidStyleValue("align", "between")).toBe(false);
+    expect(isValidStyleValue("alignSpread", true)).toBe(true);
+    expect(isValidStyleValue("alignSpread", "yes")).toBe(false);
+    expect(isValidStyleValue("alignX", "between")).toBe(false);
     expect(isValidStyleValue("autoScale", "yes")).toBe(false);
     expect(isValidStyleValue("label", "x")).toBe(false);
   });

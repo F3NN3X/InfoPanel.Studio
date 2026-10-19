@@ -1,6 +1,7 @@
 import { Pin } from "lucide-react";
 import type { ApiSources } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
+import { tempUnitOf } from "@/modules/setting-readers";
 import {
   settingKeys,
   type ModuleSetting,
@@ -11,6 +12,9 @@ import { SourceDot } from "./inspector/source-dot";
 import { sourceState, type FollowInfo, type InspectorSection, type LookValues } from "./inspector-model";
 import { SET_HERE } from "./settings-model";
 import { SettingRow } from "./setting-control";
+
+/** What a Thresholds row reads for its temperature unit (the widget's, else the theme's). */
+const TEMP_UNIT: ModuleSetting = { key: "tempUnit", label: "Temperature", type: "select", default: "c", section: "format" };
 
 /** What the fields of one inspector read and write (a zone, several zones, a global style). */
 export interface FieldsApi {
@@ -118,6 +122,7 @@ export function SettingField({
         onOpenExplorer={fields.onOpenExplorer}
         sources={sources}
         hint={def.hint}
+        tempUnit={def.quantity === "temp" ? tempUnitOf({ tempUnit: fields.shown("tempUnit", TEMP_UNIT) }) : undefined}
         changed={SET_HERE.has(state)}
         lead={<SourceDot state={state} onReset={() => fields.onClear(settingKeys(def))} />}
         trail={pins && <PinButton pinned={pins.has(def.key)} label={def.label} onToggle={() => pins.toggle(def.key)} />}
