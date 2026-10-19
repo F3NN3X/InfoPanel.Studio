@@ -52,11 +52,19 @@ export interface UsageDay {
   total: number;
 }
 
+/** Tokens by project folder and by model (short id), largest first. */
+export interface UsageSplit {
+  projects: { name: string; total: number }[];
+  models: { name: string; total: number }[];
+}
+
 export interface AgentUsage {
   today: number;
   /** Over the history the server keeps (35 days). */
   history: number;
   days: UsageDay[];
+  /** Today's and the last 7 days' split, when there is one. */
+  breakdown?: { today?: UsageSplit; week?: UsageSplit };
 }
 
 export interface Agents {
@@ -108,6 +116,19 @@ function sessionOf(v: unknown): AgentSession | null {
   };
 }
 
+function splitOf(v: unknown, maxProjects: number): UsageSplit | undefined {
+  if (!isObject(v)) return undefined;
+  const list = (l: unknown, max: number) =>
+    (Array.isArray(l) ? l : []).flatMap((e): { name: string; total: number }[] => {
+      const name = isObject(e) ? text(e.name, 60) : undefined;
+      const total = isObject(e) ? num(e.total) : undefined;
+      return name && total !== undefined ? [{ name, total }] : [];
+    }).slice(0, max);
+  const projects = list(v.projects, maxProjects);
+  const models = list(v.models, 20);
+  return projects.length || models.length ? { projects, models } : undefined;
+}
+
 function usageOf(v: unknown): AgentUsage | undefined {
   if (!isObject(v) || !Array.isArray(v.days)) return undefined;
   const days = v.days.flatMap((d): UsageDay[] =>
@@ -115,7 +136,9 @@ function usageOf(v: unknown): AgentUsage | undefined {
       ? [{ day: d.day, input: num(d.input) ?? 0, output: num(d.output) ?? 0, cacheRead: num(d.cacheRead) ?? 0, cacheWrite: num(d.cacheWrite) ?? 0, total: num(d.total) ?? 0 }]
       : []
   );
-  return { today: num(v.today) ?? 0, history: num(v.history) ?? 0, days };
+  const today = isObject(v.breakdown) ? splitOf(v.breakdown.today, 5) : undefined;
+  const week = isObject(v.breakdown) ? splitOf(v.breakdown.week, 5) : undefined;
+  return { today: num(v.today) ?? 0, history: num(v.history) ?? 0, days, ...(today || week ? { breakdown: { ...(today ? { today } : {}), ...(week ? { week } : {}) } } : {}) };
 }
 
 /** Tolerant read of the server's `agents`. */
@@ -135,6 +158,12 @@ export function parseAgents(raw: unknown): Agents {
     if (u) usage[id] = u;
   }
   return { sessions, plan, usage };
+}
+
+/** A model's display name: "opus-5-5" is "Opus 5.5", "gpt-5.5" and the statusline's "Opus 5.5" stay as they are. */
+export function modelLabel(id: string): string {
+  const m = /^(opus|sonnet|haiku|fable)-(\d+(?:-\d+)*)$/.exec(id);
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2].replace(/-/g, ".")}` : id;
 }
 
 /** "45s", "3m", "1h 5m". */

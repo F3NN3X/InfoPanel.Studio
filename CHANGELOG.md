@@ -13,6 +13,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - A config export is saved as `infopanel-studio-config.json`; older exports still import.
 
 ### Added
+- Coding Agents reads per-project and per-model token shares and lists live Claude Code sessions from
+  `~/.claude/sessions`, all from local files.
 - CI builds and tests every pull request and `main`; pushing a `vX.Y.Z` tag builds the Windows installer and
   publishes a GitHub release.
 - InfoPanel profile import: a canvas zone that draws `.infopanel` profiles as InfoPanel does, with live sensors,

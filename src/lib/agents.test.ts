@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bySalience, EMPTY_AGENTS, parseAgents, sessionStatus, shortDuration, shortTokens, type AgentSession } from "./agents";
+import { bySalience, EMPTY_AGENTS, modelLabel, parseAgents, sessionStatus, shortDuration, shortTokens, type AgentSession } from "./agents";
 import { parseExtras } from "./extras";
 import { AGENT_DONE_MIN_MS, agentsUpdate } from "./island/dashboard-notices";
 
@@ -22,6 +22,22 @@ describe("parseAgents", () => {
     expect(a.usage.claude?.days).toEqual([{ day: "2026-10-15", input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 10 }]);
     expect(parseAgents(null)).toEqual(EMPTY_AGENTS);
     expect(parseExtras({}).agents).toEqual(EMPTY_AGENTS);
+  });
+
+  it("reads the usage breakdown tolerantly and caps its lists", () => {
+    const split = {
+      projects: [...Array.from({ length: 8 }, (_, i) => ({ name: `p${i}`, total: 10 - i })), { name: "", total: 1 }, { name: "bad", total: "x" }, "junk"],
+      models: [{ name: "opus-5-5", total: 9 }],
+    };
+    const a = parseAgents({ usage: { claude: { today: 1, history: 1, days: [], breakdown: { today: split, week: { projects: "no", models: [] } } } } });
+    expect(a.usage.claude?.breakdown?.today?.projects).toHaveLength(5);
+    expect(a.usage.claude?.breakdown?.today?.models).toEqual([{ name: "opus-5-5", total: 9 }]);
+    expect(a.usage.claude?.breakdown?.week).toBeUndefined();
+    expect(parseAgents({ usage: { claude: { today: 1, history: 1, days: [], breakdown: 5 } } }).usage.claude?.breakdown).toBeUndefined();
+  });
+
+  it("labels models for display", () => {
+    expect(["opus-5-5", "sonnet-5", "haiku-5-5", "fable-5-1", "gpt-5.5", "Opus 5.5"].map(modelLabel)).toEqual(["Opus 5.5", "Sonnet 5", "Haiku 5.5", "Fable 5.1", "gpt-5.5", "Opus 5.5"]);
   });
 
   it("formats durations, token counts and a session's status", () => {

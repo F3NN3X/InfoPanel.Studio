@@ -127,7 +127,7 @@ describe("extras", () => {
 
   it("starts with nothing set up and sends no secret in its state", () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "extras-"));
-    const extras = createExtras({ file: path.join(dir, "integrations.json") });
+    const extras = createExtras({ file: path.join(dir, "integrations.json"), claudeSessions: () => [] });
     expect(extras.state()).toEqual({ obs: { configured: false, connected: false, streaming: false, recording: false }, calendar: { configured: false, events: [] }, agents: { sessions: [], plan: {}, usage: {} } });
     expect(extras.integrations.public()).toEqual({ obs: { host: "", port: 4455, hasPassword: false }, calendar: { links: [] } });
   });
