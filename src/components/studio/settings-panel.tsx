@@ -1,6 +1,7 @@
 import { Pin } from "lucide-react";
 import type { ApiSources } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
+import { ROLE_LABELS } from "@/lib/theme-model";
 import { tempUnitOf } from "@/modules/setting-readers";
 import {
   settingKeys,
@@ -42,7 +43,14 @@ export interface FieldsApi {
 export interface FollowBar extends FollowInfo {
   onCustomize: () => void;
   onUseTheme: () => void;
+  /** The theme editor's bar (SPEC §4.1 profile and page scope); absent: a widget's. */
+  scope?: ThemeScopeBar;
 }
+
+/** A profile theme section (the listed page's custom widgets, Lock / Unlock), or a page theme's (Customize / Use profile). */
+export type ThemeScopeBar =
+  | { kind: "profile"; custom: number; pageName: string; onLock: (on: boolean) => void }
+  | { kind: "page"; pageName: string };
 
 /** Setting types whose value is one plain key (a toggle, number, colour, choice, text or icon). */
 const PLAIN_TYPES = new Set(["boolean", "number", "color", "select", "text", "icon"]);
@@ -97,7 +105,8 @@ function PinButton({ pinned, label, onToggle }: { pinned: boolean; label: string
  * (clicking one set here resets the setting), the label (brighter when set
  * here), the hint, the control chosen by its schema type, and the quick-bar
  * pin where the context has a quick bar. A row whose section follows the
- * theme shows the theme's value, dimmed and disabled (`fields.readOnly`).
+ * theme shows the theme's value, dimmed and disabled (`fields.readOnly`);
+ * a colour row with a palette role names the role ("Series 1").
  */
 export function SettingField({
   def,
@@ -130,6 +139,7 @@ export function SettingField({
         sources={sources}
         hint={def.hint}
         tempUnit={def.quantity === "temp" ? tempUnitOf({ tempUnit: fields.shown("tempUnit", TEMP_UNIT) }) : undefined}
+        roleLabel={readOnly && def.role ? ROLE_LABELS[def.role] : undefined}
         changed={SET_HERE.has(state)}
         lead={<SourceDot state={state} onReset={() => fields.onClear(settingKeys(def))} />}
         trail={pins && <PinButton pinned={pins.has(def.key)} label={def.label} onToggle={() => pins.toggle(def.key)} />}

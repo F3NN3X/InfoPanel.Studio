@@ -83,7 +83,7 @@ interface InspectorViewProps {
   /** The sheet's Quick tool: the pinned settings, in order. */
   quickKeys?: readonly string[];
   /** A Follow bar's theme name: open the theme being followed. */
-  onTheme?: () => void;
+  onTheme?: (level: "profile" | "page") => void;
 }
 
 /** How long a jumped-to section stays outlined. */
@@ -335,7 +335,7 @@ export function InspectorView({
         icon={sectionIcon(s)}
         tabLabel={tabLabel(s) || undefined}
         changed={changedOf(whole)}
-        pill={bar && <FollowPill mode={bar.mode} />}
+        pill={bar && <FollowPill mode={bar.mode} scope={bar.scope?.kind} />}
         actions={p.actions}
         onReset={() => resetSection(whole)}
         open={isOpen(s)}

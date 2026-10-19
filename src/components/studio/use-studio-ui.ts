@@ -8,6 +8,7 @@ import { useCanvasZoom } from "./use-canvas-zoom";
 import { useQuickBarPref } from "./inspector/inspector-prefs";
 import { useStoredFlag } from "./use-stored-flag";
 import type { StudioMode } from "./studio-top-bar";
+import type { ThemeScope } from "./theme-editor-model";
 import { RAIL_WIDTH, pageSize, useStudioLayout } from "./use-studio-layout";
 
 /**
@@ -22,7 +23,15 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const showSources = mode === "sources";
   const showLibrary = mode === "library";
   const showGauges = mode === "gauges";
-  /** Sources, Library or Gauges: a full page in place of the canvas, drawer and inspector. */
+  const showTheme = mode === "theme";
+  /** The theme editor's scope (the profile theme until a page's Theme… or the list picks another). */
+  const [themeScope, setThemeScope] = useState<ThemeScope>({ kind: "profile" });
+  /** Open the theme editor at a scope. */
+  const openTheme = (scope: ThemeScope) => {
+    setThemeScope(scope);
+    setMode("theme");
+  };
+  /** Sources, Library, Gauges or Theme: a full page in place of the canvas, drawer and inspector. */
   const fullPage = mode !== "design";
   const toggleSources = () => setMode((m) => (m === "sources" ? "design" : "sources"));
   const [drawer, setDrawer] = useStoredDrawer();
@@ -37,8 +46,10 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const [inspectorJump, setInspectorJump] = useState<{ id: string; key?: string; seq: number }>();
   const jumpInspector = (id: string, key?: string) => {
     expandDock();
-    setInspectorJump((j) => ({ id, key, seq: (j?.seq ?? 0) + 1 }));
+    jumpTheme(id, key);
   };
+  /** The same jump for Studio › Theme, which has its own inspector: the Design dock is left as it is. */
+  const jumpTheme = (id: string, key?: string) => setInspectorJump((j) => ({ id, key, seq: (j?.seq ?? 0) + 1 }));
   /**
    * A request to show a zone inspector tab. `picker` also opens the Data tab's bind picker;
    * `seq` makes repeats count.
@@ -127,7 +138,7 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
       toggleSources();
       return;
     }
-    if (item === "library" || item === "gauges") {
+    if (item === "library" || item === "gauges" || item === "theme") {
       setMode((m) => (m === item ? "design" : item));
       return;
     }
@@ -153,6 +164,10 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     showSources,
     showLibrary,
     showGauges,
+    showTheme,
+    themeScope,
+    setThemeScope,
+    openTheme,
     fullPage,
     toggleSources,
     drawer,
@@ -169,6 +184,7 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     openDocumentTab,
     inspectorJump,
     jumpInspector,
+    jumpTheme,
     inspectorRequest,
     requestInspectorTab,
     inspectorQuery,

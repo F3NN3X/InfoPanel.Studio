@@ -6,13 +6,10 @@ import { allLocked } from "@/lib/theme-model";
 import {
   activePresetId,
   appliedMessage,
-  enforceKey,
   followAll,
-  isForced,
   styleKey,
   toggleEnforce,
   withScopeStyle,
-  withStyleEnforce,
 } from "./appearance-actions";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -48,8 +45,6 @@ describe("scope keys", () => {
   it("coalesce per scope", () => {
     expect(styleKey(ALL)).toBe("appearance-style:all");
     expect(styleKey(P1)).toBe("appearance-style:p1");
-    expect(enforceKey(ALL)).toBe("style-enforce:all");
-    expect(enforceKey(P1)).toBe("style-enforce:p1");
   });
 });
 
@@ -65,28 +60,18 @@ describe("withScopeStyle", () => {
     const set = withScopeStyle(config(), P1, (s) => ({ ...s, radius: "8" }));
     expect(set.style).toBeUndefined();
     expect(set.profiles.map((p) => p.widgetTheme)).toEqual([{ values: { radius: "8" } }, undefined]);
-    const locked = withScopeStyle(withStyleEnforce(config(), P1, true), P1, () => ({}));
+    const locked = withScopeStyle(toggleEnforce(config(), { id: "p1" }), P1, () => ({}));
     expect(allLocked(locked.profiles[0].widgetTheme)).toBe(true);
     expect(locked.profiles[0].widgetTheme?.values).toBeUndefined();
   });
 });
 
-describe("withStyleEnforce / isForced / toggleEnforce", () => {
-  it("locks every section of every profile, or of one", () => {
-    const all = withStyleEnforce(config(), ALL, true);
-    expect(all.profiles.every((p) => allLocked(p.widgetTheme))).toBe(true);
-    expect(isForced(all, ALL)).toBe(true);
-    expect(withStyleEnforce(all, ALL, false).profiles.map((p) => p.widgetTheme)).toEqual([undefined, undefined]);
-    const one = withStyleEnforce(config(), P1, true);
-    expect(isForced(one, P1)).toBe(true);
-    expect(isForced(one, ALL)).toBe(false);
-    expect(one.profiles[1].widgetTheme).toBeUndefined();
-  });
-
+describe("toggleEnforce", () => {
   it("toggles this profile's lock-all", () => {
     const c = config();
     const on = toggleEnforce(c, c.profiles[0]);
     expect(allLocked(on.profiles[0].widgetTheme)).toBe(true);
+    expect(on.profiles[1].widgetTheme).toBeUndefined();
     expect(toggleEnforce(on, on.profiles[0]).profiles[0].widgetTheme).toBeUndefined();
   });
 });

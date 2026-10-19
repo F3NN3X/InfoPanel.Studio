@@ -257,7 +257,7 @@ export function ProfileInherit({
         }}
       />
       <p className="text-[11px] leading-snug text-ui-5">
-        Edit the custom theme and background under Appearance (This profile), the style under Global style. The
+        Edit the custom theme and background under Appearance (This profile), the widget theme in Studio › Theme. The
         corner radius is in the Profile section above.
       </p>
     </div>

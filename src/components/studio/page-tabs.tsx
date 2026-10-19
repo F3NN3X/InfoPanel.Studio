@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type PointerEvent as ReactPointerEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
-import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Pencil, Plus, Shapes, Trash2, X } from "lucide-react";
+import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Palette, Pencil, Plus, Shapes, Trash2, X } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { IconGrid } from "@/components/ui/icon-grid";
@@ -25,6 +25,8 @@ interface PageTabsProps {
   /** Delete, after the confirm dialog. */
   onDelete: (id: string) => void;
   onIcon: (id: string, icon: string | undefined) => void;
+  /** The page's settings › Theme: the theme editor at this page's scope. */
+  onTheme?: (id: string) => void;
   /** The page being renamed inline (the palette asks for this too). */
   renamingId: string | null;
   onRenamingChange: (id: string | null) => void;
@@ -50,11 +52,19 @@ export function dropIndex(rects: { left: number; width: number }[], from: number
 /** The rows of a page's menu; Delete is off on the only page. */
 export function pageMenuEntries(
   pages: ProfilePage[],
-  actions: { rename: () => void; icon: () => void; duplicate: () => void; remove: () => void; showOnKiosk?: () => void }
+  actions: {
+    rename: () => void;
+    icon: () => void;
+    theme?: () => void;
+    duplicate: () => void;
+    remove: () => void;
+    showOnKiosk?: () => void;
+  }
 ): ContextMenuEntry[] {
   return [
     { id: "rename", label: "Rename", icon: <Pencil />, onSelect: actions.rename },
     { id: "icon", label: "Icon…", icon: <Shapes />, onSelect: actions.icon },
+    ...(actions.theme ? [{ id: "theme", label: "Theme…", icon: <Palette />, onSelect: actions.theme }] : []),
     { id: "duplicate", label: "Duplicate", icon: <Copy />, onSelect: actions.duplicate },
     ...(actions.showOnKiosk ? [{ id: "kiosk", label: "Show on kiosk", icon: <MonitorPlay />, onSelect: actions.showOnKiosk }] : []),
     "separator",
@@ -176,6 +186,7 @@ export function PageTabs({
   onDuplicate,
   onDelete,
   onIcon,
+  onTheme,
   renamingId,
   onRenamingChange,
   deletingId,
@@ -222,6 +233,7 @@ export function PageTabs({
     pageMenuEntries(pages, {
       rename: () => onRenamingChange(id),
       icon: () => setIconFor(id),
+      theme: onTheme && (() => onTheme(id)),
       duplicate: () => onDuplicate(id),
       remove: () => onDeletingChange(id),
       showOnKiosk: onShowOnKiosk && (() => onShowOnKiosk(id)),

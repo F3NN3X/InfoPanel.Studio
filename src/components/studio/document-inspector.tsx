@@ -6,7 +6,7 @@ import type { WidgetTheme } from "@/lib/theme-model";
 import { THEME_PRESETS, resolveTheme, type ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import { AppearanceGallery, type CurrentLook } from "./appearance-gallery";
-import { GlobalStyleScope, type AppearanceTarget } from "./appearance-panel";
+import { AppearanceScope, type AppearanceTarget } from "./appearance-panel";
 import { BackgroundPanel, type BackgroundTarget } from "./background-panel";
 import { DataApiPanel } from "./data-api-panel";
 import { generalCards } from "./general-panel";
@@ -18,7 +18,6 @@ import { withIsland } from "@/lib/island/config";
 import {
   globalStyleValues,
   inspectorNotes,
-  isVisible,
   type InspectorContext,
   type InspectorSection,
 } from "./inspector-model";
@@ -32,8 +31,7 @@ import { ThemePanel } from "./theme-panel";
 import type { AppearancePresetsApi } from "./use-appearance-presets";
 import { LayoutDashboard } from "lucide-react";
 import { DashboardHeader, changedLabel } from "./zone-inspector-parts";
-import { shownValue, shownValues } from "./inspector/zone-fields";
-import { THEME_SETTINGS } from "@/modules/standard-settings";
+import { shownValue } from "./inspector/zone-fields";
 
 /** The parts of the dashboard inspector the palette's "Appearance…" and friends jump to. */
 export type DocumentTab = "appearance" | "background" | "general" | "connection";
@@ -61,10 +59,7 @@ export interface DocumentInspectorProps {
   onThemePreset: (name: string) => void;
   /** The dashboard style (defaults for every widget of every profile). */
   dashboardStyle: ModuleSettings | undefined;
-  /** Whether the target's force switch is on (every section of its profile themes locked). */
-  forced: (target: AppearanceTarget) => boolean;
   onStyle: (target: AppearanceTarget, fn: (style: ModuleSettings) => ModuleSettings) => void;
-  onEnforce: (target: AppearanceTarget, on: boolean) => void;
   /** The appearance presets gallery. */
   presets: AppearancePresetsApi;
   /** The dashboard's page background (every profile without its own). */
@@ -103,6 +98,8 @@ export interface DashboardStudioProps {
   onRotate: (patch: Partial<PageRotate>) => void;
   /** The sensor pickers' "Open data explorer" (the island's sensor). */
   onOpenExplorer: () => void;
+  /** Studio › Theme (the widget theme's editor). */
+  onOpenTheme: () => void;
 }
 
 const ACCORDION_MODES = [
@@ -112,7 +109,7 @@ const ACCORDION_MODES = [
 
 /**
  * The inspector with nothing selected: the Dashboard, in the tabs Profile ·
- * Appearance · Global style · General (README §4.7), with the same
+ * Appearance · General (README §4.7; the widget theme is Studio › Theme), with the same
  * sections, dots, search and More rows as a zone. The registry
  * places the existing cards (scope and force, presets, theme, page
  * background, general, connection) into its sections.
@@ -133,9 +130,7 @@ function DocumentSheet({
   onToken,
   onThemePreset,
   dashboardStyle,
-  forced,
   onStyle,
-  onEnforce,
   presets,
   background,
   profile,
@@ -154,6 +149,7 @@ function DocumentSheet({
   pages,
   onRotate,
   onOpenExplorer,
+  onOpenTheme,
 }: DocumentInspectorProps & DashboardStudioProps) {
   const [quickBar, setQuickBar] = useQuickBarPref();
   const [accordion, setAccordion] = useAccordionPref();
@@ -181,7 +177,6 @@ function DocumentSheet({
     radius: shownTheme.radius,
     style: all ? dashboardStyle : { ...dashboardStyle, ...profileStyle },
   };
-  const effective = shownValues(values, THEME_SETTINGS);
   // The scope's stored look, no defaults: an unset surface is not glass when a skin is chosen.
   const scoped: ModuleSettings = { ...values.inherited, ...values.own };
   // The clocks' 12 / 24 h is the all-profiles style's themed `clock` (config v7).
@@ -256,14 +251,7 @@ function DocumentSheet({
       case "scope":
         return {
           body: (
-            <GlobalStyleScope
-              target={target}
-              onTarget={setTarget}
-              forced={forced(target)}
-              onEnforce={onEnforce}
-              overrides={presets.overrides(target)}
-              onFollowAll={() => presets.clearOverrides(target)}
-            />
+            <AppearanceScope target={target} onTarget={setTarget} onOpenTheme={onOpenTheme} />
           ),
         };
       case "presets":
@@ -353,7 +341,6 @@ function DocumentSheet({
         <DashboardHeader profileName={profile.name} />
       }
       fields={fields}
-      visible={(def) => isVisible(def, effective)}
       parts={parts}
       notes={notes}
       query={query}

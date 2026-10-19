@@ -72,11 +72,9 @@ export function StudioInspector({
   }, [tabRequest]);
 
   const openExplorer = () => ui.setMode("sources");
-  /** A Follow bar's theme name: Dashboard › Global style. */
-  const editGlobalTheme = () => {
-    setInspectorTab("dashboard", "gstyle");
-    sel.select(null);
-  };
+  /** A Follow bar's theme name: Studio › Theme, at the theme it names (this page's, or the profile's). */
+  const editGlobalTheme = (level: "profile" | "page") =>
+    ui.openTheme(level === "page" && profile.pageId ? { kind: "page", pageId: profile.pageId } : { kind: "profile" });
 
   const body =
     selection.length > 1 ? (
@@ -153,6 +151,7 @@ export function StudioInspector({
         pages={(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).pages}
         onRotate={edit.setRotate}
         onOpenExplorer={openExplorer}
+        onOpenTheme={() => editGlobalTheme("profile")}
       />
     );
 

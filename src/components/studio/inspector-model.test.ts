@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
-import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS, THEME_SETTINGS } from "@/modules/standard-settings";
+import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
 import { isMore, settingKeys, type DashboardModule, type ModuleSetting } from "@/modules/types";
 import { TITLE_ONLY_HINT } from "./inspector-categories";
+import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
 import {
   allSections,
   changedCount,
@@ -64,16 +65,18 @@ describe("every setting is in exactly one section of exactly one tab", () => {
     expect([...listed].sort()).toEqual(defs.map((d) => d.key).sort());
   });
 
-  it("holds the multi-select's shared look and the global style, each once", () => {
+  it("holds the multi-select's shared look and the theme editor's rows, each once", () => {
     for (const context of [
       { kind: "multi", defs: CARD_SETTINGS } as InspectorContext,
-      { kind: "dashboard", scope: "all" } as InspectorContext,
+      { kind: "theme", scope: "profile" } as InspectorContext,
     ]) {
       const listed = keysOf(allSections(context));
       expect(new Set(listed).size).toBe(listed.length);
     }
-    const global = keysOf(sectionsFor({ kind: "dashboard", scope: "all" }, "gstyle"));
-    expect([...global].sort()).toEqual(THEME_SETTINGS.map((d) => d.key).sort());
+    const theme = keysOf(allSections({ kind: "theme", scope: "page" }));
+    expect([...theme].sort()).toEqual(THEME_EDITOR_SETTINGS.map((d) => d.key).sort());
+    // The dashboard has no style rows of its own any more: the theme editor holds them.
+    expect(keysOf(allSections({ kind: "dashboard", scope: "all" }))).toEqual([]);
   });
 });
 
@@ -94,13 +97,14 @@ describe("inspectorTabs", () => {
     expect(inspectorTabs({ kind: "multi", defs: CARD_SETTINGS })).toEqual([]);
   });
 
-  it("has the four dashboard tabs", () => {
-    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual([
-      "profile",
-      "appearance",
-      "gstyle",
-      "general",
-    ]);
+  it("has the three dashboard tabs", () => {
+    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual(["profile", "appearance", "general"]);
+  });
+
+  it("has no Show tab in the theme editor, at every scope", () => {
+    for (const scope of ["base", "profile", "page"] as const) {
+      expect(inspectorTabs({ kind: "theme", scope }).map((t) => t.id)).toEqual(["style", "data", "behaviour"]);
+    }
   });
 });
 
@@ -353,34 +357,14 @@ describe("dashboard sections", () => {
     expect(find(sectionsFor(dash, "general"), "Studio").terms).toContain("Quick bar");
   });
 
-  it("has the themed sections as the global style, without Fit, Preset or the Header", () => {
-    const style = sectionsFor(dash, "gstyle");
-    expect(titles(style)).toEqual([
-      "Skin & graphics",
-      "Colors",
-      "Surface",
-      "Typography",
-      "Size & spacing",
-      "Border & glow",
-      "Custom CSS",
-      "Motion",
-    ]);
-    expect(keysOf(style)).not.toContain("preset");
-    expect(keysOf(style)).not.toContain("variant");
-    expect(keysOf(style)).not.toContain("autoScale");
-    expect(keysOf(style)).not.toContain("layout");
-    expect(style.flatMap((s) => s.extras)).toEqual([]);
-    expect(style.every((s) => s.id.startsWith("gs-"))).toBe(true);
-  });
-
-  it("states which level the global style edits", () => {
-    expect(inspectorNotes(dash, "gstyle")[0].text).toContain("applies to all profiles");
-    const note = inspectorNotes({ kind: "dashboard", scope: "profile", profileName: "Wide" }, "gstyle")[0].text;
-    expect(note).toContain("'Wide' only");
+  it("has no global style tab: the appearance cards only", () => {
+    expect(sectionsFor(dash, "appearance").flatMap((s) => s.settings)).toEqual([]);
+    expect(find(sectionsFor(dash, "appearance"), "Scope").terms).toContain("Theme editor");
+    expect(inspectorNotes(dash, "appearance")).toEqual([]);
     expect(inspectorNotes(dash, "general")).toEqual([]);
   });
 
-  it("reads the global style's dots by scope", () => {
+  it("reads the Appearance scope's look by scope", () => {
     const glow = PROFILE_STYLE_SETTINGS.find((d) => d.key === "glow")!;
     const all = globalStyleValues("all", { glow: "soft" }, { glow: "strong" });
     expect(sourceState(glow, all)).toBe("here");
@@ -388,6 +372,44 @@ describe("dashboard sections", () => {
     expect(sourceState(glow, profile)).toBe("dashboard");
     expect(sourceState(glow, globalStyleValues("profile", { glow: "soft" }, { glow: "strong" }))).toBe("overriding");
     expect(sourceState(glow, globalStyleValues("profile", undefined, undefined))).toBe("default");
+  });
+});
+
+describe("theme editor sections", () => {
+  const theme: InspectorContext = { kind: "theme", scope: "profile" };
+
+  it("files Style with Status & series colors after Colors, Data = Units & format, Behaviour = Thresholds + Motion", () => {
+    expect(sectionsFor(theme, "show")).toEqual([]);
+    expect(titles(sectionsFor(theme, "style"))).toEqual([
+      "Skin & graphics",
+      "Colors",
+      "Status & series colors",
+      "Surface",
+      "Typography",
+      "Size & spacing",
+      "Border & glow",
+      "Custom CSS",
+    ]);
+    expect(titles(sectionsFor(theme, "data"))).toEqual(["Units & format"]);
+    expect(keysOf(sectionsFor(theme, "data"))).toEqual(["tempUnit", "rateUnit", "decimals", "clock"]);
+    expect(titles(sectionsFor(theme, "behaviour"))).toEqual(["Thresholds", "Motion"]);
+    expect(keysOf([find(sectionsFor(theme, "behaviour"), "Thresholds")])).toEqual(["warn.load", "warn.temp", "warn.full", "warn.db", "warn.value"]);
+    expect(keysOf([find(sectionsFor(theme, "behaviour"), "Motion")])).toEqual(["smoothing", "meterBallistics"]);
+    expect(keysOf([find(sectionsFor(theme, "style"), "Status & series colors")])).toEqual(["s1", "s2", "s3", "s4", "s5", "s6", "ok", "warn", "crit"]);
+  });
+
+  it("is every themed section, followable, with no zone extras and nothing behind More in Custom CSS", () => {
+    const sections = allSections(theme);
+    expect(sections.map(followSection)).toEqual(["skin", "colors", "palette", "surface", "type", "spacing", "border", "css", "format", "thresholds", "motion"]);
+    expect(sections.flatMap((s) => s.extras)).toEqual([]);
+    expect(keysOf(sections)).not.toContain("preset");
+    expect(find(sections, "Custom CSS").settings.every((d) => !isMore(d))).toBe(true);
+  });
+
+  it("notes the base layer only", () => {
+    expect(inspectorNotes({ kind: "theme", scope: "base" }, "style")[0].text).toContain("no locks");
+    expect(inspectorNotes(theme, "style")).toEqual([]);
+    expect(inspectorNotes({ kind: "theme", scope: "page" }, "style")).toEqual([]);
   });
 });
 
@@ -470,12 +492,12 @@ describe("follow bars", () => {
 
   it("followInfo: Theme, Custom or Locked, naming the theme followed", () => {
     const appearance = { profileName: "Desk", pageName: "Gaming" };
-    expect(followInfo(appearance, undefined, "colors")).toEqual({ mode: "theme", from: "the profile theme · Desk" });
-    expect(followInfo(appearance, { colors: false }, "colors")).toEqual({ mode: "custom", from: "the profile theme · Desk" });
+    expect(followInfo(appearance, undefined, "colors")).toEqual({ mode: "theme", from: "the profile theme · Desk", level: "profile" });
+    expect(followInfo(appearance, { colors: false }, "colors")).toEqual({ mode: "custom", from: "the profile theme · Desk", level: "profile" });
     const page = { ...appearance, page: { follow: { colors: false } } };
-    expect(followInfo(page, undefined, "colors").from).toBe("the page theme · Gaming");
+    expect(followInfo(page, undefined, "colors")).toMatchObject({ from: "the page theme · Gaming", level: "page" });
     const locked = { ...appearance, profile: { locks: { colors: true } } };
-    expect(followInfo(locked, { colors: false }, "colors")).toEqual({ mode: "locked", from: "the profile theme · Desk" });
+    expect(followInfo(locked, { colors: false }, "colors")).toEqual({ mode: "locked", from: "the profile theme · Desk", level: "profile" });
     expect(followInfo({}, undefined, "type").from).toBe("the profile theme");
   });
 });

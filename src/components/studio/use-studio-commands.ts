@@ -181,11 +181,14 @@ export function useStudioCommands({
         return edit.updateProfile(followAll);
       case "toggle-enforce":
         return setConfig((c) => toggleEnforce(c, profile));
+      case "goto-theme-setting":
+        // The editor mounts at its current scope first; then it opens the section and focuses the row.
+        ui.setMode("theme");
+        ui.setInspectorQuery("");
+        return void requestAnimationFrame(() => ui.jumpTheme(action.section, action.key));
       case "edit-theme":
-        // Deselect: the inspector shows the dashboard, on its Appearance tab.
-        ui.setMode("design");
-        sel.select(null);
-        return ui.openDocumentTab("appearance");
+        // Studio › Theme, at the profile theme.
+        return ui.openTheme({ kind: "profile" });
       case "deselect":
         return sel.select(null);
       case "sample-layout":

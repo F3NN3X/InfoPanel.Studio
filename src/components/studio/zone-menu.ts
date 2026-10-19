@@ -111,7 +111,7 @@ export function canvasMenu(): MenuSpec {
     { id: "add-widget", label: "Add widget…" },
     { id: "select-all", label: "Select all", hint: `${MOD}A` },
     { id: "zoom-fit", label: "Zoom to fit", hint: `${MOD}0` },
-    { id: "edit-theme", label: "Edit global theme" },
+    { id: "edit-theme", label: "Edit theme" },
     "separator",
     { id: "shortcuts", label: "Keyboard shortcuts", hint: "?" },
   ];

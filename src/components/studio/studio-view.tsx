@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSPropertie
 import { useConfigHistory } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
 import { SourcesPanel } from "./sources-panel";
+import { ThemeEditor } from "./theme-editor";
 import {
   BLANK_MODULE,
   CANVAS_ID,
@@ -160,7 +161,7 @@ function StudioViewBody({
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, showLibrary, showGauges, fullPage, drawer } = ui;
+  const { studioLayout, showSources, showLibrary, showGauges, showTheme, fullPage, drawer } = ui;
   /** The data point the inspector's Bound data row opened in Sources mode. */
   const [focusPointKey, setFocusPointKey] = useState<string>();
   useEffect(() => {
@@ -448,6 +449,7 @@ function StudioViewBody({
         onDuplicate={edit.duplicateCurrentPage}
         onDelete={edit.deletePage}
         onIcon={edit.setIconOfPage}
+        onTheme={(pageId) => ui.openTheme({ kind: "page", pageId })}
         renamingId={ui.renamingPage}
         onRenamingChange={ui.setRenamingPage}
         deletingId={ui.deletingPage}
@@ -555,6 +557,18 @@ function StudioViewBody({
     </Suspense>
   );
 
+  const themeEl = showTheme && (
+    <ThemeEditor
+      config={config}
+      profile={storedProfile}
+      currentPageId={profile.pageId ?? storedProfile.pages[0].id}
+      scope={ui.themeScope}
+      onScope={ui.setThemeScope}
+      setConfig={setConfig}
+      jumpTo={ui.inspectorJump}
+    />
+  );
+
   const bar = fullPage || canvasEditor ? null : (
     <>
     <ZoomToolbar
@@ -613,13 +627,13 @@ function StudioViewBody({
         layout={studioLayout}
         rail={
           <LeftRail
-            active={showSources ? "sources" : showLibrary ? "library" : showGauges ? "gauges" : drawer}
+            active={showSources ? "sources" : showLibrary ? "library" : showGauges ? "gauges" : showTheme ? "theme" : drawer}
             onSelect={ui.onRail}
             onShortcuts={() => ui.setShortcutsOpen(true)}
           />
         }
         drawer={!fullPage && !canvasEditor && drawer && drawerEl}
-        main={gaugesEl || (
+        main={gaugesEl || themeEl || (
           <>
             {libraryEl}
             {canvasEditor ? (

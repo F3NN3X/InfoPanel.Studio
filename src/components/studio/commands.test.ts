@@ -90,15 +90,24 @@ describe("buildCommands", () => {
     expect(ids(base).some((id) => id.startsWith("appearance:"))).toBe(false);
   });
 
-  it("offers the global style: the Appearance tab, follow all and the force toggle", () => {
+  it("offers the theme: the editor, the Appearance tab, follow all and the lock-all toggle", () => {
     const find = (state: CommandState, id: string) => buildCommands(state).find((c) => c.id === id);
+    expect(find(base, "theme")).toMatchObject({ label: "Theme editor…", action: { type: "edit-theme" } });
     expect(find(base, "appearance")?.action).toEqual({ type: "document-tab", tab: "appearance" });
     expect(find(base, "follow-all")).toMatchObject({
-      label: "Make all widgets follow global style",
+      label: "Make all widgets follow the theme",
       action: { type: "follow-all" },
     });
-    expect(find(base, "toggle-enforce")?.label).toBe("Force global style on every widget");
-    expect(find({ ...base, enforced: true }, "toggle-enforce")?.label).toBe("Stop forcing global style");
+    expect(find(base, "toggle-enforce")?.label).toBe("Lock every theme section");
+    expect(find({ ...base, enforced: true }, "toggle-enforce")?.label).toBe("Unlock every theme section");
+  });
+
+  it("offers Go to setting for the theme editor's rows, which the Dashboard no longer has", () => {
+    const list = buildCommands(base).filter((c) => c.group === "Theme");
+    const accent = list.find((c) => c.id === "theme-setting:colors:accent");
+    expect(accent).toMatchObject({ label: "Go to setting: Accent color", hint: "Theme › Colors", action: { type: "goto-theme-setting", section: "colors", key: "accent" } });
+    expect(list.find((c) => c.id === "theme-setting:border:glow")?.action).toEqual({ type: "goto-theme-setting", section: "border", key: "glow" });
+    expect(list.find((c) => c.id === "theme-setting:thresholds:warn.load")?.hint).toBe("Theme › Thresholds");
   });
 
   it("lists undo / redo only when there is something to undo / redo", () => {
@@ -147,9 +156,9 @@ describe("buildCommands", () => {
     expect(gap.action).toMatchObject({ type: "goto-setting", key: "gap" });
 
     const dash = buildCommands({ ...base, context: { kind: "dashboard", scope: "all" } });
-    const settings = dash.filter((c) => c.id.startsWith("setting:"));
-    expect(settings.length).toBeGreaterThan(0);
-    expect(settings.every((c) => c.group === "Dashboard")).toBe(true);
+    // Its style rows moved to the theme editor (Studio › Theme): the Dashboard has cards only.
+    expect(dash.filter((c) => c.id.startsWith("setting:"))).toEqual([]);
+    expect(dash.filter((c) => c.id.startsWith("section:")).every((c) => c.group === "Dashboard")).toBe(true);
     // A custom-UI-only card gets a section jump instead.
     expect(dash.find((c) => c.id === "section:profile")?.action).toEqual({ type: "goto-setting", section: "profile" });
   });

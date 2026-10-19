@@ -18,7 +18,7 @@ export const DOT_MEANING: Record<SettingState, string> = {
   profile: "From the profile style",
   here: "Set here",
   overriding: "Set here, overriding a global value",
-  ignored: "Set here but ignored (the widget follows the global style, or it is forced)",
+  ignored: "Set here but not used (its section follows the theme)",
 };
 
 /** The legend order (a zone's own values that don't apply show no dot: their section follows the theme). */

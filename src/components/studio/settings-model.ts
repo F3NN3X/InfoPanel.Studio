@@ -57,8 +57,8 @@ export function matchesQuery(texts: string[], query: string): boolean {
  * - `profile` — inherited from the profile's style
  * - `here` — set on this widget
  * - `overriding` — set on this widget over an inherited value
- * - `ignored` — set on this widget but not used: the widget follows the
- *   global style, or the style is forced
+ * - `ignored` — set on this widget but not used: its section follows the
+ *   theme (or the profile locks it)
  */
 export type SettingState = "default" | "dashboard" | "profile" | "here" | "overriding" | "ignored";
 

@@ -154,7 +154,7 @@ export function panelCardStyle(surface: PanelSurface, chrome: ModernChrome | und
 const FILL_KINDS: ReadonlySet<Widget["kind"]> = new Set(["bar", "gauge", "sparkline", "shape"]);
 
 /**
- * A panel under a forced global style: its widgets' own colors give way —
+ * A panel whose profile theme locks Colors: its widgets' own colors give way —
  * fills take the resolved accent (`accent`, hex; else the theme's), text
  * takes the resolved text colors (the re-scoped theme tokens).
  */

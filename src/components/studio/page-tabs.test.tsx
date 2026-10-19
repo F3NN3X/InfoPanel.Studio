@@ -100,6 +100,14 @@ describe("pageMenuEntries", () => {
     expect(byId(entries, "kiosk")).toMatchObject({ label: "Show on kiosk" });
   });
 
+  it("adds Theme… (the theme editor at the page's scope) after Icon", () => {
+    const theme = vi.fn();
+    const entries = pageMenuEntries([page("a", "A")], { ...actions, theme });
+    expect(entries.filter((e) => e !== "separator").map((e) => (e as { id: string }).id).slice(0, 3)).toEqual(["rename", "icon", "theme"]);
+    (byId(entries, "theme") as { onSelect: () => void }).onSelect();
+    expect(theme).toHaveBeenCalledOnce();
+  });
+
   it("disables Delete on the only page, and runs the actions", () => {
     expect(byId(pageMenuEntries([page("a", "A")], actions), "delete")).toMatchObject({ disabled: true });
     const entries = pageMenuEntries([page("a", "A"), page("b", "B")], actions);

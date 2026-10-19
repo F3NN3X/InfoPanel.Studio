@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { sectionIcon, sectionShort } from "./section-icons";
 
 describe("section icons and short labels", () => {
-  it("names the shared sections, also under Global style or split across tabs", () => {
+  it("names the shared sections, also split across tabs", () => {
     expect(sectionShort({ id: "colors", title: "Colors" })).toBe("Colors");
-    expect(sectionShort({ id: "gs-spacing", title: "Size & spacing" })).toBe("Spacing");
+    expect(sectionShort({ id: "spacing", title: "Size & spacing" })).toBe("Spacing");
     expect(sectionShort({ id: "fit@data", title: "Fit" })).toBe("Fit");
-    expect(sectionIcon({ id: "gs-colors" })).toBe(sectionIcon({ id: "colors" }));
+    expect(sectionIcon({ id: "colors@data" })).toBe(sectionIcon({ id: "colors" }));
   });
 
   it("uses the sheet's short labels for the sections of the four tabs", () => {

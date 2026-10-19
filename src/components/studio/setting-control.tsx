@@ -68,6 +68,7 @@ export function SettingRow({
   changed,
   hint,
   tempUnit,
+  roleLabel,
 }: {
   def: ModuleSetting;
   value: ModuleSettingValue;
@@ -93,6 +94,8 @@ export function SettingRow({
   hint?: string;
   /** Type "thresholds": the widget's resolved temperature unit (a temperature reads in °F for f). */
   tempUnit?: "c" | "f";
+  /** Type "color" following its palette role: the role's name stands for the value ("Series 1"). */
+  roleLabel?: string;
 }) {
   const label: RowLabelProps = { label: def.label, lead, trail, changed, hint };
   switch (def.type) {
@@ -175,7 +178,7 @@ export function SettingRow({
 
     case "color":
       return (
-        <ColorRow {...label} value={typeof value === "string" ? value : String(def.default ?? "")} onChange={onChange} />
+        <ColorRow {...label} value={typeof value === "string" ? value : String(def.default ?? "")} name={roleLabel} onChange={onChange} />
       );
 
     case "number": {

@@ -73,8 +73,27 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   scrim darkness is a per-widget look row. Their colour rows follow the theme palette (FPS ring and sparkline = Series 1
   and 2, playtime slices = Series 1-6, friend statuses = Series 1 / OK / Warning / Critical / Series 2, Bluetooth
   battery = Warning and Critical).
+- Widget settings v2 theme editor (Studio › Theme in the rail, a page's Theme… in its menu, "Edit theme" on the
+  canvas, the palette's "Theme editor…"): a scope list (All profiles, the profile theme, each page), live previews of
+  CPU Monitor, Weather and Audio Meter under the edited values with Theme / Custom / Locked chips per section, "Who
+  doesn't follow the theme" per section with Reset to theme (the widgets follow again and keep their own values), and
+  the inspector without a Show tab: Style adds Status & series colors (Series 1-6, OK, Warning, Critical) after
+  Colors, Data is Units & format (all four rows), Behaviour is Thresholds (every quantity) and Motion. The profile
+  theme locks per section ("Default for all widgets · N custom on <page>", Lock / Unlock, and Lock all); a page follows the
+  profile per section ("Follows the profile theme" + Customize, "Custom for <page>" + Use profile). The palette's
+  "Go to setting" reaches every theme row (Accent, Glow, thresholds…) and opens the editor there; a widget's Follow
+  bar link opens the theme it names (the page's or the profile's).
+- A colour row that follows its palette role names the role ("Series 1") instead of "Auto".
 
 ### Changed
+- The Dashboard inspector has no Global style tab: its rows are the theme editor's All profiles and profile theme
+  scopes. Appearance › Scope keeps "Apply to" for skins, presets, theme colours and surface and opens the theme
+  editor. "Force global style" is gone: locking is per profile now (a profile theme locks its own sections, Lock /
+  Unlock per section or Lock all), so the old All-profiles Force, which locked every profile at once, has no one-click
+  equivalent; lock each profile instead. "Make all widgets follow" is Reset to theme per section in the editor. The
+  palette's force toggle reads "Lock / Unlock every theme section" (this profile).
+- A section the profile theme locks is the profile's on every page too: a page's own values for it stay stored but
+  no longer apply (before, a custom page section still showed under the lock).
 - Config v8 renames Now playing's visualiser keys (`waveformVariant` → `vizStyle`, `vizRamp` → `vizColor1`,
   `waveformSensitivity` → `vizGain`, `visualizerBarCount` → `vizBars`, `visualizerAlign` → `vizAlign`,
   `visualizerOrientation` → `vizOrientation`, `visualizerMinLevel` → `vizMinLevel`, `waveformLineWidth` → `vizLine`,
