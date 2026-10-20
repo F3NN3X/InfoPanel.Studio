@@ -11,8 +11,10 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      # The signed build installs from scratch: npm ci verifies every package against the lockfile (the npm
+      # cache holds only those verified tarballs), and desktop:prepare downloads and SHA-256-checks Node.
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -20,6 +22,8 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
+          # Restores the Rust cache CI saved on main (merged code only; PR runs save to their own scope).
+          shared-key: tauri
 
       - name: Check the tag matches package.json and CHANGELOG.md
         shell: bash
