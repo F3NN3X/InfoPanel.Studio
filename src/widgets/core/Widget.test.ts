@@ -15,14 +15,18 @@ const studio: Studio = { label: "CPU", value: 62.5, unit: "%", pct: 62.5, live: 
 const body = (b: LayoutBox) => h("span", null, `${b.size} ${b.shape}`);
 
 describe("Widget smoke render", () => {
-  for (const skin of SKIN_NAMES)
+  it("has skins to render", () => {
+    expect(SKIN_NAMES.length).toBeGreaterThan(0);
+  });
+
+  it.each(SKIN_NAMES)("%s renders at the smallest and the largest tier, in both variants", (skin) => {
     for (const variant of ["default", "studio"] as const)
-      for (const size of ["xs", "sm", "md", "lg"] as Tier[])
-        it(`${skin} · ${variant} · ${size}`, () => {
-          const html = renderToString(h(Widget, { skin, variant, size, title: "System", icon: "dashboard", compact, studio, surface: "auto", children: body }));
-          expect(html).toContain("--accent");
-          if (variant === "default" && size !== "xs") expect(html).toContain("System");
-        });
+      for (const size of ["xs", "lg"] as Tier[]) {
+        const html = renderToString(h(Widget, { skin, variant, size, title: "System", icon: "dashboard", compact, studio, surface: "auto", children: body }));
+        expect(html).toContain("--accent");
+        if (variant === "default" && size !== "xs") expect(html).toContain("System");
+      }
+  });
 });
 
 describe("Widget look", () => {

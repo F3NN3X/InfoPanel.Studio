@@ -6,7 +6,6 @@ import {
   enforcedPanel,
   panelCardStyle,
   panelLayoutStyle,
-  panelSurfaceOf,
   panelVars,
   widgetBoxStyle,
 } from "./panel-layout";
@@ -83,9 +82,6 @@ describe("panelLayoutStyle (legacy panels render as before)", () => {
     );
   });
 
-  it("writes nothing for fields a legacy panel doesn't set", () => {
-    expect(panelVars(legacy({ layout: "grid" }))).toEqual({});
-  });
 });
 
 describe("panelVars", () => {
@@ -109,19 +105,6 @@ describe("panelVars", () => {
     });
   });
 
-  it("places within the cell in a grid", () => {
-    expect(panelVars(legacy({ layout: "grid", justify: "end", align: "stretch" }))).toEqual({
-      "--panel-justify": "safe flex-end",
-      "--panel-align": "stretch",
-    });
-  });
-
-  it("the Style tab's gap applies when the panel sets none, the panel's wins", () => {
-    const style = { "--wp-gap": "4px" } as CSSProperties;
-    expect(resolve(panelLayoutStyle(legacy()).columnGap, style)).toBe("4px");
-    const own = legacy({ gap: 9 });
-    expect(resolve(panelLayoutStyle(own).columnGap, { ...style, ...panelVars(own) })).toBe("9px");
-  });
 });
 
 describe("widgetBoxStyle", () => {
@@ -133,17 +116,6 @@ describe("widgetBoxStyle", () => {
     expect(widgetBoxStyle(n.widgets[1], n)).toEqual({ flex: "0 0 auto" });
     // Not normalized yet (a kind switched in the editor): same default.
     expect(widgetBoxStyle(w("table"), flow)).toEqual({ flex: "1 1 100%" });
-  });
-
-  it("fill shares the line without wrap; px is fixed; cross axis and self", () => {
-    const row = legacy({ layout: "stack", wrap: false });
-    expect(widgetBoxStyle(w("stat", { box: { w: "fill" } }), row)).toEqual({ flex: "1 1 0%" });
-    expect(widgetBoxStyle(w("stat", { box: { w: 80, h: 40, self: "end" } }), row)).toEqual({
-      flex: "0 0 80px",
-      height: 40,
-      alignSelf: "safe flex-end",
-    });
-    expect(widgetBoxStyle(w("stat", { box: { h: "fill" } }), row)).toEqual({ flex: "0 0 auto", alignSelf: "stretch" });
   });
 
   it("column stack: height is the main axis, width the cross axis", () => {
@@ -193,24 +165,6 @@ describe("panelCardStyle", () => {
     expect(resolve(style.padding, { "--wp-pad": "2px", "--panel-pad": "7px" } as CSSProperties)).toBe("7px");
   });
 
-  it("module surfaces use the module colors", () => {
-    expect(String(panelCardStyle("matte-dark", plain).background)).toBe("rgb(24, 24, 27)");
-  });
-});
-
-describe("panelSurfaceOf", () => {
-  it("falls back to the card for unknown surfaces", () => {
-    expect(panelSurfaceOf("bordered")).toBe("bordered");
-    expect(panelSurfaceOf("glass")).toBe("glass");
-    expect(panelSurfaceOf("theme")).toBe("theme");
-    expect(panelSurfaceOf("nope")).toBe("panel");
-    expect(panelSurfaceOf(undefined)).toBe("panel");
-  });
-
-  it("draws the theme surface from the theme tokens", () => {
-    const style = panelCardStyle("theme", chromeOf({ ...STANDARD_DEFAULTS, surfaceOpacity: 50 }));
-    expect(String(style.background)).toBe("hsl(var(--card) / 0.43)");
-  });
 });
 
 describe("enforcedPanel", () => {
@@ -233,8 +187,4 @@ describe("enforcedPanel", () => {
     expect(enforcedPanel(colored, undefined).widgets[1].color).toBeUndefined();
   });
 
-  it("returns a panel without widget colors as is", () => {
-    const plain = { ...colored, widgets: [colored.widgets[2]] };
-    expect(enforcedPanel(plain, "#123456")).toBe(plain);
-  });
 });

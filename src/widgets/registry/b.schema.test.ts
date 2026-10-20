@@ -60,30 +60,26 @@ describe("registry group B schema", () => {
     const props = MANIFEST[id];
     const own = (mod.settings ?? []).filter((d) => !STANDARD_KEYS.has(d.key));
 
-    it("lists exactly the spec's widget-specific props in the manifest", () => {
+    it("keeps the manifest, keys and enum defaults, and renders from its defaults", () => {
       expect(specProps(id).sort()).toEqual(Object.keys(props).sort());
-    });
-
-    it("reaches every spec prop through exactly one setting", () => {
-      for (const [prop, key] of Object.entries(props)) {
-        if (STANDARD_CARRIED.has(`${id}.${prop}`)) expect(STANDARD_KEYS.has(key)).toBe(true);
-        else expect(own.flatMap(settingKeys).filter((k) => k === key)).toHaveLength(1);
+      { // reaches every spec prop through exactly one setting
+        for (const [prop, key] of Object.entries(props)) {
+          if (STANDARD_CARRIED.has(`${id}.${prop}`)) expect(STANDARD_KEYS.has(key)).toBe(true);
+          else expect(own.flatMap(settingKeys).filter((k) => k === key)).toHaveLength(1);
+        }
       }
-    });
-
-    it("has unique keys and none of its own colliding with a standard key", () => {
-      const keys = (mod.settings ?? []).map((d) => d.key);
-      expect(new Set(keys).size).toBe(keys.length);
-      for (const [prop, key] of Object.entries(props)) if (!STANDARD_CARRIED.has(`${id}.${prop}`)) expect(STANDARD_KEYS.has(key)).toBe(false);
-    });
-
-    it("keeps every enum default inside its options", () => {
-      for (const d of own.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
-    });
-
-    it("renders from its defaults", () => {
-      const defaults = defaultsOf(mod.settings ?? []);
-      expect(() => renderToString(mod.render(fixtureSensors(), defaults) as never)).not.toThrow();
+      { // has unique keys and none of its own colliding with a standard key
+        const keys = (mod.settings ?? []).map((d) => d.key);
+        expect(new Set(keys).size).toBe(keys.length);
+        for (const [prop, key] of Object.entries(props)) if (!STANDARD_CARRIED.has(`${id}.${prop}`)) expect(STANDARD_KEYS.has(key)).toBe(false);
+      }
+      { // keeps every enum default inside its options
+        for (const d of own.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
+      }
+      { // renders from its defaults
+        const defaults = defaultsOf(mod.settings ?? []);
+        expect(() => renderToString(mod.render(fixtureSensors(), defaults) as never)).not.toThrow();
+      }
     });
   });
 

@@ -21,3 +21,12 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      # The Tauri build script wants the bundled resources (the studio and Node) in place before it compiles.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm run desktop:web
+      - run: npm run desktop:prepare
+      - name: cargo test
+        run: cargo test
+        working-directory: src-tauri

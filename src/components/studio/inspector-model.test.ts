@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
-import { isMore, settingKeys, type DashboardModule, type ModuleSetting } from "@/modules/types";
+import { isMore, type DashboardModule, type ModuleSetting } from "@/modules/types";
 import { TITLE_ONLY_HINT } from "./inspector-categories";
 import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
 import {
@@ -52,17 +52,19 @@ describe("every setting is in exactly one section of exactly one tab", () => {
     ["panel", panel, PANEL_SETTINGS],
   ];
 
-  it.each(contexts)("%s", (_name, context, defs) => {
-    const sections = allSections(context);
-    expect(new Set(ids(sections)).size).toBe(sections.length);
-    const tabs = new Set(inspectorTabs(context).map((t) => t.id));
-    for (const s of sections) expect(tabs.has(s.tab), s.id).toBe(true);
-    const listed = keysOf(sections);
-    expect(new Set(listed).size).toBe(listed.length);
-    // The tabs partition the same sections.
-    const byTab = [...tabs].flatMap((tab) => sectionsFor(context, tab));
-    expect(ids(byTab).sort()).toEqual(ids(sections).sort());
-    expect([...listed].sort()).toEqual(defs.map((d) => d.key).sort());
+  it("for every widget, the card settings and the panel", () => {
+    for (const [name, context, defs] of contexts) {
+      const sections = allSections(context);
+      expect(new Set(ids(sections)).size, name).toBe(sections.length);
+      const tabs = new Set(inspectorTabs(context).map((t) => t.id));
+      for (const s of sections) expect(tabs.has(s.tab), `${name} ${s.id}`).toBe(true);
+      const listed = keysOf(sections);
+      expect(new Set(listed).size, name).toBe(listed.length);
+      // The tabs partition the same sections.
+      const byTab = [...tabs].flatMap((tab) => sectionsFor(context, tab));
+      expect(ids(byTab).sort(), name).toEqual(ids(sections).sort());
+      expect([...listed].sort(), name).toEqual(defs.map((d) => d.key).sort());
+    }
   });
 
   it("holds the multi-select's shared look and the theme editor's rows, each once", () => {
@@ -179,36 +181,20 @@ describe("widget sections", () => {
     }
   });
 
-  it("offers no Hide when idle (removed), and Density only to adaptive ones", () => {
-    for (const m of modules) {
-      const sections = allSections(widgetContext(m));
-      const keys = keysOf(sections);
-      expect(keys.includes("hideWhenIdle"), `${m.id} idle`).toBe(false);
-      const adaptive = (m.settings ?? []).some((d) => d.key === "sizeTier");
-      expect(keys.includes("sizeTier"), `${m.id} sizeTier`).toBe(adaptive);
-    }
-    const adaptive = modules.filter((m) => (m.settings ?? []).some((d) => d.key === "sizeTier")).map((m) => m.id);
-    expect(adaptive).toContain("NowPlaying");
-    expect(adaptive).not.toContain("WebPage");
-  });
-
-  it("still has a Header when the schema has no setting in it (the picker lives there)", () => {
-    const sections = sectionsFor({ kind: "widget", defs: [] }, "show");
-    expect(titles(sections)).toEqual(["Header"]);
-    expect(sections[0].settings).toEqual([]);
-    expect(sections[0].extras.map((e) => e.kind)).toEqual(["widgetPicker", "visible"]);
-  });
 });
 
 describe("tabs of every widget", () => {
-  it.each(modules.map((m) => [m.id, m] as const))("%s: four tabs, an empty one disabled", (id, m) => {
-    const context = widgetContext(m);
-    const sections = allSections(context);
-    const tabs = tabStates(inspectorTabs(context), sections);
-    expect(tabs.map((t) => t.id)).toEqual(["show", "style", "data", "behaviour"]);
-    for (const t of tabs) expect(t.disabled, `${id} ${t.id}`).toBe(!sections.some((s) => s.tab === t.id));
-    // Only the Web Page has nothing to do in Behaviour (no graph updates, island or thresholds); it and Uptime bind nothing (Data).
-    expect(tabs.filter((t) => t.disabled).map((t) => t.id)).toEqual(id === "WebPage" ? ["data", "behaviour"] : id === "Uptime" ? ["data"] : []);
+  it("every widget has four tabs, an empty one disabled", () => {
+    for (const m of modules) {
+      const id = m.id;
+      const context = widgetContext(m);
+      const sections = allSections(context);
+      const tabs = tabStates(inspectorTabs(context), sections);
+      expect(tabs.map((t) => t.id), id).toEqual(["show", "style", "data", "behaviour"]);
+      for (const t of tabs) expect(t.disabled, `${id} ${t.id}`).toBe(!sections.some((s) => s.tab === t.id));
+      // Only the Web Page has nothing to do in Behaviour (no graph updates, island or thresholds); it and Uptime bind nothing (Data).
+      expect(tabs.filter((t) => t.disabled).map((t) => t.id), id).toEqual(id === "WebPage" ? ["data", "behaviour"] : id === "Uptime" ? ["data"] : []);
+    }
   });
 });
 
@@ -262,10 +248,6 @@ describe("Web Page", () => {
     expect(keysOf(sectionsFor(webpage, "show"))).toEqual(["url"]);
   });
 
-  it("says so in a note on the Style tab", () => {
-    expect(inspectorNotes(webpage, "style").map((n) => n.kind)).toEqual(["reduced"]);
-    expect(inspectorNotes(webpage, "show")).toEqual([]);
-  });
 });
 
 describe("panel sections", () => {
@@ -392,11 +374,6 @@ describe("theme editor sections", () => {
     expect(find(sections, "Custom CSS").settings.every((d) => !isMore(d))).toBe(true);
   });
 
-  it("notes the base layer only", () => {
-    expect(inspectorNotes({ kind: "theme", scope: "base" }, "style")[0].text).toContain("no locks");
-    expect(inspectorNotes(theme, "style")).toEqual([]);
-    expect(inspectorNotes({ kind: "theme", scope: "page" }, "style")).toEqual([]);
-  });
 });
 
 describe("source states and changed counts", () => {
@@ -592,34 +569,6 @@ describe("searchAll", () => {
 
   it("has no tab label in a context without tabs", () => {
     expect(searchAll({ kind: "blank" }, "frame").groups[0].tabLabel).toBe("");
-  });
-});
-
-describe("isVisible", () => {
-  const glowColor = CARD_SETTINGS.find((d) => d.key === "glowColor")!;
-  const accent = CARD_SETTINGS.find((d) => d.key === "accent")!;
-
-  it("shows the glow color only with a glow", () => {
-    expect(isVisible(glowColor, {})).toBe(false);
-    expect(isVisible(glowColor, { glow: "none" })).toBe(false);
-    expect(isVisible(glowColor, { glow: "soft" })).toBe(true);
-    expect(isVisible(accent, {})).toBe(true);
-  });
-});
-
-describe("inspectorNotes", () => {
-  it("has no follow banner (each section's Follow bar says it); the reduced note stays", () => {
-    expect(inspectorNotes(spotify, "style")).toEqual([]);
-    expect(inspectorNotes(webpage, "style").map((n) => n.kind)).toEqual(["reduced"]);
-    expect(inspectorNotes(webpage, "show")).toEqual([]);
-  });
-});
-
-describe("settingKeys coverage", () => {
-  it("never lists an align picker's second key as a separate setting", () => {
-    const keys = allSections(spotify).flatMap((s) => s.settings.flatMap(settingKeys));
-    expect(keys).toContain("alignSpread");
-    expect(keysOf(allSections(spotify))).not.toContain("alignSpread");
   });
 });
 

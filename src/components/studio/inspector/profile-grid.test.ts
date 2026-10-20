@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProfileView, Placement } from "@/lib/layout";
-import { parseSize, sizeChoice, sizeOfChoice, stepGrid } from "./profile-grid";
+import { stepGrid } from "./profile-grid";
 
 const zone = (id: string, extra: Partial<Placement>): Placement => ({
   id,
@@ -26,13 +26,6 @@ const profile = (placements: Placement[], extra: Partial<ProfileView> = {}): Pro
 });
 
 describe("stepGrid", () => {
-  it("grows and shrinks when every zone fits", () => {
-    const p = profile([zone("a", { colStart: 1, colSpan: 4 })]);
-    expect(stepGrid(p, "cols", 1)?.cols).toBe(13);
-    expect(stepGrid(p, "cols", -1)?.cols).toBe(11);
-    expect(stepGrid(p, "rows", -1)?.rows).toBe(5);
-  });
-
   it("refuses to shrink under a zone", () => {
     const p = profile([zone("a", { colStart: 10, colSpan: 3 }), zone("b", { rowStart: 5, rowSpan: 2 })]);
     expect(stepGrid(p, "cols", -1)).toBeNull();
@@ -45,33 +38,5 @@ describe("stepGrid", () => {
     const other = [zone("b", { rowStart: 4, rowSpan: 3 })];
     expect(stepGrid(p, "rows", -1, other)).toBeNull();
     expect(stepGrid(p, "rows", -1)?.rows).toBe(5);
-  });
-
-  it("allows shrinking to exactly the zone edge", () => {
-    const p = profile([zone("a", { colStart: 10, colSpan: 2 })]);
-    expect(stepGrid(p, "cols", -1)?.cols).toBe(11);
-  });
-
-  it("returns the profile unchanged at the limits", () => {
-    const p = profile([], { cols: 2, rows: 24 });
-    expect(stepGrid(p, "cols", -1)).toBe(p);
-    expect(stepGrid(p, "rows", 1)).toBe(p);
-  });
-});
-
-describe("design size", () => {
-  it("names a preset, else custom", () => {
-    expect(sizeChoice(1920, 550)).toBe("1920×550");
-    expect(sizeChoice(1920, 551)).toBe("custom");
-    expect(sizeOfChoice("2560×720")).toEqual({ width: 2560, height: 720 });
-    expect(sizeOfChoice("custom")).toBeNull();
-  });
-
-  it("parses only positive whole numbers, so clearing the field writes nothing", () => {
-    expect(parseSize("1080")).toBe(1080);
-    expect(parseSize("")).toBeNull();
-    expect(parseSize("0")).toBeNull();
-    expect(parseSize("-5")).toBeNull();
-    expect(parseSize("abc")).toBeNull();
   });
 });

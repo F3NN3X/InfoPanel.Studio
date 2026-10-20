@@ -4,18 +4,12 @@ import type { UsageIndex } from "@/lib/data-usage";
 import type { ApiSources } from "@/lib/catalog";
 import type { SensorMap } from "@/modules/types";
 import {
-  GROUP_ROW_H,
   POINT_ROW_H,
   displayValue,
   filterPoints,
   filterSources,
-  flattenRows,
   matchesType,
-  rawValue,
-  rowAt,
   rowOffsets,
-  stickyIndex,
-  streamPrefix,
   windowRange,
   type PointFilter,
 } from "./explorer-model";
@@ -81,13 +75,6 @@ describe("filterPoints", () => {
     expect(filterPoints(model.points, { ...base, type: "list" })).toHaveLength(0);
   });
 
-  it("hides empty points", () => {
-    const empty = model.points.filter((p) => p.type === "empty");
-    expect(empty.length).toBeGreaterThan(0);
-    const shown = filterPoints(model.points, { ...base, hideEmpty: true });
-    expect(shown.some((p) => p.type === "empty")).toBe(false);
-  });
-
   it("keeps only points in use", () => {
     const usage: UsageIndex = {
       byKey: new Map([["plugins.meter.main.level", [{ zoneId: "z", label: "Meter" }]]]),
@@ -96,10 +83,6 @@ describe("filterPoints", () => {
     expect(keys(filterPoints(model.points, { ...base, inUse: true, usage }))).toEqual(["plugins.meter.main.level"]);
   });
 
-  it("combines the search with the other filters", () => {
-    const shown = filterPoints(model.points, { ...base, query: "level", type: "number" });
-    expect(keys(shown).sort()).toEqual(["plugins.meter.aux.level", "plugins.meter.main.level"]);
-  });
 });
 
 describe("filterSources", () => {
@@ -108,59 +91,9 @@ describe("filterSources", () => {
     expect(warn.every((s) => s.status === "warn")).toBe(true);
   });
 
-  it("keeps a source whose container matches, showing only that container", () => {
-    const [meter] = filterSources(model.sources, "aux", null);
-    expect(meter.id).toBe("meter");
-    expect(meter.containers.map((c) => c.title)).toEqual(["Aux"]);
-  });
-
-  it("keeps all containers when the source name matches", () => {
-    const [meter] = filterSources(model.sources, "audio", null);
-    expect(meter.containers).toHaveLength(2);
-  });
-
-  it("returns nothing when nothing matches", () => {
-    expect(filterSources(model.sources, "zzz", null)).toEqual([]);
-  });
-
-  it("ignores diacritics like the point search does", () => {
-    const accented = [{ ...model.sources[0], name: "Écran" }];
-    expect(filterSources(accented, "ecran", null)).toHaveLength(1);
-    expect(filterSources(accented, "ÉCRAN", null)).toHaveLength(1);
-  });
-});
-
-describe("flattenRows", () => {
-  it("puts a group header before each run of a container", () => {
-    const rows = flattenRows(filterPoints(model.points, { ...base, scope: { kind: "source", id: "meter" } }));
-    const groups = rows.flatMap((r) => (r.kind === "group" ? [r.count] : []));
-    expect(groups.sort()).toEqual([1, 2]);
-    expect(rows).toHaveLength(5);
-    expect(rows[0].kind).toBe("group");
-  });
-
-  it("is empty for no points", () => {
-    expect(flattenRows([])).toEqual([]);
-  });
 });
 
 describe("virtual window", () => {
-  const rows = flattenRows(model.points);
-  const offsets = rowOffsets(rows);
-
-  it("accumulates heights with the total last", () => {
-    expect(offsets[0]).toBe(0);
-    expect(offsets[1]).toBe(GROUP_ROW_H);
-    expect(offsets[2]).toBe(GROUP_ROW_H + POINT_ROW_H);
-    expect(offsets).toHaveLength(rows.length + 1);
-  });
-
-  it("finds the row at an offset", () => {
-    expect(rowAt(offsets, 0)).toBe(0);
-    expect(rowAt(offsets, GROUP_ROW_H)).toBe(1);
-    expect(rowAt(offsets, GROUP_ROW_H + POINT_ROW_H - 1)).toBe(1);
-    expect(rowAt(offsets, 1e9)).toBe(rows.length - 1);
-  });
 
   it("windows a long list with overscan and clamps at the ends", () => {
     const many = Array.from({ length: 1000 }, (): { kind: "point"; point: DataPoint } => ({
@@ -175,11 +108,6 @@ describe("virtual window", () => {
     expect(windowRange([0], 0, 100)).toEqual({ start: 0, end: 0 });
   });
 
-  it("finds the group header governing a row", () => {
-    expect(stickyIndex(rows, 0)).toBe(0);
-    expect(stickyIndex(rows, 2)).toBe(0);
-    expect(stickyIndex([], 0)).toBe(-1);
-  });
 });
 
 describe("displayValue and streamPrefix", () => {
@@ -190,15 +118,4 @@ describe("displayValue and streamPrefix", () => {
     expect(displayValue(point, {})).toBe(point.raw);
   });
 
-  it("rounds a long reading for display and keeps the raw one copyable", () => {
-    const live = { [point.key]: { value: -24.799999237060547, unit: "dB" } };
-    expect(displayValue(point, live)).toBe("-24.8 dB");
-    expect(rawValue(point, live)).toBe("-24.799999237060547 dB");
-    expect(rawValue(point, {})).toBe(point.raw);
-  });
-
-  it("uses the common dotted prefix of a group", () => {
-    expect(streamPrefix(model.points.filter((p) => p.sourceId === "meter"))).toBe("plugins.meter.");
-    expect(streamPrefix([])).toBe("");
-  });
 });

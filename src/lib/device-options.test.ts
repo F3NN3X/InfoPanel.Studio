@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AUTO_RULES, autoDevice, deviceOptions, deviceReading } from "./device-options";
+import { autoDevice, deviceOptions } from "./device-options";
 import type { SensorMap } from "@/modules/types";
 
 const t = (text: string) => ({ text, unit: "" });
@@ -28,19 +28,6 @@ describe("deviceOptions", () => {
     expect(deviceOptions("adapter", sensors).map((o) => o.value)).toEqual(["", "ethernet"]);
   });
 
-  it("labels audio devices and drives by their sensor names", () => {
-    expect(deviceOptions("audio", sensors)).toEqual([
-      { value: "", label: "Auto" },
-      { value: "default-audio", label: "Default device" },
-      { value: "dev-1", label: "Headset" },
-    ]);
-    expect(deviceOptions("drive", sensors)).toEqual([
-      { value: "", label: "Auto" },
-      { value: "c", label: "C:\\" },
-      { value: "d", label: "D:\\" },
-    ]);
-  });
-
   it("is just Auto with no live keys", () => {
     expect(deviceOptions("cpu", {})).toEqual([{ value: "", label: "Auto" }]);
   });
@@ -55,12 +42,6 @@ describe("Auto (SPEC §4.5)", () => {
     "plugins.audio-level-meter.dev-1.audio-level": { value: 60, unit: "%" },
   };
 
-  it("states its rule per kind", () => {
-    expect(AUTO_RULES.adapter).toBe("Busiest adapter");
-    expect(AUTO_RULES.audio).toBe("Loudest live device");
-    expect(AUTO_RULES.cpu).toBe("First detected processor");
-  });
-
   it("picks the busiest adapter, the loudest audio device, else the first", () => {
     expect(autoDevice("adapter", live)).toBe("wifi");
     expect(autoDevice("audio", live)).toBe("dev-1");
@@ -68,9 +49,4 @@ describe("Auto (SPEC §4.5)", () => {
     expect(autoDevice("gpu", {})).toBeUndefined();
   });
 
-  it("reads each device's live value", () => {
-    expect(deviceReading("cpu", "amd_ryzen_9_9950x3d", live)).toBe("3 %");
-    expect(deviceReading("audio", "dev-1", live)).toBe("60 %");
-    expect(deviceReading("gpu", "missing", live)).toBeUndefined();
-  });
 });

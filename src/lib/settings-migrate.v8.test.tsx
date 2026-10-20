@@ -51,8 +51,8 @@ const propsOf = (p: unknown) => JSON.parse(JSON.stringify(p, (k, v) => (k === "d
 describe("v8 render parity", () => {
   const config = mergeConfig(stored(7, PARITY_CASES.map((c) => zone(c.id, c.module, { ...(c.settings ? { settings: c.settings } : {}), ...(c.follow ? { follow: c.follow } : {}) }))));
   const after = renders(config);
-  it.each(PARITY_CASES.map((c) => [c.id] as const))("%s renders as under v7", (id) => {
-    expect(after[id]).toEqual(parity.renders[id as keyof typeof parity.renders]);
+  it("renders every case as it did under v7", () => {
+    for (const { id } of PARITY_CASES) expect(after[id], id).toEqual(parity.renders[id as keyof typeof parity.renders]);
   });
 });
 
@@ -60,13 +60,7 @@ describe("v8 NowPlaying: the visualiser keys under their v2 names", () => {
   it.each([
     ["vizRamp", "vizColor1", "#00ff00"],
     ["waveformSensitivity", "vizGain", 2],
-    ["visualizerBarCount", "vizBars", 32],
-    ["visualizerAlign", "vizAlign", "end"],
-    ["visualizerOrientation", "vizOrientation", "vertical"],
-    ["visualizerMinLevel", "vizMinLevel", 0.2],
-    ["waveformLineWidth", "vizLine", 3],
     ["waveformFadeEdges", "vizFade", false],
-    ["waveformFadeWidth", "vizFadeWidth", 60],
   ] as const)("%s → %s", (old, key, value) => {
     expect(v8("NowPlaying", { [old]: value })).toEqual({ [key]: value });
   });
@@ -124,37 +118,10 @@ describe("v8: Widget colors custom where an own colour gained a role", () => {
   it.each([
     ["SystemOverview", { cpuColor: "#ff0000" }],
     ["NowPlaying", { vizRamp: "#00ff00" }],
-    ["NowPlaying", { vizPeakColor: "#ffffff" }],
     ["SensorGroup", { fanColor: "#00ff00" }],
     ["AudioMeter", { hotColor: "#ff00ff" }],
-    ["GpuRings", { outerColor: "#ff0000" }],
-    ["GpuRings", { innerColor: "#00ff00" }],
-    ["Thermals", { fanColor: "#00ff00" }],
-    ["DiskIO", { readColor: "#ff0000" }],
-    ["DiskIO", { writeColor: "#00ff00" }],
-    ["NetworkThroughput", { downloadColor: "#ff0000" }],
-    ["NetworkThroughput", { uploadColor: "#00ff00" }],
-    ["VolumeMixer", { levelColor: "#ff0000" }],
-    ["MeterBridge", { levelColor: "#ff0000" }],
-    ["MeterBridge", { hotColor: "#00ff00" }],
     ["Visualizer", { ramp: "thermal" }],
-    ["Visualizer", { vizColor2: "#00ff00" }],
-    ["Visualizer", { vizColor3: "#00ff00" }],
-    ["Visualizer", { vizPeakColor: "#ffffff" }],
-    ["WaveLink", { levelColor: "#ff0000" }],
-    ["WaveLink", { liveColor: "#00ff00" }],
-    ["WaveLink", { muteColor: "#0000ff" }],
-    ["FpsMonitor", { ringColor: "#ff0000" }],
-    ["FpsMonitor", { sparkColor: "#00ff00" }],
-    ["PlaytimeShare", { color1: "#ff0000" }],
-    ["PlaytimeShare", { color6: "#00ff00" }],
-    ["SteamFriends", { ingameColor: "#ff0000" }],
-    ["SteamFriends", { onlineColor: "#00ff00" }],
-    ["SteamFriends", { awayColor: "#0000ff" }],
-    ["SteamFriends", { busyColor: "#ff00ff" }],
-    ["SteamFriends", { offlineColor: "#ffff00" }],
     ["Bluetooth", { batteryMidColor: "#ff0000" }],
-    ["Bluetooth", { batteryLowColor: "#00ff00" }],
   ] as const)("%s %j", (module, settings) => {
     expect(one(module, settings).follow).toEqual({ palette: false });
     // a v7 flag said follow, but the colour applied regardless

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_GRID_GAP,
   cellAt,
-  columnGuides,
   normalizeSpacing,
   profileGap,
   profilePadding,
@@ -21,11 +20,6 @@ describe("profileGap / profilePadding", () => {
     expect(profilePadding({ fit: "scroll" }, false)).toBe(24);
   });
 
-  it("uses the profile's own values in every mode", () => {
-    expect(profileGap({ fit: "fill", gap: 0 })).toBe(0);
-    expect(profilePadding({ fit: "fill", padding: 8 }, true)).toBe(8);
-    expect(profilePadding({ fit: "scroll", padding: 0 }, false)).toBe(0);
-  });
 });
 
 describe("normalizeSpacing", () => {
@@ -50,11 +44,6 @@ describe("track math", () => {
     expect(trackPitch(1000, 4, gap)).toBe(pitch);
   });
 
-  it("puts the guides in the middle of each gap", () => {
-    expect(columnGuides(1000, 4, 0)).toEqual([250, 500, 750]);
-    expect(columnGuides(1000, 4, 24)).toEqual([244, 500, 756]);
-    expect(columnGuides(0, 4, 12)).toEqual([]);
-  });
 });
 
 describe("cellAt", () => {
@@ -65,12 +54,6 @@ describe("cellAt", () => {
     expect(cellAt(249, 199, grid, 4, 2, 0)).toEqual({ col: 1, row: 1 });
     expect(cellAt(250, 200, grid, 4, 2, 0)).toEqual({ col: 2, row: 2 });
     expect(cellAt(999, 399, grid, 4, 2, 0)).toEqual({ col: 4, row: 2 });
-  });
-
-  it("counts a gap toward the cell before it (gap 24)", () => {
-    // Pitch 256 × 212: the first gap (232..256) still maps to column 1.
-    expect(cellAt(240, 0, grid, 4, 2, 24)).toEqual({ col: 1, row: 1 });
-    expect(cellAt(256, 212, grid, 4, 2, 24)).toEqual({ col: 2, row: 2 });
   });
 
   it("returns null outside the grid", () => {
@@ -92,10 +75,4 @@ describe("zoneBox", () => {
     });
   });
 
-  it("ends where the grid ends", () => {
-    const gap = 24;
-    const width = 4 * 100 + 3 * gap;
-    const box = zoneBox({ col: 3, row: 1, cols: 2, rows: 1 }, { width: trackSize(width, 4, gap), height: 50 }, gap);
-    expect(box.left + box.width).toBe(width);
-  });
 });

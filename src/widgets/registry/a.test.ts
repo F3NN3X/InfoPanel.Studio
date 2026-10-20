@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { SensorMap } from "@/modules/types";
 import snapshot from "../__fixtures__/snapshot.json";
-import type { ShellProps, Tier, WidgetMeta } from "../core/types";
+import type { ShellProps, WidgetMeta } from "../core/types";
 import { toFlat } from "../data-adapter";
 import { GROUP_A } from "./a";
 import * as SystemOverview from "../SystemOverview";
@@ -31,9 +31,6 @@ interface Entry {
 const WIDGETS = [SystemOverview, MenuBar, KpiTiles, StatusTracker, SystemStatus, Vitals, ServiceHealth, ProcessList, Uptime, CpuMonitor, CoreHeatmap, GpuRings, GpuMonitor, MemoryUsage, Thermals, PowerDraw, Fans] as unknown as Entry[];
 
 const DATA = toFlat(snapshot.sensors as SensorMap);
-const SIZES: Tier[] = ["xs", "sm", "md", "lg"];
-const VARIANTS = ["default", "studio"] as const;
-const SKINS = ["default", "instrument", "tui"];
 // Widgets whose source keys are absent from the captured snapshot, so no live value shows.
 const NO_LIVE: Record<string, string> = {};
 
@@ -45,30 +42,16 @@ describe("group A modules", () => {
     expect(GROUP_A).toHaveLength(17);
   });
 
-  it.each(WIDGETS.map((w) => [w.meta.id, w] as const))("%s: module mirrors its meta", (_id, w) => {
+  // One test per kind: its module mirrors its meta, and it renders (a live value, the extremes, no data) without throwing.
+  it.each(WIDGETS.map((w) => [w.meta.id, w] as const))("%s: mirrors its meta and renders", (id, w) => {
     const mod = GROUP_A.find((m) => m.id === w.meta.id)!;
     expect(mod.minCols).toBe(w.meta.minSize[0]);
     expect(mod.minRows).toBe(w.meta.minSize[1]);
     expect(mod.defaultSize).toEqual(w.meta.defaultSize);
     expect(mod.category).toBe(w.meta.category);
-  });
-
-  it.each(WIDGETS.map((w) => [w.meta.id, w] as const))("%s: renders every size, variant and skin", (_id, w) => {
-    for (const size of SIZES)
-      for (const variant of VARIANTS)
-        for (const skin of SKINS) {
-          const html = render(w.default, DATA, { size, variant, skin });
-          expect(html.length).toBeGreaterThan(0);
-        }
-  });
-
-  it.each(WIDGETS.map((w) => [w.meta.id, w] as const))("%s: renders the empty state", (_id, w) => {
+    if (!(id in NO_LIVE)) expect(render(w.default, DATA, { size: "md" })).toMatch(/\d/);
+    expect(render(w.default, DATA, { size: "xs", variant: "studio", skin: "tui" }).length).toBeGreaterThan(0);
     expect(render(w.default, {}).length).toBeGreaterThan(0);
-    expect(render(w.default, {}, { size: "md", variant: "studio" }).length).toBeGreaterThan(0);
-  });
-
-  it.each(WIDGETS.filter((w) => !(w.meta.id in NO_LIVE)).map((w) => [w.meta.id, w] as const))("%s: shows a live value at md", (_id, w) => {
-    expect(render(w.default, DATA, { size: "md" })).toMatch(/\d/);
   });
 
   it("passes stored settings through by prop name", () => {

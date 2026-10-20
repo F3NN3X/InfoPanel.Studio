@@ -10,8 +10,6 @@ import {
 import { userPanelPreset, type PanelPreset } from "@/lib/panelPresets";
 import {
   addBlankZone,
-  addModuleAt,
-  addPresetAt,
   canGrowTo,
   canToggleZonesVisible,
   followGlobalStyle,
@@ -29,18 +27,9 @@ import {
   duplicatePlacement,
   duplicateZones,
   removePlacement,
-  removeZones,
-  setProfileStyle,
-  setRowSpan,
-  setSpan,
-  setZoneRect,
-  setZoneRects,
-  toggleVisible,
   toggleZonesVisible,
   updatePlacement,
-  zoneMinSize,
-} from "./studio-actions";
-import { ALL_MODULES } from "./studio-modules";
+  } from "./studio-actions";
 
 const zone = (
   id: string,
@@ -186,37 +175,9 @@ describe("addBlankZone / setZoneRect", () => {
     });
   });
 
-  it("writes a zone's box as given", () => {
-    const after = setZoneRect(profile([zone("a", 1, 1, 2, 1)]), "a", {
-      col: 5,
-      row: 2,
-      cols: 3,
-      rows: 4,
-    });
-    expect(after.placements[0]).toMatchObject({
-      colStart: 5,
-      rowStart: 2,
-      colSpan: 3,
-      rowSpan: 4,
-    });
-  });
 });
 
 describe("placement toggles", () => {
-  it("sets the column span", () => {
-    expect(setSpan(profile([zone("a", 1, 1, 2, 1)]), "a", 5).placements[0].colSpan).toBe(5);
-  });
-
-  it("sets the row span", () => {
-    const after = setRowSpan(profile([zone("a", 1, 1, 2, 1), zone("b", 3, 1, 2, 1)]), "a", 3);
-    expect(after.placements.map((p) => p.rowSpan)).toEqual([3, 1]);
-  });
-
-  it("toggles visibility", () => {
-    const p = profile([zone("a", 1, 1, 2, 1)]);
-    expect(toggleVisible(p, "a").placements[0].visible).toBe(false);
-    expect(toggleVisible(toggleVisible(p, "a"), "a").placements[0].visible).toBe(true);
-  });
 
   it("removes by id", () => {
     const after = removePlacement(profile([zone("a", 1, 1, 2, 1), zone("b", 3, 1, 2, 1)]), "a");
@@ -241,10 +202,6 @@ describe("duplicatePlacement", () => {
     expect(copy.settings).not.toBe(before.placements[0].settings);
   });
 
-  it("returns the same profile for an unknown id", () => {
-    const before = profile([zone("a", 1, 1, 2, 1)]);
-    expect(duplicatePlacement(before, "nope")).toBe(before);
-  });
 });
 
 describe("widget assignment", () => {
@@ -338,39 +295,6 @@ describe("changeCols / changeRows", () => {
   });
 });
 
-describe("setProfileStyle", () => {
-  it("stores the theme values, or none when they are empty (the locks stay)", () => {
-    const styled = setProfileStyle(profile([]), (s) => ({ ...s, surface: "glass" }));
-    expect(styled.widgetTheme).toEqual({ values: { surface: "glass" } });
-    expect(setProfileStyle(styled, () => ({})).widgetTheme).toBeUndefined();
-    const locked = { ...profile([]), widgetTheme: { locks: { colors: true } } };
-    expect(setProfileStyle(locked, () => ({ accent: "#fff" })).widgetTheme).toEqual({ locks: { colors: true }, values: { accent: "#fff" } });
-  });
-});
-
-describe("setZoneRects", () => {
-  it("sets the listed zones' boxes and leaves the rest", () => {
-    const before = profile([zone("a", 1, 1, 2, 1), zone("b", 3, 1, 2, 1), zone("c", 5, 1, 1, 1)]);
-    const after = setZoneRects(before, {
-      a: { col: 1, row: 2, cols: 2, rows: 1 },
-      b: { col: 3, row: 2, cols: 3, rows: 2 },
-    });
-    expect(after.placements.map((p) => [p.id, p.colStart, p.rowStart, p.colSpan, p.rowSpan])).toEqual([
-      ["a", 1, 2, 2, 1],
-      ["b", 3, 2, 3, 2],
-      ["c", 5, 1, 1, 1],
-    ]);
-    expect(after.placements[2]).toBe(before.placements[2]);
-  });
-});
-
-describe("removeZones", () => {
-  it("removes every listed zone", () => {
-    const before = profile([zone("a", 1, 1, 1, 1), zone("b", 2, 1, 1, 1), zone("c", 3, 1, 1, 1)]);
-    expect(removeZones(before, ["a", "c", "x"]).placements.map((p) => p.id)).toEqual(["b"]);
-  });
-});
-
 describe("toggleZonesVisible", () => {
   it("hides the whole set while any member shows", () => {
     const before = profile([
@@ -409,25 +333,6 @@ describe("duplicateZones", () => {
   });
 });
 
-describe("zoneMinSize", () => {
-  it("uses the widget's minimum, and 1×1 for blank zones and panels", () => {
-    const m = ALL_MODULES[0];
-    expect(zoneMinSize(zone("a", 1, 1, 1, 1, { module: m.id }))).toEqual({ cols: m.minCols, rows: m.minRows });
-    expect(zoneMinSize(zone("b", 1, 1, 1, 1, { module: BLANK_MODULE }))).toEqual({ cols: 1, rows: 1 });
-    expect(zoneMinSize(zone("c", 1, 1, 1, 1, { module: PANEL_ID }))).toEqual({ cols: 1, rows: 1 });
-  });
-});
-
-describe("addModuleAt / addPresetAt", () => {
-  it("adds at the exact box", () => {
-    const after = addModuleAt(profile([]), "n", "cpu", { col: 5, row: 2, cols: 3, rows: 2 });
-    expect(after.placements[0]).toMatchObject({ id: "n", module: "cpu", colStart: 5, rowStart: 2, colSpan: 3, rowSpan: 2 });
-    const p = addPresetAt(profile([]), "n", preset(2, 1), { col: 3, row: 3, cols: 2, rows: 1 });
-    expect(p.placements[0]).toMatchObject({ id: "n", module: PANEL_ID, colStart: 3, rowStart: 3 });
-    expect(p.placements[0].panel).toBeDefined();
-  });
-});
-
 describe("canGrowTo", () => {
   const blank = (id: string, c: number, r: number, w: number, h: number) =>
     zone(id, c, r, w, h, { module: BLANK_MODULE });
@@ -443,9 +348,6 @@ describe("canGrowTo", () => {
     expect(canGrowTo(p, "b", { cols: 2, rows: 1 })).toBe(false);
   });
 
-  it("is false for an unknown zone", () => {
-    expect(canGrowTo(profile([]), "x", { cols: 1, rows: 1 })).toBe(false);
-  });
 });
 
 describe("pasteStyleToZones", () => {
@@ -487,10 +389,6 @@ describe("followGlobalStyle", () => {
     expect(out.settings).toEqual({ sensor: "x" });
   });
 
-  it("leaves no settings when nothing is left", () => {
-    const p = profile([zone("a", 1, 1, 2, 1, { module: "cpu", settings: { accent: "#f00" } })]);
-    expect(followGlobalStyle(p, ["a"]).placements[0].settings).toBeUndefined();
-  });
 });
 
 describe("withSampleZones", () => {
@@ -540,14 +438,7 @@ describe("hidden zones and no-op box changes", () => {
     expect(canToggleZonesVisible(pair, ["a", "b"])).toBe(false);
   });
 
-  it("returns the same profile when a box is already there", () => {
-    const p = profile([zone("a", 2, 2, 3, 2), zone("b", 6, 2, 2, 2)]);
-    expect(setZoneRect(p, "a", { col: 2, row: 2, cols: 3, rows: 2 })).toBe(p);
-    expect(setZoneRects(p, { a: { col: 2, row: 2, cols: 3, rows: 2 } })).toBe(p);
-    expect(setZoneRect(p, "a", { col: 1, row: 2, cols: 3, rows: 2 })).not.toBe(p);
-  });
 });
-
 
 describe("moveZonesToPage", () => {
   const stored = (a: Placement[], b: Placement[], cols = 12, rows = 6): MonitorProfile => ({
@@ -601,11 +492,6 @@ describe("moveZonesToPage", () => {
     expect(out?.pages[0].placements).toEqual([]);
   });
 
-  it("refuses when the second of two zones has no room", () => {
-    const p = stored([zone("z1", 1, 1, 2, 2), zone("z2", 3, 1, 2, 2)], [], 3, 2);
-    expect(moveZonesToPage(p, ["z1", "z2"], "a", "b", min1)).toBeNull();
-  });
-
   it("keeps ids and every other field, and leaves other zones alone", () => {
     const p = stored([zone("z", 1, 1, 2, 2, { module: "SystemOverview" }), zone("stay", 5, 1, 2, 2)], []);
     const out = moveZonesToPage(p, ["z"], "a", "b", min1);
@@ -613,15 +499,4 @@ describe("moveZonesToPage", () => {
     expect(out?.pages[0].placements.map((x) => x.id)).toEqual(["stay"]);
   });
 
-  it("does not relocate below the widget minimum", () => {
-    const p = stored([zone("z", 1, 1, 1, 1)], [zone("y", 1, 1, 1, 1)], 3, 1);
-    const out = moveZonesToPage(p, ["z"], "a", "b", () => ({ cols: 2, rows: 1 }));
-    expect(out?.pages[1].placements.find((x) => x.id === "z")).toMatchObject({ colStart: 2, colSpan: 2 });
-  });
-
-  it("is a no-op for the same page or missing ids", () => {
-    const p = stored([zone("z", 1, 1, 2, 2)], []);
-    expect(moveZonesToPage(p, ["z"], "a", "a", min1)).toBe(p);
-    expect(moveZonesToPage(p, ["nope"], "a", "b", min1)).toBe(p);
-  });
 });

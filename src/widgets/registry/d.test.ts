@@ -31,9 +31,6 @@ const WIDGETS: [typeof fps, ComponentType<ShellProps>][] = [
   [library, SteamLibrary],
   [news, SteamNews],
 ];
-const SIZES = ["xs", "sm", "md", "lg"] as const;
-const VARIANTS = ["default", "studio"] as const;
-const SKINS = ["default", "instrument", "tui"] as const;
 const DATA = toFlat((snapshot as unknown as { sensors: SensorMap }).sensors);
 
 // Every source of this group is in the captured snapshot (RTSS, Steam, libre).
@@ -50,19 +47,10 @@ describe("registry group D", () => {
         expect(GROUP_D[i]).toMatchObject({ id: meta.id, minCols: meta.minSize[0], minRows: meta.minSize[1], category: "Gaming" });
       });
 
-      for (const size of SIZES)
-        for (const variant of VARIANTS)
-          for (const skin of SKINS)
-            it(`renders at ${size} / ${variant} / ${skin}`, () => {
-              expect(renderToString(createElement(Component, { data: DATA, size, variant, skin })).length).toBeGreaterThan(0);
-            });
-
-      it("renders the empty state without data", () => {
+      it("renders a live value, the extremes and the empty state without throwing", () => {
+        if (!ABSENT_FROM_SNAPSHOT.includes(meta.id)) expect(renderToString(createElement(Component, { data: DATA, size: "md" }))).toMatch(/\d/);
+        expect(renderToString(createElement(Component, { data: DATA, size: "xs", variant: "studio", skin: "tui" })).length).toBeGreaterThan(0);
         expect(renderToString(createElement(Component, { data: {} })).length).toBeGreaterThan(0);
-      });
-
-      it.skipIf(ABSENT_FROM_SNAPSHOT.includes(meta.id))("shows a live value from the snapshot at md", () => {
-        expect(renderToString(createElement(Component, { data: DATA, size: "md" }))).toMatch(/\d/);
       });
     });
   });

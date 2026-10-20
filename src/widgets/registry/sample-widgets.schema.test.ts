@@ -26,16 +26,15 @@ describe.each(SAMPLES)("%s", (id) => {
     expect(schemaOf(id)).toMatchSnapshot();
   });
 
-  it("gives every colour row a palette role", () => {
+  it("gives every colour row a palette role and files no section under Content or the widget's name", () => {
     const colors = (modules.find((m) => m.id === id)!.settings ?? []).filter((d) => d.type === "color" && !d.section);
     expect(colors.filter((d) => !d.role).map((d) => d.key)).toEqual([]);
-  });
-
-  it("files no section under Content or the widget's name", () => {
-    const mod = modules.find((m) => m.id === id)!;
-    const titles = allSections(widgetContext(mod)).map((s) => s.title);
-    expect(titles).not.toContain("Content");
-    expect(titles).not.toContain(mod.title);
+    { // files no section under Content or the widget's name
+      const mod = modules.find((m) => m.id === id)!;
+      const titles = allSections(widgetContext(mod)).map((s) => s.title);
+      expect(titles).not.toContain("Content");
+      expect(titles).not.toContain(mod.title);
+    }
   });
 });
 

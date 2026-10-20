@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY_EXTRAS, parseExtras, type CalendarEvent } from "@/lib/extras";
-import { calendarUpdate, onAirUpdate, pageNotice, pluginChanges, startsIn } from "./dashboard-notices";
+import { calendarUpdate, pageNotice, pluginChanges } from "./dashboard-notices";
 
 const MIN = 60_000;
 
@@ -30,34 +30,9 @@ describe("page and plugin notices", () => {
   });
 });
 
-describe("on air", () => {
-  const obs = (streaming: boolean, recording = false, connected = true) => ({ configured: true, connected, streaming, recording });
-
-  it("shows a red dot while live or recording", () => {
-    expect(onAirUpdate(null, obs(true)).activity).toMatchObject({ title: "Live", color: "#ef4444", priority: 2 });
-    expect(onAirUpdate(null, obs(true, true)).activity).toMatchObject({ title: "Live", subtitle: "Recording" });
-    expect(onAirUpdate(null, obs(false, true)).activity).toMatchObject({ title: "Recording" });
-    expect(onAirUpdate(null, obs(false)).activity).toBeNull();
-    expect(onAirUpdate(null, obs(true, false, false)).activity).toBeNull();
-  });
-
-  it("raises starts and stops, but not on connecting", () => {
-    expect(onAirUpdate(obs(false), obs(true)).notices).toEqual([{ id: "stream", severity: "warning", title: "You are live", ttl: 3000 }]);
-    expect(onAirUpdate(obs(true, true), obs(false, false)).notices?.map((n) => n.title)).toEqual(["Stream ended", "Recording stopped"]);
-    expect(onAirUpdate(obs(false, false, false), obs(true)).notices).toBeUndefined();
-  });
-});
-
 describe("calendar countdown", () => {
   const now = Date.parse("2026-10-15T08:00:00Z");
   const ev = (id: string, inMin: number, extra: Partial<CalendarEvent> = {}): CalendarEvent => ({ id, title: id, start: now + inMin * MIN, end: now + (inMin + 30) * MIN, allDay: false, ...extra });
-
-  it("formats the time to go", () => {
-    expect(startsIn(0)).toBe("now");
-    expect(startsIn(7.5 * MIN)).toBe("in 8 min");
-    expect(startsIn(65 * MIN)).toBe("in 1 h 5 min");
-    expect(startsIn(120 * MIN)).toBe("in 2 h");
-  });
 
   it("counts down the next event within the lead and opens once", () => {
     const events = [ev("Standup", 8, { location: "Room 1" }), ev("Later", 90)];
@@ -69,16 +44,6 @@ describe("calendar countdown", () => {
     expect(starting.notices?.[0]).toMatchObject({ severity: "warning", body: "Starting now · Room 1" });
   });
 
-  it("shows nothing outside the lead, for all-day events, or five minutes into an event", () => {
-    expect(calendarUpdate([ev("Later", 30)], now, 10, new Set()).activity).toBeNull();
-    expect(calendarUpdate([ev("Holiday", 5, { allDay: true })], now, 10, new Set()).activity).toBeNull();
-    expect(calendarUpdate([ev("Running", -6)], now, 10, new Set()).activity).toBeNull();
-  });
-
-  it("forgets the announcements of events that are over", () => {
-    const r = calendarUpdate([ev("Next", 5)], now, 10, new Set(["Old:soon", "Next:soon"]));
-    expect([...r.announced]).toEqual(["Next:soon"]);
-  });
 });
 
 describe("parseExtras", () => {

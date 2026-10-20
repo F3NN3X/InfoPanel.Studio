@@ -96,16 +96,15 @@ describe.skipIf(refs.length === 0)("createTypeface matches InfoPanel on this mac
   // A skipped describe still runs its body while collecting, so tolerate a missing file.
   const ref = refs[0] ?? { default: { family: "" }, families: [], results: [] };
   const machine: FontSet = { families: ref.families, defaultFamily: ref.default.family };
-  it.each(ref.results.map((r) => [`${r.request.Font} / ${r.request.Style || "-"}${r.request.Bold ? " bold" : ""}`, r] as const))(
-    "%s",
-    (_, r) => {
+  it("every reference request", () => {
+    for (const r of ref.results) {
       const t = createTypeface(machine, r.request.Font, r.request.Style, r.request.Bold, r.request.Italic);
-      expect({ family: t.family, weight: t.weight, width: t.width, slant: t.slant }).toEqual({
+      expect({ family: t.family, weight: t.weight, width: t.width, slant: t.slant }, `${r.request.Font} / ${r.request.Style || "-"}${r.request.Bold ? " bold" : ""}`).toEqual({
         family: r.typeface.family,
         weight: r.typeface.weight,
         width: r.typeface.width,
         slant: r.typeface.slant,
       });
-    },
-  );
+    }
+  });
 });

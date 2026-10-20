@@ -30,29 +30,25 @@ const defaultsOf = (settings: ModuleSetting[]): ModuleSettings => Object.fromEnt
 describe.each(MANIFEST)("$id schema", ({ options, props }) => {
   const settings = options.settings;
 
-  it("reaches every spec prop through exactly one setting", () => {
+  it("keeps the manifest, keys and enum defaults, and renders from its defaults", () => {
     for (const key of Object.values(props)) expect(settings.filter((d) => d.key === key)).toHaveLength(1);
-  });
-
-  it("maps every widget-specific setting to a prop", () => {
-    const own = settings.filter((d) => !STANDARD_KEYS.has(d.key) && d.key !== "view");
-    for (const d of own) expect(Object.values(props)).toContain(d.key);
-  });
-
-  it("has unique keys, none colliding with a standard key other than shell-level ones", () => {
-    const keys = settings.map((d) => d.key);
-    expect(new Set(keys).size).toBe(keys.length);
-    for (const key of Object.values(props)) expect(STANDARD_KEYS.has(key)).toBe(false);
-  });
-
-  it("keeps every enum default inside its options", () => {
-    for (const d of settings.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
-  });
-
-  it("renders from its defaults", () => {
-    const toProps = options.toProps as (s: ModuleSettings) => object;
-    const p = toProps(defaultsOf(settings));
-    const html = renderToString(createElement(options.Component as never, { data: DATA, ...p, ...(options.meta.id === "WebPage" ? { url: "https://example.com" } : {}) }));
-    expect(html.length).toBeGreaterThan(0);
+    { // maps every widget-specific setting to a prop
+      const own = settings.filter((d) => !STANDARD_KEYS.has(d.key) && d.key !== "view");
+      for (const d of own) expect(Object.values(props)).toContain(d.key);
+    }
+    { // has unique keys, none colliding with a standard key other than shell-level ones
+      const keys = settings.map((d) => d.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const key of Object.values(props)) expect(STANDARD_KEYS.has(key)).toBe(false);
+    }
+    { // keeps every enum default inside its options
+      for (const d of settings.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
+    }
+    { // renders from its defaults
+      const toProps = options.toProps as (s: ModuleSettings) => object;
+      const p = toProps(defaultsOf(settings));
+      const html = renderToString(createElement(options.Component as never, { data: DATA, ...p, ...(options.meta.id === "WebPage" ? { url: "https://example.com" } : {}) }));
+      expect(html.length).toBeGreaterThan(0);
+    }
   });
 });

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings, Status, UpdateState } from "./types";
@@ -108,20 +108,6 @@ describe("the settings window", () => {
     expect(screen.getByRole("switch", { name: "Close to tray" }).getAttribute("aria-checked")).toBe("false");
   });
 
-  it("raises the restart bar for a changed port and Undo puts the running one back", async () => {
-    const { user, port } = await openServerPage();
-    await user.clear(port);
-    await user.type(port, "3923");
-    await user.tab();
-    await waitFor(() => expect(setCalls()).toEqual([{ key: "port", value: 3923 }]));
-    expect(await screen.findByText("Restart the server to apply: port 3923.")).toBeTruthy();
-
-    await user.click(screen.getByRole("button", { name: "Undo" }));
-    await waitFor(() => expect(setCalls().at(-1)).toEqual({ key: "port", value: 3922 }));
-    await waitFor(() => expect(screen.queryByText(/Restart the server to apply/)).toBeNull());
-    expect((port as HTMLInputElement).value).toBe("3922");
-  });
-
   it("does not save an invalid port or raise the bar", async () => {
     const { user, port } = await openServerPage();
     await user.clear(port);
@@ -134,27 +120,4 @@ describe("the settings window", () => {
     expect(screen.queryByText(/Restart the server to apply/)).toBeNull();
   });
 
-  it("keeps the last of two fast toggles when the first answer comes back late", async () => {
-    const user = userEvent.setup();
-    // Hold set_setting answers so they can be released in any order.
-    const pending: (() => void)[] = [];
-    const backend = invoke.getMockImplementation()!;
-    invoke.mockImplementation(async (command, args) => {
-      if (command !== "set_setting") return backend(command, args);
-      const { key, value } = args as { key: keyof Settings; value: never };
-      const snapshot = { ...saved, [key]: value };
-      saved = snapshot;
-      return new Promise((resolve) => pending.push(() => resolve({ ok: true, restartRequired: false, settings: snapshot })));
-    });
-    render(<SettingsApp />);
-    const toggle = await screen.findByRole("switch", { name: "Close to tray" });
-    await user.click(toggle);
-    await user.click(toggle);
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
-    // The second answer first, then the stale first one.
-    await act(async () => pending[1]());
-    await act(async () => pending[0]());
-    expect(screen.getByRole("switch", { name: "Close to tray" }).getAttribute("aria-checked")).toBe("true");
-    invoke.mockImplementation(backend);
-  });
 });

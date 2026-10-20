@@ -19,14 +19,17 @@ const NO_CARD = ["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge
 describe("Small zones (SPEC §4.6): every widget × auto / full / card / dense", () => {
   const withRow = modules.filter((m) => (m.settings ?? []).some((d) => d.key === "compact"));
 
-  it.each(withRow.map((m) => m.id))("%s draws what each choice says", (id) => {
-    const options = defsOf(id).find((d) => d.key === "compact")!.options!.map((o) => o.value);
-    const expected: Record<string, string> = { auto: "body", full: "body", card: "compact", dense: "studio" };
-    // A widget without its own shell reads no data-wp-view: nothing to check.
-    // Sensor Value draws its card for a numeric reading only.
-    const base: ModuleSettings = id === "SensorValue" ? { sensor: celsius } : {};
-    if (view(id, base) === undefined) return;
-    for (const value of options) expect(view(id, { ...base, compact: value }), `${id} ${value}`).toBe(expected[value]);
+  it("every widget draws what each choice says", () => {
+    expect(withRow.length).toBeGreaterThan(0);
+    for (const { id } of withRow) {
+      const options = defsOf(id).find((d) => d.key === "compact")!.options!.map((o) => o.value);
+      const expected: Record<string, string> = { auto: "body", full: "body", card: "compact", dense: "studio" };
+      // A widget without its own shell reads no data-wp-view: nothing to check.
+      // Sensor Value draws its card for a numeric reading only.
+      const base: ModuleSettings = id === "SensorValue" ? { sensor: celsius } : {};
+      if (view(id, base) === undefined) continue;
+      for (const value of options) expect(view(id, { ...base, compact: value }), `${id} ${value}`).toBe(expected[value]);
+    }
   });
 
   it("omits Card on the widgets without a compact descriptor (§9 item 4)", () => {
@@ -46,10 +49,11 @@ describe("Small zones (SPEC §4.6): every widget × auto / full / card / dense",
 });
 
 describe("§9 item 2: no widget shows autoScale, variant or compactView", () => {
-  it.each(modules.map((m) => m.id))("%s", (id) => {
-    expect(defsOf(id).map((d) => d.key)).not.toEqual(expect.arrayContaining(["autoScale"]));
-    for (const key of ["autoScale", "variant", "compactView", "layout", "alignX", "alignY"]) {
-      expect(defsOf(id).some((d) => d.key === key || d.keyY === key), `${id}.${key}`).toBe(false);
+  it("none of the widgets does", () => {
+    for (const { id } of modules) {
+      for (const key of ["autoScale", "variant", "compactView", "layout", "alignX", "alignY"]) {
+        expect(defsOf(id).some((d) => d.key === key || d.keyY === key), `${id}.${key}`).toBe(false);
+      }
     }
   });
 });

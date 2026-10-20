@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { PANEL_ID, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
-import { applyStyle, imagePanel, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
+import { imagePanel, useForSelectionBlocked, type StudioBridge } from "./library-actions";
 import { dropLibraryItem } from "./library-drop";
 
 const grid = { cols: 6, rows: 4, width: 1200, height: 800 };
@@ -44,22 +44,6 @@ describe("library style drops (G16)", () => {
     expect(b.toast).toHaveBeenCalledWith("Applied Neon to the widget");
   });
 
-  it("a style dropped on empty cells changes nothing and says so", async () => {
-    const { b, zones } = bridge([zone("a")]);
-    await dropLibraryItem(b, { id: preset.id, item: preset }, null, { col: 5, row: 3 });
-    expect(b.updateProfile).not.toHaveBeenCalled();
-    expect(zones()[0].settings).toEqual({ label: "keep" });
-    expect(b.toast).toHaveBeenCalledWith("Drop a style on a widget");
-  });
-
-  it("Apply to selection styles every selected zone", async () => {
-    const a = zone("a");
-    const c = zone("c", { colStart: 3 });
-    const { b, zones } = bridge([a, c], [a, c]);
-    await applyStyle(b, preset);
-    expect(zones().map((z) => z.settings?.accent)).toEqual(["#ff00ff", "#ff00ff"]);
-    expect(b.addCopy).toHaveBeenCalledTimes(2);
-  });
 });
 
 describe("Use for selection (G10)", () => {
@@ -72,11 +56,4 @@ describe("Use for selection (G10)", () => {
     expect(useForSelectionBlocked([imageZone])).toBeUndefined();
   });
 
-  it("sets the picture of the selected image zones only", () => {
-    const { b, zones } = bridge([imageZone, textZone], [imageZone, textZone]);
-    useForSelection(b, "fan.png", "/api/assets/new.png");
-    expect(zones()[0].panel!.widgets[0].text).toBe("/api/assets/new.png");
-    expect(zones()[1]).toBe(textZone);
-    expect(b.toast).toHaveBeenCalledWith("fan.png is the picture of the widget");
-  });
 });

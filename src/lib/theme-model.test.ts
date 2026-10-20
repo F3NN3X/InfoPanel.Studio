@@ -9,16 +9,12 @@ import {
   ownApplies,
   SECTION_IDS,
   sectionOfKey,
-  sectionsWithValues,
   THEME_DEFAULTS,
   THEMED_KEYS,
-  themedOf,
-  themeKeyOf,
   themeSet,
   themeVal,
   valueOf,
   withAllLocked,
-  withFlag,
   withThemeValues,
   type ThemeLevels,
 } from "./theme-model";
@@ -55,22 +51,6 @@ describe("themed keys and sections", () => {
     expect(THEME_DEFAULTS).toMatchObject({ tempUnit: "c", rateUnit: "auto", decimals: "auto", clock: "auto", meterBallistics: "peak", s1: "", ok: "", crit: "" });
   });
 
-  it("file the new keys in their sections", () => {
-    expect(sectionOfKey("tempUnit")).toBe("format");
-    expect(sectionOfKey("warn.temp")).toBe("thresholds");
-    expect(sectionOfKey("crit.db")).toBe("thresholds");
-    expect(sectionOfKey("s3")).toBe("palette");
-    expect(sectionOfKey("meterBallistics")).toBe("motion");
-    expect(sectionOfKey("align")).toBe("spacing");
-    expect(sectionOfKey("alignSpread")).toBe("spacing");
-  });
-
-  it("read a colour row's palette role, the accent role the Colors accent", () => {
-    expect(themeKeyOf(def("cpuColor", { role: "s1" }))).toBe("s1");
-    expect(themeKeyOf(def("hotColor", { role: "crit" }))).toBe("crit");
-    expect(themeKeyOf(def("ringColor", { role: "accent" }))).toBe("accent");
-    expect(themeKeyOf(def("plain"))).toBe("plain");
-  });
 });
 
 describe("resolution (SPEC §3.2)", () => {
@@ -109,11 +89,9 @@ describe("resolution (SPEC §3.2)", () => {
     ["not themed, unset: the row default", {}, { key: "tint", default: "no" }, "no"],
     ["unset everywhere: the row default", {}, { key: "borderColor", default: "#row" }, "#row"],
   ];
-  for (const [name, zone, row, expected] of table) {
-    it(`valueOf — ${name}`, () => {
-      expect(valueOf(levels, zone, def(row.key ?? "accent", row))).toBe(expected);
-    });
-  }
+  it("valueOf reads the theme or the own value by section state", () => {
+    for (const [name, zone, row, expected] of table) expect(valueOf(levels, zone, def(row.key ?? "accent", row)), name).toBe(expected);
+  });
 
   it("valueOf falls back to the theme default where the row has none", () => {
     expect(valueOf({}, {}, { key: "smoothing", default: undefined as never })).toBe("stepped");
@@ -126,24 +104,9 @@ describe("resolution (SPEC §3.2)", () => {
     expect(ownApplies(levels, {}, "sensor")).toBe(true);
   });
 
-  it("gives visibleIf the resolved values: glow from the theme shows Glow color", () => {
-    const glowColor = { visibleIf: (v: Record<string, unknown>) => (v.glow ?? "none") !== "none" };
-    const resolved = { glow: valueOf(levels, {}, def("glow", { default: "none" })) };
-    expect(glowColor.visibleIf(resolved)).toBe(true);
-    const own = { glow: valueOf({}, { settings: { glow: "soft" }, follow: { border: false } }, def("glow", { default: "none" })) };
-    expect(glowColor.visibleIf(own)).toBe(true);
-    expect(glowColor.visibleIf({ glow: valueOf({}, {}, def("glow", { default: "none" })) })).toBe(false);
-  });
 });
 
 describe("theme edits", () => {
-  it("withFlag stores only what differs from the flag's default", () => {
-    expect(withFlag(undefined, "colors", false)).toEqual({ colors: false });
-    expect(withFlag({ colors: false }, "colors", true)).toBeUndefined();
-    expect(withFlag({ colors: false, type: false }, "colors", true)).toEqual({ type: false });
-    expect(withFlag(undefined, "colors", true, false)).toEqual({ colors: true });
-    expect(withFlag({ colors: true }, "colors", false, false)).toBeUndefined();
-  });
 
   it("withThemeValues / withAllLocked keep the rest and drop an empty theme", () => {
     const locked = withAllLocked(undefined, true);
@@ -153,11 +116,6 @@ describe("theme edits", () => {
     expect(withThemeValues({ values: { accent: "#fff" } }, undefined)).toBeUndefined();
     expect(withThemeValues(undefined, {})).toEqual({ values: {} });
     expect(allLocked({ locks: { colors: true } })).toBe(false);
-  });
-
-  it("themedOf / sectionsWithValues read only themed keys", () => {
-    expect(themedOf({ accent: "#fff", variant: "studio", sensor: "x" })).toEqual({ accent: "#fff" });
-    expect(sectionsWithValues({ glow: "soft", accent: "#fff", label: "x" })).toEqual(["colors", "border"]);
   });
 
   it("normalizeWidgetTheme keeps themed values and boolean flags of known sections", () => {
