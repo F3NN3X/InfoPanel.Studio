@@ -49,10 +49,12 @@ export const ipc = {
   appInfo: () => invoke<AppInfo>("app_info"),
   changelog: () => invoke<string>("changelog"),
   openExternal: (url: string) => invoke<void>("open_external", { url }),
+  openHelp: (target: { article?: string; heading?: string }) => invoke<void>("open_help", target),
+  openSettings: (section?: string) => invoke<void>("open_settings", { section }),
 };
 
 /** Calls `handler` with the payload of each `event`; resolves to the unsubscribe. */
-export async function onEvent<T>(event: "server-status" | "update-state", handler: (payload: T) => void): Promise<() => void> {
+export async function onEvent<T>(event: "server-status" | "update-state" | "settings-section" | "help-open", handler: (payload: T) => void): Promise<() => void> {
   return listen<T>(event, (e) => handler(e.payload));
 }
 

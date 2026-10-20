@@ -1,16 +1,7 @@
 import { Minus, Plus } from "lucide-react";
+import { stepZoom, ZOOMS } from "@/app-window/zoom";
 import { useStore } from "../store";
 import { Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
-
-export const ZOOMS = [80, 90, 100, 110, 125, 150];
-
-/** The zoom a step away (clamped at the ends); 0 resets to 100. */
-export function stepZoom(current: number, step: -1 | 0 | 1): number {
-  if (step === 0) return 100;
-  const i = ZOOMS.indexOf(current);
-  const from = i < 0 ? ZOOMS.findIndex((z) => z >= current) : i;
-  return ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, (from < 0 ? ZOOMS.length - 1 : from) + step))];
-}
 
 export function GeneralSection() {
   const { settings, save, setZoom } = useStore();

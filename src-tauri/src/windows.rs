@@ -1,16 +1,18 @@
-// The studio window (start page until the server answers) and the settings window, their
+// The studio window (start page until the server answers) and the settings and help windows, their
 // navigation guard, close-to-tray and quit.
 
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
 use std::sync::atomic::Ordering;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_opener::OpenerExt;
 
 pub const MAIN: &str = "main";
 pub const SETTINGS: &str = "settings";
+pub const HELP: &str = "help";
 pub const FLUSH_EVENT: &str = "studio://flush";
 
 /// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` when debug mode is on
@@ -184,17 +186,87 @@ pub fn load_studio(app: &AppHandle, url: &str) {
     let _ = window.navigate(url);
 }
 
-pub fn show_settings(app: &AppHandle) {
-    if let Some(w) = app.get_webview_window(SETTINGS) {
+/// Event telling an open Settings window to show a section (the payload is its id).
+pub const SETTINGS_EVENT: &str = "settings-section";
+/// Event telling an open Help window to show an article (the payload is a `HelpTarget`).
+pub const HELP_EVENT: &str = "help-open";
+
+/// The sections Settings has (`SectionId` in src/settings/model/search.ts).
+const SETTINGS_SECTIONS: [&str; 8] = [
+    "general",
+    "server",
+    "agents",
+    "updates",
+    "diagnostics",
+    "logs",
+    "about",
+    "changelog",
+];
+
+/// The section if Settings has it: the page and the event only ever carry known ids.
+fn settings_section(section: Option<&str>) -> Option<&str> {
+    section.filter(|s| SETTINGS_SECTIONS.contains(s))
+}
+
+/// An article id or heading slug: lowercase letters, digits and dashes.
+fn is_slug(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= 80
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+/// Where Help opens: an article, and a heading of it. Either is dropped unless it is a slug, and a
+/// heading needs its article.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct HelpTarget {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub article: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+}
+
+impl HelpTarget {
+    pub fn new(article: Option<&str>, heading: Option<&str>) -> Self {
+        let article = article.filter(|a| is_slug(a));
+        let heading = article.and(heading).filter(|h| is_slug(h));
+        HelpTarget {
+            article: article.map(str::to_owned),
+            heading: heading.map(str::to_owned),
+        }
+    }
+
+    /// The page to load, with the deep-link hash (`#kiosk` or `#kiosk/the-kiosk-url`).
+    fn page(&self) -> String {
+        match (&self.article, &self.heading) {
+            (Some(a), Some(h)) => format!("app/help.html#{a}/{h}"),
+            (Some(a), None) => format!("app/help.html#{a}"),
+            _ => "app/help.html".to_owned(),
+        }
+    }
+}
+
+/// The settings page to load, at a section when it is a known one.
+fn settings_page(section: Option<&str>) -> String {
+    match settings_section(section) {
+        Some(s) => format!("app/settings.html#{s}"),
+        None => "app/settings.html".to_owned(),
+    }
+}
+
+/// Focuses the app page window with this label, or builds it at `page` (a path under the local
+/// pages). Returns whether it was already open.
+fn show_page(app: &AppHandle, label: &str, title: &str, page: &str) -> bool {
+    if let Some(w) = app.get_webview_window(label) {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
-        return;
+        return true;
     }
     let nav_app = app.clone();
     let popup_app = app.clone();
-    let built = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("app/settings.html".into()))
-        .title("InfoPanel Studio settings")
+    let built = WebviewWindowBuilder::new(app, label, WebviewUrl::App(page.into()))
+        .title(title)
         .decorations(false)
         .inner_size(1000.0, 720.0)
         .min_inner_size(760.0, 520.0)
@@ -216,7 +288,24 @@ pub fn show_settings(app: &AppHandle) {
         Ok(w) => {
             let _ = w.set_zoom(zoom_factor(app));
         }
-        Err(e) => log::error!("could not open settings: {e}"),
+        Err(e) => log::error!("could not open the {label} window: {e}"),
+    }
+    false
+}
+
+/// Shows the settings window, at a section when given one.
+pub fn show_settings(app: &AppHandle, section: Option<&str>) {
+    if show_page(app, SETTINGS, "InfoPanel Studio settings", &settings_page(section)) {
+        if let Some(s) = settings_section(section) {
+            let _ = app.emit_to(SETTINGS, SETTINGS_EVENT, s);
+        }
+    }
+}
+
+/// Shows the help window, at an article and heading when given.
+pub fn show_help(app: &AppHandle, target: &HelpTarget) {
+    if show_page(app, HELP, "InfoPanel Studio help", &target.page()) {
+        let _ = app.emit_to(HELP, HELP_EVENT, target);
     }
 }
 
@@ -290,4 +379,48 @@ pub fn quit(app: &AppHandle) {
     flush_studio(app);
     crate::control::stop_owned(app);
     app.exit(0);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn settings_opens_at_a_known_section_only() {
+        assert_eq!(settings_page(Some("server")), "app/settings.html#server");
+        assert_eq!(settings_page(Some("changelog")), "app/settings.html#changelog");
+        assert_eq!(settings_page(None), "app/settings.html");
+        assert_eq!(settings_page(Some("nope")), "app/settings.html");
+        assert_eq!(settings_page(Some("server#x?y=1")), "app/settings.html");
+    }
+
+    #[test]
+    fn help_opens_at_an_article_and_a_heading() {
+        let at = |a, h| HelpTarget::new(a, h).page();
+        assert_eq!(at(None, None), "app/help.html");
+        assert_eq!(at(Some("kiosk"), None), "app/help.html#kiosk");
+        assert_eq!(
+            at(Some("problems"), Some("the-server-wont-start-port-in-use")),
+            "app/help.html#problems/the-server-wont-start-port-in-use"
+        );
+    }
+
+    #[test]
+    fn help_drops_what_is_not_a_slug() {
+        let none = HelpTarget::new(None, None);
+        assert_eq!(HelpTarget::new(Some("Kiosk"), None), none);
+        assert_eq!(HelpTarget::new(Some("../x"), Some("a")), none);
+        assert_eq!(HelpTarget::new(Some(""), None), none);
+        assert_eq!(HelpTarget::new(Some(&"a".repeat(81)), None), none);
+        // A bad heading keeps the article; a heading alone is nothing.
+        assert_eq!(HelpTarget::new(Some("kiosk"), Some("a/b?c")).page(), "app/help.html#kiosk");
+        assert_eq!(HelpTarget::new(None, Some("part")), none);
+    }
+
+    #[test]
+    fn help_event_carries_only_what_is_set() {
+        let json = |t: &HelpTarget| serde_json::to_string(t).unwrap();
+        assert_eq!(json(&HelpTarget::new(None, None)), "{}");
+        assert_eq!(json(&HelpTarget::new(Some("kiosk"), Some("ports"))), r#"{"article":"kiosk","heading":"ports"}"#);
+    }
 }

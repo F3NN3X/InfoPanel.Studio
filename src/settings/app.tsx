@@ -1,14 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, type ComponentType } from "react";
+import { useLayoutEffect, useRef, type ComponentType } from "react";
+import { useZoomKeys } from "@/app-window/zoom";
+import { useHelpKey } from "@/help/use-help-key";
+import { settingsHelpTarget } from "@/help/context";
 import { cn } from "@/lib/utils";
 import { SECTION_NAMES, type SectionId } from "./model/search";
 import { AboutSection } from "./sections/about";
 import { AgentsSection } from "./sections/agents";
 import { ChangelogSection } from "./sections/changelog";
 import { DiagnosticsSection } from "./sections/diagnostics";
-import { GeneralSection, stepZoom } from "./sections/general";
+import { GeneralSection } from "./sections/general";
 import { LogsSection } from "./sections/logs";
 import { ServerSection } from "./sections/server";
 import { UpdatesSection } from "./sections/updates";
+import { ipc } from "./ipc";
 import { RestartBar, Sidebar, TitleBar, ToastView } from "./shell";
 import { StoreProvider, useStore } from "./store";
 
@@ -30,28 +34,13 @@ const PAGES: Record<SectionId, Page> = {
   changelog: { subtitle: "Everything that changed, newest first.", Section: ChangelogSection },
 };
 
-/** Ctrl +, Ctrl - and Ctrl 0 zoom every app window. */
-function useZoomKeys() {
-  const { settings, setZoom } = useStore();
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-      const step = e.key === "=" || e.key === "+" ? 1 : e.key === "-" ? -1 : e.key === "0" ? 0 : null;
-      if (step === null) return;
-      e.preventDefault();
-      const next = stepZoom(settings.zoom, step);
-      if (next !== settings.zoom) void setZoom(next);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [settings.zoom, setZoom]);
-}
-
 function Content() {
-  const { section } = useStore();
+  const { section, settings, setZoom } = useStore();
   const main = useRef<HTMLElement>(null);
   const { subtitle, wide, Section } = PAGES[section];
-  useZoomKeys();
+  useZoomKeys(settings.zoom, setZoom);
+  // F1 opens the Help article for the section on show.
+  useHelpKey(() => settingsHelpTarget(section), (target) => void ipc.openHelp(target).catch(() => {}));
   // A new section starts at the top (a search jump scrolls to its row after this).
   useLayoutEffect(() => {
     main.current?.scrollTo?.({ top: 0 });

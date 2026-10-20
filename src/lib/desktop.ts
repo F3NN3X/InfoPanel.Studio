@@ -4,6 +4,8 @@
  * bundles never load it.
  */
 
+import { helpPageUrl, type HelpTarget } from "@/help/links";
+
 /** True inside the desktop app's webview. */
 export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -27,7 +29,22 @@ export interface MetricsSample {
   url: string;
 }
 
-export const openSettings = (): Promise<void | undefined> => call<void>("open_settings");
+/** Opens the Settings window, at a section (a `SectionId`) when given one. */
+export const openSettings = (section?: string): Promise<void | undefined> => call<void>("open_settings", section ? { section } : undefined);
+
+/**
+ * Opens Help at an article and heading (a slug). The desktop app has a Help window; a browser tab
+ * opens the Help page the dashboard server hosts next to the studio.
+ */
+export async function openHelp(target: HelpTarget = {}): Promise<void> {
+  if (isTauri()) {
+    await call<void>("open_help", { ...target });
+    return;
+  }
+  // A named target, so a held F1 reuses one tab; the opener is cut by hand since a name needs the context.
+  const w = window.open(helpPageUrl(target), "infopanel-help");
+  if (w) w.opener = null;
+}
 
 /** Native save dialog; resolves to whether a file was written. */
 export const saveTextFile = async (defaultName: string, contents: string): Promise<boolean> =>

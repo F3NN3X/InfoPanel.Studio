@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, CircleAlert, CircleCheck, CirclePause, CircleStop, Copy, ExternalLink, Monitor, Network, Play, RefreshCw, RotateCcw, Shield, type LucideIcon } from "lucide-react";
+import { HELP_LINKS } from "@/help/links";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { displayAddress, formatUptime, megabytes, serverCard, type CalloutAction, type ServerIcon } from "../model/cards";
@@ -129,6 +130,9 @@ function StatusCard() {
           <CircleAlert className="h-[17px] w-[17px] shrink-0" />
           <span className="min-w-[140px] flex-1">{card.callout.message}</span>
           {card.callout.actions.map(act)}
+          {status.state !== "foreign_dashboard" && (
+            <CalloutButton onClick={() => void ipc.openHelp(HELP_LINKS.serverWontStart).catch((e) => toast(errorText(e), true))}>Learn more</CalloutButton>
+          )}
         </div>
       )}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-px overflow-hidden rounded-[10px] border border-s-divider bg-s-divider">

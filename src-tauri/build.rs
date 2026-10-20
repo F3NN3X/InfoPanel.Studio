@@ -29,6 +29,7 @@ fn main() {
         "list_local_addresses",
         "quit_app",
         "open_settings",
+        "open_help",
         "save_text_file",
         "save_binary_file",
         "open_text_file",

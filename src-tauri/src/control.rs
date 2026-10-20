@@ -17,6 +17,7 @@ pub const STATUS_EVENT: &str = "server-status";
 /// The server permissions the studio page gets on its origin.
 const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-open-settings",
+    "allow-open-help",
     "allow-save-text-file",
     "allow-save-binary-file",
     "allow-open-text-file",

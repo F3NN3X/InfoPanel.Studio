@@ -1,5 +1,6 @@
 @import "tailwindcss" source(none);
 @source "./";
+@source "../app-window";
 
 /* The settings window's tokens (docs/redesign/app-settings/SPEC.md section 7), scoped to this entry. */
 @theme {

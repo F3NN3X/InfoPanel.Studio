@@ -12,6 +12,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   from library. Delete on a focused library gauge card asks to delete it too.
 - The Library's banner for uploaded files that are not in My library now has Review…: a list with a thumbnail, size and a
   "Used by a profile" tag per file, to add the ones you want to My library or delete the unused ones (after a confirm).
+- Help: a "?" on the studio's left rail (above Keyboard shortcuts), a Help item in the tray and F1 open a Help window
+  with 30 articles, search across Help and Settings, and links that open at a heading. F1 opens the article for what you
+  are doing (the selected widget kind, the open drawer, import or remap). In a browser Help opens in a tab.
+- Settings has a Help link in its sidebar footer, and its server error messages have a Learn more link to the matching
+  troubleshooting section.
 
 ## [1.3.0-beta.1] - 2026-10-20
 

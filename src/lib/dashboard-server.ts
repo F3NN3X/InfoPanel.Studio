@@ -11,6 +11,10 @@ export const CONFIG_URL = "/api/config";
 export const CONFIG_EVENTS_URL = "/events/config";
 export const IMAGE_PROXY_URL = "/api/image-proxy";
 
+/** The port the server listens on until the app settings say otherwise (server.mjs and src-tauri/src/settings.rs use the same), and the kiosk page on it. */
+export const DEFAULT_SERVER_PORT = 3922;
+export const DEFAULT_KIOSK_URL = `http://127.0.0.1:${DEFAULT_SERVER_PORT}/?kiosk=1`;
+
 /**
  * The config saved on the server, its canvas zones' canvases loaded from the
  * canvas store (lib/canvas-store; one that can't be loaded keeps its ref), or
