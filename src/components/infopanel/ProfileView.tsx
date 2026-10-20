@@ -276,7 +276,7 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
     if (corrections.current++ < 3) setNudge(next);
   });
 
-  const nodes = useMemo(() => {
+  const built = useMemo(() => {
     const before = gauges.current;
     const after = new Map<string, { index: number; target: number; at: number }>();
     const gaugeIndex = (path: string, target: number, speed: number, count: number) => {
@@ -289,9 +289,13 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
       return index;
     };
     const scene = buildScene({ profile, items, sensor, image, now, elapsedMs: reduced ? 0 : elapsed, hidden, gaugeIndex: reduced ? undefined : gaugeIndex });
-    gauges.current = after;
-    return scene;
+    return { scene, after };
   }, [profile, items, sensor, image, now, elapsed, hidden, reduced]);
+  // Kept on commit, not in the memo: a render React discards (or StrictMode's second call) must not advance a gauge.
+  useLayoutEffect(() => {
+    gauges.current = built.after;
+  }, [built]);
+  const nodes = built.scene;
   const canvas = { width: profile.Width, height: profile.Height };
   return (
     <div

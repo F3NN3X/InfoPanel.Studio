@@ -98,7 +98,7 @@ export default function Clock(p: ClockProps) {
             <div className="flex items-baseline gap-1.5 leading-none">
               <Num className="font-semibold tracking-tight" style={{ fontSize: timePx(size, w, h, secs && size !== "xs", h12, p.showDate !== false) }}>
                 {pad(hh)}
-                <span className="inline-block text-[color:var(--accent)]" style={{ opacity: !reduced && S % 2 === 1 ? 0 : 1 }}>:</span>
+                <span className="inline-block text-[color:var(--accent)]" style={{ opacity: !reduced && S % 2 === 1 ? 0.3 : 1 }}>:</span>
                 {pad(M)}
               </Num>
               {secs && size !== "xs" && <span className="font-mono text-lg tabular-nums text-[color:var(--w-faint)]">{pad(S)}</span>}

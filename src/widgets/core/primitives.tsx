@@ -339,6 +339,11 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
     still.current.n = 0;
     setSettled(false);
   }, [values]);
+  // A new range or step redraws the curve too.
+  useLayoutEffect(() => {
+    still.current.n = 0;
+    setSettled(false);
+  }, [min, max, step]);
   useAnimationFrame((now, dt) => {
     const pts = line.current && scroll.current.frame(values, now, dt);
     if (!pts) return;
