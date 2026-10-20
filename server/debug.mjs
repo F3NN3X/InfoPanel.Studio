@@ -1,5 +1,6 @@
 // DASHBOARD_DEBUG=1 support for server.mjs: request and SSE logging, and the numbers behind
-// GET /api/debug/stats. Everything is a no-op when `enabled` is false.
+// GET /api/debug/stats. Logging and the event-loop histogram are off when `enabled` is false; the
+// SSE clients are counted either way, for GET /api/server/stats.
 
 import { monitorEventLoopDelay } from "node:perf_hooks";
 
@@ -29,16 +30,27 @@ export function createDebug({ enabled, log = console.log, now = () => performanc
 
     /** An SSE client connected on `channel`; the result is called when it goes away. */
     sseOpen(channel) {
-      if (!enabled) return () => {};
       clients.set(channel, (clients.get(channel) ?? 0) + 1);
-      log(`[debug] sse connect ${channel} (${clients.get(channel)} now)`);
+      if (enabled) log(`[debug] sse connect ${channel} (${clients.get(channel)} now)`);
       let open = true;
       return () => {
         if (!open) return;
         open = false;
         clients.set(channel, clients.get(channel) - 1);
-        log(`[debug] sse disconnect ${channel} (${clients.get(channel)} now)`);
+        if (enabled) log(`[debug] sse disconnect ${channel} (${clients.get(channel)} now)`);
       };
+    },
+
+    /** Open SSE connections across all channels. */
+    sseClientsTotal() {
+      let total = 0;
+      for (const n of clients.values()) total += n;
+      return total;
+    },
+
+    /** The numbers the desktop app's Server page shows, in and out of debug mode. */
+    serverStats() {
+      return { uptimeSeconds: Math.round(process.uptime()), clients: this.sseClientsTotal() };
     },
 
     stats() {

@@ -69,6 +69,41 @@ impl Paths {
     pub fn agents_marker(&self) -> PathBuf {
         self.config_dir.join("agents-installed")
     }
+
+    pub fn changelog(&self) -> PathBuf {
+        self.resource_dir.join("CHANGELOG.md")
+    }
+
+    /// The server's data folder (dashboards, themes, assets): DASHBOARD_DATA_DIR as the app passes
+    /// it, else server.mjs's default `%LOCALAPPDATA%\InfoPanel\Dashboard`.
+    pub fn server_data_dir(&self) -> PathBuf {
+        self.data_dir.clone().unwrap_or_else(|| {
+            env_path("LOCALAPPDATA")
+                .unwrap_or_else(std::env::temp_dir)
+                .join("InfoPanel")
+                .join("Dashboard")
+        })
+    }
+
+    /// The folders (and the settings file) the settings page may show in Explorer.
+    pub fn revealable_roots(&self) -> Vec<PathBuf> {
+        vec![
+            self.config_dir.clone(),
+            self.log_dir.clone(),
+            self.server_data_dir(),
+        ]
+    }
+}
+
+/// True when `path` exists inside one of `roots` (or is one), after resolving `..` and links.
+pub fn is_inside(path: &Path, roots: &[PathBuf]) -> bool {
+    let Ok(path) = path.canonicalize() else {
+        return false;
+    };
+    roots
+        .iter()
+        .filter_map(|r| r.canonicalize().ok())
+        .any(|root| path.starts_with(root))
 }
 
 /// A path as Windows tools want it: without the `\\?\` prefix Tauri's resource dir can carry.
@@ -91,6 +126,28 @@ mod tests {
     }
 
     #[test]
+    fn only_paths_inside_the_roots_are_revealable() {
+        let base = std::env::temp_dir().join(format!("ips-reveal-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let root = base.join("logs");
+        let other = base.join("other");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::create_dir_all(&other).unwrap();
+        std::fs::write(root.join("app.log"), "").unwrap();
+        std::fs::write(other.join("x.txt"), "").unwrap();
+        let roots = vec![root.clone()];
+        assert!(is_inside(&root.join("app.log"), &roots));
+        assert!(is_inside(&root, &roots));
+        assert!(!is_inside(&other.join("x.txt"), &roots));
+        assert!(!is_inside(
+            &root.join("..").join("other").join("x.txt"),
+            &roots
+        ));
+        assert!(!is_inside(&root.join("missing.log"), &roots));
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
     fn resource_layout() {
         let p = Paths {
             config_dir: "c".into(),
@@ -104,5 +161,11 @@ mod tests {
             p.agent_install_script(),
             Path::new("r/app/tools/agent-install.mjs")
         );
+        assert_eq!(p.changelog(), Path::new("r/CHANGELOG.md"));
+        let test_run = Paths {
+            data_dir: Some("d".into()),
+            ..p
+        };
+        assert_eq!(test_run.server_data_dir(), Path::new("d"));
     }
 }

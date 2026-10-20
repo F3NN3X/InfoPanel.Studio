@@ -1,10 +1,12 @@
 // InfoPanel Studio: runs the bundled dashboard server and shows the studio from it.
 
+mod about;
 mod agents;
 mod commands;
 mod control;
 mod debug;
 mod http;
+mod logs;
 mod nav;
 mod paths;
 mod probe;
@@ -57,9 +59,13 @@ fn run_sampler(app: tauri::AppHandle) {
         let status = st.status();
         let mut sample = sampler.sample(status.pid);
         if status.state == Phase::Running {
-            let s = st.settings();
-            let host = settings::connect_host(&s.host);
-            if let Ok(r) = http::get(&host, s.port, "/api/debug/stats", Duration::from_secs(2)) {
+            let host = settings::connect_host(&status.host);
+            if let Ok(r) = http::get(
+                &host,
+                status.port,
+                "/api/debug/stats",
+                Duration::from_secs(2),
+            ) {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&r.body) {
                     if r.status == 200 {
                         sample.extend(debug::server_series(&v));
@@ -87,10 +93,16 @@ pub fn run() {
         std::env::var("INFOPANEL_STUDIO_DEBUG").ok().as_deref(),
     );
     let hidden = args.iter().any(|a| a == HIDDEN_ARG);
-    // The log folder is known before Tauri starts; resources only once it has.
-    let log_dir = paths::Paths::from_env(Default::default()).log_dir;
+    // The settings and log folders are known before Tauri starts; resources only once it has.
+    let early = paths::Paths::from_env(Default::default());
+    let log_dir = early.log_dir;
+    // Only a peek: `setup` loads (and logs about) the file once the log is up.
+    let remember_bounds = std::fs::read_to_string(settings::settings_file(&early.config_dir))
+        .ok()
+        .and_then(|text| settings::load_from_str(&text).ok())
+        .is_none_or(|s| s.remember_bounds);
 
-    let app = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             log::debug!("second launch: {argv:?}");
             if !argv.iter().any(|a| a == HIDDEN_ARG) {
@@ -113,8 +125,10 @@ pub fn run() {
                         || m.target() == "studio"
                 })
                 .build(),
-        )
-        .plugin(
+        );
+    // Remember window size and position off: no window state is restored or saved this run.
+    let builder = if remember_bounds {
+        builder.plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(
                     // Never the frame: the window draws its own title bar, so a saved
@@ -126,6 +140,10 @@ pub fn run() {
                 .with_denylist(&[windows::SETTINGS])
                 .build(),
         )
+    } else {
+        builder
+    };
+    let app = builder
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .args([HIDDEN_ARG])
@@ -136,17 +154,27 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
-            commands::save_settings,
+            commands::set_setting,
+            commands::set_zoom,
             commands::server_status,
+            commands::start_server,
+            commands::stop_server,
             commands::restart_server,
+            commands::find_free_port,
+            commands::server_stats,
             commands::use_foreign_server,
             commands::stop_foreign_server,
             commands::foreign_server_info,
             commands::open_studio,
             commands::open_logs_folder,
             commands::read_log_tail,
+            commands::read_log,
+            commands::reveal_path,
             commands::get_diagnostics,
             commands::set_agents,
+            commands::agents_status,
+            commands::repair_agents,
+            commands::open_agent_backups,
             commands::open_devtools,
             commands::list_local_addresses,
             commands::quit_app,
@@ -158,9 +186,14 @@ pub fn run() {
             commands::report_metrics,
             commands::get_debug,
             commands::flush_done,
+            commands::update_state,
             commands::check_for_update,
-            commands::pending_update,
+            commands::download_update,
+            commands::cancel_update,
             commands::install_update,
+            commands::app_info,
+            commands::changelog,
+            commands::open_external,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -174,16 +207,22 @@ pub fn run() {
             let open_window = !hidden && s.open_studio_on_launch;
             let start_at_login = s.start_at_login;
             let check_updates = s.check_for_updates;
+            let start_server = s.start_server;
+            app.manage(updater::Updates::new(&version));
             let st = AppState::new(paths, version, s, forced, hidden);
             apply_log_level(st.debug());
             app.manage(st);
-            app.manage(updater::Pending::default());
             commands::sync_autostart(&handle, start_at_login);
             tray::create(&handle)?;
             if open_window {
                 windows::show_main(&handle);
             }
-            control::start(&handle);
+            if start_server {
+                control::start(&handle);
+            } else {
+                log::info!("start the server on launch is off; the server stays stopped");
+                control::show_stopped(&handle);
+            }
             if check_updates {
                 updater::check_soon(&handle);
             }

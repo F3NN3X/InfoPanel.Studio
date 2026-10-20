@@ -7,15 +7,18 @@ let foreign = null;
 async function render(status) {
   current = status;
   const state = status.state;
-  show($("spinner"), state === "starting" || state === "running");
+  show($("spinner"), state === "starting" || state === "restarting" || state === "running");
   show($("failed"), state === "failed");
   show($("foreign"), state === "foreign_dashboard");
   show($("in-use"), state === "port_in_use");
+  show($("stopped"), state === "stopped");
   show($("running"), state === "running");
   const address = `${status.host}:${status.port}`;
   const titles = {
     starting: `Starting the dashboard server on ${address}…`,
+    restarting: `Restarting the dashboard server on ${address}…`,
     running: "Opening the studio…",
+    stopped: "The dashboard server is stopped",
     failed: "The dashboard server is not running",
     foreign_dashboard: "Another InfoPanel Studio server is running on this port",
     port_in_use: `Port ${status.port} is used by another program`,
@@ -66,6 +69,7 @@ $("use").addEventListener("click", async () => {
   box.textContent = result.ok ? "" : result.message;
 });
 $("retry").addEventListener("click", () => call("restart_server"));
+$("start").addEventListener("click", () => call("start_server"));
 for (const b of document.querySelectorAll(".retry-port")) b.addEventListener("click", () => call("restart_server"));
 for (const b of document.querySelectorAll(".open-settings")) b.addEventListener("click", () => call("open_settings"));
 $("open-studio").addEventListener("click", () => call("open_studio"));

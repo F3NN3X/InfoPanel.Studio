@@ -2,29 +2,81 @@
 // that survives older or hand-edited files.
 
 use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 
 /// Current settings file layout; bump with a migration in `load_from_str`.
-pub const SETTINGS_VERSION: u32 = 1;
+pub const SETTINGS_VERSION: u32 = 2;
 
 pub const DEFAULT_HOST: &str = "127.0.0.1";
+pub const LAN_HOST: &str = "0.0.0.0";
 pub const DEFAULT_PORT: u16 = 3922;
 pub const MIN_PORT: u16 = 1024;
+/// The app zoom steps, in percent.
+pub const ZOOMS: &[u16] = &[80, 90, 100, 110, 125, 150];
+pub const DEFAULT_ZOOM: u16 = 100;
+
+/// Who can reach the server: this computer only (127.0.0.1) or the local network (0.0.0.0).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Listen {
+    #[default]
+    Local,
+    Lan,
+}
+
+impl Listen {
+    /// The address the server binds.
+    pub fn host(self) -> &'static str {
+        match self {
+            Listen::Local => DEFAULT_HOST,
+            Listen::Lan => LAN_HOST,
+        }
+    }
+
+    /// The v1 `host` this replaces: loopback stays local, any other address is the network. A
+    /// host that is no address at all (v1 reset those to 127.0.0.1) stays local.
+    pub fn from_host(host: &str) -> Self {
+        match host.parse::<IpAddr>() {
+            Ok(ip) if !ip.is_loopback() => Listen::Lan,
+            _ => Listen::Local,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Channel {
+    #[default]
+    Stable,
+    Beta,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
     pub version: u32,
-    pub host: String,
+    pub listen: Listen,
     pub port: u16,
     #[serde(deserialize_with = "list_or_csv")]
     pub allowed_hosts: Vec<String>,
+    /// Restart the server after a crash (3 tries a minute).
+    pub auto_restart: bool,
     pub start_at_login: bool,
     pub open_studio_on_launch: bool,
+    /// Start the server when the app starts; off launches with it stopped.
+    pub start_server: bool,
     pub close_to_tray: bool,
+    /// Restore and save the studio window's size and position.
+    pub remember_bounds: bool,
+    /// App zoom in percent, one of `ZOOMS`.
+    pub zoom: u16,
     /// Look for a new version shortly after the app starts.
     pub check_for_updates: bool,
+    pub update_channel: Channel,
+    /// Download an update as soon as a check finds it.
+    pub auto_download: bool,
     pub agents: AgentSettings,
     pub debug: bool,
     /// The one-time "closing stops the kiosk" warning was shown (close to tray off).
@@ -51,17 +103,30 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             version: SETTINGS_VERSION,
-            host: DEFAULT_HOST.into(),
+            listen: Listen::Local,
             port: DEFAULT_PORT,
             allowed_hosts: Vec::new(),
+            auto_restart: true,
             start_at_login: true,
             open_studio_on_launch: true,
+            start_server: true,
             close_to_tray: true,
+            remember_bounds: true,
+            zoom: DEFAULT_ZOOM,
             check_for_updates: true,
+            update_channel: Channel::Stable,
+            auto_download: false,
             agents: AgentSettings::default(),
             debug: false,
             close_warning_shown: false,
         }
+    }
+}
+
+impl Settings {
+    /// The address the server binds for `listen`.
+    pub fn host(&self) -> &'static str {
+        self.listen.host()
     }
 }
 
@@ -86,23 +151,19 @@ fn list_or_csv<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Error>
         .collect())
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct FieldError {
-    pub field: &'static str,
-    pub message: String,
-}
-
 pub fn validate_port(port: u16) -> Result<(), String> {
     if port < MIN_PORT {
-        return Err(format!("Use a port from {MIN_PORT} to 65535."));
+        return Err(format!("Use a number from {MIN_PORT} to 65535."));
     }
     Ok(())
 }
 
-pub fn validate_host(host: &str) -> Result<(), String> {
-    host.parse::<IpAddr>()
-        .map(|_| ())
-        .map_err(|_| "Pick 127.0.0.1, 0.0.0.0 or one of this computer's addresses.".into())
+pub fn validate_zoom(zoom: u16) -> Result<(), String> {
+    if ZOOMS.contains(&zoom) {
+        Ok(())
+    } else {
+        Err(format!("Zoom is one of {ZOOMS:?} percent."))
+    }
 }
 
 /// A host name or address request-guard can match: letters, digits, `.`, `-`, `:`, `[`, `]`.
@@ -119,31 +180,52 @@ pub fn validate_allowed_host(name: &str) -> Result<(), String> {
     }
 }
 
-pub fn validate(s: &Settings) -> Vec<FieldError> {
-    let mut errors = Vec::new();
-    if let Err(message) = validate_host(&s.host) {
-        errors.push(FieldError {
-            field: "host",
-            message,
-        });
+/// `s` with `key` (a `Settings` field other than agents, version and closeWarningShown) set
+/// to `value`, validated; the error is the text to show.
+pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, String> {
+    fn parse<T: serde::de::DeserializeOwned>(key: &str, value: Value) -> Result<T, String> {
+        serde_json::from_value(value).map_err(|_| format!("\"{key}\" has the wrong type."))
     }
-    if let Err(message) = validate_port(s.port) {
-        errors.push(FieldError {
-            field: "port",
-            message,
-        });
+    let mut next = s.clone();
+    match key {
+        "listen" => next.listen = parse(key, value)?,
+        "port" => {
+            let port: u64 = parse(key, value)?;
+            next.port = u16::try_from(port)
+                .ok()
+                .filter(|p| validate_port(*p).is_ok())
+                .ok_or_else(|| format!("Use a number from {MIN_PORT} to 65535."))?;
+        }
+        "allowedHosts" => {
+            let raw: Vec<String> = parse(key, value)?;
+            let hosts: Vec<String> = raw
+                .iter()
+                .map(|h| h.trim().to_owned())
+                .filter(|h| !h.is_empty())
+                .collect();
+            if let Some(message) = hosts.iter().find_map(|h| validate_allowed_host(h).err()) {
+                return Err(message);
+            }
+            next.allowed_hosts = hosts;
+        }
+        "autoRestart" => next.auto_restart = parse(key, value)?,
+        "startAtLogin" => next.start_at_login = parse(key, value)?,
+        "openStudioOnLaunch" => next.open_studio_on_launch = parse(key, value)?,
+        "startServer" => next.start_server = parse(key, value)?,
+        "closeToTray" => next.close_to_tray = parse(key, value)?,
+        "rememberBounds" => next.remember_bounds = parse(key, value)?,
+        "zoom" => {
+            let zoom: u64 = parse(key, value)?;
+            next.zoom = u16::try_from(zoom).unwrap_or(0);
+            validate_zoom(next.zoom)?;
+        }
+        "checkForUpdates" => next.check_for_updates = parse(key, value)?,
+        "updateChannel" => next.update_channel = parse(key, value)?,
+        "autoDownload" => next.auto_download = parse(key, value)?,
+        "debug" => next.debug = parse(key, value)?,
+        _ => return Err(format!("\"{key}\" is not a setting.")),
     }
-    if let Some(message) = s
-        .allowed_hosts
-        .iter()
-        .find_map(|h| validate_allowed_host(h).err())
-    {
-        errors.push(FieldError {
-            field: "allowedHosts",
-            message,
-        });
-    }
-    errors
+    Ok(next)
 }
 
 /// The address the app itself uses to reach the server: 127.0.0.1 for loopback and the
@@ -158,20 +240,60 @@ pub fn connect_host(host: &str) -> String {
 }
 
 /// `http://<connect host>:<port>`, the origin the window loads the studio from.
-pub fn server_origin(s: &Settings) -> String {
-    format!("http://{}:{}", connect_host(&s.host), s.port)
+pub fn origin(host: &str, port: u16) -> String {
+    format!("http://{}:{}", connect_host(host), port)
 }
 
-/// Settings from file text: unknown keys dropped, missing ones defaulted, invalid values reset.
-pub fn load_from_str(text: &str) -> Result<Settings, serde_json::Error> {
-    let mut s: Settings = serde_json::from_str(text)?;
-    // Version 0 (no `version` key) had the same fields; nothing to move yet.
-    s.version = SETTINGS_VERSION;
-    if validate_host(&s.host).is_err() {
-        s.host = DEFAULT_HOST.into();
+pub fn server_origin(s: &Settings) -> String {
+    origin(s.host(), s.port)
+}
+
+/// Version 1 kept the bind address as `host`; it becomes `listen`.
+fn migrate(raw: &mut Value) {
+    let Some(map) = raw.as_object_mut() else {
+        return;
+    };
+    let version = map.get("version").and_then(Value::as_u64).unwrap_or(0);
+    if version < 2 {
+        if let Some(host) = map.remove("host") {
+            if !map.contains_key("listen") {
+                let listen = Listen::from_host(host.as_str().unwrap_or_default().trim());
+                map.insert(
+                    "listen".into(),
+                    serde_json::to_value(listen).unwrap_or_default(),
+                );
+            }
+        }
     }
+}
+
+/// A key that does not parse as its type takes the default instead of failing the whole file.
+fn drop_bad_keys(raw: &mut Value) {
+    let Some(map) = raw.as_object_mut() else {
+        return;
+    };
+    let keys: Vec<String> = map.keys().cloned().collect();
+    for key in keys {
+        let probe = Value::Object([(key.clone(), map[&key].clone())].into_iter().collect());
+        if serde_json::from_value::<Settings>(probe).is_err() {
+            map.remove(&key);
+        }
+    }
+}
+
+/// Settings from file text: older layouts migrated, unknown keys dropped, missing ones defaulted,
+/// invalid values reset.
+pub fn load_from_str(text: &str) -> Result<Settings, serde_json::Error> {
+    let mut raw: Value = serde_json::from_str(text)?;
+    migrate(&mut raw);
+    drop_bad_keys(&mut raw);
+    let mut s: Settings = serde_json::from_value(raw)?;
+    s.version = SETTINGS_VERSION;
     if validate_port(s.port).is_err() {
         s.port = DEFAULT_PORT;
+    }
+    if validate_zoom(s.zoom).is_err() {
+        s.zoom = DEFAULT_ZOOM;
     }
     s.allowed_hosts.retain(|h| validate_allowed_host(h).is_ok());
     Ok(s)
@@ -215,17 +337,25 @@ pub fn save(config_dir: &Path, s: &Settings) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn defaults_match_the_plain_server() {
         let s = Settings::default();
-        assert_eq!(s.host, "127.0.0.1");
+        assert_eq!(s.listen, Listen::Local);
+        assert_eq!(s.host(), "127.0.0.1");
         assert_eq!(s.port, 3922);
         assert!(s.allowed_hosts.is_empty());
+        assert!(s.auto_restart);
         assert!(s.start_at_login);
         assert!(s.open_studio_on_launch);
+        assert!(s.start_server);
         assert!(s.close_to_tray);
+        assert!(s.remember_bounds);
+        assert_eq!(s.zoom, 100);
         assert!(s.check_for_updates);
+        assert_eq!(s.update_channel, Channel::Stable);
+        assert!(!s.auto_download);
         assert!(!s.agents.enabled);
         assert!(!s.debug);
     }
@@ -234,16 +364,22 @@ mod tests {
     fn serializes_camel_case() {
         let v = serde_json::to_value(Settings::default()).unwrap();
         assert_eq!(v["startAtLogin"], true);
-        assert_eq!(v["allowedHosts"], serde_json::json!([]));
+        assert_eq!(v["listen"], "local");
+        assert_eq!(v["updateChannel"], "stable");
+        assert_eq!(v["rememberBounds"], true);
+        assert_eq!(v["allowedHosts"], json!([]));
         assert_eq!(v["agents"]["enabled"], false);
+        assert_eq!(v["version"], 2);
+        assert!(v.get("host").is_none());
     }
 
     #[test]
     fn missing_keys_take_defaults() {
         let s = load_from_str(r#"{ "port": 3942 }"#).unwrap();
         assert_eq!(s.port, 3942);
-        assert_eq!(s.host, "127.0.0.1");
+        assert_eq!(s.listen, Listen::Local);
         assert!(s.start_at_login);
+        assert!(s.start_server);
         assert_eq!(s.version, SETTINGS_VERSION);
     }
 
@@ -270,17 +406,64 @@ mod tests {
     #[test]
     fn invalid_values_reset_on_load() {
         let s = load_from_str(
-            r#"{ "host": "nope", "port": 80, "allowedHosts": ["ok.lan", "bad host"] }"#,
+            r#"{ "listen": "everywhere", "port": 80, "zoom": 333, "allowedHosts": ["ok.lan", "bad host"] }"#,
         )
         .unwrap();
-        assert_eq!(s.host, DEFAULT_HOST);
+        assert_eq!(s.listen, Listen::Local);
         assert_eq!(s.port, DEFAULT_PORT);
+        assert_eq!(s.zoom, DEFAULT_ZOOM);
         assert_eq!(s.allowed_hosts, vec!["ok.lan"]);
+    }
+
+    #[test]
+    fn a_wrongly_typed_key_keeps_the_rest() {
+        let s = load_from_str(r#"{ "port": "x", "closeToTray": false }"#).unwrap();
+        assert_eq!(s.port, DEFAULT_PORT);
+        assert!(!s.close_to_tray);
     }
 
     #[test]
     fn broken_json_is_an_error() {
         assert!(load_from_str("{ port: ").is_err());
+    }
+
+    #[test]
+    fn v1_host_migrates_to_listen() {
+        for (host, listen) in [
+            ("127.0.0.1", Listen::Local),
+            ("::1", Listen::Local),
+            ("localhost", Listen::Local),
+            ("0.0.0.0", Listen::Lan),
+            ("192.168.1.20", Listen::Lan),
+            ("nope", Listen::Local),
+        ] {
+            let text = format!(r#"{{ "version": 1, "host": "{host}", "port": 3942 }}"#);
+            let s = load_from_str(&text).unwrap();
+            assert_eq!(s.listen, listen, "{host}");
+            assert_eq!(s.port, 3942);
+            assert_eq!(s.version, 2);
+        }
+        // Version 0 had no version key at all.
+        assert_eq!(
+            load_from_str(r#"{ "host": "0.0.0.0" }"#).unwrap().listen,
+            Listen::Lan
+        );
+        let saved =
+            serde_json::to_value(load_from_str(r#"{ "host": "0.0.0.0" }"#).unwrap()).unwrap();
+        assert!(saved.get("host").is_none());
+        assert_eq!(saved["listen"], "lan");
+    }
+
+    #[test]
+    fn v2_ignores_a_stray_host() {
+        let s = load_from_str(r#"{ "version": 2, "host": "0.0.0.0", "listen": "local" }"#).unwrap();
+        assert_eq!(s.listen, Listen::Local);
+    }
+
+    #[test]
+    fn listen_binds_loopback_or_everything() {
+        assert_eq!(Listen::Local.host(), "127.0.0.1");
+        assert_eq!(Listen::Lan.host(), "0.0.0.0");
     }
 
     #[test]
@@ -291,16 +474,85 @@ mod tests {
     }
 
     #[test]
-    fn validate_reports_each_field() {
-        let s = Settings {
-            host: "x".into(),
-            port: 10,
-            allowed_hosts: vec!["a b".into()],
-            ..Settings::default()
-        };
-        let fields: Vec<_> = validate(&s).iter().map(|e| e.field).collect();
-        assert_eq!(fields, vec!["host", "port", "allowedHosts"]);
-        assert!(validate(&Settings::default()).is_empty());
+    fn with_setting_sets_and_validates_each_key() {
+        let s = Settings::default();
+        assert_eq!(
+            with_setting(&s, "listen", json!("lan")).unwrap().listen,
+            Listen::Lan
+        );
+        assert_eq!(with_setting(&s, "port", json!(3943)).unwrap().port, 3943);
+        assert_eq!(with_setting(&s, "zoom", json!(125)).unwrap().zoom, 125);
+        assert_eq!(
+            with_setting(&s, "updateChannel", json!("beta"))
+                .unwrap()
+                .update_channel,
+            Channel::Beta
+        );
+        assert_eq!(
+            with_setting(&s, "allowedHosts", json!([" panel.lan ", ""]))
+                .unwrap()
+                .allowed_hosts,
+            vec!["panel.lan"]
+        );
+        for key in [
+            "autoRestart",
+            "startAtLogin",
+            "openStudioOnLaunch",
+            "startServer",
+            "closeToTray",
+            "rememberBounds",
+            "checkForUpdates",
+            "autoDownload",
+            "debug",
+        ] {
+            let flipped = !serde_json::to_value(&s).unwrap()[key].as_bool().unwrap();
+            let next = with_setting(&s, key, json!(flipped)).unwrap();
+            assert_eq!(serde_json::to_value(&next).unwrap()[key], flipped, "{key}");
+        }
+        for (key, value) in [
+            ("port", json!(80)),
+            ("port", json!(70000)),
+            ("port", json!("3922")),
+            ("zoom", json!(95)),
+            ("listen", json!("wan")),
+            ("allowedHosts", json!(["bad host"])),
+            ("debug", json!("yes")),
+            ("agents", json!({})),
+            ("version", json!(3)),
+            ("closeWarningShown", json!(true)),
+        ] {
+            assert!(
+                with_setting(&s, key, value.clone()).is_err(),
+                "{key} = {value}"
+            );
+        }
+    }
+
+    /// The keys `set_setting` changes; the rest is the app's bookkeeping.
+    const SETTABLE_KEYS: &[&str] = &[
+        "listen",
+        "port",
+        "allowedHosts",
+        "autoRestart",
+        "startAtLogin",
+        "openStudioOnLaunch",
+        "startServer",
+        "closeToTray",
+        "rememberBounds",
+        "zoom",
+        "checkForUpdates",
+        "updateChannel",
+        "autoDownload",
+        "debug",
+    ];
+
+    #[test]
+    fn every_settable_key_is_accepted() {
+        let s = Settings::default();
+        let v = serde_json::to_value(&s).unwrap();
+        for key in SETTABLE_KEYS {
+            assert!(with_setting(&s, key, v[key].clone()).is_ok(), "{key}");
+        }
     }
 
     #[test]
@@ -318,7 +570,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let s = Settings {
             port: 3942,
+            listen: Listen::Lan,
             start_at_login: false,
+            zoom: 125,
             ..Settings::default()
         };
         save(&dir, &s).unwrap();

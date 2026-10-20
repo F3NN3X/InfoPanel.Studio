@@ -5,6 +5,7 @@ use crate::paths::{self, Paths};
 use crate::settings::{AgentInstall, Settings};
 use serde::Serialize;
 use serde_json::Value;
+use std::path::{Path, PathBuf};
 
 /// The arguments after node.exe. agent-install leaves an existing hook alone, so installing is
 /// always a removal followed by an apply (see `install_steps`).
@@ -93,9 +94,13 @@ fn run_step(paths: &Paths, s: &Settings, install: bool) -> StepResult {
     let node = paths::display(&paths.node_exe());
     let script = paths::display(&paths.agent_install_script());
     let args = agent_args(&script, &node, &hook_url(s), install);
+    run_script(paths, step, &node, &args)
+}
+
+fn run_script(paths: &Paths, step: &'static str, node: &str, args: &[String]) -> StepResult {
     log::debug!("agents: {node} {}", args.join(" "));
-    let out = crate::sidecar::hidden_command(&node)
-        .args(&args)
+    let out = crate::sidecar::hidden_command(node)
+        .args(args)
         .current_dir(paths::display(&paths.app_dir()))
         .output();
     match out {
@@ -155,6 +160,122 @@ pub fn apply(paths: &Paths, s: &Settings, enable: bool) -> AgentResult {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Agent {
+    Claude,
+    Codex,
+}
+
+impl Agent {
+    /// The name agent-install reports the agent by.
+    fn install_name(self) -> &'static str {
+        match self {
+            Agent::Claude => "Claude Code",
+            Agent::Codex => "Codex",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HookState {
+    Installed,
+    NotConnected,
+    /// Enabled, but the hooks are missing, changed or written for another setup.
+    NeedsRepair,
+    /// The agent's folder doesn't exist.
+    NotFound,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentStatus {
+    pub agent: Agent,
+    pub path: String,
+    pub status: HookState,
+}
+
+/// The folder and the file agent-install edits for each agent under `home`.
+pub fn agent_files(home: &Path) -> [(Agent, PathBuf, PathBuf); 2] {
+    let claude = home.join(".claude");
+    let codex = home.join(".codex");
+    [
+        (Agent::Claude, claude.join("settings.json"), claude),
+        (Agent::Codex, codex.join("hooks.json"), codex),
+    ]
+}
+
+/// `planned` is what a dry run of the install would do to the file (agent-install's status:
+/// `unchanged` means every hook is in place); None when the dry run could not tell.
+pub fn hook_state(folder: bool, enabled: bool, stale: bool, planned: Option<&str>) -> HookState {
+    if !folder {
+        HookState::NotFound
+    } else if !enabled {
+        HookState::NotConnected
+    } else if !stale && planned == Some("unchanged") {
+        HookState::Installed
+    } else {
+        HookState::NeedsRepair
+    }
+}
+
+/// agent-install's dry-run status for `agent` in its `--json` output.
+pub fn planned_status(output: &Value, agent: Agent) -> Option<&str> {
+    output
+        .get("results")?
+        .as_array()?
+        .iter()
+        .find(|r| r.get("agent").and_then(Value::as_str) == Some(agent.install_name()))?
+        .get("status")?
+        .as_str()
+}
+
+/// Each agent's hook file and whether the hooks are in place. Runs a dry run of the install
+/// (nothing is written) only when the hooks are on and recorded as current.
+pub fn statuses(paths: &Paths, s: &Settings, version: &str, home: &Path) -> Vec<AgentStatus> {
+    let node = paths::display(&paths.node_exe());
+    let stale = needs_reinstall(s, version, &node);
+    let files = agent_files(home);
+    let any_folder = files.iter().any(|(_, _, dir)| dir.is_dir());
+    let planned = (s.agents.enabled && !stale && any_folder)
+        .then(|| {
+            let script = paths::display(&paths.agent_install_script());
+            let mut args = agent_args(&script, &node, &hook_url(s), true);
+            // A dry run: the same arguments without --apply.
+            args.retain(|a| a != "--apply");
+            run_script(paths, "check", &node, &args).output
+        })
+        .flatten();
+    files
+        .into_iter()
+        .map(|(agent, file, dir)| AgentStatus {
+            agent,
+            path: paths::display(&file),
+            status: hook_state(
+                dir.is_dir(),
+                s.agents.enabled,
+                stale,
+                planned.as_ref().and_then(|p| planned_status(p, agent)),
+            ),
+        })
+        .collect()
+}
+
+/// The newest backup agent-install made (`<file>.dashboard-<time>.bak`, beside each file).
+pub fn newest_backup(dirs: &[PathBuf]) -> Option<PathBuf> {
+    dirs.iter()
+        .filter_map(|d| std::fs::read_dir(d).ok())
+        .flatten()
+        .filter_map(Result::ok)
+        .filter(|e| {
+            let name = e.file_name().to_string_lossy().into_owned();
+            name.contains(".dashboard-") && name.ends_with(".bak")
+        })
+        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
+        .max_by_key(|(t, _)| *t)
+        .map(|(_, p)| p)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,7 +315,7 @@ mod tests {
     #[test]
     fn hook_url_follows_the_connect_host() {
         let s = Settings {
-            host: "0.0.0.0".into(),
+            listen: crate::settings::Listen::Lan,
             port: 3942,
             ..Settings::default()
         };
@@ -224,5 +345,71 @@ mod tests {
             serde_json::json!({ "results": [{ "status": "installed" }, { "status": "error" }] });
         assert!(output_has_error(&bad));
         assert!(!output_has_error(&serde_json::json!({ "results": [] })));
+    }
+
+    #[test]
+    fn hook_states() {
+        assert_eq!(
+            hook_state(false, true, false, Some("unchanged")),
+            HookState::NotFound
+        );
+        assert_eq!(
+            hook_state(true, false, false, None),
+            HookState::NotConnected
+        );
+        assert_eq!(
+            hook_state(true, true, false, Some("unchanged")),
+            HookState::Installed
+        );
+        assert_eq!(
+            hook_state(true, true, false, Some("installed")),
+            HookState::NeedsRepair
+        );
+        assert_eq!(
+            hook_state(true, true, true, Some("unchanged")),
+            HookState::NeedsRepair
+        );
+        assert_eq!(hook_state(true, true, false, None), HookState::NeedsRepair);
+        assert_eq!(
+            serde_json::to_value(HookState::NotConnected).unwrap(),
+            "not_connected"
+        );
+    }
+
+    #[test]
+    fn dry_run_status_per_agent() {
+        let out = serde_json::json!({ "apply": false, "results": [
+            { "agent": "Claude Code", "status": "unchanged" },
+            { "agent": "Codex", "status": "skipped" }
+        ] });
+        assert_eq!(planned_status(&out, Agent::Claude), Some("unchanged"));
+        assert_eq!(planned_status(&out, Agent::Codex), Some("skipped"));
+        assert_eq!(planned_status(&serde_json::json!({}), Agent::Codex), None);
+    }
+
+    #[test]
+    fn agent_files_are_the_ones_agent_install_edits() {
+        let [claude, codex] = agent_files(Path::new("H"));
+        assert_eq!(claude.0, Agent::Claude);
+        assert_eq!(claude.1, Path::new("H/.claude/settings.json"));
+        assert_eq!(codex.1, Path::new("H/.codex/hooks.json"));
+        assert_eq!(codex.2, Path::new("H/.codex"));
+    }
+
+    #[test]
+    fn finds_the_newest_backup() {
+        let dir = std::env::temp_dir().join(format!("ips-backups-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        assert_eq!(newest_backup(std::slice::from_ref(&dir)), None);
+        std::fs::write(dir.join("settings.json"), "{}").unwrap();
+        std::fs::write(dir.join("settings.json.dashboard-1.bak"), "{}").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(30));
+        std::fs::write(dir.join("settings.json.dashboard-2.bak"), "{}").unwrap();
+        assert_eq!(
+            newest_backup(&[dir.clone(), dir.join("missing")]),
+            Some(dir.join("settings.json.dashboard-2.bak"))
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

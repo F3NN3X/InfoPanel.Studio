@@ -9,6 +9,14 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ### Added
 - A hand tool pans the studio canvas at any zoom: drag with the middle button, or hold Space and drag. The cursor
   shows a grab hand; Fit (and switching profile) puts the page back in the middle.
+- Desktop app: the server can be stopped and started (tray and settings), and "Start the server on launch" can be turned
+  off. While it is stopped or failed the window shows the start page with a Start button.
+- Desktop app: server bind errors are recognised (port in use, with the first free port suggested; Windows blocking
+  the port), and `GET /api/server/stats` reports uptime and connected clients without debug mode.
+- Desktop app updates: a state machine (check, download with progress, cancel, install), a Stable | Beta channel and
+  background download. Beta tags (`vX.Y.Z-beta.N`) publish as prereleases and feed the `updater-beta` release.
+- Desktop app: new settings for app zoom, auto-restart after a crash and remembering window size; the settings file
+  moves to version 2 (`host` becomes `listen`: local or lan) and keeps every existing value.
 - Gauges in the Library are drawn from their spec (thumbnails and the detail preview) instead of a generic icon;
   image sequences still show their first frame.
 - The gauge editor has "Save as new" next to Save when the gauge already has a library item: it creates "<name> copy"

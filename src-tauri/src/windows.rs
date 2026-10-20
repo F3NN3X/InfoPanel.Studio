@@ -4,7 +4,7 @@
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
 use std::sync::atomic::Ordering;
-use tauri::webview::NewWindowResponse;
+use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tauri_plugin_opener::OpenerExt;
@@ -54,6 +54,29 @@ fn open_external(app: &AppHandle, url: &Url) {
     }
 }
 
+/// The saved app zoom as WebView2's factor.
+fn zoom_factor(app: &AppHandle) -> f64 {
+    f64::from(app.state::<AppState>().settings().zoom) / 100.0
+}
+
+/// Applies the app zoom (percent) to every app window. The kiosk runs in a browser, so it never
+/// gets it.
+pub fn apply_zoom(app: &AppHandle, zoom: u16) {
+    for window in app.webview_windows().values() {
+        if let Err(e) = window.set_zoom(f64::from(zoom) / 100.0) {
+            log::warn!("could not zoom {}: {e}", window.label());
+        }
+    }
+}
+
+/// Zooms each page as it loads, so the zoom holds across navigation (start page to studio)
+/// whatever WebView2 keeps on its own.
+fn zoom_on_load(window: WebviewWindow, payload: tauri::webview::PageLoadPayload<'_>) {
+    if payload.event() == PageLoadEvent::Finished {
+        let _ = window.set_zoom(zoom_factor(window.app_handle()));
+    }
+}
+
 fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let st = app.state::<AppState>();
     let status = st.status();
@@ -64,6 +87,8 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         },
         _ => WebviewUrl::App("start.html".into()),
     };
+    st.studio_page
+        .store(matches!(url, WebviewUrl::External(_)), Ordering::SeqCst);
     let origin = st.origin.clone();
     let nav_app = app.clone();
     let popup_app = app.clone();
@@ -88,7 +113,9 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             open_external(&popup_app, &url);
             NewWindowResponse::Deny
         })
+        .on_page_load(zoom_on_load)
         .build()?;
+    let _ = window.set_zoom(zoom_factor(app));
     let handle = app.clone();
     window.on_window_event(move |event| {
         if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -118,12 +145,42 @@ pub fn show_main(app: &AppHandle) {
     let _ = window.set_focus();
 }
 
+/// The start page, at the local pages' origin (`http://tauri.localhost` on Windows).
+fn start_page_url() -> Url {
+    let base = if cfg!(windows) {
+        "http://tauri.localhost/start.html"
+    } else {
+        "tauri://localhost/start.html"
+    };
+    Url::parse(base).expect("a valid start page URL")
+}
+
+/// Points the studio window (if open, and last sent to the studio) at start.html, which follows
+/// the server state.
+pub fn load_start_page(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(MAIN) else {
+        return;
+    };
+    if !app
+        .state::<AppState>()
+        .studio_page
+        .swap(false, Ordering::SeqCst)
+    {
+        return;
+    }
+    log::debug!("loading the start page");
+    let _ = window.navigate(start_page_url());
+}
+
 /// Points the studio window (if open) at the studio.
 pub fn load_studio(app: &AppHandle, url: &str) {
     let (Some(window), Ok(url)) = (app.get_webview_window(MAIN), Url::parse(url)) else {
         return;
     };
     log::debug!("loading {url}");
+    app.state::<AppState>()
+        .studio_page
+        .store(true, Ordering::SeqCst);
     let _ = window.navigate(url);
 }
 
@@ -139,8 +196,8 @@ pub fn show_settings(app: &AppHandle) {
     let built = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("settings.html".into()))
         .title("InfoPanel Studio settings")
         .decorations(false)
-        .inner_size(820.0, 860.0)
-        .min_inner_size(560.0, 480.0)
+        .inner_size(1000.0, 720.0)
+        .min_inner_size(760.0, 520.0)
         .additional_browser_args(browser_args(app.state::<AppState>().debug()))
         .on_navigation(move |url| {
             let allowed = nav::is_local_page(url);
@@ -153,9 +210,13 @@ pub fn show_settings(app: &AppHandle) {
             open_external(&popup_app, &url);
             NewWindowResponse::Deny
         })
+        .on_page_load(zoom_on_load)
         .build();
-    if let Err(e) = built {
-        log::error!("could not open settings: {e}");
+    match built {
+        Ok(w) => {
+            let _ = w.set_zoom(zoom_factor(app));
+        }
+        Err(e) => log::error!("could not open settings: {e}"),
     }
 }
 

@@ -267,10 +267,47 @@ impl ProcessSampler {
     }
 }
 
+/// The resident memory of process `pid` in bytes, outside debug mode too (the Server page's
+/// Memory cell).
+pub fn process_rss(pid: u32) -> Option<u64> {
+    use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+    let mut sys = System::new();
+    let spid = Pid::from_u32(pid);
+    sys.refresh_processes_specifics(
+        ProcessesToUpdate::Some(&[spid]),
+        true,
+        ProcessRefreshKind::nothing().with_memory(),
+    );
+    sys.process(spid).map(|p| p.memory())
+}
+
+/// The server's `GET /api/server/stats` as `(uptime ms, open SSE clients)`.
+pub fn parse_server_stats(body: &str) -> Option<(u64, u64)> {
+    let v: Value = serde_json::from_str(body).ok()?;
+    let uptime = v.get("uptimeSeconds")?.as_f64()?;
+    let clients = v.get("clients")?.as_u64()?;
+    Some(((uptime * 1000.0).round() as u64, clients))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn rss_of_this_process() {
+        assert!(process_rss(std::process::id()).is_some_and(|b| b > 0));
+    }
+
+    #[test]
+    fn server_stats_parse() {
+        assert_eq!(
+            parse_server_stats(r#"{"uptimeSeconds":12,"clients":3}"#),
+            Some((12_000, 3))
+        );
+        assert_eq!(parse_server_stats(r#"{"clients":3}"#), None);
+        assert_eq!(parse_server_stats("<html>"), None);
+    }
 
     #[test]
     fn growing_needs_steady_and_large_growth() {

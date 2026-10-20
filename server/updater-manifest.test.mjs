@@ -16,6 +16,12 @@ describe("updater manifest", () => {
     });
   });
 
+  it("points a beta at its own prerelease tag", () => {
+    expect(installerAsset("1.3.0-beta.1").url).toBe(
+      "https://github.com/F3NN3X/InfoPanel.Studio/releases/download/v1.3.0-beta.1/InfoPanel-Studio_1.3.0-beta.1_x64-setup.exe",
+    );
+  });
+
   it("is Tauri's static format for windows-x86_64", () => {
     expect(manifest({ version: "1.2.0", notes: "n", pubDate: "2026-01-01T00:00:00.000Z", signature: "sig", url: "https://x/y.exe" })).toEqual({
       version: "1.2.0",
