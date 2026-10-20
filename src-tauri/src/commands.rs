@@ -2,15 +2,18 @@
 // capabilities/default.json; the studio's origin gets the second through a capability added
 // at runtime (control::add_studio_capability).
 
+use crate::about::{self, AppInfo};
 use crate::debug::SeriesStats;
+use crate::logs::{self, LogChunk};
 use crate::probe::{self, ProcessInfo};
-use crate::settings::{self, FieldError, Settings};
-use crate::state::{lock, AppState, Phase, Status};
-use crate::updater::{self, UpdateInfo};
-use crate::{agents, control, debug, windows};
+use crate::settings::{self, Settings};
+use crate::state::{lock, AppState, Phase, RunningConfig, Status};
+use crate::updater::{self, UpdateState};
+use crate::{agents, control, debug, http, windows};
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Manager};
+use std::time::Duration;
+use tauri::{AppHandle, Manager, Url};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
@@ -34,11 +37,12 @@ pub fn get_settings(app: AppHandle) -> Settings {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ApplyResult {
+pub struct SetResult {
     pub ok: bool,
-    pub errors: Vec<FieldError>,
-    /// The server is restarting with the new address or options.
-    pub restarted: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Port, listen, allowed hosts or debug differ from what the running server was started with.
+    pub restart_required: bool,
     pub settings: Settings,
 }
 
@@ -60,92 +64,94 @@ pub fn sync_autostart(app: &AppHandle, on: bool) {
     }
 }
 
-/// True when changing these settings means restarting the server.
-pub fn server_settings_changed(old: &Settings, new: &Settings) -> bool {
-    old.host != new.host
-        || old.port != new.port
-        || old.allowed_hosts != new.allowed_hosts
-        || old.debug != new.debug
+/// True when the saved settings differ from what the running server was started with. Nothing
+/// is pending while no server runs: the next start uses the saved settings.
+pub fn restart_required(
+    saved: &Settings,
+    debug_forced: bool,
+    running: Option<&RunningConfig>,
+) -> bool {
+    running.is_some_and(|rc| {
+        rc.listen != saved.listen
+            || rc.port != saved.port
+            || rc.allowed_hosts != saved.allowed_hosts
+            || rc.debug != (saved.debug || debug_forced)
+    })
 }
 
-#[tauri::command]
-pub async fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<ApplyResult> {
-    log::debug!("ipc: save_settings");
-    blocking(move || apply_settings(&app, settings)).await
-}
-
-fn apply_settings(app: &AppHandle, mut next: Settings) -> ApplyResult {
+/// Validates and saves one setting, then applies what needs no restart: the login item, the
+/// zoom, the log level and an update check for a new channel. Never restarts the server.
+pub fn apply_setting(app: &AppHandle, key: &str, value: Value) -> SetResult {
     let st = app.state::<AppState>();
-    let old = st.settings();
-    // The page edits only its own fields; the rest is the app's bookkeeping.
-    next.version = old.version;
-    next.agents = old.agents.clone();
-    next.close_warning_shown = old.close_warning_shown;
-    next.allowed_hosts = next
-        .allowed_hosts
-        .iter()
-        .map(|h| h.trim().to_owned())
-        .filter(|h| !h.is_empty())
-        .collect();
-    let mut errors = settings::validate(&next);
-    let address_changed = old.host != next.host || old.port != next.port;
-    if errors.is_empty() && address_changed {
-        let status = st.status();
-        let ours = status.owned && status.state == Phase::Running && status.port == next.port;
-        if !ours && !probe::is_port_free(&next.host, next.port) {
-            errors.push(FieldError {
-                field: "port",
-                message: format!(
-                    "Port {} is already in use on {}. Pick another port.",
-                    next.port, next.host
-                ),
-            });
+    let running = st.status().running_config;
+    let pending = |s: &Settings| restart_required(s, st.debug_forced, running.as_ref());
+    let (old, next) = {
+        // Held across the save so a concurrent agents or close-warning write can't be lost.
+        let mut current = lock(&st.settings);
+        let old = current.clone();
+        let next = match settings::with_setting(&old, key, value) {
+            Ok(next) => next,
+            Err(error) => {
+                return SetResult {
+                    ok: false,
+                    error: Some(error),
+                    restart_required: pending(&old),
+                    settings: old,
+                }
+            }
+        };
+        if let Err(e) = settings::save(&st.paths.config_dir, &next) {
+            return SetResult {
+                ok: false,
+                error: Some(format!("Could not save the settings: {e}")),
+                restart_required: pending(&old),
+                settings: old,
+            };
         }
-    }
-    if !errors.is_empty() {
-        return ApplyResult {
-            ok: false,
-            errors,
-            restarted: false,
-            settings: old,
-        };
-    }
-    if let Err(e) = settings::save(&st.paths.config_dir, &next) {
-        return ApplyResult {
-            ok: false,
-            errors: vec![FieldError {
-                field: "",
-                message: format!("Could not save the settings: {e}"),
-            }],
-            restarted: false,
-            settings: old,
-        };
-    }
-    *lock(&st.settings) = next.clone();
-    log::info!(
-        "settings saved: host={} port={} allowedHosts={:?} startAtLogin={} openStudioOnLaunch={} closeToTray={} debug={}",
-        next.host,
-        next.port,
-        next.allowed_hosts,
-        next.start_at_login,
-        next.open_studio_on_launch,
-        next.close_to_tray,
-        next.debug
-    );
+        *current = next.clone();
+        (old, next)
+    };
+    log::info!("setting saved: {key}");
     if old.start_at_login != next.start_at_login {
         sync_autostart(app, next.start_at_login);
     }
-    crate::apply_log_level(st.debug());
-    let restarted = server_settings_changed(&old, &next);
-    if restarted {
-        control::restart(app);
+    if old.zoom != next.zoom {
+        windows::apply_zoom(app, next.zoom);
     }
-    ApplyResult {
+    if old.debug != next.debug {
+        crate::apply_log_level(st.debug());
+    }
+    if old.update_channel != next.update_channel {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            updater::check(&app).await;
+        });
+    }
+    SetResult {
         ok: true,
-        errors: Vec::new(),
-        restarted,
+        error: None,
+        restart_required: pending(&next),
         settings: next,
     }
+}
+
+#[tauri::command]
+pub async fn set_setting(app: AppHandle, key: String, value: Value) -> CmdResult<SetResult> {
+    log::debug!("ipc: set_setting {key}");
+    blocking(move || apply_setting(&app, &key, value)).await
+}
+
+/// `factor` 1.0 is 100 %; it must be one of the zoom steps.
+#[tauri::command]
+pub async fn set_zoom(app: AppHandle, factor: f64) -> CmdResult<SetResult> {
+    log::debug!("ipc: set_zoom {factor}");
+    let percent = (factor * 100.0).round();
+    let value = if (0.0..=1000.0).contains(&percent) {
+        Value::from(percent as u64)
+    } else {
+        Value::Null
+    };
+    blocking(move || apply_setting(&app, "zoom", value)).await
 }
 
 #[tauri::command]
@@ -155,9 +161,65 @@ pub fn server_status(app: AppHandle) -> Status {
 }
 
 #[tauri::command]
-pub fn restart_server(app: AppHandle) {
+pub async fn start_server(app: AppHandle) -> CmdResult<Status> {
+    log::debug!("ipc: start_server");
+    blocking(move || control::start_blocking(&app)).await
+}
+
+#[tauri::command]
+pub async fn stop_server(app: AppHandle) -> CmdResult<Status> {
+    log::debug!("ipc: stop_server");
+    blocking(move || control::stop(&app)).await?
+}
+
+#[tauri::command]
+pub async fn restart_server(app: AppHandle) -> CmdResult<Status> {
     log::debug!("ipc: restart_server");
-    control::restart(&app);
+    blocking(move || control::restart_blocking(&app)).await
+}
+
+#[tauri::command]
+pub async fn find_free_port(app: AppHandle, from: u16) -> CmdResult<u16> {
+    log::debug!("ipc: find_free_port {from}");
+    let host = app.state::<AppState>().settings().host();
+    blocking(move || control::find_free_port(host, from))
+        .await?
+        .ok_or_else(|| format!("No free port from {from} up."))
+}
+
+#[derive(Debug, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerStats {
+    pub clients: Option<u64>,
+    pub rss_bytes: Option<u64>,
+    pub uptime_ms: Option<u64>,
+}
+
+#[tauri::command]
+pub async fn server_stats(app: AppHandle) -> CmdResult<ServerStats> {
+    log::debug!("ipc: server_stats");
+    let status = app.state::<AppState>().status();
+    if status.state != Phase::Running {
+        return Ok(ServerStats::default());
+    }
+    blocking(move || {
+        let host = settings::connect_host(&status.host);
+        let answer = http::get(
+            &host,
+            status.port,
+            "/api/server/stats",
+            Duration::from_secs(2),
+        )
+        .ok()
+        .filter(|r| r.status == 200)
+        .and_then(|r| debug::parse_server_stats(&r.body));
+        ServerStats {
+            clients: answer.map(|(_, c)| c),
+            rss_bytes: status.pid.and_then(debug::process_rss),
+            uptime_ms: answer.map(|(u, _)| u),
+        }
+    })
+    .await
 }
 
 #[tauri::command]
@@ -240,6 +302,48 @@ pub fn open_logs_folder(app: AppHandle) -> CmdResult<()> {
 }
 
 #[tauri::command]
+pub async fn read_log(
+    app: AppHandle,
+    source: String,
+    cursor: Option<String>,
+) -> CmdResult<LogChunk> {
+    log::debug!("ipc: read_log {source}");
+    let source = logs::Source::parse(&source).ok_or(format!("unknown log \"{source}\""))?;
+    let dir = app.state::<AppState>().paths.log_dir.clone();
+    blocking(move || logs::read(&dir, source, cursor.as_deref()))
+        .await?
+        .map_err(|e| e.to_string())
+}
+
+/// Opens Explorer with `path` selected.
+fn select_in_explorer(path: &std::path::Path) -> CmdResult<()> {
+    #[allow(unused_mut)]
+    let mut cmd = std::process::Command::new("explorer.exe");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // Explorer wants `/select,"<path>"` as one argument, quoted its own way.
+        cmd.raw_arg(format!("/select,\"{}\"", crate::paths::display(path)));
+    }
+    cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+/// Shows a file of the app (settings, logs, the server's data) in Explorer.
+#[tauri::command]
+pub async fn reveal_path(app: AppHandle, path: String) -> CmdResult<()> {
+    log::debug!("ipc: reveal_path {path}");
+    let roots = app.state::<AppState>().paths.revealable_roots();
+    blocking(move || {
+        let path = std::path::PathBuf::from(path);
+        if !crate::paths::is_inside(&path, &roots) {
+            return Err("That path is not one of the app's files.".into());
+        }
+        select_in_explorer(&path)
+    })
+    .await?
+}
+
+#[tauri::command]
 pub fn read_log_tail(app: AppHandle, name: String, lines: Option<usize>) -> CmdResult<String> {
     log::debug!("ipc: read_log_tail {name}");
     if name != "app" && name != "server" {
@@ -281,36 +385,110 @@ pub fn get_diagnostics(app: AppHandle) -> Diagnostics {
     }
 }
 
+fn home_dir(app: &AppHandle) -> CmdResult<std::path::PathBuf> {
+    app.path().home_dir().map_err(|e| e.to_string())
+}
+
+fn agent_statuses(app: &AppHandle) -> CmdResult<Vec<agents::AgentStatus>> {
+    let st = app.state::<AppState>();
+    Ok(agents::statuses(
+        &st.paths,
+        &st.settings(),
+        &st.version,
+        &home_dir(app)?,
+    ))
+}
+
+/// Installs or removes the hooks and records the outcome in the settings.
+fn apply_agents(app: &AppHandle, enabled: bool) -> agents::AgentResult {
+    let st = app.state::<AppState>();
+    let s = st.settings();
+    let result = agents::apply(&st.paths, &s, enabled);
+    let node = crate::paths::display(&st.paths.node_exe());
+    let mut current = lock(&st.settings);
+    if result.ok {
+        current.agents.enabled = enabled;
+        current.agents.installed = enabled.then(|| agents::install_record(&s, &st.version, &node));
+    } else if enabled {
+        // The old hooks may be gone already; nothing is installed for sure.
+        current.agents.enabled = false;
+        current.agents.installed = None;
+    }
+    let _ = settings::save(&st.paths.config_dir, &current);
+    result
+}
+
+#[derive(Debug, Serialize)]
+pub struct SetAgentsResult {
+    #[serde(flatten)]
+    pub result: agents::AgentResult,
+    /// The hook files after the change, as `agents_status` returns them.
+    pub agents: Vec<agents::AgentStatus>,
+}
+
 #[tauri::command]
-pub async fn set_agents(app: AppHandle, enabled: bool) -> CmdResult<agents::AgentResult> {
+pub async fn set_agents(app: AppHandle, enabled: bool) -> CmdResult<SetAgentsResult> {
     log::debug!("ipc: set_agents {enabled}");
     blocking(move || {
-        let st = app.state::<AppState>();
-        let s = st.settings();
-        let result = agents::apply(&st.paths, &s, enabled);
-        let node = crate::paths::display(&st.paths.node_exe());
-        let mut current = lock(&st.settings);
-        if result.ok {
-            current.agents.enabled = enabled;
-            current.agents.installed =
-                enabled.then(|| agents::install_record(&s, &st.version, &node));
-        } else if enabled {
-            // The old hooks may be gone already; nothing is installed for sure.
-            current.agents.enabled = false;
-            current.agents.installed = None;
-        }
-        let _ = settings::save(&st.paths.config_dir, &current);
-        result
+        let result = apply_agents(&app, enabled);
+        Ok(SetAgentsResult {
+            result,
+            agents: agent_statuses(&app)?,
+        })
     })
-    .await
+    .await?
+}
+
+#[tauri::command]
+pub async fn agents_status(app: AppHandle) -> CmdResult<Vec<agents::AgentStatus>> {
+    log::debug!("ipc: agents_status");
+    blocking(move || agent_statuses(&app)).await?
+}
+
+/// Writes the hooks again (while they are on).
+#[tauri::command]
+pub async fn repair_agents(app: AppHandle) -> CmdResult<Vec<agents::AgentStatus>> {
+    log::debug!("ipc: repair_agents");
+    blocking(move || {
+        if app.state::<AppState>().settings().agents.enabled {
+            let result = apply_agents(&app, true);
+            if !result.ok {
+                log::warn!("agents: repair failed: {:?}", result.steps);
+            }
+        }
+        agent_statuses(&app)
+    })
+    .await?
+}
+
+/// agent-install backs each file up beside it: shows the newest backup in Explorer, or the
+/// Claude Code (else Codex) folder when there is none.
+#[tauri::command]
+pub async fn open_agent_backups(app: AppHandle) -> CmdResult<()> {
+    log::debug!("ipc: open_agent_backups");
+    blocking(move || show_agent_backups(&app)).await?
+}
+
+fn show_agent_backups(app: &AppHandle) -> CmdResult<()> {
+    let dirs: Vec<_> = agents::agent_files(&home_dir(app)?)
+        .into_iter()
+        .map(|(_, _, dir)| dir)
+        .collect();
+    if let Some(backup) = agents::newest_backup(&dirs) {
+        return select_in_explorer(&backup);
+    }
+    let dir = dirs
+        .iter()
+        .find(|d| d.is_dir())
+        .ok_or("Neither Claude Code nor Codex is installed.")?;
+    app.opener()
+        .open_path(crate::paths::display(dir), None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn open_devtools(app: AppHandle) -> CmdResult<()> {
     log::debug!("ipc: open_devtools");
-    if !app.state::<AppState>().debug() {
-        return Err("Turn on debug mode first.".into());
-    }
     let window = app
         .get_webview_window(windows::MAIN)
         .or_else(|| app.get_webview_window(windows::SETTINGS))
@@ -337,21 +515,75 @@ pub fn list_local_addresses() -> Vec<String> {
 }
 
 #[tauri::command]
-pub async fn check_for_update(app: AppHandle) -> CmdResult<Option<UpdateInfo>> {
+pub fn update_state(app: AppHandle) -> UpdateState {
+    log::debug!("ipc: update_state");
+    updater::state(&app)
+}
+
+#[tauri::command]
+pub async fn check_for_update(app: AppHandle) -> UpdateState {
     log::debug!("ipc: check_for_update");
     updater::check(&app).await
 }
 
 #[tauri::command]
-pub fn pending_update(app: AppHandle) -> Option<UpdateInfo> {
-    log::debug!("ipc: pending_update");
-    updater::pending(&app)
+pub async fn download_update(app: AppHandle) -> CmdResult<UpdateState> {
+    log::debug!("ipc: download_update");
+    blocking(move || updater::download(&app)).await
+}
+
+#[tauri::command]
+pub async fn cancel_update(app: AppHandle) -> CmdResult<UpdateState> {
+    log::debug!("ipc: cancel_update");
+    blocking(move || updater::cancel(&app)).await
 }
 
 #[tauri::command]
 pub async fn install_update(app: AppHandle) -> CmdResult<()> {
     log::debug!("ipc: install_update");
-    updater::install(&app).await
+    blocking(move || updater::install(&app)).await?
+}
+
+/// Async: the first call runs the bundled node for its version.
+#[tauri::command]
+pub async fn app_info(app: AppHandle) -> CmdResult<AppInfo> {
+    log::debug!("ipc: app_info");
+    blocking(move || {
+        let st = app.state::<AppState>();
+        about::info(&st.paths, &st.version, st.settings().update_channel)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn changelog(app: AppHandle) -> CmdResult<String> {
+    log::debug!("ipc: changelog");
+    let paths = app.state::<AppState>().paths.clone();
+    blocking(move || about::changelog(&paths))
+        .await?
+        .map_err(|e| format!("Could not read the changelog: {e}"))
+}
+
+/// Only web links open: the pages never hand the shell a file or another scheme.
+pub(crate) fn external_url(url: &str) -> CmdResult<Url> {
+    let url = Url::parse(url).map_err(|_| "That is not a link.".to_string())?;
+    if matches!(url.scheme(), "http" | "https") {
+        Ok(url)
+    } else {
+        Err("Only http and https links open.".into())
+    }
+}
+
+#[tauri::command]
+pub async fn open_external(app: AppHandle, url: String) -> CmdResult<()> {
+    log::debug!("ipc: open_external {url}");
+    let url = external_url(&url)?;
+    blocking(move || {
+        app.opener()
+            .open_url(url.as_str(), None::<&str>)
+            .map_err(|e| e.to_string())
+    })
+    .await?
 }
 
 #[tauri::command]
@@ -572,36 +804,79 @@ pub fn flush_done(app: AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::settings::Listen;
 
     #[test]
-    fn only_server_fields_restart() {
-        let old = Settings::default();
-        let same = Settings {
-            close_to_tray: false,
-            start_at_login: false,
-            open_studio_on_launch: false,
-            ..old.clone()
+    fn restart_is_required_only_against_a_running_server() {
+        let saved = Settings::default();
+        let running = RunningConfig {
+            listen: Listen::Local,
+            port: saved.port,
+            debug: false,
+            allowed_hosts: Vec::new(),
         };
-        assert!(!server_settings_changed(&old, &same));
+        assert!(!restart_required(&saved, false, None));
+        assert!(!restart_required(&saved, false, Some(&running)));
         for next in [
             Settings {
                 port: 3942,
-                ..old.clone()
+                ..saved.clone()
             },
             Settings {
-                host: "0.0.0.0".into(),
-                ..old.clone()
-            },
-            Settings {
-                allowed_hosts: vec!["a".into()],
-                ..old.clone()
+                listen: Listen::Lan,
+                ..saved.clone()
             },
             Settings {
                 debug: true,
-                ..old.clone()
+                ..saved.clone()
+            },
+            Settings {
+                allowed_hosts: vec!["panel.lan".into()],
+                ..saved.clone()
             },
         ] {
-            assert!(server_settings_changed(&old, &next));
+            assert!(restart_required(&next, false, Some(&running)));
+        }
+        let other = Settings {
+            close_to_tray: false,
+            zoom: 125,
+            auto_restart: false,
+            update_channel: crate::settings::Channel::Beta,
+            ..saved.clone()
+        };
+        assert!(!restart_required(&other, false, Some(&running)));
+        // Forced debug: the server runs with it whatever the setting says.
+        let forced = RunningConfig {
+            debug: true,
+            ..running.clone()
+        };
+        assert!(!restart_required(&saved, true, Some(&forced)));
+        assert!(restart_required(&saved, false, Some(&forced)));
+        // Back to what the server runs with: nothing pending.
+        let lan = RunningConfig {
+            listen: Listen::Lan,
+            allowed_hosts: vec!["panel.lan".into()],
+            ..running
+        };
+        let same = Settings {
+            listen: Listen::Lan,
+            allowed_hosts: vec!["panel.lan".into()],
+            ..saved.clone()
+        };
+        assert!(!restart_required(&same, false, Some(&lan)));
+    }
+
+    #[test]
+    fn only_web_links_open() {
+        assert!(external_url("https://github.com/F3NN3X/InfoPanel.Studio/issues").is_ok());
+        assert!(external_url("http://127.0.0.1:3922/?kiosk=1").is_ok());
+        for bad in [
+            "file:///C:/Windows/notepad.exe",
+            "javascript:alert(1)",
+            "ms-settings:",
+            "nope",
+        ] {
+            assert!(external_url(bad).is_err(), "{bad}");
         }
     }
 }

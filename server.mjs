@@ -32,6 +32,7 @@
 //   DASHBOARD_DIST  folder to serve instead of ./dist
 //   DASHBOARD_DATA_DIR  folder for config.json, assets and the other state files
 //   DASHBOARD_DEBUG=1  log each request and SSE connection; GET /api/debug/stats (this machine only)
+// GET /api/server/stats (this machine only, any mode): uptime and open SSE clients for the app.
 //   INFOPANEL_DATA_DIR  InfoPanel's data folder (default %LOCALAPPDATA%\InfoPanel)
 
 import http from "node:http";
@@ -415,6 +416,13 @@ function handleDebugStats(req, res) {
   send(res, 200, JSON.stringify(debug.stats()), TYPES[".json"]);
 }
 
+/** GET /api/server/stats → { uptimeSeconds, clients } for the desktop app; only from this machine. */
+function handleServerStats(req, res) {
+  if (req.method !== "GET") return send(res, 405);
+  if (!isLoopback(req.socket.remoteAddress)) return send(res, 403, "server stats are served to this machine only");
+  send(res, 200, JSON.stringify(debug.serverStats()), TYPES[".json"]);
+}
+
 function serveStatic(req, res, pathname) {
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405);
   if (!fs.existsSync(DIST)) return send(res, 503, "No build found. Run `npm run build` first.");
@@ -457,6 +465,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (pathname === "/api/health") return handleHealth(req, res);
     if (pathname === "/api/debug/stats") return handleDebugStats(req, res);
+    if (pathname === "/api/server/stats") return handleServerStats(req, res);
     if (pathname === "/api/config") return await handleConfig(req, res);
     if (pathname === "/events/config") return handleConfigEvents(req, res);
     if (pathname === "/api/control" || pathname.startsWith("/api/control/")) return await handleControl(req, res, pathname);

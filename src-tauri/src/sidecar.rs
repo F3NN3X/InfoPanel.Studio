@@ -3,6 +3,7 @@
 
 use crate::paths::{self, Paths};
 use crate::settings::Settings;
+use crate::state::ErrorCode;
 use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
@@ -33,7 +34,7 @@ pub fn hidden_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
 pub fn sidecar_env(s: &Settings, paths: &Paths, debug: bool) -> Vec<(&'static str, String)> {
     let mut env = vec![
         ("PORT", s.port.to_string()),
-        ("HOST", s.host.clone()),
+        ("HOST", s.host().into()),
         ("ALLOWED_HOSTS", s.allowed_hosts.join(",")),
         ("DASHBOARD_DIST", paths::display(&paths.dist_dir())),
         ("DASHBOARD_DEBUG", if debug { "1" } else { "0" }.into()),
@@ -152,10 +153,37 @@ fn timestamp() -> String {
     format!("{h:02}:{m:02}:{s:02}Z")
 }
 
+/// The bind failure a server output line reports: node's `Error: listen EADDRINUSE: ...`. Other
+/// EACCES errors (a file it can't open) are not a port problem.
+pub fn parse_bind_error(line: &str) -> Option<ErrorCode> {
+    if line.contains("listen EADDRINUSE") {
+        Some(ErrorCode::AddrInUse)
+    } else if line.contains("listen EACCES") {
+        Some(ErrorCode::Access)
+    } else {
+        None
+    }
+}
+
 /// A running server process. Stdout and stderr go to the shared log.
 pub struct Sidecar {
     pub child: Child,
     pub pid: u32,
+    /// The bind failure the output reported, if any.
+    pub bind_error: Arc<Mutex<Option<ErrorCode>>>,
+    readers: Vec<std::thread::JoinHandle<()>>,
+}
+
+impl Sidecar {
+    /// After the process exited: waits (at most `timeout`) for its last output lines to be read,
+    /// then returns the bind failure they reported.
+    pub fn exit_error(&self, timeout: Duration) -> Option<ErrorCode> {
+        let deadline = Instant::now() + timeout;
+        while self.readers.iter().any(|r| !r.is_finished()) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        *self.bind_error.lock().unwrap_or_else(|e| e.into_inner())
+    }
 }
 
 pub fn spawn(
@@ -197,7 +225,7 @@ pub fn spawn(
         let _ = l.write_line(&format!(
             "[{}] --- starting server (pid {pid}) on {}:{} ---",
             timestamp(),
-            s.host,
+            s.host(),
             s.port
         ));
     }
@@ -211,17 +239,29 @@ pub fn spawn(
             .take()
             .map(|p| Box::new(p) as Box<dyn std::io::Read + Send>),
     ];
+    let bind_error = Arc::new(Mutex::new(None));
+    let mut readers = Vec::new();
     for pipe in pipes.into_iter().flatten() {
         let log = log.clone();
-        std::thread::spawn(move || {
+        let bind_error = bind_error.clone();
+        readers.push(std::thread::spawn(move || {
             for line in BufReader::new(pipe).lines().map_while(Result::ok) {
+                if let Some(code) = parse_bind_error(&line) {
+                    let mut slot = bind_error.lock().unwrap_or_else(|e| e.into_inner());
+                    slot.get_or_insert(code);
+                }
                 if let Ok(mut l) = log.lock() {
                     let _ = l.write_line(&line);
                 }
             }
-        });
+        }));
     }
-    Ok(Sidecar { child, pid })
+    Ok(Sidecar {
+        child,
+        pid,
+        bind_error,
+        readers,
+    })
 }
 
 #[cfg(test)]
@@ -244,7 +284,7 @@ mod tests {
     #[test]
     fn env_carries_host_port_and_dist() {
         let s = Settings {
-            host: "0.0.0.0".into(),
+            listen: crate::settings::Listen::Lan,
             port: 3942,
             allowed_hosts: vec!["panel.lan".into(), "kiosk".into()],
             ..Settings::default()
@@ -267,6 +307,36 @@ mod tests {
         assert_eq!(get(&env, "DASHBOARD_DEBUG"), Some("1"));
         assert_eq!(get(&env, "DASHBOARD_DATA_DIR"), Some(r"D:\tmp\data"));
         assert_eq!(get(&env, "ALLOWED_HOSTS"), Some(""));
+    }
+
+    #[test]
+    fn env_binds_loopback_for_local() {
+        let env = sidecar_env(&Settings::default(), &paths(None), false);
+        assert_eq!(get(&env, "HOST"), Some("127.0.0.1"));
+    }
+
+    #[test]
+    fn bind_errors_are_read_from_node_output() {
+        assert_eq!(
+            parse_bind_error("Error: listen EADDRINUSE: address already in use 127.0.0.1:3922"),
+            Some(ErrorCode::AddrInUse)
+        );
+        assert_eq!(
+            parse_bind_error("Error: listen EACCES: permission denied 0.0.0.0:80"),
+            Some(ErrorCode::Access)
+        );
+        for not_bind in [
+            "Error: EACCES: permission denied, open 'C:\\data\\config.json'",
+            "  code: 'EACCES',",
+            "  code: 'EADDRINUSE',",
+            "[debug] GET /api/health 200 1ms",
+        ] {
+            assert_eq!(parse_bind_error(not_bind), None, "{not_bind}");
+        }
+        assert_eq!(
+            parse_bind_error("InfoPanel Studio on http://127.0.0.1:3922"),
+            None
+        );
     }
 
     #[test]

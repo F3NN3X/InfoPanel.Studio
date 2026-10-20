@@ -33,7 +33,8 @@
     ],
     "resources": {
       "resources/node/": "node/",
-      "resources/app/": "app/"
+      "resources/app/": "app/",
+      "../CHANGELOG.md": "CHANGELOG.md"
     },
     "windows": {
       "webviewInstallMode": { "type": "downloadBootstrapper" },

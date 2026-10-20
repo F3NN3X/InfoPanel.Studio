@@ -2,26 +2,53 @@
 
 use crate::debug::History;
 use crate::paths::Paths;
-use crate::settings::{self, Settings};
+use crate::settings::{self, Listen, Settings};
 use crate::sidecar::{RotatingLog, Sidecar};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, RwLock};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     Starting,
     Running,
+    /// Stopped on purpose, or not started because `startServer` is off.
+    Stopped,
+    /// Stopping to start again with the saved settings.
+    Restarting,
     /// The app's server did not start or crashed too often.
     Failed,
     /// Another InfoPanel Studio server (e.g. start-dashboard.bat) holds the port.
     ForeignDashboard,
     /// Some other program holds the port.
     PortInUse,
+}
+
+/// Why the server could not start.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum ErrorCode {
+    #[serde(rename = "EADDRINUSE")]
+    AddrInUse,
+    #[serde(rename = "EACCES")]
+    Access,
+    #[serde(rename = "OTHER")]
+    Other,
+}
+
+/// What the running server was started with; the settings page compares it with the saved
+/// settings to tell whether a restart is needed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunningConfig {
+    pub listen: Listen,
+    pub port: u16,
+    pub debug: bool,
+    /// The extra host names the request guard accepts; read at start only.
+    pub allowed_hosts: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -41,6 +68,21 @@ pub struct Status {
     pub app_version: String,
     pub debug: bool,
     pub pid: Option<u32>,
+    /// Milliseconds since the epoch, while running.
+    pub started_at: Option<u64>,
+    pub running_config: Option<RunningConfig>,
+    /// Set with `failed_at` when the state is failed or port_in_use.
+    pub error_code: Option<ErrorCode>,
+    pub failed_at: Option<u64>,
+    /// The first free port above `port`, for EADDRINUSE.
+    pub suggested_port: Option<u16>,
+}
+
+pub fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 pub fn studio_url(origin: &str) -> String {
@@ -106,6 +148,9 @@ pub struct AppState {
     /// Show the window when the first start runs into a problem (manual launches only).
     pub show_on_problem: AtomicBool,
     pub quitting: AtomicBool,
+    /// The main window was last sent to the studio (not start.html), whether or not that
+    /// navigation has committed yet.
+    pub studio_page: AtomicBool,
 }
 
 /// Locks, recovering the data of a mutex a panicking thread left poisoned.
@@ -129,9 +174,13 @@ impl AppState {
             crate::sidecar::SERVER_LOG_FILES,
         );
         let status = Status {
-            state: Phase::Starting,
+            state: if settings.start_server {
+                Phase::Starting
+            } else {
+                Phase::Stopped
+            },
             owned: false,
-            host: settings.host.clone(),
+            host: settings.host().into(),
             port: settings.port,
             studio_url: studio_url(&origin),
             kiosk_url: kiosk_url(&origin),
@@ -141,6 +190,11 @@ impl AppState {
             app_version: version.clone(),
             debug: settings.debug || debug_forced,
             pid: None,
+            started_at: None,
+            running_config: None,
+            error_code: None,
+            failed_at: None,
+            suggested_port: None,
         };
         Self {
             paths,
@@ -161,6 +215,7 @@ impl AppState {
             capabilities: Mutex::new(HashSet::new()),
             show_on_problem: AtomicBool::new(!hidden_start),
             quitting: AtomicBool::new(false),
+            studio_page: AtomicBool::new(false),
         }
     }
 
@@ -205,6 +260,52 @@ mod tests {
         });
         assert!(gate.wait(Duration::from_secs(5)));
         t.join().unwrap();
+    }
+
+    #[test]
+    fn status_fields_serialize_for_the_pages() {
+        let v = serde_json::to_value(Phase::PortInUse).unwrap();
+        assert_eq!(v, "port_in_use");
+        assert_eq!(serde_json::to_value(Phase::Stopped).unwrap(), "stopped");
+        assert_eq!(
+            serde_json::to_value(Phase::Restarting).unwrap(),
+            "restarting"
+        );
+        assert_eq!(
+            serde_json::to_value(ErrorCode::AddrInUse).unwrap(),
+            "EADDRINUSE"
+        );
+        assert_eq!(serde_json::to_value(ErrorCode::Access).unwrap(), "EACCES");
+        assert_eq!(serde_json::to_value(ErrorCode::Other).unwrap(), "OTHER");
+        let rc = RunningConfig {
+            listen: Listen::Lan,
+            port: 3942,
+            debug: true,
+            allowed_hosts: vec!["panel.lan".into()],
+        };
+        assert_eq!(
+            serde_json::to_value(rc).unwrap(),
+            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"] })
+        );
+    }
+
+    #[test]
+    fn a_stopped_launch_starts_stopped() {
+        let paths = Paths {
+            config_dir: "c".into(),
+            log_dir: std::env::temp_dir(),
+            resource_dir: "r".into(),
+            data_dir: None,
+        };
+        let off = Settings {
+            start_server: false,
+            ..Settings::default()
+        };
+        let st = AppState::new(paths.clone(), "1.0.0".into(), off, false, true);
+        assert_eq!(st.status().state, Phase::Stopped);
+        let st = AppState::new(paths, "1.0.0".into(), Settings::default(), false, true);
+        assert_eq!(st.status().state, Phase::Starting);
+        assert!(st.status().running_config.is_none());
     }
 
     #[test]

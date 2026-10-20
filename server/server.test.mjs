@@ -123,6 +123,19 @@ describe("server.mjs", () => {
     expect((await fetch(`${plain.base}/api/canvases`, { method: "POST", headers: { "Content-Type": "application/json" }, body: canvas(0) })).status).toBe(403);
   });
 
+  it("serves /api/server/stats in any mode with the open SSE clients", async () => {
+    const sse = await fetch(`${plain.base}/events/config`);
+    const res = await fetch(`${plain.base}/api/server/stats`);
+    expect(res.status).toBe(200);
+    const stats = await res.json();
+    expect(stats.clients).toBeGreaterThanOrEqual(1);
+    expect(stats.uptimeSeconds).toBeGreaterThanOrEqual(0);
+    expect(Object.keys(stats).sort()).toEqual(["clients", "uptimeSeconds"]);
+    expect((await fetch(`${plain.base}/api/server/stats`, { method: "POST" })).status).toBe(405);
+    await sse.body.cancel();
+    expect(plain.output()).not.toContain("[debug]");
+  });
+
   it("serves /api/debug/stats only in debug mode and logs requests", async () => {
     expect((await fetch(`${plain.base}/api/debug/stats`)).status).toBe(404);
     const sse = await fetch(`${debug.base}/events/config`);

@@ -38,6 +38,20 @@ describe("debug", () => {
     expect(debug.stats().eventLoopDelayMs).toBeNull();
   });
 
+  it("counts SSE clients across channels even when disabled", () => {
+    const debug = createDebug({ enabled: false, log: () => {} });
+    const a = debug.sseOpen("config");
+    debug.sseOpen("control");
+    debug.sseOpen("extras");
+    expect(debug.sseClientsTotal()).toBe(3);
+    a();
+    a();
+    expect(debug.sseClientsTotal()).toBe(2);
+    const stats = debug.serverStats();
+    expect(stats.clients).toBe(2);
+    expect(stats.uptimeSeconds).toBeGreaterThanOrEqual(0);
+  });
+
   it("counts resources by type", () => {
     expect(countResources(["Timeout", "Timeout", "TCPSocketWrap"])).toEqual({ Timeout: 2, TCPSocketWrap: 1 });
   });

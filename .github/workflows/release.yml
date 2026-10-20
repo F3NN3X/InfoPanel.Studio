@@ -72,12 +72,34 @@ jobs:
           cp "src-tauri/target/release/bundle/nsis/InfoPanel Studio_${version}_x64-setup.exe.sig" "release/InfoPanel-Studio_${version}_x64-setup.exe.sig"
           node tools/updater-manifest.mjs --version="$version" --sig="release/InfoPanel-Studio_${version}_x64-setup.exe.sig" --notes=notes.md --out=release/latest.json
 
+      # A vX.Y.Z-beta.N tag is a prerelease, so releases/latest (the stable feed) never points at it.
       - name: Publish the GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          prerelease=()
+          case "$GITHUB_REF_NAME" in *-beta.*) prerelease=(--prerelease) ;; esac
           gh release create "$GITHUB_REF_NAME" \
             release/*-setup.exe release/*-setup.exe.sig release/latest.json \
             --title "InfoPanel Studio $GITHUB_REF_NAME" \
-            --notes-file notes.md
+            --notes-file notes.md "${prerelease[@]}"
+
+      # The beta channel reads latest.json from the fixed updater-beta release. Every release, beta or
+      # stable, overwrites it, so beta users also get a stable release that is newer than their beta.
+      - name: Update the beta update feed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Created only when it is missing; any other lookup failure stops here.
+          if ! found=$(gh release view updater-beta --json tagName 2>&1); then
+            if ! grep -qi "release not found" <<< "$found"; then
+              echo "::error::Could not look up the updater-beta release: $found"
+              exit 1
+            fi
+            gh release create updater-beta --prerelease --target "$GITHUB_SHA" \
+              --title "Beta update feed" \
+              --notes "Holds the beta channel's update feed (latest.json) for InfoPanel Studio's updater. Not a release to install: the installers are on the version releases."
+          fi
+          gh release upload updater-beta release/latest.json --clobber

@@ -3,17 +3,17 @@
 
 let saved = null;
 
-const LOOPBACK = "127.0.0.1";
-const WILDCARD = "0.0.0.0";
-
 // ---- Server status ----
 
 function renderStatus(s) {
   const dot = $("status-dot");
-  dot.className = "dot " + (s.state === "running" ? "running" : s.state === "starting" ? "starting" : "problem");
+  const busy = s.state === "starting" || s.state === "restarting";
+  dot.className = "dot " + (s.state === "running" ? "running" : busy ? "starting" : "problem");
   const where = `${s.host}:${s.port}`;
   const text = {
     starting: `Starting on ${where}…`,
+    restarting: `Restarting on ${where}…`,
+    stopped: "Stopped",
     running: s.owned ? `Running on ${where}` : `Using a server the app did not start on ${where}`,
     failed: s.message ?? "Not running",
     foreign_dashboard: s.message ?? "Another dashboard server holds the port",
@@ -26,8 +26,7 @@ function renderStatus(s) {
 
 // ---- Server and startup form ----
 
-async function fillHosts(current) {
-  const addresses = await call("list_local_addresses").catch(() => []);
+function fillHosts() {
   const select = $("host");
   select.replaceChildren();
   const add = (value, label) => {
@@ -35,22 +34,19 @@ async function fillHosts(current) {
     o.value = value;
     select.append(o);
   };
-  add(LOOPBACK, "This computer only (127.0.0.1)");
-  add(WILDCARD, "All network interfaces (0.0.0.0)");
-  for (const a of addresses) add(a, `${a} (a network address of this computer)`);
-  if (![LOOPBACK, WILDCARD, ...addresses].includes(current)) add(current, `${current} (not found on this computer now)`);
-  select.value = current;
+  add("local", "This computer only (127.0.0.1)");
+  add("lan", "Local network (0.0.0.0)");
 }
 
 function syncHostUi() {
-  const loopback = $("host").value === LOOPBACK;
+  const loopback = $("host").value === "local";
   show($("host-warning"), !loopback);
   show($("allowed-wrap"), !loopback);
 }
 
 function fillForm(s) {
   saved = s;
-  $("host").value = s.host;
+  $("host").value = s.listen;
   $("port").value = s.port;
   $("allowed").value = s.allowedHosts.join(", ");
   for (const key of ["startAtLogin", "openStudioOnLaunch", "closeToTray", "checkForUpdates"]) $(key).checked = s[key];
@@ -64,7 +60,7 @@ function clearErrors() {
 }
 
 function showErrors(errors) {
-  const box = { host: "host-error", port: "port-error", allowedHosts: "allowed-error" };
+  const box = { listen: "host-error", port: "port-error", allowedHosts: "allowed-error" };
   for (const e of errors) {
     const target = $(box[e.field] ?? "port-error");
     target.textContent = e.message;
@@ -82,7 +78,7 @@ function portError(value) {
 function formSettings() {
   return {
     ...saved,
-    host: $("host").value,
+    listen: $("host").value,
     port: Number($("port").value),
     allowedHosts: $("allowed").value.split(/[,\s]+/).filter(Boolean),
     startAtLogin: $("startAtLogin").checked,
@@ -102,14 +98,23 @@ async function save(next) {
   $("save").disabled = true;
   $("save-result").textContent = "Saving…";
   try {
-    const result = await call("save_settings", { settings: next });
-    if (!result.ok) {
-      showErrors(result.errors);
-      $("save-result").textContent = "Not saved.";
-      return false;
+    // Each changed setting is saved on its own; one the server only reads at start restarts it.
+    const keys = Object.keys(next).filter((k) => k !== "agents" && JSON.stringify(next[k]) !== JSON.stringify(saved[k]));
+    let restart = false;
+    for (const key of keys) {
+      const result = await call("set_setting", { key, value: next[key] });
+      if (!result.ok) {
+        showErrors([{ field: key, message: result.error }]);
+        saved = result.settings;
+        $("save-result").textContent = "Not saved.";
+        return false;
+      }
+      saved = result.settings;
+      restart ||= result.restartRequired;
     }
-    fillForm(result.settings);
-    $("save-result").textContent = result.restarted ? "Saved. The server is restarting." : "Saved.";
+    fillForm(saved);
+    if (restart) call("restart_server");
+    $("save-result").textContent = restart ? "Saved. The server is restarting." : "Saved.";
     return true;
   } catch (e) {
     $("save-result").textContent = `Not saved: ${e}`;
@@ -128,40 +133,57 @@ $("restart").addEventListener("click", () => call("restart_server"));
 
 // ---- Updates ----
 
-function renderUpdate(info) {
-  $("update-result").textContent = info ? `Version ${info.version} is available.` : "You're up to date.";
-  $("update-notes").textContent = info?.notes ?? "";
-  show($("update-notes"), Boolean(info?.notes));
-  show($("install-update"), Boolean(info));
+let update = null;
+
+const MB = 1024 * 1024;
+
+/** Renders the updater's state (update-state): one action button that follows it. */
+function renderUpdate(u) {
+  update = u;
+  const results = {
+    current: "You're up to date.",
+    checking: "",
+    available: `Version ${u.version} is available.`,
+    downloading: "",
+    ready: `Version ${u.version} is ready to install.`,
+    installing: `Installing ${u.version}. The app restarts when it is done…`,
+    error: `Could not check for updates: ${u.error}`,
+  };
+  $("update-result").textContent = results[u.state] ?? "";
+  $("update-notes").textContent = u.notes ?? "";
+  show($("update-notes"), Boolean(u.notes) && u.state !== "current");
+  const action = { available: "Download", downloading: "Cancel", ready: "Install and restart" }[u.state];
+  $("install-update").textContent = action ?? "";
+  show($("install-update"), Boolean(action));
+  const progress =
+    u.state === "downloading"
+      ? `Downloading ${u.version}: ${((u.downloaded ?? 0) / MB).toFixed(1)}${u.total ? ` of ${(u.total / MB).toFixed(1)}` : ""} MB…`
+      : null;
+  updateBusy(u.state === "checking" ? "Checking…" : progress);
+  $("install-update").disabled = false;
 }
 
 function updateBusy(text) {
   $("update-busy-text").textContent = text ?? "";
   show($("update-busy"), Boolean(text));
   $("check-update").disabled = Boolean(text);
-  $("install-update").disabled = Boolean(text);
 }
 
-$("check-update").addEventListener("click", async () => {
-  updateBusy("Checking…");
-  $("update-result").textContent = "";
-  try {
-    renderUpdate(await call("check_for_update"));
-  } catch (e) {
-    $("update-result").textContent = `Could not check for updates: ${e}`;
-    show($("install-update"), false);
-  } finally {
-    updateBusy(null);
-  }
-});
+$("check-update").addEventListener("click", () => call("check_for_update").then(renderUpdate));
 
 $("install-update").addEventListener("click", async () => {
-  updateBusy("Downloading and installing. The app restarts when it is done…");
+  const state = update?.state;
+  if (state === "available") return renderUpdate(await call("download_update"));
+  if (state === "downloading") return renderUpdate(await call("cancel_update"));
+  if (state !== "ready") return;
+  $("install-update").disabled = true;
+  updateBusy("Installing. The app restarts when it is done…");
   try {
     await call("install_update");
   } catch (e) {
     $("update-result").textContent = `Could not install the update: ${e}`;
     updateBusy(null);
+    $("install-update").disabled = false;
   }
 });
 
@@ -244,7 +266,6 @@ let lastDiagnostics = null;
 async function refreshDiagnostics() {
   const d = await call("get_diagnostics");
   lastDiagnostics = d;
-  $("devtools").disabled = !d.debug;
   const when = d.latestTime ? new Date(d.latestTime * 1000).toLocaleTimeString() : "";
   let text;
   if (!d.debug) text = "Turn on debug mode to start sampling.";
@@ -309,14 +330,14 @@ $("log-refresh").addEventListener("click", refreshLog);
 
 async function init() {
   const s = await call("get_settings");
-  await fillHosts(s.host);
+  fillHosts();
   fillForm(s);
   const status = await call("server_status");
   renderStatus(status);
   onStatus(renderStatus);
   $("app-version").textContent = status.appVersion;
-  const pending = await call("pending_update");
-  if (pending) renderUpdate(pending);
+  renderUpdate(await call("update_state"));
+  tauri.event.listen("update-state", (e) => renderUpdate(e.payload));
   refreshDiagnostics();
   refreshLog();
   setInterval(() => {
