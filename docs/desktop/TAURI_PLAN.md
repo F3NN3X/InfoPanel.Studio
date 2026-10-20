@@ -190,7 +190,7 @@ window shows a restart bar until the server is restarted with them.
 ## Testing
 - **Vitest** (JS): `/api/health` shape; `isAllowedProxyType`; `DASHBOARD_DIST` resolution;
   agent-install `--node` / `--url` command building and `--json` output (extend
-  `server/agent-install.test.mjs`); agent-status `--url` precedence; `src/lib/desktop.ts`
+  `tests/server/agent-install.test.mjs`); agent-status `--url` precedence; `src/lib/desktop.ts`
   (`isTauri()`, export/import branch with mocked IPC).
 - **Rust** (`cargo test`, `cargo clippy -- -D warnings`, `cargo fmt --check`): settings
   load/validate/defaults/migration, `classify_probe`, `is_allowed_nav`, sidecar env building, port
