@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LayoutDashboard, Minus, Square, X } from "lucide-react";
+import { Minus, Square, X } from "lucide-react";
+import { StudioLogo } from "@/components/studio/studio-logo";
 import { cn } from "@/lib/utils";
 
 /** The 36px title bar: the window has no native frame, so it carries the drag region and the caption buttons. */
@@ -17,8 +18,8 @@ export function TitleBar({ title }: { title: string }) {
   const caption = "grid h-full w-[46px] place-items-center border-0 bg-transparent text-s-muted transition-colors hover:bg-s-nav-hover hover:text-s-t1";
   return (
     <div data-tauri-drag-region className="flex h-9 shrink-0 select-none items-center gap-2.5 border-b border-s-side-line bg-s-side pl-3">
-      <div data-tauri-drag-region className="grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-s-accent text-s-win">
-        <LayoutDashboard className="pointer-events-none h-[13px] w-[13px]" strokeWidth={2.5} />
+      <div data-tauri-drag-region className="grid h-[18px] w-[18px] place-items-center">
+        <StudioLogo className="pointer-events-none h-[18px] w-[18px]" />
       </div>
       <div data-tauri-drag-region className="text-xs font-medium text-s-t2">
         {title}

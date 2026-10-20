@@ -112,6 +112,90 @@ const markdown = new Marked({
   },
 });
 
+/** The entries of a section body: one per top-level list item, nested lines folded into their item. */
+export function sectionEntries(body: string): string[] {
+  const entries: string[] = [];
+  const item = /^(?:[-*+]|\d+[.)])\s+/;
+  for (const line of body.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    if (item.test(line) || entries.length === 0) entries.push(line.replace(item, "").trim());
+    else entries[entries.length - 1] += ` ${line.trim()}`;
+  }
+  return entries;
+}
+
+const HEADLINE_MAX = 120;
+// Private-use characters fence code spans while the text is cut, so a `.` or `:` inside code never ends a headline.
+const CODE_OPEN = "";
+const CODE_CLOSE = "";
+
+/** Links, images and emphasis as plain text; code spans fenced. */
+function plainEntry(entry: string): string {
+  return entry
+    .replaceAll(CODE_OPEN, "")
+    .replaceAll(CODE_CLOSE, "")
+    .split(/(`[^`]+`)/)
+    .map((part, i) =>
+      i % 2
+        ? `${CODE_OPEN}${part.slice(1, -1)}${CODE_CLOSE}`
+        : part
+            .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+            .replace(/(\*\*|__)(.+?)\1/g, "$2")
+            .replace(/\*(.+?)\*/g, "$1")
+            .replace(/~~(.+?)~~/g, "$1")
+    )
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** `text` cut to `HEADLINE_MAX` visible characters on a word boundary, with an ellipsis; code spans stay closed. */
+function capHeadline(text: string): string {
+  let visible = 0;
+  let end = text.length;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === CODE_OPEN || text[i] === CODE_CLOSE) continue;
+    if (++visible > HEADLINE_MAX) {
+      end = i;
+      break;
+    }
+  }
+  if (end === text.length) return text;
+  const space = text.lastIndexOf(" ", end);
+  let head = text.slice(0, space > 0 ? space : end).replace(/[\s,;:\-–—]+$/, "");
+  if (head.split(CODE_OPEN).length > head.split(CODE_CLOSE).length) head += CODE_CLOSE;
+  return `${head}…`;
+}
+
+/**
+ * The one-line headline of a changelog entry as safe HTML: its first sentence (cut at the first `. `, `: ` or `; `,
+ * or a final `.`), at most about 120 characters, as plain text apart from code spans, which become `<code>`.
+ */
+export function entryHeadline(entry: string): string {
+  return escapeHtml(headlineText(entry)).replaceAll(CODE_OPEN, "<code>").replaceAll(CODE_CLOSE, "</code>");
+}
+
+/** Whether the headline leaves part of the entry out (so "Show all" has more to show). */
+export function headlineShortens(entry: string): boolean {
+  return headlineText(entry) !== plainEntry(entry).trim().replace(/\.$/, "");
+}
+
+function headlineText(entry: string): string {
+  const text = plainEntry(entry);
+  let inCode = false;
+  let end = text.length;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === CODE_OPEN) inCode = true;
+    else if (c === CODE_CLOSE) inCode = false;
+    else if (!inCode && (c === "." || c === ":" || c === ";") && (i === text.length - 1 || text[i + 1] === " ")) {
+      end = i;
+      break;
+    }
+  }
+  return capHeadline(text.slice(0, end).trim());
+}
+
 /** The markdown of the notes as safe HTML. */
 export function renderMarkdown(source: string): string {
   return markdown.parse(source, { async: false });

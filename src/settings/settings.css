@@ -122,6 +122,7 @@ a:hover {
 }
 
 .notes li {
+  overflow-wrap: anywhere;
   font-size: 13.5px;
   line-height: 1.55;
   color: #d6d6db;

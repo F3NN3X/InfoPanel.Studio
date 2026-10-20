@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bug, Check, Copy, FolderOpen, History, LayoutDashboard } from "lucide-react";
+import { Bug, Check, Copy, FolderOpen, History } from "lucide-react";
+import { StudioLogo } from "@/components/studio/studio-logo";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { shortDate } from "../model/changelog";
@@ -57,8 +58,8 @@ export function AboutSection() {
   return (
     <>
       <HeroCard className="flex flex-wrap items-center gap-[18px] p-6">
-        <div ref={hero.ref} className={cn("grid h-[60px] w-[60px] place-items-center rounded-2xl bg-s-accent text-s-win", hero.className)}>
-          <LayoutDashboard className="h-[34px] w-[34px]" strokeWidth={2.2} />
+        <div ref={hero.ref} className={cn("h-[60px] w-[60px] rounded-2xl", hero.className)}>
+          <StudioLogo className="h-full w-full" />
         </div>
         <div className="flex min-w-[140px] flex-1 flex-col gap-1">
           <span className="text-xl font-semibold tracking-[-0.01em]">InfoPanel Studio</span>

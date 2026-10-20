@@ -6,6 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+- The Settings and Help windows show the studio logo in the title bar, and About shows it large. Settings ›
+  Changelog lists each category's headlines with a "Show all" button, opens only the newest release, and no longer
+  has a Markdown view.
+
 ## [1.3.0-beta.3] - 2026-10-20
 
 ### Added
