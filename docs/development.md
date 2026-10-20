@@ -127,7 +127,7 @@ Vitest, run with `npm test`. Most tests exercise pure logic, or render with
 `renderToString` in Node. A component test that needs a DOM opts in per file with
 the docblock pragma `// @vitest-environment happy-dom` on its first line, and uses
 Testing Library (`@testing-library/react`, `@testing-library/user-event`); there
-is no global DOM switch. `src/test/dom-setup.ts` (in `test.setupFiles`, a no-op in
+is no global DOM switch. `tests/setup/dom-setup.ts` (in `test.setupFiles`, a no-op in
 Node) stubs `matchMedia`, `ResizeObserver` (reports 800 x 600), `IntersectionObserver`
 and `URL.createObjectURL`, and unmounts rendered trees after each test.
 `setViewport(width)` from that file sets the width `matchMedia` answers for (1280
@@ -137,17 +137,17 @@ matchers (no jest-dom). Tests sit beside the code they cover:
 
 | Area | Test files |
 |---|---|
-| Sensor streaming | `src/lib/sensor-stream.test.ts` (merging, namespaces, stream planning), `src/lib/sensor-store.test.ts` (reference counting, reconnects, discovery) |
-| Data API | `src/lib/data-api.test.ts`, `src/lib/catalog.test.ts`, `src/lib/sources.test.ts`, `src/lib/sensors.test.ts` |
-| Readings | `src/lib/system-metrics.test.ts` (System widget readings, thresholds, units), `src/lib/image.test.ts` |
-| Widget style | `src/components/widget-style.test.ts` (zoom, `--wp-*` variables, `chromeOf`, `surfaceBox`, scoped CSS, profile style), `src/components/surfaces.test.ts` |
-| Config and appearance | `src/lib/layout.test.ts` (`mergeConfig` migration and guards), `src/lib/panel-model.test.ts`, `src/lib/style-resolve.test.ts` (style layers), `src/lib/appearance-presets.test.ts` (applying, overrides, saved looks), `src/lib/theme.test.ts` (profile theme over the dashboard's), `src/lib/general.test.ts` (general settings, clock formatting), `src/lib/profile-grid.test.ts` (gap / padding defaults and the track math for gaps 0, 12 and 24) |
-| Studio | `src/components/studio/placement-content.test.ts` (per-zone prefixes and content), `src/components/studio/inspector-model.test.ts` (tabs, sections, search, Advanced, source dots) and `inspector-categories.test.ts` (every module's settings resolve to a known category), `studio-layout.test.ts` (Side / Bottom / Auto, fit zoom), `use-studio-shortcuts.test.ts`, `zone-menu.test.ts`, and the other `*.test.ts` beside the studio modules (commands, zone geometry, studio and appearance actions, the explorer model, …) |
-| Data layer and history | `src/lib/data-points.test.ts` (normalising the catalog, health, search), `src/lib/data-usage.test.ts` (Used by, bind / unbind), `src/lib/sample-history.test.ts`, `src/lib/fonts.test.ts` (the font catalog), `src/hooks/config-history.test.ts` (undo stacks, coalescing, transactions) |
-| Page background and media | `src/lib/appearance.test.ts` (background layers, video style and `videoPolicy`), `src/lib/assets.test.ts` (upload / library requests with a mocked `fetch`) |
-| InfoPanel import | `src/lib/infopanel/**/*.test.ts` (parsing, formatting, fonts, canvas model and editing, remap, export, gauges, assets; a few read the lab's gitignored `corpus/` and skip without it), `src/lib/gauge-studio/`, `src/widgets/registry/*.schema.test.ts` (settings schema per widget group) |
-| Component (DOM) | `src/components/gauges/gauges-page.test.tsx` (open a gauge, toggle a part, the Save / Discard / Cancel dialog, details pane vs sheet), `src/components/studio/pane-sheet.test.tsx` (stacked vs side-by-side at the 900px breakpoint, the bottom sheet's handle and Close) |
-| Server | `server/*.test.mjs`: `assets.test.mjs` (magic-byte sniffing, asset id validation against traversal, `Range` parsing, loopback check), `library`, `infopanel-local`, `font-proxy`, `proxy`, `config-guard` and the rest beside their modules. Vitest's default pattern picks up `.test.mjs`, so `npm test` runs it |
+| Sensor streaming | `tests/lib/sensor-stream.test.ts` (merging, namespaces, stream planning), `tests/lib/sensor-store.test.ts` (reference counting, reconnects, discovery) |
+| Data API | `tests/lib/data-api.test.ts`, `tests/lib/catalog.test.ts`, `tests/lib/sources.test.ts`, `tests/lib/sensors.test.ts` |
+| Readings | `tests/lib/system-metrics.test.ts` (System widget readings, thresholds, units), `tests/lib/image.test.ts` |
+| Widget style | `tests/components/widget-style.test.ts` (zoom, `--wp-*` variables, `chromeOf`, `surfaceBox`, scoped CSS, profile style), `tests/components/surfaces.test.ts` |
+| Config and appearance | `tests/lib/layout.test.ts` (`mergeConfig` migration and guards), `tests/lib/panel-model.test.ts`, `tests/lib/style-resolve.test.ts` (style layers), `tests/lib/appearance-presets.test.ts` (applying, overrides, saved looks), `tests/lib/theme.test.ts` (profile theme over the dashboard's), `tests/lib/general.test.ts` (general settings, clock formatting), `tests/lib/profile-grid.test.ts` (gap / padding defaults and the track math for gaps 0, 12 and 24) |
+| Studio | `tests/components/studio/placement-content.test.ts` (per-zone prefixes and content), `tests/components/studio/inspector-model.test.ts` (tabs, sections, search, Advanced, source dots) and `inspector-categories.test.ts` (every module's settings resolve to a known category), `studio-layout.test.ts` (Side / Bottom / Auto, fit zoom), `use-studio-shortcuts.test.ts`, `zone-menu.test.ts`, and the other `*.test.ts` beside the studio modules (commands, zone geometry, studio and appearance actions, the explorer model, …) |
+| Data layer and history | `tests/lib/data-points.test.ts` (normalising the catalog, health, search), `tests/lib/data-usage.test.ts` (Used by, bind / unbind), `tests/lib/sample-history.test.ts`, `tests/lib/fonts.test.ts` (the font catalog), `tests/hooks/config-history.test.ts` (undo stacks, coalescing, transactions) |
+| Page background and media | `tests/lib/appearance.test.ts` (background layers, video style and `videoPolicy`), `tests/lib/assets.test.ts` (upload / library requests with a mocked `fetch`) |
+| InfoPanel import | `tests/lib/infopanel/**/*.test.ts` (parsing, formatting, fonts, canvas model and editing, remap, export, gauges, assets; a few read the lab's gitignored `corpus/` and skip without it), `tests/lib/gauge-studio/`, `tests/widgets/registry/*.schema.test.ts` (settings schema per widget group) |
+| Component (DOM) | `tests/components/gauges/gauges-page.test.tsx` (open a gauge, toggle a part, the Save / Discard / Cancel dialog, details pane vs sheet), `tests/components/studio/pane-sheet.test.tsx` (stacked vs side-by-side at the 900px breakpoint, the bottom sheet's handle and Close) |
+| Server | `tests/server/*.test.mjs`: `assets.test.mjs` (magic-byte sniffing, asset id validation against traversal, `Range` parsing, loopback check), `library`, `infopanel-local`, `font-proxy`, `proxy`, `config-guard` and the rest beside their modules. Vitest's default pattern picks up `.test.mjs`, so `npm test` runs it |
 
 `npm test` prints the current number of test files and tests; all of them
 should pass.
@@ -176,7 +176,7 @@ A newer global TypeScript can reject `tsconfig.json`: TypeScript 6 stops with
    steps are in
    [widget-settings.md, "Adopting the standard block"](widget-settings.md#adopting-the-standard-block-new-widget).
 3. Add a row to [module-catalog.md](module-catalog.md), and a unit test for
-   any logic that reads sensor keys (see `src/lib/system-metrics.test.ts`).
+   any logic that reads sensor keys (see `tests/lib/system-metrics.test.ts`).
 
 The studio inspector needs no code for the new widget's options: each
 `ModuleSetting` in `settings` is filed into a section by its `group` and into

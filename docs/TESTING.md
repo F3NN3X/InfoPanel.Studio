@@ -16,5 +16,6 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
 
 - One case per behaviour, plus its boundaries. No size x variant x skin matrix sweeps; use a table only where each row hits a different branch.
 - happy-dom only when the test needs a DOM.
+- Tests live in `tests/`, mirroring `src/` and `server/` (`src/lib/foo.ts` is tested by `tests/lib/foo.test.ts`).
 - `npm test` stays under about 10 s locally.
 - Rust tests live in their modules (`#[cfg(test)]`) and run in CI with `cargo test`.

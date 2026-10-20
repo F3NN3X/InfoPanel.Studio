@@ -11,6 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@tests": path.resolve(__dirname, "./tests"),
     },
   },
   build: {
@@ -20,9 +21,10 @@ export default defineConfig({
   // Agent worktrees live under .claude/; their copies of the tests are not ours.
   // lab/ has its own Vitest config (npm run lab:test).
   test: {
+    include: ["tests/**/*.test.{ts,tsx,mjs}"],
     exclude: [...configDefaults.exclude, ".claude/**", "lab/**"],
     // Component tests opt into a DOM per file (`// @vitest-environment happy-dom`); the setup is a no-op in Node.
-    setupFiles: ["src/test/dom-setup.ts"],
+    setupFiles: ["tests/setup/dom-setup.ts"],
   },
   server: {
     port: 5173,
