@@ -3,6 +3,7 @@
 // graphs scroll by time (each sample at its arrival time, at a constant speed), so a reading that
 // arrives early or late never makes the line jump back or stop.
 import { useEffect, useRef } from "react";
+import { subscribeTick } from "@/lib/ticker";
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
@@ -168,20 +169,17 @@ export class RangeEaser {
   }
 }
 
-/** Runs `cb` every animation frame while `active`; write to DOM refs there, never set state. */
+/** Runs `cb` on the shared ticker (at most Max FPS a second) while `active`; write to DOM refs there, never set state. */
 export function useAnimationFrame(cb: (now: number, dtMs: number) => void, active = true): void {
   const cbRef = useRef(cb);
   cbRef.current = cb;
   useEffect(() => {
     if (!active) return;
-    let id = 0;
     let last = performance.now();
-    const loop = (now: number) => {
-      cbRef.current(now, Math.min(100, now - last));
+    // Up to 250 ms, so a 5 fps cap still moves at real-time speed.
+    return subscribeTick((now) => {
+      cbRef.current(now, Math.min(250, now - last));
       last = now;
-      id = requestAnimationFrame(loop);
-    };
-    id = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(id);
+    });
   }, [active]);
 }

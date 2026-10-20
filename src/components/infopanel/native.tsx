@@ -26,6 +26,8 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { Catalog } from "@/lib/infopanel/sensors.ts";
 import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "@/lib/infopanel/native/convert.ts";
 import { isNative, walkPaths } from "@/lib/infopanel/native/modes.ts";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useTickTime } from "@/hooks/use-tick";
 
 export interface NativeLayer {
   /** Per flagged item: what it converted to, or why it stays faithful. */
@@ -109,19 +111,16 @@ export interface NativeView {
   history(key: string): readonly number[];
 }
 
-/** Seconds since mount, ticking every frame while `on` (an animated gradient). */
+/** Seconds since `on` began, on the shared ticker (Max FPS) while `on` (an animated gradient); 0 under reduced motion. */
 function useSeconds(on: boolean): number {
-  const [t, setT] = useState(0);
+  const reduced = useReducedMotion();
+  const run = on && !reduced;
+  const start = useRef(0);
   useEffect(() => {
-    if (!on) return;
-    const start = performance.now();
-    let frame = requestAnimationFrame(function tick(now) {
-      setT((now - start) / 1000);
-      frame = requestAnimationFrame(tick);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [on]);
-  return t;
+    start.current = performance.now();
+  }, [run]);
+  const now = useTickTime(run);
+  return run && now > start.current ? (now - start.current) / 1000 : 0;
 }
 
 /**

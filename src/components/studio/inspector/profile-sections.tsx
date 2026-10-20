@@ -10,6 +10,7 @@ import { withThemeValues } from "@/lib/theme-model";
 import { cn } from "@/lib/utils";
 import type { BackgroundTarget } from "../background-panel";
 import type { ProfileTheme } from "../profile-theme-panel";
+import { FPS_OPTIONS } from "../general-panel";
 import { FIELD, InlineRow, SegmentedRow, SelectRow, SliderRow, StackRow, ToggleRow } from "../setting-rows";
 import { GRID_REFUSED, SIZE_OPTIONS, parseSize, sizeChoice, sizeOfChoice, stepGrid } from "./profile-grid";
 
@@ -193,6 +194,14 @@ const INHERIT_CUSTOM = [
   { value: "custom" as const, label: "Custom" },
 ];
 
+const PROFILE_FPS = [{ value: "dashboard", label: "Dashboard", title: "Use the dashboard's Max FPS" }, ...FPS_OPTIONS];
+
+const PROFILE_MOTION = [
+  { value: "dashboard", label: "Dashboard", title: "Use the dashboard's Motion" },
+  { value: "reduce", label: "Reduce", title: "Disable animations on this profile" },
+  { value: "full", label: "Full", title: "Always animate on this profile" },
+];
+
 const BACKGROUND_MODES = [
   { value: "inherit" as const, label: "Inherit", title: "Use the dashboard background" },
   { value: "custom" as const, label: "Custom", title: "A background for this profile only" },
@@ -260,6 +269,39 @@ export function ProfileInherit({
         Edit the custom theme and background under Appearance (This profile), the widget theme in Studio › Theme. The
         corner radius is in the Profile section above.
       </p>
+    </div>
+  );
+}
+
+/** This profile's Max FPS and Motion over the dashboard's General settings ("Dashboard" = no override). */
+export function ProfilePerformance({
+  performance,
+  updateProfile,
+}: {
+  performance: ProfileView["performance"];
+  updateProfile: UpdateProfile;
+}) {
+  const set = (patch: NonNullable<ProfileView["performance"]>) =>
+    updateProfile((p) => {
+      const next = Object.fromEntries(Object.entries({ ...p.performance, ...patch }).filter(([, v]) => v !== undefined));
+      return { ...p, performance: Object.keys(next).length > 0 ? next : undefined };
+    }, "profile:performance");
+  return (
+    <div className="space-y-3">
+      <SegmentedRow
+        label="Max FPS"
+        hint="Overrides the dashboard's Max FPS on this profile; the kiosk URL's &fps= still wins"
+        options={PROFILE_FPS}
+        value={performance?.maxFps === undefined ? "dashboard" : String(performance.maxFps)}
+        onChange={(v) => set({ maxFps: v === "dashboard" ? undefined : Number(v) })}
+      />
+      <SegmentedRow
+        label="Motion"
+        hint="Reduce disables animations on this profile"
+        options={PROFILE_MOTION}
+        value={performance?.motion ?? "dashboard"}
+        onChange={(v) => set({ motion: v === "dashboard" ? undefined : (v as "reduce" | "full") })}
+      />
     </div>
   );
 }

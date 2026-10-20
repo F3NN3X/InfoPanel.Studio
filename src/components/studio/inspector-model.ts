@@ -134,6 +134,7 @@ export type SpecialSection =
   | "profileSelection"
   | "profileRotate"
   | "profileIsland"
+  | "profilePerformance"
   | "scope"
   | "presets"
   | "theme"
@@ -141,6 +142,7 @@ export type SpecialSection =
   | "type"
   | "clock"
   | "display"
+  | "performance"
   | "studio"
   | "connection"
   | "ipMode"
@@ -400,6 +402,9 @@ function dashboardSections(): InspectorSection[] {
     dashboardMarker("profile", "profile-island", "Dynamic Island", "profileIsland", [
       "Island", "Notch", "Pill", "Time", "Date", "Alerts", "Notifications", "Collapse", "Touch",
     ]),
+    dashboardMarker("profile", "profile-performance", "Performance", "profilePerformance", [
+      "Max FPS", "Frame rate", "Motion", "Disable animations", "Reduce", "Animations", "Dashboard",
+    ]),
     dashboardMarker(
       "appearance", "ap-scope", "Scope", "scope",
       ["All profiles", "This profile", "Widget theme", "Theme editor"], "doc:appearance"
@@ -419,7 +424,8 @@ function dashboardSections(): InspectorSection[] {
     ),
     dashboardMarker("general", "g-type", "Type", "type", ["Font", "Sans", "Serif", "Mono", "Rounded"], "doc:type"),
     dashboardMarker("general", "g-clock", "Clock & date", "clock", ["Clock", "Time", "Locale", "Show seconds"], "doc:clock"),
-    dashboardMarker("general", "g-display", "Display", "display", ["Motion", "Reduce", "Hide cursor", "Kiosk", "Pages", "Page dots", "Swipe"], "doc:display"),
+    dashboardMarker("general", "g-performance", "Performance", "performance", ["Max FPS", "Frame rate", "FPS", "Unlimited", "Motion", "Disable animations", "Reduce", "Animations"], "doc:performance"),
+    dashboardMarker("general", "g-display", "Display", "display", ["Hide cursor", "Kiosk", "Pages", "Page dots", "Swipe"], "doc:display"),
     dashboardMarker("general", "g-studio", "Studio", "studio", ["Quick bar", "Inspector sections", "Accordion", "One open", "Many open"]),
     dashboardMarker("general", "g-conn", "Connection", "connection", ["Data API", "URL", "Test connection"], "doc:connection"),
   ];

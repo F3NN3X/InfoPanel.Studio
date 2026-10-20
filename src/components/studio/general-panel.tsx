@@ -39,6 +39,15 @@ const MOTIONS = [
   { value: "full", label: "Full" },
 ];
 
+/** The frame-rate caps; the value is the stored number as text. */
+export const FPS_OPTIONS = [
+  { value: "5", label: "5" },
+  { value: "15", label: "15" },
+  { value: "30", label: "30" },
+  { value: "60", label: "60" },
+  { value: "0", label: "Unlimited" },
+];
+
 /** The locale options: System, the common locales, and a saved one not among them. */
 function localeOptions(current: string): { value: string; label: string }[] {
   const known = current === "" || COMMON_LOCALES.some((l) => l.value === current);
@@ -68,7 +77,8 @@ export function generalCards(general: GeneralSettings | undefined, onChange: Gen
   const reset = (keys: (keyof GeneralSettings)[]) => () => keys.forEach((k) => onChange(k, undefined));
   const type = ["font"] as const;
   const clockKeys = ["showSeconds", "locale"] as const;
-  const display = ["motion", "hideCursor", "kioskPageNav"] as const;
+  const performance = ["maxFps", "motion"] as const;
+  const display = ["hideCursor", "kioskPageNav"] as const;
 
   return [
     {
@@ -127,22 +137,42 @@ export function generalCards(general: GeneralSettings | undefined, onChange: Gen
       ),
     },
     {
-      id: "doc:display",
-      title: "Display",
-      hint: "Motion, the kiosk cursor and page navigation",
-      terms: ["Display", "Motion", "Reduce", "Hide cursor", "Kiosk", "Pages", "Page dots", "Swipe"],
-      changed: set([...display]).length,
-      onReset: reset([...display]),
+      id: "doc:performance",
+      title: "Performance",
+      hint: "Frame rate and motion",
+      terms: ["Performance", "Max FPS", "Frame rate", "FPS", "Unlimited", "Motion", "Disable animations", "Reduce", "Animations"],
+      changed: set([...performance]).length,
+      onReset: reset([...performance]),
       node: (
         <>
           <SegmentedRow
+            label="Max FPS"
+            lead={dot("maxFps")}
+            hint="The most frames a second animations redraw (gradients, meters, smooth graphs). Lower it on a weak display or GPU; the kiosk URL's &fps= overrides it."
+            options={FPS_OPTIONS}
+            value={String(g.maxFps)}
+            onChange={(v) => onChange("maxFps", v === "60" ? undefined : Number(v))}
+          />
+          <SegmentedRow
             label="Motion"
             lead={dot("motion")}
-            hint="Reduce shows a background video's poster and calms meters and waveforms; System follows the operating system's setting."
+            hint="Reduce disables animations: a background video shows its poster, meters and waveforms are calm, gradients and the clock colon hold still. System follows the operating system's setting."
             options={MOTIONS}
             value={g.motion}
             onChange={(v) => onChange("motion", v === "system" ? undefined : (v as MotionChoice))}
           />
+        </>
+      ),
+    },
+    {
+      id: "doc:display",
+      title: "Display",
+      hint: "The kiosk cursor and page navigation",
+      terms: ["Display", "Hide cursor", "Kiosk", "Pages", "Page dots", "Swipe"],
+      changed: set([...display]).length,
+      onReset: reset([...display]),
+      node: (
+        <>
           <ToggleRow
             label="Hide cursor in kiosk mode"
             lead={dot("hideCursor")}

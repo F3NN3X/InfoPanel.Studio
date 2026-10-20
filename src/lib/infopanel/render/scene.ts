@@ -362,16 +362,23 @@ export function buildScene(input: SceneInput): DrawNode[] {
   return nodes;
 }
 
-/** Whether a shape's gradient turns with time, so the view must redraw every frame. */
-export function hasAnimatedGradient(items: DisplayItem[]): boolean {
-  return items.some((i) =>
-    i.kind === "Group" ? hasAnimatedGradient(i.DisplayItems) : i.kind === "Shape" && i.ShowGradient && i.GradientAnimationSpeed !== 0,
-  );
+/** Whether some item that is drawn (not Hidden, nor in `hidden`, nor under such a group) satisfies `test`. */
+function anyDrawn(items: DisplayItem[], test: (item: DisplayItem) => boolean, hidden?: ReadonlySet<string>, prefix = ""): boolean {
+  return items.some((i, n) => {
+    const path = prefix ? `${prefix}.${n}` : String(n);
+    if (i.Hidden || hidden?.has(path)) return false;
+    return i.kind === "Group" ? anyDrawn(i.DisplayItems, test, hidden, path) : test(i);
+  });
 }
 
-/** Gauges that move between frames over time (AnimationSpeed). */
-export function hasAnimatedGauge(items: DisplayItem[]): boolean {
-  return items.some((i) => (i.kind === "Group" ? hasAnimatedGauge(i.DisplayItems) : i.kind === "Gauge" && i.AnimationSpeed > 0));
+/** Whether a drawn shape's gradient turns with time, so the view must redraw every frame. */
+export function hasAnimatedGradient(items: DisplayItem[], hidden?: ReadonlySet<string>): boolean {
+  return anyDrawn(items, (i) => i.kind === "Shape" && i.ShowGradient && i.GradientAnimationSpeed !== 0, hidden);
+}
+
+/** Drawn gauges that move between frames over time (AnimationSpeed). */
+export function hasAnimatedGauge(items: DisplayItem[], hidden?: ReadonlySet<string>): boolean {
+  return anyDrawn(items, (i) => i.kind === "Gauge" && i.AnimationSpeed > 0, hidden);
 }
 
 /**

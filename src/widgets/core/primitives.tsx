@@ -330,8 +330,15 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
   const scroll = useRef(new SmoothScroll(HISTORY_LEN));
   const easer = useRef(new RangeEaser(300));
   const fixed = min !== undefined && max !== undefined;
+  // The loop stops once the curve has converged on its target (three identical paths in a row) and restarts with new values.
+  const [settled, setSettled] = useState(false);
+  const still = useRef({ d: "", n: 0 });
   // before paint: a frame drawn between the new history and its arrival time would be skipped (a hitch)
-  useLayoutEffect(() => scroll.current.arrive(values.length, performance.now()), [values]);
+  useLayoutEffect(() => {
+    scroll.current.arrive(values.length, performance.now());
+    still.current.n = 0;
+    setSettled(false);
+  }, [values]);
   useAnimationFrame((now, dt) => {
     const pts = line.current && scroll.current.frame(values, now, dt);
     if (!pts) return;
@@ -340,7 +347,11 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
     const d = sparkPaths(pts, ...(fixed ? target : easer.current.next(target, dt)), step);
     line.current!.setAttribute("d", d.line);
     area.current?.setAttribute("d", d.area);
-  });
+    const s = still.current;
+    s.n = d.line === s.d ? s.n + 1 : 0;
+    s.d = d.line;
+    if (s.n >= 3) setSettled(true);
+  }, !settled);
   // The first paint only: after mount the loop owns `d`. A path recomputed per render would make
   // React write the static layout on every new sample, flashing it for a frame.
   const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max), step));

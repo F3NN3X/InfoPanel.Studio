@@ -18,6 +18,8 @@ import { applyTheme, resolveTheme } from "@/lib/theme";
 import { fontStack, formatClock, resolveGeneral } from "@/lib/general";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { GeneralProvider, useGeneral } from "@/hooks/use-general";
+import { PerformanceProvider } from "@/hooks/use-performance";
+import { performanceFromSearch } from "@/lib/performance";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { setApiBase } from "@/lib/data-api";
 import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush } from "@/lib/desktop";
@@ -167,6 +169,11 @@ export default function App() {
   const background = resolveBackground(config, profile);
   const appearance = appearanceOf(config, profile);
   const general = useMemo(() => resolveGeneral({ general: config.general, style: config.style }), [config.general, config.style]);
+  // Max FPS and motion: the ?fps= / ?animations= / ?motion= overrides (kiosk pages) over the shown profile's.
+  const perfOverride = useMemo(
+    () => ({ ...stored.performance, ...(kiosk ? performanceFromSearch(window.location.search) : undefined) }),
+    [stored.performance, kiosk]
+  );
 
   // Page dots and swipe: only with the setting on, 2+ pages, and no ?page= pin.
   const pageNav =
@@ -410,6 +417,7 @@ export default function App() {
   if (studio) {
     return (
       <GeneralProvider value={general}>
+      <PerformanceProvider value={perfOverride}>
         {refused && (
           <div
             role="alert"
@@ -441,12 +449,14 @@ export default function App() {
             offline={offline}
           />
         </Suspense>
-      </GeneralProvider>
+      </PerformanceProvider>
+    </GeneralProvider>
     );
   }
 
   return (
     <GeneralProvider value={general}>
+      <PerformanceProvider value={perfOverride}>
       <div
         className={cn(
           // A page background replaces the theme's page color (it sits
@@ -571,6 +581,7 @@ export default function App() {
           </button>
         )}
       </div>
+    </PerformanceProvider>
     </GeneralProvider>
   );
 }

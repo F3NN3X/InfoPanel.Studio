@@ -21,6 +21,7 @@ import { normalizeAlerts, type AlertsConfig } from "./alerts";
 import { migrateLegacyZones } from "./legacy-zones";
 import { storageCopy } from "./canvas-store";
 import { normalizeIsland, type IslandConfig } from "./island/config";
+import { normalizePerformance, type PerformanceOverride } from "./performance";
 import {
   normalizePanelPlacement,
   normalizePanelPresets,
@@ -190,6 +191,8 @@ export interface MonitorProfile {
   padding?: number;
   /** The Dynamic Island over the page (`src/lib/island`); unset = none. */
   island?: IslandConfig;
+  /** Max FPS and motion for this profile, over the dashboard's General settings; unset = the dashboard's. */
+  performance?: PerformanceOverride;
   /** Set on the profiles earlier versions shipped (Sample, ARCv2); kept, no longer read. */
   sampleVersion?: number;
 }
@@ -415,6 +418,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     gap: normalizeSpacing(p.gap),
     padding: normalizeSpacing(p.padding),
     island: normalizeIsland(p.island),
+    performance: normalizePerformance(p.performance),
   };
 }
 
