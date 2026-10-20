@@ -1,3 +1,4 @@
+import { NO_PAN, type PanOffset } from "./use-hand-pan";
 import {
   useEffect,
   useLayoutEffect,
@@ -75,6 +76,8 @@ interface StudioCanvasProps {
   showGrid: boolean;
   /** Draw the rulers (default on). */
   showRulers?: boolean;
+  /** The hand tool's offset: the page and its surround move by it. */
+  pan?: PanOffset;
   /** The scroll container (shared with the zoom hook for wheel + fit). */
   scrollRef: RefObject<HTMLDivElement | null>;
   /** Callback ref that attaches the scroll container to the zoom hook. */
@@ -142,6 +145,7 @@ export function StudioCanvas({
   zoom,
   showGrid,
   showRulers = true,
+  pan = NO_PAN,
   scrollRef,
   attachScroll,
   selectedIds,
@@ -446,7 +450,7 @@ export function StudioCanvas({
               if (e.target === e.currentTarget) onSelect(null);
             }}
             className="flex min-h-full w-fit min-w-full"
-            style={{ padding: scrollPad(inset) }}
+            style={{ padding: scrollPad(inset), ...(pan.x || pan.y ? { transform: `translate(${pan.x}px, ${pan.y}px)` } : {}) }}
           >
             {/* The page: exactly the profile's design size (the kiosk
                 window renders the same profile 1:1), its padding around
@@ -607,6 +611,8 @@ export function StudioCanvas({
               zoneId={selected.id}
               layoutKey={[
                 zoom,
+                pan.x,
+                pan.y,
                 selected.colStart,
                 selected.rowStart,
                 selected.colSpan,

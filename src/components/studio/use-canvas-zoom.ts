@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fitZoomFor, stepZoom, type CanvasInset } from "./studio-layout";
-import { useMiddlePan } from "./use-middle-pan";
+import { useHandPan } from "./use-hand-pan";
 import { loadZoomPref, saveZoomPref } from "./zoom-pref";
 
 /**
- * Canvas zoom: discrete steps, ctrl/cmd + wheel over the scroll container (and middle-drag pans it),
+ * Canvas zoom: discrete steps, ctrl/cmd + wheel over the scroll container (the hand tool pans it: see useHandPan),
  * and a sticky fit. While `fitting` (the default) the zoom is whatever fits
  * the profile's page (`page.height` 0 = width only) into the canvas, and
  * follows the container and the profile; any manual zoom turns it off and
@@ -27,7 +27,9 @@ export function useCanvasZoom(page: { width: number; height: number }, inset: Ca
     scrollRef.current = el;
     setScrollEl(el);
   }, []);
-  useMiddlePan(scrollEl);
+  const { pan, resetPan } = useHandPan(scrollEl);
+  // A new page size (another profile, a resize) starts centred again.
+  useEffect(resetPan, [page.width, page.height, resetPan]);
 
   // The fit follows the scroll container's size.
   useEffect(() => {
@@ -69,8 +71,11 @@ export function useCanvasZoom(page: { width: number; height: number }, inset: Ca
 
   const zoomStep = (dir: 1 | -1) => setZoom(stepZoom(zoom, dir));
 
-  /** Fit the page to the canvas and keep it fitted. */
-  const fitZoom = () => setFitting(true);
+  /** Fit the page to the canvas and keep it fitted; the pan goes back to centre. */
+  const fitZoom = () => {
+    setFitting(true);
+    resetPan();
+  };
 
-  return { zoom, fitting, setZoom, zoomStep, fitZoom, scrollRef, attachScroll };
+  return { zoom, fitting, setZoom, zoomStep, fitZoom, pan, scrollRef, attachScroll };
 }

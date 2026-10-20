@@ -225,7 +225,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
       { keys: `${KEYS.zoomIn} / Ctrl+=`, label: "Zoom in" },
       { keys: `${KEYS.zoomOut} / Ctrl+-`, label: "Zoom out" },
       { keys: "Ctrl+wheel", label: "Zoom" },
-      { keys: "Middle-drag", label: "Pan the canvas (when it is larger than the view)" },
+      { keys: "Space+drag / middle-drag", label: "Pan the canvas (Fit puts it back)" },
       { keys: KEYS.dock, label: "Show / hide the inspector" },
     ],
   },
