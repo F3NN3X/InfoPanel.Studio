@@ -1,10 +1,11 @@
-import type { GroupDef } from "./types";
-
-/** The nav groups and their article ids; the order here is the reading order (Previous / Next). */
-export const HELP_GROUPS: GroupDef[] = [
+/** Help nav order: groups in reading order, each listing article ids (the file names in `articles/`). */
+export const HELP_GROUPS: { label: string; articles: string[] }[] = [
   { label: "Start here", articles: ["welcome", "quickstart", "concepts"] },
-  { label: "Build", articles: ["studio", "profiles", "zones", "widgets", "panels", "panel-widgets", "presets"] },
-  { label: "Style", articles: ["themes", "widget-settings", "background", "custom-css"] },
+  {
+    label: "Build",
+    articles: ["studio", "profiles", "zones", "widgets", "panels", "panel-widgets", "presets", "library"],
+  },
+  { label: "Style", articles: ["themes", "widget-settings", "background", "custom-css", "island-alerts"] },
   { label: "Data", articles: ["sensors", "agents"] },
   { label: "Import from InfoPanel", articles: ["import", "canvas", "remap", "assets", "gauges"] },
   { label: "Run", articles: ["kiosk", "startup", "updates"] },

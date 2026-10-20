@@ -3,8 +3,9 @@ id: concepts
 title: Core concepts
 icon: account_tree
 related: [profiles, zones, themes]
-verified: draft
+verified: 1.3.0-beta.1
 ---
+
 The five building blocks, from the whole dashboard down to a single readout.
 
 :::flow
@@ -20,7 +21,7 @@ Everything you build: the theme, the global style, the page background, fonts an
 
 ## Profile
 
-A page designed for one display size, with its own grid (columns × rows), fit mode, gap and padding. A profile can inherit the dashboard theme or set its own. **Auto** picks the profile closest to the window size, so one dashboard can serve a 1920×550 strip and a 1024×600 panel.
+A page designed for one display size, with its own grid (columns × rows), fit mode, gap and padding. A profile can inherit the dashboard theme or set its own. **Auto-pick by window size** chooses the profile closest to the window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
 
 ## Zone
 
@@ -32,8 +33,8 @@ A ready-made module that reads sensors and draws itself: System, Spotify, Weathe
 
 ## Panel
 
-A zone you compose from small **panel widgets** (stat, gauge, bar, clock, image…) laid out as a Stack, a Grid or an Overlay. Use a panel when no widget shows exactly what you want. See [Panels](panels).
+A zone you compose from small **panel widgets** (stat, gauge, bar, clock, image and more) laid out as a Stack, a Grid or an Overlay. Use a panel when no widget shows exactly what you want. See [Panels](panels).
 
 ## How looks are decided
 
-Looks flow downward. A widget follows its profile theme, which follows the dashboard theme, unless you customise a section on the widget itself. Content (which sensor, what to show) always belongs to the widget. See [Themes and appearance](themes).
+Looks flow downward. A widget follows its profile theme, which follows the dashboard theme, unless you customize a section on the widget itself. Content (which sensor, what to show) always belongs to the widget. See [Themes and appearance](themes).

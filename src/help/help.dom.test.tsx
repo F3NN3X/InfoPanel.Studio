@@ -60,6 +60,17 @@ describe("the help window", () => {
     expect(screen.getByRole("button", { name: "The kiosk URL" }).getAttribute("aria-current")).toBeNull();
     expect(window.location.hash).toBe("#kiosk/changing-the-port");
   });
+
+  it("opens an article at the top for a crafted heading in the hash", () => {
+    window.history.replaceState(null, "", '/#kiosk/a"b');
+    render(
+      <EnvProvider value={browserEnv}>
+        <HelpApp content={content} />
+      </EnvProvider>
+    );
+    expect(screen.getByRole("heading", { level: 1, name: "Kiosk and server" })).toBeTruthy();
+    expect((document.querySelector("main") as HTMLElement).scrollTop).toBe(0);
+  });
 });
 
 afterAll(() => {

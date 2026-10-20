@@ -34,7 +34,11 @@ function useDesktopInfo(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     void ipc.appInfo().then((info) => setVersion(info.version)).catch(() => {});
-    void ipc.getSettings().then((s) => setZoom(s.zoom)).catch(() => {});
+    // Settings can change the zoom while Help is open: re-read it when the window regains focus.
+    const syncZoom = () => void ipc.getSettings().then((s) => setZoom(s.zoom)).catch(() => {});
+    syncZoom();
+    window.addEventListener("focus", syncZoom);
+    return () => window.removeEventListener("focus", syncZoom);
   }, [enabled]);
   const changeZoom = useCallback(async (percent: number) => {
     setZoom(percent);
@@ -116,10 +120,19 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   useLayoutEffect(() => {
     const pane = main.current;
     if (!pane || !article) return;
-    const heading = route.heading ? pane.querySelector<HTMLElement>(`[data-hid="${route.heading}"]`) : null;
+    const heading = route.heading ? findHeading(pane, route.heading) : null;
     pane.scrollTop = heading ? heading.offsetTop - SCROLL_MARGIN : 0;
     setActive(heading ? route.heading : null);
   }, [route.seq]);
+
+  // Leaving the results (Escape) puts the article back at the top, unless an open just scrolled it to a heading.
+  const wasSearching = useRef(searching);
+  const lastSeq = useRef(route.seq);
+  useLayoutEffect(() => {
+    if (wasSearching.current && !searching && lastSeq.current === route.seq && main.current) main.current.scrollTop = 0;
+    wasSearching.current = searching;
+    lastSeq.current = route.seq;
+  });
 
   const onScroll = () => {
     const pane = main.current;
@@ -133,7 +146,7 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
 
   const toc = (id: string) => {
     const pane = main.current;
-    const heading = pane?.querySelector<HTMLElement>(`[data-hid="${id}"]`);
+    const heading = pane && findHeading(pane, id);
     if (pane && heading) pane.scrollTop = heading.offsetTop - SCROLL_MARGIN;
     setActive(id);
   };
@@ -182,8 +195,14 @@ export function HelpApp({ content = HELP }: HelpAppProps) {
   );
 }
 
-/** The route for a target; an unknown article is Help home. */
+/** A heading of the pane by id; compared, not put in a selector, since the id can come from a link. */
+function findHeading(pane: HTMLElement, id: string): HTMLElement | null {
+  return Array.from(pane.querySelectorAll<HTMLElement>("[data-hid]")).find((h) => h.dataset.hid === id) ?? null;
+}
+
+/** The route for a target; an unknown article is Help home, an unknown heading is the top of the article. */
 function toRoute(target: HelpTarget, content: HelpContent, seq: number): Route {
-  const known = target.article !== undefined && Object.hasOwn(content.articles, target.article);
-  return { article: known ? (target.article ?? null) : null, heading: known ? (target.heading ?? null) : null, seq };
+  const article = target.article !== undefined && Object.hasOwn(content.articles, target.article) ? content.articles[target.article] : null;
+  const heading = article && article.blocks.some((b) => b.type === "h" && b.id === target.heading) ? (target.heading ?? null) : null;
+  return { article: article?.id ?? null, heading, seq };
 }

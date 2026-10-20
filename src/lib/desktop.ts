@@ -41,7 +41,9 @@ export async function openHelp(target: HelpTarget = {}): Promise<void> {
     await call<void>("open_help", { ...target });
     return;
   }
-  window.open(helpPageUrl(target), "_blank", "noopener");
+  // A named target, so a held F1 reuses one tab; the opener is cut by hand since a name needs the context.
+  const w = window.open(helpPageUrl(target), "infopanel-help");
+  if (w) w.opener = null;
 }
 
 /** Native save dialog; resolves to whether a file was written. */

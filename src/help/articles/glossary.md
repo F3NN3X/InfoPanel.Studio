@@ -3,13 +3,14 @@ id: glossary
 title: Glossary
 icon: menu_book
 related: [concepts]
-verified: draft
+verified: 1.3.0-beta.1
 ---
+
 The words this app uses, in one place.
 
 | Term | Meaning |
 |---|---|
-| Canvas zone | A zone holding an imported InfoPanel profile, drawn faithfully or as native widgets |
+| Canvas zone | A zone holding an imported InfoPanel profile, drawn as InfoPanel draws it or as native widgets |
 | Data API | InfoPanel's sensor feed, on port 3921 by default |
 | Faithful | Drawn exactly as InfoPanel draws it; ignores the theme |
 | Follow theme | A widget section that takes its values from the theme |
@@ -18,6 +19,7 @@ The words this app uses, in one place.
 | Native | Drawn as a dashboard widget that follows the theme |
 | Panel | A zone composed of panel widgets in a Stack, Grid or Overlay |
 | Profile | A page for one display size, with its own grid |
-| Sidecar | The helper process that reads hardware sensors |
+| Sidecar | The bundled Node server process that runs beside the app |
+| Skin | A built-in look from the **Skins** gallery |
 | Small zones | What a widget does in a small zone: auto, full, card or dense |
 | Zone | A box on the profile grid |

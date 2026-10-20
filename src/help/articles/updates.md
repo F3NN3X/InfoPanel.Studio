@@ -3,18 +3,21 @@ id: updates
 title: Updates
 icon: system_update
 related: [startup, kiosk]
-verified: draft
+verified: 1.3.0-beta.1
 ---
+
 Get new versions, and see what changed.
 
-Settings › Updates checks for a new version, downloads it and installs it on restart. Installing restarts the app and the kiosk server; the display is blank for about 10 seconds.
+Settings › Updates checks for a new version, downloads it and installs it on restart. Installing restarts the app and the kiosk server; the display is blank for about 10 seconds. The update card has **Check now**, **Download**, **Cancel**, **Restart and update**, **What's new** and **Try again**, depending on the state.
 
 | Option | Effect |
 |---|---|
-| Release channel | **Stable**, or **Beta** to get features a few weeks early |
-| Check at startup | Look for updates each time the app starts |
-| Download in the background | Download automatically; install on the next restart |
+| **Release channel** | **Stable**, or **Beta** to get features a few weeks early |
+| **Check for updates at startup** | Look for updates each time the app starts |
+| **Download in the background** | Download automatically; install on the next restart |
 
 :::open settings/updates Settings › Updates
 
-The full changelog lives in Settings › Changelog, with every release and what was added, changed and fixed.
+The full changelog lives in Settings › Changelog, with every release. A Read and Markdown toggle switches how it shows, and an "Installed" chip marks your version.
+
+:::open settings/changelog Settings › Changelog

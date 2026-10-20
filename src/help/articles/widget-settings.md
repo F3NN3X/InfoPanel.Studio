@@ -3,38 +3,45 @@ id: widget-settings
 title: Widget settings
 icon: tune
 related: [themes, widgets, custom-css]
-verified: draft
+verified: 1.3.0-beta.1
 ---
-Every widget has the same four tabs, filed by the question they answer.
+
+Every widget and panel has the same four tabs, filed by the question they answer.
 
 | Tab | Answers | Holds |
 |---|---|---|
-| **Show** | What is on it? | Header (title, icon), the widget's own content sections, Fit (small zones, density) |
+| **Show** | What is on it? | Header (title, icon, widget type, visible), the widget's own content sections, Fit (small zones, density) |
 | **Style** | How does it look? | Skin & graphics, Colors, Widget colors, Surface, Typography, Size & spacing, Border & glow, Custom CSS |
-| **Data** | Where do values come from? | Device, sensors, source; Units & format |
-| **Behaviour** | How does it react? | Thresholds, history, dynamics, Dynamic Island, Motion |
+| **Data** | Where do values come from? | Bound data, device and sources, Units & format |
+| **Behaviour** | How does it react? | Thresholds, the widget's own behaviour, Dynamic Island, Motion |
 
-Widget-specific sections come first in each tab, shared ones after. A tab with nothing in it for this widget is greyed out.
+Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows **Profile**, **Appearance** and **General** instead. The theme editor has Style, Data and Behaviour tabs.
 
 ## Finding a setting
 
 - Type in the inspector's search box. Results name the tab and section.
-- Press **Changed** to list only what you have changed on this widget.
-- Rows marked **More** are less common; open them at the end of a section.
+- Turn on **Changed** to list only what you have changed on this widget. **Reset all** clears them.
+- Open **More** at the end of a section for less common rows.
+- Press the pin button on a row to pin it to the quick bar, up to 6 per widget type. Turn the bar on under **Dashboard › General › Studio › Quick bar**.
 
 ## Setting dots
 
-A filled accent dot means the row has its own value on this widget. Click the dot to reset just that row. Sections show a pill instead: **Theme**, **Custom** or **Locked**.
+A dot beside a row shows where its value comes from. No dot means the default. Other dots mean it comes from the dashboard style, from the profile style, is set on this widget, or is set here and overrides a global value. Click a set dot to reset only that row. The inspector footer has **What the dots mean**.
 
 ## Common controls
 
 | Control | Works like this |
 |---|---|
-| Thresholds | A green / amber / red bar with Warning and Critical sliders. Critical can't go below Warning. |
-| Device | **Auto** first, with its rule and current pick (for example busiest adapter · now Ethernet 2), then every detected device. |
-| Units & format | Temperature °C / °F, rate (auto, MB/s, Mb/s…), decimals, 12 / 24 h. Set once in the theme. |
-| Widget colors | Each colour has a role (Series 1–6, OK, Warning, Critical, Accent) that follows the theme palette until customised. |
+| Thresholds | A green, amber and red bar with **Warning** and **Critical** sliders. Critical can't go below Warning. **Off** turns thresholds off. The quantity is Load, Temperature, Fullness, Audio level or Value. |
+| Device | **Auto** first, with its rule and current pick (for example "busiest adapter"), then every detected device. |
+| Units & format | Temperature °C / °F, speed units, decimals, clock format. Set once in the theme. |
+| Widget colors | Each color has a role (Series 1 to 6, OK, Warning, Critical, Accent) that follows the theme palette until customized. |
 
 ## Copying a look
 
-From the Style tab's preset menu: **Copy style**, **Paste style**, **Save as preset**, or **Use as theme** to push this widget's look up to the profile.
+In the **Colors** header, the copy and paste icons copy one widget's style to another, and the three-dot menu has:
+
+- **Use as global…** to push this widget's look up to All profiles or This profile.
+- **Apply preset**, **Save as preset…** and **Delete preset**.
+
+Right-click a zone for **Copy style**, **Paste style** and **Follow global style** too.
