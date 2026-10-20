@@ -1,4 +1,5 @@
 import { useGeneral } from "@/hooks/use-general";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { localeHour12 } from "@/lib/general";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, get, num, Num, type ShellProps, type WidgetMeta } from "./kit";
@@ -63,6 +64,7 @@ export default function Clock(p: ClockProps) {
     mon = k("month"),
     yr = k("year");
   const { locale } = useGeneral();
+  const reduced = useReducedMotion();
   const h12 = p.format === "12h" || (p.format === "auto" && localeHour12(locale));
   const hh = h12 ? k("12-hour") : H;
   const pad = (v: number) => String(Number.isFinite(v) ? v : 0).padStart(2, "0");
@@ -96,7 +98,7 @@ export default function Clock(p: ClockProps) {
             <div className="flex items-baseline gap-1.5 leading-none">
               <Num className="font-semibold tracking-tight" style={{ fontSize: timePx(size, w, h, secs && size !== "xs", h12, p.showDate !== false) }}>
                 {pad(hh)}
-                <span className="inline-block animate-pulse text-[color:var(--accent)]">:</span>
+                <span className="inline-block text-[color:var(--accent)]" style={{ opacity: !reduced && S % 2 === 1 ? 0.3 : 1 }}>:</span>
                 {pad(M)}
               </Num>
               {secs && size !== "xs" && <span className="font-mono text-lg tabular-nums text-[color:var(--w-faint)]">{pad(S)}</span>}

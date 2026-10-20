@@ -11,7 +11,7 @@ import { BackgroundPanel, type BackgroundTarget } from "./background-panel";
 import { DataApiPanel } from "./data-api-panel";
 import { generalCards } from "./general-panel";
 import { InspectorNote, InspectorView, type SectionParts } from "./inspector/inspector-view";
-import { AutoPick, AutoRotate, ProfileFields, ProfileInherit } from "./inspector/profile-sections";
+import { AutoPick, AutoRotate, ProfileFields, ProfileInherit, ProfilePerformance } from "./inspector/profile-sections";
 import { IslandSection } from "./inspector/island-section";
 import { useAccordionPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
 import { withIsland } from "@/lib/island/config";
@@ -237,6 +237,8 @@ function DocumentSheet({
             />
           ),
         };
+      case "profilePerformance":
+        return { body: <ProfilePerformance performance={activeProfile.performance} updateProfile={updateProfile} /> };
       case "profileSelection":
         return { body: <AutoPick auto={autoPick} onAuto={onAutoPick} /> };
       case "profileRotate":
@@ -303,6 +305,7 @@ function DocumentSheet({
         };
       case "type":
       case "clock":
+      case "performance":
       case "display": {
         const card = s.cardId ? generalById.get(s.cardId) : undefined;
         return card ? { body: card.node, changed: card.changed, onReset: card.onReset } : {};

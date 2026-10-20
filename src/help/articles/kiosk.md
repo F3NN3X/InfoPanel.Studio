@@ -3,7 +3,7 @@ id: kiosk
 title: Kiosk and server
 icon: dns
 related: [startup, problems, diagnostics]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.5
 ---
 
 The local server hosts your dashboard. InfoPanel shows it through the kiosk URL.
@@ -34,6 +34,18 @@ On Local network, anyone on your network can open the kiosk and the studio. Wind
 ## Changing the port
 
 Pick a port from 1024 to 65535. Port, network and debug changes are saved right away but apply after a server restart; an amber bar at the top of Settings lists what is waiting and offers **Undo** and **Restart server**. Update the URL in InfoPanel to match.
+
+## Frame rate and animations
+
+The kiosk redraws animated gradients, meters and smooth graphs on one shared clock, at most **Max FPS** times a second: 5, 15, 30, 60 (the default) or Unlimited. Lower it if the display's GPU works hard while nothing seems to change. **Motion** set to Reduce disables animations: gradients and gauges show their final state, the Clock colon stays solid and nothing redraws on a timer.
+
+Set both for every profile under General › Performance in the studio, or for one profile under Profile › Performance. A kiosk URL overrides both:
+
+| Add to the URL | Effect |
+|---|---|
+| `&fps=30` | Max FPS of 5, 15, 30, 60, or `0` for Unlimited |
+| `&animations=0` | Disable animations (Motion: Reduce) |
+| `&motion=reduce`, `&motion=full` or `&motion=system` | Motion for this display only |
 
 ## Crashes
 

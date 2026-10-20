@@ -7,6 +7,7 @@
  */
 
 import { ensureFont, FONT_CATALOG, FONT_IDS, fontById, type FontId } from "@/lib/fonts";
+import { isMaxFps } from "@/lib/performance";
 import { hour12Of } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
 
@@ -22,6 +23,8 @@ export interface GeneralSettings {
   locale?: string;
   /** Animations: follow the OS setting, or always reduce / always run. */
   motion?: MotionChoice;
+  /** Most frames a second animations redraw: 5, 15, 30, 60 (default) or 0 for every display frame. */
+  maxFps?: number;
   /** Hide the mouse cursor on kiosk pages. */
   hideCursor?: boolean;
   /** Kiosk page dots and swipe between a profile's pages (default off). */
@@ -35,6 +38,7 @@ export interface ResolvedGeneral {
   showSeconds: boolean;
   locale: string;
   motion: MotionChoice;
+  maxFps: number;
   hideCursor: boolean;
   kioskPageNav: boolean;
 }
@@ -45,6 +49,7 @@ export const GENERAL_DEFAULTS: ResolvedGeneral = {
   showSeconds: true,
   locale: "",
   motion: "system",
+  maxFps: 60,
   hideCursor: false,
   kioskPageNav: false,
 };
@@ -102,6 +107,7 @@ export function normalizeGeneral(input: unknown): GeneralSettings | undefined {
   if (typeof v.showSeconds === "boolean") out.showSeconds = v.showSeconds;
   if (typeof v.locale === "string" && isSupportedLocale(v.locale.trim())) out.locale = v.locale.trim();
   if (MOTIONS.includes(v.motion as MotionChoice)) out.motion = v.motion as MotionChoice;
+  if (isMaxFps(v.maxFps)) out.maxFps = v.maxFps;
   if (typeof v.hideCursor === "boolean") out.hideCursor = v.hideCursor;
   if (typeof v.kioskPageNav === "boolean") out.kioskPageNav = v.kioskPageNav;
   return Object.keys(out).length > 0 ? out : undefined;

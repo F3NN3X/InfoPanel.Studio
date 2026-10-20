@@ -6,6 +6,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- Max FPS and Motion under General › Performance, with a per-profile override under Profile › Performance and kiosk
+  URL overrides `&fps=` (5, 15, 30, 60, 0 for unlimited), `&animations=0` and `&motion=reduce|full|system`. Max FPS
+  defaults to 60, so nothing changes until it is lowered.
+
+### Changed
+- The kiosk no longer redraws at the display's rate when nothing changes. Animated gradients, smooth graphs and
+  moving gauges share one frame clock capped at Max FPS, hidden items and gauges that reached their value cost
+  nothing, and the Clock colon blinks once a second from the clock's own tick instead of a CSS animation. With
+  Motion on Reduce they stay still. Motion also follows the URL and profile overrides.
+
 ## [1.3.0-beta.5] - 2026-10-20
 
 ### Changed

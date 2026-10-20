@@ -33,6 +33,15 @@ describe("kioskPageNav", () => {
   });
 });
 
+describe("maxFps", () => {
+  it("defaults to 60 and is kept only as a valid choice", () => {
+    expect(GENERAL_DEFAULTS.maxFps).toBe(60);
+    expect(resolveGeneral({ general: { maxFps: 15 } }).maxFps).toBe(15);
+    for (const fps of [5, 15, 30, 60, 0]) expect(normalizeGeneral({ maxFps: fps })).toEqual({ maxFps: fps });
+    for (const bad of [24, -1, "30", null, 1000]) expect(normalizeGeneral({ maxFps: bad })).toBeUndefined();
+  });
+});
+
 describe("normalizeGeneral", () => {
   it("drops non-objects and empty results", () => {
     expect(normalizeGeneral(undefined)).toBeUndefined();

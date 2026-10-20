@@ -3,7 +3,7 @@
  * per draw node in InfoPanel's order. Text uses the faces InfoPanel draws with
  * (font-loader), images come from the export's assets or their URLs.
  */
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ExportEntry } from "@/lib/infopanel/archive.ts";
 import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
@@ -16,6 +16,8 @@ import { smoothIndex } from "@/lib/infopanel/render/geometry.ts";
 import { buildScene, hasAnimatedGauge, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "@/lib/infopanel/render/scene.ts";
 import { MissingImage } from "./MissingImage.tsx";
 import { Table, Text, type FontCss } from "./Text.tsx";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useTick } from "@/hooks/use-tick";
 
 const fontKey = (s: TextStyle) => JSON.stringify([s.font.font, s.font.style, s.font.bold, s.font.italic]);
 
@@ -73,7 +75,7 @@ function useImages(assets: AssetSource): (source: ImageSource) => ImageInfo | nu
   const objectUrls = useRef<string[]>([]);
   useEffect(() => () => objectUrls.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
-  return (source) => {
+  return useCallback((source: ImageSource) => {
     if (source.kind === "none") return null;
     const key = source.kind === "asset" ? `asset:${source.name}#${assets.get(source.name)?.hash ?? ""}` : `url:${source.url}`;
     if (cache.has(key)) return cache.get(key);
@@ -106,7 +108,7 @@ function useImages(assets: AssetSource): (source: ImageSource) => ImageInfo | nu
           .then(done, () => done(null));
     }
     return undefined;
-  };
+  }, [cache, assets]);
 }
 
 /** SKBitmapExtensions.CreateMaterialNoImageBitmap. */
@@ -236,25 +238,20 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
   const image = useImages(assets);
   const [start] = useState(() => performance.now());
   const [elapsed, setElapsed] = useState(0);
-  const animated = useMemo(() => hasAnimatedGradient(items) || hasAnimatedGauge(items), [items]);
-  // Each animating gauge's shown index and when it was last moved, across frames.
-  const gauges = useRef(new Map<string, { index: number; at: number }>());
-  const gaugeIndex = (path: string, target: number, speed: number, count: number) => {
-    const now = performance.now();
-    const last = gauges.current.get(path);
-    // First evaluation: InfoPanel uses a nominal 1/60 s so smoothing starts at once.
-    const index = smoothIndex(last?.index ?? 0, target, speed, last ? (now - last.at) / 1000 : 1 / 60, count);
-    gauges.current.set(path, { index, at: now });
-    return index;
-  };
+  // Reduced motion draws gradients and gauges in their static, final state and runs no loop.
+  const reduced = useReducedMotion();
+  const gradientTurns = useMemo(() => !reduced && hasAnimatedGradient(items, hidden), [reduced, items, hidden]);
+  const gaugesAnimate = useMemo(() => !reduced && hasAnimatedGauge(items, hidden), [reduced, items, hidden]);
+  // Each animating gauge's shown index, its target and when it was last moved, across scene builds.
+  const gauges = useRef(new Map<string, { index: number; target: number; at: number }>());
+  const [moving, setMoving] = useState(false);
+  // The loop runs on the shared ticker (Max FPS) only while something drawn turns or a gauge is still on its way.
+  useTick((now) => setElapsed(now - start), gradientTurns || moving);
   useEffect(() => {
-    if (!animated) return;
-    let frame = requestAnimationFrame(function tick() {
-      setElapsed(performance.now() - start);
-      frame = requestAnimationFrame(tick);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [animated, start]);
+    // Only on a change: a same-value setState after every commit would render twice per frame.
+    const next = gaugesAnimate && [...gauges.current.values()].some((g) => Math.abs(g.index - g.target) > 1e-9);
+    if (next !== moving) setMoving(next);
+  });
 
   // InfoPanel draws on whole pixels; a view starting at a fractional offset would blur
   // every half-pixel stroke, so nudge it onto the device pixel grid.
@@ -279,7 +276,26 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
     if (corrections.current++ < 3) setNudge(next);
   });
 
-  const nodes = buildScene({ profile, items, sensor, image, now, elapsedMs: elapsed, hidden, gaugeIndex });
+  const built = useMemo(() => {
+    const before = gauges.current;
+    const after = new Map<string, { index: number; target: number; at: number }>();
+    const gaugeIndex = (path: string, target: number, speed: number, count: number) => {
+      const at = performance.now();
+      const last = before.get(path);
+      // First evaluation, or a gauge that had settled: InfoPanel uses a nominal 1/60 s so smoothing starts at once.
+      const moved = last && Math.abs(last.index - last.target) > 1e-9;
+      const index = smoothIndex(last?.index ?? 0, target, speed, last && moved ? (at - last.at) / 1000 : 1 / 60, count);
+      after.set(path, { index, target, at });
+      return index;
+    };
+    const scene = buildScene({ profile, items, sensor, image, now, elapsedMs: reduced ? 0 : elapsed, hidden, gaugeIndex: reduced ? undefined : gaugeIndex });
+    return { scene, after };
+  }, [profile, items, sensor, image, now, elapsed, hidden, reduced]);
+  // Kept on commit, not in the memo: a render React discards (or StrictMode's second call) must not advance a gauge.
+  useLayoutEffect(() => {
+    gauges.current = built.after;
+  }, [built]);
+  const nodes = built.scene;
   const canvas = { width: profile.Width, height: profile.Height };
   return (
     <div
