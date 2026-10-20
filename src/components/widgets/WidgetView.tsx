@@ -7,7 +7,10 @@ import { Bar as SkinBar, Ring, Spark } from "@/widgets/core/primitives";
 import { useHistory } from "@/widgets/core/layout";
 import { isImageUrl, resolveImageUrl } from "@/lib/image";
 import { sensorAt } from "@/lib/sensors";
+import { Marquee } from "@/components/ui/marquee";
+import { customClockText } from "@/lib/clock-format";
 import { formatClock } from "@/lib/general";
+import { MARQUEE_SPACING, MARQUEE_SPEED } from "@/lib/marquee";
 import { hexToHsl } from "@/lib/theme";
 import { useGeneral } from "@/hooks/use-general";
 import type { SensorValue } from "@/hooks/useSensors";
@@ -450,7 +453,13 @@ function Text({ widget, text }: { widget: Widget; text: string }) {
           ...colorStyle(widget.color),
         }}
       >
-        {text || "—"}
+        {widget.scroll ? (
+          <Marquee speed={widget.scrollSpeed ?? MARQUEE_SPEED} spacing={widget.scrollSpacing ?? MARQUEE_SPACING}>
+            {text || "—"}
+          </Marquee>
+        ) : (
+          text || "—"
+        )}
       </div>
     </div>
   );
@@ -494,6 +503,18 @@ function Clock({ widget }: { widget: Widget }) {
   const { time, date } = formatClock(now, useGeneral());
   const mode = widget.clock ?? "both";
   const sk = usePanelSkin();
+  // A format shows time or date alone, in the time's size (InfoPanel's Clock and Calendar).
+  const custom = mode === "both" ? null : customClockText(now, mode, widget.format);
+  if (custom !== null) {
+    return (
+      <div
+        className="wp-clock-time font-bold tracking-tight tabular-nums"
+        style={{ ...colorStyle(widget.color), textAlign: widget.align, fontSize: widget.fontSize ?? "2.25rem", ...panelNum(sk, 700) }}
+      >
+        {custom}
+      </div>
+    );
+  }
   return (
     <div
       className="flex flex-col"

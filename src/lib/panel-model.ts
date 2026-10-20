@@ -95,6 +95,14 @@ export interface Widget {
   rows?: number;
   /** "clock" layout. */
   clock?: "time" | "date" | "both";
+  /** "clock" showing time or date only: a .NET format string (`hh:mm:ss tt`, `dd/MM/yyyy`); empty: the General settings' own. */
+  format?: string;
+  /** "text": scroll when wider than the widget (InfoPanel's marquee). */
+  scroll?: boolean;
+  /** "text" scroll speed, px per second (default 50). */
+  scrollSpeed?: number;
+  /** "text" scroll: px between the repeats (default 40). */
+  scrollSpacing?: number;
   /** Sparkline sample count. */
   history?: number;
   /**
@@ -485,9 +493,9 @@ const KIND_FIELDS: Record<WidgetKind, readonly (keyof Widget)[]> = {
   customGauge: ["vector", "width"],
   sparkline: ["decimals", "scale", "history"],
   table: ["text", "rows", "columns", "header", "align", "fontSize"],
-  text: ["text", "decimals", "scale", "align", "fontSize"],
+  text: ["text", "decimals", "scale", "align", "fontSize", "scroll", "scrollSpeed", "scrollSpacing"],
   image: ["text", "height", "asBackground"],
-  clock: ["clock", "align", "fontSize"],
+  clock: ["clock", "format", "align", "fontSize"],
   shape: ["shape", "thickness"],
 };
 

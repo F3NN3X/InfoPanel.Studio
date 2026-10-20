@@ -4,7 +4,7 @@
  * stay in InfoPanel mode with the reason; a conversion lists what it loses.
  *
  * Where the app's widgets fall short (a vertical bar, a capsule, a rotated or
- * flipped item, scrolling text, an image-sequence gauge), the lab draws a
+ * flipped item, an image-sequence gauge), the lab draws a
  * studio prototype of the missing capability and the conversion names it in
  * `needs`: the import report sums these up as the app work native mode asks for.
  *
@@ -154,15 +154,17 @@ const textCustom = (item: TextSource, fontScale: number): Extract<Custom, { kind
   align: align(item),
   oneLine: item.Wrap,
   ellipsis: item.Ellipsis,
-  // InfoPanel scrolls text only in a box with a width.
-  marquee: item.Marquee && item.Width > 0 ? { speed: Math.max(item.MarqueeSpeed, 1), spacing: item.MarqueeSpacing } : null,
+  marquee: scrolls(item) ? { speed: Math.max(item.MarqueeSpeed, 1), spacing: item.MarqueeSpacing } : null,
 });
 
-/** What the app's text widgets would need to draw a text item as InfoPanel does. */
+/** InfoPanel scrolls text only in a box with a width. */
+const scrolls = (item: TextSource) => item.Marquee && item.Width > 0;
+
+/** What the app's text widgets would need to draw a text item as InfoPanel does (the text widget scrolls, the rest do not). */
 const textNeeds = (item: TextSource, format?: string) => [
   "text font and style",
   ...(format ? [format] : []),
-  ...(item.Marquee && item.Width > 0 ? ["scrolling text"] : []),
+  ...(scrolls(item) && item.kind !== "Text" ? ["scrolling text"] : []),
 ];
 
 /** A spec the custom gauge widget draws for a chart InfoPanel draws itself. */
@@ -214,7 +216,10 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
   switch (item.kind) {
     case "Text":
       return ok(
-        { kind: "text", text: item.Name, fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item) },
+        {
+          kind: "text", text: item.Name, fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item),
+          ...(scrolls(item) ? { scroll: true, scrollSpeed: Math.max(item.MarqueeSpeed, 1), scrollSpacing: item.MarqueeSpacing } : {}),
+        },
         textBox(item),
         [],
         { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item) },
@@ -243,10 +248,13 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
     case "Clock":
     case "Calendar":
       return ok(
-        { kind: "clock", clock: item.kind === "Clock" ? "time" : "date", fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item) },
+        {
+          kind: "clock", clock: item.kind === "Clock" ? "time" : "date", fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item),
+          ...(item.Format ? { format: item.Format } : {}),
+        },
         textBox(item),
-        [],
-        { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item, "date and time format") },
+        item.Uppercase ? ["Uppercase"] : [],
+        { custom: textCustom(item, ctx.fontScale), needs: textNeeds(item) },
       );
 
     case "TableSensor": {

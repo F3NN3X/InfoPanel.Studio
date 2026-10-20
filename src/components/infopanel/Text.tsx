@@ -6,6 +6,7 @@
  * line height is ascent + descent + leading, which is CSS `line-height: normal`.
  */
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { Marquee } from "@/components/ui/marquee";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import type { DrawNode, TextStyle } from "@/lib/infopanel/render/scene.ts";
 import { visibleText } from "@/lib/infopanel/render/scene.ts";
@@ -91,7 +92,7 @@ export function layoutCss(l: Layout, canvasWidth: number): CSSProperties {
 
 export function Text({ node, font, canvasWidth }: { node: TextNode; font: FontCss; canvasWidth: number }) {
   if (!node.text) return null;
-  if (node.marquee) return <Marquee node={node} font={font} canvasWidth={canvasWidth} />;
+  if (node.marquee) return <MarqueeText node={node} font={font} canvasWidth={canvasWidth} />;
   const text = visibleText(node.text, node.oneLine, node.ellipsis);
   return (
     <div data-path={node.path} style={{ ...layoutCss(node, canvasWidth), ...textCss(node.style, font) }}>
@@ -104,58 +105,25 @@ export function Text({ node, font, canvasWidth }: { node: TextNode; font: FontCs
  * PanelDraw.DrawMarqueeText: when the text is wider than Width it scrolls left at
  * MarqueeSpeed px/s, clipped to Width × (Height or the text height), followed by a
  * second copy MarqueeSpacing px behind. No alignment, wrapping or rotation. The
- * phase follows the wall clock, as InfoPanel's does.
+ * phase follows the wall clock, as InfoPanel's does. Text that fits is drawn as plain text.
  */
-function Marquee({ node, font, canvasWidth }: { node: TextNode; font: FontCss; canvasWidth: number }) {
-  const probe = useRef<HTMLSpanElement>(null);
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+function MarqueeText({ node, font, canvasWidth }: { node: TextNode; font: FontCss; canvasWidth: number }) {
   const css = textCss(node.style, font);
-  useLayoutEffect(() => {
-    const r = probe.current?.getBoundingClientRect();
-    if (r) setSize({ w: r.width, h: r.height });
-  }, [node.text, css.fontFamily, css.fontWeight, css.fontSize]);
-
-  // Measured on a hidden copy, so a changing text is re-measured whichever way it is drawn.
-  const measure = (
-    <span ref={probe} style={{ ...css, position: "absolute", visibility: "hidden", whiteSpace: "pre" }}>
-      {node.text}
-    </span>
-  );
-  if (size && size.w <= node.width) {
-    return (
-      <>
-        {measure}
-        <div data-path={node.path} style={{ ...layoutCss(node, canvasWidth), ...css }}>
-          {node.text}
-        </div>
-      </>
-    );
-  }
-  const spacing = node.marquee!.spacing;
-  const distance = (size?.w ?? 0) + spacing;
-  const duration = (distance / node.marquee!.speed) * 1000;
+  const { speed, spacing } = node.marquee!;
   return (
-    <>
-      {measure}
-      <div
-        data-path={node.path}
-        style={{ position: "absolute", left: node.x, top: node.y, width: node.width, height: node.height > 0 ? node.height : size?.h, overflow: "hidden" }}
-      >
-        <div
-          style={{
-            ...css,
-            whiteSpace: "pre",
-            width: "max-content",
-            ["--ip-marquee" as string]: `${-distance}px`,
-            animation: size && duration > 0 ? `ip-marquee ${duration}ms linear infinite` : undefined,
-            animationDelay: `${-(Date.now() % (duration || 1))}ms`,
-          }}
-        >
-          {node.text}
-          <span style={{ marginLeft: spacing }}>{node.text}</span>
-        </div>
-      </div>
-    </>
+    <Marquee
+      data-path={node.path}
+      speed={speed}
+      spacing={spacing}
+      wallClock
+      style={(scrolls) =>
+        scrolls
+          ? { position: "absolute", left: node.x, top: node.y, width: node.width, ...(node.height > 0 ? { height: node.height } : {}), ...css }
+          : { ...layoutCss(node, canvasWidth), ...css }
+      }
+    >
+      {node.text}
+    </Marquee>
   );
 }
 

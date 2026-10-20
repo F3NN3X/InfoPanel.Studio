@@ -42,7 +42,7 @@ describe("convert", () => {
     expect(widgetOf("Text", { X: 50, Y: 20, RightAlign: true }).box).toEqual({ x: 50, y: 20, anchor: "end" });
     // Centred without a Width starts at X.
     expect(widgetOf("Text", { X: 50, Y: 20, RightAlign: true, CenterAlign: true }).box).toEqual({ x: 50, y: 20 });
-    expect(widgetOf("Clock", { Format: "HH:mm" })).toMatchObject({ widget: { kind: "clock" }, custom: { kind: "text" }, needs: ["text font and style", "date and time format"] });
+    expect(widgetOf("Clock", { Format: "HH:mm" })).toMatchObject({ widget: { kind: "clock" }, custom: { kind: "text" }, needs: ["text font and style"] });
     // A table keeps its X and lays out its own columns.
     expect(widgetOf("TableSensor", { X: 30, Y: 40, RightAlign: true, TableFormat: "0:100|1:50", FontSize: 12 })).toMatchObject({
       box: { x: 30, y: 40 }, lost: [], custom: { kind: "text", item: { kind: "TableSensor" }, style: { size: 18 } },
@@ -97,11 +97,24 @@ describe("convert", () => {
   });
 
   it("scrolls marquee text in a box with a width, as InfoPanel does", () => {
+    // The app's text widget scrolls it, at the item's speed and spacing: nothing is left for the app to do.
     expect(widgetOf("Text", { Marquee: true, Width: 80, MarqueeSpeed: 30, MarqueeSpacing: 12 })).toMatchObject({
-      custom: { kind: "text", marquee: { speed: 30, spacing: 12 } }, needs: ["text font and style", "scrolling text"],
+      widget: { kind: "text", scroll: true, scrollSpeed: 30, scrollSpacing: 12 },
+      custom: { kind: "text", marquee: { speed: 30, spacing: 12 } }, needs: ["text font and style"],
     });
     // Without a width InfoPanel does not scroll it.
-    expect(widgetOf("Text", { Marquee: true })).toMatchObject({ custom: { marquee: null }, needs: ["text font and style"] });
+    const still = widgetOf("Text", { Marquee: true });
+    expect(still).toMatchObject({ custom: { marquee: null }, needs: ["text font and style"] });
+    expect(still.widget).not.toHaveProperty("scroll");
+    // A sensor's value widget does not scroll yet.
+    expect(widgetOf("Sensor", { Marquee: true, Width: 80 }).needs).toContain("scrolling text");
+  });
+
+  it("carries a clock's or calendar's Format into the app clock widget", () => {
+    expect(widgetOf("Clock", { Format: "hh:mm:ss tt" }).widget).toMatchObject({ kind: "clock", clock: "time", format: "hh:mm:ss tt" });
+    expect(widgetOf("Calendar", { Format: "dd/MM/yyyy" }).widget).toMatchObject({ kind: "clock", clock: "date", format: "dd/MM/yyyy" });
+    // The InfoPanel item still draws the same text, so switching back is lossless.
+    expect(widgetOf("Calendar", { Format: "dd/MM/yyyy" }).custom).toMatchObject({ kind: "text", item: { kind: "Calendar", Format: "dd/MM/yyyy" } });
   });
 
   it("draws every bar with the bar generator, as InfoPanel draws it", () => {
