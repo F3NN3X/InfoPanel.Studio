@@ -6,6 +6,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- Gauge cards on the Gauges page have a right-click menu: Open in editor, Add to canvas, Duplicate and Export (disabled
+  exactly when the detail pane disables them), and for gauges in My library Rename (in place on the card) and Delete
+  from library. Delete on a focused library gauge card asks to delete it too.
+- The Library's banner for uploaded files that are not in My library now has Review…: a list with a thumbnail, size and a
+  "Used by a profile" tag per file, to add the ones you want to My library or delete the unused ones (after a confirm).
+
 ## [1.3.0-beta.1] - 2026-10-20
 
 ### Added

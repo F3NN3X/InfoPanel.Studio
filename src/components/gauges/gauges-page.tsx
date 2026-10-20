@@ -8,7 +8,10 @@ import { cn } from "@/lib/utils";
 import { addGaugeZone, type StudioBridge } from "@/components/library/library-actions";
 import { dropLibraryItem } from "@/components/library/library-drop";
 import { useMyLibrary } from "@/components/library/use-my-library";
+import { RemoveItemDialog } from "@/components/library/remove-item-dialog";
+import { ContextMenu } from "@/components/ui/context-menu";
 import { useToast } from "@/components/ui/toast";
+import type { LibraryItem } from "@/lib/library";
 import { presetGauges, profileGauges, sourceKey, type GaugeEntry, type GaugeSource } from "@/lib/gauge-studio/model";
 import type { FramesFile } from "@/lib/gauge-studio/frames-zip";
 import { assetFile } from "@/lib/infopanel/assets/assets";
@@ -22,6 +25,7 @@ import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
 import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
 import { CanvasDropPill } from "./canvas-drop-pill";
 import { gaugeDragItem, startGaugeDrag } from "./gauge-drag";
+import { gaugeActions, gaugeMenuEntries, libraryMenuHandlers } from "./gauge-actions";
 import { GaugeDetail, EmptyDetail } from "./gauge-detail";
 import { GaugeEditor, type EditorHandle } from "./gauge-editor";
 import { downloadFrames, downloadSpec, ImportFramesButton, ImportGaugeButton } from "./gauge-files";
@@ -58,6 +62,14 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
   useGaugeKeys({});
   const narrow = useViewportBelow(NARROW_PAGE_WIDTH);
   const [dragging, setDragging] = useState(false);
+  const [menu, setMenu] = useState<{ entry: GaugeEntry; x: number; y: number } | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<LibraryItem | null>(null);
+  /** The card whose name is being edited (Rename from the menu); a ref too, as Enter and the blur after it both report. */
+  const [renameKey, setRenameKey] = useState<string | null>(null);
+  const renameKeyRef = useRef<string | null>(null);
+  // The studio's config as it is now, read when a removal decides which files to delete.
+  const configRef = useRef(studio.config);
+  configRef.current = studio.config;
 
   // Copies counted through the page's list, so the counts update in place.
   // A transient (preset, profile) gauge has no library item to count a copy on.
@@ -125,20 +137,53 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     toast(`Imported ${got.name} (${files.length} frames)`);
   };
 
+  // The detail pane and the card's menu read the same actions.
+  const actionsOf = (entry: GaugeEntry) =>
+    gaugeActions(entry, {
+      canvasZones,
+      onEdit: () => openEditor(editorOpenOf(entry)),
+      onAddToCanvas: () => addToCanvas(entry),
+      onAddToZone: (zoneId) => addToZone(entry, zoneId),
+      onDuplicate: () => duplicate(entry),
+      onExport: () => exportEntry(entry),
+    });
+
+  // Presets and profile gauges are not library items: they cannot be renamed or deleted here.
+  const askRemove = (e: GaugeEntry) => {
+    const item = library.itemOf(e.key);
+    if (item) setConfirmRemove(item);
+  };
+  const remove = (item: LibraryItem) => {
+    if (selectedKey === `library:${item.id}`) setSelectedKey(null);
+    // The live config: it may hold a file the saved config doesn't yet.
+    lib.remove(item, () => JSON.stringify(configRef.current)).then(
+      ({ deleted, kept }) =>
+        toast(
+          kept > 0
+            ? `Removed ${item.name}; ${kept} of its files could not be deleted`
+            : `Removed ${item.name}${deleted === 0 ? "" : deleted === 1 ? " and its file" : ` and its ${deleted} files`}`,
+        ),
+      (e: Error) => toast(`Not removed: ${e.message}`),
+    );
+  };
+  const startRename = (e: GaugeEntry) => {
+    setSelectedKey(e.key);
+    renameKeyRef.current = e.key;
+    setRenameKey(e.key);
+  };
+  const renamed = (e: GaugeEntry, name: string | null) => {
+    if (renameKeyRef.current !== e.key) return;
+    renameKeyRef.current = null;
+    setRenameKey(null);
+    const item = library.itemOf(e.key);
+    const next = name?.trim();
+    if (item && next && next !== item.name) lib.rename(item, next);
+  };
+  const menuEntries = (e: GaugeEntry) =>
+    gaugeMenuEntries(actionsOf(e), libraryMenuHandlers(library.itemOf(e.key), { onRename: () => startRename(e), onDelete: () => askRemove(e) }));
+
   const detail = (entry: GaugeEntry, sheet: boolean) => (
-    <GaugeDetail
-      key={entry.key}
-      entry={entry}
-      sheet={sheet}
-      copies={library.itemOf(entry.key)?.copies.length}
-      scope={scope}
-      onEdit={() => openEditor(editorOpenOf(entry))}
-      canvasZones={canvasZones}
-      onAddToCanvas={() => addToCanvas(entry)}
-      onAddToZone={(zoneId) => addToZone(entry, zoneId)}
-      onDuplicate={() => duplicate(entry)}
-      onExport={() => exportEntry(entry)}
-    />
+    <GaugeDetail key={entry.key} entry={entry} sheet={sheet} copies={library.itemOf(entry.key)?.copies.length} scope={scope} actions={actionsOf(entry)} />
   );
 
   return (
@@ -198,7 +243,7 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
                 {lib.error}
               </div>
             )}
-            <GaugesBrowse sections={sections} selectedKey={selected?.key ?? null} p={clock} scope={scope} onSelect={(e) => setSelectedKey(e.key)} onOpen={(e) => openEditor(editorOpenOf(e))} onDragStart={(e, dt) => startGaugeDrag(dt, e, library.itemOf(e.key))} />
+            <GaugesBrowse sections={sections} selectedKey={selected?.key ?? null} p={clock} scope={scope} onSelect={(e) => setSelectedKey(e.key)} onOpen={(e) => openEditor(editorOpenOf(e))} onDragStart={(e, dt) => startGaugeDrag(dt, e, library.itemOf(e.key))} onMenu={(entry, x, y) => setMenu({ entry, x, y })} onRemove={askRemove} renamingKey={renameKey} onRenamed={renamed} />
           </div>
           {selected ? (
             narrow ? (
@@ -211,6 +256,8 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
           ) : (
             !narrow && <EmptyDetail />
           )}
+          {menu && <ContextMenu x={menu.x} y={menu.y} entries={menuEntries(menu.entry)} onClose={() => setMenu(null)} />}
+          <RemoveItemDialog item={confirmRemove} onClose={() => setConfirmRemove(null)} onRemove={remove} verb="Delete" />
           {dragging && <CanvasDropPill onShowCanvas={onShowCanvas} />}
         </div>
       )}
