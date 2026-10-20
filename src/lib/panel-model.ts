@@ -277,6 +277,19 @@ function normalizeItemFlags(v: unknown): Widget["follow"] {
  * Custom gauge width and Gauge ring size (`migrateWidgetV9`), `thr` and `follow` guarded (`thr`
  * on the threshold kinds only), and `box.w: "fill"` on the full-row kinds.
  */
+/** The scroll and format fields as the widget reads them: anything of another type is dropped. */
+function guardMarquee(w: Widget): Widget {
+  const { scroll, scrollSpeed, scrollSpacing, format, ...rest } = w as Widget & Record<string, unknown>;
+  if (scroll === undefined && scrollSpeed === undefined && scrollSpacing === undefined && format === undefined) return w;
+  return {
+    ...rest,
+    ...(scroll === true ? { scroll } : {}),
+    ...(typeof scrollSpeed === "number" && Number.isFinite(scrollSpeed) && scrollSpeed > 0 ? { scrollSpeed } : {}),
+    ...(typeof scrollSpacing === "number" && Number.isFinite(scrollSpacing) && scrollSpacing >= 0 ? { scrollSpacing } : {}),
+    ...(typeof format === "string" ? { format } : {}),
+  } as Widget;
+}
+
 export function normalizeWidget(input: Widget): Widget {
   let w = migrateWidgetV9(input);
   if (w.thr !== undefined || w.follow !== undefined) {
@@ -285,6 +298,7 @@ export function normalizeWidget(input: Widget): Widget {
     const follow = normalizeItemFlags(w.follow);
     w = { ...rest, ...(thr ? { thr } : {}), ...(follow ? { follow } : {}) };
   }
+  w = guardMarquee(w);
   if (!FULL_ROW.has(w.kind) || w.box?.w !== undefined) return w;
   return { ...w, box: { ...w.box, w: "fill" } };
 }

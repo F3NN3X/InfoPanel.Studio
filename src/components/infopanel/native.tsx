@@ -159,7 +159,7 @@ function NativeText({ custom, n, sensors, view }: { custom: Extract<Custom, { ki
   if (custom.item.kind === "TableSensor") return <NativeTable custom={custom} item={custom.item} value={value} view={view} />;
   const { text, color } = textOf(custom.item, value, view.now);
   const face = textCss(color ? { ...custom.style, color } : custom.style, view.font);
-  if (custom.marquee) {
+  if (custom.marquee && custom.width > 0) {
     return (
       <Marquee speed={custom.marquee.speed} spacing={custom.marquee.spacing} style={{ width: custom.width }}>
         <div style={{ ...face, whiteSpace: "pre" }}>{text}</div>

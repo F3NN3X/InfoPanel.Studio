@@ -13,7 +13,8 @@ export const MARQUEE_SPACING = 40;
  * a tick count, so a lower frame rate steps further per frame at the same speed.
  */
 export function marqueeOffset(elapsedMs: number, speed: number, contentWidth: number, spacing: number): number {
-  const period = contentWidth + spacing;
+  if (![elapsedMs, speed, contentWidth, spacing].every(Number.isFinite)) return 0;
+  const period = contentWidth + Math.max(0, spacing);
   if (!(period > 0) || !(speed > 0) || !(elapsedMs > 0)) return 0;
   const offset = -(((elapsedMs / 1000) * speed) % period);
   return offset === 0 ? 0 : offset;

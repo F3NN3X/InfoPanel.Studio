@@ -453,7 +453,7 @@ function Text({ widget, text }: { widget: Widget; text: string }) {
           ...colorStyle(widget.color),
         }}
       >
-        {widget.scroll ? (
+        {widget.scroll && widget.box?.w !== "hug" ? (
           <Marquee speed={widget.scrollSpeed ?? MARQUEE_SPEED} spacing={widget.scrollSpacing ?? MARQUEE_SPACING}>
             {text || "—"}
           </Marquee>

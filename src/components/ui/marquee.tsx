@@ -35,7 +35,7 @@ export function Marquee({ speed, spacing, style, wallClock = false, children, ..
     const [b, c] = [box.current, copy.current];
     if (!b || !c) return;
     const measure = () => {
-      const next = { box: b.clientWidth, content: c.offsetWidth };
+      const next = { box: b.clientWidth, content: c.getBoundingClientRect().width };
       setSizes((s) => (s.box === next.box && s.content === next.content ? s : next));
     };
     measure();
@@ -57,18 +57,28 @@ export function Marquee({ speed, spacing, style, wallClock = false, children, ..
   const scrolls = overflowing && !reduced;
   const running = scrolls && visible;
 
-  const start = useRef<number | null>(null);
+  // Own phase in px, so a change of content, speed or spacing, or a pause offscreen, does not make it jump.
+  const phase = useRef(0);
+  const last = useRef<number | null>(null);
   useTick((now) => {
-    if (start.current === null) start.current = now;
-    const elapsed = wallClock ? Date.now() : now - start.current;
-    if (track.current) track.current.style.transform = `translate3d(${marqueeOffset(elapsed, speed, sizes.content, spacing)}px,0,0)`;
+    let offset: number;
+    if (wallClock) offset = marqueeOffset(Date.now(), speed, sizes.content, spacing);
+    else {
+      if (last.current !== null) phase.current += (speed * (now - last.current)) / 1000;
+      last.current = now;
+      const period = sizes.content + Math.max(0, spacing);
+      if (period > 0) phase.current %= period;
+      offset = -phase.current;
+    }
+    if (track.current) track.current.style.transform = `translate3d(${offset}px,0,0)`;
   }, running);
-  // A stopped marquee waits at its start, and begins again from it.
+  // Offscreen it waits where it is; one that no longer scrolls goes back to its start.
   useEffect(() => {
-    if (running) return;
-    start.current = null;
+    last.current = null;
+    if (scrolls) return;
+    phase.current = 0;
     if (track.current) track.current.style.transform = "";
-  }, [running]);
+  }, [running, scrolls]);
 
   const part = (ref?: Ref<HTMLDivElement>) => (
     <div ref={ref} style={{ display: "inline-block", flex: "none", whiteSpace: "pre", marginRight: scrolls ? spacing : 0 }}>

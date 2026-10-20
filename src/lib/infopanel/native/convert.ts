@@ -154,7 +154,7 @@ const textCustom = (item: TextSource, fontScale: number): Extract<Custom, { kind
   align: align(item),
   oneLine: item.Wrap,
   ellipsis: item.Ellipsis,
-  marquee: scrolls(item) ? { speed: Math.max(item.MarqueeSpeed, 1), spacing: item.MarqueeSpacing } : null,
+  marquee: scrolls(item) ? { speed: Math.max(item.MarqueeSpeed, 1), spacing: Math.max(0, item.MarqueeSpacing) } : null,
 });
 
 /** InfoPanel scrolls text only in a box with a width. */
@@ -218,7 +218,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       return ok(
         {
           kind: "text", text: item.Name, fontSize: Math.round(item.FontSize * ctx.fontScale), color: hexColor(item.Color), align: align(item),
-          ...(scrolls(item) ? { scroll: true, scrollSpeed: Math.max(item.MarqueeSpeed, 1), scrollSpacing: item.MarqueeSpacing } : {}),
+          ...(scrolls(item) ? { scroll: true, scrollSpeed: Math.max(item.MarqueeSpeed, 1), scrollSpacing: Math.max(0, item.MarqueeSpacing) } : {}),
         },
         textBox(item),
         [],
