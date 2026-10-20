@@ -4,6 +4,8 @@
  * with its own undo stack, saved to the library on request, and kept while the page is closed.
  */
 import { useEffect, useMemo, useState } from "react";
+import { listLibrary } from "@/lib/library";
+import { linkOf, linkedItem, type GaugeLink } from "@/lib/gauge-studio/gauge-link";
 import type { StudioBridge } from "@/components/library/library-actions";
 import { profileGauges, sourceKey, withGauge, withGaugeName, type GaugeEntry } from "@/lib/gauge-studio/model";
 import type { EditorOpen } from "@/lib/gauge-studio/open";
@@ -21,6 +23,10 @@ export interface GaugeEdit {
   entry: GaugeEntry | null;
   writeThrough: boolean;
   origin: WorkingCopy["origin"];
+  /** A profile gauge: the library item Save updates (null: the first Save creates one). */
+  saveTo: string | null;
+  /** Where a profile gauge is linked from; null for anything else. */
+  link: GaugeLink | null;
   dirty: boolean;
   /** Working copy only: the studio's own undo covers a profile gauge. */
   history: { undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean } | null;
@@ -28,6 +34,25 @@ export interface GaugeEdit {
   commit: (next: VectorGauge, key?: string) => void;
   rename: (name: string) => void;
   saved: (origin: NonNullable<WorkingCopy["origin"]>) => void;
+}
+
+/** The name of the library item a profile gauge is linked to; reloaded after each Save. */
+function useLinkedName(link: GaugeLink | null, version: number): string | null {
+  const [name, setName] = useState<string | null>(null);
+  const key = link ? JSON.stringify(link) : null;
+  useEffect(() => {
+    if (!link) return;
+    let live = true;
+    listLibrary().then(
+      (items) => live && setName(linkedItem(items, link)?.name ?? null),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is `link` by value
+  }, [key, version]);
+  return name;
 }
 
 export function useGaugeEdit(bridge: StudioBridge, open: Editable, editorId: number): GaugeEdit {
@@ -43,6 +68,10 @@ export function useGaugeEdit(bridge: StudioBridge, open: Editable, editorId: num
     [bridge.profile, source],
   );
 
+  const link = source ? linkOf(bridge, source) : null;
+  const [saves, setSaves] = useState(0);
+  const saveTo = useLinkedName(link, saves);
+
   if (source) {
     return {
       name: entry?.name ?? "Gauge",
@@ -50,11 +79,13 @@ export function useGaugeEdit(bridge: StudioBridge, open: Editable, editorId: num
       entry,
       writeThrough: true,
       origin: null,
+      saveTo,
+      link,
       dirty: false,
       history: null,
       commit: (next, key) => bridge.setConfig((c) => withGauge(c, source, next) ?? c, key ? `gauge:${sourceKey(source)}:${key}` : undefined),
       rename: (name) => bridge.setConfig((c) => withGaugeName(c, source, name) ?? c, `gauge:${sourceKey(source)}:name`),
-      saved: () => {},
+      saved: () => setSaves((n) => n + 1),
     };
   }
   const copy = wc!;
@@ -64,6 +95,8 @@ export function useGaugeEdit(bridge: StudioBridge, open: Editable, editorId: num
     entry: null,
     writeThrough: false,
     origin: copy.origin,
+    saveTo: null,
+    link: null,
     dirty: isDirty(copy),
     history: {
       undo: () => setWc((w) => w && undoCopy(w)),

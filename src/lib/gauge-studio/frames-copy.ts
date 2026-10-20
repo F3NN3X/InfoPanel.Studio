@@ -58,7 +58,8 @@ export function redoFrames(fc: FramesCopy): FramesCopy {
 export const canUndoFrames = (fc: FramesCopy): boolean => fc.history.past.length > 0;
 export const canRedoFrames = (fc: FramesCopy): boolean => fc.history.future.length > 0;
 
-export const markFramesSaved = (fc: FramesCopy): FramesCopy => ({ ...fc, saved: { name: fc.name, state: fc.state } });
+/** Saved as `origin` (a Save as new moves it to the new item). */
+export const markFramesSaved = (fc: FramesCopy, origin: FramesCopy["origin"] = fc.origin): FramesCopy => ({ ...fc, origin, saved: { name: fc.name, state: fc.state } });
 
 const sameState = (a: FramesState, b: FramesState) => a === b || JSON.stringify(a) === JSON.stringify(b);
 

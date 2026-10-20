@@ -6,6 +6,18 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- Gauges in the Library are drawn from their spec (thumbnails and the detail preview) instead of a generic icon;
+  image sequences still show their first frame.
+- The gauge editor has "Save as new" next to Save when the gauge already has a library item: it creates "<name> copy"
+  and later Saves update that copy (a profile gauge is linked to it instead of the original).
+
+### Fixed
+- Save to library on a gauge in the profile (a Custom gauge widget or a canvas Gauge item) updates the library item it
+  was placed from or first saved to, instead of creating another item each time; the editor header says "Saves to <item>".
+  If that item was deleted, the next Save creates a new one. Known limit: a canvas gauge is linked by its item index
+  path, so deleting or reordering canvas items can move a link to another gauge.
+
 ## [1.2.0] - 2026-10-20
 
 ### Added

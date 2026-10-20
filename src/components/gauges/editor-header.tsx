@@ -1,5 +1,5 @@
 /** The editor's header (spec §6): back, name and kind, undo/redo of a working copy, Import, Export, Save to library. An image sequence has no spec to import or export. */
-import { ArrowLeft, Redo2, Save, Undo2, Upload } from "lucide-react";
+import { ArrowLeft, Copy, Redo2, Save, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ImportedGauge } from "@/lib/gauge-studio/import-file";
@@ -19,15 +19,17 @@ export interface EditorHeaderProps {
   onImported?: (got: ImportedGauge) => void;
   onExport?: () => void;
   onSave: () => void;
+  /** Save as new "<name> copy"; absent when there is no item to fork (Save already creates one). */
+  onSaveAsNew?: (() => void) | null;
 }
 
-/** Where the gauge lives (a profile gauge's canvas or page, "My library"), else whether the working copy is unsaved. */
+/** Where the gauge lives (a profile gauge's canvas or page and the item Save updates, "My library"), else whether the working copy is unsaved. */
 function where(edit: GaugeEdit): string {
-  const place = edit.writeThrough && edit.entry ? edit.entry.where : edit.origin?.kind === "library" ? "My library" : null;
+  const place = edit.writeThrough && edit.entry ? `${edit.entry.where}${edit.saveTo ? ` · Saves to ${edit.saveTo}` : ""}` : edit.origin?.kind === "library" ? "My library" : null;
   return `${place ? ` · ${place}` : ""}${edit.dirty ? " · unsaved" : ""}`;
 }
 
-export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport, onSave }: EditorHeaderProps) {
+export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport, onSave, onSaveAsNew }: EditorHeaderProps) {
   const history = edit.history;
   // What's typed while the field has focus: a profile gauge's name reads back with a fallback ("Custom gauge") when
   // emptied, which would otherwise snap into the field mid-edit.
@@ -73,6 +75,11 @@ export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport
       >
         <Upload className="h-4 w-4" /> Export
       </button>
+      {onSaveAsNew && (
+        <button type="button" onClick={onSaveAsNew} disabled={saving} className={BUTTON}>
+          <Copy className="h-4 w-4" /> Save as new
+        </button>
+      )}
       <button
         type="button"
         onClick={onSave}

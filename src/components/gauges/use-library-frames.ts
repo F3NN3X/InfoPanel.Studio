@@ -19,6 +19,7 @@ import type { LibraryItem } from "@/lib/library";
 import type { GaugeLibraryData } from "@/lib/gauge-studio/model";
 import { fetchFrameFile, imageSize, readFrameFiles, uploadFrame } from "./frame-files";
 import type { FramesTools } from "./frames-tools";
+import type { WriteOptions } from "./editor-shell";
 import { saveGauge } from "./save-gauge";
 import type { GaugeEdit } from "./use-gauge-edit";
 
@@ -104,6 +105,8 @@ export function useLibraryFrames(open: FramesOpen, editorId: number): LibraryFra
     entry: null,
     writeThrough: false,
     origin: fc.origin,
+    saveTo: null,
+    link: null,
     dirty: isFramesDirty(fc),
     history: {
       undo: () => setFc(undoFrames),
@@ -113,11 +116,11 @@ export function useLibraryFrames(open: FramesOpen, editorId: number): LibraryFra
     },
     commit: (next, key) => change((s) => withVectorSpec(s, next), key),
     rename: (name) => setFc((c) => renameFrames(c, name)),
-    saved: () => setFc(markFramesSaved),
+    saved: (origin) => setFc((c) => markFramesSaved(c, origin)),
   };
 
-  const save = () =>
-    saveGauge({ name: fc.name, gauge: state.vector, frames: state.frames, animationSpeed: state.animationSpeed, itemId: fc.origin.itemId });
+  const save = (o?: WriteOptions) =>
+    saveGauge({ name: fc.name, gauge: state.vector, frames: state.frames, animationSpeed: state.animationSpeed, itemId: fc.origin.itemId, ...o });
 
   return { edit, tools, save };
 }

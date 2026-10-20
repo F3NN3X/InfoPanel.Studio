@@ -1,12 +1,17 @@
 /**
  * A library item's thumbnail (the concept's AssetThumb): an image or video frame filling the box
  * (a tall one centred on dark), a play badge with the length on videos, an SVG or icon contained,
- * "Aa" in a font's own face, a panel's cell grid, a style's sample tile, a gauge's first frame.
+ * "Aa" in a font's own face, a panel's cell grid, a style's sample tile, a gauge drawn from its spec
+ * (else its first frame).
  */
 import { useEffect, useState } from "react";
 import { Gauge, ImageOff, Monitor, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LibraryItem } from "@/lib/library";
+import { GaugeView } from "@/components/gauges/gauge-view";
+import { gaugeDataOf } from "@/lib/gauge-studio/model";
+import { previewScope } from "@/lib/gauge-studio/preview";
+import { getLibraryItem, type LibraryItem } from "@/lib/library";
+import { DEFAULT_THEME } from "@/lib/theme";
 import { fileUrl, metaOf } from "@/lib/my-library/model";
 
 export type ThumbSize = "sm" | "md" | "lg";
@@ -44,11 +49,34 @@ export function useLibraryFont(item: Pick<LibraryItem, "id" | "kind" | "files">)
 const PLAY: Record<ThumbSize, string> = { sm: "h-[22px] w-[22px]", md: "h-[34px] w-[34px]", lg: "h-[52px] w-[52px]" };
 const AA: Record<ThumbSize, string> = { sm: "text-[18px]", md: "text-[38px]", lg: "text-[72px]" };
 
+const GAUGE_PX: Record<ThumbSize, number> = { sm: 36, md: 96, lg: 180 };
+const GAUGE_SCOPE = previewScope(DEFAULT_THEME);
+
+/** A gauge item's spec: from the list, else (a large one the list left out) fetched once; null while unknown. */
+function useGaugeSpec(item: LibraryItem) {
+  const [fetched, setFetched] = useState<{ id: string; data: unknown } | null>(null);
+  const needs = item.kind === "gauge" && item.data === undefined && !!item.dataSize;
+  useEffect(() => {
+    if (!needs) return;
+    let live = true;
+    getLibraryItem(item.id).then(
+      (full) => live && setFetched({ id: item.id, data: full.data }),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [needs, item.id, item.updatedAt]);
+  const raw = item.data !== undefined ? item.data : fetched?.id === item.id ? fetched.data : undefined;
+  return gaugeDataOf(raw)?.vector ?? null;
+}
+
 export function AssetThumb({ item, size = "md", className }: { item: LibraryItem; size?: ThumbSize; className?: string }) {
   const m = metaOf(item);
   const url = fileUrl(item);
   const family = useLibraryFont(item);
   const [broken, setBroken] = useState(false);
+  const spec = useGaugeSpec(item);
   const tall = (m.height ?? 0) > (m.width ?? 0) * 1.2;
   const box = cn("relative flex items-center justify-center overflow-hidden rounded-[8px] bg-[#141418]", className);
 
@@ -130,7 +158,9 @@ export function AssetThumb({ item, size = "md", className }: { item: LibraryItem
     case "gauge":
       return (
         <div className={cn(box, "bg-[#111115]")}>
-          {url ? (
+          {spec ? (
+            <GaugeView gauge={spec} p={0.62} size={GAUGE_PX[size]} scope={GAUGE_SCOPE} />
+          ) : url ? (
             <img src={url} alt="" loading="lazy" draggable={false} onError={() => setBroken(true)} className="h-[84%] w-[84%] object-contain" />
           ) : (
             <Gauge className="h-2/5 w-2/5 text-ui-4" strokeWidth={1.25} />

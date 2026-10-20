@@ -13,11 +13,16 @@ export interface EditorHandle {
   requestBack: (then?: () => void) => void;
 }
 
+/** Save as new: a new item under `name` instead of the one the gauge came from. */
+export type WriteOptions = { asNew: true; name: string };
+
 export interface EditorShell {
   asking: boolean;
   saving: boolean;
   requestBack: (then?: () => void) => void;
   save: () => Promise<boolean>;
+  /** Save as new "<name> copy": the gauge is then linked to the new item. Null when there is no item to fork. */
+  saveAsNew: (() => Promise<boolean>) | null;
   dialog: ReactNode;
 }
 
@@ -25,7 +30,7 @@ export function useEditorShell(p: {
   ref?: Ref<EditorHandle>;
   edit: GaugeEdit;
   /** Writes the gauge to the library item it came from, or a new one. */
-  write: () => Promise<LibraryItem>;
+  write: (o?: WriteOptions) => Promise<LibraryItem & { updated?: boolean }>;
   onBack: () => void;
   onSaved: () => void;
 }): EditorShell {
@@ -42,13 +47,14 @@ export function useEditorShell(p: {
   };
   useImperativeHandle(p.ref, () => ({ requestBack }));
 
-  const save = async (): Promise<boolean> => {
+  const run = async (o?: WriteOptions): Promise<boolean> => {
     setSaving(true);
     try {
-      const item = await p.write();
-      if (!edit.writeThrough) edit.saved({ kind: "library", itemId: item.id });
+      const item = await p.write(o);
+      if (o) edit.rename(o.name);
+      edit.saved({ kind: "library", itemId: item.id });
       p.onSaved();
-      toast(edit.origin ? `Saved ${edit.name}` : `Saved ${edit.name} to your library`);
+      toast((item.updated ?? !!edit.origin) ? `Saved ${edit.name}` : `Saved ${o?.name ?? edit.name} to your library`);
       return true;
     } catch (e) {
       toast(`Not saved: ${(e as Error).message}`);
@@ -57,6 +63,9 @@ export function useEditorShell(p: {
       setSaving(false);
     }
   };
+
+  const save = () => run();
+  const saveAsNew = edit.origin || edit.saveTo ? () => run({ asNew: true, name: `${edit.name} copy` }) : null;
 
   const dialog = (
     <UnsavedDialog
@@ -77,5 +86,5 @@ export function useEditorShell(p: {
       }
     />
   );
-  return { asking: pending !== null, saving, requestBack, save, dialog };
+  return { asking: pending !== null, saving, requestBack, save, saveAsNew, dialog };
 }
