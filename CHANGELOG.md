@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.3] - 2026-10-20
+
 ### Added
 - The studio can pin a profile for editing: a pin in the Profiles panel, or "Pin this profile for editing" in the top
   bar's profile menu. While pinned, the studio keeps editing that profile and choosing a profile or Auto changes only
