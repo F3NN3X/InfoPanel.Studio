@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseChangelog, renderMarkdown, safeHref, sectionTone, shortDate } from "@/settings/model/changelog";
+import { entryHeadline, headlineShortens, parseChangelog, renderMarkdown, safeHref, sectionEntries, sectionTone, shortDate } from "@/settings/model/changelog";
 
 const SAMPLE = `# Changelog
 
@@ -95,6 +95,73 @@ describe("renderMarkdown", () => {
 
   it("reduces an image to its alt text", () => {
     expect(renderMarkdown("![alt text](https://example.com/x.png)")).not.toContain("<img");
+  });
+});
+
+describe("entryHeadline", () => {
+  it("takes the first sentence", () => {
+    expect(entryHeadline("Pin a profile. It stays open while you edit.")).toBe("Pin a profile");
+    expect(entryHeadline("Fixed a crash; also tidied up")).toBe("Fixed a crash");
+  });
+
+  it("cuts at a colon", () => {
+    expect(entryHeadline("**Grouped left rail:** sections sit under headings")).toBe("Grouped left rail");
+  });
+
+  it("keeps a dot or colon that is not the end of a clause", () => {
+    expect(entryHeadline("Reads v1.2.3 and `a: b. c` fine")).toBe("Reads v1.2.3 and <code>a: b. c</code> fine");
+  });
+
+  it("caps long text on a word boundary with an ellipsis", () => {
+    const out = entryHeadline(`${"word ".repeat(40)}end`);
+    expect(out.endsWith("word…")).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(121);
+  });
+
+  it("closes a code span the cap cuts through", () => {
+    const out = entryHeadline(`${"word ".repeat(23)}\`some long code span here\``);
+    expect(out).toMatch(/<code>.*<\/code>…$|word…$/);
+    expect(out.split("<code>").length).toBe(out.split("</code>").length);
+  });
+
+  it("strips Markdown to plain text but keeps code spans", () => {
+    expect(entryHeadline("**Bold** and *italic* with a [link](https://example.com) and `code`")).toBe(
+      "Bold and italic with a link and <code>code</code>"
+    );
+  });
+
+  it("escapes HTML", () => {
+    expect(entryHeadline("A <b>tag</b> & more")).toBe("A &lt;b&gt;tag&lt;/b&gt; &amp; more");
+  });
+
+  it("uses the whole entry when it has no period", () => {
+    expect(entryHeadline("Just a short note")).toBe("Just a short note");
+    expect(entryHeadline("Ends with a period.")).toBe("Ends with a period");
+  });
+});
+
+describe("hardening", () => {
+  it("ignores the private-use fence characters in the input", () => {
+    expect(entryHeadline("A stray fence")).toBe("A stray fence");
+  });
+
+  it("counts numbered list items as entries", () => {
+    expect(sectionEntries("1. First\n2) Second\n   more")).toEqual(["First", "Second more"]);
+  });
+});
+
+describe("headlineShortens", () => {
+  it("is true only when the headline leaves text out", () => {
+    expect(headlineShortens("Just a short note")).toBe(false);
+    expect(headlineShortens("Ends with a period.")).toBe(false);
+    expect(headlineShortens("Pin a profile. It stays open while you edit.")).toBe(true);
+    expect(headlineShortens(`${"word ".repeat(40)}end`)).toBe(true);
+  });
+});
+
+describe("sectionEntries", () => {
+  it("splits top-level bullets and folds nested lines into their bullet", () => {
+    expect(sectionEntries("- One\n  continued\n  - nested\n- Two\n\n- Three")).toEqual(["One continued - nested", "Two", "Three"]);
   });
 });
 
