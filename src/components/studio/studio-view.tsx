@@ -20,6 +20,7 @@ import { CommandPalette } from "./command-palette";
 import { exportConfigFile, importConfigFile, startConfigImport } from "./config-file";
 import { useDocumentProps } from "./use-document-props";
 import { cn } from "@/lib/utils";
+import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar } from "./studio-top-bar";
 import { LeftRail } from "./left-rail";
@@ -632,6 +633,15 @@ function StudioViewBody({
 
   return (
     <div className="studio-root flex h-screen flex-col overflow-hidden bg-ui-app font-ui text-ui-1">
+      <ProfileShots
+        profiles={config.profiles}
+        dashboard={config}
+        editedId={storedProfile.id}
+        canvasIsFirstPage={(profile.pageId ?? storedProfile.pages[0].id) === storedProfile.pages[0].id}
+        scrollRef={ui.scrollRef}
+        zoom={ui.zoom}
+        pushPending={pushPending}
+      />
       <StudioTopBar
         profiles={config.profiles}
         dashboard={config}

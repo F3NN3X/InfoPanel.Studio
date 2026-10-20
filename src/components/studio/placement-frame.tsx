@@ -274,6 +274,7 @@ export function PlacementFrame({
           : {}),
       }}
       data-zone-id={studio ? placement.id : undefined}
+      data-shot-skip={!placement.visible ? "" : undefined}
       // Clicks the press doesn't handle (a control in the zone, a handle).
       onClick={(e) => {
         if (!selected && !isToggleClick(e)) onSelect?.("only");
@@ -296,6 +297,7 @@ export function PlacementFrame({
           {(selected || ghost) && (
             <div
               aria-hidden
+              data-shot-skip
               className={cn(
                 "pointer-events-none absolute z-[15] rounded-[10px] border-solid transition-[box-shadow,border-color] duration-150",
                 selected ? "border-ui-accent" : "border-transparent"
@@ -311,6 +313,7 @@ export function PlacementFrame({
           {!selected && !ghost && (
             <div
               aria-hidden
+              data-shot-skip
               className="pointer-events-none absolute inset-0 z-[15] hidden rounded-lg border-solid border-[#3a3a42] group-hover/zone:block"
               style={{ borderWidth: 1 / zoom }}
             />
@@ -361,7 +364,7 @@ export function PlacementFrame({
       <div className="h-full min-w-0 w-full overflow-hidden">
         <div className="flex h-full w-full flex-col">
           {studio && blank ? (
-            <div className="flex h-full min-h-16 flex-col items-center justify-center rounded-lg border border-dashed border-[#3a3a44] p-3">
+            <div data-shot-skip className="flex h-full min-h-16 flex-col items-center justify-center rounded-lg border border-dashed border-[#3a3a44] p-3">
               {onPickWidget && (
                 <button
                   type="button"
@@ -373,7 +376,7 @@ export function PlacementFrame({
               )}
             </div>
           ) : studio && !hasData ? (
-            <div className="flex h-full min-h-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-card/40 p-4">
+            <div data-shot-skip className="flex h-full min-h-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-card/40 p-4">
               <div className="text-sm font-medium text-muted-foreground">
                 {title}
               </div>

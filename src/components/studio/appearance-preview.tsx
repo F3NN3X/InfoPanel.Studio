@@ -6,7 +6,7 @@ import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import { chromeOf } from "@/modules/standard-settings";
 
 /** The mini page: the preset's background (a video as its poster), else its theme's page color. */
-export function MiniPage({ bg }: { bg: PageBackground | undefined }) {
+function MiniPage({ bg }: { bg: PageBackground | undefined }) {
   if (!bg) return <div className="absolute inset-0 bg-background" />;
   const layers = backgroundLayers(bg.type === "video" ? posterBackground(bg) : bg);
   // No page blur at thumbnail size.

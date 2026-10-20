@@ -457,6 +457,9 @@ export function StudioCanvas({
                 the grid, and its own theme / font / radius scoped here. */}
             <div
               ref={setPageEl}
+              data-studio-page=""
+              // A move / resize / draw in flight: the page is not captured meanwhile (profile screenshots).
+              data-dragging={zoneDrag || drawing ? "" : undefined}
               data-theme-scope={themeScope ? "" : undefined}
               className={cn(
                 "relative isolate",
@@ -519,6 +522,7 @@ export function StudioCanvas({
                   {showGrid && (
                     <div
                       aria-hidden
+                      data-shot-skip
                       className="pointer-events-none absolute inset-0 z-[12]"
                       style={{
                         backgroundImage: GRID_LINES,
@@ -535,6 +539,7 @@ export function StudioCanvas({
                       if (!style) return null;
                       return (
                         <div
+                          data-shot-skip
                           className="pointer-events-none absolute z-30 rounded-[8px] border-2 border-dashed border-ui-accent bg-ui-accent/10"
                           style={style}
                         >
@@ -553,6 +558,7 @@ export function StudioCanvas({
                       const tone = dropPreview.ok ? GHOST_OK : GHOST_DENIED;
                       return (
                         <div
+                          data-shot-skip
                           className="pointer-events-none absolute z-30 flex items-center justify-center rounded-[8px] border-[1.5px] border-dashed font-ui text-[11px] font-medium"
                           style={{ ...style, borderColor: tone.line, background: tone.fill, color: tone.line }}
                         >

@@ -6,6 +6,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+- Profile previews are small screenshots instead of live renders, so they cost no running widgets. The Profiles
+  panel is back to compact rows with a 104×60 thumbnail, and the top-bar profile menu shows a smaller one. The
+  edited profile's screenshot is retaken from the canvas 2 seconds after you stop editing and when you save; the
+  others are drawn in the background, one at a time, when the browser is idle. Imported InfoPanel profiles now
+  preview as they look instead of a grey box. Screenshots are kept in this browser only, never in the config.
+
 ## [1.3.0-beta.4] - 2026-10-20
 
 ### Changed

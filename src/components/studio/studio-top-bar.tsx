@@ -151,8 +151,8 @@ function ProfileSwitcher({
                 </Menu.Item>
                 <Menu.Separator className={SEPARATOR} />
                 {profiles.map((p) => (
-                  <Menu.Item key={p.id} className={cn(ITEM, "h-[62px]")} onClick={() => onActivate(p.id)}>
-                    <ProfilePreview profile={p} dashboard={dashboard} width={96} height={54} active={p.id === profile.id} />
+                  <Menu.Item key={p.id} className={cn(ITEM, "h-[52px]")} onClick={() => onActivate(p.id)}>
+                    <ProfilePreview profile={p} dashboard={dashboard} width={72} height={44} active={p.id === profile.id} />
                     <span className="flex-1 truncate">{p.name}</span>
                     <span className="font-ui-mono text-[10.5px] text-ui-4">
                       {p.width}×{p.height}
