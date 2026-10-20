@@ -1302,8 +1302,8 @@ for the Data Explorer. The keyboard icon opens `shortcuts-dialog.tsx`.
 menu), the Design | Sources switch, Undo / Redo, Kiosk view, Save (a dot while
 edits are not pushed yet) and a "..." menu: Export / Import
 (`config-file.ts`), Copy profile JSON, Command palette, Keyboard shortcuts,
-Reset everything (behind `reset-config-dialog.tsx`), "Desktop app settings" (only
-in the desktop app) and the build id. In the desktop app the bar is also the
+Reset everything (behind `reset-config-dialog.tsx`) and the build id. (The desktop
+app opens its settings from a Settings button at the foot of the left rail.) In the desktop app the bar is also the
 window's title bar: its empty space carries `data-tauri-drag-region` and
 `window-controls.tsx` adds minimize, maximize and close at the right end.
 `widget-picker-dialog.tsx` reuses `InsertFilters` and `InsertList` to assign a
@@ -1495,7 +1495,7 @@ minute) and writes `server.log`; the app writes `app.log`.
   `start-dashboard.bat` (a `node.exe` that answers `/api/health` as the dashboard or
   runs `server.mjs`), the app stops it and starts its own. Anything else on the port
   is left alone and the local start page offers the settings.
-- **Local pages** (`src-tauri/pages/`: start, settings) are served by Tauri, so they
+- **Local pages** (`src-tauri/pages/`: start; the React settings window is built into `pages/app/`) are served by Tauri, so they
   work when the server can't start. They use the capability `default.json` (app
   settings, server control, agents, window controls).
 - **Studio IPC.** The studio origin gets a smaller capability, added at runtime
@@ -1512,7 +1512,7 @@ minute) and writes `server.log`; the app writes `app.log`.
 - **Studio bridge** `src/lib/desktop.ts`. `isTauri()` gates everything and
   `@tauri-apps/api` is imported lazily, so the browser and kiosk bundles carry no
   Tauri code and every call is a no-op outside the app. `config-file.ts` uses the
-  native Save and Open dialogs there, and the `⋯` menu gains "Desktop app settings".
+  native Save and Open dialogs there, and the left rail gains a Settings button that opens the settings window.
 - **Flush on hide and quit.** Before the window hides or the app quits, Rust emits
   `studio://flush`; `App.tsx` pushes the pending config (the push is otherwise
   debounced 400 ms; the studio gives up after 1200 ms) and calls `flush_done`. Rust

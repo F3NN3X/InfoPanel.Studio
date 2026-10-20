@@ -1480,7 +1480,7 @@ The design, the internals and how to make another widget send to the island are 
 In the **InfoPanel Studio** desktop app (see [desktop/README.md](desktop/README.md)) the studio is the same, with these differences:
 
 - The top bar is the window's title bar. Drag it by its empty space, double-click it to maximize, and use the minimize, maximize and close buttons at its right end. Close hides the app to the tray; the server keeps running, so the kiosk page keeps updating.
-- **⋯ › Desktop app settings** opens the app's settings: where the server listens (this computer, all interfaces or one IP; the port; extra allowed host names), start at login, open the studio on launch, close to tray, the **Coding agents** toggle and debug mode.
+- **The Settings button at the foot of the left rail** (desktop app only) opens the app's settings: app zoom, start at login, open the studio on launch, close to tray, where the server listens (this computer or the local network; the port; extra allowed host names), updates, the **Coding agents** toggle, debug mode, logs and the changelog.
 - **Coding agents:** turning the toggle on writes the Claude Code and Codex hooks for you (with backups), using the app's own Node and the current port, so the `node tools/agent-install.mjs` steps above are not needed. Turning it off, or uninstalling the app, removes them. In Codex, still run `/hooks` once to approve them.
 - **Export config** and **Import config…** use the system Save and Open dialogs. Import merges as before and is one undo step.
 - Pending edits are saved before the window hides or the app quits.

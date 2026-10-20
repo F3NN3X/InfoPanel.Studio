@@ -503,7 +503,7 @@ overlay, Gauge row, Clock + date, Label / value list.
 ## 7a. Desktop app settings (InfoPanel Studio; `settings.json`, not in the config)
 
 Kept by the desktop app, not by the studio: `%APPDATA%\dev.f3nn3x.infopanel-studio\settings.json`
-(see [desktop/README.md](desktop/README.md); edited in the app's settings page, `src-tauri/src/settings.rs`).
+(see [desktop/README.md](desktop/README.md); edited in the app's settings window, `src-tauri/src/settings.rs`).
 Missing or invalid keys fall back to their default.
 
 | Key | What | Values | Default | Target |

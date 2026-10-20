@@ -23,8 +23,9 @@ A Tauri 2 app on Windows 11. On launch it reads its settings, starts the bundled
 sidecar running `server.mjs`) on the chosen host and port, waits for it to answer, then loads the
 studio from it (`http://127.0.0.1:<port>/?studio=1`). The server keeps running while the app sits in
 the tray, so the kiosk page InfoPanel displays keeps working when the window is closed. A local
-settings page (served by Tauri itself, so it works even when the server can't start) holds the
-server address, startup and agent options.
+settings window (a React page built by Vite from `src/settings/`, served by Tauri itself, so it
+works even when the server can't start) holds the server, startup, update, agent and diagnostics
+options.
 
 The SPA is still loaded **from the server**, not bundled into the webview: saved configs hold
 same-origin `/api/assets/<id>` links, request-guard refuses cross-origin writes by design, and the
@@ -60,7 +61,8 @@ the app.
 ```
 Tauri app (Rust)
  ├─ settings.json  (%APPDATA%\dev.f3nn3x.infopanel-studio\settings.json)
- ├─ local pages (served by Tauri): start.html (status / errors), settings.html
+ ├─ local pages (served by Tauri): start.html (status / errors), app/settings.html
+ │    (the settings window: React, built by `vite.settings.config.ts` into the git-ignored pages/app/)
  ├─ sidecar: resources\node\node.exe resources\server\server.mjs
  │      env PORT, HOST, ALLOWED_HOSTS, DASHBOARD_DIST=resources\dist
  │      ──► http://<host>:<port>  (kiosk for InfoPanel, studio for the app window)
@@ -104,11 +106,16 @@ commands. Defaults match today's server, so nothing changes for a fresh install.
 
 | Setting | Default | Notes |
 |---|---|---|
-| `host` | `127.0.0.1` | Choice: "This computer only (127.0.0.1)", "All network interfaces (0.0.0.0)", or a specific local IP from a list of the machine's addresses. Anything other than loopback shows a warning that other devices on the network can reach the studio and edit the dashboard. |
+| `listen` | `local` | "This computer only" (127.0.0.1) or "Local network" (0.0.0.0, shown with the machine's LAN IP). The network choice shows a warning that other devices can reach the studio and edit the dashboard. Replaces the version 1 `host`. |
 | `port` | `3922` | 1024–65535; validated, and checked as free before saving (unless our own server already holds it). |
-| `allowedHosts` | empty | Extra host names for request-guard (`ALLOWED_HOSTS`), shown only when host is not loopback. |
+| `allowedHosts` | empty | Extra host names for request-guard (`ALLOWED_HOSTS`), shown only when `listen` is `lan`. |
 | `startAtLogin` | on | `tauri-plugin-autostart`; starts hidden in the tray so the kiosk has a server after a reboot. |
 | `openStudioOnLaunch` | on | A manual launch opens the window; login autostart never does. |
+| `startServer` | on | Off = the app launches with the server stopped; the tray and the Server page offer Start. |
+| `autoRestart` | on | Restart a crashed server up to 3 times a minute. |
+| `rememberBounds` | on | Remember the studio window's size and position. |
+| `zoom` | 100 | 80, 90, 100, 110, 125 or 150 percent, applied to the studio and settings windows (never the kiosk). The studio keeps Ctrl + `=` / `-` for canvas zoom; app zoom changes from the settings window. |
+| `checkForUpdates`, `updateChannel`, `autoDownload` | on, `stable`, off | The Updates page (Stable or Beta feed, background download). |
 | `closeToTray` | on | Off = closing the window quits the app and stops the server (with a one-time warning that the kiosk will stop). |
 | `agents.enabled` | off | Installs or removes the Claude Code / Codex hooks (see below). |
 | `debug` | off | Debug mode (see below). Also forced on for one run by `--debug` or `INFOPANEL_STUDIO_DEBUG=1`. |
@@ -116,8 +123,10 @@ commands. Defaults match today's server, so nothing changes for a fresh install.
 The window always loads the studio through `127.0.0.1:<port>` when the host is loopback or
 `0.0.0.0`, and through the chosen IP otherwise.
 
-Entry points to the settings page: the tray, a "Desktop app settings" item in the studio's ⋯ menu
-(only shown when `isTauri()`), and the start page's error screens.
+Entry points to the settings window: the tray, the Settings cogwheel at the bottom of the studio's left
+rail (only shown when `isTauri()`), and the start page's error screens. Every change saves at once
+(`set_setting`); port, listen, allowed hosts and debug mode are read by the server at start, so the
+window shows a restart bar until the server is restarted with them.
 
 ## Coding agent integration (optional)
 
@@ -229,7 +238,7 @@ Entry points to the settings page: the tray, a "Desktop app settings" item in th
 12. settings.html: host (with warning and address list), port (validated), allowed hosts, start at
     login, open studio on launch, close to tray, logs tail; apply restarts the server.
 13. Autostart plugin (hidden start).
-14. "Desktop app settings" in the studio ⋯ menu when `isTauri()`.
+14. A Settings button on the studio's left rail when `isTauri()` (it began as an item in the ⋯ menu).
 
 ### Phase 3: Studio integration
 15. `src/lib/desktop.ts` with lazy `@tauri-apps/api` imports (kiosk bundle stays clean).
@@ -298,9 +307,13 @@ does for you), or `--debug` / `INFOPANEL_STUDIO_DEBUG=1` for one run.
 
 ## IPC contract (Rust commands and events)
 
-Local pages (`start.html`, `settings.html`, capability `default.json`):
-`get_settings`, `save_settings(settings) -> ApplyResult`, `server_status -> Status`,
-`restart_server`, `use_foreign_server`, `stop_foreign_server -> StopResult` (re-checks health and
+Local pages (`start.html`, `app/settings.html`, capability `default.json`):
+`get_settings`, `set_setting(key, value) -> { ok, error?, restartRequired, settings }`,
+`set_zoom(factor)`, `server_status -> Status` (and the `server-status` event), `start_server`,
+`stop_server`, `restart_server`, `find_free_port`, `server_stats`, `update_state` and the
+`update-state` event, `check_for_update`, `download_update`, `cancel_update`, `install_update`,
+`read_log(source, cursor) -> { lines, cursor, file, reset }`, `reveal_path`, `agents_status`,
+`repair_agents`, `open_agent_backups`, `app_info`, `changelog`, `open_external`, `use_foreign_server`, `stop_foreign_server -> StopResult` (re-checks health and
 the PID's image name before killing), `foreign_server_info -> { pid, exe }`, `open_studio`,
 `open_logs_folder`, `read_log_tail(name: "app"|"server", lines) -> string`,
 `get_diagnostics -> Diagnostics`, `set_agents(enabled) -> AgentResult`, `open_devtools`,

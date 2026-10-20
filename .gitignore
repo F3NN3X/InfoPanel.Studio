@@ -23,6 +23,8 @@ docs/redesign/phase9/shots/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/resources/
+# The settings window, built by vite.settings.config.ts (npm run desktop:settings)
+src-tauri/pages/app/
 .cache/
 
 # InfoPanel import lab: extracted sample exports (some are 18 MB)

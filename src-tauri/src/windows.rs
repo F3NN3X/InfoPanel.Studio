@@ -193,7 +193,7 @@ pub fn show_settings(app: &AppHandle) {
     }
     let nav_app = app.clone();
     let popup_app = app.clone();
-    let built = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("settings.html".into()))
+    let built = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("app/settings.html".into()))
         .title("InfoPanel Studio settings")
         .decorations(false)
         .inner_size(1000.0, 720.0)

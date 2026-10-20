@@ -32,21 +32,28 @@ The installer is NSIS, per user (no admin) and unsigned, so SmartScreen warns on
 
 ## Settings
 
-Open them from the tray, the studio's ⋯ menu ("Desktop app settings") or the start screen.
+Open them from the tray, the Settings cogwheel at the bottom of the studio's left rail or the start screen.
 
-- **Server:** listen on this computer only (127.0.0.1, default), all interfaces (0.0.0.0) or one local
-  IP; the port (default 3922); extra allowed host names for LAN access. Saving restarts the server and
-  reloads the studio.
-- **Startup:** start at login (default on, starts hidden in the tray), open the studio on launch, close
-  to tray.
-- **Updates:** the installed version, "Check for updates at startup" (default on; one check about 15 seconds after launch,
-  in the background) and a "Check now" / "Install and restart" pair. A found update also shows in the tray as
-  `Update to vX.Y.Z…`. Installing stops the app's server, runs the installer and relaunches the app.
+Every change saves at once; there is no Save button. The window has a sidebar (search with Ctrl K) and eight
+sections.
+
+- **General:** app zoom (80 to 150 percent; Ctrl +, Ctrl - and Ctrl 0 in the settings window; the studio keeps
+  Ctrl + `=` / `-` for canvas zoom), start at login (default on, starts hidden in the tray), open the studio on
+  launch, start the server on launch, close to tray, remember window size and position.
+- **Server:** start, stop and restart; who can connect (this computer only on 127.0.0.1, or the local network on
+  0.0.0.0 with the LAN IP shown); the port (default 3922); extra allowed host names for LAN access;
+  restart automatically after a crash; the kiosk URL. The port, who can connect, the allowed host names and debug
+  mode are read when the server starts, so changing one shows a restart bar (Undo or Restart server).
+- **Updates:** the installed version, the Stable or Beta channel, "Check for updates at startup" (default on; one
+  check about 15 seconds after launch, in the background), background download, and Check now / Download /
+  Restart and update. A found update also shows in the tray as `Update to vX.Y.Z…`. Installing stops the app's
+  server, runs the installer and relaunches the app.
 - **Coding agents:** off by default. Turning it on writes the Claude Code and Codex hooks (backing up
   `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's own Node and the current
   port. They are rewritten after a port change or an app update, and removed when you turn it off or
   uninstall the app.
-- **Debug mode:** see below.
+- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the live logs of the server, app and studio,
+  versions and file locations, and the bundled changelog.
 
 ## Releases and updates
 
@@ -85,7 +92,7 @@ Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STU
   event-loop delay.
 - Every 30 s a sample (the app's, the server's and the WebView2 processes' memory, the server stats, the
   studio's JS heap, DOM nodes and open EventSources) goes to `metrics.csv` and to the Diagnostics table in
-  the settings page. A series is flagged "growing" when it rose in at least 80% of the samples over the
+  the settings window's Diagnostics page. A series is flagged "growing" when it rose in at least 80% of the samples over the
   last hour and by more than 20%.
 - Open DevTools from the settings page (debug mode only).
 
