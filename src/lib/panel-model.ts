@@ -95,6 +95,14 @@ export interface Widget {
   rows?: number;
   /** "clock" layout. */
   clock?: "time" | "date" | "both";
+  /** "clock" showing time or date only: a .NET format string (`hh:mm:ss tt`, `dd/MM/yyyy`); empty: the General settings' own. */
+  format?: string;
+  /** "text": scroll when wider than the widget (InfoPanel's marquee). */
+  scroll?: boolean;
+  /** "text" scroll speed, px per second (default 50). */
+  scrollSpeed?: number;
+  /** "text" scroll: px between the repeats (default 40). */
+  scrollSpacing?: number;
   /** Sparkline sample count. */
   history?: number;
   /**
@@ -269,6 +277,19 @@ function normalizeItemFlags(v: unknown): Widget["follow"] {
  * Custom gauge width and Gauge ring size (`migrateWidgetV9`), `thr` and `follow` guarded (`thr`
  * on the threshold kinds only), and `box.w: "fill"` on the full-row kinds.
  */
+/** The scroll and format fields as the widget reads them: anything of another type is dropped. */
+function guardMarquee(w: Widget): Widget {
+  const { scroll, scrollSpeed, scrollSpacing, format, ...rest } = w as Widget & Record<string, unknown>;
+  if (scroll === undefined && scrollSpeed === undefined && scrollSpacing === undefined && format === undefined) return w;
+  return {
+    ...rest,
+    ...(scroll === true ? { scroll } : {}),
+    ...(typeof scrollSpeed === "number" && Number.isFinite(scrollSpeed) && scrollSpeed > 0 ? { scrollSpeed } : {}),
+    ...(typeof scrollSpacing === "number" && Number.isFinite(scrollSpacing) && scrollSpacing >= 0 ? { scrollSpacing } : {}),
+    ...(typeof format === "string" ? { format } : {}),
+  } as Widget;
+}
+
 export function normalizeWidget(input: Widget): Widget {
   let w = migrateWidgetV9(input);
   if (w.thr !== undefined || w.follow !== undefined) {
@@ -277,6 +298,7 @@ export function normalizeWidget(input: Widget): Widget {
     const follow = normalizeItemFlags(w.follow);
     w = { ...rest, ...(thr ? { thr } : {}), ...(follow ? { follow } : {}) };
   }
+  w = guardMarquee(w);
   if (!FULL_ROW.has(w.kind) || w.box?.w !== undefined) return w;
   return { ...w, box: { ...w.box, w: "fill" } };
 }
@@ -485,9 +507,9 @@ const KIND_FIELDS: Record<WidgetKind, readonly (keyof Widget)[]> = {
   customGauge: ["vector", "width"],
   sparkline: ["decimals", "scale", "history"],
   table: ["text", "rows", "columns", "header", "align", "fontSize"],
-  text: ["text", "decimals", "scale", "align", "fontSize"],
+  text: ["text", "decimals", "scale", "align", "fontSize", "scroll", "scrollSpeed", "scrollSpacing"],
   image: ["text", "height", "asBackground"],
-  clock: ["clock", "align", "fontSize"],
+  clock: ["clock", "format", "align", "fontSize"],
   shape: ["shape", "thickness"],
 };
 

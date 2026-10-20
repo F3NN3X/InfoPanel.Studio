@@ -14,6 +14,14 @@ The small building blocks you place inside a panel.
 
 A sparkline keeps between 5 and 200 samples of the value.
 
+## Scrolling text
+
+A text widget can scroll like InfoPanel's marquee. Under Behaviour › Scrolling, turn on **Scroll when too long** and set the **Speed** (px per second) and the **Spacing** between repeats. The text scrolls only while it is wider than the widget, so give the widget a **Fixed** or **Fill** width. With Motion on Reduce it stays still and shows the start of the text.
+
+## Time and date format
+
+Set a clock widget to **Time** or **Date**, then type a .NET **Format** such as `hh:mm:ss tt` or `dd/MM/yyyy`. Empty uses the time and date from General settings. An InfoPanel Clock or Calendar keeps its format when it is imported.
+
 ## Shared options
 
 Every panel widget also has a kind, content, size and placement, typography, color, class names and custom CSS, a sensor binding, units and format (unit, decimals, maximum, multiply by), thresholds and, for bars and gauges, an **Invert fill** switch.

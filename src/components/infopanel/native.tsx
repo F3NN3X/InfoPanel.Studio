@@ -8,7 +8,7 @@
  * The flag is a field on the item (set through the editor, so a switch is one
  * undo step); every InfoPanel field stays as it was, so switching back is lossless.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { imageSrc, WidgetView } from "@/components/widgets/WidgetView";
@@ -26,6 +26,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { Catalog } from "@/lib/infopanel/sensors.ts";
 import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "@/lib/infopanel/native/convert.ts";
 import { isNative, walkPaths } from "@/lib/infopanel/native/modes.ts";
+import { Marquee } from "@/components/ui/marquee";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useTickTime } from "@/hooks/use-tick";
 
@@ -63,44 +64,6 @@ export function describeNative(n: NativeItem): string {
     default:
       return `${n.widget.kind} widget`;
   }
-}
-
-/**
- * InfoPanel's marquee: when the content is wider than the box it scrolls left
- * at `speed` px/s, followed by a second copy `spacing` px behind.
- */
-function Marquee({ speed, spacing, width, children }: { speed: number; spacing: number; width?: number; children: ReactNode }) {
-  const probe = useRef<HTMLDivElement>(null);
-  const [content, setContent] = useState(0);
-  useLayoutEffect(() => {
-    const el = probe.current;
-    if (!el) return;
-    const measure = () => setContent(el.scrollWidth);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const scrolls = width !== undefined && content > width;
-  const copy = (key: string) => (
-    <div key={key} style={{ flex: "none", width: "max-content", paddingRight: scrolls ? spacing : 0 }}>
-      {children}
-    </div>
-  );
-  return (
-    <div style={{ width, overflow: "hidden" }}>
-      <div
-        ref={probe}
-        style={{
-          display: "flex", width: "max-content",
-          ...(scrolls ? { animation: `ip-marquee ${(content + spacing) / speed}s linear infinite` } : {}),
-        }}
-      >
-        {scrolls ? [copy("a"), copy("b")] : children}
-      </div>
-      <style>{"@keyframes ip-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}"}</style>
-    </div>
-  );
 }
 
 /** What the native widgets draw with besides the live values: the faces (the lab's font plan) and the time. */
@@ -196,9 +159,9 @@ function NativeText({ custom, n, sensors, view }: { custom: Extract<Custom, { ki
   if (custom.item.kind === "TableSensor") return <NativeTable custom={custom} item={custom.item} value={value} view={view} />;
   const { text, color } = textOf(custom.item, value, view.now);
   const face = textCss(color ? { ...custom.style, color } : custom.style, view.font);
-  if (custom.marquee) {
+  if (custom.marquee && custom.width > 0) {
     return (
-      <Marquee speed={custom.marquee.speed} spacing={custom.marquee.spacing} width={custom.width}>
+      <Marquee speed={custom.marquee.speed} spacing={custom.marquee.spacing} style={{ width: custom.width }}>
         <div style={{ ...face, whiteSpace: "pre" }}>{text}</div>
       </Marquee>
     );

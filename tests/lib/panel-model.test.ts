@@ -390,6 +390,16 @@ describe("customGauge widget (a vector gauge in a panel)", () => {
 });
 
 describe("normalizeWidget (thresholds, follow flags, config v9)", () => {
+  it("drops scroll and format fields of the wrong type", () => {
+    const bad = normalizeWidget(widget("text", { scroll: "yes", scrollSpeed: "50", scrollSpacing: -4, format: 5 } as never));
+    expect(bad).not.toHaveProperty("scroll");
+    expect(bad).not.toHaveProperty("scrollSpeed");
+    expect(bad).not.toHaveProperty("scrollSpacing");
+    expect(bad).not.toHaveProperty("format");
+    const ok = normalizeWidget(widget("text", { scroll: true, scrollSpeed: 30, scrollSpacing: 0, format: "HH:mm" }));
+    expect(ok).toMatchObject({ scroll: true, scrollSpeed: 30, scrollSpacing: 0, format: "HH:mm" });
+  });
+
   it("keeps usable levels and flags, drops the rest", () => {
     const w = normalizeWidget(widget("stat", { thr: { warn: 70, crit: "off" }, follow: { colors: false } }));
     expect(w.thr).toEqual({ warn: 70, crit: "off" });

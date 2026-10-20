@@ -38,7 +38,7 @@ describe("KIND_TABS: the sections of each kind", () => {
     ["gauge", ["type", "colors", "css"], ["panel-data", "item-bind", "format"], ["thresholds", "item-fill"]],
     ["sparkline", ["colors", "css"], ["panel-data", "item-bind", "format"], ["item-history"]],
     ["table", ["type", "css"], ["panel-data", "item-bind"], []],
-    ["text", ["type", "colors", "css"], ["panel-data", "item-bind", "format"], []],
+    ["text", ["type", "colors", "css"], ["panel-data", "item-bind", "format"], ["item-scroll"]],
     ["image", ["css"], ["panel-data", "item-bind"], []],
     ["clock", ["type", "colors", "css"], ["panel-data"], []],
     ["shape", ["colors", "css"], ["panel-data"], []],
@@ -52,6 +52,11 @@ describe("KIND_TABS: the sections of each kind", () => {
 
   it("lists each kind's own content rows", () => {
     expect(keys(sections(widget("clock")), "item-content")).toEqual(["label", "clock"]);
+    // A format applies to the time or the date alone.
+    expect(keys(sections({ ...widget("clock"), clock: "time" }), "item-content")).toEqual(["label", "clock", "format"]);
+    // Scroll speed and spacing show once scrolling is on.
+    expect(keys(sections(widget("text")), "item-scroll")).toEqual(["scroll"]);
+    expect(keys(sections({ ...widget("text"), scroll: true }), "item-scroll")).toEqual(["scroll", "scrollSpeed", "scrollSpacing"]);
     expect(keys(sections(widget("shape")), "item-content")).toEqual(["shape", "thickness"]);
     expect(keys(sections(widget("table")), "item-content")).toEqual(["label", "rows", "columns", "header"]);
     expect(keys(sections(widget("image")), "item-content")).toEqual(["label", "text", "height"]);

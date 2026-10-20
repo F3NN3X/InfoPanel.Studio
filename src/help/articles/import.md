@@ -31,7 +31,7 @@ Save — Into a canvas zone
 | Mode | Result |
 |---|---|
 | **Faithful** | Every item drawn exactly as InfoPanel draws it. The theme never touches it. |
-| **Native where possible** | Items become dashboard widgets (text, value, bar, gauge and more) that follow your theme. Recommended. |
+| **Native where possible** | Items become dashboard widgets (text, value, bar, gauge and more) that follow your theme. Scrolling text becomes a text widget that scrolls, and a Clock or Calendar keeps its format. Recommended. |
 | **Both** | One canvas where each item keeps both forms, so you can switch any item later. |
 
 This only sets the starting point. You can switch any item later, without loss.

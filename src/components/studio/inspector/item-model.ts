@@ -12,6 +12,7 @@ import {
   type WidgetBox,
   type WidgetKind,
 } from "@/lib/panel-model";
+import { MARQUEE_SPACING, MARQUEE_SPEED } from "@/lib/marquee";
 import { critKey, OFF, QUANTITIES, warnKey, type SectionFlags } from "@/lib/theme-model";
 import type { InspectorTab, ModuleSetting, ModuleSettingValue, ModuleSettings, ThresholdQuantity } from "@/modules/types";
 import { DEFAULT_GAUGE_SPEC } from "@/widgets/CustomGauge";
@@ -125,6 +126,7 @@ const SECTIONS: readonly ItemSectionSpec[] = [
     rows: ({ w }) => [
       w.kind !== "shape" && row("label", "Label", "text", ""),
       w.kind === "clock" && select("clock", "Show", [["both", "Time + date"], ["time", "Time"], ["date", "Date"]], "both"),
+      w.kind === "clock" && w.clock !== undefined && w.clock !== "both" && row("format", "Format", "text", "", { hint: "A .NET format, e.g. hh:mm:ss tt or dd/MM/yyyy. Empty: the General settings' own" }),
       is(w, ["text", "image"]) && row("text", w.kind === "image" ? "Image URL" : "Static text", "text", "", w.kind === "image" ? { hint: "Or bind a sensor that holds a URL" } : {}),
       w.kind === "image" && row("height", "Max height (px)", "number", 0, { min: 0, max: 600, step: 4, hint: "0 = auto" }),
       w.kind === "shape" && select("shape", "Shape", [["vbar", "V-bar"], ["hbar", "H-bar"], ["rect", "Rect"], ["circle", "Circle"]], "vbar"),
@@ -221,6 +223,18 @@ const SECTIONS: readonly ItemSectionSpec[] = [
       row("thr.warn", QUANTITIES[quantity].label, "thresholds", OFF, { keyY: "thr.crit", defaultY: OFF, quantity, hint: "The bound sensor's unit picks the scale: % load, ° temperature, else its value" }),
     ],
   },
+  {
+    id: "item-scroll",
+    title: "Scrolling",
+    tab: "behaviour",
+    kinds: ["text"],
+    hint: "Scrolls when the text is wider than the widget: give it a Fixed or Fill width",
+    rows: ({ w }) => [
+      row("scroll", "Scroll when too long", "boolean", false),
+      w.scroll === true && row("scrollSpeed", "Speed (px/s)", "number", MARQUEE_SPEED, { min: 1, max: 1000, step: 5 }),
+      w.scroll === true && row("scrollSpacing", "Spacing (px)", "number", MARQUEE_SPACING, { min: 0, max: 1000, step: 5, hint: "Between one repeat and the next" }),
+    ],
+  },
   { id: "item-history", title: "History", tab: "behaviour", kinds: ["sparkline"], rows: () => [row("history", "Samples", "number", 40, { min: 5, max: 200, step: 5 })] },
   { id: "item-fill", title: "Fill", tab: "behaviour", kinds: ["bar", "gauge"], rows: () => [row("inverted", "Invert fill", "boolean", false)] },
 ];
@@ -272,7 +286,11 @@ export function itemOwn(w: Widget, layout: PanelLayoutKind): ModuleSettings {
   const fields: [string, ModuleSettingValue | undefined][] = [
     ["label", w.label],
     ["clock", w.clock],
+    ["format", w.format],
     ["text", w.text],
+    ["scroll", w.scroll],
+    ["scrollSpeed", w.scrollSpeed],
+    ["scrollSpacing", w.scrollSpacing],
     ["height", w.height],
     ["shape", w.shape],
     ["thickness", w.thickness],
@@ -371,12 +389,14 @@ function withKey(w: Widget, key: string, v: ModuleSettingValue | undefined): Wid
     case "unit":
     case "color":
     case "clock":
+    case "format":
     case "shape":
     case "align":
       return put(w, key, text(v));
     case "thickness":
     case "rows":
     case "width":
+    case "scrollSpacing":
     case "span":
     case "rowSpan":
     case "max":
@@ -387,7 +407,10 @@ function withKey(w: Widget, key: string, v: ModuleSettingValue | undefined): Wid
     case "height":
     case "fontSize":
     case "size":
+    case "scrollSpeed":
       return put(w, key, positive(v));
+    case "scroll":
+      return put(w, "scroll", v === true || undefined);
     case "decimals":
       return put(w, "decimals", v === "auto" ? undefined : num(v));
     case "inverted":

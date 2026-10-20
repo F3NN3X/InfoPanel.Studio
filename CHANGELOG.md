@@ -16,6 +16,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   moving gauges share one frame clock capped at Max FPS, hidden items and gauges that reached their value cost
   nothing, and the Clock colon blinks once a second from the clock's own tick instead of a CSS animation. With
   Motion on Reduce they stay still. Motion also follows the URL and profile overrides.
+- Scrolling text no longer uses a CSS animation. One Marquee, driven by the shared frame clock, scrolls InfoPanel
+  items in both Faithful and Native mode (Faithful marquee text never scrolled before) and the new **Scroll when
+  too long** option of the text widget. Clock widgets set to Time or Date take a .NET **Format**
+  (`hh:mm:ss tt`, `dd/MM/yyyy`). Importing InfoPanel in native mode turns scrolling Text into the text widget with
+  scroll on, and a Clock or Calendar keeps its Format, so "scrolling text" and "date and time format" no longer
+  appear among the app work native mode asks for.
 
 ## [1.3.0-beta.5] - 2026-10-20
 
