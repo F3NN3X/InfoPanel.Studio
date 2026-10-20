@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
 import { allSections, inspectorTabs, tabStates, widgetContext } from "@/components/studio/inspector-model";
 import { OTHER_TITLE } from "@/components/studio/inspector-categories";
 import { modules } from "@/modules";
@@ -22,26 +22,22 @@ it("covers all 54 widgets", () => {
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 
-describe.each(REFILED)("%s", (id) => {
-  const mod = modules.find((m) => m.id === id)!;
-  const context = widgetContext(mod);
-  const sections = allSections(context);
+it("files every widget by the rules: no Content, Other or widget-name section, a role on every colour row, no empty tab or section", () => {
+  for (const id of REFILED) {
+    const mod = modules.find((m) => m.id === id)!;
+    const context = widgetContext(mod);
+    const sections = allSections(context);
 
-  it("files no section under Content, Other or the widget's name", () => {
     const titles = sections.map((s) => s.title);
-    expect(titles).not.toContain("Content");
-    expect(titles).not.toContain(OTHER_TITLE);
-    expect(titles.map((t) => t.toLowerCase())).not.toContain(mod.title.toLowerCase());
-  });
+    expect(titles, id).not.toContain("Content");
+    expect(titles, id).not.toContain(OTHER_TITLE);
+    expect(titles.map((t) => t.toLowerCase()), id).not.toContain(mod.title.toLowerCase());
 
-  it("gives every colour row a palette role", () => {
     const colors = (mod.settings ?? []).filter((d) => d.type === "color" && !d.section);
-    expect(colors.filter((d) => !d.role).map((d) => d.key)).toEqual([]);
-  });
+    expect(colors.filter((d) => !d.role).map((d) => d.key), id).toEqual([]);
 
-  it("leaves no enabled tab empty and no section without rows", () => {
     const states = tabStates(inspectorTabs(context), sections);
-    for (const t of states.filter((s) => !s.disabled)) expect(sections.filter((s) => s.tab === t.id).length, t.label).toBeGreaterThan(0);
-    for (const s of sections.filter((x) => !x.special)) expect(s.settings.length, s.title).toBeGreaterThan(0);
-  });
+    for (const t of states.filter((s) => !s.disabled)) expect(sections.filter((s) => s.tab === t.id).length, `${id} ${t.label}`).toBeGreaterThan(0);
+    for (const s of sections.filter((x) => !x.special)) expect(s.settings.length, `${id} ${s.title}`).toBeGreaterThan(0);
+  }
 });

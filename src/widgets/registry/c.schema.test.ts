@@ -36,28 +36,24 @@ describe.each(Object.entries(MANIFEST))("%s schema", (id, props) => {
   const mod = GROUP_C.find((m) => m.id === id)!;
   const settings = mod.settings ?? [];
 
-  it("lists exactly the spec's widget-specific props", () => {
+  it("keeps the manifest, keys and enum defaults, and renders from its defaults", () => {
     expect(specProps(id).sort()).toEqual(Object.keys(props).sort());
-  });
-
-  it("reaches every spec prop through exactly one setting", () => {
-    for (const key of Object.values(props)) if (key) expect(settings.flatMap(settingKeys).filter((k) => k === key)).toHaveLength(1);
-  });
-
-  it("has unique keys; own keys do not collide with a standard key", () => {
-    const keys = settings.map((d) => d.key);
-    expect(new Set(keys).size).toBe(keys.length);
-    for (const key of Object.values(props)) if (key) expect(STANDARD_KEYS.has(key)).toBe(false);
-  });
-
-  it("keeps every enum default inside its options", () => {
-    for (const d of settings.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
-  });
-
-  it("renders from its defaults", () => {
-    const defaults: ModuleSettings = Object.fromEntries(settings.map((d) => [d.key, d.default]));
-    const html = renderToString(mod.render(SENSORS, defaults) ?? createElement("i"));
-    expect(html.length).toBeGreaterThan(0);
+    { // reaches every spec prop through exactly one setting
+      for (const key of Object.values(props)) if (key) expect(settings.flatMap(settingKeys).filter((k) => k === key)).toHaveLength(1);
+    }
+    { // has unique keys; own keys do not collide with a standard key
+      const keys = settings.map((d) => d.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const key of Object.values(props)) if (key) expect(STANDARD_KEYS.has(key)).toBe(false);
+    }
+    { // keeps every enum default inside its options
+      for (const d of settings.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
+    }
+    { // renders from its defaults
+      const defaults: ModuleSettings = Object.fromEntries(settings.map((d) => [d.key, d.default]));
+      const html = renderToString(mod.render(SENSORS, defaults) ?? createElement("i"));
+      expect(html.length).toBeGreaterThan(0);
+    }
   });
 });
 

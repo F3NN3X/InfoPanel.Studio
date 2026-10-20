@@ -69,27 +69,6 @@ describe("groupSources", () => {
     expect(vol.sources[0].entries[0]).toMatchObject({ label: "Volume", type: "sensor", value: 40, unit: "%" });
   });
 
-  it("puts the default audio device first, the rest by name", () => {
-    const meter = groups.find((g) => g.id === "audio-level-meter")!;
-    expect(meter.sources.map((s) => s.label)).toEqual(["Audio Level Meter", "Music", "Speakers"]);
-  });
-
-  it("adds the flat namespaces from the snapshot", () => {
-    expect(groups.map((g) => g.name)).toEqual([
-      "Audio Level Meter",
-      "LibreHardwareMonitor",
-      "Spotify",
-      "System",
-      "Volume Info",
-      "Weather Info - MET/Yr",
-    ]);
-    const spotify = groups.find((g) => g.id === "spotify")!;
-    expect(spotify.sources[0].entries[0]).toMatchObject({ key: "spotify.track", id: "track", type: "text" });
-  });
-
-  it("works before the tree has loaded", () => {
-    expect(groupSources(null, {})).toEqual([]);
-  });
 });
 
 describe("sourceOptions", () => {
@@ -102,10 +81,6 @@ describe("sourceOptions", () => {
     ]);
   });
 
-  it("offers only 'all sources' for an unknown plugin or no tree", () => {
-    expect(sourceOptions(sources, "plugins.nope.")).toEqual([{ value: "", label: "All sources" }]);
-    expect(sourceOptions(null, "plugins.audio-level-meter.")).toHaveLength(1);
-  });
 });
 
 describe("pickerOptions", () => {

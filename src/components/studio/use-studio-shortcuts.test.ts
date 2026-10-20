@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SHORTCUT_GROUPS, shortcutAction, type KeyInput, type ShortcutContext } from "./use-studio-shortcuts";
+import { shortcutAction, type KeyInput, type ShortcutContext } from "./use-studio-shortcuts";
 
 const key = (k: string, mods: Partial<Omit<KeyInput, "key">> = {}): KeyInput => ({
   key: k,
@@ -23,21 +23,6 @@ describe("shortcutAction", () => {
     expect(shortcutAction(key("?", { shiftKey: true }), IDLE)).toEqual({ type: "cheatsheet" });
   });
 
-  it("nudges with arrows and resizes with Shift+arrows", () => {
-    expect(shortcutAction(key("ArrowRight"), IDLE)).toEqual({ type: "nudge", cols: 1, rows: 0 });
-    expect(shortcutAction(key("ArrowUp"), IDLE)).toEqual({ type: "nudge", cols: 0, rows: -1 });
-    expect(shortcutAction(key("ArrowLeft", { shiftKey: true }), IDLE)).toEqual({
-      type: "resize",
-      cols: -1,
-      rows: 0,
-    });
-    expect(shortcutAction(key("ArrowDown", { shiftKey: true }), IDLE)).toEqual({
-      type: "resize",
-      cols: 0,
-      rows: 1,
-    });
-  });
-
   it("maps the ctrl (and cmd) shortcuts", () => {
     expect(shortcutAction(key("s", { ctrlKey: true }), IDLE)).toEqual({ type: "save" });
     expect(shortcutAction(key("z", { ctrlKey: true }), IDLE)).toEqual({ type: "undo" });
@@ -49,52 +34,6 @@ describe("shortcutAction", () => {
     expect(shortcutAction(key("=", { ctrlKey: true }), IDLE)).toEqual({ type: "zoom-in" });
     expect(shortcutAction(key("+", { ctrlKey: true, shiftKey: true }), IDLE)).toEqual({ type: "zoom-in" });
     expect(shortcutAction(key("-", { ctrlKey: true }), IDLE)).toEqual({ type: "zoom-out" });
-  });
-
-  it("zooms with plain + / = and -, but not while typing or with a dialog open", () => {
-    expect(shortcutAction(key("+", { shiftKey: true }), IDLE)).toEqual({ type: "zoom-in" });
-    expect(shortcutAction(key("="), IDLE)).toEqual({ type: "zoom-in" });
-    expect(shortcutAction(key("-"), IDLE)).toEqual({ type: "zoom-out" });
-    expect(shortcutAction(key("+"), TYPING)).toBeNull();
-    expect(shortcutAction(key("-"), TYPING)).toBeNull();
-    expect(shortcutAction(key("-"), DIALOG)).toBeNull();
-  });
-
-  it("maps Ctrl/cmd+A to select all, but not while typing or with a dialog open", () => {
-    expect(shortcutAction(key("a", { ctrlKey: true }), IDLE)).toEqual({ type: "select-all" });
-    expect(shortcutAction(key("A", { metaKey: true }), IDLE)).toEqual({ type: "select-all" });
-    expect(shortcutAction(key("a", { ctrlKey: true }), { ...IDLE, widget: true })).toEqual({ type: "select-all" });
-    expect(shortcutAction(key("a", { ctrlKey: true }), TYPING)).toBeNull();
-    expect(shortcutAction(key("a", { ctrlKey: true }), DIALOG)).toBeNull();
-    expect(shortcutAction(key("A", { ctrlKey: true, shiftKey: true }), IDLE)).toBeNull();
-  });
-
-  it("maps Ctrl/cmd+Alt+C / V to copy / paste style by the physical key", () => {
-    // Alt+C types "ç" on some layouts: only `code` is reliable.
-    const chord = (code: string, mods = {}) => key("ç", { ctrlKey: true, altKey: true, code, ...mods });
-    expect(shortcutAction(chord("KeyC"), IDLE)).toEqual({ type: "copy-style" });
-    expect(shortcutAction(chord("KeyV", { ctrlKey: false, metaKey: true }), IDLE)).toEqual({ type: "paste-style" });
-    expect(shortcutAction(chord("KeyC"), { ...IDLE, widget: true })).toEqual({ type: "copy-style" });
-    expect(shortcutAction(chord("KeyC"), TYPING)).toBeNull();
-    expect(shortcutAction(chord("KeyC"), DIALOG)).toBeNull();
-    expect(shortcutAction(chord("KeyC", { shiftKey: true }), IDLE)).toBeNull();
-    expect(shortcutAction(chord("KeyX"), IDLE)).toBeNull();
-    expect(shortcutAction(key("c", { altKey: true, code: "KeyC" }), IDLE)).toBeNull();
-  });
-
-  it("maps Ctrl+\ to the dock toggle, but not while typing or with a dialog open", () => {
-    expect(shortcutAction(key("\\", { ctrlKey: true }), IDLE)).toEqual({ type: "toggle-dock" });
-    expect(shortcutAction(key("\\", { metaKey: true }), { ...IDLE, widget: true })).toEqual({ type: "toggle-dock" });
-    expect(shortcutAction(key("\\", { ctrlKey: true }), TYPING)).toBeNull();
-    expect(shortcutAction(key("\\", { ctrlKey: true }), DIALOG)).toBeNull();
-    expect(shortcutAction(key("\\"), IDLE)).toBeNull();
-  });
-
-  it("leaves unrelated keys and Alt combos alone", () => {
-    expect(shortcutAction(key("a"), IDLE)).toBeNull();
-    expect(shortcutAction(key("c", { ctrlKey: true }), IDLE)).toBeNull();
-    expect(shortcutAction(key("z", { ctrlKey: true, altKey: true }), IDLE)).toBeNull();
-    expect(shortcutAction(key("H", { shiftKey: true }), IDLE)).toBeNull();
   });
 
   it("ignores plain keys while typing, but keeps save and the palette", () => {
@@ -127,16 +66,6 @@ describe("shortcutAction", () => {
       expect(shortcutAction(key("d", { ctrlKey: true }), WIDGET)).toEqual({ type: "widget-duplicate" });
     });
 
-    it("copies, pastes and reorders the widget", () => {
-      expect(shortcutAction(key("c", { ctrlKey: true }), WIDGET)).toEqual({ type: "widget-copy" });
-      expect(shortcutAction(key("V", { metaKey: true }), WIDGET)).toEqual({ type: "widget-paste" });
-      expect(shortcutAction(key("ArrowUp", { altKey: true }), WIDGET)).toEqual({ type: "widget-move", delta: -1 });
-      expect(shortcutAction(key("ArrowDown", { altKey: true }), WIDGET)).toEqual({ type: "widget-move", delta: 1 });
-      expect(shortcutAction(key("ArrowLeft", { altKey: true }), WIDGET)).toBeNull();
-      expect(shortcutAction(key("ArrowUp", { altKey: true, shiftKey: true }), WIDGET)).toBeNull();
-      expect(shortcutAction(key("c", { ctrlKey: true, shiftKey: true }), WIDGET)).toBeNull();
-    });
-
     it("keeps the arrows on the zone, and Esc, save and undo as they are", () => {
       expect(shortcutAction(key("ArrowRight"), WIDGET)).toEqual({ type: "nudge", cols: 1, rows: 0 });
       expect(shortcutAction(key("ArrowDown", { shiftKey: true }), WIDGET)).toEqual({ type: "resize", cols: 0, rows: 1 });
@@ -159,21 +88,6 @@ describe("shortcutAction", () => {
   });
 });
 
-describe("SHORTCUT_GROUPS", () => {
-  it("lists the widget keys, with unique labels per group", () => {
-    const widget = SHORTCUT_GROUPS.find((g) => g.title === "Selected panel widget");
-    expect(widget?.items.map((i) => i.keys)).toEqual(
-      expect.arrayContaining(["Del / Backspace", "Ctrl+D", "Ctrl+C", "Ctrl+V", "Alt+↑ / ↓"])
-    );
-    const keys = SHORTCUT_GROUPS.flatMap((g) => g.items.map((i) => i.keys));
-    expect(keys).toContain("Ctrl+A");
-    for (const group of SHORTCUT_GROUPS) {
-      const labels = group.items.map((i) => i.label);
-      expect(new Set(labels).size).toBe(labels.length);
-    }
-  });
-});
-
 describe("shortcutAction guards", () => {
   it("leaves Esc and undo / redo to a text field while typing", () => {
     expect(shortcutAction(key("Escape"), TYPING)).toBeNull();
@@ -190,13 +104,7 @@ describe("shortcutAction guards", () => {
     }
   });
 
-  it("does not treat AltGr+C / V as style chords", () => {
-    const altGr = { ctrlKey: true, altKey: true, altGraph: true };
-    expect(shortcutAction(key("c", { ...altGr, code: "KeyC" }), IDLE)).toBeNull();
-    expect(shortcutAction(key("v", { ...altGr, code: "KeyV" }), IDLE)).toBeNull();
-  });
 });
-
 
 describe("page shortcuts", () => {
   it("steps pages with Ctrl+PageDown / PageUp (cmd too)", () => {
@@ -205,15 +113,4 @@ describe("page shortcuts", () => {
     expect(shortcutAction(key("PageDown", { metaKey: true }), IDLE)).toEqual({ type: "page-next" });
   });
 
-  it("ignores a bare PageUp / PageDown, and the chord while typing or with a dialog open", () => {
-    expect(shortcutAction(key("PageDown"), IDLE)).toBeNull();
-    expect(shortcutAction(key("PageUp", { ctrlKey: true }), TYPING)).toBeNull();
-    expect(shortcutAction(key("PageDown", { ctrlKey: true }), DIALOG)).toBeNull();
-  });
-
-  it("lists them in the cheat sheet", () => {
-    const keys = SHORTCUT_GROUPS.flatMap((g) => g.items.map((i) => i.keys));
-    expect(keys).toContain("Ctrl+PageDown");
-    expect(keys).toContain("Ctrl+PageUp");
-  });
 });

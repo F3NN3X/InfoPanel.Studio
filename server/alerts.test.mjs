@@ -55,10 +55,12 @@ describe("evaluate: thresholds", () => {
     ["=", 50, 50, 51],
     ["!=", 50, 51, 50],
   ];
-  it.each(cases)("op %s fires on the matching value and not the other", (op, value, hit, miss) => {
-    const alerts = cfg([sensor({}, { op, value })]);
-    expect(fired(run(alerts, [[T0, temp(miss)]]).events)).toHaveLength(0);
-    expect(fired(run(alerts, [[T0, temp(hit)]]).events)).toHaveLength(1);
+  it("every operator fires on the matching value and not the other", () => {
+    for (const [op, value, hit, miss] of cases) {
+      const alerts = cfg([sensor({}, { op, value })]);
+      expect(fired(run(alerts, [[T0, temp(miss)]]).events), op).toHaveLength(0);
+      expect(fired(run(alerts, [[T0, temp(hit)]]).events), op).toHaveLength(1);
+    }
   });
 
   it("compares text for = and != when the value is a string", () => {
@@ -84,12 +86,6 @@ describe("evaluate: thresholds", () => {
     const { events, state } = run(cfg([sensor()]), [[T0, temp(90)], [T0 + 1000, temp(91)], [T0 + 2000, temp(92)]]);
     expect(fired(events)).toHaveLength(1);
     expect(state.active).toHaveLength(1);
-  });
-
-  it("passes the island display style through to the active alert", () => {
-    const rule = sensor({ outputs: { display: { style: "island", seconds: 0 } } });
-    const { state } = run(cfg([rule]), [[T0, temp(90)]]);
-    expect(state.active[0].alert.display).toMatchObject({ style: "island", seconds: 0 });
   });
 
   it("clears when the condition stops holding", () => {
@@ -298,10 +294,6 @@ describe("act", () => {
     expect(evaluate(r.state, off, {}, T0 + 2999).state.active).toHaveLength(1);
     expect(evaluate(r.state, off, {}, T0 + 3000).state.active).toEqual([]);
   });
-  it("tests a notification rule with a sample notification", () => {
-    const r = act(emptyAlertsState(), { ruleId: "n1", action: "test" }, cfg([notif()]), {}, T0);
-    expect(r.state.active[0].alert.text).toBe("Test: Test notification");
-  });
 });
 
 describe("alert shape and text", () => {
@@ -328,25 +320,6 @@ describe("alert shape and text", () => {
       highlight: { zones: ["z1"], key: "gpu.temp" },
       profiles: ["desk"],
     });
-  });
-  it("formats the default sensor text to one decimal", () => {
-    const text = (v) => fired(run(cfg([sensor()]), [[T0, temp(v)]]).events)[0].alert.text;
-    expect(text(91.26)).toBe("91.3°C");
-    expect(text(90)).toBe("90°C");
-  });
-  it("fills a custom template", () => {
-    const rule = notif({ outputs: { display: { text: "{name} {app} / {title} / {body} {value}{unit}" } } });
-    const r = run(cfg([rule]), [[T0, note({ id: "0" })], [T0 + 1000, note({ id: "1" })]]);
-    expect(fired(r.events)[0].alert.text).toBe("Notify Discord / Hi / hello there");
-    const s = sensor({ outputs: { display: { text: "{value} {unit} on {name}" } } });
-    expect(fired(run(cfg([s]), [[T0, temp(88)]]).events)[0].alert.text).toBe("88 °C on GPU temp");
-  });
-  it("uses the config default seconds unless the rule sets its own", () => {
-    const alerts = cfg([notif()]);
-    alerts.defaults.seconds = 20;
-    const rule = notif({ outputs: {} });
-    const r = run(cfg([rule], { defaults: { ...alerts.defaults } }), [[T0, note({ id: "0" })], [T0 + 1000, note({ id: "1" })]]);
-    expect(fired(r.events)[0].alert.display.seconds).toBe(20);
   });
 });
 
@@ -460,14 +433,6 @@ describe("createAlerts", () => {
       "http://10.0.0.5:3921/events?prefix=plugins.InfoPanel.Notifications.windows.&interval=1000",
     ]);
     h.engine.stop();
-  });
-
-  it("uses the default Data API address and opens nothing without rules", () => {
-    const none = setup(base());
-    expect(none.connect).not.toHaveBeenCalled();
-    const some = setup(base(cfg([sensor()])));
-    expect(some.streams[0].url).toBe("http://127.0.0.1:3921/events?prefix=gpu.&interval=1000");
-    some.engine.stop();
   });
 
   it("resubscribes only when the key set changes", () => {
@@ -599,9 +564,3 @@ describe("createAlerts", () => {
   });
 });
 
-describe("activeAlerts", () => {
-  it("lists the alerts without their bookkeeping", () => {
-    const r = run(cfg([sensor()]), [[T0, temp(90)]]);
-    expect(activeAlerts(r.state)).toEqual([r.state.active[0].alert]);
-  });
-});

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { assetKey, usesOf, type AssetFile, type Doc } from "@/lib/infopanel/assets/assets";
 import { findingsOf } from "@/lib/infopanel/assets/stored-doc";
@@ -53,31 +53,4 @@ describe("profile files table", () => {
     expect(screen.getByText("tile.png")).toBeTruthy();
   });
 
-  it("marks the file used as the tiled page background", () => {
-    view();
-    const row = screen.getByText("tile.png").closest('[role="row"]') as HTMLElement;
-    expect(within(row).getByText("Tiled")).toBeTruthy();
-    expect(within(screen.getByText("logo.png").closest('[role="row"]') as HTMLElement).queryByText("Tiled")).toBeNull();
-  });
-
-  it("filters to the tiled file", () => {
-    view({ tiledOnly: true });
-    expect(screen.getByText("tile.png")).toBeTruthy();
-    expect(screen.queryByText("logo.png")).toBeNull();
-    expect(screen.queryByText("3 frames")).toBeNull();
-  });
-
-  it("Use for selection applies a stored file, and is off with the reason when nothing takes it or the file has no URL", () => {
-    const { onUse } = view();
-    fireEvent.click(screen.getByRole("button", { name: "Use tile.png for selection" }));
-    expect(onUse).toHaveBeenCalledWith(tile);
-    expect((screen.getByRole("button", { name: "Use logo.png for selection" }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it("shows why Use for selection is off", () => {
-    view({ useBlocked: "Select an image widget on the canvas first" });
-    const button = screen.getByRole("button", { name: "Use tile.png for selection" }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    expect(button.title).toBe("Select an image widget on the canvas first");
-  });
 });

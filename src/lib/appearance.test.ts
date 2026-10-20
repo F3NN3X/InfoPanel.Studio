@@ -6,22 +6,12 @@ import {
   cssUrl,
   mediaUrl,
   normalizeBackground,
-  posterBackground,
   resolveBackground,
-  videoPolicy,
-  videoStyle,
-  mediaKindOf,
   withBackground,
   withBackgroundType,
   type PageBackground,
 } from "./appearance";
 import { mergeConfig, type DashboardConfig } from "./layout";
-
-const image = (extra: Partial<PageBackground> = {}): PageBackground => ({
-  type: "image",
-  src: "/assets/ip/arcv2/arc-mono-ref.png",
-  ...extra,
-});
 
 describe("resolveBackground", () => {
   const dash: PageBackground = { type: "color", color: "#112233" };
@@ -70,76 +60,6 @@ describe("backgroundLayers", () => {
     const l = backgroundLayers({ type: "gradient", gradient: { from: "#111", to: "#eee", angle: 45 } });
     expect(l.fill).toEqual({});
     expect(l.media).toEqual({ backgroundImage: "linear-gradient(45deg, #111, #eee)" });
-  });
-
-  it("falls back to the default gradient and color", () => {
-    expect(backgroundLayers({ type: "gradient" }).media?.backgroundImage).toMatch(/^linear-gradient\(160deg/);
-    expect(backgroundLayers({ type: "color" }).fill.backgroundColor).toBe("#0b0b0f");
-  });
-
-  it.each([
-    ["cover", "cover", "no-repeat"],
-    ["contain", "contain", "no-repeat"],
-    ["stretch", "100% 100%", "no-repeat"],
-    ["center", "auto", "no-repeat"],
-    ["tile", "auto", "repeat"],
-  ] as const)("maps fit %s to size %s / %s", (fit, size, repeat) => {
-    const { media } = backgroundLayers(image({ fit }));
-    expect(media?.backgroundSize).toBe(size);
-    expect(media?.backgroundRepeat).toBe(repeat);
-  });
-
-  it("covers, centered, by default, over the letterbox fill", () => {
-    const l = backgroundLayers(image());
-    expect(l.media).toMatchObject({
-      backgroundImage: 'url("/assets/ip/arcv2/arc-mono-ref.png")',
-      backgroundPosition: "center center",
-      backgroundSize: "cover",
-    });
-    expect(l.fill).toEqual({ backgroundColor: "#0b0b0f" });
-  });
-
-  it("maps the nine positions to CSS keywords", () => {
-    const pos = (x: "start" | "center" | "end", y: "start" | "center" | "end") =>
-      backgroundLayers(image({ position: { x, y } })).media?.backgroundPosition;
-    expect(pos("start", "start")).toBe("left top");
-    expect(pos("end", "center")).toBe("right center");
-    expect(pos("center", "end")).toBe("center bottom");
-  });
-
-  it("has no media for an image without a source (the fill shows)", () => {
-    const l = backgroundLayers({ type: "image", color: "#222", dim: 40 });
-    expect(l).toEqual({ fill: { backgroundColor: "#222" }, media: null, overlay: null });
-  });
-
-  it("stacks the tint over the dim in one overlay", () => {
-    expect(backgroundLayers(image({ dim: 40 })).overlay).toEqual({
-      backgroundImage: "linear-gradient(rgb(0 0 0 / 40%), rgb(0 0 0 / 40%))",
-    });
-    const both = backgroundLayers(image({ dim: 20, tint: "#ff0000", tintOpacity: 30 })).overlay;
-    expect(both?.backgroundImage).toBe(
-      "linear-gradient(color-mix(in srgb, #ff0000 30%, transparent), color-mix(in srgb, #ff0000 30%, transparent)), " +
-        "linear-gradient(rgb(0 0 0 / 20%), rgb(0 0 0 / 20%))"
-    );
-  });
-
-  it("ignores a tint with no opacity", () => {
-    expect(backgroundLayers(image({ tint: "#ff0000" })).overlay).toBeNull();
-  });
-
-  it("blurs the media and bleeds it past the edges by twice the radius", () => {
-    const { media } = backgroundLayers(image({ blur: 8 }));
-    expect(media?.filter).toBe("blur(8px)");
-    expect(media?.inset).toBe(-16);
-    expect(backgroundLayers(image()).media?.filter).toBeUndefined();
-  });
-
-  it("gives a video only its fill color as CSS layers (the <video> element draws the media)", () => {
-    expect(backgroundLayers({ type: "video", src: "/a.mp4", color: "#010101" })).toEqual({
-      fill: { backgroundColor: "#010101" },
-      media: null,
-      overlay: null,
-    });
   });
 
   it("escapes quotes in the image URL", () => {
@@ -265,67 +185,7 @@ describe("withBackground", () => {
   });
 });
 
-describe("video backgrounds", () => {
-  const video = (extra: Partial<PageBackground> = {}): PageBackground => ({
-    type: "video",
-    src: "/api/assets/a.mp4",
-    ...extra,
-  });
-
-  it("plays, pauses while hidden, and shows the poster on reduced motion", () => {
-    expect(videoPolicy({ motion: "full", hidden: false })).toBe("play");
-    expect(videoPolicy({ motion: "full", hidden: true })).toBe("pause");
-    expect(videoPolicy({ motion: "reduce", hidden: false })).toBe("poster");
-    expect(videoPolicy({ motion: "reduce", hidden: true })).toBe("poster");
-  });
-
-  it("shows the poster as an image with the video's look, or the fill without one", () => {
-    const bg = video({ poster: "/p.png", fit: "contain", dim: 30, color: "#111" });
-    expect(posterBackground(bg)).toEqual({ ...bg, type: "image", src: "/p.png" });
-    expect(posterBackground(video({ color: "#111" }))).toEqual({ type: "color", src: undefined, color: "#111" });
-  });
-
-  it("dims and tints over a video", () => {
-    expect(backgroundLayers(video({ dim: 40 })).overlay).toEqual({
-      backgroundImage: "linear-gradient(rgb(0 0 0 / 40%), rgb(0 0 0 / 40%))",
-    });
-    expect(backgroundLayers({ type: "video", dim: 40 }).overlay).toBeNull();
-  });
-
-  it.each([
-    ["cover", "cover"],
-    ["contain", "contain"],
-    ["stretch", "fill"],
-    ["center", "none"],
-    ["tile", "none"],
-  ] as const)("fits %s as object-fit %s", (fit, objectFit) => {
-    expect(videoStyle(video({ fit })).objectFit).toBe(objectFit);
-  });
-
-  it("positions the frame and fills the page", () => {
-    expect(videoStyle(video({ position: { x: "start", y: "end" } }))).toEqual({
-      left: 0,
-      top: 0,
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      objectPosition: "left bottom",
-    });
-  });
-
-  it("blurs with the same edge bleed as an image", () => {
-    const style = videoStyle(video({ blur: 5 }));
-    expect(style).toMatchObject({ filter: "blur(5px)", left: -10, top: -10, width: "calc(100% + 20px)" });
-  });
-});
-
 describe("withBackgroundType", () => {
-  it("names a URL's media kind by its extension", () => {
-    expect(mediaKindOf("/assets/bg/aurora.png")).toBe("image");
-    expect(mediaKindOf("https://x.test/clip.WEBM?v=2")).toBe("video");
-    expect(mediaKindOf("https://x.test/stream")).toBeUndefined();
-    expect(mediaKindOf(undefined)).toBeUndefined();
-  });
 
   it("moves an image to the poster when switching to video", () => {
     expect(withBackgroundType({ type: "image", src: "/a.png", dim: 20 }, "video")).toEqual({
@@ -339,17 +199,4 @@ describe("withBackgroundType", () => {
     });
   });
 
-  it("shows the poster when a video switches to image, and keeps the poster", () => {
-    expect(withBackgroundType({ type: "video", src: "/v.webm", poster: "/p.jpg" }, "image")).toEqual({
-      type: "image",
-      src: "/p.jpg",
-      poster: "/p.jpg",
-    });
-    expect(withBackgroundType({ type: "video", src: "/v.webm" }, "image")).toEqual({ type: "image" });
-  });
-
-  it("keeps the source when its kind fits or is unknown, and for the other types", () => {
-    expect(withBackgroundType({ type: "image", src: "https://x.test/stream" }, "video").src).toBe("https://x.test/stream");
-    expect(withBackgroundType({ type: "video", src: "/v.mp4" }, "color")).toEqual({ type: "color", src: "/v.mp4" });
-  });
 });

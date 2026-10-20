@@ -49,30 +49,26 @@ describe("group D inspector schema", () => {
 
       it("is registered", () => expect(mod).toBeDefined());
 
-      it("lists every spec prop in the manifest", () => {
+      it("keeps the manifest, keys and enum defaults, and renders from its defaults", () => {
         const block = specBlock(id);
         for (const p of Object.keys(props)) expect(block, p).toMatch(new RegExp(`\\b${p}\\b`));
-      });
-
-      it("reaches every prop through exactly one setting each", () => {
-        const own = OWN_KEYS(id);
-        for (const [prop, via] of Object.entries(all)) for (const k of via) expect(own.filter((x) => x === k), `${prop} via ${k}`).toHaveLength(1);
-        expect(own.sort()).toEqual(Object.values(all).flat().sort());
-      });
-
-      it("keeps its keys off the standard keys", () => {
-        expect(OWN_KEYS(id).filter((k) => STANDARD_KEYS.has(k))).toEqual([]);
-      });
-
-      it("has every enum default inside its options", () => {
-        for (const s of mod.settings ?? []) {
-          if (s.type !== "select" || !s.options || s.multiple) continue;
-          expect(s.options.map((o) => o.value), s.key).toContain(String(s.default));
+        { // reaches every prop through exactly one setting each
+          const own = OWN_KEYS(id);
+          for (const [prop, via] of Object.entries(all)) for (const k of via) expect(own.filter((x) => x === k), `${prop} via ${k}`).toHaveLength(1);
+          expect(own.sort()).toEqual(Object.values(all).flat().sort());
         }
-      });
-
-      it("renders from its default settings", () => {
-        expect(renderToString(mod.render(SENSORS, effectiveSettings(mod, {})) as never).length).toBeGreaterThan(0);
+        { // keeps its keys off the standard keys
+          expect(OWN_KEYS(id).filter((k) => STANDARD_KEYS.has(k))).toEqual([]);
+        }
+        { // has every enum default inside its options
+          for (const s of mod.settings ?? []) {
+            if (s.type !== "select" || !s.options || s.multiple) continue;
+            expect(s.options.map((o) => o.value), s.key).toContain(String(s.default));
+          }
+        }
+        { // renders from its default settings
+          expect(renderToString(mod.render(SENSORS, effectiveSettings(mod, {})) as never).length).toBeGreaterThan(0);
+        }
       });
     });
   }

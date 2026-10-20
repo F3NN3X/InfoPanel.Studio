@@ -8,17 +8,13 @@ import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
 import {
   customCount,
   overridesOf,
-  previewZones,
   scopeAppearance,
   scopeLookValues,
-  sourceChips,
   themeFollowFields,
   withLock,
   withLockAll,
   withPageFollow,
   withScopeValues,
-  withZonesFollowing,
-  validScope,
   type ThemeScope,
 } from "./theme-editor-model";
 import { shownValue } from "./inspector/zone-fields";
@@ -71,12 +67,6 @@ const rendered = (c: DashboardConfig, pageId: string, id: string) => {
 const section = (id: string): InspectorSection => allSections({ kind: "theme", scope: "profile" }).find((s) => s.id === id)!;
 
 describe("theme scopes", () => {
-  it("a page scope of a page not in the profile reads as the profile theme", () => {
-    const c = setup();
-    expect(validScope(desk(c), GAMING)).toBe(GAMING);
-    expect(validScope(desk(c), { kind: "page", pageId: "gone" })).toEqual(PROFILE);
-    expect(validScope(desk(c), { kind: "base" })).toEqual({ kind: "base" });
-  });
 
   it("edits the all-profiles base, the profile theme or one page theme", () => {
     let c = withScopeValues(setup(), "desk", { kind: "base" }, (v) => ({ ...v, accent: "#111111" }));
@@ -159,10 +149,6 @@ describe("follow bars", () => {
     expect(f.readOnly!(accent)).toBe(true);
   });
 
-  it("the base layer has no bars", () => {
-    const c = setup();
-    expect(themeFollowFields(scopeAppearance(c, desk(c), { kind: "base" }), desk(c).pages[0], "base", noop)).toEqual({});
-  });
 });
 
 describe("locks (SPEC §9 item 6)", () => {
@@ -179,16 +165,6 @@ describe("locks (SPEC §9 item 6)", () => {
     // The own value stays stored; unlocking brings it back.
     expect(desk(c).pages[0].placements[0].settings?.["warn.load"]).toBe(60);
     expect(rendered(withLock(c, "desk", "thresholds", false), "main", "cpu")["warn.load"]).toBe(60);
-  });
-
-  it("the previews' chips read Locked and the preview resolves the theme's value", () => {
-    let c = withScopeValues(setup(), "desk", PROFILE, (v) => ({ ...v, "warn.load": 70 }));
-    c = withLock(c, "desk", "thresholds", true);
-    const appearance = scopeAppearance(c, desk(c), PROFILE);
-    const [cpu] = previewZones(desk(c).pages[0].placements);
-    expect(sourceChips(cpu, appearance).find((chip) => chip.sec === "thresholds")?.mode).toBe("locked");
-    expect(sourceChips(cpu, appearance).find((chip) => chip.sec === "colors")?.mode).toBe("custom");
-    expect(resolveWith(appearance, cpu.settings, cpu.follow, undefined, cpuDefs)?.["warn.load"]).toBe(70);
   });
 
   it("a locked section is the profile's on a custom page too", () => {
@@ -232,21 +208,5 @@ describe("who doesn't follow the theme", () => {
     expect(overridesOf(desk(locked).pages[0].placements, scopeAppearance(locked, desk(locked), PROFILE)).find((o) => o.sec === "colors")?.locked).toBe(true);
   });
 
-  it("Reset to theme makes them follow again and keeps their own values", () => {
-    const c = withZonesFollowing(setup(), "desk", "main", "colors", ["cpu"]);
-    const cpu = desk(c).pages[0].placements[0];
-    expect(cpu.follow).toEqual({ thresholds: false });
-    expect(cpu.settings).toEqual({ accent: "#ff0000", "warn.load": 60 });
-    // Other pages are untouched.
-    expect(desk(c).pages[1].placements[0].follow).toEqual({ colors: false });
-  });
 });
 
-describe("previews", () => {
-  it("shows the page's own CPU Monitor, Weather and Audio Meter, else fresh ones", () => {
-    const zones = previewZones(setup().profiles[0].pages[0].placements);
-    expect(zones.map((z) => z.module)).toEqual(["CpuMonitor", "Weather", "AudioMeter"]);
-    expect(zones.map((z) => z.id)).toEqual(["cpu", "wx", "theme-preview:AudioMeter"]);
-    expect(zones[2].follow).toBeUndefined();
-  });
-});

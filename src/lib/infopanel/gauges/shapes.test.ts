@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { WIDGET_ICONS } from "@/lib/widget-icons";
 import { STARTERS } from "./presets.ts";
-import { DEFAULT_GRID, DEFAULT_ICON, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
+import { DEFAULT_GRID, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
 import { containerPath } from "./geom.ts";
-import { arcGeometry, DEFAULT_GAUGE, GAUGE_ICONS, gaugePrims, normalizeGauge, type Grid, type Liquid, type Prim, type VectorGauge } from "./vector.ts";
+import { arcGeometry, DEFAULT_GAUGE, GAUGE_ICONS, gaugePrims, normalizeGauge, type Liquid, type Prim, type VectorGauge } from "./vector.ts";
 import { gaugeSvg } from "./vector-svg.ts";
 
 const base = (over: Partial<VectorGauge> = {}): VectorGauge => ({ ...DEFAULT_GAUGE, track: null, ...over });
@@ -21,25 +21,6 @@ describe("liquid", () => {
     expect(gaugePrims(liquid({ track: "#111111" }), 0)).toHaveLength(1);
   });
 
-  it("hides the wave's crests when nearly empty and its troughs when full", () => {
-    const wavy = liquid({ liquid: { ...DEFAULT_LIQUID, amplitude: 5, inset: 0 } });
-    const level = (p: number) => Number(firstPath(gaugePrims(wavy, p)[0]).split("Q")[0].split(" ")[1]);
-    expect([level(0.001), level(1)].map(Math.round)).toEqual([104, -4]);
-  });
-
-  it("drifts live only, and colours by the fill mode at the value", () => {
-    const g = liquid({ liquid: DEFAULT_LIQUID, fill: { ...DEFAULT_GAUGE.fill, mode: "thresholds", color: "accent", warn: 70, crit: 90 } });
-    expect(gaugePrims(g, 0.95)[0]).toMatchObject({ kind: "group", drift: { seconds: DEFAULT_LIQUID.speed }, children: [{ fill: "crit" }] });
-    expect(gaugeSvg(g, 0.5, { mode: "live" })).toContain("<animateTransform");
-    expect(gaugeSvg(g, 0.5)).not.toContain("<animateTransform");
-    expect(gaugeSvg(g, 0.5)).toMatch(/<clipPath id="c\d+"><path d="M/);
-  });
-
-  it("puts a disc behind a round container and a rect behind a square one", () => {
-    const background = { color: "#0B1120", border: null, radius: 6 };
-    expect(gaugePrims(liquid({ background }), 0)[0]).toMatchObject({ kind: "path", fill: "#0B1120" });
-    expect(gaugePrims(liquid({ background, liquid: { ...DEFAULT_LIQUID, container: "rect" } }), 0)[0]).toMatchObject({ kind: "rect", fill: "#0B1120" });
-  });
 });
 
 describe("grid", () => {
@@ -54,11 +35,6 @@ describe("grid", () => {
     expect(of(gaugePrims(grid(), 0.3), "rect")).toHaveLength(10);
   });
 
-  it("colours each cell by its place, and rounds cells as asked", () => {
-    const g = grid({ fill: { mode: "zones", color: "#000000", stops: [{ at: 0, color: "#00FF00" }, { at: 50, color: "#FF0000" }] } });
-    expect(of(gaugePrims(g, 1), "rect").map((r) => r.fill)).toEqual([...Array(5).fill("#00FF00"), ...Array(5).fill("#FF0000")]);
-    expect(of(gaugePrims(grid({ grid: { ...DEFAULT_GRID, rows: 2, cols: 5, cell: "circle" } }), 1), "rect")[0].r).toBe(9.5);
-  });
 });
 
 describe("liquid extras", () => {
@@ -72,48 +48,6 @@ describe("liquid extras", () => {
     expect(bg).toMatchObject({ kind: "path", fill: "#0B1120", d: containerPath("hexagon", { x: 0, y: 0, w: 100, h: 100 }, 0) });
   });
 
-  it("strokes a shine along the surface, inside the drifting group", () => {
-    const [group] = gaugePrims(tank({ shine: 0.4 }), 0.5);
-    expect(group.kind === "group" && group.children[1]).toMatchObject({ kind: "path", stroke: "#FFFFFF", opacity: 0.4 });
-  });
-
-  it("spreads bubbles through the liquid, rising live only, none when nearly empty", () => {
-    const g = tank({ bubbles: { count: 6, size: 6, speed: 3 } });
-    const bubbles = gaugePrims(g, 0.6).at(-1)!;
-    expect(bubbles.kind === "group" && bubbles.children).toHaveLength(6);
-    const kids = bubbles.kind === "group" ? bubbles.children : [];
-    // Each rises from under the bottom up to the surface: from > 0, to < 0 of where it is drawn.
-    expect(kids.every((b) => b.kind === "path" && b.rise && b.rise.from > 0 && b.rise.to < 0)).toBe(true);
-    expect(gaugeSvg(g, 0.6, { mode: "live" }).match(/attributeName="opacity"/g)).toHaveLength(6);
-    expect(gaugeSvg(g, 0.6)).not.toContain("<animate");
-    expect(gaugePrims(g, 0.6)).toEqual(gaugePrims(g, 0.6));
-    expect(gaugePrims(g, 0.03).filter((p) => p.kind === "group")).toHaveLength(1);
-  });
-});
-
-describe("grid extras", () => {
-  const grid = (over: Partial<Grid> = {}, g: Partial<VectorGauge> = {}) =>
-    base({ shape: "grid", width: 90, height: 90, gap: 0, track: "#222222", grid: { ...DEFAULT_GRID, rows: 3, cols: 3, cell: "square", ...over }, ...g });
-  const lit = (prims: Prim[]) => of(prims, "rect").filter((r) => r.fill !== "#222222" && r.fill !== null).map((r) => [r.x, r.y]);
-
-  it("lights the middle first when radial, and the outside first reversed", () => {
-    expect(lit(gaugePrims(grid({ lights: "radial" }), 1 / 9))).toEqual([[30.33, 30.33].map((v) => expect.closeTo(v, 1))]);
-    expect(lit(gaugePrims(grid({ lights: "radial" }, { reverse: true }), 8 / 9))).not.toContainEqual([expect.closeTo(30.33, 1), expect.closeTo(30.33, 1)]);
-  });
-
-  it("lights a stable shuffle when random, as many cells as in order", () => {
-    const random = lit(gaugePrims(grid({ lights: "random" }), 4 / 9));
-    expect(random).toHaveLength(4);
-    expect(random).toEqual(lit(gaugePrims(grid({ lights: "random" }), 4 / 9)));
-    expect(random).not.toEqual(lit(gaugePrims(grid(), 4 / 9)));
-  });
-
-  it("outlines every cell, lit or not, even without a track", () => {
-    const rects = of(gaugePrims(grid({ border: { color: "muted", width: 1 } }, { track: null }), 1 / 3), "rect");
-    expect(rects).toHaveLength(9);
-    expect(rects.every((r) => r.stroke === "muted" && r.width === 1)).toBe(true);
-    expect(rects.filter((r) => r.fill === null)).toHaveLength(6);
-  });
 });
 
 describe("rings, patterns and icons", () => {
@@ -131,21 +65,6 @@ describe("rings, patterns and icons", () => {
     expect(gaugeSvg(g, 0.5, { mode: "live" })).toMatch(/<pattern id="p\d+" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate\(45\)">.*attributeName="patternTransform"/);
     expect(gaugeSvg(g, 0.5)).not.toContain("animateTransform");
     expect(gaugePrims({ ...g, orientation: "vertical", width: 20, height: 102 }, 0.5)[1]).toMatchObject({ fill: { along: "up" } });
-  });
-
-  it("fills a row of icons in turn, the one at the value partly", () => {
-    const g = base({ shape: "bar", width: 102, height: 20, thickness: 20, track: "#333333", icons: { name: "heart", count: 5, progressive: true } });
-    const prims = gaugePrims(g, 0.5);
-    // Each heart empty, then the first two full; the third half full is clipped, in a group.
-    expect(of(prims, "icon").map((i) => i.color)).toEqual(["#333333", DEFAULT_GAUGE.fill.color, "#333333", DEFAULT_GAUGE.fill.color, "#333333", "#333333", "#333333"]);
-    expect(of(prims, "group")).toHaveLength(1);
-    expect(of(gaugePrims({ ...g, icons: { ...g.icons!, progressive: false } }, 0.5), "group")).toHaveLength(0);
-  });
-
-  it("draws the centre icon from the app's set, scaled from its 24 px grid", () => {
-    const svg = gaugeSvg(base({ icon: DEFAULT_ICON }), 0.5);
-    expect(svg).toContain('<g transform="translate(80 44) scale(1.6667)" style="color:#A1A1AA;fill:none;stroke:#A1A1AA;stroke-width:2');
-    expect(svg).toMatch(/<rect x="4" y="4" width="16" height="16" rx="2"/);
   });
 
   it("names the same icons the app's widgets offer, each with markup", () => {

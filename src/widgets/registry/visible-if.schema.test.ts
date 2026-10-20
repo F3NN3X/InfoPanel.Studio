@@ -42,9 +42,11 @@ const GATED: [id: string, key: string, shows: ModuleSettings, hides: ModuleSetti
 ];
 
 describe("dependent settings are gated", () => {
-  it.each(GATED)("%s.%s follows its driver", (id, key, shows, hides) => {
-    expect(shown(id, key, shows)).toBe(true);
-    expect(shown(id, key, hides)).toBe(false);
+  it("every dependent setting follows its driver", () => {
+    for (const [id, key, shows, hides] of GATED) {
+      expect(shown(id, key, shows), `${id}.${key} shows`).toBe(true);
+      expect(shown(id, key, hides), `${id}.${key} hides`).toBe(false);
+    }
   });
 
   // A gate that never opens, or never closes, is a setting shown with no consumer (or a dead control).
@@ -63,9 +65,11 @@ describe("dependent settings are gated", () => {
       ),
     ];
     // CustomGauge.gauge (the spec's JSON, edited on the Gauges page) and .frames (kept for an export) are hidden on purpose, never fields.
-    it.each(settings.filter((d) => d.visibleIf && !(mod.id === "CustomGauge" && (d.key === "gauge" || d.key === "frames"))).map((d) => [d.key, d] as const))("%s is shown in some mode and hidden in another", (_key, def) => {
-      const seen = new Set(variants.map((v) => def.visibleIf!(v)));
-      expect([...seen].sort()).toEqual([false, true]);
+    it("each gated setting is shown in some mode and hidden in another", () => {
+      for (const def of settings.filter((d) => d.visibleIf && !(mod.id === "CustomGauge" && (d.key === "gauge" || d.key === "frames")))) {
+        const seen = new Set(variants.map((v) => def.visibleIf!(v)));
+        expect([...seen].sort(), def.key).toEqual([false, true]);
+      }
     });
   });
 });

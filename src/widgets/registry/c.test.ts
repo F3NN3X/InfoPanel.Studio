@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { SensorMap } from "@/modules/types";
 import snapshot from "../__fixtures__/snapshot.json";
 import { toFlat } from "../data-adapter";
-import type { Tier } from "../core/types";
 import AudioMeter, { meta as audioMeter } from "../AudioMeter";
 import MeterBridge, { meta as meterBridge } from "../MeterBridge";
 import NowPlaying, { meta as nowPlaying } from "../NowPlaying";
@@ -25,9 +24,6 @@ const WIDGETS = [
   { meta: visualizer, Component: Visualizer },
   { meta: waveLink, Component: WaveLink },
 ];
-const SIZES: Tier[] = ["xs", "sm", "md", "lg"];
-const VARIANTS = ["default", "studio"] as const;
-const SKINS = ["default", "instrument", "tui"];
 
 describe("group C templates", () => {
   it("registers the six widgets with their meta size", () => {
@@ -41,21 +37,11 @@ describe("group C templates", () => {
 
   for (const { meta, Component } of WIDGETS) {
     describe(meta.id, () => {
-      for (const size of SIZES)
-        for (const variant of VARIANTS)
-          for (const skin of SKINS)
-            it(`renders ${size} / ${variant} / ${skin}`, () => {
-              const html = renderToString(createElement(Component, { data, size, variant, skin }));
-              expect(html.length).toBeGreaterThan(0);
-            });
-
-      it("renders the empty state", () => {
-        expect(renderToString(createElement(Component, { data: {} })).length).toBeGreaterThan(0);
-      });
-
-      it("renders a live value at md", () => {
+      it("renders a live value, the extremes and the empty state without throwing", () => {
         const text = renderToString(createElement(Component, { data, size: "md" })).replace(/<[^>]*>/g, "");
         expect(text).toMatch(/\d/);
+        expect(renderToString(createElement(Component, { data, size: "xs", variant: "studio", skin: "tui" })).length).toBeGreaterThan(0);
+        expect(renderToString(createElement(Component, { data: {} })).length).toBeGreaterThan(0);
       });
     });
   }

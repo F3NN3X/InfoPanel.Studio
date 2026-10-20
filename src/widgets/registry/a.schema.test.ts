@@ -44,36 +44,26 @@ const STANDARD_KEYS = new Set(STANDARD_SETTINGS.map((s) => s.key));
 describe("group A inspector schema", () => {
   for (const [id, props] of Object.entries(MANIFEST)) {
     const mod = GROUP_A.find((m) => m.id === id);
-    describe(id, () => {
-      it("is registered", () => expect(mod).toBeDefined());
+    it(`${id}: the manifest, settings keys and defaults hold, and it renders from defaults`, () => {
+      expect(mod).toBeDefined();
       if (!mod) return;
       const settings = mod.settings ?? [];
       const keys = settings.flatMap(settingKeys);
       const own = settings.slice(STANDARD_SETTINGS.length);
 
-      it("names each spec prop in the manifest", () => {
-        const block = /Widget-specific:\s*```\n([\s\S]*?)```/.exec(specOf(id))?.[1] ?? "";
-        for (const p of Object.keys(props)) expect(block, `${p} is in the spec of ${id}`).toContain(p);
-      });
+      const block = /Widget-specific:\s*```\n([\s\S]*?)```/.exec(specOf(id))?.[1] ?? "";
+      for (const p of Object.keys(props)) expect(block, `${p} is in the spec of ${id}`).toContain(p);
 
-      it("reaches every prop through exactly one setting", () => {
-        for (const [prop, via] of Object.entries({ ...props, ...EXTRA[id] })) for (const k of via) expect(keys.filter((x) => x === k), `${prop} via ${k}`).toHaveLength(1);
-      });
+      for (const [prop, via] of Object.entries({ ...props, ...EXTRA[id] })) for (const k of via) expect(keys.filter((x) => x === k), `${prop} via ${k}`).toHaveLength(1);
 
-      it("keeps the template's own keys off the standard keys", () => {
-        expect(own.map((s) => s.key).filter((k) => STANDARD_KEYS.has(k))).toEqual([]);
-      });
+      expect(own.map((s) => s.key).filter((k) => STANDARD_KEYS.has(k))).toEqual([]);
 
-      it("has every enum default inside its options", () => {
-        for (const s of settings) {
-          if (s.type !== "select" || !s.options || s.multiple) continue;
-          expect(s.options.map((o) => o.value), s.key).toContain(String(s.default));
-        }
-      });
+      for (const s of settings) {
+        if (s.type !== "select" || !s.options || s.multiple) continue;
+        expect(s.options.map((o) => o.value), s.key).toContain(String(s.default));
+      }
 
-      it("renders from its default settings", () => {
-        expect(mod.render(SENSORS, effectiveSettings(mod, {}))).toBeTruthy();
-      });
+      expect(mod.render(SENSORS, effectiveSettings(mod, {}))).toBeTruthy();
     });
   }
 

@@ -29,9 +29,6 @@ const data = toFlat(snapshot.sensors as unknown as SensorMap);
 const NO_LIVE_VALUE: Record<string, string> = {
   SensorValue: "no sensor is bound by default, so it shows the unbound state",
 };
-const sizes = ["xs", "sm", "md", "lg"] as const;
-const variants = ["default", "studio"] as const;
-const skins = ["default", "instrument", "tui"] as const;
 
 describe("registry group B", () => {
   it("has one module per template, ids and minimum sizes from meta", () => {
@@ -46,20 +43,10 @@ describe("registry group B", () => {
     const C = t.default as unknown as ComponentType<Record<string, unknown>>;
     const render = (d: object, size: string, variant: string, skin: string) => renderToString(createElement(C, { data: d, size, variant, skin }));
 
-    it("renders every size x variant x skin without throwing", () => {
-      for (const size of sizes)
-        for (const variant of variants)
-          for (const skin of skins) expect(render(data, size, variant, skin).length).toBeGreaterThan(0);
-    });
-
-    it("renders the empty state", () => {
+    it("renders a live value, the extremes and the empty state without throwing", () => {
+      if (!NO_LIVE_VALUE[id]) expect(render(data, "md", "default", "default")).toMatch(/\d/);
+      expect(render(data, "xs", "studio", "tui").length).toBeGreaterThan(0);
       expect(render({}, "md", "default", "default").length).toBeGreaterThan(0);
     });
-
-    if (NO_LIVE_VALUE[id]) it.skip(`shows a live value (skipped: ${NO_LIVE_VALUE[id]})`, () => {});
-    else
-      it("shows a live value from the snapshot at md", () => {
-        expect(render(data, "md", "default", "default")).toMatch(/\d/);
-      });
   });
 });

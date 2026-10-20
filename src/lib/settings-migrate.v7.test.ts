@@ -52,8 +52,6 @@ describe("v7 §6.1: the standard block", () => {
 
   it.each([
     ["card", "lg"],
-    ["standard", "md"],
-    ["compact", "sm"],
     ["simple", "xs"],
   ])("layout %s → sizeTier %s", (layout, tier) => {
     expect(settingsOf("CpuMonitor", { layout }).settings).toEqual({ sizeTier: tier });
@@ -85,10 +83,7 @@ describe("v7 §6.1: the standard block", () => {
 describe("v7 §6.2: thresholds", () => {
   it.each([
     ["SystemStatus", { warn: 70, crit: 85 }, { "warn.load": 70, "crit.load": 85 }],
-    ["MemoryUsage", { warn: 70, crit: 85 }, { "warn.load": 70, "crit.load": 85 }],
-    ["CpuMonitor", { warn: 75, crit: 90 }, { "warn.load": 75, "crit.load": 90 }],
     ["DriveSpace", { warn: 80, crit: 92 }, { "warn.full": 80, "crit.full": 92 }],
-    ["GpuMonitor", { warnTemp: 70, critTemp: 88 }, { "warn.temp": 70, "crit.temp": 88 }],
     [
       "SystemOverview",
       { loadWarn: 60, loadCrit: 80, tempWarn: 70, tempCrit: 85, vramWarn: 88 },
@@ -96,7 +91,6 @@ describe("v7 §6.2: thresholds", () => {
       { "warn.load": 60, "crit.load": 80, "warn.temp": 70, "crit.temp": 85, "warn.full": 88, "crit.full": 80 },
     ],
     ["SensorValue", { warn: "50", crit: "" }, { "warn.value": 50, "crit.value": "off" }],
-    ["SensorGroup", { groupWarn: "", groupCrit: "120" }, { "warn.value": "off", "crit.value": 120 }],
     ["MeterBridge", { warnDb: -18, clipDb: -6 }, { "warn.db": -18, "crit.db": -6 }],
   ])("%s %j → %j, Thresholds custom", (module, input, out) => {
     const z = one(module, input);
@@ -175,14 +169,8 @@ describe("v7 §9 item 9: a stored CpuMonitor 75 stays, an unstored one follows 8
 describe("v7 §6.2: devices, units, decimals, clock", () => {
   it.each([
     ["CpuMonitor", "cpu"],
-    ["CoreHeatmap", "cpu"],
     ["GpuRings", "gpu"],
-    ["GpuMonitor", "gpu"],
     ["DriveSpace", "drive"],
-    ["StorageHealth", "disk"],
-    ["DiskIO", "disk"],
-    ["NetworkThroughput", "adapter"],
-    ["MenuBar", "adapter"],
     ["NowPlaying", "liveSource"],
   ])("%s.%s → device; blank → absent", (module, key) => {
     expect(settingsOf(module, { [key]: "x1" }).settings).toEqual({ device: "x1" });

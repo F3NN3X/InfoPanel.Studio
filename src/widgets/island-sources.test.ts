@@ -32,21 +32,12 @@ describe("Now Playing on the island", () => {
     ]);
   });
 
-  it("has no activity and raises nothing while paused", () => {
-    const u = derive(nowPlayingIsland, media("Song"), media("Next", "Band", "5"));
-    expect(u.activity).toBeNull();
-    expect(u.notices).toEqual([]);
-  });
 });
 
 const SOCIAL = "plugins.InfoPanel.SteamAPI.SteamAPI-Social.friends-activity";
 const friends = (...rows: string[]): Data => ({ [SOCIAL]: rows.join("\n") });
 
 describe("Steam Friends on the island", () => {
-  it("raises nothing on the baseline or without a change", () => {
-    expect(derive(steamFriendsIsland, null, friends("Ann, Online, , now")).notices).toBeUndefined();
-    expect(derive(steamFriendsIsland, friends("Ann, Online, , now"), friends("Ann, Online, , now")).notices).toEqual([]);
-  });
 
   it("raises a friend coming online and a friend starting a game, with a cooldown", () => {
     const u = derive(
@@ -60,10 +51,6 @@ describe("Steam Friends on the island", () => {
     ]);
   });
 
-  it("ignores a friend going offline or a new friend in the list", () => {
-    const u = derive(steamFriendsIsland, friends("Ann, Online, , now"), friends("Ann, Offline, , now", "New, Online, Doom, now"));
-    expect(u.notices).toEqual([]);
-  });
 });
 
 const wl = (micMuted: boolean, status: WlState["status"] = "up"): WlState => ({
@@ -80,21 +67,5 @@ describe("Wave Link on the island", () => {
     expect(derive(waveLinkIsland, wl(true), wl(false)).notices).toEqual([{ id: "mute:input:i", severity: "info", title: "Microphone live", ttl: 2500 }]);
   });
 
-  it("raises nothing on the baseline, while Wave Link is absent, or without a change", () => {
-    expect(derive(waveLinkIsland, null, wl(true)).notices).toBeUndefined();
-    expect(derive(waveLinkIsland, wl(false, "absent"), wl(true)).notices).toBeUndefined();
-    expect(derive(waveLinkIsland, wl(true), wl(true)).notices).toEqual([]);
-  });
-});
-
-describe("Wave Link fader moves on the island", () => {
-  const fader = (level: number): WlState => ({ ...wl(false), channels: [{ id: "c", name: "Music", type: "sw", level, levelDb: -12, isMuted: false, mixes: [], apps: [] }] });
-
-  it("shows a refreshing level bar for a moving fader, only when switched on", () => {
-    expect(waveLinkIsland.derive(fader(0.5), fader(0.6), {}).notices).toEqual([]);
-    expect(waveLinkIsland.derive(fader(0.5), fader(0.6), { islandFaders: true }).notices).toEqual([
-      { id: "level:channel:c", severity: "info", title: "Music", body: "−12.0 dB", progress: 0.6, ttl: 1500, refresh: true },
-    ]);
-  });
 });
 

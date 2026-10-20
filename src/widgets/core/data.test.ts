@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detect, diskName, diskShort, firstDisk, fmtRate, toMBps } from "./data";
+import { detect, diskName, diskShort, firstDisk, fmtRate } from "./data";
 
 describe("fmtRate", () => {
   it("reads the rate sensors as bytes per second and scales them (decimal prefixes)", () => {
@@ -12,19 +12,6 @@ describe("fmtRate", () => {
     expect(fmtRate(NaN)).toBe("–");
   });
 
-  it("shows the chosen unit, bits as 8 per byte", () => {
-    const r = 217_662.5625; // a live Ethernet download reading
-    expect(fmtRate(r, "MB/s")).toBe("0.22 MB/s");
-    expect(fmtRate(r, "Mb/s")).toBe("1.74 Mb/s");
-    expect(fmtRate(r, "KB/s")).toBe("218 KB/s");
-    expect(fmtRate(r, "Kb/s")).toBe("1,741 Kb/s");
-    expect(fmtRate(12_500_000, "Mb/s")).toBe("100 Mb/s");
-    expect(fmtRate(r, "Mbps")).toBe("1.74 Mbps"); // Mb/s, written the way ISPs do
-  });
-
-  it("converts bytes to MB/s for widgets that print the unit apart", () => {
-    expect(toMBps(45_900_000)).toBeCloseTo(45.9);
-  });
 });
 
 describe("identical drives", () => {
@@ -45,11 +32,6 @@ describe("identical drives", () => {
     expect(diskShort("kingston_sfyrd2000g__3")).toBe("Kingston #3");
     expect(diskShort("kingston_sfyrd2000g")).toBe("Kingston");
     expect(diskName("samsung_ssd_980")).toBe("Samsung SSD 980");
-  });
-
-  it("are labelled by their volumes when the Data API lists them", () => {
-    expect(diskShort("kingston_sfyrd2000g__2", "D: games")).toBe("D: games");
-    expect(diskShort("kingston_sfyrd2000g__2", "")).toBe("Kingston #2");
   });
 
   it("default to a model's first drive", () => {

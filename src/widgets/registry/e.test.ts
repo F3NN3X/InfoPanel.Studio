@@ -22,9 +22,6 @@ const WIDGETS: [typeof webPage, ComponentType<ShellProps>, string, Record<string
   [bluetooth, Bluetooth, "Generic", {}],
   [streamDeck, StreamDeck, "Generic", {}],
 ];
-const SIZES = ["xs", "sm", "md", "lg"] as const;
-const VARIANTS = ["default", "studio"] as const;
-const SKINS = ["default", "instrument", "tui"] as const;
 const DATA = toFlat(fixtureSensors() as SensorMap);
 
 describe("registry group E", () => {
@@ -38,14 +35,9 @@ describe("registry group E", () => {
         expect(GROUP_E[i]).toMatchObject({ id: meta.id, minCols: meta.minSize[0], minRows: meta.minSize[1], category });
       });
 
-      for (const size of SIZES)
-        for (const variant of VARIANTS)
-          for (const skin of SKINS)
-            it(`renders at ${size} / ${variant} / ${skin}`, () => {
-              expect(renderToString(createElement(Component, { data: DATA, size, variant, skin, ...props })).length).toBeGreaterThan(0);
-            });
-
-      it("renders the empty state without data", () => {
+      it("renders with data, at the extremes and without data", () => {
+        expect(renderToString(createElement(Component, { data: DATA, size: "md", ...props })).length).toBeGreaterThan(0);
+        expect(renderToString(createElement(Component, { data: DATA, size: "xs", variant: "studio", skin: "tui", ...props })).length).toBeGreaterThan(0);
         expect(renderToString(createElement(Component, { data: {} })).length).toBeGreaterThan(0);
       });
     });

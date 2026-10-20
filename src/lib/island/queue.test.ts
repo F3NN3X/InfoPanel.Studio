@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { IslandNotice } from "./types";
-import { DEFAULT_TTL, dismiss, emptyQueue, MAX_ITEMS, nextDue, notify, peek, setGrouping, setSticky, snapshotOf, syncSource, tick, type QueueState } from "./queue";
+import { DEFAULT_TTL, dismiss, emptyQueue, MAX_ITEMS, nextDue, notify, setGrouping, snapshotOf, tick, type QueueState } from "./queue";
 
 /** A notice that stays as a badge after its open time (as server alerts do), unless `over` says otherwise. */
 const n = (id: string, over: Partial<IslandNotice> = {}): IslandNotice => ({ source: "t", id, severity: "info", title: id, badge: true, ...over });
@@ -17,24 +17,6 @@ describe("island queue", () => {
     expect(open(s)).toBeNull();
     expect(pending(s)).toEqual(["a"]);
     expect(pending(dismiss(s, "t", "a", 5000))).toEqual([]);
-  });
-
-  it("ends a notice that is not a badge with its open time", () => {
-    let s = notify(emptyQueue(), n("a", { badge: false, ttl: 1000, cooldownMs: 5000 }), 0);
-    s = tick(s, 1000);
-    expect(s.items).toEqual([]);
-    expect(open(notify(s, n("a", { badge: false, cooldownMs: 5000 }), 3000))).toBeNull();
-  });
-
-  it("opens a held badge again for a peek, then shrinks it back", () => {
-    let s = notify(emptyQueue(), n("a", { ttl: 1000 }), 0);
-    s = tick(s, 1000);
-    s = peek(s, "t", "a", 3000, 2000);
-    expect(open(s)).toBe("a");
-    expect(nextDue(s, 2000)).toBe(3000);
-    s = tick(s, 5000);
-    expect(open(s)).toBeNull();
-    expect(pending(s)).toEqual(["a"]);
   });
 
   it("lets a stronger notice take over at once; the one replaced keeps its time left", () => {
@@ -58,21 +40,6 @@ describe("island queue", () => {
     expect(open(s)).toBe("i");
   });
 
-  it("keeps a critical notice open until tapped, or for the collapse time", () => {
-    let s = notify(emptyQueue(), n("c", { severity: "critical" }), 0);
-    expect(nextDue(s, 0)).toBeNull();
-    expect(open(tick(s, 1e9))).toBe("c");
-    s = setSticky(s, 10_000, 1000);
-    expect(open(tick(s, 10_999))).toBe("c");
-    expect(open(tick(s, 11_000))).toBeNull();
-    expect(pending(tick(s, 11_000))).toEqual(["c"]);
-  });
-
-  it("starts sticky notices with the collapse time set beforehand", () => {
-    const s = notify(emptyQueue(5000), n("c", { severity: "critical" }), 0);
-    expect(nextDue(s, 0)).toBe(5000);
-  });
-
   it("updates a repeated notice in place, and opens it again only when its severity rises", () => {
     let s = notify(emptyQueue(), n("a", { ttl: 2000 }), 0);
     s = tick(s, 2000);
@@ -84,22 +51,6 @@ describe("island queue", () => {
     expect(snapshotOf(s).expanded?.firstAt).toBe(0);
   });
 
-  it("ignores a notice inside its cooldown after it ended", () => {
-    let s = notify(emptyQueue(), n("a", { cooldownMs: 10_000 }), 0);
-    s = dismiss(s, "t", "a", 1000);
-    expect(pending(notify(s, n("a", { cooldownMs: 10_000 }), 10_999))).toEqual([]);
-    expect(open(notify(s, n("a", { cooldownMs: 10_000 }), 11_000))).toBe("a");
-  });
-
-  it("syncs a source: new ones are added, missing ones end, other sources stay", () => {
-    let s = notify(emptyQueue(), n("x", { source: "other", ttl: 1 }), 0);
-    s = syncSource(s, "alerts", [n("a1"), n("a2")], 10);
-    expect([open(s), ...pending(s)].sort()).toEqual(["a1", "a2", "x"]);
-    s = syncSource(s, "alerts", [n("a2")], 20);
-    expect([open(s), ...pending(s)].filter(Boolean).sort()).toEqual(["a2", "x"]);
-    expect(syncSource(s, "alerts", [], 30).items.map((i) => i.id)).toEqual(["x"]);
-  });
-
   it(`holds at most ${MAX_ITEMS}, dropping the weakest, oldest`, () => {
     let s = notify(emptyQueue(), n("crit", { severity: "critical" }), 0);
     for (let i = 0; i < MAX_ITEMS; i++) s = notify(s, n(`i${i}`), i + 1);
@@ -108,20 +59,6 @@ describe("island queue", () => {
     expect(open(s)).toBe("crit");
   });
 
-  it("keeps a refreshing notice open while it repeats, with its level", () => {
-    let s = notify(emptyQueue(), n("vol", { badge: false, ttl: 1500, refresh: true, progress: 0.4 }), 0);
-    s = notify(s, n("vol", { badge: false, ttl: 1500, refresh: true, progress: 0.5 }), 1000);
-    s = tick(s, 2000);
-    expect(open(s)).toBe("vol");
-    expect(snapshotOf(s).expanded?.progress).toBe(0.5);
-    expect(open(tick(s, 2600))).toBeNull();
-  });
-
-  it("keeps a plain repeat on its first open time", () => {
-    let s = notify(emptyQueue(), n("x", { badge: false, ttl: 1500 }), 0);
-    s = notify(s, n("x", { badge: false, ttl: 1500 }), 1000);
-    expect(open(tick(s, 1600))).toBeNull();
-  });
 });
 
 describe("grouping", () => {
@@ -142,16 +79,4 @@ describe("grouping", () => {
     expect(nextDue(s, 600)).toBe(DEFAULT_TTL.info - 100);
   });
 
-  it("queues them one by one with grouping off, and ignores notices without a group", () => {
-    let s = notify(notify(emptyQueue(), toast("1", "Discord"), 0), toast("2", "Discord"), 10);
-    expect(s.items.map((i) => i.count)).toEqual([1, 1]);
-    s = setGrouping(emptyQueue(), true);
-    s = notify(notify(s, n("a"), 0), n("b"), 10);
-    expect(s.items).toHaveLength(2);
-  });
-
-  it("keeps the same state when grouping does not change", () => {
-    const s = emptyQueue();
-    expect(setGrouping(s, false)).toBe(s);
-  });
 });

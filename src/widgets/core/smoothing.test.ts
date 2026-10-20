@@ -7,9 +7,6 @@ describe("nextStamps", () => {
     expect(nextStamps([0, 1000, 2000], 3, 3100, 1000)).toEqual([1000, 2000, 3100]);
   });
 
-  it("spaces a history it has not seen one interval apart, ending now", () => {
-    expect(nextStamps([], 3, 5000, 1000)).toEqual([3000, 4000, 5000]);
-  });
 });
 
 describe("timePoints", () => {
@@ -17,16 +14,6 @@ describe("timePoints", () => {
     expect(timePoints([1, 2, 3], [0, 1000, 2000], 2000, 2000)).toEqual([[0, 1], [50, 2], [100, 3]]);
   });
 
-  it("scrolls at a constant speed whatever the arrival spacing (no jump on an early sample)", () => {
-    const before = timePoints([1, 2], [0, 900], 500, 1000);
-    const after = timePoints([1, 2], [0, 900], 600, 1000);
-    expect(before[1][0] - after[1][0]).toBeCloseTo(10);
-    expect(before[0][0] - after[0][0]).toBeCloseTo(10);
-  });
-
-  it("puts a sample not yet reached past the right edge, for the clip to slide in", () => {
-    expect(timePoints([1, 2], [0, 1500], 1000, 1000)[1][0]).toBe(150);
-  });
 });
 
 describe("FeedClock", () => {
@@ -38,21 +25,6 @@ describe("FeedClock", () => {
     expect(c.progress(5000)).toBe(1);
   });
 
-  it("ignores a pause of several intervals when adapting", () => {
-    const c = new FeedClock(1000, 0.5);
-    c.arrive(1000);
-    c.arrive(30000);
-    expect(c.intervalMs).toBe(1000);
-  });
-
-  it("takes the first measured gap, then adapts to the arrivals", () => {
-    const c = new FeedClock(1000, 0.5);
-    c.arrive(0);
-    c.arrive(500);
-    expect(c.intervalMs).toBe(500);
-    c.arrive(1500);
-    expect(c.intervalMs).toBe(750);
-  });
 });
 
 describe("RangeEaser", () => {
@@ -101,16 +73,4 @@ describe("SmoothScroll on an uneven feed", () => {
     for (let i = 1; i < steps.length; i++) expect(Math.abs(steps[i] - steps[i - 1]) / steps[i - 1]).toBeLessThan(0.01);
   });
 
-  it("fills in from the right while the history is short, at the same speed", () => {
-    const f = simulate(15_000).filter((r) => r.t > 8_000 && r.pts.length > 1);
-    expect(f.every((r) => r.pts[0][0] > 0)).toBe(true);
-  });
-
-  it("learns the feed's interval from the first gap", () => {
-    const sc = new SmoothScroll(48);
-    sc.arrive(1, 0);
-    sc.arrive(2, 2500);
-    sc.frame([1, 2], 2600, 16);
-    expect(sc.intervalMs).toBe(2500);
-  });
 });

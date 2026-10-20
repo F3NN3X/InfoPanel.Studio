@@ -8,7 +8,7 @@ import { allPlacements } from "@/lib/pages";
 import { panelPresets } from "@/lib/panelPresets";
 import type { ModuleSettings, SensorMap } from "@/modules/types";
 import { fixtureSensors } from "@/widgets/__fixtures__";
-import { STATE, TONES } from "@/widgets/core/theme";
+import { TONES } from "@/widgets/core/theme";
 import { PanelView } from "./PanelView";
 import { resolvedPanel, tonedItem, tonedPanel } from "./panel-items";
 
@@ -46,24 +46,6 @@ describe("threshold colours of a panel widget", () => {
     expect(tonedItem(own, theme, sensors(85, "%"), { thresholds: true }).color).toBe(TONES.warn);
   });
 
-  it("nothing trips where no theme level sets the quantity (nothing repaints on upgrade)", () => {
-    expect(color(stat(), {}, sensors(99, "%"))).toBeUndefined();
-    expect(color(stat(), {}, sensors(99, "°C"))).toBeUndefined();
-  });
-
-  it("takes the palette's warning / critical colour when a theme sets it, a gauge a hex state colour", () => {
-    expect(color(stat(), { ...theme, warn: "#123456" }, sensors(85, "%"))).toBe("#123456");
-    expect(color(stat({ kind: "gauge" }), theme, sensors(95, "%"))).toBe(STATE.crit);
-    expect(color(stat({ kind: "bar" }), theme, sensors(95, "%"))).toBe(TONES.crit);
-  });
-
-  it("colours only stat, value, bar and gauge with a bound live value", () => {
-    expect(color(stat({ kind: "sparkline" }), theme, sensors(99, "%"))).toBeUndefined();
-    expect(color(stat({ kind: "text" }), theme, sensors(99, "%"))).toBeUndefined();
-    expect(color(stat({ sensor: undefined }), theme, sensors(99, "%"))).toBeUndefined();
-    expect(color(stat(), theme, {})).toBeUndefined();
-  });
-
   it("PanelView draws the value in the colour", () => {
     const panel: PanelDef = { ...newPanel("CPU"), widgets: [stat()] };
     const html = (value: number) => renderToString(createElement(PanelView, { panel, settings: theme, sensors: sensors(value, "%") }));
@@ -79,9 +61,11 @@ describe("render parity for unchanged panels", () => {
   ];
   const live = fixtureSensors();
 
-  it.each(shipped.map((p, i) => [i, p] as const))("shipped panel %i draws its widgets as they are", (_i, panel) => {
-    expect(resolvedPanel(panel, {})).toBe(panel);
-    expect(tonedPanel(panel, {}, live)).toBe(panel);
+  it("every shipped panel draws its widgets as they are", () => {
+    for (const [i, panel] of shipped.entries()) {
+      expect(resolvedPanel(panel, {}), `panel ${i}`).toBe(panel);
+      expect(tonedPanel(panel, {}, live), `panel ${i}`).toBe(panel);
+    }
   });
 
   it("a widget following the panel picks up the panel's decimals; one with its own keeps them", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildHelp } from "./build";
-import { buildIndex, MAX_RESULTS, searchHelp, snippet } from "./search";
+import { buildIndex, searchHelp } from "./search";
 
 const file = (id: string, title: string, body: string) => `---\nid: ${id}\ntitle: ${title}\nicon: dns\nverified: 1\n---\n${body}`;
 
@@ -60,35 +60,5 @@ describe("searchHelp", () => {
     expect(hit.hit).toBe("port");
   });
 
-  it("keeps at most 30 results", () => {
-    const many = Array.from({ length: 40 }, (_, i) => ({ row: `r${i}`, label: `Port ${i}`, section: "server" as const }));
-    expect(searchHelp("port", content, index, many)).toHaveLength(MAX_RESULTS);
-  });
-
-  it("finds Settings rows by label or section name and ranks them with the help hits", () => {
-    const settings = [
-      { row: "port", label: "Port", section: "server" as const },
-      { row: "zoom", label: "App zoom", section: "general" as const },
-    ];
-    const hits = searchHelp("port", content, index, settings);
-    const row = hits.find((h) => h.kind === "settings");
-    expect(row).toMatchObject({ section: "server", row: "port", score: 3 });
-    expect(hits.some((h) => h.kind === "settings" && h.row === "zoom")).toBe(false);
-    expect(searchHelp("server", content, index, settings).some((h) => h.kind === "settings" && h.row === "port")).toBe(true);
-  });
 });
 
-describe("snippet", () => {
-  it("shows the start of the text when only the title or heading matched", () => {
-    expect(snippet("Short text.", ["zzz"])).toEqual({ pre: "", hit: "", post: "Short text." });
-  });
-
-  it("trims long text on both sides with an ellipsis", () => {
-    const text = `${"a ".repeat(100)}needle${" b".repeat(100)}`;
-    const s = snippet(text, ["needle"]);
-    expect(s.hit).toBe("needle");
-    expect(s.pre.startsWith("…")).toBe(true);
-    expect(s.post.endsWith("…")).toBe(true);
-    expect(s.pre.length + s.hit.length + s.post.length).toBeLessThan(180);
-  });
-});

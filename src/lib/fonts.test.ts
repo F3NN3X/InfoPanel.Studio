@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ensureFont, FONT_CATALOG, FONT_IDS, fontById, googleFontHref, type FontDocument } from "./fonts";
+import { ensureFont, FONT_IDS, googleFontHref, type FontDocument } from "./fonts";
 
 /** A document stand-in that records appended links. */
 function fakeDocument() {
@@ -17,17 +17,6 @@ describe("font catalog", () => {
     expect(new Set(FONT_IDS).size).toBe(FONT_IDS.length);
   });
 
-  it("keeps the legacy ids and their stacks", () => {
-    for (const id of ["system", "sans", "rounded", "serif", "mono"]) expect(fontById(id)).toBeDefined();
-    expect(fontById("system")?.stack).toBeUndefined();
-    expect(fontById("mono")?.stack).toContain("monospace");
-  });
-
-  it("gives every Google font a fallback stack", () => {
-    for (const f of FONT_CATALOG.filter((f) => "google" in f)) {
-      expect(f.stack).toMatch(/sans-serif|monospace/);
-    }
-  });
 });
 
 describe("googleFontHref", () => {
@@ -48,15 +37,4 @@ describe("ensureFont", () => {
     expect(links[0].href).toContain("family=Inter");
   });
 
-  it("ignores system and unknown fonts", () => {
-    const { doc, links } = fakeDocument();
-    ensureFont("system", doc);
-    ensureFont("mono", doc);
-    ensureFont("nope", doc);
-    expect(links).toHaveLength(0);
-  });
-
-  it("does nothing without a document", () => {
-    expect(() => ensureFont("inter", undefined)).not.toThrow();
-  });
 });

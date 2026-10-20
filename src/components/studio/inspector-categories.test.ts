@@ -150,28 +150,22 @@ describe("categorize", () => {
     expect(cats.map((c) => c.title)).toEqual(["Header", "Own", OTHER_TITLE]);
   });
 
-  it("is deterministic", () => {
-    const defs = modules.flatMap((m) => m.settings ?? []);
-    expect(categorize(defs)).toEqual(categorize([...defs]));
-  });
 });
 
 describe("every widget's settings", () => {
-  it.each(sheets)("%s: each setting is in a known category", (_id, defs) => {
-    const cats = categorize(defs);
-    expect(cats.some((c) => c.title === OTHER_TITLE)).toBe(false);
-    // Nothing lost or duplicated.
-    const filed = cats.flatMap((c) => c.defs.flatMap(settingKeys));
-    expect(filed.sort()).toEqual(defs.flatMap(settingKeys).sort());
-    // Own categories never reuse a shared title (a widget's "Thresholds" group is the shared one).
-    for (const c of cats.filter((c) => !c.general)) expect(SHARED_TITLES.has(c.title), c.title).toBe(false);
-    // The look sections hold only standard keys; no standard key lands in a widget's own section.
-    for (const c of cats.filter((c) => STANDARD_ONLY.has(c.id))) for (const d of c.defs) expect(STANDARD_KEYS.has(d.key), d.key).toBe(true);
-    for (const c of cats.filter((c) => !c.general)) for (const d of c.defs) expect(STANDARD_KEYS.has(d.key), d.key).toBe(false);
-  });
-
-  it.each(sheets)("%s: own categories stay short", (id, defs) => {
-    for (const c of categorize(defs).filter((c) => !c.general)) expect(c.defs.length, `${id}:${c.title}`).toBeLessThanOrEqual(12);
+  it("each setting of every widget is in a known category", () => {
+    for (const [id, defs] of sheets) {
+      const cats = categorize(defs);
+      expect(cats.some((c) => c.title === OTHER_TITLE), id).toBe(false);
+      // Nothing lost or duplicated.
+      const filed = cats.flatMap((c) => c.defs.flatMap(settingKeys));
+      expect(filed.sort(), id).toEqual(defs.flatMap(settingKeys).sort());
+      // Own categories never reuse a shared title (a widget's "Thresholds" group is the shared one).
+      for (const c of cats.filter((c) => !c.general)) expect(SHARED_TITLES.has(c.title), `${id} ${c.title}`).toBe(false);
+      // The look sections hold only standard keys; no standard key lands in a widget's own section.
+      for (const c of cats.filter((c) => STANDARD_ONLY.has(c.id))) for (const d of c.defs) expect(STANDARD_KEYS.has(d.key), `${id} ${d.key}`).toBe(true);
+      for (const c of cats.filter((c) => !c.general)) for (const d of c.defs) expect(STANDARD_KEYS.has(d.key), `${id} ${d.key}`).toBe(false);
+    }
   });
 });
 

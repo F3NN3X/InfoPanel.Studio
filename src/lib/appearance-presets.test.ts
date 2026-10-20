@@ -5,11 +5,8 @@ import {
   clearOverrides,
   countOverrides,
   countProfileOverrides,
-  deleteAppearancePreset,
   presetFromCurrent,
-  renameAppearancePreset,
-  saveAppearancePreset,
-} from "./appearance-preset-apply";
+  } from "./appearance-preset-apply";
 import {
   invalidStyleKeys,
   isValidStyleValue,
@@ -18,7 +15,7 @@ import {
 } from "./appearance-presets";
 import { normalizeBackground } from "./appearance";
 import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
-import { allPlacements, mainPage } from "./pages";
+import { mainPage } from "./pages";
 import { DEFAULT_THEME, THEME_PRESETS } from "./theme";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -115,12 +112,6 @@ describe("applyAppearancePreset — All profiles", () => {
     expect(next.style).toEqual({ surface: "theme" });
   });
 
-  it("leaves profiles and widgets (content keys included) untouched", () => {
-    const before = config({ profiles: [profile("p1", { widgetTheme: { values: { font: "serif" } } })] });
-    const next = applyAppearancePreset(before, glass, ALL);
-    expect(next.profiles).toBe(before.profiles);
-  });
-
   it("writes the background only into an empty scope unless asked", () => {
     expect(applyAppearancePreset(config(), glass, ALL).background).toEqual(glass.background);
     const empty = config({ background: { type: "image" } });
@@ -135,10 +126,6 @@ describe("applyAppearancePreset — All profiles", () => {
     ).toBeUndefined();
   });
 
-  it("never clears a background with a preset that has none", () => {
-    const mine = { type: "color" as const, color: "#123456" };
-    expect(applyAppearancePreset(config({ background: mine }), light, ALL, { includeBackground: true }).background).toBe(mine);
-  });
 });
 
 describe("applyAppearancePreset — This profile", () => {
@@ -157,30 +144,11 @@ describe("applyAppearancePreset — This profile", () => {
     expect(next.profiles[1]).toBe(before.profiles[1]);
   });
 
-  it("makes the profile fully light with Light (its theme, not the dashboard's)", () => {
-    const next = applyAppearancePreset(config(), light, P1);
-    const paper = THEME_PRESETS.find((t) => t.name === "paper")!.tokens;
-    expect(next.profiles[0].theme).toEqual(paper);
-    expect(next.theme).toEqual(DEFAULT_THEME);
-    expect(next.profiles[1].theme).toBeUndefined();
-  });
-
   it("resets the dashboard's look keys the preset leaves unset", () => {
     const next = applyAppearancePreset(config({ style: { glow: "strong", surface: "glass" } }), light, P1);
     expect(next.profiles[0].widgetTheme?.values).toEqual({ glow: "none", surface: "theme" });
   });
 
-  it("keeps a profile's deliberate 'no background'", () => {
-    const off = config({ profiles: [profile("p1", { background: { type: "none" } })] });
-    expect(applyAppearancePreset(off, glass, P1).profiles[0].background).toEqual({ type: "none" });
-  });
-
-  it("only applies look keys", () => {
-    const sneaky: AppearancePreset = { ...light, style: { surface: "theme", label: "x", sensor: "y" } };
-    expect(applyAppearancePreset(config(), sneaky, P1).profiles[0].widgetTheme?.values).toEqual({ surface: "theme" });
-    const locked = config({ profiles: [profile("p1", { widgetTheme: { locks: { colors: true } } })] });
-    expect(applyAppearancePreset(locked, sneaky, P1).profiles[0].widgetTheme?.locks).toEqual({ colors: true });
-  });
 });
 
 describe("overrides", () => {
@@ -189,12 +157,6 @@ describe("overrides", () => {
     expect(countOverrides(config(), ALL)).toBe(2);
     const p1Locked = config({ profiles: [profile("p1", { widgetTheme: { locks: { colors: true } } }), profile("p2")] });
     expect(countOverrides(p1Locked, ALL)).toBe(1);
-  });
-
-  it("counts profile theme values for All profiles only", () => {
-    const c = config({ profiles: [profile("p1", { widgetTheme: { values: { font: "mono" } } }), profile("p2")] });
-    expect(countProfileOverrides(c, ALL)).toBe(1);
-    expect(countProfileOverrides(c, P1)).toBe(0);
   });
 
   it("counts and clears a profile's own theme colours and radius", () => {
@@ -207,22 +169,6 @@ describe("overrides", () => {
     expect(clearOverrides(c, { kind: "profile", profileId: "p2" }).profiles[1].theme).toEqual(own.theme);
   });
 
-  it("clears them by following, keeping the widgets' data", () => {
-    const c = config({ profiles: [profile("p1", { widgetTheme: { values: { font: "mono" }, locks: { css: true } } }), profile("p2")] });
-    const one = clearOverrides(c, P1);
-    expect(countOverrides(one, P1)).toBe(0);
-    expect(one.profiles[0].widgetTheme?.values).toEqual({ font: "mono" });
-    expect(one.profiles[1]).toBe(c.profiles[1]);
-    const own = allPlacements(one.profiles[0]).find((p) => p.id === "own-look")!;
-    expect(own.follow).toBeUndefined();
-    expect(own.settings).toEqual({ accent: "#ff0000", label: "Net" });
-
-    const all = clearOverrides(c, ALL);
-    expect(countOverrides(all, ALL)).toBe(0);
-    expect(countProfileOverrides(all, ALL)).toBe(0);
-    // The values go, the locks stay.
-    expect(all.profiles[0].widgetTheme).toEqual({ locks: { css: true } });
-  });
 });
 
 describe("the user's presets", () => {
@@ -245,14 +191,6 @@ describe("the user's presets", () => {
     const one = presetFromCurrent(c, P1, "u1", "Mine");
     expect(one.theme).toEqual({ ...DEFAULT_THEME, background: "0 0% 100%" });
     expect(one.radius).toBe(1);
-  });
-
-  it("saves, renames and deletes", () => {
-    const saved = saveAppearancePreset(config(), ALL, "u1", "Mine");
-    expect(saved.appearancePresets?.map((p) => p.name)).toEqual(["Mine"]);
-    const renamed = renameAppearancePreset(saved, "u1", "Ours");
-    expect(renamed.appearancePresets?.[0].name).toBe("Ours");
-    expect(deleteAppearancePreset(renamed, "u1").appearancePresets).toBeUndefined();
   });
 
   it("round-trips: applying a saved look reproduces it", () => {

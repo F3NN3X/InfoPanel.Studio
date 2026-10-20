@@ -70,8 +70,8 @@ const SAMPLES = {
 const ID = `${"a".repeat(64)}.png`;
 
 describe("sniffType", () => {
-  it.each(Object.keys(SAMPLES))("recognizes %s by its magic bytes", (ext) => {
-    expect(sniffType(SAMPLES[ext])?.ext).toBe(ext);
+  it("recognizes every sample by its magic bytes", () => {
+    for (const ext of Object.keys(SAMPLES)) expect(sniffType(SAMPLES[ext])?.ext, ext).toBe(ext);
   });
 
   it("reports the MIME type and kind", () => {
