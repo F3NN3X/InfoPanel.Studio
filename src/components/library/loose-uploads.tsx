@@ -37,7 +37,7 @@ export function canvasHashes(config: Pick<DashboardConfig, "profiles">): Set<str
 }
 
 /** Every asset id an item holds: its files and a gauge's frames. */
-const heldIds = (item: LibraryItem): string[] => {
+export const heldIds = (item: Pick<LibraryItem, "files" | "data">): string[] => {
   const frames = (item.data as { frames?: { id?: unknown }[] } | undefined)?.frames;
   return [...item.files, ...(Array.isArray(frames) ? frames.flatMap((f) => (typeof f?.id === "string" ? [f.id] : [])) : [])];
 };

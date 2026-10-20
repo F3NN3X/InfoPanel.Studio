@@ -8,6 +8,7 @@ import { type Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, deleteLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
 import { addFileToLibrary } from "./add-file";
+import { removeItem, type RemoveResult } from "./remove-item";
 
 /** Config presets shown as library items carry this id prefix; they live in the config, not the library. */
 export const CONFIG_PANEL = "cfg-panel:";
@@ -72,7 +73,8 @@ export interface MyLibrary {
   addCopy(item: LibraryItem, copy: LibraryCopy): void;
   duplicate(item: LibraryItem): Promise<LibraryItem | null>;
   rename(item: LibraryItem, name: string): void;
-  remove(item: LibraryItem): void;
+  /** Remove the item and the files nothing else uses (`inUse`: the studio's config, scanned for hashes). */
+  remove(item: LibraryItem, inUse?: () => string): Promise<RemoveResult>;
   update(item: LibraryItem, patch: Partial<Pick<LibraryItem, "name" | "meta" | "files" | "data">>): Promise<void>;
   /** Merge a duplicate group into its first item: the copies move over, the rest go. */
   merge(group: readonly LibraryItem[]): Promise<void>;
@@ -200,10 +202,15 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
       return copy;
     },
     rename: (item, name) => void update(item, { name }),
-    remove: (item) => {
-      if (isConfigItem(item)) return;
+    remove: async (item, inUse = () => "") => {
+      if (isConfigItem(item)) return { deleted: 0, kept: 0 };
       setServer((list) => list.filter((i) => i.id !== item.id));
-      void deleteLibraryItem(item.id).catch(() => refresh());
+      try {
+        return await removeItem(item, inUse);
+      } catch (e) {
+        refresh();
+        throw e;
+      }
     },
     update,
     merge: async ([keep, ...rest]) => {

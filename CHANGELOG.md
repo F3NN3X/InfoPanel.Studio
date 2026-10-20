@@ -14,15 +14,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - The Library detail pane animates the selected gauge (a vector gauge sweeps its value, an image sequence plays its
   frames at its speed) and plays the selected video (muted, looped; the overlay button plays and pauses). Cards stay
   still, and reduced motion keeps the gauge still and stops the video autoplaying.
+- Library cards have a right-click menu: the item's actions (Set as background, Open in editor, Duplicate, Export…),
+  Rename and Remove from library. Delete on a focused card removes it too.
+- The desktop app shows only its own right-click menus; the webview's menu (Back, Reload, Inspect) is gone, except in
+  text fields, which keep cut, copy and paste.
 
 ### Changed
+- Removing a library item asks first, and also deletes its file (a gauge's frames too) when no profile, canvas or
+  other item still uses it. Copies already placed stay.
 - A profile or dashboard background's image and video pickers list only My library's Backgrounds of that type; when
   there are none they say so and open the Library. A file uploaded from the picker is also added to My library (once,
   with its size, so a wide one is a Background). Typing a URL and dropping a library file still work.
 - Library: "Add uploaded files to My library" appears when uploaded images or videos are not library items (older
   background uploads) and adds them as "Upload <id>"; files that belong to an imported canvas, a saved canvas or a
-  gauge are left out. Deleting a library item removes the item only; its file stays in the asset store (there is no
-  Library control to delete the file itself).
+  gauge are left out.
 
 ### Fixed
 - Save to library on a gauge in the profile (a Custom gauge widget or a canvas Gauge item) updates the library item it
