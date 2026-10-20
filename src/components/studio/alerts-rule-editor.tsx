@@ -1,6 +1,5 @@
-import { ArrowLeft, FlaskConical } from "lucide-react";
+import { Activity, ArrowLeft, Bell, FlaskConical } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
-import { Toggle } from "@/components/ui/toggle";
 import { useToast } from "@/components/ui/toast";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useSensors } from "@/hooks/useSensors";
@@ -20,10 +19,11 @@ import type { DashboardConfig } from "@/lib/layout";
 import { sensorAt } from "@/lib/sensors";
 import { cn } from "@/lib/utils";
 import { alertsOf, clearLabel, patchRule, previewSensor, ruleKey } from "./alerts-model";
-import { ChipsField, Field, Group, NumField, SeverityDot, TextField } from "./alerts-fields";
+import { ChipsField, NumField, SeverityDot, TextField } from "./alerts-fields";
 import { AlertOutputs } from "./alerts-outputs";
 import { SensorField } from "./widget-editor/sensor-field";
-import { SELECT } from "./setting-rows";
+import { PanelSection } from "./panel-section";
+import { InlineRow, SEGMENTED_CLASS, SelectRow, StackRow, ToggleRow } from "./setting-rows";
 
 interface AlertRuleEditorProps {
   rule: AlertRule;
@@ -134,17 +134,15 @@ export function AlertRuleEditor({
         <span className="ml-auto text-[13px] font-semibold text-ui-1">Alert rule</span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        <div className="space-y-3 px-3.5 pb-3">
-          <Field label="Name">
+        <PanelSection id="alert-rule" title="Rule" icon={Bell}>
+          <StackRow label="Name">
             <TextField value={rule.name} label="Rule name" onChange={(name) => edit("name", (r) => ({ ...r, name }))} />
-          </Field>
-          <div className="flex items-center gap-2">
-            <span className="flex-1 text-[12px] text-ui-2">Enabled</span>
-            <Toggle checked={rule.enabled} label="Rule enabled" onChange={(enabled) => edit("enabled", (r) => ({ ...r, enabled }))} />
-          </div>
-          <Field label="Severity">
+          </StackRow>
+          <ToggleRow label="Enabled" value={rule.enabled} onChange={(enabled) => edit("enabled", (r) => ({ ...r, enabled }))} />
+          <StackRow label="Severity">
             <Segmented
               label="Severity"
+              className={SEGMENTED_CLASS}
               value={rule.severity}
               onChange={(severity) => edit("severity", (r) => ({ ...r, severity }))}
               options={SEVERITIES.map((s) => ({
@@ -157,10 +155,10 @@ export function AlertRuleEditor({
                 ),
               }))}
             />
-          </Field>
-        </div>
+          </StackRow>
+        </PanelSection>
 
-        <Group title={source.kind === "sensor" ? "When a sensor" : "When a notification arrives"}>
+        <PanelSection id="alert-source" title={source.kind === "sensor" ? "When a sensor" : "When a notification arrives"} icon={Activity}>
           {source.kind === "sensor" ? (
             <>
               <SensorField
@@ -170,42 +168,38 @@ export function AlertRuleEditor({
                 onOpenExplorer={onOpenSources}
               />
               {sensorEmpty && <div className="text-[11px] text-ui-warning">Pick a sensor to watch.</div>}
-              <Field label="Condition">
-                <select
-                  aria-label="Operator"
-                  value={source.op}
-                  onChange={(e) => setOp(e.target.value as SensorOp)}
-                  className={cn(SELECT, "w-full max-w-none")}
-                >
-                  {SENSOR_OPS.map((op) => (
-                    <option key={op} value={op}>
-                      {OP_LABEL[op]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <SelectRow
+                label="Condition"
+                value={source.op}
+                onChange={(op) => setOp(op as SensorOp)}
+                options={SENSOR_OPS.map((op) => ({ value: op, label: OP_LABEL[op] }))}
+              />
               {source.op !== "changes" &&
                 source.op !== "missing" &&
                 (NUMERIC_OPS.includes(source.op) ? (
-                  <NumField
-                    label="Threshold"
-                    value={Number(source.value)}
-                    onChange={(n) => editSource<SensorSource>("value", (s) => ({ ...s, value: n ?? 0 }))}
-                  />
+                  <InlineRow label="Threshold">
+                    <NumField
+                      label="Threshold"
+                      value={Number(source.value)}
+                      onChange={(n) => editSource<SensorSource>("value", (s) => ({ ...s, value: n ?? 0 }))}
+                    />
+                  </InlineRow>
                 ) : (
-                  <TextField
-                    label="Value"
-                    value={String(source.value)}
-                    onChange={(text) =>
-                      editSource<SensorSource>("value", (s) => ({
-                        ...s,
-                        value: s.op !== "contains" && text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text,
-                      }))
-                    }
-                  />
+                  <StackRow label="Value">
+                    <TextField
+                      label="Value"
+                      value={String(source.value)}
+                      onChange={(text) =>
+                        editSource<SensorSource>("value", (s) => ({
+                          ...s,
+                          value: s.op !== "contains" && text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text,
+                        }))
+                      }
+                    />
+                  </StackRow>
                 ))}
               {source.op !== "changes" && (
-                <Field
+                <InlineRow
                   label="For (s)"
                   hint={
                     source.op === "missing"
@@ -220,10 +214,10 @@ export function AlertRuleEditor({
                     value={source.forSeconds}
                     onChange={(n) => editSource<SensorSource>("for", (s) => ({ ...s, forSeconds: n ?? 0 }))}
                   />
-                </Field>
+                </InlineRow>
               )}
               {clearLabel(source.op) && (
-                <Field label={`${clearLabel(source.op)} (hysteresis)`} hint="Empty = clears as soon as the condition stops holding.">
+                <InlineRow label={`${clearLabel(source.op)} (hysteresis)`} hint="Empty = clears as soon as the condition stops holding.">
                   <NumField
                     label={clearLabel(source.op) ?? "Clears at"}
                     value={source.clearBelow}
@@ -234,13 +228,13 @@ export function AlertRuleEditor({
                       })
                     }
                   />
-                </Field>
+                </InlineRow>
               )}
               <LiveLine source={source} />
             </>
           ) : (
             <>
-              <Field label="Apps" hint="Empty = every app. Enter adds one.">
+              <StackRow label="Apps" hint="Empty = every app. Enter adds one.">
                 <ChipsField
                   label="Apps"
                   values={source.apps ?? []}
@@ -248,8 +242,8 @@ export function AlertRuleEditor({
                   placeholder="App name"
                   onChange={(apps) => editSource<NotificationSource>("apps", (s) => withList(s, "apps", apps))}
                 />
-              </Field>
-              <Field label="Exclude apps">
+              </StackRow>
+              <StackRow label="Exclude apps">
                 <ChipsField
                   label="Exclude apps"
                   values={source.exclude ?? []}
@@ -257,8 +251,8 @@ export function AlertRuleEditor({
                   placeholder="App name"
                   onChange={(list) => editSource<NotificationSource>("exclude", (s) => withList(s, "exclude", list))}
                 />
-              </Field>
-              <Field label="Text contains" hint="The title or body must include this.">
+              </StackRow>
+              <StackRow label="Text contains" hint="The title or body must include this.">
                 <TextField
                   label="Text contains"
                   value={source.match ?? ""}
@@ -269,10 +263,10 @@ export function AlertRuleEditor({
                     })
                   }
                 />
-              </Field>
+              </StackRow>
             </>
           )}
-          <Field label="Cooldown (s)" hint="No refire within this long after the alert clears.">
+          <InlineRow label="Cooldown (s)" hint="No refire within this long after the alert clears.">
             <NumField
               label="Cooldown seconds"
               min={0}
@@ -280,10 +274,10 @@ export function AlertRuleEditor({
               value={rule.cooldownSeconds}
               onChange={(n) => edit("cooldown", (r) => ({ ...r, cooldownSeconds: n ?? 0 }))}
             />
-          </Field>
-          <Field label="Profiles">
+          </InlineRow>
+          <StackRow label="Profiles">
             <div className="space-y-1">
-              <label className="flex items-center gap-2 text-[12px] text-ui-2">
+              <label className="flex items-center gap-2 text-[12.5px] text-ui-2">
                 <input
                   type="checkbox"
                   checked={rule.profiles === undefined}
@@ -298,7 +292,7 @@ export function AlertRuleEditor({
               </label>
               {rule.profiles !== undefined &&
                 config.profiles.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2 pl-4 text-[12px] text-ui-2">
+                  <label key={p.id} className="flex items-center gap-2 pl-4 text-[12.5px] text-ui-2">
                     <input
                       type="checkbox"
                       checked={rule.profiles?.includes(p.id) ?? false}
@@ -315,8 +309,8 @@ export function AlertRuleEditor({
                   </label>
                 ))}
             </div>
-          </Field>
-        </Group>
+          </StackRow>
+        </PanelSection>
 
         <AlertOutputs
           rule={rule}
@@ -326,7 +320,7 @@ export function AlertRuleEditor({
           edit={edit}
         />
 
-        <div className="space-y-1.5 border-t border-ui-subtle px-3.5 pt-3">
+        <div className="space-y-1.5 pl-4 pr-2.5 pt-3">
           <button
             type="button"
             onClick={test}

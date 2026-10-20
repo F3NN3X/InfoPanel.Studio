@@ -10,6 +10,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - The Settings and Help windows show the studio logo in the title bar, and About shows it large. Settings ›
   Changelog lists each category's headlines with a "Show all" button, opens only the newest release, and no longer
   has a Markdown view.
+- The Alerts and Dynamic Island panels on the left now look like the inspector on the right: the same collapsible
+  sections, field rows, switches, selects and number boxes, with hints behind the info icon. Every setting does what
+  it did before. The Dynamic Island groups (Shape, Idle, Look, Clock, Motion, Alerts, Dashboard notices) and the
+  Alerts rule editor (Rule, the sensor or notification source, Display, Switch to page, Highlight widget) are sections.
 
 ## [1.3.0-beta.3] - 2026-10-20
 

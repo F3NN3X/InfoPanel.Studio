@@ -10,7 +10,7 @@ A small pill at the top of the kiosk that shows the time, and expands to show al
 
 ## Dynamic Island
 
-Open **Dynamic Island** on the left rail and turn on **Show Dynamic Island**. The panel has these sections:
+Open **Dynamic Island** on the left rail and turn on **Show Dynamic Island**. The panel has these sections, which open and close like the sections of the inspector on the right:
 
 | Section | Holds |
 |---|---|
@@ -26,4 +26,4 @@ Press **Preview an alert** to see how an alert looks. The panel also lists your 
 
 ## Alerts
 
-Open **Alerts** on the left rail. **Alerts on** turns the rules on or off. The panel shows what is firing now (**Active now**), the history, and the rules list. Each rule has an on/off toggle, **Duplicate rule** and **Delete rule**, and shows when it **Last fired**. The **+** menu adds a **Blank sensor rule**, a **Blank notification rule** or a rule from **Presets**.
+Open **Alerts** on the left rail. **Alerts on** turns the rules on or off. The panel has the sections **Active now** (what is firing), **History**, **Rules** and **Global defaults**, which open and close like the inspector's. Each rule has an on/off toggle, **Duplicate rule** and **Delete rule**, and shows when it **Last fired**. The **+** menu adds a **Blank sensor rule**, a **Blank notification rule** or a rule from **Presets**.
