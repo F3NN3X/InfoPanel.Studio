@@ -366,6 +366,7 @@ function StudioViewBody({
       themeScope={themeScope}
       radius={resolveTheme(config, profile).radius}
       zoom={ui.zoom}
+      pan={ui.pan}
       showGrid={ui.showGrid}
       showRulers={ui.showRulers}
       scrollRef={ui.scrollRef}

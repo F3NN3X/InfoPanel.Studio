@@ -345,6 +345,16 @@
 /* An item no longer stretched to the row's height still fits in it (layered below the utilities,
    so an item's own max-h-* stays). */
 @layer components {
+  /* The studio canvas's hand tool (use-hand-pan): over everything on the canvas, zones included. */
+  [data-hand="grab"],
+  [data-hand="grab"] * {
+    cursor: grab !important;
+  }
+  [data-hand="grabbing"],
+  [data-hand="grabbing"] * {
+    cursor: grabbing !important;
+  }
+
   [data-wp-body][data-wp-y] > .flex:not(.flex-col) > * {
     max-height: 100%;
   }
