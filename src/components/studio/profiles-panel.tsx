@@ -246,13 +246,13 @@ export function ProfilesPanel({
                 }
               }}
               className={cn(
-                "group flex cursor-pointer flex-col gap-2 rounded-lg border p-2 transition-colors",
+                "group flex cursor-pointer items-center gap-2.5 rounded-lg p-2 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
-                active ? "border-ui-accent bg-[oklch(0.72_0.15_255/0.12)]" : "border-transparent hover:bg-ui-hover"
+                active ? "bg-[oklch(0.72_0.15_255/0.12)]" : "hover:bg-ui-hover"
               )}
             >
-              <ProfilePreview profile={p} dashboard={dashboard} height={140} />
-              <div className="flex items-center gap-2.5">
+              <ProfilePreview profile={p} dashboard={dashboard} width={104} height={60} active={active} />
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <span className="min-w-0 flex-1">
                   {active && renaming ? (
                     <RenameInput

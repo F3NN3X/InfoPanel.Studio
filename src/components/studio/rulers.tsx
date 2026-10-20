@@ -17,14 +17,14 @@ const LABEL = "absolute font-ui-mono text-[8px] text-[#5a5a63]";
 export function RulerLabels({ width, height }: { width: number; height: number }) {
   return (
     <>
-      <div className="pointer-events-none absolute -top-[30px] left-0 right-0 h-3.5 select-none" aria-hidden>
+      <div data-shot-skip className="pointer-events-none absolute -top-[30px] left-0 right-0 h-3.5 select-none" aria-hidden>
         {rulerMarks(width).map((x) => (
           <span key={x} className={`${LABEL} top-0 h-full border-l border-[#2a2a31] pl-0.5`} style={{ left: x }}>
             {x}
           </span>
         ))}
       </div>
-      <div className="pointer-events-none absolute -left-[34px] bottom-0 top-0 w-[22px] select-none" aria-hidden>
+      <div data-shot-skip className="pointer-events-none absolute -left-[34px] bottom-0 top-0 w-[22px] select-none" aria-hidden>
         {rulerMarks(height).map((y) => (
           <span key={y} className={`${LABEL} left-0 w-full border-t border-[#2a2a31]`} style={{ top: y }}>
             {y}

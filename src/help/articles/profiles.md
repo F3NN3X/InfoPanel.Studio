@@ -12,7 +12,7 @@ A profile is a page for one display size. Its grid decides where zones can go.
 
 Open **Profiles** on the left rail.
 
-- Each profile is a card with a live preview of its first page: its background, theme and widgets, scaled to fit. The profile menu in the top bar shows smaller previews. A video background shows its poster.
+- Each profile is a row with a small screenshot of its first page: its background, theme and widgets, scaled to fit. The profile menu in the top bar shows smaller ones. A video background shows its poster. The screenshot of the profile you are editing updates a couple of seconds after you stop editing and when you save; the others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
 - **New profile** (the **+** button) adds a profile named after its size, such as `1920×550`, using the size of the studio window.
 - A row's **Profile actions** menu has Rename…, Size, grid and spacing…, Copy profile JSON and Delete profile.
 - A row's **Pin** button pins that profile for editing (see below). A check mark shows the profile displays show.
