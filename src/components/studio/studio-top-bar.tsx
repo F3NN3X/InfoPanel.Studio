@@ -23,10 +23,11 @@ import {
 import { IconButton } from "@/components/ui/icon-button";
 import { BUILD_ID } from "@/lib/buildInfo";
 import { isTauri } from "@/lib/desktop";
-import type { MonitorProfile } from "@/lib/layout";
+import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { zoneCount } from "@/lib/pages";
 import { cn } from "@/lib/utils";
 import { copyProfileJson } from "./config-file";
+import { ProfilePreview } from "./profile-preview";
 import { ResetConfigDialog } from "./reset-config-dialog";
 import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
@@ -37,6 +38,8 @@ export type StudioMode = "design" | "sources" | "library" | "gauges" | "theme";
 
 interface StudioTopBarProps {
   profiles: MonitorProfile[];
+  /** The dashboard, which the menu's previews inherit from where a profile sets none. */
+  dashboard: DashboardConfig;
   /** The config's activeProfile: a pinned id, or "auto". */
   activeProfile: string;
   /** The profile displays show: the active one, or what "auto" resolves to for the window. */
@@ -89,6 +92,7 @@ const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
  */
 function ProfileSwitcher({
   profiles,
+  dashboard,
   activeProfile,
   displayedId,
   profile,
@@ -98,7 +102,7 @@ function ProfileSwitcher({
   onOpenProfiles,
 }: Pick<
   StudioTopBarProps,
-  "profiles" | "activeProfile" | "displayedId" | "profile" | "pinnedId" | "onPin" | "onActivate" | "onOpenProfiles"
+  "profiles" | "dashboard" | "activeProfile" | "displayedId" | "profile" | "pinnedId" | "onPin" | "onActivate" | "onOpenProfiles"
 >) {
   const auto = activeProfile === "auto";
   const pinned = pinnedId !== undefined;
@@ -147,7 +151,8 @@ function ProfileSwitcher({
                 </Menu.Item>
                 <Menu.Separator className={SEPARATOR} />
                 {profiles.map((p) => (
-                  <Menu.Item key={p.id} className={ITEM} onClick={() => onActivate(p.id)}>
+                  <Menu.Item key={p.id} className={cn(ITEM, "h-[62px]")} onClick={() => onActivate(p.id)}>
+                    <ProfilePreview profile={p} dashboard={dashboard} width={96} height={54} active={p.id === profile.id} />
                     <span className="flex-1 truncate">{p.name}</span>
                     <span className="font-ui-mono text-[10.5px] text-ui-4">
                       {p.width}×{p.height}

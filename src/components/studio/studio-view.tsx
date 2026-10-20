@@ -339,6 +339,7 @@ function StudioViewBody({
       }}
       profiles={{
         profiles: config.profiles,
+        dashboard: config,
         activeProfile: config.activeProfile,
         profile: storedProfile,
         displayedId: resolveProfile(config, windowWidth, windowHeight).id,
@@ -633,6 +634,7 @@ function StudioViewBody({
     <div className="studio-root flex h-screen flex-col overflow-hidden bg-ui-app font-ui text-ui-1">
       <StudioTopBar
         profiles={config.profiles}
+        dashboard={config}
         activeProfile={config.activeProfile}
         displayedId={resolveProfile(config, windowWidth, windowHeight).id}
         profile={storedProfile}

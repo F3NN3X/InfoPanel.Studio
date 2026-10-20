@@ -5,12 +5,15 @@ import { Check, MoreHorizontal, Pin, Plus } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { Toggle } from "@/components/ui/toggle";
 import { useToast } from "@/components/ui/toast";
-import type { MonitorProfile } from "@/lib/layout";
+import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { copyProfileJson } from "./config-file";
+import { ProfilePreview } from "./profile-preview";
 
 interface ProfilesPanelProps {
   profiles: MonitorProfile[];
+  /** The dashboard, which the previews inherit from where a profile sets none. */
+  dashboard: DashboardConfig;
   /** The config's activeProfile: a pinned id, or "auto". */
   activeProfile: string;
   /** The profile displays show: the active one, or what "auto" resolves to for the window. */
@@ -41,26 +44,10 @@ const MENU_POPUP =
 const MENU_ITEM =
   "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-hover";
 
-const THUMB_W = 34;
-
 /** The meta line of a row: `1920×550 · 12×6 · Fill`, with `· 3 pages` when there are several. */
 export function profileMeta(p: MonitorProfile): string {
   const pages = p.pages.length > 1 ? ` · ${p.pages.length} pages` : "";
   return `${p.width}×${p.height} · ${p.cols}×${p.rows} · ${p.fit === "fill" ? "Fill" : "Scroll"}${pages}`;
-}
-
-/** A 34-wide outline in the profile's aspect ratio (at least 8 high). */
-function Thumb({ profile, active }: { profile: MonitorProfile; active: boolean }) {
-  const ratio = profile.width > 0 && profile.height > 0 ? profile.height / profile.width : 9 / 16;
-  const height = Math.round(Math.max(8, THUMB_W * ratio));
-  return (
-    <span className="flex w-[34px] shrink-0 items-center justify-center">
-      <span
-        className={cn("block w-full rounded-[3px] border-[1.5px] bg-ui-app", active ? "border-ui-accent" : "border-ui-default")}
-        style={{ height }}
-      />
-    </span>
-  );
 }
 
 /** The row's rarely used actions. */
@@ -206,6 +193,7 @@ export function RenameInput({
  */
 export function ProfilesPanel({
   profiles,
+  dashboard,
   activeProfile,
   displayedId,
   profile,
@@ -258,66 +246,68 @@ export function ProfilesPanel({
                 }
               }}
               className={cn(
-                "group flex cursor-pointer items-center gap-2.5 rounded-lg p-2 transition-colors",
+                "group flex cursor-pointer flex-col gap-2 rounded-lg border p-2 transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
-                active ? "bg-[oklch(0.72_0.15_255/0.12)]" : "hover:bg-ui-hover"
+                active ? "border-ui-accent bg-[oklch(0.72_0.15_255/0.12)]" : "border-transparent hover:bg-ui-hover"
               )}
             >
-              <Thumb profile={p} active={active} />
-              <span className="min-w-0 flex-1">
-                {active && renaming ? (
-                  <RenameInput
-                    initial={p.name}
-                    onDone={(name) => {
-                      setRenaming(false);
-                      if (name && name !== p.name) onProfileChange({ name });
-                    }}
+              <ProfilePreview profile={p} dashboard={dashboard} height={140} />
+              <div className="flex items-center gap-2.5">
+                <span className="min-w-0 flex-1">
+                  {active && renaming ? (
+                    <RenameInput
+                      initial={p.name}
+                      onDone={(name) => {
+                        setRenaming(false);
+                        if (name && name !== p.name) onProfileChange({ name });
+                      }}
+                    />
+                  ) : (
+                    <span className="block truncate text-[12.5px] leading-[1.35] text-ui-1">{p.name}</span>
+                  )}
+                  <span className="block truncate font-ui-mono text-[10.5px] leading-[1.35] text-ui-4">{profileMeta(p)}</span>
+                </span>
+                <button
+                  type="button"
+                  aria-pressed={pinned}
+                  aria-label={pinned ? "Unpin" : "Pin for editing"}
+                  title={
+                    pinned
+                      ? "Unpin: the studio edits what displays show again"
+                      : `Pin for editing: the studio edits this profile while displays keep showing ${displayedName}`
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPin(pinned ? undefined : p.id);
+                  }}
+                  // Out of sight until the row is hovered or focused, unless it is the pinned one.
+                  className={cn(
+                    "h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-ui-active hover:text-ui-1 focus-visible:flex group-focus-within:flex group-hover:flex",
+                    pinned ? "flex text-[oklch(0.80_0.12_255)]" : "hidden text-ui-4"
+                  )}
+                >
+                  <Pin className="h-3.5 w-3.5" />
+                </button>
+                {shown && (
+                  <Check
+                    className="h-[17px] w-[17px] shrink-0 text-[oklch(0.80_0.12_255)]"
+                    aria-label="Shown on displays"
                   />
-                ) : (
-                  <span className="block truncate text-[12.5px] leading-[1.35] text-ui-1">{p.name}</span>
                 )}
-                <span className="block truncate font-ui-mono text-[10.5px] leading-[1.35] text-ui-4">{profileMeta(p)}</span>
-              </span>
-              <button
-                type="button"
-                aria-pressed={pinned}
-                aria-label={pinned ? "Unpin" : "Pin for editing"}
-                title={
-                  pinned
-                    ? "Unpin: the studio edits what displays show again"
-                    : `Pin for editing: the studio edits this profile while displays keep showing ${displayedName}`
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPin(pinned ? undefined : p.id);
-                }}
-                // Out of sight until the row is hovered or focused, unless it is the pinned one.
-                className={cn(
-                  "h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-ui-active hover:text-ui-1 focus-visible:flex group-focus-within:flex group-hover:flex",
-                  pinned ? "flex text-[oklch(0.80_0.12_255)]" : "hidden text-ui-4"
-                )}
-              >
-                <Pin className="h-3.5 w-3.5" />
-              </button>
-              {shown && (
-                <Check
-                  className="h-[17px] w-[17px] shrink-0 text-[oklch(0.80_0.12_255)]"
-                  aria-label="Shown on displays"
+                <RowMenu
+                  profile={p}
+                  canDelete={profiles.length > 1}
+                  onRename={() => {
+                    if (!active) onEdit(p.id);
+                    setRenaming(true);
+                  }}
+                  onSettings={() => {
+                    if (!active) onEdit(p.id);
+                    onOpenSettings();
+                  }}
+                  onDelete={() => setDeletingId(p.id)}
                 />
-              )}
-              <RowMenu
-                profile={p}
-                canDelete={profiles.length > 1}
-                onRename={() => {
-                  if (!active) onEdit(p.id);
-                  setRenaming(true);
-                }}
-                onSettings={() => {
-                  if (!active) onEdit(p.id);
-                  onOpenSettings();
-                }}
-                onDelete={() => setDeletingId(p.id)}
-              />
+              </div>
             </div>
           );
         })}

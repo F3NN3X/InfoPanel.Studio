@@ -14,6 +14,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   sections, field rows, switches, selects and number boxes, with hints behind the info icon. Every setting does what
   it did before. The Dynamic Island groups (Shape, Idle, Look, Clock, Motion, Alerts, Dashboard notices) and the
   Alerts rule editor (Rule, the sensor or notification source, Display, Switch to page, Highlight widget) are sections.
+- The Profiles panel shows each profile as a card with a live preview of its first page (its background, theme and
+  widgets, drawn by the same renderer as the dashboard and scaled to fit), and the top bar's profile menu shows a smaller
+  one, instead of a plain outline. A video background shows its poster. Previews are drawn only while on screen.
 
 ## [1.3.0-beta.3] - 2026-10-20
 
