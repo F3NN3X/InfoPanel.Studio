@@ -1,50 +1,96 @@
 name: CI
 
-# Every change reaches main through a PR that passed this check, and a release tag re-runs the tests in
-# release.yml, so a push to main doesn't run it again.
+# PRs run the checks. A push to main runs them only when the dependencies change: GitHub shares caches
+# saved on main with every PR, so this keeps the npm, Node and Rust caches warm for the next PRs.
+# Every code change already passed this check in its PR, and a release tag re-runs the tests in release.yml.
 on:
   pull_request:
+  push:
+    branches: [main]
+    paths:
+      - package-lock.json
+      - src-tauri/Cargo.lock
+      - src-tauri/Cargo.toml
+      - tools/desktop-prepare.mjs
+      - .github/workflows/ci.yml
 
 # A new push to a PR cancels that PR's run still in progress.
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test:
-    runs-on: windows-latest
+  # Which parts the change touches. A push to main (a dependency change) runs everything.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.diff.outputs.rust }}
     steps:
-      # Depth 2: the PR's merge commit and its first parent (the base), to see which paths changed.
+      # Depth 2: the PR's merge commit and its first parent (the base).
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Check whether the PR touches the Rust app
-        id: changes
-        shell: bash
+      - id: diff
         run: |
-          if git diff --name-only HEAD^1 HEAD | grep -q '^src-tauri/'; then echo "rust=true" >> "$GITHUB_OUTPUT"; fi
+          if [ "${{ github.event_name }}" != "pull_request" ] \
+            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|tools/desktop-prepare\.mjs$|\.github/workflows/ci\.yml$)'; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Typecheck, build and the Vitest suite.
+  web:
+    runs-on: ubuntu-latest
+    # The snapshot tests render the clock in the en-150 locale.
+    env:
+      LANG: en_150.UTF-8
+      LC_ALL: en_150.UTF-8
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      # The snapshot tests render the clock in the machine's locale; match the one they were taken in.
-      - name: Use the en-150 locale
-        shell: pwsh
-        run: Set-Culture en-150
-      - run: npm ci
+      - id: modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
       - run: npm run build
       - run: npm test
-      # The Rust tests run only when the PR changes src-tauri/; the release build compiles it either way.
-      # The Tauri build script wants the bundled resources (the studio and Node) in place before it compiles.
+
+  # The Rust tests, only when the change touches the desktop app.
+  rust:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - id: modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+      # The Node runtime desktop:prepare bundles, pinned by version in tools/desktop-prepare.mjs.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/desktop/node-v*
+          key: desktop-node-${{ hashFiles('tools/desktop-prepare.mjs') }}
+      # shared-key: the release job reuses this cache (its key would otherwise include the job name).
       - uses: Swatinem/rust-cache@v2
-        if: steps.changes.outputs.rust == 'true'
         with:
           workspaces: src-tauri
-      - run: npm run desktop:web
-        if: steps.changes.outputs.rust == 'true'
+          shared-key: tauri
+      # The Tauri build script wants the bundled pages and resources in place before it compiles. The web
+      # job typechecks, so these build with Vite alone.
+      - run: npx vite build --outDir .cache/desktop/dist --emptyOutDir
+      - run: npm run desktop:settings
       - run: npm run desktop:prepare
-        if: steps.changes.outputs.rust == 'true'
       - name: cargo test
-        if: steps.changes.outputs.rust == 'true'
         run: cargo test
         working-directory: src-tauri
