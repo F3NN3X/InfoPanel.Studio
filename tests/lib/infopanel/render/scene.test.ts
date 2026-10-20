@@ -143,6 +143,27 @@ describe("buildScene", () => {
     expect(scene(item("Bar"))[0]).toMatchObject({ kind: "chart", width: 400, height: 50 });
   });
 
+  it("paintAt gives the paints a scene built at that elapsed time has, for every gradient type", () => {
+    for (const type of ["Linear", "Sweep", "Radial", "Diamond", "Reflected", "Spiral"]) {
+      for (const angle of [30, -30]) {
+        const shape = item("Shape", `<GradientType>${type}</GradientType><GradientAngle>${angle}</GradientAngle><GradientAnimationSpeed>45</GradientAnimationSpeed><ShowFrame>true</ShowFrame>`);
+        const [first] = scene(shape);
+        for (const ms of [0, 333, 1000, 8100, 100_000]) {
+          const [built] = scene(shape, { elapsedMs: ms });
+          if (first.kind !== "shape" || built.kind !== "shape") throw new Error("not a shape");
+          expect(first.paintAt?.(ms)).toEqual({ fill: built.fill, stroke: built.stroke?.paint });
+        }
+      }
+    }
+  });
+
+  it("gives only an animated gradient a paintAt", () => {
+    const [still] = scene(item("Shape", "<GradientAnimationSpeed>0</GradientAnimationSpeed>"));
+    const [solid] = scene(item("Shape", "<ShowGradient>false</ShowGradient><GradientAnimationSpeed>90</GradientAnimationSpeed>"));
+    expect(still.kind === "shape" && still.paintAt).toBeUndefined();
+    expect(solid.kind === "shape" && solid.paintAt).toBeUndefined();
+  });
+
   it("animates a shape's gradient from the elapsed time", () => {
     const shape = item("Shape", "<GradientType>Sweep</GradientType><GradientAnimationSpeed>90</GradientAnimationSpeed>");
     const [s] = scene(shape, { elapsedMs: 1000 });
