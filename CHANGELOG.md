@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.5] - 2026-10-20
+
 ### Changed
 - Profile previews are small screenshots instead of live renders, so they cost no running widgets. The Profiles
   panel is back to compact rows with a 104×60 thumbnail, and the top-bar profile menu shows a smaller one. The
