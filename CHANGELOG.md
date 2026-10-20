@@ -7,6 +7,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- Middle-button drag pans the studio canvas when it is larger than the view (zoomed in); the cursor shows a grab.
 - Gauges in the Library are drawn from their spec (thumbnails and the detail preview) instead of a generic icon;
   image sequences still show their first frame.
 - The gauge editor has "Save as new" next to Save when the gauge already has a library item: it creates "<name> copy"
@@ -20,6 +21,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   text fields, which keep cut, copy and paste.
 
 ### Changed
+- The studio top bar no longer has the Design | Sources switch: Sources opens and closes from its rail button, and
+  the other rail items go back to the design view.
 - Removing a library item asks first, and also deletes its file (a gauge's frames too) when no profile, canvas or
   other item still uses it. Copies already placed stay.
 - A profile or dashboard background's image and video pickers list only My library's Backgrounds of that type; when

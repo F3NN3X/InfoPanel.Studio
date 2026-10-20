@@ -31,7 +31,7 @@ import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
 import { KEYS } from "./use-studio-shortcuts";
 
-/** Library, Gauges and Theme are full pages of their own, opened from the rail (not part of the Design | Sources switch). */
+/** Library, Gauges and Theme are full pages of their own, opened from the rail (Sources toggles from the rail). */
 export type StudioMode = "design" | "sources" | "library" | "gauges" | "theme";
 
 interface StudioTopBarProps {
@@ -44,8 +44,6 @@ interface StudioTopBarProps {
   onActivate: (id: string) => void;
   /** The profile name opens the Profiles left panel. */
   onOpenProfiles: () => void;
-  mode: StudioMode;
-  onMode: (mode: StudioMode) => void;
   /** Briefly true after a save (shows "Saved"). */
   saved: boolean;
   /** Edits the server does not have yet (the dot on Save). */
@@ -71,55 +69,11 @@ interface StudioTopBarProps {
   onShortcuts: () => void;
 }
 
-const MODES = [
-  { value: "design" as const, label: "Design" },
-  { value: "sources" as const, label: "Sources", title: "Data sources: bind widgets to their data" },
-];
-
 const POPUP =
   "min-w-52 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const ITEM =
   "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-5 data-highlighted:bg-ui-hover";
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
-
-/** Design | Sources: raised container, active segment lifted. */
-function ModeSwitch({ mode, onMode }: Pick<StudioTopBarProps, "mode" | "onMode">) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Mode"
-      className="flex gap-0.5 rounded-lg border border-ui-default bg-ui-raised p-0.5"
-      onKeyDown={(e) => {
-        // Radio-group keys: arrows pick the neighbour (wrapping) and move focus to it.
-        const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
-        if (step === 0) return;
-        e.preventDefault();
-        const at = MODES.findIndex((m) => m.value === mode);
-        const next = MODES[(at + step + MODES.length) % MODES.length];
-        onMode(next.value);
-        e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[MODES.indexOf(next)]?.focus();
-      }}
-    >
-      {MODES.map((m) => (
-        <button
-          key={m.value}
-          type="button"
-          role="radio"
-          aria-checked={m.value === mode}
-          tabIndex={m.value === mode ? 0 : -1}
-          title={m.title}
-          onClick={() => onMode(m.value)}
-          className={cn(
-            "rounded-md px-3.5 py-[5px] text-[12.5px] font-medium transition-colors max-sm:px-2.5",
-            m.value === mode ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:text-ui-1"
-          )}
-        >
-          {m.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /**
  * The profile name (opens the Profiles panel) with a chevron menu to switch
@@ -311,18 +265,17 @@ const TEXT_BUTTON =
 const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
 
 /**
- * The studio's top bar: profile switcher and meta, Design | Sources, then
- * undo / redo, Kiosk view, Save and the "⋯" menu.
+ * The studio's top bar: profile switcher and meta, then undo / redo, Kiosk view, Save and the "⋯" menu.
  */
 export function StudioTopBar(props: StudioTopBarProps) {
-  const { profile, mode, onMode, saved, unsaved, offline, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
+  const { profile, saved, unsaved, offline, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
   return (
     // In the desktop app this bar is the window's title bar: its empty space drags the window
     // (data-tauri-drag-region only acts on the element itself) and the caption buttons sit at the end.
     <header
       data-tauri-drag-region
       className={cn(
-        "grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-3 font-ui max-sm:flex max-sm:gap-1.5 max-sm:px-2",
+        "grid h-12 shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-3 font-ui max-sm:flex max-sm:gap-1.5 max-sm:px-2",
         isTauri() && "pr-0"
       )}
     >
@@ -339,8 +292,6 @@ export function StudioTopBar(props: StudioTopBarProps) {
           </span>
         )}
       </div>
-
-      <ModeSwitch mode={mode} onMode={onMode} />
 
       <div data-tauri-drag-region className="flex items-center justify-end gap-1.5 self-stretch max-sm:gap-1">
         <IconButton

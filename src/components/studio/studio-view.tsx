@@ -603,8 +603,6 @@ function StudioViewBody({
           ui.setMode("design");
           ui.setDrawer("profiles");
         }}
-        mode={ui.mode}
-        onMode={ui.setMode}
         saved={ui.saved}
         unsaved={pushPending}
         offline={offline}
