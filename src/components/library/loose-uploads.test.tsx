@@ -5,7 +5,9 @@ import type { Asset } from "@/lib/assets";
 import type { LibraryItem } from "@/lib/library";
 import { LooseUploads, canvasHashes, looseAssets } from "./loose-uploads";
 
-const api = vi.hoisted(() => ({ listAssets: vi.fn() }));
+const api = vi.hoisted(() => ({ listAssets: vi.fn(), unusedAssets: vi.fn() }));
+const lib = vi.hoisted(() => ({ getLibraryItem: vi.fn() }));
+vi.mock("@/lib/library", async (importOriginal) => ({ ...(await importOriginal<object>()), ...lib }));
 vi.mock("@/lib/assets", async (importOriginal) => ({ ...(await importOriginal<object>()), ...api }));
 
 const id = (c: string) => `${c.repeat(64)}.png`;
@@ -64,15 +66,28 @@ describe("LooseUploads", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("offers the loose ones with a count, imports them and reports", async () => {
+  it("offers a review of the loose ones with a count; Add imports the selected", async () => {
     api.listAssets.mockResolvedValue([asset("a"), asset("b"), asset("c")]);
+    api.unusedAssets.mockResolvedValue([asset("b"), asset("c")]);
     const onImport = vi.fn().mockResolvedValue({ added: 2, duplicates: 0, failed: 0 });
     const onResult = vi.fn();
-    const { findByText, getByText } = render(<LooseUploads items={[item]} config={noCanvas} ready onImport={onImport} onResult={onResult} />);
-    await findByText(/2 uploaded files are not in My library/);
-    fireEvent.click(getByText("Add uploaded files to My library"));
+    const { findByText, getByText, findByRole } = render(<LooseUploads items={[item]} config={noCanvas} ready onImport={onImport} onResult={onResult} />);
+    await findByText(/2 uploaded files aren't in My library/);
+    fireEvent.click(getByText("Review…"));
+    fireEvent.click(await findByRole("button", { name: "Select all" }));
+    fireEvent.click(getByText("Add to My library"));
     await waitFor(() => expect(onResult).toHaveBeenCalledWith("Added 2 uploaded files to My library"));
     expect(onImport.mock.calls[0][0].map((a: Asset) => a.id)).toEqual([id("b"), id("c")]);
+  });
+
+  it("does not offer the frames of a gauge whose data the list left out", async () => {
+    api.listAssets.mockResolvedValue([asset("b")]);
+    lib.getLibraryItem.mockResolvedValue({ data: { frames: [{ id: id("b"), name: "0.png" }] } });
+    const big = { ...item, id: "g", kind: "gauge", files: [], dataSize: 300000 } as LibraryItem;
+    const { container } = render(<LooseUploads items={[big]} config={noCanvas} ready onImport={vi.fn()} onResult={vi.fn()} />);
+    await waitFor(() => expect(lib.getLibraryItem).toHaveBeenCalledWith("g"));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(container.textContent).toBe("");
   });
 
   it("waits for the library list", () => {

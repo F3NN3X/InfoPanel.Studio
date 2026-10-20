@@ -4,9 +4,10 @@
  * Duplicate and Export.
  */
 import { useState } from "react";
-import { Copy, Pencil, Plus, Upload, Eye, type LucideIcon } from "lucide-react";
+import { Pencil, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KIND_LABEL, type GaugeEntry } from "@/lib/gauge-studio/model";
+import type { GaugeActions } from "./gauge-actions";
 import { GaugeView } from "./gauge-view";
 import { PlayControls } from "./play-controls";
 import { usePlayback } from "./use-playback";
@@ -18,44 +19,15 @@ export interface GaugeDetailProps {
   /** Copies placed, for a library gauge (undefined for the others). */
   copies?: number;
   scope: Record<string, string>;
-  onEdit: () => void;
-  /** The page's canvas zones: where an image sequence can go. */
-  canvasZones: { id: string; name: string }[];
-  onAddToCanvas: () => void;
-  /** Insert an image sequence into one of `canvasZones`. */
-  onAddToZone: (zoneId: string) => void;
-  onDuplicate: () => void;
-  onExport: () => void;
+  /** What the pane's buttons do: the same actions as the card's menu. */
+  actions: GaugeActions;
 }
 
-interface Action {
-  label: string;
-  icon: LucideIcon;
-  run: () => void;
-  disabled?: boolean;
-  title?: string;
-}
-
-export function GaugeDetail({ entry, sheet, copies, scope, onEdit, canvasZones, onAddToCanvas, onAddToZone, onDuplicate, onExport }: GaugeDetailProps) {
+export function GaugeDetail({ entry, sheet, copies, scope, actions }: GaugeDetailProps) {
   const playback = usePlayback();
   const [picking, setPicking] = useState(false);
-  const vector = entry.gauge !== null;
-  // A canvas image sequence copies to the library when the asset store holds all its frames.
-  const exportable = vector || !!entry.frames?.length;
-  const copyable = vector || entry.source.kind === "library" || entry.files !== undefined;
-  const secondary: Action[] = [
-    vector
-      ? { label: "Add to canvas", icon: Plus, run: onAddToCanvas }
-      : {
-          label: "Add to canvas",
-          icon: Plus,
-          run: () => setPicking((p) => !p),
-          disabled: canvasZones.length === 0 || !entry.files?.length,
-          title: canvasZones.length === 0 ? "An image sequence goes into a canvas zone: this page has none" : !entry.files?.length ? "Some of its frames are not files in the asset store" : "Choose the canvas zone to put it in",
-        },
-    { label: "Duplicate", icon: Copy, run: onDuplicate, disabled: !copyable, title: copyable ? undefined : "Some of its frames are not files in the asset store" },
-    { label: "Export", icon: Upload, run: onExport, disabled: !exportable, title: vector ? "Download as .gauge.json" : exportable ? "Download the frames as a .gauge-frames.zip" : "This image sequence has no frames to export" },
-  ];
+  const { edit, secondary } = actions;
+  const choices = secondary.find((a) => a.choices)?.choices ?? [];
   return (
     <aside
       aria-label="Gauge details"
@@ -82,7 +54,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, onEdit, canvasZones, 
       <div className="flex flex-col gap-2">
         <button
           type="button"
-          onClick={onEdit}
+          onClick={edit.run}
           className="flex h-[34px] w-full items-center justify-center gap-2 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
         >
           <Pencil className="h-4 w-4" strokeWidth={1.75} />
@@ -93,7 +65,7 @@ export function GaugeDetail({ entry, sheet, copies, scope, onEdit, canvasZones, 
             <button
               key={a.label}
               type="button"
-              onClick={a.run}
+              onClick={a.choices ? () => setPicking((p) => !p) : a.run}
               disabled={a.disabled}
               title={a.title}
               className={cn("flex h-[34px] items-center justify-center gap-2 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40")}
@@ -103,19 +75,19 @@ export function GaugeDetail({ entry, sheet, copies, scope, onEdit, canvasZones, 
             </button>
           ))}
         </div>
-        {picking && !vector && (
+        {picking && choices.length > 0 && (
           <div role="group" aria-label="Canvas zones" className="flex flex-col gap-1 rounded-[8px] border border-ui-subtle p-1">
-            {canvasZones.map((z) => (
+            {choices.map((c) => (
               <button
-                key={z.id}
+                key={c.id}
                 type="button"
                 onClick={() => {
                   setPicking(false);
-                  onAddToZone(z.id);
+                  c.run();
                 }}
                 className="h-8 truncate rounded-[6px] px-2 text-left text-[12.5px] text-ui-1 hover:bg-ui-hover"
               >
-                {z.name}
+                {c.label}
               </button>
             ))}
           </div>

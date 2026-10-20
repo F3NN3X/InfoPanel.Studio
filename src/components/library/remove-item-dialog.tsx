@@ -10,10 +10,12 @@ interface RemoveItemDialogProps {
   item: LibraryItem | null;
   onClose: () => void;
   onRemove: (item: LibraryItem) => void;
+  /** The action's word: "Remove" (Library) or "Delete" (Gauges). */
+  verb?: "Remove" | "Delete";
 }
 
 /** Confirm removing a library item: placed copies stay, its file goes when nothing else uses it. */
-export function RemoveItemDialog({ item, onClose, onRemove }: RemoveItemDialogProps) {
+export function RemoveItemDialog({ item, onClose, onRemove, verb = "Remove" }: RemoveItemDialogProps) {
   // The last item stays on screen while the dialog animates out.
   const last = useRef(item);
   if (item) last.current = item;
@@ -24,7 +26,7 @@ export function RemoveItemDialog({ item, onClose, onRemove }: RemoveItemDialogPr
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/50" />
         <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
-          <AlertDialog.Title className="text-sm font-semibold text-ui-1">Remove “{shown?.name}”?</AlertDialog.Title>
+          <AlertDialog.Title className="text-sm font-semibold text-ui-1">{verb} “{shown?.name}”?</AlertDialog.Title>
           <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
             It leaves My library{copies > 0 ? `; the ${copies === 1 ? "copy" : `${copies} copies`} already placed stay where they are` : ""}. Its file is deleted too,
             unless a profile, a canvas or another item still uses it.
@@ -39,7 +41,7 @@ export function RemoveItemDialog({ item, onClose, onRemove }: RemoveItemDialogPr
                 onClose();
               }}
             >
-              Remove
+              {verb}
             </button>
           </div>
         </AlertDialog.Popup>

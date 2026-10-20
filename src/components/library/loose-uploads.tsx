@@ -1,9 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FolderInput } from "lucide-react";
 import { listAssets, type Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { hashOf } from "@/lib/my-library/model";
+import { dataOf } from "./library-actions";
+import { LooseReviewDialog } from "./loose-review-dialog";
+
+/** A library item's version: its data is fetched again only when it changes. */
+const versionOf = (item: LibraryItem) => `${item.id}@${item.updatedAt}`;
+const FAILED = Symbol("failed");
 
 const hashOfId = (id: string) => id.slice(0, 64);
 
@@ -62,10 +68,15 @@ interface LooseUploadsProps {
   onResult: (message: string) => void;
 }
 
-/** A one-time offer to add the uploaded files that are not in My library; hidden when there are none. */
+/** An offer to review the uploaded files that are not in My library (add or delete); hidden when there are none. */
 export function LooseUploads({ items, config, ready, onImport, onResult }: LooseUploadsProps) {
   const [assets, setAssets] = useState<Asset[] | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const load = () =>
+    listAssets().then(
+      (all) => setAssets(all),
+      () => {},
+    );
   useEffect(() => {
     if (!ready) return;
     let live = true;
@@ -77,28 +88,42 @@ export function LooseUploads({ items, config, ready, onImport, onResult }: Loose
       live = false;
     };
   }, [ready]);
-  const loose = assets && ready ? looseAssets(assets, items, canvasHashes(config)) : [];
+  // The list leaves out a large gauge's data (its frames): fetched once per item version, before
+  // judging what is loose. A gauge whose data won't load hides the banner (its frames are unknown).
+  const [datas, setDatas] = useState<ReadonlyMap<string, unknown>>(() => new Map());
+  const pending = items.filter((i) => i.kind === "gauge" && i.data === undefined && i.dataSize && !datas.has(versionOf(i)));
+  const pendingKey = pending.map(versionOf).join();
+  useEffect(() => {
+    if (!ready || pending.length === 0) return;
+    let live = true;
+    void Promise.allSettled(pending.map((i) => dataOf(i))).then((results) => {
+      if (!live) return;
+      setDatas((m) => new Map([...m, ...results.map((r, n) => [versionOf(pending[n]), r.status === "fulfilled" ? r.value : FAILED] as const)]));
+    });
+    return () => {
+      live = false;
+    };
+  }, [ready, pendingKey]);
+  const failed = items.some((i) => datas.get(versionOf(i)) === FAILED);
+  const judgedNow = pending.length === 0 && !failed ? items.map((i) => (datas.has(versionOf(i)) ? { ...i, data: datas.get(versionOf(i)) } : i)) : null;
+  // While a new item's data loads, the last judgement stands, so an open review doesn't vanish mid-Add.
+  const lastJudged = useRef<LibraryItem[] | null>(null);
+  if (judgedNow) lastJudged.current = judgedNow;
+  const judged = judgedNow ?? (failed ? null : lastJudged.current);
+  const loose = assets && ready && judged ? looseAssets(assets, judged, canvasHashes(config)) : [];
+  const json = useMemo(() => JSON.stringify(config), [config]);
   if (loose.length === 0) return null;
-  const run = async () => {
-    setBusy(true);
-    const r = await onImport(loose);
-    setBusy(false);
-    onResult(`Added ${r.added} uploaded file${r.added === 1 ? "" : "s"} to My library${r.failed ? `, ${r.failed} failed` : ""}`);
-  };
+  const one = loose.length === 1;
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-ui-subtle bg-ui-panel px-5 py-2.5 text-[12.5px] text-ui-2">
       <FolderInput className="h-4 w-4 text-ui-accent-text" />
       <span className="flex-1">
-        {loose.length} uploaded file{loose.length === 1 ? "" : "s"} {loose.length === 1 ? "is" : "are"} not in My library yet.
+        {loose.length} uploaded file{one ? "" : "s"} {one ? "isn't" : "aren't"} in My library: {one ? "an older upload" : "older uploads"} that no item holds.
       </span>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void run()}
-        className="h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover disabled:opacity-50"
-      >
-        {busy ? "Adding…" : "Add uploaded files to My library"}
+      <button type="button" onClick={() => setReviewing(true)} className="h-[28px] rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover">
+        Review…
       </button>
+      <LooseReviewDialog open={reviewing} loose={loose} config={json} onClose={() => setReviewing(false)} onImport={onImport} onChanged={() => void load()} onResult={onResult} />
     </div>
   );
 }
