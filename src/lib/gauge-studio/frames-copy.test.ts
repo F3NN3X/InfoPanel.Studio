@@ -52,6 +52,12 @@ describe("library frames working copy", () => {
     expect(isFramesDirty(markFramesSaved(edited))).toBe(false);
   });
 
+  it("marking it saved as another item moves its origin there", () => {
+    const fc = markFramesSaved(open(), { kind: "library", itemId: "b" });
+    expect(fc.origin.itemId).toBe("b");
+    expect(markFramesSaved(open()).origin.itemId).toBe("a");
+  });
+
   it("converts to a vector spec in one step that undo takes back", () => {
     const fc = editFrames(open(), withVectorSpec(open().state, DEFAULT_GAUGE), undefined, 0);
     expect(fc.state.vector).toBe(DEFAULT_GAUGE);

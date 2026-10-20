@@ -18,7 +18,7 @@ import type { LibraryItem } from "@/lib/library";
 import type { ThemeTokens } from "@/lib/theme";
 import { BakeBar } from "./bake-bar";
 import { EditorHeader } from "./editor-header";
-import { useEditorShell, type EditorHandle } from "./editor-shell";
+import { useEditorShell, type EditorHandle, type WriteOptions } from "./editor-shell";
 import { EditorStage } from "./editor-stage";
 import { FramesInspector } from "./frames-inspector";
 import { FramesStage } from "./frames-stage";
@@ -72,7 +72,8 @@ function GaugeInPlaceEditor(props: GaugeEditorProps & { open: Extract<EditorOpen
   const edit = useGaugeEdit(bridge, open, editorId);
   const entry = edit.entry;
   const canvas = open.kind === "profile" && open.source.kind === "canvas" ? open.source : null;
-  const write = (g: VectorGauge | null) => () => saveGauge({ name: edit.name, gauge: g, itemId: edit.origin?.itemId, from: entry ?? undefined });
+  const write = (g: VectorGauge | null) => (o?: WriteOptions) =>
+    saveGauge({ name: edit.name, gauge: g, itemId: edit.origin?.itemId, from: entry ?? undefined, link: edit.link ?? undefined, ...o });
 
   if (edit.gauge) {
     const bakeBar = canvas && entry ? <BakeBar bridge={bridge} source={canvas} entry={entry} gauge={edit.gauge} /> : null;
@@ -89,12 +90,12 @@ function CanvasFramesEditor(
     entry: GaugeEntry;
     source: Extract<GaugeSource, { kind: "canvas" }>;
     stored: StoredCanvas;
-    write: () => Promise<LibraryItem>;
+    write: (o?: WriteOptions) => Promise<LibraryItem>;
   },
 ) {
   const tools = useCanvasFrames(p.bridge, p.entry, p.source, p.stored);
   // Frames the asset store can't name can't go to the library.
-  const write = () => (p.entry.files ? p.write() : Promise.reject(new Error("some frames are not files in the asset store")));
+  const write = (o?: WriteOptions) => (p.entry.files ? p.write(o) : Promise.reject(new Error("some frames are not files in the asset store")));
   return <FramesEditor ref={p.ref} edit={p.edit} tools={tools} write={write} onBack={p.onBack} onSaved={p.onSaved} />;
 }
 
@@ -112,7 +113,7 @@ interface FramesEditorProps {
   ref?: Ref<EditorHandle>;
   edit: GaugeEdit;
   tools: FramesTools;
-  write: () => Promise<LibraryItem>;
+  write: (o?: WriteOptions) => Promise<LibraryItem>;
   onBack: () => void;
   onSaved: () => void;
 }
@@ -125,7 +126,7 @@ function FramesEditor({ ref, edit, tools, write, onBack, onSaved }: FramesEditor
   const filter = recolour === NO_RECOLOUR ? undefined : recolourFilter(recolour);
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
-      <EditorHeader edit={edit} gauge={null} saving={shell.saving} onBack={() => shell.requestBack()} onSave={() => void shell.save()} />
+      <EditorHeader edit={edit} gauge={null} saving={shell.saving} onBack={() => shell.requestBack()} onSave={() => void shell.save()} onSaveAsNew={shell.saveAsNew && (() => void shell.saveAsNew?.())} />
       <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <FramesStage tools={tools} playback={playback} filter={filter} />
         <FramesInspector tools={tools} recolour={recolour} onRecolour={setRecolour} />
@@ -138,7 +139,7 @@ function FramesEditor({ ref, edit, tools, write, onBack, onSaved }: FramesEditor
 interface VectorEditorProps extends GaugeEditorProps {
   edit: GaugeEdit;
   gauge: VectorGauge;
-  write: () => Promise<LibraryItem>;
+  write: (o?: WriteOptions) => Promise<LibraryItem>;
   /** Under the editor: the bake bar of a canvas gauge. */
   below?: ReactNode;
 }
@@ -162,7 +163,7 @@ function VectorEditor({ ref, edit, gauge: g, write, below, theme, onBack, onSave
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
-      <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={() => shell.requestBack()} onImported={imported} onExport={() => downloadSpec(edit.name, g)} onSave={() => void shell.save()} />
+      <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={() => shell.requestBack()} onImported={imported} onExport={() => downloadSpec(edit.name, g)} onSave={() => void shell.save()} onSaveAsNew={shell.saveAsNew && (() => void shell.saveAsNew?.())} />
       <PresetStrip scope={scope} onPick={pick} />
       <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <PartsList g={g} selected={selectable(g, part)} onSelect={setPart} set={set} />
