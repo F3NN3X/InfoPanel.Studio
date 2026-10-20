@@ -9,7 +9,7 @@ use crate::probe::{self, ProcessInfo};
 use crate::settings::{self, Settings};
 use crate::state::{lock, AppState, Phase, RunningConfig, Status};
 use crate::updater::{self, UpdateState};
-use crate::{agents, control, debug, http, windows};
+use crate::{agents, control, debug, http, kiosk, windows};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -607,6 +607,16 @@ pub async fn open_help(app: AppHandle, article: Option<String>, heading: Option<
         &app,
         &windows::HelpTarget::new(article.as_deref(), heading.as_deref()),
     );
+}
+
+/// Kiosk view: with a size the window takes it exactly; without one it goes back to the studio's.
+#[tauri::command]
+pub async fn kiosk_window(app: AppHandle, size: Option<kiosk::KioskSize>) -> CmdResult<()> {
+    log::debug!("ipc: kiosk_window {size:?}");
+    match size {
+        Some(size) => kiosk::enter(&app, size),
+        None => kiosk::leave(&app),
+    }
 }
 
 /// Largest file `open_text_file` reads.

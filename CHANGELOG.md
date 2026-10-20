@@ -6,6 +6,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- The studio can pin a profile for editing: a pin in the Profiles panel, or "Pin this profile for editing" in the top
+  bar's profile menu. While pinned, the studio keeps editing that profile and choosing a profile or Auto changes only
+  what displays show ("Show on displays"); a new or imported profile is pinned and leaves the displays alone. The pin
+  is kept in the studio's own storage, never in the config.
+- Desktop app: Kiosk view resizes the window to the shown profile's exact size (even past the screen) and Back to
+  studio restores the studio's size, position and maximized state. Moving the pointer to the top edge shows a strip with
+  Back to studio, Minimize and Close. Kiosk view shows the profile the studio was editing and, in Auto, does not switch
+  profile when the window is resized.
+
+### Changed
+- The studio's left rail is grouped with thin dividers: Profiles, Theme; Layers, Widgets; Gauges, Library; Alerts,
+  Dynamic Island; Data sources. The Add button is now called Widgets.
+
 ## [1.3.0-beta.2] - 2026-10-20
 
 ### Added

@@ -18,6 +18,7 @@ pub const STATUS_EVENT: &str = "server-status";
 const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-open-settings",
     "allow-open-help",
+    "allow-kiosk-window",
     "allow-save-text-file",
     "allow-save-binary-file",
     "allow-open-text-file",

@@ -6,6 +6,7 @@ mod commands;
 mod control;
 mod debug;
 mod http;
+mod kiosk;
 mod logs;
 mod nav;
 mod paths;
@@ -180,6 +181,7 @@ pub fn run() {
             commands::quit_app,
             commands::open_settings,
             commands::open_help,
+            commands::kiosk_window,
             commands::save_text_file,
             commands::save_binary_file,
             commands::open_text_file,

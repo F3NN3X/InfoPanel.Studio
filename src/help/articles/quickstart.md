@@ -24,7 +24,7 @@ To see a finished example first, press **Use sample layout** on the empty canvas
 
 ## 3. Add widgets
 
-1. Open **Add** on the left rail.
+1. Open **Widgets** on the left rail.
 2. Filter with the chips (System, Hardware, Network, Media and more) or search.
 3. Drag a widget onto the grid. It snaps to cells and takes its minimum size.
 4. Drag the corner handle to make it bigger.

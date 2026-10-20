@@ -26,7 +26,8 @@ import { sampleLayout } from "@/lib/sample-layout";
 import type { ModuleSettings } from "@/modules/types";
 import * as actions from "./studio-actions";
 import { deletePanelPreset, renamePanelPreset, savePanelPreset } from "./panel-preset-actions";
-import { withoutProfile } from "./profile-actions";
+import { pinAfterAdd } from "./pinned-profile";
+import { withoutProfile, withProfile } from "./profile-actions";
 import { moduleDropSize, type LibraryItem } from "./drop-ghost";
 import { ALL_MODULES, moduleMinSize } from "./studio-modules";
 import type { StudioSelection } from "./use-studio-selection";
@@ -51,13 +52,16 @@ interface MutationDeps {
   windowSize: { width: number; height: number };
   /** Show another page of the profile on the canvas (view state). */
   onPageChange: (pageId: string) => void;
+  /** The profile the studio is pinned to for editing, if any (studio-only, not in the config). */
+  pinnedId: string | undefined;
+  onPin: (id: string | undefined) => void;
 }
 
 /**
  * Every edit the studio makes to the config, through the undo history.
  * Same-`key` changes coalesce into one undo step (a drag, a key repeat).
  */
-export function useStudioMutations({ config, profile, setConfig, sel, onPresetSaved, windowSize, onPageChange }: MutationDeps) {
+export function useStudioMutations({ config, profile, setConfig, sel, onPresetSaved, windowSize, onPageChange, pinnedId, onPin }: MutationDeps) {
   const { selected } = sel;
   const toast = useToast();
 
@@ -364,21 +368,23 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   const setRotate = (patch: Partial<PageRotate>) =>
     updateStored((p) => ({ ...p, rotate: { enabled: false, seconds: 15, ...p.rotate, ...patch } }), "profile:rotate");
 
+  /** Add a profile and edit it; displays switch to it unless the studio is pinned (the pin moves instead). */
   const addProfile = () => {
     const np = newProfile(`${windowSize.width}×${windowSize.height}`, windowSize.width, windowSize.height);
-    setConfig((c) => ({
-      ...c,
-      profiles: [...c.profiles, np],
-      activeProfile: np.id,
-    }));
+    setConfig((c) => withProfile(c, np, !pinnedId));
+    onPin(pinAfterAdd(pinnedId, np.id));
   };
 
-  /** Delete a profile (never the last; one undo step); see `withoutProfile` for the pick afterwards. */
+  /**
+   * Delete a profile (never the last; one undo step); see `withoutProfile` for the pick afterwards.
+   * Pinned, the edited profile is not what displays show, so only the displayed one resets them.
+   */
   const removeProfile = (id: string) => {
     if (config.profiles.length <= 1) return;
-    setConfig((c) => withoutProfile(c, id, profile.id));
+    setConfig((c) => withoutProfile(c, id, pinnedId ? c.activeProfile : profile.id));
   };
 
+  /** What displays show; the profile being edited follows it only while nothing is pinned. */
   const activateProfile = (id: string) => setConfig((c) => ({ ...c, activeProfile: id }));
 
   const saveStylePreset = (name: string, settings: ModuleSettings) =>

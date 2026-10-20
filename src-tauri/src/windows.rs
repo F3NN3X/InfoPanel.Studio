@@ -14,6 +14,8 @@ pub const MAIN: &str = "main";
 pub const SETTINGS: &str = "settings";
 pub const HELP: &str = "help";
 pub const FLUSH_EVENT: &str = "studio://flush";
+/// Sent to the main window when the shell leaves Kiosk view on its own (a close from it).
+pub const KIOSK_LEFT_EVENT: &str = "kiosk-left";
 
 /// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` when debug mode is on
 /// and `INFOPANEL_STUDIO_CDP_PORT` is set, so a test or debugging session can attach over CDP.
@@ -57,7 +59,7 @@ fn open_external(app: &AppHandle, url: &Url) {
 }
 
 /// The saved app zoom as WebView2's factor.
-fn zoom_factor(app: &AppHandle) -> f64 {
+pub fn zoom_factor(app: &AppHandle) -> f64 {
     f64::from(app.state::<AppState>().settings().zoom) / 100.0
 }
 
@@ -127,7 +129,16 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             }
             api.prevent_close();
             let app = handle.clone();
-            std::thread::spawn(move || close_main(&app));
+            std::thread::spawn(move || {
+                // Closed from Kiosk view: the studio's geometry goes back first, so the window
+                // state saved at exit (and the window shown from the tray) is the studio's, and
+                // the page is told to follow (a cancelled close warning keeps the window open).
+                if let Err(e) = crate::kiosk::leave(&app) {
+                    log::warn!("could not leave Kiosk view: {e}");
+                }
+                let _ = app.emit_to(MAIN, KIOSK_LEFT_EVENT, ());
+                close_main(&app);
+            });
         }
     });
     Ok(window)
@@ -376,6 +387,10 @@ pub fn quit(app: &AppHandle) {
         return;
     }
     log::info!("quitting");
+    // Quit from Kiosk view (the tray): window-state saves the studio's geometry, not the kiosk's.
+    if let Err(e) = crate::kiosk::leave(app) {
+        log::warn!("could not leave Kiosk view: {e}");
+    }
     flush_studio(app);
     crate::control::stop_owned(app);
     app.exit(0);

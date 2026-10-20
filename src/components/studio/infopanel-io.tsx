@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/toast";
 import { createLibraryItem } from "@/lib/library";
 import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
 import type { ImportCommit, ImportSource } from "@/components/infopanel/import/import-dialog";
+import { pinAfterAdd } from "./pinned-profile";
 import { canvasZoneOf, countItems, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
 
 // The dialogs carry the InfoPanel parser and writer: loaded on first open, never in the kiosk bundle.
@@ -18,10 +19,13 @@ interface InfoPanelIoDeps {
   selectedId?: string;
   /** Select a zone once it is on the canvas (a new profile shows on the next render). */
   onLanded: (zoneId: string, newProfile: boolean) => void;
+  /** The pinned profile, if any: a new profile is then edited (the pin moves) without changing what displays show. */
+  pinnedId: string | undefined;
+  onPin: (id: string | undefined) => void;
 }
 
 /** Import InfoPanel and Export: their open state, their one-undo-step commits and the dialogs. */
-export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLanded }: InfoPanelIoDeps) {
+export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLanded, pinnedId, onPin }: InfoPanelIoDeps) {
   const toast = useToast();
   const [importDest, setImportDest] = useState<"new" | "zone" | null>(null);
   const [importSource, setImportSource] = useState<ImportSource | undefined>(undefined);
@@ -33,8 +37,9 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
   const commit = async (c: ImportCommit): Promise<string | null> => {
     let zoneId: string;
     if (c.dest === "new") {
-      const r = importAsProfile(config, c.canvas, c.name, c.size);
+      const r = importAsProfile(config, c.canvas, c.name, c.size, !pinnedId);
       setConfig(r.config);
+      onPin(pinAfterAdd(pinnedId, r.profileId));
       zoneId = r.zoneId;
     } else {
       const r = importIntoProfile(config, profile, c.canvas, c.size);
