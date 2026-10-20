@@ -1,3 +1,4 @@
+import { LayoutTemplate } from "lucide-react";
 import { lazy, Suspense, useMemo, type CSSProperties, type ReactNode } from "react";
 import { OtherSensors } from "@/modules/other-sensors";
 import { isClaimed, moduleReads, modules } from "@/modules";
@@ -13,11 +14,24 @@ import { CARDS_ID, BLANK_MODULE, CANVAS_ID, canvasTitle, type Placement } from "
 import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import { lockedIn, resolveWith, type Appearance } from "@/lib/style-resolve";
+import { usePreview } from "@/hooks/use-preview";
+import type { StoredCanvas } from "@/lib/infopanel/import/stored.ts";
 import { safeRender } from "@/components/zone-error-boundary";
 
 const moduleById = new Map(modules.map((m) => [m.id, m]));
 // The InfoPanel renderer loads only when a canvas zone is drawn.
 const CanvasZone = lazy(() => import("@/components/infopanel/CanvasZone"));
+
+/** The imported canvas, live; in a thumbnail a still stand-in (it would run timers, font probes and loads). */
+function CanvasContent({ canvas, sensors }: { canvas: StoredCanvas; sensors: SensorMap }) {
+  if (usePreview())
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+        <LayoutTemplate className="h-1/3 w-1/3 max-h-16 max-w-16 opacity-60" />
+      </div>
+    );
+  return <CanvasZone canvas={canvas} sensors={sensors} />;
+}
 
 export interface PlacementRender {
   content: ReactNode;
@@ -87,7 +101,7 @@ export function placementContent(
     return {
       content: (
         <Suspense fallback={null}>
-          <CanvasZone canvas={p.canvas} sensors={sensors} />
+          <CanvasContent canvas={p.canvas} sensors={sensors} />
         </Suspense>
       ),
       hasData: true,

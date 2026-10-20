@@ -1,5 +1,6 @@
 // Cover-art tint: a Vibrant-style palette sampled from the art (moved from the legacy now-playing widget).
 import { useEffect, useState } from "react";
+import { usePreview } from "@/hooks/use-preview";
 import { darken, lighten, type ArtTint, type RGB } from "@/components/surfaces";
 import { IMAGE_PROXY_URL } from "@/lib/dashboard-server";
 
@@ -150,9 +151,11 @@ async function loadTintableImage(url: string): Promise<HTMLImageElement | null> 
  */
 export function useArtTint(url: string | undefined, enabled: boolean): ArtTint | null {
   const [tint, setTint] = useState<ArtTint | null>(null);
+  // A thumbnail does not fetch the art: the default colour.
+  const preview = usePreview();
   useEffect(() => {
     setTint(null);
-    if (!url || !enabled) return;
+    if (!url || !enabled || preview) return;
     let cancelled = false;
     void (async () => {
       const img = await loadTintableImage(url);
@@ -180,6 +183,6 @@ export function useArtTint(url: string | undefined, enabled: boolean): ArtTint |
     return () => {
       cancelled = true;
     };
-  }, [url, enabled]);
+  }, [url, enabled, preview]);
   return tint;
 }
