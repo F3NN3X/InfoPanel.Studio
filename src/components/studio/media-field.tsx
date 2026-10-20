@@ -4,6 +4,8 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { mediaUrl } from "@/lib/appearance";
 import { AssetError, acceptOf, formatBytes, uploadAsset, type AssetKind } from "@/lib/assets";
 import { cn } from "@/lib/utils";
+import { BackgroundLibrary } from "./background-library";
+import { addUpload } from "./add-upload";
 import { MediaLibrary } from "./media-library";
 import { FIELD } from "./setting-rows";
 
@@ -17,6 +19,10 @@ interface MediaFieldProps {
   preview?: "large" | "thumb";
   /** The color behind a large preview (the background's letterbox fill). */
   fill?: string;
+  /** The picker offers only the Library's Backgrounds of this kind (a page background's image or video). */
+  backgrounds?: boolean;
+  /** Open the Library, from the picker's empty state. */
+  onOpenLibrary?: () => void;
 }
 
 type UploadStatus = { state: "idle" } | { state: "uploading"; name: string; size: number } | { state: "error"; message: string };
@@ -26,7 +32,7 @@ type UploadStatus = { state: "idle" } | { state: "uploading"; name: string; size
  * the dashboard server (Upload… or a file dropped on the field) or picked
  * from the uploaded files (the library).
  */
-export function MediaField({ label, kind, value, onChange, preview = "large", fill }: MediaFieldProps) {
+export function MediaField({ label, kind, value, onChange, preview = "large", fill, backgrounds, onOpenLibrary }: MediaFieldProps) {
   const [draft, setDraft] = useState(value ?? "");
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState<UploadStatus>({ state: "idle" });
@@ -47,6 +53,8 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
     setStatus({ state: "uploading", name: file.name, size: file.size });
     try {
       const asset = await uploadAsset(file, kind);
+      // A background's upload joins My library, so the picker (Backgrounds only) offers it next time.
+      if (backgrounds) await addUpload(file, asset.id);
       setStatus({ state: "idle" });
       onChange(asset.url);
     } catch (err) {
@@ -119,7 +127,11 @@ export function MediaField({ label, kind, value, onChange, preview = "large", fi
             <Upload className="h-[15px] w-[15px]" /> Upload
           </button>
           <span className="flex shrink-0">
-            <MediaLibrary kind={kind} value={value} onPick={onChange} />
+            {backgrounds ? (
+              <BackgroundLibrary kind={kind} value={value} onPick={onChange} onOpenLibrary={onOpenLibrary} />
+            ) : (
+              <MediaLibrary kind={kind} value={value} onPick={onChange} />
+            )}
           </span>
         </div>
         {!valid && <div className="mt-1 text-[11px] text-ui-danger">Use an http(s) URL or a path such as /assets/…</div>}

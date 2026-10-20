@@ -87,7 +87,7 @@ export function LibraryDetail(p: DetailProps) {
         p.sheet ? "min-w-0 flex-1" : "w-[320px] shrink-0 border-l border-ui-subtle",
       )}
     >
-      <AssetThumb item={item} size="lg" className="aspect-[16/10] w-full border border-ui-subtle" />
+      <AssetThumb item={item} size="lg" live className="aspect-[16/10] w-full border border-ui-subtle" />
       <div>
         <input
           aria-label="Name"

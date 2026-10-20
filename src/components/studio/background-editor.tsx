@@ -44,6 +44,8 @@ interface BackgroundEditorProps {
   copyLabel?: string;
   /** The active profile: where the Library's "jump to copy" goes. */
   profileId: string;
+  /** Open the Library, from the pickers' empty state. */
+  onOpenLibrary?: () => void;
 }
 
 /** A My library image or video dragged onto the slot (spec §8): it becomes the background. */
@@ -54,7 +56,7 @@ function libraryMedia(e: DragEvent): LibraryItem | null {
 }
 
 /** The fields of one background: type, then that type's options and effects. */
-export function BackgroundEditor({ value, types, onChange, copyLabel = "Background", profileId }: BackgroundEditorProps) {
+export function BackgroundEditor({ value, types, onChange, copyLabel = "Background", profileId, onOpenLibrary }: BackgroundEditorProps) {
   const patch = (p: Partial<PageBackground>) => onChange({ ...value, ...p });
   const gradient = value.gradient ?? BACKGROUND_DEFAULTS.gradient;
   const position = value.position ?? BACKGROUND_DEFAULTS.position;
@@ -105,9 +107,9 @@ export function BackgroundEditor({ value, types, onChange, copyLabel = "Backgrou
       )}
 
       {value.type === "image" && (
-        <MediaField label="Image" kind="image" value={value.src} fill={value.color} onChange={(src) => patch({ src })} />
+        <MediaField label="Image" kind="image" value={value.src} fill={value.color} onChange={(src) => patch({ src })} backgrounds onOpenLibrary={onOpenLibrary} />
       )}
-      {value.type === "video" && <VideoFields value={value} onPatch={patch} />}
+      {value.type === "video" && <VideoFields value={value} onPatch={patch} onOpenLibrary={onOpenLibrary} />}
 
       {isMedia && (
         <>

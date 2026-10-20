@@ -100,6 +100,8 @@ export interface DashboardStudioProps {
   onOpenExplorer: () => void;
   /** Studio › Theme (the widget theme's editor). */
   onOpenTheme: () => void;
+  /** The Library (the background pickers' empty state). */
+  onOpenLibrary: () => void;
 }
 
 const ACCORDION_MODES = [
@@ -150,6 +152,7 @@ function DocumentSheet({
   onRotate,
   onOpenExplorer,
   onOpenTheme,
+  onOpenLibrary,
 }: DocumentInspectorProps & DashboardStudioProps) {
   const [quickBar, setQuickBar] = useQuickBarPref();
   const [accordion, setAccordion] = useAccordionPref();
@@ -294,6 +297,7 @@ function DocumentSheet({
               profileName={profile.name}
               profileId={profile.id}
               onChange={onBackground}
+              onOpenLibrary={onOpenLibrary}
             />
           ),
         };

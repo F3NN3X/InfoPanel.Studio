@@ -51,6 +51,7 @@ import { optimiseItem } from "./optimise";
 import { FontsView } from "./fonts-view";
 import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
 import { UploadTray } from "./upload-tray";
+import { LooseUploads } from "./loose-uploads";
 import { useMyLibrary } from "./use-my-library";
 import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
 import { useViewportBelow } from "@/hooks/use-viewport-below";
@@ -358,6 +359,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           }}
         />
       </header>
+      {tab === "mine" && <LooseUploads items={lib.items} config={p.bridge.config} ready={!lib.loading && !lib.error} onImport={lib.importAssets} onResult={toast} />}
       <div className="relative flex min-h-0 flex-1">
         {tab === "profile" ? (
           <ProfileAssets
