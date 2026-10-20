@@ -51,11 +51,20 @@ describe("parseChangelog", () => {
     expect(releases[2].sections[0].body).toBe("- Moved");
   });
 
+  it("leaves out an empty Unreleased, keeps one with notes, and reads a prerelease", () => {
+    const empty = parseChangelog("## [Unreleased]\n\n## [1.3.0-beta.1] - 2026-10-20\n\n### Added\n- A thing\n");
+    expect(empty.map((r) => [r.version, r.date])).toEqual([["1.3.0-beta.1", "2026-10-20"]]);
+    const notes = parseChangelog("## [Unreleased]\n\n### Fixed\n- B\n\n## [1.2.0] - 2026-10-20\n\n### Added\n- A\n");
+    expect(notes.map((r) => r.version)).toEqual(["Unreleased", "1.2.0"]);
+  });
+
   it("parses the real file", () => {
     const real = parseChangelog(readFileSync(new URL("../../../CHANGELOG.md", import.meta.url), "utf8"));
-    expect(real[0].unreleased).toBe(true);
     expect(real.length).toBeGreaterThan(1);
-    expect(real.slice(1).every((r) => /^\d+\.\d+\.\d+$/.test(r.version) && r.date !== null)).toBe(true);
+    // Released versions (prereleases like 1.3.0-beta.1 too) carry a date; Unreleased, when it has notes, comes first.
+    const released = real.filter((r) => !r.unreleased);
+    expect(released.every((r) => /^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/.test(r.version) && r.date !== null)).toBe(true);
+    expect(real.findIndex((r) => r.unreleased)).toBeLessThanOrEqual(0);
     expect(real.every((r) => r.sections.length > 0 || r.intro.length > 0)).toBe(true);
   });
 });

@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.1] - 2026-10-20
+
 ### Added
 - A hand tool pans the studio canvas at any zoom: drag with the middle button, or hold Space and drag. The cursor
   shows a grab hand; Fit (and switching profile) puts the page back in the middle.
