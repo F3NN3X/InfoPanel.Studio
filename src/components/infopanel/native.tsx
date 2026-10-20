@@ -8,7 +8,7 @@
  * The flag is a field on the item (set through the editor, so a switch is one
  * undo step); every InfoPanel field stays as it was, so switching back is lossless.
  */
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { imageSrc, WidgetView } from "@/components/widgets/WidgetView";
@@ -28,7 +28,6 @@ import { convert, type Conversion, type ConvertContext, type Custom, type GraphS
 import { isNative, walkPaths } from "@/lib/infopanel/native/modes.ts";
 import { Marquee } from "@/components/ui/marquee";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { useTickTime } from "@/hooks/use-tick";
 
 export interface NativeLayer {
   /** Per flagged item: what it converted to, or why it stays faithful. */
@@ -74,18 +73,6 @@ export interface NativeView {
   history(key: string): readonly number[];
 }
 
-/** Seconds since `on` began, on the shared ticker (Max FPS) while `on` (an animated gradient); 0 under reduced motion. */
-function useSeconds(on: boolean): number {
-  const reduced = useReducedMotion();
-  const run = on && !reduced;
-  const start = useRef(0);
-  useEffect(() => {
-    start.current = performance.now();
-  }, [run]);
-  const now = useTickTime(run);
-  return run && now > start.current ? (now - start.current) / 1000 : 0;
-}
-
 /**
  * A shape as the scene draws it (render/scene.ts): InfoPanel's geometry in the box, turned about its centre
  * by PathPaint (so a gradient stays over the turned shape's bounds, as Skia computes it), paints from
@@ -94,17 +81,22 @@ function useSeconds(on: boolean): number {
 function NativeShape({ custom, n, path }: { custom: Extract<Custom, { kind: "shape" }>; n: NativeItem; path: string }) {
   const [w, h] = [n.box.w ?? 0, n.box.h ?? 0];
   const g = custom.gradient;
-  const seconds = useSeconds(!!g && g.speed !== 0);
+  // An animated gradient turns through refs on the shared ticker (PathPaint), from when the shape mounted; still under reduced motion.
+  const [start] = useState(() => performance.now());
+  const reduced = useReducedMotion();
+  const turns = !!g && g.speed !== 0 && !reduced;
   const geo = shapeGeometry(custom.type, 0, 0, w, h, custom.radius);
   const deg = n.transform?.rotate ?? 0;
   const rotate = { deg, cx: geo.cx, cy: geo.cy };
   const bounds = boundsOf(rotatePoints(geo.points, deg, geo.cx, geo.cy));
-  const paint = (color: string): Paint =>
+  const paintAt = (color: string, seconds: number): Paint =>
     g ? gradientPaint(bounds, color, g.color2, g.color3, gradientAngle(g.angle, g.speed, seconds), g.type) : { kind: "solid", color };
+  const paint = (color: string) => paintAt(color, 0);
+  const turn = (color: string) => (turns ? { start, at: (ms: number) => paintAt(color, ms / 1000) } : undefined);
   return (
     <svg width={w} height={h} style={{ display: "block", overflow: "visible" }}>
-      {custom.fill && <PathPaint id={`native-${path}-f`} d={geo.d} paint={paint(custom.fill)} rotate={rotate} space={{ width: w, height: h }} />}
-      {custom.stroke && <PathPaint id={`native-${path}-s`} d={geo.d} paint={paint(custom.stroke.color)} stroke={custom.stroke.width} rotate={rotate} space={{ width: w, height: h }} />}
+      {custom.fill && <PathPaint id={`native-${path}-f`} d={geo.d} paint={paint(custom.fill)} rotate={rotate} space={{ width: w, height: h }} turn={turn(custom.fill)} />}
+      {custom.stroke && <PathPaint id={`native-${path}-s`} d={geo.d} paint={paint(custom.stroke.color)} stroke={custom.stroke.width} rotate={rotate} space={{ width: w, height: h }} turn={turn(custom.stroke.color)} />}
     </svg>
   );
 }

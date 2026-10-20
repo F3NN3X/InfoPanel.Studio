@@ -5,7 +5,8 @@
  * rotated path gets the inverse rotation on its gradient, as Skia computes the
  * gradient from the already rotated path.
  */
-import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { subscribeTick } from "@/lib/ticker";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import type { Paint, Stop } from "@/lib/infopanel/render/geometry.ts";
 
@@ -19,10 +20,43 @@ export interface PathPaintProps {
   rotate?: { deg: number; cx: number; cy: number };
   /** Size of the SVG's user space, for conic gradients. */
   space: { width: number; height: number };
+  /** An animated gradient: each tick writes `at(elapsedMs)` into the DOM through a ref, with no React render. */
+  turn?: { start: number; at(elapsedMs: number): Paint };
 }
 
 const color = (c: string) => cssColor(c) ?? "transparent";
 const stopEls = (stops: Stop[]) => stops.map((s, i) => <stop key={i} offset={s.offset} stopColor={color(s.color)} />);
+
+const conicBackground = (paint: Extract<Paint, { kind: "conic" }>) => {
+  const stops = paint.stops.map((s) => `${color(s.color)} ${+(s.offset * 100).toFixed(3)}%`).join(", ");
+  return `conic-gradient(from ${paint.from}deg at ${paint.cx}px ${paint.cy}px, ${stops})`;
+};
+
+/** Writes what Gradient renders for `paint` onto an existing SVG gradient element (a turn changes only numbers). */
+function writeGradient(el: Element | null, paint: Paint) {
+  if (!el) return;
+  if (paint.kind === "linear") {
+    el.setAttribute("x1", String(paint.x1));
+    el.setAttribute("y1", String(paint.y1));
+    el.setAttribute("x2", String(paint.x2));
+    el.setAttribute("y2", String(paint.y2));
+  } else if (paint.kind === "radial") {
+    el.setAttribute("cx", String(paint.cx));
+    el.setAttribute("cy", String(paint.cy));
+    el.setAttribute("r", String(paint.r));
+  } else return;
+  paint.stops.forEach((s, i) => el.children[i]?.setAttribute("offset", String(s.offset)));
+}
+
+/** Writes `paint` into the gradient markup PathPaint rendered under `el` (its defs, or the conic's div). */
+export function writePaint(el: Element | null, paint: Paint) {
+  if (!el) return;
+  if (paint.kind === "conic") (el as HTMLElement).style.background = conicBackground(paint);
+  else if (paint.kind === "diamond") {
+    writeGradient(el.children[0], paint.a);
+    writeGradient(el.children[1], paint.b);
+  } else writeGradient(el.firstElementChild, paint);
+}
 
 function Gradient({ id, paint, inverse }: { id: string; paint: Paint; inverse?: string }): ReactNode {
   if (paint.kind === "linear") {
@@ -42,7 +76,30 @@ function Gradient({ id, paint, inverse }: { id: string; paint: Paint; inverse?: 
   return null;
 }
 
-export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProps) {
+export function PathPaint({ id, d, paint, stroke, rotate, space, turn }: PathPaintProps) {
+  const target = useRef<Element | null>(null);
+  const latest = useRef(turn);
+  latest.current = turn;
+  const still = useRef(paint);
+  still.current = paint;
+  const turning = !!turn;
+  // React rewrites a gradient's markup when its colours or centre change; put the current angle back at once.
+  useLayoutEffect(() => {
+    const t = latest.current;
+    if (t) writePaint(target.current, t.at(performance.now() - t.start));
+  });
+  useEffect(() => {
+    if (!turning) return;
+    const stop = subscribeTick((now) => {
+      const t = latest.current;
+      if (t) writePaint(target.current, t.at(now - t.start));
+    });
+    // A turn that ends with the element still mounted leaves the static paint, not the last ticked angle.
+    return () => {
+      stop();
+      writePaint(target.current, still.current);
+    };
+  }, [turning]);
   const transform = rotate && rotate.deg !== 0 ? `rotate(${rotate.deg} ${rotate.cx} ${rotate.cy})` : undefined;
   const inverse = rotate && rotate.deg !== 0 ? `rotate(${-rotate.deg} ${rotate.cx} ${rotate.cy})` : undefined;
   const width = stroke === undefined ? undefined : stroke === 0 ? 1 : stroke;
@@ -60,7 +117,7 @@ export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProp
     case "radial":
       return (
         <>
-          <defs>
+          <defs ref={target as RefObject<SVGDefsElement>}>
             <Gradient id={id} paint={paint} inverse={inverse} />
           </defs>
           {shape(`url(#${id})`)}
@@ -69,7 +126,7 @@ export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProp
     case "diamond":
       return (
         <g style={{ isolation: "isolate" }}>
-          <defs>
+          <defs ref={target as RefObject<SVGDefsElement>}>
             <Gradient id={`${id}a`} paint={paint.a} inverse={inverse} />
             <Gradient id={`${id}b`} paint={paint.b} inverse={inverse} />
           </defs>
@@ -78,7 +135,6 @@ export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProp
         </g>
       );
     case "conic": {
-      const stops = paint.stops.map((s) => `${color(s.color)} ${+(s.offset * 100).toFixed(3)}%`).join(", ");
       return (
         <>
           <defs>
@@ -87,13 +143,7 @@ export function PathPaint({ id, d, paint, stroke, rotate, space }: PathPaintProp
             </mask>
           </defs>
           <foreignObject x={0} y={0} width={space.width} height={space.height} mask={`url(#${id})`} style={{ pointerEvents: "none" }}>
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                background: `conic-gradient(from ${paint.from}deg at ${paint.cx}px ${paint.cy}px, ${stops})`,
-              }}
-            />
+            <div ref={target as RefObject<HTMLDivElement>} style={{ width: "100%", height: "100%", background: conicBackground(paint) }} />
           </foreignObject>
           {/* The mask does not clip hit testing: an invisible copy of the path takes the pointer. */}
           {shape("transparent")}

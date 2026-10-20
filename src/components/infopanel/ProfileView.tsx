@@ -13,7 +13,7 @@ import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import { PathPaint } from "./Paint.tsx";
 import { smoothIndex } from "@/lib/infopanel/render/geometry.ts";
-import { buildScene, hasAnimatedGauge, hasAnimatedGradient, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "@/lib/infopanel/render/scene.ts";
+import { buildScene, hasAnimatedGauge, type DrawNode, type ImageInfo, type ImageSource, type SensorState, type TextStyle } from "@/lib/infopanel/render/scene.ts";
 import { MissingImage } from "./MissingImage.tsx";
 import { Table, Text, type FontCss } from "./Text.tsx";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -137,7 +137,14 @@ function boxTransform(width: number, height: number, rotation: number, flipX: bo
   return t ? { transform: t, transformOrigin: `${Math.trunc(width / 2)}px ${Math.trunc(height / 2)}px` } : {};
 }
 
-function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: FontCss; canvas: { width: number; height: number } }) {
+/** A shape paint's turn, from the view's start time (performance.now); none when the gradient is still (or motion is reduced). */
+function turnOf(node: Extract<DrawNode, { kind: "shape" }>, part: "fill" | "stroke", start?: number) {
+  const { paintAt } = node;
+  if (!paintAt || start === undefined) return undefined;
+  return { start, at: (ms: number) => paintAt(ms)[part]! };
+}
+
+function Node({ node, id, font, canvas, start }: { node: DrawNode; id: string; font: FontCss; canvas: { width: number; height: number }; start?: number }) {
   switch (node.kind) {
     case "text":
       return <Text node={node} font={font} canvasWidth={canvas.width} />;
@@ -188,8 +195,8 @@ function Node({ node, id, font, canvas }: { node: DrawNode; id: string; font: Fo
       return (
         <svg width={canvas.width} height={canvas.height} style={{ position: "absolute", left: 0, top: 0, overflow: "visible", pointerEvents: "none" }}>
           <g data-path={node.path} style={{ pointerEvents: "visiblePainted" }}>
-            {node.fill && <PathPaint id={`${id}-f`} d={node.d} paint={node.fill} rotate={rotate} space={canvas} />}
-            {node.stroke && <PathPaint id={`${id}-s`} d={node.d} paint={node.stroke.paint} stroke={node.stroke.width} rotate={rotate} space={canvas} />}
+            {node.fill && <PathPaint id={`${id}-f`} d={node.d} paint={node.fill} rotate={rotate} space={canvas} turn={turnOf(node, "fill", start)} />}
+            {node.stroke && <PathPaint id={`${id}-s`} d={node.d} paint={node.stroke.paint} stroke={node.stroke.width} rotate={rotate} space={canvas} turn={turnOf(node, "stroke", start)} />}
           </g>
         </svg>
       );
@@ -237,16 +244,16 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
   const font = given ?? own;
   const image = useImages(assets);
   const [start] = useState(() => performance.now());
-  const [elapsed, setElapsed] = useState(0);
+  // Bumped each tick while a gauge moves: the scene is rebuilt for its next frame.
+  const [frame, setFrame] = useState(0);
   // Reduced motion draws gradients and gauges in their static, final state and runs no loop.
   const reduced = useReducedMotion();
-  const gradientTurns = useMemo(() => !reduced && hasAnimatedGradient(items, hidden), [reduced, items, hidden]);
   const gaugesAnimate = useMemo(() => !reduced && hasAnimatedGauge(items, hidden), [reduced, items, hidden]);
   // Each animating gauge's shown index, its target and when it was last moved, across scene builds.
   const gauges = useRef(new Map<string, { index: number; target: number; at: number }>());
   const [moving, setMoving] = useState(false);
-  // The loop runs on the shared ticker (Max FPS) only while something drawn turns or a gauge is still on its way.
-  useTick((now) => setElapsed(now - start), gradientTurns || moving);
+  // The loop runs on the shared ticker (Max FPS) only while a gauge is still on its way; gradients turn through refs (PathPaint).
+  useTick(setFrame, moving);
   useEffect(() => {
     // Only on a change: a same-value setState after every commit would render twice per frame.
     const next = gaugesAnimate && [...gauges.current.values()].some((g) => Math.abs(g.index - g.target) > 1e-9);
@@ -288,9 +295,9 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
       after.set(path, { index, target, at });
       return index;
     };
-    const scene = buildScene({ profile, items, sensor, image, now, elapsedMs: reduced ? 0 : elapsed, hidden, gaugeIndex: reduced ? undefined : gaugeIndex });
+    const scene = buildScene({ profile, items, sensor, image, now, elapsedMs: 0, hidden, gaugeIndex: reduced ? undefined : gaugeIndex });
     return { scene, after };
-  }, [profile, items, sensor, image, now, elapsed, hidden, reduced]);
+  }, [profile, items, sensor, image, now, frame, hidden, reduced]);
   // Kept on commit, not in the memo: a render React discards (or StrictMode's second call) must not advance a gauge.
   useLayoutEffect(() => {
     gauges.current = built.after;
@@ -317,7 +324,7 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
           let k = 0;
           while (i - k > 0 && nodes[i - k - 1].path === n.path) k++;
           const part = k ? `-${k}` : "";
-          return [n.path, <Node key={n.path + part} node={n} id={`${uid}-${n.path}${part}`} font={font} canvas={canvas} />] as const;
+          return [n.path, <Node key={n.path + part} node={n} id={`${uid}-${n.path}${part}`} font={font} canvas={canvas} start={reduced ? undefined : start} />] as const;
         }),
         native,
         order,

@@ -22,6 +22,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   (`hh:mm:ss tt`, `dd/MM/yyyy`). Importing InfoPanel in native mode turns scrolling Text into the text widget with
   scroll on, and a Clock or Calendar keeps its Format, so "scrolling text" and "date and time format" no longer
   appear among the app work native mode asks for.
+- Animated shape gradients turn without re-rendering the view: each frame only rewrites the gradient's own
+  numbers, so a profile with animated gradients no longer rebuilds its whole scene (React commits drop from the
+  frame rate to about one a second) and uses less CPU. The look is unchanged.
 
 ## [1.3.0-beta.5] - 2026-10-20
 

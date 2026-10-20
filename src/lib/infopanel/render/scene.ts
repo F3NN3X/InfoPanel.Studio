@@ -152,6 +152,8 @@ export type DrawNode =
       cy: number;
       fill: Paint | null;
       stroke: { paint: Paint; width: number } | null;
+      /** An animated gradient's fill and stroke paints at `elapsedMs`: the view turns it without a new scene. */
+      paintAt?: (elapsedMs: number) => { fill: Paint | null; stroke: Paint | null };
     });
 
 const NO_STATE: SensorState = { reading: null, history: [] };
@@ -346,12 +348,20 @@ export function buildScene(input: SceneInput): DrawNode[] {
         const geo = shapeGeometry(item.Type, x, y, item.Width, item.Height, item.CornerRadius);
         const angle = gradientAngle(item.GradientAngle, item.GradientAnimationSpeed, input.elapsedMs / 1000);
         const bounds = boundsOf(rotatePoints(geo.points, item.Rotation, geo.cx, geo.cy));
-        const paint = (color: string): Paint =>
-          item.ShowGradient ? gradientPaint(bounds, color, item.GradientColor, item.GradientColor2, angle, item.GradientType) : { kind: "solid", color };
+        const paint = (color: string, a: number): Paint =>
+          item.ShowGradient ? gradientPaint(bounds, color, item.GradientColor, item.GradientColor2, a, item.GradientType) : { kind: "solid", color };
+        const paintAt = (a: number) => ({
+          fill: item.ShowFill ? paint(item.FillColor, a) : null,
+          stroke: item.ShowFrame ? paint(item.FrameColor, a) : null,
+        });
+        const at = paintAt(angle);
         nodes.push({
           kind: "shape", path, item, d: geo.d, rotation: item.Rotation, cx: geo.cx, cy: geo.cy,
-          fill: item.ShowFill ? paint(item.FillColor) : null,
-          stroke: item.ShowFrame ? { paint: paint(item.FrameColor), width: item.FrameThickness } : null,
+          fill: at.fill,
+          stroke: at.stroke && { paint: at.stroke, width: item.FrameThickness },
+          ...(item.ShowGradient && item.GradientAnimationSpeed !== 0
+            ? { paintAt: (ms: number) => paintAt(gradientAngle(item.GradientAngle, item.GradientAnimationSpeed, ms / 1000)) }
+            : {}),
         });
         return;
       }
@@ -369,11 +379,6 @@ function anyDrawn(items: DisplayItem[], test: (item: DisplayItem) => boolean, hi
     if (i.Hidden || hidden?.has(path)) return false;
     return i.kind === "Group" ? anyDrawn(i.DisplayItems, test, hidden, path) : test(i);
   });
-}
-
-/** Whether a drawn shape's gradient turns with time, so the view must redraw every frame. */
-export function hasAnimatedGradient(items: DisplayItem[], hidden?: ReadonlySet<string>): boolean {
-  return anyDrawn(items, (i) => i.kind === "Shape" && i.ShowGradient && i.GradientAnimationSpeed !== 0, hidden);
 }
 
 /** Drawn gauges that move between frames over time (AnimationSpeed). */
