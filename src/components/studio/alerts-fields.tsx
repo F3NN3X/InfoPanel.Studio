@@ -1,10 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { ALERT_POSITIONS, type AlertPosition, type Severity } from "@/lib/alerts";
 import { cn } from "@/lib/utils";
 import { FIELD } from "./setting-rows";
 
-/** The small form controls of the Alerts panel (the drawer is narrow, so labels sit over the control). */
+/** The Alerts panel's controls that the inspector's field rows (`setting-rows`) do not have. */
 
 const DOT: Record<Severity, string> = {
   info: "bg-ui-accent",
@@ -20,27 +20,6 @@ export function SeverityDot({ severity, className }: { severity: Severity; class
       title={severity}
       className={cn("inline-block h-2 w-2 shrink-0 rounded-full", DOT[severity], className)}
     />
-  );
-}
-
-/** A label over its control, with an optional hint line under it. */
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="text-[12px] text-ui-2">{label}</div>
-      {children}
-      {hint && <div className="text-pretty text-[11px] leading-[1.4] text-ui-4">{hint}</div>}
-    </div>
-  );
-}
-
-/** A collapsible group (native details) with the studio's section look. */
-export function Group({ title, children, defaultOpen = true }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
-  return (
-    <details open={defaultOpen} className="group border-t border-ui-subtle px-3.5 py-2.5">
-      <summary className="cursor-pointer select-none text-[12px] font-semibold text-ui-1">{title}</summary>
-      <div className="mt-2.5 space-y-3">{children}</div>
-    </details>
   );
 }
 
@@ -81,7 +60,7 @@ export function NumField({ value, onChange, label, min, max, placeholder }: NumF
         const n = parse(e.target.value);
         if (n !== undefined || e.target.value.trim() === "") onChange(n);
       }}
-      className={cn(FIELD, "h-7 w-full font-ui-mono text-[12px]")}
+      className={cn(FIELD, "h-[26px] w-[64px] shrink-0 px-1.5 text-right font-ui-mono text-[11.5px]")}
     />
   );
 }
@@ -108,7 +87,7 @@ export function TextField({
       placeholder={placeholder}
       spellCheck={false}
       onChange={(e) => onChange(e.target.value)}
-      className={cn(FIELD, "h-7 w-full", mono && "font-ui-mono text-[12px]")}
+      className={cn(FIELD, "h-[30px] w-full", mono && "font-ui-mono text-[11.5px]")}
     />
   );
 }
@@ -165,7 +144,7 @@ export function ChipsField({ values, onChange, label, placeholder, suggestions =
           }
         }}
         onBlur={add}
-        className={cn(FIELD, "h-7 w-full")}
+        className={cn(FIELD, "h-[30px] w-full")}
       />
       {suggestions.length > 0 && (
         <datalist id={listId}>

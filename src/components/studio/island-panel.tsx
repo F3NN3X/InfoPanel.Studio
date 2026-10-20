@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Bell, Blocks } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { withIsland, type IslandConfig } from "@/lib/island/config";
@@ -9,6 +10,7 @@ import { modules } from "@/modules";
 import { SeverityDot } from "./alerts-fields";
 import { alertsOf } from "./alerts-model";
 import { IslandSection } from "./inspector/island-section";
+import { PanelSection } from "./panel-section";
 import { islandRules, islandWidgets, setZoneSetting, unplacedIslandWidgets } from "./island-panel-model";
 
 export interface IslandPanelProps {
@@ -23,8 +25,6 @@ export interface IslandPanelProps {
   /** The sensor picker's "Open data explorer". */
   onOpenExplorer: () => void;
 }
-
-const HEADING = "text-[11px] font-semibold uppercase tracking-wide text-ui-4";
 
 /**
  * The Dynamic Island drawer: every notch setting of the profile in one place. The island itself (the
@@ -52,94 +52,94 @@ export function IslandPanel({ config, setConfig, profile, onOpenZone, onOpenRule
           {profile.name}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        <div className="px-3.5 pb-3">
-          <IslandSection island={island} onChange={patchIsland} onOpenExplorer={onOpenExplorer} />
-        </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <IslandSection island={island} onChange={patchIsland} onOpenExplorer={onOpenExplorer} sections />
 
         {island?.enabled && (
           <>
-            <section aria-label="Widgets" className="space-y-1.5 border-t border-ui-subtle px-2 pt-2.5 pb-3">
-              <h3 className={cn(HEADING, "px-1.5")}>Widgets</h3>
-              {widgets.length === 0 ? (
-                <p className="px-1.5 text-pretty text-[12px] leading-[1.45] text-ui-4">
-                  No widget on this profile can send to the island yet.
-                </p>
-              ) : (
-                <ul className="space-y-0.5">
-                  {widgets.map((w) => (
-                    <li key={w.zoneId} className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-ui-hover">
-                      <Toggle
-                        checked={w.on}
-                        label={`${w.title} sends to the island`}
-                        onChange={(on) =>
-                          setConfig((c) => setZoneSetting(c, profile.id, w.zoneId, ISLAND_SETTING, on), `island-widget:${w.zoneId}`)
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() => onOpenZone(w.pageId, w.zoneId)}
-                        title="Show it on the canvas and open its settings"
-                        className={cn(
-                          "min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
-                          (!w.on || !w.visible || w.shadowed) && "opacity-55"
-                        )}
-                      >
-                        <span className="block truncate text-[12.5px] text-ui-1">{w.title}</span>
-                        {(multiPage || !w.visible || w.shadowed) && (
-                          <span className="block truncate text-[11px] text-ui-4">
-                            {[
-                              multiPage && w.pageName,
-                              !w.visible && "Hidden, sends nothing",
-                              w.shadowed && "Another one sends first",
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {unplaced.length > 0 && (
-                <p className="px-1.5 text-pretty text-[11px] leading-snug text-ui-5">
-                  Add one of these to send more: {unplaced.join(", ")}.
-                </p>
-              )}
-            </section>
+            <PanelSection id="island-widgets" title="Widgets" icon={Blocks} pad={false}>
+              <div className="space-y-1.5 px-2 py-1">
+                {widgets.length === 0 ? (
+                  <p className="px-2 text-pretty text-[12px] leading-[1.45] text-ui-4">
+                    No widget on this profile can send to the island yet.
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {widgets.map((w) => (
+                      <li key={w.zoneId} className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-ui-hover">
+                        <Toggle
+                          checked={w.on}
+                          label={`${w.title} sends to the island`}
+                          onChange={(on) =>
+                            setConfig((c) => setZoneSetting(c, profile.id, w.zoneId, ISLAND_SETTING, on), `island-widget:${w.zoneId}`)
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onOpenZone(w.pageId, w.zoneId)}
+                          title="Show it on the canvas and open its settings"
+                          className={cn(
+                            "min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+                            (!w.on || !w.visible || w.shadowed) && "opacity-55"
+                          )}
+                        >
+                          <span className="block truncate text-[12.5px] text-ui-1">{w.title}</span>
+                          {(multiPage || !w.visible || w.shadowed) && (
+                            <span className="block truncate text-[11px] text-ui-4">
+                              {[
+                                multiPage && w.pageName,
+                                !w.visible && "Hidden, sends nothing",
+                                w.shadowed && "Another one sends first",
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {unplaced.length > 0 && (
+                  <p className="px-2 text-pretty text-[11px] leading-snug text-ui-5">
+                    Add one of these to send more: {unplaced.join(", ")}.
+                  </p>
+                )}
+              </div>
+            </PanelSection>
 
-            <section aria-label="Alert rules" className="space-y-1.5 border-t border-ui-subtle px-2 pt-2.5">
-              <h3 className={cn(HEADING, "px-1.5")}>Alert rules</h3>
-              {rules.length === 0 ? (
-                <p className="px-1.5 text-pretty text-[12px] leading-[1.45] text-ui-4">
-                  No alert rule shows here. Pick Island as a rule’s display style in{" "}
-                  <button type="button" onClick={() => onOpenRule(null)} className="text-ui-accent underline-offset-2 hover:underline">
-                    Alerts
-                  </button>
-                  .
-                </p>
-              ) : (
-                <ul className="space-y-0.5">
-                  {rules.map((rule) => (
-                    <li key={rule.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenRule(rule.id)}
-                        className={cn(
-                          "flex w-full items-center gap-1.5 rounded-lg p-1.5 text-left hover:bg-ui-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
-                          !rule.enabled && "opacity-55"
-                        )}
-                      >
-                        <SeverityDot severity={rule.severity} />
-                        <span className="min-w-0 flex-1 truncate text-[12.5px] text-ui-1">{rule.name}</span>
-                        {!rule.enabled && <span className="shrink-0 text-[11px] text-ui-4">Off</span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <PanelSection id="island-rules" title="Alert rules" icon={Bell} pad={false}>
+              <div className="px-2 py-1">
+                {rules.length === 0 ? (
+                  <p className="px-2 py-1 text-pretty text-[12px] leading-[1.45] text-ui-4">
+                    No alert rule shows here. Pick Island as a rule’s display style in{" "}
+                    <button type="button" onClick={() => onOpenRule(null)} className="text-ui-accent underline-offset-2 hover:underline">
+                      Alerts
+                    </button>
+                    .
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {rules.map((rule) => (
+                      <li key={rule.id}>
+                        <button
+                          type="button"
+                          onClick={() => onOpenRule(rule.id)}
+                          className={cn(
+                            "flex w-full items-center gap-1.5 rounded-lg p-1.5 text-left hover:bg-ui-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+                            !rule.enabled && "opacity-55"
+                          )}
+                        >
+                          <SeverityDot severity={rule.severity} />
+                          <span className="min-w-0 flex-1 truncate text-[12.5px] text-ui-1">{rule.name}</span>
+                          {!rule.enabled && <span className="shrink-0 text-[11px] text-ui-4">Off</span>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </PanelSection>
           </>
         )}
       </div>

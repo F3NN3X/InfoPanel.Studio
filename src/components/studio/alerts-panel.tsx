@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu } from "@base-ui/react/menu";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { BellRing, Copy, History, ListChecks, Plus, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { Toggle } from "@/components/ui/toggle";
 import type { HistorySetter } from "@/hooks/use-config-history";
@@ -26,6 +26,8 @@ import {
   summarizeRule,
 } from "./alerts-model";
 import { AlertRuleEditor } from "./alerts-rule-editor";
+import { PanelSection, SectionPad } from "./panel-section";
+import { ToggleRow } from "./setting-rows";
 
 export interface AlertsPanelProps {
   config: DashboardConfig;
@@ -203,67 +205,59 @@ export function AlertsPanel({
         <span className="text-[13px] font-semibold text-ui-1">Alerts</span>
         <AddMenu onAdd={add} points={points} />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pb-2">
-        <div className="space-y-3 px-3.5 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="flex-1 text-[12px] text-ui-2">Alerts on</span>
-            <Toggle
-              checked={alerts.enabled}
-              label="Alerts enabled"
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="border-b border-[#1c1c21] py-1.5">
+          <SectionPad>
+            <ToggleRow
+              label="Alerts on"
+              value={alerts.enabled}
               onChange={(on) => setConfig((c) => setAlertsEnabled(c, on), alertsKey("enabled"))}
             />
+          </SectionPad>
+        </div>
+        <PanelSection id="alerts-active" title="Active now" icon={BellRing}>
+          <ActiveList active={active} now={now} />
+        </PanelSection>
+        <PanelSection id="alerts-history" title="History" icon={History} defaultOpen={false}>
+          <HistoryList history={history} now={now} />
+        </PanelSection>
+        <PanelSection id="alerts-rules" title="Rules" icon={ListChecks} pad={false}>
+          <div className="px-2 py-1">
+            {alerts.rules.length === 0 ? (
+              <p className="px-2 py-2 text-pretty text-[12px] leading-[1.45] text-ui-4">
+                No alert rules yet. Use + to start from a blank rule or a preset such as “GPU temperature high”.
+              </p>
+            ) : (
+              <ul className="space-y-0.5">
+                {alerts.rules.map((rule) => (
+                  <RuleRow
+                    key={rule.id}
+                    rule={rule}
+                    summary={summarizeRule(rule, labelOf(rule))}
+                    fired={lastFired(history, rule.id)}
+                    now={now}
+                    confirming={confirming === rule.id}
+                    onOpen={() => onEdit(rule.id)}
+                    onToggle={(enabled) =>
+                      setConfig((c) => patchRule(c, rule.id, (r) => ({ ...r, enabled })), ruleKey(rule.id, "enabled"))
+                    }
+                    onDuplicate={() => {
+                      const id = uid("alert");
+                      setConfig((c) => duplicateRule(c, rule.id, id), alertsKey(`duplicate:${id}`));
+                    }}
+                    onAskDelete={() => setConfirming(rule.id)}
+                    onCancelDelete={() => setConfirming(null)}
+                    onDelete={() => {
+                      setConfirming(null);
+                      setConfig((c) => removeRule(c, rule.id), alertsKey(`remove:${rule.id}`));
+                    }}
+                  />
+                ))}
+              </ul>
+            )}
           </div>
-          <section aria-label="Active now" className="space-y-1.5">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ui-4">Active now</h3>
-            <ActiveList active={active} now={now} />
-          </section>
-          <details className="group">
-            <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-wide text-ui-4">
-              History
-            </summary>
-            <div className="mt-1.5">
-              <HistoryList history={history} now={now} />
-            </div>
-          </details>
-        </div>
-
-        <section aria-label="Rules" className="border-t border-ui-subtle px-2 pt-2">
-          {alerts.rules.length === 0 ? (
-            <p className="px-1.5 py-2 text-pretty text-[12px] leading-[1.45] text-ui-4">
-              No alert rules yet. Use + to start from a blank rule or a preset such as “GPU temperature high”.
-            </p>
-          ) : (
-            <ul className="space-y-0.5">
-              {alerts.rules.map((rule) => (
-                <RuleRow
-                  key={rule.id}
-                  rule={rule}
-                  summary={summarizeRule(rule, labelOf(rule))}
-                  fired={lastFired(history, rule.id)}
-                  now={now}
-                  confirming={confirming === rule.id}
-                  onOpen={() => onEdit(rule.id)}
-                  onToggle={(enabled) =>
-                    setConfig((c) => patchRule(c, rule.id, (r) => ({ ...r, enabled })), ruleKey(rule.id, "enabled"))
-                  }
-                  onDuplicate={() => {
-                    const id = uid("alert");
-                    setConfig((c) => duplicateRule(c, rule.id, id), alertsKey(`duplicate:${id}`));
-                  }}
-                  onAskDelete={() => setConfirming(rule.id)}
-                  onCancelDelete={() => setConfirming(null)}
-                  onDelete={() => {
-                    setConfirming(null);
-                    setConfig((c) => removeRule(c, rule.id), alertsKey(`remove:${rule.id}`));
-                  }}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-        <div className="mt-2">
-          <AlertDefaults alerts={alerts} setConfig={setConfig} />
-        </div>
+        </PanelSection>
+        <AlertDefaults alerts={alerts} setConfig={setConfig} />
       </div>
     </>
   );

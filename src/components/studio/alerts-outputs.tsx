@@ -1,18 +1,20 @@
-import { Segmented } from "@/components/ui/segmented";
-import { Toggle } from "@/components/ui/toggle";
+import { ArrowRightLeft, Highlighter, MonitorPlay } from "lucide-react";
 import {
   ALERT_BACKDROPS,
   ALERT_SIZES,
   ALERT_STYLES,
   DISPLAY_SECONDS_MAX,
+  type AlertBackdrop,
   type AlertDisplayFull,
   type AlertOutputs as Outputs,
   type AlertRule,
+  type AlertSize,
+  type AlertStyle,
 } from "@/lib/alerts";
 import type { DashboardConfig } from "@/lib/layout";
-import { cn } from "@/lib/utils";
-import { Field, Group, ISLAND_HINT, NumField, PositionGrid, TextField } from "./alerts-fields";
-import { SELECT } from "./setting-rows";
+import { ISLAND_HINT, NumField, PositionGrid, TextField } from "./alerts-fields";
+import { PanelSection } from "./panel-section";
+import { InlineRow, SegmentedRow, SelectRow, StackRow, ToggleRow } from "./setting-rows";
 import { placementTitle } from "./studio-modules";
 
 interface AlertOutputsProps {
@@ -31,15 +33,6 @@ const SIZE_LABEL = { s: "S", m: "M", l: "L" } as const;
 
 const TOKENS = "{name} {value} {unit} {app} {title} {body}";
 
-function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="flex-1 text-[12px] text-ui-2">{label}</span>
-      <Toggle checked={checked} label={label} onChange={onChange} />
-    </div>
-  );
-}
-
 /** The rule's outputs: the kiosk display, switching to a page and highlighting widgets. */
 export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOutputsProps) {
   const out = rule.outputs;
@@ -57,42 +50,34 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
 
   return (
     <>
-      <Group title="Display">
-        <Field label="Style">
-          <Segmented
-            label="Style"
-            value={display.style ?? defaults.style}
-            onChange={(style) => setDisplay("style", { style })}
-            options={ALERT_STYLES.map((s) => ({ value: s, label: cap(s) }))}
-          />
-        </Field>
+      <PanelSection id="alert-display" title="Display" icon={MonitorPlay}>
+        <SegmentedRow
+          label="Style"
+          value={display.style ?? defaults.style}
+          onChange={(style) => setDisplay("style", { style: style as AlertStyle })}
+          options={ALERT_STYLES.map((s) => ({ value: s, label: cap(s) }))}
+        />
         {island && <p className="text-[11px] leading-snug text-ui-5">{ISLAND_HINT}</p>}
-        <div className="flex items-end justify-between gap-3">
-          {!island && (
-            <Field label="Position">
-              <PositionGrid value={display.position ?? defaults.position} onChange={(position) => setDisplay("position", { position })} />
-            </Field>
-          )}
-          <Field label="Size">
-            <Segmented
-              label="Size"
-              value={display.size ?? defaults.size}
-              onChange={(size) => setDisplay("size", { size })}
-              options={ALERT_SIZES.map((s) => ({ value: s, label: SIZE_LABEL[s] }))}
-            />
-          </Field>
-        </div>
         {!island && (
-          <Field label="Backdrop">
-            <Segmented
-              label="Backdrop"
-              value={display.backdrop ?? defaults.backdrop}
-              onChange={(backdrop) => setDisplay("backdrop", { backdrop })}
-              options={ALERT_BACKDROPS.map((b) => ({ value: b, label: cap(b) }))}
-            />
-          </Field>
+          <InlineRow label="Position">
+            <PositionGrid value={display.position ?? defaults.position} onChange={(position) => setDisplay("position", { position })} />
+          </InlineRow>
         )}
-        <Field label="Seconds" hint="0 = stays until acknowledged.">
+        <SegmentedRow
+          label="Size"
+          value={display.size ?? defaults.size}
+          onChange={(size) => setDisplay("size", { size: size as AlertSize })}
+          options={ALERT_SIZES.map((s) => ({ value: s, label: SIZE_LABEL[s] }))}
+        />
+        {!island && (
+          <SegmentedRow
+            label="Backdrop"
+            value={display.backdrop ?? defaults.backdrop}
+            onChange={(backdrop) => setDisplay("backdrop", { backdrop: backdrop as AlertBackdrop })}
+            options={ALERT_BACKDROPS.map((b) => ({ value: b, label: cap(b) }))}
+          />
+        )}
+        <InlineRow label="Seconds" hint="0 = stays until acknowledged.">
           <NumField
             label="Display seconds"
             min={0}
@@ -100,8 +85,8 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
             value={display.seconds ?? defaults.seconds}
             onChange={(n) => setDisplay("seconds", { seconds: n ?? 0 })}
           />
-        </Field>
-        <Field label="Text" hint={`Tokens: ${TOKENS}`}>
+        </InlineRow>
+        <StackRow label="Text" hint={`Tokens: ${TOKENS}`}>
           <TextField
             label="Alert text"
             mono
@@ -114,13 +99,13 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
               })
             }
           />
-        </Field>
-      </Group>
+        </StackRow>
+      </PanelSection>
 
-      <Group title="Switch to page" defaultOpen={page !== undefined}>
-        <Switch
+      <PanelSection id="alert-page" title="Switch to page" icon={ArrowRightLeft} defaultOpen={page !== undefined}>
+        <ToggleRow
           label="Switch the kiosk to a page"
-          checked={page !== undefined}
+          value={page !== undefined}
           onChange={(on) =>
             setOutputs("page", (o) => {
               const { page: _was, ...rest } = o;
@@ -132,40 +117,24 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
         />
         {page && (
           <>
-            <Field label="Profile">
-              <select
-                aria-label="Profile"
-                value={pageProfile.id}
-                onChange={(e) => {
-                  const target = config.profiles.find((p) => p.id === e.target.value);
-                  if (target) setOutputs("page", (o) => ({ ...o, page: { ...page, profile: target.id, page: target.pages[0].id } }));
-                }}
-                className={cn(SELECT, "w-full max-w-none")}
-              >
-                {config.profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Page">
-              <select
-                aria-label="Page"
-                value={zonePage.id}
-                onChange={(e) => setOutputs("page", (o) => ({ ...o, page: { ...page, page: e.target.value } }))}
-                className={cn(SELECT, "w-full max-w-none")}
-              >
-                {pageProfile.pages.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Switch
+            <SelectRow
+              label="Profile"
+              value={pageProfile.id}
+              options={config.profiles.map((p) => ({ value: p.id, label: p.name }))}
+              onChange={(id) => {
+                const target = config.profiles.find((p) => p.id === id);
+                if (target) setOutputs("page", (o) => ({ ...o, page: { ...page, profile: target.id, page: target.pages[0].id } }));
+              }}
+            />
+            <SelectRow
+              label="Page"
+              value={zonePage.id}
+              options={pageProfile.pages.map((p) => ({ value: p.id, label: p.name }))}
+              onChange={(id) => setOutputs("page", (o) => ({ ...o, page: { ...page, page: id } }))}
+            />
+            <ToggleRow
               label="Return when it clears"
-              checked={page.returnAfter === true}
+              value={page.returnAfter === true}
               onChange={(on) =>
                 setOutputs("page.return", (o) => {
                   const { returnAfter: _was, ...rest } = page;
@@ -175,12 +144,12 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
             />
           </>
         )}
-      </Group>
+      </PanelSection>
 
-      <Group title="Highlight widget" defaultOpen={out.highlight !== undefined}>
-        <Switch
+      <PanelSection id="alert-highlight" title="Highlight widget" icon={Highlighter} defaultOpen={out.highlight !== undefined}>
+        <ToggleRow
           label="Ring the zones that show the sensor"
-          checked={out.highlight !== undefined}
+          value={out.highlight !== undefined}
           onChange={(on) =>
             setOutputs("highlight", (o) => {
               const { highlight: _was, ...rest } = o;
@@ -189,10 +158,10 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
           }
         />
         {out.highlight && (
-          <Field label="Only these zones" hint={`On “${zonePage.name}”. None ticked = the zones bound to the sensor.`}>
+          <StackRow label="Only these zones" hint={`On “${zonePage.name}”. None ticked = the zones bound to the sensor.`}>
             <div className="max-h-32 space-y-1 overflow-y-auto">
               {zonePage.placements.map((p) => (
-                <label key={p.id} className="flex items-center gap-2 text-[12px] text-ui-2">
+                <label key={p.id} className="flex items-center gap-2 text-[12.5px] text-ui-2">
                   <input
                     type="checkbox"
                     checked={zones.includes(p.id)}
@@ -209,9 +178,9 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
                 </label>
               ))}
             </div>
-          </Field>
+          </StackRow>
         )}
-      </Group>
+      </PanelSection>
     </>
   );
 }

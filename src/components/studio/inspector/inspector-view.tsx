@@ -22,6 +22,7 @@ import {
   type InspectorSection,
   type TabId,
 } from "../inspector-model";
+import { SectionPad } from "../panel-section";
 import { SETTING_CARD, SettingSection } from "../setting-card";
 import { SettingField, type FieldsApi } from "../settings-panel";
 import { SettingsSearch } from "../zone-inspector-parts";
@@ -310,7 +311,7 @@ export function InspectorView({
     for (const s of all) if ((parts(s).changed ?? 0) > 0) parts(s).onReset?.();
   };
 
-  const pad = (node: ReactNode) => node && <div className="space-y-2 py-1 pl-4 pr-2.5">{node}</div>;
+  const pad = (node: ReactNode) => node && <SectionPad>{node}</SectionPad>;
 
   const renderSection = (s: InspectorSection) => {
     const p = parts(s);
