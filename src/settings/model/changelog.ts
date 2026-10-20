@@ -38,7 +38,9 @@ export function parseChangelog(source: string): Release[] {
   };
   const closeRelease = () => {
     closeSection();
-    if (release) releases.push({ ...release, intro: intro.join("\n").trim() });
+    const text = intro.join("\n").trim();
+    // An empty Unreleased (just after a release) has nothing to show.
+    if (release && !(release.unreleased && !text && release.sections.length === 0)) releases.push({ ...release, intro: text });
     intro.length = 0;
     release = null;
   };
