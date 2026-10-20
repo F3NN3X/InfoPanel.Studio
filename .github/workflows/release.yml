@@ -12,23 +12,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      # The signed build installs from scratch: npm ci verifies every package against the lockfile (the npm
+      # cache holds only those verified tarballs), and desktop:prepare downloads and SHA-256-checks Node.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      # The same keys as ci.yml, so a release restores the caches its PRs and main saved.
-      - id: modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - uses: actions/cache@v4
-        with:
-          path: .cache/desktop/node-v*
-          key: desktop-node-${{ hashFiles('tools/desktop-prepare.mjs') }}
+          cache: npm
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
+          # Restores the Rust cache CI saved on main (merged code only; PR runs save to their own scope).
           shared-key: tauri
 
       - name: Check the tag matches package.json and CHANGELOG.md
@@ -50,8 +44,7 @@ jobs:
       - name: Use the en-150 locale
         shell: pwsh
         run: Set-Culture en-150
-      - if: steps.modules.outputs.cache-hit != 'true'
-        run: npm ci
+      - run: npm ci
       - run: npm test
       - name: Check the updater signing key is set
         shell: bash
