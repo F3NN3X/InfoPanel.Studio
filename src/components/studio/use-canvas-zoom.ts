@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fitZoomFor, stepZoom, type CanvasInset } from "./studio-layout";
+import { useMiddlePan } from "./use-middle-pan";
 import { loadZoomPref, saveZoomPref } from "./zoom-pref";
 
 /**
- * Canvas zoom: discrete steps, ctrl/cmd + wheel over the scroll container,
+ * Canvas zoom: discrete steps, ctrl/cmd + wheel over the scroll container (and middle-drag pans it),
  * and a sticky fit. While `fitting` (the default) the zoom is whatever fits
  * the profile's page (`page.height` 0 = width only) into the canvas, and
  * follows the container and the profile; any manual zoom turns it off and
@@ -26,6 +27,7 @@ export function useCanvasZoom(page: { width: number; height: number }, inset: Ca
     scrollRef.current = el;
     setScrollEl(el);
   }, []);
+  useMiddlePan(scrollEl);
 
   // The fit follows the scroll container's size.
   useEffect(() => {
