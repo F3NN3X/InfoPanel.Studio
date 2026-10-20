@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.2] - 2026-10-20
+
 ### Added
 - Gauge cards on the Gauges page have a right-click menu: Open in editor, Add to canvas, Duplicate and Export (disabled
   exactly when the detail pane disables them), and for gauges in My library Rename (in place on the card) and Delete
