@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { startDesktopDebug } from "./lib/desktop-debug";
+import { isTauri } from "./lib/desktop";
+import { suppressNativeMenu } from "./lib/native-menu";
 
 // ?ui-preview: a gallery of the studio chrome primitives (a lazy chunk, never linked).
 const UiPreview = lazy(() => import("@/components/ui/ui-preview"));
@@ -17,6 +19,9 @@ const vizGallery = new URLSearchParams(window.location.search).has("viz-gallery"
 // Desktop app: forward errors and (in debug mode) sample health, once per page load.
 const stopDesktopDebug = startDesktopDebug();
 import.meta.hot?.dispose(stopDesktopDebug);
+// Desktop app: only the studio's own right-click menus (text fields keep the native one).
+const stopNativeMenu = isTauri() ? suppressNativeMenu() : undefined;
+import.meta.hot?.dispose(() => stopNativeMenu?.());
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

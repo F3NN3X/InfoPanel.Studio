@@ -92,12 +92,16 @@ interface CardProps {
   selected: boolean;
   onSelect: () => void;
   onOpen: () => void;
+  /** Right-click (or the menu key) at a viewport point. */
+  onMenu?: (x: number, y: number) => void;
+  /** Delete / Backspace on the focused card. */
+  onRemove?: () => void;
   /** A suggestion's reason line (Shelves). */
   reason?: string;
   className?: string;
 }
 
-export function LibraryCard({ item, index, selected, onSelect, onOpen, reason, className }: CardProps) {
+export function LibraryCard({ item, index, selected, onSelect, onOpen, onMenu, onRemove, reason, className }: CardProps) {
   const flag = flagOf(item, index);
   return (
     <div
@@ -111,8 +115,23 @@ export function LibraryCard({ item, index, selected, onSelect, onOpen, reason, c
       }}
       onClick={onSelect}
       onDoubleClick={onOpen}
+      onContextMenu={(e) => {
+        if (!onMenu) return;
+        e.preventDefault();
+        onSelect();
+        // The menu key fires at 0,0: open from the card instead.
+        const r = e.currentTarget.getBoundingClientRect();
+        if (e.clientX === 0 && e.clientY === 0) onMenu(r.left + 12, r.top + 12);
+        else onMenu(e.clientX, e.clientY);
+      }}
       onKeyDown={(e) => {
+        // The card's own keys, not a field's or a button's inside it.
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter") onOpen();
+        if ((e.key === "Delete" || e.key === "Backspace") && onRemove && !e.repeat) {
+          e.preventDefault();
+          onRemove();
+        }
         if (e.key === " ") {
           e.preventDefault();
           onSelect();
@@ -198,6 +217,10 @@ export interface GridViewProps {
   selectedId: string | null;
   onSelect: (item: LibraryItem) => void;
   onOpen: (item: LibraryItem) => void;
+  /** Right-click on a card at a viewport point. */
+  onMenu?: (item: LibraryItem, x: number, y: number) => void;
+  /** Delete on a focused card. */
+  onRemove?: (item: LibraryItem) => void;
   onFiles: (files: File[]) => void;
   /** A search found nothing. */
   searching: boolean;
@@ -274,6 +297,8 @@ export function GridView(p: GridViewProps) {
                 selected={p.selectedId === item.id}
                 onSelect={() => p.onSelect(item)}
                 onOpen={() => p.onOpen(item)}
+                onMenu={p.onMenu && ((x, y) => p.onMenu?.(item, x, y))}
+                onRemove={p.onRemove && (() => p.onRemove?.(item))}
               />
             ))}
           </div>
@@ -299,6 +324,10 @@ export interface ShelvesViewProps {
   selectedId: string | null;
   onSelect: (item: LibraryItem) => void;
   onOpen: (item: LibraryItem) => void;
+  /** Right-click on a card at a viewport point. */
+  onMenu?: (item: LibraryItem, x: number, y: number) => void;
+  /** Delete on a focused card. */
+  onRemove?: (item: LibraryItem) => void;
   onSeeAll: (id: CollectionId) => void;
 }
 
@@ -342,6 +371,8 @@ export function ShelvesView(p: ShelvesViewProps) {
                   selected={p.selectedId === item.id}
                   onSelect={() => p.onSelect(item)}
                   onOpen={() => p.onOpen(item)}
+                onMenu={p.onMenu && ((x, y) => p.onMenu?.(item, x, y))}
+                onRemove={p.onRemove && (() => p.onRemove?.(item))}
                   reason={s.id === "suggested" ? p.index.suggested.find((x) => x.item.id === item.id)?.reason : undefined}
                   className="w-[196px] shrink-0"
                 />

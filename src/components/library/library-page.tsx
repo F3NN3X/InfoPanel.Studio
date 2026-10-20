@@ -4,7 +4,7 @@
  * sidebar, the grid or shelves, and the detail pane. Fonts is a collection with its own view; the
  * profile assets tab is the active profile's canvas files. Lazy-loaded.
  */
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Copy,
   Download,
@@ -15,9 +15,11 @@ import {
   LayoutGrid,
   MonitorPlay,
   Paintbrush,
+  Pencil,
   Plus,
   Rows3,
   Search,
+  Trash2,
   Type,
   Upload,
   Wallpaper,
@@ -25,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { formatBytes } from "@/lib/assets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
@@ -52,7 +55,8 @@ import { FontsView } from "./fonts-view";
 import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
 import { UploadTray } from "./upload-tray";
 import { LooseUploads } from "./loose-uploads";
-import { useMyLibrary } from "./use-my-library";
+import { RemoveItemDialog } from "./remove-item-dialog";
+import { isConfigItem, useMyLibrary } from "./use-my-library";
 import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
 import { useViewportBelow } from "@/hooks/use-viewport-below";
 import { PaneSheet } from "@/components/studio/pane-sheet";
@@ -90,7 +94,15 @@ export default function LibraryPage(p: LibraryPageProps) {
   const [tag, setTag] = useState<string | null>(null);
   const [sort, setSort] = useState<SortId>("recent");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ item: LibraryItem; x: number; y: number } | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<LibraryItem | null>(null);
+  /** The item whose name field takes focus (Rename from the menu). */
+  const [renameId, setRenameId] = useState<string | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
+  // The studio's config as it is now, read when a removal decides which files to delete.
+  const configRef = useRef(p.bridge.config);
+  configRef.current = p.bridge.config;
+  const focusedName = useCallback(() => setRenameId(null), []);
   useHoldZoneShortcuts();
   const narrow = useViewportBelow(NARROW_PAGE_WIDTH);
 
@@ -205,6 +217,42 @@ export default function LibraryPage(p: LibraryPageProps) {
     return out;
   }
 
+  const askRemove = (item: LibraryItem) => !isConfigItem(item) && setConfirmRemove(item);
+  const remove = (item: LibraryItem) => {
+    if (selectedId === item.id) setSelectedId(null);
+    // The live config: it may hold a file the saved config doesn't yet.
+    lib.remove(item, () => JSON.stringify(configRef.current)).then(
+      ({ deleted, kept }) =>
+        toast(
+          kept > 0
+            ? `Removed ${item.name}; ${kept} of its files could not be deleted`
+            : `Removed ${item.name}${deleted === 0 ? "" : deleted === 1 ? " and its file" : ` and its ${deleted} files`}`,
+        ),
+      (e: Error) => toast(`Not removed: ${e.message}`),
+    );
+  };
+
+  function menuEntries(item: LibraryItem): ContextMenuEntry[] {
+    const entry = (a: DetailAction): ContextMenuEntry => ({ id: a.label, label: a.label, icon: <a.icon />, disabled: a.disabled, onSelect: a.run });
+    const primary = primaryOf(item);
+    const actions = [...(primary ? [entry(primary)] : []), ...secondaryOf(item).map(entry)];
+    if (isConfigItem(item)) return actions;
+    return [
+      ...actions,
+      ...(actions.length ? ["separator" as const] : []),
+      {
+        id: "rename",
+        label: "Rename",
+        icon: <Pencil />,
+        onSelect: () => {
+          setSelectedId(item.id);
+          setRenameId(item.id);
+        },
+      },
+      { id: "remove", label: "Remove from library…", icon: <Trash2 />, hint: "Del", danger: true, onSelect: () => askRemove(item) },
+    ];
+  }
+
   const c = cleanupCounts(index);
   const firstGroup = index.duplicates[0];
   const attention = [
@@ -238,11 +286,10 @@ export default function LibraryPage(p: LibraryPageProps) {
       index={index}
       primary={primaryOf(item)}
       secondary={secondaryOf(item)}
+      focusName={renameId === item.id}
+      onFocusedName={focusedName}
       onRename={(name) => lib.rename(item, name)}
-      onRemove={() => {
-        lib.remove(item);
-        setSelectedId(null);
-      }}
+      onRemove={() => askRemove(item)}
       onMerge={(group) => void lib.merge(group).then(() => toast(`Merged into ${group[0].name}`))}
       onVideo={(patch) => void lib.update(item, { meta: { ...item.meta, ...patch } })}
       copyLabel={p.copyLabel}
@@ -390,6 +437,8 @@ export default function LibraryPage(p: LibraryPageProps) {
                       selectedId={selectedId}
                       onSelect={(i) => setSelectedId(i.id)}
                       onOpen={open}
+                      onMenu={(item, x, y) => setMenu({ item, x, y })}
+                      onRemove={askRemove}
                       onSeeAll={pickCollection}
                     />
                   ) : (
@@ -407,6 +456,8 @@ export default function LibraryPage(p: LibraryPageProps) {
                       selectedId={selectedId}
                       onSelect={(i) => setSelectedId(i.id)}
                       onOpen={open}
+                      onMenu={(item, x, y) => setMenu({ item, x, y })}
+                      onRemove={askRemove}
                       onFiles={addFiles}
                       searching={searching}
                       empty={empty}
@@ -433,6 +484,8 @@ export default function LibraryPage(p: LibraryPageProps) {
             )}
           </>
         )}
+        {menu && <ContextMenu x={menu.x} y={menu.y} entries={menuEntries(menu.item)} onClose={() => setMenu(null)} />}
+        <RemoveItemDialog item={confirmRemove} onClose={() => setConfirmRemove(null)} onRemove={remove} />
         <UploadTray rows={lib.uploads} onClear={lib.clearUploads} onShow={(id) => setSelectedId(id)} />
         {dragging && (
           <div

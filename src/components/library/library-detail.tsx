@@ -4,7 +4,7 @@
  * a video's playback and an SVG template's variables, the facts, the auto tags and the copies
  * placed (each jumps to its place).
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Copy, Sparkles, Trash2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
@@ -29,6 +29,10 @@ export interface DetailProps {
   index: LibraryIndex;
   primary: DetailAction | null;
   secondary: DetailAction[];
+  /** Focus and select the name field (Rename from the card's menu). */
+  focusName?: boolean;
+  /** The name field took the focus asked for. */
+  onFocusedName?: () => void;
   onRename: (name: string) => void;
   onRemove: () => void;
   onMerge: (group: LibraryItem[]) => void;
@@ -73,6 +77,14 @@ export function LibraryDetail(p: DetailProps) {
   const m = metaOf(item);
   const config = isConfigItem(item);
   const [name, setName] = useState(item.name);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const { focusName, onFocusedName } = p;
+  useEffect(() => {
+    if (!focusName || !nameRef.current) return;
+    nameRef.current.focus();
+    nameRef.current.select();
+    onFocusedName?.();
+  }, [focusName, onFocusedName]);
   const group = p.index.groupOf.get(item.id);
   const suggestion = p.index.suggested.find((s) => s.item.id === item.id);
   const hash = hashOf(item);
@@ -93,6 +105,7 @@ export function LibraryDetail(p: DetailProps) {
           aria-label="Name"
           value={name}
           disabled={config}
+          ref={nameRef}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== item.name && p.onRename(name.trim())}
           onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}

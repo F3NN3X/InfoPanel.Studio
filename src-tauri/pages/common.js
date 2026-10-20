@@ -13,6 +13,17 @@ function onStatus(handler) {
   return tauri.event.listen("server-status", (e) => handler(e.payload));
 }
 
+// No native webview menu (Back, Reload, Inspect…) except in text fields, which keep cut / copy / paste.
+document.addEventListener("contextmenu", (e) => {
+  const t = e.target;
+  const types = ["", "text", "search", "url", "email", "password", "tel", "number"];
+  const text =
+    t instanceof HTMLTextAreaElement ||
+    (t instanceof HTMLInputElement && types.includes((t.getAttribute("type") ?? "").toLowerCase())) ||
+    (t instanceof HTMLElement && t.isContentEditable);
+  if (!text) e.preventDefault();
+});
+
 const $ = (id) => document.getElementById(id);
 
 function show(el, visible) {
