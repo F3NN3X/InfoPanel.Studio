@@ -1,6 +1,6 @@
 [package]
 name = "infopanel-studio"
-version = "1.1.0"
+version = "1.2.0"
 description = "InfoPanel Studio: the studio and dashboard server as one desktop app"
 edition = "2021"
 publish = false

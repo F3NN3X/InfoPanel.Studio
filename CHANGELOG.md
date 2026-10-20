@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-20
+
 ### Added
 - The `.canvas.zip` font licence review offers "Swap for <font>" for a font that may not be shared: same-category
   fonts from My library replace it in the exported package only, and the package carries the alternative's file (#41).
