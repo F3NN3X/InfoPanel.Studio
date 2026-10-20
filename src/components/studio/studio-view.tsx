@@ -67,8 +67,12 @@ const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
 interface StudioViewProps {
   config: DashboardConfig;
-  /** The resolved (active) grid profile being edited, on the page the studio shows. */
+  /** The grid profile being edited (the pinned one, else the one displays show), on the page the studio shows. */
   profile: ProfileView;
+  /** The profile the studio is pinned to for editing, if any (view state, never in the config). */
+  pinnedProfileId: string | undefined;
+  /** Pin a profile for editing, or unpin with undefined. */
+  onPin: (id: string | undefined) => void;
   /** Show another page of the profile on the canvas (view state, not undoable). */
   onPageChange: (pageId: string) => void;
   setConfig: Dispatch<SetStateAction<DashboardConfig>>;
@@ -106,6 +110,8 @@ export function StudioView(props: StudioViewProps) {
 function StudioViewBody({
   config,
   profile,
+  pinnedProfileId,
+  onPin,
   onPageChange,
   setConfig: setConfigState,
   windowWidth,
@@ -139,6 +145,8 @@ function StudioViewBody({
     onPresetSaved: () => ui.setPresetNaming(false),
     windowSize: { width: windowWidth, height: windowHeight },
     onPageChange,
+    pinnedId: pinnedProfileId,
+    onPin,
   });
   const { props: documentProps, setScopeStyle, appearancePresets } = useDocumentProps(
     config,
@@ -177,10 +185,22 @@ function StudioViewBody({
     if (!showSources) setFocusPointKey(undefined);
   }, [showSources]);
 
-  /** Switch profile (or Auto): the selection resets with the profile; the zoom returns to fit. */
+  /**
+   * Switch what displays show (a profile, or Auto). Unpinned, the studio follows: the selection resets
+   * with the profile and the zoom returns to fit. Pinned, the edited profile stays as it is.
+   */
   const activateProfile = (id: string) => {
     edit.activateProfile(id);
-    ui.fitZoom();
+    if (!pinnedProfileId) ui.fitZoom();
+  };
+  /** Open a profile for editing (the Library's jump to a copy): the pin moves with it, else displays follow. */
+  const editProfile = (id: string) => {
+    if (pinnedProfileId) {
+      onPin(id);
+      ui.fitZoom();
+    } else {
+      activateProfile(id);
+    }
   };
   /** The zoom bar's resolution button and a profile's "Size, grid and spacing…": Dashboard › Profile. */
   const openProfileSettings = () => {
@@ -224,6 +244,8 @@ function StudioViewBody({
       openOnLand.current = zoneId;
       setPendingZone(zoneId);
     },
+    pinnedId: pinnedProfileId,
+    onPin,
   });
   /**
    * The canvas zone whose items are being edited: the editor takes the canvas, drawer and
@@ -273,6 +295,7 @@ function StudioViewBody({
     <StudioInspector
       config={config}
       profile={profile}
+      displayedId={resolveProfile(config, windowWidth, windowHeight).id}
       appearance={appearance}
       ui={ui}
       sel={sel}
@@ -318,8 +341,12 @@ function StudioViewBody({
         profiles: config.profiles,
         activeProfile: config.activeProfile,
         profile: storedProfile,
+        displayedId: resolveProfile(config, windowWidth, windowHeight).id,
+        pinnedId: pinnedProfileId,
+        onPin,
         autoProfileId: resolveProfile({ ...config, activeProfile: "auto" }, windowWidth, windowHeight).id,
         onActivate: activateProfile,
+        onEdit: editProfile,
         onAddProfile: edit.addProfile,
         onRemoveProfile: edit.removeProfile,
         onProfileChange: (patch) =>
@@ -513,7 +540,7 @@ function StudioViewBody({
     ui.setMode("design");
     const p = config.profiles.find((x) => x.id === c.profileId);
     if (!p) return;
-    if (p.id !== storedProfile.id) activateProfile(p.id);
+    if (p.id !== storedProfile.id) editProfile(p.id);
     const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
     if (page && page.id !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(page.id);
     if (c.zoneId) setPendingZone(c.zoneId);
@@ -607,7 +634,10 @@ function StudioViewBody({
       <StudioTopBar
         profiles={config.profiles}
         activeProfile={config.activeProfile}
+        displayedId={resolveProfile(config, windowWidth, windowHeight).id}
         profile={storedProfile}
+        pinnedId={pinnedProfileId}
+        onPin={onPin}
         onActivate={activateProfile}
         onOpenProfiles={() => {
           ui.setMode("design");

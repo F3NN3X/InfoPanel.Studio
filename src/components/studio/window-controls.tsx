@@ -28,9 +28,10 @@ function Caption({ label, onClick, danger, children }: { label: string; onClick:
 
 /**
  * Minimize, maximize / restore and close for the desktop app, whose window has no native frame:
- * the studio's top bar is its title bar. Renders nothing in a browser.
+ * the studio's top bar is its title bar. Renders nothing in a browser. Kiosk view's strip drops
+ * Maximize (the window has an exact size there) and takes over Close.
  */
-export function WindowControls() {
+export function WindowControls({ maximize = true, onClose }: { maximize?: boolean; onClose?: () => void }) {
   const [maximized, setMaximized] = useState(false);
   useEffect(() => {
     if (!isTauri()) return;
@@ -48,17 +49,19 @@ export function WindowControls() {
       <Caption label="Minimize" onClick={() => void minimizeWindow()}>
         <path d="M0 5.5h10" />
       </Caption>
-      <Caption label={maximized ? "Restore" : "Maximize"} onClick={() => void toggleMaximizeWindow()}>
-        {maximized ? (
-          <>
-            <rect x={0.5} y={2.5} width={7} height={7} />
-            <path d="M2.5 2.5V0.5h7v7h-2" />
-          </>
-        ) : (
-          <rect x={0.5} y={0.5} width={9} height={9} />
-        )}
-      </Caption>
-      <Caption label="Close" danger onClick={() => void closeWindow()}>
+      {maximize && (
+        <Caption label={maximized ? "Restore" : "Maximize"} onClick={() => void toggleMaximizeWindow()}>
+          {maximized ? (
+            <>
+              <rect x={0.5} y={2.5} width={7} height={7} />
+              <path d="M2.5 2.5V0.5h7v7h-2" />
+            </>
+          ) : (
+            <rect x={0.5} y={0.5} width={9} height={9} />
+          )}
+        </Caption>
+      )}
+      <Caption label="Close" danger onClick={onClose ?? (() => void closeWindow())}>
         <path d="M0.5 0.5l9 9M9.5 0.5l-9 9" />
       </Caption>
     </div>

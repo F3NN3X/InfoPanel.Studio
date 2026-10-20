@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Menu } from "@base-ui/react/menu";
-import { Check, MoreHorizontal, Plus } from "lucide-react";
+import { Check, MoreHorizontal, Pin, Plus } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { Toggle } from "@/components/ui/toggle";
 import { useToast } from "@/components/ui/toast";
@@ -13,12 +13,20 @@ interface ProfilesPanelProps {
   profiles: MonitorProfile[];
   /** The config's activeProfile: a pinned id, or "auto". */
   activeProfile: string;
-  /** The profile being edited (pinned, or what "auto" resolves to). */
+  /** The profile displays show: the active one, or what "auto" resolves to for the window. */
+  displayedId: string;
+  /** The profile being edited (the pinned one, else the one displays show). */
   profile: MonitorProfile;
+  /** The profile pinned for editing, if any. */
+  pinnedId: string | undefined;
+  /** Pin a profile for editing, or unpin with undefined. */
+  onPin: (id: string | undefined) => void;
   /** The profile "auto" resolves to for the current window size. */
   autoProfileId: string;
-  /** Switch to a profile id, or "auto" to match the window size. */
+  /** Switch what displays show to a profile id, or "auto" to match the window size. */
   onActivate: (id: string) => void;
+  /** Edit a profile: displays follow unless the studio is pinned, which then moves to it. */
+  onEdit: (id: string) => void;
   onAddProfile: () => void;
   /** Delete a profile (after the confirm dialog). */
   onRemoveProfile: (id: string) => void;
@@ -199,9 +207,13 @@ export function RenameInput({
 export function ProfilesPanel({
   profiles,
   activeProfile,
+  displayedId,
   profile,
+  pinnedId,
+  onPin,
   autoProfileId,
   onActivate,
+  onEdit,
   onAddProfile,
   onRemoveProfile,
   onProfileChange,
@@ -212,6 +224,7 @@ export function ProfilesPanel({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const auto = activeProfile === "auto";
   const autoName = profiles.find((p) => p.id === autoProfileId)?.name ?? "—";
+  const displayedName = profiles.find((p) => p.id === displayedId)?.name ?? "—";
   return (
     <>
       <div className="flex shrink-0 items-center justify-between px-3.5 pb-2.5 pt-3.5">
@@ -230,6 +243,8 @@ export function ProfilesPanel({
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
         {profiles.map((p) => {
           const active = p.id === profile.id;
+          const shown = p.id === displayedId;
+          const pinned = p.id === pinnedId;
           return (
             <div
               key={p.id}
@@ -263,16 +278,42 @@ export function ProfilesPanel({
                 )}
                 <span className="block truncate font-ui-mono text-[10.5px] leading-[1.35] text-ui-4">{profileMeta(p)}</span>
               </span>
-              {active && <Check className="h-[17px] w-[17px] shrink-0 text-[oklch(0.80_0.12_255)]" aria-label="Active" />}
+              <button
+                type="button"
+                aria-pressed={pinned}
+                aria-label={pinned ? "Unpin" : "Pin for editing"}
+                title={
+                  pinned
+                    ? "Unpin: the studio edits what displays show again"
+                    : `Pin for editing: the studio edits this profile while displays keep showing ${displayedName}`
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPin(pinned ? undefined : p.id);
+                }}
+                // Out of sight until the row is hovered or focused, unless it is the pinned one.
+                className={cn(
+                  "h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-ui-active hover:text-ui-1 focus-visible:flex group-focus-within:flex group-hover:flex",
+                  pinned ? "flex text-[oklch(0.80_0.12_255)]" : "hidden text-ui-4"
+                )}
+              >
+                <Pin className="h-3.5 w-3.5" />
+              </button>
+              {shown && (
+                <Check
+                  className="h-[17px] w-[17px] shrink-0 text-[oklch(0.80_0.12_255)]"
+                  aria-label="Shown on displays"
+                />
+              )}
               <RowMenu
                 profile={p}
                 canDelete={profiles.length > 1}
                 onRename={() => {
-                  if (!active) onActivate(p.id);
+                  if (!active) onEdit(p.id);
                   setRenaming(true);
                 }}
                 onSettings={() => {
-                  if (!active) onActivate(p.id);
+                  if (!active) onEdit(p.id);
                   onOpenSettings();
                 }}
                 onDelete={() => setDeletingId(p.id)}
@@ -287,7 +328,7 @@ export function ProfilesPanel({
           <Toggle
             checked={auto}
             label="Auto-pick by window size"
-            onChange={(on) => onActivate(on ? "auto" : profile.id)}
+            onChange={(on) => onActivate(on ? "auto" : displayedId)}
           />
         </div>
         <p className="text-pretty text-[11.5px] leading-[1.45] text-[#7c7c86]">

@@ -1,4 +1,4 @@
-import { useCallback, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { Bell, CircleHelp, Database, Gauge, Images, Keyboard, Layers, Palette, PanelTop, Settings, SquarePlus, Monitor, type LucideIcon } from "lucide-react";
 import { isTauri, openHelp, openSettings } from "@/lib/desktop";
@@ -48,16 +48,25 @@ export function useStoredDrawerWidth() {
 export type Drawer = "add" | "layers" | "profiles" | "island" | "alerts";
 export type RailItem = Drawer | "library" | "gauges" | "theme" | "sources";
 
-const RAIL: { id: RailItem; label: string; icon: LucideIcon }[] = [
-  { id: "layers", label: "Layers", icon: Layers },
-  { id: "add", label: "Add", icon: SquarePlus },
-  { id: "profiles", label: "Profiles", icon: Monitor },
-  { id: "island", label: "Dynamic Island", icon: PanelTop },
-  { id: "alerts", label: "Alerts", icon: Bell },
-  { id: "library", label: "Library", icon: Images },
-  { id: "gauges", label: "Gauges", icon: Gauge },
-  { id: "theme", label: "Theme", icon: Palette },
-  { id: "sources", label: "Data sources", icon: Database },
+/** The rail's icons in groups; a thin divider sits between groups. Nothing addresses a button by position. */
+const RAIL: { id: RailItem; label: string; icon: LucideIcon }[][] = [
+  [
+    { id: "profiles", label: "Profiles", icon: Monitor },
+    { id: "theme", label: "Theme", icon: Palette },
+  ],
+  [
+    { id: "layers", label: "Layers", icon: Layers },
+    { id: "add", label: "Widgets", icon: SquarePlus },
+  ],
+  [
+    { id: "gauges", label: "Gauges", icon: Gauge },
+    { id: "library", label: "Library", icon: Images },
+  ],
+  [
+    { id: "alerts", label: "Alerts", icon: Bell },
+    { id: "island", label: "Dynamic Island", icon: PanelTop },
+  ],
+  [{ id: "sources", label: "Data sources", icon: Database }],
 ];
 
 /** localStorage key holding the open drawer ("none" when collapsed). */
@@ -138,14 +147,19 @@ export function LeftRail({ active, onSelect, onShortcuts }: LeftRailProps) {
   return (
     <Tooltip.Provider delay={300}>
       <nav className="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-ui-subtle bg-ui-chrome py-2.5">
-        {RAIL.map((item) => (
-          <RailButton
-            key={item.id}
-            label={item.label}
-            icon={item.icon}
-            active={active === item.id}
-            onClick={() => onSelect(item.id)}
-          />
+        {RAIL.map((group, i) => (
+          <Fragment key={group[0].id}>
+            {i > 0 && <div role="separator" className="my-1 h-px w-5 bg-ui-default" />}
+            {group.map((item) => (
+              <RailButton
+                key={item.id}
+                label={item.label}
+                icon={item.icon}
+                active={active === item.id}
+                onClick={() => onSelect(item.id)}
+              />
+            ))}
+          </Fragment>
         ))}
         <div className="mt-auto flex flex-col items-center gap-1">
           <RailButton label="Help" icon={CircleHelp} onClick={() => void openHelp().catch(() => {})} />

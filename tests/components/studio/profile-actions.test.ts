@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig, newProfile, type DashboardConfig } from "@/lib/layout";
-import { withoutProfile } from "@/components/studio/profile-actions";
+import { withoutProfile, withProfile } from "@/components/studio/profile-actions";
 
 function config(activeProfile: string): DashboardConfig {
   const profiles = ["a", "b", "c"].map((id) => ({ ...newProfile(id, 1920, 1080), id }));
@@ -8,6 +8,21 @@ function config(activeProfile: string): DashboardConfig {
 }
 
 const ids = (c: DashboardConfig) => c.profiles.map((p) => p.id);
+
+describe("withProfile", () => {
+  const added = { ...newProfile("new", 800, 480), id: "new" };
+
+  it("makes the new profile the one displays show", () => {
+    const out = withProfile(config("a"), added, true);
+    expect(ids(out)).toEqual(["a", "b", "c", "new"]);
+    expect(out.activeProfile).toBe("new");
+  });
+
+  it("leaves what displays show alone while the studio is pinned", () => {
+    expect(withProfile(config("b"), added, false).activeProfile).toBe("b");
+    expect(withProfile(config("auto"), added, false).activeProfile).toBe("auto");
+  });
+});
 
 describe("withoutProfile", () => {
   it("deletes a profile that is not edited and leaves the pick alone", () => {

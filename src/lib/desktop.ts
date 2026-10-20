@@ -46,6 +46,20 @@ export async function openHelp(target: HelpTarget = {}): Promise<void> {
   if (w) w.opener = null;
 }
 
+/**
+ * Kiosk view in the desktop window: with a size the window takes exactly that (logical pixels, even
+ * past the screen); without one it returns to the geometry the studio had.
+ */
+export const kioskWindow = (size?: { width: number; height: number }): Promise<void | undefined> =>
+  call<void>("kiosk_window", size ? { size } : undefined);
+
+/** Calls `handler` when the shell leaves Kiosk view on its own (a close from it); resolves to the unsubscribe. */
+export async function onKioskLeft(handler: () => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen("kiosk-left", handler);
+}
+
 /** Native save dialog; resolves to whether a file was written. */
 export const saveTextFile = async (defaultName: string, contents: string): Promise<boolean> =>
   (await call<boolean>("save_text_file", { defaultName, contents })) === true;
@@ -94,6 +108,8 @@ async function currentWindow() {
 export const minimizeWindow = async (): Promise<void> => void (await (await currentWindow())?.minimize());
 export const toggleMaximizeWindow = async (): Promise<void> =>
   void (await (await currentWindow())?.toggleMaximize());
+/** Starts a native window drag (call on mousedown). */
+export const startWindowDrag = async (): Promise<void> => void (await (await currentWindow())?.startDragging());
 /** Asks to close; the shell then flushes and hides to the tray (or quits). */
 export const closeWindow = async (): Promise<void> => void (await (await currentWindow())?.close());
 

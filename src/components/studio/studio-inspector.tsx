@@ -17,6 +17,8 @@ type DocumentState = ReturnType<typeof useDocumentProps>;
 interface StudioInspectorProps {
   config: DashboardConfig;
   profile: ProfileView;
+  /** The profile the displays show: Auto-pick off keeps this one, not the pinned profile. */
+  displayedId: string;
   /** The theme the zones render under. */
   appearance: Appearance;
   ui: StudioUi;
@@ -39,6 +41,7 @@ interface StudioInspectorProps {
 export function StudioInspector({
   config,
   profile,
+  displayedId,
   appearance,
   ui,
   sel,
@@ -147,7 +150,7 @@ export function StudioInspector({
         canRemoveProfile={config.profiles.length > 1}
         onRemoveProfile={() => edit.removeProfile(profile.id)}
         autoPick={config.activeProfile === "auto"}
-        onAutoPick={(auto) => edit.activateProfile(auto ? "auto" : profile.id)}
+        onAutoPick={(auto) => edit.activateProfile(auto ? "auto" : displayedId)}
         pages={(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).pages}
         onRotate={edit.setRotate}
         onOpenExplorer={openExplorer}

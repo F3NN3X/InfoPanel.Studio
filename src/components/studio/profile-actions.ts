@@ -1,4 +1,16 @@
-import type { DashboardConfig } from "@/lib/layout";
+import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
+
+/**
+ * The config with `profile` added. `activate` makes it the one displays show; while the studio is
+ * pinned it is false, so the displays are not disturbed.
+ */
+export function withProfile(config: DashboardConfig, profile: MonitorProfile, activate: boolean): DashboardConfig {
+  return {
+    ...config,
+    profiles: [...config.profiles, profile],
+    activeProfile: activate ? profile.id : config.activeProfile,
+  };
+}
 
 /**
  * The config without profile `id` (never the last one: the same config back). Deleting the edited

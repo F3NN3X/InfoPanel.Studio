@@ -20,7 +20,9 @@ import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { GeneralProvider, useGeneral } from "@/hooks/use-general";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { setApiBase } from "@/lib/data-api";
-import { flushDone, onStudioFlush } from "@/lib/desktop";
+import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush } from "@/lib/desktop";
+import { KioskStrip } from "@/components/kiosk-strip";
+import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
 import { trackEventSource } from "@/lib/sensor-store";
 import {
   CONFIG_EVENTS_URL,
@@ -107,7 +109,21 @@ export default function App() {
   // Kiosk: studio saves pulled since load (the island's "Layout updated").
   const [layoutVersion, setLayoutVersion] = useState(0);
   useEffect(() => setOptimistic(null), [control]);
-  const forcedProfile = kiosk ? kioskProfileId({ pin: profilePin, control, config }) : undefined;
+  // Studio only: the profile pinned for editing (view state, never in the config). Displays keep showing
+  // `config.activeProfile` while the studio edits the pinned one; an unknown pin is ignored.
+  const [pin, setPin] = useState(readPin);
+  const pinnedId = pin && config.profiles.some((p) => p.id === pin) ? pin : undefined;
+  const pinProfile = useCallback((id: string | undefined) => {
+    setPin(id);
+    writePin(id);
+  }, []);
+  // Desktop Kiosk view: the profile the studio was editing, kept as it is (Auto doesn't re-resolve on resize).
+  const [viewProfile, setViewProfile] = useState<string>();
+  const forcedProfile = kiosk
+    ? kioskProfileId({ pin: profilePin, control, config })
+    : studio
+      ? editedProfileId(config, pinnedId, windowSize.w, windowSize.h)
+      : viewProfile;
   const stored = resolveProfile(
     forcedProfile ? { ...config, activeProfile: forcedProfile } : config,
     windowSize.w,
@@ -214,6 +230,10 @@ export default function App() {
       alive = false;
     };
   }, [kiosk]);
+  // Once the server's copy is read, a pin to a profile that is not in it is dropped.
+  useEffect(() => {
+    if (synced && pin && !pinnedId) pinProfile(undefined);
+  }, [synced, pin, pinnedId, pinProfile]);
 
   // Push the full config (profiles with placements, theme) to the server.
   // Kiosk pages (InfoPanel's WebView2) keep their own isolated storage, so
@@ -312,12 +332,41 @@ export default function App() {
   }, []);
 
   const enterStudio = () => {
+    if (isTauri()) {
+      setViewProfile(undefined);
+      void kioskWindow().catch(() => {});
+    }
     setStudio(true);
     window.history.replaceState(null, "", "?studio=1");
   };
+  // Desktop: Kiosk view takes the window to the shown profile's exact size, on the profile the studio was editing.
   const exitStudio = () => {
+    if (isTauri()) {
+      setViewProfile(stored.id);
+      void kioskWindow({ width: stored.width, height: stored.height }).catch(() => {});
+    }
     setStudio(false);
     window.history.replaceState(null, "", window.location.pathname);
+  };
+  // The shell left Kiosk view itself (Alt+F4, tray close, a cancelled close warning): the page follows.
+  useEffect(() => {
+    if (kiosk) return;
+    let gone = false;
+    let off: (() => void) | undefined;
+    void onKioskLeft(() => {
+      setViewProfile(undefined);
+      setStudio(true);
+      window.history.replaceState(null, "", "?studio=1");
+    }).then((unlisten) => (gone ? unlisten() : (off = unlisten)));
+    return () => {
+      gone = true;
+      off?.();
+    };
+  }, [kiosk]);
+  // Closing from Kiosk view goes back to the studio first, so a window shown again from the tray is the studio.
+  const closeFromKiosk = () => {
+    enterStudio();
+    void closeWindow().catch(() => {});
   };
 
   // Studio "Save" button: flush the config to the server immediately (the
@@ -380,6 +429,8 @@ export default function App() {
           <StudioView
             config={config}
             profile={profile}
+            pinnedProfileId={pinnedId}
+            onPin={pinProfile}
             onPageChange={setStudioPage}
             setConfig={setConfig}
             windowWidth={windowSize.w}
@@ -505,6 +556,9 @@ export default function App() {
           onSelect={goToPage}
           onToggleRotate={() => void postControl("rotate", { profile: stored.id, state: "toggle" })}
         />
+
+        {/* Desktop Kiosk view has no title bar: the top edge brings a strip with Back, Minimize and Close */}
+        {!kiosk && isTauri() && <KioskStrip onBack={enterStudio} onClose={closeFromKiosk} />}
 
         {/* Floating entry to the studio (not on display-only kiosk pages) */}
         {!kiosk && (

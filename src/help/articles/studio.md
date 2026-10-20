@@ -12,25 +12,26 @@ The editor window: a rail of tools on the left, the canvas in the middle, and an
 
 | Button | Opens |
 |---|---|
-| **Layers** | The zones of this profile in order. Hide, rename, reorder and select from here. |
-| **Add** | Every widget, layout starters, panel presets and your saved panels. |
-| **Profiles** | Switch, add, rename, resize and delete profiles. |
-| **Dynamic Island** | The island's shape, idle display and notices. See [Dynamic Island and alerts](island-alerts). |
-| **Alerts** | Alert rules, what is firing now and the history. See [Dynamic Island and alerts](island-alerts). |
-| **Library** | Your files: images, videos, fonts, gauges and saved panels. See [Library](library). |
-| **Gauges** | Browse and build gauges. See [Gauges](gauges). |
+| **Profiles** | Switch, add, rename, resize, pin and delete profiles. |
 | **Theme** | Edit the theme for all profiles, a profile or a page. See [Themes and appearance](themes). |
+| **Layers** | The zones of this profile in order. Hide, rename, reorder and select from here. |
+| **Widgets** | Every widget, layout starters, panel presets and your saved panels. |
+| **Gauges** | Browse and build gauges. See [Gauges](gauges). |
+| **Library** | Your files: images, videos, fonts, gauges and saved panels. See [Library](library). |
+| **Alerts** | Alert rules, what is firing now and the history. See [Dynamic Island and alerts](island-alerts). |
+| **Dynamic Island** | The island's shape, idle display and notices. See [Dynamic Island and alerts](island-alerts). |
 | **Data sources** | Browse every data point the Data API publishes. See [Sensors and the Data API](sensors). |
+| **Help** | Opens this help. |
 | **Keyboard shortcuts** | The shortcut list. |
 | **Settings** | The app's settings window (desktop app only). |
 
-The first five open a panel beside the canvas. Drag its edge to resize it; double-click the edge to reset the width. The next three replace the canvas with a full page.
+Thin lines in the rail separate the groups. **Profiles**, **Layers**, **Widgets**, **Alerts** and **Dynamic Island** open a panel beside the canvas. Drag its edge to resize it; double-click the edge to reset the width. **Theme**, **Gauges**, **Library** and **Data sources** replace the canvas with a full page.
 
 ## The top bar
 
-- The profile name opens **Profiles**. The chevron beside it lists the profiles, with **Auto (match window)** at the top.
+- The profile name opens **Profiles**. The chevron beside it has **Pin this profile for editing** (or **Unpin**) and, under **Show on displays**, the profiles with **Auto (match window)** at the top. A pinned profile shows a pin icon, and **Displays:** names the profile the displays show when it is another one. See [Profiles and the grid](profiles#pin-a-profile-for-editing).
 - The summary shows size, grid, fit mode, zone count and page count.
-- **Undo** and **Redo**, **Kiosk view**, **Import**, **Export** and **Save**.
+- **Undo** and **Redo**, **Kiosk view**, **Import**, **Export** and **Save**. In the desktop app, **Kiosk view** resizes the window to the profile's exact size; move the pointer to the top edge for a strip with **Back to studio**, **Minimize** and **Close**.
 - **More actions** (the three dots) holds Export config, Import config, Import InfoPanel profile, Export InfoPanel canvas, Copy profile JSON, Command palette, Keyboard shortcuts and Reset everything.
 
 When the server can't be reached, the bar shows **Offline · edits kept locally**.

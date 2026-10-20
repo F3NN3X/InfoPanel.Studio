@@ -1,6 +1,7 @@
 import { onPage } from "@/lib/pages";
 import { CANVAS_ID, SCROLL_ROW_H, newProfile, uid, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
+import { withProfile } from "./profile-actions";
 import { firstFreeRect, type ZoneRect } from "./zone-geometry";
 
 /** A canvas zone holding `canvas` in `rect`. */
@@ -10,13 +11,14 @@ function canvasZone(id: string, canvas: StoredCanvas, rect: ZoneRect): Placement
 
 /**
  * A new profile sized like the InfoPanel one, its one canvas zone filling it, made the active
- * profile. Two columns, as profile normalization asks; the zone spans both.
+ * profile unless `activate` is off (a pinned studio leaves what displays show). Two columns, as profile normalization asks; the zone spans both.
  */
 export function importAsProfile(
   config: DashboardConfig,
   canvas: StoredCanvas,
   name: string,
   size: { width: number; height: number },
+  activate = true,
 ): { config: DashboardConfig; profileId: string; zoneId: string } {
   const zoneId = uid(CANVAS_ID);
   const base = newProfile(name, Math.max(1, Math.round(size.width)), Math.max(1, Math.round(size.height)));
@@ -27,7 +29,7 @@ export function importAsProfile(
     fit: "fill" as const,
     pages: base.pages.map((p, i) => (i === 0 ? { ...p, placements: [canvasZone(zoneId, canvas, { col: 1, row: 1, cols: 2, rows: 1 })] } : p)),
   };
-  return { config: { ...config, profiles: [...config.profiles, profile], activeProfile: profile.id }, profileId: profile.id, zoneId };
+  return { config: withProfile(config, profile, activate), profileId: profile.id, zoneId };
 }
 
 /**

@@ -42,6 +42,12 @@ describe("importAsProfile", () => {
     expect(before.profiles).toHaveLength(1);
   });
 
+  it("leaves what displays show alone when asked (a pinned studio)", () => {
+    const { config: out, profileId } = importAsProfile(config(), canvas(), "Arc", { width: 1920, height: 550 }, false);
+    expect(out.profiles.map((p) => p.id)).toContain(profileId);
+    expect(out.activeProfile).toBe("main");
+  });
+
   it("survives a reload unchanged (normalization keeps the zone and its canvas)", () => {
     const { config: out, profileId } = importAsProfile(config(), canvas(), "Arc", { width: 1920, height: 550 });
     const back = mergeConfig(JSON.parse(JSON.stringify(out)));

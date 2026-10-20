@@ -14,6 +14,7 @@ Open **Profiles** on the left rail.
 
 - **New profile** (the **+** button) adds a profile named after its size, such as `1920×550`, using the size of the studio window.
 - A row's **Profile actions** menu has Rename…, Size, grid and spacing…, Copy profile JSON and Delete profile.
+- A row's **Pin** button pins that profile for editing (see below). A check mark shows the profile displays show.
 - **Auto-pick by window size** lets the studio and the kiosk choose the profile closest to the window.
 
 A fresh install has one blank profile, **Main display**, at 1920 × 1080 with a 12 × 6 grid in Scroll mode. On the empty canvas, **Use sample layout** builds a 1920 × 550 sample you can take apart.
@@ -34,6 +35,17 @@ With nothing selected, open **Dashboard › Profile**.
 ## Pages
 
 A profile holds one or more pages that share its grid. See [The studio](studio#pages) for the page tabs and rotation.
+
+## Pin a profile for editing
+
+Normally the studio edits the profile the displays show. To edit one profile while the displays keep showing another, pin it: press a row's **Pin** button, or choose **Pin this profile for editing** in the top bar's profile menu.
+
+- While pinned, the top bar shows a pin icon, and **Displays:** names the profile the displays show.
+- Choosing a profile or Auto under **Show on displays** then changes only what the displays show. The studio keeps editing the pinned profile.
+- **New profile** and importing an InfoPanel profile pin the new profile and leave the displays alone.
+- **Unpin** (or deleting the pinned profile) goes back to editing what the displays show.
+
+The pin belongs to this studio only. It is not saved in the config or sent to the server.
 
 ## Which profile the kiosk shows
 

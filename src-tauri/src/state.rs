@@ -151,6 +151,8 @@ pub struct AppState {
     /// The main window was last sent to the studio (not start.html), whether or not that
     /// navigation has committed yet.
     pub studio_page: AtomicBool,
+    /// The studio window's geometry while Kiosk view has resized it (see `kiosk`).
+    pub kiosk: Mutex<Option<crate::kiosk::Saved>>,
 }
 
 /// Locks, recovering the data of a mutex a panicking thread left poisoned.
@@ -216,6 +218,7 @@ impl AppState {
             show_on_problem: AtomicBool::new(!hidden_start),
             quitting: AtomicBool::new(false),
             studio_page: AtomicBool::new(false),
+            kiosk: Mutex::new(None),
         }
     }
 
