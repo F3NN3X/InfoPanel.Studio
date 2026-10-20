@@ -14,14 +14,13 @@ import {
   Redo2,
   RotateCcw,
   Search,
-  Settings,
   Undo2,
   Upload,
   Wand2,
 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { BUILD_ID } from "@/lib/buildInfo";
-import { isTauri, openSettings } from "@/lib/desktop";
+import { isTauri } from "@/lib/desktop";
 import type { MonitorProfile } from "@/lib/layout";
 import { zoneCount } from "@/lib/pages";
 import { cn } from "@/lib/utils";
@@ -239,11 +238,6 @@ function MoreMenu({
                 <RotateCcw className="h-3.5 w-3.5" /> Reset everything…
               </Menu.Item>
               <Menu.Separator className={SEPARATOR} />
-              {isTauri() && (
-                <Menu.Item className={ITEM} onClick={() => void openSettings().catch(() => {})}>
-                  <Settings className="h-3.5 w-3.5" /> Desktop app settings
-                </Menu.Item>
-              )}
               <Menu.Item className={ITEM} disabled>
                 <Info className="h-3.5 w-3.5" />
                 <span className="font-ui-mono text-[10.5px]">build {BUILD_ID}</span>

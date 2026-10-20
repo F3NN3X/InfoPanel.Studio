@@ -1,0 +1,151 @@
+@import "tailwindcss" source(none);
+@source "./";
+
+/* The settings window's tokens (docs/redesign/app-settings/SPEC.md section 7), scoped to this entry. */
+@theme {
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --color-s-win: #0c0c0e;
+  --color-s-side: #0e0e11;
+  --color-s-side-line: #1a1a1f;
+  --color-s-card: #111114;
+  --color-s-card-line: #1f1f24;
+  --color-s-divider: #1c1c21;
+  --color-s-input: #16161a;
+  --color-s-input-line: #2a2a31;
+  --color-s-track-line: #24242a;
+  --color-s-seg-on: #24242b;
+  --color-s-nav-on: #1c1c22;
+  --color-s-nav-hover: #18181d;
+  --color-s-well: #09090b;
+
+  --color-s-t1: #ededf0;
+  --color-s-t2: #c9c9cf;
+  --color-s-muted: #8a8a94;
+  --color-s-dim: #6f6f79;
+  --color-s-faint: #55555e;
+
+  --color-s-accent: oklch(0.72 0.15 255);
+  --color-s-accent-text: oklch(0.84 0.12 255);
+  --color-s-green: oklch(0.78 0.16 150);
+  --color-s-amber: oklch(0.82 0.14 75);
+  --color-s-red: oklch(0.7 0.18 25);
+
+  --color-s-bar-bg: oklch(0.25 0.05 75);
+  --color-s-bar-line: oklch(0.4 0.08 75);
+  --color-s-bar-text: oklch(0.94 0.04 80);
+  --color-s-bar-button: oklch(0.86 0.13 80);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-s-win);
+  color: var(--color-s-t1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+button {
+  white-space: nowrap;
+}
+
+a {
+  color: var(--color-s-accent-text);
+}
+
+a:hover {
+  color: var(--color-s-t1);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #26262c;
+  border-radius: 8px;
+  border: 2px solid var(--color-s-win);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-s-accent);
+  outline-offset: 1px;
+}
+
+/* A row found by search: an accent outline that fades out. */
+@keyframes row-found {
+  from {
+    outline-color: var(--color-s-accent);
+    background-color: oklch(0.72 0.15 255 / 0.1);
+  }
+  to {
+    outline-color: transparent;
+    background-color: transparent;
+  }
+}
+
+.row-found {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  animation: row-found 1.5s ease-out;
+}
+
+/* The changelog's notes (marked's output): bullets with mono code pills. */
+.notes ul {
+  list-style: disc;
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.notes li {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #d6d6db;
+  text-wrap: pretty;
+}
+
+.notes p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-s-t2);
+  text-wrap: pretty;
+}
+
+.notes code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: #1a1a1f;
+  border: 1px solid var(--color-s-track-line);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--color-s-t1);
+}
+
+.notes strong {
+  color: var(--color-s-t1);
+  font-weight: 600;
+}

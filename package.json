@@ -11,7 +11,8 @@
     "start": "node server.mjs",
     "serve": "npm run build && node server.mjs",
     "desktop:prepare": "node tools/desktop-prepare.mjs",
-    "desktop:web": "tsc -b && vite build --outDir .cache/desktop/dist --emptyOutDir",
+    "desktop:settings": "vite build --config vite.settings.config.ts",
+    "desktop:web": "tsc -b && vite build --outDir .cache/desktop/dist --emptyOutDir && npm run desktop:settings",
     "desktop:dev": "npm run desktop:web && npm run desktop:prepare && tauri dev",
     "desktop:build": "npm run desktop:web && npm run desktop:prepare && tauri build",
     "lab": "vite --config lab/infopanel/vite.config.ts",
@@ -24,10 +25,13 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "@tauri-apps/api": "^2.12.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.53.0",
+    "marked": "^18.1.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tailwind-merge": "^2.5.5"

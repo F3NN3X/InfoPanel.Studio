@@ -1,6 +1,7 @@
 import { useCallback, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Bell, Database, Gauge, Images, Keyboard, Layers, Palette, PanelTop, SquarePlus, Monitor, type LucideIcon } from "lucide-react";
+import { Bell, Database, Gauge, Images, Keyboard, Layers, Palette, PanelTop, Settings, SquarePlus, Monitor, type LucideIcon } from "lucide-react";
+import { isTauri, openSettings } from "@/lib/desktop";
 import { cn } from "@/lib/utils";
 
 /** The left panel's width: the original 256px is the least, a drag widens it up to the most. */
@@ -146,8 +147,9 @@ export function LeftRail({ active, onSelect, onShortcuts }: LeftRailProps) {
             onClick={() => onSelect(item.id)}
           />
         ))}
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col items-center gap-1">
           <RailButton label="Keyboard shortcuts" icon={Keyboard} onClick={onShortcuts} />
+          {isTauri() && <RailButton label="Settings" icon={Settings} onClick={() => void openSettings().catch(() => {})} />}
         </div>
       </nav>
     </Tooltip.Provider>

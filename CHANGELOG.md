@@ -28,8 +28,15 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   Rename and Remove from library. Delete on a focused card removes it too.
 - The desktop app shows only its own right-click menus; the webview's menu (Back, Reload, Inspect) is gone, except in
   text fields, which keep cut, copy and paste.
+- Desktop app: the settings window is redesigned as a sidebar of sections (General, Server, Coding agents, Updates,
+  Diagnostics, Logs, About, Changelog) with search (Ctrl K). Every change saves at once; settings the server reads at
+  start (port, who can connect, allowed host names, debug mode) show a restart bar with Undo and Restart server.
+  It adds app zoom (Ctrl +, Ctrl - and Ctrl 0 in the window), server start, stop and error cards, a live log viewer
+  for the server, app and studio, the update flow, an About page and the bundled changelog.
+- The studio's left rail has a Settings button under Keyboard shortcuts (desktop app only).
 
 ### Changed
+- The "Desktop app settings" item left the studio's ⋯ menu; the rail's Settings button opens the settings window.
 - The studio top bar no longer has the Design | Sources switch: Sources opens and closes from its rail button, and
   the other rail items go back to the design view.
 - Removing a library item asks first, and also deletes its file (a gauge's frames too) when no profile, canvas or

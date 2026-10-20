@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn local_pages_and_the_studio_are_allowed() {
         assert!(allowed("tauri://localhost/start.html"));
-        assert!(allowed("http://tauri.localhost/settings.html"));
+        assert!(allowed("http://tauri.localhost/app/settings.html"));
         assert!(allowed("http://127.0.0.1:3942/?studio=1"));
         assert!(allowed("http://127.0.0.1:3942/"));
         assert!(allowed("about:blank"));
@@ -69,9 +69,9 @@ mod tests {
 
     #[test]
     fn local_pages_need_the_bare_origin() {
-        assert!(!allowed("http://tauri.localhost:3922/settings.html"));
+        assert!(!allowed("http://tauri.localhost:3922/app/settings.html"));
         assert!(!allowed("http://tauri.localhost:8080/"));
-        assert!(!allowed("https://tauri.localhost/settings.html"));
+        assert!(!allowed("https://tauri.localhost/app/settings.html"));
         assert!(!allowed("tauri://localhost:1/start.html"));
     }
 

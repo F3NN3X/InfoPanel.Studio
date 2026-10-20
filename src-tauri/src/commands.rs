@@ -1,4 +1,4 @@
-// IPC commands. The local pages (start.html, settings.html) get the first group through
+// IPC commands. The local pages (start.html, app/settings.html) get the first group through
 // capabilities/default.json; the studio's origin gets the second through a capability added
 // at runtime (control::add_studio_capability).
 
