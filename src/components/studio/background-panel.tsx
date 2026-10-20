@@ -35,6 +35,8 @@ interface BackgroundPanelProps {
   profileBackground: PageBackground | undefined;
   profileName: string;
   profileId: string;
+  /** Open the Library (the pickers' empty state). */
+  onOpenLibrary?: () => void;
   /** Set (or clear) the background of a target. */
   onChange: (target: BackgroundTarget, bg: PageBackground | undefined) => void;
 }
@@ -56,6 +58,7 @@ export function BackgroundPanel({
   profileBackground,
   profileName,
   profileId,
+  onOpenLibrary,
   onChange,
 }: BackgroundPanelProps) {
   const mode = profileMode(profileBackground);
@@ -92,7 +95,7 @@ export function BackgroundPanel({
             </button>
           </div>
         )}
-        <BackgroundEditor value={dashboardBg} types={ALL_TYPES} onChange={(bg) => onChange("all", bg)} copyLabel="Dashboard › Background" profileId={profileId} />
+        <BackgroundEditor value={dashboardBg} types={ALL_TYPES} onChange={(bg) => onChange("all", bg)} copyLabel="Dashboard › Background" profileId={profileId} onOpenLibrary={onOpenLibrary} />
       </div>
     );
   }
@@ -119,7 +122,7 @@ export function BackgroundPanel({
         <p className="text-[12px] text-ui-3">No background on this profile; the theme&apos;s background color shows.</p>
       )}
       {mode === "custom" && profileBackground && (
-        <BackgroundEditor value={profileBackground} types={OWN_TYPES} onChange={(bg) => onChange("profile", bg)} copyLabel={`${profileName} › Background`} profileId={profileId} />
+        <BackgroundEditor value={profileBackground} types={OWN_TYPES} onChange={(bg) => onChange("profile", bg)} copyLabel={`${profileName} › Background`} profileId={profileId} onOpenLibrary={onOpenLibrary} />
       )}
     </div>
   );

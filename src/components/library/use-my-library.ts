@@ -4,12 +4,10 @@
  * behind the tray, and the item actions that change the library (copies, variants, merges).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { uploadBytes } from "@/lib/assets";
+import { type Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, deleteLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
-import { readMeta } from "@/lib/my-library/decode";
-import { classify, displayName } from "@/lib/my-library/intake";
-import { hashOf } from "@/lib/my-library/model";
+import { addFileToLibrary } from "./add-file";
 
 /** Config presets shown as library items carry this id prefix; they live in the config, not the library. */
 export const CONFIG_PANEL = "cfg-panel:";
@@ -68,6 +66,8 @@ export interface MyLibrary {
   clearUploads(): void;
   /** Add files: images, videos, SVG and fonts become items; an .infopanel goes to `onProfile`. `uploaded`: files already in the asset store, by asset id. */
   addFiles(files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>): void;
+  /** Add files already in the asset store (older loose uploads) as items; the counts of what happened. */
+  importAssets(assets: readonly Asset[]): Promise<{ added: number; duplicates: number; failed: number }>;
   /** A copy was placed (the item's copy count goes up by one). */
   addCopy(item: LibraryItem, copy: LibraryCopy): void;
   duplicate(item: LibraryItem): Promise<LibraryItem | null>;
@@ -110,23 +110,12 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   const upsert = (item: LibraryItem) => setServer((list) => [item, ...list.filter((i) => i.id !== item.id)]);
 
   const work = async (row: number, file: File, id?: string) => {
-    patchRow(row, { state: "reading" });
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const intake = classify(file.name, file.type, bytes);
-    if (!intake.ok) return patchRow(row, { state: "error", message: intake.reason });
-    if (intake.kind === "infopanel") return patchRow(row, { state: "error", message: "A profile: open it with Import" });
-    const meta = await readMeta(intake, bytes);
-    patchRow(row, { state: "uploading" });
-    const stored = id ? { id } : await uploadBytes(bytes, intake.mime);
-    const hash = stored.id.slice(0, 64);
-    const same = known.current.find((i) => hashOf(i) === hash);
-    if (same) return patchRow(row, { state: "duplicate", message: "Already in your library, kept the existing copy", itemId: same.id });
-    // A font is known by its family ("Orbitron"), as InfoPanel asks for it; other files by their name.
-    const name = intake.kind === "font" && meta.family ? meta.family : displayName(file.name);
-    const item = await createLibraryItem({ kind: intake.kind, name, files: [stored.id], meta: { ...meta, hash } });
-    known.current = [item, ...known.current];
-    upsert(item);
-    patchRow(row, { state: "done", itemId: item.id });
+    const r = await addFileToLibrary(file, known.current, id, (state) => patchRow(row, { state }));
+    if (r.state === "error") return patchRow(row, { state: "error", message: r.message });
+    if (r.state === "duplicate") return patchRow(row, { state: "duplicate", message: "Already in your library, kept the existing copy", itemId: r.item.id });
+    known.current = [r.item, ...known.current];
+    upsert(r.item);
+    patchRow(row, { state: "done", itemId: r.item.id });
   };
 
   const pump = () => {
@@ -172,6 +161,26 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     uploads,
     clearUploads: () => setUploads((rows) => rows.filter((r) => r.state === "queued" || r.state === "reading" || r.state === "uploading")),
     addFiles,
+    importAssets: async (assets) => {
+      const counts = { added: 0, duplicates: 0, failed: 0 };
+      for (const asset of assets) {
+        try {
+          const blob = await (await fetch(asset.url)).blob();
+          // The asset store keeps no original name: "Upload 1a2b3c4d.png" reads better than the 64-hex id.
+          const name = `Upload ${asset.id.slice(0, 8)}${asset.id.includes(".") ? asset.id.slice(asset.id.lastIndexOf(".")) : ""}`;
+          const r = await addFileToLibrary(new File([blob], name, { type: asset.type }), known.current, asset.id);
+          if (r.state === "done") {
+            known.current = [r.item, ...known.current];
+            upsert(r.item);
+            counts.added++;
+          } else if (r.state === "duplicate") counts.duplicates++;
+          else counts.failed++;
+        } catch {
+          counts.failed++;
+        }
+      }
+      return counts;
+    },
     addCopy: (item, copy) => {
       if (isConfigItem(item)) return;
       const copies = [...item.copies, { ...copy, at: new Date().toISOString() }];

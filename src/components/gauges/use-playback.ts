@@ -8,7 +8,7 @@ export const PLAY_MS = 4000;
 export const THUMB_MS = 9000;
 
 /** Calls `onValue` with a sweep of `periodMs` at `fps`, while `active`. */
-function useSweepLoop(active: boolean, periodMs: number, fps: number, onValue: (p: number) => void): void {
+export function useSweepLoop(active: boolean, periodMs: number, fps: number, onValue: (p: number) => void): void {
   useEffect(() => {
     if (!active) return;
     const t0 = performance.now();

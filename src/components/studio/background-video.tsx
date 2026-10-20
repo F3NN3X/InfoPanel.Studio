@@ -7,14 +7,15 @@ const RATES = ["0.5", "0.75", "1", "1.25", "1.5", "2"].map((r) => ({ value: r, l
 interface VideoFieldsProps {
   value: PageBackground;
   onPatch: (p: Partial<PageBackground>) => void;
+  onOpenLibrary?: () => void;
 }
 
 /** A video background's source, poster and playback, with a performance hint. */
-export function VideoFields({ value, onPatch }: VideoFieldsProps) {
+export function VideoFields({ value, onPatch, onOpenLibrary }: VideoFieldsProps) {
   const rate = String(value.rate ?? 1);
   return (
     <>
-      <MediaField label="Video" kind="video" value={value.src} fill={value.color} onChange={(src) => onPatch({ src })} />
+      <MediaField label="Video" kind="video" value={value.src} fill={value.color} onChange={(src) => onPatch({ src })} backgrounds onOpenLibrary={onOpenLibrary} />
       <MediaField
         label="Poster image"
         kind="image"

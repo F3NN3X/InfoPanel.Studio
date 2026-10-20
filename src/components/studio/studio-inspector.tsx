@@ -152,6 +152,7 @@ export function StudioInspector({
         onRotate={edit.setRotate}
         onOpenExplorer={openExplorer}
         onOpenTheme={() => editGlobalTheme("profile")}
+        onOpenLibrary={() => ui.setMode("library")}
       />
     );
 
