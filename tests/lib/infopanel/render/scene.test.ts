@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseDisplayItemsXml, parseProfileXml } from "@/lib/infopanel/parse.ts";
 import type { SensorReading } from "@/lib/infopanel/sensor-text.ts";
-import { buildScene, hasAnimatedGauge, hasAnimatedGradient, imageSource, type DrawNode, type ImageSource, type SceneInput, type SensorState, tableFromText, visibleText } from "@/lib/infopanel/render/scene.ts";
+import { buildScene, hasAnimatedGauge, imageSource, type DrawNode, type ImageSource, type SceneInput, type SensorState, tableFromText, visibleText } from "@/lib/infopanel/render/scene.ts";
 
 const parse = (body: string) =>
   parseDisplayItemsXml('<ArrayOfDisplayItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' + body + "</ArrayOfDisplayItem>").items;
@@ -168,18 +168,10 @@ describe("buildScene", () => {
     const shape = item("Shape", "<GradientType>Sweep</GradientType><GradientAnimationSpeed>90</GradientAnimationSpeed>");
     const [s] = scene(shape, { elapsedMs: 1000 });
     expect(s.kind === "shape" && s.fill).toMatchObject({ kind: "conic", from: 90 });
-    expect(hasAnimatedGradient(parse(item("Group", "<DisplayItems>" + shape + "</DisplayItems>")))).toBe(true);
-    expect(hasAnimatedGradient(parse(item("Shape", "<GradientAnimationSpeed>0</GradientAnimationSpeed>")))).toBe(false);
   });
 
-  it("runs no animation loop for hidden items, by flag, by path or under a hidden group", () => {
-    const shape = item("Shape", "<GradientAnimationSpeed>90</GradientAnimationSpeed>");
+  it("runs no gauge loop for a gauge that does not animate or is hidden by path", () => {
     const gauge = item("Gauge", "<AnimationSpeed>5</AnimationSpeed>");
-    const hiddenShape = item("Shape", "<GradientAnimationSpeed>90</GradientAnimationSpeed><Hidden>true</Hidden>");
-    expect(hasAnimatedGradient(parse(hiddenShape))).toBe(false);
-    expect(hasAnimatedGradient(parse(item("Group", "<Hidden>true</Hidden><DisplayItems>" + shape + "</DisplayItems>")))).toBe(false);
-    expect(hasAnimatedGradient(parse(item("Text") + item("Group", "<DisplayItems>" + shape + "</DisplayItems>")), new Set(["1.0"]))).toBe(false);
-    expect(hasAnimatedGradient(parse(item("Text") + shape), new Set(["0"]))).toBe(true);
     expect(hasAnimatedGauge(parse(gauge))).toBe(true);
     expect(hasAnimatedGauge(parse(gauge), new Set(["0"]))).toBe(false);
     expect(hasAnimatedGauge(parse(item("Gauge", "<AnimationSpeed>0</AnimationSpeed>")))).toBe(false);

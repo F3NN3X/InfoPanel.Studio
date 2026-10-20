@@ -381,11 +381,6 @@ function anyDrawn(items: DisplayItem[], test: (item: DisplayItem) => boolean, hi
   });
 }
 
-/** Whether a drawn shape's gradient turns with time, so the view must redraw every frame. */
-export function hasAnimatedGradient(items: DisplayItem[], hidden?: ReadonlySet<string>): boolean {
-  return anyDrawn(items, (i) => i.kind === "Shape" && i.ShowGradient && i.GradientAnimationSpeed !== 0, hidden);
-}
-
 /** Drawn gauges that move between frames over time (AnimationSpeed). */
 export function hasAnimatedGauge(items: DisplayItem[], hidden?: ReadonlySet<string>): boolean {
   return anyDrawn(items, (i) => i.kind === "Gauge" && i.AnimationSpeed > 0, hidden);

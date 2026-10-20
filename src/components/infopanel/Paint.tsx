@@ -5,7 +5,7 @@
  * rotated path gets the inverse rotation on its gradient, as Skia computes the
  * gradient from the already rotated path.
  */
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { subscribeTick } from "@/lib/ticker";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import type { Paint, Stop } from "@/lib/infopanel/render/geometry.ts";
@@ -80,13 +80,25 @@ export function PathPaint({ id, d, paint, stroke, rotate, space, turn }: PathPai
   const target = useRef<Element | null>(null);
   const latest = useRef(turn);
   latest.current = turn;
+  const still = useRef(paint);
+  still.current = paint;
   const turning = !!turn;
+  // React rewrites a gradient's markup when its colours or centre change; put the current angle back at once.
+  useLayoutEffect(() => {
+    const t = latest.current;
+    if (t) writePaint(target.current, t.at(performance.now() - t.start));
+  });
   useEffect(() => {
     if (!turning) return;
-    return subscribeTick((now) => {
+    const stop = subscribeTick((now) => {
       const t = latest.current;
       if (t) writePaint(target.current, t.at(now - t.start));
     });
+    // A turn that ends with the element still mounted leaves the static paint, not the last ticked angle.
+    return () => {
+      stop();
+      writePaint(target.current, still.current);
+    };
   }, [turning]);
   const transform = rotate && rotate.deg !== 0 ? `rotate(${rotate.deg} ${rotate.cx} ${rotate.cy})` : undefined;
   const inverse = rotate && rotate.deg !== 0 ? `rotate(${-rotate.deg} ${rotate.cx} ${rotate.cy})` : undefined;
