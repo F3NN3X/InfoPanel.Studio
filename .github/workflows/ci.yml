@@ -1,15 +1,28 @@
 name: CI
 
+# Every change reaches main through a PR that passed this check, and a release tag re-runs the tests in
+# release.yml, so a push to main doesn't run it again.
 on:
   pull_request:
-  push:
-    branches: [main]
+
+# A new push to a PR cancels that PR's run still in progress.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   build-test:
     runs-on: windows-latest
     steps:
+      # Depth 2: the PR's merge commit and its first parent (the base), to see which paths changed.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check whether the PR touches the Rust app
+        id: changes
+        shell: bash
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -q '^src-tauri/'; then echo "rust=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,12 +34,17 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      # The Rust tests run only when the PR changes src-tauri/; the release build compiles it either way.
       # The Tauri build script wants the bundled resources (the studio and Node) in place before it compiles.
       - uses: Swatinem/rust-cache@v2
+        if: steps.changes.outputs.rust == 'true'
         with:
           workspaces: src-tauri
       - run: npm run desktop:web
+        if: steps.changes.outputs.rust == 'true'
       - run: npm run desktop:prepare
+        if: steps.changes.outputs.rust == 'true'
       - name: cargo test
+        if: steps.changes.outputs.rust == 'true'
         run: cargo test
         working-directory: src-tauri
