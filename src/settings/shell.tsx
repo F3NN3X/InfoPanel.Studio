@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Activity, Bot, CircleArrowDown, CircleCheck, History, Info, LayoutDashboard, Minus, RotateCcw, ScrollText, Search, Server, SlidersHorizontal, Square, X, type LucideIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { Activity, Bot, CircleArrowDown, CircleCheck, CircleHelp, History, Info, RotateCcw, ScrollText, Server, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { SearchBox, useSearchShortcut } from "@/app-window/search-box";
+import { TitleBar as WindowTitleBar } from "@/app-window/title-bar";
 import { cn } from "@/lib/utils";
+import { settingsHelpTarget } from "@/help/context";
+import { ipc } from "./ipc";
 import { displayAddress, serverCard } from "./model/cards";
 import { restartText } from "./model/restart";
 import { SECTION_NAMES, searchSettings, type SectionId } from "./model/search";
 import { useStore } from "./store";
-import { Kbd, tone } from "./ui";
+import { tone } from "./ui";
 
 /** The sections' sidebar icons (the spec names Material ones; these are lucide's closest). */
 export const SECTION_ICONS: Record<SectionId, LucideIcon> = {
@@ -26,40 +29,8 @@ const NAV_GROUPS: { label: string; items: SectionId[] }[] = [
   { label: "InfoPanel Studio", items: ["about", "changelog"] },
 ];
 
-/** The 36px title bar: the window has no native frame, so it carries the drag region and the caption buttons. */
 export function TitleBar() {
-  const [maximized, setMaximized] = useState(false);
-  useEffect(() => {
-    const win = getCurrentWindow();
-    const sync = () => void win.isMaximized().then(setMaximized).catch(() => {});
-    sync();
-    const off = win.onResized(sync);
-    return () => void off.then((u) => u()).catch(() => {});
-  }, []);
-  const win = () => getCurrentWindow();
-  const caption = "grid h-full w-[46px] place-items-center border-0 bg-transparent text-s-muted transition-colors hover:bg-s-nav-hover hover:text-s-t1";
-  return (
-    <div data-tauri-drag-region className="flex h-9 shrink-0 select-none items-center gap-2.5 border-b border-s-side-line bg-s-side pl-3">
-      <div data-tauri-drag-region className="grid h-[18px] w-[18px] place-items-center rounded-[5px] bg-s-accent text-s-win">
-        <LayoutDashboard className="pointer-events-none h-[13px] w-[13px]" strokeWidth={2.5} />
-      </div>
-      <div data-tauri-drag-region className="text-xs font-medium text-s-t2">
-        InfoPanel Studio — Settings
-      </div>
-      <div data-tauri-drag-region className="flex-1" />
-      <div className="flex h-full">
-        <button type="button" aria-label="Minimize" title="Minimize" className={caption} onClick={() => void win().minimize()}>
-          <Minus className="h-4 w-4" />
-        </button>
-        <button type="button" aria-label={maximized ? "Restore" : "Maximize"} title={maximized ? "Restore" : "Maximize"} className={caption} onClick={() => void win().toggleMaximize()}>
-          <Square className="h-3 w-3" />
-        </button>
-        <button type="button" aria-label="Close" title="Close" className={cn(caption, "hover:bg-[#c42b1c] hover:text-white")} onClick={() => void win().close()}>
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
+  return <WindowTitleBar title="InfoPanel Studio — Settings" />;
 }
 
 /** The nav: groups with indicators, or the search results. */
@@ -70,17 +41,7 @@ export function Sidebar() {
   const input = useRef<HTMLInputElement>(null);
   const results = searchSettings(query);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        input.current?.focus();
-        input.current?.select();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  useSearchShortcut(input);
 
   const open = (i: number) => {
     const hit = results[i];
@@ -95,35 +56,23 @@ export function Sidebar() {
   return (
     <aside className="flex w-[236px] shrink-0 flex-col border-r border-s-side-line bg-s-side">
       <div className="px-3 pb-2.5 pt-3.5">
-        <div className="flex h-[34px] items-center gap-2 rounded-[9px] border border-s-track-line bg-[#141418] px-2.5">
-          <Search className="h-[17px] w-[17px] shrink-0 text-s-dim" />
-          <input
-            ref={input}
-            value={query}
-            placeholder="Search settings"
-            aria-label="Search settings"
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setActive(0);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setQuery("");
-              else if (e.key === "ArrowDown" && results.length) setActive((a) => Math.min(results.length - 1, a + 1));
-              else if (e.key === "ArrowUp" && results.length) setActive((a) => Math.max(0, a - 1));
-              else if (e.key === "Enter") open(active);
-              else return;
-              e.preventDefault();
-            }}
-            className="min-w-0 flex-1 border-0 bg-transparent text-[13px] text-s-t1 outline-none placeholder:text-s-dim"
-          />
-          {query ? (
-            <button type="button" aria-label="Clear search" onClick={() => setQuery("")} className="grid cursor-pointer border-0 bg-transparent p-0 text-s-dim hover:text-s-t1">
-              <X className="h-4 w-4" />
-            </button>
-          ) : (
-            <Kbd>Ctrl K</Kbd>
-          )}
-        </div>
+        <SearchBox
+          inputRef={input}
+          value={query}
+          label="Search settings"
+          onChange={(value) => {
+            setQuery(value);
+            setActive(0);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setQuery("");
+            else if (e.key === "ArrowDown" && results.length) setActive((a) => Math.min(results.length - 1, a + 1));
+            else if (e.key === "ArrowUp" && results.length) setActive((a) => Math.max(0, a - 1));
+            else if (e.key === "Enter") open(active);
+            else return;
+            e.preventDefault();
+          }}
+        />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-2 pb-3 pt-1">
@@ -187,6 +136,15 @@ export function Sidebar() {
           <span className="text-xs font-medium text-s-t2">{card.title.replace("…", "")}</span>
           <span className="truncate font-mono text-[11px] text-s-dim">{status.state === "running" ? displayAddress(status.host, status.port, lanIp) : stateWord(status.state)}</span>
         </div>
+        <button
+          type="button"
+          title="Help (F1)"
+          onClick={() => void ipc.openHelp(settingsHelpTarget(section)).catch(() => {})}
+          className="flex h-6 cursor-pointer items-center gap-1 rounded-md border-0 bg-transparent px-1.5 text-[11.5px] text-s-muted hover:bg-s-nav-hover hover:text-s-t1"
+        >
+          <CircleHelp className="h-[14px] w-[14px]" />
+          Help
+        </button>
         <span className="text-[11px] text-s-faint">v{status.appVersion}</span>
       </div>
     </aside>

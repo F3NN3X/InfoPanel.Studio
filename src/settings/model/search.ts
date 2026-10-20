@@ -1,5 +1,8 @@
 export type SectionId = "general" | "server" | "agents" | "updates" | "diagnostics" | "logs" | "about" | "changelog";
 
+/** Whether `value` names a settings section. */
+export const isSectionId = (value: string): value is SectionId => Object.hasOwn(SECTION_NAMES, value);
+
 export const SECTION_NAMES: Record<SectionId, string> = {
   general: "General",
   server: "Server",

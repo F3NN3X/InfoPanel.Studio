@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { errorText, ipc, onEvent } from "./ipc";
 import { restartItems, type RestartItem } from "./model/restart";
-import type { SectionId } from "./model/search";
+import { isSectionId, type SectionId } from "./model/search";
 import type { SetResult, SettingKey, Settings, Status, UpdateState } from "./types";
 
 /** How long "Saved" stays up. */
@@ -87,6 +87,12 @@ async function load(): Promise<Loaded> {
   return { settings, status, update, lanIp: addresses[0] ?? null, debugForced: Boolean(diagnostics?.debug && !settings.debug) };
 }
 
+/** The section the window was opened at (settings.html#server), else General. */
+function sectionFromHash(): SectionId {
+  const id = window.location.hash.slice(1);
+  return isSectionId(id) ? id : "general";
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -95,7 +101,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toastState, setToast] = useState<Toast | null>(null);
   const [portInvalid, setPortInvalid] = useState(false);
   const [restartBusy, setRestartBusy] = useState(false);
-  const [section, setSection] = useState<SectionId>("general");
+  const [section, setSection] = useState<SectionId>(sectionFromHash);
   const [found, setFound] = useState<Found | null>(null);
   const settingsRef = useRef<Settings | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -111,6 +117,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const unlisten: Array<() => void> = [];
     void onEvent<Status>("server-status", (s) => alive && setStatus(s)).then((u) => (alive ? unlisten.push(u) : u()));
     void onEvent<UpdateState>("update-state", (s) => alive && setUpdate(s)).then((u) => (alive ? unlisten.push(u) : u()));
+    // Help asks for a section while this window is already open.
+    void onEvent<string>("settings-section", (s) => alive && isSectionId(s) && setSection(s)).then((u) => (alive ? unlisten.push(u) : u()));
     void load().then((l) => {
       if (!alive) return;
       setLoaded(l);

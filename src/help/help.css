@@ -1,0 +1,4 @@
+/* Help shares the settings window's tokens and base styles; Tailwind also scans Help and the shared window parts. */
+@import "../settings/settings.css";
+@source "./";
+@source "../app-window";

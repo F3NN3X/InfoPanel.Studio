@@ -1,5 +1,5 @@
-// Tray icon: Open studio · Open kiosk in browser · Settings · Check for updates · Start or stop
-// server · Restart server · Quit.
+// Tray icon: Open studio · Open kiosk in browser · Settings · Help · Check for updates · Start or
+// stop server · Restart server · Quit.
 
 use crate::state::{AppState, Phase, Status};
 use crate::{control, windows};
@@ -63,6 +63,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 None::<&str>,
             )?,
             &MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?,
+            &MenuItem::with_id(app, "help", "Help", true, None::<&str>)?,
             &update,
             &PredefinedMenuItem::separator(app)?,
             &toggle,
@@ -84,7 +85,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                         log::warn!("could not open the kiosk: {e}");
                     }
                 }
-                "settings" | "update" => windows::show_settings(app),
+                "settings" | "update" => windows::show_settings(app, None),
+                "help" => windows::show_help(app, &windows::HelpTarget::new(None, None)),
                 "server_toggle" => {
                     let app = app.clone();
                     std::thread::spawn(move || {

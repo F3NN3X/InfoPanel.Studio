@@ -29,6 +29,7 @@ import { StudioShell } from "./studio-shell";
 import { QuickBar } from "./quick-bar";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
+import { helpZoneKind } from "./help-zone";
 import { useStudioCommands } from "./use-studio-commands";
 import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
@@ -38,6 +39,9 @@ import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
 import { widgetName } from "./widget-kinds";
 import { WidgetPickerDialog } from "./widget-picker-dialog";
 import { postControl, useControl } from "@/lib/control";
+import { openHelp } from "@/lib/desktop";
+import { dialogArticle, studioHelpTarget } from "@/help/context";
+import { useHelpKey } from "@/help/use-help-key";
 import { isIslandAlert } from "@/lib/island/from-alerts";
 import { visibleAlerts } from "@/components/alerts/alert-model";
 import { PageTabs } from "./page-tabs";
@@ -162,6 +166,11 @@ function StudioViewBody({
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
   const { studioLayout, showSources, showLibrary, showGauges, showTheme, fullPage, drawer } = ui;
+  // F1: the Help article for what the user is on (an open dialog, the selected zone, the open drawer).
+  useHelpKey(
+    () => studioHelpTarget({ dialog: dialogArticle(), zone: helpZoneKind(selected), drawer: fullPage ? null : drawer }),
+    (target) => void openHelp(target).catch(() => {})
+  );
   /** The data point the inspector's Bound data row opened in Sources mode. */
   const [focusPointKey, setFocusPointKey] = useState<string>();
   useEffect(() => {

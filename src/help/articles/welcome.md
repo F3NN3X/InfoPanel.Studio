@@ -1,0 +1,31 @@
+---
+id: welcome
+title: Welcome to InfoPanel Studio
+icon: waving_hand
+related: [quickstart, concepts, kiosk]
+verified: draft
+---
+InfoPanel Studio designs live dashboards for the small screen next to your monitor, and serves them to InfoPanel as a kiosk page.
+
+## How the pieces fit
+
+:::flow
+Sensors — InfoPanel and its plugins publish readings on the Data API
+Studio — You lay out widgets and panels and style them
+Server — A local server on this PC hosts the result
+Kiosk — InfoPanel shows the kiosk URL on your display
+:::
+
+Everything runs on this computer. The studio saves to the local server as you edit, and every open kiosk updates within a second. Nothing is uploaded anywhere.
+
+## What you can do
+
+- **Build dashboards** from ready-made widgets (system, media, weather, FPS, network…) or from panels you compose yourself. See [Widgets](widgets) and [Panels](panels).
+- **Make one dashboard fit several screens** with a profile per display size. See [Profiles and the grid](profiles).
+- **Style everything at once** with a theme, then let single widgets differ where you want. See [Themes and appearance](themes).
+- **Import existing InfoPanel profiles**, keep them pixel-exact or turn items into native widgets. See [Importing a profile](import).
+- **Show Claude Code and Codex sessions** on your dashboard. See [Coding agents](agents).
+
+## Where to go next
+
+New here? The [Quick start](quickstart) gets a working dashboard onto your display in about five minutes. [Core concepts](concepts) explains the words used everywhere else in this help.

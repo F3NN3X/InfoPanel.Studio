@@ -423,7 +423,8 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
   const nextLabel = step === 4 ? `Import ${choices.name.trim() || "profile"}` : step === 2 ? "Looks right, continue" : "Continue";
 
   return (
-    <div className="grid h-full grid-cols-[210px_minmax(0,1fr)] max-md:grid-cols-1">
+    // The remap step has its own Help article (F1).
+    <div data-help-article={step === 3 ? "remap" : "import"} className="grid h-full grid-cols-[210px_minmax(0,1fr)] max-md:grid-cols-1">
       <nav aria-label="Import steps" className="flex flex-col gap-1 border-r border-ui-subtle bg-ui-chrome px-3 py-[18px] max-md:hidden">
         <Dialog.Title className="px-2 pb-0.5 text-[13.5px] font-semibold text-ui-1">Import InfoPanel</Dialog.Title>
         <span className="px-2 pb-3.5 text-[11.5px] text-ui-4">Review before commit</span>

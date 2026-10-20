@@ -595,9 +595,18 @@ pub fn quit_app(app: AppHandle) {
 // ---- Studio (and local pages) ----
 
 #[tauri::command]
-pub async fn open_settings(app: AppHandle) {
-    log::debug!("ipc: open_settings");
-    windows::show_settings(&app);
+pub async fn open_settings(app: AppHandle, section: Option<String>) {
+    log::debug!("ipc: open_settings {section:?}");
+    windows::show_settings(&app, section.as_deref());
+}
+
+#[tauri::command]
+pub async fn open_help(app: AppHandle, article: Option<String>, heading: Option<String>) {
+    log::debug!("ipc: open_help {article:?} {heading:?}");
+    windows::show_help(
+        &app,
+        &windows::HelpTarget::new(article.as_deref(), heading.as_deref()),
+    );
 }
 
 /// Largest file `open_text_file` reads.

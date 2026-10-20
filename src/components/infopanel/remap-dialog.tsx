@@ -40,7 +40,7 @@ export function RemapDialog({ open, onOpenChange, name, groups, overrides, index
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex h-[min(640px,calc(100vh-48px))] w-[min(980px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
+        <Dialog.Popup data-help-article="remap" className="fixed left-1/2 top-1/2 z-50 flex h-[min(640px,calc(100vh-48px))] w-[min(980px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
           <div className="flex shrink-0 items-center gap-3 border-b border-ui-subtle px-5 py-3.5">
             <Dialog.Title className="flex-1 truncate text-[15px] font-semibold text-ui-1">Sensor remap · {name}</Dialog.Title>
             <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">

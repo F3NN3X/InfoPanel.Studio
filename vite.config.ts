@@ -13,6 +13,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
+    rollupOptions: { input: [path.resolve(__dirname, "index.html"), path.resolve(__dirname, "help.html")] },
+  },
   // Agent worktrees live under .claude/; their copies of the tests are not ours.
   // lab/ has its own Vitest config (npm run lab:test).
   test: {

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=swap" rel="stylesheet">
+<script src="./help-content.js"></script>
+<style>
+html,body{margin:0;background:#0c0c0e;color:#ededf0;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.84 0.12 255);text-decoration:none}a:hover{color:#ededf0}
+.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;font-feature-settings:'liga'}
+input,select,textarea,button{font-family:inherit}
+button{white-space:nowrap}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#26262c;border-radius:8px;border:2px solid #0c0c0e}::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="height:100vh;display:flex;flex-direction:column;background:#0c0c0e;overflow:hidden">
+  <div style="height:36px;flex:none;display:flex;align-items:center;gap:10px;padding:0 0 0 12px;border-bottom:1px solid #1a1a1f;background:#0e0e11">
+    <div style="width:18px;height:18px;border-radius:5px;background:oklch(0.72 0.15 255);display:grid;place-items:center;color:#0c0c0e"><span class="ms" style="font-size:13px;font-variation-settings:'FILL' 1">dashboard</span></div>
+    <div style="font-size:12px;color:#c9c9cf;font-weight:500">InfoPanel Studio — Help</div>
+    <div style="flex:1"></div>
+    <div style="display:flex;height:100%">
+      <div style="width:46px;display:grid;place-items:center;color:#8a8a94"><span class="ms" style="font-size:16px">remove</span></div>
+      <div style="width:46px;display:grid;place-items:center;color:#8a8a94"><span class="ms" style="font-size:14px">crop_square</span></div>
+      <div style="width:46px;display:grid;place-items:center;color:#8a8a94" style-hover="background:#c42b1c;color:#fff"><span class="ms" style="font-size:16px">close</span></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex">
+    <aside style="width:248px;flex:none;border-right:1px solid #1a1a1f;background:#0e0e11;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:14px 12px 6px">
+        <div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:9px;background:#141418;border:1px solid #24242a">
+          <span class="ms" style="font-size:17px;color:#6f6f79">search</span>
+          <input id="help-search" value="{{ q }}" onChange="{{ onQ }}" placeholder="Search help" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#ededf0;font-size:13px">
+          <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearQ }}" style="border:0;background:transparent;color:#6f6f79;cursor:pointer;padding:0;display:grid"><span class="ms" style="font-size:16px">close</span></button></sc-if>
+          <sc-if value="{{ noQ }}" hint-placeholder-val="{{ true }}"><span style="font-size:10.5px;color:#55555e;font-family:'Geist Mono',monospace;border:1px solid #2a2a31;border-radius:4px;padding:1px 4px;white-space:nowrap;flex:none">Ctrl K</span></sc-if>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:4px 8px 12px;display:flex;flex-direction:column;gap:1px">
+        <button onClick="{{ goHome }}" style="height:34px;flex:none;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:8px;background:{{ homeNav.bg }};color:{{ homeNav.fg }};font-size:13px;font-weight:500;cursor:pointer;text-align:left;width:100%" style-hover="background:#18181d">
+          <span class="ms" style="font-size:18px;color:{{ homeNav.iconColor }}">home</span><span style="flex:1">Help home</span>
+        </button>
+        <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="4">
+          <div style="font-size:10.5px;color:#55555e;text-transform:uppercase;letter-spacing:.07em;padding:14px 10px 5px;font-weight:500">{{ g.label }}</div>
+          <sc-for list="{{ g.items }}" as="n" hint-placeholder-count="3">
+            <button onClick="{{ n.onClick }}" style="min-height:32px;flex:none;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:8px;background:{{ n.bg }};color:{{ n.fg }};font-size:13px;font-weight:500;cursor:pointer;text-align:left;width:100%;white-space:normal" style-hover="background:#18181d">
+              <span class="ms" style="font-size:17px;color:{{ n.iconColor }};flex:none">{{ n.icon }}</span><span style="flex:1">{{ n.title }}</span>
+            </button>
+          </sc-for>
+        </sc-for>
+      </div>
+      <div style="padding:12px 14px;border-top:1px solid #1a1a1f;display:flex;align-items:center;gap:10px">
+        <a href="App Settings.dc.html" style="flex:1;display:flex;align-items:center;gap:8px;font-size:12.5px;color:#c9c9cf"><span class="ms" style="font-size:17px;color:#6f6f79">settings</span>Open Settings</a>
+        <span style="font-size:11px;color:#55555e">v1.2.0</span>
+      </div>
+    </aside>
+
+    <main data-help-main="1" onScroll="{{ onScroll }}" style="flex:1;min-width:0;overflow:auto;position:relative">
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:60px;color:#6f6f79;font-size:13px">Loading help…</div>
+      </sc-if>
+
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:880px;margin:0 auto;padding:48px 32px 80px;box-sizing:border-box;display:flex;flex-direction:column;gap:40px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="font-size:30px;font-weight:600;letter-spacing:-0.02em">How can we help?</div>
+            <div style="font-size:14px;color:#8a8a94;line-height:1.55;max-width:600px;text-wrap:pretty">Every feature of InfoPanel Studio, explained. Search, or start with the basics below.</div>
+            <div style="display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;border-radius:11px;background:#141418;border:1px solid #2a2a31;max-width:600px">
+              <span class="ms" style="font-size:20px;color:#6f6f79">search</span>
+              <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Try “kiosk port”, “thresholds” or “import”" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#ededf0;font-size:14.5px">
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500">Start here</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+              <sc-for list="{{ startCards }}" as="c" hint-placeholder-count="3">
+                <button onClick="{{ c.onClick }}" style="text-align:left;background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;cursor:pointer;color:#ededf0;white-space:normal" style-hover="border-color:#33333b;background:#141418">
+                  <div style="width:34px;height:34px;border-radius:9px;background:oklch(0.72 0.15 255 / 0.14);display:grid;place-items:center;color:oklch(0.84 0.12 255)"><span class="ms" style="font-size:19px">{{ c.icon }}</span></div>
+                  <span style="font-size:14px;font-weight:600">{{ c.title }}</span>
+                  <span style="font-size:12.5px;color:#8a8a94;line-height:1.5;text-wrap:pretty">{{ c.lede }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500">All topics</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">
+              <sc-for list="{{ topicGroups }}" as="g" hint-placeholder-count="6">
+                <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:16px 8px 10px;display:flex;flex-direction:column;gap:2px">
+                  <div style="font-size:13px;font-weight:600;padding:0 10px 6px">{{ g.label }}</div>
+                  <sc-for list="{{ g.items }}" as="n" hint-placeholder-count="3">
+                    <button onClick="{{ n.onClick }}" style="display:flex;align-items:center;gap:9px;padding:6px 10px;border:0;border-radius:7px;background:transparent;color:#b4b4bd;font-size:13px;cursor:pointer;text-align:left;white-space:normal" style-hover="background:#18181d;color:#ededf0">
+                      <span class="ms" style="font-size:16px;color:#6f6f79">{{ n.icon }}</span>{{ n.title }}
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:760px;margin:0 auto;padding:36px 32px 80px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:22px;font-weight:600;letter-spacing:-0.015em">{{ resultTitle }}</div>
+            <div style="font-size:13px;color:#8a8a94">{{ resultSub }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ results }}" as="r" hint-placeholder-count="0">
+              <button onClick="{{ r.onClick }}" style="text-align:left;background:#111114;border:1px solid #1f1f24;border-radius:11px;padding:14px 16px;display:flex;gap:12px;cursor:pointer;color:#ededf0;white-space:normal" style-hover="border-color:#33333b;background:#141418">
+                <span class="ms" style="font-size:18px;color:#6f6f79;margin-top:1px">{{ r.icon }}</span>
+                <span style="flex:1;display:flex;flex-direction:column;gap:4px;min-width:0">
+                  <span style="font-size:14px;font-weight:500">{{ r.title }}<span style="color:#6f6f79;font-weight:400">{{ r.sub }}</span></span>
+                  <span style="font-size:12.5px;color:#9696a0;line-height:1.5">{{ r.pre }}<mark style="background:oklch(0.72 0.15 255 / 0.25);color:#ededf0;border-radius:3px;padding:0 1px">{{ r.hit }}</mark>{{ r.post }}</span>
+                  <span style="font-size:11.5px;color:#55555e">{{ r.group }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px dashed #2a2a31;border-radius:12px;padding:32px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+              <span class="ms" style="font-size:28px;color:#55555e">search_off</span>
+              <span style="font-size:13px;color:#8a8a94;max-width:360px;line-height:1.5">Try fewer or different words, or browse <a href="#" onClick="{{ goHome }}">all topics</a>.</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isArticle }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:{{ wrapW }};margin:0 auto;padding:32px 32px 80px;box-sizing:border-box;display:flex;gap:48px;align-items:flex-start">
+          <article style="flex:1;min-width:0;max-width:720px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6f6f79">
+              <button onClick="{{ goHome }}" style="border:0;background:transparent;color:#8a8a94;cursor:pointer;padding:0;font-size:12px">Help</button>
+              <span class="ms" style="font-size:14px">chevron_right</span><span>{{ art.group }}</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:14px">
+              <div style="width:42px;height:42px;border-radius:11px;background:oklch(0.72 0.15 255 / 0.14);display:grid;place-items:center;color:oklch(0.84 0.12 255);flex:none"><span class="ms" style="font-size:23px">{{ art.icon }}</span></div>
+              <h1 style="margin:6px 0 0;font-size:26px;font-weight:600;letter-spacing:-0.02em;line-height:1.2">{{ art.title }}</h1>
+            </div>
+            <p style="margin:0 0 8px;font-size:15.5px;color:#b4b4bd;line-height:1.6;text-wrap:pretty">{{ art.lede }}</p>
+
+            <sc-for list="{{ art.blocks }}" as="b" hint-placeholder-count="6">
+              <sc-if value="{{ b.isH }}" hint-placeholder-val="{{ false }}">
+                <h2 data-hid="{{ b.id }}" style="margin:18px 0 0;font-size:18px;font-weight:600;letter-spacing:-0.01em;scroll-margin-top:20px">{{ b.text }}</h2>
+              </sc-if>
+              <sc-if value="{{ b.isP }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0;font-size:14px;color:#d0d0d6;line-height:1.7;text-wrap:pretty"><sc-for list="{{ b.segs }}" as="g" hint-placeholder-count="1"><sc-if value="{{ g.plain }}" hint-placeholder-val="{{ true }}">{{ g.t }}</sc-if><sc-if value="{{ g.code }}" hint-placeholder-val="{{ false }}"><code style="font-family:'Geist Mono',monospace;font-size:12.5px;background:#1a1a1f;border:1px solid #26262c;border-radius:4px;padding:0 5px;color:#ededf0">{{ g.t }}</code></sc-if><sc-if value="{{ g.bold }}" hint-placeholder-val="{{ false }}"><strong style="color:#ededf0;font-weight:600">{{ g.t }}</strong></sc-if><sc-if value="{{ g.link }}" hint-placeholder-val="{{ false }}"><a href="#" onClick="{{ g.onClick }}" style="color:oklch(0.84 0.12 255);border-bottom:1px solid oklch(0.72 0.15 255 / 0.4)">{{ g.t }}</a></sc-if></sc-for></p>
+              </sc-if>
+              <sc-if value="{{ b.isList }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ b.items }}" as="it" hint-placeholder-count="3">
+                    <div style="display:flex;gap:12px;align-items:flex-start">
+                      <sc-if value="{{ b.ordered }}" hint-placeholder-val="{{ false }}"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:#1c1c22;border:1px solid #2a2a31;display:grid;place-items:center;font-size:11.5px;font-weight:600;color:#c9c9cf;margin-top:1px">{{ it.n }}</span></sc-if>
+                      <sc-if value="{{ b.bullet }}" hint-placeholder-val="{{ true }}"><span style="width:5px;height:5px;flex:none;border-radius:50%;background:#55555e;margin:10px 6px 0 4px"></span></sc-if>
+                      <span style="flex:1;font-size:14px;color:#d0d0d6;line-height:1.65;text-wrap:pretty"><sc-for list="{{ it.segs }}" as="g" hint-placeholder-count="1"><sc-if value="{{ g.plain }}" hint-placeholder-val="{{ true }}">{{ g.t }}</sc-if><sc-if value="{{ g.code }}" hint-placeholder-val="{{ false }}"><code style="font-family:'Geist Mono',monospace;font-size:12.5px;background:#1a1a1f;border:1px solid #26262c;border-radius:4px;padding:0 5px;color:#ededf0">{{ g.t }}</code></sc-if><sc-if value="{{ g.bold }}" hint-placeholder-val="{{ false }}"><strong style="color:#ededf0;font-weight:600">{{ g.t }}</strong></sc-if><sc-if value="{{ g.link }}" hint-placeholder-val="{{ false }}"><a href="#" onClick="{{ g.onClick }}" style="color:oklch(0.84 0.12 255);border-bottom:1px solid oklch(0.72 0.15 255 / 0.4)">{{ g.t }}</a></sc-if></sc-for></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isTable }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid #1f1f24;border-radius:11px;overflow:auto;background:#111114">
+                  <div style="display:grid;grid-template-columns:{{ b.cols }};min-width:{{ b.minW }}">
+                    <sc-for list="{{ b.head }}" as="hc" hint-placeholder-count="2">
+                      <div style="padding:9px 14px;font-size:11.5px;color:#6f6f79;font-weight:500;border-bottom:1px solid #1f1f24;background:#0e0e11">{{ hc }}</div>
+                    </sc-for>
+                    <sc-for list="{{ b.cells }}" as="c" hint-placeholder-count="4">
+                      <div style="padding:10px 14px;font-size:13px;color:{{ c.color }};line-height:1.55;border-top:{{ c.bt }}"><sc-for list="{{ c.segs }}" as="g" hint-placeholder-count="1"><sc-if value="{{ g.plain }}" hint-placeholder-val="{{ true }}">{{ g.t }}</sc-if><sc-if value="{{ g.code }}" hint-placeholder-val="{{ false }}"><code style="font-family:'Geist Mono',monospace;font-size:12px;background:#1a1a1f;border:1px solid #26262c;border-radius:4px;padding:0 4px;color:#ededf0">{{ g.t }}</code></sc-if><sc-if value="{{ g.bold }}" hint-placeholder-val="{{ false }}"><strong style="color:#ededf0;font-weight:600">{{ g.t }}</strong></sc-if><sc-if value="{{ g.link }}" hint-placeholder-val="{{ false }}"><a href="#" onClick="{{ g.onClick }}">{{ g.t }}</a></sc-if></sc-for></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isCallout }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:12px;padding:13px 16px;border-radius:11px;background:{{ b.bg }};border:1px solid {{ b.border }}">
+                  <span class="ms" style="font-size:19px;color:{{ b.fg }};margin-top:1px">{{ b.icon }}</span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:12px;font-weight:600;color:{{ b.fg }}">{{ b.label }}</span>
+                    <span style="font-size:13.5px;color:#d6d6db;line-height:1.6;text-wrap:pretty"><sc-for list="{{ b.segs }}" as="g" hint-placeholder-count="1"><sc-if value="{{ g.plain }}" hint-placeholder-val="{{ true }}">{{ g.t }}</sc-if><sc-if value="{{ g.code }}" hint-placeholder-val="{{ false }}"><code style="font-family:'Geist Mono',monospace;font-size:12.5px;background:#1a1a1f;border:1px solid #26262c;border-radius:4px;padding:0 5px;color:#ededf0">{{ g.t }}</code></sc-if><sc-if value="{{ g.bold }}" hint-placeholder-val="{{ false }}"><strong style="color:#ededf0;font-weight:600">{{ g.t }}</strong></sc-if><sc-if value="{{ g.link }}" hint-placeholder-val="{{ false }}"><a href="#" onClick="{{ g.onClick }}" style="color:oklch(0.84 0.12 255);border-bottom:1px solid oklch(0.72 0.15 255 / 0.4)">{{ g.t }}</a></sc-if></sc-for></span>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isKeys }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px solid #1f1f24;border-radius:11px;background:#111114;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+                  <sc-for list="{{ b.rows }}" as="k" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #1a1a1f">
+                      <span style="flex:1;font-size:13px;color:#d0d0d6">{{ k.label }}</span>
+                      <span style="display:flex;gap:4px">
+                        <sc-for list="{{ k.parts }}" as="p" hint-placeholder-count="2">
+                          <span style="min-width:12px;text-align:center;font-family:'Geist Mono',monospace;font-size:11.5px;padding:2px 7px;border-radius:5px;background:#1a1a1f;border:1px solid #2a2a31;border-bottom-width:2px;color:#ededf0;white-space:nowrap">{{ p }}</span>
+                        </sc-for>
+                      </span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isFlow }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:stretch;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ b.steps }}" as="f" hint-placeholder-count="4">
+                    <div style="flex:1 1 140px;display:flex;align-items:center;gap:6px">
+                      <div style="flex:1;background:#111114;border:1px solid #1f1f24;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;align-self:stretch">
+                        <span style="font-size:11px;color:#55555e;font-family:'Geist Mono',monospace">{{ f.n }}</span>
+                        <span style="font-size:13.5px;font-weight:600">{{ f.t }}</span>
+                        <span style="font-size:12px;color:#8a8a94;line-height:1.45">{{ f.d }}</span>
+                      </div>
+                      <sc-if value="{{ f.arrow }}" hint-placeholder-val="{{ true }}"><span class="ms" style="font-size:16px;color:#44444c">arrow_forward</span></sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isOpen }}" hint-placeholder-val="{{ false }}">
+                <a href="{{ b.href }}" style="align-self:flex-start;display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px" style-hover="border-color:#3a3a44">
+                  <span class="ms" style="font-size:16px;color:oklch(0.84 0.12 255)">{{ b.icon }}</span>Open {{ b.label }}<span class="ms" style="font-size:15px;color:#6f6f79">arrow_outward</span>
+                </a>
+              </sc-if>
+            </sc-for>
+
+            <sc-if value="{{ art.hasRelated }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:28px;display:flex;flex-direction:column;gap:10px">
+                <div style="font-size:12px;color:#8a8a94;font-weight:500">Related</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
+                  <sc-for list="{{ art.related }}" as="r" hint-placeholder-count="3">
+                    <button onClick="{{ r.onClick }}" style="text-align:left;background:#111114;border:1px solid #1f1f24;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;color:#ededf0;font-size:13px;font-weight:500;white-space:normal" style-hover="border-color:#33333b">
+                      <span class="ms" style="font-size:17px;color:#6f6f79">{{ r.icon }}</span>{{ r.title }}
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="margin-top:16px;padding-top:20px;border-top:1px solid #1c1c21;display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap">
+              <sc-if value="{{ art.hasPrev }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ art.prev.onClick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 14px;border-radius:10px;border:1px solid #1f1f24;background:transparent;color:#ededf0;cursor:pointer" style-hover="border-color:#33333b">
+                  <span style="font-size:11.5px;color:#6f6f79;display:flex;align-items:center;gap:4px"><span class="ms" style="font-size:14px">arrow_back</span>Previous</span>
+                  <span style="font-size:13.5px;font-weight:500">{{ art.prev.title }}</span>
+                </button>
+              </sc-if>
+              <span style="flex:1"></span>
+              <sc-if value="{{ art.hasNext }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ art.next.onClick }}" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding:10px 14px;border-radius:10px;border:1px solid #1f1f24;background:transparent;color:#ededf0;cursor:pointer" style-hover="border-color:#33333b">
+                  <span style="font-size:11.5px;color:#6f6f79;display:flex;align-items:center;gap:4px">Next<span class="ms" style="font-size:14px">arrow_forward</span></span>
+                  <span style="font-size:13.5px;font-weight:500">{{ art.next.title }}</span>
+                </button>
+              </sc-if>
+            </div>
+          </article>
+
+          <sc-if value="{{ showToc }}" hint-placeholder-val="{{ false }}">
+            <nav style="width:190px;flex:none;position:sticky;top:32px;display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:11px;color:#55555e;text-transform:uppercase;letter-spacing:.07em;padding:0 0 8px 12px;font-weight:500">On this page</div>
+              <sc-for list="{{ toc }}" as="t" hint-placeholder-count="4">
+                <button onClick="{{ t.onClick }}" style="text-align:left;padding:5px 12px;border:0;border-left:2px solid {{ t.border }};background:transparent;color:{{ t.fg }};font-size:12.5px;cursor:pointer;white-space:normal;line-height:1.4">{{ t.text }}</button>
+              </sc-for>
+            </nav>
+          </sc-if>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showToc&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const ACC = 'oklch(0.72 0.15 255)';
+const CALL = {
+  tip: { icon: 'lightbulb', label: 'Tip', fg: 'oklch(0.84 0.14 150)', bg: 'oklch(0.78 0.16 150 / 0.07)', border: 'oklch(0.78 0.16 150 / 0.22)' },
+  note: { icon: 'info', label: 'Note', fg: 'oklch(0.84 0.12 255)', bg: 'oklch(0.72 0.15 255 / 0.07)', border: 'oklch(0.72 0.15 255 / 0.22)' },
+  warn: { icon: 'warning', label: 'Heads up', fg: 'oklch(0.86 0.13 80)', bg: 'oklch(0.82 0.14 75 / 0.07)', border: 'oklch(0.82 0.14 75 / 0.25)' }
+};
+const strip = s => s.replace(/`([^`]+)`/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+class Component extends DCLogic {
+  state = { article: null, q: '', active: null, ready: !!window.HELP_CONTENT, mainW: 0 };
+  main() { return document.querySelector('main[data-help-main]'); }
+  componentDidMount() {
+    if (!this.state.ready) this._poll = setInterval(() => { if (window.HELP_CONTENT) { clearInterval(this._poll); this.setState({ ready: true }); } }, 60);
+    this._key = e => { if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); const i = document.getElementById('help-search'); i && i.focus(); } else if (e.key === 'Escape' && this.state.q) this.setState({ q: '' }); };
+    window.addEventListener('keydown', this._key);
+    this._ro = new ResizeObserver(() => { const m = this.main(); if (m && Math.abs(m.clientWidth - this.state.mainW) > 4) this.setState({ mainW: m.clientWidth }); });
+    const tryObs = () => { const m = this.main(); if (m) { this._ro.observe(m); this.setState({ mainW: m.clientWidth }); } else setTimeout(tryObs, 60); }; tryObs();
+  }
+  componentWillUnmount() { this._ro && this._ro.disconnect(); clearInterval(this._poll); window.removeEventListener('keydown', this._key); }
+  componentDidUpdate() {
+    if (this._anchor === undefined) return;
+    const m = this.main(), id = this._anchor; this._anchor = undefined;
+    if (!m) return;
+    if (!id) { m.scrollTop = 0; return; }
+    const el = m.querySelector(`[data-hid="${id}"]`);
+    m.scrollTop = el ? el.offsetTop - 20 : 0;
+  }
+  open(id, anchor) { this._anchor = anchor || null; this.setState({ article: id, q: '', active: anchor || null }); }
+  segs(text) {
+    return String(text).split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/).filter(Boolean).map(t => {
+      if (t.startsWith('`')) return { t: t.slice(1, -1), code: true };
+      if (t.startsWith('**')) return { t: t.slice(2, -2), bold: true };
+      const m = t.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (m) return { t: m[1], link: true, onClick: e => { e.preventDefault(); this.open(m[2]); } };
+      return { t, plain: true };
+    }).map(g => ({ plain: false, code: false, bold: false, link: false, ...g }));
+  }
+  build(H) {
+    if (this._built) return this._built;
+    const order = [], groupOf = {};
+    H.groups.forEach(([g, ids]) => ids.forEach(id => { order.push(id); groupOf[id] = g; }));
+    const index = [];
+    order.forEach(id => {
+      const a = H.articles[id]; let head = null, buf = [a.lede];
+      const flush = () => index.push({ id, head, text: strip(buf.join(' ')) });
+      a.blocks.forEach(b => {
+        const [k, x, y] = b;
+        if (k === 'h') { flush(); head = x; buf = []; }
+        else if (k === 'table') buf.push(x.join(' '), y.map(r => r.join(' ')).join(' '));
+        else if (k === 'ul' || k === 'ol') buf.push(x.join(' '));
+        else if (k === 'keys') buf.push(x.map(r => r.join(' ')).join(' '));
+        else if (k === 'flow') buf.push(x.map(r => r.join(' ')).join(' '));
+        else if (k === 'open') buf.push('Open ' + x);
+        else buf.push(x);
+      });
+      flush();
+    });
+    return (this._built = { order, groupOf, index });
+  }
+  renderArticle(H, id, B) {
+    const a = H.articles[id];
+    let hi = 0;
+    const blocks = a.blocks.map(b => {
+      const [k, x, y, z] = b;
+      const base = { isH: false, isP: false, isList: false, isTable: false, isCallout: false, isKeys: false, isFlow: false, isOpen: false };
+      if (k === 'h') return { ...base, isH: true, text: x, id: 'h' + (hi++) };
+      if (k === 'p') return { ...base, isP: true, segs: this.segs(x) };
+      if (k === 'ul' || k === 'ol') return { ...base, isList: true, ordered: k === 'ol', bullet: k === 'ul', items: x.map((t, i) => ({ n: i + 1, segs: this.segs(t) })) };
+      if (k === 'table') {
+        const n = x.length;
+        const cols = n === 2 ? 'minmax(140px,0.9fr) minmax(0,2fr)' : n === 3 ? 'minmax(120px,0.8fr) minmax(0,1.3fr) minmax(0,1.3fr)' : `minmax(140px,1.4fr) repeat(${n - 1},minmax(0,1fr))`;
+        const cells = []; y.forEach((r, ri) => r.forEach((c, ci) => cells.push({ segs: this.segs(c), bt: ri ? '1px solid #1c1c21' : 'none', color: ci === 0 ? '#ededf0' : '#c2c2ca' })));
+        return { ...base, isTable: true, head: x, cells, cols, minW: n > 2 ? '520px' : '0' };
+      }
+      if (CALL[k]) return { ...base, isCallout: true, ...CALL[k], segs: this.segs(x) };
+      if (k === 'keys') return { ...base, isKeys: true, rows: x.map(([c, label]) => ({ label, parts: /^[A-Za-z\\]+(\+[A-Za-z\\]+)*$/.test(c) ? c.split('+') : c.split(' ') })) };
+      if (k === 'flow') return { ...base, isFlow: true, steps: x.map(([t, d], i) => ({ t, d, n: String(i + 1).padStart(2, '0'), arrow: i < x.length - 1 })) };
+      if (k === 'open') return { ...base, isOpen: true, label: x, href: y, icon: z || 'settings' };
+      return { ...base, isP: true, segs: this.segs(String(x)) };
+    });
+    const i = B.order.indexOf(id);
+    const link = j => ({ title: H.articles[B.order[j]].title, onClick: () => this.open(B.order[j]) });
+    const related = (a.related || []).filter(r => H.articles[r]).map(r => ({ title: H.articles[r].title, icon: H.articles[r].icon, onClick: () => this.open(r) }));
+    return {
+      title: a.title, icon: a.icon, lede: a.lede, group: B.groupOf[id], blocks,
+      related, hasRelated: related.length > 0,
+      hasPrev: i > 0, prev: i > 0 ? link(i - 1) : { title: '', onClick: null },
+      hasNext: i < B.order.length - 1, next: i < B.order.length - 1 ? link(i + 1) : { title: '', onClick: null },
+      toc: blocks.filter(b => b.isH)
+    };
+  }
+  renderVals() {
+    const s = this.state, H = window.HELP_CONTENT;
+    const empty = { loading: true, isHome: false, isSearch: false, isArticle: false, navGroups: [], homeNav: {}, q: s.q, onQ: () => {}, hasQ: false, noQ: true };
+    if (!H) return empty;
+    const B = this.build(H);
+    const ql = s.q.trim().toLowerCase();
+    const navGroups = H.groups.map(([label, ids]) => ({ label, items: ids.map(id => {
+      const on = s.article === id && !ql, a = H.articles[id];
+      return { title: a.title, icon: a.icon, bg: on ? '#1c1c22' : 'transparent', fg: on ? '#ededf0' : '#a8a8b2', iconColor: on ? 'oklch(0.84 0.12 255)' : '#6f6f79', onClick: () => this.open(id) };
+    }) }));
+    const homeOn = !s.article && !ql;
+    const out = {
+      loading: false, q: s.q, onQ: e => { this._anchor = null; this.setState({ q: e.target.value }); }, clearQ: () => this.setState({ q: '' }), hasQ: !!ql, noQ: !ql,
+      navGroups, homeNav: { bg: homeOn ? '#1c1c22' : 'transparent', fg: homeOn ? '#ededf0' : '#a8a8b2', iconColor: homeOn ? 'oklch(0.84 0.12 255)' : '#6f6f79' },
+      goHome: e => { e && e.preventDefault && e.preventDefault(); this.open(null); },
+      isHome: !ql && !s.article, isSearch: !!ql, isArticle: !ql && !!s.article,
+      onScroll: () => {
+        if (!s.article || ql) return;
+        const m = this.main(); if (!m) return;
+        let cur = null; m.querySelectorAll('[data-hid]').forEach(el => { if (el.offsetTop - 80 <= m.scrollTop) cur = el.getAttribute('data-hid'); });
+        if (cur !== s.active) this.setState({ active: cur });
+      }
+    };
+    out.startCards = ['welcome', 'quickstart', 'concepts'].map(id => ({ title: H.articles[id].title, lede: H.articles[id].lede, icon: H.articles[id].icon, onClick: () => this.open(id) }));
+    out.topicGroups = H.groups.filter(([g]) => g !== 'Start here').map(([label, ids]) => ({ label, items: ids.map(id => ({ title: H.articles[id].title, icon: H.articles[id].icon, onClick: () => this.open(id) })) }));
+    if (ql) {
+      const words = ql.split(/\s+/).filter(Boolean);
+      const hits = B.index.map(e => {
+        const a = H.articles[e.id], hay = (a.title + ' ' + (e.head || '') + ' ' + e.text).toLowerCase();
+        if (!words.every(w => hay.includes(w))) return null;
+        let score = 0; words.forEach(w => { if (a.title.toLowerCase().includes(w)) score += 3; if ((e.head || '').toLowerCase().includes(w)) score += 2; });
+        const tl = e.text.toLowerCase(); let at = -1, ww = words[0];
+        for (const w of words) { const p = tl.indexOf(w); if (p >= 0) { at = p; ww = w; break; } }
+        let pre = '', hit = '', post = '';
+        if (at >= 0) { const st = Math.max(0, at - 60); pre = (st ? '…' : '') + e.text.slice(st, at); hit = e.text.slice(at, at + ww.length); post = e.text.slice(at + ww.length, at + ww.length + 110) + '…'; }
+        else post = e.text.slice(0, 160) + '…';
+        return { score, title: a.title, sub: e.head ? '  ›  ' + e.head : '', icon: a.icon, group: B.groupOf[e.id], pre, hit, post, id: e.id, head: e.head };
+      }).filter(Boolean).sort((x, y) => y.score - x.score).slice(0, 30);
+      out.results = hits.map(r => ({ ...r, onClick: () => { const art = this.renderArticle(H, r.id, B); const h = art.toc.find(t => t.text === r.head); this.open(r.id, h ? h.id : null); } }));
+      out.noResults = hits.length === 0;
+      out.resultTitle = hits.length ? `${hits.length} result${hits.length > 1 ? 's' : ''}` : 'No results';
+      out.resultSub = `for “${s.q.trim()}”`;
+    }
+    if (s.article && !ql) {
+      const art = this.renderArticle(H, s.article, B);
+      out.art = art;
+      const showToc = (this.props.showToc ?? true) && art.toc.length > 1 && s.mainW >= 1000;
+      out.showToc = showToc;
+      out.wrapW = showToc ? '1010px' : '784px';
+      const active = s.active;
+      out.toc = art.toc.map(t => ({ text: t.text, border: t.id === active ? ACC : '#24242a', fg: t.id === active ? '#ededf0' : '#8a8a94', onClick: () => { const m = this.main(), el = m && m.querySelector(`[data-hid="${t.id}"]`); if (el) m.scrollTop = el.offsetTop - 20; this.setState({ active: t.id }); } }));
+    }
+    return out;
+  }
+}
+</script>
+</body>
+</html>

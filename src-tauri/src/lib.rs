@@ -179,6 +179,7 @@ pub fn run() {
             commands::list_local_addresses,
             commands::quit_app,
             commands::open_settings,
+            commands::open_help,
             commands::save_text_file,
             commands::save_binary_file,
             commands::open_text_file,

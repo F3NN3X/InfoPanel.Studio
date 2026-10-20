@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0e;color:#ededf0;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.84 0.12 255)}a:hover{color:#ededf0}
+.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;font-feature-settings:'liga'}
+input,select,textarea,button{font-family:inherit}
+button{white-space:nowrap}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#26262c;border-radius:8px;border:2px solid #0c0c0e}::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="height:100vh;display:flex;flex-direction:column;background:#0c0c0e;overflow:hidden">
+  <div style="height:36px;flex:none;display:flex;align-items:center;gap:10px;padding:0 0 0 12px;border-bottom:1px solid #1a1a1f;background:#0e0e11">
+    <div style="width:18px;height:18px;border-radius:5px;background:oklch(0.72 0.15 255);display:grid;place-items:center;color:#0c0c0e"><span class="ms" style="font-size:13px;font-variation-settings:'FILL' 1">dashboard</span></div>
+    <div style="font-size:12px;color:#c9c9cf;font-weight:500">InfoPanel Studio — Settings</div>
+    <div style="flex:1"></div>
+    <div style="display:flex;height:100%">
+      <div style="width:46px;display:grid;place-items:center;color:#8a8a94"><span class="ms" style="font-size:16px">remove</span></div>
+      <div style="width:46px;display:grid;place-items:center;color:#8a8a94"><span class="ms" style="font-size:14px">crop_square</span></div>
+      <div style="width:46px;display:grid;place-items:center;color:#8a8a94" style-hover="background:#c42b1c;color:#fff"><span class="ms" style="font-size:16px">close</span></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;zoom:{{ zoomCss }}">
+    <aside style="width:236px;flex:none;border-right:1px solid #1a1a1f;background:#0e0e11;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:14px 12px 10px">
+        <div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:9px;background:#141418;border:1px solid #24242a">
+          <span class="ms" style="font-size:17px;color:#6f6f79">search</span>
+          <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Search settings" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#ededf0;font-size:13px">
+          <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearQ }}" style="border:0;background:transparent;color:#6f6f79;cursor:pointer;padding:0;display:grid"><span class="ms" style="font-size:16px">close</span></button></sc-if>
+          <sc-if value="{{ noQ }}" hint-placeholder-val="{{ true }}"><span style="font-size:10.5px;color:#55555e;font-family:'Geist Mono',monospace;border:1px solid #2a2a31;border-radius:4px;padding:1px 4px;white-space:nowrap;flex:none">Ctrl K</span></sc-if>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:4px 8px 12px;display:flex;flex-direction:column;gap:2px">
+        <sc-if value="{{ noQ }}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="3">
+            <div style="font-size:10.5px;color:#55555e;text-transform:uppercase;letter-spacing:.07em;padding:12px 10px 6px;font-weight:500">{{ g.label }}</div>
+            <sc-for list="{{ g.items }}" as="n" hint-placeholder-count="3">
+              <button onClick="{{ n.onClick }}" style="height:34px;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:8px;background:{{ n.bg }};color:{{ n.fg }};font-size:13px;font-weight:500;cursor:pointer;text-align:left;width:100%" style-hover="background:#18181d">
+                <span class="ms" style="font-size:18px;color:{{ n.iconColor }}">{{ n.icon }}</span>
+                <span style="flex:1">{{ n.label }}</span>
+                <sc-if value="{{ n.hasDot }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ n.dot }}"></span></sc-if>
+                <sc-if value="{{ n.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;padding:1px 6px;border-radius:10px;background:oklch(0.72 0.15 255 / 0.18);color:oklch(0.84 0.12 255);font-weight:600">{{ n.badge }}</span></sc-if>
+              </button>
+            </sc-for>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:10.5px;color:#55555e;text-transform:uppercase;letter-spacing:.07em;padding:8px 10px 6px">{{ resultCount }}</div>
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="0">
+            <button onClick="{{ r.onClick }}" style="display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#ededf0;cursor:pointer;text-align:left;width:100%" style-hover="background:#18181d">
+              <span style="font-size:13px">{{ r.label }}</span>
+              <span style="font-size:11.5px;color:#6f6f79;display:flex;align-items:center;gap:4px"><span class="ms" style="font-size:13px">{{ r.icon }}</span>{{ r.section }}</span>
+            </button>
+          </sc-for>
+        </sc-if>
+      </div>
+      <div style="padding:12px 14px;border-top:1px solid #1a1a1f;display:flex;align-items:center;gap:10px">
+        <span style="width:8px;height:8px;border-radius:50%;background:{{ srv.dot }};box-shadow:0 0 0 3px {{ srv.halo }}"></span>
+        <div style="display:flex;flex-direction:column;min-width:0;flex:1">
+          <span style="font-size:12px;color:#c9c9cf;font-weight:500">{{ srv.label }}</span>
+          <span style="font-size:11px;color:#6f6f79;font-family:'Geist Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ addr }}</span>
+        </div>
+        <span style="font-size:11px;color:#55555e">v1.2.0</span>
+      </div>
+    </aside>
+
+    <main style="flex:1;min-width:0;overflow:auto;position:relative">
+      <sc-if value="{{ pending }}" hint-placeholder-val="{{ false }}">
+        <div style="position:sticky;top:0;z-index:4;background:oklch(0.25 0.05 75);border-bottom:1px solid oklch(0.4 0.08 75);padding:10px 28px;display:flex;align-items:center;gap:12px">
+          <span class="ms" style="font-size:18px;color:oklch(0.86 0.13 80)">restart_alt</span>
+          <span style="flex:1;font-size:13px;color:oklch(0.94 0.04 80)">{{ pendingText }}</span>
+          <button onClick="{{ revert }}" style="height:30px;padding:0 12px;border-radius:7px;border:1px solid oklch(0.45 0.08 75);background:transparent;color:oklch(0.94 0.04 80);font-size:12.5px;cursor:pointer">Undo</button>
+          <button onClick="{{ restart }}" style="height:30px;padding:0 12px;border-radius:7px;border:0;background:oklch(0.86 0.13 80);color:#1a1405;font-size:12.5px;font-weight:600;cursor:pointer">Restart server</button>
+        </div>
+      </sc-if>
+
+      <div style="max-width:{{ maxW }};margin:0 auto;padding:32px 32px 80px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:24px;font-weight:600;letter-spacing:-0.015em">{{ title }}</div>
+          <div style="font-size:13.5px;color:#8a8a94;line-height:1.5;text-wrap:pretty">{{ subtitle }}</div>
+        </div>
+
+        <sc-if value="{{ isGeneral }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">Appearance</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:13.5px;font-weight:500">App zoom</span>
+                  <span style="font-size:12.5px;color:#8a8a94;line-height:1.45">Scales the studio and this window. Doesn't change the kiosk.</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <button onClick="{{ zoomOut }}" style="width:32px;height:32px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#c9c9cf;cursor:pointer;display:grid;place-items:center"><span class="ms" style="font-size:18px">remove</span></button>
+                  <div style="width:64px;text-align:center;font-family:'Geist Mono',monospace;font-size:14px;font-weight:500">{{ zoomLabel }}</div>
+                  <button onClick="{{ zoomIn }}" style="width:32px;height:32px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#c9c9cf;cursor:pointer;display:grid;place-items:center"><span class="ms" style="font-size:18px">add</span></button>
+                </div>
+              </div>
+              <div style="display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px">
+                <sc-for list="{{ zoomOpts }}" as="z" hint-placeholder-count="6">
+                  <button onClick="{{ z.onClick }}" style="flex:1;height:30px;border:0;border-radius:6px;background:{{ z.bg }};color:{{ z.fg }};font-size:12.5px;font-weight:500;cursor:pointer;font-family:'Geist Mono',monospace">{{ z.label }}</button>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#6f6f79">
+                <span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-family:'Geist Mono',monospace;border:1px solid #2a2a31;border-radius:4px;padding:1px 5px;color:#9696a0;flex:none">Ctrl +</span>Zoom in</span>
+                <span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-family:'Geist Mono',monospace;border:1px solid #2a2a31;border-radius:4px;padding:1px 5px;color:#9696a0;flex:none">Ctrl −</span>Zoom out</span>
+                <span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="font-family:'Geist Mono',monospace;border:1px solid #2a2a31;border-radius:4px;padding:1px 5px;color:#9696a0;flex:none">Ctrl 0</span>Reset</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">Startup</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Start at login</span><span style="font-size:12.5px;color:#8a8a94;line-height:1.45">Starts in the tray so the kiosk has a server after a reboot.</span></div>
+                <button onClick="{{ t.startAtLogin.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.startAtLogin.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.startAtLogin.x }};transition:transform .15s"></span></button>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Open the studio on launch</span><span style="font-size:12.5px;color:#8a8a94;line-height:1.45">Off: the app starts quietly in the tray.</span></div>
+                <button onClick="{{ t.openOnStart.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.openOnStart.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.openOnStart.x }};transition:transform .15s"></span></button>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Start the server on launch</span><span style="font-size:12.5px;color:#8a8a94;line-height:1.45">{{ startServerHint }}</span></div>
+                <button onClick="{{ t.startServer.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.startServer.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.startServer.x }};transition:transform .15s"></span></button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">Window</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Close to tray</span><span style="font-size:12.5px;color:#8a8a94;line-height:1.45">{{ trayHint }}</span></div>
+                <button onClick="{{ t.closeToTray.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.closeToTray.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.closeToTray.x }};transition:transform .15s"></span></button>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Remember window size and position</span></div>
+                <button onClick="{{ t.rememberWin.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.rememberWin.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.rememberWin.x }};transition:transform .15s"></span></button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isServer }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <div style="width:44px;height:44px;border-radius:12px;background:{{ srv.halo }};display:grid;place-items:center;color:{{ srv.dot }}"><span class="ms" style="font-size:24px">{{ srv.icon }}</span></div>
+              <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:16px;font-weight:600">{{ srv.label }}</span>
+                <span style="font-size:12.5px;color:#8a8a94">{{ srv.detail }}</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <sc-if value="{{ srv.canStop }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ stopServer }}" style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:17px">stop_circle</span>Stop</button>
+                  <button onClick="{{ restart }}" style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:17px">restart_alt</span>Restart</button>
+                </sc-if>
+                <sc-if value="{{ srv.canStart }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ restart }}" style="height:34px;padding:0 16px;border-radius:8px;border:0;background:oklch(0.72 0.15 255);color:#0b0d14;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:17px">play_arrow</span>Start server</button>
+                </sc-if>
+              </div>
+            </div>
+            <sc-if value="{{ srv.isError }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:oklch(0.7 0.18 25 / 0.1);border:1px solid oklch(0.7 0.18 25 / 0.3);font-size:12.5px;color:oklch(0.85 0.08 25)">
+                <span class="ms" style="font-size:17px">error</span><span style="flex:1">Port 3922 is already in use by another app. Pick a free port, then start the server.</span>
+                <button onClick="{{ useFreePort }}" style="height:28px;padding:0 10px;border-radius:7px;border:1px solid oklch(0.7 0.18 25 / 0.4);background:transparent;color:oklch(0.9 0.06 25);font-size:12px;cursor:pointer">Use 3923</button>
+              </div>
+            </sc-if>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:#1c1c21;border-radius:10px;overflow:hidden;border:1px solid #1c1c21">
+              <sc-for list="{{ srvStats }}" as="s" hint-placeholder-count="4">
+                <div style="background:#0e0e11;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+                  <span style="font-size:11.5px;color:#6f6f79">{{ s.k }}</span>
+                  <span style="font-size:15px;font-weight:500;font-family:'Geist Mono',monospace">{{ s.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">Network</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+              <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Who can connect</span><span style="font-size:12.5px;color:#8a8a94">Where the kiosk and studio are allowed to load from.</span></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+                  <sc-for list="{{ listenOpts }}" as="o" hint-placeholder-count="2">
+                    <button onClick="{{ o.onClick }}" style="text-align:left;padding:12px 14px;border-radius:10px;border:1px solid {{ o.border }};background:{{ o.bg }};color:#ededf0;cursor:pointer;display:flex;gap:10px;align-items:flex-start">
+                      <span class="ms" style="font-size:20px;color:{{ o.iconColor }};margin-top:1px">{{ o.icon }}</span>
+                      <span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:500">{{ o.label }}</span><span style="font-size:12px;color:#8a8a94;font-family:'Geist Mono',monospace">{{ o.addr }}</span></span>
+                    </button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ isLan }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:oklch(0.86 0.1 80);line-height:1.45"><span class="ms" style="font-size:16px;margin-top:1px">shield</span>Anyone on your network can open the kiosk and the studio. Windows may ask to allow it through the firewall.</div>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Port</span><span style="font-size:12.5px;color:{{ portHintColor }}">{{ portHint }}</span></div>
+                <input value="{{ port }}" onChange="{{ onPort }}" inputmode="numeric" style="width:96px;height:34px;box-sizing:border-box;padding:0 10px;border-radius:8px;border:1px solid {{ portBorder }};background:#16161a;color:#ededf0;font-family:'Geist Mono',monospace;font-size:13.5px;outline:none;text-align:right">
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21">
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Restart automatically if it crashes</span><span style="font-size:12.5px;color:#8a8a94">Up to 3 tries a minute, then it stays stopped and logs why.</span></div>
+                <button onClick="{{ t.autoRestart.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.autoRestart.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.autoRestart.x }};transition:transform .15s"></span></button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">Kiosk</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+              <span style="font-size:12.5px;color:#8a8a94;line-height:1.45">Paste this into InfoPanel. It has to use the same port as the server.</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="flex:1;min-width:240px;height:36px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:#0c0c0e;border:1px solid #24242a;font-family:'Geist Mono',monospace;font-size:13px;color:#ededf0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ kioskUrl }}</div>
+                <button onClick="{{ copyKiosk }}" style="height:36px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">{{ kioskCopyIcon }}</span>{{ kioskCopyLabel }}</button>
+                <button style="height:36px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">open_in_new</span>Open</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isAgents }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:16px;padding:16px 18px">
+              <div style="width:36px;height:36px;border-radius:9px;background:#1a1a1f;display:grid;place-items:center;color:#c9c9cf"><span class="ms" style="font-size:20px">terminal</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;font-weight:500">Connect coding agents</span><span style="font-size:12.5px;color:#8a8a94;line-height:1.45">Shows Claude Code and Codex sessions on the dashboard.</span></div>
+              <button onClick="{{ t.agents.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.agents.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.agents.x }};transition:transform .15s"></span></button>
+            </div>
+            <div style="border-top:1px solid #1c1c21;padding:14px 18px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:12px;color:#6f6f79">{{ agentsFilesNote }}</span>
+              <sc-for list="{{ agentFiles }}" as="f" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;background:#0e0e11;border:1px solid #1c1c21;flex-wrap:wrap">
+                  <span style="font-size:13px;font-weight:500;width:96px">{{ f.agent }}</span>
+                  <span style="flex:1;min-width:160px;font-family:'Geist Mono',monospace;font-size:12px;color:#9696a0">{{ f.path }}</span>
+                  <span style="font-size:11.5px;padding:2px 8px;border-radius:10px;background:{{ f.chipBg }};color:{{ f.chipFg }}">{{ f.status }}</span>
+                </div>
+              </sc-for>
+              <div style="font-size:12.5px;color:#8a8a94;line-height:1.5;text-wrap:pretty">Adds hooks that run InfoPanel Studio's own Node, and wraps your Claude Code statusline so it keeps printing as before. Each file is backed up first. Turning this off removes them.</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">folder_open</span>Open backups</button>
+                <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">build</span>Repair hooks</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isUpdates }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:14px;padding:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="width:44px;height:44px;border-radius:12px;background:{{ upd.halo }};display:grid;place-items:center;color:{{ upd.color }}"><span class="ms" style="font-size:24px">{{ upd.icon }}</span></div>
+            <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:16px;font-weight:600">{{ upd.title }}</span>
+              <span style="font-size:12.5px;color:#8a8a94">{{ upd.detail }}</span>
+              <sc-if value="{{ upd.downloading }}" hint-placeholder-val="{{ false }}"><div style="height:4px;border-radius:2px;background:#24242a;margin-top:6px;overflow:hidden;max-width:280px"><div style="width:62%;height:100%;background:oklch(0.72 0.15 255)"></div></div></sc-if>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ goChangelog }}" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:13px;cursor:pointer">What's new</button>
+              <button onClick="{{ upd.onPrimary }}" style="height:34px;padding:0 14px;border-radius:8px;border:0;background:{{ upd.btnBg }};color:{{ upd.btnFg }};font-size:13px;font-weight:600;cursor:pointer">{{ upd.btn }}</button>
+            </div>
+          </div>
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Release channel</span><span style="font-size:12.5px;color:#8a8a94">Beta gets features a few weeks early.</span></div>
+              <div style="display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px">
+                <sc-for list="{{ channelOpts }}" as="c" hint-placeholder-count="2">
+                  <button onClick="{{ c.onClick }}" style="height:28px;padding:0 14px;border:0;border-radius:6px;background:{{ c.bg }};color:{{ c.fg }};font-size:12.5px;font-weight:500;cursor:pointer">{{ c.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21">
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Check for updates at startup</span></div>
+              <button onClick="{{ t.checkUpdates.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.checkUpdates.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.checkUpdates.x }};transition:transform .15s"></span></button>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:14px 18px;border-top:1px solid #1c1c21">
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:500">Download in the background</span><span style="font-size:12.5px;color:#8a8a94">Installs on the next restart. The kiosk is down for a few seconds.</span></div>
+              <button onClick="{{ t.autoDownload.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.autoDownload.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.autoDownload.x }};transition:transform .15s"></span></button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isDiag }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:16px;padding:16px 18px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;font-weight:500">Debug mode</span><span style="font-size:12.5px;color:#8a8a94;line-height:1.45">Logs every server request and samples memory every 30 s to find errors and leaks. Needs a server restart.</span></div>
+              <button onClick="{{ t.debug.onClick }}" style="width:38px;height:22px;flex:none;border-radius:11px;border:0;background:{{ t.debug.bg }};position:relative;cursor:pointer;padding:0"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transform:{{ t.debug.x }};transition:transform .15s"></span></button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 16px">
+              <button onClick="{{ goLogs }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">article</span>View logs</button>
+              <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">folder_open</span>Open logs folder</button>
+              <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">code</span>Open DevTools</button>
+              <button onClick="{{ copyDiag }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">{{ diagCopyIcon }}</span>{{ diagCopyLabel }}</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ debugOff }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px dashed #2a2a31;border-radius:12px;padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+              <span class="ms" style="font-size:28px;color:#55555e">monitoring</span>
+              <span style="font-size:13.5px;font-weight:500">No samples</span>
+              <span style="font-size:12.5px;color:#8a8a94;max-width:360px;line-height:1.45">Turn on debug mode and restart the server to sample memory and event-loop delay.</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ debugOn }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding-left:2px">
+                <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:12px;color:#8a8a94;font-weight:500">Samples</span>
+                  <span style="font-size:12.5px;color:#6f6f79;line-height:1.45">5 samples, latest 02:30:51 · covers 2 min. A series is flagged when it rose in 80% of samples over the last hour and by more than 20%.</span>
+                </div>
+                <div style="display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px">
+                  <sc-for list="{{ diagFilters }}" as="d" hint-placeholder-count="2">
+                    <button onClick="{{ d.onClick }}" style="height:26px;padding:0 10px;border:0;border-radius:6px;background:{{ d.bg }};color:{{ d.fg }};font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap">{{ d.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:auto">
+                <div style="min-width:560px">
+                  <div style="display:grid;grid-template-columns:minmax(0,2.2fr) 80px minmax(0,1fr) minmax(0,1fr);gap:12px;padding:10px 16px;font-size:11.5px;color:#6f6f79;border-bottom:1px solid #1c1c21">
+                    <span>Series</span><span style="text-align:right">Latest</span><span style="text-align:right">Δ 30 min</span><span style="text-align:right">Δ 60 min</span>
+                  </div>
+                  <sc-for list="{{ diagGroups }}" as="g" hint-placeholder-count="4">
+                    <div style="padding:10px 16px 4px;font-size:11px;color:#55555e;text-transform:uppercase;letter-spacing:.06em">{{ g.name }}</div>
+                    <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) 80px minmax(0,1fr) minmax(0,1fr);gap:12px;padding:7px 16px;font-size:12.5px;align-items:center" style-hover="background:#151519">
+                        <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="width:6px;height:6px;border-radius:50%;flex:none;background:{{ r.dot }}"></span><span style="font-family:'Geist Mono',monospace;color:#c9c9cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span></span>
+                        <span style="text-align:right;font-family:'Geist Mono',monospace">{{ r.latest }}</span>
+                        <span style="text-align:right;font-family:'Geist Mono',monospace;color:{{ r.color }}">{{ r.d }}</span>
+                        <span style="text-align:right;font-family:'Geist Mono',monospace;color:{{ r.color }}">{{ r.d }}</span>
+                      </div>
+                    </sc-for>
+                  </sc-for>
+                  <div style="height:8px"></div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ isLogs }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div style="display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px">
+                <sc-for list="{{ logSources }}" as="s" hint-placeholder-count="3">
+                  <button onClick="{{ s.onClick }}" style="height:28px;padding:0 12px;border:0;border-radius:6px;background:{{ s.bg }};color:{{ s.fg }};font-size:12.5px;font-weight:500;cursor:pointer">{{ s.label }}</button>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:4px">
+                <sc-for list="{{ logLevels }}" as="l" hint-placeholder-count="4">
+                  <button onClick="{{ l.onClick }}" style="height:28px;padding:0 10px;border-radius:14px;border:1px solid {{ l.border }};background:{{ l.bg }};color:{{ l.fg }};font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:{{ l.dot }}"></span>{{ l.label }}<span style="color:#6f6f79;font-family:'Geist Mono',monospace;font-size:11px">{{ l.count }}</span></button>
+                </sc-for>
+              </div>
+              <div style="flex:1;min-width:160px;display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:8px;background:#141418;border:1px solid #24242a">
+                <span class="ms" style="font-size:16px;color:#6f6f79">filter_list</span>
+                <input value="{{ logQ }}" onChange="{{ onLogQ }}" placeholder="Filter lines" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#ededf0;font-size:12.5px">
+              </div>
+            </div>
+            <div style="background:#09090b;border:1px solid #1f1f24;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="height:420px;overflow:auto;padding:10px 0;font-family:'Geist Mono',monospace;font-size:12px;line-height:1.7">
+                <sc-for list="{{ logLines }}" as="ln" hint-placeholder-count="10">
+                  <div style="display:flex;gap:12px;padding:0 14px;white-space:pre" style-hover="background:#121215">
+                    <span style="color:#4a4a52">{{ ln.ts }}</span>
+                    <span style="color:{{ ln.color }};width:40px;flex:none">{{ ln.lvl }}</span>
+                    <span style="color:{{ ln.msgColor }}">{{ ln.msg }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ logEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:24px 14px;color:#55555e">No lines match.</div></sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid #1a1a1f;background:#0e0e11;flex-wrap:wrap">
+                <button onClick="{{ t.follow.onClick }}" style="height:28px;padding:0 10px;border-radius:7px;border:0;background:transparent;color:#c9c9cf;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px"><span style="width:28px;height:16px;border-radius:8px;background:{{ t.follow.bg }};position:relative"><span style="position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transform:{{ t.follow.xs }}"></span></span>Follow new lines</button>
+                <span style="flex:1;font-size:11.5px;color:#55555e">{{ logCount }}</span>
+                <button onClick="{{ copyLog }}" style="height:28px;padding:0 10px;border-radius:7px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="ms" style="font-size:15px">{{ logCopyIcon }}</span>{{ logCopyLabel }}</button>
+                <button style="height:28px;padding:0 10px;border-radius:7px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="ms" style="font-size:15px">folder_open</span>Open file</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#111114;border:1px solid #1f1f24;border-radius:14px;padding:24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+            <div style="width:60px;height:60px;border-radius:16px;background:oklch(0.72 0.15 255);display:grid;place-items:center;color:#0c0c0e"><span class="ms" style="font-size:34px;font-variation-settings:'FILL' 1">dashboard</span></div>
+            <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:20px;font-weight:600;letter-spacing:-0.01em">InfoPanel Studio</span>
+              <span style="font-size:13px;color:#8a8a94">Version 1.2.0 · Stable · built 12 Oct 2026</span>
+            </div>
+            <button onClick="{{ copySys }}" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">{{ sysCopyIcon }}</span>{{ sysCopyLabel }}</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">System</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+              <sc-for list="{{ sysInfo }}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;gap:16px;padding:11px 18px;border-top:{{ s.bt }};font-size:13px">
+                  <span style="width:140px;color:#8a8a94;flex:none">{{ s.k }}</span><span style="font-family:'Geist Mono',monospace;font-size:12.5px;color:#d6d6db">{{ s.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:12px;color:#8a8a94;font-weight:500;padding-left:2px">Files</div>
+            <div style="background:#111114;border:1px solid #1f1f24;border-radius:12px;overflow:hidden">
+              <sc-for list="{{ paths }}" as="p" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:{{ p.bt }};flex-wrap:wrap">
+                  <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:500">{{ p.label }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#8a8a94;word-break:break-all">{{ p.path }}</span></div>
+                  <button style="height:30px;padding:0 10px;border-radius:7px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="ms" style="font-size:15px">folder_open</span>Show</button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{ goChangelog }}" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">history</span>Changelog</button>
+            <button style="height:34px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">bug_report</span>Report an issue</button>
+            <button style="height:34px;padding:0 12px;border-radius:8px;border:1px solid #2a2a31;background:#16161a;color:#ededf0;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px"><span class="ms" style="font-size:16px">gavel</span>Open-source licenses</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isChangelog }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:28px;align-items:flex-start">
+            <div style="width:172px;flex:none;position:sticky;top:20px;display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;gap:2px;padding:3px;background:#0c0c0e;border:1px solid #24242a;border-radius:9px;margin-bottom:10px">
+                <sc-for list="{{ clModes }}" as="m" hint-placeholder-count="2">
+                  <button onClick="{{ m.onClick }}" style="flex:1;height:26px;border:0;border-radius:6px;background:{{ m.bg }};color:{{ m.fg }};font-size:12px;font-weight:500;cursor:pointer">{{ m.label }}</button>
+                </sc-for>
+              </div>
+              <sc-for list="{{ clVersions }}" as="v" hint-placeholder-count="5">
+                <button onClick="{{ v.onClick }}" style="display:flex;flex-direction:column;gap:1px;padding:7px 10px;border:0;border-left:2px solid {{ v.border }};background:transparent;color:{{ v.fg }};cursor:pointer;text-align:left">
+                  <span style="font-size:13px;font-weight:500;font-family:'Geist Mono',monospace">{{ v.v }}</span>
+                  <span style="font-size:11px;color:#6f6f79">{{ v.date }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="flex:1;min-width:0">
+              <sc-if value="{{ clRendered }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:28px">
+                  <sc-for list="{{ clDoc }}" as="rel" hint-placeholder-count="3">
+                    <article style="display:flex;flex-direction:column;gap:12px;padding-bottom:28px;border-bottom:1px solid #1c1c21">
+                      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+                        <span style="font-size:20px;font-weight:600;font-family:'Geist Mono',monospace;letter-spacing:-0.01em">{{ rel.v }}</span>
+                        <span style="font-size:12.5px;color:#6f6f79">{{ rel.date }}</span>
+                        <sc-if value="{{ rel.current }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:oklch(0.78 0.16 150 / 0.14);color:oklch(0.84 0.14 150);font-weight:500">Installed</span></sc-if>
+                      </div>
+                      <sc-if value="{{ rel.hasIntro }}" hint-placeholder-val="{{ false }}"><p style="margin:0;font-size:14px;color:#c9c9cf;line-height:1.6;text-wrap:pretty">{{ rel.intro }}</p></sc-if>
+                      <sc-for list="{{ rel.sections }}" as="sec" hint-placeholder-count="2">
+                        <div style="display:flex;flex-direction:column;gap:6px">
+                          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;padding:2px 8px;border-radius:5px;background:{{ sec.bg }};color:{{ sec.fg }};font-weight:600;letter-spacing:.02em">{{ sec.title }}</span></div>
+                          <ul style="margin:0;padding:0 0 0 18px;display:flex;flex-direction:column;gap:5px">
+                            <sc-for list="{{ sec.items }}" as="it" hint-placeholder-count="3">
+                              <li style="font-size:13.5px;color:#d6d6db;line-height:1.55;text-wrap:pretty"><sc-for list="{{ it }}" as="seg" hint-placeholder-count="1"><sc-if value="{{ seg.code }}" hint-placeholder-val="{{ false }}"><code style="font-family:'Geist Mono',monospace;font-size:12px;background:#1a1a1f;border:1px solid #24242a;border-radius:4px;padding:0 4px;color:#ededf0">{{ seg.t }}</code></sc-if><sc-if value="{{ seg.plain }}" hint-placeholder-val="{{ true }}">{{ seg.t }}</sc-if></sc-for></li>
+                            </sc-for>
+                          </ul>
+                        </div>
+                      </sc-for>
+                    </article>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ clRaw }}" hint-placeholder-val="{{ false }}">
+                <pre style="margin:0;padding:18px;background:#09090b;border:1px solid #1f1f24;border-radius:12px;font-family:'Geist Mono',monospace;font-size:12.5px;line-height:1.7;color:#c9c9cf;white-space:pre-wrap">{{ clSource }}</pre>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+        <div style="position:fixed;right:24px;bottom:20px;z-index:10;display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:9px;background:#1c1c21;border:1px solid #2a2a31;font-size:12.5px;color:#ededf0;box-shadow:0 8px 24px rgba(0,0,0,.4)"><span class="ms" style="font-size:16px;color:oklch(0.78 0.16 150)">check_circle</span>{{ toast }}</div>
+      </sc-if>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;serverState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;running&quot;,&quot;stopped&quot;,&quot;error&quot;],&quot;default&quot;:&quot;running&quot;,&quot;tsType&quot;:&quot;'running'|'stopped'|'error'&quot;},&quot;updateState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;current&quot;,&quot;available&quot;,&quot;downloading&quot;,&quot;ready&quot;],&quot;default&quot;:&quot;current&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const ACC = 'oklch(0.72 0.15 255)', GREEN = 'oklch(0.78 0.16 150)', AMBER = 'oklch(0.82 0.14 75)', RED = 'oklch(0.7 0.18 25)';
+const DIAG = [
+  ['app.rssMb','36.3','-0.1 (-0%)',0],['server.eventLoopDelayMs.max','104.3','+62.5 (+149%)',149],['server.eventLoopDelayMs.p50','15.5','+0 (+0%)',0],['server.eventLoopDelayMs.p99','20.8','-6 (-22%)',-22],
+  ['server.memory.arrayBuffers','874.7k','+371.3k (+74%)',74],['server.memory.external','5.2M','+70.5k (+1%)',1],['server.memory.heapTotal','21.5M','+2.9M (+15%)',15],['server.memory.heapUsed','19.8M','+3.9M (+24%)',24],['server.memory.rss','79.7M','+4.8M (+6%)',6],
+  ['server.resources.PipeWrap','2','+0 (+0%)',0],['server.resources.TCPServerWrap','1','+0 (+0%)',0],['server.resources.TCPSocketWrap','9','-1 (-10%)',-10],['server.resources.Timeout','7','+0 (+0%)',0],['server.resourcesTotal','19','-1 (-5%)',-5],
+  ['server.sseClients.config','2','+0 (+0%)',0],['server.sseClients.control','3','+0 (+0%)',0],['server.sseClients.extras','1','+0 (+0%)',0],['server.sseClientsTotal','6','+0 (+0%)',0],
+  ['sidecar.cpuPct','0.8','+0.8',0],['sidecar.rssMb','76','+4.6 (+6%)',6],
+  ['studio.domNodes','909','-38 (-4%)',-4],['studio.eventSources','1','+0 (+0%)',0],['studio.jsHeapTotal','18.6M','-65.2M (-78%)',-78],['studio.jsHeapUsed','16.7M','-26.5M (-61%)',-61],
+  ['webview.privateMb','364.6','-550.4 (-60%)',-60]
+];
+const CHANGELOG = `# Changelog
+
+## 1.2.0 — 2026-10-12
+Widget settings are now four tabs on every widget, and themes can be set once for a profile or a dashboard.
+
+### Added
+- Show, Style, Data and Behaviour tabs on every widget, with a per-section **Follow theme** switch
+- Theme editor for profiles and dashboards, with lock and reset per section
+- Debug mode samples memory every 30 s and flags series that keep growing
+- \`Copy diagnostics summary\` for bug reports
+
+### Changed
+- Old setting keys are migrated on load; \`styleMode\` becomes the Surface preset
+- Dense view and summary card are one control: **Small zones**
+
+### Fixed
+- Kiosk lost its SSE connection after the PC woke from sleep
+- Ring thickness ignored the theme on the System widget
+
+## 1.1.2 — 2026-09-03
+### Fixed
+- Server failed to start when port \`3922\` was held by a stopped process
+- Statusline wrapper printed twice in Claude Code 2.x
+
+## 1.1.0 — 2026-08-18
+Coding agents arrive on the dashboard.
+
+### Added
+- Claude Code and Codex sessions, via hooks in \`~/.claude/settings.json\` and \`~/.codex/hooks.json\`
+- Close to tray, so closing the window keeps the kiosk running
+
+### Changed
+- Studio opens on the last dashboard you edited
+
+## 1.0.0 — 2026-06-30
+### Added
+- First release: studio, local kiosk server, 54 widgets and 10 panel kinds
+`;
+function parseCL(src) {
+  const rels = []; let rel = null, sec = null;
+  const segs = s => s.replace(/\*\*/g, '').split(/(`[^`]+`)/).filter(Boolean).map(t => t.startsWith('`') ? { t: t.slice(1, -1), code: true, plain: false } : { t, code: false, plain: true });
+  src.split('\n').forEach(l => {
+    if (l.startsWith('## ')) { const [v, date] = l.slice(3).split(' — '); rel = { v, date, intro: '', sections: [] }; rels.push(rel); sec = null; }
+    else if (l.startsWith('### ') && rel) { sec = { title: l.slice(4), items: [] }; rel.sections.push(sec); }
+    else if (l.startsWith('- ') && sec) sec.items.push(segs(l.slice(2)));
+    else if (l.trim() && rel && !sec) rel.intro += l.trim();
+  });
+  return rels;
+}
+const SEC_COL = { Added: [GREEN, 'oklch(0.78 0.16 150 / 0.13)'], Changed: ['oklch(0.84 0.12 255)', 'oklch(0.72 0.15 255 / 0.14)'], Fixed: [AMBER, 'oklch(0.82 0.14 75 / 0.13)'] };
+const LOGS = {
+  server: [['info','server listening on {addr}'],['info','sse client connected (control)'],['debug','POST /api/agents/event?agent=claude 204 0ms'],['debug','POST /api/agents/statusline 204 0ms'],['debug','GET /api/debug/stats 200 0ms'],['warn','event loop delay 104ms (max over 30s)'],['debug','POST /api/agents/event?agent=claude 204 0ms'],['info','sse client connected (extras)'],['debug','GET /api/config 200 2ms'],['error','sidecar read timeout: lhm sensor tree (retrying)'],['debug','POST /api/agents/event?agent=codex 204 1ms'],['debug','POST /api/agents/statusline 204 0ms'],['info','sidecar reconnected'],['debug','GET /api/debug/stats 200 0ms']],
+  studio: [['info','studio window ready (1.2.0)'],['info','loaded dashboard "Desk 5×3"'],['debug','settings migrated: 0 keys'],['warn','font "Orbitron" slow to load (820ms)'],['info','theme "Graphite" applied to profile'],['debug','eventSource open /api/sse/control']],
+  sidecar: [['info','sidecar started pid 18244'],['info','sensors: 214 found (LibreHardwareMonitor)'],['warn','GPU hotspot sensor missing on adapter 1'],['error','read timeout after 2000ms'],['info','reconnected'],['debug','poll 1000ms · 214 sensors · 3.1ms']]
+};
+const LVL = { info: '#7fa7ff', debug: '#6f6f79', warn: AMBER, error: RED };
+const INDEX = [
+  ['App zoom','general'],['Start at login','general'],['Open the studio on launch','general'],['Start the server on launch','general'],['Close to tray','general'],['Remember window size','general'],
+  ['Start / stop server','server'],['Restart server','server'],['Who can connect (listen on)','server'],['Port','server'],['Kiosk URL','server'],['Restart automatically if it crashes','server'],
+  ['Connect coding agents','agents'],['Claude Code hooks','agents'],['Codex hooks','agents'],
+  ['Check for updates','updates'],['Release channel','updates'],['Download in the background','updates'],
+  ['Debug mode','diag'],['Diagnostics / memory','diag'],['Open DevTools','diag'],['Copy diagnostics summary','diag'],
+  ['Logs','logs'],['Version','about'],['Data folder','about'],['Licenses','about'],['Changelog','changelog']
+];
+const SECTIONS = {
+  general: ['General','tune','How the app starts, closes and scales.'],
+  server: ['Server','dns','The local server the kiosk and studio load from.'],
+  agents: ['Coding agents','smart_toy','Claude Code and Codex on your dashboard.'],
+  updates: ['Updates','system_update','Get new versions of InfoPanel Studio.'],
+  diag: ['Diagnostics','monitoring','Find errors and memory leaks.'],
+  logs: ['Logs','article','Live output from the server, studio and sensor sidecar.'],
+  about: ['About','info','Version, system and file locations.'],
+  changelog: ['Changelog','history','Everything that changed, newest first.']
+};
+const NAV = [['App',['general','server','agents','updates']],['Troubleshoot',['diag','logs']],['InfoPanel Studio',['about','changelog']]];
+const ZOOMS = [80, 90, 100, 110, 125, 150];
+
+class Component extends DCLogic {
+  state = {
+    section: 'general', q: '', zoom: 100,
+    startAtLogin: true, openOnStart: true, startServer: true, closeToTray: true, rememberWin: true, autoRestart: true,
+    listen: 'local', port: '3922', saved: { listen: 'local', port: '3922', debug: true },
+    server: null, debug: true, agents: true, checkUpdates: true, autoDownload: false, channel: 'stable', upd: null,
+    logSource: 'server', logLevel: 'all', logQ: '', follow: true, diagAll: false, clMode: 'rendered', toast: null, copied: null
+  };
+  componentDidMount() {
+    this._key = e => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); this.stepZoom(1); }
+      else if (e.key === '-') { e.preventDefault(); this.stepZoom(-1); }
+      else if (e.key === '0') { e.preventDefault(); this.set({ zoom: 100 }); }
+      else if (e.key === 'k') { e.preventDefault(); const i = document.querySelector('aside input'); i && i.focus(); }
+    };
+    window.addEventListener('keydown', this._key);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this._key); clearTimeout(this._t); clearTimeout(this._c); }
+  set(patch) { this.setState(patch); clearTimeout(this._t); this.setState({ toast: 'Saved' }); this._t = setTimeout(() => this.setState({ toast: null }), 1400); }
+  copy(id) { this.setState({ copied: id }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ copied: null }), 1500); }
+  stepZoom(d) { const i = ZOOMS.indexOf(this.state.zoom); const n = ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, (i < 0 ? 2 : i) + d))]; this.set({ zoom: n }); }
+  go(section) { this.setState({ section, q: '' }); const m = document.querySelector('main'); m && (m.scrollTop = 0); }
+  restart() {
+    const s = this.state;
+    this.setState({ server: 'restarting', saved: { listen: s.listen, port: s.port, debug: s.debug } });
+    setTimeout(() => this.setState({ server: 'running' }), 1200);
+  }
+  seg(opts, cur, onPick) { return opts.map(([v, label]) => ({ label, bg: v === cur ? '#24242b' : 'transparent', fg: v === cur ? '#ededf0' : '#8a8a94', onClick: () => onPick(v) })); }
+
+  renderVals() {
+    const s = this.state, p = this.props;
+    const server = s.server ?? p.serverState ?? 'running';
+    const upState = s.upd ?? p.updateState ?? 'current';
+    const host = s.saved.listen === 'lan' ? '192.168.1.40' : '127.0.0.1';
+    const addr = `${host}:${s.saved.port}`;
+    const tg = k => ({ bg: s[k] ? ACC : '#2e2e35', x: s[k] ? 'translateX(16px)' : 'none', xs: s[k] ? 'translateX(12px)' : 'none', onClick: () => this.set({ [k]: !s[k] }) });
+    const t = {}; ['startAtLogin','openOnStart','startServer','closeToTray','rememberWin','autoRestart','agents','checkUpdates','autoDownload','debug','follow'].forEach(k => t[k] = tg(k));
+    t.follow.onClick = () => this.setState({ follow: !s.follow });
+
+    const SRV = {
+      running: { label: 'Server running', dot: GREEN, halo: 'oklch(0.78 0.16 150 / 0.14)', icon: 'check_circle', detail: `On ${addr} · up 2 h 14 min`, canStop: true },
+      stopped: { label: 'Server stopped', dot: '#6f6f79', halo: '#1c1c21', icon: 'pause_circle', detail: 'The kiosk shows "can\'t connect" until you start it.', canStart: true },
+      error: { label: 'Server couldn\'t start', dot: RED, halo: 'oklch(0.7 0.18 25 / 0.14)', icon: 'error', detail: 'Failed at 02:31:04', canStart: true, isError: true },
+      restarting: { label: 'Restarting…', dot: AMBER, halo: 'oklch(0.82 0.14 75 / 0.14)', icon: 'autorenew', detail: `Coming back on ${s.listen === 'lan' ? '192.168.1.40' : '127.0.0.1'}:${s.port}` }
+    };
+    const srv = { canStop: false, canStart: false, isError: false, ...SRV[server] };
+    const running = server === 'running';
+    const srvStats = [['Address', running ? addr : '—'], ['Uptime', running ? '2h 14m' : '—'], ['Clients', running ? '6' : '0'], ['Memory', running ? '79.7 MB' : '—']].map(([k, v]) => ({ k, v }));
+
+    const changes = [];
+    if (s.port !== s.saved.port) changes.push(`port ${s.port}`);
+    if (s.listen !== s.saved.listen) changes.push(s.listen === 'lan' ? 'local network access' : 'local-only access');
+    if (s.debug !== s.saved.debug) changes.push(`debug mode ${s.debug ? 'on' : 'off'}`);
+    const portN = +s.port, portOk = /^\d+$/.test(s.port) && portN >= 1024 && portN <= 65535;
+    const pending = changes.length > 0 && portOk && server !== 'restarting';
+
+    const updMap = {
+      current: { icon: 'verified', color: GREEN, halo: 'oklch(0.78 0.16 150 / 0.14)', title: 'You\'re up to date', detail: 'Version 1.2.0 · checked 4 min ago', btn: 'Check now', btnBg: '#24242b', btnFg: '#ededf0', onPrimary: () => { this.setState({ upd: 'checking' }); setTimeout(() => this.setState({ upd: 'available' }), 900); } },
+      checking: { icon: 'sync', color: ACC, halo: 'oklch(0.72 0.15 255 / 0.14)', title: 'Checking…', detail: 'Version 1.2.0', btn: 'Check now', btnBg: '#24242b', btnFg: '#6f6f79', onPrimary: () => {} },
+      available: { icon: 'new_releases', color: ACC, halo: 'oklch(0.72 0.15 255 / 0.14)', title: 'Version 1.3.0 is available', detail: 'You have 1.2.0 · 48 MB download', btn: 'Download', btnBg: ACC, btnFg: '#0b0d14', onPrimary: () => { this.setState({ upd: 'downloading' }); setTimeout(() => this.setState({ upd: 'ready' }), 1600); } },
+      downloading: { icon: 'downloading', color: ACC, halo: 'oklch(0.72 0.15 255 / 0.14)', title: 'Downloading 1.3.0', detail: '30 of 48 MB', btn: 'Cancel', btnBg: '#24242b', btnFg: '#ededf0', downloading: true, onPrimary: () => this.setState({ upd: 'available' }) },
+      ready: { icon: 'restart_alt', color: GREEN, halo: 'oklch(0.78 0.16 150 / 0.14)', title: '1.3.0 is ready to install', detail: 'The app and kiosk server restart; takes about 10 s.', btn: 'Restart and update', btnBg: GREEN, btnFg: '#06140b', onPrimary: () => this.setState({ upd: 'current' }) }
+    };
+    const upd = { downloading: false, ...updMap[upState] };
+
+    const navGroups = NAV.map(([label, ids]) => ({ label, items: ids.map(id => {
+      const on = s.section === id;
+      const dot = id === 'server' ? srv.dot : id === 'diag' && s.debug ? AMBER : null;
+      const badge = id === 'updates' && (upState === 'available' || upState === 'ready') ? '1' : null;
+      return { label: SECTIONS[id][0], icon: SECTIONS[id][1], bg: on ? '#1c1c22' : 'transparent', fg: on ? '#ededf0' : '#a8a8b2', iconColor: on ? 'oklch(0.84 0.12 255)' : '#6f6f79', hasDot: !!dot, dot, hasBadge: !!badge, badge, onClick: () => this.go(id) };
+    }) }));
+    const ql = s.q.trim().toLowerCase();
+    const results = ql ? INDEX.filter(([l, sec]) => (l + ' ' + SECTIONS[sec][0]).toLowerCase().includes(ql)).map(([label, sec]) => ({ label, section: SECTIONS[sec][0], icon: SECTIONS[sec][1], onClick: () => this.go(sec) })) : [];
+
+    const flagged = r => r[3] >= 20;
+    const groups = {};
+    DIAG.filter(r => s.diagAll || flagged(r) || r[3] <= -20).forEach(r => { const g = r[0].split('.')[0]; (groups[g] = groups[g] || []).push(r); });
+    const diagGroups = Object.entries(groups).map(([name, rows]) => ({ name, rows: rows.map(r => ({ name: r[0].slice(name.length + 1), latest: r[1], d: r[2], dot: flagged(r) ? AMBER : '#3a3a42', color: flagged(r) ? AMBER : r[3] <= -20 ? '#7fd1a4' : '#8a8a94' })) }));
+    const nFlag = DIAG.filter(flagged).length;
+
+    const src = LOGS[s.logSource].filter(([l]) => s.debug || l !== 'debug');
+    const lines = []; for (let i = 0; i < 3; i++) src.forEach(([lvl, msg], j) => { const sec = 10 + i * 14 + j; lines.push({ lvl, msg: msg.replace('{addr}', addr), ts: `02:${String(28 + Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}.${String((j * 137) % 1000).padStart(3, '0')}` }); });
+    const counts = { all: lines.length }; lines.forEach(l => counts[l.lvl] = (counts[l.lvl] || 0) + 1);
+    const lq = s.logQ.toLowerCase();
+    const logLines = lines.filter(l => (s.logLevel === 'all' || l.lvl === s.logLevel) && (!lq || l.msg.toLowerCase().includes(lq))).map(l => ({ ...l, lvl: l.lvl.toUpperCase(), color: LVL[l.lvl], msgColor: l.lvl === 'error' ? 'oklch(0.85 0.08 25)' : l.lvl === 'debug' ? '#8a8a94' : '#d6d6db' }));
+    const logLevels = [['all','All','#8a8a94'],['error','Errors',RED],['warn','Warnings',AMBER],['info','Info','#7fa7ff'],['debug','Debug','#6f6f79']].map(([v, label, dot]) => ({ label, dot, count: counts[v] || 0, bg: s.logLevel === v ? '#1c1c22' : 'transparent', border: s.logLevel === v ? '#3a3a44' : '#24242a', fg: s.logLevel === v ? '#ededf0' : '#9696a0', onClick: () => this.setState({ logLevel: v }) }));
+
+    const cl = parseCL(CHANGELOG);
+    const clDoc = cl.map(r => ({ v: r.v, date: new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), current: r.v === '1.2.0', hasIntro: !!r.intro, intro: r.intro, sections: r.sections.map(x => ({ title: x.title, items: x.items, fg: (SEC_COL[x.title] || ['#c9c9cf'])[0], bg: (SEC_COL[x.title] || [0, '#1c1c21'])[1] })) }));
+    const clVersions = clDoc.map((r, i) => ({ v: r.v, date: r.date, border: i === 0 ? ACC : '#24242a', fg: i === 0 ? '#ededf0' : '#9696a0', onClick: () => { const a = document.querySelectorAll('main article')[i]; const m = document.querySelector('main'); if (a && m) m.scrollTop = a.offsetTop - 20; } }));
+
+    const sec = SECTIONS[s.section];
+    const is = id => s.section === id;
+    const cp = (id, label) => ({ [id + 'CopyIcon']: s.copied === id ? 'check' : 'content_copy', [id + 'CopyLabel']: s.copied === id ? 'Copied' : label });
+    const bt = i => i ? '1px solid #1c1c21' : 'none';
+    return {
+      zoomCss: s.zoom / 100, zoomLabel: s.zoom + '%', zoomIn: () => this.stepZoom(1), zoomOut: () => this.stepZoom(-1),
+      zoomOpts: ZOOMS.map(z => ({ label: z + '%', bg: z === s.zoom ? '#24242b' : 'transparent', fg: z === s.zoom ? '#ededf0' : '#8a8a94', onClick: () => this.set({ zoom: z }) })),
+      q: s.q, onQ: e => this.setState({ q: e.target.value }), clearQ: () => this.setState({ q: '' }), hasQ: !!ql, noQ: !ql,
+      results, resultCount: results.length ? `${results.length} result${results.length > 1 ? 's' : ''}` : 'No matches',
+      navGroups, srv, srvStats, addr: running ? addr : srv.label.replace('Server ', ''),
+      title: sec[0], subtitle: sec[2], maxW: is('logs') || is('diag') ? '1040px' : '780px',
+      isGeneral: is('general'), isServer: is('server'), isAgents: is('agents'), isUpdates: is('updates'), isDiag: is('diag'), isLogs: is('logs'), isAbout: is('about'), isChangelog: is('changelog'),
+      startServerHint: s.startServer ? 'The kiosk works as soon as the app is up.' : 'Off: start it yourself from Server. The kiosk can\'t connect until then.',
+      t, trayHint: s.closeToTray ? 'Closing the window keeps the server running for the kiosk.' : 'Closing the window quits the app and stops the kiosk server.',
+      pending, pendingText: `Restart the server to apply: ${changes.join(', ')}.`, restart: () => this.restart(),
+      revert: () => this.setState({ port: s.saved.port, listen: s.saved.listen, debug: s.saved.debug }),
+      stopServer: () => this.setState({ server: 'stopped' }), useFreePort: () => this.setState({ port: '3923', saved: { ...s.saved, port: '3923' }, server: 'running' }),
+      listenOpts: [['local','This computer only','127.0.0.1','computer'],['lan','Local network','0.0.0.0 · 192.168.1.40','lan']].map(([v, label, a, icon]) => ({ label, addr: a, icon, border: s.listen === v ? ACC : '#24242a', bg: s.listen === v ? 'oklch(0.72 0.15 255 / 0.08)' : '#0e0e11', iconColor: s.listen === v ? 'oklch(0.84 0.12 255)' : '#6f6f79', onClick: () => this.set({ listen: v }) })),
+      isLan: s.listen === 'lan',
+      port: s.port, onPort: e => this.setState({ port: e.target.value.replace(/\D/g, '').slice(0, 5) }),
+      portHint: portOk ? '1024 – 65535' : 'Use a number from 1024 to 65535.', portHintColor: portOk ? '#8a8a94' : RED, portBorder: portOk ? '#2a2a31' : RED,
+      kioskUrl: `http://${host}:${s.saved.port}/?kiosk=1`, copyKiosk: () => this.copy('kiosk'), ...cp('kiosk', 'Copy'),
+      agentFiles: [['Claude Code','~/.claude/settings.json'],['Codex','~/.codex/hooks.json']].map(([agent, path]) => ({ agent, path, status: s.agents ? 'Hooks installed' : 'Not connected', chipBg: s.agents ? 'oklch(0.78 0.16 150 / 0.13)' : '#1c1c21', chipFg: s.agents ? 'oklch(0.84 0.14 150)' : '#8a8a94' })),
+      agentsFilesNote: s.agents ? 'Edited files' : 'Files that will be edited',
+      upd, channelOpts: this.seg([['stable','Stable'],['beta','Beta']], s.channel, v => this.set({ channel: v })), goChangelog: () => this.go('changelog'),
+      debugOn: s.debug, debugOff: !s.debug, goLogs: () => this.go('logs'), copyDiag: () => this.copy('diag'), ...cp('diag', 'Copy diagnostics summary'),
+      diagFilters: this.seg([[false, `Notable (${DIAG.filter(r => flagged(r) || r[3] <= -20).length})`], [true, `All ${DIAG.length}`]], s.diagAll, v => this.setState({ diagAll: v })), diagGroups, nFlag,
+      logSources: this.seg([['server','Server'],['studio','Studio'],['sidecar','Sensor sidecar']], s.logSource, v => this.setState({ logSource: v })),
+      logLevels, logQ: s.logQ, onLogQ: e => this.setState({ logQ: e.target.value }), logLines, logEmpty: logLines.length === 0,
+      logCount: `${logLines.length} of ${lines.length} lines${s.debug ? '' : ' · debug lines hidden (debug mode off)'}`, copyLog: () => this.copy('log'), ...cp('log', 'Copy'),
+      sysInfo: [['Version','1.2.0 (build 2026.10.12)'],['Channel', s.channel === 'beta' ? 'Beta' : 'Stable'],['Node','22.11.0'],['WebView2','130.0.2849.80'],['Windows','11 Pro 24H2 (26100)'],['Sensors','LibreHardwareMonitor 0.9.4']].map(([k, v], i) => ({ k, v, bt: bt(i) })),
+      paths: [['Settings file','%APPDATA%\\InfoPanel Studio\\settings.json'],['Dashboards and themes','%APPDATA%\\InfoPanel Studio\\profiles'],['Logs','%LOCALAPPDATA%\\InfoPanel Studio\\logs']].map(([label, path], i) => ({ label, path, bt: bt(i) })),
+      copySys: () => this.copy('sys'), ...cp('sys', 'Copy system info'),
+      clModes: this.seg([['rendered','Read'],['raw','Markdown']], s.clMode, v => this.setState({ clMode: v })), clRendered: s.clMode === 'rendered', clRaw: s.clMode === 'raw',
+      clDoc, clVersions, clSource: CHANGELOG,
+      hasToast: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
