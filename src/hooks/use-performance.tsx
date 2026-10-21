@@ -41,6 +41,7 @@ export function PerformanceProvider({ value, children }: { value: PerformanceOve
   const lite = reduceMotion || (maxFps > 0 && maxFps < 60);
   useEffect(() => {
     document.documentElement.toggleAttribute("data-lite-motion", lite);
+    return () => document.documentElement.removeAttribute("data-lite-motion");
   }, [lite]);
   return <OverrideContext.Provider value={value}>{children}</OverrideContext.Provider>;
 }

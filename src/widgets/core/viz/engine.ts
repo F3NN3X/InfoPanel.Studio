@@ -56,15 +56,16 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
   let peaks = new Float32Array(0);
   let holdUntil = new Float64Array(0);
 
-  const paint = (nowMs: number) => {
-    if (!ctx || !spec || !getter || !w || !h) return;
+  /** Paints one frame; false when it couldn't (no size, look, input or colours yet). */
+  const paint = (nowMs: number): boolean => {
+    if (!ctx || !spec || !getter || !w || !h) return false;
     const dt = lastMs ? Math.min(MAX_FRAME_GAP_MS, nowMs - lastMs) : 16;
     lastMs = nowMs;
     if (resolver && (!palette || nowMs - paletteAt > PALETTE_MS)) {
       palette = resolvePalette(paletteSpec(spec.look, spec.skin), resolver.resolve);
       paletteAt = nowMs;
     }
-    if (!palette) return;
+    if (!palette) return false;
     const { style, look } = spec;
     const input = getter();
     const n = barCount(style, look, w, h);
@@ -87,6 +88,7 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     if (look.fade > 0) fadeEdges(ctx, w, h, look.fade);
+    return true;
   };
 
   const sync = () => {
@@ -98,10 +100,10 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
       unsubscribe();
       unsubscribe = null;
     }
+    // The still frame shows the input as first read (silent until the input has stepped), not live audio.
     if (!run && !stilled && onScreen && spec?.reduced && getter) {
-      stilled = true;
       lastMs = 0;
-      paint(performance.now());
+      stilled = paint(performance.now());
     }
   };
 
@@ -112,6 +114,9 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
     h = r.height;
     canvas.width = Math.max(1, Math.round(w * dpr));
     canvas.height = Math.max(1, Math.round(h * dpr));
+    // Setting the size clears the canvas, so a still frame paints again.
+    stilled = false;
+    sync();
   };
   resize();
   const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
