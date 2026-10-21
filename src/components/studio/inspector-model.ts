@@ -16,6 +16,7 @@ import {
   isLocked,
   isSectionId,
   ownApplies,
+  SECTION_IDS,
   sectionOfKey,
   themeKeyOf,
   type SectionFlags,
@@ -27,6 +28,7 @@ import {
   categoryTab,
   isTrailing,
   tabOf,
+  mergeWidgetColors,
   withHeaderMode,
   withShared,
   type InspectorCategory,
@@ -146,7 +148,7 @@ export type SpecialSection =
   | "ipUnknown";
 
 /** Custom UI placed inside a section next to its settings. */
-export type ExtraKind = "widgetPicker" | "visible" | "styleTools" | "zoneFrame";
+export type ExtraKind = "widgetPicker" | "visible" | "zoneFrame";
 
 export interface SectionExtra {
   kind: ExtraKind;
@@ -159,7 +161,6 @@ export interface SectionExtra {
 const EXTRA_TERMS: Record<ExtraKind, string[]> = {
   widgetPicker: ["Widget type", "Change widget"],
   visible: ["Visible", "Hide"],
-  styleTools: ["Copy style", "Paste style", "Save style", "Style preset"],
   zoneFrame: ["Zone frame", "Frame accent", "Frame background", "Title header"],
 };
 
@@ -213,8 +214,6 @@ function extrasOf(category: InspectorCategory, context: InspectorContext): Secti
   switch (category.id) {
     case "header":
       return identityExtras(context);
-    case "colors":
-      return zone ? [extra("styleTools")] : [];
     case "border":
       return zone ? [extra("zoneFrame", true, 3)] : [];
     default:
@@ -258,7 +257,7 @@ const sectionsOfCategories = (categories: InspectorCategory[], context: Inspecto
 
 /** Widget and panel zones: the shared cards (Header, Colors, Border & glow always) and the widget's own. */
 function zoneCategories(defs: ModuleSetting[], header = true): InspectorCategory[] {
-  return withShared(categorize(defs), header ? ["header", "colors", "border"] : ["colors", "border"]);
+  return mergeWidgetColors(withShared(categorize(defs), header ? ["header", "colors", "border"] : ["colors", "border"]));
 }
 
 const inTab = (sections: InspectorSection[], tab: InspectorTab) => sections.filter((s) => s.tab === tab);
@@ -348,7 +347,7 @@ const blankSections = (): InspectorSection[] => [
 ];
 
 /** The shared sections of the look, in order: what several zones edit together. */
-const LOOK_SECTIONS: readonly SharedSectionId[] = ["skin", "colors", "surface", "type", "spacing", "border", "css", "fit", "motion"];
+const LOOK_SECTIONS: readonly SharedSectionId[] = ["skin", "colors", "type", "spacing", "surface", "border", "css", "fit", "motion"];
 
 function lookCategories(defs: ModuleSetting[]): InspectorCategory[] {
   const categories = categorize(defs);
@@ -637,6 +636,17 @@ export function followSection(s: InspectorSection): SectionId | undefined {
   const id = s.id.split("@")[0];
   if (!s.general || !isSectionId(id)) return undefined;
   return s.settings.some((d) => rowSection(d) === id) ? id : undefined;
+}
+
+/**
+ * The theme sections an inspector card's inheritance chip covers: its own, and Widget colors inside the
+ * merged Colors card (SPEC §6.3). None for a card nothing in follows a theme.
+ */
+export function chipSections(s: InspectorSection): SectionId[] {
+  const id = s.id.split("@")[0];
+  if (!s.general || !isSectionId(id)) return [];
+  const rows = new Set(s.settings.map(rowSection));
+  return SECTION_IDS.filter((sec) => rows.has(sec) && (sec === id || (id === "colors" && sec === "palette")));
 }
 
 /** A widget section's state: following the theme, custom, or locked by the profile. */

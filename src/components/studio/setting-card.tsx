@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { ChevronDown, RotateCcw, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInspectorChrome } from "./inspector-layout";
@@ -16,6 +16,10 @@ interface SettingSectionProps {
   changed: number;
   /** After the title (a followable section's Theme / Custom / Locked pill). */
   pill?: ReactNode;
+  /** The inheritance chip, between the title and the chevron (outside the toggle: it is a button). */
+  chip?: ReactNode;
+  /** Keys pressed inside the section (the chip's ⌫ reset). */
+  onKeyDown?: (e: KeyboardEvent<HTMLElement>) => void;
   /** Header controls before the reset (the style tools). */
   actions?: ReactNode;
   /** Drop just this section's own values. */
@@ -33,8 +37,8 @@ interface SettingSectionProps {
 
 /**
  * An inspector section: an accordion header that stays at the top while
- * its fields scroll (icon, title, the tab while filtering, a count of own
- * values and the chevron), a reset of just this section beside it, then
+ * its fields scroll (icon, title, the tab while filtering, "N changed", the
+ * inheritance chip and the chevron), a reset of just this section beside it, then
  * the field rows when open. One column, so collapsing never reflows sideways.
  */
 export function SettingSection({
@@ -44,6 +48,8 @@ export function SettingSection({
   tabLabel,
   changed,
   pill,
+  chip,
+  onKeyDown,
   actions,
   onReset,
   open,
@@ -59,6 +65,7 @@ export function SettingSection({
     <section
       {...{ [SETTING_CARD]: id }}
       data-widget-editor={editor ? "" : undefined}
+      onKeyDown={onKeyDown}
       className={cn("border-b border-[#1c1c21] transition-shadow duration-500", flash && "shadow-[inset_0_0_0_1.5px_var(--ui-accent)]")}
     >
       <header className="sticky top-0 z-[1] flex items-center gap-0.5 bg-ui-panel px-2">
@@ -76,17 +83,20 @@ export function SettingSection({
           <span className="truncate text-[12.5px] font-semibold">{title}</span>
           {filtering && tabLabel && <span className="shrink-0 whitespace-nowrap text-[11px] text-ui-5">{tabLabel}</span>}
           {pill}
-          {changed > 0 && (
-            <span className="shrink-0 rounded-lg bg-ui-accent/[.18] px-[5px] py-px font-ui-mono text-[10px] text-ui-accent-text">
-              {changed}
-            </span>
-          )}
-          {!filtering && (
-            <ChevronDown
-              className={cn("ml-auto h-[18px] w-[18px] shrink-0 text-ui-5 transition-transform duration-150", open && "rotate-180")}
-            />
-          )}
+          {changed > 0 && <span className="min-w-0 shrink-[100] overflow-hidden whitespace-nowrap text-[10.5px] text-[#8a8a94]">{changed} changed</span>}
         </button>
+        {chip}
+        {!filtering && (
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            onClick={onToggle}
+            className="flex h-[30px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ui-5 hover:bg-[#16161a]"
+          >
+            <ChevronDown className={cn("h-[18px] w-[18px] transition-transform duration-150", open && "rotate-180")} />
+          </button>
+        )}
         {/* The style tools only while open: a closed header keeps its title. */}
         {shown && actions}
         {changed > 0 && onReset && (

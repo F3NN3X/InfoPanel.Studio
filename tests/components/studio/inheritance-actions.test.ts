@@ -3,7 +3,7 @@ import { resolveInheritance, type InheritPath, type InheritScope } from "@/lib/i
 import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
 import { DEFAULT_THEME } from "@/lib/theme";
 import type { WidgetTheme } from "@/lib/theme-model";
-import { customiseInheritance, inheritanceJump, resetInheritance } from "@/components/studio/inheritance-actions";
+import { customiseInheritance, inheritanceJump, makeTheme, makeThemeSections, resetInheritance } from "@/components/studio/inheritance-actions";
 
 const zone = (follow?: Placement["follow"]): Placement => ({
   id: "z1",
@@ -130,5 +130,47 @@ describe("inheritanceJump", () => {
     const own = config({ profile: { performance: { maxFps: 15 } } });
     expect(jump(own, "performance", PAGE)).toEqual({ view: "screens", profileId: "desk", section: "performance" });
     expect(jump(config(), "colors", ALL)).toBeUndefined();
+  });
+});
+
+describe("Make this the theme for…", () => {
+  const custom = () => config({ zone: { ...zone({ colors: false, border: false }), settings: { accent: "#ff6a3d", glow: "soft", label: "CPU" } } });
+  const zoneOf = (c: DashboardConfig) => profileOf(c).pages[0].placements[0];
+
+  it("lists the widget's custom sections, skipping a locked one", () => {
+    expect(makeThemeSections(custom(), WIDGET)).toEqual(["colors", "border"]);
+    expect(makeThemeSections(custom(), WIDGET, ["border"])).toEqual(["border"]);
+    expect(makeThemeSections(config(), WIDGET)).toEqual([]);
+    expect(makeThemeSections({ ...custom(), profiles: [{ ...profileOf(custom()), widgetTheme: { locks: { colors: true } } }] }, WIDGET)).toEqual(["border"]);
+  });
+
+  it("All screens: the values move into the base style, and the widget follows again with them gone", () => {
+    const c = makeTheme(custom(), WIDGET, "all");
+    expect(c.style).toEqual({ accent: "#ff6a3d", font: "inter", glow: "soft" });
+    expect(zoneOf(c)).not.toHaveProperty("follow");
+    expect(zoneOf(c).settings).toEqual({ label: "CPU" });
+    expect(stateAfter(c, "colors", WIDGET)).toBe("inherited");
+    expect(resolveInheritance(c, "colors", WIDGET).resolvedValue).toMatchObject({ accent: "#ff6a3d" });
+  });
+
+  it("This screen: the values move into the screen's theme", () => {
+    const c = makeTheme(custom(), WIDGET, "screen");
+    expect(profileOf(c).widgetTheme?.values).toEqual({ accent: "#ff6a3d", glow: "soft" });
+    expect(c.style).toEqual(custom().style);
+    expect(stateAfter(c, "colors", SCREEN)).toBe("custom");
+  });
+
+  it("This page: the values move into the page's theme and the page customises those sections", () => {
+    const c = makeTheme(custom(), WIDGET, "page", ["colors"]);
+    expect(profileOf(c).pages[0].widgetTheme).toEqual({ values: { accent: "#ff6a3d" }, follow: { colors: false } });
+    // Only the named section moved: Border & glow stays the widget's own.
+    expect(zoneOf(c).follow).toEqual({ border: false });
+    expect(zoneOf(c).settings).toEqual({ glow: "soft", label: "CPU" });
+    expect(stateAfter(c, "colors", PAGE)).toBe("custom");
+  });
+
+  it("changes nothing when the widget has no custom section", () => {
+    const c = config();
+    expect(makeTheme(c, WIDGET, "all")).toBe(c);
   });
 });

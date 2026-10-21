@@ -85,20 +85,26 @@ export function useStudioUi(
   const [renameRequest, setRenameRequest] = useState<number>();
   const requestRename = () => setRenameRequest((n) => (n ?? 0) + 1);
   const clearRename = () => setRenameRequest(undefined);
-  /** A request for a Dashboard inspector tab (`seq` makes repeats count): the inspector shows it while nothing is selected. */
+  /**
+   * The screen's settings (the old profile inspector's Layout / Look / Behaviour tabs) replace the Page inspector
+   * while nothing is selected, until Screens and Settings take their contents (IMPLEMENTATION_PLAN Phases 4–5).
+   */
+  const [screenSettingsOpen, setScreenSettingsOpen] = useState(false);
+  /** A request for one of those tabs (`seq` makes repeats count): the inspector shows it while nothing is selected. */
   const [documentTabRequest, setDocumentTabRequest] = useState<{ tab: string; seq: number }>();
   const openDocumentTab = (tab: string) => {
     expandDock();
+    setScreenSettingsOpen(true);
     setDocumentTabRequest((r) => ({ tab, seq: (r?.seq ?? 0) + 1 }));
   };
+  /** The page whose icon picker is open (the page tabs' menu and the Page inspector). */
+  const [iconPage, setIconPage] = useState<string | null>(null);
   /** A request for an inspector tab or section brings a collapsed inspector (dock or side column) back first. */
   function expandDock() {
     studioLayout.showInspector();
   }
   /** The zone inspector's settings search ("Go to setting" fills it). */
   const [inspectorQuery, setInspectorQuery] = useState("");
-  /** The inspector's Changed filter (only values set here). */
-  const [inspectorChanged, setInspectorChanged] = useState(false);
   const inspectorRef = useRef<HTMLElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -109,7 +115,7 @@ export function useStudioUi(
   /** The page tab being renamed inline, and the page its delete confirm is open for. */
   const [renamingPage, setRenamingPage] = useState<string | null>(null);
   const [deletingPage, setDeletingPage] = useState<string | null>(null);
-  /** The panel inspector's "Save as panel preset" name input is open. */
+  /** The panel inspector's "Save as Panel" name input is open. */
   const [presetNaming, setPresetNaming] = useState(false);
   /** The alert rule open in the Alerts view's editor (null = the rules list). */
   const [alertRule, setAlertRule] = useState<string | null>(null);
@@ -252,8 +258,12 @@ export function useStudioUi(
     setShowGrid,
     showRulers,
     setShowRulers,
+    screenSettingsOpen,
+    setScreenSettingsOpen,
     documentTabRequest,
     openDocumentTab,
+    iconPage,
+    setIconPage,
     renameRequest,
     requestRename,
     clearRename,
@@ -264,8 +274,6 @@ export function useStudioUi(
     requestInspectorTab,
     inspectorQuery,
     setInspectorQuery,
-    inspectorChanged,
-    setInspectorChanged,
     inspectorRef,
     importRef,
     revealEditor,
@@ -318,12 +326,12 @@ export function useInspectorFollowsSelection(
   const lastPrimary = useRef(primaryId);
   useEffect(() => {
     ui.studioLayout.setHasSelection(primaryId !== null);
+    if (primaryId !== null) ui.setScreenSettingsOpen(false);
     if (primaryId !== null && ui.studioLayout.mode === "docked") ui.studioLayout.showInspector();
-    // Clearing the selection closes the floating inspector, returns the sheet to its peek and drops the search and the Changed filter.
+    // Clearing the selection closes the floating inspector, returns the sheet to its peek and drops the search.
     if (primaryId === null && lastPrimary.current !== null) {
       ui.studioLayout.dismissInspector();
       ui.setInspectorQuery("");
-      ui.setInspectorChanged(false);
     }
     lastPrimary.current = primaryId;
   }, [primaryId]);

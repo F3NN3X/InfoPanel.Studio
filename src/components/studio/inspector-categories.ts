@@ -22,26 +22,27 @@ interface SharedSection {
 
 /**
  * The shared sections, in the order the inspector shows them within a tab:
- * Show = Header · the widget's own · Fit; Style = the look; Data = the widget's
- * sources · Units & format; Behaviour = Thresholds · the widget's own ·
- * Dynamic Island · Motion. The standard block files its keys by `section`;
+ * Show = Header · the widget's own · Fit; Style = the look (SPEC §6.3: Skin,
+ * Colors, Typography, Shape & spacing, Surface & effects, Border & glow,
+ * Advanced); Data = the widget's sources · Units & format; Behaviour =
+ * Thresholds · the widget's own · Motion · Send to island. The standard block files its keys by `section`;
  * a widget's own rows land here by the rules of `sharedSectionOf`.
  */
 export const SHARED_SECTIONS: readonly SharedSection[] = [
   { id: "header", tab: "show", place: "lead", title: "Header", hint: "Title and icon" },
   { id: "fit", tab: "show", place: "trail", title: "Fit", hint: "Small zones (summary card, dense view) and density" },
-  { id: "skin", tab: "style", place: "lead", title: "Skin & graphics", hint: "Skin, ring and bar thickness, graph and meter style" },
-  { id: "colors", tab: "style", place: "lead", title: "Colors", hint: "Accent and text colors, quick preset" },
+  { id: "skin", tab: "style", place: "lead", title: "Skin", hint: "Skin, ring and bar thickness, graph and meter style" },
+  { id: "colors", tab: "style", place: "lead", title: "Colors", hint: "Accent and text colors" },
   { id: "palette", tab: "style", place: "lead", title: "Widget colors", hint: "The widget's own colors and look toggles" },
-  { id: "surface", tab: "style", place: "lead", title: "Surface", hint: "Material, opacity, blur and background image" },
   { id: "type", tab: "style", place: "lead", title: "Typography", hint: "Font, value weight and label case" },
-  { id: "spacing", tab: "style", place: "lead", title: "Size & spacing", hint: "Size, alignment, padding, gaps and corners" },
+  { id: "spacing", tab: "style", place: "lead", title: "Shape & spacing", hint: "Size, alignment, padding, gaps and corners" },
+  { id: "surface", tab: "style", place: "lead", title: "Surface & effects", hint: "Material, opacity, blur and background image" },
   { id: "border", tab: "style", place: "lead", title: "Border & glow", hint: "Border and edge glow" },
-  { id: "css", tab: "style", place: "lead", title: "Custom CSS", hint: "CSS scoped to the widget" },
+  { id: "css", tab: "style", place: "lead", title: "Advanced · CSS & locks", hint: "CSS scoped to the widget" },
   { id: "format", tab: "data", place: "trail", title: "Units & format", hint: "Units and decimals" },
   { id: "thresholds", tab: "behaviour", place: "lead", title: "Thresholds", hint: "Warning and critical levels" },
-  { id: "island", tab: "behaviour", place: "trail", title: "Dynamic Island", hint: "What the widget sends to the island" },
   { id: "motion", tab: "behaviour", place: "trail", title: "Motion", hint: "Graph updates" },
+  { id: "island", tab: "behaviour", place: "trail", title: "Send to island", hint: "What the widget sends to the island" },
 ];
 
 const SHARED_BY_ID: ReadonlyMap<string, SharedSection> = new Map(SHARED_SECTIONS.map((s) => [s.id, s] as const));
@@ -125,6 +126,18 @@ export function categorize(defs: ModuleSetting[]): InspectorCategory[] {
     ...[...own.values()].filter((c) => c !== other),
     ...(other ? [other] : []),
   ];
+}
+
+/**
+ * A zone's Style tab files the widget's own colors in Colors (SPEC §6.3). Their theme section stays Widget
+ * colors (`palette`); the Colors card's chip covers both (`chipSections`).
+ */
+export function mergeWidgetColors(categories: InspectorCategory[]): InspectorCategory[] {
+  const palette = categories.find((c) => c.general && c.id === "palette");
+  if (!palette) return categories;
+  return categories
+    .filter((c) => c !== palette)
+    .map((c) => (c.general && c.id === "colors" ? { ...c, defs: [...c.defs, ...palette.defs] } : c));
 }
 
 /**

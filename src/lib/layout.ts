@@ -8,6 +8,7 @@ import {
   migrateGeneralV7,
   migrateProfileV6,
   migrateProfileV7,
+  migrateProfileV10,
   migrateProfileV8,
   migrateStyleV7,
   type LegacyProfileFields,
@@ -224,8 +225,10 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  * v9: panel widgets (`settings-migrate.ts` `migrateWidgetV9`): a Custom gauge widget's width under
  *     its own `width` and a Gauge widget's ring under `size`, both off `fontSize`; a v8 build would
  *     draw them at the default size.
+ * v10: the widget `preset` key is dropped (`settings-migrate.ts` `migratePlacementV10`); its values
+ *     already sit in the zone's settings, so a v9 build only loses the marker.
  */
-export const CONFIG_VERSION = 9;
+export const CONFIG_VERSION = 10;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -489,7 +492,8 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * v2→v3 moves a profile's zones onto its first page, v3→v4 rewrites the
  * legacy module ids to their templates, v5→v6 moves the style onto the
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
- * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it); a
+ * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
+ * drops the widget `preset` key; a
  * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
@@ -510,7 +514,8 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
       })
     )
     .map((p) => migrateProfileV7(p, { legacy: (parsed.version ?? 0) < 7 }))
-    .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }));
+    .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
+    .map(migrateProfileV10);
   // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
   const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
   // A pin to a profile that is gone falls back to Auto.

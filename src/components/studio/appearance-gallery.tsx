@@ -10,7 +10,7 @@ import { activePresetId, appliedMessage } from "./appearance-actions";
 import type { AppearanceTarget } from "./inspector/profile-scope";
 import { AppearancePreview } from "./appearance-preview";
 import { ToggleRow } from "./setting-rows";
-import { ICON_BUTTON, ITEM, POPUP, SEPARATOR } from "./style-tools";
+import { ICON_BUTTON, ITEM, POPUP, SEPARATOR } from "./menu-styles";
 import type { AppearancePresetsApi } from "./use-appearance-presets";
 
 /** The look the scope shows now (to mark the preset it is). */

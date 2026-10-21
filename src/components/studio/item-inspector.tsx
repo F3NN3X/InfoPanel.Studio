@@ -27,8 +27,6 @@ interface ItemInspectorProps {
   onOpenExplorer: () => void;
   query: string;
   onQuery: (query: string) => void;
-  changedOnly: boolean;
-  onChangedOnly: (on: boolean) => void;
   jumpTo?: { id: string; key?: string; seq: number };
   identity: SheetIdentity;
 }
@@ -85,8 +83,6 @@ export function ItemInspector({
   onOpenExplorer,
   query,
   onQuery,
-  changedOnly,
-  onChangedOnly,
   jumpTo,
   identity,
 }: ItemInspectorProps) {
@@ -125,8 +121,6 @@ export function ItemInspector({
       parts={parts}
       query={query}
       onQuery={onQuery}
-      changedOnly={changedOnly}
-      onChangedOnly={onChangedOnly}
       jumpTo={jumpTo}
       identity={identity}
     />

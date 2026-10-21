@@ -23,9 +23,6 @@ interface MultiInspectorProps {
   onRemove: () => void;
   query: string;
   onQuery: (query: string) => void;
-  /** The Changed filter (only values set here, across every tab). */
-  changedOnly: boolean;
-  onChangedOnly: (on: boolean) => void;
   jumpTo?: { id: string; key?: string; seq: number };
 }
 
@@ -45,8 +42,6 @@ export function MultiInspector({
   onRemove,
   query,
   onQuery,
-  changedOnly,
-  onChangedOnly,
   jumpTo,
 }: MultiInspectorProps) {
   const primary = zones[zones.length - 1];
@@ -88,8 +83,6 @@ export function MultiInspector({
       parts={() => ({})}
       query={query}
       onQuery={onQuery}
-      changedOnly={changedOnly}
-      onChangedOnly={onChangedOnly}
       jumpTo={jumpTo}
       identity={{
         icon: <BoxSelect />,

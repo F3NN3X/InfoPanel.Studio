@@ -22,7 +22,7 @@ import type { ControlKiosk } from "@/lib/control";
 import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { copyProfileJson } from "./config-file";
-import { LiveControl } from "./live-popover";
+import { LiveControl, type LiveRotate } from "./live-popover";
 import { ResetConfigDialog } from "./reset-config-dialog";
 import { ScreenSwitcher } from "./screen-switcher";
 import { StudioLogo } from "./studio-logo";
@@ -46,6 +46,8 @@ interface StudioTopBarProps {
   liveOpen: boolean;
   onLiveOpenChange: (open: boolean) => void;
   kiosks: readonly ControlKiosk[];
+  /** The edited screen's runtime rotation (the Live popover's interim Pause / Play). */
+  rotate: LiveRotate;
   /** Live's "Open kiosk view". */
   onExitStudio: () => void;
   /** Briefly true after a save (shows "Saved"). */
@@ -304,6 +306,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
         onOpenChange={props.onLiveOpenChange}
         profiles={profiles}
         kiosks={props.kiosks}
+        rotate={props.rotate}
         onOpenKioskView={props.onExitStudio}
       />
       <button

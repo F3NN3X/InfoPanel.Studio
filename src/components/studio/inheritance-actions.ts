@@ -1,9 +1,11 @@
 import { withBackground } from "@/lib/appearance";
 import { withGeneral } from "@/lib/general";
 import { isDataPath, type DataPath, type Inheritance, type InheritPath, type InheritScope } from "@/lib/inheritance";
-import type { DashboardConfig } from "@/lib/layout";
+import type { DashboardConfig, Placement } from "@/lib/layout";
+import type { ModuleSettings } from "@/modules/types";
 import { DEFAULT_THEME } from "@/lib/theme";
-import { SECTION_KEYS, type SectionId } from "@/lib/theme-model";
+import { isLocked, SECTION_IDS, SECTION_KEYS, type SectionId } from "@/lib/theme-model";
+import type { MakeThemeTarget } from "./inherit-chip";
 import { withFollow } from "./inspector/zone-fields";
 import { withScope, type ScopedSection } from "./inspector/profile-scope";
 import { dropKeys } from "./settings-model";
@@ -133,4 +135,51 @@ export function inheritanceJump(inheritance: Inheritance, path: InheritPath, sco
   const themeScope: ThemeScope =
     from === "all" ? { kind: "base" } : from === "page" && scope.level !== "screen" ? { kind: "page", pageId: scope.pageId } : { kind: "profile" };
   return { view: "theme", themeScope, profileId, section: isDataPath(path) ? THEME_SECTION[path] : path };
+}
+
+type WidgetScope = Extract<InheritScope, { level: "widget" }>;
+
+const zoneOf = (config: DashboardConfig, scope: WidgetScope): Placement | undefined =>
+  config.profiles.find((p) => p.id === scope.profileId)?.pages.find((pg) => pg.id === scope.pageId)?.placements.find((z) => z.id === scope.zoneId);
+
+/**
+ * The sections "Make this the theme" would move: the widget's custom ones (a locked section is the screen's,
+ * its widget values stay inactive). `only` narrows it to a chip's own sections.
+ */
+export function makeThemeSections(config: DashboardConfig, scope: WidgetScope, only?: readonly SectionId[]): SectionId[] {
+  const zone = zoneOf(config, scope);
+  const profile = config.profiles.find((p) => p.id === scope.profileId);
+  if (!zone || !profile) return [];
+  const levels = { base: config.style, profile: profile.widgetTheme };
+  return SECTION_IDS.filter((sec) => zone.follow?.[sec] === false && !isLocked(levels, sec) && (!only || only.includes(sec)));
+}
+
+/**
+ * Make a widget's custom sections the theme of a scope (All screens, its screen or its page; a page also
+ * customises them), then reset them on the widget: the values move, the widget follows the theme again.
+ */
+export function makeTheme(config: DashboardConfig, scope: WidgetScope, target: MakeThemeTarget, only?: readonly SectionId[]): DashboardConfig {
+  const secs = makeThemeSections(config, scope, only);
+  const zone = zoneOf(config, scope);
+  if (!zone || secs.length === 0) return config;
+  const moved: ModuleSettings = {};
+  for (const sec of secs) for (const key of SECTION_KEYS[sec]) if (zone.settings?.[key] !== undefined) moved[key] = zone.settings[key];
+  const themeScope: ThemeScope = target === "all" ? { kind: "base" } : target === "screen" ? { kind: "profile" } : { kind: "page", pageId: scope.pageId };
+  const written = withScopeValues(config, scope.profileId, themeScope, (v) => ({ ...v, ...moved }));
+  const flagged = target === "page" ? secs.reduce((c, sec) => withPageFollow(c, scope.profileId, scope.pageId, sec, false), written) : written;
+  const drop = new Set(secs.flatMap((sec) => SECTION_KEYS[sec]));
+  const reset = (z: Placement): Placement => ({ ...secs.reduce((acc, sec) => withFollow(acc, sec, true), z), settings: dropKeys(z.settings, drop) });
+  return {
+    ...flagged,
+    profiles: flagged.profiles.map((p) =>
+      p.id !== scope.profileId
+        ? p
+        : {
+            ...p,
+            pages: p.pages.map((pg) =>
+              pg.id !== scope.pageId ? pg : { ...pg, placements: pg.placements.map((z) => (z.id === scope.zoneId ? reset(z) : z)) }
+            ),
+          }
+    ),
+  };
 }

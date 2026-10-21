@@ -96,6 +96,9 @@ export function sectionIcon(section: Pick<InspectorSection, "id">): LucideIcon {
   return BY_ID[baseId(section.id)]?.icon ?? SlidersHorizontal;
 }
 
+/** The icon of a section by its id (a page's look cards). */
+export const sectionIconById = (id: string): LucideIcon => sectionIcon({ id });
+
 /** One word for a tool tile ("Skin & graphics" → "Skin"). */
 export function sectionShort(section: Pick<InspectorSection, "id" | "title">): string {
   return BY_ID[baseId(section.id)]?.short ?? (section.title.split(/[\s&·,/]+/).find(Boolean) ?? section.title);

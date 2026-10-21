@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
 
 export interface LinkRowProps {
-  label: string;
+  /** Without a label and value the row is just its note and link ("Rename sensors … in Data ↗"). */
+  label?: string;
   /** The current value, read-only ("60 fps", "Geist"). */
-  value: string;
+  value?: string;
   /** Where the value comes from ("Dashboard", "Theme"): shown as "· from X". */
   from?: string;
   /** Numeric values read in mono. */
@@ -24,13 +25,15 @@ export interface LinkRowProps {
 export function LinkRow({ label, value, from, mono, note, link, onNavigate, className }: LinkRowProps) {
   return (
     <div className={cn("flex flex-col gap-[3px] font-ui", className)}>
-      <div className="flex min-h-7 items-center gap-2.5">
-        <span className="min-w-0 flex-1 truncate text-[12px] text-ui-3">{label}</span>
-        <span className="min-w-0 truncate whitespace-nowrap text-[12px] text-ui-1">
-          <span className={cn(mono && "font-ui-mono text-[11px] tabular-nums")}>{value}</span>
-          {from && <span className="text-ui-4"> · from {from}</span>}
-        </span>
-      </div>
+      {label !== undefined && (
+        <div className="flex min-h-7 items-center gap-2.5">
+          <span className="min-w-0 flex-1 truncate text-[12px] text-ui-3">{label}</span>
+          <span className="min-w-0 truncate whitespace-nowrap text-[12px] text-ui-1">
+            <span className={cn(mono && "font-ui-mono text-[11px] tabular-nums")}>{value}</span>
+            {from && <span className="text-ui-4"> · from {from}</span>}
+          </span>
+        </div>
+      )}
       <span className="text-[11px] leading-[1.45] text-ui-5">
         {note && <>{note} </>}
         <button

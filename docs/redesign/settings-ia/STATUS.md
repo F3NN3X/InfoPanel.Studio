@@ -107,3 +107,63 @@ No test changed or added: the shell is composition only (no new pure logic), and
 - Phase 5: replace the three interim views; delete the "Gauges →" strip when Gauges is a Library collection; the left-panel width slider; the `navigateTo` fallback to Behaviour for Dashboard / Studio Settings tabs.
 - Phase 6: the Import door and Export sheet replace the two menus; Live gets its controls.
 - Phase 7: help copy still says "Kiosk view" in `src/help/articles/studio.md` and the palette still lists "Profiles"; the phone bottom tab bar; the narrow floating inspector.
+
+## Phase 3: Design mode
+
+Checked by typecheck, tests and build, and by eye in headless Chromium at 1440 px (Page inspector, page-tab menu, Style
+tab toolbar and gallery, chip menu, Make this the theme dialog, Data and Behaviour tabs, ⌫ reset; no console errors beyond
+the dev server's missing API).
+
+| Piece | State |
+|---|---|
+| Page inspector (§6.4) | `page-inspector.tsx`, shown with nothing selected. Header (page icon, `Page · name`, `screen · N zones`, Help), Name (committed on Enter / blur), Icon (opens the icon dialog), Rotation LinkRow (→ Screens), THIS PAGE'S LOOK cards (one per section the page customises, each with the `Custom here` chip over `sectionInherit`), "Everything else follows ‹screen›." / "This page follows ‹screen› completely.", Edit in Theme ↗ and Customise a section… (Theme at page scope), LIVE · NOT SAVED "Show this page on kiosks now" (`postControl("page")`), Duplicate page, Delete page (confirm in the page tabs; disabled for the last page). |
+| Old profile inspector | Kept reachable: a "More settings for this screen" block of three LinkRows (Layout, Look, Behaviour) opens the old Layout / Look / Behaviour tabs in place of the Page inspector (`ui.screenSettingsOpen`; `openDocumentTab` sets it, selecting a zone clears it), with a back arrow in its header. Phases 4–5 move the contents and delete it. |
+| Zone inspector chips (§4.3, §6.3) | The Follow bars are gone from zones. Each Style / Data / Behaviour card with a theme section has the `InheritChip` in its header (`SettingSection.chip`, outside the toggle button), the action line under the rows (Reset to inherited · Customise here · Edit ‹level› ↗ · Edit lock in Theme ↗), the amber `InheritLockNote` for a kept override, and ⌫ to reset while the section holds focus (not in a field). `section-inherit.tsx` builds them over `inheritanceApi` (the non-hook core of `useInheritance`). The header shows `N changed` as muted text. |
+| Editing customises | A row edit in a following section turns the section custom in the same undo step (`customised` in `zone-fields.ts`); a locked section's rows are read-only. |
+| Style tab (§6.3) | Order Skin · Colors · Typography · Shape & spacing · Surface & effects · Border & glow · Advanced · CSS & locks (`SHARED_SECTIONS`, which the Theme editor shares). Widget colors merge into Colors (`mergeWidgetColors`; its chip covers `colors` and `palette`, `chipSections`). Zone frame was already inside Border & glow's More. The "Changed" filter and the Copy / Paste / Use as global / preset menus are removed. |
+| Style toolbar | `style-toolbar.tsx`: Start from a Style ▾ (gallery: built-in Default / Dark / Light / Vivid / Mono from `lib/builtin-styles.ts`, plus `config.stylePresets`; applying uses `withPastedStyle`, so its sections turn custom), Save as Style (inline name, `config.stylePresets`), Make this the theme for… ▾ (All screens / This screen / This page). |
+| Make this the theme | `makeTheme` / `makeThemeSections` in `inheritance-actions.ts`: the widget's custom, unlocked sections move into the scope (All screens = `config.style`, screen = its theme values, page = its theme values plus the page customising them), and the widget's own values for them are dropped so it follows again. `MakeThemeDialog` confirms with the list. The chip menu's "Make this the theme for… ▸" moves just that card's sections; the toolbar moves all. |
+| Data / Behaviour | Data: a LinkRow "Rename sensors and change the connection in Data ↗" under Bound data. Behaviour: Thresholds, the widget's own, Motion, then the island card, renamed "Send to island", with the note "How the island looks is set in Alerts & Island ↗". |
+| Config v10 | `CONFIG_VERSION` 10. `migratePlacementV10` / `migrateProfileV10` (`settings-migrate.ts`) drop the zone `settings.preset` key, nothing else, keyed on its presence. A profile file goes through `mergeConfig`, so imports are covered. The row is gone from `STANDARD_SETTINGS`. Nothing read the key (picking a preset wrote `surface` / `tint` / `accent` into the zone), so rendering is unchanged. |
+| Page tabs (§6.2) | 38 px row; the kiosk page has a green cast icon; right side: dashed chip "Kiosks show ‹page› · rotation ‹paused or every N s›" opening Live ("No kiosk shows this screen" when the control state has none). The tab menu (right-click and ⋯): Rename, Icon…, Duplicate, Delete, Page settings (shows the page, deselects). Removed: ⋯ › Theme…, Show on kiosk, Play / Pause, "Back to the saved setting". Double-click rename was already there. |
+| Live | The popover carries a minimal "Page rotation" Pause / Play (`RotateToggle`, with its "Back to the saved setting") for the edited screen, so the runtime pause is not lost until Phase 6. |
+| Labels renamed | "Save as panel preset…" → "Save as Panel" (inspector, zone menu, palette); "Follow global style" → "Follow the theme"; "Use as global style…" / "Global style: …" → "Make this the theme for all screens / this screen" (menu and palette); "Style presets" → "Styles" and the copy-a-look section in two Help articles. |
+
+Tests: `settings-migrate.v10.test.ts` (round trip: Dark / Light / Vivid / Mono zones resolve identically bar the dropped key,
+only-preset zones, identity no-op, idempotence, a profile file); `makeTheme` / `makeThemeSections` cases in
+`inheritance-actions.test.ts`; `customised` in `zone-fields.test.ts`; `chipSections` and `mergeWidgetColors` cases. Existing
+tests changed because the intended names / order / merge moved: `inspector-model`, `inspector-categories`, `look-settings`
+(section titles and order, Widget colors inside Colors, the styleTools extra gone, "Send to island"), the two widget schema
+snapshots (titles and order only; checked by diffing the headings), and the version literals (`layout`, `layout-pages`,
+`canvas-store`, `appearance-presets` 9 → 10).
+
+### Deviations
+
+- **The Style toolbar wraps** to a second line at the 320 px inspector: the three spec labels need about 330 px, and
+  truncating them left "M…". Everything else is as written.
+- **Style tab "Colors" keeps two theme sections.** Widget colors stay the `palette` flag in the data model (no change),
+  so one chip drives both: custom if either is, Reset / Customise act on both.
+- **Make this the theme drops the widget's own values** for the moved sections (a true move), where Reset to inherited keeps
+  them stored.
+- **Multi-select and panel-widget inspectors keep their Follow bars** (SPEC §6.3 is the zone inspector; panel widgets have
+  no chip level, see Phase 1's follow-ups). Only the Changed filter went from them too.
+- **No Help icon in the zone header** (the Page inspector has one); F1 and the rail still work.
+- **`Edit in Theme ↗` / `Customise a section…`** open Theme at page scope; `section: "customise"` is a target Phase 4's
+  list will mark. Rotation's `Screens ↗` passes `section: "rotation"` likewise.
+
+### Unverified
+
+- The kiosk chip with a kiosk connected (no control server ran), and the Live rotation toggle against a real server.
+- The Page inspector in the narrow floating inspector and the phone sheet (it is a plain scroll column there; Phase 7).
+- Right-click Rename / Icon… / Delete on a tab and the Page inspector's Delete confirm were not clicked through (the
+  handlers are the existing ones).
+- A real v9 file imported through the UI (covered by the migration test, not by hand).
+
+### Follow-ups
+
+- Phase 4: Theme's scope bar replaces `editGlobalTheme`; mark `data-nav-section="customise"`. The Theme editor's `FollowBar`
+  and `ThemeScopeBar` can go with the Follow bar for panel widgets.
+- Phase 5: delete the "More settings for this screen" block and `DocumentInspector` once Screens and Settings hold their
+  contents.
+- Phase 6: Live's rotation control replaces the interim Page rotation toggle.
+- Phase 7: the zone header's Help icon; "Style presets" in `library.md`; "Appearance" in `presets.md`.

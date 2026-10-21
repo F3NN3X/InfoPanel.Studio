@@ -91,6 +91,8 @@ export interface DashboardStudioProps {
   onOpenTheme: () => void;
   /** The Library (the background pickers' empty state). */
   onOpenLibrary: () => void;
+  /** Back to the Page inspector. */
+  onBack: () => void;
 }
 
 const ACCORDION_MODES = [
@@ -147,6 +149,7 @@ function DocumentSheet({
   onOpenExplorer,
   onOpenTheme,
   onOpenLibrary,
+  onBack,
 }: DocumentInspectorProps & DashboardStudioProps) {
   const [quickBar, setQuickBar] = useQuickBarPref();
   const [accordion, setAccordion] = useAccordionPref();
@@ -361,14 +364,12 @@ function DocumentSheet({
     <InspectorView
       context={context}
       contextKey="dashboard"
-      header={<ProfileHeader profile={stored} dashboard={config} />}
+      header={<ProfileHeader profile={stored} dashboard={config} onBack={onBack} />}
       fields={fields}
       parts={parts}
       notes={notes}
       query=""
       onQuery={() => {}}
-      changedOnly={false}
-      onChangedOnly={() => {}}
       searchable={false}
       footer={isTauri() ? <AppSettingsFooter /> : null}
       tabInfo={TAB_INFO}

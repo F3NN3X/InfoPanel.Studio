@@ -1,7 +1,20 @@
+import type { ComponentProps } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Cast, Maximize } from "lucide-react";
 import type { ControlKiosk } from "@/lib/control";
 import type { MonitorProfile } from "@/lib/layout";
+import { RotateToggle } from "./rotate-toggle";
+
+/** The edited screen's runtime rotation: what `RotateToggle` reads and does. */
+export interface LiveRotate {
+  entry: ComponentProps<typeof RotateToggle>["entry"];
+  /** The screen's saved `rotate.enabled`. */
+  saved: boolean;
+  /** The screen has two or more pages (else there is nothing to rotate). */
+  canRotate: boolean;
+  onToggle: () => void;
+  onSaved: () => void;
+}
 
 interface LiveControlProps {
   open: boolean;
@@ -9,6 +22,7 @@ interface LiveControlProps {
   profiles: MonitorProfile[];
   /** The kiosks connected now (`kiosksOf(control)`). */
   kiosks: readonly ControlKiosk[];
+  rotate: LiveRotate;
   /** Show the kiosk in this window (PLAN decision 6; it replaces the top bar's Kiosk view button). */
   onOpenKioskView: () => void;
 }
@@ -33,7 +47,7 @@ function KioskRow({ kiosk, profiles }: { kiosk: ControlKiosk; profiles: MonitorP
  * The title bar's "Live · N" button and its popover (SPEC §3.3): a skeleton until Phase 6 wires the
  * controls (show on, rotation, dim, mute, island, reload) to the control API. Not modal.
  */
-export function LiveControl({ open, onOpenChange, profiles, kiosks, onOpenKioskView }: LiveControlProps) {
+export function LiveControl({ open, onOpenChange, profiles, kiosks, rotate, onOpenKioskView }: LiveControlProps) {
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
@@ -64,6 +78,13 @@ export function LiveControl({ open, onOpenChange, profiles, kiosks, onOpenKioskV
                 <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view
               </button>
             </div>
+            {/* Interim until Phase 6 gives Live its rotation control: the runtime pause the page tabs used to hold. */}
+            {rotate.canRotate && (
+              <div className="mt-3 flex items-center gap-2 border-t border-ui-subtle pt-2">
+                <span className="flex-1 text-[12.5px] text-ui-2">Page rotation</span>
+                <RotateToggle entry={rotate.entry} saved={rotate.saved} onToggle={rotate.onToggle} onSaved={rotate.onSaved} />
+              </div>
+            )}
             {kiosks.length === 0 ? (
               <p className="mt-3 text-[12px] text-ui-4">No kiosks are connected.</p>
             ) : (

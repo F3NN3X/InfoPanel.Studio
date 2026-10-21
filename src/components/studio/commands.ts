@@ -223,9 +223,9 @@ function styleCommands(): Command[] {
   return [
     style("copy", "Copy style", { type: "copy-style" }, KEYS.copyStyle),
     style("paste", "Paste style", { type: "paste-style" }, KEYS.pasteStyle),
-    style("follow", "Follow global style", { type: "follow-global" }),
-    style("global-all", "Use as global style: all profiles", { type: "use-global", target: "all" }),
-    style("global-profile", "Use as global style: this profile", { type: "use-global", target: "profile" }),
+    style("follow", "Follow the theme", { type: "follow-global" }),
+    style("global-all", "Make this the theme for all screens", { type: "use-global", target: "all" }),
+    style("global-profile", "Make this the theme for this screen", { type: "use-global", target: "profile" }),
   ];
 }
 
@@ -244,7 +244,7 @@ function selectedCommands(selected: Placement, widgetKeys: boolean, context: Ins
   });
   return [
     zone("pick", "Pick widget…", { type: "pick-widget" }),
-    ...(selected.panel ? [zone("save-preset", "Save panel as preset…", { type: "save-panel-preset" })] : []),
+    ...(selected.panel ? [zone("save-preset", "Save as Panel", { type: "save-panel-preset" })] : []),
     zone("duplicate", "Duplicate zone", { type: "duplicate" }, widgetKeys ? undefined : KEYS.duplicate),
     zone(
       "visible",

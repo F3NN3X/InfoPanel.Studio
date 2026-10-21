@@ -1,16 +1,13 @@
-import { Fragment, useEffect, useRef, useState, type ComponentProps, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Dialog } from "@base-ui/react/dialog";
-import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Palette, PanelLeftClose, PanelLeftOpen, Pencil, Plus, RefreshCw, Shapes, Trash2, X } from "lucide-react";
+import { Cast, Copy, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import { IconGrid } from "@/components/ui/icon-grid";
 import type { ProfilePage } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { PAGE_ICONS, pageIcon } from "./page-icons";
+import { pageIcon } from "./page-icons";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { RenameInput } from "./profiles-panel";
-import { RotateToggle } from "./rotate-toggle";
 
 interface PageTabsProps {
   /** Design's left panel is open; the toggle at the row's start shows or hides it. */
@@ -27,9 +24,10 @@ interface PageTabsProps {
   onDuplicate: (id: string) => void;
   /** Delete, after the confirm dialog. */
   onDelete: (id: string) => void;
-  onIcon: (id: string, icon: string | undefined) => void;
-  /** The page's settings › Theme: the theme editor at this page's scope. */
-  onTheme?: (id: string) => void;
+  /** Ask for the page's icon picker (the studio keeps the dialog: the Page inspector opens it too). */
+  onIcon: (id: string) => void;
+  /** Page settings: show the page and deselect, so the Page inspector shows. */
+  onPageSettings: (id: string) => void;
   /** The page being renamed inline (the palette asks for this too). */
   renamingId: string | null;
   onRenamingChange: (id: string | null) => void;
@@ -38,15 +36,13 @@ interface PageTabsProps {
   onDeletingChange: (id: string | null) => void;
   /** The page the kiosk shows for this profile (the control channel); unset while offline. */
   kioskPage?: string | null;
-  /** Send the kiosk to a page. */
-  onShowOnKiosk?: (id: string) => void;
-  /** The auto-rotate toggle, shown with 2+ pages. */
-  rotate?: { entry: ComponentProps<typeof RotateToggle>["entry"]; saved: boolean; onToggle: () => void; onSaved: () => void };
-  /** The profile's auto-rotate interval in seconds while it is on; shown as "Cycling every …". */
-  cycleSeconds?: number;
+  /** The chip's rotation wording ("paused", "every 20 s"). */
+  rotation: string;
+  /** The chip opens Live. */
+  onOpenLive: () => void;
 }
 
-/** An interval for the tab strip: `30 s`, then minutes from 60 s (`1 min`, `1.5 min`). */
+/** An interval for the chip: `30 s`, then minutes from 60 s (`1 min`, `1.5 min`). */
 export function cycleLabel(seconds: number): string {
   if (seconds < 60) return `${seconds} s`;
   return `${Number((seconds / 60).toFixed(1))} min`;
@@ -63,80 +59,16 @@ export function dropIndex(rects: { left: number; width: number }[], from: number
 /** The rows of a page's menu; Delete is off on the only page. */
 export function pageMenuEntries(
   pages: ProfilePage[],
-  actions: {
-    rename: () => void;
-    icon: () => void;
-    theme?: () => void;
-    duplicate: () => void;
-    remove: () => void;
-    showOnKiosk?: () => void;
-  }
+  actions: { rename: () => void; icon: () => void; duplicate: () => void; remove: () => void; settings: () => void }
 ): ContextMenuEntry[] {
   return [
     { id: "rename", label: "Rename", icon: <Pencil />, onSelect: actions.rename },
     { id: "icon", label: "Icon…", icon: <Shapes />, onSelect: actions.icon },
-    ...(actions.theme ? [{ id: "theme", label: "Theme…", icon: <Palette />, onSelect: actions.theme }] : []),
     { id: "duplicate", label: "Duplicate", icon: <Copy />, onSelect: actions.duplicate },
-    ...(actions.showOnKiosk ? [{ id: "kiosk", label: "Show on kiosk", icon: <MonitorPlay />, onSelect: actions.showOnKiosk }] : []),
-    "separator",
     { id: "delete", label: "Delete", icon: <Trash2 />, danger: true, disabled: pages.length <= 1, onSelect: actions.remove },
+    "separator",
+    { id: "settings", label: "Page settings", icon: <Settings2 />, onSelect: actions.settings },
   ];
-}
-
-/** The icon picker: a searchable grid of the page icons, and None. */
-function IconDialog({
-  page,
-  onPick,
-  onClose,
-}: {
-  page: ProfilePage | undefined;
-  onPick: (icon: string | undefined) => void;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState("");
-  useEffect(() => setQuery(""), [page?.id]);
-  const q = query.trim().toLowerCase();
-  const icons = [
-    { id: "", label: "None", icon: <Ban /> },
-    ...Object.entries(PAGE_ICONS)
-      .filter(([name]) => name.includes(q))
-      .map(([name, Icon]) => ({ id: name, label: name, icon: <Icon /> })),
-  ];
-  return (
-    <Dialog.Root open={page !== undefined} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/55" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[22rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-tile p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
-          <div className="flex items-center">
-            <Dialog.Title className="flex-1 text-sm font-semibold">Icon for {page?.name}</Dialog.Title>
-            <Dialog.Close title="Close (Esc)" className="text-ui-3 transition-colors hover:text-ui-1">
-              <X className="h-4 w-4" />
-            </Dialog.Close>
-          </div>
-          <input
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search icons"
-            aria-label="Search icons"
-            className="h-[30px] w-full rounded-md border border-ui-strong bg-ui-app px-2 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent"
-          />
-          <div className="max-h-64 overflow-y-auto">
-            <IconGrid
-              label="Page icon"
-              columns={8}
-              icons={icons}
-              value={page?.icon ?? ""}
-              onChange={(id) => {
-                onPick(id || undefined);
-                onClose();
-              }}
-            />
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
 }
 
 const DIALOG_BUTTON =
@@ -183,9 +115,11 @@ function DeleteDialog({
 }
 
 /**
- * The strip above the canvas: one tab per page of the profile (click to
- * switch, double-click to rename, drag to reorder), "+" to add one, and a
- * "⋯" / right-click menu for rename, icon, duplicate and delete.
+ * The strip above the canvas (SPEC §6.2, 38 px): the left-panel toggle, one
+ * tab per page of the profile (click to switch, double-click to rename, drag
+ * to reorder; the page the kiosk shows has a green cast icon), "+" to add one,
+ * a "⋯" / right-click menu (rename, icon, duplicate, delete, page settings)
+ * and, at the right, the dashed chip that says what the kiosks show and opens Live.
  */
 export function PageTabs({
   pages,
@@ -197,7 +131,7 @@ export function PageTabs({
   onDuplicate,
   onDelete,
   onIcon,
-  onTheme,
+  onPageSettings,
   leftOpen,
   onToggleLeft,
   renamingId,
@@ -205,13 +139,11 @@ export function PageTabs({
   deletingId,
   onDeletingChange,
   kioskPage,
-  onShowOnKiosk,
-  rotate,
-  cycleSeconds,
+  rotation,
+  onOpenLive,
 }: PageTabsProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-  const [iconFor, setIconFor] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; to: number } | null>(null);
   // A drag ends in a click on the tab; it must not switch pages.
   const dragged = useRef(false);
@@ -246,11 +178,10 @@ export function PageTabs({
   const menuEntries = (id: string) =>
     pageMenuEntries(pages, {
       rename: () => onRenamingChange(id),
-      icon: () => setIconFor(id),
-      theme: onTheme && (() => onTheme(id)),
+      icon: () => onIcon(id),
       duplicate: () => onDuplicate(id),
       remove: () => onDeletingChange(id),
-      showOnKiosk: onShowOnKiosk && (() => onShowOnKiosk(id)),
+      settings: () => onPageSettings(id),
     });
 
   // The slot the dragged tab would drop into, among the tabs without it.
@@ -258,7 +189,7 @@ export function PageTabs({
   const marker = <span aria-hidden className="h-4 w-0.5 shrink-0 rounded-full bg-ui-accent" />;
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-1 border-b border-ui-subtle bg-ui-panel px-2 font-ui text-[12px]">
+    <div className="flex h-[38px] shrink-0 items-center gap-1 overflow-hidden border-b border-ui-subtle bg-ui-panel px-2 font-ui text-[12px]">
       <IconButton
         label={leftOpen ? "Hide the left panel" : "Show the left panel"}
         className="h-7 w-7"
@@ -312,9 +243,9 @@ export function PageTabs({
                       {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
                       <span className="truncate">{page.name}</span>
                       {kioskPage === page.id && (
-                        <Monitor aria-label="Shown on the kiosk" className="h-3 w-3 shrink-0 text-ui-accent-text">
+                        <Cast aria-label="Shown on the kiosk" className="h-3.5 w-3.5 shrink-0 text-[oklch(0.78_0.15_150)]">
                           <title>Shown on the kiosk</title>
-                        </Monitor>
+                        </Cast>
                       )}
                     </button>
                     <button
@@ -341,21 +272,20 @@ export function PageTabs({
       <IconButton label="Add page" className="h-7 w-7" onClick={onAdd}>
         <Plus className="h-4 w-4" />
       </IconButton>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        {cycleSeconds !== undefined && (
-          <span className="flex items-center gap-1 whitespace-nowrap text-[11.5px] text-ui-4">
-            <RefreshCw aria-hidden className="h-3.5 w-3.5" />
-            Cycling every {cycleLabel(cycleSeconds)}
-          </span>
-        )}
-        {rotate && pages.length >= 2 && <RotateToggle {...rotate} />}
-      </div>
+      <button
+        type="button"
+        onClick={onOpenLive}
+        title="Open Live control"
+        className="ml-auto flex h-6 min-w-0 shrink items-center gap-1.5 rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2.5 text-[11.5px] text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)]"
+      >
+        <Cast aria-hidden className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">
+          {kioskPage
+            ? `Kiosks show ${pages.find((p) => p.id === kioskPage)?.name ?? "a page"} · rotation ${rotation}`
+            : "No kiosk shows this screen"}
+        </span>
+      </button>
       {menu && <ContextMenu x={menu.x} y={menu.y} entries={menuEntries(menu.id)} onClose={() => setMenu(null)} />}
-      <IconDialog
-        page={pages.find((p) => p.id === iconFor)}
-        onPick={(icon) => iconFor && onIcon(iconFor, icon)}
-        onClose={() => setIconFor(null)}
-      />
       <DeleteDialog
         page={pages.find((p) => p.id === deletingId)}
         onConfirm={() => deletingId && onDelete(deletingId)}

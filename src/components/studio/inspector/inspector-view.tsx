@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CircleHelp, History } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { CircleHelp } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
 import { useSensorCatalog } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,6 @@ import { INSPECTOR_SCROLL, useInspectorChrome } from "../inspector-layout";
 import {
   allSections,
   changedCount,
-  changedSettings,
   extraMatches,
   inspectorTabs,
   jumpTarget,
@@ -32,6 +31,18 @@ import { sectionIcon } from "./section-icons";
 import { SheetView, type SheetIdentity } from "./sheet-view";
 import { FollowBar, FollowPill } from "./follow-bar";
 import { DotLegend } from "./source-dot";
+
+/** A section card's inheritance chip and what goes with it (`sectionInherit`). */
+export interface SectionInherit {
+  /** In the header, before the chevron. */
+  chip: ReactNode;
+  /** The amber kept-override note, above the rows. */
+  note?: ReactNode;
+  /** The action line under the rows (Reset to inherited · Edit Page ↗). */
+  actions: ReactNode;
+  /** ⌫ pressed inside the section (not in a field) resets it. */
+  onKeyDown?: (e: KeyboardEvent<HTMLElement>) => void;
+}
 
 /** What a context adds to one of its sections around the schema's rows. */
 export interface SectionParts {
@@ -74,11 +85,10 @@ interface InspectorViewProps {
   parts: (section: InspectorSection) => SectionParts;
   /** The notes and banners above a tab's sections (or a context without tabs). */
   notes?: (tab: TabId | undefined) => ReactNode;
+  /** A section's inheritance chip in place of its Follow bar (the zone inspector); undefined: none. */
+  inherit?: (section: InspectorSection) => SectionInherit | undefined;
   query: string;
   onQuery: (query: string) => void;
-  /** Only the values set here, across every tab. */
-  changedOnly: boolean;
-  onChangedOnly: (on: boolean) => void;
   /** Open, reveal and outline a section whenever `seq` changes. */
   jumpTo?: { id: string; key?: string; seq: number };
   /** The phone sheet's compact header (below full height). */
@@ -87,7 +97,7 @@ interface InspectorViewProps {
   quickKeys?: readonly string[];
   /** A Follow bar's theme name: open the theme being followed. */
   onTheme?: (level: "profile" | "page") => void;
-  /** Show the settings search and the Changed filter (default); the profile inspector turns them off. */
+  /** Show the settings search (default); the profile inspector turns it off. */
   searchable?: boolean;
   /** The footer in place of the dot legend; `null` for none. */
   footer?: ReactNode;
@@ -187,11 +197,10 @@ const handOpened = new Map<string, Record<string, boolean>>();
 
 /**
  * The registry-driven inspector shared by every context, one column: the
- * header, search and the Changed filter on one row, the tabs (hidden while
- * filtering), a line saying what the filter found, then accordion sections
- * of field rows with the context's custom UI, each closing with its "More (n)"
- * rows. A search runs across every tab; Changed keeps only the values set
- * here, across every tab too. Both list More rows inline.
+ * header and the search, the tabs (hidden while searching), a line saying what
+ * the search found, then accordion sections of field rows with the context's
+ * custom UI, each closing with its "More (n)" rows. A search runs across every
+ * tab and lists More rows inline.
  */
 export function InspectorView({
   context,
@@ -203,10 +212,9 @@ export function InspectorView({
   present = always,
   parts,
   notes,
+  inherit,
   query,
   onQuery,
-  changedOnly: changedFilter,
-  onChangedOnly,
   jumpTo,
   identity,
   quickKeys = [],
@@ -233,8 +241,7 @@ export function InspectorView({
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const searching = searchable && query.trim() !== "";
-  const changedOnly = searchable && changedFilter;
-  const filtering = searching || changedOnly;
+  const filtering = searching;
   const all = visibleSections(allSections(context), visible).filter(present);
   const tabs = tabStates(inspectorTabs(context), all);
   const tab = pickTab(
@@ -249,28 +256,20 @@ export function InspectorView({
   for (const s of all) counts[s.tab] = (counts[s.tab] ?? 0) + changedOf(s);
   const ownAll = all.reduce((n, s) => n + changedOf(s), 0);
 
-  // A search: every tab's matches. Changed: every tab's sections with values set here.
+  // A search: every tab's matches.
   const result = searching ? searchAll(context, query) : null;
   const matched = result
     ? visibleSections(
         result.groups.map((g) => ({ ...g.section, extras: g.section.extras.filter((e) => extraMatches(e, query)) })),
         visible
       ).filter(present)
-    : changedOnly || tabs.length === 0
+    : tabs.length === 0
       ? all
       : all.filter((s) => s.tab === tab);
-  // Changed keeps a section's own values (and custom UI that holds some).
-  const sections = changedOnly
-    ? matched
-        .filter((s) => changedOf(full.get(s.id) ?? s) > 0)
-        .map((s) => ({ ...s, settings: changedSettings(s, fields.values) }))
-    : matched;
+  const sections = matched;
   const tabLabel = (s: InspectorSection) =>
     tabs.length === 0 ? "" : (result?.groups.find((g) => g.section.id === s.id)?.tabLabel ?? TAB_LABELS[s.tab]);
-  const shownCount = sections.reduce(
-    (n, s) => n + s.settings.length + (changedOnly ? (parts(full.get(s.id) ?? s).changed ?? 0) : 0),
-    0
-  );
+  const shownCount = sections.reduce((n, s) => n + s.settings.length, 0);
 
   // Accordion: the editor section (a selected panel widget) or the tab's first is open by default.
   const editorId = sections.find((s) => parts(s).editor)?.id;
@@ -296,7 +295,6 @@ export function InspectorView({
     if (!target) return;
     if (target.settings.some((d) => d.key === jumpTo.key && isMore(d))) setMoreOpen(moreKey(moreScope, target.id), true);
     if (tabs.length > 0) setTab(target.tab);
-    if (changedOnly) onChangedOnly(false);
     setOpenMap((m) => (accordion === "one" ? { [target.id]: true } : { ...m, [target.id]: true }));
     // The tab renders first, then the section scrolls into view.
     requestAnimationFrame(() =>
@@ -321,24 +319,17 @@ export function InspectorView({
     if (keys.length > 0) fields.onClear(keys);
     parts(whole).onReset?.();
   };
-  /** Changed's "Reset all": every value set here, on every tab. */
-  const resetAll = () => {
-    const keys = all.flatMap((s) => resetKeysOfSection(s, fields.values));
-    if (keys.length > 0) fields.onClear(keys);
-    for (const s of all) if ((parts(s).changed ?? 0) > 0) parts(s).onReset?.();
-  };
 
   const pad = (node: ReactNode) => node && <SectionPad>{node}</SectionPad>;
 
   const renderSection = (s: InspectorSection) => {
     const p = parts(s);
     const whole = full.get(s.id) ?? s;
-    // In the Changed view custom UI shows only while it holds values set here.
-    const custom = !changedOnly || (p.changed ?? 0) > 0;
     // Filtering lists More rows inline; otherwise they follow the section's "More (n)".
     const split = splitMore(s);
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
     const bar = fields.follow?.(whole);
+    const inh = inherit?.(whole);
     if (p.plain)
       return (
         <section key={s.id} {...{ [SETTING_CARD]: s.id }} className="border-b border-[#1c1c21] px-4 pb-3.5 pt-3">
@@ -354,6 +345,8 @@ export function InspectorView({
         tabLabel={tabLabel(s) || undefined}
         changed={changedOf(whole)}
         pill={bar ? <FollowPill mode={bar.mode} scope={bar.scope?.kind} /> : p.pill}
+        chip={inh?.chip}
+        onKeyDown={inh?.onKeyDown}
         actions={p.actions}
         onReset={() => resetSection(whole)}
         open={isOpen(s)}
@@ -362,19 +355,21 @@ export function InspectorView({
         editor={p.editor}
         flash={flash === s.id}
       >
-        {!changedOnly && bar && pad(<FollowBar bar={bar} onTheme={onTheme} />)}
-        {!changedOnly && pad(p.top)}
+        {bar && pad(<FollowBar bar={bar} onTheme={onTheme} />)}
+        {inh?.note && pad(inh.note)}
+        {pad(p.top)}
         {(filtering ? s.settings : split.rows).map(field)}
-        {custom && pad(p.body)}
-        {custom && pad(p.bottom)}
+        {pad(p.body)}
+        {pad(p.bottom)}
         {filtering ? (
-          custom && pad(p.more)
+          pad(p.more)
         ) : (
           <MoreRows storeKey={moreKey(moreScope, s.id)} count={split.count}>
             {split.more.map(field)}
             {pad(p.more)}
           </MoreRows>
         )}
+        {inh && pad(inh.actions)}
       </SettingSection>
     );
   };
@@ -396,9 +391,7 @@ export function InspectorView({
       />
     );
 
-  const empty = searching
-    ? sections.length === 0 && `No settings match “${query.trim()}”.`
-    : changedOnly && sections.length === 0 && "Nothing changed yet. Everything uses its default.";
+  const empty = searching && sections.length === 0 && `No settings match “${query.trim()}”.`;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -410,37 +403,12 @@ export function InspectorView({
           <div className="min-w-0 flex-1">
             <SettingsSearch query={query} onQuery={onQuery} />
           </div>
-          <button
-            type="button"
-            aria-pressed={changedOnly}
-            onClick={() => onChangedOnly(!changedOnly)}
-            title="Show only what you changed"
-            className={cn(
-              "flex h-8 shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[7px] border px-[9px] text-[12px] font-medium transition-colors",
-              changedOnly
-                ? "border-ui-accent/50 bg-ui-accent/[.16] text-[oklch(0.86_0.10_255)]"
-                : "border-ui-default bg-ui-app text-ui-2 hover:text-ui-1"
-            )}
-          >
-            <History className="h-4 w-4" />
-            Changed
-            <span className="font-ui-mono text-[11px]">{ownAll}</span>
-          </button>
         </div>
       )}
       {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} />}
       {filtering && (
         <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-[#8a8a94]">
-          <span className="flex-1">
-            {searching
-              ? `${shownCount} matching setting${shownCount === 1 ? "" : "s"}${changedOnly ? " (changed only)" : ""}`
-              : `${shownCount} changed setting${shownCount === 1 ? "" : "s"}`}
-          </span>
-          {changedOnly && ownAll > 0 && (
-            <button type="button" onClick={resetAll} className="font-medium text-[oklch(0.80_0.12_255)] hover:underline">
-              Reset all
-            </button>
-          )}
+          <span className="flex-1">{`${shownCount} matching setting${shownCount === 1 ? "" : "s"}`}</span>
         </div>
       )}
       <div className="h-px shrink-0 bg-ui-subtle" />

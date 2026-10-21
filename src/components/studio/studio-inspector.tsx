@@ -3,6 +3,8 @@ import type { DashboardConfig, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { DocumentInspector } from "./document-inspector";
+import { PageInspector } from "./page-inspector";
+import type { InheritanceContext } from "./use-inheritance";
 import { setInspectorTab } from "./inspector/inspector-prefs";
 import { MultiInspector } from "./inspector/multi-inspector";
 import { InspectorChromeProvider, type InspectorChrome } from "./inspector-layout";
@@ -25,7 +27,12 @@ interface StudioInspectorProps {
   documentProps: DocumentState["props"];
   /** The studio window ("Use this window's size"). */
   windowSize: { width: number; height: number };
-  setScopeStyle: DocumentState["setScopeStyle"];
+  /** The history setter (the inheritance chips edit the config through it). */
+  setConfig: InheritanceContext["setConfig"];
+  /** F1: Help at the article for what the user is on. */
+  onHelp: () => void;
+  /** LIVE: send the kiosks of this screen to a page now. */
+  onShowOnKiosks: (pageId: string) => void;
   /** Open a data point in Sources mode (a Bound data row); without it, Sources just opens. */
   onOpenPoint?: (key: string) => void;
   /** Open a canvas zone's items in the canvas editor. */
@@ -36,7 +43,8 @@ interface StudioInspectorProps {
 
 /**
  * The right (or docked) panel: one zone's inspector, the shared look of
- * several zones, or — with nothing selected — the Dashboard inspector.
+ * several zones, or — with nothing selected — the Page inspector (the screen's
+ * Layout / Look / Behaviour tabs, the old profile inspector, open from its links).
  */
 export function StudioInspector({
   config,
@@ -47,7 +55,9 @@ export function StudioInspector({
   edit,
   documentProps,
   windowSize,
-  setScopeStyle,
+  setConfig,
+  onHelp,
+  onShowOnKiosks,
   onOpenPoint,
   onEditCanvas,
   onEditGauge,
@@ -75,9 +85,13 @@ export function StudioInspector({
   }, [tabRequest]);
 
   const openExplorer = () => ui.setMode("sources");
-  /** A Follow bar's theme name: Studio › Theme, at the theme it names (this page's, or the profile's). */
+  /** The theme at the screen's scope (the interim screen tabs' "Edit … in Theme"). */
   const editGlobalTheme = (level: "profile" | "page") =>
     ui.openTheme(level === "page" && profile.pageId ? { kind: "page", pageId: profile.pageId } : { kind: "profile" });
+
+  const inheritCtx: InheritanceContext = { config, setConfig, navigateTo: ui.navigateTo };
+  const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
+  const page = stored.pages.find((pg) => pg.id === profile.pageId) ?? stored.pages[0];
 
   const body =
     selection.length > 1 ? (
@@ -91,8 +105,6 @@ export function StudioInspector({
         onRemove={edit.removeSelection}
         query={ui.inspectorQuery}
         onQuery={ui.setInspectorQuery}
-        changedOnly={ui.inspectorChanged}
-        onChangedOnly={ui.setInspectorChanged}
         jumpTo={ui.inspectorJump}
       />
     ) : selected ? (
@@ -102,10 +114,9 @@ export function StudioInspector({
         profile={profile}
         appearance={appearance}
         stylePresets={config.stylePresets ?? []}
+        inherit={inheritCtx}
         jumpTo={ui.inspectorJump}
         request={ui.inspectorRequest}
-        styleClipboard={ui.styleClipboard}
-        onCopyStyle={ui.setStyleClipboard}
         widgetClipboard={ui.widgetClipboard}
         onCopyWidget={ui.setWidgetClipboard}
         selectedWidgetId={selectedWidgetId}
@@ -116,26 +127,34 @@ export function StudioInspector({
         }}
         query={ui.inspectorQuery}
         onQuery={ui.setInspectorQuery}
-        changedOnly={ui.inspectorChanged}
-        onChangedOnly={ui.setInspectorChanged}
         update={edit.updateSelected}
         updateProfile={edit.updateProfile}
         onZoneBox={edit.setZoneBox}
         onPickWidget={() => ui.setPickerFor(selected.id)}
-        onUseAsGlobal={(target, style) => setScopeStyle(target, () => style)}
         onSavePreset={edit.saveStylePreset}
-        onDeletePreset={edit.deleteStylePreset}
         onToggleVisible={() => edit.toggleVisible(selected.id)}
         onDuplicate={() => edit.duplicateZones([selected.id])}
         onRemove={() => edit.removePlacement(selected.id)}
         presetNaming={ui.presetNaming}
         onPresetNaming={ui.setPresetNaming}
         onSavePanelPreset={edit.savePanelAsPreset}
-        onEditGlobalTheme={editGlobalTheme}
         onOpenPoint={onOpenPoint ?? openExplorer}
         onOpenExplorer={openExplorer}
         onEditCanvas={onEditCanvas && (() => onEditCanvas(selected.id))}
         onEditGauge={onEditGauge && (() => onEditGauge(selected.id))}
+      />
+    ) : !ui.screenSettingsOpen ? (
+      <PageInspector
+        profile={stored}
+        page={page}
+        inherit={inheritCtx}
+        onRename={edit.renamePageTo}
+        onIcon={ui.setIconPage}
+        onDuplicate={edit.duplicateCurrentPage}
+        onDelete={ui.setDeletingPage}
+        onShowOnKiosks={() => onShowOnKiosks(page.id)}
+        onHelp={onHelp}
+        onOpenScreenSettings={ui.openDocumentTab}
       />
     ) : (
       <DocumentInspector
@@ -153,6 +172,7 @@ export function StudioInspector({
         onOpenExplorer={openExplorer}
         onOpenTheme={() => editGlobalTheme("profile")}
         onOpenLibrary={() => ui.setMode("library")}
+        onBack={() => ui.setScreenSettingsOpen(false)}
       />
     );
 

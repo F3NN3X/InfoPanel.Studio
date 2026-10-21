@@ -22,7 +22,7 @@ import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettings } from 
  * - Header: `showTitle`, `label`; More: `icon`
  * - Fit: `compact` (Small zones), `sizeTier` (Density; the template widgets' shell)
  * - Skin & graphics: `skin`, `stroke`; More: `graph`, `meter`
- * - Colors: `accent`, `textColor`, `mutedColor`; More: `preset`
+ * - Colors: `accent`, `textColor`, `mutedColor`
  * - Surface: `surface`, `surfaceOpacity`, `blur` (the last two on surfaced
  *   widgets only); More: `background`, `backgroundOn`
  * - Typography: `font`, `fontWeight`, `labelCase`
@@ -269,25 +269,6 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
 
 export const STANDARD_SETTINGS: ModuleSetting[] = [
   {
-    key: "preset",
-    label: "Style preset",
-    type: "select",
-    default: "default",
-    options: [
-      { value: "default", label: "Default" },
-      { value: "dark", label: "Dark", applies: { surface: "matte-dark", tint: false } },
-      { value: "light", label: "Light", applies: { surface: "matte-light", tint: false } },
-      { value: "vivid", label: "Vivid", applies: { surface: "glass", tint: true } },
-      {
-        value: "mono",
-        label: "Mono",
-        applies: { surface: "matte-dark", tint: false, accent: "#fafafa" },
-      },
-    ],
-    section: "colors",
-    more: true,
-  },
-  {
     // Replaces `variant` + `compactView` (config v7): the card or dense view in small zones.
     // The registry drops the choices a widget cannot draw (`fitSettings`, inspector-meta.ts).
     key: "compact",
@@ -353,7 +334,7 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
 ];
 
 /** Standard keys a panel has no use for (no small-zone views, size tiers or rings of its own; an empty title hides a panel's). */
-const NOT_FOR_PANELS: ReadonlySet<string> = new Set(["preset", "compact", "sizeTier", "stroke", "showTitle"]);
+const NOT_FOR_PANELS: ReadonlySet<string> = new Set(["compact", "sizeTier", "stroke", "showTitle"]);
 
 /**
  * A custom panel's look (its placement's settings): the standard block

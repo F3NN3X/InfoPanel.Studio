@@ -2,7 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Box, ChevronRight, CircleDot, Link2, Lock, Pencil, type LucideIcon } from "lucide-react";
 import { LEVEL_LABELS, type InheritLevel, type InheritState } from "@/lib/inheritance";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP, SEPARATOR } from "./style-tools";
+import { ITEM, POPUP, SEPARATOR } from "./menu-styles";
 
 /** Where "Make this the theme for… ▸" writes a widget's custom sections. */
 export type MakeThemeTarget = "all" | "screen" | "page";

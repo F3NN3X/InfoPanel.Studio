@@ -49,7 +49,8 @@ import { dialogArticle, studioHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
 import { isIslandAlert } from "@/lib/island/from-alerts";
 import { visibleAlerts } from "@/components/alerts/alert-model";
-import { PageTabs } from "./page-tabs";
+import { cycleLabel, PageTabs } from "./page-tabs";
+import { PageIconDialog } from "./page-icon-dialog";
 import { islandSectionId } from "./island-panel-model";
 import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
@@ -306,7 +307,9 @@ function StudioViewBody({
       edit={edit}
       documentProps={documentProps}
       windowSize={{ width: windowWidth, height: windowHeight }}
-      setScopeStyle={setScopeStyle}
+      setConfig={setConfig}
+      onHelp={() => void openHelp(helpTarget()).catch(() => {})}
+      onShowOnKiosks={(pageId) => void postControl("page", { profile: storedProfile.id, page: pageId })}
       onOpenPoint={(key) => {
         setFocusPointKey(key);
         ui.setMode("sources");
@@ -432,7 +435,6 @@ function StudioViewBody({
         if (id === null) {
           studioLayout.dismissInspector();
           ui.setInspectorQuery("");
-          ui.setInspectorChanged(false);
         }
         sel.select(id, how);
       }}
@@ -490,6 +492,10 @@ function StudioViewBody({
     />
   );
 
+  // The kiosks' rotation as the page tabs' chip and Live's toggle read it: the runtime state, else the saved setting.
+  const rotateEntry = control?.profiles[storedProfile.id];
+  const rotating = (rotateEntry?.rotating ?? storedProfile.rotate?.enabled === true) && storedProfile.pages.length >= 2;
+
   // The page tabs sit above the canvas in Design mode.
   const mainEl = showSources ? (
     canvasEl
@@ -506,21 +512,21 @@ function StudioViewBody({
         onMove={edit.movePageTo}
         onDuplicate={edit.duplicateCurrentPage}
         onDelete={edit.deletePage}
-        onIcon={edit.setIconOfPage}
-        onTheme={(pageId) => ui.openTheme({ kind: "page", pageId })}
+        onIcon={ui.setIconPage}
+        onPageSettings={(pageId) => {
+          // Show the page and deselect, so the Page inspector shows (SPEC §6.2).
+          if (pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
+          sel.select(null);
+          ui.setScreenSettingsOpen(false);
+          studioLayout.showInspector();
+        }}
         renamingId={ui.renamingPage}
         onRenamingChange={ui.setRenamingPage}
         deletingId={ui.deletingPage}
         onDeletingChange={ui.setDeletingPage}
-        cycleSeconds={storedProfile.rotate?.enabled ? storedProfile.rotate.seconds : undefined}
         kioskPage={control?.profiles[storedProfile.id]?.page}
-        onShowOnKiosk={(page) => void postControl("page", { profile: storedProfile.id, page })}
-        rotate={{
-          entry: control?.profiles[storedProfile.id],
-          saved: storedProfile.rotate?.enabled === true,
-          onToggle: () => void postControl("rotate", { profile: storedProfile.id, state: "toggle" }),
-          onSaved: () => void postControl("rotate", { profile: storedProfile.id, state: "saved" }),
-        }}
+        rotation={rotating ? `every ${cycleLabel(storedProfile.rotate?.seconds ?? 0)}` : "paused"}
+        onOpenLive={() => ui.setLiveOpen(true)}
       />
       {/* The quick bar floats over the canvas only, below the page tabs. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -681,6 +687,13 @@ function StudioViewBody({
         liveOpen={ui.liveOpen}
         onLiveOpenChange={ui.setLiveOpen}
         kiosks={kiosksOf(control)}
+        rotate={{
+          entry: rotateEntry,
+          saved: storedProfile.rotate?.enabled === true,
+          canRotate: storedProfile.pages.length >= 2,
+          onToggle: () => void postControl("rotate", { profile: storedProfile.id, state: "toggle" }),
+          onSaved: () => void postControl("rotate", { profile: storedProfile.id, state: "saved" }),
+        }}
         onExitStudio={onExitStudio}
         saved={ui.saved}
         unsaved={pushPending}
@@ -773,6 +786,11 @@ function StudioViewBody({
           onClose={menus.close}
         />
       )}
+      <PageIconDialog
+        page={storedProfile.pages.find((p) => p.id === ui.iconPage)}
+        onPick={(icon) => ui.iconPage && edit.setIconOfPage(ui.iconPage, icon)}
+        onClose={() => ui.setIconPage(null)}
+      />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
       {io.dialogs}
       <input

@@ -12,7 +12,7 @@ import {
   type AssetKind,
 } from "@/lib/assets";
 import { cn } from "@/lib/utils";
-import { ICON_BUTTON } from "./style-tools";
+import { ICON_BUTTON } from "./menu-styles";
 
 interface LibraryState {
   assets: Asset[];

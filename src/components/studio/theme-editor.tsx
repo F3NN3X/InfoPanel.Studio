@@ -86,7 +86,6 @@ export function ThemeEditor({ config, profile, currentPageId, scope: requested, 
   // A page of another profile (or a deleted one) reads as the profile theme.
   const scope = validScope(profile, requested);
   const [query, setQuery] = useState("");
-  const [changedOnly, setChangedOnly] = useState(false);
   const page = scope.kind === "page" ? pageOf(profile, scope.pageId) : pageOf(profile, currentPageId);
   const appearance = scopeAppearance(config, profile, scope);
   const context: InspectorContext = { kind: "theme", scope: scope.kind };
@@ -259,8 +258,6 @@ export function ThemeEditor({ config, profile, currentPageId, scope: requested, 
             notes={(tab) => inspectorNotes(context, tab).map((n) => <InspectorNote key={n.kind}>{n.text}</InspectorNote>)}
             query={query}
             onQuery={setQuery}
-            changedOnly={changedOnly}
-            onChangedOnly={setChangedOnly}
             jumpTo={jumpTo}
             identity={{ icon, name: title, meta: (changed) => `Theme · ${changedLabel(changed)}` }}
           />

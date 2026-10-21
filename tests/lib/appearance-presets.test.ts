@@ -47,7 +47,7 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
-  version: 9,
+  version: 10,
   activeProfile: "auto",
   profiles: [profile("p1"), profile("p2")],
   theme: DEFAULT_THEME,

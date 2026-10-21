@@ -1,7 +1,7 @@
 import { CARDS_ID, type Placement, type ProfileView } from "@/lib/layout";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
-import { themeKeyOf, withFlag, type SectionId } from "@/lib/theme-model";
+import { isLocked, sectionOfKey, themeKeyOf, withFlag, type SectionId, type ThemeLevels } from "@/lib/theme-model";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
 import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
@@ -64,6 +64,20 @@ export const withFollow = (zone: Placement, sec: SectionId, follows: boolean): P
   const follow = withFlag(zone.follow, sec, follows);
   return follow ? { ...rest, follow } : rest;
 };
+
+/**
+ * A zone after an edit of some keys: each theme section they belong to that still follows the theme turns
+ * custom (SPEC §4.3: editing any control customises, "Customise here" is a shortcut). A locked section is
+ * the screen's and stays as it is; so do per-widget and unthemed keys.
+ */
+export function customised(zone: Placement, levels: ThemeLevels, defs: readonly ModuleSetting[], keys: readonly string[]): Placement {
+  const defByKey = new Map<string, ModuleSetting>(defs.flatMap((d) => settingKeys(d).map((k): [string, ModuleSetting] => [k, d])));
+  return keys.reduce<Placement>((acc, key) => {
+    const def = defByKey.get(key);
+    const sec = def && !def.perWidget ? sectionOfKey(themeKeyOf(def, key)) : undefined;
+    return sec === undefined || acc.follow?.[sec] === false || isLocked(levels, sec) ? acc : withFollow(acc, sec, false);
+  }, zone);
+}
 
 /**
  * The Follow bars and read-only rows of a zone's sections (`zone` is the

@@ -410,12 +410,6 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
       stylePresets: [...(c.stylePresets ?? []), { id: uid("style"), name, settings }],
     }));
 
-  const deleteStylePreset = (id: string) =>
-    setConfig((c) => ({
-      ...c,
-      stylePresets: c.stylePresets?.filter((p) => p.id !== id),
-    }));
-
   return {
     updateProfile,
     updateStored,
@@ -462,7 +456,6 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     moveSelectionToPage,
     setRotate,
     saveStylePreset,
-    deleteStylePreset,
   };
 }
 

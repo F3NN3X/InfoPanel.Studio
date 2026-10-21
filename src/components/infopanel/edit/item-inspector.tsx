@@ -70,7 +70,6 @@ export function ItemInspector({ editor, live, onRemap, onEditGauge }: ItemInspec
 function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
-  const [changedOnly, setChangedOnly] = useState(false);
   const kind = item.kind as ItemKind;
   const groups = ipGroups(kind);
   const context: InspectorContext = {
@@ -170,8 +169,6 @@ function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInsp
       parts={parts}
       query={query}
       onQuery={setQuery}
-      changedOnly={changedOnly}
-      onChangedOnly={setChangedOnly}
       identity={{ icon: <Icon />, name, meta: () => `InfoPanel · ${item.kind}` }}
     />
   );

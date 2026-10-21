@@ -13,7 +13,7 @@ Starting points you can drop in and adjust: whole pages, single panels, and look
 | Layout starters | One sensor-free panel; each widget asks for a sensor | **Add › Layouts** |
 | Panel presets | One panel already bound to sensors (samples) | **Add › Layouts** |
 | My panels | Panels you saved | **Add › My panels** |
-| Style presets | One widget's look | Style tab, **Colors** header menu |
+| Styles | One widget's look | Style tab, **Start from a Style** |
 | Skins and saved looks | A whole look for all profiles or one | Nothing selected › **Appearance** |
 
 ## Layout starters

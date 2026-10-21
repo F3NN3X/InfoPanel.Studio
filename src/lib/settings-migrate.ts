@@ -698,3 +698,29 @@ export function migrateWidgetV9<W extends { kind: string; fontSize?: number; wid
   if (w.kind === "gauge") return (w.size !== undefined ? rest : { ...rest, size: fontSize }) as W;
   return w;
 }
+
+/* ───────── v10: the widget "Style preset" retires (settings IA phase 3) ───────── */
+
+/**
+ * v10, per placement and keyed on the field's presence (so a profile file or a
+ * config from before v10 migrates the same): the zone's `preset` key (Default,
+ * Dark, Light, Vivid, Mono) is dropped, nothing else. Picking a preset already
+ * wrote its values (`surface`, `tint`, `accent`) into the zone's settings, and
+ * nothing read the key back, so the zone renders as before; the five presets
+ * live on as the built-in Styles (`BUILTIN_STYLES`).
+ */
+export function migratePlacementV10<P extends MigratablePlacement>(p: P): P {
+  if (!p.settings || p.settings.preset === undefined) return p;
+  const { preset: _preset, ...rest } = p.settings;
+  const { settings: _s, ...others } = p;
+  return { ...others, ...(Object.keys(rest).length > 0 ? { settings: rest } : {}) } as P;
+}
+
+/** v10 for one profile: its zones. */
+export function migrateProfileV10<P extends MigratableProfile>(p: P): P {
+  const pages = p.pages.map((pg) => {
+    const placements = pg.placements.map(migratePlacementV10);
+    return placements.every((pl, i) => pl === pg.placements[i]) ? pg : { ...pg, placements };
+  });
+  return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
+}
