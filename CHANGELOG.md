@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+- Layers, the selection bar and the widget inspector show each widget's own icon instead of a plain box for all of
+  them.
+
 ## [1.3.0-beta.8] - 2026-10-21
 
 ### Added
