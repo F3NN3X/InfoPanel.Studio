@@ -52,10 +52,15 @@ describe("reading a config file", () => {
     await expect(readConfigText("not json")).rejects.toThrow();
   });
 
-  it("rejects profiles that are not screens (no id, no pages) or a config without a version", async () => {
+  it("rejects profiles that are not screens (no id, no pages) or a non-numeric version", async () => {
     await expect(readConfigText(JSON.stringify({ profiles: [{ x: 1 }] }))).rejects.toThrow("Not a Studio config");
     await expect(readConfigText(JSON.stringify({ version: 10, profiles: [{ x: 1 }] }))).rejects.toThrow("Not a Studio config");
-    await expect(readConfigText(JSON.stringify({ profiles: defaultConfig().profiles }))).rejects.toThrow("Not a Studio config");
+    await expect(readConfigText(JSON.stringify({ version: "10", profiles: defaultConfig().profiles }))).rejects.toThrow("Not a Studio config");
+  });
+
+  it("accepts a legacy config saved without a version", async () => {
+    const { config } = await readConfigText(JSON.stringify({ profiles: defaultConfig().profiles }));
+    expect(config.profiles.length).toBeGreaterThan(0);
   });
 
   it("refuses a config from a newer build, which mergeConfig would downgrade", async () => {

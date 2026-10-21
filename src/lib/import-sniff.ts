@@ -64,9 +64,12 @@ const looksJson = (b: Uint8Array) => {
   return b[i] === 0x7b;
 };
 
-/** Whether a JSON document has a config's root shape: a version, and profiles that each have an id and their pages (or zones). */
+/**
+ * Whether a JSON document has a config's root shape: profiles that each have an id and their pages (or zones), and a
+ * numeric version when it has one (the earliest configs had none; `mergeConfig` migrates them as version 0).
+ */
 export const looksLikeConfig = (json: Record<string, unknown>): boolean =>
-  typeof json.version === "number" &&
+  (json.version === undefined || typeof json.version === "number") &&
   Array.isArray(json.profiles) &&
   json.profiles.length > 0 &&
   json.profiles.every(
