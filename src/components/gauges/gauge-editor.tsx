@@ -8,7 +8,6 @@ import { useImperativeHandle, useState, type ReactNode, type Ref } from "react";
 import type { StudioBridge } from "@/components/library/library-actions";
 import { normalizeGauge, type VectorGauge } from "@/lib/infopanel/gauges/vector";
 import { NO_RECOLOUR, recolourFilter } from "@/lib/infopanel/gauges/raster";
-import type { ImportedGauge } from "@/lib/gauge-studio/import-file";
 import type { GaugeEntry, GaugeSource } from "@/lib/gauge-studio/model";
 import type { EditorOpen } from "@/lib/gauge-studio/open";
 import { selectable, type PartId } from "@/lib/gauge-studio/parts";
@@ -23,7 +22,7 @@ import { EditorStage } from "./editor-stage";
 import { FramesInspector } from "./frames-inspector";
 import { FramesStage } from "./frames-stage";
 import type { FramesTools } from "./frames-tools";
-import { downloadSpec } from "./gauge-files";
+import { openExportSheet, openImportDoor } from "@/components/studio/file-doors";
 import { PartInspector } from "./inspector/part-inspector";
 import { PartsList } from "./parts-list";
 import { PresetStrip } from "./preset-strip";
@@ -154,16 +153,12 @@ function VectorEditor({ ref, edit, gauge: g, write, below, theme, onBack, onSave
     edit.commit(normalizeGauge(preset.gauge));
     if (!edit.writeThrough) edit.rename(`${preset.name} copy`);
   };
-  const imported = (got: ImportedGauge) => {
-    edit.commit(got.gauge);
-    if (!edit.writeThrough) edit.rename(got.name);
-  };
   const set = (next: VectorGauge, key?: string) => edit.commit(next, key);
   const scope = previewScope(theme);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app">
-      <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={() => shell.requestBack()} onImported={imported} onExport={() => downloadSpec(edit.name, g)} onSave={() => void shell.save()} onSaveAsNew={shell.saveAsNew && (() => void shell.saveAsNew?.())} />
+      <EditorHeader edit={edit} gauge={g} saving={shell.saving} onBack={() => shell.requestBack()} onImport={openImportDoor} onExport={() => openExportSheet({ row: "gauge", gauge: { name: edit.name, gauge: g } })} onSave={() => void shell.save()} onSaveAsNew={shell.saveAsNew && (() => void shell.saveAsNew?.())} />
       <PresetStrip scope={scope} onPick={pick} />
       <div className="flex min-h-0 flex-1 max-[899px]:flex-col max-[899px]:overflow-y-auto">
         <PartsList g={g} selected={selectable(g, part)} onSelect={setPart} set={set} />

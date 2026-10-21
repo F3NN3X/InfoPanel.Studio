@@ -1,11 +1,9 @@
 /** The editor's header (spec §6): back, name and kind, undo/redo of a working copy, Import, Export, Save to library. An image sequence has no spec to import or export. */
-import { ArrowLeft, Copy, Redo2, Save, Undo2, Upload } from "lucide-react";
+import { ArrowLeft, Copy, Download, Redo2, Save, Undo2, Upload } from "lucide-react";
 import { useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
-import type { ImportedGauge } from "@/lib/gauge-studio/import-file";
 import { KIND_LABEL, kindOf } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
-import { ImportGaugeButton } from "./gauge-files";
 import type { GaugeEdit } from "./use-gauge-edit";
 
 const BUTTON = "flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-40";
@@ -16,7 +14,8 @@ export interface EditorHeaderProps {
   gauge: VectorGauge | null;
   saving: boolean;
   onBack: () => void;
-  onImported?: (got: ImportedGauge) => void;
+  /** The Import door (a gauge file lands in Library › Gauges). */
+  onImport?: () => void;
   onExport?: () => void;
   onSave: () => void;
   /** Save as new "<name> copy"; absent when there is no item to fork (Save already creates one). */
@@ -29,7 +28,7 @@ function where(edit: GaugeEdit): string {
   return `${place ? ` · ${place}` : ""}${edit.dirty ? " · unsaved" : ""}`;
 }
 
-export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport, onSave, onSaveAsNew }: EditorHeaderProps) {
+export function EditorHeader({ edit, gauge, saving, onBack, onImport, onExport, onSave, onSaveAsNew }: EditorHeaderProps) {
   const history = edit.history;
   // What's typed while the field has focus: a profile gauge's name reads back with a fallback ("Custom gauge") when
   // emptied, which would otherwise snap into the field mid-edit.
@@ -65,7 +64,11 @@ export function EditorHeader({ edit, gauge, saving, onBack, onImported, onExport
           </IconButton>
         </>
       )}
-      {onImported && <ImportGaugeButton label="Import" onImported={onImported} className={BUTTON} />}
+      {onImport && (
+        <button type="button" onClick={onImport} className={BUTTON}>
+          <Download className="h-4 w-4" /> Import
+        </button>
+      )}
       <button
         type="button"
         onClick={onExport}

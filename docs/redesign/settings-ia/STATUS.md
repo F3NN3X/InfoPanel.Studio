@@ -374,3 +374,67 @@ Unused, card tags, Themes / Media counts, the hint lines, `usedByScreen` ignorin
 - Phase 7: help articles (`gauges.md`, `library.md`, `sensors.md`, alerts and island) still describe the old Gauges page, "Style
   presets" and the drawers; the palette's "Dynamic Island" / "Alerts" drawer labels; comments that say "the Gauges page"; the
   Library's narrow layout (sidebar 216 px beside the grid) and the Data left column on narrow widths.
+
+## Phase 6: Import door, Export sheet, Live
+
+One door in, one sheet out, and Live with its controls. Checked by typecheck, tests, build and `cargo test` (112 pass),
+and by eye in headless Chromium at 1440 px (the drop cover, the empty door, a mixed batch, a config backup with its
+backup checkbox, a drop onto the open door, the Export sheet and its gauge chooser, Live, and the door opening from
+Add widget, Screens, Library, Fonts and Gauges); no page errors beyond the dev server's missing API.
+
+| Piece | State |
+|---|---|
+| Sniffer (PLAN 14) | `src/lib/import-sniff.ts`, pure: `sniffFile(name, type, bytes)` reads content, not the name. JSON by shape: a Studio profile (the envelope, or the bare profile "Copy profile JSON" used to give), a gauge spec (`format`), a config (a non-empty `profiles`). A zip by its entries: `canvas.json` = stored canvas, `manifest.json` with the frames format = frames zip, `Profile.xml` = InfoPanel export, any font file = font pack. `.infopanel` by extension. Images, videos, fonts and SVG by `classify` (magic bytes, size limits, unsafe-SVG scan); an SVG that reads `var(--value)` / `var(--percent)` is a gauge template, any other SVG an image. Anything else is unknown (a refused file keeps its reason). `destinationsOf(kind, current)` gives the radio cards, default first. |
+| Import door (§9.1) | `import-door.tsx` (the 560 px dialog: header copy, Detected card with icon, mono name and green "Detected: …", Destination radio cards per group, the backup and background checkboxes, footer hint, Cancel, primary), `use-import-door.tsx` (state, the window-wide drop and the full-window "Drop to import" cover; a drop onto the open door adds to it; a field that takes the file itself, like a background picker, keeps it), `import-door-actions.ts` (`restoreConfig`, `runImport`), `import-door-library.ts` (gauges, frames zips, images, videos, fonts and font packs into My library). Opened from the title bar, the palette (**Import…**), Screens (**Import a screen…**), the Library (**Add files…**, the upload tile), Fonts (**Add fonts**), Gauges (**Import…**), the gauge editor (**Import**) and Add widget (**Canvas from an .infopanel file → Import**, which opens with Canvas zone chosen) through `file-doors.ts`. |
+| What each kind does | Config: **Replace everything** (default) writes the backup file first when "Back up the current dashboard first" is on (it stops, replacing nothing, if the backup cannot be written), then replaces in one undo step; **Add its screens only** adds each screen with fresh ids and a free name. Profile: a new screen, then Screens. `.infopanel` / stored canvas: the existing wizard with the destination chosen in the door and no "Lands in" step (`lockDest`). Gauge / SVG / frames zip: saved to Library › Gauges and opened in the editor. Image / video / font / font pack: saved to Library › Media or Fonts (a file already there is reported, not added twice), with "Also use ‹file› as the background for ‹screen›". Several files: grouped, one row each; a file it does not recognise says "We don't recognise this file." and the rest go on; one config and one InfoPanel file per run. |
+| Export sheet (§9.2) | `export-sheet.tsx`, 520 px: Back up everything (**Save backup**, primary), Export this screen, Export a page for InfoPanel (**Export…**; disabled with its reason when the page has no canvas zone, PLAN 11), Export a gauge (**Choose…** lists Library › Gauges; the gauge editor's Export opens it with that gauge chosen). Each row has a **Copy JSON** link that copies `FilePayload.text`, the very text the file writer gets (`configPayload`, `screenPayload`, `gaugePayload`, PLAN 12; the page row copies the canvas's stored JSON). A Screens card's **Export screen** opens it on that screen. |
+| Live (§3.3) | `live-popover.tsx` + `live-model.ts`, all on the control API: **Show on ‹screen› kiosks** (the screen's pages, segmented), **Rotation** (toggle plus the two notes: "Following the saved setting: every 20 s." and "Paused for now. Saved setting: every 20 s — resumes on reload."; flipping back to the saved value clears the override), **Dim screens** (slider, 10 % steps, Off at 0), **Mute alerts for 1 h**, **Dynamic Island** (runtime), **Reload all kiosks**. Offline it says so and disables the controls. Nothing writes the config. The interim rotation toggle (`rotate-toggle.tsx`) is gone; the tab-row chip already read the runtime pause. |
+| Tauri | `windows.rs`: the main window is built with `disable_drag_drop_handler()`. On Windows Tauri's handler takes file drops from the page and HTML5 `drop` never fires, so the door's drop (and the Library's old one) needed it off. Settings and Help windows keep it. |
+| Retired | The title bar's Import / Export menus, ⋯ › Export config, Import config…, Import InfoPanel profile…, Export InfoPanel canvas…, Copy profile JSON (title bar, Screens menu, palette), the hidden config input, `startConfigImport` / `importConfigFile` / `importConfigText` / `copyProfileJson`, `startProfileImport` / `importProfileFile` / `loadProfileText`, Screens' own import, the Library's `fileDrop` and header input and the `onProfile` hand-off of `addFiles`, Fonts' file input and zip unpacking, `ImportGaugeButton` / `ImportFramesButton`, the gauge editor's in-place import. The ⋯ menu stays for the palette, shortcuts and the build id (their Phase 7 homes), and on a phone for Undo / Redo, Import and Export. |
+
+Tests: `import-sniff.test.ts` (every type from its bytes, a zip as frames / stored canvas / InfoPanel export / font pack / none,
+an unrelated manifest, a truncated zip, the unknown message, a refusal that keeps its reason, the destinations),
+`import-door-actions.test.ts` (replace backs up first by default and not when off, nothing replaced when the backup fails or the
+file is not a config, add-screens keeps what is there with fresh ids and free names, the door restoring with the backup written
+before the replace, a profile envelope through the door as a new screen with its contents intact, names within a batch, an
+unknown file reported while the rest go on, one config / InfoPanel file per run, the wizard's destination), `live-model.test.ts`
+(each Live action posts to its own control route and to nothing else, so the config and the undo history are never touched; the
+saved-value toggle rule; both rotation notes; the mute deadline), and the Copy JSON = file payload cases in `config-file`,
+`profile-file` and `gauge-studio/import-file` tests. Tests changed because the retired code went: `config-file.test.ts` (the
+native-dialog and file-input import cases and the `importConfigText` callback API replaced by `readConfigText` cases),
+`commands.test.ts` (no `copy-profile` command), `use-my-library.test.tsx` (`addFiles` lost its `onProfile` argument).
+
+### Deviations
+
+- **The page row's options live in the export dialog.** "Bake vector gauges first", "Leave unused assets out" and Stored form /
+  .infopanel are the existing Export dialog's controls (with the font licence review), and **Export…** opens it; the sheet
+  names them and does not repeat the switches.
+- **Copy JSON on the page row copies the canvas's stored JSON** (`canvas.json`): an `.infopanel` is a zip, so there is no JSON
+  file to copy.
+- **A gauge SVG is told from an image SVG by `var(--value)` / `var(--percent)`.** The spec says "extension / shape"; an SVG
+  without those is a Library image.
+- **The gauge editor's Import no longer replaces the working copy**: a gauge file lands in Library › Gauges and opens in the editor.
+- **The saved-canvas paths keep "Lands in".** Library › Open canvas / Re-import… reopen a library item (not a file) in the wizard
+  with its own destination choice; only a file from the door has the choice made already.
+- **A restore does not wait for the native Save As.** The backup is started first (and a failed one stops the restore), but on
+  desktop the Save As dialog is async, so the replace may happen while it is still open. Undo brings the old dashboard back.
+- **Binary imports stay on `<input type=file>`.** The desktop `open_text_file` returns text only, so the door's Choose files… is
+  the browser input in both builds.
+- **Reset everything's "Back up first" keeps calling `exportConfigFile`** (it is the same payload as Save backup).
+- **A file over 64 MB is sniffed from its first 64 KB**, so a zip or JSON that big reads as unknown (a video that big is fine).
+
+### Unverified
+
+- **The desktop app itself**: that `disable_drag_drop_handler()` lets a real OS file drop reach the page was not run (cargo test only
+  builds it). The drop was simulated in headless Chromium with synthetic `DragEvent`s.
+- A real restore, a frames zip, a font pack and an `.infopanel` through the door end to end (the logic is tested; the dev server had no
+  library or asset store, and running a restore would have replaced a live dashboard).
+- Live against a connected kiosk (the dev server's control state showed the controls enabled; no kiosk was connected).
+- Phone widths: the ⋯ menu's Import and Export items were not looked at.
+
+### Follow-ups
+
+- Phase 7: Help copy for the door and the sheet (`import.md`, `profiles.md`, `library.md`, `gauges.md` still describe the old entry
+  points; the sheet borrows the `profiles` article for F1); the palette's remaining "Open drawer: …" labels; Keyboard shortcuts and the
+  build id leave ⋯ when they have homes in Help and Settings.
+- The Export dialog could take its three options from the sheet if the owner wants them there.

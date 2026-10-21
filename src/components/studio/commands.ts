@@ -24,7 +24,6 @@ export type CommandAction =
   | { type: "save" }
   | { type: "export" }
   | { type: "import" }
-  | { type: "copy-profile" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "shortcuts" }
@@ -133,9 +132,8 @@ function generalCommands(s: CommandState): Command[] {
     general("save", "Save", { type: "save" }, KEYS.save),
     ...(s.canUndo ? [general("undo", "Undo", { type: "undo" }, KEYS.undo)] : []),
     ...(s.canRedo ? [general("redo", "Redo", { type: "redo" }, KEYS.redo)] : []),
-    general("export", "Export config", { type: "export" }),
-    general("import", "Import config…", { type: "import" }),
-    general("copy-profile", "Copy profile JSON", { type: "copy-profile" }),
+    general("export", "Export & back up…", { type: "export" }),
+    general("import", "Import…", { type: "import" }),
     general("shortcuts", "Keyboard shortcuts", { type: "shortcuts" }, KEYS.cheatsheet),
     ...DRAWERS.map(({ drawer, label }) =>
       general(`drawer:${drawer}`, `Open drawer: ${label}`, { type: "drawer", drawer })

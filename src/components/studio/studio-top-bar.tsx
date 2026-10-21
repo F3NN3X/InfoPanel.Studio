@@ -1,27 +1,13 @@
-import { useState, type ReactNode } from "react";
 import { Menu } from "@base-ui/react/menu";
-import {
-  Check,
-  Copy,
-  Download,
-  FileInput,
-  FileOutput,
-  Info,
-  Keyboard,
-  MoreHorizontal,
-  Redo2,
-  Search,
-  Undo2,
-  Upload,
-} from "lucide-react";
+import type { ReactNode } from "react";
+import { FileInput, FileOutput, Info, Keyboard, MoreHorizontal, Redo2, Search, Undo2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { BUILD_ID } from "@/lib/buildInfo";
 import { isTauri } from "@/lib/desktop";
-import type { ControlKiosk } from "@/lib/control";
+import type { ControlKiosk, ControlState } from "@/lib/control";
 import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { copyProfileJson } from "./config-file";
-import { LiveControl, type LiveRotate } from "./live-popover";
+import { LiveControl } from "./live-popover";
 import { ScreenSwitcher } from "./screen-switcher";
 import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
@@ -44,8 +30,8 @@ interface StudioTopBarProps {
   liveOpen: boolean;
   onLiveOpenChange: (open: boolean) => void;
   kiosks: readonly ControlKiosk[];
-  /** The edited screen's runtime rotation (the Live popover's interim Pause / Play). */
-  rotate: LiveRotate;
+  /** The runtime state the Live controls read (null while the server is unreachable). */
+  control: ControlState | null;
   /** Live's "Open kiosk view". */
   onExitStudio: () => void;
   /** Briefly true after a save (shows "Saved"). */
@@ -53,14 +39,10 @@ interface StudioTopBarProps {
   /** Edits the server does not have yet (the dot on Save). */
   unsaved: boolean;
   onSave: () => void;
+  /** The Export & back up sheet. */
   onExport: () => void;
-  /** Open the file picker for "Import config…". */
+  /** The Import door. */
   onImport: () => void;
-  /** Import an InfoPanel profile (the Import dialog). */
-  onImportInfoPanel: () => void;
-  /** Export the profile's canvas zone (the Export dialog); off without one. */
-  onExportInfoPanel: () => void;
-  canExportInfoPanel: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -76,146 +58,83 @@ const ITEM =
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
 
 /**
- * "⋯": export / import / copy profile JSON, the command palette
- * and shortcut sheet, and the build id.
+ * "⋯": the command palette and shortcut sheet and the build id, with Undo / Redo, Import and Export on a phone,
+ * where the bar has no room for them.
  */
 function MoreMenu({
-  profile,
   onExport,
   onImport,
-  onImportInfoPanel,
-  onExportInfoPanel,
-  canExportInfoPanel,
   onPalette,
   onShortcuts,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
-}: Pick<
-  StudioTopBarProps,
-  | "profile"
-  | "onExport"
-  | "onImport"
-  | "onImportInfoPanel"
-  | "onExportInfoPanel"
-  | "canExportInfoPanel"
-  | "onPalette"
-  | "onShortcuts"
-  | "canUndo"
-  | "canRedo"
-  | "onUndo"
-  | "onRedo"
->) {
-  const [copied, setCopied] = useState(false);
-
-  const copyProfile = () => {
-    copyProfileJson(profile)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
-      })
-      .catch(() => {});
-  };
-
+}: Pick<StudioTopBarProps, "onExport" | "onImport" | "onPalette" | "onShortcuts" | "canUndo" | "canRedo" | "onUndo" | "onRedo">) {
   return (
-    <>
-      <Menu.Root>
-        <Menu.Trigger
-          aria-label="More actions"
-          title={copied ? "Profile JSON copied" : "More actions"}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-ui-3 transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
-        >
-          {copied ? <Check className="h-4 w-4 text-ui-success" /> : <MoreHorizontal className="h-4 w-4" />}
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-            <Menu.Popup className={POPUP}>
-              {/* On a phone the bar has no room for Undo / Redo: they move in here. */}
-              <div className="sm:hidden">
-                <Menu.Item className={ITEM} disabled={!canUndo} onClick={onUndo}>
-                  <Undo2 className="h-3.5 w-3.5" /> Undo
-                </Menu.Item>
-                <Menu.Item className={ITEM} disabled={!canRedo} onClick={onRedo}>
-                  <Redo2 className="h-3.5 w-3.5" /> Redo
-                </Menu.Item>
-                <Menu.Separator className={SEPARATOR} />
-              </div>
-              {/* On a phone Import / Export have no room in the bar: they move in here. */}
-              <div className="sm:hidden">
-                <Menu.Item className={ITEM} onClick={onExport}>
-                  <Download className="h-3.5 w-3.5" /> Export config
-                </Menu.Item>
-                <Menu.Item className={ITEM} onClick={onImport}>
-                  <Upload className="h-3.5 w-3.5" /> Import config…
-                </Menu.Item>
-                <Menu.Item className={ITEM} onClick={onImportInfoPanel}>
-                  <FileInput className="h-3.5 w-3.5" /> Import InfoPanel profile…
-                </Menu.Item>
-                <Menu.Item className={ITEM} disabled={!canExportInfoPanel} onClick={onExportInfoPanel}>
-                  <FileOutput className="h-3.5 w-3.5" /> Export InfoPanel canvas…
-                </Menu.Item>
-                <Menu.Separator className={SEPARATOR} />
-              </div>
-              <Menu.Item className={ITEM} onClick={copyProfile}>
-                <Copy className="h-3.5 w-3.5" /> Copy profile JSON
+    <Menu.Root>
+      <Menu.Trigger
+        aria-label="More actions"
+        title="More actions"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-ui-3 transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
+          <Menu.Popup className={POPUP}>
+            <div className="sm:hidden">
+              <Menu.Item className={ITEM} disabled={!canUndo} onClick={onUndo}>
+                <Undo2 className="h-3.5 w-3.5" /> Undo
+              </Menu.Item>
+              <Menu.Item className={ITEM} disabled={!canRedo} onClick={onRedo}>
+                <Redo2 className="h-3.5 w-3.5" /> Redo
               </Menu.Item>
               <Menu.Separator className={SEPARATOR} />
-              <Menu.Item className={ITEM} onClick={onPalette}>
-                <Search className="h-3.5 w-3.5" />
-                <span className="flex-1">Command palette…</span>
-                <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.palette}</span>
+              <Menu.Item className={ITEM} onClick={onImport}>
+                <FileInput className="h-3.5 w-3.5" /> Import…
               </Menu.Item>
-              <Menu.Item className={ITEM} onClick={onShortcuts}>
-                <Keyboard className="h-3.5 w-3.5" />
-                <span className="flex-1">Keyboard shortcuts</span>
-                <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.cheatsheet}</span>
+              <Menu.Item className={ITEM} onClick={onExport}>
+                <FileOutput className="h-3.5 w-3.5" /> Export &amp; back up…
               </Menu.Item>
               <Menu.Separator className={SEPARATOR} />
-              <Menu.Item className={ITEM} disabled>
-                <Info className="h-3.5 w-3.5" />
-                <span className="font-ui-mono text-[10.5px]">build {BUILD_ID}</span>
-              </Menu.Item>
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>
-    </>
+            </div>
+            <Menu.Item className={ITEM} onClick={onPalette}>
+              <Search className="h-3.5 w-3.5" />
+              <span className="flex-1">Command palette…</span>
+              <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.palette}</span>
+            </Menu.Item>
+            <Menu.Item className={ITEM} onClick={onShortcuts}>
+              <Keyboard className="h-3.5 w-3.5" />
+              <span className="flex-1">Keyboard shortcuts</span>
+              <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.cheatsheet}</span>
+            </Menu.Item>
+            <Menu.Separator className={SEPARATOR} />
+            <Menu.Item className={ITEM} disabled>
+              <Info className="h-3.5 w-3.5" />
+              <span className="font-ui-mono text-[10.5px]">build {BUILD_ID}</span>
+            </Menu.Item>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   );
 }
 
 /** Import / Export: outlined buttons before Live; icon-only under 960 px, in the "⋯" menu on a phone. */
 const FILE_BUTTON =
-  "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover max-sm:hidden max-[959px]:px-1.5";
+  "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 max-sm:hidden max-[959px]:px-1.5";
 
 /** Undo / redo: #c9c9cf when they can act, #4a4a52 when they cannot. */
 const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
 
-/**
- * The one Import and one Export button (SPEC §3.1). Until Phase 6 builds the Import door and the Export sheet
- * each opens a small menu over the existing dialogs and file pickers.
- */
-function FileMenu({
-  label,
-  icon,
-  children,
-}: {
-  label: string;
-  icon: ReactNode;
-  children: ReactNode;
-}) {
+/** The one Import and one Export button (SPEC §3.1): the Import door and the Export & back up sheet. */
+function FileButton({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
   return (
-    <Menu.Root>
-      <Menu.Trigger title={label} className={FILE_BUTTON}>
-        {icon}
-        <span className="max-[959px]:sr-only">{label}</span>
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={POPUP}>{children}</Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+    <button type="button" title={label} onClick={onClick} className={FILE_BUTTON}>
+      {icon}
+      <span className="max-[959px]:sr-only">{label}</span>
+    </button>
   );
 }
 
@@ -274,28 +193,15 @@ export function StudioTopBar(props: StudioTopBarProps) {
         <Redo2 className="h-[19px] w-[19px]" strokeWidth={1.75} />
       </IconButton>
       <div className="h-[18px] w-px shrink-0 bg-ui-default max-sm:hidden" />
-      <FileMenu label="Import" icon={<FileInput className="h-4 w-4" strokeWidth={1.75} />}>
-        <Menu.Item className={ITEM} onClick={props.onImportInfoPanel}>
-          <FileInput className="h-3.5 w-3.5" /> InfoPanel profile…
-        </Menu.Item>
-        <Menu.Item className={ITEM} onClick={props.onImport}>
-          <Upload className="h-3.5 w-3.5" /> Config file…
-        </Menu.Item>
-      </FileMenu>
-      <FileMenu label="Export" icon={<FileOutput className="h-4 w-4" strokeWidth={1.75} />}>
-        <Menu.Item className={ITEM} onClick={props.onExport}>
-          <Download className="h-3.5 w-3.5" /> Config file
-        </Menu.Item>
-        <Menu.Item className={ITEM} disabled={!props.canExportInfoPanel} onClick={props.onExportInfoPanel}>
-          <FileOutput className="h-3.5 w-3.5" /> InfoPanel canvas…
-        </Menu.Item>
-      </FileMenu>
+      <FileButton label="Import" icon={<FileInput className="h-4 w-4" strokeWidth={1.75} />} onClick={props.onImport} />
+      <FileButton label="Export" icon={<FileOutput className="h-4 w-4" strokeWidth={1.75} />} onClick={props.onExport} />
       <LiveControl
         open={props.liveOpen}
         onOpenChange={props.onLiveOpenChange}
         profiles={profiles}
         kiosks={props.kiosks}
-        rotate={props.rotate}
+        screen={profile}
+        control={props.control}
         onOpenKioskView={props.onExitStudio}
       />
       <button

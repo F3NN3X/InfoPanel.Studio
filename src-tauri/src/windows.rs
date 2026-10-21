@@ -100,6 +100,9 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .title("InfoPanel Studio")
         // The studio's top bar (and the start page's) is the title bar, with its own controls.
         .decorations(false)
+        // Tauri's own drag-drop handler takes file drops from the page; the studio's Import door
+        // and its drop overlay read them as HTML5 events.
+        .disable_drag_drop_handler()
         .inner_size(1440.0, 900.0)
         .min_inner_size(960.0, 600.0)
         .additional_browser_args(browser_args(app.state::<AppState>().debug()))

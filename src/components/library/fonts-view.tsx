@@ -4,7 +4,7 @@
  * Switching a request to InfoPanel's fallback, and supplying faces after a download, are each one
  * config update (one undo step).
  */
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, SearchCheck } from "lucide-react";
 import { uploadBytes } from "@/lib/assets";
 import type { HistorySetter } from "@/hooks/use-config-history";
@@ -12,10 +12,11 @@ import { canvasTitle, type Placement } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import type { FamilyFace } from "@/lib/infopanel/font-get";
 import type { FontRequest } from "@/lib/infopanel/font-loader";
-import { describeRequest, FONT_FILE, fontsInZip, isMissing, supplyFonts, withUse, zoneRequests, type SuppliedFile } from "@/lib/infopanel/font-requests";
+import { describeRequest, isMissing, supplyFonts, withUse, zoneRequests, type SuppliedFile } from "@/lib/infopanel/font-requests";
 import { facesFromFile, type Use } from "@/lib/infopanel/font-supply";
 import type { FontCandidate } from "@/lib/infopanel/font-sources";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
+import { openImportDoor } from "@/components/studio/file-doors";
 import { FontDetail } from "./fonts/font-detail";
 import { GetFont } from "./fonts/get-font";
 import { MyFonts } from "./fonts/my-fonts";
@@ -42,8 +43,6 @@ const mimeOf = (name: string) => (/\.otf$/i.test(name) ? "font/otf" : "font/ttf"
 
 export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: FontsViewProps) {
   const [pane, setPane] = useState<Pane>({ kind: "none" });
-  const [skipped, setSkipped] = useState<string[]>([]);
-  const input = useRef<HTMLInputElement>(null);
 
   const requested = useMemo<ZoneRequests[]>(
     () => zones.map((z) => ({ zoneId: z.id, title: canvasTitle(z) ?? "InfoPanel canvas", entries: zoneRequests(z.canvas) })),
@@ -71,28 +70,6 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
 
   const setUse = (zoneId: string, key: string, use: Use) => setConfig((c) => mapCanvas(c, zoneId, (canvas) => withUse(canvas, key, use)));
 
-  const addFontFiles = async (files: File[]) => {
-    const out: File[] = [];
-    const bad: string[] = [];
-    for (const f of files) {
-      if (/\.zip$/i.test(f.name)) {
-        try {
-          const found = await fontsInZip(new Uint8Array(await f.arrayBuffer()));
-          if (found.length === 0) bad.push(`${f.name} (no font files)`);
-          out.push(...found.map((x) => new File([x.data.slice()], x.name)));
-        } catch (e) {
-          bad.push(`${f.name} (${e instanceof Error ? e.message : "not a readable zip"})`);
-        }
-      } else if (FONT_FILE.test(f.name)) {
-        out.push(f);
-      } else {
-        bad.push(`${f.name} (not ttf, otf, ttc, woff, woff2 or zip)`);
-      }
-    }
-    setSkipped(bad);
-    if (out.length) library.addFiles(out);
-  };
-
   // The chosen faces into the store (their hashes), then to My library and, as one config update, to the requests.
   const addFaces = async (candidate: FontCandidate, picked: FamilyFace[]) => {
     const files: File[] = [];
@@ -110,7 +87,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
     const keys = new Set(missingKeys);
     setConfig((c) => zones.reduce((next, z) => mapCanvas(next, z.id, (canvas) => supplyFonts(canvas, keys, supplied)), c));
     // They are in the store already: My library only records the items.
-    library.addFiles(files, undefined, uploaded);
+    library.addFiles(files, uploaded);
   };
 
   const selected = pane.kind === "font" ? fonts.find((f) => f.id === pane.id) : undefined;
@@ -125,7 +102,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
           <span className="flex-1" />
           <button
             type="button"
-            onClick={() => input.current?.click()}
+            onClick={() => openImportDoor()}
             className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
           >
             <Plus className="h-4 w-4" /> Add fonts
@@ -137,21 +114,7 @@ export function FontsView({ fonts, library, zones, setConfig, onSelectItems }: F
           >
             <SearchCheck className="h-4 w-4" /> Get a font
           </button>
-          <input
-            ref={input}
-            type="file"
-            multiple
-            accept=".ttf,.otf,.ttc,.woff,.woff2,.zip"
-            aria-label="Add fonts"
-            className="hidden"
-            onChange={(e) => {
-              const files = [...(e.target.files ?? [])];
-              e.target.value = "";
-              if (files.length) void addFontFiles(files);
-            }}
-          />
         </div>
-        {skipped.length > 0 && <p className="mb-3 text-[12px] text-ui-warning">Not fonts, skipped: {skipped.join(", ")}</p>}
         <div className="flex flex-col gap-4">
           {requested.length === 0 && <p className="text-[12.5px] text-ui-4">No canvas on this page asks for fonts.</p>}
           {requested.map((z) => (

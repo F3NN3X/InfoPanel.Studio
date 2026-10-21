@@ -274,6 +274,7 @@ export function SaveStep({
   profileSize,
   shotState,
   onPickShot,
+  lockDest,
 }: {
   state: ImportState;
   choices: SaveChoices;
@@ -282,6 +283,8 @@ export function SaveStep({
   profileSize: { width: number; height: number };
   shotState: ShotState;
   onPickShot: (file: File) => void;
+  /** The Import door already chose where it lands: no "Lands in" choice. */
+  lockDest?: boolean;
 }) {
   const shotInput = useRef<HTMLInputElement>(null);
   const { profile } = state.source.parsed;
@@ -301,25 +304,27 @@ export function SaveStep({
           className="h-[34px] rounded-lg border border-ui-strong bg-ui-app px-2.5 text-[13px] text-ui-1 outline-none focus:border-ui-accent"
         />
       </label>
-      <div role="radiogroup" aria-label="Lands in" className="flex flex-col gap-2">
-        <span className="text-[12px] text-ui-3">Lands in</span>
-        {dests.map((d) => (
-          <button
-            key={d.value}
-            type="button"
-            role="radio"
-            aria-checked={choices.dest === d.value}
-            onClick={() => onChoices({ ...choices, dest: d.value })}
-            className={cn(CARD, "items-center gap-3 bg-ui-chrome px-3.5 py-3", choices.dest === d.value ? "border-ui-accent" : "border-ui-default hover:bg-ui-hover")}
-          >
-            <Radio on={choices.dest === d.value} />
-            <span className="flex flex-col gap-0.5">
-              <span className="text-[13px] font-medium text-ui-1">{d.title}</span>
-              <span className="text-[12px] text-ui-4">{d.text}</span>
-            </span>
-          </button>
-        ))}
-      </div>
+      {!lockDest && (
+        <div role="radiogroup" aria-label="Lands in" className="flex flex-col gap-2">
+          <span className="text-[12px] text-ui-3">Lands in</span>
+          {dests.map((d) => (
+            <button
+              key={d.value}
+              type="button"
+              role="radio"
+              aria-checked={choices.dest === d.value}
+              onClick={() => onChoices({ ...choices, dest: d.value })}
+              className={cn(CARD, "items-center gap-3 bg-ui-chrome px-3.5 py-3", choices.dest === d.value ? "border-ui-accent" : "border-ui-default hover:bg-ui-hover")}
+            >
+              <Radio on={choices.dest === d.value} />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[13px] font-medium text-ui-1">{d.title}</span>
+                <span className="text-[12px] text-ui-4">{d.text}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       <label className="flex cursor-pointer items-center gap-2.5 text-[12.5px] text-ui-2">
         <input
           type="checkbox"

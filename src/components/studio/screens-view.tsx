@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/toast";
 import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { ITEM, POPUP, SEPARATOR } from "./menu-styles";
-import { exportProfileFile, importedProfile, importProfileFile, startProfileImport } from "./profile-file";
+import { openExportSheet, openImportDoor } from "./file-doors";
 import { ProfilePreview } from "./profile-preview";
 import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
@@ -24,8 +24,6 @@ interface ScreensViewProps
   /** Select a screen for editing (never changes what the app opens on). */
   onSelectProfile: (id: string) => void;
   onAddProfile: () => void;
-  /** Add an imported screen (fresh ids, a unique name) and edit it. */
-  onImportProfile: (profile: MonitorProfile) => void;
   onDuplicateProfile: (id: string) => void;
   /** Delete a screen (after the confirm dialog). */
   onRemoveProfile: (id: string) => void;
@@ -218,13 +216,11 @@ export function ScreensView({
   autoProfileId,
   onSelectProfile,
   onAddProfile,
-  onImportProfile,
   onDuplicateProfile,
   onRemoveProfile,
   ...detail
 }: ScreensViewProps) {
   const toast = useToast();
-  const importRef = useRef<HTMLInputElement>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const { setConfig } = detail;
@@ -232,12 +228,6 @@ export function ScreensView({
   const nameOf = (id: string) => config.profiles.find((p) => p.id === id)?.name ?? "—";
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
   const open = (id: string) => setConfig((c) => withLaunch(c, id));
-  const importProfile = (picked: MonitorProfile, skippedCanvases: number) => {
-    const imported = importedProfile(config, picked);
-    onImportProfile(imported);
-    const skipped = skippedCanvases > 0 ? ` · ${skippedCanvases} canvas ${skippedCanvases === 1 ? "zone" : "zones"} skipped (not in the file)` : "";
-    toast(`Imported ${imported.name}${skipped}`);
-  };
   const rename = (id: string, name: string | null) => {
     setRenamingId(null);
     if (name) setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === id ? { ...p, name } : p)) }), `profile-name:${id}`);
@@ -247,7 +237,7 @@ export function ScreensView({
       <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-auto px-6 py-5">
         <div className="flex items-center gap-2.5">
           <h1 className="m-0 flex-1 text-[15px] font-semibold text-ui-1">Screens</h1>
-          <button type="button" title="Import a screen from a file" onClick={() => startProfileImport(importRef.current, importProfile, toast)} className={BUTTON}>
+          <button type="button" title="Import a screen from a file" onClick={() => openImportDoor()} className={BUTTON}>
             <Upload className="h-3.5 w-3.5" />
             Import a screen…
           </button>
@@ -346,7 +336,7 @@ export function ScreensView({
                       open(p.id);
                       toast(`The app now always opens ${p.name}`);
                     }}
-                    onExport={() => exportProfileFile(config, p, toast)}
+                    onExport={() => openExportSheet({ row: "screen", screenId: p.id })}
                     onDelete={() => setDeletingId(p.id)}
                   />
                 </div>
@@ -363,17 +353,6 @@ export function ScreensView({
         screen={config.profiles.find((p) => p.id === deletingId)}
         onConfirm={() => deletingId && onRemoveProfile(deletingId)}
         onClose={() => setDeletingId(null)}
-      />
-      <input
-        ref={importRef}
-        type="file"
-        accept="application/json,.json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) importProfileFile(file, importProfile, toast);
-          e.target.value = "";
-        }}
       />
     </div>
   );

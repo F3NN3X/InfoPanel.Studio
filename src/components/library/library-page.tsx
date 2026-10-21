@@ -54,7 +54,8 @@ import { downloadSpec } from "@/components/gauges/gauge-files";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
 import { addToProfile, applyStyle, dataOf, setAsBackground, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
 import { LibraryDetail, type DetailAction } from "./library-detail";
-import { GridView, LibrarySidebar, ShelvesView, fileDrop } from "./library-views";
+import { GridView, LibrarySidebar, ShelvesView } from "./library-views";
+import { openImportDoor } from "@/components/studio/file-doors";
 import { optimiseItem } from "./optimise";
 import { FontsView } from "./fonts-view";
 import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
@@ -85,8 +86,8 @@ export interface LibraryPageProps {
   theme: ThemeTokens;
   /** The stored profile's name (the canvas files button, the suggestions' note). */
   profileName: string;
-  /** Open the Import dialog: a profile file, or a saved canvas from the library. */
-  onImport: (source?: { file: File } | { canvasId: string }) => void;
+  /** Reopen a saved canvas from the library in the import wizard (files go through the Import door). */
+  onImport: (source: { canvasId: string }) => void;
   /** Open a library gauge in the Gauges collection's editor. */
   onOpenGauge: (itemId: string) => void;
   /** Export a saved canvas (download) without placing it. */
@@ -114,7 +115,6 @@ export default function LibraryPage(p: LibraryPageProps) {
   const [confirmRemove, setConfirmRemove] = useState<LibraryItem | null>(null);
   /** The item whose name field takes focus (Rename from the menu). */
   const [renameId, setRenameId] = useState<string | null>(null);
-  const uploadRef = useRef<HTMLInputElement>(null);
   // The studio's config as it is now, read when a removal decides which files to delete.
   const configRef = useRef(p.bridge.config);
   configRef.current = p.bridge.config;
@@ -153,7 +153,8 @@ export default function LibraryPage(p: LibraryPageProps) {
     if (p.request) pickCollection(p.request.collection);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.request?.seq]);
-  const addFiles = (files: File[]) => lib.addFiles(files, (file) => p.onImport({ file }));
+  /** Files chosen on the grid's upload tile: the Import door detects them. */
+  const addFiles = (files: File[]) => openImportDoor({ files });
 
   const open = (item: LibraryItem) => {
     setSelectedId(item.id);
@@ -330,7 +331,6 @@ export default function LibraryPage(p: LibraryPageProps) {
   return (
     <div
       className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui"
-      {...fileDrop(addFiles)}
       onDragStart={(e) => setDragging(e.dataTransfer.types.includes(LIBRARY_MIME))}
       onDragEnd={() => {
         setDragging(false);
@@ -414,29 +414,18 @@ export default function LibraryPage(p: LibraryPageProps) {
         <span className="flex-1" />
         <button
           type="button"
-          onClick={() => uploadRef.current?.click()}
+          onClick={() => openImportDoor()}
           className="flex h-[34px] items-center gap-1.5 rounded-[8px] bg-ui-inverse px-3 text-[12.5px] font-medium text-ui-inverse-fg hover:opacity-90"
         >
           Add files…
         </button>
-        <input
-          ref={uploadRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const files = [...(e.target.files ?? [])];
-            e.target.value = "";
-            if (files.length) addFiles(files);
-          }}
-        />
       </header>
       {!showFiles && <LooseUploads items={lib.items} config={p.bridge.config} ready={!lib.loading && !lib.error} onImport={lib.importAssets} onResult={toast} />}
       <div className="relative flex min-h-0 flex-1">
         {showFiles ? (
           <ProfileAssets
             {...p.assets}
-            onSaveToLibrary={(files) => addFiles(files)}
+            onSaveToLibrary={(files) => lib.addFiles(files)}
             tiledSrc={tiledSrc}
             onUse={(file) => file.url && useForSelection(bridge, file.name, file.url)}
             useBlocked={useForSelectionBlocked(p.bridge.selection)}

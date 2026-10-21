@@ -1,11 +1,11 @@
 import { unresolvedCanvases } from "@/lib/canvas-store";
 import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredProfile } from "@/lib/layout";
-import { isTauri, openTextFile, saveTextFile } from "@/lib/desktop";
-import type { ReportError } from "./config-file";
+import { PROFILE_FILE_TYPE } from "@/lib/import-sniff";
+import { saveFilePayload, type FilePayload, type ReportError } from "./config-file";
 import { uniqueProfileName, withFreshIds } from "./profile-actions";
 
 /** The `type` of a profile file, which tells it from a config file or any other JSON. */
-export const PROFILE_FILE_TYPE = "infopanel-studio-profile";
+export { PROFILE_FILE_TYPE };
 const PROFILE_FILE_VERSION = 1;
 
 /** A profile file: one profile with the config version it was saved under, so an old one migrates on import. */
@@ -25,8 +25,8 @@ export function profileFileText(profile: MonitorProfile): string {
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isInt = (v: unknown, min: number, max: number): boolean => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 
-/** A profile file's largest size; a bigger one is refused before it is read or parsed. */
-export const MAX_PROFILE_FILE_BYTES = 5 * 1024 * 1024;
+/** A profile file's largest size; a bigger one is refused before it is parsed. */
+const MAX_PROFILE_FILE_BYTES = 5 * 1024 * 1024;
 const TOO_BIG = "Not imported: the file is over 5 MB";
 const MAX_SIZE_PX = 20000;
 // The grid limits the studio itself enforces (studio-actions changeCols / changeRows).
@@ -112,60 +112,17 @@ export function importedProfile(config: DashboardConfig, profile: MonitorProfile
 const fileName = (name: string) => `${name.replace(/[\\/:*?"<>|]/g, "_").trim() || "profile"}.json`;
 
 /**
- * Save one profile as `‹name›.json`: a native dialog in the desktop app, a download in a browser.
- * A profile whose canvas zone has only its ref (see `exportConfigFile`) is not written; `onError` says so.
+ * One profile as `‹name›.json`: the profile file's envelope, which is also what "Copy JSON" copies. A profile whose
+ * canvas zone has only its ref (see `configPayload`) has no payload; the error says so.
  */
+export function screenPayload(config: DashboardConfig, profile: MonitorProfile): FilePayload | { error: string } {
+  if (unresolvedCanvases({ ...config, profiles: [profile] }).length > 0) return { error: "Not exported: a canvas in this profile is not loaded" };
+  return { name: fileName(profile.name), text: profileFileText(profile) };
+}
+
+/** Save one profile as `‹name›.json`; `onError` says why when it cannot be written. */
 export function exportProfileFile(config: DashboardConfig, profile: MonitorProfile, onError: ReportError = () => {}): void {
-  if (unresolvedCanvases({ ...config, profiles: [profile] }).length > 0) {
-    onError("Not exported: a canvas in this profile is not loaded");
-    return;
-  }
-  const text = profileFileText(profile);
-  const name = fileName(profile.name);
-  if (isTauri()) {
-    saveTextFile(name, text).catch((err) => console.error("Failed to export profile", err));
-    return;
-  }
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/** What an import hands on: the profile, and how many canvas zones were left out. */
-export type ProfileLoaded = (profile: MonitorProfile, skippedCanvases: number) => void;
-
-/** Read a profile file and hand the profile to `onLoad`, or the reason it is not one to `onError`. */
-export function loadProfileText(text: string, onLoad: ProfileLoaded, onError: ReportError): void {
-  const parsed = parseProfileFile(text);
-  if ("error" in parsed) onError(parsed.error);
-  else onLoad(parsed.profile, parsed.skippedCanvases);
-}
-
-/** Read a picked file (the hidden input's change handler). */
-export function importProfileFile(file: File, onLoad: ProfileLoaded, onError: ReportError): void {
-  if (file.size > MAX_PROFILE_FILE_BYTES) return onError(TOO_BIG);
-  file.text().then(
-    (text) => loadProfileText(text, onLoad, onError),
-    () => onError("Not imported: the file could not be read")
-  );
-}
-
-/** Begin an import: the native open dialog in the desktop app, else the hidden file input. */
-export function startProfileImport(
-  input: HTMLInputElement | null,
-  onLoad: ProfileLoaded,
-  onError: ReportError
-): void {
-  if (!isTauri()) {
-    input?.click();
-    return;
-  }
-  openTextFile()
-    .then((text) => {
-      if (text !== null) loadProfileText(text, onLoad, onError);
-    })
-    .catch((err) => console.error("Failed to import profile", err));
+  const payload = screenPayload(config, profile);
+  if ("error" in payload) onError(payload.error);
+  else saveFilePayload(payload);
 }

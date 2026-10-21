@@ -52,7 +52,7 @@ describe("buildCommands", () => {
     expect(list).toContain("profile:auto");
     expect(list).toContain("profile:p1");
     expect(list.filter((id) => id.startsWith("select:"))).toEqual(["select:a", "select:b"]);
-    for (const id of ["save", "export", "import", "copy-profile", "shortcuts", "grid", "zoom-fit"]) {
+    for (const id of ["save", "export", "import", "shortcuts", "grid", "zoom-fit"]) {
       expect(list).toContain(id);
     }
     expect(list).toContain("drawer:add");

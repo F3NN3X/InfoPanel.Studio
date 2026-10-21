@@ -9,7 +9,7 @@ import type { Appearance } from "@/lib/style-resolve";
 import { addRule, alertsKey } from "./alerts-model";
 import { followAll, toggleEnforce } from "./appearance-actions";
 import { buildCommands, type CommandAction } from "./commands";
-import { copyProfileJson, exportConfigFile, startConfigImport } from "./config-file";
+import { openExportSheet, openImportDoor } from "./file-doors";
 import { insertables } from "./insert-panel";
 import { widgetContext, type InspectorContext } from "./inspector-model";
 import { zoneDefs } from "./inspector/zone-fields";
@@ -148,12 +148,9 @@ export function useStudioCommands({
       case "save":
         return ui.handleSave();
       case "export":
-        return exportConfigFile(config, toast);
+        return openExportSheet();
       case "import":
-        return startConfigImport(ui.importRef.current, setConfig, toast);
-      case "copy-profile":
-        copyProfileJson(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).catch(() => {});
-        return;
+        return openImportDoor();
       case "undo":
         return history.undo();
       case "redo":

@@ -2,7 +2,7 @@
  * The Library's sidebar, Grid and Shelves views (spec §3, §10.4). Single-click selects a card,
  * double-click opens it, and every card drags onto the canvas (§8).
  */
-import { useRef, type DragEvent, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   Ban,
   ChevronRight,
@@ -404,18 +404,4 @@ export function ShelvesView(p: ShelvesViewProps) {
         ))}
     </div>
   );
-}
-
-/** Files dropped anywhere on a page area. */
-export function fileDrop(onFiles: (files: File[]) => void) {
-  return {
-    onDragOver: (e: DragEvent) => {
-      if (e.dataTransfer.types.includes("Files")) e.preventDefault();
-    },
-    onDrop: (e: DragEvent) => {
-      if (!e.dataTransfer.files.length) return;
-      e.preventDefault();
-      onFiles([...e.dataTransfer.files]);
-    },
-  };
 }

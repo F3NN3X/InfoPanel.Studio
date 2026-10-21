@@ -46,8 +46,10 @@ export interface ImportDialogProps {
   initialDest?: Dest;
   /** Commit; resolves to an error to show (no room), or null when the import landed. */
   onImport: (commit: ImportCommit) => Promise<string | null>;
-  /** Open with this source already chosen (the Library: a dropped profile, a saved canvas). */
+  /** Open with this source already chosen (the Import door: a file; the Library: a saved canvas). */
   initialSource?: ImportSource;
+  /** The Import door already chose where it lands: the Save step has no "Lands in". */
+  lockDest?: boolean;
 }
 
 /** A source the dialog opens with. */
@@ -313,7 +315,7 @@ function SourceStep({
   );
 }
 
-function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
+function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource, lockDest }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<SourceKind>("file");
   const [opening, setOpening] = useState<Opening | null>(null);
@@ -459,7 +461,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
       <div className="flex min-h-0 flex-col">
         <div className="flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
           <span className="text-[16px] font-semibold text-ui-1">{TITLES[step]}</span>
-          <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{SUBTITLES[step]}</Dialog.Description>
+          <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-[22px] py-[18px]">
           {step === 0 && <SourceStep kind={kind} onKind={setKind} opening={opening} state={state} onOpen={open} />}
@@ -468,7 +470,9 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
           {step === 3 && state && (
             <RemapPanel groups={state.groups} resolved={state.resolved} index={state.index} overrides={state.overrides} onOverrides={state.setOverrides} />
           )}
-          {step === 4 && state && <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} shotState={shotState} onPickShot={pickShot} />}
+          {step === 4 && state && (
+            <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} shotState={shotState} onPickShot={pickShot} lockDest={lockDest} />
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-[22px] py-3">
           <button type="button" onClick={onClose} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">

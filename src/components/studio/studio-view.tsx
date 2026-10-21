@@ -17,7 +17,7 @@ import { buildDataModel } from "@/lib/data-points";
 import { appearanceOf } from "@/lib/style-resolve";
 import { resolveTheme, themeVars } from "@/lib/theme";
 import { CommandPalette } from "./command-palette";
-import { exportConfigFile, importConfigFile, startConfigImport } from "./config-file";
+import { exportConfigFile } from "./config-file";
 import { useStyleEdits } from "./use-style-edits";
 import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
@@ -36,6 +36,10 @@ import { StudioShell } from "./studio-shell";
 import { QuickBar } from "./quick-bar";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
+import { ExportSheet } from "./export-sheet";
+import { onFileDoor, openExportSheet, openImportDoor, type ExportRequest } from "./file-doors";
+import { canvasZoneOf } from "./import-actions";
+import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
 import { useStudioCommands } from "./use-studio-commands";
 import { railWidth } from "./use-studio-layout";
@@ -60,13 +64,16 @@ import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
 import { sheetHeight } from "./studio-layout";
 import { zoneName } from "./inspector/zone-meta";
-import { dataOf, type StudioBridge } from "@/components/library/library-actions";
+import { dataOf, setAsBackground, type StudioBridge } from "@/components/library/library-actions";
 import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
 import { useToast } from "@/components/ui/toast";
 import type { LibraryCopy } from "@/lib/library";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
+
+/** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
+const NO_REQUEST: ExportRequest = {};
 
 /** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
@@ -274,6 +281,29 @@ function StudioViewBody({
     addCopy: (item, copy) => void recordCopy(item, copy),
   };
 
+  /** The Library page reloads (a new key) when the Import door added items. */
+  const [libraryEpoch, setLibraryEpoch] = useState(0);
+  const currentPageId = profile.pageId ?? storedProfile.pages[0].id;
+  const importDoor = useImportDoor({
+    config,
+    setConfig,
+    addScreen: edit.addImportedProfile,
+    backup: (c) => exportConfigFile(c, toast),
+    useAsBackground: (item) => setAsBackground(libraryBridge, item),
+    current: { screen: storedProfile.name, page: storedProfile.pages.find((p) => p.id === currentPageId)?.name ?? "" },
+    toast,
+    onGo: (go) => {
+      if (go.to === "screens") ui.navigateTo({ view: "screens", profileId: storedProfile.id });
+      else if (go.to === "gauge") openGauge({ kind: "library", itemId: go.itemId });
+      else ui.openLibrary(go.collection);
+    },
+    onWizard: (file, dest) => io.openImport(dest, { file }, true),
+    onLibraryChanged: () => setLibraryEpoch((n) => n + 1),
+  });
+  /** The Export & back up sheet: open with the row a request names (the title bar, a Screens card, the gauge editor). */
+  const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
+  useEffect(() => onFileDoor((e) => e.type === "export" && setExportRequest(e)), []);
+
   /** The one selected zone, when it is blank: the Add panel's click fills it. */
   const blankZoneId = selected && sel.selection.length === 1 && selected.module === BLANK_MODULE ? selected.id : undefined;
 
@@ -317,7 +347,7 @@ function StudioViewBody({
         onDeletePreset: edit.deleteSavedPanel,
         blankZoneId,
         onFillBlank: edit.fillBlank,
-        onImportCanvas: () => io.openImport("zone"),
+        onImportCanvas: () => openImportDoor({ prefer: "canvas-zone" }),
         profileName: profile.name,
       }}
       layers={{
@@ -370,7 +400,6 @@ function StudioViewBody({
       onOpenLive={() => ui.setLiveOpen(true)}
       navigateTo={ui.navigateTo}
       onAddProfile={edit.addProfile}
-      onImportProfile={edit.addImportedProfile}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
     />
@@ -587,6 +616,7 @@ function StudioViewBody({
   const libraryEl = showLibrary && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
       <LibraryPage
+        key={libraryEpoch}
         bridge={libraryBridge}
         request={ui.libraryRequest}
         gaugeInitial={gaugeToOpen}
@@ -688,22 +718,13 @@ function StudioViewBody({
         liveOpen={ui.liveOpen}
         onLiveOpenChange={ui.setLiveOpen}
         kiosks={kiosksOf(control)}
-        rotate={{
-          entry: rotateEntry,
-          saved: storedProfile.rotate?.enabled === true,
-          canRotate: storedProfile.pages.length >= 2,
-          onToggle: () => void postControl("rotate", { profile: storedProfile.id, state: "toggle" }),
-          onSaved: () => void postControl("rotate", { profile: storedProfile.id, state: "saved" }),
-        }}
+        control={control}
         onExitStudio={onExitStudio}
         saved={ui.saved}
         unsaved={pushPending}
         onSave={ui.handleSave}
-        onExport={() => exportConfigFile(config, toast)}
-        onImport={() => startConfigImport(ui.importRef.current, setConfig, toast)}
-        onImportInfoPanel={() => io.openImport("new")}
-        onExportInfoPanel={io.openExport}
-        canExportInfoPanel={io.canExport}
+        onExport={() => openExportSheet()}
+        onImport={() => openImportDoor()}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         onUndo={history.undo}
@@ -793,16 +814,17 @@ function StudioViewBody({
       />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
       {io.dialogs}
-      <input
-        ref={ui.importRef}
-        type="file"
-        accept="application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) importConfigFile(file, setConfig, toast);
-          e.target.value = "";
-        }}
+      {importDoor}
+      <ExportSheet
+        open={exportRequest !== null}
+        request={exportRequest ?? NO_REQUEST}
+        config={config}
+        screen={storedProfile}
+        pageName={storedProfile.pages.find((p) => p.id === currentPageId)?.name ?? ""}
+        pageCanvas={canvasZoneOf(profile, sel.primaryId ?? undefined)}
+        onExportPage={() => io.openExport()}
+        onClose={() => setExportRequest(null)}
+        toast={toast}
       />
     </div>
   );

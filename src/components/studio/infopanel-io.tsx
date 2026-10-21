@@ -22,11 +22,13 @@ interface InfoPanelIoDeps {
   onSelectProfile: (id: string) => void;
 }
 
-/** Import InfoPanel and Export: their open state, their one-undo-step commits and the dialogs. */
+/** Import InfoPanel (the door hands its file over; the Library reopens a saved canvas) and Export: their open state, their one-undo-step commits and the dialogs. */
 export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLanded, onSelectProfile }: InfoPanelIoDeps) {
   const toast = useToast();
   const [importDest, setImportDest] = useState<"new" | "zone" | null>(null);
   const [importSource, setImportSource] = useState<ImportSource | undefined>(undefined);
+  /** The door chose where the canvas lands, so the wizard does not ask. */
+  const [importLocked, setImportLocked] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   /** A canvas from the Library, exported without placing it. */
   const [exportOverride, setExportOverride] = useState<Placement | null>(null);
@@ -72,6 +74,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
           profileSize={{ width: profile.width, height: profile.height }}
           initialDest={importDest}
           initialSource={importSource}
+          lockDest={importLocked}
           onImport={commit}
         />
       )}
@@ -88,8 +91,9 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
   );
 
   return {
-    openImport: (dest: "new" | "zone" = "new", source?: ImportSource) => {
+    openImport: (dest: "new" | "zone" = "new", source?: ImportSource, locked = false) => {
       setImportSource(source);
+      setImportLocked(locked);
       setImportDest(dest);
     },
     openExport: (zone?: Placement) => {

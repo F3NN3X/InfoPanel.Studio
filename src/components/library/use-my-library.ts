@@ -29,8 +29,8 @@ export interface MyLibrary {
   refresh(): void;
   uploads: UploadRow[];
   clearUploads(): void;
-  /** Add files: images, videos, SVG and fonts become items; an .infopanel goes to `onProfile`. `uploaded`: files already in the asset store, by asset id. */
-  addFiles(files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>): void;
+  /** Add files: images, videos, SVG and fonts become items. `uploaded`: files already in the asset store, by asset id. */
+  addFiles(files: readonly File[], uploaded?: ReadonlyMap<File, string>): void;
   /** Add files already in the asset store (older loose uploads) as items; the counts of what happened. */
   importAssets(assets: readonly Asset[]): Promise<{ added: number; duplicates: number; failed: number }>;
   /** A copy was placed (the item's copy count goes up by one). */
@@ -100,13 +100,9 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     }
   };
 
-  const addFiles = (files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>) => {
+  const addFiles = (files: readonly File[], uploaded?: ReadonlyMap<File, string>) => {
     const rows: UploadRow[] = [];
     for (const file of files) {
-      if (onProfile && /\.infopanel$/i.test(file.name)) {
-        onProfile(file);
-        continue;
-      }
       const id = nextId.current++;
       rows.push({ id, name: file.name, size: file.size, state: "queued" });
       queue.current.push({ row: id, file, id: uploaded?.get(file) });

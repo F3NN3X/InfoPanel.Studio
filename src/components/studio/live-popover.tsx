@@ -1,28 +1,22 @@
-import type { ComponentProps } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Cast, Maximize } from "lucide-react";
-import type { ControlKiosk } from "@/lib/control";
+import { Cast, Maximize, RefreshCw } from "lucide-react";
+import { Segmented } from "@/components/ui/segmented";
+import { Toggle } from "@/components/ui/toggle";
+import { islandEffective, type ControlKiosk, type ControlState } from "@/lib/control";
 import type { MonitorProfile } from "@/lib/layout";
-import { RotateToggle } from "./rotate-toggle";
-
-/** The edited screen's runtime rotation: what `RotateToggle` reads and does. */
-export interface LiveRotate {
-  entry: ComponentProps<typeof RotateToggle>["entry"];
-  /** The screen's saved `rotate.enabled`. */
-  saved: boolean;
-  /** The screen has two or more pages (else there is nothing to rotate). */
-  canRotate: boolean;
-  onToggle: () => void;
-  onSaved: () => void;
-}
+import { DIM_MAX, DIM_STEP, isMuted, liveActions, rotationNote } from "./live-model";
 
 interface LiveControlProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profiles: MonitorProfile[];
+  /** The screen being edited: the controls act on its kiosks. */
+  screen: MonitorProfile;
+  /** The runtime state (null while the server is unreachable). */
+  control: ControlState | null;
   /** The kiosks connected now (`kiosksOf(control)`). */
   kiosks: readonly ControlKiosk[];
-  rotate: LiveRotate;
   /** Show the kiosk in this window (PLAN decision 6; it replaces the top bar's Kiosk view button). */
   onOpenKioskView: () => void;
 }
@@ -43,11 +37,61 @@ function KioskRow({ kiosk, profiles }: { kiosk: ControlKiosk; profiles: MonitorP
   );
 }
 
+/** A control: its label (and value), the control, and an optional note under it. */
+function Control({ label, value, children, note }: { label: string; value?: ReactNode; children?: ReactNode; note?: string }) {
+  return (
+    <div className="flex flex-col gap-1.5 border-t border-ui-subtle py-2.5">
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 text-[12.5px] text-ui-1">{label}</span>
+        {value && <span className="font-ui-mono text-[11.5px] text-ui-3">{value}</span>}
+        {children && <span className="flex shrink-0 items-center">{children}</span>}
+      </div>
+      {note && <p className="text-[11.5px] leading-snug text-ui-4">{note}</p>}
+    </div>
+  );
+}
+
+/** The dim slider: it follows the server's level, and sends the one you stop on rather than every step. */
+function DimSlider({ level, disabled, onSet }: { level: number; disabled: boolean; onSet: (level: number) => void }) {
+  const [local, setLocal] = useState(level);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => setLocal(level), [level]);
+  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+  return (
+    <Control label="Dim screens" value={local === 0 ? "Off" : `${Math.round(local * 100)}%`}>
+      <input
+        type="range"
+        aria-label="Dim screens"
+        min={0}
+        max={DIM_MAX}
+        step={DIM_STEP}
+        value={local}
+        disabled={disabled}
+        onChange={(e) => {
+          const next = Number(e.currentTarget.value);
+          setLocal(next);
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(() => onSet(next), 150);
+        }}
+        className="h-4 w-[150px] cursor-pointer accent-[var(--ui-accent)] disabled:opacity-40"
+      />
+    </Control>
+  );
+}
+
 /**
- * The title bar's "Live · N" button and its popover (SPEC §3.3): a skeleton until Phase 6 wires the
- * controls (show on, rotation, dim, mute, island, reload) to the control API. Not modal.
+ * The title bar's "Live · N" button and its popover (SPEC §3.3): the kiosks connected, and the runtime controls
+ * for the edited screen's kiosks over the control API. Not modal, and nothing in it is saved to the dashboard.
  */
-export function LiveControl({ open, onOpenChange, profiles, kiosks, rotate, onOpenKioskView }: LiveControlProps) {
+export function LiveControl({ open, onOpenChange, profiles, screen, control, kiosks, onOpenKioskView }: LiveControlProps) {
+  const entry = control?.profiles[screen.id];
+  const offline = control === null;
+  const canRotate = screen.pages.length >= 2;
+  const savedRotation = screen.rotate?.enabled === true;
+  const rotating = (entry?.rotating ?? savedRotation) && canRotate;
+  const shownPage = entry?.page ?? screen.pages[0]?.id;
+  const savedIsland = screen.island?.enabled === true;
+  const muted = isMuted(control, Date.now());
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
@@ -78,13 +122,6 @@ export function LiveControl({ open, onOpenChange, profiles, kiosks, rotate, onOp
                 <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view
               </button>
             </div>
-            {/* Interim until Phase 6 gives Live its rotation control: the runtime pause the page tabs used to hold. */}
-            {rotate.canRotate && (
-              <div className="mt-3 flex items-center gap-2 border-t border-ui-subtle pt-2">
-                <span className="flex-1 text-[12.5px] text-ui-2">Page rotation</span>
-                <RotateToggle entry={rotate.entry} saved={rotate.saved} onToggle={rotate.onToggle} onSaved={rotate.onSaved} />
-              </div>
-            )}
             {kiosks.length === 0 ? (
               <p className="mt-3 text-[12px] text-ui-4">No kiosks are connected.</p>
             ) : (
@@ -94,6 +131,50 @@ export function LiveControl({ open, onOpenChange, profiles, kiosks, rotate, onOp
                 ))}
               </ul>
             )}
+            <div className="mt-2">
+              {offline && <p className="border-t border-ui-subtle pt-2.5 text-[11.5px] text-ui-warning">Not connected to the server: nothing here can reach a kiosk.</p>}
+              <div className="flex flex-col gap-1.5 border-t border-ui-subtle py-2.5">
+                <span className="text-[12.5px] text-ui-1">Show on {screen.name} kiosks</span>
+                <Segmented
+                  label={`Show on ${screen.name} kiosks`}
+                  value={shownPage ?? ""}
+                  options={screen.pages.map((p) => ({ value: p.id, label: p.name }))}
+                  onChange={(page) => void liveActions.showPage(screen.id, page)}
+                />
+              </div>
+              <Control
+                label="Rotation"
+                note={
+                  canRotate
+                    ? rotationNote({ rotating, override: entry?.override ?? null, savedEnabled: savedRotation, seconds: screen.rotate?.seconds ?? 0 })
+                    : `${screen.name} has one page: there is nothing to rotate.`
+                }
+              >
+                <Toggle label="Rotation" checked={rotating} disabled={offline || !canRotate} onChange={(next) => void liveActions.setRotation(screen.id, next, savedRotation)} />
+              </Control>
+              <DimSlider level={entry?.dim ?? 0} disabled={offline} onSet={(level) => void liveActions.setDim(screen.id, level)} />
+              <Control label="Mute alerts for 1 h" note={muted && control?.mutedUntil ? `Muted until ${new Date(control.mutedUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` : undefined}>
+                <Toggle label="Mute alerts for 1 h" checked={muted} disabled={offline} onChange={(next) => void liveActions.mute(next)} />
+              </Control>
+              <Control label="Dynamic Island">
+                <Toggle
+                  label="Dynamic Island"
+                  checked={islandEffective(control, screen)}
+                  disabled={offline}
+                  onChange={(next) => void liveActions.setIsland(screen.id, next, savedIsland)}
+                />
+              </Control>
+              <div className="border-t border-ui-subtle pt-2.5">
+                <button
+                  type="button"
+                  disabled={offline}
+                  onClick={() => void liveActions.reload()}
+                  className="flex h-8 w-full items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong text-[12.5px] font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.75} /> Reload all kiosks
+                </button>
+              </div>
+            </div>
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

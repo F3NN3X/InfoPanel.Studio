@@ -112,7 +112,6 @@ export function useStudioUi(
   /** The zone inspector's settings search ("Go to setting" fills it). */
   const [inspectorQuery, setInspectorQuery] = useState("");
   const inspectorRef = useRef<HTMLElement>(null);
-  const importRef = useRef<HTMLInputElement>(null);
 
   /** The zone the widget picker dialog is open for. */
   const [pickerFor, setPickerFor] = useState<string | null>(null);
@@ -296,7 +295,6 @@ export function useStudioUi(
     inspectorQuery,
     setInspectorQuery,
     inspectorRef,
-    importRef,
     revealEditor,
     navigateTo,
     navRequest,
