@@ -7,6 +7,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- Control actions for the Stream Deck plugin and other remotes:
+  - **Mute alerts** for 1 to 1440 minutes with `POST /api/control/alert` `{ action: "mute", minutes }`, and `0` to unmute. Muted alerts still land in the history.
+  - **Reload kiosk**, **dim the screen** and **show or hide the Dynamic Island** with `POST /api/control/kiosk` `{ action: "reload" | "dim" | "island", profile? }`.
+
+  The control state carries `mutedUntil`, and each profile's `dim`, `island` and `reload`, so keys can show the current state. None of these touch `config.json`.
 - Profiles: a card's **⋯** menu has **Duplicate**, **Always open this one** and **Export profile**, which saves one
   profile as a `.json` file. **Import** in the panel header adds a profile from such a file, or from Copy profile JSON.
 - **When the app opens** at the bottom of the Profiles panel: **Best fit for the window** or **Always the same profile**.

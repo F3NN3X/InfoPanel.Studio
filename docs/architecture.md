@@ -941,6 +941,19 @@ stays in step.
   (`page`, `rotate`), any pointer-down while rotating (`touch`, at most every
   5 s; the server then holds rotation 30 s), the studio's "Show on kiosk" and
   rotate toggle.
+- **Mute alerts.** `POST /api/control/alert` with `{ action: "mute", minutes }`.
+  - `minutes` is an integer from 1 to 1440 and replaces any running mute; `0` unmutes.
+  - The reply is `{ alerts, mutedUntil }`, and every alert action returns `mutedUntil`.
+  - The state is `mutedUntil` (epoch ms or null). It is saved in `control.json` and cleared by the tick when it passes.
+  - While muted, new alerts of every severity fire quiet: they go to the history and skip page outputs. Starting a mute also marks the active alerts quiet.
+  - Test alerts and island notices that aren't alerts are unaffected.
+- **Kiosk actions.** `POST /api/control/kiosk` with one of these bodies:
+  - `{ action: "reload", profile? }` bumps that profile's `reload` counter, or the global `reload` counter when there's no profile. Counters live only at runtime, start at the server start time, and only grow. A kiosk records a baseline on each new connection or profile switch, and reloads once when a later message carries a higher counter (`reloadCheck`). The studio never reloads.
+  - `{ action: "dim", profile?, state?: "on" | "off" | "toggle", level?: 0.1–0.9 }`. The state defaults to toggle, and the level to 0.6, remembered per profile. The kiosk draws a black overlay that ignores clicks, with opacity `dim`, above the widgets and the island and below the alert layer.
+  - `{ action: "island", profile?, state?: "on" | "off" | "toggle" | "saved" }` is a runtime override of the profile's island. It is cleared when the saved `island` changes, like the rotate override. A hidden island keeps its reserved space.
+
+  Without a profile, dim and island act on the target profile, the same as rotate. Dim and the island override are saved in `control.json`.
+- **State.** The top level of the state has `mutedUntil` and `reload`. Each profile entry has `page`, `rotating`, `override`, `dim` (0 when off), `island` (whether it shows), `islandOverride` and `reload`.
 - **Read.** `GET /api/control`, and `GET /events/control` (SSE; the Vite dev
   server proxies both). `useControl` opens one stream per page. A kiosk adds
   `?profile=<id>` so the server learns which profile it shows (`shown`), which
