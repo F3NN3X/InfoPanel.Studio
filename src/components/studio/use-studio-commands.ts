@@ -186,9 +186,8 @@ export function useStudioCommands({
         ui.setMode("theme");
         ui.setInspectorQuery("");
         return void requestAnimationFrame(() => ui.jumpTheme(action.section, action.key));
-      case "edit-theme":
-        // Studio › Theme, at the profile theme.
-        return ui.openTheme({ kind: "profile" });
+      case "open-theme":
+        return ui.navigateTo({ view: "theme", section: action.section });
       case "deselect":
         return sel.select(null);
       case "sample-layout":
@@ -216,7 +215,7 @@ export function useStudioCommands({
         return edit.moveSelectionToPage(action.id);
       case "apply-appearance": {
         const preset = appearancePresets.presets.find((p) => p.id === action.id);
-        return preset && appearancePresets.apply(preset, "all");
+        return preset && appearancePresets.apply(preset, { level: "all" });
       }
     }
     if (!selected) return;

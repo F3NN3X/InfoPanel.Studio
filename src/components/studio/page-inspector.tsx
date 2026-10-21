@@ -13,8 +13,8 @@ import { sectionTitle } from "./theme-editor-model";
 import type { InheritanceContext } from "./use-inheritance";
 import { CloseButton, HeaderIcon } from "./zone-inspector-parts";
 
-/** The settings the profile inspector held, kept reachable from the Page inspector until Screens and Settings take them (Phases 4–5). */
-export type ScreenSettingsTab = "layout" | "look" | "behaviour";
+/** The settings the profile inspector held, kept reachable from the Page inspector until Screens and Settings take them (Phase 5). */
+export type ScreenSettingsTab = "layout" | "behaviour";
 
 interface PageInspectorProps {
   profile: MonitorProfile;
@@ -207,7 +207,12 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
         {/* Interim: the old profile inspector's tabs, until Screens (Layout, Pages) and Settings take them (Phases 4–5). */}
         <Block label="More settings for this screen">
           <LinkRow label="Layout" value="Size, grid and spacing" link="Open screen layout" onNavigate={() => onOpenScreenSettings("layout")} />
-          <LinkRow label="Look" value="Theme, widget style and background" link="Open screen look" onNavigate={() => onOpenScreenSettings("look")} />
+          <LinkRow
+            label="Look"
+            value="Colors, skin, type and background"
+            link="Edit in Theme"
+            onNavigate={() => inherit.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: profile.id })}
+          />
           <LinkRow label="Behaviour" value="Pages, pop-up alerts and performance" link="Open screen behaviour" onNavigate={() => onOpenScreenSettings("behaviour")} />
         </Block>
       </div>

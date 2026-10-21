@@ -628,15 +628,26 @@ function StudioViewBody({
     </Suspense>
   );
 
+  // Theme's screen and page: the ones its scope bar picked, else the Design selection (SPEC §7.1).
+  const themeProfile = config.profiles.find((p) => p.id === ui.themeProfileId) ?? storedProfile;
+  const themePage = ui.themeScope.kind === "page" ? ui.themeScope.pageId : ui.themePageId;
+  const themePageId = themeProfile.pages.some((pg) => pg.id === themePage)
+    ? themePage!
+    : themeProfile.id === storedProfile.id
+      ? (profile.pageId ?? storedProfile.pages[0].id)
+      : themeProfile.pages[0].id;
   const themeEl = showTheme && (
     <ThemeEditor
       config={config}
-      profile={storedProfile}
-      currentPageId={profile.pageId ?? storedProfile.pages[0].id}
       scope={ui.themeScope}
-      onScope={ui.setThemeScope}
+      profileId={themeProfile.id}
+      pageId={themePageId}
+      onPick={ui.openTheme}
       setConfig={setConfig}
+      navigateTo={ui.navigateTo}
+      navRequest={ui.navRequest}
       jumpTo={ui.inspectorJump}
+      presets={appearancePresets}
     />
   );
 

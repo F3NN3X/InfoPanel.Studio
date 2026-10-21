@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { DeviceChecklist } from "@/components/ui/device-checklist";
+import { Segmented } from "@/components/ui/segmented";
 import { COMMON_LOCALES, resolveGeneral, type GeneralSettings, type MotionChoice } from "@/lib/general";
 import type { PageRotate, ProfilePage } from "@/lib/layout";
 import type { PerformanceOverride } from "@/lib/performance";
@@ -18,12 +19,51 @@ import {
   dropRow,
   rotatePreset,
 } from "./behaviour-model";
-import { ScopeNote } from "./profile-look";
 import type { LookScope } from "./profile-scope";
+import { SourceDot } from "./source-dot";
 
 /** Dashboard › Behaviour: pages, performance, clock and date, display. */
 
 const HELP = "text-pretty text-[11px] leading-snug text-ui-5";
+
+/*
+ * Performance's All profiles | This profile switch, the last one left: the look's moved to Theme's scope bar and
+ * chips. Screens › Performance (an inheritance chip) replaces it (IMPLEMENTATION_PLAN Phase 5).
+ */
+
+const SCOPE_OPTIONS = [
+  { value: "all" as const, label: "All profiles" },
+  { value: "profile" as const, label: "This profile" },
+];
+
+/** The switch in the section's header. */
+export function ScopeSwitch({ scope, onScope, label }: { scope: LookScope; onScope: (scope: LookScope) => void; label: string }) {
+  return (
+    <Segmented
+      options={SCOPE_OPTIONS}
+      value={scope}
+      onChange={onScope}
+      label={`${label} applies to`}
+      className="shrink-0 flex-nowrap gap-0 rounded-md p-px [&>button]:whitespace-nowrap [&>button]:px-1 [&>button]:py-[3px] [&>button]:text-[10.5px]"
+    />
+  );
+}
+
+/** The dot after the title: teal for the shared value, purple for the profile's own. */
+export function ScopeDot({ scope }: { scope: LookScope }) {
+  return <SourceDot state={scope === "all" ? "dashboard" : "profile"} />;
+}
+
+/** What the switch means right now. */
+function ScopeNote({ scope, count, name }: { scope: LookScope; count: number; name: string }) {
+  return (
+    <p className="text-pretty text-[11.5px] leading-[1.4] text-ui-4">
+      {scope === "all"
+        ? `${count > 1 ? `Shared by all ${count} profiles` : "Shared by every profile"}. Changes here apply to every one.`
+        : `Only ${name} uses this. Other profiles keep the shared one.`}
+    </p>
+  );
+}
 
 /** A page-order drag in flight: the page and the row it would land on. */
 interface Drag {

@@ -1,4 +1,3 @@
-import { SKIN_PACKS } from "@/widgets/core/theme";
 import {
   isMore,
   settingKeys,
@@ -46,7 +45,7 @@ import { STATUS_COLORS_TITLE, THEME_EDITOR_SETTINGS } from "./theme-editor-setti
  * `extras`) the UI fills in with the components it already has.
  */
 
-export type DashboardTab = "layout" | "look" | "behaviour";
+export type DashboardTab = "layout" | "behaviour";
 export type TabId = InspectorTab | DashboardTab;
 
 export const TAB_LABELS: Record<TabId, string> = {
@@ -55,11 +54,10 @@ export const TAB_LABELS: Record<TabId, string> = {
   data: "Data",
   behaviour: "Behaviour",
   layout: "Layout",
-  look: "Look",
 };
 
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
-const DASHBOARD_TABS: readonly TabId[] = ["layout", "look", "behaviour"];
+const DASHBOARD_TABS: readonly TabId[] = ["layout", "behaviour"];
 /** The theme editor's: no Show tab (SPEC §7). */
 const THEME_TABS: readonly TabId[] = ["style", "data", "behaviour"];
 
@@ -132,9 +130,6 @@ export type SpecialSection =
   | "zoneFrame"
   | "layoutScreen"
   | "layoutGrid"
-  | "lookTheme"
-  | "lookStyle"
-  | "lookBackground"
   | "behaviourPages"
   | "behaviourIsland"
   | "behaviourPerformance"
@@ -372,19 +367,16 @@ const themeSections = (context: InspectorContext): InspectorSection[] =>
 const dashboardMarker = (tab: DashboardTab, id: string, title: string, special: SpecialSection, terms: string[]) =>
   section({ id, title, tab, special, terms });
 
-/** The parts of the profile inspector the palette's "Appearance…" and friends jump to. */
-export type DocumentTab = "appearance" | "background" | "font" | "general" | "connection";
+/** The parts of the profile inspector the palette's "General settings…" and "Connection…" jump to. */
+export type DocumentTab = "general" | "connection";
 
 /** The section each part jumps to (its section id). */
 export const DOCUMENT_CARD: Record<DocumentTab, string> = {
-  appearance: "lk-theme",
-  background: "lk-bg",
-  font: "lk-theme",
   general: "bh-clock",
   connection: "bh-conn",
 };
 
-/** The profile inspector's sections (nothing selected): Layout, Look and Behaviour. */
+/** The profile inspector's sections (the screen's settings): Layout and Behaviour (the look is Theme's). */
 function dashboardSections(): InspectorSection[] {
   return [
     dashboardMarker("layout", "ly-screen", "Screen", "layoutScreen", [
@@ -392,18 +384,6 @@ function dashboardSections(): InspectorSection[] {
     ]),
     dashboardMarker("layout", "ly-grid", "Grid", "layoutGrid", [
       "Columns", "Rows", "Gap", "Edge padding", "Padding", "Spacing", "Preview",
-    ]),
-    dashboardMarker("look", "lk-theme", "Theme", "lookTheme", [
-      "Theme colors", "Colors", "Primary", "Accent", "Card", "Corners", "Corner radius", "Radius", "Font", "Sans", "Serif", "Mono", "Rounded",
-      "All profiles", "This profile",
-    ]),
-    dashboardMarker("look", "lk-style", "Widget style", "lookStyle", [
-      "Skin", "Presets", "Saved looks", "Look", "Save current look as preset", "Replace the page background", "Surface", "Glass", "Matte",
-      "Background opacity", "Background blur", "Apply to every widget", "Lock", "Widget theme", "Theme editor", "All profiles", "This profile",
-      ...SKIN_PACKS.map((p) => p.name),
-    ]),
-    dashboardMarker("look", "lk-bg", "Background", "lookBackground", [
-      "Page background", "Color", "Gradient", "Image", "Video", "Fit", "Position", "Tint", "Dim", "Blur", "All profiles", "This profile",
     ]),
     dashboardMarker("behaviour", "bh-pages", "Pages", "behaviourPages", [
       "Add page", "Delete page", "Reorder", "Cycle through pages", "Auto-rotate", "Switch every", "Seconds per page", "Rotation", "Kiosk",
@@ -580,20 +560,6 @@ export function widgetLookValues(input: {
     inherited: settings,
     inheritedFrom: source,
     applies: (key) => ownApplies(input.levels, { follow: input.follow }, key),
-  };
-}
-
-/** The look a scope of the Appearance tab shows: the dashboard's style, or this profile's theme over it. */
-export function globalStyleValues(
-  scope: "all" | "profile",
-  dashboard: ModuleSettings | undefined,
-  profile: ModuleSettings | undefined
-): LookValues {
-  if (scope === "all") return { own: dashboard };
-  return {
-    own: profile,
-    inherited: dashboard,
-    inheritedFrom: Object.fromEntries(Object.keys(dashboard ?? {}).map((k): [string, StyleSource] => [k, "dashboard"])),
   };
 }
 

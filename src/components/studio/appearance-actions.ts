@@ -66,10 +66,6 @@ export function toggleEnforce(config: DashboardConfig, profile: Pick<ProfileView
   return { ...config, profiles: config.profiles.map((p) => (p.id === profile.id ? lock(p) : p)) };
 }
 
-/** The toast after applying a preset. */
-export const appliedMessage = (name: string, target: "all" | "profile"): string =>
-  `Applied ${name} to ${target === "all" ? "all profiles" : "this profile"}`;
-
 /**
  * The preset the current look is: same theme colours, corner radius and
  * every style key the preset sets (the first match; undefined = a custom look).

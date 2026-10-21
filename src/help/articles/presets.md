@@ -14,7 +14,7 @@ Starting points you can drop in and adjust: whole pages, single panels, and look
 | Panel presets | One panel already bound to sensors (samples) | **Add › Layouts** |
 | My panels | Panels you saved | **Add › My panels** |
 | Styles | One widget's look | Style tab, **Start from a Style** |
-| Skins and saved looks | A whole look for all profiles or one | Nothing selected › **Appearance** |
+| Skins and saved Themes | A whole look for all screens, one screen or a page | **Theme › Start from**, **Apply a theme here…** |
 
 ## Layout starters
 
@@ -30,14 +30,12 @@ Panel presets were built against one PC's sensors. Expect to re-pick some sensor
 
 ## Skins
 
-The **Skins** gallery in **Appearance** holds the built-in looks:
+The skins sit in **Theme › 1 · Start from**, beside the palettes and your saved Themes:
 
 :::generated presets.appearance
 
-Applying one is a single undo step, for **All profiles** or **This profile**.
+Picking one is a single undo step, at the level the scope bar shows (All screens or a screen).
 
-## Saved looks
+## Saved Themes
 
-**Save current look as preset** keeps your current look as a card under **Saved looks**; rename or delete it from the card. A saved look's background is only used where none is set, unless you turn on **Replace the page background**.
-
-If some widgets keep their own style, a banner counts them and offers **Make them follow**.
+**Save as Theme** in Theme keeps the colors, widget style and, if you leave **Include background** on, the background of the level you are editing. **Apply a theme here…** lists your saved Themes (rename or delete one from its ⋯) and the built-in palettes, and applies one at the current level; turn on **Include background** to replace the page background too. On a page, a Theme brings its widget style only.

@@ -111,6 +111,9 @@ export function customiseInheritance(config: DashboardConfig, path: InheritPath,
   }
 }
 
+/** The Theme card a widget-style section is edited in, where it is not its own (`theme-cards.ts`). */
+const THEME_CARD_OF: Partial<Record<SectionId, string>> = { palette: "colors", skin: "surface" };
+
 /** Where a datum lives in Theme's section list (tokens: Colors; the page font: Typography). */
 const THEME_SECTION: Readonly<Record<Exclude<DataPath, "performance">, string>> = {
   tokens: "colors",
@@ -134,7 +137,7 @@ export function inheritanceJump(inheritance: Inheritance, path: InheritPath, sco
   }
   const themeScope: ThemeScope =
     from === "all" ? { kind: "base" } : from === "page" && scope.level !== "screen" ? { kind: "page", pageId: scope.pageId } : { kind: "profile" };
-  return { view: "theme", themeScope, profileId, section: isDataPath(path) ? THEME_SECTION[path] : path };
+  return { view: "theme", themeScope, profileId, section: isDataPath(path) ? THEME_SECTION[path] : (THEME_CARD_OF[path] ?? path) };
 }
 
 type WidgetScope = Extract<InheritScope, { level: "widget" }>;

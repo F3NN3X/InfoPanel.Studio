@@ -5,21 +5,26 @@ import { presetTokens, type AppearancePreset } from "./appearance-presets";
 import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
 import { allPlacements, mapPlacements } from "./pages";
 import { resolveTheme } from "./theme";
-import { ownApplies, themedOf, withThemeValues, type ThemeLevels } from "./theme-model";
+import { ownApplies, pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withSectionFlag, withThemeValues, type ThemeLevels } from "./theme-model";
 
 /**
  * Applying an appearance preset, and the widgets that would hide it.
  * Pure config → config; the studio sets each result in one call (one
  * undo step, no coalescing key).
  *
- * Scopes (the Appearance tab's switch):
- * - "All profiles": theme tokens + radius, `config.style` (replaced
+ * Scopes (Theme's scope bar):
+ * - All screens: theme tokens + radius, `config.style` (replaced
  *   wholesale) and, see below, `config.background`.
- * - "This profile": the profile's own theme colours + radius
+ * - A screen: the profile's own theme colours + radius
  *   (`MonitorProfile.theme` / `radius`, over the dashboard's), its widget
  *   theme's values and `background`; other profiles keep theirs. Look keys
  *   the dashboard style sets but the preset doesn't are written as their
  *   defaults, so the profile shows the preset's look, not a blend.
+ *
+ * - A page: only the widget-style sections the preset sets (a page has no
+ *   colour tokens, radius or background, SPEC §4.2): the page's values for
+ *   them are replaced and it customises them; sections its screen locks
+ *   are left alone.
  *
  * The background is written only when asked (`includeBackground`) or,
  * by default, when the scope has none yet; presets without one never
@@ -27,6 +32,9 @@ import { ownApplies, themedOf, withThemeValues, type ThemeLevels } from "./theme
  */
 
 export type PresetScope = BackgroundScope;
+
+/** Where Theme applies or saves a Theme: All screens, a screen, or one of its pages. */
+export type ThemeTarget = PresetScope | { kind: "page"; profileId: string; pageId: string };
 
 export interface ApplyOptions {
   /** Replace the scope's background with the preset's (default: only when it has none). */
@@ -100,6 +108,45 @@ export function applyAppearancePreset(
         : p
     ),
   };
+}
+
+/** A preset's widget style written as a page's own, section by section (see the module comment). */
+function applyToPage(config: DashboardConfig, preset: AppearancePreset, profileId: string, pageId: string): DashboardConfig {
+  const style = themedOf(preset.style);
+  return {
+    ...config,
+    profiles: config.profiles.map((p) => {
+      if (p.id !== profileId) return p;
+      const secs = SECTION_IDS.filter((sec) => p.widgetTheme?.locks?.[sec] !== true && SECTION_KEYS[sec].some((key) => key in style));
+      const keys = new Set(secs.flatMap((sec) => SECTION_KEYS[sec]));
+      return {
+        ...p,
+        pages: p.pages.map((pg) => {
+          if (pg.id !== pageId) return pg;
+          const kept = Object.entries(pg.widgetTheme?.values ?? {}).filter(([key]) => !keys.has(key));
+          const values = { ...Object.fromEntries(kept), ...Object.fromEntries(Object.entries(style).filter(([key]) => keys.has(key))) };
+          const theme = secs.reduce(
+            (t, sec) => withSectionFlag(t, "follow", sec, false),
+            withThemeValues(pg.widgetTheme, orNone(values))
+          );
+          const { widgetTheme: _old, ...rest } = pg;
+          return theme ? { ...rest, widgetTheme: theme } : rest;
+        }),
+      };
+    }),
+  };
+}
+
+/** Apply a Theme at any of Theme's scopes ("Apply a theme here…"); `includeBackground` unset = only where none is set. */
+export function applyThemeAt(
+  config: DashboardConfig,
+  preset: AppearancePreset,
+  target: ThemeTarget,
+  options: ApplyOptions = {}
+): DashboardConfig {
+  return target.kind === "page"
+    ? applyToPage(config, preset, target.profileId, target.pageId)
+    : applyAppearancePreset(config, preset, target, options);
 }
 
 /* ---------------- overrides ---------------- */
@@ -181,6 +228,48 @@ export function presetFromCurrent(
     ...(background && !isEmptyBackground(background, { kind: "all" }) ? { background: { ...background } } : {}),
   };
 }
+
+/**
+ * The resolved look of one of Theme's scopes as a Theme ("Save as Theme"): the color tokens and radius, the widget
+ * style (a page's customised sections over its screen's) and, unless left out, the background. The page font is not
+ * part of a Theme (SPEC §7.1 lists tokens, widget style and background).
+ */
+export function themeFromScope(
+  config: DashboardConfig,
+  target: ThemeTarget,
+  id: string,
+  name: string,
+  includeBackground = true
+): AppearancePreset {
+  const screen: PresetScope = target.kind === "all" ? target : { kind: "profile", profileId: target.profileId };
+  const preset = presetFromCurrent(config, screen, id, name);
+  const page =
+    target.kind === "page" ? config.profiles.find((p) => p.id === target.profileId)?.pages.find((pg) => pg.id === target.pageId) : undefined;
+  const profile = target.kind === "page" ? config.profiles.find((p) => p.id === target.profileId) : undefined;
+  const levels: ThemeLevels = { profile: profile?.widgetTheme, page: page?.widgetTheme };
+  const pageValues = Object.entries(page?.widgetTheme?.values ?? {}).filter(([key]) =>
+    SECTION_IDS.some((sec) => SECTION_KEYS[sec].includes(key) && pageCustom(levels, sec))
+  );
+  const { background, ...rest } = preset;
+  return {
+    ...rest,
+    description: "Saved theme",
+    style: themedOf({ ...preset.style, ...Object.fromEntries(pageValues) }),
+    ...(includeBackground && background ? { background } : {}),
+  };
+}
+
+/** Save a scope's look into Library › Themes (`config.appearancePresets`). */
+export const saveThemeAt = (
+  config: DashboardConfig,
+  target: ThemeTarget,
+  id: string,
+  name: string,
+  includeBackground = true
+): DashboardConfig => ({
+  ...config,
+  appearancePresets: [...(config.appearancePresets ?? []), themeFromScope(config, target, id, name, includeBackground)],
+});
 
 export function saveAppearancePreset(
   config: DashboardConfig,

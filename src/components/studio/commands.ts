@@ -51,7 +51,8 @@ export type CommandAction =
   | { type: "use-global"; target: AppearanceTarget }
   | { type: "edit-style" }
   | { type: "bind-data" }
-  | { type: "edit-theme" }
+  /** Theme, as the rail opens it, at a card (Background, Typography) or the first. */
+  | { type: "open-theme"; section?: string }
   | { type: "copy-style" }
   | { type: "paste-style" }
   | { type: "follow-global" }
@@ -103,7 +104,7 @@ export interface CommandState {
   showSources: boolean;
   /** Every section of the profile theme is locked (the palette's lock-all). */
   enforced: boolean;
-  /** Built-in and saved appearance presets (applied to all profiles). */
+  /** The saved Themes (applied to All screens). */
   appearancePresets: { id: string; name: string }[];
 }
 
@@ -139,12 +140,11 @@ function generalCommands(s: CommandState): Command[] {
     ),
     general("alerts-open", "Open alerts", { type: "alerts-open" }),
     general("alert-new", "New alert rule", { type: "alert-new" }),
-    general("background", "Background…", { type: "document-tab", tab: "background" }),
-    general("appearance", "Appearance…", { type: "document-tab", tab: "appearance" }),
-    general("font", "Font…", { type: "document-tab", tab: "font" }, "page font, type"),
+    general("theme", "Theme", { type: "open-theme" }, "colors, skins, saved themes, locks"),
+    general("background", "Theme › Background", { type: "open-theme", section: "background" }),
+    general("font", "Theme › Typography", { type: "open-theme", section: "type" }, "page font, type"),
     general("general", "General settings…", { type: "document-tab", tab: "general" }, "clock, locale, cursor, page dots"),
     general("connection", "Connection…", { type: "document-tab", tab: "connection" }, "Data API URL"),
-    general("theme", "Theme editor…", { type: "edit-theme" }, "profile and page themes, locks"),
     general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this profile"),
     general(
       "toggle-enforce",
@@ -360,9 +360,9 @@ export function buildCommands(s: CommandState): Command[] {
     ...s.appearancePresets.map(
       (p): Command => ({
         id: `appearance:${p.id}`,
-        label: `Apply appearance: ${p.name}`,
-        group: "Appearance",
-        hint: "all profiles",
+        label: `Apply theme: ${p.name}`,
+        group: "Themes",
+        hint: "All screens",
         action: { type: "apply-appearance", id: p.id },
       })
     ),

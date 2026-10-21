@@ -167,3 +167,79 @@ snapshots (titles and order only; checked by diffing the headings), and the vers
   contents.
 - Phase 6: Live's rotation control replaces the interim Page rotation toggle.
 - Phase 7: the zone header's Help icon; "Style presets" in `library.md`; "Appearance" in `presets.md`.
+
+## Phase 4: Theme editor
+
+One editor for the look at every scope replaces the rail Theme page and the profile inspector's Look tab. Checked by
+typecheck, tests and build, and by eye in headless Chromium at 1440 and 1000 px (Screen, All screens and Page scopes,
+lock toggle, Customise a section, Apply a theme here…, Save as Theme, a zone chip's Edit Screen ↗, the palette's
+Theme › Background, Page inspector › Customise a section…; no page errors).
+
+| Piece | State |
+|---|---|
+| Top bar (§7.1) | `theme-editor.tsx`: "Theme", "Editing for", the scope bar (`theme-scope-bar.tsx`: All screens · N screens › ‹screen› · W×H · N own › Page: ‹page› · N own, active on `#26262c`; the screen and page buttons have a dropdown for another screen or page, keeping the level), Lock all / Unlock all at Screen scope, Apply a theme here…, Save as Theme. It wraps below about 1200 px. The screen and page default to the Design selection (`ui.themeProfileId` / `themePageId` unset); the rail keeps the level it was left at. |
+| Apply a theme here… / Save as Theme | `theme-gallery.tsx`: saved Themes (`config.appearancePresets`, with ⋯ Rename… / Delete as before) and the six built-in palettes, Include background, applied at the scope (`applyThemeAt`; a page takes the widget style only, its sections turn custom, locked ones are skipped; palettes and the background are disabled on a page: "Set per screen"). Save as Theme takes a name, Include background on by default, and saves the resolved scope (`themeFromScope`: tokens + radius, the widget style with a page's customised sections over its screen's, the background). |
+| Left column (§7.2) | 360 px: the scope help line (verbatim per scope), **1 · Start from** (All / Screen only, `theme-start-from.tsx`: palettes, skins, saved Themes; 16:10 swatch, name, kind; white 2 px border on the current palette, skin and saved Theme; All themes in Library ↗), then the ten cards in order (`theme-cards.ts` `THEME_CARDS`). Each card (`theme-card-list.tsx`): step number, name, lock toggle at Screen scope except on Background and Advanced (Lock / Locked, the §7.2 tooltip), the chip, chevron; open: rows, then Reset to inherited · Customise here · N changed · "N widgets override this" (+ "— ignored while locked"); ⌫ resets a custom card. Colors is open by default; the accordion preference applies. |
+| Stores per card | Colors = color tokens (`config.theme` / `profile.theme`) + widget colors and Status & series colors (`colors`, `palette`); Typography = page font (`general.font` / `profile.font`, PLAN decision 10) + widget type; Shape & spacing = corners (`config.radius` / `profile.radius`) + spacing; Surface & effects = surface (Opacity, Blur) + the skin section's rows; Background = `config.background` / `profile.background`; the rest one section each. Every control writes its own store. |
+| Page scope | Only the cards the page customises, then **Customise a section for this page** (`data-nav-section="customise"`): Background "Set per screen", locked cards "Locked by Screen", Shape & spacing "Spacing only"; Colors allowed (PLAN decision 13). On a page the tokens, page font and corners are LinkRows "Edit on ‹screen› ↗" that switch the scope. |
+| Right area (§7.3) | `theme-preview.tsx`: "Live preview · ‹screen› / ‹page›", the real page (`ProfilePage`, now with `pageId` and a `badge` slot) at the scope's resolved theme (`previewProfile`: All screens without the screen's and pages' own look, a screen without its pages'), scaled to fit, with the 16 px accent edit badge on widgets that don't follow. Exceptions (`theme-exceptions.ts`): All lists screens, pages and widgets; Screen pages and widgets; Page widgets. Rows have icon, who, kind, "‹Card› customised / set for this screen", the locked chip when the lock ignores it, the custom chip and Make it follow; then Make all follow and the empty-state copy. |
+| Retired | `profile-look.tsx` (Look tab: Theme, Widget style, Background, the All profiles / This profile switches, Apply to every widget, Edit widget style ↗, Saved looks), `appearance-gallery.tsx`, `skin-gallery.tsx`, `surface-picker.tsx`, `theme-panel.tsx`; the old Theme page's Follow bars, preview chips and "Who doesn't follow" (`themeFollowFields`, `overridesOf`, …); the `look` dashboard tab and its `lk-*` sections; `globalStyleValues`, `lockState` / `toggleLockAll`, `withRadius`, `appliedMessage`, `themeRows`. |
+| Links | Page inspector › Look → "Edit in Theme ↗" (Screen scope); Edit in Theme ↗ / Customise a section… (page scope, the list is focused); chips' Edit ‹level› ↗ open the card (Widget colors → Colors, Skin → Surface & effects in `inheritanceJump`); the palette's "Go to setting" opens the card and focuses the row. `focusNavTarget` now skips disabled controls. |
+| Palette | Appearance… → **Theme**, Background… → **Theme › Background**, Font… → **Theme › Typography** (`open-theme`), "Theme editor…" merged into Theme, Apply appearance: ‹x› → **Apply theme: ‹x›** (group Themes, All screens). The empty-canvas menu's Edit theme opens Theme like the rail. |
+| Help | `themes.md`, `presets.md`, `background.md`, `profiles.md`, `quickstart.md`, `widget-settings.md` describe Theme instead of the Look tab. |
+
+Tests: `theme-cards.test.ts` (cards per scope and the page's disabled reasons, chip states, lock and unlock keep
+overrides, page-font writes per scope, tokens and radius apart on a screen), `theme-exceptions.test.ts` (lists per
+scope, ignored under a lock, Make it follow resets exactly one, Make all follow per scope with the page's own sections
+untouched, preview levels), and Theme scope cases in `appearance-presets.test.ts` (apply at a page, Include background
+off and on, save a page's resolved look, save a screen and apply it to All screens). Existing tests changed because
+the retired code went: `theme-editor-model.test.ts` (the Follow-bar and "Who doesn't follow" cases removed),
+`profile-scope.test.ts` (Corners `withRadius` and Apply to every widget removed), `appearance-actions.test.ts`
+(`appliedMessage` removed), `inspector-model.test.ts` (dashboard tabs are Layout and Behaviour; the Look sections and
+`globalStyleValues` cases removed).
+
+### Checkpoint (SPEC §14)
+
+- **Change colors for everything:** rail **Theme** (1) → **All screens** (2): Colors is open with the tokens. 2 clicks.
+- **Give one screen its own look:** rail **Theme** (1) opens at the screen (Screen is the default level) → edit any
+  card; it reads Custom here at once. 1 click, or 2 when Theme was last left at another level (Theme → ‹screen›).
+  No switch to flip; Lock is optional.
+
+### Deviations
+
+- **A saved Theme does not carry the page font.** SPEC §7.1 lists tokens, widget style and background; adding the font
+  would change the `appearancePresets` shape. Save keeps it out, Apply leaves the font alone.
+- **Lock all locks all 11 sections, Advanced included** (as the palette's lock-all and the old Lock all did, IA_AUDIT
+  §6.1); only the per-card toggle is absent on Advanced. Unlock all clears every lock.
+- **Surface & effects also holds the skin section** (skin, ring / bar thickness, graph and meter style): its chip,
+  lock, Reset and exceptions cover both. The skin is still picked in Start from.
+- **Start from shows the current skin; the other 13 sit behind More (13).** All 20 built-ins pushed Colors below the
+  fold at 900 px, against §14's two-click path.
+- **"N changed" is on the card's action line**, not the header: at 360 px the header has no room beside the lock and
+  the chip.
+- **Include background is explicit**: off never writes the background, on always does (the old gallery's default
+  wrote one where none was set). The palette's Apply theme keeps the old default.
+- **Customise here on a screen copies All screens' values**: the color tokens, the radius, the font or background, and
+  the widget-style keys All screens sets (Phase 1's rule). Colors and Shape & spacing split the old single Theme switch:
+  the tokens and the corner radius reset separately.
+- **The labels Opacity and Blur are Theme's only**; a widget's Surface & effects keeps "Surface opacity (%)" and
+  "Background blur" (changing the shared labels would move the widget schema snapshots; left to Phase 7's label sweep).
+- **Exceptions are one row per holder and card**, not per section (Widget colors and Colors make one Colors row).
+- **Performance keeps its All profiles | This profile switch** in the old profile inspector's Behaviour tab (moved into
+  `profile-behaviour.tsx`); it is Phase 5's (Screens › Performance chip).
+
+### Unverified
+
+- Desktop (Tauri) not run. A Library drag onto Theme's background editor was not tried.
+- Widths below 1000 px: the 360 px column does not adapt yet (Phase 7).
+- Rename / Delete of a saved Theme from Apply a theme here… was not clicked through (the handlers are the old ones).
+
+### Follow-ups
+
+- Phase 5: Library › Themes (All themes in Library ↗ opens the Library at its default view); Screens › Performance
+  replaces the last scope switch, then `ScopeSwitch` / `ScopeDot` and the performance `scopeOf` can go; delete the
+  "More settings for this screen" block.
+- Phase 7: `FollowBar` / `ThemeScopeBar` (`follow-bar.tsx`, `settings-panel.tsx`) only serve the multi-select and panel
+  widgets now; `countOverrides` / `clearOverrides` / `saveAppearancePreset` in `appearance-preset-apply.ts` are unused
+  outside their tests; the label sweep (Opacity / Blur on widgets, "Lock every theme section", "Make all widgets follow
+  the theme", "Theme scope: …" in the palette); the Theme column on narrow and phone layouts.

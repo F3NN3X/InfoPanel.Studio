@@ -31,7 +31,7 @@ A fresh install has one blank profile, **Main display**, at 1920 × 1080 with a 
 
 ## Profile settings
 
-Click an empty part of the canvas so nothing is selected. The inspector shows the profile's settings in three tabs: **Layout**, **Look** and **Behaviour**.
+Click an empty part of the canvas so nothing is selected. The inspector shows the page; its **More settings for this screen** links open the profile's settings in two tabs, **Layout** and **Behaviour**. The look is in **Theme** on the rail.
 
 **Layout** holds the size and grid:
 
@@ -43,7 +43,7 @@ Click an empty part of the canvas so nothing is selected. The inspector shows th
 | **Columns** / **Rows** | 2 to 24 columns and 1 to 24 rows. A change that would push a zone off the grid is refused. A new profile gets 6 or 12 columns and 4 or 6 rows depending on its size. The preview above them draws the grid with its gap and padding. |
 | **Gap** and **Edge padding** | Space between zones (default 12 px) and around the edge. The sliders go to 64 px, and the boxes accept up to 200. |
 
-**Look** holds the theme, widget style and background. **Theme**, **Widget style** and **Background** are each shared by every profile until you switch that section to **This profile**. See [Themes and appearance](themes#where-to-edit).
+The theme, skin and background are in **Theme**: pick the screen in its scope bar and edit a section to give this screen its own. See [Themes and appearance](themes#where-to-edit).
 
 **Behaviour** holds the pages and their cycling, the Dynamic Island, Performance, Clock and date, Display, Studio and Connection. Clock and date, Display, Studio and Connection apply to every profile.
 

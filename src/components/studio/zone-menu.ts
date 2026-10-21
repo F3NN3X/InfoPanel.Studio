@@ -161,7 +161,7 @@ export function menuAction(id: Exclude<MenuItemId, "move-to-page">): CommandActi
     case "zoom-fit":
       return { type: "zoom-fit" };
     case "edit-theme":
-      return { type: "edit-theme" };
+      return { type: "open-theme" };
     case "shortcuts":
       return { type: "shortcuts" };
   }

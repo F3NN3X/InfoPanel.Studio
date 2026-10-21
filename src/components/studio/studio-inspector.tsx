@@ -44,7 +44,7 @@ interface StudioInspectorProps {
 /**
  * The right (or docked) panel: one zone's inspector, the shared look of
  * several zones, or — with nothing selected — the Page inspector (the screen's
- * Layout / Look / Behaviour tabs, the old profile inspector, open from its links).
+ * Layout / Behaviour tabs, the old profile inspector, open from its links).
  */
 export function StudioInspector({
   config,
@@ -85,9 +85,6 @@ export function StudioInspector({
   }, [tabRequest]);
 
   const openExplorer = () => ui.setMode("sources");
-  /** The theme at the screen's scope (the interim screen tabs' "Edit … in Theme"). */
-  const editGlobalTheme = (level: "profile" | "page") =>
-    ui.openTheme(level === "page" && profile.pageId ? { kind: "page", pageId: profile.pageId } : { kind: "profile" });
 
   const inheritCtx: InheritanceContext = { config, setConfig, navigateTo: ui.navigateTo };
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
@@ -170,8 +167,6 @@ export function StudioInspector({
         renameRequest={ui.renameRequest}
         onRenameHandled={ui.clearRename}
         onOpenExplorer={openExplorer}
-        onOpenTheme={() => editGlobalTheme("profile")}
-        onOpenLibrary={() => ui.setMode("library")}
         onBack={() => ui.setScreenSettingsOpen(false)}
       />
     );

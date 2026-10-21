@@ -5,7 +5,6 @@ import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import { allLocked } from "@/lib/theme-model";
 import {
   activePresetId,
-  appliedMessage,
   followAll,
   styleKey,
   toggleEnforce,
@@ -82,13 +81,6 @@ describe("followAll", () => {
     expect(p.placements.map((z) => z.follow)).toEqual([undefined, undefined]);
     expect(p.placements[1].settings).toEqual({ accent: "#ff0000" });
     expect(followAll(p)).toBe(p);
-  });
-});
-
-describe("appliedMessage", () => {
-  it("names the scope", () => {
-    expect(appliedMessage("Glass", "all")).toBe("Applied Glass to all profiles");
-    expect(appliedMessage("Glass", "profile")).toBe("Applied Glass to this profile");
   });
 });
 

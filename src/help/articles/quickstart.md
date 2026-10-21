@@ -33,7 +33,7 @@ Not sure where to start? Add a layout starter such as the stat row from **Layout
 
 ## 4. Choose a look
 
-Click an empty part of the canvas so nothing is selected. The inspector shows **Layout**, **Look** and **Behaviour**. In **Look › Widget style**, pick a skin from the **Skins** gallery. The section's switch decides whether it applies to **All profiles** or **This profile**.
+Open **Theme** on the rail and pick a skin under **1 · Start from**. The scope bar decides where it applies: **All screens**, or just this screen.
 
 ## 5. Put it on the display
 

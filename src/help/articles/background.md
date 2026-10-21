@@ -18,9 +18,9 @@ A color, gradient, image or video behind all zones.
 
 Every type also has **Dim**, **Tint**, **Tint opacity** and **Blur** (in px), which keep text readable over busy pictures.
 
-## Dashboard and profile
+## All screens and one screen
 
-With nothing selected, open **Look › Background**. Set to **All profiles**, it edits the background every profile shares. Switch it to **This profile** to give this profile its own, starting from the shared one; choose **None** there for no background on this profile only. Switching back to All profiles drops the profile's own background.
+Open **Theme › Background**. At **All screens** it edits the background every screen shares. At a screen, editing it gives that screen its own, starting from the shared one; choose **None** there for no background on that screen only. **Reset to inherited** drops the screen's own background. A page has no background of its own.
 
 The type and Dim show first. Fit, position, fill, tint, blur and the video options are under **More**.
 

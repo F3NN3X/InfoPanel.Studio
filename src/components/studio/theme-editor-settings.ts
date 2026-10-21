@@ -5,8 +5,8 @@ import { METER_BALLISTICS } from "@/widgets/registry/audio-settings";
 import { formatSetting, thresholdSetting } from "@/widgets/registry/settings-kit";
 
 /**
- * The rows of the theme editor (SPEC §7): every themed key a profile, a
- * page or the all-profiles base sets. Style = the look sections (the CSS
+ * The rows of the theme editor (SPEC §7): every themed key a screen, a
+ * page or All screens sets. Style = the look sections (the CSS
  * row out of More: it is the section) and Status & series colors (the
  * palette roles); Data = Units & format, all four rows; Behaviour =
  * Thresholds of every quantity and Motion. Each row files itself by
@@ -14,6 +14,9 @@ import { formatSetting, thresholdSetting } from "@/widgets/registry/settings-kit
  */
 
 const FORMAT_KEYS: readonly FormatKey[] = ["tempUnit", "rateUnit", "decimals", "clock"];
+
+/** Theme's Surface & effects names its two numbers Opacity and Blur (SPEC §13; a widget's keep their labels). */
+const THEME_LABELS: Readonly<Record<string, string>> = { surfaceOpacity: "Opacity (%)", blur: "Blur" };
 
 /** One colour per palette role, Auto ("") = each widget's own colour. */
 const ROLE_SETTINGS: ModuleSetting[] = PALETTE_ROLES.map((role) => ({
@@ -26,7 +29,7 @@ const ROLE_SETTINGS: ModuleSetting[] = PALETTE_ROLES.map((role) => ({
 }));
 
 export const THEME_EDITOR_SETTINGS: ModuleSetting[] = [
-  ...THEME_SETTINGS.map((d) => (d.section === "css" ? { ...d, more: false } : d)),
+  ...THEME_SETTINGS.map((d) => ({ ...d, ...(d.section === "css" ? { more: false } : {}), label: THEME_LABELS[d.key] ?? d.label })),
   ...ROLE_SETTINGS,
   ...FORMAT_KEYS.map((key) => formatSetting(key)),
   ...THRESHOLD_QUANTITIES.map((q) => thresholdSetting(q)),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { modules } from "@/modules";
-import { CARD_SETTINGS, PANEL_SETTINGS, PROFILE_STYLE_SETTINGS } from "@/modules/standard-settings";
+import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
 import { isMore, type DashboardModule, type ModuleSetting } from "@/modules/types";
 import { TITLE_ONLY_HINT } from "@/components/studio/inspector-categories";
 import { THEME_EDITOR_SETTINGS } from "@/components/studio/theme-editor-settings";
@@ -16,7 +16,6 @@ import {
   rowSection,
   sharedDefs,
   visibleSections,
-  globalStyleValues,
   isVisible,
   inspectorNotes,
   inspectorTabs,
@@ -101,8 +100,8 @@ describe("inspectorTabs", () => {
     expect(inspectorTabs({ kind: "multi", defs: CARD_SETTINGS })).toEqual([]);
   });
 
-  it("has the three dashboard tabs", () => {
-    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual(["layout", "look", "behaviour"]);
+  it("has the two dashboard tabs (the look is Theme's)", () => {
+    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual(["layout", "behaviour"]);
   });
 
   it("has no Show tab in the theme editor, at every scope", () => {
@@ -313,9 +312,8 @@ describe("blank zone and several zones", () => {
 describe("dashboard sections", () => {
   const dash: InspectorContext = { kind: "dashboard", scope: "all" };
 
-  it("places every setting of the profile inspector in Layout, Look or Behaviour", () => {
+  it("places every setting of the profile inspector in Layout or Behaviour (the look is Theme's)", () => {
     expect(titles(sectionsFor(dash, "layout"))).toEqual(["Screen", "Grid"]);
-    expect(titles(sectionsFor(dash, "look"))).toEqual(["Theme", "Widget style", "Background"]);
     expect(titles(sectionsFor(dash, "behaviour"))).toEqual([
       "Pages",
       "Dynamic Island",
@@ -326,23 +324,12 @@ describe("dashboard sections", () => {
       "Connection",
     ]);
     expect(find(sectionsFor(dash, "behaviour"), "Studio").terms).toContain("Quick bar");
-    expect(find(sectionsFor(dash, "look"), "Theme").terms).toContain("Font");
   });
 
   it("has no schema rows: every section is custom UI, and the notes come from the view", () => {
     expect(allSections(dash).flatMap((s) => s.settings)).toEqual([]);
     expect(allSections(dash).every((s) => s.special !== undefined)).toBe(true);
-    expect(inspectorNotes(dash, "look")).toEqual([]);
-  });
-
-  it("reads the Appearance scope's look by scope", () => {
-    const glow = PROFILE_STYLE_SETTINGS.find((d) => d.key === "glow")!;
-    const all = globalStyleValues("all", { glow: "soft" }, { glow: "strong" });
-    expect(sourceState(glow, all)).toBe("here");
-    const profile = globalStyleValues("profile", { glow: "soft" }, {});
-    expect(sourceState(glow, profile)).toBe("dashboard");
-    expect(sourceState(glow, globalStyleValues("profile", { glow: "soft" }, { glow: "strong" }))).toBe("overriding");
-    expect(sourceState(glow, globalStyleValues("profile", undefined, undefined))).toBe("default");
+    expect(inspectorNotes(dash, "layout")).toEqual([]);
   });
 });
 
@@ -609,8 +596,6 @@ describe("view helpers", () => {
     const dashboard = allSections({ kind: "dashboard", scope: "all" });
     // The palette's document jumps (`DOCUMENT_CARD`) land on the new sections.
     expect(jumpTarget(dashboard, DOCUMENT_CARD.general)?.tab).toBe("behaviour");
-    expect(jumpTarget(dashboard, DOCUMENT_CARD.appearance)?.tab).toBe("look");
-    expect(jumpTarget(dashboard, DOCUMENT_CARD.background)?.id).toBe("lk-bg");
     expect(jumpTarget(dashboard, DOCUMENT_CARD.connection)?.id).toBe("bh-conn");
     expect(jumpTarget(dashboard, "nope")).toBeUndefined();
   });

@@ -3,6 +3,7 @@ import { surfaceColors } from "@/components/surfaces";
 import { chromeVars, surfaceBox } from "@/components/widget-style";
 import { backgroundLayers, posterBackground, type PageBackground } from "@/lib/appearance";
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
+import { cn } from "@/lib/utils";
 import { chromeOf } from "@/modules/standard-settings";
 
 /** The mini page: the preset's background (a video as its poster), else its theme's page color. */
@@ -44,13 +45,13 @@ function MiniTile({ preset, value, fill }: { preset: AppearancePreset; value: st
  * to the box, its page background and two mini widgets in its global
  * style — drawn with the same surface helpers as the real widgets.
  */
-export function AppearancePreview({ preset }: { preset: AppearancePreset }) {
+export function AppearancePreview({ preset, className }: { preset: AppearancePreset; className?: string }) {
   const tokens = Object.fromEntries(
     Object.entries(presetTokens(preset)).map(([key, value]) => [`--${key}`, value])
   );
   return (
     <div
-      className="relative h-10 overflow-hidden border border-ui-default"
+      className={cn("relative h-10 overflow-hidden border border-ui-default", className)}
       style={{ ...(tokens as CSSProperties), borderRadius: `${preset.radius}rem` }}
     >
       <MiniPage bg={preset.background} />

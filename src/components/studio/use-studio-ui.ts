@@ -36,13 +36,24 @@ export function useStudioUi(
   const showAlerts = mode === "alerts";
   const showScreens = mode === "screens";
   const showSettings = mode === "settings";
-  /** The theme editor's scope (the profile theme until a page's Theme… or the list picks another). */
+  /** Theme's scope (Screen until the scope bar or a link picks another). */
   const [themeScope, setThemeScope] = useState<ThemeScope>({ kind: "profile" });
-  /** Open the theme editor at a scope. */
-  const openTheme = (scope: ThemeScope) => {
+  /**
+   * The screen and page Theme's scope bar shows, when picked there or by a link; unset = the Design selection
+   * (SPEC §7.1). A page scope names its own page.
+   */
+  const [themeProfileId, setThemeProfileId] = useState<string>();
+  const [themePageId, setThemePageId] = useState<string>();
+  /** Open Theme at a scope, of a screen and page (unset = the ones in Design; a page scope names its page). */
+  const openTheme = (scope: ThemeScope, profileId?: string, pageId?: string) => {
     setThemeScope(scope);
+    setThemeProfileId(profileId);
+    setThemePageId(scope.kind === "page" ? scope.pageId : pageId);
     setMode("theme");
   };
+  /** The rail's Theme: the scope kind it was left at, on the screen and page selected in Design. */
+  const openThemeView = () =>
+    openTheme(themeScope.kind === "page" ? (profile.pageId ? { kind: "page", pageId: profile.pageId } : { kind: "profile" }) : themeScope);
   /** Every view but Design: a full page in place of the canvas, left panel and inspector. */
   const fullPage = mode !== "design";
   const toggleSources = () => setMode((m) => (m === "sources" ? "design" : "sources"));
@@ -157,7 +168,7 @@ export function useStudioUi(
   };
 
   /** A rail item opens its view; Data is the Sources view. */
-  const onRail = (item: RailItem) => setMode(item === "data" ? "sources" : item);
+  const onRail = (item: RailItem) => (item === "theme" ? openThemeView() : setMode(item === "data" ? "sources" : item));
 
   /** A palette entry or link for a panel: Add and Layers open Design's left panel, the rest their full view. */
   const openDrawer = (target: Drawer) => {
@@ -195,7 +206,8 @@ export function useStudioUi(
   const navigateTo = (target: NavTarget) => {
     switch (target.view) {
       case "theme":
-        openTheme(target.themeScope ?? { kind: "profile" });
+        if (target.themeScope) openTheme(target.themeScope, target.profileId);
+        else openThemeView();
         break;
       case "library":
         setMode("library");
@@ -237,7 +249,8 @@ export function useStudioUi(
     showScreens,
     showSettings,
     themeScope,
-    setThemeScope,
+    themeProfileId,
+    themePageId,
     openTheme,
     fullPage,
     toggleSources,
@@ -278,6 +291,7 @@ export function useStudioUi(
     importRef,
     revealEditor,
     navigateTo,
+    navRequest,
     pickerFor,
     setPickerFor,
     paletteOpen,
