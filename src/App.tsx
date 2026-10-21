@@ -16,7 +16,7 @@ import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
-import { fontStack, formatClock, resolveGeneral } from "@/lib/general";
+import { fontStack, formatClock, resolveFont, resolveGeneral } from "@/lib/general";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { GeneralProvider, useGeneral } from "@/hooks/use-general";
 import { PerformanceProvider } from "@/hooks/use-performance";
@@ -35,6 +35,7 @@ import {
   pushConfig,
 } from "@/lib/dashboard-server";
 import {
+  hasStoredConfig,
   loadConfig,
   mergeConfig,
   resolveProfile,
@@ -95,6 +96,9 @@ export default function App() {
     setApiBase(loaded.dataApiUrl); // before the first sensor connection
     return withPinnedProfile(loaded);
   });
+  // First run (SPEC §10.5): this browser had no config when the page opened, and the server has none either.
+  const [freshBrowser] = useState(() => !hasStoredConfig());
+  const [serverEmpty, setServerEmpty] = useState(false);
   const [studio, setStudio] = useState(
     () => new URLSearchParams(window.location.search).has("studio")
   );
@@ -108,7 +112,7 @@ export default function App() {
   // Kiosk: the control channel decides the profile (unless ?profile= pins one)
   // and the page. The stream also tells the server which profile this kiosk shows.
   const [shownId, setShownId] = useState<string>();
-  const control = useControl(shownId, kiosk && shownId !== undefined);
+  const control = useControl(shownId, kiosk && shownId !== undefined, pagePin);
   // A tap or swipe switches at once; the server's state takes over when it arrives.
   const [optimistic, setOptimistic] = useState<{ profile: string; page: string } | null>(null);
   // Kiosk: studio saves pulled since load (the island's "Layout updated").
@@ -239,6 +243,8 @@ export default function App() {
           const merged = withPinnedProfile(mergeConfig(server));
           saveConfig(merged);
           setConfig(merged);
+        } else {
+          setServerEmpty(true);
         }
         setSynced(true);
       })
@@ -458,6 +464,7 @@ export default function App() {
             onSave={handleStudioSave}
             pushPending={pushPending}
             offline={offline}
+            firstRun={freshBrowser && serverEmpty}
           />
         </Suspense>
       </PerformanceProvider>
@@ -491,7 +498,7 @@ export default function App() {
           ...(pageNav && { paddingBottom: Math.max(profilePadding(profile, kiosk), PAGE_DOTS_STRIP_PX) }),
           // Vertical scrolling stays with the browser; horizontal moves reach the swipe.
           ...(pageNav && { touchAction: "pan-y" }),
-          fontFamily: fontStack(general.font),
+          fontFamily: fontStack(resolveFont(general, profile)),
         }}
         onPointerDown={onKioskPointerDown}
         onPointerUp={onKioskPointerUp}

@@ -4,7 +4,7 @@ import { ArrowUp, Copy, Eye, EyeOff, GripVertical, MoreHorizontal, Trash2 } from
 import { IconButton } from "@/components/ui/icon-button";
 import type { Widget, WidgetKind } from "@/lib/panel-model";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP } from "./style-tools";
+import { ITEM, POPUP } from "./menu-styles";
 import { ChangeKindSubmenu } from "./widget-kind-menu";
 import { KIND_INFO, sensorName, widgetName } from "./widget-kinds";
 

@@ -93,7 +93,8 @@ function sectionFromHash(): SectionId {
   return isSectionId(id) ? id : "general";
 }
 
-export function StoreProvider({ children }: { children: ReactNode }) {
+/** `initialSection` is where the studio's Settings › App opens; the window reads its own URL hash. */
+export function StoreProvider({ children, initialSection }: { children: ReactNode; initialSection?: SectionId }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
@@ -101,7 +102,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toastState, setToast] = useState<Toast | null>(null);
   const [portInvalid, setPortInvalid] = useState(false);
   const [restartBusy, setRestartBusy] = useState(false);
-  const [section, setSection] = useState<SectionId>(sectionFromHash);
+  const [section, setSection] = useState<SectionId>(() => initialSection ?? sectionFromHash());
   const [found, setFound] = useState<Found | null>(null);
   const settingsRef = useRef<Settings | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);

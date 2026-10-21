@@ -5,7 +5,7 @@ import type { AssetKind } from "@/lib/assets";
 import { listLibrary, type LibraryItem } from "@/lib/library";
 import { buildIndex, collectionItems, fileUrl } from "@/lib/my-library/model";
 import { cn } from "@/lib/utils";
-import { ICON_BUTTON } from "./style-tools";
+import { ICON_BUTTON } from "./menu-styles";
 
 interface BackgroundLibraryProps {
   kind: AssetKind;

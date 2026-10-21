@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig, newProfile, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
-import { importedProfile, parseProfileFile, PROFILE_FILE_TYPE, profileFileText } from "@/components/studio/profile-file";
+import { importedProfile, parseProfileFile, PROFILE_FILE_TYPE, profileFileText, screenPayload } from "@/components/studio/profile-file";
 
 function profile(): MonitorProfile {
   const base = newProfile("Wide", 1920, 550);
@@ -30,6 +30,12 @@ describe("profile file", () => {
   it("round-trips a profile through export and import", () => {
     const source = profile();
     expect(ok(profileFileText(source))).toEqual(source);
+  });
+
+  it("keeps the screen's page font through export and import, and drops an unknown one", () => {
+    const source = { ...profile(), font: "inter" as const };
+    expect(ok(profileFileText(source)).font).toBe("inter");
+    expect(ok(JSON.stringify({ ...profile(), font: "comic" })).font).toBeUndefined();
   });
 
   it("carries the envelope that tells it from other JSON", () => {
@@ -113,5 +119,25 @@ describe("importedProfile", () => {
 
   it("keeps a name that is free", () => {
     expect(importedProfile({ ...config, profiles: [] }, profile()).name).toBe("Wide");
+  });
+});
+
+describe("screenPayload", () => {
+  it("is the profile file, which is exactly what Copy JSON copies, and the door reads it back", () => {
+    const wide = profile();
+    const config: DashboardConfig = { ...defaultConfig(), profiles: [wide] };
+    const payload = screenPayload(config, wide);
+    if ("error" in payload) throw new Error(payload.error);
+    expect(payload.name).toBe("Wide.json");
+    expect(payload.text).toBe(profileFileText(wide));
+    expect(JSON.parse(payload.text)).toMatchObject({ type: PROFILE_FILE_TYPE, profile: { name: "Wide" } });
+    expect(ok(payload.text)).toEqual(ok(profileFileText(wide)));
+  });
+
+  it("has no payload for a screen with a canvas that is not loaded", () => {
+    const base = profile();
+    const withRef = { ...base, pages: [{ ...base.pages[0], placements: [{ id: "c", module: "infopanel-canvas", colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, canvasRef: "cnv_x" }] }, base.pages[1]] } as MonitorProfile;
+    const payload = screenPayload({ ...defaultConfig(), profiles: [withRef] }, withRef);
+    expect(payload).toEqual({ error: "Not exported: a canvas in this profile is not loaded" });
   });
 });

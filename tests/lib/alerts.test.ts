@@ -6,7 +6,7 @@ const rule = (over: Record<string, unknown> = {}) => ({
   name: "GPU hot",
   enabled: true,
   severity: "critical",
-  source: { kind: "sensor", key: "gpu.temp", op: ">", value: 80, forSeconds: 5 },
+  source: { kind: "sensor", conditions: [{ key: "gpu.temp", op: ">", value: 80 }], forSeconds: 5 },
   cooldownSeconds: 30,
   outputs: {},
   ...over,
@@ -27,7 +27,7 @@ describe("normalizeAlerts", () => {
 
   it("passes a valid rule through unchanged", () => {
     const r = rule({
-      source: { kind: "sensor", key: "gpu.temp", op: ">", value: 80, forSeconds: 5, clearBelow: 75 },
+      source: { kind: "sensor", conditions: [{ key: "gpu.temp", op: ">", value: 80, clearBelow: 75 }], forSeconds: 5 },
       outputs: {
         display: { style: "overlay", position: "center", backdrop: "blur", size: "l", seconds: 0, text: "{name}" },
         page: { profile: "p", page: "game", returnAfter: true },
@@ -36,6 +36,28 @@ describe("normalizeAlerts", () => {
       profiles: ["p"],
     });
     expect(normalizeAlerts({ rules: [r] })?.rules).toEqual([r]);
+  });
+
+  it("keeps several conditions in order and drops unreadable ones", () => {
+    const conditions = [
+      { key: "cpu.temp", op: ">", value: 95, clearBelow: 90 },
+      { key: "gpu.temp", op: ">", value: 85 },
+    ];
+    const keep = rule({ source: { kind: "sensor", conditions, forSeconds: 10 } });
+    expect(normalizeAlerts({ rules: [keep] })?.rules).toEqual([keep]);
+    const messy = rule({ source: { kind: "sensor", conditions: [null, { op: ">" }, ...conditions], forSeconds: 10 } });
+    expect(normalizeAlerts({ rules: [messy] })?.rules[0].source).toEqual(keep.source);
+    const none = rule({ id: "none", source: { kind: "sensor", conditions: [], forSeconds: 0 } });
+    expect(normalizeAlerts({ rules: [none] })?.rules).toEqual([]);
+  });
+
+  it("reads a rule saved with one key, op and value as a one-item list (v11)", () => {
+    const legacy = rule({ source: { kind: "sensor", key: "gpu.temp", op: ">", value: 80, forSeconds: 5, clearBelow: 75 } });
+    expect(normalizeAlerts({ rules: [legacy] })?.rules[0].source).toEqual({
+      kind: "sensor",
+      conditions: [{ key: "gpu.temp", op: ">", value: 80, clearBelow: 75 }],
+      forSeconds: 5,
+    });
   });
 
   it("drops bad rules and duplicate ids", () => {
@@ -70,7 +92,7 @@ describe("normalizeAlerts", () => {
     })!.rules;
     expect(r.severity).toBe("warning");
     expect(r.cooldownSeconds).toBe(86_400);
-    expect(r.source).toMatchObject({ op: ">", value: 0, forSeconds: 0 });
+    expect(r.source).toMatchObject({ conditions: [{ op: ">", value: 0 }], forSeconds: 0 });
     expect(r.outputs.display).toEqual({ seconds: 600 });
   });
 
@@ -78,7 +100,7 @@ describe("normalizeAlerts", () => {
     const [r] = normalizeAlerts({
       rules: [rule({ cooldownSeconds: undefined, source: { kind: "sensor", key: "k", op: "≠", value: "a" } })],
     })!.rules;
-    expect(r.source).toMatchObject({ op: "!=", value: "a" });
+    expect(r.source).toMatchObject({ conditions: [{ op: "!=", value: "a" }] });
     expect(r.cooldownSeconds).toBe(60);
   });
 

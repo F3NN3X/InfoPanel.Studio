@@ -17,21 +17,37 @@ import { buildDataModel } from "@/lib/data-points";
 import { appearanceOf } from "@/lib/style-resolve";
 import { resolveTheme, themeVars } from "@/lib/theme";
 import { CommandPalette } from "./command-palette";
-import { exportConfigFile, importConfigFile, startConfigImport } from "./config-file";
-import { useDocumentProps } from "./use-document-props";
+import { exportConfigFile } from "./config-file";
+import { ownStyle } from "./studio-actions";
+import { useStyleEdits } from "./use-style-edits";
 import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar } from "./studio-top-bar";
-import { LeftRail } from "./left-rail";
-import { StudioDrawer } from "./studio-drawers";
+import { LeftRail, type RailItem } from "./left-rail";
+import { PhoneTabBar } from "./phone-tab-bar";
+import { FirstRun } from "./first-run";
+import { applyFirstRun } from "./first-run-model";
+import { onSetupRequest, takeSetupRequest } from "@/lib/setup-request";
+import { DesignLeftPanel } from "./design-left-panel";
+import { AlertsView } from "./alerts-view";
+import { ScreensView } from "./screens-view";
+import { withScreenPerformance } from "./screens-model";
+import { SettingsView } from "./settings-view";
+import { StatusBar } from "./status-bar";
+import { useStatusBar } from "./use-status-bar";
 import { StudioInspector } from "./studio-inspector";
 import { StudioShell } from "./studio-shell";
 import { QuickBar } from "./quick-bar";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
+import { ExportSheet } from "./export-sheet";
+import { onFileDoor, openExportSheet, openImportDoor, type ExportRequest } from "./file-doors";
+import { canvasZoneOf } from "./import-actions";
+import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
 import { useStudioCommands } from "./use-studio-commands";
+import { isPhone, railWidth } from "./use-studio-layout";
 import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
 import { useInspectorFollowsSelection, useStudioUi } from "./use-studio-ui";
@@ -39,31 +55,40 @@ import { SelectionChip } from "./selection-chip";
 import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
 import { widgetName } from "./widget-kinds";
 import { WidgetPickerDialog } from "./widget-picker-dialog";
-import { postControl, useControl } from "@/lib/control";
+import { kiosksOf, postControl, useControl } from "@/lib/control";
 import { openHelp } from "@/lib/desktop";
-import { dialogArticle, studioHelpTarget } from "@/help/context";
+import { dialogArticle, focusedSection, studioHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
 import { isIslandAlert } from "@/lib/island/from-alerts";
 import { visibleAlerts } from "@/components/alerts/alert-model";
-import { PageTabs } from "./page-tabs";
+import { cycleLabel, PageTabs } from "./page-tabs";
+import { PageIconDialog } from "./page-icon-dialog";
 import { islandSectionId } from "./island-panel-model";
+import type { SectionId } from "@/settings/model/search";
 import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
-import { sheetHeight } from "./studio-layout";
+import { FLOAT_INSET, sheetHeight } from "./studio-layout";
 import { zoneName } from "./inspector/zone-meta";
-import { dataOf, type StudioBridge } from "@/components/library/library-actions";
+import { dataOf, setAsBackground, type StudioBridge } from "@/components/library/library-actions";
 import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
 import { useToast } from "@/components/ui/toast";
-import type { LibraryCopy } from "@/lib/library";
+import type { LibraryCopy, LibraryItem } from "@/lib/library";
+import { findCanvasUse } from "@/lib/my-library/canvas-use";
+import { applyThemeAt } from "@/lib/appearance-preset-apply";
+import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
+
+/** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
+const NO_REQUEST: ExportRequest = {};
 
 /** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
+/** The Gauges view (A7), loaded when the rail first opens it. */
 const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
 interface StudioViewProps {
@@ -85,15 +110,17 @@ interface StudioViewProps {
   pushPending: boolean;
   /** The last push could not reach the server (the top bar says so). */
   offline: boolean;
+  /** No config anywhere (a fresh install): the first-run setup opens. */
+  firstRun: boolean;
 }
 
 /**
- * The studio: a top bar (profile, Design | Sources, undo/redo, save, "⋯"
- * config actions), left icon rail + drawer (add, layers, profiles), a
- * center grid canvas where zones are drawn, selected (Shift / Ctrl-click
- * for several), moved and resized (biome-style, no overlap) with a
- * toolbar on the primary zone, and a right panel (zone inspector, or the
- * theme editor). Every edit goes through the undo history; keyboard
+ * The studio: a title bar (screen / page switcher, command entry, undo/redo,
+ * Import, Export, Live, save, "⋯"), the labelled rail (every item a full view),
+ * Design's left panel (Layers | Add widget), a center grid canvas where zones
+ * are drawn, selected (Shift / Ctrl-click for several), moved and resized
+ * (biome-style, no overlap) with a toolbar on the primary zone, a right panel
+ * (zone inspector, or the theme editor) and the status bar. Every edit goes through the undo history; keyboard
  * shortcuts and the Ctrl+K command palette reach the same actions as the
  * mouse. The state lives in the `use-studio-*` hooks; this composes them.
  */
@@ -118,9 +145,19 @@ function StudioViewBody({
   onSave,
   pushPending,
   offline,
+  firstRun,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
   const toast = useToast();
+  // First-run setup (SPEC §10.5): a fresh install, or Help › Run setup again.
+  const [setupOpen, setSetupOpen] = useState(false);
+  useEffect(() => {
+    if (firstRun) setSetupOpen(true);
+  }, [firstRun]);
+  useEffect(() => {
+    if (takeSetupRequest()) setSetupOpen(true);
+    return onSetupRequest(() => setSetupOpen(true));
+  }, []);
   // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history.
   const control = useControl();
   // The canvas island plays only test alerts (Test in the rule editor); live ones show on kiosks.
@@ -131,7 +168,7 @@ function StudioViewBody({
   const setConfig = history.set;
   // The stored profile behind the page on the canvas (profile list, summary, JSON copy).
   const storedProfile = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
-  const ui = useStudioUi(config, profile, onSave);
+  const ui = useStudioUi(config, profile, onSave, windowWidth);
   /**
    * Edit a profile: the canvas, page tabs and inspector follow it, and the zoom returns to fit.
    * What displays open on is not touched; only "When the app opens" sets that.
@@ -153,12 +190,7 @@ function StudioViewBody({
     onPageChange,
     onSelectProfile: selectProfile,
   });
-  const { props: documentProps, setScopeStyle, appearancePresets } = useDocumentProps(
-    config,
-    profile,
-    setConfig,
-    edit.updateProfile
-  );
+  const { setScopeStyle, appearancePresets } = useStyleEdits(config, profile, setConfig);
   /** The global style the zones render under. */
   const appearance = appearanceOf(config, profile);
   const menus = useContextMenu(sel);
@@ -175,50 +207,63 @@ function StudioViewBody({
     setScopeStyle,
     onPageChange,
     onSelectProfile: selectProfile,
+    onHelp: () => void openHelp(helpTarget()).catch(() => {}),
   });
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, showLibrary, showGauges, showTheme, fullPage, drawer } = ui;
-  // F1: the Help article for what the user is on (an open dialog, the selected zone, the open drawer).
-  useHelpKey(
-    () => studioHelpTarget({ dialog: dialogArticle(), zone: helpZoneKind(selected), drawer: fullPage ? null : drawer }),
-    (target) => void openHelp(target).catch(() => {})
-  );
+  const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
+  const phone = isPhone(windowWidth);
+  const narrowRail = !phone && railWidth(windowWidth) < 72;
+  const railActive: RailItem | null = showSources
+    ? "data"
+    : showLibrary
+      ? "library"
+      : showGauges
+        ? "gauges"
+        : showTheme
+          ? "theme"
+          : showAlerts
+            ? "alerts"
+            : showSettings
+              ? "settings"
+              : showScreens
+                ? null
+                : "design";
+  const openHelpWindow = () => void openHelp(helpTarget()).catch(() => {});
+  // F1 and the rail's Help: the article for what the user is on (an open dialog, the view, the selected zone).
+  const helpTarget = () =>
+    studioHelpTarget({
+      dialog: dialogArticle(),
+      section: focusedSection(),
+      view: ui.mode,
+      zone: helpZoneKind(selected),
+      settingsTab: ui.settingsTab,
+      settingsSection: ui.settingsSection as SectionId | undefined,
+    });
+  useHelpKey(helpTarget, (target) => void openHelp(target).catch(() => {}));
   /** The data point the inspector's Bound data row opened in Sources mode. */
   const [focusPointKey, setFocusPointKey] = useState<string>();
   useEffect(() => {
     if (!showSources) setFocusPointKey(undefined);
   }, [showSources]);
 
-  /** The zoom bar's resolution button and the Library's jump to a background: the profile inspector's Layout. */
-  const openProfileSettings = () => {
-    ui.setMode("design");
-    sel.select(null);
-    ui.openDocumentTab("layout");
-  };
-  /** ⋯ Rename: edit that profile, show its Layout tab and put the cursor in the Name field. */
-  const renameProfile = (id: string) => {
-    if (id !== profile.id) selectProfile(id);
-    openProfileSettings();
-    // The inspector mounts first; then it opens the Screen section and the field takes the cursor.
-    requestAnimationFrame(() => {
-      studioLayout.showInspector();
-      ui.jumpInspector("ly-screen");
-      ui.requestRename();
-      // A field that never mounted (the inspector stayed away) must not keep the request for later.
-      setTimeout(ui.clearRename, 1500);
-    });
-  };
+  // A link to Screens that names a screen selects it (the Screens view shows the one being edited).
+  useEffect(() => {
+    if (ui.screenRequest) selectProfile(ui.screenRequest.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.screenRequest?.seq]);
   /**
-   * The island drawer's widget rows: select the zone and scroll the inspector to "Send to island". A zone
-   * on another page waits for the page switch (it clears the selection) before it is selected.
+   * Alerts & Island's "Open widget ↗": select the zone and scroll the inspector to "Send to island". A zone
+   * on another screen or page waits for the switch (it clears the selection) before it is selected.
    */
   const [pendingZone, setPendingZone] = useState<string | null>(null);
   /** The zone an import just made: it opens in the canvas editor once it is on the page. */
   const openOnLand = useRef<string | null>(null);
-  const openZone = (pageId: string, zoneId: string) => {
-    if (pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
+  const openZone = (profileId: string, pageId: string, zoneId: string) => {
+    ui.setMode("design");
+    if (profileId !== storedProfile.id) selectProfile(profileId);
+    if (profileId !== storedProfile.id || pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
     setPendingZone(zoneId);
   };
   useEffect(() => {
@@ -264,7 +309,7 @@ function StudioViewBody({
   const [editorEpoch, setEditorEpoch] = useState(0);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
 
-  /** The gauge the Gauges page opens in its editor ("Edit gauge…" from a zone or a canvas item). */
+  /** The gauge the Gauges view opens in its editor ("Edit gauge…" from a zone, a canvas item or the Library). */
   const [gaugeToOpen, setGaugeToOpen] = useState<GaugeSource | null>(null);
   const openGauge = (source: GaugeSource) => {
     setGaugeToOpen(source);
@@ -284,6 +329,29 @@ function StudioViewBody({
     addCopy: (item, copy) => void recordCopy(item, copy),
   };
 
+  /** The Library page reloads (a new key) when the Import door added items. */
+  const [libraryEpoch, setLibraryEpoch] = useState(0);
+  const currentPageId = profile.pageId ?? storedProfile.pages[0].id;
+  const importDoor = useImportDoor({
+    config,
+    setConfig,
+    addScreen: edit.addImportedProfile,
+    backup: (c) => exportConfigFile(c, toast),
+    useAsBackground: (item) => setAsBackground(libraryBridge, item),
+    current: { screen: storedProfile.name, page: storedProfile.pages.find((p) => p.id === currentPageId)?.name ?? "" },
+    toast,
+    onGo: (go) => {
+      if (go.to === "screens") ui.navigateTo({ view: "screens", profileId: storedProfile.id });
+      else if (go.to === "gauge") openGauge({ kind: "library", itemId: go.itemId });
+      else ui.openLibrary(go.collection);
+    },
+    onWizard: (file, dest) => io.openImport(dest, { file }, true),
+    onLibraryChanged: () => setLibraryEpoch((n) => n + 1),
+  });
+  /** The Export & back up sheet: open with the row a request names (the title bar, a Screens card, the gauge editor). */
+  const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
+  useEffect(() => onFileDoor((e) => e.type === "export" && setExportRequest(e)), []);
+
   /** The one selected zone, when it is blank: the Add panel's click fills it. */
   const blankZoneId = selected && sel.selection.length === 1 && selected.module === BLANK_MODULE ? selected.id : undefined;
 
@@ -300,9 +368,9 @@ function StudioViewBody({
       ui={ui}
       sel={sel}
       edit={edit}
-      documentProps={documentProps}
-      windowSize={{ width: windowWidth, height: windowHeight }}
-      setScopeStyle={setScopeStyle}
+      setConfig={setConfig}
+      onHelp={() => void openHelp(helpTarget()).catch(() => {})}
+      onShowOnKiosks={(pageId) => void postControl("page", { profile: storedProfile.id, page: pageId })}
       onOpenPoint={(key) => {
         setFocusPointKey(key);
         ui.setMode("sources");
@@ -312,11 +380,12 @@ function StudioViewBody({
     />
   );
 
-  const drawerEl = drawer && (
-    <StudioDrawer
-      drawer={drawer}
-      width={ui.drawerWidth}
-      onResize={ui.setDrawerWidth}
+  const leftPanelEl = (
+    <DesignLeftPanel
+      tab={ui.leftTab}
+      onTab={ui.setLeftTab}
+      width={ui.leftWidth}
+      onResize={ui.setLeftWidth}
       insert={{
         grid: profile,
         savedPanels: config.panelPresets,
@@ -326,7 +395,7 @@ function StudioViewBody({
         onDeletePreset: edit.deleteSavedPanel,
         blankZoneId,
         onFillBlank: edit.fillBlank,
-        onImportCanvas: () => io.openImport("zone"),
+        onImportCanvas: () => openImportDoor({ prefer: "canvas-zone" }),
         profileName: profile.name,
       }}
       layers={{
@@ -336,59 +405,94 @@ function StudioViewBody({
         onToggle: edit.toggleVisible,
         onRemove: edit.removePlacement,
         onContextMenu: menus.open,
-        onAdd: () => ui.setDrawer("add"),
-      }}
-      profiles={{
-        profiles: config.profiles,
-        dashboard: config,
-        activeProfile: config.activeProfile,
-        profile: storedProfile,
-        currentPageId: profile.pageId ?? storedProfile.pages[0].id,
-        windowSize: { width: windowWidth, height: windowHeight },
-        autoProfileId: resolveProfile({ ...config, activeProfile: "auto" }, windowWidth, windowHeight).id,
-        onSelectProfile: selectProfile,
-        onSelectPage: onPageChange,
-        onAddPage: edit.addNewPage,
-        onActivate: edit.activateProfile,
-        onAddProfile: edit.addProfile,
-        onImportProfile: edit.addImportedProfile,
-        onDuplicateProfile: edit.duplicateProfile,
-        onRemoveProfile: edit.removeProfile,
-        onRenameProfile: renameProfile,
-      }}
-      alerts={{
-        config,
-        setConfig,
-        active: control?.alerts ?? [],
-        points: dataPoints,
-        current: { profile: storedProfile.id, page: profile.pageId ?? storedProfile.pages[0].id },
-        pushPending,
-        editingId: ui.alertRule,
-        onEdit: ui.setAlertRule,
-        onOpenSources: () => ui.setMode("sources"),
-      }}
-      island={{
-        config,
-        setConfig,
-        profile: storedProfile,
-        onOpenZone: openZone,
-        onOpenRule: (id) => {
-          ui.setAlertRule(id);
-          ui.setDrawer("alerts");
-        },
-        onOpenExplorer: () => ui.setMode("sources"),
       }}
     />
   );
 
+  const alertsEl = showAlerts && (
+    <AlertsView
+      tab={ui.alertsTab}
+      onTab={ui.setAlertsTab}
+      config={config}
+      setConfig={setConfig}
+      active={control?.alerts ?? []}
+      points={dataPoints}
+      screen={storedProfile}
+      page={profile.pageId ?? storedProfile.pages[0].id}
+      pushPending={pushPending}
+      editingId={ui.alertRule}
+      onEdit={ui.setAlertRule}
+      onOpenSources={() => ui.setMode("sources")}
+      onOpenZone={openZone}
+      navigateTo={ui.navigateTo}
+    />
+  );
+
+  const screensEl = showScreens && (
+    <ScreensView
+      config={config}
+      profile={profile}
+      windowSize={{ width: windowWidth, height: windowHeight }}
+      autoProfileId={resolveProfile({ ...config, activeProfile: "auto" }, windowWidth, windowHeight).id}
+      onSelectProfile={selectProfile}
+      updateProfile={edit.updateProfile}
+      setConfig={setConfig}
+      onRotate={edit.setRotate}
+      onPerformance={(patch) => setConfig((c) => withScreenPerformance(c, storedProfile.id, patch), "profile:performance")}
+      onMovePage={edit.movePageTo}
+      onAddPage={edit.addNewPage}
+      onOpenPage={(pageId) => {
+        ui.setMode("design");
+        onPageChange(pageId);
+      }}
+      onOpenLive={() => ui.setLiveOpen(true)}
+      navigateTo={ui.navigateTo}
+      onAddProfile={edit.addProfile}
+      onDuplicateProfile={edit.duplicateProfile}
+      onRemoveProfile={edit.removeProfile}
+    />
+  );
+
+  const settingsEl = showSettings && (
+    <SettingsView
+      tab={ui.settingsTab}
+      onTab={ui.setSettingsTab}
+      appSection={ui.settingsSection}
+      seq={ui.navRequest?.seq ?? 0}
+      dashboard={{
+        config,
+        screen: storedProfile,
+        setConfig,
+        onExport: () => exportConfigFile(config, toast),
+        onReset: () => setConfig(defaultConfig()),
+        navigateTo: ui.navigateTo,
+      }}
+      studio={{
+        fitting: ui.fitting,
+        zoom: ui.zoom,
+        onFit: ui.fitZoom,
+        onZoom: ui.setZoom,
+        showGrid: ui.showGrid,
+        onShowGrid: ui.setShowGrid,
+        showRulers: ui.showRulers,
+        onShowRulers: ui.setShowRulers,
+        leftWidth: ui.leftWidth,
+        onLeftWidth: ui.setLeftWidth,
+      }}
+    />
+  );
+
+  const statusBar = useStatusBar(control, offline ? "offline" : pushPending ? "unsaved" : "saved");
+
   const canvasEl = showSources ? (
-    <div className="min-h-0 flex-1 overflow-hidden bg-background/40">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40">
       <SourcesPanel
         config={config}
         setConfig={setConfig}
         profile={profile}
         focusPointKey={focusPointKey}
         selectedZoneId={sel.primaryId}
+        dataApi={statusBar.dataApi}
         onOpenZone={(id, opts) => {
           ui.setMode("design");
           focusZone(id);
@@ -416,7 +520,6 @@ function StudioViewBody({
         if (id === null) {
           studioLayout.dismissInspector();
           ui.setInspectorQuery("");
-          ui.setInspectorChanged(false);
         }
         sel.select(id, how);
       }}
@@ -437,7 +540,7 @@ function StudioViewBody({
       dropSizeOf={(d) => (d.kind === "mylib" ? librarySizeOf(d.item, profile) : edit.dropSizeOf(d))}
       onDropItem={(d, rect, cell, inCanvas) => (d.kind === "mylib" ? void dropLibraryItem(libraryBridge, d, rect, cell, inCanvas) : edit.dropItem(d, rect))}
       onContextMenu={menus.open}
-      onOpenAdd={() => ui.setDrawer("add")}
+      onOpenAdd={() => ui.openDrawer("add")}
       onUseSample={() => runCommand({ type: "sample-layout" })}
       islandAlerts={islandTestAlerts}
       selectionChip={
@@ -466,7 +569,7 @@ function StudioViewBody({
       updateProfile={edit.updateProfile}
       onToggleVisible={() => (sel.selection.length === 1 ? edit.toggleVisible(sel.selection[0].id) : edit.toggleSelectionVisible())}
       allSettings={inspectorMode === "floating" ? { open: floatOpen, onToggle: () => studioLayout.setFloatOpen(!floatOpen) } : undefined}
-      insetRight={inspectorMode === "floating" && floatOpen ? 344 : 0}
+      insetRight={inspectorMode === "floating" && floatOpen ? FLOAT_INSET - 4 : 0}
       onOpenSection={(section, key) => {
         studioLayout.showInspector();
         ui.jumpInspector(section, key);
@@ -474,12 +577,18 @@ function StudioViewBody({
     />
   );
 
+  // The kiosks' rotation as the page tabs' chip and Live's toggle read it: the runtime state, else the saved setting.
+  const rotateEntry = control?.profiles[storedProfile.id];
+  const rotating = (rotateEntry?.rotating ?? storedProfile.rotate?.enabled === true) && storedProfile.pages.length >= 2;
+
   // The page tabs sit above the canvas in Design mode.
   const mainEl = showSources ? (
     canvasEl
   ) : (
     <>
       <PageTabs
+        leftOpen={ui.leftOpen}
+        onToggleLeft={ui.toggleLeft}
         pages={storedProfile.pages}
         current={profile.pageId ?? storedProfile.pages[0].id}
         onSelect={onPageChange}
@@ -488,21 +597,20 @@ function StudioViewBody({
         onMove={edit.movePageTo}
         onDuplicate={edit.duplicateCurrentPage}
         onDelete={edit.deletePage}
-        onIcon={edit.setIconOfPage}
-        onTheme={(pageId) => ui.openTheme({ kind: "page", pageId })}
+        onIcon={ui.setIconPage}
+        onPageSettings={(pageId) => {
+          // Show the page and deselect, so the Page inspector shows (SPEC §6.2).
+          if (pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
+          sel.select(null);
+          studioLayout.showInspector();
+        }}
         renamingId={ui.renamingPage}
         onRenamingChange={ui.setRenamingPage}
         deletingId={ui.deletingPage}
         onDeletingChange={ui.setDeletingPage}
-        cycleSeconds={storedProfile.rotate?.enabled ? storedProfile.rotate.seconds : undefined}
         kioskPage={control?.profiles[storedProfile.id]?.page}
-        onShowOnKiosk={(page) => void postControl("page", { profile: storedProfile.id, page })}
-        rotate={{
-          entry: control?.profiles[storedProfile.id],
-          saved: storedProfile.rotate?.enabled === true,
-          onToggle: () => void postControl("rotate", { profile: storedProfile.id, state: "toggle" }),
-          onSaved: () => void postControl("rotate", { profile: storedProfile.id, state: "saved" }),
-        }}
+        rotation={rotating ? `every ${cycleLabel(storedProfile.rotate?.seconds ?? 0)}` : "paused"}
+        onOpenLive={() => ui.setLiveOpen(true)}
       />
       {/* The quick bar floats over the canvas only, below the page tabs. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -534,12 +642,12 @@ function StudioViewBody({
   /** Where a library copy went: "ARCv2 › Page 1 › Background". */
   const copyLabel = (c: LibraryCopy) => {
     const p = config.profiles.find((x) => x.id === c.profileId);
-    if (!p) return c.label ?? "A removed profile";
+    if (!p) return c.label ?? "A removed screen";
     const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
     const zone = page?.placements.find((z) => z.id === c.zoneId);
     return [p.name, p.pages.length > 1 ? page?.name : null, zone ? zoneName(zone) : c.label].filter(Boolean).join(" › ");
   };
-  /** Jump to a copy: its profile and page, then its zone selected (a background opens the profile's settings). */
+  /** Jump to a copy: its profile and page, then its zone selected (a background opens Theme › Background for the screen). */
   const jumpToCopy = (c: LibraryCopy) => {
     ui.setMode("design");
     const p = config.profiles.find((x) => x.id === c.profileId);
@@ -548,19 +656,39 @@ function StudioViewBody({
     const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
     if (page && page.id !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(page.id);
     if (c.zoneId) setPendingZone(c.zoneId);
-    else openProfileSettings();
+    else ui.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: p.id, section: "background" });
   };
   const canvasZones = profile.placements.filter(
     (z): z is typeof z & { canvas: NonNullable<typeof z.canvas> } => z.module === CANVAS_ID && !!z.canvas,
   );
+  /** A saved Theme's "Edit in Theme": applied to All screens (one undo step), then Theme opens there in its Editing state. */
+  const editInTheme = (preset: AppearancePreset) => {
+    setConfig((c) => applyThemeAt(c, preset, { kind: "all" }, { includeBackground: true }));
+    ui.openTheme({ kind: "base" });
+    ui.setThemeEditing(preset.id);
+  };
+  /** A Library canvas's "Edit canvas": its editor on the first zone made from it, else it comes in as a new screen (which opens it). */
+  const editCanvas = async (item: LibraryItem) => {
+    const stored = await dataOf<StoredCanvas>(item);
+    const use = stored ? findCanvasUse(config, stored) : undefined;
+    if (!use) return io.openImport("new", { canvasId: item.id }, true);
+    openOnLand.current = use.zoneId;
+    openZone(use.profileId, use.pageId, use.zoneId);
+  };
   const libraryEl = showLibrary && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
       <LibraryPage
+        key={libraryEpoch}
         bridge={libraryBridge}
+        request={ui.libraryRequest}
+        pageId={currentPageId}
+        selectionStyle={selected ? ownStyle(selected, appearance) : null}
+        onEditInTheme={editInTheme}
+        onEditCanvas={(item) => void editCanvas(item)}
         onShowCanvas={() => ui.setMode("design")}
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
-        onImport={(source) => io.openImport("new", source)}
+        onImport={(source, dest) => io.openImport(dest, source, true)}
         onOpenGauge={(itemId) => openGauge({ kind: "library", itemId })}
         onExportCanvas={(item) =>
           void dataOf<StoredCanvas>(item).then((canvas) =>
@@ -598,15 +726,28 @@ function StudioViewBody({
     </Suspense>
   );
 
+  // Theme's screen and page: the ones its scope bar picked, else the Design selection (SPEC §7.1).
+  const themeProfile = config.profiles.find((p) => p.id === ui.themeProfileId) ?? storedProfile;
+  const themePage = ui.themeScope.kind === "page" ? ui.themeScope.pageId : ui.themePageId;
+  const themePageId = themeProfile.pages.some((pg) => pg.id === themePage)
+    ? themePage!
+    : themeProfile.id === storedProfile.id
+      ? (profile.pageId ?? storedProfile.pages[0].id)
+      : themeProfile.pages[0].id;
   const themeEl = showTheme && (
     <ThemeEditor
       config={config}
-      profile={storedProfile}
-      currentPageId={profile.pageId ?? storedProfile.pages[0].id}
       scope={ui.themeScope}
-      onScope={ui.setThemeScope}
+      profileId={themeProfile.id}
+      pageId={themePageId}
+      onPick={ui.openTheme}
       setConfig={setConfig}
+      navigateTo={ui.navigateTo}
+      navRequest={ui.navRequest}
       jumpTo={ui.inspectorJump}
+      presets={appearancePresets}
+      editingId={ui.themeEditing}
+      onStopEditing={() => ui.setThemeEditing(undefined)}
     />
   );
 
@@ -615,7 +756,6 @@ function StudioViewBody({
     <ZoomToolbar
       zoom={ui.zoom}
       fitting={ui.fitting}
-      onToggleLeft={ui.toggleLeft}
       showGrid={ui.showGrid}
       onToggleGrid={() => ui.setShowGrid((s) => !s)}
       showRulers={ui.showRulers}
@@ -623,7 +763,7 @@ function StudioViewBody({
       onZoomStep={ui.zoomStep}
       onFit={ui.fitZoom}
       profile={profile}
-      onOpenProfile={openProfileSettings}
+      onOpenProfile={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
       bottom={
         inspectorMode === "sheet"
           ? Math.min(studioLayout.sheet.height, sheetHeight("half", studioLayout.sheet.area, true)) + 8
@@ -646,42 +786,35 @@ function StudioViewBody({
       />
       <StudioTopBar
         profiles={config.profiles}
-        dashboard={config}
         profile={storedProfile}
-        onSelectProfile={selectProfile}
-        onOpenProfiles={() => {
-          ui.setMode("design");
-          ui.setDrawer("profiles");
+        pageId={profile.pageId ?? storedProfile.pages[0].id}
+        onSelectScreen={(profileId, pageId) => {
+          selectProfile(profileId);
+          onPageChange(pageId);
         }}
+        onManageScreens={() => ui.navigateTo({ view: "screens" })}
+        liveOpen={ui.liveOpen}
+        onLiveOpenChange={ui.setLiveOpen}
+        kiosks={kiosksOf(control)}
+        control={control}
+        onExitStudio={onExitStudio}
         saved={ui.saved}
         unsaved={pushPending}
-        offline={offline}
         onSave={ui.handleSave}
-        onExitStudio={onExitStudio}
-        onExport={() => exportConfigFile(config, toast)}
-        onImport={() => startConfigImport(ui.importRef.current, setConfig, toast)}
-        onImportInfoPanel={() => io.openImport("new")}
-        onExportInfoPanel={io.openExport}
-        canExportInfoPanel={io.canExport}
-        onReset={() => setConfig(defaultConfig())}
+        onExport={() => openExportSheet()}
+        onImport={() => openImportDoor()}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         onUndo={history.undo}
         onRedo={history.redo}
         onPalette={() => ui.setPaletteOpen(true)}
-        onShortcuts={() => ui.setShortcutsOpen(true)}
       />
       <StudioShell
         layout={studioLayout}
-        rail={
-          <LeftRail
-            active={showSources ? "sources" : showLibrary ? "library" : showGauges ? "gauges" : showTheme ? "theme" : drawer}
-            onSelect={ui.onRail}
-            onShortcuts={() => ui.setShortcutsOpen(true)}
-          />
-        }
-        drawer={!fullPage && !canvasEditor && drawer && drawerEl}
-        main={gaugesEl || themeEl || (
+        rail={phone ? null : <LeftRail active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
+        railWidth={railWidth(windowWidth)}
+        drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
+        main={alertsEl || screensEl || settingsEl || gaugesEl || themeEl || (
           <>
             {libraryEl}
             {canvasEditor ? (
@@ -697,6 +830,8 @@ function StudioViewBody({
         bar={bar}
         inspector={fullPage || canvasEditor ? null : inspectorAside}
       />
+      <StatusBar {...statusBar} onNavigate={ui.navigateTo} onOpenLive={() => ui.setLiveOpen(true)} />
+      {phone && <PhoneTabBar active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} />}
 
       <WidgetPickerDialog
         placement={profile.placements.find((p) => p.id === ui.pickerFor) ?? null}
@@ -729,18 +864,39 @@ function StudioViewBody({
           onClose={menus.close}
         />
       )}
+      <PageIconDialog
+        page={storedProfile.pages.find((p) => p.id === ui.iconPage)}
+        onPick={(icon) => ui.iconPage && edit.setIconOfPage(ui.iconPage, icon)}
+        onClose={() => ui.setIconPage(null)}
+      />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
       {io.dialogs}
-      <input
-        ref={ui.importRef}
-        type="file"
-        accept="application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) importConfigFile(file, setConfig, toast);
-          e.target.value = "";
+      {importDoor}
+      <FirstRun
+        open={setupOpen}
+        dataApiUrl={config.dataApiUrl}
+        windowSize={{ width: windowWidth, height: windowHeight }}
+        onSkip={() => setSetupOpen(false)}
+        onFinish={(choices, dataApiUrl) => {
+          setSetupOpen(false);
+          const made = applyFirstRun(config, choices);
+          setConfig(() => (dataApiUrl ? { ...made.config, dataApiUrl } : made.config), "first-run");
+          selectProfile(made.profileId);
+          ui.setMode("design");
+          ui.fitZoom();
+          if (choices.start === "import") openImportDoor();
         }}
+      />
+      <ExportSheet
+        open={exportRequest !== null}
+        request={exportRequest ?? NO_REQUEST}
+        config={config}
+        screen={storedProfile}
+        pageName={storedProfile.pages.find((p) => p.id === currentPageId)?.name ?? ""}
+        pageCanvas={canvasZoneOf(profile, sel.primaryId ?? undefined)}
+        onExportPage={() => io.openExport()}
+        onClose={() => setExportRequest(null)}
+        toast={toast}
       />
     </div>
   );

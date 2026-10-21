@@ -1,6 +1,8 @@
 import type { KeyboardEvent, RefObject } from "react";
-import { House, Settings } from "lucide-react";
+import { useState } from "react";
+import { House, Rocket, Settings } from "lucide-react";
 import { SearchBox, useSearchShortcut } from "@/app-window/search-box";
+import { requestSetup } from "@/lib/setup-request";
 import { cn } from "@/lib/utils";
 import { useEnv } from "../env";
 import { iconFor } from "../icons";
@@ -22,9 +24,10 @@ interface SidebarProps {
 
 const ITEM = "flex w-full flex-none cursor-pointer items-center gap-2.5 whitespace-normal rounded-lg border-0 px-2.5 text-left text-[13px] font-medium";
 
-/** The 248px sidebar: search, Help home, the nav groups, and the footer with Open Settings and the version. */
+/** The 248px sidebar: search, Help home, the nav groups, and the footer with Run setup again, Open Settings and the version. */
 export function Sidebar({ content, inputRef, current, query, version, onQuery, onSubmit, onHome, onOpen }: SidebarProps) {
   const env = useEnv();
+  const [asked, setAsked] = useState(false);
   useSearchShortcut(inputRef);
   const searching = query.trim() !== "";
   const home = current === null && !searching;
@@ -63,15 +66,29 @@ export function Sidebar({ content, inputRef, current, query, version, onQuery, o
           </div>
         ))}
       </nav>
-      {env.desktop && (
-        <div className="flex items-center gap-2.5 border-t border-s-side-line px-3.5 py-3">
-          <button type="button" onClick={() => env.openSettings("general")} className="flex flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-[12.5px] text-s-t2 hover:text-s-t1">
-            <Settings className="h-[17px] w-[17px] text-s-dim" />
-            Open Settings
-          </button>
-          {version && <span className="text-[11px] text-s-faint">v{version}</span>}
-        </div>
-      )}
+      <div className="flex flex-col gap-2 border-t border-s-side-line px-3.5 py-3">
+        <button
+          type="button"
+          onClick={() => {
+            requestSetup();
+            setAsked(true);
+          }}
+          className="flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-[12.5px] text-s-t2 hover:text-s-t1"
+        >
+          <Rocket className="h-[17px] w-[17px] text-s-dim" />
+          Run setup again
+        </button>
+        {asked && <span role="status" className="text-[11px] text-s-faint">The setup opens in Studio.</span>}
+        {env.desktop && (
+          <div className="flex items-center gap-2.5">
+            <button type="button" onClick={() => env.openSettings("general")} className="flex flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-[12.5px] text-s-t2 hover:text-s-t1">
+              <Settings className="h-[17px] w-[17px] text-s-dim" />
+              Open Settings
+            </button>
+            {version && <span className="text-[11px] text-s-faint">v{version}</span>}
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

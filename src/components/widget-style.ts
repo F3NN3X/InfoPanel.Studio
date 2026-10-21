@@ -63,7 +63,7 @@ export function zoomFor(
 /** Two decimals: avoids re-layout churn from sub-pixel size jitter. */
 const round = (v: number) => Math.round(v * 100) / 100;
 
-/** The Font option's stacks ("Theme" = auto inherits the page font, see General settings). */
+/** The Font option's stacks ("Theme" = auto inherits the page font, see Settings › Dashboard). */
 const FONTS: Record<string, string> = FONT_STACKS;
 
 export const MAIN: Record<string, string> = {

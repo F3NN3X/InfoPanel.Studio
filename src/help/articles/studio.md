@@ -6,39 +6,36 @@ related: [zones, widget-settings, shortcuts]
 verified: 1.3.0-beta.1
 ---
 
-The editor window: a rail of tools on the left, the canvas in the middle, and an inspector for settings.
+The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Design.
 
-## The left rail
+## The rail
 
-| Button | Opens |
+| View | What it holds |
 |---|---|
-| **Profiles** | Pick the profile to edit and its page. Add, duplicate, import, export and delete profiles, and choose which profile opens. |
-| **Theme** | Edit the theme for all profiles, a profile or a page. See [Themes and appearance](themes). |
-| **Layers** | The zones of this profile in order. Hide, rename, reorder and select from here. |
-| **Widgets** | Every widget, layout starters, panel presets and your saved panels. |
-| **Gauges** | Browse and build gauges. See [Gauges](gauges). |
-| **Library** | Your files: images, videos, fonts, gauges and saved panels. See [Library](library). |
-| **Alerts** | Alert rules, what is firing now and the history. See [Dynamic Island and alerts](island-alerts). |
-| **Dynamic Island** | The island's shape, idle display and notices. See [Dynamic Island and alerts](island-alerts). |
-| **Data sources** | Browse every data point the Data API publishes. See [Sensors and the Data API](sensors). |
-| **Help** | Opens this help. |
-| **Keyboard shortcuts** | The shortcut list. |
-| **Settings** | The app's settings window (desktop app only). |
+| **Design** | The canvas, the page tabs and the inspector. The left panel switches between **Layers** (the zones of this page: hide, rename, reorder, select) and **Add widget** (every widget, layout starters and your panels). |
+| **Theme** | One editor for the look at every level. See [Themes](themes). |
+| **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
+| **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
+| **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
+| **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
+| **Help** | Opens this help at the article for where you are (`F1` does the same). |
+| **Settings** | **Dashboard** (every screen and kiosk), **Studio** (editor preferences, saved with the Studio on this device) and **App** (startup, server and updates, in the desktop app). See [Startup and tray](startup). |
 
-Thin lines in the rail separate the groups. **Profiles**, **Layers**, **Widgets**, **Alerts** and **Dynamic Island** open a panel beside the canvas. Drag its edge to resize it; double-click the edge to reset the width. **Theme**, **Gauges**, **Library** and **Data sources** replace the canvas with a full page.
+Screens have no rail button: open **Screens** from the screen name in the title bar (**Manage screens…**) or from a size link. Under 960 px the rail is icons only.
 
-## The top bar
+## The title bar
 
-- The profile name opens **Profiles**. The chevron beside it lists your profiles; pick one to edit it. Which profile your displays open is set in Profiles, under **When the app opens**. See [Profiles and the grid](profiles#which-profile-opens).
-- The summary shows size, grid, fit mode, zone count and page count.
-- **Undo** and **Redo**, **Kiosk view**, **Import**, **Export** and **Save**. In the desktop app, **Kiosk view** resizes the window to the profile's exact size; move the pointer to the top edge for a strip with **Back to studio**, **Minimize** and **Close**.
-- **More actions** (the three dots) holds Export config, Import config, Import InfoPanel profile, Export InfoPanel canvas, Copy profile JSON, Command palette, Keyboard shortcuts and Reset everything.
+- The screen name opens a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**. Which screen your displays open is set there, under **When the app opens**. See [Screens and the grid](profiles#which-screen-opens).
+- The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view.
+- **Undo** and **Redo**, **Import**, **Export & back up** and **Save**. See [Importing and exporting](import).
+- **Live** shows how many kiosks are connected and opens the controls for them: show a page now, pause rotation, dim, mute alerts for an hour, switch the Dynamic Island and reload every kiosk. None of it is part of your design, so Save doesn't change it. **Open kiosk view** shows the kiosk in the Studio; in the desktop app it resizes the window to the screen's exact size, and moving the pointer to the top edge brings a strip with **Back to studio**, **Minimize** and **Close**.
+- Under 600 px a **⋯** menu holds Undo, Redo, Import and Export.
 
-When the server can't be reached, the bar shows **Offline · edits kept locally**.
+The status bar under the work area shows the Data API (connected, slow or unreachable), the server, how many kiosks are connected, updates, and whether your edits are saved. When the server can't be reached it reads **Offline · edits kept locally**.
 
 ## Canvas
 
-Shows the selected profile at its real size, scaled to fit the window. Grid lines appear while you drag. Click a zone to select it; click empty space to select nothing and see dashboard-wide settings. Right-click a zone for its menu (change widget, edit style, bind data, duplicate, hide, move to page, copy and paste style, size steps, delete) or empty canvas for **Add widget…**, **Select all**, **Zoom to fit** and **Edit theme**.
+Shows the selected screen at its real size, scaled to fit the window. Grid lines appear while you drag. Click a zone to select it; click empty space to select nothing and see the page's settings. Right-click a zone for its menu (change widget, edit style, bind data, duplicate, hide, move to page, copy and paste style, make this the theme for…, size steps, delete) or empty canvas for **Add widget…**, **Select all**, **Zoom to fit** and **Edit theme**.
 
 The bar under the canvas toggles the left panel, the grid and rulers, zooms in and out, and has **Fit** and the resolution button.
 
@@ -46,9 +43,9 @@ To move around, hold `Space` and drag, or drag with the middle mouse button, to 
 
 ## Pages
 
-A profile can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Theme…, Duplicate, **Show on kiosk** and Delete. The last page can't be deleted.
+A screen can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Duplicate, Page settings and Delete. The last page can't be deleted.
 
-With two or more pages, the play and pause button rotates them on the kiosk. Set it up in the inspector with nothing selected, under **Behaviour › Pages**. Turn on **Cycle through pages**, then pick **Switch every** (10 s, 30 s, 1 min or 5 min, or type 3 to 3600 seconds; the default is 15) and which pages take part. The same list reorders and deletes pages. A touch or remote switch pauses rotation for 30 seconds. While rotation is on, the right end of the page strip shows how often it switches, such as **Cycling every 15 s**.
+With two or more pages, the kiosk can rotate them. Set it up in **Screens**, under **Rotation**: turn on **Rotate pages** and type **Every** (3 to 3600 seconds; the default is 15). In **Pages · order & rotation**, switch each page in or out of the rotation and drag them into order. A touch or remote switch pauses rotation for 30 seconds. The right end of the page strip shows which page the kiosks show and how often they switch. Pause or resume rotation from **Live**.
 
 ## Inspector
 
@@ -66,4 +63,4 @@ The studio pushes every change to the local server automatically. A dot on **Sav
 
 ## Undo
 
-One drag, one field change or one bulk action (such as applying a look) is one undo step. `Ctrl+Z` undoes, `Ctrl+Shift+Z` or `Ctrl+Y` redoes. Shortcuts never fire while you are typing in a field.
+One drag, one field change or one bulk action (such as applying a Theme) is one undo step. `Ctrl+Z` undoes, `Ctrl+Shift+Z` or `Ctrl+Y` redoes. Shortcuts never fire while you are typing in a field.

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { ChevronDown, Database, Eye, EyeOff, MoreHorizontal, Pencil, Search, type LucideIcon } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
-import { CATEGORIES, type DataContainer, type DataSource, type Health } from "@/lib/data-points";
-import { sourcePrefKey, type SourcePref } from "@/lib/layout";
+import { CATEGORIES, type DataSource, type Health } from "@/lib/data-points";
+import type { SourcePref } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import type { Scope } from "./explorer-model";
+import { prefKeyOf, type Scope } from "./explorer-model";
 import { CAPTION, HEALTH_LABEL, StatusDot } from "./explorer-parts";
 import { sourceIcon } from "./source-icons";
 
@@ -31,17 +31,7 @@ interface PrefMenu {
   key: string;
 }
 
-/**
- * The preference key a tree row edits: a plugin's container (its source row
- * when it has just one), or any other source as a whole, as the old panel did.
- */
-function prefKeyOf(s: DataSource, c?: DataContainer): string | null {
-  if (s.category !== "Plugins") return c ? null : sourcePrefKey(s.id, "");
-  const container = c ?? (s.containers.length === 1 ? s.containers[0] : undefined);
-  return container ? sourcePrefKey(s.id, container.id.slice(s.id.length + 1)) : null;
-}
-
-/** The explorer's left column: filter, health chips, "All data points" and the categorised sources. */
+/** The Data view's source tree (under the Connection card): filter, health chips, "All data points" and the categorised sources. */
 export function SourceTree({
   sources,
   counts,
@@ -97,7 +87,7 @@ export function SourceTree({
   };
 
   return (
-    <div className="flex w-[264px] shrink-0 flex-col border-r border-ui-subtle bg-ui-panel font-ui">
+    <div className="flex min-h-0 flex-1 flex-col font-ui max-sm:min-h-[260px] max-sm:flex-none">
       <div className="flex flex-col gap-2 px-3 pb-2 pt-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ui-4" />

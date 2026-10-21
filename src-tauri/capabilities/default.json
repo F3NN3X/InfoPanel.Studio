@@ -36,6 +36,7 @@
     "allow-list-local-addresses",
     "allow-quit-app",
     "allow-open-settings",
+    "allow-open-settings-in-studio",
     "allow-open-help",
     "allow-get-debug",
     "allow-update-state",

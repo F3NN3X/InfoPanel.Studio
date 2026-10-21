@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  CircleHelp,
   Copy,
   BoxSelect,
   Eye,
@@ -56,6 +57,7 @@ function ZoneActions({
   onDuplicate,
   onRemove,
   zoneKeys = true,
+  onHelp,
   stateIcon = true,
 }: {
   /** Every zone acted on is hidden (the eye shows them again). */
@@ -67,10 +69,17 @@ function ZoneActions({
   onRemove: () => void;
   /** Ctrl+D / Del act on the zone (not on a selected panel widget). */
   zoneKeys?: boolean;
+  /** A Help icon (F1) before the actions. */
+  onHelp?: () => void;
 }) {
   const touch = useInspectorChrome().mode === "sheet" ? TOUCH : undefined;
   return (
     <span className="flex shrink-0 items-center">
+      {onHelp && (
+        <IconButton label="Help (F1)" onClick={onHelp} className={touch}>
+          <CircleHelp className="h-4 w-4" />
+        </IconButton>
+      )}
       <IconButton label={`${hidden ? "Show" : "Hide"} (${KEYS.hide})`} onClick={onToggleVisible} className={touch}>
         {hidden && stateIcon ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </IconButton>
@@ -134,6 +143,7 @@ export function ZoneHeader({
   onToggleVisible,
   onDuplicate,
   onRemove,
+  onHelp,
 }: {
   icon: ReactNode;
   name: string;
@@ -153,6 +163,8 @@ export function ZoneHeader({
   onToggleVisible: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  /** The Help icon: F1's article for this zone. */
+  onHelp: () => void;
 }) {
   return (
     <div className="space-y-2">
@@ -183,6 +195,7 @@ export function ZoneHeader({
           onToggleVisible={onToggleVisible}
           onDuplicate={onDuplicate}
           onRemove={onRemove}
+          onHelp={onHelp}
           zoneKeys={widget === undefined}
         />
       </div>
@@ -344,7 +357,7 @@ export function WidgetPicker({ placement, onPickWidget }: { placement: Placement
           className={cn(SELECT, "flex min-w-0 items-center gap-1 text-left hover:border-ui-menu")}
         >
           <span className={cn("min-w-0 flex-1 truncate", blank && "text-ui-4")}>
-            {blank ? "Blank — no widget" : placement.panel ? "Custom panel" : placementTitle(placement)}
+            {blank ? "Blank — no widget" : placement.panel ? "Panel" : placementTitle(placement)}
           </span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ui-4" />
         </button>

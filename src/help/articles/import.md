@@ -1,16 +1,30 @@
 ---
 id: import
-title: Importing a profile
+title: Importing and exporting
 icon: download
 related: [canvas, remap, assets]
 verified: 1.3.0-beta.1
 ---
 
-Bring an existing InfoPanel profile into the studio without losing anything.
+Bring files into the studio and take them out again, without losing anything.
 
-## The import flow
+## The Import door
 
-Press **Import** in the top bar. The dialog walks through five steps.
+Press **Import** in the title bar, or drop files anywhere in the window. The door reads what a file is from its contents, not its name, and shows what it found:
+
+| File | What it does |
+|---|---|
+| A config backup | **Replace everything** (the default) or **Add its screens only**. "Back up the current dashboard first" is on by default: a Save As asks where to keep the backup, and if you cancel it nothing is replaced (untick the box to replace without one). A restore is one undo step. |
+| A screen (profile) file | Becomes a new screen. |
+| An `.infopanel` file or a stored canvas | The InfoPanel steps below, landing as a new screen or a canvas zone on the current page, whichever you chose in the door. |
+| A gauge file, SVG template or frames `.zip` | Saved in Library › Gauges and opened in the gauge editor. |
+| An image, video, font or font pack | Saved in Library › Media or Fonts, with "Also use it as the background for ‹screen›". |
+
+Drop several files together and the door lists each one; a file it doesn't recognise says so and the rest go on. One config and one InfoPanel file are taken per run.
+
+## The InfoPanel import flow
+
+An `.infopanel` file goes through five steps.
 
 :::flow
 Source — File or folder, installed, or saved
@@ -22,8 +36,8 @@ Save — Into a canvas zone
 
 ## 1. Source
 
-- **File or folder**: an `.infopanel` file, an extracted folder, or a `.canvas.zip`. Use **Choose file…** or **Choose folder…**.
-- **Installed in InfoPanel**: a profile installed in InfoPanel on this PC (read-only).
+- **File or folder**: an `.infopanel` file, an extracted folder, or a `.canvas.zip`. Use **Choose file…** or **Choose folder…**, or drop it on the door.
+- **Installed in InfoPanel**: a profile installed in InfoPanel on the PC running InfoPanel Studio (read-only).
 - **Saved canvas**: a canvas you saved earlier.
 
 ## 2. Mode
@@ -42,11 +56,20 @@ Before committing, the review shows tiles for Items, Native, Sensors, Assets, Fo
 
 ## 4. Sensors and save
 
-Fix sensors that didn't match this PC (see [Sensor remap](remap)), then go to **Save**. Set the **Name** and where it **Lands**: a **New profile** at the InfoPanel size, or a **Canvas zone** in the current profile. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
+Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap](remap)), then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or a **Canvas zone** on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
 
-## Exporting back
+## Export & back up
 
-Open **Export** in the top bar (or **Export InfoPanel canvas…** in the more actions menu). The dialog is titled "Export" followed by the canvas name.
+Press **Export & back up** in the title bar. The sheet has a row for each thing you can take out, and every row has **Copy JSON**, which copies exactly what the file holds:
+
+- **Back up everything**: **Save backup** writes `infopanel-studio-config.json`, which the Import door restores.
+- **Export this screen**: one screen as a `.json` file.
+- **Export a page for InfoPanel**: **Export…** opens the InfoPanel export below. It is off, with its reason, when the page has no canvas zone.
+- **Export a gauge**: **Choose…** lists Library › Gauges.
+
+## Exporting a canvas for InfoPanel
+
+The InfoPanel export dialog is titled "Export" followed by the canvas name.
 
 | Choice | Writes |
 |---|---|

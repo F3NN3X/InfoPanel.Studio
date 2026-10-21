@@ -14,8 +14,8 @@ const DOT: Record<SettingState, string> = {
 /** What each dot means (its tooltip, and the footer's legend). */
 export const DOT_MEANING: Record<SettingState, string> = {
   default: "Default",
-  dashboard: "From the dashboard style",
-  profile: "From the profile style",
+  dashboard: "From All screens",
+  profile: "From the screen's theme",
   here: "Set here",
   overriding: "Set here, overriding a global value",
   ignored: "Set here but not used (its section follows the theme)",

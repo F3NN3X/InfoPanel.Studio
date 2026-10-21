@@ -2,24 +2,28 @@ import { THEME_SETTINGS } from "@/modules/standard-settings";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
 import type { BackgroundScope, PageBackground } from "./appearance";
 import { presetTokens, type AppearancePreset } from "./appearance-presets";
-import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
-import { allPlacements, mapPlacements } from "./pages";
+import type { DashboardConfig } from "./layout";
 import { resolveTheme } from "./theme";
-import { ownApplies, themedOf, withThemeValues, type ThemeLevels } from "./theme-model";
+import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withSectionFlag, withThemeValues, type ThemeLevels } from "./theme-model";
 
 /**
- * Applying an appearance preset, and the widgets that would hide it.
+ * Applying a Theme (an appearance preset), and saving one.
  * Pure config → config; the studio sets each result in one call (one
  * undo step, no coalescing key).
  *
- * Scopes (the Appearance tab's switch):
- * - "All profiles": theme tokens + radius, `config.style` (replaced
+ * Scopes (Theme's scope bar):
+ * - All screens: theme tokens + radius, `config.style` (replaced
  *   wholesale) and, see below, `config.background`.
- * - "This profile": the profile's own theme colours + radius
+ * - A screen: the profile's own theme colours + radius
  *   (`MonitorProfile.theme` / `radius`, over the dashboard's), its widget
  *   theme's values and `background`; other profiles keep theirs. Look keys
  *   the dashboard style sets but the preset doesn't are written as their
  *   defaults, so the profile shows the preset's look, not a blend.
+ *
+ * - A page: only the widget-style sections the preset sets (a page has no
+ *   colour tokens, radius or background, SPEC §4.2): the page's values for
+ *   them are replaced and it customises them; sections its screen locks
+ *   are left alone.
  *
  * The background is written only when asked (`includeBackground`) or,
  * by default, when the scope has none yet; presets without one never
@@ -27,6 +31,9 @@ import { ownApplies, themedOf, withThemeValues, type ThemeLevels } from "./theme
  */
 
 export type PresetScope = BackgroundScope;
+
+/** Where Theme applies or saves a Theme: All screens, a screen, or one of its pages. */
+export type ThemeTarget = PresetScope | { kind: "page"; profileId: string; pageId: string };
 
 export interface ApplyOptions {
   /** Replace the scope's background with the preset's (default: only when it has none). */
@@ -102,60 +109,43 @@ export function applyAppearancePreset(
   };
 }
 
-/* ---------------- overrides ---------------- */
-
-const inScope = (config: DashboardConfig, scope: PresetScope): MonitorProfile[] =>
-  scope.kind === "all" ? config.profiles : config.profiles.filter((p) => p.id === scope.profileId);
-
-/** A widget whose own look shows over the global style: own themed values in a custom, unlocked section. */
-function hidesGlobal(p: Placement, levels: ThemeLevels): boolean {
-  return Object.keys(themedOf(p.settings)).some((key) => ownApplies(levels, p, key));
-}
-
-/** The levels a profile's widgets resolve under, as far as following goes (its locks). */
-const levelsOf = (profile: MonitorProfile): ThemeLevels => ({ profile: profile.widgetTheme });
-
-/** The widgets in a scope whose own look hides the global style. */
-export function countOverrides(config: DashboardConfig, scope: PresetScope): number {
-  return inScope(config, scope).reduce((n, profile) => {
-    const levels = levelsOf(profile);
-    return n + allPlacements(profile).filter((p) => hidesGlobal(p, levels)).length;
-  }, 0);
-}
-
-/** Whether a profile has its own look (theme values, theme colours or radius) over the dashboard's. */
-const hasOwnLook = (p: MonitorProfile): boolean =>
-  Object.keys(p.widgetTheme?.values ?? {}).length > 0 || p.theme !== undefined || p.radius !== undefined;
-
-/** "All profiles" only: the profiles whose own look overrides the dashboard's. */
-export function countProfileOverrides(config: DashboardConfig, scope: PresetScope): number {
-  if (scope.kind !== "all") return 0;
-  return config.profiles.filter(hasOwnLook).length;
-}
-
-/**
- * Let the global style through: the overriding widgets follow it in every
- * section (their own looks stay stored) and, for "All profiles", the
- * profiles' own theme values, theme colours and radius are dropped (their
- * locks stay).
- */
-export function clearOverrides(config: DashboardConfig, scope: PresetScope): DashboardConfig {
-  const ids = new Set(inScope(config, scope).map((p) => p.id));
+/** A preset's widget style written as a page's own, section by section (see the module comment). */
+function applyToPage(config: DashboardConfig, preset: AppearancePreset, profileId: string, pageId: string): DashboardConfig {
+  const style = themedOf(preset.style);
   return {
     ...config,
-    profiles: config.profiles.map((profile) => {
-      if (!ids.has(profile.id)) return profile;
-      const levels = levelsOf(profile);
-      const followed = mapPlacements(profile, (p) => {
-        if (!hidesGlobal(p, levels)) return p;
-        const { follow: _f, ...rest } = p;
-        return rest;
-      });
-      return scope.kind === "all"
-        ? { ...followed, widgetTheme: withThemeValues(followed.widgetTheme, undefined), theme: undefined, radius: undefined }
-        : followed;
+    profiles: config.profiles.map((p) => {
+      if (p.id !== profileId) return p;
+      const secs = SECTION_IDS.filter((sec) => p.widgetTheme?.locks?.[sec] !== true && SECTION_KEYS[sec].some((key) => key in style));
+      const keys = new Set(secs.flatMap((sec) => SECTION_KEYS[sec]));
+      return {
+        ...p,
+        pages: p.pages.map((pg) => {
+          if (pg.id !== pageId) return pg;
+          const kept = Object.entries(pg.widgetTheme?.values ?? {}).filter(([key]) => !keys.has(key));
+          const values = { ...Object.fromEntries(kept), ...Object.fromEntries(Object.entries(style).filter(([key]) => keys.has(key))) };
+          const theme = secs.reduce(
+            (t, sec) => withSectionFlag(t, "follow", sec, false),
+            withThemeValues(pg.widgetTheme, orNone(values))
+          );
+          const { widgetTheme: _old, ...rest } = pg;
+          return theme ? { ...rest, widgetTheme: theme } : rest;
+        }),
+      };
     }),
   };
+}
+
+/** Apply a Theme at any of Theme's scopes ("Apply a theme here…"); `includeBackground` unset = only where none is set. */
+export function applyThemeAt(
+  config: DashboardConfig,
+  preset: AppearancePreset,
+  target: ThemeTarget,
+  options: ApplyOptions = {}
+): DashboardConfig {
+  return target.kind === "page"
+    ? applyToPage(config, preset, target.profileId, target.pageId)
+    : applyAppearancePreset(config, preset, target, options);
 }
 
 /* ---------------- the user's presets ---------------- */
@@ -174,7 +164,7 @@ export function presetFromCurrent(
   return {
     id,
     name,
-    description: "Saved look",
+    description: "Saved theme",
     theme: { ...theme.tokens },
     radius: theme.radius,
     style,
@@ -182,14 +172,72 @@ export function presetFromCurrent(
   };
 }
 
-export function saveAppearancePreset(
+/**
+ * The resolved look of one of Theme's scopes as a Theme ("Save as Theme"): the color tokens and radius, the widget
+ * style (a page's customised sections over its screen's) and, unless left out, the background. The page font is not
+ * part of a Theme (SPEC §7.1 lists tokens, widget style and background).
+ */
+export function themeFromScope(
   config: DashboardConfig,
-  scope: PresetScope,
+  target: ThemeTarget,
   id: string,
-  name: string
+  name: string,
+  includeBackground = true
+): AppearancePreset {
+  const screen: PresetScope = target.kind === "all" ? target : { kind: "profile", profileId: target.profileId };
+  const preset = presetFromCurrent(config, screen, id, name);
+  const page =
+    target.kind === "page" ? config.profiles.find((p) => p.id === target.profileId)?.pages.find((pg) => pg.id === target.pageId) : undefined;
+  const profile = target.kind === "page" ? config.profiles.find((p) => p.id === target.profileId) : undefined;
+  const levels: ThemeLevels = { profile: profile?.widgetTheme, page: page?.widgetTheme };
+  const pageValues = Object.entries(page?.widgetTheme?.values ?? {}).filter(([key]) =>
+    SECTION_IDS.some((sec) => SECTION_KEYS[sec].includes(key) && pageCustom(levels, sec))
+  );
+  const { background, ...rest } = preset;
+  return {
+    ...rest,
+    description: "Saved theme",
+    style: themedOf({ ...preset.style, ...Object.fromEntries(pageValues) }),
+    ...(includeBackground && background ? { background } : {}),
+  };
+}
+
+/** Save a scope's look into Library › Themes (`config.appearancePresets`). */
+export const saveThemeAt = (
+  config: DashboardConfig,
+  target: ThemeTarget,
+  id: string,
+  name: string,
+  includeBackground = true
+): DashboardConfig => ({
+  ...config,
+  appearancePresets: [...(config.appearancePresets ?? []), themeFromScope(config, target, id, name, includeBackground)],
+});
+
+/**
+ * Overwrite a saved Theme with a scope's current look ("Update ‹name›"): the same id, name and description, so
+ * what applied it keeps pointing at it. The background is rewritten only when the Theme had one or `includeBackground`
+ * says so.
+ */
+export function updateAppearancePreset(
+  config: DashboardConfig,
+  id: string,
+  target: ThemeTarget,
+  includeBackground?: boolean
 ): DashboardConfig {
-  const preset = presetFromCurrent(config, scope, id, name);
-  return { ...config, appearancePresets: [...(config.appearancePresets ?? []), preset] };
+  const old = config.appearancePresets?.find((p) => p.id === id);
+  if (!old) return config;
+  const fresh = themeFromScope(config, target, id, old.name, includeBackground ?? old.background !== undefined);
+  return { ...config, appearancePresets: config.appearancePresets?.map((p) => (p.id === id ? { ...fresh, description: old.description } : p)) };
+}
+
+/** A copy of a saved Theme named "‹name› copy", right after it. */
+export function duplicateAppearancePreset(config: DashboardConfig, id: string, copyId: string): DashboardConfig {
+  const list = config.appearancePresets ?? [];
+  const at = list.findIndex((p) => p.id === id);
+  if (at < 0) return config;
+  const copy: AppearancePreset = { ...structuredClone(list[at]), id: copyId, name: `${list[at].name} copy` };
+  return { ...config, appearancePresets: [...list.slice(0, at + 1), copy, ...list.slice(at + 1)] };
 }
 
 export function renameAppearancePreset(config: DashboardConfig, id: string, name: string): DashboardConfig {

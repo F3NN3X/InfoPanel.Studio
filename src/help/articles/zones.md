@@ -29,4 +29,4 @@ Every box on the grid is a zone. Select one to move, resize or fill it.
 
 The inspector header has **Hide**, **Duplicate** and **Delete**. Hidden zones stay in the layout but don't render on the kiosk. Use the **Widget type** row (or **Change widget…** in the right-click menu) to swap the widget while keeping the zone and its look.
 
-Right-click also offers **Move to page** when the profile has more than one page, **Copy style** and **Paste style**, and **Save to My panels** on a panel.
+Right-click also offers **Move to page** when the screen has more than one page, **Copy style** and **Paste style**, and **Save as Panel** on a panel.

@@ -32,9 +32,9 @@ The installer is NSIS, per user (no admin) and unsigned, so SmartScreen warns on
 
 ## Settings
 
-Open them from the tray, the Settings cogwheel at the bottom of the studio's left rail or the start screen.
+Open them from the tray or the Settings item at the bottom of the studio's rail (**Settings › App**). The start screen opens them in their own window when the server is stopped or in trouble.
 
-Every change saves at once; there is no Save button. The window has a sidebar (search with Ctrl K) and eight
+Every change saves at once; there is no Save button. They have a sidebar (the separate window also has search with Ctrl K) and eight
 sections.
 
 - **General:** app zoom (80 to 150 percent; Ctrl +, Ctrl - and Ctrl 0 in the settings window; the studio keeps

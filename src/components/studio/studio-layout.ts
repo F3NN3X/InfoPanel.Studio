@@ -11,12 +11,12 @@ export type InspectorMode = "docked" | "floating" | "sheet";
 /** Below this viewport width the Library's and Gauges' detail panes become bottom sheets (the Gauges editor stacks). */
 export const NARROW_PAGE_WIDTH = 900;
 
-/** The studio width from which the inspector docks beside the canvas. */
-export const DOCKED_MIN_WIDTH = 1100;
-/** The studio width from which it floats over the canvas (a bottom sheet below). */
-export const FLOATING_MIN_WIDTH = 640;
+/** The window width from which the inspector docks beside the canvas (SPEC §3.5: narrow is below 960 px). */
+export const DOCKED_MIN_WIDTH = 960;
+/** The window width from which it floats over the canvas (a bottom sheet on a phone, below 600 px). */
+export const FLOATING_MIN_WIDTH = 600;
 
-/** The inspector's mode for the studio's width; an unmeasured studio (0) docks. */
+/** The inspector's mode for the window's width; an unmeasured window (0) docks. */
 export function inspectorMode(width: number): InspectorMode {
   if (width <= 0 || width >= DOCKED_MIN_WIDTH) return "docked";
   return width >= FLOATING_MIN_WIDTH ? "floating" : "sheet";
@@ -24,6 +24,8 @@ export function inspectorMode(width: number): InspectorMode {
 
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 2;
+/** The lowest zoom Fit goes to: a phone's canvas is narrower than a 1920 px page at the lowest stop. */
+export const FIT_MIN = 0.1;
 /** The zoom buttons' stops. */
 export const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -45,8 +47,11 @@ export function stepZoom(zoom: number, dir: 1 | -1): number {
 export const CANVAS_PAD_X = 80;
 export const CANVAS_PAD_Y = 160;
 
-/** The width the open floating inspector takes from the canvas (320 + its 12 px margins and a gap). */
-export const FLOAT_INSET = 348;
+/** The floating inspector card's width and its inset from the canvas edges (SPEC §3.5). */
+export const FLOAT_WIDTH = 280;
+export const FLOAT_MARGIN = 10;
+/** The width the open floating inspector takes from the canvas (the card, its margin and a gap). */
+export const FLOAT_INSET = FLOAT_WIDTH + FLOAT_MARGIN + 10;
 /** Extra room over the page for the quick bar (12 + 46 px at the top of the canvas, below the page tabs) and the selection chip under it: about 16 px between them at a height-filling fit. */
 export const QUICK_BAR_INSET = 36;
 
@@ -102,6 +107,8 @@ export interface LayoutInput {
   collapsed?: boolean;
   /** The floating inspector is open over the canvas. */
   floatOpen?: boolean;
+  /** The window's width, which picks the mode; the body's when unknown. */
+  windowWidth?: number;
   /** The quick bar is on (docked or floating): the page keeps clear of it. */
   quickBar?: boolean;
   /** The bottom sheet's height (sheet mode): the page keeps clear of it up to the half snap. */
@@ -131,9 +138,9 @@ export function fitZoomFor(box: Size, page: Size, inset: CanvasInset = {}): numb
   if (page.height > 0) limits.push((box.height - CANVAS_PAD_Y - (inset.top ?? 0) - (inset.bottom ?? 0)) / page.height);
   if (limits.length === 0) return 1;
   const z = Math.min(...limits);
-  if (!(z > 0)) return ZOOM_MIN;
+  if (!(z > 0)) return FIT_MIN;
   // Floor to 1% so the page never overshoots the box.
-  return clamp(Math.floor(z * 100) / 100, ZOOM_MIN, ZOOM_MAX);
+  return clamp(Math.floor(z * 100) / 100, FIT_MIN, ZOOM_MAX);
 }
 
 /** The scroll padding under the page (the zoom bar's room), already part of `CANVAS_PAD_Y`. */
@@ -164,7 +171,7 @@ export function leftPanelFits(
 /** The inspector's mode, the canvas box, what the page keeps clear of, and the fit zoom. */
 export function computeLayout(input: LayoutInput): StudioLayout {
   const { body, page, rail, drawer = 0, inspector, collapsed, floatOpen, quickBar, sheet = 0 } = input;
-  const mode = inspectorMode(body.width);
+  const mode = inspectorMode(input.windowWidth ?? body.width);
   const column = mode === "docked" && !collapsed ? inspector : 0;
   const box = { width: Math.max(0, body.width - rail - drawer - column), height: Math.max(0, body.height) };
   const inset: CanvasInset = {

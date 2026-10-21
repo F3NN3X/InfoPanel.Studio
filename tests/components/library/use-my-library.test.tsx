@@ -29,7 +29,7 @@ describe("useMyLibrary.addFiles", () => {
   it("does not upload a file Get a font already stored: the library only records the item", async () => {
     const { result } = renderHook(() => useMyLibrary(config));
     const file = fontFile();
-    result.current.addFiles([file], undefined, new Map([[file, `${HASH}.ttf`]]));
+    result.current.addFiles([file], new Map([[file, `${HASH}.ttf`]]));
     await waitFor(() => expect(api.createLibraryItem).toHaveBeenCalledOnce());
     expect(api.uploadBytes).not.toHaveBeenCalled();
     expect(api.createLibraryItem.mock.calls[0][0]).toMatchObject({ kind: "font", name: "Orbitron", files: [`${HASH}.ttf`], meta: { hash: HASH } });

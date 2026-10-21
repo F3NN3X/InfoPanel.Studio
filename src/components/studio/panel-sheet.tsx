@@ -87,7 +87,7 @@ export function usePanelSheet({
       id: "panel:main",
       title: "Panel",
       hint: "The panel as a whole. Its title, surface and accent are in Widget and Colors & surface.",
-      terms: ["Panel", "Editor", "Visual", "Code", "JSON", "Size", "Fill", "Hug", "Gap", "Padding", "Save as panel preset", "preset"],
+      terms: ["Panel", "Editor", "Visual", "Code", "JSON", "Size", "Fill", "Hug", "Gap", "Padding", "Save as Panel", "Panel"],
       actions: <PanelMenu onSavePreset={() => onPresetNaming(true)} />,
       node: (
         <>

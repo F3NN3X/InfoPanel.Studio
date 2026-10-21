@@ -1,5 +1,5 @@
 /**
- * General settings — dashboard-wide preferences that aren't a look: the
+ * The Dashboard settings — dashboard-wide preferences that aren't a look: the
  * page font, how clocks read (seconds, date locale), motion and the kiosk
  * cursor. Stored on `DashboardConfig.general` with only the changed keys;
  * `resolveGeneral` fills the defaults. The 12 / 24 h choice is the themed
@@ -81,6 +81,16 @@ export function isSupportedLocale(locale: string): boolean {
   }
 }
 
+/** A stored font choice, or undefined when it is not one the catalog knows. */
+export const normalizeFont = (v: unknown): GeneralFont | undefined => (FONTS.includes(v as GeneralFont) ? (v as GeneralFont) : undefined);
+
+/**
+ * The page font a screen shows (SPEC §11.1): its own when set, else the
+ * dashboard's (`general.font`, the All screens value), like `resolveTheme`.
+ */
+export const resolveFont = (general: Pick<ResolvedGeneral, "font">, profile?: { font?: GeneralFont }): GeneralFont =>
+  profile?.font ?? general.font;
+
 /** The settings with defaults filled; the 12-hour switch from the all-profiles style's `clock` (auto | 24 | 12). */
 export function resolveGeneral(config: { general?: GeneralSettings; style?: ModuleSettings }): ResolvedGeneral {
   return { ...GENERAL_DEFAULTS, ...config.general, hour12: hour12Of(config.style?.clock) };
@@ -103,7 +113,8 @@ export function normalizeGeneral(input: unknown): GeneralSettings | undefined {
   if (typeof input !== "object" || input === null || Array.isArray(input)) return undefined;
   const v = input as Record<string, unknown>;
   const out: GeneralSettings = {};
-  if (FONTS.includes(v.font as GeneralFont)) out.font = v.font as GeneralFont;
+  const font = normalizeFont(v.font);
+  if (font) out.font = font;
   if (typeof v.showSeconds === "boolean") out.showSeconds = v.showSeconds;
   if (typeof v.locale === "string" && isSupportedLocale(v.locale.trim())) out.locale = v.locale.trim();
   if (MOTIONS.includes(v.motion as MotionChoice)) out.motion = v.motion as MotionChoice;

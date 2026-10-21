@@ -27,7 +27,7 @@ export type IslandBorder = "none" | "subtle" | "accent";
 export const ISLAND_BORDERS: readonly IslandBorder[] = ["none", "subtle", "accent"];
 export type IslandWeight = "regular" | "medium" | "semibold" | "bold";
 export const ISLAND_WEIGHTS: readonly IslandWeight[] = ["regular", "medium", "semibold", "bold"];
-/** "general": as Dashboard › General sets clocks; else forced. */
+/** "general": as Settings › Dashboard › Clock & date sets clocks; else forced. */
 export type IslandSeconds = "general" | "show" | "hide";
 export const ISLAND_SECONDS: readonly IslandSeconds[] = ["general", "show", "hide"];
 export type IslandHours = "general" | "12" | "24";

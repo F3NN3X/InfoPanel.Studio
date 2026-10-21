@@ -3,12 +3,13 @@ import { useToast } from "@/components/ui/toast";
 import { VectorGaugeSvg } from "@/components/infopanel/VectorGaugeSvg";
 import { useSensorCatalog } from "@/lib/catalog";
 import { CUSTOM_GAUGE_ID, widgetGauge } from "@/lib/gauge-studio/model";
+import { matchingStyle } from "@/lib/style-presets";
 import { BLANK_MODULE, CANVAS_ID, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
+import { isLocked, type SectionId } from "@/lib/theme-model";
 import { convertKind, withPanelField } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
 import { modules } from "@/modules";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
-import type { AppearanceTarget } from "./inspector/profile-scope";
 import type { SheetCard } from "./category-sheet";
 import { BoundData } from "./inspector/bound-data";
 import { setInspectorTab } from "./inspector/inspector-prefs";
@@ -16,9 +17,11 @@ import { InspectorNote, InspectorView, type SectionParts } from "./inspector/ins
 import { ItemInspector } from "./item-inspector";
 import { cardsBySection, panelState } from "./inspector/panel-cards";
 import { useZoneData } from "./inspector/use-zone-data";
-import { followFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
+import { customised, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./inspector/zone-fields";
 import { zoneMeta, zoneName } from "./inspector/zone-meta";
 import {
+  chipSections,
+  rowSection,
   inspectorNotes,
   isVisible,
   widgetContext,
@@ -30,9 +33,13 @@ import type { InspectorTab } from "@/modules/types";
 import { usePanelSheet } from "./panel-sheet";
 import { ToggleRow } from "./setting-rows";
 import type { FieldsApi } from "./settings-panel";
+import { makeTheme, makeThemeSections } from "./inheritance-actions";
+import { LinkRow } from "./link-row";
+import { MakeThemeDialog, type MakeThemePending } from "./make-theme-dialog";
+import { sectionInherit } from "./section-inherit";
 import { ownStyle, withPastedStyle, zoneMinSize } from "./studio-actions";
-import { StyleTools } from "./style-tools";
-import { widgetName } from "./widget-kinds";
+import { StyleToolbar } from "./style-toolbar";
+import type { InheritanceContext } from "./use-inheritance";import { widgetName } from "./widget-kinds";
 import { ZoneFrameFields, zoneFrameSet } from "./zone-design-section";
 import type { ZoneRect } from "./zone-geometry";
 import { moduleIcon } from "./zone-icons";
@@ -47,12 +54,12 @@ interface ZoneInspectorProps {
   profile: ProfileView;
   /** The theme (all-profiles style, profile and page theme) the widget follows. */
   appearance: Appearance;
+  /** The Styles saved in the Library (Start from a Style). */
   stylePresets: StylePreset[];
+  /** The inheritance chips' resolver, history setter and navigation. */
+  inherit: InheritanceContext;
   /** Open and reveal a section (the selection chip's Style, the palette) whenever `seq` changes. */
   jumpTo?: { id: string; key?: string; seq: number };
-  /** The style copied with "Copy" (session only, survives reselection). */
-  styleClipboard: ModuleSettings | null;
-  onCopyStyle: (style: ModuleSettings) => void;
   /** A panel widget copied with "Copy" (session only, survives reselection). */
   widgetClipboard: Widget | null;
   onCopyWidget: (widget: Widget) => void;
@@ -64,9 +71,6 @@ interface ZoneInspectorProps {
   /** The settings search (kept by the studio: "Go to setting" fills it). */
   query: string;
   onQuery: (query: string) => void;
-  /** The Changed filter (only values set here, across every tab). */
-  changedOnly: boolean;
-  onChangedOnly: (on: boolean) => void;
   /** Mutate the placement; changes with the same `key` coalesce in undo. */
   update: (fn: (p: Placement) => Placement, key?: string) => void;
   /** Mutate the active profile (bindings). */
@@ -74,20 +78,20 @@ interface ZoneInspectorProps {
   onZoneBox: (patch: Partial<ZoneRect>) => void;
   /** Open the widget picker for this zone. */
   onPickWidget: () => void;
-  /** Make the widget's style the global style of every profile, or of this one. */
-  onUseAsGlobal: (target: AppearanceTarget, style: ModuleSettings) => void;
+  /** Keep the widget's own look as a Style (Library › Styles). */
   onSavePreset: (name: string, settings: ModuleSettings) => void;
-  onDeletePreset: (id: string) => void;
+  /** Overwrite a saved Style with the widget's own look. */
+  onUpdatePreset: (id: string, settings: ModuleSettings) => void;
   onToggleVisible: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
-  /** A panel's "Save as panel preset" name input is open (the palette opens it too). */
+  /** The header's Help icon (F1). */
+  onHelp: () => void;
+  /** A panel's "Save as Panel" name input is open (the palette opens it too). */
   presetNaming: boolean;
   onPresetNaming: (open: boolean) => void;
   /** Save this panel zone to My panels. */
   onSavePanelPreset: (name: string) => void;
-  /** A Follow bar's theme name: Studio › Theme. */
-  onEditGlobalTheme: (level: "profile" | "page") => void;
   /** Open a bound point in Sources mode. */
   onOpenPoint: (key: string) => void;
   onOpenExplorer: () => void;
@@ -95,7 +99,7 @@ interface ZoneInspectorProps {
   request?: { tab: InspectorTab; picker: boolean; seq: number };
   /** A canvas zone: open its items in the canvas editor. */
   onEditCanvas?: () => void;
-  /** A Custom gauge zone: open its spec in the Gauges page. */
+  /** A Custom gauge zone: open its spec in Gauges. */
   onEditGauge?: () => void;
 }
 
@@ -113,7 +117,7 @@ function GaugeNote({ zone, onEdit }: { zone: Placement; onEdit: () => void }) {
           </span>
         )}
         <span>
-          A gauge you design on the Gauges page.{" "}
+          A gauge you design in Gauges.{" "}
           <button type="button" onClick={onEdit} className="font-medium text-ui-accent-text hover:underline">
             Edit gauge…
           </button>
@@ -143,7 +147,7 @@ function cardParts(cards: SheetCard[]): SectionParts {
  * name, meta, Hide / Duplicate / Delete, the panel crumbs) and placement
  * row, then the registry's tabs — Show · Style · Data · Behaviour for widgets
  * and panels, Widget + Zone frame for a blank zone. The zone's custom UI
- * (widget picker, Follow / Custom, style tools, zone frame, a panel's
+ * (widget picker, inheritance chips, style toolbar, zone frame, a panel's
  * editors, Bound data) fills the sections the registry marks for it. A
  * selected panel widget swaps in its own inspector (`ItemInspector`).
  */
@@ -153,9 +157,8 @@ export function ZoneInspector({
   profile,
   appearance,
   stylePresets,
+  inherit,
   jumpTo,
-  styleClipboard,
-  onCopyStyle,
   widgetClipboard,
   onCopyWidget,
   selectedWidgetId,
@@ -163,22 +166,19 @@ export function ZoneInspector({
   onShowWidget,
   query,
   onQuery,
-  changedOnly,
-  onChangedOnly,
   update,
   updateProfile,
   onZoneBox,
   onPickWidget,
-  onUseAsGlobal,
   onSavePreset,
-  onDeletePreset,
+  onUpdatePreset,
   onToggleVisible,
   onDuplicate,
   onRemove,
+  onHelp,
   presetNaming,
   onPresetNaming,
   onSavePanelPreset,
-  onEditGlobalTheme,
   onOpenPoint,
   onOpenExplorer,
   request,
@@ -187,6 +187,7 @@ export function ZoneInspector({
 }: ZoneInspectorProps) {
   const toast = useToast();
   const [picker, setPicker] = useState(false);
+  const [makeThemePending, setMakeThemePending] = useState<MakeThemePending | null>(null);
   const catalog = useSensorCatalog();
   const data = useZoneData(profile);
   const mod = modules.find((m) => m.id === zone.module);
@@ -255,10 +256,14 @@ export function ZoneInspector({
   const fields: FieldsApi = {
     values,
     shown: (key, def) => shownValue(values, key, def),
-    onChange: (key, v, editKey) => update((p) => withSettings(p, { [key]: v }), `setting:${editKey ?? key}`),
-    onPatch: (patch) => update((p) => withSettings(p, patch), `setting:${Object.keys(patch).join()}`),
+    onChange: (key, v, editKey) => update((p) => customised(withSettings(p, { [key]: v }), appearance, defs, [key]), `setting:${editKey ?? key}`),
+    onPatch: (patch) => update((p) => customised(withSettings(p, patch), appearance, defs, Object.keys(patch)), `setting:${Object.keys(patch).join()}`),
     onClear: (keys) => update((p) => withoutSettings(p, keys)),
-    ...followFields(zone, appearance, update),
+    // A section the screen locks shows its value read-only.
+    readOnly: (def) => {
+      const sec = rowSection(def);
+      return sec !== undefined && isLocked(appearance, sec);
+    },
     onOpenExplorer,
     pins: blank
       ? undefined
@@ -289,25 +294,6 @@ export function ZoneInspector({
         return { at: "top", node: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
       case "visible":
         return { at: "bottom", node: <ToggleRow label="Visible" hint="Hidden zones stay editable but do not show in kiosk mode" value={zone.visible} onChange={onToggleVisible} /> };
-      case "styleTools":
-        return {
-          at: "actions",
-          node: (
-            <StyleTools
-              canPaste={styleClipboard !== null}
-              presets={stylePresets}
-              onCopy={() => onCopyStyle(style)}
-              onPaste={() => styleClipboard && applyStyle(styleClipboard)}
-              onUseAsGlobal={(target) => onUseAsGlobal(target, style)}
-              onSavePreset={(name) => onSavePreset(name, style)}
-              onApplyPreset={(id) => {
-                const preset = stylePresets.find((p) => p.id === id);
-                if (preset) applyStyle(preset.settings);
-              }}
-              onDeletePreset={onDeletePreset}
-            />
-          ),
-        };
       case "zoneFrame":
         // A panel draws its own card (Surface): no frame background around it.
         return { at: "more", node: frameFields(!zone.panel) };
@@ -332,7 +318,19 @@ export function ZoneInspector({
     switch (s.special) {
       case "boundData":
       case "panelData":
-        return { body: bound, plain: true };
+        return {
+          body: (
+            <div className="space-y-3">
+              {bound}
+              <LinkRow
+                note="Rename sensors and change the connection in"
+                link="Data"
+                onNavigate={() => inherit.navigateTo({ view: "data" })}
+              />
+            </div>
+          ),
+          plain: true,
+        };
       case "blankPick":
         return { body: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
       case "zoneFrame":
@@ -353,7 +351,26 @@ export function ZoneInspector({
       zone.panel && s.id === "header"
         ? [<WidgetPicker key="picker" placement={zone} onPickWidget={onPickWidget} />, ...(at("top") ?? [])]
         : at("top");
-    return { ...frame, top, bottom: at("bottom"), more: at("more"), actions: at("actions") };
+    // The island's look lives in Alerts & Island: this card only decides what the widget sends.
+    const island =
+      s.id === "island" ? (
+        <LinkRow note="How the island looks is set in" link="Alerts & Island" onNavigate={() => inherit.navigateTo({ view: "alerts", tab: "island" })} />
+      ) : undefined;
+    return { ...frame, top, bottom: island ? [...(at("bottom") ?? []), <div key="island-note">{island}</div>] : at("bottom"), more: at("more"), actions: at("actions") };
+  };
+
+  // The zone's place in the config, for the inheritance chips and Make this the theme.
+  const profileId = profile.id;
+  const pageId = profile.pageId ?? config.profiles.find((p) => p.id === profileId)?.pages[0]?.id ?? "";
+  const scope = { level: "widget", profileId, pageId, zoneId: zone.id } as const;
+  const askMakeTheme = (sections: readonly SectionId[], target: MakeThemePending["target"]) => {
+    const found = makeThemeSections(config, scope, sections);
+    if (found.length > 0) setMakeThemePending({ target, sections: found });
+  };
+  /** A section card's chip: the widget's inheritance of the theme sections it covers. */
+  const inheritOf = (s: InspectorSection) => {
+    const sections = chipSections(s);
+    return sections.length === 0 || blank ? undefined : sectionInherit({ sections, title: s.title, scope, ctx: inherit, onMakeTheme: askMakeTheme });
   };
 
   const present = (s: InspectorSection) =>
@@ -370,7 +387,22 @@ export function ZoneInspector({
     </InspectorNote>
   );
   const gaugeNote = zone.module === CUSTOM_GAUGE_ID && onEditGauge && <GaugeNote key="gauge" zone={zone} onEdit={onEditGauge} />;
+  const customSections = makeThemeSections(config, scope);
+  const styleToolbar = (context.kind === "widget" || context.kind === "panel") && (
+    <StyleToolbar
+      key="style-toolbar"
+      saved={stylePresets}
+      hasStyle={Object.keys(style).length > 0}
+      canMakeTheme={customSections.length > 0}
+      onApply={applyStyle}
+      onSave={(name) => onSavePreset(name, style)}
+      matched={matchingStyle(stylePresets, style)}
+      onUpdate={(id) => onUpdatePreset(id, style)}
+      onMakeTheme={(target) => askMakeTheme(customSections, target)}
+    />
+  );
   const notes = (tab: Parameters<typeof inspectorNotes>[1]) => [
+    tab === "style" ? styleToolbar : null,
     tab === "show" || tab === undefined ? canvasNote : null,
     tab === "show" || tab === undefined ? gaugeNote : null,
     ...inspectorNotes(context, tab).map((n) => <InspectorNote key={n.kind}>{n.text}</InspectorNote>),
@@ -401,6 +433,7 @@ export function ZoneInspector({
           onToggleVisible={onToggleVisible}
           onDuplicate={onDuplicate}
           onRemove={onRemove}
+          onHelp={onHelp}
         />
       <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />
     </>
@@ -417,10 +450,9 @@ export function ZoneInspector({
         update={update}
         onChangeKind={(kind) => update((p) => ({ ...p, panel: { ...p.panel!, widgets: p.panel!.widgets.map((w) => (w.id === item.id ? convertKind(w, kind) : w)) } }))}
         onOpenExplorer={onOpenExplorer}
+        onEditLock={(section) => inherit.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId, section })}
         query={query}
         onQuery={onQuery}
-        changedOnly={changedOnly}
-        onChangedOnly={onChangedOnly}
         jumpTo={jumpTo}
         identity={{
           icon: <Icon />,
@@ -433,6 +465,7 @@ export function ZoneInspector({
     );
 
   return (
+    <>
     <InspectorView
       context={context}
       contextKey={context.kind}
@@ -443,10 +476,9 @@ export function ZoneInspector({
       present={present}
       parts={parts}
       notes={notes}
+      inherit={inheritOf}
       query={query}
       onQuery={onQuery}
-      changedOnly={changedOnly}
-      onChangedOnly={onChangedOnly}
       jumpTo={jumpTo}
       identity={{
         icon: <Icon />,
@@ -456,7 +488,14 @@ export function ZoneInspector({
         onToggleVisible,
       }}
       quickKeys={blank ? [] : pinned}
-      onTheme={onEditGlobalTheme}
     />
+    <MakeThemeDialog
+      pending={makeThemePending}
+      screenName={profile.name}
+      pageName={config.profiles.find((p) => p.id === profileId)?.pages.find((pg) => pg.id === pageId)?.name ?? "this page"}
+      onConfirm={(p) => inherit.setConfig((c) => makeTheme(c, scope, p.target, p.sections))}
+      onClose={() => setMakeThemePending(null)}
+    />
+    </>
   );
 }

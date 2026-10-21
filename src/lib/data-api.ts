@@ -48,3 +48,24 @@ export async function testApiBase(base: string): Promise<boolean> {
     return false;
   }
 }
+
+/** A Data API answer slower than this reads "slow" in the status bar. */
+export const SLOW_API_MS = 300;
+
+export type DataApiState = "connected" | "slow" | "unreachable";
+
+/** How long `{base}/api` took to answer 200 (ms), or null when it did not. */
+export async function pingApiBase(base: string, now: () => number = () => performance.now()): Promise<number | null> {
+  const start = now();
+  return (await testApiBase(base)) ? Math.round(now() - start) : null;
+}
+
+/**
+ * The status bar's word for the Data API: unreachable while a sensor stream
+ * is down or the last ping failed, slow past `SLOW_API_MS`, else connected.
+ * No ping yet (`undefined`) trusts the streams.
+ */
+export function dataApiState(streamsOpen: boolean, latencyMs: number | null | undefined): DataApiState {
+  if (!streamsOpen || latencyMs === null) return "unreachable";
+  return latencyMs !== undefined && latencyMs > SLOW_API_MS ? "slow" : "connected";
+}

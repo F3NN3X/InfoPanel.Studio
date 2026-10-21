@@ -1,52 +1,16 @@
 /**
  * My library's state on the Library page (spec §3): the server's items plus the config's own
- * saved panels and style presets (shown as items so "Made by you" has them), the upload queue
+ * saved panels, Styles and Themes and the built-ins (shown as items), the upload queue
  * behind the tray, and the item actions that change the library (copies, variants, merges).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, deleteLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
+import { configItems } from "@/lib/my-library/config-items";
+import { isConfigItem } from "@/lib/my-library/model";
 import { addFileToLibrary } from "./add-file";
 import { removeItem, type RemoveResult } from "./remove-item";
-
-/** Config presets shown as library items carry this id prefix; they live in the config, not the library. */
-export const CONFIG_PANEL = "cfg-panel:";
-export const CONFIG_STYLE = "cfg-style:";
-export const isConfigItem = (item: Pick<LibraryItem, "id">) => item.id.startsWith(CONFIG_PANEL) || item.id.startsWith(CONFIG_STYLE);
-
-/** The config's saved panels and style presets as library items (read-only stand-ins). */
-export function configItems(config: Pick<DashboardConfig, "panelPresets" | "stylePresets">): LibraryItem[] {
-  const at = "1970-01-01T00:00:00.000Z";
-  const panels = (config.panelPresets ?? []).map(
-    (p): LibraryItem => ({
-      id: CONFIG_PANEL + p.id,
-      kind: "panel",
-      name: p.name,
-      createdAt: at,
-      updatedAt: at,
-      files: [],
-      meta: { cols: p.colSpan, rows: p.rowSpan, source: "config" },
-      // Their uses aren't counted: never flagged Unused.
-      copies: [{ profileId: "*" }],
-      data: p,
-    }),
-  );
-  const styles = (config.stylePresets ?? []).map(
-    (s): LibraryItem => ({
-      id: CONFIG_STYLE + s.id,
-      kind: "style",
-      name: s.name,
-      createdAt: at,
-      updatedAt: at,
-      files: [],
-      meta: { source: "config" },
-      copies: [{ profileId: "*" }],
-      data: s,
-    }),
-  );
-  return [...panels, ...styles];
-}
 
 /** One file in the upload tray. */
 export interface UploadRow {
@@ -65,8 +29,8 @@ export interface MyLibrary {
   refresh(): void;
   uploads: UploadRow[];
   clearUploads(): void;
-  /** Add files: images, videos, SVG and fonts become items; an .infopanel goes to `onProfile`. `uploaded`: files already in the asset store, by asset id. */
-  addFiles(files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>): void;
+  /** Add files: images, videos, SVG and fonts become items. `uploaded`: files already in the asset store, by asset id. */
+  addFiles(files: readonly File[], uploaded?: ReadonlyMap<File, string>): void;
   /** Add files already in the asset store (older loose uploads) as items; the counts of what happened. */
   importAssets(assets: readonly Asset[]): Promise<{ added: number; duplicates: number; failed: number }>;
   /** A copy was placed (the item's copy count goes up by one). */
@@ -82,7 +46,7 @@ export interface MyLibrary {
 
 const WORKERS = 2;
 
-export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets">): MyLibrary {
+export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets" | "appearancePresets">): MyLibrary {
   const [server, setServer] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,13 +97,9 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     }
   };
 
-  const addFiles = (files: readonly File[], onProfile?: (file: File) => void, uploaded?: ReadonlyMap<File, string>) => {
+  const addFiles = (files: readonly File[], uploaded?: ReadonlyMap<File, string>) => {
     const rows: UploadRow[] = [];
     for (const file of files) {
-      if (onProfile && /\.infopanel$/i.test(file.name)) {
-        onProfile(file);
-        continue;
-      }
       const id = nextId.current++;
       rows.push({ id, name: file.name, size: file.size, state: "queued" });
       queue.current.push({ row: id, file, id: uploaded?.get(file) });
@@ -153,7 +113,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     upsert(await updateLibraryItem(item.id, patch));
   };
 
-  const items = useMemo(() => [...server, ...configItems(config)], [server, config.panelPresets, config.stylePresets]);
+  const items = useMemo(() => [...server, ...configItems(config)], [server, config.panelPresets, config.stylePresets, config.appearancePresets]);
 
   return {
     items,

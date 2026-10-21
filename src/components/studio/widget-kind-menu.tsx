@@ -2,7 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { ChevronRight } from "lucide-react";
 import type { WidgetKind } from "@/lib/panel-model";
 import { cn } from "@/lib/utils";
-import { ITEM, POPUP } from "./style-tools";
+import { ITEM, POPUP } from "./menu-styles";
 import { ALL_KINDS, KIND_INFO } from "./widget-kinds";
 
 /** One menu item per widget kind: icon and name. */

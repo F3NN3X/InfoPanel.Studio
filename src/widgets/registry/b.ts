@@ -335,7 +335,7 @@ export const GROUP_B: DashboardModule[] = [
     settings: [
       // The standard `label` is the title, as for Sensor.
       sensorSetting("sensor", "Sensor", { group: "Sensor" }),
-      // The spec is edited on the Gauges page: the raw JSON never shows as a field.
+      // The spec is edited in Gauges: the raw JSON never shows as a field.
       textSetting("gauge", "Gauge", JSON.stringify(CustomGauge.DEFAULT_GAUGE_SPEC), { hidden: true }),
       // Frames a library gauge arrived with (JSON): kept for an export, never shown or drawn.
       textSetting("frames", "Frames", "", { hidden: true }),

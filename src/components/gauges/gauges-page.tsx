@@ -3,7 +3,7 @@
  * one. A [Gauges | Editor] segment in the header; lazily loaded by studio-view.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addGaugeZone, type StudioBridge } from "@/components/library/library-actions";
 import { dropLibraryItem } from "@/components/library/library-drop";
@@ -13,8 +13,6 @@ import { ContextMenu } from "@/components/ui/context-menu";
 import { useToast } from "@/components/ui/toast";
 import type { LibraryItem } from "@/lib/library";
 import { presetGauges, profileGauges, sourceKey, type GaugeEntry, type GaugeSource } from "@/lib/gauge-studio/model";
-import type { FramesFile } from "@/lib/gauge-studio/frames-zip";
-import { assetFile } from "@/lib/infopanel/assets/assets";
 import { editorOpenOf, newGaugeOpen, type EditorOpen } from "@/lib/gauge-studio/open";
 import { previewScope } from "@/lib/gauge-studio/preview";
 import { closeSession, openSession, sessionEditor, type EditorSlot } from "@/lib/gauge-studio/session";
@@ -28,9 +26,9 @@ import { gaugeDragItem, startGaugeDrag } from "./gauge-drag";
 import { gaugeActions, gaugeMenuEntries, libraryMenuHandlers } from "./gauge-actions";
 import { GaugeDetail, EmptyDetail } from "./gauge-detail";
 import { GaugeEditor, type EditorHandle } from "./gauge-editor";
-import { downloadFrames, downloadSpec, ImportFramesButton, ImportGaugeButton } from "./gauge-files";
+import { openImportDoor } from "@/components/studio/file-doors";
+import { downloadFrames, downloadSpec } from "./gauge-files";
 import { GaugesBrowse, type GaugeSection } from "./gauges-browse";
-import { uploadFrame } from "./frame-files";
 import { saveGauge } from "./save-gauge";
 import { useGaugeKeys } from "./use-gauge-keys";
 import { useLibraryGauges } from "./use-library-gauges";
@@ -128,14 +126,6 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
     if (e.gauge) return downloadSpec(e.name, e.gauge);
     downloadFrames(e).catch((err: Error) => toast(`Not exported: ${err.message}`));
   };
-  // The zip's frames go to the asset store and the sequence into My library, selected.
-  const importFrames = async (got: FramesFile) => {
-    const files = await Promise.all(got.frames.map(async (bytes, i) => uploadFrame(await assetFile(`${i + 1}.png`, bytes, "added"))));
-    const item = await saveGauge({ name: got.name, gauge: null, frames: files, min: got.min, max: got.max, animationSpeed: got.animationSpeed });
-    lib.refresh();
-    setSelectedKey(`library:${item.id}`);
-    toast(`Imported ${got.name} (${files.length} frames)`);
-  };
 
   // The detail pane and the card's menu read the same actions.
   const actionsOf = (entry: GaugeEntry) =>
@@ -221,8 +211,9 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
         <span className="flex-1" />
         {!editor && (
           <>
-            <ImportGaugeButton className={HEADER_BUTTON} onImported={(got) => openEditor({ kind: "copy", name: got.name, gauge: got.gauge, origin: null })} />
-            <ImportFramesButton className={HEADER_BUTTON} onImported={importFrames} />
+            <button type="button" onClick={() => openImportDoor()} className={HEADER_BUTTON}>
+              <Upload className="h-4 w-4" /> Import…
+            </button>
             <button
               type="button"
               onClick={() => openEditor(newGaugeOpen())}

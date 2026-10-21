@@ -8,27 +8,27 @@ verified: 1.3.0-beta.1
 
 Browse, edit and build gauges: vector gauges that need no frames, image sequences and SVG templates.
 
-## The Gauges page
+## The Gauges view
 
-Open **Gauges** on the left rail. The header has two tabs, **Gauges** and **Editor**, and the buttons **Import .gauge.json / SVG**, **Import frames (.zip)** and **New gauge**.
+Open **Gauges** on the rail (your own gauges are also in Library › Gauges, and opening one there brings you here). The header has two tabs, **Gauges** and **Editor**, and the buttons **Import…** (the Import door, which takes `.gauge.json`, SVG and frames `.zip` files) and **New gauge**.
 
-The list is in three sections: **Presets**, **In** the current profile, and **My library**. Select a gauge to see its detail pane:
+The list is in three sections: **Presets**, **In** the current screen, and **My library**. Select a gauge to see its detail pane:
 
 - **Customise a copy** on a preset, or **Edit** on your own gauge.
 - **Add to canvas**.
 - **Duplicate**.
-- **Export** as `.gauge.json` (or `.gauge-frames.zip` for an image sequence).
+- **Export** as `.gauge.json` (or `.gauge-frames.zip` for an image sequence); **Export & back up** has a gauge row too.
 
 ## The editor
 
-The header has **Back to Gauges**, the name, Undo and Redo, Import, Export, **Save as new** (saves a copy named after the gauge) and **Save to library**. A **Start from** strip offers presets.
+The header has **Back to Gauges**, the name, Undo and Redo, Import (the Import door, which saves the file with your gauges and opens it here), Export, **Save as new** (saves a copy named after the gauge) and **Save to library**. A **Start from** strip offers presets.
 
 Vector gauges are built from these parts:
 
 | Part | Options |
 |---|---|
 | Shape | Arc, Bar, Liquid (Round, Rect, Diamond, Hex), Grid, SVG |
-| Fill | Solid, Gradient, Zones or Thresholds; "Follow dashboard theme" colors |
+| Fill | Solid, Gradient, Zones or Thresholds; "Follow the theme" colors |
 | Parts | Track, Needle, Marker, Ticks, Labels, Value text, Title, Background, Rings, Pattern, Icon row, Centre icon, Glow, Shadow, and Wave, Shine and Bubbles for liquid |
 
 ## SVG templates

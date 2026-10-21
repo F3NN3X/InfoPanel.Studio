@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,300,0,0&display=block" rel="stylesheet">
+</helmet>
+<span title="{{ tip }}" onClick="{{ onClick }}" style="display:inline-flex; align-items:center; gap:4px; height:20px; padding:0 8px 0 6px; border-radius:999px; border:{{ bd }}; background:{{ bg }}; color:{{ fg }}; font-family:'Geist',system-ui,sans-serif; font-size:11px; font-weight:500; white-space:nowrap; cursor:{{ cursor }}; flex:none; outline-offset:2px" style-hover="filter:brightness(1.18)" tabIndex="0"><span style="font-family:'Material Symbols Rounded'; font-size:13px; line-height:1">{{ icon }}</span>{{ text }}</span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:200,&quot;height&quot;:40},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;inherited&quot;,&quot;custom&quot;,&quot;locked&quot;,&quot;base&quot;,&quot;builtin&quot;],&quot;default&quot;:&quot;inherited&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;from&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Screen&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onClick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.state ?? 'inherited', f = this.props.from ?? 'Screen';
+    const M = {
+      inherited: { icon: 'link', text: 'From ' + f, bg: 'transparent', bd: '1px dashed #4a4a53', fg: '#b4b4bc', tip: 'Inherited — the value comes from ' + f + '. Change it here to customise.' },
+      custom: { icon: 'edit', text: 'Custom here', bg: 'oklch(0.72 0.15 255 / 0.16)', bd: '1px solid oklch(0.72 0.15 255 / 0.6)', fg: 'oklch(0.88 0.08 255)', tip: 'Overridden at this level. Reset to go back to ' + f + '.' },
+      locked: { icon: 'lock', text: 'Locked by ' + f, bg: 'oklch(0.80 0.13 80 / 0.12)', bd: '1px solid oklch(0.80 0.13 80 / 0.55)', fg: 'oklch(0.88 0.10 85)', tip: f + ' forces this section everywhere below it. Edit or unlock it there.' },
+      base: { icon: 'adjust', text: 'Set here', bg: '#1c1c21', bd: '1px solid #33333a', fg: '#ededf0', tip: 'This is the base value everything below inherits.' },
+      builtin: { icon: 'deployed_code', text: 'Built-in default', bg: 'transparent', bd: '1px dashed #3a3a42', fg: '#8a8a94', tip: 'Not set anywhere yet — using the built-in default.' }
+    };
+    const m = M[s] || M.inherited;
+    return { ...m, onClick: this.props.onClick, cursor: this.props.onClick ? 'pointer' : 'default' };
+  }
+}
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ import {
   categoryTab,
   categoryTitleOf,
   filterCategories,
+  mergeWidgetColors,
   OTHER_TITLE,
   SHARED_SECTIONS,
   sharedSectionOf,
@@ -47,24 +48,24 @@ describe("shared sections", () => {
     expect(SHARED_SECTIONS.map((c) => [c.tab, c.title])).toEqual([
       ["show", "Header"],
       ["show", "Fit"],
-      ["style", "Skin & graphics"],
+      ["style", "Skin"],
       ["style", "Colors"],
       ["style", "Widget colors"],
-      ["style", "Surface"],
       ["style", "Typography"],
-      ["style", "Size & spacing"],
+      ["style", "Shape & spacing"],
+      ["style", "Surface & effects"],
       ["style", "Border & glow"],
-      ["style", "Custom CSS"],
+      ["style", "Advanced · CSS & locks"],
       ["data", "Units & format"],
       ["behaviour", "Thresholds"],
-      ["behaviour", "Dynamic Island"],
       ["behaviour", "Motion"],
+      ["behaviour", "Send to island"],
     ]);
     expect(new Set(SHARED_SECTIONS.map((c) => c.id)).size).toBe(SHARED_SECTIONS.length);
   });
 
-  it("puts Header and the Behaviour leads before a widget's own sections, Fit, Units, Island and Motion after", () => {
-    expect(SHARED_SECTIONS.filter((s) => s.place === "trail").map((s) => s.id)).toEqual(["fit", "format", "island", "motion"]);
+  it("puts Header and the Behaviour leads before a widget's own sections, Fit, Units, Motion and Send to island after", () => {
+    expect(SHARED_SECTIONS.filter((s) => s.place === "trail").map((s) => s.id)).toEqual(["fit", "format", "motion", "island"]);
   });
 
   it("files every standard setting by the section it names", () => {
@@ -81,7 +82,7 @@ describe("shared sections", () => {
     expect(keysOf("header")).toEqual(["showTitle", "label", "icon"]);
     expect(keysOf("fit")).toEqual(["compact", "sizeTier"]);
     expect(keysOf("skin").sort()).toEqual(["graph", "meter", "skin", "stroke"]);
-    expect(keysOf("colors").sort()).toEqual(["accent", "mutedColor", "preset", "textColor"]);
+    expect(keysOf("colors").sort()).toEqual(["accent", "mutedColor", "textColor"]);
     expect(keysOf("surface").sort()).toEqual(["background", "backgroundOn", "blur", "surface", "surfaceOpacity"]);
     expect(keysOf("type")).toEqual(["font", "fontWeight", "labelCase"]);
     expect(keysOf("border")).toEqual(["borderWidth", "borderColor", "glow", "glowColor"]);
@@ -91,7 +92,7 @@ describe("shared sections", () => {
 
   it("puts the spec's More rows behind More", () => {
     const more = STANDARD_SETTINGS.filter((d) => d.more).map((d) => d.key).sort();
-    expect(more).toEqual(["background", "backgroundOn", "customCss", "graph", "icon", "meter", "preset", "sizeTier"]);
+    expect(more).toEqual(["background", "backgroundOn", "customCss", "graph", "icon", "meter", "sizeTier"]);
     expect(STANDARD_SETTINGS.some((d) => d.advanced)).toBe(false);
   });
 
@@ -123,13 +124,13 @@ describe("categorize", () => {
       def("showFans", "Fans"),
       std("label"),
       def("tempCrit", "Thresholds"),
-      std("preset"),
+      std("textColor"),
       std("smoothing"),
     ]);
     expect(cats.map((c) => [c.title, c.defs.map((d) => d.key)])).toEqual([
       ["Header", ["label"]],
-      ["Colors", ["preset"]],
-      ["Custom CSS", ["customCss"]],
+      ["Colors", ["textColor"]],
+      ["Advanced · CSS & locks", ["customCss"]],
       ["Thresholds", ["tempWarn", "tempCrit"]],
       ["Motion", ["smoothing"]],
       ["Fans", ["showFans"]],
@@ -206,12 +207,27 @@ describe("withShared", () => {
 
   it("adds the named shared sections at their canonical place", () => {
     const out = withShared(cats, ["header", "border"]);
-    expect(out.map((c) => c.title)).toEqual(["Header", "Border & glow", "Custom CSS", "Overheat"]);
+    expect(out.map((c) => c.title)).toEqual(["Header", "Border & glow", "Advanced · CSS & locks", "Overheat"]);
     expect(out[0].defs).toEqual([]);
   });
 
   it("keeps existing ones", () => {
     expect(withShared(cats, ["css"])).toEqual(cats);
+  });
+});
+
+describe("mergeWidgetColors", () => {
+  it("files the widget's own colors in Colors, keeping the rest in order", () => {
+    const cats = withShared(categorize([std("accent"), color("tempColor", "Mine"), std("customCss")]), ["colors"]);
+    expect(cats.map((c) => c.id)).toContain("palette");
+    const merged = mergeWidgetColors(cats);
+    expect(merged.map((c) => c.title)).toEqual(["Colors", "Advanced · CSS & locks"]);
+    expect(merged[0].defs.map((d) => d.key)).toEqual(["accent", "tempColor"]);
+  });
+
+  it("is a no-op without widget colors", () => {
+    const cats = withShared(categorize([std("accent")]), ["colors"]);
+    expect(mergeWidgetColors(cats)).toBe(cats);
   });
 });
 
@@ -223,13 +239,13 @@ describe("tabs", () => {
     expect(tabs).toEqual({
       Header: "show",
       Fit: "show",
-      "Skin & graphics": "style",
+      Skin: "style",
       Colors: "style",
-      Surface: "style",
+      "Surface & effects": "style",
       Typography: "style",
-      "Size & spacing": "style",
+      "Shape & spacing": "style",
       "Border & glow": "style",
-      "Custom CSS": "style",
+      "Advanced · CSS & locks": "style",
       Motion: "behaviour",
     });
     expect(categoryTab(own)).toBe("show");

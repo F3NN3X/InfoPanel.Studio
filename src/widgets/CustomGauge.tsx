@@ -12,7 +12,7 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [1, 1],
   minSize: [1, 1],
-  description: "A gauge you design on the Gauges page, driven by any one data point.",
+  description: "A gauge you design in Gauges, driven by any one data point.",
 };
 
 export interface CustomGaugeProps extends ShellProps {

@@ -35,4 +35,4 @@ Switch the Panel section's **Editor** from **Visual** to **Code** to edit the wh
 
 ## Saving a panel
 
-From the panel header's **More panel actions** menu choose **Save as panel preset…**, name it, and it appears under **My panels** in **Widgets**, for every profile. It is included when you export. Each use is a fresh copy.
+Right-click the panel (or use the inspector's **Panel** section) and choose **Save as Panel**, name it, and it appears under **My panels** in **Add widget** and in **Library › Panels**, for every screen. It is included when you export. Each use is a fresh copy.

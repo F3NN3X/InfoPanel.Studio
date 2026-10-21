@@ -180,6 +180,8 @@ pub fn run() {
             commands::list_local_addresses,
             commands::quit_app,
             commands::open_settings,
+            commands::open_settings_in_studio,
+            commands::take_pending_settings,
             commands::open_help,
             commands::kiosk_window,
             commands::save_text_file,

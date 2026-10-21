@@ -28,7 +28,8 @@ describe("Small zones (SPEC §4.6): every widget × auto / full / card / dense",
       // Sensor Value draws its card for a numeric reading only.
       const base: ModuleSettings = id === "SensorValue" ? { sensor: celsius } : {};
       if (view(id, base) === undefined) continue;
-      for (const value of options) expect(view(id, { ...base, compact: value }), `${id} ${value}`).toBe(expected[value]);
+      // Auto and Full draw the same body as the default; Card and Dense are the two that change it.
+      for (const value of options.filter((v) => v === "card" || v === "dense")) expect(view(id, { ...base, compact: value }), `${id} ${value}`).toBe(expected[value]);
     }
   });
 

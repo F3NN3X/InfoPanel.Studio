@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { PROFILE_STYLE_KEYS } from "@/modules/standard-settings";
 import {
   applyAppearancePreset,
-  clearOverrides,
-  countOverrides,
-  countProfileOverrides,
+  applyThemeAt,
+  duplicateAppearancePreset,
   presetFromCurrent,
-  } from "@/lib/appearance-preset-apply";
+  saveThemeAt,
+  themeFromScope,
+  updateAppearancePreset,
+} from "@/lib/appearance-preset-apply";
 import {
   invalidStyleKeys,
   isValidStyleValue,
@@ -47,7 +49,7 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
-  version: 9,
+  version: 11,
   activeProfile: "auto",
   profiles: [profile("p1"), profile("p2")],
   theme: DEFAULT_THEME,
@@ -57,7 +59,7 @@ const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
 
 const ALL = { kind: "all" } as const;
 const P1 = { kind: "profile", profileId: "p1" } as const;
-// Saved looks as the user would store them (the former Glass and Light built-ins).
+// Saved themes as the user would store them (the former Glass and Light built-ins).
 const glass: AppearancePreset = {
   id: "look-glass",
   name: "Glass",
@@ -151,26 +153,6 @@ describe("applyAppearancePreset — This profile", () => {
 
 });
 
-describe("overrides", () => {
-  it("counts widgets whose own look shows over the global style (custom, unlocked sections)", () => {
-    expect(countOverrides(config(), P1)).toBe(1);
-    expect(countOverrides(config(), ALL)).toBe(2);
-    const p1Locked = config({ profiles: [profile("p1", { widgetTheme: { locks: { colors: true } } }), profile("p2")] });
-    expect(countOverrides(p1Locked, ALL)).toBe(1);
-  });
-
-  it("counts and clears a profile's own theme colours and radius", () => {
-    const own = profile("p2", { theme: { background: "0 0% 100%" }, radius: 1 });
-    const c = config({ profiles: [profile("p1"), own] });
-    expect(countProfileOverrides(c, ALL)).toBe(1);
-    const cleared = clearOverrides(c, ALL).profiles[1];
-    expect(cleared.theme).toBeUndefined();
-    expect(cleared.radius).toBeUndefined();
-    expect(clearOverrides(c, { kind: "profile", profileId: "p2" }).profiles[1].theme).toEqual(own.theme);
-  });
-
-});
-
 describe("the user's presets", () => {
   it("captures the current look of a scope", () => {
     const c = config({
@@ -201,5 +183,112 @@ describe("the user's presets", () => {
     expect(back.style).toEqual(c.style);
     expect(back.radius).toBe(1);
     expect(back.theme).toEqual(c.theme);
+  });
+});
+
+describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
+  const PAGE = { kind: "page", profileId: "p1", pageId: "main" } as const;
+  const pageOf = (c: DashboardConfig) => c.profiles[0].pages[0];
+
+  it("applies a Theme to a page as its own sections: values replaced, customised, locked ones left alone", () => {
+    const c = config({
+      profiles: [
+        profile("p1", { widgetTheme: { locks: { border: true } } }),
+        profile("p2"),
+      ],
+    });
+    const seeded = { ...c, profiles: [{ ...c.profiles[0], pages: [{ ...pageOf(c), widgetTheme: { values: { surfaceOpacity: 40, font: "mono" } } }] }, c.profiles[1]] };
+    const out = applyThemeAt(seeded, glass, PAGE);
+    const theme = pageOf(out).widgetTheme!;
+    // Surface (all three keys replaced) is customised; the locked Border & glow is not written.
+    expect(theme.values).toEqual({ font: "mono", surface: "glass", surfaceOpacity: 60, blur: "16" });
+    expect(theme.follow).toEqual({ surface: false });
+    // A page has no tokens, radius or background: the config and the screen keep theirs.
+    expect(out.theme).toEqual(seeded.theme);
+    expect(out.profiles[0].theme).toBeUndefined();
+    expect(out.profiles[0].background).toBeUndefined();
+    expect(out.background).toBeUndefined();
+  });
+
+  it("never writes the background with Include background off, and always with it on", () => {
+    const c = config({ background: { type: "color", color: "#101010" } });
+    expect(applyThemeAt(c, glass, ALL, { includeBackground: false }).background).toEqual(c.background);
+    expect(applyThemeAt(c, glass, ALL, { includeBackground: true }).background).toEqual(glass.background);
+    expect(applyThemeAt(config(), glass, P1, { includeBackground: false }).profiles[0].background).toBeUndefined();
+  });
+
+  it("saves a page's resolved look: its customised sections over its screen's, the screen's tokens", () => {
+    const c = config({
+      style: { accent: "#00ff00", surface: "matte-dark" },
+      profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, widgetTheme: { values: { accent: "#0000ff" } } }), profile("p2")],
+    });
+    const custom = {
+      ...c,
+      profiles: [
+        {
+          ...c.profiles[0],
+          pages: [{ ...pageOf(c), widgetTheme: { values: { accent: "#ff00ff", surface: "glass" }, follow: { colors: false } } }],
+        },
+        c.profiles[1],
+      ],
+    };
+    const t = themeFromScope(custom, PAGE, "u1", "Page look");
+    // Colors is the page's; its surface value follows the screen (the page doesn't customise Surface).
+    expect(t.style).toEqual({ accent: "#ff00ff", surface: "matte-dark" });
+    expect(t.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
+    expect(t).not.toHaveProperty("font");
+  });
+
+  it("round-trips: a screen saved as a Theme, applied to All screens, reproduces its look", () => {
+    const c = config({
+      style: { surface: "glass" },
+      profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, widgetTheme: { values: { accent: "#0000ff" } }, background: { type: "color", color: "#202020" } }), profile("p2")],
+    });
+    const saved = saveThemeAt(c, P1, "u1", "Desk", false);
+    const preset = saved.appearancePresets![0];
+    expect(preset).toMatchObject({ id: "u1", name: "Desk", radius: 1, style: { surface: "glass", accent: "#0000ff" } });
+    expect(preset.background).toBeUndefined();
+    const all = applyThemeAt(saved, preset, ALL);
+    expect(all.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
+    expect(all.radius).toBe(1);
+    expect(all.style).toEqual({ surface: "glass", accent: "#0000ff" });
+    expect(saveThemeAt(c, P1, "u2", "Desk").appearancePresets![0].background).toEqual({ type: "color", color: "#202020" });
+  });
+});
+
+describe("updateAppearancePreset", () => {
+  const c = config({
+    style: { surface: "glass" },
+    profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, background: { type: "color", color: "#202020" } }), profile("p2")],
+  });
+  const withTwo = saveThemeAt(saveThemeAt(c, ALL, "a", "Alpha", false), P1, "b", "Beta", false);
+
+  it("overwrites the look in place, keeping the id, name, description and the other Themes", () => {
+    const updated = updateAppearancePreset(withTwo, "a", P1);
+    const [a, b] = updated.appearancePresets!;
+    expect(a).toMatchObject({ id: "a", name: "Alpha", description: "Saved theme", radius: 1 });
+    expect(a.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
+    expect(b).toEqual(withTwo.appearancePresets![1]);
+    expect(updated.appearancePresets).toHaveLength(2);
+  });
+
+  it("writes the background only for a Theme that had one, or when asked", () => {
+    expect(updateAppearancePreset(withTwo, "a", P1).appearancePresets![0].background).toBeUndefined();
+    expect(updateAppearancePreset(withTwo, "a", P1, true).appearancePresets![0].background).toEqual({ type: "color", color: "#202020" });
+    const withBg = saveThemeAt(c, P1, "c", "Gamma", true);
+    expect(updateAppearancePreset(withBg, "c", ALL).appearancePresets![0].background).toBeUndefined();
+  });
+
+  it("leaves the config as it was for an unknown id", () => {
+    expect(updateAppearancePreset(withTwo, "nope", ALL)).toBe(withTwo);
+  });
+});
+
+describe("duplicateAppearancePreset", () => {
+  it("copies a saved Theme right after it under a new id", () => {
+    const c = saveThemeAt(saveThemeAt(config(), ALL, "a", "Alpha"), ALL, "b", "Beta");
+    const copy = duplicateAppearancePreset(c, "a", "a2").appearancePresets!;
+    expect(copy.map((p) => [p.id, p.name])).toEqual([["a", "Alpha"], ["a2", "Alpha copy"], ["b", "Beta"]]);
+    expect(copy[1].theme).not.toBe(copy[0].theme);
   });
 });

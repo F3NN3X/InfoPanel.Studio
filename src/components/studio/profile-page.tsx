@@ -1,8 +1,8 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { PageBackground } from "@/components/page-background";
 import { posterBackground, resolveBackground } from "@/lib/appearance";
-import { fontStack } from "@/lib/general";
-import { SCROLL_ROW_H, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
+import { fontStack, resolveFont } from "@/lib/general";
+import { SCROLL_ROW_H, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { appearanceOf } from "@/lib/style-resolve";
@@ -12,17 +12,26 @@ import { cn } from "@/lib/utils";
 import { LivePlacement } from "./placement-content";
 import { PlacementFrame } from "./placement-frame";
 
+interface ProfilePageProps {
+  profile: MonitorProfile;
+  dashboard: DashboardConfig;
+  /** The page to draw (default: the first). */
+  pageId?: string;
+  /** Drawn over a zone, inside its frame (Theme's preview: the edit badge on a widget that doesn't follow). */
+  badge?: (placement: Placement) => ReactNode;
+}
+
 /**
- * The profile's first page as the kiosk draws it (background, theme, style and the real widgets, canvas
+ * A profile's page as the kiosk draws it (background, theme, style and the real widgets, canvas
  * zones included), at its design size. A video background shows its poster. Mounted offscreen to take
- * the profile's screenshot.
+ * the profile's screenshot, and scaled down as Theme's live preview.
  */
-export function ProfilePage({ profile, dashboard }: { profile: MonitorProfile; dashboard: DashboardConfig }) {
-  const view = useMemo(() => profileWithPage(profile), [profile]);
+export function ProfilePage({ profile, dashboard, pageId, badge }: ProfilePageProps) {
+  const view = useMemo(() => profileWithPage(profile, pageId), [profile, pageId]);
   const theme = resolveTheme(dashboard, profile);
   const bg = resolveBackground(dashboard, profile);
   const background = bg && (bg.type === "video" ? posterBackground(bg) : bg);
-  const font = fontStack(useGeneral().font);
+  const font = fontStack(resolveFont(useGeneral(), profile));
   const fill = view.fit === "fill" && view.height > 0;
   const padding = profilePadding(view, true);
   const appearance = useMemo(() => appearanceOf(dashboard, view), [dashboard, view]);
@@ -59,6 +68,7 @@ export function ProfilePage({ profile, dashboard }: { profile: MonitorProfile; d
               {({ content, hasData, title, scope }) => (
                 <PlacementFrame placement={p} profile={view} studio={false} hasData={hasData} title={title} scope={scope}>
                   {content}
+                  {badge?.(p)}
                 </PlacementFrame>
               )}
             </LivePlacement>

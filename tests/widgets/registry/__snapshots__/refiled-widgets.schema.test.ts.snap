@@ -4,13 +4,13 @@ exports[`Achievements > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
       ],
     },
   ],
@@ -41,7 +41,7 @@ exports[`Achievements > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -50,19 +50,9 @@ exports[`Achievements > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -73,12 +63,21 @@ exports[`Achievements > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -90,7 +89,7 @@ exports[`Achievements > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -137,7 +136,7 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -146,25 +145,11 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "batteryMidColor · role warn",
         "batteryLowColor · role crit",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -175,12 +160,21 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -192,7 +186,7 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -231,7 +225,7 @@ exports[`Calendar > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -240,19 +234,9 @@ exports[`Calendar > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -263,12 +247,21 @@ exports[`Calendar > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -280,7 +273,7 @@ exports[`Calendar > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -334,7 +327,7 @@ exports[`Clock > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -343,19 +336,9 @@ exports[`Clock > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -366,12 +349,21 @@ exports[`Clock > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -383,7 +375,7 @@ exports[`Clock > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -446,7 +438,7 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -455,19 +447,9 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -478,12 +460,21 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -495,7 +486,7 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -556,7 +547,7 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -565,24 +556,10 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "ramp · more · per widget",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -593,12 +570,21 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -610,7 +596,7 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -653,7 +639,7 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -662,19 +648,9 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -685,12 +661,21 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -702,7 +687,7 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -746,7 +731,7 @@ exports[`Departures > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -755,19 +740,9 @@ exports[`Departures > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -778,12 +753,21 @@ exports[`Departures > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -795,7 +779,7 @@ exports[`Departures > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -844,7 +828,7 @@ exports[`DiskIO > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -853,25 +837,11 @@ exports[`DiskIO > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "readColor · role s1",
         "writeColor · role s2",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -882,12 +852,21 @@ exports[`DiskIO > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -899,7 +878,7 @@ exports[`DiskIO > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -921,13 +900,13 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Dynamic Island": [
-        "island",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
       ],
     },
   ],
@@ -958,7 +937,7 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -967,24 +946,10 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "neutral · per widget",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -995,12 +960,21 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1012,7 +986,7 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1061,7 +1035,7 @@ exports[`Fans > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1070,19 +1044,9 @@ exports[`Fans > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1093,12 +1057,21 @@ exports[`Fans > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1110,7 +1083,7 @@ exports[`Fans > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1164,7 +1137,7 @@ exports[`Forecast > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1173,19 +1146,9 @@ exports[`Forecast > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1196,12 +1159,21 @@ exports[`Forecast > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1213,7 +1185,7 @@ exports[`Forecast > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1225,15 +1197,15 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
-        "islandStart",
-        "islandFloor",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
+        "islandStart",
+        "islandFloor",
       ],
     },
   ],
@@ -1271,7 +1243,7 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1280,25 +1252,11 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "ringColor · role s1",
         "sparkColor · role s2",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1309,12 +1267,21 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1326,7 +1293,7 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1375,7 +1342,7 @@ exports[`FramePacing > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1384,19 +1351,9 @@ exports[`FramePacing > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1407,12 +1364,21 @@ exports[`FramePacing > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1424,7 +1390,7 @@ exports[`FramePacing > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1481,7 +1447,7 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1490,24 +1456,10 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "scrim · per widget",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1518,12 +1470,21 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1535,7 +1496,7 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1584,7 +1545,7 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1593,19 +1554,9 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1616,12 +1567,21 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1633,7 +1593,7 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1683,7 +1643,7 @@ exports[`GpuRings > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1692,25 +1652,11 @@ exports[`GpuRings > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "outerColor · role s1",
         "innerColor · role s2",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1721,12 +1667,21 @@ exports[`GpuRings > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1738,7 +1693,7 @@ exports[`GpuRings > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1782,7 +1737,7 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1791,19 +1746,9 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1814,12 +1759,21 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1831,7 +1785,7 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1875,7 +1829,7 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1884,19 +1838,9 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -1907,12 +1851,21 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -1924,7 +1877,7 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -1980,7 +1933,7 @@ exports[`MenuBar > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -1989,19 +1942,9 @@ exports[`MenuBar > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2012,12 +1955,21 @@ exports[`MenuBar > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2029,7 +1981,7 @@ exports[`MenuBar > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2106,7 +2058,7 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2115,25 +2067,11 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "levelColor · role ok",
         "hotColor · role crit",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2144,12 +2082,21 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2161,7 +2108,7 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2173,14 +2120,14 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
-        "islandPublicIp",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
+        "islandPublicIp",
       ],
     },
   ],
@@ -2217,7 +2164,7 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2226,19 +2173,9 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2249,12 +2186,21 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2266,7 +2212,7 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2278,14 +2224,14 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
-        "islandMinRate",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
+        "islandMinRate",
       ],
     },
   ],
@@ -2328,7 +2274,7 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2337,25 +2283,11 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "downloadColor · role s1",
         "uploadColor · role s2",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2366,12 +2298,21 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2383,7 +2324,7 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2400,15 +2341,15 @@ exports[`Notifications > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Dynamic Island": [
-        "island",
-        "islandApps",
-        "islandBody",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
+        "islandApps",
+        "islandBody",
       ],
     },
   ],
@@ -2439,7 +2380,7 @@ exports[`Notifications > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2448,19 +2389,9 @@ exports[`Notifications > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2471,12 +2402,21 @@ exports[`Notifications > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2488,7 +2428,7 @@ exports[`Notifications > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2532,7 +2472,7 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2541,19 +2481,9 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2564,12 +2494,21 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2581,7 +2520,7 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2620,7 +2559,7 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2629,29 +2568,15 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "color1 · role s1",
         "color2 · role s2",
         "color3 · role s3",
         "color4 · role s4",
         "color5 · role s5",
         "color6 · role s6",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2662,12 +2587,21 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2679,7 +2613,7 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2723,7 +2657,7 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2732,19 +2666,9 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2755,12 +2679,21 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2772,7 +2705,7 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2821,7 +2754,7 @@ exports[`ProcessList > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2830,19 +2763,9 @@ exports[`ProcessList > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2853,12 +2776,21 @@ exports[`ProcessList > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2870,7 +2802,7 @@ exports[`ProcessList > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -2936,7 +2868,7 @@ exports[`SensorValue > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -2945,19 +2877,9 @@ exports[`SensorValue > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -2968,12 +2890,21 @@ exports[`SensorValue > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -2985,7 +2916,7 @@ exports[`SensorValue > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3029,7 +2960,7 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3038,19 +2969,9 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3061,12 +2982,21 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3078,7 +3008,7 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3153,7 +3083,7 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3162,19 +3092,9 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3185,12 +3105,21 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3202,7 +3131,7 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3219,13 +3148,13 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Dynamic Island": [
-        "island",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
       ],
     },
   ],
@@ -3259,7 +3188,7 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3268,28 +3197,14 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "ingameColor · role s1",
         "onlineColor · role ok",
         "awayColor · role warn",
         "busyColor · role crit",
         "offlineColor · role s2",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3300,12 +3215,21 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3317,7 +3241,7 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3356,7 +3280,7 @@ exports[`SteamGame > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3365,24 +3289,10 @@ exports[`SteamGame > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "scrim · per widget",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3393,12 +3303,21 @@ exports[`SteamGame > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3410,7 +3329,7 @@ exports[`SteamGame > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3454,7 +3373,7 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3463,19 +3382,9 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3486,12 +3395,21 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3503,7 +3421,7 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3515,13 +3433,13 @@ exports[`SteamNews > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
       ],
     },
   ],
@@ -3552,7 +3470,7 @@ exports[`SteamNews > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3561,19 +3479,9 @@ exports[`SteamNews > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3584,12 +3492,21 @@ exports[`SteamNews > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3601,7 +3518,7 @@ exports[`SteamNews > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3645,7 +3562,7 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3654,19 +3571,9 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3677,12 +3584,21 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3694,7 +3610,7 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3743,7 +3659,7 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3752,19 +3668,9 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3775,12 +3681,21 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3792,7 +3707,7 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3836,7 +3751,7 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3845,19 +3760,9 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3868,12 +3773,21 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3885,7 +3799,7 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -3929,7 +3843,7 @@ exports[`TextFile > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -3938,19 +3852,9 @@ exports[`TextFile > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -3961,12 +3865,21 @@ exports[`TextFile > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -3978,7 +3891,7 @@ exports[`TextFile > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -4045,7 +3958,7 @@ exports[`Thermals > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -4054,24 +3967,10 @@ exports[`Thermals > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "fanColor · role s3",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -4082,12 +3981,21 @@ exports[`Thermals > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -4099,7 +4007,7 @@ exports[`Thermals > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -4111,13 +4019,13 @@ exports[`Timer > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
       ],
     },
   ],
@@ -4154,7 +4062,7 @@ exports[`Timer > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -4163,19 +4071,9 @@ exports[`Timer > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -4186,12 +4084,21 @@ exports[`Timer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -4203,7 +4110,7 @@ exports[`Timer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -4267,7 +4174,7 @@ exports[`Visualizer > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -4276,14 +4183,9 @@ exports[`Visualizer > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "vizColorMode · per widget",
         "vizGradient · more · per widget",
         "ramp · role s1",
@@ -4295,15 +4197,6 @@ exports[`Visualizer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
-      ],
-    },
-    {
       "Typography": [
         "font",
         "fontWeight",
@@ -4311,12 +4204,21 @@ exports[`Visualizer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -4328,7 +4230,7 @@ exports[`Visualizer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -4367,7 +4269,7 @@ exports[`Vitals > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -4376,19 +4278,9 @@ exports[`Vitals > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -4399,12 +4291,21 @@ exports[`Vitals > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -4416,7 +4317,7 @@ exports[`Vitals > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -4428,14 +4329,14 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
-        "islandDevice",
+      "Motion": [
+        "smoothing",
       ],
     },
     {
-      "Motion": [
-        "smoothing",
+      "Send to island": [
+        "island",
+        "islandDevice",
       ],
     },
   ],
@@ -4472,7 +4373,7 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -4481,24 +4382,10 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "levelColor · role ok",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -4509,12 +4396,21 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -4526,7 +4422,7 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },
@@ -4538,15 +4434,15 @@ exports[`WaveLink > files its rows by the rules 1`] = `
 {
   "Behaviour": [
     {
-      "Dynamic Island": [
-        "island",
-        "islandFaders",
-      ],
-    },
-    {
       "Motion": [
         "smoothing",
         "meterBallistics",
+      ],
+    },
+    {
+      "Send to island": [
+        "island",
+        "islandFaders",
       ],
     },
   ],
@@ -4590,7 +4486,7 @@ exports[`WaveLink > files its rows by the rules 1`] = `
   ],
   "Style": [
     {
-      "Skin & graphics": [
+      "Skin": [
         "skin",
         "graph · more",
         "meter · more",
@@ -4599,26 +4495,12 @@ exports[`WaveLink > files its rows by the rules 1`] = `
     },
     {
       "Colors": [
-        "preset · more",
         "accent",
         "textColor",
         "mutedColor",
-      ],
-    },
-    {
-      "Widget colors": [
         "levelColor · role ok",
         "liveColor · role ok",
         "muteColor · role crit",
-      ],
-    },
-    {
-      "Surface": [
-        "surface",
-        "background · more",
-        "backgroundOn · more",
-        "surfaceOpacity",
-        "blur",
       ],
     },
     {
@@ -4629,12 +4511,21 @@ exports[`WaveLink > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Size & spacing": [
+      "Shape & spacing": [
         "scale",
         "align",
         "padding",
         "gap",
         "radius",
+      ],
+    },
+    {
+      "Surface & effects": [
+        "surface",
+        "background · more",
+        "backgroundOn · more",
+        "surfaceOpacity",
+        "blur",
       ],
     },
     {
@@ -4646,7 +4537,7 @@ exports[`WaveLink > files its rows by the rules 1`] = `
       ],
     },
     {
-      "Custom CSS": [
+      "Advanced · CSS & locks": [
         "customCss · more",
       ],
     },

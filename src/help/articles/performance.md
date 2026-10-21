@@ -15,10 +15,10 @@ Two settings decide how hard the display's GPU works: **Max FPS** and **Motion**
 | Max FPS (**Frame rate limit**) | 5, 15, 30, 60 or No limit | 60 |
 | Motion (**Animations**) | Follow system, Reduced or Full | Follow system, which follows the Windows animation setting |
 
-With nothing selected, open **Behaviour › Performance**. In the inspector, Max FPS is labelled **Frame rate limit** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). The section's switch decides where they apply:
+For every screen, open **Settings › Dashboard › Performance**: Max FPS is labelled **Frame-rate cap** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). A screen can have its own: in **Screens**, the **Performance** group shows a chip.
 
-- **All profiles** edits the values every profile shares.
-- **This profile** gives this profile its own values, starting from the shared ones. Switching back drops them.
+- **From All screens** means the screen uses the Settings values. Change a value there and the screen takes its own, starting from the shared ones.
+- **Custom here** means the screen's own. **Reset to inherited** in the chip's menu drops them.
 
 ## What Max FPS changes
 
@@ -66,7 +66,7 @@ A kiosk URL overrides both settings for the display that opens it:
 | `&animations=0` | Motion: Reduce |
 | `&motion=reduce`, `&motion=full` or `&motion=system` | Motion for this display only |
 
-The URL wins over the profile, and the profile wins over General.
+The URL wins over the screen, and the screen wins over **Settings › Dashboard** (All screens).
 
 ## After an update
 

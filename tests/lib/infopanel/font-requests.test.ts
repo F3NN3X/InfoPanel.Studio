@@ -49,7 +49,7 @@ describe("isMissing / describeRequest", () => {
     const [orb, raj] = zoneRequests(canvas());
     expect(describeRequest(orb, resolved("Orbitron", false), false, true)).toMatchObject({ status: "ok", drawn: "Orbitron", how: "Asked from InfoPanel (Data API)" });
     expect(describeRequest(orb, resolved("Segoe UI", false, "reference"), false, true).how).toBe("System font");
-    expect(describeRequest(raj, resolved("Segoe UI", true), true, true)).toMatchObject({ status: "missing", drawn: "Missing", how: "Not on this PC" });
+    expect(describeRequest(raj, resolved("Segoe UI", true), true, true)).toMatchObject({ status: "missing", drawn: "Missing", how: "Not installed" });
     expect(describeRequest(raj, undefined, false, false).status).toBe("unknown");
     const supplied = { hash: "a".repeat(64), file: "R.ttf", index: 0, family: "Rajdhani", face: "Medium" };
     expect(describeRequest({ ...raj, supplied, use: "supplied" }, resolved("Segoe UI", true), true, true)).toMatchObject({ status: "ok", how: "Supplied with the profile" });

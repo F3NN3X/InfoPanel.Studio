@@ -13,18 +13,18 @@ InfoPanel Studio designs live dashboards for the small screen next to your monit
 :::flow
 Sensors — InfoPanel and its plugins publish readings on the Data API
 Studio — You lay out widgets and panels and style them
-Server — A local server on this PC hosts the result
+Server — A local server on the PC running InfoPanel Studio hosts the result
 Kiosk — InfoPanel shows the kiosk URL on your display
 :::
 
-Everything runs on this computer. The studio saves to the local server as you edit, and every open kiosk updates within a second. Fonts and plugins you choose to download use the network; your dashboards stay on this PC.
+Everything runs on the PC running InfoPanel Studio. The studio saves to the local server as you edit, and every open kiosk updates within a second. Fonts and plugins you choose to download use the network; your dashboards stay on that PC.
 
 ## What you can do
 
 - Build dashboards from ready-made widgets (system, media, weather, FPS, network and more) or from panels you compose yourself. See [Widgets](widgets) and [Panels](panels).
-- Make one dashboard fit several screens with a profile per display size. See [Profiles and the grid](profiles).
-- Style everything at once with a theme, then let single widgets differ where you want. See [Themes and appearance](themes).
-- Import existing InfoPanel profiles, keep them pixel-exact or turn items into native widgets. See [Importing a profile](import).
+- Make one dashboard fit several screens with a screen per display size. See [Screens and the grid](profiles).
+- Style everything at once with a theme, then let single widgets differ where you want. See [Themes](themes).
+- Import existing InfoPanel profiles, keep them pixel-exact or turn items into native widgets. See [Importing and exporting](import).
 - Keep your files in one place with the [Library](library), and build your own [Gauges](gauges).
 - Show Claude Code and Codex sessions on your dashboard. See [Coding agents](agents).
 
@@ -35,5 +35,5 @@ New here? The [Quick start](quickstart) gets a working dashboard onto your displ
 ## Opening this help
 
 :::tip
-Open this help from the **?** button above **Keyboard shortcuts** on the left rail, or from **Help** in the tray menu. Press `F1` in the studio or in Settings to open the article for where you are.
+Open this help from **Help** on the rail, or from **Help** in the tray menu. Press `F1` in the studio or in Settings to open the article for where you are.
 :::

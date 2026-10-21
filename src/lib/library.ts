@@ -7,7 +7,8 @@ import { AssetError } from "./assets";
 
 export const LIBRARY_URL = "/api/library";
 
-export type LibraryKind = "image" | "video" | "font" | "svg" | "gauge" | "panel" | "style" | "canvas";
+/** `theme` is config-only (saved Themes and built-in palettes shown as items): the server never stores one. */
+export type LibraryKind = "image" | "video" | "font" | "svg" | "gauge" | "panel" | "style" | "canvas" | "theme";
 
 /** Where a copy of an item was placed. */
 export interface LibraryCopy {

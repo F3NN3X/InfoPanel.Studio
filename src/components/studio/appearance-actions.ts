@@ -1,13 +1,13 @@
 import type { BackgroundScope } from "@/lib/appearance";
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import type { DashboardConfig, MonitorProfile, ProfileView } from "@/lib/layout";
-import { allLocked, withAllLocked } from "@/lib/theme-model";
+import { allLocked, themedOf, withAllLocked } from "@/lib/theme-model";
 import type { ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import { setProfileStyle } from "./studio-actions";
 
 /**
- * Edits of the Appearance tab's style: the dashboard's ("All profiles")
+ * Edits of the widget style at a Theme level: All screens' (`config.style`)
  * style or a profile's theme values, the palette's lock-all of the profile
  * theme, and the widgets' follow choice. Pure config → config updates, each
  * one undo step (same-key edits coalesce: `appearance-style:<scope>`).
@@ -66,23 +66,35 @@ export function toggleEnforce(config: DashboardConfig, profile: Pick<ProfileView
   return { ...config, profiles: config.profiles.map((p) => (p.id === profile.id ? lock(p) : p)) };
 }
 
-/** The toast after applying a preset. */
-export const appliedMessage = (name: string, target: "all" | "profile"): string =>
-  `Applied ${name} to ${target === "all" ? "all profiles" : "this profile"}`;
+/** Whether two sets of colour tokens hold the same values, whatever the key order. */
+export function sameTokens(a: ThemeTokens, b: ThemeTokens): boolean {
+  const keys = Object.keys(a) as (keyof ThemeTokens)[];
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
+}
+
+/** A look: the colour tokens, corner radius and widget style a scope shows. */
+export interface Look {
+  tokens: ThemeTokens;
+  radius: number;
+  style: ModuleSettings | undefined;
+}
 
 /**
- * The preset the current look is: same theme colours, corner radius and
- * every style key the preset sets (the first match; undefined = a custom look).
+ * Whether a look is the preset: same theme colours, corner radius and every style key the preset sets. A preset
+ * with no style keys matches only a look with none either, so a plain palette is not every saved Theme.
  */
-export function activePresetId(
-  presets: readonly AppearancePreset[],
-  look: { tokens: ThemeTokens; radius: number; style: ModuleSettings | undefined }
-): string | undefined {
-  const tokens = JSON.stringify(look.tokens);
-  return presets.find(
-    (p) =>
-      p.radius === look.radius &&
-      JSON.stringify(presetTokens(p)) === tokens &&
-      Object.entries(p.style).every(([key, value]) => look.style?.[key] === value)
-  )?.id;
+export function presetMatches(p: AppearancePreset, look: Look): boolean {
+  const own = Object.entries(p.style);
+  const plain = Object.keys(themedOf(look.style ?? {})).length === 0;
+  return (
+    p.radius === look.radius &&
+    sameTokens(presetTokens(p), look.tokens) &&
+    own.every(([key, value]) => look.style?.[key] === value) &&
+    (own.length > 0 || plain)
+  );
+}
+
+/** The preset the current look is (the first match; undefined = a custom look). */
+export function activePresetId(presets: readonly AppearancePreset[], look: Look): string | undefined {
+  return presets.find((p) => presetMatches(p, look))?.id;
 }

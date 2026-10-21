@@ -1,5 +1,5 @@
 /**
- * The Gauges page's editor, kept while the page is closed (spec §10: no blocking dialog on a mode
+ * The Gauges view's editor, kept while the page is closed (spec §10: no blocking dialog on a mode
  * switch). The page unmounts with the rail, so the open editor and its working copy live here, like the
  * inspector's hand-opened sections, and returning to Gauges restores them with their undo history.
  */

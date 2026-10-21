@@ -8,12 +8,13 @@ import {
   migrateGeneralV7,
   migrateProfileV6,
   migrateProfileV7,
+  migrateProfileV10,
   migrateProfileV8,
   migrateStyleV7,
   type LegacyProfileFields,
 } from "./settings-migrate";
 import { normalizeApiBase } from "./data-api";
-import { normalizeGeneral, type GeneralSettings } from "./general";
+import { normalizeFont, normalizeGeneral, type GeneralFont, type GeneralSettings } from "./general";
 import { normalizeSpacing } from "./profile-grid";
 import { YR_FORECAST_KEY } from "./sensors";
 import { mainPage, normalizeRotate } from "./pages";
@@ -191,8 +192,10 @@ export interface MonitorProfile {
   padding?: number;
   /** The Dynamic Island over the page (`src/lib/island`); unset = none. */
   island?: IslandConfig;
-  /** Max FPS and motion for this profile, over the dashboard's General settings; unset = the dashboard's. */
+  /** Max FPS and motion for this profile, over the Dashboard settings (all screens); unset = the dashboard's. */
   performance?: PerformanceOverride;
+  /** This profile's page font over the dashboard's `general.font` (`resolveFont`); unset = the dashboard's. */
+  font?: GeneralFont;
   /** Set on the profiles earlier versions shipped (Sample, ARCv2); kept, no longer read. */
   sampleVersion?: number;
 }
@@ -222,8 +225,12 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  * v9: panel widgets (`settings-migrate.ts` `migrateWidgetV9`): a Custom gauge widget's width under
  *     its own `width` and a Gauge widget's ring under `size`, both off `fontSize`; a v8 build would
  *     draw them at the default size.
+ * v10: the widget `preset` key is dropped (`settings-migrate.ts` `migratePlacementV10`); its values
+ *     already sit in the zone's settings, so a v9 build only loses the marker.
+ * v11: a sensor alert holds a list of `conditions` (`alerts.ts` `normalizeAlerts`); a rule saved with
+ *     one `key` / `op` / `value` becomes a one-item list, which a v10 build would drop as unreadable.
  */
-export const CONFIG_VERSION = 9;
+export const CONFIG_VERSION = 11;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -253,7 +260,7 @@ export interface DashboardConfig {
    * sits on (the base layer, no locks; see `theme-model.ts`).
    */
   style?: ModuleSettings;
-  /** Whole looks the user saved (Appearance gallery; see appearance-presets.ts). */
+  /** Whole looks the user saved (saved Themes; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
   /** Font, clock format, locale, motion and kiosk cursor (see general.ts). */
   general?: GeneralSettings;
@@ -419,6 +426,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     padding: normalizeSpacing(p.padding),
     island: normalizeIsland(p.island),
     performance: normalizePerformance(p.performance),
+    font: normalizeFont(p.font),
   };
 }
 
@@ -486,7 +494,8 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * v2→v3 moves a profile's zones onto its first page, v3→v4 rewrites the
  * legacy module ids to their templates, v5→v6 moves the style onto the
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
- * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it); a
+ * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
+ * drops the widget `preset` key; a
  * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
@@ -507,7 +516,8 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
       })
     )
     .map((p) => migrateProfileV7(p, { legacy: (parsed.version ?? 0) < 7 }))
-    .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }));
+    .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
+    .map(migrateProfileV10);
   // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
   const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
   // A pin to a profile that is gone falls back to Auto.
@@ -543,6 +553,15 @@ export function loadConfig(): DashboardConfig {
     return mergeConfig(JSON.parse(raw) as StoredConfig);
   } catch {
     return defaultConfig();
+  }
+}
+
+/** This browser holds a config of its own (none: a fresh install, or a browser that never opened the studio). */
+export function hasStoredConfig(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
   }
 }
 

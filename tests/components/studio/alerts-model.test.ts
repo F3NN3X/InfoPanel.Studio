@@ -24,7 +24,7 @@ const rule = (over: Partial<AlertRule> = {}): AlertRule => ({
   name: "GPU hot",
   enabled: true,
   severity: "warning",
-  source: { kind: "sensor", key: "gpu.temp", op: ">", value: 80, forSeconds: 10 },
+  source: { kind: "sensor", conditions: [{ key: "gpu.temp", op: ">", value: 80 }], forSeconds: 10 },
   cooldownSeconds: 60,
   outputs: {},
   ...over,
@@ -32,19 +32,29 @@ const rule = (over: Partial<AlertRule> = {}): AlertRule => ({
 
 describe("summarizeRule", () => {
   it("writes a sensor threshold with unit and duration", () => {
-    expect(summarizeRule(rule(), { name: "GPU Temperature", unit: "°C" })).toBe("GPU Temperature > 80 °C for 10 s");
+    expect(summarizeRule(rule(), [{ name: "GPU Temperature", unit: "°C" }])).toBe("GPU Temperature > 80 °C for 10 s");
   });
   it("falls back to the key's last segment, and asks for a sensor when empty", () => {
     expect(summarizeRule(rule())).toBe("temp > 80 for 10 s");
-    expect(summarizeRule(rule({ source: { kind: "sensor", key: "", op: ">", value: 1, forSeconds: 0 } }))).toBe("Pick a sensor");
+    expect(summarizeRule(rule({ source: { kind: "sensor", conditions: [{ key: "", op: ">", value: 1 }], forSeconds: 0 } }))).toBe("Pick a sensor");
   });
   it("writes text and change conditions", () => {
     const s = (op: "contains" | "changes" | "=" | "missing", value: string | number, forSeconds = 0) =>
-      rule({ source: { kind: "sensor", key: "a.status", op, value, forSeconds } });
+      rule({ source: { kind: "sensor", conditions: [{ key: "a.status", op, value }], forSeconds } });
     expect(summarizeRule(s("contains", "down"))).toBe("status contains “down”");
     expect(summarizeRule(s("changes", 0))).toBe("status changes");
     expect(summarizeRule(s("missing", 0, 30))).toBe("status stops reporting for 30 s");
     expect(summarizeRule(s("=", "down"))).toBe("status = down");
+  });
+  it("joins several conditions with or, labelling each and holding once", () => {
+    const two = rule({
+      source: { kind: "sensor", conditions: [{ key: "cpu.temp", op: ">", value: 95 }, { key: "gpu.temp", op: ">", value: 85 }], forSeconds: 10 },
+    });
+    expect(summarizeRule(two, [{ name: "CPU", unit: "°C" }, { name: "GPU", unit: "°C" }])).toBe("CPU > 95 °C or GPU > 85 °C for 10 s");
+    const blank = rule({
+      source: { kind: "sensor", conditions: [{ key: "", op: ">", value: 1 }, { key: "gpu.temp", op: ">", value: 85 }], forSeconds: 0 },
+    });
+    expect(summarizeRule(blank)).toBe("temp > 85");
   });
   it("writes notification sources", () => {
     const n = (source: AlertRule["source"]) => rule({ source });
@@ -127,13 +137,13 @@ describe("history and preview", () => {
     expect(clearLabel("=")).toBeNull();
   });
   it("previews whether the rule would fire now", () => {
-    const s = rule().source;
+    const s = { key: "gpu.temp", op: ">" as const, value: 80 };
     expect(previewSensor(s, { value: 90, unit: "°C" })).toEqual({ value: "90 °C", state: "fires" });
     expect(previewSensor(s, { value: 50, unit: "°C" }).state).toBe("ok");
     expect(previewSensor(s, undefined)).toEqual({ value: null, state: "nodata" });
-    expect(previewSensor({ kind: "sensor", key: "a", op: "contains", value: "dow", forSeconds: 0 }, { text: "Down", unit: "" }).state).toBe("fires");
-    expect(previewSensor({ kind: "sensor", key: "a", op: "changes", value: 0, forSeconds: 0 }, { value: 1, unit: "" }).state).toBe("event");
-    const missing = { kind: "sensor" as const, key: "a", op: "missing" as const, value: 0, forSeconds: 30 };
+    expect(previewSensor({ key: "a", op: "contains", value: "dow" }, { text: "Down", unit: "" }).state).toBe("fires");
+    expect(previewSensor({ key: "a", op: "changes", value: 0 }, { value: 1, unit: "" }).state).toBe("event");
+    const missing = { key: "a", op: "missing" as const, value: 0 };
     expect(previewSensor(missing, { value: 1, unit: "" }).state).toBe("ok");
     expect(previewSensor(missing, undefined).state).toBe("nodata");
   });

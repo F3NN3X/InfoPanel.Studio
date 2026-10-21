@@ -18,7 +18,7 @@ import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
 import { SCROLL_ROW_H, type ProfileView, type Placement } from "@/lib/layout";
-import { fontStack } from "@/lib/general";
+import { fontStack, resolveFont } from "@/lib/general";
 import {
   cellAt as gridCellAt,
   profileGap,
@@ -413,7 +413,7 @@ export function StudioCanvas({
     return zoneBox(r, { width: colW, height: rowHd }, gap);
   };
 
-  const font = fontStack(useGeneral().font);
+  const font = fontStack(resolveFont(useGeneral(), profile));
 
   const dragged = zoneDrag
     ? profile.placements.find((x) => x.id === zoneDrag.id)

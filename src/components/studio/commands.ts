@@ -1,7 +1,7 @@
 import type { MonitorProfile, Placement, Widget } from "@/lib/layout";
 import type { AppearanceTarget } from "./inspector/profile-scope";
-import type { Drawer } from "./left-rail";
-import { allSections, type DocumentTab, type InspectorContext } from "./inspector-model";
+import { allSections, type InspectorContext } from "./inspector-model";
+import type { NavTarget } from "./studio-nav";
 import { placementTitle } from "./studio-modules";
 import { KEYS } from "./use-studio-shortcuts";
 import { widgetName } from "./widget-kinds";
@@ -13,9 +13,9 @@ export type CommandAction =
   | { type: "add-preset"; id: string }
   | { type: "profile"; id: string }
   | { type: "drawer"; drawer: Drawer }
-  | { type: "alerts-open" }
   | { type: "alert-new" }
-  | { type: "sources" }
+  | { type: "live" }
+  | { type: "help" }
   | { type: "toggle-grid" }
   | { type: "toggle-dock" }
   | { type: "zoom-fit" }
@@ -24,7 +24,6 @@ export type CommandAction =
   | { type: "save" }
   | { type: "export" }
   | { type: "import" }
-  | { type: "copy-profile" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "shortcuts" }
@@ -42,7 +41,8 @@ export type CommandAction =
   | { type: "widget-paste" }
   | { type: "widget-move"; delta: -1 | 1 }
   | { type: "goto-card"; id: string }
-  | { type: "document-tab"; tab: DocumentTab }
+  /** A link's home: a view with its tab and section (Settings, Data). */
+  | { type: "navigate"; target: NavTarget }
   | { type: "follow-all" }
   | { type: "toggle-enforce" }
   | { type: "apply-appearance"; id: string }
@@ -52,7 +52,8 @@ export type CommandAction =
   | { type: "use-global"; target: AppearanceTarget }
   | { type: "edit-style" }
   | { type: "bind-data" }
-  | { type: "edit-theme" }
+  /** Theme, as the rail opens it, at a card (Background, Typography) or the first. */
+  | { type: "open-theme"; section?: string }
   | { type: "copy-style" }
   | { type: "paste-style" }
   | { type: "follow-global" }
@@ -101,19 +102,28 @@ export interface CommandState {
   canUndo: boolean;
   canRedo: boolean;
   showGrid: boolean;
-  showSources: boolean;
   /** Every section of the profile theme is locked (the palette's lock-all). */
   enforced: boolean;
-  /** Built-in and saved appearance presets (applied to all profiles). */
+  /** The saved Themes (applied to All screens). */
   appearancePresets: { id: string; name: string }[];
 }
 
-const DRAWERS: { drawer: Drawer; label: string }[] = [
-  { drawer: "add", label: "Add" },
-  { drawer: "layers", label: "Layers" },
-  { drawer: "profiles", label: "Profiles" },
-  { drawer: "island", label: "Dynamic Island" },
-  { drawer: "alerts", label: "Alerts" },
+/** The Design left panel's two tabs. */
+export type Drawer = "add" | "layers";
+
+/** One entry per destination (SPEC §13): the views, and the tabs of Alerts & Island and Settings. */
+const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: string }[] = [
+  { id: "design", label: "Design", target: { view: "design" }, hint: "the canvas" },
+  { id: "library", label: "Library", target: { view: "library" }, hint: "themes, styles, panels, media, fonts, canvases" },
+  { id: "gauges", label: "Gauges", target: { view: "gauges" }, hint: "build and edit gauges" },
+  { id: "data", label: "Data", target: { view: "data" }, hint: "sources, points, display names" },
+  { id: "alerts", label: "Alerts & Island", target: { view: "alerts" } },
+  { id: "alerts:rules", label: "Alerts & Island › Rules", target: { view: "alerts", tab: "rules" } },
+  { id: "alerts:island", label: "Alerts & Island › Island", target: { view: "alerts", tab: "island" }, hint: "Dynamic Island" },
+  { id: "alerts:defaults", label: "Alerts & Island › Defaults", target: { view: "alerts", tab: "defaults" } },
+  { id: "alerts:history", label: "Alerts & Island › History", target: { view: "alerts", tab: "history" } },
+  { id: "settings:studio", label: "Settings › Studio", target: { view: "settings", tab: "studio" }, hint: "editor preferences" },
+  { id: "settings:app", label: "Settings › App", target: { view: "settings", tab: "app" }, hint: "startup, server and updates" },
 ];
 
 function generalCommands(s: CommandState): Command[] {
@@ -128,28 +138,32 @@ function generalCommands(s: CommandState): Command[] {
     general("save", "Save", { type: "save" }, KEYS.save),
     ...(s.canUndo ? [general("undo", "Undo", { type: "undo" }, KEYS.undo)] : []),
     ...(s.canRedo ? [general("redo", "Redo", { type: "redo" }, KEYS.redo)] : []),
-    general("export", "Export config", { type: "export" }),
-    general("import", "Import config…", { type: "import" }),
-    general("copy-profile", "Copy profile JSON", { type: "copy-profile" }),
+    general("export", "Export & back up…", { type: "export" }),
+    general("import", "Import…", { type: "import" }),
     general("shortcuts", "Keyboard shortcuts", { type: "shortcuts" }, KEYS.cheatsheet),
-    ...DRAWERS.map(({ drawer, label }) =>
-      general(`drawer:${drawer}`, `Open drawer: ${label}`, { type: "drawer", drawer })
-    ),
-    general("alerts-open", "Open alerts", { type: "alerts-open" }),
+    general("live", "Open Live", { type: "live" }, "kiosk control"),
+    general("manage-screens", "Manage screens…", { type: "navigate", target: { view: "screens" } }),
+    general("drawer:add", "Design › Add widget", { type: "drawer", drawer: "add" }),
+    general("drawer:layers", "Design › Layers", { type: "drawer", drawer: "layers" }),
+    ...DESTINATIONS.map(({ id, label, target, hint }) => general(`go:${id}`, label, { type: "navigate", target }, hint)),
+    general("help", "Help", { type: "help" }, "F1"),
     general("alert-new", "New alert rule", { type: "alert-new" }),
-    general("background", "Background…", { type: "document-tab", tab: "background" }),
-    general("appearance", "Appearance…", { type: "document-tab", tab: "appearance" }),
-    general("font", "Font…", { type: "document-tab", tab: "font" }, "page font, type"),
-    general("general", "General settings…", { type: "document-tab", tab: "general" }, "clock, locale, cursor, page dots"),
-    general("connection", "Connection…", { type: "document-tab", tab: "connection" }, "Data API URL"),
-    general("theme", "Theme editor…", { type: "edit-theme" }, "profile and page themes, locks"),
-    general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this profile"),
+    general("theme", "Theme", { type: "open-theme" }, "colors, skins, saved themes, locks"),
+    general("background", "Theme › Background", { type: "open-theme", section: "background" }),
+    general("font", "Theme › Typography", { type: "open-theme", section: "type" }, "page font, type"),
+    general(
+      "settings",
+      "Settings › Dashboard",
+      { type: "navigate", target: { view: "settings", tab: "dashboard" } },
+      "performance, clock, locale, cursor, page dots"
+    ),
+    general("connection", "Data › Connection", { type: "navigate", target: { view: "data", section: "connection", control: "url" } }, "Data API URL"),
+    general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this screen"),
     general(
       "toggle-enforce",
       s.enforced ? "Unlock every theme section" : "Lock every theme section",
       { type: "toggle-enforce" }
     ),
-    general("sources", s.showSources ? "Back to Design" : "Open Sources", { type: "sources" }),
     general("grid", s.showGrid ? "Hide grid" : "Show grid", { type: "toggle-grid" }),
     general("toggle-dock", "Toggle inspector", { type: "toggle-dock" }, KEYS.dock),
     general("zoom-fit", "Zoom to fit", { type: "zoom-fit" }, KEYS.fit),
@@ -221,9 +235,9 @@ function styleCommands(): Command[] {
   return [
     style("copy", "Copy style", { type: "copy-style" }, KEYS.copyStyle),
     style("paste", "Paste style", { type: "paste-style" }, KEYS.pasteStyle),
-    style("follow", "Follow global style", { type: "follow-global" }),
-    style("global-all", "Use as global style: all profiles", { type: "use-global", target: "all" }),
-    style("global-profile", "Use as global style: this profile", { type: "use-global", target: "profile" }),
+    style("follow", "Make it follow", { type: "follow-global" }),
+    style("global-all", "Make this the theme for all screens", { type: "use-global", target: "all" }),
+    style("global-profile", "Make this the theme for this screen", { type: "use-global", target: "profile" }),
   ];
 }
 
@@ -242,7 +256,7 @@ function selectedCommands(selected: Placement, widgetKeys: boolean, context: Ins
   });
   return [
     zone("pick", "Pick widget…", { type: "pick-widget" }),
-    ...(selected.panel ? [zone("save-preset", "Save panel as preset…", { type: "save-panel-preset" })] : []),
+    ...(selected.panel ? [zone("save-preset", "Save as Panel", { type: "save-panel-preset" })] : []),
     zone("duplicate", "Duplicate zone", { type: "duplicate" }, widgetKeys ? undefined : KEYS.duplicate),
     zone(
       "visible",
@@ -358,9 +372,9 @@ export function buildCommands(s: CommandState): Command[] {
     ...s.appearancePresets.map(
       (p): Command => ({
         id: `appearance:${p.id}`,
-        label: `Apply appearance: ${p.name}`,
-        group: "Appearance",
-        hint: "all profiles",
+        label: `Apply theme: ${p.name}`,
+        group: "Themes",
+        hint: "All screens",
         action: { type: "apply-appearance", id: p.id },
       })
     ),
@@ -378,14 +392,14 @@ export function buildCommands(s: CommandState): Command[] {
     {
       id: "profile:auto",
       label: "When the app opens: best fit for the window",
-      group: "Profiles",
+      group: "Screens",
       action: { type: "profile", id: "auto" },
     },
     ...s.profiles.map(
       (p): Command => ({
         id: `profile:${p.id}`,
-        label: `Edit profile: ${p.name}`,
-        group: "Profiles",
+        label: `Edit screen: ${p.name}`,
+        group: "Screens",
         hint: `${p.width}×${p.height}`,
         action: { type: "profile", id: p.id },
       })

@@ -1,4 +1,11 @@
 @import "tailwindcss";
+/* Settings › App's color tokens (the s-* utilities of src/settings). */
+@import "./settings/tokens.css";
+
+/* The studio's phone width (SPEC §3.5, `PHONE_MAX`): `sm:` and `max-sm:` switch at 600 px, not Tailwind's 640. */
+@theme {
+  --breakpoint-sm: 600px;
+}
 
 /* shadcn theme tokens.
    The raw token variables are HSL triplets ("240 10% 3.9%") written to the
@@ -349,6 +356,11 @@
 /* An item no longer stretched to the row's height still fits in it (layered below the utilities,
    so an item's own max-h-* stays). */
 @layer components {
+  /* Fields mark focus with the accent border; the ring beside it keeps the focus visible on any surface (SPEC §15). */
+  :is(input:not([type="range"], [type="checkbox"], [type="radio"]), select, textarea):focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ui-accent) 40%, transparent);
+  }
+
   /* The studio canvas's hand tool (use-hand-pan): over everything on the canvas, zones included. */
   [data-hand="grab"],
   [data-hand="grab"] * {

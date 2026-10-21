@@ -1,30 +1,23 @@
 import { GENERAL_DEFAULTS } from "@/lib/general";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import type { PerformanceOverride } from "@/lib/performance";
-import type { ThemeTokens } from "@/lib/theme";
-import { SECTION_IDS, withAllLocked, withThemeValues, type WidgetTheme } from "@/lib/theme-model";
+import { withThemeValues } from "@/lib/theme-model";
 
 /**
- * The profile inspector's All profiles | This profile switches, as data. A section is "This
- * profile" while the profile holds its own value (the key is present) and "All profiles" while
- * it doesn't; the switch only adds or drops that key, so nothing new is stored. Pure config
- * updates the studio runs through its history setter.
+ * A screen's own value of the two-level data, as data. A section is the screen's ("This profile")
+ * while the profile holds its own value (the key is present) and All screens' while it doesn't;
+ * switching only adds or drops that key, so nothing new is stored. Pure config updates the studio
+ * runs through its history setter: the inheritance chips' Screen level (`inheritance-actions.ts`)
+ * and the Performance switch the old profile inspector keeps until Screens takes it.
  */
 
 export type LookScope = "all" | "profile";
-/** Which level a style, background or preset edit writes to (the same two scopes). */
+/** Which level a palette style edit writes to (the same two scopes). */
 export type AppearanceTarget = LookScope;
-export type BackgroundTarget = LookScope;
 
-/** A profile's own theme: unset fields = the dashboard's. */
-export interface ProfileTheme {
-  theme?: Partial<ThemeTokens>;
-  radius?: number;
-}
+export type ScopedSection = "theme" | "style" | "background" | "performance" | "font";
 
-export type ScopedSection = "theme" | "style" | "background" | "performance";
-
-type Own = Pick<MonitorProfile, "theme" | "radius" | "widgetTheme" | "background" | "performance">;
+type Own = Pick<MonitorProfile, "theme" | "radius" | "widgetTheme" | "background" | "performance" | "font">;
 
 /** Where a section's edits go: the profile's own value is present, else the dashboard's. */
 export function scopeOf(profile: Own, section: ScopedSection): LookScope {
@@ -35,7 +28,9 @@ export function scopeOf(profile: Own, section: ScopedSection): LookScope {
         ? profile.widgetTheme?.values !== undefined
         : section === "background"
           ? profile.background !== undefined
-          : profile.performance !== undefined;
+          : section === "performance"
+            ? profile.performance !== undefined
+            : profile.font !== undefined;
   return own ? "profile" : "all";
 }
 
@@ -67,18 +62,15 @@ function profileInScope(config: DashboardConfig, p: MonitorProfile, section: Sco
               motion: config.general?.motion ?? GENERAL_DEFAULTS.motion,
             },
           };
+    case "font":
+      // The page font starts at the dashboard's (SPEC §11.1).
+      return scope === "all" ? without(p, "font") : { ...p, font: config.general?.font ?? GENERAL_DEFAULTS.font };
   }
 }
 
 /** The config with one profile's section switched to a scope (starting from the shared values). */
 export function withScope(config: DashboardConfig, profileId: string, section: ScopedSection, scope: LookScope): DashboardConfig {
   return { ...config, profiles: config.profiles.map((p) => (p.id === profileId ? profileInScope(config, p, section, scope) : p)) };
-}
-
-/** Corners follow the Theme switch: the dashboard's radius, or the profile's own. */
-export function withRadius(config: DashboardConfig, profileId: string, scope: LookScope, radius: number): DashboardConfig {
-  if (scope === "all") return { ...config, radius };
-  return { ...config, profiles: config.profiles.map((p) => (p.id === profileId ? { ...p, radius } : p)) };
 }
 
 /** A profile's performance override with one key set; undefined when nothing is left. */
@@ -89,15 +81,3 @@ export function withPerformance(
   const next = Object.fromEntries(Object.entries({ ...performance, ...patch }).filter(([, v]) => v !== undefined));
   return Object.keys(next).length > 0 ? next : undefined;
 }
-
-export type LockState = "all" | "some" | "none";
-
-/** Whether every widget-theme section is locked, only some, or none. */
-export function lockState(theme: WidgetTheme | undefined): LockState {
-  const locked = SECTION_IDS.filter((sec) => theme?.locks?.[sec] === true).length;
-  return locked === SECTION_IDS.length ? "all" : locked > 0 ? "some" : "none";
-}
-
-/** The "Apply to every widget" toggle: all locked unlocks them, anything less locks every section. */
-export const toggleLockAll = (theme: WidgetTheme | undefined): WidgetTheme | undefined =>
-  withAllLocked(theme, lockState(theme) !== "all");

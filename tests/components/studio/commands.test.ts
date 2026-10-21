@@ -37,7 +37,6 @@ const base: CommandState = {
   canUndo: false,
   canRedo: false,
   showGrid: true,
-  showSources: false,
   enforced: false,
   appearancePresets: [],
 };
@@ -52,11 +51,15 @@ describe("buildCommands", () => {
     expect(list).toContain("profile:auto");
     expect(list).toContain("profile:p1");
     expect(list.filter((id) => id.startsWith("select:"))).toEqual(["select:a", "select:b"]);
-    for (const id of ["save", "export", "import", "copy-profile", "shortcuts", "grid", "zoom-fit"]) {
+    for (const id of ["save", "export", "import", "shortcuts", "grid", "zoom-fit"]) {
       expect(list).toContain(id);
     }
     expect(list).toContain("drawer:add");
-    expect(list).toContain("sources");
+    // One entry per destination, plus Live, Manage screens and Help (SPEC §13), and none of the retired "Open drawer" ones.
+    for (const id of ["live", "manage-screens", "help", "go:design", "go:library", "go:data", "go:alerts", "go:settings:app", "theme", "settings"]) {
+      expect(list).toContain(id);
+    }
+    expect(list.filter((id) => id.startsWith("drawer:"))).toEqual(["drawer:add", "drawer:layers"]);
   });
 
   it("lists undo / redo only when there is something to undo / redo", () => {

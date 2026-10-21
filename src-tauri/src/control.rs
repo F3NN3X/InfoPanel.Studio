@@ -16,7 +16,6 @@ pub const STATUS_EVENT: &str = "server-status";
 
 /// The server permissions the studio page gets on its origin.
 const STUDIO_PERMISSIONS: &[&str] = &[
-    "allow-open-settings",
     "allow-open-help",
     "allow-kiosk-window",
     "allow-save-text-file",
@@ -28,6 +27,38 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-flush-done",
     // Ctrl + / - / 0 in the studio.
     "allow-set-zoom",
+    // Settings › App, the desktop settings pages inside the studio: exactly the commands they call
+    // (src/settings/ipc.ts), and the status bar's first reads.
+    "allow-get-settings",
+    "allow-set-setting",
+    "allow-server-status",
+    "allow-start-server",
+    "allow-stop-server",
+    "allow-restart-server",
+    "allow-server-stats",
+    "allow-foreign-server-info",
+    "allow-use-foreign-server",
+    "allow-stop-foreign-server",
+    "allow-list-local-addresses",
+    "allow-set-agents",
+    "allow-agents-status",
+    "allow-repair-agents",
+    "allow-open-agent-backups",
+    "allow-update-state",
+    "allow-check-for-update",
+    "allow-download-update",
+    "allow-cancel-update",
+    "allow-install-update",
+    "allow-get-diagnostics",
+    "allow-open-logs-folder",
+    "allow-open-devtools",
+    "allow-read-log",
+    "allow-reveal-path",
+    "allow-app-info",
+    "allow-changelog",
+    "allow-open-external",
+    // The tray's Settings request that arrived before the page could listen.
+    "allow-take-pending-settings",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     // The studio's top bar is the window's title bar (the window has no native frame).
@@ -628,6 +659,19 @@ fn stop_dashboard_on_port(app: &AppHandle) -> Result<String, String> {
 mod tests {
     use super::*;
     use crate::settings::Listen;
+
+    #[test]
+    fn studio_permissions_are_unique_and_leave_the_settings_window_to_the_start_page() {
+        let mut seen = std::collections::HashSet::new();
+        for p in STUDIO_PERMISSIONS {
+            assert!(seen.insert(*p), "{p} is listed twice");
+        }
+        // Nothing in the studio opens the separate Settings window; the pages it replaces are all granted.
+        assert!(!STUDIO_PERMISSIONS.contains(&"allow-open-settings"));
+        for command in ["allow-get-settings", "allow-set-setting", "allow-server-status", "allow-update-state", "allow-take-pending-settings"] {
+            assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
+        }
+    }
 
     #[test]
     fn port_search_starts_at_from_and_skips_taken_ports() {

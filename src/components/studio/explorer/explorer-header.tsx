@@ -11,16 +11,13 @@ interface ExplorerHeaderProps {
   pointCount: number;
   sourceCount: number;
   apiBase: string;
-  /** The `system.bridge.status` text ("running"); empty when the API has not reported one. */
-  status: string;
 }
 
 const MENU_ITEM =
   "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] text-ui-2 hover:bg-ui-hover hover:text-ui-1";
 
-/** The explorer's top bar: title and counts, the API status pill, Endpoints and Add source. */
-export function ExplorerHeader({ pointCount, sourceCount, apiBase, status }: ExplorerHeaderProps) {
-  const running = status === "running";
+/** The Data view's top bar: title and counts, Endpoints and Add source (the connection is its own card). */
+export function ExplorerHeader({ pointCount, sourceCount, apiBase }: ExplorerHeaderProps) {
   const copy = useCopy();
   const toast = useToast();
   const endpoints = useEndpoints();
@@ -39,17 +36,11 @@ export function ExplorerHeader({ pointCount, sourceCount, apiBase, status }: Exp
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4 py-3 font-ui">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="text-[14px] font-semibold leading-[1.2] text-ui-1">Data sources</div>
+        <div className="text-[14px] font-semibold leading-[1.2] text-ui-1">Data</div>
         <div className="text-[11.5px] leading-[1.2] text-ui-4">
           {pointCount} data points from {sourceCount} sources
         </div>
       </div>
-
-      <span className="inline-flex h-[30px] items-center gap-[7px] whitespace-nowrap rounded-full border border-ui-default px-[11px] text-[11.5px] text-ui-2">
-        <span className={cn("h-[7px] w-[7px] rounded-full", running ? "bg-ui-success" : "bg-ui-warning")} />
-        Data API {status || "unknown"}
-        <span className="font-ui-mono text-ui-5">· live via SSE</span>
-      </span>
 
       <div ref={actionsRef} className="flex items-center gap-3">
         <Popover

@@ -4,11 +4,9 @@ import {
   Bell,
   Blocks,
   Brush,
-  Clock,
   Code,
   Database,
   Frame,
-  Gauge,
   Heading,
   History,
   Image,
@@ -17,17 +15,12 @@ import {
   LayoutTemplate,
   type LucideIcon,
   Maximize2,
-  Monitor,
   MousePointerClick,
   Move,
   Palette,
-  PanelTop,
   Pill,
-  Plug,
-  Repeat,
   Ruler,
   Scaling,
-  Settings2,
   SlidersHorizontal,
   Sparkles,
   SquareDashed,
@@ -74,18 +67,6 @@ const BY_ID: Record<string, { icon: LucideIcon; short: string }> = {
   "item-bind": { icon: Database, short: "Binding" },
   "item-history": { icon: History, short: "History" },
   "item-fill": { icon: ArrowLeftRight, short: "Fill" },
-  "ly-screen": { icon: Monitor, short: "Screen" },
-  "ly-grid": { icon: LayoutGrid, short: "Grid" },
-  "lk-theme": { icon: Palette, short: "Theme" },
-  "lk-style": { icon: Brush, short: "Style" },
-  "lk-bg": { icon: Image, short: "Backdrop" },
-  "bh-pages": { icon: Repeat, short: "Pages" },
-  "bh-island": { icon: PanelTop, short: "Island" },
-  "bh-performance": { icon: Gauge, short: "Speed" },
-  "bh-clock": { icon: Clock, short: "Clock" },
-  "bh-display": { icon: Monitor, short: "Display" },
-  "bh-studio": { icon: Settings2, short: "Studio" },
-  "bh-conn": { icon: Plug, short: "API" },
   alerts: { icon: Bell, short: "Alerts" },
 };
 
@@ -95,6 +76,9 @@ const baseId = (id: string) => id.replace(/@.*$/, "");
 export function sectionIcon(section: Pick<InspectorSection, "id">): LucideIcon {
   return BY_ID[baseId(section.id)]?.icon ?? SlidersHorizontal;
 }
+
+/** The icon of a section by its id (a page's look cards). */
+export const sectionIconById = (id: string): LucideIcon => sectionIcon({ id });
 
 /** One word for a tool tile ("Skin & graphics" → "Skin"). */
 export function sectionShort(section: Pick<InspectorSection, "id" | "title">): string {

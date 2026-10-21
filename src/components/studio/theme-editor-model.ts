@@ -1,11 +1,9 @@
-import type { DashboardConfig, MonitorProfile, Placement } from "@/lib/layout";
+import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { pageOf } from "@/lib/pages";
 import { resolveStyle, type Appearance, type StyleSource } from "@/lib/style-resolve";
 import {
-  isLocked,
   pageCustom,
   sectionOfKey,
-  SECTION_IDS,
   withAllLocked,
   withSectionFlag,
   withThemeValues,
@@ -13,30 +11,18 @@ import {
   type ThemeLevels,
   type WidgetTheme,
 } from "@/lib/theme-model";
-import { modules } from "@/modules";
 import type { ModuleSettings } from "@/modules/types";
 import { SHARED_SECTIONS } from "./inspector-categories";
-import {
-  allSections,
-  followInfo,
-  followSection,
-  rowSection,
-  widgetContext,
-  type FollowMode,
-  type LookValues,
-  type ThemeScopeKind,
-} from "./inspector-model";
-import { withFollow } from "./inspector/zone-fields";
-import type { FieldsApi } from "./settings-panel";
+import type { LookValues, ThemeScopeKind } from "./inspector-model";
 
 /**
- * The theme editor as data (SPEC §7): the level a scope edits, what its
- * rows show, its Follow bars (a profile's Lock, a page's Customize / Use
- * profile), the edits as config → config updates, and the middle
- * column's previews and "Who doesn't follow the theme". Pure.
+ * The theme levels as data (SPEC §7): the level a scope edits, what its
+ * rows show and the widget-style edits as config → config updates. Pure.
+ * Theme's cards (`theme-cards.ts`) and Exceptions (`theme-exceptions.ts`)
+ * build on these.
  *
- * Scopes (owner decision Q1): All profiles (the base layer, no locks) ·
- * the profile theme (values + locks) · each page (values + follow per section).
+ * Scopes (owner decision Q1): All screens (the base layer, no locks) ·
+ * a screen (values + locks) · each page (values + follow per section).
  */
 
 export type ThemeScope = { kind: "base" } | { kind: "profile" } | { kind: "page"; pageId: string };
@@ -62,13 +48,6 @@ export function scopeAppearance(config: DashboardConfig, profile: MonitorProfile
     profileName: profile.name,
     pageName: page?.name,
   };
-}
-
-/** What a scope stores (the base layer as a theme of values only). */
-export function themeOf(config: DashboardConfig, profile: MonitorProfile, scope: ThemeScope): WidgetTheme | undefined {
-  if (scope.kind === "base") return config.style ? { values: config.style } : undefined;
-  if (scope.kind === "profile") return profile.widgetTheme;
-  return pageOf(profile, scope.pageId).widgetTheme;
 }
 
 const sourcesOf = (keys: Iterable<string>, source: StyleSource): Record<string, StyleSource> =>
@@ -151,155 +130,5 @@ export const withPageFollow = (
   follows: boolean
 ): DashboardConfig => withScopeTheme(config, profileId, { kind: "page", pageId }, (t) => withSectionFlag(t, "follow", sec, follows));
 
-/** Reset to theme: these zones of a page follow the section again; their own values stay stored. */
-export function withZonesFollowing(
-  config: DashboardConfig,
-  profileId: string,
-  pageId: string,
-  sec: SectionId,
-  ids: readonly string[]
-): DashboardConfig {
-  const reset = new Set(ids);
-  return {
-    ...config,
-    profiles: config.profiles.map((p) =>
-      p.id !== profileId
-        ? p
-        : {
-            ...p,
-            pages: p.pages.map((pg) =>
-              pg.id !== pageId ? pg : { ...pg, placements: pg.placements.map((z) => (reset.has(z.id) ? withFollow(z, sec, true) : z)) }
-            ),
-          }
-    ),
-  };
-}
-
-// -- follow bars ------------------------------------------------------------------
-
-/**
- * How many of a page's widgets are custom for a section (what "Who doesn't
- * follow" lists for it): none while the profile locks it, they follow anyway.
- */
-export const customCount = (placements: readonly Placement[], levels: ThemeLevels, sec: SectionId): number =>
-  isLocked(levels, sec) ? 0 : placements.filter((z) => z.follow?.[sec] === false).length;
-
-export interface ThemeFollowActions {
-  /** Profile scope: lock or unlock a section. */
-  onLock: (sec: SectionId, on: boolean) => void;
-  /** Page scope: Customize (`false`) or Use profile (`true`). */
-  onPageFollow: (sec: SectionId, follows: boolean) => void;
-}
-
-/**
- * A scope's Follow bars (SPEC §4.1) and read-only rows. Profile: "Default
- * for all widgets · N custom on <page>" (the page `listed` shows) with Lock / Unlock. Page: "Follows the
- * profile theme" with Customize, or "Custom for <page>" with Use profile;
- * a section the profile locks is "Locked by the profile theme" and
- * read-only. The base layer has no bars.
- */
-export function themeFollowFields(
-  appearance: Appearance,
-  listed: { name: string; placements: readonly Placement[] },
-  scope: ThemeScopeKind,
-  actions: ThemeFollowActions
-): Pick<FieldsApi, "follow" | "readOnly"> {
-  if (scope === "base") return {};
-  const mode = (sec: SectionId): FollowMode =>
-    isLocked(appearance, sec) ? "locked" : scope === "page" && pageCustom(appearance, sec) ? "custom" : "theme";
-  return {
-    follow: (s) => {
-      const sec = followSection(s);
-      if (!sec) return undefined;
-      const { from, level } = followInfo(appearance, undefined, sec);
-      if (scope === "profile")
-        return {
-          mode: mode(sec),
-          from,
-          level,
-          onCustomize: () => {},
-          onUseTheme: () => {},
-          scope: {
-            kind: "profile",
-            custom: customCount(listed.placements, appearance, sec),
-            pageName: listed.name,
-            onLock: (on) => actions.onLock(sec, on),
-          },
-        };
-      return {
-        mode: mode(sec),
-        from,
-        level,
-        onCustomize: () => actions.onPageFollow(sec, false),
-        onUseTheme: () => actions.onPageFollow(sec, true),
-        scope: { kind: "page", pageName: appearance.pageName ?? "this page" },
-      };
-    },
-    readOnly:
-      scope === "page"
-        ? (def) => {
-            const sec = rowSection(def);
-            return sec !== undefined && mode(sec) !== "custom";
-          }
-        : undefined,
-  };
-}
-
-// -- the middle column ----------------------------------------------------------------
-
-/** The section names "Who doesn't follow" lists (a widget's: Widget colors, not the palette). */
+/** A section's name (a widget's: Widget colors, not the palette). */
 export const sectionTitle = (sec: SectionId): string => SHARED_SECTIONS.find((s) => s.id === sec)?.title ?? sec;
-
-export interface Override {
-  sec: SectionId;
-  title: string;
-  /** The page's widgets custom for the section. */
-  zones: Placement[];
-  /** The profile locks it: they show the theme anyway (no Reset). */
-  locked: boolean;
-}
-
-/** "Who doesn't follow the theme": per section, the widgets of a page with it custom. */
-export const overridesOf = (placements: readonly Placement[], levels: ThemeLevels): Override[] =>
-  SECTION_IDS.map((sec) => ({
-    sec,
-    title: sectionTitle(sec),
-    zones: placements.filter((z) => z.follow?.[sec] === false),
-    locked: isLocked(levels, sec),
-  }));
-
-/** The three widgets the previews show (SPEC §7). */
-export const PREVIEW_MODULES: readonly string[] = ["CpuMonitor", "Weather", "AudioMeter"];
-
-/** The previews' zones: the page's first widget of each kind (its own values and follow), else a fresh one. */
-export const previewZones = (placements: readonly Placement[]): Placement[] =>
-  PREVIEW_MODULES.map(
-    (module) =>
-      placements.find((z) => z.module === module) ?? {
-        id: `theme-preview:${module}`,
-        module,
-        colStart: 1,
-        rowStart: 1,
-        colSpan: 3,
-        rowSpan: 2,
-        visible: true,
-      }
-  );
-
-export interface SourceChip {
-  sec: SectionId;
-  title: string;
-  mode: FollowMode;
-}
-
-/** A preview's source chips: each followable section of its widget, Theme / Custom / Locked. */
-export function sourceChips(zone: Placement, appearance: Appearance): SourceChip[] {
-  const mod = modules.find((m) => m.id === zone.module);
-  if (!mod) return [];
-  const secs = new Set(allSections(widgetContext(mod)).flatMap((s) => followSection(s) ?? []));
-  return SECTION_IDS.filter((sec) => secs.has(sec)).map((sec) => ({
-    sec,
-    title: sectionTitle(sec),
-    mode: followInfo(appearance, zone.follow, sec).mode,
-  }));
-}

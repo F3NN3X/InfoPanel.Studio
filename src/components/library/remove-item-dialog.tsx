@@ -29,7 +29,7 @@ export function RemoveItemDialog({ item, onClose, onRemove, verb = "Remove" }: R
           <AlertDialog.Title className="text-sm font-semibold text-ui-1">{verb} “{shown?.name}”?</AlertDialog.Title>
           <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
             It leaves My library{copies > 0 ? `; the ${copies === 1 ? "copy" : `${copies} copies`} already placed stay where they are` : ""}. Its file is deleted too,
-            unless a profile, a canvas or another item still uses it.
+            unless a screen, a canvas or another item still uses it.
           </AlertDialog.Description>
           <div className="flex items-center justify-end gap-2 pt-1">
             <AlertDialog.Close render={<button type="button" className={BUTTON} />}>Cancel</AlertDialog.Close>

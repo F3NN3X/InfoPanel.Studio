@@ -9,13 +9,13 @@ import type { Appearance } from "@/lib/style-resolve";
 import { addRule, alertsKey } from "./alerts-model";
 import { followAll, toggleEnforce } from "./appearance-actions";
 import { buildCommands, type CommandAction } from "./commands";
-import { copyProfileJson, exportConfigFile, startConfigImport } from "./config-file";
+import { openExportSheet, openImportDoor } from "./file-doors";
 import { insertables } from "./insert-panel";
-import { DOCUMENT_CARD, widgetContext, type InspectorContext } from "./inspector-model";
+import { widgetContext, type InspectorContext } from "./inspector-model";
 import { zoneDefs } from "./inspector/zone-fields";
 import { panelWidgetActions } from "./panel-widget-actions";
 import { ownStyle } from "./studio-actions";
-import type { useDocumentProps } from "./use-document-props";
+import type { useStyleEdits } from "./use-style-edits";
 import type { StudioMutations } from "./use-studio-mutations";
 import type { StudioSelection } from "./use-studio-selection";
 import { useStudioShortcuts, type ShortcutAction } from "./use-studio-shortcuts";
@@ -30,12 +30,14 @@ interface CommandDeps {
   sel: StudioSelection;
   edit: StudioMutations;
   appearance: Appearance;
-  appearancePresets: ReturnType<typeof useDocumentProps>["appearancePresets"];
-  setScopeStyle: ReturnType<typeof useDocumentProps>["setScopeStyle"];
+  appearancePresets: ReturnType<typeof useStyleEdits>["appearancePresets"];
+  setScopeStyle: ReturnType<typeof useStyleEdits>["setScopeStyle"];
   /** Show another page of the profile on the canvas. */
   onPageChange: (pageId: string) => void;
-  /** Select a profile for editing. */
+  /** Select a screen for editing. */
   onSelectProfile: (id: string) => void;
+  /** Open Help at the article for where the user is. */
+  onHelp: () => void;
 }
 
 /**
@@ -56,6 +58,7 @@ export function useStudioCommands({
   setScopeStyle,
   onPageChange,
   onSelectProfile,
+  onHelp,
 }: CommandDeps) {
   const { selected, selectedWidget } = sel;
   const toast = useToast();
@@ -118,14 +121,9 @@ export function useStudioCommands({
       case "add-preset":
         ui.setMode("design");
         return edit.addPanelPresetById(action.id);
-      case "alerts-open":
-        ui.setMode("design");
-        ui.setAlertRule(null);
-        return ui.setDrawer("alerts");
       case "alert-new": {
         const rule = blankSensorRule();
-        ui.setMode("design");
-        ui.setDrawer("alerts");
+        ui.navigateTo({ view: "alerts", tab: "rules" });
         ui.setAlertRule(rule.id);
         return setConfig((c) => addRule(c, rule), alertsKey(`add:${rule.id}`));
       }
@@ -133,13 +131,14 @@ export function useStudioCommands({
         // "auto" is the app-opens rule; a profile id selects it for editing.
         return action.id === "auto" ? edit.activateProfile("auto") : onSelectProfile(action.id);
       case "drawer":
-        ui.setMode("design");
-        return ui.setDrawer(action.drawer);
+        return ui.openDrawer(action.drawer);
       case "toggle-dock":
         // Collapse the docked inspector, or open / close the floating one (Sources has none).
         return !ui.showSources && ui.studioLayout.toggleInspector();
-      case "sources":
-        return ui.toggleSources();
+      case "live":
+        return ui.setLiveOpen(true);
+      case "help":
+        return onHelp();
       case "toggle-grid":
         return ui.setShowGrid((s) => !s);
       case "zoom-fit":
@@ -151,12 +150,9 @@ export function useStudioCommands({
       case "save":
         return ui.handleSave();
       case "export":
-        return exportConfigFile(config, toast);
+        return openExportSheet();
       case "import":
-        return startConfigImport(ui.importRef.current, setConfig, toast);
-      case "copy-profile":
-        copyProfileJson(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).catch(() => {});
-        return;
+        return openImportDoor();
       case "undo":
         return history.undo();
       case "redo":
@@ -175,11 +171,8 @@ export function useStudioCommands({
         ui.setMode("design");
         ui.setInspectorQuery("");
         return ui.jumpInspector(action.section, action.key);
-      case "document-tab":
-        ui.setMode("design");
-        sel.select(null);
-        // The sheet mounts first; then it scrolls to the card.
-        return void requestAnimationFrame(() => ui.jumpInspector(DOCUMENT_CARD[action.tab]));
+      case "navigate":
+        return ui.navigateTo(action.target);
       case "follow-all":
         return edit.updateProfile(followAll);
       case "toggle-enforce":
@@ -189,9 +182,8 @@ export function useStudioCommands({
         ui.setMode("theme");
         ui.setInspectorQuery("");
         return void requestAnimationFrame(() => ui.jumpTheme(action.section, action.key));
-      case "edit-theme":
-        // Studio › Theme, at the profile theme.
-        return ui.openTheme({ kind: "profile" });
+      case "open-theme":
+        return ui.navigateTo({ view: "theme", section: action.section });
       case "deselect":
         return sel.select(null);
       case "sample-layout":
@@ -211,7 +203,7 @@ export function useStudioCommands({
         return edit.duplicateCurrentPage(currentPage);
       case "page-delete":
         ui.setMode("design");
-        return pages.length > 1 ? ui.setDeletingPage(currentPage) : toast("A profile needs at least one page");
+        return pages.length > 1 ? ui.setDeletingPage(currentPage) : toast("A screen needs at least one page");
       case "page-rename":
         ui.setMode("design");
         return ui.setRenamingPage(currentPage);
@@ -219,7 +211,7 @@ export function useStudioCommands({
         return edit.moveSelectionToPage(action.id);
       case "apply-appearance": {
         const preset = appearancePresets.presets.find((p) => p.id === action.id);
-        return preset && appearancePresets.apply(preset, "all");
+        return preset && appearancePresets.apply(preset, { level: "all" });
       }
     }
     if (!selected) return;
@@ -252,7 +244,7 @@ export function useStudioCommands({
       case "use-global": {
         const style = ownStyle(selected, appearance);
         setScopeStyle(action.target, () => style);
-        return toast(action.target === "all" ? "Style is now the global style" : "Style is now this profile's global style");
+        return toast(action.target === "all" ? "Style is now the theme for all screens" : "Style is now the theme for this screen");
       }
       case "resize-step": {
         const rect = edit.resizeSelected({
@@ -288,7 +280,7 @@ export function useStudioCommands({
   /** What the inspector shows now, for the palette's "Go to setting" entries. */
   const inspectorContext = (): InspectorContext | null => {
     if (sel.selection.length > 1) return null;
-    if (!selected) return { kind: "dashboard", scope: "all" };
+    if (!selected) return null;
     if (selected.module === BLANK_MODULE) return null;
     // A selected panel widget: its own inspector (the layout only shows which rows it has).
     if (selected.panel && selectedWidget) {
@@ -314,7 +306,6 @@ export function useStudioCommands({
         canUndo: history.canUndo,
         canRedo: history.canRedo,
         showGrid: ui.showGrid,
-        showSources: ui.showSources,
         enforced: allLocked(appearance.profile),
         appearancePresets: appearancePresets.presets,
       })

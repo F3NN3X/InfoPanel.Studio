@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,300,0,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0c0c0e}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#2a2a31 transparent}
+a{color:oklch(0.80 0.12 255);text-decoration:none;cursor:pointer}a:hover{color:oklch(0.88 0.09 255)}
+button,input{font-family:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid oklch(0.72 0.15 255);outline-offset:2px}
+</style>
+</helmet>
+<div style="height:100vh; min-height:640px; display:flex; flex-direction:column; background:#0c0c0e; color:#ededf0; font-family:'Geist',system-ui,sans-serif; font-size:12.5px; overflow:hidden; position:relative">
+
+  <header style="height:40px; flex:none; display:flex; align-items:center; gap:8px; padding-left:10px; background:#0f0f12; border-bottom:1px solid #1f1f24">
+    <div style="width:20px; height:20px; border-radius:6px; background:oklch(0.72 0.15 255); flex:none"></div>
+    <button onClick="{{ openSwitcher }}" title="Switch screen or page" style="display:flex; align-items:center; gap:7px; height:28px; padding:0 8px; background:#17171b; border:1px solid #26262c; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12.5px; min-width:0; white-space:nowrap; flex:none">
+      <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">desktop_windows</span><span style="font-weight:600">Desk bar</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">1920×550</span><span style="color:#4a4a53">/</span><span>{{ page }}</span><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#7c7c86">unfold_more</span>
+    </button>
+    <div style="flex:1; display:flex; justify-content:center; min-width:0">
+      <button title="Command palette (Ctrl K)" style="display:flex; align-items:center; gap:8px; width:min(340px,100%); min-width:32px; height:28px; padding:0 8px; background:#141418; border:1px solid #24242a; border-radius:7px; color:#7c7c86; cursor:pointer; font-size:12px; overflow:hidden; white-space:nowrap"><span style="font-family:'Material Symbols Rounded'; font-size:16px; flex:none">search</span><span style="flex:1; min-width:0; text-align:left; overflow:hidden; text-overflow:ellipsis">Search settings or run a command</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; border:1px solid #2a2a31; border-radius:4px; padding:1px 5px; flex:none">Ctrl K</span></button>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px; flex:none; white-space:nowrap">
+      <button title="Undo (Ctrl Z)" style="width:30px; height:30px; display:grid; place-items:center; background:none; border:none; border-radius:6px; color:#a1a1aa; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1c1c21">undo</button>
+      <button title="Redo (Ctrl Shift Z)" style="width:30px; height:30px; display:grid; place-items:center; background:none; border:none; border-radius:6px; color:#a1a1aa; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="background:#1c1c21">redo</button>
+      <div style="width:1px; height:18px; background:#26262c; margin:0 4px"></div>
+      <button onClick="{{ openImport }}" title="Import any file — or drop it anywhere" style="display:flex; align-items:center; gap:6px; height:28px; padding:0 10px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px" style-hover="background:#1c1c21"><span style="font-family:'Material Symbols Rounded'; font-size:16px">input</span>Import</button>
+      <button onClick="{{ openExport }}" title="Export and back up" style="display:flex; align-items:center; gap:6px; height:28px; padding:0 10px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px" style-hover="background:#1c1c21"><span style="font-family:'Material Symbols Rounded'; font-size:16px">output</span>Export</button>
+      <button onClick="{{ openLive }}" title="Live kiosk control — not saved" style="display:flex; align-items:center; gap:6px; height:28px; padding:0 10px; background:oklch(0.78 0.15 150 / 0.12); border:1px solid oklch(0.78 0.15 150 / 0.45); border-radius:7px; color:oklch(0.88 0.10 150); cursor:pointer; font-size:12px; font-weight:500"><span style="width:7px; height:7px; border-radius:50%; background:oklch(0.78 0.15 150)"></span>Live · 2</button>
+      <button onClick="{{ save }}" style="display:flex; align-items:center; gap:6px; height:28px; padding:0 12px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600"><sc-if value="{{ dirty }}" hint-placeholder-val="{{ true }}"><span style="width:6px; height:6px; border-radius:50%; background:oklch(0.62 0.17 255)"></span></sc-if>Save</button>
+    </div>
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; margin-left:6px; align-self:stretch">
+        <span style="width:44px; display:grid; place-items:center; font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">remove</span>
+        <span style="width:44px; display:grid; place-items:center; font-family:'Material Symbols Rounded'; font-size:14px; color:#8a8a94">crop_square</span>
+        <span style="width:44px; display:grid; place-items:center; font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94" style-hover="background:#c42b1c; color:#fff">close</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isBrowser }}"><span style="width:8px"></span></sc-if>
+  </header>
+
+  <div style="flex:1; min-height:0; display:flex">
+    <nav style="width:72px; flex:none; display:flex; flex-direction:column; align-items:stretch; gap:2px; padding:8px 6px; background:#0f0f12; border-right:1px solid #1f1f24">
+      <sc-for list="{{ rail }}" as="r" hint-placeholder-count="5">
+        <button onClick="{{ r.pick }}" title="{{ r.tip }}" style="display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px 6px; background:{{ r.bg }}; border:none; border-radius:8px; color:{{ r.fg }}; cursor:pointer; position:relative" style-hover="color:#ededf0">
+          <span style="font-family:'Material Symbols Rounded'; font-size:20px">{{ r.icon }}</span>
+          <span style="font-size:10.5px; line-height:1.2; text-align:center">{{ r.label }}</span>
+          <sc-if value="{{ r.badge }}"><span style="position:absolute; top:5px; right:12px; width:7px; height:7px; border-radius:50%; background:oklch(0.80 0.13 80); box-shadow:0 0 0 2px #0f0f12"></span></sc-if>
+        </button>
+        <sc-if value="{{ r.divider }}"><div style="height:1px; background:#1f1f24; margin:4px 8px"></div></sc-if>
+      </sc-for>
+      <div style="flex:1"></div>
+      <sc-for list="{{ railBottom }}" as="r" hint-placeholder-count="2">
+        <button onClick="{{ r.pick }}" title="{{ r.tip }}" style="display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px 6px; background:{{ r.bg }}; border:none; border-radius:8px; color:{{ r.fg }}; cursor:pointer" style-hover="color:#ededf0">
+          <span style="font-family:'Material Symbols Rounded'; font-size:20px">{{ r.icon }}</span>
+          <span style="font-size:10.5px">{{ r.label }}</span>
+        </button>
+      </sc-for>
+    </nav>
+
+    <main style="flex:1; min-width:0; min-height:0; display:flex; position:relative">
+
+      <sc-if value="{{ vDesign }}" hint-placeholder-val="{{ true }}">
+        <sc-if value="{{ leftOpen }}">
+        <aside style="width:232px; flex:none; display:flex; flex-direction:column; background:#0f0f12; border-right:1px solid #1f1f24; min-height:0">
+          <div style="padding:10px; display:flex">
+            <div style="flex:1; display:flex; gap:2px; padding:2px; background:#141418; border:1px solid #24242a; border-radius:7px">
+              <sc-for list="{{ lpTabs }}" as="t"><button onClick="{{ t.pick }}" style="flex:1; height:24px; border:none; border-radius:5px; background:{{ t.bg }}; color:{{ t.fg }}; cursor:pointer; font-size:12px">{{ t.label }}</button></sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ lpLayers }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1; overflow:auto; padding:0 8px 8px; display:flex; flex-direction:column; gap:1px">
+              <sc-for list="{{ layers }}" as="l" hint-placeholder-count="7">
+                <div onClick="{{ l.pick }}" style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:7px; cursor:pointer; background:{{ l.bg }}" style-hover="background:#18181c">
+                  <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">{{ l.icon }}</span>
+                  <span style="flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ l.name }}</span>
+                  <sc-if value="{{ l.custom }}"><span title="Has custom style here" style="font-family:'Material Symbols Rounded'; font-size:13px; color:oklch(0.80 0.12 255)">edit</span></sc-if>
+                  <span style="font-family:'Geist Mono',monospace; font-size:10px; color:#6f6f79">{{ l.size }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ lpAdd }}">
+            <div style="flex:1; overflow:auto; padding:0 10px 10px; display:flex; flex-direction:column; gap:12px">
+              <div style="display:flex; align-items:center; gap:6px; height:28px; padding:0 8px; background:#141418; border:1px solid #24242a; border-radius:7px; color:#7c7c86"><span style="font-family:'Material Symbols Rounded'; font-size:16px">search</span>Find a widget</div>
+              <sc-for list="{{ addGroups }}" as="g">
+                <div style="display:flex; flex-direction:column; gap:6px">
+                  <span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86">{{ g.name }}</span>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px">
+                    <sc-for list="{{ g.items }}" as="it"><div style="display:flex; flex-direction:column; gap:6px; padding:8px; background:#141418; border:1px solid #24242a; border-radius:7px; cursor:grab" style-hover="border-color:#3a3a42"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#c8c8ce">{{ it.icon }}</span><span style="font-size:11.5px">{{ it.name }}</span></div></sc-for>
+                  </div>
+                </div>
+              </sc-for>
+              <a onClick="{{ openImport }}" style="font-size:11.5px">Canvas from an .infopanel file → Import</a>
+            </div>
+          </sc-if>
+        </aside>
+        </sc-if>
+
+        <section style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0">
+          <div style="height:38px; flex:none; display:flex; align-items:center; gap:2px; padding:0 10px; border-bottom:1px solid #1f1f24; overflow:hidden; min-width:0; white-space:nowrap">
+            <button onClick="{{ toggleLeft }}" title="{{ leftTip }}" style="width:28px; height:28px; flex:none; display:grid; place-items:center; border:none; background:{{ leftBg }}; border-radius:7px; color:#a1a1aa; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:17px; margin-right:4px">left_panel_open</button>
+            <sc-for list="{{ pageTabs }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.pick }}" style="display:flex; flex:none; align-items:center; gap:6px; height:28px; padding:0 10px; border:none; border-radius:7px; background:{{ p.bg }}; color:{{ p.fg }}; cursor:pointer; font-size:12.5px"><span style="font-family:'Material Symbols Rounded'; font-size:15px">{{ p.icon }}</span>{{ p.label }}<sc-if value="{{ p.onKiosk }}"><span title="Showing on kiosks now" style="font-family:'Material Symbols Rounded'; font-size:13px; color:oklch(0.78 0.15 150)">cast</span></sc-if></button>
+            </sc-for>
+            <button title="Add page" style="flex:none; width:28px; height:28px; display:grid; place-items:center; border:none; background:none; border-radius:7px; color:#8a8a94; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:17px" style-hover="background:#1c1c21">add</button>
+            <div style="flex:1"></div>
+            <button onClick="{{ openLive }}" title="Kiosks show Gaming · rotation paused" style="display:flex; align-items:center; gap:6px; height:24px; padding:0 8px; min-width:30px; flex:0 1 auto; overflow:hidden; border:1px dashed #33333a; border-radius:6px; background:none; color:#a1a1aa; cursor:pointer; font-size:11.5px; margin-left:8px"><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:oklch(0.78 0.15 150); flex:none">cast</span><span style="overflow:hidden; text-overflow:ellipsis">Kiosks show Gaming · rotation paused</span></button>
+          </div>
+          <div onClick="{{ deselect }}" style="flex:1; min-height:0; overflow:auto; display:grid; place-items:center; padding:28px 20px 64px; background:#0b0b0d; position:relative">
+            <div style="width:100%; max-width:980px; aspect-ratio:1920/550; display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(0,1fr)); gap:clamp(3px,0.8cqw,8px); padding:clamp(4px,1cqw,10px); container-type:inline-size; background:#070709; border-radius:6px; box-shadow:0 0 0 1px #1f1f24, 0 20px 60px #00000080">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="7">
+                <div onClick="{{ t.pick }}" style="grid-area:{{ t.area }}; min-width:0; min-height:0; display:flex; flex-direction:column; padding:clamp(3px,1cqw,10px) clamp(5px,1.25cqw,12px); background:#131317; border:1px solid #26262c; border-radius:10px; box-shadow:{{ t.shadow }}; cursor:pointer; overflow:hidden">
+                  <span style="font-family:'Geist Mono',monospace; font-size:clamp(6.5px,0.95cqw,9px); letter-spacing:0.07em; color:#8a8a94; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none">{{ t.label }}</span>
+                  <span style="margin-top:auto; font-size:{{ t.bigSize }}; font-weight:600; letter-spacing:-0.02em; line-height:1.05; color:{{ t.bigFg }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ t.big }}</span>
+                  <sc-if value="{{ t.showSub }}"><span style="font-size:clamp(7px,1.05cqw,10px); color:#8a8a94; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ t.sub }}</span></sc-if>
+                  <sc-if value="{{ t.hasBar }}"><span style="height:3px; margin-top:6px; border-radius:2px; background:#24242a; position:relative; overflow:hidden"><span style="position:absolute; inset:0 auto 0 0; width:{{ t.barW }}; background:{{ t.accent }}"></span></span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="position:absolute; bottom:14px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:2px; padding:3px; background:#141418; border:1px solid #26262c; border-radius:9px">
+              <span title="Grid" style="width:28px; height:26px; display:grid; place-items:center; font-family:'Material Symbols Rounded'; font-size:16px; color:#ededf0; background:#24242a; border-radius:6px">grid_4x4</span>
+              <span title="Rulers" style="width:28px; height:26px; display:grid; place-items:center; font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">straighten</span>
+              <span style="width:1px; height:16px; background:#2a2a31; margin:0 4px"></span>
+              <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#a1a1aa; padding:0 6px">51%</span>
+              <span style="font-size:11.5px; color:#a1a1aa; padding:0 6px">Fit</span>
+              <span style="width:1px; height:16px; background:#2a2a31; margin:0 4px"></span>
+              <a onClick="{{ goScreens }}" style="font-family:'Geist Mono',monospace; font-size:11px; padding:0 6px">1920×550 ↗</a>
+            </div>
+          </div>
+        </section>
+
+        <aside style="width:320px; flex:none; display:flex; flex-direction:column; background:#0f0f12; border-left:1px solid #1f1f24; min-height:0">
+          <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:12px 14px 10px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid #1f1f24">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="width:28px; height:28px; display:grid; place-items:center; background:#1a1a1f; border-radius:7px; font-family:'Material Symbols Rounded'; font-size:17px">{{ zone.icon }}</span>
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column"><span style="font-weight:600">{{ zone.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ zone.pos }}</span></div>
+                <span title="Help (F1)" style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86; cursor:pointer">help</span>
+                <span title="Hide" style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">visibility</span>
+                <span title="Duplicate" style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">content_copy</span>
+                <span title="Delete" style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">delete</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                <span style="font-family:'Geist Mono',monospace; font-size:10px; color:#7c7c86">QUICK</span>
+                <span style="height:22px; padding:0 8px; display:flex; align-items:center; gap:5px; border:1px solid #2a2a31; border-radius:6px; font-size:11px; white-space:nowrap"><span style="width:9px; height:9px; border-radius:2px; background:{{ zoneAccent }}"></span>Accent</span>
+                <span style="height:22px; padding:0 8px; display:flex; align-items:center; border:1px solid #2a2a31; border-radius:6px; font-size:11px; white-space:nowrap">Hot at 88°</span>
+              </div>
+              <div style="display:flex; gap:2px; padding:2px; background:#141418; border:1px solid #24242a; border-radius:7px">
+                <sc-for list="{{ zTabs }}" as="t"><button onClick="{{ t.pick }}" style="flex:1; height:26px; border:none; border-radius:5px; background:{{ t.bg }}; color:{{ t.fg }}; cursor:pointer; font-size:12px">{{ t.label }}</button></sc-for>
+              </div>
+            </div>
+            <div style="flex:1; overflow:auto; min-height:0">
+              <sc-if value="{{ isStyleTab }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:10px 14px; display:flex; gap:6px; flex-wrap:wrap">
+                  <span style="height:26px; padding:0 9px; display:flex; align-items:center; gap:5px; border:1px solid #2a2a31; border-radius:6px; font-size:11.5px; cursor:pointer; white-space:nowrap"><span style="font-family:'Material Symbols Rounded'; font-size:15px">style</span>Start from a Style</span>
+                  <span style="height:26px; padding:0 9px; display:flex; align-items:center; gap:5px; border:1px solid #2a2a31; border-radius:6px; font-size:11.5px; cursor:pointer; white-space:nowrap">Save as Style</span>
+                  <span style="height:26px; padding:0 9px; display:flex; align-items:center; gap:5px; border:1px solid #2a2a31; border-radius:6px; font-size:11.5px; cursor:pointer; white-space:nowrap">Make this the theme for…<span style="font-family:'Material Symbols Rounded'; font-size:15px; color:#7c7c86">expand_more</span></span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ hasTopRows }}">
+                <div style="padding:10px 14px; display:flex; flex-direction:column; gap:4px">
+                  <sc-for list="{{ topRows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+                </div>
+              </sc-if>
+              <sc-for list="{{ zSecs }}" as="s" hint-placeholder-count="5">
+                <div style="border-top:1px solid #1f1f24">
+                  <div style="display:flex; align-items:center; gap:8px; padding:9px 10px 9px 14px">
+                    <button onClick="{{ s.toggle }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:8px; background:none; border:none; padding:0; color:#ededf0; cursor:pointer; font-size:12.5px; font-weight:500; text-align:left"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">{{ s.icon }}</span><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ s.name }}</span></button>
+                    <dc-import name="InheritChip" state="{{ s.chipState }}" from="{{ s.chipFrom }}" hint-size="96px,20px"></dc-import>
+                    <button onClick="{{ s.toggle }}" style="width:22px; height:22px; display:grid; place-items:center; background:none; border:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:17px">{{ s.chev }}</button>
+                  </div>
+                  <sc-if value="{{ s.open }}">
+                    <div style="padding:0 14px 12px; display:flex; flex-direction:column; gap:4px">
+                      <sc-for list="{{ s.rows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+                      <sc-if value="{{ s.hasLockNote }}"><span style="font-size:11px; color:oklch(0.86 0.09 85); line-height:1.45">{{ s.lockNote }}</span></sc-if>
+                      <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:4px; font-size:11.5px; white-space:nowrap">
+                        <sc-if value="{{ s.isCustom }}"><a onClick="{{ s.reset }}">Reset to inherited</a></sc-if>
+                        <sc-if value="{{ s.isInh }}"><a onClick="{{ s.customise }}">Customise here</a></sc-if>
+                        <a onClick="{{ s.source }}" style="color:#a1a1aa">{{ s.sourceLabel }}</a>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ hasBottomRows }}">
+                <div style="padding:10px 14px; border-top:1px solid #1f1f24; display:flex; flex-direction:column; gap:4px">
+                  <sc-for list="{{ bottomRows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noSel }}">
+            <div style="padding:12px 14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #1f1f24">
+              <span style="width:28px; height:28px; display:grid; place-items:center; background:#1a1a1f; border-radius:7px; font-family:'Material Symbols Rounded'; font-size:17px">sports_esports</span>
+              <div style="flex:1; display:flex; flex-direction:column"><span style="font-weight:600">Page · {{ page }}</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">Desk bar · 7 zones</span></div>
+              <span title="Help (F1)" style="font-family:'Material Symbols Rounded'; font-size:17px; color:#7c7c86">help</span>
+            </div>
+            <div style="flex:1; overflow:auto; padding:12px 14px; display:flex; flex-direction:column; gap:18px">
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <sc-for list="{{ pageRows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86">THIS PAGE'S LOOK</span>
+                <sc-for list="{{ pageOwnList }}" as="o">
+                  <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#141418; border:1px solid #24242a; border-radius:8px"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">{{ o.icon }}</span><span style="flex:1">{{ o.name }}</span><dc-import name="InheritChip" state="custom" hint-size="90px,20px"></dc-import></div>
+                </sc-for>
+                <span style="font-size:11.5px; color:#8a8a94; line-height:1.45">{{ pageLookNote }}</span>
+                <div style="display:flex; gap:14px; font-size:11.5px"><a onClick="{{ goThemePage }}">Edit in Theme ↗</a><a onClick="{{ goThemePage }}" style="color:#a1a1aa">Customise a section…</a></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:oklch(0.80 0.13 150)">LIVE · NOT SAVED</span>
+                <button onClick="{{ openLive }}" style="display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; background:oklch(0.78 0.15 150 / 0.1); border:1px solid oklch(0.78 0.15 150 / 0.4); border-radius:7px; color:oklch(0.90 0.08 150); cursor:pointer; font-size:12px"><span style="font-family:'Material Symbols Rounded'; font-size:16px">cast</span>Show this page on kiosks now</button>
+              </div>
+              <div style="display:flex; gap:6px">
+                <span style="height:28px; padding:0 10px; display:flex; align-items:center; border:1px solid #2a2a31; border-radius:6px; font-size:12px">Duplicate page</span>
+                <span style="height:28px; padding:0 10px; display:flex; align-items:center; border:1px solid #2a2a31; border-radius:6px; font-size:12px; color:oklch(0.75 0.15 25)">Delete page</span>
+              </div>
+            </div>
+          </sc-if>
+        </aside>
+      </sc-if>
+
+      <sc-if value="{{ vTheme }}">
+        <section style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0">
+          <div style="flex:none; display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid #1f1f24; flex-wrap:wrap">
+            <span style="font-size:15px; font-weight:600">Theme</span>
+            <span style="color:#7c7c86; font-size:12px">Editing for</span>
+            <div style="display:flex; align-items:center; gap:2px; padding:2px; background:#141418; border:1px solid #24242a; border-radius:8px">
+              <sc-for list="{{ crumbs }}" as="c">
+                <button onClick="{{ c.pick }}" style="display:flex; align-items:center; gap:6px; height:30px; padding:0 10px; border:none; border-radius:6px; background:{{ c.bg }}; color:{{ c.fg }}; cursor:pointer; font-size:12.5px; font-weight:500"><span style="font-family:'Material Symbols Rounded'; font-size:15px">{{ c.icon }}</span>{{ c.label }}<span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86; font-weight:400">{{ c.sub }}</span></button>
+                <sc-if value="{{ c.sep }}"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#4a4a53">chevron_right</span></sc-if>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <sc-if value="{{ scProfile }}"><button onClick="{{ lockAll }}" style="height:28px; padding:0 10px; display:flex; align-items:center; gap:5px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px"><span style="font-family:'Material Symbols Rounded'; font-size:15px">lock</span>{{ lockAllLabel }}</button></sc-if>
+            <button style="height:28px; padding:0 10px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px">Apply a theme here…</button>
+            <button style="height:28px; padding:0 10px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600">Save as Theme</button>
+          </div>
+          <div style="flex:1; min-height:0; display:flex">
+            <div style="width:360px; flex:none; overflow:auto; border-right:1px solid #1f1f24; background:#0f0f12">
+              <div style="padding:12px 14px; display:flex; flex-direction:column; gap:8px">
+                <span style="font-size:11.5px; color:#8a8a94; line-height:1.45">{{ scopeHelp }}</span>
+              </div>
+              <sc-if value="{{ notPageScope }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:4px 14px 14px; display:flex; flex-direction:column; gap:8px">
+                  <span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86">1 · START FROM</span>
+                  <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px">
+                    <sc-for list="{{ gallery }}" as="g"><div style="display:flex; flex-direction:column; gap:4px; cursor:pointer"><div style="aspect-ratio:16/10; border-radius:6px; background:{{ g.bg }}; border:{{ g.bd }}; display:flex; align-items:flex-end; gap:3px; padding:5px"><span style="width:10px; height:10px; border-radius:3px; background:{{ g.a }}"></span><span style="width:10px; height:10px; border-radius:3px; background:{{ g.b }}"></span></div><span style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ g.name }}</span><span style="font-size:10px; color:#7c7c86">{{ g.kind }}</span></div></sc-for>
+                  </div>
+                  <a onClick="{{ goLibrary }}" style="font-size:11.5px">All themes in Library ↗</a>
+                </div>
+              </sc-if>
+              <sc-for list="{{ tSecs }}" as="s" hint-placeholder-count="6">
+                <div style="border-top:1px solid #1f1f24">
+                  <div style="display:flex; align-items:center; gap:8px; padding:9px 10px 9px 14px">
+                    <button onClick="{{ s.toggle }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:8px; background:none; border:none; padding:0; color:#ededf0; cursor:pointer; font-size:12.5px; font-weight:500; text-align:left"><span style="font-family:'Geist Mono',monospace; font-size:10px; color:#6f6f79; width:14px">{{ s.num }}</span><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ s.name }}</span></button>
+                    <sc-if value="{{ s.lockable }}"><button onClick="{{ s.lockToggle }}" title="{{ s.lockTip }}" style="height:20px; padding:0 6px; display:flex; align-items:center; gap:3px; border:1px solid {{ s.lockBd }}; border-radius:5px; background:{{ s.lockBg }}; color:{{ s.lockFg }}; cursor:pointer; font-size:10.5px"><span style="font-family:'Material Symbols Rounded'; font-size:13px">{{ s.lockIcon }}</span>{{ s.lockTxt }}</button></sc-if>
+                    <dc-import name="InheritChip" state="{{ s.chipState }}" from="{{ s.chipFrom }}" hint-size="96px,20px"></dc-import>
+                    <button onClick="{{ s.toggle }}" style="width:22px; height:22px; display:grid; place-items:center; background:none; border:none; color:#7c7c86; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:17px">{{ s.chev }}</button>
+                  </div>
+                  <sc-if value="{{ s.open }}">
+                    <div style="padding:0 14px 12px; display:flex; flex-direction:column; gap:4px">
+                      <sc-for list="{{ s.rows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+                      <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:4px; font-size:11.5px; white-space:nowrap">
+                        <sc-if value="{{ s.isCustom }}"><a onClick="{{ s.reset }}">Reset to inherited</a></sc-if>
+                        <sc-if value="{{ s.hasExc }}"><span style="color:#a1a1aa">{{ s.excTxt }}</span></sc-if>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ scPage }}">
+                <div style="border-top:1px solid #1f1f24; padding:12px 14px; display:flex; flex-direction:column; gap:8px">
+                  <span style="font-size:12px; font-weight:500">Customise a section for this page</span>
+                  <span style="font-size:11px; color:#7c7c86">The other sections follow Desk bar.</span>
+                  <sc-for list="{{ customiseList }}" as="c">
+                    <button onClick="{{ c.add }}" disabled="{{ c.dis }}" style="display:flex; align-items:center; gap:8px; height:30px; padding:0 10px; background:#141418; border:1px solid #24242a; border-radius:7px; color:{{ c.fg }}; cursor:{{ c.cursor }}; font-size:12px; text-align:left"><span style="font-family:'Material Symbols Rounded'; font-size:15px">{{ c.icon }}</span><span style="flex:1">{{ c.name }}</span><span style="font-size:10.5px; color:#7c7c86">{{ c.why }}</span></button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <div style="flex:1; min-width:0; overflow:auto; padding:24px; display:flex; flex-direction:column; gap:20px; background:#0b0b0d">
+              <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:#8a8a94"><span style="font-family:'Material Symbols Rounded'; font-size:15px">visibility</span>Live preview · Desk bar / Gaming</div>
+              <div style="width:100%; max-width:900px; aspect-ratio:1920/550; display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(0,1fr)); gap:clamp(3px,0.8cqw,8px); padding:clamp(4px,1cqw,10px); container-type:inline-size; background:#070709; border-radius:6px; box-shadow:0 0 0 1px #1f1f24">
+                <sc-for list="{{ tilesT }}" as="t" hint-placeholder-count="7">
+                  <div style="grid-area:{{ t.area }}; min-width:0; min-height:0; display:flex; flex-direction:column; padding:clamp(3px,1cqw,10px) clamp(5px,1.25cqw,12px); background:#131317; border:1px solid #26262c; border-radius:10px; box-shadow:{{ t.shadow }}; overflow:hidden; position:relative">
+                    <span style="font-family:'Geist Mono',monospace; font-size:clamp(6.5px,0.95cqw,9px); letter-spacing:0.07em; color:#8a8a94; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none">{{ t.label }}</span>
+                    <span style="margin-top:auto; font-size:{{ t.bigSize }}; font-weight:600; letter-spacing:-0.02em; line-height:1.05; color:{{ t.bigFg }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ t.big }}</span>
+                    <sc-if value="{{ t.showSub }}"><span style="font-size:clamp(7px,1.05cqw,10px); color:#8a8a94; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ t.sub }}</span></sc-if>
+                    <sc-if value="{{ t.isExc }}"><span title="Doesn't follow this theme" style="position:absolute; top:6px; right:6px; width:16px; height:16px; display:grid; place-items:center; border-radius:50%; background:oklch(0.72 0.15 255); color:#0c0c0e; font-family:'Material Symbols Rounded'; font-size:11px">edit</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="max-width:900px; display:flex; flex-direction:column; border:1px solid #24242a; border-radius:10px; background:#0f0f12">
+                <div style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid #1f1f24">
+                  <span style="font-weight:600">Exceptions</span>
+                  <span style="font-size:11.5px; color:#8a8a94; flex:1">{{ excSummary }}</span>
+                  <sc-if value="{{ hasExc }}"><button onClick="{{ followAll }}" style="height:26px; padding:0 10px; background:none; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; cursor:pointer; font-size:11.5px">Make all follow</button></sc-if>
+                </div>
+                <sc-for list="{{ exceptions }}" as="x">
+                  <div style="display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid #18181c">
+                    <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">{{ x.icon }}</span>
+                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px"><span>{{ x.who }} <span style="color:#7c7c86">· {{ x.kind }}</span></span><span style="font-size:11px; color:#8a8a94">{{ x.what }}</span></div>
+                    <sc-if value="{{ x.ignored }}"><dc-import name="InheritChip" state="locked" from="Screen" hint-size="110px,20px"></dc-import></sc-if>
+                    <dc-import name="InheritChip" state="custom" hint-size="90px,20px"></dc-import>
+                    <button onClick="{{ x.follow }}" style="height:26px; padding:0 10px; background:none; border:1px solid #2a2a31; border-radius:6px; color:#ededf0; cursor:pointer; font-size:11.5px">Make it follow</button>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ noExc }}"><div style="padding:14px; font-size:12px; color:#8a8a94">Everything below this level follows it.</div></sc-if>
+              </div>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ vScreens }}">
+        <section style="flex:1; min-width:0; display:flex; min-height:0">
+          <div style="flex:1; min-width:0; overflow:auto; padding:20px 24px; display:flex; flex-direction:column; gap:20px">
+            <div style="display:flex; align-items:center; gap:10px">
+              <span style="font-size:15px; font-weight:600; flex:1">Screens</span>
+              <button onClick="{{ openImport }}" style="height:28px; padding:0 10px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px">Import a screen…</button>
+              <button style="height:28px; padding:0 12px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600">New screen</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; padding:14px; border:1px solid #24242a; border-radius:10px; background:#0f0f12">
+              <span style="font-weight:500">When the app opens</span>
+              <div style="display:flex; gap:8px; flex-wrap:wrap">
+                <sc-for list="{{ launchOpts }}" as="o">
+                  <button onClick="{{ o.pick }}" style="flex:1; min-width:220px; display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:{{ o.bg }}; border:1px solid {{ o.bd }}; border-radius:8px; color:#ededf0; cursor:pointer; text-align:left"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:{{ o.dot }}">{{ o.radio }}</span><span style="display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:500">{{ o.t }}</span><span style="font-size:11.5px; color:#8a8a94">{{ o.d }}</span></span></button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px">
+              <sc-for list="{{ screenCards }}" as="c" hint-placeholder-count="3">
+                <button onClick="{{ c.pick }}" style="display:flex; flex-direction:column; gap:10px; padding:12px; background:#0f0f12; border:1px solid {{ c.bd }}; box-shadow:{{ c.ring }}; border-radius:10px; color:#ededf0; cursor:pointer; text-align:left">
+                  <div style="height:110px; display:grid; place-items:center; background:#0b0b0d; border-radius:6px"><div style="height:{{ c.th }}; width:{{ c.tw }}; background:repeating-linear-gradient(135deg,#1c1c22 0 6px,#16161b 6px 12px); border:1px solid #2a2a31; border-radius:3px"></div></div>
+                  <div style="display:flex; align-items:center; gap:8px"><span style="flex:1; font-weight:600">{{ c.name }}</span><sc-if value="{{ c.hasTag }}"><span style="height:18px; padding:0 6px; display:flex; align-items:center; border-radius:4px; background:oklch(0.78 0.15 150 / 0.14); color:oklch(0.88 0.10 150); font-size:10.5px">{{ c.tag }}</span></sc-if></div>
+                  <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#8a8a94">{{ c.meta }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <aside style="width:340px; flex:none; overflow:auto; background:#0f0f12; border-left:1px solid #1f1f24; display:flex; flex-direction:column">
+            <div style="padding:14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #1f1f24"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#8a8a94">desktop_windows</span><span style="font-weight:600; flex:1">{{ scr.name }}</span><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#7c7c86">more_horiz</span></div>
+            <sc-for list="{{ scrGroups }}" as="g">
+              <div style="padding:12px 14px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:4px">
+                <span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86; margin-bottom:4px">{{ g.name }}</span>
+                <sc-for list="{{ g.rows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+              </div>
+            </sc-for>
+            <div style="padding:12px 14px; display:flex; flex-direction:column; gap:4px">
+              <div style="display:flex; align-items:center; margin-bottom:4px"><span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86; flex:1">PAGES · ORDER &amp; ROTATION</span><a style="font-size:11.5px">+ Add page</a></div>
+              <sc-for list="{{ scrPages }}" as="p">
+                <div style="display:flex; align-items:center; gap:8px; height:32px; padding:0 6px; border-radius:6px" style-hover="background:#17171b">
+                  <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#4a4a53; cursor:grab">drag_indicator</span>
+                  <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">{{ p.icon }}</span>
+                  <span style="flex:1">{{ p.name }}</span>
+                  <span title="In rotation" style="font-family:'Material Symbols Rounded'; font-size:16px; color:{{ p.rotFg }}">{{ p.rot }}</span>
+                  <a onClick="{{ p.open }}" style="font-size:11px">Open</a>
+                </div>
+              </sc-for>
+            </div>
+          </aside>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ vLibrary }}">
+        <section style="flex:1; min-width:0; overflow:auto; padding:20px 24px; display:flex; flex-direction:column; gap:16px">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+            <span style="font-size:15px; font-weight:600">Library</span>
+            <span style="font-size:12px; color:#8a8a94; flex:1">Everything you've saved, beside the built-ins.</span>
+            <div style="display:flex; align-items:center; gap:6px; width:220px; height:28px; padding:0 8px; background:#141418; border:1px solid #24242a; border-radius:7px; color:#7c7c86"><span style="font-family:'Material Symbols Rounded'; font-size:16px">search</span>Search the library</div>
+            <button onClick="{{ openImport }}" style="height:28px; padding:0 12px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600">Add files…</button>
+          </div>
+          <div style="display:flex; gap:4px; border-bottom:1px solid #1f1f24; flex-wrap:wrap">
+            <sc-for list="{{ libTabs }}" as="t"><button onClick="{{ t.pick }}" style="height:32px; padding:0 12px; background:none; border:none; border-bottom:2px solid {{ t.line }}; color:{{ t.fg }}; cursor:pointer; font-size:12.5px; display:flex; align-items:center; gap:6px">{{ t.label }}<span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#6f6f79">{{ t.n }}</span></button></sc-for>
+          </div>
+          <span style="font-size:11.5px; color:#8a8a94">{{ libHint }}</span>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px">
+            <sc-for list="{{ libItems }}" as="i" hint-placeholder-count="6">
+              <div style="display:flex; flex-direction:column; gap:6px; cursor:pointer">
+                <div style="aspect-ratio:4/3; border-radius:8px; border:1px solid #24242a; background:repeating-linear-gradient(135deg,#17171c 0 7px,#131317 7px 14px); display:grid; place-items:center; font-family:'Geist Mono',monospace; font-size:10px; color:#6f6f79">{{ i.ph }}</div>
+                <div style="display:flex; align-items:center; gap:6px"><span style="flex:1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ i.name }}</span><span style="font-size:10px; color:{{ i.tagFg }}; border:1px solid #2a2a31; border-radius:4px; padding:1px 5px">{{ i.tag }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ vData }}">
+        <section style="flex:1; min-width:0; display:flex; min-height:0">
+          <aside style="width:300px; flex:none; overflow:auto; background:#0f0f12; border-right:1px solid #1f1f24; display:flex; flex-direction:column">
+            <div style="padding:14px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid #1f1f24">
+              <div style="display:flex; align-items:center; gap:8px"><span style="font-weight:600; flex:1">Connection</span><span style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:oklch(0.86 0.11 150)"><span style="font-family:'Material Symbols Rounded'; font-size:14px">check_circle</span>Connected · 18 ms</span></div>
+              <sc-for list="{{ connRows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+            </div>
+            <div style="padding:10px 8px; display:flex; flex-direction:column; gap:1px">
+              <sc-for list="{{ sources }}" as="s"><div style="display:flex; align-items:center; gap:8px; padding:6px 8px; padding-left:{{ s.pad }}; border-radius:6px; background:{{ s.bg }}; font-size:12px"><span style="font-family:'Material Symbols Rounded'; font-size:15px; color:#8a8a94">{{ s.icon }}</span><span style="flex:1">{{ s.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#6f6f79">{{ s.n }}</span></div></sc-for>
+            </div>
+          </aside>
+          <div style="flex:1; min-width:0; overflow:auto; padding:20px 24px; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:10px"><span style="font-size:15px; font-weight:600; flex:1">GPU · RTX 4080</span><span style="font-size:11.5px; color:#8a8a94">Display names apply to every screen.</span></div>
+            <div style="border:1px solid #24242a; border-radius:10px; overflow:hidden">
+              <div style="display:grid; grid-template-columns:minmax(0,1.4fr) 90px minmax(0,1.2fr) minmax(0,1fr); gap:12px; padding:8px 14px; background:#0f0f12; font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86"><span>SENSOR</span><span>NOW</span><span>DISPLAY NAME</span><span>USED IN</span></div>
+              <sc-for list="{{ points }}" as="p"><div style="display:grid; grid-template-columns:minmax(0,1.4fr) 90px minmax(0,1.2fr) minmax(0,1fr); gap:12px; padding:9px 14px; border-top:1px solid #1a1a1f; align-items:center"><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ p.name }}</span><span style="font-family:'Geist Mono',monospace">{{ p.val }}</span><span style="height:24px; display:flex; align-items:center; padding:0 8px; border:1px solid #24242a; border-radius:5px; color:{{ p.dnFg }}">{{ p.dn }}</span><span style="font-size:11.5px; color:#8a8a94">{{ p.used }}</span></div></sc-for>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ vAlerts }}">
+        <section style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0">
+          <div style="flex:none; display:flex; align-items:center; gap:16px; padding:0 24px; border-bottom:1px solid #1f1f24">
+            <span style="font-size:15px; font-weight:600; padding:12px 0">Alerts &amp; Island</span>
+            <div style="display:flex; gap:4px; align-self:stretch">
+              <sc-for list="{{ aTabs }}" as="t"><button onClick="{{ t.pick }}" style="padding:0 12px; background:none; border:none; border-bottom:2px solid {{ t.line }}; color:{{ t.fg }}; cursor:pointer; font-size:12.5px">{{ t.label }}</button></sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <sc-if value="{{ aRulesTab }}"><button style="height:28px; padding:0 12px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600">New rule</button></sc-if>
+          </div>
+          <div style="flex:1; min-height:0; overflow:auto; padding:20px 24px">
+            <sc-if value="{{ aRulesTab }}">
+              <div style="max-width:900px; border:1px solid #24242a; border-radius:10px; overflow:hidden">
+                <sc-for list="{{ rules }}" as="r"><div style="display:flex; align-items:center; gap:12px; padding:11px 14px; border-top:1px solid #1a1a1f"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:{{ r.sevFg }}">{{ r.sevIcon }}</span><div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px"><span style="font-weight:500">{{ r.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#8a8a94">{{ r.cond }}</span></div><span style="font-size:11.5px; color:#a1a1aa">{{ r.sev }} · shows as {{ r.shows }}</span><dc-import name="SettingRow" row="{{ r.tog }}" hint-size="40px,28px" style="width:40px"></dc-import></div></sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ aIslandTab }}">
+              <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
+                <div style="flex:1; min-width:320px; max-width:520px; display:flex; flex-direction:column; gap:16px">
+                  <div style="display:flex; gap:6px; flex-wrap:wrap"><span style="font-size:12px; color:#8a8a94; align-self:center">Island for</span><sc-for list="{{ islandScreens }}" as="s"><span style="height:26px; padding:0 10px; display:flex; align-items:center; border-radius:6px; border:1px solid {{ s.bd }}; background:{{ s.bg }}; font-size:12px">{{ s.name }}</span></sc-for></div>
+                  <div style="height:120px; display:grid; place-items:center; background:#070709; border:1px solid #1f1f24; border-radius:10px"><div style="display:flex; align-items:center; gap:10px; height:36px; padding:0 16px; background:#000; border-radius:999px; box-shadow:0 0 0 1px #26262c"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.78 0.15 150)">smart_toy</span><span style="font-size:12px">Agent finished · 3 tasks</span><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#8a8a94">21:48</span></div></div>
+                  <div style="display:flex; flex-direction:column; gap:4px"><sc-for list="{{ islandRows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for></div>
+                </div>
+                <div style="flex:1; min-width:280px; max-width:400px; display:flex; flex-direction:column; gap:16px">
+                  <div style="display:flex; flex-direction:column; gap:4px; padding:14px; border:1px solid #24242a; border-radius:10px"><span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86; margin-bottom:4px">DASHBOARD NOTICES</span><sc-for list="{{ notices }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for></div>
+                  <div style="display:flex; flex-direction:column; gap:8px; padding:14px; border:1px solid #24242a; border-radius:10px"><span style="font-family:'Geist Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7c7c86">WIDGETS SENT TO THE ISLAND</span><sc-for list="{{ islandWidgets }}" as="w"><div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">{{ w.icon }}</span><span style="flex:1">{{ w.name }}</span><a onClick="{{ w.open }}" style="font-size:11.5px">Open widget ↗</a></div></sc-for><span style="font-size:11px; color:#7c7c86">Turn this on per widget: Behaviour › Send to island.</span></div>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ aDefaultsTab }}"><div style="max-width:520px; display:flex; flex-direction:column; gap:4px"><sc-for list="{{ alertDefaults }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for></div></sc-if>
+            <sc-if value="{{ aHistoryTab }}"><div style="max-width:720px; display:flex; flex-direction:column"><sc-for list="{{ history }}" as="h"><div style="display:flex; gap:12px; padding:9px 0; border-bottom:1px solid #1a1a1f"><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; width:90px">{{ h.t }}</span><span style="flex:1">{{ h.m }}</span><span style="font-size:11.5px; color:#8a8a94">{{ h.s }}</span></div></sc-for></div></sc-if>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ vSettings }}">
+        <section style="flex:1; min-width:0; display:flex; flex-direction:column; min-height:0">
+          <div style="flex:none; display:flex; align-items:center; gap:16px; padding:0 24px; border-bottom:1px solid #1f1f24">
+            <span style="font-size:15px; font-weight:600; padding:12px 0">Settings</span>
+            <div style="display:flex; gap:4px; align-self:stretch"><sc-for list="{{ sTabs }}" as="t"><button onClick="{{ t.pick }}" style="padding:0 12px; background:none; border:none; border-bottom:2px solid {{ t.line }}; color:{{ t.fg }}; cursor:pointer; font-size:12.5px; display:flex; align-items:center; gap:6px">{{ t.label }}<span style="font-size:10.5px; color:#6f6f79">{{ t.sub }}</span></button></sc-for></div>
+          </div>
+          <div style="flex:1; min-height:0; display:flex">
+            <sc-if value="{{ sApp }}"><nav style="width:180px; flex:none; padding:12px 8px; border-right:1px solid #1f1f24; display:flex; flex-direction:column; gap:1px"><sc-for list="{{ appNav }}" as="n"><button onClick="{{ n.pick }}" style="height:30px; padding:0 10px; text-align:left; background:{{ n.bg }}; border:none; border-radius:6px; color:{{ n.fg }}; cursor:pointer; font-size:12.5px; display:flex; align-items:center; gap:8px"><span style="flex:1">{{ n.label }}</span><sc-if value="{{ n.badge }}"><span style="width:7px; height:7px; border-radius:50%; background:oklch(0.80 0.13 80)"></span></sc-if></button></sc-for></nav></sc-if>
+            <div style="flex:1; min-width:0; overflow:auto; padding:20px 24px">
+              <sc-if value="{{ appUnavailable }}">
+                <div style="max-width:560px; display:flex; flex-direction:column; gap:12px; padding:16px; border:1px solid #2a2a31; border-radius:10px; background:#0f0f12">
+                  <div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#a1a1aa">desktop_windows</span><span style="font-weight:600">App settings live in the desktop app</span></div>
+                  <span style="font-size:12px; color:#a1a1aa; line-height:1.5">You're using Studio in a browser, served from the PC running InfoPanel Studio. Startup, window, server, updates, coding agents and logs can only be changed there.</span>
+                  <div style="display:flex; flex-direction:column; gap:4px"><sc-for list="{{ browserInfo }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for></div>
+                </div>
+              </sc-if>
+              <sc-for list="{{ sGroups }}" as="g">
+                <div style="max-width:560px; display:flex; flex-direction:column; gap:4px; margin-bottom:22px">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px"><span style="font-weight:600">{{ g.name }}</span><span style="font-size:11px; color:#7c7c86">{{ g.scope }}</span></div>
+                  <sc-for list="{{ g.rows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{ showMoved }}">
+        <div style="position:absolute; right:{{ movedRight }}; bottom:12px; width:280px; max-height:46%; overflow:auto; background:#16161a; border:1px solid #33333a; border-radius:10px; box-shadow:0 12px 40px #00000090; z-index:5">
+          <div style="display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid #26262c; position:sticky; top:0; background:#16161a"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:oklch(0.86 0.11 85)">move_down</span><span style="font-weight:600; flex:1">Landed here</span><button onClick="{{ toggleMoved }}" style="background:none; border:none; color:#8a8a94; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">close</button></div>
+          <div style="padding:8px 12px 12px; display:flex; flex-direction:column; gap:6px">
+            <sc-for list="{{ moved }}" as="m"><div style="display:flex; flex-direction:column; gap:1px; font-size:11.5px; line-height:1.4"><span style="color:#8a8a94; text-decoration:line-through; text-decoration-color:#55555e">{{ m.from }}</span><span>→ {{ m.to }}</span></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <footer style="height:26px; flex:none; display:flex; align-items:center; gap:2px; padding:0 8px; background:#0f0f12; border-top:1px solid #1f1f24; font-size:11.5px; color:#a1a1aa">
+    <sc-for list="{{ status }}" as="s" hint-placeholder-count="4">
+      <button onClick="{{ s.go }}" title="{{ s.tip }}" style="display:flex; align-items:center; gap:6px; height:22px; padding:0 8px; background:none; border:none; border-radius:5px; color:{{ s.fg }}; cursor:pointer; font-size:11.5px; white-space:nowrap" style-hover="background:#1c1c21"><span style="width:7px; height:7px; border-radius:50%; background:{{ s.dot }}"></span>{{ s.label }}</button>
+    </sc-for>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleMoved }}" style="display:flex; align-items:center; gap:5px; height:22px; padding:0 8px; background:none; border:none; border-radius:5px; color:oklch(0.86 0.11 85); cursor:pointer; font-size:11.5px"><span style="font-family:'Material Symbols Rounded'; font-size:14px">move_down</span>What moved here</button>
+    <span style="padding:0 8px">{{ saveState }}</span>
+  </footer>
+
+  <sc-if value="{{ hasOverlay }}">
+    <div onClick="{{ closeOverlay }}" style="position:absolute; inset:0; background:{{ scrim }}; z-index:20">
+      <sc-if value="{{ ovSwitcher }}">
+        <div onClick="{{ stop }}" style="position:absolute; top:40px; left:36px; width:300px; background:#17171b; border:1px solid #2e2e35; border-radius:10px; box-shadow:0 16px 48px #000a; padding:6px">
+          <sc-for list="{{ switcher }}" as="s">
+            <div style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:6px; background:{{ s.bg }}"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">desktop_windows</span><span style="flex:1; font-weight:500">{{ s.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ s.size }}</span></div>
+            <sc-for list="{{ s.pages }}" as="p"><div style="display:flex; align-items:center; gap:8px; padding:5px 8px 5px 32px; font-size:12px; color:{{ p.fg }}"><span style="font-family:'Material Symbols Rounded'; font-size:14px">{{ p.icon }}</span>{{ p.name }}</div></sc-for>
+          </sc-for>
+          <div style="height:1px; background:#26262c; margin:6px 0"></div>
+          <button onClick="{{ goScreens }}" style="width:100%; display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; background:none; border:none; border-radius:6px; color:#ededf0; cursor:pointer; font-size:12.5px" style-hover="background:#1f1f24"><span style="font-family:'Material Symbols Rounded'; font-size:16px">tune</span>Manage screens…</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ ovLive }}">
+        <div onClick="{{ stop }}" style="position:absolute; top:40px; right:120px; width:340px; background:#17171b; border:1px solid oklch(0.78 0.15 150 / 0.4); border-radius:10px; box-shadow:0 16px 48px #000a">
+          <div style="padding:12px 14px; border-bottom:1px solid #26262c; display:flex; flex-direction:column; gap:2px"><span style="font-weight:600; display:flex; align-items:center; gap:6px"><span style="width:7px; height:7px; border-radius:50%; background:oklch(0.78 0.15 150)"></span>Live control</span><span style="font-size:11px; color:#8a8a94">Acts on kiosks right now. Nothing here is saved to your dashboard.</span></div>
+          <div style="padding:10px 14px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid #26262c">
+            <sc-for list="{{ kiosks }}" as="k"><div style="display:flex; align-items:center; gap:8px; font-size:12px"><span style="font-family:'Material Symbols Rounded'; font-size:15px; color:#8a8a94">cast_connected</span><span style="flex:1">{{ k.name }}</span><span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ k.ip }}</span></div></sc-for>
+          </div>
+          <div style="padding:10px 14px; display:flex; flex-direction:column; gap:4px">
+            <sc-for list="{{ liveRows }}" as="r"><dc-import name="SettingRow" row="{{ r }}" hint-size="100%,28px"></dc-import></sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ ovImport }}">
+        <div onClick="{{ stop }}" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(560px,92%); background:#141418; border:1px solid #2e2e35; border-radius:12px; box-shadow:0 24px 64px #000b; display:flex; flex-direction:column">
+          <div style="padding:16px 18px 12px; display:flex; flex-direction:column; gap:10px">
+            <div style="display:flex; align-items:center"><span style="font-size:15px; font-weight:600; flex:1">Import</span><span style="font-size:10.5px; color:#6f6f79; margin-right:8px">Demo — dropped:</span><div style="display:flex; gap:2px; padding:2px; background:#0f0f12; border:1px solid #24242a; border-radius:6px"><sc-for list="{{ impTabs }}" as="t"><button onClick="{{ t.pick }}" style="height:22px; padding:0 8px; border:none; border-radius:4px; background:{{ t.bg }}; color:{{ t.fg }}; cursor:pointer; font-size:11px">{{ t.label }}</button></sc-for></div></div>
+            <span style="font-size:11.5px; color:#8a8a94">One door for every file. Drop it anywhere in Studio, or choose a file — we work out what it is.</span>
+          </div>
+          <div style="margin:0 18px; padding:12px; background:#0f0f12; border:1px solid #26262c; border-radius:9px; display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ imp.files }}" as="f"><div style="display:flex; align-items:center; gap:10px"><span style="width:34px; height:34px; display:grid; place-items:center; background:#1c1c21; border-radius:7px; font-family:'Material Symbols Rounded'; font-size:18px">{{ f.icon }}</span><div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px"><span style="font-family:'Geist Mono',monospace; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.name }}</span><span style="font-size:11.5px; color:oklch(0.86 0.11 150)">Detected: {{ f.det }}</span></div></div></sc-for>
+          </div>
+          <div style="padding:14px 18px; display:flex; flex-direction:column; gap:8px">
+            <span style="font-size:12px; font-weight:500">{{ imp.q }}</span>
+            <sc-for list="{{ impDests }}" as="d"><button onClick="{{ d.pick }}" style="display:flex; align-items:flex-start; gap:10px; padding:10px 12px; background:{{ d.bg }}; border:1px solid {{ d.bd }}; border-radius:8px; color:#ededf0; cursor:pointer; text-align:left"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:{{ d.dot }}">{{ d.radio }}</span><span style="display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; font-weight:500">{{ d.t }}</span><span style="font-size:11.5px; color:#8a8a94">{{ d.d }}</span></span></button></sc-for>
+            <sc-if value="{{ imp.hasCheck }}"><div style="display:flex; align-items:center; gap:8px; font-size:12px"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:oklch(0.72 0.15 255)">check_box</span>{{ imp.check }}</div></sc-if>
+          </div>
+          <div style="padding:12px 18px; border-top:1px solid #24242a; display:flex; align-items:center; gap:8px"><span style="flex:1; font-size:11px; color:#7c7c86">{{ imp.next }}</span><button onClick="{{ closeOverlay }}" style="height:30px; padding:0 12px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px">Cancel</button><button onClick="{{ closeOverlay }}" style="height:30px; padding:0 14px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600">{{ imp.cta }}</button></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ ovExport }}">
+        <div onClick="{{ stop }}" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(520px,92%); background:#141418; border:1px solid #2e2e35; border-radius:12px; box-shadow:0 24px 64px #000b">
+          <div style="padding:16px 18px 10px; display:flex; flex-direction:column; gap:4px"><span style="font-size:15px; font-weight:600">Export &amp; back up</span><span style="font-size:11.5px; color:#8a8a94">Pick what to take out. Each one can also be copied as JSON.</span></div>
+          <div style="padding:4px 10px 12px; display:flex; flex-direction:column">
+            <sc-for list="{{ exports }}" as="e"><div style="display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:8px" style-hover="background:#1a1a1f"><span style="width:34px; height:34px; display:grid; place-items:center; background:#1c1c21; border-radius:7px; font-family:'Material Symbols Rounded'; font-size:18px">{{ e.icon }}</span><div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px"><span style="font-weight:500">{{ e.t }}</span><span style="font-size:11.5px; color:#8a8a94">{{ e.d }}</span><sc-if value="{{ e.hasOpts }}"><span style="font-size:11px; color:#a1a1aa">{{ e.opts }}</span></sc-if></div><div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px"><button style="height:28px; padding:0 10px; background:{{ e.btnBg }}; border:1px solid #2a2a31; border-radius:6px; color:{{ e.btnFg }}; cursor:pointer; font-size:12px; white-space:nowrap">{{ e.btn }}</button><a style="font-size:10.5px; color:#8a8a94">Copy JSON</a></div></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ ovFirstRun }}">
+        <div onClick="{{ stop }}" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(720px,94%); background:#141418; border:1px solid #2e2e35; border-radius:14px; box-shadow:0 24px 64px #000b; display:flex; flex-direction:column">
+          <div style="padding:18px 22px 0; display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+            <sc-for list="{{ frSteps }}" as="s"><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:{{ s.fg }}"><span style="width:20px; height:20px; display:grid; place-items:center; border-radius:50%; border:1px solid {{ s.bd }}; background:{{ s.bg }}; font-family:'Geist Mono',monospace; font-size:10.5px">{{ s.n }}</span>{{ s.label }}</span><sc-if value="{{ s.sep }}"><span style="width:24px; height:1px; background:#2a2a31"></span></sc-if></sc-for>
+          </div>
+          <div style="padding:20px 22px; min-height:300px; display:flex; flex-direction:column; gap:14px">
+            <span style="font-size:18px; font-weight:600; letter-spacing:-0.01em">{{ fr.title }}</span>
+            <span style="font-size:12.5px; color:#a1a1aa; line-height:1.5; max-width:560px">{{ fr.body }}</span>
+            <sc-if value="{{ fr0 }}">
+              <div style="display:flex; gap:8px; align-items:center"><span style="flex:1; height:34px; display:flex; align-items:center; padding:0 10px; background:#0f0f12; border:1px solid #2a2a31; border-radius:7px; font-family:'Geist Mono',monospace; font-size:12px">http://127.0.0.1:26631</span><span style="height:34px; padding:0 12px; display:flex; align-items:center; border:1px solid #2a2a31; border-radius:7px">Test</span></div>
+              <span style="display:flex; align-items:center; gap:6px; font-size:12px; color:oklch(0.86 0.11 150)"><span style="font-family:'Material Symbols Rounded'; font-size:16px">check_circle</span>Connected — 214 sensors from HWiNFO, Spotify and 1 coding agent</span>
+            </sc-if>
+            <sc-if value="{{ frCards }}">
+              <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px">
+                <sc-for list="{{ fr.cards }}" as="c"><div style="display:flex; flex-direction:column; gap:6px; padding:12px; background:{{ c.bg }}; border:1px solid {{ c.bd }}; border-radius:9px; cursor:pointer"><span style="font-family:'Material Symbols Rounded'; font-size:20px; color:#c8c8ce">{{ c.icon }}</span><span style="font-weight:500">{{ c.t }}</span><span style="font-size:11px; color:#8a8a94; line-height:1.4">{{ c.d }}</span></div></sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div style="padding:12px 22px; border-top:1px solid #24242a; display:flex; align-items:center; gap:8px"><a onClick="{{ closeOverlay }}" style="flex:1; font-size:12px; color:#8a8a94">Skip setup</a><button onClick="{{ frBack }}" style="height:32px; padding:0 12px; background:none; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; cursor:pointer; font-size:12px">Back</button><button onClick="{{ frNext }}" style="height:32px; padding:0 16px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; cursor:pointer; font-size:12px; font-weight:600">{{ fr.cta }}</button></div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;platform&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;browser&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;design&quot;,&quot;theme&quot;,&quot;screens&quot;,&quot;library&quot;,&quot;data&quot;,&quot;alerts&quot;,&quot;settings&quot;],&quot;default&quot;:&quot;design&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;firstRun&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;annotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const AC = 'oklch(0.72 0.15 255)', GREEN = 'oklch(0.78 0.15 150)', AMBER = 'oklch(0.80 0.13 80)';
+const SEC = { skin: ['Skin', 'auto_awesome'], colors: ['Colors', 'palette'], type: ['Typography', 'text_fields'], shape: ['Shape & spacing', 'rounded_corner'], surface: ['Surface & effects', 'layers'], border: ['Border & glow', 'border_style'], bg: ['Background', 'wallpaper'], units: ['Units & format', 'straighten'], thresh: ['Thresholds', 'speed'], motion: ['Motion', 'animation'], adv: ['Advanced · CSS & locks', 'code'] };
+const R = (label, kind, value, x) => ({ label, kind, value, ...(x || {}) });
+const ROWS = {
+  skin: [R('Skin', 'select', 'Glass')],
+  colors: [R('Accent', 'swatch', '#3D8BFF'), R('Text', 'swatch', '#EDEDF0'), R('Widget fill', 'swatch', '#141418'), R('Status colors', 'select', 'Good · Warn · Hot')],
+  type: [R('Font', 'select', 'Geist'), R('Value weight', 'select', '600 Semibold'), R('Labels', 'seg', 'Aa|AA', { sel: 1 })],
+  shape: [R('Corners', 'slider', '10 px', { pct: 40 }), R('Padding', 'slider', '12 px', { pct: 45 }), R('Value size', 'select', 'Auto')],
+  surface: [R('Fill', 'seg', 'Solid|Glass|None', { sel: 1 }), R('Opacity', 'slider', '92%', { pct: 92 }), R('Blur', 'slider', '12 px', { pct: 30 })],
+  border: [R('Border width', 'slider', '1 px', { pct: 15 }), R('Glow', 'toggle', '', { on: true }), R('Glow color', 'swatch', 'Accent', { swatch: AC })],
+  bg: [R('Type', 'seg', 'None|Color|Image|Video', { sel: 2 }), R('Image', 'select', 'nebula-dark.webp')],
+  units: [R('Temperature', 'seg', '°C|°F'), R('Decimals', 'select', '0'), R('Thousands', 'select', '1 240')],
+  thresh: [R('Warn at', 'slider', '75°', { pct: 62 }), R('Hot at', 'slider', '88°', { pct: 82 }), R('Color the value', 'toggle', '', { on: true })],
+  motion: [R('Animations', 'seg', 'Full|Reduced|Off'), R('Value transitions', 'toggle', '', { on: true })],
+  adv: [R('Custom CSS', 'select', '2 rules'), R('Locks', 'select', 'Typography')]
+};
+const ZONES = [
+  { id: 'cpu', icon: 'memory', name: 'CPU package', label: 'CPU PACKAGE', big: '64°', sub: 'Ryzen 9 7950X · 4.9 GHz', area: '1 / 1 / 3 / 3', pos: 'C1 R1 · 2×2', bar: 64 },
+  { id: 'gpu', icon: 'developer_board', name: 'GPU hot spot', label: 'GPU HOT SPOT', big: '71°', sub: 'RTX 4080 · 2.61 GHz', area: '1 / 3 / 3 / 5', pos: 'C3 R1 · 2×2', bar: 71 },
+  { id: 'fans', icon: 'mode_fan', name: 'Fans', label: 'FANS · RPM', big: '1 240', sub: '4 fans · quiet curve', area: '1 / 5 / 2 / 7', pos: 'C5 R1 · 2×1' },
+  { id: 'clock', icon: 'schedule', name: 'Clock', label: 'WED 21 OCT', big: '21:48', sub: '', area: '1 / 7 / 2 / 9', pos: 'C7 R1 · 2×1' },
+  { id: 'np', icon: 'music_note', name: 'Now playing', label: 'NOW PLAYING', big: 'Midnight City', sub: 'M83 · 2:41 / 4:03', area: '2 / 5 / 4 / 7', pos: 'C5 R2 · 2×2' },
+  { id: 'agent', icon: 'smart_toy', name: 'Coding agent', label: 'CODING AGENT', big: 'Running', sub: '3 tasks · 12 min', area: '2 / 7 / 4 / 9', pos: 'C7 R2 · 2×2' },
+  { id: 'net', icon: 'lan', name: 'Network', label: 'NETWORK', big: '↓ 82 Mb/s', sub: '↑ 6.4 Mb/s', area: '3 / 1 / 4 / 5', pos: 'C1 R3 · 4×1' }
+];
+const SCREENS = [
+  { id: 'desk', name: 'Desk bar', w: 1920, h: 550, grid: '8 × 3', pages: [['Overview', 'dashboard'], ['Gaming', 'sports_esports'], ['Streaming', 'videocam']] },
+  { id: 'side', name: 'Side panel', w: 1024, h: 600, grid: '6 × 4', pages: [['System', 'monitor_heart'], ['Media', 'music_note']] },
+  { id: 'strip', name: 'Tall strip', w: 480, h: 1920, grid: '2 × 8', pages: [['Agents', 'smart_toy']] }
+];
+const MOVED = {
+  design: [['Layers drawer (rail)', 'Left panel › Layers'], ['Widgets drawer (rail)', 'Left panel › Add'], ['"Follows the profile theme" bars', 'Inheritance chips on every section'], ['Widget "Style preset" select', 'Style › Start from a Style'], ['Use as global… ▸', 'Make this the theme for… ▸'], ['Apply / Save / Delete preset', 'Start from a Style · Save as Style (Library › Styles)'], ['Page tab ⋯ Theme…', 'Page inspector › Edit in Theme'], ['Page tab ⋯ Rename, Icon, Duplicate, Delete', 'Page inspector (nothing selected)'], ['Page tab Play/Pause + kiosk marker', 'Live popover (chip above canvas)'], ['Profile inspector (nothing selected)', 'Page inspector; screen things → Screens, look → Theme'], ['Zoom bar resolution button', '1920×550 ↗ → Screens'], ['Zone Behaviour › Send to island', 'Stays; island look links to Alerts & Island']],
+  theme: [['Rail "Theme" page', 'Theme (one editor)'], ['Look › Theme (tokens, corners, font)', 'Theme › Colors, Shape, Typography'], ['Look › Widget style, skins, surface', 'Theme › Start from, Surface & effects'], ['Look › Background', 'Theme › Background'], ['Saved looks, theme palettes, skin gallery', 'Theme › Start from (built-in + saved Themes)'], ['"Apply to every widget" + "Lock all"', 'Per-section lock + Lock all (Screen scope only)'], ['"Who doesn\'t follow the theme"', 'Exceptions list'], ['Theme page scope list', 'Scope bar: All screens › Screen › Page'], ['Look › Font [always global]', 'Typography, per screen (model change)']],
+  screens: [['Profiles drawer cards + ⋯', 'Screen cards + ⋯ (Rename, Duplicate, Export, Delete)'], ['Profile inspector › Layout', 'Screen detail › Size & fit, Grid'], ['Behaviour › Pages + cycling', 'Pages · order & rotation'], ['"When the app opens"', 'Top of Screens'], ['Profiles drawer Import', 'Import door (detects profile JSON)'], ['Behaviour › Performance (This profile)', 'Screen detail › Performance (chip)'], ['Profile switcher (top bar)', 'Screen / page switcher → Manage screens…']],
+  library: [['Gauges rail page', 'Library › Gauges (editor opens from an item)'], ['My panels / Saved panels', 'Library › Panels'], ['Style presets', 'Library › Styles'], ['Saved looks', 'Library › Themes'], ['Library "Import profile" + Upload', 'Add files… → Import door'], ['Gauge Import .gauge.json / frames', 'Import door']],
+  data: [['Data sources rail page', 'Data'], ['Behaviour › Connection (Data API URL, Test)', 'Data › Connection'], ['Sensor display names', 'Data (table)']],
+  alerts: [['Alerts drawer', 'Alerts & Island › Rules, Defaults, History'], ['Dynamic Island drawer', 'Alerts & Island › Island'], ['Profile › Behaviour › Island (duplicate)', 'Retired — link from Screens'], ['Island "As General" font/clock', 'Links: Theme typography, Settings › Clock']],
+  settings: [['Desktop Settings window', 'Settings › App'], ['Behaviour › Clock & date, Display', 'Settings › Dashboard'], ['Behaviour › Performance (All profiles)', 'Settings › Dashboard › Performance'], ['Behaviour › Studio', 'Settings › Studio'], ['Page dots & swipe', 'Settings › Dashboard › Pages'], ['Tray: Check for updates, server start/stop', 'Also here (tray keeps shortcuts)'], ['Reset everything…', 'Settings › Dashboard › Danger zone']]
+};
+
+class Component extends DCLogic {
+  state = {
+    view: this.props.startView ?? 'design', sel: 'gpu', ztab: 'style', open: { colors: true, type: true }, scope: 'page',
+    tOpen: { border: true, type: true, surface: true }, overlay: this.props.firstRun ? 'firstrun' : null,
+    imp: 'infopanel', impDest: 0, fr: 0, stab: 'dashboard', appSec: 'server', atab: 'island', ltab: 'themes', lp: 'layers',
+    scr: 'desk', page: 'Gaming', launch: 'best', moved: this.props.annotations ?? true,
+    ov: { 'gpu.colors': 1, 'np.type': 1 }, pageOwn: { border: 1 }, profOwn: { surface: 1, type: 1 }, locks: { type: 1 },
+    paused: true, muted: false, island: true, dirty: true,
+    leftOpen: typeof window === 'undefined' || window.innerWidth >= 1280
+  };
+  go = (view, x) => () => this.setState({ view, overlay: null, ...(x || {}) });
+  tabs(list, cur, key, extra) { return list.map(([id, label, sub]) => ({ id, label, sub: sub || '', pick: () => this.setState({ [key]: id, ...(extra || {}) }), bg: cur === id ? '#24242a' : 'transparent', fg: cur === id ? '#ededf0' : '#8a8a94', line: cur === id ? '#ededf0' : 'transparent' })); }
+  flip(key, k) { this.setState(s => { const o = { ...s[key] }; if (o[k]) delete o[k]; else o[k] = 1; return { [key]: o, dirty: true }; }); }
+  zstate(z, k) {
+    const s = this.state;
+    if (s.locks[k]) return { state: 'locked', from: 'Screen' };
+    const parent = s.pageOwn[k] ? 'Page' : s.profOwn[k] ? 'Screen' : 'All screens';
+    if (s.ov[z.id + '.' + k]) return { state: 'custom', from: parent };
+    return { state: 'inherited', from: parent };
+  }
+  zsecs(z, keys) {
+    const s = this.state;
+    return keys.map(k => {
+      const st = this.zstate(z, k), isC = st.state === 'custom', isL = st.state === 'locked', hiddenC = isL && s.ov[z.id + '.' + k];
+      const rows = ROWS[k].map((r, i) => ({ ...r, dis: isL, changed: isC && i === 0, ...(isC && k === 'colors' && i === 0 ? { value: '#FF6A3D' } : {}) }));
+      const scopeOf = st.from === 'Page' ? 'page' : st.from === 'Screen' ? 'profile' : 'all';
+      return {
+        key: k, name: SEC[k][0], icon: SEC[k][1], chipState: st.state, chipFrom: st.from, open: !!s.open[k], chev: s.open[k] ? 'expand_less' : 'expand_more',
+        toggle: () => this.setState(p => ({ open: { ...p.open, [k]: !p.open[k] } })), rows, isCustom: isC, isInh: st.state === 'inherited',
+        reset: () => this.flip('ov', z.id + '.' + k), customise: () => this.flip('ov', z.id + '.' + k),
+        source: this.go('theme', { scope: isL ? 'profile' : scopeOf }), sourceLabel: isL ? 'Edit lock in Theme ↗' : 'Edit ' + st.from + ' ↗',
+        hasLockNote: !!hiddenC, lockNote: 'This widget has its own typography; it returns if the Screen unlocks Typography.'
+      };
+    });
+  }
+  exceptionsFor(scope) {
+    const s = this.state, out = [];
+    Object.keys(s.ov).forEach(key => { const [zid, k] = key.split('.'); const z = ZONES.find(x => x.id === zid); out.push({ icon: z.icon, who: z.name, kind: 'Widget on Gaming', what: SEC[k][0] + ' customised', ignored: !!s.locks[k], follow: () => this.flip('ov', key) }); });
+    if (scope !== 'page') Object.keys(s.pageOwn).forEach(k => out.push({ icon: 'sports_esports', who: 'Gaming', kind: 'Page', what: SEC[k][0] + ' customised', ignored: false, follow: () => this.flip('pageOwn', k) }));
+    if (scope === 'all') Object.keys(s.profOwn).forEach(k => out.push({ icon: 'desktop_windows', who: 'Desk bar', kind: 'Screen', what: SEC[k][0] + ' set for this screen', ignored: false, follow: () => this.flip('profOwn', k) }));
+    return out;
+  }
+  renderVals() {
+    const s = this.state, desktop = (this.props.platform ?? 'desktop') === 'desktop';
+    const z = ZONES.find(x => x.id === s.sel);
+    const railDef = [['design', 'Design', 'dashboard_customize', 'Canvas, pages and widgets'], ['theme', 'Theme', 'palette', 'One look editor for every scope'], ['library', 'Library', 'collections_bookmark', 'Themes, Styles, Panels, Gauges, Media, Fonts'], ['data', 'Data', 'sensors', 'Sensors and the Data API connection'], ['alerts', 'Alerts & Island', 'notifications_active', 'Alert rules and the Dynamic Island']];
+    const rail = railDef.map(([id, label, icon, tip], i) => ({ label, icon, tip, pick: this.go(id), bg: s.view === id ? '#1c1c21' : 'transparent', fg: s.view === id ? '#ededf0' : '#8a8a94', divider: i === 0, badge: false }));
+    const railBottom = [['help', 'Help', 'help', 'Help (F1)'], ['settings', 'Settings', 'settings', 'Dashboard, Studio and App settings']].map(([id, label, icon, tip]) => ({ label, icon, tip, pick: id === 'help' ? () => {} : this.go('settings'), bg: s.view === id ? '#1c1c21' : 'transparent', fg: s.view === id ? '#ededf0' : '#8a8a94' }));
+
+    const glow = !!s.pageOwn.border, typeCustomShown = s.ov['np.type'] && !s.locks.type;
+    const mkTiles = (selectable, markExc) => ZONES.map(t => {
+      const accent = s.ov[t.id + '.colors'] ? '#FF6A3D' : AC;
+      const ring = selectable && s.sel === t.id ? '0 0 0 2px #ededf0' : '';
+      const g = glow ? '0 0 0 1px oklch(0.72 0.15 255 / 0.35), 0 0 18px -4px oklch(0.72 0.15 255 / 0.45)' : '';
+      return { ...t, accent, barW: (t.bar || 0) + '%', hasBar: !!t.bar, bigSize: t.big.length > 6 ? 'clamp(9px,1.8cqw,17px)' : (t.area.split('/').map(Number)[2] - t.area.split('/').map(Number)[0] === 1 ? 'clamp(10px,2cqw,20px)' : 'clamp(12px,2.9cqw,28px)'), showSub: t.area.split('/').map(Number)[2] - t.area.split('/').map(Number)[0] > 1, bigFg: s.ov[t.id + '.colors'] ? '#FFB199' : '#ededf0', shadow: [ring, g].filter(Boolean).join(', ') || 'none', isExc: markExc && Object.keys(s.ov).some(k => k.startsWith(t.id + '.')), pick: e => { e.stopPropagation(); this.setState({ sel: t.id }); } };
+    });
+    const tiles = mkTiles(true, false), tilesT = mkTiles(false, true);
+    if (typeCustomShown) { const n = tiles.find(t => t.id === 'np'); if (n) n.bigFg = '#ededf0'; }
+
+    let topRows = [], zSecs = [], bottomRows = [];
+    if (z) {
+      if (s.ztab === 'show') topRows = [R('Widget', 'select', 'Stat · temperature'), R('Title', 'text', z.name), R('Icon', 'select', z.icon), R('Visible', 'toggle', '', { on: true }), R('Fit', 'seg', 'Fill|Contain')];
+      if (s.ztab === 'style') zSecs = this.zsecs(z, ['skin', 'colors', 'type', 'shape', 'surface', 'border', 'adv']);
+      if (s.ztab === 'data') { topRows = [R('Sensor', 'select', 'GPU › Hot spot', { note: 'Rename sensors and change the connection in', link: 'Data ↗', go: this.go('data') })]; zSecs = this.zsecs(z, ['units']); }
+      if (s.ztab === 'beh') { zSecs = this.zsecs(z, ['thresh', 'motion']); bottomRows = [R('Send to island', 'toggle', '', { on: z.id === 'agent', note: 'How the island looks is set in', link: 'Alerts & Island ↗', go: this.go('alerts', { atab: 'island' }) })]; }
+    }
+
+    const pageRows = [R('Name', 'text', s.page), R('Icon', 'select', 'sports_esports'), R('Rotation', 'text', 'Included · every 20 s', { note: 'Page order and rotation live in', link: 'Screens ↗', go: this.go('screens') })];
+    const pageOwnList = Object.keys(s.pageOwn).map(k => ({ name: SEC[k][0], icon: SEC[k][1] }));
+
+    const scope = s.scope;
+    const crumbs = [['all', 'All screens', '3 screens', 'public'], ['profile', 'Desk bar', '1920×550 · ' + Object.keys(s.profOwn).length + ' own', 'desktop_windows'], ['page', 'Page: Gaming', Object.keys(s.pageOwn).length + ' own', 'sports_esports']].map(([id, label, sub, icon], i) => ({ label, sub, icon, sep: i < 2, pick: () => this.setState({ scope: id }), bg: scope === id ? '#26262c' : 'transparent', fg: scope === id ? '#ededf0' : '#9a9aa4' }));
+    const order = ['colors', 'type', 'shape', 'surface', 'border', 'bg', 'units', 'thresh', 'motion', 'adv'];
+    const excAll = this.exceptionsFor(scope);
+    const tKeys = scope === 'page' ? order.filter(k => s.pageOwn[k]) : order;
+    const tSecs = tKeys.map((k, i) => {
+      let chipState = 'base', chipFrom = '', isCustom = false;
+      if (scope === 'all') { if (k === 'thresh' || k === 'motion') chipState = 'builtin'; }
+      else if (scope === 'profile') { if (s.profOwn[k]) { chipState = 'custom'; isCustom = true; chipFrom = 'All screens'; } else { chipState = 'inherited'; chipFrom = 'All screens'; } }
+      else { chipState = 'custom'; isCustom = true; chipFrom = 'Screen'; }
+      const lockable = scope === 'profile' && k !== 'bg' && k !== 'adv', lockOn = !!s.locks[k];
+      const nExc = Object.keys(s.ov).filter(x => x.endsWith('.' + k)).length;
+      return {
+        num: String(order.indexOf(k) + 2), name: SEC[k][0], chipState, chipFrom, isCustom, open: !!s.tOpen[k], chev: s.tOpen[k] ? 'expand_less' : 'expand_more',
+        toggle: () => this.setState(p => ({ tOpen: { ...p.tOpen, [k]: !p.tOpen[k] } })), rows: ROWS[k],
+        reset: () => this.flip(scope === 'page' ? 'pageOwn' : 'profOwn', k),
+        lockable, lockToggle: () => this.flip('locks', k), lockIcon: lockOn ? 'lock' : 'lock_open', lockTxt: lockOn ? 'Locked' : 'Lock', lockTip: lockOn ? 'Forced on every page and widget of Desk bar — click to unlock' : 'Force this section on every page and widget of Desk bar',
+        lockBd: lockOn ? 'oklch(0.80 0.13 80 / 0.55)' : '#2a2a31', lockBg: lockOn ? 'oklch(0.80 0.13 80 / 0.12)' : 'transparent', lockFg: lockOn ? 'oklch(0.88 0.10 85)' : '#8a8a94',
+        hasExc: nExc > 0, excTxt: nExc + (nExc === 1 ? ' widget overrides this' : ' widgets override this') + (lockOn ? ' — ignored while locked' : '')
+      };
+    });
+    const allLocked = ['colors', 'type', 'shape', 'surface', 'border', 'units', 'thresh', 'motion'].every(k => s.locks[k]);
+    const customiseList = order.filter(k => !s.pageOwn[k]).map(k => {
+      const why = (k === 'colors' || k === 'bg') ? 'Set per screen' : s.locks[k] ? 'Locked by Screen' : k === 'shape' ? 'Spacing only' : '';
+      const dis = (k === 'colors' || k === 'bg' || !!s.locks[k]);
+      return { name: SEC[k][0], icon: SEC[k][1], why, dis, fg: dis ? '#6f6f79' : '#ededf0', cursor: dis ? 'not-allowed' : 'pointer', add: () => !dis && this.flip('pageOwn', k) };
+    });
+    const scopeHelp = { all: 'The base look for every screen. Screens and pages only store what they change.', profile: 'What Desk bar changes from All screens. Lock a section to force it on every page and widget of this screen.', page: 'Gaming only stores the sections it customises. Everything else follows Desk bar.' }[scope];
+    const gallery = [['Zinc', 'Palette', '#18181b', '#a1a1aa', '#3f3f46'], ['Ocean', 'Palette', '#0b1a2a', '#38bdf8', '#1e3a5f'], ['Paper', 'Palette', '#f4f1ea', '#1c1917', '#d6d3d1'], ['Glass', 'Skin', '#15151c', '#c4b5fd', '#2e2e3a'], ['Neon', 'Skin', '#0a0a12', '#22d3ee', '#f0abfc'], ['Night shift', 'Saved theme', '#140d0b', '#FF6A3D', '#3b2a24']].map(([name, kind, bg, a, b]) => ({ name, kind, bg, a, b, bd: name === 'Glass' ? '2px solid #ededf0' : '1px solid #2a2a31' }));
+
+    const cur = SCREENS.find(x => x.id === s.scr);
+    const screenCards = SCREENS.map(c => { const r = c.w / c.h, th = r > 1.4 ? Math.max(24, 150 / r) : 96, tw = r > 1.4 ? 150 : 96 * r; return { name: c.name, meta: c.w + '×' + c.h + ' · ' + c.pages.length + (c.pages.length === 1 ? ' page' : ' pages') + ' · grid ' + c.grid, th: th + 'px', tw: tw + 'px', bd: s.scr === c.id ? '#ededf0' : '#24242a', ring: s.scr === c.id ? '0 0 0 1px #ededf0' : 'none', pick: () => this.setState({ scr: c.id }), hasTag: (s.launch === 'best' && c.id === 'desk') || (s.launch === 'fixed' && c.id === 'desk'), tag: s.launch === 'best' ? 'Best fit now' : 'Opens on launch' }; });
+    const launchOpts = [['best', 'Best fit for the window', 'Picks the screen whose size matches the kiosk window'], ['fixed', 'Always the same screen', 'Always open Desk bar']].map(([id, t, d]) => ({ t, d, pick: () => this.setState({ launch: id }), radio: s.launch === id ? 'radio_button_checked' : 'radio_button_unchecked', dot: s.launch === id ? AC : '#6f6f79', bg: s.launch === id ? 'oklch(0.72 0.15 255 / 0.08)' : 'transparent', bd: s.launch === id ? 'oklch(0.72 0.15 255 / 0.5)' : '#2a2a31' }));
+    const scrGroups = [
+      { name: 'SIZE & FIT', rows: [R('Width', 'text', String(cur.w)), R('Height', 'text', String(cur.h)), R('Match this window', 'button', 'Use 1920 × 550'), R('When it doesn’t fit', 'seg', 'Fill|Scroll')] },
+      { name: 'GRID', rows: [R('Columns × rows', 'text', cur.grid), R('Gap', 'slider', '8 px', { pct: 30 }), R('Edge padding', 'slider', '10 px', { pct: 35 })] },
+      { name: 'ROTATION', rows: [R('Rotate pages', 'toggle', '', { on: true }), R('Every', 'text', '20 s', { note: 'Pause it for now from', link: 'Live ↗', go: () => this.setState({ overlay: 'live' }) })] },
+      { name: 'LINKED — EDITED ELSEWHERE', rows: [R('Look', 'text', Object.keys(s.profOwn).length + ' own sections', { link: 'Edit in Theme ↗', go: this.go('theme', { scope: 'profile' }) }), R('Frame-rate cap', 'text', '60 fps · from Dashboard', { link: 'Settings ↗', go: this.go('settings', { stab: 'dashboard' }) }), R('Dynamic Island', 'text', 'On', { link: 'Alerts & Island ↗', go: this.go('alerts', { atab: 'island' }) })] }
+    ];
+    const scrPages = cur.pages.map(([name, icon], i) => ({ name, icon, rot: i < 2 || cur.id !== 'desk' ? 'sync' : 'sync_disabled', rotFg: i < 2 || cur.id !== 'desk' ? '#a1a1aa' : '#4a4a53', open: this.go('design', { page: name, sel: null }) }));
+
+    const LIB = {
+      themes: [['Zinc', 'Built-in'], ['Ocean', 'Built-in'], ['Paper', 'Built-in'], ['Glass', 'Built-in skin'], ['Neon', 'Built-in skin'], ['Night shift', 'Saved'], ['Stream red', 'Saved']],
+      styles: [['Hot readout', 'Saved'], ['Muted label', 'Saved'], ['Big number', 'Built-in'], ['Outline', 'Built-in']],
+      panels: [['CPU cluster', 'Saved · 4'], ['Media strip', 'Saved · 3']],
+      gauges: [['Arc 270°', 'Built-in'], ['Needle classic', 'Built-in'], ['Fuel bar', 'Saved'], ['RPM frames', 'Saved · 60 fr']],
+      media: [['nebula-dark.webp', 'Image'], ['carbon-loop.mp4', 'Video'], ['logo-mark.svg', 'Icon'], ['grid-bg.png', 'Image']],
+      fonts: [['Geist', 'Built-in'], ['Geist Mono', 'Built-in'], ['Oxanium', 'Added'], ['Orbitron', 'Added']],
+      canvases: [['Desk-bar-2024 · Canvas 1', 'Imported'], ['Desk-bar-2024 · Canvas 2', 'Imported']]
+    };
+    const libTabs = [['themes', 'Themes'], ['styles', 'Styles'], ['panels', 'Panels'], ['gauges', 'Gauges'], ['media', 'Media'], ['fonts', 'Fonts'], ['canvases', 'Canvases']].map(([id, label]) => ({ label, n: LIB[id].length, pick: () => this.setState({ ltab: id }), fg: s.ltab === id ? '#ededf0' : '#8a8a94', line: s.ltab === id ? '#ededf0' : 'transparent' }));
+    const libHint = { themes: 'A Theme is a whole look. Apply one in Theme at any scope.', styles: 'A Style is one widget’s look. Apply from a widget’s Style tab.', panels: 'Reusable widget groups. Drag onto the canvas from Design › Add.', gauges: 'Open a gauge to edit it. New gauge starts the gauge editor.', media: 'Images and videos. Use one as a background from Theme › Background.', fonts: 'Fonts appear in every Typography picker.', canvases: 'InfoPanel canvases imported as zones.' }[s.ltab];
+    const libItems = LIB[s.ltab].map(([name, tag]) => ({ name, tag, ph: s.ltab === 'fonts' ? 'Aa' : s.ltab, tagFg: tag.startsWith('Built') ? '#8a8a94' : 'oklch(0.86 0.09 255)' }));
+
+    const connRows = [R('Data API URL', 'text', 'http://127.0.0.1:26631'), R('Test connection', 'button', 'Test'), R('API index', 'text', '214 sensors', { link: 'Open ↗' })];
+    const sources = [['HWiNFO', 'memory', '182', 0], ['CPU · Ryzen 9 7950X', 'memory', '48', 1], ['GPU · RTX 4080', 'developer_board', '36', 1, true], ['Mainboard', 'developer_board', '41', 1], ['Network', 'lan', '12', 1], ['Spotify', 'music_note', '8', 0], ['Coding agents', 'smart_toy', '24', 0]].map(([name, icon, n, d, a]) => ({ name, icon, n, pad: d ? '26px' : '8px', bg: a ? '#1c1c21' : 'transparent' }));
+    const points = [['GPU Temperature', '64 °C', 'GPU temp', 'Desk bar · Side panel'], ['GPU Hot Spot', '71 °C', 'GPU hot spot', 'Desk bar'], ['GPU Core Clock', '2 610 MHz', '—', ''], ['GPU Memory Used', '9.1 GB', 'VRAM', 'Side panel'], ['GPU Power', '284 W', '—', '']].map(([name, val, dn, used]) => ({ name, val, dn, used: used || 'Not used', dnFg: dn === '—' ? '#6f6f79' : '#ededf0' }));
+
+    const aTabs = this.tabs([['rules', 'Rules'], ['island', 'Island'], ['defaults', 'Defaults'], ['history', 'History']], s.atab, 'atab');
+    const rules = [['GPU too hot', 'GPU › Hot spot > 88 °C for 5 s', 'Critical', 'Island', true], ['CPU warm', 'CPU › Package > 80 °C', 'Warning', 'Toast', true], ['Agent finished', 'Coding agent › state = done', 'Info', 'Island', true], ['Drive almost full', 'C: free < 10 %', 'Warning', 'Banner', false]].map(([name, cond, sev, shows, on]) => ({ name, cond, sev, shows, tog: R('', 'toggle', '', { on }), sevIcon: sev === 'Critical' ? 'error' : sev === 'Warning' ? 'warning' : 'info', sevFg: sev === 'Critical' ? 'oklch(0.72 0.17 25)' : sev === 'Warning' ? AMBER : '#a1a1aa' }));
+    const islandScreens = SCREENS.map(c => ({ name: c.name, bd: c.id === 'desk' ? '#ededf0' : '#2a2a31', bg: c.id === 'desk' ? '#1c1c21' : 'transparent' }));
+    const islandRows = [R('Show Dynamic Island', 'toggle', '', { on: true }), R('Shape', 'seg', 'Pill|Notch|Bar'), R('When idle', 'select', 'Clock + page name'), R('Font', 'text', 'Geist · from Theme', { link: 'Theme ↗', go: this.go('theme', { scope: 'profile' }) }), R('Clock format', 'text', '24 h · from Dashboard', { link: 'Settings ↗', go: this.go('settings', { stab: 'dashboard' }) }), R('Motion', 'seg', 'Springy|Calm|Off')];
+    const notices = [['Page name', true], ['Layout updated', true], ['Plugin back online', false], ['On air', true], ['Calendar countdown', false], ['Coding agents', true]].map(([l, on]) => R(l, 'toggle', '', { on }));
+    const islandWidgets = [['Coding agent', 'smart_toy', 'agent'], ['Now playing', 'music_note', 'np']].map(([name, icon, id]) => ({ name, icon, open: this.go('design', { sel: id, ztab: 'beh' }) }));
+    const alertDefaults = [R('Default style', 'seg', 'Toast|Island|Banner'), R('Position', 'select', 'Top centre'), R('Size', 'seg', 'S|M|L', { sel: 1 }), R('Dim the page behind', 'toggle', '', { on: false }), R('Show for', 'text', '8 s'), R('Quiet hours', 'text', '23:00 – 07:30'), R('During quiet hours, still show', 'select', 'Critical only')];
+    const history = [['21:41', 'Agent finished · 3 tasks', 'Info · Island'], ['20:02', 'GPU too hot · 89 °C', 'Critical · acknowledged'], ['18:15', 'CPU warm · 81 °C', 'Warning · Toast']].map(([t, m, sx]) => ({ t, m, s: sx }));
+
+    const sTabs = this.tabs([['dashboard', 'Dashboard', 'every screen'], ['studio', 'Studio', 'this browser'], ['app', 'App', desktop ? 'this PC' : 'desktop only']], s.stab, 'stab');
+    let sGroups = [];
+    if (s.stab === 'dashboard') sGroups = [
+      { name: 'Performance', scope: 'Default for all screens', rows: [R('Frame-rate cap', 'select', '60 fps', { note: 'Side panel uses its own (30 fps).', link: 'Screens ↗', go: this.go('screens', { scr: 'side' }) }), R('Animations', 'seg', 'Full|Reduced|Off')] },
+      { name: 'Clock & date', scope: 'All screens and the island', rows: [R('Clock', 'seg', '24 h|12 h'), R('Show seconds', 'toggle', '', { on: false }), R('Date locale', 'select', 'English (UK)')] },
+      { name: 'Kiosk', scope: 'All screens', rows: [R('Page dots & swipe', 'toggle', '', { on: true }), R('Hide cursor', 'toggle', '', { on: true })] },
+      { name: 'Danger zone', scope: '', rows: [R('Reset everything', 'button', 'Reset…', { note: 'You’ll be offered a backup first.' })] }
+    ];
+    if (s.stab === 'studio') sGroups = [
+      { name: 'Editor', scope: 'Saved in this browser only', rows: [R('Quick bar', 'toggle', '', { on: true }), R('Inspector sections', 'seg', 'One open|Many open', { sel: 1 }), R('Default zoom', 'select', 'Fit'), R('Show grid', 'toggle', '', { on: true }), R('Show rulers', 'toggle', '', { on: false }), R('Left panel width', 'slider', '232 px', { pct: 40 })] }
+    ];
+    if (s.stab === 'app' && desktop) {
+      const A = {
+        general: [{ name: 'General', scope: '', rows: [R('App zoom', 'select', '100%'), R('Start at login', 'toggle', '', { on: true }), R('Open the studio on launch', 'toggle', '', { on: false }), R('Start the server on launch', 'toggle', '', { on: true }), R('Close to tray', 'toggle', '', { on: true }), R('Remember window size', 'toggle', '', { on: true })] }],
+        server: [{ name: 'Server', scope: 'Running · port 8080', rows: [R('Server', 'button', 'Restart'), R('Who can connect', 'seg', 'This PC|Local network', { sel: 1 }), R('Port', 'text', '8080'), R('Allowed host names', 'text', 'desk-pc.local'), R('Restart if it crashes', 'toggle', '', { on: true }), R('Kiosk URL', 'text', 'http://192.168.1.12:8080/kiosk', { link: 'Copy · Open ↗' })] }],
+        updates: [{ name: 'Updates', scope: '1.3.0 is available', rows: [R('Installed', 'text', '1.3.0-beta.7'), R('Update', 'button', 'Restart and update'), R('Release channel', 'seg', 'Stable|Beta', { sel: 1 }), R('Check at startup', 'toggle', '', { on: true }), R('Download in background', 'toggle', '', { on: true })] }],
+        agents: [{ name: 'Coding agents', scope: '', rows: [R('Claude Code', 'toggle', '', { on: true }), R('Report status to the island', 'toggle', '', { on: true })] }],
+        diag: [{ name: 'Diagnostics', scope: '', rows: [R('Debug mode', 'toggle', '', { on: false }), R('Logs', 'button', 'Open logs folder')] }],
+        about: [{ name: 'About', scope: '', rows: [R('Version', 'text', '1.3.0-beta.7'), R('Data folder', 'text', '%APPDATA%\\InfoPanel Studio', { link: 'Open ↗' }), R('Changelog', 'button', 'View')] }]
+      };
+      sGroups = A[s.appSec];
+    }
+    const appNav = [['general', 'General'], ['server', 'Server'], ['updates', 'Updates', true], ['agents', 'Coding agents'], ['diag', 'Diagnostics & logs'], ['about', 'About']].map(([id, label, badge]) => ({ label, badge: !!badge, pick: () => this.setState({ appSec: id }), bg: s.appSec === id ? '#1c1c21' : 'transparent', fg: s.appSec === id ? '#ededf0' : '#9a9aa4' }));
+    const browserInfo = [R('Server', 'text', '192.168.1.12:8080 · read-only'), R('Kiosk URL', 'text', 'http://192.168.1.12:8080/kiosk', { link: 'Copy ↗' }), R('Desktop version', 'text', '1.3.0-beta.7')];
+
+    const status = [
+      { label: 'Data API · connected', dot: GREEN, fg: '#a1a1aa', go: this.go('data'), tip: 'Data API at 127.0.0.1:26631 — open Data' },
+      { label: desktop ? 'Server · :8080 · LAN' : 'Served by 192.168.1.12', dot: GREEN, fg: '#a1a1aa', go: this.go('settings', { stab: 'app', appSec: 'server' }), tip: 'Server settings' },
+      { label: '2 kiosks', dot: GREEN, fg: '#a1a1aa', go: () => this.setState({ overlay: 'live' }), tip: 'Live control' },
+      ...(desktop ? [{ label: 'Update 1.3.0 available', dot: AMBER, fg: 'oklch(0.88 0.10 85)', go: this.go('settings', { stab: 'app', appSec: 'updates' }), tip: 'Open updates' }] : [])
+    ];
+
+    const IMP = {
+      infopanel: { files: [{ icon: 'dashboard', name: 'Desk-bar-2024.infopanel', det: 'InfoPanel profile · 2 canvases · 41 sensors · 12 images' }], q: 'Where should it go?', dests: [['New screen', 'Creates “Desk bar 2024” at 1920×550, one page per canvas'], ['Canvas zone on Gaming', 'Places a canvas into the current page as one zone']], next: 'Next: Faithful / Native where possible / Both, then sensor matching.', cta: 'Continue' },
+      config: { files: [{ icon: 'settings_backup_restore', name: 'studio-backup-2026-10-02.json', det: 'Studio backup · 3 screens · 6 pages · 4 themes · 9 alert rules' }], q: 'What should it do?', dests: [['Replace everything', 'Your dashboard becomes this backup'], ['Add its screens only', 'Keeps your theme, alerts and settings']], hasCheck: true, check: 'Back up the current dashboard first (recommended)', next: 'Library media isn’t touched.', cta: 'Restore backup' },
+      assets: { files: [{ icon: 'text_fields', name: 'Oxanium-Variable.ttf', det: 'Font → Library › Fonts' }, { icon: 'image', name: 'nebula-dark.webp', det: 'Image 3840×1100 → Library › Media' }], q: 'Add to Library', dests: [['Add both to Library', 'Available in every screen']], hasCheck: true, check: 'Also use nebula-dark.webp as the background for Desk bar', next: 'Background is set on the Screen level in Theme.', cta: 'Add 2 files' }
+    };
+    const imp = { hasCheck: false, ...IMP[s.imp] };
+    const impTabs = this.tabs([['infopanel', '.infopanel'], ['config', 'Config backup'], ['assets', 'Font + image']], s.imp, 'imp', { impDest: 0 });
+    const impDests = imp.dests.map(([t, d], i) => ({ t, d, pick: () => this.setState({ impDest: i }), radio: s.impDest === i ? 'radio_button_checked' : 'radio_button_unchecked', dot: s.impDest === i ? AC : '#6f6f79', bg: s.impDest === i ? 'oklch(0.72 0.15 255 / 0.08)' : 'transparent', bd: s.impDest === i ? 'oklch(0.72 0.15 255 / 0.5)' : '#2a2a31' }));
+    const exports = [
+      { icon: 'backup', t: 'Back up everything', d: 'All screens, themes, alerts and settings · .json', btn: 'Save backup', btnBg: '#ededf0', btnFg: '#0c0c0e' },
+      { icon: 'desktop_windows', t: 'Export this screen', d: 'Desk bar with its pages and own look · .json', btn: 'Export screen' },
+      { icon: 'dashboard', t: 'Export a page for InfoPanel', d: 'Gaming as an .infopanel canvas', hasOpts: true, opts: '☑ Bake vector gauges first · ☑ Leave unused assets out', btn: 'Export…' },
+      { icon: 'speed', t: 'Export a gauge', d: 'Pick one from Library › Gauges · .gauge.json', btn: 'Choose…' }
+    ].map(e => ({ hasOpts: false, btnBg: '#1a1a1f', btnFg: '#ededf0', ...e }));
+    const kiosks = [{ name: 'Desk bar · showing Gaming', ip: '192.168.1.20' }, { name: 'Side panel · showing System', ip: '192.168.1.31' }];
+    const liveRows = [
+      R('Show on Desk bar kiosks', 'seg', 'Overview|Gaming|Streaming', { sel: 1 }),
+      R('Rotation', 'toggle', '', { on: !s.paused, note: s.paused ? 'Paused for now. Saved setting: every 20 s — resumes on reload.' : 'Following the saved setting: every 20 s.', onClick: () => this.setState(p => ({ paused: !p.paused })) }),
+      R('Dim screens', 'slider', '40%', { pct: 40 }),
+      R('Mute alerts for 1 h', 'toggle', '', { on: s.muted, onClick: () => this.setState(p => ({ muted: !p.muted })) }),
+      R('Dynamic Island', 'toggle', '', { on: s.island, onClick: () => this.setState(p => ({ island: !p.island })) }),
+      R('Reload all kiosks', 'button', 'Reload')
+    ];
+    const switcher = SCREENS.map(c => ({ name: c.name, size: c.w + '×' + c.h, bg: c.id === 'desk' ? '#1f1f24' : 'transparent', pages: c.id === 'desk' ? c.pages.map(([name, icon]) => ({ name, icon, fg: name === s.page ? '#ededf0' : '#8a8a94' })) : [] }));
+
+    const FR = [
+      { title: 'Connect your sensors', body: 'Studio reads sensors from InfoPanel’s Data API. It’s usually running on this PC already.', cta: 'Continue' },
+      { title: 'Which screen is this for?', body: 'This window is 1920×550 — that looks like a bar display. You can add more screens later.', cta: 'Continue', cards: [['Bar · 1920×550', 'Detected from this window', 'desktop_windows', true], ['Panel · 1024×600', '7" USB panels', 'tablet'], ['Strip · 480×1920', 'Tall case displays', 'stay_current_portrait'], ['Phone or tablet', 'Any size, scrolls', 'smartphone'], ['Custom size', 'Type width and height', 'aspect_ratio']] },
+      { title: 'How do you want to start?', body: 'Everything stays editable. Templates use your connected sensors.', cta: 'Continue', cards: [['Start from a template', 'Hardware, streaming, agents', 'auto_awesome', true], ['Import from InfoPanel', 'Bring an .infopanel profile across', 'input'], ['Blank screen', 'An empty 8×3 grid', 'crop_free']] },
+      { title: 'Your first page', body: 'Name it and pick a few widgets — we’ll lay them out on the grid.', cta: 'Open Studio', cards: [['CPU temperature', 'HWiNFO › CPU Package', 'memory', true], ['GPU temperature', 'HWiNFO › GPU', 'developer_board', true], ['Fans', '4 sensors', 'mode_fan', true], ['Clock', '24 h', 'schedule', true], ['Now playing', 'Spotify', 'music_note']] }
+    ];
+    const frCur = FR[s.fr];
+    const fr = { ...frCur, cards: (frCur.cards || []).map(([t, d, icon, on]) => ({ t, d, icon, bg: on ? 'oklch(0.72 0.15 255 / 0.10)' : '#0f0f12', bd: on ? 'oklch(0.72 0.15 255 / 0.55)' : '#26262c' })) };
+    const frSteps = ['Connect', 'Screen', 'Start', 'First page'].map((label, i) => ({ label, n: i < s.fr ? '✓' : String(i + 1), sep: i < 3, fg: i <= s.fr ? '#ededf0' : '#6f6f79', bd: i <= s.fr ? '#ededf0' : '#33333a', bg: i < s.fr ? '#ededf0' : 'transparent' }));
+    frSteps.forEach((st, i) => { if (i < s.fr) st.fg = '#ededf0'; });
+
+    const ov = s.overlay;
+    const movedList = (MOVED[s.view] || []).map(([from, to]) => ({ from, to }));
+    return {
+      isDesktop: desktop, isBrowser: !desktop, page: s.page, dirty: s.dirty, saveState: s.dirty ? 'Unsaved changes' : 'All changes saved',
+      rail, railBottom, status,
+      vDesign: s.view === 'design', vTheme: s.view === 'theme', vScreens: s.view === 'screens', vLibrary: s.view === 'library', vData: s.view === 'data', vAlerts: s.view === 'alerts', vSettings: s.view === 'settings',
+      leftOpen: s.leftOpen, toggleLeft: () => this.setState(p => ({ leftOpen: !p.leftOpen })), leftTip: s.leftOpen ? 'Hide Layers panel' : 'Show Layers & Add widget', leftBg: s.leftOpen ? '#1c1c21' : 'transparent',
+      movedRight: s.view === 'design' ? '334px' : s.view === 'screens' ? '354px' : '14px',
+      lpTabs: this.tabs([['layers', 'Layers'], ['add', 'Add widget']], s.lp, 'lp'), lpLayers: s.lp === 'layers', lpAdd: s.lp === 'add',
+      layers: ZONES.map(l => ({ icon: l.icon, name: l.name, size: l.pos.split('· ')[1], custom: Object.keys(s.ov).some(k => k.startsWith(l.id + '.')), pick: () => this.setState({ sel: l.id }), bg: s.sel === l.id ? '#1f1f24' : 'transparent' })),
+      addGroups: [{ name: 'SENSORS', items: [{ icon: 'speed', name: 'Gauge' }, { icon: 'bar_chart', name: 'Bar' }, { icon: 'show_chart', name: 'Graph' }, { icon: 'pin', name: 'Stat' }] }, { name: 'MEDIA & TIME', items: [{ icon: 'music_note', name: 'Now playing' }, { icon: 'schedule', name: 'Clock' }, { icon: 'image', name: 'Image' }, { icon: 'timer', name: 'Countdown' }] }, { name: 'MY PANELS', items: [{ icon: 'view_quilt', name: 'CPU cluster' }, { icon: 'view_quilt', name: 'Media strip' }] }],
+      pageTabs: SCREENS[0].pages.map(([label, icon]) => ({ label, icon, onKiosk: label === 'Gaming', pick: () => this.setState({ page: label }), bg: label === s.page ? '#1c1c21' : 'transparent', fg: label === s.page ? '#ededf0' : '#8a8a94' })),
+      tiles, tilesT, deselect: () => this.setState({ sel: null }),
+      hasSel: !!z, noSel: !z, zone: z || {}, zoneAccent: z && s.ov[z.id + '.colors'] ? '#FF6A3D' : AC,
+      zTabs: this.tabs([['show', 'Show'], ['style', 'Style'], ['data', 'Data'], ['beh', 'Behaviour']], s.ztab, 'ztab'),
+      isStyleTab: s.ztab === 'style', topRows, hasTopRows: topRows.length > 0, zSecs, bottomRows, hasBottomRows: bottomRows.length > 0,
+      pageRows, pageOwnList, pageLookNote: pageOwnList.length ? 'Everything else follows Desk bar.' : 'This page follows Desk bar completely.', goThemePage: this.go('theme', { scope: 'page' }),
+      crumbs, tSecs, scProfile: scope === 'profile', scPage: scope === 'page', notPageScope: scope !== 'page', scopeHelp, gallery, customiseList,
+      lockAll: () => this.setState({ locks: allLocked ? {} : { colors: 1, type: 1, shape: 1, surface: 1, border: 1, units: 1, thresh: 1, motion: 1 } }), lockAllLabel: allLocked ? 'Unlock all' : 'Lock all',
+      exceptions: excAll, hasExc: excAll.length > 0, noExc: excAll.length === 0, excSummary: excAll.length ? excAll.length + ' things below ' + { all: 'All screens', profile: 'Desk bar', page: 'Gaming' }[scope] + ' don’t follow it' : 'None',
+      followAll: () => this.setState(p => ({ ov: {}, ...(scope !== 'page' ? { pageOwn: {} } : {}), ...(scope === 'all' ? { profOwn: {} } : {}) })),
+      launchOpts, screenCards, scr: cur, scrGroups, scrPages,
+      libTabs, libItems, libHint, connRows, sources, points,
+      aTabs, aRulesTab: s.atab === 'rules', aIslandTab: s.atab === 'island', aDefaultsTab: s.atab === 'defaults', aHistoryTab: s.atab === 'history', rules, islandScreens, islandRows, notices, islandWidgets, alertDefaults, history,
+      sTabs, sApp: s.stab === 'app' && desktop, appUnavailable: s.stab === 'app' && !desktop, sGroups, appNav, browserInfo,
+      showMoved: s.moved && movedList.length > 0, moved: movedList, toggleMoved: () => this.setState(p => ({ moved: !p.moved })),
+      goScreens: this.go('screens'), goLibrary: this.go('library'),
+      openSwitcher: () => this.setState({ overlay: 'switcher' }), openImport: () => this.setState({ overlay: 'import' }), openExport: () => this.setState({ overlay: 'export' }), openLive: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ overlay: 'live' }); },
+      save: () => this.setState({ dirty: false }),
+      hasOverlay: !!ov, ovSwitcher: ov === 'switcher', ovLive: ov === 'live', ovImport: ov === 'import', ovExport: ov === 'export', ovFirstRun: ov === 'firstrun',
+      scrim: ov === 'switcher' || ov === 'live' ? 'transparent' : 'rgba(0,0,0,0.55)', closeOverlay: () => this.setState({ overlay: null }), stop: e => e.stopPropagation(),
+      imp, impTabs, impDests, exports, kiosks, liveRows, switcher,
+      fr, frSteps, fr0: s.fr === 0, frCards: s.fr > 0, frNext: () => s.fr < 3 ? this.setState({ fr: s.fr + 1 }) : this.setState({ overlay: null, fr: 0 }), frBack: () => this.setState({ fr: Math.max(0, s.fr - 1) })
+    };
+  }
+}
+</script>
+</body>
+</html>

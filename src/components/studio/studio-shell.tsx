@@ -2,13 +2,16 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "./bottom-sheet";
 import { CollapseTab, ExpandStrip } from "./dock-toggle";
+import { FloatingInspector } from "./floating-inspector";
 import type { useStudioLayout } from "./use-studio-layout";
 
 interface StudioShellProps {
   layout: ReturnType<typeof useStudioLayout>;
-  /** The icon rail. */
+  /** The labelled rail. */
   rail: ReactNode;
-  /** The open left panel (null = none). */
+  /** The rail's width (px): an overlaid left panel starts after it. */
+  railWidth: number;
+  /** Design's left panel when it is open (null = none). */
   drawer: ReactNode;
   /** The canvas (or the Sources view). */
   main: ReactNode;
@@ -19,14 +22,14 @@ interface StudioShellProps {
 }
 
 /**
- * The studio body below the top bar: rail, left panel, then the canvas (the
+ * The studio body below the title bar: rail, left panel, then the canvas (the
  * zoom bar floats over it) and the inspector. Docked (a wide studio) the
  * inspector is a column beside the canvas that Ctrl+\ collapses to a slim
- * strip; on a narrower studio it is a card floating over the canvas's right
- * side, closed until asked for; on a phone it is a bottom sheet. It stays
+ * strip; on a narrow window it is a card floating over the canvas's right
+ * side (draggable by its header), closed until asked for; on a phone it is a bottom sheet. It stays
  * mounted while hidden, so its tab, scroll and search survive.
  */
-export function StudioShell({ layout, rail, drawer, main, bar, inspector }: StudioShellProps) {
+export function StudioShell({ layout, rail, railWidth, drawer, main, bar, inspector }: StudioShellProps) {
   const { mode, collapsed, floatOpen } = layout;
   const docked = mode === "docked";
   return (
@@ -34,7 +37,9 @@ export function StudioShell({ layout, rail, drawer, main, bar, inspector }: Stud
       {rail}
       {drawer && layout.leftOverlay ? (
         // Too narrow to sit beside the canvas: the left panel floats over it as a drawer.
-        <div className="absolute inset-y-0 left-[52px] z-40 flex shadow-ui-drawer">{drawer}</div>
+        <div className="absolute inset-y-0 z-40 flex shadow-ui-drawer" style={{ left: railWidth }}>
+          {drawer}
+        </div>
       ) : (
         drawer
       )}
@@ -55,14 +60,9 @@ export function StudioShell({ layout, rail, drawer, main, bar, inspector }: Stud
           </BottomSheet>
         )}
         {inspector !== null && mode === "floating" && (
-          <div
-            className={cn(
-              "absolute bottom-3 right-3 top-3 z-40 flex w-[320px] overflow-hidden rounded-xl border border-ui-strong shadow-[0_16px_40px_rgba(0,0,0,.5)]",
-              !floatOpen && "hidden"
-            )}
-          >
+          <FloatingInspector open={floatOpen} onClose={() => layout.setFloatOpen(false)}>
             {inspector}
-          </div>
+          </FloatingInspector>
         )}
       </main>
       {inspector !== null && docked && (

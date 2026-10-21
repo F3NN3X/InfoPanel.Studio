@@ -28,7 +28,7 @@ interface ItemInspectorProps {
   /** Live values by Data API key (the Sensor button's reading). */
   live: Readonly<Record<string, DataApiValue>>;
   onRemap: () => void;
-  /** A Gauge item's "Edit gauge…" (opens it in the Gauges page). */
+  /** A Gauge item's "Edit gauge…" (opens it in Gauges). */
   onEditGauge?: (path: Path) => void;
 }
 
@@ -70,7 +70,6 @@ export function ItemInspector({ editor, live, onRemap, onEditGauge }: ItemInspec
 function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
-  const [changedOnly, setChangedOnly] = useState(false);
   const kind = item.kind as ItemKind;
   const groups = ipGroups(kind);
   const context: InspectorContext = {
@@ -170,8 +169,6 @@ function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInsp
       parts={parts}
       query={query}
       onQuery={setQuery}
-      changedOnly={changedOnly}
-      onChangedOnly={setChangedOnly}
       identity={{ icon: <Icon />, name, meta: () => `InfoPanel · ${item.kind}` }}
     />
   );
@@ -317,14 +314,14 @@ function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path
   );
 }
 
-/** A Gauge item's way into the Gauges page, styled as the Sensor button. */
+/** A Gauge item's way into Gauges, styled as the Sensor button. */
 function EditGaugeButton({ onClick }: { onClick: () => void }) {
   return (
     <div className="px-4 pb-3">
       <button
         type="button"
         onClick={onClick}
-        title="Open this gauge on the Gauges page"
+        title="Open this gauge in Gauges"
         className="flex w-full items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-left text-[12px] text-ui-1 hover:border-ui-strong"
       >
         Edit gauge…

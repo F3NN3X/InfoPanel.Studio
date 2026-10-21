@@ -2,15 +2,11 @@ import { describe, expect, it } from "vitest";
 import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
 import { appearanceOf, resolveWith } from "@/lib/style-resolve";
 import { modules } from "@/modules";
-import { allSections, followInfo, type InspectorSection } from "@/components/studio/inspector-model";
-import type { FieldsApi } from "@/components/studio/settings-panel";
+import { followInfo } from "@/components/studio/inspector-model";
 import { THEME_EDITOR_SETTINGS } from "@/components/studio/theme-editor-settings";
 import {
-  customCount,
-  overridesOf,
   scopeAppearance,
   scopeLookValues,
-  themeFollowFields,
   withLock,
   withLockAll,
   withPageFollow,
@@ -64,7 +60,6 @@ const rendered = (c: DashboardConfig, pageId: string, id: string) => {
   const view = { ...desk(c), pageId, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}) };
   return resolveWith(appearanceOf(c, view), z.settings, z.follow, undefined, cpuDefs) ?? {};
 };
-const section = (id: string): InspectorSection => allSections({ kind: "theme", scope: "profile" }).find((s) => s.id === id)!;
 
 describe("theme scopes", () => {
 
@@ -93,62 +88,6 @@ describe("theme scopes", () => {
     expect(shownValue(custom, "accent", accent)).toBe("#333333");
     expect(sourceState(accent, custom)).toBe("here");
   });
-});
-
-describe("follow bars", () => {
-  const noop = { onLock: () => {}, onPageFollow: () => {} };
-
-  it("profile: Default for all widgets with the listed page's custom count and a Lock per section", () => {
-    const c = setup();
-    const locks: [string, boolean][] = [];
-    const main = desk(c).pages[0];
-    const f = themeFollowFields(scopeAppearance(c, desk(c), PROFILE), main, "profile", { ...noop, onLock: (sec, on) => locks.push([sec, on]) });
-    const bar = f.follow!(section("colors"))!;
-    // Main's CPU only (Gaming's custom Colors widget is not on the listed page).
-    expect(bar).toMatchObject({ mode: "theme", level: "profile", scope: { kind: "profile", custom: 1, pageName: "Main" } });
-    const levels = scopeAppearance(c, desk(c), PROFILE);
-    expect(customCount(main.placements, levels, "thresholds")).toBe(1);
-    expect(customCount(main.placements, levels, "motion")).toBe(0);
-    // A locked section has no custom widgets: they follow it anyway.
-    const locked = withLock(c, "desk", "thresholds", true);
-    expect(customCount(main.placements, scopeAppearance(locked, desk(locked), PROFILE), "thresholds")).toBe(0);
-    if (bar.scope?.kind === "profile") bar.scope.onLock(true);
-    expect(locks).toEqual([["colors", true]]);
-    // The profile edits its values whether locked or not.
-    expect(f.readOnly).toBeUndefined();
-  });
-
-  it("page: Follows the profile theme + Customize, Custom + Use profile, read-only while following or locked", () => {
-    let c = setup();
-    const calls: [string, boolean][] = [];
-    const fields = (cfg: DashboardConfig) =>
-      themeFollowFields(scopeAppearance(cfg, desk(cfg), GAMING), desk(cfg).pages[1], "page", { ...noop, onPageFollow: (sec, f) => calls.push([sec, f]) });
-    const accent = THEME_EDITOR_SETTINGS.find((d) => d.key === "accent")!;
-    let f: Pick<FieldsApi, "follow" | "readOnly"> = fields(c);
-    expect(f.follow!(section("colors"))).toMatchObject({ mode: "theme", scope: { kind: "page", pageName: "Gaming" } });
-    expect(f.readOnly!(accent)).toBe(true);
-    f.follow!(section("colors"))!.onCustomize();
-    expect(calls).toEqual([["colors", false]]);
-
-    c = withPageFollow(c, "desk", "gaming", "colors", false);
-    f = fields(c);
-    expect(f.follow!(section("colors"))?.mode).toBe("custom");
-    expect(f.readOnly!(accent)).toBe(false);
-    f.follow!(section("colors"))!.onUseTheme();
-    expect(calls[1]).toEqual(["colors", true]);
-
-    // Use profile keeps the page's values stored.
-    c = withScopeValues(c, "desk", GAMING, (v) => ({ ...v, accent: "#333333" }));
-    c = withPageFollow(c, "desk", "gaming", "colors", true);
-    expect(desk(c).pages[1].widgetTheme).toEqual({ values: { accent: "#333333" } });
-
-    // A locked section reads Locked on the page, read-only, even where the page was custom.
-    c = withPageFollow(withLock(c, "desk", "colors", true), "desk", "gaming", "colors", false);
-    f = fields(c);
-    expect(f.follow!(section("colors"))?.mode).toBe("locked");
-    expect(f.readOnly!(accent)).toBe(true);
-  });
-
 });
 
 describe("locks (SPEC §9 item 6)", () => {
@@ -192,21 +131,3 @@ describe("the profile accent (SPEC §9 item 5)", () => {
     expect(rendered(c, "main", "cpu").accent).toBe("#ff0000");
   });
 });
-
-describe("who doesn't follow the theme", () => {
-  it("lists per section exactly the page's widgets with that section custom", () => {
-    const c = setup();
-    const list = overridesOf(desk(c).pages[0].placements, scopeAppearance(c, desk(c), PROFILE));
-    const custom = list.filter((o) => o.zones.length > 0);
-    expect(custom.map((o) => [o.sec, o.zones.map((z) => z.id)])).toEqual([
-      ["colors", ["cpu"]],
-      ["thresholds", ["cpu"]],
-    ]);
-    expect(list.find((o) => o.sec === "palette")?.title).toBe("Widget colors");
-    expect(list.every((o) => !o.locked)).toBe(true);
-    const locked = withLock(c, "desk", "colors", true);
-    expect(overridesOf(desk(locked).pages[0].placements, scopeAppearance(locked, desk(locked), PROFILE)).find((o) => o.sec === "colors")?.locked).toBe(true);
-  });
-
-});
-

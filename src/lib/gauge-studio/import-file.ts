@@ -1,5 +1,5 @@
-/** Reading a gauge file picked on the Gauges page: a `.gauge.json` spec or an SVG template (spec §6). */
-import { readSpecFile } from "@/lib/infopanel/gauges/spec-file";
+/** Reading a gauge file picked in Gauges: a `.gauge.json` spec or an SVG template (spec §6). */
+import { readSpecFile, specFile } from "@/lib/infopanel/gauges/spec-file";
 import { sanitizeTemplate } from "@/lib/infopanel/gauges/svg-template";
 import { DEFAULT_GAUGE, MAX_TEMPLATE, normalizeGauge, type VectorGauge } from "@/lib/infopanel/gauges/vector";
 
@@ -26,3 +26,6 @@ export function importGauge(fileName: string, text: string): ImportedGauge {
 
 /** A download name for an exported spec. */
 export const exportFileName = (name: string): string => `${name.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "") || "gauge"}.gauge.json`;
+
+/** The `.gauge.json` an export writes (and "Copy JSON" copies): its name and exactly its text. */
+export const gaugePayload = (name: string, gauge: VectorGauge): { name: string; text: string } => ({ name: exportFileName(name), text: specFile(name, gauge) });

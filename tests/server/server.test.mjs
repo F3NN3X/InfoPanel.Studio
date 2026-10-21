@@ -136,6 +136,22 @@ describe("server.mjs", () => {
     expect(plain.output()).not.toContain("[debug]");
   });
 
+  it("lists a kiosk in the control state while its control stream is open", async () => {
+    const kiosks = async () => (await (await fetch(`${plain.base}/api/control`)).json()).kiosks;
+    const kiosk = await fetch(`${plain.base}/events/control?profile=desk&page=two`);
+    // The studio's stream reports no profile: not a kiosk.
+    const studio = await fetch(`${plain.base}/events/control`);
+    expect(await kiosks()).toEqual([expect.objectContaining({ profile: "desk", address: "127.0.0.1" })]);
+    await kiosk.body.cancel();
+    await studio.body.cancel();
+    let left = await kiosks();
+    for (let i = 0; i < 40 && left.length > 0; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      left = await kiosks();
+    }
+    expect(left).toEqual([]);
+  });
+
   it("serves /api/debug/stats only in debug mode and logs requests", async () => {
     expect((await fetch(`${plain.base}/api/debug/stats`)).status).toBe(404);
     const sse = await fetch(`${debug.base}/events/config`);

@@ -1,4 +1,4 @@
-/** The Gauges page's moving values: a slow clock for the thumbnails, and the preview's play and scrub. */
+/** The Gauges view's moving values: a slow clock for the thumbnails, and the preview's play and scrub. */
 import { useEffect, useState } from "react";
 import { sweepAt } from "@/lib/gauge-studio/sweep";
 

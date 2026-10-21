@@ -1,4 +1,3 @@
-import { SKIN_PACKS } from "@/widgets/core/theme";
 import {
   isMore,
   settingKeys,
@@ -16,6 +15,7 @@ import {
   isLocked,
   isSectionId,
   ownApplies,
+  SECTION_IDS,
   sectionOfKey,
   themeKeyOf,
   type SectionFlags,
@@ -27,6 +27,7 @@ import {
   categoryTab,
   isTrailing,
   tabOf,
+  mergeWidgetColors,
   withHeaderMode,
   withShared,
   type InspectorCategory,
@@ -44,20 +45,16 @@ import { STATUS_COLORS_TITLE, THEME_EDITOR_SETTINGS } from "./theme-editor-setti
  * `extras`) the UI fills in with the components it already has.
  */
 
-export type DashboardTab = "layout" | "look" | "behaviour";
-export type TabId = InspectorTab | DashboardTab;
+export type TabId = InspectorTab;
 
 export const TAB_LABELS: Record<TabId, string> = {
   show: "Show",
   style: "Style",
   data: "Data",
   behaviour: "Behaviour",
-  layout: "Layout",
-  look: "Look",
 };
 
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
-const DASHBOARD_TABS: readonly TabId[] = ["layout", "look", "behaviour"];
 /** The theme editor's: no Show tab (SPEC §7). */
 const THEME_TABS: readonly TabId[] = ["style", "data", "behaviour"];
 
@@ -93,7 +90,6 @@ export type InspectorContext =
   | { kind: "blank" }
   /** Several zones: the shared look only, no tabs. */
   | { kind: "multi"; defs: ModuleSetting[] }
-  | { kind: "dashboard"; scope: "all" | "profile"; profileName?: string }
   /** The theme editor (SPEC §7): the same sections at a theme level. */
   | { kind: "theme"; scope: ThemeScopeKind }
   /** An item of a canvas zone (an imported InfoPanel profile): its kind's fields, from the InfoPanel schema. */
@@ -128,25 +124,13 @@ export type SpecialSection =
   | "panelData"
   | "blankPick"
   | "zoneFrame"
-  | "layoutScreen"
-  | "layoutGrid"
-  | "lookTheme"
-  | "lookStyle"
-  | "lookBackground"
-  | "behaviourPages"
-  | "behaviourIsland"
-  | "behaviourPerformance"
-  | "behaviourClock"
-  | "behaviourDisplay"
-  | "behaviourStudio"
-  | "behaviourConnection"
   | "ipMode"
   | "ipPosition"
   | "ipSensor"
   | "ipUnknown";
 
 /** Custom UI placed inside a section next to its settings. */
-export type ExtraKind = "widgetPicker" | "visible" | "styleTools" | "zoneFrame";
+export type ExtraKind = "widgetPicker" | "visible" | "zoneFrame";
 
 export interface SectionExtra {
   kind: ExtraKind;
@@ -159,7 +143,6 @@ export interface SectionExtra {
 const EXTRA_TERMS: Record<ExtraKind, string[]> = {
   widgetPicker: ["Widget type", "Change widget"],
   visible: ["Visible", "Hide"],
-  styleTools: ["Copy style", "Paste style", "Save style", "Style preset"],
   zoneFrame: ["Zone frame", "Frame accent", "Frame background", "Title header"],
 };
 
@@ -194,11 +177,9 @@ const section = (s: Partial<InspectorSection> & Pick<InspectorSection, "id" | "t
 /** The tabs of a context, in order (none for a blank zone or several zones). */
 export function inspectorTabs(context: InspectorContext): { id: TabId; label: string }[] {
   const ids =
-    context.kind === "dashboard"
-      ? DASHBOARD_TABS
-      : context.kind === "theme"
-        ? THEME_TABS
-        : context.kind === "blank" || context.kind === "multi" || context.kind === "infopanel"
+    context.kind === "theme"
+      ? THEME_TABS
+      : context.kind === "blank" || context.kind === "multi" || context.kind === "infopanel"
         ? []
         : ZONE_TABS;
   return ids.map((id) => ({ id, label: TAB_LABELS[id] }));
@@ -213,8 +194,6 @@ function extrasOf(category: InspectorCategory, context: InspectorContext): Secti
   switch (category.id) {
     case "header":
       return identityExtras(context);
-    case "colors":
-      return zone ? [extra("styleTools")] : [];
     case "border":
       return zone ? [extra("zoneFrame", true, 3)] : [];
     default:
@@ -258,7 +237,7 @@ const sectionsOfCategories = (categories: InspectorCategory[], context: Inspecto
 
 /** Widget and panel zones: the shared cards (Header, Colors, Border & glow always) and the widget's own. */
 function zoneCategories(defs: ModuleSetting[], header = true): InspectorCategory[] {
-  return withShared(categorize(defs), header ? ["header", "colors", "border"] : ["colors", "border"]);
+  return mergeWidgetColors(withShared(categorize(defs), header ? ["header", "colors", "border"] : ["colors", "border"]));
 }
 
 const inTab = (sections: InspectorSection[], tab: InspectorTab) => sections.filter((s) => s.tab === tab);
@@ -307,7 +286,7 @@ function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>):
           title: "Bound data",
           tab: "data",
           special: "boundData",
-          terms: ["Sensors", "Used by", "Data points", "Source"],
+          terms: ["Sensors", "Used by", "Data points", "Source", "Connection", "Data API", "Rename", "Display name"],
         })
   );
 }
@@ -330,7 +309,7 @@ function panelSections(context: Extract<InspectorContext, { kind: "panel" }>): I
         title: "Bound data",
         tab: "data",
         special: "panelData",
-        terms: ["Sensors", "Data points"],
+        terms: ["Sensors", "Data points", "Connection", "Data API", "Rename", "Display name"],
       })
     ),
   ];
@@ -348,7 +327,7 @@ const blankSections = (): InspectorSection[] => [
 ];
 
 /** The shared sections of the look, in order: what several zones edit together. */
-const LOOK_SECTIONS: readonly SharedSectionId[] = ["skin", "colors", "surface", "type", "spacing", "border", "css", "fit", "motion"];
+const LOOK_SECTIONS: readonly SharedSectionId[] = ["skin", "colors", "type", "spacing", "surface", "border", "css", "fit", "motion"];
 
 function lookCategories(defs: ModuleSetting[]): InspectorCategory[] {
   const categories = categorize(defs);
@@ -368,61 +347,6 @@ const themeSections = (context: InspectorContext): InspectorSection[] =>
     s.id === "palette" ? { ...s, title: STATUS_COLORS_TITLE, hint: "The theme palette: series and status colors widgets follow" } : s
   );
 
-// -- the dashboard (nothing selected) -----------------------------------------
-
-const dashboardMarker = (tab: DashboardTab, id: string, title: string, special: SpecialSection, terms: string[]) =>
-  section({ id, title, tab, special, terms });
-
-/** The parts of the profile inspector the palette's "Appearance…" and friends jump to. */
-export type DocumentTab = "appearance" | "background" | "font" | "general" | "connection";
-
-/** The section each part jumps to (its section id). */
-export const DOCUMENT_CARD: Record<DocumentTab, string> = {
-  appearance: "lk-theme",
-  background: "lk-bg",
-  font: "lk-theme",
-  general: "bh-clock",
-  connection: "bh-conn",
-};
-
-/** The profile inspector's sections (nothing selected): Layout, Look and Behaviour. */
-function dashboardSections(): InspectorSection[] {
-  return [
-    dashboardMarker("layout", "ly-screen", "Screen", "layoutScreen", [
-      "Name", "Rename", "Design size", "Width", "Height", "Window size", "When it doesn't fit", "Fill", "Scroll", "Fit mode",
-    ]),
-    dashboardMarker("layout", "ly-grid", "Grid", "layoutGrid", [
-      "Columns", "Rows", "Gap", "Edge padding", "Padding", "Spacing", "Preview",
-    ]),
-    dashboardMarker("look", "lk-theme", "Theme", "lookTheme", [
-      "Theme colors", "Colors", "Primary", "Accent", "Card", "Corners", "Corner radius", "Radius", "Font", "Sans", "Serif", "Mono", "Rounded",
-      "All profiles", "This profile",
-    ]),
-    dashboardMarker("look", "lk-style", "Widget style", "lookStyle", [
-      "Skin", "Presets", "Saved looks", "Look", "Save current look as preset", "Replace the page background", "Surface", "Glass", "Matte",
-      "Background opacity", "Background blur", "Apply to every widget", "Lock", "Widget theme", "Theme editor", "All profiles", "This profile",
-      ...SKIN_PACKS.map((p) => p.name),
-    ]),
-    dashboardMarker("look", "lk-bg", "Background", "lookBackground", [
-      "Page background", "Color", "Gradient", "Image", "Video", "Fit", "Position", "Tint", "Dim", "Blur", "All profiles", "This profile",
-    ]),
-    dashboardMarker("behaviour", "bh-pages", "Pages", "behaviourPages", [
-      "Add page", "Delete page", "Reorder", "Cycle through pages", "Auto-rotate", "Switch every", "Seconds per page", "Rotation", "Kiosk",
-      "Page dots", "Swipe",
-    ]),
-    dashboardMarker("behaviour", "bh-island", "Dynamic Island", "behaviourIsland", [
-      "Island", "Notch", "Pill", "Time", "Date", "Alerts", "Notifications", "Collapse", "Touch", "Pop-up alerts",
-    ]),
-    dashboardMarker("behaviour", "bh-performance", "Performance", "behaviourPerformance", [
-      "Frame rate limit", "Max FPS", "Frame rate", "FPS", "No limit", "Animations", "Motion", "Disable animations", "Reduce", "All profiles", "This profile",
-    ]),
-    dashboardMarker("behaviour", "bh-clock", "Clock and date", "behaviourClock", ["Clock", "12 h", "24 h", "Time", "Locale", "Show seconds", "Date locale"]),
-    dashboardMarker("behaviour", "bh-display", "Display", "behaviourDisplay", ["Hide cursor", "Kiosk", "Cursor"]),
-    dashboardMarker("behaviour", "bh-studio", "Studio", "behaviourStudio", ["Quick bar", "Inspector sections", "Accordion", "One open", "Many open"]),
-    dashboardMarker("behaviour", "bh-conn", "Connection", "behaviourConnection", ["Data API", "URL", "Test connection"]),
-  ];
-}
-
 /** Every section of a context across all its tabs, in display order. */
 export function allSections(context: InspectorContext): InspectorSection[] {
   switch (context.kind) {
@@ -436,8 +360,6 @@ export function allSections(context: InspectorContext): InspectorSection[] {
       return blankSections();
     case "multi":
       return multiSections(context);
-    case "dashboard":
-      return dashboardSections();
     case "theme":
       return themeSections(context);
     case "infopanel":
@@ -584,20 +506,6 @@ export function widgetLookValues(input: {
   };
 }
 
-/** The look a scope of the Appearance tab shows: the dashboard's style, or this profile's theme over it. */
-export function globalStyleValues(
-  scope: "all" | "profile",
-  dashboard: ModuleSettings | undefined,
-  profile: ModuleSettings | undefined
-): LookValues {
-  if (scope === "all") return { own: dashboard };
-  return {
-    own: profile,
-    inherited: dashboard,
-    inheritedFrom: Object.fromEntries(Object.keys(dashboard ?? {}).map((k): [string, StyleSource] => [k, "dashboard"])),
-  };
-}
-
 /** Whether a setting shows given the current values (`visibleIf`, e.g. glow color only with a glow). */
 export const isVisible = (def: ModuleSetting, values: ModuleSettings): boolean => def.visibleIf?.(values) ?? true;
 
@@ -630,13 +538,14 @@ export function rowSection(def: ModuleSetting): SectionId | undefined {
 }
 
 /**
- * The followable section an inspector section stands for: a shared section
- * of SPEC §2.1 with a row the theme sets (else there is nothing to follow).
+ * The theme sections an inspector card's inheritance chip covers: its own, and Widget colors inside the
+ * merged Colors card (SPEC §6.3). None for a card nothing in follows a theme.
  */
-export function followSection(s: InspectorSection): SectionId | undefined {
+export function chipSections(s: InspectorSection): SectionId[] {
   const id = s.id.split("@")[0];
-  if (!s.general || !isSectionId(id)) return undefined;
-  return s.settings.some((d) => rowSection(d) === id) ? id : undefined;
+  if (!s.general || !isSectionId(id)) return [];
+  const rows = new Set(s.settings.map(rowSection));
+  return SECTION_IDS.filter((sec) => rows.has(sec) && (sec === id || (id === "colors" && sec === "palette")));
 }
 
 /** A widget section's state: following the theme, custom, or locked by the profile. */
@@ -644,19 +553,12 @@ export type FollowMode = "theme" | "custom" | "locked";
 
 export interface FollowInfo {
   mode: FollowMode;
-  /** The theme it follows: "the profile theme · Desk", "the page theme · Gaming". */
-  from: string;
-  /** Which theme `from` names (its link opens that scope of the theme editor). */
-  level: "profile" | "page";
 }
 
-/** The Follow bar of a widget section (SPEC §4.1): a page custom for the section names the page's theme. */
+/** Whether a widget section follows the theme, is custom, or is locked by the screen (a locked section's rows are read-only). */
 export function followInfo(appearance: Appearance, follow: SectionFlags | undefined, sec: SectionId): FollowInfo {
-  const named = (level: string, name: string | undefined) => `the ${level} theme${name ? ` · ${name}` : ""}`;
-  if (isLocked(appearance, sec)) return { mode: "locked", from: named("profile", appearance.profileName), level: "profile" };
-  const level = appearance.page?.follow?.[sec] === false ? "page" : "profile";
-  const from = level === "page" ? named("page", appearance.pageName) : named("profile", appearance.profileName);
-  return { mode: following(appearance, follow, sec) ? "theme" : "custom", from, level };
+  if (isLocked(appearance, sec)) return { mode: "locked" };
+  return { mode: following(appearance, follow, sec) ? "theme" : "custom" };
 }
 
 // -- notes ----------------------------------------------------------------------
@@ -669,10 +571,9 @@ export interface InspectorNote {
 /** The banners and context notes of a tab (whether a section follows the theme is its Follow bar). */
 export function inspectorNotes(context: InspectorContext, tab: TabId | undefined): InspectorNote[] {
   if (context.kind === "blank") return [{ kind: "blank", text: "This zone is blank. Pick a widget or a panel to fill it." }];
-  if (context.kind === "dashboard") return [];
   if (context.kind === "theme") {
     return context.scope === "base"
-      ? [{ kind: "theme", text: "The base under every profile's theme: what a profile leaves unset. It has no locks." }]
+      ? [{ kind: "theme", text: "The base under every screen's theme: what a screen leaves unset. It has no locks." }]
       : [];
   }
   if (tab !== "style") return [];

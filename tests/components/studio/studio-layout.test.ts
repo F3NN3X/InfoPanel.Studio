@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CANVAS_PAD_X,
   CANVAS_PAD_Y,
+  FIT_MIN,
   FLOAT_INSET,
   computeLayout,
   fitZoomFor,
@@ -25,15 +26,21 @@ function layout(patch: Partial<LayoutInput> & Pick<LayoutInput, "page">) {
 }
 
 describe("inspectorMode", () => {
-  it("docks from 1100 px, floats from 640 px, and is a sheet below", () => {
+  it("docks from 960 px, floats from 600 px, and is a sheet below (SPEC §3.5)", () => {
     expect(inspectorMode(1440)).toBe("docked");
-    expect(inspectorMode(1100)).toBe("docked");
-    expect(inspectorMode(1099)).toBe("floating");
-    expect(inspectorMode(1024)).toBe("floating");
-    expect(inspectorMode(768)).toBe("floating");
-    expect(inspectorMode(640)).toBe("floating");
-    expect(inspectorMode(639)).toBe("sheet");
+    expect(inspectorMode(1279)).toBe("docked");
+    expect(inspectorMode(960)).toBe("docked");
+    expect(inspectorMode(959)).toBe("floating");
+    expect(inspectorMode(900)).toBe("floating");
+    expect(inspectorMode(600)).toBe("floating");
+    expect(inspectorMode(599)).toBe("sheet");
     expect(inspectorMode(390)).toBe("sheet");
+  });
+
+  it("is picked from the window's width when computing the layout, not the body's", () => {
+    const body = { width: 900, height: 800 };
+    expect(computeLayout({ body, rail: 48, inspector: SIDE, page: { width: 1920, height: 550 } }).mode).toBe("floating");
+    expect(computeLayout({ body, windowWidth: 960, rail: 72, inspector: SIDE, page: { width: 1920, height: 550 } }).mode).toBe("docked");
   });
 
   it("docks before the studio is measured", () => {
@@ -61,12 +68,16 @@ describe("fitZoomFor", () => {
 
   it("clamps to the zoom range", () => {
     expect(fitZoomFor({ width: 99999, height: 99999 }, { width: 100, height: 100 })).toBe(2);
-    expect(fitZoomFor({ width: 100, height: 100 }, { width: 5000, height: 5000 })).toBe(0.25);
+    expect(fitZoomFor({ width: 100, height: 100 }, { width: 5000, height: 5000 })).toBe(FIT_MIN);
   });
 
-  it("is 100% for an unknown page and 25% for a box with no room", () => {
+  it("fits a 1920 px page into a phone's 390 px canvas, below the lowest zoom stop", () => {
+    expect(fitZoomFor({ width: 390, height: 600 }, { width: 1920, height: 550 })).toBe(0.16);
+  });
+
+  it("is 100% for an unknown page and the lowest fit for a box with no room", () => {
     expect(fitZoomFor({ width: 500, height: 500 }, { width: 0, height: 0 })).toBe(1);
-    expect(fitZoomFor({ width: 0, height: 0 }, { width: 800, height: 480 })).toBe(0.25);
+    expect(fitZoomFor({ width: 0, height: 0 }, { width: 800, height: 480 })).toBe(FIT_MIN);
   });
 
   it("keeps the page clear of an inset", () => {
@@ -92,13 +103,13 @@ describe("computeLayout", () => {
   });
 
   it("floats over a narrower studio: the canvas keeps the full width until the panel opens", () => {
-    const body = { width: 1024, height: 700 };
+    const body = { width: 900, height: 700 };
     const closed = layout({ page: strip, body });
     expect(closed.mode).toBe("floating");
-    expect(closed.canvasWidth).toBe(1024 - RAIL);
+    expect(closed.canvasWidth).toBe(900 - RAIL);
     expect(closed.inset).toEqual({});
     const open = layout({ page: strip, body, floatOpen: true });
-    expect(open.canvasWidth).toBe(1024 - RAIL);
+    expect(open.canvasWidth).toBe(900 - RAIL);
     expect(open.inset).toEqual({ right: FLOAT_INSET });
     // The page fits into what the panel leaves.
     expect(open.fitZoom).toBeLessThan(closed.fitZoom);
@@ -122,7 +133,7 @@ describe("computeLayout", () => {
     const unmeasured = layout({ page: strip, body: { width: 0, height: 0 } });
     expect(unmeasured.mode).toBe("docked");
     expect(unmeasured.canvasWidth).toBe(0);
-    expect(unmeasured.fitZoom).toBe(0.25);
+    expect(unmeasured.fitZoom).toBe(FIT_MIN);
     expect(layout({ page: strip, body: { width: 300, height: 400 } }).canvasWidth).toBe(300 - RAIL);
   });
 });

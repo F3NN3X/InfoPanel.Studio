@@ -1,6 +1,6 @@
 /**
  * Reading a canvas zone's files into an asset `Doc` and writing an edited one back, shared by the
- * Profile assets tab (use-profile-doc) and the Gauges page's frame tools: the same load, the same
+ * Profile assets tab (use-profile-doc) and the Library's Gauges frame tools: the same load, the same
  * upload, and one `setConfig` per write so the studio records one undo step.
  */
 import { withCanvas } from "@/components/studio/import-actions";

@@ -1,4 +1,4 @@
-import { DEFAULT_COOLDOWN_SECONDS, type AlertRule, type AlertSource } from "./alerts";
+import { DEFAULT_COOLDOWN_SECONDS, type AlertRule, type SensorCondition } from "./alerts";
 import type { DataPoint } from "./data-points";
 import { uid } from "./layout";
 
@@ -12,7 +12,8 @@ import { uid } from "./layout";
 /** What the matcher needs of a catalogue point. */
 export type PresetPoint = Pick<DataPoint, "key" | "name" | "type"> & Partial<Pick<DataPoint, "unit">>;
 
-type SensorSource = Extract<AlertSource, { kind: "sensor" }>;
+/** A preset's one condition (its key is picked later) and the hold time. */
+type PresetCondition = Omit<SensorCondition, "key"> & { forSeconds: number };
 
 export interface AlertPreset {
   id: string;
@@ -39,16 +40,22 @@ const display = (over: Partial<NonNullable<AlertRule["outputs"]["display"]>> = {
   ...over,
 });
 
+/** A notification's display keeps the default text: the app is the title, the body its title then message. */
+const notificationDisplay = () => {
+  const { text: _sensorText, ...rest } = display({ seconds: 6 });
+  return rest;
+};
+
 const sensorRule = (
   name: string,
   severity: AlertRule["severity"],
-  source: Omit<SensorSource, "kind" | "key">,
+  { forSeconds, ...condition }: PresetCondition,
   out: { cooldown?: number; display?: Parameters<typeof display>[0] } = {}
 ): Omit<AlertRule, "id"> => ({
   name,
   enabled: true,
   severity,
-  source: { kind: "sensor", key: "", ...source },
+  source: { kind: "sensor", conditions: [{ key: "", ...condition }], forSeconds },
   cooldownSeconds: out.cooldown ?? DEFAULT_COOLDOWN_SECONDS * 2,
   outputs: { display: display(out.display) },
 });
@@ -174,7 +181,7 @@ export const ALERT_PRESETS: readonly AlertPreset[] = [
       severity: "info",
       source: { kind: "notification" },
       cooldownSeconds: 0,
-      outputs: { display: display({ seconds: 6, text: "{app}: {title}" }) },
+      outputs: { display: notificationDisplay() },
     },
   },
 ];
@@ -183,7 +190,7 @@ export const ALERT_PRESETS: readonly AlertPreset[] = [
 export function matchSensor(preset: AlertPreset, points: readonly PresetPoint[]): string | undefined {
   const { match, avoid } = preset;
   if (!match) return undefined;
-  const wantsText = preset.rule.source.kind === "sensor" && typeof preset.rule.source.value === "string";
+  const wantsText = preset.rule.source.kind === "sensor" && typeof preset.rule.source.conditions[0].value === "string";
   return points.find((p) => {
     if (p.type === "empty" || (!wantsText && p.type !== "number")) return false;
     const hay = `${p.key} ${p.name}`;
@@ -196,7 +203,10 @@ export function matchSensor(preset: AlertPreset, points: readonly PresetPoint[])
 export function presetRule(preset: AlertPreset, points: readonly PresetPoint[]): AlertRule {
   const base = preset.rule;
   const key = matchSensor(preset, points);
-  const source: AlertSource = base.source.kind === "sensor" ? { ...base.source, key: key ?? "" } : { ...base.source };
+  const source: AlertRule["source"] =
+    base.source.kind === "sensor"
+      ? { ...base.source, conditions: base.source.conditions.map((c) => ({ ...c, key: key ?? "" })) }
+      : { ...base.source };
   return { ...base, id: uid("alert"), source, outputs: structuredClone(base.outputs) };
 }
 
@@ -207,7 +217,7 @@ export function blankSensorRule(): AlertRule {
     name: "New alert",
     enabled: true,
     severity: "warning",
-    source: { kind: "sensor", key: "", op: ">", value: 80, forSeconds: 0 },
+    source: { kind: "sensor", conditions: [{ key: "", op: ">", value: 80 }], forSeconds: 0 },
     cooldownSeconds: DEFAULT_COOLDOWN_SECONDS,
     outputs: { display: display() },
   };
@@ -222,6 +232,6 @@ export function blankNotificationRule(): AlertRule {
     severity: "info",
     source: { kind: "notification" },
     cooldownSeconds: 0,
-    outputs: { display: display({ seconds: 6, text: "{app}: {title}" }) },
+    outputs: { display: notificationDisplay() },
   };
 }

@@ -4,6 +4,7 @@
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
 use std::sync::atomic::Ordering;
+use std::time::Instant;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -100,6 +101,9 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .title("InfoPanel Studio")
         // The studio's top bar (and the start page's) is the title bar, with its own controls.
         .decorations(false)
+        // Tauri's own drag-drop handler takes file drops from the page; the studio's Import door
+        // and its drop overlay read them as HTML5 events.
+        .disable_drag_drop_handler()
         .inner_size(1440.0, 900.0)
         .min_inner_size(960.0, 600.0)
         .additional_browser_args(browser_args(app.state::<AppState>().debug()))
@@ -199,6 +203,8 @@ pub fn load_studio(app: &AppHandle, url: &str) {
 
 /// Event telling an open Settings window to show a section (the payload is its id).
 pub const SETTINGS_EVENT: &str = "settings-section";
+/// Event telling the studio page to open Settings › App (the payload is a section id, or null).
+pub const OPEN_SETTINGS_EVENT: &str = "studio://open-settings";
 /// Event telling an open Help window to show an article (the payload is a `HelpTarget`).
 pub const HELP_EVENT: &str = "help-open";
 
@@ -310,6 +316,23 @@ pub fn show_settings(app: &AppHandle, section: Option<&str>) {
         if let Some(s) = settings_section(section) {
             let _ = app.emit_to(SETTINGS, SETTINGS_EVENT, s);
         }
+    }
+}
+
+/// The tray's Settings: the studio window, which opens Settings › App (at a section when given one). A
+/// window that is open gets the event; one that is built by this call, or is still loading, finds the request
+/// waiting when its page mounts (`take_pending_settings`). While the window shows the start page, its own
+/// rescue buttons are what the user gets.
+pub fn show_settings_in_studio(app: &AppHandle, section: Option<&str>) {
+    let st = app.state::<AppState>();
+    let existed = app.get_webview_window(MAIN).is_some();
+    let section = settings_section(section);
+    st.pending_settings.set(section, Instant::now());
+    show_main(app);
+    if !st.studio_page.load(Ordering::SeqCst) {
+        st.pending_settings.clear();
+    } else if existed {
+        let _ = app.emit_to(MAIN, OPEN_SETTINGS_EVENT, section);
     }
 }
 

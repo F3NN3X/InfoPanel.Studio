@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { specFile } from "@/lib/infopanel/gauges/spec-file";
 import { DEFAULT_GAUGE } from "@/lib/infopanel/gauges/vector";
-import { exportFileName, importGauge } from "@/lib/gauge-studio/import-file";
+import { exportFileName, gaugePayload, importGauge } from "@/lib/gauge-studio/import-file";
 
 describe("importing a gauge file", () => {
   it("reads a .gauge.json spec, with its name", () => {
@@ -25,5 +25,13 @@ describe("export name", () => {
   it("makes a safe .gauge.json file name", () => {
     expect(exportFileName("My ring / v2")).toBe("My-ring-v2.gauge.json");
     expect(exportFileName("???")).toBe("gauge.gauge.json");
+  });
+});
+
+describe("export payload", () => {
+  it("is the spec file text, which is exactly what Copy JSON copies, and importing it gives the gauge back", () => {
+    const payload = gaugePayload("My ring", DEFAULT_GAUGE);
+    expect(payload).toEqual({ name: "My-ring.gauge.json", text: specFile("My ring", DEFAULT_GAUGE) });
+    expect(importGauge(payload.name, payload.text)).toMatchObject({ name: "My ring", gauge: DEFAULT_GAUGE });
   });
 });

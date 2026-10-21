@@ -10,12 +10,14 @@ import {
   type Health,
 } from "@/lib/data-points";
 import { useLiveData } from "@/lib/data-live";
-import { bindPoint, computeUsage, unbindPoint, type Usage } from "@/lib/data-usage";
+import { bindPoint, computeUsage, screensUsing, unbindPoint, type Usage } from "@/lib/data-usage";
 import { PANEL_ID, uid, type DashboardConfig, type ProfileView, type SourcePref } from "@/lib/layout";
+import type { StatusBarData } from "./status-bar";
 import { modules } from "@/modules";
 import { cn } from "@/lib/utils";
-import { addStatZone } from "./explorer/explorer-actions";
+import { addStatZone, withSourcePref } from "./explorer/explorer-actions";
 import { ExplorerHeader } from "./explorer/explorer-header";
+import { ConnectionCard } from "./connection-card";
 import {
   ALL_SCOPE,
   bindOptions,
@@ -45,8 +47,8 @@ import { placementTitle } from "./studio-modules";
 
 /** Below this window width the point inspector becomes an overlay drawer. */
 const DRAWER_BELOW = 1240;
-/** Below this window width the table drops its "Used by" column. */
-const HIDE_USED_BY_BELOW = 1000;
+/** Below this window width the table drops its "Used in" column. */
+const HIDE_USED_IN_BELOW = 1000;
 
 interface SourcesPanelProps {
   config: DashboardConfig;
@@ -60,10 +62,12 @@ interface SourcesPanelProps {
   onOpenZone: (zoneId: string, opts?: { widgetId?: string; dataTab?: boolean }) => void;
   /** Select this data point (the inspector's Bound data rows open it); selects again whenever it changes. */
   focusPointKey?: string;
+  /** The Data API's live state, for the Connection card's pill. */
+  dataApi: StatusBarData["dataApi"];
 }
 
-/** Sources mode: the Data Explorer (source tree, point table, point inspector). Toasts come from the studio's provider. */
-export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpenZone, focusPointKey }: SourcesPanelProps) {
+/** The Data view: the Connection card over the source tree, the point table and the point inspector. Toasts come from the studio's provider. */
+export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpenZone, focusPointKey, dataApi }: SourcesPanelProps) {
   const toast = useToast();
   const catalog = useSensorCatalog();
   const { values, history, tick } = useLiveData(true);
@@ -74,6 +78,11 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
   const usage = useMemo(
     () => computeUsage(profile, model.points.map((p) => p.key), modules),
     [profile, model.points]
+  );
+
+  const screens = useMemo(
+    () => screensUsing(config.profiles, model.points.map((p) => p.key), modules),
+    [config.profiles, model.points]
   );
 
   const [scope, setScope] = useState<Scope>(ALL_SCOPE);
@@ -168,11 +177,7 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
 
   const openUsage = (u: Usage) => onOpenZone(u.zoneId, { widgetId: u.panelWidgetId, dataTab: true });
 
-  const onPrefsChange = (key: string, pref: Partial<SourcePref>) =>
-    setConfig(
-      (c) => ({ ...c, sourcePrefs: { ...c.sourcePrefs, [key]: { ...c.sourcePrefs?.[key], ...pref } } }),
-      `source-pref:${key}`
-    );
+  const onPrefsChange = (key: string, pref: Partial<SourcePref>) => setConfig((c) => withSourcePref(c, key, pref), `source-pref:${key}`);
 
   const scopeSource = scope.kind === "all" ? null : (model.sources.find((s) => s.id === (scope.kind === "source" ? scope.id : scope.sourceId)) ?? null);
   const heading = summaryHeading(scope, model.sources);
@@ -225,25 +230,32 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
         pointCount={model.points.length}
         sourceCount={model.sources.length}
         apiBase={apiBase}
-        status={values["system.bridge.status"]?.text ?? ""}
       />
       {loading ? (
         <div className="grid flex-1 place-items-center text-[12.5px] text-ui-4">Loading data points…</div>
       ) : (
-      <div className="relative flex min-h-0 flex-1">
-        <SourceTree
-          sources={treeSources}
-          counts={counts}
-          totalPoints={model.points.length}
-          scope={scope}
-          onScope={changeScope}
-          query={treeQuery}
-          onQuery={setTreeQuery}
-          health={health}
-          onHealth={setHealth}
-          sourcePrefs={config.sourcePrefs}
-          onPrefsChange={onPrefsChange}
-        />
+      <div className="relative flex min-h-0 flex-1 max-sm:flex-col">
+        {/* On a phone the connection and source tree sit above the table. */}
+        <div className="flex min-h-0 w-[300px] shrink-0 flex-col border-r border-ui-subtle bg-ui-panel max-sm:max-h-[48%] max-sm:w-full max-sm:overflow-y-auto max-sm:border-b max-sm:border-r-0">
+          <ConnectionCard
+            value={config.dataApiUrl}
+            onChange={(dataApiUrl) => setConfig((c) => ({ ...c, dataApiUrl }), "data-api-url")}
+            dataApi={dataApi}
+          />
+          <SourceTree
+            sources={treeSources}
+            counts={counts}
+            totalPoints={model.points.length}
+            scope={scope}
+            onScope={changeScope}
+            query={treeQuery}
+            onQuery={setTreeQuery}
+            health={health}
+            onHealth={setHealth}
+            sourcePrefs={config.sourcePrefs}
+            onPrefsChange={onPrefsChange}
+          />
+        </div>
         <PointTable
           crumbs={crumbs(scope, model.sources)}
           onScope={changeScope}
@@ -265,12 +277,16 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
           onHideEmpty={setHideEmpty}
           inUse={inUse}
           onInUse={setInUse}
-          showUsedBy={width >= HIDE_USED_BY_BELOW}
+          screens={screens}
+          sources={model.sources}
+          sourcePrefs={config.sourcePrefs}
+          onDisplayName={(key, displayName) => onPrefsChange(key, { displayName })}
+          showUsedIn={width >= HIDE_USED_IN_BELOW}
         />
         {(!drawer || point) && (
           <div
             className={cn(
-              "w-[320px] shrink-0 border-l border-ui-subtle",
+              "w-[320px] shrink-0 border-l border-ui-subtle max-sm:w-full",
               drawer && "absolute inset-y-0 right-0 z-20 shadow-ui-drawer"
             )}
           >

@@ -29,6 +29,8 @@ fn main() {
         "list_local_addresses",
         "quit_app",
         "open_settings",
+        "open_settings_in_studio",
+        "take_pending_settings",
         "open_help",
         "kiosk_window",
         "save_text_file",

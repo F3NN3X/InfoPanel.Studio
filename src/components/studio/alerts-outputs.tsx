@@ -31,7 +31,7 @@ interface AlertOutputsProps {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const SIZE_LABEL = { s: "S", m: "M", l: "L" } as const;
 
-const TOKENS = "{name} {value} {unit} {app} {title} {body}";
+const TOKENS = "{name} {value} {unit} {sensor} {app} {title} {body}";
 
 /** The rule's outputs: the kiosk display, switching to a page and highlighting widgets. */
 export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOutputsProps) {
@@ -118,7 +118,7 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
         {page && (
           <>
             <SelectRow
-              label="Profile"
+              label="Screen"
               value={pageProfile.id}
               options={config.profiles.map((p) => ({ value: p.id, label: p.name }))}
               onChange={(id) => {

@@ -122,7 +122,7 @@ function ZoneAssets({ zoneId, stored, picker, setConfig, onSelectUses, onSaveToL
       const files = await readFiles(list);
       const known = new Map([...d.assets.values()].map((f) => [f.hash, f.name]));
       const reused = files.flatMap((f) => (known.has(f.hash) ? [`${f.name} (as ${known.get(f.hash)})`] : []));
-      return { doc: add(d, files).doc, message: reused.length ? `Already in the profile, not added again: ${reused.join(", ")}` : undefined };
+      return { doc: add(d, files).doc, message: reused.length ? `Already in this screen, not added again: ${reused.join(", ")}` : undefined };
     });
 
   const replaceOne = (name: string, list: File[]) =>

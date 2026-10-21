@@ -1,0 +1,85 @@
+/*
+ * What the settings window's stylesheet sets on html and body, scoped to the pages when the studio hosts them
+ * (Settings › App). The color tokens are tokens.css; the studio's own stylesheet supplies the utilities.
+ */
+.s-scope {
+  color-scheme: dark;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.s-scope button {
+  white-space: nowrap;
+}
+
+.s-scope a {
+  color: var(--color-s-accent-text);
+}
+
+.s-scope a:hover {
+  color: var(--color-s-t1);
+}
+
+.s-scope :focus-visible {
+  outline: 2px solid var(--color-s-accent);
+  outline-offset: 1px;
+}
+
+/* A row found by search: an accent outline that fades out. */
+@keyframes row-found {
+  from {
+    outline-color: var(--color-s-accent);
+    background-color: oklch(0.72 0.15 255 / 0.1);
+  }
+  to {
+    outline-color: transparent;
+    background-color: transparent;
+  }
+}
+
+.s-scope .row-found {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  animation: row-found 1.5s ease-out;
+}
+
+/* The changelog's notes (marked's output): bullets with mono code pills. */
+.s-scope .notes ul {
+  list-style: disc;
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.s-scope .notes li {
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #d6d6db;
+  text-wrap: pretty;
+}
+
+.s-scope .notes p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-s-t2);
+  text-wrap: pretty;
+}
+
+.s-scope .notes code {
+  font-family: var(--font-ui-mono);
+  font-size: 12px;
+  background: #1a1a1f;
+  border: 1px solid var(--color-s-track-line);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--color-s-t1);
+}
+
+.s-scope .notes strong {
+  color: var(--color-s-t1);
+  font-weight: 600;
+}

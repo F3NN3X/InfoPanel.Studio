@@ -1,4 +1,4 @@
-/** The Gauges page's main area (spec §6): Presets, In <profile> and My library, each a grid of live square thumbnails. */
+/** The Gauges view's main area (spec §6): Presets, In <profile> and My library, each a grid of live square thumbnails. */
 import { cn } from "@/lib/utils";
 import type { GaugeEntry } from "@/lib/gauge-studio/model";
 import { draggableGauge } from "./gauge-drag";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Check, MoreHorizontal, X } from "lucide-react";
-import { ICON_BUTTON, ITEM, POPUP } from "./style-tools";
+import { ICON_BUTTON, ITEM, POPUP } from "./menu-styles";
 
 /** The panel header's "⋯": panel-wide actions. */
 export function PanelMenu({ onSavePreset }: { onSavePreset: () => void }) {
@@ -16,9 +16,9 @@ export function PanelMenu({ onSavePreset }: { onSavePreset: () => void }) {
             <Menu.Item
               className={ITEM}
               onClick={onSavePreset}
-              title="Keep this panel (widgets, layout and look) in Add › My panels"
+              title="Keep this panel (widgets, layout and look) in Library › Panels"
             >
-              Save as panel preset…
+              Save as Panel
             </Menu.Item>
           </Menu.Popup>
         </Menu.Positioner>
@@ -27,7 +27,7 @@ export function PanelMenu({ onSavePreset }: { onSavePreset: () => void }) {
   );
 }
 
-/** The inline name input of "Save as panel preset" (Enter saves, Esc cancels). */
+/** The inline name input of "Save as Panel" (Enter saves, Esc cancels). */
 export function PresetNameInput({
   initial,
   onSave,
@@ -52,8 +52,8 @@ export function PresetNameInput({
           if (e.key === "Enter" && trimmed) onSave(trimmed);
           if (e.key === "Escape") onCancel();
         }}
-        placeholder="Panel preset name"
-        aria-label="Panel preset name"
+        placeholder="Panel name"
+        aria-label="Panel name"
         className="min-w-0 flex-1 rounded-md border border-ui-default bg-ui-app px-2 py-0.5 text-[12px] text-ui-1 placeholder:text-ui-4 outline-none focus:border-ui-accent"
       />
       <button
@@ -61,7 +61,7 @@ export function PresetNameInput({
         className={ICON_BUTTON}
         disabled={!trimmed}
         onClick={() => onSave(trimmed)}
-        title="Save to My panels"
+        title="Save as Panel"
       >
         <Check className="h-3 w-3" />
       </button>

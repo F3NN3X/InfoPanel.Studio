@@ -1,8 +1,8 @@
 /**
- * My library's sidebar, Grid and Shelves views (spec §3). Single-click selects a card,
+ * The Library's sidebar, Grid and Shelves views (spec §3, §10.4). Single-click selects a card,
  * double-click opens it, and every card drags onto the canvas (§8).
  */
-import { useRef, type DragEvent, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   Ban,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   Film,
   FileCode,
   Gauge,
+  Palette,
   HardDrive,
   Image,
   ImagePlus,
@@ -28,11 +29,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { LibraryItem } from "@/lib/library";
 import { setActiveLibraryDrag, setLibraryDrag } from "@/lib/my-library/drag";
-import { COLLECTIONS, SORTS, cleanupCounts, flagOf, metaLine, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
+import { COLLECTIONS, SORTS, cardTag, cleanupCounts, flagOf, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
 import { AssetThumb } from "./asset-thumb";
 
 export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
   all: LayoutGrid,
+  themes: Palette,
+  media: Image,
   recent: Clock,
   unused: Ban,
   large: HardDrive,
@@ -53,12 +56,15 @@ export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
 /* ---- sidebar ---- */
 
 export function LibrarySidebar({ active, counts, onPick }: { active: CollectionId | null; counts: Record<CollectionId, number>; onPick: (id: CollectionId) => void }) {
-  const sections = ["Smart", "Media", "Made by you"] as const;
+  const sections = [
+    ["Smart", "Smart"],
+    ["Library", "By type"],
+  ] as const;
   return (
-    <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui">
-      {sections.map((s) => (
-        <div key={s}>
-          <div className="px-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-[.08em] text-ui-4">{s}</div>
+    <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui max-sm:w-full max-sm:flex-row max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:border-b max-sm:border-r-0 max-sm:py-2 max-sm:[scrollbar-width:none]">
+      {sections.map(([s, title]) => (
+        <div key={s} className="max-sm:flex max-sm:gap-1.5">
+          <div className="px-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-[.08em] text-ui-4 max-sm:hidden">{title}</div>
           {COLLECTIONS.filter((c) => c.section === s).map((c) => {
             const Icon = COLLECTION_ICON[c.id];
             return (
@@ -68,7 +74,8 @@ export function LibrarySidebar({ active, counts, onPick }: { active: CollectionI
                 aria-current={active === c.id ? "page" : undefined}
                 onClick={() => onPick(c.id)}
                 className={cn(
-                  "flex h-[30px] w-full items-center gap-2.5 rounded-[7px] px-2 text-left text-[12.5px] text-ui-2 hover:bg-ui-hover",
+                  "flex h-[30px] w-full items-center gap-2.5 rounded-[7px] px-2 text-left text-[12.5px] text-ui-2 hover:bg-ui-hover max-sm:h-9 max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap",
+                  c.parent && "pl-7 max-sm:pl-2",
                   active === c.id && "bg-ui-active text-ui-1 hover:bg-ui-active",
                 )}
               >
@@ -103,6 +110,7 @@ interface CardProps {
 
 export function LibraryCard({ item, index, selected, onSelect, onOpen, onMenu, onRemove, reason, className }: CardProps) {
   const flag = flagOf(item, index);
+  const tag = cardTag(item);
   return (
     <div
       role="option"
@@ -144,7 +152,7 @@ export function LibraryCard({ item, index, selected, onSelect, onOpen, onMenu, o
       )}
     >
       <div className="relative">
-        <AssetThumb item={item} className="aspect-[16/10] w-full" />
+        <AssetThumb item={item} className="aspect-[4/3] w-full" />
         {flag && (
           <span
             className={cn(
@@ -157,14 +165,23 @@ export function LibraryCard({ item, index, selected, onSelect, onOpen, onMenu, o
         )}
       </div>
       <div className="min-w-0 px-1">
-        <div className="truncate text-[12.5px] font-medium text-ui-1">{item.name}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ui-1">{item.name}</span>
+          <span
+            className={cn(
+              "shrink-0 rounded-[4px] border border-ui-default px-1.5 py-px text-[10px]",
+              tag.builtin ? "text-ui-4" : "text-ui-accent-text",
+            )}
+          >
+            {tag.text}
+          </span>
+        </div>
         {reason && (
           <div className="mt-0.5 flex gap-1 text-[11px] leading-snug text-ui-accent-text">
             <Sparkles className="mt-px h-3 w-3 shrink-0" />
             {reason}
           </div>
         )}
-        <div className="truncate font-ui-mono text-[10.5px] text-ui-4">{metaLine(item)}</div>
       </div>
     </div>
   );
@@ -226,6 +243,10 @@ export interface GridViewProps {
   searching: boolean;
   /** The library is empty: the upload tile fills the grid. */
   empty: boolean;
+  /** The collection holds uploads (media, all): it starts with the upload tile. */
+  uploadTile: boolean;
+  /** The collection's hint line (SPEC §10.4). */
+  hint?: string;
 }
 
 export function GridView(p: GridViewProps) {
@@ -267,6 +288,7 @@ export function GridView(p: GridViewProps) {
         </label>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        {p.hint && <p className="mb-3 text-[11.5px] text-ui-4">{p.hint}</p>}
         {cleanup && (
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-ui-subtle bg-ui-panel px-4 py-2.5 text-[12.5px] text-ui-2">
             <SprayCan className="h-4 w-4 text-ui-warning" />
@@ -287,8 +309,8 @@ export function GridView(p: GridViewProps) {
         {p.searching && p.items.length === 0 ? (
           <p className="py-16 text-center text-[13px] text-ui-4">Nothing matches. Every word must match a name, tag, type or size.</p>
         ) : (
-          <div role="listbox" aria-label={p.title} className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3">
-            {!p.searching && <UploadTile onFiles={p.onFiles} wide={p.empty} />}
+          <div role="listbox" aria-label={p.title} className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+            {!p.searching && p.uploadTile && <UploadTile onFiles={p.onFiles} wide={p.empty} />}
             {p.items.map((item) => (
               <LibraryCard
                 key={item.id}
@@ -382,18 +404,4 @@ export function ShelvesView(p: ShelvesViewProps) {
         ))}
     </div>
   );
-}
-
-/** Files dropped anywhere on a page area. */
-export function fileDrop(onFiles: (files: File[]) => void) {
-  return {
-    onDragOver: (e: DragEvent) => {
-      if (e.dataTransfer.types.includes("Files")) e.preventDefault();
-    },
-    onDrop: (e: DragEvent) => {
-      if (!e.dataTransfer.files.length) return;
-      e.preventDefault();
-      onFiles([...e.dataTransfer.files]);
-    },
-  };
 }

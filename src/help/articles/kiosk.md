@@ -12,19 +12,19 @@ The local server hosts your dashboard. InfoPanel shows it through the kiosk URL.
 
 :::generated defaults.table
 
-Copy it from Settings › Server with **Copy**, or open it with **Open**. In InfoPanel, set it as the URL of a Web Page profile that fills your display. The URL uses this PC's network address when you choose Local network.
+Copy it from Settings › App › Server with **Copy**, or open it with **Open**. In InfoPanel, set it as the URL of a Web Page profile that fills your display. The URL uses the network address of the PC running InfoPanel Studio when you choose Local network.
 
-:::open settings/server Settings › Server
+:::open settings/server Settings › App › Server
 
 ## Starting and stopping
 
-Settings › Server shows the state (**Server running**, **Server stopped**, **Starting…**, **Restarting…** or **Server couldn't start**) with **Stop**, **Restart** and **Start server** buttons, plus address, uptime, clients and memory. The tray menu has Start server, Stop server and Restart server too. While stopped, the kiosk shows "can't connect".
+Settings › App › Server shows the state (**Server running**, **Server stopped**, **Starting…**, **Restarting…** or **Server couldn't start**) with **Stop**, **Restart** and **Start server** buttons, plus address, uptime, clients and memory. The tray menu has Start server, Stop server and Restart server too. While stopped, the kiosk shows "can't connect".
 
 ## Who can connect
 
 | Option | Address | Use when |
 |---|---|---|
-| This computer only | `127.0.0.1` | InfoPanel runs on this PC (most setups) |
+| Only this PC (localhost) | `127.0.0.1` | InfoPanel runs on the PC running InfoPanel Studio (most setups) |
 | Local network | `0.0.0.0` | The display is driven by another device on your network |
 
 :::warn
@@ -37,7 +37,7 @@ Pick a port from 1024 to 65535. Port, network and debug changes are saved right 
 
 ## Frame rate and animations
 
-The kiosk redraws its animations at most **Max FPS** times a second (**Frame rate limit**, 60 by default). **Animations** set to Reduced stops them. Set both under **Behaviour › Performance** with nothing selected, for all profiles or for this profile only. A kiosk URL can override them with `&fps=30` or `&motion=reduce`.
+The kiosk redraws its animations at most **Max FPS** times a second (**Frame rate limit**, 60 by default). **Animations** set to Reduced stops them. Set both under **Settings › Dashboard › Performance** for every screen, or in **Screens › Performance** for one screen. A kiosk URL can override them with `&fps=30` or `&motion=reduce`.
 
 Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to change. See [Frame rate and motion](performance) for what each setting changes and what it saves.
 
@@ -45,13 +45,13 @@ Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to
 
 A Stream Deck or another remote on your network can control a kiosk without changing your saved dashboard:
 
-- switch pages and profiles, and pause cycling;
+- switch pages and screens, and pause cycling;
 - reload the kiosk page;
 - dim the screen: a dark layer over the widgets and the island, with alerts staying on top;
 - show or hide the Dynamic Island;
 - mute alerts for a number of minutes.
 
-Dim and the island setting are kept per profile, and they survive a restart of the server. Muted alerts still appear in the alert history, marked as quiet.
+Dim and the island setting are kept per screen, and they survive a restart of the server. Muted alerts still appear in the alert history, marked as quiet.
 
 ## Crashes
 

@@ -16,7 +16,7 @@ import { MARQUEE_SPACING, MARQUEE_SPEED } from "@/lib/marquee";
 import { critKey, OFF, QUANTITIES, warnKey, type SectionFlags } from "@/lib/theme-model";
 import type { InspectorTab, ModuleSetting, ModuleSettingValue, ModuleSettings, ThresholdQuantity } from "@/modules/types";
 import { DEFAULT_GAUGE_SPEC } from "@/widgets/CustomGauge";
-import type { InspectorSection, LookValues, PanelLayoutKind, SpecialSection } from "../inspector-model";
+import type { FollowMode, InspectorSection, LookValues, PanelLayoutKind, SpecialSection } from "../inspector-model";
 import type { FieldsApi } from "../settings-panel";
 import { shownValue } from "./zone-fields";
 
@@ -136,7 +136,7 @@ const SECTIONS: readonly ItemSectionSpec[] = [
       w.kind === "table" && row("header", "Header", "text", "", { more: true, hint: "Comma-separated column titles" }),
       w.kind === "customGauge" &&
         select("gauge", "Gauge", [...STARTERS.map((s): [string, string] => [s.name, s.name]), ...(gaugeName(w.vector ?? DEFAULT_GAUGE_SPEC) === "custom" ? [["custom", "Custom"] as [string, string]] : [])], gaugeName(DEFAULT_GAUGE_SPEC), {
-          hint: "Start from a preset; design it on the Gauges page",
+          hint: "Start from a preset; design it in Gauges",
         }),
       w.kind === "customGauge" && row("width", "Width (px)", "number", 120, { min: 8, max: 600, step: 4 }),
     ],
@@ -489,9 +489,8 @@ export function itemLookValues(input: Pick<ItemFieldsInput, "widget" | "layout" 
 }
 
 /**
- * The fields of a panel widget: rows show its values over the panel's, a
- * following section is read-only with a Follow bar ("Follows panel “Rig”" ·
- * Customize; "Custom for this item" · Use panel; locked by the profile).
+ * The fields of a panel widget: rows show its values over the panel's, and a
+ * following section is read-only (its chip is `itemFollow`).
  */
 export function itemFields(input: ItemFieldsInput): FieldsApi {
   const { widget: w, locks, change } = input;
@@ -503,21 +502,29 @@ export function itemFields(input: ItemFieldsInput): FieldsApi {
     onPatch: (patch) => change((x) => withItemValues(x, patch), Object.keys(patch).join()),
     onClear: (keys) => change((x) => withoutItemValues(x, keys)),
     onOpenExplorer: input.onOpenExplorer,
-    follow: (s) => {
-      const sec = followedBy(s);
-      if (!sec) return undefined;
-      return {
-        mode: locks?.[sec] === true ? "locked" : itemFollows(w, sec) ? "theme" : "custom",
-        from: `panel “${input.panelName}”`,
-        level: "profile",
-        scope: { kind: "item", panelName: input.panelName },
-        onCustomize: () => change((x) => withItemFollow(x, sec, false), `follow:${sec}`),
-        onUseTheme: () => change((x) => withItemFollow(x, sec, true), `follow:${sec}`),
-      };
-    },
     readOnly: (def) => {
       const sec = def.perWidget ? undefined : KEY_SECTION[def.key];
       return sec !== undefined && itemFollows(w, sec, locks);
     },
+  };
+}
+
+/**
+ * A panel widget's section chip: it follows its panel, is custom, or is locked by the screen. `onCustomize` and
+ * `onUseTheme` (Use panel) flip the widget's follow flag, its own values staying stored. Undefined for a section
+ * that follows nothing.
+ */
+export function itemFollow(
+  input: Pick<ItemFieldsInput, "widget" | "locks" | "change">,
+  s: Pick<InspectorSection, "id">
+): { section: ItemSection; mode: FollowMode; onCustomize: () => void; onUseTheme: () => void } | undefined {
+  const { widget: w, locks, change } = input;
+  const sec = followedBy(s);
+  if (!sec) return undefined;
+  return {
+    section: sec,
+    mode: locks?.[sec] === true ? "locked" : itemFollows(w, sec) ? "theme" : "custom",
+    onCustomize: () => change((x) => withItemFollow(x, sec, false), `follow:${sec}`),
+    onUseTheme: () => change((x) => withItemFollow(x, sec, true), `follow:${sec}`),
   };
 }

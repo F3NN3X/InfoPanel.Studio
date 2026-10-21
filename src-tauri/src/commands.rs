@@ -600,6 +600,29 @@ pub async fn open_settings(app: AppHandle, section: Option<String>) {
     windows::show_settings(&app, section.as_deref());
 }
 
+/// Help's "Open settings": the studio window at Settings › App.
+#[tauri::command]
+pub async fn open_settings_in_studio(app: AppHandle, section: Option<String>) {
+    log::debug!("ipc: open_settings_in_studio {section:?}");
+    windows::show_settings_in_studio(&app, section.as_deref());
+}
+
+/// What the studio asks for when it mounts: the tray's Settings request it was not there to receive.
+#[derive(serde::Serialize)]
+pub struct SettingsRequest {
+    section: Option<String>,
+}
+
+#[tauri::command]
+pub async fn take_pending_settings(app: AppHandle) -> Option<SettingsRequest> {
+    let pending = app
+        .state::<AppState>()
+        .pending_settings
+        .take(std::time::Instant::now());
+    log::debug!("ipc: take_pending_settings {pending:?}");
+    pending.map(|section| SettingsRequest { section })
+}
+
 #[tauri::command]
 pub async fn open_help(app: AppHandle, article: Option<String>, heading: Option<String>) {
     log::debug!("ipc: open_help {article:?} {heading:?}");

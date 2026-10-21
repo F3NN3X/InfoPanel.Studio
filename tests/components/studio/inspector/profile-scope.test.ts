@@ -2,17 +2,9 @@ import { describe, expect, it } from "vitest";
 import { withBackground, type PageBackground } from "@/lib/appearance";
 import { defaultConfig, mergeConfig, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { DEFAULT_THEME } from "@/lib/theme";
-import { SECTION_IDS } from "@/lib/theme-model";
 import { setProfileStyle } from "@/components/studio/studio-actions";
 import { clampSeconds, dropRow, rotatePreset } from "@/components/studio/inspector/behaviour-model";
-import {
-  lockState,
-  scopeOf,
-  toggleLockAll,
-  withPerformance,
-  withRadius,
-  withScope,
-} from "@/components/studio/inspector/profile-scope";
+import { scopeOf, withPerformance, withScope } from "@/components/studio/inspector/profile-scope";
 
 const base = (): DashboardConfig => ({
   ...defaultConfig(),
@@ -45,19 +37,6 @@ describe("Theme switch", () => {
     expect("theme" in profileOf(back)).toBe(false);
     expect("radius" in profileOf(back)).toBe(false);
     expect(scopeOf(profileOf(back), "theme")).toBe("all");
-  });
-
-  it("writes Corners to the dashboard under All profiles and to the profile under This profile", () => {
-    const c = base();
-    const shared = withRadius(c, pid(c), "all", 1);
-    expect(shared.radius).toBe(1);
-    expect(profileOf(shared).radius).toBeUndefined();
-
-    const own = withRadius(c, pid(c), "profile", 0.25);
-    expect(own.radius).toBe(0.75);
-    expect(profileOf(own).radius).toBe(0.25);
-    // A profile radius alone makes the Theme this profile's.
-    expect(scopeOf(profileOf(own), "theme")).toBe("profile");
   });
 
   it("changes only the profile it names", () => {
@@ -141,26 +120,6 @@ describe("Performance switch", () => {
     expect(withPerformance({ maxFps: 15, motion: "full" }, { maxFps: 5 })).toEqual({ maxFps: 5, motion: "full" });
     expect(withPerformance(undefined, { motion: "system" })).toEqual({ motion: "system" });
     expect(withPerformance({ maxFps: 15 }, { maxFps: undefined })).toBeUndefined();
-  });
-});
-
-describe("Apply to every widget", () => {
-  const some = { locks: { colors: true, surface: true } };
-
-  it("reads all, some and none of the sections locked", () => {
-    expect(lockState(undefined)).toBe("none");
-    expect(lockState({ values: {} })).toBe("none");
-    expect(lockState(some)).toBe("some");
-    expect(lockState({ locks: Object.fromEntries(SECTION_IDS.map((s) => [s, true])) })).toBe("all");
-  });
-
-  it("locks every section from none or some, and unlocks them from all", () => {
-    const all = toggleLockAll(some);
-    expect(lockState(all)).toBe("all");
-    expect(Object.keys(all?.locks ?? {})).toHaveLength(SECTION_IDS.length);
-    expect(toggleLockAll(undefined)).toEqual(all);
-    expect(toggleLockAll(all)).toBeUndefined();
-    expect(toggleLockAll({ ...all, values: { skin: "glass" } })).toEqual({ values: { skin: "glass" } });
   });
 });
 

@@ -37,19 +37,25 @@ export type AlertDisplayFull = AlertDisplay & { seconds: number };
 export type SensorOp = ">" | ">=" | "<" | "<=" | "=" | "!=" | "changes" | "contains" | "missing";
 export const SENSOR_OPS: readonly SensorOp[] = [">", ">=", "<", "<=", "=", "!=", "changes", "contains", "missing"];
 
+/** One sensor test of a sensor alert. */
+export interface SensorCondition {
+  key: string;
+  op: SensorOp;
+  value: number | string;
+  /**
+   * Hysteresis: for `>` / `>=` the alert clears once the value falls to or below it; for `<` / `<=`
+   * once it rises to or above it. Absent = clears as soon as the condition stops holding.
+   */
+  clearBelow?: number;
+}
+
 export type AlertSource =
   | {
       kind: "sensor";
-      key: string;
-      op: SensorOp;
-      value: number | string;
-      /** The condition must hold this long (seconds) before the alert fires. */
+      /** At least one. The alert fires when any of them holds, and clears when none does. */
+      conditions: SensorCondition[];
+      /** A condition must hold this long (seconds) before the alert fires. */
       forSeconds: number;
-      /**
-       * Hysteresis: for `>` / `>=` the alert clears once the value falls to or below it; for `<` / `<=`
-       * once it rises to or above it. Absent = clears as soon as the condition stops holding.
-       */
-      clearBelow?: number;
     }
   | {
       kind: "notification";
@@ -64,7 +70,7 @@ export interface AlertOutputs {
   display?: Partial<AlertDisplay> & {
     /** 0 = until acknowledged. */
     seconds?: number;
-    /** Template: {name} {value} {unit} {app} {title} {body}. */
+    /** Template: {name} {value} {unit} {sensor} {app} {title} {body}. */
     text?: string;
   };
   page?: { profile?: string; page: string; returnAfter?: boolean };
@@ -106,6 +112,8 @@ export interface ActiveAlert {
   ruleId: string;
   name: string;
   severity: Severity;
+  /** The card's heading: the source app for a notification, else the rule name. */
+  title?: string;
   text: string;
   value?: number | string;
   unit?: string;
@@ -162,24 +170,26 @@ const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((s): s is string => typeof s === "string" && s.trim() !== "") : [];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+function normalizeCondition(raw: unknown): SensorCondition | undefined {
+  // An empty key is kept: a new rule waits in the studio until a sensor is picked (it never fires).
+  if (!isObject(raw) || typeof raw.key !== "string") return undefined;
+  const op = raw.op === "≠" ? "!=" : (oneOf(SENSOR_OPS, raw.op) ?? ">");
+  const value =
+    typeof raw.value === "string" || (typeof raw.value === "number" && Number.isFinite(raw.value)) ? raw.value : 0;
+  const clearBelow =
+    typeof raw.clearBelow === "number" && Number.isFinite(raw.clearBelow) ? raw.clearBelow : undefined;
+  return { key: raw.key, op, value, ...(clearBelow !== undefined ? { clearBelow } : {}) };
+}
+
 function normalizeSource(raw: unknown): AlertSource | undefined {
   if (!isObject(raw)) return undefined;
   if (raw.kind === "sensor") {
-    // An empty key is kept: a new rule waits in the studio until a sensor is picked (it never fires).
-    if (typeof raw.key !== "string") return undefined;
-    const op = raw.op === "≠" ? "!=" : (oneOf(SENSOR_OPS, raw.op) ?? ">");
-    const value =
-      typeof raw.value === "string" || (typeof raw.value === "number" && Number.isFinite(raw.value)) ? raw.value : 0;
-    const clearBelow =
-      typeof raw.clearBelow === "number" && Number.isFinite(raw.clearBelow) ? raw.clearBelow : undefined;
-    return {
-      kind: "sensor",
-      key: raw.key,
-      op,
-      value,
-      forSeconds: clamp(raw.forSeconds, 0, FOR_SECONDS_MAX, 0),
-      ...(clearBelow !== undefined ? { clearBelow } : {}),
-    };
+    // v11: a rule saved with one `key` / `op` / `value` on the source becomes a one-item list.
+    const conditions = (Array.isArray(raw.conditions) ? raw.conditions : [raw])
+      .map(normalizeCondition)
+      .filter((c): c is SensorCondition => c !== undefined);
+    if (conditions.length === 0) return undefined;
+    return { kind: "sensor", conditions, forSeconds: clamp(raw.forSeconds, 0, FOR_SECONDS_MAX, 0) };
   }
   if (raw.kind === "notification") {
     const apps = strings(raw.apps);

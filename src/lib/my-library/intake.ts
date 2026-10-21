@@ -59,6 +59,9 @@ export function svgSize(text: string): { width?: number; height?: number } {
   return { width: attr("width") ?? (vb ? Math.round(Number(vb[1])) : undefined), height: attr("height") ?? (vb ? Math.round(Number(vb[2])) : undefined) };
 }
 
+/** `classify`'s reason for a file that is none of the types it knows. */
+export const NOT_MEDIA = "Not an image, video, SVG or font";
+
 export function classify(name: string, declared: string, bytes: Uint8Array): Intake {
   const lower = name.toLowerCase();
   if (lower.endsWith(".infopanel")) return { ok: true, kind: "infopanel" };
@@ -87,7 +90,7 @@ export function classify(name: string, declared: string, bytes: Uint8Array): Int
     return { ok: true, kind: "image", type: s.type, mime, width: s.width, height: s.height, ...(s.animated ? { frames: 2 } : {}) };
   }
   if (declared === "image/avif" || lower.endsWith(".avif")) return { ok: true, kind: "image", type: "avif", mime: "image/avif" };
-  return { ok: false, reason: "Not an image, video, SVG or font" };
+  return { ok: false, reason: NOT_MEDIA };
 }
 
 /** A file name without its folder (the card keeps the extension, as the file had it). */

@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { DashboardConfig, MonitorProfile, Placement } from "@/lib/layout";
 import { mainPage, profileWithPage } from "@/lib/pages";
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
+import type { ThemeTokens } from "@/lib/theme";
 import { allLocked } from "@/lib/theme-model";
 import {
   activePresetId,
-  appliedMessage,
   followAll,
   styleKey,
   toggleEnforce,
@@ -85,13 +85,6 @@ describe("followAll", () => {
   });
 });
 
-describe("appliedMessage", () => {
-  it("names the scope", () => {
-    expect(appliedMessage("Glass", "all")).toBe("Applied Glass to all profiles");
-    expect(appliedMessage("Glass", "profile")).toBe("Applied Glass to this profile");
-  });
-});
-
 describe("activePresetId", () => {
   const glass: AppearancePreset = { id: "look-glass", name: "Glass", description: "", theme: "zinc", radius: 0.75, style: { surface: "glass", blur: "16" } };
   const dark: AppearancePreset = { id: "look-dark", name: "Dark", description: "", theme: "zinc", radius: 0.5, style: { surface: "matte-dark" } };
@@ -103,6 +96,19 @@ describe("activePresetId", () => {
     expect(activePresetId(looks, { ...look, style: dark.style, radius: dark.radius })).toBe(
       "look-dark"
     );
+  });
+
+  it("compares the colour tokens whatever their key order", () => {
+    const reordered = Object.fromEntries(Object.entries(presetTokens(dark)).reverse()) as ThemeTokens;
+    expect(activePresetId(looks, { tokens: reordered, radius: dark.radius, style: dark.style })).toBe("look-dark");
+  });
+
+  it("does not let a preset with no style match a look that has one", () => {
+    const plain: AppearancePreset = { id: "look-plain", name: "Plain", description: "", theme: "zinc", radius: 0.5, style: {} };
+    const tokens = presetTokens(plain);
+    expect(activePresetId([plain], { tokens, radius: 0.5, style: { surface: "glass" } })).toBeUndefined();
+    expect(activePresetId([plain], { tokens, radius: 0.5, style: undefined })).toBe("look-plain");
+    expect(activePresetId([plain], { tokens, radius: 0.5, style: {} })).toBe("look-plain");
   });
 
   it("is undefined for a look matching none", () => {

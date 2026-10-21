@@ -87,7 +87,7 @@ const { SettingsApp } = await import("@/settings/app");
 const setCalls = () => invoke.mock.calls.filter(([c]) => c === "set_setting").map(([, a]) => a);
 
 async function openServerPage() {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   render(<SettingsApp />);
   await user.click(await screen.findByRole("button", { name: "Server" }));
   return { user, port: await screen.findByRole("textbox", { name: "Port" }) };
@@ -100,7 +100,7 @@ describe("the settings window", () => {
   });
 
   it("saves a toggle right away and says so", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<SettingsApp />);
     await user.click(await screen.findByRole("switch", { name: "Close to tray" }));
     expect(setCalls()).toEqual([{ key: "closeToTray", value: false }]);

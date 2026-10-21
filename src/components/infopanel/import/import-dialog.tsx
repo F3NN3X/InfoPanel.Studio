@@ -46,8 +46,10 @@ export interface ImportDialogProps {
   initialDest?: Dest;
   /** Commit; resolves to an error to show (no room), or null when the import landed. */
   onImport: (commit: ImportCommit) => Promise<string | null>;
-  /** Open with this source already chosen (the Library: a dropped profile, a saved canvas). */
+  /** Open with this source already chosen (the Import door: a file; the Library: a saved canvas). */
   initialSource?: ImportSource;
+  /** The Import door already chose where it lands: the Save step has no "Lands in". */
+  lockDest?: boolean;
 }
 
 /** A source the dialog opens with. */
@@ -245,7 +247,7 @@ function SourceStep({
           <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-[11px] text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
           {installed === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
           {installed?.length === 0 && (
-            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles on this PC (or InfoPanel keeps them elsewhere: set INFOPANEL_DATA_DIR on the server)."}</span>
+            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles on the PC running InfoPanel Studio (or InfoPanel keeps them elsewhere: set INFOPANEL_DATA_DIR on the server)."}</span>
           )}
           {installed?.map((p) => (
             <button
@@ -313,7 +315,7 @@ function SourceStep({
   );
 }
 
-function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
+function ImportBody({ onClose, profileName, profileSize, initialDest = "new", onImport, initialSource, lockDest }: Omit<ImportDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<SourceKind>("file");
   const [opening, setOpening] = useState<Opening | null>(null);
@@ -406,7 +408,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
     state ? MODE_LABEL[state.mode] : "",
     state ? `${state.report.items.total} items` : "",
     state ? (state.online ? `${state.unresolved} unresolved` : "Data API offline") : "",
-    choices.dest === "new" ? "New profile" : "Canvas zone",
+    choices.dest === "new" ? "New screen" : "Canvas zone",
   ];
   const footNote =
     step === 0 && uploading
@@ -420,7 +422,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
             : step === 4 && uploading
               ? `Uploading assets · ${formatBytes(state!.upload.done)} of ${formatBytes(state!.upload.total)}`
               : "";
-  const nextLabel = step === 4 ? `Import ${choices.name.trim() || "profile"}` : step === 2 ? "Looks right, continue" : "Continue";
+  const nextLabel = step === 4 ? `Import ${choices.name.trim() || "screen"}` : step === 2 ? "Looks right, continue" : "Continue";
 
   return (
     // The remap step has its own Help article (F1).
@@ -459,7 +461,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
       <div className="flex min-h-0 flex-col">
         <div className="flex flex-col gap-1 border-b border-ui-subtle px-[22px] pb-3.5 pt-[18px]">
           <span className="text-[16px] font-semibold text-ui-1">{TITLES[step]}</span>
-          <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{SUBTITLES[step]}</Dialog.Description>
+          <Dialog.Description className="text-pretty text-[12.5px] text-ui-3">{step === 4 && lockDest ? "Name it, then import." : SUBTITLES[step]}</Dialog.Description>
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-[22px] py-[18px]">
           {step === 0 && <SourceStep kind={kind} onKind={setKind} opening={opening} state={state} onOpen={open} />}
@@ -468,7 +470,9 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
           {step === 3 && state && (
             <RemapPanel groups={state.groups} resolved={state.resolved} index={state.index} overrides={state.overrides} onOverrides={state.setOverrides} />
           )}
-          {step === 4 && state && <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} shotState={shotState} onPickShot={pickShot} />}
+          {step === 4 && state && (
+            <SaveStep state={state} choices={choices} onChoices={setChoices} profileName={profileName} profileSize={profileSize} shotState={shotState} onPickShot={pickShot} lockDest={lockDest} />
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2.5 border-t border-ui-subtle px-[22px] py-3">
           <button type="button" onClick={onClose} className="h-8 rounded-[7px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">

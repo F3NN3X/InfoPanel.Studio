@@ -35,12 +35,12 @@ export const GENERATORS: Record<string, () => Block[]> = {
   "presets.panels": () => [
     table(["Preset", "Size", "Builds"], panelPresets.map((p) => [`**${p.title}**`, size(p.colSpan, p.rowSpan), p.description ?? ""])),
   ],
-  /** The appearance presets the studio ships: the skins of Appearance > Skins. */
+  /** The appearance presets the studio ships: the skins of Theme › Start from. */
   "presets.appearance": () => [table(["Skin", "Look"], SKIN_PACKS.map((p) => [`**${p.name}**`, p.description]))],
   /** The profiles a fresh install starts with. */
   "profiles.table": () => [
     table(
-      ["Profile", "Size", "Grid", "Fit"],
+      ["Screen", "Size", "Grid", "Fit"],
       defaultConfig().profiles.map((p) => [`**${p.name}**`, size(p.width, p.height), size(p.cols, p.rows), p.fit === "fill" ? "Fill" : "Scroll"])
     ),
   ],

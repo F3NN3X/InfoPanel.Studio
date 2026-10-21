@@ -204,10 +204,10 @@ function AlertCard({ alert, now, from, leaving, reduced, onAck }: AlertCardProps
         <Icon className={cn("mt-0.5 shrink-0", overlay ? "h-10 w-10" : "h-[1.4em] w-[1.4em]")} style={{ color }} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
-            <div className="truncate font-semibold">{alert.name}</div>
+            <div className="truncate font-semibold">{alert.title ?? alert.name}</div>
             <div className="shrink-0 text-[0.75em] text-muted-foreground">{ageLabel(alert, now)}</div>
           </div>
-          {alert.text && <div className="mt-0.5 text-[0.9em] text-muted-foreground">{alert.text}</div>}
+          {alert.text && <div className="mt-0.5 whitespace-pre-line text-[0.9em] text-muted-foreground">{alert.text}</div>}
         </div>
       </div>
       {fraction !== null && (

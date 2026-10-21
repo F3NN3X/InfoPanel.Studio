@@ -1,11 +1,11 @@
 import { CARDS_ID, type Placement, type ProfileView } from "@/lib/layout";
 import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
-import { themeKeyOf, withFlag, type SectionId } from "@/lib/theme-model";
+import { isLocked, sectionOfKey, themeKeyOf, withFlag, type SectionId, type ThemeLevels } from "@/lib/theme-model";
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
 import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
-import { followInfo, followSection, rowSection, widgetLookValues, type LookValues } from "../inspector-model";
+import { followInfo, rowSection, widgetLookValues, type LookValues } from "../inspector-model";
 import { dropKeys } from "../settings-model";
 import type { FieldsApi } from "../settings-panel";
 
@@ -66,24 +66,22 @@ export const withFollow = (zone: Placement, sec: SectionId, follows: boolean): P
 };
 
 /**
- * The Follow bars and read-only rows of a zone's sections (`zone` is the
- * one whose state shows); `each` applies a follow change to every zone edited.
+ * A zone after an edit of some keys: each theme section they belong to that still follows the theme turns
+ * custom (SPEC §4.3: editing any control customises, "Customise here" is a shortcut). A locked section is
+ * the screen's and stays as it is; so do per-widget and unthemed keys.
  */
-export function followFields(
-  zone: Placement,
-  appearance: Appearance,
-  each: (fn: (z: Placement) => Placement, key?: string) => void
-): Pick<FieldsApi, "follow" | "readOnly"> {
+export function customised(zone: Placement, levels: ThemeLevels, defs: readonly ModuleSetting[], keys: readonly string[]): Placement {
+  const defByKey = new Map<string, ModuleSetting>(defs.flatMap((d) => settingKeys(d).map((k): [string, ModuleSetting] => [k, d])));
+  return keys.reduce<Placement>((acc, key) => {
+    const def = defByKey.get(key);
+    const sec = def && !def.perWidget ? sectionOfKey(themeKeyOf(def, key)) : undefined;
+    return sec === undefined || acc.follow?.[sec] === false || isLocked(levels, sec) ? acc : withFollow(acc, sec, false);
+  }, zone);
+}
+
+/** The read-only rows of a zone's sections: a row whose section follows the theme or is locked (`zone` is the one whose state shows). */
+export function readOnlyFields(zone: Placement, appearance: Appearance): Pick<FieldsApi, "readOnly"> {
   return {
-    follow: (s) => {
-      const sec = followSection(s);
-      if (!sec) return undefined;
-      return {
-        ...followInfo(appearance, zone.follow, sec),
-        onCustomize: () => each((z) => withFollow(z, sec, false), `follow:${sec}`),
-        onUseTheme: () => each((z) => withFollow(z, sec, true), `follow:${sec}`),
-      };
-    },
     readOnly: (def) => {
       const sec = rowSection(def);
       return sec !== undefined && followInfo(appearance, zone.follow, sec).mode !== "custom";
@@ -112,6 +110,6 @@ export function selectionFields(
     onChange: (key: string, v: ModuleSettingValue) => each((z) => withSettings(z, { [key]: v }), `setting:${key}`),
     onPatch: (patch: ModuleSettings) => each((z) => withSettings(z, patch), `setting:${Object.keys(patch).join()}`),
     onClear: (keys: string[]) => each((z) => withoutSettings(z, keys)),
-    ...followFields(primary, appearance, each),
+    ...readOnlyFields(primary, appearance),
   };
 }
