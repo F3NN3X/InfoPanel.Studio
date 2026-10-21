@@ -2,10 +2,10 @@
  * The Library page (spec §3, §10.4), opened from the rail: a 56 px header (title and tagline, search
  * everything, [Grid | Shelves], the "Used by" screen filter, Add files…) over the collections
  * sidebar (smart collections, then Themes · Styles · Panels · Gauges · Media · Fonts · Canvases), the
- * grid or shelves, and the detail pane. Fonts and Gauges are collections with their own views; the
- * edited screen's canvas files are one button away. Lazy-loaded.
+ * grid or shelves, and the detail pane. Fonts are a collection with its own view; a gauge opens in the
+ * Gauges view; the edited screen's canvas files are one button away. Lazy-loaded.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy,
   Download,
@@ -15,8 +15,6 @@ import {
   ImageDown,
   LayoutGrid,
   MonitorPlay,
-  Paintbrush,
-  Palette,
   Pencil,
   Plus,
   Rows3,
@@ -30,9 +28,10 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { formatBytes } from "@/lib/assets";
+import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
+import type { ModuleSettings } from "@/modules/types";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
-import type { GaugeSource } from "@/lib/gauge-studio/model";
 import {
   buildIndex,
   cleanupCounts,
@@ -52,8 +51,10 @@ import {
 import { suggestBackgrounds } from "@/lib/my-library/theme-suggest";
 import { downloadSpec } from "@/components/gauges/gauge-files";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
-import { addToProfile, applyStyle, dataOf, setAsBackground, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
+import { addToProfile, dataOf, setAsBackground, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
 import { LibraryDetail, type DetailAction } from "./library-detail";
+import { PresetDetail } from "./preset-detail";
+import { isPresetItem, presetPrimary, presetScopes, presetSecondary, renamePreset, type PresetContext } from "./preset-actions";
 import { GridView, LibrarySidebar, ShelvesView } from "./library-views";
 import { openImportDoor } from "@/components/studio/file-doors";
 import { optimiseItem } from "./optimise";
@@ -69,27 +70,26 @@ import { PaneSheet } from "@/components/studio/pane-sheet";
 import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
 import { useHoldZoneShortcuts } from "./use-hold-zone-shortcuts";
 
-/** The Gauges collection, lazy: the editor and its previews load when a gauge is first looked at. */
-const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
-
 export interface LibraryPageProps {
   bridge: StudioBridge;
   /** A link to a collection ("All themes in Library ↗", "Edit gauge…"); `seq` makes a repeat count. */
   request?: { collection: CollectionId; seq: number };
-  /** A gauge to open in the Gauges editor (set by "Edit gauge…"); `onGaugeOpened` clears it once taken. */
-  gaugeInitial: GaugeSource | null;
-  onGaugeOpened: () => void;
-  /** Open Theme, where a Theme or built-in palette is applied at a scope. */
-  onOpenTheme: () => void;
+  /** The page on the canvas (a Theme's "Apply to… this page"). */
+  pageId: string;
+  /** The look the selected widget has of its own (a Style's "Update from selection"); null = nothing selected. */
+  selectionStyle: ModuleSettings | null;
+  /** A saved Theme's "Edit in Theme": Theme opens at All screens with it applied. */
+  onEditInTheme: (preset: AppearancePreset) => void;
+  /** A canvas's primary action: its editor, on the zone that uses it (else it comes in as a new screen). */
+  onEditCanvas: (item: LibraryItem) => void;
   /** A card dragged onto "Drop on the canvas": the page makes way so the drag goes on to the canvas. */
   onShowCanvas: () => void;
   theme: ThemeTokens;
   /** The stored profile's name (the canvas files button, the suggestions' note). */
   profileName: string;
-  /** Reopen a saved canvas from the library in the import wizard (files go through the Import door). */
   /** Reopen a saved canvas in the import wizard, landing where `dest` says (chosen here, so the wizard does not ask). */
   onImport: (source: { canvasId: string }, dest: "new" | "zone") => void;
-  /** Open a library gauge in the Gauges collection's editor. */
+  /** Open a library gauge in the Gauges view's editor. */
   onOpenGauge: (itemId: string) => void;
   /** Export a saved canvas (download) without placing it. */
   onExportCanvas: (item: LibraryItem) => void;
@@ -164,6 +164,18 @@ export default function LibraryPage(p: LibraryPageProps) {
     if (primary && !primary.disabled) primary.run();
   };
 
+  const presetCtx: PresetContext = {
+    bridge,
+    pageId: p.pageId,
+    selectionStyle: p.selectionStyle,
+    onEditInTheme: p.onEditInTheme,
+    select: setSelectedId,
+    rename: (id) => {
+      setSelectedId(id);
+      setRenameId(id);
+    },
+  };
+
   function primaryOf(item: LibraryItem): DetailAction | null {
     switch (item.kind) {
       case "image":
@@ -172,21 +184,14 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "gauge":
         return { label: "Open in editor", icon: Gauge, run: () => p.onOpenGauge(item.id) };
       case "canvas":
-        return { label: "Open canvas", icon: MonitorPlay, run: () => p.onImport({ canvasId: item.id }, "new") };
+        return { label: "Edit canvas", icon: MonitorPlay, run: () => p.onEditCanvas(item) };
       case "style":
-        return {
-          label: "Apply to selection",
-          icon: Paintbrush,
-          run: () => void applyStyle(bridge, item),
-          disabled: p.bridge.selection.length === 0,
-          title: p.bridge.selection.length === 0 ? "Select a widget on the canvas first" : undefined,
-        };
+      case "theme":
+        return presetPrimary(item, presetCtx);
       case "panel":
         return { label: "Add to screen", icon: Plus, run: () => void addToProfile(bridge, item) };
       case "font":
         return { label: "Show font", icon: Type, run: () => pickCollection("fonts") };
-      case "theme":
-        return { label: "Apply in Theme", icon: Palette, run: p.onOpenTheme, title: "Pick the scope in Theme: Apply a theme here…" };
       case "svg":
         return { label: "Add to canvas", icon: Plus, run: () => void addToProfile(bridge, item) };
       default:
@@ -195,6 +200,7 @@ export default function LibraryPage(p: LibraryPageProps) {
   }
 
   function secondaryOf(item: LibraryItem): DetailAction[] {
+    if (isPresetItem(item)) return presetSecondary(item, presetCtx);
     const out: DetailAction[] = [];
     if (item.kind === "image") out.push({ label: "Add to canvas", icon: Plus, run: () => void addToProfile(bridge, item) });
     if (item.kind === "video") out.push({ label: "Add to canvas", icon: Plus, run: () => {}, disabled: true, title: "A video plays as the background, or in a canvas zone (drag it into the canvas editor)" });
@@ -303,30 +309,46 @@ export default function LibraryPage(p: LibraryPageProps) {
     { id: "panels" as const, title: "Panels & Styles", note: "Yours to reuse", items: [...collectionItems("panels", index), ...collectionItems("styles", index)] },
   ];
 
-  const detail = (item: LibraryItem, sheet: boolean) => (
-    <LibraryDetail
-      key={item.id}
-      item={item}
-      sheet={sheet}
-      index={index}
-      primary={primaryOf(item)}
-      secondary={secondaryOf(item)}
-      focusName={renameId === item.id}
-      onFocusedName={focusedName}
-      onRename={(name) => lib.rename(item, name)}
-      onRemove={() => askRemove(item)}
-      onMerge={(group) => void lib.merge(group).then(() => toast(`Merged into ${group[0].name}`))}
-      onVideo={(patch) => void lib.update(item, { meta: { ...item.meta, ...patch } })}
-      copyLabel={p.copyLabel}
-      onJump={p.onJump}
-    />
-  );
+  const detail = (item: LibraryItem, sheet: boolean) => {
+    if (isPresetItem(item))
+      return (
+        <PresetDetail
+          key={item.id}
+          item={item}
+          sheet={sheet}
+          config={p.bridge.config}
+          primary={primaryOf(item)}
+          scopes={presetScopes(item, presetCtx)}
+          secondary={secondaryOf(item)}
+          focusName={renameId === item.id}
+          onFocusedName={focusedName}
+          onRename={(name) => renamePreset(item, bridge, name)}
+        />
+      );
+    return (
+      <LibraryDetail
+        key={item.id}
+        item={item}
+        sheet={sheet}
+        index={index}
+        primary={primaryOf(item)}
+        secondary={secondaryOf(item)}
+        focusName={renameId === item.id}
+        onFocusedName={focusedName}
+        onRename={(name) => lib.rename(item, name)}
+        onRemove={() => askRemove(item)}
+        onMerge={(group) => void lib.merge(group).then(() => toast(`Merged into ${group[0].name}`))}
+        onVideo={(patch) => void lib.update(item, { meta: { ...item.meta, ...patch } })}
+        copyLabel={p.copyLabel}
+        onJump={p.onJump}
+      />
+    );
+  };
 
   const title = searching ? `Results for “${query.trim()}”` : (COLLECTIONS.find((x) => x.id === collection)?.label ?? "All items");
   // First run: the grid's wide upload tile fills the page; the view choice is kept for when items exist.
   const empty = !lib.loading && lib.items.every(isConfigItem);
   const fonts = !searching && collection === "fonts" && !showFiles;
-  const gauges = !searching && collection === "gauges" && !showFiles;
   const uploads = collection === "all" || collection === "media" || COLLECTIONS.some((c) => c.id === collection && c.parent === "media");
 
   return (
@@ -434,19 +456,7 @@ export default function LibraryPage(p: LibraryPageProps) {
         ) : (
           <>
             <LibrarySidebar active={searching || showFiles ? null : collection} counts={counts} onPick={pickCollection} />
-            {gauges ? (
-              <Suspense fallback={<div className="min-w-0 flex-1 bg-ui-app" />}>
-                <GaugesPage
-                  library={lib}
-                  bridge={bridge}
-                  profileName={p.profileName}
-                  theme={p.theme}
-                  initial={p.gaugeInitial}
-                  onOpened={p.onGaugeOpened}
-                  onShowCanvas={p.onShowCanvas}
-                />
-              </Suspense>
-            ) : fonts ? (
+            {fonts ? (
               <FontsView fonts={collectionItems("fonts", index)} library={lib} zones={p.assets.zones} setConfig={p.assets.setConfig} onSelectItems={p.assets.onSelectUses} />
             ) : (
               <>

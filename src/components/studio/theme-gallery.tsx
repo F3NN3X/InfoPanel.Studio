@@ -184,6 +184,24 @@ export function ApplyTheme({ at, scopeName, api, onPalette }: ApplyThemeProps) {
   );
 }
 
+/** "Update ‹name›": overwrite a saved Theme with the scope's current look (one undo step). */
+export function UpdateTheme({ preset, at, api }: { preset: AppearancePreset; at: ThemeAt; api: AppearancePresetsApi }) {
+  const toast = useToast();
+  return (
+    <button
+      type="button"
+      className={cn(BUTTON, "max-w-[220px]")}
+      title={`Save what this scope shows back into ${preset.name}`}
+      onClick={() => {
+        api.update(preset.id, at);
+        toast(`Updated ${preset.name}`);
+      }}
+    >
+      <span className="truncate">Update {preset.name}</span>
+    </button>
+  );
+}
+
 /** "Save as Theme" (SPEC §7.1): the scope's resolved tokens, widget style and (optionally) background into Library › Themes. */
 export function SaveTheme({ at, api }: { at: ThemeAt; api: AppearancePresetsApi }) {
   const toast = useToast();

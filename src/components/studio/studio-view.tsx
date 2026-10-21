@@ -18,6 +18,7 @@ import { appearanceOf } from "@/lib/style-resolve";
 import { resolveTheme, themeVars } from "@/lib/theme";
 import { CommandPalette } from "./command-palette";
 import { exportConfigFile } from "./config-file";
+import { ownStyle } from "./studio-actions";
 import { useStyleEdits } from "./use-style-edits";
 import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
@@ -74,7 +75,10 @@ import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
 import { useToast } from "@/components/ui/toast";
-import type { LibraryCopy } from "@/lib/library";
+import type { LibraryCopy, LibraryItem } from "@/lib/library";
+import { findCanvasUse } from "@/lib/my-library/canvas-use";
+import { applyThemeAt } from "@/lib/appearance-preset-apply";
+import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
@@ -82,8 +86,10 @@ const NO_REQUEST: ExportRequest = {};
 
 /** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
-/** The Library page (A6, with the Gauges collection), loaded when the rail first opens it. */
+/** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
+/** The Gauges view (A7), loaded when the rail first opens it. */
+const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -206,22 +212,24 @@ function StudioViewBody({
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, showLibrary, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
+  const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
   const phone = isPhone(windowWidth);
   const narrowRail = !phone && railWidth(windowWidth) < 72;
   const railActive: RailItem | null = showSources
     ? "data"
     : showLibrary
       ? "library"
-      : showTheme
-        ? "theme"
-        : showAlerts
-          ? "alerts"
-          : showSettings
-            ? "settings"
-            : showScreens
-              ? null
-              : "design";
+      : showGauges
+        ? "gauges"
+        : showTheme
+          ? "theme"
+          : showAlerts
+            ? "alerts"
+            : showSettings
+              ? "settings"
+              : showScreens
+                ? null
+                : "design";
   const openHelpWindow = () => void openHelp(helpTarget()).catch(() => {});
   // F1 and the rail's Help: the article for what the user is on (an open dialog, the view, the selected zone).
   const helpTarget = () =>
@@ -301,11 +309,11 @@ function StudioViewBody({
   const [editorEpoch, setEditorEpoch] = useState(0);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
 
-  /** The gauge the Library's Gauges collection opens in its editor ("Edit gauge…" from a zone or a canvas item). */
+  /** The gauge the Gauges view opens in its editor ("Edit gauge…" from a zone, a canvas item or the Library). */
   const [gaugeToOpen, setGaugeToOpen] = useState<GaugeSource | null>(null);
   const openGauge = (source: GaugeSource) => {
     setGaugeToOpen(source);
-    ui.openLibrary("gauges");
+    ui.setMode("gauges");
   };
 
   /** The Library's way into the studio: placing a card copies it into this profile (one undo step). */
@@ -653,15 +661,30 @@ function StudioViewBody({
   const canvasZones = profile.placements.filter(
     (z): z is typeof z & { canvas: NonNullable<typeof z.canvas> } => z.module === CANVAS_ID && !!z.canvas,
   );
+  /** A saved Theme's "Edit in Theme": applied to All screens (one undo step), then Theme opens there in its Editing state. */
+  const editInTheme = (preset: AppearancePreset) => {
+    setConfig((c) => applyThemeAt(c, preset, { kind: "all" }, { includeBackground: true }));
+    ui.openTheme({ kind: "base" });
+    ui.setThemeEditing(preset.id);
+  };
+  /** A Library canvas's "Edit canvas": its editor on the first zone made from it, else it comes in as a new screen (which opens it). */
+  const editCanvas = async (item: LibraryItem) => {
+    const stored = await dataOf<StoredCanvas>(item);
+    const use = stored ? findCanvasUse(config, stored) : undefined;
+    if (!use) return io.openImport("new", { canvasId: item.id }, true);
+    openOnLand.current = use.zoneId;
+    openZone(use.profileId, use.pageId, use.zoneId);
+  };
   const libraryEl = showLibrary && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
       <LibraryPage
         key={libraryEpoch}
         bridge={libraryBridge}
         request={ui.libraryRequest}
-        gaugeInitial={gaugeToOpen}
-        onGaugeOpened={() => setGaugeToOpen(null)}
-        onOpenTheme={() => ui.navigateTo({ view: "theme" })}
+        pageId={currentPageId}
+        selectionStyle={selected ? ownStyle(selected, appearance) : null}
+        onEditInTheme={editInTheme}
+        onEditCanvas={(item) => void editCanvas(item)}
         onShowCanvas={() => ui.setMode("design")}
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
@@ -690,6 +713,19 @@ function StudioViewBody({
     </Suspense>
   );
 
+  const gaugesEl = showGauges && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+      <GaugesPage
+        bridge={libraryBridge}
+        profileName={storedProfile.name}
+        theme={resolveTheme(config, profile).tokens}
+        initial={gaugeToOpen}
+        onOpened={() => setGaugeToOpen(null)}
+        onShowCanvas={() => ui.setMode("design")}
+      />
+    </Suspense>
+  );
+
   // Theme's screen and page: the ones its scope bar picked, else the Design selection (SPEC §7.1).
   const themeProfile = config.profiles.find((p) => p.id === ui.themeProfileId) ?? storedProfile;
   const themePage = ui.themeScope.kind === "page" ? ui.themeScope.pageId : ui.themePageId;
@@ -710,6 +746,8 @@ function StudioViewBody({
       navRequest={ui.navRequest}
       jumpTo={ui.inspectorJump}
       presets={appearancePresets}
+      editingId={ui.themeEditing}
+      onStopEditing={() => ui.setThemeEditing(undefined)}
     />
   );
 
@@ -776,7 +814,7 @@ function StudioViewBody({
         rail={phone ? null : <LeftRail active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
-        main={alertsEl || screensEl || settingsEl || themeEl || (
+        main={alertsEl || screensEl || settingsEl || gaugesEl || themeEl || (
           <>
             {libraryEl}
             {canvasEditor ? (

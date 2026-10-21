@@ -14,7 +14,7 @@ export interface EditorHeaderProps {
   gauge: VectorGauge | null;
   saving: boolean;
   onBack: () => void;
-  /** The Import door (a gauge file lands in Library › Gauges). */
+  /** The Import door (a gauge file lands in Gauges). */
   onImport?: () => void;
   onExport?: () => void;
   onSave: () => void;

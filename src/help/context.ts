@@ -8,7 +8,7 @@ export interface StudioHelpState {
   /** The section the keyboard focus is in (`data-help-section`, a help hash): F1 opens its own heading. */
   section?: string | null;
   /** The view on screen (`StudioMode`). */
-  view: "design" | "sources" | "library" | "theme" | "alerts" | "screens" | "settings";
+  view: "design" | "sources" | "library" | "gauges" | "theme" | "alerts" | "screens" | "settings";
   /** The kind of the primary selected zone (Design only). */
   zone: "widget" | "panel" | "canvas" | "blank" | null;
   /** Settings: the open tab, and for App its page when a link named one. */
@@ -25,6 +25,8 @@ export function studioHelpTarget({ dialog, section, view, zone, settingsTab, set
       return { article: "themes" };
     case "library":
       return { article: "library" };
+    case "gauges":
+      return { article: "gauges" };
     case "sources":
       return { article: "sensors" };
     case "alerts":

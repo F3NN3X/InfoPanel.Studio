@@ -8,9 +8,9 @@ verified: 1.3.0-beta.1
 
 Browse, edit and build gauges: vector gauges that need no frames, image sequences and SVG templates.
 
-## Gauges in the Library
+## The Gauges view
 
-Open **Library** on the rail and choose **Gauges**. The header has two tabs, **Gauges** and **Editor**, and the buttons **Import…** (the Import door, which takes `.gauge.json`, SVG and frames `.zip` files) and **New gauge**.
+Open **Gauges** on the rail (your own gauges are also in Library › Gauges, and opening one there brings you here). The header has two tabs, **Gauges** and **Editor**, and the buttons **Import…** (the Import door, which takes `.gauge.json`, SVG and frames `.zip` files) and **New gauge**.
 
 The list is in three sections: **Presets**, **In** the current screen, and **My library**. Select a gauge to see its detail pane:
 
@@ -21,7 +21,7 @@ The list is in three sections: **Presets**, **In** the current screen, and **My 
 
 ## The editor
 
-The header has **Back to Gauges**, the name, Undo and Redo, Import (the Import door, which puts the file in Library › Gauges and opens it here), Export, **Save as new** (saves a copy named after the gauge) and **Save to library**. A **Start from** strip offers presets.
+The header has **Back to Gauges**, the name, Undo and Redo, Import (the Import door, which saves the file with your gauges and opens it here), Export, **Save as new** (saves a copy named after the gauge) and **Save to library**. A **Start from** strip offers presets.
 
 Vector gauges are built from these parts:
 

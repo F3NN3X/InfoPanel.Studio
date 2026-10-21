@@ -14,7 +14,8 @@ The editor window: a rail of views on the left, the work area in the middle, and
 |---|---|
 | **Design** | The canvas, the page tabs and the inspector. The left panel switches between **Layers** (the zones of this page: hide, rename, reorder, select) and **Add widget** (every widget, layout starters and your panels). |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
-| **Library** | Your saved Themes, Styles, Panels, Gauges, media, fonts and canvases. See [Library](library) and [Gauges](gauges). |
+| **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
+| **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
 | **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
 | **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
 | **Help** | Opens this help at the article for where you are (`F1` does the same). |

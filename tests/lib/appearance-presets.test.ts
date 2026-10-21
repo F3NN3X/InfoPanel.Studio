@@ -3,9 +3,11 @@ import { PROFILE_STYLE_KEYS } from "@/modules/standard-settings";
 import {
   applyAppearancePreset,
   applyThemeAt,
+  duplicateAppearancePreset,
   presetFromCurrent,
   saveThemeAt,
   themeFromScope,
+  updateAppearancePreset,
 } from "@/lib/appearance-preset-apply";
 import {
   invalidStyleKeys,
@@ -251,5 +253,42 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
     expect(all.radius).toBe(1);
     expect(all.style).toEqual({ surface: "glass", accent: "#0000ff" });
     expect(saveThemeAt(c, P1, "u2", "Desk").appearancePresets![0].background).toEqual({ type: "color", color: "#202020" });
+  });
+});
+
+describe("updateAppearancePreset", () => {
+  const c = config({
+    style: { surface: "glass" },
+    profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, background: { type: "color", color: "#202020" } }), profile("p2")],
+  });
+  const withTwo = saveThemeAt(saveThemeAt(c, ALL, "a", "Alpha", false), P1, "b", "Beta", false);
+
+  it("overwrites the look in place, keeping the id, name, description and the other Themes", () => {
+    const updated = updateAppearancePreset(withTwo, "a", P1);
+    const [a, b] = updated.appearancePresets!;
+    expect(a).toMatchObject({ id: "a", name: "Alpha", description: "Saved theme", radius: 1 });
+    expect(a.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
+    expect(b).toEqual(withTwo.appearancePresets![1]);
+    expect(updated.appearancePresets).toHaveLength(2);
+  });
+
+  it("writes the background only for a Theme that had one, or when asked", () => {
+    expect(updateAppearancePreset(withTwo, "a", P1).appearancePresets![0].background).toBeUndefined();
+    expect(updateAppearancePreset(withTwo, "a", P1, true).appearancePresets![0].background).toEqual({ type: "color", color: "#202020" });
+    const withBg = saveThemeAt(c, P1, "c", "Gamma", true);
+    expect(updateAppearancePreset(withBg, "c", ALL).appearancePresets![0].background).toBeUndefined();
+  });
+
+  it("leaves the config as it was for an unknown id", () => {
+    expect(updateAppearancePreset(withTwo, "nope", ALL)).toBe(withTwo);
+  });
+});
+
+describe("duplicateAppearancePreset", () => {
+  it("copies a saved Theme right after it under a new id", () => {
+    const c = saveThemeAt(saveThemeAt(config(), ALL, "a", "Alpha"), ALL, "b", "Beta");
+    const copy = duplicateAppearancePreset(c, "a", "a2").appearancePresets!;
+    expect(copy.map((p) => [p.id, p.name])).toEqual([["a", "Alpha"], ["a2", "Alpha copy"], ["b", "Beta"]]);
+    expect(copy[1].theme).not.toBe(copy[0].theme);
   });
 });

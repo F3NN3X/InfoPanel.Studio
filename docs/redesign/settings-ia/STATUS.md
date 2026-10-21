@@ -584,3 +584,22 @@ Owner review of the branch. Decisions 15 to 17 in `PLAN.md`.
 - A multi-sensor rule's custom text template only sees the first sensor's `{value}`; `{sensor}` names it. The default text names every sensor that fired.
 - A rule edited down to one condition keeps the "Sensor 1" box only while there are two or more.
 - Checked by eye: the Island preview and "Preview an alert", and the two-condition editor at 1440. Not checked: the island preview with a real alert style set to Island, and the kiosk card with a live Windows notification (needs the Notifications plugin).
+
+## Feedback round 1 — Part B: Library, Theme, Gauges, Canvases
+
+Decisions 18 to 20 in `PLAN.md`.
+
+**Done**
+- **B1 Gauges:** a rail item after Library (and the first row of the phone bar's More), the `gauges` mode, a command-palette entry and the Help target. `GaugesPage` is mounted standalone again (the shared-list prop and its smaller header are reverted, as is `useMyLibrary`'s `load` flag); the Library page no longer embeds it, and a gauge card's "Open in editor", "Edit gauge…" and the import door's go-to open the Gauges view. User-facing "Library › Gauges" that meant the editor now reads "Gauges".
+- **B2 Theme and Style details:** `preset-detail.tsx` (swatches, corners, background, widget style, used by, keys), `preset-actions.ts` (Apply to… scopes, Edit in Theme, Apply to selection, Update from selection, Rename, Duplicate, Delete; built-ins apply and duplicate), `preset-summary.ts`. New pure mutations: `updateAppearancePreset` and `duplicateAppearancePreset` (`appearance-preset-apply.ts`), `src/lib/style-presets.ts` (`updateStylePreset`, rename, duplicate, delete, `matchingStyle`). Theme: "Editing ‹name›" chip and "Update ‹name›" (`UpdateTheme`), the editing state lives in `use-studio-ui` and ends when Theme is left; the Style tab's "Update ‹name›" shows when the widget's look holds all of a saved Style's keys (the most specific one).
+- **B3 Current look:** Start from has one "Current look" line, then Saved themes, Palettes and Skins as unmarked choices; Skins shows the first six, the rest under More. `activePresetId` compares tokens whatever their key order, and a Theme with no style keys matches only a look with none (`presetMatches`, `sameTokens`).
+- **B4 Edit canvas:** the canvas card's primary action; `findCanvasUse` (`lib/my-library/canvas-use.ts`) finds the first zone made from the stored canvas by its source name and import time, and the zone is opened through the existing `openOnLand` path; an unused canvas goes through the "new" import, which already opens the editor on landing.
+
+**Tests:** `updateAppearancePreset` / `duplicateAppearancePreset` (id, name and other Themes kept, background rule, unknown id), `style-presets.test.ts`, `activePresetId` (token order, empty style), `preset-summary.test.ts` (`themeUsedBy`, `styleRows`), `canvas-use.test.ts`. No existing test needed changing.
+
+**Deviations / unverified**
+- "Edit in Theme" applies the Theme to All screens with its background (`includeBackground: true`) so Update later writes back what was applied; Library's "Apply to…" leaves the background alone, as Theme's own popover does by default.
+- "Used by" for a Theme lists screens only (a page's own widget style is not compared).
+- A canvas zone is matched to its Library item by source name and import time, not by a stored link; a canvas re-saved under another name finds no use and comes in as a new screen.
+- Checked by eye: see the report. Not checked with a real stored canvas used on a second screen.
+

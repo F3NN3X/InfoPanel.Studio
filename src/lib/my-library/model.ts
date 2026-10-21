@@ -152,7 +152,7 @@ export const COLLECTIONS: Collection[] = [
   { id: "themes", label: "Themes", section: "Library", hint: "A Theme is a whole look. Apply one in Theme at any scope." },
   { id: "styles", label: "Styles", section: "Library", hint: "A Style is one widget’s look. Apply from a widget’s Style tab." },
   { id: "panels", label: "Panels", section: "Library", hint: "Reusable widget groups. Drag onto the canvas from Design › Add." },
-  { id: "gauges", label: "Gauges", section: "Library", hint: "Open a gauge to edit it. New gauge starts the gauge editor." },
+  { id: "gauges", label: "Gauges", section: "Library", hint: "Open a gauge to edit it in Gauges." },
   { id: "media", label: "Media", section: "Library", hint: "Images and videos. Use one as a background from Theme › Background." },
   { id: "images", label: "Images", section: "Library", parent: "media" },
   { id: "videos", label: "Videos", section: "Library", parent: "media" },

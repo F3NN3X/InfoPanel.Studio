@@ -1,5 +1,5 @@
 /**
- * The Library's Gauges model (spec §6, A7): where a gauge lives and how an edit gets back there.
+ * The Gauges view's model (spec §6, A7): where a gauge lives and how an edit gets back there.
  * A gauge is a preset (read-only, customising makes a copy), a My library item, a Gauge item
  * inside an imported canvas zone, or a Custom gauge widget zone. Each entry carries what the
  * page draws (a vector spec, or an image sequence's frame URLs) and its range. Writing back is one

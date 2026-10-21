@@ -36,6 +36,7 @@ export function useStudioUi(
   const [mode, setMode] = useState<StudioMode>("design");
   const showSources = mode === "sources";
   const showLibrary = mode === "library";
+  const showGauges = mode === "gauges";
   const showTheme = mode === "theme";
   const showAlerts = mode === "alerts";
   const showScreens = mode === "screens";
@@ -48,6 +49,11 @@ export function useStudioUi(
    */
   const [themeProfileId, setThemeProfileId] = useState<string>();
   const [themePageId, setThemePageId] = useState<string>();
+  /** The saved Theme Theme is editing in place (the Library's "Edit in Theme"); it ends when Theme is left. */
+  const [themeEditing, setThemeEditing] = useState<string>();
+  useEffect(() => {
+    if (mode !== "theme") setThemeEditing(undefined);
+  }, [mode]);
   /** Open Theme at a scope, of a screen and page (unset = the ones in Design; a page scope names its page). */
   const openTheme = (scope: ThemeScope, profileId?: string, pageId?: string) => {
     setThemeScope(scope);
@@ -192,6 +198,9 @@ export function useStudioUi(
         else setMode("library");
         break;
       }
+      case "gauges":
+        setMode("gauges");
+        break;
       case "data":
         setMode("sources");
         break;
@@ -238,11 +247,14 @@ export function useStudioUi(
     setMode,
     showSources,
     showLibrary,
+    showGauges,
     showTheme,
     showAlerts,
     showScreens,
     showSettings,
     themeScope,
+    themeEditing,
+    setThemeEditing,
     themeProfileId,
     themePageId,
     openTheme,

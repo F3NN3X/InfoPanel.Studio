@@ -6,6 +6,7 @@ import { BUILTIN_STYLES } from "@/lib/builtin-styles";
 import type { StylePreset } from "@/lib/layout";
 import type { ModuleSettings } from "@/modules/types";
 import type { MakeThemeTarget } from "./inherit-chip";
+import { cn } from "@/lib/utils";
 import { ICON_BUTTON, ITEM, POPUP } from "./menu-styles";
 
 interface StyleToolbarProps {
@@ -18,6 +19,9 @@ interface StyleToolbarProps {
   /** Write a Style's sections as the widget's own (`withPastedStyle`). */
   onApply: (settings: ModuleSettings) => void;
   onSave: (name: string) => void;
+  /** The saved Style the widget's look is built on: it can be overwritten with the look now. */
+  matched?: StylePreset;
+  onUpdate: (id: string) => void;
   onMakeTheme: (target: MakeThemeTarget) => void;
 }
 
@@ -60,10 +64,10 @@ function StyleCard({ name, settings, onPick }: { name: string; settings: ModuleS
 
 /**
  * The Style tab's toolbar (SPEC §6.3), one line: Start from a Style ▾ (the built-in Styles and the saved
- * ones; applying writes their sections as the widget's own), Save as Style (into Library › Styles) and
- * Make this the theme for… ▾.
+ * ones; applying writes their sections as the widget's own), Save as Style (into Library › Styles), Update ‹name›
+ * when the look is built on a saved Style, and Make this the theme for… ▾.
  */
-export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, onMakeTheme }: StyleToolbarProps) {
+export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, matched, onUpdate, onMakeTheme }: StyleToolbarProps) {
   // Non-null while the "Save as Style" name input is shown.
   const [name, setName] = useState<string | null>(null);
   const [gallery, setGallery] = useState(false);
@@ -146,6 +150,11 @@ export function StyleToolbar({ saved, hasStyle, canMakeTheme, onApply, onSave, o
       >
         Save as Style
       </button>
+      {matched && (
+        <button type="button" className={cn(BUTTON, "max-w-[180px]")} onClick={() => onUpdate(matched.id)} title={`Save this look back into ${matched.name}`}>
+          <span className="truncate">Update {matched.name}</span>
+        </button>
+      )}
       <Menu.Root>
         <Menu.Trigger
           className={BUTTON}

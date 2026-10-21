@@ -3,6 +3,7 @@ import { useToast } from "@/components/ui/toast";
 import { VectorGaugeSvg } from "@/components/infopanel/VectorGaugeSvg";
 import { useSensorCatalog } from "@/lib/catalog";
 import { CUSTOM_GAUGE_ID, widgetGauge } from "@/lib/gauge-studio/model";
+import { matchingStyle } from "@/lib/style-presets";
 import { BLANK_MODULE, CANVAS_ID, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
 import { isLocked, type SectionId } from "@/lib/theme-model";
 import { convertKind, withPanelField } from "@/lib/panel-model";
@@ -79,6 +80,8 @@ interface ZoneInspectorProps {
   onPickWidget: () => void;
   /** Keep the widget's own look as a Style (Library › Styles). */
   onSavePreset: (name: string, settings: ModuleSettings) => void;
+  /** Overwrite a saved Style with the widget's own look. */
+  onUpdatePreset: (id: string, settings: ModuleSettings) => void;
   onToggleVisible: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -96,7 +99,7 @@ interface ZoneInspectorProps {
   request?: { tab: InspectorTab; picker: boolean; seq: number };
   /** A canvas zone: open its items in the canvas editor. */
   onEditCanvas?: () => void;
-  /** A Custom gauge zone: open its spec in Library › Gauges. */
+  /** A Custom gauge zone: open its spec in Gauges. */
   onEditGauge?: () => void;
 }
 
@@ -114,7 +117,7 @@ function GaugeNote({ zone, onEdit }: { zone: Placement; onEdit: () => void }) {
           </span>
         )}
         <span>
-          A gauge you design in Library › Gauges.{" "}
+          A gauge you design in Gauges.{" "}
           <button type="button" onClick={onEdit} className="font-medium text-ui-accent-text hover:underline">
             Edit gauge…
           </button>
@@ -168,6 +171,7 @@ export function ZoneInspector({
   onZoneBox,
   onPickWidget,
   onSavePreset,
+  onUpdatePreset,
   onToggleVisible,
   onDuplicate,
   onRemove,
@@ -392,6 +396,8 @@ export function ZoneInspector({
       canMakeTheme={customSections.length > 0}
       onApply={applyStyle}
       onSave={(name) => onSavePreset(name, style)}
+      matched={matchingStyle(stylePresets, style)}
+      onUpdate={(id) => onUpdatePreset(id, style)}
       onMakeTheme={(target) => askMakeTheme(customSections, target)}
     />
   );

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { Lock } from "lucide-react";
+import { Lock, X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useSensorCatalog } from "@/lib/catalog";
 import { FONT_CATALOG } from "@/lib/fonts";
@@ -9,6 +9,7 @@ import type { DashboardConfig } from "@/lib/layout";
 import { hexToHsl, hslToHex, resolveTheme, THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import { allLocked, isSectionId } from "@/lib/theme-model";
 import type { ModuleSettings } from "@/modules/types";
+import { activePresetId } from "./appearance-actions";
 import { BackgroundEditor } from "./background-editor";
 import { ColorPill } from "./inspector/color-pill";
 import { useAccordionPref } from "./inspector/inspector-prefs";
@@ -44,7 +45,7 @@ import {
 import { scopeAppearance, scopeId, scopeLookValues, validScope, withLockAll, withScopeValues, type ThemeScope } from "./theme-editor-model";
 import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
 import { exceptionsOf, makeAllFollow, makeFollow, widgetOverrides } from "./theme-exceptions";
-import { ApplyTheme, SaveTheme } from "./theme-gallery";
+import { ApplyTheme, SaveTheme, UpdateTheme } from "./theme-gallery";
 import { ThemeExceptions, ThemePreview } from "./theme-preview";
 import { ThemeScopeBar } from "./theme-scope-bar";
 import { ThemeStartFrom } from "./theme-start-from";
@@ -66,6 +67,9 @@ interface ThemeEditorProps {
   /** The palette's "Go to setting": open the card and focus the row whenever `seq` changes. */
   jumpTo?: { id: string; key?: string; seq: number };
   presets: AppearancePresetsApi;
+  /** The saved Theme being edited in place (the Library's "Edit in Theme"), and how to stop. */
+  editingId?: string;
+  onStopEditing: () => void;
 }
 
 const FONTS = FONT_CATALOG.map((f) => ({ value: f.id, label: f.label }));
@@ -95,7 +99,7 @@ const DataRow = ({ children }: { children: ReactNode }) => <div className="py-[3
  * 1 · Start from (not on a page) and the ten section cards, each writing its own store; the right area the live
  * preview of the page at the scope and its Exceptions.
  */
-export function ThemeEditor({ config, scope: requested, profileId, pageId, onPick, setConfig, navigateTo, navRequest, jumpTo, presets }: ThemeEditorProps) {
+export function ThemeEditor({ config, scope: requested, profileId, pageId, onPick, setConfig, navigateTo, navRequest, jumpTo, presets, editingId, onStopEditing }: ThemeEditorProps) {
   const profile = config.profiles.find((p) => p.id === profileId) ?? config.profiles[0];
   const page = profile.pages.find((pg) => pg.id === pageId) ?? profile.pages[0];
   const scope = validScope(profile, requested);
@@ -321,6 +325,11 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
 
   const lockedAll = allLocked(profile.widgetTheme);
   const shownStyle: ModuleSettings = { ...values.inherited, ...values.own };
+  // The saved Theme "Update" writes to: the one being edited, unless the scope's look now is another saved Theme.
+  const matchedId = activePresetId(presets.presets, { tokens: theme.tokens, radius: theme.radius, style: shownStyle });
+  const updateId = matchedId && matchedId !== editingId ? matchedId : (editingId ?? matchedId);
+  const updating = presets.presets.find((p) => p.id === updateId);
+  const editing = updating !== undefined && updating.id === editingId;
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
@@ -328,6 +337,14 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         <h1 className="text-[15px] font-semibold text-ui-1">Theme</h1>
         <span className="text-[12px] text-[#7c7c86]">Editing for</span>
         <ThemeScopeBar config={config} at={at} profile={profile} page={page} onPick={pick} />
+        {editing && (
+          <span className="flex h-7 items-center gap-1 rounded-[7px] bg-ui-active pl-2.5 pr-1 text-[12px] text-ui-1">
+            Editing {updating.name}
+            <button type="button" onClick={onStopEditing} aria-label={`Stop editing ${updating.name}`} className="rounded p-1 text-ui-4 hover:text-ui-1">
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        )}
         <div className="flex-1" />
         {at.level === "screen" && (
           <button
@@ -346,6 +363,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           api={presets}
           onPalette={(p) => twoLevel && setConfig((c) => withTokens(c, twoLevel, p.tokens))}
         />
+        {updating && <UpdateTheme preset={updating} at={at} api={presets} />}
         <SaveTheme at={at} api={presets} />
       </div>
       {/* On a phone the column and the preview stack, and the page scrolls. */}

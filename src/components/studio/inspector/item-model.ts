@@ -136,7 +136,7 @@ const SECTIONS: readonly ItemSectionSpec[] = [
       w.kind === "table" && row("header", "Header", "text", "", { more: true, hint: "Comma-separated column titles" }),
       w.kind === "customGauge" &&
         select("gauge", "Gauge", [...STARTERS.map((s): [string, string] => [s.name, s.name]), ...(gaugeName(w.vector ?? DEFAULT_GAUGE_SPEC) === "custom" ? [["custom", "Custom"] as [string, string]] : [])], gaugeName(DEFAULT_GAUGE_SPEC), {
-          hint: "Start from a preset; design it in Library › Gauges",
+          hint: "Start from a preset; design it in Gauges",
         }),
       w.kind === "customGauge" && row("width", "Width (px)", "number", 120, { min: 8, max: 600, step: 4 }),
     ],

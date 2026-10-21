@@ -1,4 +1,4 @@
-/** How Library › Gauges draws a gauge on the dashboard theme (spec §6: "Theme colours follow '<theme>'"). */
+/** How Gauges draws a gauge on the dashboard theme (spec §6: "Theme colours follow '<theme>'"). */
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 
 /** The theme's preset name, or null for a custom palette. */

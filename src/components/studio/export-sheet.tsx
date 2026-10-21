@@ -225,7 +225,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
               id="gauge"
               icon={Gauge}
               title="Export a gauge"
-              detail={chosen ? `${chosen.name} · .gauge.json` : "Pick one from Library › Gauges · .gauge.json"}
+              detail={chosen ? `${chosen.name} · .gauge.json` : "Pick one from Gauges · .gauge.json"}
               picked={request.row === "gauge"}
               copy={gauge}
               copied={copied === "gauge"}

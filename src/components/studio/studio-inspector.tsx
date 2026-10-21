@@ -28,7 +28,7 @@ interface StudioInspectorProps {
   onOpenPoint?: (key: string) => void;
   /** Open a canvas zone's items in the canvas editor. */
   onEditCanvas?: (zoneId: string) => void;
-  /** Open a Custom gauge zone's spec in Library › Gauges. */
+  /** Open a Custom gauge zone's spec in Gauges. */
   onEditGauge?: (zoneId: string) => void;
 }
 
@@ -111,6 +111,7 @@ export function StudioInspector({
         onZoneBox={edit.setZoneBox}
         onPickWidget={() => ui.setPickerFor(selected.id)}
         onSavePreset={edit.saveStylePreset}
+        onUpdatePreset={edit.updateSavedStyle}
         onToggleVisible={() => edit.toggleVisible(selected.id)}
         onDuplicate={() => edit.duplicateZones([selected.id])}
         onRemove={() => edit.removePlacement(selected.id)}

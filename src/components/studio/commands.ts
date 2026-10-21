@@ -114,7 +114,8 @@ export type Drawer = "add" | "layers";
 /** One entry per destination (SPEC §13): the views, and the tabs of Alerts & Island and Settings. */
 const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: string }[] = [
   { id: "design", label: "Design", target: { view: "design" }, hint: "the canvas" },
-  { id: "library", label: "Library", target: { view: "library" }, hint: "themes, styles, panels, gauges, media, fonts" },
+  { id: "library", label: "Library", target: { view: "library" }, hint: "themes, styles, panels, media, fonts, canvases" },
+  { id: "gauges", label: "Gauges", target: { view: "gauges" }, hint: "build and edit gauges" },
   { id: "data", label: "Data", target: { view: "data" }, hint: "sources, points, display names" },
   { id: "alerts", label: "Alerts & Island", target: { view: "alerts" } },
   { id: "alerts:rules", label: "Alerts & Island › Rules", target: { view: "alerts", tab: "rules" } },

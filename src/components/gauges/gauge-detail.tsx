@@ -1,5 +1,5 @@
 /**
- * The Library's Gauges right pane (spec §6): a large live preview with play and a scrubber, name,
+ * The Gauges view's right pane (spec §6): a large live preview with play and a scrubber, name,
  * "kind · where", copies placed, the primary action (Customise a copy / Edit) and Add to canvas,
  * Duplicate and Export.
  */

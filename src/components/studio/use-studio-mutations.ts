@@ -23,6 +23,7 @@ import {
 } from "@/lib/layout";
 import { findPanelPreset, type PanelPreset } from "@/lib/panelPresets";
 import { sampleLayout } from "@/lib/sample-layout";
+import { updateStylePreset } from "@/lib/style-presets";
 import type { ModuleSettings } from "@/modules/types";
 import * as actions from "./studio-actions";
 import { deletePanelPreset, renamePanelPreset, savePanelPreset } from "./panel-preset-actions";
@@ -410,6 +411,9 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
       stylePresets: [...(c.stylePresets ?? []), { id: uid("style"), name, settings }],
     }));
 
+  /** A saved Style takes a widget's look in its place ("Update ‹name›"; one undo step). */
+  const updateSavedStyle = (id: string, settings: ModuleSettings) => setConfig((c) => updateStylePreset(c, id, settings));
+
   return {
     updateProfile,
     updateStored,
@@ -456,6 +460,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     moveSelectionToPage,
     setRotate,
     saveStylePreset,
+    updateSavedStyle,
   };
 }
 

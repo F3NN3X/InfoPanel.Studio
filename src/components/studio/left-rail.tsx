@@ -1,10 +1,10 @@
 import { Fragment } from "react";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Bell, CircleHelp, Database, Images, LayoutDashboard, Palette, Settings, type LucideIcon } from "lucide-react";
+import { Bell, CircleHelp, Database, Gauge, Images, LayoutDashboard, Palette, Settings, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** The rail's full views (SPEC §3.2). Screens is reached from the switcher and links, not the rail. */
-export type RailItem = "design" | "theme" | "library" | "data" | "alerts" | "settings";
+export type RailItem = "design" | "theme" | "library" | "gauges" | "data" | "alerts" | "settings";
 
 /** The rail's items in groups; a thin divider sits between groups. Nothing addresses a button by position. */
 const GROUPS: { id: RailItem; label: string; icon: LucideIcon }[][] = [
@@ -12,6 +12,7 @@ const GROUPS: { id: RailItem; label: string; icon: LucideIcon }[][] = [
   [
     { id: "theme", label: "Theme", icon: Palette },
     { id: "library", label: "Library", icon: Images },
+    { id: "gauges", label: "Gauges", icon: Gauge },
     { id: "data", label: "Data", icon: Database },
     { id: "alerts", label: "Alerts & Island", icon: Bell },
   ],

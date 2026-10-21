@@ -2,8 +2,10 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import {
   applyThemeAt,
   deleteAppearancePreset,
+  duplicateAppearancePreset,
   renameAppearancePreset,
   saveThemeAt,
+  updateAppearancePreset,
   type ThemeTarget,
 } from "@/lib/appearance-preset-apply";
 import type { AppearancePreset } from "@/lib/appearance-presets";
@@ -18,7 +20,10 @@ export interface AppearancePresetsApi {
   apply: (preset: AppearancePreset, at: ThemeAt, includeBackground?: boolean) => void;
   /** Save a scope's resolved look as a Theme. */
   save: (at: ThemeAt, name: string, includeBackground: boolean) => void;
+  /** Overwrite a saved Theme with a scope's current look (same id and name). */
+  update: (id: string, at: ThemeAt) => void;
   rename: (id: string, name: string) => void;
+  duplicate: (id: string) => void;
   remove: (id: string) => void;
 }
 
@@ -35,7 +40,9 @@ export function useAppearancePresets(config: DashboardConfig, setConfig: History
     presets: config.appearancePresets ?? [],
     apply: (preset, at, includeBackground) => setConfig((c) => applyThemeAt(c, preset, themeTarget(at), { includeBackground })),
     save: (at, name, includeBackground) => setConfig((c) => saveThemeAt(c, themeTarget(at), uid("look"), name, includeBackground)),
+    update: (id, at) => setConfig((c) => updateAppearancePreset(c, id, themeTarget(at))),
     rename: (id, name) => setConfig((c) => renameAppearancePreset(c, id, name)),
+    duplicate: (id) => setConfig((c) => duplicateAppearancePreset(c, id, uid("look"))),
     remove: (id) => setConfig((c) => deleteAppearancePreset(c, id)),
   };
 }

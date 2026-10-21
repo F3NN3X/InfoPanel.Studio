@@ -23,7 +23,7 @@ export type WidgetKind =
   | "value" // compact inline readout
   | "bar" // label + value + horizontal fill
   | "gauge" // circular ring
-  | "customGauge" // a gauge designed in Library › Gauges (the Custom gauge widget's drawing)
+  | "customGauge" // a gauge designed in Gauges (the Custom gauge widget's drawing)
   | "sparkline" // rolling mini line graph
   | "table" // rows from a multi-line text sensor
   | "text" // static or bound text

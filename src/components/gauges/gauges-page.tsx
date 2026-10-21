@@ -1,14 +1,13 @@
 /**
- * The Gauges collection of the Library (spec §6, A7, §10.4): browse presets, the profile's gauges and
- * My library's, and edit one. A [Gauges | Editor] segment in the header; the Library page hosts it
- * and shares its library list.
+ * The Gauges page (spec §6, A7): browse presets, the profile's gauges and My library's, and edit
+ * one. A [Gauges | Editor] segment in the header; lazily loaded by studio-view.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addGaugeZone, type StudioBridge } from "@/components/library/library-actions";
 import { dropLibraryItem } from "@/components/library/library-drop";
-import { useMyLibrary, type MyLibrary } from "@/components/library/use-my-library";
+import { useMyLibrary } from "@/components/library/use-my-library";
 import { RemoveItemDialog } from "@/components/library/remove-item-dialog";
 import { ContextMenu } from "@/components/ui/context-menu";
 import { useToast } from "@/components/ui/toast";
@@ -45,16 +44,13 @@ export interface GaugesPageProps {
   onOpened: () => void;
   /** Back to the canvas (a drag from a gauge card springs there, as on the Library page). */
   onShowCanvas: () => void;
-  /** The Library page's own list: the page shares it (so its counts follow a save) and loads none of its own. */
-  library?: MyLibrary;
 }
 
 const HEADER_BUTTON = "flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover";
 
-export default function GaugesPage({ bridge: studio, profileName, theme, initial, onOpened, onShowCanvas, library: shared }: GaugesPageProps) {
+export default function GaugesPage({ bridge: studio, profileName, theme, initial, onOpened, onShowCanvas }: GaugesPageProps) {
   const toast = useToast();
-  const own = useMyLibrary(studio.config, !shared);
-  const lib = shared ?? own;
+  const lib = useMyLibrary(studio.config);
   const library = useLibraryGauges(lib.items);
   const clock = useThumbClock();
   const editorRef = useRef<EditorHandle>(null);
@@ -189,8 +185,8 @@ export default function GaugesPage({ bridge: studio, profileName, theme, initial
         setActiveLibraryDrag(null);
       }}
     >
-      <header className={cn("flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4", shared ? "h-12" : "h-14")}>
-        {!shared && <h1 className="text-[15px] font-semibold text-ui-1">Gauges</h1>}
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4">
+        <h1 className="text-[15px] font-semibold text-ui-1">Gauges</h1>
         <div role="tablist" aria-label="Gauges" className="flex h-[34px] items-center gap-0.5 rounded-[9px] border border-ui-default p-0.5">
           <button
             type="button"

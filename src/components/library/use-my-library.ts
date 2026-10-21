@@ -46,8 +46,7 @@ export interface MyLibrary {
 
 const WORKERS = 2;
 
-/** `load` false leaves the server list to a host that already has it (the Gauges view inside the Library page). */
-export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets" | "appearancePresets">, load = true): MyLibrary {
+export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets" | "appearancePresets">): MyLibrary {
   const [server, setServer] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,9 +70,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
       },
     );
   }, []);
-  useEffect(() => {
-    if (load) refresh();
-  }, [refresh, load]);
+  useEffect(refresh, [refresh]);
 
   const patchRow = (id: number, patch: Partial<UploadRow>) => setUploads((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const upsert = (item: LibraryItem) => setServer((list) => [item, ...list.filter((i) => i.id !== item.id)]);

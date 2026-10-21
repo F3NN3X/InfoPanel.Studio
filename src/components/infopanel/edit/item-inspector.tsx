@@ -28,7 +28,7 @@ interface ItemInspectorProps {
   /** Live values by Data API key (the Sensor button's reading). */
   live: Readonly<Record<string, DataApiValue>>;
   onRemap: () => void;
-  /** A Gauge item's "Edit gauge…" (opens it in Library › Gauges). */
+  /** A Gauge item's "Edit gauge…" (opens it in Gauges). */
   onEditGauge?: (path: Path) => void;
 }
 
@@ -314,14 +314,14 @@ function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path
   );
 }
 
-/** A Gauge item's way into Library › Gauges, styled as the Sensor button. */
+/** A Gauge item's way into Gauges, styled as the Sensor button. */
 function EditGaugeButton({ onClick }: { onClick: () => void }) {
   return (
     <div className="px-4 pb-3">
       <button
         type="button"
         onClick={onClick}
-        title="Open this gauge in Library › Gauges"
+        title="Open this gauge in Gauges"
         className="flex w-full items-center gap-2.5 rounded-lg border border-ui-default bg-ui-raised px-3 py-2 text-left text-[12px] text-ui-1 hover:border-ui-strong"
       >
         Edit gauge…

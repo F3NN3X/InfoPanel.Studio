@@ -214,6 +214,32 @@ export const saveThemeAt = (
   appearancePresets: [...(config.appearancePresets ?? []), themeFromScope(config, target, id, name, includeBackground)],
 });
 
+/**
+ * Overwrite a saved Theme with a scope's current look ("Update ‹name›"): the same id, name and description, so
+ * what applied it keeps pointing at it. The background is rewritten only when the Theme had one or `includeBackground`
+ * says so.
+ */
+export function updateAppearancePreset(
+  config: DashboardConfig,
+  id: string,
+  target: ThemeTarget,
+  includeBackground?: boolean
+): DashboardConfig {
+  const old = config.appearancePresets?.find((p) => p.id === id);
+  if (!old) return config;
+  const fresh = themeFromScope(config, target, id, old.name, includeBackground ?? old.background !== undefined);
+  return { ...config, appearancePresets: config.appearancePresets?.map((p) => (p.id === id ? { ...fresh, description: old.description } : p)) };
+}
+
+/** A copy of a saved Theme named "‹name› copy", right after it. */
+export function duplicateAppearancePreset(config: DashboardConfig, id: string, copyId: string): DashboardConfig {
+  const list = config.appearancePresets ?? [];
+  const at = list.findIndex((p) => p.id === id);
+  if (at < 0) return config;
+  const copy: AppearancePreset = { ...structuredClone(list[at]), id: copyId, name: `${list[at].name} copy` };
+  return { ...config, appearancePresets: [...list.slice(0, at + 1), copy, ...list.slice(at + 1)] };
+}
+
 export function renameAppearancePreset(config: DashboardConfig, id: string, name: string): DashboardConfig {
   return {
     ...config,
