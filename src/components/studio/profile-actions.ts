@@ -57,7 +57,8 @@ export function duplicateProfile(
 ): { config: DashboardConfig; profileId: string } | null {
   const at = config.profiles.findIndex((p) => p.id === id);
   if (at < 0) return null;
-  const copy = { ...withFreshIds(config.profiles[at]), name: `${config.profiles[at].name} copy` };
+  const source = config.profiles[at];
+  const copy = { ...withFreshIds(source), name: uniqueProfileName(config.profiles, `${source.name} copy`) };
   const profiles = [...config.profiles];
   profiles.splice(at + 1, 0, copy);
   return { config: { ...config, profiles }, profileId: copy.id };

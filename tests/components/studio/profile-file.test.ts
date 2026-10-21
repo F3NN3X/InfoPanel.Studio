@@ -65,6 +65,34 @@ describe("profile file", () => {
     expect(error(JSON.stringify({ ...profile(), height: 0 }))).toMatch(/name and a size/);
   });
 
+  it("rejects a grid or size outside the studio's limits", () => {
+    for (const bad of [{ cols: NaN }, { cols: "abc" }, { cols: 1e9 }, { cols: 1 }, { rows: 0 }, { rows: 25 }, { width: 1e12 }, { height: 20001 }]) {
+      expect(error(JSON.stringify({ ...profile(), ...bad }))).toMatch(/grid|name and a size/);
+    }
+    expect(ok(JSON.stringify({ ...profile(), cols: 24, rows: 24, width: 20000 })).cols).toBe(24);
+  });
+
+  it("drops an unknown fit and keeps only the known fields", () => {
+    const parsed = ok(JSON.stringify({ ...profile(), fit: "stretch", evil: "x".repeat(50), pages: [{ ...profile().pages[0], junk: 1 }] }));
+    expect(parsed.fit).toBeUndefined();
+    expect(parsed).not.toHaveProperty("evil");
+    expect(parsed.pages[0]).not.toHaveProperty("junk");
+    expect(parsed.pages[0].name).toBe("Main");
+  });
+
+  it("refuses a file over 5 MB", () => {
+    expect(error(" ".repeat(5 * 1024 * 1024 + 1))).toMatch(/over 5 MB/);
+  });
+
+  it("drops canvas zones that hold only a ref and counts them", () => {
+    const source = profile();
+    source.pages[0].placements.push({ ...source.pages[0].placements[0], id: "c1", module: "infopanel", canvasRef: "abc.json" });
+    const parsed = parseProfileFile(JSON.stringify(source));
+    if ("error" in parsed) throw new Error(parsed.error);
+    expect(parsed.skippedCanvases).toBe(1);
+    expect(parsed.profile.pages[0].placements.map((p) => p.id)).toEqual(["z1"]);
+  });
+
   it("rejects a file from a newer version", () => {
     expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 99, profile: profile() }))).toMatch(/newer/);
     expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer/);

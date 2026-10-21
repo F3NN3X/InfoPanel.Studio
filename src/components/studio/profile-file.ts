@@ -1,5 +1,5 @@
 import { unresolvedCanvases } from "@/lib/canvas-store";
-import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type MonitorProfile, type StoredProfile } from "@/lib/layout";
+import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type MonitorProfile, type Placement, type StoredProfile } from "@/lib/layout";
 import { isTauri, openTextFile, saveTextFile } from "@/lib/desktop";
 import type { ReportError } from "./config-file";
 import { uniqueProfileName, withFreshIds } from "./profile-actions";
@@ -23,14 +23,39 @@ export function profileFileText(profile: MonitorProfile): string {
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-const isSize = (v: unknown): boolean => typeof v === "number" && Number.isFinite(v) && v >= 1;
+const isInt = (v: unknown, min: number, max: number): boolean => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+
+/** A profile file's largest size; a bigger one is refused before it is read or parsed. */
+export const MAX_PROFILE_FILE_BYTES = 5 * 1024 * 1024;
+const TOO_BIG = "Not imported: the file is over 5 MB";
+const MAX_SIZE_PX = 20000;
+// The grid limits the studio itself enforces (studio-actions changeCols / changeRows).
+const COLS = [2, 24] as const;
+const ROWS = [1, 24] as const;
+
+/** The fields of a profile the app knows (MonitorProfile, and the legacy ones a migration reads); anything else is not imported. */
+const PROFILE_KEYS = [
+  "id", "name", "width", "height", "cols", "rows", "fit", "pages", "placements", "rotate", "widgetTheme", "background",
+  "theme", "radius", "gap", "padding", "island", "performance", "sampleVersion", "style", "styleEnforce",
+] as const;
+/** The fields of a page (ProfilePage). */
+const PAGE_KEYS = ["id", "name", "icon", "placements", "widgetTheme"] as const;
+
+const pick = (from: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> =>
+  Object.fromEntries(keys.filter((k) => from[k] !== undefined).map((k) => [k, from[k]]));
+
+/** Placements of a canvas that lives only in the sender's canvas store (a ref, no canvas): this machine can't load them. */
+const hasOnlyCanvasRef = (p: unknown): boolean => isRecord(p) && p.canvas === undefined && typeof p.canvasRef === "string";
 
 /**
  * The profile a file holds, normalised and migrated like a config's: the profile file, or the bare
- * profile "Copy profile JSON" gives (taken as the current config version). Anything else, or a
- * profile that has no name or size, is an error with the reason. Ids are the file's own: see `importedProfile`.
+ * profile "Copy profile JSON" gives (taken as the current config version). Anything else, a file over
+ * 5 MB, or a profile with no name, a bad size or a grid outside the studio's limits, is an error with
+ * the reason. Only the app's known profile and page fields are kept. Canvas zones holding only a ref
+ * are dropped (`skippedCanvases` counts them). Ids are the file's own: see `importedProfile`.
  */
-export function parseProfileFile(text: string): { profile: MonitorProfile } | { error: string } {
+export function parseProfileFile(text: string): { profile: MonitorProfile; skippedCanvases: number } | { error: string } {
+  if (text.length > MAX_PROFILE_FILE_BYTES) return { error: TOO_BIG };
   let json: unknown;
   try {
     json = JSON.parse(text);
@@ -48,12 +73,32 @@ export function parseProfileFile(text: string): { profile: MonitorProfile } | { 
   if (!isRecord(raw) || !(Array.isArray(raw.pages) || Array.isArray(raw.placements))) {
     return { error: "Not a profile file: no pages found" };
   }
-  if (typeof raw.name !== "string" || raw.name.trim() === "" || !isSize(raw.width) || !isSize(raw.height)) {
+  if (typeof raw.name !== "string" || raw.name.trim() === "" || !isInt(raw.width, 1, MAX_SIZE_PX) || !isInt(raw.height, 1, MAX_SIZE_PX)) {
     return { error: "Not a profile file: it needs a name and a size" };
   }
+  if ((raw.cols !== undefined && !isInt(raw.cols, ...COLS)) || (raw.rows !== undefined && !isInt(raw.rows, ...ROWS))) {
+    return { error: `Not a profile file: the grid must be ${COLS[0]}–${COLS[1]} columns and ${ROWS[0]}–${ROWS[1]} rows` };
+  }
+  let skippedCanvases = 0;
+  const keepable = (list: unknown): unknown => {
+    if (!Array.isArray(list)) return list;
+    const kept = list.filter((p) => !hasOnlyCanvasRef(p));
+    skippedCanvases += list.length - kept.length;
+    return kept as Placement[];
+  };
+  const picked = pick(raw, PROFILE_KEYS);
+  if (picked.fit !== "fill" && picked.fit !== "scroll") delete picked.fit;
+  if (Array.isArray(picked.pages)) {
+    picked.pages = picked.pages.map((pg) => {
+      if (!isRecord(pg)) return pg;
+      const page = pick(pg, PAGE_KEYS);
+      return page.placements === undefined ? page : { ...page, placements: keepable(page.placements) };
+    });
+  }
+  if (picked.placements !== undefined) picked.placements = keepable(picked.placements);
   try {
-    const [profile] = mergeConfig({ version, profiles: [raw as unknown as StoredProfile] }).profiles;
-    return { profile };
+    const [profile] = mergeConfig({ version, profiles: [picked as unknown as StoredProfile] }).profiles;
+    return { profile, skippedCanvases };
   } catch {
     return { error: "Not a profile file: it could not be read" };
   }
@@ -89,15 +134,19 @@ export function exportProfileFile(config: DashboardConfig, profile: MonitorProfi
   URL.revokeObjectURL(url);
 }
 
+/** What an import hands on: the profile, and how many canvas zones were left out. */
+export type ProfileLoaded = (profile: MonitorProfile, skippedCanvases: number) => void;
+
 /** Read a profile file and hand the profile to `onLoad`, or the reason it is not one to `onError`. */
-export function loadProfileText(text: string, onLoad: (profile: MonitorProfile) => void, onError: ReportError): void {
+export function loadProfileText(text: string, onLoad: ProfileLoaded, onError: ReportError): void {
   const parsed = parseProfileFile(text);
   if ("error" in parsed) onError(parsed.error);
-  else onLoad(parsed.profile);
+  else onLoad(parsed.profile, parsed.skippedCanvases);
 }
 
 /** Read a picked file (the hidden input's change handler). */
-export function importProfileFile(file: File, onLoad: (profile: MonitorProfile) => void, onError: ReportError): void {
+export function importProfileFile(file: File, onLoad: ProfileLoaded, onError: ReportError): void {
+  if (file.size > MAX_PROFILE_FILE_BYTES) return onError(TOO_BIG);
   file.text().then(
     (text) => loadProfileText(text, onLoad, onError),
     () => onError("Not imported: the file could not be read")
@@ -107,7 +156,7 @@ export function importProfileFile(file: File, onLoad: (profile: MonitorProfile) 
 /** Begin an import: the native open dialog in the desktop app, else the hidden file input. */
 export function startProfileImport(
   input: HTMLInputElement | null,
-  onLoad: (profile: MonitorProfile) => void,
+  onLoad: ProfileLoaded,
   onError: ReportError
 ): void {
   if (!isTauri()) {

@@ -233,7 +233,7 @@ function StudioViewBody({
       openOnLand.current = zoneId;
       setPendingZone(zoneId);
     },
-    onSelectProfile,
+    onSelectProfile: selectProfile,
   });
   /**
    * The canvas zone whose items are being edited: the editor takes the canvas, drawer and

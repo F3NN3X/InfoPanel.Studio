@@ -117,6 +117,11 @@ describe("duplicateProfile", () => {
     expect(copy.pages[0].placements[0].settings).not.toBe(source.pages[0].placements[0].settings);
   });
 
+  it("names a second copy '<name> copy 2'", () => {
+    const again = duplicateProfile(result.config, source.id)!;
+    expect(again.config.profiles.find((p) => p.id === again.profileId)?.name).toBe("Wide copy 2");
+  });
+
   it("returns null for an unknown id", () => {
     expect(duplicateProfile(base, "nope")).toBeNull();
   });

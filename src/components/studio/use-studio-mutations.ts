@@ -381,10 +381,14 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
 
   /** Copy a profile directly below it and edit the copy (one undo step). */
   const duplicateProfile = (id: string) => {
-    const r = duplicateInConfig(config, id);
-    if (!r) return;
-    setConfig(r.config);
-    onSelectProfile(r.profileId);
+    let copyId: string | undefined;
+    setConfig((c) => {
+      const r = duplicateInConfig(c, id);
+      copyId = r?.profileId;
+      return r?.config ?? c;
+    });
+    // The history setter runs the update synchronously.
+    if (copyId) onSelectProfile(copyId);
   };
 
   /**

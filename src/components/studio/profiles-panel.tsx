@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Menu } from "@base-ui/react/menu";
 import {
@@ -342,10 +342,13 @@ export function ProfilesPanel({
   const importRef = useRef<HTMLInputElement>(null);
   const auto = activeProfile === "auto";
   const nameOf = (id: string) => profiles.find((p) => p.id === id)?.name ?? "—";
-  const importProfile = (picked: MonitorProfile) => {
+  // A rename belongs to the selected card: another selection ends it.
+  useEffect(() => setRenamingId((id) => (id === profile.id ? id : null)), [profile.id]);
+  const importProfile = (picked: MonitorProfile, skippedCanvases: number) => {
     const imported = importedProfile(dashboard, picked);
     onImportProfile(imported);
-    toast(`Imported ${imported.name}`);
+    const skipped = skippedCanvases > 0 ? ` · ${skippedCanvases} canvas ${skippedCanvases === 1 ? "zone" : "zones"} skipped (not in the file)` : "";
+    toast(`Imported ${imported.name}${skipped}`);
   };
   return (
     <>
@@ -405,7 +408,7 @@ export function ProfilesPanel({
               >
                 <ProfilePreview profile={p} dashboard={dashboard} width={64} height={40} />
                 <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                  {renamingId === p.id ? (
+                  {active && renamingId === p.id ? (
                     <RenameInput
                       initial={p.name}
                       onDone={(name) => {
