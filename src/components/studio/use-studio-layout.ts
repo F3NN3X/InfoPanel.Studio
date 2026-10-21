@@ -16,8 +16,8 @@ const COLLAPSED_KEY = "studio.dockCollapsed";
 
 /** Width of the inspector, docked or floating. */
 export const INSPECTOR_WIDTH = 320;
-/** Width of the icon rail (the left panel's width is the viewer's, see `useStoredDrawerWidth`). */
-export const RAIL_WIDTH = 52;
+/** Width of the rail: 72 px labelled, 48 px icon-only under 960 px (the left panel's width is the viewer's). */
+export const railWidth = (windowWidth: number) => (windowWidth < 960 ? 48 : 72);
 
 /**
  * The profile's page for fitting the canvas: its design size, the screen, in

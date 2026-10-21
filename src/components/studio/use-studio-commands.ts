@@ -119,13 +119,11 @@ export function useStudioCommands({
         ui.setMode("design");
         return edit.addPanelPresetById(action.id);
       case "alerts-open":
-        ui.setMode("design");
         ui.setAlertRule(null);
-        return ui.setDrawer("alerts");
+        return ui.openDrawer("alerts");
       case "alert-new": {
         const rule = blankSensorRule();
-        ui.setMode("design");
-        ui.setDrawer("alerts");
+        ui.openDrawer("alerts");
         ui.setAlertRule(rule.id);
         return setConfig((c) => addRule(c, rule), alertsKey(`add:${rule.id}`));
       }
@@ -133,8 +131,7 @@ export function useStudioCommands({
         // "auto" is the app-opens rule; a profile id selects it for editing.
         return action.id === "auto" ? edit.activateProfile("auto") : onSelectProfile(action.id);
       case "drawer":
-        ui.setMode("design");
-        return ui.setDrawer(action.drawer);
+        return ui.openDrawer(action.drawer);
       case "toggle-dock":
         // Collapse the docked inspector, or open / close the floating one (Sources has none).
         return !ui.showSources && ui.studioLayout.toggleInspector();

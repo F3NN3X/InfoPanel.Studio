@@ -66,3 +66,44 @@ state, which now has `kiosks: []`.
 - Phase 5 (Settings › App): add `allow-server-status`, `allow-update-state` and `allow-get-settings` to
   `STUDIO_PERMISSIONS`; the status bar then has its first values without waiting for an event.
 - Panel widgets ("Follows panel", AUDIT A4) have no chip level yet.
+
+## Phase 2: shell
+
+The studio is now a column: title bar 40, body row (labelled rail, view), status bar 26. Checked by typecheck, tests
+and build, and by eye in headless Chromium at 1440 and 1000 px (design, Layers tab, switcher popover, Live popover,
+every rail view, Screens, the status bar's Data item; no console errors beyond the dev server's missing API).
+
+| Piece | State |
+|---|---|
+| Title bar (§3.1) | `studio-top-bar.tsx`: mark, `ScreenSwitcher` (`screen-switcher.tsx`: screens with size, the current screen's pages indented, Manage screens…), centred command entry (opens the palette, `Ctrl+K` cap), Undo / Redo, Import and Export, `LiveControl`, Save with the dirty dot, `⋯`, window controls (Tauri only). The bar and its empty space are the drag region. |
+| Import / Export | Interim: each is one button opening a small menu over the existing paths (Import: InfoPanel profile…, Config file…; Export: Config file, InfoPanel canvas…). On a phone they live in `⋯` as before. Copy profile JSON, palette, shortcuts, reset and the build id stay in `⋯`. |
+| Live (§3.3) | `live-popover.tsx`: green `Live · N` button (N from `kiosksOf`), the popover with "Live control" and its sub-line, the kiosk rows (screen · page, address) and the header action "Open kiosk view" (replaces the top-bar button, PLAN decision 6). The controls are Phase 6. The status bar's Kiosks item opens it (`ui.liveOpen`). |
+| Rail (§3.2) | `left-rail.tsx` rewritten: 72 px, labelled Design · Theme · Library · Data · Alerts & Island · Help · Settings. Every item is a view; Help opens at the article for the current view (the F1 target). Under 960 px it is 48 px, icon only, with tooltips (`railWidth()` feeds the layout maths). Settings shows on both platforms. |
+| Design left panel (§6.1) | `design-left-panel.tsx`: segmented Layers \| Add widget, 232 px (still drag-resizable up to 440, `studio.drawerWidth` kept). Open by default from 1280 px, toggle at the start of the page-tab row (`PageTabs`), gone from the zoom bar. Layers: the `edit` mark is a pencil on the existing `follow` data, size in mono, hide / delete on hover or focus, right-click opens the zone menu. Add widget: the existing groups and My panels, ending in the link "Canvas from an .infopanel file → Import". |
+| Interim views | `interim-views.tsx`: Alerts & Island (the alerts and Dynamic Island panels, tabbed), Screens (the Profiles panel; reached from Manage screens… and the zoom bar's size link), Settings (desktop: a button to the existing Settings window at the linked section; browser: the §10.1 notice). Library keeps a "Gauges →" strip to the old Gauges page. |
+| Status bar (§3.4) | Mounted with `useStatusBar(control, saveState)`; Data → Data view, Server and Update → Settings, Kiosks → Live popover. The title bar no longer shows "Offline · edits kept locally": the status bar's save state does. |
+| `navigateTo` | Alerts & Island, Screens and Settings › App open the interim views. Other Settings tabs still open the profile inspector's Behaviour tab. |
+| Retired | `studio-drawers.tsx`, the drawer state (`useStoredDrawer`, `Drawer` as state), `DrawerSplitter` / `LeftDrawer` (moved into the left panel), `ProfileSwitcher`, `profileSummary`. The palette's `drawer` command stays and maps: Add / Layers to the left panel, Profiles to Screens, Alerts / Island to Alerts & Island. |
+
+No test changed or added: the shell is composition only (no new pure logic), and the suite passes unchanged.
+
+### Deviations
+
+- **Icons are lucide**, as in Phase 1.
+- **Left panel keeps its resize splitter** and stored width (range now 232 to 440). The spec makes the width a Settings › Studio slider (Phase 5).
+- **Left panel tab defaults to Add widget** (the old default drawer), not Layers.
+- **The zoom bar's size link opens Screens but does not pass the screen**: the edited screen is already the selected one.
+- **Settings › App on desktop no longer opens the window on a status-bar click**; it opens the interim Settings view, whose button opens the window.
+
+### Unverified
+
+- Desktop (Tauri): window controls, drag region and the Settings button were not run.
+- A kiosk in the Live list (no server with a control stream was running).
+- Phone widths (< 600 px): the rail is still the 48 px side rail (Phase 7 makes the bottom tab bar); not looked at.
+
+### Follow-ups
+
+- Phase 3: the page-tab row's kiosk marker and chip, the removal of Play/Pause and ⋯ › Theme…; the Screens view's size link should pass the screen.
+- Phase 5: replace the three interim views; delete the "Gauges →" strip when Gauges is a Library collection; the left-panel width slider; the `navigateTo` fallback to Behaviour for Dashboard / Studio Settings tabs.
+- Phase 6: the Import door and Export sheet replace the two menus; Live gets its controls.
+- Phase 7: help copy still says "Kiosk view" in `src/help/articles/studio.md` and the palette still lists "Profiles"; the phone bottom tab bar; the narrow floating inspector.

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type PointerEvent as ReactPointerEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
-import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Palette, Pencil, Plus, RefreshCw, Shapes, Trash2, X } from "lucide-react";
+import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Palette, PanelLeftClose, PanelLeftOpen, Pencil, Plus, RefreshCw, Shapes, Trash2, X } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { IconGrid } from "@/components/ui/icon-grid";
@@ -13,6 +13,9 @@ import { RenameInput } from "./profiles-panel";
 import { RotateToggle } from "./rotate-toggle";
 
 interface PageTabsProps {
+  /** Design's left panel is open; the toggle at the row's start shows or hides it. */
+  leftOpen: boolean;
+  onToggleLeft: () => void;
   pages: ProfilePage[];
   /** The page on the canvas. */
   current: string;
@@ -195,6 +198,8 @@ export function PageTabs({
   onDelete,
   onIcon,
   onTheme,
+  leftOpen,
+  onToggleLeft,
   renamingId,
   onRenamingChange,
   deletingId,
@@ -254,6 +259,14 @@ export function PageTabs({
 
   return (
     <div className="flex h-9 shrink-0 items-center gap-1 border-b border-ui-subtle bg-ui-panel px-2 font-ui text-[12px]">
+      <IconButton
+        label={leftOpen ? "Hide the left panel" : "Show the left panel"}
+        className="h-7 w-7"
+        aria-pressed={leftOpen}
+        onClick={onToggleLeft}
+      >
+        {leftOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+      </IconButton>
       <div ref={rowRef} role="tablist" aria-label="Pages" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
         {pages.map((page) => {
           const Icon = pageIcon(page.icon);

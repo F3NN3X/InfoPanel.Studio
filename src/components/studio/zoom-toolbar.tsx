@@ -1,4 +1,4 @@
-import { Grid3x3, Minus, PanelLeftClose, Plus, RulerDimensionLine } from "lucide-react";
+import { Grid3x3, Minus, Plus, RulerDimensionLine } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,6 @@ interface ZoomToolbarProps {
   zoom: number;
   /** The zoom follows the fit (the Fit button shows active). */
   fitting: boolean;
-  onToggleLeft: () => void;
   showGrid: boolean;
   onToggleGrid: () => void;
   showRulers: boolean;
@@ -17,7 +16,7 @@ interface ZoomToolbarProps {
   onFit: () => void;
   /** The profile shown on the canvas (resolution button). */
   profile: ProfileView;
-  /** Open Dashboard › Profile. */
+  /** The size link: open Screens. */
   onOpenProfile: () => void;
   /** Distance from the canvas bottom (above the phone's sheet); 16 px by default. */
   bottom?: number;
@@ -32,13 +31,12 @@ function Divider() {
 }
 
 /**
- * The floating bar over the canvas (16 px from the bottom, centred): left
- * panel, grid and ruler toggles, zoom, Fit and the resolution button.
+ * The floating bar over the canvas (16 px from the bottom, centred): grid
+ * and ruler toggles, zoom, Fit and the size link (Screens).
  */
 export function ZoomToolbar({
   zoom,
   fitting,
-  onToggleLeft,
   showGrid,
   onToggleGrid,
   showRulers,
@@ -58,9 +56,6 @@ export function ZoomToolbar({
         "rounded-[10px] border border-ui-strong bg-ui-raised font-ui shadow-ui-float"
       )}
     >
-      <IconButton label="Toggle the left panel" className={BAR_BUTTON} onClick={onToggleLeft}>
-        <PanelLeftClose className="h-[18px] w-[18px]" />
-      </IconButton>
       <IconButton label="Toggle grid" className={TOGGLE_BUTTON} active={showGrid} aria-pressed={showGrid} onClick={onToggleGrid}>
         <Grid3x3 className="h-[18px] w-[18px]" />
       </IconButton>
@@ -91,10 +86,10 @@ export function ZoomToolbar({
       <button
         type="button"
         onClick={onOpenProfile}
-        title="Profile size, grid and spacing"
+        title="Screen size, grid and spacing: open Screens"
         className={cn(TEXT_BUTTON, "font-ui-mono text-[11px]")}
       >
-        {profile.width} × {profile.height}
+        {profile.width}×{profile.height} ↗
       </button>
     </div>
   );

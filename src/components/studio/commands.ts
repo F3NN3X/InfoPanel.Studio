@@ -1,6 +1,5 @@
 import type { MonitorProfile, Placement, Widget } from "@/lib/layout";
 import type { AppearanceTarget } from "./inspector/profile-scope";
-import type { Drawer } from "./left-rail";
 import { allSections, type DocumentTab, type InspectorContext } from "./inspector-model";
 import { placementTitle } from "./studio-modules";
 import { KEYS } from "./use-studio-shortcuts";
@@ -107,6 +106,9 @@ export interface CommandState {
   /** Built-in and saved appearance presets (applied to all profiles). */
   appearancePresets: { id: string; name: string }[];
 }
+
+/** The palette's panel entries: Add and Layers open the Design left panel, the rest their full view. */
+export type Drawer = "add" | "layers" | "profiles" | "island" | "alerts";
 
 const DRAWERS: { drawer: Drawer; label: string }[] = [
   { drawer: "add", label: "Add" },

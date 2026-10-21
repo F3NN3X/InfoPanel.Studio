@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardConfig, ProfileView, Widget } from "@/lib/layout";
 import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
-import { isTauri, openSettings } from "@/lib/desktop";
-import { useStoredDrawer, useStoredDrawerWidth, type Drawer, type RailItem } from "./left-rail";
+import type { Drawer } from "./commands";
+import { useStoredLeftWidth, type LeftTab } from "./design-left-panel";
+import type { AlertsTab } from "./interim-views";
+import type { RailItem } from "./left-rail";
 import { revealWidgetEditor, scrollInspectorToTop } from "./inspector-scroll";
 import { useCanvasZoom } from "./use-canvas-zoom";
 import { useQuickBarPref } from "./inspector/inspector-prefs";
@@ -11,21 +13,29 @@ import { useStoredFlag } from "./use-stored-flag";
 import type { StudioMode } from "./studio-top-bar";
 import { useNavFocus, type NavRequest, type NavTarget } from "./studio-nav";
 import type { ThemeScope } from "./theme-editor-model";
-import { RAIL_WIDTH, pageSize, useStudioLayout } from "./use-studio-layout";
+import { pageSize, railWidth, useStudioLayout } from "./use-studio-layout";
 
 /**
- * The studio's view state, apart from the selection: Design | Sources,
- * the rail drawer, the dock layout and zoom, toggles (grid and rulers are
- * remembered), open dialogs, the
- * inspector's search and jump target, and the session clipboards.
+ * The studio's view state, apart from the selection: the open view (the
+ * rail's, plus Screens), Design's left panel, the dock layout and zoom,
+ * toggles (grid and rulers are remembered), open dialogs, the Live popover,
+ * the inspector's search and jump target, and the session clipboards.
  */
-export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSave: (config: DashboardConfig) => Promise<boolean>) {
+export function useStudioUi(
+  config: DashboardConfig,
+  profile: ProfileView,
+  onSave: (config: DashboardConfig) => Promise<boolean>,
+  windowWidth: number
+) {
   const toast = useToast();
   const [mode, setMode] = useState<StudioMode>("design");
   const showSources = mode === "sources";
   const showLibrary = mode === "library";
   const showGauges = mode === "gauges";
   const showTheme = mode === "theme";
+  const showAlerts = mode === "alerts";
+  const showScreens = mode === "screens";
+  const showSettings = mode === "settings";
   /** The theme editor's scope (the profile theme until a page's Theme… or the list picks another). */
   const [themeScope, setThemeScope] = useState<ThemeScope>({ kind: "profile" });
   /** Open the theme editor at a scope. */
@@ -33,17 +43,20 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     setThemeScope(scope);
     setMode("theme");
   };
-  /** Sources, Library, Gauges or Theme: a full page in place of the canvas, drawer and inspector. */
+  /** Every view but Design: a full page in place of the canvas, left panel and inspector. */
   const fullPage = mode !== "design";
   const toggleSources = () => setMode((m) => (m === "sources" ? "design" : "sources"));
-  const [drawer, setDrawer] = useStoredDrawer();
-  const [drawerWidth, setDrawerWidth] = useStoredDrawerWidth();
+  /** Design's left panel: open from 1280 px (SPEC §3.5), and its tab. */
+  const [leftOpen, setLeftOpen] = useState(() => windowWidth >= 1280);
+  const [leftTab, setLeftTab] = useState<LeftTab>("add");
+  const [leftWidth, setLeftWidth] = useStoredLeftWidth();
+  /** The interim Alerts & Island view's tab, and the Settings section a link named. */
+  const [alertsTab, setAlertsTab] = useState<AlertsTab>("alerts");
+  const [settingsSection, setSettingsSection] = useState<string>();
+  /** The Live popover (the title bar's button and the status bar's Kiosks item). */
+  const [liveOpen, setLiveOpen] = useState(false);
   const [showGrid, setShowGrid] = useStoredFlag("studio.grid", true);
   const [showRulers, setShowRulers] = useStoredFlag("studio.rulers", true);
-  /** The panel the rail last had open, for the zoom bar's left-panel toggle. */
-  const lastDrawer = useRef<Drawer>(drawer ?? "add");
-  if (drawer) lastDrawer.current = drawer;
-
   /** A request to scroll the zone inspector to a card (`seq` makes repeats count). */
   const [inspectorJump, setInspectorJump] = useState<{ id: string; key?: string; seq: number }>();
   const jumpInspector = (id: string, key?: string) => {
@@ -98,7 +111,7 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const [deletingPage, setDeletingPage] = useState<string | null>(null);
   /** The panel inspector's "Save as panel preset" name input is open. */
   const [presetNaming, setPresetNaming] = useState(false);
-  /** The alert rule open in the Alerts drawer's editor (null = the rules list). */
+  /** The alert rule open in the Alerts view's editor (null = the rules list). */
   const [alertRule, setAlertRule] = useState<string | null>(null);
 
   /** The style copied with "Copy" in the inspector (session only). */
@@ -110,8 +123,8 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const [quickBar] = useQuickBarPref();
   const studioLayout = useStudioLayout({
     page,
-    rail: RAIL_WIDTH,
-    drawer: !fullPage && drawer ? drawerWidth : 0,
+    rail: railWidth(windowWidth),
+    drawer: !fullPage && leftOpen ? leftWidth : 0,
     quickBar: quickBar && !fullPage,
   });
   const zoom = useCanvasZoom(page, studioLayout.layout.inset);
@@ -137,33 +150,31 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     });
   };
 
-  /**
-   * Rail click: Sources toggles the full-width sources mode (the panel
-   * stays remembered underneath); a panel icon opens that panel, or
-   * collapses it when it is already open.
-   */
-  const onRail = (item: RailItem) => {
-    if (item === "sources") {
-      toggleSources();
-      return;
+  /** A rail item opens its view; Data is the Sources view. */
+  const onRail = (item: RailItem) => setMode(item === "data" ? "sources" : item);
+
+  /** A palette entry or link for a panel: Add and Layers open Design's left panel, the rest their full view. */
+  const openDrawer = (target: Drawer) => {
+    switch (target) {
+      case "add":
+      case "layers":
+        setMode("design");
+        setLeftTab(target);
+        setLeftOpen(true);
+        break;
+      case "profiles":
+        setMode("screens");
+        break;
+      case "alerts":
+      case "island":
+        setAlertsTab(target);
+        setMode("alerts");
+        break;
     }
-    if (item === "library" || item === "gauges" || item === "theme") {
-      setMode((m) => (m === item ? "design" : item));
-      return;
-    }
-    if (fullPage) {
-      setMode("design");
-      setDrawer(item);
-      return;
-    }
-    setDrawer(drawer === item ? null : item);
   };
 
-  /** The zoom bar's left-panel toggle: close the panel, or reopen the last one. */
-  const toggleLeft = () => {
-    if (fullPage) setMode("design");
-    setDrawer(drawer && !fullPage ? null : lastDrawer.current);
-  };
+  /** The page-tab row's left-panel toggle. */
+  const toggleLeft = () => setLeftOpen((open) => !open);
 
   const revealEditor = () => revealWidgetEditor(inspectorRef.current);
 
@@ -171,9 +182,9 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
   const [navRequest, setNavRequest] = useState<NavRequest>();
   useNavFocus(navRequest);
   /**
-   * Open a link's home (SPEC §4.1). Until the new views land (IMPLEMENTATION_PLAN phases 2-5),
-   * each view maps to today's place: Data to Sources, Alerts & Island and Screens to their
-   * drawers, Settings to the desktop window (App) or the profile inspector's Behaviour tab.
+   * Open a link's home (SPEC §4.1). Until the new views land (IMPLEMENTATION_PLAN phases 3-5), Alerts & Island,
+   * Screens and Settings › App open their interim views; the other Settings tabs open the profile inspector's
+   * Behaviour tab.
    */
   const navigateTo = (target: NavTarget) => {
     switch (target.view) {
@@ -187,14 +198,17 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
         setMode("sources");
         break;
       case "alerts":
+        setAlertsTab(target.tab === "island" ? "island" : "alerts");
+        setMode("alerts");
+        break;
       case "screens":
-        setMode("design");
-        setDrawer(target.view === "screens" ? "profiles" : target.tab === "island" ? "island" : "alerts");
+        setMode("screens");
         break;
       case "settings":
-        if (target.tab === "app" && isTauri()) {
-          void openSettings(target.section);
-          return;
+        if (target.tab === "app") {
+          setSettingsSection(target.section);
+          setMode("settings");
+          break;
         }
         setMode("design");
         openDocumentTab("behaviour");
@@ -213,16 +227,26 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     showLibrary,
     showGauges,
     showTheme,
+    showAlerts,
+    showScreens,
+    showSettings,
     themeScope,
     setThemeScope,
     openTheme,
     fullPage,
     toggleSources,
-    drawer,
-    setDrawer,
-    drawerWidth,
-    setDrawerWidth,
+    leftOpen,
+    leftTab,
+    setLeftTab,
+    leftWidth,
+    setLeftWidth,
+    alertsTab,
+    setAlertsTab,
+    settingsSection,
+    liveOpen,
+    setLiveOpen,
     onRail,
+    openDrawer,
     toggleLeft,
     showGrid,
     setShowGrid,

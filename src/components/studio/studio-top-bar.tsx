@@ -1,15 +1,13 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Menu } from "@base-ui/react/menu";
 import {
   Check,
-  ChevronDown,
   Copy,
   Download,
   FileInput,
   FileOutput,
   Info,
   Keyboard,
-  Maximize,
   MoreHorizontal,
   Redo2,
   RotateCcw,
@@ -20,37 +18,41 @@ import {
 import { IconButton } from "@/components/ui/icon-button";
 import { BUILD_ID } from "@/lib/buildInfo";
 import { isTauri } from "@/lib/desktop";
-import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
-import { zoneCount } from "@/lib/pages";
+import type { ControlKiosk } from "@/lib/control";
+import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { copyProfileJson } from "./config-file";
-import { ProfilePreview } from "./profile-preview";
+import { LiveControl } from "./live-popover";
 import { ResetConfigDialog } from "./reset-config-dialog";
+import { ScreenSwitcher } from "./screen-switcher";
 import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
 import { KEYS } from "./use-studio-shortcuts";
 
-/** Library, Gauges and Theme are full pages of their own, opened from the rail (Sources toggles from the rail). */
-export type StudioMode = "design" | "sources" | "library" | "gauges" | "theme";
+/** Every view but Design is a full page of its own: the rail's (Sources is Data) and the two interim ones (Gauges, Screens). */
+export type StudioMode = "design" | "sources" | "library" | "gauges" | "theme" | "alerts" | "screens" | "settings";
 
 interface StudioTopBarProps {
   profiles: MonitorProfile[];
-  /** The dashboard, which the menu's previews inherit from where a profile sets none. */
-  dashboard: DashboardConfig;
-  /** The profile on the canvas: the one selected in the Profiles panel. */
+  /** The profile on the canvas. */
   profile: MonitorProfile;
-  /** Select a profile for editing. */
-  onSelectProfile: (id: string) => void;
-  /** The profile name opens the Profiles left panel. */
-  onOpenProfiles: () => void;
+  /** The page on the canvas. */
+  pageId: string;
+  /** Edit a screen on a page (the switcher). */
+  onSelectScreen: (profileId: string, pageId: string) => void;
+  /** "Manage screens…". */
+  onManageScreens: () => void;
+  /** The Live popover (the status bar's Kiosks item opens it too). */
+  liveOpen: boolean;
+  onLiveOpenChange: (open: boolean) => void;
+  kiosks: readonly ControlKiosk[];
+  /** Live's "Open kiosk view". */
+  onExitStudio: () => void;
   /** Briefly true after a save (shows "Saved"). */
   saved: boolean;
   /** Edits the server does not have yet (the dot on Save). */
   unsaved: boolean;
-  /** The last push could not reach the server: "Offline · edits kept locally". */
-  offline: boolean;
   onSave: () => void;
-  onExitStudio: () => void;
   onExport: () => void;
   /** Open the file picker for "Import config…". */
   onImport: () => void;
@@ -73,69 +75,6 @@ const POPUP =
 const ITEM =
   "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-5 data-highlighted:bg-ui-hover";
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
-
-/**
- * The profile being edited (its name opens the Profiles panel) with a chevron menu to choose another
- * to edit without opening the panel. What displays open on is set in the panel's footer.
- */
-function ProfileSwitcher({
-  profiles,
-  dashboard,
-  profile,
-  onSelectProfile,
-  onOpenProfiles,
-}: Pick<StudioTopBarProps, "profiles" | "dashboard" | "profile" | "onSelectProfile" | "onOpenProfiles">) {
-  return (
-    // One hover target: the name opens the Profiles panel, the chevron the switch menu.
-    <div className="flex min-w-0 items-center rounded-md transition-colors hover:bg-ui-hover">
-      <button
-        type="button"
-        onClick={onOpenProfiles}
-        title="Profiles"
-        className="flex h-8 min-w-0 items-center gap-1.5 py-1 pl-1.5 text-[13px] font-semibold text-ui-1"
-      >
-        <span className="truncate">{profile.name}</span>
-      </button>
-      <Menu.Root>
-        <Menu.Trigger
-          aria-label="Switch profile"
-          title="Switch profile"
-          className="flex h-8 w-6 shrink-0 items-center justify-center rounded-md text-ui-3 transition-colors hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
-        >
-          <ChevronDown className="h-[18px] w-[18px]" />
-        </Menu.Trigger>
-        <Menu.Portal>
-          <Menu.Positioner className="z-[80]" sideOffset={4} align="start">
-            <Menu.Popup className={POPUP}>
-              <Menu.Group>
-                <Menu.GroupLabel className="px-2 pb-0.5 pt-1 text-[10.5px] font-medium uppercase tracking-wide text-ui-4">
-                  Edit profile
-                </Menu.GroupLabel>
-                {profiles.map((p) => (
-                  <Menu.Item key={p.id} className={cn(ITEM, "h-[52px]")} onClick={() => onSelectProfile(p.id)}>
-                    <ProfilePreview profile={p} dashboard={dashboard} width={72} height={44} active={p.id === profile.id} />
-                    <span className="flex-1 truncate">{p.name}</span>
-                    <span className="font-ui-mono text-[10.5px] text-ui-4">
-                      {p.width}×{p.height}
-                    </span>
-                    <span className="w-3.5">{p.id === profile.id && <Check className="h-3.5 w-3.5" />}</span>
-                  </Menu.Item>
-                ))}
-              </Menu.Group>
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>
-    </div>
-  );
-}
-
-/** `1920 × 550 · 12 × 6 · Fill · 10 zones`, with `· 3 pages` when there are several. */
-export function profileSummary(p: MonitorProfile): string {
-  const zones = zoneCount(p);
-  const pages = p.pages.length > 1 ? ` · ${p.pages.length} pages` : "";
-  return `${p.width} × ${p.height} · ${p.cols} × ${p.rows} · ${p.fit === "fill" ? "Fill" : "Scroll"} · ${zones} ${zones === 1 ? "zone" : "zones"}${pages}`;
-}
 
 /**
  * "⋯": export / import / copy profile JSON / reset, the command palette
@@ -206,18 +145,22 @@ function MoreMenu({
                 </Menu.Item>
                 <Menu.Separator className={SEPARATOR} />
               </div>
-              <Menu.Item className={ITEM} onClick={onExport}>
-                <Download className="h-3.5 w-3.5" /> Export config
-              </Menu.Item>
-              <Menu.Item className={ITEM} onClick={onImport}>
-                <Upload className="h-3.5 w-3.5" /> Import config…
-              </Menu.Item>
-              <Menu.Item className={ITEM} onClick={onImportInfoPanel}>
-                <FileInput className="h-3.5 w-3.5" /> Import InfoPanel profile…
-              </Menu.Item>
-              <Menu.Item className={ITEM} disabled={!canExportInfoPanel} onClick={onExportInfoPanel}>
-                <FileOutput className="h-3.5 w-3.5" /> Export InfoPanel canvas…
-              </Menu.Item>
+              {/* On a phone Import / Export have no room in the bar: they move in here. */}
+              <div className="sm:hidden">
+                <Menu.Item className={ITEM} onClick={onExport}>
+                  <Download className="h-3.5 w-3.5" /> Export config
+                </Menu.Item>
+                <Menu.Item className={ITEM} onClick={onImport}>
+                  <Upload className="h-3.5 w-3.5" /> Import config…
+                </Menu.Item>
+                <Menu.Item className={ITEM} onClick={onImportInfoPanel}>
+                  <FileInput className="h-3.5 w-3.5" /> Import InfoPanel profile…
+                </Menu.Item>
+                <Menu.Item className={ITEM} disabled={!canExportInfoPanel} onClick={onExportInfoPanel}>
+                  <FileOutput className="h-3.5 w-3.5" /> Export InfoPanel canvas…
+                </Menu.Item>
+                <Menu.Separator className={SEPARATOR} />
+              </div>
               <Menu.Item className={ITEM} onClick={copyProfile}>
                 <Copy className="h-3.5 w-3.5" /> Copy profile JSON
               </Menu.Item>
@@ -250,101 +193,132 @@ function MoreMenu({
   );
 }
 
-/** Import / Export: plain text buttons before Save; hidden on a phone (they stay in the "⋯" menu). */
-const TEXT_BUTTON =
-  "flex h-8 items-center whitespace-nowrap rounded-[7px] px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:text-ui-5 disabled:hover:bg-transparent max-md:hidden";
+/** Import / Export: outlined buttons before Live; icon-only under 960 px, in the "⋯" menu on a phone. */
+const FILE_BUTTON =
+  "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2.5 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover max-sm:hidden max-[959px]:px-1.5";
 
 /** Undo / redo: #c9c9cf when they can act, #4a4a52 when they cannot. */
 const HISTORY_BUTTON = "text-[#c9c9cf] disabled:text-[#4a4a52] disabled:opacity-100";
 
 /**
- * The studio's top bar: profile switcher and meta, then undo / redo, Kiosk view, Save and the "⋯" menu.
+ * The one Import and one Export button (SPEC §3.1). Until Phase 6 builds the Import door and the Export sheet
+ * each opens a small menu over the existing dialogs and file pickers.
+ */
+function FileMenu({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Menu.Root>
+      <Menu.Trigger title={label} className={FILE_BUTTON}>
+        {icon}
+        <span className="max-[959px]:sr-only">{label}</span>
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
+          <Menu.Popup className={POPUP}>{children}</Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}
+
+/**
+ * The studio's title bar (40 px; the window's title bar on desktop): mark, screen / page switcher, the command
+ * entry, undo / redo, Import, Export, Live, Save, the "⋯" menu and the window controls.
  */
 export function StudioTopBar(props: StudioTopBarProps) {
-  const { profile, saved, unsaved, offline, onSave, onExitStudio, canUndo, canRedo, onUndo, onRedo } = props;
+  const { profiles, profile, pageId, saved, unsaved, onSave, canUndo, canRedo, onUndo, onRedo, onPalette } = props;
   return (
     // In the desktop app this bar is the window's title bar: its empty space drags the window
     // (data-tauri-drag-region only acts on the element itself) and the caption buttons sit at the end.
     <header
       data-tauri-drag-region
       className={cn(
-        "grid h-12 shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-3 font-ui max-sm:flex max-sm:gap-1.5 max-sm:px-2",
+        "flex h-10 shrink-0 items-center gap-2 border-b border-ui-subtle bg-ui-chrome px-3 font-ui max-sm:gap-1.5 max-sm:px-2",
         isTauri() && "pr-0"
       )}
     >
-      <div data-tauri-drag-region className="flex min-w-0 items-center gap-2.5 max-sm:flex-1">
-        <StudioLogo className="h-[26px] w-[26px] shrink-0 max-sm:hidden" />
-        <ProfileSwitcher {...props} />
-        <span data-tauri-drag-region className="min-w-0 truncate font-ui-mono text-[11px] text-ui-4 max-sm:hidden">
-          {profileSummary(profile)}
-        </span>
-        {offline && (
-          <span role="status" className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11.5px] text-ui-3 max-sm:hidden">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ui-warning" />
-            Offline · edits kept locally
-          </span>
+      <StudioLogo className="pointer-events-none h-5 w-5 shrink-0 max-sm:hidden" />
+      <ScreenSwitcher
+        profiles={profiles}
+        profile={profile}
+        pageId={pageId}
+        onSelect={props.onSelectScreen}
+        onManage={props.onManageScreens}
+      />
+      <div data-tauri-drag-region className="flex min-w-0 flex-1 justify-center">
+        <button
+          type="button"
+          onClick={onPalette}
+          title={`Search settings or run a command (${KEYS.palette})`}
+          className="flex h-8 min-w-8 max-w-[340px] flex-1 items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app px-2 text-[12.5px] text-ui-4 transition-colors hover:border-ui-strong hover:text-ui-3 max-[959px]:flex-none max-[959px]:justify-center max-[959px]:px-0 max-[959px]:w-8"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-left max-[959px]:sr-only">Search settings or run a command</span>
+          <kbd className="rounded border border-ui-default px-1.5 font-ui-mono text-[10.5px] text-ui-4 max-[959px]:hidden">{KEYS.palette}</kbd>
+        </button>
+      </div>
+      <IconButton
+        label={`Undo (${KEYS.undo})`}
+        size={32}
+        className={cn(HISTORY_BUTTON, "max-sm:hidden")}
+        disabled={!canUndo}
+        onClick={onUndo}
+      >
+        <Undo2 className="h-[19px] w-[19px]" strokeWidth={1.75} />
+      </IconButton>
+      <IconButton
+        label={`Redo (${KEYS.redo})`}
+        size={32}
+        className={cn(HISTORY_BUTTON, "max-sm:hidden")}
+        disabled={!canRedo}
+        onClick={onRedo}
+      >
+        <Redo2 className="h-[19px] w-[19px]" strokeWidth={1.75} />
+      </IconButton>
+      <div className="h-[18px] w-px shrink-0 bg-ui-default max-sm:hidden" />
+      <FileMenu label="Import" icon={<FileInput className="h-4 w-4" strokeWidth={1.75} />}>
+        <Menu.Item className={ITEM} onClick={props.onImportInfoPanel}>
+          <FileInput className="h-3.5 w-3.5" /> InfoPanel profile…
+        </Menu.Item>
+        <Menu.Item className={ITEM} onClick={props.onImport}>
+          <Upload className="h-3.5 w-3.5" /> Config file…
+        </Menu.Item>
+      </FileMenu>
+      <FileMenu label="Export" icon={<FileOutput className="h-4 w-4" strokeWidth={1.75} />}>
+        <Menu.Item className={ITEM} onClick={props.onExport}>
+          <Download className="h-3.5 w-3.5" /> Config file
+        </Menu.Item>
+        <Menu.Item className={ITEM} disabled={!props.canExportInfoPanel} onClick={props.onExportInfoPanel}>
+          <FileOutput className="h-3.5 w-3.5" /> InfoPanel canvas…
+        </Menu.Item>
+      </FileMenu>
+      <LiveControl
+        open={props.liveOpen}
+        onOpenChange={props.onLiveOpenChange}
+        profiles={profiles}
+        kiosks={props.kiosks}
+        onOpenKioskView={props.onExitStudio}
+      />
+      <button
+        type="button"
+        onClick={onSave}
+        title={`Save to the dashboard server and refresh the kiosk view (${KEYS.save})`}
+        className="flex h-7 items-center gap-[7px] whitespace-nowrap rounded-[7px] bg-ui-inverse px-3 text-[12.5px] font-semibold text-ui-inverse-fg transition-opacity hover:opacity-90"
+      >
+        {!saved && unsaved && (
+          <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.62_0.17_255)]" aria-label="Unsaved changes" />
         )}
-      </div>
-
-      <div data-tauri-drag-region className="flex items-center justify-end gap-1.5 self-stretch max-sm:gap-1">
-        <IconButton
-          label={`Undo (${KEYS.undo})`}
-          size={32}
-          className={cn(HISTORY_BUTTON, "max-sm:hidden")}
-          disabled={!canUndo}
-          onClick={onUndo}
-        >
-          <Undo2 className="h-[19px] w-[19px]" strokeWidth={1.75} />
-        </IconButton>
-        <IconButton
-          label={`Redo (${KEYS.redo})`}
-          size={32}
-          className={cn(HISTORY_BUTTON, "max-sm:hidden")}
-          disabled={!canRedo}
-          onClick={onRedo}
-        >
-          <Redo2 className="h-[19px] w-[19px]" strokeWidth={1.75} />
-        </IconButton>
-        <div className="mx-1 h-5 w-px bg-ui-default max-sm:hidden" />
-        <button
-          type="button"
-          onClick={onExitStudio}
-          title="Kiosk view"
-          className="flex h-8 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 max-sm:px-2"
-        >
-          <Maximize className="h-[17px] w-[17px]" strokeWidth={1.75} /> <span className="max-sm:sr-only">Kiosk view</span>
-        </button>
-        <button
-          type="button"
-          onClick={props.onImportInfoPanel}
-          title="Import an InfoPanel profile: .infopanel, folder, installed or saved canvas"
-          className={TEXT_BUTTON}
-        >
-          Import
-        </button>
-        <button
-          type="button"
-          onClick={props.onExportInfoPanel}
-          disabled={!props.canExportInfoPanel}
-          title={props.canExportInfoPanel ? "Export the canvas zone as .infopanel or .canvas.zip" : "Export needs a canvas zone on this page"}
-          className={TEXT_BUTTON}
-        >
-          Export
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          title={`Save to the dashboard server and refresh the kiosk view (${KEYS.save})`}
-          className="flex h-8 items-center gap-[7px] whitespace-nowrap rounded-[7px] bg-ui-inverse px-3.5 text-[12.5px] font-semibold text-ui-inverse-fg transition-opacity hover:opacity-90"
-        >
-          {!saved && unsaved && (
-            <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.62_0.17_255)]" aria-label="Unsaved changes" />
-          )}
-          {saved ? "Saved" : "Save"}
-        </button>
-        <MoreMenu {...props} />
-        <WindowControls />
-      </div>
+        {saved ? "Saved" : "Save"}
+      </button>
+      <MoreMenu {...props} />
+      <WindowControls />
     </header>
   );
 }
