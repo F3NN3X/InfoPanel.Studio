@@ -3,7 +3,8 @@
  * desktop app points its Settings window there too, and a browser opens Settings as a tab of it), so a
  * `BroadcastChannel` reaches every Studio page on it, in the desktop app and in a browser alike.
  *
- * - `settings`: a Settings change the server took; the Studio applies the same patch to its working copy.
+ * - `settings`: a Settings change the server took (and its revision); the Studio applies the same patch to its
+ *   working copy and sends the revision with its pushes, so a push already on the wire can't undo it.
  * - `replaced`: the saved config was replaced (Reset everything…); the Studio reloads it.
  * - `open`: show a Studio view, e.g. Screens at a screen (from a Settings link).
  */
@@ -11,7 +12,7 @@
 import type { SettingsPatch } from "@/lib/settings-patch";
 
 export type StudioMessage =
-  | { type: "settings"; patch: SettingsPatch }
+  | { type: "settings"; patch: SettingsPatch; rev: number }
   | { type: "replaced" }
   | { type: "open"; target: { view: "screens"; profileId?: string; section?: string } };
 

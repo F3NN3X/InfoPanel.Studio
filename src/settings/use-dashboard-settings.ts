@@ -77,9 +77,12 @@ export function useDashboardSettings() {
   const patch = useCallback(
     (p: SettingsPatch) => {
       setConfig((c) => c && withSettingsPatch(c, p));
+      let rev = 0;
       settle(
-        () => patchSettings(p),
-        () => postStudioMessage({ type: "settings", patch: p })
+        async () => {
+          rev = await patchSettings(p);
+        },
+        () => postStudioMessage({ type: "settings", patch: p, rev })
       );
     },
     [settle]
@@ -89,7 +92,7 @@ export function useDashboardSettings() {
   const reset = useCallback(() => {
     setConfig(defaultConfig());
     settle(
-      () => pushConfig(defaultConfig()),
+      () => pushConfig(defaultConfig(), true),
       () => postStudioMessage({ type: "replaced" })
     );
   }, [settle]);

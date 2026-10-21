@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySettingsPatch } from "../../server/config-settings.mjs";
+import { applySettingsPatch, reapplySettings } from "../../server/config-settings.mjs";
 
 const stored = () => ({
   version: 11,
@@ -71,5 +71,27 @@ describe("applySettingsPatch", () => {
   it("refuses a screen the config does not have, and an unreadable config", () => {
     expect(applySettingsPatch(stored(), { profiles: { nope: { performance: null } } })).toEqual({ status: 404, message: "no screen nope" });
     expect(applySettingsPatch(null, { general: { maxFps: 30 } })).toMatchObject({ status: 409 });
+  });
+});
+
+describe("reapplySettings", () => {
+  const log = [
+    { rev: 5, patch: { general: { maxFps: 60 } } },
+    { rev: 6, patch: { general: { maxFps: 15 }, style: { clock: "12" } } },
+    { rev: 7, patch: { profiles: { gone: { performance: null } } } },
+  ];
+
+  it("applies the patches newer than the pushed config's revision, in order, and not the older ones", () => {
+    const pushed = { ...stored(), general: { font: "inter", maxFps: 30 } };
+    const { general, style } = reapplySettings(pushed, log, 5);
+    expect(general).toEqual({ font: "inter", maxFps: 15 });
+    expect(style.clock).toBe("12");
+    expect(reapplySettings(pushed, log, 7)).toBe(pushed);
+  });
+
+  it("skips a patch the config no longer accepts and keeps the others", () => {
+    const config = reapplySettings(stored(), log, 4);
+    expect(config.general.maxFps).toBe(15);
+    expect(config.profiles).toEqual(stored().profiles);
   });
 });

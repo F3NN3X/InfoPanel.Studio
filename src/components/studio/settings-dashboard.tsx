@@ -3,9 +3,8 @@ import { COMMON_LOCALES, resolveGeneral, type MotionChoice } from "@/lib/general
 import type { DashboardConfig } from "@/lib/layout";
 import type { DashboardGeneralKey, SettingsPatch } from "@/lib/settings-patch";
 import { FPS_OPTIONS, MOTION_OPTIONS } from "./inspector/behaviour-model";
-import { LinkRow } from "./link-row";
 import { ResetConfigDialog } from "./reset-config-dialog";
-import { ownPerformanceText } from "./screens-model";
+import { performanceWithout, screensOverriding } from "./screens-model";
 import { SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
 import { SettingsGroup } from "./settings-group";
 
@@ -17,6 +16,35 @@ interface SettingsDashboardProps {
   onReset: () => void;
   /** Screens in the Studio window, at a screen. */
   onOpenScreen: (profileId: string) => void;
+}
+
+const OVERRIDE_BUTTON = "rounded-sm text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
+
+/** The screens that set their own value of a default above (PLAN decision 25): each with Reset, and a jump to its Screens page. */
+function Overrides({ config, field, onPatch, onOpenScreen }: { config: DashboardConfig; field: "maxFps" | "motion" } & Pick<SettingsDashboardProps, "onPatch" | "onOpenScreen">) {
+  const screens = screensOverriding(config.profiles, field);
+  if (screens.length === 0) return null;
+  return (
+    <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[11.5px] text-ui-3">
+      {screens.map((screen) => (
+        <li key={screen.id} className="flex flex-wrap items-center gap-x-2.5">
+          <span>
+            {screen.name} uses {screen.text}
+          </span>
+          <button
+            type="button"
+            className={OVERRIDE_BUTTON}
+            onClick={() => onPatch({ profiles: { [screen.id]: { performance: performanceWithout(config.profiles.find((p) => p.id === screen.id)?.performance, field) } } })}
+          >
+            Reset
+          </button>
+          <button type="button" className={OVERRIDE_BUTTON} onClick={() => onOpenScreen(screen.id)}>
+            Screens ↗
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 const CLOCKS = [
@@ -48,22 +76,19 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
   const set = (key: DashboardGeneralKey, value: string | number | boolean | undefined) => onPatch({ general: { [key]: value ?? null } });
   /** The clocks' 12 / 24 h: the all-screens style's themed `clock` (config v7). */
   const setHours = (value: "12" | "24" | undefined) => onPatch({ style: { clock: value ?? null } });
-  const own = config.profiles.flatMap((p) => {
-    const text = ownPerformanceText(p.performance);
-    return text ? [{ id: p.id, name: p.name, text }] : [];
-  });
   return (
     <>
       <SettingsGroup id="performance" title="Performance" scope="Default for all screens">
         <div data-nav-control="fps">
           <SegmentedRow
             label="Frame-rate cap"
-            hint="Lower uses less CPU and GPU. The most frames a second animations redraw (gradients, meters, smooth graphs); the kiosk URL's &fps= overrides it."
+            hint="Lower uses less CPU and GPU. The most frames a second animations redraw (gradients, meters, smooth graphs); the kiosk URL's &fps= overrides it. Below 60 fps transitions are off and graphs step at the data rate."
             options={FPS_OPTIONS}
             value={String(g.maxFps)}
             onChange={(v) => set("maxFps", v === "60" ? undefined : Number(v))}
           />
         </div>
+        <Overrides config={config} field="maxFps" onPatch={onPatch} onOpenScreen={onOpenScreen} />
         <SegmentedRow
           label="Animations"
           hint="Reduced disables animations: a background video shows its poster, meters and waveforms are calm, gradients and the clock colon hold still. Follow system uses the operating system's setting."
@@ -71,9 +96,7 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
           value={g.motion}
           onChange={(v) => set("motion", v === "system" ? undefined : (v as MotionChoice))}
         />
-        {own.map((screen) => (
-          <LinkRow key={screen.id} note={`${screen.name} uses its own (${screen.text}).`} link="Screens" onNavigate={() => onOpenScreen(screen.id)} />
-        ))}
+        <Overrides config={config} field="motion" onPatch={onPatch} onOpenScreen={onOpenScreen} />
       </SettingsGroup>
 
       <SettingsGroup id="clock" title="Clock & date" scope="All screens and the island">

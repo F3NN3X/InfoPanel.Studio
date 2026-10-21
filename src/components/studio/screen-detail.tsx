@@ -156,7 +156,7 @@ export function ScreenDetail({
         <div data-nav-control="fps">
           <SegmentedRow
             label="Frame-rate cap"
-            hint="The most frames a second animations redraw. Lower uses less CPU and GPU; the kiosk URL's &fps= overrides it."
+            hint="The most frames a second animations redraw. Lower uses less CPU and GPU; the kiosk URL's &fps= overrides it. Below 60 fps transitions are off and graphs step at the data rate."
             options={FPS_OPTIONS}
             value={String(fps)}
             onChange={(v) => onPerformance({ maxFps: Number(v) })}

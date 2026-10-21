@@ -16,8 +16,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   straight away and shows up in the Studio without touching your unsaved design edits. Dashboard lists every screen
   that uses its own frame rate or animations, with a link that opens it in Screens. Studio preferences changed there
   apply to the open Studio window as you change them.
+- **Screens is on the rail**, after Theme, and a settings button beside the screen name in the title bar opens Screens
+  on the screen you are editing (on a phone, Screens is under More).
+- **A screen's own frame rate and animations are easy to find.** Settings › Dashboard lists the screens that override
+  Frame-rate cap or Animations ("MyDefault uses 30 fps") with Reset and a link to the screen. Theme's Motion section
+  says on which screens Smooth is off, and the Frame-rate cap hint says why: below 60 fps transitions are off and graphs
+  step at the data rate.
+- A Settings change no longer ends the Studio's undo history: undo and redo keep working across it and never revert it.
 
 ### Fixed
+- A Studio save already on its way when a Settings change landed could put the old value back; the server now applies
+  the change again to such a save.
 - Layers, the selection bar and the widget inspector show each widget's own icon instead of a plain box for all of
   them.
 

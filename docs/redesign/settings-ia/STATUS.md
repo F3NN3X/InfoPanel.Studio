@@ -680,8 +680,7 @@ changes: `context.test.ts` (the Settings view is gone; every window page's artic
   window has it. `open_settings` is also in the settings window's set because `ipc.ts` is shared with Help.
 - **Settings › Dashboard lists every screen with its own performance** as "‹screen› uses its own (…). Screens ↗"
   (there is no "screen being edited" in the window); S2 adds Reset and the per-default lists.
-- **Undo history:** a Settings change replaces the Studio's config from outside, which starts a fresh undo history
-  (as a server copy arriving always has). Undo can't put back a value Settings changed.
+- **Undo history:** (S1 reset it on a Settings change; S2 fixed that, see Settings window — S2 below.)
 - **Reset everything… can't be undone** any more (the dialog says so); it was undoable in the studio until reload.
 - **Checked against a built server, not `npm run dev`:** the dev proxy points at port 3922, where the installed app's
   server may run.
@@ -690,9 +689,7 @@ changes: `context.test.ts` (the Settings view is gone; every window page's artic
 - **The desktop app itself:** the settings window loading the server origin, its runtime capability, `show_studio`
   focusing the main window, `settings_follow_server`, the tray entries, and BroadcastChannel / `storage` events
   between two WebView2 windows (same origin and profile, so expected to work like two tabs).
-- A Studio edit pushed in the same instant as a Settings change can land after it and carry the old value (the Studio
-  applies the patch when the message arrives, but a full push already on the wire wins). Needs two hands within
-  about 400 ms.
+- (The Studio push racing a Settings change was closed in S2, see below.)
 - A config changed by anything other than the Settings window (an agent, another browser) still isn't merged into an
   open Studio, as before.
 - A foreign server adopted with "Use it" that is an older build has no `?settings` page; the window then shows that
@@ -702,3 +699,68 @@ changes: `context.test.ts` (the Settings view is gone; every window page's artic
 - Screens on the rail and the ⚙ beside the switcher (narrow and phone layouts too), override lists with Reset (the
   route already takes `profiles[id].performance: null`) and the jump, Theme's Motion warning, the Frame-rate cap hint.
 - `use-status-bar.ts`'s comment still says `update_state` and `get_settings` are not granted; they are.
+
+
+## Settings window — S2
+
+Decisions 24 and 25 in `PLAN.md`, plus two items from S1's review. Checked by typecheck, tests and build, and by eye in
+headless Chromium against a built server on a scratch data folder (port 39582, not the installed app's): the rail's
+Screens (after Theme) opens the Screens view and shows pressed; the button beside the switcher opens Screens on the
+current screen; Theme's Motion card read "Smooth is off on: MyDefault (30 fps cap) Screens ↗"; Settings › Dashboard
+read "MyDefault uses 30 fps · Reset · Screens ↗" and Reset removed the screen's cap on the server; on a 400 px window
+Screens is under More. Undo: a New screen in the Studio, then Frame-rate cap 15 in Settings, then Ctrl+Z took the
+screen away (3 → 2) and kept the cap 15, and the next push left 15 on the server.
+
+**Done**
+- **Screens on the rail** after Theme (`left-rail.tsx`, `RailItem` gains `screens`; `active` is no longer nullable) and, on a
+  phone, first in More (`phone-tab-bar.tsx`). A settings button beside the switcher (`studio-top-bar.tsx`, labelled
+  "‹screen› settings") opens Screens on the screen being edited (`navigateTo({ view: "screens", profileId })`);
+  "Manage screens…" stays in the switcher. The button is in the phone's title bar too (28 px).
+- **Override lists** (`settings-dashboard.tsx`, `Overrides`): under Frame-rate cap and under Animations, each screen
+  with its own value reads "‹screen› uses 30 fps" with Reset (a `profiles[id].performance` patch holding what is left,
+  or null; instant, like every Settings change) and "Screens ↗" (the S1 jump). Pure model in `screens-model.ts`:
+  `screensOverriding`, `performanceWithout`, `smoothOffScreens`.
+- **Theme's Motion warning** (`smooth-off-note.tsx`, rendered by `theme-editor.tsx` inside the Motion card): lists the
+  screens where Smooth is off (cap under 60 fps, or Animations Reduced, from the screen's own value over All screens')
+  with a link to each; at a Screen or Page scope only that screen. Shown while the scope's Graph updates is Smooth.
+- **Frame-rate cap hint** (Settings and Screens): "Below 60 fps transitions are off and graphs step at the data rate."
+- **Undo history survives a Settings change.** `mapHistory` (`config-history.ts`) applies a change to every past and
+  future snapshot and an open transaction's start; `useConfigHistory` returns `adopt`, which the studio view hands to
+  `App.tsx` through a ref (`adoptRef`). A `settings` message calls it with `withSettingsPatch`, so the working copy and
+  every snapshot carry the change: undo and redo cross it without reverting it, and nothing is lost. Without a Studio
+  view open (Kiosk view in the desktop app) the patch is applied as in S1. Reset everything… still reads the server's
+  copy back and starts a fresh history (it replaces the whole config).
+- **The push race is closed on the server.** The server numbers each Settings patch (`settingsRev`, starting at the
+  clock so a restart never numbers below what an open Studio saw) and keeps the last 50. `GET /api/config` sends the
+  newest number as `X-Settings-Rev`, and `PATCH` answers with the patch's. The Studio notes the number from each read
+  and each `settings` message (`noteSettingsRev`, `dashboard-server.ts`) and sends it as `X-Settings-Rev` on every
+  push. A push naming a number older than some patch gets those patches applied again (`reapplySettings`, in order; a
+  patch the config no longer accepts is skipped), so a push built before a patch landed cannot put the old value back.
+  A push without the header (Reset everything…, `pushConfig(config, true)`; an agent) is saved as it is.
+- **Help and CHANGELOG:** `studio.md`, `profiles.md`, `quickstart.md` (Screens on the rail, the settings button),
+  `performance.md` (Reset, the Smooth note); the Unreleased section.
+
+**Tests:** `mapHistory` and an undo across it (`config-history.test.ts`); `screensOverriding`, `performanceWithout`,
+`smoothOffScreens` (`screens-model.test.ts`); `reapplySettings` (`config-settings.test.mjs`); the race against a real
+server (`server.test.mjs`: a push naming the old revision keeps the patched value and its other edits, a push naming
+the new one or none is saved as sent); the revision header on pushes, left off a replace, and what `patchSettings`
+resolves to (`dashboard-server.test.ts`).
+
+**Deviations**
+- **The button beside the switcher uses the sliders icon, not a gear:** the rail's Settings is the gear, and two gears
+  meant two different things.
+- **The Motion warning shows only while the scope's Smooth is on,** and judges each screen by its own cap and
+  animations over All screens' (a screen with Animations on Follow system is not counted: that is the OS's call). A
+  screen that sets Smooth itself under an All screens that is Stepped gets no warning at All screens.
+- **The race fix needs the Studio to have read or been told the revision.** A Studio opened before this server version
+  sends no header, so its pushes are saved as before.
+
+**Unverified**
+- The desktop app itself (as in S1): the new rail item and the button in the real window, the jump focusing the Studio.
+- Two real windows racing a push against a patch within the 400 ms debounce: the server rule is tested, the timing is
+  not reproduced by hand.
+
+**Follow-ups**
+- `use-status-bar.ts`'s comment still says `update_state` and `get_settings` are not granted; they are.
+- A config changed by anything but the Settings window (an agent, another browser) is still not merged into an open
+  Studio.

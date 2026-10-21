@@ -115,3 +115,14 @@ export function applySettingsPatch(stored, patch) {
 
   return { config };
 }
+
+/**
+ * A config saved by a Studio push that was built before some Settings patches landed (`log` entries newer than
+ * `sinceRev`, oldest first): the config with those patches applied again, so the push can't put an old value back.
+ * A patch the config no longer accepts (its screen was deleted) is skipped.
+ */
+export function reapplySettings(config, log, sinceRev) {
+  return log
+    .filter((entry) => entry.rev > sinceRev)
+    .reduce((acc, entry) => applySettingsPatch(acc, entry.patch).config ?? acc, config);
+}

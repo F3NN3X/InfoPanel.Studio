@@ -10,7 +10,7 @@ A screen (profile) is a design for one display size. Its grid decides where zone
 
 ## Managing screens
 
-Open **Screens** from the screen name in the title bar (**Manage screens…**) or from a size link.
+Open **Screens** from the rail, from the settings button beside the screen name in the title bar (it opens Screens on the screen you are editing), from **Manage screens…** in the screen name's list, or from a size link.
 
 - Each screen is a card with a small screenshot of its first page, its name and a line such as `1920×550 · 3 pages · grid 12 × 6`. A video background shows its poster. The screenshot of the screen you are editing updates a couple of seconds after you stop editing and when you save. The others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
 - Click a card to edit that screen; its details open on the right. Clicking a card doesn't change which screen your displays show.

@@ -15,7 +15,7 @@ Two settings decide how hard the display's GPU works: **Max FPS** and **Motion**
 | Max FPS (**Frame rate limit**) | 5, 15, 30, 60 or No limit | 60 |
 | Motion (**Animations**) | Follow system, Reduced or Full | Follow system, which follows the Windows animation setting |
 
-For every screen, open **Settings › Dashboard › Performance**: Max FPS is labelled **Frame-rate cap** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). A change there is saved and reaches the kiosks at once. A screen can have its own: in **Screens**, the **Performance** group shows a chip, and Settings lists each screen that has its own with a link to it.
+For every screen, open **Settings › Dashboard › Performance**: Max FPS is labelled **Frame-rate cap** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). A change there is saved and reaches the kiosks at once. A screen can have its own: in **Screens**, the **Performance** group shows a chip, and Settings lists each screen that has its own, with **Reset** and a link to it. Below 60 fps the studio turns transitions off and graphs step at the data rate, so **Smooth** in Theme's Motion section does nothing on a screen capped lower or with reduced animations; Theme says which screens.
 
 - **From All screens** means the screen uses the Settings values. Change a value there and the screen takes its own, starting from the shared ones.
 - **Custom here** means the screen's own. **Reset to inherited** in the chip's menu drops them.

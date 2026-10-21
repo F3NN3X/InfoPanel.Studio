@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
-import { useConfigHistory } from "@/hooks/use-config-history";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useConfigHistory, type AdoptChange } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
 import { SourcesPanel } from "./sources-panel";
 import { ThemeEditor } from "./theme-editor";
@@ -109,6 +109,8 @@ interface StudioViewProps {
   offline: boolean;
   /** No config anywhere (a fresh install): the first-run setup opens. */
   firstRun: boolean;
+  /** Filled with the history's `adopt` while the view is open: how a Settings change gets in without ending the undo history. */
+  adoptRef: MutableRefObject<AdoptChange | null>;
 }
 
 /**
@@ -143,8 +145,15 @@ function StudioViewBody({
   pushPending,
   offline,
   firstRun,
+  adoptRef,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
+  useEffect(() => {
+    adoptRef.current = history.adopt;
+    return () => {
+      adoptRef.current = null;
+    };
+  }, [adoptRef, history.adopt]);
   const toast = useToast();
   // First-run setup (SPEC §10.5): a fresh install, or Help › Run setup again.
   const [setupOpen, setSetupOpen] = useState(false);
@@ -212,7 +221,7 @@ function StudioViewBody({
   const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, fullPage } = ui;
   const phone = isPhone(windowWidth);
   const narrowRail = !phone && railWidth(windowWidth) < 72;
-  const railActive: RailItem | null = showSources
+  const railActive: RailItem = showSources
     ? "data"
     : showLibrary
       ? "library"
@@ -223,7 +232,7 @@ function StudioViewBody({
           : showAlerts
             ? "alerts"
             : showScreens
-              ? null
+              ? "screens"
               : "design";
   const openHelpWindow = () => void openHelp(helpTarget()).catch(() => {});
   // F1 and the rail's Help: the article for what the user is on (an open dialog, the view, the selected zone).
@@ -757,6 +766,7 @@ function StudioViewBody({
           onPageChange(pageId);
         }}
         onManageScreens={() => ui.navigateTo({ view: "screens" })}
+        onScreenSettings={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
         liveOpen={ui.liveOpen}
         onLiveOpenChange={ui.setLiveOpen}
         kiosks={kiosksOf(control)}

@@ -27,6 +27,7 @@ import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlus
 import { KioskStrip } from "@/components/kiosk-strip";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
 import { trackEventSource } from "@/lib/sensor-store";
+import type { AdoptChange } from "@/hooks/use-config-history";
 import { withSettingsPatch } from "@/lib/settings-patch";
 import { onStudioMessage } from "@/lib/studio-channel";
 import {
@@ -34,6 +35,7 @@ import {
   fetchConfig,
   isUnreachable,
   NewerConfigError,
+  noteSettingsRev,
   pushConfig,
 } from "@/lib/dashboard-server";
 import {
@@ -279,6 +281,7 @@ export default function App() {
   pendingRef.current = pushPending;
   // The last config taken from the Settings window: the server holds it already.
   const adopted = useRef<DashboardConfig | null>(null);
+  const studioAdopt = useRef<AdoptChange | null>(null);
   // Before the server copy is read nothing is pushed, but an edit is still unpushed.
   const firstConfig = useRef(config);
   useEffect(() => {
@@ -320,7 +323,17 @@ export default function App() {
       setConfig(next);
     };
     const off = onStudioMessage((message) => {
-      if (message.type === "settings") adopt(withSettingsPatch(latestConfig.current, message.patch));
+      if (message.type === "settings") {
+        // The studio view puts it into its working copy and every undo snapshot, so undo never reverts it.
+        const { patch } = message;
+        noteSettingsRev(message.rev);
+        const change = (c: DashboardConfig) => withSettingsPatch(c, patch);
+        if (studioAdopt.current) {
+          const next = studioAdopt.current(change);
+          latestConfig.current = next;
+          adopted.current = next;
+        } else adopt(change(latestConfig.current));
+      }
       if (message.type === "replaced") {
         void fetchConfig()
           .then((server) => alive && server && adopt(withPinnedProfile(mergeConfig(server))))
@@ -498,6 +511,7 @@ export default function App() {
             pushPending={pushPending}
             offline={offline}
             firstRun={freshBrowser && serverEmpty}
+            adoptRef={studioAdopt}
           />
         </Suspense>
       </PerformanceProvider>

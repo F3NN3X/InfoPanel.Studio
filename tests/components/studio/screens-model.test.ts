@@ -5,8 +5,11 @@ import {
   launchRule,
   launchTag,
   ownPerformanceText,
+  performanceWithout,
   rotationPageIds,
   screenMeta,
+  screensOverriding,
+  smoothOffScreens,
   toggleRotationPage,
   withLaunch,
   withScreenPerformance,
@@ -79,6 +82,37 @@ describe("a screen's own performance", () => {
     expect(ownPerformanceText({ maxFps: 0 })).toBe("unlimited fps");
     expect(ownPerformanceText({ motion: "reduce" })).toBe("reduced motion");
     expect(ownPerformanceText({ maxFps: 30, motion: "full" })).toBe("30 fps · full motion");
+  });
+});
+
+describe("a screen's overrides of All screens' performance", () => {
+  const withOwn = (...own: [string, MonitorProfile["performance"]][]): DashboardConfig => {
+    const c = two();
+    return { ...c, profiles: c.profiles.map((p) => ({ ...p, performance: own.find(([id]) => id === p.id)?.[1] })) };
+  };
+
+  it("lists the screens that set a key, with their value", () => {
+    const c = withOwn(["desk", { maxFps: 30 }], ["side", { motion: "reduce" }]);
+    expect(screensOverriding(c.profiles, "maxFps")).toEqual([{ id: "desk", name: c.profiles[0].name, text: "30 fps" }]);
+    expect(screensOverriding(c.profiles, "motion")).toEqual([{ id: "side", name: "Side", text: "reduced motion" }]);
+    expect(screensOverriding(two().profiles, "maxFps")).toEqual([]);
+  });
+
+  it("resets one key and keeps the other, or clears the override when none is left", () => {
+    expect(performanceWithout({ maxFps: 30, motion: "reduce" }, "maxFps")).toEqual({ motion: "reduce" });
+    expect(performanceWithout({ maxFps: 30 }, "maxFps")).toBeNull();
+    expect(performanceWithout(undefined, "motion")).toBeNull();
+  });
+
+  it("finds where Smooth is off: a cap under 60 fps or reduced animations, from the screen or from All screens", () => {
+    const own = withOwn(["desk", { maxFps: 30 }], ["side", { motion: "reduce", maxFps: 5 }]);
+    expect(smoothOffScreens(own).map((s) => [s.id, s.reason])).toEqual([
+      ["desk", "30 fps cap"],
+      ["side", "5 fps cap and animations reduced"],
+    ]);
+    expect(smoothOffScreens(withOwn(["desk", { maxFps: 0 }], ["side", { maxFps: 60, motion: "system" }]))).toEqual([]);
+    const lowDefault = { ...withOwn(["side", { maxFps: 60 }]), general: { maxFps: 15 } };
+    expect(smoothOffScreens(lowDefault).map((s) => s.id)).toEqual(["desk"]);
   });
 });
 
