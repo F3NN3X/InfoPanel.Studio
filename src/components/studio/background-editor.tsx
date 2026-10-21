@@ -13,7 +13,8 @@ import {
 } from "@/lib/appearance";
 import { AlignGrid } from "./align-grid";
 import { ColorPill } from "./inspector/color-pill";
-import { VideoFields } from "./background-video";
+import { VideoOptions, VideoSource } from "./background-video";
+import { MoreRows, moreKey } from "./inspector/more-rows";
 import { MediaField } from "./media-field";
 import { InlineRow, SegmentedRow, SliderRow, StackRow } from "./setting-rows";
 
@@ -63,6 +64,9 @@ export function BackgroundEditor({ value, types, onChange, copyLabel = "Backgrou
   const fit = value.fit ?? BACKGROUND_DEFAULTS.fit;
   const isMedia = value.type === "image" || value.type === "video";
   const noun = value.type === "video" ? "video" : "image";
+  const effects = value.type === "gradient" || isMedia;
+  // Behind More: the video's playback, how media sits on the page, and tint and blur.
+  const moreCount = (value.type === "video" ? 4 : 0) + (isMedia ? 3 : 0) + (effects ? 3 : 0);
   return (
     <div
       className="space-y-2"
@@ -109,52 +113,59 @@ export function BackgroundEditor({ value, types, onChange, copyLabel = "Backgrou
       {value.type === "image" && (
         <MediaField label="Image" kind="image" value={value.src} fill={value.color} onChange={(src) => patch({ src })} backgrounds onOpenLibrary={onOpenLibrary} />
       )}
-      {value.type === "video" && <VideoFields value={value} onPatch={patch} onOpenLibrary={onOpenLibrary} />}
+      {value.type === "video" && <VideoSource value={value} onPatch={patch} onOpenLibrary={onOpenLibrary} />}
 
-      {isMedia && (
-        <>
-          <SegmentedRow
-            label="Fit"
-            options={value.type === "video" ? VIDEO_FITS : FITS}
-            value={fit}
-            onChange={(f) => patch({ fit: f as BackgroundFit })}
-          />
-          {fit !== "stretch" && (
-            <StackRow label="Position">
-              <AlignGrid
-                label={`${noun === "video" ? "Video" : "Image"} position`}
-                x={position.x}
-                y={position.y}
-                onChange={(x, y) =>
-                  patch({
-                    position: {
-                      x: (x ?? "center") as "start" | "center" | "end",
-                      y: (y ?? "center") as "start" | "center" | "end",
-                    },
-                  })
-                }
-              />
-            </StackRow>
-          )}
-          <ColorRow
-            label={`Fill (behind the ${noun})`}
-            value={value.color}
-            fallback={BACKGROUND_DEFAULTS.color}
-            onChange={(color) => patch({ color })}
-          />
-        </>
+      {effects && (
+        <SliderRow label="Dim" unit="%" value={value.dim ?? 0} min={0} max={100} fallback={0} onChange={(dim) => patch({ dim })} />
       )}
 
-      {(value.type === "gradient" || isMedia) && <Effects value={value} onPatch={patch} />}
+      <MoreRows storeKey={moreKey("dashboard", "lk-bg")} count={moreCount} className="pl-0">
+        <div className="space-y-2">
+          {value.type === "video" && <VideoOptions value={value} onPatch={patch} />}
+          {isMedia && (
+            <>
+              <SegmentedRow
+                label="Fit"
+                options={value.type === "video" ? VIDEO_FITS : FITS}
+                value={fit}
+                onChange={(f) => patch({ fit: f as BackgroundFit })}
+              />
+              {fit !== "stretch" && (
+                <StackRow label="Position">
+                  <AlignGrid
+                    label={`${noun === "video" ? "Video" : "Image"} position`}
+                    x={position.x}
+                    y={position.y}
+                    onChange={(x, y) =>
+                      patch({
+                        position: {
+                          x: (x ?? "center") as "start" | "center" | "end",
+                          y: (y ?? "center") as "start" | "center" | "end",
+                        },
+                      })
+                    }
+                  />
+                </StackRow>
+              )}
+              <ColorRow
+                label={`Fill (behind the ${noun})`}
+                value={value.color}
+                fallback={BACKGROUND_DEFAULTS.color}
+                onChange={(color) => patch({ color })}
+              />
+            </>
+          )}
+          {effects && <Effects value={value} onPatch={patch} />}
+        </div>
+      </MoreRows>
     </div>
   );
 }
 
-/** Dim, tint and blur over the media. */
+/** Tint and blur over the media. */
 function Effects({ value, onPatch }: { value: PageBackground; onPatch: (p: Partial<PageBackground>) => void }) {
   return (
     <>
-      <SliderRow label="Dim" unit="%" value={value.dim ?? 0} min={0} max={100} fallback={0} onChange={(dim) => onPatch({ dim })} />
       <ColorRow
         label="Tint"
         value={value.tint}

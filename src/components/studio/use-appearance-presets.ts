@@ -11,7 +11,7 @@ import {
 } from "@/lib/appearance-preset-apply";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { uid, type DashboardConfig } from "@/lib/layout";
-import type { AppearanceTarget } from "./appearance-panel";
+import type { AppearanceTarget } from "./inspector/profile-scope";
 
 /** The Appearance gallery's data and actions (see `useAppearancePresets`). */
 export interface AppearancePresetsApi {

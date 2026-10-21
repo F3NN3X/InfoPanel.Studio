@@ -6,7 +6,6 @@ import {
   BoxSelect,
   Eye,
   EyeOff,
-  LayoutDashboard,
   Minimize2,
   Search,
   Trash2,
@@ -36,7 +35,7 @@ const META = "truncate text-[11px] text-[#8a8a94]";
 export const changedLabel = (changed: number) => (changed > 0 ? `${changed} changed` : "defaults");
 
 /** Close the floating inspector, or collapse the phone sheet to half; nothing when docked. */
-function CloseButton() {
+export function CloseButton() {
   const { mode, onClose } = useInspectorChrome();
   if (!onClose || mode === "docked") return null;
   const sheet = mode === "sheet";
@@ -242,22 +241,6 @@ export function MultiHeader({
           </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-/** Nothing selected: the dashboard's header. */
-export function DashboardHeader({ profileName }: { profileName: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <HeaderIcon>
-        <LayoutDashboard />
-      </HeaderIcon>
-      <div className="min-w-0 flex-1">
-        <div className={TITLE}>Dashboard</div>
-        <div className={META}>{profileName} · nothing selected</div>
-      </div>
-      <CloseButton />
     </div>
   );
 }

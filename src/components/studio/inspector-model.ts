@@ -44,7 +44,7 @@ import { STATUS_COLORS_TITLE, THEME_EDITOR_SETTINGS } from "./theme-editor-setti
  * `extras`) the UI fills in with the components it already has.
  */
 
-export type DashboardTab = "profile" | "appearance" | "general";
+export type DashboardTab = "layout" | "look" | "behaviour";
 export type TabId = InspectorTab | DashboardTab;
 
 export const TAB_LABELS: Record<TabId, string> = {
@@ -52,13 +52,12 @@ export const TAB_LABELS: Record<TabId, string> = {
   style: "Style",
   data: "Data",
   behaviour: "Behaviour",
-  profile: "Profile",
-  appearance: "Appearance",
-  general: "General",
+  layout: "Layout",
+  look: "Look",
 };
 
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
-const DASHBOARD_TABS: readonly TabId[] = ["profile", "appearance", "general"];
+const DASHBOARD_TABS: readonly TabId[] = ["layout", "look", "behaviour"];
 /** The theme editor's: no Show tab (SPEC §7). */
 const THEME_TABS: readonly TabId[] = ["style", "data", "behaviour"];
 
@@ -129,22 +128,18 @@ export type SpecialSection =
   | "panelData"
   | "blankPick"
   | "zoneFrame"
-  | "profileFields"
-  | "profileInherit"
-  | "profileSelection"
-  | "profileRotate"
-  | "profileIsland"
-  | "profilePerformance"
-  | "scope"
-  | "presets"
-  | "theme"
-  | "pageBackground"
-  | "type"
-  | "clock"
-  | "display"
-  | "performance"
-  | "studio"
-  | "connection"
+  | "layoutScreen"
+  | "layoutGrid"
+  | "lookTheme"
+  | "lookStyle"
+  | "lookBackground"
+  | "behaviourPages"
+  | "behaviourIsland"
+  | "behaviourPerformance"
+  | "behaviourClock"
+  | "behaviourDisplay"
+  | "behaviourStudio"
+  | "behaviourConnection"
   | "ipMode"
   | "ipPosition"
   | "ipSensor"
@@ -375,59 +370,55 @@ const themeSections = (context: InspectorContext): InspectorSection[] =>
 
 // -- the dashboard (nothing selected) -----------------------------------------
 
-/** The document inspector's card ids (`DOCUMENT_CARD` and `generalCards`). */
-const dashboardMarker = (
-  tab: DashboardTab,
-  id: string,
-  title: string,
-  special: SpecialSection,
-  terms: string[],
-  cardId?: string
-) => section({ id, title, tab, special, terms, cardId });
+const dashboardMarker = (tab: DashboardTab, id: string, title: string, special: SpecialSection, terms: string[]) =>
+  section({ id, title, tab, special, terms });
 
+/** The parts of the profile inspector the palette's "Appearance…" and friends jump to. */
+export type DocumentTab = "appearance" | "background" | "general" | "connection";
+
+/** The section each part jumps to (its section id). */
+export const DOCUMENT_CARD: Record<DocumentTab, string> = {
+  appearance: "lk-theme",
+  background: "lk-bg",
+  general: "bh-clock",
+  connection: "bh-conn",
+};
+
+/** The profile inspector's sections (nothing selected): Layout, Look and Behaviour. */
 function dashboardSections(): InspectorSection[] {
   return [
-    dashboardMarker("profile", "profile", "Profile", "profileFields", [
-      "Name", "Design size", "Grid", "Columns", "Rows", "Fit", "Fill", "Scroll", "Gap", "Padding", "Corner radius", "Radius",
+    dashboardMarker("layout", "ly-screen", "Screen", "layoutScreen", [
+      "Name", "Rename", "Design size", "Width", "Height", "Window size", "When it doesn't fit", "Fill", "Scroll", "Fit mode",
     ]),
-    dashboardMarker("profile", "profile-inherit", "This profile", "profileInherit", [
-      "Theme", "Style", "Background", "Inherit", "Custom",
+    dashboardMarker("layout", "ly-grid", "Grid", "layoutGrid", [
+      "Columns", "Rows", "Gap", "Edge padding", "Padding", "Spacing", "Preview",
     ]),
-    dashboardMarker("profile", "profile-selection", "Profile selection", "profileSelection", [
-      "Auto-pick profile", "Window size",
+    dashboardMarker("look", "lk-theme", "Theme", "lookTheme", [
+      "Theme colors", "Colors", "Primary", "Accent", "Card", "Corners", "Corner radius", "Radius", "Font", "Sans", "Serif", "Mono", "Rounded",
+      "All profiles", "This profile",
     ]),
-    dashboardMarker("profile", "profile-rotate", "Auto-rotate", "profileRotate", [
-      "Auto-rotate pages", "Seconds per page", "Pages", "Rotation", "Kiosk",
+    dashboardMarker("look", "lk-style", "Widget style", "lookStyle", [
+      "Skin", "Presets", "Saved looks", "Look", "Save current look as preset", "Replace the page background", "Surface", "Glass", "Matte",
+      "Background opacity", "Background blur", "Apply to every widget", "Lock", "Widget theme", "Theme editor", "All profiles", "This profile",
+      ...SKIN_PACKS.map((p) => p.name),
     ]),
-    dashboardMarker("profile", "profile-island", "Dynamic Island", "profileIsland", [
-      "Island", "Notch", "Pill", "Time", "Date", "Alerts", "Notifications", "Collapse", "Touch",
+    dashboardMarker("look", "lk-bg", "Background", "lookBackground", [
+      "Page background", "Color", "Gradient", "Image", "Video", "Fit", "Position", "Tint", "Dim", "Blur", "All profiles", "This profile",
     ]),
-    dashboardMarker("profile", "profile-performance", "Performance", "profilePerformance", [
-      "Max FPS", "Frame rate", "Motion", "Disable animations", "Reduce", "Animations", "Dashboard",
+    dashboardMarker("behaviour", "bh-pages", "Pages", "behaviourPages", [
+      "Add page", "Delete page", "Reorder", "Cycle through pages", "Auto-rotate", "Switch every", "Seconds per page", "Rotation", "Kiosk",
+      "Page dots", "Swipe",
     ]),
-    dashboardMarker(
-      "appearance", "ap-scope", "Scope", "scope",
-      ["All profiles", "This profile", "Widget theme", "Theme editor"], "doc:appearance"
-    ),
-    dashboardMarker(
-      "appearance", "ap-presets", "Skins", "presets",
-      ["Skin", "Presets", "Saved looks", "Look", "Save current look as preset", "Replace the page background", ...SKIN_PACKS.map((p) => p.name)],
-      "doc:presets"
-    ),
-    dashboardMarker(
-      "appearance", "ap-theme", "Theme & surface", "theme",
-      ["Theme colors", "Colors", "Primary", "Surface", "Card", "Glass", "Matte"], "doc:theme"
-    ),
-    dashboardMarker(
-      "appearance", "ap-bg", "Page background", "pageBackground",
-      ["Background", "Color", "Gradient", "Image", "Video"], "doc:background"
-    ),
-    dashboardMarker("general", "g-type", "Type", "type", ["Font", "Sans", "Serif", "Mono", "Rounded"], "doc:type"),
-    dashboardMarker("general", "g-clock", "Clock & date", "clock", ["Clock", "Time", "Locale", "Show seconds"], "doc:clock"),
-    dashboardMarker("general", "g-performance", "Performance", "performance", ["Max FPS", "Frame rate", "FPS", "Unlimited", "Motion", "Disable animations", "Reduce", "Animations"], "doc:performance"),
-    dashboardMarker("general", "g-display", "Display", "display", ["Hide cursor", "Kiosk", "Pages", "Page dots", "Swipe"], "doc:display"),
-    dashboardMarker("general", "g-studio", "Studio", "studio", ["Quick bar", "Inspector sections", "Accordion", "One open", "Many open"]),
-    dashboardMarker("general", "g-conn", "Connection", "connection", ["Data API", "URL", "Test connection"], "doc:connection"),
+    dashboardMarker("behaviour", "bh-island", "Dynamic Island", "behaviourIsland", [
+      "Island", "Notch", "Pill", "Time", "Date", "Alerts", "Notifications", "Collapse", "Touch", "Pop-up alerts",
+    ]),
+    dashboardMarker("behaviour", "bh-performance", "Performance", "behaviourPerformance", [
+      "Frame rate limit", "Max FPS", "Frame rate", "FPS", "No limit", "Animations", "Motion", "Disable animations", "Reduce", "All profiles", "This profile",
+    ]),
+    dashboardMarker("behaviour", "bh-clock", "Clock and date", "behaviourClock", ["Clock", "12 h", "24 h", "Time", "Locale", "Show seconds", "Date locale"]),
+    dashboardMarker("behaviour", "bh-display", "Display", "behaviourDisplay", ["Hide cursor", "Kiosk", "Cursor"]),
+    dashboardMarker("behaviour", "bh-studio", "Studio", "behaviourStudio", ["Quick bar", "Inspector sections", "Accordion", "One open", "Many open"]),
+    dashboardMarker("behaviour", "bh-conn", "Connection", "behaviourConnection", ["Data API", "URL", "Test connection"]),
   ];
 }
 

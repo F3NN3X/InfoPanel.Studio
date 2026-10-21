@@ -10,12 +10,18 @@ interface VideoFieldsProps {
   onOpenLibrary?: () => void;
 }
 
-/** A video background's source, poster and playback, with a performance hint. */
-export function VideoFields({ value, onPatch, onOpenLibrary }: VideoFieldsProps) {
+/** A video background's source. */
+export function VideoSource({ value, onPatch, onOpenLibrary }: VideoFieldsProps) {
+  return (
+    <MediaField label="Video" kind="video" value={value.src} fill={value.color} onChange={(src) => onPatch({ src })} backgrounds onOpenLibrary={onOpenLibrary} />
+  );
+}
+
+/** A video background's poster and playback, with a performance hint. */
+export function VideoOptions({ value, onPatch }: Omit<VideoFieldsProps, "onOpenLibrary">) {
   const rate = String(value.rate ?? 1);
   return (
     <>
-      <MediaField label="Video" kind="video" value={value.src} fill={value.color} onChange={(src) => onPatch({ src })} backgrounds onOpenLibrary={onOpenLibrary} />
       <MediaField
         label="Poster image"
         kind="image"

@@ -5,10 +5,18 @@ import type { DashboardConfig, ProfileView } from "@/lib/layout";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
 import { styleKey, withScopeStyle, type StyleScope } from "./appearance-actions";
-import type { AppearanceTarget } from "./appearance-panel";
-import type { BackgroundTarget } from "./background-panel";
 import type { DocumentInspectorProps } from "./document-inspector";
-import type { ProfileTheme } from "./profile-theme-panel";
+import {
+  toggleLockAll,
+  withPerformance,
+  withRadius,
+  withScope,
+  type AppearanceTarget,
+  type BackgroundTarget,
+  type LookScope,
+  type ProfileTheme,
+  type ScopedSection,
+} from "./inspector/profile-scope";
 import { useAppearancePresets } from "./use-appearance-presets";
 
 /**
@@ -48,11 +56,27 @@ export function useDocumentProps(
   const setProfileTheme = (next: ProfileTheme, key?: string) =>
     updateProfile((p) => ({ ...p, theme: next.theme, radius: next.radius }), key && `${profile.id}:${key}`);
 
+  /** Switch a section between the dashboard's value and this profile's own (one undo step). */
+  const setScope = (section: ScopedSection, scope: LookScope) =>
+    setConfig((c) => withScope(c, profile.id, section, scope));
+
+  /** Set the corner radius of the Theme's scope (same-scope edits coalesce). */
+  const setRadius = (scope: LookScope, radius: number) =>
+    setConfig((c) => withRadius(c, profile.id, scope, radius), `radius:${scope}:${profile.id}`);
+
+  /** Set this profile's own frame rate or animations. */
+  const setPerformance = (patch: Parameters<typeof withPerformance>[1]) =>
+    updateProfile((p) => ({ ...p, performance: withPerformance(p.performance, patch) }), "profile:performance");
+
+  /** "Apply to every widget": lock all of this profile's widget-theme sections, or none. */
+  const toggleLocks = () => updateProfile((p) => ({ ...p, widgetTheme: toggleLockAll(p.widgetTheme) }), "profile:locks");
+
   /** Set one general setting (same-key edits coalesce in undo). */
   const setGeneral = <K extends keyof GeneralSettings>(key: K, value: GeneralSettings[K]) =>
     setConfig((c) => ({ ...c, general: withGeneral(c.general, key, value) }), `general:${key}`);
 
-  const props: Omit<DocumentInspectorProps, "jumpTo" | "query" | "onQuery" | "changedOnly" | "onChangedOnly"> = {
+  const props: Omit<DocumentInspectorProps, "jumpTo"> = {
+    config,
     theme: config.theme,
     radius: config.radius,
     onToken: (key, value) =>
@@ -65,6 +89,10 @@ export function useDocumentProps(
     profile,
     onProfileTheme: setProfileTheme,
     onBackground: setBackground,
+    onScope: setScope,
+    onRadius: setRadius,
+    onPerformance: setPerformance,
+    onToggleLocks: toggleLocks,
     general: config.general,
     onGeneral: setGeneral,
     dataApiUrl: config.dataApiUrl,

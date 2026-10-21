@@ -1,4 +1,5 @@
 import type { Placement, ProfileView } from "@/lib/layout";
+import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { changeCols, changeRows } from "../studio-actions";
 
 /** The toast when a smaller grid would cut a zone off. */
@@ -37,23 +38,44 @@ export const SIZE_PRESETS: readonly { width: number; height: number }[] = [
   { width: 800, height: 480 },
 ];
 
-export const CUSTOM_SIZE = "custom";
-
 const sizeKey = (width: number, height: number) => `${width}×${height}`;
 
-/** The select value of a design size: its preset, else "custom". */
-export function sizeChoice(width: number, height: number): string {
-  return SIZE_PRESETS.some((p) => p.width === width && p.height === height) ? sizeKey(width, height) : CUSTOM_SIZE;
+/** The select value of a design size. */
+export const sizeChoice = sizeKey;
+
+/** The design sizes to pick from; a size that is not a preset is the first option. */
+export function sizeOptions(width: number, height: number): { value: string; label: string }[] {
+  const current = sizeKey(width, height);
+  const presets = SIZE_PRESETS.map((p) => ({ value: sizeKey(p.width, p.height), label: sizeKey(p.width, p.height) }));
+  return presets.some((o) => o.value === current) ? presets : [{ value: current, label: current }, ...presets];
 }
 
-export const SIZE_OPTIONS = [
-  ...SIZE_PRESETS.map((p) => ({ value: sizeKey(p.width, p.height), label: sizeKey(p.width, p.height) })),
-  { value: CUSTOM_SIZE, label: "Custom" },
-];
-
-/** A preset's select value as a size (null for "custom"). */
+/** A preset's select value as a size (null for the current non-preset size, which changes nothing). */
 export function sizeOfChoice(choice: string): { width: number; height: number } | null {
   return SIZE_PRESETS.find((p) => sizeKey(p.width, p.height) === choice) ?? null;
+}
+
+/** The live grid preview's box in px (as wide as the inspector's content allows). */
+export const GRID_PREVIEW_BOX = { width: 288, height: 112 };
+
+/**
+ * The profile's screen fitted into the preview box, with its gap and padding scaled the same
+ * (the canvas's: `profilePadding` for a kiosk page). Render only.
+ */
+export function gridPreview(profile: {
+  width: number;
+  height: number;
+  fit: "scroll" | "fill";
+  gap?: number;
+  padding?: number;
+}): { width: number; height: number; gap: number; padding: number } {
+  const scale = Math.min(GRID_PREVIEW_BOX.width / profile.width, GRID_PREVIEW_BOX.height / profile.height);
+  return {
+    width: profile.width * scale,
+    height: profile.height * scale,
+    gap: profileGap(profile) * scale,
+    padding: profilePadding(profile, true) * scale,
+  };
 }
 
 /** Typed design-size text as pixels: a positive whole number, else null (nothing is written). */

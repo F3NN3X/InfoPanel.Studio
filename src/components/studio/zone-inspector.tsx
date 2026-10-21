@@ -8,7 +8,7 @@ import { convertKind, withPanelField } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
 import { modules } from "@/modules";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
-import type { AppearanceTarget } from "./appearance-panel";
+import type { AppearanceTarget } from "./inspector/profile-scope";
 import type { SheetCard } from "./category-sheet";
 import { BoundData } from "./inspector/bound-data";
 import { setInspectorTab } from "./inspector/inspector-prefs";

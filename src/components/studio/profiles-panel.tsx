@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Menu } from "@base-ui/react/menu";
 import {
@@ -49,8 +49,8 @@ interface ProfilesPanelProps {
   onDuplicateProfile: (id: string) => void;
   /** Delete a profile (after the confirm dialog). */
   onRemoveProfile: (id: string) => void;
-  /** Patch the edited profile's own fields (name). */
-  onProfileChange: (patch: Partial<MonitorProfile>) => void;
+  /** Rename a profile: its inspector's Name field takes the cursor. */
+  onRenameProfile: (id: string) => void;
 }
 
 const MENU_POPUP =
@@ -83,6 +83,8 @@ function RowMenu({
   onDelete: () => void;
 }) {
   const toast = useToast();
+  // Rename hands the cursor to the inspector's Name field: the menu must not take it back.
+  const renaming = useRef(false);
   return (
     <Menu.Root>
       <Menu.Trigger
@@ -95,8 +97,22 @@ function RowMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
-          <Menu.Popup className={MENU_POPUP} onClick={(e) => e.stopPropagation()}>
-            <Menu.Item className={MENU_ITEM} onClick={onRename}>
+          <Menu.Popup
+            className={MENU_POPUP}
+            onClick={(e) => e.stopPropagation()}
+            finalFocus={() => {
+              const skip = renaming.current;
+              renaming.current = false;
+              return !skip;
+            }}
+          >
+            <Menu.Item
+              className={MENU_ITEM}
+              onClick={() => {
+                renaming.current = true;
+                onRename();
+              }}
+            >
               <Pencil className="h-3.5 w-3.5 text-ui-3" />
               Rename
             </Menu.Item>
@@ -334,16 +350,13 @@ export function ProfilesPanel({
   onImportProfile,
   onDuplicateProfile,
   onRemoveProfile,
-  onProfileChange,
+  onRenameProfile,
 }: ProfilesPanelProps) {
   const toast = useToast();
-  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const auto = activeProfile === "auto";
   const nameOf = (id: string) => profiles.find((p) => p.id === id)?.name ?? "—";
-  // A rename belongs to the selected card: another selection ends it.
-  useEffect(() => setRenamingId((id) => (id === profile.id ? id : null)), [profile.id]);
   const importProfile = (picked: MonitorProfile, skippedCanvases: number) => {
     const imported = importedProfile(dashboard, picked);
     onImportProfile(imported);
@@ -408,17 +421,7 @@ export function ProfilesPanel({
               >
                 <ProfilePreview profile={p} dashboard={dashboard} width={64} height={40} />
                 <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                  {active && renamingId === p.id ? (
-                    <RenameInput
-                      initial={p.name}
-                      onDone={(name) => {
-                        setRenamingId(null);
-                        if (name && name !== p.name) onProfileChange({ name });
-                      }}
-                    />
-                  ) : (
-                    <span className="block truncate text-[12.5px] font-medium leading-[1.3] text-ui-1">{p.name}</span>
-                  )}
+                  <span className="block truncate text-[12.5px] font-medium leading-[1.3] text-ui-1">{p.name}</span>
                   <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
                     <span className="whitespace-nowrap font-ui-mono text-[10.5px] text-ui-4">{profileMeta(p)}</span>
                     <LaunchTag opensNow={auto && p.id === autoProfileId} onLaunch={activeProfile === p.id} size={windowSize} />
@@ -427,11 +430,7 @@ export function ProfilesPanel({
                 <RowMenu
                   profile={p}
                   canDelete={profiles.length > 1}
-                  onRename={() => {
-                    // The inline name edits the selected profile.
-                    if (!active) onSelectProfile(p.id);
-                    setRenamingId(p.id);
-                  }}
+                  onRename={() => onRenameProfile(p.id)}
                   onDuplicate={() => {
                     onDuplicateProfile(p.id);
                     toast(`Duplicated ${p.name}`);

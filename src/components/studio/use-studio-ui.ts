@@ -63,6 +63,13 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     expandDock();
     setInspectorRequest((r) => ({ tab, picker, seq: (r?.seq ?? 0) + 1 }));
   };
+  /**
+   * A request to put the cursor in the profile inspector's Name field (a counter; ⋯ Rename in the Profiles
+   * panel). The field clears it once it has.
+   */
+  const [renameRequest, setRenameRequest] = useState<number>();
+  const requestRename = () => setRenameRequest((n) => (n ?? 0) + 1);
+  const clearRename = () => setRenameRequest(undefined);
   /** A request for a Dashboard inspector tab (`seq` makes repeats count): the inspector shows it while nothing is selected. */
   const [documentTabRequest, setDocumentTabRequest] = useState<{ tab: string; seq: number }>();
   const openDocumentTab = (tab: string) => {
@@ -182,6 +189,9 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     setShowRulers,
     documentTabRequest,
     openDocumentTab,
+    renameRequest,
+    requestRename,
+    clearRename,
     inspectorJump,
     jumpInspector,
     jumpTheme,

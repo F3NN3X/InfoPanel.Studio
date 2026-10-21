@@ -8,8 +8,16 @@ import { useSyncExternalStore } from "react";
 
 const TABS_KEY = "studio.inspectorTabs";
 
-/** Tabs that were renamed: a stored old id reads as the new one (Content is Show). */
-const RENAMED_TABS: Record<string, string> = { content: "show" };
+/**
+ * Tabs that were renamed: a stored old id reads as the new one (Content is Show; the Dashboard's
+ * Profile, Appearance and General became Layout, Look and Behaviour).
+ */
+const RENAMED_TABS: Record<string, string> = {
+  content: "show",
+  profile: "layout",
+  appearance: "look",
+  general: "behaviour",
+};
 
 /** The stored tab per context; anything malformed reads as empty. */
 export function parseTabs(raw: string | null): Record<string, string> {

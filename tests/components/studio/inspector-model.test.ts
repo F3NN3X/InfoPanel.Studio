@@ -5,6 +5,7 @@ import { isMore, type DashboardModule, type ModuleSetting } from "@/modules/type
 import { TITLE_ONLY_HINT } from "@/components/studio/inspector-categories";
 import { THEME_EDITOR_SETTINGS } from "@/components/studio/theme-editor-settings";
 import {
+  DOCUMENT_CARD,
   allSections,
   changedCount,
   extraMatches,
@@ -100,7 +101,7 @@ describe("inspectorTabs", () => {
   });
 
   it("has the three dashboard tabs", () => {
-    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual(["profile", "appearance", "general"]);
+    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual(["layout", "look", "behaviour"]);
   });
 
   it("has no Show tab in the theme editor, at every scope", () => {
@@ -312,24 +313,26 @@ describe("blank zone and several zones", () => {
 describe("dashboard sections", () => {
   const dash: InspectorContext = { kind: "dashboard", scope: "all" };
 
-  it("maps onto the existing cards", () => {
-    expect(titles(sectionsFor(dash, "profile"))).toEqual(["Profile", "This profile", "Profile selection", "Auto-rotate", "Dynamic Island", "Performance"]);
-    expect(titles(sectionsFor(dash, "appearance"))).toEqual(["Scope", "Skins", "Theme & surface", "Page background"]);
-    expect(titles(sectionsFor(dash, "general"))).toEqual(["Type", "Clock & date", "Performance", "Display", "Studio", "Connection"]);
-    expect(sectionsFor(dash, "appearance").map((s) => s.cardId)).toEqual([
-      "doc:appearance",
-      "doc:presets",
-      "doc:theme",
-      "doc:background",
+  it("places every setting of the profile inspector in Layout, Look or Behaviour", () => {
+    expect(titles(sectionsFor(dash, "layout"))).toEqual(["Screen", "Grid"]);
+    expect(titles(sectionsFor(dash, "look"))).toEqual(["Theme", "Widget style", "Background"]);
+    expect(titles(sectionsFor(dash, "behaviour"))).toEqual([
+      "Pages",
+      "Dynamic Island",
+      "Performance",
+      "Clock and date",
+      "Display",
+      "Studio",
+      "Connection",
     ]);
-    expect(find(sectionsFor(dash, "general"), "Studio").terms).toContain("Quick bar");
+    expect(find(sectionsFor(dash, "behaviour"), "Studio").terms).toContain("Quick bar");
+    expect(find(sectionsFor(dash, "look"), "Theme").terms).toContain("Font");
   });
 
-  it("has no global style tab: the appearance cards only", () => {
-    expect(sectionsFor(dash, "appearance").flatMap((s) => s.settings)).toEqual([]);
-    expect(find(sectionsFor(dash, "appearance"), "Scope").terms).toContain("Theme editor");
-    expect(inspectorNotes(dash, "appearance")).toEqual([]);
-    expect(inspectorNotes(dash, "general")).toEqual([]);
+  it("has no schema rows: every section is custom UI, and the notes come from the view", () => {
+    expect(allSections(dash).flatMap((s) => s.settings)).toEqual([]);
+    expect(allSections(dash).every((s) => s.special !== undefined)).toBe(true);
+    expect(inspectorNotes(dash, "look")).toEqual([]);
   });
 
   it("reads the Appearance scope's look by scope", () => {
@@ -555,7 +558,7 @@ describe("searchAll", () => {
 
   it("finds custom cards by title and terms, and the style tools by name", () => {
     const dash = searchAll({ kind: "dashboard", scope: "all" }, "quick bar");
-    expect(dash.groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["General", "Studio"]]);
+    expect(dash.groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["Behaviour", "Studio"]]);
     expect(dash.total).toBe(1);
     const follow = searchAll(spotify, "copy style");
     expect(follow.groups.map((g) => g.section.title)).toEqual(["Colors"]);
@@ -594,8 +597,11 @@ describe("view helpers", () => {
     expect(jumpTarget(allSections(spotify), "colors")?.title).toBe("Colors");
     expect(jumpTarget(allSections(spotify), "module:visualizer")?.tab).toBe("show");
     const dashboard = allSections({ kind: "dashboard", scope: "all" });
-    expect(jumpTarget(dashboard, "doc:type")?.tab).toBe("general");
-    expect(jumpTarget(dashboard, "doc:background")?.id).toBe("ap-bg");
+    // The palette's document jumps (`DOCUMENT_CARD`) land on the new sections.
+    expect(jumpTarget(dashboard, DOCUMENT_CARD.general)?.tab).toBe("behaviour");
+    expect(jumpTarget(dashboard, DOCUMENT_CARD.appearance)?.tab).toBe("look");
+    expect(jumpTarget(dashboard, DOCUMENT_CARD.background)?.id).toBe("lk-bg");
+    expect(jumpTarget(dashboard, DOCUMENT_CARD.connection)?.id).toBe("bh-conn");
     expect(jumpTarget(dashboard, "nope")).toBeUndefined();
   });
 
