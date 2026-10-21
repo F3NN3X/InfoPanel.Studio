@@ -41,6 +41,18 @@ The kiosk redraws its animations at most **Max FPS** times a second (**Frame rat
 
 Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to change. See [Frame rate and motion](performance) for what each setting changes and what it saves.
 
+## Remote control
+
+A Stream Deck or another remote on your network can control a kiosk without changing your saved dashboard:
+
+- switch pages and profiles, and pause cycling;
+- reload the kiosk page;
+- dim the screen: a dark layer over the widgets and the island, with alerts staying on top;
+- show or hide the Dynamic Island;
+- mute alerts for a number of minutes.
+
+Dim and the island setting are kept per profile, and they survive a restart of the server. Muted alerts still appear in the alert history, marked as quiet.
+
 ## Crashes
 
 With **Restart automatically if it crashes** on, the server comes back up to 3 times a minute, then stays stopped and logs why.
