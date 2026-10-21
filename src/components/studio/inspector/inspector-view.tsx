@@ -45,6 +45,8 @@ export interface SectionParts {
   more?: ReactNode;
   /** Header controls before Reset (the style tools). */
   actions?: ReactNode;
+  /** After the section's title (the profile inspector's All profiles / This profile dot). */
+  pill?: ReactNode;
   /** Changed fields the custom UI holds (added to the rows'). */
   changed?: number;
   /** Reset the custom UI's fields (the section's Reset also clears its rows). */
@@ -85,6 +87,12 @@ interface InspectorViewProps {
   quickKeys?: readonly string[];
   /** A Follow bar's theme name: open the theme being followed. */
   onTheme?: (level: "profile" | "page") => void;
+  /** Show the settings search and the Changed filter (default); the profile inspector turns them off. */
+  searchable?: boolean;
+  /** The footer in place of the dot legend; `null` for none. */
+  footer?: ReactNode;
+  /** An icon for each tab and a line under the tabs saying what the active one holds. */
+  tabInfo?: Partial<Record<TabId, { icon: ReactNode; description: string }>>;
 }
 
 /** How long a jumped-to section stays outlined. */
@@ -112,14 +120,17 @@ function Tabs({
   active,
   counts,
   onTab,
+  info,
 }: {
   tabs: { id: TabId; label: string; disabled: boolean }[];
   active: TabId | undefined;
   counts: Partial<Record<TabId, number>>;
   onTab: (tab: TabId) => void;
+  info?: InspectorViewProps["tabInfo"];
 }) {
+  const description = active && info?.[active]?.description;
   return (
-    <div className="shrink-0 pb-2.5 pl-4 pr-3">
+    <div className={cn("shrink-0 pl-4 pr-3", description ? "pb-1.5" : "pb-2.5")}>
       <div role="tablist" className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
         {tabs.map((t) => {
           const selected = t.id === active;
@@ -138,12 +149,14 @@ function Tabs({
                 t.disabled && "opacity-35"
               )}
             >
+              {info?.[t.id]?.icon}
               {t.label}
               {n > 0 && <Count n={n} />}
             </button>
           );
         })}
       </div>
+      {description && <p className="px-0.5 pt-2 text-[11.5px] leading-snug text-[#7c7c86]">{description}</p>}
     </div>
   );
 }
@@ -192,12 +205,15 @@ export function InspectorView({
   notes,
   query,
   onQuery,
-  changedOnly,
+  changedOnly: changedFilter,
   onChangedOnly,
   jumpTo,
   identity,
   quickKeys = [],
   onTheme,
+  searchable = true,
+  footer,
+  tabInfo,
 }: InspectorViewProps) {
   const { sources } = useSensorCatalog();
   const { sheet } = useInspectorChrome();
@@ -216,7 +232,8 @@ export function InspectorView({
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const searching = query.trim() !== "";
+  const searching = searchable && query.trim() !== "";
+  const changedOnly = searchable && changedFilter;
   const filtering = searching || changedOnly;
   const all = visibleSections(allSections(context), visible).filter(present);
   const tabs = tabStates(inspectorTabs(context), all);
@@ -336,7 +353,7 @@ export function InspectorView({
         icon={sectionIcon(s)}
         tabLabel={tabLabel(s) || undefined}
         changed={changedOf(whole)}
-        pill={bar && <FollowPill mode={bar.mode} scope={bar.scope?.kind} />}
+        pill={bar ? <FollowPill mode={bar.mode} scope={bar.scope?.kind} /> : p.pill}
         actions={p.actions}
         onReset={() => resetSection(whole)}
         open={isOpen(s)}
@@ -388,28 +405,30 @@ export function InspectorView({
       <div data-inspector-header="" className="shrink-0 space-y-2.5 pb-2.5 pl-4 pr-3 pt-3">
         {typeof header === "function" ? header(ownAll) : header}
       </div>
-      <div className="flex shrink-0 gap-1.5 pb-2.5 pl-4 pr-3">
-        <div className="min-w-0 flex-1">
-          <SettingsSearch query={query} onQuery={onQuery} />
+      {searchable && (
+        <div className="flex shrink-0 gap-1.5 pb-2.5 pl-4 pr-3">
+          <div className="min-w-0 flex-1">
+            <SettingsSearch query={query} onQuery={onQuery} />
+          </div>
+          <button
+            type="button"
+            aria-pressed={changedOnly}
+            onClick={() => onChangedOnly(!changedOnly)}
+            title="Show only what you changed"
+            className={cn(
+              "flex h-8 shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[7px] border px-[9px] text-[12px] font-medium transition-colors",
+              changedOnly
+                ? "border-ui-accent/50 bg-ui-accent/[.16] text-[oklch(0.86_0.10_255)]"
+                : "border-ui-default bg-ui-app text-ui-2 hover:text-ui-1"
+            )}
+          >
+            <History className="h-4 w-4" />
+            Changed
+            <span className="font-ui-mono text-[11px]">{ownAll}</span>
+          </button>
         </div>
-        <button
-          type="button"
-          aria-pressed={changedOnly}
-          onClick={() => onChangedOnly(!changedOnly)}
-          title="Show only what you changed"
-          className={cn(
-            "flex h-8 shrink-0 items-center gap-[5px] whitespace-nowrap rounded-[7px] border px-[9px] text-[12px] font-medium transition-colors",
-            changedOnly
-              ? "border-ui-accent/50 bg-ui-accent/[.16] text-[oklch(0.86_0.10_255)]"
-              : "border-ui-default bg-ui-app text-ui-2 hover:text-ui-1"
-          )}
-        >
-          <History className="h-4 w-4" />
-          Changed
-          <span className="font-ui-mono text-[11px]">{ownAll}</span>
-        </button>
-      </div>
-      {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} />}
+      )}
+      {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} />}
       {filtering && (
         <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-[#8a8a94]">
           <span className="flex-1">
@@ -430,7 +449,7 @@ export function InspectorView({
         {empty && <p className="px-4 py-6 text-[12.5px] text-[#8a8a94]">{empty}</p>}
         {sections.map(renderSection)}
       </div>
-      <Footer />
+      {footer === undefined ? <Footer /> : footer}
     </div>
   );
 }

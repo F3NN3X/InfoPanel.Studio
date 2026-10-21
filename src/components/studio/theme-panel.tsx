@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { hslToHex, hexToHsl, THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import { ColorPill } from "./inspector/color-pill";
 import { MoreRows, moreKey } from "./inspector/more-rows";
@@ -12,6 +13,8 @@ interface ThemePanelProps {
   onPreset: (name: string) => void;
   /** The inspector search: lists only the matching rows (every row when none matches). */
   query?: string;
+  /** A row after the colour rows, before More (the corner radius). */
+  after?: ReactNode;
 }
 
 /** A theme colour: its hex and a swatch opening the native picker (stored as an HSL triplet). */
@@ -75,12 +78,12 @@ function ThemeSwatches({ presetName, edited, onPreset }: { presetName: string; e
 }
 
 /**
- * Appearance › Theme (shadcn-themer style): a theme preset that changes
- * the colours only (the corner radius is per profile, in the Profile tab),
+ * Look › Theme (shadcn-themer style): a theme preset that changes
+ * the colours only (the corner radius is the `after` row, Corners),
  * and per-token colour pickers — the main ones always, the
  * rest behind "More". Changes apply live through the CSS variables.
  */
-export function ThemePanel({ tokens, presetName, onToken, onPreset, query = "" }: ThemePanelProps) {
+export function ThemePanel({ tokens, presetName, onToken, onPreset, query = "", after }: ThemePanelProps) {
   const edited = presetName === "custom";
   const row = ([key, label]: TokenRow) => (
     <TokenRow key={key} label={label} value={tokens[key]} onChange={(v) => onToken(key, v)} />
@@ -95,10 +98,11 @@ export function ThemePanel({ tokens, presetName, onToken, onPreset, query = "" }
     <div className="space-y-2">
       {showPreset && <ThemeSwatches presetName={presetName} edited={edited} onPreset={onPreset} />}
       {visibleTokens.map(row)}
+      {after}
       {filtering ? (
         hiddenTokens.map(row)
       ) : (
-        <MoreRows storeKey={moreKey("dashboard", "ap-theme")} count={ADVANCED_TOKENS.length} className="pl-0">
+        <MoreRows storeKey={moreKey("dashboard", "lk-theme")} count={ADVANCED_TOKENS.length} className="pl-0">
           <div className="space-y-2">{hiddenTokens.map(row)}</div>
         </MoreRows>
       )}

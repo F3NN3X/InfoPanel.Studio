@@ -23,6 +23,8 @@ interface StudioInspectorProps {
   sel: StudioSelection;
   edit: StudioMutations;
   documentProps: DocumentState["props"];
+  /** The studio window ("Use this window's size"). */
+  windowSize: { width: number; height: number };
   setScopeStyle: DocumentState["setScopeStyle"];
   /** Open a data point in Sources mode (a Bound data row); without it, Sources just opens. */
   onOpenPoint?: (key: string) => void;
@@ -44,6 +46,7 @@ export function StudioInspector({
   sel,
   edit,
   documentProps,
+  windowSize,
   setScopeStyle,
   onOpenPoint,
   onEditCanvas,
@@ -137,19 +140,16 @@ export function StudioInspector({
     ) : (
       <DocumentInspector
         jumpTo={ui.inspectorJump}
-        query={ui.inspectorQuery}
-        onQuery={ui.setInspectorQuery}
-        changedOnly={ui.inspectorChanged}
-        onChangedOnly={ui.setInspectorChanged}
         {...documentProps}
-        activeProfile={profile}
         updateProfile={edit.updateProfile}
-        canRemoveProfile={config.profiles.length > 1}
-        onRemoveProfile={() => edit.removeProfile(profile.id)}
-        autoPick={config.activeProfile === "auto"}
-        onAutoPick={(auto) => edit.activateProfile(auto ? "auto" : profile.id)}
         pages={(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).pages}
         onRotate={edit.setRotate}
+        onMovePage={edit.movePageTo}
+        onAddPage={edit.addNewPage}
+        onDeletePage={ui.setDeletingPage}
+        windowSize={windowSize}
+        renameRequest={ui.renameRequest}
+        onRenameHandled={ui.clearRename}
         onOpenExplorer={openExplorer}
         onOpenTheme={() => editGlobalTheme("profile")}
         onOpenLibrary={() => ui.setMode("library")}

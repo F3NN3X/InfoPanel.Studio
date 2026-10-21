@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Check, ChevronRight, ClipboardPaste, Copy, MoreHorizontal } from "lucide-react";
 import type { StylePreset } from "@/lib/layout";
-import type { AppearanceTarget } from "./appearance-panel";
+import type { AppearanceTarget } from "./inspector/profile-scope";
 
 interface StyleToolsProps {
   /** Something was copied (Paste is enabled). */

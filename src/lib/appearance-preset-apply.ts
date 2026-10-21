@@ -90,7 +90,11 @@ export function applyAppearancePreset(
             ...p,
             theme: { ...presetTokens(preset) },
             radius: preset.radius,
-            widgetTheme: withThemeValues(p.widgetTheme, orNone(profileStyle(config, style))),
+            // A profile that had its own style keeps it, even when the preset leaves it empty.
+            widgetTheme: withThemeValues(
+              p.widgetTheme,
+              orNone(profileStyle(config, style)) ?? (p.widgetTheme?.values !== undefined ? {} : undefined)
+            ),
             background: nextBackground(p.background, preset, scope, options),
           }
         : p

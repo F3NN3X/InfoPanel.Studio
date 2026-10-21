@@ -12,10 +12,13 @@ Two settings decide how hard the display's GPU works: **Max FPS** and **Motion**
 
 | Setting | Choices | Default |
 |---|---|---|
-| Max FPS | 5, 15, 30, 60 or Unlimited | 60 |
-| Motion | System, Reduce or Full | System, which follows the Windows animation setting |
+| Max FPS (**Frame rate limit**) | 5, 15, 30, 60 or No limit | 60 |
+| Motion (**Animations**) | Follow system, Reduced or Full | Follow system, which follows the Windows animation setting |
 
-Set both for every profile under General › Performance. To change one profile, use Profile › Performance. **Dashboard** there means the profile uses the General setting.
+With nothing selected, open **Behaviour › Performance**. In the inspector, Max FPS is labelled **Frame rate limit** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). The section's switch decides where they apply:
+
+- **All profiles** edits the values every profile shares.
+- **This profile** gives this profile its own values, starting from the shared ones. Switching back drops them.
 
 ## What Max FPS changes
 

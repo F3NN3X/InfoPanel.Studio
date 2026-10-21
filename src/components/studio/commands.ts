@@ -1,8 +1,7 @@
 import type { MonitorProfile, Placement, Widget } from "@/lib/layout";
-import type { AppearanceTarget } from "./appearance-panel";
-import type { DocumentTab } from "./document-inspector";
+import type { AppearanceTarget } from "./inspector/profile-scope";
 import type { Drawer } from "./left-rail";
-import { allSections, type InspectorContext } from "./inspector-model";
+import { allSections, type DocumentTab, type InspectorContext } from "./inspector-model";
 import { placementTitle } from "./studio-modules";
 import { KEYS } from "./use-studio-shortcuts";
 import { widgetName } from "./widget-kinds";
@@ -140,7 +139,8 @@ function generalCommands(s: CommandState): Command[] {
     general("alert-new", "New alert rule", { type: "alert-new" }),
     general("background", "Background…", { type: "document-tab", tab: "background" }),
     general("appearance", "Appearance…", { type: "document-tab", tab: "appearance" }),
-    general("general", "General settings…", { type: "document-tab", tab: "general" }, "font, clock, motion"),
+    general("font", "Font…", { type: "document-tab", tab: "font" }, "page font, type"),
+    general("general", "General settings…", { type: "document-tab", tab: "general" }, "clock, locale, cursor, page dots"),
     general("connection", "Connection…", { type: "document-tab", tab: "connection" }, "Data API URL"),
     general("theme", "Theme editor…", { type: "edit-theme" }, "profile and page themes, locks"),
     general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this profile"),

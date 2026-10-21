@@ -24,7 +24,7 @@ Sensor fields open a picker with live values. Type to search the 650+ data point
 
 ## Changing the Data API address
 
-With nothing selected in the studio, open **Dashboard › General › Connection** and set the **Data API URL**. Press **Test connection** to check it. Only change it if InfoPanel runs on another PC or port.
+With nothing selected in the studio, open **Behaviour › Connection** and set the **Data API URL**. Press **Test connection** to check it. Only change it if InfoPanel runs on another PC or port.
 
 :::warn
 If every widget shows dashes, the Data API is unreachable. Check InfoPanel is running and its web server is enabled. See [Common problems](problems).

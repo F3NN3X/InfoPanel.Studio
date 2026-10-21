@@ -31,16 +31,21 @@ A fresh install has one blank profile, **Main display**, at 1920 × 1080 with a 
 
 ## Profile settings
 
-With nothing selected, open **Dashboard › Profile**.
+Click an empty part of the canvas so nothing is selected. The inspector shows the profile's settings in three tabs: **Layout**, **Look** and **Behaviour**.
+
+**Layout** holds the size and grid:
 
 | Setting | What it does |
 |---|---|
-| **Design size** | Presets for 1920 × 550, 1920 × 1080, 2560 × 720, 1280 × 400, 1024 × 600, 800 × 480, or Custom. Width and Height hold the exact pixels. |
-| **Grid columns** / **Grid rows** | 2 to 24 columns and 1 to 24 rows. A new profile gets 6 or 12 columns and 4 or 6 rows depending on its size. |
-| **Fit mode** | **Fill**: the grid stretches to the full height. **Scroll**: rows are 120 px tall and the page scrolls. |
-| **Gap** and **Padding** | Space between zones (default 12 px, up to 200) and around the edge. |
-| **Corner radius** | How round the zones' corners are. |
-| **Theme**, **Style**, **Background** | Inherit from the dashboard, set this profile's own, or (for the background) none. |
+| **Name** | The profile's name. **Rename** in a card's **⋯** menu jumps here. |
+| **Design size** | Presets for 1920 × 550, 1920 × 1080, 2560 × 720, 1280 × 400, 1024 × 600 and 800 × 480. A size that isn't a preset shows first. Width and Height hold the exact pixels. **Use this window's size** appears when the studio window has a different size. |
+| **When it doesn't fit** | **Fill**: rows stretch so the whole grid fits the screen height. **Scroll**: rows stay 120 px tall and the page scrolls. |
+| **Columns** / **Rows** | 2 to 24 columns and 1 to 24 rows. A change that would push a zone off the grid is refused. A new profile gets 6 or 12 columns and 4 or 6 rows depending on its size. The preview above them draws the grid with its gap and padding. |
+| **Gap** and **Edge padding** | Space between zones (default 12 px) and around the edge. The sliders go to 64 px, and the boxes accept up to 200. |
+
+**Look** holds the theme, widget style and background. **Theme**, **Widget style** and **Background** are each shared by every profile until you switch that section to **This profile**. See [Themes and appearance](themes#where-to-edit).
+
+**Behaviour** holds the pages and their cycling, the Dynamic Island, Performance, Clock and date, Display, Studio and Connection. Clock and date, Display, Studio and Connection apply to every profile.
 
 ## Pages
 

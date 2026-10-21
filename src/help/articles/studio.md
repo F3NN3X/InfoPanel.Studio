@@ -48,7 +48,7 @@ To move around, hold `Space` and drag, or drag with the middle mouse button, to 
 
 A profile can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Theme…, Duplicate, **Show on kiosk** and Delete. The last page can't be deleted.
 
-With two or more pages, the play and pause button rotates them on the kiosk. Set the timing in **Dashboard › Profile**: **Auto-rotate pages**, **Seconds per page** (3 to 3600, default 15) and the **Pages** checklist. A touch or remote switch pauses rotation for 30 seconds. While rotation is on, the right end of the page strip shows how often it switches, such as **Cycling every 15 s**.
+With two or more pages, the play and pause button rotates them on the kiosk. Set it up in the inspector with nothing selected, under **Behaviour › Pages**. Turn on **Cycle through pages**, then pick **Switch every** (10 s, 30 s, 1 min or 5 min, or type 3 to 3600 seconds; the default is 15) and which pages take part. The same list reorders and deletes pages. A touch or remote switch pauses rotation for 30 seconds. While rotation is on, the right end of the page strip shows how often it switches, such as **Cycling every 15 s**.
 
 ## Inspector
 

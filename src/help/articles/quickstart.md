@@ -16,7 +16,7 @@ The status pill at the bottom of the Settings sidebar should say **Server runnin
 
 ## 2. Size the profile for your screen
 
-A fresh install has one blank profile, **Main display**, at 1920 × 1080. Open **Profiles** on the left rail and press **New profile** to make one at your display size. A new profile is named after its size and uses the size of the studio window, so resize the window first or open **Dashboard › Profile** and pick a **Design size** such as 1920 × 550. The grid is created for you.
+A fresh install has one blank profile, **Main display**, at 1920 × 1080. Open **Profiles** on the left rail and press **New profile** to make one at your display size. A new profile is named after its size and uses the size of the studio window, so resize the window first, or click an empty part of the canvas and pick a **Design size** such as 1920 × 550 under **Layout**. The grid is created for you.
 
 :::tip
 To see a finished example first, press **Use sample layout** on the empty canvas. It builds a 1920 × 550 profile you can take apart.
@@ -33,7 +33,7 @@ Not sure where to start? Add a layout starter such as the stat row from **Layout
 
 ## 4. Choose a look
 
-Click an empty part of the canvas so nothing is selected. The inspector shows **Profile**, **Appearance** and **General**. In **Appearance**, pick a skin from the **Skins** gallery and choose whether it applies to **All profiles** or **This profile**.
+Click an empty part of the canvas so nothing is selected. The inspector shows **Layout**, **Look** and **Behaviour**. In **Look › Widget style**, pick a skin from the **Skins** gallery. The section's switch decides whether it applies to **All profiles** or **This profile**.
 
 ## 5. Put it on the display
 

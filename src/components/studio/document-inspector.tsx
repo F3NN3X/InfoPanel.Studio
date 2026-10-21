@@ -1,58 +1,44 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { Monitor, Palette, Proportions, Zap } from "lucide-react";
 import type { PageBackground } from "@/lib/appearance";
-import type { GeneralSettings } from "@/lib/general";
-import type { PageRotate, ProfilePage, ProfileView } from "@/lib/layout";
-import type { WidgetTheme } from "@/lib/theme-model";
-import { THEME_PRESETS, resolveTheme, type ThemeTokens } from "@/lib/theme";
+import { isTauri } from "@/lib/desktop";
+import { withIsland } from "@/lib/island/config";
+import { resolveGeneral, type GeneralSettings } from "@/lib/general";
+import type { DashboardConfig, PageRotate, ProfilePage, ProfileView } from "@/lib/layout";
+import type { PerformanceOverride } from "@/lib/performance";
+import { resolveTheme, type ThemeTokens } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
-import { AppearanceGallery, type CurrentLook } from "./appearance-gallery";
-import { AppearanceScope, type AppearanceTarget } from "./appearance-panel";
-import { BackgroundPanel, type BackgroundTarget } from "./background-panel";
+import type { CurrentLook } from "./appearance-gallery";
 import { DataApiPanel } from "./data-api-panel";
-import { generalCards } from "./general-panel";
+import { AppSettingsFooter } from "./inspector/app-settings-footer";
 import { InspectorNote, InspectorView, type SectionParts } from "./inspector/inspector-view";
-import { AutoPick, AutoRotate, ProfileFields, ProfileInherit, ProfilePerformance } from "./inspector/profile-sections";
 import { IslandSection } from "./inspector/island-section";
 import { useAccordionPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
-import { withIsland } from "@/lib/island/config";
+import { ClockBody, DisplayBody, PagesBody, PerformanceBody } from "./inspector/profile-behaviour";
+import { ProfileHeader } from "./inspector/profile-header";
+import { GridSection, ScreenSection } from "./inspector/profile-layout";
+import { BackgroundBody, LookNote, ScopeDot, ScopeSwitch, StyleBody, ThemeBody } from "./inspector/profile-look";
 import {
-  globalStyleValues,
-  inspectorNotes,
-  type InspectorContext,
-  type InspectorSection,
-} from "./inspector-model";
-import { ProfileThemePanel, type ProfileTheme } from "./profile-theme-panel";
-import { SkinGallery } from "./skin-gallery";
-import { CardEffects, SurfacePicker } from "./surface-picker";
+  lockState,
+  scopeOf,
+  type AppearanceTarget,
+  type BackgroundTarget,
+  type LookScope,
+  type ProfileTheme,
+  type ScopedSection,
+} from "./inspector/profile-scope";
+import { shownValue } from "./inspector/zone-fields";
+import { globalStyleValues, type InspectorContext, type InspectorSection } from "./inspector-model";
 import type { FieldsApi } from "./settings-panel";
 import { SegmentedRow, ToggleRow } from "./setting-rows";
 import { dropKeys } from "./settings-model";
-import { ThemePanel } from "./theme-panel";
 import type { AppearancePresetsApi } from "./use-appearance-presets";
-import { LayoutDashboard } from "lucide-react";
-import { DashboardHeader, changedLabel } from "./zone-inspector-parts";
-import { shownValue } from "./inspector/zone-fields";
-
-/** The parts of the dashboard inspector the palette's "Appearance…" and friends jump to. */
-export type DocumentTab = "appearance" | "background" | "general" | "connection";
-
-/** The section each part jumps to (its document card id). */
-export const DOCUMENT_CARD: Record<DocumentTab, string> = {
-  appearance: "doc:appearance",
-  background: "doc:background",
-  general: "doc:type",
-  connection: "doc:connection",
-};
 
 export interface DocumentInspectorProps {
   /** Open, reveal and outline a section whenever `seq` changes (the palette's document commands). */
   jumpTo?: { id: string; key?: string; seq: number };
-  /** The settings search (the studio's Esc clears it). */
-  query: string;
-  onQuery: (query: string) => void;
-  /** The Changed filter (only values set here, across every tab). */
-  changedOnly: boolean;
-  onChangedOnly: (on: boolean) => void;
+  /** The dashboard: the profile count, and what the header's thumbnail inherits. */
+  config: DashboardConfig;
   theme: ThemeTokens;
   radius: number;
   onToken: (key: keyof ThemeTokens, value: string) => void;
@@ -64,18 +50,19 @@ export interface DocumentInspectorProps {
   presets: AppearancePresetsApi;
   /** The dashboard's page background (every profile without its own). */
   background: PageBackground | undefined;
-  /** The active profile (its own background and widget theme, and its name). */
-  profile: {
-    id: string;
-    name: string;
-    background?: PageBackground;
-    widgetTheme?: WidgetTheme;
-    theme?: Partial<ThemeTokens>;
-    radius?: number;
-  };
-  /** Set the active profile's own theme colours / radius (both unset = inherit). */
+  /** The profile being edited (its own look, performance and name). */
+  profile: ProfileView;
+  /** Set the profile's own theme colours / radius. */
   onProfileTheme: (next: ProfileTheme, key?: string) => void;
   onBackground: (target: BackgroundTarget, bg: PageBackground | undefined) => void;
+  /** Switch a section between the dashboard's value and the profile's own (starting from the shared one). */
+  onScope: (section: ScopedSection, scope: LookScope) => void;
+  /** Corners: the dashboard's radius or the profile's. */
+  onRadius: (scope: LookScope, radius: number) => void;
+  /** Set the profile's frame rate or animations override. */
+  onPerformance: (patch: PerformanceOverride) => void;
+  /** Lock every widget-theme section of the profile, or unlock them. */
+  onToggleLocks: () => void;
   /** General settings (font, clock, locale, motion, kiosk cursor). */
   general: GeneralSettings | undefined;
   onGeneral: <K extends keyof GeneralSettings>(key: K, value: GeneralSettings[K]) => void;
@@ -83,19 +70,21 @@ export interface DocumentInspectorProps {
   onDataApiUrl: (url: string) => void;
 }
 
-/** What the Profile and General tabs edit besides the document props. */
+/** What the Layout and Behaviour tabs edit besides the document props. */
 export interface DashboardStudioProps {
-  /** The active profile, whole (Profile tab). */
-  activeProfile: ProfileView;
   updateProfile: (fn: (p: ProfileView) => ProfileView, key?: string) => void;
-  canRemoveProfile: boolean;
-  onRemoveProfile: () => void;
-  /** The config picks the profile by window size ("auto"). */
-  autoPick: boolean;
-  onAutoPick: (auto: boolean) => void;
-  /** The active profile's pages (Auto-rotate's checklist) and the write of its `rotate` option. */
+  /** The profile's pages (the page list, the Grid's other pages) and the write of its `rotate` option. */
   pages: ProfilePage[];
   onRotate: (patch: Partial<PageRotate>) => void;
+  onMovePage: (id: string, toIndex: number) => void;
+  onAddPage: () => void;
+  /** Ask to delete a page (the page tabs confirm it). */
+  onDeletePage: (id: string) => void;
+  /** The studio window, for "Use this window's size". */
+  windowSize: { width: number; height: number };
+  /** ⋯ Rename in the Profiles panel: focus the Name field (a counter), and report it done. */
+  renameRequest: number | undefined;
+  onRenameHandled: () => void;
   /** The sensor pickers' "Open data explorer" (the island's sensor). */
   onOpenExplorer: () => void;
   /** Studio › Theme (the widget theme's editor). */
@@ -109,24 +98,24 @@ const ACCORDION_MODES = [
   { value: "many" as const, label: "Many open" },
 ];
 
+const TAB_INFO = {
+  layout: { icon: <Proportions className="h-4 w-4" />, description: "Size, grid and spacing for this profile." },
+  look: { icon: <Palette className="h-4 w-4" />, description: "Theme, widget style and background." },
+  behaviour: { icon: <Zap className="h-4 w-4" />, description: "Pages, pop-up alerts and performance." },
+};
+
 /**
- * The inspector with nothing selected: the Dashboard, in the tabs Profile ·
- * Appearance · General (README §4.7; the widget theme is Studio › Theme), with the same
- * sections, dots, search and More rows as a zone. The registry
- * places the existing cards (scope and force, presets, theme, page
- * background, general, connection) into its sections.
+ * The inspector with nothing selected: the settings of the profile being edited, in the tabs
+ * Layout · Look · Behaviour. The registry (`inspector-model`) places each section; Look's and
+ * Performance's switches choose between the dashboard's value and the profile's own.
  */
 export function DocumentInspector(props: DocumentInspectorProps & DashboardStudioProps) {
-  // Remount per profile: the scope starts where this profile has its own settings.
-  return <DocumentSheet key={props.profile.id} {...props} />;
+  return <DocumentSheet {...props} />;
 }
 
 function DocumentSheet({
   jumpTo,
-  query,
-  onQuery,
-  changedOnly,
-  onChangedOnly,
+  config,
   theme,
   radius,
   onToken,
@@ -138,34 +127,44 @@ function DocumentSheet({
   profile,
   onProfileTheme,
   onBackground,
+  onScope,
+  onRadius,
+  onPerformance,
+  onToggleLocks,
   general,
   onGeneral,
   dataApiUrl,
   onDataApiUrl,
-  activeProfile,
   updateProfile,
-  canRemoveProfile,
-  onRemoveProfile,
-  autoPick,
-  onAutoPick,
   pages,
   onRotate,
+  onMovePage,
+  onAddPage,
+  onDeletePage,
+  windowSize,
+  renameRequest,
+  onRenameHandled,
   onOpenExplorer,
   onOpenTheme,
   onOpenLibrary,
 }: DocumentInspectorProps & DashboardStudioProps) {
   const [quickBar, setQuickBar] = useQuickBarPref();
   const [accordion, setAccordion] = useAccordionPref();
-  const [target, setTarget] = useState<AppearanceTarget>(
-    // A profile with its own look or background opens on it: editing "All profiles" would not show there.
-    profile.widgetTheme || profile.background ? "profile" : "all"
-  );
-  const all = target === "all";
-  const context: InspectorContext = { kind: "dashboard", scope: target, profileName: profile.name };
+  const scopes = {
+    theme: scopeOf(profile, "theme"),
+    style: scopeOf(profile, "style"),
+    background: scopeOf(profile, "background"),
+    performance: scopeOf(profile, "performance"),
+  };
+  const count = config.profiles.length;
+  const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
+  const context: InspectorContext = { kind: "dashboard", scope: "all", profileName: profile.name };
 
-  const change = (fn: (style: ModuleSettings) => ModuleSettings) => onStyle(target, fn);
+  // The Widget style switch picks where the skins, presets, surface and its numbers are written.
+  const styleScope = scopes.style;
+  const change = (fn: (style: ModuleSettings) => ModuleSettings) => onStyle(styleScope, fn);
   const profileStyle = profile.widgetTheme?.values;
-  const values = globalStyleValues(target, dashboardStyle, profileStyle);
+  const values = globalStyleValues(styleScope, dashboardStyle, profileStyle);
   const fields: FieldsApi = {
     values,
     shown: (key, def) => shownValue(values, key, def),
@@ -174,143 +173,156 @@ function DocumentSheet({
     onClear: (keys) => change((s) => dropKeys(s, new Set(keys)) ?? {}),
   };
   // The look the presets are compared with: the scope's theme and style over the dashboard's.
-  const shownTheme = resolveTheme({ theme, radius }, all ? undefined : profile);
+  const shownTheme = resolveTheme({ theme, radius }, styleScope === "all" ? undefined : profile);
   const currentLook: CurrentLook = {
     tokens: shownTheme.tokens,
     radius: shownTheme.radius,
-    style: all ? dashboardStyle : { ...dashboardStyle, ...profileStyle },
+    style: styleScope === "all" ? dashboardStyle : { ...dashboardStyle, ...profileStyle },
   };
   // The scope's stored look, no defaults: an unset surface is not glass when a skin is chosen.
   const scoped: ModuleSettings = { ...values.inherited, ...values.own };
   // The clocks' 12 / 24 h is the all-profiles style's themed `clock` (config v7).
-  const hours = {
-    value: dashboardStyle?.clock === undefined ? undefined : String(dashboardStyle.clock),
-    onChange: (v: string | undefined) => onStyle("all", (s) => (v === undefined ? (dropKeys(s, new Set(["clock"])) ?? {}) : { ...s, clock: v })),
-  };
-  const generalById = new Map(generalCards(general, onGeneral, hours).map((c) => [c.id, c] as const));
+  const hours = dashboardStyle?.clock === undefined ? undefined : String(dashboardStyle.clock);
+  const setHours = (v: string | undefined) =>
+    onStyle("all", (s) => (v === undefined ? (dropKeys(s, new Set(["clock"])) ?? {}) : { ...s, clock: v }));
+  const resolved = resolveGeneral({ general });
 
-  const themeEditor = all ? (
-    <ThemePanel
-      tokens={theme}
-      presetName={
-        THEME_PRESETS.find((p) => JSON.stringify(p.tokens) === JSON.stringify(theme))?.name ?? "custom"
-      }
-      onToken={onToken}
-      onPreset={onThemePreset}
-      query={query}
-    />
-  ) : (
-    <ProfileThemePanel
-      dashboard={{ theme, radius }}
-      profile={{ theme: profile.theme, radius: profile.radius }}
-      profileName={profile.name}
-      onChange={onProfileTheme}
-      query={query}
-    />
-  );
+  /** A scoped section's header: the dot, and the switch that picks the dashboard's value or the profile's own. */
+  const scopedHeader = (section: ScopedSection, label: string): Pick<SectionParts, "actions" | "pill"> => ({
+    pill: <ScopeDot scope={scopes[section]} />,
+    actions: <ScopeSwitch scope={scopes[section]} onScope={(scope) => onScope(section, scope)} label={label} />,
+  });
 
   const parts = (s: InspectorSection): SectionParts => {
     switch (s.special) {
-      case "profileFields":
+      case "layoutScreen":
         return {
           body: (
-            <ProfileFields
-              profile={activeProfile}
+            <ScreenSection
+              profile={profile}
               updateProfile={updateProfile}
-              canRemove={canRemoveProfile}
-              onRemove={onRemoveProfile}
-              dashboardRadius={radius}
-              otherZones={pages.filter((pg) => pg.id !== activeProfile.pageId).flatMap((pg) => pg.placements)}
+              windowSize={windowSize}
+              renameRequest={renameRequest}
+              onRenameHandled={onRenameHandled}
             />
           ),
         };
-      case "profileInherit":
+      case "layoutGrid":
         return {
           body: (
-            <ProfileInherit
-              profile={activeProfile}
-              dashboardTheme={{ theme, radius }}
-              dashboardBackground={background}
+            <GridSection
+              profile={profile}
+              updateProfile={updateProfile}
+              otherZones={pages.filter((pg) => pg.id !== profile.pageId).flatMap((pg) => pg.placements)}
+            />
+          ),
+        };
+      case "lookTheme":
+        return {
+          ...scopedHeader("theme", "Theme"),
+          body: (
+            <ThemeBody
+              scope={scopes.theme}
+              count={count}
+              name={profile.name}
+              dashboard={{ theme, radius }}
+              profile={{ theme: profile.theme, radius: profile.radius }}
+              onToken={onToken}
+              onPreset={onThemePreset}
               onProfileTheme={onProfileTheme}
-              onBackground={onBackground}
-              updateProfile={updateProfile}
+              onRadius={(r) => onRadius(scopes.theme, r)}
+              font={resolved.font}
+              onFont={(font) => onGeneral("font", font === "system" ? undefined : font)}
             />
           ),
         };
-      case "profilePerformance":
-        return { body: <ProfilePerformance performance={activeProfile.performance} updateProfile={updateProfile} /> };
-      case "profileSelection":
-        return { body: <AutoPick auto={autoPick} onAuto={onAutoPick} /> };
-      case "profileRotate":
-        return { body: <AutoRotate rotate={activeProfile.rotate} pages={pages} onChange={onRotate} /> };
-      case "profileIsland":
+      case "lookStyle":
         return {
+          ...scopedHeader("style", "Widget style"),
           body: (
-            <IslandSection
-              island={activeProfile.island}
-              onChange={(patch) => updateProfile((p) => withIsland(p, patch), "profile:island")}
-              onOpenExplorer={onOpenExplorer}
+            <StyleBody
+              scope={styleScope}
+              count={count}
+              name={profile.name}
+              scoped={scoped}
+              look={currentLook}
+              presets={presets}
+              onChange={change}
+              lock={lockState(profile.widgetTheme)}
+              onToggleLock={onToggleLocks}
+              onOpenTheme={onOpenTheme}
             />
           ),
         };
-      case "scope":
+      case "lookBackground": {
+        const scope = scopes.background;
         return {
+          ...scopedHeader("background", "Background"),
           body: (
-            <AppearanceScope target={target} onTarget={setTarget} onOpenTheme={onOpenTheme} />
-          ),
-        };
-      case "presets":
-        return {
-          body: (
-            <div className="space-y-4">
-              <SkinGallery value={scoped.skin as string | undefined} onPick={(skin) => change((st) => ({ ...st, skin, surface: "auto" }))} />
-              <AppearanceGallery api={presets} target={target} look={currentLook} />
-            </div>
-          ),
-        };
-      case "theme":
-        return {
-          body: (
-            <div className="space-y-4">
-              <SurfacePicker
-                surface={scoped.surface}
-                skin={scoped.skin}
-                accent={typeof scoped.accent === "string" ? scoped.accent : undefined}
-                onPick={(surface) => change((st) => ({ ...st, surface }))}
-              />
-              <CardEffects
-                opacity={scoped.surfaceOpacity}
-                blur={scoped.blur}
-                onOpacity={(surfaceOpacity) => change((st) => ({ ...st, surfaceOpacity }))}
-                onBlur={(blur) => change((st) => ({ ...st, blur }))}
-              />
-              {themeEditor}
-            </div>
-          ),
-        };
-      case "pageBackground":
-        return {
-          body: (
-            <BackgroundPanel
-              target={target}
-              onTarget={setTarget}
-              dashboard={background}
-              profileBackground={profile.background}
-              profileName={profile.name}
+            <BackgroundBody
+              scope={scope}
+              count={count}
+              name={profile.name}
+              value={(scope === "all" ? background : profile.background) ?? { type: "none" }}
               profileId={profile.id}
-              onChange={onBackground}
+              onChange={(bg) => onBackground(scope, bg)}
               onOpenLibrary={onOpenLibrary}
             />
           ),
         };
-      case "type":
-      case "clock":
-      case "performance":
-      case "display": {
-        const card = s.cardId ? generalById.get(s.cardId) : undefined;
-        return card ? { body: card.node, changed: card.changed, onReset: card.onReset } : {};
       }
-      case "studio":
+      case "behaviourPages":
+        return {
+          body: (
+            <PagesBody
+              pages={pages}
+              rotate={profile.rotate}
+              onMove={onMovePage}
+              onAdd={onAddPage}
+              onDelete={onDeletePage}
+              onRotate={onRotate}
+              pageNav={resolved.kioskPageNav}
+              onPageNav={(on) => onGeneral("kioskPageNav", on ? true : undefined)}
+            />
+          ),
+        };
+      case "behaviourIsland":
+        return {
+          body: (
+            <div className="space-y-3">
+              <p className="text-pretty text-[11.5px] leading-[1.4] text-ui-4">
+                Widgets with “Send to island” on appear here briefly — a new song, rain starting.
+              </p>
+              <IslandSection
+                island={profile.island}
+                onChange={(patch) => updateProfile((p) => withIsland(p, patch), "profile:island")}
+                onOpenExplorer={onOpenExplorer}
+              />
+            </div>
+          ),
+        };
+      case "behaviourPerformance":
+        return {
+          ...scopedHeader("performance", "Performance"),
+          body: (
+            <PerformanceBody
+              scope={scopes.performance}
+              count={count}
+              name={profile.name}
+              general={general}
+              performance={profile.performance}
+              onGeneral={onGeneral}
+              onPerformance={onPerformance}
+            />
+          ),
+        };
+      case "behaviourClock":
+        return { body: <ClockBody general={general} hours={hours} onHours={setHours} onGeneral={onGeneral} /> };
+      case "behaviourDisplay":
+        return {
+          body: <DisplayBody hideCursor={resolved.hideCursor} onHideCursor={(on) => onGeneral("hideCursor", on ? true : undefined)} />,
+        };
+      case "behaviourStudio":
         return {
           body: (
             <div className="space-y-2">
@@ -330,35 +342,40 @@ function DocumentSheet({
             </div>
           ),
         };
-      case "connection":
+      case "behaviourConnection":
         return { body: <DataApiPanel value={dataApiUrl} onChange={onDataApiUrl} /> };
       default:
         return {};
     }
   };
 
-  const notes = (tab: Parameters<typeof inspectorNotes>[1]) =>
-    inspectorNotes(context, tab).map((n) => <InspectorNote key={n.kind}>{n.text}</InspectorNote>);
+  const notes = (tab: string | undefined): ReactNode =>
+    tab === "look" ? (
+      <InspectorNote>
+        <LookNote name={profile.name} />
+      </InspectorNote>
+    ) : null;
 
   return (
     <InspectorView
       context={context}
       contextKey="dashboard"
-      header={
-        <DashboardHeader profileName={profile.name} />
-      }
+      header={<ProfileHeader profile={stored} dashboard={config} />}
       fields={fields}
       parts={parts}
       notes={notes}
-      query={query}
-      onQuery={onQuery}
-      changedOnly={changedOnly}
-      onChangedOnly={onChangedOnly}
+      query=""
+      onQuery={() => {}}
+      changedOnly={false}
+      onChangedOnly={() => {}}
+      searchable={false}
+      footer={isTauri() ? <AppSettingsFooter /> : null}
+      tabInfo={TAB_INFO}
       jumpTo={jumpTo}
       identity={{
-        icon: <LayoutDashboard />,
-        name: "Dashboard",
-        meta: (changed) => `${profile.name} · ${changedLabel(changed)}`,
+        icon: <Monitor />,
+        name: profile.name,
+        meta: () => "Profile settings",
         peekNote: "Tap a widget to edit it.",
       }}
     />

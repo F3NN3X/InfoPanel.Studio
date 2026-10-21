@@ -15,6 +15,19 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - The page strip shows **Cycling every N s** while page rotation is on.
 
 ### Changed
+- With nothing selected, the inspector shows the profile's settings in three tabs: **Layout**, **Look** and
+  **Behaviour**. It replaces Profile, Appearance and General.
+  - **Layout** has the name, design size (with **Use this window's size**), Fill or Scroll, and a live grid preview
+    with Columns and Rows steppers, Gap and Edge padding.
+  - **Look** has Theme, Widget style and Background. Each has an **All profiles | This profile** switch, which
+    replaces Inherit/Custom and the Apply-to scope. Corners follow the Theme switch. Widget style gets **Apply to
+    every widget**, which locks every section of the profile's widget theme.
+  - **Behaviour** has the page list with drag to reorder, Cycle through pages with interval presets, the Dynamic
+    Island, Performance (with its own switch), Clock and date, Display, Studio and Connection. The General settings
+    now live here in the studio.
+  - Search and the Changed filter stay in the widget inspector only. In the desktop app, a footer link opens App
+    settings.
+  - Delete profile moved to the card's ⋯ menu, where it asks first.
 - Clicking a profile card now only picks the profile to edit. It no longer changes which profile your displays show or
   turns auto-pick off. Pin for editing is gone, because a card click does what the pin did. The active card lists its
   pages and **Add page**. The top bar's profile menu lists profiles to edit.

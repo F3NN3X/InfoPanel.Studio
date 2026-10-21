@@ -15,14 +15,14 @@ Every widget and panel has the same four tabs, filed by the question they answer
 | **Data** | Where do values come from? | Bound data, device and sources, Units & format |
 | **Behaviour** | How does it react? | Thresholds, the widget's own behaviour, Dynamic Island, Motion |
 
-Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows **Profile**, **Appearance** and **General** instead. The theme editor has Style, Data and Behaviour tabs.
+Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows the profile's **Layout**, **Look** and **Behaviour** instead, without the search box and the Changed filter. The theme editor has Style, Data and Behaviour tabs.
 
 ## Finding a setting
 
 - Type in the inspector's search box. Results name the tab and section.
 - Turn on **Changed** to list only what you have changed on this widget. **Reset all** clears them.
 - Open **More** at the end of a section for less common rows.
-- Press the pin button on a row to pin it to the quick bar, up to 6 per widget type. Turn the bar on under **Dashboard › General › Studio › Quick bar**.
+- Press the pin button on a row to pin it to the quick bar, up to 6 per widget type. Turn the bar on under **Behaviour › Studio › Quick bar**, with nothing selected.
 
 ## Setting dots
 

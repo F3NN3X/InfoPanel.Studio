@@ -191,11 +191,24 @@ function StudioViewBody({
     if (!showSources) setFocusPointKey(undefined);
   }, [showSources]);
 
-  /** The zoom bar's resolution button and the Library's jump to a background: Dashboard › Profile. */
+  /** The zoom bar's resolution button and the Library's jump to a background: the profile inspector's Layout. */
   const openProfileSettings = () => {
     ui.setMode("design");
     sel.select(null);
-    ui.openDocumentTab("profile");
+    ui.openDocumentTab("layout");
+  };
+  /** ⋯ Rename: edit that profile, show its Layout tab and put the cursor in the Name field. */
+  const renameProfile = (id: string) => {
+    if (id !== profile.id) selectProfile(id);
+    openProfileSettings();
+    // The inspector mounts first; then it opens the Screen section and the field takes the cursor.
+    requestAnimationFrame(() => {
+      studioLayout.showInspector();
+      ui.jumpInspector("ly-screen");
+      ui.requestRename();
+      // A field that never mounted (the inspector stayed away) must not keep the request for later.
+      setTimeout(ui.clearRename, 1500);
+    });
   };
   /**
    * The island drawer's widget rows: select the zone and scroll the inspector to "Send to island". A zone
@@ -288,6 +301,7 @@ function StudioViewBody({
       sel={sel}
       edit={edit}
       documentProps={documentProps}
+      windowSize={{ width: windowWidth, height: windowHeight }}
       setScopeStyle={setScopeStyle}
       onOpenPoint={(key) => {
         setFocusPointKey(key);
@@ -340,8 +354,7 @@ function StudioViewBody({
         onImportProfile: edit.addImportedProfile,
         onDuplicateProfile: edit.duplicateProfile,
         onRemoveProfile: edit.removeProfile,
-        onProfileChange: (patch) =>
-          edit.updateProfile((p) => ({ ...p, ...patch }), `profile:${Object.keys(patch).join()}`),
+        onRenameProfile: renameProfile,
       }}
       alerts={{
         config,
