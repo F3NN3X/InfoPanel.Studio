@@ -108,7 +108,14 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
 
   const run = async () => {
     setBusy(true);
-    const r = await runImport(files, choices, deps);
+    let r;
+    try {
+      r = await runImport(files, choices, deps);
+    } catch (e) {
+      setBusy(false);
+      deps.toast(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
     setBusy(false);
     deps.toast(
       r.failed.length > 0 ? `${r.done.length} imported · ${r.failed.join("; ")}` : r.done.length === 1 ? r.done[0] : `Imported ${r.done.length} files`,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { sniffFile } from "@/lib/import-sniff";
-import { defaultConfig, newProfile, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
+import { CONFIG_VERSION, defaultConfig, newProfile, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { DEFAULT_CHOICES, restoreConfig, runImport, type DoorChoices, type DoorContext, type DoorFile } from "@/components/studio/import-door-actions";
 import { parseProfileFile, profileFileText } from "@/components/studio/profile-file";
 
@@ -70,9 +70,18 @@ describe("restoreConfig", () => {
     await expect(restoreConfig(file, { current, mode: "replace", backupFirst: true, backup: cancelled })).rejects.toThrow("Untick the backup box");
   });
 
+  it("refuses a config from a newer build in both modes", async () => {
+    const newer = text({ ...configOf("Theirs"), version: CONFIG_VERSION + 1 });
+    const backup = vi.fn(async () => true);
+    for (const mode of ["replace", "add-screens"] as const) {
+      await expect(restoreConfig(newer, { current, mode, backupFirst: true, backup })).rejects.toThrow("newer version");
+    }
+    expect(backup).not.toHaveBeenCalled();
+  });
+
   it("does not back up, or touch the file, when it is not a config", async () => {
     const backup = vi.fn(async () => true);
-    await expect(restoreConfig("{}", { current, mode: "replace", backupFirst: true, backup })).rejects.toThrow("Missing profiles");
+    await expect(restoreConfig("{}", { current, mode: "replace", backupFirst: true, backup })).rejects.toThrow("Not a Studio config");
     expect(backup).not.toHaveBeenCalled();
   });
 

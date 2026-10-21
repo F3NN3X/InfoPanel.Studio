@@ -42,6 +42,8 @@ describe("sniffFile: JSON by its shape, whatever the name", () => {
   it("does not take other JSON for any of them", async () => {
     expect(await sniff("a.json", enc("{}"))).toBe("unknown");
     expect(await sniff("a.json", enc('{"profiles":[]}'))).toBe("unknown");
+    expect(await sniff("a.json", enc('{"profiles":[{"x":1}]}'))).toBe("unknown");
+    expect(await sniff("a.json", enc('{"version":10,"profiles":[{"x":1}]}'))).toBe("unknown");
     expect(await sniff("a.json", enc('{"pages":[],"name":"x"}'))).toBe("unknown");
     expect(await sniff("a.json", enc("{not json"))).toBe("unknown");
     expect(await sniff("a.json", enc("[1,2]"))).toBe("unknown");

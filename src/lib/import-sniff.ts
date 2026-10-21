@@ -64,6 +64,15 @@ const looksJson = (b: Uint8Array) => {
   return b[i] === 0x7b;
 };
 
+/** Whether a JSON document has a config's root shape: a version, and profiles that each have an id and their pages (or zones). */
+export const looksLikeConfig = (json: Record<string, unknown>): boolean =>
+  typeof json.version === "number" &&
+  Array.isArray(json.profiles) &&
+  json.profiles.length > 0 &&
+  json.profiles.every(
+    (p) => isRecord(p) && typeof p.id === "string" && p.id !== "" && (Array.isArray(p.pages) || Array.isArray(p.placements) || Array.isArray(p.zones)),
+  );
+
 /** The kind a JSON document is, by its shape. */
 function sniffJson(bytes: Uint8Array): Sniffed {
   let json: unknown;
@@ -75,7 +84,7 @@ function sniffJson(bytes: Uint8Array): Sniffed {
   if (!isRecord(json)) return unknown();
   if (json.type === PROFILE_FILE_TYPE) return detected("profile");
   if (json.format === SPEC_FORMAT) return detected("gauge");
-  if (Array.isArray(json.profiles) && json.profiles.length > 0) return detected("config");
+  if (looksLikeConfig(json)) return detected("config");
   // The bare profile "Copy profile JSON" used to give: pages or zones, a name and a size.
   if ((Array.isArray(json.pages) || Array.isArray(json.placements)) && typeof json.name === "string" && typeof json.width === "number" && typeof json.height === "number") {
     return detected("profile");

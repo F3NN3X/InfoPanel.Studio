@@ -1,5 +1,6 @@
 import { inlineCanvases, unresolvedCanvases } from "@/lib/canvas-store";
-import { mergeConfig, type DashboardConfig } from "@/lib/layout";
+import { looksLikeConfig } from "@/lib/import-sniff";
+import { CONFIG_VERSION, mergeConfig, type DashboardConfig } from "@/lib/layout";
 import { isTauri, saveTextFile } from "@/lib/desktop";
 
 const EXPORT_NAME = "infopanel-studio-config.json";
@@ -66,10 +67,11 @@ export async function exportConfigFile(config: DashboardConfig, onError: ReportE
  * loaded. A file that is not a config rejects with the reason.
  */
 export async function readConfigText(text: string): Promise<{ config: DashboardConfig; missing: string[] }> {
-  const parsed = JSON.parse(text) as Partial<DashboardConfig>;
-  if (!Array.isArray(parsed.profiles) || parsed.profiles.length === 0) {
-    throw new Error("Missing profiles");
+  const parsed = (JSON.parse(text) ?? {}) as Partial<DashboardConfig>;
+  if (!looksLikeConfig(parsed)) {
+    throw new Error("Not a Studio config: it needs a version and screens with ids and pages");
   }
+  if ((parsed.version as number) > CONFIG_VERSION) throw new Error("This config is from a newer version of InfoPanel Studio");
   // mergeConfig runs the v1→v2 migration (explicit zone boxes, rows).
   const config = await inlineCanvases(mergeConfig(parsed));
   return { config, missing: unresolvedCanvases(config) };

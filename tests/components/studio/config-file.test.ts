@@ -8,7 +8,7 @@ const desktop = vi.hoisted(() => ({
 vi.mock("@/lib/desktop", () => desktop);
 
 import { pushConfig } from "@/lib/dashboard-server";
-import { defaultConfig, type DashboardConfig } from "@/lib/layout";
+import { CONFIG_VERSION, defaultConfig, type DashboardConfig } from "@/lib/layout";
 import { configPayload, exportConfigFile, readConfigText } from "@/components/studio/config-file";
 
 afterEach(() => {
@@ -48,8 +48,19 @@ describe("reading a config file", () => {
   });
 
   it("rejects a file without profiles, or that is not JSON", async () => {
-    await expect(readConfigText("{}")).rejects.toThrow("Missing profiles");
+    await expect(readConfigText("{}")).rejects.toThrow("Not a Studio config");
     await expect(readConfigText("not json")).rejects.toThrow();
+  });
+
+  it("rejects profiles that are not screens (no id, no pages) or a config without a version", async () => {
+    await expect(readConfigText(JSON.stringify({ profiles: [{ x: 1 }] }))).rejects.toThrow("Not a Studio config");
+    await expect(readConfigText(JSON.stringify({ version: 10, profiles: [{ x: 1 }] }))).rejects.toThrow("Not a Studio config");
+    await expect(readConfigText(JSON.stringify({ profiles: defaultConfig().profiles }))).rejects.toThrow("Not a Studio config");
+  });
+
+  it("refuses a config from a newer build, which mergeConfig would downgrade", async () => {
+    const newer = { ...defaultConfig(), version: CONFIG_VERSION + 1 };
+    await expect(readConfigText(JSON.stringify(newer))).rejects.toThrow("newer version");
   });
 });
 

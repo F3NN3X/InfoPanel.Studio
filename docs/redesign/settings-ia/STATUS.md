@@ -557,3 +557,11 @@ Walked in the browser build and in the stubbed-desktop run (`__TAURI_INTERNALS__
 | Give one screen its own look | **1** (Theme opens at the edited screen, `MyDefault · 1920×550`), then edit any card: a following card turned **Custom here** on the first edit (checked on Units & format: "From All screens" → "Custom here"). 2 when Theme was last left at another level. No switch to flip; Lock is optional. |
 | Back up | **2**: **Export**, **Save backup** (a file is written). |
 | Change the API URL | **1**: the status bar's **Data API** item opens Data with the URL field focused. |
+
+## Review fixes
+
+- **Config detection (M1):** `looksLikeConfig` (`import-sniff.ts`) needs a numeric `version` and profiles that each have an id and pages (or placements/zones). The sniffer and `readConfigText` both use it, so `{"profiles":[{"x":1}]}` is an unknown-file error row and Replace never sees it. The error text for a non-config is now "Not a Studio config: ...". Backups written without a `version` (very old) are refused too.
+- **Newer config (M2):** `readConfigText` refuses `version > CONFIG_VERSION` ("This config is from a newer version of InfoPanel Studio"), so Replace and Add screens both stop before the backup.
+- **Kiosk addresses (M4):** `server.mjs` records a kiosk's address only when it connects from loopback; a LAN kiosk is listed with no address. The Live list is unchanged on the same PC. Deviation: the address of a LAN kiosk is no longer shown anywhere (the state is broadcast, so per-reader filtering was not small). Not unit-tested (a non-loopback socket is not available to the server test); the loopback case is covered.
+- **Import door (L3):** `run()` catches a failed import, resets busy and toasts the error.
+- Left alone: M3 (accepted) and L1, L2, L4.

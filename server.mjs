@@ -198,7 +198,8 @@ function handleAlertHistory(req, res) {
 
 /**
  * SSE of the control state; `?profile=<id>` reports the profile this kiosk shows (and `?page=<id>` its
- * page pin), which lists the stream as a kiosk in the state until it closes.
+ * page pin), which lists the stream as a kiosk in the state until it closes. Only a kiosk on this machine
+ * has its address listed: the state is public, and a LAN kiosk's address is not for every reader.
  */
 function handleControlEvents(req, res, query) {
   res.writeHead(200, {
@@ -208,7 +209,7 @@ function handleControlEvents(req, res, query) {
   });
   const shown = query.get("profile");
   if (shown) control.dispatch({ type: "shown", profile: shown });
-  const kiosk = shown ? control.connect({ profile: shown, page: query.get("page"), address: req.socket.remoteAddress }) : null;
+  const kiosk = shown ? control.connect({ profile: shown, page: query.get("page"), address: isLoopback(req.socket.remoteAddress) ? req.socket.remoteAddress : null }) : null;
   const write = (state) => res.write(`data: ${JSON.stringify(state)}\n\n`);
   write(control.get());
   const unsubscribe = control.subscribe(write);
