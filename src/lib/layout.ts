@@ -13,7 +13,7 @@ import {
   type LegacyProfileFields,
 } from "./settings-migrate";
 import { normalizeApiBase } from "./data-api";
-import { normalizeGeneral, type GeneralSettings } from "./general";
+import { normalizeFont, normalizeGeneral, type GeneralFont, type GeneralSettings } from "./general";
 import { normalizeSpacing } from "./profile-grid";
 import { YR_FORECAST_KEY } from "./sensors";
 import { mainPage, normalizeRotate } from "./pages";
@@ -193,6 +193,8 @@ export interface MonitorProfile {
   island?: IslandConfig;
   /** Max FPS and motion for this profile, over the dashboard's General settings; unset = the dashboard's. */
   performance?: PerformanceOverride;
+  /** This profile's page font over the dashboard's `general.font` (`resolveFont`); unset = the dashboard's. */
+  font?: GeneralFont;
   /** Set on the profiles earlier versions shipped (Sample, ARCv2); kept, no longer read. */
   sampleVersion?: number;
 }
@@ -419,6 +421,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     padding: normalizeSpacing(p.padding),
     island: normalizeIsland(p.island),
     performance: normalizePerformance(p.performance),
+    font: normalizeFont(p.font),
   };
 }
 

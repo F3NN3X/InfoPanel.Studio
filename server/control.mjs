@@ -4,7 +4,8 @@
 // It is not config (no undo, not in config.json): the server holds it,
 // persists the durable part to control.json and pushes every change over
 // /events/control. Rotation runs here, so every kiosk showing a profile
-// and every Stream Deck key stay in step.
+// and every Stream Deck key stay in step. It also lists the kiosks: the
+// open control streams that report a profile (PLAN decision 7).
 //
 // Node built-ins only. `reduce` is pure; `createControl` adds the clock,
 // persistence and listeners.
@@ -25,11 +26,11 @@ export const RELOAD_COALESCE_MS = 2000;
 
 /** The empty state. `mutedUntil`, `dim` (the level while on), `dimLevel` (the last one used) and `islandOverride`
  * are durable. `shown` (the profile a kiosk last reported), `nextAt`, `alerts` (the active list server/alerts.mjs
- * publishes) and the reload counters (`reload`, `reloads`; createControl starts them at the server start time)
- * are runtime only (`reloadAt` is when the last bump was taken). */
+ * publishes), `kiosks` (the open kiosk streams by connection id) and the reload counters (`reload`, `reloads`;
+ * createControl starts them at the server start time) are runtime only (`reloadAt` is when the last bump was taken). */
 export const emptyState = () => ({
   profile: null, shown: null, pages: {}, override: {}, nextAt: {}, alerts: [],
-  mutedUntil: null, dim: {}, dimLevel: {}, islandOverride: {}, reload: 0, reloads: {}, reloadAt: null,
+  mutedUntil: null, dim: {}, dimLevel: {}, islandOverride: {}, reload: 0, reloads: {}, reloadAt: null, kiosks: {},
 });
 
 const profilesOf = (config) => (Array.isArray(config?.profiles) ? config.profiles : []);
@@ -109,7 +110,8 @@ const toggled = (want, was) => (want === "toggle" ? (was ? "off" : "on") : want)
  * `{ type: "page", profile?, page: id | "next" | "prev" }`, `{ type: "profile", profile: id | null }`,
  * `{ type: "rotate", profile?, state: "on" | "off" | "toggle" | "saved" }`, `{ type: "touch", profile? }`,
  * `{ type: "shown", profile }`, `{ type: "tick" }`, `{ type: "config", previous }`, `{ type: "mute", minutes }` (0 unmutes),
- * `{ type: "kiosk", action: "reload" | "dim" | "island", profile?, state?, level? }`.
+ * `{ type: "kiosk", action: "reload" | "dim" | "island", profile?, state?, level? }`; internal only (server.mjs, never
+ * a POST): `{ type: "connect", id, profile, page?, address? }` and `{ type: "disconnect", id }` for a kiosk stream.
  * Returns `{ error }` for a bad request.
  */
 export function reduce(state, action, config, now) {
@@ -192,6 +194,19 @@ export function reduce(state, action, config, now) {
       }
       return { error: "unknown kiosk action" };
     }
+    case "connect": {
+      if (typeof action.id !== "string" || typeof action.profile !== "string" || !action.profile) return { error: "bad kiosk" };
+      const kiosk = {
+        profile: action.profile,
+        // A `?page=` pin; otherwise the kiosk shows the profile's page.
+        page: typeof action.page === "string" && action.page ? action.page : null,
+        address: typeof action.address === "string" ? action.address.replace(/^::ffff:/, "") : null,
+        since: now,
+      };
+      return { ...state, kiosks: { ...state.kiosks, [action.id]: kiosk } };
+    }
+    case "disconnect":
+      return state.kiosks[action.id] ? { ...state, kiosks: withKey(state.kiosks, action.id, undefined) } : state;
     case "tick": {
       let next = state.mutedUntil !== null && now >= state.mutedUntil ? { ...state, mutedUntil: null } : state;
       for (const profile of profilesOf(config)) {
@@ -246,8 +261,15 @@ export function reduce(state, action, config, now) {
   }
 }
 
+/** A kiosk as clients see it: the page it shows is its pin while the profile has that page, else the profile's. */
+function publicKiosk(state, config, id, kiosk) {
+  const ids = pageIds(findProfile(config, kiosk.profile));
+  const page = kiosk.page && ids.includes(kiosk.page) ? kiosk.page : currentPage(state, config, kiosk.profile);
+  return { id, profile: kiosk.profile, page, address: kiosk.address, since: kiosk.since };
+}
+
 /** What clients see: per profile its page, rotation, dim level, island and reload counter, plus the override, the
- * shown profile, the active alerts, the alert mute and the global reload counter. */
+ * shown profile, the active alerts, the alert mute, the global reload counter and the open kiosks (oldest first). */
 export function publicState(state, config) {
   const profiles = {};
   for (const p of profilesOf(config)) {
@@ -265,6 +287,7 @@ export function publicState(state, config) {
   return {
     profile: state.profile, shown: state.shown, profiles, alerts: state.alerts,
     mutedUntil: state.mutedUntil, reload: state.reload,
+    kiosks: Object.entries(state.kiosks).map(([id, k]) => publicKiosk(state, config, id, k)),
   };
 }
 
@@ -305,6 +328,7 @@ export function createControl({ file, readConfig, now = () => Date.now(), tickMs
   let state = { ...load(file, now()), reload: now() };
   let config = readConfig();
   const listeners = new Set();
+  let kioskSeq = 0;
 
   const commit = (next) => {
     if (next === state) return;
@@ -357,6 +381,14 @@ export function createControl({ file, readConfig, now = () => Date.now(), tickMs
       // Same state, but pages may have been added or removed: publish anyway.
       const view = publicState(state, config);
       for (const fn of listeners) fn(view);
+    },
+    /** A kiosk stream opened (`profile` from `?profile=`, `page` from `?page=`): its id for `disconnect`. */
+    connect({ profile, page, address }) {
+      const id = `k${++kioskSeq}`;
+      return dispatch({ type: "connect", id, profile, page, address }).error ? null : id;
+    },
+    disconnect(id) {
+      if (id) dispatch({ type: "disconnect", id });
     },
     subscribe(fn) {
       listeners.add(fn);

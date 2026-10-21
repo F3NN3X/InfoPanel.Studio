@@ -5,8 +5,8 @@ import type { DashboardConfig, MonitorProfile } from "./layout";
 
 /**
  * The control channel — runtime state the server holds (server/control.mjs):
- * the page each profile shows, a profile override, page auto-rotation, the alert mute and the
- * kiosk's reload, dim and island controls.
+ * the page each profile shows, a profile override, page auto-rotation, the alert mute, the
+ * kiosk's reload, dim and island controls, and the kiosks connected right now.
  * Kiosks and the studio read it over one SSE stream and write it with POSTs;
  * none of it is config, so none of it enters the undo history.
  */
@@ -27,8 +27,23 @@ export interface ControlState {
   mutedUntil: number | null;
   /** The global reload counter; a kiosk reloads when it, or its profile's, grows. */
   reload: number;
+  /** The open kiosk streams, oldest first (absent from a server before the registry). */
+  kiosks?: ControlKiosk[];
   /** Client only: which connection delivered this state (changes on every reconnect). */
   link?: number;
+}
+
+/** A kiosk connected now: a control stream that reports the profile it shows. */
+export interface ControlKiosk {
+  /** The connection's id (unique while the server runs). */
+  id: string;
+  profile: string;
+  /** The page it shows: its `?page=` pin, else the profile's current page (null: an unknown profile). */
+  page: string | null;
+  /** The kiosk's IP address as the server sees it. */
+  address: string | null;
+  /** When it connected (epoch ms). */
+  since: number;
 }
 
 /** One profile in the control state. */
@@ -82,14 +97,14 @@ let connections = 0;
 /**
  * The latest control state, or null until the first message (and while the
  * server is unreachable). `shownProfile` tells the server which profile this
- * kiosk shows. One subscription per page — never per zone. `enabled` off
- * opens nothing.
+ * kiosk shows (and `pinnedPage` its `?page=` pin), which lists it as a kiosk.
+ * One subscription per page — never per zone. `enabled` off opens nothing.
  */
-export function useControl(shownProfile?: string, enabled = true): ControlState | null {
+export function useControl(shownProfile?: string, enabled = true, pinnedPage?: string): ControlState | null {
   const [state, setState] = useState<ControlState | null>(null);
   useEffect(() => {
     if (!enabled || typeof EventSource === "undefined") return;
-    const url = shownProfile ? `${CONTROL_EVENTS_URL}?profile=${encodeURIComponent(shownProfile)}` : CONTROL_EVENTS_URL;
+    const url = controlEventsUrl(shownProfile, pinnedPage);
     const events = trackEventSource(new EventSource(url));
     let link = 0;
     events.onopen = () => {
@@ -103,9 +118,21 @@ export function useControl(shownProfile?: string, enabled = true): ControlState 
       }
     };
     return () => events.close();
-  }, [shownProfile, enabled]);
+  }, [shownProfile, enabled, pinnedPage]);
   return state;
 }
+
+/** The control stream's URL: a kiosk reports its profile and page pin; the studio neither. */
+export function controlEventsUrl(shownProfile?: string, pinnedPage?: string): string {
+  if (!shownProfile) return CONTROL_EVENTS_URL;
+  const q = new URLSearchParams({ profile: shownProfile, ...(pinnedPage ? { page: pinnedPage } : {}) });
+  return `${CONTROL_EVENTS_URL}?${q}`;
+}
+
+const NO_KIOSKS: readonly ControlKiosk[] = [];
+
+/** The kiosks connected now, from the page's one `useControl` state (the status bar, Live). */
+export const kiosksOf = (control: ControlState | null): readonly ControlKiosk[] => control?.kiosks ?? NO_KIOSKS;
 
 /**
  * The page a kiosk shows: the `?page=` pin when the profile has it, else the

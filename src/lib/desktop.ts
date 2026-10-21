@@ -5,6 +5,7 @@
  */
 
 import { helpPageUrl, type HelpTarget } from "@/help/links";
+import type { Settings, Status, UpdateState } from "@/settings/types";
 
 /** True inside the desktop app's webview. */
 export function isTauri(): boolean {
@@ -58,6 +59,29 @@ export async function onKioskLeft(handler: () => void): Promise<() => void> {
   if (!isTauri()) return () => {};
   const { listen } = await import("@tauri-apps/api/event");
   return listen("kiosk-left", handler);
+}
+
+/**
+ * A read for the status bar that the studio's permission set may not grant yet (`server_status`,
+ * `update_state`, `get_settings`): undefined in a browser and when the shell refuses.
+ */
+async function tryCall<T>(command: string): Promise<T | undefined> {
+  try {
+    return await call<T>(command);
+  } catch {
+    return undefined;
+  }
+}
+
+export const serverStatus = (): Promise<Status | undefined> => tryCall<Status>("server_status");
+export const updateState = (): Promise<UpdateState | undefined> => tryCall<UpdateState>("update_state");
+export const appSettings = (): Promise<Settings | undefined> => tryCall<Settings>("get_settings");
+
+/** Calls `handler` with each `server-status` / `update-state` event the shell emits; resolves to the unsubscribe. */
+export async function onShellEvent<T>(event: "server-status" | "update-state", handler: (payload: T) => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen<T>(event, (e) => handler(e.payload));
 }
 
 /** Native save dialog; resolves to whether a file was written. */

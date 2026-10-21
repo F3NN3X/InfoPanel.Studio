@@ -214,6 +214,30 @@ describe("reduce: mute", () => {
   });
 });
 
+describe("reduce: kiosk registry", () => {
+  const c = config();
+  const open = (s, id, extra) => reduce(s, { type: "connect", id, profile: "desk", ...extra }, c, 1000);
+  it("lists each open stream with the page it shows, its address and since when", () => {
+    let s = open(emptyState(), "k1", { address: "::ffff:192.168.1.20" });
+    s = reduce(s, { type: "page", profile: "desk", page: "game" }, c, 1000);
+    s = open(s, "k2", { page: "stream", address: "::1" });
+    expect(publicState(s, c).kiosks).toEqual([
+      { id: "k1", profile: "desk", page: "game", address: "192.168.1.20", since: 1000 },
+      { id: "k2", profile: "desk", page: "stream", address: "::1", since: 1000 },
+    ]);
+  });
+  it("shows the profile's page for a pin the profile does not have, and none for an unknown profile", () => {
+    const s = reduce(open(emptyState(), "k1", { page: "gone" }), { type: "connect", id: "k2", profile: "nope" }, c, 0);
+    expect(publicState(s, c).kiosks.map((k) => k.page)).toEqual(["main", null]);
+  });
+  it("drops a stream on disconnect, and refuses one without a profile", () => {
+    const s = open(emptyState(), "k1");
+    expect(publicState(reduce(s, { type: "disconnect", id: "k1" }, c, 0), c).kiosks).toEqual([]);
+    expect(reduce(s, { type: "disconnect", id: "nope" }, c, 0)).toBe(s);
+    expect(reduce(emptyState(), { type: "connect", id: "k1" }, c, 0).error).toBeTruthy();
+  });
+});
+
 describe("createControl", () => {
   const dirs = [];
   afterEach(() => dirs.splice(0).forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
@@ -254,6 +278,7 @@ describe("createControl", () => {
       alerts: [],
       mutedUntil: null,
       reload: 5000,
+      kiosks: [],
     });
   });
   it("publishes the active alerts and notifies only when they change", () => {
@@ -324,6 +349,19 @@ describe("createControl", () => {
     t = 60_000;
     a.dispatch({ type: "tick" });
     expect(seen).toEqual([null]);
+  });
+  it("publishes kiosk connects and disconnects, and keeps them out of control.json", () => {
+    const file = tmp();
+    const c = config();
+    const ctl = createControl({ file, readConfig: () => c, tickMs: 0 });
+    const seen = [];
+    ctl.subscribe((s) => seen.push(s.kiosks.length));
+    const id = ctl.connect({ profile: "desk", address: "127.0.0.1" });
+    ctl.dispatch({ type: "page", profile: "desk", page: "game" });
+    ctl.disconnect(id);
+    expect(seen).toEqual([1, 1, 0]);
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).kiosks).toBeUndefined();
+    expect(ctl.connect({ profile: "" })).toBeNull();
   });
   it("keeps alerts out of control.json", () => {
     const file = tmp();

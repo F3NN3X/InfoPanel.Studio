@@ -155,6 +155,7 @@ function DocumentSheet({
     style: scopeOf(profile, "style"),
     background: scopeOf(profile, "background"),
     performance: scopeOf(profile, "performance"),
+    font: scopeOf(profile, "font"),
   };
   const count = config.profiles.length;
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];

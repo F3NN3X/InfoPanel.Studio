@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import type { DashboardConfig, ProfileView, Widget } from "@/lib/layout";
 import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
+import { isTauri, openSettings } from "@/lib/desktop";
 import { useStoredDrawer, useStoredDrawerWidth, type Drawer, type RailItem } from "./left-rail";
 import { revealWidgetEditor, scrollInspectorToTop } from "./inspector-scroll";
 import { useCanvasZoom } from "./use-canvas-zoom";
 import { useQuickBarPref } from "./inspector/inspector-prefs";
 import { useStoredFlag } from "./use-stored-flag";
 import type { StudioMode } from "./studio-top-bar";
+import { useNavFocus, type NavRequest, type NavTarget } from "./studio-nav";
 import type { ThemeScope } from "./theme-editor-model";
 import { RAIL_WIDTH, pageSize, useStudioLayout } from "./use-studio-layout";
 
@@ -165,6 +167,45 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
 
   const revealEditor = () => revealWidgetEditor(inspectorRef.current);
 
+  /** The last `navigateTo` (its section and control get focus once they render). */
+  const [navRequest, setNavRequest] = useState<NavRequest>();
+  useNavFocus(navRequest);
+  /**
+   * Open a link's home (SPEC §4.1). Until the new views land (IMPLEMENTATION_PLAN phases 2-5),
+   * each view maps to today's place: Data to Sources, Alerts & Island and Screens to their
+   * drawers, Settings to the desktop window (App) or the profile inspector's Behaviour tab.
+   */
+  const navigateTo = (target: NavTarget) => {
+    switch (target.view) {
+      case "theme":
+        openTheme(target.themeScope ?? { kind: "profile" });
+        break;
+      case "library":
+        setMode("library");
+        break;
+      case "data":
+        setMode("sources");
+        break;
+      case "alerts":
+      case "screens":
+        setMode("design");
+        setDrawer(target.view === "screens" ? "profiles" : target.tab === "island" ? "island" : "alerts");
+        break;
+      case "settings":
+        if (target.tab === "app" && isTauri()) {
+          void openSettings(target.section);
+          return;
+        }
+        setMode("design");
+        openDocumentTab("behaviour");
+        break;
+      case "design":
+        setMode("design");
+        break;
+    }
+    setNavRequest((r) => ({ target, seq: (r?.seq ?? 0) + 1 }));
+  };
+
   return {
     mode,
     setMode,
@@ -204,6 +245,7 @@ export function useStudioUi(config: DashboardConfig, profile: ProfileView, onSav
     inspectorRef,
     importRef,
     revealEditor,
+    navigateTo,
     pickerFor,
     setPickerFor,
     paletteOpen,

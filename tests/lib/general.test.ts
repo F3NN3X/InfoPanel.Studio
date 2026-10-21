@@ -5,6 +5,7 @@ import {
   formatClock,
   isSupportedLocale,
   normalizeGeneral,
+  resolveFont,
   resolveGeneral,
   withGeneral,
 } from "@/lib/general";
@@ -95,6 +96,14 @@ describe("fontStack", () => {
 
   it("resolves catalog web fonts with a fallback", () => {
     expect(fontStack("inter")).toMatch(/^.Inter., .*sans-serif$/);
+  });
+});
+
+describe("resolveFont", () => {
+  it("takes the screen's own page font over the dashboard's (SPEC §11.1)", () => {
+    expect(resolveFont({ font: "inter" }, { font: "geist" })).toBe("geist");
+    expect(resolveFont({ font: "inter" }, {})).toBe("inter");
+    expect(resolveFont(GENERAL_DEFAULTS)).toBe("system");
   });
 });
 

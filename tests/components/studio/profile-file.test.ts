@@ -32,6 +32,12 @@ describe("profile file", () => {
     expect(ok(profileFileText(source))).toEqual(source);
   });
 
+  it("keeps the screen's page font through export and import, and drops an unknown one", () => {
+    const source = { ...profile(), font: "inter" as const };
+    expect(ok(profileFileText(source)).font).toBe("inter");
+    expect(ok(JSON.stringify({ ...profile(), font: "comic" })).font).toBeUndefined();
+  });
+
   it("carries the envelope that tells it from other JSON", () => {
     const file = JSON.parse(profileFileText(profile()));
     expect(file).toMatchObject({ type: PROFILE_FILE_TYPE, version: 1 });

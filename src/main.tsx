@@ -15,6 +15,9 @@ const widgetQa = new URLSearchParams(window.location.search).has("widget-qa");
 // ?viz-gallery: every visualiser style and look from a deterministic test signal (a lazy chunk, never linked).
 const VizGallery = lazy(() => import("@/widgets/core/viz/viz-gallery"));
 const vizGallery = new URLSearchParams(window.location.search).has("viz-gallery");
+// ?ia-preview: the settings IA's chips, LinkRow and status bar in every state (a lazy chunk, never linked).
+const IaPreview = lazy(() => import("@/components/studio/ia-preview"));
+const iaPreview = new URLSearchParams(window.location.search).has("ia-preview");
 
 // Desktop app: forward errors and (in debug mode) sample health, once per page load.
 const stopDesktopDebug = startDesktopDebug();
@@ -36,6 +39,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     ) : vizGallery ? (
       <Suspense fallback={null}>
         <VizGallery />
+      </Suspense>
+    ) : iaPreview ? (
+      <Suspense fallback={null}>
+        <IaPreview />
       </Suspense>
     ) : (
       <App />

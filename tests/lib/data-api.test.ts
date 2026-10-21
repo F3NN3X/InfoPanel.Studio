@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  dataApiState,
   DEFAULT_API_BASE,
   getApiBase,
   normalizeApiBase,
+  pingApiBase,
   setApiBase,
+  SLOW_API_MS,
   subscribeApiBase,
   testApiBase,
 } from "@/lib/data-api";
@@ -53,5 +56,26 @@ describe("testApiBase", () => {
 
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("refused"))));
     expect(await testApiBase("http://x")).toBe(false);
+  });
+});
+
+describe("Data API status", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("times a ping, and gives null when the API does not answer 200", async () => {
+    let t = 0;
+    const clock = () => (t += 18);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
+    expect(await pingApiBase("http://h", clock)).toBe(18);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503 })));
+    expect(await pingApiBase("http://h", clock)).toBeNull();
+  });
+
+  it("is unreachable with a stream down or a failed ping, slow past the threshold", () => {
+    expect(dataApiState(true, undefined)).toBe("connected");
+    expect(dataApiState(true, SLOW_API_MS)).toBe("connected");
+    expect(dataApiState(true, SLOW_API_MS + 1)).toBe("slow");
+    expect(dataApiState(true, null)).toBe("unreachable");
+    expect(dataApiState(false, 5)).toBe("unreachable");
   });
 });

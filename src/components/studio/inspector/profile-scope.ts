@@ -8,7 +8,8 @@ import { SECTION_IDS, withAllLocked, withThemeValues, type WidgetTheme } from "@
  * The profile inspector's All profiles | This profile switches, as data. A section is "This
  * profile" while the profile holds its own value (the key is present) and "All profiles" while
  * it doesn't; the switch only adds or drops that key, so nothing new is stored. Pure config
- * updates the studio runs through its history setter.
+ * updates the studio runs through its history setter. The inheritance chips' Screen level of
+ * the two-level data (`inheritance-actions.ts`) uses the same switch.
  */
 
 export type LookScope = "all" | "profile";
@@ -22,9 +23,9 @@ export interface ProfileTheme {
   radius?: number;
 }
 
-export type ScopedSection = "theme" | "style" | "background" | "performance";
+export type ScopedSection = "theme" | "style" | "background" | "performance" | "font";
 
-type Own = Pick<MonitorProfile, "theme" | "radius" | "widgetTheme" | "background" | "performance">;
+type Own = Pick<MonitorProfile, "theme" | "radius" | "widgetTheme" | "background" | "performance" | "font">;
 
 /** Where a section's edits go: the profile's own value is present, else the dashboard's. */
 export function scopeOf(profile: Own, section: ScopedSection): LookScope {
@@ -35,7 +36,9 @@ export function scopeOf(profile: Own, section: ScopedSection): LookScope {
         ? profile.widgetTheme?.values !== undefined
         : section === "background"
           ? profile.background !== undefined
-          : profile.performance !== undefined;
+          : section === "performance"
+            ? profile.performance !== undefined
+            : profile.font !== undefined;
   return own ? "profile" : "all";
 }
 
@@ -67,6 +70,9 @@ function profileInScope(config: DashboardConfig, p: MonitorProfile, section: Sco
               motion: config.general?.motion ?? GENERAL_DEFAULTS.motion,
             },
           };
+    case "font":
+      // The page font starts at the dashboard's (SPEC §11.1).
+      return scope === "all" ? without(p, "font") : { ...p, font: config.general?.font ?? GENERAL_DEFAULTS.font };
   }
 }
 

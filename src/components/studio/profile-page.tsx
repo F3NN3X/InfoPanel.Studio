@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { PageBackground } from "@/components/page-background";
 import { posterBackground, resolveBackground } from "@/lib/appearance";
-import { fontStack } from "@/lib/general";
+import { fontStack, resolveFont } from "@/lib/general";
 import { SCROLL_ROW_H, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
@@ -22,7 +22,7 @@ export function ProfilePage({ profile, dashboard }: { profile: MonitorProfile; d
   const theme = resolveTheme(dashboard, profile);
   const bg = resolveBackground(dashboard, profile);
   const background = bg && (bg.type === "video" ? posterBackground(bg) : bg);
-  const font = fontStack(useGeneral().font);
+  const font = fontStack(resolveFont(useGeneral(), profile));
   const fill = view.fit === "fill" && view.height > 0;
   const padding = profilePadding(view, true);
   const appearance = useMemo(() => appearanceOf(dashboard, view), [dashboard, view]);

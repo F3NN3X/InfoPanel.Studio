@@ -36,7 +36,7 @@ const ROWS = [1, 24] as const;
 /** The fields of a profile the app knows (MonitorProfile, and the legacy ones a migration reads); anything else is not imported. */
 const PROFILE_KEYS = [
   "id", "name", "width", "height", "cols", "rows", "fit", "pages", "placements", "rotate", "widgetTheme", "background",
-  "theme", "radius", "gap", "padding", "island", "performance", "sampleVersion", "style", "styleEnforce",
+  "theme", "radius", "gap", "padding", "island", "performance", "font", "sampleVersion", "style", "styleEnforce",
 ] as const;
 /** The fields of a page (ProfilePage). */
 const PAGE_KEYS = ["id", "name", "icon", "placements", "widgetTheme"] as const;
