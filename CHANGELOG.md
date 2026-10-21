@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.7] - 2026-10-21
+
 ### Added
 - Control actions for the Stream Deck plugin and other remotes:
   - **Mute alerts** for 1 to 1440 minutes with `POST /api/control/alert` `{ action: "mute", minutes }`, and `0` to unmute. Muted alerts still land in the history.
