@@ -9,6 +9,7 @@ import { AlertLayer, useShownAlerts, ZoneHighlights } from "@/components/alerts/
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { islandReserve } from "@/components/island/island-model";
 import { splitIslandAlerts } from "@/lib/island/from-alerts";
+import { ISLAND_DEFAULTS } from "@/lib/island/config";
 import { islandFeeds } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
@@ -157,7 +158,8 @@ export default function App() {
   const savedIsland = profile.island?.enabled === true;
   const islandShown = kiosk ? islandEffective(control, profile) : savedIsland;
   const islandConfig = useMemo(
-    () => (profile.island && (islandShown || savedIsland) ? { ...profile.island, enabled: true } : undefined),
+    () =>
+      islandShown || savedIsland ? { ...(profile.island ?? ISLAND_DEFAULTS), enabled: true } : undefined,
     [profile.island, islandShown, savedIsland]
   );
   const island = islandShown ? islandConfig : undefined;
@@ -597,14 +599,13 @@ export default function App() {
   );
 }
 
-/** Kiosk dim (Stream Deck): a black veil over the page and island, under the alerts. Nothing at 0. */
+/** Kiosk dim (Stream Deck): a black veil over the page and island, under the alerts. Stays mounted at opacity 0 so it fades both ways. */
 function DimOverlay({ level }: { level: number }) {
   const reduced = useReducedMotion();
-  if (level <= 0) return null;
   return (
     <div
       className="pointer-events-none fixed inset-0 z-[58] bg-black"
-      style={{ opacity: level, transition: reduced ? undefined : "opacity 300ms" }}
+      style={{ opacity: Math.max(0, level), transition: reduced ? undefined : "opacity 300ms" }}
       data-dim-overlay
     />
   );

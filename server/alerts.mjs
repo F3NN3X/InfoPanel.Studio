@@ -578,7 +578,7 @@ export function createAlerts({
 
   /** Whether alerts are muted right now (control holds the deadline). */
   const muted = () => {
-    const until = control.get().mutedUntil;
+    const until = control.mutedUntil();
     return typeof until === "number" && now() < until;
   };
 

@@ -105,10 +105,16 @@ describe("reduce: kiosk reload", () => {
     const s0 = { ...emptyState(), reload: 100 };
     const s1 = reduce(s0, { type: "kiosk", action: "reload" }, c, 0);
     expect(publicState(s1, c).reload).toBe(101);
-    const s2 = reduce(s1, { type: "kiosk", action: "reload", profile: "desk" }, c, 0);
+    const s2 = reduce(s1, { type: "kiosk", action: "reload", profile: "desk" }, c, 5000);
     expect(publicState(s2, c).profiles.desk.reload).toBe(102);
     expect(publicState(s2, c).profiles.strip.reload).toBe(101);
-    expect(publicState(reduce(s2, { type: "kiosk", action: "reload" }, c, 0), c).reload).toBe(103);
+    expect(publicState(reduce(s2, { type: "kiosk", action: "reload" }, c, 10_000), c).reload).toBe(103);
+  });
+  it("ignores a bump within 2 s of the last, global or per profile", () => {
+    const s1 = reduce(emptyState(), { type: "kiosk", action: "reload" }, c, 10_000);
+    expect(reduce(s1, { type: "kiosk", action: "reload" }, c, 11_999)).toBe(s1);
+    expect(reduce(s1, { type: "kiosk", action: "reload", profile: "desk" }, c, 11_999)).toBe(s1);
+    expect(reduce(s1, { type: "kiosk", action: "reload" }, c, 12_000)).not.toBe(s1);
   });
   it("refuses an unknown profile and an unknown action", () => {
     expect(reduce(emptyState(), { type: "kiosk", action: "reload", profile: "nope" }, c, 0).error).toBeTruthy();
@@ -137,6 +143,11 @@ describe("reduce: kiosk dim", () => {
   it("targets the usual profile without one", () => {
     const s = reduce({ ...emptyState(), shown: "strip" }, { type: "kiosk", action: "dim", state: "on" }, c, 0);
     expect(publicState(s, c).profiles.strip.dim).toBe(0.6);
+  });
+  it("treats a null level as unset and skips level validation when turning off", () => {
+    expect(publicState(dim(emptyState(), { state: "on", level: null }), c).profiles.desk.dim).toBe(0.6);
+    const on = dim(emptyState(), { state: "on" });
+    expect(dim(on, { state: "off", level: 5 }).error).toBeUndefined();
   });
   it("refuses a bad level or state and an unknown profile; returns the same state for a no-op", () => {
     for (const level of [0.05, 0.95, "0.5", NaN]) expect(dim(emptyState(), { level }).error).toBeTruthy();
@@ -278,6 +289,27 @@ describe("createControl", () => {
     const b = createControl({ file, readConfig: () => c, tickMs: 0, now: () => t });
     expect(b.get()).toMatchObject({ mutedUntil: 1000 + 600_000, reload: 9000 });
     expect(b.get().profiles.desk).toMatchObject({ dim: 0.4, island: false, islandOverride: "off", reload: 9000 });
+  });
+  it("drops bad values from control.json on load", () => {
+    const file = tmp();
+    fs.writeFileSync(file, JSON.stringify({
+      mutedUntil: 1000 + 1441 * 60_000,
+      dim: { desk: 5, strip: 0.5, x: "a", y: null },
+      dimLevel: { desk: 99, strip: 0.2 },
+      islandOverride: { desk: "yes", strip: "off" },
+    }));
+    const got = createControl({ file, readConfig: () => config(), tickMs: 0, now: () => 1000 }).get();
+    expect(got.mutedUntil).toBeNull();
+    expect(got.profiles.desk).toMatchObject({ dim: 0, islandOverride: null });
+    expect(got.profiles.strip).toMatchObject({ dim: 0.5, islandOverride: "off" });
+  });
+  it("drops a deleted profile's dim on config change", () => {
+    const before = config();
+    const s = { ...emptyState(), dim: { strip: 0.5, desk: 0.3 }, dimLevel: { strip: 0.5 } };
+    const after = { ...before, profiles: [before.profiles[0]] };
+    const next = reduce(s, { type: "config", previous: before }, after, 0);
+    expect(next.dim).toEqual({ desk: 0.3 });
+    expect(next.dimLevel).toEqual({});
   });
   it("loads an elapsed mute as null and clears a live one on tick", () => {
     const file = tmp();

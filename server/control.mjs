@@ -20,14 +20,16 @@ export const DIM_DEFAULT = 0.6;
 export const DIM_MIN = 0.1;
 export const DIM_MAX = 0.9;
 export const MUTE_MAX_MINUTES = 1440;
+/** A reload bump within this long of the last one is ignored, so a loop of POSTs can't storm the kiosks. */
+export const RELOAD_COALESCE_MS = 2000;
 
 /** The empty state. `mutedUntil`, `dim` (the level while on), `dimLevel` (the last one used) and `islandOverride`
  * are durable. `shown` (the profile a kiosk last reported), `nextAt`, `alerts` (the active list server/alerts.mjs
  * publishes) and the reload counters (`reload`, `reloads`; createControl starts them at the server start time)
- * are runtime only. */
+ * are runtime only (`reloadAt` is when the last bump was taken). */
 export const emptyState = () => ({
   profile: null, shown: null, pages: {}, override: {}, nextAt: {}, alerts: [],
-  mutedUntil: null, dim: {}, dimLevel: {}, islandOverride: {}, reload: 0, reloads: {},
+  mutedUntil: null, dim: {}, dimLevel: {}, islandOverride: {}, reload: 0, reloads: {}, reloadAt: null,
 });
 
 const profilesOf = (config) => (Array.isArray(config?.profiles) ? config.profiles : []);
@@ -98,6 +100,8 @@ const held = (state, config, profileId, now) =>
     ? { ...state, nextAt: withKey(state.nextAt, profileId, now + Math.max(ROTATE_PAUSE_MS, rotateMs(findProfile(config, profileId)))) }
     : state;
 
+const validDim = (v) => typeof v === "number" && v >= DIM_MIN && v <= DIM_MAX;
+
 const toggled = (want, was) => (want === "toggle" ? (was ? "off" : "on") : want);
 
 /**
@@ -156,22 +160,24 @@ export function reduce(state, action, config, now) {
       const named = action.profile !== undefined && action.profile !== null;
       if (named && !findProfile(config, action.profile)) return { error: "unknown profile" };
       if (action.action === "reload") {
+        if (state.reloadAt !== null && now - state.reloadAt < RELOAD_COALESCE_MS) return state;
         // One above every counter, so a bump always grows what a kiosk compares.
         const top = Math.max(state.reload, ...Object.values(state.reloads)) + 1;
-        return named ? { ...state, reloads: { ...state.reloads, [action.profile]: top } } : { ...state, reload: top };
+        return named
+          ? { ...state, reloads: { ...state.reloads, [action.profile]: top }, reloadAt: now }
+          : { ...state, reload: top, reloadAt: now };
       }
       const id = named ? action.profile : targetProfile(state, config);
       if (!id) return { error: "no profile" };
       const want = action.state ?? "toggle";
       if (action.action === "dim") {
         if (want !== "on" && want !== "off" && want !== "toggle") return { error: "bad dim state" };
-        const given = action.level;
-        if (given !== undefined && !(typeof given === "number" && given >= DIM_MIN && given <= DIM_MAX)) {
-          return { error: "bad dim level" };
+        const wasOn = state.dim[id] !== undefined;
+        if (toggled(want, wasOn) === "off") {
+          return wasOn ? { ...state, dim: withKey(state.dim, id, undefined) } : state;
         }
-        if (toggled(want, state.dim[id] !== undefined) === "off") {
-          return state.dim[id] === undefined ? state : { ...state, dim: withKey(state.dim, id, undefined) };
-        }
+        const given = action.level ?? undefined;
+        if (given !== undefined && !validDim(given)) return { error: "bad dim level" };
         const level = given ?? state.dimLevel[id] ?? DIM_DEFAULT;
         return state.dim[id] === level && state.dimLevel[id] === level
           ? state
@@ -227,6 +233,12 @@ export function reduce(state, action, config, now) {
           next = { ...next, islandOverride: withKey(next.islandOverride, id, undefined) };
         }
       }
+      // A deleted profile's dim goes with it.
+      for (const key of ["dim", "dimLevel"]) {
+        for (const id of Object.keys(state[key])) {
+          if (!findProfile(config, id)) next = { ...next, [key]: withKey(next[key], id, undefined) };
+        }
+      }
       return next;
     }
     default:
@@ -266,15 +278,19 @@ function load(file, now) {
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));
     const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+    const pick = (v, ok) => Object.fromEntries(Object.entries(obj(v)).filter(([, x]) => ok(x)));
     return {
       ...emptyState(),
       profile: typeof raw.profile === "string" ? raw.profile : null,
       pages: obj(raw.pages),
       override: obj(raw.override),
-      mutedUntil: typeof raw.mutedUntil === "number" && raw.mutedUntil > now ? raw.mutedUntil : null,
-      dim: obj(raw.dim),
-      dimLevel: obj(raw.dimLevel),
-      islandOverride: obj(raw.islandOverride),
+      mutedUntil:
+        typeof raw.mutedUntil === "number" && raw.mutedUntil > now && raw.mutedUntil <= now + MUTE_MAX_MINUTES * 60_000
+          ? raw.mutedUntil
+          : null,
+      dim: pick(raw.dim, validDim),
+      dimLevel: pick(raw.dimLevel, validDim),
+      islandOverride: pick(raw.islandOverride, (v) => v === "on" || v === "off"),
     };
   } catch {
     return emptyState();
@@ -293,7 +309,11 @@ export function createControl({ file, readConfig, now = () => Date.now(), tickMs
   const commit = (next) => {
     if (next === state) return;
     const persist = JSON.stringify(durable(next)) !== JSON.stringify(durable(state));
+    const wasMuted = state.mutedUntil;
     state = next;
+    if (next.mutedUntil !== wasMuted) {
+      console.log(next.mutedUntil === null ? "alerts unmuted" : `alerts muted until ${new Date(next.mutedUntil).toISOString()}`);
+    }
     if (persist) {
       try {
         fs.writeFileSync(`${file}.tmp`, JSON.stringify(durable(state)));
@@ -322,6 +342,8 @@ export function createControl({ file, readConfig, now = () => Date.now(), tickMs
   return {
     dispatch,
     get: () => publicState(state, config),
+    /** The alert mute deadline (epoch ms) or null; cheaper than `get()`. */
+    mutedUntil: () => state.mutedUntil,
     /** Publish the active alerts (from server/alerts.mjs); listeners fire only when the list changed. */
     setAlerts(list) {
       if (JSON.stringify(list) !== JSON.stringify(state.alerts)) commit({ ...state, alerts: list });
