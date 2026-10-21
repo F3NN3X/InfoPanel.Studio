@@ -31,27 +31,20 @@ export interface MetricsSample {
 }
 
 /**
- * Calls `handler` when the shell asks the studio to open Settings › App (the tray's Settings and Update entries),
- * with the section to show (a `SectionId`) or null; resolves to the unsubscribe. The separate Settings window opens
- * only from the start page.
+ * Opens the Settings window (PLAN decisions 21 and 23) at a page (`server`, `dashboard/performance`; none: as it was).
+ * The desktop app has its own window, which loads this server's `/?settings`; a browser opens that page in a tab,
+ * reused by name so repeated clicks land on one. The tab keeps its opener, so a Settings link can come back here.
  */
-export async function onOpenSettingsRequest(handler: (section: string | null) => void): Promise<() => void> {
-  if (!isTauri()) return () => {};
-  const { listen } = await import("@tauri-apps/api/event");
-  return listen<string | null>("studio://open-settings", (e) => handler(e.payload));
+export async function openSettings(page?: string): Promise<void> {
+  if (isTauri()) {
+    await call<void>("open_settings", { section: page });
+    return;
+  }
+  window.open(`/?settings${page ? `#${page}` : ""}`, "infopanel-settings");
 }
 
-/**
- * The tray's Settings request that came before the studio page could listen (the tray built the window, or the page
- * was still loading): `{ section }` once, else null. Asked when the studio mounts.
- */
-export const takePendingSettings = async (): Promise<{ section: string | null } | null> => {
-  try {
-    return (await call<{ section: string | null } | null>("take_pending_settings")) ?? null;
-  } catch {
-    return null;
-  }
-};
+/** The Settings window's links into the Studio (`src/lib/studio-channel.ts`): show and focus the Studio window. */
+export const showStudio = (): Promise<void | undefined> => call<void>("show_studio");
 
 /**
  * Opens Help at an article and heading (a slug). The desktop app has a Help window; a browser tab

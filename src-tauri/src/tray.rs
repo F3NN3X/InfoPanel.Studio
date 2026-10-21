@@ -85,8 +85,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                         log::warn!("could not open the kiosk: {e}");
                     }
                 }
-                "settings" => windows::show_settings_in_studio(app, None),
-                "update" => windows::show_settings_in_studio(app, Some("updates")),
+                "settings" => windows::show_settings(app, None),
+                "update" => windows::show_settings(app, Some("updates")),
                 "help" => windows::show_help(app, &windows::HelpTarget::new(None, None)),
                 "server_toggle" => {
                     let app = app.clone();

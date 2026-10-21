@@ -1,25 +1,22 @@
 import { useState } from "react";
-import type { HistorySetter } from "@/hooks/use-config-history";
-import { COMMON_LOCALES, resolveGeneral, withGeneral, type GeneralSettings, type MotionChoice } from "@/lib/general";
-import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
-import { withScopeStyle } from "./appearance-actions";
-import { dropKeys } from "./settings-model";
+import { COMMON_LOCALES, resolveGeneral, type MotionChoice } from "@/lib/general";
+import type { DashboardConfig } from "@/lib/layout";
+import type { DashboardGeneralKey, SettingsPatch } from "@/lib/settings-patch";
 import { FPS_OPTIONS, MOTION_OPTIONS } from "./inspector/behaviour-model";
 import { LinkRow } from "./link-row";
 import { ResetConfigDialog } from "./reset-config-dialog";
 import { ownPerformanceText } from "./screens-model";
 import { SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
 import { SettingsGroup } from "./settings-group";
-import type { NavTarget } from "./studio-nav";
 
 interface SettingsDashboardProps {
   config: DashboardConfig;
-  /** The screen being edited: the Performance note names it when it has its own. */
-  screen: MonitorProfile;
-  setConfig: HistorySetter;
+  /** Save a change at once (PLAN decision 22). */
+  onPatch: (patch: SettingsPatch) => void;
   onExport: () => void;
   onReset: () => void;
-  navigateTo: (target: NavTarget) => void;
+  /** Screens in the Studio window, at a screen. */
+  onOpenScreen: (profileId: string) => void;
 }
 
 const CLOCKS = [
@@ -39,23 +36,22 @@ function localeOptions(current: string): { value: string; label: string }[] {
 }
 
 /**
- * Settings › Dashboard (SPEC §10.1): what applies to every screen. Performance is the default screens inherit (a
- * screen's own is set in Screens), then the clock and date, the kiosk's page dots and cursor, and the danger zone.
+ * Settings › Dashboard (SPEC §10.1, PLAN decisions 21 and 22), in the Settings window: what applies to every screen,
+ * saved the moment it changes. Performance is the default screens inherit (a screen's own is set in Screens), then
+ * the clock and date, the kiosk's page dots and cursor, and the danger zone.
  */
-export function SettingsDashboard({ config, screen, setConfig, onExport, onReset, navigateTo }: SettingsDashboardProps) {
+export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenScreen }: SettingsDashboardProps) {
   const [confirmReset, setConfirmReset] = useState(false);
   const g = resolveGeneral(config);
   const hours = config.style?.clock === undefined ? undefined : String(config.style.clock);
-  /** Set one general setting (same-key edits coalesce in undo). */
-  const set = <K extends keyof GeneralSettings>(key: K, value: GeneralSettings[K]) =>
-    setConfig((c) => ({ ...c, general: withGeneral(c.general, key, value) }), `general:${key}`);
+  /** Set one general setting; undefined puts it back to the default. */
+  const set = (key: DashboardGeneralKey, value: string | number | boolean | undefined) => onPatch({ general: { [key]: value ?? null } });
   /** The clocks' 12 / 24 h: the all-screens style's themed `clock` (config v7). */
-  const setHours = (value: string | undefined) =>
-    setConfig(
-      (c) => withScopeStyle(c, { kind: "all" }, (s) => (value === undefined ? (dropKeys(s, new Set(["clock"])) ?? {}) : { ...s, clock: value })),
-      "appearance-style:all"
-    );
-  const own = ownPerformanceText(screen.performance);
+  const setHours = (value: "12" | "24" | undefined) => onPatch({ style: { clock: value ?? null } });
+  const own = config.profiles.flatMap((p) => {
+    const text = ownPerformanceText(p.performance);
+    return text ? [{ id: p.id, name: p.name, text }] : [];
+  });
   return (
     <>
       <SettingsGroup id="performance" title="Performance" scope="Default for all screens">
@@ -75,13 +71,9 @@ export function SettingsDashboard({ config, screen, setConfig, onExport, onReset
           value={g.motion}
           onChange={(v) => set("motion", v === "system" ? undefined : (v as MotionChoice))}
         />
-        {own && (
-          <LinkRow
-            note={`${screen.name} uses its own (${own}).`}
-            link="Screens"
-            onNavigate={() => navigateTo({ view: "screens", profileId: screen.id, section: "performance" })}
-          />
-        )}
+        {own.map((screen) => (
+          <LinkRow key={screen.id} note={`${screen.name} uses its own (${screen.text}).`} link="Screens" onNavigate={() => onOpenScreen(screen.id)} />
+        ))}
       </SettingsGroup>
 
       <SettingsGroup id="clock" title="Clock & date" scope="All screens and the island">
@@ -90,7 +82,7 @@ export function SettingsDashboard({ config, screen, setConfig, onExport, onReset
           hint="Locale follows the date & time locale below. Every clock that follows the theme's Units & format reads it."
           options={CLOCKS}
           value={hours === "12" || hours === "24" ? hours : "auto"}
-          onChange={(v) => setHours(v === "auto" ? undefined : v)}
+          onChange={(v) => setHours(v === "12" || v === "24" ? v : undefined)}
         />
         <ToggleRow label="Show seconds" value={g.showSeconds} onChange={(v) => set("showSeconds", v ? undefined : false)} />
         <SelectRow

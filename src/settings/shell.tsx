@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Activity, Bot, CircleArrowDown, CircleCheck, CircleHelp, History, Info, RotateCcw, ScrollText, Server, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { CircleCheck, CircleHelp, RotateCcw, X } from "lucide-react";
 import { SearchBox, useSearchShortcut } from "@/app-window/search-box";
 import { TitleBar as WindowTitleBar } from "@/app-window/title-bar";
 import { cn } from "@/lib/utils";
@@ -7,23 +7,13 @@ import { settingsHelpTarget } from "@/help/context";
 import { ipc } from "./ipc";
 import { displayAddress, serverCard } from "./model/cards";
 import { restartText } from "./model/restart";
-import { SECTION_NAMES, searchSettings, type SectionId } from "./model/search";
+import { PAGE_NAMES, searchSettings, type PageId, type SearchEntry } from "./model/search";
+import { NavGroupLabel, NavItem, PAGE_ICONS, type NavGroup } from "./nav";
 import { useStore } from "./store";
 import { tone } from "./ui";
 
-/** The sections' sidebar icons (the spec names Material ones; these are lucide's closest). */
-export const SECTION_ICONS: Record<SectionId, LucideIcon> = {
-  general: SlidersHorizontal,
-  server: Server,
-  agents: Bot,
-  updates: CircleArrowDown,
-  diagnostics: Activity,
-  logs: ScrollText,
-  about: Info,
-  changelog: History,
-};
-
-const NAV_GROUPS: { label: string; items: SectionId[] }[] = [
+/** The rescue window's groups (app/settings.html): the App sections only. */
+const NAV_GROUPS: NavGroup[] = [
   { label: "App", items: ["general", "server", "agents", "updates"] },
   { label: "Troubleshoot", items: ["diagnostics", "logs"] },
   { label: "InfoPanel Studio", items: ["about", "changelog"] },
@@ -33,13 +23,19 @@ export function TitleBar() {
   return <WindowTitleBar title="InfoPanel Studio — Settings" />;
 }
 
+interface SidebarProps {
+  groups?: NavGroup[];
+  /** What search finds (the App sections' rows by default). */
+  index?: SearchEntry<PageId>[];
+}
+
 /** The nav: groups with indicators, or the search results. */
-export function Sidebar() {
+export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
   const { section, go, status, settings, update, lanIp } = useStore();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
-  const results = searchSettings(query);
+  const results = searchSettings<PageId>(query, index);
 
   useSearchShortcut(input);
 
@@ -80,7 +76,7 @@ export function Sidebar() {
           <>
             <div className="px-2.5 pb-1.5 pt-2 text-[10.5px] uppercase tracking-[0.07em] text-s-faint">{results.length === 0 ? "No matches" : `${results.length} result${results.length === 1 ? "" : "s"}`}</div>
             {results.map((r, i) => {
-              const Icon = SECTION_ICONS[r.section];
+              const Icon = PAGE_ICONS[r.section];
               return (
                 <button
                   key={`${r.row}-${r.label}`}
@@ -91,7 +87,7 @@ export function Sidebar() {
                   <span className="text-[13px]">{r.label}</span>
                   <span className="flex items-center gap-1 text-[11.5px] text-s-dim">
                     <Icon className="h-[13px] w-[13px]" />
-                    {SECTION_NAMES[r.section]}
+                    {PAGE_NAMES[r.section]}
                   </span>
                 </button>
               );
@@ -99,31 +95,16 @@ export function Sidebar() {
           </>
         ) : (
           <nav aria-label="Settings sections" className="contents">
-            {NAV_GROUPS.map((group) => (
+            {groups.map((group) => (
               <div key={group.label} className="contents">
-                <div className="px-2.5 pb-1.5 pt-3 text-[10.5px] font-medium uppercase tracking-[0.07em] text-s-faint">{group.label}</div>
-                {group.items.map((id) => {
-                  const Icon = SECTION_ICONS[id];
-                  const on = section === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      aria-current={on ? "page" : undefined}
-                      onClick={() => go(id)}
-                      className={cn(
-                        "flex h-[34px] w-full cursor-pointer items-center gap-2.5 rounded-lg border-0 px-2.5 text-left text-[13px] font-medium",
-                        on ? "bg-s-nav-on text-s-t1" : "bg-transparent text-s-t2 hover:bg-s-nav-hover"
-                      )}
-                    >
-                      <Icon className={cn("h-[18px] w-[18px]", on ? "text-s-accent-text" : "text-s-dim")} />
-                      <span className="flex-1">{SECTION_NAMES[id]}</span>
-                      {id === "server" && <span className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
-                      {id === "diagnostics" && settings.debug && <span className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
-                      {id === "updates" && updateBadge && <span className="rounded-full bg-s-accent/18 px-1.5 py-px text-[10.5px] font-semibold text-s-accent-text">1</span>}
-                    </button>
-                  );
-                })}
+                <NavGroupLabel>{group.label}</NavGroupLabel>
+                {group.items.map((id) => (
+                  <NavItem key={id} id={id} on={section === id} onClick={() => go(id)}>
+                    {id === "server" && <span className={cn("h-[7px] w-[7px] rounded-full", t.dot)} />}
+                    {id === "diagnostics" && settings.debug && <span className="h-[7px] w-[7px] rounded-full bg-s-amber" />}
+                    {id === "updates" && updateBadge && <span className="rounded-full bg-s-accent/18 px-1.5 py-px text-[10.5px] font-semibold text-s-accent-text">1</span>}
+                  </NavItem>
+                ))}
               </div>
             ))}
           </nav>

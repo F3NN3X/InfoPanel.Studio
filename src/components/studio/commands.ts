@@ -111,7 +111,7 @@ export interface CommandState {
 /** The Design left panel's two tabs. */
 export type Drawer = "add" | "layers";
 
-/** One entry per destination (SPEC §13): the views, and the tabs of Alerts & Island and Settings. */
+/** One entry per destination (SPEC §13): the views, the tabs of Alerts & Island, and the Settings window's pages. */
 const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: string }[] = [
   { id: "design", label: "Design", target: { view: "design" }, hint: "the canvas" },
   { id: "library", label: "Library", target: { view: "library" }, hint: "themes, styles, panels, media, fonts, canvases" },
@@ -122,6 +122,7 @@ const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: strin
   { id: "alerts:island", label: "Alerts & Island › Island", target: { view: "alerts", tab: "island" }, hint: "Dynamic Island" },
   { id: "alerts:defaults", label: "Alerts & Island › Defaults", target: { view: "alerts", tab: "defaults" } },
   { id: "alerts:history", label: "Alerts & Island › History", target: { view: "alerts", tab: "history" } },
+  { id: "settings:window", label: "Settings", target: { view: "settings" }, hint: KEYS.settings },
   { id: "settings:studio", label: "Settings › Studio", target: { view: "settings", tab: "studio" }, hint: "editor preferences" },
   { id: "settings:app", label: "Settings › App", target: { view: "settings", tab: "app" }, hint: "startup, server and updates" },
 ];

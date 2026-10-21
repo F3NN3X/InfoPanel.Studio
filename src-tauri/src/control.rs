@@ -14,7 +14,7 @@ const HEALTH_POLL: Duration = Duration::from_millis(250);
 const HEALTH_DEADLINE: Duration = Duration::from_secs(10);
 pub const STATUS_EVENT: &str = "server-status";
 
-/// The server permissions the studio page gets on its origin.
+/// The permissions the studio page gets on its origin: what the studio itself calls.
 const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-open-help",
     "allow-kiosk-window",
@@ -25,12 +25,29 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-report-metrics",
     "allow-get-debug",
     "allow-flush-done",
-    // Ctrl + / - / 0 in the studio.
-    "allow-set-zoom",
-    // Settings › App, the desktop settings pages inside the studio: exactly the commands they call
-    // (src/settings/ipc.ts), and the status bar's first reads.
+    // The status bar's reads: Server, Update and "Restart server to apply".
+    "allow-get-settings",
+    "allow-server-status",
+    "allow-update-state",
+    // The rail's Settings, Ctrl+, and the links to a Settings page.
+    "allow-open-settings",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    // The studio's top bar is the window's title bar (the window has no native frame).
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-is-maximized",
+];
+
+/// The permissions the Settings window gets on the studio's origin (PLAN decision 21): exactly what its
+/// pages call (src/settings/ipc.ts), the Back up first save, the jump back to the studio, and its title bar.
+const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-get-settings",
     "allow-set-setting",
+    "allow-set-zoom",
     "allow-server-status",
     "allow-start-server",
     "allow-stop-server",
@@ -57,11 +74,13 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-app-info",
     "allow-changelog",
     "allow-open-external",
-    // The tray's Settings request that arrived before the page could listen.
-    "allow-take-pending-settings",
+    "allow-open-help",
+    // ipc.ts is shared with Help, which opens Settings at a page; here it can only reopen this window.
+    "allow-open-settings",
+    "allow-save-text-file",
+    "allow-show-studio",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    // The studio's top bar is the window's title bar (the window has no native frame).
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",
@@ -549,7 +568,8 @@ pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// The server answers: allow the studio's IPC on its origin, load it, refresh the agent hooks.
+/// The server answers: allow the studio's and the settings window's IPC on its origin, load the studio
+/// (and an open settings window), refresh the agent hooks.
 fn on_running(app: &AppHandle) {
     let st = app.state::<AppState>();
     let s = st.settings();
@@ -560,6 +580,7 @@ fn on_running(app: &AppHandle) {
     }
     add_studio_capability(app, &origin);
     windows::load_studio(app, &state::studio_url(&origin));
+    windows::settings_follow_server(app, &origin);
     let node = crate::paths::display(&st.paths.node_exe());
     if agents::needs_reinstall(&s, &st.version, &node) {
         let app = app.clone();
@@ -567,23 +588,28 @@ fn on_running(app: &AppHandle) {
     }
 }
 
+/// Grants the studio window and the settings window their permissions on the server's origin, once
+/// per origin.
 fn add_studio_capability(app: &AppHandle, origin: &str) {
     let st = app.state::<AppState>();
-    let id = format!(
-        "studio-{}",
-        origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-")
-    );
-    if !lock(&st.capabilities).insert(id.clone()) {
-        return;
-    }
-    let mut cap = tauri::ipc::CapabilityBuilder::new(id)
-        .remote(format!("{origin}/*"))
-        .window("main");
-    for p in STUDIO_PERMISSIONS {
-        cap = cap.permission(*p);
-    }
-    if let Err(e) = app.add_capability(cap) {
-        log::error!("could not add the studio capability for {origin}: {e}");
+    let slug = origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-");
+    for (prefix, window, permissions) in [
+        ("studio", windows::MAIN, STUDIO_PERMISSIONS),
+        ("settings", windows::SETTINGS, SETTINGS_PERMISSIONS),
+    ] {
+        let id = format!("{prefix}-{slug}");
+        if !lock(&st.capabilities).insert(id.clone()) {
+            continue;
+        }
+        let mut cap = tauri::ipc::CapabilityBuilder::new(id)
+            .remote(format!("{origin}/*"))
+            .window(window);
+        for p in permissions {
+            cap = cap.permission(*p);
+        }
+        if let Err(e) = app.add_capability(cap) {
+            log::error!("could not add the {prefix} capability for {origin}: {e}");
+        }
     }
 }
 
@@ -660,16 +686,49 @@ mod tests {
     use super::*;
     use crate::settings::Listen;
 
-    #[test]
-    fn studio_permissions_are_unique_and_leave_the_settings_window_to_the_start_page() {
+    fn assert_unique(permissions: &[&str]) {
         let mut seen = std::collections::HashSet::new();
-        for p in STUDIO_PERMISSIONS {
+        for p in permissions {
             assert!(seen.insert(*p), "{p} is listed twice");
         }
-        // Nothing in the studio opens the separate Settings window; the pages it replaces are all granted.
-        assert!(!STUDIO_PERMISSIONS.contains(&"allow-open-settings"));
-        for command in ["allow-get-settings", "allow-set-setting", "allow-server-status", "allow-update-state", "allow-take-pending-settings"] {
+    }
+
+    /// The commands src/settings/ipc.ts calls, as permissions.
+    fn settings_page_commands() -> Vec<String> {
+        let ipc = include_str!("../../src/settings/ipc.ts");
+        ipc.split("invoke<")
+            .skip(1)
+            .filter_map(|call| call.split('"').nth(1))
+            .map(|command| format!("allow-{}", command.replace('_', "-")))
+            .collect()
+    }
+
+    #[test]
+    fn the_studio_keeps_only_what_it_calls() {
+        assert_unique(STUDIO_PERMISSIONS);
+        // The studio opens the Settings window and reads the status bar's state; it changes nothing in the shell.
+        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done"] {
             assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
+        }
+        for command in ["allow-set-setting", "allow-stop-server", "allow-install-update", "allow-set-agents", "allow-read-log", "allow-reveal-path", "allow-show-studio"] {
+            assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio");
+        }
+    }
+
+    #[test]
+    fn the_settings_window_gets_what_its_pages_call() {
+        assert_unique(SETTINGS_PERMISSIONS);
+        let commands = settings_page_commands();
+        assert!(commands.len() > 20, "ipc.ts was not read: {commands:?}");
+        for command in &commands {
+            assert!(SETTINGS_PERMISSIONS.contains(&command.as_str()), "{command} is missing");
+        }
+        for command in ["allow-save-text-file", "allow-show-studio", "core:window:allow-close"] {
+            assert!(SETTINGS_PERMISSIONS.contains(&command), "{command} is missing");
+        }
+        // Nothing the studio window alone does: Kiosk view, its files, its health samples.
+        for command in ["allow-kiosk-window", "allow-open-text-file", "allow-save-binary-file", "allow-report-metrics", "allow-flush-done"] {
+            assert!(!SETTINGS_PERMISSIONS.contains(&command), "{command} is granted to the settings window");
         }
     }
 

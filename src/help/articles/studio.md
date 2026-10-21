@@ -19,7 +19,7 @@ The editor window: a rail of views on the left, the work area in the middle, and
 | **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
 | **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
 | **Help** | Opens this help at the article for where you are (`F1` does the same). |
-| **Settings** | **Dashboard** (every screen and kiosk), **Studio** (editor preferences, saved with the Studio on this device) and **App** (startup, server and updates, in the desktop app). See [Startup and tray](startup). |
+| **Settings** | Opens the Settings window (`Ctrl+,`, or Settings in the tray): **App** (General, Server, Coding agents and Updates, in the desktop app), **Dashboard** (every screen and kiosk, saved the moment you change it), **Studio** (editor preferences, saved with the Studio on this device), then Diagnostics, Logs, About and Changelog. In a browser it opens as a tab with Dashboard and Studio. See [Startup and tray](startup). |
 
 Screens have no rail button: open **Screens** from the screen name in the title bar (**Manage screens…**) or from a size link. Under 960 px the rail is icons only.
 

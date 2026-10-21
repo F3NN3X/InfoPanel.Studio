@@ -18,9 +18,13 @@ const vizGallery = new URLSearchParams(window.location.search).has("viz-gallery"
 // ?ia-preview: the settings IA's chips, LinkRow and status bar in every state (a lazy chunk, never linked).
 const IaPreview = lazy(() => import("@/components/studio/ia-preview"));
 const iaPreview = new URLSearchParams(window.location.search).has("ia-preview");
+// ?settings: the Settings window (PLAN decision 21), in the desktop app's Settings window or a browser tab (a lazy chunk).
+const SettingsWindow = lazy(() => import("@/settings/window"));
+const settings = new URLSearchParams(window.location.search).has("settings");
 
-// Desktop app: forward errors and (in debug mode) sample health, once per page load.
-const stopDesktopDebug = startDesktopDebug();
+// Desktop app: forward the studio's errors and (in debug mode) sample its health, once per page load. The Settings
+// window has the App pages' own Diagnostics and Logs.
+const stopDesktopDebug = settings ? () => {} : startDesktopDebug();
 import.meta.hot?.dispose(stopDesktopDebug);
 // Desktop app: only the studio's own right-click menus (text fields keep the native one).
 const stopNativeMenu = isTauri() ? suppressNativeMenu() : undefined;
@@ -28,7 +32,11 @@ import.meta.hot?.dispose(() => stopNativeMenu?.());
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {preview ? (
+    {settings ? (
+      <Suspense fallback={null}>
+        <SettingsWindow />
+      </Suspense>
+    ) : preview ? (
       <Suspense fallback={null}>
         <UiPreview />
       </Suspense>

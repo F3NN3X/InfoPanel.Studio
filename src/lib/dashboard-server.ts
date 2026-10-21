@@ -1,5 +1,6 @@
 import { CanvasRejectedError, inlineCanvases, liftCanvases } from "@/lib/canvas-store";
 import type { DashboardConfig } from "@/lib/layout";
+import type { SettingsPatch } from "@/lib/settings-patch";
 
 /**
  * Endpoints of the dashboard's own server (server.mjs), which serves this
@@ -9,6 +10,8 @@ import type { DashboardConfig } from "@/lib/layout";
  */
 export const CONFIG_URL = "/api/config";
 export const CONFIG_EVENTS_URL = "/events/config";
+/** The Settings window's instant writes (server/config-settings.mjs). */
+export const CONFIG_SETTINGS_URL = "/api/config/settings";
 export const IMAGE_PROXY_URL = "/api/image-proxy";
 
 /** The port the server listens on until the app settings say otherwise (server.mjs and src-tauri/src/settings.rs use the same), and the kiosk page on it. */
@@ -76,4 +79,17 @@ export function pushConfig(config: DashboardConfig): Promise<void> {
   });
   pushing = run.catch(() => {});
   return run;
+}
+
+/**
+ * Merge a Settings change into the config saved on the server (PLAN decision 22): kiosks pull it at once, and the
+ * rest of the saved config stays as it is. Throws `ConfigRejectedError` on a refusal, anything else when unreachable.
+ */
+export async function patchSettings(patch: SettingsPatch): Promise<void> {
+  const res = await fetch(CONFIG_SETTINGS_URL, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Dashboard-Config": "1" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new ConfigRejectedError(res.status, (await res.text().catch(() => "")).slice(0, 200));
 }

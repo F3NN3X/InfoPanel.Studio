@@ -1,22 +1,11 @@
+import { useState } from "react";
 import { useAccordionPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
-import { LEFT_MAX_WIDTH, LEFT_MIN_WIDTH } from "./design-left-panel";
+import { LEFT_MAX_WIDTH, LEFT_MIN_WIDTH, useStoredLeftWidth } from "./design-left-panel";
 import { SegmentedRow, SelectRow, SliderRow, ToggleRow } from "./setting-rows";
 import { SettingsGroup } from "./settings-group";
 import { ZOOM_STEPS } from "./studio-layout";
-
-interface SettingsStudioProps {
-  /** The canvas zoom: "fit", or a factor (what the studio opens with, since the zoom is remembered). */
-  fitting: boolean;
-  zoom: number;
-  onFit: () => void;
-  onZoom: (zoom: number) => void;
-  showGrid: boolean;
-  onShowGrid: (on: boolean) => void;
-  showRulers: boolean;
-  onShowRulers: (on: boolean) => void;
-  leftWidth: number;
-  onLeftWidth: (width: number) => void;
-}
+import { GRID_KEY, RULERS_KEY, useStorageKey, useStoredFlag } from "./use-stored-flag";
+import { loadZoomPref, parseZoomPref, saveZoomPref, ZOOM_KEY, type ZoomPref } from "./zoom-pref";
 
 const ACCORDION_MODES = [
   { value: "one" as const, label: "One open" },
@@ -25,13 +14,29 @@ const ACCORDION_MODES = [
 
 const percent = (zoom: number): string => `${Math.round(zoom * 100)}%`;
 
+/** The canvas zoom the Studio opens with (it remembers the one it is left at), followed across windows. */
+function useZoomPref(): [ZoomPref, (pref: ZoomPref) => void] {
+  const [pref, setPref] = useState(loadZoomPref);
+  useStorageKey(ZOOM_KEY, (raw) => setPref(parseZoomPref(raw)));
+  const set = (next: ZoomPref) => {
+    setPref(next);
+    saveZoomPref(next);
+  };
+  return [pref, set];
+}
+
 /**
- * Settings › Studio (SPEC §10.1): the editor's preferences, saved with the Studio on this device (the studio.* keys of
- * localStorage). Nothing here is in the config, so nothing is in the undo history.
+ * Settings › Studio (SPEC §10.1), in the Settings window: the editor's preferences, saved with the Studio on this
+ * device (the studio.* keys of localStorage, which the Studio window follows as they change). Nothing here is in the
+ * config.
  */
-export function SettingsStudio({ fitting, zoom, onFit, onZoom, showGrid, onShowGrid, showRulers, onShowRulers, leftWidth, onLeftWidth }: SettingsStudioProps) {
+export function SettingsStudio() {
   const [quickBar, setQuickBar] = useQuickBarPref();
   const [accordion, setAccordion] = useAccordionPref();
+  const [{ fitting, manual: zoom }, setZoomPref] = useZoomPref();
+  const [showGrid, setShowGrid] = useStoredFlag(GRID_KEY, true);
+  const [showRulers, setShowRulers] = useStoredFlag(RULERS_KEY, true);
+  const [leftWidth, setLeftWidth] = useStoredLeftWidth();
   // A zoom that is not a step (a wheel zoom) still shows as itself.
   const steps = ZOOM_STEPS.some((s) => Math.abs(s - zoom) < 0.005) || fitting ? ZOOM_STEPS : [...ZOOM_STEPS, zoom].sort((a, b) => a - b);
   const current = fitting ? "fit" : String(steps.find((s) => Math.abs(s - zoom) < 0.005) ?? zoom);
@@ -50,10 +55,10 @@ export function SettingsStudio({ fitting, zoom, onFit, onZoom, showGrid, onShowG
         hint="How the canvas opens: fitted to the window, or at a zoom. The zoom you leave the canvas at is kept."
         options={[{ value: "fit", label: "Fit" }, ...steps.map((s) => ({ value: String(s), label: percent(s) }))]}
         value={current}
-        onChange={(v) => (v === "fit" ? onFit() : onZoom(Number(v)))}
+        onChange={(v) => setZoomPref(v === "fit" ? { fitting: true, manual: zoom } : { fitting: false, manual: Number(v) })}
       />
-      <ToggleRow label="Show grid" value={showGrid} onChange={onShowGrid} />
-      <ToggleRow label="Show rulers" value={showRulers} onChange={onShowRulers} />
+      <ToggleRow label="Show grid" value={showGrid} onChange={setShowGrid} />
+      <ToggleRow label="Show rulers" value={showRulers} onChange={setShowRulers} />
       <SliderRow
         label="Left panel width"
         hint="Design's left panel (Layers and Add widget); you can also drag its edge"
@@ -63,7 +68,7 @@ export function SettingsStudio({ fitting, zoom, onFit, onZoom, showGrid, onShowG
         step={4}
         unit="px"
         fallback={LEFT_MIN_WIDTH}
-        onChange={onLeftWidth}
+        onChange={setLeftWidth}
       />
     </SettingsGroup>
   );

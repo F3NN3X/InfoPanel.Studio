@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConfigRejectedError, NewerConfigError, fetchConfig, isUnreachable, pushConfig } from "@/lib/dashboard-server";
+import { ConfigRejectedError, NewerConfigError, fetchConfig, isUnreachable, patchSettings, pushConfig } from "@/lib/dashboard-server";
 import type { DashboardConfig } from "@/lib/layout";
 
 const respond = (status: number, body?: unknown) =>
@@ -42,6 +42,23 @@ describe("pushConfig", () => {
   it("throws on a refusal", async () => {
     respond(403);
     await expect(pushConfig({} as DashboardConfig)).rejects.toThrow("403");
+  });
+});
+
+describe("patchSettings", () => {
+  it("sends the patch as a PATCH with the config header the server requires", async () => {
+    respond(200, { ok: true });
+    await patchSettings({ general: { maxFps: 30 } });
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe("/api/config/settings");
+    expect(init?.method).toBe("PATCH");
+    expect(init?.headers).toEqual({ "Content-Type": "application/json", "X-Dashboard-Config": "1" });
+    expect(JSON.parse(String(init?.body))).toEqual({ general: { maxFps: 30 } });
+  });
+
+  it("throws a refusal as ConfigRejectedError", async () => {
+    respond(400);
+    await expect(patchSettings({ general: { maxFps: 30 } })).rejects.toBeInstanceOf(ConfigRejectedError);
   });
 });
 

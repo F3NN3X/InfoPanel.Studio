@@ -27,6 +27,8 @@ import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlus
 import { KioskStrip } from "@/components/kiosk-strip";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
 import { trackEventSource } from "@/lib/sensor-store";
+import { withSettingsPatch } from "@/lib/settings-patch";
+import { onStudioMessage } from "@/lib/studio-channel";
 import {
   CONFIG_EVENTS_URL,
   fetchConfig,
@@ -273,6 +275,10 @@ export default function App() {
   const [refused, setRefused] = useState(false);
   const latestConfig = useRef(config);
   latestConfig.current = config;
+  const pendingRef = useRef(pushPending);
+  pendingRef.current = pushPending;
+  // The last config taken from the Settings window: the server holds it already.
+  const adopted = useRef<DashboardConfig | null>(null);
   // Before the server copy is read nothing is pushed, but an edit is still unpushed.
   const firstConfig = useRef(config);
   useEffect(() => {
@@ -280,6 +286,8 @@ export default function App() {
   }, [config, kiosk, synced]);
   useEffect(() => {
     if (kiosk || !synced || refused) return; // kiosk pages only read; don't push from them
+    // A Settings change needs no push, unless an edit of the studio's own still waits for one (it then carries both).
+    if (config === adopted.current && !pendingRef.current) return;
     let superseded = false;
     setPushPending(true);
     const t = window.setTimeout(() => {
@@ -299,6 +307,31 @@ export default function App() {
       window.clearTimeout(t);
     };
   }, [config, kiosk, synced, refused]);
+
+  // The Settings window's changes (PLAN decision 22): the server took them, so the studio applies the same patch to
+  // its working copy, unsaved edits and all, and its next push carries them; Reset everything… replaced the saved
+  // config, which is read back in full.
+  useEffect(() => {
+    if (kiosk) return;
+    let alive = true;
+    const adopt = (next: DashboardConfig) => {
+      latestConfig.current = next;
+      adopted.current = next;
+      setConfig(next);
+    };
+    const off = onStudioMessage((message) => {
+      if (message.type === "settings") adopt(withSettingsPatch(latestConfig.current, message.patch));
+      if (message.type === "replaced") {
+        void fetchConfig()
+          .then((server) => alive && server && adopt(withPinnedProfile(mergeConfig(server))))
+          .catch(() => {});
+      }
+    });
+    return () => {
+      alive = false;
+      off();
+    };
+  }, [kiosk]);
 
   // Kiosk: pull the shared config on load and again whenever the server
   // reports a newer version (a studio edit or Save), so the display updates

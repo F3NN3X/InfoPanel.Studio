@@ -18,6 +18,7 @@ export type ShortcutAction =
   | { type: "zoom-in" }
   | { type: "zoom-out" }
   | { type: "palette" }
+  | { type: "settings" }
   | { type: "toggle-dock" }
   | { type: "cheatsheet" }
   | { type: "page-next" }
@@ -71,6 +72,7 @@ function commandAction(e: KeyInput): ShortcutAction | null {
   if (key === "z") return e.shiftKey ? { type: "redo" } : { type: "undo" };
   if (key === "y") return { type: "redo" };
   if (key === "k") return { type: "palette" };
+  if (key === ",") return { type: "settings" };
   if (key === "\\") return { type: "toggle-dock" };
   if (key === "d") return { type: "duplicate" };
   if (key === "a" && !e.shiftKey) return { type: "select-all" };
@@ -137,7 +139,7 @@ function zoneAction(e: KeyInput, ctx: ShortcutContext): ShortcutAction | null {
     if (!action) return null;
     if (action.type === "undo" || action.type === "redo") return ctx.typing ? null : action;
     if (ALWAYS_LIVE.has(action.type)) return action;
-    if (action.type === "palette") return ctx.overlay ? null : action;
+    if (action.type === "palette" || action.type === "settings") return ctx.overlay ? null : action;
     return ctx.typing || ctx.overlay ? null : action;
   }
   if (ctx.typing || ctx.overlay) return null;
@@ -158,6 +160,7 @@ export const KEYS = {
   redo: "Ctrl+Shift+Z",
   save: "Ctrl+S",
   palette: "Ctrl+K",
+  settings: "Ctrl+,",
   duplicate: "Ctrl+D",
   copyStyle: "Ctrl+Alt+C",
   pasteStyle: "Ctrl+Alt+V",
@@ -183,6 +186,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
     title: "General",
     items: [
       { keys: KEYS.palette, label: "Command palette" },
+      { keys: KEYS.settings, label: "Settings" },
       { keys: KEYS.save, label: "Save" },
       { keys: KEYS.undo, label: "Undo" },
       { keys: `${KEYS.redo} / Ctrl+Y`, label: "Redo" },

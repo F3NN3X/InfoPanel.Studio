@@ -71,9 +71,19 @@ function storedValue<T>(key: string, parse: (raw: string | null) => T, serialize
     }
     for (const listener of listeners) listener();
   };
+  // Another window of this origin wrote it (the Settings window's Studio page): read it again.
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== key && e.key !== null) return;
+    cache = null;
+    for (const listener of listeners) listener();
+  };
   const subscribe = (listener: () => void) => {
+    if (listeners.size === 0) window.addEventListener("storage", onStorage);
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) window.removeEventListener("storage", onStorage);
+    };
   };
   return { read, write, subscribe };
 }

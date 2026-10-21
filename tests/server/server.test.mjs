@@ -123,6 +123,27 @@ describe("server.mjs", () => {
     expect((await fetch(`${plain.base}/api/canvases`, { method: "POST", headers: { "Content-Type": "application/json" }, body: canvas(0) })).status).toBe(403);
   });
 
+  it("merges a Settings patch into the saved config behind the config write guards", async () => {
+    const saved = { version: 11, general: { font: "inter" }, profiles: [{ id: "desk", pages: [{ id: "one", placements: [] }], performance: { maxFps: 30 } }] };
+    const headers = { "Content-Type": "application/json", "X-Dashboard-Config": "1" };
+    expect((await fetch(`${plain.base}/api/config`, { method: "POST", headers, body: JSON.stringify(saved) })).status).toBe(200);
+    const patch = (body, h = headers, method = "PATCH") => fetch(`${plain.base}/api/config/settings`, { method, headers: h, body: JSON.stringify(body) });
+    const stored = async () => (await fetch(`${plain.base}/api/config`)).json();
+
+    expect((await patch({ general: { maxFps: 15 } }, { "Content-Type": "application/json" })).status).toBe(403);
+    expect((await patch({ general: { maxFps: 15 } }, { "Content-Type": "text/plain", "X-Dashboard-Config": "1" })).status).toBe(415);
+    expect((await patch({ general: { maxFps: 15 } }, headers, "POST")).status).toBe(405);
+    expect((await patch({ general: { maxFps: 24 } })).status).toBe(400);
+    expect((await patch({ profiles: { gone: { performance: null } } })).status).toBe(404);
+    expect(await stored()).toEqual(saved);
+
+    const before = (await (await fetch(`${plain.base}/api/health`)).json()).configVersion;
+    const res = await patch({ general: { maxFps: 15 }, style: { clock: "12" }, profiles: { desk: { performance: null } } });
+    expect(res.status).toBe(200);
+    expect((await res.json()).version).toBeGreaterThan(before);
+    expect(await stored()).toEqual({ version: 11, general: { font: "inter", maxFps: 15 }, style: { clock: "12" }, profiles: [{ id: "desk", pages: [{ id: "one", placements: [] }] }] });
+  });
+
   it("serves /api/server/stats in any mode with the open SSE clients", async () => {
     const sse = await fetch(`${plain.base}/events/config`);
     const res = await fetch(`${plain.base}/api/server/stats`);

@@ -15,7 +15,7 @@ Two settings decide how hard the display's GPU works: **Max FPS** and **Motion**
 | Max FPS (**Frame rate limit**) | 5, 15, 30, 60 or No limit | 60 |
 | Motion (**Animations**) | Follow system, Reduced or Full | Follow system, which follows the Windows animation setting |
 
-For every screen, open **Settings › Dashboard › Performance**: Max FPS is labelled **Frame-rate cap** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). A screen can have its own: in **Screens**, the **Performance** group shows a chip.
+For every screen, open **Settings › Dashboard › Performance**: Max FPS is labelled **Frame-rate cap** (5, 15, 30, 60 or No limit) and Motion is **Animations** (Follow system, Reduced or Full). A change there is saved and reaches the kiosks at once. A screen can have its own: in **Screens**, the **Performance** group shows a chip, and Settings lists each screen that has its own with a link to it.
 
 - **From All screens** means the screen uses the Settings values. Change a value there and the screen takes its own, starting from the shared ones.
 - **Custom here** means the screen's own. **Reset to inherited** in the chip's menu drops them.

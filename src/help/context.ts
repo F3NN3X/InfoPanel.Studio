@@ -1,4 +1,4 @@
-import type { SectionId } from "@/settings/model/search";
+import type { PageId } from "@/settings/model/search";
 import { helpHash, parseHelpHash, type HelpTarget } from "./links";
 
 /** What the studio knows when F1 is pressed. */
@@ -8,16 +8,13 @@ export interface StudioHelpState {
   /** The section the keyboard focus is in (`data-help-section`, a help hash): F1 opens its own heading. */
   section?: string | null;
   /** The view on screen (`StudioMode`). */
-  view: "design" | "sources" | "library" | "gauges" | "theme" | "alerts" | "screens" | "settings";
+  view: "design" | "sources" | "library" | "gauges" | "theme" | "alerts" | "screens";
   /** The kind of the primary selected zone (Design only). */
   zone: "widget" | "panel" | "canvas" | "blank" | null;
-  /** Settings: the open tab, and for App its page when a link named one. */
-  settingsTab?: "dashboard" | "studio" | "app";
-  settingsSection?: SectionId;
 }
 
 /** The article F1 opens in the studio (SPEC 2.6, §15): the dialog, the focused section, else the view, and in Design the selection. */
-export function studioHelpTarget({ dialog, section, view, zone, settingsTab, settingsSection }: StudioHelpState): HelpTarget {
+export function studioHelpTarget({ dialog, section, view, zone }: StudioHelpState): HelpTarget {
   if (dialog) return { article: dialog };
   if (section) return parseHelpHash(section);
   switch (view) {
@@ -33,9 +30,6 @@ export function studioHelpTarget({ dialog, section, view, zone, settingsTab, set
       return { article: "island-alerts" };
     case "screens":
       return { article: "profiles" };
-    case "settings":
-      if (settingsTab === "app") return settingsHelpTarget(settingsSection ?? "general");
-      return { article: settingsTab === "studio" ? "studio" : "performance" };
   }
   if (zone === "widget") return { article: "widget-settings" };
   if (zone === "panel") return { article: "panels" };
@@ -44,7 +38,9 @@ export function studioHelpTarget({ dialog, section, view, zone, settingsTab, set
   return { article: "studio" };
 }
 
-const SETTINGS_ARTICLES: Partial<Record<SectionId, string>> = {
+const SETTINGS_ARTICLES: Partial<Record<PageId, string>> = {
+  dashboard: "performance",
+  studio: "studio",
   general: "startup",
   server: "kiosk",
   agents: "agents",
@@ -53,8 +49,8 @@ const SETTINGS_ARTICLES: Partial<Record<SectionId, string>> = {
   logs: "diagnostics",
 };
 
-/** The article F1 and the sidebar link open from a Settings section (About and Changelog: Help home). */
-export function settingsHelpTarget(section: SectionId): HelpTarget {
+/** The article F1 and the sidebar link open from a Settings page (About and Changelog: Help home). */
+export function settingsHelpTarget(section: PageId): HelpTarget {
   const article = SETTINGS_ARTICLES[section];
   return article ? { article } : {};
 }

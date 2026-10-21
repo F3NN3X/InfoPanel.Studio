@@ -44,6 +44,7 @@ import { createAlerts } from "./server/alerts.mjs";
 import { createAssets } from "./server/assets.mjs";
 import { createCanvases, createCanvasStore, referencedCanvasIds, SWEEP_EVERY_MS } from "./server/canvases.mjs";
 import { versionRefusal } from "./server/config-guard.mjs";
+import { applySettingsPatch } from "./server/config-settings.mjs";
 import { createControl } from "./server/control.mjs";
 import { createAgentUsage } from "./server/agent-usage.mjs";
 import { createDebug } from "./server/debug.mjs";
@@ -74,6 +75,8 @@ const CANVASES_DIR = path.join(DATA_DIR, "canvases");
 const CACHE_DIR = path.join(DATA_DIR, "cache");
 
 const MAX_CONFIG_BYTES = 5 * 1024 * 1024;
+/** A Settings window patch: a few keys. */
+const MAX_SETTINGS_BYTES = 16 * 1024;
 const MAX_PROXY_BYTES = 25 * 1024 * 1024;
 const PROXY_TIMEOUT_MS = 10_000;
 
@@ -354,6 +357,33 @@ async function handleConfig(req, res) {
   send(res, 200, JSON.stringify({ ok: true, version: configVersion }), TYPES[".json"]);
 }
 
+/**
+ * PATCH /api/config/settings → the Settings window's instant change (server/config-settings.mjs): merged into the
+ * saved config, which kiosks then pull like any save. Same guards as POST /api/config.
+ */
+async function handleConfigSettings(req, res) {
+  if (req.method !== "PATCH") return send(res, 405);
+  const refusal = configWriteRefusal(req.headers);
+  if (refusal) return send(res, refusal.status, refusal.message);
+  let body;
+  try {
+    body = await readBody(req, MAX_SETTINGS_BYTES);
+  } catch {
+    return send(res, 413);
+  }
+  let patch;
+  try {
+    patch = JSON.parse(body);
+  } catch {
+    return send(res, 400, "expected a settings patch");
+  }
+  if (!fs.existsSync(CONFIG_FILE)) return send(res, 404, "no config saved yet");
+  const result = applySettingsPatch(readConfigFile(), patch);
+  if (!result.config) return send(res, result.status, result.message);
+  saveConfig(JSON.stringify(result.config));
+  send(res, 200, JSON.stringify({ ok: true, version: configVersion }), TYPES[".json"]);
+}
+
 function handleConfigEvents(req, res) {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -475,6 +505,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/debug/stats") return handleDebugStats(req, res);
     if (pathname === "/api/server/stats") return handleServerStats(req, res);
     if (pathname === "/api/config") return await handleConfig(req, res);
+    if (pathname === "/api/config/settings") return await handleConfigSettings(req, res);
     if (pathname === "/events/config") return handleConfigEvents(req, res);
     if (pathname === "/api/control" || pathname.startsWith("/api/control/")) return await handleControl(req, res, pathname);
     if (pathname === "/api/alerts/history") return handleAlertHistory(req, res);

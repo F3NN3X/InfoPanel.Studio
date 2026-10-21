@@ -105,6 +105,8 @@ export function useStudioCommands({
         return escape();
       case "palette":
         return ui.setPaletteOpen(true);
+      case "settings":
+        return ui.navigateTo({ view: "settings" });
       case "cheatsheet":
         return ui.setShortcutsOpen(true);
       default:

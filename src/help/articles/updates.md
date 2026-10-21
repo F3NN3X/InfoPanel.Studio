@@ -18,6 +18,6 @@ Settings › App › Updates checks for a new version, downloads it and installs
 
 :::open settings/updates Settings › App › Updates
 
-The full changelog lives in Settings › App › Changelog, with every release. The newest release is open and older ones are collapsed; each category lists its main changes, with **Show all** for the full notes. An "Installed" chip marks your version.
+The full changelog lives in Settings › Changelog, with every release. The newest release is open and older ones are collapsed; each category lists its main changes, with **Show all** for the full notes. An "Installed" chip marks your version.
 
-:::open settings/changelog Settings › App › Changelog
+:::open settings/changelog Settings › Changelog

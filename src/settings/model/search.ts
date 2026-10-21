@@ -14,11 +14,32 @@ export const SECTION_NAMES: Record<SectionId, string> = {
   changelog: "Changelog",
 };
 
-export interface SearchEntry {
-  /** The `id` of the row that gets the highlight. */
+/**
+ * The Settings window's pages: the App sections, and where it loads from the Studio's server (PLAN decision 21) the
+ * Dashboard and Studio pages. The rescue window (app/settings.html) has the App sections only.
+ */
+export type PageId = SectionId | "dashboard" | "studio";
+
+export const PAGE_NAMES: Record<PageId, string> = { ...SECTION_NAMES, dashboard: "Dashboard", studio: "Studio" };
+
+/** Whether `value` names a Settings window page. */
+export const isPageId = (value: string): value is PageId => Object.hasOwn(PAGE_NAMES, value);
+
+/**
+ * A page and the row on it from `page` or `page/row` (a URL hash, the shell's `settings-section` event), when it is one
+ * of `pages`.
+ */
+export function parsePageTarget<P extends PageId>(value: string, pages: readonly P[]): { section: P; row?: string } | null {
+  const [id, row] = value.split("/");
+  const page = pages.find((p) => p === id);
+  return page ? { section: page, ...(row ? { row } : {}) } : null;
+}
+
+export interface SearchEntry<P extends PageId = SectionId> {
+  /** The `id` of the row that gets the highlight (on Dashboard and Studio: the group's `data-nav-section`). */
   row: string;
   label: string;
-  section: SectionId;
+  section: P;
 }
 
 /** Every row search finds (SPEC 8). */
@@ -53,9 +74,27 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "changelog", label: "Changelog", section: "changelog" },
 ];
 
+/** The Dashboard and Studio rows search finds, in the window on the Studio's server. */
+export const PREFERENCES_INDEX: SearchEntry<PageId>[] = [
+  { row: "performance", label: "Frame-rate cap", section: "dashboard" },
+  { row: "performance", label: "Animations", section: "dashboard" },
+  { row: "clock", label: "Clock (12 / 24 h)", section: "dashboard" },
+  { row: "clock", label: "Show seconds", section: "dashboard" },
+  { row: "clock", label: "Date locale", section: "dashboard" },
+  { row: "kiosk", label: "Page dots & swipe", section: "dashboard" },
+  { row: "kiosk", label: "Hide cursor", section: "dashboard" },
+  { row: "danger", label: "Reset everything", section: "dashboard" },
+  { row: "editor", label: "Quick bar", section: "studio" },
+  { row: "editor", label: "Inspector sections", section: "studio" },
+  { row: "editor", label: "Default zoom", section: "studio" },
+  { row: "editor", label: "Show grid", section: "studio" },
+  { row: "editor", label: "Show rulers", section: "studio" },
+  { row: "editor", label: "Left panel width", section: "studio" },
+];
+
 /** The entries whose label or section name contains `query`, ignoring case. */
-export function searchSettings(query: string, index: SearchEntry[] = SEARCH_INDEX): SearchEntry[] {
+export function searchSettings<P extends PageId = SectionId>(query: string, index: SearchEntry<P>[] = SEARCH_INDEX as SearchEntry<P>[]): SearchEntry<P>[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  return index.filter((e) => `${e.label} ${SECTION_NAMES[e.section]}`.toLowerCase().includes(q));
+  return index.filter((e) => `${e.label} ${PAGE_NAMES[e.section]}`.toLowerCase().includes(q));
 }

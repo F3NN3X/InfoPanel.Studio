@@ -6,6 +6,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+- **Settings is its own window again**, and it holds everything that isn't design: **App** (General, Server, Coding
+  agents, Updates), **Dashboard** (frame rate and animations, clock and date, kiosk behaviour, Reset everything…),
+  **Studio** (editor preferences), then Diagnostics, Logs, About and Changelog, with search over all of them. Open it
+  from Settings on the rail, `Ctrl+,`, the command palette, the tray's Settings or Update…, or Help's "Open settings".
+  In a browser it opens as a tab with Dashboard and Studio.
+- **Dashboard settings apply at once.** There is no Save: each change is saved on the server, reaches the kiosks
+  straight away and shows up in the Studio without touching your unsaved design edits. Dashboard lists every screen
+  that uses its own frame rate or animations, with a link that opens it in Screens. Studio preferences changed there
+  apply to the open Studio window as you change them.
+
 ### Fixed
 - Layers, the selection bar and the widget inspector show each widget's own icon instead of a plain box for all of
   them.

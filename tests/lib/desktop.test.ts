@@ -24,7 +24,7 @@ import {
   getDebug,
   isTauri,
   onStudioFlush,
-  onOpenSettingsRequest,
+  openSettings,
   openTextFile,
   saveBinaryFile,
   saveTextFile,
@@ -52,7 +52,6 @@ describe("isTauri", () => {
 describe("wrappers in a browser", () => {
   it("do nothing and load no Tauri code", async () => {
     vi.stubGlobal("window", {});
-    (await onOpenSettingsRequest(() => {}))();
     await flushDone();
     expect(await saveTextFile("a.json", "{}")).toBe(false);
     expect(await openTextFile()).toBeNull();
@@ -62,6 +61,20 @@ describe("wrappers in a browser", () => {
     off();
     expect(invoke).not.toHaveBeenCalled();
     expect(listen).not.toHaveBeenCalled();
+  });
+});
+
+describe("openSettings in a browser", () => {
+  it("opens the Settings page in one named tab, at a page", async () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    await openSettings("server");
+    await openSettings();
+    expect(open.mock.calls).toEqual([
+      ["/?settings#server", "infopanel-settings"],
+      ["/?settings", "infopanel-settings"],
+    ]);
+    expect(invoke).not.toHaveBeenCalled();
   });
 });
 
@@ -99,19 +112,10 @@ describe("wrappers in the desktop app", () => {
     expect(off).toBe(unlisten);
   });
 
-  it("hands the tray's Settings request its section", async () => {
+  it("opens the Settings window at a page through the shell", async () => {
     vi.stubGlobal("window", { __TAURI_INTERNALS__: {} });
-    let emit: (e: { payload: string | null }) => void = () => {};
-    listen.mockImplementation(async (_event: string, cb: typeof emit) => {
-      emit = cb;
-      return () => {};
-    });
-    const handler = vi.fn();
-    await onOpenSettingsRequest(handler);
-    expect(listen).toHaveBeenCalledWith("studio://open-settings", expect.any(Function));
-    emit({ payload: "updates" });
-    emit({ payload: null });
-    expect(handler.mock.calls).toEqual([["updates"], [null]]);
+    await openSettings("dashboard/performance");
+    expect(invoke).toHaveBeenLastCalledWith("open_settings", { section: "dashboard/performance" });
   });
 });
 

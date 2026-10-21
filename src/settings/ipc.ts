@@ -17,7 +17,7 @@ import type {
   UpdateState,
 } from "./types";
 
-/** The commands of the local pages (src-tauri/src/commands.rs); the settings window is always Tauri. */
+/** The commands of the app windows (src-tauri/src/commands.rs); the settings pages that use them run only in the desktop app. */
 export const ipc = {
   getSettings: () => invoke<Settings>("get_settings"),
   setSetting: (key: SettingKey, value: unknown) => invoke<SetResult>("set_setting", { key, value }),
@@ -50,8 +50,8 @@ export const ipc = {
   changelog: () => invoke<string>("changelog"),
   openExternal: (url: string) => invoke<void>("open_external", { url }),
   openHelp: (target: { article?: string; heading?: string }) => invoke<void>("open_help", target),
-  /** The studio window at Settings › App (Help's "Open settings"). */
-  openSettingsInStudio: (section?: string) => invoke<void>("open_settings_in_studio", { section }),
+  /** The Settings window at a page (Help's "Open settings"). */
+  openSettings: (section?: string) => invoke<void>("open_settings", { section }),
 };
 
 /** Calls `handler` with the payload of each `event`; resolves to the unsubscribe. */

@@ -2,25 +2,32 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from "vitest";
 import { ARTICLE_FILES } from "@/help/content";
-import { THEME_CARD_HELP, focusedSection, studioHelpTarget, type StudioHelpState } from "@/help/context";
+import { THEME_CARD_HELP, focusedSection, settingsHelpTarget, studioHelpTarget, type StudioHelpState } from "@/help/context";
 import { parseHelpHash } from "@/help/links";
 import { slugify } from "@/help/slug";
+import { PAGE_NAMES, type PageId } from "@/settings/model/search";
 
 const articles = new Set(Object.keys(ARTICLE_FILES).map((path) => /([^/]+)\.md$/.exec(path)![1]));
 const base: StudioHelpState = { dialog: null, view: "design", zone: null };
 
 describe("studioHelpTarget", () => {
-  it("opens an article that exists for every view, tab and selection", () => {
+  it("opens an article that exists for every view and selection", () => {
     const states: StudioHelpState[] = [
-      ...(["design", "sources", "library", "theme", "alerts", "screens", "settings"] as const).map((view) => ({ ...base, view })),
+      ...(["design", "sources", "library", "theme", "alerts", "screens"] as const).map((view) => ({ ...base, view })),
       ...(["widget", "panel", "canvas", "blank"] as const).map((zone) => ({ ...base, zone })),
-      ...(["dashboard", "studio", "app"] as const).map((settingsTab) => ({ ...base, view: "settings" as const, settingsTab })),
-      { ...base, view: "settings", settingsTab: "app", settingsSection: "updates" },
     ];
     for (const state of states) {
       const { article } = studioHelpTarget(state);
       expect(articles.has(article!), JSON.stringify(state)).toBe(true);
     }
+  });
+
+  it("opens an article that exists, or Help home, from every Settings window page", () => {
+    for (const page of Object.keys(PAGE_NAMES) as PageId[]) {
+      const { article } = settingsHelpTarget(page);
+      if (article !== undefined) expect(articles.has(article), page).toBe(true);
+    }
+    expect(settingsHelpTarget("dashboard")).toEqual({ article: "performance" });
   });
 
   it("puts an open dialog first, and the view before a zone still selected under it", () => {
