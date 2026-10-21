@@ -20,7 +20,7 @@ function SubNav() {
   const { section, go, update } = useStore();
   const updateWaiting = update.state === "available" || update.state === "ready";
   return (
-    <nav aria-label="App settings pages" className="flex w-[180px] shrink-0 flex-col gap-px overflow-auto border-r border-s-side-line bg-s-side px-2 py-3">
+    <nav aria-label="App settings pages" className="flex w-[180px] shrink-0 flex-col gap-px overflow-auto border-r border-s-side-line bg-s-side px-2 py-3 max-sm:w-[112px] max-sm:px-1">
       {NAV.map((id) => {
         const on = section === id;
         return (
@@ -30,7 +30,7 @@ function SubNav() {
             aria-current={on ? "page" : undefined}
             onClick={() => go(id)}
             className={cn(
-              "flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-md border-0 px-2.5 text-left text-[12.5px]",
+              "flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-md border-0 px-2.5 text-left text-[12.5px] max-sm:px-1.5",
               on ? "bg-s-nav-on text-s-t1" : "bg-transparent text-s-muted hover:bg-s-nav-hover"
             )}
           >
@@ -58,7 +58,7 @@ function Page({ section, seq }: EmbeddedSettingsProps) {
   return (
     <main ref={main} data-scroll-root className="relative min-w-0 flex-1 overflow-auto">
       <RestartBar />
-      <div className={cn("mx-auto flex w-full min-w-0 flex-col gap-6 px-7 pb-16 pt-6", wide ? "max-w-[1040px]" : "max-w-[780px]")}>
+      <div className={cn("mx-auto flex w-full min-w-0 flex-col gap-6 px-7 pb-16 pt-6 max-sm:px-3", wide ? "max-w-[1040px]" : "max-w-[780px]")}>
         <div className="flex flex-col gap-1">
           <h2 className="m-0 text-xl font-semibold tracking-[-0.01em]">{SECTION_NAMES[shown]}</h2>
           <p className="m-0 text-pretty text-[13px] leading-normal text-s-muted">{subtitle}</p>

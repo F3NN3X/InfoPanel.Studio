@@ -1,6 +1,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import { ChevronDown, Lock, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { THEME_CARD_HELP } from "@/help/context";
 import { InheritChip, InheritLockNote } from "./inherit-chip";
 import { sectionIconById } from "./inspector/section-icons";
 import type { CardInherit, PageCardOption, ThemeCard } from "./theme-cards";
@@ -83,6 +84,7 @@ export function ThemeSectionCard({
   return (
     <section
       data-nav-section={card.id}
+      data-help-section={THEME_CARD_HELP}
       onKeyDown={(e) => {
         if (custom && (e.key === "Backspace" || e.key === "Delete") && !typing(e) && !e.defaultPrevented) {
           e.preventDefault();

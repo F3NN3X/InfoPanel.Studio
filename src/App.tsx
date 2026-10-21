@@ -35,6 +35,7 @@ import {
   pushConfig,
 } from "@/lib/dashboard-server";
 import {
+  hasStoredConfig,
   loadConfig,
   mergeConfig,
   resolveProfile,
@@ -95,6 +96,9 @@ export default function App() {
     setApiBase(loaded.dataApiUrl); // before the first sensor connection
     return withPinnedProfile(loaded);
   });
+  // First run (SPEC §10.5): this browser had no config when the page opened, and the server has none either.
+  const [freshBrowser] = useState(() => !hasStoredConfig());
+  const [serverEmpty, setServerEmpty] = useState(false);
   const [studio, setStudio] = useState(
     () => new URLSearchParams(window.location.search).has("studio")
   );
@@ -239,6 +243,8 @@ export default function App() {
           const merged = withPinnedProfile(mergeConfig(server));
           saveConfig(merged);
           setConfig(merged);
+        } else {
+          setServerEmpty(true);
         }
         setSynced(true);
       })
@@ -458,6 +464,7 @@ export default function App() {
             onSave={handleStudioSave}
             pushPending={pushPending}
             offline={offline}
+            firstRun={freshBrowser && serverEmpty}
           />
         </Suspense>
       </PerformanceProvider>

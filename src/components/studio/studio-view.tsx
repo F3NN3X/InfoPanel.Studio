@@ -23,7 +23,11 @@ import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar } from "./studio-top-bar";
-import { LeftRail } from "./left-rail";
+import { LeftRail, type RailItem } from "./left-rail";
+import { PhoneTabBar } from "./phone-tab-bar";
+import { FirstRun } from "./first-run";
+import { applyFirstRun } from "./first-run-model";
+import { onSetupRequest, takeSetupRequest } from "@/lib/setup-request";
 import { DesignLeftPanel } from "./design-left-panel";
 import { AlertsView } from "./alerts-view";
 import { ScreensView } from "./screens-view";
@@ -42,7 +46,7 @@ import { canvasZoneOf } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
 import { useStudioCommands } from "./use-studio-commands";
-import { railWidth } from "./use-studio-layout";
+import { isPhone, railWidth } from "./use-studio-layout";
 import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
 import { useInspectorFollowsSelection, useStudioUi } from "./use-studio-ui";
@@ -52,7 +56,7 @@ import { widgetName } from "./widget-kinds";
 import { WidgetPickerDialog } from "./widget-picker-dialog";
 import { kiosksOf, postControl, useControl } from "@/lib/control";
 import { openHelp } from "@/lib/desktop";
-import { dialogArticle, studioHelpTarget } from "@/help/context";
+import { dialogArticle, focusedSection, studioHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
 import { isIslandAlert } from "@/lib/island/from-alerts";
 import { visibleAlerts } from "@/components/alerts/alert-model";
@@ -63,7 +67,7 @@ import type { SectionId } from "@/settings/model/search";
 import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
-import { sheetHeight } from "./studio-layout";
+import { FLOAT_INSET, sheetHeight } from "./studio-layout";
 import { zoneName } from "./inspector/zone-meta";
 import { dataOf, setAsBackground, type StudioBridge } from "@/components/library/library-actions";
 import type { GaugeSource } from "@/lib/gauge-studio/model";
@@ -100,6 +104,8 @@ interface StudioViewProps {
   pushPending: boolean;
   /** The last push could not reach the server (the top bar says so). */
   offline: boolean;
+  /** No config anywhere (a fresh install): the first-run setup opens. */
+  firstRun: boolean;
 }
 
 /**
@@ -133,9 +139,19 @@ function StudioViewBody({
   onSave,
   pushPending,
   offline,
+  firstRun,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
   const toast = useToast();
+  // First-run setup (SPEC §10.5): a fresh install, or Help › Run setup again.
+  const [setupOpen, setSetupOpen] = useState(false);
+  useEffect(() => {
+    if (firstRun) setSetupOpen(true);
+  }, [firstRun]);
+  useEffect(() => {
+    if (takeSetupRequest()) setSetupOpen(true);
+    return onSetupRequest(() => setSetupOpen(true));
+  }, []);
   // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history.
   const control = useControl();
   // The canvas island plays only test alerts (Test in the rule editor); live ones show on kiosks.
@@ -191,11 +207,27 @@ function StudioViewBody({
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
   const { studioLayout, showSources, showLibrary, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
-  const narrowRail = railWidth(windowWidth) < 72;
+  const phone = isPhone(windowWidth);
+  const narrowRail = !phone && railWidth(windowWidth) < 72;
+  const railActive: RailItem | null = showSources
+    ? "data"
+    : showLibrary
+      ? "library"
+      : showTheme
+        ? "theme"
+        : showAlerts
+          ? "alerts"
+          : showSettings
+            ? "settings"
+            : showScreens
+              ? null
+              : "design";
+  const openHelpWindow = () => void openHelp(helpTarget()).catch(() => {});
   // F1 and the rail's Help: the article for what the user is on (an open dialog, the view, the selected zone).
   const helpTarget = () =>
     studioHelpTarget({
       dialog: dialogArticle(),
+      section: focusedSection(),
       view: ui.mode,
       zone: helpZoneKind(selected),
       settingsTab: ui.settingsTab,
@@ -529,7 +561,7 @@ function StudioViewBody({
       updateProfile={edit.updateProfile}
       onToggleVisible={() => (sel.selection.length === 1 ? edit.toggleVisible(sel.selection[0].id) : edit.toggleSelectionVisible())}
       allSettings={inspectorMode === "floating" ? { open: floatOpen, onToggle: () => studioLayout.setFloatOpen(!floatOpen) } : undefined}
-      insetRight={inspectorMode === "floating" && floatOpen ? 344 : 0}
+      insetRight={inspectorMode === "floating" && floatOpen ? FLOAT_INSET - 4 : 0}
       onOpenSection={(section, key) => {
         studioLayout.showInspector();
         ui.jumpInspector(section, key);
@@ -741,28 +773,7 @@ function StudioViewBody({
       />
       <StudioShell
         layout={studioLayout}
-        rail={
-          <LeftRail
-            active={
-              showSources
-                ? "data"
-                : showLibrary
-                  ? "library"
-                  : showTheme
-                    ? "theme"
-                    : showAlerts
-                      ? "alerts"
-                      : showSettings
-                        ? "settings"
-                        : showScreens
-                          ? null
-                          : "design"
-            }
-            onSelect={ui.onRail}
-            onHelp={() => void openHelp(helpTarget()).catch(() => {})}
-            narrow={narrowRail}
-          />
-        }
+        rail={phone ? null : <LeftRail active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
         main={alertsEl || screensEl || settingsEl || themeEl || (
@@ -782,6 +793,7 @@ function StudioViewBody({
         inspector={fullPage || canvasEditor ? null : inspectorAside}
       />
       <StatusBar {...statusBar} onNavigate={ui.navigateTo} onOpenLive={() => ui.setLiveOpen(true)} />
+      {phone && <PhoneTabBar active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} />}
 
       <WidgetPickerDialog
         placement={profile.placements.find((p) => p.id === ui.pickerFor) ?? null}
@@ -822,6 +834,21 @@ function StudioViewBody({
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
       {io.dialogs}
       {importDoor}
+      <FirstRun
+        open={setupOpen}
+        dataApiUrl={config.dataApiUrl}
+        windowSize={{ width: windowWidth, height: windowHeight }}
+        onSkip={() => setSetupOpen(false)}
+        onFinish={(choices, dataApiUrl) => {
+          setSetupOpen(false);
+          const made = applyFirstRun(config, choices);
+          setConfig(() => (dataApiUrl ? { ...made.config, dataApiUrl } : made.config), "first-run");
+          selectProfile(made.profileId);
+          ui.setMode("design");
+          ui.fitZoom();
+          if (choices.start === "import") openImportDoor();
+        }}
+      />
       <ExportSheet
         open={exportRequest !== null}
         request={exportRequest ?? NO_REQUEST}

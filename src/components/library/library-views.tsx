@@ -61,10 +61,10 @@ export function LibrarySidebar({ active, counts, onPick }: { active: CollectionI
     ["Library", "By type"],
   ] as const;
   return (
-    <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui">
+    <nav aria-label="Collections" className="flex w-[216px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-ui-subtle bg-ui-panel px-2 py-3.5 font-ui max-sm:w-full max-sm:flex-row max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:border-b max-sm:border-r-0 max-sm:py-2 max-sm:[scrollbar-width:none]">
       {sections.map(([s, title]) => (
-        <div key={s}>
-          <div className="px-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-[.08em] text-ui-4">{title}</div>
+        <div key={s} className="max-sm:flex max-sm:gap-1.5">
+          <div className="px-2 pb-1.5 text-[10.5px] font-medium uppercase tracking-[.08em] text-ui-4 max-sm:hidden">{title}</div>
           {COLLECTIONS.filter((c) => c.section === s).map((c) => {
             const Icon = COLLECTION_ICON[c.id];
             return (
@@ -74,8 +74,8 @@ export function LibrarySidebar({ active, counts, onPick }: { active: CollectionI
                 aria-current={active === c.id ? "page" : undefined}
                 onClick={() => onPick(c.id)}
                 className={cn(
-                  "flex h-[30px] w-full items-center gap-2.5 rounded-[7px] px-2 text-left text-[12.5px] text-ui-2 hover:bg-ui-hover",
-                  c.parent && "pl-7",
+                  "flex h-[30px] w-full items-center gap-2.5 rounded-[7px] px-2 text-left text-[12.5px] text-ui-2 hover:bg-ui-hover max-sm:h-9 max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap",
+                  c.parent && "pl-7 max-sm:pl-2",
                   active === c.id && "bg-ui-active text-ui-1 hover:bg-ui-active",
                 )}
               >

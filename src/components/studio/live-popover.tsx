@@ -96,10 +96,11 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
         title="Live control"
-        className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] px-2.5 text-[12.5px] font-medium text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
+        aria-label={`Live control, ${kiosks.length} ${kiosks.length === 1 ? "kiosk" : "kiosks"}`}
+        className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-[7px] max-sm:w-7 max-sm:justify-center max-sm:px-0 border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] px-2.5 text-[12.5px] font-medium text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
       >
         <span aria-hidden className="h-[7px] w-[7px] rounded-full bg-[oklch(0.78_0.15_150)]" />
-        Live · {kiosks.length}
+        <span className="max-sm:sr-only">Live · {kiosks.length}</span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">

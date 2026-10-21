@@ -79,9 +79,10 @@ export function AlertsView({ tab, onTab, config, setConfig, active, points, scre
   };
   return (
     <section aria-label="Alerts & Island" className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app font-ui">
-      <div className="flex shrink-0 items-center gap-4 border-b border-ui-subtle px-6">
-        <h1 className="py-3 text-[15px] font-semibold text-ui-1">Alerts &amp; Island</h1>
-        <div role="tablist" aria-label="Alerts & Island" className="flex gap-1 self-stretch">
+      <div className="flex shrink-0 items-center gap-4 border-b border-ui-subtle px-6 max-sm:flex-wrap max-sm:gap-x-3 max-sm:px-3">
+        <h1 className="whitespace-nowrap py-3 text-[15px] font-semibold text-ui-1">Alerts &amp; Island</h1>
+        {/* On a phone the tabs take their own row under the title and the New rule button. */}
+        <div role="tablist" aria-label="Alerts & Island" className="flex gap-1 self-stretch max-sm:order-last max-sm:w-full max-sm:overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -90,7 +91,7 @@ export function AlertsView({ tab, onTab, config, setConfig, active, points, scre
               aria-selected={tab === t.id}
               onClick={() => onTab(t.id)}
               className={cn(
-                "border-b-2 px-3 text-[12.5px] hover:text-ui-1",
+                "shrink-0 border-b-2 px-3 text-[12.5px] hover:text-ui-1 max-sm:py-2.5",
                 tab === t.id ? "border-ui-1 text-ui-1" : "border-transparent text-ui-3"
               )}
             >
@@ -101,7 +102,7 @@ export function AlertsView({ tab, onTab, config, setConfig, active, points, scre
         <span className="flex-1" />
         {tab === "rules" && !editingId && <NewRuleMenu onAdd={add} points={points} />}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 max-sm:px-3">
         {tab === "rules" && (
           <AlertRules
             config={config}

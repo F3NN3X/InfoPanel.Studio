@@ -286,7 +286,7 @@ function widgetSections(context: Extract<InspectorContext, { kind: "widget" }>):
           title: "Bound data",
           tab: "data",
           special: "boundData",
-          terms: ["Sensors", "Used by", "Data points", "Source"],
+          terms: ["Sensors", "Used by", "Data points", "Source", "Connection", "Data API", "Rename", "Display name"],
         })
   );
 }
@@ -309,7 +309,7 @@ function panelSections(context: Extract<InspectorContext, { kind: "panel" }>): I
         title: "Bound data",
         tab: "data",
         special: "panelData",
-        terms: ["Sensors", "Data points"],
+        terms: ["Sensors", "Data points", "Connection", "Data API", "Rename", "Display name"],
       })
     ),
   ];

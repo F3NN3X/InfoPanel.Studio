@@ -60,7 +60,7 @@ export function SettingsView({ tab, onTab, appSection, seq, dashboard, studio }:
   const desktop = isTauri();
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-ui-app/40 font-ui">
-      <div className="flex shrink-0 items-center gap-4 border-b border-ui-subtle px-6">
+      <div className="flex shrink-0 items-center gap-4 border-b border-ui-subtle px-6 max-sm:gap-2 max-sm:px-3">
         <h1 className="m-0 py-3 text-[15px] font-semibold text-ui-1">Settings</h1>
         <div role="tablist" aria-label="Settings" className="flex gap-1 self-stretch">
           {tabs(desktop).map((t) => (
@@ -76,7 +76,7 @@ export function SettingsView({ tab, onTab, appSection, seq, dashboard, studio }:
               )}
             >
               {t.label}
-              <span className="text-[10.5px] text-ui-5">{t.sub}</span>
+              <span className="text-[10.5px] text-ui-5 max-sm:hidden">{t.sub}</span>
             </button>
           ))}
         </div>
@@ -86,7 +86,7 @@ export function SettingsView({ tab, onTab, appSection, seq, dashboard, studio }:
           <EmbeddedSettings section={appSection && isSectionId(appSection) ? appSection : undefined} seq={seq} />
         </Suspense>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 max-sm:px-3">
           <div className="max-w-[560px]">
             {tab === "dashboard" && <SettingsDashboard {...dashboard} />}
             {tab === "studio" && <SettingsStudio {...studio} />}

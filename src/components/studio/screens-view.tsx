@@ -233,9 +233,10 @@ export function ScreensView({
     if (name) setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === id ? { ...p, name } : p)) }), `profile-name:${id}`);
   };
   return (
-    <div className="flex min-h-0 flex-1 bg-ui-app/40 font-ui">
-      <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-auto px-6 py-5">
-        <div className="flex items-center gap-2.5">
+    // On a phone the cards and the detail panel stack, and the view scrolls.
+    <div className="flex min-h-0 flex-1 bg-ui-app/40 font-ui max-sm:flex-col max-sm:overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-auto px-6 py-5 max-sm:shrink-0 max-sm:overflow-visible max-sm:px-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="m-0 flex-1 text-[15px] font-semibold text-ui-1">Screens</h1>
           <button type="button" title="Import a screen from a file" onClick={() => openImportDoor()} className={BUTTON}>
             <Upload className="h-3.5 w-3.5" />

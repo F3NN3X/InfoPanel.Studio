@@ -6,6 +6,66 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- **A new studio layout.** The rail is labelled and every item is a full view: **Design**, **Theme**, **Library**,
+  **Data**, **Alerts & Island**, **Help** and **Settings**. The title bar holds the screen and page switcher, the
+  command palette, **Import**, **Export**, **Live** and **Save**, and a status bar shows the Data API (with its
+  response time), the server, the kiosks, updates and whether your edits are saved.
+- **Theme** is one editor for the look at every scope. Pick **All screens**, a screen or a page in the scope bar;
+  the sections are Colors, Typography, Shape & spacing, Surface & effects, Border & glow, Background, Units & format,
+  Thresholds, Motion and Advanced. **Lock** a section to force it on every page and widget of a screen, see every
+  widget and page that does not follow in **Exceptions** (**Make it follow** puts one back), and **Apply a theme here…**
+  or **Save as Theme** for a whole look. A screen can have its own page font.
+- **Where a value comes from.** A chip on every inheritable section reads **From All screens**, **From Screen**,
+  **From Page**, **Custom here**, **Locked** or **Built-in**. Its menu resets the section, jumps to where it is set,
+  or makes a widget's look the theme for all screens, this screen or this page. Editing a section that follows turns it
+  **Custom here**; there is no switch to flip.
+- **Screens** is a view of its own (the switcher's **Manage screens…**): **When the app opens**, a card per screen,
+  and a detail panel for size and fit, grid, rotation, performance and the page order.
+- **Settings** has three tabs. **Dashboard** is what every screen shares (frame rate, clock and date, kiosk
+  behaviour, **Reset everything…**), **Studio** is this browser's options, and **App** is the desktop app's settings
+  inside the studio. The tray's **Settings** and **Update…** open **Settings › App**.
+- **Data** has a Connection card (status, Data API URL, **Test connection**) above the source tree, and a point table
+  with a display name per source and where each point is used.
+- **Alerts & Island** has **Rules**, **Island**, **Defaults** and **History** tabs, with the Dynamic Island set per
+  screen and the widgets that send to it listed.
+- **One door in, one sheet out.** **Import** accepts a config backup, a screen, an `.infopanel` file, a gauge, a frame
+  sequence, an image, a video or a font, from the button or dropped anywhere in the studio, and tells you what it
+  found. **Export & back up** has **Save backup**, **Export this screen**, **Export a page for InfoPanel** and
+  **Export a gauge**, each with **Copy JSON**. Replacing everything backs up first by default.
+- **Live** controls the kiosks right now and never saves: show a page, pause rotation, dim, mute alerts for an hour,
+  the Dynamic Island, **Reload all kiosks** and **Open kiosk view**. The page tabs show which page the kiosks are on.
+- **Narrow windows and phones.** Under 1280 px the left panel starts closed. Under 960 px the rail is icons with
+  tooltips, the inspector is a card you can drag by its header and close with Esc, and the status bar shows dots.
+  Under 600 px the rail is a bottom bar (**Design**, **Theme**, **Library**, **More**) and the inspector a bottom
+  sheet with big rows. Every view fits without sideways scrolling.
+- **First-run setup.** With no saved config the studio opens a short setup: connect the Data API, pick your screen
+  size, start from a template, an InfoPanel import or a blank screen, and name your first page with widgets found in
+  your sensors. **Help › Run setup again** repeats it.
+- **F1** in a focused Theme section opens how sections follow and lock. Text fields show a focus ring.
+- The Library keeps its side menu and gains **Themes** and **Styles** collections beside Panels, Gauges, Media, Fonts
+  and Canvases. **Gauges** is a Library collection now.
+
+### Changed
+- **Screen** is the word for a profile, and **All screens** replaces All profiles, Global and General. **Panel**,
+  **Theme** (a saved whole look), **Style** (one widget's look) and **Skin** have one meaning each.
+- The profile inspector (Layout, Look, Behaviour) is gone: the **Page** inspector shows with nothing selected, and its
+  contents live in Screens, Theme, Settings, Data and Alerts & Island. A link marked **↗** opens the one place a
+  setting lives with its control focused.
+- The widget **Style preset** menu is replaced by **Start from a Style**, **Save as Style** and **Make this the theme
+  for…**. Widgets keep their looks.
+- The kiosk page font, the Dynamic Island font and clock, and **Frame-rate cap** (was Max FPS) and **Animations**
+  moved to their homes in Theme, Alerts & Island and Settings › Dashboard.
+- Config version 10 drops the old zone `preset` key and changes nothing else.
+
+### Fixed
+- A restore waits for the backup it takes first, and stops without replacing anything when the backup cannot be saved.
+- Tray **Settings** opens **Settings › App** even when the studio window has only just been created.
+
+### Removed
+- The Profiles, Alerts and Island drawers, the Gauges rail page, the **Follow** bars, **Pin for editing**, and the
+  top bar's separate Import and Export menus, **Copy profile JSON** and **Kiosk view** buttons.
+
 ## [1.3.0-beta.7] - 2026-10-21
 
 ### Added

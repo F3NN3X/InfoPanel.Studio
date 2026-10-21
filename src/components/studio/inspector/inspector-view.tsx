@@ -377,6 +377,7 @@ export function InspectorView({
         sections={all}
         moreScope={moreScope}
         parts={parts}
+        inherit={inherit ? (section) => inherit(full.get(section.id) ?? section) : undefined}
         changedOf={changedOf}
         changed={ownAll}
         fields={fields}

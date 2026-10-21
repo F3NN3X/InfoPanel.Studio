@@ -31,7 +31,7 @@ function Crumb({ icon, label, sub, active, onClick }: { icon: ReactNode; label: 
     >
       {icon}
       <span className="truncate">{label}</span>
-      <span className="font-ui-mono text-[10.5px] font-normal text-[#7c7c86]">{sub}</span>
+      <span className="font-ui-mono text-[10.5px] font-normal text-[#7c7c86] max-sm:hidden">{sub}</span>
     </button>
   );
 }
@@ -87,7 +87,7 @@ export function ThemeScopeBar({ config, at, profile, page, onPick }: ThemeScopeB
   const pageAt: ThemeAt = { level: "page", profileId: profile.id, pageId: page.id };
   const PageIcon = pageIcon(page.icon) ?? LayoutDashboard;
   return (
-    <div role="group" aria-label="Theme scope" className="flex min-w-0 items-center gap-0.5 rounded-lg border border-ui-default bg-ui-tile p-0.5">
+    <div role="group" aria-label="Theme scope" className="flex min-w-0 items-center gap-0.5 rounded-lg border border-ui-default bg-ui-tile p-0.5 max-sm:w-full max-sm:overflow-x-auto max-sm:[scrollbar-width:none]">
       <Crumb
         icon={<Globe />}
         label="All screens"

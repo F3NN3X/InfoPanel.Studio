@@ -1,6 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
-import { FileInput, FileOutput, MoreHorizontal, Redo2, Search, Undo2 } from "lucide-react";
+import { FileInput, FileOutput, MoreHorizontal, Radio, Redo2, Search, Undo2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { isTauri } from "@/lib/desktop";
 import type { ControlKiosk, ControlState } from "@/lib/control";
@@ -66,7 +66,8 @@ function MoreMenu({
   canRedo,
   onUndo,
   onRedo,
-}: Pick<StudioTopBarProps, "onExport" | "onImport" | "canUndo" | "canRedo" | "onUndo" | "onRedo">) {
+  onLiveOpenChange,
+}: Pick<StudioTopBarProps, "onExport" | "onImport" | "canUndo" | "canRedo" | "onUndo" | "onRedo" | "onLiveOpenChange">) {
   return (
     <Menu.Root>
       <Menu.Trigger
@@ -86,6 +87,9 @@ function MoreMenu({
               <Redo2 className="h-3.5 w-3.5" /> Redo
             </Menu.Item>
             <Menu.Separator className={SEPARATOR} />
+            <Menu.Item className={ITEM} onClick={() => onLiveOpenChange(true)}>
+              <Radio className="h-3.5 w-3.5" /> Live control…
+            </Menu.Item>
             <Menu.Item className={ITEM} onClick={onImport}>
               <FileInput className="h-3.5 w-3.5" /> Import…
             </Menu.Item>

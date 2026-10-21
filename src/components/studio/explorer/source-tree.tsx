@@ -87,7 +87,7 @@ export function SourceTree({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col font-ui">
+    <div className="flex min-h-0 flex-1 flex-col font-ui max-sm:min-h-[260px] max-sm:flex-none">
       <div className="flex flex-col gap-2 px-3 pb-2 pt-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ui-4" />

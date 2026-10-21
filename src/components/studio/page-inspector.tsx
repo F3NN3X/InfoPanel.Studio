@@ -122,7 +122,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
       <div className="h-px shrink-0 bg-ui-subtle" />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         <section className="space-y-1 border-b border-[#1c1c21] px-4 py-3">
-          <NameRow key={page.id} page={page} onRename={(name) => onRename(page.id, name)} />
+          <NameRow key={`${page.id}:${page.name}`} page={page} onRename={(name) => onRename(page.id, name)} />
           <div className="flex min-h-7 items-center gap-2.5 text-[12px] text-ui-3">
             <span className="w-12 shrink-0">Icon</span>
             <button

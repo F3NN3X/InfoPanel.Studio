@@ -134,6 +134,7 @@ export function useStudioUi(
   const studioLayout = useStudioLayout({
     page,
     rail: railWidth(windowWidth),
+    windowWidth,
     drawer: !fullPage && leftOpen ? leftWidth : 0,
     quickBar: quickBar && !fullPage,
   });

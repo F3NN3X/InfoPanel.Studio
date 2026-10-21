@@ -348,8 +348,12 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         />
         <SaveTheme at={at} api={presets} />
       </div>
-      <div className="flex min-h-0 flex-1">
-        <aside aria-label="Theme sections" className="w-[360px] shrink-0 overflow-y-auto border-r border-ui-subtle bg-ui-chrome text-ui-2">
+      {/* On a phone the column and the preview stack, and the page scrolls. */}
+      <div className="flex min-h-0 flex-1 max-sm:flex-col max-sm:overflow-y-auto">
+        <aside
+          aria-label="Theme sections"
+          className="w-[360px] shrink-0 overflow-y-auto border-r border-ui-subtle bg-ui-chrome text-ui-2 max-sm:w-full max-sm:overflow-visible max-sm:border-b max-sm:border-r-0"
+        >
           <InspectorChromeProvider value={{ mode: "docked" }}>
             <p className="px-3.5 py-3 text-[11.5px] leading-[1.45] text-[#8a8a94]">{scopeHelp(at.level, profile.name, page.name)}</p>
             {twoLevel && (
@@ -377,7 +381,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             )}
           </InspectorChromeProvider>
         </aside>
-        <main className="flex min-w-0 flex-1 flex-col items-start gap-5 overflow-y-auto bg-[#0b0b0d] p-6">
+        <main className="flex min-w-0 flex-1 flex-col items-start gap-5 overflow-y-auto bg-[#0b0b0d] p-6 max-sm:shrink-0 max-sm:overflow-visible max-sm:p-4">
           <ThemePreview config={config} at={at} profile={profile} page={page} exceptions={exceptions} />
           <ThemeExceptions
             scopeName={scopeName}

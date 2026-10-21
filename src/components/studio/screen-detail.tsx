@@ -107,7 +107,7 @@ export function ScreenDetail({
   const motion = stored.performance?.motion ?? general.motion;
   const look = ownCount(config, { level: "screen", profileId: stored.id });
   return (
-    <aside aria-label="Screen details" className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">
+    <aside aria-label="Screen details" className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel max-sm:w-full max-sm:overflow-visible max-sm:border-l-0 max-sm:border-t">
       <div className="flex items-center gap-2 border-b border-ui-subtle p-3.5">
         <Monitor className="h-[18px] w-[18px] shrink-0 text-ui-3" />
         <div className="min-w-0 flex-1">

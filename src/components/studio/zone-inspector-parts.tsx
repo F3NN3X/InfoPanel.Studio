@@ -357,7 +357,7 @@ export function WidgetPicker({ placement, onPickWidget }: { placement: Placement
           className={cn(SELECT, "flex min-w-0 items-center gap-1 text-left hover:border-ui-menu")}
         >
           <span className={cn("min-w-0 flex-1 truncate", blank && "text-ui-4")}>
-            {blank ? "Blank — no widget" : placement.panel ? "Custom panel" : placementTitle(placement)}
+            {blank ? "Blank — no widget" : placement.panel ? "Panel" : placementTitle(placement)}
           </span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ui-4" />
         </button>

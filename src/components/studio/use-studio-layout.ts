@@ -16,8 +16,11 @@ const COLLAPSED_KEY = "studio.dockCollapsed";
 
 /** Width of the inspector, docked or floating. */
 export const INSPECTOR_WIDTH = 320;
-/** Width of the rail: 72 px labelled, 48 px icon-only under 960 px (the left panel's width is the viewer's). */
-export const railWidth = (windowWidth: number) => (windowWidth < 960 ? 48 : 72);
+/** Below this window width (SPEC §3.5) the studio is a phone: the rail is a bottom tab bar. */
+export const PHONE_MAX = 600;
+export const isPhone = (windowWidth: number) => windowWidth < PHONE_MAX;
+/** Width of the side rail: 72 px labelled, 48 px icon-only under 960 px, none on a phone (the bottom tab bar). */
+export const railWidth = (windowWidth: number) => (isPhone(windowWidth) ? 0 : windowWidth < 960 ? 48 : 72);
 
 /**
  * The profile's page for fitting the canvas: its design size, the screen, in
@@ -48,6 +51,8 @@ interface StudioLayoutOptions {
   page: PageSize;
   /** Width of the rail. */
   rail: number;
+  /** The window's width: it picks the inspector's mode. */
+  windowWidth: number;
   /** Width of the open left panel. */
   drawer: number;
   /** The quick bar preference is on. */
@@ -60,7 +65,7 @@ interface StudioLayoutOptions {
  * floating or a sheet). The docked inspector can be collapsed (remembered
  * per viewer); the floating one opens on demand and starts closed.
  */
-export function useStudioLayout({ page, rail, drawer, quickBar }: StudioLayoutOptions) {
+export function useStudioLayout({ page, rail, windowWidth, drawer, quickBar }: StudioLayoutOptions) {
   const [collapsed, setCollapsedState] = useState(loadCollapsed);
   const [floatOpen, setFloatOpen] = useState(false);
   /** The bottom sheet: its snap, its height while the handle is dragged, the tool its strip shows. */
@@ -91,7 +96,7 @@ export function useStudioLayout({ page, rail, drawer, quickBar }: StudioLayoutOp
     }
   }, []);
 
-  const mode = inspectorMode(body.width);
+  const mode = inspectorMode(windowWidth);
   const leftOverlay = !leftPanelFits(body.width, mode, {
     rail,
     drawer,
@@ -106,6 +111,7 @@ export function useStudioLayout({ page, rail, drawer, quickBar }: StudioLayoutOp
         body,
         page: { width: pageW, height: pageH, naturalHeight },
         rail,
+        windowWidth,
         // An overlaid left panel takes no width from the canvas.
         drawer: leftOverlay ? 0 : drawer,
         inspector: INSPECTOR_WIDTH,
@@ -114,7 +120,7 @@ export function useStudioLayout({ page, rail, drawer, quickBar }: StudioLayoutOp
         quickBar,
         sheet,
       }),
-    [body, pageW, pageH, naturalHeight, rail, drawer, leftOverlay, collapsed, floatOpen, quickBar, sheet]
+    [body, pageW, pageH, naturalHeight, rail, windowWidth, drawer, leftOverlay, collapsed, floatOpen, quickBar, sheet]
   );
 
   /** The inspector is out of sight: a collapsed docked column, a closed floating card, a sheet at its peek. */

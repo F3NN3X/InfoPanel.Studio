@@ -7,7 +7,7 @@ import { splitMore, type InspectorSection } from "../inspector-model";
 import { INSPECTOR_SCROLL, type SheetChrome } from "../inspector-layout";
 import { SettingField, type FieldsApi } from "../settings-panel";
 import { sectionIcon, sectionShort } from "./section-icons";
-import type { SectionParts } from "./inspector-view";
+import type { SectionInherit, SectionParts } from "./inspector-view";
 import { MoreRows, moreKey } from "./more-rows";
 
 /** What the sheet's compact header shows (peek and half). */
@@ -30,6 +30,8 @@ interface SheetViewProps {
   /** The sections a tile can show, in tab order. */
   sections: InspectorSection[];
   parts: (section: InspectorSection) => SectionParts;
+  /** The section's inheritance chip, as on its full card. */
+  inherit?: (section: InspectorSection) => SectionInherit | undefined;
   changedOf: (section: InspectorSection) => number;
   /** All own values (the sub line). */
   changed: number;
@@ -89,7 +91,7 @@ function Tile({
  * section across every tab) and, at half, the chosen tool's fields without
  * a section header. At full height the sheet shows the whole inspector.
  */
-export function SheetView({ sheet, identity, sections, parts, changedOf, changed, fields, sources, quickKeys, moreScope }: SheetViewProps) {
+export function SheetView({ sheet, identity, sections, parts, inherit, changedOf, changed, fields, sources, quickKeys, moreScope }: SheetViewProps) {
   const toFull = () => sheet.setSnap("full");
   if (identity.peekNote && sheet.snap === "peek")
     return (
@@ -117,12 +119,20 @@ export function SheetView({ sheet, identity, sections, parts, changedOf, changed
         <p className="px-4 py-4 text-[12.5px] text-[#8a8a94]">Pin settings from the panel to show them here</p>
       );
     const p = parts(active);
+    const inh = inherit?.(active);
     const pad = (node: ReactNode) => node && <div className="space-y-2 py-1 pl-4 pr-2.5">{node}</div>;
     if (p.plain) return <div className="px-4 py-3">{p.body}</div>;
     const split = splitMore(active);
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
     return (
       <>
+        {inh && (
+          <div className="flex min-h-11 items-center gap-2 pl-4 pr-2.5" onKeyDown={inh.onKeyDown}>
+            <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ui-1">{active.title}</span>
+            {inh.chip}
+          </div>
+        )}
+        {inh?.note && pad(inh.note)}
         {pad(p.top)}
         {split.rows.map(field)}
         {pad(p.body)}
@@ -131,6 +141,7 @@ export function SheetView({ sheet, identity, sections, parts, changedOf, changed
           {split.more.map(field)}
           {pad(p.more)}
         </MoreRows>
+        {inh && pad(inh.actions)}
       </>
     );
   };

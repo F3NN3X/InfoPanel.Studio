@@ -234,8 +234,9 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
       {loading ? (
         <div className="grid flex-1 place-items-center text-[12.5px] text-ui-4">Loading data points…</div>
       ) : (
-      <div className="relative flex min-h-0 flex-1">
-        <div className="flex min-h-0 w-[300px] shrink-0 flex-col border-r border-ui-subtle bg-ui-panel">
+      <div className="relative flex min-h-0 flex-1 max-sm:flex-col">
+        {/* On a phone the connection and source tree sit above the table. */}
+        <div className="flex min-h-0 w-[300px] shrink-0 flex-col border-r border-ui-subtle bg-ui-panel max-sm:max-h-[48%] max-sm:w-full max-sm:overflow-y-auto max-sm:border-b max-sm:border-r-0">
           <ConnectionCard
             value={config.dataApiUrl}
             onChange={(dataApiUrl) => setConfig((c) => ({ ...c, dataApiUrl }), "data-api-url")}
@@ -285,7 +286,7 @@ export function SourcesPanel({ config, setConfig, profile, selectedZoneId, onOpe
         {(!drawer || point) && (
           <div
             className={cn(
-              "w-[320px] shrink-0 border-l border-ui-subtle",
+              "w-[320px] shrink-0 border-l border-ui-subtle max-sm:w-full",
               drawer && "absolute inset-y-0 right-0 z-20 shadow-ui-drawer"
             )}
           >

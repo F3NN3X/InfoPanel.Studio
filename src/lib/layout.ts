@@ -554,6 +554,15 @@ export function loadConfig(): DashboardConfig {
   }
 }
 
+/** This browser holds a config of its own (none: a fresh install, or a browser that never opened the studio). */
+export function hasStoredConfig(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 const isQuotaError = (err: unknown): boolean => err instanceof DOMException && err.name === "QuotaExceededError";
 
 /**

@@ -338,7 +338,7 @@ export default function LibraryPage(p: LibraryPageProps) {
         setActiveLibraryDrag(null);
       }}
     >
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4">
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-chrome px-4 max-sm:h-auto max-sm:flex-wrap max-sm:gap-2 max-sm:px-3 max-sm:py-2">
         <h1 className="text-[15px] font-semibold text-ui-1">Library</h1>
         <span className="hidden min-w-0 truncate text-[12px] text-ui-4 xl:block">Everything you’ve saved, beside the built-ins.</span>
         <label className="flex h-[34px] min-w-0 max-w-[520px] flex-1 items-center gap-2 rounded-[9px] border border-ui-default bg-ui-panel px-3 focus-within:border-ui-accent">
@@ -422,7 +422,7 @@ export default function LibraryPage(p: LibraryPageProps) {
         </button>
       </header>
       {!showFiles && <LooseUploads items={lib.items} config={p.bridge.config} ready={!lib.loading && !lib.error} onImport={lib.importAssets} onResult={toast} />}
-      <div className="relative flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1 max-sm:flex-col">
         {showFiles ? (
           <ProfileAssets
             {...p.assets}

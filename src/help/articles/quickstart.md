@@ -8,6 +8,8 @@ verified: 1.3.0-beta.1
 
 From a fresh install to a live dashboard on your InfoPanel display.
 
+The first time the studio opens with no saved dashboard, a short setup walks through the first steps (connect the Data API, pick your screen, start from a template, an import or a blank screen, and build a first page). Choose **Run setup again** at the bottom of this Help's sidebar to repeat it.
+
 ## 1. Check the server is running
 
 The Server item in the status bar at the bottom of the studio should show the port it is serving on. If the server is stopped, open Settings › App › Server and press **Start server**.
