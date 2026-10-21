@@ -12,7 +12,7 @@ The local server hosts your dashboard. InfoPanel shows it through the kiosk URL.
 
 :::generated defaults.table
 
-Copy it from Settings › App › Server with **Copy**, or open it with **Open**. In InfoPanel, set it as the URL of a Web Page profile that fills your display. The URL uses this PC's network address when you choose Local network.
+Copy it from Settings › App › Server with **Copy**, or open it with **Open**. In InfoPanel, set it as the URL of a Web Page profile that fills your display. The URL uses the network address of the PC running InfoPanel Studio when you choose Local network.
 
 :::open settings/server Settings › App › Server
 
@@ -24,7 +24,7 @@ Settings › App › Server shows the state (**Server running**, **Server stoppe
 
 | Option | Address | Use when |
 |---|---|---|
-| This computer only | `127.0.0.1` | InfoPanel runs on this PC (most setups) |
+| Only this PC (localhost) | `127.0.0.1` | InfoPanel runs on the PC running InfoPanel Studio (most setups) |
 | Local network | `0.0.0.0` | The display is driven by another device on your network |
 
 :::warn

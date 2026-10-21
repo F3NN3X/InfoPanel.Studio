@@ -22,7 +22,7 @@ export function toggleRequest(next: boolean, saved: boolean): "on" | "off" | "sa
 export function rotationNote(p: { rotating: boolean; override: ControlProfile["override"]; savedEnabled: boolean; seconds: number }): string {
   const saved = p.savedEnabled ? `every ${cycleLabel(p.seconds)}` : "off";
   if (p.override === null) return `Following the saved setting: ${saved}.`;
-  return `${p.rotating ? "Running" : "Paused"} for now. Saved setting: ${saved} — resumes on reload.`;
+  return `${p.rotating ? "Running" : "Paused"} for now. Saved setting: ${saved}. Changing the saved setting replaces this.`;
 }
 
 /** Alerts are muted now (the server's deadline is still ahead). */

@@ -38,15 +38,15 @@ describe("alert presets", () => {
 
   it("watches a plugin's sensor for going missing, shown on the island", () => {
     const rule = presetRule(preset("plugin-missing"), [...CATALOGUE, pt("plugins.InfoPanel.FPS.fps", "FPS")]);
-    expect(rule.source).toMatchObject({ kind: "sensor", key: "plugins.InfoPanel.FPS.fps", op: "missing", forSeconds: 30 });
+    expect(rule.source).toMatchObject({ kind: "sensor", conditions: [{ key: "plugins.InfoPanel.FPS.fps", op: "missing" }], forSeconds: 30 });
     expect(rule.outputs.display).toMatchObject({ style: "island", seconds: 0 });
-    expect(normalizeAlerts({ rules: [rule] })!.rules[0].source).toMatchObject({ op: "missing" });
+    expect(normalizeAlerts({ rules: [rule] })!.rules[0].source).toMatchObject({ conditions: [{ op: "missing" }] });
   });
 
   it("leaves the key empty when nothing matches", () => {
     expect(matchSensor(preset("gpu-temp"), [pt("a.b", "Unrelated")])).toBeUndefined();
     const rule = presetRule(preset("fps-drop"), []);
-    expect(rule.source).toMatchObject({ kind: "sensor", key: "", op: "<" });
+    expect(rule.source).toMatchObject({ kind: "sensor", conditions: [{ key: "", op: "<" }] });
   });
 
   it("skips empty points and non-numbers for threshold presets", () => {
@@ -59,12 +59,15 @@ describe("alert presets", () => {
     expect(a.id).not.toBe(b.id);
     a.outputs.display!.seconds = 99;
     expect(preset("gpu-temp").rule.outputs.display!.seconds).not.toBe(99);
-    expect(a.source).toMatchObject({ key: "hardware.gpu.core-temp", op: ">", value: 80, forSeconds: 10, clearBelow: 75 });
+    expect(a.source).toMatchObject({
+      conditions: [{ key: "hardware.gpu.core-temp", op: ">", value: 80, clearBelow: 75 }],
+      forSeconds: 10,
+    });
     const matched = ALERT_PRESETS.map((p) => presetRule(p, CATALOGUE));
     const all = [...matched, blankNotificationRule()];
     expect(normalizeAlerts({ rules: all })!.rules).toHaveLength(all.length);
     // An empty key is dropped on a reload (normalizeAlerts), so the blanks only live until a save.
-    expect(blankSensorRule().source).toMatchObject({ kind: "sensor", key: "" });
+    expect(blankSensorRule().source).toMatchObject({ kind: "sensor", conditions: [{ key: "" }] });
   });
 
   it("offers every preset the plan lists", () => {

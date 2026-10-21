@@ -24,11 +24,11 @@ interface SettingsViewProps {
   studio: ComponentProps<typeof SettingsStudio>;
 }
 
-/** The tabs with their subtitles; App's says whether this is the PC the settings belong to. */
+/** The tabs with their subtitles; App's says when the settings are the desktop app's only. */
 const tabs = (desktop: boolean): { id: SettingsTab; label: string; sub: string }[] => [
-  { id: "dashboard", label: "Dashboard", sub: "every screen" },
-  { id: "studio", label: "Studio", sub: "this browser" },
-  { id: "app", label: "App", sub: desktop ? "this PC" : "desktop only" },
+  { id: "dashboard", label: "Dashboard", sub: "every screen and kiosk" },
+  { id: "studio", label: "Studio", sub: "editor preferences" },
+  { id: "app", label: "App", sub: desktop ? "startup, server and updates" : "desktop app only" },
 ];
 
 /** The browser's App tab (SPEC §10.1): what to know, and the little the browser can read. */
@@ -40,8 +40,8 @@ function BrowserApp() {
         App settings live in the desktop app
       </div>
       <p className="m-0 text-[12px] leading-normal text-ui-3">
-        You&apos;re using Studio in a browser, served from the PC running InfoPanel Studio. Startup, window, server, updates, coding agents and logs can only
-        be changed there.
+        The Studio is open in a web browser. Startup, window, server, updates, coding agents and logs change only in the InfoPanel Studio app, on the PC that
+        runs it.
       </p>
       <div className="flex flex-col gap-1">
         <ReadRow label="Server" value={`${window.location.host} · read-only`} />
@@ -53,8 +53,8 @@ function BrowserApp() {
 }
 
 /**
- * Settings (SPEC §10.1): tabs Dashboard (every screen), Studio (this browser) and App (this PC: the desktop
- * settings pages, or in a browser the notice that they live there), on a 560 px column.
+ * Settings (SPEC §10.1): tabs Dashboard (every screen and kiosk), Studio (editor preferences) and App (the desktop
+ * settings pages, or in a browser the notice that they live in the app), on a 560 px column.
  */
 export function SettingsView({ tab, onTab, appSection, seq, dashboard, studio }: SettingsViewProps) {
   const desktop = isTauri();

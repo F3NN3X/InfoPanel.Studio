@@ -109,7 +109,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
               <div className="min-w-0 flex-1">
                 <Popover.Title className="text-[13px] font-semibold text-ui-1">Live control</Popover.Title>
                 <p className="mt-0.5 text-[11.5px] leading-snug text-ui-3">
-                  Acts on kiosks right now. Nothing here is saved to your dashboard.
+                  Acts on the kiosks right now. None of it is part of your design, so Save doesn't change it.
                 </p>
               </div>
               <button

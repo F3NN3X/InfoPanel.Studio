@@ -15,7 +15,7 @@ Every widget and panel has the same four tabs, filed by the question they answer
 | **Data** | Where do values come from? | Bound data, device and sources, Units & format |
 | **Behaviour** | How does it react? | Thresholds, the widget's own behaviour, Motion, Send to island |
 
-Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows the **Page** you are on: its name and icon, the sections it customises, **Show this page on kiosks now**, and links to the screen's layout, Theme and behaviour. Theme lists the same sections in one ordered column.
+Widget-specific sections come first in each tab, shared ones after. With nothing selected, the inspector shows the **Page** you are on: its name and icon, the sections it customises, **Show on kiosks now**, and links to the screen's layout, Theme and behaviour. Theme lists the same sections in one ordered column.
 
 Every Style section has a chip that says where its value comes from: **From All screens**, **From Screen**, **Custom here** or **Locked by Screen**. Editing a row customises the section. Click the chip, or the links under the rows, to **Reset to inherited**, **Customise here** or open the level it comes from. With a section focused, Backspace resets it.
 

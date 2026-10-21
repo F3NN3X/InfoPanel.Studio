@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
-import { Bot } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { resolveFont, resolveGeneral } from "@/lib/general";
+import { createIslandBus } from "@/lib/island/bus";
 import { withIsland, type IslandConfig } from "@/lib/island/config";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { modules } from "@/modules";
 import { alertsOf } from "./alerts-model";
 import { IslandSection } from "./inspector/island-section";
+import { IslandPreview } from "./island-preview";
 import {
   FOLLOW_DASHBOARD,
   FOLLOW_THEME,
@@ -56,33 +57,14 @@ function IslandLinkRow({ label, link, linkText, onNavigate, followText, onFollow
   );
 }
 
-/** A sample pill: the shape the screen's island takes, with an alert open. */
-function PreviewPill({ island }: { island: IslandConfig | undefined }) {
-  const notch = island?.shape === "notch";
-  return (
-    <div className="grid h-[120px] place-items-center rounded-[10px] border border-ui-subtle bg-[#070709]">
-      <div
-        aria-label="Island preview"
-        className={cn(
-          "flex h-9 items-center gap-2.5 bg-black px-4 text-[12px] text-ui-1 shadow-[0_0_0_1px_#26262c]",
-          notch ? "rounded-b-[18px]" : "rounded-full"
-        )}
-      >
-        <Bot className="h-4 w-4 text-ui-success" aria-hidden />
-        Agent finished · 3 tasks
-        <span className="font-ui-mono text-[11px] text-ui-4">21:48</span>
-      </div>
-    </div>
-  );
-}
-
 /**
- * Alerts & Island › Island (SPEC §10.3): the screen chips, a preview pill, the island's rows (Font and
+ * Alerts & Island › Island (SPEC §10.3): the screen chips, the live preview, the island's rows (Font and
  * Clock format are links to Theme and Settings), the dashboard notices, the widgets that send to it
  * and a link to the rules that show on it.
  */
 export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplorer, navigateTo }: IslandTabProps) {
   const [pickedId, setPickedId] = useState(current.id);
+  const [previewBus] = useState(() => createIslandBus());
   const profile = config.profiles.find((p) => p.id === pickedId) ?? current;
   const island = profile.island;
   const widgets = useMemo(() => islandWidgets(profile, modules).filter((w) => w.on), [profile]);
@@ -100,6 +82,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
   return (
     <IslandSection
       island={island}
+      previewBus={previewBus}
       onChange={patchIsland}
       onOpenExplorer={onOpenExplorer}
       links={{
@@ -143,7 +126,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
               </button>
             ))}
           </div>
-          <PreviewPill island={island} />
+          <IslandPreview island={island} page={{ width: profile.width, height: profile.height }} bus={previewBus} />
         </>
       }
       aside={

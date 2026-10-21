@@ -73,7 +73,7 @@ export function describeRequest(entry: RequestEntry, r: ResolvedFont | undefined
   if (missing) {
     return entry.supplied
       ? { status: "switched", drawn: `${t.family} (InfoPanel fallback)`, how: "Switched to fallback" }
-      : { status: "missing", drawn: "Missing", how: "Not on this PC" };
+      : { status: "missing", drawn: "Missing", how: "Not installed" };
   }
   const drawn = [t.family, WEIGHT_NAME[t.weight] ?? String(t.weight), t.slant === "Upright" ? "" : t.slant].filter(Boolean).join(" ");
   return { status: "ok", drawn, how: r.source === "data-api" ? "Asked from InfoPanel (Data API)" : "System font" };

@@ -1,29 +1,25 @@
-import { Activity, ArrowLeft, Bell, FlaskConical } from "lucide-react";
+import { Activity, ArrowLeft, Bell, FlaskConical, Plus } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toast";
 import type { HistorySetter } from "@/hooks/use-config-history";
-import { useSensors } from "@/hooks/useSensors";
 import {
   COOLDOWN_SECONDS_MAX,
   FOR_SECONDS_MAX,
-  SENSOR_OPS,
   SEVERITIES,
   type AlertRule,
   type AlertSource,
-  type SensorOp,
+  type SensorCondition,
 } from "@/lib/alerts";
 import { postControl } from "@/lib/control";
 import type { DataPoint } from "@/lib/data-points";
 import { parseNameList } from "@/lib/name-list";
 import type { DashboardConfig } from "@/lib/layout";
-import { sensorAt } from "@/lib/sensors";
-import { cn } from "@/lib/utils";
-import { alertsOf, clearLabel, patchRule, previewSensor, ruleKey } from "./alerts-model";
+import { alertsOf, patchRule, ruleKey } from "./alerts-model";
+import { AlertCondition } from "./alerts-condition";
 import { ChipsField, NumField, SeverityDot, TextField } from "./alerts-fields";
 import { AlertOutputs } from "./alerts-outputs";
-import { SensorField } from "./widget-editor/sensor-field";
 import { PanelSection } from "./panel-section";
-import { InlineRow, SEGMENTED_CLASS, SelectRow, StackRow, ToggleRow } from "./setting-rows";
+import { InlineRow, SEGMENTED_CLASS, StackRow, ToggleRow } from "./setting-rows";
 
 interface AlertRuleEditorProps {
   rule: AlertRule;
@@ -42,48 +38,12 @@ interface AlertRuleEditorProps {
 type SensorSource = Extract<AlertSource, { kind: "sensor" }>;
 type NotificationSource = Extract<AlertSource, { kind: "notification" }>;
 
-const OP_LABEL: Record<SensorOp, string> = {
-  ">": "is above",
-  ">=": "is at least",
-  "<": "is below",
-  "<=": "is at most",
-  "=": "equals",
-  "!=": "is not",
-  changes: "changes",
-  contains: "contains",
-  missing: "stops reporting",
-};
-
-const NUMERIC_OPS: readonly SensorOp[] = [">", ">=", "<", "<="];
-
 /** App names the Notifications plugin (2.0+) publishes (`…windows.apps`: a JSON array, or a comma list). */
 export const NOTIFICATION_APPS_KEY = "plugins.InfoPanel.Notifications.windows.apps";
 
 export function notificationApps(points: readonly DataPoint[]): string[] {
   const p = points.find((x) => x.key === NOTIFICATION_APPS_KEY);
   return p ? parseNameList(p.raw) : [];
-}
-
-/** The live line under the sensor: the current value and whether the rule would fire on it now. */
-function LiveLine({ source }: { source: SensorSource }) {
-  const live = useSensors(source.key ? [source.key] : []);
-  const { value, state } = previewSensor(source, source.key ? sensorAt(live, source.key) : undefined);
-  const note =
-    state === "fires" ? "would fire now" : state === "ok" ? "not firing" : state === "event" ? "fires on each change" : "no reading";
-  return (
-    <div className="flex items-center gap-2 rounded-md bg-ui-app px-2 py-1.5 text-[11.5px]" aria-live="polite">
-      <span className="text-ui-4">Now</span>
-      <span className="font-ui-mono text-ui-1">{value ?? "—"}</span>
-      <span
-        className={cn(
-          "ml-auto",
-          state === "fires" ? "text-ui-warning" : state === "ok" ? "text-ui-success" : "text-ui-4"
-        )}
-      >
-        {note}
-      </span>
-    </div>
-  );
 }
 
 /** The rule editor sub-view of the Alerts drawer. */
@@ -104,21 +64,32 @@ export function AlertRuleEditor({
     edit(field, (r) => ({ ...r, source: fn(r.source as S) }));
   const source = rule.source;
   const alerts = alertsOf(config);
-  const sensorEmpty = source.kind === "sensor" && source.key === "";
+  const sensorEmpty = source.kind === "sensor" && source.conditions.every((c) => c.key === "");
   const testBlocked = pushPending || sensorEmpty;
+
+  const editCondition = (index: number, field: string, fn: (c: SensorCondition) => SensorCondition) =>
+    editSource<SensorSource>(`c${index}:${field}`, (s) => ({
+      ...s,
+      conditions: s.conditions.map((c, i) => (i === index ? fn(c) : c)),
+    }));
+  const addCondition = () =>
+    edit("conditions", (r) =>
+      r.source.kind !== "sensor"
+        ? r
+        : {
+            ...r,
+            source: { ...r.source, conditions: [...r.source.conditions, { key: "", op: ">", value: 80 }] },
+            // The preset text shows one reading; the default text names each sensor that fired.
+            outputs: r.outputs.display?.text === "{value} {unit}" ? { ...r.outputs, display: withoutText(r.outputs.display) } : r.outputs,
+          }
+    );
+  const removeCondition = (index: number) =>
+    editSource<SensorSource>("conditions", (s) => ({ ...s, conditions: s.conditions.filter((_, i) => i !== index) }));
 
   const test = () =>
     void postControl("alert", { ruleId: rule.id, action: "test" }).then((res) =>
       toast(res ? "Test alert sent" : "Couldn't reach the server")
     );
-
-  const setOp = (op: SensorOp) =>
-    editSource<SensorSource>("op", (s) => {
-      const { clearBelow, ...rest } = s;
-      const keepClear = clearLabel(op) !== null && clearLabel(s.op) === clearLabel(op);
-      const value = NUMERIC_OPS.includes(op) && !Number.isFinite(Number(s.value)) ? 0 : s.value;
-      return { ...rest, op, value, ...(keepClear && clearBelow !== undefined ? { clearBelow } : {}) };
-    });
 
   return (
     <>
@@ -161,50 +132,29 @@ export function AlertRuleEditor({
         <PanelSection id="alert-source" title={source.kind === "sensor" ? "When a sensor" : "When a notification arrives"} icon={Activity}>
           {source.kind === "sensor" ? (
             <>
-              <SensorField
-                label="Sensor"
-                value={source.key || undefined}
-                onChange={(key) => editSource<SensorSource>("key", (s) => ({ ...s, key: key ?? "" }))}
-                onOpenExplorer={onOpenSources}
-              />
-              {sensorEmpty && <div className="text-[11px] text-ui-warning">Pick a sensor to watch.</div>}
-              <SelectRow
-                label="Condition"
-                value={source.op}
-                onChange={(op) => setOp(op as SensorOp)}
-                options={SENSOR_OPS.map((op) => ({ value: op, label: OP_LABEL[op] }))}
-              />
-              {source.op !== "changes" &&
-                source.op !== "missing" &&
-                (NUMERIC_OPS.includes(source.op) ? (
-                  <InlineRow label="Threshold">
-                    <NumField
-                      label="Threshold"
-                      value={Number(source.value)}
-                      onChange={(n) => editSource<SensorSource>("value", (s) => ({ ...s, value: n ?? 0 }))}
-                    />
-                  </InlineRow>
-                ) : (
-                  <StackRow label="Value">
-                    <TextField
-                      label="Value"
-                      value={String(source.value)}
-                      onChange={(text) =>
-                        editSource<SensorSource>("value", (s) => ({
-                          ...s,
-                          value: s.op !== "contains" && text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text,
-                        }))
-                      }
-                    />
-                  </StackRow>
-                ))}
-              {source.op !== "changes" && (
+              {source.conditions.map((c, i) => (
+                <AlertCondition
+                  key={i}
+                  condition={c}
+                  position={source.conditions.length > 1 ? { index: i, onRemove: () => removeCondition(i) } : undefined}
+                  onEdit={(field, fn) => editCondition(i, field, fn)}
+                  onOpenSources={onOpenSources}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={addCondition}
+                className="flex h-7 items-center gap-1 self-start rounded-md px-1.5 text-[12px] text-ui-accent-text hover:bg-ui-hover"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add sensor
+              </button>
+              {source.conditions.some((c) => c.op !== "changes") && (
                 <InlineRow
                   label="For (s)"
                   hint={
-                    source.op === "missing"
-                      ? "The sensor must be gone this long (after it has reported once) before the alert fires."
-                      : "The condition must hold this long before the alert fires."
+                    source.conditions.some((c) => c.op === "missing")
+                      ? "A sensor must hold its condition this long (a missing one: be gone, after it has reported once) before the alert fires."
+                      : "A sensor must hold its condition this long before the alert fires."
                   }
                 >
                   <NumField
@@ -216,21 +166,6 @@ export function AlertRuleEditor({
                   />
                 </InlineRow>
               )}
-              {clearLabel(source.op) && (
-                <InlineRow label={`${clearLabel(source.op)} (hysteresis)`} hint="Empty = clears as soon as the condition stops holding.">
-                  <NumField
-                    label={clearLabel(source.op) ?? "Clears at"}
-                    value={source.clearBelow}
-                    onChange={(n) =>
-                      editSource<SensorSource>("clear", (s) => {
-                        const { clearBelow: _was, ...rest } = s;
-                        return n === undefined ? rest : { ...rest, clearBelow: n };
-                      })
-                    }
-                  />
-                </InlineRow>
-              )}
-              <LiveLine source={source} />
             </>
           ) : (
             <>
@@ -338,6 +273,12 @@ export function AlertRuleEditor({
       </div>
     </>
   );
+}
+
+/** A display without its text template, which puts the default back. */
+function withoutText(display: NonNullable<AlertRule["outputs"]["display"]>): NonNullable<AlertRule["outputs"]["display"]> {
+  const { text: _was, ...rest } = display;
+  return rest;
 }
 
 /** A notification source with one of its lists set (an empty list is dropped). */

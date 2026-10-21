@@ -82,9 +82,9 @@ export const notificationsIsland: DataSourceDef = {
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
     if (!apps.includes(now.app.toLowerCase())) return {};
-    const body = settings.islandBody === false ? "" : now.body;
+    const body = [now.title, settings.islandBody === false ? "" : now.body].filter(Boolean).join("\n");
     return {
-      notices: [{ id: `toast:${now.id}`, group: now.app, severity: "info", title: now.title ? `${now.app}: ${now.title}` : now.app, ...(body ? { body } : {}), ttl: 6000 }],
+      notices: [{ id: `toast:${now.id}`, group: now.app, severity: "info", title: now.app, ...(body ? { body } : {}), ttl: 6000 }],
     };
   },
 };

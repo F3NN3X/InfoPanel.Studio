@@ -161,7 +161,7 @@ function CalloutButton({ children, onClick, disabled }: { children: string; onCl
 }
 
 const LISTEN_OPTIONS: { value: Listen; icon: LucideIcon; label: string }[] = [
-  { value: "local", icon: Monitor, label: "This computer only" },
+  { value: "local", icon: Monitor, label: "Only this PC (localhost)" },
   { value: "lan", icon: Network, label: "Local network" },
 ];
 
@@ -288,7 +288,7 @@ function AllowedHostsRow() {
     <Row
       id="allowed-hosts"
       label="Allowed host names"
-      hint={error ?? "Extra names other devices use to reach this computer, comma separated. Requests for any other name are refused."}
+      hint={error ?? "Extra names other devices use to reach the PC running InfoPanel Studio, comma separated. Requests for any other name are refused."}
       hintClass={error ? "text-s-red" : undefined}
     >
       <input

@@ -11,7 +11,7 @@ export function GeneralSection() {
     <>
       <Group title="Zoom">
         <Card className="divide-y-0 pb-[18px]">
-          <Row id="zoom" label="App zoom" hint="Scales the studio and this window. Doesn't change the kiosk.">
+          <Row id="zoom" label="App zoom" hint="Scales the Studio and the app window. Doesn't change the kiosk.">
               <div className="flex items-center gap-1.5">
                 <button type="button" aria-label="Zoom out" className={stepButton} disabled={settings.zoom <= ZOOMS[0]} onClick={() => step(-1)}>
                   <Minus className="h-[18px] w-[18px]" />

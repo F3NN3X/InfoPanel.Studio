@@ -26,7 +26,7 @@ const ACCORDION_MODES = [
 const percent = (zoom: number): string => `${Math.round(zoom * 100)}%`;
 
 /**
- * Settings › Studio (SPEC §10.1): the editor's preferences, saved in this browser only (the studio.* keys of
+ * Settings › Studio (SPEC §10.1): the editor's preferences, saved with the Studio on this device (the studio.* keys of
  * localStorage). Nothing here is in the config, so nothing is in the undo history.
  */
 export function SettingsStudio({ fitting, zoom, onFit, onZoom, showGrid, onShowGrid, showRulers, onShowRulers, leftWidth, onLeftWidth }: SettingsStudioProps) {
@@ -36,7 +36,7 @@ export function SettingsStudio({ fitting, zoom, onFit, onZoom, showGrid, onShowG
   const steps = ZOOM_STEPS.some((s) => Math.abs(s - zoom) < 0.005) || fitting ? ZOOM_STEPS : [...ZOOM_STEPS, zoom].sort((a, b) => a - b);
   const current = fitting ? "fit" : String(steps.find((s) => Math.abs(s - zoom) < 0.005) ?? zoom);
   return (
-    <SettingsGroup id="editor" title="Editor" scope="Saved in this browser only">
+    <SettingsGroup id="editor" title="Editor" scope="Saved with the Studio on this device, not in your dashboard.">
       <ToggleRow label="Quick bar" hint="The pinned settings of the selected widget, over the canvas" value={quickBar} onChange={setQuickBar} />
       <SegmentedRow
         label="Inspector sections"

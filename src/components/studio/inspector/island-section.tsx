@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Play, Plus, Trash2 } from "lucide-react";
 import type { Severity } from "@/lib/alerts";
-import { islandBus } from "@/lib/island/bus";
+import type { IslandBus } from "@/lib/island/bus";
 import {
   ISLAND_COLLAPSE_MAX,
   ISLAND_DEFAULTS,
@@ -87,6 +87,8 @@ const NOTICE_ROWS: { key: keyof IslandNotices; label: string; hint: string }[] =
 
 interface IslandSectionProps {
   island: IslandConfig | undefined;
+  /** The bus of the island preview above the rows: "Preview an alert" plays there. */
+  previewBus: IslandBus;
   onChange: (patch: Partial<IslandConfig>) => void;
   /** The sensor picker's "Open data explorer". */
   onOpenExplorer: () => void;
@@ -196,12 +198,12 @@ function withoutEmpty(s: IslandStat): IslandStat {
  * the Island display style, widgets by their "Send to island" setting. Two columns: the island's own
  * rows, then the dashboard notices and the widgets that send to it.
  */
-export function IslandSection({ island, onChange, onOpenExplorer, links, lead, aside }: IslandSectionProps) {
+export function IslandSection({ island, previewBus, onChange, onOpenExplorer, links, lead, aside }: IslandSectionProps) {
   const v = island ?? { ...ISLAND_DEFAULTS, enabled: false };
-  // Plays on the canvas only (the studio's own bus); each press shows the next severity.
+  // Plays in the preview only (the kiosk never hears it); each press shows the next severity.
   const preview = () => {
     const i = previewAt++ % PREVIEW.length;
-    islandBus.notify({ source: PREVIEW_SOURCE, id: `p${i}`, ...PREVIEW[i], ttl: 4000 });
+    previewBus.notify({ source: PREVIEW_SOURCE, id: `p${i}`, ...PREVIEW[i], ttl: 4000 });
   };
   const rotatable = v.idle === "time-date" || v.idle === "sensor" || v.notices.calendar;
   const groups: { id: string; title: string; body: ReactNode }[] = [
@@ -373,7 +375,7 @@ export function IslandSection({ island, onChange, onOpenExplorer, links, lead, a
       </button>
       <p className="text-[11px] leading-snug text-ui-5">
         Alert rules show here when their display style is Island; widgets with “Send to island” on and the
-        dashboard notices add theirs on the kiosk. On the canvas the island plays only test alerts and previews.
+        dashboard notices add theirs on the kiosk. The preview above plays only here, and test alerts play on the canvas.
       </p>
     </>
   );

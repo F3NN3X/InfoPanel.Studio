@@ -227,8 +227,10 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     draw them at the default size.
  * v10: the widget `preset` key is dropped (`settings-migrate.ts` `migratePlacementV10`); its values
  *     already sit in the zone's settings, so a v9 build only loses the marker.
+ * v11: a sensor alert holds a list of `conditions` (`alerts.ts` `normalizeAlerts`); a rule saved with
+ *     one `key` / `op` / `value` becomes a one-item list, which a v10 build would drop as unreadable.
  */
-export const CONFIG_VERSION = 10;
+export const CONFIG_VERSION = 11;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;

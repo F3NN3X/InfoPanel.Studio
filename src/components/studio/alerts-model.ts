@@ -4,8 +4,8 @@ import {
   type AlertHistoryEntry,
   type AlertRule,
   type AlertsConfig,
-  type AlertSource,
   type QuietHours,
+  type SensorCondition,
 } from "@/lib/alerts";
 import { formatReading } from "@/lib/data-points";
 import { uid, type DashboardConfig } from "@/lib/layout";
@@ -86,21 +86,31 @@ export interface SensorLabel {
 
 const lastSegment = (key: string): string => key.slice(key.lastIndexOf(".") + 1);
 
-/** "GPU Temperature > 80 °C for 10 s", "Notifications from Discord", "Pick a sensor". */
-export function summarizeRule(rule: AlertRule, sensor: SensorLabel = {}): string {
+/** One condition as words, without the hold time. */
+function describeCondition(c: SensorCondition, sensor: SensorLabel): string {
+  const name = sensor.name || lastSegment(c.key);
+  const unit = sensor.unit ? ` ${sensor.unit}` : "";
+  if (c.op === "changes") return `${name} changes`;
+  if (c.op === "missing") return `${name} stops reporting`;
+  if (c.op === "contains") return `${name} contains “${c.value}”`;
+  return `${name} ${c.op} ${c.value}${typeof c.value === "number" ? unit : ""}`;
+}
+
+/**
+ * "GPU Temperature > 80 °C for 10 s", "CPU > 95 or GPU > 85 for 10 s", "Notifications from Discord",
+ * "Pick a sensor". `sensors` are the labels of the conditions, in order.
+ */
+export function summarizeRule(rule: AlertRule, sensors: readonly SensorLabel[] = []): string {
   const s = rule.source;
   if (s.kind === "notification") {
     const from = s.apps && s.apps.length > 0 ? `Notifications from ${s.apps.join(", ")}` : "Any notification";
     return s.match ? `${from} containing “${s.match}”` : from;
   }
-  if (s.key === "") return "Pick a sensor";
-  const name = sensor.name || lastSegment(s.key);
-  const unit = sensor.unit ? ` ${sensor.unit}` : "";
-  const hold = s.forSeconds > 0 ? ` for ${s.forSeconds} s` : "";
-  if (s.op === "changes") return `${name} changes`;
-  if (s.op === "missing") return `${name} stops reporting${hold}`;
-  if (s.op === "contains") return `${name} contains “${s.value}”${hold}`;
-  return `${name} ${s.op} ${s.value}${typeof s.value === "number" ? unit : ""}${hold}`;
+  const picked = s.conditions.filter((c) => c.key !== "");
+  if (picked.length === 0) return "Pick a sensor";
+  const parts = s.conditions.flatMap((c, i) => (c.key === "" ? [] : [describeCondition(c, sensors[i] ?? {})]));
+  const holds = picked.some((c) => c.op !== "changes");
+  return `${parts.join(" or ")}${holds && s.forSeconds > 0 ? ` for ${s.forSeconds} s` : ""}`;
 }
 
 /** The newest history entry of a rule (tests excluded), or undefined. */
@@ -136,7 +146,7 @@ const textOf = (r: SensorValue): string | undefined =>
   typeof r.text === "string" ? r.text : typeof r.value === "number" ? String(r.value) : undefined;
 
 /** Whether the condition holds for a reading (the server's `holds`); null = no usable reading. */
-function holds(s: Extract<AlertSource, { kind: "sensor" }>, r: SensorValue): boolean | null {
+function holds(s: SensorCondition, r: SensorValue): boolean | null {
   if (s.op === "contains") {
     const t = textOf(r);
     return t === undefined ? null : t.toLowerCase().includes(String(s.value).toLowerCase());
@@ -163,9 +173,8 @@ export interface SensorPreview {
   state: "fires" | "ok" | "nodata" | "event";
 }
 
-/** The editor's live line: the current value and whether the rule would fire on it now. */
-export function previewSensor(source: AlertSource, reading: SensorValue | undefined): SensorPreview {
-  if (source.kind !== "sensor") return { value: null, state: "event" };
+/** The editor's live line: the current value and whether the condition would fire on it now. */
+export function previewSensor(source: SensorCondition, reading: SensorValue | undefined): SensorPreview {
   const value = reading
     ? typeof reading.value === "number"
       ? formatReading(reading.value, reading.unit)

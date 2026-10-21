@@ -121,8 +121,8 @@ const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: strin
   { id: "alerts:island", label: "Alerts & Island › Island", target: { view: "alerts", tab: "island" }, hint: "Dynamic Island" },
   { id: "alerts:defaults", label: "Alerts & Island › Defaults", target: { view: "alerts", tab: "defaults" } },
   { id: "alerts:history", label: "Alerts & Island › History", target: { view: "alerts", tab: "history" } },
-  { id: "settings:studio", label: "Settings › Studio", target: { view: "settings", tab: "studio" }, hint: "this browser" },
-  { id: "settings:app", label: "Settings › App", target: { view: "settings", tab: "app" }, hint: "this PC" },
+  { id: "settings:studio", label: "Settings › Studio", target: { view: "settings", tab: "studio" }, hint: "editor preferences" },
+  { id: "settings:app", label: "Settings › App", target: { view: "settings", tab: "app" }, hint: "startup, server and updates" },
 ];
 
 function generalCommands(s: CommandState): Command[] {

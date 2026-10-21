@@ -13,11 +13,11 @@ InfoPanel Studio designs live dashboards for the small screen next to your monit
 :::flow
 Sensors — InfoPanel and its plugins publish readings on the Data API
 Studio — You lay out widgets and panels and style them
-Server — A local server on this PC hosts the result
+Server — A local server on the PC running InfoPanel Studio hosts the result
 Kiosk — InfoPanel shows the kiosk URL on your display
 :::
 
-Everything runs on this computer. The studio saves to the local server as you edit, and every open kiosk updates within a second. Fonts and plugins you choose to download use the network; your dashboards stay on this PC.
+Everything runs on the PC running InfoPanel Studio. The studio saves to the local server as you edit, and every open kiosk updates within a second. Fonts and plugins you choose to download use the network; your dashboards stay on that PC.
 
 ## What you can do
 

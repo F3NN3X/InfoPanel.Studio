@@ -169,7 +169,7 @@ export function AlertRules({ config, setConfig, active, points, current, pushPen
   const editing = editingId ? alerts.rules.find((r) => r.id === editingId) : undefined;
   if (editing) {
     return (
-      <div className="mx-auto flex w-full max-w-[640px] flex-col overflow-hidden rounded-[10px] border border-ui-default bg-ui-panel">
+      <div className="flex w-full max-w-[640px] flex-col overflow-hidden rounded-[10px] border border-ui-default bg-ui-panel">
         <AlertRuleEditor
           rule={editing}
           config={config}
@@ -185,9 +185,11 @@ export function AlertRules({ config, setConfig, active, points, current, pushPen
   }
 
   const labelOf = (rule: AlertRule) => {
-    const key = rule.source.kind === "sensor" ? rule.source.key : "";
-    const point = key ? points.find((p) => p.key === key) : undefined;
-    return { name: point?.name, unit: point?.unit };
+    const keys = rule.source.kind === "sensor" ? rule.source.conditions.map((c) => c.key) : [];
+    return keys.map((key) => {
+      const point = key ? points.find((p) => p.key === key) : undefined;
+      return { name: point?.name, unit: point?.unit };
+    });
   };
 
   return (

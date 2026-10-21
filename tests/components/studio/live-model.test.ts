@@ -61,8 +61,8 @@ describe("rotationNote", () => {
   });
 
   it("says it is paused for now, and what the saved setting is", () => {
-    expect(rotationNote({ rotating: false, override: "off", savedEnabled: true, seconds: 20 })).toBe("Paused for now. Saved setting: every 20 s — resumes on reload.");
-    expect(rotationNote({ rotating: true, override: "on", savedEnabled: true, seconds: 90 })).toBe("Running for now. Saved setting: every 1.5 min — resumes on reload.");
+    expect(rotationNote({ rotating: false, override: "off", savedEnabled: true, seconds: 20 })).toBe("Paused for now. Saved setting: every 20 s. Changing the saved setting replaces this.");
+    expect(rotationNote({ rotating: true, override: "on", savedEnabled: true, seconds: 90 })).toBe("Running for now. Saved setting: every 1.5 min. Changing the saved setting replaces this.");
   });
 });
 

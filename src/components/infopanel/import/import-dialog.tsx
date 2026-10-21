@@ -247,7 +247,7 @@ function SourceStep({
           <div className="border-b border-ui-subtle bg-ui-chrome px-3 py-2 font-ui-mono text-[11px] text-ui-4">%LOCALAPPDATA%\InfoPanel\profiles · read-only</div>
           {installed === null && <span className="p-3 text-[12px] text-ui-4">Reading…</span>}
           {installed?.length === 0 && (
-            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles on this PC (or InfoPanel keeps them elsewhere: set INFOPANEL_DATA_DIR on the server)."}</span>
+            <span className="p-3 text-[12px] text-ui-4">{listError ?? "No InfoPanel profiles on the PC running InfoPanel Studio (or InfoPanel keeps them elsewhere: set INFOPANEL_DATA_DIR on the server)."}</span>
           )}
           {installed?.map((p) => (
             <button

@@ -18,7 +18,7 @@ The editor window: a rail of views on the left, the work area in the middle, and
 | **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
 | **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
 | **Help** | Opens this help at the article for where you are (`F1` does the same). |
-| **Settings** | **Dashboard** (every screen), **Studio** (this browser) and **App** (this PC, in the desktop app). See [Startup and tray](startup). |
+| **Settings** | **Dashboard** (every screen and kiosk), **Studio** (editor preferences, saved with the Studio on this device) and **App** (startup, server and updates, in the desktop app). See [Startup and tray](startup). |
 
 Screens have no rail button: open **Screens** from the screen name in the title bar (**Manage screens…**) or from a size link. Under 960 px the rail is icons only.
 
@@ -27,7 +27,7 @@ Screens have no rail button: open **Screens** from the screen name in the title 
 - The screen name opens a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**. Which screen your displays open is set there, under **When the app opens**. See [Screens and the grid](profiles#which-screen-opens).
 - The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view.
 - **Undo** and **Redo**, **Import**, **Export & back up** and **Save**. See [Importing and exporting](import).
-- **Live** shows how many kiosks are connected and opens the controls for them: show a page now, pause rotation, dim, mute alerts for an hour, switch the Dynamic Island and reload every kiosk. Nothing there is saved. **Open kiosk view** shows the kiosk in this window; in the desktop app it resizes the window to the screen's exact size, and moving the pointer to the top edge brings a strip with **Back to studio**, **Minimize** and **Close**.
+- **Live** shows how many kiosks are connected and opens the controls for them: show a page now, pause rotation, dim, mute alerts for an hour, switch the Dynamic Island and reload every kiosk. None of it is part of your design, so Save doesn't change it. **Open kiosk view** shows the kiosk in the Studio; in the desktop app it resizes the window to the screen's exact size, and moving the pointer to the top edge brings a strip with **Back to studio**, **Minimize** and **Close**.
 - Under 600 px a **⋯** menu holds Undo, Redo, Import and Export.
 
 The status bar under the work area shows the Data API (connected, slow or unreachable), the server, how many kiosks are connected, updates, and whether your edits are saved. When the server can't be reached it reads **Offline · edits kept locally**.

@@ -219,7 +219,18 @@ describe("evaluate: notifications", () => {
     const alerts = cfg([notif()]);
     const r = run(alerts, [...seed, [T0 + 1000, note({ id: "0" })], [T0 + 2000, note({ id: "1" })], [T0 + 3000, note({ id: "1" })]]);
     expect(fired(r.events)).toHaveLength(1);
-    expect(fired(r.events)[0].alert).toMatchObject({ app: "Discord", text: "Discord: Hi" });
+    expect(fired(r.events)[0].alert).toMatchObject({ app: "Discord", title: "Discord", name: "Notify", text: "Hi\nhello there" });
+  });
+  it("titles the alert with the app, its text is the notification's title then body, and templates still work", () => {
+    const [plain] = fired(run(cfg([notif()]), [...seed, [T0 + 1000, note({ id: "1", body: "" })]]).events);
+    expect(plain.alert).toMatchObject({ title: "Discord", text: "Hi" });
+    const custom = notif({ outputs: { display: { text: "{app}: {title}" } } });
+    const [old] = fired(run(cfg([custom]), [...seed, [T0 + 1000, note({ id: "1" })]]).events);
+    expect(old.alert).toMatchObject({ title: "Discord", text: "Discord: Hi" });
+  });
+  it("a test notification looks like a real one from the app Test", () => {
+    const r = act(emptyAlertsState(), { ruleId: "n1", action: "test" }, cfg([notif()]), {}, T0);
+    expect(r.state.active[0].alert).toMatchObject({ title: "Test", name: "Notify", text: "Test notification", test: true });
   });
   it("does not fire a stale notification that was there at start", () => {
     expect(fired(run(cfg([notif()]), [[T0, note({ id: "9" })]]).events)).toHaveLength(0);
@@ -251,6 +262,87 @@ describe("evaluate: notifications", () => {
     expect(r.state.active).toHaveLength(1);
     r = act(r.state, { id: r.state.active[0].alert.id, action: "ack" }, sticky, {}, T0 + 700_000);
     expect(r.state.active).toEqual([]);
+  });
+});
+
+describe("evaluate: several conditions", () => {
+  const multi = (extra = {}, conditions) =>
+    sensor({}, {
+      key: undefined,
+      op: undefined,
+      value: undefined,
+      conditions: conditions ?? [
+        { key: "cpu.temp", op: ">", value: 95, clearBelow: 90 },
+        { key: "gpu.temp", op: ">", value: 85 },
+      ],
+      ...extra,
+    });
+  const both = (cpu, gpu) => ({ "cpu.temp": { value: cpu, unit: "°C", name: "CPU temp" }, "gpu.temp": { value: gpu, unit: "°C" } });
+
+  it("fires when any one condition holds and names the sensor with its value", () => {
+    const alerts = cfg([multi()]);
+    expect(fired(run(alerts, [[T0, both(60, 60)]]).events)).toHaveLength(0);
+    const cpu = fired(run(alerts, [[T0, both(96, 60)]]).events);
+    expect(cpu).toHaveLength(1);
+    expect(cpu[0].alert).toMatchObject({ text: "CPU temp 96°C" });
+    const gpu = fired(run(alerts, [[T0, both(60, 86)]]).events);
+    expect(gpu[0].alert.text).toBe("temp 86°C");
+    const bothHot = fired(run(alerts, [[T0, both(97, 90)]]).events);
+    expect(bothHot).toHaveLength(1);
+    expect(bothHot[0].alert.text).toBe("CPU temp 97°C, temp 90°C");
+  });
+
+  it("times each condition on its own against the shared forSeconds", () => {
+    const alerts = cfg([multi({ forSeconds: 5 })]);
+    const r = run(alerts, [
+      [T0, both(96, 60)],
+      [T0 + 3000, both(60, 86)], // cpu dropped before 5 s; gpu just started
+      [T0 + 7000, both(60, 86)], // gpu has held 4 s
+    ]);
+    expect(fired(r.events)).toHaveLength(0);
+    expect(fired(run(alerts, [[T0 + 8000, both(60, 86)]], r.state).events)).toHaveLength(1);
+  });
+
+  it("clears only when no condition is on, each with its own hysteresis", () => {
+    const alerts = cfg([multi()]);
+    let r = run(alerts, [[T0, both(96, 60)], [T0 + 1000, both(92, 60)]]);
+    expect(r.state.active).toHaveLength(1); // 92 is above the 90 clear level
+    r = run(alerts, [[T0 + 2000, both(92, 86)]], r.state); // gpu joins while active
+    r = run(alerts, [[T0 + 3000, both(89, 86)]], r.state);
+    expect(r.state.active).toHaveLength(1); // cpu cleared, gpu still on
+    r = run(alerts, [[T0 + 4000, both(89, 80)]], r.state);
+    expect(cleared(r.events)).toHaveLength(1);
+    expect(r.state.active).toEqual([]);
+  });
+
+  it("keeps working for a rule saved with the single key, op and value", () => {
+    const legacy = cfg([sensor({}, { clearBelow: 75 })]);
+    const r = run(legacy, [[T0, temp(85)], [T0 + 1000, temp(78)]]);
+    expect(r.state.active).toHaveLength(1);
+    expect(fired(r.events)[0].alert.text).toBe("85°C");
+    expect(keysOf(legacy)).toEqual(["gpu.temp"]);
+    expect(run(legacy, [[T0 + 2000, temp(74)]], r.state).state.active).toEqual([]);
+  });
+
+  it("subscribes to every condition's key and skips blank ones", () => {
+    const alerts = cfg([multi({}, [{ key: "a.x", op: ">", value: 1 }, { key: "", op: ">", value: 1 }, { key: "b.y", op: "<", value: 1 }])]);
+    expect(keysOf(alerts)).toEqual(["a.x", "b.y"]);
+  });
+
+  it("a missing condition fires beside a threshold one, and a changes condition is a one-shot", () => {
+    const alerts = cfg([multi({}, [{ key: "a.x", op: ">", value: 10 }, { key: "b.y", op: "missing", value: 0 }])]);
+    const r = run(alerts, [[T0, { "a.x": { value: 1 }, "b.y": { value: 1 } }], [T0 + 1000, { "a.x": { value: 1 } }]]);
+    expect(fired(r.events)).toHaveLength(1);
+    expect(fired(r.events)[0].alert.text).toBe("y stopped reporting");
+    const ch = cfg([multi({}, [{ key: "a.x", op: "changes", value: 0 }, { key: "a.z", op: ">", value: 10 }])]);
+    const c = run(ch, [[T0, { "a.x": { value: 1 } }], [T0 + 1000, { "a.x": { value: 2 } }]]);
+    expect(fired(c.events)).toHaveLength(1);
+    expect(c.state.active[0].oneShot).toBe(true);
+  });
+
+  it("a test shows the conditions that have a reading", () => {
+    const r = act(emptyAlertsState(), { ruleId: "r1", action: "test" }, cfg([multi()]), both(70, 71), T0);
+    expect(r.state.active[0].alert).toMatchObject({ test: true, text: "CPU temp 70°C, temp 71°C" });
   });
 });
 

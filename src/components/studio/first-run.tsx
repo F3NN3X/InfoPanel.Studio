@@ -178,7 +178,7 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
             {step === 0 && (
               <>
                 <Heading>Connect your sensors.</Heading>
-                <Lead>Studio reads sensors from InfoPanel&rsquo;s Data API. It&rsquo;s usually running on this PC already.</Lead>
+                <Lead>Studio reads sensors from InfoPanel&rsquo;s Data API. It&rsquo;s usually already running on the PC that runs InfoPanel Studio.</Lead>
                 <div className="flex items-center gap-2">
                   <input
                     value={url}

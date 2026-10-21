@@ -97,7 +97,7 @@ function Block({ label, children, labelClassName }: { label: string; children: R
 /**
  * The inspector with nothing selected (SPEC §6.4): the page being edited. Its Name and Icon, the Rotation
  * LinkRow (Screens owns order and rotation), the sections the page customises over its screen's theme with the
- * way into Theme at page scope, LIVE · NOT SAVED "Show this page on kiosks now", and Duplicate / Delete page.
+ * way into Theme at page scope, LIVE "Show on kiosks now", and Duplicate / Delete page.
  */
 export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp }: PageInspectorProps) {
   const Icon = pageIcon(page.icon);
@@ -172,14 +172,17 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
           </p>
         </Block>
 
-        <Block label="Live · not saved" labelClassName="text-[oklch(0.88_0.10_150)]">
+        <Block label="Live" labelClassName="text-[oklch(0.88_0.10_150)]">
           <button
             type="button"
             onClick={onShowOnKiosks}
             className="flex h-8 w-full items-center justify-center gap-1.5 rounded-[7px] border border-[oklch(0.78_0.15_150/0.45)] bg-[oklch(0.78_0.15_150/0.12)] text-[12.5px] font-medium text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.2)]"
           >
-            <Cast className="h-4 w-4" strokeWidth={1.75} /> Show this page on kiosks now
+            <Cast className="h-4 w-4" strokeWidth={1.75} /> Show on kiosks now
           </button>
+          <p className="mt-1.5 text-pretty text-[11px] leading-[1.4] text-ui-4">
+            Switches the kiosks to this page right away. Not part of your design, so Save doesn't change it.
+          </p>
         </Block>
 
         <Block label="Actions">

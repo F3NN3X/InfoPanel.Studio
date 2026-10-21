@@ -168,7 +168,7 @@ export function reviewModel(r: ImportReport, extra: { unresolved: number; failed
     {
       id: "api",
       icon: Network,
-      title: "Data API on this PC",
+      title: "Data API on the PC running InfoPanel Studio",
       summary: api ? api.url : extra.online ? "Answering" : "Not reachable",
       rows: api
         ? [

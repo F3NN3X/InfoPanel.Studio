@@ -27,7 +27,7 @@ export const noticeFromAlert = (a: ActiveAlert): IslandNotice => ({
   source: ALERTS_SOURCE,
   id: a.id,
   severity: a.severity,
-  title: a.name,
+  title: a.title ?? a.name,
   ...(a.text ? { body: a.text } : {}),
   ttl: Math.max(0, a.display.seconds) * 1000,
   onTap: "ack",

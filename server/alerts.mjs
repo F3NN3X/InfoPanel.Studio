@@ -34,11 +34,19 @@ export const activeAlerts = (state) => state.active.map((e) => e.alert);
 const isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 const sensorRule = (r) => r.source.kind === "sensor";
 
+/** A sensor source's conditions: its list, or the one key / op / value of a rule saved before v11. */
+export function conditionsOf(source) {
+  if (Array.isArray(source.conditions)) {
+    return source.conditions.filter((c) => isObject(c) && typeof c.key === "string");
+  }
+  return typeof source.key === "string" ? [source] : [];
+}
+
 /** The usable rules of a stored `alerts` value. */
 export function rulesOf(alerts) {
   const list = Array.isArray(alerts?.rules) ? alerts.rules : [];
   return list.filter(
-    (r) => isObject(r) && typeof r.id === "string" && isObject(r.source) && (r.source.kind === "sensor" ? typeof r.source.key === "string" : r.source.kind === "notification"),
+    (r) => isObject(r) && typeof r.id === "string" && isObject(r.source) && (r.source.kind === "sensor" ? conditionsOf(r.source).length > 0 : r.source.kind === "notification"),
   );
 }
 
@@ -48,9 +56,12 @@ export function keysOf(alerts) {
   const keys = new Set();
   for (const r of rulesOf(alerts)) {
     if (r.enabled === false) continue;
-    // A rule without a sensor yet subscribes to nothing (an empty prefix would be the whole stream).
-    if (sensorRule(r) && r.source.key.trim() === "") continue;
-    keys.add(sensorRule(r) ? r.source.key : NOTIFICATION_KEY);
+    if (!sensorRule(r)) {
+      keys.add(NOTIFICATION_KEY);
+      continue;
+    }
+    // A condition without a sensor yet subscribes to nothing (an empty prefix would be the whole stream).
+    for (const c of conditionsOf(r.source)) if (c.key.trim() !== "") keys.add(c.key);
   }
   return [...keys];
 }
@@ -143,8 +154,16 @@ function passes(source, n) {
 const fmtNumber = (v) => String(Math.round(v * 10) / 10);
 
 function fill(template, vars) {
-  return template.replace(/\{(name|value|unit|app|title|body)\}/g, (_, k) => vars[k] ?? "");
+  return template.replace(/\{(name|value|unit|sensor|app|title|body)\}/g, (_, k) => vars[k] ?? "");
 }
+
+const lastSegment = (key) => key.slice(key.lastIndexOf(".") + 1);
+const sensorName = ({ cond, reading }) => (typeof reading?.name === "string" && reading.name !== "" ? reading.name : lastSegment(cond.key));
+const readout = ({ cond, reading }) => {
+  if (cond.op === "missing") return "stopped reporting";
+  const n = numeric(reading);
+  return n !== undefined ? `${fmtNumber(n)}${reading?.unit ?? ""}` : (textOf(reading) ?? "");
+};
 
 const minutes = (hhmm) => {
   const m = /^(\d{2}):(\d{2})$/.exec(String(hhmm));
@@ -169,19 +188,25 @@ const patchRule = (s, id, patch) => {
   s.rules[id] = { ...s.rules[id], ...patch };
 };
 
-/** Open an alert instance. `oneShot` ones expire after the display seconds (0 = when acknowledged). */
-function start(s, events, { rule, alerts, now, reading, notification, oneShot, test, muted }) {
+/**
+ * Open an alert instance. `hits` are the sensor conditions that fired, each `{ cond, reading }`.
+ * `oneShot` ones expire after the display seconds (0 = when acknowledged).
+ */
+function start(s, events, { rule, alerts, now, hits, notification, oneShot, test, muted }) {
   const display = { ...DEFAULT_DISPLAY, ...pickDisplay(alerts?.defaults), ...pickDisplay(rule.outputs?.display) };
   const seconds = [rule.outputs?.display?.seconds, alerts?.defaults?.seconds].find(Number.isFinite);
   if (seconds !== undefined) display.seconds = seconds;
 
   const isSensor = sensorRule(rule);
+  const reading = hits?.[0]?.reading;
   const value = isSensor ? (numeric(reading) ?? textOf(reading)) : undefined;
   const unit = isSensor ? (reading?.unit ?? "") : undefined;
+  const several = isSensor && conditionsOf(rule.source).length > 1;
   const vars = {
     name: rule.name ?? rule.id,
     value: typeof value === "number" ? fmtNumber(value) : (value ?? ""),
     unit: unit ?? "",
+    sensor: hits?.[0] ? sensorName(hits[0]) : "",
     app: notification ? String(notification.app ?? "") : "",
     title: notification ? String(notification.title ?? "") : "",
     body: notification ? String(notification.body ?? "") : "",
@@ -190,10 +215,12 @@ function start(s, events, { rule, alerts, now, reading, notification, oneShot, t
     typeof rule.outputs?.display?.text === "string" && rule.outputs.display.text !== ""
       ? rule.outputs.display.text
       : isSensor
-        ? rule.source.op === "missing"
-          ? "Stopped reporting"
-          : "{value}{unit}" // the rule name is the alert's title; the body is the reading
-        : "{app}: {title}";
+        ? several
+          ? undefined // names the sensors that fired
+          : hits?.[0]?.cond.op === "missing"
+            ? "Stopped reporting"
+            : "{value}{unit}" // the rule name is the alert's title; the body is the reading
+        : "{title}\n{body}"; // the source app is the alert's title
   const quiet = !test && (muted === true || isQuiet(alerts?.quietHours, rule.severity, now));
 
   s.seq += 1;
@@ -204,14 +231,15 @@ function start(s, events, { rule, alerts, now, reading, notification, oneShot, t
   const highlight = isObject(rule.outputs?.highlight)
     ? {
         ...(Array.isArray(zones) && zones.length > 0 ? { zones } : {}),
-        ...(isSensor ? { key: rule.source.key } : {}),
+        ...(isSensor && hits?.[0] ? { key: hits[0].cond.key } : {}),
       }
     : undefined;
-  const text = fill(template, vars).trim();
+  const text = (template === undefined ? hits.map((h) => `${sensorName(h)} ${readout(h)}`).join(", ") : fill(template, vars)).trim();
   const alert = {
     id,
     ruleId: rule.id,
     name: vars.name,
+    title: notification ? vars.app || vars.name : vars.name,
     severity,
     text,
     ...(value !== undefined ? { value } : {}),
@@ -302,41 +330,7 @@ export function evaluate(state, alerts, readings, now, muted = false) {
     const rs = s.rules[rule.id] ?? {};
     const ctx = { rule, alerts, now, muted };
     if (sensorRule(rule)) {
-      const src = rule.source;
-      const reading = readings?.[src.key];
-      if (src.op === "missing") {
-        missing(s, events, ctx, rs, reading !== undefined);
-        continue;
-      }
-      if (src.op === "changes") {
-        const current = changeKey(reading);
-        if (current === undefined) continue;
-        if (rs.seeded && rs.last !== undefined && current !== rs.last && !blocked(s, rule, now)) {
-          start(s, events, { ...ctx, reading, oneShot: true });
-        }
-        patchRule(s, rule.id, { seeded: true, last: current });
-        continue;
-      }
-      const cond = holds(src, reading);
-      const activeId = rs.active && s.active.some((e) => e.alert.id === rs.active) ? rs.active : undefined;
-      if (activeId) {
-        if (cond !== null && clears(src, reading, cond)) end(s, events, activeId, now);
-        continue;
-      }
-      if (cond === null) continue;
-      if (!cond) {
-        if (rs.pendingSince !== undefined || rs.dismissed) patchRule(s, rule.id, { pendingSince: undefined, dismissed: false });
-        continue;
-      }
-      if (rs.dismissed) continue;
-      const pendingSince = rs.pendingSince ?? now;
-      const forMs = (Number.isFinite(src.forSeconds) ? src.forSeconds : 0) * 1000;
-      if (now - pendingSince >= forMs && !blocked(s, rule, now)) {
-        const id = start(s, events, { ...ctx, reading, oneShot: false });
-        patchRule(s, rule.id, { pendingSince, active: id });
-      } else {
-        patchRule(s, rule.id, { pendingSince });
-      }
+      sensorPass(s, events, ctx, rs, readings);
     } else {
       const n = parseNotification(readings?.[NOTIFICATION_KEY]);
       if (n && rs.seeded && String(n.id) !== rs.lastId && passes(rule.source, n) && !blocked(s, rule, now)) {
@@ -352,28 +346,76 @@ export function evaluate(state, alerts, readings, now, muted = false) {
 }
 
 /**
- * A `missing` rule ("plugin stopped reporting"): fires once its key has been absent for `forSeconds`,
- * but only after the rule has seen the key, so a sensor that never reported (or a stream still
- * connecting) stays quiet. The Data API drops a plugin's keys when it stops (`removed`). Clears when
- * the key is back; a dismissed one waits for the key to return before it can fire again.
+ * A sensor rule's pass over its conditions, each with its own timing in `rs.conds`. The rule fires once
+ * any level condition (everything but `changes`) has held `forSeconds`, naming those that did, and clears
+ * when none is still on (`clears` per condition, so each keeps its own hysteresis). A `missing` condition
+ * holds while its key is absent, but only after the rule has seen the key, so a sensor that never reported
+ * (or a stream still connecting) stays quiet. A `changes` condition is a one-shot on its own: it fires
+ * when the value differs from the last one seen. A dismissed alert waits for every condition to stop
+ * holding before it can fire again.
  */
-function missing(s, events, ctx, rs, present) {
+function sensorPass(s, events, ctx, rs, readings) {
   const { rule, now } = ctx;
-  const activeId = rs.active && s.active.some((e) => e.alert.id === rs.active) ? rs.active : undefined;
-  if (present) {
-    if (activeId) end(s, events, activeId, now);
-    if (!rs.seen || rs.missingSince !== undefined || rs.dismissed) patchRule(s, rule.id, { seen: true, missingSince: undefined, dismissed: false });
-    return;
-  }
-  if (!rs.seen || activeId || rs.dismissed) return;
-  const missingSince = rs.missingSince ?? now;
+  const conds = conditionsOf(rule.source);
   const forMs = (Number.isFinite(rule.source.forSeconds) ? rule.source.forSeconds : 0) * 1000;
-  if (now - missingSince >= forMs && !blocked(s, rule, now)) {
-    const id = start(s, events, { ...ctx, reading: undefined, oneShot: false });
-    patchRule(s, rule.id, { missingSince, active: id });
-  } else if (rs.missingSince === undefined) {
-    patchRule(s, rule.id, { missingSince });
+  const states = conds.map((_, i) => ({ ...rs.conds?.[i] }));
+  const changed = [];
+  const met = [];
+  const level = [];
+  let holding = false;
+  let unknown = false;
+
+  conds.forEach((cond, i) => {
+    const reading = readings?.[cond.key];
+    const st = states[i];
+    if (cond.op === "changes") {
+      const current = changeKey(reading);
+      if (current === undefined) return;
+      if (st.seeded && st.last !== undefined && current !== st.last) changed.push({ cond, reading });
+      st.seeded = true;
+      st.last = current;
+      return;
+    }
+    level.push(st);
+    let holdsNow;
+    if (cond.op === "missing") {
+      if (reading !== undefined) st.seen = true;
+      holdsNow = reading === undefined ? st.seen === true : false;
+    } else {
+      holdsNow = holds(cond, reading);
+    }
+    if (holdsNow === null) {
+      unknown = true;
+      return;
+    }
+    st.on = st.on ? !clears(cond, reading, holdsNow) : holdsNow;
+    if (holdsNow) {
+      holding = true;
+      st.since = st.since ?? now;
+      if (now - st.since >= forMs) met.push({ cond, reading });
+    } else {
+      st.since = undefined;
+    }
+  });
+  patchRule(s, rule.id, { conds: states });
+
+  const activeId = rs.active && s.active.some((e) => e.alert.id === rs.active) ? rs.active : undefined;
+  if (activeId) {
+    if (level.length > 0 && !level.some((st) => st.on)) end(s, events, activeId, now);
+  } else if (!holding) {
+    if (!unknown && rs.dismissed) patchRule(s, rule.id, { dismissed: false });
+  } else if (!rs.dismissed && met.length > 0 && !blocked(s, rule, now)) {
+    const id = start(s, events, { ...ctx, hits: met, oneShot: false });
+    patchRule(s, rule.id, { active: id });
   }
+  if (changed.length > 0 && !blocked(s, rule, now)) start(s, events, { ...ctx, hits: changed, oneShot: true });
+}
+
+/** A test shows the conditions with a reading (the first one when none has). */
+function testHits(rule, readings) {
+  const all = conditionsOf(rule.source).map((cond) => ({ cond, reading: readings?.[cond.key] }));
+  const live = all.filter((h) => h.reading !== undefined);
+  return live.length > 0 ? live : all.slice(0, 1);
 }
 
 /**
@@ -388,8 +430,8 @@ export function act(state, action, alerts, readings, now) {
   if (action?.action === "test") {
     const rule = rulesOf(alerts).find((r) => r.id === action.ruleId);
     if (!rule) return { error: "unknown rule" };
-    const reading = sensorRule(rule) ? readings?.[rule.source.key] : undefined;
-    start(s, events, { rule, alerts, now, reading, notification: sensorRule(rule) ? undefined : TEST_NOTIFICATION, oneShot: true, test: true });
+    const hits = sensorRule(rule) ? testHits(rule, readings) : undefined;
+    start(s, events, { rule, alerts, now, hits, notification: sensorRule(rule) ? undefined : TEST_NOTIFICATION, oneShot: true, test: true });
     return { state: s, events };
   }
   if (action?.action !== "ack" && action?.action !== "dismiss") return { error: "unknown action" };

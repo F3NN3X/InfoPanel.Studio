@@ -565,3 +565,22 @@ Walked in the browser build and in the stubbed-desktop run (`__TAURI_INTERNALS__
 - **Kiosk addresses (M4):** `server.mjs` records a kiosk's address only when it connects from loopback; a LAN kiosk is listed with no address. The Live list is unchanged on the same PC. Deviation: the address of a LAN kiosk is no longer shown anywhere (the state is broadcast, so per-reader filtering was not small). Not unit-tested (a non-loopback socket is not available to the server test); the loopback case is covered.
 - **Import door (L3):** `run()` catches a failed import, resets busy and toasts the error.
 - Left alone: M3 (accepted) and L1, L2, L4.
+
+## Feedback round 1 — Part A: Alerts & Island, Settings wording, Live text
+
+Owner review of the branch. Decisions 15 to 17 in `PLAN.md`.
+
+**Done**
+- **A1 wording:** Settings tab subs, the Studio group scope, the browser notice, the command palette hints, the server listen option ("Only this PC (localhost)"), the allowed host names hint, App zoom, first-run, the font "Not installed" status, Import's Data API and profile list copy, and the Help articles (studio, kiosk, welcome, import, widget-settings) use "the Studio", "the desktop app" and "the PC running InfoPanel Studio".
+- **A2 notification titles:** the engine sets `title` on every active alert (the app for a notification, else the rule name); `alert-layer.tsx` and `from-alerts.ts` show it. The default text is the notification's title then body on two lines (`whitespace-pre-line` on the card). The island Notifications source titles with the app and puts title then message in the body ("Show the message" off keeps the title). The test alert is app "Test".
+- **A3:** the rule editor is left-aligned like the other tabs.
+- **A4 several sensors:** `SensorCondition` list on the sensor source, `CONFIG_VERSION` 11, `normalizeAlerts` reads the old single shape as a one-item list, `server/alerts.mjs` evaluates per condition (`sensorPass`: per-condition timing, hysteresis, `missing` and `changes`), the text names the sensors that fired (`{sensor}` token added). The editor (`alerts-condition.tsx`) lists condition rows with "Add sensor" and per-row remove; presets and summaries follow. Adding a sensor to a preset rule drops its `{value} {unit}` text so the default names each sensor.
+- **A5:** the Island tab shows the real island (`island-preview.tsx`) on its own bus, fed the screen's island config; "Preview an alert" plays there.
+- **A6 Live:** the page inspector says "Live" / "Show on kiosks now" with a hint that Save doesn't change it; the popover intro is consistent; the rotation note no longer claims "resumes on reload" (a saved change to Rotation replaces the override).
+
+**Tests:** engine cases for any-of firing, which-sensor text, per-condition timing, hysteresis, the old shape, subscriptions, `missing` and `changes` conditions, notification titles and the Test alert; `normalizeAlerts` list and old-shape cases; `settings-migrate.v11.test.ts` (v10 to v11, idempotent, round-trip); summaries. Updated for intended changes: the notification text and island notice expectations, the version number (10 to 11) in five tests, "Not installed", the rotation note.
+
+**Deviations / unverified**
+- A multi-sensor rule's custom text template only sees the first sensor's `{value}`; `{sensor}` names it. The default text names every sensor that fired.
+- A rule edited down to one condition keeps the "Sensor 1" box only while there are two or more.
+- Checked by eye: the Island preview and "Preview an alert", and the two-condition editor at 1440. Not checked: the island preview with a real alert style set to Island, and the kiosk card with a live Windows notification (needs the Notifications plugin).

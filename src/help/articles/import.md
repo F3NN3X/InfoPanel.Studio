@@ -37,7 +37,7 @@ Save — Into a canvas zone
 ## 1. Source
 
 - **File or folder**: an `.infopanel` file, an extracted folder, or a `.canvas.zip`. Use **Choose file…** or **Choose folder…**, or drop it on the door.
-- **Installed in InfoPanel**: a profile installed in InfoPanel on this PC (read-only).
+- **Installed in InfoPanel**: a profile installed in InfoPanel on the PC running InfoPanel Studio (read-only).
 - **Saved canvas**: a canvas you saved earlier.
 
 ## 2. Mode
@@ -56,7 +56,7 @@ Before committing, the review shows tiles for Items, Native, Sensors, Assets, Fo
 
 ## 4. Sensors and save
 
-Fix sensors that didn't match this PC (see [Sensor remap](remap)), then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or a **Canvas zone** on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
+Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap](remap)), then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or a **Canvas zone** on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
 
 ## Export & back up
 
