@@ -2,7 +2,7 @@
 id: problems
 title: Common problems
 icon: build
-related: [diagnostics, kiosk, sensors]
+related: [diagnostics, kiosk, performance, sensors]
 verified: 1.3.0-beta.1
 ---
 
@@ -30,6 +30,18 @@ If the message says another InfoPanel Studio server is already running on that p
 
 - Look for a dot on the studio's **Save** button and press it.
 - Check the kiosk shows the profile you are editing; with **Auto-pick by window size** it picks the closest size.
+
+## The display's GPU stays busy
+
+InfoPanel's web view keeps the GPU busy while the dashboard barely changes.
+
+1. Set **Max FPS** to 30 or 15 under General › Performance.
+2. Check that Profile › Performance is on **Dashboard**, or set the lower rate there too.
+3. Check that the kiosk URL in InfoPanel doesn't carry `&fps=60` or `&fps=0`.
+4. On a display where nothing needs to move, set **Motion** to Reduce.
+5. After updating InfoPanel Studio, restart InfoPanel. It doesn't reload the kiosk page by itself.
+
+See [Frame rate and motion](performance) for what each setting changes.
 
 ## An imported profile looks different
 

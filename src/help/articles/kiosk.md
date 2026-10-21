@@ -2,7 +2,7 @@
 id: kiosk
 title: Kiosk and server
 icon: dns
-related: [startup, problems, diagnostics]
+related: [startup, performance, problems, diagnostics]
 verified: 1.3.0-beta.5
 ---
 
@@ -37,15 +37,9 @@ Pick a port from 1024 to 65535. Port, network and debug changes are saved right 
 
 ## Frame rate and animations
 
-The kiosk redraws animated gradients, meters and smooth graphs on one shared clock, at most **Max FPS** times a second: 5, 15, 30, 60 (the default) or Unlimited. Lower it if the display's GPU works hard while nothing seems to change. **Motion** set to Reduce disables animations: gradients and gauges show their final state, the Clock colon stays solid and nothing redraws on a timer.
+The kiosk redraws its animations at most **Max FPS** times a second, 60 by default. **Motion** set to Reduce stops them. Set both under General › Performance, or for one profile under Profile › Performance. A kiosk URL can override them with `&fps=30` or `&motion=reduce`.
 
-Set both for every profile under General › Performance in the studio, or for one profile under Profile › Performance. A kiosk URL overrides both:
-
-| Add to the URL | Effect |
-|---|---|
-| `&fps=30` | Max FPS of 5, 15, 30, 60, or `0` for Unlimited |
-| `&animations=0` | Disable animations (Motion: Reduce) |
-| `&motion=reduce`, `&motion=full` or `&motion=system` | Motion for this display only |
+Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to change. See [Frame rate and motion](performance) for what each setting changes and what it saves.
 
 ## Crashes
 
