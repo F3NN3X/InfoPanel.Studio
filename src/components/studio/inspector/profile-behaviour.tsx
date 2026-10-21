@@ -50,7 +50,8 @@ function PageList({
   const start = (e: React.PointerEvent, from: number) => {
     e.preventDefault();
     // The rows as they sit now: the rows move while dragging, the drop math keeps to these.
-    const rects = rows.current.map((el) => el?.getBoundingClientRect() ?? new DOMRect());
+    // (Only the current pages: the list keeps the refs of pages that were deleted.)
+    const rects = rows.current.slice(0, pages.length).map((el) => el?.getBoundingClientRect() ?? new DOMRect());
     const id = pages[from].id;
     let to = from;
     setDrag({ id, to });

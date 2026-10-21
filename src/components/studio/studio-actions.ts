@@ -450,7 +450,9 @@ export function setProfileStyle<P extends Pick<ProfileView, "widgetTheme">>(
   fn: (style: ModuleSettings) => ModuleSettings
 ): P {
   const style = fn(profile.widgetTheme?.values ?? {});
-  return { ...profile, widgetTheme: withThemeValues(profile.widgetTheme, Object.keys(style).length > 0 ? style : undefined) };
+  // Emptied values stay `{}` when the profile had its own style: it remains This profile's.
+  const keep = Object.keys(style).length > 0 || profile.widgetTheme?.values !== undefined;
+  return { ...profile, widgetTheme: withThemeValues(profile.widgetTheme, keep ? style : undefined) };
 }
 
 /**

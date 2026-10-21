@@ -1,4 +1,4 @@
-import type { Placement, ProfileView } from "@/lib/layout";
+import { SCROLL_ROW_H, type Placement, type ProfileView } from "@/lib/layout";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { changeCols, changeRows } from "../studio-actions";
 
@@ -65,16 +65,20 @@ export const GRID_PREVIEW_BOX = { width: 288, height: 112 };
 export function gridPreview(profile: {
   width: number;
   height: number;
+  rows: number;
   fit: "scroll" | "fill";
   gap?: number;
   padding?: number;
 }): { width: number; height: number; gap: number; padding: number } {
-  const scale = Math.min(GRID_PREVIEW_BOX.width / profile.width, GRID_PREVIEW_BOX.height / profile.height);
+  const padding = profilePadding(profile, true);
+  // Scroll: rows keep their real height (SCROLL_ROW_H) against the design width, so the screen is as tall as its rows.
+  const height = profile.fit === "scroll" ? profile.rows * SCROLL_ROW_H + 2 * padding : profile.height;
+  const scale = Math.min(GRID_PREVIEW_BOX.width / profile.width, GRID_PREVIEW_BOX.height / height);
   return {
     width: profile.width * scale,
-    height: profile.height * scale,
+    height: height * scale,
     gap: profileGap(profile) * scale,
-    padding: profilePadding(profile, true) * scale,
+    padding: padding * scale,
   };
 }
 

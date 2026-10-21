@@ -139,6 +139,7 @@ function generalCommands(s: CommandState): Command[] {
     general("alert-new", "New alert rule", { type: "alert-new" }),
     general("background", "Background…", { type: "document-tab", tab: "background" }),
     general("appearance", "Appearance…", { type: "document-tab", tab: "appearance" }),
+    general("font", "Font…", { type: "document-tab", tab: "font" }, "page font, type"),
     general("general", "General settings…", { type: "document-tab", tab: "general" }, "clock, locale, cursor, page dots"),
     general("connection", "Connection…", { type: "document-tab", tab: "connection" }, "Data API URL"),
     general("theme", "Theme editor…", { type: "edit-theme" }, "profile and page themes, locks"),

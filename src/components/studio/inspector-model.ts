@@ -374,12 +374,13 @@ const dashboardMarker = (tab: DashboardTab, id: string, title: string, special: 
   section({ id, title, tab, special, terms });
 
 /** The parts of the profile inspector the palette's "Appearance…" and friends jump to. */
-export type DocumentTab = "appearance" | "background" | "general" | "connection";
+export type DocumentTab = "appearance" | "background" | "font" | "general" | "connection";
 
 /** The section each part jumps to (its section id). */
 export const DOCUMENT_CARD: Record<DocumentTab, string> = {
   appearance: "lk-theme",
   background: "lk-bg",
+  font: "lk-theme",
   general: "bh-clock",
   connection: "bh-conn",
 };

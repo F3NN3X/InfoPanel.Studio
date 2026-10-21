@@ -203,8 +203,11 @@ function StudioViewBody({
     openProfileSettings();
     // The inspector mounts first; then it opens the Screen section and the field takes the cursor.
     requestAnimationFrame(() => {
+      studioLayout.showInspector();
       ui.jumpInspector("ly-screen");
       ui.requestRename();
+      // A field that never mounted (the inspector stayed away) must not keep the request for later.
+      setTimeout(ui.clearRename, 1500);
     });
   };
   /**

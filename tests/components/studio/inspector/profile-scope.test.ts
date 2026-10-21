@@ -3,6 +3,7 @@ import { withBackground, type PageBackground } from "@/lib/appearance";
 import { defaultConfig, mergeConfig, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { DEFAULT_THEME } from "@/lib/theme";
 import { SECTION_IDS } from "@/lib/theme-model";
+import { setProfileStyle } from "@/components/studio/studio-actions";
 import { clampSeconds, dropRow, rotatePreset } from "@/components/studio/inspector/behaviour-model";
 import {
   lockState,
@@ -80,6 +81,18 @@ describe("Widget style switch", () => {
     // The locks are not part of the switch.
     expect(profileOf(back).widgetTheme?.locks).toEqual({ colors: true });
     expect(scopeOf(profileOf(back), "style")).toBe("all");
+  });
+});
+
+describe("emptying a This profile style", () => {
+  it("keeps the scope: the values stay {} until the switch goes back to All profiles", () => {
+    const c = base();
+    const own = { ...profileOf(withScope(c, pid(c), "style", "profile")), widgetTheme: { values: { skin: "glass" } } };
+    const emptied = setProfileStyle(own, () => ({}));
+    expect(emptied.widgetTheme?.values).toEqual({});
+    expect(scopeOf(emptied, "style")).toBe("profile");
+    // A profile without its own style still stores none.
+    expect(setProfileStyle(profileOf(c), () => ({})).widgetTheme).toBeUndefined();
   });
 });
 

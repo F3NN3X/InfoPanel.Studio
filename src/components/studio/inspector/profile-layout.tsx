@@ -55,6 +55,9 @@ function NameField({
   onRenameHandled: () => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  // Typing saves live, but a blank name is never saved: it reverts when the field is left.
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
   useEffect(() => {
     if (renameRequest === undefined || !ref.current) return;
     ref.current.focus();
@@ -64,7 +67,18 @@ function NameField({
   }, [renameRequest]);
   return (
     <StackRow label="Name">
-      <input ref={ref} value={value} aria-label="Profile name" onChange={(e) => onChange(e.target.value)} className={INPUT} />
+      <input
+        ref={ref}
+        value={draft}
+        aria-label="Profile name"
+        onChange={(e) => {
+          setDraft(e.target.value);
+          if (e.target.value.trim() !== "") onChange(e.target.value);
+        }}
+        onBlur={() => draft.trim() === "" && setDraft(value)}
+        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+        className={INPUT}
+      />
     </StackRow>
   );
 }
