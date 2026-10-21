@@ -12,6 +12,7 @@ import {
   cancelTransaction,
   commitTransaction,
   emptyHistory,
+  mapHistory,
   recordChange,
   redoChange,
   resetHistory,
@@ -24,6 +25,9 @@ const sameValue = (a: DashboardConfig, b: DashboardConfig) => a === b || JSON.st
 
 /** A config setter that records an undo step; `key` coalesces repeats. */
 export type HistorySetter = (action: SetStateAction<DashboardConfig>, key?: string) => void;
+
+/** Applies a change that is no studio edit to the config and every undo snapshot; returns the new config. */
+export type AdoptChange = (change: (config: DashboardConfig) => DashboardConfig) => DashboardConfig;
 
 /**
  * Undo/redo over the dashboard config. Wraps the owner's setter: every
@@ -80,6 +84,18 @@ export function useConfigHistory(
     setCounts({ undo: history.current.past.length, redo: history.current.future.length });
   }, []);
 
+  /** Apply a change that is no edit of the studio's (a Settings change) to the config and every snapshot; the history stays. */
+  const adopt: AdoptChange = useCallback(
+    (change) => {
+      const next = change(latest.current);
+      latest.current = next;
+      history.current = mapHistory(history.current, change);
+      setConfig(next);
+      return next;
+    },
+    [setConfig]
+  );
+
   const cancel = useCallback(() => {
     const step = cancelTransaction(history.current);
     if (step) apply(step.value, step.history);
@@ -100,5 +116,5 @@ export function useConfigHistory(
     if (step) apply(step.value, step.history);
   }, [apply]);
 
-  return { set, begin, commit, cancel, undo, redo, dragging, canUndo: counts.undo > 0, canRedo: counts.redo > 0 };
+  return { set, adopt, begin, commit, cancel, undo, redo, dragging, canUndo: counts.undo > 0, canRedo: counts.redo > 0 };
 }

@@ -6,6 +6,31 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.9] - 2026-10-22
+
+### Changed
+- **Settings is its own window again**, and it holds everything that isn't design: **App** (General, Server, Coding
+  agents, Updates), **Dashboard** (frame rate and animations, clock and date, kiosk behaviour, Reset everything…),
+  **Studio** (editor preferences), then Diagnostics, Logs, About and Changelog, with search over all of them. Open it
+  from Settings on the rail, `Ctrl+,`, the command palette, the tray's Settings or Update…, or Help's "Open settings".
+  In a browser it opens as a tab with Dashboard and Studio.
+- **Dashboard settings apply at once.** There is no Save: each change is saved on the server, reaches the kiosks
+  straight away and shows up in the Studio without touching your unsaved design edits. Dashboard lists every screen
+  that uses its own frame rate or animations, with a link that opens it in Screens. Studio preferences changed there
+  apply to the open Studio window as you change them.
+- **Screens is on the rail**, after Theme, and a settings button beside the screen name in the title bar opens Screens
+  on the screen you are editing (on a phone, Screens is under More).
+- **A screen's own frame rate and animations are easy to find.** Settings › Dashboard lists the screens that override
+  Frame-rate cap or Animations ("MyDefault uses 30 fps") with Reset and a link to the screen. Theme's Motion section
+  says on which screens Smooth is off, and the Frame-rate cap hint says why: below 60 fps transitions are off and graphs
+  step at the data rate.
+- The Studio window can call only the desktop commands it uses (13, down from 39); the Settings window has its own
+  set. If the server isn't running, Settings opens with the App pages only.
+
+### Fixed
+- Layers, the selection bar and the widget inspector show each widget's own icon instead of a plain box for all of
+  them.
+
 ## [1.3.0-beta.8] - 2026-10-21
 
 ### Added

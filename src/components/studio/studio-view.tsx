@@ -1,12 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
-import { useConfigHistory } from "@/hooks/use-config-history";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useConfigHistory, type AdoptChange } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
 import { SourcesPanel } from "./sources-panel";
 import { ThemeEditor } from "./theme-editor";
 import {
   BLANK_MODULE,
   CANVAS_ID,
-  defaultConfig,
   resolveProfile,
   type DashboardConfig,
   type ProfileView,
@@ -33,7 +32,6 @@ import { DesignLeftPanel } from "./design-left-panel";
 import { AlertsView } from "./alerts-view";
 import { ScreensView } from "./screens-view";
 import { withScreenPerformance } from "./screens-model";
-import { SettingsView } from "./settings-view";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
 import { StudioInspector } from "./studio-inspector";
@@ -64,7 +62,6 @@ import { visibleAlerts } from "@/components/alerts/alert-model";
 import { cycleLabel, PageTabs } from "./page-tabs";
 import { PageIconDialog } from "./page-icon-dialog";
 import { islandSectionId } from "./island-panel-model";
-import type { SectionId } from "@/settings/model/search";
 import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
@@ -112,6 +109,8 @@ interface StudioViewProps {
   offline: boolean;
   /** No config anywhere (a fresh install): the first-run setup opens. */
   firstRun: boolean;
+  /** Filled with the history's `adopt` while the view is open: how a Settings change gets in without ending the undo history. */
+  adoptRef: MutableRefObject<AdoptChange | null>;
 }
 
 /**
@@ -146,8 +145,15 @@ function StudioViewBody({
   pushPending,
   offline,
   firstRun,
+  adoptRef,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
+  useEffect(() => {
+    adoptRef.current = history.adopt;
+    return () => {
+      adoptRef.current = null;
+    };
+  }, [adoptRef, history.adopt]);
   const toast = useToast();
   // First-run setup (SPEC §10.5): a fresh install, or Help › Run setup again.
   const [setupOpen, setSetupOpen] = useState(false);
@@ -212,10 +218,10 @@ function StudioViewBody({
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
+  const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, fullPage } = ui;
   const phone = isPhone(windowWidth);
   const narrowRail = !phone && railWidth(windowWidth) < 72;
-  const railActive: RailItem | null = showSources
+  const railActive: RailItem = showSources
     ? "data"
     : showLibrary
       ? "library"
@@ -225,11 +231,9 @@ function StudioViewBody({
           ? "theme"
           : showAlerts
             ? "alerts"
-            : showSettings
-              ? "settings"
-              : showScreens
-                ? null
-                : "design";
+            : showScreens
+              ? "screens"
+              : "design";
   const openHelpWindow = () => void openHelp(helpTarget()).catch(() => {});
   // F1 and the rail's Help: the article for what the user is on (an open dialog, the view, the selected zone).
   const helpTarget = () =>
@@ -238,8 +242,6 @@ function StudioViewBody({
       section: focusedSection(),
       view: ui.mode,
       zone: helpZoneKind(selected),
-      settingsTab: ui.settingsTab,
-      settingsSection: ui.settingsSection as SectionId | undefined,
     });
   useHelpKey(helpTarget, (target) => void openHelp(target).catch(() => {}));
   /** The data point the inspector's Bound data row opened in Sources mode. */
@@ -450,35 +452,6 @@ function StudioViewBody({
       onAddProfile={edit.addProfile}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
-    />
-  );
-
-  const settingsEl = showSettings && (
-    <SettingsView
-      tab={ui.settingsTab}
-      onTab={ui.setSettingsTab}
-      appSection={ui.settingsSection}
-      seq={ui.navRequest?.seq ?? 0}
-      dashboard={{
-        config,
-        screen: storedProfile,
-        setConfig,
-        onExport: () => exportConfigFile(config, toast),
-        onReset: () => setConfig(defaultConfig()),
-        navigateTo: ui.navigateTo,
-      }}
-      studio={{
-        fitting: ui.fitting,
-        zoom: ui.zoom,
-        onFit: ui.fitZoom,
-        onZoom: ui.setZoom,
-        showGrid: ui.showGrid,
-        onShowGrid: ui.setShowGrid,
-        showRulers: ui.showRulers,
-        onShowRulers: ui.setShowRulers,
-        leftWidth: ui.leftWidth,
-        onLeftWidth: ui.setLeftWidth,
-      }}
     />
   );
 
@@ -793,6 +766,7 @@ function StudioViewBody({
           onPageChange(pageId);
         }}
         onManageScreens={() => ui.navigateTo({ view: "screens" })}
+        onScreenSettings={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
         liveOpen={ui.liveOpen}
         onLiveOpenChange={ui.setLiveOpen}
         kiosks={kiosksOf(control)}
@@ -814,7 +788,7 @@ function StudioViewBody({
         rail={phone ? null : <LeftRail active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
-        main={alertsEl || screensEl || settingsEl || gaugesEl || themeEl || (
+        main={alertsEl || screensEl || gaugesEl || themeEl || (
           <>
             {libraryEl}
             {canvasEditor ? (

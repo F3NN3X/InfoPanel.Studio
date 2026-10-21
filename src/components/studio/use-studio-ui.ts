@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { onOpenSettingsRequest, takePendingSettings } from "@/lib/desktop";
+import { openSettings } from "@/lib/desktop";
+import { onStudioMessage } from "@/lib/studio-channel";
 import type { DashboardConfig, ProfileView, Widget } from "@/lib/layout";
 import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
@@ -7,14 +8,13 @@ import type { Drawer } from "./commands";
 import { useStoredLeftWidth, type LeftTab } from "./design-left-panel";
 import { COLLECTIONS, type CollectionId } from "@/lib/my-library/model";
 import type { AlertsTab } from "./alerts-view";
-import type { SettingsTab } from "./settings-view";
 import type { RailItem } from "./left-rail";
 import { revealWidgetEditor, scrollInspectorToTop } from "./inspector-scroll";
 import { useCanvasZoom } from "./use-canvas-zoom";
 import { useQuickBarPref } from "./inspector/inspector-prefs";
-import { useStoredFlag } from "./use-stored-flag";
+import { GRID_KEY, RULERS_KEY, useStoredFlag } from "./use-stored-flag";
 import type { StudioMode } from "./studio-top-bar";
-import { useNavFocus, type NavRequest, type NavTarget } from "./studio-nav";
+import { settingsPageOf, useNavFocus, type NavRequest, type NavTarget } from "./studio-nav";
 import type { ThemeScope } from "./theme-editor-model";
 import { pageSize, railWidth, useStudioLayout } from "./use-studio-layout";
 
@@ -40,7 +40,6 @@ export function useStudioUi(
   const showTheme = mode === "theme";
   const showAlerts = mode === "alerts";
   const showScreens = mode === "screens";
-  const showSettings = mode === "settings";
   /** Theme's scope (Screen until the scope bar or a link picks another). */
   const [themeScope, setThemeScope] = useState<ThemeScope>({ kind: "profile" });
   /**
@@ -78,15 +77,12 @@ export function useStudioUi(
     setLibraryRequest((r) => ({ collection, seq: (r?.seq ?? 0) + 1 }));
     setMode("library");
   };
-  /** Settings' tab, and the App page a link or the tray named (`seq` makes a repeat count). */
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("dashboard");
-  const [settingsSection, setSettingsSection] = useState<string>();
   /** A link to Screens named a screen to select (the studio selects it: `selectProfile` needs the fit zoom). */
   const [screenRequest, setScreenRequest] = useState<{ id: string; seq: number }>();
   /** The Live popover (the title bar's button and the status bar's Kiosks item). */
   const [liveOpen, setLiveOpen] = useState(false);
-  const [showGrid, setShowGrid] = useStoredFlag("studio.grid", true);
-  const [showRulers, setShowRulers] = useStoredFlag("studio.rulers", true);
+  const [showGrid, setShowGrid] = useStoredFlag(GRID_KEY, true);
+  const [showRulers, setShowRulers] = useStoredFlag(RULERS_KEY, true);
   /** A request to scroll the zone inspector to a card (`seq` makes repeats count). */
   const [inspectorJump, setInspectorJump] = useState<{ id: string; key?: string; seq: number }>();
   const jumpInspector = (id: string, key?: string) => {
@@ -167,8 +163,9 @@ export function useStudioUi(
     });
   };
 
-  /** A rail item opens its view; Data is the Sources view. */
-  const onRail = (item: RailItem) => (item === "theme" ? openThemeView() : setMode(item === "data" ? "sources" : item));
+  /** A rail item opens its view; Data is the Sources view, and Settings its own window. */
+  const onRail = (item: RailItem) =>
+    item === "theme" ? openThemeView() : item === "settings" ? navigateTo({ view: "settings" }) : setMode(item === "data" ? "sources" : item);
 
   /** A palette entry or link for the Design left panel: Add widget or Layers. */
   const openDrawer = (target: Drawer) => {
@@ -185,8 +182,12 @@ export function useStudioUi(
   /** The last `navigateTo` (its section and control get focus once they render). */
   const [navRequest, setNavRequest] = useState<NavRequest>();
   useNavFocus(navRequest);
-  /** Open a link's home (SPEC §4.1): the view, and for Screens the screen, for Settings the tab and App page. */
+  /** Open a link's home (SPEC §4.1): the view, and for Screens the screen; Settings opens its window at the page. */
   const navigateTo = (target: NavTarget) => {
+    if (target.view === "settings") {
+      void openSettings(settingsPageOf(target)).catch(() => {});
+      return;
+    }
     switch (target.view) {
       case "theme":
         if (target.themeScope) openTheme(target.themeScope, target.profileId);
@@ -212,13 +213,6 @@ export function useStudioUi(
         if (target.profileId) setScreenRequest((r) => ({ id: target.profileId!, seq: (r?.seq ?? 0) + 1 }));
         setMode("screens");
         break;
-      case "settings": {
-        const tab = target.tab === "studio" || target.tab === "app" ? target.tab : "dashboard";
-        setSettingsTab(tab);
-        setSettingsSection(tab === "app" ? target.section : undefined);
-        setMode("settings");
-        break;
-      }
       case "design":
         setMode("design");
         break;
@@ -226,21 +220,10 @@ export function useStudioUi(
     setNavRequest((r) => ({ target, seq: (r?.seq ?? 0) + 1 }));
   };
 
-  // The tray's Settings and Update entries ask the studio to open Settings › App.
+  // A Settings window link into the Studio ("‹screen› uses its own … Screens ↗").
   const open = useRef(navigateTo);
   open.current = navigateTo;
-  useEffect(() => {
-    let gone = false;
-    let off: (() => void) | undefined;
-    const request = (section: string | null) => open.current({ view: "settings", tab: "app", section: section ?? undefined });
-    void onOpenSettingsRequest(request).then((unlisten) => (gone ? unlisten() : (off = unlisten)));
-    // The tray may have built this window, or asked while it loaded: its request waits in the shell.
-    void takePendingSettings().then((pending) => pending && !gone && request(pending.section));
-    return () => {
-      gone = true;
-      off?.();
-    };
-  }, []);
+  useEffect(() => onStudioMessage((message) => message.type === "open" && open.current(message.target)), []);
 
   return {
     mode,
@@ -251,7 +234,6 @@ export function useStudioUi(
     showTheme,
     showAlerts,
     showScreens,
-    showSettings,
     themeScope,
     themeEditing,
     setThemeEditing,
@@ -268,9 +250,6 @@ export function useStudioUi(
     setAlertsTab,
     libraryRequest,
     openLibrary,
-    settingsTab,
-    setSettingsTab,
-    settingsSection,
     screenRequest,
     liveOpen,
     setLiveOpen,

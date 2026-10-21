@@ -44,6 +44,7 @@ import { createAlerts } from "./server/alerts.mjs";
 import { createAssets } from "./server/assets.mjs";
 import { createCanvases, createCanvasStore, referencedCanvasIds, SWEEP_EVERY_MS } from "./server/canvases.mjs";
 import { versionRefusal } from "./server/config-guard.mjs";
+import { applySettingsPatch, reapplySettings } from "./server/config-settings.mjs";
 import { createControl } from "./server/control.mjs";
 import { createAgentUsage } from "./server/agent-usage.mjs";
 import { createDebug } from "./server/debug.mjs";
@@ -74,6 +75,8 @@ const CANVASES_DIR = path.join(DATA_DIR, "canvases");
 const CACHE_DIR = path.join(DATA_DIR, "cache");
 
 const MAX_CONFIG_BYTES = 5 * 1024 * 1024;
+/** A Settings window patch: a few keys. */
+const MAX_SETTINGS_BYTES = 16 * 1024;
 const MAX_PROXY_BYTES = 25 * 1024 * 1024;
 const PROXY_TIMEOUT_MS = 10_000;
 
@@ -105,6 +108,12 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 // Bumped on every save; open pages compare it to decide when to reload.
 let configVersion = fs.existsSync(CONFIG_FILE) ? Math.floor(fs.statSync(CONFIG_FILE).mtimeMs) : 0;
 const configListeners = new Set();
+// Settings patches (PATCH /api/config/settings) numbered, newest last: a Studio push that was built before one landed
+// names the revision it knew (X-Settings-Rev) and gets the newer patches applied again. Starts at the clock so a
+// restart never numbers below what a still-open Studio saw.
+let settingsRev = Date.now();
+const settingsLog = [];
+const SETTINGS_LOG_MAX = 50;
 
 function saveConfig(json) {
   const tmp = `${CONFIG_FILE}.tmp`;
@@ -321,6 +330,7 @@ const handleFontProxy = createFontProxy({ cacheDir: CACHE_DIR, send });
 async function handleConfig(req, res) {
   if (req.method === "GET") {
     if (!fs.existsSync(CONFIG_FILE)) return send(res, 404);
+    res.setHeader("X-Settings-Rev", String(settingsRev));
     return send(res, 200, fs.readFileSync(CONFIG_FILE), TYPES[".json"]);
   }
   if (req.method !== "POST") return send(res, 405);
@@ -347,11 +357,46 @@ async function handleConfig(req, res) {
     const stale = versionRefusal(fs.readFileSync(CONFIG_FILE, "utf8"), parsed);
     if (stale) return send(res, stale.status, stale.message);
   }
+  // A push built before a Settings patch landed gets that patch again (see settingsRev).
+  const knownRev = Number(req.headers["x-settings-rev"]);
+  if (Number.isFinite(knownRev) && settingsLog.some((entry) => entry.rev > knownRev)) {
+    body = JSON.stringify(reapplySettings(parsed, settingsLog, knownRev));
+  }
   // Every canvasRef must name a file in the canvas store, or its zone would save blank.
   const missing = [...(referencedCanvasIds(body) ?? [])].filter((id) => !canvases.has(id));
   if (missing.length > 0) return send(res, 422, `canvas files missing from the store: ${missing.slice(0, 5).join(", ")}`);
   saveConfig(body);
   send(res, 200, JSON.stringify({ ok: true, version: configVersion }), TYPES[".json"]);
+}
+
+/**
+ * PATCH /api/config/settings → the Settings window's instant change (server/config-settings.mjs): merged into the
+ * saved config, which kiosks then pull like any save. Same guards as POST /api/config.
+ */
+async function handleConfigSettings(req, res) {
+  if (req.method !== "PATCH") return send(res, 405);
+  const refusal = configWriteRefusal(req.headers);
+  if (refusal) return send(res, refusal.status, refusal.message);
+  let body;
+  try {
+    body = await readBody(req, MAX_SETTINGS_BYTES);
+  } catch {
+    return send(res, 413);
+  }
+  let patch;
+  try {
+    patch = JSON.parse(body);
+  } catch {
+    return send(res, 400, "expected a settings patch");
+  }
+  if (!fs.existsSync(CONFIG_FILE)) return send(res, 404, "no config saved yet");
+  const result = applySettingsPatch(readConfigFile(), patch);
+  if (!result.config) return send(res, result.status, result.message);
+  saveConfig(JSON.stringify(result.config));
+  settingsRev += 1;
+  settingsLog.push({ rev: settingsRev, patch });
+  if (settingsLog.length > SETTINGS_LOG_MAX) settingsLog.shift();
+  send(res, 200, JSON.stringify({ ok: true, version: configVersion, settingsRev }), TYPES[".json"]);
 }
 
 function handleConfigEvents(req, res) {
@@ -475,6 +520,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/debug/stats") return handleDebugStats(req, res);
     if (pathname === "/api/server/stats") return handleServerStats(req, res);
     if (pathname === "/api/config") return await handleConfig(req, res);
+    if (pathname === "/api/config/settings") return await handleConfigSettings(req, res);
     if (pathname === "/events/config") return handleConfigEvents(req, res);
     if (pathname === "/api/control" || pathname.startsWith("/api/control/")) return await handleControl(req, res, pathname);
     if (pathname === "/api/alerts/history") return handleAlertHistory(req, res);

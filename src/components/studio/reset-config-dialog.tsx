@@ -21,9 +21,9 @@ export function ResetConfigDialog({ open, onOpenChange, onExport, onReset }: Res
           <AlertDialog.Title className="text-sm font-semibold text-ui-1">Reset everything?</AlertDialog.Title>
           <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
             This wipes every screen and its zones, the theme, Styles
-            and all widget settings, and restores the default dashboard. Undo
-            (Ctrl+Z) brings it back only until you leave the studio — back up
-            first to keep a copy.
+            and all widget settings, and restores the default dashboard on
+            every kiosk at once. It can't be undone — back up first to keep a
+            copy.
           </AlertDialog.Description>
           <div className="flex items-center gap-2 pt-1">
             <button type="button" className={BUTTON} onClick={onExport}>

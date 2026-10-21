@@ -3,14 +3,16 @@ import { useZoomKeys } from "@/app-window/zoom";
 import { useHelpKey } from "@/help/use-help-key";
 import { settingsHelpTarget } from "@/help/context";
 import { cn } from "@/lib/utils";
-import { SECTION_NAMES } from "./model/search";
+import { isSectionId, SECTION_NAMES } from "./model/search";
 import { PAGES } from "./pages";
 import { ipc } from "./ipc";
 import { RestartBar, Sidebar, TitleBar, ToastView } from "./shell";
 import { StoreProvider, useStore } from "./store";
 
 function Content() {
-  const { section, settings, setZoom } = useStore();
+  const { section: page, settings, setZoom } = useStore();
+  // This window's store has the App sections only.
+  const section = isSectionId(page) ? page : "general";
   const main = useRef<HTMLElement>(null);
   const { subtitle, wide, Section } = PAGES[section];
   useZoomKeys(settings.zoom, setZoom);

@@ -6,6 +6,7 @@ import {
   cancelTransaction,
   commitTransaction,
   emptyHistory,
+  mapHistory,
   recordChange,
   resetHistory,
   redoChange,
@@ -195,3 +196,26 @@ describe("transactions and external resets", () => {
   });
 });
 
+
+describe("mapHistory", () => {
+  type C = { fps: number; n: number };
+  const withFps = (c: C): C => ({ ...c, fps: 30 });
+
+  it("applies a change to the past, the future and an open transaction, and keeps the steps", () => {
+    let h = recordChange(emptyHistory<C>(), { fps: 60, n: 1 }, undefined, 0);
+    h = recordChange(h, { fps: 60, n: 2 }, undefined, 10);
+    const undone = undoChange(h, { fps: 60, n: 3 })!;
+    const open = beginTransaction(undone.history, { fps: 60, n: 3 });
+    const mapped = mapHistory(open, withFps);
+    expect(mapped.past).toEqual([{ fps: 30, n: 1 }]);
+    expect(mapped.future).toEqual([{ fps: 30, n: 3 }]);
+    expect(mapped.txn).toEqual({ start: { fps: 30, n: 3 } });
+  });
+
+  it("lets undo cross the change without reverting it", () => {
+    const h = recordChange(emptyHistory<C>(), { fps: 60, n: 1 }, undefined, 0);
+    const step = undoChange(mapHistory(h, withFps), { fps: 30, n: 2 })!;
+    expect(step.value).toEqual({ fps: 30, n: 1 });
+    expect(step.history.future).toEqual([{ fps: 30, n: 2 }]);
+  });
+});

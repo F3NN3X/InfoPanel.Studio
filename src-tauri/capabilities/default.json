@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The app's own pages (start.html, app/settings.html, app/help.html): settings, server control and agents. The studio's origin gets its smaller set at runtime (src/control.rs).",
+  "description": "The app's own pages (start.html, app/settings.html, app/help.html): settings, server control and agents. On the server's origin the studio and the settings window get their own sets at runtime (src/control.rs).",
   "windows": [
     "main",
     "settings",
@@ -36,7 +36,6 @@
     "allow-list-local-addresses",
     "allow-quit-app",
     "allow-open-settings",
-    "allow-open-settings-in-studio",
     "allow-open-help",
     "allow-get-debug",
     "allow-update-state",

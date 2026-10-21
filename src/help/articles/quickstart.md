@@ -18,7 +18,7 @@ The Server item in the status bar at the bottom of the studio should show the po
 
 ## 2. Size a screen for your display
 
-A fresh install has one blank screen, **Main display**, at 1920 × 1080. Open **Screens** (the screen name in the title bar, **Manage screens…**) and press **New screen** to make one at your display size. A new screen is named after its size and uses the size of the studio window, so resize the window first, or pick a **Size preset** such as 1920 × 550 under **Size & fit**. The grid is created for you.
+A fresh install has one blank screen, **Main display**, at 1920 × 1080. Open **Screens** (on the rail) and press **New screen** to make one at your display size. A new screen is named after its size and uses the size of the studio window, so resize the window first, or pick a **Size preset** such as 1920 × 550 under **Size & fit**. The grid is created for you.
 
 :::tip
 To see a finished example first, press **Use sample layout** on the empty canvas. It builds a 1920 × 550 screen you can take apart.

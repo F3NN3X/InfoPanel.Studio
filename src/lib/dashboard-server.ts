@@ -1,5 +1,6 @@
 import { CanvasRejectedError, inlineCanvases, liftCanvases } from "@/lib/canvas-store";
 import type { DashboardConfig } from "@/lib/layout";
+import type { SettingsPatch } from "@/lib/settings-patch";
 
 /**
  * Endpoints of the dashboard's own server (server.mjs), which serves this
@@ -9,11 +10,24 @@ import type { DashboardConfig } from "@/lib/layout";
  */
 export const CONFIG_URL = "/api/config";
 export const CONFIG_EVENTS_URL = "/events/config";
+/** The Settings window's instant writes (server/config-settings.mjs). */
+export const CONFIG_SETTINGS_URL = "/api/config/settings";
 export const IMAGE_PROXY_URL = "/api/image-proxy";
 
 /** The port the server listens on until the app settings say otherwise (server.mjs and src-tauri/src/settings.rs use the same), and the kiosk page on it. */
 export const DEFAULT_SERVER_PORT = 3922;
 export const DEFAULT_KIOSK_URL = `http://127.0.0.1:${DEFAULT_SERVER_PORT}/?kiosk=1`;
+
+/**
+ * The newest Settings patch this window knows the server has taken (X-Settings-Rev), sent with each push so the
+ * server can apply again any patch that landed after the config being pushed was built (server.mjs `settingsRev`).
+ */
+let settingsRev: number | null = null;
+
+/** Note a revision: from a read of the saved config, or a Settings change this window was told about. */
+export function noteSettingsRev(rev: number): void {
+  if (Number.isFinite(rev)) settingsRev = Math.max(settingsRev ?? 0, rev);
+}
 
 /**
  * The config saved on the server, its canvas zones' canvases loaded from the
@@ -25,6 +39,8 @@ export async function fetchConfig(): Promise<Partial<DashboardConfig> | null> {
   const res = await fetch(CONFIG_URL, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`config load failed: ${res.status}`);
+  const rev = res.headers.get("X-Settings-Rev");
+  if (rev !== null) noteSettingsRev(Number(rev));
   const parsed = (await res.json()) as Partial<DashboardConfig> | null;
   return parsed && Array.isArray(parsed.profiles) ? inlineCanvases(parsed) : null;
 }
@@ -56,9 +72,10 @@ let pushing: Promise<unknown> = Promise.resolve();
 
 /**
  * Save the config on the server, where every kiosk page reads it: its
- * canvases go to the canvas store first, the config then holds their refs.
+ * canvases go to the canvas store first, the config then holds their refs. `replace`: the config is meant to
+ * replace the saved one whole (Reset everything…), so no Settings patch is applied again over it.
  */
-export function pushConfig(config: DashboardConfig): Promise<void> {
+export function pushConfig(config: DashboardConfig, replace = false): Promise<void> {
   const run = pushing.then(async () => {
     const lifted = await liftCanvases(config).catch((err: unknown) => {
       // A refused canvas is a refused save, not an unreachable server.
@@ -67,7 +84,11 @@ export function pushConfig(config: DashboardConfig): Promise<void> {
     const res = await fetch(CONFIG_URL, {
       method: "POST",
       // The custom header makes a cross-site POST preflight (see server.mjs).
-      headers: { "Content-Type": "application/json", "X-Dashboard-Config": "1" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Dashboard-Config": "1",
+        ...(!replace && settingsRev !== null && { "X-Settings-Rev": String(settingsRev) }),
+      },
       body: JSON.stringify(lifted),
     });
     if (res.status === 409) throw new NewerConfigError();
@@ -76,4 +97,20 @@ export function pushConfig(config: DashboardConfig): Promise<void> {
   });
   pushing = run.catch(() => {});
   return run;
+}
+
+/**
+ * Merge a Settings change into the config saved on the server (PLAN decision 22): kiosks pull it at once, and the
+ * rest of the saved config stays as it is. Resolves to the patch's revision. Throws `ConfigRejectedError` on a
+ * refusal, anything else when unreachable.
+ */
+export async function patchSettings(patch: SettingsPatch): Promise<number> {
+  const res = await fetch(CONFIG_SETTINGS_URL, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Dashboard-Config": "1" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new ConfigRejectedError(res.status, (await res.text().catch(() => "")).slice(0, 200));
+  const { settingsRev: rev } = (await res.json().catch(() => ({}))) as { settingsRev?: number };
+  return typeof rev === "number" ? rev : 0;
 }

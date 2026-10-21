@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { errorText, ipc, onEvent } from "./ipc";
 import { restartItems, type RestartItem } from "./model/restart";
-import { isSectionId, type SectionId } from "./model/search";
+import { parsePageTarget, SECTION_NAMES, type PageId, type SectionId } from "./model/search";
 import type { SetResult, SettingKey, Settings, Status, UpdateState } from "./types";
 
 /** How long "Saved" stays up. */
@@ -44,8 +44,8 @@ export interface Store {
   restartBusy: boolean;
   restartServer: () => Promise<void>;
   undoRestart: () => Promise<void>;
-  section: SectionId;
-  go: (section: SectionId, row?: string) => void;
+  section: PageId;
+  go: (section: PageId, row?: string) => void;
   found: Found | null;
 }
 
@@ -87,14 +87,14 @@ async function load(): Promise<Loaded> {
   return { settings, status, update, lanIp: addresses[0] ?? null, debugForced: Boolean(diagnostics?.debug && !settings.debug) };
 }
 
-/** The section the window was opened at (settings.html#server), else General. */
-function sectionFromHash(): SectionId {
-  const id = window.location.hash.slice(1);
-  return isSectionId(id) ? id : "general";
-}
+/** The App sections, the rescue window's pages (app/settings.html). */
+const SECTIONS = Object.keys(SECTION_NAMES) as SectionId[];
 
-/** `initialSection` is where the studio's Settings › App opens; the window reads its own URL hash. */
-export function StoreProvider({ children, initialSection }: { children: ReactNode; initialSection?: SectionId }) {
+/**
+ * `pages` are the pages this window has (the App sections unless the Studio's server serves it); it opens at the one
+ * its URL hash names (settings.html#server, /?settings#dashboard/performance), else the first.
+ */
+export function StoreProvider({ children, pages = SECTIONS }: { children: ReactNode; pages?: readonly PageId[] }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
@@ -102,8 +102,9 @@ export function StoreProvider({ children, initialSection }: { children: ReactNod
   const [toastState, setToast] = useState<Toast | null>(null);
   const [portInvalid, setPortInvalid] = useState(false);
   const [restartBusy, setRestartBusy] = useState(false);
-  const [section, setSection] = useState<SectionId>(() => initialSection ?? sectionFromHash());
-  const [found, setFound] = useState<Found | null>(null);
+  const [opened] = useState(() => parsePageTarget(window.location.hash.slice(1), pages));
+  const [section, setSection] = useState<PageId>(() => opened?.section ?? pages[0]);
+  const [found, setFound] = useState<Found | null>(() => (opened?.row ? { row: opened.row, n: 0 } : null));
   const settingsRef = useRef<Settings | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const foundTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -118,8 +119,11 @@ export function StoreProvider({ children, initialSection }: { children: ReactNod
     const unlisten: Array<() => void> = [];
     void onEvent<Status>("server-status", (s) => alive && setStatus(s)).then((u) => (alive ? unlisten.push(u) : u()));
     void onEvent<UpdateState>("update-state", (s) => alive && setUpdate(s)).then((u) => (alive ? unlisten.push(u) : u()));
-    // Help asks for a section while this window is already open.
-    void onEvent<string>("settings-section", (s) => alive && isSectionId(s) && setSection(s)).then((u) => (alive ? unlisten.push(u) : u()));
+    // Help, the tray or the studio asks for a page while this window is already open.
+    void onEvent<string>("settings-section", (s) => {
+      const target = alive ? parsePageTarget(s, pages) : null;
+      if (target) goRef.current(target.section, target.row);
+    }).then((u) => (alive ? unlisten.push(u) : u()));
     void load().then((l) => {
       if (!alive) return;
       setLoaded(l);
@@ -229,13 +233,15 @@ export function StoreProvider({ children, initialSection }: { children: ReactNod
     for (const item of pending) await save(item.key, item.running);
   }, [pending, save]);
 
-  const go = useCallback((next: SectionId, row?: string) => {
+  const go = useCallback((next: PageId, row?: string) => {
     setSection(next);
     clearTimeout(foundTimer.current);
     if (!row) return setFound(null);
     setFound((f) => ({ row, n: (f?.n ?? 0) + 1 }));
     foundTimer.current = setTimeout(() => setFound(null), FOUND_MS);
   }, []);
+  const goRef = useRef(go);
+  goRef.current = go;
 
   if (!loaded || !settings || !status || !update) return null;
   const store: Store = {

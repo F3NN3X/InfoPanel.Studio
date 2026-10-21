@@ -18,9 +18,11 @@ import { shownValue, shownValues } from "./inspector/zone-fields";
 import { InspectorChromeProvider } from "./inspector-layout";
 import { allSections, changedCount, isVisible, rowSection, splitMore, visibleSections, type InspectorSection } from "./inspector-model";
 import { LinkRow } from "./link-row";
+import { smoothOffScreens } from "./screens-model";
 import { InlineRow, SelectRow, SliderRow } from "./setting-rows";
 import { dropKeys } from "./settings-model";
 import { SettingField, type FieldsApi } from "./settings-panel";
+import { SmoothOffNote } from "./smooth-off-note";
 import type { NavRequest, NavTarget } from "./studio-nav";
 import { CardLabel, CustomiseList, scopeHelp, ThemeSectionCard } from "./theme-card-list";
 import {
@@ -310,6 +312,12 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         flash={flash === card.id}
       >
         {dataRows(card)}
+        {card.id === "motion" && effective.smoothing === "smooth" && (
+          <SmoothOffNote
+            screens={smoothOffScreens(config).filter((s) => at.level === "all" || s.id === profile.id)}
+            onOpenScreen={(id) => navigateTo({ view: "screens", profileId: id, section: "performance" })}
+          />
+        )}
         {secs.map((s) => {
           const label = labelOf(card, s);
           return (

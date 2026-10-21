@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConfigRejectedError, NewerConfigError, fetchConfig, isUnreachable, pushConfig } from "@/lib/dashboard-server";
+import { ConfigRejectedError, NewerConfigError, fetchConfig, isUnreachable, noteSettingsRev, patchSettings, pushConfig } from "@/lib/dashboard-server";
 import type { DashboardConfig } from "@/lib/layout";
 
 const respond = (status: number, body?: unknown) =>
@@ -45,6 +45,23 @@ describe("pushConfig", () => {
   });
 });
 
+describe("patchSettings", () => {
+  it("sends the patch as a PATCH with the config header the server requires", async () => {
+    respond(200, { ok: true });
+    await patchSettings({ general: { maxFps: 30 } });
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe("/api/config/settings");
+    expect(init?.method).toBe("PATCH");
+    expect(init?.headers).toEqual({ "Content-Type": "application/json", "X-Dashboard-Config": "1" });
+    expect(JSON.parse(String(init?.body))).toEqual({ general: { maxFps: 30 } });
+  });
+
+  it("throws a refusal as ConfigRejectedError", async () => {
+    respond(400);
+    await expect(patchSettings({ general: { maxFps: 30 } })).rejects.toBeInstanceOf(ConfigRejectedError);
+  });
+});
+
 describe("isUnreachable", () => {
   it("is true for a network failure, false for any answer from the server", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))));
@@ -57,5 +74,35 @@ describe("isUnreachable", () => {
     const newer = await pushConfig({} as DashboardConfig).catch((e: unknown) => e);
     expect(newer).toBeInstanceOf(NewerConfigError);
     expect(isUnreachable(newer)).toBe(false);
+  });
+});
+
+// Last: the revision is module state, kept for the rest of the file once noted.
+describe("the Settings revision sent with a push", () => {
+  const sentHeaders = () => vi.mocked(fetch).mock.calls[0][1]?.headers as Record<string, string>;
+
+  it("is sent once a read of the saved config or a Settings change has noted it, and only the newest counts", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ profiles: [{ id: "a" }] }), { status: 200, headers: { "X-Settings-Rev": "100" } })));
+    await fetchConfig();
+    noteSettingsRev(90);
+    respond(200, { ok: true });
+    await pushConfig({} as DashboardConfig);
+    expect(sentHeaders()["X-Settings-Rev"]).toBe("100");
+    noteSettingsRev(105);
+    respond(200, { ok: true });
+    await pushConfig({} as DashboardConfig);
+    expect(sentHeaders()["X-Settings-Rev"]).toBe("105");
+  });
+
+  it("is left off a push that replaces the saved config whole", async () => {
+    noteSettingsRev(110);
+    respond(200, { ok: true });
+    await pushConfig({} as DashboardConfig, true);
+    expect(sentHeaders()).not.toHaveProperty("X-Settings-Rev");
+  });
+
+  it("is what a Settings patch resolves to", async () => {
+    respond(200, { ok: true, settingsRev: 120 });
+    expect(await patchSettings({ general: { maxFps: 30 } })).toBe(120);
   });
 });

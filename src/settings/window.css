@@ -1,6 +1,7 @@
 /*
- * What the settings window's stylesheet sets on html and body, scoped to the pages when the studio hosts them
- * (Settings › App). The color tokens are tokens.css; the studio's own stylesheet supplies the utilities.
+ * What the rescue settings window's stylesheet (settings.css) sets on html and body, scoped to the Settings window
+ * the Studio's server serves (/?settings). The color tokens are tokens.css; the studio's own stylesheet supplies
+ * the utilities.
  */
 .s-scope {
   color-scheme: dark;

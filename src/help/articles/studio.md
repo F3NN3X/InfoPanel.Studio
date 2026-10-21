@@ -14,17 +14,19 @@ The editor window: a rail of views on the left, the work area in the middle, and
 |---|---|
 | **Design** | The canvas, the page tabs and the inspector. The left panel switches between **Layers** (the zones of this page: hide, rename, reorder, select) and **Add widget** (every widget, layout starters and your panels). |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
+| **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. See [Screens and the grid](profiles). |
 | **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
 | **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
 | **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
 | **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
 | **Help** | Opens this help at the article for where you are (`F1` does the same). |
-| **Settings** | **Dashboard** (every screen and kiosk), **Studio** (editor preferences, saved with the Studio on this device) and **App** (startup, server and updates, in the desktop app). See [Startup and tray](startup). |
+| **Settings** | Opens the Settings window (`Ctrl+,`, or Settings in the tray): **App** (General, Server, Coding agents and Updates, in the desktop app), **Dashboard** (every screen and kiosk, saved the moment you change it), **Studio** (editor preferences, saved with the Studio on this device), then Diagnostics, Logs, About and Changelog. In a browser it opens as a tab with Dashboard and Studio. See [Startup and tray](startup). |
 
-Screens have no rail button: open **Screens** from the screen name in the title bar (**Manage screens…**) or from a size link. Under 960 px the rail is icons only.
+On a phone, Screens is under **More**. Under 960 px the rail is icons only.
 
 ## The title bar
 
+- The settings button beside the screen name opens **Screens** on that screen.
 - The screen name opens a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**. Which screen your displays open is set there, under **When the app opens**. See [Screens and the grid](profiles#which-screen-opens).
 - The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view.
 - **Undo** and **Redo**, **Import**, **Export & back up** and **Save**. See [Importing and exporting](import).

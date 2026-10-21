@@ -1,5 +1,6 @@
 // The app commands get generated `allow-<command>` permissions, so every command is gated by a
-// capability: the local pages' default.json and the studio's runtime capability.
+// capability: the local pages' default.json, and the studio's and the settings window's runtime
+// capabilities on the server's origin (src/control.rs).
 fn main() {
     println!("cargo:rustc-env=BUILD_DATE={}", build_date());
     let manifest = tauri_build::AppManifest::new().commands(&[
@@ -29,8 +30,7 @@ fn main() {
         "list_local_addresses",
         "quit_app",
         "open_settings",
-        "open_settings_in_studio",
-        "take_pending_settings",
+        "show_studio",
         "open_help",
         "kiosk_window",
         "save_text_file",

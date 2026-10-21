@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fitZoomFor, stepZoom, type CanvasInset } from "./studio-layout";
 import { useHandPan } from "./use-hand-pan";
-import { loadZoomPref, saveZoomPref } from "./zoom-pref";
+import { useStorageKey } from "./use-stored-flag";
+import { loadZoomPref, parseZoomPref, saveZoomPref, ZOOM_KEY } from "./zoom-pref";
 
 /**
  * Canvas zoom: discrete steps, ctrl/cmd + wheel over the scroll container (the hand tool pans it: see useHandPan),
@@ -20,6 +21,12 @@ export function useCanvasZoom(page: { width: number; height: number }, inset: Ca
   const [manual, setManual] = useState(initial.manual);
   const [fitting, setFitting] = useState(initial.fitting);
   useEffect(() => saveZoomPref({ fitting, manual }), [fitting, manual]);
+  // Settings › Studio's Default zoom, set in the Settings window.
+  useStorageKey(ZOOM_KEY, (raw) => {
+    const pref = parseZoomPref(raw);
+    setFitting(pref.fitting);
+    setManual(pref.manual);
+  });
   const [box, setBox] = useState({ width: 0, height: 0 });
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);

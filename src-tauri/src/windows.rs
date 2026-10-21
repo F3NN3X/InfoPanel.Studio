@@ -1,10 +1,10 @@
 // The studio window (start page until the server answers) and the settings and help windows, their
-// navigation guard, close-to-tray and quit.
+// navigation guard, close-to-tray and quit. The settings window loads from the studio's server while it
+// runs (its Dashboard and Studio pages need that origin), else the rescue page among the local pages.
 
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
 use std::sync::atomic::Ordering;
-use std::time::Instant;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -201,14 +201,12 @@ pub fn load_studio(app: &AppHandle, url: &str) {
     let _ = window.navigate(url);
 }
 
-/// Event telling an open Settings window to show a section (the payload is its id).
+/// Event telling an open Settings window to show a page (the payload is a `settings_target`).
 pub const SETTINGS_EVENT: &str = "settings-section";
-/// Event telling the studio page to open Settings › App (the payload is a section id, or null).
-pub const OPEN_SETTINGS_EVENT: &str = "studio://open-settings";
 /// Event telling an open Help window to show an article (the payload is a `HelpTarget`).
 pub const HELP_EVENT: &str = "help-open";
 
-/// The sections Settings has (`SectionId` in src/settings/model/search.ts).
+/// The App sections, all the rescue page has (`SectionId` in src/settings/model/search.ts).
 const SETTINGS_SECTIONS: [&str; 8] = [
     "general",
     "server",
@@ -220,9 +218,24 @@ const SETTINGS_SECTIONS: [&str; 8] = [
     "changelog",
 ];
 
-/// The section if Settings has it: the page and the event only ever carry known ids.
+/// The pages only the Settings window on the studio's server has (`PageId`).
+const PREFERENCE_PAGES: [&str; 2] = ["dashboard", "studio"];
+
+/// The section if the rescue page has it: its URL only ever carries known ids.
 fn settings_section(section: Option<&str>) -> Option<&str> {
     section.filter(|s| SETTINGS_SECTIONS.contains(s))
+}
+
+/// What the Settings window on the studio's server opens at: a page it has, or a page and a group of it
+/// (`dashboard/performance`, a slug). Anything else is dropped.
+fn settings_target(section: Option<&str>) -> Option<&str> {
+    let section = section?;
+    let (page, group) = match section.split_once('/') {
+        Some((page, group)) => (page, Some(group)),
+        None => (section, None),
+    };
+    let known = SETTINGS_SECTIONS.contains(&page) || PREFERENCE_PAGES.contains(&page);
+    (known && group.is_none_or(is_slug)).then_some(section)
 }
 
 /// An article id or heading slug: lowercase letters, digits and dashes.
@@ -263,7 +276,7 @@ impl HelpTarget {
     }
 }
 
-/// The settings page to load, at a section when it is a known one.
+/// The rescue settings page to load, at a section when it is a known one.
 fn settings_page(section: Option<&str>) -> String {
     match settings_section(section) {
         Some(s) => format!("app/settings.html#{s}"),
@@ -271,9 +284,30 @@ fn settings_page(section: Option<&str>) -> String {
     }
 }
 
-/// Focuses the app page window with this label, or builds it at `page` (a path under the local
-/// pages). Returns whether it was already open.
-fn show_page(app: &AppHandle, label: &str, title: &str, page: &str) -> bool {
+/// The Settings window on the studio's server (`origin`), at a target when it is a valid one.
+fn server_settings_url(origin: &str, section: Option<&str>) -> String {
+    match settings_target(section) {
+        Some(s) => format!("{origin}/?settings#{s}"),
+        None => format!("{origin}/?settings"),
+    }
+}
+
+/// Where the settings window loads: the studio's server while it runs, else the rescue page.
+fn settings_url(app: &AppHandle, section: Option<&str>) -> WebviewUrl {
+    let status = app.state::<AppState>().status();
+    let server = (status.state == Phase::Running)
+        .then(|| Url::parse(&server_settings_url(&status.origin, section)).ok())
+        .flatten();
+    match server {
+        Some(url) => WebviewUrl::External(url),
+        None => WebviewUrl::App(settings_page(section).into()),
+    }
+}
+
+/// Focuses the app window with this label, or builds it at `url`. The help window stays on the local
+/// pages; the settings window may also load the studio's server (`server`). Returns whether it was
+/// already open.
+fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server: bool) -> bool {
     if let Some(w) = app.get_webview_window(label) {
         let _ = w.show();
         let _ = w.unminimize();
@@ -282,14 +316,19 @@ fn show_page(app: &AppHandle, label: &str, title: &str, page: &str) -> bool {
     }
     let nav_app = app.clone();
     let popup_app = app.clone();
-    let built = WebviewWindowBuilder::new(app, label, WebviewUrl::App(page.into()))
+    let origin = app.state::<AppState>().origin.clone();
+    let built = WebviewWindowBuilder::new(app, label, url)
         .title(title)
         .decorations(false)
         .inner_size(1000.0, 720.0)
         .min_inner_size(760.0, 520.0)
         .additional_browser_args(browser_args(app.state::<AppState>().debug()))
         .on_navigation(move |url| {
-            let allowed = nav::is_local_page(url);
+            let allowed = if server {
+                origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false)
+            } else {
+                nav::is_local_page(url)
+            };
             if !allowed {
                 open_external(&nav_app, url);
             }
@@ -310,35 +349,39 @@ fn show_page(app: &AppHandle, label: &str, title: &str, page: &str) -> bool {
     false
 }
 
-/// Shows the settings window, at a section when given one.
+/// Shows the settings window (the tray, the studio's rail, Help, the start page), at a page when given
+/// one: an open window gets the event, a new one loads at it.
 pub fn show_settings(app: &AppHandle, section: Option<&str>) {
-    if show_page(app, SETTINGS, "InfoPanel Studio settings", &settings_page(section)) {
-        if let Some(s) = settings_section(section) {
+    let url = settings_url(app, section);
+    if show_page(app, SETTINGS, "InfoPanel Studio settings", url, true) {
+        if let Some(s) = settings_target(section) {
             let _ = app.emit_to(SETTINGS, SETTINGS_EVENT, s);
         }
     }
 }
 
-/// The tray's Settings: the studio window, which opens Settings › App (at a section when given one). A
-/// window that is open gets the event; one that is built by this call, or is still loading, finds the request
-/// waiting when its page mounts (`take_pending_settings`). While the window shows the start page, its own
-/// rescue buttons are what the user gets.
-pub fn show_settings_in_studio(app: &AppHandle, section: Option<&str>) {
-    let st = app.state::<AppState>();
-    let existed = app.get_webview_window(MAIN).is_some();
-    let section = settings_section(section);
-    st.pending_settings.set(section, Instant::now());
-    show_main(app);
-    if !st.studio_page.load(Ordering::SeqCst) {
-        st.pending_settings.clear();
-    } else if existed {
-        let _ = app.emit_to(MAIN, OPEN_SETTINGS_EVENT, section);
+/// The server answers at `origin`: an open settings window that shows the rescue page, or the
+/// server's old address, moves to it (at the page its URL names). One already there stays as it is.
+pub fn settings_follow_server(app: &AppHandle, origin: &str) {
+    let Some(window) = app.get_webview_window(SETTINGS) else {
+        return;
+    };
+    let Ok(current) = window.url() else {
+        return;
+    };
+    if current.origin().ascii_serialization() == origin {
+        return;
+    }
+    let target = current.fragment().map(str::to_owned);
+    if let Ok(url) = Url::parse(&server_settings_url(origin, target.as_deref())) {
+        log::debug!("settings window: loading {url}");
+        let _ = window.navigate(url);
     }
 }
 
 /// Shows the help window, at an article and heading when given.
 pub fn show_help(app: &AppHandle, target: &HelpTarget) {
-    if show_page(app, HELP, "InfoPanel Studio help", &target.page()) {
+    if show_page(app, HELP, "InfoPanel Studio help", WebviewUrl::App(target.page().into()), false) {
         let _ = app.emit_to(HELP, HELP_EVENT, target);
     }
 }
@@ -422,6 +465,20 @@ pub fn quit(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_server_settings_page_opens_at_a_known_page_and_group_only() {
+        let at = |s| server_settings_url("http://127.0.0.1:3922", s);
+        assert_eq!(at(None), "http://127.0.0.1:3922/?settings");
+        assert_eq!(at(Some("server")), "http://127.0.0.1:3922/?settings#server");
+        assert_eq!(at(Some("dashboard")), "http://127.0.0.1:3922/?settings#dashboard");
+        assert_eq!(at(Some("dashboard/performance")), "http://127.0.0.1:3922/?settings#dashboard/performance");
+        for bad in ["nope", "dashboard/", "dashboard/a/b", "studio/Grid", "nope/clock", "server#x?y=1", ""] {
+            assert_eq!(at(Some(bad)), "http://127.0.0.1:3922/?settings", "{bad}");
+        }
+        // The rescue page has the App sections only.
+        assert_eq!(settings_page(Some("dashboard")), "app/settings.html");
+    }
 
     #[test]
     fn settings_opens_at_a_known_section_only() {

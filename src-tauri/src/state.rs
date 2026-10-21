@@ -151,34 +151,8 @@ pub struct AppState {
     /// The main window was last sent to the studio (not start.html), whether or not that
     /// navigation has committed yet.
     pub studio_page: AtomicBool,
-    /// The tray's Settings request, until a studio page that was not there to get the event takes it.
-    pub pending_settings: PendingSettings,
     /// The studio window's geometry while Kiosk view has resized it (see `kiosk`).
     pub kiosk: Mutex<Option<crate::kiosk::Saved>>,
-}
-
-/// How long a tray request for Settings waits for a studio page that is still loading.
-pub const PENDING_SETTINGS_TTL: Duration = Duration::from_secs(15);
-
-/// A request to open Settings › App that the studio page may not have been there to receive (the window was
-/// built by the request, or was still loading). The page asks for it when it mounts.
-#[derive(Default)]
-pub struct PendingSettings(Mutex<Option<(Instant, Option<String>)>>);
-
-impl PendingSettings {
-    pub fn set(&self, section: Option<&str>, now: Instant) {
-        *lock(&self.0) = Some((now, section.map(str::to_owned)));
-    }
-
-    /// The waiting request, once: `Some(section)` while it is fresh, `None` when nothing waits or it has gone stale.
-    pub fn take(&self, now: Instant) -> Option<Option<String>> {
-        let (at, section) = lock(&self.0).take()?;
-        (now.duration_since(at) <= PENDING_SETTINGS_TTL).then_some(section)
-    }
-
-    pub fn clear(&self) {
-        *lock(&self.0) = None;
-    }
 }
 
 /// Locks, recovering the data of a mutex a panicking thread left poisoned.
@@ -244,7 +218,6 @@ impl AppState {
             show_on_problem: AtomicBool::new(!hidden_start),
             quitting: AtomicBool::new(false),
             studio_page: AtomicBool::new(false),
-            pending_settings: PendingSettings::default(),
             kiosk: Mutex::new(None),
         }
     }
@@ -276,29 +249,6 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_settings_request_waits_for_the_page_and_is_taken_once() {
-        let pending = PendingSettings::default();
-        let t0 = Instant::now();
-        assert_eq!(pending.take(t0), None);
-        pending.set(Some("updates"), t0);
-        assert_eq!(pending.take(t0 + Duration::from_secs(1)), Some(Some("updates".to_owned())));
-        assert_eq!(pending.take(t0 + Duration::from_secs(1)), None);
-        pending.set(None, t0);
-        assert_eq!(pending.take(t0), Some(None));
-    }
-
-    #[test]
-    fn a_stale_or_cleared_settings_request_is_not_delivered() {
-        let pending = PendingSettings::default();
-        let t0 = Instant::now();
-        pending.set(Some("server"), t0);
-        assert_eq!(pending.take(t0 + PENDING_SETTINGS_TTL + Duration::from_secs(1)), None);
-        pending.set(Some("server"), t0);
-        pending.clear();
-        assert_eq!(pending.take(t0), None);
-    }
 
     #[test]
     fn flush_gate_times_out_or_releases() {

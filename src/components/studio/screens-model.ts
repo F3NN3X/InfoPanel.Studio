@@ -1,5 +1,6 @@
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfilePage } from "@/lib/layout";
-import type { PerformanceOverride } from "@/lib/performance";
+import { resolveGeneral } from "@/lib/general";
+import { resolvePerformance, type PerformanceOverride } from "@/lib/performance";
 import { withPerformance, withScope } from "./inspector/profile-scope";
 
 /**
@@ -45,13 +46,58 @@ export function withScreenPerformance(config: DashboardConfig, profileId: string
 
 const MOTION_TEXT = { system: "system motion", reduce: "reduced motion", full: "full motion" } as const;
 
-/** A screen's own performance as text for Settings' note: "30 fps", "reduced motion", "30 fps · reduced motion". */
+/** A screen's own performance as text: "30 fps", "reduced motion", "30 fps · reduced motion". */
 export function ownPerformanceText(performance: PerformanceOverride | undefined): string | undefined {
   const parts = [
     performance?.maxFps === undefined ? undefined : performance.maxFps === 0 ? "unlimited fps" : `${performance.maxFps} fps`,
     performance?.motion === undefined ? undefined : MOTION_TEXT[performance.motion],
   ].filter((part): part is string => part !== undefined);
   return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+/** A screen with its own value of one of All screens' performance defaults (Settings › Dashboard lists them, PLAN decision 25). */
+export interface PerformanceOverrideOf {
+  id: string;
+  name: string;
+  /** The value as text: "30 fps", "reduced motion". */
+  text: string;
+}
+
+/** The screens that override `key`, each with its own value. */
+export function screensOverriding(profiles: readonly MonitorProfile[], key: keyof PerformanceOverride): PerformanceOverrideOf[] {
+  return profiles.flatMap((p) => {
+    const text = ownPerformanceText(p.performance && { [key]: p.performance[key] });
+    return text ? [{ id: p.id, name: p.name, text }] : [];
+  });
+}
+
+/** A screen's own performance without `key` (the Reset): null when nothing of its own is left, which puts the screen back to All screens'. */
+export function performanceWithout(performance: PerformanceOverride | undefined, key: keyof PerformanceOverride): PerformanceOverride | null {
+  const { [key]: _removed, ...rest } = performance ?? {};
+  return Object.keys(rest).length > 0 ? rest : null;
+}
+
+/** A screen where Smooth graphs do not run, and why. */
+export interface SmoothOffScreen {
+  id: string;
+  name: string;
+  /** "30 fps cap", "animations reduced", or both joined with " and ". */
+  reason: string;
+}
+
+/**
+ * The screens whose performance turns Smooth off: a cap below 60 fps, or reduced animations (the studio drops its
+ * transitions then, so graphs step at the data rate). "Follow system" is the OS's call, so it does not count.
+ */
+export function smoothOffScreens(config: DashboardConfig): SmoothOffScreen[] {
+  const general = resolveGeneral(config);
+  return config.profiles.flatMap((p) => {
+    const { maxFps, reduceMotion } = resolvePerformance({ profile: p.performance, general, system: false });
+    const reasons = [maxFps > 0 && maxFps < 60 ? `${maxFps} fps cap` : undefined, reduceMotion ? "animations reduced" : undefined].filter(
+      (reason): reason is string => reason !== undefined
+    );
+    return reasons.length > 0 ? [{ id: p.id, name: p.name, reason: reasons.join(" and ") }] : [];
+  });
 }
 
 /** The pages the rotation steps through: the ticked ones that exist, else every page (none ticked = all). */

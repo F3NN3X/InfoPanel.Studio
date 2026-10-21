@@ -8,12 +8,12 @@ import type { ThemeScope } from "./theme-editor-model";
  * `useNavFocus` scrolls to and focuses them once the view has rendered.
  */
 
-/** The studio's full views (SPEC §3.2), plus Screens (reached from the switcher and links). */
+/** The studio's full views (SPEC §3.2), plus Screens (reached from the switcher and links), and the Settings window. */
 export type StudioView = "design" | "theme" | "library" | "gauges" | "data" | "alerts" | "screens" | "settings";
 
 export interface NavTarget {
   view: StudioView;
-  /** A tab of the view (Settings: dashboard | studio | app; Alerts & Island: rules | island | …). */
+  /** A tab of the view (Alerts & Island: rules | island | …); Settings: dashboard | studio | app, its window's page. */
   tab?: string;
   /** A section of the view or tab (`data-nav-section`). */
   section?: string;
@@ -23,6 +23,18 @@ export interface NavTarget {
   themeScope?: ThemeScope;
   /** Theme or Screens: the screen (profile) to open with. */
   profileId?: string;
+}
+
+/**
+ * The Settings window's page for a Settings target (PLAN decision 21): an App page (`server`, General when none is
+ * named), or Dashboard or Studio with the group to scroll to (`dashboard/performance`). Undefined for no tab: the
+ * window opens, or comes to the front, as it was.
+ */
+export function settingsPageOf(target: NavTarget): string | undefined {
+  if (!target.tab) return undefined;
+  if (target.tab === "app") return target.section ?? "general";
+  const page = target.tab === "studio" ? "studio" : "dashboard";
+  return target.section ? `${page}/${target.section}` : page;
 }
 
 /** A navigation request; `seq` makes a repeat of the same target count. */

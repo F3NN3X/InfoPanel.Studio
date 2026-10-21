@@ -97,6 +97,19 @@ export function resetHistory<T>(history: History<T>, value: T): History<T> {
   return history.txn ? { ...emptyHistory<T>(), txn: { start: value } } : emptyHistory<T>();
 }
 
+/**
+ * The same history with `change` applied to every snapshot (past, future and a transaction's start), for a change
+ * that belongs to no step (a Settings change): undo and redo then cross it without reverting it, and nothing is lost.
+ */
+export function mapHistory<T>(history: History<T>, change: (value: T) => T): History<T> {
+  return {
+    ...history,
+    past: history.past.map(change),
+    future: history.future.map(change),
+    txn: history.txn ? { start: change(history.txn.start) } : null,
+  };
+}
+
 /** Step back: the snapshot to show, and `current` moves to the redo stack. */
 export function undoChange<T>(
   history: History<T>,

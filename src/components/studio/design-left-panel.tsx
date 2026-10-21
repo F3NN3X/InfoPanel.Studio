@@ -3,6 +3,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { cn } from "@/lib/utils";
 import { InsertPanel } from "./insert-panel";
 import { LayersPanel } from "./layers-panel";
+import { useStorageKey } from "./use-stored-flag";
 
 /** The left panel's tabs: the zone list or the widget picker. */
 export type LeftTab = "layers" | "add";
@@ -44,6 +45,7 @@ export function useStoredLeftWidth() {
       // Storage unavailable (private mode, quota): keep the session state.
     }
   }, []);
+  useStorageKey(WIDTH_KEY, (raw) => setWidth(parseLeftWidth(raw)));
   return [width, set] as const;
 }
 
