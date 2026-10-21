@@ -1,0 +1,89 @@
+import { describe, expect, it } from "vitest";
+import { defaultConfig, newProfile, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
+import { importedProfile, parseProfileFile, PROFILE_FILE_TYPE, profileFileText } from "@/components/studio/profile-file";
+
+function profile(): MonitorProfile {
+  const base = newProfile("Wide", 1920, 550);
+  return {
+    ...base,
+    gap: 8,
+    pages: [
+      { id: "p1", name: "Main", placements: [{ id: "z1", module: "SystemOverview", colStart: 1, rowStart: 1, colSpan: 4, rowSpan: 2, visible: true }] },
+      { id: "p2", name: "Two", placements: [] },
+    ],
+    rotate: { enabled: true, seconds: 20, pages: ["p2"] },
+  };
+}
+
+const ok = (text: string): MonitorProfile => {
+  const parsed = parseProfileFile(text);
+  if ("error" in parsed) throw new Error(parsed.error);
+  return parsed.profile;
+};
+const error = (text: string): string => {
+  const parsed = parseProfileFile(text);
+  if (!("error" in parsed)) throw new Error("accepted");
+  return parsed.error;
+};
+
+describe("profile file", () => {
+  it("round-trips a profile through export and import", () => {
+    const source = profile();
+    expect(ok(profileFileText(source))).toEqual(source);
+  });
+
+  it("carries the envelope that tells it from other JSON", () => {
+    const file = JSON.parse(profileFileText(profile()));
+    expect(file).toMatchObject({ type: PROFILE_FILE_TYPE, version: 1 });
+  });
+
+  it("takes a bare profile as Copy profile JSON gives it", () => {
+    const source = profile();
+    expect(ok(JSON.stringify(source, null, 2))).toEqual(source);
+  });
+
+  it("upgrades an old-version profile: legacy zones move onto a first page", () => {
+    const { pages: _pages, ...rest } = profile();
+    const legacy = { ...rest, placements: [{ id: "z1", module: "SystemOverview", colStart: 1, rowStart: 1, colSpan: 4, rowSpan: 2, visible: true }] };
+    const upgraded = ok(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 2, profile: legacy }));
+    expect(upgraded.pages).toHaveLength(1);
+    expect(upgraded.pages[0].placements.map((p) => p.id)).toEqual(["z1"]);
+    expect(upgraded).not.toHaveProperty("placements");
+  });
+
+  it("rejects files that are not a profile", () => {
+    expect(error("not json")).toMatch(/JSON/);
+    expect(error("[]")).toMatch(/Not a profile/);
+    expect(error(JSON.stringify(defaultConfig()))).toMatch(/Not a profile/);
+    expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, profile: null }))).toMatch(/Not a profile/);
+  });
+
+  it("rejects a profile that fails normalisation: no name or size", () => {
+    const { name: _name, ...nameless } = profile();
+    expect(error(JSON.stringify(nameless))).toMatch(/name and a size/);
+    expect(error(JSON.stringify({ ...profile(), width: "wide" }))).toMatch(/name and a size/);
+    expect(error(JSON.stringify({ ...profile(), height: 0 }))).toMatch(/name and a size/);
+  });
+
+  it("rejects a file from a newer version", () => {
+    expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 99, profile: profile() }))).toMatch(/newer/);
+    expect(error(JSON.stringify({ type: PROFILE_FILE_TYPE, version: 1, configVersion: 99, profile: profile() }))).toMatch(/newer/);
+  });
+});
+
+describe("importedProfile", () => {
+  const config: DashboardConfig = { ...defaultConfig(), profiles: [{ ...profile(), id: "a" }] };
+
+  it("gives fresh ids and a name no other profile has", () => {
+    const imported = importedProfile(config, profile());
+    expect(imported.id).not.toBe(profile().id);
+    expect(imported.name).toBe("Wide 2");
+    expect(imported.pages.map((p) => p.id)).not.toContain("p1");
+    expect(imported.pages[0].placements[0].id).not.toBe("z1");
+    expect(imported.rotate?.pages).toEqual([imported.pages[1].id]);
+  });
+
+  it("keeps a name that is free", () => {
+    expect(importedProfile({ ...config, profiles: [] }, profile()).name).toBe("Wide");
+  });
+});

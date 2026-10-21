@@ -35,6 +35,8 @@ interface CommandDeps {
   setScopeStyle: ReturnType<typeof useDocumentProps>["setScopeStyle"];
   /** Show another page of the profile on the canvas. */
   onPageChange: (pageId: string) => void;
+  /** Select a profile for editing. */
+  onSelectProfile: (id: string) => void;
 }
 
 /**
@@ -54,6 +56,7 @@ export function useStudioCommands({
   appearancePresets,
   setScopeStyle,
   onPageChange,
+  onSelectProfile,
 }: CommandDeps) {
   const { selected, selectedWidget } = sel;
   const toast = useToast();
@@ -128,7 +131,8 @@ export function useStudioCommands({
         return setConfig((c) => addRule(c, rule), alertsKey(`add:${rule.id}`));
       }
       case "profile":
-        return edit.activateProfile(action.id);
+        // "auto" is the app-opens rule; a profile id selects it for editing.
+        return action.id === "auto" ? edit.activateProfile("auto") : onSelectProfile(action.id);
       case "drawer":
         ui.setMode("design");
         return ui.setDrawer(action.drawer);

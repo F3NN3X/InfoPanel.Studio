@@ -11,14 +11,11 @@ import {
   Keyboard,
   Maximize,
   MoreHorizontal,
-  Pin,
-  PinOff,
   Redo2,
   RotateCcw,
   Search,
   Undo2,
   Upload,
-  Wand2,
 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { BUILD_ID } from "@/lib/buildInfo";
@@ -40,18 +37,10 @@ interface StudioTopBarProps {
   profiles: MonitorProfile[];
   /** The dashboard, which the menu's previews inherit from where a profile sets none. */
   dashboard: DashboardConfig;
-  /** The config's activeProfile: a pinned id, or "auto". */
-  activeProfile: string;
-  /** The profile displays show: the active one, or what "auto" resolves to for the window. */
-  displayedId: string;
-  /** The profile on the canvas (the pinned one, else the one displays show). */
+  /** The profile on the canvas: the one selected in the Profiles panel. */
   profile: MonitorProfile;
-  /** The profile pinned for editing, if any. */
-  pinnedId: string | undefined;
-  /** Pin a profile for editing, or unpin with undefined. */
-  onPin: (id: string | undefined) => void;
-  /** Show a profile id on displays, or "auto" to match the window size. */
-  onActivate: (id: string) => void;
+  /** Select a profile for editing. */
+  onSelectProfile: (id: string) => void;
   /** The profile name opens the Profiles left panel. */
   onOpenProfiles: () => void;
   /** Briefly true after a save (shows "Saved"). */
@@ -86,43 +75,26 @@ const ITEM =
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
 
 /**
- * The profile being edited (its name opens the Profiles panel) with a chevron menu to pin it, or to
- * choose what displays show (a profile or Auto) without opening the panel. Pinned, the name carries
- * a pin and, when displays show another profile, a muted "Displays: …".
+ * The profile being edited (its name opens the Profiles panel) with a chevron menu to choose another
+ * to edit without opening the panel. What displays open on is set in the panel's footer.
  */
 function ProfileSwitcher({
   profiles,
   dashboard,
-  activeProfile,
-  displayedId,
   profile,
-  pinnedId,
-  onPin,
-  onActivate,
+  onSelectProfile,
   onOpenProfiles,
-}: Pick<
-  StudioTopBarProps,
-  "profiles" | "dashboard" | "activeProfile" | "displayedId" | "profile" | "pinnedId" | "onPin" | "onActivate" | "onOpenProfiles"
->) {
-  const auto = activeProfile === "auto";
-  const pinned = pinnedId !== undefined;
-  const displayedName = auto ? "Auto" : (profiles.find((p) => p.id === activeProfile)?.name ?? "Auto");
+}: Pick<StudioTopBarProps, "profiles" | "dashboard" | "profile" | "onSelectProfile" | "onOpenProfiles">) {
   return (
     // One hover target: the name opens the Profiles panel, the chevron the switch menu.
     <div className="flex min-w-0 items-center rounded-md transition-colors hover:bg-ui-hover">
       <button
         type="button"
         onClick={onOpenProfiles}
-        title={pinned ? "Profiles (pinned for editing)" : auto ? "Profiles (auto-picked by window size)" : "Profiles"}
+        title="Profiles"
         className="flex h-8 min-w-0 items-center gap-1.5 py-1 pl-1.5 text-[13px] font-semibold text-ui-1"
       >
         <span className="truncate">{profile.name}</span>
-        {pinned && <Pin aria-label="Pinned for editing" className="h-3 w-3 shrink-0 text-ui-3" />}
-        {pinned && displayedId !== profile.id && (
-          <span className="shrink-0 whitespace-nowrap text-[11.5px] font-normal text-ui-4 max-md:hidden">
-            Displays: {displayedName}
-          </span>
-        )}
       </button>
       <Menu.Root>
         <Menu.Trigger
@@ -135,29 +107,18 @@ function ProfileSwitcher({
         <Menu.Portal>
           <Menu.Positioner className="z-[80]" sideOffset={4} align="start">
             <Menu.Popup className={POPUP}>
-              <Menu.Item className={ITEM} onClick={() => onPin(pinned ? undefined : profile.id)}>
-                {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
-                <span className="flex-1">{pinned ? "Unpin" : "Pin this profile for editing"}</span>
-              </Menu.Item>
-              <Menu.Separator className={SEPARATOR} />
               <Menu.Group>
                 <Menu.GroupLabel className="px-2 pb-0.5 pt-1 text-[10.5px] font-medium uppercase tracking-wide text-ui-4">
-                  Show on displays
+                  Edit profile
                 </Menu.GroupLabel>
-                <Menu.Item className={ITEM} onClick={() => onActivate("auto")}>
-                  <Wand2 className="h-3.5 w-3.5" />
-                  <span className="flex-1">Auto (match window)</span>
-                  {auto && <Check className="h-3.5 w-3.5" />}
-                </Menu.Item>
-                <Menu.Separator className={SEPARATOR} />
                 {profiles.map((p) => (
-                  <Menu.Item key={p.id} className={cn(ITEM, "h-[52px]")} onClick={() => onActivate(p.id)}>
+                  <Menu.Item key={p.id} className={cn(ITEM, "h-[52px]")} onClick={() => onSelectProfile(p.id)}>
                     <ProfilePreview profile={p} dashboard={dashboard} width={72} height={44} active={p.id === profile.id} />
                     <span className="flex-1 truncate">{p.name}</span>
                     <span className="font-ui-mono text-[10.5px] text-ui-4">
                       {p.width}×{p.height}
                     </span>
-                    <span className="w-3.5">{!auto && p.id === activeProfile && <Check className="h-3.5 w-3.5" />}</span>
+                    <span className="w-3.5">{p.id === profile.id && <Check className="h-3.5 w-3.5" />}</span>
                   </Menu.Item>
                 ))}
               </Menu.Group>

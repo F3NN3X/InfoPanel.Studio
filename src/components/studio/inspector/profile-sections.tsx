@@ -306,7 +306,7 @@ export function ProfilePerformance({
   );
 }
 
-/** Auto-pick: show the profile closest to the window size (else this one stays pinned). */
+/** Auto-pick: the app opens on the profile closest to the window size (else always on this one). */
 export function AutoPick({ auto, onAuto }: { auto: boolean; onAuto: (auto: boolean) => void }) {
   return (
     <ToggleRow label="Auto-pick profile" hint="Picks the profile closest to the window size" value={auto} onChange={onAuto} />

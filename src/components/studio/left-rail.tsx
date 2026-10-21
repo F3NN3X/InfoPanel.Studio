@@ -4,8 +4,8 @@ import { Bell, CircleHelp, Database, Gauge, Images, Keyboard, Layers, Palette, P
 import { isTauri, openHelp, openSettings } from "@/lib/desktop";
 import { cn } from "@/lib/utils";
 
-/** The left panel's width: the original 256px is the least, a drag widens it up to the most. */
-export const DRAWER_MIN_WIDTH = 256;
+/** The left panel's width: 280px is the least (the Profiles panel's design width), a drag widens it up to the most. */
+export const DRAWER_MIN_WIDTH = 280;
 export const DRAWER_MAX_WIDTH = 440;
 
 /** A width inside the left panel's range, rounded. */

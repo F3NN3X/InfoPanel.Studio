@@ -377,14 +377,14 @@ export function buildCommands(s: CommandState): Command[] {
     ),
     {
       id: "profile:auto",
-      label: "Switch profile: Auto (match window)",
+      label: "When the app opens: best fit for the window",
       group: "Profiles",
       action: { type: "profile", id: "auto" },
     },
     ...s.profiles.map(
       (p): Command => ({
         id: `profile:${p.id}`,
-        label: `Switch profile: ${p.name}`,
+        label: `Edit profile: ${p.name}`,
         group: "Profiles",
         hint: `${p.width}×${p.height}`,
         action: { type: "profile", id: p.id },

@@ -1,68 +1,85 @@
 import { useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Menu } from "@base-ui/react/menu";
-import { Check, MoreHorizontal, Pin, Plus } from "lucide-react";
-import { IconButton } from "@/components/ui/icon-button";
-import { Toggle } from "@/components/ui/toggle";
+import {
+  ClipboardCopy,
+  Circle,
+  CircleDot,
+  Copy,
+  LayoutGrid,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Rocket,
+  Share,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { copyProfileJson } from "./config-file";
+import { pageIcon } from "./page-icons";
+import { exportProfileFile, importedProfile, importProfileFile, startProfileImport } from "./profile-file";
 import { ProfilePreview } from "./profile-preview";
 
 interface ProfilesPanelProps {
   profiles: MonitorProfile[];
   /** The dashboard, which the previews inherit from where a profile sets none. */
   dashboard: DashboardConfig;
-  /** The config's activeProfile: a pinned id, or "auto". */
+  /** The config's activeProfile: what the app opens on, a profile id or "auto". */
   activeProfile: string;
-  /** The profile displays show: the active one, or what "auto" resolves to for the window. */
-  displayedId: string;
-  /** The profile being edited (the pinned one, else the one displays show). */
+  /** The profile being edited: the selected card. */
   profile: MonitorProfile;
-  /** The profile pinned for editing, if any. */
-  pinnedId: string | undefined;
-  /** Pin a profile for editing, or unpin with undefined. */
-  onPin: (id: string | undefined) => void;
+  /** The page on the canvas. */
+  currentPageId: string;
+  /** The studio window, which "Best fit" and "Opens now" are for. */
+  windowSize: { width: number; height: number };
   /** The profile "auto" resolves to for the current window size. */
   autoProfileId: string;
-  /** Switch what displays show to a profile id, or "auto" to match the window size. */
+  /** Select a profile for editing. Never changes what the app opens on. */
+  onSelectProfile: (id: string) => void;
+  onSelectPage: (id: string) => void;
+  onAddPage: () => void;
+  /** Set what the app opens on: a profile id, or "auto" for the closest to the window. */
   onActivate: (id: string) => void;
-  /** Edit a profile: displays follow unless the studio is pinned, which then moves to it. */
-  onEdit: (id: string) => void;
   onAddProfile: () => void;
+  /** Add an imported profile (fresh ids, a unique name) and edit it. */
+  onImportProfile: (profile: MonitorProfile) => void;
+  onDuplicateProfile: (id: string) => void;
   /** Delete a profile (after the confirm dialog). */
   onRemoveProfile: (id: string) => void;
-  /** Patch the active profile's own fields (name). */
+  /** Patch the edited profile's own fields (name). */
   onProfileChange: (patch: Partial<MonitorProfile>) => void;
-  /** Open Dashboard › Profile (size, grid, spacing, theme, style, background). */
-  onOpenSettings: () => void;
 }
 
 const MENU_POPUP =
-  "min-w-44 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
+  "min-w-48 rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none";
 const MENU_ITEM =
-  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-hover";
+  "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-disabled:text-ui-5 data-highlighted:bg-ui-hover";
 
-/** The meta line of a row: `1920×550 · 12×6 · Fill`, with `· 3 pages` when there are several. */
+/** The meta line of a card: `1920×550 · 3 pages`. */
 export function profileMeta(p: MonitorProfile): string {
-  const pages = p.pages.length > 1 ? ` · ${p.pages.length} pages` : "";
-  return `${p.width}×${p.height} · ${p.cols}×${p.rows} · ${p.fit === "fill" ? "Fill" : "Scroll"}${pages}`;
+  return `${p.width}×${p.height} · ${p.pages.length} ${p.pages.length === 1 ? "page" : "pages"}`;
 }
 
-/** The row's rarely used actions. */
+/** The card's rarely used actions. */
 function RowMenu({
   profile,
   canDelete,
   onRename,
-  onSettings,
+  onDuplicate,
+  onAlwaysOpen,
+  onExport,
   onDelete,
 }: {
   profile: MonitorProfile;
   /** Any profile but the last one can be deleted. */
   canDelete: boolean;
   onRename: () => void;
-  onSettings: () => void;
+  onDuplicate: () => void;
+  onAlwaysOpen: () => void;
+  onExport: () => void;
   onDelete: () => void;
 }) {
   const toast = useToast();
@@ -72,8 +89,7 @@ function RowMenu({
         onClick={(e) => e.stopPropagation()}
         title="Profile actions"
         aria-label="Profile actions"
-        // Out of sight until the row is hovered or focused, so the meta line keeps its width.
-        className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-ui-4 hover:bg-ui-active hover:text-ui-1 focus-visible:flex group-focus-within:flex group-hover:flex data-popup-open:flex data-popup-open:bg-ui-active data-popup-open:text-ui-1"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ui-4 hover:bg-ui-active hover:text-ui-1 data-popup-open:bg-ui-active data-popup-open:text-ui-1"
       >
         <MoreHorizontal className="h-3.5 w-3.5" />
       </Menu.Trigger>
@@ -81,10 +97,20 @@ function RowMenu({
         <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
           <Menu.Popup className={MENU_POPUP} onClick={(e) => e.stopPropagation()}>
             <Menu.Item className={MENU_ITEM} onClick={onRename}>
-              Rename…
+              <Pencil className="h-3.5 w-3.5 text-ui-3" />
+              Rename
             </Menu.Item>
-            <Menu.Item className={MENU_ITEM} onClick={onSettings}>
-              Size, grid and spacing…
+            <Menu.Item className={MENU_ITEM} onClick={onDuplicate}>
+              <Copy className="h-3.5 w-3.5 text-ui-3" />
+              Duplicate
+            </Menu.Item>
+            <Menu.Item className={MENU_ITEM} onClick={onAlwaysOpen}>
+              <Rocket className="h-3.5 w-3.5 text-ui-3" />
+              Always open this one
+            </Menu.Item>
+            <Menu.Item className={MENU_ITEM} onClick={onExport}>
+              <Share className="h-3.5 w-3.5 text-ui-3" />
+              Export profile
             </Menu.Item>
             <Menu.Item
               className={MENU_ITEM}
@@ -94,13 +120,14 @@ function RowMenu({
                   .catch(() => {})
               }
             >
+              <ClipboardCopy className="h-3.5 w-3.5 text-ui-3" />
               Copy profile JSON
             </Menu.Item>
-            {canDelete && (
-              <Menu.Item className={cn(MENU_ITEM, "text-ui-danger")} onClick={onDelete}>
-                Delete profile
-              </Menu.Item>
-            )}
+            <Menu.Separator className="mx-1 my-1 h-px bg-ui-subtle" />
+            <Menu.Item className={cn(MENU_ITEM, "text-ui-danger data-disabled:text-ui-5")} disabled={!canDelete} onClick={onDelete}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Menu.Item>
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
@@ -187,149 +214,268 @@ export function RenameInput({
   );
 }
 
+/** The one tag of a card: where the app opens, if it opens on this profile. */
+function LaunchTag({ opensNow, onLaunch, size }: { opensNow: boolean; onLaunch: boolean; size: { width: number; height: number } }) {
+  if (opensNow) {
+    return (
+      <span
+        title={`Closest to this ${size.width} × ${size.height} window`}
+        className="whitespace-nowrap rounded px-1.5 py-px text-[10px] font-medium text-ui-dot-dashboard bg-ui-dot-dashboard/15"
+      >
+        Opens now
+      </span>
+    );
+  }
+  if (onLaunch) {
+    return (
+      <span
+        title="The app opens on this profile whatever the window size"
+        className="whitespace-nowrap rounded px-1.5 py-px text-[10px] font-medium text-ui-3 bg-ui-active"
+      >
+        On launch
+      </span>
+    );
+  }
+  return null;
+}
+
+/** The edited card's pages: a click shows the page on the canvas, like its tab. */
+function PageList({
+  profile,
+  currentPageId,
+  onSelectPage,
+  onAddPage,
+}: {
+  profile: MonitorProfile;
+  currentPageId: string;
+  onSelectPage: (id: string) => void;
+  onAddPage: () => void;
+}) {
+  const row = "flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-xs outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60";
+  return (
+    <div className="flex flex-col gap-px px-2 pb-2">
+      <span className="px-2 pb-1 pt-1 text-[10.5px] font-medium uppercase tracking-[0.04em] text-ui-5">Pages</span>
+      {profile.pages.map((page, i) => {
+        const Icon = pageIcon(page.icon) ?? LayoutGrid;
+        const current = page.id === currentPageId;
+        return (
+          <button
+            key={page.id}
+            type="button"
+            aria-current={current ? "page" : undefined}
+            onClick={() => onSelectPage(page.id)}
+            className={cn(row, current ? "bg-ui-active text-ui-1" : "text-ui-3 hover:bg-ui-hover hover:text-ui-1")}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0 text-ui-4" />
+            <span className="min-w-0 flex-1 truncate">{page.name}</span>
+            <span className="font-ui-mono text-[10px] text-ui-5">{i + 1}</span>
+          </button>
+        );
+      })}
+      <button type="button" onClick={onAddPage} className={cn(row, "text-ui-4 hover:bg-ui-hover hover:text-ui-1")}>
+        <Plus className="h-3.5 w-3.5 shrink-0" />
+        Add page
+      </button>
+    </div>
+  );
+}
+
+/** One of the two "When the app opens" choices. */
+function LaunchChoice({
+  selected,
+  title,
+  note,
+  onSelect,
+}: {
+  selected: boolean;
+  title: string;
+  note: string;
+  onSelect: () => void;
+}) {
+  const Radio = selected ? CircleDot : Circle;
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex items-start gap-2.5 rounded-lg border px-2.5 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+        selected ? "border-ui-accent bg-ui-accent-soft" : "border-ui-strong hover:bg-ui-hover"
+      )}
+    >
+      <Radio className={cn("mt-px h-4 w-4 shrink-0", selected ? "text-ui-accent-text" : "text-ui-4")} />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-[12.5px] text-ui-1">{title}</span>
+        <span className="text-pretty text-[11.5px] leading-[1.4] text-ui-4">{note}</span>
+      </span>
+    </button>
+  );
+}
+
 /**
- * The Profiles panel: pick a profile, add one, rename / delete / jump to its
- * settings from a row's "⋯", and switch Auto-pick.
+ * The Profiles panel. A card click selects the profile to edit (canvas, page tabs and inspector
+ * follow) and lists its pages; it never changes what the app opens on. That is the footer's
+ * "When the app opens", or a card's "Always open this one".
  */
 export function ProfilesPanel({
   profiles,
   dashboard,
   activeProfile,
-  displayedId,
   profile,
-  pinnedId,
-  onPin,
+  currentPageId,
+  windowSize,
   autoProfileId,
+  onSelectProfile,
+  onSelectPage,
+  onAddPage,
   onActivate,
-  onEdit,
   onAddProfile,
+  onImportProfile,
+  onDuplicateProfile,
   onRemoveProfile,
   onProfileChange,
-  onOpenSettings,
 }: ProfilesPanelProps) {
   const toast = useToast();
-  const [renaming, setRenaming] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
   const auto = activeProfile === "auto";
-  const autoName = profiles.find((p) => p.id === autoProfileId)?.name ?? "—";
-  const displayedName = profiles.find((p) => p.id === displayedId)?.name ?? "—";
+  const nameOf = (id: string) => profiles.find((p) => p.id === id)?.name ?? "—";
+  const importProfile = (picked: MonitorProfile) => {
+    const imported = importedProfile(dashboard, picked);
+    onImportProfile(imported);
+    toast(`Imported ${imported.name}`);
+  };
   return (
     <>
-      <div className="flex shrink-0 items-center justify-between px-3.5 pb-2.5 pt-3.5">
+      <div className="flex shrink-0 items-center gap-2 px-3.5 pb-1 pt-3.5">
         <span className="text-[13px] font-semibold text-ui-1">Profiles</span>
-        <IconButton
-          label="New profile"
-          className="h-[26px] w-[26px] rounded-md border border-ui-strong bg-ui-raised text-ui-1 hover:bg-[#1e1e23]"
+        <span className="font-ui-mono text-[11px] text-ui-4">{profiles.length}</span>
+        <span className="flex-1" />
+        <button
+          type="button"
+          title="Import a profile from a file"
+          onClick={() => startProfileImport(importRef.current, importProfile, toast)}
+          className="flex h-[26px] items-center gap-1 rounded-md px-1.5 text-xs text-ui-3 hover:bg-ui-hover hover:text-ui-1"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Import
+        </button>
+        <button
+          type="button"
+          title="New profile"
           onClick={() => {
             onAddProfile();
             toast("Profile created");
           }}
+          className="flex h-[26px] items-center gap-1 rounded-md border border-ui-strong bg-ui-raised pl-1.5 pr-2.5 text-xs text-ui-1 hover:bg-ui-hover"
         >
-          <Plus className="h-[18px] w-[18px]" />
-        </IconButton>
+          <Plus className="h-3.5 w-3.5" />
+          New
+        </button>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+      <p className="shrink-0 text-pretty px-3.5 pb-2.5 text-[11.5px] leading-[1.45] text-ui-4">
+        One profile per screen size. Each has its own pages, grid and widgets.
+      </p>
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
         {profiles.map((p) => {
           const active = p.id === profile.id;
-          const shown = p.id === displayedId;
-          const pinned = p.id === pinnedId;
           return (
             <div
               key={p.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => onActivate(p.id)}
-              onKeyDown={(e) => {
-                if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-                  e.preventDefault();
-                  onActivate(p.id);
-                }
-              }}
-              className={cn(
-                "group flex cursor-pointer items-center gap-2.5 rounded-lg p-2 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
-                active ? "bg-[oklch(0.72_0.15_255/0.12)]" : "hover:bg-ui-hover"
-              )}
+              className={cn("flex flex-col rounded-[9px] border", active ? "border-ui-accent bg-ui-raised" : "border-transparent")}
             >
-              <ProfilePreview profile={p} dashboard={dashboard} width={104} height={60} active={active} />
-              <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <span className="min-w-0 flex-1">
-                  {active && renaming ? (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-current={active ? "true" : undefined}
+                onClick={() => onSelectProfile(p.id)}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    onSelectProfile(p.id);
+                  }
+                }}
+                className={cn(
+                  "flex cursor-pointer items-center gap-2.5 rounded-lg p-2 transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
+                  !active && "hover:bg-ui-hover"
+                )}
+              >
+                <ProfilePreview profile={p} dashboard={dashboard} width={64} height={40} />
+                <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                  {renamingId === p.id ? (
                     <RenameInput
                       initial={p.name}
                       onDone={(name) => {
-                        setRenaming(false);
+                        setRenamingId(null);
                         if (name && name !== p.name) onProfileChange({ name });
                       }}
                     />
                   ) : (
-                    <span className="block truncate text-[12.5px] leading-[1.35] text-ui-1">{p.name}</span>
+                    <span className="block truncate text-[12.5px] font-medium leading-[1.3] text-ui-1">{p.name}</span>
                   )}
-                  <span className="block truncate font-ui-mono text-[10.5px] leading-[1.35] text-ui-4">{profileMeta(p)}</span>
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span className="whitespace-nowrap font-ui-mono text-[10.5px] text-ui-4">{profileMeta(p)}</span>
+                    <LaunchTag opensNow={auto && p.id === autoProfileId} onLaunch={activeProfile === p.id} size={windowSize} />
+                  </span>
                 </span>
-                <button
-                  type="button"
-                  aria-pressed={pinned}
-                  aria-label={pinned ? "Unpin" : "Pin for editing"}
-                  title={
-                    pinned
-                      ? "Unpin: the studio edits what displays show again"
-                      : `Pin for editing: the studio edits this profile while displays keep showing ${displayedName}`
-                  }
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPin(pinned ? undefined : p.id);
-                  }}
-                  // Out of sight until the row is hovered or focused, unless it is the pinned one.
-                  className={cn(
-                    "h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-ui-active hover:text-ui-1 focus-visible:flex group-focus-within:flex group-hover:flex",
-                    pinned ? "flex text-[oklch(0.80_0.12_255)]" : "hidden text-ui-4"
-                  )}
-                >
-                  <Pin className="h-3.5 w-3.5" />
-                </button>
-                {shown && (
-                  <Check
-                    className="h-[17px] w-[17px] shrink-0 text-[oklch(0.80_0.12_255)]"
-                    aria-label="Shown on displays"
-                  />
-                )}
                 <RowMenu
                   profile={p}
                   canDelete={profiles.length > 1}
                   onRename={() => {
-                    if (!active) onEdit(p.id);
-                    setRenaming(true);
+                    // The inline name edits the selected profile.
+                    if (!active) onSelectProfile(p.id);
+                    setRenamingId(p.id);
                   }}
-                  onSettings={() => {
-                    if (!active) onEdit(p.id);
-                    onOpenSettings();
+                  onDuplicate={() => {
+                    onDuplicateProfile(p.id);
+                    toast(`Duplicated ${p.name}`);
                   }}
+                  onAlwaysOpen={() => {
+                    onActivate(p.id);
+                    toast(`The app now always opens ${p.name}`);
+                  }}
+                  onExport={() => exportProfileFile(dashboard, p, toast)}
                   onDelete={() => setDeletingId(p.id)}
                 />
               </div>
+              {active && <PageList profile={p} currentPageId={currentPageId} onSelectPage={onSelectPage} onAddPage={onAddPage} />}
             </div>
           );
         })}
       </div>
-      <div className="shrink-0 space-y-2 border-t border-ui-subtle px-3.5 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex-1 text-xs text-ui-2">Auto-pick by window size</span>
-          <Toggle
-            checked={auto}
-            label="Auto-pick by window size"
-            onChange={(on) => onActivate(on ? "auto" : displayedId)}
-          />
-        </div>
-        <p className="text-pretty text-[11.5px] leading-[1.45] text-[#7c7c86]">
-          {auto ? "Showing" : "Would show"} {autoName}. Each profile has its own size, grid, zones, theme, style and
-          background.
-        </p>
+      <div role="radiogroup" aria-label="When the app opens" className="flex shrink-0 flex-col gap-2 border-t border-ui-subtle p-3.5">
+        <span className="text-xs font-semibold text-ui-1">When the app opens</span>
+        <LaunchChoice
+          selected={auto}
+          title="Best fit for the window"
+          note={`Picks the closest size. This ${windowSize.width} × ${windowSize.height} window opens ${nameOf(autoProfileId)}.`}
+          onSelect={() => onActivate("auto")}
+        />
+        <LaunchChoice
+          selected={!auto}
+          title="Always the same profile"
+          note={auto ? "Ignore the window size." : `Opens ${nameOf(activeProfile)}. Change it from a profile's ⋯ menu.`}
+          onSelect={() => auto && onActivate(profile.id)}
+        />
       </div>
       <DeleteDialog
         profile={profiles.find((p) => p.id === deletingId)}
         onConfirm={() => deletingId && onRemoveProfile(deletingId)}
         onClose={() => setDeletingId(null)}
+      />
+      <input
+        ref={importRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) importProfileFile(file, importProfile, toast);
+          e.target.value = "";
+        }}
       />
     </>
   );
