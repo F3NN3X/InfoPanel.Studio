@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ onClick }}" style="display:flex; flex-direction:column; gap:3px; opacity:{{ op }}; cursor:{{ cursor }}; font-family:'Geist',system-ui,sans-serif">
+  <div style="display:flex; align-items:center; gap:10px; min-height:28px">
+    <span style="flex:1; min-width:0; color:#a1a1aa; font-size:12px; display:flex; align-items:center; gap:6px">{{ label }}<sc-if value="{{ changed }}"><span title="Changed from inherited" style="width:5px; height:5px; border-radius:50%; background:oklch(0.72 0.15 255)"></span></sc-if></span>
+    <sc-if value="{{ isSwatch }}"><span style="display:flex; align-items:center; gap:6px; height:26px; padding:0 8px; border:1px solid #2a2a31; border-radius:6px; background:#141418; color:#ededf0; font-family:'Geist Mono',monospace; font-size:11px; white-space:nowrap"><span style="width:12px; height:12px; border-radius:3px; background:{{ swatch }}; box-shadow:inset 0 0 0 1px #ffffff22"></span>{{ value }}</span></sc-if>
+    <sc-if value="{{ isSelect }}"><span style="display:flex; align-items:center; justify-content:space-between; gap:6px; min-width:118px; max-width:170px; height:26px; padding:0 6px 0 9px; border:1px solid #2a2a31; border-radius:6px; background:#141418; color:#ededf0; font-size:12px; white-space:nowrap; overflow:hidden"><span style="overflow:hidden; text-overflow:ellipsis">{{ value }}</span><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#7c7c86">expand_more</span></span></sc-if>
+    <sc-if value="{{ isText }}"><span style="display:flex; align-items:center; min-width:118px; max-width:200px; height:26px; padding:0 9px; border:1px solid #2a2a31; border-radius:6px; background:#0f0f12; color:#ededf0; font-family:'Geist Mono',monospace; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ value }}</span></sc-if>
+    <sc-if value="{{ isSeg }}"><span style="display:flex; gap:2px; padding:2px; background:#141418; border:1px solid #2a2a31; border-radius:6px"><sc-for list="{{ opts }}" as="o"><span style="height:20px; padding:0 7px; display:grid; place-items:center; border-radius:4px; font-size:11px; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.t }}</span></sc-for></span></sc-if>
+    <sc-if value="{{ isSlider }}"><span style="display:flex; align-items:center; gap:8px; width:140px"><span style="flex:1; height:3px; border-radius:2px; background:#2a2a31; position:relative"><span style="position:absolute; left:0; top:0; bottom:0; width:{{ pct }}; background:#a1a1aa; border-radius:2px"></span></span><span style="width:42px; text-align:right; font-family:'Geist Mono',monospace; font-size:11px; color:#ededf0">{{ value }}</span></span></sc-if>
+    <sc-if value="{{ isToggle }}"><span style="width:28px; height:16px; border-radius:999px; background:{{ tbg }}; position:relative; flex:none"><span style="position:absolute; top:2px; left:{{ tleft }}; width:12px; height:12px; border-radius:50%; background:#ededf0"></span></span></sc-if>
+    <sc-if value="{{ isButton }}"><span style="display:flex; align-items:center; height:26px; padding:0 10px; border:1px solid #2a2a31; border-radius:6px; background:#1a1a1f; color:#ededf0; font-size:12px; white-space:nowrap">{{ value }}</span></sc-if>
+  </div>
+  <sc-if value="{{ hasNote }}"><span style="font-size:11px; color:#7c7c86; line-height:1.45; text-wrap:pretty">{{ note }} <a onClick="{{ go }}" style="cursor:pointer; color:oklch(0.80 0.12 255); text-decoration:none">{{ link }}</a></span></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:60},&quot;row&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{label,kind,value,sel?,on?,pct?,swatch?,note?,link?,go?,dis?,changed?,onClick?}&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const r = this.props.row || {}, k = r.kind || 'select', sel = r.sel || 0;
+    const opts = k === 'seg' ? String(r.value).split('|').map((t, i) => ({ t, bg: i === sel ? '#2a2a31' : 'transparent', fg: i === sel ? '#ededf0' : '#8a8a94' })) : [];
+    return {
+      label: r.label, value: r.value, opts, swatch: r.swatch || r.value,
+      isSwatch: k === 'swatch', isSelect: k === 'select', isText: k === 'text', isSeg: k === 'seg', isSlider: k === 'slider', isToggle: k === 'toggle', isButton: k === 'button',
+      pct: (r.pct ?? 50) + '%', tbg: r.on ? 'oklch(0.62 0.17 255)' : '#3a3a42', tleft: r.on ? '14px' : '2px',
+      hasNote: !!(r.note || r.link), note: r.note || '', link: r.link || '', go: r.go,
+      op: r.dis ? 0.45 : 1, changed: !!r.changed, onClick: r.onClick, cursor: r.onClick ? 'pointer' : 'default'
+    };
+  }
+}
+</script>
+</body>
+</html>

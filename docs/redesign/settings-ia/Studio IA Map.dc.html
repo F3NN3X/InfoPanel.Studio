@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,300,0,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0c0c0e}
+*{box-sizing:border-box}
+a{color:oklch(0.80 0.12 255);text-decoration:none}a:hover{color:oklch(0.88 0.09 255)}
+</style>
+</helmet>
+<div style="min-height:100vh; background:#0c0c0e; color:#ededf0; font-family:'Geist',system-ui,sans-serif; font-size:13.5px; line-height:1.5">
+  <div style="max-width:1120px; margin:0 auto; padding:48px 28px 96px; display:flex; flex-direction:column; gap:56px">
+
+    <header style="display:flex; flex-direction:column; gap:10px">
+      <span style="font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:0.08em; color:#7c7c86">INFOPANEL STUDIO · IA REORGANISATION</span>
+      <h1 style="margin:0; font-size:34px; font-weight:600; letter-spacing:-0.02em">One home, one name, one inheritance rule</h1>
+      <p style="margin:0; max-width:720px; color:#a1a1aa; text-wrap:pretty">Companion to the clickable prototype <a href="Studio IA.dc.html">Studio IA</a>. Every screen there has a “What moved here” card; this page holds the map, the full before → after table, naming, model changes and where I think the brief should change.</p>
+    </header>
+
+    <section style="display:flex; flex-direction:column; gap:16px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">1 · Sitemap</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px">
+        <sc-for list="{{ sitemap }}" as="n">
+          <div style="display:flex; flex-direction:column; gap:8px; padding:14px; background:#111114; border:1px solid {{ n.bd }}; border-radius:10px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#a1a1aa">{{ n.icon }}</span><span style="font-weight:600">{{ n.name }}</span></div>
+            <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ n.where }}</span>
+            <div style="display:flex; flex-direction:column; gap:3px"><sc-for list="{{ n.items }}" as="i"><span style="font-size:12px; color:#c8c8ce">{{ i }}</span></sc-for></div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin:0; font-size:12.5px; color:#a1a1aa; max-width:820px; text-wrap:pretty">Every rail item is now a full destination; nothing on the rail opens a drawer. Design’s side panels (Layers, Add) live inside Design. Popovers (screen switcher, Live) and dialogs (Import, Export) are reached from the title bar, never the rail.</p>
+    </section>
+
+    <section style="display:flex; flex-direction:column; gap:14px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">2 · Where I’d change the brief</h2>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <sc-for list="{{ opinions }}" as="o">
+          <div style="display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; padding:14px 16px; background:#111114; border:1px solid #24242a; border-radius:10px">
+            <span style="font-family:'Geist Mono',monospace; font-size:12px; color:oklch(0.86 0.11 85)">{{ o.n }}</span>
+            <div style="display:flex; flex-direction:column; gap:4px"><span style="font-weight:600">{{ o.t }}</span><span style="font-size:12.5px; color:#a1a1aa; text-wrap:pretty">{{ o.d }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display:flex; flex-direction:column; gap:16px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">3 · Inheritance chip</h2>
+      <p style="margin:0; max-width:760px; font-size:12.5px; color:#a1a1aa; text-wrap:pretty">One component at every level — widget sections, page and screen theme sections, per-screen performance. State is carried by icon, wording and border style (dashed / solid / amber), so it reads without colour. It always names the level the value comes from.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px">
+        <sc-for list="{{ chipStates }}" as="c">
+          <div style="display:flex; flex-direction:column; gap:10px; padding:14px; background:#111114; border:1px solid #24242a; border-radius:10px">
+            <dc-import name="InheritChip" state="{{ c.state }}" from="{{ c.from }}" hint-size="120px,20px"></dc-import>
+            <span style="font-weight:500; font-size:12.5px">{{ c.t }}</span>
+            <span style="font-size:12px; color:#a1a1aa; text-wrap:pretty">{{ c.d }}</span>
+            <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86">{{ c.menu }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
+        <div style="width:320px; background:#0f0f12; border:1px solid #24242a; border-radius:10px">
+          <div style="display:flex; align-items:center; gap:8px; padding:10px 12px 10px 14px; border-bottom:1px solid #1f1f24"><span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#8a8a94">palette</span><span style="flex:1; font-weight:500; font-size:12.5px">Colors</span><span style="font-size:10.5px; color:#8a8a94">1 changed</span><dc-import name="InheritChip" state="custom" from="Page" hint-size="90px,20px"></dc-import></div>
+          <div style="position:relative; padding:10px 14px 14px">
+            <div style="position:absolute; right:12px; top:-2px; width:220px; background:#1a1a1f; border:1px solid #33333a; border-radius:8px; box-shadow:0 12px 32px #000a; padding:4px; font-size:12px">
+              <div style="padding:7px 9px; color:#8a8a94; font-size:11px">Customised on this widget. Without it: <span style="font-family:'Geist Mono',monospace; color:#ededf0">#3D8BFF</span> from Page · Gaming</div>
+              <div style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:5px; background:#24242a"><span style="font-family:'Material Symbols Rounded'; font-size:15px">restart_alt</span>Reset to inherited<span style="margin-left:auto; font-family:'Geist Mono',monospace; font-size:10px; color:#7c7c86">⌫</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:7px 9px"><span style="font-family:'Material Symbols Rounded'; font-size:15px">north_east</span>Edit Page · Gaming</div>
+              <div style="display:flex; align-items:center; gap:8px; padding:7px 9px"><span style="font-family:'Material Symbols Rounded'; font-size:15px">upload</span>Make this the theme for…</div>
+            </div>
+            <div style="height:120px"></div>
+          </div>
+        </div>
+        <div style="flex:1; min-width:280px; display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#c8c8ce">
+          <sc-for list="{{ chipRules }}" as="r"><div style="display:flex; gap:8px"><span style="color:#6f6f79">—</span><span style="text-wrap:pretty">{{ r }}</span></div></sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section style="display:flex; flex-direction:column; gap:16px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">4 · Narrow window and phone</h2>
+      <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start">
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">NARROW · 860 px</span>
+          <div style="width:560px; max-width:100%; height:380px; display:flex; flex-direction:column; background:#0c0c0e; border:1px solid #2a2a31; border-radius:10px; overflow:hidden; font-size:11px">
+            <div style="height:30px; display:flex; align-items:center; gap:6px; padding:0 8px; background:#0f0f12; border-bottom:1px solid #1f1f24"><span style="width:14px; height:14px; border-radius:4px; background:oklch(0.72 0.15 255)"></span><span style="padding:2px 6px; border:1px solid #26262c; border-radius:5px">Desk bar / Gaming ▾</span><span style="flex:1"></span><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#a1a1aa">search</span><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#a1a1aa">input</span><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#a1a1aa">output</span><span style="padding:1px 6px; border-radius:5px; color:oklch(0.88 0.10 150); border:1px solid oklch(0.78 0.15 150 / 0.45)">● 2</span><span style="padding:2px 7px; background:#ededf0; color:#0c0c0e; border-radius:5px; font-weight:600">Save</span></div>
+            <div style="flex:1; display:flex; min-height:0">
+              <div style="width:40px; background:#0f0f12; border-right:1px solid #1f1f24; display:flex; flex-direction:column; align-items:center; gap:10px; padding-top:10px; font-family:'Material Symbols Rounded'; font-size:17px; color:#8a8a94"><span style="color:#ededf0">dashboard_customize</span><span>palette</span><span>collections_bookmark</span><span>sensors</span><span>notifications_active</span></div>
+              <div style="flex:1; position:relative; background:#0b0b0d; display:grid; place-items:center; padding:0 12px">
+                <div style="width:100%; aspect-ratio:1920/550; background:#070709; border-radius:4px; box-shadow:0 0 0 1px #1f1f24; display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(3,1fr); gap:4px; padding:5px"><span style="grid-area:1/1/3/3; background:#131317; border-radius:5px"></span><span style="grid-area:1/3/3/5; background:#131317; border-radius:5px; box-shadow:0 0 0 1.5px #ededf0"></span><span style="grid-area:1/5/2/9; background:#131317; border-radius:5px"></span><span style="grid-area:2/5/4/9; background:#131317; border-radius:5px"></span><span style="grid-area:3/1/4/5; background:#131317; border-radius:5px"></span></div>
+                <div style="position:absolute; right:10px; top:10px; bottom:10px; width:210px; background:#141418; border:1px solid #33333a; border-radius:9px; box-shadow:0 12px 32px #000a; display:flex; flex-direction:column; overflow:hidden">
+                  <div style="padding:8px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #24242a"><span style="font-weight:600; flex:1">GPU hot spot</span><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#8a8a94">drag_indicator</span><span style="font-family:'Material Symbols Rounded'; font-size:14px; color:#8a8a94">close</span></div>
+                  <div style="display:flex; gap:2px; padding:6px 8px"><span style="flex:1; text-align:center; color:#8a8a94">Show</span><span style="flex:1; text-align:center; background:#24242a; border-radius:4px">Style</span><span style="flex:1; text-align:center; color:#8a8a94">Data</span><span style="flex:1; text-align:center; color:#8a8a94">Beh.</span></div>
+                  <sc-for list="{{ miniSecs }}" as="m"><div style="display:flex; align-items:center; gap:6px; padding:7px 8px; border-top:1px solid #1f1f24"><span style="flex:1">{{ m.n }}</span><dc-import name="InheritChip" state="{{ m.s }}" from="{{ m.f }}" hint-size="80px,20px"></dc-import></div></sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="height:20px; display:flex; align-items:center; gap:10px; padding:0 8px; background:#0f0f12; border-top:1px solid #1f1f24; color:#8a8a94; font-size:10px"><span>● API</span><span>● Server</span><span>● 2</span><span style="color:oklch(0.88 0.10 85)">● Update</span><span style="flex:1"></span><span>Unsaved</span></div>
+          </div>
+          <span style="font-size:12px; color:#a1a1aa; max-width:560px">Rail drops labels (tooltips stay). Inspector floats over the canvas, draggable, closes on Esc. Status bar shows dots only; each still opens its target.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">PHONE · 390 px</span>
+          <div style="width:260px; height:540px; display:flex; flex-direction:column; background:#0c0c0e; border:1px solid #2a2a31; border-radius:28px; overflow:hidden; font-size:11px; position:relative">
+            <div style="height:44px; display:flex; align-items:center; gap:6px; padding:12px 12px 0"><span style="padding:3px 8px; border:1px solid #26262c; border-radius:6px">Desk bar / Gaming ▾</span><span style="flex:1"></span><span style="width:7px; height:7px; border-radius:50%; background:oklch(0.78 0.15 150)"></span><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#a1a1aa">more_vert</span></div>
+            <div style="padding:12px 10px"><div style="width:100%; aspect-ratio:1920/550; background:#070709; border-radius:4px; box-shadow:0 0 0 1px #1f1f24; display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(3,1fr); gap:2px; padding:3px"><span style="grid-area:1/1/3/3; background:#131317; border-radius:3px"></span><span style="grid-area:1/3/3/5; background:#131317; border-radius:3px; box-shadow:0 0 0 1px #ededf0"></span><span style="grid-area:1/5/2/9; background:#131317; border-radius:3px"></span><span style="grid-area:2/5/4/9; background:#131317; border-radius:3px"></span><span style="grid-area:3/1/4/5; background:#131317; border-radius:3px"></span></div></div>
+            <div style="position:absolute; left:0; right:0; bottom:52px; height:300px; background:#141418; border-top:1px solid #33333a; border-radius:16px 16px 0 0; display:flex; flex-direction:column">
+              <div style="width:36px; height:4px; border-radius:2px; background:#3a3a42; margin:8px auto"></div>
+              <div style="padding:0 12px 8px; font-weight:600; font-size:12.5px">GPU hot spot</div>
+              <div style="display:flex; gap:2px; margin:0 12px 6px; padding:2px; background:#0f0f12; border-radius:6px"><span style="flex:1; text-align:center; padding:4px 0; color:#8a8a94">Show</span><span style="flex:1; text-align:center; padding:4px 0; background:#24242a; border-radius:4px">Style</span><span style="flex:1; text-align:center; padding:4px 0; color:#8a8a94">Data</span><span style="flex:1; text-align:center; padding:4px 0; color:#8a8a94">Beh.</span></div>
+              <sc-for list="{{ miniSecs }}" as="m"><div style="display:flex; align-items:center; gap:6px; min-height:44px; padding:0 12px; border-top:1px solid #1f1f24"><span style="flex:1; font-size:12px">{{ m.n }}</span><dc-import name="InheritChip" state="{{ m.s }}" from="{{ m.f }}" hint-size="80px,20px"></dc-import></div></sc-for>
+            </div>
+            <div style="position:absolute; left:0; right:0; bottom:0; height:52px; display:flex; background:#0f0f12; border-top:1px solid #1f1f24"><sc-for list="{{ phoneTabs }}" as="t"><span style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:{{ t.fg }}"><span style="font-family:'Material Symbols Rounded'; font-size:18px">{{ t.icon }}</span><span style="font-size:9.5px">{{ t.l }}</span></span></sc-for></div>
+          </div>
+          <span style="font-size:12px; color:#a1a1aa; max-width:260px">Rail becomes a bottom bar (Design, Theme, Library, More). Inspector is a bottom sheet with 44 px rows; chips keep their full text.</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="display:flex; flex-direction:column; gap:14px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">5 · Model changes</h2>
+      <div style="display:flex; flex-direction:column; border:1px solid #24242a; border-radius:10px; overflow:hidden">
+        <sc-for list="{{ modelChanges }}" as="m"><div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); gap:16px; padding:12px 16px; border-top:1px solid #1a1a1f"><span style="font-weight:500">{{ m.t }}</span><span style="font-size:12.5px; color:#a1a1aa; text-wrap:pretty">{{ m.d }}</span></div></sc-for>
+      </div>
+    </section>
+
+    <section style="display:flex; flex-direction:column; gap:14px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">6 · Naming</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px">
+        <sc-for list="{{ names }}" as="n"><div style="display:flex; flex-direction:column; gap:3px; padding:12px 14px; background:#111114; border:1px solid #24242a; border-radius:9px"><span style="font-weight:600">{{ n.t }}</span><span style="font-size:12px; color:#a1a1aa; text-wrap:pretty">{{ n.d }}</span></div></sc-for>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center"><span style="font-size:12px; color:#7c7c86; margin-right:4px">Retired:</span><sc-for list="{{ retired }}" as="r"><span style="font-size:12px; padding:2px 8px; border:1px solid #2a2a31; border-radius:5px; color:#8a8a94; text-decoration:line-through">{{ r }}</span></sc-for></div>
+    </section>
+
+    <section style="display:flex; flex-direction:column; gap:14px">
+      <h2 style="margin:0; font-size:20px; font-weight:600">7 · Before → after</h2>
+      <p style="margin:0; font-size:12.5px; color:#a1a1aa">Every surface from the 1.3.0-beta.7 inventory. <span style="color:#ededf0">Link</span> means the old place keeps a visibly-marked shortcut to the home, never a second editor.</p>
+      <sc-for list="{{ table }}" as="g">
+        <div style="display:flex; flex-direction:column; border:1px solid #24242a; border-radius:10px; overflow:hidden">
+          <div style="padding:9px 16px; background:#111114; font-family:'Geist Mono',monospace; font-size:11px; letter-spacing:0.06em; color:#a1a1aa">{{ g.name }}</div>
+          <sc-for list="{{ g.rows }}" as="r"><div style="display:grid; grid-template-columns:minmax(0,1fr) 22px minmax(0,1.2fr); gap:10px; padding:8px 16px; border-top:1px solid #18181c; font-size:12.5px; align-items:baseline"><span style="color:#a1a1aa">{{ r.from }}</span><span style="color:#55555e">→</span><span style="color:{{ r.fg }}">{{ r.to }}</span></div></sc-for>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const T = (name, rows) => ({ name, rows: rows.map(([from, to]) => ({ from, to, fg: /^Retired/.test(to) ? 'oklch(0.75 0.13 25)' : '#ededf0' })) });
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      sitemap: [
+        { name: 'Design', icon: 'dashboard_customize', where: 'RAIL · DEFAULT', bd: '#3a3a42', items: ['Page tabs', 'Left panel: Layers · Add widget', 'Canvas + zoom bar', 'Inspector: Page (nothing selected) · Zone (Show · Style · Data · Behaviour)'] },
+        { name: 'Theme', icon: 'palette', where: 'RAIL', bd: '#24242a', items: ['Scope bar: All screens › Screen › Page', 'Start from: palettes, skins, saved Themes', 'Colors … Motion, Advanced (CSS)', 'Per-section lock (Screen scope)', 'Live preview + Exceptions'] },
+        { name: 'Library', icon: 'collections_bookmark', where: 'RAIL', bd: '#24242a', items: ['Themes · Styles · Panels', 'Gauges (+ gauge editor)', 'Media · Fonts · Canvases', 'Built-ins beside saved items'] },
+        { name: 'Data', icon: 'sensors', where: 'RAIL', bd: '#24242a', items: ['Connection: Data API URL, test', 'Sensor tree + values', 'Display names'] },
+        { name: 'Alerts & Island', icon: 'notifications_active', where: 'RAIL', bd: '#24242a', items: ['Rules · Island · Defaults · History', 'Island per screen', 'Widgets sent to the island'] },
+        { name: 'Settings', icon: 'settings', where: 'RAIL · BOTTOM', bd: '#24242a', items: ['Dashboard — every screen', 'Studio — this browser', 'App — this PC (desktop only)'] },
+        { name: 'Screens', icon: 'desktop_windows', where: 'FROM SCREEN SWITCHER', bd: '#24242a', items: ['When the app opens', 'Screen cards', 'Size & fit · Grid · Rotation', 'Pages: order & rotation'] },
+        { name: 'Title bar & status bar', icon: 'web_asset', where: 'ALWAYS', bd: '#24242a', items: ['Screen / page switcher', 'Ctrl K · Undo · Redo', 'Import · Export · Live · Save', 'Status: API · Server · Kiosks · Update · Save state'] }
+      ],
+      opinions: [
+        { n: '01', t: 'Screens should not be a rail destination', d: 'A screen is the context for everything — the Theme scope, the island, the canvas — not a place you visit. As a rail item it reads like a mode you leave Design for. Instead the title bar carries a screen / page switcher (always visible, always says what you’re editing), and “Manage screens…” opens the Screens view. The rail stays at five destinations.' },
+        { n: '02', t: 'Locks belong in section headers, not under Advanced', d: 'Locking is a per-section decision made at Screen scope, so the lock toggle sits next to each section’s chip there, with “Lock all” in the toolbar. Advanced is just custom CSS.' },
+        { n: '03', t: 'No page-level color tokens', d: 'The brief offers them as a possible model change. I’d keep colors, corners and background at All screens › Screen. Page scope shows them disabled with “Set per screen”. It keeps page themes small (spacing, border, motion) and avoids a third token store. Worth checking with users who theme pages per game.' },
+        { n: '04', t: 'Page settings have one home: the Page inspector', d: 'Rename, icon, duplicate and delete live in the Page inspector (nothing selected). Screens owns order and rotation only. Tabs keep double-click to rename because it’s direct manipulation, not a second editor.' },
+        { n: '05', t: 'Locked custom values are kept and shown', d: 'When a Screen locks a section, widget overrides are ignored but not deleted. The Exceptions list and the widget both show it, so unlocking is safe.' },
+        { n: '06', t: '“Dashboard” as a Settings tab', d: 'Dashboard also means the whole config file. Kept, with a permanent subtitle “every screen”. If that still confuses people, “Kiosk” is the fallback name.' },
+        { n: '07', t: 'Island stays next to Alerts', d: 'It’s a per-screen display surface, so it could live in Screens. Most island content is alerts and notices, and those rules live here, so it stays. Screens links to it.' }
+      ],
+      chipStates: [
+        { state: 'inherited', from: 'Screen', t: 'Inherited', d: 'Value comes from the named level. Dashed outline, link icon.', menu: 'Menu: Customise here · Edit Screen ↗' },
+        { state: 'custom', from: 'Page', t: 'Custom here', d: 'Overridden at this level. Solid accent, pencil icon, “N changed” beside it.', menu: 'Menu: Reset to inherited · Edit parent ↗' },
+        { state: 'locked', from: 'Screen', t: 'Locked', d: 'A level above forces it. Controls are disabled; a kept override is noted.', menu: 'Menu: Edit lock in Theme ↗' },
+        { state: 'base', from: '', t: 'Set here (All screens)', d: 'The top of the chain. Neutral solid chip.', menu: 'Menu: Reset to built-in' },
+        { state: 'builtin', from: '', t: 'Built-in default', d: 'Nothing set anywhere. Dashed, muted.', menu: 'Menu: Customise here' }
+      ],
+      chipRules: [
+        'Always names the source level: All screens, Screen, Page. The specific name (Desk bar, Gaming) goes in the tooltip and menu.',
+        'Click or Enter opens the menu. Reset is also on Backspace when the section has focus.',
+        'Editing any control in an inherited section turns it to Custom here; there’s no separate “Customise” step.',
+        'A setting that exists at only one level (clock format, Data API URL) has no chip at all.',
+        'Section headers show “N changed” next to the chip; the quick bar keeps its pins.',
+        'Same component in Theme, inspector, Screens (performance) and the Exceptions list.'
+      ],
+      miniSecs: [{ n: 'Colors', s: 'custom', f: 'Page' }, { n: 'Typography', s: 'locked', f: 'Screen' }, { n: 'Border & glow', s: 'inherited', f: 'Page' }],
+      phoneTabs: [{ icon: 'dashboard_customize', l: 'Design', fg: '#ededf0' }, { icon: 'palette', l: 'Theme', fg: '#8a8a94' }, { icon: 'collections_bookmark', l: 'Library', fg: '#8a8a94' }, { icon: 'more_horiz', l: 'More', fg: '#8a8a94' }],
+      modelChanges: [
+        { t: 'Page font → Typography, per screen', d: 'Today it’s global even under “This profile”. It joins Typography (All screens base + Screen override). Migration: the current global font becomes the All screens value.' },
+        { t: 'cfg.launchProfileId', d: 'Already planned in the Profiles handoff: backs “Always the same screen”.' },
+        { t: 'Retire the widget “Style preset” field', d: 'Default/Dark/Light/Vivid/Mono become built-in Styles. Migration: non-default values are applied as custom sections, then the field is dropped.' },
+        { t: 'No new stores', d: 'Saved looks → Themes, style presets → Styles, panel presets → Panels are renames. Color tokens and widget style stay two stores, edited in one editor.' },
+        { t: 'Rotation pause stays runtime-only', d: 'Shown only in Live, with the saved interval beside it.' }
+      ],
+      names: [
+        { t: 'Screen', d: 'Was profile. Shown with its size. “Screen (profile)” once in Import/Export and InfoPanel contexts.' },
+        { t: 'Page · Zone · Widget', d: 'Unchanged.' },
+        { t: 'Panel', d: 'A reusable widget group. Was custom panel / panel preset / My panels / Saved panels.' },
+        { t: 'Theme', d: 'The whole inherited look at any scope. A saved Theme replaces Saved looks and palette presets.' },
+        { t: 'Style', d: 'One widget’s own look, saved or not. Replaces style presets and the Style preset select.' },
+        { t: 'Skin', d: 'A built-in widget rendering family, picked in Theme › Start from.' },
+        { t: 'Live', d: 'Kiosk control right now. Never saved.' },
+        { t: 'All screens', d: 'The top scope. Replaces All profiles / Global / General.' }
+      ],
+      retired: ['Appearance', 'Global style', 'Widget theme', 'Widget style (as a place)', 'Saved looks', 'Style preset', 'General settings', 'Dashboard › …', 'Use as global…', 'Follows the profile theme', 'Background opacity'],
+      table: [
+        T('TOP BAR', [['Profile name / “Edit profile” switcher', 'Screen / page switcher → Manage screens…'], ['Undo · Redo · Save', 'Stay'], ['Kiosk view', 'Live › kiosk list (open in browser)'], ['Import (actually InfoPanel)', 'Import — one door, detects type'], ['Export (actually InfoPanel canvas)', 'Export & back up sheet'], ['⋯ Export config', 'Export › Back up everything'], ['⋯ Import config… / Import InfoPanel profile…', 'Import door'], ['⋯ Export InfoPanel canvas…', 'Export › Export a page for InfoPanel'], ['⋯ Copy profile JSON', 'Export rows › Copy JSON'], ['⋯ Command palette', 'Title bar search (Ctrl K)'], ['⋯ Keyboard shortcuts', 'Help › Shortcuts (also ?)'], ['⋯ Reset everything…', 'Settings › Dashboard › Danger zone (offers backup)']]),
+        T('RAIL', [['Profiles', 'Screen switcher + Screens view'], ['Theme', 'Theme'], ['Layers · Widgets', 'Design › left panel'], ['Gauges', 'Library › Gauges'], ['Library', 'Library'], ['Alerts · Dynamic Island', 'Alerts & Island'], ['Data sources', 'Data'], ['Help · Shortcuts', 'Help'], ['Settings (desktop only)', 'Settings (both; App tab explains in browser)']]),
+        T('ZOOM BAR & PAGE TABS', [['Grid · rulers · zoom · Fit · toggle left panel', 'Stay'], ['Resolution button', 'Link → Screens'], ['+ Add page', 'Stays'], ['Rename · Icon… · Duplicate · Delete', 'Page inspector'], ['Theme…', 'Page inspector › Edit in Theme (page scope)'], ['Show on kiosk', 'Live (also a Live button in Page inspector)'], ['Cycling Play/Pause · Back to saved', 'Live › Rotation'], ['Kiosk-page marker', 'Stays, read-only; opens Live']]),
+        T('PROFILES DRAWER', [['Import', 'Import door (detects profile JSON → new screen)'], ['New · cards · Opens now / On launch', 'Screens'], ['Card ⋯ Rename, Duplicate, Export, Delete', 'Screen card ⋯'], ['Card ⋯ Always open this one', 'Screens › When the app opens'], ['Card ⋯ Copy profile JSON', 'Export › Copy JSON'], ['Inline Pages + Add page', 'Screens › Pages'], ['When the app opens', 'Screens (top)']]),
+        T('PROFILE INSPECTOR › LAYOUT', [['Name, size, Use this window’s size, Fill/Scroll', 'Screens › Size & fit'], ['Columns, Rows, Gap, Edge padding', 'Screens › Grid']]),
+        T('PROFILE INSPECTOR › LOOK', [['Theme: tokens + palettes', 'Theme › Colors · Start from'], ['Corners', 'Theme › Shape & spacing'], ['Font [global]', 'Theme › Typography (per screen)'], ['14 skins', 'Theme › Start from'], ['Saved looks · Save current look as preset', 'Library › Themes · Save as Theme'], ['Replace the page background', 'Apply a theme › “include background”'], ['Surface · Background opacity · blur', 'Theme › Surface & effects (“Opacity”)'], ['Apply to every widget', 'Lock (Screen scope)'], ['Edit widget style ↗', 'Retired — same editor now'], ['Background · Uploaded files', 'Theme › Background · Library › Media'], ['All profiles | This profile switches', 'Retired — Theme scope bar + chips']]),
+        T('PROFILE INSPECTOR › BEHAVIOUR', [['Pages list, Add page, cycling, which pages', 'Screens › Pages · Rotation'], ['Page dots and swipe', 'Settings › Dashboard › Kiosk'], ['Dynamic Island (duplicate)', 'Retired — link from Screens'], ['Performance (All | This profile)', 'Settings › Dashboard (base) · Screens (chip)'], ['Clock, Show seconds, Date locale', 'Settings › Dashboard › Clock & date'], ['Hide cursor in kiosk mode', 'Settings › Dashboard › Kiosk'], ['Studio: Quick bar, Inspector sections', 'Settings › Studio'], ['Connection: URL, Test, API index', 'Data › Connection'], ['“Server, updates… in App settings ↗”', 'Retired — status bar']]),
+        T('RAIL THEME PAGE', [['Scope list', 'Scope bar'], ['Live preview + per-zone chips', 'Preview with exception badges'], ['Who doesn’t follow + Reset to theme', 'Exceptions · Make it follow'], ['Style / Data / Behaviour tabs', 'One ordered section list'], ['Lock · Unlock · Customize · Use profile', 'Section lock · chip · Reset to inherited'], ['Lock all / Unlock all', 'Lock all (Screen scope)']]),
+        T('ZONE INSPECTOR', [['Header, COL/ROW/W/H, Show tab', 'Stay'], ['Panel: Save as panel preset…', 'Save as Panel (Library › Panels)'], ['Copy / Paste style', 'Stay (right-click menu)'], ['Use as global… ▸', 'Make this the theme for… ▸'], ['Apply / Save / Delete preset ▸', 'Start from a Style · Save as Style · manage in Library'], ['Widget “Style preset” select', 'Retired — built-in Styles'], ['Widget colors · Zone frame', 'Colors · Border & glow'], ['Follows the profile theme / Custom / Locked bars', 'Inheritance chip'], ['Data tab', 'Stays; link to Data'], ['Behaviour › Send to island', 'Stays; link to Alerts & Island'], ['More (n), Reset, N changed, search, pin', 'Stay'], ['Changed filter', 'Retired (chips show it)']]),
+        T('DRAWERS', [['Add widget: search, categories, My panels', 'Design › Add widget'], ['Canvas zone · Import .infopanel', 'Import door → “Canvas zone on this page”'], ['Layers: list, hide, delete, Add', 'Design › Layers'], ['Alerts: rules, Active now, History, defaults, editor', 'Alerts & Island › Rules · History · Defaults'], ['Island: all sections, notices, widgets', 'Alerts & Island › Island'], ['Island: Alert rules', 'Link → Rules'], ['Island “As General” font / clock', 'Links → Theme Typography, Settings › Clock']]),
+        T('LIBRARY & GAUGES', [['My library | Profile assets', 'One library; filter “Used by Desk bar”'], ['Import profile [InfoPanel] · Upload', 'Add files… → Import door'], ['Smart collections (Recent, Unused, Large, Duplicates, Suggested)', 'Filters in Library search'], ['Type collections', 'Tabs'], ['Item actions', 'Stay'], ['Add fonts · Get a font', 'Import door · link in Fonts'], ['Gauges | Editor, presets', 'Library › Gauges (editor from an item)'], ['Import .gauge.json / SVG / frames', 'Import door'], ['Editor Import / Export', 'Import door · Export › Export a gauge'], ['Save as new · Save to library', 'Stay in editor']]),
+        T('DIALOGS, WINDOWS, TRAY', [['Data sources page', 'Data'], ['Import InfoPanel dialog', 'Step 2 of the Import door'], ['Export dialog options', 'Export › Export a page for InfoPanel'], ['Desktop Settings window (all tabs)', 'Settings › App'], ['Restart bar', 'Banner in Settings › App + status bar'], ['Help window', 'Stays; F1 and ? open it in context'], ['Tray menu', 'Stays as shortcuts into Studio'], ['Remote: mute, reload, dim, island', 'Live popover']]),
+        T('COMMAND PALETTE (STALE ENTRIES)', [['Appearance…', 'Theme'], ['General settings…', 'Settings › Dashboard'], ['Connection…', 'Data › Connection'], ['Background… · Font…', 'Theme › Background · Typography'], ['Apply appearance: <name>', 'Apply theme: <name>'], ['Follow global style', 'Make it follow'], ['Global style: all profiles / this profile', 'Theme scope: All screens / <screen>']])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
