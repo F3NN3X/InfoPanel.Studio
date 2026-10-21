@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronRight, Copy, EyeOff, Link2, Search } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
-import type { DataPoint } from "@/lib/data-points";
+import type { DataPoint, DataSource } from "@/lib/data-points";
+import type { SourcePref } from "@/lib/layout";
 import type { UsageIndex } from "@/lib/data-usage";
 import type { SensorMap } from "@/modules/types";
 import { cn } from "@/lib/utils";
@@ -9,10 +10,11 @@ import {
   GROUP_ROW_H,
   POINT_ROW_H,
   isBoundTo,
+  pointDisplayName,
   rowAt,
   rowOffsets,
   stickyIndex,
-  usedByCell,
+  usedInCell,
   valueCell,
   windowRange,
   type BindOption,
@@ -57,11 +59,17 @@ interface PointTableProps {
   onHideEmpty: (on: boolean) => void;
   inUse: boolean;
   onInUse: (on: boolean) => void;
-  /** Show the "Used by" column (hidden on narrow windows). */
-  showUsedBy: boolean;
+  /** The screens that use each key (the "Used in" column). */
+  screens: Map<string, string[]>;
+  /** The sources, and their display names: a row edits its source's (SPEC §10.2). */
+  sources: readonly DataSource[];
+  sourcePrefs: Record<string, SourcePref> | undefined;
+  onDisplayName: (key: string, displayName: string | undefined) => void;
+  /** Show the "Used in" column (hidden on narrow windows). */
+  showUsedIn: boolean;
 }
 
-/** The explorer's centre column: breadcrumb, search, filters and the virtualised point list. */
+/** The Data view's point table: breadcrumb, search, filters and the virtualised list (Sensor · Now · Display name · Used in). */
 export function PointTable({
   crumbs,
   onScope,
@@ -83,9 +91,13 @@ export function PointTable({
   onHideEmpty,
   inUse,
   onInUse,
-  showUsedBy,
+  screens,
+  sources,
+  sourcePrefs,
+  onDisplayName,
+  showUsedIn,
 }: PointTableProps) {
-  const cols = showUsedBy ? "grid-cols-[1.5fr_1fr_110px_56px]" : "grid-cols-[1.4fr_1fr_56px]";
+  const cols = showUsedIn ? "grid-cols-[1.5fr_90px_1.2fr_1fr_56px]" : "grid-cols-[1.4fr_90px_1.2fr_56px]";
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-ui-app font-ui">
       <div className="space-y-2.5 border-b border-ui-subtle px-4 pb-2.5 pt-3">
@@ -112,6 +124,7 @@ export function PointTable({
           <span className="ml-1.5 whitespace-nowrap font-ui-mono text-[11px] text-ui-4">
             {shown} of {total}
           </span>
+          <span className="ml-auto text-[11.5px] font-normal text-ui-4">Display names apply to every screen.</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[180px] max-w-[380px] flex-[1_1_220px]">
@@ -137,9 +150,10 @@ export function PointTable({
       </div>
 
       <div className={cn("grid gap-3 whitespace-nowrap border-b border-ui-subtle px-4 py-[7px]", CAPTION, cols)}>
-        <span>Data point</span>
-        <span>Live value</span>
-        {showUsedBy && <span>Used by</span>}
+        <span>Sensor</span>
+        <span>Now</span>
+        <span>Display name</span>
+        {showUsedIn && <span>Used in</span>}
         <span />
       </div>
 
@@ -158,7 +172,11 @@ export function PointTable({
               usage={usage}
               selected={p.key === selectedKey}
               onSelect={onSelect}
-              showUsedBy={showUsedBy}
+              screens={screens}
+              sources={sources}
+              sourcePrefs={sourcePrefs}
+              onDisplayName={onDisplayName}
+              showUsedIn={showUsedIn}
               target={target}
               onToggleBind={onToggleBind}
             />
@@ -252,18 +270,23 @@ interface PointRowProps {
   usage: UsageIndex;
   selected: boolean;
   onSelect: (key: string) => void;
-  showUsedBy: boolean;
+  screens: Map<string, string[]>;
+  sources: readonly DataSource[];
+  sourcePrefs: Record<string, SourcePref> | undefined;
+  onDisplayName: (key: string, displayName: string | undefined) => void;
+  showUsedIn: boolean;
   target: BindOption | null;
   onToggleBind: (point: DataPoint, bound: boolean) => void;
 }
 
 const ROW_ACTION = "flex h-6 w-6 items-center justify-center rounded-[5px] hover:bg-[#26262c]";
 
-function PointRow({ point, cols, values, usage, selected, onSelect, showUsedBy, target, onToggleBind }: PointRowProps) {
+function PointRow({ point, cols, values, usage, selected, onSelect, screens, sources, sourcePrefs, onDisplayName, showUsedIn, target, onToggleBind }: PointRowProps) {
   const copy = useCopy();
   const usedBy = usage.byKey.get(point.key) ?? [];
   const cell = valueCell(point, values);
-  const used = usedByCell(usedBy);
+  const used = usedInCell(screens.get(point.key));
+  const display = pointDisplayName(sources, point, sourcePrefs);
   const bound = isBoundTo(usedBy, target);
   const bindTitle = target ? `${bound ? "Unbind from" : "Bind to"} ${target.label}` : "Bind";
   return (
@@ -307,8 +330,35 @@ function PointRow({ point, cols, values, usage, selected, onSelect, showUsedBy, 
       >
         {cell.text}
       </span>
-      {showUsedBy && (
-        <span className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-[#55555e]")}>{used.text}</span>
+      {display ? (
+        <input
+          key={display.value}
+          defaultValue={display.value}
+          placeholder={display.name}
+          aria-label={`Display name for ${point.name}`}
+          title="Renames this point's source on every screen"
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => {
+            const value = e.currentTarget.value.trim();
+            if (value !== display.value) onDisplayName(display.key, value || undefined);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              e.currentTarget.value = display.value; // the blur that follows must not save the edit
+              e.currentTarget.blur();
+            }
+          }}
+          className="h-6 min-w-0 rounded border border-ui-default bg-ui-app px-1.5 text-[12px] text-ui-1 placeholder:text-ui-4 focus:border-ui-accent/60 focus:outline-none"
+        />
+      ) : (
+        <span className="truncate text-[12px] text-ui-5">—</span>
+      )}
+      {showUsedIn && (
+        <span title={used.used ? (screens.get(point.key) ?? []).join(", ") : undefined} className={cn("truncate text-[11.5px]", used.used ? "text-ui-accent-text" : "text-[#55555e]")}>
+          {used.text}
+        </span>
       )}
       <div className="flex justify-end gap-0.5">
         <button

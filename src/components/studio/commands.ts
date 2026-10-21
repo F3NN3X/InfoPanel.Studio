@@ -151,7 +151,7 @@ function generalCommands(s: CommandState): Command[] {
       { type: "navigate", target: { view: "settings", tab: "dashboard" } },
       "performance, clock, locale, cursor, page dots, studio, app"
     ),
-    general("connection", "Data › Connection", { type: "navigate", target: { view: "data", section: "connection" } }, "Data API URL"),
+    general("connection", "Data › Connection", { type: "navigate", target: { view: "data", section: "connection", control: "url" } }, "Data API URL"),
     general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this profile"),
     general(
       "toggle-enforce",

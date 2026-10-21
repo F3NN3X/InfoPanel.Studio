@@ -9,9 +9,8 @@ import { ArrowUpRight, Copy, Sparkles, Trash2, type LucideIcon } from "lucide-re
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
-import { copiesLine, hashOf, KIND_LABEL, metaLine, metaOf, tagsOf, type LibraryIndex } from "@/lib/my-library/model";
+import { copiesLine, hashOf, isConfigItem, KIND_LABEL, metaLine, metaOf, tagsOf, type LibraryIndex } from "@/lib/my-library/model";
 import { AssetThumb } from "./asset-thumb";
-import { isConfigItem } from "./use-my-library";
 
 export interface DetailAction {
   label: string;

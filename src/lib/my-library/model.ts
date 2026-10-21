@@ -9,6 +9,7 @@ import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
 import type { Verdict } from "@/lib/infopanel/font-licence";
 import type { LibraryItem, LibraryKind } from "@/lib/library";
 import { aspectTag, hamming, type PixelStats } from "./analyse";
+import { BUILTIN_STYLE, BUILTIN_THEME, CONFIG_PREFIXES } from "./config-items";
 
 export type Licence = Verdict;
 
@@ -53,6 +54,8 @@ export interface MediaMeta {
   rows?: number;
   /** Imported canvases: the item count. */
   items?: number;
+  /** Themes: the page, surface and accent colours of the card's thumbnail (CSS colours). */
+  swatch?: string[];
 }
 
 export const metaOf = (item: Pick<LibraryItem, "meta">): MediaMeta => (item.meta ?? {}) as MediaMeta;
@@ -116,6 +119,8 @@ export type CollectionId =
   | "large"
   | "duplicates"
   | "suggested"
+  | "themes"
+  | "media"
   | "images"
   | "videos"
   | "backgrounds"
@@ -130,7 +135,11 @@ export type CollectionId =
 export interface Collection {
   id: CollectionId;
   label: string;
-  section: "Smart" | "Media" | "Made by you";
+  section: "Smart" | "Library";
+  /** The type collection this one sits under in the sidebar (Media's sub-kinds). */
+  parent?: CollectionId;
+  /** The hint line under the header (SPEC §10.4); a child shows its parent's. */
+  hint?: string;
 }
 
 export const COLLECTIONS: Collection[] = [
@@ -140,17 +149,25 @@ export const COLLECTIONS: Collection[] = [
   { id: "large", label: "Large files", section: "Smart" },
   { id: "duplicates", label: "Duplicates", section: "Smart" },
   { id: "suggested", label: "Suggested for theme", section: "Smart" },
-  { id: "images", label: "Images", section: "Media" },
-  { id: "videos", label: "Videos", section: "Media" },
-  { id: "backgrounds", label: "Backgrounds", section: "Media" },
-  { id: "icons", label: "Icons", section: "Media" },
-  { id: "svg", label: "SVG templates", section: "Media" },
-  { id: "fonts", label: "Fonts", section: "Media" },
-  { id: "gauges", label: "Gauges & bars", section: "Made by you" },
-  { id: "panels", label: "Saved panels", section: "Made by you" },
-  { id: "styles", label: "Style presets", section: "Made by you" },
-  { id: "canvases", label: "Imported canvases", section: "Made by you" },
+  { id: "themes", label: "Themes", section: "Library", hint: "A Theme is a whole look. Apply one in Theme at any scope." },
+  { id: "styles", label: "Styles", section: "Library", hint: "A Style is one widget’s look. Apply from a widget’s Style tab." },
+  { id: "panels", label: "Panels", section: "Library", hint: "Reusable widget groups. Drag onto the canvas from Design › Add." },
+  { id: "gauges", label: "Gauges", section: "Library", hint: "Open a gauge to edit it. New gauge starts the gauge editor." },
+  { id: "media", label: "Media", section: "Library", hint: "Images and videos. Use one as a background from Theme › Background." },
+  { id: "images", label: "Images", section: "Library", parent: "media" },
+  { id: "videos", label: "Videos", section: "Library", parent: "media" },
+  { id: "backgrounds", label: "Backgrounds", section: "Library", parent: "media" },
+  { id: "icons", label: "Icons", section: "Library", parent: "media" },
+  { id: "svg", label: "SVG templates", section: "Library", parent: "media" },
+  { id: "fonts", label: "Fonts", section: "Library", hint: "Fonts appear in every Typography picker." },
+  { id: "canvases", label: "Canvases", section: "Library", hint: "InfoPanel canvases imported as zones." },
 ];
+
+/** The hint line of a collection (a sub-kind of Media shows Media's); none for the smart ones. */
+export function hintOf(id: CollectionId): string | undefined {
+  const c = COLLECTIONS.find((x) => x.id === id);
+  return c?.hint ?? (c?.parent ? hintOf(c.parent) : undefined);
+}
 
 /** Large: over 1 MB (the profile assets tab also flags files stored bigger than drawn). */
 export const LARGE_BYTES = 1024 * 1024;
@@ -169,6 +186,7 @@ export interface LibraryIndex {
 }
 
 const KIND_OF: Partial<Record<CollectionId, LibraryKind>> = {
+  themes: "theme",
   images: "image",
   videos: "video",
   svg: "svg",
@@ -186,6 +204,8 @@ export function inCollection(item: LibraryItem, id: CollectionId, index: Library
   switch (id) {
     case "all":
       return true;
+    case "media":
+      return MEDIA.has(item.kind);
     case "recent":
       return now - Date.parse(item.updatedAt || item.createdAt) <= RECENT_MS;
     case "unused":
@@ -285,9 +305,10 @@ export const KIND_LABEL: Record<LibraryKind, string> = {
   font: "Font",
   svg: "SVG template",
   gauge: "Gauge",
-  panel: "Saved panel",
-  style: "Style preset",
-  canvas: "Imported canvas",
+  panel: "Panel",
+  style: "Style",
+  canvas: "Canvas",
+  theme: "Theme",
 };
 
 /** Every word a search can match for an item: name, kind, type, pixel size and tags. */
@@ -358,15 +379,43 @@ export function metaLine(item: LibraryItem): string {
     case "gauge":
       return m.gaugeKind ?? "Gauge";
     case "panel":
-      return m.cols && m.rows ? `${m.cols} × ${m.rows} cells` : "Saved panel";
+      return m.cols && m.rows ? `${m.cols} × ${m.rows} cells` : "Panel";
     case "style":
-      return "Style preset";
+      return "Style";
+    case "theme":
+      return "Theme";
     case "canvas":
-      return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Imported canvas";
+      return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Canvas";
     default:
       return [px, bytes].filter(Boolean).join(" · ");
   }
 }
+
+/** An item the config or the app supplies (saved Themes, Styles and Panels, the built-ins): read-only, never removed from here. */
+export const isConfigItem = (item: Pick<LibraryItem, "id">): boolean => CONFIG_PREFIXES.some((p) => item.id.startsWith(p));
+
+/** A card's tag: Built-in (muted) for what ships with the app, else what the item is (accent). */
+export function cardTag(item: Pick<LibraryItem, "id" | "kind" | "meta">): { text: string; builtin: boolean } {
+  if (item.id.startsWith(BUILTIN_THEME) || item.id.startsWith(BUILTIN_STYLE)) return { text: "Built-in", builtin: true };
+  const m = metaOf(item);
+  switch (item.kind) {
+    case "image":
+    case "video":
+      return { text: KIND_LABEL[item.kind], builtin: false };
+    case "svg":
+      return { text: roleOf("svg", m) === "icon" ? "Icon" : "SVG template", builtin: false };
+    case "font":
+      return { text: m.origin ?? "Added", builtin: false };
+    case "canvas":
+      return { text: "Imported", builtin: false };
+    default:
+      return { text: "Saved", builtin: false };
+  }
+}
+
+/** The items a screen uses: those with a placed copy in it (the config stand-ins count none). */
+export const usedByScreen = (items: readonly LibraryItem[], profileId: string): LibraryItem[] =>
+  items.filter((i) => i.copies.some((c) => c.profileId === profileId));
 
 /** "2 copies placed · editing this one changes none of them". */
 export function copiesLine(n: number): string {

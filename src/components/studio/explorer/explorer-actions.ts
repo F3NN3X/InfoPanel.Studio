@@ -1,5 +1,5 @@
 import type { DataPoint } from "@/lib/data-points";
-import { newPanel, uid, type DashboardConfig, type Widget } from "@/lib/layout";
+import { newPanel, uid, type DashboardConfig, type SourcePref, type Widget } from "@/lib/layout";
 import type { PanelPreset } from "@/lib/panelPresets";
 import { onPage } from "@/lib/pages";
 import { addPresetPlacement } from "../studio-actions";
@@ -39,4 +39,14 @@ export function addStatZone(
       p.id === profileId ? onPage(pageId, (v) => addPresetPlacement(v, zoneId, statPreset(point)))(p) : p
     ),
   };
+}
+
+/**
+ * A source preference (show / hide, display name) patched into the config. An empty display name drops
+ * the key, so the source shows under its own name again.
+ */
+export function withSourcePref(config: DashboardConfig, key: string, pref: Partial<SourcePref>): DashboardConfig {
+  const next = { ...config.sourcePrefs?.[key], ...pref };
+  if (!next.displayName) delete next.displayName;
+  return { ...config, sourcePrefs: { ...config.sourcePrefs, [key]: next } };
 }

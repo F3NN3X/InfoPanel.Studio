@@ -10,6 +10,7 @@ import {
   type PointType,
 } from "@/lib/data-points";
 import type { Usage, UsageIndex } from "@/lib/data-usage";
+import { sourcePrefKey, type SourcePref } from "@/lib/layout";
 
 /** Pure filtering, grouping and windowing behind the Data Explorer. */
 
@@ -224,12 +225,6 @@ export function valueCell(point: DataPoint, values: SensorMap): { text: string; 
 /** The widget's own name: the part of a usage label after "Panel › ". */
 export const usageName = (usage: Usage): string => usage.label.split(" › ").at(-1) ?? usage.label;
 
-/** The table's "Used by" cell: the widget's name for one use, a count for more, a dash for none. */
-export function usedByCell(usedBy: readonly Usage[]): { text: string; used: boolean } {
-  if (usedBy.length === 0) return { text: "—", used: false };
-  return { text: usedBy.length === 1 ? usageName(usedBy[0]) : `${usedBy.length} widgets`, used: true };
-}
-
 /** A zone a point can be bound to; panel zones list their bindable widgets. */
 export interface BindZone {
   id: string;
@@ -347,4 +342,38 @@ export function scopeStats(
     { label: "Empty", value: points.filter((p) => p.type === "empty").length },
     { label: "Used in layout", value: points.filter((p) => usage.byKey.has(p.key)).length },
   ];
+}
+
+/**
+ * The preference key a tree row edits: a plugin's container (its source row when it has just one), or
+ * any other source as a whole. A row that edits none (a container of a built-in source) is null.
+ */
+export function prefKeyOf(s: DataSource, c?: DataContainer): string | null {
+  if (s.category !== "Plugins") return c ? null : sourcePrefKey(s.id, "");
+  const container = c ?? (s.containers.length === 1 ? s.containers[0] : undefined);
+  return container ? sourcePrefKey(s.id, container.id.slice(s.id.length + 1)) : null;
+}
+
+/**
+ * The display name a point row edits (SPEC §10.2, PLAN decision 8): the one of its source container
+ * (a plugin) or its source, shown on every row of that group. `name` is what it falls back to.
+ */
+export function pointDisplayName(
+  sources: readonly DataSource[],
+  point: DataPoint,
+  prefs: Record<string, SourcePref> | undefined
+): { key: string; value: string; name: string } | null {
+  const source = sources.find((s) => s.id === point.sourceId);
+  if (!source) return null;
+  const plugin = source.category === "Plugins";
+  const key = prefKeyOf(source, plugin ? source.containers.find((c) => c.id === point.containerId) : undefined);
+  if (!key) return null;
+  const name = plugin ? point.containerTitle : source.name;
+  return { key, value: prefs?.[key]?.displayName ?? "", name };
+}
+
+/** The table's "Used in" cell: the screens' names, a count past two, a dash for none. */
+export function usedInCell(screens: readonly string[] | undefined): { text: string; used: boolean } {
+  if (!screens || screens.length === 0) return { text: "—", used: false };
+  return { text: screens.length <= 2 ? screens.join(", ") : `${screens.length} screens`, used: true };
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultConfig, PANEL_ID } from "@/lib/layout";
 import type { DataPoint } from "@/lib/data-points";
 import { pageOf } from "@/lib/pages";
-import { addStatZone } from "@/components/studio/explorer/explorer-actions";
+import { addStatZone, withSourcePref } from "@/components/studio/explorer/explorer-actions";
 import { parseEndpoints, KNOWN_ENDPOINTS } from "@/components/studio/explorer/explorer-endpoints";
 
 const point: DataPoint = {
@@ -56,5 +56,22 @@ describe("parseEndpoints", () => {
     expect(parseEndpoints([1, null, {}])).toEqual([]);
     expect(parseEndpoints("nope")).toEqual([]);
     expect(KNOWN_ENDPOINTS).toHaveLength(9);
+  });
+});
+
+describe("withSourcePref", () => {
+  const key = "plugins.audio::usb";
+
+  it("writes a display name beside what the source already holds", () => {
+    const config = { ...defaultConfig(), sourcePrefs: { [key]: { enabled: false } } };
+    const next = withSourcePref(config, key, { displayName: "Headset" });
+    expect(next.sourcePrefs?.[key]).toEqual({ enabled: false, displayName: "Headset" });
+    expect(config.sourcePrefs?.[key]).toEqual({ enabled: false });
+  });
+
+  it("drops the key for an empty name, so the source shows under its own name again", () => {
+    const config = { ...defaultConfig(), sourcePrefs: { [key]: { displayName: "Headset" } } };
+    expect(withSourcePref(config, key, { displayName: undefined }).sourcePrefs?.[key]).toEqual({});
+    expect(withSourcePref(config, key, { displayName: "" }).sourcePrefs?.[key]).toEqual({});
   });
 });

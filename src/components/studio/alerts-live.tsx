@@ -75,7 +75,7 @@ function Tag({ children }: { children: string }) {
 export function HistoryList({ history, now }: { history: readonly AlertHistoryEntry[]; now: number }) {
   if (history.length === 0) return <p className="text-[11.5px] text-ui-4">No alerts yet.</p>;
   return (
-    <ul className="max-h-56 space-y-1 overflow-y-auto">
+    <ul className="space-y-1.5">
       {history.slice(0, HISTORY_SHOWN).map((h) => (
         <li key={h.id} className="flex items-center gap-1.5 text-[11.5px]">
           <SeverityDot severity={h.severity} />

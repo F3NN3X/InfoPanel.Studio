@@ -265,7 +265,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               onChange={(bg) => setConfig((c) => withBackgroundAt(c, twoLevel, bg), key("background"))}
               copyLabel={at.level === "all" ? "All screens › Background" : `${profile.name} › Background`}
               profileId={profile.id}
-              onOpenLibrary={() => navigateTo({ view: "library" })}
+              onOpenLibrary={() => navigateTo({ view: "library", tab: "media" })}
             />
           </DataRow>
         );
@@ -361,7 +361,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
                 onPalette={(tokens: ThemeTokens) => setConfig((c) => withTokens(c, twoLevel, tokens))}
                 onSkin={(skin) => edit((st) => ({ ...st, skin, surface: "auto" }), "skin")}
                 onSaved={(p) => presets.apply(p, at, false)}
-                onLibrary={() => navigateTo({ view: "library" })}
+                onLibrary={() => navigateTo({ view: "library", tab: "themes" })}
               />
             )}
             {cards.map(renderCard)}

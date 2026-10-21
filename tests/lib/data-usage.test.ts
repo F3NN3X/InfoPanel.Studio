@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bindPoint, claimedPrefixes, computeUsage, unbindPoint, type ModuleInfo } from "@/lib/data-usage";
+import { bindPoint, claimedPrefixes, computeUsage, screensUsing, unbindPoint, type ModuleInfo } from "@/lib/data-usage";
 import { mainPage } from "@/lib/pages";
 import { buildDataModel } from "@/lib/data-points";
 import { PANEL_ID, defaultConfig, type DashboardConfig, type Placement } from "@/lib/layout";
@@ -209,5 +209,17 @@ describe("bindPoint / unbindPoint", () => {
   it("changes nothing when unbinding from a module that owns the whole prefix", () => {
     const config = configWith([zone("a", "audio")]);
     expect(unbindPoint(config, "a", undefined, dev("usb", "peak-level"), mods)).toBe(config);
+  });
+});
+
+describe("screensUsing", () => {
+  it("names each screen that uses a key, in the config's order", () => {
+    const base = configWith([zone("z-hw", "hardware")]);
+    const other = configWith([panelZone("z-panel", [widget({ sensor: "system.cpu.load" })])]).profiles[0];
+    const profiles = [base.profiles[0], { ...other, id: "second", name: "Second" }, { ...base.profiles[0], id: "third", name: "Third" }];
+    const used = screensUsing(profiles, keys, mods);
+    expect(used.get("libre.cpu_temp")).toEqual([base.profiles[0].name, "Third"]);
+    expect(used.get("system.cpu.load")).toEqual(["Second"]);
+    expect(used.has(dev("usb", "peak-level"))).toBe(false);
   });
 });

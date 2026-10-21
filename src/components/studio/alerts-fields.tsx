@@ -179,4 +179,4 @@ export function PositionGrid({ value, onChange }: { value: AlertPosition; onChan
 
 /** The note under an alert display set to the island style. */
 export const ISLAND_HINT =
-  "Shows in the profile's Dynamic Island (Dashboard › Profile); a profile without one shows it as a top toast.";
+  "Shows in the screen's Dynamic Island (Alerts & Island › Island); a screen without one shows it as a top toast.";

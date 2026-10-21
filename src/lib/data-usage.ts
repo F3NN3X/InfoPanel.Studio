@@ -219,3 +219,15 @@ export function unbindPoint(
     return { ...pl, settings: { ...pl.settings, [def.key]: next } };
   });
 }
+
+/**
+ * The screens that use each of `keys`: name per profile, in the config's order. A point nothing
+ * uses has no entry. Pages count as part of their screen.
+ */
+export function screensUsing(profiles: readonly MonitorProfile[], keys: readonly string[], mods: readonly ModuleInfo[]): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const profile of profiles) {
+    for (const key of computeUsage(profile, keys, mods).byKey.keys()) out.set(key, [...(out.get(key) ?? []), profile.name]);
+  }
+  return out;
+}

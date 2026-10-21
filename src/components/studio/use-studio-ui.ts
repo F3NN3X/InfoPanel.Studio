@@ -5,7 +5,8 @@ import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
 import type { Drawer } from "./commands";
 import { useStoredLeftWidth, type LeftTab } from "./design-left-panel";
-import type { AlertsTab } from "./interim-views";
+import { COLLECTIONS, type CollectionId } from "@/lib/my-library/model";
+import type { AlertsTab } from "./alerts-view";
 import type { SettingsTab } from "./settings-view";
 import type { RailItem } from "./left-rail";
 import { revealWidgetEditor, scrollInspectorToTop } from "./inspector-scroll";
@@ -16,6 +17,8 @@ import type { StudioMode } from "./studio-top-bar";
 import { useNavFocus, type NavRequest, type NavTarget } from "./studio-nav";
 import type { ThemeScope } from "./theme-editor-model";
 import { pageSize, railWidth, useStudioLayout } from "./use-studio-layout";
+
+const ALERTS_TABS: readonly AlertsTab[] = ["rules", "island", "defaults", "history"];
 
 /**
  * The studio's view state, apart from the selection: the open view (the
@@ -33,7 +36,6 @@ export function useStudioUi(
   const [mode, setMode] = useState<StudioMode>("design");
   const showSources = mode === "sources";
   const showLibrary = mode === "library";
-  const showGauges = mode === "gauges";
   const showTheme = mode === "theme";
   const showAlerts = mode === "alerts";
   const showScreens = mode === "screens";
@@ -63,8 +65,14 @@ export function useStudioUi(
   const [leftOpen, setLeftOpen] = useState(() => windowWidth >= 1280);
   const [leftTab, setLeftTab] = useState<LeftTab>("add");
   const [leftWidth, setLeftWidth] = useStoredLeftWidth();
-  /** The interim Alerts & Island view's tab. */
-  const [alertsTab, setAlertsTab] = useState<AlertsTab>("alerts");
+  /** Alerts & Island's tab. */
+  const [alertsTab, setAlertsTab] = useState<AlertsTab>("rules");
+  /** A link to a Library collection (`seq` makes a repeat count); the Library page reads it when it mounts or it changes. */
+  const [libraryRequest, setLibraryRequest] = useState<{ collection: CollectionId; seq: number }>();
+  const openLibrary = (collection: CollectionId) => {
+    setLibraryRequest((r) => ({ collection, seq: (r?.seq ?? 0) + 1 }));
+    setMode("library");
+  };
   /** Settings' tab, and the App page a link or the tray named (`seq` makes a repeat count). */
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("dashboard");
   const [settingsSection, setSettingsSection] = useState<string>();
@@ -170,8 +178,11 @@ export function useStudioUi(
         setMode("screens");
         break;
       case "alerts":
+        setAlertsTab("rules");
+        setMode("alerts");
+        break;
       case "island":
-        setAlertsTab(target);
+        setAlertsTab("island");
         setMode("alerts");
         break;
     }
@@ -192,14 +203,17 @@ export function useStudioUi(
         if (target.themeScope) openTheme(target.themeScope, target.profileId);
         else openThemeView();
         break;
-      case "library":
-        setMode("library");
+      case "library": {
+        const collection = COLLECTIONS.find((c) => c.id === target.tab)?.id;
+        if (collection) openLibrary(collection);
+        else setMode("library");
         break;
+      }
       case "data":
         setMode("sources");
         break;
       case "alerts":
-        setAlertsTab(target.tab === "island" ? "island" : "alerts");
+        setAlertsTab(ALERTS_TABS.find((t) => t === target.tab) ?? "rules");
         setMode("alerts");
         break;
       case "screens":
@@ -240,7 +254,6 @@ export function useStudioUi(
     setMode,
     showSources,
     showLibrary,
-    showGauges,
     showTheme,
     showAlerts,
     showScreens,
@@ -258,6 +271,8 @@ export function useStudioUi(
     setLeftWidth,
     alertsTab,
     setAlertsTab,
+    libraryRequest,
+    openLibrary,
     settingsTab,
     setSettingsTab,
     settingsSection,

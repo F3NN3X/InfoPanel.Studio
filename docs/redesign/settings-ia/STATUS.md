@@ -316,3 +316,61 @@ context, its tabs, sections, search and `DOCUMENT_CARD` cases removed), `desktop
 - Phase 7: the Help window's "Open settings" links (`src/help/env.tsx`) still open the separate window; they should ask
   the studio for Settings › App when it is up. `scopeOf` and `LookScope` in `profile-scope.ts` are now used only by
   `withScope` and its tests.
+
+## Phase 5b: Data, Alerts & Island, Library
+
+The last three interim views are real. Checked by typecheck, tests and build, and by eye in headless Chromium at 1440 px
+(Data, the status bar's Data item focusing the URL, Alerts & Island in all four tabs with a new rule and its editor,
+the island's Theme ↗ link and an Open widget ↗ landing on Send to island, Library › Themes / Styles / Gauges and the
+gauge editor, Theme › All themes in Library ↗); no page errors beyond the dev server's missing API.
+
+| Piece | State |
+|---|---|
+| Data (§10.2) | `sources-panel.tsx`: a 300 px left column with the **Connection card** (`connection-card.tsx`: pill `Connected · 18 ms` / `Slow · 640 ms` / `Can't reach the Data API` from the status bar's `dataApi`, Data API URL, Test connection, API index Open ↗; `data-nav-section="connection"`, URL `data-nav-control="url"`) above the source tree; main area point table **Sensor · Now · Display name · Used in** with "Display names apply to every screen." The status bar's Data item and the palette's Data › Connection now focus the URL. The point inspector, Endpoints and Add source stay. `ConnectionStrip` and the header's status pill are gone. |
+| Display name | Per PLAN decision 8 a row edits its source container's existing `sourcePrefs[key].displayName` (a plugin's container; any other source as a whole), shown on every row of that group, with the source's own name as the placeholder (`pointDisplayName`, `prefKeyOf` moved to `explorer-model.ts`; the write is `withSourcePref`, which drops an emptied name). |
+| Used in | `screensUsing` (`data-usage.ts`) runs `computeUsage` over every screen: names up to two, then "N screens", a dash for none. The old widget-level "Used by" is in the point inspector as before. |
+| Alerts & Island (§10.3) | `alerts-view.tsx`: header, tabs **Rules · Island · Defaults · History**, **New rule** menu (`NewRuleMenu`: Blank sensor / Blank notification / Presets) on Rules. Rules (`alerts-rules.tsx`, was `alerts-panel.tsx`): "Alerts on", rows with the severity icon, name, the condition in mono, `‹severity› · shows as ‹style›`, the enabled toggle (plus last fired and hover Duplicate / Delete); a rule opens the existing editor in a 640 px column. Defaults (`alerts-defaults.tsx`): Default style, Position, Size, **Dim the page behind**, **Show for**, Quiet hours, **During quiet hours still show**. History: **Active now** (acknowledge / dismiss) on top, then the list, uncapped. |
+| Island tab | `island-tab.tsx` over `inspector/island-section.tsx` (now two columns): "Island for" screen chips (any screen's island, not only the edited one), a preview pill, Show Dynamic Island, Shape, When idle, Look (Font is a LinkRow `‹font› · from Theme`, Theme ↗ → Theme › Typography at that screen), Clock format LinkRow (`24 h · from Dashboard`, Settings ↗ → Clock & date), Motion, alerts collapse and grouping; second column Dashboard notices, **Widgets sent to the island** (each with Open widget ↗: selects the screen, page and zone and opens Send to island in Behaviour; the note "Turn this on per widget: Behaviour › Send to island.") and "Alert rules" as a link to Rules (`N rules show here`). The "As General" Seconds / Hours rows, the Font select and the dead "Dashboard › General › Clock" path are gone. |
+| Retired | `interim-views.tsx`, `AlertsPanel`'s drawer chrome, `IslandPanel`'s sections mode and its Widgets toggles and Alert rules list (`setZoneSetting`), `ConnectionStrip`. |
+| Library (§10.4, PLAN decision 1) | Sidebar kept: **Smart** (All items, Recent, Unused, Large files, Duplicates, Suggested for theme), then **By type**: Themes · Styles · Panels · Gauges · Media (Images, Videos, Backgrounds, Icons, SVG templates under it) · Fonts · Canvases, each with a count and its §10.4 hint line under the title. Header: `Library`, "Everything you've saved, beside the built-ins.", search, Grid / Shelves, **Used by ‹screen›** filter, **Canvas files · ‹screen›**, **Add files…**. Cards: auto-fill 160, 4:3 thumb, name and a tag (**Built-in** muted, else accent: Saved, Image, Video, Icon, Imported …). Sort, tags, item actions, drag onto the canvas, Merge and the remove safety are unchanged. |
+| Themes and Styles | `lib/my-library/config-items.ts` (moved out of `use-my-library.ts`): saved Themes (`config.appearancePresets`), the six built-in palettes, saved Styles (`config.stylePresets`) and the five built-in Styles, as read-only items (`cfg-theme:`, `builtin-theme:`, `builtin-style:` ids). New `LibraryKind` `theme` (config-only, never stored by the server) with a swatch thumbnail; its action is **Apply in Theme** (opens Theme; the scope is picked there). A Style applies to the selection as before. `isConfigItem` covers every stand-in, so none can be renamed or removed here. |
+| Gauges | A Library collection: `GaugesPage` renders inside the Library (lazy) with the Library's list shared (`library` prop; `useMyLibrary(config, load)`), keeping presets, In ‹screen›, My library, the editor, Save as new / Save to library, Import .gauge.json / frames and New gauge. "Edit gauge…" from a zone or canvas item opens it there (`ui.openLibrary("gauges")`, `gaugeInitial`). The rail's separate Gauges mode, the "Gauges →" strip and `StudioMode` `gauges` are gone. |
+| Links | `navigateTo({view: "library", tab})` takes a collection id (`ui.libraryRequest`): Theme's **All themes in Library ↗** opens Themes, the Background editor's library link opens Media. `navigateTo({view: "alerts", tab})` takes rules / island / defaults / history; the palette's Alerts and Dynamic Island drawers open Rules and Island. |
+
+Tests: `config-items.test.ts` (Themes and Styles from the config plus the built-ins, swatches, every stand-in read-only and never
+Unused, card tags, Themes / Media counts, the hint lines, `usedByScreen` ignoring the stand-ins), `island-panel-model.test.ts`
+(the Font and Clock links, an island's own font / hours / seconds kept readable and handed back), `withSourcePref`, `pointDisplayName`,
+`prefKeyOf` and `usedInCell` cases in the explorer tests, `screensUsing` in `data-usage.test.ts`. No existing test changed.
+
+### Deviations
+
+- **An island's own font, hours or seconds are kept, not migrated.** Clearing them would change what a kiosk renders. The
+  rows show them as `from this island` with a small **Follow Theme** / **Follow the Dashboard** button that hands them back
+  (the only way to clear them now); a fresh island has none. No stored key changed.
+- **Island keeps its other rows** (Scale, Offset, Reserve space, Rotate, Stats, Color / Opacity / Border / Shadow / Weight,
+  Collapse after, Group notices, calendar and OBS cards): the spec lists the main ones, and dropping the rest would lose settings.
+- **Widgets sent to the island lists only those that send** and has no toggle (the toggle is the widget's Behaviour › Send to
+  island: one home). A widget not yet sending is reached from the widget itself.
+- **Profile assets became a button, not a filter.** "Used by ‹screen›" filters the library's items by their placed copies;
+  the edited screen's canvas files (replace, optimise, uses) stay one click away as **Canvas files · ‹screen›**.
+- **Shelves and the smart collections stay** as PLAN decision 1 says; the cleanup banner and Needs attention are as before.
+- **Saved Themes and Styles are read-only here**: renaming and deleting stay in Theme's gallery and the Style toolbar.
+- **The Library upload tile shows only where uploads belong** (All items and Media); Themes, Styles, Panels and Canvases start with their items.
+- **Add files…** is the existing upload path; `.infopanel` files still route to the import dialog until Phase 6's door. The old
+  header "Import profile" button is gone (the title bar's Import has it).
+- **The Data header keeps Endpoints and Add source** above the two columns.
+
+### Unverified
+
+- Open widget ↗ from the chip of a screen other than the edited one: it switches the screen and page but was only clicked
+  on the edited screen.
+- Library › Used by with a real library (the dev server has no library API; items came from the config only), and Canvas files.
+- Dragging a Theme or Style card onto the canvas, and Apply in Theme from the detail pane with a selection.
+- Widths below 1000 px for Data, Alerts & Island and Library.
+
+### Follow-ups
+
+- Phase 6: Add files… and the Library's `.infopanel` routing use the Import door; the gauge editor's Import / Export route through §9.
+- Phase 7: help articles (`gauges.md`, `library.md`, `sensors.md`, alerts and island) still describe the old Gauges page, "Style
+  presets" and the drawers; the palette's "Dynamic Island" / "Alerts" drawer labels; comments that say "the Gauges page"; the
+  Library's narrow layout (sidebar 216 px beside the grid) and the Data left column on narrow widths.

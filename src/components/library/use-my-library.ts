@@ -1,52 +1,16 @@
 /**
  * My library's state on the Library page (spec §3): the server's items plus the config's own
- * saved panels and style presets (shown as items so "Made by you" has them), the upload queue
+ * saved panels, Styles and Themes and the built-ins (shown as items), the upload queue
  * behind the tray, and the item actions that change the library (copies, variants, merges).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, deleteLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
+import { configItems } from "@/lib/my-library/config-items";
+import { isConfigItem } from "@/lib/my-library/model";
 import { addFileToLibrary } from "./add-file";
 import { removeItem, type RemoveResult } from "./remove-item";
-
-/** Config presets shown as library items carry this id prefix; they live in the config, not the library. */
-export const CONFIG_PANEL = "cfg-panel:";
-export const CONFIG_STYLE = "cfg-style:";
-export const isConfigItem = (item: Pick<LibraryItem, "id">) => item.id.startsWith(CONFIG_PANEL) || item.id.startsWith(CONFIG_STYLE);
-
-/** The config's saved panels and style presets as library items (read-only stand-ins). */
-export function configItems(config: Pick<DashboardConfig, "panelPresets" | "stylePresets">): LibraryItem[] {
-  const at = "1970-01-01T00:00:00.000Z";
-  const panels = (config.panelPresets ?? []).map(
-    (p): LibraryItem => ({
-      id: CONFIG_PANEL + p.id,
-      kind: "panel",
-      name: p.name,
-      createdAt: at,
-      updatedAt: at,
-      files: [],
-      meta: { cols: p.colSpan, rows: p.rowSpan, source: "config" },
-      // Their uses aren't counted: never flagged Unused.
-      copies: [{ profileId: "*" }],
-      data: p,
-    }),
-  );
-  const styles = (config.stylePresets ?? []).map(
-    (s): LibraryItem => ({
-      id: CONFIG_STYLE + s.id,
-      kind: "style",
-      name: s.name,
-      createdAt: at,
-      updatedAt: at,
-      files: [],
-      meta: { source: "config" },
-      copies: [{ profileId: "*" }],
-      data: s,
-    }),
-  );
-  return [...panels, ...styles];
-}
 
 /** One file in the upload tray. */
 export interface UploadRow {
@@ -82,7 +46,8 @@ export interface MyLibrary {
 
 const WORKERS = 2;
 
-export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets">): MyLibrary {
+/** `load` false leaves the server list to a host that already has it (the Gauges view inside the Library page). */
+export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets" | "appearancePresets">, load = true): MyLibrary {
   const [server, setServer] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +71,9 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
       },
     );
   }, []);
-  useEffect(refresh, [refresh]);
+  useEffect(() => {
+    if (load) refresh();
+  }, [refresh, load]);
 
   const patchRow = (id: number, patch: Partial<UploadRow>) => setUploads((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const upsert = (item: LibraryItem) => setServer((list) => [item, ...list.filter((i) => i.id !== item.id)]);
@@ -153,7 +120,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     upsert(await updateLibraryItem(item.id, patch));
   };
 
-  const items = useMemo(() => [...server, ...configItems(config)], [server, config.panelPresets, config.stylePresets]);
+  const items = useMemo(() => [...server, ...configItems(config)], [server, config.panelPresets, config.stylePresets, config.appearancePresets]);
 
   return {
     items,

@@ -27,8 +27,8 @@ import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
 import { KEYS } from "./use-studio-shortcuts";
 
-/** Every view but Design is a full page of its own: the rail's (Sources is Data) and the two interim ones (Gauges, Screens). */
-export type StudioMode = "design" | "sources" | "library" | "gauges" | "theme" | "alerts" | "screens" | "settings";
+/** Every view but Design is a full page of its own: the rail's (Sources is Data) and Screens. */
+export type StudioMode = "design" | "sources" | "library" | "theme" | "alerts" | "screens" | "settings";
 
 interface StudioTopBarProps {
   profiles: MonitorProfile[];

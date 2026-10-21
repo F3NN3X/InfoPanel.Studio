@@ -89,7 +89,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
       label: `Data API · ${dataApi.state}`,
       tone: API_TONE[dataApi.state],
       tip: `Data API at ${dataApi.base.replace(/^https?:\/\//, "")}${latency} — open Data`,
-      onClick: () => onNavigate({ view: "data", section: "connection" }),
+      onClick: () => onNavigate({ view: "data", section: "connection", control: "url" }),
     },
     serverItem(server, onNavigate),
     {

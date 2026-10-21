@@ -1,7 +1,10 @@
 import type { AlertRule, AlertsConfig } from "@/lib/alerts";
 import { ISLAND_SETTING } from "@/lib/island/sources";
-import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
-import { effectiveSettings, type DashboardModule, type ModuleSettingValue } from "@/modules/types";
+import { fontById } from "@/lib/fonts";
+import type { GeneralFont, ResolvedGeneral } from "@/lib/general";
+import type { IslandConfig } from "@/lib/island/config";
+import type { MonitorProfile } from "@/lib/layout";
+import { effectiveSettings, type DashboardModule } from "@/modules/types";
 import { allSections, widgetContext } from "./inspector-model";
 import { placementTitle } from "./studio-modules";
 
@@ -56,36 +59,6 @@ export function unplacedIslandWidgets(profile: MonitorProfile, modules: readonly
     .sort((a, b) => a.localeCompare(b));
 }
 
-/** Set one zone's setting on any page of a profile (the canvas may show another page). */
-export function setZoneSetting(
-  config: DashboardConfig,
-  profileId: string,
-  zoneId: string,
-  key: string,
-  value: ModuleSettingValue
-): DashboardConfig {
-  return {
-    ...config,
-    profiles: config.profiles.map((prof) =>
-      prof.id !== profileId
-        ? prof
-        : {
-            ...prof,
-            pages: prof.pages.map((page) =>
-              page.placements.some((p) => p.id === zoneId)
-                ? {
-                    ...page,
-                    placements: page.placements.map((p) =>
-                      p.id === zoneId ? { ...p, settings: { ...p.settings, [key]: value } } : p
-                    ),
-                  }
-                : page
-            ),
-          }
-    ),
-  };
-}
-
 /** The inspector section holding a widget's "Send to island" (the jump target), if it has one. */
 export function islandSectionId(mod: DashboardModule | undefined): string | undefined {
   if (!mod?.island) return undefined;
@@ -100,3 +73,38 @@ export function islandRules(alerts: AlertsConfig, profileId: string): AlertRule[
       (!r.profiles || r.profiles.length === 0 || r.profiles.includes(profileId))
   );
 }
+
+/** What a read-only island row shows: the value, where it comes from, and whether the island still holds its own. */
+export interface IslandLink {
+  value: string;
+  from: string;
+  own: boolean;
+}
+
+/**
+ * The island's Font row (SPEC §10.3): the screen's page font, set in Theme. An island saved with a font of
+ * its own keeps rendering with it (`own`); the row says so and offers to follow Theme.
+ */
+export function islandFontLink(island: Pick<IslandConfig, "font"> | undefined, pageFont: GeneralFont): IslandLink {
+  const own = island !== undefined && island.font !== "system";
+  const font = own ? island.font : pageFont;
+  const label = fontById(font)?.label ?? font;
+  return { value: font === "system" ? "System" : label, from: own ? "this island" : "Theme", own };
+}
+
+/**
+ * The island's Clock format row: hours and seconds as the Dashboard's clock sets them (Settings › Clock &
+ * date). An island saved with its own hours or seconds keeps them (`own`), and the row offers to follow
+ * the Dashboard.
+ */
+export function islandClockLink(island: Pick<IslandConfig, "hours" | "seconds"> | undefined, general: Pick<ResolvedGeneral, "hour12" | "showSeconds">): IslandLink {
+  const own = island !== undefined && (island.hours !== "general" || island.seconds !== "general");
+  const hours = island && island.hours !== "general" ? island.hours === "12" : general.hour12;
+  const seconds = island && island.seconds !== "general" ? island.seconds === "show" : general.showSeconds;
+  const text = hours === undefined ? "Locale" : hours ? "12 h" : "24 h";
+  return { value: seconds ? text : `${text} · no seconds`, from: own ? "this island" : "Dashboard", own };
+}
+
+/** The patch that gives the island's own font and clock back to Theme and the Dashboard. */
+export const FOLLOW_THEME: Pick<IslandConfig, "font"> = { font: "system" };
+export const FOLLOW_DASHBOARD: Pick<IslandConfig, "hours" | "seconds"> = { hours: "general", seconds: "general" };

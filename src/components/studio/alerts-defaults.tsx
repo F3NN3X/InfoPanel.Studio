@@ -1,4 +1,3 @@
-import { SlidersHorizontal } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import {
   ALERT_BACKDROPS,
@@ -15,12 +14,14 @@ import {
 import { cn } from "@/lib/utils";
 import { ISLAND_HINT, NumField, PositionGrid } from "./alerts-fields";
 import { alertsKey, patchDefaults, setQuietHours } from "./alerts-model";
-import { PanelSection } from "./panel-section";
 import { FIELD, InlineRow, SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The collapsed "Global defaults" section: the display rules fall back to, and quiet hours. */
+/**
+ * Alerts & Island › Defaults: what the display rules fall back to (Default style, Position, Size, Dim the
+ * page behind, Show for) and quiet hours.
+ */
 export function AlertDefaults({ alerts, setConfig }: { alerts: AlertsConfig; setConfig: HistorySetter }) {
   const d = alerts.defaults;
   const quiet = alerts.quietHours;
@@ -33,7 +34,7 @@ export function AlertDefaults({ alerts, setConfig }: { alerts: AlertsConfig; set
     );
 
   return (
-    <PanelSection id="alerts-defaults" title="Global defaults" icon={SlidersHorizontal} defaultOpen={false}>
+    <div className="flex max-w-[520px] flex-col gap-2">
       <SegmentedRow
         label="Default style"
         value={d.style}
@@ -54,15 +55,15 @@ export function AlertDefaults({ alerts, setConfig }: { alerts: AlertsConfig; set
       />
       {d.style !== "island" && (
         <SegmentedRow
-          label="Backdrop"
+          label="Dim the page behind"
           value={d.backdrop}
           onChange={(backdrop) => setDefaults("backdrop", { backdrop: backdrop as AlertBackdrop })}
           options={ALERT_BACKDROPS.map((b) => ({ value: b, label: cap(b) }))}
         />
       )}
-      <InlineRow label="Seconds" hint="0 = stays until acknowledged.">
+      <InlineRow label="Show for" hint="Seconds. 0 = stays until acknowledged.">
         <NumField
-          label="Default seconds"
+          label="Show for (seconds)"
           min={0}
           max={DISPLAY_SECONDS_MAX}
           value={d.seconds}
@@ -94,7 +95,7 @@ export function AlertDefaults({ alerts, setConfig }: { alerts: AlertsConfig; set
             />
           </div>
           <SelectRow
-            label="Still show"
+            label="During quiet hours still show"
             hint="Alerts below this severity are kept in history but not shown."
             value={quiet.minSeverity}
             onChange={(minSeverity) => setQuiet({ minSeverity: minSeverity as Severity })}
@@ -102,6 +103,6 @@ export function AlertDefaults({ alerts, setConfig }: { alerts: AlertsConfig; set
           />
         </>
       )}
-    </PanelSection>
+    </div>
   );
 }

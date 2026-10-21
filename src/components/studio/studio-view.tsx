@@ -25,7 +25,7 @@ import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar } from "./studio-top-bar";
 import { LeftRail } from "./left-rail";
 import { DesignLeftPanel } from "./design-left-panel";
-import { AlertsView, ConnectionStrip } from "./interim-views";
+import { AlertsView } from "./alerts-view";
 import { ScreensView } from "./screens-view";
 import { withScreenPerformance } from "./screens-model";
 import { SettingsView } from "./settings-view";
@@ -70,9 +70,8 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 
 /** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
-/** The Library page (A6), loaded when the rail first opens it. */
+/** The Library page (A6, with the Gauges collection), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
-const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
 interface StudioViewProps {
   config: DashboardConfig;
@@ -182,7 +181,7 @@ function StudioViewBody({
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
-  const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
+  const { studioLayout, showSources, showLibrary, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
   const narrowRail = railWidth(windowWidth) < 72;
   // F1 and the rail's Help: the article for what the user is on (an open dialog, the selected zone, the Screens view).
   const helpTarget = () =>
@@ -200,14 +199,16 @@ function StudioViewBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ui.screenRequest?.seq]);
   /**
-   * The island drawer's widget rows: select the zone and scroll the inspector to "Send to island". A zone
-   * on another page waits for the page switch (it clears the selection) before it is selected.
+   * Alerts & Island's "Open widget ↗": select the zone and scroll the inspector to "Send to island". A zone
+   * on another screen or page waits for the switch (it clears the selection) before it is selected.
    */
   const [pendingZone, setPendingZone] = useState<string | null>(null);
   /** The zone an import just made: it opens in the canvas editor once it is on the page. */
   const openOnLand = useRef<string | null>(null);
-  const openZone = (pageId: string, zoneId: string) => {
-    if (pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
+  const openZone = (profileId: string, pageId: string, zoneId: string) => {
+    ui.setMode("design");
+    if (profileId !== storedProfile.id) selectProfile(profileId);
+    if (profileId !== storedProfile.id || pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
     setPendingZone(zoneId);
   };
   useEffect(() => {
@@ -253,11 +254,11 @@ function StudioViewBody({
   const [editorEpoch, setEditorEpoch] = useState(0);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
 
-  /** The gauge the Gauges page opens in its editor ("Edit gauge…" from a zone or a canvas item). */
+  /** The gauge the Library's Gauges collection opens in its editor ("Edit gauge…" from a zone or a canvas item). */
   const [gaugeToOpen, setGaugeToOpen] = useState<GaugeSource | null>(null);
   const openGauge = (source: GaugeSource) => {
     setGaugeToOpen(source);
-    ui.setMode("gauges");
+    ui.openLibrary("gauges");
   };
 
   /** The Library's way into the studio: placing a card copies it into this profile (one undo step). */
@@ -334,28 +335,18 @@ function StudioViewBody({
     <AlertsView
       tab={ui.alertsTab}
       onTab={ui.setAlertsTab}
-      alerts={{
-        config,
-        setConfig,
-        active: control?.alerts ?? [],
-        points: dataPoints,
-        current: { profile: storedProfile.id, page: profile.pageId ?? storedProfile.pages[0].id },
-        pushPending,
-        editingId: ui.alertRule,
-        onEdit: ui.setAlertRule,
-        onOpenSources: () => ui.setMode("sources"),
-      }}
-      island={{
-        config,
-        setConfig,
-        profile: storedProfile,
-        onOpenZone: openZone,
-        onOpenRule: (id) => {
-          ui.setAlertRule(id);
-          ui.openDrawer("alerts");
-        },
-        onOpenExplorer: () => ui.setMode("sources"),
-      }}
+      config={config}
+      setConfig={setConfig}
+      active={control?.alerts ?? []}
+      points={dataPoints}
+      screen={storedProfile}
+      page={profile.pageId ?? storedProfile.pages[0].id}
+      pushPending={pushPending}
+      editingId={ui.alertRule}
+      onEdit={ui.setAlertRule}
+      onOpenSources={() => ui.setMode("sources")}
+      onOpenZone={openZone}
+      navigateTo={ui.navigateTo}
     />
   );
 
@@ -414,28 +405,24 @@ function StudioViewBody({
     />
   );
 
+  const statusBar = useStatusBar(control, offline ? "offline" : pushPending ? "unsaved" : "saved");
+
   const canvasEl = showSources ? (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40">
-      <ConnectionStrip
-        value={config.dataApiUrl}
-        onChange={(dataApiUrl) => setConfig((c) => ({ ...c, dataApiUrl }), "data-api-url")}
-        openRequest={ui.navRequest?.target.view === "data" && ui.navRequest.target.section === "connection" ? ui.navRequest.seq : undefined}
+      <SourcesPanel
+        config={config}
+        setConfig={setConfig}
+        profile={profile}
+        focusPointKey={focusPointKey}
+        selectedZoneId={sel.primaryId}
+        dataApi={statusBar.dataApi}
+        onOpenZone={(id, opts) => {
+          ui.setMode("design");
+          focusZone(id);
+          if (opts?.widgetId) sel.selectWidget(id, opts.widgetId);
+          if (opts?.dataTab) ui.requestInspectorTab("data");
+        }}
       />
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <SourcesPanel
-          config={config}
-          setConfig={setConfig}
-          profile={profile}
-          focusPointKey={focusPointKey}
-          selectedZoneId={sel.primaryId}
-          onOpenZone={(id, opts) => {
-            ui.setMode("design");
-            focusZone(id);
-            if (opts?.widgetId) sel.selectWidget(id, opts.widgetId);
-            if (opts?.dataTab) ui.requestInspectorTab("data");
-          }}
-        />
-      </div>
     </div>
   ) : (
     <StudioCanvas
@@ -599,14 +586,12 @@ function StudioViewBody({
   );
   const libraryEl = showLibrary && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-      {/* Until Phase 5 moves Gauges into the Library as a collection, its old page is one link away. */}
-      <div className="flex h-7 shrink-0 items-center justify-end border-b border-ui-subtle bg-ui-chrome px-3 font-ui text-[12px]">
-        <button type="button" onClick={() => ui.setMode("gauges")} className="text-ui-accent-text hover:underline">
-          Gauges →
-        </button>
-      </div>
       <LibraryPage
         bridge={libraryBridge}
+        request={ui.libraryRequest}
+        gaugeInitial={gaugeToOpen}
+        onGaugeOpened={() => setGaugeToOpen(null)}
+        onOpenTheme={() => ui.navigateTo({ view: "theme" })}
         onShowCanvas={() => ui.setMode("design")}
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
@@ -635,19 +620,6 @@ function StudioViewBody({
     </Suspense>
   );
 
-  const gaugesEl = showGauges && (
-    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-      <GaugesPage
-        bridge={libraryBridge}
-        profileName={storedProfile.name}
-        theme={resolveTheme(config, profile).tokens}
-        initial={gaugeToOpen}
-        onOpened={() => setGaugeToOpen(null)}
-        onShowCanvas={() => ui.setMode("design")}
-      />
-    </Suspense>
-  );
-
   // Theme's screen and page: the ones its scope bar picked, else the Design selection (SPEC §7.1).
   const themeProfile = config.profiles.find((p) => p.id === ui.themeProfileId) ?? storedProfile;
   const themePage = ui.themeScope.kind === "page" ? ui.themeScope.pageId : ui.themePageId;
@@ -670,8 +642,6 @@ function StudioViewBody({
       presets={appearancePresets}
     />
   );
-
-  const statusBar = useStatusBar(control, offline ? "offline" : pushPending ? "unsaved" : "saved");
 
   const bar = fullPage || canvasEditor ? null : (
     <>
@@ -748,7 +718,7 @@ function StudioViewBody({
             active={
               showSources
                 ? "data"
-                : showLibrary || showGauges
+                : showLibrary
                   ? "library"
                   : showTheme
                     ? "theme"
@@ -767,7 +737,7 @@ function StudioViewBody({
         }
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
-        main={alertsEl || screensEl || settingsEl || gaugesEl || themeEl || (
+        main={alertsEl || screensEl || settingsEl || themeEl || (
           <>
             {libraryEl}
             {canvasEditor ? (

@@ -1,7 +1,6 @@
-import { Fragment, type ReactNode } from "react";
-import { Activity, Bell, BellRing, Clock, Moon, Palette, Play, Plus, Shapes, Trash2, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { Play, Plus, Trash2 } from "lucide-react";
 import type { Severity } from "@/lib/alerts";
-import { FONT_CATALOG } from "@/lib/fonts";
 import { islandBus } from "@/lib/island/bus";
 import {
   ISLAND_COLLAPSE_MAX,
@@ -20,7 +19,6 @@ import {
 } from "@/lib/island/config";
 import { cn } from "@/lib/utils";
 import { FIELD, SegmentedRow, SelectRow, SliderRow, ColorRow, TextRow, ToggleRow } from "../setting-rows";
-import { PanelSection, SectionPad } from "../panel-section";
 import { SensorField } from "../widget-editor/sensor-field";
 import { IntegrationsCard } from "./integrations-card";
 
@@ -58,22 +56,11 @@ const WEIGHT_OPTIONS: Options = [
   { value: "semibold", label: "Semibold" },
   { value: "bold", label: "Bold" },
 ];
-const SECONDS_OPTIONS: Options = [
-  { value: "general", label: "As General", title: "Dashboard › General › Clock" },
-  { value: "show", label: "Show" },
-  { value: "hide", label: "Hide" },
-];
-const HOURS_OPTIONS: Options = [
-  { value: "general", label: "As General", title: "Dashboard › General › Clock" },
-  { value: "24", label: "24 h" },
-  { value: "12", label: "12 h" },
-];
 const MOTION_OPTIONS: Options = [
   { value: "lively", label: "Lively", title: "Springs with a little overshoot" },
   { value: "smooth", label: "Smooth", title: "Springs without overshoot" },
   { value: "off", label: "Off", title: "Changes at once" },
 ];
-const FONTS = FONT_CATALOG.map((f) => ({ value: f.id, label: f.id === "system" ? "Page font" : f.label }));
 
 /** The bus source of the studio's preview notices. */
 export const PREVIEW_SOURCE = "preview";
@@ -103,12 +90,26 @@ interface IslandSectionProps {
   onChange: (patch: Partial<IslandConfig>) => void;
   /** The sensor picker's "Open data explorer". */
   onOpenExplorer: () => void;
-  /** The left panel: each group is an inspector section, and the switch sits above them. */
-  sections?: boolean;
+  /** Font and Clock format are other views' settings, shown as LinkRows (SPEC §10.3). */
+  links: { font: ReactNode; clock: ReactNode };
+  /** Above the rows (the screen chips, the preview pill). */
+  lead: ReactNode;
+  /** Under the notices, in the second column (the widgets that send to the island). */
+  aside: ReactNode;
 }
 
 function Heading({ children }: { children: ReactNode }) {
-  return <div className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-ui-4">{children}</div>;
+  return <div className="pt-1 font-ui-mono text-[10px] font-medium uppercase tracking-[.06em] text-ui-4">{children}</div>;
+}
+
+/** A bordered card of the second column. */
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-[10px] border border-ui-default p-3.5">
+      <Heading>{title}</Heading>
+      {children}
+    </div>
+  );
 }
 
 /** A threshold box: empty = none. */
@@ -191,11 +192,11 @@ function withoutEmpty(s: IslandStat): IslandStat {
 }
 
 /**
- * Dashboard › Profile › Dynamic Island (and the Dynamic Island panel): the pill at the top centre of
- * the profile. Alert rules reach it by picking the Island display style, widgets by their "Send to
- * island" setting.
+ * Alerts & Island › Island: the pill at the top centre of a screen. Alert rules reach it by picking
+ * the Island display style, widgets by their "Send to island" setting. Two columns: the island's own
+ * rows, then the dashboard notices and the widgets that send to it.
  */
-export function IslandSection({ island, onChange, onOpenExplorer, sections = false }: IslandSectionProps) {
+export function IslandSection({ island, onChange, onOpenExplorer, links, lead, aside }: IslandSectionProps) {
   const v = island ?? { ...ISLAND_DEFAULTS, enabled: false };
   // Plays on the canvas only (the studio's own bus); each press shows the next severity.
   const preview = () => {
@@ -203,11 +204,10 @@ export function IslandSection({ island, onChange, onOpenExplorer, sections = fal
     islandBus.notify({ source: PREVIEW_SOURCE, id: `p${i}`, ...PREVIEW[i], ttl: 4000 });
   };
   const rotatable = v.idle === "time-date" || v.idle === "sensor" || v.notices.calendar;
-  const groups: { id: string; title: string; icon: LucideIcon; body: ReactNode }[] = [
+  const groups: { id: string; title: string; body: ReactNode }[] = [
     {
       id: "island-shape",
       title: "Shape",
-      icon: Shapes,
       body: (
         <>
           <SegmentedRow label="Style" options={SHAPE_OPTIONS} value={v.shape} onChange={(shape) => onChange({ shape: shape as IslandConfig["shape"] })} />
@@ -246,7 +246,6 @@ export function IslandSection({ island, onChange, onOpenExplorer, sections = fal
     {
       id: "island-idle",
       title: "Idle",
-      icon: Moon,
       body: (
         <>
           <SelectRow
@@ -276,7 +275,6 @@ export function IslandSection({ island, onChange, onOpenExplorer, sections = fal
     {
       id: "island-look",
       title: "Look",
-      icon: Palette,
       body: (
         <>
           <SegmentedRow label="Color" options={TINT_OPTIONS} value={v.tint} onChange={(tint) => onChange({ tint: tint as IslandConfig["tint"] })} />
@@ -299,7 +297,7 @@ export function IslandSection({ island, onChange, onOpenExplorer, sections = fal
           />
           <SegmentedRow label="Border" options={BORDER_OPTIONS} value={v.border} onChange={(border) => onChange({ border: border as IslandConfig["border"] })} />
           <ToggleRow label="Shadow" value={v.shadow} onChange={(shadow) => onChange({ shadow })} />
-          <SelectRow label="Font" options={FONTS} value={v.font} onChange={(font) => onChange({ font })} />
+          {links.font}
           <SelectRow label="Weight" options={WEIGHT_OPTIONS} value={v.weight} onChange={(weight) => onChange({ weight: weight as IslandConfig["weight"] })} />
         </>
       ),
@@ -307,24 +305,16 @@ export function IslandSection({ island, onChange, onOpenExplorer, sections = fal
     {
       id: "island-clock",
       title: "Clock",
-      icon: Clock,
-      body: (
-        <>
-          <SegmentedRow label="Seconds" options={SECONDS_OPTIONS} value={v.seconds} onChange={(seconds) => onChange({ seconds: seconds as IslandConfig["seconds"] })} />
-          <SegmentedRow label="Hours" options={HOURS_OPTIONS} value={v.hours} onChange={(hours) => onChange({ hours: hours as IslandConfig["hours"] })} />
-        </>
-      ),
+      body: links.clock,
     },
     {
       id: "island-motion",
       title: "Motion",
-      icon: Activity,
       body: <SegmentedRow label="Animation" options={MOTION_OPTIONS} value={v.motion} onChange={(motion) => onChange({ motion: motion as IslandConfig["motion"] })} />,
     },
     {
       id: "island-alerts",
       title: "Alerts",
-      icon: Bell,
       body: (
         <>
           <SliderRow
@@ -347,83 +337,73 @@ export function IslandSection({ island, onChange, onOpenExplorer, sections = fal
         </>
       ),
     },
-    {
-      id: "island-notices",
-      title: "Dashboard notices",
-      icon: BellRing,
-      body: (
-        <>
-          {NOTICE_ROWS.map((row) => (
-            <ToggleRow
-              key={row.key}
-              label={row.label}
-              hint={row.hint}
-              value={v.notices[row.key]}
-              onChange={(on) => onChange({ notices: { ...v.notices, [row.key]: on } })}
-            />
-          ))}
-          {v.notices.calendar && (
-            <SliderRow
-              label="Count down from"
-              hint="Minutes before an event the countdown starts and the island opens; it opens again when the event begins"
-              value={v.calendarLead}
-              min={1}
-              max={ISLAND_LEAD_MAX}
-              step={1}
-              unit="min"
-              fallback={ISLAND_DEFAULTS.calendarLead}
-              onChange={(calendarLead) => onChange({ calendarLead })}
-            />
-          )}
-          {(v.notices.onAir || v.notices.calendar) && <IntegrationsCard obs={v.notices.onAir} calendar={v.notices.calendar} />}
-          <button
-            type="button"
-            onClick={preview}
-            className="flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1"
-          >
-            <Play className="h-3.5 w-3.5" aria-hidden />
-            Preview an alert
-          </button>
-          <p className="text-[11px] leading-snug text-ui-5">
-            Alert rules show here when their display style is Island; widgets with “Send to island” on and the
-            dashboard notices above add theirs on the kiosk. On the canvas the island plays only test alerts and previews.
-          </p>
-        </>
-      ),
-    },
   ];
+  const notices = (
+    <>
+      {NOTICE_ROWS.map((row) => (
+        <ToggleRow
+          key={row.key}
+          label={row.label}
+          hint={row.hint}
+          value={v.notices[row.key]}
+          onChange={(on) => onChange({ notices: { ...v.notices, [row.key]: on } })}
+        />
+      ))}
+      {v.notices.calendar && (
+        <SliderRow
+          label="Count down from"
+          hint="Minutes before an event the countdown starts and the island opens; it opens again when the event begins"
+          value={v.calendarLead}
+          min={1}
+          max={ISLAND_LEAD_MAX}
+          step={1}
+          unit="min"
+          fallback={ISLAND_DEFAULTS.calendarLead}
+          onChange={(calendarLead) => onChange({ calendarLead })}
+        />
+      )}
+      {(v.notices.onAir || v.notices.calendar) && <IntegrationsCard obs={v.notices.onAir} calendar={v.notices.calendar} />}
+      <button
+        type="button"
+        onClick={preview}
+        className="flex h-[28px] items-center gap-1.5 rounded-[6px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+      >
+        <Play className="h-3.5 w-3.5" aria-hidden />
+        Preview an alert
+      </button>
+      <p className="text-[11px] leading-snug text-ui-5">
+        Alert rules show here when their display style is Island; widgets with “Send to island” on and the
+        dashboard notices add theirs on the kiosk. On the canvas the island plays only test alerts and previews.
+      </p>
+    </>
+  );
   const enable = (
     <ToggleRow
       label="Show Dynamic Island"
-      hint="A pill at the top centre of the profile with the time, alerts and live activities"
+      hint="A pill at the top centre of the screen with the time, alerts and live activities"
       value={v.enabled}
       onChange={(enabled) => onChange({ enabled })}
     />
   );
-  if (sections)
-    return (
-      <>
-        <div className="border-b border-[#1c1c21] py-1.5">
-          <SectionPad>{enable}</SectionPad>
-        </div>
-        {v.enabled &&
-          groups.map((g, i) => (
-            <PanelSection key={g.id} id={g.id} title={g.title} icon={g.icon} defaultOpen={i === 0}>
-              {g.body}
-            </PanelSection>
-          ))}
-      </>
-    );
   return (
-    <div className="space-y-3">
-      {enable}
-      {v.enabled &&
-        groups.map((g) => (
-          <Fragment key={g.id}>
-            <Heading>{g.title}</Heading>
-            {g.body}
-          </Fragment>
-        ))}
+    <div className="flex flex-wrap items-start gap-6">
+      <div className="flex min-w-[320px] max-w-[520px] flex-1 flex-col gap-3">
+        {lead}
+        {enable}
+        {v.enabled &&
+          groups.map((g) => (
+            <div key={g.id} className="flex flex-col gap-2">
+              <Heading>{g.title}</Heading>
+              {g.body}
+            </div>
+          ))}
+      </div>
+      {v.enabled && (
+        <div className="flex min-w-[280px] max-w-[400px] flex-1 flex-col gap-4">
+          <Card title="Dashboard notices">{notices}</Card>
+          {aside}
+        </div>
+      )}
     </div>
   );
 }
