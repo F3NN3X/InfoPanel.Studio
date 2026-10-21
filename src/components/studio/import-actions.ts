@@ -11,7 +11,7 @@ function canvasZone(id: string, canvas: StoredCanvas, rect: ZoneRect): Placement
 
 /**
  * A new profile sized like the InfoPanel one, its one canvas zone filling it, made the active
- * profile unless `activate` is off (a pinned studio leaves what displays show). Two columns, as profile normalization asks; the zone spans both.
+ * profile unless `activate` is off (the studio leaves what displays open on alone). Two columns, as profile normalization asks; the zone spans both.
  */
 export function importAsProfile(
   config: DashboardConfig,

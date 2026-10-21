@@ -111,8 +111,8 @@ export default function App() {
   // Kiosk: studio saves pulled since load (the island's "Layout updated").
   const [layoutVersion, setLayoutVersion] = useState(0);
   useEffect(() => setOptimistic(null), [control]);
-  // Studio only: the profile pinned for editing (view state, never in the config). Displays keep showing
-  // `config.activeProfile` while the studio edits the pinned one; an unknown pin is ignored.
+  // Studio only: the profile selected in the Profiles panel, which the studio edits (view state, never in the
+  // config; stored as the old "pin"). Displays follow `config.activeProfile`; an unknown selection is ignored.
   const [pin, setPin] = useState(readPin);
   const pinnedId = pin && config.profiles.some((p) => p.id === pin) ? pin : undefined;
   const pinProfile = useCallback((id: string | undefined) => {
@@ -237,7 +237,7 @@ export default function App() {
       alive = false;
     };
   }, [kiosk]);
-  // Once the server's copy is read, a pin to a profile that is not in it is dropped.
+  // Once the server's copy is read, a selection of a profile that is not in it is dropped.
   useEffect(() => {
     if (synced && pin && !pinnedId) pinProfile(undefined);
   }, [synced, pin, pinnedId, pinProfile]);
@@ -437,8 +437,7 @@ export default function App() {
           <StudioView
             config={config}
             profile={profile}
-            pinnedProfileId={pinnedId}
-            onPin={pinProfile}
+            onSelectProfile={pinProfile}
             onPageChange={setStudioPage}
             setConfig={setConfig}
             windowWidth={windowSize.w}

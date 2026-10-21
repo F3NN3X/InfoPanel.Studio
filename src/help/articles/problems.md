@@ -29,7 +29,7 @@ If the message says another InfoPanel Studio server is already running on that p
 ## Edits don't show on the display
 
 - Look for a dot on the studio's **Save** button and press it.
-- Check the kiosk shows the profile you are editing; with **Auto-pick by window size** it picks the closest size.
+- Check the kiosk shows the profile you are editing. With **Best fit for the window** it opens the closest size, and the tag on each card in Profiles shows which one. With **Always the same profile** it opens the card tagged **On launch**.
 
 ## The display's GPU stays busy
 

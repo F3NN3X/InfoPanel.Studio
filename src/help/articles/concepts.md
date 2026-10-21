@@ -21,7 +21,7 @@ Everything you build: the theme, the global style, the page background, fonts an
 
 ## Profile
 
-A page designed for one display size, with its own grid (columns × rows), fit mode, gap and padding. A profile can inherit the dashboard theme or set its own. **Auto-pick by window size** chooses the profile closest to the window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
+A page designed for one display size, with its own grid (columns × rows), fit mode, gap and padding. A profile can inherit the dashboard theme or set its own. With **Best fit for the window** (Profiles › When the app opens), each display opens the profile closest to its window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
 
 ## Zone
 

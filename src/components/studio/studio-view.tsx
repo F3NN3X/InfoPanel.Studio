@@ -68,12 +68,10 @@ const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
 interface StudioViewProps {
   config: DashboardConfig;
-  /** The grid profile being edited (the pinned one, else the one displays show), on the page the studio shows. */
+  /** The grid profile being edited (the one selected in the Profiles panel), on the page the studio shows. */
   profile: ProfileView;
-  /** The profile the studio is pinned to for editing, if any (view state, never in the config). */
-  pinnedProfileId: string | undefined;
-  /** Pin a profile for editing, or unpin with undefined. */
-  onPin: (id: string | undefined) => void;
+  /** Select a profile for editing (view state, never in the config). */
+  onSelectProfile: (id: string) => void;
   /** Show another page of the profile on the canvas (view state, not undoable). */
   onPageChange: (pageId: string) => void;
   setConfig: Dispatch<SetStateAction<DashboardConfig>>;
@@ -111,8 +109,7 @@ export function StudioView(props: StudioViewProps) {
 function StudioViewBody({
   config,
   profile,
-  pinnedProfileId,
-  onPin,
+  onSelectProfile,
   onPageChange,
   setConfig: setConfigState,
   windowWidth,
@@ -135,6 +132,14 @@ function StudioViewBody({
   // The stored profile behind the page on the canvas (profile list, summary, JSON copy).
   const storedProfile = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
   const ui = useStudioUi(config, profile, onSave);
+  /**
+   * Edit a profile: the canvas, page tabs and inspector follow it, and the zoom returns to fit.
+   * What displays open on is not touched; only "When the app opens" sets that.
+   */
+  const selectProfile = (id: string) => {
+    onSelectProfile(id);
+    if (id !== profile.id) ui.fitZoom();
+  };
   const sel = useStudioSelection(profile);
   const { selected, selectedWidget, selectedWidgetId } = sel;
   useInspectorFollowsSelection(ui, sel.primaryId, selectedWidgetId);
@@ -146,8 +151,7 @@ function StudioViewBody({
     onPresetSaved: () => ui.setPresetNaming(false),
     windowSize: { width: windowWidth, height: windowHeight },
     onPageChange,
-    pinnedId: pinnedProfileId,
-    onPin,
+    onSelectProfile: selectProfile,
   });
   const { props: documentProps, setScopeStyle, appearancePresets } = useDocumentProps(
     config,
@@ -170,6 +174,7 @@ function StudioViewBody({
     appearancePresets,
     setScopeStyle,
     onPageChange,
+    onSelectProfile: selectProfile,
   });
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
@@ -186,24 +191,7 @@ function StudioViewBody({
     if (!showSources) setFocusPointKey(undefined);
   }, [showSources]);
 
-  /**
-   * Switch what displays show (a profile, or Auto). Unpinned, the studio follows: the selection resets
-   * with the profile and the zoom returns to fit. Pinned, the edited profile stays as it is.
-   */
-  const activateProfile = (id: string) => {
-    edit.activateProfile(id);
-    if (!pinnedProfileId) ui.fitZoom();
-  };
-  /** Open a profile for editing (the Library's jump to a copy): the pin moves with it, else displays follow. */
-  const editProfile = (id: string) => {
-    if (pinnedProfileId) {
-      onPin(id);
-      ui.fitZoom();
-    } else {
-      activateProfile(id);
-    }
-  };
-  /** The zoom bar's resolution button and a profile's "Size, grid and spacing…": Dashboard › Profile. */
+  /** The zoom bar's resolution button and the Library's jump to a background: Dashboard › Profile. */
   const openProfileSettings = () => {
     ui.setMode("design");
     sel.select(null);
@@ -245,8 +233,7 @@ function StudioViewBody({
       openOnLand.current = zoneId;
       setPendingZone(zoneId);
     },
-    pinnedId: pinnedProfileId,
-    onPin,
+    onSelectProfile: selectProfile,
   });
   /**
    * The canvas zone whose items are being edited: the editor takes the canvas, drawer and
@@ -296,7 +283,6 @@ function StudioViewBody({
     <StudioInspector
       config={config}
       profile={profile}
-      displayedId={resolveProfile(config, windowWidth, windowHeight).id}
       appearance={appearance}
       ui={ui}
       sel={sel}
@@ -343,17 +329,19 @@ function StudioViewBody({
         dashboard: config,
         activeProfile: config.activeProfile,
         profile: storedProfile,
-        displayedId: resolveProfile(config, windowWidth, windowHeight).id,
-        pinnedId: pinnedProfileId,
-        onPin,
+        currentPageId: profile.pageId ?? storedProfile.pages[0].id,
+        windowSize: { width: windowWidth, height: windowHeight },
         autoProfileId: resolveProfile({ ...config, activeProfile: "auto" }, windowWidth, windowHeight).id,
-        onActivate: activateProfile,
-        onEdit: editProfile,
+        onSelectProfile: selectProfile,
+        onSelectPage: onPageChange,
+        onAddPage: edit.addNewPage,
+        onActivate: edit.activateProfile,
         onAddProfile: edit.addProfile,
+        onImportProfile: edit.addImportedProfile,
+        onDuplicateProfile: edit.duplicateProfile,
         onRemoveProfile: edit.removeProfile,
         onProfileChange: (patch) =>
           edit.updateProfile((p) => ({ ...p, ...patch }), `profile:${Object.keys(patch).join()}`),
-        onOpenSettings: openProfileSettings,
       }}
       alerts={{
         config,
@@ -493,6 +481,7 @@ function StudioViewBody({
         onRenamingChange={ui.setRenamingPage}
         deletingId={ui.deletingPage}
         onDeletingChange={ui.setDeletingPage}
+        cycleSeconds={storedProfile.rotate?.enabled ? storedProfile.rotate.seconds : undefined}
         kioskPage={control?.profiles[storedProfile.id]?.page}
         onShowOnKiosk={(page) => void postControl("page", { profile: storedProfile.id, page })}
         rotate={{
@@ -542,7 +531,7 @@ function StudioViewBody({
     ui.setMode("design");
     const p = config.profiles.find((x) => x.id === c.profileId);
     if (!p) return;
-    if (p.id !== storedProfile.id) editProfile(p.id);
+    if (p.id !== storedProfile.id) selectProfile(p.id);
     const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
     if (page && page.id !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(page.id);
     if (c.zoneId) setPendingZone(c.zoneId);
@@ -645,12 +634,8 @@ function StudioViewBody({
       <StudioTopBar
         profiles={config.profiles}
         dashboard={config}
-        activeProfile={config.activeProfile}
-        displayedId={resolveProfile(config, windowWidth, windowHeight).id}
         profile={storedProfile}
-        pinnedId={pinnedProfileId}
-        onPin={onPin}
-        onActivate={activateProfile}
+        onSelectProfile={selectProfile}
         onOpenProfiles={() => {
           ui.setMode("design");
           ui.setDrawer("profiles");

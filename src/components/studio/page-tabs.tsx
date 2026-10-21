@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type PointerEvent as ReactPointerEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Dialog } from "@base-ui/react/dialog";
-import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Palette, Pencil, Plus, Shapes, Trash2, X } from "lucide-react";
+import { Ban, Copy, MoreHorizontal, Monitor, MonitorPlay, Palette, Pencil, Plus, RefreshCw, Shapes, Trash2, X } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import { IconGrid } from "@/components/ui/icon-grid";
@@ -39,6 +39,14 @@ interface PageTabsProps {
   onShowOnKiosk?: (id: string) => void;
   /** The auto-rotate toggle, shown with 2+ pages. */
   rotate?: { entry: ComponentProps<typeof RotateToggle>["entry"]; saved: boolean; onToggle: () => void; onSaved: () => void };
+  /** The profile's auto-rotate interval in seconds while it is on; shown as "Cycling every …". */
+  cycleSeconds?: number;
+}
+
+/** An interval for the tab strip: `30 s`, then minutes from 60 s (`1 min`, `1.5 min`). */
+export function cycleLabel(seconds: number): string {
+  if (seconds < 60) return `${seconds} s`;
+  return `${Number((seconds / 60).toFixed(1))} min`;
 }
 
 /**
@@ -194,6 +202,7 @@ export function PageTabs({
   kioskPage,
   onShowOnKiosk,
   rotate,
+  cycleSeconds,
 }: PageTabsProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -319,11 +328,15 @@ export function PageTabs({
       <IconButton label="Add page" className="h-7 w-7" onClick={onAdd}>
         <Plus className="h-4 w-4" />
       </IconButton>
-      {rotate && pages.length >= 2 && (
-        <div className="ml-auto">
-          <RotateToggle {...rotate} />
-        </div>
-      )}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {cycleSeconds !== undefined && (
+          <span className="flex items-center gap-1 whitespace-nowrap text-[11.5px] text-ui-4">
+            <RefreshCw aria-hidden className="h-3.5 w-3.5" />
+            Cycling every {cycleLabel(cycleSeconds)}
+          </span>
+        )}
+        {rotate && pages.length >= 2 && <RotateToggle {...rotate} />}
+      </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} entries={menuEntries(menu.id)} onClose={() => setMenu(null)} />}
       <IconDialog
         page={pages.find((p) => p.id === iconFor)}
