@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Settings › App's color tokens (the s-* utilities of src/settings). */
+@import "./settings/tokens.css";
 
 /* shadcn theme tokens.
    The raw token variables are HSL triplets ("240 10% 3.9%") written to the

@@ -18,14 +18,17 @@ import { appearanceOf } from "@/lib/style-resolve";
 import { resolveTheme, themeVars } from "@/lib/theme";
 import { CommandPalette } from "./command-palette";
 import { exportConfigFile, importConfigFile, startConfigImport } from "./config-file";
-import { useDocumentProps } from "./use-document-props";
+import { useStyleEdits } from "./use-style-edits";
 import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar } from "./studio-top-bar";
 import { LeftRail } from "./left-rail";
 import { DesignLeftPanel } from "./design-left-panel";
-import { AlertsView, ScreensView, SettingsView } from "./interim-views";
+import { AlertsView, ConnectionStrip } from "./interim-views";
+import { ScreensView } from "./screens-view";
+import { withScreenPerformance } from "./screens-model";
+import { SettingsView } from "./settings-view";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
 import { StudioInspector } from "./studio-inspector";
@@ -158,12 +161,7 @@ function StudioViewBody({
     onPageChange,
     onSelectProfile: selectProfile,
   });
-  const { props: documentProps, setScopeStyle, appearancePresets } = useDocumentProps(
-    config,
-    profile,
-    setConfig,
-    edit.updateProfile
-  );
+  const { setScopeStyle, appearancePresets } = useStyleEdits(config, profile, setConfig);
   /** The global style the zones render under. */
   const appearance = appearanceOf(config, profile);
   const menus = useContextMenu(sel);
@@ -196,25 +194,11 @@ function StudioViewBody({
     if (!showSources) setFocusPointKey(undefined);
   }, [showSources]);
 
-  /** The zoom bar's resolution button and the Library's jump to a background: the profile inspector's Layout. */
-  const openProfileSettings = () => {
-    ui.setMode("design");
-    sel.select(null);
-    ui.openDocumentTab("layout");
-  };
-  /** ⋯ Rename: edit that profile, show its Layout tab and put the cursor in the Name field. */
-  const renameProfile = (id: string) => {
-    if (id !== profile.id) selectProfile(id);
-    openProfileSettings();
-    // The inspector mounts first; then it opens the Screen section and the field takes the cursor.
-    requestAnimationFrame(() => {
-      studioLayout.showInspector();
-      ui.jumpInspector("ly-screen");
-      ui.requestRename();
-      // A field that never mounted (the inspector stayed away) must not keep the request for later.
-      setTimeout(ui.clearRename, 1500);
-    });
-  };
+  // A link to Screens that names a screen selects it (the Screens view shows the one being edited).
+  useEffect(() => {
+    if (ui.screenRequest) selectProfile(ui.screenRequest.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.screenRequest?.seq]);
   /**
    * The island drawer's widget rows: select the zone and scroll the inspector to "Send to island". A zone
    * on another page waits for the page switch (it clears the selection) before it is selected.
@@ -305,8 +289,6 @@ function StudioViewBody({
       ui={ui}
       sel={sel}
       edit={edit}
-      documentProps={documentProps}
-      windowSize={{ width: windowWidth, height: windowHeight }}
       setConfig={setConfig}
       onHelp={() => void openHelp(helpTarget()).catch(() => {})}
       onShowOnKiosks={(pageId) => void postControl("page", { profile: storedProfile.id, page: pageId })}
@@ -379,42 +361,81 @@ function StudioViewBody({
 
   const screensEl = showScreens && (
     <ScreensView
-      profiles={config.profiles}
-      dashboard={config}
-      activeProfile={config.activeProfile}
-      profile={storedProfile}
-      currentPageId={profile.pageId ?? storedProfile.pages[0].id}
+      config={config}
+      profile={profile}
       windowSize={{ width: windowWidth, height: windowHeight }}
       autoProfileId={resolveProfile({ ...config, activeProfile: "auto" }, windowWidth, windowHeight).id}
       onSelectProfile={selectProfile}
-      onSelectPage={onPageChange}
+      updateProfile={edit.updateProfile}
+      setConfig={setConfig}
+      onRotate={edit.setRotate}
+      onPerformance={(patch) => setConfig((c) => withScreenPerformance(c, storedProfile.id, patch), "profile:performance")}
+      onMovePage={edit.movePageTo}
       onAddPage={edit.addNewPage}
-      onActivate={edit.activateProfile}
+      onOpenPage={(pageId) => {
+        ui.setMode("design");
+        onPageChange(pageId);
+      }}
+      onOpenLive={() => ui.setLiveOpen(true)}
+      navigateTo={ui.navigateTo}
       onAddProfile={edit.addProfile}
       onImportProfile={edit.addImportedProfile}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
-      onRenameProfile={renameProfile}
     />
   );
 
-  const settingsEl = showSettings && <SettingsView section={ui.settingsSection} />;
+  const settingsEl = showSettings && (
+    <SettingsView
+      tab={ui.settingsTab}
+      onTab={ui.setSettingsTab}
+      appSection={ui.settingsSection}
+      seq={ui.navRequest?.seq ?? 0}
+      dashboard={{
+        config,
+        screen: storedProfile,
+        setConfig,
+        onExport: () => exportConfigFile(config, toast),
+        onReset: () => setConfig(defaultConfig()),
+        navigateTo: ui.navigateTo,
+      }}
+      studio={{
+        fitting: ui.fitting,
+        zoom: ui.zoom,
+        onFit: ui.fitZoom,
+        onZoom: ui.setZoom,
+        showGrid: ui.showGrid,
+        onShowGrid: ui.setShowGrid,
+        showRulers: ui.showRulers,
+        onShowRulers: ui.setShowRulers,
+        leftWidth: ui.leftWidth,
+        onLeftWidth: ui.setLeftWidth,
+      }}
+    />
+  );
 
   const canvasEl = showSources ? (
-    <div className="min-h-0 flex-1 overflow-hidden bg-background/40">
-      <SourcesPanel
-        config={config}
-        setConfig={setConfig}
-        profile={profile}
-        focusPointKey={focusPointKey}
-        selectedZoneId={sel.primaryId}
-        onOpenZone={(id, opts) => {
-          ui.setMode("design");
-          focusZone(id);
-          if (opts?.widgetId) sel.selectWidget(id, opts.widgetId);
-          if (opts?.dataTab) ui.requestInspectorTab("data");
-        }}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40">
+      <ConnectionStrip
+        value={config.dataApiUrl}
+        onChange={(dataApiUrl) => setConfig((c) => ({ ...c, dataApiUrl }), "data-api-url")}
+        openRequest={ui.navRequest?.target.view === "data" && ui.navRequest.target.section === "connection" ? ui.navRequest.seq : undefined}
       />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <SourcesPanel
+          config={config}
+          setConfig={setConfig}
+          profile={profile}
+          focusPointKey={focusPointKey}
+          selectedZoneId={sel.primaryId}
+          onOpenZone={(id, opts) => {
+            ui.setMode("design");
+            focusZone(id);
+            if (opts?.widgetId) sel.selectWidget(id, opts.widgetId);
+            if (opts?.dataTab) ui.requestInspectorTab("data");
+          }}
+        />
+      </div>
     </div>
   ) : (
     <StudioCanvas
@@ -517,7 +538,6 @@ function StudioViewBody({
           // Show the page and deselect, so the Page inspector shows (SPEC §6.2).
           if (pageId !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(pageId);
           sel.select(null);
-          ui.setScreenSettingsOpen(false);
           studioLayout.showInspector();
         }}
         renamingId={ui.renamingPage}
@@ -563,7 +583,7 @@ function StudioViewBody({
     const zone = page?.placements.find((z) => z.id === c.zoneId);
     return [p.name, p.pages.length > 1 ? page?.name : null, zone ? zoneName(zone) : c.label].filter(Boolean).join(" › ");
   };
-  /** Jump to a copy: its profile and page, then its zone selected (a background opens the profile's settings). */
+  /** Jump to a copy: its profile and page, then its zone selected (a background opens Theme › Background for the screen). */
   const jumpToCopy = (c: LibraryCopy) => {
     ui.setMode("design");
     const p = config.profiles.find((x) => x.id === c.profileId);
@@ -572,7 +592,7 @@ function StudioViewBody({
     const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
     if (page && page.id !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(page.id);
     if (c.zoneId) setPendingZone(c.zoneId);
-    else openProfileSettings();
+    else ui.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: p.id, section: "background" });
   };
   const canvasZones = profile.placements.filter(
     (z): z is typeof z & { canvas: NonNullable<typeof z.canvas> } => z.module === CANVAS_ID && !!z.canvas,
@@ -714,7 +734,6 @@ function StudioViewBody({
         onImportInfoPanel={() => io.openImport("new")}
         onExportInfoPanel={io.openExport}
         canExportInfoPanel={io.canExport}
-        onReset={() => setConfig(defaultConfig())}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         onUndo={history.undo}

@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus, ScanLine } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { SCROLL_ROW_H, type Placement, type ProfileView } from "@/lib/layout";
 import { MAX_SPACING, normalizeSpacing, profileGap, profilePadding } from "@/lib/profile-grid";
 import { cn } from "@/lib/utils";
-import { FIELD, InlineRow, SegmentedRow, SelectRow, StackRow } from "../setting-rows";
-import { GRID_PREVIEW_BOX, GRID_REFUSED, gridPreview, parseSize, sizeChoice, sizeOfChoice, sizeOptions, stepGrid } from "./profile-grid";
+import { FIELD, InlineRow, SegmentedRow, SelectRow } from "./setting-rows";
+import { GRID_PREVIEW_BOX, GRID_REFUSED, gridPreview, parseSize, sizeChoice, sizeOfChoice, sizeOptions, stepGrid } from "./inspector/profile-grid";
 
-/** Dashboard › Layout: the profile's screen (name, size, fit) and its grid (cells and spacing). */
+/** Screens › detail: the screen's size and fit, and its grid (cells and spacing). */
 
 type UpdateProfile = (fn: (p: ProfileView) => ProfileView, key?: string) => void;
 
@@ -39,72 +39,23 @@ function SizeInput({ label, value, onCommit }: { label: string; value: number; o
   );
 }
 
-/**
- * The profile's name. A pending rename request (⋯ Rename in the Profiles panel) puts the cursor
- * here with the text selected, then reports it handled.
- */
-function NameField({
-  value,
-  onChange,
-  renameRequest,
-  onRenameHandled,
-}: {
-  value: string;
-  onChange: (name: string) => void;
-  renameRequest: number | undefined;
-  onRenameHandled: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  // Typing saves live, but a blank name is never saved: it reverts when the field is left.
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  useEffect(() => {
-    if (renameRequest === undefined || !ref.current) return;
-    ref.current.focus();
-    ref.current.select();
-    onRenameHandled();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renameRequest]);
-  return (
-    <StackRow label="Name">
-      <input
-        ref={ref}
-        value={draft}
-        aria-label="Profile name"
-        onChange={(e) => {
-          setDraft(e.target.value);
-          if (e.target.value.trim() !== "") onChange(e.target.value);
-        }}
-        onBlur={() => draft.trim() === "" && setDraft(value)}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className={INPUT}
-      />
-    </StackRow>
-  );
-}
-
-/** Name, design size (with "Use this window's size") and what happens when the page doesn't fit. */
-export function ScreenSection({
+/** SIZE & FIT: the design size (with "Use this window's size") and what happens when the page doesn't fit. */
+export function SizeFitSection({
   profile,
   updateProfile,
   windowSize,
-  renameRequest,
-  onRenameHandled,
 }: {
   profile: ProfileView;
   updateProfile: UpdateProfile;
   /** The studio window, for "Use this window's size". */
   windowSize: { width: number; height: number };
-  renameRequest: number | undefined;
-  onRenameHandled: () => void;
 }) {
   const patch = (p: Partial<ProfileView>) => updateProfile((cur) => ({ ...cur, ...p }), `profile:${Object.keys(p).join()}`);
   const differs = profile.width !== windowSize.width || profile.height !== windowSize.height;
   return (
     <div className="space-y-3">
-      <NameField value={profile.name} onChange={(name) => patch({ name })} renameRequest={renameRequest} onRenameHandled={onRenameHandled} />
       <SelectRow
-        label="Design size"
+        label="Size preset"
         options={sizeOptions(profile.width, profile.height)}
         value={sizeChoice(profile.width, profile.height)}
         onChange={(choice) => {
@@ -116,16 +67,17 @@ export function ScreenSection({
         <SizeInput label="Width" value={profile.width} onCommit={(width) => patch({ width })} />
         <SizeInput label="Height" value={profile.height} onCommit={(height) => patch({ height })} />
       </div>
-      {differs && (
+      <InlineRow label="Match this window">
         <button
           type="button"
+          disabled={!differs}
           onClick={() => patch({ width: windowSize.width, height: windowSize.height })}
-          className="flex h-[26px] items-center gap-1.5 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-[11.5px] text-ui-2 hover:bg-ui-hover hover:text-ui-1"
+          className="flex h-[26px] items-center gap-1.5 rounded-md border border-ui-strong bg-ui-raised px-2.5 text-[11.5px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40"
         >
           <ScanLine className="h-3.5 w-3.5" />
-          Use this window&apos;s size ({windowSize.width} × {windowSize.height})
+          Use {windowSize.width} × {windowSize.height}
         </button>
-      )}
+      </InlineRow>
       <SegmentedRow
         label="When it doesn't fit"
         options={[

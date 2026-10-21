@@ -30,8 +30,16 @@ export interface MetricsSample {
   url: string;
 }
 
-/** Opens the Settings window, at a section (a `SectionId`) when given one. */
-export const openSettings = (section?: string): Promise<void | undefined> => call<void>("open_settings", section ? { section } : undefined);
+/**
+ * Calls `handler` when the shell asks the studio to open Settings › App (the tray's Settings and Update entries),
+ * with the section to show (a `SectionId`) or null; resolves to the unsubscribe. The separate Settings window opens
+ * only from the start page.
+ */
+export async function onOpenSettingsRequest(handler: (section: string | null) => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen<string | null>("studio://open-settings", (e) => handler(e.payload));
+}
 
 /**
  * Opens Help at an article and heading (a slug). The desktop app has a Help window; a browser tab
@@ -61,10 +69,7 @@ export async function onKioskLeft(handler: () => void): Promise<() => void> {
   return listen("kiosk-left", handler);
 }
 
-/**
- * A read for the status bar that the studio's permission set may not grant yet (`server_status`,
- * `update_state`, `get_settings`): undefined in a browser and when the shell refuses.
- */
+/** A read for the status bar: undefined in a browser and when the shell refuses. */
 async function tryCall<T>(command: string): Promise<T | undefined> {
   try {
     return await call<T>(command);

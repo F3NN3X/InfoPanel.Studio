@@ -243,3 +243,76 @@ the retired code went: `theme-editor-model.test.ts` (the Follow-bar and "Who doe
   widgets now; `countOverrides` / `clearOverrides` / `saveAppearancePreset` in `appearance-preset-apply.ts` are unused
   outside their tests; the label sweep (Opacity / Blur on widgets, "Lock every theme section", "Make all widgets follow
   the theme", "Theme scope: …" in the palette); the Theme column on narrow and phone layouts.
+
+## Phase 5a: Screens and Settings
+
+The Screens view and Settings replace their interim views, and the old profile inspector is gone. Checked by typecheck,
+tests, build, `npm run desktop:settings` and `cargo test`, and by eye in headless Chromium at 1440 px (Screens with
+the launch rule, a card's ⋯ menu, the performance chip going Custom, Settings › Dashboard / Studio / App in a browser,
+the Reset confirm) and, with a stubbed `__TAURI_INTERNALS__`, Settings › App on desktop (General, Server with the
+restart bar, Updates with the amber dot, the status bar's Server, Update and restart items); no page errors.
+
+| Piece | State |
+|---|---|
+| Screens (§8) | `screens-view.tsx`: header (**Import a screen…** = the existing profile-file import until Phase 6's door, **New screen**), **When the app opens** (radio cards writing `config.activeProfile`: "auto" / an id + a screen picker; `launchRule`, `withLaunch` in `screens-model.ts`), the card grid (snapshot thumbnail in a 110 px well, tag **Best fit now** / **Opens on launch**, mono meta `1920×550 · 3 pages · grid 8 × 3`, selected = white border, ⋯ Rename (inline) · Duplicate · Always open this one · Export screen · Delete with confirm, off for the last screen). A card click selects the screen being edited (`studio.pinnedProfile`, PLAN decision 1). |
+| Detail panel (340 px) | `screen-detail.tsx`: SIZE & FIT and GRID (the old Layout controls, `screen-layout.tsx`), ROTATION (Rotate pages, Every, "Pause it for now from Live ↗" opens the Live popover), PERFORMANCE (`InheritChip` over `inheritanceApi("performance")`: From All screens / Custom here; editing a row customises first, `withScreenPerformance`), LINKED — EDITED ELSEWHERE (Look: N own sections → Theme at that screen; Dynamic Island On/Off → Alerts & Island), PAGES · ORDER & ROTATION (`screen-pages.tsx`: drag handle, icon, name, in-rotation toggle, Open → Design on that page; `+ Add page` in the header). Groups carry `data-nav-section` (`size`, `grid`, `rotation`, `performance`, `linked`, `pages`); Frame-rate cap is `data-nav-control="fps"`. |
+| Settings (§10.1) | `settings-view.tsx`: tabs with subtitles (Dashboard `every screen`, Studio `this browser`, App `this PC` / `desktop only`), 560 px column. **Dashboard** (`settings-dashboard.tsx`): Performance (the All screens default, plus "‹screen› uses its own (30 fps). Screens ↗" when the edited screen has its own), Clock & date, Kiosk (Page dots & swipe, Hide cursor), Danger zone (Reset everything…, whose confirm now says **Back up first**; the ⋯ menu entry is gone). **Studio** (`settings-studio.tsx`): Quick bar, Inspector sections, Default zoom (the canvas zoom, which is remembered), Show grid, Show rulers, Left panel width (`studio.drawerWidth`, 232 to 440). **App**: desktop = the ported pages; browser = the notice card with Server (read-only), Kiosk URL (Copy) and Desktop version (the studio's build id; the browser cannot read the app's version). |
+| App tab (PLAN decisions 2, 5) | `src/settings/embedded.tsx`: a lazy chunk (`lazy(() => import("@/settings/embedded"))`, only when `isTauri()`), so `@tauri-apps/api` stays out of the studio chunks (checked in `dist/assets`: only `core-*` and `event-*`). It reuses the settings pages, store and restart bar as they are, with a 180 px sub-nav of the eight real pages (General, Server, Coding agents, Updates with an amber dot while an update is available, Diagnostics, Logs, About, Changelog). The pages list moved to `src/settings/pages.ts`; `StoreProvider` takes `initialSection`. CSS: the `s-*` color tokens moved to `src/settings/tokens.css` (imported by `settings.css` and by `index.css`), and `embedded.css` holds what `settings.css` sets on html and body, scoped to `.s-scope`. |
+| Shell | `STUDIO_PERMISSIONS` (`src-tauri/src/control.rs`) gained exactly the commands `src/settings/ipc.ts` calls: `get_settings`, `set_setting`, `server_status`, `start_server`, `stop_server`, `restart_server`, `server_stats`, `foreign_server_info`, `use_foreign_server`, `stop_foreign_server`, `list_local_addresses`, `set_agents`, `agents_status`, `repair_agents`, `open_agent_backups`, `update_state`, `check_for_update`, `download_update`, `cancel_update`, `install_update`, `get_diagnostics`, `open_logs_folder`, `open_devtools`, `read_log`, `reveal_path`, `app_info`, `changelog`, `open_external` (`set_zoom` and `open_help` were there). `allow-open-settings` left the list: nothing in the studio opens the window. Tray **Settings** and **Update…** call `windows::show_settings_in_studio`: show the main window and, when it holds the studio, emit `studio://open-settings` (payload the section or null), which `use-studio-ui.ts` turns into `navigateTo` Settings › App (`onOpenSettingsRequest` in `desktop.ts`). The separate window is still `windows::show_settings`, reached from `start.html`'s buttons (`open_settings` is in the default capability). |
+| Status bar | The first reads (`server_status`, `update_state`, `get_settings`) are now permitted, so Server `:port · LAN`, the update item and "Restart server to apply" show on desktop without waiting for an event. |
+| `navigateTo` | Screens (`profileId` selects the screen: `screenRequest` applied in `studio-view.tsx`, so the zoom bar's size link and the Page inspector's Rotation link now pass it), Settings (`tab` dashboard / studio / app, `section` an App page). `performance` targets from the chips land on the Settings Performance group and the Screens PERFORMANCE group with Frame-rate cap focused. |
+| Retired | `document-inspector.tsx`, `inspector/profile-behaviour.tsx` (`ScopeSwitch`, `ScopeDot`, the Pages, Clock and Display bodies), `inspector/profile-header.tsx`, `inspector/app-settings-footer.tsx`, `profiles-panel.tsx` (`RenameInput` moved to `rename-input.tsx`), the interim Screens and Settings views, the Page inspector's "More settings for this screen" block and `ScreenSettingsTab`, the `dashboard` inspector context with its Layout / Behaviour tabs and sections (`inspector-model.ts`, `section-icons.ts`), `ui.screenSettingsOpen`, `documentTabRequest`, `renameRequest`, `openDocumentTab`, the title bar's ⋯ › Reset everything…, `openSettings` in `desktop.ts`, every "Applies to all profiles" note. `use-document-props.ts` became `use-style-edits.ts` (the palette's scope style writer and the saved Themes; the clock and performance writers moved into Settings). Palette: "General settings…" → **Settings**, "Connection…" → **Data › Connection**. Help: `profiles.md`, `performance.md`, `kiosk.md`, `problems.md`, `sensors.md`, `studio.md`, `quickstart.md`, `widget-settings.md`, `panel-widgets.md` name the new homes. |
+
+Tests: `screens-model.test.ts` (the launch rule reads and writes, including a stale id and an unknown id; the card tag;
+the meta line; a screen's own performance starting from All screens' values and patching one key; the Settings note's
+text; which pages the rotation includes and refusing to switch out the last one); `onOpenSettingsRequest` in
+`desktop.test.ts`; in `control.rs` a test that `STUDIO_PERMISSIONS` has no duplicates, leaves out `open-settings` and
+has the commands the pages need. Tests changed because the retired code went: `inspector-model.test.ts` (the dashboard
+context, its tabs, sections, search and `DOCUMENT_CARD` cases removed), `desktop.test.ts` (`openSettings` swapped for
+`onOpenSettingsRequest`).
+
+### Checkpoint
+
+- **Pause rotation or reorder pages:** Screens (title bar switcher › Manage screens…) → PAGES · ORDER & ROTATION.
+- **Cap one screen's frame rate:** Screens → PERFORMANCE → click a value (the chip turns Custom here). For every
+  screen: Settings › Dashboard › Performance.
+
+### Deviations
+
+- **Size preset stays** as a row above Width and Height (SIZE & FIT lists Width, Height, Match this window, When it
+  doesn't fit); dropping it would have lost the preset list and its "not a preset" handling.
+- **Rotation has no interval preset buttons**: "Every" is the number field the spec lists; the 10 s / 30 s / 1 min /
+  5 min shortcuts and the old list's delete-page button are gone (deleting a page stays in the page tabs and the Page
+  inspector).
+- **The card ⋯ menu keeps Always open this one** and drops Copy profile JSON (it is still in the title bar's ⋯ and the
+  palette). "Export screen" is the existing profile-file export until Phase 6's sheet.
+- **Rename is inline on the card**, not a field in the detail panel (the old Name field went with the inspector).
+- **Default zoom is the remembered canvas zoom** (`studio.zoom`): picking a value zooms the canvas now, and the zoom you
+  leave it at is what the studio opens with. There is no separate stored default.
+- **The Desktop version row in a browser shows the studio's build id** ("build 2026-10-09a"), the only version a browser
+  can know.
+- **Connection (the Data API URL) sits in a collapsible strip above the Data view** until Phase 5b gives Data its own
+  card (`ConnectionStrip` in `interim-views.tsx`, `data-nav-section="connection"` so the status bar's Data item still
+  lands on it and opens it).
+- **No search in the App sub-nav**: the settings window's search and found-row outline are not carried (the sub-nav is
+  the spec's plain list), and F1 inside the App tab opens the studio's own Help target, not the page's.
+- **Back up first is the existing Export config**, as before under the old name.
+
+### Unverified
+
+- **The desktop app itself.** Settings › App was run in headless Chromium against a stubbed `__TAURI_INTERNALS__`; the
+  real capability grant (`add_studio_capability`), the tray entries and `studio://open-settings` were not run.
+- **A tray click while the studio window does not exist yet** (the app started hidden): `show_main` builds it and the
+  event goes out before the page can listen, so Settings does not open. A window that is open or hidden to the tray
+  receives it.
+- Widths below 1000 px for Screens (the 340 px panel stays beside the grid) and Settings.
+- Dragging a page row in Screens and the in-rotation toggle were not clicked through (the drag is the old list's code).
+
+### Follow-ups
+
+- Phase 5b: Data's own Connection card replaces `ConnectionStrip`; Alerts & Island replaces the interim panels (the
+  island card there still serves the Dynamic Island link).
+- Phase 6: Import a screen… and Export screen use the Import door and the Export sheet.
+- Phase 7: the Help window's "Open settings" links (`src/help/env.tsx`) still open the separate window; they should ask
+  the studio for Settings › App when it is up. `scopeOf` and `LookScope` in `profile-scope.ts` are now used only by
+  `withScope` and its tests.

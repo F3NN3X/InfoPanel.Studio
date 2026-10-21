@@ -1,6 +1,7 @@
 import type { MonitorProfile, Placement, Widget } from "@/lib/layout";
 import type { AppearanceTarget } from "./inspector/profile-scope";
-import { allSections, type DocumentTab, type InspectorContext } from "./inspector-model";
+import { allSections, type InspectorContext } from "./inspector-model";
+import type { NavTarget } from "./studio-nav";
 import { placementTitle } from "./studio-modules";
 import { KEYS } from "./use-studio-shortcuts";
 import { widgetName } from "./widget-kinds";
@@ -41,7 +42,8 @@ export type CommandAction =
   | { type: "widget-paste" }
   | { type: "widget-move"; delta: -1 | 1 }
   | { type: "goto-card"; id: string }
-  | { type: "document-tab"; tab: DocumentTab }
+  /** A link's home: a view with its tab and section (Settings, Data). */
+  | { type: "navigate"; target: NavTarget }
   | { type: "follow-all" }
   | { type: "toggle-enforce" }
   | { type: "apply-appearance"; id: string }
@@ -143,8 +145,13 @@ function generalCommands(s: CommandState): Command[] {
     general("theme", "Theme", { type: "open-theme" }, "colors, skins, saved themes, locks"),
     general("background", "Theme › Background", { type: "open-theme", section: "background" }),
     general("font", "Theme › Typography", { type: "open-theme", section: "type" }, "page font, type"),
-    general("general", "General settings…", { type: "document-tab", tab: "general" }, "clock, locale, cursor, page dots"),
-    general("connection", "Connection…", { type: "document-tab", tab: "connection" }, "Data API URL"),
+    general(
+      "settings",
+      "Settings",
+      { type: "navigate", target: { view: "settings", tab: "dashboard" } },
+      "performance, clock, locale, cursor, page dots, studio, app"
+    ),
+    general("connection", "Data › Connection", { type: "navigate", target: { view: "data", section: "connection" } }, "Data API URL"),
     general("follow-all", "Make all widgets follow the theme", { type: "follow-all" }, "this profile"),
     general(
       "toggle-enforce",

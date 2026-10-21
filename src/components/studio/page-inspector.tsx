@@ -13,9 +13,6 @@ import { sectionTitle } from "./theme-editor-model";
 import type { InheritanceContext } from "./use-inheritance";
 import { CloseButton, HeaderIcon } from "./zone-inspector-parts";
 
-/** The settings the profile inspector held, kept reachable from the Page inspector until Screens and Settings take them (Phase 5). */
-export type ScreenSettingsTab = "layout" | "behaviour";
-
 interface PageInspectorProps {
   profile: MonitorProfile;
   page: ProfilePage;
@@ -29,7 +26,6 @@ interface PageInspectorProps {
   /** LIVE: send the kiosks to this page now (runtime, never saved). */
   onShowOnKiosks: () => void;
   onHelp: () => void;
-  onOpenScreenSettings: (tab: ScreenSettingsTab) => void;
 }
 
 const SECTION_LABEL = "text-[10.5px] font-semibold uppercase tracking-[0.06em] text-ui-4";
@@ -102,9 +98,8 @@ function Block({ label, children, labelClassName }: { label: string; children: R
  * The inspector with nothing selected (SPEC §6.4): the page being edited. Its Name and Icon, the Rotation
  * LinkRow (Screens owns order and rotation), the sections the page customises over its screen's theme with the
  * way into Theme at page scope, LIVE · NOT SAVED "Show this page on kiosks now", and Duplicate / Delete page.
- * The rest of what the old profile inspector held stays one link away until its new homes land.
  */
-export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp, onOpenScreenSettings }: PageInspectorProps) {
+export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp }: PageInspectorProps) {
   const Icon = pageIcon(page.icon);
   const custom = SECTION_IDS.filter((sec) => page.widgetTheme?.follow?.[sec] === false);
   const zones = page.placements.length;
@@ -202,18 +197,6 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
               <Trash2 className="h-3.5 w-3.5" /> Delete page
             </button>
           </div>
-        </Block>
-
-        {/* Interim: the old profile inspector's tabs, until Screens (Layout, Pages) and Settings take them (Phases 4–5). */}
-        <Block label="More settings for this screen">
-          <LinkRow label="Layout" value="Size, grid and spacing" link="Open screen layout" onNavigate={() => onOpenScreenSettings("layout")} />
-          <LinkRow
-            label="Look"
-            value="Colors, skin, type and background"
-            link="Edit in Theme"
-            onNavigate={() => inherit.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: profile.id })}
-          />
-          <LinkRow label="Behaviour" value="Pages, pop-up alerts and performance" link="Open screen behaviour" onNavigate={() => onOpenScreenSettings("behaviour")} />
         </Block>
       </div>
     </div>

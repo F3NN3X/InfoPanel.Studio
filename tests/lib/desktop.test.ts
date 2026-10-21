@@ -24,7 +24,7 @@ import {
   getDebug,
   isTauri,
   onStudioFlush,
-  openSettings,
+  onOpenSettingsRequest,
   openTextFile,
   saveBinaryFile,
   saveTextFile,
@@ -52,7 +52,7 @@ describe("isTauri", () => {
 describe("wrappers in a browser", () => {
   it("do nothing and load no Tauri code", async () => {
     vi.stubGlobal("window", {});
-    await openSettings();
+    (await onOpenSettingsRequest(() => {}))();
     await flushDone();
     expect(await saveTextFile("a.json", "{}")).toBe(false);
     expect(await openTextFile()).toBeNull();
@@ -97,6 +97,21 @@ describe("wrappers in the desktop app", () => {
     const off = await onStudioFlush(handler);
     expect(listen).toHaveBeenCalledWith("studio://flush", handler);
     expect(off).toBe(unlisten);
+  });
+
+  it("hands the tray's Settings request its section", async () => {
+    vi.stubGlobal("window", { __TAURI_INTERNALS__: {} });
+    let emit: (e: { payload: string | null }) => void = () => {};
+    listen.mockImplementation(async (_event: string, cb: typeof emit) => {
+      emit = cb;
+      return () => {};
+    });
+    const handler = vi.fn();
+    await onOpenSettingsRequest(handler);
+    expect(listen).toHaveBeenCalledWith("studio://open-settings", expect.any(Function));
+    emit({ payload: "updates" });
+    emit({ payload: null });
+    expect(handler.mock.calls).toEqual([["updates"], [null]]);
   });
 });
 

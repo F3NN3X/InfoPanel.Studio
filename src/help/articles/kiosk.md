@@ -37,7 +37,7 @@ Pick a port from 1024 to 65535. Port, network and debug changes are saved right 
 
 ## Frame rate and animations
 
-The kiosk redraws its animations at most **Max FPS** times a second (**Frame rate limit**, 60 by default). **Animations** set to Reduced stops them. Set both under **Behaviour › Performance** with nothing selected, for all profiles or for this profile only. A kiosk URL can override them with `&fps=30` or `&motion=reduce`.
+The kiosk redraws its animations at most **Max FPS** times a second (**Frame rate limit**, 60 by default). **Animations** set to Reduced stops them. Set both under **Settings › Dashboard › Performance** for every screen, or in **Screens › Performance** for one screen. A kiosk URL can override them with `&fps=30` or `&motion=reduce`.
 
 Lower Max FPS to 30 or 15 if the display's GPU works hard while nothing seems to change. See [Frame rate and motion](performance) for what each setting changes and what it saves.
 

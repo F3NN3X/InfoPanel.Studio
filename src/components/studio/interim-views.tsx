@@ -1,10 +1,9 @@
-import type { ComponentProps, ReactNode } from "react";
-import { Monitor } from "lucide-react";
+import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
-import { isTauri, openSettings } from "@/lib/desktop";
+import { DEFAULT_API_BASE } from "@/lib/data-api";
 import { AlertsPanel } from "./alerts-panel";
+import { DataApiPanel } from "./data-api-panel";
 import { IslandPanel } from "./island-panel";
-import { ProfilesPanel } from "./profiles-panel";
 
 /** Which of the two interim Alerts & Island panels shows. */
 export type AlertsTab = "alerts" | "island";
@@ -45,43 +44,33 @@ export function AlertsView({ tab, onTab, alerts, island }: AlertsViewProps) {
   );
 }
 
-/** Screens, interim until Phase 5: the existing Profiles panel. */
-export function ScreensView(props: ComponentProps<typeof ProfilesPanel>) {
-  return (
-    <PanelColumn>
-      <ProfilesPanel {...props} />
-    </PanelColumn>
-  );
-}
-
 /**
- * Settings, interim until Phase 5. Desktop: a button to the existing Settings window (at `section` when a
- * link named one). Browser: the notice of SPEC §10.1.
+ * Data's connection, interim until Phase 5b: the Data API URL, a strip above the Sources view (it was the old profile
+ * inspector's Behaviour › Connection).
  */
-export function SettingsView({ section }: { section?: string }) {
-  const desktop = isTauri();
+export function ConnectionStrip({
+  value,
+  onChange,
+  openRequest,
+}: {
+  value: string | undefined;
+  onChange: (url: string) => void;
+  /** Opens the strip whenever it changes (a link to Data › Connection). */
+  openRequest?: number;
+}) {
+  const details = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (openRequest !== undefined && details.current) details.current.open = true;
+  }, [openRequest]);
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-ui-app/40 p-6 font-ui">
-      <div className="mx-auto flex max-w-[560px] flex-col gap-3 rounded-xl border border-ui-default bg-ui-panel p-4">
-        <div className="flex items-center gap-2 text-[13px] font-semibold text-ui-1">
-          <Monitor className="h-[18px] w-[18px] text-ui-3" />
-          {desktop ? "App settings" : "App settings live in the desktop app"}
-        </div>
-        <p className="text-[12px] leading-normal text-ui-3">
-          {desktop
-            ? "Startup, window, server, updates, coding agents and logs. They open in their own window until they move into the studio."
-            : "You're using Studio in a browser, served from the PC running InfoPanel Studio. Startup, window, server, updates, coding agents and logs can only be changed there."}
-        </p>
-        {desktop && (
-          <button
-            type="button"
-            onClick={() => void openSettings(section).catch(() => {})}
-            className="h-8 self-start rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-1 hover:bg-ui-hover"
-          >
-            Open App settings
-          </button>
-        )}
+    <details ref={details} data-nav-section="connection" className="shrink-0 border-b border-ui-subtle bg-ui-chrome font-ui">
+      <summary className="flex h-8 cursor-pointer list-none items-center gap-2 px-4 text-[12px] text-ui-3 hover:text-ui-1">
+        <span className="font-medium text-ui-2">Connection</span>
+        <span className="font-ui-mono text-[11px] text-ui-4">{value ?? DEFAULT_API_BASE}</span>
+      </summary>
+      <div className="max-w-[420px] px-4 pb-3 pt-1">
+        <DataApiPanel value={value} onChange={onChange} />
       </div>
-    </div>
+    </details>
   );
 }

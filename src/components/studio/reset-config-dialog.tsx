@@ -22,12 +22,12 @@ export function ResetConfigDialog({ open, onOpenChange, onExport, onReset }: Res
           <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
             This wipes every profile and its zones, the theme, style presets
             and all widget settings, and restores the default dashboard. Undo
-            (Ctrl+Z) brings it back only until you leave the studio — export
-            the config first to keep a copy.
+            (Ctrl+Z) brings it back only until you leave the studio — back up
+            first to keep a copy.
           </AlertDialog.Description>
           <div className="flex items-center gap-2 pt-1">
             <button type="button" className={BUTTON} onClick={onExport}>
-              <Download className="h-3.5 w-3.5" /> Export first
+              <Download className="h-3.5 w-3.5" /> Back up first
             </button>
             <AlertDialog.Close render={<button type="button" className={`${BUTTON} ml-auto`} />}>
               Cancel

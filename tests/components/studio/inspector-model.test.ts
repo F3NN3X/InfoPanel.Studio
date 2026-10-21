@@ -5,7 +5,6 @@ import { isMore, type DashboardModule, type ModuleSetting } from "@/modules/type
 import { TITLE_ONLY_HINT } from "@/components/studio/inspector-categories";
 import { THEME_EDITOR_SETTINGS } from "@/components/studio/theme-editor-settings";
 import {
-  DOCUMENT_CARD,
   allSections,
   changedCount,
   extraMatches,
@@ -78,8 +77,6 @@ describe("every setting is in exactly one section of exactly one tab", () => {
     }
     const theme = keysOf(allSections({ kind: "theme", scope: "page" }));
     expect([...theme].sort()).toEqual(THEME_EDITOR_SETTINGS.map((d) => d.key).sort());
-    // The dashboard has no style rows of its own any more: the theme editor holds them.
-    expect(keysOf(allSections({ kind: "dashboard", scope: "all" }))).toEqual([]);
   });
 });
 
@@ -98,10 +95,6 @@ describe("inspectorTabs", () => {
   it("has none for a blank zone or several zones", () => {
     expect(inspectorTabs({ kind: "blank" })).toEqual([]);
     expect(inspectorTabs({ kind: "multi", defs: CARD_SETTINGS })).toEqual([]);
-  });
-
-  it("has the two dashboard tabs (the look is Theme's)", () => {
-    expect(inspectorTabs({ kind: "dashboard", scope: "all" }).map((t) => t.id)).toEqual(["layout", "behaviour"]);
   });
 
   it("has no Show tab in the theme editor, at every scope", () => {
@@ -306,30 +299,6 @@ describe("blank zone and several zones", () => {
     ]);
     expect(keysOf(sections)).not.toContain("label");
     expect(find(sections, "Colors").extras).toEqual([]);
-  });
-});
-
-describe("dashboard sections", () => {
-  const dash: InspectorContext = { kind: "dashboard", scope: "all" };
-
-  it("places every setting of the profile inspector in Layout or Behaviour (the look is Theme's)", () => {
-    expect(titles(sectionsFor(dash, "layout"))).toEqual(["Screen", "Grid"]);
-    expect(titles(sectionsFor(dash, "behaviour"))).toEqual([
-      "Pages",
-      "Dynamic Island",
-      "Performance",
-      "Clock and date",
-      "Display",
-      "Studio",
-      "Connection",
-    ]);
-    expect(find(sectionsFor(dash, "behaviour"), "Studio").terms).toContain("Quick bar");
-  });
-
-  it("has no schema rows: every section is custom UI, and the notes come from the view", () => {
-    expect(allSections(dash).flatMap((s) => s.settings)).toEqual([]);
-    expect(allSections(dash).every((s) => s.special !== undefined)).toBe(true);
-    expect(inspectorNotes(dash, "layout")).toEqual([]);
   });
 });
 
@@ -554,10 +523,7 @@ describe("searchAll", () => {
     expect(groups[0].section.settings.length).toBeGreaterThan(1);
   });
 
-  it("finds custom cards by title and terms; the style tools left the cards for the toolbar and the zone menu", () => {
-    const dash = searchAll({ kind: "dashboard", scope: "all" }, "quick bar");
-    expect(dash.groups.map((g) => [g.tabLabel, g.section.title])).toEqual([["Behaviour", "Studio"]]);
-    expect(dash.total).toBe(1);
+  it("finds nothing for the style tools, which left the cards for the toolbar and the zone menu", () => {
     const follow = searchAll(spotify, "copy style");
     expect(follow.groups).toEqual([]);
   });
@@ -590,14 +556,10 @@ describe("view helpers", () => {
     expect(none.every((s) => s.extras.length > 0 || s.special !== undefined)).toBe(true);
   });
 
-  it("jumpTarget finds a section by id, document card or split id", () => {
+  it("jumpTarget finds a section by id or split id", () => {
     expect(jumpTarget(allSections(spotify), "colors")?.title).toBe("Colors");
     expect(jumpTarget(allSections(spotify), "module:visualizer")?.tab).toBe("show");
-    const dashboard = allSections({ kind: "dashboard", scope: "all" });
-    // The palette's document jumps (`DOCUMENT_CARD`) land on the new sections.
-    expect(jumpTarget(dashboard, DOCUMENT_CARD.general)?.tab).toBe("behaviour");
-    expect(jumpTarget(dashboard, DOCUMENT_CARD.connection)?.id).toBe("bh-conn");
-    expect(jumpTarget(dashboard, "nope")).toBeUndefined();
+    expect(jumpTarget(allSections(spotify), "nope")).toBeUndefined();
   });
 
   it("extraMatches searches custom UI by its terms", () => {

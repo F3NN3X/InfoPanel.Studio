@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { onOpenSettingsRequest } from "@/lib/desktop";
 import type { DashboardConfig, ProfileView, Widget } from "@/lib/layout";
 import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
 import type { Drawer } from "./commands";
 import { useStoredLeftWidth, type LeftTab } from "./design-left-panel";
 import type { AlertsTab } from "./interim-views";
+import type { SettingsTab } from "./settings-view";
 import type { RailItem } from "./left-rail";
 import { revealWidgetEditor, scrollInspectorToTop } from "./inspector-scroll";
 import { useCanvasZoom } from "./use-canvas-zoom";
@@ -61,9 +63,13 @@ export function useStudioUi(
   const [leftOpen, setLeftOpen] = useState(() => windowWidth >= 1280);
   const [leftTab, setLeftTab] = useState<LeftTab>("add");
   const [leftWidth, setLeftWidth] = useStoredLeftWidth();
-  /** The interim Alerts & Island view's tab, and the Settings section a link named. */
+  /** The interim Alerts & Island view's tab. */
   const [alertsTab, setAlertsTab] = useState<AlertsTab>("alerts");
+  /** Settings' tab, and the App page a link or the tray named (`seq` makes a repeat count). */
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("dashboard");
   const [settingsSection, setSettingsSection] = useState<string>();
+  /** A link to Screens named a screen to select (the studio selects it: `selectProfile` needs the fit zoom). */
+  const [screenRequest, setScreenRequest] = useState<{ id: string; seq: number }>();
   /** The Live popover (the title bar's button and the status bar's Kiosks item). */
   const [liveOpen, setLiveOpen] = useState(false);
   const [showGrid, setShowGrid] = useStoredFlag("studio.grid", true);
@@ -88,25 +94,6 @@ export function useStudioUi(
   const requestInspectorTab = (tab: InspectorTab, picker = false) => {
     expandDock();
     setInspectorRequest((r) => ({ tab, picker, seq: (r?.seq ?? 0) + 1 }));
-  };
-  /**
-   * A request to put the cursor in the profile inspector's Name field (a counter; ⋯ Rename in the Profiles
-   * panel). The field clears it once it has.
-   */
-  const [renameRequest, setRenameRequest] = useState<number>();
-  const requestRename = () => setRenameRequest((n) => (n ?? 0) + 1);
-  const clearRename = () => setRenameRequest(undefined);
-  /**
-   * The screen's settings (the old profile inspector's Layout / Look / Behaviour tabs) replace the Page inspector
-   * while nothing is selected, until Screens and Settings take their contents (IMPLEMENTATION_PLAN Phases 4–5).
-   */
-  const [screenSettingsOpen, setScreenSettingsOpen] = useState(false);
-  /** A request for one of those tabs (`seq` makes repeats count): the inspector shows it while nothing is selected. */
-  const [documentTabRequest, setDocumentTabRequest] = useState<{ tab: string; seq: number }>();
-  const openDocumentTab = (tab: string) => {
-    expandDock();
-    setScreenSettingsOpen(true);
-    setDocumentTabRequest((r) => ({ tab, seq: (r?.seq ?? 0) + 1 }));
   };
   /** The page whose icon picker is open (the page tabs' menu and the Page inspector). */
   const [iconPage, setIconPage] = useState<string | null>(null);
@@ -198,11 +185,7 @@ export function useStudioUi(
   /** The last `navigateTo` (its section and control get focus once they render). */
   const [navRequest, setNavRequest] = useState<NavRequest>();
   useNavFocus(navRequest);
-  /**
-   * Open a link's home (SPEC §4.1). Until the new views land (IMPLEMENTATION_PLAN phases 3-5), Alerts & Island,
-   * Screens and Settings › App open their interim views; the other Settings tabs open the profile inspector's
-   * Behaviour tab.
-   */
+  /** Open a link's home (SPEC §4.1): the view, and for Screens the screen, for Settings the tab and App page. */
   const navigateTo = (target: NavTarget) => {
     switch (target.view) {
       case "theme":
@@ -220,23 +203,37 @@ export function useStudioUi(
         setMode("alerts");
         break;
       case "screens":
+        if (target.profileId) setScreenRequest((r) => ({ id: target.profileId!, seq: (r?.seq ?? 0) + 1 }));
         setMode("screens");
         break;
-      case "settings":
-        if (target.tab === "app") {
-          setSettingsSection(target.section);
-          setMode("settings");
-          break;
-        }
-        setMode("design");
-        openDocumentTab("behaviour");
+      case "settings": {
+        const tab = target.tab === "studio" || target.tab === "app" ? target.tab : "dashboard";
+        setSettingsTab(tab);
+        setSettingsSection(tab === "app" ? target.section : undefined);
+        setMode("settings");
         break;
+      }
       case "design":
         setMode("design");
         break;
     }
     setNavRequest((r) => ({ target, seq: (r?.seq ?? 0) + 1 }));
   };
+
+  // The tray's Settings and Update entries ask the studio to open Settings › App.
+  const open = useRef(navigateTo);
+  open.current = navigateTo;
+  useEffect(() => {
+    let gone = false;
+    let off: (() => void) | undefined;
+    void onOpenSettingsRequest((section) => open.current({ view: "settings", tab: "app", section: section ?? undefined })).then((unlisten) =>
+      gone ? unlisten() : (off = unlisten)
+    );
+    return () => {
+      gone = true;
+      off?.();
+    };
+  }, []);
 
   return {
     mode,
@@ -261,7 +258,10 @@ export function useStudioUi(
     setLeftWidth,
     alertsTab,
     setAlertsTab,
+    settingsTab,
+    setSettingsTab,
     settingsSection,
+    screenRequest,
     liveOpen,
     setLiveOpen,
     onRail,
@@ -271,15 +271,8 @@ export function useStudioUi(
     setShowGrid,
     showRulers,
     setShowRulers,
-    screenSettingsOpen,
-    setScreenSettingsOpen,
-    documentTabRequest,
-    openDocumentTab,
     iconPage,
     setIconPage,
-    renameRequest,
-    requestRename,
-    clearRename,
     inspectorJump,
     jumpInspector,
     jumpTheme,
@@ -340,7 +333,6 @@ export function useInspectorFollowsSelection(
   const lastPrimary = useRef(primaryId);
   useEffect(() => {
     ui.studioLayout.setHasSelection(primaryId !== null);
-    if (primaryId !== null) ui.setScreenSettingsOpen(false);
     if (primaryId !== null && ui.studioLayout.mode === "docked") ui.studioLayout.showInspector();
     // Clearing the selection closes the floating inspector, returns the sheet to its peek and drops the search.
     if (primaryId === null && lastPrimary.current !== null) {

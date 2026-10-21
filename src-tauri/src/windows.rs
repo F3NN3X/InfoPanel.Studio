@@ -199,6 +199,8 @@ pub fn load_studio(app: &AppHandle, url: &str) {
 
 /// Event telling an open Settings window to show a section (the payload is its id).
 pub const SETTINGS_EVENT: &str = "settings-section";
+/// Event telling the studio page to open Settings › App (the payload is a section id, or null).
+pub const OPEN_SETTINGS_EVENT: &str = "studio://open-settings";
 /// Event telling an open Help window to show an article (the payload is a `HelpTarget`).
 pub const HELP_EVENT: &str = "help-open";
 
@@ -310,6 +312,15 @@ pub fn show_settings(app: &AppHandle, section: Option<&str>) {
         if let Some(s) = settings_section(section) {
             let _ = app.emit_to(SETTINGS, SETTINGS_EVENT, s);
         }
+    }
+}
+
+/// The tray's Settings: the studio window, which opens Settings › App (at a section when given one). While
+/// the window still shows the start page, its own rescue buttons are what the user gets.
+pub fn show_settings_in_studio(app: &AppHandle, section: Option<&str>) {
+    show_main(app);
+    if app.state::<AppState>().studio_page.load(Ordering::SeqCst) {
+        let _ = app.emit_to(MAIN, OPEN_SETTINGS_EVENT, settings_section(section));
     }
 }
 

@@ -1,20 +1,14 @@
-import { useEffect, useRef } from "react";
 import type { DashboardConfig, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
-import { DocumentInspector } from "./document-inspector";
 import { PageInspector } from "./page-inspector";
 import type { InheritanceContext } from "./use-inheritance";
-import { setInspectorTab } from "./inspector/inspector-prefs";
 import { MultiInspector } from "./inspector/multi-inspector";
 import { InspectorChromeProvider, type InspectorChrome } from "./inspector-layout";
-import type { useDocumentProps } from "./use-document-props";
 import type { StudioMutations } from "./use-studio-mutations";
 import type { StudioSelection } from "./use-studio-selection";
 import type { StudioUi } from "./use-studio-ui";
 import { ZoneInspector } from "./zone-inspector";
-
-type DocumentState = ReturnType<typeof useDocumentProps>;
 
 interface StudioInspectorProps {
   config: DashboardConfig;
@@ -24,9 +18,6 @@ interface StudioInspectorProps {
   ui: StudioUi;
   sel: StudioSelection;
   edit: StudioMutations;
-  documentProps: DocumentState["props"];
-  /** The studio window ("Use this window's size"). */
-  windowSize: { width: number; height: number };
   /** The history setter (the inheritance chips edit the config through it). */
   setConfig: InheritanceContext["setConfig"];
   /** F1: Help at the article for what the user is on. */
@@ -43,8 +34,7 @@ interface StudioInspectorProps {
 
 /**
  * The right (or docked) panel: one zone's inspector, the shared look of
- * several zones, or — with nothing selected — the Page inspector (the screen's
- * Layout / Behaviour tabs, the old profile inspector, open from its links).
+ * several zones, or — with nothing selected — the Page inspector.
  */
 export function StudioInspector({
   config,
@@ -53,8 +43,6 @@ export function StudioInspector({
   ui,
   sel,
   edit,
-  documentProps,
-  windowSize,
   setConfig,
   onHelp,
   onShowOnKiosks,
@@ -74,15 +62,6 @@ export function StudioInspector({
           sheet: { snap: sheet.snap, setSnap: sheet.setSnap, tool: sheet.tool, setTool: sheet.setTool },
         }
       : { mode, onClose: mode === "floating" ? () => setFloatOpen(false) : undefined };
-
-  // The zoom bar's resolution button and a profile's settings ask for a Dashboard tab.
-  const tabRequest = ui.documentTabRequest;
-  const lastTabRequest = useRef(tabRequest?.seq);
-  useEffect(() => {
-    if (!tabRequest || tabRequest.seq === lastTabRequest.current) return;
-    lastTabRequest.current = tabRequest.seq;
-    setInspectorTab("dashboard", tabRequest.tab);
-  }, [tabRequest]);
 
   const openExplorer = () => ui.setMode("sources");
 
@@ -140,7 +119,7 @@ export function StudioInspector({
         onEditCanvas={onEditCanvas && (() => onEditCanvas(selected.id))}
         onEditGauge={onEditGauge && (() => onEditGauge(selected.id))}
       />
-    ) : !ui.screenSettingsOpen ? (
+    ) : (
       <PageInspector
         profile={stored}
         page={page}
@@ -151,23 +130,6 @@ export function StudioInspector({
         onDelete={ui.setDeletingPage}
         onShowOnKiosks={() => onShowOnKiosks(page.id)}
         onHelp={onHelp}
-        onOpenScreenSettings={ui.openDocumentTab}
-      />
-    ) : (
-      <DocumentInspector
-        jumpTo={ui.inspectorJump}
-        {...documentProps}
-        updateProfile={edit.updateProfile}
-        pages={(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]).pages}
-        onRotate={edit.setRotate}
-        onMovePage={edit.movePageTo}
-        onAddPage={edit.addNewPage}
-        onDeletePage={ui.setDeletingPage}
-        windowSize={windowSize}
-        renameRequest={ui.renameRequest}
-        onRenameHandled={ui.clearRename}
-        onOpenExplorer={openExplorer}
-        onBack={() => ui.setScreenSettingsOpen(false)}
       />
     );
 

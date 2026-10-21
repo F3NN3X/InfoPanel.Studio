@@ -11,11 +11,11 @@ import { followAll, toggleEnforce } from "./appearance-actions";
 import { buildCommands, type CommandAction } from "./commands";
 import { copyProfileJson, exportConfigFile, startConfigImport } from "./config-file";
 import { insertables } from "./insert-panel";
-import { DOCUMENT_CARD, widgetContext, type InspectorContext } from "./inspector-model";
+import { widgetContext, type InspectorContext } from "./inspector-model";
 import { zoneDefs } from "./inspector/zone-fields";
 import { panelWidgetActions } from "./panel-widget-actions";
 import { ownStyle } from "./studio-actions";
-import type { useDocumentProps } from "./use-document-props";
+import type { useStyleEdits } from "./use-style-edits";
 import type { StudioMutations } from "./use-studio-mutations";
 import type { StudioSelection } from "./use-studio-selection";
 import { useStudioShortcuts, type ShortcutAction } from "./use-studio-shortcuts";
@@ -30,8 +30,8 @@ interface CommandDeps {
   sel: StudioSelection;
   edit: StudioMutations;
   appearance: Appearance;
-  appearancePresets: ReturnType<typeof useDocumentProps>["appearancePresets"];
-  setScopeStyle: ReturnType<typeof useDocumentProps>["setScopeStyle"];
+  appearancePresets: ReturnType<typeof useStyleEdits>["appearancePresets"];
+  setScopeStyle: ReturnType<typeof useStyleEdits>["setScopeStyle"];
   /** Show another page of the profile on the canvas. */
   onPageChange: (pageId: string) => void;
   /** Select a profile for editing. */
@@ -172,11 +172,8 @@ export function useStudioCommands({
         ui.setMode("design");
         ui.setInspectorQuery("");
         return ui.jumpInspector(action.section, action.key);
-      case "document-tab":
-        ui.setMode("design");
-        sel.select(null);
-        // The sheet mounts first; then it scrolls to the card.
-        return void requestAnimationFrame(() => ui.jumpInspector(DOCUMENT_CARD[action.tab]));
+      case "navigate":
+        return ui.navigateTo(action.target);
       case "follow-all":
         return edit.updateProfile(followAll);
       case "toggle-enforce":
@@ -284,7 +281,7 @@ export function useStudioCommands({
   /** What the inspector shows now, for the palette's "Go to setting" entries. */
   const inspectorContext = (): InspectorContext | null => {
     if (sel.selection.length > 1) return null;
-    if (!selected) return { kind: "dashboard", scope: "all" };
+    if (!selected) return null;
     if (selected.module === BLANK_MODULE) return null;
     // A selected panel widget: its own inspector (the layout only shows which rows it has).
     if (selected.panel && selectedWidget) {

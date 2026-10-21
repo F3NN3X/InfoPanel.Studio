@@ -45,19 +45,16 @@ import { STATUS_COLORS_TITLE, THEME_EDITOR_SETTINGS } from "./theme-editor-setti
  * `extras`) the UI fills in with the components it already has.
  */
 
-export type DashboardTab = "layout" | "behaviour";
-export type TabId = InspectorTab | DashboardTab;
+export type TabId = InspectorTab;
 
 export const TAB_LABELS: Record<TabId, string> = {
   show: "Show",
   style: "Style",
   data: "Data",
   behaviour: "Behaviour",
-  layout: "Layout",
 };
 
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
-const DASHBOARD_TABS: readonly TabId[] = ["layout", "behaviour"];
 /** The theme editor's: no Show tab (SPEC §7). */
 const THEME_TABS: readonly TabId[] = ["style", "data", "behaviour"];
 
@@ -93,7 +90,6 @@ export type InspectorContext =
   | { kind: "blank" }
   /** Several zones: the shared look only, no tabs. */
   | { kind: "multi"; defs: ModuleSetting[] }
-  | { kind: "dashboard"; scope: "all" | "profile"; profileName?: string }
   /** The theme editor (SPEC §7): the same sections at a theme level. */
   | { kind: "theme"; scope: ThemeScopeKind }
   /** An item of a canvas zone (an imported InfoPanel profile): its kind's fields, from the InfoPanel schema. */
@@ -128,15 +124,6 @@ export type SpecialSection =
   | "panelData"
   | "blankPick"
   | "zoneFrame"
-  | "layoutScreen"
-  | "layoutGrid"
-  | "behaviourPages"
-  | "behaviourIsland"
-  | "behaviourPerformance"
-  | "behaviourClock"
-  | "behaviourDisplay"
-  | "behaviourStudio"
-  | "behaviourConnection"
   | "ipMode"
   | "ipPosition"
   | "ipSensor"
@@ -190,11 +177,9 @@ const section = (s: Partial<InspectorSection> & Pick<InspectorSection, "id" | "t
 /** The tabs of a context, in order (none for a blank zone or several zones). */
 export function inspectorTabs(context: InspectorContext): { id: TabId; label: string }[] {
   const ids =
-    context.kind === "dashboard"
-      ? DASHBOARD_TABS
-      : context.kind === "theme"
-        ? THEME_TABS
-        : context.kind === "blank" || context.kind === "multi" || context.kind === "infopanel"
+    context.kind === "theme"
+      ? THEME_TABS
+      : context.kind === "blank" || context.kind === "multi" || context.kind === "infopanel"
         ? []
         : ZONE_TABS;
   return ids.map((id) => ({ id, label: TAB_LABELS[id] }));
@@ -362,46 +347,6 @@ const themeSections = (context: InspectorContext): InspectorSection[] =>
     s.id === "palette" ? { ...s, title: STATUS_COLORS_TITLE, hint: "The theme palette: series and status colors widgets follow" } : s
   );
 
-// -- the dashboard (nothing selected) -----------------------------------------
-
-const dashboardMarker = (tab: DashboardTab, id: string, title: string, special: SpecialSection, terms: string[]) =>
-  section({ id, title, tab, special, terms });
-
-/** The parts of the profile inspector the palette's "General settings…" and "Connection…" jump to. */
-export type DocumentTab = "general" | "connection";
-
-/** The section each part jumps to (its section id). */
-export const DOCUMENT_CARD: Record<DocumentTab, string> = {
-  general: "bh-clock",
-  connection: "bh-conn",
-};
-
-/** The profile inspector's sections (the screen's settings): Layout and Behaviour (the look is Theme's). */
-function dashboardSections(): InspectorSection[] {
-  return [
-    dashboardMarker("layout", "ly-screen", "Screen", "layoutScreen", [
-      "Name", "Rename", "Design size", "Width", "Height", "Window size", "When it doesn't fit", "Fill", "Scroll", "Fit mode",
-    ]),
-    dashboardMarker("layout", "ly-grid", "Grid", "layoutGrid", [
-      "Columns", "Rows", "Gap", "Edge padding", "Padding", "Spacing", "Preview",
-    ]),
-    dashboardMarker("behaviour", "bh-pages", "Pages", "behaviourPages", [
-      "Add page", "Delete page", "Reorder", "Cycle through pages", "Auto-rotate", "Switch every", "Seconds per page", "Rotation", "Kiosk",
-      "Page dots", "Swipe",
-    ]),
-    dashboardMarker("behaviour", "bh-island", "Dynamic Island", "behaviourIsland", [
-      "Island", "Notch", "Pill", "Time", "Date", "Alerts", "Notifications", "Collapse", "Touch", "Pop-up alerts",
-    ]),
-    dashboardMarker("behaviour", "bh-performance", "Performance", "behaviourPerformance", [
-      "Frame rate limit", "Max FPS", "Frame rate", "FPS", "No limit", "Animations", "Motion", "Disable animations", "Reduce", "All profiles", "This profile",
-    ]),
-    dashboardMarker("behaviour", "bh-clock", "Clock and date", "behaviourClock", ["Clock", "12 h", "24 h", "Time", "Locale", "Show seconds", "Date locale"]),
-    dashboardMarker("behaviour", "bh-display", "Display", "behaviourDisplay", ["Hide cursor", "Kiosk", "Cursor"]),
-    dashboardMarker("behaviour", "bh-studio", "Studio", "behaviourStudio", ["Quick bar", "Inspector sections", "Accordion", "One open", "Many open"]),
-    dashboardMarker("behaviour", "bh-conn", "Connection", "behaviourConnection", ["Data API", "URL", "Test connection"]),
-  ];
-}
-
 /** Every section of a context across all its tabs, in display order. */
 export function allSections(context: InspectorContext): InspectorSection[] {
   switch (context.kind) {
@@ -415,8 +360,6 @@ export function allSections(context: InspectorContext): InspectorSection[] {
       return blankSections();
     case "multi":
       return multiSections(context);
-    case "dashboard":
-      return dashboardSections();
     case "theme":
       return themeSections(context);
     case "infopanel":
@@ -645,7 +588,6 @@ export interface InspectorNote {
 /** The banners and context notes of a tab (whether a section follows the theme is its Follow bar). */
 export function inspectorNotes(context: InspectorContext, tab: TabId | undefined): InspectorNote[] {
   if (context.kind === "blank") return [{ kind: "blank", text: "This zone is blank. Pick a widget or a panel to fill it." }];
-  if (context.kind === "dashboard") return [];
   if (context.kind === "theme") {
     return context.scope === "base"
       ? [{ kind: "theme", text: "The base under every profile's theme: what a profile leaves unset. It has no locks." }]

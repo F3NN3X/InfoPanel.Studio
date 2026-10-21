@@ -10,7 +10,6 @@ import {
   Keyboard,
   MoreHorizontal,
   Redo2,
-  RotateCcw,
   Search,
   Undo2,
   Upload,
@@ -23,7 +22,6 @@ import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { copyProfileJson } from "./config-file";
 import { LiveControl, type LiveRotate } from "./live-popover";
-import { ResetConfigDialog } from "./reset-config-dialog";
 import { ScreenSwitcher } from "./screen-switcher";
 import { StudioLogo } from "./studio-logo";
 import { WindowControls } from "./window-controls";
@@ -63,7 +61,6 @@ interface StudioTopBarProps {
   /** Export the profile's canvas zone (the Export dialog); off without one. */
   onExportInfoPanel: () => void;
   canExportInfoPanel: boolean;
-  onReset: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -79,7 +76,7 @@ const ITEM =
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
 
 /**
- * "⋯": export / import / copy profile JSON / reset, the command palette
+ * "⋯": export / import / copy profile JSON, the command palette
  * and shortcut sheet, and the build id.
  */
 function MoreMenu({
@@ -89,7 +86,6 @@ function MoreMenu({
   onImportInfoPanel,
   onExportInfoPanel,
   canExportInfoPanel,
-  onReset,
   onPalette,
   onShortcuts,
   canUndo,
@@ -104,7 +100,6 @@ function MoreMenu({
   | "onImportInfoPanel"
   | "onExportInfoPanel"
   | "canExportInfoPanel"
-  | "onReset"
   | "onPalette"
   | "onShortcuts"
   | "canUndo"
@@ -113,7 +108,6 @@ function MoreMenu({
   | "onRedo"
 >) {
   const [copied, setCopied] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
 
   const copyProfile = () => {
     copyProfileJson(profile)
@@ -178,10 +172,6 @@ function MoreMenu({
                 <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.cheatsheet}</span>
               </Menu.Item>
               <Menu.Separator className={SEPARATOR} />
-              <Menu.Item className={cn(ITEM, "text-ui-danger")} onClick={() => setConfirmReset(true)}>
-                <RotateCcw className="h-3.5 w-3.5" /> Reset everything…
-              </Menu.Item>
-              <Menu.Separator className={SEPARATOR} />
               <Menu.Item className={ITEM} disabled>
                 <Info className="h-3.5 w-3.5" />
                 <span className="font-ui-mono text-[10.5px]">build {BUILD_ID}</span>
@@ -190,7 +180,6 @@ function MoreMenu({
           </Menu.Positioner>
         </Menu.Portal>
       </Menu.Root>
-      <ResetConfigDialog open={confirmReset} onOpenChange={setConfirmReset} onExport={onExport} onReset={onReset} />
     </>
   );
 }

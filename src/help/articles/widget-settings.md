@@ -24,7 +24,7 @@ Every Style section has a chip that says where its value comes from: **From All 
 - Type in the inspector's search box. Results name the tab and section.
 - A section's header counts what you changed in it. The reset button beside it clears those values.
 - Open **More** at the end of a section for less common rows.
-- Press the pin button on a row to pin it to the quick bar, up to 6 per widget type. Turn the bar on under **Behaviour › Studio › Quick bar**, with nothing selected.
+- Press the pin button on a row to pin it to the quick bar, up to 6 per widget type. Turn the bar on under **Settings › Studio › Quick bar**.
 
 ## Setting dots
 

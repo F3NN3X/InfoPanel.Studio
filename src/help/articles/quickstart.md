@@ -16,7 +16,7 @@ The status pill at the bottom of the Settings sidebar should say **Server runnin
 
 ## 2. Size the profile for your screen
 
-A fresh install has one blank profile, **Main display**, at 1920 × 1080. Open **Profiles** on the left rail and press **New profile** to make one at your display size. A new profile is named after its size and uses the size of the studio window, so resize the window first, or click an empty part of the canvas and pick a **Design size** such as 1920 × 550 under **Layout**. The grid is created for you.
+A fresh install has one blank profile, **Main display**, at 1920 × 1080. Open **Screens** (the screen name in the title bar, **Manage screens…**) and press **New screen** to make one at your display size. A new screen is named after its size and uses the size of the studio window, so resize the window first, or pick a **Size preset** such as 1920 × 550 under **Size & fit**. The grid is created for you.
 
 :::tip
 To see a finished example first, press **Use sample layout** on the empty canvas. It builds a 1920 × 550 profile you can take apart.

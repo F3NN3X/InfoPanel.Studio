@@ -7,7 +7,7 @@ import type { ProfilePage } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { pageIcon } from "./page-icons";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
-import { RenameInput } from "./profiles-panel";
+import { RenameInput } from "./rename-input";
 
 interface PageTabsProps {
   /** Design's left panel is open; the toggle at the row's start shows or hides it. */
