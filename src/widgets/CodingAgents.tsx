@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { AGENT_COLORS, AGENT_IDS, AGENT_NAMES, bySalience, modelLabel, planView, sessionStatus, shortTokens, type AgentId, type AgentSession, type Agents } from "@/lib/agents";
 import { extras } from "@/lib/extras";
 import { useNow } from "@/components/widgets/hooks";
+import { PulseDot } from "@/components/pulse-dot";
 import { Empty, Widget, fitRows, shell, type ShellProps, type WidgetMeta } from "./kit";
 import { BarLimits, RingLimits, barDensity, densityH, ringLayout, type Density, type LimitStyle, type Percent, type PlanEntry, type RingLayout } from "./CodingAgents/limits";
 import { Breakdown, breakdownH, breakdownOf, tokensToday } from "./CodingAgents/breakdown";
@@ -71,11 +72,7 @@ export function SessionRow({ s, now, width }: { s: AgentSession; now: number; wi
   const cost = width >= COST_W ? costText(s.cost) : "";
   return (
     <li className="flex min-w-0 items-center gap-2 text-xs">
-      <span
-        className={`h-2 w-2 shrink-0 rounded-full ${s.state === "working" ? "island-pulse" : ""}`}
-        style={{ background: color, "--island-dot": color } as React.CSSProperties}
-        aria-label={s.state}
-      />
+      <PulseDot color={color} pulse={s.state === "working"} label={s.state} className="h-2 w-2 shrink-0 rounded-full" />
       <span className="max-w-[45%] shrink-0 truncate text-[color:var(--w-fg)]">{s.project || AGENT_NAMES[s.agent]}</span>
       <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: s.state === "waiting" ? STATE_COLOR.waiting : "var(--w-muted)" }}>
         {sessionStatus(s, now)}

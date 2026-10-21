@@ -32,10 +32,16 @@ const OverrideContext = createContext<PerformanceOverride | undefined>(undefined
  * below; also points the shared ticker at the resolved Max FPS. Inside a General provider.
  */
 export function PerformanceProvider({ value, children }: { value: PerformanceOverride | undefined; children: ReactNode }) {
-  const { maxFps } = usePerformance(value);
+  const { maxFps, reduceMotion } = usePerformance(value);
   useEffect(() => {
     setTickerMaxFps(maxFps);
   }, [maxFps]);
+  // CSS transitions and animations run at the display rate whatever the cap, so below 60 fps (or with
+  // reduced motion) the widgets drop them (see `data-lite-motion` in index.css).
+  const lite = reduceMotion || (maxFps > 0 && maxFps < 60);
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-lite-motion", lite);
+  }, [lite]);
   return <OverrideContext.Provider value={value}>{children}</OverrideContext.Provider>;
 }
 

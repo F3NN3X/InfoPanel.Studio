@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type CSSProperties } from "react";
-import { subscribeFrame } from "@/lib/audio/frame-loop";
+import { MAX_FRAME_GAP_MS, subscribeFrame } from "@/lib/audio/frame-loop";
 import { SKINS, SkinCtx } from "../theme";
 import type { SkinContext } from "../types";
 import { AudioViz } from "./AudioViz";
@@ -36,7 +36,7 @@ function useTestSignal() {
   useEffect(() => {
     let last = 0;
     return subscribeFrame((now) => {
-      const dt = last ? Math.min(100, now - last) : 16;
+      const dt = last ? Math.min(MAX_FRAME_GAP_MS, now - last) : 16;
       last = now;
       const k = Math.floor(now / FRAME_MS) % 4;
       stepInput(st, { capture: null, spectrum: frames[k], level: null }, DEFAULT_LOOK, dt, now);

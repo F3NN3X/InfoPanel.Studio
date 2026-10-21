@@ -307,13 +307,17 @@
   50% { box-shadow: 0 0 0 2px var(--island-accent), 0 0 26px 4px var(--island-accent); }
 }
 .island-critical { animation: island-critical 1.6s ease-in-out infinite; }
-/* An activity whose work is running (a coding agent's turn): its dot breathes with a ring. */
-@keyframes island-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--island-dot) 70%, transparent); }
-  70%, 100% { box-shadow: 0 0 0 0.45em transparent; }
+/* Below 60 fps, or with reduced motion (PerformanceProvider sets the flag), a widget's CSS transitions
+   and animations are off: they run at the display rate, past the Max FPS cap, and a width or height
+   transition lays out every frame. Readings then step at the data rate. */
+[data-lite-motion] [data-wp-tier],
+[data-lite-motion] [data-wp-tier] *,
+[data-lite-motion] [data-wp-tier] *::before,
+[data-lite-motion] [data-wp-tier] *::after {
+  transition: none !important;
+  animation: none !important;
 }
-.island-pulse { animation: island-pulse 1.4s ease-out infinite; }
-@media (prefers-reduced-motion: reduce) { .island-pulse { animation: none; } }
+/* An activity whose work is running: its dot breathes with a ring (PulseDot, on the shared ticker). */
 /* A notice's level bar (a volume) glides between readings. */
 .island-motion .island-level { transition: width 160ms ease-out; }
 

@@ -10,6 +10,8 @@ import type { Tone } from "./types";
 import { cn } from "@/lib/utils";
 import { labelStyle, ws } from "@/components/widget-style";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useTick } from "@/hooks/use-tick";
+import { alternate } from "@/lib/curves";
 import { RangeEaser, SmoothScroll, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN } from "./layout";
 
@@ -517,15 +519,25 @@ export const weatherIcon = (text = ""): string => {
   if (/clear|sun/.test(s)) return /night/.test(s) ? "clear_night" : "clear_day";
   return "partly_cloudy_day";
 };
-// Slow pan/zoom background image (Web Animations API — no CSS keyframes needed)
+// Slow pan/zoom background image (stepped on the shared ticker: Max FPS caps it, reduced motion stops it)
 export function KenBurns({ src, className = "", on = true }: { src?: string; className?: string; on?: boolean }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
+  const reduced = useReducedMotion();
+  const live = on && !reduced;
+  const start = useRef<number | null>(null);
+  useTick((now) => {
     const el = ref.current;
-    if (!el || !on || !el.animate) return;
-    const a = el.animate([{ transform: "scale(1.06) translate(0%,0%)" }, { transform: "scale(1.18) translate(-2.5%,-1.5%)" }], { duration: 22000, iterations: Infinity, direction: "alternate", easing: "ease-in-out" });
-    return () => a.cancel();
-  }, [on, src]);
+    if (!el) return;
+    start.current ??= now;
+    const p = alternate(now - start.current, 22000);
+    el.style.transform = `scale(${1.06 + 0.12 * p}) translate(${-2.5 * p}%,${-1.5 * p}%)`;
+  }, live);
+  useEffect(() => {
+    start.current = null;
+    return () => {
+      if (ref.current) ref.current.style.transform = "";
+    };
+  }, [live, src]);
   // the art is scaled past its box; its own clip keeps that bleed out of the widget's scroll area
   return (
     <div data-qa-bleed className="absolute inset-0 overflow-hidden">
