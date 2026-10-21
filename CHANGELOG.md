@@ -6,9 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.8] - 2026-10-21
+
 ### Added
 - **A new studio layout.** The rail is labelled and every item is a full view: **Design**, **Theme**, **Library**,
-  **Data**, **Alerts & Island**, **Help** and **Settings**. The title bar holds the screen and page switcher, the
+  **Gauges**, **Data**, **Alerts & Island**, **Help** and **Settings**. The title bar holds the screen and page switcher, the
   command palette, **Import**, **Export**, **Live** and **Save**, and a status bar shows the Data API (with its
   response time), the server, the kiosks, updates and whether your edits are saved.
 - **Theme** is one editor for the look at every scope. Pick **All screens**, a screen or a page in the scope bar;
@@ -23,12 +25,23 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Screens** is a view of its own (the switcher's **Manage screens…**): **When the app opens**, a card per screen,
   and a detail panel for size and fit, grid, rotation, performance and the page order.
 - **Settings** has three tabs. **Dashboard** is what every screen shares (frame rate, clock and date, kiosk
-  behaviour, **Reset everything…**), **Studio** is this browser's options, and **App** is the desktop app's settings
-  inside the studio. The tray's **Settings** and **Update…** open **Settings › App**.
+  behaviour, **Reset everything…**), **Studio** is your editor preferences, and **App** is the desktop app's startup,
+  server and update settings inside the studio. The tray's **Settings** and **Update…** open **Settings › App**.
 - **Data** has a Connection card (status, Data API URL, **Test connection**) above the source tree, and a point table
   with a display name per source and where each point is used.
 - **Alerts & Island** has **Rules**, **Island**, **Defaults** and **History** tabs, with the Dynamic Island set per
-  screen and the widgets that send to it listed.
+  screen and the widgets that send to it listed. The Island tab's preview is the real island and follows every
+  setting as you change it; **Preview an alert** plays in it.
+- **A sensor alert can watch several sensors**, each with its own condition (CPU temperature over 95 or GPU
+  temperature over 85). It fires when any one holds and names the sensors that fired; `{sensor}` is a new text token.
+- **Themes and Styles in the Library** show their colors, shape and keys, where they're used, and **Apply**,
+  **Rename**, **Duplicate** and **Delete**. **Edit in Theme** opens a saved theme in the Theme editor and
+  **Update ‹name›** saves your changes back to it; the Style tab and the Library offer **Update ‹name›** for a saved
+  Style the same way.
+- Theme's **Start from** shows one **Current look** line (the saved theme it matches, or the palette and skin) over
+  **Saved themes**, **Palettes** and **Skins**.
+- Double-clicking a canvas in the Library opens the canvas editor (**Edit canvas**); one not yet on a page comes in
+  as a new screen first.
 - **One door in, one sheet out.** **Import** accepts a config backup, a screen, an `.infopanel` file, a gauge, a frame
   sequence, an image, a video or a font, from the button or dropped anywhere in the studio, and tells you what it
   found. **Export & back up** has **Save backup**, **Export this screen**, **Export a page for InfoPanel** and
@@ -44,7 +57,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   your sensors. **Help › Run setup again** repeats it.
 - **F1** in a focused Theme section opens how sections follow and lock. Text fields show a focus ring.
 - The Library keeps its side menu and gains **Themes** and **Styles** collections beside Panels, Gauges, Media, Fonts
-  and Canvases. **Gauges** is a Library collection now.
+  and Canvases. Custom gauges show in the Library and open in **Gauges**.
 
 ### Changed
 - **Screen** is the word for a profile, and **All screens** replaces All profiles, Global and General. **Panel**,
@@ -56,14 +69,19 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   for…**. Widgets keep their looks.
 - The kiosk page font, the Dynamic Island font and clock, and **Frame-rate cap** (was Max FPS) and **Animations**
   moved to their homes in Theme, Alerts & Island and Settings › Dashboard.
-- Config version 10 drops the old zone `preset` key and changes nothing else.
+- Config version 10 drops the old zone `preset` key and changes nothing else. Version 11 stores a sensor alert's
+  condition as a one-item list; rules behave as before.
+- An app-notification alert is titled with the app's name, and its text is the notification's own title and message
+  (the island's Notifications source too).
+- Settings, Help and first-run speak of **the Studio** and **the desktop app** rather than "this browser" or "this
+  PC". The page's **Live** row reads **Show on kiosks now** and says Save doesn't change it.
 
 ### Fixed
 - A restore waits for the backup it takes first, and stops without replacing anything when the backup cannot be saved.
 - Tray **Settings** opens **Settings › App** even when the studio window has only just been created.
 
 ### Removed
-- The Profiles, Alerts and Island drawers, the Gauges rail page, the **Follow** bars, **Pin for editing**, and the
+- The Profiles, Alerts and Island drawers, the **Follow** bars, **Pin for editing**, and the
   top bar's separate Import and Export menus, **Copy profile JSON** and **Kiosk view** buttons.
 
 ## [1.3.0-beta.7] - 2026-10-21

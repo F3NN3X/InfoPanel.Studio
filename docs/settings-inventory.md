@@ -6,6 +6,15 @@ Every setting the studio edits today, read from the code at commit `a51bd17` (co
 (`redesign/DECISIONS.md` cites §8, `redesign/FEATURE_MAP.md` cites §3.3 and questions 2, 5 and 7), so
 the numbering and headings 1 to 8 stay. The prototype was not used as a source.
 
+> **Since then (settings IA, `feat/settings-ia`):** the keys are the same, but most surfaces moved. The
+> drawers, the profile inspector and the Look tab are gone; every setting's new home (Design, Theme,
+> Library, Gauges, Data, Alerts & Island, Screens, Settings › Dashboard / Studio / App) is mapped in
+> [`redesign/settings-ia/IA_AUDIT.md`](redesign/settings-ia/IA_AUDIT.md) and
+> [`redesign/settings-ia/STATUS.md`](redesign/settings-ia/STATUS.md). Config v10 drops the zone `preset` key;
+> v11 turns a sensor alert's `key`/`op`/`value`/`clearBelow` into a `conditions` list (see §5, `alerts`).
+> `MonitorProfile.font` (the screen's page font) is new and optional. The surface columns below still name
+> the pre-redesign places.
+
 Companion docs: `docs/redesign/DATA_MODEL.md` (what exists), `docs/redesign/FEATURE_MAP.md` (where
 it lives), `docs/redesign/DECISIONS.md` (the answers to §8), `docs/redesign/IMPLEMENTATION_PLAN.md`.
 
@@ -450,7 +459,7 @@ id). Delete is off with one profile left. Target: the rail's Profiles drawer
 | `dataApiUrl` | §5.7 | unset (`http://127.0.0.1:3921`) | Behaviour › Connection |
 | `sourcePrefs` | §5.8 | unset | Data sources (rail) |
 | `stylePresets`, `appearancePresets`, `panelPresets` | §6 | unset | see §6 |
-| `alerts` | `enabled` (Alerts on, default on), `rules`, `quietHours` (`from` `23:00`, `to` `07:00`, `minSeverity` `critical` once set), `defaults` (`style` `toast`, `position` `top-right`, `backdrop` `none`, `size` `m`, `seconds` `8`; `src/lib/alerts.ts:143`) | unset | Alerts drawer (rail; `src/components/studio/alerts-panel.tsx`, `alerts-defaults.tsx`) |
+| `alerts` | `enabled` (Alerts on, default on), `rules` (a sensor rule's source is `{ kind: "sensor", conditions: [{ key, op, value, clearBelow? }], forSeconds }`, firing when any condition holds; v11), `quietHours` (`from` `23:00`, `to` `07:00`, `minSeverity` `critical` once set), `defaults` (`style` `toast`, `position` `top-right`, `backdrop` `none`, `size` `m`, `seconds` `8`; `src/lib/alerts.ts:143`) | unset | Alerts drawer (rail; `src/components/studio/alerts-panel.tsx`, `alerts-defaults.tsx`) |
 
 The server's copy is `/api/config` (`src/lib/dashboard-server.ts:10`); the browser keeps an offline
 copy under `infopanel-dashboard:config:v1` (`layout.ts:284`).
