@@ -2,7 +2,7 @@
 // getter. DPR-aware (ResizeObserver), asleep off-screen (IntersectionObserver) and while the page
 // is hidden; colours re-resolved at most every 500 ms so a theme or skin change repaints live.
 import { resampleBands } from "@/lib/audio/spectrum";
-import { subscribeFrame } from "@/lib/audio/frame-loop";
+import { MAX_FRAME_GAP_MS, subscribeFrame } from "@/lib/audio/frame-loop";
 import { barCount, DRAW, fadeEdges, type DrawFrame } from "./draw";
 import { createCssResolver, css, paletteSpec, resolvePalette, type Palette } from "./palette";
 import type { VizInput, VizLook, VizSkin, VizStyle } from "./types";
@@ -11,7 +11,7 @@ export interface VizSpec {
   style: VizStyle;
   look: VizLook;
   skin: VizSkin;
-  /** prefers-reduced-motion: peak caps jump instead of falling. */
+  /** Reduced motion: the canvas paints one still frame and the loop stays asleep. */
   reduced: boolean;
 }
 
@@ -50,20 +50,22 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
   let dpr = 1;
   let onScreen = true;
   let unsubscribe: (() => void) | null = null;
+  let stilled = false;
   let lastMs = 0;
   let bars = new Float32Array(0);
   let peaks = new Float32Array(0);
   let holdUntil = new Float64Array(0);
 
-  const paint = (nowMs: number) => {
-    if (!ctx || !spec || !getter || !w || !h) return;
-    const dt = lastMs ? Math.min(100, nowMs - lastMs) : 16;
+  /** Paints one frame; false when it couldn't (no size, look, input or colours yet). */
+  const paint = (nowMs: number): boolean => {
+    if (!ctx || !spec || !getter || !w || !h) return false;
+    const dt = lastMs ? Math.min(MAX_FRAME_GAP_MS, nowMs - lastMs) : 16;
     lastMs = nowMs;
     if (resolver && (!palette || nowMs - paletteAt > PALETTE_MS)) {
       palette = resolvePalette(paletteSpec(spec.look, spec.skin), resolver.resolve);
       paletteAt = nowMs;
     }
-    if (!palette) return;
+    if (!palette) return false;
     const { style, look } = spec;
     const input = getter();
     const n = barCount(style, look, w, h);
@@ -86,16 +88,22 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     if (look.fade > 0) fadeEdges(ctx, w, h, look.fade);
+    return true;
   };
 
   const sync = () => {
-    const run = onScreen && !document.hidden && getter !== null && spec !== null;
+    const run = onScreen && !document.hidden && getter !== null && spec !== null && !spec.reduced;
     if (run && !unsubscribe) {
       lastMs = 0;
       unsubscribe = subscribeFrame(paint);
     } else if (!run && unsubscribe) {
       unsubscribe();
       unsubscribe = null;
+    }
+    // The still frame shows the input as first read (silent until the input has stepped), not live audio.
+    if (!run && !stilled && onScreen && spec?.reduced && getter) {
+      lastMs = 0;
+      stilled = paint(performance.now());
     }
   };
 
@@ -106,6 +114,9 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
     h = r.height;
     canvas.width = Math.max(1, Math.round(w * dpr));
     canvas.height = Math.max(1, Math.round(h * dpr));
+    // Setting the size clears the canvas, so a still frame paints again.
+    stilled = false;
+    sync();
   };
   resize();
   const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
@@ -122,6 +133,7 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
 
   return {
     setInput: (next) => {
+      if (next !== getter) stilled = false;
       getter = next;
       sync();
     },
@@ -131,6 +143,7 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
       specKey = key;
       spec = next;
       palette = null;
+      stilled = false;
       sync();
     },
     dispose: () => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { PulseDot } from "@/components/pulse-dot";
 import { Info, OctagonAlert, TriangleAlert, type LucideIcon } from "lucide-react";
 import type { ActiveAlert, QuietHours, Severity } from "@/lib/alerts";
 import { statLevel, type IslandConfig, type IslandSize, type IslandStat } from "@/lib/island/config";
@@ -400,10 +401,7 @@ function Activity({ activity, config, pending = 0, accent }: { activity: IslandA
         {activity.image ? (
           <img src={activity.image} alt="" className="h-[1.9em] w-[1.9em] shrink-0 rounded-[0.45em] object-cover" />
         ) : (
-          <span
-            className={cn("mr-[0.5em] h-[0.6em] w-[0.6em] shrink-0 rounded-full", activity.pulse && "island-pulse")}
-            style={{ background: activity.color ?? "currentColor", "--island-dot": activity.color ?? "currentColor" } as CSSProperties}
-          />
+          <PulseDot color={activity.color ?? "currentColor"} pulse={activity.pulse} className="mr-[0.5em] h-[0.6em] w-[0.6em] shrink-0 rounded-full" />
         )}
       </div>
       <Badge pending={pending} accent={accent} />

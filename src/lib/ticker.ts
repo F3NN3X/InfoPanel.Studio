@@ -38,7 +38,8 @@ function loop(now: number) {
   const next = nextTick(now, last, maxFps);
   if (next === null) return;
   last = next;
-  for (const cb of [...subscribers]) cb(now);
+  // A callback unsubscribed earlier in this tick doesn't run.
+  for (const cb of [...subscribers]) if (subscribers.has(cb)) cb(now);
 }
 
 function sync() {

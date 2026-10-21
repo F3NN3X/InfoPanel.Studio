@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useMediaVisualSource, type MediaVisualSource } from "@/hooks/use-media-visual-source";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { subscribeFrame } from "@/lib/audio/frame-loop";
+import { MAX_FRAME_GAP_MS, subscribeFrame } from "@/lib/audio/frame-loop";
 import type { VisualFrame } from "@/lib/audio/types";
 import { get, has, num } from "../data";
 import type { Data } from "../types";
@@ -68,8 +68,9 @@ export function useVizInput({ data, device, captureDeviceId, look, muted }: VizI
   const frame = useRef<VisualFrame | null>(null);
   useEffect(() => {
     frame.current = null;
+    if (reduced) return;
     return capture.source.subscribe((f) => (frame.current = f));
-  }, [capture.source, captureDeviceId]);
+  }, [capture.source, captureDeviceId, reduced]);
 
   const raw = useRef<RawInput>({ capture: null, spectrum: null, level: null });
   const live = useRef({ look, reduced, ready: false });
@@ -88,7 +89,7 @@ export function useVizInput({ data, device, captureDeviceId, look, muted }: VizI
         unsubscribe = null;
         return;
       }
-      const dt = lastMs ? Math.min(100, nowMs - lastMs) : 16;
+      const dt = lastMs ? Math.min(MAX_FRAME_GAP_MS, nowMs - lastMs) : 16;
       lastMs = nowMs;
       const f = live.current.ready ? frame.current : null;
       const r = f ? { ...raw.current, capture: { bands: f.bands, wave: f.timeDomain ?? null } } : raw.current;

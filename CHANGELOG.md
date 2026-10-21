@@ -25,6 +25,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - Animated shape gradients turn without re-rendering the view: each frame only rewrites the gradient's own
   numbers, so a profile with animated gradients no longer rebuilds its whole scene (React commits drop from the
   frame rate to about one a second) and uses less CPU. The look is unchanged.
+- Max FPS and Motion now reach the loops that still ran at the display's rate. Audio visualizers, the Ken Burns
+  pan on game art and the pulsing dot of a working coding agent run on the shared frame clock, and with Motion on
+  Reduce the visualizers hold one still frame and the pulse and pan stop. Below 60 fps, or with Reduce, widgets also
+  drop their CSS transitions and animations (bar and ring glides, spinning icons, equalizer bars), which ran at the
+  display's rate and re-laid out the page every frame; readings step at the data rate instead. At 60 fps and
+  above nothing changes.
 
 ## [1.3.0-beta.5] - 2026-10-20
 
