@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,300,0,0&display=block" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0c0c0e}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#2a2a31 transparent}
+a{color:oklch(0.74 0.14 255)}a:hover{color:oklch(0.82 0.12 255)}
+select option{background:#17171b;color:#ededf0}
+input,select,textarea,button{font-family:inherit}
+</style>
+</helmet>
+<div style="height:100vh; display:flex; flex-direction:column; background:#0c0c0e; color:#ededf0; font-family:'Geist',system-ui,sans-serif; font-size:13px; overflow:hidden; user-select:none">
+
+  <header style="height:48px; flex:none; display:flex; align-items:center; gap:10px; padding:0 12px; border-bottom:1px solid #1f1f24; background:#0f0f12">
+    <div style="width:26px; height:26px; border-radius:7px; background:oklch(0.72 0.15 255); flex:none"></div>
+    <span style="font-size:13px; font-weight:600; white-space:nowrap">{{ pName }}</span>
+    <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ topMeta }}</span>
+    <div style="flex:1"></div>
+    <button style="width:32px; height:32px; display:grid; place-items:center; background:none; border:none; border-radius:7px; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:19px; color:#c9c9cf" style-hover="background:#1a1a1f">undo</button>
+    <button style="width:32px; height:32px; display:grid; place-items:center; background:none; border:none; border-radius:7px; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:19px; color:#4a4a52">redo</button>
+    <div style="width:1px; height:20px; background:#24242a; margin:0 4px"></div>
+    <button style="display:flex; align-items:center; gap:6px; height:32px; padding:0 12px; background:#17171b; border:1px solid #2a2a31; border-radius:7px; color:#ededf0; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap" style-hover="background:#1e1e23"><span style="font-family:'Material Symbols Rounded'; font-size:17px">fullscreen</span>Kiosk view</button>
+    <button style="height:32px; padding:0 10px; background:none; border:none; border-radius:7px; color:#c9c9cf; font-size:12.5px; cursor:pointer" style-hover="background:#1a1a1f">Import</button>
+    <button style="height:32px; padding:0 10px; background:none; border:none; border-radius:7px; color:#c9c9cf; font-size:12.5px; cursor:pointer" style-hover="background:#1a1a1f">Export</button>
+    <button style="height:32px; padding:0 14px; background:#ededf0; border:none; border-radius:7px; color:#0c0c0e; font-size:12.5px; font-weight:600; cursor:pointer" style-hover="background:#ffffff">Save</button>
+  </header>
+
+  <div style="flex:1; display:flex; min-height:0; position:relative">
+
+    <nav style="width:52px; flex:none; border-right:1px solid #1f1f24; background:#0f0f12; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 0">
+      <button title="Profiles" style="width:38px; height:38px; display:grid; place-items:center; border:none; border-radius:9px; font-family:'Material Symbols Rounded'; font-size:21px; background:#1e1e24; color:#ededf0">desktop_windows</button>
+      <button title="Layers" style="width:38px; height:38px; display:grid; place-items:center; border:none; border-radius:9px; font-family:'Material Symbols Rounded'; font-size:21px; background:none; color:#7c7c86; cursor:pointer" style-hover="color:#ededf0; background:#1a1a1f">layers</button>
+      <button title="Add widget" style="width:38px; height:38px; display:grid; place-items:center; border:none; border-radius:9px; font-family:'Material Symbols Rounded'; font-size:21px; background:none; color:#7c7c86; cursor:pointer" style-hover="color:#ededf0; background:#1a1a1f">add_box</button>
+      <button title="Data sources" style="width:38px; height:38px; display:grid; place-items:center; border:none; border-radius:9px; font-family:'Material Symbols Rounded'; font-size:21px; background:none; color:#7c7c86; cursor:pointer" style-hover="color:#ededf0; background:#1a1a1f">database</button>
+      <div style="flex:1"></div>
+      <a href="Help.dc.html" title="Help" style="width:38px; height:38px; display:grid; place-items:center; border-radius:9px; font-family:'Material Symbols Rounded'; font-size:21px; color:#7c7c86; text-decoration:none" style-hover="color:#ededf0; background:#1a1a1f">help</a>
+      <a href="App Settings.dc.html" title="App settings" style="width:38px; height:38px; display:grid; place-items:center; border-radius:9px; font-family:'Material Symbols Rounded'; font-size:21px; color:#7c7c86; text-decoration:none" style-hover="color:#ededf0; background:#1a1a1f">settings</a>
+    </nav>
+
+    <aside style="width:280px; flex:none; background:#111114; border-right:1px solid #1f1f24; display:flex; flex-direction:column; min-height:0">
+      <div style="display:flex; align-items:center; gap:8px; padding:14px 14px 4px">
+        <span style="font-weight:600; font-size:13px">Profiles</span>
+        <span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86">{{ profileCount }}</span>
+        <div style="flex:1"></div>
+        <button onClick="{{ newProfile }}" style="height:26px; padding:0 9px 0 6px; display:flex; align-items:center; gap:4px; border:1px solid #2a2a31; background:#17171b; border-radius:6px; color:#ededf0; cursor:pointer; font-size:12px" style-hover="background:#1e1e23"><span style="font-family:'Material Symbols Rounded'; font-size:17px">add</span>New</button>
+      </div>
+      <p style="margin:0; padding:0 14px 10px; font-size:11.5px; line-height:1.45; color:#7c7c86; text-wrap:pretty">One profile per screen size. Each has its own pages, grid and widgets.</p>
+
+      <div style="flex:1; overflow:auto; padding:0 8px 8px; display:flex; flex-direction:column; gap:4px">
+        <sc-for list="{{ profilesList }}" as="pf" hint-placeholder-count="4">
+          <div style="position:relative; display:flex; flex-direction:column; border-radius:9px; border:1px solid {{ pf.bd }}; background:{{ pf.bg }}">
+            <div onClick="{{ pf.pick }}" style="display:flex; align-items:center; gap:10px; padding:{{ pf.pad }}; cursor:pointer; border-radius:9px" style-hover="background:#18181d">
+              <sc-if value="{{ pf.showThumb }}" hint-placeholder-val="{{ true }}">
+                <div style="width:64px; height:40px; flex:none; border-radius:4px; background:#08080a; border:1px solid #24242a; display:grid; place-items:center; overflow:hidden"><img src="{{ pf.thumb }}" alt="" style="max-width:100%; max-height:100%; object-fit:contain; display:block"></div>
+              </sc-if>
+              <sc-if value="{{ pf.showIcon }}" hint-placeholder-val="{{ false }}">
+                <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:{{ pf.iconFg }}">{{ pf.orientIcon }}</span>
+              </sc-if>
+              <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+                <span style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:{{ pf.fg }}">{{ pf.name }}</span>
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:3px 6px; min-width:0">
+                  <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#7c7c86; white-space:nowrap">{{ pf.meta }}</span>
+                  <sc-if value="{{ pf.hasTag }}" hint-placeholder-val="{{ false }}"><span title="{{ pf.tagTitle }}" style="font-size:10px; font-weight:500; padding:1px 6px; border-radius:4px; white-space:nowrap; color:{{ pf.tagFg }}; background:{{ pf.tagBg }}">{{ pf.tag }}</span></sc-if>
+                </div>
+              </div>
+              <button onClick="{{ pf.toggleMenu }}" title="Profile actions" style="width:26px; height:26px; flex:none; display:grid; place-items:center; border:none; background:none; border-radius:6px; cursor:pointer; color:#7c7c86; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="color:#ededf0; background:#26262c">more_horiz</button>
+            </div>
+            <sc-if value="{{ pf.active }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:1px; padding:0 8px 8px 8px">
+                <span style="font-size:10.5px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:#6f6f79; padding:4px 8px 4px">Pages</span>
+                <sc-for list="{{ pf.pages }}" as="pg" hint-placeholder-count="3">
+                  <button onClick="{{ pg.pick }}" style="display:flex; align-items:center; gap:8px; height:28px; padding:0 8px; border:none; border-radius:6px; cursor:pointer; text-align:left; font-size:12px; background:{{ pg.bg }}; color:{{ pg.fg }}" style-hover="background:#1e1e24">
+                    <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#7c7c86">{{ pg.icon }}</span>
+                    <span style="flex:1">{{ pg.label }}</span>
+                    <span style="font-family:'Geist Mono',monospace; font-size:10px; color:#6f6f79">{{ pg.num }}</span>
+                  </button>
+                </sc-for>
+                <button onClick="{{ addPage }}" style="display:flex; align-items:center; gap:8px; height:28px; padding:0 8px; border:none; border-radius:6px; cursor:pointer; text-align:left; font-size:12px; background:none; color:#8a8a94" style-hover="background:#1e1e24; color:#ededf0"><span style="font-family:'Material Symbols Rounded'; font-size:16px">add</span>Add page</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ pf.menuOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; right:6px; top:40px; z-index:50; width:196px; padding:4px; background:#1a1a1f; border:1px solid #2a2a31; border-radius:9px; box-shadow:0 12px 32px rgba(0,0,0,0.5); display:flex; flex-direction:column">
+                <button onClick="{{ pf.rename }}" style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border:none; background:none; border-radius:6px; color:#ededf0; font-size:12.5px; cursor:pointer; text-align:left" style-hover="background:#26262c"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">edit</span>Rename</button>
+                <button onClick="{{ pf.duplicate }}" style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border:none; background:none; border-radius:6px; color:#ededf0; font-size:12.5px; cursor:pointer; text-align:left" style-hover="background:#26262c"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">content_copy</span>Duplicate</button>
+                <button onClick="{{ pf.launch }}" style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border:none; background:none; border-radius:6px; color:#ededf0; font-size:12.5px; cursor:pointer; text-align:left" style-hover="background:#26262c"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">rocket_launch</span>Always open this one</button>
+                <button style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border:none; background:none; border-radius:6px; color:#ededf0; font-size:12.5px; cursor:pointer; text-align:left" style-hover="background:#26262c"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">ios_share</span>Export profile</button>
+                <div style="height:1px; background:#2a2a31; margin:4px 2px"></div>
+                <button onClick="{{ pf.del }}" style="display:flex; align-items:center; gap:9px; height:30px; padding:0 8px; border:none; background:none; border-radius:6px; color:oklch(0.74 0.16 25); font-size:12.5px; cursor:pointer; text-align:left" style-hover="background:#26262c"><span style="font-family:'Material Symbols Rounded'; font-size:17px">delete</span>Delete</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding:14px; border-top:1px solid #1f1f24; display:flex; flex-direction:column; gap:8px">
+        <span style="font-size:12px; font-weight:600">When the app opens</span>
+        <button onClick="{{ ruleFit }}" style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border-radius:8px; border:1px solid {{ fitBd }}; background:{{ fitBg }}; cursor:pointer; text-align:left; color:#ededf0">
+          <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:{{ fitRadioFg }}">{{ fitRadio }}</span>
+          <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
+            <span style="font-size:12.5px">Best fit for the window</span>
+            <span style="font-size:11.5px; line-height:1.4; color:#8a8a94; text-wrap:pretty">{{ fitNote }}</span>
+          </span>
+        </button>
+        <button onClick="{{ ruleFixed }}" style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border-radius:8px; border:1px solid {{ fixBd }}; background:{{ fixBg }}; cursor:pointer; text-align:left; color:#ededf0">
+          <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:{{ fixRadioFg }}">{{ fixRadio }}</span>
+          <span style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1">
+            <span style="font-size:12.5px">Always the same profile</span>
+            <span style="font-size:11.5px; line-height:1.4; color:#8a8a94">{{ fixNote }}</span>
+          </span>
+        </button>
+      </div>
+    </aside>
+
+    <main style="flex:1; min-width:0; display:flex; flex-direction:column; background:#0c0c0e; background-image:radial-gradient(#1c1c21 1px, transparent 1px); background-size:16px 16px">
+      <div style="height:44px; flex:none; display:flex; align-items:center; gap:4px; padding:0 10px; border-bottom:1px solid #1a1a1f; background:#0e0e11">
+        <sc-for list="{{ pageTabs }}" as="pt" hint-placeholder-count="3">
+          <button onClick="{{ pt.pick }}" style="display:flex; align-items:center; gap:6px; height:30px; padding:0 12px; border:none; border-radius:7px; cursor:pointer; font-size:12.5px; background:{{ pt.bg }}; color:{{ pt.fg }}" style-hover="background:#1a1a1f"><span style="font-family:'Material Symbols Rounded'; font-size:16px">{{ pt.icon }}</span>{{ pt.label }}</button>
+        </sc-for>
+        <button onClick="{{ addPage }}" title="Add page" style="width:30px; height:30px; display:grid; place-items:center; border:none; background:none; border-radius:7px; cursor:pointer; color:#7c7c86; font-family:'Material Symbols Rounded'; font-size:18px" style-hover="color:#ededf0; background:#1a1a1f">add</button>
+        <div style="flex:1"></div>
+        <sc-if value="{{ rotateOn }}" hint-placeholder-val="{{ false }}"><span style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:#8a8a94"><span style="font-family:'Material Symbols Rounded'; font-size:16px">autorenew</span>{{ rotateNote }}</span></sc-if>
+      </div>
+      <div style="flex:1; min-height:0; display:grid; place-items:center; padding:40px">
+        <img src="{{ canvasImg }}" alt="" style="max-width:100%; max-height:100%; object-fit:contain; display:block; outline:1px dashed #2a2a31; outline-offset:6px; border-radius:4px">
+      </div>
+      <div style="flex:none; display:flex; justify-content:center; padding:0 0 14px">
+        <div style="display:flex; align-items:center; gap:8px; height:36px; padding:0 10px; background:#141418; border:1px solid #24242a; border-radius:9px; font-size:12px; color:#c9c9cf; white-space:nowrap">
+          <span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">grid_on</span>
+          <div style="width:1px; height:18px; background:#24242a"></div>
+          <span style="font-family:'Geist Mono',monospace">66%</span>
+          <span style="padding:2px 7px; border-radius:5px; background:#1e1e24">Fit</span>
+          <div style="width:1px; height:18px; background:#24242a"></div>
+          <span style="font-family:'Geist Mono',monospace; color:#9696a0; white-space:nowrap">{{ sizeLabel }}</span>
+        </div>
+      </div>
+    </main>
+
+    <aside style="width:344px; flex:none; background:#111114; border-left:1px solid #1f1f24; display:flex; flex-direction:column; min-height:0">
+      <div style="padding:14px 16px 12px; display:flex; gap:12px; align-items:center">
+        <div style="width:44px; height:30px; flex:none; border-radius:4px; background:#08080a; border:1px solid #24242a; display:grid; place-items:center; overflow:hidden"><img src="{{ pThumb }}" alt="" style="max-width:100%; max-height:100%; object-fit:contain; display:block"></div>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+          <span style="font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ pName }}</span>
+          <span style="font-size:11.5px; color:#8a8a94">Profile settings · select a widget to edit it</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:2px; margin:0 16px; padding:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:8px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.pick }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:30px; border:none; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:500; background:{{ t.bg }}; color:{{ t.fg }}"><span style="font-family:'Material Symbols Rounded'; font-size:16px">{{ t.icon }}</span>{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <p style="margin:0; padding:10px 16px 12px; font-size:11.5px; color:#7c7c86; border-bottom:1px solid #1f1f24">{{ tabDesc }}</p>
+
+      <div style="flex:1; overflow:auto; min-height:0">
+
+        <sc-if value="{{ tabLayout }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">desktop_windows</span><span style="font-size:12.5px; font-weight:600">Screen</span></div>
+            <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Name</span><input ref="{{ nameRef }}" value="{{ pName }}" onChange="{{ onName }}" style="flex:1; min-width:0; height:30px; padding:0 10px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; color:#ededf0; font-size:12.5px; outline:none" style-focus="border-color:oklch(0.72 0.15 255)"></div>
+            <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Design size</span>
+              <select value="{{ size }}" onChange="{{ onSize }}" style="flex:1; min-width:0; height:30px; padding:0 8px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; color:#ededf0; font-size:12.5px; font-family:'Geist Mono',monospace">
+                <sc-for list="{{ sizes }}" as="sz" hint-placeholder-count="6"><option value="{{ sz }}">{{ sz }}</option></sc-for>
+              </select>
+            </div>
+            <sc-if value="{{ showMatch }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ matchWindow }}" style="align-self:flex-start; margin-left:104px; display:flex; align-items:center; gap:6px; height:26px; padding:0 9px; border:1px solid #2a2a31; background:#17171b; border-radius:6px; color:#c9c9cf; font-size:11.5px; cursor:pointer" style-hover="background:#1e1e23"><span style="font-family:'Material Symbols Rounded'; font-size:15px">fit_screen</span>{{ matchLabel }}</button>
+            </sc-if>
+            <div style="display:flex; align-items:flex-start; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf; padding-top:6px">When it doesn't fit</span>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px">
+                <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; padding:2px">
+                  <sc-for list="{{ fitSeg }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="flex:1; height:26px; border:none; border-radius:5px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for>
+                </div>
+                <span style="font-size:11.5px; line-height:1.4; color:#7c7c86; text-wrap:pretty">{{ fitHint }}</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">grid_view</span><span style="font-size:12.5px; font-weight:600">Grid</span><div style="flex:1"></div><span style="font-family:'Geist Mono',monospace; font-size:11px; color:#7c7c86; white-space:nowrap">{{ gridLabel }}</span></div>
+            <div style="height:132px; display:grid; place-items:center; background:#0a0a0c; border:1px solid #1f1f24; border-radius:8px">
+              <div style="width:{{ prevW }}; height:{{ prevH }}; display:grid; grid-template-columns:{{ gridCols }}; grid-template-rows:{{ gridRows }}; gap:{{ prevGap }}; padding:{{ prevPad }}; background:#141418; border:1px solid #2a2a31; border-radius:3px">
+                <sc-for list="{{ cells }}" as="c" hint-placeholder-count="12"><div style="background:oklch(0.72 0.15 255 / 0.16); border-radius:1px"></div></sc-for>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+              <div style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; color:#c9c9cf">Columns</span>
+                <div style="display:flex; align-items:center; height:30px; border:1px solid #24242a; border-radius:7px; background:#0c0c0e"><button onClick="{{ colsDown }}" style="width:30px; height:28px; border:none; background:none; color:#c9c9cf; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">remove</button><span style="flex:1; text-align:center; font-family:'Geist Mono',monospace; font-size:12.5px">{{ cols }}</span><button onClick="{{ colsUp }}" style="width:30px; height:28px; border:none; background:none; color:#c9c9cf; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">add</button></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12px; color:#c9c9cf">Rows</span>
+                <div style="display:flex; align-items:center; height:30px; border:1px solid #24242a; border-radius:7px; background:#0c0c0e"><button onClick="{{ rowsDown }}" style="width:30px; height:28px; border:none; background:none; color:#c9c9cf; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">remove</button><span style="flex:1; text-align:center; font-family:'Geist Mono',monospace; font-size:12.5px">{{ rows }}</span><button onClick="{{ rowsUp }}" style="width:30px; height:28px; border:none; background:none; color:#c9c9cf; cursor:pointer; font-family:'Material Symbols Rounded'; font-size:16px">add</button></div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Gap</span><input type="range" min="0" max="48" step="1" value="{{ gap }}" onChange="{{ onGap }}" style="flex:1; min-width:0; accent-color:oklch(0.72 0.15 255)"><span style="width:44px; text-align:right; font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ gapLabel }}</span></div>
+            <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Edge padding</span><input type="range" min="0" max="64" step="1" value="{{ pad }}" onChange="{{ onPad }}" style="flex:1; min-width:0; accent-color:oklch(0.72 0.15 255)"><span style="width:44px; text-align:right; font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ padLabel }}</span></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tabLook }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:14px 16px 2px; padding:10px 12px; border-radius:8px; background:#16161a; display:flex; flex-direction:column; gap:6px; font-size:11.5px; line-height:1.45; color:#9696a0">
+            <span style="text-wrap:pretty">Look settings are shared by every profile. Switch a section to <span style="color:#ededf0">This profile</span> to give {{ pName }} its own.</span>
+            <div style="display:flex; gap:14px"><span style="display:flex; align-items:center; gap:6px"><span style="width:7px; height:7px; border-radius:50%; background:oklch(0.76 0.11 190)"></span>All profiles</span><span style="display:flex; align-items:center; gap:6px"><span style="width:7px; height:7px; border-radius:50%; background:oklch(0.74 0.13 300)"></span>This profile only</span></div>
+          </div>
+
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="width:7px; height:7px; border-radius:50%; background:{{ thS.dot }}"></span><span style="font-size:12.5px; font-weight:600">Theme</span><div style="flex:1"></div>
+              <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:6px; padding:2px"><sc-for list="{{ thS.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="height:22px; padding:0 8px; border:none; border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+            </div>
+            <span style="font-size:11.5px; line-height:1.4; color:#7c7c86">{{ thS.note }}</span>
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px">
+              <sc-for list="{{ themes }}" as="th" hint-placeholder-count="6">
+                <button onClick="{{ th.pick }}" style="display:flex; align-items:center; gap:7px; height:32px; padding:0 8px; border:1px solid {{ th.bd }}; background:#141418; border-radius:7px; cursor:pointer; color:#ededf0; font-size:12px" style-hover="background:#1a1a1f">
+                  <span style="width:14px; height:14px; border-radius:50%; flex:none; background:{{ th.a }}; box-shadow:inset -7px 0 0 {{ th.b }}"></span>{{ th.name }}
+                </button>
+              </sc-for>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Accent</span><input type="color" value="{{ accent }}" onChange="{{ onAccent }}" style="width:30px; height:26px; padding:0; border:1px solid #2a2a31; border-radius:6px; background:none; cursor:pointer"><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ accent }}</span></div>
+            <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Corners</span><input type="range" min="0" max="1.5" step="0.05" value="{{ radius }}" onChange="{{ onRadius }}" style="flex:1; min-width:0; accent-color:oklch(0.72 0.15 255)"><span style="width:52px; text-align:right; font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ radiusLabel }}</span></div>
+          </div>
+
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="width:7px; height:7px; border-radius:50%; background:{{ stS.dot }}"></span><span style="font-size:12.5px; font-weight:600">Widget style</span><div style="flex:1"></div>
+              <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:6px; padding:2px"><sc-for list="{{ stS.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="height:22px; padding:0 8px; border:none; border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+            </div>
+            <span style="font-size:11.5px; line-height:1.4; color:#7c7c86">{{ stS.note }}</span>
+            <div style="display:flex; align-items:center; gap:12px">
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; color:#c9c9cf">Apply to every widget</span><span style="font-size:11.5px; line-height:1.4; color:#7c7c86; text-wrap:pretty">Overrides each widget's own colours and surface.</span></div>
+              <button onClick="{{ force.flip }}" role="switch" style="width:30px; height:18px; flex:none; border:none; border-radius:9px; padding:0; position:relative; cursor:pointer; background:{{ force.track }}"><span style="position:absolute; top:2px; left:{{ force.knob }}; width:14px; height:14px; border-radius:50%; background:#ededf0; transition:left 0.15s"></span></button>
+            </div>
+            <button style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #24242a; background:#141418; border-radius:8px; cursor:pointer; color:#ededf0; text-align:left" style-hover="background:#1a1a1f">
+              <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#9696a0">format_paint</span>
+              <span style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px">Edit widget style</span><span style="font-size:11.5px; color:#7c7c86">Surface, borders, type, spacing</span></span>
+              <span style="font-family:'Material Symbols Rounded'; font-size:18px; color:#7c7c86">chevron_right</span>
+            </button>
+          </div>
+
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="width:7px; height:7px; border-radius:50%; background:{{ bgS.dot }}"></span><span style="font-size:12.5px; font-weight:600">Background</span><div style="flex:1"></div>
+              <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:6px; padding:2px"><sc-for list="{{ bgS.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="height:22px; padding:0 8px; border:none; border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+            </div>
+            <span style="font-size:11.5px; line-height:1.4; color:#7c7c86">{{ bgS.note }}</span>
+            <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; padding:2px">
+              <sc-for list="{{ bgSeg }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="flex:1; height:26px; border:none; border-radius:5px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for>
+            </div>
+            <sc-if value="{{ bgIsColor }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Colour</span><input type="color" value="{{ bgColor }}" onChange="{{ onBgColor }}" style="width:30px; height:26px; padding:0; border:1px solid #2a2a31; border-radius:6px; background:none; cursor:pointer"><span style="font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ bgColor }}</span></div>
+            </sc-if>
+            <sc-if value="{{ bgIsMedia }}" hint-placeholder-val="{{ false }}">
+              <button style="display:flex; align-items:center; justify-content:center; gap:8px; height:56px; border:1px dashed #2f2f36; background:#0c0c0e; border-radius:8px; color:#9696a0; font-size:12px; cursor:pointer" style-hover="border-color:oklch(0.72 0.15 255); color:#ededf0"><span style="font-family:'Material Symbols Rounded'; font-size:18px">upload</span>{{ bgMediaLabel }}</button>
+            </sc-if>
+            <sc-if value="{{ bgAny }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Dim</span><input type="range" min="0" max="100" step="1" value="{{ bgDim }}" onChange="{{ onBgDim }}" style="flex:1; min-width:0; accent-color:oklch(0.72 0.15 255)"><span style="width:44px; text-align:right; font-family:'Geist Mono',monospace; font-size:11.5px; color:#9696a0">{{ bgDimLabel }}</span></div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tabBehaviour }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">tab</span><span style="font-size:12.5px; font-weight:600">Pages</span></div>
+            <div style="display:flex; flex-direction:column; border:1px solid #24242a; border-radius:8px; overflow:hidden">
+              <sc-for list="{{ pageRows }}" as="pr" hint-placeholder-count="3">
+                <div style="display:flex; align-items:center; gap:8px; height:34px; padding:0 6px 0 8px; border-bottom:1px solid #1c1c21; background:#141418">
+                  <span style="font-family:'Material Symbols Rounded'; font-size:16px; color:#5a5a63; cursor:grab">drag_indicator</span>
+                  <span style="font-family:'Geist Mono',monospace; font-size:10.5px; color:#6f6f79; width:14px">{{ pr.num }}</span>
+                  <span style="flex:1; font-size:12.5px">{{ pr.label }}</span>
+                  <sc-if value="{{ pr.canDel }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pr.del }}" title="Delete page" style="width:24px; height:24px; display:grid; place-items:center; border:none; background:none; border-radius:5px; cursor:pointer; color:#7c7c86; font-family:'Material Symbols Rounded'; font-size:16px" style-hover="color:oklch(0.74 0.16 25); background:#26262c">delete</button></sc-if>
+                </div>
+              </sc-for>
+              <button onClick="{{ addPage }}" style="display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; border:none; background:#111114; color:#8a8a94; font-size:12px; cursor:pointer; text-align:left" style-hover="color:#ededf0"><span style="font-family:'Material Symbols Rounded'; font-size:16px">add</span>Add page</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px">
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; color:#c9c9cf">Cycle through pages</span><span style="font-size:11.5px; color:#7c7c86">Shows each page in turn, in this order.</span></div>
+              <button onClick="{{ rotate.flip }}" role="switch" style="width:30px; height:18px; flex:none; border:none; border-radius:9px; padding:0; position:relative; cursor:pointer; background:{{ rotate.track }}"><span style="position:absolute; top:2px; left:{{ rotate.knob }}; width:14px; height:14px; border-radius:50%; background:#ededf0; transition:left 0.15s"></span></button>
+            </div>
+            <sc-if value="{{ rotateOn }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:12px"><span style="width:92px; flex:none; font-size:12.5px; color:#c9c9cf">Switch every</span>
+                <div style="flex:1; display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ everySeg }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="flex:1; height:26px; border:none; border-radius:5px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px">
+                <span style="flex:1; font-size:12.5px; color:#c9c9cf">Pause when I touch or click</span>
+                <button onClick="{{ pause.flip }}" role="switch" style="width:30px; height:18px; flex:none; border:none; border-radius:9px; padding:0; position:relative; cursor:pointer; background:{{ pause.track }}"><span style="position:absolute; top:2px; left:{{ pause.knob }}; width:14px; height:14px; border-radius:50%; background:#ededf0; transition:left 0.15s"></span></button>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="font-family:'Material Symbols Rounded'; font-size:17px; color:#9696a0">capsule</span><span style="font-size:12.5px; font-weight:600">Dynamic Island</span></div>
+            <div style="display:flex; align-items:center; gap:12px">
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:12.5px; color:#c9c9cf">Show pop-up alerts</span><span style="font-size:11.5px; line-height:1.4; color:#7c7c86; text-wrap:pretty">Widgets with “Send to island” on appear here briefly — a new song, rain starting.</span></div>
+              <button onClick="{{ island.flip }}" role="switch" style="width:30px; height:18px; flex:none; border:none; border-radius:9px; padding:0; position:relative; cursor:pointer; background:{{ island.track }}"><span style="position:absolute; top:2px; left:{{ island.knob }}; width:14px; height:14px; border-radius:50%; background:#ededf0; transition:left 0.15s"></span></button>
+            </div>
+          </div>
+
+          <div style="padding:16px; border-bottom:1px solid #1f1f24; display:flex; flex-direction:column; gap:12px">
+            <div style="display:flex; align-items:center; gap:8px"><span style="width:7px; height:7px; border-radius:50%; background:{{ pfS.dot }}"></span><span style="font-size:12.5px; font-weight:600">Performance</span><div style="flex:1"></div>
+              <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:6px; padding:2px"><sc-for list="{{ pfS.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="height:22px; padding:0 8px; border:none; border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+            </div>
+            <span style="font-size:11.5px; line-height:1.4; color:#7c7c86">{{ pfS.note }}</span>
+            <div style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12.5px; color:#c9c9cf">Frame rate limit</span>
+              <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ fpsSeg }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" style="flex:1; height:26px; border:none; border-radius:5px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+              <span style="font-size:11.5px; color:#7c7c86">Lower uses less CPU and GPU.</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px"><span style="font-size:12.5px; color:#c9c9cf">Animations</span>
+              <div style="display:flex; gap:2px; background:#0c0c0e; border:1px solid #24242a; border-radius:7px; padding:2px"><sc-for list="{{ motionSeg }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.pick }}" style="flex:1; height:26px; border:none; border-radius:5px; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+      <a href="App Settings.dc.html" style="display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid #1f1f24; color:#9696a0; text-decoration:none; font-size:12px" style-hover="color:#ededf0; background:#141418">
+        <span style="font-family:'Material Symbols Rounded'; font-size:17px">settings</span>
+        <span style="flex:1">Clock, fonts and connection are in App settings</span>
+        <span style="font-family:'Material Symbols Rounded'; font-size:16px">arrow_outward</span>
+      </a>
+    </aside>
+
+    <sc-if value="{{ menuAny }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeMenu }}" style="position:fixed; inset:0; z-index:40"></div></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;listStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cards&quot;,&quot;Compact&quot;],&quot;default&quot;:&quot;Cards&quot;,&quot;tsType&quot;:&quot;'Cards'|'Compact'&quot;,&quot;section&quot;:&quot;Profiles list&quot;},&quot;simWindow&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1920×550&quot;,&quot;1024×600&quot;,&quot;600×1024&quot;,&quot;2560×1440&quot;],&quot;default&quot;:&quot;1920×550&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+const ACC = 'oklch(0.72 0.15 255)', SH = 'oklch(0.76 0.11 190)', PR = 'oklch(0.74 0.13 300)';
+const BASE = [
+  { id:'mydefault', name:'MyDefault', w:1920, h:550, cols:12, rows:12, pages:['Main','Gaming','Work'], thumb:'assets/thumb-mydefault.png', big:'assets/dash-main.png' },
+  { id:'dev', name:'dev', w:1024, h:600, cols:12, rows:12, pages:['Main'], thumb:'assets/thumb-dev.png' },
+  { id:'arcv2', name:'ARCv2 WIDE Imported', w:1920, h:550, cols:2, rows:1, pages:['Main','Stats'], thumb:'assets/thumb-arcv2.png' },
+  { id:'arcr', name:'ARCRAIDERS', w:600, h:1024, cols:2, rows:1, pages:['Main'], thumb:'assets/thumb-arcraiders.png' },
+];
+const SIZES = ['1920×550','1920×1080','2560×720','1280×400','1024×600','800×480','600×1024'];
+const THEMES = [['Zinc','#71717a','#a1a1aa'],['Slate','#475569','#38bdf8'],['Midnight','#3b5bdb','#7c9cff'],['Ember','#c2410c','#fb923c'],['Moss','#4d7c0f','#a3e635'],['Rose','#be123c','#fb7185']];
+const PAGE_ICONS = { Main:'dashboard', Gaming:'sports_esports', Work:'work' };
+const TABS = [['layout','Layout','aspect_ratio','Size, grid and spacing for this profile.'],['look','Look','palette','Theme, widget style and background.'],['behaviour','Behaviour','bolt','Pages, pop-up alerts and performance.']];
+
+class Component extends DCLogic {
+  state = { profiles: BASE, active:'mydefault', page:'Main', tab:'layout', menu:null, rule:'fit', fixed:'mydefault', v:{}, n:1 };
+  nameRef = React.createRef();
+  cur() { return this.state.profiles.find(p => p.id === this.state.active) || this.state.profiles[0]; }
+  get(k, d) { const v = this.state.v[this.cur().id + '.' + k]; return v === undefined ? d : v; }
+  set(k, val) { const key = this.cur().id + '.' + k; this.setState(s => ({ v:{ ...s.v, [key]:val } })); }
+  sizeOf(p) { return this.state.v[p.id + '.size'] || (p.w + '×' + p.h); }
+  scope(sec) { return this.get('scope.' + sec, 'shared'); }
+  lget(sec, k, d) { const sh = this.state.v['shared.' + k]; const base = sh === undefined ? d : sh; return this.scope(sec) === 'shared' ? base : this.get(k, base); }
+  lset(sec, k, val) { if (this.scope(sec) === 'shared') this.setState(s => ({ v:{ ...s.v, ['shared.' + k]:val } })); else this.set(k, val); }
+  seg(opts, cur, on) { return opts.map(o => ({ label:o, bg:o === cur ? '#2a2a31' : 'transparent', fg:o === cur ? '#ededf0' : '#8a8a94', pick:() => on(o) })); }
+  tog(on, flip) { return { track:on ? ACC : '#2f2f36', knob:on ? '14px' : '2px', flip }; }
+  scopeVals(sec) {
+    const sh = this.scope(sec) === 'shared', n = this.state.profiles.length, name = this.cur().name;
+    return { dot:sh ? SH : PR, note:sh ? `Shared by all ${n} profiles. Changes here apply to every one.` : `Only ${name} uses this. Other profiles keep the shared one.`,
+      opts:this.seg(['All profiles','This profile'], sh ? 'All profiles' : 'This profile', o => this.set('scope.' + sec, o === 'All profiles' ? 'shared' : 'own')) };
+  }
+  bestFit() {
+    const [ww, wh] = String(this.props.simWindow || '1920×550').split('×').map(Number);
+    let best = null, bs = Infinity;
+    this.state.profiles.forEach(p => { const [w, h] = this.sizeOf(p).split('×').map(Number); const sc = (w === ww && h === wh) ? -1 : Math.abs(Math.log((w / h) / (ww / wh))) + Math.abs(Math.log(w / ww)) * 0.3; if (sc < bs) { bs = sc; best = p; } });
+    return { p:best, label:ww + ' × ' + wh, ww, wh };
+  }
+  pickProfile(p) { this.setState({ active:p.id, page:p.pages[0], menu:null }); }
+  updProfile(id, fn) { this.setState(s => ({ profiles:s.profiles.map(p => p.id === id ? fn(p) : p) })); }
+  addPage() { const p = this.cur(); const name = 'Page ' + (p.pages.length + 1); this.updProfile(p.id, q => ({ ...q, pages:[...q.pages, name] })); this.setState({ page:name }); }
+
+  renderVals() {
+    const s = this.state, p = this.cur(), compact = this.props.listStyle === 'Compact';
+    const fit = this.bestFit();
+    const size = this.sizeOf(p), [w, h] = size.split('×').map(Number);
+    const cols = this.get('cols', p.cols), rows = this.get('rows', p.rows), gap = this.get('gap', 12), pad = this.get('pad', 12);
+    const fitMode = this.get('fit', 'Fill');
+
+    const profilesList = s.profiles.map(q => {
+      const active = q.id === p.id, [qw, qh] = this.sizeOf(q).split('×').map(Number);
+      const isFit = s.rule === 'fit' && fit.p && fit.p.id === q.id, isFixed = s.rule === 'fixed' && s.fixed === q.id;
+      return {
+        name:q.name, thumb:q.thumb, active, showThumb:!compact, showIcon:compact,
+        orientIcon:qh > qw ? 'stay_current_portrait' : 'desktop_windows', iconFg:active ? ACC : '#7c7c86',
+        pad:compact ? '7px 8px' : '8px',
+        meta:`${qw}×${qh} · ${q.pages.length} ${q.pages.length === 1 ? 'page' : 'pages'}`,
+        bg:active ? '#17171c' : 'transparent', bd:active ? 'oklch(0.72 0.15 255 / 0.55)' : 'transparent', fg:active ? '#ededf0' : '#c9c9cf',
+        hasTag:isFit || isFixed, tag:isFit ? 'Opens now' : 'On launch',
+        tagTitle:isFit ? `Closest to the ${fit.label} window` : 'Always opens on launch',
+        tagFg:isFit ? SH : '#ededf0', tagBg:isFit ? 'oklch(0.76 0.11 190 / 0.14)' : '#2a2a31',
+        pick:() => this.pickProfile(q),
+        pages:q.pages.map((pg, i) => ({ label:pg, num:String(i + 1), icon:PAGE_ICONS[pg] || 'web_asset', bg:active && pg === s.page ? '#24242b' : 'transparent', fg:active && pg === s.page ? '#ededf0' : '#a8a8b0', pick:() => this.setState({ page:pg }) })),
+        menuOpen:s.menu === q.id,
+        toggleMenu:e => { e.stopPropagation(); this.setState({ menu:s.menu === q.id ? null : q.id }); },
+        rename:() => { this.setState({ active:q.id, page:q.pages[0], tab:'layout', menu:null }, () => { const el = this.nameRef.current; if (el) { el.focus(); el.select(); } }); },
+        duplicate:() => { const id = 'p' + Date.now(); this.setState(st => { const i = st.profiles.findIndex(x => x.id === q.id); const arr = [...st.profiles]; arr.splice(i + 1, 0, { ...q, id, name:q.name + ' copy' }); return { profiles:arr, menu:null, active:id, page:q.pages[0] }; }); },
+        launch:() => this.setState({ rule:'fixed', fixed:q.id, menu:null }),
+        del:() => { if (s.profiles.length < 2) return this.setState({ menu:null }); this.setState(st => { const arr = st.profiles.filter(x => x.id !== q.id); const act = st.active === q.id ? arr[0] : arr.find(x => x.id === st.active); return { profiles:arr, menu:null, active:act.id, page:act.pages[0], fixed:st.fixed === q.id ? arr[0].id : st.fixed }; }); },
+      };
+    });
+
+    const fixedP = s.profiles.find(x => x.id === s.fixed) || s.profiles[0];
+    const radio = on => on ? 'radio_button_checked' : 'radio_button_unchecked';
+
+    const maxW = 300, maxH = 112, sc = Math.min(maxW / w, maxH / h);
+    const nCells = Math.min(cols, 24) * Math.min(rows, 20);
+    const rot = this.get('rotate', false), every = this.get('every', '30 s');
+    const bgType = this.lget('bg', 'bgType', 'None');
+    const theme = this.lget('theme', 'theme', 'Zinc'), radius = this.lget('theme', 'radius', 0.5);
+    const accent = this.lget('theme', 'accent', (THEMES.find(t => t[0] === theme) || THEMES[0])[2]);
+
+    return {
+      pName:p.name, pThumb:p.thumb, profileCount:String(s.profiles.length),
+      topMeta:`${w} × ${h} · ${cols} × ${rows} · ${fitMode} · ${p.pages.length} ${p.pages.length === 1 ? 'page' : 'pages'}`,
+      sizeLabel:`${w} × ${h}`,
+      profilesList, menuAny:!!s.menu, closeMenu:() => this.setState({ menu:null }),
+      newProfile:() => { const id = 'p' + Date.now(); const np = { id, name:'New profile ' + s.n, w:fit.ww, h:fit.wh, cols:12, rows:6, pages:['Main'], thumb:'assets/thumb-dev.png' }; this.setState(st => ({ profiles:[...st.profiles, np], active:id, page:'Main', tab:'layout', n:st.n + 1 }), () => { const el = this.nameRef.current; if (el) { el.focus(); el.select(); } }); },
+      addPage:() => this.addPage(),
+      ruleFit:() => this.setState({ rule:'fit' }), ruleFixed:() => this.setState({ rule:'fixed' }),
+      fitRadio:radio(s.rule === 'fit'), fitRadioFg:s.rule === 'fit' ? ACC : '#6f6f79',
+      fitBd:s.rule === 'fit' ? '#2f2f38' : '#1f1f24', fitBg:s.rule === 'fit' ? '#16161b' : 'transparent',
+      fitNote:`Picks the closest size. This ${fit.label} window opens ${fit.p ? fit.p.name : '—'}.`,
+      fixRadio:radio(s.rule === 'fixed'), fixRadioFg:s.rule === 'fixed' ? ACC : '#6f6f79',
+      fixBd:s.rule === 'fixed' ? '#2f2f38' : '#1f1f24', fixBg:s.rule === 'fixed' ? '#16161b' : 'transparent',
+      fixNote:s.rule === 'fixed' ? `Opens ${fixedP.name}. Change it from a profile's ⋯ menu.` : 'Ignore the window size.',
+
+      pageTabs:p.pages.map(pg => ({ label:pg, icon:PAGE_ICONS[pg] || 'web_asset', bg:pg === s.page ? '#1e1e24' : 'transparent', fg:pg === s.page ? '#ededf0' : '#8a8a94', pick:() => this.setState({ page:pg }) })),
+      canvasImg:p.big || p.thumb,
+      rotateOn:rot, rotateNote:`Cycling every ${every}`,
+
+      tabs:TABS.map(t => ({ label:t[1], icon:t[2], bg:s.tab === t[0] ? '#2a2a31' : 'transparent', fg:s.tab === t[0] ? '#ededf0' : '#8a8a94', pick:() => this.setState({ tab:t[0] }) })),
+      tabDesc:(TABS.find(t => t[0] === s.tab) || TABS[0])[3],
+      tabLayout:s.tab === 'layout', tabLook:s.tab === 'look', tabBehaviour:s.tab === 'behaviour',
+
+      nameRef:this.nameRef, onName:e => { const val = e.target.value; this.updProfile(p.id, q => ({ ...q, name:val })); },
+      size, sizes:SIZES.includes(size) ? SIZES : [size, ...SIZES], onSize:e => this.set('size', e.target.value),
+      showMatch:size !== (fit.ww + '×' + fit.wh), matchLabel:`Use this window's size (${fit.label})`, matchWindow:() => this.set('size', fit.ww + '×' + fit.wh),
+      fitSeg:this.seg(['Fill','Scroll'], fitMode, o => this.set('fit', o)),
+      fitHint:fitMode === 'Fill' ? 'Rows stretch so the whole grid fits the screen height.' : 'Rows stay 120 px tall and the page scrolls.',
+      gridLabel:`${cols} × ${rows} cells`, cols:String(cols), rows:String(rows),
+      colsDown:() => this.set('cols', Math.max(1, cols - 1)), colsUp:() => this.set('cols', Math.min(24, cols + 1)),
+      rowsDown:() => this.set('rows', Math.max(1, rows - 1)), rowsUp:() => this.set('rows', Math.min(20, rows + 1)),
+      prevW:Math.round(w * sc) + 'px', prevH:Math.round(h * sc) + 'px',
+      gridCols:`repeat(${Math.min(cols, 24)}, minmax(0,1fr))`, gridRows:`repeat(${Math.min(rows, 20)}, minmax(0,1fr))`,
+      prevGap:Math.max(1, gap * sc) + 'px', prevPad:Math.max(1, pad * sc) + 'px',
+      cells:Array.from({ length:nCells }, (_, i) => i),
+      gap, gapLabel:gap + ' px', onGap:e => this.set('gap', +e.target.value),
+      pad, padLabel:pad + ' px', onPad:e => this.set('pad', +e.target.value),
+
+      thS:this.scopeVals('theme'), stS:this.scopeVals('style'), bgS:this.scopeVals('bg'), pfS:this.scopeVals('perf'),
+      themes:THEMES.map(t => ({ name:t[0], a:t[1], b:t[2], bd:t[0] === theme ? ACC : '#24242a', pick:() => { this.lset('theme', 'theme', t[0]); this.lset('theme', 'accent', t[2]); } })),
+      accent, onAccent:e => this.lset('theme', 'accent', e.target.value),
+      radius, radiusLabel:radius.toFixed(2) + ' rem', onRadius:e => this.lset('theme', 'radius', +e.target.value),
+      force:this.tog(this.lget('style', 'force', false), () => this.lset('style', 'force', !this.lget('style', 'force', false))),
+      bgSeg:this.seg(['None','Colour','Image','Video'], bgType, o => this.lset('bg', 'bgType', o)),
+      bgIsColor:bgType === 'Colour', bgIsMedia:bgType === 'Image' || bgType === 'Video', bgAny:bgType !== 'None',
+      bgMediaLabel:bgType === 'Video' ? 'Choose a video' : 'Choose an image',
+      bgColor:this.lget('bg', 'bgColor', '#1b1d2a'), onBgColor:e => this.lset('bg', 'bgColor', e.target.value),
+      bgDim:this.lget('bg', 'bgDim', 0), bgDimLabel:this.lget('bg', 'bgDim', 0) + '%', onBgDim:e => this.lset('bg', 'bgDim', +e.target.value),
+
+      pageRows:p.pages.map((pg, i) => ({ label:pg, num:String(i + 1), canDel:p.pages.length > 1, del:() => { this.updProfile(p.id, q => ({ ...q, pages:q.pages.filter(x => x !== pg) })); if (s.page === pg) this.setState({ page:p.pages.find(x => x !== pg) }); } })),
+      rotate:this.tog(rot, () => this.set('rotate', !rot)),
+      everySeg:this.seg(['10 s','30 s','1 min','5 min'], every, o => this.set('every', o)),
+      pause:this.tog(this.get('pause', true), () => this.set('pause', !this.get('pause', true))),
+      island:this.tog(this.get('island', true), () => this.set('island', !this.get('island', true))),
+      fpsSeg:this.seg(['5','15','30','60','No limit'], this.lget('perf', 'fps', '30'), o => this.lset('perf', 'fps', o)),
+      motionSeg:this.seg(['Follow system','Reduced','Full'], this.lget('perf', 'motion', 'Follow system'), o => this.lset('perf', 'motion', o)),
+    };
+  }
+}
+</script>
+</body>
+</html>
