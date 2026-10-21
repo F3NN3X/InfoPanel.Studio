@@ -87,7 +87,8 @@ export interface LibraryPageProps {
   /** The stored profile's name (the canvas files button, the suggestions' note). */
   profileName: string;
   /** Reopen a saved canvas from the library in the import wizard (files go through the Import door). */
-  onImport: (source: { canvasId: string }) => void;
+  /** Reopen a saved canvas in the import wizard, landing where `dest` says (chosen here, so the wizard does not ask). */
+  onImport: (source: { canvasId: string }, dest: "new" | "zone") => void;
   /** Open a library gauge in the Gauges collection's editor. */
   onOpenGauge: (itemId: string) => void;
   /** Export a saved canvas (download) without placing it. */
@@ -171,7 +172,7 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "gauge":
         return { label: "Open in editor", icon: Gauge, run: () => p.onOpenGauge(item.id) };
       case "canvas":
-        return { label: "Open canvas", icon: MonitorPlay, run: () => p.onImport({ canvasId: item.id }) };
+        return { label: "Open canvas", icon: MonitorPlay, run: () => p.onImport({ canvasId: item.id }, "new") };
       case "style":
         return {
           label: "Apply to selection",
@@ -181,7 +182,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           title: p.bridge.selection.length === 0 ? "Select a widget on the canvas first" : undefined,
         };
       case "panel":
-        return { label: "Add to profile", icon: Plus, run: () => void addToProfile(bridge, item) };
+        return { label: "Add to screen", icon: Plus, run: () => void addToProfile(bridge, item) };
       case "font":
         return { label: "Show font", icon: Type, run: () => pickCollection("fonts") };
       case "theme":
@@ -236,7 +237,7 @@ export default function LibraryPage(p: LibraryPageProps) {
       });
     if (item.kind === "canvas") {
       out.push({ label: "Export…", icon: Download, run: () => p.onExportCanvas(item) });
-      out.push({ label: "Re-import…", icon: FolderInput, run: () => p.onImport({ canvasId: item.id }) });
+      out.push({ label: "Add to this page…", icon: FolderInput, run: () => p.onImport({ canvasId: item.id }, "zone") });
     }
     return out;
   }
@@ -291,7 +292,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           },
         ]
       : []),
-    ...(c.unused ? [{ id: "unused", title: `${c.unused} unused`, text: "Not used by any profile", action: "Review", onAction: () => pickCollection("unused") }] : []),
+    ...(c.unused ? [{ id: "unused", title: `${c.unused} unused`, text: "Not used by any screen", action: "Review", onAction: () => pickCollection("unused") }] : []),
     ...(c.large ? [{ id: "large", title: `${c.large} large file${c.large === 1 ? "" : "s"}`, text: `${formatBytes(c.largeBytes)} in all`, action: "Review", onAction: () => pickCollection("large") }] : []),
   ];
   const shelves = [

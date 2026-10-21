@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bug, Check, Copy, FolderOpen, History } from "lucide-react";
 import { StudioLogo } from "@/components/studio/studio-logo";
+import { BUILD_ID } from "@/lib/buildInfo";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { shortDate } from "../model/changelog";
@@ -12,10 +13,11 @@ const ISSUES_URL = "https://github.com/F3NN3X/InfoPanel.Studio/issues/new";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The System rows: Version, Channel, Node, WebView2 and Windows. */
+/** The System rows: Version, Studio build, Channel, Node, WebView2 and Windows. */
 export function systemRows(info: AppInfo): [string, string][] {
   const rows: [string, string | null][] = [
     ["Version", `${info.version} (built ${info.buildDate})`],
+    ["Studio build", BUILD_ID],
     ["Channel", capitalize(info.channel)],
     ["Node", info.node],
     ["WebView2", info.webview],

@@ -10,10 +10,10 @@ Starting points you can drop in and adjust: whole pages, single panels, and look
 
 | Kind | Is | Find it |
 |---|---|---|
-| Layout starters | One sensor-free panel; each widget asks for a sensor | **Add › Layouts** |
-| Panel presets | One panel already bound to sensors (samples) | **Add › Layouts** |
-| My panels | Panels you saved | **Add › My panels** |
-| Styles | One widget's look | Style tab, **Start from a Style** |
+| Layout starters | One sensor-free panel; each widget asks for a sensor | **Add widget › Layouts** |
+| Panel presets | One panel already bound to sensors (samples) | **Add widget › Layouts** |
+| Panels | Panels you saved | **Add widget › My panels**, **Library › Panels** |
+| Styles | One widget's look | Style tab, **Start from a Style**, **Library › Styles** |
 | Skins and saved Themes | A whole look for all screens, one screen or a page | **Theme › Start from**, **Apply a theme here…** |
 
 ## Layout starters

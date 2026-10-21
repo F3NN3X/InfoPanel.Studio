@@ -103,7 +103,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-[80]">
-          <Popover.Popup className="w-[340px] rounded-[10px] border border-[oklch(0.78_0.15_150/0.45)] bg-ui-raised p-3 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none">
+          <Popover.Popup data-help-article="kiosk" className="w-[340px] rounded-[10px] border border-[oklch(0.78_0.15_150/0.45)] bg-ui-raised p-3 font-ui text-[12.5px] text-ui-2 shadow-ui-menu outline-none">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <Popover.Title className="text-[13px] font-semibold text-ui-1">Live control</Popover.Title>

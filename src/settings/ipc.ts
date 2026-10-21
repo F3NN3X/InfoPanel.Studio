@@ -50,7 +50,8 @@ export const ipc = {
   changelog: () => invoke<string>("changelog"),
   openExternal: (url: string) => invoke<void>("open_external", { url }),
   openHelp: (target: { article?: string; heading?: string }) => invoke<void>("open_help", target),
-  openSettings: (section?: string) => invoke<void>("open_settings", { section }),
+  /** The studio window at Settings › App (Help's "Open settings"). */
+  openSettingsInStudio: (section?: string) => invoke<void>("open_settings_in_studio", { section }),
 };
 
 /** Calls `handler` with the payload of each `event`; resolves to the unsubscribe. */

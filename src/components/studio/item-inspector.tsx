@@ -6,9 +6,10 @@ import { sensorAt } from "@/lib/sensors";
 import { resolveWith, type Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { InspectorView, type SectionParts } from "./inspector/inspector-view";
-import { itemFields, kindChoices, type ItemContext } from "./inspector/item-model";
+import { itemFields, itemFollow, kindChoices, type ItemContext, type ItemFieldsInput } from "./inspector/item-model";
 import type { InspectorSection, PanelLayoutKind } from "./inspector-model";
 import type { SheetIdentity } from "./inspector/sheet-view";
+import { itemSectionInherit } from "./section-inherit";
 import { KIND_INFO } from "./widget-kinds";
 import { zoneName } from "./inspector/zone-meta";
 
@@ -25,6 +26,8 @@ interface ItemInspectorProps {
   update: (fn: (p: Placement) => Placement, key?: string) => void;
   onChangeKind: (kind: WidgetKind) => void;
   onOpenExplorer: () => void;
+  /** A section's "Edit lock in Theme ↗" (the screen locks it). */
+  onEditLock: (section: string) => void;
   query: string;
   onQuery: (query: string) => void;
   jumpTo?: { id: string; key?: string; seq: number };
@@ -81,6 +84,7 @@ export function ItemInspector({
   update,
   onChangeKind,
   onOpenExplorer,
+  onEditLock,
   query,
   onQuery,
   jumpTo,
@@ -91,7 +95,7 @@ export function ItemInspector({
   const unit = (widget.sensor ? sensorAt(catalog.sensors, widget.sensor)?.unit : undefined) || widget.unit;
   const context: ItemContext = { kind: "item", widget, layout: layoutOf(panel.layout), unit };
   const look = resolveWith(appearance, panelOwnSettings(zone), zone.follow, panelLegacyLook(zone)) ?? {};
-  const fields = itemFields({
+  const fieldsInput: ItemFieldsInput = {
     widget,
     layout: context.layout,
     look,
@@ -104,7 +108,18 @@ export function ItemInspector({
         key && `panel-widget:${widget.id}:${key}`
       ),
     onOpenExplorer,
-  });
+  };
+  const fields = itemFields(fieldsInput);
+  /** A section's chip: the widget follows its panel (the panel is its only level in the theme). */
+  const inherit = (s: InspectorSection) => {
+    const follow = itemFollow(fieldsInput, s);
+    return (
+      follow &&
+      itemSectionInherit({ mode: follow.mode, panelName: fieldsInput.panelName, onCustomise: follow.onCustomize, onUseTheme: follow.onUseTheme }, () =>
+        onEditLock(follow.section)
+      )
+    );
+  };
 
   const parts = (s: InspectorSection): SectionParts => {
     if (s.special === "itemKind") return { body: <KindChips kind={widget.kind} onChange={onChangeKind} />, editor: true };
@@ -119,6 +134,7 @@ export function ItemInspector({
       header={header}
       fields={fields}
       parts={parts}
+      inherit={inherit}
       query={query}
       onQuery={onQuery}
       jumpTo={jumpTo}

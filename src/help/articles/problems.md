@@ -11,12 +11,12 @@ Quick fixes for the things that go wrong most.
 ## The display says it can't connect
 
 1. Check the status pill in Settings: the server must be running.
-2. Compare the port in the kiosk URL in InfoPanel with Settings › Server.
+2. Compare the port in the kiosk URL in InfoPanel with Settings › App › Server.
 3. If you chose Local network and InfoPanel is on another device, allow InfoPanel Studio through Windows Firewall.
 
 ## The server won't start (port in use)
 
-Another program holds the port. Settings › Server explains "Port N is already in use by another app" and offers a button to switch to the next free port, such as **Use 3923**. Press it, then update the kiosk URL in InfoPanel.
+Another program holds the port. Settings › App › Server explains "Port N is already in use by another app" and offers a button to switch to the next free port, such as **Use 3923**. Press it, then update the kiosk URL in InfoPanel.
 
 If the message says another InfoPanel Studio server is already running on that port, for example from `start-dashboard.bat`, choose **Use it**, or **Stop it and start the app's server**. If Windows blocked the port, the message offers **View logs**.
 
@@ -29,14 +29,14 @@ If the message says another InfoPanel Studio server is already running on that p
 ## Edits don't show on the display
 
 - Look for a dot on the studio's **Save** button and press it.
-- Check the kiosk shows the profile you are editing. With **Best fit for the window** it opens the closest size, and the tag on each card in Profiles shows which one. With **Always the same profile** it opens the card tagged **On launch**.
+- Check the kiosk shows the screen you are editing. With **Best fit for the window** it opens the closest size, and the tag on each card in Screens shows which one. With **Always the same screen** it opens the card tagged **Opens on launch**.
 
 ## The display's GPU stays busy
 
 InfoPanel's web view keeps the GPU busy while the dashboard barely changes.
 
 1. Open **Settings › Dashboard › Performance** and set **Frame-rate cap** to 30 or 15.
-2. If the section is set to **This profile**, the profile has its own rate. Lower it there too, or switch to **All profiles**.
+2. If the screen has its own performance (the chip in **Screens › Performance** says **Custom here**), lower it there too, or reset it to **From All screens**.
 3. Check that the kiosk URL in InfoPanel doesn't carry `&fps=60` or `&fps=0`.
 4. On a display where nothing needs to move, set **Animations** to Reduced.
 5. After updating InfoPanel Studio, restart InfoPanel. It doesn't reload the kiosk page by itself.

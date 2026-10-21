@@ -538,16 +538,6 @@ export function rowSection(def: ModuleSetting): SectionId | undefined {
 }
 
 /**
- * The followable section an inspector section stands for: a shared section
- * of SPEC §2.1 with a row the theme sets (else there is nothing to follow).
- */
-export function followSection(s: InspectorSection): SectionId | undefined {
-  const id = s.id.split("@")[0];
-  if (!s.general || !isSectionId(id)) return undefined;
-  return s.settings.some((d) => rowSection(d) === id) ? id : undefined;
-}
-
-/**
  * The theme sections an inspector card's inheritance chip covers: its own, and Widget colors inside the
  * merged Colors card (SPEC §6.3). None for a card nothing in follows a theme.
  */
@@ -563,19 +553,12 @@ export type FollowMode = "theme" | "custom" | "locked";
 
 export interface FollowInfo {
   mode: FollowMode;
-  /** The theme it follows: "the profile theme · Desk", "the page theme · Gaming". */
-  from: string;
-  /** Which theme `from` names (its link opens that scope of the theme editor). */
-  level: "profile" | "page";
 }
 
-/** The Follow bar of a widget section (SPEC §4.1): a page custom for the section names the page's theme. */
+/** Whether a widget section follows the theme, is custom, or is locked by the screen (a locked section's rows are read-only). */
 export function followInfo(appearance: Appearance, follow: SectionFlags | undefined, sec: SectionId): FollowInfo {
-  const named = (level: string, name: string | undefined) => `the ${level} theme${name ? ` · ${name}` : ""}`;
-  if (isLocked(appearance, sec)) return { mode: "locked", from: named("profile", appearance.profileName), level: "profile" };
-  const level = appearance.page?.follow?.[sec] === false ? "page" : "profile";
-  const from = level === "page" ? named("page", appearance.pageName) : named("profile", appearance.profileName);
-  return { mode: following(appearance, follow, sec) ? "theme" : "custom", from, level };
+  if (isLocked(appearance, sec)) return { mode: "locked" };
+  return { mode: following(appearance, follow, sec) ? "theme" : "custom" };
 }
 
 // -- notes ----------------------------------------------------------------------
@@ -590,7 +573,7 @@ export function inspectorNotes(context: InspectorContext, tab: TabId | undefined
   if (context.kind === "blank") return [{ kind: "blank", text: "This zone is blank. Pick a widget or a panel to fill it." }];
   if (context.kind === "theme") {
     return context.scope === "base"
-      ? [{ kind: "theme", text: "The base under every profile's theme: what a profile leaves unset. It has no locks." }]
+      ? [{ kind: "theme", text: "The base under every screen's theme: what a screen leaves unset. It has no locks." }]
       : [];
   }
   if (tab !== "style") return [];

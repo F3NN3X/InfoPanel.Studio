@@ -59,6 +59,7 @@ import { visibleAlerts } from "@/components/alerts/alert-model";
 import { cycleLabel, PageTabs } from "./page-tabs";
 import { PageIconDialog } from "./page-icon-dialog";
 import { islandSectionId } from "./island-panel-model";
+import type { SectionId } from "@/settings/model/search";
 import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
@@ -184,15 +185,22 @@ function StudioViewBody({
     setScopeStyle,
     onPageChange,
     onSelectProfile: selectProfile,
+    onHelp: () => void openHelp(helpTarget()).catch(() => {}),
   });
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
   const { studioLayout, showSources, showLibrary, showTheme, showAlerts, showScreens, showSettings, fullPage } = ui;
   const narrowRail = railWidth(windowWidth) < 72;
-  // F1 and the rail's Help: the article for what the user is on (an open dialog, the selected zone, the Screens view).
+  // F1 and the rail's Help: the article for what the user is on (an open dialog, the view, the selected zone).
   const helpTarget = () =>
-    studioHelpTarget({ dialog: dialogArticle(), zone: helpZoneKind(selected), drawer: showScreens ? "profiles" : null });
+    studioHelpTarget({
+      dialog: dialogArticle(),
+      view: ui.mode,
+      zone: helpZoneKind(selected),
+      settingsTab: ui.settingsTab,
+      settingsSection: ui.settingsSection as SectionId | undefined,
+    });
   useHelpKey(helpTarget, (target) => void openHelp(target).catch(() => {}));
   /** The data point the inspector's Bound data row opened in Sources mode. */
   const [focusPointKey, setFocusPointKey] = useState<string>();
@@ -594,7 +602,7 @@ function StudioViewBody({
   /** Where a library copy went: "ARCv2 › Page 1 › Background". */
   const copyLabel = (c: LibraryCopy) => {
     const p = config.profiles.find((x) => x.id === c.profileId);
-    if (!p) return c.label ?? "A removed profile";
+    if (!p) return c.label ?? "A removed screen";
     const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
     const zone = page?.placements.find((z) => z.id === c.zoneId);
     return [p.name, p.pages.length > 1 ? page?.name : null, zone ? zoneName(zone) : c.label].filter(Boolean).join(" › ");
@@ -625,7 +633,7 @@ function StudioViewBody({
         onShowCanvas={() => ui.setMode("design")}
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
-        onImport={(source) => io.openImport("new", source)}
+        onImport={(source, dest) => io.openImport(dest, source, true)}
         onOpenGauge={(itemId) => openGauge({ kind: "library", itemId })}
         onExportCanvas={(item) =>
           void dataOf<StoredCanvas>(item).then((canvas) =>
@@ -730,7 +738,6 @@ function StudioViewBody({
         onUndo={history.undo}
         onRedo={history.redo}
         onPalette={() => ui.setPaletteOpen(true)}
-        onShortcuts={() => ui.setShortcutsOpen(true)}
       />
       <StudioShell
         layout={studioLayout}

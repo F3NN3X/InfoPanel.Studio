@@ -10,12 +10,12 @@ Show what Claude Code and Codex are doing, live on your dashboard.
 
 ## Turning it on
 
-1. Open Settings › Coding agents.
+1. Open Settings › App › Coding agents.
 2. Turn on **Connect coding agents**.
 3. Start a new Claude Code or Codex session. It appears on widgets that show agent sessions.
 4. For Codex, run `/hooks` once in the session to approve the hooks.
 
-:::open settings/agents Settings › Coding agents
+:::open settings/agents Settings › App › Coding agents
 
 ## What it changes
 

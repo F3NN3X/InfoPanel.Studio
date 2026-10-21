@@ -408,7 +408,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
     state ? MODE_LABEL[state.mode] : "",
     state ? `${state.report.items.total} items` : "",
     state ? (state.online ? `${state.unresolved} unresolved` : "Data API offline") : "",
-    choices.dest === "new" ? "New profile" : "Canvas zone",
+    choices.dest === "new" ? "New screen" : "Canvas zone",
   ];
   const footNote =
     step === 0 && uploading
@@ -422,7 +422,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
             : step === 4 && uploading
               ? `Uploading assets · ${formatBytes(state!.upload.done)} of ${formatBytes(state!.upload.total)}`
               : "";
-  const nextLabel = step === 4 ? `Import ${choices.name.trim() || "profile"}` : step === 2 ? "Looks right, continue" : "Continue";
+  const nextLabel = step === 4 ? `Import ${choices.name.trim() || "screen"}` : step === 2 ? "Looks right, continue" : "Continue";
 
   return (
     // The remap step has its own Help article (F1).

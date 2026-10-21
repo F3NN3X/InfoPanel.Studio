@@ -5,7 +5,7 @@ import { isLocked, sectionOfKey, themeKeyOf, withFlag, type SectionId, type Them
 import { modules } from "@/modules";
 import { CARD_SETTINGS, PANEL_SETTINGS } from "@/modules/standard-settings";
 import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettingValue, type ModuleSettings } from "@/modules/types";
-import { followInfo, followSection, rowSection, widgetLookValues, type LookValues } from "../inspector-model";
+import { followInfo, rowSection, widgetLookValues, type LookValues } from "../inspector-model";
 import { dropKeys } from "../settings-model";
 import type { FieldsApi } from "../settings-panel";
 
@@ -79,25 +79,9 @@ export function customised(zone: Placement, levels: ThemeLevels, defs: readonly 
   }, zone);
 }
 
-/**
- * The Follow bars and read-only rows of a zone's sections (`zone` is the
- * one whose state shows); `each` applies a follow change to every zone edited.
- */
-export function followFields(
-  zone: Placement,
-  appearance: Appearance,
-  each: (fn: (z: Placement) => Placement, key?: string) => void
-): Pick<FieldsApi, "follow" | "readOnly"> {
+/** The read-only rows of a zone's sections: a row whose section follows the theme or is locked (`zone` is the one whose state shows). */
+export function readOnlyFields(zone: Placement, appearance: Appearance): Pick<FieldsApi, "readOnly"> {
   return {
-    follow: (s) => {
-      const sec = followSection(s);
-      if (!sec) return undefined;
-      return {
-        ...followInfo(appearance, zone.follow, sec),
-        onCustomize: () => each((z) => withFollow(z, sec, false), `follow:${sec}`),
-        onUseTheme: () => each((z) => withFollow(z, sec, true), `follow:${sec}`),
-      };
-    },
     readOnly: (def) => {
       const sec = rowSection(def);
       return sec !== undefined && followInfo(appearance, zone.follow, sec).mode !== "custom";
@@ -126,6 +110,6 @@ export function selectionFields(
     onChange: (key: string, v: ModuleSettingValue) => each((z) => withSettings(z, { [key]: v }), `setting:${key}`),
     onPatch: (patch: ModuleSettings) => each((z) => withSettings(z, patch), `setting:${Object.keys(patch).join()}`),
     onClear: (keys: string[]) => each((z) => withoutSettings(z, keys)),
-    ...followFields(primary, appearance, each),
+    ...readOnlyFields(primary, appearance),
   };
 }

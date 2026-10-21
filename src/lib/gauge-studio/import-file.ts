@@ -1,4 +1,4 @@
-/** Reading a gauge file picked on the Gauges page: a `.gauge.json` spec or an SVG template (spec §6). */
+/** Reading a gauge file picked in Library › Gauges: a `.gauge.json` spec or an SVG template (spec §6). */
 import { readSpecFile, specFile } from "@/lib/infopanel/gauges/spec-file";
 import { sanitizeTemplate } from "@/lib/infopanel/gauges/svg-template";
 import { DEFAULT_GAUGE, MAX_TEMPLATE, normalizeGauge, type VectorGauge } from "@/lib/infopanel/gauges/vector";

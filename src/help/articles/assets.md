@@ -8,14 +8,14 @@ verified: 1.3.0-beta.1
 
 Manage the images, videos and fonts an imported profile carries.
 
-Open the **Library** and choose the **Profile assets** tab for the current profile. See [Library](library) for your files across profiles.
+Open the **Library** and press **Canvas files** for the current screen. See [Library](library) for your files across screens.
 
 ## Files
 
 Each file shows a preview, its real type and pixel size, byte size and how many items use it.
 
 - **Add files**: duplicates are merged by content.
-- **Replace by name…**: pick a set of files and the studio matches them to the profile's files by name. It shows matches, identical, unmatched and ambiguous files before anything changes.
+- **Replace by name…**: pick a set of files and the studio matches them to the canvas's files by name. It shows matches, identical, unmatched and ambiguous files before anything changes.
 - On a row, **Replace**, **Save a copy to My library**, **Use** and **Remove**.
 
 ## Cleanup

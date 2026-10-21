@@ -192,7 +192,7 @@ export interface MonitorProfile {
   padding?: number;
   /** The Dynamic Island over the page (`src/lib/island`); unset = none. */
   island?: IslandConfig;
-  /** Max FPS and motion for this profile, over the dashboard's General settings; unset = the dashboard's. */
+  /** Max FPS and motion for this profile, over the Dashboard settings (all screens); unset = the dashboard's. */
   performance?: PerformanceOverride;
   /** This profile's page font over the dashboard's `general.font` (`resolveFont`); unset = the dashboard's. */
   font?: GeneralFont;
@@ -258,7 +258,7 @@ export interface DashboardConfig {
    * sits on (the base layer, no locks; see `theme-model.ts`).
    */
   style?: ModuleSettings;
-  /** Whole looks the user saved (Appearance gallery; see appearance-presets.ts). */
+  /** Whole looks the user saved (saved Themes; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
   /** Font, clock format, locale, motion and kiosk cursor (see general.ts). */
   general?: GeneralSettings;

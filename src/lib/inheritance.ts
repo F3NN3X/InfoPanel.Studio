@@ -30,8 +30,8 @@ import {
 /** The chip's states (SPEC §5). */
 export type InheritState = "inherited" | "custom" | "locked" | "base" | "builtin";
 
-/** The level a chip names: All screens, Screen or Page. */
-export type InheritLevel = "all" | "screen" | "page";
+/** The level a chip names: All screens, Screen or Page; a panel's widget (an item) also has its Panel. */
+export type InheritLevel = "all" | "screen" | "page" | "panel";
 
 /** The two-level data: color tokens + corner radius, the page background, performance and the page font. */
 export type DataPath = "tokens" | "background" | "performance" | "font";
@@ -86,6 +86,7 @@ export const LEVEL_LABELS: Readonly<Record<InheritLevel, string>> = {
   all: "All screens",
   screen: "Screen",
   page: "Page",
+  panel: "Panel",
 };
 
 /** The default corner radius (rem), as `defaultConfig` stores it. */

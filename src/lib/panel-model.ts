@@ -23,7 +23,7 @@ export type WidgetKind =
   | "value" // compact inline readout
   | "bar" // label + value + horizontal fill
   | "gauge" // circular ring
-  | "customGauge" // a gauge designed on the Gauges page (the Custom gauge widget's drawing)
+  | "customGauge" // a gauge designed in Library › Gauges (the Custom gauge widget's drawing)
   | "sparkline" // rolling mini line graph
   | "table" // rows from a multi-line text sensor
   | "text" // static or bound text
@@ -95,7 +95,7 @@ export interface Widget {
   rows?: number;
   /** "clock" layout. */
   clock?: "time" | "date" | "both";
-  /** "clock" showing time or date only: a .NET format string (`hh:mm:ss tt`, `dd/MM/yyyy`); empty: the General settings' own. */
+  /** "clock" showing time or date only: a .NET format string (`hh:mm:ss tt`, `dd/MM/yyyy`); empty: the Dashboard settings' own. */
   format?: string;
   /** "text": scroll when wider than the widget (InfoPanel's marquee). */
   scroll?: boolean;

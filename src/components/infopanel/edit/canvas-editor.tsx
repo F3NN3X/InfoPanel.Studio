@@ -40,7 +40,7 @@ export interface CanvasEditorProps {
   profileId: string;
   /** Items selected on open (the Library's "uses", a font's text items). */
   initialSelection?: string[];
-  /** A Gauge item's "Edit gauge…": open it in the Gauges page. */
+  /** A Gauge item's "Edit gauge…": open it in Library › Gauges. */
   onEditGauge?: (path: Path) => void;
 }
 

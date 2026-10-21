@@ -1,5 +1,5 @@
 /**
- * The Gauges page's way to change a canvas zone's files (frame tools, Bake frames): the zone's files are
+ * The Library's Gauges way to change a canvas zone's files (frame tools, Bake frames): the zone's files are
  * loaded when an action runs, not while the editor is open (a vector gauge's every slider move changes the
  * zone), then the edit is written back in one `setConfig`: one undo step.
  */

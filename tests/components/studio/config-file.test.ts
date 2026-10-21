@@ -19,14 +19,24 @@ afterEach(() => {
 });
 
 describe("desktop export", () => {
-  it("saves through the native dialog", () => {
+  it("saves through the native dialog", async () => {
     desktop.saveTextFile.mockResolvedValue(true);
     const config = defaultConfig();
-    exportConfigFile(config);
+    await exportConfigFile(config);
     expect(desktop.saveTextFile).toHaveBeenCalledWith(
       "infopanel-studio-config.json",
       JSON.stringify(config, null, 2)
     );
+  });
+});
+
+describe("a cancelled Save As", () => {
+  it("reports false, so a backup that was cancelled is not taken for one that was written", async () => {
+    desktop.saveTextFile.mockResolvedValue(false);
+    expect(await exportConfigFile(defaultConfig())).toBe(false);
+    desktop.saveTextFile.mockRejectedValue(new Error("disk full"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await exportConfigFile(defaultConfig())).toBe(false);
   });
 });
 
@@ -44,12 +54,12 @@ describe("reading a config file", () => {
 });
 
 describe("the export payload", () => {
-  it("is exactly the text the file holds, which Copy JSON copies", () => {
+  it("is exactly the text the file holds, which Copy JSON copies", async () => {
     desktop.saveTextFile.mockResolvedValue(true);
     const config = defaultConfig();
     const payload = configPayload(config);
     if ("error" in payload) throw new Error(payload.error);
-    expect(exportConfigFile(config)).toBe(true);
+    expect(await exportConfigFile(config)).toBe(true);
     expect(desktop.saveTextFile).toHaveBeenCalledWith(payload.name, payload.text);
   });
 });
@@ -94,7 +104,7 @@ describe("canvases in config files", () => {
     files.set("cnv_0123456789abcdef0123456789abcdef", JSON.stringify(stored));
     desktop.saveTextFile.mockResolvedValue(true);
     const { config } = await readConfigText(JSON.stringify(withZone({ canvasRef: "cnv_0123456789abcdef0123456789abcdef" })));
-    exportConfigFile(config);
+    await exportConfigFile(config);
     const written = JSON.parse(desktop.saveTextFile.mock.calls[0][1]) as DashboardConfig;
     expect(written.profiles[0].pages[0].placements[0].canvas).toEqual(stored);
     expect(written.profiles[0].pages[0].placements[0]).not.toHaveProperty("canvasRef");
@@ -106,7 +116,7 @@ describe("canvases in config files", () => {
     const { config, missing } = await readConfigText(JSON.stringify(withZone({ canvasRef: "cnv_ffffffffffffffffffffffffffffffff" })));
     expect(missing).toEqual(["Main display › Main › z"]);
     const exportError = vi.fn();
-    expect(exportConfigFile(config, exportError)).toBe(false);
+    expect(await exportConfigFile(config, exportError)).toBe(false);
     expect(desktop.saveTextFile).not.toHaveBeenCalled();
     expect(exportError).toHaveBeenCalledWith("Not exported: canvas not loaded for Main display › Main › z");
   });

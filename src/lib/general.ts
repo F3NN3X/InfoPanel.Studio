@@ -1,5 +1,5 @@
 /**
- * General settings — dashboard-wide preferences that aren't a look: the
+ * The Dashboard settings — dashboard-wide preferences that aren't a look: the
  * page font, how clocks read (seconds, date locale), motion and the kiosk
  * cursor. Stored on `DashboardConfig.general` with only the changed keys;
  * `resolveGeneral` fills the defaults. The 12 / 24 h choice is the themed

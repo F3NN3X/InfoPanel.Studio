@@ -1,6 +1,6 @@
 ---
 id: themes
-title: Themes and appearance
+title: Themes
 icon: palette
 related: [widget-settings, background, presets]
 verified: 1.3.0-beta.1
@@ -61,4 +61,4 @@ A theme is a set of 19 color tokens (background, foreground, card, primary, acce
 | Solid, Outline, Flat, Tinted | Plain variations on the card |
 | Aurora, Neon, Holo, Mesh, Carbon, Inset, Studio, Terminal | Decorative materials |
 
-Panels also offer **None**, **Card** and **Bordered card**. Surface opacity, background blur, border and glow apply on top of any surface.
+Panels also offer **None**, **Card** and **Bordered card**. Opacity, blur, border and glow apply on top of any surface.

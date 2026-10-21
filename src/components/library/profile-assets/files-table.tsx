@@ -218,7 +218,7 @@ export function FilesTable(p: FilesTableProps) {
 
   return (
     <div className="px-6 pb-8 font-ui">
-      <div role="table" aria-label="Profile files">
+      <div role="table" aria-label="Screen files">
         <div role="row" className={cn("grid items-center gap-3 px-2 py-2 text-[11.5px] text-ui-4", COLUMNS)}>
           <span role="columnheader" />
           {["Name", "Type", "Pixels", "Drawn at", "Size", "Uses", "Findings"].map((h) => (
@@ -263,8 +263,8 @@ export function FilesTable(p: FilesTableProps) {
       </div>
 
       {outside.length > 0 && (
-        <section className="mt-6" aria-label="Outside the profile">
-          <h3 className="mb-2 text-[12px] font-semibold text-ui-1">Outside the profile</h3>
+        <section className="mt-6" aria-label="Outside the screen">
+          <h3 className="mb-2 text-[12px] font-semibold text-ui-1">Outside the screen</h3>
           {outside.map((o) => (
             <div key={`${o.kind}:${o.value}`} className="flex items-center gap-3 border-t border-ui-subtle py-2 text-[12px]">
               <span className="w-[96px] shrink-0 rounded-[5px] bg-ui-raised px-2 py-0.5 text-center text-[11px] text-ui-3">{o.kind === "url" ? "URL" : "Absolute path"}</span>

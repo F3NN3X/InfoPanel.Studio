@@ -347,7 +347,7 @@ export function InsertPanel({
           <button
             type="button"
             onClick={onImportCanvas}
-            title={`An InfoPanel profile, drawn in ${profileName ? `“${profileName}”` : "this profile"}`}
+            title={`An InfoPanel profile, drawn in ${profileName ? `“${profileName}”` : "this screen"}`}
             className="mt-4 text-left text-[12px] text-ui-accent-text hover:underline"
           >
             Canvas from an .infopanel file → Import

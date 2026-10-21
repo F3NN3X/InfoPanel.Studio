@@ -28,7 +28,7 @@ Every Style section has a chip that says where its value comes from: **From All 
 
 ## Setting dots
 
-A dot beside a row shows where its value comes from. No dot means the default. Other dots mean it comes from the dashboard style, from the profile style, is set on this widget, or is set here and overrides a global value. Click a set dot to reset only that row. The inspector footer has **What the dots mean**.
+A dot beside a row shows where its value comes from. No dot means the default. Other dots mean it comes from All screens, from the screen's theme, is set on this widget, or is set here and overrides an inherited value. Click a set dot to reset only that row. The inspector footer has **What the dots mean**.
 
 ## Common controls
 

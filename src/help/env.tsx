@@ -5,7 +5,7 @@ import { isTauri } from "@/lib/desktop";
 
 /** What Help needs from where it runs: the desktop app's windows, or a plain browser tab. */
 export interface HelpEnv {
-  /** The Tauri window: it has a title bar, a Settings window and a version to show. */
+  /** The Tauri window: it has a title bar, Settings in the studio and a version to show. */
   desktop: boolean;
   openSettings: (section: SectionId) => void;
   /** Opens a web address in the default browser. */
@@ -14,7 +14,7 @@ export interface HelpEnv {
 
 export const desktopEnv: HelpEnv = {
   desktop: true,
-  openSettings: (section) => void ipc.openSettings(section).catch(() => {}),
+  openSettings: (section) => void ipc.openSettingsInStudio(section).catch(() => {}),
   openExternal: (url) => void ipc.openExternal(url).catch(() => {}),
 };
 

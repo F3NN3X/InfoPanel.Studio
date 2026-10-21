@@ -17,7 +17,7 @@ Keep the kiosk working after a reboot, without the studio in the way.
 
 **Remember window size and position** is also in this list. Every one of these is on by default, including **Open the studio on launch**, so turn that one off for a quiet start.
 
-:::open settings/general Settings › General
+:::open settings/general Settings › App › General
 
 ## App zoom
 

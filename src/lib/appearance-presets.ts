@@ -14,7 +14,7 @@ import { DEFAULT_THEME, THEME_PRESETS, type ThemePresetName, type ThemeTokens } 
  * one is `applyAppearancePreset` (appearance-preset-apply.ts).
  *
  * Not to be confused with a widget's style presets (`config.stylePresets`,
- * the inspector's "Style presets"), which restyle one widget.
+ * the Styles), which restyle one widget.
  */
 
 export interface AppearancePreset {

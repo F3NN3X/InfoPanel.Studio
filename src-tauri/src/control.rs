@@ -57,6 +57,8 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-app-info",
     "allow-changelog",
     "allow-open-external",
+    // The tray's Settings request that arrived before the page could listen.
+    "allow-take-pending-settings",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     // The studio's top bar is the window's title bar (the window has no native frame).
@@ -666,7 +668,7 @@ mod tests {
         }
         // Nothing in the studio opens the separate Settings window; the pages it replaces are all granted.
         assert!(!STUDIO_PERMISSIONS.contains(&"allow-open-settings"));
-        for command in ["allow-get-settings", "allow-set-setting", "allow-server-status", "allow-update-state"] {
+        for command in ["allow-get-settings", "allow-set-setting", "allow-server-status", "allow-update-state", "allow-take-pending-settings"] {
             assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
         }
     }

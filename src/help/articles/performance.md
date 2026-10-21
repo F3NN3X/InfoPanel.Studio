@@ -66,7 +66,7 @@ A kiosk URL overrides both settings for the display that opens it:
 | `&animations=0` | Motion: Reduce |
 | `&motion=reduce`, `&motion=full` or `&motion=system` | Motion for this display only |
 
-The URL wins over the profile, and the profile wins over General.
+The URL wins over the screen, and the screen wins over **Settings › Dashboard** (All screens).
 
 ## After an update
 

@@ -160,25 +160,28 @@ describe("agent-status forwarder", () => {
         child.on("close", (status) => ok({ status, stdout }));
         child.stdin.end(input);
       });
+    const wrapped = Buffer.from(`"${process.execPath}" -e "process.stdin.pipe(process.stdout)"`).toString("base64url");
     try {
-      const hook = await run(["hook", "codex"], '{"hook_event_name":"Stop","session_id":"x"}', { DASHBOARD_URL: url });
+      // Side by side (a Node start is the cost here); the server's log is compared sorted.
+      const [hook, line, viaFlag] = await Promise.all([
+        run(["hook", "codex"], '{"hook_event_name":"Stop","session_id":"x"}', { DASHBOARD_URL: url }),
+        // The wrapped statusline still prints its own line.
+        run(["statusline", `--wrap=${wrapped}`], '{"session_id":"x"}', { DASHBOARD_URL: url }),
+        // --url wins over DASHBOARD_URL (which points at nothing here).
+        run(["hook", "claude", `--url=${url}/`], '{"hook_event_name":"Stop"}', { DASHBOARD_URL: "http://127.0.0.1:9" }),
+      ]);
       expect(hook.status).toBe(0);
       expect(hook.stdout).toBe("");
-      // The wrapped statusline still prints its own line.
-      const wrapped = Buffer.from(`"${process.execPath}" -e "process.stdin.pipe(process.stdout)"`).toString("base64url");
-      const line = await run(["statusline", `--wrap=${wrapped}`], '{"session_id":"x"}', { DASHBOARD_URL: url });
       expect(line.status).toBe(0);
       expect(line.stdout).toBe('{"session_id":"x"}');
-      // --url wins over DASHBOARD_URL (which points at nothing here).
-      const viaFlag = await run(["hook", "claude", `--url=${url}/`], '{"hook_event_name":"Stop"}', { DASHBOARD_URL: "http://127.0.0.1:9" });
       expect(viaFlag.status).toBe(0);
     } finally {
       server.close();
     }
-    expect(got).toEqual([
+    expect([...got].sort((a, b) => a.url.localeCompare(b.url))).toEqual([
+      { url: "/api/agents/event?agent=claude", header: "1", body: '{"hook_event_name":"Stop"}' },
       { url: "/api/agents/event?agent=codex", header: "1", body: '{"hook_event_name":"Stop","session_id":"x"}' },
       { url: "/api/agents/statusline", header: "1", body: '{"session_id":"x"}' },
-      { url: "/api/agents/event?agent=claude", header: "1", body: '{"hook_event_name":"Stop"}' },
     ]);
     const offline = spawnSync(process.execPath, [path.join(root, "tools", "agent-status.mjs"), "hook", "claude"], { input: "{}", encoding: "utf8", env: { ...process.env, DASHBOARD_URL: "http://127.0.0.1:9" } });
     expect(offline.status).toBe(0);

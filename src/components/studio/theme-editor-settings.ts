@@ -15,9 +15,6 @@ import { formatSetting, thresholdSetting } from "@/widgets/registry/settings-kit
 
 const FORMAT_KEYS: readonly FormatKey[] = ["tempUnit", "rateUnit", "decimals", "clock"];
 
-/** Theme's Surface & effects names its two numbers Opacity and Blur (SPEC §13; a widget's keep their labels). */
-const THEME_LABELS: Readonly<Record<string, string>> = { surfaceOpacity: "Opacity (%)", blur: "Blur" };
-
 /** One colour per palette role, Auto ("") = each widget's own colour. */
 const ROLE_SETTINGS: ModuleSetting[] = PALETTE_ROLES.map((role) => ({
   key: role,
@@ -29,7 +26,7 @@ const ROLE_SETTINGS: ModuleSetting[] = PALETTE_ROLES.map((role) => ({
 }));
 
 export const THEME_EDITOR_SETTINGS: ModuleSetting[] = [
-  ...THEME_SETTINGS.map((d) => ({ ...d, ...(d.section === "css" ? { more: false } : {}), label: THEME_LABELS[d.key] ?? d.label })),
+  ...THEME_SETTINGS.map((d) => ({ ...d, ...(d.section === "css" ? { more: false } : {}) })),
   ...ROLE_SETTINGS,
   ...FORMAT_KEYS.map((key) => formatSetting(key)),
   ...THRESHOLD_QUANTITIES.map((q) => thresholdSetting(q)),

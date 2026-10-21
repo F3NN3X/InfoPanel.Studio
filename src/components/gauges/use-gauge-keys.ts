@@ -1,5 +1,5 @@
 /**
- * The Gauges page's keys. The studio's zone shortcuts are held back as on the Library page. While a
+ * The Library's Gauges keys. The studio's zone shortcuts are held back as on the Library page. While a
  * working copy is open in the editor, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y act on it, and the studio's own undo
  * does not also fire.
  */

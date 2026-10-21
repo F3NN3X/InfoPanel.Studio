@@ -12,7 +12,7 @@ Ready-made modules that read sensors and adapt to their zone.
 
 :::generated widgets.table
 
-Open **Widgets** on the left rail to browse them. The chips are All, Layouts, My panels, System, Hardware, Storage, Network, Media, Audio, Info, Gaming and Generic.
+Open **Add widget** in Design's left panel to browse them. The chips are All, Layouts, My panels, System, Hardware, Storage, Network, Media, Audio, Info, Gaming and Generic.
 
 ## Adapting to size
 

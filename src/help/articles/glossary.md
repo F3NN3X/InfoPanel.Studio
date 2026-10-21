@@ -15,13 +15,15 @@ The words this app uses, in one place.
 | Faithful | Drawn exactly as InfoPanel draws it; ignores the theme |
 | Follow theme | A widget section that takes its values from the theme |
 | Kiosk | The full-screen page InfoPanel shows on your display |
-| Lock | A profile theme section every widget must follow |
+| Lock | A section of a screen's theme that every widget on it must follow |
 | Max FPS | The most times a second the kiosk redraws its animations, 60 by default |
 | Motion | Whether the kiosk animates: System, Reduce or Full |
 | Native | Drawn as a dashboard widget that follows the theme |
 | Panel | A zone composed of panel widgets in a Stack, Grid or Overlay |
-| Profile | A page for one display size, with its own grid |
+| Screen | A design for one display size, with its own grid (called a profile in files and in InfoPanel) |
 | Sidecar | The bundled Node server process that runs beside the app |
-| Skin | A built-in look from the **Skins** gallery |
+| Skin | A built-in widget rendering family, picked in Theme › Start from |
+| Theme | The whole inherited look at any level; a saved Theme is a bundle |
+| Live | Control of the kiosks right now; never saved |
 | Small zones | What a widget does in a small zone: auto, full, card or dense |
-| Zone | A box on the profile grid |
+| Zone | A box on the screen grid |

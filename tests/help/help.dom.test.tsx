@@ -37,7 +37,7 @@ afterEach(() => {
 describe("the help window", () => {
   it("searches, opens a result scrolled to its heading, and lights it in the TOC on a wide pane", async () => {
     OBSERVED_SIZE.width = 1200;
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(
       <EnvProvider value={browserEnv}>
         <HelpApp content={content} />

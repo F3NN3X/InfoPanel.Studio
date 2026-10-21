@@ -499,7 +499,7 @@ function ImageWidget({ widget, src }: { widget: Widget; src?: string }) {
 
 function Clock({ widget }: { widget: Widget }) {
   const now = useNow(1000);
-  // 12 / 24 h, seconds and the locale come from General settings.
+  // 12 / 24 h, seconds and the locale come from Settings › Dashboard.
   const { time, date } = formatClock(now, useGeneral());
   const mode = widget.clock ?? "both";
   const sk = usePanelSkin();

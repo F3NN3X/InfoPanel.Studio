@@ -22,7 +22,7 @@ function context(current: DashboardConfig, backup = true) {
     config: current,
     setConfig: vi.fn(() => void calls.push("set")) as unknown as DoorContext["setConfig"],
     addScreen: vi.fn(() => void calls.push("add")),
-    backup: vi.fn(() => (calls.push("backup"), backup)),
+    backup: vi.fn(async () => (calls.push("backup"), backup)),
     useAsBackground: vi.fn(),
   };
   return { ctx, calls };
@@ -33,7 +33,7 @@ describe("restoreConfig", () => {
   const file = text(configOf("Theirs A", "Theirs B"));
 
   it("replaces everything, and backs the current dashboard up first by default", async () => {
-    const backup = vi.fn(() => true);
+    const backup = vi.fn(async () => true);
     const r = await restoreConfig(file, { current, mode: "replace", backupFirst: true, backup });
     expect(backup).toHaveBeenCalledExactlyOnceWith(current);
     expect(r.config.profiles.map((p) => p.name)).toEqual(["Theirs A", "Theirs B"]);
@@ -41,25 +41,44 @@ describe("restoreConfig", () => {
   });
 
   it("skips the backup when it is switched off", async () => {
-    const backup = vi.fn(() => true);
+    const backup = vi.fn(async () => true);
     const r = await restoreConfig(file, { current, mode: "replace", backupFirst: false, backup });
     expect(backup).not.toHaveBeenCalled();
     expect(r.backedUp).toBe(false);
   });
 
   it("replaces nothing when the backup cannot be written", async () => {
-    await expect(restoreConfig(file, { current, mode: "replace", backupFirst: true, backup: () => false })).rejects.toThrow("could not be backed up");
+    await expect(restoreConfig(file, { current, mode: "replace", backupFirst: true, backup: async () => false })).rejects.toThrow("could not be backed up");
+  });
+
+  it("waits for a slow Save As before it replaces anything, and replaces nothing when it is cancelled", async () => {
+    const order: string[] = [];
+    const slow = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+      order.push("saved");
+      return true;
+    });
+    const p = restoreConfig(file, { current, mode: "replace", backupFirst: true, backup: slow }).then((r) => (order.push("replaced"), r));
+    await Promise.resolve();
+    expect(order).toEqual([]);
+    await p;
+    expect(order).toEqual(["saved", "replaced"]);
+    const cancelled = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+      return false;
+    });
+    await expect(restoreConfig(file, { current, mode: "replace", backupFirst: true, backup: cancelled })).rejects.toThrow("Untick the backup box");
   });
 
   it("does not back up, or touch the file, when it is not a config", async () => {
-    const backup = vi.fn(() => true);
+    const backup = vi.fn(async () => true);
     await expect(restoreConfig("{}", { current, mode: "replace", backupFirst: true, backup })).rejects.toThrow("Missing profiles");
     expect(backup).not.toHaveBeenCalled();
   });
 
   it("adds its screens only, keeping what is there, with fresh ids and names that are free", async () => {
     const same = configOf("Mine", "Other");
-    const backup = vi.fn(() => true);
+    const backup = vi.fn(async () => true);
     const r = await restoreConfig(text(same), { current, mode: "add-screens", backupFirst: true, backup });
     expect(backup).not.toHaveBeenCalled();
     expect(r.config.profiles[0]).toBe(current.profiles[0]);

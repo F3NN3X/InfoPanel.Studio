@@ -110,7 +110,7 @@ export function OptimiseDrawer({ doc, onClose, onApply }: { doc: Doc; onClose: (
             onChange={setCap}
             options={[
               { value: "none", label: "None" },
-              { value: "drawn", label: "Drawn size", title: "Never below the size the profile draws it at" },
+              { value: "drawn", label: "Drawn size", title: "Never below the size the screen draws it at" },
               { value: "half", label: "50 %" },
             ]}
           />

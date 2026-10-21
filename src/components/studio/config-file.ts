@@ -26,11 +26,15 @@ export function configPayload(config: DashboardConfig): FilePayload | { error: s
   return { name: EXPORT_NAME, text: JSON.stringify(config, null, 2) };
 }
 
-/** Write a payload: a native dialog in the desktop app, a download in a browser. */
-export function saveFilePayload({ name, text }: FilePayload): void {
+/** Write a payload: a native dialog in the desktop app, a download in a browser. Resolves to false when the user cancels the dialog or the write fails. */
+export async function saveFilePayload({ name, text }: FilePayload): Promise<boolean> {
   if (isTauri()) {
-    saveTextFile(name, text).catch((err) => console.error(`Failed to export ${name}`, err));
-    return;
+    try {
+      return await saveTextFile(name, text);
+    } catch (err) {
+      console.error(`Failed to export ${name}`, err);
+      return false;
+    }
   }
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   const a = document.createElement("a");
@@ -38,6 +42,7 @@ export function saveFilePayload({ name, text }: FilePayload): void {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+  return true;
 }
 
 /** Copy a payload's text to the clipboard. */
@@ -45,15 +50,14 @@ export function copyPayload(payload: FilePayload): Promise<void> {
   return navigator.clipboard.writeText(payload.text);
 }
 
-/** Save the config as `infopanel-studio-config.json`; false (and `onError` says why) when it cannot be written. */
-export function exportConfigFile(config: DashboardConfig, onError: ReportError = () => {}): boolean {
+/** Save the config as `infopanel-studio-config.json`; false (and `onError` says why) when it cannot be written, or when the Save As is cancelled. */
+export async function exportConfigFile(config: DashboardConfig, onError: ReportError = () => {}): Promise<boolean> {
   const payload = configPayload(config);
   if ("error" in payload) {
     onError(payload.error);
     return false;
   }
-  saveFilePayload(payload);
-  return true;
+  return saveFilePayload(payload);
 }
 
 /**

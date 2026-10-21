@@ -1,8 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
-import { FileInput, FileOutput, Info, Keyboard, MoreHorizontal, Redo2, Search, Undo2 } from "lucide-react";
+import { FileInput, FileOutput, MoreHorizontal, Redo2, Search, Undo2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
-import { BUILD_ID } from "@/lib/buildInfo";
 import { isTauri } from "@/lib/desktop";
 import type { ControlKiosk, ControlState } from "@/lib/control";
 import type { MonitorProfile } from "@/lib/layout";
@@ -48,7 +47,6 @@ interface StudioTopBarProps {
   onUndo: () => void;
   onRedo: () => void;
   onPalette: () => void;
-  onShortcuts: () => void;
 }
 
 const POPUP =
@@ -58,61 +56,41 @@ const ITEM =
 const SEPARATOR = "mx-1 my-1 h-px bg-ui-subtle";
 
 /**
- * "⋯": the command palette and shortcut sheet and the build id, with Undo / Redo, Import and Export on a phone,
- * where the bar has no room for them.
+ * "⋯", on a phone only (the bar has no room there for Undo / Redo, Import and Export). Wider windows have the
+ * buttons; the shortcut list is in Help (and `?`) and the build id in Settings › App › About.
  */
 function MoreMenu({
   onExport,
   onImport,
-  onPalette,
-  onShortcuts,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
-}: Pick<StudioTopBarProps, "onExport" | "onImport" | "onPalette" | "onShortcuts" | "canUndo" | "canRedo" | "onUndo" | "onRedo">) {
+}: Pick<StudioTopBarProps, "onExport" | "onImport" | "canUndo" | "canRedo" | "onUndo" | "onRedo">) {
   return (
     <Menu.Root>
       <Menu.Trigger
         aria-label="More actions"
         title="More actions"
-        className="flex h-8 w-8 items-center justify-center rounded-md text-ui-3 transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-ui-3 sm:hidden transition-colors hover:bg-ui-hover hover:text-ui-1 data-popup-open:bg-ui-hover data-popup-open:text-ui-1"
       >
         <MoreHorizontal className="h-4 w-4" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner className="z-[80]" sideOffset={4} align="end">
           <Menu.Popup className={POPUP}>
-            <div className="sm:hidden">
-              <Menu.Item className={ITEM} disabled={!canUndo} onClick={onUndo}>
-                <Undo2 className="h-3.5 w-3.5" /> Undo
-              </Menu.Item>
-              <Menu.Item className={ITEM} disabled={!canRedo} onClick={onRedo}>
-                <Redo2 className="h-3.5 w-3.5" /> Redo
-              </Menu.Item>
-              <Menu.Separator className={SEPARATOR} />
-              <Menu.Item className={ITEM} onClick={onImport}>
-                <FileInput className="h-3.5 w-3.5" /> Import…
-              </Menu.Item>
-              <Menu.Item className={ITEM} onClick={onExport}>
-                <FileOutput className="h-3.5 w-3.5" /> Export &amp; back up…
-              </Menu.Item>
-              <Menu.Separator className={SEPARATOR} />
-            </div>
-            <Menu.Item className={ITEM} onClick={onPalette}>
-              <Search className="h-3.5 w-3.5" />
-              <span className="flex-1">Command palette…</span>
-              <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.palette}</span>
+            <Menu.Item className={ITEM} disabled={!canUndo} onClick={onUndo}>
+              <Undo2 className="h-3.5 w-3.5" /> Undo
             </Menu.Item>
-            <Menu.Item className={ITEM} onClick={onShortcuts}>
-              <Keyboard className="h-3.5 w-3.5" />
-              <span className="flex-1">Keyboard shortcuts</span>
-              <span className="font-ui-mono text-[10.5px] text-ui-4">{KEYS.cheatsheet}</span>
+            <Menu.Item className={ITEM} disabled={!canRedo} onClick={onRedo}>
+              <Redo2 className="h-3.5 w-3.5" /> Redo
             </Menu.Item>
             <Menu.Separator className={SEPARATOR} />
-            <Menu.Item className={ITEM} disabled>
-              <Info className="h-3.5 w-3.5" />
-              <span className="font-ui-mono text-[10.5px]">build {BUILD_ID}</span>
+            <Menu.Item className={ITEM} onClick={onImport}>
+              <FileInput className="h-3.5 w-3.5" /> Import…
+            </Menu.Item>
+            <Menu.Item className={ITEM} onClick={onExport}>
+              <FileOutput className="h-3.5 w-3.5" /> Export &amp; back up…
             </Menu.Item>
           </Menu.Popup>
         </Menu.Positioner>
@@ -140,7 +118,7 @@ function FileButton({ label, icon, onClick }: { label: string; icon: ReactNode; 
 
 /**
  * The studio's title bar (40 px; the window's title bar on desktop): mark, screen / page switcher, the command
- * entry, undo / redo, Import, Export, Live, Save, the "⋯" menu and the window controls.
+ * entry, undo / redo, Import, Export, Live, Save, the phone's "⋯" menu and the window controls.
  */
 export function StudioTopBar(props: StudioTopBarProps) {
   const { profiles, profile, pageId, saved, unsaved, onSave, canUndo, canRedo, onUndo, onRedo, onPalette } = props;

@@ -458,7 +458,7 @@ export function setProfileStyle<P extends Pick<ProfileView, "widgetTheme">>(
 /**
  * The look a zone shows of its own: its style keys whose values apply
  * (a themed key only where its section is custom). What Copy style, Save
- * style and "Use as global style" take.
+ * style and "Make this the theme" take.
  */
 export function ownStyle(p: Placement, levels: ThemeLevels): ModuleSettings {
   return Object.fromEntries(Object.entries(styleOf(p.settings)).filter(([key]) => ownApplies(levels, p, key)));

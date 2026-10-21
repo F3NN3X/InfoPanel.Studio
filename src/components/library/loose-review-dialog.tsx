@@ -1,5 +1,5 @@
 /**
- * The review list for loose uploads: each file with a thumbnail, its size and a "Used by a profile"
+ * The review list for loose uploads: each file with a thumbnail, its size and a "Used by a screen"
  * tag, to add to My library or delete. A used file is never deleted from here.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -96,7 +96,7 @@ export function LooseReviewDialog({ open, loose, config, onClose, onImport, onCh
     const failed = results.filter((r) => r.status === "rejected").length;
     const skipped = chosen.length - drop.length;
     const gone = drop.length - failed;
-    onResult(`Deleted ${gone} uploaded file${gone === 1 ? "" : "s"}${failed ? `, ${failed} failed` : ""}${skipped ? `, ${skipped} skipped because a profile uses ${skipped === 1 ? "it" : "them"}` : ""}`);
+    onResult(`Deleted ${gone} uploaded file${gone === 1 ? "" : "s"}${failed ? `, ${failed} failed` : ""}${skipped ? `, ${skipped} skipped because a screen uses ${skipped === 1 ? "it" : "them"}` : ""}`);
     onChanged();
   };
 
@@ -137,7 +137,7 @@ export function LooseReviewDialog({ open, loose, config, onClose, onImport, onCh
                     <span className="block truncate text-[12.5px] text-ui-1">{nameOf(a)}</span>
                     <span className="block font-ui-mono text-[10.5px] text-ui-4">{formatBytes(a.size)}</span>
                   </span>
-                  {unused && used.has(a.id) && <span className="rounded-[4px] bg-[#2a1d0a] px-1.5 py-px text-[10.5px] font-medium text-ui-warning">Used by a profile</span>}
+                  {unused && used.has(a.id) && <span className="rounded-[4px] bg-[#2a1d0a] px-1.5 py-px text-[10.5px] font-medium text-ui-warning">Used by a screen</span>}
                 </label>
               </li>
             ))}
@@ -161,7 +161,7 @@ export function LooseReviewDialog({ open, loose, config, onClose, onImport, onCh
                 type="button"
                 className={BUTTON}
                 disabled={busy || chosen.length === 0 || anyUsed || !unused}
-                title={checkFailed ? "Couldn't check which files are in use" : !unused ? "Checking which files a profile uses…" : anyUsed ? "A profile still uses a selected file: only unused files can be deleted" : undefined}
+                title={checkFailed ? "Couldn't check which files are in use" : !unused ? "Checking which files a screen uses…" : anyUsed ? "A screen still uses a selected file: only unused files can be deleted" : undefined}
                 onClick={() => setConfirming(true)}
               >
                 Delete…

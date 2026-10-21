@@ -24,7 +24,7 @@ interface ImportDoorDeps {
   config: DashboardConfig;
   setConfig: HistorySetter;
   addScreen: (profile: MonitorProfile) => void;
-  backup: (config: DashboardConfig) => boolean;
+  backup: (config: DashboardConfig) => Promise<boolean>;
   useAsBackground: (item: LibraryItem) => void;
   /** The edited screen and page. */
   current: { screen: string; page: string };

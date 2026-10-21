@@ -83,7 +83,7 @@ describe("Gauges page", () => {
 
   describe("leaving with unsaved changes", () => {
     const dirtyAndLeave = async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage();
       await openNewGauge(user);
       await user.click(flippable()[0]);
@@ -125,7 +125,7 @@ describe("Gauges page", () => {
       return { ...bridge, config, profile: { id: "p", name: "Main", pageId: "pg", placements }, setConfig: vi.fn() } as unknown as StudioBridge;
     };
     const openSequence = async (b: StudioBridge) => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       saved.data.vector = undefined;
       saved.data.frames = [{ id: `${"a".repeat(64)}.png`, name: "1.png" }, { id: `${"b".repeat(64)}.png`, name: "2.png" }];
       renderPage(b);
@@ -156,7 +156,7 @@ describe("Gauges page", () => {
     const profileBridge = { ...bridge, profile: { id: "p", name: "Main", placements: [widget] }, setConfig: vi.fn() } as unknown as StudioBridge;
 
     it("is editable in the header and writes the widget's label through the config", async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       renderPage(profileBridge, { kind: "widget", zoneId: "w1" });
       const name = (await screen.findByRole("textbox", { name: "Gauge name" })) as HTMLInputElement;
       expect(name.disabled).toBe(false);
@@ -171,7 +171,7 @@ describe("Gauges page", () => {
 
   describe("Edit gauge… over a working copy", () => {
     const edited = async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       const onOpened = vi.fn();
       const view = render(pageOf(bridge, null, onOpened));
       await openNewGauge(user);

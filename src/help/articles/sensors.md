@@ -16,15 +16,15 @@ Each widget claims sensor keys by prefix: System reads the CPU and RAM sensors, 
 
 ## Picking a sensor
 
-Sensor fields open a picker with live values. Type to search the 650+ data points by key, name or reference; every word has to match. Use the arrow keys and Enter to pick, then **Done**. **Open data explorer** jumps to the Data sources page.
+Sensor fields open a picker with live values. Type to search the 650+ data points by key, name or reference; every word has to match. Use the arrow keys and Enter to pick, then **Done**. **Open data explorer** jumps to the Data view.
 
-## The Data sources page
+## The Data view
 
-**Data sources** on the left rail shows every source as a tree, with a table of its data points and an inspector for the point you select. From there you can bind a point to a widget.
+**Data** on the rail shows every source as a tree, with a table of its data points (**Sensor**, **Now**, **Display name**, **Used in**) and an inspector for the point you select. From there you can bind a point to a widget. A display name applies to every screen.
 
 ## Changing the Data API address
 
-In the studio, open **Data** and its **Connection** strip, and set the **Data API URL**. Press **Test connection** to check it. Only change it if InfoPanel runs on another PC or port.
+In the studio, open **Data**, and in its **Connection** card set the **Data API URL**. Press **Test connection** to check it. Only change it if InfoPanel runs on another PC or port.
 
 :::warn
 If every widget shows dashes, the Data API is unreachable. Check InfoPanel is running and its web server is enabled. See [Common problems](problems).

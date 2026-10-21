@@ -6,22 +6,22 @@ related: [assets, gauges, import]
 verified: 1.3.0-beta.1
 ---
 
-One place for the files you reuse: images, videos, fonts, gauges, saved panels and imported canvases.
+One place for what you reuse: Themes, Styles, Panels, gauges, images, videos, fonts and imported canvases.
 
-Open **Library** on the left rail. The header has two tabs: **My library**, for everything you keep across profiles, and **Profile assets**, for the files the current profile uses (see [Assets and fonts](assets)). Search with "Search everything…", switch between Grid and Shelves, and use **Import profile** or **Upload** to add files.
+Open **Library** on the rail. The sidebar lists the **Smart** collections and the collections by type; the header has search, Grid and Shelves, a **Used by** filter for one screen, **Canvas files** for the files the current screen uses (see [Assets and fonts](assets)) and **Add files…**, which opens the Import door (see [Importing and exporting](import)).
 
 ## Collections
 
-All items, Recent, Unused, Large files, Duplicates, Suggested for theme, Images, Videos, Backgrounds, Icons, SVG templates, Fonts, Gauges & bars, Saved panels, Style presets and Imported canvases.
+Smart: All items, Recent, Unused, Large files, Duplicates and Suggested for theme. By type: Themes, Styles, Panels, Gauges, Media (Images, Videos, Backgrounds, Icons and SVG templates), Fonts and Canvases. Saved Themes and Styles sit beside the built-in ones; rename and delete them in Theme and in the Style toolbar.
 
 ## The right-click menu
 
-Right-click an item. The first row depends on what it is: Set as background, Open in editor, Open canvas, Apply to selection, Add to profile, Show font or Add to canvas. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and Re-import…. Every item has **Rename** and **Remove from library…** (`Delete`).
+Right-click an item. The first row depends on what it is: Set as background, Open in editor, Open canvas, Apply in Theme, Apply to selection, Add to screen, Show font or Add to canvas. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Open canvas brings a saved canvas in as a new screen; Add to this page… puts it in a canvas zone on the current page. Every item has **Rename** and **Remove from library…** (`Delete`).
 
 ## Removing an item
 
-**Remove from library…** asks for confirmation. The item leaves My library, and copies already placed stay where they are. Its file is deleted too, unless a profile, a canvas or another item still uses it. Confirm with **Remove**.
+**Remove from library…** asks for confirmation. The item leaves My library, and copies already placed stay where they are. Its file is deleted too, unless a screen, a canvas or another item still uses it. Confirm with **Remove**.
 
 ## Uploaded files not in My library
 
-When older uploads aren't in My library, a banner says how many there are. Press **Review…** to list them, each with a thumbnail and its size. Tick files with **Select all**, **Select unused** or one by one, then press **Add to My library**, or **Delete…** to remove them for good. A file tagged **Used by a profile** can be added but not deleted.
+When older uploads aren't in My library, a banner says how many there are. Press **Review…** to list them, each with a thumbnail and its size. Tick files with **Select all**, **Select unused** or one by one, then press **Add to My library**, or **Delete…** to remove them for good. A file tagged **Used by a screen** can be added but not deleted.

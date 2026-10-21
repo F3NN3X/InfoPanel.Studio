@@ -28,7 +28,7 @@ interface StudioInspectorProps {
   onOpenPoint?: (key: string) => void;
   /** Open a canvas zone's items in the canvas editor. */
   onEditCanvas?: (zoneId: string) => void;
-  /** Open a Custom gauge zone's spec in the Gauges page. */
+  /** Open a Custom gauge zone's spec in Library › Gauges. */
   onEditGauge?: (zoneId: string) => void;
 }
 
@@ -74,6 +74,9 @@ export function StudioInspector({
       <MultiInspector
         zones={selection}
         appearance={appearance}
+        inherit={inheritCtx}
+        profileId={stored.id}
+        pageId={page.id}
         updateProfile={edit.updateProfile}
         onDeselect={(id) => sel.select(id, "toggle")}
         onToggleVisible={edit.toggleSelectionVisible}
@@ -111,6 +114,7 @@ export function StudioInspector({
         onToggleVisible={() => edit.toggleVisible(selected.id)}
         onDuplicate={() => edit.duplicateZones([selected.id])}
         onRemove={() => edit.removePlacement(selected.id)}
+        onHelp={onHelp}
         presetNaming={ui.presetNaming}
         onPresetNaming={ui.setPresetNaming}
         onSavePanelPreset={edit.savePanelAsPreset}

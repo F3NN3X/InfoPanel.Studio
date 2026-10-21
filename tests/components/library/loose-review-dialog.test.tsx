@@ -23,8 +23,8 @@ const open = async (config = "{}") => {
   api.deleteAsset.mockResolvedValue(undefined);
   const onChanged = vi.fn();
   render(<LooseReviewDialog open loose={[asset("a"), asset("b"), asset("c")]} config={config} onClose={vi.fn()} onImport={vi.fn()} onChanged={onChanged} onResult={vi.fn()} />);
-  await screen.findAllByText("Used by a profile");
-  return { user: userEvent.setup(), onChanged };
+  await screen.findAllByText("Used by a screen");
+  return { user: userEvent.setup({ delay: null }), onChanged };
 };
 const del = () => screen.getByRole("button", { name: "Delete…" }) as HTMLButtonElement;
 
@@ -41,7 +41,7 @@ describe("LooseReviewDialog", () => {
 
   it("treats a file the live config names as used", async () => {
     await open(JSON.stringify({ src: id("a") }));
-    expect(screen.getAllByText("Used by a profile")).toHaveLength(2);
+    expect(screen.getAllByText("Used by a screen")).toHaveLength(2);
   });
 
   it("deletes only the selected unused files, after a confirm", async () => {
@@ -64,7 +64,7 @@ describe("LooseReviewDialog", () => {
     const onResult = vi.fn();
     const onChanged = vi.fn();
     render(<LooseReviewDialog open loose={[asset("a"), asset("b")]} config="{}" onClose={vi.fn()} onImport={vi.fn()} onChanged={onChanged} onResult={onResult} />);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await waitFor(() => expect((screen.getByRole("button", { name: "Select unused" }) as HTMLButtonElement).disabled).toBe(false));
     await waitFor(() => expect(api.unusedAssets).toHaveBeenCalled());
     await user.click(screen.getByRole("checkbox", { name: name("a") }));
@@ -80,7 +80,7 @@ describe("LooseReviewDialog", () => {
   it("keeps Delete off when the use check fails", async () => {
     api.unusedAssets.mockRejectedValue(new Error("down"));
     render(<LooseReviewDialog open loose={[asset("a")]} config="{}" onClose={vi.fn()} onImport={vi.fn()} onChanged={vi.fn()} onResult={vi.fn()} />);
-    await userEvent.setup().click(screen.getByRole("checkbox", { name: name("a") }));
+    await userEvent.setup({ delay: null }).click(screen.getByRole("checkbox", { name: name("a") }));
     await waitFor(() => expect(del().title).toBe("Couldn't check which files are in use"));
     expect(del().disabled).toBe(true);
   });

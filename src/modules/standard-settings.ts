@@ -249,7 +249,7 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
   },
   {
     key: "surfaceOpacity",
-    label: "Surface opacity (%)",
+    label: "Opacity (%)",
     type: "number",
     default: 100,
     min: 0,
@@ -259,7 +259,7 @@ export const SURFACE_SETTINGS: ModuleSetting[] = [
   },
   {
     key: "blur",
-    label: "Background blur",
+    label: "Blur",
     type: "select",
     default: "auto",
     options: pxOptions([0, 4, 8, 16, 24, 40]),
@@ -406,7 +406,7 @@ export const PROFILE_STYLE_SETTINGS: ModuleSetting[] = STANDARD_SETTINGS.filter(
   PROFILE_STYLE_KEYS.has(s.key)
 );
 
-/** The standard settings a widget theme sets (the Global style tab's rows). */
+/** The standard settings a widget theme sets (the Theme editor's rows). */
 export const THEME_SETTINGS: ModuleSetting[] = PROFILE_STYLE_SETTINGS.filter((s) =>
   settingKeys(s).every((key) => THEMED_KEYS.has(key))
 );

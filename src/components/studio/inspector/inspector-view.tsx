@@ -29,7 +29,6 @@ import { pickTab, useAccordionPref, useInspectorTab } from "./inspector-prefs";
 import { MoreRows, moreKey, setMoreOpen } from "./more-rows";
 import { sectionIcon } from "./section-icons";
 import { SheetView, type SheetIdentity } from "./sheet-view";
-import { FollowBar, FollowPill } from "./follow-bar";
 import { DotLegend } from "./source-dot";
 
 /** A section card's inheritance chip and what goes with it (`sectionInherit`). */
@@ -95,8 +94,6 @@ interface InspectorViewProps {
   identity: SheetIdentity;
   /** The sheet's Quick tool: the pinned settings, in order. */
   quickKeys?: readonly string[];
-  /** A Follow bar's theme name: open the theme being followed. */
-  onTheme?: (level: "profile" | "page") => void;
   /** Show the settings search (default); the profile inspector turns it off. */
   searchable?: boolean;
   /** The footer in place of the dot legend; `null` for none. */
@@ -218,7 +215,6 @@ export function InspectorView({
   jumpTo,
   identity,
   quickKeys = [],
-  onTheme,
   searchable = true,
   footer,
   tabInfo,
@@ -328,7 +324,6 @@ export function InspectorView({
     // Filtering lists More rows inline; otherwise they follow the section's "More (n)".
     const split = splitMore(s);
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
-    const bar = fields.follow?.(whole);
     const inh = inherit?.(whole);
     if (p.plain)
       return (
@@ -344,7 +339,7 @@ export function InspectorView({
         icon={sectionIcon(s)}
         tabLabel={tabLabel(s) || undefined}
         changed={changedOf(whole)}
-        pill={bar ? <FollowPill mode={bar.mode} scope={bar.scope?.kind} /> : p.pill}
+        pill={p.pill}
         chip={inh?.chip}
         onKeyDown={inh?.onKeyDown}
         actions={p.actions}
@@ -355,7 +350,6 @@ export function InspectorView({
         editor={p.editor}
         flash={flash === s.id}
       >
-        {bar && pad(<FollowBar bar={bar} onTheme={onTheme} />)}
         {inh?.note && pad(inh.note)}
         {pad(p.top)}
         {(filtering ? s.settings : split.rows).map(field)}

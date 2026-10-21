@@ -2,9 +2,6 @@ import { describe, expect, it } from "vitest";
 import { PROFILE_STYLE_KEYS } from "@/modules/standard-settings";
 import {
   applyAppearancePreset,
-  clearOverrides,
-  countOverrides,
-  countProfileOverrides,
   applyThemeAt,
   presetFromCurrent,
   saveThemeAt,
@@ -60,7 +57,7 @@ const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
 
 const ALL = { kind: "all" } as const;
 const P1 = { kind: "profile", profileId: "p1" } as const;
-// Saved looks as the user would store them (the former Glass and Light built-ins).
+// Saved themes as the user would store them (the former Glass and Light built-ins).
 const glass: AppearancePreset = {
   id: "look-glass",
   name: "Glass",
@@ -150,26 +147,6 @@ describe("applyAppearancePreset — This profile", () => {
   it("resets the dashboard's look keys the preset leaves unset", () => {
     const next = applyAppearancePreset(config({ style: { glow: "strong", surface: "glass" } }), light, P1);
     expect(next.profiles[0].widgetTheme?.values).toEqual({ glow: "none", surface: "theme" });
-  });
-
-});
-
-describe("overrides", () => {
-  it("counts widgets whose own look shows over the global style (custom, unlocked sections)", () => {
-    expect(countOverrides(config(), P1)).toBe(1);
-    expect(countOverrides(config(), ALL)).toBe(2);
-    const p1Locked = config({ profiles: [profile("p1", { widgetTheme: { locks: { colors: true } } }), profile("p2")] });
-    expect(countOverrides(p1Locked, ALL)).toBe(1);
-  });
-
-  it("counts and clears a profile's own theme colours and radius", () => {
-    const own = profile("p2", { theme: { background: "0 0% 100%" }, radius: 1 });
-    const c = config({ profiles: [profile("p1"), own] });
-    expect(countProfileOverrides(c, ALL)).toBe(1);
-    const cleared = clearOverrides(c, ALL).profiles[1];
-    expect(cleared.theme).toBeUndefined();
-    expect(cleared.radius).toBeUndefined();
-    expect(clearOverrides(c, { kind: "profile", profileId: "p2" }).profiles[1].theme).toEqual(own.theme);
   });
 
 });

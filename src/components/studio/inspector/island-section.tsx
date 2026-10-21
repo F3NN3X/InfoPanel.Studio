@@ -214,7 +214,7 @@ export function IslandSection({ island, onChange, onOpenExplorer, links, lead, a
           <SegmentedRow label="Size" options={SIZE_OPTIONS} value={v.size} onChange={(size) => onChange({ size: size as IslandConfig["size"] })} />
           <SliderRow
             label="Scale"
-            hint="Fine size on top of S, M or L; the island still shrinks to fit a short profile"
+            hint="Fine size on top of S, M or L; the island still shrinks to fit a short screen"
             value={v.scale}
             min={ISLAND_SCALE_MIN}
             max={ISLAND_SCALE_MAX}

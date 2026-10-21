@@ -82,6 +82,8 @@ interface ZoneInspectorProps {
   onToggleVisible: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  /** The header's Help icon (F1). */
+  onHelp: () => void;
   /** A panel's "Save as Panel" name input is open (the palette opens it too). */
   presetNaming: boolean;
   onPresetNaming: (open: boolean) => void;
@@ -94,7 +96,7 @@ interface ZoneInspectorProps {
   request?: { tab: InspectorTab; picker: boolean; seq: number };
   /** A canvas zone: open its items in the canvas editor. */
   onEditCanvas?: () => void;
-  /** A Custom gauge zone: open its spec in the Gauges page. */
+  /** A Custom gauge zone: open its spec in Library › Gauges. */
   onEditGauge?: () => void;
 }
 
@@ -112,7 +114,7 @@ function GaugeNote({ zone, onEdit }: { zone: Placement; onEdit: () => void }) {
           </span>
         )}
         <span>
-          A gauge you design on the Gauges page.{" "}
+          A gauge you design in Library › Gauges.{" "}
           <button type="button" onClick={onEdit} className="font-medium text-ui-accent-text hover:underline">
             Edit gauge…
           </button>
@@ -169,6 +171,7 @@ export function ZoneInspector({
   onToggleVisible,
   onDuplicate,
   onRemove,
+  onHelp,
   presetNaming,
   onPresetNaming,
   onSavePanelPreset,
@@ -424,6 +427,7 @@ export function ZoneInspector({
           onToggleVisible={onToggleVisible}
           onDuplicate={onDuplicate}
           onRemove={onRemove}
+          onHelp={onHelp}
         />
       <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />
     </>
@@ -440,6 +444,7 @@ export function ZoneInspector({
         update={update}
         onChangeKind={(kind) => update((p) => ({ ...p, panel: { ...p.panel!, widgets: p.panel!.widgets.map((w) => (w.id === item.id ? convertKind(w, kind) : w)) } }))}
         onOpenExplorer={onOpenExplorer}
+        onEditLock={(section) => inherit.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId, section })}
         query={query}
         onQuery={onQuery}
         jumpTo={jumpTo}

@@ -10,7 +10,6 @@ import {
   extraMatches,
   followInfo,
   chipSections,
-  followSection,
   jumpTarget,
   rowSection,
   sharedDefs,
@@ -327,7 +326,7 @@ describe("theme editor sections", () => {
 
   it("is every themed section, followable, with no zone extras and nothing behind More in Advanced", () => {
     const sections = allSections(theme);
-    expect(sections.map(followSection)).toEqual(["skin", "colors", "palette", "type", "spacing", "surface", "border", "css", "format", "thresholds", "motion"]);
+    expect(sections.map((s) => chipSections(s)[0])).toEqual(["skin", "colors", "palette", "type", "spacing", "surface", "border", "css", "format", "thresholds", "motion"]);
     expect(sections.flatMap((s) => s.extras)).toEqual([]);
     expect(keysOf(sections)).not.toContain("preset");
     expect(find(sections, "Advanced · CSS & locks").settings.every((d) => !isMore(d))).toBe(true);
@@ -392,24 +391,13 @@ describe("source states and changed counts", () => {
   });
 });
 
-describe("follow bars", () => {
-  const sections = allSections(spotify);
-
+describe("which rows follow the theme", () => {
   it("rowSection: the theme section a row reads (none for a per-widget or unthemed row)", () => {
     const def = (key: string, extra: Partial<ModuleSetting> = {}): ModuleSetting => ({ key, label: key, type: "text", default: "", ...extra });
     expect(rowSection(def("accent"))).toBe("colors");
     expect(rowSection(def("alignX", { keyY: "alignY" }))).toBe("spacing");
     expect(rowSection(def("accent", { perWidget: true }))).toBeUndefined();
     expect(rowSection(def("tint"))).toBeUndefined();
-  });
-
-  it("followSection: the shared sections with a themed row; not Header, Fit or the widget's own", () => {
-    expect(followSection(find(sections, "Colors"))).toBe("colors");
-    expect(followSection(find(sections, "Shape & spacing"))).toBe("spacing");
-    expect(followSection(find(sections, "Motion"))).toBe("motion");
-    expect(followSection(find(sections, "Header"))).toBeUndefined();
-    expect(followSection(find(sections, "Fit"))).toBeUndefined();
-    expect(sections.filter((s) => !s.general).every((s) => followSection(s) === undefined)).toBe(true);
   });
 
   it("chipSections: a card's own theme section, Colors also covering Widget colors; none for Header, Fit or the widget's own", () => {
@@ -423,15 +411,12 @@ describe("follow bars", () => {
     expect(chipSections(find(allSections(webpage), "Colors"))).toEqual(["colors"]);
   });
 
-  it("followInfo: Theme, Custom or Locked, naming the theme followed", () => {
-    const appearance = { profileName: "Desk", pageName: "Gaming" };
-    expect(followInfo(appearance, undefined, "colors")).toEqual({ mode: "theme", from: "the profile theme · Desk", level: "profile" });
-    expect(followInfo(appearance, { colors: false }, "colors")).toEqual({ mode: "custom", from: "the profile theme · Desk", level: "profile" });
-    const page = { ...appearance, page: { follow: { colors: false } } };
-    expect(followInfo(page, undefined, "colors")).toMatchObject({ from: "the page theme · Gaming", level: "page" });
-    const locked = { ...appearance, profile: { locks: { colors: true } } };
-    expect(followInfo(locked, { colors: false }, "colors")).toEqual({ mode: "locked", from: "the profile theme · Desk", level: "profile" });
-    expect(followInfo({}, undefined, "type").from).toBe("the profile theme");
+  it("followInfo: Theme, Custom or Locked", () => {
+    const appearance = {};
+    expect(followInfo(appearance, undefined, "colors")).toEqual({ mode: "theme" });
+    expect(followInfo(appearance, { colors: false }, "colors")).toEqual({ mode: "custom" });
+    const locked = { profile: { locks: { colors: true } } };
+    expect(followInfo(locked, { colors: false }, "colors")).toEqual({ mode: "locked" });
   });
 });
 

@@ -6,6 +6,7 @@ import { resolveWith } from "@/lib/style-resolve";
 import { allSections, changedCount, type InspectorSection, type PanelLayoutKind, type TabId } from "@/components/studio/inspector-model";
 import {
   itemFields,
+  itemFollow,
   itemLookValues,
   itemOwn,
   itemSections,
@@ -151,15 +152,15 @@ describe("following the panel", () => {
 
   function fieldsOf(w: Widget, extra: Partial<ItemFieldsInput> = {}) {
     const edits: Widget[] = [];
-    const fields = itemFields({ widget: w, layout: "stack", look, panelName: "Rig", unit: "%", change: (fn) => edits.push(fn(w)), ...extra });
-    return { fields, edits };
+    const input: ItemFieldsInput = { widget: w, layout: "stack", look, panelName: "Rig", unit: "%", change: (fn) => edits.push(fn(w)), ...extra };
+    return { fields: itemFields(input), edits, follow: (s: { id: string }) => itemFollow(input, s) };
   }
   const sectionOf = (w: Widget, id: string) => sections(w, "stack", "%").find((s) => s.id === id)!;
   const def = (w: Widget, id: string, key: string) => sectionOf(w, id).settings.find((d) => d.key === key)!;
 
   it("shows the panel's values read-only while a section follows; per-widget rows stay editable", () => {
     const w = widget("bar", { unit: "%", max: 200 });
-    const { fields } = fieldsOf(w);
+    const { fields, follow } = fieldsOf(w);
     expect(fields.shown("color", def(w, "colors", "color"))).toBe("#00ff00");
     expect(fields.shown("decimals", def(w, "format", "decimals"))).toBe("1");
     expect(fields.shown("thr.warn", def(w, "thresholds", "thr.warn"))).toBe(75);
@@ -168,18 +169,18 @@ describe("following the panel", () => {
     expect(fields.readOnly?.(def(w, "format", "decimals"))).toBe(true);
     expect(fields.readOnly?.(def(w, "format", "unit"))).toBe(false);
     expect(fields.readOnly?.(def(w, "format", "max"))).toBe(false);
-    expect(fields.follow?.(sectionOf(w, "colors"))).toMatchObject({ mode: "theme", scope: { kind: "item", panelName: "Rig" } });
-    // Sections that do not follow have no bar.
-    expect(fields.follow?.(sectionOf(w, "item-content"))).toBeUndefined();
-    expect(fields.follow?.(sectionOf(w, "css"))).toBeUndefined();
+    expect(follow(sectionOf(w, "colors"))).toMatchObject({ mode: "theme", section: "colors" });
+    // Sections that do not follow have no chip.
+    expect(follow(sectionOf(w, "item-content"))).toBeUndefined();
+    expect(follow(sectionOf(w, "css"))).toBeUndefined();
   });
 
   it("is custom where the widget has own values; they show and count as changed", () => {
     const w = widget("stat", { color: "#ff0000", decimals: 2 });
-    const { fields } = fieldsOf(w);
+    const { fields, follow } = fieldsOf(w);
     expect(fields.shown("color", def(w, "colors", "color"))).toBe("#ff0000");
     expect(fields.readOnly?.(def(w, "colors", "color"))).toBe(false);
-    expect(fields.follow?.(sectionOf(w, "colors"))?.mode).toBe("custom");
+    expect(follow(sectionOf(w, "colors"))?.mode).toBe("custom");
     expect(changedCount(sectionOf(w, "colors"), fields.values)).toBe(1);
     expect(changedCount(sectionOf(w, "format"), fields.values)).toBe(1);
     // Thresholds unset: following, the panel's levels, nothing changed.
@@ -188,23 +189,23 @@ describe("following the panel", () => {
 
   it("Use panel keeps the own values stored but stops counting them; Customize brings them back", () => {
     const w = widget("stat", { color: "#ff0000" });
-    const { fields, edits } = fieldsOf(w);
-    fields.follow?.(sectionOf(w, "colors"))?.onUseTheme();
+    const { edits, follow } = fieldsOf(w);
+    follow(sectionOf(w, "colors"))?.onUseTheme();
     const following = edits[0];
     expect(following).toMatchObject({ color: "#ff0000", follow: { colors: true } });
     const after = fieldsOf(following).fields;
     expect(after.shown("color", def(following, "colors", "color"))).toBe("#00ff00");
     expect(changedCount(sectionOf(following, "colors"), after.values)).toBe(0);
     const back = fieldsOf(following);
-    back.fields.follow?.(sectionOf(following, "colors"))?.onCustomize();
+    back.follow(sectionOf(following, "colors"))?.onCustomize();
     expect(back.edits[0]).toMatchObject({ color: "#ff0000", follow: { colors: false } });
     expect(fieldsOf(back.edits[0]).fields.shown("color", def(w, "colors", "color"))).toBe("#ff0000");
   });
 
   it("a section the profile locks reads Locked and follows, own values or not", () => {
     const w = widget("stat", { color: "#ff0000" });
-    const { fields } = fieldsOf(w, { locks: { colors: true } });
-    expect(fields.follow?.(sectionOf(w, "colors"))?.mode).toBe("locked");
+    const { fields, follow } = fieldsOf(w, { locks: { colors: true } });
+    expect(follow(sectionOf(w, "colors"))?.mode).toBe("locked");
     expect(fields.readOnly?.(def(w, "colors", "color"))).toBe(true);
     expect(itemLookValues({ widget: w, layout: "stack", look, locks: { colors: true } }).applies?.("accent")).toBe(false);
   });

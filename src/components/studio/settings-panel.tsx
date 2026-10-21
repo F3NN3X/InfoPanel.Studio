@@ -10,7 +10,7 @@ import {
   type ModuleSettings,
 } from "@/modules/types";
 import { SourceDot } from "./inspector/source-dot";
-import { sourceState, type FollowInfo, type InspectorSection, type LookValues } from "./inspector-model";
+import { sourceState, type LookValues } from "./inspector-model";
 import { presetDefaults, SET_HERE } from "./settings-model";
 import { SettingRow } from "./setting-control";
 
@@ -33,28 +33,9 @@ export interface FieldsApi {
   onOpenExplorer?: () => void;
   /** The quick bar's pins of this widget type (none where the context has no quick bar). */
   pins?: { has: (key: string) => boolean; toggle: (key: string) => void };
-  /** A zone: the Follow bar of a followable section (undefined: nothing in it follows a theme). */
-  follow?: (section: InspectorSection) => FollowBar | undefined;
   /** A zone: whether a row shows its theme value read-only (its section follows the theme). */
   readOnly?: (def: ModuleSetting) => boolean;
 }
-
-/** A section's Follow bar: its state and the switch between the theme and custom values. */
-export interface FollowBar extends FollowInfo {
-  onCustomize: () => void;
-  onUseTheme: () => void;
-  /** The theme editor's bar (SPEC §4.1 profile and page scope) or a panel widget's; absent: a widget's. */
-  scope?: ThemeScopeBar;
-}
-
-/**
- * A profile theme section (the listed page's custom widgets, Lock / Unlock), a page theme's
- * (Customize / Use profile), or a panel widget's (it follows its panel: Customize / Use panel).
- */
-export type ThemeScopeBar =
-  | { kind: "profile"; custom: number; pageName: string; onLock: (on: boolean) => void }
-  | { kind: "page"; pageName: string }
-  | { kind: "item"; panelName: string };
 
 /** Setting types whose value is one plain key (a toggle, number, colour, choice, text or icon). */
 const PLAIN_TYPES = new Set(["boolean", "number", "color", "select", "text", "icon"]);

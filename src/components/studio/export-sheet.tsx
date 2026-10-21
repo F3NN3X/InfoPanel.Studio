@@ -136,8 +136,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
   const gauge = chosen ? gaugePayload(chosen.name, chosen.gauge) : undefined;
   const save = (payload: FilePayload | { error: string }, done: string) => {
     if ("error" in payload) return toast(payload.error);
-    saveFilePayload(payload);
-    toast(done);
+    void saveFilePayload(payload).then((saved) => saved && toast(done));
   };
   const copiedRow = (row: string) => {
     setCopied(row);
@@ -152,7 +151,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Popup
-          data-help-article="profiles"
+          data-help-article="import"
           className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(520px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[12px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <div className="flex items-start gap-3 border-b border-ui-subtle px-5 pb-3.5 pt-4">

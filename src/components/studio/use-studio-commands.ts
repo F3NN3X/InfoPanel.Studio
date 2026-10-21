@@ -34,8 +34,10 @@ interface CommandDeps {
   setScopeStyle: ReturnType<typeof useStyleEdits>["setScopeStyle"];
   /** Show another page of the profile on the canvas. */
   onPageChange: (pageId: string) => void;
-  /** Select a profile for editing. */
+  /** Select a screen for editing. */
   onSelectProfile: (id: string) => void;
+  /** Open Help at the article for where the user is. */
+  onHelp: () => void;
 }
 
 /**
@@ -56,6 +58,7 @@ export function useStudioCommands({
   setScopeStyle,
   onPageChange,
   onSelectProfile,
+  onHelp,
 }: CommandDeps) {
   const { selected, selectedWidget } = sel;
   const toast = useToast();
@@ -118,12 +121,9 @@ export function useStudioCommands({
       case "add-preset":
         ui.setMode("design");
         return edit.addPanelPresetById(action.id);
-      case "alerts-open":
-        ui.setAlertRule(null);
-        return ui.openDrawer("alerts");
       case "alert-new": {
         const rule = blankSensorRule();
-        ui.openDrawer("alerts");
+        ui.navigateTo({ view: "alerts", tab: "rules" });
         ui.setAlertRule(rule.id);
         return setConfig((c) => addRule(c, rule), alertsKey(`add:${rule.id}`));
       }
@@ -135,8 +135,10 @@ export function useStudioCommands({
       case "toggle-dock":
         // Collapse the docked inspector, or open / close the floating one (Sources has none).
         return !ui.showSources && ui.studioLayout.toggleInspector();
-      case "sources":
-        return ui.toggleSources();
+      case "live":
+        return ui.setLiveOpen(true);
+      case "help":
+        return onHelp();
       case "toggle-grid":
         return ui.setShowGrid((s) => !s);
       case "zoom-fit":
@@ -201,7 +203,7 @@ export function useStudioCommands({
         return edit.duplicateCurrentPage(currentPage);
       case "page-delete":
         ui.setMode("design");
-        return pages.length > 1 ? ui.setDeletingPage(currentPage) : toast("A profile needs at least one page");
+        return pages.length > 1 ? ui.setDeletingPage(currentPage) : toast("A screen needs at least one page");
       case "page-rename":
         ui.setMode("design");
         return ui.setRenamingPage(currentPage);
@@ -242,7 +244,7 @@ export function useStudioCommands({
       case "use-global": {
         const style = ownStyle(selected, appearance);
         setScopeStyle(action.target, () => style);
-        return toast(action.target === "all" ? "Style is now the global style" : "Style is now this profile's global style");
+        return toast(action.target === "all" ? "Style is now the theme for all screens" : "Style is now the theme for this screen");
       }
       case "resize-step": {
         const rect = edit.resizeSelected({
@@ -304,7 +306,6 @@ export function useStudioCommands({
         canUndo: history.canUndo,
         canRedo: history.canRedo,
         showGrid: ui.showGrid,
-        showSources: ui.showSources,
         enforced: allLocked(appearance.profile),
         appearancePresets: appearancePresets.presets,
       })

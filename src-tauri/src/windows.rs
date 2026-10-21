@@ -4,6 +4,7 @@
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
 use std::sync::atomic::Ordering;
+use std::time::Instant;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -318,12 +319,20 @@ pub fn show_settings(app: &AppHandle, section: Option<&str>) {
     }
 }
 
-/// The tray's Settings: the studio window, which opens Settings › App (at a section when given one). While
-/// the window still shows the start page, its own rescue buttons are what the user gets.
+/// The tray's Settings: the studio window, which opens Settings › App (at a section when given one). A
+/// window that is open gets the event; one that is built by this call, or is still loading, finds the request
+/// waiting when its page mounts (`take_pending_settings`). While the window shows the start page, its own
+/// rescue buttons are what the user gets.
 pub fn show_settings_in_studio(app: &AppHandle, section: Option<&str>) {
+    let st = app.state::<AppState>();
+    let existed = app.get_webview_window(MAIN).is_some();
+    let section = settings_section(section);
+    st.pending_settings.set(section, Instant::now());
     show_main(app);
-    if app.state::<AppState>().studio_page.load(Ordering::SeqCst) {
-        let _ = app.emit_to(MAIN, OPEN_SETTINGS_EVENT, settings_section(section));
+    if !st.studio_page.load(Ordering::SeqCst) {
+        st.pending_settings.clear();
+    } else if existed {
+        let _ = app.emit_to(MAIN, OPEN_SETTINGS_EVENT, section);
     }
 }
 

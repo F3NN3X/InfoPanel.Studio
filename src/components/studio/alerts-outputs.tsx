@@ -118,7 +118,7 @@ export function AlertOutputs({ rule, config, defaults, current, edit }: AlertOut
         {page && (
           <>
             <SelectRow
-              label="Profile"
+              label="Screen"
               value={pageProfile.id}
               options={config.profiles.map((p) => ({ value: p.id, label: p.name }))}
               onChange={(id) => {

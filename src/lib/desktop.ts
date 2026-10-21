@@ -42,6 +42,18 @@ export async function onOpenSettingsRequest(handler: (section: string | null) =>
 }
 
 /**
+ * The tray's Settings request that came before the studio page could listen (the tray built the window, or the page
+ * was still loading): `{ section }` once, else null. Asked when the studio mounts.
+ */
+export const takePendingSettings = async (): Promise<{ section: string | null } | null> => {
+  try {
+    return (await call<{ section: string | null } | null>("take_pending_settings")) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Opens Help at an article and heading (a slug). The desktop app has a Help window; a browser tab
  * opens the Help page the dashboard server hosts next to the studio.
  */

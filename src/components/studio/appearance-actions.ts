@@ -7,7 +7,7 @@ import type { ModuleSettings } from "@/modules/types";
 import { setProfileStyle } from "./studio-actions";
 
 /**
- * Edits of the Appearance tab's style: the dashboard's ("All profiles")
+ * Edits of the widget style at a Theme level: All screens' (`config.style`)
  * style or a profile's theme values, the palette's lock-all of the profile
  * theme, and the widgets' follow choice. Pure config → config updates, each
  * one undo step (same-key edits coalesce: `appearance-style:<scope>`).

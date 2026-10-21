@@ -2,19 +2,25 @@ import { BoxSelect } from "lucide-react";
 import type { ProfileView, Placement } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import type { ModuleSettings } from "@/modules/types";
-import { isVisible, sharedDefs, type InspectorContext } from "../inspector-model";
+import { chipSections, isVisible, sharedDefs, type InspectorContext, type InspectorSection } from "../inspector-model";
+import { sectionInherit } from "../section-inherit";
 import type { FieldsApi } from "../settings-panel";
+import type { InheritanceContext } from "../use-inheritance";
 import { MultiHeader } from "../zone-inspector-parts";
 import { quickDefsFor } from "../quick-sets";
 import { useQuickPins } from "./inspector-prefs";
 import { InspectorView } from "./inspector-view";
-import { followFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./zone-fields";
+import { readOnlyFields, shownValue, shownValues, withoutSettings, withSettings, zoneDefs, zoneLookValues } from "./zone-fields";
 import { zoneName } from "./zone-meta";
 
 interface MultiInspectorProps {
   /** The selected zones, the primary last (its values show). */
   zones: Placement[];
   appearance: Appearance;
+  /** The screen and page the zones are on, and the config the chips read and write. */
+  inherit: InheritanceContext;
+  profileId: string;
+  pageId: string;
   /** Edit the active profile (one undo step per `key`). */
   updateProfile: (fn: (p: ProfileView) => ProfileView, key?: string) => void;
   onDeselect: (id: string) => void;
@@ -28,13 +34,15 @@ interface MultiInspectorProps {
 
 /**
  * Several zones selected: no tabs, only the Style sections of the look
- * they share. The rows and Follow bars show the primary zone's state; every
- * edit (Customize and Use theme too) applies to each selected zone in one
- * undo step.
+ * they share. The rows and inheritance chips show the primary zone's state; every
+ * edit (Customise and Reset too) applies to each selected zone in one undo step.
  */
 export function MultiInspector({
   zones,
   appearance,
+  inherit,
+  profileId,
+  pageId,
   updateProfile,
   onDeselect,
   onToggleVisible,
@@ -61,9 +69,16 @@ export function MultiInspector({
     onChange: (key, v) => each((z) => withSettings(z, { [key]: v }), `multi-setting:${key}`),
     onPatch: (patch: ModuleSettings) => each((z) => withSettings(z, patch), `multi-setting:${Object.keys(patch).join()}`),
     onClear: (keys) => each((z) => withoutSettings(z, keys)),
-    ...followFields(primary, appearance, each),
+    ...readOnlyFields(primary, appearance),
   };
   const effective = shownValues(values, defs);
+  const scopeOf = (z: Placement) => ({ level: "widget", profileId, pageId, zoneId: z.id }) as const;
+  const inheritOf = (s: InspectorSection) => {
+    const sections = chipSections(s);
+    return sections.length === 0
+      ? undefined
+      : sectionInherit({ sections, title: s.title, scope: scopeOf(primary), alsoScopes: zones.filter((z) => z !== primary).map(scopeOf), ctx: inherit });
+  };
 
   return (
     <InspectorView
@@ -81,6 +96,7 @@ export function MultiInspector({
       fields={fields}
       visible={(def) => isVisible(def, effective)}
       parts={() => ({})}
+      inherit={inheritOf}
       query={query}
       onQuery={onQuery}
       jumpTo={jumpTo}

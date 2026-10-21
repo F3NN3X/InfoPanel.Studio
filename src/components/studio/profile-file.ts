@@ -124,5 +124,5 @@ export function screenPayload(config: DashboardConfig, profile: MonitorProfile):
 export function exportProfileFile(config: DashboardConfig, profile: MonitorProfile, onError: ReportError = () => {}): void {
   const payload = screenPayload(config, profile);
   if ("error" in payload) onError(payload.error);
-  else saveFilePayload(payload);
+  else void saveFilePayload(payload);
 }

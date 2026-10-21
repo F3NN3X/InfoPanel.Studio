@@ -36,8 +36,8 @@ export interface DoorContext {
   setConfig: HistorySetter;
   /** Add a profile made from a file and edit it. */
   addScreen: (profile: MonitorProfile) => void;
-  /** Write the current dashboard as a backup file; false when it cannot be written (a canvas that is not loaded). */
-  backup: (config: DashboardConfig) => boolean;
+  /** Write the current dashboard as a backup file; false when it cannot be written (a canvas that is not loaded) or the Save As is cancelled. */
+  backup: (config: DashboardConfig) => Promise<boolean>;
   /** An imported image or video as the background of the edited screen. */
   useAsBackground: (item: LibraryItem) => void;
 }
@@ -55,8 +55,9 @@ export interface RunResult {
 }
 
 /**
- * The file's config, either replacing `current` or adding its screens to it. A replace writes the backup first
- * (unless `backupFirst` is off) and gives up, leaving `current` alone, when the backup cannot be written.
+ * The file's config, either replacing `current` or adding its screens to it. A replace waits for the backup to be
+ * written first (unless `backupFirst` is off) and gives up, leaving `current` alone, when it is not: the desktop Save As
+ * is a dialog the user can cancel.
  */
 export async function restoreConfig(
   text: string,
@@ -70,7 +71,9 @@ export async function restoreConfig(
     );
     return { config, missing: read.missing, backedUp: false };
   }
-  if (o.backupFirst && !o.backup(o.current)) throw new Error("the current dashboard could not be backed up first, so nothing was replaced");
+  if (o.backupFirst && !(await o.backup(o.current))) {
+    throw new Error("the current dashboard could not be backed up first (the Save As was cancelled or failed), so nothing was replaced. Untick the backup box to replace without one");
+  }
   return { config: read.config, missing: read.missing, backedUp: o.backupFirst };
 }
 

@@ -275,7 +275,7 @@ export function AlertRuleEditor({
               onChange={(n) => edit("cooldown", (r) => ({ ...r, cooldownSeconds: n ?? 0 }))}
             />
           </InlineRow>
-          <StackRow label="Profiles">
+          <StackRow label="Screens">
             <div className="space-y-1">
               <label className="flex items-center gap-2 text-[12.5px] text-ui-2">
                 <input
@@ -288,7 +288,7 @@ export function AlertRuleEditor({
                     })
                   }
                 />
-                All profiles
+                All screens
               </label>
               {rule.profiles !== undefined &&
                 config.profiles.map((p) => (

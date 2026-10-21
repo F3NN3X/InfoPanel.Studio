@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { onOpenSettingsRequest } from "@/lib/desktop";
+import { onOpenSettingsRequest, takePendingSettings } from "@/lib/desktop";
 import type { DashboardConfig, ProfileView, Widget } from "@/lib/layout";
 import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
@@ -60,7 +60,6 @@ export function useStudioUi(
     openTheme(themeScope.kind === "page" ? (profile.pageId ? { kind: "page", pageId: profile.pageId } : { kind: "profile" }) : themeScope);
   /** Every view but Design: a full page in place of the canvas, left panel and inspector. */
   const fullPage = mode !== "design";
-  const toggleSources = () => setMode((m) => (m === "sources" ? "design" : "sources"));
   /** Design's left panel: open from 1280 px (SPEC §3.5), and its tab. */
   const [leftOpen, setLeftOpen] = useState(() => windowWidth >= 1280);
   const [leftTab, setLeftTab] = useState<LeftTab>("add");
@@ -164,27 +163,11 @@ export function useStudioUi(
   /** A rail item opens its view; Data is the Sources view. */
   const onRail = (item: RailItem) => (item === "theme" ? openThemeView() : setMode(item === "data" ? "sources" : item));
 
-  /** A palette entry or link for a panel: Add and Layers open Design's left panel, the rest their full view. */
+  /** A palette entry or link for the Design left panel: Add widget or Layers. */
   const openDrawer = (target: Drawer) => {
-    switch (target) {
-      case "add":
-      case "layers":
-        setMode("design");
-        setLeftTab(target);
-        setLeftOpen(true);
-        break;
-      case "profiles":
-        setMode("screens");
-        break;
-      case "alerts":
-        setAlertsTab("rules");
-        setMode("alerts");
-        break;
-      case "island":
-        setAlertsTab("island");
-        setMode("alerts");
-        break;
-    }
+    setMode("design");
+    setLeftTab(target);
+    setLeftOpen(true);
   };
 
   /** The page-tab row's left-panel toggle. */
@@ -239,9 +222,10 @@ export function useStudioUi(
   useEffect(() => {
     let gone = false;
     let off: (() => void) | undefined;
-    void onOpenSettingsRequest((section) => open.current({ view: "settings", tab: "app", section: section ?? undefined })).then((unlisten) =>
-      gone ? unlisten() : (off = unlisten)
-    );
+    const request = (section: string | null) => open.current({ view: "settings", tab: "app", section: section ?? undefined });
+    void onOpenSettingsRequest(request).then((unlisten) => (gone ? unlisten() : (off = unlisten)));
+    // The tray may have built this window, or asked while it loaded: its request waits in the shell.
+    void takePendingSettings().then((pending) => pending && !gone && request(pending.section));
     return () => {
       gone = true;
       off?.();
@@ -262,7 +246,6 @@ export function useStudioUi(
     themePageId,
     openTheme,
     fullPage,
-    toggleSources,
     leftOpen,
     leftTab,
     setLeftTab,

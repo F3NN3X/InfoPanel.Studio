@@ -2,13 +2,12 @@ import { THEME_SETTINGS } from "@/modules/standard-settings";
 import { settingKeys, type ModuleSettings } from "@/modules/types";
 import type { BackgroundScope, PageBackground } from "./appearance";
 import { presetTokens, type AppearancePreset } from "./appearance-presets";
-import type { DashboardConfig, MonitorProfile, Placement } from "./layout";
-import { allPlacements, mapPlacements } from "./pages";
+import type { DashboardConfig } from "./layout";
 import { resolveTheme } from "./theme";
-import { ownApplies, pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withSectionFlag, withThemeValues, type ThemeLevels } from "./theme-model";
+import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withSectionFlag, withThemeValues, type ThemeLevels } from "./theme-model";
 
 /**
- * Applying an appearance preset, and the widgets that would hide it.
+ * Applying a Theme (an appearance preset), and saving one.
  * Pure config → config; the studio sets each result in one call (one
  * undo step, no coalescing key).
  *
@@ -149,62 +148,6 @@ export function applyThemeAt(
     : applyAppearancePreset(config, preset, target, options);
 }
 
-/* ---------------- overrides ---------------- */
-
-const inScope = (config: DashboardConfig, scope: PresetScope): MonitorProfile[] =>
-  scope.kind === "all" ? config.profiles : config.profiles.filter((p) => p.id === scope.profileId);
-
-/** A widget whose own look shows over the global style: own themed values in a custom, unlocked section. */
-function hidesGlobal(p: Placement, levels: ThemeLevels): boolean {
-  return Object.keys(themedOf(p.settings)).some((key) => ownApplies(levels, p, key));
-}
-
-/** The levels a profile's widgets resolve under, as far as following goes (its locks). */
-const levelsOf = (profile: MonitorProfile): ThemeLevels => ({ profile: profile.widgetTheme });
-
-/** The widgets in a scope whose own look hides the global style. */
-export function countOverrides(config: DashboardConfig, scope: PresetScope): number {
-  return inScope(config, scope).reduce((n, profile) => {
-    const levels = levelsOf(profile);
-    return n + allPlacements(profile).filter((p) => hidesGlobal(p, levels)).length;
-  }, 0);
-}
-
-/** Whether a profile has its own look (theme values, theme colours or radius) over the dashboard's. */
-const hasOwnLook = (p: MonitorProfile): boolean =>
-  Object.keys(p.widgetTheme?.values ?? {}).length > 0 || p.theme !== undefined || p.radius !== undefined;
-
-/** "All profiles" only: the profiles whose own look overrides the dashboard's. */
-export function countProfileOverrides(config: DashboardConfig, scope: PresetScope): number {
-  if (scope.kind !== "all") return 0;
-  return config.profiles.filter(hasOwnLook).length;
-}
-
-/**
- * Let the global style through: the overriding widgets follow it in every
- * section (their own looks stay stored) and, for "All profiles", the
- * profiles' own theme values, theme colours and radius are dropped (their
- * locks stay).
- */
-export function clearOverrides(config: DashboardConfig, scope: PresetScope): DashboardConfig {
-  const ids = new Set(inScope(config, scope).map((p) => p.id));
-  return {
-    ...config,
-    profiles: config.profiles.map((profile) => {
-      if (!ids.has(profile.id)) return profile;
-      const levels = levelsOf(profile);
-      const followed = mapPlacements(profile, (p) => {
-        if (!hidesGlobal(p, levels)) return p;
-        const { follow: _f, ...rest } = p;
-        return rest;
-      });
-      return scope.kind === "all"
-        ? { ...followed, widgetTheme: withThemeValues(followed.widgetTheme, undefined), theme: undefined, radius: undefined }
-        : followed;
-    }),
-  };
-}
-
 /* ---------------- the user's presets ---------------- */
 
 /** The current look of a scope as a preset (the profile's own theme and theme values over the dashboard's). */
@@ -221,7 +164,7 @@ export function presetFromCurrent(
   return {
     id,
     name,
-    description: "Saved look",
+    description: "Saved theme",
     theme: { ...theme.tokens },
     radius: theme.radius,
     style,
@@ -270,16 +213,6 @@ export const saveThemeAt = (
   ...config,
   appearancePresets: [...(config.appearancePresets ?? []), themeFromScope(config, target, id, name, includeBackground)],
 });
-
-export function saveAppearancePreset(
-  config: DashboardConfig,
-  scope: PresetScope,
-  id: string,
-  name: string
-): DashboardConfig {
-  const preset = presetFromCurrent(config, scope, id, name);
-  return { ...config, appearancePresets: [...(config.appearancePresets ?? []), preset] };
-}
 
 export function renameAppearancePreset(config: DashboardConfig, id: string, name: string): DashboardConfig {
   return {

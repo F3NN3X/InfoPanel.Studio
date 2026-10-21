@@ -20,7 +20,7 @@ export function ResetConfigDialog({ open, onOpenChange, onExport, onReset }: Res
         <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[26rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
           <AlertDialog.Title className="text-sm font-semibold text-ui-1">Reset everything?</AlertDialog.Title>
           <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
-            This wipes every profile and its zones, the theme, style presets
+            This wipes every screen and its zones, the theme, Styles
             and all widget settings, and restores the default dashboard. Undo
             (Ctrl+Z) brings it back only until you leave the studio — back up
             first to keep a copy.
