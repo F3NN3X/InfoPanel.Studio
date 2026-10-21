@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.9] - 2026-10-22
+
 ### Changed
 - **Settings is its own window again**, and it holds everything that isn't design: **App** (General, Server, Coding
   agents, Updates), **Dashboard** (frame rate and animations, clock and date, kiosk behaviour, Reset everything…),
@@ -22,11 +24,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   Frame-rate cap or Animations ("MyDefault uses 30 fps") with Reset and a link to the screen. Theme's Motion section
   says on which screens Smooth is off, and the Frame-rate cap hint says why: below 60 fps transitions are off and graphs
   step at the data rate.
-- A Settings change no longer ends the Studio's undo history: undo and redo keep working across it and never revert it.
+- The Studio window can call only the desktop commands it uses (13, down from 39); the Settings window has its own
+  set. If the server isn't running, Settings opens with the App pages only.
 
 ### Fixed
-- A Studio save already on its way when a Settings change landed could put the old value back; the server now applies
-  the change again to such a save.
 - Layers, the selection bar and the widget inspector show each widget's own icon instead of a plain box for all of
   them.
 
