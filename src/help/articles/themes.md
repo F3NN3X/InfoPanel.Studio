@@ -21,7 +21,13 @@ Each layer overrides the one before it. Content settings (sensors, what to show)
 
 ## Where to edit
 
-- **Appearance** (nothing selected): **Apply to** All profiles or This profile, the **Skins** gallery, **Saved looks**, surface, theme swatches and the page background. The **Theme editor** button opens the Theme page.
+- **Look**, with nothing selected, has three sections: **Theme**, **Widget style** and **Background**. Each has a switch:
+  - **All profiles** (teal dot): the section is shared, and changes apply to every profile that doesn't have its own.
+  - **This profile** (purple dot): this profile gets its own copy, starting from the shared values. Switching back to All profiles drops the profile's own values.
+
+  **Theme** has the theme swatches, the colour tokens (more under **More**), **Corners** and the **Font**. Corners follow the Theme switch. The Font applies to every profile.
+
+  **Widget style** has the **Skins** gallery, **Saved looks**, the surface, its opacity and blur, and **Apply to every widget**. That toggle locks every section of this profile's widget theme, and reads **Some sections** when only some are locked. **Edit widget style ›** opens the Theme page.
 - **Theme** on the left rail: a scope list with All profiles, Profile theme and each page. Its "Who doesn't follow the theme" list has **Reset to theme** for each widget that has its own values.
 
 ## Follow theme, section by section

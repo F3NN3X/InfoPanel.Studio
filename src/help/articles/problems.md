@@ -35,10 +35,10 @@ If the message says another InfoPanel Studio server is already running on that p
 
 InfoPanel's web view keeps the GPU busy while the dashboard barely changes.
 
-1. Set **Max FPS** to 30 or 15 under General › Performance.
-2. Check that Profile › Performance is on **Dashboard**, or set the lower rate there too.
+1. With nothing selected, open **Behaviour › Performance** and set **Frame rate limit** to 30 or 15.
+2. If the section is set to **This profile**, the profile has its own rate. Lower it there too, or switch to **All profiles**.
 3. Check that the kiosk URL in InfoPanel doesn't carry `&fps=60` or `&fps=0`.
-4. On a display where nothing needs to move, set **Motion** to Reduce.
+4. On a display where nothing needs to move, set **Animations** to Reduced.
 5. After updating InfoPanel Studio, restart InfoPanel. It doesn't reload the kiosk page by itself.
 
 See [Frame rate and motion](performance) for what each setting changes.

@@ -20,7 +20,9 @@ Every type also has **Dim**, **Tint**, **Tint opacity** and **Blur** (in px), wh
 
 ## Dashboard and profile
 
-Set a background for all profiles in **Appearance**, then per profile choose **Inherit**, **Custom** or **None** in **Dashboard › Profile**.
+With nothing selected, open **Look › Background**. Set to **All profiles**, it edits the background every profile shares. Switch it to **This profile** to give this profile its own, starting from the shared one; choose **None** there for no background on this profile only. Switching back to All profiles drops the profile's own background.
+
+The type and Dim show first. Fit, position, fill, tint, blur and the video options are under **More**.
 
 :::note
 Videos pause when the kiosk is hidden. With reduced motion on, only the poster frame shows.

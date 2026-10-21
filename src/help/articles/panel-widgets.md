@@ -20,7 +20,7 @@ A text widget can scroll like InfoPanel's marquee. Under Behaviour › Scrolling
 
 ## Time and date format
 
-Set a clock widget to **Time** or **Date**, then type a .NET **Format** such as `hh:mm:ss tt` or `dd/MM/yyyy`. Empty uses the time and date from General settings. An InfoPanel Clock or Calendar keeps its format when it is imported.
+Set a clock widget to **Time** or **Date**, then type a .NET **Format** such as `hh:mm:ss tt` or `dd/MM/yyyy`. Empty uses the time and date settings under **Behaviour › Clock and date**. An InfoPanel Clock or Calendar keeps its format when it is imported.
 
 ## Shared options
 
