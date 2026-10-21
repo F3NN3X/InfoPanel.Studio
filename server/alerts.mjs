@@ -170,7 +170,7 @@ const patchRule = (s, id, patch) => {
 };
 
 /** Open an alert instance. `oneShot` ones expire after the display seconds (0 = when acknowledged). */
-function start(s, events, { rule, alerts, now, reading, notification, oneShot, test }) {
+function start(s, events, { rule, alerts, now, reading, notification, oneShot, test, muted }) {
   const display = { ...DEFAULT_DISPLAY, ...pickDisplay(alerts?.defaults), ...pickDisplay(rule.outputs?.display) };
   const seconds = [rule.outputs?.display?.seconds, alerts?.defaults?.seconds].find(Number.isFinite);
   if (seconds !== undefined) display.seconds = seconds;
@@ -194,7 +194,7 @@ function start(s, events, { rule, alerts, now, reading, notification, oneShot, t
           ? "Stopped reporting"
           : "{value}{unit}" // the rule name is the alert's title; the body is the reading
         : "{app}: {title}";
-  const quiet = !test && isQuiet(alerts?.quietHours, rule.severity, now);
+  const quiet = !test && (muted === true || isQuiet(alerts?.quietHours, rule.severity, now));
 
   s.seq += 1;
   const id = `${now.toString(36)}-${s.seq}`;
@@ -283,8 +283,9 @@ function blocked(s, rule, now) {
  * held `forSeconds`, clear per `clears`, and refire only after `cooldownSeconds`. `changes`, notification
  * and test alerts are one-shots that expire after the display seconds (0 = until acknowledged).
  * Disabled rules, and everything while `alerts.enabled === false`, fire nothing and clear what is active.
+ * While `muted`, every new alert is quiet whatever its severity.
  */
-export function evaluate(state, alerts, readings, now) {
+export function evaluate(state, alerts, readings, now, muted = false) {
   const s = { ...state, rules: { ...state.rules }, active: [...state.active], history: [...state.history] };
   const events = [];
   const rules = rulesOf(alerts);
@@ -299,7 +300,7 @@ export function evaluate(state, alerts, readings, now) {
 
   for (const rule of live.values()) {
     const rs = s.rules[rule.id] ?? {};
-    const ctx = { rule, alerts, now };
+    const ctx = { rule, alerts, now, muted };
     if (sensorRule(rule)) {
       const src = rule.source;
       const reading = readings?.[src.key];
@@ -404,6 +405,17 @@ export function act(state, action, alerts, readings, now) {
     if (entry.oneShot && entry.expiresAt === undefined) end(s, events, entry.alert.id, now);
   }
   return { state: s, events };
+}
+
+/** Mark every active alert (tests excepted) quiet, in the history too; the same state when none changes. */
+export function quieten(state) {
+  const ids = new Set(state.active.filter((e) => !e.alert.test && !e.alert.quiet).map((e) => e.alert.id));
+  if (ids.size === 0) return state;
+  return {
+    ...state,
+    active: state.active.map((e) => (ids.has(e.alert.id) ? { ...e, alert: { ...e.alert, quiet: true } } : e)),
+    history: state.history.map((h) => (ids.has(h.id) ? { ...h, quiet: true } : h)),
+  };
 }
 
 const TEST_NOTIFICATION = { app: "Test", title: "Test notification", body: "" };
@@ -564,7 +576,13 @@ export function createAlerts({
     }
   };
 
-  const run = () => apply(evaluate(state, config?.alerts, readings, now()));
+  /** Whether alerts are muted right now (control holds the deadline). */
+  const muted = () => {
+    const until = control.get().mutedUntil;
+    return typeof until === "number" && now() < until;
+  };
+
+  const run = () => apply(evaluate(state, config?.alerts, readings, now(), muted()));
 
   const onEvent = (message) => {
     if (!isObject(message)) return;
@@ -601,12 +619,21 @@ export function createAlerts({
       subscribe();
       run();
     },
-    /** Apply a client action; `{ alerts }` (the active list) or `{ error }`. */
+    /**
+     * Apply a client action; `{ alerts, mutedUntil }` (the active list and the mute deadline) or `{ error }`.
+     * `{ action: "mute", minutes }` mutes for 1-1440 minutes (0 unmutes) and quietens what is active.
+     */
     act(action) {
+      if (action?.action === "mute") {
+        const done = control.dispatch({ type: "mute", minutes: action.minutes });
+        if (done.error) return { error: done.error };
+        if (done.state.mutedUntil !== null) apply({ state: quieten(state), events: [] });
+        return { alerts: activeAlerts(state), mutedUntil: done.state.mutedUntil };
+      }
       const result = act(state, action, config?.alerts, readings, now());
       if (result.error) return { error: result.error };
       apply(result);
-      return { alerts: activeAlerts(state) };
+      return { alerts: activeAlerts(state), mutedUntil: control.get().mutedUntil };
     },
     history: () => state.history,
     alerts: () => activeAlerts(state),

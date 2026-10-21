@@ -45,9 +45,11 @@ import { profileWithPage } from "@/lib/pages";
 import {
   kioskPageId,
   kioskProfileId,
+  islandEffective,
   neighbourPage,
   postControl,
   useControl,
+  useKioskReload,
   withControlPage,
 } from "@/lib/control";
 import { swipeDirection } from "@/lib/swipe";
@@ -151,7 +153,15 @@ export default function App() {
   }, [studio, profile.pageId, studioPage]);
   const { shown: shownAlerts, ack: ackAlert } = useShownAlerts(control, stored.id);
   // Island-style alerts go to the profile's island; without one they show as a top toast.
-  const island = profile.island?.enabled ? profile.island : undefined;
+  // The control channel can show or hide it (Stream Deck); the layout space it reserves stays either way.
+  const savedIsland = profile.island?.enabled === true;
+  const islandShown = kiosk ? islandEffective(control, profile) : savedIsland;
+  const islandConfig = useMemo(
+    () => (profile.island && (islandShown || savedIsland) ? { ...profile.island, enabled: true } : undefined),
+    [profile.island, islandShown, savedIsland]
+  );
+  const island = islandShown ? islandConfig : undefined;
+  useKioskReload(control, stored.id, kiosk);
   const splitAlerts = useMemo(() => splitIslandAlerts(shownAlerts, island !== undefined), [shownAlerts, island]);
   // On the kiosk the island also gets the Data API warning and the widgets sent to it (every page).
   const quietHours = config.alerts?.quietHours;
@@ -164,7 +174,7 @@ export default function App() {
     [kiosk, island, stored, config, quietHours, pageName, layoutVersion]
   );
   const islandPage = useMemo(() => ({ width: profile.width, height: profile.height }), [profile.width, profile.height]);
-  const reserve = islandReserve(island, islandPage);
+  const reserve = islandReserve(islandConfig, islandPage);
   const fill = profile.fit === "fill";
   const background = resolveBackground(config, profile);
   const appearance = appearanceOf(config, profile);
@@ -543,6 +553,8 @@ export default function App() {
           {kiosk && <ZoneHighlights alerts={shownAlerts} profile={profile} />}
         </PageGrid>
 
+        {kiosk && <DimOverlay level={control?.profiles[stored.id]?.dim ?? 0} />}
+
         {kiosk && <AlertLayer alerts={splitAlerts.layer} onAck={ackAlert} />}
 
         {/* Alerts reach the island on the kiosk only; the plain page shows its idle pill. */}
@@ -582,6 +594,19 @@ export default function App() {
       </div>
     </PerformanceProvider>
     </GeneralProvider>
+  );
+}
+
+/** Kiosk dim (Stream Deck): a black veil over the page and island, under the alerts. Nothing at 0. */
+function DimOverlay({ level }: { level: number }) {
+  const reduced = useReducedMotion();
+  if (level <= 0) return null;
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-[58] bg-black"
+      style={{ opacity: level, transition: reduced ? undefined : "opacity 300ms" }}
+      data-dim-overlay
+    />
   );
 }
 

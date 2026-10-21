@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   kioskPageId,
   kioskProfileId,
+  islandEffective,
   neighbourPage,
   postControl,
+  reloadCheck,
   withControlPage,
   type ControlState,
 } from "@/lib/control";
@@ -11,7 +13,9 @@ import {
 const state = (over: Partial<ControlState> = {}): ControlState => ({
   profile: null,
   shown: null,
-  profiles: { p1: { page: "b", rotating: false, override: null } },
+  profiles: { p1: { page: "b", rotating: false, override: null, dim: 0, island: false, islandOverride: null, reload: 0 } },
+  mutedUntil: null,
+  reload: 0,
   ...over,
 });
 const profile = { id: "p1", pages: [{ id: "a" }, { id: "b" }] } as never;
@@ -29,7 +33,7 @@ describe("kioskPageId", () => {
   it("is undefined (the first page) offline, for another profile, or for a vanished page", () => {
     expect(kioskPageId({ pin: undefined, control: null, profile })).toBeUndefined();
     expect(kioskPageId({ pin: undefined, control: state({ profiles: {} }), profile })).toBeUndefined();
-    const gone = state({ profiles: { p1: { page: "deleted", rotating: false, override: null } } });
+    const gone = state({ profiles: { p1: { ...state().profiles.p1, page: "deleted" } } });
     expect(kioskPageId({ pin: undefined, control: gone, profile })).toBeUndefined();
   });
 });
@@ -57,7 +61,7 @@ describe("withControlPage", () => {
   it("sets one profile's page without touching the input", () => {
     const before = state();
     const after = withControlPage(before, "p1", "a");
-    expect(after.profiles.p1).toEqual({ page: "a", rotating: false, override: null });
+    expect(after.profiles.p1).toEqual({ ...before.profiles.p1, page: "a" });
     expect(before.profiles.p1.page).toBe("b");
   });
 
@@ -108,5 +112,36 @@ describe("postControl", () => {
     await expect(postControl("touch", {})).resolves.toBeNull();
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
     await expect(postControl("touch", {})).resolves.toBeNull();
+  });
+});
+
+describe("islandEffective", () => {
+  it("follows the control state, else the saved island", () => {
+    const saved = (enabled: boolean) => ({ id: "p1", island: { enabled } }) as never;
+    const withIsland = (island: boolean) =>
+      state({ profiles: { p1: { ...state().profiles.p1, island } } });
+    expect(islandEffective(withIsland(false), saved(true))).toBe(false);
+    expect(islandEffective(withIsland(true), saved(false))).toBe(true);
+    expect(islandEffective(null, saved(true))).toBe(true);
+    expect(islandEffective(null, { id: "p1" } as never)).toBe(false);
+  });
+});
+
+describe("reloadCheck", () => {
+  const at = (reload: number, own: number, link = 1) =>
+    state({ reload, link, profiles: { p1: { ...state().profiles.p1, reload: own } } });
+  it("only sets the baseline on the first message, a reconnect or another profile", () => {
+    const first = reloadCheck(null, at(5, 0), "p1");
+    expect(first.reload).toBe(false);
+    expect(reloadCheck(first.baseline, at(9, 0, 2), "p1").reload).toBe(false);
+    expect(reloadCheck(first.baseline, at(9, 0), "p2").reload).toBe(false);
+  });
+  it("reloads when the global or the profile counter grows, once", () => {
+    const first = reloadCheck(null, at(5, 7), "p1");
+    expect(reloadCheck(first.baseline, at(5, 7), "p1").reload).toBe(false);
+    const own = reloadCheck(first.baseline, at(5, 8), "p1");
+    expect(own.reload).toBe(true);
+    expect(reloadCheck(own.baseline, at(5, 8), "p1").reload).toBe(false);
+    expect(reloadCheck(first.baseline, at(9, 7), "p1").reload).toBe(true);
   });
 });

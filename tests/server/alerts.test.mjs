@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HISTORY_MAX, NOTIFICATION_KEY, act, activeAlerts, createAlerts, emptyAlertsState, evaluate, isQuiet, keysOf, prefixOf, takeEvents } from "../../server/alerts.mjs";
+import { HISTORY_MAX, NOTIFICATION_KEY, act, activeAlerts, createAlerts, emptyAlertsState, evaluate, isQuiet, keysOf, prefixOf, quieten, takeEvents } from "../../server/alerts.mjs";
 import { createControl } from "../../server/control.mjs";
 
 const T0 = 1_000_000;
@@ -349,6 +349,51 @@ describe("quiet hours", () => {
     expect(r.state.history[0].quiet).toBe(true);
     const loud = run(cfg([sensor({ severity: "critical" })], { quietHours: quiet }), [[at(2, 0), temp(95)]]);
     expect(loud.state.active[0].alert.quiet).toBeUndefined();
+  });
+});
+
+describe("mute", () => {
+  it("makes new fires quiet whatever the severity, still in the history", () => {
+    const r = evaluate(emptyAlertsState(), cfg([sensor({ severity: "critical" })]), temp(95), T0, true);
+    expect(r.state.active[0].alert.quiet).toBe(true);
+    expect(r.state.history[0].quiet).toBe(true);
+    expect(fired(r.events)).toHaveLength(1);
+  });
+  it("quietens the active alerts and their history, tests excepted, and is a no-op when none change", () => {
+    const alerts = cfg([sensor()]);
+    const s = run(alerts, [[T0, temp(95)]]).state;
+    const withTest = act(s, { ruleId: "r1", action: "test" }, alerts, temp(95), T0).state;
+    const q = quieten(withTest);
+    expect(q.active.map((e) => e.alert.quiet)).toEqual([true, undefined]);
+    expect(q.history.filter((h) => h.quiet)).toHaveLength(1);
+    expect(quieten(q)).toBe(q);
+  });
+  it("never quietens a test alert fired while muted", () => {
+    const alerts = cfg([sensor()]);
+    const r = act(emptyAlertsState(), { ruleId: "r1", action: "test" }, alerts, temp(95), T0);
+    expect(r.state.active[0].alert.quiet).toBeUndefined();
+  });
+  it("mutes through the engine: the route action quietens active alerts and returns mutedUntil", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "alerts-mute-"));
+    let at = T0;
+    const control = createControl({ file: path.join(dir, "control.json"), readConfig: () => null, now: () => at, tickMs: 0 });
+    const config = { alerts: cfg([sensor()]) };
+    const engine = createAlerts({ file: path.join(dir, "alerts.json"), readConfig: () => config, control, now: () => at, connect: () => ({ close() {} }), tickMs: 0 });
+    try {
+      engine.feed({ sensors: temp(95) });
+      expect(engine.alerts()[0].quiet).toBeUndefined();
+      const done = engine.act({ action: "mute", minutes: 5 });
+      expect(done.mutedUntil).toBe(T0 + 300_000);
+      expect(done.alerts[0].quiet).toBe(true);
+      expect(control.get().alerts[0].quiet).toBe(true);
+      expect(engine.act({ action: "mute", minutes: 1441 }).error).toBeTruthy();
+      expect(engine.act({ action: "mute", minutes: 0 }).mutedUntil).toBeNull();
+      expect(engine.alerts()[0].quiet).toBe(true); // unmuting doesn't un-quiet
+    } finally {
+      engine.stop();
+      control.stop();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

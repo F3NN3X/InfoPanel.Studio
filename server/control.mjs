@@ -15,9 +15,20 @@ import fs from "node:fs";
 export const ROTATE_PAUSE_MS = 30_000;
 const TICK_MS = 1000;
 
-/** The empty state. `shown` (the profile a kiosk last reported), `nextAt` and `alerts` (the active list
- * server/alerts.mjs publishes) are runtime only. */
-export const emptyState = () => ({ profile: null, shown: null, pages: {}, override: {}, nextAt: {}, alerts: [] });
+/** Dim level when none is asked for, and its bounds. */
+export const DIM_DEFAULT = 0.6;
+export const DIM_MIN = 0.1;
+export const DIM_MAX = 0.9;
+export const MUTE_MAX_MINUTES = 1440;
+
+/** The empty state. `mutedUntil`, `dim` (the level while on), `dimLevel` (the last one used) and `islandOverride`
+ * are durable. `shown` (the profile a kiosk last reported), `nextAt`, `alerts` (the active list server/alerts.mjs
+ * publishes) and the reload counters (`reload`, `reloads`; createControl starts them at the server start time)
+ * are runtime only. */
+export const emptyState = () => ({
+  profile: null, shown: null, pages: {}, override: {}, nextAt: {}, alerts: [],
+  mutedUntil: null, dim: {}, dimLevel: {}, islandOverride: {}, reload: 0, reloads: {},
+});
 
 const profilesOf = (config) => (Array.isArray(config?.profiles) ? config.profiles : []);
 const findProfile = (config, id) => profilesOf(config).find((p) => p && p.id === id);
@@ -54,6 +65,15 @@ function rotationPages(profile) {
   return listed.length > 0 ? listed : all;
 }
 
+/** Whether the island shows on a profile: the runtime override, else its saved `island.enabled`. */
+export function isIslandShown(state, config, profileId) {
+  const o = state.islandOverride[profileId];
+  return o ? o === "on" : findProfile(config, profileId)?.island?.enabled === true;
+}
+
+/** A profile's reload counter: its own, else the global one. */
+const reloadOf = (state, profileId) => state.reloads[profileId] ?? state.reload;
+
 const rotateMs = (profile) => {
   const s = Number(profile?.rotate?.seconds);
   return (Number.isFinite(s) ? Math.max(3, Math.min(3600, s)) : 15) * 1000;
@@ -78,11 +98,14 @@ const held = (state, config, profileId, now) =>
     ? { ...state, nextAt: withKey(state.nextAt, profileId, now + Math.max(ROTATE_PAUSE_MS, rotateMs(findProfile(config, profileId)))) }
     : state;
 
+const toggled = (want, was) => (want === "toggle" ? (was ? "off" : "on") : want);
+
 /**
  * The next state for an action, or the same state object when nothing changes. Actions:
  * `{ type: "page", profile?, page: id | "next" | "prev" }`, `{ type: "profile", profile: id | null }`,
  * `{ type: "rotate", profile?, state: "on" | "off" | "toggle" | "saved" }`, `{ type: "touch", profile? }`,
- * `{ type: "shown", profile }`, `{ type: "tick" }`, `{ type: "config", previous }`.
+ * `{ type: "shown", profile }`, `{ type: "tick" }`, `{ type: "config", previous }`, `{ type: "mute", minutes }` (0 unmutes),
+ * `{ type: "kiosk", action: "reload" | "dim" | "island", profile?, state?, level? }`.
  * Returns `{ error }` for a bad request.
  */
 export function reduce(state, action, config, now) {
@@ -123,8 +146,48 @@ export function reduce(state, action, config, now) {
       if (!findProfile(config, action.profile) || state.shown === action.profile) return state;
       return { ...state, shown: action.profile };
     }
+    case "mute": {
+      const m = action.minutes;
+      if (!Number.isInteger(m) || m < 0 || m > MUTE_MAX_MINUTES) return { error: "bad mute minutes" };
+      const until = m === 0 ? null : now + m * 60_000;
+      return state.mutedUntil === until ? state : { ...state, mutedUntil: until };
+    }
+    case "kiosk": {
+      const named = action.profile !== undefined && action.profile !== null;
+      if (named && !findProfile(config, action.profile)) return { error: "unknown profile" };
+      if (action.action === "reload") {
+        // One above every counter, so a bump always grows what a kiosk compares.
+        const top = Math.max(state.reload, ...Object.values(state.reloads)) + 1;
+        return named ? { ...state, reloads: { ...state.reloads, [action.profile]: top } } : { ...state, reload: top };
+      }
+      const id = named ? action.profile : targetProfile(state, config);
+      if (!id) return { error: "no profile" };
+      const want = action.state ?? "toggle";
+      if (action.action === "dim") {
+        if (want !== "on" && want !== "off" && want !== "toggle") return { error: "bad dim state" };
+        const given = action.level;
+        if (given !== undefined && !(typeof given === "number" && given >= DIM_MIN && given <= DIM_MAX)) {
+          return { error: "bad dim level" };
+        }
+        if (toggled(want, state.dim[id] !== undefined) === "off") {
+          return state.dim[id] === undefined ? state : { ...state, dim: withKey(state.dim, id, undefined) };
+        }
+        const level = given ?? state.dimLevel[id] ?? DIM_DEFAULT;
+        return state.dim[id] === level && state.dimLevel[id] === level
+          ? state
+          : { ...state, dim: { ...state.dim, [id]: level }, dimLevel: { ...state.dimLevel, [id]: level } };
+      }
+      if (action.action === "island") {
+        if (!["on", "off", "toggle", "saved"].includes(want)) return { error: "bad island state" };
+        const override = want === "saved" ? undefined : toggled(want, isIslandShown(state, config, id));
+        return state.islandOverride[id] === override
+          ? state
+          : { ...state, islandOverride: withKey(state.islandOverride, id, override) };
+      }
+      return { error: "unknown kiosk action" };
+    }
     case "tick": {
-      let next = state;
+      let next = state.mutedUntil !== null && now >= state.mutedUntil ? { ...state, mutedUntil: null } : state;
       for (const profile of profilesOf(config)) {
         const id = profile?.id;
         if (!id) continue;
@@ -156,6 +219,14 @@ export function reduce(state, action, config, now) {
           next = { ...next, override: withKey(next.override, id, undefined) };
         }
       }
+      // Likewise a saved change to a profile's island replaces its runtime island override.
+      for (const id of Object.keys(state.islandOverride)) {
+        const before = JSON.stringify(findProfile(action.previous, id)?.island ?? null);
+        const after = JSON.stringify(findProfile(config, id)?.island ?? null);
+        if (before !== after || !findProfile(config, id)) {
+          next = { ...next, islandOverride: withKey(next.islandOverride, id, undefined) };
+        }
+      }
       return next;
     }
     default:
@@ -163,7 +234,8 @@ export function reduce(state, action, config, now) {
   }
 }
 
-/** What clients see: per profile its page and whether it rotates, the override and shown profile, and the active alerts. */
+/** What clients see: per profile its page, rotation, dim level, island and reload counter, plus the override, the
+ * shown profile, the active alerts, the alert mute and the global reload counter. */
 export function publicState(state, config) {
   const profiles = {};
   for (const p of profilesOf(config)) {
@@ -172,15 +244,25 @@ export function publicState(state, config) {
       page: currentPage(state, config, p.id),
       rotating: isRotating(state, config, p.id),
       override: state.override[p.id] ?? null,
+      dim: state.dim[p.id] ?? 0,
+      island: isIslandShown(state, config, p.id),
+      islandOverride: state.islandOverride[p.id] ?? null,
+      reload: reloadOf(state, p.id),
     };
   }
-  return { profile: state.profile, shown: state.shown, profiles, alerts: state.alerts };
+  return {
+    profile: state.profile, shown: state.shown, profiles, alerts: state.alerts,
+    mutedUntil: state.mutedUntil, reload: state.reload,
+  };
 }
 
 /** The durable part, as saved to control.json. */
-const durable = (state) => ({ profile: state.profile, pages: state.pages, override: state.override });
+const durable = (state) => ({
+  profile: state.profile, pages: state.pages, override: state.override,
+  mutedUntil: state.mutedUntil, dim: state.dim, dimLevel: state.dimLevel, islandOverride: state.islandOverride,
+});
 
-function load(file) {
+function load(file, now) {
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));
     const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
@@ -189,6 +271,10 @@ function load(file) {
       profile: typeof raw.profile === "string" ? raw.profile : null,
       pages: obj(raw.pages),
       override: obj(raw.override),
+      mutedUntil: typeof raw.mutedUntil === "number" && raw.mutedUntil > now ? raw.mutedUntil : null,
+      dim: obj(raw.dim),
+      dimLevel: obj(raw.dimLevel),
+      islandOverride: obj(raw.islandOverride),
     };
   } catch {
     return emptyState();
@@ -200,7 +286,7 @@ function load(file) {
  * applies an action and returns `{ state }` or `{ error }`; listeners get the public state on change.
  */
 export function createControl({ file, readConfig, now = () => Date.now(), tickMs = TICK_MS }) {
-  let state = load(file);
+  let state = { ...load(file, now()), reload: now() };
   let config = readConfig();
   const listeners = new Set();
 

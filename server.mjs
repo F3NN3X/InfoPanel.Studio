@@ -146,7 +146,7 @@ function readConfigFile() {
 
 const control = createControl({ file: CONTROL_FILE, readConfig: readConfigFile });
 const MAX_CONTROL_BYTES = 4096;
-const CONTROL_ACTIONS = new Set(["page", "profile", "rotate", "touch", "alert"]);
+const CONTROL_ACTIONS = new Set(["page", "profile", "rotate", "touch", "alert", "kiosk"]);
 const alerts = createAlerts({ file: ALERTS_FILE, readConfig: readConfigFile, control });
 // The coding agents' token use, read from their own session files under the user's home.
 // Each scan publishes at once; started after `extras` exists, as a scan with no files ends synchronously.
@@ -159,7 +159,9 @@ const MAX_AGENT_BYTES = 512 * 1024;
 
 /**
  * GET /api/control → the state; POST /api/control/<action> with a JSON body → the new state.
- * POST /api/control/alert takes { id, action: "ack" | "dismiss" } or { ruleId, action: "test" } → { alerts }.
+ * POST /api/control/alert takes { id, action: "ack" | "dismiss" }, { ruleId, action: "test" } or
+ * { action: "mute", minutes } (0 unmutes) → { alerts, mutedUntil }.
+ * POST /api/control/kiosk takes { action: "reload" | "dim" | "island", profile?, state?, level? } → the state.
  */
 async function handleControl(req, res, pathname) {
   if (pathname === "/api/control") {
@@ -181,7 +183,7 @@ async function handleControl(req, res, pathname) {
   if (type === "alert") {
     const done = alerts.act(body);
     if (done.error) return send(res, 400, done.error);
-    return send(res, 200, JSON.stringify({ alerts: done.alerts }), TYPES[".json"]);
+    return send(res, 200, JSON.stringify({ alerts: done.alerts, mutedUntil: done.mutedUntil }), TYPES[".json"]);
   }
   const result = control.dispatch({ ...body, type });
   if (result.error) return send(res, 400, result.error);
