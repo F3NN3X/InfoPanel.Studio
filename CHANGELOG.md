@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.6] - 2026-10-21
+
 ### Added
 - Max FPS and Motion under General › Performance, with a per-profile override under Profile › Performance and kiosk
   URL overrides `&fps=` (5, 15, 30, 60, 0 for unlimited), `&animations=0` and `&motion=reduce|full|system`. Max FPS
