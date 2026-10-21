@@ -12,7 +12,7 @@ The editor window: a rail of tools on the left, the canvas in the middle, and an
 
 | Button | Opens |
 |---|---|
-| **Profiles** | Switch, add, rename, resize, pin and delete profiles. |
+| **Profiles** | Pick the profile to edit and its page. Add, duplicate, import, export and delete profiles, and choose which profile opens. |
 | **Theme** | Edit the theme for all profiles, a profile or a page. See [Themes and appearance](themes). |
 | **Layers** | The zones of this profile in order. Hide, rename, reorder and select from here. |
 | **Widgets** | Every widget, layout starters, panel presets and your saved panels. |
@@ -29,7 +29,7 @@ Thin lines in the rail separate the groups. **Profiles**, **Layers**, **Widgets*
 
 ## The top bar
 
-- The profile name opens **Profiles**. The chevron beside it has **Pin this profile for editing** (or **Unpin**) and, under **Show on displays**, the profiles with **Auto (match window)** at the top. A pinned profile shows a pin icon, and **Displays:** names the profile the displays show when it is another one. See [Profiles and the grid](profiles#pin-a-profile-for-editing).
+- The profile name opens **Profiles**. The chevron beside it lists your profiles; pick one to edit it. Which profile your displays open is set in Profiles, under **When the app opens**. See [Profiles and the grid](profiles#which-profile-opens).
 - The summary shows size, grid, fit mode, zone count and page count.
 - **Undo** and **Redo**, **Kiosk view**, **Import**, **Export** and **Save**. In the desktop app, **Kiosk view** resizes the window to the profile's exact size; move the pointer to the top edge for a strip with **Back to studio**, **Minimize** and **Close**.
 - **More actions** (the three dots) holds Export config, Import config, Import InfoPanel profile, Export InfoPanel canvas, Copy profile JSON, Command palette, Keyboard shortcuts and Reset everything.
@@ -48,7 +48,7 @@ To move around, hold `Space` and drag, or drag with the middle mouse button, to 
 
 A profile can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Theme…, Duplicate, **Show on kiosk** and Delete. The last page can't be deleted.
 
-With two or more pages, the play and pause button rotates them on the kiosk. Set the timing in **Dashboard › Profile**: **Auto-rotate pages**, **Seconds per page** (3 to 3600, default 15) and the **Pages** checklist. A touch or remote switch pauses rotation for 30 seconds.
+With two or more pages, the play and pause button rotates them on the kiosk. Set the timing in **Dashboard › Profile**: **Auto-rotate pages**, **Seconds per page** (3 to 3600, default 15) and the **Pages** checklist. A touch or remote switch pauses rotation for 30 seconds. While rotation is on, the right end of the page strip shows how often it switches, such as **Cycling every 15 s**.
 
 ## Inspector
 

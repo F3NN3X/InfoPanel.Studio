@@ -6,6 +6,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- Profiles: a card's **⋯** menu has **Duplicate**, **Always open this one** and **Export profile**, which saves one
+  profile as a `.json` file. **Import** in the panel header adds a profile from such a file, or from Copy profile JSON.
+- **When the app opens** at the bottom of the Profiles panel: **Best fit for the window** or **Always the same profile**.
+  It replaces the Auto-pick toggle, and the setting it saves is unchanged. Tags on the cards show which profile opens:
+  **Opens now** and **On launch**.
+- The page strip shows **Cycling every N s** while page rotation is on.
+
+### Changed
+- Clicking a profile card now only picks the profile to edit. It no longer changes which profile your displays show or
+  turns auto-pick off. Pin for editing is gone, because a card click does what the pin did. The active card lists its
+  pages and **Add page**. The top bar's profile menu lists profiles to edit.
+- Left panels are at least 280 px wide.
+
 ## [1.3.0-beta.6] - 2026-10-21
 
 ### Added

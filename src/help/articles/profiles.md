@@ -12,11 +12,20 @@ A profile is a page for one display size. Its grid decides where zones can go.
 
 Open **Profiles** on the left rail.
 
-- Each profile is a row with a small screenshot of its first page: its background, theme and widgets, scaled to fit. The profile menu in the top bar shows smaller ones. A video background shows its poster. The screenshot of the profile you are editing updates a couple of seconds after you stop editing and when you save; the others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
-- **New profile** (the **+** button) adds a profile named after its size, such as `1920×550`, using the size of the studio window.
-- A row's **Profile actions** menu has Rename…, Size, grid and spacing…, Copy profile JSON and Delete profile.
-- A row's **Pin** button pins that profile for editing (see below). A check mark shows the profile displays show.
-- **Auto-pick by window size** lets the studio and the kiosk choose the profile closest to the window.
+- Each profile is a card with a small screenshot of its first page, its name, its size and its page count. A video background shows its poster. The screenshot of the profile you are editing updates a couple of seconds after you stop editing and when you save. The others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
+- Click a card to edit that profile. The card opens to list its pages: click one to show it, or use **Add page**. Clicking a card doesn't change which profile your displays show.
+- A tag on a card shows which profile opens on launch: **Opens now** is the best fit for this window, and **On launch** is the one you chose to always open. See [Which profile opens](profiles#which-profile-opens).
+- **New** adds a profile named after the size of the studio window, such as `1920×550`.
+- **Import** adds a profile from a `.json` file saved with **Export profile**, or from text copied with **Copy profile JSON**. It gets a name of its own if one is already taken.
+- A card's **⋯** menu has:
+  - **Rename**;
+  - **Duplicate**, which adds "‹name› copy" below it;
+  - **Always open this one**;
+  - **Export profile**, which saves the profile as a `.json` file;
+  - **Copy profile JSON**;
+  - **Delete**, which asks first and is off for your last profile.
+
+  Ctrl+Z brings a deleted profile back.
 
 A fresh install has one blank profile, **Main display**, at 1920 × 1080 with a 12 × 6 grid in Scroll mode. On the empty canvas, **Use sample layout** builds a 1920 × 550 sample you can take apart.
 
@@ -37,20 +46,16 @@ With nothing selected, open **Dashboard › Profile**.
 
 A profile holds one or more pages that share its grid. See [The studio](studio#pages) for the page tabs and rotation.
 
-## Pin a profile for editing
+## Which profile opens
 
-Normally the studio edits the profile the displays show. To edit one profile while the displays keep showing another, pin it: press a row's **Pin** button, or choose **Pin this profile for editing** in the top bar's profile menu.
+**When the app opens**, at the bottom of the Profiles panel, decides which profile a display shows:
 
-- While pinned, the top bar shows a pin icon, and **Displays:** names the profile the displays show.
-- Choosing a profile or Auto under **Show on displays** then changes only what the displays show. The studio keeps editing the pinned profile.
-- **New profile** and importing an InfoPanel profile pin the new profile and leave the displays alone.
-- **Unpin** (or deleting the pinned profile) goes back to editing what the displays show.
+- **Best fit for the window** picks the profile whose size is closest to the window. Keep one profile per physical display and each one opens the right profile. The line under it names the profile this studio window would open, and it updates as you resize the window.
+- **Always the same profile** opens one profile whatever the window size. Choosing it uses the profile you're editing. To pick another, use **Always open this one** in that card's **⋯** menu.
 
-The pin belongs to this studio only. It is not saved in the config or sent to the server.
+A display can still show another profile when its kiosk URL has `?profile=`, or when the profile is switched remotely.
 
-## Which profile the kiosk shows
-
-With **Auto-pick by window size**, the kiosk picks the profile whose size is closest to its window. Keep one profile per physical display and Auto picks the right one.
+Which profile you're editing belongs to this studio only. It isn't saved in the config, and it doesn't change what your displays show. **New**, **Duplicate**, **Import** and importing an InfoPanel profile all switch the studio to the new profile.
 
 :::tip
 Changing the grid keeps zones where they are in cells. If you halve the columns, widen zones afterwards or they will look narrow.
