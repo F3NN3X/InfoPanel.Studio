@@ -506,7 +506,7 @@ function serveStatic(req, res, pathname) {
     "Content-Type": TYPES[path.extname(file).toLowerCase()] ?? "application/octet-stream",
     // index.html must track the latest build (hashed asset names change).
     "Cache-Control": isHtml ? "no-store" : "no-cache",
-    ...securityHeaders(isHtml),
+    ...securityHeaders(isHtml, new URL(req.url, "http://x").search),
   });
   if (req.method === "HEAD") return res.end();
   const stream = fs.createReadStream(file);

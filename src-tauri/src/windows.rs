@@ -129,7 +129,7 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         // Minimizing and restoring arrive as resizes; a minimized studio suspends like a hidden one.
         if let tauri::WindowEvent::Resized(_) = event {
             if let Some(w) = handle.get_webview_window(MAIN) {
-                crate::webview2::follow(&w);
+                follow_window(&handle, w);
             }
         }
         if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -152,6 +152,22 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         }
     });
     Ok(window)
+}
+
+/// Follows the studio window's state after a resize, which is also what minimizing and restoring are.
+/// A minimized window flushes before it suspends; that waits, so it runs off the event thread.
+fn follow_window(app: &AppHandle, window: tauri::WebviewWindow) {
+    let minimized = window.is_minimized().unwrap_or(false);
+    let visible = window.is_visible().unwrap_or(true);
+    if !crate::webview2::wants_suspend(minimized, visible) {
+        crate::webview2::resume(&window);
+    } else if !crate::webview2::is_suspended() {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            flush_studio(&app);
+            crate::webview2::suspend(&window);
+        });
+    }
 }
 
 /// Shows (creating if needed) and focuses the studio window.
@@ -407,13 +423,21 @@ pub fn flush_studio(app: &AppHandle) {
     if !on_studio {
         return;
     }
+    // A suspended page cannot answer: wake it for the flush, then put it back.
+    let was_suspended = crate::webview2::is_suspended();
+    if was_suspended {
+        crate::webview2::resume(&window);
+    }
     st.flush.arm();
     if window.emit_to(MAIN, FLUSH_EVENT, ()).is_err() {
         st.flush.release();
-        return;
+    } else {
+        let answered = st.flush.wait(FLUSH_TIMEOUT);
+        log::debug!("flush: answered={answered}");
     }
-    let answered = st.flush.wait(FLUSH_TIMEOUT);
-    log::debug!("flush: answered={answered}");
+    if was_suspended {
+        crate::webview2::suspend(&window);
+    }
 }
 
 fn close_main(app: &AppHandle) {

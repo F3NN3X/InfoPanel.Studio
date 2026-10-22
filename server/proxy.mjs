@@ -33,13 +33,16 @@ export function isValidProxyTarget(url) {
 
 const isLoopbackHttp = (url) => url.protocol === "http:" && LOOPBACK_HOSTS.includes(url.hostname);
 
+// What the previous fetch sent; some image hosts refuse a request without a User-Agent.
+const PROXY_HEADERS = { "user-agent": "InfoPanel-Studio", accept: "image/*,*/*;q=0.8" };
+
 /** An https GET that connects only to public addresses; the response is shaped like fetch's (`body` is a stream). */
 export function guardedProxyFetch(url, { signal, lookup = dns.lookup } = {}) {
   const host = url.hostname.replace(/^\[|\]$/g, "");
   // Node skips the lookup for an IP literal, so it is checked here.
   if (net.isIP(host) && blockedPrivate(host)) return Promise.reject(new Error("address not allowed"));
   return new Promise((ok, fail) => {
-    const req = https.get(url, { signal, lookup: guardedLookup(lookup, blockedPrivate) }, (res) => {
+    const req = https.get(url, { signal, headers: PROXY_HEADERS, lookup: guardedLookup(lookup, blockedPrivate) }, (res) => {
       const status = res.statusCode ?? 0;
       ok({ ok: status >= 200 && status < 300, status, headers: { get: (k) => res.headers[k.toLowerCase()] ?? null }, body: res });
     });

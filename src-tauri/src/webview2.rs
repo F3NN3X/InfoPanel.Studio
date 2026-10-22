@@ -6,8 +6,16 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::WebviewWindow;
 
+// The state below changes only inside the main-thread closure of `apply` (and the completion handler,
+// which runs there too), so suspends and resumes serialize in the order they were asked for.
+
 /// The main webview is suspended (or on its way to it).
+#[cfg_attr(not(windows), allow(dead_code))]
 static SUSPENDED: AtomicBool = AtomicBool::new(false);
+
+/// Counts resumes, so a suspend that finishes late can tell the window was shown meanwhile.
+#[cfg(windows)]
+static RESUMES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Suspending did not work, so the memory target was lowered instead; resume puts it back.
 #[cfg(windows)]
@@ -19,36 +27,26 @@ pub fn wants_suspend(minimized: bool, visible: bool) -> bool {
     minimized || !visible
 }
 
+/// Whether the main webview is suspended (or on its way to it).
+pub fn is_suspended() -> bool {
+    SUSPENDED.load(Ordering::SeqCst)
+}
+
 /// Sets `flag` to `to`; true when that changed it.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn flip(flag: &AtomicBool, to: bool) -> bool {
     flag.swap(to, Ordering::SeqCst) != to
 }
 
-/// Suspends the webview of the (just hidden or minimized) window.
+/// Suspends the webview of the (just hidden or minimized) window, unless it is visible again by the
+/// time the main thread gets to it.
 pub fn suspend(window: &WebviewWindow) {
-    if flip(&SUSPENDED, true) {
-        log::debug!("suspending the {} webview", window.label());
-        apply(window, true);
-    }
+    apply(window, true);
 }
 
 /// Resumes the webview; call before the window is shown.
 pub fn resume(window: &WebviewWindow) {
-    if flip(&SUSPENDED, false) {
-        log::debug!("resuming the {} webview", window.label());
-        apply(window, false);
-    }
-}
-
-/// Follows the window's state after a resize, which is also what minimizing and restoring are.
-pub fn follow(window: &WebviewWindow) {
-    let minimized = window.is_minimized().unwrap_or(false);
-    let visible = window.is_visible().unwrap_or(true);
-    if wants_suspend(minimized, visible) {
-        suspend(window);
-    } else {
-        resume(window);
-    }
+    apply(window, false);
 }
 
 #[cfg(not(windows))]
@@ -67,7 +65,7 @@ pub use windows_impl::open_task_manager;
 
 #[cfg(windows)]
 mod windows_impl {
-    use super::MEMORY_LOWERED;
+    use super::{flip, wants_suspend, MEMORY_LOWERED, RESUMES, SUSPENDED};
     use std::sync::atomic::Ordering;
     use tauri::WebviewWindow;
     use webview2_com::Microsoft::Web::WebView2::Win32::{
@@ -92,9 +90,12 @@ mod windows_impl {
             controller.SetIsVisible(false)?;
             let webview = controller.CoreWebView2()?;
             let fallback = webview.clone();
+            let resumes = RESUMES.load(Ordering::SeqCst);
             let done = TrySuspendCompletedHandler::create(Box::new(move |result, suspended| {
                 log::debug!("webview suspend: {result:?}, suspended={}", suspended);
-                if result.is_err() || !suspended {
+                // A resume since then cancelled this suspend: the window is shown, leave its memory target be.
+                let current = SUSPENDED.load(Ordering::SeqCst) && RESUMES.load(Ordering::SeqCst) == resumes;
+                if current && (result.is_err() || !suspended) {
                     match set_memory_level(&fallback, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW) {
                         Ok(()) => MEMORY_LOWERED.store(true, Ordering::SeqCst),
                         Err(e) => log::warn!("could not lower the webview's memory use: {e}"),
@@ -111,26 +112,43 @@ mod windows_impl {
         Ok(())
     }
 
+    /// Shows the webview again whatever the earlier steps did: a hidden controller is a black window.
     fn resume(controller: &ICoreWebView2Controller) -> windows_core::Result<()> {
+        RESUMES.fetch_add(1, Ordering::SeqCst);
         unsafe {
-            let webview = controller.CoreWebView2()?;
-            // Not suspended (the fallback ran, or suspending never took): nothing to resume.
-            if let Ok(w) = webview.cast::<ICoreWebView2_3>() {
-                if let Err(e) = w.Resume() {
-                    log::debug!("webview resume: {e}");
+            match controller.CoreWebView2() {
+                Ok(webview) => {
+                    // Not suspended (the fallback ran, or suspending never took): nothing to resume.
+                    if let Ok(w) = webview.cast::<ICoreWebView2_3>() {
+                        if let Err(e) = w.Resume() {
+                            log::debug!("webview resume: {e}");
+                        }
+                    }
+                    if MEMORY_LOWERED.swap(false, Ordering::SeqCst) {
+                        if let Err(e) = set_memory_level(&webview, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL) {
+                            log::warn!("could not restore the webview's memory use: {e}");
+                        }
+                    }
                 }
-            }
-            if MEMORY_LOWERED.swap(false, Ordering::SeqCst) {
-                set_memory_level(&webview, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL)?;
+                Err(e) => log::warn!("webview resume: {e}"),
             }
             controller.SetIsVisible(true)
         }
     }
 
-    /// Runs on the UI thread, where WebView2 wants its calls.
+    /// Runs on the UI thread, where WebView2 wants its calls, and where the state is read and changed.
     pub fn apply(window: &WebviewWindow, suspending: bool) {
         let label = window.label().to_owned();
+        let target = window.clone();
         let sent = window.with_webview(move |webview| {
+            // Shown again since the suspend was asked for: leave it running.
+            if suspending && !wants_suspend(target.is_minimized().unwrap_or(false), target.is_visible().unwrap_or(true)) {
+                return;
+            }
+            if !flip(&SUSPENDED, suspending) {
+                return;
+            }
+            log::debug!("{} the {label} webview", if suspending { "suspending" } else { "resuming" });
             let controller = webview.controller();
             let result = if suspending { suspend(&controller) } else { resume(&controller) };
             if let Err(e) = result {

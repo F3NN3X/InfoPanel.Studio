@@ -76,7 +76,8 @@ describe("server.mjs", () => {
     const csp = html.headers.get("content-security-policy");
     expect(csp).toContain("script-src 'self'");
     expect(csp).not.toMatch(/script-src[^;]*unsafe/);
-    expect(csp).toContain("frame-ancestors 'self'");
+    expect(csp).not.toContain("frame-ancestors");
+    expect((await fetch(`${plain.base}/?studio=1`)).headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
     expect(csp).toContain("ipc:");
     expect(html.headers.get("x-content-type-options")).toBe("nosniff");
     expect(html.headers.get("referrer-policy")).toBeTruthy();

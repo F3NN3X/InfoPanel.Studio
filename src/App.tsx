@@ -276,7 +276,7 @@ export default function App() {
   // The newest config, to tell whether a finished push is still the latest state.
   // A newer dashboard version saved the server copy: stop pushing until a reload.
   const [refused, setRefused] = useState(false);
-  // The server takes edits from its own computer only (Settings › Server): pushes stop and a notice shows.
+  // The server takes edits from its own computer only (Settings › Server): a notice shows until a push lands.
   const [readOnly, setReadOnly] = useState(false);
   const latestConfig = useRef(config);
   latestConfig.current = config;
@@ -291,7 +291,7 @@ export default function App() {
     if (!kiosk && !synced && config !== firstConfig.current) setPushPending(true);
   }, [config, kiosk, synced]);
   useEffect(() => {
-    if (kiosk || !synced || refused || readOnly) return; // kiosk pages only read; don't push from them
+    if (kiosk || !synced || refused) return; // kiosk pages only read; don't push from them
     // A Settings change needs no push, unless an edit of the studio's own still waits for one (it then carries both).
     if (config === adopted.current && !pendingRef.current) return;
     let superseded = false;
@@ -300,6 +300,7 @@ export default function App() {
       pushConfig(config)
         .then(() => {
           setOffline(false);
+          setReadOnly(false);
           if (!superseded) setPushPending(false);
         })
         .catch((err) => {
@@ -313,7 +314,7 @@ export default function App() {
       superseded = true;
       window.clearTimeout(t);
     };
-  }, [config, kiosk, synced, refused, readOnly]);
+  }, [config, kiosk, synced, refused]);
 
   // The Settings window's changes (PLAN decision 22): the server took them, so the studio applies the same patch to
   // its working copy, unsaved edits and all, and its next push carries them; Reset everything… replaced the saved
@@ -453,6 +454,7 @@ export default function App() {
     return pushConfig(cfg)
       .then(() => {
         setOffline(false);
+        setReadOnly(false);
         // An edit made since the click is still unpushed (its debounced push clears the dot).
         if (latestConfig.current === cfg) setPushPending(false);
         return true;

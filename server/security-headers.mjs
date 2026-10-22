@@ -6,29 +6,38 @@
 // user-entered URLs, Google Fonts, the Web Page widget's frames, and the shell's IPC (`ipc:` and
 // `http://ipc.localhost`, which `http:` covers).
 
+// Framing: the Studio and Settings pages (`?studio`, `?settings`) may be framed by their own origin only.
+// Kiosk pages stay embeddable (a Home Assistant iframe, a Web Page widget pointing at another Studio).
+const FRAME_SELF = "frame-ancestors 'self'";
+
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'self'",
-  "frame-ancestors 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: blob: https:",
   "img-src 'self' data: blob: http: https:",
   "media-src 'self' blob: http: https:",
   "connect-src 'self' http: https: ws: wss: ipc:",
   "frame-src 'self' blob: http: https:",
-].join("; ");
+];
+
+/** Whether the page asked for is the Studio or Settings (`?studio`, `?settings`), which no other site may frame. */
+export function isEditorPage(search) {
+  const params = new URLSearchParams(search);
+  return params.has("studio") || params.has("settings");
+}
 
 /**
  * The security headers for a static response; the policy goes on HTML only. A page keeps its origin as the
  * referrer: YouTube refuses to play in a Web Page widget's frame without one.
  */
-export function securityHeaders(isHtml) {
+export function securityHeaders(isHtml, search = "") {
   return {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": isHtml ? "strict-origin-when-cross-origin" : "no-referrer",
-    ...(isHtml && { "Content-Security-Policy": CSP }),
+    ...(isHtml && { "Content-Security-Policy": (isEditorPage(search) ? [...CSP, FRAME_SELF] : CSP).join("; ") }),
   };
 }
