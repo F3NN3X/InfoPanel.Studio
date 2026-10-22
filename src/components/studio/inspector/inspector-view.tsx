@@ -3,7 +3,9 @@ import { CircleHelp } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
 import { useSensorCatalog } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
-import { isMore, type ModuleSetting } from "@/modules/types";
+import type { ModuleSetting } from "@/modules/types";
+import { FollowsTheme } from "./follows-theme";
+import { Toggle } from "@/components/ui/toggle";
 import { INSPECTOR_SCROLL, useInspectorChrome } from "../inspector-layout";
 import {
   allSections,
@@ -11,12 +13,14 @@ import {
   extraMatches,
   inspectorTabs,
   jumpTarget,
+  needsAdvanced,
   resetKeysOfSection,
   searchAll,
-  splitMore,
   tabStates,
+  visibleSection,
   visibleSections,
   TAB_LABELS,
+  type FollowMode,
   type InspectorContext,
   type InspectorSection,
   type TabId,
@@ -25,8 +29,7 @@ import { SectionPad } from "../panel-section";
 import { SETTING_CARD, SettingSection } from "../setting-card";
 import { SettingField, type FieldsApi } from "../settings-panel";
 import { SettingsSearch } from "../zone-inspector-parts";
-import { pickTab, useAccordionPref, useInspectorTab } from "./inspector-prefs";
-import { MoreRows, moreKey, setMoreOpen } from "./more-rows";
+import { pickTab, showAdvanced, useAccordionPref, useAdvancedPref, useInspectorTab } from "./inspector-prefs";
 import { sectionIcon } from "./section-icons";
 import { SheetView, type SheetIdentity } from "./sheet-view";
 import { DotLegend } from "./source-dot";
@@ -41,6 +44,10 @@ export interface SectionInherit {
   actions: ReactNode;
   /** ⌫ pressed inside the section (not in a field) resets it. */
   onKeyDown?: (e: KeyboardEvent<HTMLElement>) => void;
+  /** Whether the section follows the theme, is custom or locked (Advanced off collapses the first and last). */
+  mode: FollowMode;
+  /** Take the section over from the theme ("Customise"). */
+  onCustomise: () => void;
 }
 
 /** What a context adds to one of its sections around the schema's rows. */
@@ -71,8 +78,6 @@ interface InspectorViewProps {
   context: InspectorContext;
   /** The remembered-tab key ("widget", "panel", "dashboard"). */
   contextKey: string;
-  /** Whose sections' More rows stay open together for the session (the zone type); default `contextKey`. */
-  moreScope?: string;
   /** The header (icon, name, actions, placement row); a function gets the count of own values. */
   header: ReactNode | ((changed: number) => ReactNode);
   fields: FieldsApi;
@@ -196,13 +201,12 @@ const handOpened = new Map<string, Record<string, boolean>>();
  * The registry-driven inspector shared by every context, one column: the
  * header and the search, the tabs (hidden while searching), a line saying what
  * the search found, then accordion sections of field rows with the context's
- * custom UI, each closing with its "More (n)" rows. A search runs across every
- * tab and lists More rows inline.
+ * custom UI; the Advanced switch decides which rows and cards show (`visibleSection`). A search
+ * runs across every tab and lists every matching row.
  */
 export function InspectorView({
   context,
   contextKey,
-  moreScope = contextKey,
   header,
   fields,
   visible = always,
@@ -222,6 +226,7 @@ export function InspectorView({
   const { sources } = useSensorCatalog();
   const { sheet } = useInspectorChrome();
   const [accordion] = useAccordionPref();
+  const [advanced, setAdvanced] = useAdvancedPref();
   const [storedTab, setTab] = useInspectorTab(contextKey);
   const root = useRef<HTMLDivElement>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -246,6 +251,9 @@ export function InspectorView({
     new Set(tabs.filter((t) => t.disabled).map((t) => t.id))
   );
   const full = new Map(all.map((s) => [s.id, s] as const));
+  /** How Advanced shapes a section outside search (its chip's mode decides a collapse). */
+  const shapeOf = (s: InspectorSection) => visibleSection(s, { advanced, mode: inherit?.(full.get(s.id) ?? s)?.mode });
+  const shown = all.filter((s) => !shapeOf(s).hidden);
 
   const changedOf = (s: InspectorSection) => changedCount(s, fields.values) + (parts(s).changed ?? 0);
   const counts: Partial<Record<TabId, number>> = {};
@@ -260,8 +268,8 @@ export function InspectorView({
         visible
       ).filter(present)
     : tabs.length === 0
-      ? all
-      : all.filter((s) => s.tab === tab);
+      ? shown
+      : shown.filter((s) => s.tab === tab);
   const sections = matched;
   const tabLabel = (s: InspectorSection) =>
     tabs.length === 0 ? "" : (result?.groups.find((g) => g.section.id === s.id)?.tabLabel ?? TAB_LABELS[s.tab]);
@@ -289,7 +297,7 @@ export function InspectorView({
     lastJump.current = jumpTo.seq;
     const target = jumpTarget(all, jumpTo.id);
     if (!target) return;
-    if (target.settings.some((d) => d.key === jumpTo.key && isMore(d))) setMoreOpen(moreKey(moreScope, target.id), true);
+    if (needsAdvanced(target, jumpTo.key, inherit?.(full.get(target.id) ?? target)?.mode)) showAdvanced();
     if (tabs.length > 0) setTab(target.tab);
     setOpenMap((m) => (accordion === "one" ? { [target.id]: true } : { ...m, [target.id]: true }));
     // The tab renders first, then the section scrolls into view.
@@ -321,8 +329,10 @@ export function InspectorView({
   const renderSection = (s: InspectorSection) => {
     const p = parts(s);
     const whole = full.get(s.id) ?? s;
-    // Filtering lists More rows inline; otherwise they follow the section's "More (n)".
-    const split = splitMore(s);
+    // Filtering lists every matching row; otherwise Advanced decides (`visibleSection`).
+    const shape = filtering ? undefined : shapeOf(s);
+    const rows = shape ? shape.rows : s.settings;
+    const collapsed = shape?.collapsed;
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
     const inh = inherit?.(whole);
     if (p.plain)
@@ -351,19 +361,18 @@ export function InspectorView({
         flash={flash === s.id}
       >
         {inh?.note && pad(inh.note)}
-        {pad(p.top)}
-        {(filtering ? s.settings : split.rows).map(field)}
-        {pad(p.body)}
-        {pad(p.bottom)}
-        {filtering ? (
-          pad(p.more)
+        {collapsed === "theme" && inh ? (
+          <FollowsTheme onCustomise={inh.onCustomise} />
         ) : (
-          <MoreRows storeKey={moreKey(moreScope, s.id)} count={split.count}>
-            {split.more.map(field)}
-            {pad(p.more)}
-          </MoreRows>
+          <>
+            {pad(p.top)}
+            {rows.map(field)}
+            {pad(p.body)}
+            {pad(p.bottom)}
+            {(filtering || advanced) && pad(p.more)}
+          </>
         )}
-        {inh && pad(inh.actions)}
+        {inh && collapsed !== "theme" && pad(inh.actions)}
       </SettingSection>
     );
   };
@@ -374,8 +383,8 @@ export function InspectorView({
       <SheetView
         sheet={sheet}
         identity={identity}
-        sections={all}
-        moreScope={moreScope}
+        sections={shown}
+        advanced={advanced}
         parts={parts}
         inherit={inherit ? (section) => inherit(full.get(section.id) ?? section) : undefined}
         changedOf={changedOf}
@@ -398,6 +407,13 @@ export function InspectorView({
           <div className="min-w-0 flex-1">
             <SettingsSearch query={query} onQuery={onQuery} />
           </div>
+          <label
+            title="Show every setting, including ones the theme controls"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] text-ui-2"
+          >
+            Advanced
+            <Toggle checked={advanced} onChange={setAdvanced} label="Advanced" />
+          </label>
         </div>
       )}
       {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} />}

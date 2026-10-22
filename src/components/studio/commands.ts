@@ -18,6 +18,7 @@ export type CommandAction =
   | { type: "help" }
   | { type: "toggle-grid" }
   | { type: "toggle-dock" }
+  | { type: "toggle-advanced" }
   | { type: "zoom-fit" }
   | { type: "zoom-in" }
   | { type: "zoom-out" }
@@ -170,7 +171,8 @@ function generalCommands(s: CommandState): Command[] {
     ),
     general("grid", s.showGrid ? "Hide grid" : "Show grid", { type: "toggle-grid" }),
     general("toggle-dock", "Toggle inspector", { type: "toggle-dock" }, KEYS.dock),
-    general("zoom-fit", "Zoom to fit", { type: "zoom-fit" }, KEYS.fit),
+    general("toggle-advanced", "Toggle advanced settings", { type: "toggle-advanced" }),
+    general("zoom-fit","Zoom to fit", { type: "zoom-fit" }, KEYS.fit),
     general("zoom-in", "Zoom in", { type: "zoom-in" }, KEYS.zoomIn),
     general("zoom-out", "Zoom out", { type: "zoom-out" }, KEYS.zoomOut),
     ...(s.placements.length > 0

@@ -3,12 +3,12 @@ import { Eye, EyeOff, SlidersHorizontal, Zap } from "lucide-react";
 import type { ApiSources } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import type { ModuleSetting } from "@/modules/types";
-import { splitMore, type InspectorSection } from "../inspector-model";
+import { visibleSection, type InspectorSection } from "../inspector-model";
 import { INSPECTOR_SCROLL, type SheetChrome } from "../inspector-layout";
 import { SettingField, type FieldsApi } from "../settings-panel";
 import { sectionIcon, sectionShort } from "./section-icons";
+import { FollowsTheme } from "./follows-theme";
 import type { SectionInherit, SectionParts } from "./inspector-view";
-import { MoreRows, moreKey } from "./more-rows";
 
 /** What the sheet's compact header shows (peek and half). */
 export interface SheetIdentity {
@@ -39,8 +39,8 @@ interface SheetViewProps {
   sources: ApiSources | null;
   /** The Quick tile's settings (the pinned set), in order. */
   quickKeys: readonly string[];
-  /** Whose More rows open together (the zone type, as in the full inspector). */
-  moreScope: string;
+  /** The Advanced switch (every row shows; off hides More rows and what follows the theme). */
+  advanced: boolean;
 }
 
 const BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ui-3 hover:bg-[#1e1e24] hover:text-ui-1";
@@ -91,7 +91,7 @@ function Tile({
  * section across every tab) and, at half, the chosen tool's fields without
  * a section header. At full height the sheet shows the whole inspector.
  */
-export function SheetView({ sheet, identity, sections, parts, inherit, changedOf, changed, fields, sources, quickKeys, moreScope }: SheetViewProps) {
+export function SheetView({ sheet, identity, sections, parts, inherit, changedOf, changed, fields, sources, quickKeys, advanced }: SheetViewProps) {
   const toFull = () => sheet.setSnap("full");
   if (identity.peekNote && sheet.snap === "peek")
     return (
@@ -122,7 +122,7 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
     const inh = inherit?.(active);
     const pad = (node: ReactNode) => node && <div className="space-y-2 py-1 pl-4 pr-2.5">{node}</div>;
     if (p.plain) return <div className="px-4 py-3">{p.body}</div>;
-    const split = splitMore(active);
+    const shape = visibleSection(active, { advanced, mode: inh?.mode });
     const field = (def: ModuleSetting) => <SettingField key={def.key} def={def} fields={fields} sources={sources} />;
     return (
       <>
@@ -133,15 +133,18 @@ export function SheetView({ sheet, identity, sections, parts, inherit, changedOf
           </div>
         )}
         {inh?.note && pad(inh.note)}
-        {pad(p.top)}
-        {split.rows.map(field)}
-        {pad(p.body)}
-        {pad(p.bottom)}
-        <MoreRows storeKey={moreKey(moreScope, active.id)} count={split.count}>
-          {split.more.map(field)}
-          {pad(p.more)}
-        </MoreRows>
-        {inh && pad(inh.actions)}
+        {shape.collapsed === "theme" && inh ? (
+          <FollowsTheme onCustomise={inh.onCustomise} />
+        ) : (
+          <>
+            {pad(p.top)}
+            {shape.rows.map(field)}
+            {pad(p.body)}
+            {pad(p.bottom)}
+            {advanced && pad(p.more)}
+          </>
+        )}
+        {inh && shape.collapsed !== "theme" && pad(inh.actions)}
       </>
     );
   };

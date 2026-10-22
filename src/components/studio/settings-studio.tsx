@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAccordionPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
+import { useAccordionPref, useAdvancedPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
 import { useAddListDensity, useAddPreviewOnHover, useLeftPanelWidth, type AddListDensity, type LeftPanelWidth } from "./add-prefs";
 import { SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
 import { SettingsGroup } from "./settings-group";
@@ -44,6 +44,7 @@ function useZoomPref(): [ZoomPref, (pref: ZoomPref) => void] {
 export function SettingsStudio() {
   const [quickBar, setQuickBar] = useQuickBarPref();
   const [accordion, setAccordion] = useAccordionPref();
+  const [advanced, setAdvanced] = useAdvancedPref();
   const [{ fitting, manual: zoom }, setZoomPref] = useZoomPref();
   const [showGrid, setShowGrid] = useStoredFlag(GRID_KEY, true);
   const [showRulers, setShowRulers] = useStoredFlag(RULERS_KEY, true);
@@ -63,6 +64,7 @@ export function SettingsStudio() {
         value={accordion}
         onChange={(m) => setAccordion(m as AccordionMode)}
       />
+      <ToggleRow label="Advanced settings" hint="Show every inspector setting, including ones the theme controls" value={advanced} onChange={setAdvanced} />
       <SelectRow
         label="Default zoom"
         hint="How the canvas opens: fitted to the window, or at a zoom. The zoom you leave the canvas at is kept."

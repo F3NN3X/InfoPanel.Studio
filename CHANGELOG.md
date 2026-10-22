@@ -6,6 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+- **Advanced switch in widget settings.** The inspector now hides what most people never touch: sections that follow
+  the theme collapse to "Follows theme" with a Customise button, the "More" rows and the CSS & locks card stay
+  out of the way, and one Advanced switch (also under Settings > Studio) shows everything inline.
+
 ### Fixed
 - The FPS Monitor's and Frame Pacing's frame-time graphs read like an FPS graph: a drop or a stutter now dips
   instead of peaking, and Frame Pacing's refresh-rate lines sit where those frame rates fall.

@@ -12,6 +12,7 @@ import { buildCommands, type CommandAction } from "./commands";
 import { openExportSheet, openImportDoor } from "./file-doors";
 import { insertables } from "./insert-panel";
 import { widgetContext, type InspectorContext } from "./inspector-model";
+import { toggleAdvanced } from "./inspector/inspector-prefs";
 import { zoneDefs } from "./inspector/zone-fields";
 import { panelWidgetActions } from "./panel-widget-actions";
 import { ownStyle } from "./studio-actions";
@@ -141,6 +142,8 @@ export function useStudioCommands({
         return ui.setLiveOpen(true);
       case "help":
         return onHelp();
+      case "toggle-advanced":
+        return toggleAdvanced();
       case "toggle-grid":
         return ui.setShowGrid((s) => !s);
       case "zoom-fit":
