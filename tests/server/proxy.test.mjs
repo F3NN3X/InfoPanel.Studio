@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fetchProxied, isAllowedProxyType, isValidProxyTarget, resolveProxyType, sniffImageType } from "../../server/proxy.mjs";
+import { blockedAddress } from "../../server/calendar.mjs";
+import { fetchProxied, guardedProxyFetch, isAllowedProxyType, isValidProxyTarget, resolveProxyType, sniffImageType } from "../../server/proxy.mjs";
 
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0]);
@@ -87,5 +88,30 @@ describe("fetchProxied", () => {
     const { fetchImpl, seen } = fake({ "https://a.test/0": [302, "/1"], "https://a.test/1": [302, "/2"], "https://a.test/2": [302, "/3"], "https://a.test/3": [302, "/4"], "https://a.test/4": [200] });
     expect(await fetchProxied(new URL("https://a.test/0"), { fetchImpl })).toBeNull();
     expect(seen).toHaveLength(4);
+  });
+
+  it("refuses a hop from a public page to http on loopback", async () => {
+    const { fetchImpl, seen } = fake({ "https://a.test/x": [302, "http://127.0.0.1:9/admin"], "http://127.0.0.1:9/a": [302, "http://localhost:9/b"], "http://localhost:9/b": [200] });
+    expect(await fetchProxied(new URL("https://a.test/x"), { fetchImpl })).toBeNull();
+    expect(seen).toEqual(["https://a.test/x"]);
+    // Loopback to loopback is the local cover-art server's own redirect.
+    expect((await fetchProxied(new URL("http://127.0.0.1:9/a"), { fetchImpl })).status).toBe(200);
+  });
+});
+
+describe("guardedProxyFetch", () => {
+  const lookupTo = (address) => async () => [{ address, family: address.includes(":") ? 6 : 4 }];
+  it("refuses private, loopback and metadata addresses, as a literal or behind a name", async () => {
+    for (const host of ["10.0.0.5", "192.168.1.1", "172.16.0.1", "127.0.0.1", "169.254.169.254", "[::1]", "[fd00::1]", "[::ffff:10.0.0.1]"]) {
+      await expect(guardedProxyFetch(new URL(`https://${host}/x`))).rejects.toThrow("address not allowed");
+    }
+    for (const address of ["10.1.2.3", "192.168.0.9", "169.254.169.254", "fc00::1"]) {
+      await expect(guardedProxyFetch(new URL("https://rebind.test/x"), { lookup: lookupTo(address) })).rejects.toThrow("address not allowed");
+    }
+  });
+  it("lets public addresses through the block list", () => {
+    for (const ip of ["8.8.8.8", "172.32.0.1", "100.63.0.1", "2606:4700::1"]) expect(blockedAddress(ip, true)).toBe(false);
+    // The calendar keeps its LAN allowance.
+    expect(blockedAddress("192.168.1.1")).toBe(false);
   });
 });

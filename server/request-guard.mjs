@@ -102,6 +102,15 @@ export function controlWriteRefusal(headers) {
   return null;
 }
 
+/**
+ * The reason a config or integrations write is refused, or null: only this machine edits unless
+ * ALLOW_REMOTE_EDIT=1. Kiosk reads and /api/control stay open to the network.
+ */
+export function remoteEditRefusal(remoteAddress, env = process.env) {
+  if (env.ALLOW_REMOTE_EDIT === "1" || isLoopback(remoteAddress)) return null;
+  return { status: 403, message: "Editing from other devices is off. Turn it on in Settings > Server on the PC running InfoPanel Studio." };
+}
+
 /** Whether a socket address is this machine (IPv4, IPv6, or IPv4 inside IPv6). */
 export const isLoopback = (address) => /^(127\.|::1$|::ffff:127\.)/.test(String(address ?? ""));
 

@@ -76,6 +76,7 @@ in `server/assets.mjs`. Environment variables it reads:
 | `HOST` | `127.0.0.1` | Listen address |
 | `LOCALAPPDATA` | - | The config is `%LOCALAPPDATA%\InfoPanel\Dashboard\config.json`. If unset, `$HOME/.local/share/InfoPanel/Dashboard/config.json` |
 | `ALLOW_REMOTE_UPLOAD` | unset | `1` accepts media uploads and deletes from other machines; otherwise only from loopback (the server answers 403) |
+| `ALLOW_REMOTE_EDIT` | unset | `1` accepts config and integrations writes from other machines; otherwise only from loopback (403). Control and reads stay open |
 | `ALLOWED_HOSTS` | unset | Extra `Host` names to serve, comma separated (e.g. `kiosk.lan,panel.example`). Without it only `localhost`, `127.0.0.1`, `[::1]` and `HOST` are served (421 otherwise); with `HOST=0.0.0.0` any IP address and the machine name work too |
 | `ASSETS_MAX_BYTES` | `2147483648` | Cap on the total size of the uploaded media; an upload that would pass it gets 507 |
 | `DASHBOARD_DIST` | `dist` beside `server.mjs` | The built app to serve (the desktop app points it at its bundled copy) |

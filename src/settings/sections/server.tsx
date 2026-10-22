@@ -344,6 +344,15 @@ export function ServerSection() {
           <ListenRow />
           <PortRow />
           {settings.listen === "lan" && <AllowedHostsRow />}
+          {settings.listen === "lan" && (
+            <SwitchRow
+              id="allow-remote-edit"
+              label="Allow editing from other devices"
+              hint="Off: other devices can view the dashboard and kiosks, but only this computer can change it. Stream Deck and kiosk control keep working."
+              checked={settings.allowRemoteEdit}
+              onChange={(v) => void save("allowRemoteEdit", v)}
+            />
+          )}
           <SwitchRow
             id="auto-restart"
             label="Restart automatically if it crashes"

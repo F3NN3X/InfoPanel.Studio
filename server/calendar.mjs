@@ -24,9 +24,10 @@ const MAX_REDIRECTS = 3;
  * An address a calendar link may not reach: this machine (loopback, unspecified), link-local (which
  * holds cloud metadata services) and multicast. LAN addresses stay allowed: a calendar on a NAS or a
  * Nextcloud server is a real use, and only the studio (which already writes the config) adds links.
+ * `blockLan` also refuses the private ranges (the image proxy takes any URL a page names).
  */
-export function blockedAddress(ip) {
-  if (net.isIPv4(ip)) return blockedV4(ip);
+export function blockedAddress(ip, blockLan = false) {
+  if (net.isIPv4(ip)) return blockedV4(ip, blockLan);
   const w = ipv6Words(ip);
   if (!w) return true;
   // IPv4 inside IPv6, in any spelling ("::ffff:7f00:1" is 127.0.0.1): mapped, compatible and NAT64.
@@ -34,14 +35,15 @@ export function blockedAddress(ip) {
   const mapped = zero(0, 5) && w[5] === 0xffff;
   const compatible = zero(0, 6) && w[6] !== 0;
   const nat64 = w[0] === 0x64 && w[1] === 0xff9b && zero(2, 6);
-  if (mapped || compatible || nat64) return blockedV4(`${w[6] >> 8}.${w[6] & 255}.${w[7] >> 8}.${w[7] & 255}`);
+  if (mapped || compatible || nat64) return blockedV4(`${w[6] >> 8}.${w[6] & 255}.${w[7] >> 8}.${w[7] & 255}`, blockLan);
   const unspecifiedOrLoopback = zero(0, 7) && w[7] <= 1;
-  return unspecifiedOrLoopback || (w[0] & 0xffc0) === 0xfe80 || w[0] >> 8 === 0xff;
+  return unspecifiedOrLoopback || (w[0] & 0xffc0) === 0xfe80 || w[0] >> 8 === 0xff || (blockLan && (w[0] & 0xfe00) === 0xfc00);
 }
 
-function blockedV4(ip) {
+function blockedV4(ip, blockLan) {
   const [a, b] = ip.split(".").map(Number);
-  return a === 0 || a === 127 || (a === 169 && b === 254) || a >= 224;
+  const lan = a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+  return a === 0 || a === 127 || (a === 169 && b === 254) || a >= 224 || (blockLan && lan);
 }
 
 /** An IPv6 address as its eight 16-bit words (a trailing dotted IPv4 counts as two), or null. */
@@ -65,11 +67,11 @@ function ipv6Words(ip) {
  * The resolver the default fetch connects through: it checks every address at connect time, so a
  * name cannot pass `checkTarget` and then resolve to a blocked address for the request itself.
  */
-function guardedLookup(lookup) {
+export function guardedLookup(lookup, blocked = blockedAddress) {
   return (host, options, cb) => {
     lookup(host, { all: true }).then(
       (list) => {
-        if (list.length === 0 || list.some((a) => blockedAddress(a.address))) return cb(new Error("address not allowed"));
+        if (list.length === 0 || list.some((a) => blocked(a.address))) return cb(new Error("address not allowed"));
         if (options?.all) return cb(null, list);
         cb(null, list[0].address, list[0].family);
       },

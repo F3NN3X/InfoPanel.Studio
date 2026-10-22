@@ -62,6 +62,11 @@ export class ConfigRejectedError extends Error {
   }
 }
 
+/** The server refused a save because it takes edits from its own computer only (ALLOW_REMOTE_EDIT, server/request-guard.mjs). */
+export function isRemoteEditRefusal(err: unknown): boolean {
+  return err instanceof ConfigRejectedError && err.status === 403 && err.message.includes("other devices");
+}
+
 /** A failed push means the server could not be reached (a network error), not that it answered with a refusal. */
 export function isUnreachable(err: unknown): boolean {
   return !(err instanceof NewerConfigError) && !(err instanceof ConfigRejectedError);

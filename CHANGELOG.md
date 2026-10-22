@@ -13,6 +13,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   and the rest).
 
 ### Changed
+- **Editing from other devices is off by default.** A server on the local network lets other devices view the dashboard
+  and kiosks, but only this computer can change the config and integrations; turn it on in Settings > Server. Stream
+  Deck and kiosk control are unaffected, and a Studio opened elsewhere says why it can't save.
+- **The Studio pages carry security headers** (a content security policy, no framing from other sites, no MIME sniffing).
+- **The image proxy refuses private-network addresses**, including on redirects.
 - **Developer tools are available in debug mode only**, and Diagnostics shows the button only then.
 
 ### Fixed
