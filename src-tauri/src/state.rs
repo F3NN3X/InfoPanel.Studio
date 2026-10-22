@@ -49,6 +49,8 @@ pub struct RunningConfig {
     pub debug: bool,
     /// The extra host names the request guard accepts; read at start only.
     pub allowed_hosts: Vec<String>,
+    /// Whether the server takes writes from other devices; read at start only.
+    pub allow_remote_edit: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -285,10 +287,11 @@ mod tests {
             port: 3942,
             debug: true,
             allowed_hosts: vec!["panel.lan".into()],
+            allow_remote_edit: true,
         };
         assert_eq!(
             serde_json::to_value(rc).unwrap(),
-            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"] })
+            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true })
         );
     }
 

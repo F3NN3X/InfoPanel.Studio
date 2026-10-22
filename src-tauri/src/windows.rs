@@ -126,6 +126,12 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let _ = window.set_zoom(zoom_factor(app));
     let handle = app.clone();
     window.on_window_event(move |event| {
+        // Minimizing and restoring arrive as resizes; a minimized studio suspends like a hidden one.
+        if let tauri::WindowEvent::Resized(_) = event {
+            if let Some(w) = handle.get_webview_window(MAIN) {
+                crate::webview2::follow(&w);
+            }
+        }
         if let tauri::WindowEvent::CloseRequested { api, .. } = event {
             let st = handle.state::<AppState>();
             if st.is_quitting() {
@@ -157,6 +163,8 @@ pub fn show_main(app: &AppHandle) {
             Err(e) => return log::error!("could not open the studio window: {e}"),
         },
     };
+    // Resumed before it shows, so the page is live when the window appears.
+    crate::webview2::resume(&window);
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
@@ -415,6 +423,8 @@ fn close_main(app: &AppHandle) {
         flush_studio(app);
         if let Some(w) = app.get_webview_window(MAIN) {
             let _ = w.hide();
+            // After the flush, which needs the page awake; nobody sees it until the tray shows it.
+            crate::webview2::suspend(&w);
         }
         log::debug!("window hidden to the tray");
         return;

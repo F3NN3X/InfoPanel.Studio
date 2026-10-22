@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-webview-task-manager"
+description = "Enables the open_webview_task_manager command without any pre-configured scope."
+commands.allow = ["open_webview_task_manager"]
+
+[[permission]]
+identifier = "deny-open-webview-task-manager"
+description = "Denies the open_webview_task_manager command without any pre-configured scope."
+commands.deny = ["open_webview_task_manager"]

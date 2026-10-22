@@ -16,6 +16,7 @@ mod sidecar;
 mod state;
 mod tray;
 mod updater;
+mod webview2;
 mod windows;
 
 use crate::state::{lock, AppState, Phase};
@@ -150,7 +151,13 @@ pub fn run() {
                 .args([HIDDEN_ARG])
                 .build(),
         )
-        .plugin(tauri_plugin_opener::init())
+        // Links go to `on_new_window` (windows.rs), which opens them with a rate limit; the plugin's own
+        // click handler calls a command no capability grants.
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
@@ -177,6 +184,7 @@ pub fn run() {
             commands::repair_agents,
             commands::open_agent_backups,
             commands::open_devtools,
+            commands::open_webview_task_manager,
             commands::list_local_addresses,
             commands::quit_app,
             commands::open_settings,

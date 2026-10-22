@@ -41,7 +41,7 @@ pub struct SetResult {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
-    /// Port, listen, allowed hosts or debug differ from what the running server was started with.
+    /// Port, listen, allowed hosts, remote editing or debug differ from what the running server was started with.
     pub restart_required: bool,
     pub settings: Settings,
 }
@@ -75,6 +75,7 @@ pub fn restart_required(
         rc.listen != saved.listen
             || rc.port != saved.port
             || rc.allowed_hosts != saved.allowed_hosts
+            || rc.allow_remote_edit != saved.allow_remote_edit
             || rc.debug != (saved.debug || debug_forced)
     })
 }
@@ -489,12 +490,26 @@ fn show_agent_backups(app: &AppHandle) -> CmdResult<()> {
 #[tauri::command]
 pub fn open_devtools(app: AppHandle) -> CmdResult<()> {
     log::debug!("ipc: open_devtools");
+    if !app.state::<AppState>().debug() {
+        return Err("Developer tools need debug mode (Settings > Diagnostics).".into());
+    }
     let window = app
         .get_webview_window(windows::MAIN)
         .or_else(|| app.get_webview_window(windows::SETTINGS))
         .ok_or("No window is open.")?;
     window.open_devtools();
     Ok(())
+}
+
+/// WebView2's own task manager: memory and CPU for each of its processes (renderer, GPU, ...).
+#[tauri::command]
+pub fn open_webview_task_manager(app: AppHandle) -> CmdResult<()> {
+    log::debug!("ipc: open_webview_task_manager");
+    let window = app
+        .get_webview_window(windows::MAIN)
+        .or_else(|| app.get_webview_window(windows::SETTINGS))
+        .ok_or("No window is open.")?;
+    crate::webview2::open_task_manager(&window)
 }
 
 #[tauri::command]
@@ -841,6 +856,7 @@ mod tests {
             port: saved.port,
             debug: false,
             allowed_hosts: Vec::new(),
+            allow_remote_edit: false,
         };
         assert!(!restart_required(&saved, false, None));
         assert!(!restart_required(&saved, false, Some(&running)));
@@ -859,6 +875,10 @@ mod tests {
             },
             Settings {
                 allowed_hosts: vec!["panel.lan".into()],
+                ..saved.clone()
+            },
+            Settings {
+                allow_remote_edit: true,
                 ..saved.clone()
             },
         ] {

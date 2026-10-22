@@ -6,6 +6,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- **Allow editing from other devices** is a new app setting, off by default, for a server on the local network. A
+  server restart applies it.
+- **Open WebView2 task manager** in Settings > Diagnostics shows memory and CPU for each WebView2 process (renderer, GPU
+  and the rest).
+
+### Changed
+- **Developer tools are available in debug mode only**, and Diagnostics shows the button only then.
+
+### Fixed
+- **A hidden or minimized studio no longer keeps rendering.** Its webview is suspended while the window is in the tray or
+  minimized, and wakes when you open it, which stops the slow memory and CPU growth over long sessions.
+- **Links in the studio open in the browser again.** They had been refused by the shell with a "not allowed by ACL" error.
+
 ## [1.3.0-beta.9] - 2026-10-22
 
 ### Changed

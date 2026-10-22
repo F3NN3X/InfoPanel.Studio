@@ -27,6 +27,7 @@ fn main() {
         "repair_agents",
         "open_agent_backups",
         "open_devtools",
+        "open_webview_task_manager",
         "list_local_addresses",
         "quit_app",
         "open_settings",

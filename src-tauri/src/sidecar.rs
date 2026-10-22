@@ -39,6 +39,9 @@ pub fn sidecar_env(s: &Settings, paths: &Paths, debug: bool) -> Vec<(&'static st
         ("DASHBOARD_DIST", paths::display(&paths.dist_dir())),
         ("DASHBOARD_DEBUG", if debug { "1" } else { "0" }.into()),
     ];
+    if s.allow_remote_edit {
+        env.push(("ALLOW_REMOTE_EDIT", "1".into()));
+    }
     if let Some(dir) = &paths.data_dir {
         env.push(("DASHBOARD_DATA_DIR", paths::display(dir)));
     }
@@ -307,6 +310,17 @@ mod tests {
         assert_eq!(get(&env, "DASHBOARD_DEBUG"), Some("1"));
         assert_eq!(get(&env, "DASHBOARD_DATA_DIR"), Some(r"D:\tmp\data"));
         assert_eq!(get(&env, "ALLOWED_HOSTS"), Some(""));
+    }
+
+    #[test]
+    fn env_allows_remote_edit_only_when_on() {
+        let off = sidecar_env(&Settings::default(), &paths(None), false);
+        assert_eq!(get(&off, "ALLOW_REMOTE_EDIT"), None);
+        let s = Settings {
+            allow_remote_edit: true,
+            ..Settings::default()
+        };
+        assert_eq!(get(&sidecar_env(&s, &paths(None), false), "ALLOW_REMOTE_EDIT"), Some("1"));
     }
 
     #[test]

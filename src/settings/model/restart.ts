@@ -16,14 +16,14 @@ export function parseHosts(text: string): string[] {
 }
 
 export interface RestartItem {
-  key: "port" | "listen" | "debug" | "allowedHosts";
+  key: "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit";
   /** What the restart bar lists. */
   label: string;
   /** The value the running server uses: Undo puts it back. */
   running: number | string | boolean | string[];
 }
 
-type Saved = Pick<Settings, "port" | "listen" | "debug" | "allowedHosts">;
+type Saved = Pick<Settings, "port" | "listen" | "debug" | "allowedHosts" | "allowRemoteEdit">;
 
 /**
  * The saved settings the running server hasn't picked up. Nothing is pending while no server runs
@@ -46,6 +46,13 @@ export function restartItems(saved: Saved, running: RunningConfig | null, debugF
   }
   if (running.allowedHosts.join("\n") !== saved.allowedHosts.join("\n")) {
     items.push({ key: "allowedHosts", label: "allowed host names", running: running.allowedHosts });
+  }
+  if (running.allowRemoteEdit !== saved.allowRemoteEdit) {
+    items.push({
+      key: "allowRemoteEdit",
+      label: saved.allowRemoteEdit ? "editing from other devices on" : "editing from other devices off",
+      running: running.allowRemoteEdit,
+    });
   }
   return items;
 }

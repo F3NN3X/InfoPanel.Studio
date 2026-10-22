@@ -69,6 +69,7 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-get-diagnostics",
     "allow-open-logs-folder",
     "allow-open-devtools",
+    "allow-open-webview-task-manager",
     "allow-read-log",
     "allow-reveal-path",
     "allow-app-info",
@@ -415,6 +416,7 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
                     port: s.port,
                     debug,
                     allowed_hosts: s.allowed_hosts.clone(),
+                    allow_remote_edit: s.allow_remote_edit,
                 });
             }) {
                 on_running(app);
@@ -561,6 +563,7 @@ pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
             port: s.port,
             debug,
             allowed_hosts: s.allowed_hosts.clone(),
+            allow_remote_edit: s.allow_remote_edit,
         });
     }) {
         on_running(app);
@@ -589,7 +592,8 @@ fn on_running(app: &AppHandle) {
 }
 
 /// Grants the studio window and the settings window their permissions on the server's origin, once
-/// per origin.
+/// per origin. Tauri can't remove a runtime capability, so after a port change the old origin keeps
+/// its grant; no window can use it, since the navigation guard only lets them load the current origin.
 fn add_studio_capability(app: &AppHandle, origin: &str) {
     let st = app.state::<AppState>();
     let slug = origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-");
@@ -802,6 +806,7 @@ mod tests {
             port: 3922,
             debug: false,
             allowed_hosts: Vec::new(),
+            allow_remote_edit: false,
         };
         assert_eq!(status_address(Some(&running), &saved), ("127.0.0.1", 3922));
     }

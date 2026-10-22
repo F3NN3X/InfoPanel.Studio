@@ -44,6 +44,7 @@ export const ipc = {
   getDiagnostics: () => invoke<Diagnostics>("get_diagnostics"),
   openLogsFolder: () => invoke<void>("open_logs_folder"),
   openDevtools: () => invoke<void>("open_devtools"),
+  openWebviewTaskManager: () => invoke<void>("open_webview_task_manager"),
   readLog: (source: LogSource, cursor?: string) => invoke<LogChunk>("read_log", { source, cursor }),
   revealPath: (path: string) => invoke<void>("reveal_path", { path }),
   appInfo: () => invoke<AppInfo>("app_info"),
