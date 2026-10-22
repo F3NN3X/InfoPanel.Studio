@@ -84,8 +84,28 @@ export function easeHistory(hist: number[], value: number, len = 48, ease = 0.45
   return (hist.length ? [...hist, v] : [v, v]).slice(-len);
 }
 
+/**
+ * A frame-time history drawn the way an FPS graph reads: quick frames high, a slow frame (a drop or a
+ * stutter) dips. Plot the result from 0 to `max`, the graph's slowest frame time in ms; slower clamps to 0.
+ */
+export const flipFrameTimes = (hist: number[], max: number): number[] => hist.map((v) => max - Math.min(v, max));
+
 /** How many rows of height `rowH` (separated by `gap`) fit in `h`; always at least one. */
 export const fitRows = (h: number, rowH: number, gap = 0): number => Math.max(1, Math.floor((h + gap) / (rowH + gap)));
+
+/**
+ * The grid of `n` items (each `aspect` wide per 1 tall, `gap` apart) in w×h that makes them biggest:
+ * `cell` is the item's width. The last row is short when `n` does not fill it (the view centres it).
+ */
+export function fitGrid(n: number, w: number, h: number, { aspect = 1, gap = 0 }: { aspect?: number; gap?: number } = {}): { cols: number; rows: number; cell: number } {
+  let best = { cols: 0, rows: 0, cell: 0 };
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const cell = Math.max(0, Math.min((w - (cols - 1) * gap) / cols, ((h - (rows - 1) * gap) / rows) * aspect));
+    if (cell > best.cell || best.cols === 0) best = { cols, rows, cell };
+  }
+  return best;
+}
 
 /** `fitRows` for use in a widget body; stateless, so safe to call from any render branch. */
 export const useFitRows = (h: number, rowH: number, gap = 0): number => fitRows(h, rowH, gap);

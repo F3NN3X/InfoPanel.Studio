@@ -2,9 +2,10 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewOnly, viewSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
+import { countdownIsland } from "../island/countdown";
 import { timerIsland } from "../island/timer";
 import * as DriveSpace from "../DriveSpace";
 import * as StorageHealth from "../StorageHealth";
@@ -14,6 +15,10 @@ import * as NetworkAdapters from "../NetworkAdapters";
 import * as Clock from "../Clock";
 import * as Calendar from "../Calendar";
 import * as Timer from "../Timer";
+import * as Countdown from "../Countdown";
+import * as StatusBar from "../StatusBar";
+import { ITEMS, ITEM_LABELS } from "../StatusBar/items";
+import { isDate, isTime } from "@/lib/countdown";
 import * as CodingAgents from "../CodingAgents";
 import * as Weather from "../Weather";
 import * as Forecast from "../Forecast";
@@ -38,6 +43,7 @@ const numbersOf = <K extends string>(s: ModuleSettings, keys: readonly K[]): Par
   Object.fromEntries(keys.flatMap((k) => (numberOf(s[k]) === undefined ? [] : [[k, numberOf(s[k])]]))) as Partial<Record<K, number>>;
 
 const DRIVE_SETTINGS: ModuleSetting[] = [
+  viewSetting(DriveSpace.meta, { group: "Drive" }),
   deviceSetting("Drive", "drive", { group: "Drive", hint: "Pin one volume; Auto lists all" }),
   enumSetting("sort", "Sort", "usage", [{ value: "usage", label: "By usage" }, { value: "name", label: "By name" }], { group: "Sorting", tab: "behaviour" }),
   boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true }),
@@ -68,7 +74,7 @@ const discovered = (v: ModuleSettings): boolean => v.mode === "auto";
 const listed = (v: ModuleSettings): boolean => !discovered(v);
 const SENSOR_GROUP_SETTINGS: ModuleSetting[] = [
   enumSetting("mode", "Readings", "pick", [{ value: "pick", label: "Pick sensors" }, { value: "auto", label: "Auto-discover" }], { group: "Readings" }),
-  enumSetting("groupLayout", "Layout", "auto", [{ value: "auto", label: "Auto" }, { value: "rows", label: "Rows" }, { value: "grid", label: "Grid" }], { group: "Readings", visibleIf: listed }),
+  viewSetting(SensorGroup.meta, { label: "Layout", group: "Readings", visibleIf: listed }),
   boolSetting("bars", "Bar per item", true, { group: "Readings", visibleIf: listed }),
   numberSetting("maxRows", "Max rows (0 = all)", 12, { min: 0, max: 100, step: 2, group: "Readings", visibleIf: discovered }),
   // The dots of the discovered list: the theme's Critical, Series 3 and Series 5 ("" = red, blue, amber).
@@ -108,21 +114,7 @@ const NETWORK_SETTINGS: ModuleSetting[] = [
 
 /** Weather's view and toggles, under the old Weather widget's keys. */
 const WEATHER_SETTINGS: ModuleSetting[] = [
-  {
-    key: "view",
-    label: "Preset",
-    type: "preset",
-    default: "full",
-    options: [
-      // Each view sets the three toggles in place; changed afterwards, the row reads Custom. Full = their defaults.
-      { value: "full", label: "Full", applies: { showForecast: true, showStats: true, showFeels: true } },
-      { value: "now", label: "Now", applies: { showForecast: false, showStats: true, showFeels: true } },
-      { value: "forecast", label: "Forecast", applies: { showForecast: true, showStats: false, showFeels: false } },
-      { value: "minimal", label: "Minimal", applies: { showForecast: false, showStats: false, showFeels: false } },
-    ],
-    group: "Display",
-    hint: "Sets the three toggles below. Change one and the preset reads Custom.",
-  },
+  viewSetting(Weather.meta, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
   { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Display" },
   { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Display" },
   { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Display" },
@@ -138,6 +130,60 @@ const WEATHER_SETTINGS: ModuleSetting[] = [
     visibleIf: (v) => v.showForecast !== false,
   },
   { key: "tint", label: "Tint from conditions", type: "boolean", default: true, tab: "style", perWidget: true },
+  {
+    key: "iconSet",
+    label: "Icon set",
+    type: "select",
+    default: "app",
+    options: [
+      { value: "app", label: "App icons" },
+      { value: "meteocons", label: "Meteocons" },
+    ],
+    group: "Icons",
+    perWidget: true,
+  },
+  {
+    key: "iconStyle",
+    label: "Icon style",
+    type: "select",
+    default: "line",
+    options: [
+      { value: "fill", label: "Fill" },
+      { value: "flat", label: "Flat" },
+      { value: "line", label: "Line" },
+      { value: "monochrome", label: "Monochrome" },
+    ],
+    group: "Icons",
+    perWidget: true,
+    visibleIf: (v) => v.iconSet === "meteocons",
+  },
+  {
+    key: "iconAnimated",
+    label: "Animated icons",
+    type: "boolean",
+    default: false,
+    group: "Icons",
+    perWidget: true,
+    hint: "Animated icons use more CPU and memory on the kiosk, and run outside the Max FPS cap.",
+    visibleIf: (v) => v.iconSet === "meteocons",
+  },
+  {
+    key: "fxOn",
+    label: "Animated background",
+    type: "boolean",
+    default: false,
+    group: "Background",
+    perWidget: true,
+    hint: "Animated backgrounds use more CPU, GPU and memory on the kiosk. They follow Max FPS and stop when reduced motion is on.",
+  },
+  { key: "fxIntensity", label: "Intensity", type: "number", default: 1, min: 0.25, max: 2, step: 0.25, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxDensity", label: "Particles", type: "number", default: 100, min: 25, max: 200, step: 25, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxSpeed", label: "Speed", type: "number", default: 1, min: 0.5, max: 2, step: 0.25, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxWind", label: "Wind", type: "select", default: "auto", options: [{ value: "auto", label: "Auto" }, { value: "none", label: "None" }, { value: "left", label: "Left" }, { value: "right", label: "Right" }], group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxLightning", label: "Lightning", type: "boolean", default: true, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxClouds", label: "Clouds and fog", type: "boolean", default: true, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxOpacity", label: "Strength", type: "number", default: 100, min: 20, max: 100, step: 10, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxPreview", label: "Show", type: "select", default: "auto", options: [{ value: "auto", label: "Live condition" }, { value: "clear", label: "Clear" }, { value: "cloudy", label: "Cloudy" }, { value: "rain", label: "Rain" }, { value: "snow", label: "Snow" }, { value: "hail", label: "Hail" }, { value: "thunder", label: "Thunder" }, { value: "fog", label: "Fog" }], group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
 ];
 
 /** The stored settings as the Weather template's props (`forecastDays` is its `days`). */
@@ -148,18 +194,78 @@ const weatherToProps = (s: ModuleSettings): Partial<Weather.WeatherProps> => ({
   showFeels: Boolean(s.showFeels),
   showForecast: Boolean(s.showForecast),
   days: Math.max(1, Math.min(7, Math.round(Number(s.forecastDays) || 5))),
+  ...iconsOf(s),
+  ...fxOf(s),
+});
+
+/** The animated-background settings as the Weather props, each clamped to its range. */
+const fxOf = (s: ModuleSettings): Partial<Weather.WeatherProps> => {
+  const range = (v: unknown, lo: number, hi: number) => {
+    const n = numberOf(v);
+    return n === undefined ? undefined : Math.min(hi, Math.max(lo, n));
+  };
+  return {
+    fxOn: s.fxOn === true,
+    fxWind: oneOf(s.fxWind, ["auto", "none", "left", "right"]),
+    fxPreview: oneOf(s.fxPreview, ["auto", "clear", "cloudy", "rain", "snow", "hail", "thunder", "fog"]),
+    fxOpts: {
+      intensity: range(s.fxIntensity, 0.25, 2),
+      density: range(s.fxDensity, 25, 200),
+      speed: range(s.fxSpeed, 0.5, 2),
+      lightning: s.fxLightning !== false,
+      clouds: s.fxClouds !== false,
+      opacity: range(s.fxOpacity, 20, 100),
+    },
+  };
+};
+
+/** The weather icon-set settings as the templates' icon props. */
+const iconsOf = (s: ModuleSettings) => ({
+  iconSet: oneOf(s.iconSet, ["app", "meteocons"]),
+  iconStyle: oneOf(s.iconStyle, ["fill", "flat", "line", "monochrome"]),
+  iconAnimated: s.iconAnimated === true,
 });
 
 /** The weather templates' `units` prop from the themed Temperature unit (config v7 moved `units` → `tempUnit`). */
 const unitsOf = (s: ModuleSettings): "C" | "F" => (tempUnitOf(s) === "f" ? "F" : "C");
 const yrLocation = (group: string): ModuleSetting => ({ key: "location", label: "Location", type: "select", default: "", optionsFrom: "sources", sourcePlugin: "plugins.yr-weather-plugin.", group, tab: "data", hint: "Blank = the first Yr location" });
 
+/** A Status Bar slot: the stored comma-separated items that exist; undefined while unset (the bar's own). */
+const slotOf = (v: unknown) => (v === undefined ? undefined : splitKeys(v).flatMap((k) => oneOf(k, ITEMS) ?? []));
+const barUses = (...keys: (typeof ITEMS)[number][]) => (v: ModuleSettings) => [v.left ?? "logo", v.center ?? "date,time", v.right ?? "weather,network,volume,battery"].some((s) => splitKeys(s).some((k) => (keys as string[]).includes(k)));
+const BAR_ITEMS = ITEMS.map((value) => ({ value, label: ITEM_LABELS[value] }));
+const usesWeather = barUses("weather");
+const STATUSBAR_SETTINGS: ModuleSetting[] = [
+  viewSetting(StatusBar.meta, { group: "Layout" }),
+  enumSetting("left", "Left", "logo", BAR_ITEMS, { multiple: true, group: "Slots", hint: "Items show in the order picked; one with no data is left out" }),
+  enumSetting("center", "Centre", "date,time", BAR_ITEMS, { multiple: true, group: "Slots" }),
+  enumSetting("right", "Right", "weather,network,volume,battery", BAR_ITEMS, { multiple: true, group: "Slots" }),
+  enumSetting("display", "Show", "both", [{ value: "both", label: "Icon and value" }, { value: "value", label: "Value" }, { value: "icon", label: "Icon" }], { group: "Display", perWidget: true, hint: "Network, volume and battery show their icon only, unless set to Value" }),
+  boolSetting("separators", "Dividers", true, { group: "Display", perWidget: true }),
+  enumSetting("spacing", "Spacing", "normal", [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "roomy", label: "Roomy" }], { group: "Display", perWidget: true }),
+  { key: "logoIcon", label: "Logo icon", type: "icon", default: "monitor", group: "Logo", visibleIf: barUses("logo") },
+  { key: "logoImage", label: "Logo image", type: "image", default: "", group: "Logo", perWidget: true, hint: "Replaces the icon", visibleIf: barUses("logo") },
+  textSetting("text", "Text", "", { group: "Text", hint: "Empty = the item is left out", visibleIf: barUses("text") }),
+  boolSetting("seconds", "Show seconds", false, { group: "Time", visibleIf: barUses("time", "datetime") }),
+  { key: "iconSet", label: "Weather icon set", type: "select", default: "app", options: [{ value: "app", label: "App icons" }, { value: "meteocons", label: "Meteocons" }], group: "Icons", perWidget: true, visibleIf: usesWeather },
+  { key: "iconStyle", label: "Icon style", type: "select", default: "line", options: [{ value: "fill", label: "Fill" }, { value: "flat", label: "Flat" }, { value: "line", label: "Line" }, { value: "monochrome", label: "Monochrome" }], group: "Icons", perWidget: true, visibleIf: (v) => usesWeather(v) && v.iconSet === "meteocons" },
+  { key: "iconAnimated", label: "Animated icons", type: "boolean", default: false, group: "Icons", perWidget: true, hint: "Animated icons use more CPU and memory on the kiosk, and run outside the Max FPS cap.", visibleIf: (v) => usesWeather(v) && v.iconSet === "meteocons" },
+  enumSetting("islandGap", "Gap for the island", "auto", [{ value: "auto", label: "Auto" }, { value: "off", label: "Off" }, { value: "custom", label: "Custom" }], { group: "Island", perWidget: true, hint: "Auto leaves room for the Dynamic Island at the page centre while it is on; the centre items split around it" }),
+  numberSetting("islandGapPx", "Gap width (px)", 160, { min: 80, max: 400, step: 10, group: "Island", perWidget: true, visibleIf: (v) => v.islandGap === "custom" }),
+  formatSetting("clock"),
+  formatSetting("tempUnit"),
+  rateUnitSetting(),
+];
+
+/** The Coding Agents settings that only apply to the Full view. */
+const full = viewOnly(CodingAgents.meta, "full");
+
 export const GROUP_B: DashboardModule[] = [
   templateModule({
     meta: DriveSpace.meta,
     Component: DriveSpace.default,
     settings: DRIVE_SETTINGS,
-    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral) }),
+    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral) }),
     island: driveSpaceIsland,
   }),
   // any vendor's drive: the keys are read, not owned (the fallback grid keeps the rest of `libre.`)
@@ -235,9 +341,60 @@ export const GROUP_B: DashboardModule[] = [
     island: timerIsland,
   }),
   templateModule({
+    meta: Countdown.meta,
+    Component: Countdown.default,
+    settings: [
+      viewSetting(Countdown.meta, { group: "Event" }),
+      textSetting("eventName", "Event name", "", { group: "Event", hint: "Empty = no title line" }),
+      dateSetting("date", "Date", "", { group: "Event", tab: "data" }),
+      timeSetting("time", "Time of day", "", { group: "Event", tab: "data", hint: "Empty = an all-day event" }),
+      enumSetting("count", "Count", "auto", [{ value: "auto", label: "Auto" }, { value: "until", label: "Until" }, { value: "since", label: "Since" }], { group: "Counting", tab: "data", hint: "Auto counts up an hour after the start (the rest of the day when all-day)" }),
+      enumSetting("breakdown", "Breakdown", "auto", [{ value: "auto", label: "Auto" }, { value: "days", label: "Days" }, { value: "years", label: "Years" }, { value: "live", label: "Live" }], { group: "Counting", tab: "data", hint: "Live adds seconds" }),
+      boolSetting("showDate", "Show the date", true, { group: "Event" }),
+      formatSetting("clock"),
+    ],
+    // A malformed date or time reads as unset.
+    toProps: (s): Partial<Countdown.CountdownProps> => ({
+      view: oneOf(s.view, ["inline", "tiles", "big"]),
+      eventName: stringOf(s.eventName),
+      date: isDate(s.date) ? s.date : undefined,
+      time: isTime(s.time) ? s.time : undefined,
+      count: oneOf(s.count, ["auto", "until", "since"]),
+      breakdown: oneOf(s.breakdown, ["auto", "days", "years", "live"]),
+      showDate: boolOf(s.showDate),
+      clock: clockOf(s),
+    }),
+    island: countdownIsland,
+  }),
+  templateModule({
+    meta: StatusBar.meta,
+    Component: StatusBar.default,
+    settings: STATUSBAR_SETTINGS,
+    toProps: (s): Partial<StatusBar.StatusBarProps> => ({
+      view: oneOf(s.view, ["edge", "pill", "islands"]),
+      left: slotOf(s.left),
+      center: slotOf(s.center),
+      right: slotOf(s.right),
+      display: oneOf(s.display, ["both", "value", "icon"]),
+      separators: boolOf(s.separators),
+      spacing: oneOf(s.spacing, ["compact", "normal", "roomy"]),
+      logoIcon: stringOf(s.logoIcon),
+      logoImage: stringOf(s.logoImage),
+      text: stringOf(s.text),
+      seconds: boolOf(s.seconds),
+      clock: clockOf(s),
+      tempUnit: tempUnitOf(s),
+      rateUnit: rateUnitOf(s.rateUnit),
+      ...iconsOf(s),
+      islandGap: oneOf(s.islandGap, ["auto", "off", "custom"]),
+      islandGapPx: numberOf(s.islandGapPx),
+    }),
+  }),
+  templateModule({
     meta: CodingAgents.meta,
     Component: CodingAgents.default,
     settings: [
+      viewSetting(CodingAgents.meta, { group: "Agents" }),
       enumSetting(
         "agents",
         "Agents",
@@ -249,23 +406,28 @@ export const GROUP_B: DashboardModule[] = [
         ],
         { group: "Agents" }
       ),
-      boolSetting("showPlan", "Plan use", true, { group: "Plan limits", hint: "The 5-hour and weekly windows, from the statusline (Claude) and the session files (Codex)" }),
-      boolSetting("showSessions", "Sessions", true, { group: "Sessions", hint: "Each session: working with its tool, waiting for you, done" }),
-      boolSetting("showUsage", "Tokens per day", true, { group: "Tokens", hint: "Today's tokens and the last five weeks, read from the transcripts" }),
-      boolSetting("showBreakdown", "Breakdown", true, { group: "Tokens", hint: "This week's tokens by model and project, and today's by type, read from the transcripts" }),
-      enumSetting("limitStyle", "Limit style", "bars", [{ value: "bars", label: "Bars" }, { value: "rings", label: "Rings" }], {
-        group: "Plan limits",
-        hint: "Rings fall back to bars when the cell is too small for them",
-        visibleIf: (v) => v.showPlan !== false,
-      }),
+      full(boolSetting("showPlan", "Plan use", true, { group: "Plan limits", hint: "The 5-hour and weekly windows, from the statusline (Claude) and the session files (Codex)" })),
+      full(boolSetting("showSessions", "Sessions", true, { group: "Sessions", hint: "Each session: working with its tool, waiting for you, done" })),
+      full(boolSetting("showUsage", "Tokens per day", true, { group: "Tokens", hint: "Today's tokens and the last five weeks, read from the transcripts" })),
+      full(boolSetting("showBreakdown", "Breakdown", true, { group: "Tokens", hint: "This week's tokens by model and project, and today's by type, read from the transcripts" })),
+      full(
+        enumSetting("limitStyle", "Limit style", "bars", [{ value: "bars", label: "Bars" }, { value: "rings", label: "Rings" }], {
+          group: "Plan limits",
+          hint: "Rings fall back to bars when the cell is too small for them",
+          visibleIf: (v) => v.showPlan !== false,
+        })
+      ),
       enumSetting("percent", "Show limits as", "used", [{ value: "used", label: "Used" }, { value: "left", label: "Left" }], { group: "Plan limits", visibleIf: (v) => v.showPlan !== false }),
-      enumSetting("history", "History", "bars", [{ value: "bars", label: "Daily bars" }, { value: "heatmap", label: "Heatmap" }], {
-        group: "Tokens",
-        hint: "The heatmap moves beside the rest in a wide cell, and falls back to bars when it does not fit",
-        visibleIf: (v) => v.showUsage !== false,
-      }),
+      full(
+        enumSetting("history", "History", "bars", [{ value: "bars", label: "Daily bars" }, { value: "heatmap", label: "Heatmap" }], {
+          group: "Tokens",
+          hint: "The heatmap moves beside the rest in a wide cell, and falls back to bars when it does not fit",
+          visibleIf: (v) => v.showUsage !== false,
+        })
+      ),
     ],
     toProps: (s): Partial<CodingAgents.CodingAgentsProps> => ({
+      view: oneOf(s.view, ["full", "summary", "limits"] as const),
       agents: oneOf(String(s.agents), ["both", "claude", "codex"] as const),
       showPlan: boolOf(s.showPlan),
       showSessions: boolOf(s.showSessions),

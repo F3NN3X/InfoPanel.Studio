@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardConfig } from "@/lib/layout";
-import { addCatalog, type AddItem } from "./add-catalog";
+import { addCatalog, sameDrop, type AddItem } from "./add-catalog";
 import type { Ghost } from "./add-place";
 import { useRecentWidgets } from "./add-recent";
 import type { AddToastState } from "./add-toast";
@@ -69,7 +69,7 @@ export function useAddPanel({ config, addFromPanel, targetZoneId, undo }: AddPan
   /** The row a canvas drag carries. */
   const itemOf = useCallback(
     (d: LibraryItem): AddItem | undefined =>
-      [...catalog.widget, ...catalog.panel, ...catalog.layout].find((i) => i.drop.kind === d.kind && i.drop.id === d.id),
+      [...catalog.widget, ...catalog.panel, ...catalog.layout].find((i) => sameDrop(i.drop, d)),
     [catalog]
   );
 

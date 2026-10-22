@@ -120,6 +120,7 @@ dropRetiredPrefs();
 const QUICK_BAR_KEY = "studio.quickBar";
 const ACCORDION_KEY = "studio.accordion";
 const PINS_KEY = "studio.quickPins";
+const ADVANCED_KEY = "studio.inspector.advanced";
 
 /** How many settings the quick bar holds. */
 export const MAX_PINS = 6;
@@ -129,6 +130,8 @@ export type AccordionMode = "one" | "many";
 
 /** The quick bar is on unless it was turned off. */
 export const parseQuickBar = (raw: string | null): boolean => raw !== "false";
+/** The Advanced switch is off unless it was turned on. */
+export const parseAdvanced = (raw: string | null): boolean => raw === "true";
 export const parseAccordion = (raw: string | null): AccordionMode => (raw === "many" ? "many" : "one");
 
 /** Pinned keys config v7 renamed: a stored old key reads as the new one (Density, Small zones, Alignment, Temperature). */
@@ -168,6 +171,18 @@ export function togglePin(pins: readonly string[], key: string): string[] {
 const quickBarStore = storedValue(QUICK_BAR_KEY, parseQuickBar, String);
 const accordionStore = storedValue(ACCORDION_KEY, parseAccordion, String);
 const pinsStore = storedValue(PINS_KEY, parsePins, JSON.stringify);
+const advancedStore = storedValue(ADVANCED_KEY, parseAdvanced, String);
+
+/** Show every inspector setting, including the ones the theme controls (off by default). */
+export function useAdvancedPref(): [boolean, (on: boolean) => void] {
+  return [useSyncExternalStore(advancedStore.subscribe, advancedStore.read, advancedStore.read), advancedStore.write];
+}
+
+/** Turn Advanced on (a jump to a hidden setting). */
+export const showAdvanced = () => advancedStore.write(true);
+
+/** Flip Advanced (the command palette). */
+export const toggleAdvanced = () => advancedStore.write(!advancedStore.read());
 
 /** The quick bar over the canvas (on by default). */
 export function useQuickBarPref(): [boolean, (on: boolean) => void] {

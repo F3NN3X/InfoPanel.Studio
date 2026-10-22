@@ -40,6 +40,10 @@ export interface PlanWindow {
 export interface AgentPlan {
   fiveHour?: PlanWindow;
   sevenDay?: PlanWindow;
+  /** Other weekly windows, by name (Claude's per-model ones: "opus"). */
+  extra?: (PlanWindow & { name: string })[];
+  /** The Claude Code version, from the statusline. */
+  version?: string;
   at: number;
 }
 
@@ -152,7 +156,14 @@ export function parseAgents(raw: unknown): Agents {
     if (isObject(p)) {
       const fiveHour = windowOf(p.fiveHour);
       const sevenDay = windowOf(p.sevenDay);
-      if (fiveHour || sevenDay) plan[id] = { ...(fiveHour ? { fiveHour } : {}), ...(sevenDay ? { sevenDay } : {}), at: num(p.at) ?? 0 };
+      const extra = (Array.isArray(p.extra) ? p.extra : []).flatMap((e): (PlanWindow & { name: string })[] => {
+        const name = isObject(e) ? text(e.name, 30) : undefined;
+        const w = windowOf(e);
+        return name && w ? [{ name, ...w }] : [];
+      });
+      const version = text(p.version, 20);
+      if (fiveHour || sevenDay || extra.length || version)
+        plan[id] = { ...(fiveHour ? { fiveHour } : {}), ...(sevenDay ? { sevenDay } : {}), ...(extra.length ? { extra } : {}), ...(version ? { version } : {}), at: num(p.at) ?? 0 };
     }
     const u = usageOf(isObject(raw.usage) ? raw.usage[id] : undefined);
     if (u) usage[id] = u;

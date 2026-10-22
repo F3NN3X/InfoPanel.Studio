@@ -3,6 +3,7 @@
 import { critKey, QUANTITIES, warnKey } from "@/lib/theme-model";
 import type { DeviceKind, FormatKey, ModuleSetting, ModuleSettings, ThresholdQuantity } from "@/modules/types";
 import { RATE_UNITS, type RateUnit } from "../core/data";
+import type { WidgetMeta } from "../core/types";
 
 /* ───────── stored settings → props ───────── */
 
@@ -46,12 +47,50 @@ type Option = NonNullable<ModuleSetting["options"]>[number];
 /** A select (a segmented control up to four options). */
 export const enumSetting = (key: string, label: string, def: string, options: Option[], extra: Extra = {}): ModuleSetting => ({ key, label, type: "select", default: def, options, ...extra });
 
+/** The key a widget's view is stored under (`WidgetMeta.viewKey`, default `view`). */
+export const viewKeyOf = (meta: Pick<WidgetMeta, "viewKey">): string => meta.viewKey ?? "view";
+
+/**
+ * A widget's View control from its declared views: the first is the default; a preset (each option sets its
+ * view's `applies`) when any view sets others with it, else a select. `opts` = label, group, hint, … as before.
+ */
+export function viewSetting(meta: WidgetMeta, opts: Partial<ModuleSetting> = {}): ModuleSetting {
+  const views = meta.views ?? [];
+  const preset = views.some((v) => v.applies);
+  return {
+    key: viewKeyOf(meta),
+    label: "View",
+    type: preset ? "preset" : "select",
+    default: views[0]?.id ?? "",
+    options: views.map((v) => (preset ? { value: v.id, label: v.name, applies: v.applies ?? {} } : { value: v.id, label: v.name })),
+    ...opts,
+  };
+}
+
+/** Wraps a setting so it shows only in these views of the widget (and while its own `visibleIf` holds). */
+export const viewOnly =
+  (meta: WidgetMeta, ...ids: string[]) =>
+  (def: ModuleSetting): ModuleSetting => {
+    const own = def.visibleIf;
+    const key = viewKeyOf(meta);
+    return { ...def, visibleIf: (v) => ids.includes(String(v[key] ?? meta.views?.[0]?.id)) && (own?.(v) ?? true) };
+  };
+
+/** A widget's view ids but these (a gate for the views that draw something the others do not). */
+export const viewsExcept = (meta: WidgetMeta, ...ids: string[]): string[] => (meta.views ?? []).map((v) => v.id).filter((id) => !ids.includes(id));
+
 export const boolSetting = (key: string, label: string, def: boolean, extra: Extra = {}): ModuleSetting => ({ key, label, type: "boolean", default: def, ...extra });
 
 export const numberSetting = (key: string, label: string, def: number, extra: Extra = {}): ModuleSetting => ({ key, label, type: "number", default: def, ...extra });
 
 /** A text field. */
 export const textSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "text", default: def, ...extra });
+
+/** A date ("YYYY-MM-DD"; "" = none). */
+export const dateSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "date", default: def, ...extra });
+
+/** A time of day (24 h "HH:MM"; "" = none). */
+export const timeSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "time", default: def, ...extra });
 
 /** A colour; "" = the widget's own. Filed in Style › Widget colors, behind More. */
 export const colorSetting = (key: string, label: string, extra: Extra = {}): ModuleSetting => ({ key, label, type: "color", default: "", tab: "style", advanced: true, ...extra });

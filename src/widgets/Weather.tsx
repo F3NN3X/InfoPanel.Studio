@@ -1,6 +1,10 @@
 import type { ModuleSettings } from "@/modules/types";
+import { weatherKind, type WeatherKind } from "@/lib/weather-icons";
+import { windValue } from "./weather-fx/config";
+import { WeatherFx, type WeatherFxOpts } from "./weather-fx/WeatherFx";
 import Forecast from "./Forecast";
-import { Widget, shell, get, num, fmt, has, rows, Icon, Stat, Num, weatherIcon, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, rows, Stat, Num, WeatherGlyph, weatherIcon, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
+import { WeatherGlance, WeatherWeek, weekDays } from "./WeatherViews";
 
 export const meta: WidgetMeta = {
   id: "Weather",
@@ -13,6 +17,15 @@ export const meta: WidgetMeta = {
   blurb: "Current conditions and 7-day forecast",
   tags: "temperature rain wind",
   description: "Current conditions, feels-like, wind, humidity, pressure, rain/snow and 7-day forecast (MET/Yr or OpenWeatherMap).",
+  // Each view sets the three toggles in place; changed afterwards, the row reads Custom. Full = their defaults.
+  views: [
+    { id: "full", name: "Full", applies: { showForecast: true, showStats: true, showFeels: true } },
+    { id: "now", name: "Now", blurb: "Current conditions with wind and humidity", tags: "current today", applies: { showForecast: false, showStats: true, showFeels: true } },
+    { id: "forecast", name: "Forecast", blurb: "Conditions now and the days ahead", tags: "week days outlook", applies: { showForecast: true, showStats: false, showFeels: false } },
+    { id: "minimal", name: "Minimal", blurb: "Temperature and conditions only", tags: "simple small", applies: { showForecast: false, showStats: false, showFeels: false } },
+    { id: "glance", name: "Glance", blurb: "Big icon, temperature and place", tags: "icon big", defaultSize: [3, 2], applies: { showForecast: false, showStats: false, showFeels: false } },
+    { id: "week", name: "Week", blurb: "Today and the next days", tags: "days outlook forecast", defaultSize: [5, 2], applies: { showForecast: true, showStats: false, showFeels: false } },
+  ],
 };
 
 const compass = (deg: number) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((deg % 360) / 45) % 8];
@@ -38,7 +51,11 @@ export interface WeatherProps extends ShellProps {
   location?: string;
   units?: "C" | "F";
   /** What shows: `full` everything, `now` no forecast, `minimal` temperature + condition only (each flag below overrides it), `forecast` the Forecast widget. */
-  view?: "full" | "now" | "forecast" | "minimal";
+  view?: "full" | "now" | "forecast" | "minimal" | "glance" | "week";
+  /** The icon set: the app's own or Meteocons, with the Meteocons style and whether they animate. */
+  iconSet?: WeatherIconProps["set"];
+  iconStyle?: WeatherIconProps["style"];
+  iconAnimated?: boolean;
   /** Take the accent from the current condition (an explicit accent still wins). */
   tint?: boolean;
   /** The wind / humidity / pressure / precipitation stats (default on). */
@@ -47,6 +64,11 @@ export interface WeatherProps extends ShellProps {
   showFeels?: boolean;
   /** The day-forecast strip (default on). */
   showForecast?: boolean;
+  /** The animated background (default off), its options and what it shows ("auto" = the live condition). */
+  fxOn?: boolean;
+  fxOpts?: WeatherFxOpts;
+  fxWind?: "auto" | "none" | "left" | "right";
+  fxPreview?: "auto" | WeatherKind;
   /** Forecast days shown, 1-7 (default: 5, or 7 in a large zone). */
   days?: number;
 }
@@ -74,10 +96,16 @@ function Current(p: WeatherProps) {
   const lo = Math.min(...fc.map((f) => f.lo)),
     hi = Math.max(...fc.map((f) => f.hi));
   const icon = weatherIcon(`${k("weather_icon")} ${k("weather_desc")}`);
+  const cond = weatherKind(k("weather_icon"), k("weather_desc"));
+  const icons: WeatherIconProps = { set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated };
+  const place = has(k("name")) ? String(k("name")) : "";
   const minimal = p.view === "minimal";
   const showStats = p.showStats ?? !minimal;
   const showFeels = p.showFeels ?? !minimal;
   const showForecast = p.showForecast ?? (p.view === undefined || p.view === "full");
+  const fx = p.fxOn && (
+    <WeatherFx kind={p.fxPreview && p.fxPreview !== "auto" ? p.fxPreview : cond.kind} night={cond.night} temp={temp} wind={windValue(p.fxWind ?? "auto", num(k("wind_speed")), num(k("wind_deg")))} opts={p.fxOpts} />
+  );
   const tint = p.tint ? conditionTint(k("weather_desc")) : undefined;
   const feelsText = showFeels ? ` · feels ${fmt(T(feels), 0)}°` : "";
   const feelsLine = showFeels ? `feels like ${fmt(T(feels), 0)}°` : "";
@@ -85,16 +113,27 @@ function Current(p: WeatherProps) {
     <Widget
       {...shell(p)}
       accent={p.accent ?? tint}
-      backdrop={tint && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${tint} 42%, transparent), color-mix(in srgb, ${tint} 12%, transparent))` }} />}
+      backdrop={(tint || fx) && (
+        <>
+          {tint && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${tint} 42%, transparent), color-mix(in srgb, ${tint} 12%, transparent))` }} />}
+          {fx}
+        </>
+      )}
       title={p.title ?? (has(k("name")) ? k("name") : "Weather")}
       icon="location_on"
       compact={{ label: has(k("name")) ? k("name") : "Weather", value: `${fmt(T(temp), 0)}°`, sub: `${k("weather_desc")}${feelsText}`, icon, kind: "value" }}
       right={has(k("last_refreshed")) && <span className="font-mono text-[10px] text-[color:var(--w-faint)]">{String(k("last_refreshed")).slice(11)}</span>}
     >
-      {({ size, h }) => {
+      {({ size, w, h }) => {
+        const shown = Math.max(1, Math.min(7, Math.round(p.days ?? (size === "lg" ? 7 : 5))));
+        if (p.view === "glance") return <WeatherGlance cond={cond} temp={`${fmt(T(temp), 0)}°`} desc={String(k("weather_desc"))} place={place} w={w} h={h} icons={icons} />;
+        if (p.view === "week") {
+          const days = weekDays(fc.map((f) => ({ date: f.date, cond: weatherKind("", f.cond), hi: f.hi, lo: f.lo })), { cond, temp }, new Date()).slice(0, shown);
+          return <WeatherWeek days={days} place={place} w={w} h={h} icons={icons} fmtTemp={(c) => `${fmt(T(c), 0)}°`} />;
+        }
         const now = (
           <div className="flex min-w-0 items-center gap-3">
-            <Icon name={icon} fill className={`${{ xs: "text-3xl", sm: "text-5xl", md: "text-6xl", lg: "text-7xl" }[size]} text-[color:var(--accent)]`} />
+            <WeatherGlyph {...cond} {...icons} fill className={`${{ xs: "text-3xl", sm: "text-5xl", md: "text-6xl", lg: "text-7xl" }[size]} text-[color:var(--accent)]`} />
             <div className="flex min-w-0 flex-col">
               <Num className={`${{ xs: "text-2xl", sm: "text-4xl", md: "text-5xl", lg: "text-6xl" }[size]} font-semibold leading-none tracking-tight`}>{fmt(T(temp), 0)}°</Num>
               {size !== "xs" && (
@@ -108,7 +147,6 @@ function Current(p: WeatherProps) {
         );
         if (size === "xs" || size === "sm" || (!showStats && !showForecast)) return <div className="flex h-full items-center">{now}</div>;
         const snow = num(k("snow")) > 0;
-        const shown = Math.max(1, Math.min(7, Math.round(p.days ?? (size === "lg" ? 7 : 5))));
         // the forecast cells shed their rows (rain, bar, low) to the height left under the current block and the stats:
         // the temperature (48 / 60px) + description (20) + feels line (16), or the stats grid (one row 38, three rows 128)
         const topH = Math.max(size === "lg" ? 72 : 60, (size === "lg" ? 60 : 48) + 20 + (feelsLine ? 16 : 0), showStats ? (size === "lg" ? 128 : 38) : 0);
@@ -141,7 +179,7 @@ function Current(p: WeatherProps) {
                 {fc.slice(0, shown).map((f, i) => (
                   <div key={i} className={`flex flex-col items-center ${tight ? "gap-1" : "gap-1.5"}`} title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
                     <span className="whitespace-nowrap text-[11px] text-[color:var(--w-muted)]">{i === 0 ? `Tmrw ${f.date.split(" ")[1] ?? ""}` : f.date}</span>
-                    <Icon name={weatherIcon(f.cond)} className="text-xl text-[color:var(--w-fg)]" />
+                    <WeatherGlyph {...weatherKind("", f.cond)} {...icons} className="text-xl text-[color:var(--w-fg)]" />
                     <span className="text-xs font-semibold tabular-nums">{fmt(T(f.hi), 0)}°</span>
                     {bar && (
                       <div className="relative h-10 w-1 rounded-full bg-[color:var(--w-track)]">

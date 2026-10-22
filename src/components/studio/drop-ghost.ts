@@ -1,5 +1,7 @@
 import { BLANK_MODULE, type Placement } from "@/lib/layout";
-import { DND_MIME, DND_MIME_PANEL, ALL_MODULES } from "./studio-modules";
+import { modules } from "@/modules";
+import { settingKeys, type ModuleSettings } from "@/modules/types";
+import { DND_MIME, DND_MIME_PANEL, DND_MIME_SETTINGS, ALL_MODULES } from "./studio-modules";
 import { zoneFits, type ZoneRect } from "./zone-geometry";
 import type { LibraryItem as MyLibraryItem } from "@/lib/library";
 import { activeLibraryDrag, libraryDragOf } from "@/lib/my-library/drag";
@@ -10,6 +12,8 @@ type Size = { cols: number; rows: number };
 export interface LibraryItem {
   kind: "module" | "panel";
   id: string;
+  /** The settings a widget is added with (a view's `{ [viewKey]: id, ...applies }`). */
+  settings?: ModuleSettings;
 }
 
 /**
@@ -32,9 +36,27 @@ export function myLibraryDropOf(getData: (type: string) => string): CanvasDrop |
  */
 export function libraryItemOf(getData: (type: string) => string): LibraryItem | null {
   const module = getData(DND_MIME);
-  if (module && (module === BLANK_MODULE || ALL_MODULES.some((m) => m.id === module))) return { kind: "module", id: module };
+  if (module && (module === BLANK_MODULE || ALL_MODULES.some((m) => m.id === module))) {
+    const settings = dropSettingsOf(module, getData(DND_MIME_SETTINGS));
+    return settings ? { kind: "module", id: module, settings } : { kind: "module", id: module };
+  }
   const panel = getData(DND_MIME_PANEL);
   return panel ? { kind: "panel", id: panel } : null;
+}
+
+/** A drag's settings (JSON) narrowed to the keys the module has; undefined when none is left or it does not parse. */
+function dropSettingsOf(module: string, raw: string): ModuleSettings | undefined {
+  if (!raw) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return undefined;
+  const keys = new Set((modules.find((m) => m.id === module)?.settings ?? []).flatMap(settingKeys));
+  const kept = Object.entries(parsed).filter(([k]) => keys.has(k));
+  return kept.length ? (Object.fromEntries(kept) as ModuleSettings) : undefined;
 }
 
 /** A widget's footprint when dropped: at least 3×2, its minimum if larger, kept inside the grid. */
@@ -47,12 +69,14 @@ export function dropSize(min: Size, grid: { cols: number; rows: number }): Size 
 
 /**
  * What a widget drops with: its declared default size (never below its minimum), else 3×2 or the
- * minimum; kept inside the grid.
+ * minimum; kept inside the grid. With `settings` naming one of its views, that view's sizes come first.
  */
-export function moduleDropSize(module: string, grid: { cols: number; rows: number }): Size {
+export function moduleDropSize(module: string, grid: { cols: number; rows: number }, settings?: ModuleSettings): Size {
   const meta = ALL_MODULES.find((m) => m.id === module);
-  const min = { cols: meta?.minCols ?? 2, rows: meta?.minRows ?? 1 };
-  return meta?.defaultSize ? defaultDropSize(meta.defaultSize, min, grid) : dropSize(min, grid);
+  const view = settings && meta?.views?.find((v) => v.id === settings[meta.viewKey ?? "view"]);
+  const min = { cols: view?.minSize?.[0] ?? meta?.minCols ?? 2, rows: view?.minSize?.[1] ?? meta?.minRows ?? 1 };
+  const def = view?.defaultSize ?? meta?.defaultSize;
+  return def ? defaultDropSize(def, min, grid) : dropSize(min, grid);
 }
 
 /** A declared default size (cols, rows), at least the minimum, kept inside the grid. */

@@ -281,9 +281,12 @@ export function TextRow({
   multiline,
   placeholder,
   onChange,
+  kind = "text",
   ...label
 }: RowLabelProps & {
   value: string;
+  /** The input's type: a native date or time picker. */
+  kind?: "text" | "date" | "time";
   /** A code area (mono, 96 high): custom CSS. */
   multiline?: boolean;
   placeholder?: string;
@@ -302,12 +305,12 @@ export function TextRow({
         />
       ) : (
         <input
-          type="text"
+          type={kind}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-label={label.label}
           placeholder={placeholder}
-          className={cn(FIELD, "h-[30px] w-full")}
+          className={cn(FIELD, "h-[30px] w-full", kind !== "text" && "[color-scheme:dark]")}
         />
       )}
     </StackRow>

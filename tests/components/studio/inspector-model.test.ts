@@ -11,6 +11,7 @@ import {
   followInfo,
   chipSections,
   jumpTarget,
+  needsAdvanced,
   rowSection,
   sharedDefs,
   visibleSections,
@@ -24,6 +25,7 @@ import {
   splitMore,
   tabChangedCounts,
   tabStates,
+  visibleSection,
   widgetContext,
   widgetLookValues,
   type InspectorContext,
@@ -191,7 +193,7 @@ describe("tabs of every widget", () => {
 });
 
 describe("header modes", () => {
-  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "SteamGame", "Vitals", "WebPage"];
+  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "StatusBar", "SteamGame", "Vitals", "WebPage"];
   const TITLE_ONLY = ["Clock", "SystemOverview"];
 
   it("declares the header and small-zone shape of every widget", () => {
@@ -202,7 +204,7 @@ describe("header modes", () => {
     expect(modules.filter((m) => m.header === "none").map((m) => m.id).sort()).toEqual(NO_HEADER);
     expect(modules.filter((m) => m.header === "title-only").map((m) => m.id).sort()).toEqual(TITLE_ONLY);
     const noCard = modules.filter((m) => !m.compact?.card).map((m) => m.id).sort();
-    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
+    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
   });
 
   it("shows Show title, Title and Icon (More) on a widget with a header", () => {
@@ -469,6 +471,52 @@ describe("More rows", () => {
     const { groups } = searchAll(spotify, "orientation");
     const visualizer = groups.find((g) => g.section.title === "Visualizer")!;
     expect(visualizer.section.settings.map((d) => [d.key, isMore(d)])).toEqual([["vizOrientation", true]]);
+  });
+});
+
+describe("Advanced switch (visibleSection)", () => {
+  const style = sectionsFor(system, "style");
+  const spacing = find(style, "Shape & spacing");
+  const border = find(style, "Border & glow");
+  const css = find(style, "Advanced · CSS & locks");
+  const dynamics = find(sectionsFor(spotify, "behaviour"), "Visualizer dynamics");
+
+  it("collapses a section that follows the theme to its line when off", () => {
+    expect(visibleSection(spacing, { advanced: false, mode: "theme" })).toMatchObject({ hidden: false, collapsed: "theme", rows: [] });
+  });
+
+  it("shows a custom section's rows, without its More rows, when off", () => {
+    expect(visibleSection(spacing, { advanced: false, mode: "custom" }).rows).toEqual(spacing.settings);
+    expect(visibleSection(dynamics, { advanced: false, mode: "custom" }).rows.map((d) => d.key)).toEqual(["vizGain", "vizAutoGain"]);
+  });
+
+  it("shows a locked section as its line only, and a section that never follows as usual", () => {
+    expect(visibleSection(spacing, { advanced: false, mode: "locked" })).toMatchObject({ collapsed: "locked", rows: [] });
+    expect(visibleSection(dynamics, { advanced: false })).toMatchObject({ collapsed: undefined });
+  });
+
+  it("hides the CSS & locks card when off", () => {
+    expect(visibleSection(css, { advanced: false }).hidden).toBe(true);
+    expect(visibleSection(border, { advanced: false }).hidden).toBe(false);
+  });
+
+  it("lists every row inline when on, followed sections included", () => {
+    for (const mode of ["theme", "custom", "locked"] as const)
+      expect(visibleSection(dynamics, { advanced: true, mode })).toEqual({ hidden: false, collapsed: undefined, rows: dynamics.settings });
+    expect(visibleSection(css, { advanced: true }).hidden).toBe(false);
+  });
+
+  it("needs Advanced to reach a More row, a collapsed row or the CSS card, and nothing else", () => {
+    expect(needsAdvanced(dynamics, "vizGain")).toBe(false);
+    expect(needsAdvanced(dynamics, dynamics.settings.find(isMore)!.key)).toBe(true);
+    expect(needsAdvanced(spacing, "padding", "theme")).toBe(true);
+    expect(needsAdvanced(spacing, "padding", "custom")).toBe(false);
+    expect(needsAdvanced(css, undefined)).toBe(true);
+  });
+
+  it("leaves search results alone: every matching More row is listed", () => {
+    const { groups } = searchAll(spotify, "orientation");
+    expect(groups.flatMap((g) => g.section.settings.map((d) => d.key))).toContain("vizOrientation");
   });
 });
 

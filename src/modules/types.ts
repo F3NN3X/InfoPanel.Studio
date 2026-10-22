@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { IslandSourceDef } from "@/lib/island/sources";
+import type { WidgetView } from "@/widgets/core/types";
 
 export type SensorMap = Record<string, SensorValue>;
 
@@ -65,8 +66,8 @@ export const isDeviceKind = (v: string | undefined): v is DeviceKind =>
 export interface ModuleSetting {
   key: string;
   label: string;
-  /** "preset": a bundle of toggles (see `options`); "status": a read-only line about the data source, never stored. */
-  type: "text" | "number" | "select" | "preset" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "thresholds" | "status";
+  /** "preset": a bundle of toggles (see `options`); "status": a read-only line about the data source, never stored; "date": "YYYY-MM-DD"; "time": 24 h "HH:MM" ("" = none). */
+  type: "text" | "date" | "time" | "number" | "select" | "preset" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "thresholds" | "status";
   default: ModuleSettingValue;
   /**
    * A second key the row writes together with `key`: for type "align" the
@@ -199,6 +200,9 @@ export interface DashboardModule {
   tags?: string;
   /** Footprint (cols, rows) a drop gets when larger than the minimum; unset: 3×2 or the minimum. */
   defaultSize?: [number, number];
+  /** The layouts it offers and the key they are stored under (`WidgetMeta.views`, `.viewKey`). */
+  views?: WidgetView[];
+  viewKey?: string;
   /** What the widget sends to the Dynamic Island when its "Send to island" is on (`src/lib/island/sources.ts`). */
   island?: IslandSourceDef;
   /** Whether it draws a header (the inspector's Header section); unset: "yes". */

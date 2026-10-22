@@ -149,11 +149,11 @@ function QuickControl({
     default:
       return (
         <input
-          type="text"
+          type={def.type === "date" || def.type === "time" ? def.type : "text"}
           aria-label={def.label}
           value={String(value)}
           onChange={(e) => write(e.target.value)}
-          className="h-[26px] w-[120px] rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
+          className="h-[26px] w-[120px] rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 outline-none [color-scheme:dark] focus:border-ui-accent"
         />
       );
   }

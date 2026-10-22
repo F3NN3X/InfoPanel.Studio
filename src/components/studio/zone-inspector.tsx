@@ -469,7 +469,6 @@ export function ZoneInspector({
     <InspectorView
       context={context}
       contextKey={context.kind}
-      moreScope={pinType}
       header={header}
       fields={fields}
       visible={(def) => isVisible(def, effective)}

@@ -1,5 +1,6 @@
 import { modules } from "@/modules";
 import { canvasTitle, CARDS_ID, type Placement } from "@/lib/layout";
+import type { WidgetView } from "@/widgets/core/types";
 
 /** A placeable widget: its minimum zone footprint and the Library fields it declares. */
 export interface ModuleMeta {
@@ -13,6 +14,8 @@ export interface ModuleMeta {
   blurb?: string;
   tags?: string;
   defaultSize?: [number, number];
+  views?: WidgetView[];
+  viewKey?: string;
 }
 
 /** Every widget the studio can place, with its minimum zone footprint. */
@@ -28,6 +31,8 @@ export const ALL_MODULES: ModuleMeta[] = [
     blurb: m.blurb,
     tags: m.tags,
     defaultSize: m.defaultSize,
+    views: m.views,
+    viewKey: m.viewKey,
   })),
   { id: CARDS_ID, title: "Other sensors", minCols: 4, minRows: 2 },
 ];
@@ -35,6 +40,8 @@ export const ALL_MODULES: ModuleMeta[] = [
 /** Drag-and-drop payload types for the widget and panel palettes. */
 export const DND_MIME = "text/infopanel-module";
 export const DND_MIME_PANEL = "text/infopanel-panel";
+/** The settings a widget's view adds it with (JSON), beside its `DND_MIME` id. */
+export const DND_MIME_SETTINGS = "text/infopanel-module-settings";
 
 /** A module's minimum zone size (grid cells); unknown ids get 2×1. */
 export function moduleMinSize(module: string): { cols: number; rows: number } {

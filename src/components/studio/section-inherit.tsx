@@ -5,6 +5,7 @@ import type { SectionId } from "@/lib/theme-model";
 import { InheritChip, InheritLockNote, type MakeThemeTarget } from "./inherit-chip";
 import { customiseInheritance, inheritanceJump, resetInheritance } from "./inheritance-actions";
 import type { SectionInherit } from "./inspector/inspector-view";
+import type { FollowMode } from "./inspector-model";
 import type { InheritanceContext } from "./use-inheritance";
 
 const LINK = "rounded-sm text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent";
@@ -45,6 +46,10 @@ function ActionLine({ state, level, onReset, onCustomise, onJump }: { state: Inh
     </p>
   );
 }
+
+/** A chip state as the widget's follow mode (inherited is following the theme; base and built-in are editable). */
+const followMode = (state: Inheritance["state"]): FollowMode =>
+  state === "inherited" ? "theme" : state === "locked" ? "locked" : "custom";
 
 /** ⌫ on a custom section resets it, unless the user is typing. */
 const resetKey = (state: Inheritance["state"], reset: () => void): SectionInherit["onKeyDown"] =>
@@ -106,6 +111,8 @@ export function sectionInherit({ sections, title, scope, alsoScopes = [], ctx, o
     note: main.state === "locked" && states.some((s) => s.keptOverride) ? <InheritLockNote holder={holder} section={title} /> : undefined,
     actions: <ActionLine state={main.state} level={level} onReset={reset} onCustomise={customise} onJump={main.state === "locked" || main.from ? jump : undefined} />,
     onKeyDown: resetKey(main.state, reset),
+    mode: followMode(main.state),
+    onCustomise: customise,
   };
 }
 
@@ -137,5 +144,7 @@ export function itemSectionInherit({ mode, panelName, onCustomise, onUseTheme }:
     ),
     actions: <ActionLine state={state} level={level} onReset={onUseTheme} onCustomise={onCustomise} onJump={mode === "locked" ? onEditLock : undefined} />,
     onKeyDown: resetKey(state, onUseTheme),
+    mode,
+    onCustomise,
   };
 }

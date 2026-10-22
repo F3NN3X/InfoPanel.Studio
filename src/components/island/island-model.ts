@@ -97,6 +97,12 @@ export function islandReserve(island: IslandConfig | undefined, page: { width: n
   return islandTop(island) + scaled(IDLE[size], island.scale / 100).height + 8;
 }
 
+/** The width the island takes at rest at the top centre of the page, px (0 without an enabled island, or one that shows nothing at rest). */
+export function islandIdleWidth(island: IslandConfig | undefined, page: { width: number; height: number }): number {
+  if (!island?.enabled || island.idle === "hidden") return 0;
+  return islandBox(island.idle === "line" ? "line" : "idle", fitIslandSize(island.size, page, island.scale), island).width;
+}
+
 /** One view in the idle slot beside the time: the date, one live value, or the next event. */
 export type IdleView = { kind: "date" } | { kind: "stat"; index: number } | { kind: "event" };
 

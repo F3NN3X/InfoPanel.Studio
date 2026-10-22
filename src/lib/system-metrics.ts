@@ -43,6 +43,8 @@ export interface DiskReading {
   used?: number;
   /** °C; absent when unreadable. */
   temp?: number;
+  /** Total activity, percent. */
+  activity?: number;
   /** KB/s. */
   read?: number;
   /** KB/s. */
@@ -53,6 +55,15 @@ export interface DiskReading {
   total?: number;
   /** GB. */
   free?: number;
+}
+
+/** One network adapter (`libre.<id>_download_speed`); speeds as stored, bytes per second (NaN when missing). */
+export interface AdapterReading {
+  /** The key slug, e.g. "wifi". */
+  id: string;
+  name: string;
+  down: number;
+  up: number;
 }
 
 export interface SystemReadings {
@@ -196,6 +207,7 @@ function readDisks(sensors: SensorMap, keys: string[]): DiskReading[] {
         name: hardwareName(sensors[key], /\s*Used Space$/i) ?? id.replace(/^libre\./, ""),
         used: num(sensors[key]),
         temp: live(tempKey ? sensors[tempKey] : get("composite_temperature")),
+        activity: num(get("total_activity")),
         read: num(get("read_rate")),
         write: num(get("write_rate")),
         life: num(get("life")),
@@ -203,6 +215,16 @@ function readDisks(sensors: SensorMap, keys: string[]): DiskReading[] {
         free: num(get("free_space")),
       };
     });
+}
+
+/** Network adapters, one per `libre.<id>_download_speed`, in the data's key order. */
+export function readAdapters(sensors: SensorMap): AdapterReading[] {
+  return Object.keys(sensors).flatMap((k) => {
+    const id = /^libre\.(.+)_download_speed$/.exec(k)?.[1];
+    if (id === undefined) return [];
+    const up = num(sensors[`libre.${id}_upload_speed`]);
+    return [{ id, name: hardwareName(sensors[k], /\s*Download Speed$/i) ?? id, down: num(sensors[k]) ?? NaN, up: up ?? NaN }];
+  });
 }
 
 /** Lower case with punctuation as spaces, so "WDS100T2B0A-00SM50" matches the slug name "wds100t2b0a_00sm50". */
@@ -290,12 +312,59 @@ export function readSystem(sensors: SensorMap): SystemReadings {
   };
 }
 
+/** What the Graphs / Gauges views show for a drive. */
+export type DiskValue = "activity" | "used" | "rate";
+/** Which way of an adapter's traffic. */
+export type NetDirection = "down" | "up" | "both";
+/** Bytes per second in one megabit per second. */
+export const MBPS = 125_000;
+
+/** The drive picked by `pick` (a key slug; "" = the first detected, as the drive picker's Auto says), among the already filtered `disks`. */
+export function pickDisk(disks: DiskReading[], pick = ""): DiskReading | undefined {
+  return pick ? disks.find((d) => d.id === `libre.${pick}` || d.id === pick) : disks[0];
+}
+
+/** The adapter picked by `pick` (an id; "" = the busiest by download speed). */
+export function pickAdapter(adapters: AdapterReading[], pick = ""): AdapterReading | undefined {
+  if (pick) return adapters.find((a) => a.id === pick);
+  return adapters.reduce<AdapterReading | undefined>((best, a) => (!best || (Number.isFinite(a.down) ? a.down : -1) > (Number.isFinite(best.down) ? best.down : -1) ? a : best), undefined);
+}
+
+/** A drive's reading: activity or used as percent, rate as read + write (as stored); NaN when it has none. */
+export function diskMetric(d: DiskReading, kind: DiskValue): number {
+  if (kind === "used") return d.used ?? NaN;
+  if (kind === "rate") return d.read === undefined && d.write === undefined ? NaN : (d.read ?? 0) + (d.write ?? 0);
+  return d.activity ?? NaN;
+}
+
+/** An adapter's traffic in one direction (both = the sum), bytes per second. */
+export function netMetric(a: AdapterReading, dir: NetDirection): number {
+  if (dir === "down") return a.down;
+  if (dir === "up") return a.up;
+  return Number.isFinite(a.down) || Number.isFinite(a.up) ? (Number.isFinite(a.down) ? a.down : 0) + (Number.isFinite(a.up) ? a.up : 0) : NaN;
+}
+
+/** A gauge / graph's top for a rate: `max` Mbps when set above 0, else the history's peak (never under `floor`, bytes per second). */
+export function rateTop(history: readonly number[], maxMbps = 0, floor = MBPS): number {
+  if (maxMbps > 0) return maxMbps * MBPS;
+  return Math.max(floor, ...history.filter(Number.isFinite));
+}
+
 /** `"62.5 %"` → value 62.5, unit "%"; text without a leading number has no value. */
 function unflatten(raw: string): SensorValue {
   const cut = raw.indexOf(" ");
   const head = cut < 0 ? raw : raw.slice(0, cut);
   const value = Number(head);
   return /^-?\d+(\.\d+)?(e-?\d+)?$/i.test(head) ? { value, unit: cut < 0 ? "" : raw.slice(cut + 1) } : { text: raw, unit: "" };
+}
+
+/** The flat data's libre / system keys as sensors. */
+function flatSensors(data: Record<string, string | { value: string }>, names?: Record<string, string>): SensorMap {
+  const sensors: SensorMap = {};
+  for (const [key, v] of Object.entries(data)) {
+    if (key.startsWith("libre.") || key.startsWith("system.")) sensors[key] = { ...unflatten(typeof v === "object" ? v.value : v), name: names?.[key] };
+  }
+  return sensors;
 }
 
 const flatCache = new WeakMap<object, { names?: Record<string, string>; readings: SystemReadings }>();
@@ -308,11 +377,10 @@ const flatCache = new WeakMap<object, { names?: Record<string, string>; readings
 export function readSystemFlat(data: Record<string, string | { value: string }>, names?: Record<string, string>): SystemReadings {
   const hit = flatCache.get(data);
   if (hit && hit.names === names) return hit.readings;
-  const sensors: SensorMap = {};
-  for (const [key, v] of Object.entries(data)) {
-    if (key.startsWith("libre.") || key.startsWith("system.")) sensors[key] = { ...unflatten(typeof v === "object" ? v.value : v), name: names?.[key] };
-  }
-  const readings = readSystem(sensors);
+  const readings = readSystem(flatSensors(data, names));
   flatCache.set(data, { names, readings });
   return readings;
 }
+
+/** The network adapters from the templates' flat data (data order). */
+export const readAdaptersFlat = (data: Record<string, string | { value: string }>, names?: Record<string, string>): AdapterReading[] => readAdapters(flatSensors(data, names));

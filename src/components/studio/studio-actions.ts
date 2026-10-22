@@ -60,7 +60,7 @@ function appendAtFreeSlot(
   return { ...profile, placements: [...profile.placements, make(pos)] };
 }
 
-function zoneAt(id: string, module: string, rect: ZoneRect): Placement {
+function zoneAt(id: string, module: string, rect: ZoneRect, settings?: ModuleSettings): Placement {
   return {
     id,
     module,
@@ -69,6 +69,7 @@ function zoneAt(id: string, module: string, rect: ZoneRect): Placement {
     colSpan: rect.cols,
     rowSpan: rect.rows,
     visible: true,
+    ...(settings ? { settings: { ...settings } } : {}),
   };
 }
 
@@ -114,14 +115,15 @@ export function addPresetPlacement(
   );
 }
 
-/** Add a module widget in an explicit box (a library drop; the caller checked it fits). */
+/** Add a module widget in an explicit box (a library drop; the caller checked it fits), with a view's settings when given. */
 export function addModuleAt(
   profile: ProfileView,
   id: string,
   module: string,
-  rect: ZoneRect
+  rect: ZoneRect,
+  settings?: ModuleSettings
 ): ProfileView {
-  return { ...profile, placements: [...profile.placements, zoneAt(id, module, rect)] };
+  return { ...profile, placements: [...profile.placements, zoneAt(id, module, rect, settings)] };
 }
 
 /** Add a panel preset in an explicit box (a library drop; the caller checked it fits). */
@@ -383,18 +385,19 @@ function growTo(profile: ProfileView, p: Placement, min: Size) {
   return { colStart: r.col, rowStart: r.row, colSpan: r.cols, rowSpan: r.rows };
 }
 
-/** Assign a module to a zone, growing it to the module's minimum size. */
+/** Assign a module to a zone, growing it to the module's minimum size; its settings are cleared, or set to `settings` (a view's). */
 export function assignModule(
   profile: ProfileView,
   id: string,
   module: string,
-  minSize: Size
+  minSize: Size,
+  settings?: ModuleSettings
 ): ProfileView {
   return updatePlacement(profile, id, (p) => ({
     ...p,
     module,
     panel: undefined,
-    settings: undefined,
+    settings: settings ? { ...settings } : undefined,
     ...growTo(profile, p, minSize),
   }));
 }

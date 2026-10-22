@@ -17,6 +17,7 @@ import {
   ownStyle,
   pasteStyleToZones,
   withSampleZones,
+  addModuleAt,
   addModulePlacement,
   addPresetPlacement,
   assignModule,
@@ -130,6 +131,14 @@ const saved = userPanelPreset({
   settings: { label: "Mine", surface: "glass", accent: "#ff0000" },
 });
 
+describe("addModuleAt", () => {
+  const rect = { col: 2, row: 1, cols: 3, rows: 2 };
+  it("adds the zone at the box, with no settings unless a view's are given", () => {
+    expect(addModuleAt(profile([]), "w", "Weather", rect).placements[0]).toEqual({ id: "w", module: "Weather", colStart: 2, rowStart: 1, colSpan: 3, rowSpan: 2, visible: true });
+    expect(addModuleAt(profile([]), "w", "Weather", rect, { view: "minimal" }).placements[0].settings).toEqual({ view: "minimal" });
+  });
+});
+
 describe("addPresetPlacement", () => {
   it("appends a panel placement built by the preset, migrated (title → label; the card stays a render-time layer)", () => {
     const after = addPresetPlacement(profile([]), "pnl", preset(6, 3));
@@ -227,6 +236,11 @@ describe("widget assignment", () => {
       panel: undefined,
       settings: undefined,
     });
+  });
+
+  it("sets a view's settings in place of the old ones when given", () => {
+    const before = profile([zone("a", 1, 1, 2, 1, { settings: { x: 1 } })]);
+    expect(assignModule(before, "a", "Weather", { cols: 1, rows: 1 }, { view: "now", showForecast: false }).placements[0].settings).toEqual({ view: "now", showForecast: false });
   });
 
   it("keeps the zone's box when growing would cover a neighbour", () => {

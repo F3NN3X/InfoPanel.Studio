@@ -12,6 +12,11 @@ export const meta: WidgetMeta = {
   blurb: "Status of every data source",
   tags: "plugins sources status",
   description: "One status board for every data source: Data API, LibreHW, RTSS, Wave Link, Spotify, media, Steam, weather, network.",
+  viewKey: "healthLayout",
+  views: [
+    { id: "list", name: "List" },
+    { id: "pills", name: "Pills", blurb: "Every data source as a status pill", tags: "chips badges compact" },
+  ],
 };
 
 export interface ServiceHealthProps extends ShellProps {

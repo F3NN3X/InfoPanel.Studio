@@ -5,7 +5,7 @@ import { styleSubsetSettings } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting } from "@/modules/types";
 import { templateModule, type TemplateOptions } from "../module";
 import { INSPECTOR_META } from "./inspector-meta";
-import { boolOf, boolSetting, colorSetting, numberOf, numberSetting, stringOf, textSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, numberOf, numberSetting, stringOf, textSetting, viewSetting } from "./settings-kit";
 import Bluetooth, { meta as bluetoothMeta, type BluetoothProps } from "../Bluetooth";
 import Departures, { meta as departuresMeta, type DeparturesProps } from "../Departures";
 import Notifications, { meta as notificationsMeta, type NotificationsProps } from "../Notifications";
@@ -63,19 +63,7 @@ export const departuresOptions: TemplateOptions<Pick<DeparturesProps, "showStatu
 
 /** `view` is a preset: it sets the three toggles (each view sets all three), as the legacy widget did; changed afterwards, the row reads Custom. */
 export const BLUETOOTH_SETTINGS: ModuleSetting[] = [
-  {
-    key: "view",
-    label: "Preset",
-    type: "preset",
-    default: "full",
-    options: [
-      { value: "full", label: "Status + devices", applies: { showStatus: true, showDevices: true, showBattery: true } },
-      { value: "devices", label: "Devices + battery", applies: { showStatus: false, showDevices: true, showBattery: true } },
-      { value: "status", label: "Status only", applies: { showStatus: true, showDevices: false, showBattery: false } },
-    ],
-    group: "Display",
-    hint: "Sets the three toggles below. Change one and the preset reads Custom.",
-  },
+  viewSetting(bluetoothMeta, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
   boolSetting("showStatus", "Bluetooth status", true, { group: "Display" }),
   boolSetting("showDevices", "Paired devices", true, { group: "Display" }),
   boolSetting("showBattery", "Battery levels", true, { group: "Display" }),

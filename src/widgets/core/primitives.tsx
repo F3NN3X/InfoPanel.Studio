@@ -12,6 +12,7 @@ import { labelStyle, ws } from "@/components/widget-style";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useTick } from "@/hooks/use-tick";
 import { alternate } from "@/lib/curves";
+import { appIconName, weatherKind } from "@/lib/weather-icons";
 import { RangeEaser, SmoothScroll, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN } from "./layout";
 import { scaleX, slideX } from "./motion";
@@ -64,20 +65,22 @@ export interface BarProps {
   className?: string;
   track?: string;
   style?: string;
+  /** Cells of the segments / blocks styles (default 24 / 14). */
+  segments?: number;
 }
 /** How long a smooth bar or ring glides to a new reading: about one sample interval of the feed. */
 const GLIDE_MS = 1000;
 /** A ring glide is a main-thread repaint every frame, so it is kept short. */
 const RING_GLIDE_MS = 300;
 
-export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle }: BarProps) {
+export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments }: BarProps) {
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
   // Smooth graph updates: glide linearly over about one sample interval instead of easing.
   const glide = sk.smooth ? { transition: `transform ${GLIDE_MS}ms linear` } : null;
   if (m === "segments" || m === "blocks") {
-    const n = m === "blocks" ? 14 : 24,
+    const n = segments ?? (m === "blocks" ? 14 : 24),
       lit = Math.round((pct / 100) * n);
     return (
       <div className={cn("flex w-full gap-[2px]", className)}>
@@ -153,21 +156,43 @@ export interface RingProps {
   t?: Tone;
   /** Stroke colour; replaces the tone's. */
   color?: string;
+  /** Track colour (default `--w-track`). */
+  track?: string;
+  /** Degrees of the arc (default 360, a full ring); less leaves the gap at the bottom. */
+  sweep?: number;
   children?: ReactNode;
   className?: string;
 }
-export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, children, className = "" }: RingProps) {
+export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, track, sweep = 360, children, className = "" }: RingProps) {
   const sk = useSkin();
   const thickness = Math.max(1.5, th0 * (sk.ring ?? 1));
   const r = 50 - thickness / 2,
     c = 2 * Math.PI * r,
     pct = clamp(value / max, 0, 1);
+  const cap = sk.skin === "hud" || sk.skin === "tui" ? "butt" : "round";
+  const glide = sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined;
+  if (sweep < 360) {
+    // an open arc centred on the top: it starts `sweep / 2` before 12 o'clock (the svg is already turned to start there)
+    const arc = (c * clamp(sweep, 1, 360)) / 360;
+    return (
+      <div className={`relative aspect-square ${className}`}>
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <g transform={`rotate(${-sweep / 2} 50 50)`}>
+            <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} strokeLinecap={cap} strokeDasharray={`${arc} ${c}`} />
+            <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
+              strokeDasharray={`${arc * pct} ${c}`} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} />
+          </g>
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className={`relative aspect-square ${className}`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--w-track)" strokeWidth={thickness} />
-        <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={sk.skin === "hud" || sk.skin === "tui" ? "butt" : "round"}
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={glide} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
@@ -513,17 +538,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
   );
 }
 // Weather condition text / icon slug → Material Symbols name (Yr + OpenWeatherMap)
-export const weatherIcon = (text = ""): string => {
-  const s = String(text).toLowerCase();
-  if (/thunder/.test(s)) return "thunderstorm";
-  if (/snow|sleet/.test(s)) return "weather_snowy";
-  if (/rain|drizzle|shower/.test(s)) return "rainy";
-  if (/fog|mist/.test(s)) return "foggy";
-  if (/partly|fair/.test(s)) return /night/.test(s) ? "partly_cloudy_night" : "partly_cloudy_day";
-  if (/cloud/.test(s)) return "cloud";
-  if (/clear|sun/.test(s)) return /night/.test(s) ? "clear_night" : "clear_day";
-  return "partly_cloudy_day";
-};
+export const weatherIcon = (text = ""): string => appIconName(weatherKind(undefined, text));
 // Slow pan/zoom background image (stepped on the shared ticker: Max FPS caps it, reduced motion stops it)
 export function KenBurns({ src, className = "", on = true }: { src?: string; className?: string; on?: boolean }) {
   const ref = useRef<HTMLDivElement | null>(null);

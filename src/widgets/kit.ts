@@ -14,4 +14,5 @@ export * from "./core/motion";
 export * from "./core/ballistics";
 export * from "./core/media-progress";
 export * from "./core/views";
+export * from "./core/weather-icon";
 export * from "./core/Widget";

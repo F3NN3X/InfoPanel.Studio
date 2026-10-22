@@ -6,6 +6,50 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.13] - 2026-10-22
+
+### Added
+- **Status Bar widget.** A one-row bar with a left, a centre and a right slot, each holding any of the logo or your
+  own text, date, time, weather, CPU / GPU / memory, temperatures, download / upload, disk, network, volume, battery,
+  now playing and uptime; an item with no data is left out. Three views, each its own entry in the Add panel: Edge,
+  Pill and Islands. It leaves a gap at the page centre for the Dynamic Island, with the centre items split around it,
+  and drops items from the outer ends when the bar is narrow.
+- **Weather: animated backgrounds.** An opt-in rain, snow, hail, thunder, fog, cloud, wind, sun, or moon and stars
+  effect behind every Weather view, based on [web-weather](https://github.com/greywen/web-weather) by greywen (MIT).
+  Settings: Intensity, Particles, Speed, Wind, Lightning, Clouds and fog, Strength, and Show to preview a condition.
+  It uses more CPU, GPU and memory on the kiosk, follows Max FPS and stops with reduced motion. There is no sound.
+- **Weather: Glance and Week views, and Meteocons icons.** Glance is a big icon with the temperature, condition and
+  place; Week lists Today and the next days, each with an icon, high and low. Weather and Forecast can now draw
+  [Meteocons](https://github.com/basmilius/meteocons) (MIT) in Fill, Flat, Line or Monochrome instead of the app
+  icons, picked from the provider's icon code before the description, with optional animation. Animated icons use
+  more CPU and memory on the kiosk, and run outside the Max FPS cap. App icons stay the default.
+- **Coding Agents: Summary and Limits views.** Two more layouts, each its own entry in the Add panel: Summary lists the
+  plan limits with their reset times, today's tokens and the sessions with a short status; Limits is the limit bars
+  alone, larger. Per-model weekly limits and the Claude Code version show when the statusline reports them.
+- **Countdown widget.** Counts down to an event, or up from it: pick a date (and optionally a time), an event name,
+  whether to count until, since or automatically, and a breakdown of days, years or live seconds. Three views, each its
+  own entry in the Add panel: Inline, Tiles and Big number. Settings gain native date and time pickers.
+- **Drive Space: Segments and Bars views.** Two more layouts, each its own entry in the Add panel: one row per drive
+  with its icon, name, used / total and a segmented or slim fill bar that turns warn and critical past the
+  thresholds. The List view is unchanged.
+- **System Overview: Graphs and Gauges views.** Two more layouts, each its own entry in the Add panel: Graphs draws a
+  sparkline row per metric, Gauges open-arc dials. Both follow the chosen sections and colours; pick which drive (and
+  whether it shows activity, used space or read + write) and which network adapter (down, up or both, with an optional
+  top speed in Mbps) they read.
+- **Widget views in the Add panel.** Widgets with several layouts list each as its own entry (Weather · Forecast,
+  Game Spotlight · Ticker, Now Playing · Vinyl, …), which adds the widget with that view already picked.
+
+### Changed
+- **Advanced switch in widget settings.** The inspector now hides what most people never touch: sections that follow
+  the theme collapse to "Follows theme" with a Customise button, the "More" rows and the CSS & locks card stay
+  out of the way, and one Advanced switch (also under Settings > Studio) shows everything inline.
+
+### Fixed
+- The FPS Monitor's and Frame Pacing's frame-time graphs read like an FPS graph: a drop or a stutter now dips
+  instead of peaking, and Frame Pacing's refresh-rate lines sit where those frame rates fall.
+- Starting the app, or opening the studio from the taskbar or tray, no longer flashes a white window before the
+  studio appears.
+
 ## [1.3.0-beta.12] - 2026-10-22
 
 ### Changed

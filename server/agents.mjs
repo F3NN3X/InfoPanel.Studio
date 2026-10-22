@@ -207,14 +207,27 @@ const window_ = (w) => {
 
 /**
  * A Claude Code statusline payload into the plan and the session's context and cost:
- * `rate_limits.five_hour` / `seven_day`, `context_window.used_percentage`, `cost.total_cost_usd`.
+ * `rate_limits.five_hour` / `seven_day` (and any `seven_day_<name>`), the Claude Code `version`, `context_window.used_percentage`, `cost.total_cost_usd`.
  */
 export function reduceStatusline(state, payload, now) {
   if (typeof payload !== "object" || payload === null) return state;
   const rl = payload.rate_limits ?? {};
   const fiveHour = window_(rl.five_hour);
   const sevenDay = window_(rl.seven_day);
-  const plan = fiveHour || sevenDay ? { ...state.plan, claude: { ...(fiveHour ? { fiveHour } : {}), ...(sevenDay ? { sevenDay } : {}), at: now } } : state.plan;
+  // Any other weekly window (a per-model one) by its key's suffix.
+  const extra = Object.entries(typeof rl === "object" && rl !== null ? rl : {}).flatMap(([k, w]) => {
+    const name = k.startsWith("seven_day_") ? str(k.slice("seven_day_".length), 30) : "";
+    const win = name ? window_(w) : undefined;
+    return win ? [{ name, ...win }] : [];
+  });
+  const version = str(payload.version, 20);
+  const prev_ = state.plan.claude;
+  const plan =
+    fiveHour || sevenDay || extra.length
+      ? { ...state.plan, claude: { ...(fiveHour ? { fiveHour } : {}), ...(sevenDay ? { sevenDay } : {}), ...(extra.length ? { extra } : {}), ...(version || prev_?.version ? { version: version || prev_.version } : {}), at: now } }
+      : version && version !== prev_?.version
+        ? { ...state.plan, claude: { ...prev_, version, at: prev_?.at ?? now } }
+        : state.plan;
   const id = str(payload.session_id, 100);
   const key = `claude:${id}`;
   const prev = id ? state.sessions[key] : undefined;

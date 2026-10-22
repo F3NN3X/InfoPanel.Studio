@@ -2,6 +2,7 @@ import { NO_PAN, type PanOffset } from "./use-hand-pan";
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -28,6 +29,7 @@ import {
   zoneBox,
 } from "@/lib/profile-grid";
 import { useGeneral } from "@/hooks/use-general";
+import { PageIslandProvider } from "@/hooks/use-page-island";
 import { cn } from "@/lib/utils";
 import { PlacementFrame } from "./placement-frame";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
@@ -429,6 +431,7 @@ export function StudioCanvas({
   const gap = profileGap(profile);
   const padding = profilePadding(profile, true);
   const islandPage = { width: profile.width, height: profile.height };
+  const pageIsland = useMemo(() => ({ island: profile.island?.enabled ? profile.island : undefined, page: { width: profile.width, height: profile.height } }), [profile.island, profile.width, profile.height]);
   /** "Reserve space": the zones start under the island, as on the kiosk. */
   const reserve = islandReserve(profile.island, islandPage);
   const fill = profile.fit === "fill" && profile.height > 0;
@@ -472,6 +475,7 @@ export function StudioCanvas({
   const selected = profile.placements.find((x) => x.id === primaryId);
 
   return (
+    <PageIslandProvider value={pageIsland}>
     <div className="relative flex min-h-0 flex-1 flex-col bg-ui-app">
       <div
         className="relative min-h-0 flex-1"
@@ -738,5 +742,6 @@ export function StudioCanvas({
         </div>
       )}
     </div>
+    </PageIslandProvider>
   );
 }

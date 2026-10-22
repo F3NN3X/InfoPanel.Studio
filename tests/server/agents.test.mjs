@@ -137,6 +137,19 @@ describe("plan and context", () => {
     expect(reduceStatusline(s, { session_id: "s1" }, 10).plan).toBe(s.plan);
   });
 
+  it("reads per-model weekly windows and the Claude Code version", () => {
+    let s = reduceStatusline(emptyAgents(), { version: "2.1.220", rate_limits: { five_hour: { used_percentage: 10 }, seven_day_opus: { used_percentage: 55, resets_at: 1_760_000_000 }, seven_day_sonnet: "junk", seven_day_x: {}, other: { used_percentage: 5 } } }, 9);
+    expect(s.plan.claude).toEqual({ fiveHour: { used: 10 }, extra: [{ name: "opus", used: 55, resetsAt: 1_760_000_000_000 }], version: "2.1.220", at: 9 });
+    expect(publicAgents(s).plan.claude).toMatchObject({ extra: [{ name: "opus" }], version: "2.1.220" });
+    // No extra windows: no `extra`.
+    expect(reduceStatusline(emptyAgents(), { rate_limits: { five_hour: { used_percentage: 10 } } }, 1).plan.claude).not.toHaveProperty("extra");
+    // The version alone still updates, keeping the plan's time; a later payload without one keeps it.
+    s = reduceStatusline(s, { version: "2.1.221" }, 20);
+    expect(s.plan.claude).toMatchObject({ fiveHour: { used: 10 }, version: "2.1.221", at: 9 });
+    expect(reduceStatusline(s, { rate_limits: { five_hour: { used_percentage: 11 } } }, 30).plan.claude).toMatchObject({ version: "2.1.221", at: 30 });
+    expect(reduceStatusline(emptyAgents(), { version: "2.1.220" }, 5).plan.claude).toEqual({ version: "2.1.220", at: 5 });
+  });
+
   it("reads Codex's primary and secondary windows", () => {
     const s = codexPlan(emptyAgents(), { primary: { used_percent: 12.5, window_minutes: 300, resets_at: 1_760_000_000 }, secondary: { used_percent: 3, window_minutes: 10080 } }, 5);
     expect(s.plan.codex).toEqual({ fiveHour: { used: 12.5, resetsAt: 1_760_000_000_000 }, sevenDay: { used: 3 }, at: 5 });

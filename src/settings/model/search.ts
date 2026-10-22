@@ -87,6 +87,7 @@ export const PREFERENCES_INDEX: SearchEntry<PageId>[] = [
   { row: "danger", label: "Reset everything", section: "dashboard" },
   { row: "editor", label: "Quick bar", section: "studio" },
   { row: "editor", label: "Inspector sections", section: "studio" },
+  { row: "editor", label: "Advanced settings", section: "studio" },
   { row: "editor", label: "Default zoom", section: "studio" },
   { row: "editor", label: "Show grid", section: "studio" },
   { row: "editor", label: "Show rulers", section: "studio" },

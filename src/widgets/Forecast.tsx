@@ -1,5 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, rows, Icon, weatherIcon, type ShellProps, type WidgetMeta } from "./kit";
+import { weatherKind } from "@/lib/weather-icons";
+import { Widget, shell, get, num, fmt, rows, WeatherGlyph, weatherIcon, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "Forecast",
@@ -31,6 +32,10 @@ export interface ForecastProps extends ShellProps {
   /** Default: as many as fit. */
   days?: number;
   units?: "C" | "F";
+  /** The icon set: the app's own or Meteocons, with the Meteocons style and whether they animate. */
+  iconSet?: WeatherIconProps["set"];
+  iconStyle?: WeatherIconProps["style"];
+  iconAnimated?: boolean;
 }
 
 export default function Forecast(p: ForecastProps) {
@@ -46,6 +51,7 @@ export default function Forecast(p: ForecastProps) {
     hi = Math.max(...fc.map((f) => f.hi)),
     span = hi - lo || 1;
   const first = fc[0];
+  const glyph = (cond: string, className: string) => <WeatherGlyph {...weatherKind("", cond)} set={p.iconSet} style={p.iconStyle} animated={p.iconAnimated} className={className} />;
   // The hi/lo range bar; called as a function so nothing is defined during render.
   const range = (f: Day, vertical?: boolean) => (
     <div className={`relative rounded-full bg-[color:var(--w-track)] ${vertical ? "h-1.5 flex-1" : "h-full w-1.5"}`}>
@@ -77,7 +83,7 @@ export default function Forecast(p: ForecastProps) {
               {fc.slice(0, p.days ?? Math.max(1, Math.floor(h / 34))).map((f, i) => (
                 <li key={i} className={`grid items-center text-xs ${narrow ? "gap-1" : "gap-2"}`} style={{ gridTemplateColumns: narrow ? "minmax(0,1fr) 18px auto" : w < 200 ? "36px 20px minmax(0,1fr) 32px" : "34px 22px 28px minmax(0,1fr) 28px" }} title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
                   <span className="truncate text-[color:var(--w-muted)]">{i === 0 ? "Tmrw" : f.day}</span>
-                  <Icon name={weatherIcon(f.cond)} className="text-lg text-[color:var(--w-fg)]" />
+                  {glyph(f.cond, "text-lg text-[color:var(--w-fg)]")}
                   {w >= 200 && <span className="text-right tabular-nums text-[color:var(--w-faint)]">{fmt(f.lo, 0)}°</span>}
                   {!narrow && range(f, true)}
                   <span className="font-medium tabular-nums">{fmt(f.hi, 0)}°</span>
@@ -94,7 +100,7 @@ export default function Forecast(p: ForecastProps) {
                 <div key={i} className="flex min-w-0 flex-col items-center gap-0.5" title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
                   {h >= 34 && <span className="text-[11px] leading-[14px] text-[color:var(--w-muted)]">{i === 0 ? "Tmrw" : f.day}</span>}
                   <span className="flex min-w-0 items-center gap-1 text-xs leading-4">
-                    <Icon name={weatherIcon(f.cond)} className="shrink-0 text-base text-[color:var(--w-fg)]" />
+                    {glyph(f.cond, "shrink-0 text-base text-[color:var(--w-fg)]")}
                     <span className="truncate tabular-nums">
                       <b className="font-semibold">{fmt(f.hi, 0)}°</b>
                       <span className="text-[color:var(--w-faint)]">/{fmt(f.lo, 0)}°</span>
@@ -109,7 +115,7 @@ export default function Forecast(p: ForecastProps) {
             {fc.slice(0, n).map((f, i) => (
               <div key={i} className="flex min-h-0 flex-col items-center gap-1.5" title={`${f.cond} · ${f.rain} mm · ${f.wind}`}>
                 <span className="text-[11px] text-[color:var(--w-muted)]">{i === 0 ? "Tmrw" : f.day}</span>
-                <Icon name={weatherIcon(f.cond)} className={`${h > 200 ? "text-3xl" : "text-xl"} text-[color:var(--w-fg)]`} />
+                {glyph(f.cond, `${h > 200 ? "text-3xl" : "text-xl"} text-[color:var(--w-fg)]`)}
                 <span className="text-xs font-semibold tabular-nums">{fmt(f.hi, 0)}°</span>
                 {h > 150 && <div className="flex min-h-[16px] flex-1 justify-center">{range(f)}</div>}
                 <span className="text-[11px] tabular-nums text-[color:var(--w-faint)]">{fmt(f.lo, 0)}°</span>

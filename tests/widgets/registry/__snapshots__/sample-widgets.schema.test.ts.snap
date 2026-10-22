@@ -616,6 +616,15 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
     {
       "Drives": [
         "diskFilter",
+        "diskPick",
+        "diskValue",
+      ],
+    },
+    {
+      "Network": [
+        "netAdapter",
+        "netDirection",
+        "netMax",
       ],
     },
     {
@@ -634,6 +643,7 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
     },
     {
       "Sections": [
+        "view",
         "sections",
         "details",
         "ring",
@@ -884,6 +894,26 @@ exports[`Weather > files its rows as drawn 1`] = `
         "showFeels",
         "showForecast",
         "forecastDays",
+      ],
+    },
+    {
+      "Icons": [
+        "iconSet · per widget",
+        "iconStyle · per widget",
+        "iconAnimated · per widget",
+      ],
+    },
+    {
+      "Background": [
+        "fxOn · per widget",
+        "fxIntensity · per widget",
+        "fxDensity · per widget",
+        "fxSpeed · per widget",
+        "fxWind · per widget",
+        "fxLightning · per widget",
+        "fxClouds · per widget",
+        "fxOpacity · per widget",
+        "fxPreview · per widget",
       ],
     },
     {

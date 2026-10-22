@@ -2,7 +2,7 @@ import { BLANK_MODULE, CARDS_ID, type PanelDef } from "@/lib/layout";
 import type { UserPanelPreset } from "@/lib/panel-model";
 import { allPanelPresets, type PanelPreset } from "@/lib/panelPresets";
 import type { LibraryItem } from "./drop-ghost";
-import { ALL_MODULES } from "./studio-modules";
+import { ALL_MODULES, type ModuleMeta } from "./studio-modules";
 
 /**
  * The Add panel's catalog (handoff SPEC §3): every widget, panel and layout as one row shape, with search
@@ -76,27 +76,56 @@ function defaultSize(def: [number, number] | undefined, mw: number, mh: number):
   return [Math.max(w, mw), Math.max(h, mh)];
 }
 
-function widgetItems(): AddItem[] {
-  return ALL_MODULES.map((m) => {
-    const [w, h] = defaultSize(m.defaultSize, m.minCols, m.minRows);
-    const description = m.description ?? (m.id === CARDS_ID ? "Every sensor no other widget shows, as cards." : "");
-    return {
-      kind: "widget",
-      id: m.id,
-      name: m.title,
-      icon: m.icon,
-      category: m.category && m.category !== "All" ? m.category : "Generic",
-      w,
-      h,
-      mw: m.minCols,
-      mh: m.minRows,
-      blurb: m.blurb ?? (firstSentence(description) || "Widget"),
-      tags: m.tags ?? "",
-      description,
-      drop: { kind: "module", id: m.id },
-    };
-  });
+/** A widget's row, then one per further view (`Name · View`, added with that view set); the first view is the widget's own row. */
+function moduleItems(m: ModuleMeta): AddItem[] {
+  const [w, h] = defaultSize(m.defaultSize, m.minCols, m.minRows);
+  const description = m.description ?? (m.id === CARDS_ID ? "Every sensor no other widget shows, as cards." : "");
+  const item: AddItem = {
+    kind: "widget",
+    id: m.id,
+    name: m.title,
+    icon: m.icon,
+    category: m.category && m.category !== "All" ? m.category : "Generic",
+    w,
+    h,
+    mw: m.minCols,
+    mh: m.minRows,
+    blurb: m.blurb ?? (firstSentence(description) || "Widget"),
+    tags: m.tags ?? "",
+    description,
+    drop: { kind: "module", id: m.id },
+  };
+  const views = m.views ?? [];
+  if (views.length < 2) return [item];
+  const key = m.viewKey ?? "view";
+  return [
+    item,
+    ...views.slice(1).map((v): AddItem => {
+      const [mw, mh] = v.minSize ?? [m.minCols, m.minRows];
+      const [vw, vh] = defaultSize(v.defaultSize ?? m.defaultSize, mw, mh);
+      return {
+        ...item,
+        id: `${m.id}:${v.id}`,
+        name: `${m.title} · ${v.name}`,
+        w: vw,
+        h: vh,
+        mw,
+        mh,
+        blurb: v.blurb ?? item.blurb,
+        tags: v.tags ?? item.tags,
+        drop: { kind: "module", id: m.id, settings: { [key]: v.id, ...v.applies } },
+      };
+    }),
+  ];
 }
+
+function widgetItems(): AddItem[] {
+  return ALL_MODULES.flatMap(moduleItems);
+}
+
+/** Whether two library items add the same thing (a widget's views differ by their settings). */
+export const sameDrop = (a: LibraryItem, b: LibraryItem): boolean =>
+  a.kind === b.kind && a.id === b.id && JSON.stringify(a.settings ?? {}) === JSON.stringify(b.settings ?? {});
 
 /** A panel preset (built in or saved) as a row. */
 function presetItem(p: PanelPreset, kind: AddKind, category: string): AddItem {

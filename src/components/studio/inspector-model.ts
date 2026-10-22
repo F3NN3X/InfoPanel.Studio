@@ -453,6 +453,34 @@ export function splitMore(s: InspectorSection): { rows: ModuleSetting[]; more: M
   };
 }
 
+/** How a section shows under the Advanced switch: dropped, collapsed to a line, or with these rows. */
+export interface SectionShape {
+  hidden: boolean;
+  /** A section that follows the theme or is locked shows no rows, only its line. */
+  collapsed: "theme" | "locked" | undefined;
+  rows: ModuleSetting[];
+}
+
+/**
+ * What a section shows outside search: Advanced on lists every row inline; off hides the CSS & locks
+ * card, the More rows, and the rows of a section that follows the theme or is locked (`mode`: its chip's state).
+ */
+export function visibleSection(s: InspectorSection, { advanced, mode }: { advanced: boolean; mode?: FollowMode }): SectionShape {
+  if (advanced) return { hidden: false, collapsed: undefined, rows: s.settings };
+  const collapsed = mode === "theme" || mode === "locked" ? mode : undefined;
+  return {
+    hidden: s.general && s.id.split("@")[0] === "css",
+    collapsed,
+    rows: collapsed ? [] : s.settings.filter((d) => !isMore(d)),
+  };
+}
+
+/** Whether reaching a section (or one of its rows) needs Advanced on: the card or the row is hidden without it. */
+export function needsAdvanced(s: InspectorSection, key: string | undefined, mode?: FollowMode): boolean {
+  const shape = visibleSection(s, { advanced: false, mode });
+  return shape.hidden || (key !== undefined && s.settings.some((d) => d.key === key) && !shape.rows.some((d) => d.key === key));
+}
+
 /** The tabs with the ones that have no section disabled (shown dimmed, never picked by default). */
 export function tabStates(
   tabs: { id: TabId; label: string }[],

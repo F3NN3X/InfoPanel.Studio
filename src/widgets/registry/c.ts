@@ -4,7 +4,7 @@ import { deviceOf, devicesOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
 import { audioSettings, ballisticsOf, WAVELINK_SETTINGS, wavelinkToProps } from "./audio-settings";
-import { boolOf, boolSetting, colorSetting, deviceSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, pick, stringOf, thresholdSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, deviceSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, pick, stringOf, thresholdSetting, viewOnly, viewSetting } from "./settings-kit";
 import AudioMeter, { AUDIO_HOT_DB, AUDIO_WARN_DB, meta as audioMeter, type AudioMeterProps } from "../AudioMeter";
 import MeterBridge, { meta as meterBridge, type MeterBridgeProps } from "../MeterBridge";
 import NowPlaying, { meta as nowPlaying, type NowPlayingProps } from "../NowPlaying";
@@ -30,7 +30,8 @@ function hotLevels(s: ModuleSettings): Pick<AudioMeterProps, "warnDb" | "hotDb">
   return { warnDb: warn, hotDb: crit };
 }
 /** The single-device meter: the bridge draws its own LED ladders and reads no device or style. */
-const single = (v: ModuleSettings) => v.mode !== "bridge";
+const single = viewOnly(audioMeter, "single");
+const bridge = viewOnly(audioMeter, "bridge");
 const METER_STYLES = ["led", "bar", "solid", "vu", "ring", "mirror", "wave"] as const;
 const VIZ_MODES = ["bars", "mirror", "radial", "wave", "blob", "dots", "line", "scroll"] as const;
 const opts = (values: readonly string[]) => values.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }));
@@ -86,15 +87,15 @@ export const GROUP_C: DashboardModule[] = [
     meta: audioMeter,
     Component: AudioMeter,
     settings: [
-      enumSetting("mode", "Mode", "single", [{ value: "single", label: "One device" }, { value: "bridge", label: "All devices" }], { group: "Meter" }),
-      enumSetting("meterStyle", "Meter style", "led", opts(METER_STYLES), { group: "Meter", visibleIf: single }),
-      numberSetting("segments", "Segments (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Meter", visibleIf: (v) => single(v) && v.meterStyle === "led" }),
-      enumSetting("orientation", "Bridge layout", "vertical", [{ value: "vertical", label: "Columns" }, { value: "horizontal", label: "Rows" }], { group: "Meter", visibleIf: (v) => v.mode === "bridge" }),
+      viewSetting(audioMeter, { label: "Mode", group: "Meter" }),
+      single(enumSetting("meterStyle", "Meter style", "led", opts(METER_STYLES), { group: "Meter" })),
+      single(numberSetting("segments", "Segments (0 = auto)", 0, { min: 0, max: 64, step: 1, group: "Meter", visibleIf: (v) => v.meterStyle === "led" })),
+      bridge(enumSetting("orientation", "Bridge layout", "vertical", [{ value: "vertical", label: "Columns" }, { value: "horizontal", label: "Rows" }], { group: "Meter" })),
       ...audioSettings("showDevice", "showDetails", "showVolume", "showMute").map((d) => ({ ...d, group: "Details", label: AUDIO_METER_LABELS[d.key] ?? d.label })),
       // The level and hot colours follow the theme's OK and Critical ("" = the accent and red).
       colorSetting("levelColor", "Level", { role: "ok", more: false }),
       colorSetting("hotColor", "Hot level", { role: "crit", more: false }),
-      deviceSetting("Device", "audio", { group: DEVICE, visibleIf: single }),
+      single(deviceSetting("Device", "audio", { group: DEVICE })),
       // The hot zone is the Audio level threshold (config v8): its own defaults are the meter's old 72 % / 90 % of full scale.
       thresholdSetting("db", { default: AUDIO_WARN_DB, defaultY: AUDIO_HOT_DB }),
       ...audioSettings("meterBallistics"),

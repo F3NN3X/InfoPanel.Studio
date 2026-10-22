@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { iconFor } from "@/widgets/core/icons";
 import { sizeText, type AddItem } from "./add-catalog";
 import { RenameInput, SavedPanelMenu } from "./insert-row";
-import { DND_MIME, DND_MIME_PANEL } from "./studio-modules";
+import { DND_MIME, DND_MIME_PANEL, DND_MIME_SETTINGS } from "./studio-modules";
 
 /** One row of the Add list (handoff SPEC §4.6): icon tile, name, blurb, optional tag, size footprint. */
 
@@ -112,6 +112,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
   const label = `${item.name}, ${item.blurb}, ${sizeText(item.w, item.h)}${tag === "best" ? ", best fit" : needs ? `, needs at least ${needs}` : ""}`;
   const start = (e: DragEvent) => {
     e.dataTransfer.setData(item.drop.kind === "panel" ? DND_MIME_PANEL : DND_MIME, item.drop.id);
+    if (item.drop.settings) e.dataTransfer.setData(DND_MIME_SETTINGS, JSON.stringify(item.drop.settings));
     e.dataTransfer.effectAllowed = "copy";
     onDragStart();
   };

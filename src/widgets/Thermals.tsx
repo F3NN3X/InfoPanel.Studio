@@ -14,6 +14,10 @@ export const meta: WidgetMeta = {
   blurb: "Every temperature sensor, hottest first",
   tags: "temp temperature heat hotspot",
   description: "Every temperature sensor in one place — CPU, GPU core + hotspot, NVMe/SSD, VRM — hottest first.",
+  views: [
+    { id: "bars", name: "Bars" },
+    { id: "gauges", name: "Temp gauges", blurb: "Hottest four as rings, fans under them", tags: "ring dial fan rpm" },
+  ],
 };
 
 export interface ThermalsProps extends ShellProps {
