@@ -2,7 +2,7 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewOnly, viewSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
 import { countdownIsland } from "../island/countdown";
@@ -144,6 +144,9 @@ const weatherToProps = (s: ModuleSettings): Partial<Weather.WeatherProps> => ({
 const unitsOf = (s: ModuleSettings): "C" | "F" => (tempUnitOf(s) === "f" ? "F" : "C");
 const yrLocation = (group: string): ModuleSetting => ({ key: "location", label: "Location", type: "select", default: "", optionsFrom: "sources", sourcePlugin: "plugins.yr-weather-plugin.", group, tab: "data", hint: "Blank = the first Yr location" });
 
+/** The Coding Agents settings that only apply to the Full view. */
+const full = viewOnly(CodingAgents.meta, "full");
+
 export const GROUP_B: DashboardModule[] = [
   templateModule({
     meta: DriveSpace.meta,
@@ -254,6 +257,7 @@ export const GROUP_B: DashboardModule[] = [
     meta: CodingAgents.meta,
     Component: CodingAgents.default,
     settings: [
+      viewSetting(CodingAgents.meta, { group: "Agents" }),
       enumSetting(
         "agents",
         "Agents",
@@ -265,23 +269,28 @@ export const GROUP_B: DashboardModule[] = [
         ],
         { group: "Agents" }
       ),
-      boolSetting("showPlan", "Plan use", true, { group: "Plan limits", hint: "The 5-hour and weekly windows, from the statusline (Claude) and the session files (Codex)" }),
-      boolSetting("showSessions", "Sessions", true, { group: "Sessions", hint: "Each session: working with its tool, waiting for you, done" }),
-      boolSetting("showUsage", "Tokens per day", true, { group: "Tokens", hint: "Today's tokens and the last five weeks, read from the transcripts" }),
-      boolSetting("showBreakdown", "Breakdown", true, { group: "Tokens", hint: "This week's tokens by model and project, and today's by type, read from the transcripts" }),
-      enumSetting("limitStyle", "Limit style", "bars", [{ value: "bars", label: "Bars" }, { value: "rings", label: "Rings" }], {
-        group: "Plan limits",
-        hint: "Rings fall back to bars when the cell is too small for them",
-        visibleIf: (v) => v.showPlan !== false,
-      }),
+      full(boolSetting("showPlan", "Plan use", true, { group: "Plan limits", hint: "The 5-hour and weekly windows, from the statusline (Claude) and the session files (Codex)" })),
+      full(boolSetting("showSessions", "Sessions", true, { group: "Sessions", hint: "Each session: working with its tool, waiting for you, done" })),
+      full(boolSetting("showUsage", "Tokens per day", true, { group: "Tokens", hint: "Today's tokens and the last five weeks, read from the transcripts" })),
+      full(boolSetting("showBreakdown", "Breakdown", true, { group: "Tokens", hint: "This week's tokens by model and project, and today's by type, read from the transcripts" })),
+      full(
+        enumSetting("limitStyle", "Limit style", "bars", [{ value: "bars", label: "Bars" }, { value: "rings", label: "Rings" }], {
+          group: "Plan limits",
+          hint: "Rings fall back to bars when the cell is too small for them",
+          visibleIf: (v) => v.showPlan !== false,
+        })
+      ),
       enumSetting("percent", "Show limits as", "used", [{ value: "used", label: "Used" }, { value: "left", label: "Left" }], { group: "Plan limits", visibleIf: (v) => v.showPlan !== false }),
-      enumSetting("history", "History", "bars", [{ value: "bars", label: "Daily bars" }, { value: "heatmap", label: "Heatmap" }], {
-        group: "Tokens",
-        hint: "The heatmap moves beside the rest in a wide cell, and falls back to bars when it does not fit",
-        visibleIf: (v) => v.showUsage !== false,
-      }),
+      full(
+        enumSetting("history", "History", "bars", [{ value: "bars", label: "Daily bars" }, { value: "heatmap", label: "Heatmap" }], {
+          group: "Tokens",
+          hint: "The heatmap moves beside the rest in a wide cell, and falls back to bars when it does not fit",
+          visibleIf: (v) => v.showUsage !== false,
+        })
+      ),
     ],
     toProps: (s): Partial<CodingAgents.CodingAgentsProps> => ({
+      view: oneOf(s.view, ["full", "summary", "limits"] as const),
       agents: oneOf(String(s.agents), ["both", "claude", "codex"] as const),
       showPlan: boolOf(s.showPlan),
       showSessions: boolOf(s.showSessions),

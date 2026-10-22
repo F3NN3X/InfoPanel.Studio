@@ -9,7 +9,7 @@ const WITH_VIEWS = modules.filter((m) => m.views?.length);
 describe("widget views", () => {
   it("are declared by the widgets with a layout switch", () => {
     expect(WITH_VIEWS.map((m) => m.id).sort()).toEqual(
-      ["AudioMeter", "Bluetooth", "Countdown", "DriveSpace", "FpsMonitor", "GameSpotlight", "NowPlaying", "SensorGroup", "ServiceHealth", "SteamFriends", "SystemOverview", "Thermals", "Weather"].sort()
+      ["AudioMeter", "Bluetooth", "CodingAgents", "Countdown", "DriveSpace", "FpsMonitor", "GameSpotlight", "NowPlaying", "SensorGroup", "ServiceHealth", "SteamFriends", "SystemOverview", "Thermals", "Weather"].sort()
     );
   });
 

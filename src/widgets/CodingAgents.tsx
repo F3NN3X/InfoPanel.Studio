@@ -6,6 +6,7 @@ import { PulseDot } from "@/components/pulse-dot";
 import { Empty, Widget, fitRows, shell, type ShellProps, type WidgetMeta } from "./kit";
 import { BarLimits, RingLimits, barDensity, densityH, ringLayout, type Density, type LimitStyle, type Percent, type PlanEntry, type RingLayout } from "./CodingAgents/limits";
 import { Breakdown, breakdownH, breakdownOf, tokensToday } from "./CodingAgents/breakdown";
+import { LimitsView, SummaryView } from "./CodingAgents/summary";
 import { BARS_H, DailyBars, HEADER_H, Heatmap, HistoryHeader, dayKey, heatmapFit, heatmapWeeks, type HeatFit, type HistoryStyle } from "./CodingAgents/history";
 
 export { resetText } from "./CodingAgents/limits";
@@ -20,6 +21,11 @@ export const meta: WidgetMeta = {
   minSize: [1, 1],
   blurb: "Claude Code and Codex sessions and usage",
   tags: "claude codex ai agents tokens",
+  views: [
+    { id: "full", name: "Full" },
+    { id: "summary", name: "Summary", blurb: "Plan limits, today and sessions" },
+    { id: "limits", name: "Limits", blurb: "Plan limit bars only" },
+  ],
   description:
     "Claude Code and Codex: each session working, waiting for you or done (with its model and cost), the plan's 5-hour and weekly use, tokens per day, and this week's split by model and project. Connect them once with node tools/agent-install.mjs.",
 };
@@ -27,6 +33,8 @@ export const meta: WidgetMeta = {
 export type AgentFilter = "both" | AgentId;
 
 export interface CodingAgentsProps extends ShellProps {
+  /** The layout: everything, the summary (limits, today, sessions) or the limits alone. */
+  view?: "full" | "summary" | "limits";
   /** Which agents to show; default both. */
   agents?: AgentFilter;
   /** The plan's 5-hour and weekly use; default on. */
@@ -168,6 +176,8 @@ export function CodingAgentsView({ all, ...p }: CodingAgentsProps & { all: Agent
         const w = w0 || 400;
         const h = h0 || 300;
         if (ids.length === 0) return <Empty icon="smart_toy" label="No agent connected yet" />;
+        if (p.view === "summary") return <SummaryView plans={plans} ids={ids} usage={all.usage} sessions={sessions} percent={percent} now={now} todayKey={todayKey} h={h} dot={dotColor} />;
+        if (p.view === "limits") return plans.length ? <LimitsView plans={plans} percent={percent} now={now} h={h} /> : <Empty icon="smart_toy" label="No plan limits yet" />;
         const hasHistory = showUsage && byDay.size > 0;
         const n = showPlan ? plans.length : 0;
 

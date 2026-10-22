@@ -7,6 +7,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **Coding Agents: Summary and Limits views.** Two more layouts, each its own entry in the Add panel: Summary lists the
+  plan limits with their reset times, today's tokens and the sessions with a short status; Limits is the limit bars
+  alone, larger. Per-model weekly limits and the Claude Code version show when the statusline reports them.
 - **Countdown widget.** Counts down to an event, or up from it: pick a date (and optionally a time), an event name,
   whether to count until, since or automatically, and a breakdown of days, years or live seconds. Three views, each its
   own entry in the Add panel: Inline, Tiles and Big number. Settings gain native date and time pickers.

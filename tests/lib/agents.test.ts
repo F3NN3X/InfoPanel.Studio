@@ -6,6 +6,12 @@ import { AGENT_DONE_MIN_MS, agentsUpdate } from "@/lib/island/dashboard-notices"
 const session = (over: Partial<AgentSession> = {}): AgentSession => ({ key: "k1", agent: "claude", project: "repo", state: "working", since: 0, ...over });
 
 describe("parseAgents", () => {
+  it("reads a plan's extra windows and version, ignoring malformed ones", () => {
+    const a = parseAgents({ plan: { claude: { fiveHour: { used: 5 }, extra: [{ name: "opus", used: 40, resetsAt: 9 }, { name: "x", used: "no" }, { used: 3 }, "junk"], version: "2.1.220", at: 1 }, codex: { fiveHour: { used: 1 }, extra: "no", version: 7 } } });
+    expect(a.plan.claude).toEqual({ fiveHour: { used: 5 }, extra: [{ name: "opus", used: 40, resetsAt: 9 }], version: "2.1.220", at: 1 });
+    expect(a.plan.codex).toEqual({ fiveHour: { used: 1 }, at: 0 });
+  });
+
   it("keeps well-formed sessions, plans and usage and drops the rest", () => {
     const a = parseAgents({
       sessions: [
