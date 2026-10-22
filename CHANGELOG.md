@@ -7,6 +7,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **Weather: Glance and Week views, and Meteocons icons.** Glance is a big icon with the temperature, condition and
+  place; Week lists Today and the next days, each with an icon, high and low. Weather and Forecast can now draw
+  [Meteocons](https://github.com/basmilius/meteocons-poc) (MIT) in Fill, Flat, Line or Monochrome instead of the app
+  icons, picked from the provider's icon code before the description, with optional animation. Animated icons use
+  more CPU and memory on the kiosk, and run outside the Max FPS cap. App icons stay the default.
 - **Coding Agents: Summary and Limits views.** Two more layouts, each its own entry in the Add panel: Summary lists the
   plan limits with their reset times, today's tokens and the sessions with a short status; Limits is the limit bars
   alone, larger. Per-model weekly limits and the Claude Code version show when the statusline reports them.

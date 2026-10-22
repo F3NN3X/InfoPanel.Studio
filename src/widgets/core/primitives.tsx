@@ -12,6 +12,7 @@ import { labelStyle, ws } from "@/components/widget-style";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useTick } from "@/hooks/use-tick";
 import { alternate } from "@/lib/curves";
+import { appIconName, weatherKind } from "@/lib/weather-icons";
 import { RangeEaser, SmoothScroll, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN } from "./layout";
 import { scaleX, slideX } from "./motion";
@@ -537,17 +538,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
   );
 }
 // Weather condition text / icon slug → Material Symbols name (Yr + OpenWeatherMap)
-export const weatherIcon = (text = ""): string => {
-  const s = String(text).toLowerCase();
-  if (/thunder/.test(s)) return "thunderstorm";
-  if (/snow|sleet/.test(s)) return "weather_snowy";
-  if (/rain|drizzle|shower/.test(s)) return "rainy";
-  if (/fog|mist/.test(s)) return "foggy";
-  if (/partly|fair/.test(s)) return /night/.test(s) ? "partly_cloudy_night" : "partly_cloudy_day";
-  if (/cloud/.test(s)) return "cloud";
-  if (/clear|sun/.test(s)) return /night/.test(s) ? "clear_night" : "clear_day";
-  return "partly_cloudy_day";
-};
+export const weatherIcon = (text = ""): string => appIconName(weatherKind(undefined, text));
 // Slow pan/zoom background image (stepped on the shared ticker: Max FPS caps it, reduced motion stops it)
 export function KenBurns({ src, className = "", on = true }: { src?: string; className?: string; on?: boolean }) {
   const ref = useRef<HTMLDivElement | null>(null);

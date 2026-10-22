@@ -128,6 +128,43 @@ const WEATHER_SETTINGS: ModuleSetting[] = [
     visibleIf: (v) => v.showForecast !== false,
   },
   { key: "tint", label: "Tint from conditions", type: "boolean", default: true, tab: "style", perWidget: true },
+  {
+    key: "iconSet",
+    label: "Icon set",
+    type: "select",
+    default: "app",
+    options: [
+      { value: "app", label: "App icons" },
+      { value: "meteocons", label: "Meteocons" },
+    ],
+    group: "Icons",
+    perWidget: true,
+  },
+  {
+    key: "iconStyle",
+    label: "Icon style",
+    type: "select",
+    default: "line",
+    options: [
+      { value: "fill", label: "Fill" },
+      { value: "flat", label: "Flat" },
+      { value: "line", label: "Line" },
+      { value: "monochrome", label: "Monochrome" },
+    ],
+    group: "Icons",
+    perWidget: true,
+    visibleIf: (v) => v.iconSet === "meteocons",
+  },
+  {
+    key: "iconAnimated",
+    label: "Animated icons",
+    type: "boolean",
+    default: false,
+    group: "Icons",
+    perWidget: true,
+    hint: "Animated icons use more CPU and memory on the kiosk, and run outside the Max FPS cap.",
+    visibleIf: (v) => v.iconSet === "meteocons",
+  },
 ];
 
 /** The stored settings as the Weather template's props (`forecastDays` is its `days`). */
@@ -138,6 +175,14 @@ const weatherToProps = (s: ModuleSettings): Partial<Weather.WeatherProps> => ({
   showFeels: Boolean(s.showFeels),
   showForecast: Boolean(s.showForecast),
   days: Math.max(1, Math.min(7, Math.round(Number(s.forecastDays) || 5))),
+  ...iconsOf(s),
+});
+
+/** The weather icon-set settings as the templates' icon props. */
+const iconsOf = (s: ModuleSettings) => ({
+  iconSet: oneOf(s.iconSet, ["app", "meteocons"]),
+  iconStyle: oneOf(s.iconStyle, ["fill", "flat", "line", "monochrome"]),
+  iconAnimated: s.iconAnimated === true,
 });
 
 /** The weather templates' `units` prop from the themed Temperature unit (config v7 moved `units` → `tempUnit`). */

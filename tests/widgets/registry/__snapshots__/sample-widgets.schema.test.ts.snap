@@ -897,6 +897,13 @@ exports[`Weather > files its rows as drawn 1`] = `
       ],
     },
     {
+      "Icons": [
+        "iconSet · per widget",
+        "iconStyle · per widget",
+        "iconAnimated · per widget",
+      ],
+    },
+    {
       "Fit": [
         "compact",
         "sizeTier · more",

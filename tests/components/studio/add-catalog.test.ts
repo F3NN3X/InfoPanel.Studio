@@ -33,6 +33,8 @@ describe("addCatalog", () => {
       ["Weather:now", "Weather · Now"],
       ["Weather:forecast", "Weather · Forecast"],
       ["Weather:minimal", "Weather · Minimal"],
+      ["Weather:glance", "Weather · Glance"],
+      ["Weather:week", "Weather · Week"],
     ]);
     expect(rows[0].drop).toEqual({ kind: "module", id: "Weather" });
     expect(rows[3]).toMatchObject({ category: "Info", icon: rows[0].icon, w: 3, h: 2, blurb: "Temperature and conditions only" });
