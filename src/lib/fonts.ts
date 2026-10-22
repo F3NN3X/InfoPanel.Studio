@@ -90,6 +90,11 @@ export function fontById(id: string): FontDef | undefined {
   return FONT_CATALOG.find((f) => f.id === id);
 }
 
+/** Load every catalog font that downloads (a font list that previews each in its own face). */
+export function ensureAllFonts(doc: FontDocument | undefined = globalThis.document): void {
+  for (const f of FONT_CATALOG) ensureFont(f.id, doc);
+}
+
 /** The stylesheet URL that serves a Google font spec. */
 export function googleFontHref(spec: string): string {
   return `https://fonts.googleapis.com/css2?family=${spec.replace(/ /g, "+")}&display=swap`;

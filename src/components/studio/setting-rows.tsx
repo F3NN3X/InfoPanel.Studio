@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Info } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
+import { ensureAllFonts, fontById } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { ColorButton, ColorSwatches } from "./inspector/color-swatches";
 import { ValueBox } from "./inspector/value-box";
@@ -217,22 +218,26 @@ export function SelectRow({
   options,
   value,
   onChange,
+  previewFonts,
   ...label
 }: RowLabelProps & {
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
+  /** A font list: each catalog font's option is drawn in that font (the fonts load when the list is first used). */
+  previewFonts?: boolean;
 }) {
   return (
     <InlineRow {...label}>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={previewFonts ? () => ensureAllFonts() : undefined}
         aria-label={label.label}
         className={cn(SELECT, "min-w-0 shrink")}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value} value={o.value} style={previewFonts ? { fontFamily: fontById(o.value)?.stack } : undefined}>
             {o.label}
           </option>
         ))}
