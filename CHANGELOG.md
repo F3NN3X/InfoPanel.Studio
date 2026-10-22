@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **Monochrome Meteocons icons.** The Weather widget's monochrome icons showed as a solid square in the installed app; they now draw in the text colour.
+
 ## [1.3.0-beta.13] - 2026-10-22
 
 ### Added
