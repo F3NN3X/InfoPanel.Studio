@@ -1,0 +1,75 @@
+/* Dropdown lists drawn like the studio's menus (MENU_POPUP in menu-styles.ts) instead of the OS list:
+   Chromium's customizable select (WebView2 has it). An engine without it ignores these rules and keeps
+   the native list. Each select keeps its own classes for the closed box. */
+select,
+::picker(select) {
+  appearance: base-select;
+}
+
+select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+select::picker-icon {
+  color: #85858f;
+  font-size: 10px;
+}
+
+select:open::picker-icon {
+  rotate: 180deg;
+}
+
+::picker(select) {
+  margin-block: 4px;
+  max-height: min(360px, 60vh);
+  padding: 4px;
+  border: 1px solid #2e2e35;
+  border-radius: 9px;
+  background: #17171b;
+  color: #c9c9cf;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  font-size: 12.5px;
+}
+
+select option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  outline: none;
+}
+
+select option:hover,
+select option:focus-visible {
+  background: #1f1f25;
+  color: #ededf0;
+}
+
+select option:checked {
+  color: #ededf0;
+  font-weight: 500;
+}
+
+select option::checkmark {
+  order: 1;
+  margin-left: auto;
+  color: oklch(0.82 0.12 255);
+}
+
+select option:disabled {
+  color: #55555e;
+}
+
+select optgroup {
+  padding-top: 4px;
+  color: #6f6f79;
+  font-size: 11px;
+  font-weight: 500;
+}

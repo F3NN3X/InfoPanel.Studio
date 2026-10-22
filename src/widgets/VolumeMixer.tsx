@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.volume-plugin.", "plugins.wavelink-plugin."],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Volume and mute per device",
+  tags: "sound",
   description: "Per-device volume + mute, default device, and Wave Link status.",
 };
 

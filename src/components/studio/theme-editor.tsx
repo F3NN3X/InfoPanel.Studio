@@ -88,7 +88,7 @@ let handledNav = 0;
 /** The card a link's section names: a card id, or a widget-style section (Widget colors → Colors). */
 function cardIdOf(section: string | undefined): string | undefined {
   if (!section) return undefined;
-  if (THEME_CARDS.some((c) => c.id === section)) return section;
+  if (section === "start" || THEME_CARDS.some((c) => c.id === section)) return section;
   return isSectionId(section) ? cardOfSection(section).id : undefined;
 }
 
@@ -109,7 +109,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const twoLevel = at.level === "page" ? undefined : at;
   const { sources } = useSensorCatalog();
   const [accordion] = useAccordionPref();
-  const [open, setOpen] = useState<Record<string, boolean>>({ colors: true });
+  const [open, setOpen] = useState<Record<string, boolean>>({ start: true, colors: true });
   const [flash, setFlash] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -392,6 +392,8 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
                 onSkin={(skin) => edit((st) => ({ ...st, skin, surface: "auto" }), "skin")}
                 onSaved={(p) => presets.apply(p, at, false)}
                 onLibrary={() => navigateTo({ view: "library", tab: "themes" })}
+                open={open.start ?? false}
+                onToggle={() => toggle("start")}
               />
             )}
             {cards.map(renderCard)}

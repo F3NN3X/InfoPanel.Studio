@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "GPU load, VRAM and temperature as rings",
+  tags: "graphics vram",
   description: "Stacked radial rings for bounded percentages only — VRAM outer, core load inner, temperature in the centre — with a legend of clocks, power and fans.",
 };
 

@@ -102,6 +102,8 @@ export function templateModule<P extends object>({ meta, Component, settings, to
     category: meta.category,
     icon: meta.icon,
     description: meta.description,
+    blurb: meta.blurb,
+    tags: meta.tags,
     defaultSize: meta.defaultSize,
     ...(island ? { island } : {}),
     // No data renders nothing, so the kiosk hides the zone and the studio says "no live data yet".

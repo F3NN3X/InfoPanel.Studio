@@ -20,6 +20,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.media-plugin.", "plugins.spotify-plugin.", "spotify."],
   defaultSize: [3, 1],
   minSize: [1, 1],
+  blurb: "Track, artist and cover art",
+  tags: "spotify music song",
   description: "Track, artist, album, cover art and progress from Windows Media, Spotify or a pushed source.",
 };
 

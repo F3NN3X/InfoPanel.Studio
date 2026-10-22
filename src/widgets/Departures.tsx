@@ -12,6 +12,8 @@ export const meta: WidgetMeta = {
   prefixes: [P],
   defaultSize: [3, 2],
   minSize: [2, 1],
+  blurb: "Next departures from your stop",
+  tags: "transit bus tram train vbz",
   description: "Public transport departures from the VBZ plugin: time, line and destination, with the station and status.",
 };
 

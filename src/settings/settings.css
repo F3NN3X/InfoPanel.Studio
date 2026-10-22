@@ -1,5 +1,6 @@
 @import "tailwindcss" source(none);
 @import "./tokens.css";
+@import "../select.css";
 @source "./";
 @source "../app-window";
 
@@ -43,19 +44,24 @@ a:hover {
   color: var(--color-s-t1);
 }
 
+/* The studio's scrollbar (index.css): a thin thumb, no arrow buttons. */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-corner,
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #26262c;
-  border-radius: 8px;
-  border: 2px solid var(--color-s-win);
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
+  background: #2e2e35;
+  border-radius: 3px;
 }
 
 :focus-visible {

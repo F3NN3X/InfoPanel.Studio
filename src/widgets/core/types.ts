@@ -61,6 +61,10 @@ export interface WidgetMeta {
   prefixes: string[];
   defaultSize: [number, number];
   minSize: [number, number];
+  /** The Add list's one line (≤ 44 characters, sentence case, no full stop); unset: the description's first sentence. */
+  blurb?: string;
+  /** Space-separated lower-case search synonyms for the Add list; never shown. */
+  tags?: string;
   description: string;
 }
 

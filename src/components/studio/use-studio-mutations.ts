@@ -21,7 +21,7 @@ import {
   type ProfileView,
   type Placement,
 } from "@/lib/layout";
-import { findPanelPreset, type PanelPreset } from "@/lib/panelPresets";
+import { findPanelPreset } from "@/lib/panelPresets";
 import { sampleLayout } from "@/lib/sample-layout";
 import { updateStylePreset } from "@/lib/style-presets";
 import type { ModuleSettings } from "@/modules/types";
@@ -31,6 +31,8 @@ import { duplicateProfile as duplicateInConfig, withoutProfile, withProfile } fr
 import { moduleDropSize, type LibraryItem } from "./drop-ghost";
 import { ALL_MODULES, moduleMinSize } from "./studio-modules";
 import type { StudioSelection } from "./use-studio-selection";
+import { autoPlace } from "./add-place";
+import { fitsIn, sizeText, type AddItem } from "./add-catalog";
 import {
   enforceMinSize,
   firstFreeRect,
@@ -39,6 +41,9 @@ import {
   resizeZone,
   type ZoneRect,
 } from "./zone-geometry";
+
+/** What an Add panel add did, for its toast. */
+export type AddOutcome = { added: true; zoneId: string; message: string } | { added: false; message: string };
 
 interface MutationDeps {
   config: DashboardConfig;
@@ -137,31 +142,33 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   };
 
   /**
-   * A click in the library with a blank zone selected: the widget fills
-   * it, growing it to the widget's minimum when there is room.
+   * The Add panel's one add path (handoff SPEC §7), for a click, Enter, the empty state and a drop: fill a blank
+   * zone (`zoneId`) at its box, place at a dropped box (`rect`, already checked free), or auto-place at the largest
+   * size from the default down to the min that is free. One undo step; the message is the toast's. Null: a no-op
+   * (Blank zone into a blank zone).
    */
-  const fillBlank = (zoneId: string, item: LibraryItem) => {
-    const zone = profile.placements.find((p) => p.id === zoneId);
-    const info = libraryInfo(item);
-    if (!zone || !info || item.id === BLANK_MODULE) return;
-    if (item.kind === "module") {
-      if (!actions.canGrowTo(profile, zoneId, moduleMinSize(item.id)))
-        return void toast("Not enough room in this zone");
-      updateProfile((p) => actions.assignModule(p, zoneId, item.id, moduleMinSize(item.id)));
-    } else {
-      const preset = findPanelPreset(item.id, config.panelPresets);
-      if (!preset) return;
-      if (!actions.canGrowTo(profile, zoneId, { cols: preset.colSpan, rows: preset.rowSpan }))
-        return void toast("Not enough room in this zone");
-      updateProfile((p) => actions.assignPreset(p, zoneId, preset));
+  const addFromPanel = (item: AddItem, spot?: { zoneId: string } | { rect: ZoneRect }): AddOutcome | null => {
+    if (spot && "zoneId" in spot) {
+      const zone = profile.placements.find((p) => p.id === spot.zoneId);
+      if (!zone || item.id === BLANK_MODULE) return null;
+      if (!fitsIn(item, zone.colSpan, zone.rowSpan)) return { added: false, message: `${item.name} needs at least ${sizeText(item.mw, item.mh)}` };
+      const preset = item.drop.kind === "panel" ? findPanelPreset(item.id, config.panelPresets) : undefined;
+      if (item.drop.kind === "panel" && !preset) return null;
+      updateProfile((p) =>
+        preset ? actions.fillWithPreset(p, zone.id, preset) : actions.assignModule(p, zone.id, item.id, { cols: item.mw, rows: item.mh })
+      );
+      sel.select(zone.id);
+      return { added: true, zoneId: zone.id, message: `${item.name} fills the blank zone · ${sizeText(zone.colSpan, zone.rowSpan)}` };
     }
-    toast(`Placed ${info.title}`);
+    const rect = spot?.rect ?? autoPlace(profile, profile.placements, { cols: item.w, rows: item.h }, { cols: item.mw, rows: item.mh });
+    if (!rect) return { added: false, message: `No room on this page for ${item.name}` };
+    const id = createAt(item.drop, rect);
+    if (!id) return null;
+    const shrunk = rect.cols !== item.w || rect.rows !== item.h;
+    return { added: true, zoneId: id, message: `Added ${item.name} · ${sizeText(rect.cols, rect.rows)}${shrunk ? " (shrunk to fit)" : ""}` };
   };
 
   const addPlacement = (module: string) => placeItem({ kind: "module", id: module });
-
-  /** Add a pre-designed panel (a group of widgets) from a preset. */
-  const addPanelPreset = (preset: PanelPreset) => placeItem({ kind: "panel", id: preset.id });
 
   /** Add a panel preset (built in, starter or saved) by id. */
   const addPanelPresetById = (presetId: string) => placeItem({ kind: "panel", id: presetId });
@@ -420,10 +427,9 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     updatePlacement,
     updateSelected,
     addPlacement,
-    addPanelPreset,
+    addFromPanel,
     dropSizeOf,
     dropItem,
-    fillBlank,
     pasteStyleSelection,
     followGlobalSelection,
     loadSampleLayout,

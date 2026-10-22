@@ -8,14 +8,16 @@ export type RailItem = "design" | "theme" | "screens" | "library" | "gauges" | "
 
 /** The rail's items in groups; a thin divider sits between groups. Nothing addresses a button by position. */
 const GROUPS: { id: RailItem; label: string; icon: LucideIcon }[][] = [
-  [{ id: "design", label: "Design", icon: LayoutDashboard }],
+  [
+    { id: "screens", label: "Screens", icon: Monitor },
+    { id: "design", label: "Design", icon: LayoutDashboard },
+  ],
   [
     { id: "theme", label: "Theme", icon: Palette },
-    { id: "screens", label: "Screens", icon: Monitor },
     { id: "library", label: "Library", icon: Images },
     { id: "gauges", label: "Gauges", icon: Gauge },
-    { id: "data", label: "Data", icon: Database },
     { id: "alerts", label: "Alerts & Island", icon: Bell },
+    { id: "data", label: "Data", icon: Database },
   ],
 ];
 

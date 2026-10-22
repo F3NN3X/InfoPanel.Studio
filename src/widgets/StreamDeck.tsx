@@ -13,6 +13,8 @@ export const meta: WidgetMeta = {
   prefixes: [P],
   defaultSize: [4, 3],
   minSize: [3, 2],
+  blurb: "Stream Deck keys with icons and labels",
+  tags: "elgato buttons keys",
   description: "Elgato Stream Deck keys with their icons and labels, one grid per connected device.",
 };
 

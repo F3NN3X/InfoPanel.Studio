@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["libre.ethernet", "libre.wifi", "libre.tailscale", "libre.bluetooth_network", "libre.vethernet"],
   defaultSize: [3, 1],
   minSize: [1, 1],
+  blurb: "Live download and upload",
+  tags: "internet bandwidth speed",
   description: "Live download / upload rate with history, totals and utilisation per adapter.",
 };
 

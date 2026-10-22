@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [6, 1],
   minSize: [1, 1],
+  blurb: "Four key numbers with trends",
+  tags: "kpi sparkline trend",
   description: "The four numbers you check first: value, change since ~10 readings ago, then a trend sparkline with a live end dot.",
 };
 

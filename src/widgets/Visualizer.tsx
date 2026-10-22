@@ -14,6 +14,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "Animated audio visualiser",
+  tags: "spectrum bars sound",
   description: "Canvas audio visualiser driven by the level meter (L/R + level): bars, mirror, radial, wave, line, blob, LED-dot and scrolling modes at 60 fps.",
 };
 

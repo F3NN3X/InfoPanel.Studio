@@ -14,6 +14,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [4, 2],
   minSize: [1, 1],
+  blurb: "Steam art for the game you’re playing",
+  tags: "steam banner",
   description: "Now-playing for games: Steam hero banner with slow Ken Burns motion, game logo, poster art and icon, plus session, playtime, FPS, achievements, friends — and an optional music overlay.",
 };
 

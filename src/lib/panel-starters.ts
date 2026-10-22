@@ -25,6 +25,7 @@ export const layoutStarters: PanelPreset[] = [
     id: "layout-stat-row",
     title: "Row of stats",
     description: "Three stats sharing one row — stack, no wrap, spread",
+    blurb: "Three stats spread in a row",
     colSpan: 4,
     rowSpan: 1,
     make: () =>
@@ -42,6 +43,7 @@ export const layoutStarters: PanelPreset[] = [
     id: "layout-stat-grid",
     title: "2×2 stats",
     description: "Four stats in a 2-column grid, centered in their cells",
+    blurb: "Two-column grid of four stats",
     colSpan: 3,
     rowSpan: 2,
     make: () =>
@@ -58,6 +60,7 @@ export const layoutStarters: PanelPreset[] = [
     id: "layout-hero",
     title: "Hero overlay",
     description: "Background image with a title and a big stat on top",
+    blurb: "Background image, title and a big stat",
     colSpan: 4,
     rowSpan: 2,
     make: () =>
@@ -78,6 +81,7 @@ export const layoutStarters: PanelPreset[] = [
     id: "layout-gauge-row",
     title: "Gauge row",
     description: "Three ring gauges spread across a row",
+    blurb: "Three gauges in a row",
     colSpan: 4,
     rowSpan: 1,
     make: () =>
@@ -96,6 +100,7 @@ export const layoutStarters: PanelPreset[] = [
     id: "layout-clock",
     title: "Clock + date",
     description: "Time over date, centered in the zone",
+    blurb: "Time over date",
     colSpan: 2,
     rowSpan: 1,
     make: () =>
@@ -118,6 +123,7 @@ export const layoutStarters: PanelPreset[] = [
     id: "layout-list",
     title: "Label / value list",
     description: "Rows of a label and a right-aligned value — 2-column grid",
+    blurb: "Labels with right-aligned values",
     colSpan: 2,
     rowSpan: 2,
     make: () =>

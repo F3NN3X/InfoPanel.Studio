@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [6, 1],
   minSize: [2, 1],
+  blurb: "In-game overlay strip",
+  tags: "rtss afterburner osd fps",
   description: "In-game overlay strip (RTSS / Afterburner OSD): fixed cell order, monospace digits, colour only when a value drops.",
 };
 

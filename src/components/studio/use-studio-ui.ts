@@ -5,7 +5,8 @@ import type { DashboardConfig, ProfileView, Widget } from "@/lib/layout";
 import type { InspectorTab, ModuleSettings } from "@/modules/types";
 import { useToast } from "@/components/ui/toast";
 import type { Drawer } from "./commands";
-import { useStoredLeftWidth, type LeftTab } from "./design-left-panel";
+import type { LeftTab } from "./design-left-panel";
+import { LEFT_PANEL_PX, useLeftPanelWidth } from "./add-prefs";
 import { COLLECTIONS, type CollectionId } from "@/lib/my-library/model";
 import type { AlertsTab } from "./alerts-view";
 import type { RailItem } from "./left-rail";
@@ -33,7 +34,8 @@ export function useStudioUi(
   windowWidth: number
 ) {
   const toast = useToast();
-  const [mode, setMode] = useState<StudioMode>("design");
+  // The Studio opens on Screens: pick the screen and page, then design it.
+  const [mode, setMode] = useState<StudioMode>("screens");
   const showSources = mode === "sources";
   const showLibrary = mode === "library";
   const showGauges = mode === "gauges";
@@ -68,7 +70,8 @@ export function useStudioUi(
   /** Design's left panel: open from 1280 px (SPEC §3.5), and its tab. */
   const [leftOpen, setLeftOpen] = useState(() => windowWidth >= 1280);
   const [leftTab, setLeftTab] = useState<LeftTab>("add");
-  const [leftWidth, setLeftWidth] = useStoredLeftWidth();
+  const [leftPanelWidth] = useLeftPanelWidth();
+  const leftWidth = LEFT_PANEL_PX[leftPanelWidth];
   /** Alerts & Island's tab. */
   const [alertsTab, setAlertsTab] = useState<AlertsTab>("rules");
   /** A link to a Library collection (`seq` makes a repeat count); the Library page reads it when it mounts or it changes. */
@@ -245,7 +248,6 @@ export function useStudioUi(
     leftTab,
     setLeftTab,
     leftWidth,
-    setLeftWidth,
     alertsTab,
     setAlertsTab,
     libraryRequest,

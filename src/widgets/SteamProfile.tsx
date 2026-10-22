@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.InfoPanel.SteamAPI.SteamAPI-Profile.", "plugins.InfoPanel.SteamAPI.SteamAPI-Social."],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Avatar, status and friends online",
+  tags: "steam friends",
   description: "Avatar, persona, status, level and friends online / in-game with recent activity.",
 };
 

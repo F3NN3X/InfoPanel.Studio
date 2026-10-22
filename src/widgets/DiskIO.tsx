@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Read and write speed per disk",
+  tags: "disk throughput io",
   description: "Read / write throughput and activity for every physical disk, plus combined history.",
 };
 

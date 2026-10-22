@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAccordionPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
-import { LEFT_MAX_WIDTH, LEFT_MIN_WIDTH, useStoredLeftWidth } from "./design-left-panel";
-import { SegmentedRow, SelectRow, SliderRow, ToggleRow } from "./setting-rows";
+import { useAddListDensity, useAddPreviewOnHover, useLeftPanelWidth, type AddListDensity, type LeftPanelWidth } from "./add-prefs";
+import { SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
 import { SettingsGroup } from "./settings-group";
 import { ZOOM_STEPS } from "./studio-layout";
 import { GRID_KEY, RULERS_KEY, useStorageKey, useStoredFlag } from "./use-stored-flag";
@@ -10,6 +10,17 @@ import { loadZoomPref, parseZoomPref, saveZoomPref, ZOOM_KEY, type ZoomPref } fr
 const ACCORDION_MODES = [
   { value: "one" as const, label: "One open" },
   { value: "many" as const, label: "Many open" },
+];
+
+const LEFT_WIDTHS = [
+  { value: "narrow" as const, label: "Narrow" },
+  { value: "default" as const, label: "Default" },
+  { value: "wide" as const, label: "Wide" },
+];
+
+const DENSITIES = [
+  { value: "comfortable" as const, label: "Comfortable" },
+  { value: "compact" as const, label: "Compact" },
 ];
 
 const percent = (zoom: number): string => `${Math.round(zoom * 100)}%`;
@@ -36,7 +47,9 @@ export function SettingsStudio() {
   const [{ fitting, manual: zoom }, setZoomPref] = useZoomPref();
   const [showGrid, setShowGrid] = useStoredFlag(GRID_KEY, true);
   const [showRulers, setShowRulers] = useStoredFlag(RULERS_KEY, true);
-  const [leftWidth, setLeftWidth] = useStoredLeftWidth();
+  const [leftWidth, setLeftWidth] = useLeftPanelWidth();
+  const [density, setDensity] = useAddListDensity();
+  const [previewOnHover, setPreviewOnHover] = useAddPreviewOnHover();
   // A zoom that is not a step (a wheel zoom) still shows as itself.
   const steps = ZOOM_STEPS.some((s) => Math.abs(s - zoom) < 0.005) || fitting ? ZOOM_STEPS : [...ZOOM_STEPS, zoom].sort((a, b) => a - b);
   const current = fitting ? "fit" : String(steps.find((s) => Math.abs(s - zoom) < 0.005) ?? zoom);
@@ -59,16 +72,25 @@ export function SettingsStudio() {
       />
       <ToggleRow label="Show grid" value={showGrid} onChange={setShowGrid} />
       <ToggleRow label="Show rulers" value={showRulers} onChange={setShowRulers} />
-      <SliderRow
+      <SegmentedRow
         label="Left panel width"
-        hint="Design's left panel (Layers and Add widget); you can also drag its edge"
+        hint="Design's left panel, Layers and Add"
+        options={LEFT_WIDTHS}
         value={leftWidth}
-        min={LEFT_MIN_WIDTH}
-        max={LEFT_MAX_WIDTH}
-        step={4}
-        unit="px"
-        fallback={LEFT_MIN_WIDTH}
-        onChange={setLeftWidth}
+        onChange={(v) => setLeftWidth(v as LeftPanelWidth)}
+      />
+      <SegmentedRow
+        label="Widget list"
+        hint="Compact hides the one-line description."
+        options={DENSITIES}
+        value={density}
+        onChange={(v) => setDensity(v as AddListDensity)}
+      />
+      <ToggleRow
+        label="Preview on hover"
+        hint="The preview always shows while browsing with the arrow keys."
+        value={previewOnHover}
+        onChange={setPreviewOnHover}
       />
     </SettingsGroup>
   );

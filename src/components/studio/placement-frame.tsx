@@ -72,6 +72,8 @@ interface PlacementFrameProps {
   ghost?: boolean;
   /** Right-click (viewport px): the studio opens the zone menu. */
   onContextMenu?: (x: number, y: number) => void;
+  /** A click (no drag) on the zone while it is already the Add panel's target: it stops being one. */
+  onSelectAgain?: () => void;
   /** Open the widget picker (the blank zone's "Pick a widget"). */
   onPickWidget?: () => void;
   /** In the selection: highlighted (studio view). */
@@ -123,6 +125,7 @@ export function PlacementFrame({
   ghost,
   onContextMenu,
   onPickWidget,
+  onSelectAgain,
   selected,
   primary,
   canResize,
@@ -177,6 +180,7 @@ export function PlacementFrame({
     // Captured at the press: the first click of a double-click selects the
     // zone, the second (now primary) one picks the widget.
     const pick = primary ? onSelectWidget : undefined;
+    const again = onSelectAgain;
     const widgetId = target.closest<HTMLElement>("[data-widget-id]")?.dataset.widgetId ?? null;
     // preventDefault() suppresses the click event in Chromium, so the
     // frame's onClick never fires — select on the press itself.
@@ -204,6 +208,7 @@ export function PlacementFrame({
         if (cancelled) return active ? onZoneDragCancel?.(placement.id) : undefined;
         onZoneDragEnd?.(placement.id, last);
         if (active) return;
+        if (again) return again();
         // A click without a drag selects just this zone.
         onSelect?.("only");
         pick?.(widgetId);

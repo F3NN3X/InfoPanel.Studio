@@ -12,6 +12,8 @@ export const meta: WidgetMeta = {
   prefixes: [P],
   defaultSize: [3, 2],
   minSize: [2, 1],
+  blurb: "A watched text file, live",
+  tags: "text file log",
   description: "Shows a text file the TextFile plugin watches, with its size, line count and status.",
 };
 

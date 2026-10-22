@@ -1,6 +1,8 @@
 @import "tailwindcss";
 /* Settings › App's color tokens (the s-* utilities of src/settings). */
 @import "./settings/tokens.css";
+/* Dropdown lists in the studio menus' look. */
+@import "./select.css";
 
 /* The studio's phone width (SPEC §3.5, `PHONE_MAX`): `sm:` and `max-sm:` switch at 600 px, not Tailwind's 640. */
 @theme {
@@ -392,4 +394,56 @@
    small zone: at most 6% of the body per gap (`bodyGap` in core/look.ts counts the same). */
 [data-wp-body][data-wp-gap] > :is(.flex, .grid)[class*="gap-"] {
   gap: min(var(--wp-gap), 6%);
+}
+
+/* The Add panel (handoff SPEC §5.2, §7.4): the preview card's entry, the added zone's ring, the toast's rise. */
+@keyframes add-preview-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+.add-preview-in {
+  animation: add-preview-in 140ms ease-out;
+}
+
+@keyframes add-flash {
+  from {
+    box-shadow: 0 0 0 2px var(--ui-accent);
+  }
+  to {
+    box-shadow: 0 0 0 2px oklch(0.72 0.15 255 / 0);
+  }
+}
+
+.add-flash {
+  animation: add-flash 1.4s ease-out forwards;
+}
+
+@keyframes add-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.add-toast-in {
+  animation: add-toast-in 180ms ease-out;
+}
+
+/* The Add panel's chip row scrolls sideways without a scrollbar. */
+.add-chips {
+  scrollbar-width: none;
+}
+
+:root:has(.studio-root) .add-chips::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-preview-in,
+  .add-toast-in {
+    animation: none;
+  }
 }

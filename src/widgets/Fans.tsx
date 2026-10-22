@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 1],
   minSize: [1, 1],
+  blurb: "Fan speeds and duty",
+  tags: "rpm cooling",
   description: "GPU fans 1–3 with duty %, plus CPU fan. Icons spin at a speed proportional to RPM.",
 };
 

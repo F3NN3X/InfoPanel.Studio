@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Every temperature sensor, hottest first",
+  tags: "temp temperature heat hotspot",
   description: "Every temperature sensor in one place — CPU, GPU core + hotspot, NVMe/SSD, VRM — hottest first.",
 };
 

@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [1, 1],
   minSize: [1, 1],
+  blurb: "Any single value as number, gauge or bar",
+  tags: "bind value custom",
   description: "Bind any single data point. Shows it as a value, gauge, bar or sparkline with thresholds.",
 };
 

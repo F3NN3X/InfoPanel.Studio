@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 1],
   minSize: [1, 1],
+  blurb: "Achievement progress for this game",
+  tags: "steam",
   description: "Current game achievement completion ring, unlocked / total and the latest unlock.",
 };
 
