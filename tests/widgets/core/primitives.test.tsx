@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Ring } from "@/widgets/core/primitives";
+import { Bar, Ring } from "@/widgets/core/primitives";
 
 describe("Ring sweep", () => {
   const dash = (html: string) => [...html.matchAll(/stroke-dasharray="([^"]+)"/g)].map((m) => m[1]);
@@ -17,5 +17,14 @@ describe("Ring sweep", () => {
     expect(html).toContain('stroke="red"');
     expect(value).toBeCloseTo(track / 2);
     expect(dash(renderToString(<Ring value={50} />))[0]).not.toBe(dash(html)[0]);
+  });
+});
+
+describe("Bar segments", () => {
+  const cells = (html: string) => html.match(/<span /g)?.length ?? 0;
+
+  it("draws 24 cells by default and as many as asked", () => {
+    expect(cells(renderToString(<Bar value={50} style="segments" />))).toBe(24);
+    expect(cells(renderToString(<Bar value={50} style="segments" segments={12} />))).toBe(12);
   });
 });

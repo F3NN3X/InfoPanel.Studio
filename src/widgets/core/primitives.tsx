@@ -64,20 +64,22 @@ export interface BarProps {
   className?: string;
   track?: string;
   style?: string;
+  /** Cells of the segments / blocks styles (default 24 / 14). */
+  segments?: number;
 }
 /** How long a smooth bar or ring glides to a new reading: about one sample interval of the feed. */
 const GLIDE_MS = 1000;
 /** A ring glide is a main-thread repaint every frame, so it is kept short. */
 const RING_GLIDE_MS = 300;
 
-export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle }: BarProps) {
+export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments }: BarProps) {
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
   // Smooth graph updates: glide linearly over about one sample interval instead of easing.
   const glide = sk.smooth ? { transition: `transform ${GLIDE_MS}ms linear` } : null;
   if (m === "segments" || m === "blocks") {
-    const n = m === "blocks" ? 14 : 24,
+    const n = segments ?? (m === "blocks" ? 14 : 24),
       lit = Math.round((pct / 100) * n);
     return (
       <div className={cn("flex w-full gap-[2px]", className)}>

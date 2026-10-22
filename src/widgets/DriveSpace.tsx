@@ -1,4 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
+import { DriveRows, type DriveRow } from "./DriveSpaceViews";
 import { useFitRows, Widget, shell, get, num, fmt, fmtMB, Bar, BarRow, Ring, Num, tone, Pill, type ShellProps, type WidgetMeta, type Tone } from "./kit";
 
 export const meta: WidgetMeta = {
@@ -12,10 +13,17 @@ export const meta: WidgetMeta = {
   blurb: "Used and free space per drive",
   tags: "disk volume ssd",
   description: "Used / free space per volume with label, type and file system.",
+  views: [
+    { id: "list", name: "List" },
+    { id: "segments", name: "Segments", blurb: "Segmented fill bar per drive", defaultSize: [4, 3] },
+    { id: "bars", name: "Bars", blurb: "Slim fill bar per drive", defaultSize: [4, 3] },
+  ],
 };
 
 export interface DriveSpaceProps extends ShellProps {
   look?: ModuleSettings;
+  /** The layout: the list, a segmented fill bar per drive or a slim one. */
+  view?: "list" | "segments" | "bars";
   /** Pin one volume ("c", "d", …); omit to list all. */
   drive?: string;
   warn?: number;
@@ -63,6 +71,10 @@ export default function DriveSpace(p: DriveSpaceProps) {
               <Bar value={first.pct} t={tone(first.pct, warn, crit)} className="h-2" />
             </div>
           );
+        if (p.view === "segments" || p.view === "bars") {
+          const rows: DriveRow[] = list.map((x) => ({ key: x.id, name: x.label ? `${x.label} (${x.name})` : x.name, text: `${fmtMB(x.used)} / ${fmtMB(x.total)}`, pct: x.pct, t: tone(x.pct, warn, crit) }));
+          return <DriveRows rows={rows} view={p.view} size={size} h={h} />;
+        }
         if (one && size !== "sm")
           return (
             <div className="flex h-full items-center gap-5">

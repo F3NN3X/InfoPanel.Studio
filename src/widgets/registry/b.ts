@@ -38,6 +38,7 @@ const numbersOf = <K extends string>(s: ModuleSettings, keys: readonly K[]): Par
   Object.fromEntries(keys.flatMap((k) => (numberOf(s[k]) === undefined ? [] : [[k, numberOf(s[k])]]))) as Partial<Record<K, number>>;
 
 const DRIVE_SETTINGS: ModuleSetting[] = [
+  viewSetting(DriveSpace.meta, { group: "Drive" }),
   deviceSetting("Drive", "drive", { group: "Drive", hint: "Pin one volume; Auto lists all" }),
   enumSetting("sort", "Sort", "usage", [{ value: "usage", label: "By usage" }, { value: "name", label: "By name" }], { group: "Sorting", tab: "behaviour" }),
   boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true }),
@@ -145,7 +146,7 @@ export const GROUP_B: DashboardModule[] = [
     meta: DriveSpace.meta,
     Component: DriveSpace.default,
     settings: DRIVE_SETTINGS,
-    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral) }),
+    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral) }),
     island: driveSpaceIsland,
   }),
   // any vendor's drive: the keys are read, not owned (the fallback grid keeps the rest of `libre.`)

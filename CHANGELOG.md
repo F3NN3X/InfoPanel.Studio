@@ -7,6 +7,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **Drive Space: Segments and Bars views.** Two more layouts, each its own entry in the Add panel: one row per drive
+  with its icon, name, used / total and a segmented or slim fill bar that turns warn and critical past the
+  thresholds. The List view is unchanged.
 - **System Overview: Graphs and Gauges views.** Two more layouts, each its own entry in the Add panel: Graphs draws a
   sparkline row per metric, Gauges open-arc dials. Both follow the chosen sections and colours; pick which drive (and
   whether it shows activity, used space or read + write) and which network adapter (down, up or both, with an optional

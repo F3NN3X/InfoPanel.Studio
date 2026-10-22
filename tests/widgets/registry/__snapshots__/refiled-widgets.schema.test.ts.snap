@@ -929,6 +929,11 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
       ],
     },
     {
+      "Drive": [
+        "view",
+      ],
+    },
+    {
       "Fit": [
         "compact",
         "sizeTier · more",
