@@ -7,6 +7,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **Weather: animated backgrounds.** An opt-in rain, snow, hail, thunder, fog, cloud, wind, sun, or moon and stars
+  effect behind every Weather view, based on [web-weather](https://github.com/greywen/web-weather) by greywen (MIT).
+  Settings: Intensity, Particles, Speed, Wind, Lightning, Clouds and fog, Strength, and Show to preview a condition.
+  It uses more CPU, GPU and memory on the kiosk, follows Max FPS and stops with reduced motion. There is no sound.
 - **Weather: Glance and Week views, and Meteocons icons.** Glance is a big icon with the temperature, condition and
   place; Week lists Today and the next days, each with an icon, high and low. Weather and Forecast can now draw
   [Meteocons](https://github.com/basmilius/meteocons-poc) (MIT) in Fill, Flat, Line or Monochrome instead of the app

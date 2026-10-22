@@ -165,6 +165,23 @@ const WEATHER_SETTINGS: ModuleSetting[] = [
     hint: "Animated icons use more CPU and memory on the kiosk, and run outside the Max FPS cap.",
     visibleIf: (v) => v.iconSet === "meteocons",
   },
+  {
+    key: "fxOn",
+    label: "Animated background",
+    type: "boolean",
+    default: false,
+    group: "Background",
+    perWidget: true,
+    hint: "Animated backgrounds use more CPU, GPU and memory on the kiosk. They follow Max FPS and stop when reduced motion is on.",
+  },
+  { key: "fxIntensity", label: "Intensity", type: "number", default: 1, min: 0.25, max: 2, step: 0.25, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxDensity", label: "Particles", type: "number", default: 100, min: 25, max: 200, step: 25, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxSpeed", label: "Speed", type: "number", default: 1, min: 0.5, max: 2, step: 0.25, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxWind", label: "Wind", type: "select", default: "auto", options: [{ value: "auto", label: "Auto" }, { value: "none", label: "None" }, { value: "left", label: "Left" }, { value: "right", label: "Right" }], group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxLightning", label: "Lightning", type: "boolean", default: true, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxClouds", label: "Clouds and fog", type: "boolean", default: true, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxOpacity", label: "Strength", type: "number", default: 100, min: 20, max: 100, step: 10, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
+  { key: "fxPreview", label: "Show", type: "select", default: "auto", options: [{ value: "auto", label: "Live condition" }, { value: "clear", label: "Clear" }, { value: "cloudy", label: "Cloudy" }, { value: "rain", label: "Rain" }, { value: "snow", label: "Snow" }, { value: "hail", label: "Hail" }, { value: "thunder", label: "Thunder" }, { value: "fog", label: "Fog" }], group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
 ];
 
 /** The stored settings as the Weather template's props (`forecastDays` is its `days`). */
@@ -176,7 +193,29 @@ const weatherToProps = (s: ModuleSettings): Partial<Weather.WeatherProps> => ({
   showForecast: Boolean(s.showForecast),
   days: Math.max(1, Math.min(7, Math.round(Number(s.forecastDays) || 5))),
   ...iconsOf(s),
+  ...fxOf(s),
 });
+
+/** The animated-background settings as the Weather props, each clamped to its range. */
+const fxOf = (s: ModuleSettings): Partial<Weather.WeatherProps> => {
+  const range = (v: unknown, lo: number, hi: number) => {
+    const n = numberOf(v);
+    return n === undefined ? undefined : Math.min(hi, Math.max(lo, n));
+  };
+  return {
+    fxOn: s.fxOn === true,
+    fxWind: oneOf(s.fxWind, ["auto", "none", "left", "right"]),
+    fxPreview: oneOf(s.fxPreview, ["auto", "clear", "cloudy", "rain", "snow", "hail", "thunder", "fog"]),
+    fxOpts: {
+      intensity: range(s.fxIntensity, 0.25, 2),
+      density: range(s.fxDensity, 25, 200),
+      speed: range(s.fxSpeed, 0.5, 2),
+      lightning: s.fxLightning !== false,
+      clouds: s.fxClouds !== false,
+      opacity: range(s.fxOpacity, 20, 100),
+    },
+  };
+};
 
 /** The weather icon-set settings as the templates' icon props. */
 const iconsOf = (s: ModuleSettings) => ({

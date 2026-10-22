@@ -1,5 +1,7 @@
 import type { ModuleSettings } from "@/modules/types";
-import { weatherKind } from "@/lib/weather-icons";
+import { weatherKind, type WeatherKind } from "@/lib/weather-icons";
+import { windValue } from "./weather-fx/config";
+import { WeatherFx, type WeatherFxOpts } from "./weather-fx/WeatherFx";
 import Forecast from "./Forecast";
 import { Widget, shell, get, num, fmt, has, rows, Stat, Num, WeatherGlyph, weatherIcon, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
 import { WeatherGlance, WeatherWeek, weekDays } from "./WeatherViews";
@@ -62,6 +64,11 @@ export interface WeatherProps extends ShellProps {
   showFeels?: boolean;
   /** The day-forecast strip (default on). */
   showForecast?: boolean;
+  /** The animated background (default off), its options and what it shows ("auto" = the live condition). */
+  fxOn?: boolean;
+  fxOpts?: WeatherFxOpts;
+  fxWind?: "auto" | "none" | "left" | "right";
+  fxPreview?: "auto" | WeatherKind;
   /** Forecast days shown, 1-7 (default: 5, or 7 in a large zone). */
   days?: number;
 }
@@ -96,6 +103,9 @@ function Current(p: WeatherProps) {
   const showStats = p.showStats ?? !minimal;
   const showFeels = p.showFeels ?? !minimal;
   const showForecast = p.showForecast ?? (p.view === undefined || p.view === "full");
+  const fx = p.fxOn && (
+    <WeatherFx kind={p.fxPreview && p.fxPreview !== "auto" ? p.fxPreview : cond.kind} night={cond.night} temp={temp} wind={windValue(p.fxWind ?? "auto", num(k("wind_speed")), num(k("wind_deg")))} opts={p.fxOpts} />
+  );
   const tint = p.tint ? conditionTint(k("weather_desc")) : undefined;
   const feelsText = showFeels ? ` · feels ${fmt(T(feels), 0)}°` : "";
   const feelsLine = showFeels ? `feels like ${fmt(T(feels), 0)}°` : "";
@@ -103,7 +113,12 @@ function Current(p: WeatherProps) {
     <Widget
       {...shell(p)}
       accent={p.accent ?? tint}
-      backdrop={tint && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${tint} 42%, transparent), color-mix(in srgb, ${tint} 12%, transparent))` }} />}
+      backdrop={(tint || fx) && (
+        <>
+          {tint && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${tint} 42%, transparent), color-mix(in srgb, ${tint} 12%, transparent))` }} />}
+          {fx}
+        </>
+      )}
       title={p.title ?? (has(k("name")) ? k("name") : "Weather")}
       icon="location_on"
       compact={{ label: has(k("name")) ? k("name") : "Weather", value: `${fmt(T(temp), 0)}°`, sub: `${k("weather_desc")}${feelsText}`, icon, kind: "value" }}
