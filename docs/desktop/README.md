@@ -81,6 +81,10 @@ The windows have no native frame. The studio's top bar is the main window's titl
 its empty space, double-click to maximize, and use the minimize, maximize and close buttons at its
 right end (close hides to the tray). The start and settings pages have a matching bar with the logo.
 
+While the studio window is hidden to the tray or minimized, its webview is suspended (WebView2 `TrySuspend`, else a
+Low memory target) after the page is flushed, and resumed before it shows again. Kiosk view on screen is never
+suspended. Why and how: [webview-performance.md](webview-performance.md).
+
 ## Debug mode (errors and leaks)
 
 Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STUDIO_DEBUG=1`.
@@ -95,6 +99,8 @@ Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STU
   the settings window's Diagnostics page. A series is flagged "growing" when it rose in at least 80% of the samples over the
   last hour and by more than 20%.
 - Open DevTools from the settings page (debug mode only).
+- **Open WebView2 task manager** (Diagnostics, any mode) shows memory and CPU per WebView2 process (renderer, GPU
+  and the rest), to tell which one grows. `node tools/perf/metrics-trend.mjs` summarises `metrics.csv` over time.
 
 Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer resolution, not a stall.
 
