@@ -2,7 +2,7 @@
 // with the adapters back to props (docs/redesign/phase9/brief-9.5-inspector.md). SystemOverview's are in system-overview.ts.
 import { decimalsOf, deviceOf, levelOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
-import { boolOf, boolSetting, colorSetting, colorsOf, deviceSetting, enumSetting, formatSetting, numberOf, numberSetting, oneOf, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, type ColorEntry } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, colorsOf, deviceSetting, enumSetting, formatSetting, numberOf, numberSetting, oneOf, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, viewSetting, type ColorEntry } from "./settings-kit";
 import type { CoreHeatmapProps } from "../CoreHeatmap";
 import type { CpuMonitorProps } from "../CpuMonitor";
 import type { FansProps } from "../Fans";
@@ -13,7 +13,7 @@ import type { MemoryUsageProps } from "../MemoryUsage";
 import type { MenuBarProps } from "../MenuBar";
 import type { PowerDrawProps } from "../PowerDraw";
 import type { ProcessListProps } from "../ProcessList";
-import type { ServiceHealthProps } from "../ServiceHealth";
+import { meta as serviceHealthMeta, type ServiceHealthProps } from "../ServiceHealth";
 import type { StatusTrackerProps, Track } from "../StatusTracker";
 import type { SystemStatusProps } from "../SystemStatus";
 import type { ThermalsProps } from "../Thermals";
@@ -120,7 +120,7 @@ export const FANS_SETTINGS: ModuleSetting[] = [
 export const fansProps = (s: ModuleSettings): Partial<FansProps> => ({ maxRpm: numberOf(s.maxRpm), spin: boolOf(s.spin) });
 
 /** The template's `layout` is stored as `healthLayout` (the standard `layout` keeps its meaning). */
-export const SERVICEHEALTH_SETTINGS: ModuleSetting[] = [enumSetting("healthLayout", "Services as", "list", opts(["list", "List"], ["pills", "Pills"]), { group: "Services" })];
+export const SERVICEHEALTH_SETTINGS: ModuleSetting[] = [viewSetting(serviceHealthMeta, { label: "Services as", group: "Services" })];
 export const serviceHealthProps = (s: ModuleSettings): Partial<ServiceHealthProps> => ({ layout: oneOf(s.healthLayout, ["list", "pills"]) });
 
 export const PROCESSLIST_SETTINGS: ModuleSetting[] = [

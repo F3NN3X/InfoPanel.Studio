@@ -19,7 +19,10 @@ import {
   splitKeys,
   stringOf,
   toggleKey,
+  viewOnly,
+  viewSetting,
 } from "@/widgets/registry/settings-kit";
+import type { WidgetMeta } from "@/widgets/core/types";
 
 describe("narrowing", () => {
   it("pass skips unset and empty values, pick keeps an empty string", () => {
@@ -77,5 +80,41 @@ describe("builders", () => {
     ]);
     expect(colorsOf({ cpuColor: " #fff ", gpuColor: "" }, entries)).toEqual({ cpu: "#fff" });
     expect(colorsOf({}, entries)).toBeUndefined();
+  });
+});
+
+describe("views", () => {
+  const base: WidgetMeta = { id: "Demo", name: "Demo", category: "System", icon: "memory", prefixes: [], defaultSize: [2, 2], minSize: [1, 1], description: "" };
+  const plain: WidgetMeta = { ...base, viewKey: "demoLayout", views: [{ id: "list", name: "List" }, { id: "grid", name: "Grid" }] };
+  const bundled: WidgetMeta = { ...base, views: [{ id: "a", name: "A", applies: { x: true } }, { id: "b", name: "B" }] };
+
+  it("viewSetting is a select under the view key, the first view the default", () => {
+    expect(viewSetting(plain, { label: "Layout", group: "G" })).toEqual({
+      key: "demoLayout",
+      label: "Layout",
+      type: "select",
+      default: "list",
+      options: [{ value: "list", label: "List" }, { value: "grid", label: "Grid" }],
+      group: "G",
+    });
+  });
+
+  it("viewSetting is a preset when a view sets others with it (a view that sets none sets nothing)", () => {
+    expect(viewSetting(bundled)).toEqual({
+      key: "view",
+      label: "View",
+      type: "preset",
+      default: "a",
+      options: [{ value: "a", label: "A", applies: { x: true } }, { value: "b", label: "B", applies: {} }],
+    });
+  });
+
+  it("viewOnly shows a setting in its views only, and while its own visibleIf holds", () => {
+    const gated = viewOnly(plain, "grid")(boolSetting("x", "X", true, { visibleIf: (v) => v.on === true }));
+    expect(gated.visibleIf!({ demoLayout: "grid", on: true })).toBe(true);
+    expect(gated.visibleIf!({ demoLayout: "grid", on: false })).toBe(false);
+    expect(gated.visibleIf!({ demoLayout: "list", on: true })).toBe(false);
+    // unset reads as the first view
+    expect(viewOnly(plain, "list")(boolSetting("y", "Y", true)).visibleIf!({})).toBe(true);
   });
 });

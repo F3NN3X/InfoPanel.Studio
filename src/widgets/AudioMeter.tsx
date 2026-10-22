@@ -15,6 +15,11 @@ export const meta: WidgetMeta = {
   blurb: "Left and right level with peak hold",
   tags: "level db sound",
   description: "L/R level, peak, RMS and peak-hold for one device, or a meter bridge for all devices.",
+  viewKey: "mode",
+  views: [
+    { id: "single", name: "One device" },
+    { id: "bridge", name: "All devices", blurb: "A meter bridge for every audio device", tags: "bridge mixer devices", defaultSize: [3, 2] },
+  ],
 };
 
 /** The amber and hot zones' defaults in dBFS: the LED ladder's 72 % and 90 % of full scale (before config v8 fixed). */

@@ -1,6 +1,7 @@
 // GameSpotlight's composite-layout settings (same keys, defaults and groups as the old Steam widget).
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
-import type { GameSpotlightProps } from "./GameSpotlight";
+import { meta, type GameSpotlightProps } from "./GameSpotlight";
+import { viewSetting } from "./registry/settings-kit";
 
 export const SPOTLIGHT_COMPOSITE_SETTINGS: ModuleSetting[] = [
   { key: "showStats", label: "Stats", type: "boolean", default: true, group: "Composite" },
@@ -8,21 +9,7 @@ export const SPOTLIGHT_COMPOSITE_SETTINGS: ModuleSetting[] = [
 ];
 
 /** The template's own `layout` prop is stored as `spotlightLayout`; `layout` keeps the standard meaning. */
-export const SPOTLIGHT_LAYOUT_SETTING: ModuleSetting = {
-  key: "spotlightLayout",
-  label: "Spotlight layout",
-  type: "select",
-  default: "hero",
-  options: [
-    { value: "hero", label: "Hero" },
-    { value: "poster", label: "Poster" },
-    { value: "logo", label: "Logo" },
-    { value: "ticker", label: "Ticker" },
-    { value: "combo", label: "Combo (with music)" },
-    { value: "composite", label: "Composite (profile, stats, news)" },
-  ],
-  group: "Layout",
-};
+export const SPOTLIGHT_LAYOUT_SETTING: ModuleSetting = viewSetting(meta, { label: "Spotlight layout", group: "Layout" });
 
 type CompositeProps = Pick<GameSpotlightProps, "showStats" | "showNews">;
 

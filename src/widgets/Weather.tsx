@@ -13,6 +13,13 @@ export const meta: WidgetMeta = {
   blurb: "Current conditions and 7-day forecast",
   tags: "temperature rain wind",
   description: "Current conditions, feels-like, wind, humidity, pressure, rain/snow and 7-day forecast (MET/Yr or OpenWeatherMap).",
+  // Each view sets the three toggles in place; changed afterwards, the row reads Custom. Full = their defaults.
+  views: [
+    { id: "full", name: "Full", applies: { showForecast: true, showStats: true, showFeels: true } },
+    { id: "now", name: "Now", blurb: "Current conditions with wind and humidity", tags: "current today", applies: { showForecast: false, showStats: true, showFeels: true } },
+    { id: "forecast", name: "Forecast", blurb: "Conditions now and the days ahead", tags: "week days outlook", applies: { showForecast: true, showStats: false, showFeels: false } },
+    { id: "minimal", name: "Minimal", blurb: "Temperature and conditions only", tags: "simple small", applies: { showForecast: false, showStats: false, showFeels: false } },
+  ],
 };
 
 const compass = (deg: number) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((deg % 360) / 45) % 8];

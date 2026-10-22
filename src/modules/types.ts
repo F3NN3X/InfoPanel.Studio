@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
 import type { IslandSourceDef } from "@/lib/island/sources";
+import type { WidgetView } from "@/widgets/core/types";
 
 export type SensorMap = Record<string, SensorValue>;
 
@@ -199,6 +200,9 @@ export interface DashboardModule {
   tags?: string;
   /** Footprint (cols, rows) a drop gets when larger than the minimum; unset: 3×2 or the minimum. */
   defaultSize?: [number, number];
+  /** The layouts it offers and the key they are stored under (`WidgetMeta.views`, `.viewKey`). */
+  views?: WidgetView[];
+  viewKey?: string;
   /** What the widget sends to the Dynamic Island when its "Send to island" is on (`src/lib/island/sources.ts`). */
   island?: IslandSourceDef;
   /** Whether it draws a header (the inspector's Header section); unset: "yes". */

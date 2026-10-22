@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+- **Widget views in the Add panel.** Widgets with several layouts list each as its own entry (Weather · Forecast,
+  Game Spotlight · Ticker, Now Playing · Vinyl, …), which adds the widget with that view already picked.
+
 ### Changed
 - **Advanced switch in widget settings.** The inspector now hides what most people never touch: sections that follow
   the theme collapse to "Follows theme" with a Customise button, the "More" rows and the CSS & locks card stay

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BLANK_MODULE } from "@/lib/layout";
 import type { UserPanelPreset } from "@/lib/panel-model";
-import { addCatalog, addGroups, categoriesOf, firstSentence, searchItems, type AddItem } from "@/components/studio/add-catalog";
+import { addCatalog, addGroups, categoriesOf, firstSentence, sameDrop, searchItems, type AddItem } from "@/components/studio/add-catalog";
 
 const catalog = addCatalog();
 const names = (list: AddItem[]) => list.map((i) => i.name);
@@ -24,6 +24,37 @@ describe("addCatalog", () => {
       mw: 1,
       mh: 1,
     });
+  });
+
+  it("lists a widget with views once per view: the first as the widget itself, the others added with their settings", () => {
+    const rows = catalog.widget.filter((w) => w.drop.id === "Weather");
+    expect(rows.map((w) => [w.id, w.name])).toEqual([
+      ["Weather", "Weather"],
+      ["Weather:now", "Weather · Now"],
+      ["Weather:forecast", "Weather · Forecast"],
+      ["Weather:minimal", "Weather · Minimal"],
+    ]);
+    expect(rows[0].drop).toEqual({ kind: "module", id: "Weather" });
+    expect(rows[3]).toMatchObject({ category: "Info", icon: rows[0].icon, w: 3, h: 2, blurb: "Temperature and conditions only" });
+    expect(rows[3].drop).toEqual({ kind: "module", id: "Weather", settings: { view: "minimal", showForecast: false, showStats: false, showFeels: false } });
+  });
+
+  it("stores a view under the widget's own key and takes the view's size", () => {
+    const ticker = catalog.widget.find((w) => w.id === "GameSpotlight:ticker")!;
+    expect(ticker).toMatchObject({ name: "Game Spotlight · Ticker", w: 4, h: 1, mw: 1, mh: 1 });
+    expect(ticker.drop.settings).toEqual({ spotlightLayout: "ticker" });
+  });
+
+  it("lists a widget without views, or with one, once", () => {
+    expect(catalog.widget.filter((w) => w.drop.id === "CpuMonitor").map((w) => w.id)).toEqual(["CpuMonitor"]);
+    expect(catalog.widget.filter((w) => w.drop.id === "SystemOverview").map((w) => w.id)).toEqual(["SystemOverview"]);
+  });
+
+  it("tells a widget's views apart by their settings", () => {
+    const [full, now] = catalog.widget.filter((w) => w.drop.id === "Weather");
+    expect(sameDrop(full.drop, { kind: "module", id: "Weather" })).toBe(true);
+    expect(sameDrop(now.drop, { kind: "module", id: "Weather" })).toBe(false);
+    expect(sameDrop(now.drop, { ...now.drop, settings: { ...now.drop.settings } })).toBe(true);
   });
 
   it("splits panels into My panels and presets, and layouts into Blank zone and starters", () => {

@@ -1,5 +1,6 @@
 // Shared widget-library types (docs/redesign/widgets/docs/CLAUDE_CODE.md §6).
 import type { CSSProperties, ReactNode } from "react";
+import type { ModuleSettings } from "@/modules/types";
 
 export type Data = Record<string, string | { value: string }>;
 export type Tier = "xs" | "sm" | "md" | "lg";
@@ -66,6 +67,23 @@ export interface WidgetMeta {
   /** Space-separated lower-case search synonyms for the Add list; never shown. */
   tags?: string;
   description: string;
+  /** The layouts it offers (first = the default); unset: one implicit view. */
+  views?: WidgetView[];
+  /** The stored key of the view (default `"view"`; legacy keys such as `playerLayout` keep theirs). */
+  viewKey?: string;
+}
+
+/** One layout a widget offers: picked in its View control and listed as its own Add-panel entry. */
+export interface WidgetView {
+  /** The stored value of the view key. */
+  id: string;
+  name: string;
+  blurb?: string;
+  tags?: string;
+  defaultSize?: [number, number];
+  minSize?: [number, number];
+  /** Settings the view sets with it (a preset's bundle, e.g. FpsMonitor trend → sparkline: true). */
+  applies?: ModuleSettings;
 }
 
 /** Skin token keys (CLAUDE_CODE §5); all optional. */

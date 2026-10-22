@@ -2,27 +2,16 @@
 // mapping from the stored keys to NowPlaying props; the old keys stay readable for unmigrated settings.
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { VIZ_STYLES, type VizLook, type VizStyle } from "../core/viz/types";
-import type { NowPlayingProps } from "../NowPlaying";
+import { meta, type NowPlayingProps } from "../NowPlaying";
 import { devicesOf } from "@/modules/setting-readers";
-import { boolSetting, colorSetting, deviceSetting, enumSetting, numberOf, numberSetting, oneOf } from "../registry/settings-kit";
+import { boolSetting, colorSetting, deviceSetting, enumSetting, numberOf, numberSetting, oneOf, viewOnly, viewSetting } from "../registry/settings-kit";
 import { VIZ_COLORS_GROUP, VIZ_DYNAMICS_GROUP, vizColorRows, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "../registry/viz-settings";
 
 /** The audio-level-meter plugin, which drives the visualizers' live level. */
 export const AUDIO_LEVEL = "plugins.audio-level-meter.";
 
 /** The player layout, stored as `playerLayout` (the standard `layout` keeps its meaning). */
-export const PLAYER_LAYOUT: ModuleSetting = enumSetting(
-  "playerLayout",
-  "Layout",
-  "card",
-  [
-    { value: "card", label: "Card" },
-    { value: "vinyl", label: "Vinyl" },
-    { value: "backdrop", label: "Backdrop" },
-    { value: "wave", label: "Wave" },
-  ],
-  { group: "Player" }
-);
+export const PLAYER_LAYOUT: ModuleSetting = viewSetting(meta, { label: "Layout", group: "Player" });
 
 /** Cover art is drawn by the card and wave layouts only. */
 const ART_LAYOUTS = ["card", "wave"];
@@ -43,7 +32,7 @@ const AUTO_GAIN = DYNAMICS.find((d) => d.key === "vizAutoGain")!;
  */
 const OWN_SETTINGS: ModuleSetting[] = [
   PLAYER_LAYOUT,
-  boolSetting("showArt", "Cover art", true, { group: PLAYER, visibleIf: (v) => ART_LAYOUTS.includes(String(v.playerLayout)) }),
+  viewOnly(meta, ...ART_LAYOUTS)(boolSetting("showArt", "Cover art", true, { group: PLAYER })),
   boolSetting("showProgress", "Progress", true, { group: PLAYER }),
   enumSetting("progress", "Progress style", "bar", [{ value: "bar", label: "Bar" }, { value: "wave", label: "Wavy" }, { value: "visualizer", label: "Visualizer" }], { group: PLAYER, visibleIf: (v) => v.showProgress !== false }),
   boolSetting("showTimes", "Times", true, { group: PLAYER }),

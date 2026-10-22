@@ -2,7 +2,7 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting, viewSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
 import { timerIsland } from "../island/timer";
@@ -68,7 +68,7 @@ const discovered = (v: ModuleSettings): boolean => v.mode === "auto";
 const listed = (v: ModuleSettings): boolean => !discovered(v);
 const SENSOR_GROUP_SETTINGS: ModuleSetting[] = [
   enumSetting("mode", "Readings", "pick", [{ value: "pick", label: "Pick sensors" }, { value: "auto", label: "Auto-discover" }], { group: "Readings" }),
-  enumSetting("groupLayout", "Layout", "auto", [{ value: "auto", label: "Auto" }, { value: "rows", label: "Rows" }, { value: "grid", label: "Grid" }], { group: "Readings", visibleIf: listed }),
+  viewSetting(SensorGroup.meta, { label: "Layout", group: "Readings", visibleIf: listed }),
   boolSetting("bars", "Bar per item", true, { group: "Readings", visibleIf: listed }),
   numberSetting("maxRows", "Max rows (0 = all)", 12, { min: 0, max: 100, step: 2, group: "Readings", visibleIf: discovered }),
   // The dots of the discovered list: the theme's Critical, Series 3 and Series 5 ("" = red, blue, amber).
@@ -108,21 +108,7 @@ const NETWORK_SETTINGS: ModuleSetting[] = [
 
 /** Weather's view and toggles, under the old Weather widget's keys. */
 const WEATHER_SETTINGS: ModuleSetting[] = [
-  {
-    key: "view",
-    label: "Preset",
-    type: "preset",
-    default: "full",
-    options: [
-      // Each view sets the three toggles in place; changed afterwards, the row reads Custom. Full = their defaults.
-      { value: "full", label: "Full", applies: { showForecast: true, showStats: true, showFeels: true } },
-      { value: "now", label: "Now", applies: { showForecast: false, showStats: true, showFeels: true } },
-      { value: "forecast", label: "Forecast", applies: { showForecast: true, showStats: false, showFeels: false } },
-      { value: "minimal", label: "Minimal", applies: { showForecast: false, showStats: false, showFeels: false } },
-    ],
-    group: "Display",
-    hint: "Sets the three toggles below. Change one and the preset reads Custom.",
-  },
+  viewSetting(Weather.meta, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
   { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Display" },
   { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Display" },
   { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Display" },

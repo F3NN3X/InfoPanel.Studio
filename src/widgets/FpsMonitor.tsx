@@ -14,6 +14,12 @@ export const meta: WidgetMeta = {
   blurb: "Frame rate, 1% low and frame time",
   tags: "rtss framerate",
   description: "RTSS or PresentMon frame rate, 1% low, frame time graph, game and display info.",
+  views: [
+    // The frame-time graph draws none of the toggles, so any of their values suits it.
+    { id: "frametime", name: "Frame-time graph", applies: {} },
+    { id: "gauge", name: "Gauge", blurb: "Frame rate on a ring with 1% low", tags: "ring dial", applies: { sparkline: false } },
+    { id: "trend", name: "Trend", blurb: "Frame rate ring with a trend sparkline", tags: "ring sparkline history", applies: { sparkline: true } },
+  ],
 };
 
 export interface FpsMonitorProps extends ShellProps {

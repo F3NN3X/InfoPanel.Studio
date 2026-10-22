@@ -1,7 +1,7 @@
 // Template widgets, group D: gaming (see docs/redesign/phase9/brief-9.3c-templates.md).
-import type { DashboardModule, ModuleSetting, ModuleSettings, PaletteRole } from "@/modules/types";
+import type { DashboardModule, ModuleSettings, PaletteRole } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSetting, colorsOf, enumSetting, listOf, numberOf, numberSetting, oneOf, splitKeys, textSetting, type ColorEntry } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, colorsOf, enumSetting, listOf, numberOf, numberSetting, oneOf, splitKeys, textSetting, viewOnly, viewSetting, viewsExcept, type ColorEntry } from "./settings-kit";
 import Achievements, { meta as achievementsMeta, type AchievementsProps } from "../Achievements";
 import FpsMonitor, { meta as fpsMonitorMeta, type FpsMonitorProps } from "../FpsMonitor";
 import FramePacing, { meta as framePacingMeta, type FramePacingProps } from "../FramePacing";
@@ -28,10 +28,10 @@ const targetOf = (v: unknown): number | undefined => {
 const targetSetting = numberSetting("target", "FPS target (0 = refresh rate)", 0, { min: 0, max: 360, step: 5, group: "Target", tab: "data" });
 
 /** The gauge and trend views read the metrics, sparkline and colours; the frame-time graph reads none of them. */
-const gaugeOnly = (d: ModuleSetting): ModuleSetting => ({ ...d, visibleIf: (v) => v.view !== "frametime" });
+const gaugeOnly = viewOnly(fpsMonitorMeta, "gauge", "trend");
 /** GameSpotlight layouts that draw their own fixed gradient instead of the scrim. */
 const FIXED_SCRIM = ["ticker", "poster"];
-const layoutIs = (...layouts: string[]) => (v: ModuleSettings) => layouts.includes(String(v.spotlightLayout));
+const layoutIs = (...layouts: string[]) => viewOnly(gameSpotlightMeta, ...layouts);
 
 /** The friend statuses' colours follow the theme: in-game Series 1, online OK, away Warning, busy Critical, offline Series 2. */
 const FRIEND_COLOR_ENTRIES: (ColorEntry & { role: PaletteRole })[] = (
@@ -66,21 +66,7 @@ export const GROUP_D: DashboardModule[] = [
     meta: fpsMonitorMeta,
     Component: FpsMonitor,
     settings: [
-      {
-        key: "view",
-        label: "View",
-        type: "preset",
-        default: "frametime",
-        bundleDefaults: { sparkline: false },
-        options: [
-          // The frame-time graph draws none of the toggles, so any of their values suits it.
-          { value: "frametime", label: "Frame-time graph", applies: {} },
-          { value: "gauge", label: "Gauge", applies: { sparkline: false } },
-          { value: "trend", label: "Trend", applies: { sparkline: true } },
-        ],
-        group: "Display",
-        hint: "Trend is the gauge with the sparkline on.",
-      },
+      viewSetting(fpsMonitorMeta, { bundleDefaults: { sparkline: false }, group: "Display", hint: "Trend is the gauge with the sparkline on." }),
       ...FPS_LOOK_SETTINGS.map(gaugeOnly),
       targetSetting,
     ],
@@ -92,12 +78,12 @@ export const GROUP_D: DashboardModule[] = [
     Component: GameSpotlight,
     settings: [
       SPOTLIGHT_LAYOUT_SETTING,
-      ...SPOTLIGHT_COMPOSITE_SETTINGS.map((d) => ({ ...d, visibleIf: layoutIs("composite") })),
-      enumSetting("music", "Music source", "media", [{ value: "media", label: "Media" }, { value: "spotify", label: "Spotify" }], { group: "Music card", visibleIf: layoutIs("combo") }),
-      enumSetting("progress", "Music progress", "wave", [{ value: "wave", label: "Wave" }, { value: "visualizer", label: "Visualizer" }], { group: "Music card", visibleIf: layoutIs("combo") }),
-      enumSetting("vizMode", "Visualizer mode", "bars", ["bars", "mirror", "wave", "dots", "line"].map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })), { group: "Music card", visibleIf: (v) => layoutIs("combo")(v) && v.progress === "visualizer" }),
-      numberSetting("scrim", "Scrim darkness", 0.6, { min: 0, max: 1, step: 0.05, tab: "style", perWidget: true, visibleIf: (v) => !FIXED_SCRIM.includes(String(v.spotlightLayout)) }),
-      boolSetting("motion", "Ken Burns motion", true, { group: "Dynamics", tab: "behaviour", visibleIf: (v) => v.spotlightLayout !== "poster" }),
+      ...SPOTLIGHT_COMPOSITE_SETTINGS.map(layoutIs("composite")),
+      layoutIs("combo")(enumSetting("music", "Music source", "media", [{ value: "media", label: "Media" }, { value: "spotify", label: "Spotify" }], { group: "Music card" })),
+      layoutIs("combo")(enumSetting("progress", "Music progress", "wave", [{ value: "wave", label: "Wave" }, { value: "visualizer", label: "Visualizer" }], { group: "Music card" })),
+      layoutIs("combo")(enumSetting("vizMode", "Visualizer mode", "bars", ["bars", "mirror", "wave", "dots", "line"].map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })), { group: "Music card", visibleIf: (v) => v.progress === "visualizer" })),
+      layoutIs(...viewsExcept(gameSpotlightMeta, ...FIXED_SCRIM))(numberSetting("scrim", "Scrim darkness", 0.6, { min: 0, max: 1, step: 0.05, tab: "style", perWidget: true })),
+      layoutIs(...viewsExcept(gameSpotlightMeta, "poster"))(boolSetting("motion", "Ken Burns motion", true, { group: "Dynamics", tab: "behaviour" })),
     ],
     toProps: (s) => ({
       // The standard `layout` keeps its meaning; the template's own layout is stored as `spotlightLayout`.
@@ -163,7 +149,7 @@ export const GROUP_D: DashboardModule[] = [
     meta: steamFriendsMeta,
     Component: SteamFriends,
     settings: [
-      enumSetting("view", "View", "list", [{ value: "list", label: "List" }, { value: "table", label: "Table" }], { group: "Friends" }),
+      viewSetting(steamFriendsMeta, { group: "Friends" }),
       boolSetting("ingameOnly", "In-game only", false, { group: "Friends" }),
       boolSetting("showTime", "Last online", true, { group: "Friends" }),
       boolSetting("showCounts", "Counts row", false, { group: "Friends" }),
