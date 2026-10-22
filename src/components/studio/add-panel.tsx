@@ -341,7 +341,7 @@ export function AddPanel({
           clearTimeout(hideTimer.current);
           hideTimer.current = setTimeout(reset, HIDE_MS);
         }}
-        className="mt-1.5 min-h-0 flex-1 overflow-y-auto px-1.5 pb-3 pt-1"
+        className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto px-1.5 pb-3 pt-1"
       >
         {rows.length === 0 && query.trim() ? (
           <div className="flex flex-col items-start gap-2.5 px-2 py-5">
