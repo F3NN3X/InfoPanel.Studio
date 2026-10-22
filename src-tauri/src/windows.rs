@@ -100,8 +100,13 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let origin = st.origin.clone();
     let nav_app = app.clone();
     let popup_app = app.clone();
+    // Built hidden on the pages' dark background and shown once the first page has loaded, like the
+    // settings and help windows, so launching the app never flashes a white, empty window.
+    let shown = Arc::new(AtomicBool::new(false));
     let window = WebviewWindowBuilder::new(app, MAIN, url)
         .title("InfoPanel Studio")
+        .visible(false)
+        .background_color(PAGE_BACKGROUND)
         // The studio's top bar (and the start page's) is the title bar, with its own controls.
         .decorations(false)
         // Tauri's own drag-drop handler takes file drops from the page; the studio's Import door
@@ -124,7 +129,15 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             open_external(&popup_app, &url);
             NewWindowResponse::Deny
         })
-        .on_page_load(zoom_on_load)
+        .on_page_load(move |window, payload| {
+            let finished = payload.event() == PageLoadEvent::Finished;
+            zoom_on_load(window.clone(), payload);
+            if finished && !shown.swap(true, Ordering::SeqCst) {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        })
         .build()?;
     let _ = window.set_zoom(zoom_factor(app));
     let handle = app.clone();
@@ -178,14 +191,17 @@ fn follow_window(app: &AppHandle, window: tauri::WebviewWindow) {
 /// A minimize's flush-then-suspend is running.
 static MINIMIZE_FLUSH: AtomicBool = AtomicBool::new(false);
 
-/// Shows (creating if needed) and focuses the studio window.
+/// Shows (creating if needed) and focuses the studio window. A new one shows itself once its first
+/// page has loaded.
 pub fn show_main(app: &AppHandle) {
     let window = match app.get_webview_window(MAIN) {
         Some(w) => w,
-        None => match create_main(app) {
-            Ok(w) => w,
-            Err(e) => return log::error!("could not open the studio window: {e}"),
-        },
+        None => {
+            if let Err(e) = create_main(app) {
+                log::error!("could not open the studio window: {e}");
+            }
+            return;
+        }
     };
     // Resumed before it shows, so the page is live when the window appears.
     crate::webview2::resume(&window);

@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+- Starting the app, or opening the studio from the taskbar or tray, no longer flashes a white window before the
+  studio appears.
+
 ## [1.3.0-beta.12] - 2026-10-22
 
 ### Changed
