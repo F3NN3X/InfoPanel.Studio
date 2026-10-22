@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { SensorMap } from "@/modules/types";
 import { toFlat } from "@/widgets/data-adapter";
-import { filterDisks, formatTemp, readSystem, readSystemFlat } from "@/lib/system-metrics";
+import { diskMetric, filterDisks, formatTemp, MBPS, netMetric, pickAdapter, pickDisk, rateTop, readAdapters, readAdaptersFlat, readSystem, readSystemFlat } from "@/lib/system-metrics";
+import { fixtureSensors } from "@/widgets/__fixtures__";
 
 const s = (value: number, unit: string, name: string) => ({ value, unit, name });
 const GPU = "libre.nvidia_geforce_rtx_5090";
@@ -262,5 +263,66 @@ describe("formatTemp", () => {
     expect(formatTemp(0, "f")).toBe("32°F");
     expect(formatTemp(100, "f")).toBe("212°F");
     expect(formatTemp(40.2, "f", 1)).toBe("104.4°F");
+  });
+});
+
+describe("Graphs / Gauges readings", () => {
+  const sensors: SensorMap = {
+    ...live,
+    "libre.kingston_sfyrd2000g_total_activity": s(13.7, "%", "KINGSTON SFYRD2000G Total Activity"),
+    "libre.kingston_sfyrd2000g_total_activity_load": s(99, "%", "KINGSTON SFYRD2000G Total Activity"),
+    "libre.wdc_wds100t2b0a_00sm50_total_activity": s(40, "%", "WDC WDS100T2B0A-00SM50 Total Activity"),
+    "libre.wifi_download_speed": s(2_000_000, "KB/s", "WiFi Download Speed"),
+    "libre.wifi_upload_speed": s(500_000, "KB/s", "WiFi Upload Speed"),
+    "libre.ethernet_download_speed": s(10, "KB/s", "Ethernet Download Speed"),
+  };
+  const disks = readSystem(sensors).disks;
+  const adapters = readAdapters(sensors);
+
+  it("reads a drive's total activity from the plain key", () => {
+    expect(disks.map((d) => d.activity)).toEqual([13.7, 40]);
+  });
+  it("reads the adapters from the fixture with their speeds as stored", () => {
+    const fx = readAdapters(fixtureSensors());
+    expect(fx.length).toBeGreaterThan(1);
+    expect(fx.find((a) => a.id === "wifi")).toMatchObject({ name: "WiFi", down: expect.any(Number), up: expect.any(Number) });
+    expect(readAdapters(sensors).find((a) => a.id === "wifi")).toEqual({ id: "wifi", name: "WiFi", down: 2_000_000, up: 500_000 });
+    expect(readAdapters(sensors).find((a) => a.id === "ethernet")?.up).toBeNaN();
+  });
+  it("reads the adapters from flat data in data order", () => {
+    expect(readAdaptersFlat({ "libre.b_download_speed": "5 KB/s", "libre.a_download_speed": "9 KB/s", "libre.a_upload_speed": "1 KB/s" }).map((a) => [a.id, a.down, a.up])).toEqual([["b", 5, NaN], ["a", 9, 1]]);
+  });
+  it("picks the first detected drive, or the named one", () => {
+    expect(pickDisk(disks)?.id).toBe(disks[0].id);
+    expect(pickDisk(disks, "kingston_sfyrd2000g")?.id).toBe("libre.kingston_sfyrd2000g");
+    expect(pickDisk(disks, "gone")).toBeUndefined();
+    expect(pickDisk([])).toBeUndefined();
+  });
+  it("picks the busiest adapter, or the named one", () => {
+    expect(pickAdapter(adapters)?.id).toBe("wifi");
+    expect(pickAdapter(adapters, "ethernet")?.id).toBe("ethernet");
+    expect(pickAdapter(adapters, "gone")).toBeUndefined();
+  });
+  it("reads a drive as activity, used or read + write", () => {
+    const d = pickDisk(disks, "kingston_sfyrd2000g")!;
+    expect(diskMetric(d, "activity")).toBe(13.7);
+    expect(diskMetric(d, "used")).toBe(46.8);
+    expect(diskMetric(d, "rate")).toBe(429543);
+    expect(diskMetric({ id: "x", name: "x" }, "rate")).toBeNaN();
+  });
+  it("reads an adapter down, up or both", () => {
+    const [wifi] = adapters.filter((a) => a.id === "wifi");
+    const [eth] = adapters.filter((a) => a.id === "ethernet");
+    expect(netMetric(wifi, "down")).toBe(2_000_000);
+    expect(netMetric(wifi, "up")).toBe(500_000);
+    expect(netMetric(wifi, "both")).toBe(2_500_000);
+    expect(netMetric(eth, "both")).toBe(10);
+    expect(netMetric({ id: "x", name: "x", down: NaN, up: NaN }, "both")).toBeNaN();
+  });
+  it("tops a rate at the set Mbps, else the history's peak (never under 1 Mbps)", () => {
+    expect(rateTop([1, 5e6], 100)).toBe(100 * MBPS);
+    expect(rateTop([1, 5e6], 0)).toBe(5e6);
+    expect(rateTop([1, 2], 0)).toBe(MBPS);
+    expect(rateTop([], 0)).toBe(MBPS);
   });
 });

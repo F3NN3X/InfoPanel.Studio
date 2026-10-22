@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxOf, easeHistory, flipFrameTimes, pickBy, shapeOf, summaryShape, tierOf } from "@/widgets/core/layout";
+import { boxOf, easeHistory, fitGrid, flipFrameTimes, pickBy, shapeOf, summaryShape, tierOf } from "@/widgets/core/layout";
 
 describe("tierOf", () => {
   it("splits at 220×140, 340×210 and 500×320", () => {
@@ -69,5 +69,24 @@ describe("easeHistory", () => {
   it("ignores non-finite values", () => {
     const h = [1, 2];
     expect(easeHistory(h, NaN)).toBe(h);
+  });
+});
+
+describe("fitGrid", () => {
+  it.each([
+    ["three in a wide box: one row", 3, 600, 200, { cols: 3, rows: 1 }],
+    ["four in a square: 2×2", 4, 400, 400, { cols: 2, rows: 2 }],
+    ["five at 720×640: 3 + 2", 5, 720, 640, { cols: 3, rows: 2 }],
+    ["one: 1×1", 1, 300, 200, { cols: 1, rows: 1 }],
+    ["tall box stacks them", 3, 100, 600, { cols: 1, rows: 3 }],
+  ])("%s", (_name, n, w, h, want) => {
+    expect(fitGrid(n, w, h)).toMatchObject(want);
+  });
+  it("sizes the cell by the tighter side, minus the gaps", () => {
+    expect(fitGrid(4, 420, 420, { gap: 20 }).cell).toBe(200);
+    expect(fitGrid(1, 300, 100, { aspect: 2 }).cell).toBe(200);
+  });
+  it("has no grid for no items", () => {
+    expect(fitGrid(0, 400, 400)).toEqual({ cols: 0, rows: 0, cell: 0 });
   });
 });

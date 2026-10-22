@@ -47,7 +47,7 @@ describe("addCatalog", () => {
 
   it("lists a widget without views, or with one, once", () => {
     expect(catalog.widget.filter((w) => w.drop.id === "CpuMonitor").map((w) => w.id)).toEqual(["CpuMonitor"]);
-    expect(catalog.widget.filter((w) => w.drop.id === "SystemOverview").map((w) => w.id)).toEqual(["SystemOverview"]);
+    expect(catalog.widget.filter((w) => w.drop.id === "KpiTiles").map((w) => w.id)).toEqual(["KpiTiles"]);
   });
 
   it("tells a widget's views apart by their settings", () => {

@@ -7,6 +7,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **System Overview: Graphs and Gauges views.** Two more layouts, each its own entry in the Add panel: Graphs draws a
+  sparkline row per metric, Gauges open-arc dials. Both follow the chosen sections and colours; pick which drive (and
+  whether it shows activity, used space or read + write) and which network adapter (down, up or both, with an optional
+  top speed in Mbps) they read.
 - **Widget views in the Add panel.** Widgets with several layouts list each as its own entry (Weather · Forecast,
   Game Spotlight · Ticker, Now Playing · Vinyl, …), which adds the widget with that view already picked.
 

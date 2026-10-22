@@ -153,21 +153,43 @@ export interface RingProps {
   t?: Tone;
   /** Stroke colour; replaces the tone's. */
   color?: string;
+  /** Track colour (default `--w-track`). */
+  track?: string;
+  /** Degrees of the arc (default 360, a full ring); less leaves the gap at the bottom. */
+  sweep?: number;
   children?: ReactNode;
   className?: string;
 }
-export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, children, className = "" }: RingProps) {
+export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, track, sweep = 360, children, className = "" }: RingProps) {
   const sk = useSkin();
   const thickness = Math.max(1.5, th0 * (sk.ring ?? 1));
   const r = 50 - thickness / 2,
     c = 2 * Math.PI * r,
     pct = clamp(value / max, 0, 1);
+  const cap = sk.skin === "hud" || sk.skin === "tui" ? "butt" : "round";
+  const glide = sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined;
+  if (sweep < 360) {
+    // an open arc centred on the top: it starts `sweep / 2` before 12 o'clock (the svg is already turned to start there)
+    const arc = (c * clamp(sweep, 1, 360)) / 360;
+    return (
+      <div className={`relative aspect-square ${className}`}>
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <g transform={`rotate(${-sweep / 2} 50 50)`}>
+            <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} strokeLinecap={cap} strokeDasharray={`${arc} ${c}`} />
+            <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
+              strokeDasharray={`${arc * pct} ${c}`} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} />
+          </g>
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className={`relative aspect-square ${className}`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--w-track)" strokeWidth={thickness} />
-        <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={sk.skin === "hud" || sk.skin === "tui" ? "butt" : "round"}
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={glide} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>

@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { filterDisks, formatTemp, readSystemFlat, type DiskReading } from "@/lib/system-metrics";
-import { useFitRows, Widget, shell, get, num, fmt, fmtRate, detect, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, type ShellProps, type Tone, type WidgetMeta } from "./kit";
+import { diskMetric, filterDisks, formatTemp, netMetric, pickAdapter, pickDisk, rateTop, readAdaptersFlat, readSystemFlat, type DiskReading, type DiskValue, type NetDirection } from "@/lib/system-metrics";
+import { MetricGauges, MetricGraphs, type MetricRow } from "./SystemOverviewViews";
+import { useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, type ShellProps, type Tone, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "SystemOverview",
@@ -14,7 +15,11 @@ export const meta: WidgetMeta = {
   blurb: "CPU, GPU and RAM in one panel",
   tags: "overview vram rings heatmap",
   description: "Unified CPU · GPU · RAM (+ VRAM, drives, network) panel. Each section has its own colour, ring, stats, smooth graph; CPU adds a load-intensity core heatmap.",
-  views: [{ id: "panel", name: "Panel" }],
+  views: [
+    { id: "panel", name: "Panel" },
+    { id: "graphs", name: "Graphs", blurb: "One sparkline row per metric", defaultSize: [4, 3] },
+    { id: "gauges", name: "Gauges", blurb: "Open-arc dials per metric", defaultSize: [4, 3] },
+  ],
 };
 
 export type Section = "cpu" | "gpu" | "ram" | "vram" | "disk" | "net";
@@ -29,6 +34,8 @@ export type Detail = "names" | "temps" | "power" | "clock" | "hotspot" | "fans" 
 
 export interface SystemOverviewProps extends ShellProps {
   look?: ModuleSettings;
+  /** The layout: the full panel, a sparkline row per metric or open-arc dials. */
+  view?: "panel" | "graphs" | "gauges";
   sections?: Section[];
   colors?: Partial<Record<Section, string>>;
   /** Use the accent everywhere. */
@@ -59,6 +66,13 @@ export interface SystemOverviewProps extends ShellProps {
   labels?: Partial<Record<Section, string>>;
   /** Comma-separated drive-name substrings; empty = all drives. */
   diskFilter?: string;
+  /** Graphs / Gauges: the drive (a key slug; empty = the first detected) and what it shows. */
+  diskPick?: string;
+  diskValue?: DiskValue;
+  /** Graphs / Gauges: the adapter (empty = the busiest), its direction and the scale's top in Mbps (0 = auto). */
+  netAdapter?: string;
+  netDirection?: NetDirection;
+  netMax?: number;
 }
 
 interface Stat {
@@ -161,6 +175,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
   const cpu = hw(d).cpu,
     gpu = hw(d).gpu;
   const r = readSystemFlat(d, p.names);
+  const adapters = readAdaptersFlat(d, p.names);
   const L = (k: string) => num(get(d, `libre.${k}`));
   const C = (k: string) => L(`${cpu}_${k}`),
     G = (k: string) => L(`${gpu}_${k}`);
@@ -181,7 +196,8 @@ export default function SystemOverview(p: SystemOverviewProps) {
   };
 
   const cores = r.cpu.cores;
-  const net = detect(d, /^libre\.(.+)_download_speed$/).sort((a, b) => L(`${b}_download_speed`) - L(`${a}_download_speed`))[0];
+  const adapter = pickAdapter(adapters, "");
+  const net = adapter?.id;
   const vr = r.gpu.vram,
     page = r.ram.page;
   const drives: Drive[] = filterDisks(r.disks, p.diskFilter ?? "").map((x: DiskReading) => ({
@@ -260,6 +276,28 @@ export default function SystemOverview(p: SystemOverviewProps) {
   const sparkline = p.sparkline !== false;
   const lead = ALL[keys[0] ?? "cpu"];
 
+  // Graphs / Gauges: the picked drive and adapter, each metric on its own scale.
+  const diskValue = p.diskValue ?? "activity",
+    netDirection = p.netDirection ?? "down";
+  const pickedDisk = pickDisk(filterDisks(r.disks, p.diskFilter ?? ""), p.diskPick);
+  const pickedNet = pickAdapter(adapters, p.netAdapter);
+  const mv: Record<Section, number> = {
+    cpu: ALL.cpu.v,
+    gpu: ALL.gpu.v,
+    ram: ALL.ram.v,
+    vram: ALL.vram.v,
+    disk: pickedDisk ? diskMetric(pickedDisk, diskValue) : NaN,
+    net: pickedNet ? netMetric(pickedNet, netDirection) : NaN,
+  };
+  const HM: Record<Section, number[]> = { cpu: useHistory(mv.cpu, len), gpu: useHistory(mv.gpu, len), ram: useHistory(mv.ram, len), vram: useHistory(mv.vram, len), disk: useHistory(mv.disk, len), net: useHistory(mv.net, len) };
+  const metricRow = (k: Section): MetricRow => {
+    const isRate = k === "net" || (k === "disk" && diskValue === "rate");
+    const top = isRate ? rateTop(HM[k], k === "net" ? p.netMax : 0, k === "net" ? undefined : 1e6) : 100;
+    const [num, ...unit] = isRate ? fmtRate(mv[k]).split(" ") : [fmt(mv[k], dec), "%"];
+    const t: Tone = isRate ? "ok" : k === "vram" || (k === "disk" && diskValue === "used") ? tone(mv[k], capWarn, capCrit) : tone(mv[k], warn, crit);
+    return { key: k, label: label(k), text: isRate ? fmtRate(mv[k]) : pct(mv[k]), num, unit: unit.join(" "), value: mv[k], top, hist: HM[k], tone: t, style: vars(k) };
+  };
+
   return (
     <Widget
       {...shell(p)}
@@ -297,6 +335,10 @@ export default function SystemOverview(p: SystemOverviewProps) {
               )}
             </div>
           );
+        }
+        if (p.view === "graphs" || p.view === "gauges") {
+          const View = p.view === "graphs" ? MetricGraphs : MetricGauges;
+          return <View rows={keys.map((k) => metricRow(k))} w={w} h={h} />;
         }
         const ratio = w / Math.max(1, h);
         // one row of sections only while each keeps room for its ring (~150px); else two columns

@@ -616,6 +616,15 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
     {
       "Drives": [
         "diskFilter",
+        "diskPick",
+        "diskValue",
+      ],
+    },
+    {
+      "Network": [
+        "netAdapter",
+        "netDirection",
+        "netMax",
       ],
     },
     {
@@ -634,6 +643,7 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
     },
     {
       "Sections": [
+        "view",
         "sections",
         "details",
         "ring",
