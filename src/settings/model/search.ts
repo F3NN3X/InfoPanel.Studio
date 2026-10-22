@@ -55,6 +55,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "listen", label: "Who can connect (listen on)", section: "server" },
   { row: "port", label: "Port", section: "server" },
   { row: "allowed-hosts", label: "Allowed host names", section: "server" },
+  { row: "allow-remote-edit", label: "Allow editing from other devices", section: "server" },
   { row: "kiosk", label: "Kiosk URL", section: "server" },
   { row: "auto-restart", label: "Restart automatically if it crashes", section: "server" },
   { row: "agents", label: "Connect coding agents", section: "agents" },

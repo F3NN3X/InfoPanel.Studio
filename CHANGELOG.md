@@ -6,6 +6,30 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.10] - 2026-10-22
+
+### Added
+- **Allow editing from other devices** is a new app setting, off by default, for a server on the local network. A
+  server restart applies it.
+- **Open WebView2 task manager** in Settings > Diagnostics shows memory and CPU for each WebView2 process (renderer, GPU
+  and the rest).
+
+### Changed
+- **Editing from other devices is off by default.** A server on the local network lets other devices view the dashboard
+  and kiosks, but only this computer can change the config and integrations; turn it on in Settings > Server. Stream
+  Deck and kiosk control are unaffected, and a Studio opened elsewhere says why it can't save.
+- **The Studio pages carry security headers**: a content security policy, no MIME sniffing, and no framing of the
+  Studio and Settings pages by other sites. Kiosk pages stay embeddable.
+- **The image proxy refuses private-network addresses**, including on redirects.
+- **Developer tools are available in debug mode only**, and Diagnostics shows the button only then.
+- **Live widgets use less CPU.** Bars, meters and markers animate on the compositor, colour cells and segments step with
+  the data, rings glide for 300 ms with Smooth on and step otherwise, and the frame loop sleeps between capped frames.
+
+### Fixed
+- **A hidden or minimized studio no longer keeps rendering.** Its webview is suspended while the window is in the tray or
+  minimized, and wakes when you open it, so it no longer spends CPU and memory on a window nobody sees.
+- **Links in the studio open in the browser again.** They had been refused by the shell with a "not allowed by ACL" error.
+
 ## [1.3.0-beta.9] - 2026-10-22
 
 ### Changed

@@ -4,7 +4,7 @@
 
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -126,6 +126,12 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let _ = window.set_zoom(zoom_factor(app));
     let handle = app.clone();
     window.on_window_event(move |event| {
+        // Minimizing and restoring arrive as resizes; a minimized studio suspends like a hidden one.
+        if let tauri::WindowEvent::Resized(_) = event {
+            if let Some(w) = handle.get_webview_window(MAIN) {
+                follow_window(&handle, w);
+            }
+        }
         if let tauri::WindowEvent::CloseRequested { api, .. } = event {
             let st = handle.state::<AppState>();
             if st.is_quitting() {
@@ -148,6 +154,27 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     Ok(window)
 }
 
+/// Follows the studio window's state after a resize, which is also what minimizing and restoring are.
+/// A minimized window flushes before it suspends; that waits, so it runs off the event thread.
+fn follow_window(app: &AppHandle, window: tauri::WebviewWindow) {
+    let minimized = window.is_minimized().unwrap_or(false);
+    let visible = window.is_visible().unwrap_or(true);
+    if !crate::webview2::wants_suspend(minimized, visible) {
+        crate::webview2::resume(&window);
+    } else if !crate::webview2::is_suspended() && !MINIMIZE_FLUSH.swap(true, Ordering::SeqCst) {
+        // One flush at a time: a minimized window still gets resize events.
+        let app = app.clone();
+        std::thread::spawn(move || {
+            flush_studio(&app);
+            crate::webview2::suspend(&window);
+            MINIMIZE_FLUSH.store(false, Ordering::SeqCst);
+        });
+    }
+}
+
+/// A minimize's flush-then-suspend is running.
+static MINIMIZE_FLUSH: AtomicBool = AtomicBool::new(false);
+
 /// Shows (creating if needed) and focuses the studio window.
 pub fn show_main(app: &AppHandle) {
     let window = match app.get_webview_window(MAIN) {
@@ -157,6 +184,8 @@ pub fn show_main(app: &AppHandle) {
             Err(e) => return log::error!("could not open the studio window: {e}"),
         },
     };
+    // Resumed before it shows, so the page is live when the window appears.
+    crate::webview2::resume(&window);
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
@@ -399,13 +428,21 @@ pub fn flush_studio(app: &AppHandle) {
     if !on_studio {
         return;
     }
+    // A suspended page cannot answer: wake it for the flush (which also cancels a suspend still on
+    // its way), then put it back if nobody can see it.
+    crate::webview2::resume(&window);
     st.flush.arm();
     if window.emit_to(MAIN, FLUSH_EVENT, ()).is_err() {
         st.flush.release();
-        return;
+    } else {
+        let answered = st.flush.wait(FLUSH_TIMEOUT);
+        log::debug!("flush: answered={answered}");
     }
-    let answered = st.flush.wait(FLUSH_TIMEOUT);
-    log::debug!("flush: answered={answered}");
+    let minimized = window.is_minimized().unwrap_or(false);
+    let visible = window.is_visible().unwrap_or(true);
+    if crate::webview2::wants_suspend(minimized, visible) {
+        crate::webview2::suspend(&window);
+    }
 }
 
 fn close_main(app: &AppHandle) {
@@ -415,6 +452,8 @@ fn close_main(app: &AppHandle) {
         flush_studio(app);
         if let Some(w) = app.get_webview_window(MAIN) {
             let _ = w.hide();
+            // After the flush, which needs the page awake; nobody sees it until the tray shows it.
+            crate::webview2::suspend(&w);
         }
         log::debug!("window hidden to the tray");
         return;

@@ -26,6 +26,7 @@
 //   PORT  listen port (default 3922; 0 picks a free one, logged on start)
 //   HOST  listen address (default 127.0.0.1)
 //   ALLOW_REMOTE_UPLOAD=1  accept media uploads / deletes from other machines
+//   ALLOW_REMOTE_EDIT=1  accept config and integrations writes from other machines (control and reads stay open)
 //   ALLOWED_HOSTS  extra Host names to accept, comma separated (see
 //                  server/request-guard.mjs)
 //   ASSETS_MAX_BYTES  total size cap of the uploaded media (default 2 GB)
@@ -54,7 +55,8 @@ import { createFontProxy } from "./server/font-proxy.mjs";
 import { createInstalledProfiles, createInstalledRoutes, infopanelDataDir } from "./server/infopanel-local.mjs";
 import { createLibrary, createLibraryStore } from "./server/library.mjs";
 import { fetchProxied, isValidProxyTarget, resolveProxyType } from "./server/proxy.mjs";
-import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, isLoopback, parseAllowedHosts } from "./server/request-guard.mjs";
+import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, isLoopback, parseAllowedHosts, remoteEditRefusal } from "./server/request-guard.mjs";
+import { securityHeaders } from "./server/security-headers.mjs";
 
 const PORT = process.env.PORT === undefined || process.env.PORT === "" ? 3922 : Number(process.env.PORT);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -258,6 +260,7 @@ function handleExtrasEvents(req, res) {
 async function handleIntegrations(req, res) {
   if (req.method === "GET") return send(res, 200, JSON.stringify(extras.integrations.public()), TYPES[".json"]);
   if (req.method !== "PUT") return send(res, 405);
+  if (refuseRemoteEdit(req, res)) return;
   const refusal = configWriteRefusal(req.headers);
   if (refusal) return send(res, refusal.status, refusal.message);
   let body;
@@ -297,6 +300,14 @@ function send(res, status, body = "", type = "text/plain; charset=utf-8") {
   res.end(body);
 }
 
+/** Answers 403 and returns true when this write comes from another machine and ALLOW_REMOTE_EDIT is off. */
+function refuseRemoteEdit(req, res) {
+  const refusal = remoteEditRefusal(req.socket.remoteAddress);
+  if (!refusal) return false;
+  send(res, refusal.status, JSON.stringify({ error: refusal.message }), TYPES[".json"]);
+  return true;
+}
+
 function readBody(req, limit) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -334,6 +345,7 @@ async function handleConfig(req, res) {
     return send(res, 200, fs.readFileSync(CONFIG_FILE), TYPES[".json"]);
   }
   if (req.method !== "POST") return send(res, 405);
+  if (refuseRemoteEdit(req, res)) return;
 
   const refusal = configWriteRefusal(req.headers);
   if (refusal) return send(res, refusal.status, refusal.message);
@@ -375,6 +387,7 @@ async function handleConfig(req, res) {
  */
 async function handleConfigSettings(req, res) {
   if (req.method !== "PATCH") return send(res, 405);
+  if (refuseRemoteEdit(req, res)) return;
   const refusal = configWriteRefusal(req.headers);
   if (refusal) return send(res, refusal.status, refusal.message);
   let body;
@@ -493,6 +506,7 @@ function serveStatic(req, res, pathname) {
     "Content-Type": TYPES[path.extname(file).toLowerCase()] ?? "application/octet-stream",
     // index.html must track the latest build (hashed asset names change).
     "Cache-Control": isHtml ? "no-store" : "no-cache",
+    ...securityHeaders(isHtml, new URL(req.url, "http://x").search),
   });
   if (req.method === "HEAD") return res.end();
   const stream = fs.createReadStream(file);

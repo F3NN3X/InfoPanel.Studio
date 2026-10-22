@@ -4,7 +4,7 @@ import { createBallistics, resolveBallistics, type BallisticsPreset } from "@/li
 import { dbToGain, gainToDb } from "@/lib/audio/decibels";
 import type { MeterFrame } from "@/lib/audio/types";
 import { useWavelinkMeter } from "@/lib/wavelink";
-import { LedLadder, STATE, clamp, fmt, stepPct, type Smoothed } from "../kit";
+import { LedLadder, HoldMark, scaleX, scaleY, STATE, clamp, fmt, stepPct, type Smoothed } from "../kit";
 
 export interface Levels {
   l: Smoothed;
@@ -61,8 +61,8 @@ function Level({ value, hold, vertical, variant, n, color, hot }: LevelProps) {
       : { background: value > ZONES[1] ? hot : color };
   return (
     <div className="relative min-h-0 min-w-0 flex-1 rounded-[2px] bg-[color:var(--w-track)]">
-      <div className="absolute overflow-hidden rounded-[2px] transition-all duration-100" style={{ ...(vertical ? { left: 0, right: 0, bottom: 0, height: `${value}%` } : { left: 0, top: 0, bottom: 0, width: `${value}%` }), ...fill }} />
-      {hold !== undefined && hold > 0 && <span className="absolute rounded-full bg-[color:var(--w-fg)] transition-all duration-150" style={vertical ? { bottom: `calc(${hold}% - 1px)`, left: -1, right: -1, height: 2 } : { left: `calc(${hold}% - 1px)`, top: -1, bottom: -1, width: 2 }} />}
+      <div className="absolute inset-0 overflow-hidden rounded-[2px] transition-transform duration-100" style={{ ...(vertical ? scaleY(value) : scaleX(value)), ...fill }} />
+      {hold !== undefined && hold > 0 && <HoldMark at={hold} vertical={vertical} />}
     </div>
   );
 }

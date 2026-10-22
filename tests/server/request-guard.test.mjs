@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { configWriteRefusal, controlWriteRefusal, createRequestGuard, hostnameOf, parseAllowedHosts } from "../../server/request-guard.mjs";
+import { configWriteRefusal, controlWriteRefusal, createRequestGuard, hostnameOf, parseAllowedHosts, remoteEditRefusal } from "../../server/request-guard.mjs";
 
 const req = (method, headers) => ({ method, headers });
 
@@ -92,5 +92,21 @@ describe("controlWriteRefusal", () => {
     expect(controlWriteRefusal({ "content-type": "text/plain", "x-dashboard-control": "1" })?.status).toBe(415);
     expect(controlWriteRefusal({ "content-type": "application/json" })?.status).toBe(403);
     expect(controlWriteRefusal({ "content-type": "application/json", "x-dashboard-config": "1" })?.status).toBe(403);
+  });
+});
+
+describe("remoteEditRefusal", () => {
+  it("accepts this machine in any spelling, with or without the switch", () => {
+    for (const a of ["127.0.0.1", "::1", "::ffff:127.0.0.1"]) expect(remoteEditRefusal(a, {})).toBeNull();
+  });
+  it("refuses another machine with a 403 that says where to turn it on", () => {
+    const r = remoteEditRefusal("192.168.1.20", {});
+    expect(r.status).toBe(403);
+    expect(r.message).toMatch(/other devices.*Settings > Server/);
+    expect(remoteEditRefusal("192.168.1.20", { ALLOW_REMOTE_EDIT: "0" })).not.toBeNull();
+    expect(remoteEditRefusal(undefined, {})).not.toBeNull();
+  });
+  it("accepts another machine with ALLOW_REMOTE_EDIT=1", () => {
+    expect(remoteEditRefusal("192.168.1.20", { ALLOW_REMOTE_EDIT: "1" })).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { makeSurfacePalette, type ModernStyle } from "@/components/surfaces";
 import { surfaceBox } from "@/components/widget-style";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, has, Img, Chip, MediaProgress, type MediaProgressMode, type ShellProps, type WidgetMeta, type Data } from "./kit";
+import { Widget, shell, get, num, has, Img, Chip, MediaProgress, scaleX, type MediaProgressMode, type ShellProps, type WidgetMeta, type Data } from "./kit";
 import type { VizLook, VizStyle } from "./core/viz/types";
 import { widgetImage } from "./data-adapter";
 import { useArtTint } from "./NowPlaying/art-tint";
@@ -170,7 +170,7 @@ export default function NowPlaying(p: NowPlayingProps) {
       {miniViz(h)}
       {p.showTimeline !== false && (
         <div className={`h-px w-full ${onImage ? "bg-white/10" : "bg-[color:var(--w-track)]"}`}>
-          <div className={`h-full transition-[width] duration-500 ${onImage ? "bg-white/50" : "bg-[color:var(--w-muted)]"}`} style={{ width: `${pct}%` }} />
+          <div className={`h-full w-full transition-transform duration-500 ${onImage ? "bg-white/50" : "bg-[color:var(--w-muted)]"}`} style={scaleX(pct)} />
         </div>
       )}
       {times(onImage ? "text-zinc-300" : "text-[color:var(--w-muted)]")}

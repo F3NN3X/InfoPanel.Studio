@@ -33,6 +33,7 @@ import { onStudioMessage } from "@/lib/studio-channel";
 import {
   CONFIG_EVENTS_URL,
   fetchConfig,
+  isRemoteEditRefusal,
   isUnreachable,
   NewerConfigError,
   noteSettingsRev,
@@ -275,6 +276,8 @@ export default function App() {
   // The newest config, to tell whether a finished push is still the latest state.
   // A newer dashboard version saved the server copy: stop pushing until a reload.
   const [refused, setRefused] = useState(false);
+  // The server takes edits from its own computer only (Settings › Server): a notice shows until a push lands.
+  const [readOnly, setReadOnly] = useState(false);
   const latestConfig = useRef(config);
   latestConfig.current = config;
   const pendingRef = useRef(pushPending);
@@ -297,11 +300,13 @@ export default function App() {
       pushConfig(config)
         .then(() => {
           setOffline(false);
+          setReadOnly(false);
           if (!superseded) setPushPending(false);
         })
         .catch((err) => {
           setOffline(isUnreachable(err));
           if (err instanceof NewerConfigError) setRefused(true);
+          if (isRemoteEditRefusal(err)) setReadOnly(true);
           // Otherwise the server is offline — kiosk pages keep their last copy.
         });
     }, 400);
@@ -449,6 +454,7 @@ export default function App() {
     return pushConfig(cfg)
       .then(() => {
         setOffline(false);
+        setReadOnly(false);
         // An edit made since the click is still unpushed (its debounced push clears the dot).
         if (latestConfig.current === cfg) setPushPending(false);
         return true;
@@ -456,6 +462,7 @@ export default function App() {
       .catch((err) => {
         setOffline(isUnreachable(err));
         if (err instanceof NewerConfigError) setRefused(true);
+        if (isRemoteEditRefusal(err)) setReadOnly(true);
         return false;
       }); // Server offline — kiosk pages keep their last copy; the dot stays.
   }, []);
@@ -495,6 +502,14 @@ export default function App() {
             >
               Reload
             </button>
+          </div>
+        )}
+        {readOnly && !refused && (
+          <div
+            role="alert"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+          >
+            Editing from other devices is off, so changes here are not saved. Turn it on in Settings › Server on the PC running InfoPanel Studio.
           </div>
         )}
         <Suspense fallback={null}>

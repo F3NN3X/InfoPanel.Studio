@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, fmtRate, detect, diskShort, Spark, useHistory, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtRate, detect, diskShort, Spark, useHistory, slideX, stackX, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "DiskIO",
@@ -54,9 +54,9 @@ export default function DiskIO(p: DiskIOProps) {
                     <span style={{ color: `color-mix(in oklab, ${rc} 60%, var(--w-fg))` }}>R</span> {fmtRate(x.r)} · <span style={{ color: `color-mix(in oklab, ${wc} 60%, var(--w-fg))` }}>W</span> {fmtRate(x.w)}
                   </span>
                 </div>
-                <div className="flex h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
-                  <div className="h-full transition-[width] duration-700" style={{ width: `${Math.sqrt((x.r || 0) / max) * 50}%`, background: rc }} />
-                  <div className="h-full transition-[width] duration-700" style={{ width: `${Math.sqrt((x.w || 0) / max) * 50}%`, background: wc }} />
+                <div className="relative h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
+                  <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(0, Math.sqrt((x.r || 0) / max) * 100), background: rc }} />
+                  <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(Math.sqrt((x.r || 0) / max) * 100, Math.sqrt((x.w || 0) / max) * 100), background: wc }} />
                 </div>
               </li>
             ))}
@@ -81,7 +81,7 @@ export default function DiskIO(p: DiskIOProps) {
                     <span className="text-[color:var(--w-faint)]">{l}</span>
                     {w >= 170 && (
                       <div className="h-1.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
-                        <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.sqrt((v || 0) / max) * 100}%`, background: c }} />
+                        <div className="h-full w-full rounded-full transition-transform duration-700" style={{ ...slideX(Math.sqrt((v || 0) / max) * 100), background: c }} />
                       </div>
                     )}
                     <span className="text-right tabular-nums text-[color:var(--w-fg)]">{fmtRate(v)}</span>

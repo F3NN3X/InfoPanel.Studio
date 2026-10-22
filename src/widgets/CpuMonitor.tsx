@@ -1,6 +1,6 @@
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, has, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, has, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "CpuMonitor",
@@ -121,7 +121,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
                     <div
                       key={c.i}
                       title={`Core ${c.i} · ${fmt(c.load, 0)}% · ${fmt(c.mhz, 0)} MHz · ${fmt(c.vid, 2)} V · ${fmt(c.w, 1)} W`}
-                      className={`flex items-center justify-center ${sq} text-[10px] font-medium tabular-nums transition-colors duration-700`}
+                      className={`flex items-center justify-center ${sq} text-[10px] font-medium tabular-nums`}
                       style={{ background: heat(v, p.heatRamp ?? "accent"), color: v > 55 ? "#0c0c0e" : "#a1a1aa" }}
                     >
                       {size === "lg" && (metric === "clock" ? fmt(c.mhz / 1000, 1) : fmt(c.load, 0))}
@@ -136,7 +136,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
                   const v = cv(c);
                   return (
                     <div key={c.i} title={`Core ${c.i} · ${fmt(c.load, 0)}% · ${fmt(c.mhz, 0)} MHz · ${fmt(c.vid, 2)} V`} className={`relative flex h-full flex-col justify-end overflow-hidden ${sq} bg-[color:var(--w-track)]`}>
-                      <div className={`w-full ${sq} transition-[height] duration-700 ease-out`} style={{ height: `${Math.max(4, v)}%`, background: "var(--accent)", opacity: 0.4 + v / 170 }} />
+                      <div className={`h-full w-full ${sq} transition-transform duration-700 ease-out`} style={{ ...scaleY(Math.max(4, v)), background: "var(--accent)", opacity: 0.4 + v / 170 }} />
                       {size === "lg" && <span className="absolute inset-x-0 bottom-0.5 text-center text-[9px] tabular-nums text-[color:var(--w-fg)]/80">{c.i}</span>}
                     </div>
                   );

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { filterDisks, formatTemp, readSystemFlat, type DiskReading } from "@/lib/system-metrics";
-import { useFitRows, Widget, shell, get, num, fmt, fmtRate, detect, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, useSkin, type ShellProps, type Tone, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtRate, detect, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, type ShellProps, type Tone, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "SystemOverview",
@@ -99,10 +99,10 @@ function CoreGrid({ cores, cellW, view, ramp }: { cores: number[]; cellW: number
       {cores.map((v, ci) =>
         view === "bars" ? (
           <div key={ci} className="flex min-h-0 flex-col justify-end overflow-hidden rounded-[3px] bg-[color:var(--w-track)]">
-            <div className="transition-[height] duration-700" style={{ height: `${Math.max(6, v)}%`, background: "var(--accent)" }} />
+            <div className="h-full transition-transform duration-700" style={{ ...scaleY(Math.max(6, v)), background: "var(--accent)" }} />
           </div>
         ) : (
-          <div key={ci} title={`Core ${ci + 1} · ${fmt(v, 0)}%`} className="min-h-0 rounded-[3px] transition-colors duration-700" style={{ background: heat(v, ramp ?? "accent") }} />
+          <div key={ci} title={`Core ${ci + 1} · ${fmt(v, 0)}%`} className="min-h-0 rounded-[3px]" style={{ background: heat(v, ramp ?? "accent") }} />
         )
       )}
     </div>

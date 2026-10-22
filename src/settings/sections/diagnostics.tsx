@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Code, Copy, FolderOpen, ScrollText, Activity } from "lucide-react";
+import { Check, Code, Copy, FolderOpen, Gauge, ScrollText, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { deltaTone, diagnosticsSummary, fmt, fmtDelta, groupSeries, isNotable, sampleSummary, type DeltaTone } from "../model/diagnostics";
@@ -94,9 +94,16 @@ export function DiagnosticsSection() {
             <FolderOpen className="h-4 w-4" />
             Open logs folder
           </Button>
-          <Button onClick={() => void ipc.openDevtools().catch(fail)}>
-            <Code className="h-4 w-4" />
-            Open DevTools
+          {/* The shell refuses DevTools unless debug mode is on. */}
+          {diag?.debug && (
+            <Button onClick={() => void ipc.openDevtools().catch(fail)}>
+              <Code className="h-4 w-4" />
+              Open DevTools
+            </Button>
+          )}
+          <Button onClick={() => void ipc.openWebviewTaskManager().catch(fail)} title="Shows memory and CPU per WebView2 process: renderer, GPU…">
+            <Gauge className="h-4 w-4" />
+            Open WebView2 task manager
           </Button>
           <Button onClick={() => void copy()}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

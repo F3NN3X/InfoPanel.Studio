@@ -33,8 +33,8 @@ describe("per-sensor overrides (items)", () => {
     expect(one({}, 600)).not.toContain("width:");
   });
   it("lets an override beat the shared value, which beats the automatic one", () => {
-    expect(one({ groupMax: "1200" })).toContain("width:50%");
-    expect(one({ groupMax: "1200", items: JSON.stringify({ "x.fan": { max: 2400 } }) })).toContain("width:25%");
+    expect(one({ groupMax: "1200" })).toContain("translateX(-50%)");
+    expect(one({ groupMax: "1200", items: JSON.stringify({ "x.fan": { max: 2400 } }) })).toContain("translateX(-75%)");
     expect(one({ items: JSON.stringify({ "x.fan": { label: "Radiator", max: 1200 } }) })).toContain("Radiator");
     expect(one({ groupDecimals: "0", items: JSON.stringify({ "x.fan": { decimals: 2 } }) }, 0.85, "V")).toContain("0.85");
   });

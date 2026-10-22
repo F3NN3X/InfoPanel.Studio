@@ -14,6 +14,7 @@ import { useTick } from "@/hooks/use-tick";
 import { alternate } from "@/lib/curves";
 import { RangeEaser, SmoothScroll, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN } from "./layout";
+import { scaleX, slideX } from "./motion";
 
 /* ───────── primitives ───────── */
 // Material Symbols names rendered as lucide icons (see icons.ts); sized by the font size like the glyphs were.
@@ -66,20 +67,22 @@ export interface BarProps {
 }
 /** How long a smooth bar or ring glides to a new reading: about one sample interval of the feed. */
 const GLIDE_MS = 1000;
+/** A ring glide is a main-thread repaint every frame, so it is kept short. */
+const RING_GLIDE_MS = 300;
 
 export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle }: BarProps) {
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
   // Smooth graph updates: glide linearly over about one sample interval instead of easing.
-  const glide = sk.smooth ? { transition: `width ${GLIDE_MS}ms linear` } : null;
+  const glide = sk.smooth ? { transition: `transform ${GLIDE_MS}ms linear` } : null;
   if (m === "segments" || m === "blocks") {
     const n = m === "blocks" ? 14 : 24,
       lit = Math.round((pct / 100) * n);
     return (
       <div className={cn("flex w-full gap-[2px]", className)}>
         {Array.from({ length: n }, (_, i) => (
-          <span key={i} className="min-w-0 flex-1 rounded-[1px] transition-colors duration-300" style={{ background: i < lit ? (m === "blocks" ? blockColor(i, n) : TONES[t]) : "var(--w-track)" }} />
+          <span key={i} className="min-w-0 flex-1 rounded-[1px]" style={{ background: i < lit ? (m === "blocks" ? blockColor(i, n) : TONES[t]) : "var(--w-track)" }} />
         ))}
       </div>
     );
@@ -102,19 +105,19 @@ export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "
   if (m === "square")
     return (
       <div className={cn("w-full border border-[color:var(--w-fg)]/70 bg-transparent p-[1px] min-h-[8px]", className)}>
-        <div className="h-full transition-[width] duration-500" style={{ width: `${pct}%`, background: TONES[t], ...glide }} />
+        <div className="h-full w-full transition-transform duration-500" style={{ ...scaleX(pct), background: TONES[t], ...glide }} />
       </div>
     );
   if (m === "hair")
     return (
       <div className={cn("relative w-full", className)}>
         <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[color:var(--w-track)]" />
-        <div className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 transition-[width] duration-500" style={{ width: `${pct}%`, background: TONES[t], ...glide }} />
+        <div className="absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 transition-transform duration-500" style={{ ...scaleX(pct), background: TONES[t], ...glide }} />
       </div>
     );
   return (
     <div className={cn("w-full overflow-hidden rounded-full", m === "pill" ? "bg-[color:var(--w-track)] min-h-[6px]" : track, className)}>
-      <div className="h-full rounded-full transition-[width] duration-500 ease-out" style={{ width: `${pct}%`, background: m === "pill" && t === "ok" ? `linear-gradient(90deg, ${mix(70, "#fff")}, var(--accent))` : TONES[t], ...glide }} />
+      <div className="h-full w-full rounded-full transition-transform duration-500 ease-out" style={{ ...slideX(pct), background: m === "pill" && t === "ok" ? `linear-gradient(90deg, ${mix(70, "#fff")}, var(--accent))` : TONES[t], ...glide }} />
     </div>
   );
 }
@@ -164,7 +167,7 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, ch
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <circle cx="50" cy="50" r={r} fill="none" stroke="var(--w-track)" strokeWidth={thickness} />
         <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={sk.skin === "hud" || sk.skin === "tui" ? "butt" : "round"}
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={{ transition: sk.smooth ? `stroke-dashoffset ${GLIDE_MS}ms linear` : "stroke-dashoffset .6s ease-out" }} />
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
@@ -201,7 +204,7 @@ export function RingStack({ rings, thickness: th0 = 9, gap = 3, children, classN
               <g key={i}>
                 <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
                 <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth={thickness} strokeLinecap={cap}
-                  strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v || 0) / 100)} style={{ transition: sk.smooth ? `stroke-dashoffset ${GLIDE_MS}ms linear` : "stroke-dashoffset .7s ease-out" }} />
+                  strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v || 0) / 100)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} />
               </g>
             );
           })}
@@ -555,6 +558,19 @@ export function Logo({ src, name, className = "", size = "text-3xl" }: { src?: s
   return <img src={src} alt={name} onError={() => setBad(true)} className={`object-contain object-left drop-shadow-[0_4px_18px_rgba(0,0,0,.7)] ${className}`} />;
 }
 
+/** A peak-hold tick at `at` % along a meter. A full-size wrapper slides with transform (percent of itself = of the meter). */
+export function HoldMark({ at, vertical }: { at: number; vertical?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 transition-transform duration-150"
+      style={{ transform: vertical ? `translateY(${-at}%)` : `translateX(${at}%)` }}
+    >
+      <span className="absolute rounded-full bg-[color:var(--w-fg)]" style={vertical ? { bottom: -1, left: -1, right: -1, height: 2 } : { left: -1, top: -1, bottom: -1, width: 2 }} />
+    </span>
+  );
+}
+
 export interface LedLadderProps {
   /** 0..100 */
   value: number;
@@ -581,9 +597,9 @@ export function LedLadder({ value, n = 24, vertical, reverse, zones = [72, 90], 
         const at = ((i + 0.5) / n) * 100;
         const c = at > zones[1] ? hotColor : at > zones[0] ? STATE.warn : color;
         // unlit segments are the surface's track tinted by their zone, so they read on light surfaces as well as dark
-        return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-[2px] transition-colors duration-100" style={at <= v ? { background: c, opacity: 1 } : { background: `color-mix(in oklab, ${c} ${UNLIT}%, var(--w-track))` }} />;
+        return <span key={i} className="min-h-0 min-w-0 flex-1 rounded-[2px]" style={at <= v ? { background: c, opacity: 1 } : { background: `color-mix(in oklab, ${c} ${UNLIT}%, var(--w-track))` }} />;
       })}
-      {hold !== undefined && hold > 0 && <span className="absolute rounded-full bg-[color:var(--w-fg)] transition-all duration-150" style={vertical ? { bottom: `calc(${clamp(hold)}% - 1px)`, left: -1, right: -1, height: 2 } : { left: `calc(${clamp(hold)}% - 1px)`, top: -1, bottom: -1, width: 2 }} />}
+      {hold !== undefined && hold > 0 && <HoldMark at={clamp(hold)} vertical={vertical} />}
     </div>
   );
 }

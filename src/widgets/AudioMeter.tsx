@@ -1,7 +1,7 @@
 import type { ModuleSettings } from "@/modules/types";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
-import { Widget, useFitRows, shell, fmt, Num, Spark, LedLadder, STATE, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, useFitRows, shell, fmt, Num, Spark, LedLadder, slideX, STATE, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
 import { audioIds, readDevice, type AudioDevice } from "./audio-data";
 
 export const meta: WidgetMeta = {
@@ -238,7 +238,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                     return (
                       <g key={r}>
                         <circle cx="50" cy="50" r={r} fill="none" stroke="var(--w-track)" strokeWidth="8" />
-                        <circle cx="50" cy="50" r={r} fill="none" stroke={v > hotFill ? hc : lc} strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v) / 100)} style={{ transition: "stroke-dashoffset .25s" }} />
+                        <circle cx="50" cy="50" r={r} fill="none" stroke={v > hotFill ? hc : lc} strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v) / 100)} />
                       </g>
                     );
                   })}
@@ -286,11 +286,11 @@ export default function AudioMeter(p: AudioMeterProps) {
                     {st === "bar" || st === "solid" ? (
                       <div className="relative h-full flex-1 overflow-hidden rounded-full bg-[color:var(--w-track)]">
                         <div
-                          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-100"
+                          className="absolute inset-0 rounded-full transition-transform duration-100"
                           style={
                             st === "solid"
-                              ? { width: `${clamp(v)}%`, background: v > hotFill ? hc : lc }
-                              : { width: `${clamp(v)}%`, background: `linear-gradient(90deg, ${lc} 0%, ${lc} 60%, ${STATE.warn} 82%, ${hc} 100%)`, backgroundSize: `${(100 / Math.max(1, v)) * 100}% 100%` }
+                              ? { ...slideX(clamp(v)), background: v > hotFill ? hc : lc }
+                              : { ...slideX(clamp(v)), background: `linear-gradient(90deg, ${lc} 0%, ${lc} 60%, ${STATE.warn} 82%, ${hc} 100%)` }
                           }
                         />
                         {marker !== undefined && <div className="absolute inset-y-0 w-[2px] bg-[color:var(--w-fg)] transition-[left] duration-300" style={{ left: `${marker}%` }} />}

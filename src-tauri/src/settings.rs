@@ -61,6 +61,8 @@ pub struct Settings {
     pub port: u16,
     #[serde(deserialize_with = "list_or_csv")]
     pub allowed_hosts: Vec<String>,
+    /// Let other devices on the network change the studio's data; off keeps writes to this computer.
+    pub allow_remote_edit: bool,
     /// Restart the server after a crash (3 tries a minute).
     pub auto_restart: bool,
     pub start_at_login: bool,
@@ -106,6 +108,7 @@ impl Default for Settings {
             listen: Listen::Local,
             port: DEFAULT_PORT,
             allowed_hosts: Vec::new(),
+            allow_remote_edit: false,
             auto_restart: true,
             start_at_login: true,
             open_studio_on_launch: true,
@@ -208,6 +211,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
             }
             next.allowed_hosts = hosts;
         }
+        "allowRemoteEdit" => next.allow_remote_edit = parse(key, value)?,
         "autoRestart" => next.auto_restart = parse(key, value)?,
         "startAtLogin" => next.start_at_login = parse(key, value)?,
         "openStudioOnLaunch" => next.open_studio_on_launch = parse(key, value)?,
@@ -346,6 +350,7 @@ mod tests {
         assert_eq!(s.host(), "127.0.0.1");
         assert_eq!(s.port, 3922);
         assert!(s.allowed_hosts.is_empty());
+        assert!(!s.allow_remote_edit);
         assert!(s.auto_restart);
         assert!(s.start_at_login);
         assert!(s.open_studio_on_launch);
@@ -368,6 +373,7 @@ mod tests {
         assert_eq!(v["updateChannel"], "stable");
         assert_eq!(v["rememberBounds"], true);
         assert_eq!(v["allowedHosts"], json!([]));
+        assert_eq!(v["allowRemoteEdit"], false);
         assert_eq!(v["agents"]["enabled"], false);
         assert_eq!(v["version"], 2);
         assert!(v.get("host").is_none());
@@ -495,6 +501,7 @@ mod tests {
             vec!["panel.lan"]
         );
         for key in [
+            "allowRemoteEdit",
             "autoRestart",
             "startAtLogin",
             "openStudioOnLaunch",
@@ -516,6 +523,7 @@ mod tests {
             ("zoom", json!(95)),
             ("listen", json!("wan")),
             ("allowedHosts", json!(["bad host"])),
+            ("allowRemoteEdit", json!("yes")),
             ("debug", json!("yes")),
             ("agents", json!({})),
             ("version", json!(3)),
@@ -533,6 +541,7 @@ mod tests {
         "listen",
         "port",
         "allowedHosts",
+        "allowRemoteEdit",
         "autoRestart",
         "startAtLogin",
         "openStudioOnLaunch",

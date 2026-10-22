@@ -12,29 +12,65 @@
 //
 // Targets: https anywhere, plain http only on loopback. Redirects are followed by hand (at most
 // three) and every hop is checked the same way, so an https URL cannot bounce to a LAN host or
-// 169.254.169.254.
+// 169.254.169.254. Beyond the loopback http allowance, a target that is (or resolves to) a loopback,
+// private, link-local or multicast address is refused: the connection is made through the calendar's
+// address-pinning lookup (server/calendar.mjs), so a name cannot change its answer after the check.
+
+import dns from "node:dns/promises";
+import https from "node:https";
+import net from "node:net";
+import { blockedAddress, guardedLookup } from "./calendar.mjs";
 
 const MAX_REDIRECTS = 3;
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+const blockedPrivate = (ip) => blockedAddress(ip, true);
 
 /** Whether the proxy may fetch `url` (a URL object): https anywhere, plain http only on loopback. */
 export function isValidProxyTarget(url) {
   if (url.protocol === "https:") return true;
-  if (url.protocol !== "http:") return false;
-  return ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  return isLoopbackHttp(url);
 }
+
+const isLoopbackHttp = (url) => url.protocol === "http:" && LOOPBACK_HOSTS.includes(url.hostname);
+
+// What the previous fetch sent; some image hosts refuse a request without a User-Agent.
+const PROXY_HEADERS = { "user-agent": "InfoPanel-Studio", accept: "image/*,*/*;q=0.8" };
+
+/** An https GET that connects only to public addresses; the response is shaped like fetch's (`body` is a stream). */
+export function guardedProxyFetch(url, { signal, lookup = dns.lookup } = {}) {
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  // Node skips the lookup for an IP literal, so it is checked here.
+  if (net.isIP(host) && blockedPrivate(host)) return Promise.reject(new Error("address not allowed"));
+  return new Promise((ok, fail) => {
+    const req = https.get(url, { signal, headers: PROXY_HEADERS, lookup: guardedLookup(lookup, blockedPrivate) }, (res) => {
+      const status = res.statusCode ?? 0;
+      ok({ ok: status >= 200 && status < 300, status, headers: { get: (k) => res.headers[k.toLowerCase()] ?? null }, body: res });
+    });
+    req.on("error", fail);
+  });
+}
+
+/** The default fetch: loopback http as it is, anything else through `guardedProxyFetch`. */
+const proxyFetch = (url, init) => (url.protocol === "http:" ? fetch(url, init) : guardedProxyFetch(url, init));
 
 /**
  * The final upstream response for `target` (a URL object), following redirects by hand and checking
  * each hop, or null when a hop is refused or there are too many. Network errors throw.
  */
-export async function fetchProxied(target, { signal, fetchImpl = fetch } = {}) {
+export async function fetchProxied(target, { signal, fetchImpl = proxyFetch } = {}) {
   let url = target;
+  let previous = target;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (!isValidProxyTarget(url)) return null;
+    // A public page must not bounce the proxy to a service on this machine.
+    if (hop > 0 && isLoopbackHttp(url) && !isLoopbackHttp(previous)) return null;
     const res = await fetchImpl(url, { signal, redirect: "manual" });
+    previous = url;
     const location = res.status >= 300 && res.status < 400 ? res.headers.get("location") : null;
     if (!location) return res;
-    await res.body?.cancel();
+    // A fetch Response body cancels; the guarded one is a socket stream.
+    if (res.body?.cancel) await res.body.cancel();
+    else res.body?.destroy();
     try {
       url = new URL(location, url);
     } catch {

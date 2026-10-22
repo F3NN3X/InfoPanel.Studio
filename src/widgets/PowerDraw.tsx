@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, stackX, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "PowerDraw",
@@ -53,9 +53,9 @@ export default function PowerDraw(p: PowerDrawProps) {
                 </span>
               </div>
             </div>
-            <div className="flex h-2.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
-              <div className="h-full transition-[width] duration-700" style={{ width: `${(cw / budget) * 100}%`, background: "var(--accent)" }} />
-              <div className="h-full transition-[width] duration-700" style={{ width: `${(gw / budget) * 100}%`, background: gpuColor }} />
+            <div className="relative h-2.5 overflow-hidden rounded-full bg-[color:var(--w-track)]">
+              <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX(0, (cw / budget) * 100), background: "var(--accent)" }} />
+              <div className="absolute inset-0 transition-transform duration-700" style={{ ...stackX((cw / budget) * 100, (gw / budget) * 100), background: gpuColor }} />
             </div>
             {size !== "sm" && !short && <Spark values={hist} min={0} className="min-h-0 flex-1" />}
             {size === "lg" && !short && (

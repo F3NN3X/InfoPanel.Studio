@@ -195,7 +195,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                 <div
                   key={c.i}
                   title={`Core ${c.i} · ${fmt(c.load, 0)}% · ${fmt(c.mhz, 0)} MHz · ${fmt(c.vid, 2)} V`}
-                  className="flex min-h-0 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums transition-colors duration-700"
+                  className="flex min-h-0 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums"
                   style={{ background: `color-mix(in srgb, ${heat(v, ramp)} ${Math.round(18 + v * 0.82)}%, var(--w-track))`, color: text(v), outline: v > hotLine ? "2px solid #F2665E" : "none", outlineOffset: -2 }}
                 >
                   {(p.showValues ?? size !== "xs") && label(c)}

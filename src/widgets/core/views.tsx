@@ -7,6 +7,7 @@ import { fitRows } from "./layout";
 import { mix } from "./tokens";
 import { useSkin, TONES } from "./theme";
 import { Icon, Bar, Ring, Spark, Img } from "./primitives";
+import { scaleX, scaleY, slideY } from "./motion";
 import type { Compact, Shape, Studio } from "./types";
 
 const NUM_GLOW: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))", textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" };
@@ -75,7 +76,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
           {kind === "spark" && <Spark values={c.hist} min={c.min} max={c.max} color={c.color} className="absolute inset-0 h-full" />}
           {(kind === "bar" || kind === "ring") && (
             <div className="absolute inset-y-0 left-0 right-0 mx-auto flex w-full max-w-[56px] flex-col justify-end overflow-hidden rounded-xl bg-[color:var(--w-track)]">
-              <div className="w-full rounded-xl transition-[height] duration-700 ease-out" style={{ height: `${clamp(c.pct!)}%`, background: TONES[c.t ?? "ok"] }} />
+              <div className="h-full w-full rounded-xl transition-transform duration-700 ease-out" style={{ ...slideY(clamp(c.pct!)), background: TONES[c.t ?? "ok"] }} />
             </div>
           )}
         </div>
@@ -133,7 +134,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
   );
   const thin = (pct: number, className = "") => (
     <div className={`h-[3px] shrink-0 overflow-hidden rounded-[2px] bg-[color:var(--w-track)] ${className}`}>
-      <div className="h-full transition-[width] duration-500" style={{ width: `${clamp(pct)}%`, background: toneC ?? "var(--accent)" }} />
+      <div className="h-full w-full transition-transform duration-500" style={{ ...scaleX(clamp(pct)), background: toneC ?? "var(--accent)" }} />
     </div>
   );
   const len = String(val ?? "–").length + (c.unit ? String(c.unit).length * 0.5 : 0);
@@ -196,7 +197,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
           {c.meters.slice(0, n).map((m, i) => (
             <div key={i} className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="relative min-h-0 flex-1 overflow-hidden rounded-[3px] bg-[color:var(--w-track)]">
-                <div className="absolute inset-x-0 bottom-0 transition-[height] duration-300" style={{ height: `${clamp(m.v)}%`, background: "var(--accent)" }} />
+                <div className="absolute inset-0 transition-transform duration-300" style={{ ...scaleY(clamp(m.v)), background: "var(--accent)" }} />
               </div>
               <span className="truncate text-center text-[9px] text-[color:var(--w-muted)]">{m.n}</span>
             </div>
@@ -237,7 +238,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
         {label()}
         <div className="mt-2 grid min-h-0 flex-1 gap-[3px]" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: "minmax(0,1fr)" }}>
           {c.cells.map((v, i) => (
-            <span key={i} className="rounded-[3px] transition-colors duration-700" style={{ background: `color-mix(in oklab, var(--accent) ${8 + clamp(v) * 0.92}%, var(--w-track))` }} />
+            <span key={i} className="rounded-[3px]" style={{ background: `color-mix(in oklab, var(--accent) ${8 + clamp(v) * 0.92}%, var(--w-track))` }} />
           ))}
         </div>
         <div className="mt-2 flex items-baseline justify-between gap-2">

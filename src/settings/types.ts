@@ -12,6 +12,7 @@ export interface Settings {
   listen: Listen;
   port: number;
   allowedHosts: string[];
+  allowRemoteEdit: boolean;
   autoRestart: boolean;
   startAtLogin: boolean;
   openStudioOnLaunch: boolean;
@@ -53,6 +54,7 @@ export interface RunningConfig {
   port: number;
   debug: boolean;
   allowedHosts: string[];
+  allowRemoteEdit: boolean;
 }
 
 export interface Status {

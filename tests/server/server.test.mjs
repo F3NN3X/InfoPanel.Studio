@@ -37,6 +37,7 @@ describe("server.mjs", () => {
     const dist = path.join(dir, "dist");
     fs.mkdirSync(dist);
     fs.writeFileSync(path.join(dist, "index.html"), "<p>custom dist</p>");
+    fs.writeFileSync(path.join(dist, "a.txt"), "plain");
     // A stand-in for a cover-art source.
     upstream = http.createServer((req, res) => {
       if (req.url === "/png") res.writeHead(200, { "Content-Type": "application/octet-stream" }).end(png);
@@ -68,6 +69,21 @@ describe("server.mjs", () => {
     // The request guard still applies.
     const rebound = await new Promise((ok) => http.get({ host: "127.0.0.1", port: plain.port, path: "/api/health", headers: { host: "evil.example" } }, (r) => ok(r.statusCode)));
     expect(rebound).toBe(421);
+  });
+
+  it("sends the security headers: a CSP on HTML only, nosniff on every static file", async () => {
+    const html = await fetch(`${plain.base}/`);
+    const csp = html.headers.get("content-security-policy");
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).not.toMatch(/script-src[^;]*unsafe/);
+    expect(csp).not.toContain("frame-ancestors");
+    expect((await fetch(`${plain.base}/?studio=1`)).headers.get("content-security-policy")).toContain("frame-ancestors 'self'");
+    expect(csp).toContain("ipc:");
+    expect(html.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(html.headers.get("referrer-policy")).toBeTruthy();
+    const other = await fetch(`${plain.base}/a.txt`);
+    expect(other.headers.get("content-security-policy")).toBeNull();
+    expect(other.headers.get("x-content-type-options")).toBe("nosniff");
   });
 
   it("proxies images only", async () => {

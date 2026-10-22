@@ -2,18 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPainterClock, MAX_FRAME_GAP_MS, subscribeFrame } from "@/lib/audio/frame-loop";
 import { setTickerMaxFps } from "@/lib/ticker";
 
-/** A manual rAF: `step` runs the queued callbacks at one 60 Hz display frame. */
+/** A manual rAF: `step` runs the queued callbacks at one 60 Hz display frame; fake timers cover the ticker's sleep between capped frames. */
 let queue = new Map<number, FrameRequestCallback>();
 let next = 1;
 let now = 0; // never reset: the ticker keeps its last tick time between tests
 const step = () => {
   now += 1000 / 60;
+  vi.advanceTimersByTime(1000 / 60);
   const run = [...queue.values()];
   queue = new Map();
   for (const cb of run) cb(now);
 };
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   queue = new Map();
   next = 1;
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
@@ -26,6 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   setTickerMaxFps(60);
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("frame loop", () => {
