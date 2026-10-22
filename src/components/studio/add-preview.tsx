@@ -52,7 +52,9 @@ function StageNote({ item, text }: { item: AddItem; text: string }) {
 /** The real widget at its default size, live, under the page's theme. */
 function WidgetStage({ item, appearance, pageStyle }: { item: AddItem; appearance?: Appearance; pageStyle?: CSSProperties }) {
   const { width, height, scale } = previewScale(item.w, item.h);
-  const placement: Placement = { id: `add-preview:${item.id}`, module: item.id, colStart: 1, rowStart: 1, colSpan: item.w, rowSpan: item.h, visible: true };
+  // A view row adds the widget with that view set: preview it the same way.
+  const settings = item.drop.kind === "module" ? item.drop.settings : undefined;
+  const placement: Placement = { id: `add-preview:${item.id}`, module: item.drop.id, settings, colStart: 1, rowStart: 1, colSpan: item.w, rowSpan: item.h, visible: true };
   return (
     <PreviewBoundary fallback={<StageNote item={item} text="Preview unavailable" />}>
       <LivePlacement placement={placement} appearance={appearance} studio>
