@@ -39,6 +39,15 @@ const GATED: [id: string, key: string, shows: ModuleSettings, hides: ModuleSetti
   ["SystemOverview", "heatRamp", { sections: "cpu", coreView: "heatmap" }, { sections: "cpu", coreView: "bars" }],
   ["SystemOverview", "heatRamp", { sections: "cpu", coreView: "heatmap" }, { sections: "gpu", coreView: "heatmap" }],
   ["SystemOverview", "historyLength", { sparkline: true }, { sparkline: false }],
+  // View gates: an option shows only in the views that draw it.
+  ["SystemOverview", "details", { view: "panel" }, { view: "graphs" }],
+  ["SystemOverview", "sparkline", { view: "panel" }, { view: "gauges" }],
+  ["DriveSpace", "neutral", { view: "list" }, { view: "segments" }],
+  ["Weather", "showStats", { view: "full" }, { view: "glance" }],
+  ["Weather", "showForecast", { view: "minimal" }, { view: "week" }],
+  ["Weather", "fxOn", { view: "glance" }, { view: "forecast" }],
+  ["Weather", "provider", { view: "full" }, { view: "forecast" }],
+  ["Weather", "location", { view: "forecast", provider: "owm" }, { view: "full", provider: "owm" }],
 ];
 
 describe("dependent settings are gated", () => {
@@ -58,7 +67,7 @@ describe("dependent settings are gated", () => {
       ...settings.flatMap((d) =>
         d.type === "boolean"
           ? [{ ...base, [d.key]: !d.default }]
-          : d.type === "select" && d.options
+          : (d.type === "select" || d.type === "preset") && d.options
             ? // a multiple select: each option alone, and none (SystemOverview's sections gate their settings)
               [...d.options.map((o) => ({ ...base, [d.key]: o.value })), ...(d.multiple ? [{ ...base, [d.key]: "" }] : [])]
             : [],

@@ -55,6 +55,6 @@ export function WeatherGlyph({ kind, night, set = "app", style = "line", animate
   if (!url) return <span aria-hidden className={box} style={size} />;
   // The monochrome set is drawn in black: masked, it takes the text colour instead.
   if (style === "monochrome")
-    return <span aria-hidden className={box} style={{ ...size, backgroundColor: "currentColor", maskImage: `url(${url})`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center", WebkitMaskImage: `url(${url})`, WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center" }} />;
+    return <span aria-hidden className={box} style={{ ...size, backgroundColor: "currentColor", maskImage: `url(${JSON.stringify(url)})`, maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center", WebkitMaskImage: `url(${JSON.stringify(url)})`, WebkitMaskSize: "contain", WebkitMaskRepeat: "no-repeat", WebkitMaskPosition: "center" }} />;
   return <img aria-hidden alt="" src={url} draggable={false} className={box} style={size} />;
 }

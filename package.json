@@ -1,7 +1,7 @@
 {
   "name": "infopanel-studio",
   "private": true,
-  "version": "1.3.0-beta.13",
+  "version": "1.3.0-beta.14",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,7 +22,8 @@
     "lab:extract": "node lab/infopanel/scripts/extract-corpus.mjs",
     "lab:map": "node lab/infopanel/scripts/map-report.mjs",
     "lab:fonts": "node lab/infopanel/scripts/fonts.mjs",
-    "lab:font-get": "node lab/infopanel/scripts/font-get.mjs"
+    "lab:font-get": "node lab/infopanel/scripts/font-get.mjs",
+    "audit:views": "vitest run --config tools/audit/vitest.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

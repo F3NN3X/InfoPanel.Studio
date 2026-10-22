@@ -2,7 +2,7 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewOnly, viewSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewOnly, viewsExcept, viewSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
 import { countdownIsland } from "../island/countdown";
@@ -46,7 +46,8 @@ const DRIVE_SETTINGS: ModuleSetting[] = [
   viewSetting(DriveSpace.meta, { group: "Drive" }),
   deviceSetting("Drive", "drive", { group: "Drive", hint: "Pin one volume; Auto lists all" }),
   enumSetting("sort", "Sort", "usage", [{ value: "usage", label: "By usage" }, { value: "name", label: "By name" }], { group: "Sorting", tab: "behaviour" }),
-  boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true }),
+  // Segments and Bars always colour by fullness.
+  viewOnly(DriveSpace.meta, "list")(boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true })),
   thresholdSetting("full"),
 ];
 
@@ -113,7 +114,7 @@ const NETWORK_SETTINGS: ModuleSetting[] = [
 ];
 
 /** Weather's view and toggles, under the old Weather widget's keys. */
-const WEATHER_SETTINGS: ModuleSetting[] = [
+const WEATHER_ROWS: ModuleSetting[] = [
   viewSetting(Weather.meta, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
   { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Display" },
   { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Display" },
@@ -185,6 +186,13 @@ const WEATHER_SETTINGS: ModuleSetting[] = [
   { key: "fxOpacity", label: "Strength", type: "number", default: 100, min: 20, max: 100, step: 10, group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
   { key: "fxPreview", label: "Show", type: "select", default: "auto", options: [{ value: "auto", label: "Live condition" }, { value: "clear", label: "Clear" }, { value: "cloudy", label: "Cloudy" }, { value: "rain", label: "Rain" }, { value: "snow", label: "Snow" }, { value: "hail", label: "Hail" }, { value: "thunder", label: "Thunder" }, { value: "fog", label: "Fog" }], group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
 ];
+/** The views that draw the stats, feels-like and forecast strip toggles (Glance and Week have their own layout). */
+const togglesShown = viewOnly(Weather.meta, "full", "now", "minimal");
+/** The Forecast view is the Forecast widget: no tint, background or provider of its own. */
+const notForecast = viewOnly(Weather.meta, ...viewsExcept(Weather.meta, "forecast"));
+const WEATHER_GATE = (d: ModuleSetting): ModuleSetting =>
+  ["showStats", "showFeels", "showForecast"].includes(d.key) ? togglesShown(d) : d.key === "tint" || d.key.startsWith("fx") ? notForecast(d) : d;
+const WEATHER_SETTINGS: ModuleSetting[] = WEATHER_ROWS.map(WEATHER_GATE);
 
 /** The stored settings as the Weather template's props (`forecastDays` is its `days`). */
 const weatherToProps = (s: ModuleSettings): Partial<Weather.WeatherProps> => ({
@@ -451,8 +459,9 @@ export const GROUP_B: DashboardModule[] = [
     Component: Weather.default,
     settings: [
       ...WEATHER_SETTINGS,
-      enumSetting("provider", "Provider", "auto", [{ value: "auto", label: "Auto" }, { value: "yr", label: "Yr" }, { value: "owm", label: "OpenWeatherMap" }], { group: "Source", tab: "data" }),
-      { ...yrLocation("Source"), visibleIf: (v) => v.provider !== "owm" },
+      notForecast(enumSetting("provider", "Provider", "auto", [{ value: "auto", label: "Auto" }, { value: "yr", label: "Yr" }, { value: "owm", label: "OpenWeatherMap" }], { group: "Source", tab: "data" })),
+      // The Forecast view reads Yr whatever the provider.
+      { ...yrLocation("Source"), visibleIf: (v) => v.view === "forecast" || v.provider !== "owm" },
       formatSetting("tempUnit"),
     ],
     toProps: (s) => ({ ...pass<Partial<Weather.WeatherProps>>("location")(s), units: unitsOf(s), provider: oneOf(s.provider, ["yr", "owm"]), ...weatherToProps(s) }),
