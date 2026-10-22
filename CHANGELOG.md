@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.10] - 2026-10-22
+
 ### Added
 - **Allow editing from other devices** is a new app setting, off by default, for a server on the local network. A
   server restart applies it.
