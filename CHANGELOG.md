@@ -7,6 +7,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **Countdown widget.** Counts down to an event, or up from it: pick a date (and optionally a time), an event name,
+  whether to count until, since or automatically, and a breakdown of days, years or live seconds. Three views, each its
+  own entry in the Add panel: Inline, Tiles and Big number. Settings gain native date and time pickers.
 - **Drive Space: Segments and Bars views.** Two more layouts, each its own entry in the Add panel: one row per drive
   with its icon, name, used / total and a segmented or slim fill bar that turns warn and critical past the
   thresholds. The List view is unchanged.

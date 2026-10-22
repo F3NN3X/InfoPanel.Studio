@@ -282,6 +282,7 @@ export function SettingRow({
           {...label}
           value={String(value)}
           multiline={def.multiline}
+          kind={def.type === "date" || def.type === "time" ? def.type : "text"}
           placeholder={placeholderOf(def)}
           onChange={onChange}
         />

@@ -86,6 +86,12 @@ export const numberSetting = (key: string, label: string, def: number, extra: Ex
 /** A text field. */
 export const textSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "text", default: def, ...extra });
 
+/** A date ("YYYY-MM-DD"; "" = none). */
+export const dateSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "date", default: def, ...extra });
+
+/** A time of day (24 h "HH:MM"; "" = none). */
+export const timeSetting = (key: string, label: string, def = "", extra: Extra = {}): ModuleSetting => ({ key, label, type: "time", default: def, ...extra });
+
 /** A colour; "" = the widget's own. Filed in Style › Widget colors, behind More. */
 export const colorSetting = (key: string, label: string, extra: Extra = {}): ModuleSetting => ({ key, label, type: "color", default: "", tab: "style", advanced: true, ...extra });
 

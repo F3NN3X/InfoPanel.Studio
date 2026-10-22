@@ -9,7 +9,7 @@ const WITH_VIEWS = modules.filter((m) => m.views?.length);
 describe("widget views", () => {
   it("are declared by the widgets with a layout switch", () => {
     expect(WITH_VIEWS.map((m) => m.id).sort()).toEqual(
-      ["AudioMeter", "Bluetooth", "DriveSpace", "FpsMonitor", "GameSpotlight", "NowPlaying", "SensorGroup", "ServiceHealth", "SteamFriends", "SystemOverview", "Thermals", "Weather"].sort()
+      ["AudioMeter", "Bluetooth", "Countdown", "DriveSpace", "FpsMonitor", "GameSpotlight", "NowPlaying", "SensorGroup", "ServiceHealth", "SteamFriends", "SystemOverview", "Thermals", "Weather"].sort()
     );
   });
 
@@ -24,5 +24,24 @@ describe("widget views", () => {
   it.each(cases)("%s renders", (_name, m, v) => {
     const saved = { [m.viewKey ?? "view"]: v.id, ...v.applies };
     expect(() => renderToString(m.render(fixtureSensors(), saved) as never)).not.toThrow();
+  });
+
+  const countdown = modules.find((m) => m.id === "Countdown")!;
+  it.each(countdown.views!.map((v) => v.id))("Countdown · %s renders with a date, a time and an event name, and with none", (view) => {
+    const set = { view, eventName: "Launch", date: "2030-12-31", time: "13:24", breakdown: "live" };
+    expect(() => renderToString(countdown.render(fixtureSensors(), set) as never)).not.toThrow();
+    expect(renderToString(countdown.render(fixtureSensors(), set) as never)).toContain("Launch");
+    expect(renderToString(countdown.render(fixtureSensors(), { view }) as never)).toContain("Pick a date");
+  });
+
+  it("Countdown reads a malformed date as unset", () => {
+    const html = (date: string, time = "") => renderToString(countdown.render(fixtureSensors(), { date, time }) as never);
+    expect(html("2030-02-30")).toContain("Pick a date");
+    expect(html("soon")).toContain("Pick a date");
+    expect(html("2030-12-31", "99:99")).not.toContain("Pick a date");
+  });
+
+  it("Countdown shows Happening now at the moment of the event", () => {
+    expect(renderToString(countdown.render(fixtureSensors(), { date: "2000-01-01", count: "until" }) as never)).toContain("Happening now");
   });
 });

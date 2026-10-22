@@ -10,6 +10,7 @@ describe("widgets as island sources", () => {
     const withIsland = TEMPLATE_MODULES.filter((m) => m.island).map((m) => m.id).sort();
     expect(withIsland).toEqual([
       "Achievements",
+      "Countdown",
       "DriveSpace",
       "FpsMonitor",
       "NetworkAdapters",

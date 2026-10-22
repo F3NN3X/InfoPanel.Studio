@@ -38,6 +38,8 @@ const MANIFEST: Record<string, Record<string, string>> = {
   NetworkAdapters: { showDown: "showDown", showIpv6: "showIpv6", hideIp: "hideIp" },
   Clock: { format: "clock", showSeconds: "showSeconds", showDate: "showDate", face: "face" },
   Timer: { presets: "presets", pomodoro: "pomodoro", focusMin: "focusMin", breakMin: "breakMin" },
+  // Designed with its mock-ups: no spec doc.
+  Countdown: {},
   CodingAgents: { agents: "agents", showPlan: "showPlan", showSessions: "showSessions", showUsage: "showUsage", limitStyle: "limitStyle", percent: "percent", history: "history" },
   Calendar: { weekStart: "weekStart" },
   Weather: { provider: "provider", location: "location", units: "tempUnit" },

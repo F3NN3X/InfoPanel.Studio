@@ -5,20 +5,20 @@ import { modules } from "@/modules";
 import { INSPECTOR_META } from "@/widgets/registry/inspector-meta";
 
 // The audit of the refile (widget settings v2, SPEC §6.4 and §9), over every widget filed so far:
-// the nine sample widgets and the three batches of the rest: all 54.
+// the nine sample widgets and the three batches of the rest: all 55.
 const REFILED = [
   "SystemOverview", "NowPlaying", "SensorGroup", "AudioMeter", "Weather", "CpuMonitor", "Uptime", "SteamProfile", "WebPage",
   // Batch A
   "MenuBar", "KpiTiles", "StatusTracker", "SystemStatus", "Vitals", "ServiceHealth", "ProcessList", "CoreHeatmap", "GpuRings", "GpuMonitor", "MemoryUsage", "Thermals", "PowerDraw", "Fans",
   // Batch B
-  "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "CodingAgents", "Calendar", "Forecast", "SensorValue", "CustomGauge", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink",
+  "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "Countdown", "CodingAgents", "Calendar", "Forecast", "SensorValue", "CustomGauge", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink",
   // Batch C
   "FpsMonitor", "GameSpotlight", "OsdStrip", "FramePacing", "PlaytimeShare", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews", "TextFile", "Notifications", "Departures", "Bluetooth", "StreamDeck",
 ];
 
-it("covers all 54 widgets", () => {
-  expect(REFILED).toHaveLength(54);
-  expect(new Set(REFILED).size).toBe(54);
+it("covers all 55 widgets", () => {
+  expect(REFILED).toHaveLength(55);
+  expect(new Set(REFILED).size).toBe(55);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 

@@ -2,9 +2,10 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { boolOf, boolSetting, colorSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, textSetting, thresholdSetting, viewSetting } from "./settings-kit";
+import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
+import { countdownIsland } from "../island/countdown";
 import { timerIsland } from "../island/timer";
 import * as DriveSpace from "../DriveSpace";
 import * as StorageHealth from "../StorageHealth";
@@ -14,6 +15,8 @@ import * as NetworkAdapters from "../NetworkAdapters";
 import * as Clock from "../Clock";
 import * as Calendar from "../Calendar";
 import * as Timer from "../Timer";
+import * as Countdown from "../Countdown";
+import { isDate, isTime } from "@/lib/countdown";
 import * as CodingAgents from "../CodingAgents";
 import * as Weather from "../Weather";
 import * as Forecast from "../Forecast";
@@ -220,6 +223,32 @@ export const GROUP_B: DashboardModule[] = [
       breakMin: numberOf(s.breakMin),
     }),
     island: timerIsland,
+  }),
+  templateModule({
+    meta: Countdown.meta,
+    Component: Countdown.default,
+    settings: [
+      viewSetting(Countdown.meta, { group: "Event" }),
+      textSetting("eventName", "Event name", "", { group: "Event", hint: "Empty = no title line" }),
+      dateSetting("date", "Date", "", { group: "Event", tab: "data" }),
+      timeSetting("time", "Time of day", "", { group: "Event", tab: "data", hint: "Empty = an all-day event" }),
+      enumSetting("count", "Count", "auto", [{ value: "auto", label: "Auto" }, { value: "until", label: "Until" }, { value: "since", label: "Since" }], { group: "Counting", tab: "data", hint: "Auto counts up an hour after the start (the rest of the day when all-day)" }),
+      enumSetting("breakdown", "Breakdown", "auto", [{ value: "auto", label: "Auto" }, { value: "days", label: "Days" }, { value: "years", label: "Years" }, { value: "live", label: "Live" }], { group: "Counting", tab: "data", hint: "Live adds seconds" }),
+      boolSetting("showDate", "Show the date", true, { group: "Event" }),
+      formatSetting("clock"),
+    ],
+    // A malformed date or time reads as unset.
+    toProps: (s): Partial<Countdown.CountdownProps> => ({
+      view: oneOf(s.view, ["inline", "tiles", "big"]),
+      eventName: stringOf(s.eventName),
+      date: isDate(s.date) ? s.date : undefined,
+      time: isTime(s.time) ? s.time : undefined,
+      count: oneOf(s.count, ["auto", "until", "since"]),
+      breakdown: oneOf(s.breakdown, ["auto", "days", "years", "live"]),
+      showDate: boolOf(s.showDate),
+      clock: clockOf(s),
+    }),
+    island: countdownIsland,
   }),
   templateModule({
     meta: CodingAgents.meta,

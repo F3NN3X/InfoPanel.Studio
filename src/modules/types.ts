@@ -66,8 +66,8 @@ export const isDeviceKind = (v: string | undefined): v is DeviceKind =>
 export interface ModuleSetting {
   key: string;
   label: string;
-  /** "preset": a bundle of toggles (see `options`); "status": a read-only line about the data source, never stored. */
-  type: "text" | "number" | "select" | "preset" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "thresholds" | "status";
+  /** "preset": a bundle of toggles (see `options`); "status": a read-only line about the data source, never stored; "date": "YYYY-MM-DD"; "time": 24 h "HH:MM" ("" = none). */
+  type: "text" | "date" | "time" | "number" | "select" | "preset" | "boolean" | "color" | "icon" | "image" | "align" | "sensor" | "thresholds" | "status";
   default: ModuleSettingValue;
   /**
    * A second key the row writes together with `key`: for type "align" the
