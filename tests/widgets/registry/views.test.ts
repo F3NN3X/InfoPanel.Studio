@@ -9,7 +9,7 @@ const WITH_VIEWS = modules.filter((m) => m.views?.length);
 describe("widget views", () => {
   it("are declared by the widgets with a layout switch", () => {
     expect(WITH_VIEWS.map((m) => m.id).sort()).toEqual(
-      ["AudioMeter", "Bluetooth", "CodingAgents", "Countdown", "DriveSpace", "FpsMonitor", "GameSpotlight", "NowPlaying", "SensorGroup", "ServiceHealth", "SteamFriends", "SystemOverview", "Thermals", "Weather"].sort()
+      ["AudioMeter", "Bluetooth", "CodingAgents", "Countdown", "DriveSpace", "FpsMonitor", "GameSpotlight", "NowPlaying", "SensorGroup", "ServiceHealth", "StatusBar", "SteamFriends", "SystemOverview", "Thermals", "Weather"].sort()
     );
   });
 
@@ -32,6 +32,13 @@ describe("widget views", () => {
     expect(() => renderToString(countdown.render(fixtureSensors(), set) as never)).not.toThrow();
     expect(renderToString(countdown.render(fixtureSensors(), set) as never)).toContain("Launch");
     expect(renderToString(countdown.render(fixtureSensors(), { view }) as never)).toContain("Pick a date");
+  });
+
+  const bar = modules.find((m) => m.id === "StatusBar")!;
+  it.each(bar.views!.map((v) => v.id))("StatusBar · %s leaves out items with no data", (view) => {
+    const html = renderToString(bar.render(fixtureSensors(), { view, left: "text,battery", center: "date", right: "" }) as never);
+    expect(html).not.toContain("–");
+    expect(html).not.toContain("NaN");
   });
 
   it("Countdown reads a malformed date as unset", () => {

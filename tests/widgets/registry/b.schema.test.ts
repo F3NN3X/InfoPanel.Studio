@@ -40,6 +40,7 @@ const MANIFEST: Record<string, Record<string, string>> = {
   Timer: { presets: "presets", pomodoro: "pomodoro", focusMin: "focusMin", breakMin: "breakMin" },
   // Designed with its mock-ups: no spec doc.
   Countdown: {},
+  StatusBar: {},
   CodingAgents: { agents: "agents", showPlan: "showPlan", showSessions: "showSessions", showUsage: "showUsage", limitStyle: "limitStyle", percent: "percent", history: "history" },
   Calendar: { weekStart: "weekStart" },
   Weather: { provider: "provider", location: "location", units: "tempUnit" },
@@ -76,7 +77,11 @@ describe("registry group B schema", () => {
         for (const [prop, key] of Object.entries(props)) if (!STANDARD_CARRIED.has(`${id}.${prop}`)) expect(STANDARD_KEYS.has(key)).toBe(false);
       }
       { // keeps every enum default inside its options
-        for (const d of own.filter((x) => x.type === "select" && x.options)) expect(d.options!.map((o) => o.value)).toContain(d.default);
+        for (const d of own.filter((x) => x.type === "select" && x.options)) {
+          const values = d.options!.map((o) => o.value);
+          // a multiple select's default lists options, comma-separated
+          for (const v of d.multiple ? String(d.default).split(",").filter(Boolean) : [d.default]) expect(values).toContain(v);
+        }
       }
       { // renders from its defaults
         const defaults = defaultsOf(mod.settings ?? []);

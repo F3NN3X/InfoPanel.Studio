@@ -14,6 +14,7 @@ import * as Clock from "@/widgets/Clock";
 import * as Calendar from "@/widgets/Calendar";
 import * as Timer from "@/widgets/Timer";
 import * as Countdown from "@/widgets/Countdown";
+import * as StatusBar from "@/widgets/StatusBar";
 import * as CodingAgents from "@/widgets/CodingAgents";
 import * as Weather from "@/widgets/Weather";
 import * as Forecast from "@/widgets/Forecast";
@@ -23,7 +24,7 @@ import * as CustomGauge from "@/widgets/CustomGauge";
 import { GROUP_B } from "@/widgets/registry/b";
 
 type Template = { meta: WidgetMeta; default: (p: never) => unknown };
-const TEMPLATES = [DriveSpace, StorageHealth, DiskIO, NetworkThroughput, NetworkAdapters, Clock, Timer, Countdown, CodingAgents, Calendar, Weather, Forecast, SensorValue, SensorGroup, CustomGauge] as unknown as Template[];
+const TEMPLATES = [DriveSpace, StorageHealth, DiskIO, NetworkThroughput, NetworkAdapters, Clock, Timer, Countdown, StatusBar, CodingAgents, Calendar, Weather, Forecast, SensorValue, SensorGroup, CustomGauge] as unknown as Template[];
 
 const data = toFlat(snapshot.sensors as unknown as SensorMap);
 // Widgets with no live value at size md, and why.

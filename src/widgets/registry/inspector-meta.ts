@@ -49,6 +49,7 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   Clock: as("title-only", DENSE, { fmt: ["clock"] }),
   Timer: yes(NONE),
   Countdown: yes(BOTH, { fmt: ["clock"] }),
+  StatusBar: as("none", DENSE, { fmt: ["clock", "tempUnit", "rateUnit"] }),
   CodingAgents: yes(BOTH),
   Calendar: as("none", CARD),
   Weather: yes(CARD, { fmt: ["tempUnit"] }),

@@ -7,6 +7,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Added
+- **Status Bar widget.** A one-row bar with a left, a centre and a right slot, each holding any of the logo or your
+  own text, date, time, weather, CPU / GPU / memory, temperatures, download / upload, disk, network, volume, battery,
+  now playing and uptime; an item with no data is left out. Three views, each its own entry in the Add panel: Edge,
+  Pill and Islands. It leaves a gap at the page centre for the Dynamic Island, with the centre items split around it,
+  and drops items from the outer ends when the bar is narrow.
 - **Weather: animated backgrounds.** An opt-in rain, snow, hail, thunder, fog, cloud, wind, sun, or moon and stars
   effect behind every Weather view, based on [web-weather](https://github.com/greywen/web-weather) by greywen (MIT).
   Settings: Intensity, Particles, Speed, Wind, Lightning, Clouds and fog, Strength, and Show to preview a condition.

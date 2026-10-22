@@ -193,7 +193,7 @@ describe("tabs of every widget", () => {
 });
 
 describe("header modes", () => {
-  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "SteamGame", "Vitals", "WebPage"];
+  const NO_HEADER = ["Calendar", "GameSpotlight", "KpiTiles", "MenuBar", "OsdStrip", "StatusBar", "SteamGame", "Vitals", "WebPage"];
   const TITLE_ONLY = ["Clock", "SystemOverview"];
 
   it("declares the header and small-zone shape of every widget", () => {
@@ -204,7 +204,7 @@ describe("header modes", () => {
     expect(modules.filter((m) => m.header === "none").map((m) => m.id).sort()).toEqual(NO_HEADER);
     expect(modules.filter((m) => m.header === "title-only").map((m) => m.id).sort()).toEqual(TITLE_ONLY);
     const noCard = modules.filter((m) => !m.compact?.card).map((m) => m.id).sort();
-    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
+    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
   });
 
   it("shows Show title, Title and Icon (More) on a widget with a header", () => {

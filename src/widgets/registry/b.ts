@@ -16,6 +16,8 @@ import * as Clock from "../Clock";
 import * as Calendar from "../Calendar";
 import * as Timer from "../Timer";
 import * as Countdown from "../Countdown";
+import * as StatusBar from "../StatusBar";
+import { ITEMS, ITEM_LABELS } from "../StatusBar/items";
 import { isDate, isTime } from "@/lib/countdown";
 import * as CodingAgents from "../CodingAgents";
 import * as Weather from "../Weather";
@@ -228,6 +230,33 @@ const iconsOf = (s: ModuleSettings) => ({
 const unitsOf = (s: ModuleSettings): "C" | "F" => (tempUnitOf(s) === "f" ? "F" : "C");
 const yrLocation = (group: string): ModuleSetting => ({ key: "location", label: "Location", type: "select", default: "", optionsFrom: "sources", sourcePlugin: "plugins.yr-weather-plugin.", group, tab: "data", hint: "Blank = the first Yr location" });
 
+/** A Status Bar slot: the stored comma-separated items that exist; undefined while unset (the bar's own). */
+const slotOf = (v: unknown) => (v === undefined ? undefined : splitKeys(v).flatMap((k) => oneOf(k, ITEMS) ?? []));
+const barUses = (...keys: (typeof ITEMS)[number][]) => (v: ModuleSettings) => [v.left ?? "logo", v.center ?? "date,time", v.right ?? "weather,network,volume,battery"].some((s) => splitKeys(s).some((k) => (keys as string[]).includes(k)));
+const BAR_ITEMS = ITEMS.map((value) => ({ value, label: ITEM_LABELS[value] }));
+const usesWeather = barUses("weather");
+const STATUSBAR_SETTINGS: ModuleSetting[] = [
+  viewSetting(StatusBar.meta, { group: "Layout" }),
+  enumSetting("left", "Left", "logo", BAR_ITEMS, { multiple: true, group: "Slots", hint: "Items show in the order picked; one with no data is left out" }),
+  enumSetting("center", "Centre", "date,time", BAR_ITEMS, { multiple: true, group: "Slots" }),
+  enumSetting("right", "Right", "weather,network,volume,battery", BAR_ITEMS, { multiple: true, group: "Slots" }),
+  enumSetting("display", "Show", "both", [{ value: "both", label: "Icon and value" }, { value: "value", label: "Value" }, { value: "icon", label: "Icon" }], { group: "Display", perWidget: true, hint: "Network, volume and battery show their icon only, unless set to Value" }),
+  boolSetting("separators", "Dividers", true, { group: "Display", perWidget: true }),
+  enumSetting("spacing", "Spacing", "normal", [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "roomy", label: "Roomy" }], { group: "Display", perWidget: true }),
+  { key: "logoIcon", label: "Logo icon", type: "icon", default: "monitor", group: "Logo", visibleIf: barUses("logo") },
+  { key: "logoImage", label: "Logo image", type: "image", default: "", group: "Logo", perWidget: true, hint: "Replaces the icon", visibleIf: barUses("logo") },
+  textSetting("text", "Text", "", { group: "Text", hint: "Empty = the item is left out", visibleIf: barUses("text") }),
+  boolSetting("seconds", "Show seconds", false, { group: "Time", visibleIf: barUses("time", "datetime") }),
+  { key: "iconSet", label: "Weather icon set", type: "select", default: "app", options: [{ value: "app", label: "App icons" }, { value: "meteocons", label: "Meteocons" }], group: "Icons", perWidget: true, visibleIf: usesWeather },
+  { key: "iconStyle", label: "Icon style", type: "select", default: "line", options: [{ value: "fill", label: "Fill" }, { value: "flat", label: "Flat" }, { value: "line", label: "Line" }, { value: "monochrome", label: "Monochrome" }], group: "Icons", perWidget: true, visibleIf: (v) => usesWeather(v) && v.iconSet === "meteocons" },
+  { key: "iconAnimated", label: "Animated icons", type: "boolean", default: false, group: "Icons", perWidget: true, hint: "Animated icons use more CPU and memory on the kiosk, and run outside the Max FPS cap.", visibleIf: (v) => usesWeather(v) && v.iconSet === "meteocons" },
+  enumSetting("islandGap", "Gap for the island", "auto", [{ value: "auto", label: "Auto" }, { value: "off", label: "Off" }, { value: "custom", label: "Custom" }], { group: "Island", perWidget: true, hint: "Auto leaves room for the Dynamic Island at the page centre while it is on; the centre items split around it" }),
+  numberSetting("islandGapPx", "Gap width (px)", 160, { min: 80, max: 400, step: 10, group: "Island", perWidget: true, visibleIf: (v) => v.islandGap === "custom" }),
+  formatSetting("clock"),
+  formatSetting("tempUnit"),
+  rateUnitSetting(),
+];
+
 /** The Coding Agents settings that only apply to the Full view. */
 const full = viewOnly(CodingAgents.meta, "full");
 
@@ -336,6 +365,30 @@ export const GROUP_B: DashboardModule[] = [
       clock: clockOf(s),
     }),
     island: countdownIsland,
+  }),
+  templateModule({
+    meta: StatusBar.meta,
+    Component: StatusBar.default,
+    settings: STATUSBAR_SETTINGS,
+    toProps: (s): Partial<StatusBar.StatusBarProps> => ({
+      view: oneOf(s.view, ["edge", "pill", "islands"]),
+      left: slotOf(s.left),
+      center: slotOf(s.center),
+      right: slotOf(s.right),
+      display: oneOf(s.display, ["both", "value", "icon"]),
+      separators: boolOf(s.separators),
+      spacing: oneOf(s.spacing, ["compact", "normal", "roomy"]),
+      logoIcon: stringOf(s.logoIcon),
+      logoImage: stringOf(s.logoImage),
+      text: stringOf(s.text),
+      seconds: boolOf(s.seconds),
+      clock: clockOf(s),
+      tempUnit: tempUnitOf(s),
+      rateUnit: rateUnitOf(s.rateUnit),
+      ...iconsOf(s),
+      islandGap: oneOf(s.islandGap, ["auto", "off", "custom"]),
+      islandGapPx: numberOf(s.islandGapPx),
+    }),
   }),
   templateModule({
     meta: CodingAgents.meta,

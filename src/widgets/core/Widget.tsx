@@ -1,6 +1,6 @@
 // The Widget shell every template renders into: measures itself, applies skin + surface + the standard
 // look, picks the view.
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { chromeVars, scopedCss, zoomFor } from "@/components/widget-style";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
@@ -47,6 +47,10 @@ export interface WidgetProps {
 }
 
 type ShellInput = Partial<ShellProps> & { look?: ModuleSettings; iconOverride?: string };
+
+/** The widget surface (its classes and box style), for a view that draws it on parts of its own instead of the whole zone. */
+export const PaneCtx = createContext<{ className: string; style: CSSProperties }>({ className: "", style: {} });
+export const usePane = () => useContext(PaneCtx);
 
 export const shell = (p: ShellInput): Partial<WidgetProps> => ({
   accent: p.accent,
@@ -119,6 +123,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
   } as CSSProperties;
   return (
     <SkinCtx.Provider value={ctx}>
+      <PaneCtx.Provider value={{ className: surf.c, style: surfBox }}>
       <div ref={ref} style={rootStyle} data-wp-scope={css ? scope : undefined} data-wp-tier={box.size} data-wp-shape={box.shape} data-wp-view={isStudio ? "studio" : useCompact ? "compact" : "body"} className={`relative flex h-full w-full min-w-0 flex-col overflow-hidden antialiased ${surf.c} ${className}`}>
         {css && <style>{css}</style>}
         {background && (
@@ -145,6 +150,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
           </div>
         </div>
       </div>
+      </PaneCtx.Provider>
     </SkinCtx.Provider>
   );
 }

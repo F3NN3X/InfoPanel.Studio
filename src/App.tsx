@@ -19,6 +19,7 @@ import { applyTheme, resolveTheme } from "@/lib/theme";
 import { fontStack, formatClock, resolveFont, resolveGeneral } from "@/lib/general";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { GeneralProvider, useGeneral } from "@/hooks/use-general";
+import { PageIslandProvider } from "@/hooks/use-page-island";
 import { PerformanceProvider } from "@/hooks/use-performance";
 import { performanceFromSearch } from "@/lib/performance";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -186,6 +187,7 @@ export default function App() {
   );
   const islandPage = useMemo(() => ({ width: profile.width, height: profile.height }), [profile.width, profile.height]);
   const reserve = islandReserve(islandConfig, islandPage);
+  const pageIsland = useMemo(() => ({ island, page: islandPage }), [island, islandPage]);
   const fill = profile.fit === "fill";
   const background = resolveBackground(config, profile);
   const appearance = appearanceOf(config, profile);
@@ -537,6 +539,7 @@ export default function App() {
   return (
     <GeneralProvider value={general}>
       <PerformanceProvider value={perfOverride}>
+      <PageIslandProvider value={pageIsland}>
       <div
         className={cn(
           // A page background replaces the theme's page color (it sits
@@ -663,6 +666,7 @@ export default function App() {
           </button>
         )}
       </div>
+      </PageIslandProvider>
     </PerformanceProvider>
     </GeneralProvider>
   );
