@@ -4,7 +4,7 @@
 
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -161,14 +161,19 @@ fn follow_window(app: &AppHandle, window: tauri::WebviewWindow) {
     let visible = window.is_visible().unwrap_or(true);
     if !crate::webview2::wants_suspend(minimized, visible) {
         crate::webview2::resume(&window);
-    } else if !crate::webview2::is_suspended() {
+    } else if !crate::webview2::is_suspended() && !MINIMIZE_FLUSH.swap(true, Ordering::SeqCst) {
+        // One flush at a time: a minimized window still gets resize events.
         let app = app.clone();
         std::thread::spawn(move || {
             flush_studio(&app);
             crate::webview2::suspend(&window);
+            MINIMIZE_FLUSH.store(false, Ordering::SeqCst);
         });
     }
 }
+
+/// A minimize's flush-then-suspend is running.
+static MINIMIZE_FLUSH: AtomicBool = AtomicBool::new(false);
 
 /// Shows (creating if needed) and focuses the studio window.
 pub fn show_main(app: &AppHandle) {
@@ -423,11 +428,9 @@ pub fn flush_studio(app: &AppHandle) {
     if !on_studio {
         return;
     }
-    // A suspended page cannot answer: wake it for the flush, then put it back.
-    let was_suspended = crate::webview2::is_suspended();
-    if was_suspended {
-        crate::webview2::resume(&window);
-    }
+    // A suspended page cannot answer: wake it for the flush (which also cancels a suspend still on
+    // its way), then put it back if nobody can see it.
+    crate::webview2::resume(&window);
     st.flush.arm();
     if window.emit_to(MAIN, FLUSH_EVENT, ()).is_err() {
         st.flush.release();
@@ -435,7 +438,9 @@ pub fn flush_studio(app: &AppHandle) {
         let answered = st.flush.wait(FLUSH_TIMEOUT);
         log::debug!("flush: answered={answered}");
     }
-    if was_suspended {
+    let minimized = window.is_minimized().unwrap_or(false);
+    let visible = window.is_visible().unwrap_or(true);
+    if crate::webview2::wants_suspend(minimized, visible) {
         crate::webview2::suspend(&window);
     }
 }

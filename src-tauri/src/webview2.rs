@@ -3,8 +3,13 @@
 // transitions run at full rate in a host nobody sees), and `visibilitychange` does not fire on
 // minimize, so the shell tells WebView2 itself. Windows only; elsewhere these do nothing.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tauri::WebviewWindow;
+
+/// Counts resume requests when they are made (not when the main thread gets to them), so a suspend
+/// asked for before a show never lands after it.
+#[cfg_attr(not(windows), allow(dead_code))]
+static SHOWS: AtomicU64 = AtomicU64::new(0);
 
 // The state below changes only inside the main-thread closure of `apply` (and the completion handler,
 // which runs there too), so suspends and resumes serialize in the order they were asked for.
@@ -41,16 +46,23 @@ fn flip(flag: &AtomicBool, to: bool) -> bool {
 /// Suspends the webview of the (just hidden or minimized) window, unless it is visible again by the
 /// time the main thread gets to it.
 pub fn suspend(window: &WebviewWindow) {
-    apply(window, true);
+    apply(window, true, SHOWS.load(Ordering::SeqCst));
 }
 
-/// Resumes the webview; call before the window is shown.
+/// Resumes the webview; call before the window is shown. Also cancels a suspend still on its way.
 pub fn resume(window: &WebviewWindow) {
-    apply(window, false);
+    let shows = SHOWS.fetch_add(1, Ordering::SeqCst) + 1;
+    apply(window, false, shows);
+}
+
+/// A suspend asked for when `asked` resumes had been requested is stale once another came since.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn stale(asked: u64) -> bool {
+    SHOWS.load(Ordering::SeqCst) != asked
 }
 
 #[cfg(not(windows))]
-fn apply(_window: &WebviewWindow, _suspend: bool) {}
+fn apply(_window: &WebviewWindow, _suspend: bool, _shows: u64) {}
 
 #[cfg(not(windows))]
 pub fn open_task_manager(_window: &WebviewWindow) -> Result<(), String> {
@@ -65,7 +77,7 @@ pub use windows_impl::open_task_manager;
 
 #[cfg(windows)]
 mod windows_impl {
-    use super::{flip, wants_suspend, MEMORY_LOWERED, RESUMES, SUSPENDED};
+    use super::{flip, stale, wants_suspend, MEMORY_LOWERED, RESUMES, SUSPENDED};
     use std::sync::atomic::Ordering;
     use tauri::WebviewWindow;
     use webview2_com::Microsoft::Web::WebView2::Win32::{
@@ -137,12 +149,14 @@ mod windows_impl {
     }
 
     /// Runs on the UI thread, where WebView2 wants its calls, and where the state is read and changed.
-    pub fn apply(window: &WebviewWindow, suspending: bool) {
+    pub fn apply(window: &WebviewWindow, suspending: bool, shows: u64) {
         let label = window.label().to_owned();
         let target = window.clone();
         let sent = window.with_webview(move |webview| {
-            // Shown again since the suspend was asked for: leave it running.
-            if suspending && !wants_suspend(target.is_minimized().unwrap_or(false), target.is_visible().unwrap_or(true)) {
+            // Shown again (or about to be) since the suspend was asked for: leave it running.
+            if suspending
+                && (stale(shows) || !wants_suspend(target.is_minimized().unwrap_or(false), target.is_visible().unwrap_or(true)))
+            {
                 return;
             }
             if !flip(&SUSPENDED, suspending) {
@@ -188,6 +202,14 @@ mod tests {
         assert!(wants_suspend(true, true));
         assert!(wants_suspend(false, false));
         assert!(wants_suspend(true, false));
+    }
+
+    #[test]
+    fn a_suspend_asked_before_a_show_is_stale() {
+        let asked = SHOWS.load(Ordering::SeqCst);
+        assert!(!stale(asked));
+        SHOWS.fetch_add(1, Ordering::SeqCst);
+        assert!(stale(asked));
     }
 
     #[test]
