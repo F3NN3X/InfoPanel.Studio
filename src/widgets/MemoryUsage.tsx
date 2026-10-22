@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["libre.total_memory", "libre.virtual_memory"],
   defaultSize: [2, 1],
   minSize: [1, 1],
+  blurb: "Physical and virtual memory in use",
+  tags: "ram",
   description: "Physical + virtual memory load, used and available.",
 };
 

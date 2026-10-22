@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [5, 2],
   minSize: [1, 1],
+  blurb: "CPU, GPU and RAM in one panel",
+  tags: "overview vram rings heatmap",
   description: "Unified CPU · GPU · RAM (+ VRAM, drives, network) panel. Each section has its own colour, ring, stats, smooth graph; CPU adds a load-intensity core heatmap.",
 };
 

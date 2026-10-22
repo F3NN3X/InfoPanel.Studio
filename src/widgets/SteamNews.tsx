@@ -8,6 +8,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [3, 1],
   minSize: [1, 1],
+  blurb: "Headlines for your games",
+  tags: "steam news",
   description: "Latest headlines for the current game and your library. Long titles clamp to fit.",
 };
 

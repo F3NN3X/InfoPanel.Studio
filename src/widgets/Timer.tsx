@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Countdown, presets and pomodoro",
+  tags: "countdown pomodoro stopwatch",
   description: "A countdown with preset buttons and a pomodoro, for screens you can touch. Sends to the Dynamic Island.",
 };
 

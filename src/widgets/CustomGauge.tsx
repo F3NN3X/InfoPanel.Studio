@@ -12,6 +12,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [1, 1],
   minSize: [1, 1],
+  blurb: "A gauge you design, on any value",
+  tags: "gauge dial custom",
   description: "A gauge you design in Gauges, driven by any one data point.",
 };
 

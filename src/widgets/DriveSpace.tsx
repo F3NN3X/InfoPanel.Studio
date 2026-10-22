@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.drive-info-plugin."],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Used and free space per drive",
+  tags: "disk volume ssd",
   description: "Used / free space per volume with label, type and file system.",
 };
 

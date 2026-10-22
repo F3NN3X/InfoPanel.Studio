@@ -6,6 +6,29 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.11] - 2026-10-22
+
+### Added
+- **A new Add panel** in Design (the tab is now called Add). Widgets, Panels and Layouts have their own tabs, and the
+  widget categories sit in one scrolling row of chips. Each row shows the name, a one-line summary and the size it opens
+  at. Hovering a row shows a live preview of the widget beside the panel, with its full description.
+- Search matches names, summaries, categories and synonyms (`temp`, `vram`, `rtss`). Press `/` to search, ↑ ↓ to browse
+  and Enter to add. When nothing matches, **Add a Sensor** is one click away.
+- Adding a widget puts it in the first free spot, shrinking it to fit when there is less room. A toast says what was
+  added, with **Undo**, and the new zone flashes. A **Recent** group lists the last three widgets added.
+- Select a blank zone on the canvas to fill it: the widgets that fit it exactly are marked **Best fit**, the ones too
+  big for it are dimmed, and a click fills the zone.
+- While dragging, the drop outline snaps to the grid, shrinks to fit, covers a blank zone to fill it and turns red where
+  there is no room.
+- Settings › Studio › Editor has **Left panel width** (Narrow, Default or Wide, in place of the pixel slider; an old
+  width moves to the nearest option), **Widget list** (Comfortable or Compact) and **Preview on hover**.
+
+### Changed
+- The Studio opens on **Screens**, now at the top of the rail. **Data** moved below Alerts & Island.
+- Theme's **1 · Start from** collapses like the other sections.
+- Dropdown lists open in the Studio's own menu style instead of the system list.
+- The Settings and Help windows use the Studio's thin scrollbar, and open without a white flash.
+
 ## [1.3.0-beta.10] - 2026-10-22
 
 ### Added

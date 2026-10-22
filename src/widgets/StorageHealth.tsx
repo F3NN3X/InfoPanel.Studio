@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "SMART life, temperature and TBW",
+  tags: "disk smart nvme",
   description: "SMART life, temperature, read/write rate, activity, TBW, spare and power-on hours.",
 };
 

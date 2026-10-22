@@ -12,6 +12,8 @@ export const meta: WidgetMeta = {
   prefixes: [P],
   defaultSize: [3, 2],
   minSize: [2, 1],
+  blurb: "Paired devices and their battery levels",
+  tags: "bt battery headset mouse",
   description: "Bluetooth status and the paired devices with battery levels from the BTData plugin.",
 };
 

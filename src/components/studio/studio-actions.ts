@@ -399,6 +399,11 @@ export function assignModule(
   }));
 }
 
+/** Fill a zone with a preset panel at the zone's own box (the Add panel's fill; it keeps its id and layer order). */
+export function fillWithPreset(profile: ProfileView, id: string, preset: PanelPreset): ProfileView {
+  return updatePlacement(profile, id, (p) => withPreset(p, preset));
+}
+
 /** Assign a preset panel to a zone, growing it to the preset's size. */
 export function assignPreset(
   profile: ProfileView,

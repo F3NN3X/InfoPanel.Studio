@@ -8,6 +8,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.InfoPanel.SteamAPI.SteamAPI-Library.", "plugins.InfoPanel.SteamAPI.SteamAPI-News."],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "Games owned and recent playtime",
+  tags: "steam games",
   description: "Games owned, total + recent playtime, recent games with 2-week hours, and game news.",
 };
 

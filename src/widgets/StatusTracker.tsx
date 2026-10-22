@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [4, 2],
   minSize: [2, 1],
+  blurb: "State history, one block per reading",
+  tags: "history tracker load",
   description: "History of a state, one block per reading (Tremor Tracker style): OK, 50–80 %, above 80 %, no data. Hover a block for its value.",
 };
 

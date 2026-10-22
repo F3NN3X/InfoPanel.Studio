@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["system."],
   defaultSize: [2, 1],
   minSize: [1, 1],
+  blurb: "CPU, RAM and Data API health",
+  tags: "health api cpu ram",
   description: "CPU + RAM load and Data API health.",
 };
 

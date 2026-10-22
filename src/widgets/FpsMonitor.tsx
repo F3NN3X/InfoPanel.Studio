@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.InfoPanel.RTSS.", "plugins.fps-plugin."],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "Frame rate, 1% low and frame time",
+  tags: "rtss framerate",
   description: "RTSS or PresentMon frame rate, 1% low, frame time graph, game and display info.",
 };
 

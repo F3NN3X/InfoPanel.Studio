@@ -91,6 +91,8 @@ export const PREFERENCES_INDEX: SearchEntry<PageId>[] = [
   { row: "editor", label: "Show grid", section: "studio" },
   { row: "editor", label: "Show rulers", section: "studio" },
   { row: "editor", label: "Left panel width", section: "studio" },
+  { row: "editor", label: "Widget list density", section: "studio" },
+  { row: "editor", label: "Preview on hover", section: "studio" },
 ];
 
 /** The entries whose label or section name contains `query`, ignoring case. */

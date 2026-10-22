@@ -11,13 +11,14 @@ import {
   type RefCallback,
   type RefObject,
 } from "react";
+import { SquareDashedMousePointer } from "lucide-react";
 import { PageBackground } from "@/components/page-background";
 import { DynamicIsland } from "@/components/island/dynamic-island";
 import { islandReserve } from "@/components/island/island-model";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
-import { SCROLL_ROW_H, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, SCROLL_ROW_H, type ProfileView, type Placement } from "@/lib/layout";
 import { fontStack, resolveFont } from "@/lib/general";
 import {
   cellAt as gridCellAt,
@@ -34,7 +35,9 @@ import { LivePlacement } from "./placement-content";
 import { RulerLabels } from "./rulers";
 import { ScreenFold } from "./screen-fold";
 import { EmptyLayoutCard, QuickTipsCard } from "./canvas-cards";
-import { canvasPointAt, canvasTakesDrop, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint } from "./drop-ghost";
+import { canvasPointAt, canvasTakesDrop, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint, type LibraryItem } from "./drop-ghost";
+import { addGhost, type Ghost } from "./add-place";
+import { sizeText, type AddItem } from "./add-catalog";
 import { activeLibraryDrag, LIBRARY_MIME } from "@/lib/my-library/drag";
 import { DND_MIME, DND_MIME_PANEL, placementTitle } from "./studio-modules";
 import type { SelectMode } from "./selection";
@@ -54,8 +57,14 @@ const scrollPad = (inset: CanvasInset) =>
 const GRID_LINES =
   "linear-gradient(to right, rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.07) 1px, transparent 1px)";
 /** The drop ghost's colours: free (the accent) and "No room". */
-const GHOST_OK = { line: "var(--ui-accent)", fill: "oklch(0.72 0.15 255 / 0.12)" };
-const GHOST_DENIED = { line: "oklch(0.70 0.17 25)", fill: "oklch(0.70 0.17 25 / 0.10)" };
+const GHOST_OK = { line: "var(--ui-accent)", fill: "oklch(0.72 0.15 255 / 0.10)" };
+const GHOST_DENIED = { line: "oklch(0.70 0.16 25)", fill: "oklch(0.70 0.16 25 / 0.08)" };
+
+/** The drop ghost's text for an Add panel row (handoff SPEC §7.3). */
+function ghostLabel(item: AddItem, ghost: Ghost): string {
+  if (ghost.kind === "fill") return ghost.ok ? `Fill with ${item.name}` : `Needs ${sizeText(item.mw, item.mh)}`;
+  return ghost.ok ? `${item.name} · ${sizeText(ghost.rect.cols, ghost.rect.rows)}` : "No room here";
+}
 
 const NO_ALERTS: readonly ActiveAlert[] = [];
 
@@ -119,6 +128,18 @@ interface StudioCanvasProps {
    */
   /** `inCanvas`: the drop point as a fraction of a canvas zone's profile, when it fell on one. */
   onDropItem: (item: CanvasDrop, rect: ZoneRect | null, cell: { col: number; row: number } | null, inCanvas: CanvasPoint | null) => void;
+  /** The Add panel row a widget or panel drag carries: its ghost shrinks to fit and fills blank zones. */
+  addItemOf?: (item: LibraryItem) => AddItem | undefined;
+  /** An Add panel row dropped on a valid ghost (a drop on an invalid one does nothing). */
+  onAddDrop?: (item: AddItem, ghost: Ghost) => void;
+  /** The blank zone the Add panel fills (drawn with the accent dashed border and "Filling · W×H"). */
+  targetZoneId?: string;
+  /** A click on the target again: it stops being the target. */
+  onClearTarget?: () => void;
+  /** The zone just added: a 2 px accent ring that fades (`seq` replays it). */
+  flash?: { zoneId: string; seq: number } | null;
+  /** Bottom centre of the canvas (the Add panel's toast). */
+  toast?: ReactNode;
   /** Right-click (viewport px) on a zone, or on empty canvas (null). */
   onContextMenu: (id: string | null, x: number, y: number) => void;
   /** Open the Add drawer (the empty canvas card). */
@@ -163,6 +184,12 @@ export function StudioCanvas({
   onPickWidget,
   dropSizeOf,
   onDropItem,
+  addItemOf,
+  onAddDrop,
+  targetZoneId,
+  onClearTarget,
+  flash,
+  toast,
   onContextMenu,
   onOpenAdd,
   onUseSample,
@@ -193,7 +220,7 @@ export function StudioCanvas({
   const [canvas, setCanvas] = useState({ w: 0, h: 0 });
   /** The library item being dragged (read at its dragstart; dragover can't read data). */
   const dragItem = useRef<CanvasDrop | null>(null);
-  const [dropPreview, setDropPreview] = useState<{ rect: ZoneRect; ok: boolean } | null>(null);
+  const [dropPreview, setDropPreview] = useState<{ rect: ZoneRect; ok: boolean; label?: string } | null>(null);
 
   // Measure the grid for resize calculations and alignment guides, in
   // design px: the on-screen width over the zoom (clientWidth inside a CSS
@@ -345,11 +372,20 @@ export function StudioCanvas({
     // A card dragged in from the Library page started before this canvas was there.
     const active = activeLibraryDrag();
     const dragged = dragItem.current ?? (active && e.dataTransfer.types.includes(LIBRARY_MIME) ? { kind: "mylib" as const, id: active.id, item: active } : null);
+    const added = dragged && dragged.kind !== "mylib" ? addItemOf?.(dragged) : undefined;
     const size = (dragged && dropSizeOf(dragged)) ?? dropSize({ cols: 1, rows: 1 }, profile);
     // Over a canvas zone that takes the drop as an item, the grid ghost would only say "No room".
-    const next = cell && !canvasTakesDrop(dragged, canvasPointAt(e.clientX, e.clientY)) ? dropGhost(cell, size, profile, profile.placements) : null;
+    const next: { rect: ZoneRect; ok: boolean; label?: string } | null = !cell
+      ? null
+      : added
+        ? addPreview(added, cell)
+        : !canvasTakesDrop(dragged, canvasPointAt(e.clientX, e.clientY))
+          ? dropGhost(cell, size, profile, profile.placements)
+          : null;
+    // Re-rendered only when its cell, size, validity or label changes.
     setDropPreview((prev) =>
       prev?.ok === next?.ok &&
+      prev?.label === next?.label &&
       prev?.rect.col === next?.rect.col &&
       prev?.rect.row === next?.rect.row &&
       prev?.rect.cols === next?.rect.cols &&
@@ -357,6 +393,13 @@ export function StudioCanvas({
         ? prev
         : next
     );
+  };
+
+  /** An Add panel row's ghost at a cell, with its label; Blank zone over a blank zone has nothing to do. */
+  const addPreview = (item: AddItem, cell: { col: number; row: number }) => {
+    const ghost = addGhost(cell, profile, profile.placements, { cols: item.w, rows: item.h }, { cols: item.mw, rows: item.mh });
+    const blankOnBlank = ghost.kind === "fill" && item.id === BLANK_MODULE;
+    return { rect: ghost.rect, ok: ghost.ok && !blankOnBlank, label: blankOnBlank ? "Already blank" : ghostLabel(item, ghost), ghost };
   };
 
   /** Drop: the zone is created at the ghost's spot, or "No room there". */
@@ -369,6 +412,13 @@ export function StudioCanvas({
     if (!item) return;
     // Sized from the dropped item itself: a drag from another window had no ghost size.
     const cell = cellAt(e.clientX, e.clientY);
+    const added = item.kind !== "mylib" ? addItemOf?.(item) : undefined;
+    if (added) {
+      // A drop on an invalid ghost cancels, with no toast.
+      const preview = cell && addPreview(added, cell);
+      if (preview && preview.ok) onAddDrop?.(added, preview.ghost);
+      return;
+    }
     const size = dropSizeOf(item) ?? (item.kind === "mylib" ? dropSize({ cols: 1, rows: 1 }, profile) : null);
     const ghost = cell && size ? dropGhost(cell, size, profile, profile.placements) : null;
     onDropItem(item, ghost?.ok ? ghost.rect : null, cell, canvasPointAt(e.clientX, e.clientY));
@@ -562,10 +612,35 @@ export function StudioCanvas({
                           className="pointer-events-none absolute z-30 flex items-center justify-center rounded-[8px] border-[1.5px] border-dashed font-ui text-[11px] font-medium"
                           style={{ ...style, borderColor: tone.line, background: tone.fill, color: tone.line }}
                         >
-                          {dropPreview.ok ? "Drop here" : "No room"}
+                          {dropPreview.label ?? (dropPreview.ok ? "Drop here" : "No room")}
                         </div>
                       );
                     })()}
+
+                  {/* The blank zone the Add panel fills, and the zone just added (its ring fades) */}
+                  {[
+                    { id: targetZoneId, target: true },
+                    { id: flash?.zoneId, target: false },
+                  ].map(({ id, target }) => {
+                    const p = id ? profile.placements.find((x) => x.id === id) : undefined;
+                    const style = p && zoneBoxStyle({ col: p.colStart, row: p.rowStart, cols: p.colSpan, rows: p.rowSpan });
+                    if (!p || !style) return null;
+                    return target ? (
+                      <div
+                        key="target"
+                        data-shot-skip
+                        className="pointer-events-none absolute z-30 rounded-[8px] border-[1.5px] border-dashed border-ui-accent bg-ui-accent/10"
+                        style={style}
+                      >
+                        <span className="absolute left-2 top-1.5 flex items-center gap-1 font-ui text-[11px] font-medium text-ui-accent-text">
+                          <SquareDashedMousePointer className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          Filling · <span className="font-ui-mono">{sizeText(p.colSpan, p.rowSpan)}</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <div key={`flash:${flash?.seq}`} data-shot-skip className="add-flash pointer-events-none absolute z-30 rounded-[8px]" style={style} />
+                    );
+                  })}
 
                   {profile.placements.map((p) => (
                     <LivePlacement
@@ -595,6 +670,7 @@ export function StudioCanvas({
                           primary={primaryId === p.id}
                           canResize={primaryId === p.id && selectedIds.length === 1}
                           onSelect={(mode) => onSelect(p.id, mode)}
+                          onSelectAgain={p.id === targetZoneId ? onClearTarget : undefined}
                           onOpenSettings={onOpenSettings && (() => onOpenSettings(p.id))}
                           onSelectWidget={p.panel ? (widgetId) => onSelectWidget(p.id, widgetId) : undefined}
                           onPickWidget={() => onPickWidget(p.id)}
@@ -644,6 +720,9 @@ export function StudioCanvas({
 
           <QuickTipsCard />
         </div>
+
+      {/* Above the zoom bar (bottom-4, 36 px tall), not on it. */}
+      {toast && <div className="pointer-events-none absolute inset-x-0 bottom-16 z-40 flex justify-center">{toast}</div>}
 
       {/* Zone-drag ghost: follows the pointer (outside the zoomed canvas)
           so the zone being moved/resized is always visibly tracked. */}

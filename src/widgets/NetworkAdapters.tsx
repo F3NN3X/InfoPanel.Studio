@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.network-info-plugin."],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "IP address and link speed per adapter",
+  tags: "ip ethernet wifi",
   description: "Public IP plus each adapter’s status, link speed, IPv4 and IPv6 addresses.",
 };
 

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Search } from "lucide-react";
 import { BLANK_MODULE, CARDS_ID } from "@/lib/layout";
 import type { UserPanelPreset } from "@/lib/panel-model";
@@ -288,75 +287,5 @@ export function InsertFilters({
         ))}
       </div>
     </div>
-  );
-}
-
-interface InsertPanelProps {
-  /** The active profile's grid: cards show the size they drop with. */
-  grid: { cols: number; rows: number };
-  /** The user's saved panels (`config.panelPresets`). */
-  savedPanels?: UserPanelPreset[];
-  onAddModule: (module: string) => void;
-  onAddPreset: (preset: PanelPreset) => void;
-  onRenamePreset: (id: string, name: string) => void;
-  onDeletePreset: (id: string) => void;
-  /** The one selected zone when it is blank: a click on a card fills it instead of adding a zone. */
-  blankZoneId?: string;
-  /** Fill the blank zone with the card's widget or panel ("module:<id>" / "preset:<id>" for `assignWidget`). */
-  onFillBlank?: (zoneId: string, item: Insertable) => void;
-  /** "Canvas from an .infopanel file → Import": the Import dialog, landing in this profile (`profileName`). */
-  onImportCanvas?: () => void;
-  profileName?: string;
-}
-
-/** The Add widget tab: search and filter widgets and panels, drag or click them in. */
-export function InsertPanel({
-  grid,
-  savedPanels,
-  onAddModule,
-  onAddPreset,
-  onRenamePreset,
-  onDeletePreset,
-  blankZoneId,
-  onFillBlank,
-  onImportCanvas,
-  profileName,
-}: InsertPanelProps) {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<InsertCategory>("All");
-  const pick = (item: Insertable) => {
-    if (blankZoneId && onFillBlank && !isBlankZone(item)) onFillBlank(blankZoneId, item);
-    else if (item.kind === "panel") onAddPreset(item.preset);
-    else onAddModule(item.id);
-  };
-  return (
-    <>
-      <div className="shrink-0 space-y-2.5 px-3.5 pb-2.5 pt-1.5">
-        <InsertFilters query={query} onQuery={setQuery} category={category} onCategory={setCategory} />
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-3.5">
-        <InsertList
-          items={filterInsertables(insertables(savedPanels), query, category)}
-          context="drawer"
-          grid={grid}
-          onPick={pick}
-          onRenamePreset={onRenamePreset}
-          onDeletePreset={onDeletePreset}
-        />
-        {onImportCanvas && (
-          <button
-            type="button"
-            onClick={onImportCanvas}
-            title={`An InfoPanel profile, drawn in ${profileName ? `“${profileName}”` : "this screen"}`}
-            className="mt-4 text-left text-[12px] text-ui-accent-text hover:underline"
-          >
-            Canvas from an .infopanel file → Import
-          </button>
-        )}
-      </div>
-      <p className="shrink-0 text-pretty border-t border-ui-subtle px-3.5 py-3 text-[11.5px] leading-[1.45] text-[#7c7c86]">
-        Drag onto an empty zone, or click to auto-place. With a blank zone selected, a click fills it.
-      </p>
-    </>
   );
 }

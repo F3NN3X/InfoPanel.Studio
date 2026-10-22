@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { activePresetId, sameTokens } from "./appearance-actions";
 import { AppearancePreview } from "./appearance-preview";
 import { MoreRows, moreKey } from "./inspector/more-rows";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget } from "@/widgets/core/Widget";
 import { Num, Spark } from "@/widgets/core/primitives";
@@ -76,15 +78,18 @@ interface ThemeStartFromProps {
   onSkin: (skin: string) => void;
   onSaved: (preset: AppearancePreset) => void;
   onLibrary: () => void;
+  /** Collapsed to its header like the cards below it (the editor's accordion owns the state). */
+  open: boolean;
+  onToggle: () => void;
 }
 
 /**
  * Theme › 1 · Start from (SPEC §7.2, All screens and Screen scopes): one "Current look" line (the saved Theme the
  * scope matches, else its palette and skin), then the saved Themes, the built-in palettes and the 14 skins as
  * plain starting points, three to a row. A row marks nothing as selected; the skins show the first few, the rest
- * behind More so the sections stay in reach.
+ * behind More so the sections stay in reach. Its header collapses it like a section card.
  */
-export function ThemeStartFrom({ tokens, radius, style, saved, onPalette, onSkin, onSaved, onLibrary }: ThemeStartFromProps) {
+export function ThemeStartFrom({ tokens, radius, style, saved, onPalette, onSkin, onSaved, onLibrary, open, onToggle }: ThemeStartFromProps) {
   const skin = !style.skin || style.skin === "auto" ? "default" : String(style.skin);
   const savedName = saved.find((p) => p.id === activePresetId(saved, { tokens, radius, style }))?.name;
   const palette = THEME_PRESETS.find((p) => sameTokens(p.tokens, tokens))?.label;
@@ -95,38 +100,61 @@ export function ThemeStartFrom({ tokens, radius, style, saved, onPalette, onSkin
     </Item>
   );
   return (
-    <section data-nav-section="start" className="flex flex-col gap-2.5 px-3.5 pb-3.5 pt-1">
-      <h3 className="font-ui-mono text-[10px] uppercase tracking-[0.06em] text-[#7c7c86]">1 · Start from</h3>
-      <p className="text-[12px] text-ui-4">
-        Current look <span className="font-medium text-ui-1">{current}</span>
-      </p>
-      {saved.length > 0 && (
-        <Row label="Saved themes">
-          {saved.map((p) => (
-            <Item key={p.id} name={p.name} kind="Saved theme" onPick={() => onSaved(p)}>
-              <AppearancePreview preset={p} className="h-full rounded-none border-0" />
-            </Item>
-          ))}
-        </Row>
+    <section data-nav-section="start" className="border-t border-ui-subtle">
+      <header className="flex min-h-[38px] items-center gap-2 py-[9px] pl-3.5 pr-2.5">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+        >
+          <span className="w-3.5 shrink-0 font-ui-mono text-[10px] text-ui-5">1</span>
+          <span className="truncate text-[12.5px] font-medium">Start from</span>
+        </button>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden
+          onClick={onToggle}
+          className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-[#7c7c86] hover:bg-ui-hover"
+        >
+          <ChevronDown className={cn("h-[17px] w-[17px] transition-transform duration-150", open && "rotate-180")} />
+        </button>
+      </header>
+      {open && (
+        <div className="flex flex-col gap-2.5 px-3.5 pb-3.5 pt-0.5">
+          <p className="text-[12px] text-ui-4">
+            Current look <span className="font-medium text-ui-1">{current}</span>
+          </p>
+          {saved.length > 0 && (
+            <Row label="Saved themes">
+              {saved.map((p) => (
+                <Item key={p.id} name={p.name} kind="Saved theme" onPick={() => onSaved(p)}>
+                  <AppearancePreview preset={p} className="h-full rounded-none border-0" />
+                </Item>
+              ))}
+            </Row>
+          )}
+          <Row label="Palettes">
+            {THEME_PRESETS.map((p) => (
+              <Item key={p.name} name={p.label} kind="Palette" onPick={() => onPalette(p.tokens)}>
+                <PaletteSwatch tokens={p.tokens} />
+              </Item>
+            ))}
+          </Row>
+          <Row label="Skins">{SKIN_PACKS.slice(0, REGULAR_SKINS).map(skinItem)}</Row>
+          <MoreRows storeKey={moreKey("theme", "start")} count={SKIN_PACKS.length - REGULAR_SKINS} className="pl-0">
+            <div className="grid grid-cols-3 gap-1.5 bg-ui-chrome">{SKIN_PACKS.slice(REGULAR_SKINS).map(skinItem)}</div>
+          </MoreRows>
+          <button
+            type="button"
+            onClick={onLibrary}
+            className="self-start rounded-sm text-[11.5px] text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+          >
+            All themes in Library ↗
+          </button>
+        </div>
       )}
-      <Row label="Palettes">
-        {THEME_PRESETS.map((p) => (
-          <Item key={p.name} name={p.label} kind="Palette" onPick={() => onPalette(p.tokens)}>
-            <PaletteSwatch tokens={p.tokens} />
-          </Item>
-        ))}
-      </Row>
-      <Row label="Skins">{SKIN_PACKS.slice(0, REGULAR_SKINS).map(skinItem)}</Row>
-      <MoreRows storeKey={moreKey("theme", "start")} count={SKIN_PACKS.length - REGULAR_SKINS} className="pl-0">
-        <div className="grid grid-cols-3 gap-1.5 bg-ui-chrome">{SKIN_PACKS.slice(REGULAR_SKINS).map(skinItem)}</div>
-      </MoreRows>
-      <button
-        type="button"
-        onClick={onLibrary}
-        className="self-start rounded-sm text-[11.5px] text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
-      >
-        All themes in Library ↗
-      </button>
     </section>
   );
 }

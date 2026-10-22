@@ -21,7 +21,7 @@ const MENU_ITEM =
   "flex h-[30px] cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-highlighted:bg-ui-hover";
 
 /** The inline name input of a saved panel being renamed. */
-function RenameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
+export function RenameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
   const [name, setName] = useState(initial);
   const commit = () => onDone(name.trim() || null);
   return (
@@ -43,7 +43,7 @@ function RenameInput({ initial, onDone }: { initial: string; onDone: (name: stri
 }
 
 /** The "⋯" menu of a saved panel's card. */
-function SavedPanelMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
+export function SavedPanelMenu({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
   return (
     <Menu.Root>
       <Menu.Trigger

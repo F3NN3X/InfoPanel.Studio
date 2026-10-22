@@ -11,6 +11,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Any list of values as rows or tiles",
+  tags: "bind list custom",
   description: "Bind any list of data points. Rows or a tile grid, each with optional bar and thresholds.",
 };
 

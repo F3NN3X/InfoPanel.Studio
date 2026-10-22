@@ -12,6 +12,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.audio-level-meter."],
   defaultSize: [2, 1],
   minSize: [1, 1],
+  blurb: "Left and right level with peak hold",
+  tags: "level db sound",
   description: "L/R level, peak, RMS and peak-hold for one device, or a meter bridge for all devices.",
 };
 

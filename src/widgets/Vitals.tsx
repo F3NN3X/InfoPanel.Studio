@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [4, 1],
   minSize: [1, 1],
+  blurb: "CPU, GPU, RAM and network side by side",
+  tags: "cpu gpu ram network",
   description: "CPU, GPU, RAM and network side-by-side. Reflows into a row, 2×2 grid or stack to suit the zone.",
 };
 

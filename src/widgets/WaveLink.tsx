@@ -14,6 +14,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Elgato Wave Link channels and gain",
+  tags: "elgato microphone",
   description: "The Elgato Wave Link mixer: software channels with live L/R meters, fader, mute and mix routes, output devices and the app's mixes.",
 };
 

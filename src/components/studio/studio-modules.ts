@@ -10,6 +10,8 @@ export interface ModuleMeta {
   category?: string;
   icon?: string;
   description?: string;
+  blurb?: string;
+  tags?: string;
   defaultSize?: [number, number];
 }
 
@@ -23,6 +25,8 @@ export const ALL_MODULES: ModuleMeta[] = [
     category: m.category,
     icon: m.icon,
     description: m.description,
+    blurb: m.blurb,
+    tags: m.tags,
     defaultSize: m.defaultSize,
   })),
   { id: CARDS_ID, title: "Other sensors", minCols: 4, minRows: 2 },

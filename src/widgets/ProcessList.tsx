@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.system-info-plugin.processes."],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Top processes by CPU or memory",
+  tags: "tasks threads",
   description: "Top processes by CPU or memory, plus process / thread / handle counts.",
 };
 

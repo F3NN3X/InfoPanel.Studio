@@ -12,6 +12,8 @@ export const meta: WidgetMeta = {
   prefixes: [P],
   defaultSize: [3, 2],
   minSize: [2, 1],
+  blurb: "Latest notification and history",
+  tags: "toast alerts",
   description: "The latest toast notification and the history list from the Notifications plugin.",
 };
 

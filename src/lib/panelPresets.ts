@@ -24,6 +24,8 @@ export interface PanelPreset {
   id: string;
   title: string;
   description?: string;
+  /** The Add list's one line (≤ 44 characters); saved panels list their first items instead. */
+  blurb?: string;
   /** Minimum zone footprint this preset renders well in (grid cells). */
   colSpan: number;
   rowSpan: number;
@@ -45,6 +47,7 @@ export const panelPresets: PanelPreset[] = [
     id: "blank",
     title: "Blank panel",
     description: "Empty — build it from widgets",
+    blurb: "Start empty and add items",
     colSpan: 2,
     rowSpan: 1,
     make: () => newPanel("Panel"),
@@ -53,6 +56,7 @@ export const panelPresets: PanelPreset[] = [
     id: "system",
     title: "System",
     description: "CPU + RAM load bars",
+    blurb: "CPU and RAM load bars with a graph",
     colSpan: 4,
     rowSpan: 2,
     make: () =>
@@ -70,6 +74,7 @@ export const panelPresets: PanelPreset[] = [
     id: "ram",
     title: "RAM",
     description: "Used / free GB + graph",
+    blurb: "Used and free memory with a graph",
     colSpan: 2,
     rowSpan: 2,
     make: () =>
@@ -101,6 +106,7 @@ export const panelPresets: PanelPreset[] = [
     id: "cpu",
     title: "CPU",
     description: "Power, temperature, graph",
+    blurb: "Power, temperature and a load graph",
     colSpan: 2,
     rowSpan: 2,
     make: () =>
@@ -138,6 +144,7 @@ export const panelPresets: PanelPreset[] = [
     id: "gpu",
     title: "GPU",
     description: "Usage, power, fans, graph",
+    blurb: "Usage, power, fans and a graph",
     colSpan: 3,
     rowSpan: 2,
     make: () =>
@@ -187,6 +194,7 @@ export const panelPresets: PanelPreset[] = [
     id: "fps",
     title: "FPS gauges",
     description: "Ring gauges for RTSS metrics",
+    blurb: "FPS, average and 1% low gauges",
     colSpan: 3,
     rowSpan: 2,
     make: () =>
@@ -230,6 +238,7 @@ export const panelPresets: PanelPreset[] = [
     id: "steam",
     title: "Steam",
     description: "Profile, game, stats, news",
+    blurb: "Profile, game, stats and news",
     colSpan: 3,
     rowSpan: 2,
     make: () =>
@@ -286,6 +295,7 @@ export const panelPresets: PanelPreset[] = [
     id: "weather",
     title: "Weather",
     description: "Conditions + wind + pressure",
+    blurb: "Conditions, wind and pressure",
     colSpan: 4,
     rowSpan: 2,
     make: () =>
@@ -324,6 +334,7 @@ export const panelPresets: PanelPreset[] = [
     id: "network",
     title: "Network",
     description: "Throughput + data totals",
+    blurb: "Utilization and data totals",
     colSpan: 2,
     rowSpan: 2,
     make: () =>
@@ -357,6 +368,7 @@ export const panelPresets: PanelPreset[] = [
     id: "clock",
     title: "Clock",
     description: "Time + date",
+    blurb: "Time and date",
     colSpan: 1,
     rowSpan: 1,
     make: () =>

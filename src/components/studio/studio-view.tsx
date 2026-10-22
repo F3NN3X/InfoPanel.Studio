@@ -29,6 +29,11 @@ import { FirstRun } from "./first-run";
 import { applyFirstRun } from "./first-run-model";
 import { onSetupRequest, takeSetupRequest } from "@/lib/setup-request";
 import { DesignLeftPanel } from "./design-left-panel";
+import { AddToast } from "./add-toast";
+import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
+import { useAddPanel } from "./use-add-panel";
+import { useGeneral } from "@/hooks/use-general";
+import { fontStack, resolveFont } from "@/lib/general";
 import { AlertsView } from "./alerts-view";
 import { ScreensView } from "./screens-view";
 import { withScreenPerformance } from "./screens-model";
@@ -362,6 +367,13 @@ function StudioViewBody({
   const canvasTheme = ownTheme ? resolveTheme(config, profile) : null;
   const themeScope = canvasTheme ? (themeVars(canvasTheme.tokens, canvasTheme.radius) as CSSProperties) : undefined;
 
+  /** The Add panel (handoff SPEC): its catalog, Recent, toast and flash; a click fills the selected blank zone. */
+  const addPanel = useAddPanel({ config, addFromPanel: edit.addFromPanel, targetZoneId: blankZoneId, undo: history.undo });
+  const [addDensity] = useAddListDensity();
+  const [addPreviewOnHover] = useAddPreviewOnHover();
+  const pageFont = fontStack(resolveFont(useGeneral(), profile));
+  const addTarget = blankZoneId && selected ? { id: blankZoneId, cols: selected.colSpan, rows: selected.rowSpan } : undefined;
+
   const inspectorAside = (
     <StudioInspector
       config={config}
@@ -387,18 +399,19 @@ function StudioViewBody({
       tab={ui.leftTab}
       onTab={ui.setLeftTab}
       width={ui.leftWidth}
-      onResize={ui.setLeftWidth}
-      insert={{
-        grid: profile,
-        savedPanels: config.panelPresets,
-        onAddModule: edit.addPlacement,
-        onAddPreset: edit.addPanelPreset,
+      add={{
+        catalog: addPanel.catalog,
+        recent: addPanel.recent,
+        target: addTarget,
+        onClearTarget: () => sel.select(null),
+        onAdd: addPanel.add,
         onRenamePreset: edit.renameSavedPanel,
         onDeletePreset: edit.deleteSavedPanel,
-        blankZoneId,
-        onFillBlank: edit.fillBlank,
         onImportCanvas: () => openImportDoor({ prefer: "canvas-zone" }),
-        profileName: profile.name,
+        density: addDensity,
+        previewOnHover: addPreviewOnHover,
+        appearance,
+        pageStyle: { ...themeScope, fontFamily: pageFont },
       }}
       layers={{
         placements: profile.placements,
@@ -495,6 +508,8 @@ function StudioViewBody({
           ui.setInspectorQuery("");
         }
         sel.select(id, how);
+        // A blank zone picked on the canvas is the Add panel's target: the panel shows, its search takes the cursor.
+        if (how !== "toggle" && profile.placements.find((p) => p.id === id)?.module === BLANK_MODULE) ui.setLeftTab("add");
       }}
       onOpenSettings={(id) => (isCanvasZone(id) ? setEditingCanvas(id) : studioLayout.showInspector())}
       inset={studioLayout.layout.inset}
@@ -512,6 +527,12 @@ function StudioViewBody({
       onDragCancel={history.cancel}
       dropSizeOf={(d) => (d.kind === "mylib" ? librarySizeOf(d.item, profile) : edit.dropSizeOf(d))}
       onDropItem={(d, rect, cell, inCanvas) => (d.kind === "mylib" ? void dropLibraryItem(libraryBridge, d, rect, cell, inCanvas) : edit.dropItem(d, rect))}
+      addItemOf={addPanel.itemOf}
+      onAddDrop={addPanel.drop}
+      targetZoneId={blankZoneId}
+      onClearTarget={() => sel.select(null)}
+      flash={addPanel.flash}
+      toast={addPanel.toast && <AddToast toast={addPanel.toast} onUndo={addPanel.undoAdd} />}
       onContextMenu={menus.open}
       onOpenAdd={() => ui.openDrawer("add")}
       onUseSample={() => runCommand({ type: "sample-layout" })}

@@ -5,6 +5,7 @@
 use crate::nav;
 use crate::state::{lock, AppState, Phase, FLUSH_TIMEOUT};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -14,6 +15,8 @@ use tauri_plugin_opener::OpenerExt;
 pub const MAIN: &str = "main";
 pub const SETTINGS: &str = "settings";
 pub const HELP: &str = "help";
+/// The settings and help pages' window colour (`--color-s-win`), painted before the page loads.
+const PAGE_BACKGROUND: tauri::window::Color = tauri::window::Color(0x0c, 0x0c, 0x0e, 0xff);
 pub const FLUSH_EVENT: &str = "studio://flush";
 /// Sent to the main window when the shell leaves Kiosk view on its own (a close from it).
 pub const KIOSK_LEFT_EVENT: &str = "kiosk-left";
@@ -346,9 +349,14 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
     let nav_app = app.clone();
     let popup_app = app.clone();
     let origin = app.state::<AppState>().origin.clone();
+    // Built hidden on the pages' own dark background and shown once the first page has loaded, so
+    // opening it never flashes a white, empty window.
+    let shown = Arc::new(AtomicBool::new(false));
     let built = WebviewWindowBuilder::new(app, label, url)
         .title(title)
         .decorations(false)
+        .visible(false)
+        .background_color(PAGE_BACKGROUND)
         .inner_size(1000.0, 720.0)
         .min_inner_size(760.0, 520.0)
         .additional_browser_args(browser_args(app.state::<AppState>().debug()))
@@ -367,7 +375,14 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
             open_external(&popup_app, &url);
             NewWindowResponse::Deny
         })
-        .on_page_load(zoom_on_load)
+        .on_page_load(move |window, payload| {
+            let finished = payload.event() == PageLoadEvent::Finished;
+            zoom_on_load(window.clone(), payload);
+            if finished && !shown.swap(true, Ordering::SeqCst) {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        })
         .build();
     match built {
         Ok(w) => {

@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: ["libre.amd_", "libre.intel_", "libre.embedded_controller"],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "Load, clocks, temperature and power",
+  tags: "processor cores temp watts",
   description: "Total + per-core load, clocks, temperature, package power, VID, VRM and fan.",
 };
 

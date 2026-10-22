@@ -194,6 +194,9 @@ export interface DashboardModule {
   icon?: string;
   /** Library card description. */
   description?: string;
+  /** The Add list's one-line summary and search synonyms (`WidgetMeta.blurb`, `.tags`). */
+  blurb?: string;
+  tags?: string;
   /** Footprint (cols, rows) a drop gets when larger than the minimum; unset: 3×2 or the minimum. */
   defaultSize?: [number, number];
   /** What the widget sends to the Dynamic Island when its "Send to island" is on (`src/lib/island/sources.ts`). */

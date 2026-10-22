@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.yr-weather-plugin.", "plugins.weather-plugin."],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "Current conditions and 7-day forecast",
+  tags: "temperature rain wind",
   description: "Current conditions, feels-like, wind, humidity, pressure, rain/snow and 7-day forecast (MET/Yr or OpenWeatherMap).",
 };
 

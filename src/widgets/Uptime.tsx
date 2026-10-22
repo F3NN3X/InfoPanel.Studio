@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: ["plugins.system-info-plugin.uptime."],
   defaultSize: [2, 1],
   minSize: [1, 1],
+  blurb: "Time since boot",
+  tags: "boot time",
   description: "Time since boot as days / hours / minutes / seconds.",
 };
 

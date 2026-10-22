@@ -10,6 +10,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [6, 1],
   minSize: [2, 1],
+  blurb: "Glance strip of labels and values",
+  tags: "strip istat bar top",
   description: "Always-visible glance strip (iStat Menus style): label stacked over value, mini bars, click an item (or pick an active one) to open its detail.",
 };
 

@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: ["libre.nvidia_", "libre.amd_radeon", "libre.intel_arc"],
   defaultSize: [3, 2],
   minSize: [1, 1],
+  blurb: "Load, temps, power, VRAM and clocks",
+  tags: "graphics nvidia amd vram temp",
   description: "Load, temps, power, VRAM, clocks, fans, PCIe and D3D engines.",
 };
 

@@ -9,6 +9,8 @@ export const meta: WidgetMeta = {
   prefixes: [],
   defaultSize: [2, 2],
   minSize: [1, 1],
+  blurb: "Status of every data source",
+  tags: "plugins sources status",
   description: "One status board for every data source: Data API, LibreHW, RTSS, Wave Link, Spotify, media, Steam, weather, network.",
 };
 
