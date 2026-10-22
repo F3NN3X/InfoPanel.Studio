@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.14] - 2026-10-23
+
 ### Fixed
 
 - **The Studio window no longer scrolls.** With the Add panel open, the whole window could scroll down and cut off its top: the list's hidden labels stretched it.
