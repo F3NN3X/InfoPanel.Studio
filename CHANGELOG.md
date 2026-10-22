@@ -6,6 +6,18 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.12] - 2026-10-22
+
+### Changed
+- Font lists (Theme's Page font and a widget's Font) show each font in its own typeface, so you can see it before
+  picking it.
+
+### Fixed
+- The Settings window uses the Studio's thin scrollbar.
+- Long dropdown lists, such as the font lists, scroll with the thin scrollbar instead of the Windows one with arrows.
+- The terminal skin's braille graph no longer causes "ResizeObserver loop" errors in the app log, and that notice is
+  logged as a warning now, since nothing fails.
+
 ## [1.3.0-beta.11] - 2026-10-22
 
 ### Added
