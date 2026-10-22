@@ -19,6 +19,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **The Studio pages carry security headers** (a content security policy, no framing from other sites, no MIME sniffing).
 - **The image proxy refuses private-network addresses**, including on redirects.
 - **Developer tools are available in debug mode only**, and Diagnostics shows the button only then.
+- **Live widgets use far less CPU and GPU.** Bars, meters and markers animate on the compositor, colour cells and
+  segments step with the data, and the frame loop sleeps between capped frames.
 
 ### Fixed
 - **A hidden or minimized studio no longer keeps rendering.** Its webview is suspended while the window is in the tray or

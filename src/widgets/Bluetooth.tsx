@@ -1,6 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
 import { containers } from "./entries";
-import { Widget, shell, has, num, clamp, Chip, Empty, Icon, Metric, Num, STATE, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, has, num, clamp, Chip, Empty, Icon, Metric, Num, STATE, slideX, type ShellProps, type WidgetMeta } from "./kit";
 
 const P = "plugins.bluetooth-battery-plugin.";
 
@@ -75,7 +75,7 @@ export default function Bluetooth(p: BluetoothProps) {
       </div>
       {showBattery && (
         <div className="mt-1 h-[5px] overflow-hidden rounded-full bg-[color:var(--w-track)]" style={{ width: "100%", maxWidth: small ? 80 : undefined }}>
-          {d.battery !== undefined && <div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${Math.round(d.battery)}%`, background: color(d.battery) }} />}
+          {d.battery !== undefined && <div className="h-full w-full rounded-full transition-transform duration-300" style={{ ...slideX(Math.round(d.battery)), background: color(d.battery) }} />}
         </div>
       )}
     </div>

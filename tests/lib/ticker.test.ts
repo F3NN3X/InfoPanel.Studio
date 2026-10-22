@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextTick } from "@/lib/ticker";
+import { nextTick, wakeDelay } from "@/lib/ticker";
 
 /** The ticks a display of `hz` frames a second lets through in `seconds`, under a cap. */
 function ticks(hz: number, maxFps: number, seconds = 1): number[] {
@@ -37,5 +37,18 @@ describe("nextTick", () => {
   it("restarts from now after a stall instead of bursting", () => {
     expect(nextTick(5000, 0, 30)).toBe(5000);
     expect(nextTick(5010, 5000, 30)).toBeNull();
+  });
+});
+
+describe("wakeDelay", () => {
+  it("sleeps until the next tick is due, less slack", () => {
+    expect(wakeDelay(1000, 1000, 30)).toBeCloseTo(1000 / 30 - 2);
+    expect(wakeDelay(1020, 1000, 30)).toBeCloseTo(1000 / 30 - 20 - 2);
+  });
+
+  it("asks at once when due, uncapped or before the first tick", () => {
+    expect(wakeDelay(1040, 1000, 30)).toBe(0);
+    expect(wakeDelay(1000, 1000, 0)).toBe(0);
+    expect(wakeDelay(1000, -Infinity, 30)).toBe(0);
   });
 });

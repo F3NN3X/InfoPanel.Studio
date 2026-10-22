@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, fmt, Dot, LedLadder, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, fmt, Dot, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
 import { audioIds, readDevice } from "./audio-data";
 
 export const meta: WidgetMeta = {
@@ -119,15 +119,15 @@ export default function MeterBridge(p: MeterBridgeProps) {
       <div className={`relative flex ${horiz ? "h-full flex-1 flex-row gap-[2px]" : "w-full flex-1 flex-col-reverse gap-[2px]"}`}>
         <div className="absolute inset-0 rounded-[2px] bg-[color:var(--w-track)]" />
         <div
-          className="absolute rounded-[2px] transition-all duration-100"
+          className="absolute inset-0 rounded-[2px] transition-transform duration-100"
           style={{
-            ...(horiz ? { left: 0, top: 0, bottom: 0, width: `${pos(db)}%` } : { left: 0, right: 0, bottom: 0, height: `${pos(db)}%` }),
+            ...(horiz ? scaleX(pos(db)) : scaleY(pos(db))),
             background: `linear-gradient(${horiz ? "90deg" : "0deg"}, ${lc} 0%, ${lc} ${pos(warnDb)}%, ${STATE.warn} ${pos(warnDb)}%, ${STATE.warn} ${pos(clipDb)}%, ${hc} ${pos(clipDb)}%)`,
             backgroundSize: horiz ? `${(100 / Math.max(1, pos(db))) * 100}% 100%` : `100% ${(100 / Math.max(1, pos(db))) * 100}%`,
             backgroundPosition: horiz ? "left" : "bottom",
           }}
         />
-        {held !== undefined && <span className="absolute rounded-full bg-[color:var(--w-fg)] transition-all duration-150" style={horiz ? { left: `calc(${held}% - 1px)`, top: -1, bottom: -1, width: 2 } : { bottom: `calc(${held}% - 1px)`, left: -1, right: -1, height: 2 }} />}
+        {held !== undefined && <HoldMark at={held} vertical={!horiz} />}
       </div>
     );
   };
@@ -198,7 +198,7 @@ export default function MeterBridge(p: MeterBridgeProps) {
                   </div>
                   {p.showVolume !== false && Number.isFinite(c.vol) && (
                     <div className="h-[3px] overflow-hidden rounded-full bg-[color:var(--w-track)]">
-                      <div className="h-full rounded-full bg-[color:var(--w-muted)] transition-[width] duration-300" style={{ width: `${c.vol}%` }} />
+                      <div className="h-full w-full rounded-full bg-[color:var(--w-muted)] transition-transform duration-300" style={slideX(c.vol)} />
                     </div>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, detect, diskShort, tone, TONES, useHistory, Empty, Ring, Num, hw, type Tone, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, detect, diskShort, tone, TONES, useHistory, Empty, Ring, Num, slideX, hw, type Tone, type ShellProps, type WidgetMeta } from "./kit";
 import { readings } from "./hardware-readings";
 
 export const meta: WidgetMeta = {
@@ -124,7 +124,7 @@ export default function Thermals(p: ThermalsProps) {
                 <span className="truncate text-[color:var(--w-fg)]">{x.label}</span>
                 {!narrow && (
                   <div className="relative h-2 overflow-hidden rounded-full bg-[color:var(--w-track)]">
-                    <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out" style={{ width: `${(x.v / max) * 100}%`, background: `linear-gradient(90deg, ${TONES.ok}, ${TONES[x.t]})` }} />
+                    <div className="absolute inset-0 rounded-full transition-transform duration-700 ease-out" style={{ ...slideX((x.v / max) * 100), background: `linear-gradient(90deg, ${TONES.ok}, ${TONES[x.t]})` }} />
                     {Number.isFinite(p.warn ?? x.warn) && <div className="absolute inset-y-0 w-0.5" style={{ left: `${((p.warn ?? x.warn) / max) * 100}%`, background: "color-mix(in oklab, #f59e0b 80%, var(--w-fg))" }} />}
                   </div>
                 )}

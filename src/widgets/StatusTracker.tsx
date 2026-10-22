@@ -98,7 +98,7 @@ export default function StatusTracker(p: StatusTrackerProps) {
                 <span className="truncate text-[13px]">{t.label}</span>
                 <div className="flex h-6 min-w-0 gap-[2px] overflow-hidden">
                   {(hist.current[t.label] ?? []).slice(-cells).map((c, i) => (
-                    <i key={i} title={`${t.label}: ${c.v}`} className="min-w-0 flex-1 rounded-[2px] transition-colors duration-300" style={{ background: c.st === "none" ? "var(--w-track)" : STATE[c.st] }} />
+                    <i key={i} title={`${t.label}: ${c.v}`} className="min-w-0 flex-1 rounded-[2px]" style={{ background: c.st === "none" ? "var(--w-track)" : STATE[c.st] }} />
                   ))}
                 </div>
               </div>
