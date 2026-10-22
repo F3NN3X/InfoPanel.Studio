@@ -1,4 +1,4 @@
-import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, Icon, TONES, type ShellProps, type Tier, type Tone, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, flipFrameTimes, Icon, TONES, type ShellProps, type Tier, type Tone, type WidgetMeta } from "./kit";
 
 const RTSS = "plugins.InfoPanel.RTSS.rtss.";
 const PRESENTMON = "plugins.fps-plugin.fps.";
@@ -193,6 +193,8 @@ export default function FpsMonitor(p: FpsMonitorProps) {
   const title = k("windowtitle");
   const idle = !fps || /no games/i.test(title);
   const hist = useHistory(ft, 90);
+  // Frame time drawn flipped, so a drop dips like it would on an FPS graph.
+  const ftTop = Math.max(20, ...hist) * 1.1;
   const fpsH = useHistory(fps, 60);
   const pct = Number.isFinite(target) && target > 0 ? fps / target : 1;
   const t: Tone = pct >= 0.9 ? "ok" : pct >= 0.5 ? "warn" : "crit";
@@ -261,7 +263,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
             <div className="flex min-h-0 flex-1 flex-col">
               <span className="shrink-0 self-end text-[10px] text-[color:var(--w-faint)]">frame time</span>
               <div className="relative min-h-0 flex-1">
-                <Spark values={hist} min={0} className="absolute inset-0 h-full" />
+                <Spark values={flipFrameTimes(hist, ftTop)} min={0} max={ftTop} className="absolute inset-0 h-full" />
               </div>
             </div>
             {size === "lg" && (

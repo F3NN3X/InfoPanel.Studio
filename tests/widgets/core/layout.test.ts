@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boxOf, easeHistory, pickBy, shapeOf, summaryShape, tierOf } from "@/widgets/core/layout";
+import { boxOf, easeHistory, flipFrameTimes, pickBy, shapeOf, summaryShape, tierOf } from "@/widgets/core/layout";
 
 describe("tierOf", () => {
   it("splits at 220×140, 340×210 and 500×320", () => {
@@ -52,6 +52,12 @@ describe("pickBy", () => {
   it("picks the tier's entry, md otherwise", () => {
     expect(pickBy("xs", { xs: 1, md: 2 })).toBe(1);
     expect(pickBy("lg", { xs: 1, md: 2 })).toBe(2);
+  });
+});
+
+describe("flipFrameTimes", () => {
+  it("puts quick frames high and slow ones low, clamping past the top", () => {
+    expect(flipFrameTimes([5, 33, 50], 40)).toEqual([35, 7, 0]);
   });
 });
 

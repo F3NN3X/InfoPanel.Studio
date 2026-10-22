@@ -7,6 +7,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ## [Unreleased]
 
 ### Fixed
+- The FPS Monitor's and Frame Pacing's frame-time graphs read like an FPS graph: a drop or a stutter now dips
+  instead of peaking, and Frame Pacing's refresh-rate lines sit where those frame rates fall.
 - Starting the app, or opening the studio from the taskbar or tray, no longer flashes a white window before the
   studio appears.
 

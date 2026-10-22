@@ -84,6 +84,12 @@ export function easeHistory(hist: number[], value: number, len = 48, ease = 0.45
   return (hist.length ? [...hist, v] : [v, v]).slice(-len);
 }
 
+/**
+ * A frame-time history drawn the way an FPS graph reads: quick frames high, a slow frame (a drop or a
+ * stutter) dips. Plot the result from 0 to `max`, the graph's slowest frame time in ms; slower clamps to 0.
+ */
+export const flipFrameTimes = (hist: number[], max: number): number[] => hist.map((v) => max - Math.min(v, max));
+
 /** How many rows of height `rowH` (separated by `gap`) fit in `h`; always at least one. */
 export const fitRows = (h: number, rowH: number, gap = 0): number => Math.max(1, Math.floor((h + gap) / (rowH + gap)));
 

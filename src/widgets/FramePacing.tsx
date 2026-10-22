@@ -1,4 +1,4 @@
-import { Widget, shell, get, num, fmt, useHistory, Spark, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, useHistory, flipFrameTimes, Spark, Num, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "FramePacing",
@@ -30,6 +30,8 @@ export default function FramePacing(p: FramePacingProps) {
   const hist = useHistory(idle ? NaN : ft, p.window ?? 120, 1);
   const budgets = (p.budgets ?? [hz, 60]).filter((b) => b > 0).map((b) => ({ hz: b, ms: 1000 / b }));
   const top = Math.max(20, ...budgets.map((b) => b.ms * 1.25), ...hist);
+  // Drawn flipped, so a drop or stutter dips below the budget lines instead of peaking above them.
+  const graph = flipFrameTimes(hist, top);
   const stats = [
     ["Average", fmt(num(R("avg-fps"))), "fps"],
     ["1% low", fmt(num(R("1% low fps"))), "fps"],
@@ -48,7 +50,7 @@ export default function FramePacing(p: FramePacingProps) {
   // the dashed budget lines, with their Hz / ms labels where there is room for them
   const lines = (labels: boolean) =>
     budgets.map((b) => (
-      <div key={b.hz} className="absolute inset-x-0 border-t border-dashed border-[color:var(--w-faint)]" style={{ top: `${100 - (b.ms / top) * 100}%` }}>
+      <div key={b.hz} className="absolute inset-x-0 border-t border-dashed border-[color:var(--w-faint)]" style={{ top: `${(b.ms / top) * 100}%` }}>
         {labels && (
           <span className="absolute right-0 -translate-y-full pb-0.5 text-[10px] tabular-nums text-[color:var(--w-faint)]">
             {fmt(b.hz)} Hz · {fmt(b.ms, 1)} ms
@@ -63,10 +65,10 @@ export default function FramePacing(p: FramePacingProps) {
       icon="timeline"
       compact={(box) =>
         box.shape === "tile" || box.shape === "column"
-          ? { label: "Frame time", value: idle ? "—" : ft, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, hist: idle ? undefined : hist, min: 0, kind: idle ? "value" : "spark" }
+          ? { label: "Frame time", value: idle ? "—" : ft, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, hist: idle ? undefined : graph, min: 0, max: top, kind: idle ? "value" : "spark" }
           : undefined
       }
-      studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : ft, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(R("1% low fps")))}`, hist: idle ? undefined : hist, min: 0 }}
+      studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : ft, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(R("1% low fps")))}`, hist: idle ? undefined : graph, min: 0, max: top }}
     >
       {({ w, h }) =>
         idle ? (
@@ -90,7 +92,7 @@ export default function FramePacing(p: FramePacingProps) {
             <div className="flex shrink-0 gap-4">{stats.slice(0, w > 300 ? 2 : 1).map(cell)}</div>
             <div className="relative h-full max-h-14 min-w-0 flex-1">
               {lines(false)}
-              <Spark values={hist} min={0} max={top} graph="line" fill={false} className="absolute inset-0 h-full" />
+              <Spark values={graph} min={0} max={top} graph="line" fill={false} className="absolute inset-0 h-full" />
             </div>
           </div>
         ) : (
@@ -100,7 +102,7 @@ export default function FramePacing(p: FramePacingProps) {
             </div>
             <div className="relative min-h-[40px] flex-1">
               {lines(true)}
-              <Spark values={hist} min={0} max={top} graph="line" fill={false} className="absolute inset-0 h-full" />
+              <Spark values={graph} min={0} max={top} graph="line" fill={false} className="absolute inset-0 h-full" />
             </div>
             {h > 200 && (
               <div className="flex justify-between text-[11px] text-[color:var(--w-faint)]">
