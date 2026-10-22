@@ -97,7 +97,7 @@ function sniffJson(bytes: Uint8Array): Sniffed {
 
 /** The kind a zip is, by its entries: a stored canvas, an InfoPanel export, a frames zip or a font pack. */
 async function sniffZip(bytes: Uint8Array): Promise<Sniffed> {
-  let entries;
+  let entries: ReturnType<typeof listEntries>;
   try {
     entries = listEntries(bytes).filter((e) => !e.name.endsWith("/") && !e.name.startsWith("__MACOSX/"));
   } catch {

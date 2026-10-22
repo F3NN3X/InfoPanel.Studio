@@ -119,7 +119,7 @@ function parseBlocks(body: string, file: string): Block[] {
       const rows: string[][] = [];
       while (i < lines.length && lines[i].startsWith("|")) rows.push(splitRow(lines[i++]));
       const [head, rule, ...rest] = rows;
-      if (!rule || !rule.every((c) => /^:?-+:?$/.test(c))) throw new ArticleError(`${file}: a table needs a "|---|" row under its header`);
+      if (!rule?.every((c) => /^:?-+:?$/.test(c))) throw new ArticleError(`${file}: a table needs a "|---|" row under its header`);
       blocks.push({ type: "table", head, rows: rest.map((r) => head.map((_, c) => r[c] ?? "")) });
       continue;
     }

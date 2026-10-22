@@ -106,9 +106,7 @@ function labImport(item: DisplayItem): ItemImport {
   };
 }
 
-export interface KeyOf {
-  (item: DisplayItem): { key?: string; via?: Status } | null;
-}
+export type KeyOf = (item: DisplayItem) => { key?: string; via?: Status } | null;
 
 export function encodeItem(item: DisplayItem, keyOf: KeyOf): StoredItem {
   const fields = encodeFields(SCHEMAS[item.kind as ItemKind] as Schema, item as unknown as Record<string, unknown>);

@@ -606,7 +606,7 @@ function vizStyleV8(s: ModuleSettings): string {
   const engine = s.vizEngine === "waveform" || s.vizEngine === "bars" ? s.vizEngine : "mini";
   const v = String(s.waveformVariant);
   if (engine === "waveform") return (s.waveformMode ?? "scrolling") !== "static" ? "scroll" : v === "line" || v === "mirror" ? v : "bars";
-  if (engine === "bars") return v === "mirror" || Boolean(s.visualizerMirrored) ? "mirror" : "bars";
+  if (engine === "bars") return v === "mirror" || s.visualizerMirrored ? "mirror" : "bars";
   return VIZ_STYLES_V8.includes(v) ? v : "bars";
 }
 

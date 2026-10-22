@@ -171,7 +171,7 @@ export function LibraryDetail(p: DetailProps) {
       {item.kind === "svg" && (
         <div className="border-t border-ui-subtle pt-3 text-[12px] text-ui-2">
           <div className="mb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-ui-4">Driven by</div>
-          {m.vars && m.vars.length ? (
+          {m.vars?.length ? (
             <div className="flex flex-wrap gap-1">
               {m.vars.map((v) => (
                 <code key={v} className="rounded bg-ui-raised px-1.5 py-0.5 font-ui-mono text-[11px] text-ui-1">

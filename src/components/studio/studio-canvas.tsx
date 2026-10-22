@@ -416,7 +416,7 @@ export function StudioCanvas({
     if (added) {
       // A drop on an invalid ghost cancels, with no toast.
       const preview = cell && addPreview(added, cell);
-      if (preview && preview.ok) onAddDrop?.(added, preview.ghost);
+      if (preview?.ok) onAddDrop?.(added, preview.ghost);
       return;
     }
     const size = dropSizeOf(item) ?? (item.kind === "mylib" ? dropSize({ cols: 1, rows: 1 }, profile) : null);

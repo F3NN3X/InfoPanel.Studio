@@ -22,6 +22,7 @@ describe("Widget smoke render", () => {
   it.each(SKIN_NAMES)("%s renders at the smallest and the largest tier, in both variants", (skin) => {
     for (const variant of ["default", "studio"] as const)
       for (const size of ["xs", "lg"] as Tier[]) {
+        // biome-ignore lint/correctness/noChildrenProp: the Widget takes a render function as children.
         const html = renderToString(h(Widget, { skin, variant, size, title: "System", icon: "dashboard", compact, studio, surface: "auto", children: body }));
         expect(html).toContain("--accent");
         if (variant === "default" && size !== "xs") expect(html).toContain("System");
@@ -31,6 +32,7 @@ describe("Widget smoke render", () => {
 
 describe("Widget look", () => {
   const render = (look: Record<string, string | number | boolean>, extra: Record<string, unknown> = {}) =>
+    // biome-ignore lint/correctness/noChildrenProp: the Widget takes a render function as children.
     renderToString(h(Widget, { title: "Template title", icon: "memory", size: "lg", children: body, look: { ...STANDARD_DEFAULTS, ...look }, ...extra }));
 
   it("takes the theme corner radius unless the look sets one, whatever the skin", () => {

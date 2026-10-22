@@ -130,6 +130,7 @@ export function ChangelogSection() {
                   {r.version === status.appVersion && <span className="rounded-[10px] bg-s-green/14 px-2 py-0.5 text-[11px] font-medium text-[oklch(0.84_0.14_150)]">Installed</span>}
                   {count > 0 && <span className="text-[12.5px] text-s-dim">{count === 1 ? "1 change" : `${count} changes`}</span>}
                 </button>
+                {/* biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes raw HTML and keeps only safe links. */}
                 {open && r.intro && <div className="notes" dangerouslySetInnerHTML={{ __html: renderMarkdown(r.intro) }} />}
                 {open &&
                   r.sections.map((s) => {
@@ -142,11 +143,13 @@ export function ChangelogSection() {
                           <span className={cn("rounded-[5px] px-2 py-0.5 text-[11px] font-semibold tracking-[0.02em]", TONE_CLASS[sectionTone(s.title)])}>{s.title}</span>
                         </div>
                         {expanded ? (
+                          // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes raw HTML and keeps only safe links.
                           <div className="notes" dangerouslySetInnerHTML={{ __html: renderMarkdown(s.body) }} />
                         ) : (
                           <div className="notes">
                             <ul>
                               {entries.slice(0, HEADLINES).map((e, n) => (
+                                // biome-ignore lint/security/noDangerouslySetInnerHtml: entryHeadline escapes the text and adds only <code>.
                                 <li key={n} dangerouslySetInnerHTML={{ __html: entryHeadline(e) }} />
                               ))}
                             </ul>

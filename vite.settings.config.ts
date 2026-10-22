@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import path from "path";
+import path from "node:path";
 
 // The desktop app's settings and help windows (settings.html + src/settings/, help.html + src/help/): built into
 // src-tauri/pages/app/, which Tauri serves next to the static pages (start.html) and git ignores. `npm run desktop:web` runs it.

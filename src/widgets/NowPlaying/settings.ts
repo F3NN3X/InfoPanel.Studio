@@ -132,7 +132,7 @@ export function tuningLookOf(s: ModuleSettings): Partial<VizLook> {
     orientation: oneOf(s.vizOrientation ?? s.visualizerOrientation, ["horizontal", "vertical"]) ?? "horizontal",
     minLevel: n("vizMinLevel", "visualizerMinLevel", 0.08),
     lineWidth: n("vizLine", "waveformLineWidth", 1.5),
-    fade: fade === undefined || Boolean(fade) ? n("vizFadeWidth", "waveformFadeWidth", 24) : 0,
+    fade: fade === undefined || fade ? n("vizFadeWidth", "waveformFadeWidth", 24) : 0,
     gain: n("vizGain", "waveformSensitivity", 1),
     scrollAs: (s.vizScrollAs ?? s.waveformVariant) === "line" ? "line" : "bars",
     ...(!gapSet && (width !== undefined || gapPx !== undefined) ? { gap: (gapPx ?? 1) / ((width ?? 3) + (gapPx ?? 1)) } : null),

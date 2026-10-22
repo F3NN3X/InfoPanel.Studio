@@ -108,7 +108,7 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
 
   const run = async () => {
     setBusy(true);
-    let r;
+    let r: Awaited<ReturnType<typeof runImport>>;
     try {
       r = await runImport(files, choices, deps);
     } catch (e) {

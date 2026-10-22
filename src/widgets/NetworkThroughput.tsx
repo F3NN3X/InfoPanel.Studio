@@ -61,7 +61,7 @@ export default function NetworkThroughput(p: NetworkThroughputProps) {
   const ulColor = p.uploadColor || UP;
   const showTotals = p.showTotals !== false;
   const showChart = p.sparkline === true;
-  const name = p.title ?? pretty(id).replace(/  +/g, " ");
+  const name = p.title ?? pretty(id).replace(/ {2,}/g, " ");
   return (
     <Widget
       {...shell(p)}

@@ -4,7 +4,7 @@
  * value InfoPanel would ignore is shown as an error and not stored. Text
  * fields commit on Enter or leaving the field, so each change is one undo step.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { Path } from "@/lib/infopanel/editor/ops.ts";
@@ -57,7 +57,7 @@ function Field({ def, value, onCommit, fonts }: { def: FieldDef; value: unknown;
     />
   );
 
-  let control;
+  let control: ReactNode;
   switch (def.spec.kind) {
     case "bool":
       control = <input type="checkbox" checked={value === true} onChange={(e) => commit(e.target.checked)} />;

@@ -58,7 +58,7 @@ export function LooseReviewDialog({ open, loose, config, onClose, onImport, onCh
     });
   }, [loose]);
 
-  const isUsed = (a: Asset) => !unused || !unused.has(a.id) || config.includes(a.id.slice(0, 64));
+  const isUsed = (a: Asset) => !unused?.has(a.id) || config.includes(a.id.slice(0, 64));
   const used = useMemo(() => new Set(loose.filter(isUsed).map((a) => a.id)), [loose, unused, config]);
   const chosen = loose.filter((a) => picked.has(a.id));
   const anyUsed = chosen.some((a) => used.has(a.id));

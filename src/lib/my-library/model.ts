@@ -81,7 +81,7 @@ export function roleOf(kind: LibraryKind, m: MediaMeta): "background" | "icon" |
   const w = m.width ?? 0;
   const h = m.height ?? 0;
   if (kind !== "svg" && w >= 640 && h >= 240) return "background";
-  if (w > 0 && h > 0 && Math.max(w, h) <= 256 && !(m.vars && m.vars.length)) return "icon";
+  if (w > 0 && h > 0 && Math.max(w, h) <= 256 && !(m.vars?.length)) return "icon";
   return null;
 }
 

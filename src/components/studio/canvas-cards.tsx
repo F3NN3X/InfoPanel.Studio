@@ -45,7 +45,7 @@ export function EmptyLayoutCard({ onBrowse, onUseSample }: EmptyLayoutCardProps)
 function TipLine({ text }: { text: string }) {
   const [before, after] = text.split("?");
   return after === undefined ? (
-    <>{text}</>
+    text
   ) : (
     <>
       {before}

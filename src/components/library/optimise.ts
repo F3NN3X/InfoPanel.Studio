@@ -23,7 +23,7 @@ export async function optimiseItem(item: LibraryItem): Promise<{ id: string; sav
   canvas.height = m.height;
   canvas.getContext("2d")!.drawImage(img, 0, 0, m.width, m.height);
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", WEBP_QUALITY));
-  if (!blob || blob.type !== "image/webp" || !worthKeeping(before, blob.size)) return null;
+  if (blob?.type !== "image/webp" || !worthKeeping(before, blob.size)) return null;
   const stored = await uploadBytes(new Uint8Array(await blob.arrayBuffer()), "image/webp");
   return { id: stored.id, saved: before - blob.size, meta: { type: "webp", size: blob.size, hash: stored.id.slice(0, 64) } };
 }

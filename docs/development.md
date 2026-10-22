@@ -18,6 +18,7 @@ From `package.json`:
 | `npm run build` | `tsc -b && vite build` | Type-checks, then builds into `dist/` |
 | `npm run typecheck` | `tsc -b` | Type-check only |
 | `npm test` | `vitest run` | Runs the test suite once |
+| `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
 | `npm start` | `node server.mjs` | Serves `dist/` and the config endpoints |
 | `npm run serve` | `npm run build && node server.mjs` | Build, then start |
 

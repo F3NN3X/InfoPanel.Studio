@@ -14,9 +14,9 @@
  */
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
 
 const [guidArg, slugArg] = process.argv.slice(2);
 if (!guidArg) {
@@ -50,17 +50,6 @@ function parseItemsXml(text) {
     const e = line.match(/^\s*<([A-Za-z_][\w.]*)(?:\s[^>]*)?\/>\s*$/);
     if (e) return [e[1], ""];
     return null;
-  };
-  const open = (line) => {
-    const m = line.match(/^\s*<([A-Za-z_][\w.]*)((?:\s+[\w:]+="[^"]*")*)\s*>\s*$/);
-    if (!m) return null;
-    const attrs = {};
-    const am = m[2].match(/([\w:]+)="([^"]*)"/g) || [];
-    for (const a of am) {
-      const [k, v] = a.match(/([\w:]+)="([^"]*)"/);
-      attrs[k] = v;
-    }
-    return [m[1], attrs];
   };
 
   for (const raw of lines) {
@@ -108,7 +97,6 @@ function parseItemsXml(text) {
     const s = scalar(line);
     if (s && stack.length > 0) {
       stack[stack.length - 1].fields[s[0]] = s[1];
-      continue;
     }
     // ignore: root open/close, whitespace, unknown
   }

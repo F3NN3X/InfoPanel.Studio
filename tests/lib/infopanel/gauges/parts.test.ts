@@ -9,6 +9,7 @@ const texts = (prims: Prim[]) => prims.flatMap((p) => (p.kind === "text" ? [p.te
 
 describe("scale and value text", () => {
   it("formats like the widgets: grouping, automatic decimals below 10", () => {
+    // biome-ignore lint/suspicious/noApproximativeNumericConstant: a plain decimal input, not π.
     expect([formatNumber(1234.5, 0), formatNumber(3.14159, null), formatNumber(42, null), formatNumber(NaN, 1)]).toEqual(["1,235", "3.1", "42", "–"]);
   });
 

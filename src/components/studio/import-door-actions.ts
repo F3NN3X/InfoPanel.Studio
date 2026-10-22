@@ -66,6 +66,7 @@ export async function restoreConfig(
   const read = await readConfigText(text);
   if (o.mode === "add-screens") {
     const config = read.config.profiles.reduce(
+      // biome-ignore lint/performance/noAccumulatingSpread: each imported screen is named against the ones added before it; a handful per file.
       (acc, p) => ({ ...acc, profiles: [...acc.profiles, importedProfile(acc, p)] }),
       o.current,
     );

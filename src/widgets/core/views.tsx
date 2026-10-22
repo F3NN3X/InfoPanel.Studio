@@ -392,7 +392,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d" }: 
       <header className={`${base} mb-2 gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent)]`} style={st("uppercase")}>
         <span className="h-3 w-1 shrink-0 bg-[var(--accent)]" />
         <span className="truncate">{title}</span>
-        <span className="text-[9.5px] font-normal text-[color:var(--w-faint)]">//{String(title).length.toString(16).padStart(2, "0")}</span>
+        <span className="text-[9.5px] font-normal text-[color:var(--w-faint)]">{"//"}{String(title).length.toString(16).padStart(2, "0")}</span>
         {r}
       </header>
     );

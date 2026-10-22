@@ -25,6 +25,7 @@ export function VectorGaugeSvg({ gauge, p, width = gauge.width, height = gauge.h
     [gauge, p, id, width, height],
   );
   if (gauge.shape === "svg") return <SvgTemplateView gauge={gauge} p={p} width={width} height={height} style={style} />;
+  // biome-ignore lint/security/noDangerouslySetInnerHtml: gaugeSvg builds the markup from a normalized spec (numbers, checked colours, escaped text).
   return <span style={{ display: "block", width, height, lineHeight: 0, overflow: "visible", ...WIDGET_SCOPE, ...style }} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 

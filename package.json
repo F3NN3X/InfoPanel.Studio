@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "lint": "biome lint",
     "start": "node server.mjs",
     "serve": "npm run build && node server.mjs",
     "desktop:prepare": "node tools/desktop-prepare.mjs",
@@ -38,6 +39,7 @@
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.12.3",
     "@testing-library/dom": "^10.4.2",
