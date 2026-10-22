@@ -37,31 +37,32 @@ const sectionColor = (key: string, label: string, role: PaletteRole): ModuleSett
  * section (its label behind More), the device colours (theme series 1–6) in Widget colors, the drive
  * filter in Data, the trends in Behaviour. The detail switches keep the old System widget's keys.
  */
-/** Settings of the Graphs and Gauges views only. */
+/** Settings of the Graphs and Gauges views only, and of the Panel only (its details, rings, heatmap, sparklines). */
 const graphed = viewOnly(meta, "graphs", "gauges");
+const panelOnly = viewOnly(meta, "panel");
 
 const OVERVIEW_SETTINGS: ModuleSetting[] = [
   viewSetting(meta, { group: "Sections" }),
   enumSetting("sections", "Show", "cpu,gpu,ram", SECTIONS.map((v) => ({ value: v, label: v === "disk" ? "Disks" : v === "net" ? "Network" : v.toUpperCase() })), { multiple: true, group: "Sections", hint: "Order follows the click order." }),
-  enumSetting("details", "Detail level", "auto", choices([["auto", "Auto"], ["min", "Minimal"], ["full", "Full"]]), { group: "Sections" }),
-  enumSetting("ring", "Load rings", "ring", choices([["ring", "Rings"], ["none", "None"]]), { group: "Sections" }),
-  boolSetting("showNames", "Hardware names", true, { group: "Sections" }),
-  boolSetting("showTemps", "Temperatures", true, { group: "Sections" }),
-  boolSetting("showPower", "Power draw", true, { group: "Sections" }),
-  enumSetting("coreView", "Threads", "heatmap", choices([["heatmap", "Heatmap"], ["bars", "Bars"], ["off", "Off"]]), { group: "CPU" }),
+  panelOnly(enumSetting("details", "Detail level", "auto", choices([["auto", "Auto"], ["min", "Minimal"], ["full", "Full"]]), { group: "Sections" })),
+  panelOnly(enumSetting("ring", "Load rings", "ring", choices([["ring", "Rings"], ["none", "None"]]), { group: "Sections" })),
+  panelOnly(boolSetting("showNames", "Hardware names", true, { group: "Sections" })),
+  panelOnly(boolSetting("showTemps", "Temperatures", true, { group: "Sections" })),
+  panelOnly(boolSetting("showPower", "Power draw", true, { group: "Sections" })),
+  panelOnly(enumSetting("coreView", "Threads", "heatmap", choices([["heatmap", "Heatmap"], ["bars", "Bars"], ["off", "Off"]]), { group: "CPU" })),
   labelSetting("cpuLabel", "CPU", "CPU"),
-  boolSetting("showClock", "Core clock", true, { group: "GPU" }),
-  boolSetting("showHotspot", "Hotspot", true, { group: "GPU", hint: "The memory junction temperature" }),
-  boolSetting("showFans", "Fans", true, { group: "GPU" }),
-  boolSetting("showMemClock", "Memory clock", true, { group: "GPU", more: true }),
-  boolSetting("showPowerLimit", "Power (% of limit)", true, { group: "GPU", more: true }),
+  panelOnly(boolSetting("showClock", "Core clock", true, { group: "GPU" })),
+  panelOnly(boolSetting("showHotspot", "Hotspot", true, { group: "GPU", hint: "The memory junction temperature" })),
+  panelOnly(boolSetting("showFans", "Fans", true, { group: "GPU" })),
+  panelOnly(boolSetting("showMemClock", "Memory clock", true, { group: "GPU", more: true })),
+  panelOnly(boolSetting("showPowerLimit", "Power (% of limit)", true, { group: "GPU", more: true })),
   labelSetting("gpuLabel", "GPU", "GPU"),
-  boolSetting("showMemory", "Used / total", true, { group: "Memory" }),
-  boolSetting("showPageFile", "Page file", true, { group: "Memory" }),
+  panelOnly(boolSetting("showMemory", "Used / total", true, { group: "Memory" })),
+  panelOnly(boolSetting("showPageFile", "Page file", true, { group: "Memory" })),
   labelSetting("ramLabel", "Memory", "RAM"),
-  boolSetting("showDiskTemp", "Temperature", true, { group: "Drives" }),
-  boolSetting("showDiskIo", "Read / write rate", true, { group: "Drives" }),
-  boolSetting("showDiskLife", "Life remaining", true, { group: "Drives" }),
+  panelOnly(boolSetting("showDiskTemp", "Temperature", true, { group: "Drives" })),
+  panelOnly(boolSetting("showDiskIo", "Read / write rate", true, { group: "Drives" })),
+  panelOnly(boolSetting("showDiskLife", "Life remaining", true, { group: "Drives" })),
   labelSetting("diskLabel", "Drives", "Disks"),
   // Not in the concept: the Network section draws nothing else to set, but its label is still read.
   labelSetting("netLabel", "Network", "NET"),
@@ -72,19 +73,19 @@ const OVERVIEW_SETTINGS: ModuleSetting[] = [
   sectionColor("vramColor", "VRAM", "s4"),
   sectionColor("diskColor", "Disks", "s5"),
   sectionColor("netColor", "Network", "s6"),
-  enumSetting("heatRamp", "Thread heat ramp", "accent", choices([["accent", "Accent"], ["thermal", "Thermal"]]), { tab: "style", more: true, perWidget: true }),
+  panelOnly(enumSetting("heatRamp", "Thread heat ramp", "accent", choices([["accent", "Accent"], ["thermal", "Thermal"]]), { tab: "style", more: true, perWidget: true })),
   textSetting("diskFilter", "Drives to show", "", { group: "Drives", tab: "data", hint: "Names, comma-separated; empty = all" }),
   graphed({ key: "diskPick", label: "Drive", type: "select", default: "", optionsFrom: "disk", group: "Drives", tab: "data" }),
   graphed(enumSetting("diskValue", "Drive shows", "activity", choices([["activity", "Activity"], ["used", "Used"], ["rate", "Read + write"]]), { group: "Drives", tab: "data" })),
   graphed({ key: "netAdapter", label: "Adapter", type: "select", default: "", optionsFrom: "adapter", group: "Network", tab: "data" }),
   graphed(enumSetting("netDirection", "Direction", "down", choices([["down", "Down"], ["up", "Up"], ["both", "Both"]]), { group: "Network", tab: "data" })),
   graphed(numberSetting("netMax", "Top speed (Mbps)", 0, { min: 0, step: 50, group: "Network", tab: "data", hint: "0 = the recent peak" })),
-  boolSetting("sparkline", "Trend sparklines", true, { group: "Trends", tab: "behaviour" }),
+  panelOnly(boolSetting("sparkline", "Trend sparklines", true, { group: "Trends", tab: "behaviour" })),
   numberSetting("historyLength", "Length (samples)", 60, { min: 12, max: 120, step: 12, group: "Trends", tab: "behaviour" }),
   thresholdSetting("load"),
   thresholdSetting("temp"),
   thresholdSetting("full", { hint: "VRAM and drive fullness" }),
-  formatSetting("tempUnit"),
+  panelOnly(formatSetting("tempUnit")),
   formatSetting("decimals", { options: ["auto", "0", "1"].map((value) => ({ value, label: value === "auto" ? "Auto" : value })), hint: "Auto: none" }),
 ];
 

@@ -8,6 +8,9 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
+- **The Studio window no longer scrolls.** With the Add panel open, the whole window could scroll down and cut off its top: the list's hidden labels stretched it.
+- **Live previews for every view.** Hovering a view in the Add panel (Weather · Glance, System Overview · Graphs, …) showed nothing: it now previews the widget in that view.
+- **Options only where they work.** System Overview's Graphs and Gauges, Weather's Forecast, Glance and Week, Drive Space's Segments and Bars and Bluetooth without batteries no longer list options that change nothing there. `npm run audit:views` lists the options a view shows but never uses.
 - **Monochrome Meteocons icons.** The Weather widget's monochrome icons showed as a solid square in the installed app; they now draw in the text colour.
 
 ## [1.3.0-beta.13] - 2026-10-22

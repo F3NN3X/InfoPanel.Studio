@@ -2,7 +2,7 @@
 // Each module's options are exported for the schema tests (`e.schema.test.ts`).
 import { notificationsIsland } from "../island/info";
 import { styleSubsetSettings } from "@/modules/standard-settings";
-import type { DashboardModule, ModuleSetting } from "@/modules/types";
+import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule, type TemplateOptions } from "../module";
 import { INSPECTOR_META } from "./inspector-meta";
 import { boolOf, boolSetting, colorSetting, numberOf, numberSetting, stringOf, textSetting, viewSetting } from "./settings-kit";
@@ -61,6 +61,9 @@ export const departuresOptions: TemplateOptions<Pick<DeparturesProps, "showStatu
   toProps: (s) => ({ showStatus: boolOf(s.showStatus) }),
 };
 
+/** The battery colours draw only on listed devices with their levels on. */
+const batteriesShown = (v: ModuleSettings) => v.showDevices !== false && v.showBattery !== false;
+
 /** `view` is a preset: it sets the three toggles (each view sets all three), as the legacy widget did; changed afterwards, the row reads Custom. */
 export const BLUETOOTH_SETTINGS: ModuleSetting[] = [
   viewSetting(bluetoothMeta, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
@@ -68,8 +71,8 @@ export const BLUETOOTH_SETTINGS: ModuleSetting[] = [
   boolSetting("showDevices", "Paired devices", true, { group: "Display" }),
   boolSetting("showBattery", "Battery levels", true, { group: "Display" }),
   // The battery levels follow the theme's Warning and Critical ("" = the widget's own amber and red).
-  colorSetting("batteryMidColor", "Battery medium", { role: "warn", more: false }),
-  colorSetting("batteryLowColor", "Battery low", { role: "crit", more: false }),
+  colorSetting("batteryMidColor", "Battery medium", { role: "warn", more: false, visibleIf: batteriesShown }),
+  colorSetting("batteryLowColor", "Battery low", { role: "crit", more: false, visibleIf: batteriesShown }),
 ];
 
 export const bluetoothOptions: TemplateOptions<Pick<BluetoothProps, "showStatus" | "showDevices" | "showBattery" | "batteryMidColor" | "batteryLowColor">> = {
