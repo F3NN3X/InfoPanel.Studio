@@ -141,7 +141,7 @@ function SourceStep({
     { value: "canvas", icon: Library, title: "Saved canvas", text: "Reopens with its mode, remap and fonts" },
   ];
   const upload = state?.upload;
-  const pct = upload && upload.total ? Math.min(1, upload.done / upload.total) : upload?.finished ? 1 : 0;
+  const pct = upload?.total ? Math.min(1, upload.done / upload.total) : upload?.finished ? 1 : 0;
   return (
     <div className="flex flex-col gap-4" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <div role="radiogroup" aria-label="Source" className="grid grid-cols-3 gap-2.5 max-sm:grid-cols-1">

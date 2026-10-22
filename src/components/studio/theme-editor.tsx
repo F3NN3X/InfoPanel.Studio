@@ -240,6 +240,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
               label="Page font"
               hint="Every widget whose Font is Theme uses it; a Font set on the widget or in the widget theme still wins."
               options={FONTS}
+              previewFonts
               value={font}
               onChange={(v) => setConfig((c) => withPageFont(c, twoLevel, v as GeneralFont), key("font"))}
             />

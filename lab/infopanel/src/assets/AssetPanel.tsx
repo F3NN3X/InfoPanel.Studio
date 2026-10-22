@@ -328,7 +328,7 @@ function FontAssets({ fonts, onSelectFamily }: { fonts: FontPlan; onSelectFamily
                   <>
                     {" "}
                     <a href={webUrl(f.licenseUrl)} target="_blank" rel="noopener noreferrer">
-                      link
+                      licence
                     </a>
                   </>
                 )}

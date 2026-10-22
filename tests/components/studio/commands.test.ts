@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Placement } from "@/lib/layout";
+import type { Placement } from "@/lib/layout";
 import type { ModuleSetting } from "@/modules/types";
 import { buildCommands, matchScore, rankCommands, type CommandState } from "@/components/studio/commands";
 

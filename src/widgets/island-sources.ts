@@ -100,7 +100,7 @@ export const waveLinkIsland = storeSource<WlState>({
   group: "Content",
   options: [boolSetting("islandFaders", "Fader moves", false, { hint: "A level bar while a channel or mix fader moves" })],
   derive(prev, next, settings) {
-    if (!prev || prev.status !== "up" || next.status !== "up") return {};
+    if (prev?.status !== "up" || next.status !== "up") return {};
     const before = mutes(prev);
     const notices: SourceNotice[] = [];
     for (const [id, now] of mutes(next)) {

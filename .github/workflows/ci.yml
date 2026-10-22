@@ -40,7 +40,7 @@ jobs:
             echo "rust=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # Typecheck, build and the Vitest suite.
+  # Lint, typecheck, build and the Vitest suite.
   web:
     runs-on: ubuntu-latest
     # The snapshot tests render the clock in the en-150 locale.
@@ -59,6 +59,8 @@ jobs:
           key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - if: steps.modules.outputs.cache-hit != 'true'
         run: npm ci
+      # Biome lint (biome.json); the formatter is off until a one-off format commit.
+      - run: npx biome ci
       - run: npm run build
       - run: npm test
 

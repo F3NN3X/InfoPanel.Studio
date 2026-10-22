@@ -467,7 +467,7 @@ describe("mute", () => {
   });
   it("mutes through the engine: the route action quietens active alerts and returns mutedUntil", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "alerts-mute-"));
-    let at = T0;
+    const at = T0;
     const control = createControl({ file: path.join(dir, "control.json"), readConfig: () => null, now: () => at, tickMs: 0 });
     const config = { alerts: cfg([sensor()]) };
     const engine = createAlerts({ file: path.join(dir, "alerts.json"), readConfig: () => config, control, now: () => at, connect: () => ({ close() {} }), tickMs: 0 });

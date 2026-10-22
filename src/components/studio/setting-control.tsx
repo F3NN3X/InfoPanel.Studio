@@ -238,7 +238,7 @@ export function SettingRow({
       return (options.length <= 4 || def.key === "sizeTier") && options.length > 0 ? (
         <SegmentedRow {...label} options={choices} value={String(value)} onChange={apply} />
       ) : (
-        <SelectRow {...label} options={choices} value={String(value)} onChange={apply} />
+        <SelectRow {...label} options={choices} value={String(value)} onChange={apply} previewFonts={def.key === "font"} />
       );
     }
 

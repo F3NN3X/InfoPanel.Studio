@@ -169,7 +169,10 @@ export const useForSelectionBlocked = (selection: readonly Placement[]): string 
 /** A stored image as the picture of the selected image widgets (the first image widget of each), one undo step. */
 export function useForSelection(b: StudioBridge, name: string, src: string): void {
   const ids = new Set(imageZones(b.selection).map((z) => z.id));
-  if (ids.size === 0) return b.toast(useForSelectionBlocked(b.selection)!);
+  if (ids.size === 0) {
+    b.toast(useForSelectionBlocked(b.selection)!);
+    return;
+  }
   b.updateProfile((p) => ({
     ...p,
     placements: p.placements.map((z) => {

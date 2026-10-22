@@ -25,7 +25,7 @@ describe("agent sessions", () => {
   });
 
   it("counts subagents, marks a failed stop and drops an ended session", () => {
-    let s = run([[ev("UserPromptSubmit"), 0], [ev("SubagentStart"), 1], [ev("SubagentStart"), 2], [ev("SubagentStop"), 3]]);
+    const s = run([[ev("UserPromptSubmit"), 0], [ev("SubagentStart"), 1], [ev("SubagentStart"), 2], [ev("SubagentStop"), 3]]);
     expect(only(s).subagents).toBe(1);
     expect(only(reduceAgents(s, "claude", ev("StopFailure"), 4)).state).toBe("error");
     expect(reduceAgents(s, "claude", ev("SessionEnd"), 5).sessions).toEqual({});

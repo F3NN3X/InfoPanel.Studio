@@ -203,6 +203,6 @@ function findHeading(pane: HTMLElement, id: string): HTMLElement | null {
 /** The route for a target; an unknown article is Help home, an unknown heading is the top of the article. */
 function toRoute(target: HelpTarget, content: HelpContent, seq: number): Route {
   const article = target.article !== undefined && Object.hasOwn(content.articles, target.article) ? content.articles[target.article] : null;
-  const heading = article && article.blocks.some((b) => b.type === "h" && b.id === target.heading) ? (target.heading ?? null) : null;
+  const heading = article?.blocks.some((b) => b.type === "h" && b.id === target.heading) ? (target.heading ?? null) : null;
   return { article: article?.id ?? null, heading, seq };
 }

@@ -52,7 +52,7 @@ export function onAirUpdate(prev: ObsState | null, next: ObsState): IslandUpdate
     live || rec
       ? { id: "on-air", title: live ? "Live" : "Recording", ...(live && rec ? { subtitle: "Recording" } : {}), color: "#ef4444", priority: 2 }
       : null;
-  if (!prev || !prev.connected || !next.connected) return { activity };
+  if (!prev?.connected || !next.connected) return { activity };
   const notices: SourceNotice[] = [];
   if (prev.streaming !== next.streaming) notices.push({ id: "stream", severity: next.streaming ? "warning" : "info", title: next.streaming ? "You are live" : "Stream ended", ttl: 3000 });
   if (prev.recording !== next.recording) notices.push({ id: "record", severity: "info", title: next.recording ? "Recording started" : "Recording stopped", ttl: 3000 });

@@ -90,7 +90,7 @@ export function clampZoneRect(
   rows: number,
   ignore?: string
 ): ZoneRect {
-  let r: ZoneRect = {
+  const r: ZoneRect = {
     col: Math.max(1, Math.min(cols, rect.col)),
     row: Math.max(1, Math.min(rows, rect.row)),
     cols: Math.max(1, Math.min(cols, rect.cols)),

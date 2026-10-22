@@ -241,6 +241,8 @@ function Braille({ values, lo, hi, className }: { values: number[]; lo: number; 
     const ro = new ResizeObserver(() => {
       // measure the real glyph advance and the layout width in the same (zoom-adjusted) units
       const probe = document.createElement("span");
+      // Out of the flow: the probe must not resize the element this observer watches (a ResizeObserver loop).
+      probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
       probe.textContent = "⣿".repeat(40);
       el.appendChild(probe);
       const charW = probe.getBoundingClientRect().width / 40 / (el.getBoundingClientRect().width / (el.clientWidth || 1) || 1);

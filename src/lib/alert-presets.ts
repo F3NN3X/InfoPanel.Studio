@@ -195,7 +195,7 @@ export function matchSensor(preset: AlertPreset, points: readonly PresetPoint[])
     if (p.type === "empty" || (!wantsText && p.type !== "number")) return false;
     const hay = `${p.key} ${p.name}`;
     const unitOk = !preset.units || !p.unit || preset.units.some((u) => u.toLowerCase() === p.unit!.toLowerCase());
-    return unitOk && match.test(hay) && !(avoid && avoid.test(hay));
+    return unitOk && match.test(hay) && !(avoid?.test(hay));
   })?.key;
 }
 

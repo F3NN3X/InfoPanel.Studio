@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type IslandUpdate } from "@/lib/island/sources";
+import type { IslandUpdate } from "@/lib/island/sources";
 import type { ModuleSettings } from "@/modules/types";
 import type { Data } from "@/widgets/core/types";
 import { achievementsIsland, fpsIsland, gameOf } from "@/widgets/island/gaming";

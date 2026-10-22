@@ -746,7 +746,6 @@ function StudioViewBody({
   );
 
   const bar = fullPage || canvasEditor ? null : (
-    <>
     <ZoomToolbar
       zoom={ui.zoom}
       fitting={ui.fitting}
@@ -764,7 +763,6 @@ function StudioViewBody({
           : undefined
       }
     />
-    </>
   );
 
   return (

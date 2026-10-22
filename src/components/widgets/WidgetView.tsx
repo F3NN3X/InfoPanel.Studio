@@ -590,7 +590,6 @@ function Shape({ widget }: { widget: Widget }) {
           }}
         />
       );
-    case "vbar":
     default:
       return (
         <div

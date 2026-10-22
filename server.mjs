@@ -493,7 +493,7 @@ function serveStatic(req, res, pathname) {
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405);
   if (!fs.existsSync(DIST)) return send(res, 503, "No build found. Run `npm run build` first.");
 
-  let rel = decodeURIComponent(pathname).replace(/^\/+/, "") || "index.html";
+  const rel = decodeURIComponent(pathname).replace(/^\/+/, "") || "index.html";
   if (rel.split("/").some((seg) => seg === ".." || seg.startsWith("."))) return send(res, 404);
 
   let file = path.join(DIST, rel);

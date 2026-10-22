@@ -116,7 +116,7 @@ type RuleName = keyof typeof RULES;
 const matches = (rule: Rule, key: string, s: SensorValue): boolean =>
   rule.suffix.test(key) &&
   (!rule.unit || rule.unit.test(s.unit ?? "")) &&
-  !(rule.not && rule.not.test(key));
+  !(rule.not?.test(key));
 
 /** First libre key (sorted) for each rule, with its sensor. */
 function findAll(sensors: SensorMap): Partial<Record<RuleName, [string, SensorValue]>> {

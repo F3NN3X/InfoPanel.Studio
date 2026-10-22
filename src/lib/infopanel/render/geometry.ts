@@ -8,7 +8,7 @@
  * `/` between ints divides with truncation, Math.Round is half-to-even unless
  * AwayFromZero is named.
  */
-import { GRADIENT_TYPES, SHAPE_TYPES } from "../schema.ts";
+import type { GRADIENT_TYPES, SHAPE_TYPES } from "../schema.ts";
 
 /** C# `(int)x` for a double on .NET 8 x64: truncation; NaN and out-of-range give int.MinValue. */
 export function toInt(x: number): number {

@@ -61,7 +61,7 @@ describe("uploadAsset", () => {
     const fetch = respond(200, { id: ID });
     await uploadAsset(fileOf("", 10, "clip.WEBM"));
     await uploadAsset(fileOf("", 10, "clip.mkv"));
-    expect(fetch.mock.calls.map((c) => (c[1]?.headers as Record<string, string>)["Content-Type"])).toEqual(["video/webm", "video/x-matroska"]);
+    expect(fetch.mock.calls.map((c) => (c[1]?.headers as Record<string, string> | undefined)?.["Content-Type"])).toEqual(["video/webm", "video/x-matroska"]);
     await expect(uploadAsset(fileOf("", 10, "page.html"))).rejects.toThrow(/Unsupported/);
   });
 
