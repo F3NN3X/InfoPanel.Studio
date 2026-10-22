@@ -211,3 +211,11 @@ These scripts lived in the session scratchpad and are not in the repo. The metho
 
    Warm up for 20 s. Then snapshot `TotalProcessorTime` for every `msedge.exe` whose command line has the scratch profile, wait 120 s and snapshot again. Group by `--type=` (gpu-process, renderer) and divide by the elapsed seconds to get cores.
 4. **Set Max FPS and Motion between runs** with a `POST /api/config` that carries the `x-dashboard-config: 1` header and the changed `general` block. Restore `config.json` from a backup afterwards.
+
+### Over a long run (installed app)
+
+Run the app as you normally would (kiosk shown, Studio open or closed), then in a terminal at the repo root:
+
+1. `node tools/perf/process-sampler.mjs`: one line a minute to `.cache/perf/processes-<date>.csv` with CPU (% of one core) and private MB for the app, its server sidecar and each WebView2 role (browser, renderer, GPU, utility). Debug mode is not needed. Leave it running; Ctrl+C stops it.
+2. Optionally turn on debug mode (Settings › Diagnostics) too: `metrics.csv` adds the JS heap, DOM nodes and event streams inside the page and the server's own heap.
+3. Next day: `node tools/perf/process-sampler.mjs --report .cache/perf/processes-<date>.csv` prints hourly averages and the per-hour trend; `node tools/perf/metrics-trend.mjs` does the same for `metrics.csv`. A renderer or server MB that keeps climbing hour after hour is a leak; a flat line after the first hour is the working set.
