@@ -12,6 +12,11 @@ import { openEventSourceCount } from "@/lib/sensor-store";
 const LIMIT = 20;
 const WINDOW_MS = 10_000;
 const METRICS_MS = 30_000;
+/**
+ * Chromium's notice that a ResizeObserver pass left some notifications for the next frame: nothing failed, so it
+ * is logged as a warning, not an error.
+ */
+const BENIGN_ERROR = /^ResizeObserver loop (completed with undelivered notifications|limit exceeded)/;
 
 const text = (v: unknown): string => {
   if (v instanceof Error) return v.stack ?? `${v.name}: ${v.message}`;
@@ -48,7 +53,7 @@ export function startDesktopDebug(): () => void {
 
   const onError = (e: ErrorEvent) => {
     const stack = e.error instanceof Error && e.error.stack ? `\n${e.error.stack}` : "";
-    send("error", `${e.message} (${e.filename}:${e.lineno}:${e.colno})${stack}`);
+    send(BENIGN_ERROR.test(e.message) ? "warn" : "error", `${e.message} (${e.filename}:${e.lineno}:${e.colno})${stack}`);
   };
   const onRejection = (e: PromiseRejectionEvent) => send("error", `unhandled rejection: ${text(e.reason)}`);
   window.addEventListener("error", onError);
