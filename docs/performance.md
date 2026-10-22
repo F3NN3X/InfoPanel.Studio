@@ -2,6 +2,8 @@
 
 How the kiosk page (`/?kiosk=1`, the page InfoPanel shows on the panel) keeps its frame cost down. This covers the
 Max FPS and Motion settings, what each animation runs on, what was measured in 1.3.0-beta.6 and what is still open.
+The desktop Studio window's memory and CPU (1.3.0-beta.10: suspending the hidden webview, widget motion on the
+compositor, the ticker sleeping between capped frames) are in [desktop/webview-performance.md](desktop/webview-performance.md).
 
 The work shipped in 1.3.0-beta.6:
 
@@ -176,8 +178,9 @@ Notes:
    override that puts it back to 60.
    - If the GPU process drops a lot, the page is doing its job. Consider 30 as the kiosk default.
    - If it stays near 1.1 cores even with Reduce (Edge: 0.02), the remaining cost is in InfoPanel's WebView hosting, not in the page.
-2. **Glides at the cap.** Below 60 fps the "smooth" skin's bar and ring glides are off. A glide for `Bar` and `Ring`
-   driven by the ticker, preferably as a `transform: scaleX` and not `width`, would bring them back without layouts.
+2. **Glides at the cap.** Below 60 fps the "smooth" skin's bar and ring glides are off. Since 1.3.0-beta.10 bars
+   glide as a `transform` (no layouts; `src/widgets/core/motion.ts`), but `data-lite-motion` still turns them off
+   below 60. A ticker-driven glide would bring them back at the cap.
 3. **Kiosk auto-reload.** A kiosk page that reloads when the server build changes would remove the manual InfoPanel restart.
 4. **Smaller leftovers.**
    - A text widget with no explicit width gets an inert marquee.
