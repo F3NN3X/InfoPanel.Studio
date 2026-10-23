@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.16] - 2026-10-23
+
 ### Fixed
 
 - **Frame Pacing and the FPS widget's frame-time graph** no longer jitter or bend into odd shapes:
