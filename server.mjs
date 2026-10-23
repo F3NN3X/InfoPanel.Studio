@@ -211,6 +211,7 @@ function handleAlertHistory(req, res) {
  * SSE of the control state; `?profile=<id>` reports the profile this kiosk shows (and `?page=<id>` its
  * page pin), which lists the stream as a kiosk in the state until it closes. Only a kiosk on this machine
  * has its address listed: the state is public, and a LAN kiosk's address is not for every reader.
+ * `?client=studio` from this machine counts the stream as an open studio (GET /api/server/stats).
  */
 function handleControlEvents(req, res, query) {
   res.writeHead(200, {
@@ -225,7 +226,8 @@ function handleControlEvents(req, res, query) {
   write(control.get());
   const unsubscribe = control.subscribe(write);
   const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), 15_000);
-  const untrack = debug.sseOpen("control");
+  const studio = !shown && query.get("client") === "studio" && isLoopback(req.socket.remoteAddress);
+  const untrack = debug.sseOpen(studio ? "studio" : "control");
   req.on("close", () => {
     clearInterval(keepAlive);
     unsubscribe();
@@ -482,7 +484,7 @@ function handleDebugStats(req, res) {
   send(res, 200, JSON.stringify(debug.stats()), TYPES[".json"]);
 }
 
-/** GET /api/server/stats → { uptimeSeconds, clients } for the desktop app; only from this machine. */
+/** GET /api/server/stats → { uptimeSeconds, clients, studios } for the desktop app; only from this machine. */
 function handleServerStats(req, res) {
   if (req.method !== "GET") return send(res, 405);
   if (!isLoopback(req.socket.remoteAddress)) return send(res, 403, "server stats are served to this machine only");

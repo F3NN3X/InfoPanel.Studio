@@ -46,6 +46,7 @@
     "allow-app-info",
     "allow-changelog",
     "allow-open-external",
+    "allow-default-browser-kind",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",

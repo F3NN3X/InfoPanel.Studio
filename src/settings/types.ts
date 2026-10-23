@@ -4,6 +4,9 @@ export type Listen = "local" | "lan";
 export type Channel = "stable" | "beta";
 export type StudioRefresh = "idle" | "daily" | "off";
 export type ReleaseHiddenStudio = "after1m" | "after10m" | "after60m" | "never";
+export type OpenStudioIn = "appWindow" | "edgeApp" | "defaultBrowser";
+/** The default browser's engine (`default_browser_kind`); unknown when it couldn't be read. */
+export type BrowserKind = "chromium" | "other" | "unknown";
 
 export interface AgentSettings {
   enabled: boolean;
@@ -25,6 +28,7 @@ export interface Settings {
   studioRefresh: StudioRefresh;
   releaseHiddenStudio: ReleaseHiddenStudio;
   reduceUnfocusedAnimation: boolean;
+  openStudioIn: OpenStudioIn;
   checkForUpdates: boolean;
   updateChannel: Channel;
   autoDownload: boolean;

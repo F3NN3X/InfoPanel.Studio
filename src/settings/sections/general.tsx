@@ -1,13 +1,30 @@
 import { Minus, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { stepZoom, ZOOMS } from "@/app-window/zoom";
 import { usePreviewDataSetting } from "@/hooks/use-preview-data-setting";
 import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib/preview-data-pref";
+import { ipc } from "../ipc";
 import { useStore } from "../store";
+import type { BrowserKind } from "../types";
 import { Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
 
 export function GeneralSection() {
   const { settings, save, setZoom } = useStore();
   const [previewData, setPreviewData] = usePreviewDataSetting();
+  const inBrowser = settings.openStudioIn !== "appWindow";
+  // Read only when it matters; a failed read shows no hint rather than a wrong one.
+  const [browserKind, setBrowserKind] = useState<BrowserKind>("unknown");
+  useEffect(() => {
+    if (settings.openStudioIn !== "defaultBrowser") return;
+    let alive = true;
+    ipc.defaultBrowserKind().then(
+      (kind) => alive && setBrowserKind(kind),
+      () => {}
+    );
+    return () => {
+      alive = false;
+    };
+  }, [settings.openStudioIn]);
   const step = (s: -1 | 1) => void setZoom(stepZoom(settings.zoom, s));
   const stepButton = "grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-s-input-line bg-s-input text-s-t2 hover:bg-[#1c1c21] disabled:cursor-default disabled:opacity-40";
   return (
@@ -54,7 +71,13 @@ export function GeneralSection() {
       <Group title="Startup">
         <Card>
           <SwitchRow id="start-at-login" label="Start at login" hint="Starts in the tray so the kiosk has a server after a reboot." checked={settings.startAtLogin} onChange={(v) => void save("startAtLogin", v)} />
-          <SwitchRow id="open-studio" label="Open the studio on launch" hint="Off: the app starts quietly in the tray." checked={settings.openStudioOnLaunch} onChange={(v) => void save("openStudioOnLaunch", v)} />
+          <SwitchRow
+            id="open-studio"
+            label="Open the studio on launch"
+            hint={inBrowser ? "The studio opens in your browser, so with Start at login on, every login opens a new browser window." : "Off: the app starts quietly in the tray."}
+            checked={settings.openStudioOnLaunch}
+            onChange={(v) => void save("openStudioOnLaunch", v)}
+          />
           <SwitchRow
             id="start-server"
             label="Start the server on launch"
@@ -107,6 +130,28 @@ export function GeneralSection() {
             checked={settings.reduceUnfocusedAnimation}
             onChange={(v) => void save("reduceUnfocusedAnimation", v)}
           />
+          <Row
+            id="open-studio-in"
+            label="Open the studio in"
+            hint={
+              settings.openStudioIn === "defaultBrowser" && browserKind === "other"
+                ? "Your default browser isn't Chromium-based, so the preview may differ slightly from InfoPanel."
+                : inBrowser
+                  ? "The app then runs no window of its own for the studio; Settings and the kiosk view stay in the app."
+                  : "The app's own window."
+            }
+          >
+            <select
+              aria-label="Open the studio in"
+              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-[12.5px] text-s-t1"
+              value={settings.openStudioIn}
+              onChange={(e) => void save("openStudioIn", e.target.value)}
+            >
+              <option value="appWindow">App window</option>
+              <option value="edgeApp">Microsoft Edge (app mode)</option>
+              <option value="defaultBrowser">Default browser</option>
+            </select>
+          </Row>
           <Row id="preview-data" label="Design preview data" hint={PREVIEW_DATA_HINT}>
             <select
               aria-label="Design preview data"

@@ -100,11 +100,11 @@ let connections = 0;
  * kiosk shows (and `pinnedPage` its `?page=` pin), which lists it as a kiosk.
  * One subscription per page — never per zone. `enabled` off opens nothing.
  */
-export function useControl(shownProfile?: string, enabled = true, pinnedPage?: string): ControlState | null {
+export function useControl(shownProfile?: string, enabled = true, pinnedPage?: string, studio = false): ControlState | null {
   const [state, setState] = useState<ControlState | null>(null);
   useEffect(() => {
     if (!enabled || typeof EventSource === "undefined") return;
-    const url = controlEventsUrl(shownProfile, pinnedPage);
+    const url = controlEventsUrl(shownProfile, pinnedPage, studio);
     const events = trackEventSource(new EventSource(url));
     let link = 0;
     events.onopen = () => {
@@ -118,13 +118,16 @@ export function useControl(shownProfile?: string, enabled = true, pinnedPage?: s
       }
     };
     return () => events.close();
-  }, [shownProfile, enabled, pinnedPage]);
+  }, [shownProfile, enabled, pinnedPage, studio]);
   return state;
 }
 
-/** The control stream's URL: a kiosk reports its profile and page pin; the studio neither. */
-export function controlEventsUrl(shownProfile?: string, pinnedPage?: string): string {
-  if (!shownProfile) return CONTROL_EVENTS_URL;
+/**
+ * The control stream's URL: a kiosk reports its profile and page pin; the studio marks itself, so the app can tell
+ * a studio already open in a browser.
+ */
+export function controlEventsUrl(shownProfile?: string, pinnedPage?: string, studio = false): string {
+  if (!shownProfile) return studio ? `${CONTROL_EVENTS_URL}?client=studio` : CONTROL_EVENTS_URL;
   const q = new URLSearchParams({ profile: shownProfile, ...(pinnedPage ? { page: pinnedPage } : {}) });
   return `${CONTROL_EVENTS_URL}?${q}`;
 }

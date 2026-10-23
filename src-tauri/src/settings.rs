@@ -76,6 +76,17 @@ pub enum ReleaseHiddenStudio {
     Never,
 }
 
+/// Where the studio opens (`studio_target.rs`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum OpenStudioIn {
+    #[default]
+    AppWindow,
+    /// Microsoft Edge with `--app=<url>`: a window without browser chrome, on Chromium like the app.
+    EdgeApp,
+    DefaultBrowser,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -103,6 +114,8 @@ pub struct Settings {
     pub release_hidden_studio: ReleaseHiddenStudio,
     /// Slow the studio's canvas and pause its ambient effects a minute after the window loses focus.
     pub reduce_unfocused_animation: bool,
+    /// Open the studio in the app's window, Edge in app mode or the default browser.
+    pub open_studio_in: OpenStudioIn,
     /// Look for a new version shortly after the app starts.
     pub check_for_updates: bool,
     pub update_channel: Channel,
@@ -148,6 +161,7 @@ impl Default for Settings {
             studio_refresh: StudioRefresh::Idle,
             release_hidden_studio: ReleaseHiddenStudio::After10m,
             reduce_unfocused_animation: true,
+            open_studio_in: OpenStudioIn::AppWindow,
             check_for_updates: true,
             update_channel: Channel::Stable,
             auto_download: false,
@@ -258,6 +272,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         "studioRefresh" => next.studio_refresh = parse(key, value)?,
         "releaseHiddenStudio" => next.release_hidden_studio = parse(key, value)?,
         "reduceUnfocusedAnimation" => next.reduce_unfocused_animation = parse(key, value)?,
+        "openStudioIn" => next.open_studio_in = parse(key, value)?,
         "checkForUpdates" => next.check_for_updates = parse(key, value)?,
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
@@ -478,6 +493,19 @@ mod tests {
     }
 
     #[test]
+    fn open_studio_in_defaults_to_the_app_window_and_takes_its_three_values_only() {
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().open_studio_in, OpenStudioIn::AppWindow);
+        assert_eq!(load_from_str(r#"{ "openStudioIn": "edgeApp" }"#).unwrap().open_studio_in, OpenStudioIn::EdgeApp);
+        assert_eq!(load_from_str(r#"{ "openStudioIn": "netscape" }"#).unwrap().open_studio_in, OpenStudioIn::AppWindow);
+        let s = Settings::default();
+        let set = |v| with_setting(&s, "openStudioIn", v).map(|n| n.open_studio_in);
+        assert_eq!(set(json!("appWindow")), Ok(OpenStudioIn::AppWindow));
+        assert_eq!(set(json!("edgeApp")), Ok(OpenStudioIn::EdgeApp));
+        assert_eq!(set(json!("defaultBrowser")), Ok(OpenStudioIn::DefaultBrowser));
+        assert!(set(json!("netscape")).is_err());
+    }
+
+    #[test]
     fn unknown_keys_are_ignored() {
         let s = load_from_str(r#"{ "port": 3942, "theme": "dark" }"#).unwrap();
         assert_eq!(s.port, 3942);
@@ -632,6 +660,7 @@ mod tests {
         "studioRefresh",
         "releaseHiddenStudio",
         "reduceUnfocusedAnimation",
+        "openStudioIn",
         "checkForUpdates",
         "updateChannel",
         "autoDownload",

@@ -191,10 +191,27 @@ describe("server.mjs", () => {
     const stats = await res.json();
     expect(stats.clients).toBeGreaterThanOrEqual(1);
     expect(stats.uptimeSeconds).toBeGreaterThanOrEqual(0);
-    expect(Object.keys(stats).sort()).toEqual(["clients", "uptimeSeconds"]);
+    expect(Object.keys(stats).sort()).toEqual(["clients", "studios", "uptimeSeconds"]);
     expect((await fetch(`${plain.base}/api/server/stats`, { method: "POST" })).status).toBe(405);
     await sse.body.cancel();
     expect(plain.output()).not.toContain("[debug]");
+  });
+
+  it("counts a studio's marked control stream in /api/server/stats until it closes", async () => {
+    const studios = async () => (await (await fetch(`${plain.base}/api/server/stats`)).json()).studios;
+    const before = await studios();
+    const studio = await fetch(`${plain.base}/events/control?client=studio`);
+    // A kiosk's stream (it names a profile) is never a studio, marked or not.
+    const kiosk = await fetch(`${plain.base}/events/control?profile=desk&client=studio`);
+    expect(await studios()).toBe(before + 1);
+    await studio.body.cancel();
+    await kiosk.body.cancel();
+    let left = await studios();
+    for (let i = 0; i < 40 && left !== before; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      left = await studios();
+    }
+    expect(left).toBe(before);
   });
 
   it("lists a kiosk in the control state while its control stream is open", async () => {

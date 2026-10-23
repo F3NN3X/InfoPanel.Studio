@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import type {
   AgentStatus,
   AppInfo,
+  BrowserKind,
   Diagnostics,
   ForeignInfo,
   LogChunk,
@@ -28,6 +29,7 @@ export const ipc = {
   stopServer: () => invoke<Status>("stop_server"),
   restartServer: () => invoke<Status>("restart_server"),
   serverStats: () => invoke<ServerStats>("server_stats"),
+  defaultBrowserKind: () => invoke<BrowserKind>("default_browser_kind"),
   foreignServerInfo: () => invoke<ForeignInfo | null>("foreign_server_info"),
   useForeignServer: () => invoke<StopResult>("use_foreign_server"),
   stopForeignServer: () => invoke<StopResult>("stop_foreign_server"),

@@ -170,8 +170,9 @@ function StudioViewBody({
     if (takeSetupRequest()) setSetupOpen(true);
     return onSetupRequest(() => setSetupOpen(true));
   }, []);
-  // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history.
-  const control = useControl();
+  // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history. The stream marks this
+  // page as a studio (the app's "already open" check for a browser studio).
+  const control = useControl(undefined, true, undefined, true);
   // The canvas island plays only test alerts (Test in the rule editor); live ones show on kiosks.
   const islandTestAlerts = useMemo(
     () => visibleAlerts(control?.alerts ?? [], profile.id).filter((a) => a.test && isIslandAlert(a)),

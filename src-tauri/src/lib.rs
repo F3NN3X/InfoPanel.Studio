@@ -16,6 +16,7 @@ mod release;
 mod settings;
 mod sidecar;
 mod state;
+mod studio_target;
 mod tray;
 mod updater;
 mod webview2;
@@ -110,7 +111,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             log::debug!("second launch: {argv:?}");
             if !argv.iter().any(|a| a == HIDDEN_ARG) {
-                windows::show_main(app);
+                studio_target::open(app);
             }
         }))
         .plugin(
@@ -208,6 +209,7 @@ pub fn run() {
             commands::app_info,
             commands::changelog,
             commands::open_external,
+            commands::default_browser_kind,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -229,7 +231,8 @@ pub fn run() {
             commands::sync_autostart(&handle, start_at_login);
             tray::create(&handle)?;
             if open_window {
-                windows::show_main(&handle);
+                // A browser target waits for the server (starting below, or by itself when that's off).
+                studio_target::open(&handle);
             }
             if start_server {
                 control::start(&handle);

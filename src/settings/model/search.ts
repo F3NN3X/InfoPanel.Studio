@@ -54,6 +54,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "release-hidden-studio", label: "Release the hidden studio", section: "general" },
   { row: "reduce-unfocused-animation", label: "Reduce studio animation when unfocused", section: "general" },
   { row: "preview-data", label: "Design preview data", section: "general" },
+  { row: "open-studio-in", label: "Open the studio in", section: "general" },
   { row: "server-card", label: "Start / stop server", section: "server" },
   { row: "server-card", label: "Restart server", section: "server" },
   { row: "listen", label: "Who can connect (listen on)", section: "server" },

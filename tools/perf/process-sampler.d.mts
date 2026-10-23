@@ -3,6 +3,10 @@ export interface WinProcess {
   ParentProcessId: number;
   Name: string;
   CommandLine: string | null;
+  KernelModeTime: number | string;
+  UserModeTime: number | string;
+  /** Private bytes. */
+  PrivatePageCount: number | string;
 }
 
 export type Role = "app" | "sidecar" | "webview" | "renderer" | "gpu" | "utility";

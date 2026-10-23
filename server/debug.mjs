@@ -48,9 +48,12 @@ export function createDebug({ enabled, log = console.log, now = () => performanc
       return total;
     },
 
-    /** The numbers the desktop app's Server page shows, in and out of debug mode. */
+    /**
+     * The numbers the desktop app shows, in and out of debug mode. `studios`: studio pages on this machine (their
+     * control stream, counted on the "studio" channel), which a browser-opened studio's "already open" asks about.
+     */
     serverStats() {
-      return { uptimeSeconds: Math.round(process.uptime()), clients: this.sseClientsTotal() };
+      return { uptimeSeconds: Math.round(process.uptime()), clients: this.sseClientsTotal(), studios: clients.get("studio") ?? 0 };
     },
 
     stats() {
