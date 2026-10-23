@@ -75,6 +75,7 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-app-info",
     "allow-changelog",
     "allow-open-external",
+    "allow-default-browser-kind",
     "allow-open-help",
     // ipc.ts is shared with Help, which opens Settings at a page; here it can only reopen this window.
     "allow-open-settings",

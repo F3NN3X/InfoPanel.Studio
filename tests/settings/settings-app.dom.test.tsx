@@ -19,6 +19,7 @@ const settingsDefaults: Settings = {
   studioRefresh: "idle",
   releaseHiddenStudio: "after10m",
   reduceUnfocusedAnimation: true,
+  openStudioIn: "appWindow",
   checkForUpdates: true,
   updateChannel: "stable",
   autoDownload: false,
@@ -61,6 +62,8 @@ const invoke = vi.fn(async (command: string, args?: Record<string, unknown>): Pr
       return ["192.168.1.20"];
     case "get_diagnostics":
       return { debug: false, samples: 0, latestTime: null, series: [], logsDir: "C:\\logs", sampleEverySecs: 30, status: running };
+    case "default_browser_kind":
+      return "other";
     case "server_stats":
       return { clients: 2, rssBytes: 83_000_000, uptimeMs: 3_600_000 };
     case "set_setting": {
@@ -110,6 +113,17 @@ describe("the settings window", () => {
     expect(setCalls()).toEqual([{ key: "closeToTray", value: false }]);
     expect(await screen.findByText("Saved")).toBeTruthy();
     expect(screen.getByRole("switch", { name: "Close to tray" }).getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("saves where the studio opens and hints when the default browser isn't Chromium", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<SettingsApp />);
+    await user.selectOptions(await screen.findByRole("combobox", { name: "Open the studio in" }), "defaultBrowser");
+    expect(setCalls()).toEqual([{ key: "openStudioIn", value: "defaultBrowser" }]);
+    expect(await screen.findByText(/isn't Chromium-based/)).toBeTruthy();
+    // Opening it at every login is now a browser window each time: said, not changed.
+    expect(screen.getByText(/every login opens a new browser window/)).toBeTruthy();
+    expect(saved.openStudioOnLaunch).toBe(true);
   });
 
   it("does not save an invalid port or raise the bar", async () => {

@@ -67,6 +67,18 @@ export async function openHelp(target: HelpTarget = {}): Promise<void> {
 export const kioskWindow = (size?: { width: number; height: number }): Promise<void | undefined> =>
   call<void>("kiosk_window", size ? { size } : undefined);
 
+/**
+ * Kiosk view in a browser: the profile's kiosk in a popup the screen's size (Edge's app mode honours it; other
+ * browsers may open a tab instead). False when the browser blocked it.
+ */
+export function openKioskPopup(profileId: string): boolean {
+  const { width, height } = window.screen;
+  const w = window.open(`/?kiosk=1&profile=${encodeURIComponent(profileId)}`, "infopanel-kiosk", `popup,left=0,top=0,width=${width},height=${height}`);
+  // Cut by hand: `noopener` in the features would make window.open return null.
+  if (w) w.opener = null;
+  return w !== null;
+}
+
 /** Calls `handler` when the shell leaves Kiosk view on its own (a close from it); resolves to the unsubscribe. */
 export async function onKioskLeft(handler: () => void): Promise<() => void> {
   if (!isTauri()) return () => {};

@@ -41,8 +41,9 @@ sections.
   Ctrl + `=` / `-` for canvas zoom), start at login (default on, starts hidden in the tray), open the studio on
   launch, start the server on launch, close to tray, remember window size and position, refresh the Studio
   (reload it now and then while unfocused), release the hidden studio (close its page after 1 minute, 10 minutes
-  (default), an hour or never in the tray) and reduce studio animation when unfocused (default on: after a minute
-  unfocused the canvas runs at 5 fps and ambient effects pause).
+  (default), an hour or never in the tray), reduce studio animation when unfocused (default on: after a minute
+  unfocused the canvas runs at 5 fps and ambient effects pause), open the studio in (the app window, Microsoft Edge
+  in app mode, or the default browser) and Design preview data (live, frozen, or frozen when unfocused).
 - **Server:** start, stop and restart; who can connect (this computer only on 127.0.0.1, or the local network on
   0.0.0.0 with the LAN IP shown); the port (default 3922); extra allowed host names for LAN access;
   restart automatically after a crash; the kiosk URL. The port, who can connect, the allowed host names and debug
@@ -90,6 +91,18 @@ suspended. A window hidden to the tray for long enough (**Release the hidden stu
 destroyed after a flush, and rebuilt when the tray shows it. A minute after the visible studio loses focus, the shell's
 `studio-focus` event slows its animation (**Reduce studio animation when unfocused**). Why and how: [webview-performance.md](webview-performance.md).
 
+**Open the studio in** a browser instead (Edge in app mode, or the default browser) and the app runs no studio
+window at all: the tray, a second launch, Open the studio on launch and Settings' links open
+`http://127.0.0.1:<port>/?studio=1` there, after starting the server if it is stopped (if it can't start, the app
+window's start page shows why). Edge is found from the registry (`App Paths\msedge.exe`); without it the default
+browser opens, with a warning in the log. A browser can't be told to focus a tab, so while a studio is connected to
+the server another open asks first (Open another / Cancel). Help follows the setting; Settings and Kiosk view stay
+app windows (in the browser studio, Kiosk view opens the kiosk in a popup). The browser studio saves when its tab is
+hidden and asks before closing while a change is unsaved. A non-Chromium default browser may render the preview a
+little differently from InfoPanel's WebView2; Settings says so when it can tell. A Dashboard or Studio setting changed
+in the app's Settings window reaches a browser studio through the server's config stream (it fetches the patches it
+missed), and Design preview data is kept on the server (`studio-prefs.json`), so both windows share it.
+
 ## Debug mode (errors and leaks)
 
 Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STUDIO_DEBUG=1`.
@@ -117,6 +130,8 @@ Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer 
 | `INFOPANEL_STUDIO_DATA_DIR` | Passed to the server as `DASHBOARD_DATA_DIR` (its own config and assets) |
 | `INFOPANEL_STUDIO_DEBUG=1` | Debug mode for this run |
 | `INFOPANEL_STUDIO_CDP_PORT` | In debug builds only (never a release build), adds `--remote-debugging-port` to WebView2, so Playwright can attach (`connectOverCDP`) |
+| `INFOPANEL_STUDIO_BROWSER_PROFILE` | In debug builds only: a `--user-data-dir` for the Edge (and stand-in browser) the browser studio opens, so a spec never opens your own browser profile |
+| `INFOPANEL_STUDIO_BROWSER_EXE` | In debug builds only: a Chromium that stands in for the default browser (Open the studio in › Default browser) |
 
 Seed the config folder with a `settings.json` that uses a spare port, `"startAtLogin": false` and
 `"agents": { "enabled": false }`. Quit an installed InfoPanel Studio first: the app is single-instance, so a

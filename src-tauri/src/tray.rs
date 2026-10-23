@@ -2,7 +2,7 @@
 // stop server · Restart server · Quit.
 
 use crate::state::{AppState, Phase, Status};
-use crate::{control, windows};
+use crate::{control, studio_target, windows};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Wry};
@@ -78,7 +78,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| {
             log::debug!("tray: {}", event.id.as_ref());
             match event.id.as_ref() {
-                "open_studio" => windows::show_main(app),
+                "open_studio" => studio_target::open(app),
                 "open_kiosk" => {
                     let url = app.state::<AppState>().status().kiosk_url;
                     if let Err(e) = app.opener().open_url(url, None::<&str>) {
@@ -87,7 +87,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 }
                 "settings" => windows::show_settings(app, None),
                 "update" => windows::show_settings(app, Some("updates")),
-                "help" => windows::show_help(app, &windows::HelpTarget::new(None, None)),
+                "help" => studio_target::open_help(app, &windows::HelpTarget::new(None, None)),
                 "server_toggle" => {
                     let app = app.clone();
                     std::thread::spawn(move || {
@@ -117,7 +117,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 ..
             } = event
             {
-                windows::show_main(tray.app_handle());
+                studio_target::open(tray.app_handle());
             }
         });
     if let Some(icon) = app.default_window_icon() {

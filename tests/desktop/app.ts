@@ -47,8 +47,11 @@ export interface DesktopApp {
   stop(): void;
 }
 
-/** Scratch config and data folders, settings merged over safe defaults; the app is launched by `launch()`. */
-export async function prepareApp(settings: Record<string, unknown> = {}): Promise<DesktopApp> {
+/**
+ * Scratch config and data folders, settings merged over safe defaults; the app is launched by `launch()`. `extraEnv`
+ * adds to the app's environment (the debug build's spec hooks, e.g. INFOPANEL_STUDIO_BROWSER_PROFILE).
+ */
+export async function prepareApp(settings: Record<string, unknown> = {}, extraEnv: Record<string, string> = {}): Promise<DesktopApp> {
   if (process.platform !== "win32") throw new Error("the desktop specs need Windows");
   if (!fs.existsSync(EXE)) throw new Error(`no debug build at ${EXE}`);
   if (roleCounts().app > 0) throw new Error("InfoPanel Studio is running; quit it first (the app is single-instance)");
@@ -67,6 +70,7 @@ export async function prepareApp(settings: Record<string, unknown> = {}): Promis
     INFOPANEL_STUDIO_DATA_DIR: scratch.dataDir,
     INFOPANEL_STUDIO_CDP_PORT: String(cdpPort),
     INFOPANEL_DATA_DIR: scratch.infopanel,
+    ...extraEnv,
     // USERPROFILE stays: with it pointed elsewhere WebView2 never opens the debugging port. Agents are off in the
     // scratch settings, so no hooks are written; the server's agent-usage scan only reads session metadata.
   };

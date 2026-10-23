@@ -27,7 +27,9 @@ export type ShortcutAction =
   | { type: "widget-duplicate" }
   | { type: "widget-copy" }
   | { type: "widget-paste" }
-  | { type: "widget-move"; delta: -1 | 1 };
+  | { type: "widget-move"; delta: -1 | 1 }
+  | { type: "toggle-preview" }
+  | { type: "refresh-preview" };
 
 /** The parts of a keydown event the mapping reads. */
 export interface KeyInput {
@@ -147,6 +149,7 @@ function zoneAction(e: KeyInput, ctx: ShortcutContext): ShortcutAction | null {
   if (e.key === "Delete" || e.key === "Backspace") return { type: "remove" };
   if (e.key === "h" || e.key === "H") return e.shiftKey ? null : { type: "toggle-visible" };
   if (e.key === "?") return { type: "cheatsheet" };
+  if (e.key === "f" || e.key === "F") return e.shiftKey ? { type: "refresh-preview" } : { type: "toggle-preview" };
   if (e.key === "+" || e.key === "=") return { type: "zoom-in" };
   if (e.key === "-") return { type: "zoom-out" };
   const arrow = ARROWS[e.key];
@@ -178,6 +181,8 @@ export const KEYS = {
   cheatsheet: "?",
   nextPage: "Ctrl+PageDown",
   prevPage: "Ctrl+PageUp",
+  togglePreview: "F",
+  refreshPreview: "Shift+F",
 } as const;
 
 /** Every shortcut, grouped, for the cheat-sheet dialog. */
@@ -226,6 +231,8 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
     title: "Canvas",
     items: [
       { keys: KEYS.fit, label: "Fit to width" },
+      { keys: KEYS.togglePreview, label: "Freeze the preview data / go live (this session)" },
+      { keys: KEYS.refreshPreview, label: "Refresh the frozen snapshot" },
       { keys: `${KEYS.zoomIn} / Ctrl+=`, label: "Zoom in" },
       { keys: `${KEYS.zoomOut} / Ctrl+-`, label: "Zoom out" },
       { keys: "Ctrl+wheel", label: "Zoom" },

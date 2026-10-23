@@ -359,13 +359,18 @@ impl HelpTarget {
         }
     }
 
-    /// The page to load, with the deep-link hash (`#kiosk` or `#kiosk/the-kiosk-url`).
-    fn page(&self) -> String {
+    /// The deep-link hash (`#kiosk` or `#kiosk/the-kiosk-url`), empty for Help's start.
+    pub fn hash(&self) -> String {
         match (&self.article, &self.heading) {
-            (Some(a), Some(h)) => format!("app/help.html#{a}/{h}"),
-            (Some(a), None) => format!("app/help.html#{a}"),
-            _ => "app/help.html".to_owned(),
+            (Some(a), Some(h)) => format!("#{a}/{h}"),
+            (Some(a), None) => format!("#{a}"),
+            _ => String::new(),
         }
+    }
+
+    /// The page to load, with the deep-link hash.
+    fn page(&self) -> String {
+        format!("app/help.html{}", self.hash())
     }
 }
 

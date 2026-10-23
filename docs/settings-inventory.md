@@ -667,6 +667,7 @@ overlay, Gauge row, Clock + date, Label / value list. Theme token presets: §5.4
 | `studio.zoom` | Canvas zoom: `fit` or a factor 0.25 to 2 (`zoom-pref.ts:2`) | | `fit` | zoom bar |
 | `studio.tipDismissed` | First-run tips card dismissed (`quick-tips.ts:2`) | `1` | unset | the tips card |
 | `infopanel.studio.profile-shots` | Profile thumbnail cache (`src/lib/profile-shot-cache.ts:13`) | map | unset | Profiles drawer (automatic) |
+| `studio.previewData` | Design preview data (`preview-data-pref.ts`): frozen renders Design from a snapshot, closes the studio's Data API stream while nothing live is open, and stills continuous effects. Kept on the server too (`studio-prefs.json`, `/api/studio-prefs`), so it follows you between the app window and a browser studio; localStorage is this browser's copy | `live`, `frozen`, `frozenWhenUnfocused` (after the 60 s unfocused delay) | `frozenWhenUnfocused` | Settings › Studio, Settings › General › Window; the zoom bar's Frozen chip (Refresh, Go live for this session) |
 | `infopanel-dashboard:config:v1` | The offline copy of the config (`layout.ts:284`) | config JSON | | automatic |
 | session only | Style clipboard (Copy style), widget clipboard (Copy), settings search text | | | Not persisted |
 
@@ -697,6 +698,7 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 | `studioRefresh` | Refresh the Studio (reload the page after saving while unfocused) | `idle` (30 minutes), `daily` (04:00), `off` | `idle` | Settings › General › Window |
 | `releaseHiddenStudio` | Release the hidden studio (close its page while hidden in the tray) | `after1m`, `after10m`, `after60m`, `never` | `after10m` | Settings › General › Window |
 | `reduceUnfocusedAnimation` | Reduce studio animation when unfocused (after 60 s: the canvas at 5 fps, ambient effects paused; sent to the studio with the `studio-focus` event) | boolean | `true` | Settings › General › Window |
+| `openStudioIn` | Open the studio in (every opener goes through `studio_target.rs`; the browser targets start the server first, open `http://127.0.0.1:<port>/?studio=1` and run no WebView; a second open while a studio is connected asks first) | `appWindow` (App window), `edgeApp` (Microsoft Edge in app mode, found in App Paths; the default browser if missing), `defaultBrowser` (Default browser) | `appWindow` | Settings › General › Window |
 | `listen` | Who can connect (becomes `HOST`: `127.0.0.1` or `0.0.0.0`) | `local` (This computer only), `lan` (Local network) | `local` | Settings › Server › Network |
 | `port` | Port (becomes `PORT`) | 1024 to 65535 | `3922` | Settings › Server › Network |
 | `allowedHosts` | Allowed host names (`ALLOWED_HOSTS`; request guard) | list, or a comma-separated string; letters, digits, `.`, `-`, `:`, `[`, `]` | empty | Settings › Server › Network (only while `listen` is `lan`) |

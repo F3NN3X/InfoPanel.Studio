@@ -1,4 +1,6 @@
 import { modules } from "@/modules";
+import { togglePreviewFrozen } from "@/hooks/use-preview-data";
+import { previewSnapshot } from "@/lib/preview-data";
 import { BLANK_MODULE } from "@/lib/layout";
 import { blankSensorRule } from "@/lib/alert-presets";
 import { useToast } from "@/components/ui/toast";
@@ -140,6 +142,10 @@ export function useStudioCommands({
         return !ui.showSources && ui.studioLayout.toggleInspector();
       case "live":
         return ui.setLiveOpen(true);
+      case "toggle-preview":
+        return togglePreviewFrozen();
+      case "refresh-preview":
+        return void previewSnapshot.take();
       case "help":
         return onHelp();
       case "toggle-advanced":

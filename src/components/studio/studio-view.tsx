@@ -70,6 +70,7 @@ import { islandSectionId } from "./island-panel-model";
 import { ISLAND_SETTING } from "@/lib/island/sources";
 import { modules } from "@/modules";
 import { ZoomToolbar } from "./zoom-toolbar";
+import { PreviewDataProvider, usePreviewData } from "@/hooks/use-preview-data";
 import { FLOAT_INSET, sheetHeight } from "./studio-layout";
 import { zoneName } from "./inspector/zone-meta";
 import { dataOf, setAsBackground, type StudioBridge } from "@/components/library/library-actions";
@@ -169,8 +170,9 @@ function StudioViewBody({
     if (takeSetupRequest()) setSetupOpen(true);
     return onSetupRequest(() => setSetupOpen(true));
   }, []);
-  // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history.
-  const control = useControl();
+  // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history. The stream marks this
+  // page as a studio (the app's "already open" check for a browser studio).
+  const control = useControl(undefined, true, undefined, true);
   // The canvas island plays only test alerts (Test in the rule editor); live ones show on kiosks.
   const islandTestAlerts = useMemo(
     () => visibleAlerts(control?.alerts ?? [], profile.id).filter((a) => a.test && isIslandAlert(a)),
@@ -395,6 +397,7 @@ function StudioViewBody({
   );
 
   const leftPanelEl = (
+    <PreviewDataProvider>
     <DesignLeftPanel
       tab={ui.leftTab}
       onTab={ui.setLeftTab}
@@ -422,6 +425,7 @@ function StudioViewBody({
         onContextMenu: menus.open,
       }}
     />
+    </PreviewDataProvider>
   );
 
   const alertsEl = showAlerts && (
@@ -488,6 +492,7 @@ function StudioViewBody({
       />
     </div>
   ) : (
+    <PreviewDataProvider>
     <StudioCanvas
       profile={profile}
       background={resolveBackground(config, profile)}
@@ -552,6 +557,7 @@ function StudioViewBody({
         )
       }
     />
+    </PreviewDataProvider>
   );
 
   const { mode: inspectorMode, floatOpen } = studioLayout;
@@ -755,6 +761,7 @@ function StudioViewBody({
     />
   );
 
+  const preview = usePreviewData();
   const bar = fullPage || canvasEditor ? null : (
     <ZoomToolbar
       zoom={ui.zoom}
@@ -767,6 +774,7 @@ function StudioViewBody({
       onFit={ui.fitZoom}
       profile={profile}
       onOpenProfile={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
+      preview={showSources ? undefined : preview}
       bottom={
         inspectorMode === "sheet"
           ? Math.min(studioLayout.sheet.height, sheetHeight("half", studioLayout.sheet.area, true)) + 8
@@ -777,15 +785,18 @@ function StudioViewBody({
 
   return (
     <div className="studio-root flex h-screen flex-col overflow-hidden bg-ui-app font-ui text-ui-1">
-      <ProfileShots
-        profiles={config.profiles}
-        dashboard={config}
-        editedId={storedProfile.id}
-        canvasIsFirstPage={(profile.pageId ?? storedProfile.pages[0].id) === storedProfile.pages[0].id}
-        scrollRef={ui.scrollRef}
-        zoom={ui.zoom}
-        pushPending={pushPending}
-      />
+      {/* The offscreen thumbnails need no live data: frozen with the canvas. */}
+      <PreviewDataProvider>
+        <ProfileShots
+          profiles={config.profiles}
+          dashboard={config}
+          editedId={storedProfile.id}
+          canvasIsFirstPage={(profile.pageId ?? storedProfile.pages[0].id) === storedProfile.pages[0].id}
+          scrollRef={ui.scrollRef}
+          zoom={ui.zoom}
+          pushPending={pushPending}
+        />
+      </PreviewDataProvider>
       <StudioTopBar
         profiles={config.profiles}
         profile={storedProfile}

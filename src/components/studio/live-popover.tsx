@@ -4,6 +4,7 @@ import { Cast, Maximize, RefreshCw } from "lucide-react";
 import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { islandEffective, type ControlKiosk, type ControlState } from "@/lib/control";
+import { isTauri } from "@/lib/desktop";
 import type { MonitorProfile } from "@/lib/layout";
 import { DIM_MAX, DIM_STEP, isMuted, liveActions, rotationNote } from "./live-model";
 
@@ -118,6 +119,7 @@ export function LiveControl({ open, onOpenChange, profiles, screen, control, kio
                   onOpenChange(false);
                   onOpenKioskView();
                 }}
+                title={isTauri() ? undefined : "Opens the kiosk in a separate window"}
                 className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-strong px-2 text-[12px] font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1"
               >
                 <Maximize className="h-3.5 w-3.5" strokeWidth={1.75} /> Open kiosk view

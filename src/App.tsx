@@ -27,18 +27,20 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { setApiBase } from "@/lib/data-api";
 import { useStudioFocusThrottle } from "@/lib/studio-focus";
 import { wakeTicker } from "@/lib/ticker";
-import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush } from "@/lib/desktop";
+import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush, openKioskPopup } from "@/lib/desktop";
 import { KioskStrip } from "@/components/kiosk-strip";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
 import { trackEventSource } from "@/lib/sensor-store";
 import type { AdoptChange } from "@/hooks/use-config-history";
-import { withSettingsPatch } from "@/lib/settings-patch";
+import { type SettingsPatch, withSettingsPatch } from "@/lib/settings-patch";
 import { onStudioMessage } from "@/lib/studio-channel";
 import {
   CONFIG_EVENTS_URL,
   fetchConfig,
+  fetchSettingsPatches,
   isRemoteEditRefusal,
   isUnreachable,
+  knownSettingsRev,
   NewerConfigError,
   noteSettingsRev,
   pushConfig,
@@ -296,6 +298,8 @@ export default function App() {
   latestConfig.current = config;
   const pendingRef = useRef(pushPending);
   pendingRef.current = pushPending;
+  const syncedRef = useRef(synced);
+  syncedRef.current = synced;
   // The last config taken from the Settings window: the server holds it already.
   const adopted = useRef<DashboardConfig | null>(null);
   const studioAdopt = useRef<AdoptChange | null>(null);
@@ -341,18 +345,34 @@ export default function App() {
       adopted.current = next;
       setConfig(next);
     };
+    // The studio view puts a patch into its working copy and every undo snapshot, so undo never reverts it. One the
+    // page already has (from both the channel and the stream, or in the config it read) is skipped.
+    const applyPatch = (patch: SettingsPatch, rev: number) => {
+      const known = knownSettingsRev();
+      if (known !== null && rev <= known) return;
+      noteSettingsRev(rev);
+      const change = (c: DashboardConfig) => withSettingsPatch(c, patch);
+      if (studioAdopt.current) {
+        const next = studioAdopt.current(change);
+        latestConfig.current = next;
+        adopted.current = next;
+      } else adopt(change(latestConfig.current));
+    };
+    // The channel reaches only pages in the same browser. A studio opened in another (Open the studio in › Edge or the
+    // default browser) learns of a change from the config stream, which names the newest revision, and fetches it.
+    const events = trackEventSource(new EventSource(CONFIG_EVENTS_URL));
+    events.onmessage = (e) => {
+      const rev = (JSON.parse(e.data) as { settingsRev?: number }).settingsRev;
+      const known = knownSettingsRev();
+      if (typeof rev !== "number" || known === null || rev <= known) return;
+      void fetchSettingsPatches(known)
+        .then((patches) => {
+          if (alive) for (const p of patches) applyPatch(p.patch, p.rev);
+        })
+        .catch(() => {});
+    };
     const off = onStudioMessage((message) => {
-      if (message.type === "settings") {
-        // The studio view puts it into its working copy and every undo snapshot, so undo never reverts it.
-        const { patch } = message;
-        noteSettingsRev(message.rev);
-        const change = (c: DashboardConfig) => withSettingsPatch(c, patch);
-        if (studioAdopt.current) {
-          const next = studioAdopt.current(change);
-          latestConfig.current = next;
-          adopted.current = next;
-        } else adopt(change(latestConfig.current));
-      }
+      if (message.type === "settings") applyPatch(message.patch, message.rev);
       if (message.type === "replaced") {
         void fetchConfig()
           .then((server) => alive && server && adopt(withPinnedProfile(mergeConfig(server))))
@@ -361,6 +381,7 @@ export default function App() {
     });
     return () => {
       alive = false;
+      events.close();
       off();
     };
   }, [kiosk]);
@@ -435,11 +456,14 @@ export default function App() {
     setStudio(true);
     window.history.replaceState(null, "", "?studio=1");
   };
-  // Desktop: Kiosk view takes the window to the shown profile's exact size, on the profile the studio was editing.
+  // Desktop: Kiosk view takes the window to the shown profile's exact size, on the profile the studio was editing. A
+  // browser opens it in a window of its own, so the studio's tab stays; in this tab only when the popup is blocked.
   const exitStudio = () => {
     if (isTauri()) {
       setViewProfile(stored.id);
       void kioskWindow({ width: stored.width, height: stored.height }).catch(() => {});
+    } else if (openKioskPopup(stored.id)) {
+      return;
     }
     setStudio(false);
     window.history.replaceState(null, "", window.location.pathname);
@@ -501,6 +525,28 @@ export default function App() {
     return () => {
       gone = true;
       off?.();
+    };
+  }, [kiosk, handleStudioSave]);
+
+  // A browser has no shell to ask for that flush: the studio saves as soon as its tab is hidden (the page still runs
+  // then, so a normal push completes), and asks before leaving only while a change is still unsaved. Not keepalive
+  // or sendBeacon: their 64 KiB body limit is far under the config's.
+  useEffect(() => {
+    if (kiosk || isTauri()) return;
+    const onHidden = () => {
+      if (document.visibilityState === "hidden" && pendingRef.current && syncedRef.current) void handleStudioSave(latestConfig.current);
+    };
+    const onLeave = (e: BeforeUnloadEvent) => {
+      if (!pendingRef.current) return;
+      e.preventDefault();
+      // Older Chromium shows the prompt only with a return value.
+      e.returnValue = "";
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("beforeunload", onLeave);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("beforeunload", onLeave);
     };
   }, [kiosk, handleStudioSave]);
 

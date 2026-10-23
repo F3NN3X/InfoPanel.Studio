@@ -9,7 +9,7 @@ use crate::probe::{self, ProcessInfo};
 use crate::settings::{self, Settings};
 use crate::state::{lock, AppState, Phase, RunningConfig, Status};
 use crate::updater::{self, UpdateState};
-use crate::{agents, control, debug, http, kiosk, windows};
+use crate::{agents, control, debug, http, kiosk, studio_target, windows};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -285,6 +285,10 @@ pub async fn foreign_server_info(app: AppHandle) -> CmdResult<Option<ForeignInfo
 #[tauri::command]
 pub async fn open_studio(app: AppHandle) {
     log::debug!("ipc: open_studio");
+    if app.state::<AppState>().settings().open_studio_in != settings::OpenStudioIn::AppWindow {
+        studio_target::open(&app);
+        return;
+    }
     windows::show_main(&app);
     let status = app.state::<AppState>().status();
     if status.state == Phase::Running {
@@ -615,21 +619,28 @@ pub async fn open_settings(app: AppHandle, section: Option<String>) {
     windows::show_settings(&app, section.as_deref());
 }
 
-/// The Settings window's links into the studio ("Screens ↗"): show and focus the studio window. Unlike
-/// `open_studio` it never reloads the page, so the studio keeps what it holds.
+/// The Settings window's links into the studio ("Screens ↗"): show and focus the studio window (or open it where
+/// the setting says). Unlike `open_studio` it never reloads the app window's page, so the studio keeps what it holds.
 #[tauri::command]
 pub async fn show_studio(app: AppHandle) {
     log::debug!("ipc: show_studio");
-    windows::show_main(&app);
+    studio_target::open(&app);
 }
 
 #[tauri::command]
 pub async fn open_help(app: AppHandle, article: Option<String>, heading: Option<String>) {
     log::debug!("ipc: open_help {article:?} {heading:?}");
-    windows::show_help(
+    studio_target::open_help(
         &app,
         &windows::HelpTarget::new(article.as_deref(), heading.as_deref()),
     );
+}
+
+/// The default browser's engine, for the "Open the studio in" hint (`unknown` when it can't be read).
+#[tauri::command]
+pub fn default_browser_kind() -> studio_target::BrowserKind {
+    log::debug!("ipc: default_browser_kind");
+    studio_target::default_browser_kind()
 }
 
 /// Kiosk view: with a size the window takes it exactly; without one it goes back to the studio's.

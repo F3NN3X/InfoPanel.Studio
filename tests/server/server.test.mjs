@@ -184,6 +184,45 @@ describe("server.mjs", () => {
     expect((await stored()).general).toEqual({ maxFps: 5 });
   });
 
+  it("feeds a studio the Settings patches it missed, and names the newest on the config stream", async () => {
+    const headers = { "Content-Type": "application/json", "X-Dashboard-Config": "1" };
+    await fetch(`${plain.base}/api/config`, { method: "POST", headers, body: JSON.stringify({ version: 11, profiles: [{ id: "desk", pages: [{ id: "one", placements: [] }] }] }) });
+    const known = Number((await fetch(`${plain.base}/api/config`)).headers.get("X-Settings-Rev"));
+    const sse = await fetch(`${plain.base}/events/config`);
+    const reader = sse.body.getReader();
+    const first = JSON.parse(new TextDecoder().decode((await reader.read()).value).slice(6));
+    expect(first.settingsRev).toBe(known);
+
+    await fetch(`${plain.base}/api/config/settings`, { method: "PATCH", headers, body: JSON.stringify({ general: { maxFps: 15 } }) });
+    // The save's event names the patch's revision.
+    const next = JSON.parse(new TextDecoder().decode((await reader.read()).value).slice(6));
+    expect(next.settingsRev).toBe(known + 1);
+    await reader.cancel();
+
+    const feed = await (await fetch(`${plain.base}/api/config/settings?since=${known}`)).json();
+    expect(feed).toEqual({ settingsRev: known + 1, patches: [{ rev: known + 1, patch: { general: { maxFps: 15 } } }] });
+    expect((await (await fetch(`${plain.base}/api/config/settings?since=${known + 1}`)).json()).patches).toEqual([]);
+    expect((await fetch(`${plain.base}/api/config/settings`)).status).toBe(400);
+  });
+
+  it("keeps the studio's preferences in their own file, behind the config write headers", async () => {
+    const put = (body, h = { "Content-Type": "application/json", "X-Dashboard-Config": "1" }) =>
+      fetch(`${plain.base}/api/studio-prefs`, { method: "PUT", headers: h, body: JSON.stringify(body) });
+    expect(await (await fetch(`${plain.base}/api/studio-prefs`)).json()).toEqual({});
+    expect((await put({ "studio.previewData": "frozen" }, { "Content-Type": "application/json" })).status).toBe(403);
+    expect((await put({ "studio.previewData": "frozen" }, { "Content-Type": "text/plain", "X-Dashboard-Config": "1" })).status).toBe(415);
+    expect((await put({ "studio.previewData": "paused" })).status).toBe(400);
+    expect((await put({ "studio.other": "x" })).status).toBe(400);
+    expect((await fetch(`${plain.base}/api/studio-prefs`, { method: "POST" })).status).toBe(405);
+
+    const res = await put({ "studio.previewData": "frozen" });
+    expect(await res.json()).toEqual({ "studio.previewData": "frozen" });
+    expect(await (await fetch(`${plain.base}/api/studio-prefs`)).json()).toEqual({ "studio.previewData": "frozen" });
+    expect(JSON.parse(fs.readFileSync(path.join(dir, "data", "studio-prefs.json"), "utf8"))).toEqual({ "studio.previewData": "frozen" });
+    // Never in the config every kiosk downloads.
+    expect(await (await fetch(`${plain.base}/api/config`)).text()).not.toContain("previewData");
+  });
+
   it("serves /api/server/stats in any mode with the open SSE clients", async () => {
     const sse = await fetch(`${plain.base}/events/config`);
     const res = await fetch(`${plain.base}/api/server/stats`);
@@ -191,10 +230,27 @@ describe("server.mjs", () => {
     const stats = await res.json();
     expect(stats.clients).toBeGreaterThanOrEqual(1);
     expect(stats.uptimeSeconds).toBeGreaterThanOrEqual(0);
-    expect(Object.keys(stats).sort()).toEqual(["clients", "uptimeSeconds"]);
+    expect(Object.keys(stats).sort()).toEqual(["clients", "studios", "uptimeSeconds"]);
     expect((await fetch(`${plain.base}/api/server/stats`, { method: "POST" })).status).toBe(405);
     await sse.body.cancel();
     expect(plain.output()).not.toContain("[debug]");
+  });
+
+  it("counts a studio's marked control stream in /api/server/stats until it closes", async () => {
+    const studios = async () => (await (await fetch(`${plain.base}/api/server/stats`)).json()).studios;
+    const before = await studios();
+    const studio = await fetch(`${plain.base}/events/control?client=studio`);
+    // A kiosk's stream (it names a profile) is never a studio, marked or not.
+    const kiosk = await fetch(`${plain.base}/events/control?profile=desk&client=studio`);
+    expect(await studios()).toBe(before + 1);
+    await studio.body.cancel();
+    await kiosk.body.cancel();
+    let left = await studios();
+    for (let i = 0; i < 40 && left !== before; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      left = await studios();
+    }
+    expect(left).toBe(before);
   });
 
   it("lists a kiosk in the control state while its control stream is open", async () => {

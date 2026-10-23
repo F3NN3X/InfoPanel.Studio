@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { usePreviewDataSetting } from "@/hooks/use-preview-data-setting";
+import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib/preview-data-pref";
 import { useAccordionPref, useAdvancedPref, useQuickBarPref, type AccordionMode } from "./inspector/inspector-prefs";
 import { useAddListDensity, useAddPreviewOnHover, useLeftPanelWidth, type AddListDensity, type LeftPanelWidth } from "./add-prefs";
 import { SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
@@ -51,6 +53,7 @@ export function SettingsStudio() {
   const [leftWidth, setLeftWidth] = useLeftPanelWidth();
   const [density, setDensity] = useAddListDensity();
   const [previewOnHover, setPreviewOnHover] = useAddPreviewOnHover();
+  const [previewData, setPreviewData] = usePreviewDataSetting();
   // A zoom that is not a step (a wheel zoom) still shows as itself.
   const steps = ZOOM_STEPS.some((s) => Math.abs(s - zoom) < 0.005) || fitting ? ZOOM_STEPS : [...ZOOM_STEPS, zoom].sort((a, b) => a - b);
   const current = fitting ? "fit" : String(steps.find((s) => Math.abs(s - zoom) < 0.005) ?? zoom);
@@ -72,6 +75,7 @@ export function SettingsStudio() {
         value={current}
         onChange={(v) => setZoomPref(v === "fit" ? { fitting: true, manual: zoom } : { fitting: false, manual: Number(v) })}
       />
+      <SelectRow label="Design preview data" hint={PREVIEW_DATA_HINT} options={PREVIEW_DATA_OPTIONS} value={previewData} onChange={(v) => setPreviewData(parsePreviewData(v))} />
       <ToggleRow label="Show grid" value={showGrid} onChange={setShowGrid} />
       <ToggleRow label="Show rulers" value={showRulers} onChange={setShowRulers} />
       <SegmentedRow

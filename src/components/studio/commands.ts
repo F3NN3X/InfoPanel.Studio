@@ -9,6 +9,8 @@ import { sortZones } from "./zone-geometry";
 
 /** What a command palette entry does (the studio carries it out). */
 export type CommandAction =
+  | { type: "toggle-preview" }
+  | { type: "refresh-preview" }
   | { type: "add-module"; id: string }
   | { type: "add-preset"; id: string }
   | { type: "profile"; id: string }
@@ -147,6 +149,8 @@ function generalCommands(s: CommandState): Command[] {
     general("import", "Import…", { type: "import" }),
     general("shortcuts", "Keyboard shortcuts", { type: "shortcuts" }, KEYS.cheatsheet),
     general("live", "Open Live", { type: "live" }, "kiosk control"),
+    general("preview:toggle", "Freeze the preview data / go live", { type: "toggle-preview" }, "this session, F"),
+    general("preview:refresh", "Refresh the frozen snapshot", { type: "refresh-preview" }, "Shift+F"),
     general("manage-screens", "Manage screens…", { type: "navigate", target: { view: "screens" } }),
     general("drawer:add", "Design › Add widget", { type: "drawer", drawer: "add" }),
     general("drawer:layers", "Design › Layers", { type: "drawer", drawer: "layers" }),
