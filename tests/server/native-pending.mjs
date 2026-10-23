@@ -7,8 +7,6 @@ export const NATIVE_PENDING = new Set([
   // /api/image-proxy
   "proxies images only",
   "follows image-proxy redirects only to allowed targets",
-  // /api/canvases
-  "keeps canvases apart from the config, so twenty imports fit under its cap",
 ]);
 
 /** The server under test: SERVER_IMPL, node by default. */

@@ -11,10 +11,17 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { serverCommand } from "../perf/server-command.mjs";
+import { seedInfopanel } from "./servers/media.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const MODULES = ["core", "config", "control", "debug"];
-const FILES = ["config.json", "studio-prefs.json", "control.json"];
+/** Random ids (an integrations link's) differ by design. */
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/g;
+const MODULES = ["core", "config", "control", "alerts", "debug", "media", "extras", "agents"];
+const FILES = ["config.json", "studio-prefs.json", "control.json", "integrations.json", "alerts.json"];
+/** Alert ids and times come from the clock. */
+const CLOCK = /"id":"[0-9a-z]+-\d+"|"(startedAt|endedAt|acknowledgedAt)":\d+/g;
+/** Content-addressed folders of the data folder: the names and the bytes must match. */
+const DIRS = ["assets", "canvases"];
 const args = process.argv.slice(2);
 const verbose = args.includes("--verbose");
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1].split(",") : MODULES;
@@ -40,8 +47,10 @@ async function start(impl, pair, dir) {
   for (const [name, text] of [["index.html", "<p>i</p>"], ["a.txt", "plain"], ["x.HTML", "H"], ["noext", "n"], ["dot.", "d"], [".secret", "s"], ["assets/s p.css", "c"]]) {
     fs.writeFileSync(path.join(dist, name), text);
   }
+  seedInfopanel(path.join(dir, "infopanel"));
   const server = serverCommand({ ...process.env, SERVER_IMPL: impl });
-  const env = { ...process.env, PORT: "0", HOST: "127.0.0.1", DASHBOARD_DIST: dist, DASHBOARD_DATA_DIR: path.join(dir, "data"), ...pair.env };
+  const home = path.join(dir, "home");
+  const env = { ...process.env, HOME: home, USERPROFILE: home, PORT: "0", HOST: "127.0.0.1", DASHBOARD_DIST: dist, DASHBOARD_DATA_DIR: path.join(dir, "data"), INFOPANEL_DATA_DIR: path.join(dir, "infopanel"), ...pair.env };
   const child = spawn(server.cmd, server.args, { env });
   let out = "";
   child.stdout.on("data", (c) => (out += c));
@@ -163,15 +172,30 @@ try {
       console.log(`ok [${c.module}] ${c.label}`);
     }
   }
+  // alerts.json is written a second after the history last changed.
+  await new Promise((r) => setTimeout(r, 2200));
   for (const [where, pair] of Object.entries(running)) {
     for (const f of FILES) {
-      const read = (s) => (fs.existsSync(path.join(s.dir, "data", f)) ? fs.readFileSync(path.join(s.dir, "data", f), "utf8") : null);
+      const read = (s) => (fs.existsSync(path.join(s.dir, "data", f)) ? fs.readFileSync(path.join(s.dir, "data", f), "utf8").replace(UUID, "<uuid>").replace(CLOCK, (m) => (m.startsWith('"id"') ? '"id":"<id>"' : `${m.split(":")[0]}:<ms>`)) : null);
       const [x, y] = [read(pair.node), read(pair.native)];
       if (x !== y) {
         diffs += 1;
         console.log(`--- DIFF [${where}] data/${f}\nNODE:   ${x}\nNATIVE: ${y}\n`);
       } else if (verbose) {
         console.log(`ok [${where}] data/${f} ${x === null ? "absent" : "equal"}`);
+      }
+    }
+    for (const d of DIRS) {
+      const read = (s) => {
+        const dir = path.join(s.dir, "data", d);
+        return fs.existsSync(dir) ? fs.readdirSync(dir).sort().map((n) => `${n} ${fs.readFileSync(path.join(dir, n)).toString("base64")}`).join("\n") : null;
+      };
+      const [x, y] = [read(pair.node), read(pair.native)];
+      if (x !== y) {
+        diffs += 1;
+        console.log(`--- DIFF [${where}] data/${d}/\nNODE:   ${x}\nNATIVE: ${y}\n`);
+      } else if (verbose) {
+        console.log(`ok [${where}] data/${d}/ ${x === null ? "absent" : "equal"}`);
       }
     }
   }

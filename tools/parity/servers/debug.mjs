@@ -26,6 +26,9 @@ export const cases = [
     map: shape,
     run: async (api) => {
       const config = api.open(`GET /events/config HTTP/1.1\r\n${api.host}\r\n`);
+      // One at a time: sseClients lists channels in the order they were first opened, so two sockets opened back to
+      // back would race on the order the servers accept them in.
+      await sleep(50);
       const control = api.open(`GET /events/control?client=studio HTTP/1.1\r\n${api.host}\r\n`);
       await sleep(150);
       config.close();

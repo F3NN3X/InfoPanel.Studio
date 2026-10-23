@@ -13,6 +13,10 @@ import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createReque
 import { securityHeaders } from "../../server/security-headers.mjs";
 import { applyPrefs, normalizePrefs } from "../../server/studio-prefs.mjs";
 import { controlCases } from "./control-fixtures.mjs";
+import { calendarModule, icalCases, icalRulesCases, integrationsCases, obsCases } from "./extras-fixtures.mjs";
+import { alertsCases, alertsLiveCases, alertsOutputCases, alertsRuleCases, alertsThresholdCases } from "./alerts-fixtures.mjs";
+import { agentUsageCases, agentsCases, claudeSessionsCases } from "./agents-fixtures.mjs";
+import { assetCases, canvasCases, infopanelLocalCases, libraryCases } from "./media-fixtures.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const OUT_DIR = path.join(ROOT, "tests/fixtures/parity");
@@ -304,6 +308,23 @@ const MODULES = {
   "config-settings": configSettings,
   "studio-prefs": studioPrefs,
   control: controlCases,
+  ical: icalCases,
+  "ical-rules": icalRulesCases,
+  integrations: integrationsCases,
+  obs: obsCases,
+  calendar: calendarModule,
+  assets: assetCases,
+  canvases: canvasCases,
+  library: libraryCases,
+  "infopanel-local": infopanelLocalCases,
+  agents: agentsCases,
+  "agent-usage": agentUsageCases,
+  "claude-sessions": claudeSessionsCases,
+  alerts: alertsCases,
+  "alerts-thresholds": alertsThresholdCases,
+  "alerts-rules": alertsRuleCases,
+  "alerts-output": alertsOutputCases,
+  "alerts-live": alertsLiveCases,
 };
 
 const check = process.argv.includes("--check");
@@ -312,7 +333,7 @@ fs.mkdirSync(OUT_DIR, { recursive: true });
 for (const [name, build] of Object.entries(MODULES)) {
   const file = path.join(OUT_DIR, `${name}.json`);
   // One case per line: small, and a diff shows the cases that changed.
-  const text = `[\n${build()
+  const text = `[\n${(await build())
     .map((c) => JSON.stringify(c))
     .join(",\n")}\n]\n`;
   if (!check) {

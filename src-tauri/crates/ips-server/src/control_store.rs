@@ -15,6 +15,7 @@ use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 use tokio::time::{interval_at, Instant, MissedTickBehavior};
 
+use crate::alerts;
 use crate::config::now_ms;
 use crate::control::{durable, load, public_state, reduce, reduce_config, State};
 use crate::http::{self, Req};
@@ -244,7 +245,7 @@ pub async fn handle(app: &App, mut req: Req) -> Response<Body> {
         return http::text(400, "expected a JSON object");
     };
     if kind == "alert" {
-        return http::text(501, "not ported to ips-server yet");
+        return alerts::handle_act(app, &Value::Object(action));
     }
     action.insert("type".into(), Value::String(kind));
     match app.control.dispatch(&Value::Object(action)) {

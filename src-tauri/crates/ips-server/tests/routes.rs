@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ips_server::{bind, ServerConfig};
+use ips_server::{bind_with_home, ServerConfig};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::oneshot;
@@ -43,7 +43,8 @@ fn config(dir: &Path) -> ServerConfig {
 }
 
 async fn start_with(dir: tempfile::TempDir, cfg: ServerConfig) -> Server {
-    let bound = bind(cfg).await.unwrap();
+    let home = cfg.data_dir.with_file_name("home");
+    let bound = bind_with_home(cfg, home).await.unwrap();
     let port = bound.port();
     let (stop, stopped) = oneshot::channel::<()>();
     let done = tokio::spawn(bound.serve(async {
@@ -154,8 +155,8 @@ async fn health_and_the_host_guard() {
     assert_eq!((cross.status, cross.text().as_str()), (403, "cross-site request refused"));
     assert_eq!(get(s.port, "/api/health/").await.status, 404);
     assert_eq!(get(s.port, "/api/nope").await.status, 404);
-    assert_eq!(get(s.port, "/api/assets").await.status, 501);
-    assert_eq!(get(s.port, "/api/canvases/x").await.status, 501);
+    assert_eq!(get(s.port, "/api/assets").await.status, 200);
+    assert_eq!(get(s.port, "/api/canvases/x").await.status, 404);
     s.stop().await;
 }
 
@@ -397,7 +398,8 @@ async fn reads_the_config_version_from_the_file_and_names_a_taken_port() {
     assert_eq!(json(&get(s.port, "/api/health").await)["configVersion"].as_i64(), Some(ms));
 
     cfg.port = s.port;
-    let taken = bind(cfg).await.err().expect("the port is taken").to_string();
+    let home = cfg.data_dir.with_file_name("home");
+    let taken = bind_with_home(cfg, home).await.err().expect("the port is taken").to_string();
     assert!(taken.contains("listen EADDRINUSE"), "{taken}");
     s.stop().await;
 }
@@ -435,8 +437,9 @@ async fn answers_the_control_routes_and_keeps_control_json() {
     }
     let big = format!(r#"{{"pad":"{}"}}"#, "x".repeat(5000));
     assert_eq!(post_control(s.port, "page", &big).await.status, 400);
-    // The alerts module is not ported yet.
-    assert_eq!(post_control(s.port, "alert", "{}").await.status, 501);
+    // The alert action is the alerts module's (routes_alerts.rs covers it): an empty action is refused by the engine.
+    let alert = post_control(s.port, "alert", "{}").await;
+    assert_eq!((alert.status, alert.text().as_str()), (400, "unknown action"));
 
     // Without a config there is no profile to act on.
     let none = post_control(s.port, "page", r#"{"page":"main"}"#).await;

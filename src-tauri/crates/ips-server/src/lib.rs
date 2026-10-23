@@ -3,7 +3,16 @@
 // shutdown future resolves. Every request passes the request guard, then goes to the first route that matches its raw
 // pathname, in server.mjs's order; anything that is not /api/ is the static build.
 
+pub mod agent_usage;
+pub mod agents;
+pub mod alerts;
+pub mod alerts_engine;
+pub mod alerts_rules;
+pub mod asset_types;
+pub mod assets;
+pub mod calendar;
 pub mod canvases;
+pub mod claude_sessions;
 pub mod config;
 pub mod config_guard;
 pub mod config_settings;
@@ -11,10 +20,18 @@ pub mod control;
 pub mod control_store;
 pub mod debug;
 pub mod env;
+pub mod extras;
+pub mod guarded_net;
 pub mod http;
+pub mod ical;
+pub mod infopanel_local;
+pub mod integrations;
 pub mod js;
+pub mod js_date;
 pub mod json;
+pub mod library;
 pub mod locale;
+pub mod obs;
 pub mod request_guard;
 pub mod security_headers;
 pub mod sse;
@@ -36,10 +53,17 @@ use serde_json::json;
 use tokio::sync::watch;
 use tower_http::catch_panic::CatchPanicLayer;
 
+use crate::agent_usage::AgentUsage;
+use crate::agents::{Agents, Sources};
+use crate::alerts::{Alerts, Options as AlertsOptions};
+use crate::assets::Assets;
+use crate::canvases::{CanvasStore, Sweeper};
 use crate::config::ConfigStore;
 use crate::control_store::Control;
 use crate::debug::Debug;
+use crate::extras::Extras;
 use crate::http::Req;
+use crate::library::LibraryStore;
 use crate::request_guard::{config_write_refusal, remote_edit_refusal, RequestGuard};
 use crate::studio_prefs::StudioPrefs;
 
@@ -48,22 +72,18 @@ pub const APP_ID: &str = "infopanel-dashboard";
 const MAX_STUDIO_PREFS_BYTES: usize = 4 * 1024;
 
 /// The routes server.mjs has that this server does not answer yet; each answers 501 until it is ported.
-const PENDING: [&str; 8] = [
-    "/api/alerts/history",
-    "/api/extras",
-    "/events/extras",
-    "/api/integrations",
-    "/api/agents/event",
-    "/api/agents/statusline",
+const PENDING: [&str; 2] = [
     "/api/image-proxy",
     "/api/font-proxy",
 ];
-/// The pending route families: the path itself and everything under it.
-const PENDING_FAMILIES: [&str; 4] = ["/api/assets", "/api/library", "/api/canvases", "/api/infopanel/installed"];
+
+/// Whether `path` is a route family's root or anything under it.
+fn is_family(path: &str, root: &str) -> bool {
+    path == root || path.strip_prefix(root).is_some_and(|rest| rest.starts_with('/'))
+}
 
 fn is_pending(path: &str) -> bool {
     PENDING.contains(&path)
-        || PENDING_FAMILIES.iter().any(|route| path == *route || path.strip_prefix(route).is_some_and(|rest| rest.starts_with('/')))
 }
 
 /// What the server runs with: the same inputs as the Node server's environment.
@@ -136,6 +156,12 @@ pub struct App {
     pub debug: Arc<Debug>,
     pub config: Arc<ConfigStore>,
     pub control: Arc<Control>,
+    pub alerts: Arc<Alerts>,
+    pub extras: Arc<Extras>,
+    pub agents: Agents,
+    pub assets: Assets,
+    pub canvases: Arc<CanvasStore>,
+    pub library: LibraryStore,
     prefs: StudioPrefs,
     pub shutdown: watch::Receiver<bool>,
 }
@@ -172,6 +198,11 @@ fn listen_socket(addr: SocketAddr) -> std::io::Result<std::net::TcpListener> {
 
 /// Takes the port, loads the data folder and prints the start line (stdout), as server.mjs does on listen.
 pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
+    bind_with_home(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from("."))).await
+}
+
+/// `bind` with the user's home (where `.claude` and `.codex` are read) given, so a test never reads the real one.
+pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, StartError> {
     std::fs::create_dir_all(&cfg.data_dir).map_err(|e| StartError::Other(format!("{}: {e}", cfg.data_dir.display())))?;
     let config = ConfigStore::load(&cfg.config_file());
     let prefs = StudioPrefs::load(&cfg.data_dir.join("studio-prefs.json"));
@@ -206,11 +237,55 @@ pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
         move || control.config_changed()
     });
     control_store::start_tick(Arc::clone(&control), shutdown.clone());
+    // The alert engine reads the Data API for the rules' sensors; re-reads the rules after control has on a save.
+    let alerts = Alerts::new(AlertsOptions::live(cfg.data_dir.join("alerts.json"), Arc::clone(&control), shutdown.clone(), {
+        let config = Arc::clone(&config);
+        move || config.read()
+    }));
+    alerts.start(&shutdown);
+    config.on_saved({
+        let alerts = Arc::clone(&alerts);
+        move || alerts.config_changed()
+    });
+    // The coding agents: hook posts, Claude Code's session files and the transcripts' token use.
+    let agents = Agents::new(
+        Sources {
+            usage: Arc::new(AgentUsage::new(&home)),
+            claude_sessions: Box::new({
+                let home = home.clone();
+                move || claude_sessions::read_claude_sessions(&home, &claude_sessions::is_alive)
+            }),
+            now: Box::new(|| config::now_ms() as f64),
+        },
+        agents::PUBLISH_THROTTLE,
+    );
+    // The OBS connection and the calendar refresh.
+    let extras = Extras::new(&cfg.data_dir.join("integrations.json"), {
+        let agents = agents.clone();
+        move || agents.state()
+    })
+    .map_err(StartError::Other)?;
+    agents.set_on_change({
+        let extras = Arc::clone(&extras);
+        move || extras.publish()
+    });
+    extras.start(&shutdown);
+    agents.start(&shutdown);
+    let canvases = Arc::new(CanvasStore::new(&cfg.data_dir.join("canvases")));
+    // Canvas files the config no longer references: at start and after saves, off the request that triggered it.
+    let sweeper = Sweeper::new(Arc::clone(&canvases), cfg.config_file());
+    config.on_saved({
+        let sweeper = Arc::clone(&sweeper);
+        move || sweeper.trigger()
+    });
+    sweeper.trigger();
+    let assets = Assets::new(cfg.data_dir.join("assets"), cfg.allow_remote_upload);
+    let library = LibraryStore::new(cfg.data_dir.join("library"));
     println!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display());
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, control, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, alerts, extras, agents, assets, canvases, library, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -289,7 +364,16 @@ async fn route(app: &App, req: Req) -> Result<Response<Body>, String> {
         "/api/studio-prefs" => studio_prefs(app, req).await.map_err(io),
         "/events/config" => Ok(config::handle_events(app)),
         "/events/control" => Ok(control_store::handle_events(app, &req)),
+        "/api/alerts/history" => Ok(alerts::handle_history(app, &req)),
+        "/api/extras" => Ok(extras::handle_extras(app, &req)),
+        "/events/extras" => Ok(extras::handle_events(app)),
+        "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
+        "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
         p if p == "/api/control" || p.starts_with("/api/control/") => Ok(control_store::handle(app, req).await),
+        p if is_family(p, "/api/assets") => assets::handle(app, req).await.map_err(io),
+        p if is_family(p, "/api/library") => library::handle(app, req).await.map_err(io),
+        p if is_family(p, "/api/canvases") => canvases::handle(app, req).await.map_err(io),
+        p if is_family(p, "/api/infopanel/installed") => infopanel_local::handle(app, &req).map_err(io),
         p if is_pending(p) => Ok(http::text(501, "not ported to ips-server yet")),
         p if p.starts_with("/api/") => Ok(http::empty(404)),
         _ => static_files::serve(&app.cfg.dist, &req),

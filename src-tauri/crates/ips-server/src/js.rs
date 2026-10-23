@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 /// Whether `c` is one of the characters `String.prototype.trim` removes.
-fn is_js_space(c: char) -> bool {
+pub fn is_js_space(c: char) -> bool {
     matches!(
         c,
         '\t' | '\n'

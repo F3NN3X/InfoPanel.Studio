@@ -15,9 +15,16 @@ const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 // Starts the server (server.mjs, or ips-server under SERVER_IMPL=native) with the given env on a port the OS picks
 // (PORT=0), read back from its start line, so no other process can take the port between choosing and binding it. It
 // never touches the real data folder.
+// The server reads the user's home (os.homedir: USERPROFILE on Windows, HOME elsewhere) and %LOCALAPPDATA%\InfoPanel;
+// both point inside the test's own folder, so a test never scans real files.
+function isolatedHome(dataDir) {
+  const home = path.join(dataDir, "home");
+  return { HOME: home, USERPROFILE: home, INFOPANEL_DATA_DIR: path.join(dataDir, "infopanel") };
+}
+
 async function start(env) {
   const server = serverCommand();
-  const child = spawn(server.cmd, server.args, { env: { ...process.env, ...env, PORT: "0", HOST: "127.0.0.1" } });
+  const child = spawn(server.cmd, server.args, { env: { ...process.env, ...isolatedHome(env.DASHBOARD_DATA_DIR), ...env, PORT: "0", HOST: "127.0.0.1" } });
   let out = "";
   child.stdout.on("data", (c) => (out += c));
   child.stderr.on("data", (c) => (out += c));
