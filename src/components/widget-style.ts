@@ -208,7 +208,8 @@ export interface SurfaceColors {
 
 const GLOW_BLUR = { soft: 14, strong: 32 } as const;
 
-const blurFilter = (px: number): string => (px > 0 ? `blur(${px}px)` : "none");
+/** The blur cap (`--wp-blur-cap`, set on the page root by Limit blur) keeps a large blur from costing more than it shows. */
+const blurFilter = (px: number): string => (px > 0 ? `blur(min(${px}px, var(--wp-blur-cap, ${px}px)))` : "none");
 
 /**
  * A widget's surface box: its background, text color and 1px edge, with

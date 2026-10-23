@@ -109,6 +109,30 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
           value={g.kioskRefresh}
           onChange={(v) => set("kioskRefresh", v === "daily" ? undefined : v)}
         />
+        <ToggleRow
+          label="Ring glides"
+          hint="Rings ease to each new reading. Off: they step, which lets the page rest between readings."
+          value={g.ringGlide}
+          onChange={(on) => set("ringGlide", on ? true : undefined)}
+        />
+        <ToggleRow
+          label="Limit blur"
+          hint="Caps widget blur at 12 px. Large blurs cost far more to draw; on a solid background blur is skipped anyway."
+          value={g.blurLimit}
+          onChange={(on) => set("blurLimit", on ? undefined : false)}
+        />
+        <ToggleRow
+          label="Blur inside widgets"
+          hint="Small badges and cards inside a widget blur what's behind them. Off: they keep their tint."
+          value={g.innerBlur}
+          onChange={(on) => set("innerBlur", on ? true : undefined)}
+        />
+        <ToggleRow
+          label="Live graph glow"
+          hint="A graph's glow is a filter redrawn with the line. Off: a static glow drawn under the line."
+          value={g.liveGlow}
+          onChange={(on) => set("liveGlow", on ? true : undefined)}
+        />
       </SettingsGroup>
 
       <SettingsGroup id="clock" title="Clock & date" scope="All screens and the island">

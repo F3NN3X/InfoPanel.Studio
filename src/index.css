@@ -312,10 +312,26 @@
   to { opacity: 0; filter: blur(4px); transform: translateY(-4px); }
 }
 .island-exit { animation: island-exit var(--island-exit, 120ms) ease-in both; }
+/* The glow sits on the wrapper's ::after (the island itself clips its children) and only its opacity
+   pulses: animating a box-shadow repaints every frame. */
 @keyframes island-critical {
-  50% { box-shadow: 0 0 0 2px var(--island-accent), 0 0 26px 4px var(--island-accent); }
+  50% { opacity: 1; }
 }
-.island-critical { animation: island-critical 1.6s ease-in-out infinite; }
+.island-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px var(--island-accent), 0 0 26px 4px var(--island-accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: island-critical 1.6s ease-in-out infinite;
+}
+/* The retro header's cursor blinks in steps: an opacity fade would redraw it every frame. */
+@keyframes wp-blink {
+  50% { opacity: 0; }
+}
+.wp-blink { animation: wp-blink 1s steps(1) infinite; }
 /* Below 60 fps, or with reduced motion (PerformanceProvider sets the flag), a widget's CSS transitions
    and animations are off: they run at the display rate, past the Max FPS cap, and a width or height
    transition lays out every frame. Readings then step at the data rate. */
@@ -325,6 +341,31 @@
 [data-lite-motion] [data-wp-tier] *::after {
   transition: none !important;
   animation: none !important;
+}
+/* Ring glides off (the default): rings step to each reading instead of easing, which lets the page rest
+   between readings. */
+[data-ring-step] [data-wp-ring] {
+  transition: none !important;
+}
+/* Blur inside widgets off (the default): small badges and cards keep their tint without blurring what is
+   behind them. The widget surface, the island and alerts keep theirs. */
+[data-inner-blur-off] [data-wp-inner-blur],
+[data-inner-blur-off] .wp-panel-title {
+  backdrop-filter: none !important;
+}
+/* Live graph glow off (the default): the glow is a static wide faint copy of the line, drawn under it,
+   not a drop-shadow filter redrawn with the line. */
+[data-wp-glow] {
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+[data-wp-glow-line] {
+  display: none;
+}
+[data-glow-static] [data-wp-glow] {
+  filter: none;
+}
+[data-glow-static] [data-wp-glow-line] {
+  display: inline;
 }
 /* Over a solid page background a widget's blur has nothing to blur: no backdrop layer for it to redraw each
    frame. Widgets only (the island, alerts and overlays float over widgets and keep theirs); the background is

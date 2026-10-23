@@ -181,7 +181,7 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, tr
           <g transform={`rotate(${-sweep / 2} 50 50)`}>
             <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} strokeLinecap={cap} strokeDasharray={`${arc} ${c}`} />
             <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
-              strokeDasharray={`${arc * pct} ${c}`} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} />
+              strokeDasharray={`${arc * pct} ${c}`} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring="" />
           </g>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
@@ -193,7 +193,7 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, tr
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
         <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={glide} />
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={glide} data-wp-ring="" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
@@ -230,7 +230,7 @@ export function RingStack({ rings, thickness: th0 = 9, gap = 3, children, classN
               <g key={i}>
                 <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
                 <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth={thickness} strokeLinecap={cap}
-                  strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v || 0) / 100)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} />
+                  strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v || 0) / 100)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring="" />
               </g>
             );
           })}
@@ -332,10 +332,12 @@ interface GraphPathsProps {
   fillId: string;
   color: string;
   strokeWidth: number;
+  /** The graph glows: a filter (`data-wp-glow`) or, under `data-glow-static`, a wide faint copy of the line. */
+  glow?: boolean;
 }
 
 /** The fill gradient, fill and line of a line / area / step graph. */
-function GraphPaths({ line, area, step, fill, fillId, color, strokeWidth, refs }: { line: string; area: string; step: boolean; fill: boolean; fillId: string; color: string; strokeWidth: number; refs?: { line: RefObject<SVGPathElement | null>; area: RefObject<SVGPathElement | null> } }) {
+function GraphPaths({ line, area, step, fill, fillId, color, strokeWidth, glow, refs }: { line: string; area: string; step: boolean; fill: boolean; fillId: string; color: string; strokeWidth: number; glow?: boolean; refs?: { line: RefObject<SVGPathElement | null>; area: RefObject<SVGPathElement | null>; glow?: RefObject<SVGPathElement | null> } }) {
   return (
     <>
       <defs>
@@ -346,6 +348,7 @@ function GraphPaths({ line, area, step, fill, fillId, color, strokeWidth, refs }
         </linearGradient>
       </defs>
       {fill && <path ref={refs?.area} d={area} fill={step ? color : `url(#${fillId})`} opacity={step ? 0.08 : undefined} />}
+      {glow && <path ref={refs?.glow} data-wp-glow-line="" d={line} fill="none" stroke={color} strokeWidth={strokeWidth * 3} opacity={0.3} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />}
       <path ref={refs?.line} d={line} fill="none" stroke={color} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
     </>
   );
@@ -357,8 +360,9 @@ function GraphPaths({ line, area, step, fill, fillId, color, strokeWidth, refs }
  * the segment into the newest reading slides in and uneven arrivals neither jump nor stop it; the
  * auto range eases. React renders once per sample; the animation loop writes the paths.
  */
-function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth, className, style }: GraphPathsProps & { className: string; style?: CSSProperties }) {
+function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth, glow, className }: GraphPathsProps & { className: string }) {
   const line = useRef<SVGPathElement>(null);
+  const glowLine = useRef<SVGPathElement>(null);
   const area = useRef<SVGPathElement>(null);
   const scroll = useRef(new SmoothScroll(HISTORY_LEN));
   const easer = useRef(new RangeEaser(300));
@@ -395,6 +399,7 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
     const d = sparkPaths(pts, ...(fixed ? target : easer.current.next(target, dt)), step);
     pc.easing = !fixed && easer.current.moving(target);
     line.current!.setAttribute("d", d.line);
+    glowLine.current?.setAttribute("d", d.line);
     area.current?.setAttribute("d", d.area);
     const s = still.current;
     s.n = d.line === s.d ? s.n + 1 : 0;
@@ -405,8 +410,8 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
   // React write the static layout on every new sample, flashing it for a frame.
   const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max), step));
   return (
-    <svg ref={svg} viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-hidden ${className}`} style={style}>
-      <GraphPaths line={first.line} area={first.area} step={step} fill={fill} fillId={fillId} color={color} strokeWidth={strokeWidth} refs={{ line, area }} />
+    <svg ref={svg} viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-hidden ${className}`} data-wp-glow={glow ? "" : undefined}>
+      <GraphPaths line={first.line} area={first.area} step={step} fill={fill} fillId={fillId} color={color} strokeWidth={strokeWidth} glow={glow} refs={{ line, area, glow: glowLine }} />
     </svg>
   );
 }
@@ -430,16 +435,16 @@ export function Spark({ values = [], min, max, className = "h-10", fill = true, 
   if (values.length < 2) return <div className={className} />;
   const [lo, hi] = sparkRange(values, min, max);
   if (mode === "braille") return <Braille values={values} lo={lo} hi={hi} className={className} />;
-  const glow = sk.glow ? { filter: "drop-shadow(0 0 4px var(--accent))" } : undefined;
+  const glow = !!sk.glow;
   const step = mode === "step";
   const strokeWidth = (sk.skin === "ink" ? 1 : width) * sk.stroke;
   const showFill = fill && (mode === "area" || step);
   if (sk.smooth && !reduced && (mode === "area" || mode === "line" || step) && values.length >= 6)
-    return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} className={className} style={glow} />;
+    return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} className={className} />;
   const span = hi - lo || 1;
   const Y = (v: number) => Math.min(98, Math.max(2, 100 - ((v - lo) / span) * 94 - 3));
   const svg = (kids: ReactNode) => (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-visible ${className}`} style={glow}>
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-visible ${className}`} data-wp-glow={glow ? "" : undefined}>
       {kids}
     </svg>
   );
@@ -456,7 +461,7 @@ export function Spark({ values = [], min, max, className = "h-10", fill = true, 
     );
   }
   const d = sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), lo, hi, step);
-  return svg(<GraphPaths line={d.line} area={d.area} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} />);
+  return svg(<GraphPaths line={d.line} area={d.area} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} />);
 }
 
 export const Dot = ({ ok, className = "" }: { ok?: boolean; className?: string }) => (
@@ -493,7 +498,7 @@ export function LegendRow({ color, label, value, className = "text-[12.5px]" }: 
 }
 /** A dark frosted pill for overlays on artwork. */
 export const GlassPill = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
-  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-zinc-100 ring-1 ring-white/10 backdrop-blur-md ${className}`}>{children}</span>
+  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-zinc-100 ring-1 ring-white/10 backdrop-blur-md ${className}`} data-wp-inner-blur="">{children}</span>
 );
 export function Empty({ icon = "sensors_off", label = "No data" }: { icon?: string; label?: ReactNode }) {
   return (

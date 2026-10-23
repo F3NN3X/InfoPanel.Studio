@@ -5,6 +5,9 @@ import { useGeneral } from "@/hooks/use-general";
 import { resolvePerformance, type PerformanceOverride, type ResolvedPerformance } from "@/lib/performance";
 import { setTickerMaxFps } from "@/lib/ticker";
 
+/** The most a widget's blur may be when Limit blur is on. */
+const BLUR_CAP_PX = 12;
+
 const QUERY = "(prefers-reduced-motion: reduce)";
 
 const subscribe = (onChange: () => void) => {
@@ -43,6 +46,20 @@ export function PerformanceProvider({ value, children }: { value: PerformanceOve
     document.documentElement.toggleAttribute("data-lite-motion", lite);
     return () => document.documentElement.removeAttribute("data-lite-motion");
   }, [lite]);
+  // The Rendering options reach the CSS the same way (see the flags next to `data-lite-motion` in index.css).
+  const { ringGlide, blurLimit, innerBlur, liveGlow } = useGeneral();
+  useEffect(() => {
+    const root = document.documentElement;
+    root.toggleAttribute("data-ring-step", !ringGlide);
+    root.toggleAttribute("data-inner-blur-off", !innerBlur);
+    root.toggleAttribute("data-glow-static", !liveGlow);
+    if (blurLimit) root.style.setProperty("--wp-blur-cap", `${BLUR_CAP_PX}px`);
+    else root.style.removeProperty("--wp-blur-cap");
+    return () => {
+      for (const flag of ["data-ring-step", "data-inner-blur-off", "data-glow-static"]) root.removeAttribute(flag);
+      root.style.removeProperty("--wp-blur-cap");
+    };
+  }, [ringGlide, blurLimit, innerBlur, liveGlow]);
   return <OverrideContext.Provider value={value}>{children}</OverrideContext.Provider>;
 }
 

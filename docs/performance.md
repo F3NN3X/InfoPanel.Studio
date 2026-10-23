@@ -25,6 +25,11 @@ Two settings decide how much the page animates.
   - It is stored as `general.motion`.
   - A profile can override it with `performance.motion`.
 - **Refresh kiosk pages:** `daily` (reload at 04:00 local plus up to 5 min of jitter, to give back the memory a long run holds) or `off`. The default is `daily`. It is stored as `general.kioskRefresh`.
+- **Rendering** (Settings › Dashboard › Performance), four switches that trade a little polish for a page that rests between readings:
+  - **Ring glides** (`general.ringGlide`, default off): rings ease to each reading; off, they step.
+  - **Limit blur** (`general.blurLimit`, default on): caps a widget's blur at 12 px.
+  - **Blur inside widgets** (`general.innerBlur`, default off): small badges and cards inside a widget blur what is behind them; off, they keep their tint.
+  - **Live graph glow** (`general.liveGlow`, default off): a graph's glow is a filter redrawn with the line; off, a static glow is drawn under it.
 
 **URL overrides** apply to kiosk pages only:
 - `&fps=5|15|30|60|0`;

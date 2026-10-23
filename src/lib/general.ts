@@ -32,6 +32,14 @@ export interface GeneralSettings {
   kioskPageNav?: boolean;
   /** Kiosk pages reload once a day around 04:00 to give back memory (default daily). */
   kioskRefresh?: KioskRefresh;
+  /** Rings ease to each new reading (default off: they step). */
+  ringGlide?: boolean;
+  /** Cap a widget's blur at 12 px (default on). */
+  blurLimit?: boolean;
+  /** Badges and cards inside a widget blur what is behind them (default off). */
+  innerBlur?: boolean;
+  /** A graph's glow is a filter redrawn with the line (default off: a static glow under it). */
+  liveGlow?: boolean;
 }
 
 /** GeneralSettings with every default filled, and the clocks' 12-hour switch (undefined: the locale's choice). */
@@ -45,6 +53,10 @@ export interface ResolvedGeneral {
   hideCursor: boolean;
   kioskPageNav: boolean;
   kioskRefresh: KioskRefresh;
+  ringGlide: boolean;
+  blurLimit: boolean;
+  innerBlur: boolean;
+  liveGlow: boolean;
 }
 
 export const GENERAL_DEFAULTS: ResolvedGeneral = {
@@ -57,6 +69,10 @@ export const GENERAL_DEFAULTS: ResolvedGeneral = {
   hideCursor: false,
   kioskPageNav: false,
   kioskRefresh: "daily",
+  ringGlide: false,
+  blurLimit: true,
+  innerBlur: false,
+  liveGlow: false,
 };
 
 /** CSS font stacks for the font choices (also the widget style's Font option). */
@@ -66,6 +82,7 @@ export const FONT_STACKS: Record<Exclude<GeneralFont, "system">, string> = Objec
 
 const FONTS: readonly GeneralFont[] = FONT_IDS;
 const MOTIONS: readonly MotionChoice[] = ["system", "reduce", "full"];
+const RENDERING_KEYS = ["ringGlide", "blurLimit", "innerBlur", "liveGlow"] as const;
 const KIOSK_REFRESHES: readonly KioskRefresh[] = ["daily", "off"];
 
 /**
@@ -128,6 +145,7 @@ export function normalizeGeneral(input: unknown): GeneralSettings | undefined {
   if (typeof v.hideCursor === "boolean") out.hideCursor = v.hideCursor;
   if (typeof v.kioskPageNav === "boolean") out.kioskPageNav = v.kioskPageNav;
   if (KIOSK_REFRESHES.includes(v.kioskRefresh as KioskRefresh)) out.kioskRefresh = v.kioskRefresh as KioskRefresh;
+  for (const key of RENDERING_KEYS) if (typeof v[key] === "boolean") out[key] = v[key];
   return Object.keys(out).length > 0 ? out : undefined;
 }
 

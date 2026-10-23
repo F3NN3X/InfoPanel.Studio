@@ -219,7 +219,7 @@ describe("surfaceBox", () => {
     expect(box).toMatchObject({
       background: "rgba(24, 24, 27, 0.4)",
       boxShadow: "inset 0 0 0 3px #f0f, inset 0 0 32px #0ff",
-      backdropFilter: "blur(8px)",
+      backdropFilter: "blur(min(8px, var(--wp-blur-cap, 8px)))",
     });
   });
 });

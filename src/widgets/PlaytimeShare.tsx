@@ -67,7 +67,7 @@ export default function PlaytimeShare(p: PlaytimeShareProps) {
             )}
             <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-md">
               {games.map((g, i) => (
-                <span key={g.name} title={`${g.name} · ${fmt(g.two, 1)} h`} className="h-full transition-[flex-grow] duration-700 first:rounded-l-md last:rounded-r-md" style={{ flexGrow: g.two, background: pal[i % pal.length] }} />
+                <span key={g.name} title={`${g.name} · ${fmt(g.two, 1)} h`} className="h-full first:rounded-l-md last:rounded-r-md" style={{ flexGrow: g.two, background: pal[i % pal.length] }} />
               ))}
             </div>
             {rowsN > 0 && (

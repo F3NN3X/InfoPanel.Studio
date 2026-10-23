@@ -414,7 +414,7 @@ export function SkinHeader({ kind, title, icon, right, bleed, bg = "#0b0b0d" }: 
     return (
       <header className={`${base} mb-1.5 gap-1 text-[17px] uppercase leading-none text-[color:var(--accent)]`} style={st("uppercase")}>
         <span className="truncate">&gt; {title}</span>
-        <span className="animate-pulse">_</span>
+        <span className="wp-blink">_</span>
         {r}
       </header>
     );

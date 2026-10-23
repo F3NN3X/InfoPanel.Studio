@@ -14,11 +14,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
   - animated Meteocons follow Max FPS and stop while hidden: they used to animate at the display's rate;
   - a smoothly scrolling graph redraws once its line has moved half a pixel instead of every frame;
   - a Blur of 0 no longer keeps a blur layer.
+- **Cheaper animations, same look.** The island's critical glow pulses an overlay's opacity instead of a box-shadow, the retro header's cursor blinks in steps, and gauges, meter markers and the playtime bar no longer transition `all` or layout properties (the playtime bar's segments now change size without gliding).
 - `tools/perf/render-bench.cjs` measures a page's CPU and memory with one kind of drawing switched off at a time.
 
 ### Added
 
 - **Refresh the Studio** (Settings › App › Window): the desktop Studio reloads itself after saving, to give back the memory a long session holds (an overnight run grew it to 2 GB). When idle for 30 minutes (default), daily at 04:00, or off; only while its window isn't focused.
+- **Rendering options** (Settings › Dashboard › Performance): Ring glides, Limit blur (on by default, caps widget blur at 12 px), Blur inside widgets and Live graph glow. Rings step, inner blurs are off and graph glow is a static copy of the line unless you turn them on.
 - **Refresh kiosk pages** (Settings › Dashboard › Performance): kiosk pages reload once a day at about 04:00 (default; each kiosk adds a few random minutes), or never.
 - **The desktop Studio uses less memory while it isn't focused** (WebView2's low memory target), **reloads itself if its page crashes or hangs** (at most once a minute), and **says when WebView2 has updated** and a restart would pick it up.
 

@@ -10,7 +10,7 @@ import type { DashboardConfig } from "@/lib/layout";
 import type { PerformanceOverride } from "@/lib/performance";
 
 /** The `general` keys Settings › Dashboard writes (the page font is Theme's). */
-export type DashboardGeneralKey = "showSeconds" | "locale" | "motion" | "maxFps" | "hideCursor" | "kioskPageNav" | "kioskRefresh";
+export type DashboardGeneralKey = "showSeconds" | "locale" | "motion" | "maxFps" | "hideCursor" | "kioskPageNav" | "kioskRefresh" | "ringGlide" | "blurLimit" | "innerBlur" | "liveGlow";
 
 export interface SettingsPatch {
   general?: { [K in DashboardGeneralKey]?: GeneralSettings[K] | null };

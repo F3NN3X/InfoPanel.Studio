@@ -148,7 +148,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                 return (
                   <g key={c.i}>
                     <title>{`Core ${c.i} · ${fmt(c.load, 0)}% · ${fmt(c.mhz, 0)} MHz`}</title>
-                    <polygon points={HEX(cx, cy, r * 0.92)} fill={heat(v, ramp)} style={{ transition: "fill .7s" }} />
+                    <polygon points={HEX(cx, cy, r * 0.92)} fill={heat(v, ramp)} style={{ transition: "fill .7s" }} data-wp-ring="" />
                     {(p.showValues ?? size !== "xs") && (
                       <text x={cx} y={cy + 2.2} textAnchor="middle" fontSize="6" fontWeight="600" fill={text(v)} style={{ fontVariantNumeric: "tabular-nums" }}>
                         {label(c)}
@@ -173,7 +173,7 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                     <g key={c.i}>
                       <title>{`Core ${c.i} · ${fmt(c.load, 0)}%`}</title>
                       <path d={arc(50, 50, 30, 47, a0, a1)} fill="var(--w-track)" />
-                      <path d={arc(50, 50, 30, 30 + 17 * Math.max(0.06, v / 100), a0, a1)} fill={heat(v, ramp)} style={{ transition: "d .7s, fill .7s" }} />
+                      <path d={arc(50, 50, 30, 30 + 17 * Math.max(0.06, v / 100), a0, a1)} fill={heat(v, ramp)} style={{ transition: "d .7s, fill .7s" }} data-wp-ring="" />
                     </g>
                   );
                 })}

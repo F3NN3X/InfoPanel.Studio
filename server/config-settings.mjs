@@ -40,6 +40,10 @@ const GENERAL = {
   hideCursor: isBool,
   kioskPageNav: isBool,
   kioskRefresh: isKioskRefresh,
+  ringGlide: isBool,
+  blurLimit: isBool,
+  innerBlur: isBool,
+  liveGlow: isBool,
 };
 const STYLE = { clock: (v) => v === "12" || v === "24" };
 const PERFORMANCE = { maxFps: isFps, motion: isMotion };
