@@ -108,6 +108,8 @@ mod tests {
         assert!(parts.iter().all(|p| p.parse::<u32>().is_ok()));
     }
 
+    // A release build reads the bundled resource only, so this holds in debug builds.
+    #[cfg(debug_assertions)]
     #[test]
     fn dev_builds_read_the_repo_changelog() {
         let paths = Paths {
