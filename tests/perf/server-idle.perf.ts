@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import { manifest, test } from "../e2e/fixtures";
+import { DEFAULT_DATA_API, manifest, test } from "../e2e/fixtures";
 import { type Sample, summarize, writeResult } from "./measure";
 
 // The server's own footprint with real clients: two kiosks and a studio open (their config, control and extras
@@ -25,6 +25,7 @@ test("server-idle", async ({ browser, scratch }) => {
   const pages = await Promise.all(
     [`/?kiosk=1&profile=${manifest.profiles.heavy}`, `/?kiosk=1&profile=${manifest.profiles.light}`, "/?studio=1"].map(async (path) => {
       const page = await browser.newPage();
+      await page.route(DEFAULT_DATA_API, (route) => route.abort("connectionrefused"));
       await page.goto(scratch.base + path);
       return page;
     })

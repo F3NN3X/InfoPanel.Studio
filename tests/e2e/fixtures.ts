@@ -18,8 +18,16 @@ export interface FixtureManifest {
 
 export const manifest: FixtureManifest = JSON.parse(fs.readFileSync(path.join(FIXTURE_DIR, "..", "fixture.json"), "utf8"));
 
+/** InfoPanel's default Data API: the real one on a dev machine, nothing in CI. Pages must use the fake one. */
+export const DEFAULT_DATA_API = "http://127.0.0.1:3921/**";
+
 /** Each test gets its own scratch server, so a spec that saves the config can't leak into another. */
 export const test = base.extend<{ scratch: Scratch }>({
+  // Refused like on a machine without InfoPanel, so a page that reaches for it fails here as in CI.
+  context: async ({ context }, use) => {
+    await context.route(DEFAULT_DATA_API, (route) => route.abort("connectionrefused"));
+    await use(context);
+  },
   // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from this destructuring.
   scratch: async ({}, use) => {
     const scratch = await startScratch();

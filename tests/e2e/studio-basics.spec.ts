@@ -1,9 +1,15 @@
+import fs from "node:fs";
+import path from "node:path";
 import { expect, test, watchErrors } from "./fixtures";
 
 // The studio loads, Design shows the fixture's zones, an inspector edit saves with Ctrl+S, and undo reverts it.
 
 test("Design: select, edit, save and undo", async ({ page, scratch }) => {
   const { errors } = watchErrors(page);
+  // A returning browser: its local copy (src/lib/layout.ts) already names the fake Data API. A fresh one renders
+  // the defaults, and reaches for the default Data API, until the server's config arrives.
+  const local = fs.readFileSync(path.join(scratch.dataDir, "config.json"), "utf8");
+  await page.addInitScript((value) => localStorage.setItem("infopanel-dashboard:config:v1", value), local);
   await page.goto(`${scratch.base}/?studio=1`);
   await page.getByRole("button", { name: "Design" }).click();
   await expect(page.locator("[data-zone-id]")).toHaveCount(7);

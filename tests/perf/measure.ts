@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { Browser, BrowserContext, CDPSession, Page } from "@playwright/test";
+import { DEFAULT_DATA_API } from "../e2e/fixtures";
 
 // Shared method of the perf specs (docs/performance.md, "The harness"). Each page measurement:
 // a fresh context, page load under a short trace (JS bytes, parse/compile time, first zone), a 5 s warm-up, then a
@@ -187,6 +188,8 @@ export interface PageRun {
 /** A fresh context and page with the rAF and first-zone probes, loaded and measured. */
 export async function openMeasured(browser: Browser, url: string, zoneSelector: string, viewport: { width: number; height: number }): Promise<PageRun> {
   const context = await browser.newContext({ viewport });
+  // Never InfoPanel's real Data API: a fresh studio reaches for the default until its config arrives.
+  await context.route(DEFAULT_DATA_API, (route) => route.abort("connectionrefused"));
   await context.addInitScript(RAF_INIT);
   await context.addInitScript(firstZoneInit(zoneSelector));
   const page = await context.newPage();
