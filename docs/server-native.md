@@ -92,3 +92,12 @@ reported at 3B.
    config passes through as stored text wherever the Node server passes it through.
 3. **What can't be identical.** `/api/debug/stats` (no V8 heap or event loop; tokio scheduling delay instead) and the
    server's RSS (in-process, it's the app's). Both are listed as justified differences at 3B.
+
+## Decisions (Gate 3A, approved)
+
+- The layout and the three new crates as above.
+- `serde_json` with `preserve_order`.
+- A hand-written static handler, held to today's rules by the parity tests.
+- The contract's oddities are kept as they are and pinned by tests. The two real bugs it found (iCal months without
+  the day; non-atomic font cache and agent settings writes) were fixed in the Node server first (#122), so the port
+  copies the fixed behaviour.
