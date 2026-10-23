@@ -49,7 +49,7 @@ alert rules and no integrations.
 
 | What | Size |
 |---|---|
-| `src-tauri/resources/` | 93.2 MB: `node/` 89.5 MB, `app/` 3.6 MB |
+| `src-tauri/resources/` | 93.2 MB: `node/` 89.5 MB, `app/` 3.6 MB (a leftover from an earlier `desktop:prepare`, not this build; see [phase1.md](phase1.md#disk)) |
 | Installed (`%LOCALAPPDATA%\InfoPanel Studio`) | 148.3 MB: `node/` 89.5 MB, `app/` 45.7 MB, exe 12.9 MB |
 | Installer (local, stale: 1.3.0-beta.1) | 26.8 MB |
 

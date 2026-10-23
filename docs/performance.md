@@ -229,6 +229,21 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
 
 Results: [perf-results/](perf-results/).
 
+### Node sidecar heap flags (tried, not kept)
+
+`--max-old-space-size=96 --max-semi-space-size=2` on the sidecar, measured on the heavy fixture with three alert
+rules firing and clearing (36 alerts in each run), two kiosks and a studio open, 10 minutes each, `--trace-gc` on
+both (2026-10-23, Node 24.6, Windows):
+
+| | RSS median | Private median | Event-loop p99 | GCs (scavenges + mark-compacts) | GC pause total |
+|---|---|---|---|---|---|
+| no flags | 63.6 MB | 64.8 MB | 16.6 ms | 103 (101 + 2) | 19.8 ms |
+| flags | 61.1 MB | 62.1 MB | 16.6 ms | 129 (126 + 3) | 24.8 ms |
+
+RSS fell 3.8%, short of the 15% that would justify the flags, and GC ran 25% more often, so `sidecar.rs` is
+unchanged. The heap is ~10 MB of the ~62 MB: the rest is Node's own runtime, which no heap flag reaches. The p99
+is Windows' ~15.6 ms timer resolution (see `docs/desktop/README.md`), not a stall.
+
 ## How to measure by hand
 
 The method behind the harness, for a real profile:
