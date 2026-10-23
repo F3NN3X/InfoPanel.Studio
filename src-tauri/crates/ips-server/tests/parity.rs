@@ -5,6 +5,8 @@ use std::path::PathBuf;
 
 use ips_server::config_guard::version_refusal;
 use ips_server::config_settings::{apply_settings_patch, reapply_settings, SettingsEntry};
+use ips_server::control::{current_page, is_island_shown, is_rotating, public_state, reduce, target_profile, State};
+use ips_server::control_store::Control;
 use ips_server::request_guard::{
     agent_write_refusal, config_write_refusal, control_write_refusal, hostname_of, is_loopback, parse_allowed_hosts,
     remote_edit_refusal, Refusal, RequestGuard,
@@ -135,4 +137,76 @@ fn studio_prefs() {
         };
         same("studio-prefs", &input, &got, &want);
     }
+}
+
+/// The state as the fixtures write it (fields equal to the empty state's left out), read and printed in full.
+fn full_state(slim: &Value) -> Value {
+    State::from_value(slim).to_value()
+}
+
+#[test]
+fn control() {
+    for (input, want) in cases("control") {
+        let state = State::from_value(&input["state"]);
+        let config = &input["config"];
+        let id = &input["id"];
+        let got = match str_of(&input, "fn").unwrap() {
+            "reduce" => match reduce(&state, &input["action"], config, input["now"].as_f64().unwrap()) {
+                Err(error) => json!({ "error": error }),
+                Ok(None) => json!({ "same": true }),
+                Ok(Some(next)) => json!({ "state": next.to_value() }),
+            },
+            "publicState" => public_state(&state, config),
+            "targetProfile" => target_profile(&state, config, Some(id).filter(|id| !id.is_null())),
+            "currentPage" => current_page(&state, config, id).map_or(Value::Null, Value::String),
+            "isRotating" => json!(is_rotating(&state, config, id)),
+            "isIslandShown" => json!(is_island_shown(&state, config, id)),
+            "session" => session(&input),
+            other => panic!("unknown fn {other}"),
+        };
+        let want = if want.get("state").is_some() { json!({ "state": full_state(&want["state"]) }) } else { want };
+        same("control", &input, &got, &want);
+    }
+}
+
+/// A store over time: the steps' results, the public state, control.json's text and the alert mute at the end.
+fn session(input: &Value) -> Value {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("control.json");
+    if let Some(text) = input["file"].as_str() {
+        std::fs::write(&file, text).unwrap();
+    }
+    let config = std::sync::Arc::new(std::sync::Mutex::new(input["config"].clone()));
+    let read = std::sync::Arc::clone(&config);
+    let control = Control::new(file.clone(), input["now0"].as_i64().unwrap(), move || Some(read.lock().unwrap().clone()).filter(|c| !c.is_null()));
+    let (mut rx, _listener) = control.subscribe();
+    let mut now = input["now0"].as_f64().unwrap();
+    let mut steps = Vec::new();
+    for step in input["steps"].as_array().unwrap() {
+        if let Some(at) = step["now"].as_f64() {
+            now = at;
+        }
+        let mut error = None;
+        if !step["action"].is_null() {
+            error = control.dispatch_at(&step["action"], now).err();
+        }
+        if !step["setAlerts"].is_null() {
+            control.set_alerts(step["setAlerts"].clone());
+        }
+        if step.get("config").is_some() {
+            *config.lock().unwrap() = step["config"].clone();
+            control.config_changed();
+        }
+        let mut told = 0;
+        while rx.try_recv().is_ok() {
+            told += 1;
+        }
+        steps.push(error.map_or_else(|| json!({ "told": told }), |e| json!({ "error": e })));
+    }
+    json!({
+        "steps": steps,
+        "get": control.get(),
+        "file": std::fs::read_to_string(&file).ok(),
+        "mutedUntil": control.muted_until(),
+    })
 }

@@ -12,6 +12,7 @@ import { applySettingsPatch, reapplySettings } from "../../server/config-setting
 import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, hostnameOf, isLoopback, parseAllowedHosts, remoteEditRefusal } from "../../server/request-guard.mjs";
 import { securityHeaders } from "../../server/security-headers.mjs";
 import { applyPrefs, normalizePrefs } from "../../server/studio-prefs.mjs";
+import { controlCases } from "./control-fixtures.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const OUT_DIR = path.join(ROOT, "tests/fixtures/parity");
@@ -302,6 +303,7 @@ const MODULES = {
   "config-guard": configGuard,
   "config-settings": configSettings,
   "studio-prefs": studioPrefs,
+  control: controlCases,
 };
 
 const check = process.argv.includes("--check");

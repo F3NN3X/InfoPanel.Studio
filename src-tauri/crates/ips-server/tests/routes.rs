@@ -154,7 +154,7 @@ async fn health_and_the_host_guard() {
     assert_eq!((cross.status, cross.text().as_str()), (403, "cross-site request refused"));
     assert_eq!(get(s.port, "/api/health/").await.status, 404);
     assert_eq!(get(s.port, "/api/nope").await.status, 404);
-    assert_eq!(get(s.port, "/api/control").await.status, 501);
+    assert_eq!(get(s.port, "/api/assets").await.status, 501);
     assert_eq!(get(s.port, "/api/canvases/x").await.status, 501);
     s.stop().await;
 }
@@ -399,5 +399,183 @@ async fn reads_the_config_version_from_the_file_and_names_a_taken_port() {
     cfg.port = s.port;
     let taken = bind(cfg).await.err().expect("the port is taken").to_string();
     assert!(taken.contains("listen EADDRINUSE"), "{taken}");
+    s.stop().await;
+}
+
+const CONTROL_WRITE: [(&str, &str); 2] = [("Content-Type", "application/json"), ("X-Dashboard-Control", "1")];
+
+async fn post_control(port: u16, action: &str, body: &str) -> Reply {
+    send(port, "POST", &format!("/api/control/{action}"), &CONTROL_WRITE, body).await
+}
+
+const CONTROL_CONFIG: &str = r#"{"version":11,"activeProfile":"auto","profiles":[{"id":"desk","pages":[{"id":"main"},{"id":"game"}]},{"id":"strip","pages":[{"id":"main"}]}]}"#;
+
+#[tokio::test]
+async fn answers_the_control_routes_and_keeps_control_json() {
+    let s = start().await;
+    let initial = get(s.port, "/api/control").await;
+    assert_eq!(initial.status, 200);
+    assert_eq!(initial.header("content-type"), Some("application/json; charset=utf-8"));
+    let start_reload = json(&initial)["reload"].as_i64().unwrap();
+    assert_eq!(initial.text(), format!(r#"{{"profile":null,"shown":null,"profiles":{{}},"alerts":[],"mutedUntil":null,"reload":{start_reload},"kiosks":[]}}"#));
+    assert_eq!(send(s.port, "POST", "/api/control", &CONTROL_WRITE, "{}").await.status, 405);
+    // An unknown type is 404 before the method is looked at.
+    for path in ["/api/control/", "/api/control/nope", "/api/control/page/x", "/api/control/mute", "/api/control/shown"] {
+        assert_eq!(get(s.port, path).await.status, 404, "{path}");
+    }
+    assert_eq!(get(s.port, "/api/control/page").await.status, 405);
+
+    let no_header = send(s.port, "POST", "/api/control/page", &[("Content-Type", "application/json")], "{}").await;
+    assert_eq!((no_header.status, no_header.text().as_str()), (403, "missing X-Dashboard-Control header"));
+    let text = send(s.port, "POST", "/api/control/page", &[("Content-Type", "text/plain"), ("X-Dashboard-Control", "1")], "{}").await;
+    assert_eq!(text.status, 415);
+    for bad in ["[]", "null", "{", "5", "\"x\""] {
+        let r = post_control(s.port, "page", bad).await;
+        assert_eq!((r.status, r.text().as_str()), (400, "expected a JSON object"), "{bad}");
+    }
+    let big = format!(r#"{{"pad":"{}"}}"#, "x".repeat(5000));
+    assert_eq!(post_control(s.port, "page", &big).await.status, 400);
+    // The alerts module is not ported yet.
+    assert_eq!(post_control(s.port, "alert", "{}").await.status, 501);
+
+    // Without a config there is no profile to act on.
+    let none = post_control(s.port, "page", r#"{"page":"main"}"#).await;
+    assert_eq!((none.status, none.text().as_str()), (400, "no profile"));
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+
+    let moved = post_control(s.port, "page", r#"{"profile":"desk","page":"game","type":"profile"}"#).await;
+    assert_eq!(moved.status, 200);
+    assert_eq!(json(&moved)["profiles"]["desk"]["page"], "game");
+    assert_eq!(json(&moved)["profile"], serde_json::Value::Null);
+    assert_eq!(post_control(s.port, "page", r#"{"page":"nope"}"#).await.text(), "unknown page");
+    assert_eq!(post_control(s.port, "profile", r#"{"profile":"nope"}"#).await.text(), "unknown profile");
+    assert_eq!(post_control(s.port, "rotate", r#"{"state":"sideways"}"#).await.text(), "bad rotate state");
+    assert_eq!(post_control(s.port, "kiosk", r#"{"action":"dim","profile":"desk","level":0.05}"#).await.text(), "bad dim level");
+    assert_eq!(post_control(s.port, "kiosk", r#"{"action":"nope"}"#).await.text(), "unknown kiosk action");
+    assert_eq!(post_control(s.port, "kiosk", r#"{"action":"dim","profile":"desk","level":0.4}"#).await.status, 200);
+    assert_eq!(post_control(s.port, "kiosk", r#"{"action":"island","profile":"desk","state":"on"}"#).await.status, 200);
+    let touched = post_control(s.port, "touch", "").await;
+    assert_eq!(touched.status, 200);
+    assert_eq!(json(&get(s.port, "/api/control").await)["profiles"]["desk"]["dim"], 0.4);
+
+    // The durable part only, compact, in Node's key order.
+    assert_eq!(
+        std::fs::read_to_string(s.data().join("control.json")).unwrap(),
+        r#"{"profile":null,"pages":{"desk":"game"},"override":{},"mutedUntil":null,"dim":{"desk":0.4},"dimLevel":{"desk":0.4},"islandOverride":{"desk":"on"}}"#
+    );
+    assert!(!s.data().join("control.json.tmp").exists());
+
+    // A second server on the same folder reads it back; its reload counter starts at its own start.
+    let other = tempfile::tempdir().unwrap();
+    let mut cfg = config(other.path());
+    cfg.data_dir = s.data();
+    let again = start_with(other, cfg).await;
+    post_config(again.port, CONTROL_CONFIG, &[]).await;
+    let state = json(&get(again.port, "/api/control").await);
+    assert_eq!((state["profiles"]["desk"]["page"].as_str(), state["profiles"]["desk"]["dim"].as_f64()), (Some("game"), Some(0.4)));
+    assert_eq!(state["profiles"]["desk"]["islandOverride"], "on");
+    again.stop().await;
+    s.stop().await;
+}
+
+#[tokio::test]
+async fn streams_the_control_state_and_lists_kiosks() {
+    let s = start().await;
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+    let open = |query: &'static str, port: u16| async move {
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+        stream.write_all(format!("GET /events/control{query} HTTP/1.1
+Host: localhost:{port}
+
+").as_bytes()).await.unwrap();
+        stream
+    };
+    let last_state = |seen: &str| -> serde_json::Value {
+        let line = seen.lines().rfind(|l| l.starts_with("data: ")).unwrap();
+        serde_json::from_str(line.trim_start_matches("data: ")).unwrap()
+    };
+    let stat = |name: &'static str| async move { json(&get(s.port, "/api/server/stats").await)[name].as_i64().unwrap() };
+
+    // A studio marker counts; a profile makes it a kiosk, not a studio.
+    let mut studio = open("?client=studio", s.port).await;
+    let mut seen = String::new();
+    events(&mut studio, &mut seen, 1).await;
+    assert!(seen.starts_with("HTTP/1.1 200"), "{seen}");
+    assert_eq!(last_state(&seen)["kiosks"], serde_json::json!([]));
+    assert_eq!((stat("studios").await, stat("clients").await), (1, 1));
+
+    let mut kiosk = open("?profile=desk&page=game&client=studio", s.port).await;
+    let mut kiosk_seen = String::new();
+    events(&mut kiosk, &mut kiosk_seen, 1).await;
+    let state = last_state(&kiosk_seen);
+    assert_eq!(state["shown"], "desk");
+    assert_eq!(state["kiosks"][0]["id"], "k1");
+    assert_eq!((state["kiosks"][0]["profile"].as_str(), state["kiosks"][0]["page"].as_str(), state["kiosks"][0]["address"].as_str()), (Some("desk"), Some("game"), Some("127.0.0.1")));
+    assert_eq!((stat("studios").await, stat("clients").await), (1, 2));
+    // The studio stream is told: shown changed, then the kiosk joined.
+    events(&mut studio, &mut seen, 3).await;
+    assert_eq!(last_state(&seen)["kiosks"].as_array().unwrap().len(), 1);
+
+    // A page switch reaches both; a touch does not.
+    post_control(s.port, "page", r#"{"profile":"desk","page":"main"}"#).await;
+    post_control(s.port, "touch", "{}").await;
+    events(&mut studio, &mut seen, 4).await;
+    assert_eq!(last_state(&seen)["profiles"]["desk"]["page"], "main");
+
+    // A config save tells the streams too (the pages may have changed).
+    let more = CONTROL_CONFIG.replace(r#"{"id":"game"}"#, r#"{"id":"game"},{"id":"extra"}"#);
+    post_config(s.port, &more, &[]).await;
+    events(&mut studio, &mut seen, 5).await;
+    drop(kiosk);
+    for _ in 0..200 {
+        if json(&get(s.port, "/api/control").await)["kiosks"] == serde_json::json!([]) {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!(json(&get(s.port, "/api/control").await)["kiosks"], serde_json::json!([]));
+    events(&mut studio, &mut seen, 6).await;
+    assert_eq!(last_state(&seen)["kiosks"], serde_json::json!([]));
+    drop(studio);
+    for _ in 0..200 {
+        if stat("studios").await == 0 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!((stat("studios").await, stat("clients").await), (0, 0));
+    s.stop().await;
+}
+
+#[tokio::test]
+async fn serves_debug_stats_only_in_debug_mode() {
+    let s = start().await;
+    for method in ["GET", "POST", "PUT"] {
+        assert_eq!(send(s.port, method, "/api/debug/stats", &[], "").await.status, 404, "{method}");
+    }
+    s.stop().await;
+
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = config(dir.path());
+    cfg.debug = true;
+    let s = start_with(dir, cfg).await;
+    assert_eq!(send(s.port, "POST", "/api/debug/stats", &[], "").await.status, 405);
+    let mut stream = TcpStream::connect(("127.0.0.1", s.port)).await.unwrap();
+    stream.write_all(format!("GET /events/config HTTP/1.1
+Host: localhost:{}
+
+", s.port).as_bytes()).await.unwrap();
+    events(&mut stream, &mut String::new(), 1).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let stats = get(s.port, "/api/debug/stats").await;
+    assert_eq!(stats.status, 200);
+    assert_eq!(stats.header("content-type"), Some("application/json; charset=utf-8"));
+    let body = json(&stats);
+    assert!(body["memory"]["rss"].as_u64().unwrap() > 0);
+    assert_eq!(body["sseClients"]["config"], 1);
+    assert!(body["eventLoopDelayMs"]["p99"].is_number());
+    assert!(body["resources"]["Task"].as_u64().unwrap() > 0);
+    assert!(body["uptimeSeconds"].is_number());
+    drop(stream);
     s.stop().await;
 }

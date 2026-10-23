@@ -9,11 +9,6 @@ export const NATIVE_PENDING = new Set([
   "follows image-proxy redirects only to allowed targets",
   // /api/canvases
   "keeps canvases apart from the config, so twenty imports fit under its cap",
-  // /events/control and /api/control
-  "counts a studio's marked control stream in /api/server/stats until it closes",
-  "lists a kiosk in the control state while its control stream is open",
-  // /api/debug/stats
-  "serves /api/debug/stats only in debug mode and logs requests",
 ]);
 
 /** The server under test: SERVER_IMPL, node by default. */

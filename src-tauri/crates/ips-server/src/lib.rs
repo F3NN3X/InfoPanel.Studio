@@ -7,6 +7,8 @@ pub mod canvases;
 pub mod config;
 pub mod config_guard;
 pub mod config_settings;
+pub mod control;
+pub mod control_store;
 pub mod debug;
 pub mod env;
 pub mod http;
@@ -35,6 +37,7 @@ use tokio::sync::watch;
 use tower_http::catch_panic::CatchPanicLayer;
 
 use crate::config::ConfigStore;
+use crate::control_store::Control;
 use crate::debug::Debug;
 use crate::http::Req;
 use crate::request_guard::{config_write_refusal, remote_edit_refusal, RequestGuard};
@@ -45,10 +48,8 @@ pub const APP_ID: &str = "infopanel-dashboard";
 const MAX_STUDIO_PREFS_BYTES: usize = 4 * 1024;
 
 /// The routes server.mjs has that this server does not answer yet; each answers 501 until it is ported.
-const PENDING: [&str; 10] = [
-    "/api/debug/stats",
+const PENDING: [&str; 8] = [
     "/api/alerts/history",
-    "/events/control",
     "/api/extras",
     "/events/extras",
     "/api/integrations",
@@ -58,7 +59,7 @@ const PENDING: [&str; 10] = [
     "/api/font-proxy",
 ];
 /// The pending route families: the path itself and everything under it.
-const PENDING_FAMILIES: [&str; 5] = ["/api/control", "/api/assets", "/api/library", "/api/canvases", "/api/infopanel/installed"];
+const PENDING_FAMILIES: [&str; 4] = ["/api/assets", "/api/library", "/api/canvases", "/api/infopanel/installed"];
 
 fn is_pending(path: &str) -> bool {
     PENDING.contains(&path)
@@ -134,6 +135,7 @@ pub struct App {
     started: Instant,
     pub debug: Arc<Debug>,
     pub config: Arc<ConfigStore>,
+    pub control: Arc<Control>,
     prefs: StudioPrefs,
     pub shutdown: watch::Receiver<bool>,
 }
@@ -193,11 +195,22 @@ pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
     let guard = RequestGuard::new(&cfg.host, &cfg.allowed_hosts, &machine_name);
     let (stop, shutdown) = watch::channel(false);
     let debug = Debug::new(cfg.debug);
+    debug.start_sampler(shutdown.clone());
+    let control = Control::new(cfg.data_dir.join("control.json"), config::now_ms(), {
+        let config = Arc::clone(&config);
+        move || config.read()
+    });
+    // After every config save, as server.mjs's saveConfig does.
+    config.on_saved({
+        let control = Arc::clone(&control);
+        move || control.config_changed()
+    });
+    control_store::start_tick(Arc::clone(&control), shutdown.clone());
     println!("InfoPanel Studio on http://{}:{port} (config: {})", cfg.host, cfg.config_file().display());
     if cfg.debug {
         println!("[debug] DASHBOARD_DEBUG=1: logging requests and SSE clients; stats at /api/debug/stats");
     }
-    let app = App { cfg, guard, started: Instant::now(), debug, config, prefs, shutdown };
+    let app = App { cfg, guard, started: Instant::now(), debug, config, control, prefs, shutdown };
     Ok(Bound { listener, app: Arc::new(app), stop })
 }
 
@@ -270,10 +283,13 @@ async fn route(app: &App, req: Req) -> Result<Response<Body>, String> {
     match req.path.as_str() {
         "/api/health" => Ok(health(app, &req)),
         "/api/server/stats" => Ok(server_stats(app, &req)),
+        "/api/debug/stats" => Ok(debug::handle_stats(app, &req)),
         "/api/config" => config::handle_config(app, req).await.map_err(io),
         "/api/config/settings" => config::handle_settings(app, req).await.map_err(io),
         "/api/studio-prefs" => studio_prefs(app, req).await.map_err(io),
         "/events/config" => Ok(config::handle_events(app)),
+        "/events/control" => Ok(control_store::handle_events(app, &req)),
+        p if p == "/api/control" || p.starts_with("/api/control/") => Ok(control_store::handle(app, req).await),
         p if is_pending(p) => Ok(http::text(501, "not ported to ips-server yet")),
         p if p.starts_with("/api/") => Ok(http::empty(404)),
         _ => static_files::serve(&app.cfg.dist, &req),

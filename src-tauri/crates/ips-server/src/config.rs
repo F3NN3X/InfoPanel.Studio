@@ -41,9 +41,13 @@ struct State {
     next_listener: u64,
 }
 
+/// What runs after a config save (the control and alerts modules re-read the config), in registration order.
+type SavedHook = Box<dyn Fn() + Send + Sync>;
+
 pub struct ConfigStore {
     file: PathBuf,
     state: Mutex<State>,
+    on_saved: Mutex<Vec<SavedHook>>,
 }
 
 impl ConfigStore {
@@ -54,7 +58,7 @@ impl ConfigStore {
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
             .map_or(0, |d| d.as_millis() as i64);
         let state = State { version, settings_rev: now_ms(), settings_log: Vec::new(), listeners: BTreeMap::new(), next_listener: 0 };
-        Arc::new(Self { file: file.to_path_buf(), state: Mutex::new(state) })
+        Arc::new(Self { file: file.to_path_buf(), state: Mutex::new(state), on_saved: Mutex::new(Vec::new()) })
     }
 
     pub fn file(&self) -> &Path {
@@ -63,6 +67,11 @@ impl ConfigStore {
 
     pub fn version(&self) -> i64 {
         self.state.lock().unwrap().version
+    }
+
+    /// Runs `hook` after every save, once the config event is out.
+    pub fn on_saved(&self, hook: impl Fn() + Send + Sync + 'static) {
+        self.on_saved.lock().unwrap().push(Box::new(hook));
     }
 
     /// The parsed config, or `None` when it is missing or unreadable.
@@ -80,6 +89,9 @@ impl ConfigStore {
         state.version = now_ms().max(state.version + 1);
         let event = Self::event(state);
         state.listeners.retain(|_, tx| tx.send(event.clone()).is_ok());
+        for hook in self.on_saved.lock().unwrap().iter() {
+            hook();
+        }
         Ok(())
     }
 

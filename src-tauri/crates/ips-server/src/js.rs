@@ -133,6 +133,35 @@ pub fn to_property_key(v: Option<&Value>) -> String {
     }
 }
 
+/// `Number(v)` for a JSON value; `None` is `undefined`.
+pub fn value_to_number(v: Option<&Value>) -> f64 {
+    match v {
+        None | Some(Value::Object(_)) => f64::NAN,
+        Some(Value::Null) => 0.0,
+        Some(Value::Bool(b)) => f64::from(u8::from(*b)),
+        Some(Value::Number(n)) => n.as_f64().unwrap_or(f64::NAN),
+        Some(Value::String(s)) => string_to_number(s),
+        Some(array) => string_to_number(&to_property_key(Some(array))),
+    }
+}
+
+/// `new Date(ms).toISOString()` for a time in range.
+pub fn iso_string(ms: i64) -> String {
+    let (days, in_day) = (ms.div_euclid(86_400_000), ms.rem_euclid(86_400_000));
+    // Civil date from a day count (Howard Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    let (h, m, s, milli) = (in_day / 3_600_000, in_day / 60_000 % 60, in_day / 1000 % 60, in_day % 1000);
+    format!("{year:04}-{month:02}-{day:02}T{h:02}:{m:02}:{s:02}.{milli:03}Z")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,5 +199,20 @@ mod tests {
         for bad in ["abc", "1_0", "0x", "inf", "NaN", "1e", "-0x10", ".", "+"] {
             assert!(string_to_number(bad).is_nan(), "{bad}");
         }
+    }
+
+    #[test]
+    fn values_read_as_number_and_dates_print_as_iso() {
+        use serde_json::json;
+        assert!(value_to_number(None).is_nan());
+        assert_eq!(value_to_number(Some(&json!(null))), 0.0);
+        assert_eq!(value_to_number(Some(&json!(true))), 1.0);
+        assert_eq!(value_to_number(Some(&json!("5"))), 5.0);
+        assert_eq!(value_to_number(Some(&json!([]))), 0.0);
+        assert_eq!(value_to_number(Some(&json!([7]))), 7.0);
+        assert!(value_to_number(Some(&json!([1, 2]))).is_nan());
+        assert!(value_to_number(Some(&json!({}))).is_nan());
+        assert_eq!(iso_string(0), "1970-01-01T00:00:00.000Z");
+        assert_eq!(iso_string(1_709_210_096_789), "2024-02-29T12:34:56.789Z");
     }
 }
