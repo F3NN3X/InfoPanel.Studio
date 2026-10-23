@@ -17,6 +17,7 @@ const FPS = [5, 15, 30, 60, 0];
 const MOTIONS = ["system", "reduce", "full"];
 
 const isBool = (v) => typeof v === "boolean";
+const isKioskRefresh = (v) => v === "daily" || v === "off";
 const isFps = (v) => FPS.includes(v);
 const isMotion = (v) => MOTIONS.includes(v);
 /** A BCP 47 locale the runtime formats dates in ("" is the system's). */
@@ -38,6 +39,7 @@ const GENERAL = {
   maxFps: isFps,
   hideCursor: isBool,
   kioskPageNav: isBool,
+  kioskRefresh: isKioskRefresh,
 };
 const STYLE = { clock: (v) => v === "12" || v === "24" };
 const PERFORMANCE = { maxFps: isFps, motion: isMotion };

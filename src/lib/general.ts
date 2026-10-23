@@ -13,6 +13,7 @@ import type { ModuleSettings } from "@/modules/types";
 
 export type GeneralFont = FontId;
 export type MotionChoice = "system" | "reduce" | "full";
+export type KioskRefresh = "daily" | "off";
 
 export interface GeneralSettings {
   /** The page font every widget's "Theme" (auto) font inherits ("system" = the browser's). */
@@ -29,6 +30,8 @@ export interface GeneralSettings {
   hideCursor?: boolean;
   /** Kiosk page dots and swipe between a profile's pages (default off). */
   kioskPageNav?: boolean;
+  /** Kiosk pages reload once a day around 04:00 to give back memory (default daily). */
+  kioskRefresh?: KioskRefresh;
 }
 
 /** GeneralSettings with every default filled, and the clocks' 12-hour switch (undefined: the locale's choice). */
@@ -41,6 +44,7 @@ export interface ResolvedGeneral {
   maxFps: number;
   hideCursor: boolean;
   kioskPageNav: boolean;
+  kioskRefresh: KioskRefresh;
 }
 
 export const GENERAL_DEFAULTS: ResolvedGeneral = {
@@ -52,6 +56,7 @@ export const GENERAL_DEFAULTS: ResolvedGeneral = {
   maxFps: 60,
   hideCursor: false,
   kioskPageNav: false,
+  kioskRefresh: "daily",
 };
 
 /** CSS font stacks for the font choices (also the widget style's Font option). */
@@ -61,6 +66,7 @@ export const FONT_STACKS: Record<Exclude<GeneralFont, "system">, string> = Objec
 
 const FONTS: readonly GeneralFont[] = FONT_IDS;
 const MOTIONS: readonly MotionChoice[] = ["system", "reduce", "full"];
+const KIOSK_REFRESHES: readonly KioskRefresh[] = ["daily", "off"];
 
 /**
  * The font-family for a choice; undefined = the page's own ("system").
@@ -121,6 +127,7 @@ export function normalizeGeneral(input: unknown): GeneralSettings | undefined {
   if (isMaxFps(v.maxFps)) out.maxFps = v.maxFps;
   if (typeof v.hideCursor === "boolean") out.hideCursor = v.hideCursor;
   if (typeof v.kioskPageNav === "boolean") out.kioskPageNav = v.kioskPageNav;
+  if (KIOSK_REFRESHES.includes(v.kioskRefresh as KioskRefresh)) out.kioskRefresh = v.kioskRefresh as KioskRefresh;
   return Object.keys(out).length > 0 ? out : undefined;
 }
 

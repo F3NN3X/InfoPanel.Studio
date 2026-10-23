@@ -1,5 +1,6 @@
 // WebView2 calls Tauri has no API for: suspending the studio's webview while its window is hidden
-// or minimized, and the WebView2 task manager. A hidden window keeps rendering (animations and
+// or minimized, a low memory target while it is unfocused, reloading after a renderer crash, the
+// runtime-updated notice, and the WebView2 task manager. A hidden window keeps rendering (animations and
 // transitions run at full rate in a host nobody sees), and `visibilitychange` does not fire on
 // minimize, so the shell tells WebView2 itself. Windows only; elsewhere these do nothing.
 
@@ -22,7 +23,8 @@ static SUSPENDED: AtomicBool = AtomicBool::new(false);
 #[cfg(windows)]
 static RESUMES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// Suspending did not work, so the memory target was lowered instead; resume puts it back.
+/// The memory target is Low (suspending did not work, or the window is unfocused); resume and
+/// focus put it back.
 #[cfg(windows)]
 static MEMORY_LOWERED: AtomicBool = AtomicBool::new(false);
 
@@ -61,8 +63,18 @@ fn stale(asked: u64) -> bool {
     SHOWS.load(Ordering::SeqCst) != asked
 }
 
+/// Event sent to the main window when WebView2 has a newer runtime installed; the payload is
+/// `{ "version": "<new version or empty>" }`.
+pub const RUNTIME_UPDATED_EVENT: &str = "webview-runtime-updated";
+
 #[cfg(not(windows))]
 fn apply(_window: &WebviewWindow, _suspend: bool, _shows: u64) {}
+
+#[cfg(not(windows))]
+pub fn set_unfocused(_window: &WebviewWindow, _unfocused: bool) {}
+
+#[cfg(not(windows))]
+pub fn watch(_window: &WebviewWindow) {}
 
 #[cfg(not(windows))]
 pub fn open_task_manager(_window: &WebviewWindow) -> Result<(), String> {
@@ -73,19 +85,24 @@ pub fn open_task_manager(_window: &WebviewWindow) -> Result<(), String> {
 use windows_impl::apply;
 
 #[cfg(windows)]
-pub use windows_impl::open_task_manager;
+pub use windows_impl::{open_task_manager, set_unfocused, watch};
 
 #[cfg(windows)]
 mod windows_impl {
-    use super::{flip, stale, wants_suspend, MEMORY_LOWERED, RESUMES, SUSPENDED};
-    use std::sync::atomic::Ordering;
-    use tauri::WebviewWindow;
+    use super::{flip, stale, wants_suspend, MEMORY_LOWERED, RESUMES, RUNTIME_UPDATED_EVENT, SUSPENDED};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tauri::{Emitter, WebviewWindow};
     use webview2_com::Microsoft::Web::WebView2::Win32::{
-        ICoreWebView2, ICoreWebView2Controller, ICoreWebView2_19, ICoreWebView2_3, ICoreWebView2_6,
-        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW,
-        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+        ICoreWebView2, ICoreWebView2Controller, ICoreWebView2_19, ICoreWebView2_2, ICoreWebView2_3,
+        ICoreWebView2_6, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL,
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+        COREWEBVIEW2_PROCESS_FAILED_KIND, COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
+        COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE,
     };
-    use webview2_com::TrySuspendCompletedHandler;
+    use webview2_com::{
+        take_pwstr, NewBrowserVersionAvailableEventHandler, ProcessFailedEventHandler,
+        TrySuspendCompletedHandler,
+    };
     use windows_core::Interface;
 
     fn set_memory_level(
@@ -167,6 +184,113 @@ mod windows_impl {
             let result = if suspending { suspend(&controller) } else { resume(&controller) };
             if let Err(e) = result {
                 log::warn!("could not {} the {label} webview: {e}", if suspending { "suspend" } else { "resume" });
+            }
+        });
+        if let Err(e) = sent {
+            log::warn!("could not reach the webview: {e}");
+        }
+    }
+
+    /// The runtime-updated handler is registered once per run, whichever window asks first.
+    static RUNTIME_WATCHED: AtomicBool = AtomicBool::new(false);
+
+    /// Lowers the memory target while the window is unfocused and restores it on focus. A suspended
+    /// webview is left alone: suspending (or its fallback) owns the target then.
+    pub fn set_unfocused(window: &WebviewWindow, unfocused: bool) {
+        let sent = window.with_webview(move |webview| {
+            if SUSPENDED.load(Ordering::SeqCst) {
+                return;
+            }
+            let level = if unfocused {
+                COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW
+            } else if MEMORY_LOWERED.load(Ordering::SeqCst) {
+                COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL
+            } else {
+                return;
+            };
+            let set = unsafe { webview.controller().CoreWebView2() }
+                .and_then(|w| set_memory_level(&w, level));
+            match set {
+                Ok(()) => MEMORY_LOWERED.store(unfocused, Ordering::SeqCst),
+                Err(e) => log::warn!("could not change the webview's memory use: {e}"),
+            }
+        });
+        if let Err(e) = sent {
+            log::warn!("could not reach the webview: {e}");
+        }
+    }
+
+    /// The last reload after a failure, so a page that keeps crashing doesn't reload in a loop.
+    static LAST_FAILURE_RELOAD: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
+
+    /// Reloads a page whose renderer crashed or hung (at most once a minute); other process failures are only logged.
+    fn reload_after_failure(webview: &ICoreWebView2, kind: COREWEBVIEW2_PROCESS_FAILED_KIND) {
+        let renderer = kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED
+            || kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE;
+        let allowed = renderer && {
+            let mut last = crate::state::lock(&LAST_FAILURE_RELOAD);
+            let ok = last.is_none_or(|t| t.elapsed() >= std::time::Duration::from_secs(60));
+            if ok {
+                *last = Some(std::time::Instant::now());
+            }
+            ok
+        };
+        if allowed {
+            log::warn!("webview renderer failed (kind {}); reloading", kind.0);
+            if let Err(e) = unsafe { webview.Reload() } {
+                log::warn!("could not reload the webview: {e}");
+            }
+        } else {
+            log::warn!("webview process failed (kind {})", kind.0);
+        }
+    }
+
+    fn watch_failures(webview: &ICoreWebView2) -> windows_core::Result<()> {
+        let handler = ProcessFailedEventHandler::create(Box::new(|sender, args| {
+            if let (Some(sender), Some(args)) = (sender, args) {
+                let mut kind = COREWEBVIEW2_PROCESS_FAILED_KIND::default();
+                unsafe { args.ProcessFailedKind(&mut kind)? };
+                reload_after_failure(&sender, kind);
+            }
+            Ok(())
+        }));
+        let mut token = 0;
+        unsafe { webview.add_ProcessFailed(&handler, &mut token) }
+    }
+
+    fn watch_runtime(webview: &ICoreWebView2, window: WebviewWindow) -> windows_core::Result<()> {
+        let environment = unsafe { webview.cast::<ICoreWebView2_2>()?.Environment()? };
+        let handler = NewBrowserVersionAvailableEventHandler::create(Box::new(move |env, _| {
+            let mut raw = windows_core::PWSTR::null();
+            let version = match env {
+                Some(env) if unsafe { env.BrowserVersionString(&mut raw) }.is_ok() => take_pwstr(raw),
+                _ => String::new(),
+            };
+            log::info!("a newer WebView2 runtime is installed ({version:?})");
+            let payload = serde_json::json!({ "version": version });
+            let _ = window.emit_to(window.label(), RUNTIME_UPDATED_EVENT, payload);
+            Ok(())
+        }));
+        let mut token = 0;
+        unsafe { environment.add_NewBrowserVersionAvailable(&handler, &mut token) }
+    }
+
+    /// Registers the renderer-crash reload on this window's webview, and (once per run) the notice
+    /// that a newer WebView2 runtime is installed.
+    pub fn watch(window: &WebviewWindow) {
+        let target = window.clone();
+        let sent = window.with_webview(move |webview| {
+            let Ok(core) = (unsafe { webview.controller().CoreWebView2() }) else {
+                return;
+            };
+            if let Err(e) = watch_failures(&core) {
+                log::warn!("could not watch the webview for crashes: {e}");
+            }
+            if !RUNTIME_WATCHED.swap(true, Ordering::SeqCst) {
+                if let Err(e) = watch_runtime(&core, target) {
+                    RUNTIME_WATCHED.store(false, Ordering::SeqCst);
+                    log::warn!("could not watch for a WebView2 runtime update: {e}");
+                }
             }
         });
         if let Err(e) = sent {

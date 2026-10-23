@@ -24,6 +24,7 @@ Two settings decide how much the page animates.
 - **Motion:** `system` (follow the OS's `prefers-reduced-motion`), `reduce` or `full`. The default is `system`.
   - It is stored as `general.motion`.
   - A profile can override it with `performance.motion`.
+- **Refresh kiosk pages:** `daily` (reload at 04:00 local plus up to 5 min of jitter, to give back the memory a long run holds) or `off`. The default is `daily`. It is stored as `general.kioskRefresh`.
 
 **URL overrides** apply to kiosk pages only:
 - `&fps=5|15|30|60|0`;

@@ -34,6 +34,16 @@ describe("kioskPageNav", () => {
   });
 });
 
+describe("kioskRefresh", () => {
+  it("defaults to daily and is kept only as a valid choice", () => {
+    expect(GENERAL_DEFAULTS.kioskRefresh).toBe("daily");
+    expect(resolveGeneral({}).kioskRefresh).toBe("daily");
+    expect(resolveGeneral({ general: { kioskRefresh: "off" } }).kioskRefresh).toBe("off");
+    expect(normalizeGeneral({ kioskRefresh: "off" })).toEqual({ kioskRefresh: "off" });
+    for (const bad of ["weekly", "", 1, null, true]) expect(normalizeGeneral({ kioskRefresh: bad })).toBeUndefined();
+  });
+});
+
 describe("maxFps", () => {
   it("defaults to 60 and is kept only as a valid choice", () => {
     expect(GENERAL_DEFAULTS.maxFps).toBe(60);

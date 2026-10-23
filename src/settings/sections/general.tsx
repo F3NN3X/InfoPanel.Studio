@@ -72,6 +72,18 @@ export function GeneralSection() {
             onChange={(v) => void save("closeToTray", v)}
           />
           <SwitchRow id="remember-bounds" label="Remember window size and position" checked={settings.rememberBounds} onChange={(v) => void save("rememberBounds", v)} />
+          <Row id="studio-refresh" label="Refresh the Studio" hint="Reloads the Studio page after saving, to give back memory a long session holds. Only while the window isn't focused.">
+            <select
+              aria-label="Refresh the Studio"
+              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-[12.5px] text-s-t1"
+              value={settings.studioRefresh}
+              onChange={(e) => void save("studioRefresh", e.target.value)}
+            >
+              <option value="idle">When idle for 30 minutes</option>
+              <option value="daily">Daily at 04:00</option>
+              <option value="off">Off</option>
+            </select>
+          </Row>
         </Card>
       </Group>
     </>

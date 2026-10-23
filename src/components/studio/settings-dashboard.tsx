@@ -47,6 +47,11 @@ function Overrides({ config, field, onPatch, onOpenScreen }: { config: Dashboard
   );
 }
 
+const KIOSK_REFRESH_OPTIONS = [
+  { value: "daily", label: "Daily at 04:00" },
+  { value: "off", label: "Off" },
+];
+
 const CLOCKS = [
   { value: "auto", label: "Locale" },
   { value: "24", label: "24 h" },
@@ -97,6 +102,13 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
           onChange={(v) => set("motion", v === "system" ? undefined : (v as MotionChoice))}
         />
         <Overrides config={config} field="motion" onPatch={onPatch} onOpenScreen={onOpenScreen} />
+        <SelectRow
+          label="Refresh kiosk pages"
+          hint="Reloads kiosk pages once a day to give back memory a long run holds. Settings and layouts are saved, so nothing is lost."
+          options={KIOSK_REFRESH_OPTIONS}
+          value={g.kioskRefresh}
+          onChange={(v) => set("kioskRefresh", v === "daily" ? undefined : v)}
+        />
       </SettingsGroup>
 
       <SettingsGroup id="clock" title="Clock & date" scope="All screens and the island">

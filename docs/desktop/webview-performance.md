@@ -120,6 +120,28 @@ Measured on the same page (3 s trace, before → after): layouts 711 → 194, pa
 714 → 179, heatmap recalcs 5,248 → 0. Renderer CPU fell 10–30%; GPU about unchanged. On main after the release:
 renderer 0.39 + GPU 0.41 cores on first load (`tools/perf/studio-cpu.cjs`, 10 s).
 
+## What 1.3.0-beta.15 changes
+
+Overnight, a Studio window left visible but unfocused still grew its renderer to ~2 GB private memory (JS heap
+28–53 MB, so native memory). Suspension only covers hidden or minimized windows, so:
+
+- **Low memory target while unfocused** (`webview2::set_unfocused`, from the main window's `Focused` event in
+  `windows.rs`): `ICoreWebView2_19::SetMemoryUsageTargetLevel` Low on losing focus, Normal on focus and in resume.
+  Shares `MEMORY_LOWERED` with the suspend fallback; a suspended webview is left alone.
+- **Studio refresh** (`src-tauri/src/refresh.rs`, app setting `studioRefresh`: `idle` default, `daily`, `off`, in
+  Settings › App › Window). A thread checks once a minute; the decision is the pure `refresh::due`. `idle`: window
+  visible, not minimized, not suspended, unfocused for 30 minutes, once per unfocused stretch. `daily`: once per
+  local day at or after 04:00, while unfocused (an app started after 04:00 skips that morning). A refresh flushes
+  the page (`flush_studio`), then `location.reload()`, only on the Studio page and only if the window is still
+  unfocused. Logged as `studio refresh: <reason>` at info.
+- **Renderer crash recovery** (`webview2::watch`): `add_ProcessFailed` on the main webview; a render process exit or
+  hang logs a warning and calls `Reload()`, other kinds are only logged.
+- **Runtime update notice**: `ICoreWebView2Environment::add_NewBrowserVersionAvailable`, registered once per run;
+  the main window gets the Tauri event `webview-runtime-updated` with `{ "version": "<new version or empty>" }`.
+
+Not verified without the real app: the memory effect, the crash reload and the runtime event (needs a runtime
+update while the app runs). Watch `app.log` for `studio refresh:` lines and compare `metrics.csv` overnight.
+
 ## Overnight check (to do)
 
 1. Update to beta.10 and turn on debug mode (Settings › Diagnostics) so `metrics.csv` is written.
