@@ -2,11 +2,13 @@
 // `guardedLookup`, `guardedFetch` and `checkTarget`; the image proxy reuses it). A name is resolved here, every
 // address it has is checked, and the connection goes only to those addresses, so a name cannot answer differently
 // between the check and the request. A redirect is the caller's to follow: the client never does, so each hop passes
-// `check_target` again.
+// `check_target` again. The lookup and the block list are the client's, so a test can stand in for DNS.
 
 use std::error::Error;
 use std::fmt;
+use std::future::Future;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::pin::Pin;
 use std::sync::Arc;
 
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
@@ -67,30 +69,47 @@ impl fmt::Display for NotAllowed {
 
 impl Error for NotAllowed {}
 
-/// The addresses of a name (the OS resolver, hosts file included), or the reason it has none.
-async fn lookup(host: &str) -> Result<Vec<IpAddr>, String> {
-    let found = tokio::net::lookup_host((host, 0)).await.map_err(|_| format!("getaddrinfo ENOTFOUND {host}"))?;
-    Ok(found.map(|addr| addr.ip()).collect())
+/// The addresses of a name, or the reason it has none.
+pub type Lookup = Arc<dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<Vec<IpAddr>, String>> + Send>> + Send + Sync>;
+
+/// Whether a client refuses an address.
+pub type Block = Arc<dyn Fn(IpAddr) -> bool + Send + Sync>;
+
+/// The OS resolver, hosts file included.
+pub fn os_lookup() -> Lookup {
+    Arc::new(|host: String| {
+        Box::pin(async move {
+            let found = tokio::net::lookup_host((host.as_str(), 0)).await.map_err(|_| format!("getaddrinfo ENOTFOUND {host}"))?;
+            Ok(found.map(|addr| addr.ip()).collect())
+        })
+    })
 }
 
-/// The resolver the client connects through: it checks every address at connect time.
+/// The resolver the client connects through: one lookup per connection, every address checked, and only those
+/// addresses handed to the connector.
 struct GuardedResolver {
-    block_lan: bool,
-    /// Tests only: lets a local server through.
-    open: bool,
+    lookup: Lookup,
+    block: Block,
 }
 
 impl Resolve for GuardedResolver {
     fn resolve(&self, name: Name) -> Resolving {
-        let (block_lan, open) = (self.block_lan, self.open);
+        let (lookup, block) = (Arc::clone(&self.lookup), Arc::clone(&self.block));
         Box::pin(async move {
-            let ips = lookup(name.as_str()).await?;
-            if ips.is_empty() || (!open && ips.iter().any(|ip| blocked_ip(*ip, block_lan))) {
+            let ips = lookup(name.as_str().to_string()).await?;
+            if ips.is_empty() || ips.iter().any(|ip| block(*ip)) {
                 return Err(NotAllowed.into());
             }
             Ok(Box::new(ips.into_iter().map(|ip| std::net::SocketAddr::new(ip, 0))) as Addrs)
         })
     }
+}
+
+/// A client that follows no redirects and uses no proxy (one would resolve the name itself), on the updater's TLS
+/// setup: rustls on ring. The app installs the provider too; a second install is refused.
+pub fn client_builder() -> reqwest::ClientBuilder {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).no_proxy()
 }
 
 /// A response whose body was read up to a limit.
@@ -100,36 +119,35 @@ pub struct Fetched {
     pub body: Vec<u8>,
 }
 
-/// An HTTP client that connects only through the guard, follows no redirects and uses no proxy (one would resolve
-/// the name itself).
+/// An HTTP client that connects only through the guard (`client_builder`'s, with the guarded resolver).
 #[derive(Clone)]
 pub struct GuardedClient {
     client: reqwest::Client,
-    block_lan: bool,
-    open: bool,
+    lookup: Lookup,
+    block: Block,
 }
 
 impl GuardedClient {
     pub fn new(block_lan: bool) -> Result<Self, String> {
-        Self::build(block_lan, false)
+        Self::with(os_lookup(), Arc::new(move |ip| blocked_ip(ip, block_lan)))
     }
 
     /// A client that reaches any address, for tests against a local server.
     #[cfg(test)]
     pub(crate) fn open() -> Self {
-        Self::build(false, true).unwrap()
+        Self::with(os_lookup(), Arc::new(|_| false)).unwrap()
     }
 
-    fn build(block_lan: bool, open: bool) -> Result<Self, String> {
-        // The same TLS setup as the updater: rustls on ring. The app installs it too; a second install is refused.
-        let _ = rustls::crypto::ring::default_provider().install_default();
-        let client = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .no_proxy()
-            .dns_resolver(Arc::new(GuardedResolver { block_lan, open }))
-            .build()
-            .map_err(describe)?;
-        Ok(Self { client, block_lan, open })
+    /// A client on the given lookup and block list (tests stand in for DNS with it).
+    pub fn with(lookup: Lookup, block: Block) -> Result<Self, String> {
+        let resolver = GuardedResolver { lookup: Arc::clone(&lookup), block: Arc::clone(&block) };
+        let client = client_builder().dns_resolver(Arc::new(resolver)).build().map_err(describe)?;
+        Ok(Self { client, lookup, block })
+    }
+
+    /// Whether this client refuses `ip`.
+    pub fn blocks(&self, ip: IpAddr) -> bool {
+        (self.block)(ip)
     }
 
     /// Refuses a URL that is not http(s) or whose host is, or resolves to, a blocked address (every address the name has).
@@ -140,10 +158,10 @@ impl GuardedClient {
         let ips = match url.host() {
             Some(url::Host::Ipv4(ip)) => vec![IpAddr::V4(ip)],
             Some(url::Host::Ipv6(ip)) => vec![IpAddr::V6(ip)],
-            Some(url::Host::Domain(name)) => lookup(name).await?,
+            Some(url::Host::Domain(name)) => (self.lookup)(name.to_string()).await?,
             None => vec![],
         };
-        if ips.is_empty() || (!self.open && ips.iter().any(|ip| blocked_ip(*ip, self.block_lan))) {
+        if ips.is_empty() || ips.iter().any(|ip| self.blocks(*ip)) {
             return Err(NOT_ALLOWED.into());
         }
         Ok(())
@@ -151,11 +169,7 @@ impl GuardedClient {
 
     /// One GET, its body read up to `max_bytes` (more is "too large"). The caller checks the target first.
     pub async fn get(&self, url: &url::Url, headers: &[(&str, &str)], max_bytes: usize) -> Result<Fetched, String> {
-        let mut request = self.client.get(url.clone());
-        for (name, value) in headers {
-            request = request.header(*name, *value);
-        }
-        let mut response = request.send().await.map_err(describe)?;
+        let mut response = self.send(url, headers).await?;
         let (status, headers) = (response.status().as_u16(), response.headers().clone());
         let mut body = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(describe)? {
@@ -166,10 +180,19 @@ impl GuardedClient {
         }
         Ok(Fetched { status, headers, body })
     }
+
+    /// One GET, answered once its head is in; the body is the caller's to read.
+    pub async fn send(&self, url: &url::Url, headers: &[(&str, &str)]) -> Result<reqwest::Response, String> {
+        let mut request = self.client.get(url.clone());
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        request.send().await.map_err(describe)
+    }
 }
 
 /// Why a request failed, in the innermost cause's words. The URL is left out: a calendar link is a secret.
-fn describe(error: reqwest::Error) -> String {
+pub fn describe(error: reqwest::Error) -> String {
     let error = error.without_url();
     let mut cause: &(dyn Error + 'static) = &error;
     loop {
@@ -214,6 +237,53 @@ mod tests {
         }
         for ip in ["172.32.0.1", "100.128.0.1", "93.184.216.34", "fe00::1"] {
             assert!(!blocked_address(ip, true), "{ip}");
+        }
+    }
+
+    #[test]
+    fn every_blocked_range_holds_its_edges_and_not_its_neighbours() {
+        // (inside, just outside), with the LAN blocked as the image proxy has it.
+        let edges = [
+            ("0.255.255.255", "1.0.0.0"),
+            ("127.0.0.0", "126.255.255.255"),
+            ("127.255.255.255", "128.0.0.0"),
+            ("169.254.0.0", "169.253.255.255"),
+            ("169.254.255.255", "169.255.0.0"),
+            ("224.0.0.0", "223.255.255.255"),
+            ("255.255.255.255", "8.8.8.8"),
+            ("10.0.0.0", "9.255.255.255"),
+            ("10.255.255.255", "11.0.0.0"),
+            ("172.16.0.0", "172.15.255.255"),
+            ("172.31.255.255", "172.32.0.0"),
+            ("192.168.0.0", "192.167.255.255"),
+            ("192.168.255.255", "192.169.0.0"),
+            ("100.64.0.0", "100.63.255.255"),
+            ("100.127.255.255", "100.128.0.0"),
+            ("::", "::2"),
+            ("::1", "1::1"),
+            ("fe80::", "fe7f:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+            ("febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fec0::"),
+            ("ff00::", "feff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+            ("fc00::", "fbff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+            ("fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fe00::"),
+            // IPv4-mapped, -compatible and NAT64 forms decide by the IPv4 inside.
+            ("::ffff:127.0.0.1", "::ffff:8.8.8.8"),
+            ("::ffff:7f00:1", "::fffe:7f00:1"),
+            ("::ffff:10.0.0.1", "::ffff:11.0.0.0"),
+            ("::ffff:100.64.0.1", "::ffff:100.128.0.0"),
+            ("::ffff:169.254.169.254", "::ffff:169.255.0.0"),
+            ("::ffff:0.0.0.0", "::ffff:1.0.0.0"),
+            ("::127.0.0.1", "::8.8.8.8"),
+            ("64:ff9b::7f00:1", "64:ff9b:1::7f00:1"),
+            ("64:ff9b::c0a8:1", "64:ff9b::808:808"),
+        ];
+        for (inside, outside) in edges {
+            assert!(blocked_address(inside, true), "{inside} should be blocked");
+            assert!(!blocked_address(outside, true), "{outside} should pass");
+        }
+        // The calendar's mode keeps the LAN ranges.
+        for lan in ["10.0.0.0", "172.31.255.255", "192.168.0.0", "100.64.0.0", "fc00::", "::ffff:192.168.1.1"] {
+            assert!(!blocked_address(lan, false), "{lan}");
         }
     }
 

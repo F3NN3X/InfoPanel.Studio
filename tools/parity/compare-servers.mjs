@@ -3,7 +3,7 @@
 // byte for byte: status line, headers, framing and body. Only what cannot match is normalised: header case and order,
 // `date`, keep-alive hints, and clock-valued numbers (versions and revisions, uptime, reload counters, `since`).
 // After the requests the twin data folders' files are compared too. Exit 1 on any difference.
-//   node tools/parity/compare-servers.mjs [--only core,config,control,debug] [--no-build] [--verbose]
+//   node tools/parity/compare-servers.mjs [--only core,config,control,debug,proxies] [--no-build] [--verbose]
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -12,11 +12,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { serverCommand } from "../perf/server-command.mjs";
 import { seedInfopanel } from "./servers/media.mjs";
+import { seedFontCache } from "./servers/proxies.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 /** Random ids (an integrations link's) differ by design. */
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/g;
-const MODULES = ["core", "config", "control", "alerts", "debug", "media", "extras", "agents"];
+const MODULES = ["core", "config", "control", "alerts", "debug", "media", "extras", "agents", "proxies"];
 const FILES = ["config.json", "studio-prefs.json", "control.json", "integrations.json", "alerts.json"];
 /** Alert ids and times come from the clock. */
 const CLOCK = /"id":"[0-9a-z]+-\d+"|"(startedAt|endedAt|acknowledgedAt)":\d+/g;
@@ -48,6 +49,7 @@ async function start(impl, pair, dir) {
     fs.writeFileSync(path.join(dist, name), text);
   }
   seedInfopanel(path.join(dir, "infopanel"));
+  seedFontCache(path.join(dir, "data"));
   const server = serverCommand({ ...process.env, SERVER_IMPL: impl });
   const home = path.join(dir, "home");
   const env = { ...process.env, HOME: home, USERPROFILE: home, PORT: "0", HOST: "127.0.0.1", DASHBOARD_DIST: dist, DASHBOARD_DATA_DIR: path.join(dir, "data"), INFOPANEL_DATA_DIR: path.join(dir, "infopanel"), ...pair.env };

@@ -17,6 +17,7 @@ import { calendarModule, icalCases, icalRulesCases, integrationsCases, obsCases 
 import { alertsCases, alertsLiveCases, alertsOutputCases, alertsRuleCases, alertsThresholdCases } from "./alerts-fixtures.mjs";
 import { agentUsageCases, agentsCases, claudeSessionsCases } from "./agents-fixtures.mjs";
 import { assetCases, canvasCases, infopanelLocalCases, libraryCases } from "./media-fixtures.mjs";
+import { fontProxyCases, proxyCases } from "./proxy-fixtures.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const OUT_DIR = path.join(ROOT, "tests/fixtures/parity");
@@ -325,6 +326,8 @@ const MODULES = {
   "alerts-rules": alertsRuleCases,
   "alerts-output": alertsOutputCases,
   "alerts-live": alertsLiveCases,
+  proxy: proxyCases,
+  "font-proxy": fontProxyCases,
 };
 
 const check = process.argv.includes("--check");

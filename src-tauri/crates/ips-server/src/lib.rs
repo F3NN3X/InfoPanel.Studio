@@ -21,6 +21,7 @@ pub mod control_store;
 pub mod debug;
 pub mod env;
 pub mod extras;
+pub mod font_proxy;
 pub mod guarded_net;
 pub mod http;
 pub mod ical;
@@ -32,6 +33,7 @@ pub mod json;
 pub mod library;
 pub mod locale;
 pub mod obs;
+pub mod proxy;
 pub mod request_guard;
 pub mod security_headers;
 pub mod sse;
@@ -71,19 +73,9 @@ use crate::studio_prefs::StudioPrefs;
 pub const APP_ID: &str = "infopanel-dashboard";
 const MAX_STUDIO_PREFS_BYTES: usize = 4 * 1024;
 
-/// The routes server.mjs has that this server does not answer yet; each answers 501 until it is ported.
-const PENDING: [&str; 2] = [
-    "/api/image-proxy",
-    "/api/font-proxy",
-];
-
 /// Whether `path` is a route family's root or anything under it.
 fn is_family(path: &str, root: &str) -> bool {
     path == root || path.strip_prefix(root).is_some_and(|rest| rest.starts_with('/'))
-}
-
-fn is_pending(path: &str) -> bool {
-    PENDING.contains(&path)
 }
 
 /// What the server runs with: the same inputs as the Node server's environment.
@@ -369,12 +361,13 @@ async fn route(app: &App, req: Req) -> Result<Response<Body>, String> {
         "/events/extras" => Ok(extras::handle_events(app)),
         "/api/integrations" => extras::handle_integrations(app, req).await.map_err(io),
         "/api/agents/event" | "/api/agents/statusline" => agents::handle(app, req).await.map_err(io),
+        "/api/image-proxy" => proxy::handle(req).await,
+        "/api/font-proxy" => font_proxy::handle(app, req).await,
         p if p == "/api/control" || p.starts_with("/api/control/") => Ok(control_store::handle(app, req).await),
         p if is_family(p, "/api/assets") => assets::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/library") => library::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/canvases") => canvases::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/infopanel/installed") => infopanel_local::handle(app, &req).map_err(io),
-        p if is_pending(p) => Ok(http::text(501, "not ported to ips-server yet")),
         p if p.starts_with("/api/") => Ok(http::empty(404)),
         _ => static_files::serve(&app.cfg.dist, &req),
     }

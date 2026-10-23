@@ -16,6 +16,7 @@ chrono = { workspace = true, features = ["std", "clock"] }
 chrono-tz = "0.10"
 futures-util = { workspace = true }
 http-body = { workspace = true }
+hyper = { version = "1", default-features = false }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-no-provider"] }
 rustls = { workspace = true, features = ["ring"] }

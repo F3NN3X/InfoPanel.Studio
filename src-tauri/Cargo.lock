@@ -1964,6 +1964,7 @@ dependencies = [
  "chrono-tz",
  "futures-util",
  "http-body",
+ "hyper",
  "log",
  "reqwest",
  "rustls",

@@ -3,11 +3,7 @@
 // the list ends empty.
 import { it } from "vitest";
 
-export const NATIVE_PENDING = new Set([
-  // /api/image-proxy
-  "proxies images only",
-  "follows image-proxy redirects only to allowed targets",
-]);
+export const NATIVE_PENDING = new Set([]);
 
 /** The server under test: SERVER_IMPL, node by default. */
 export const SERVER_IMPL = process.env.SERVER_IMPL || "node";
