@@ -23,6 +23,7 @@ From `package.json`:
 | `npm run perf:all` | build, perf specs, bundle and disk reports | A full perf run; `PERF_LABEL` names it |
 | `npm run perf:compare <A> <B>` | `node tools/perf/compare.mjs` | Markdown table of two runs |
 | `npm run perf:budgets` | `node tools/perf/check-budgets.mjs` | The deterministic bundle budgets (CI) |
+| `npm run build:stats` | `vite build --mode stats` | An unminified build in `.cache/dist-stats` with the ticker's debug stats (`window.__tickerStats()`); serve it with `DASHBOARD_DIST` |
 | `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
 | `npm start` | `node server.mjs` | Serves `dist/` and the config endpoints |
 | `npm run serve` | `npm run build && node server.mjs` | Build, then start |
@@ -167,9 +168,9 @@ should pass.
 
 | Project | Specs | Runs |
 |---|---|---|
-| `e2e` | `tests/e2e/*.spec.ts`: kiosk render (incl. the gauge icon), live config update, control page switch, studio edit/save/undo, image-proxy rules, request guard, kiosk request budget | `npm run test:e2e`, in CI |
-| `perf-kiosk`, `perf-studio` | `tests/perf/*.perf.ts`: `kiosk-idle`, `server-idle`, `studio-idle`, `studio-hot-cold` | `npm run perf:kiosk` / `perf:studio`, report only |
-| `desktop` | `tests/desktop/*.desktop.ts`: the debug build over CDP (`tray-close-releases-webview`, `studio-idle-webview2`) | Windows, by hand: see [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup) |
+| `e2e` | `tests/e2e/*.spec.ts`: kiosk render (incl. the gauge icon), live config update, control page switch, studio edit/save/undo, image-proxy rules, request guard, kiosk request budget, the visualiser after a hide and remount | `npm run test:e2e`, in CI |
+| `perf-kiosk`, `perf-studio` | `tests/perf/*.perf.ts`: `kiosk-idle`, `server-idle`, `studio-idle`, `studio-hot-cold`, `studio-unfocused` | `npm run perf:kiosk` / `perf:studio`, report only |
+| `desktop` | `tests/desktop/*.desktop.ts`: the debug build over CDP (`tray-close-releases-webview`, `studio-idle-webview2`, `studio-unfocused-webview2`) | Windows, by hand: see [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup) |
 
 The method, the fixture and the reports are in [performance.md, "The harness"](performance.md#the-harness).
 Regenerate the fixture with `node tools/perf/make-fixture.mjs` after a config version bump.

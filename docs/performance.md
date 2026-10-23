@@ -52,19 +52,53 @@ Below 60 fps or with Reduce, the page does much less work. **At the default of 6
 `src/lib/ticker.ts` has one `requestAnimationFrame` loop for the whole page.
 
 - It calls its subscribers only at the Max FPS interval. `nextTick` steps by whole intervals, so the rate doesn't drift, and it restarts after a stall.
-- It runs only while something is subscribed and the page is visible, so an idle kiosk costs no frames.
+- Each subscriber may have its own, lower cap (`subscribeTick(cb, capFps, label)`; ambient motion uses `AMBIENT_FPS`, 30).
+- **It goes idle.** A callback returns nothing to keep going, `SETTLED` to sleep until woken, or a number of ms to
+  sleep for (a clock returns the time to its next second or minute). The loop asks for the frame the earliest
+  subscriber wants, no sooner than Max FPS allows, and sleeps on a timer in between instead of waking every vsync.
+  With every subscriber asleep it asks for nothing.
+- **Waking.** `wakeTicker()` wakes every settled subscriber: a sensor-store change, a config change (`App.tsx`) and a
+  window resize call it. A subscriber sleeping for a set time keeps its time. `useTick` also wakes its own subscription
+  on every render, since new props may move it again; `subscribeTick` returns the unsubscribe with a `wake()`.
+- It runs only while something is subscribed and the page is visible.
 - A subscriber that unsubscribes earlier in the same tick is not called.
 - Components subscribe with `useTick` (`src/hooks/use-tick.ts`) or `subscribeTick`.
+- **Throttle** (`setTickerThrottle`): `slow` caps the loop at 5 fps and pauses the ambient subscribers (those capped at
+  `AMBIENT_FPS`); `stop` asks for no frames. The studio uses it when unfocused (below); kiosks never do.
+- **Debug stats.** In the dev server, Vitest and a `npm run build:stats` build (unminified, `.cache/dist-stats`),
+  `window.__tickerStats()` lists the subscribers by label and cap (the audio frame loop's listeners with
+  `via: "frame-loop"`), the frames asked for and run per second since the last call, how many sleep, and whether the
+  loop is idle. Release builds leave it out; `npm run perf:budgets` fails if `__tickerStats` is in either entry closure.
 
-The rAF itself still fires at the display rate. That costs almost nothing, because it only compares timestamps
-until a tick is due.
+#### What each subscriber does when idle
+
+| Subscriber (label) | Cap | When idle |
+|---|---|---|
+| `statusbar:clock`, `countdown:clock` | Max FPS | Sleeps until the next second or minute boundary. |
+| `graph:smooth` (`SmoothGraph`) | Max FPS | Unsubscribes once the curve has converged; a new sample resubscribes. |
+| `infopanel:gauges` (`ProfileView`) | Max FPS | Subscribed only while a gauge is still moving. |
+| `infopanel:paint-turn` (turning gradient) | Max FPS | Continuous while the gradient turns. |
+| `marquee` | Max FPS | Continuous while text overflows and is on screen. |
+| `pulse-dot` | Max FPS | Sleeps through each period's rest (the last 30 %). |
+| `weather-fx`, `weather-icon`, `kenburns` | 30 | Continuous ambient motion; paused when the studio is throttled. |
+| `frame-loop` with `viz:input`, `viz:paint`, `media:analyser` | 30 | Runs at its listeners' cap; the visualiser input stops 1 s after the last paint read, the engine unsubscribes off screen and while hidden. |
+
+### The unfocused studio
+`src/lib/studio-focus.ts` (`useStudioFocusThrottle`, mounted in the studio only): 60 s after the studio window loses
+focus, the ticker throttles to `slow`; while the page is hidden it stops. Focus or visibility restores it at once.
+In the app, focus comes from the shell's `studio-focus { focused, reduce }` event (`src-tauri/src/windows.rs`), where
+`reduce` is the **Reduce studio animation when unfocused** setting (Settings › General › Window, on by default); in a
+browser, from the window's `blur` and `focus` (focus moving into the studio's own frame doesn't count), always on.
+
+The rAF itself still fires at the display rate while a tick is due soon. That costs almost nothing, because it only
+compares timestamps until a tick is due.
 
 ### On the ticker, capped at Max FPS
 - **Smooth graphs and value glides** that are driven by script (`smoothing.ts`, `SmoothGraph`). A frame gap is clamped at 250 ms, so 5 fps still moves in real time.
 - **Marquees and scrolling text** use `src/components/ui/marquee.tsx` and `src/lib/marquee.ts`. These replace InfoPanel's native marquee, and imports remap to them (`native/convert.ts`).
 - **The clock colon blink** and the clock and date formats (`src/lib/clock-format.ts`).
 - **Animated gradients.** `paintAt` in `scene.ts` and `writePaint` in `Paint.tsx` write the angle straight to the DOM, so a turning gradient causes no React render. `ProfileView` keeps a frame state only while a gauge moves.
-- **The audio frame loop** (`src/lib/audio/frame-loop.ts`). It feeds the visualizers and runs its update phase, then its paint phase, inside one ticker subscription, and it sleeps with no subscribers. `MAX_FRAME_GAP_MS` is 250.
+- **The audio frame loop** (`src/lib/audio/frame-loop.ts`). It feeds the visualizers and runs its update phase, then its paint phase, inside one ticker subscription, and it sleeps with no subscribers. `subscribeFrame(listener, phase, label, capFps)` caps a listener; the loop subscribes at its listeners' cap (every frame while any is uncapped). `MAX_FRAME_GAP_MS` is 250.
 - **Ken Burns** (GameSpotlight, `KenBurns` in `src/widgets/core/primitives.tsx`) writes its transform through a ref. It keeps the old look: 22 s, alternate, ease-in-out. The curves are in `src/lib/curves.ts`.
 - **The pulse dot** (`src/components/pulse-dot.tsx`) is the 1.4 s ease-out ring on the island's activity dot and the CodingAgents session dot. It replaced the `island-pulse` CSS animation.
 
@@ -206,6 +240,9 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
   - `perf-heavy`: StatusBar, SystemOverview with rings and heatmap, CoreHeatmap, GpuRings (RingStack), AudioMeter,
     Weather with fx, an imported canvas with a gauge icon, the island, an image background.
   - `perf-light`: Clock and two SensorValue zones, plus a second page.
+  - `perf-viz`: Now Playing with its visualiser and a Visualizer, for the hot/cold round trip. Its own profile, so the
+    heavy and light numbers stay comparable across phases. The fake Data API gives each audio device a moving
+    32-band `spectrum` and holds `*-state` enums, so the player stays playing.
   - `fixture.json` names the profiles, zones and selectors the specs use.
 - **Scratch runner** (`tools/perf/scratch.mjs`): copies the fixture, starts the fake Data API and the server
   (`SERVER_IMPL=node`, or `native` with `SERVER_CMD`), points `dataApiUrl` at the fake API, and gives the server an
@@ -216,11 +253,15 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
   context, a load under a short trace (JS bytes, parse/compile ms, first zone, FCP, requests), a 5 s warm-up and a
   10 s window (`Performance.getMetrics` deltas, rAF callbacks/s, running animations), repeated 3 times (median and
   range). `kiosk-idle` (heavy and light, at the default 60 fps and at `&fps=30`), `studio-idle`, `studio-hot-cold`
-  (HEADED=1 to reproduce the hidden tab) and `server-idle` (server RSS with two kiosks and a studio open, every 5 s
-  for 60 s).
+  (heavy and `perf-viz`: Design, then Help with the studio window minimized, then Screens → Design; records the rAF
+  callers, the ticker's subscribers with a stats build, and whether the visualiser canvas moves), `studio-unfocused`
+  (blurred for 65 s: at most 6 rAF/s, back within 1 s on focus) and `server-idle` (server RSS with two kiosks and a
+  studio open, every 5 s for 60 s). For the ticker's subscribers, run `npm run build:stats` and set
+  `DASHBOARD_DIST=.cache/dist-stats`.
 - **Desktop specs** (`tests/desktop/`, Windows): the debug build on scratch folders, attached over CDP
   (`INFOPANEL_STUDIO_CDP_PORT`, debug builds only), sampled with `tools/perf/process-sampler.mjs`:
-  `tray-close-releases-webview` and `studio-idle-webview2`. Setup in
+  `tray-close-releases-webview`, `studio-idle-webview2` and `studio-unfocused-webview2` (a small window of its own
+  takes the focus without covering the studio; the app's tree every minute for `PERF_SAMPLER_MS`, 30 min). Setup in
   [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup). `PERF_REPEATS`, `PERF_WARMUP_MS`,
   `PERF_WINDOW_MS` and `PERF_SERVER_MS` shorten a trial run.
 - **Reports**: `tools/perf/bundle-report.mjs` (entry closures from Vite's build manifest), `tools/perf/disk-report.mjs`
@@ -229,7 +270,8 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
 - **`npm run perf:all`** builds and runs all of it; **`npm run perf:compare <A> <B>`** prints a markdown table, flagging
   differences whose ranges overlap as noise.
 - **Budgets** (`tools/perf/budgets.json`, `npm run perf:budgets`, in CI): kiosk and studio entry gzip bytes, kiosk load
-  requests (in `tests/e2e/kiosk-budget.spec.ts`), and whether React's server renderer may be in the kiosk closure.
+  requests (in `tests/e2e/kiosk-budget.spec.ts`), whether React's server renderer may be in the kiosk closure, and no
+  debug-only global (`__tickerStats`) in either closure.
   CPU, memory and frame counts are report-only.
 
 Results: [perf-results/](perf-results/).

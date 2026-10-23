@@ -10,6 +10,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 - **The hidden Studio gives back its memory.** After 10 minutes in the tray its page is closed (Settings › General › Window › Release the hidden studio: 1 minute, 10 minutes, an hour or never); opening it from the tray rebuilds it in a moment. Edits are saved before it closes; unsaved undo history is lost.
 - **The kiosk page downloads about 200 KB less script.** Gauge icons come from markup made at build time, so the page no longer carries React's server renderer.
+- **Kiosks and the Studio draw fewer frames when nothing moves.** Clocks wake only when the time they show changes, finished animations stop asking for frames, and the animation loop sleeps until something is due: a page with only a clock, weather or visualisers runs at about 35 frames a second instead of 60, and at none with nothing animating.
+- **The Studio slows down in the background.** A minute after its window loses focus the canvas moves at 5 frames a second and weather, visualisers and other effects pause; they resume the moment you come back. Turn it off in Settings › General › Window › Reduce studio animation when unfocused.
 
 ### Fixed
 
