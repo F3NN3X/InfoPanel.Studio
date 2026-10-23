@@ -24,6 +24,7 @@ export interface Settings {
   zoom: number;
   studioRefresh: StudioRefresh;
   releaseHiddenStudio: ReleaseHiddenStudio;
+  reduceUnfocusedAnimation: boolean;
   checkForUpdates: boolean;
   updateChannel: Channel;
   autoDownload: boolean;

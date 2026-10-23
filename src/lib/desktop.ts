@@ -87,8 +87,8 @@ export const serverStatus = (): Promise<Status | undefined> => tryCall<Status>("
 export const updateState = (): Promise<UpdateState | undefined> => tryCall<UpdateState>("update_state");
 export const appSettings = (): Promise<Settings | undefined> => tryCall<Settings>("get_settings");
 
-/** Calls `handler` with each `server-status` / `update-state` event the shell emits; resolves to the unsubscribe. */
-export async function onShellEvent<T>(event: "server-status" | "update-state", handler: (payload: T) => void): Promise<() => void> {
+/** Calls `handler` with each `server-status` / `update-state` / `studio-focus` event the shell emits; resolves to the unsubscribe. */
+export async function onShellEvent<T>(event: "server-status" | "update-state" | "studio-focus", handler: (payload: T) => void): Promise<() => void> {
   if (!isTauri()) return () => {};
   const { listen } = await import("@tauri-apps/api/event");
   return listen<T>(event, (e) => handler(e.payload));

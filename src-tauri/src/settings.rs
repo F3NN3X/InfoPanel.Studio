@@ -101,6 +101,8 @@ pub struct Settings {
     pub studio_refresh: StudioRefresh,
     /// Close the hidden Studio's page after a while in the tray, to give back its memory.
     pub release_hidden_studio: ReleaseHiddenStudio,
+    /// Slow the studio's canvas and pause its ambient effects a minute after the window loses focus.
+    pub reduce_unfocused_animation: bool,
     /// Look for a new version shortly after the app starts.
     pub check_for_updates: bool,
     pub update_channel: Channel,
@@ -145,6 +147,7 @@ impl Default for Settings {
             zoom: DEFAULT_ZOOM,
             studio_refresh: StudioRefresh::Idle,
             release_hidden_studio: ReleaseHiddenStudio::After10m,
+            reduce_unfocused_animation: true,
             check_for_updates: true,
             update_channel: Channel::Stable,
             auto_download: false,
@@ -254,6 +257,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         }
         "studioRefresh" => next.studio_refresh = parse(key, value)?,
         "releaseHiddenStudio" => next.release_hidden_studio = parse(key, value)?,
+        "reduceUnfocusedAnimation" => next.reduce_unfocused_animation = parse(key, value)?,
         "checkForUpdates" => next.check_for_updates = parse(key, value)?,
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
@@ -465,6 +469,15 @@ mod tests {
     }
 
     #[test]
+    fn reduce_unfocused_animation_defaults_on_and_takes_a_boolean() {
+        assert!(load_from_str(r#"{ "port": 3942 }"#).unwrap().reduce_unfocused_animation);
+        assert!(!load_from_str(r#"{ "reduceUnfocusedAnimation": false }"#).unwrap().reduce_unfocused_animation);
+        let s = Settings::default();
+        assert_eq!(with_setting(&s, "reduceUnfocusedAnimation", json!(false)).map(|n| n.reduce_unfocused_animation), Ok(false));
+        assert!(with_setting(&s, "reduceUnfocusedAnimation", json!("off")).is_err());
+    }
+
+    #[test]
     fn unknown_keys_are_ignored() {
         let s = load_from_str(r#"{ "port": 3942, "theme": "dark" }"#).unwrap();
         assert_eq!(s.port, 3942);
@@ -618,6 +631,7 @@ mod tests {
         "zoom",
         "studioRefresh",
         "releaseHiddenStudio",
+        "reduceUnfocusedAnimation",
         "checkForUpdates",
         "updateChannel",
         "autoDownload",
