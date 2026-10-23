@@ -13,7 +13,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
-- **A kiosk no longer reports the default profile while it loads.** It used to open a control stream for its local copy's profile (`main` in a fresh browser) before the server's config arrived, so the Live view briefly listed a kiosk on a profile that might not exist.
+- **A kiosk no longer starts on its local copy of the layout.** Until the server's config arrived it showed the local copy (the defaults in a fresh browser), reported that profile (`main`) as shown, and its widgets connected to that copy's Data API address. It now waits for the server's config (or for the server to be unreachable) before it draws.
 
 ## [1.3.0-beta.16] - 2026-10-23
 
