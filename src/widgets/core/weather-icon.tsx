@@ -110,7 +110,7 @@ function SteppedSvg({ url, mono, className, style }: { url: string; mono: boolea
     if (!el) return;
     start.current ??= now;
     el.setCurrentTime((now - start.current) / 1000);
-  }, markup !== undefined, AMBIENT_FPS);
+  }, markup !== undefined, AMBIENT_FPS, "weather-icon");
   // biome-ignore lint/security/noDangerouslySetInnerHtml: a vendored icon file, scoped above
   return <span ref={host} aria-hidden className={`${className} [&>svg]:block [&>svg]:h-full [&>svg]:w-full`} style={style} dangerouslySetInnerHTML={{ __html: markup ?? "" }} />;
 }

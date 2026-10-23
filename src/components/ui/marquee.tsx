@@ -71,7 +71,7 @@ export function Marquee({ speed, spacing, style, wallClock = false, children, ..
       offset = -phase.current;
     }
     if (track.current) track.current.style.transform = `translate3d(${offset}px,0,0)`;
-  }, running);
+  }, running, 0, "marquee");
   // Offscreen it waits where it is; one that no longer scrolls goes back to its start.
   useEffect(() => {
     last.current = null;

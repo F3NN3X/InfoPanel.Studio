@@ -193,8 +193,11 @@ export class RangeEaser {
   }
 }
 
-/** Runs `cb` on the shared ticker (at most Max FPS a second) while `active`; write to DOM refs there, never set state. */
-export function useAnimationFrame(cb: (now: number, dtMs: number) => void, active = true): void {
+/**
+ * Runs `cb` on the shared ticker (at most Max FPS a second) while `active`; write to DOM refs there, never set state.
+ * `label` names it in the ticker's debug stats.
+ */
+export function useAnimationFrame(cb: (now: number, dtMs: number) => void, active = true, label?: string): void {
   const cbRef = useRef(cb);
   cbRef.current = cb;
   useEffect(() => {
@@ -204,6 +207,6 @@ export function useAnimationFrame(cb: (now: number, dtMs: number) => void, activ
     return subscribeTick((now) => {
       cbRef.current(now, Math.min(250, now - last));
       last = now;
-    });
-  }, [active]);
+    }, 0, label);
+  }, [active, label]);
 }

@@ -253,7 +253,7 @@ export function ProfileView({ profile, items, sensor, now, hidden, overlay, cont
   const gauges = useRef(new Map<string, { index: number; target: number; at: number }>());
   const [moving, setMoving] = useState(false);
   // The loop runs on the shared ticker (Max FPS) only while a gauge is still on its way; gradients turn through refs (PathPaint).
-  useTick(setFrame, moving);
+  useTick(setFrame, moving, 0, "infopanel:gauges");
   useEffect(() => {
     // Only on a change: a same-value setState after every commit would render twice per frame.
     const next = gaugesAnimate && [...gauges.current.values()].some((g) => Math.abs(g.index - g.target) > 1e-9);

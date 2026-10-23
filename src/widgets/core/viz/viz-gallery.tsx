@@ -40,7 +40,7 @@ function useTestSignal() {
       last = now;
       const k = Math.floor(now / FRAME_MS) % 4;
       stepInput(st, { capture: null, spectrum: frames[k], level: null }, DEFAULT_LOOK, dt, now);
-    }, "update");
+    }, "update", "viz:gallery");
   }, [st, frames]);
   return useMemo(() => () => st.input, [st]);
 }

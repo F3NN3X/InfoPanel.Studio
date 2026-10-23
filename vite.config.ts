@@ -4,7 +4,9 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 
-export default defineConfig({
+// `vite build --mode stats` (npm run build:stats): an unminified build in .cache/dist-stats with the ticker's debug stats
+// (window.__tickerStats, src/lib/ticker.ts) for the perf specs; release builds leave them out.
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
   // Relative asset base: the build works from any path it is served at.
   base: "./",
@@ -14,7 +16,9 @@ export default defineConfig({
       "@tests": path.resolve(__dirname, "./tests"),
     },
   },
+  ...(mode === "stats" ? { define: { "import.meta.env.VITE_TICKER_STATS": JSON.stringify("1") } } : {}),
   build: {
+    ...(mode === "stats" ? { outDir: ".cache/dist-stats", emptyOutDir: true, minify: false } : {}),
     // dist/.vite/manifest.json, read by tools/perf/bundle-report.mjs (the server never serves dot folders).
     manifest: true,
     // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
@@ -42,4 +46,4 @@ export default defineConfig({
       "/events/extras": "http://127.0.0.1:3922",
     },
   },
-});
+}));

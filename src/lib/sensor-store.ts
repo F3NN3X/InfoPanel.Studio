@@ -1,5 +1,6 @@
 import type { SensorMap } from "@/modules/types";
 import { getApiBase, subscribeApiBase } from "@/lib/data-api";
+import { wakeTicker } from "@/lib/ticker";
 import {
   mergeEvent,
   namespaceOf,
@@ -354,6 +355,8 @@ export class SensorStore {
 
   private emit(changed: readonly string[]): void {
     for (const listener of this.listeners) listener(changed);
+    // An animation that settled on the old values moves again.
+    wakeTicker();
   }
 
   private updateStatus(): void {

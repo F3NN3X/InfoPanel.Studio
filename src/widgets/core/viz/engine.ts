@@ -3,7 +3,7 @@
 // is hidden; colours re-resolved at most every 500 ms so a theme or skin change repaints live.
 import { resampleBands } from "@/lib/audio/spectrum";
 import { MAX_FRAME_GAP_MS, subscribeFrame } from "@/lib/audio/frame-loop";
-import { AMBIENT_FPS, capTick } from "@/lib/ticker";
+import { AMBIENT_FPS } from "@/lib/ticker";
 import { barCount, DRAW, fadeEdges, type DrawFrame } from "./draw";
 import { createCssResolver, css, paletteSpec, resolvePalette, type Palette } from "./palette";
 import type { VizInput, VizLook, VizSkin, VizStyle } from "./types";
@@ -96,7 +96,7 @@ export function createVizEngine(canvas: HTMLCanvasElement): VizEngine {
     const run = onScreen && !document.hidden && getter !== null && spec !== null && !spec.reduced;
     if (run && !unsubscribe) {
       lastMs = 0;
-      unsubscribe = subscribeFrame(capTick(paint, AMBIENT_FPS));
+      unsubscribe = subscribeFrame(paint, "paint", "viz:paint", AMBIENT_FPS);
     } else if (!run && unsubscribe) {
       unsubscribe();
       unsubscribe = null;

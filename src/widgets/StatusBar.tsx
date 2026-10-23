@@ -60,14 +60,15 @@ const SPACING = { compact: 8, normal: 14, roomy: 22 };
 const CHAR_EM = 0.58;
 const MEDIA_MAX_CHARS = 28;
 
-/** The current moment, refreshed on the shared ticker whenever a minute (or a second) passes. */
+/** The current moment, refreshed on the shared ticker whenever a minute (or a second) passes; it sleeps in between. */
 function useNow(seconds: boolean, on: boolean): Date {
   const [now, setNow] = useState(() => Date.now());
   const step = seconds ? 1000 : 60_000;
   useTick(() => {
     const t = Date.now();
     setNow((prev) => (Math.floor(t / step) !== Math.floor(prev / step) ? t : prev));
-  }, on);
+    return step - (t % step);
+  }, on, 0, "statusbar:clock");
   return new Date(now);
 }
 

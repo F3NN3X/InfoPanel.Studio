@@ -2,6 +2,7 @@ import { bandsFromSpectrum, logBandEdges } from "@/lib/audio/bands";
 import { peakDb } from "@/lib/audio/decibels";
 import { subscribeFrame } from "@/lib/audio/frame-loop";
 import type { FrameSource, VisualFrame } from "@/lib/audio/types";
+import { AMBIENT_FPS } from "@/lib/ticker";
 
 export interface MediaVisualSourceOptions {
   /** Output frequency bands per frame. Default 48. */
@@ -125,7 +126,7 @@ export function createMediaVisualSource(
 
   const start = () => {
     if (unsubscribe || !analyser || listeners.size === 0) return;
-    unsubscribe = subscribeFrame((nowMs) => read(nowMs), "update");
+    unsubscribe = subscribeFrame((nowMs) => read(nowMs), "update", "media:analyser", AMBIENT_FPS);
   };
   const stop = () => {
     unsubscribe?.();

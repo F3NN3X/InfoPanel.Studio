@@ -413,7 +413,7 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
     s.n = d.line === s.d ? s.n + 1 : 0;
     s.d = d.line;
     if (s.n >= 3) setSettled(true);
-  }, !settled);
+  }, !settled, "graph:smooth");
   // The first paint only: after mount the loop owns `d`. A path recomputed per render would make
   // React write the static layout on every new sample, flashing it for a frame.
   const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max), step, curve));
@@ -577,7 +577,7 @@ export function KenBurns({ src, className = "", on = true }: { src?: string; cla
     start.current ??= now;
     const p = alternate(now - start.current, 22000);
     el.style.transform = `scale(${1.06 + 0.12 * p}) translate(${-2.5 * p}%,${-1.5 * p}%)`;
-  }, live, AMBIENT_FPS);
+  }, live, AMBIENT_FPS, "kenburns");
   useEffect(() => {
     start.current = null;
     return () => {

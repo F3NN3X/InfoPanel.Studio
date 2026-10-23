@@ -29,7 +29,8 @@
     "lab:map": "node lab/infopanel/scripts/map-report.mjs",
     "lab:fonts": "node lab/infopanel/scripts/fonts.mjs",
     "lab:font-get": "node lab/infopanel/scripts/font-get.mjs",
-    "audit:views": "vitest run --config tools/audit/vitest.config.ts"
+    "audit:views": "vitest run --config tools/audit/vitest.config.ts",
+    "build:stats": "vite build --mode stats"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
