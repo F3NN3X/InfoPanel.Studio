@@ -182,7 +182,7 @@ Never measure on the live data or the running installed app.
    every run is a first load (the "hot" state).
 3. For the installed app, read `metrics.csv` with `tools/perf/metrics-trend.mjs` (read-only), and use Process
    Explorer or the WebView2 task manager. WebView2 DevTools can't be attached to a running app;
-   `INFOPANEL_STUDIO_CDP_PORT` with debug mode adds a debugging port at launch, but the port did not open on the
+   `INFOPANEL_STUDIO_CDP_PORT` in a debug build (never a release build) adds a debugging port at launch, but the port did not open on the
    WebView2 build tested before ([README](README.md#testing-without-touching-the-live-setup)).
 4. Other probes used in the investigation (kept in the session notes, not the repo): post-GC heap snapshots over 10
    minutes, Event Timing for click latency, per-widget `visibility: hidden` ablation, and wrapping

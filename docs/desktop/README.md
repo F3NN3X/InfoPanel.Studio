@@ -111,7 +111,7 @@ Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer 
 | `INFOPANEL_STUDIO_CONFIG_DIR` | Where the app keeps `settings.json` and its logs |
 | `INFOPANEL_STUDIO_DATA_DIR` | Passed to the server as `DASHBOARD_DATA_DIR` (its own config and assets) |
 | `INFOPANEL_STUDIO_DEBUG=1` | Debug mode for this run |
-| `INFOPANEL_STUDIO_CDP_PORT` | In debug mode only, adds `--remote-debugging-port` to WebView2 (the port did not open on the WebView2 build tested here; Windows UI Automation works instead) |
+| `INFOPANEL_STUDIO_CDP_PORT` | In debug builds only (never a release build), adds `--remote-debugging-port` to WebView2 (the port did not open on the WebView2 build tested here; Windows UI Automation works instead) |
 
 Seed the config folder with a `settings.json` that uses a spare port, `"startAtLogin": false` and
 `"agents": { "enabled": false }`. To try the agent toggle safely, also set `USERPROFILE` to a temp

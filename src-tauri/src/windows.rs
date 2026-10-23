@@ -21,23 +21,24 @@ pub const FLUSH_EVENT: &str = "studio://flush";
 /// Sent to the main window when the shell leaves Kiosk view on its own (a close from it).
 pub const KIOSK_LEFT_EVENT: &str = "kiosk-left";
 
-/// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` when debug mode is on
-/// and `INFOPANEL_STUDIO_CDP_PORT` is set, so a test or debugging session can attach over CDP.
-/// Decided once per run: every webview must get the same arguments, since they share one WebView2
-/// environment.
-fn browser_args(debug: bool) -> &'static str {
+/// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` in debug builds only, when
+/// `INFOPANEL_STUDIO_CDP_PORT` is set, so a test or debugging session can attach over CDP. A release
+/// build never opens the port. Decided once per run: every webview must get the same arguments, since
+/// they share one WebView2 environment.
+fn browser_args() -> &'static str {
     static ARGS: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ARGS.get_or_init(|| {
-        let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
-        let port = std::env::var("INFOPANEL_STUDIO_CDP_PORT")
-            .ok()
-            .and_then(|p| p.parse::<u16>().ok())
-            .filter(|_| debug);
-        match port {
-            Some(port) => format!("{base} --remote-debugging-port={port}"),
-            None => base.to_string(),
-        }
+        let port = std::env::var("INFOPANEL_STUDIO_CDP_PORT").ok();
+        browser_args_for(cfg!(debug_assertions), port.as_deref())
     })
+}
+
+fn browser_args_for(debug_build: bool, port: Option<&str>) -> String {
+    let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
+    match port.and_then(|p| p.parse::<u16>().ok()).filter(|_| debug_build) {
+        Some(port) => format!("{base} --remote-debugging-port={port}"),
+        None => base.to_string(),
+    }
 }
 
 /// At most one external open per second, so a page can't flood the browser with tabs.
@@ -114,7 +115,7 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .disable_drag_drop_handler()
         .inner_size(1440.0, 900.0)
         .min_inner_size(960.0, 600.0)
-        .additional_browser_args(browser_args(app.state::<AppState>().debug()))
+        .additional_browser_args(browser_args())
         .on_navigation(move |url| {
             let allowed = origin
                 .read()
@@ -382,7 +383,7 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
         .background_color(PAGE_BACKGROUND)
         .inner_size(1000.0, 720.0)
         .min_inner_size(760.0, 520.0)
-        .additional_browser_args(browser_args(app.state::<AppState>().debug()))
+        .additional_browser_args(browser_args())
         .on_navigation(move |url| {
             let allowed = if server {
                 origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false)
@@ -542,6 +543,29 @@ pub fn quit(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_debugging_port_needs_a_debug_build_and_a_valid_port() {
+        let base = browser_args_for(true, None);
+        assert!(!base.contains("remote-debugging-port"));
+        assert!(base.contains("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
+        assert_eq!(browser_args_for(true, Some("9222")), format!("{base} --remote-debugging-port=9222"));
+        assert_eq!(browser_args_for(true, Some("nope")), base);
+        assert_eq!(browser_args_for(true, Some("70000")), base);
+        assert_eq!(browser_args_for(false, Some("9222")), base);
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn a_debug_build_opens_the_port() {
+        assert!(browser_args_for(cfg!(debug_assertions), Some("9222")).contains("--remote-debugging-port=9222"));
+    }
+
+    #[cfg(not(debug_assertions))]
+    #[test]
+    fn a_release_build_never_opens_the_port() {
+        assert!(!browser_args_for(cfg!(debug_assertions), Some("9222")).contains("remote-debugging-port"));
+    }
 
     #[test]
     fn the_server_settings_page_opens_at_a_known_page_and_group_only() {
