@@ -13,4 +13,7 @@ test("the heavy kiosk loads within its request budget", async ({ page, scratch }
   await expect(page.locator(manifest.kioskZoneSelector)).toHaveCount(manifest.zones.heavy.length);
   await page.waitForTimeout(2000);
   expect(requests.length, requests.join("\n")).toBeLessThanOrEqual(budgets.kioskLoadRequests);
+  // The kiosk reports only the profile it shows: not the local copy's (the defaults) before the server's config.
+  const control = requests.filter((r) => r.startsWith("/events/control"));
+  expect(control).toEqual([`/events/control?profile=${manifest.profiles.heavy}`]);
 });

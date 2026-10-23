@@ -11,6 +11,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **The hidden Studio gives back its memory.** After 10 minutes in the tray its page is closed (Settings › General › Window › Release the hidden studio: 1 minute, 10 minutes, an hour or never); opening it from the tray rebuilds it in a moment. Edits are saved before it closes; unsaved undo history is lost.
 - **The kiosk page downloads about 200 KB less script.** Gauge icons come from markup made at build time, so the page no longer carries React's server renderer.
 
+### Fixed
+
+- **A kiosk no longer reports the default profile while it loads.** It used to open a control stream for its local copy's profile (`main` in a fresh browser) before the server's config arrived, so the Live view briefly listed a kiosk on a profile that might not exist.
+
 ## [1.3.0-beta.16] - 2026-10-23
 
 ### Fixed
