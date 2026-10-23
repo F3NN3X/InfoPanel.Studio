@@ -145,9 +145,12 @@ export default function App() {
     windowSize.w,
     windowSize.h
   );
+  // Kiosk: the server's config has been asked for once. Until then the profile is the local copy's (the defaults in
+  // a fresh browser), which is neither reported as shown nor rendered.
+  const [kioskPulled, setKioskPulled] = useState(false);
   useEffect(() => {
-    if (kiosk) setShownId(stored.id);
-  }, [kiosk, stored.id]);
+    if (kiosk && kioskPulled) setShownId(stored.id);
+  }, [kiosk, kioskPulled, stored.id]);
   const kioskPage = kiosk
     ? kioskPageId({
         pin: pagePin,
@@ -249,6 +252,8 @@ export default function App() {
         if (!alive) return;
         if (server) {
           const merged = withPinnedProfile(mergeConfig(server));
+          // Before the render that mounts its widgets: their effects run before ours.
+          setApiBase(merged.dataApiUrl);
           saveConfig(merged);
           setConfig(merged);
         } else {
@@ -365,16 +370,22 @@ export default function App() {
     const pull = async () => {
       try {
         const parsed = await fetchConfig();
-        if (!alive || !parsed) return; // nothing saved yet — the local copy stands
-        const text = JSON.stringify(parsed);
-        if (last !== null && text !== last) setLayoutVersion((v) => v + 1);
-        last = text;
-        const merged = withPinnedProfile(mergeConfig(parsed));
-        saveConfig(merged); // also seed the local copy (offline fallback)
-        setConfig(merged);
+        if (!alive) return;
+        if (parsed) {
+          const text = JSON.stringify(parsed);
+          if (last !== null && text !== last) setLayoutVersion((v) => v + 1);
+          last = text;
+          const merged = withPinnedProfile(mergeConfig(parsed));
+          // Before the render that mounts its widgets: their effects run before ours.
+          setApiBase(merged.dataApiUrl);
+          saveConfig(merged); // also seed the local copy (offline fallback)
+          setConfig(merged);
+        }
+        // Nothing saved yet: the local copy stands.
       } catch {
         // Server offline — the local fallback (loadConfig) stands.
       }
+      if (alive) setKioskPulled(true);
     };
     // The stream sends the current version on connect (and on every
     // reconnect), then one event per save — each one triggers a pull.
@@ -571,6 +582,10 @@ export default function App() {
     </GeneralProvider>
     );
   }
+
+  // Kiosk: nothing until the server's config has been read (or failed to), so the local copy's layout (the
+  // defaults in a fresh browser) never mounts widgets that open sensor streams to its Data API.
+  if (kiosk && !kioskPulled) return null;
 
   return (
     <GeneralProvider value={general}>

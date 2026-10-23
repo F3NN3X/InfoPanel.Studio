@@ -21,23 +21,33 @@ pub const FLUSH_EVENT: &str = "studio://flush";
 /// Sent to the main window when the shell leaves Kiosk view on its own (a close from it).
 pub const KIOSK_LEFT_EVENT: &str = "kiosk-left";
 
-/// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` when debug mode is on
-/// and `INFOPANEL_STUDIO_CDP_PORT` is set, so a test or debugging session can attach over CDP.
-/// Decided once per run: every webview must get the same arguments, since they share one WebView2
-/// environment.
-fn browser_args(debug: bool) -> &'static str {
+/// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` in debug builds only, when
+/// `INFOPANEL_STUDIO_CDP_PORT` is set, so a test or debugging session can attach over CDP. A release
+/// build never opens the port. Decided once per run: every webview must get the same arguments, since
+/// they share one WebView2 environment.
+fn browser_args() -> &'static str {
     static ARGS: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     ARGS.get_or_init(|| {
-        let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
-        let port = std::env::var("INFOPANEL_STUDIO_CDP_PORT")
-            .ok()
-            .and_then(|p| p.parse::<u16>().ok())
-            .filter(|_| debug);
-        match port {
-            Some(port) => format!("{base} --remote-debugging-port={port}"),
-            None => base.to_string(),
-        }
+        let port = std::env::var("INFOPANEL_STUDIO_CDP_PORT").ok();
+        browser_args_for(cfg!(debug_assertions), port.as_deref())
     })
+}
+
+fn browser_args_for(debug_build: bool, port: Option<&str>) -> String {
+    let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection";
+    match port.and_then(|p| p.parse::<u16>().ok()).filter(|_| debug_build) {
+        Some(port) => format!("{base} --remote-debugging-port={port}"),
+        None => base.to_string(),
+    }
+}
+
+/// Every webview shares one WebView2 environment, so they all take the same data folder: a test run's own
+/// (paths::webview_data_dir), else WebView2's default.
+fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewWindowBuilder<'a, R, M>) -> WebviewWindowBuilder<'a, R, M> {
+    match crate::paths::webview_data_dir() {
+        Some(dir) => builder.data_directory(dir),
+        None => builder,
+    }
 }
 
 /// At most one external open per second, so a page can't flood the browser with tabs.
@@ -100,10 +110,12 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let origin = st.origin.clone();
     let nav_app = app.clone();
     let popup_app = app.clone();
+    let started = std::time::Instant::now();
+    let rebuilding = crate::release::take_rebuilding();
     // Built hidden on the pages' dark background and shown once the first page has loaded, like the
     // settings and help windows, so launching the app never flashes a white, empty window.
     let shown = Arc::new(AtomicBool::new(false));
-    let window = WebviewWindowBuilder::new(app, MAIN, url)
+    let builder = WebviewWindowBuilder::new(app, MAIN, url)
         .title("InfoPanel Studio")
         .visible(false)
         .background_color(PAGE_BACKGROUND)
@@ -114,7 +126,7 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         .disable_drag_drop_handler()
         .inner_size(1440.0, 900.0)
         .min_inner_size(960.0, 600.0)
-        .additional_browser_args(browser_args(app.state::<AppState>().debug()))
+        .additional_browser_args(browser_args())
         .on_navigation(move |url| {
             let allowed = origin
                 .read()
@@ -133,12 +145,15 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             let finished = payload.event() == PageLoadEvent::Finished;
             zoom_on_load(window.clone(), payload);
             if finished && !shown.swap(true, Ordering::SeqCst) {
+                if rebuilding {
+                    log::info!("studio rebuilt ({} ms)", started.elapsed().as_millis());
+                }
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
-        })
-        .build()?;
+        });
+    let window = with_webview_data_dir(builder).build()?;
     let _ = window.set_zoom(zoom_factor(app));
     crate::webview2::watch(&window);
     let handle = app.clone();
@@ -198,14 +213,26 @@ fn follow_window(app: &AppHandle, window: tauri::WebviewWindow) {
 /// A minimize's flush-then-suspend is running.
 static MINIMIZE_FLUSH: AtomicBool = AtomicBool::new(false);
 
+/// A new studio window is being built.
+static CREATING_MAIN: AtomicBool = AtomicBool::new(false);
+
 /// Shows (creating if needed) and focuses the studio window. A new one shows itself once its first
 /// page has loaded.
 pub fn show_main(app: &AppHandle) {
+    crate::release::shown();
     let window = match app.get_webview_window(MAIN) {
         Some(w) => w,
         None => {
-            if let Err(e) = create_main(app) {
-                log::error!("could not open the studio window: {e}");
+            // Built off the caller's thread: the tray and single-instance callbacks run on the main
+            // thread, where building a webview waits on the event loop it is blocking. One at a time.
+            if !CREATING_MAIN.swap(true, Ordering::SeqCst) {
+                let app = app.clone();
+                std::thread::spawn(move || {
+                    if let Err(e) = create_main(&app) {
+                        log::error!("could not open the studio window: {e}");
+                    }
+                    CREATING_MAIN.store(false, Ordering::SeqCst);
+                });
             }
             return;
         }
@@ -375,14 +402,14 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
     // Built hidden on the pages' own dark background and shown once the first page has loaded, so
     // opening it never flashes a white, empty window.
     let shown = Arc::new(AtomicBool::new(false));
-    let built = WebviewWindowBuilder::new(app, label, url)
+    let builder = WebviewWindowBuilder::new(app, label, url)
         .title(title)
         .decorations(false)
         .visible(false)
         .background_color(PAGE_BACKGROUND)
         .inner_size(1000.0, 720.0)
         .min_inner_size(760.0, 520.0)
-        .additional_browser_args(browser_args(app.state::<AppState>().debug()))
+        .additional_browser_args(browser_args())
         .on_navigation(move |url| {
             let allowed = if server {
                 origin.read().map(|o| nav::is_allowed_nav(url, &o)).unwrap_or(false)
@@ -405,8 +432,8 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
                 let _ = window.show();
                 let _ = window.set_focus();
             }
-        })
-        .build();
+        });
+    let built = with_webview_data_dir(builder).build();
     match built {
         Ok(w) => {
             let _ = w.set_zoom(zoom_factor(app));
@@ -492,6 +519,7 @@ fn close_main(app: &AppHandle) {
             let _ = w.hide();
             // After the flush, which needs the page awake; nobody sees it until the tray shows it.
             crate::webview2::suspend(&w);
+            crate::release::hidden();
         }
         log::debug!("window hidden to the tray");
         return;
@@ -501,7 +529,9 @@ fn close_main(app: &AppHandle) {
             .dialog()
             .message(
                 "Closing InfoPanel Studio stops its dashboard server, so the kiosk page stops \
-                 updating until you start the app again.\n\nTo keep the server running with the \
+                 updating until you start the app again.
+
+To keep the server running with the \
                  window closed, turn on \"Close to tray\" in the settings.",
             )
             .title("Quit InfoPanel Studio?")
@@ -542,6 +572,29 @@ pub fn quit(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_debugging_port_needs_a_debug_build_and_a_valid_port() {
+        let base = browser_args_for(true, None);
+        assert!(!base.contains("remote-debugging-port"));
+        assert!(base.contains("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
+        assert_eq!(browser_args_for(true, Some("9222")), format!("{base} --remote-debugging-port=9222"));
+        assert_eq!(browser_args_for(true, Some("nope")), base);
+        assert_eq!(browser_args_for(true, Some("70000")), base);
+        assert_eq!(browser_args_for(false, Some("9222")), base);
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn a_debug_build_opens_the_port() {
+        assert!(browser_args_for(cfg!(debug_assertions), Some("9222")).contains("--remote-debugging-port=9222"));
+    }
+
+    #[cfg(not(debug_assertions))]
+    #[test]
+    fn a_release_build_never_opens_the_port() {
+        assert!(!browser_args_for(cfg!(debug_assertions), Some("9222")).contains("remote-debugging-port"));
+    }
 
     #[test]
     fn the_server_settings_page_opens_at_a_known_page_and_group_only() {

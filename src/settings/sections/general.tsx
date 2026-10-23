@@ -84,6 +84,19 @@ export function GeneralSection() {
               <option value="off">Off</option>
             </select>
           </Row>
+          <Row id="release-hidden-studio" label="Release the hidden studio" hint="Closes the hidden studio's page to give back its memory; it opens again from the tray in a moment.">
+            <select
+              aria-label="Release the hidden studio"
+              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-[12.5px] text-s-t1"
+              value={settings.releaseHiddenStudio}
+              onChange={(e) => void save("releaseHiddenStudio", e.target.value)}
+            >
+              <option value="after1m">After 1 minute</option>
+              <option value="after10m">After 10 minutes</option>
+              <option value="after60m">After an hour</option>
+              <option value="never">Never</option>
+            </select>
+          </Row>
         </Card>
       </Group>
     </>

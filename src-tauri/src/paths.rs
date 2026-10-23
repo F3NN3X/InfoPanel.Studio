@@ -22,6 +22,13 @@ fn env_path(name: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+/// The WebView2 user data folder for test runs: `EBWebView` under INFOPANEL_STUDIO_CONFIG_DIR when that is
+/// set, so a test run never shares the installed app's profile (or its running browser process, which would
+/// ignore this run's browser arguments). None = WebView2's default next to the app's local data.
+pub fn webview_data_dir() -> Option<PathBuf> {
+    env_path("INFOPANEL_STUDIO_CONFIG_DIR").map(|dir| dir.join("EBWebView"))
+}
+
 impl Paths {
     /// `%APPDATA%\<id>` for settings and `%LOCALAPPDATA%\<id>\logs` for logs, both under
     /// INFOPANEL_STUDIO_CONFIG_DIR when that is set.

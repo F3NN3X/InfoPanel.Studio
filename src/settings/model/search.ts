@@ -51,6 +51,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "close-to-tray", label: "Close to tray", section: "general" },
   { row: "remember-bounds", label: "Remember window size", section: "general" },
   { row: "studio-refresh", label: "Refresh the Studio", section: "general" },
+  { row: "release-hidden-studio", label: "Release the hidden studio", section: "general" },
   { row: "server-card", label: "Start / stop server", section: "server" },
   { row: "server-card", label: "Restart server", section: "server" },
   { row: "listen", label: "Who can connect (listen on)", section: "server" },

@@ -18,6 +18,11 @@ From `package.json`:
 | `npm run build` | `tsc -b && vite build` | Type-checks, then builds into `dist/` |
 | `npm run typecheck` | `tsc -b` | Type-check only |
 | `npm test` | `vitest run` | Runs the test suite once |
+| `npm run test:e2e` | `playwright test --project=e2e` | Functional specs against `dist/` on a scratch server (build first) |
+| `npm run perf:kiosk`, `perf:studio` | `playwright test --project=perf-…` | Idle and load measurements into `.cache/perf/<label>/` |
+| `npm run perf:all` | build, perf specs, bundle and disk reports | A full perf run; `PERF_LABEL` names it |
+| `npm run perf:compare <A> <B>` | `node tools/perf/compare.mjs` | Markdown table of two runs |
+| `npm run perf:budgets` | `node tools/perf/check-budgets.mjs` | The deterministic bundle budgets (CI) |
 | `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
 | `npm start` | `node server.mjs` | Serves `dist/` and the config endpoints |
 | `npm run serve` | `npm run build && node server.mjs` | Build, then start |
@@ -50,8 +55,9 @@ the servers on 3921 or 3922. See [desktop/README.md](desktop/README.md).
 
 ## CI and releases
 
-`.github/workflows/ci.yml` runs `npm ci`, `npm run build` and `npm test` on
-`windows-latest` for every pull request and every push to `main`.
+`.github/workflows/ci.yml` runs `npx biome ci`, `npm run build`, `npm test`, `npm run perf:budgets` and
+`npm run test:e2e` on `ubuntu-latest` for every pull request (and on `main` when the dependencies change), and
+`cargo test` on `windows-latest` when the change touches the desktop app.
 
 `.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless
 the tag matches `version` in `package.json` and `CHANGELOG.md` has a `## [X.Y.Z]`
@@ -153,6 +159,20 @@ matchers (no jest-dom). Tests sit beside the code they cover:
 
 `npm test` prints the current number of test files and tests; all of them
 should pass.
+
+### Playwright suites
+
+`playwright.config.ts` has four projects; every spec starts its own scratch server on a temp copy of
+`tests/fixtures/perf/data` with a fake Data API (`tools/perf/scratch.mjs`), so none touches the real data.
+
+| Project | Specs | Runs |
+|---|---|---|
+| `e2e` | `tests/e2e/*.spec.ts`: kiosk render (incl. the gauge icon), live config update, control page switch, studio edit/save/undo, image-proxy rules, request guard, kiosk request budget | `npm run test:e2e`, in CI |
+| `perf-kiosk`, `perf-studio` | `tests/perf/*.perf.ts`: `kiosk-idle`, `server-idle`, `studio-idle`, `studio-hot-cold` | `npm run perf:kiosk` / `perf:studio`, report only |
+| `desktop` | `tests/desktop/*.desktop.ts`: the debug build over CDP (`tray-close-releases-webview`, `studio-idle-webview2`) | Windows, by hand: see [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup) |
+
+The method, the fixture and the reports are in [performance.md, "The harness"](performance.md#the-harness).
+Regenerate the fixture with `node tools/perf/make-fixture.mjs` after a config version bump.
 
 ## Typecheck
 

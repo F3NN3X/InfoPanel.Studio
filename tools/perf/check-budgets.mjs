@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+// CI check of the deterministic bundle budgets (tools/perf/budgets.json) against the build in dist/: the kiosk and
+// studio entry closures' gzip bytes, and no React server renderer in the kiosk closure. Exit 1 on a breach.
+//   npm run build && node tools/perf/check-budgets.mjs
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { report } from "./bundle-report.mjs";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+export const budgets = JSON.parse(fs.readFileSync(path.join(ROOT, "tools/perf/budgets.json"), "utf8"));
+
+/** The breaches of a bundle report, as messages (empty when within budget). */
+export function breaches(result, b = budgets) {
+  const out = [];
+  const { kiosk, studio } = result.entries;
+  if (kiosk.jsGzip > b.kioskEntryGzipBytes) out.push(`kiosk entry ${kiosk.jsGzip} B gzip > budget ${b.kioskEntryGzipBytes}`);
+  if (studio.jsGzip > b.studioEntryGzipBytes) out.push(`studio entry ${studio.jsGzip} B gzip > budget ${b.studioEntryGzipBytes}`);
+  if (kiosk.serverRenderer && !b.kioskServerRendererAllowed) out.push("react-dom/server code is in the kiosk closure");
+  return out;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const result = report({ dist: path.join(ROOT, "dist") });
+  const found = breaches(result);
+  const { kiosk, studio } = result.entries;
+  console.log(`kiosk ${kiosk.jsGzip} B gzip (budget ${budgets.kioskEntryGzipBytes}), studio ${studio.jsGzip} B gzip (budget ${budgets.studioEntryGzipBytes}), server renderer in kiosk: ${kiosk.serverRenderer}`);
+  for (const b of found) console.error(`over budget: ${b}`);
+  process.exit(found.length ? 1 : 0);
+}

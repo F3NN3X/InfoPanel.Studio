@@ -6,6 +6,15 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **The hidden Studio gives back its memory.** After 10 minutes in the tray its page is closed (Settings › General › Window › Release the hidden studio: 1 minute, 10 minutes, an hour or never); opening it from the tray rebuilds it in a moment. Edits are saved before it closes; unsaved undo history is lost.
+- **The kiosk page downloads about 200 KB less script.** Gauge icons come from markup made at build time, so the page no longer carries React's server renderer.
+
+### Fixed
+
+- **A kiosk no longer starts on its local copy of the layout.** Until the server's config arrived it showed the local copy (the defaults in a fresh browser), reported that profile (`main`) as shown, and its widgets connected to that copy's Data API address. It now waits for the server's config (or for the server to be unreachable) before it draws.
+
 ## [1.3.0-beta.16] - 2026-10-23
 
 ### Fixed
@@ -33,7 +42,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Added
 
-- **Refresh the Studio** (Settings › App › Window): the desktop Studio reloads itself after saving, to give back the memory a long session holds (an overnight run grew it to 2 GB). When idle for 30 minutes (default), daily at 04:00, or off; only while its window isn't focused.
+- **Refresh the Studio** (Settings › General › Window): the desktop Studio reloads itself after saving, to give back the memory a long session holds (an overnight run grew it to 2 GB). When idle for 30 minutes (default), daily at 04:00, or off; only while its window isn't focused.
 - **Rendering options** (Settings › Dashboard › Performance): Ring glides, Limit blur (on by default, caps widget blur at 12 px), Blur inside widgets and Live graph glow. Rings step, inner blurs are off and graph glow is a static copy of the line unless you turn them on.
 - **Refresh kiosk pages** (Settings › Dashboard › Performance): kiosk pages reload once a day at about 04:00 (default; each kiosk adds a few random minutes), or never.
 - **The desktop Studio uses less memory while it isn't focused** (WebView2's low memory target), **reloads itself if its page crashes or hangs** (at most once a minute), and **says when WebView2 has updated** and a restart would pick it up.

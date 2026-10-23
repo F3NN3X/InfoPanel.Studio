@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+// A throwaway server for the e2e and perf harness: copies the perf fixture (tests/fixtures/perf/data) to a temp
+// folder, starts the fake Data API (fake-data-api.mjs) and then the dashboard server on that copy, both on ports the
+// OS picks. It never touches the real data folder, InfoPanel's data or the user's agent sessions.
+//   import { startScratch } from "./scratch.mjs";  const { base, dataApi, dataDir, pid, stop } = await startScratch();
+//   node tools/perf/scratch.mjs     starts one and prints its URLs until Ctrl+C
+// SERVER_IMPL=node (default) runs `node server.mjs`; SERVER_IMPL=native runs the ips-server binary at SERVER_CMD.
+// DASHBOARD_DIST is passed through (default dist/; run `npm run build` first).
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+export const FIXTURE_DIR = path.join(ROOT, "tests/fixtures/perf/data");
+/** The server's start line (the same pattern as tests/server/server.test.mjs). */
+const SERVER_LINE = /InfoPanel Studio on http:\/\/[^:]+:(\d+)/;
+const DATA_API_LINE = /Fake Data API on http:\/\/[^:]+:(\d+)/;
+const START_TIMEOUT_MS = 15_000;
+
+/** Spawn a process and wait for its start line; resolves with the port. */
+function launch(cmd, args, env, pattern, name) {
+  const child = spawn(cmd, args, { env, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+  let out = "";
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error(`${name} did not start in ${START_TIMEOUT_MS} ms:\n${out}`));
+    }, START_TIMEOUT_MS);
+    const onData = (chunk) => {
+      out += chunk;
+      const port = Number(pattern.exec(out)?.[1]);
+      if (port) {
+        clearTimeout(timer);
+        resolve({ child, port, output: () => out });
+      }
+    };
+    child.stdout.on("data", onData);
+    child.stderr.on("data", (c) => (out += c));
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(new Error(`${name} failed to start: ${err.message}`));
+    });
+    child.on("exit", (code) => {
+      clearTimeout(timer);
+      reject(new Error(`${name} exited (${code}) before starting:\n${out}`));
+    });
+  });
+}
+
+/** The server command for SERVER_IMPL. */
+export function serverCommand(env = process.env) {
+  const impl = env.SERVER_IMPL || "node";
+  if (impl === "node") return { cmd: process.execPath, args: [path.join(ROOT, "server.mjs")] };
+  if (impl === "native") {
+    if (!env.SERVER_CMD || !fs.existsSync(env.SERVER_CMD)) {
+      throw new Error("SERVER_IMPL=native needs the ips-server binary (Phase 3) at SERVER_CMD; it is not built yet.");
+    }
+    return { cmd: env.SERVER_CMD, args: [] };
+  }
+  throw new Error(`SERVER_IMPL must be node or native, not ${impl}`);
+}
+
+/**
+ * A temp folder with a copy of `fixture` (its `dataApiUrl` pointed at a fresh fake Data API), an empty home and an
+ * empty InfoPanel folder. `stop` ends the fake Data API and anything pushed onto `children`, then removes the folder.
+ */
+export async function prepareScratch({ fixture = FIXTURE_DIR, dataApiEnv = {} } = {}) {
+  if (!fs.existsSync(path.join(fixture, "config.json"))) throw new Error(`no fixture at ${fixture}; run node tools/perf/make-fixture.mjs`);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ips-scratch-"));
+  const dataDir = path.join(tmp, "data");
+  const home = path.join(tmp, "home");
+  const infopanel = path.join(tmp, "infopanel");
+  fs.cpSync(fixture, dataDir, { recursive: true });
+  fs.mkdirSync(home);
+  fs.mkdirSync(infopanel);
+
+  const children = [];
+  const stop = () => {
+    for (const c of children) c.kill();
+    // The server may still hold files for a moment on Windows.
+    setTimeout(() => fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 }), 200).unref?.();
+  };
+  try {
+    const api = await launch(process.execPath, [path.join(ROOT, "tools/perf/fake-data-api.mjs")], { ...process.env, ...dataApiEnv, PORT: "0", HOST: "127.0.0.1" }, DATA_API_LINE, "fake Data API");
+    children.push(api.child);
+    const dataApi = `http://127.0.0.1:${api.port}`;
+    const configFile = path.join(dataDir, "config.json");
+    const config = JSON.parse(fs.readFileSync(configFile, "utf8"));
+    fs.writeFileSync(configFile, JSON.stringify({ ...config, dataApiUrl: dataApi }));
+    return { tmp, dataDir, home, infopanel, dataApi, children, stop };
+  } catch (err) {
+    stop();
+    throw err;
+  }
+}
+
+/**
+ * Start a scratch server. `fixture` is the data folder to copy; `env` adds to the server's environment;
+ * `dataApiEnv` to the fake Data API's (RATE_HZ, AUDIO_HZ, SEED); `nodeArgs` to node's command line (node only).
+ */
+export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {}, nodeArgs = [] } = {}) {
+  const server = serverCommand({ ...process.env, ...env });
+  // Node flags (V8 heap sizes, --trace-gc) go before the script; the native server takes none.
+  const args = server.cmd === process.execPath ? [...nodeArgs, ...server.args] : server.args;
+  const scratch = await prepareScratch({ fixture, dataApiEnv });
+  try {
+    const serverEnv = {
+      ...process.env,
+      // The agent-usage scan reads the user's home; point it at an empty one.
+      HOME: scratch.home,
+      USERPROFILE: scratch.home,
+      INFOPANEL_DATA_DIR: scratch.infopanel,
+      HOST: "127.0.0.1",
+      ...env,
+      DASHBOARD_DATA_DIR: scratch.dataDir,
+      PORT: "0",
+    };
+    const started = await launch(server.cmd, args, serverEnv, SERVER_LINE, `server (${env.SERVER_IMPL || process.env.SERVER_IMPL || "node"})`);
+    scratch.children.push(started.child);
+    return { base: `http://127.0.0.1:${started.port}`, dataApi: scratch.dataApi, dataDir: scratch.dataDir, pid: started.child.pid, output: started.output, stop: scratch.stop };
+  } catch (err) {
+    scratch.stop();
+    throw err;
+  }
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const s = await startScratch();
+  console.log(`scratch server ${s.base}  data API ${s.dataApi}  data ${s.dataDir}`);
+  const stop = () => {
+    s.stop();
+    setTimeout(() => process.exit(0), 300);
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+}

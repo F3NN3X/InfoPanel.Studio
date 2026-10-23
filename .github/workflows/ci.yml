@@ -63,6 +63,11 @@ jobs:
       - run: npx biome ci
       - run: npm run build
       - run: npm test
+      # The deterministic bundle budgets (tools/perf/budgets.json); CPU and memory stay report-only.
+      - run: npm run perf:budgets
+      # The e2e suite against dist/ on a scratch server (tools/perf/scratch.mjs).
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
 
   # The Rust tests, only when the change touches the desktop app.
   rust:

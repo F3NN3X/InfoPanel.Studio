@@ -193,9 +193,65 @@ Notes:
    - Uppercase is listed as lost when importing Clock and Calendar.
    - The island level bar still animates `width`, but it's short and only shows during a notice.
 
-## How to measure
+## The harness
 
-These scripts lived in the session scratchpad and are not in the repo. The method:
+A committed, reproducible harness (Playwright, `playwright.config.ts`). It never touches the real data folder: every
+spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
+
+- **Fake Data API** (`tools/perf/fake-data-api.mjs`): `/api`, `/api/sources`, `/api/sensors`, `/events` and the
+  filtered `/events?prefix=&interval=` stream, in the shapes `src/lib/sensor-store.ts` reads. It serves the widget
+  fixtures' sensors (`src/widgets/__fixtures__`) with numeric values on a seeded wave: `RATE_HZ` (1), `AUDIO_HZ`
+  (10, the audio meter keys), `SEED` (1), `PORT=0`.
+- **Fixture** (`tests/fixtures/perf/`): built through the server's own API by `node tools/perf/make-fixture.mjs`.
+  - `perf-heavy`: StatusBar, SystemOverview with rings and heatmap, CoreHeatmap, GpuRings (RingStack), AudioMeter,
+    Weather with fx, an imported canvas with a gauge icon, the island, an image background.
+  - `perf-light`: Clock and two SensorValue zones, plus a second page.
+  - `fixture.json` names the profiles, zones and selectors the specs use.
+- **Scratch runner** (`tools/perf/scratch.mjs`): copies the fixture, starts the fake Data API and the server
+  (`SERVER_IMPL=node`, or `native` with `SERVER_CMD`), points `dataApiUrl` at the fake API, and gives the server an
+  empty home and InfoPanel folder. `node tools/perf/scratch.mjs` starts one by hand.
+- **Functional specs** (`tests/e2e/`, `npm run test:e2e`): kiosk render, live config update, control page switch,
+  studio edit/save/undo, image-proxy rules, request guard, and the kiosk request budget.
+- **Perf specs** (`tests/perf/`, `npm run perf:kiosk`, `npm run perf:studio`): each page measurement is a fresh
+  context, a load under a short trace (JS bytes, parse/compile ms, first zone, FCP, requests), a 5 s warm-up and a
+  10 s window (`Performance.getMetrics` deltas, rAF callbacks/s, running animations), repeated 3 times (median and
+  range). `kiosk-idle` (heavy and light, at the default 60 fps and at `&fps=30`), `studio-idle`, `studio-hot-cold`
+  (HEADED=1 to reproduce the hidden tab) and `server-idle` (server RSS with two kiosks and a studio open, every 5 s
+  for 60 s).
+- **Desktop specs** (`tests/desktop/`, Windows): the debug build on scratch folders, attached over CDP
+  (`INFOPANEL_STUDIO_CDP_PORT`, debug builds only), sampled with `tools/perf/process-sampler.mjs`:
+  `tray-close-releases-webview` and `studio-idle-webview2`. Setup in
+  [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup). `PERF_REPEATS`, `PERF_WARMUP_MS`,
+  `PERF_WINDOW_MS` and `PERF_SERVER_MS` shorten a trial run.
+- **Reports**: `tools/perf/bundle-report.mjs` (entry closures from Vite's build manifest), `tools/perf/disk-report.mjs`
+  (installer, installed folder, `src-tauri/resources/`). Results land in `.cache/perf/<label>/` (`PERF_LABEL`, else
+  the git short SHA).
+- **`npm run perf:all`** builds and runs all of it; **`npm run perf:compare <A> <B>`** prints a markdown table, flagging
+  differences whose ranges overlap as noise.
+- **Budgets** (`tools/perf/budgets.json`, `npm run perf:budgets`, in CI): kiosk and studio entry gzip bytes, kiosk load
+  requests (in `tests/e2e/kiosk-budget.spec.ts`), and whether React's server renderer may be in the kiosk closure.
+  CPU, memory and frame counts are report-only.
+
+Results: [perf-results/](perf-results/).
+
+### Node sidecar heap flags (tried, not kept)
+
+`--max-old-space-size=96 --max-semi-space-size=2` on the sidecar, measured on the heavy fixture with three alert
+rules firing and clearing (36 alerts in each run), two kiosks and a studio open, 10 minutes each, `--trace-gc` on
+both (2026-10-23, Node 24.6, Windows):
+
+| | RSS median | Private median | Event-loop p99 | GCs (scavenges + mark-compacts) | GC pause total |
+|---|---|---|---|---|---|
+| no flags | 63.6 MB | 64.8 MB | 16.6 ms | 103 (101 + 2) | 19.8 ms |
+| flags | 61.1 MB | 62.1 MB | 16.6 ms | 129 (126 + 3) | 24.8 ms |
+
+RSS fell 3.8%, short of the 15% that would justify the flags, and GC ran 25% more often, so `sidecar.rs` is
+unchanged. The heap is ~10 MB of the ~62 MB: the rest is Node's own runtime, which no heap flag reaches. The p99
+is Windows' ~15.6 ms timer resolution (see `docs/desktop/README.md`), not a stall.
+
+## How to measure by hand
+
+The method behind the harness, for a real profile:
 
 1. **Never measure on the live data.** Copy `%LOCALAPPDATA%\InfoPanel\Dashboard` and start a server on the copy with:
    - `DASHBOARD_DATA_DIR=<copy>`;

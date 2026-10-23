@@ -19,6 +19,8 @@ export default defineConfig({
   build: {
     outDir: "src-tauri/pages/app",
     emptyOutDir: true,
+    // .vite/manifest.json, read by tools/perf/bundle-report.mjs.
+    manifest: true,
     // The CSP has no data: fonts; every asset stays a file.
     assetsInlineLimit: 0,
     rollupOptions: { input: [path.resolve(__dirname, "settings.html"), path.resolve(__dirname, "help.html")] },

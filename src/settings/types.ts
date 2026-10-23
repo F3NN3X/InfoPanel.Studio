@@ -3,6 +3,7 @@
 export type Listen = "local" | "lan";
 export type Channel = "stable" | "beta";
 export type StudioRefresh = "idle" | "daily" | "off";
+export type ReleaseHiddenStudio = "after1m" | "after10m" | "after60m" | "never";
 
 export interface AgentSettings {
   enabled: boolean;
@@ -22,6 +23,7 @@ export interface Settings {
   rememberBounds: boolean;
   zoom: number;
   studioRefresh: StudioRefresh;
+  releaseHiddenStudio: ReleaseHiddenStudio;
   checkForUpdates: boolean;
   updateChannel: Channel;
   autoDownload: boolean;

@@ -65,8 +65,9 @@ function extractNode(zip) {
 /** Whether a server/ file ships: tests stay behind. */
 export const shipsServerFile = (name) => !name.endsWith(".test.mjs");
 
+/** Copy a tree, files through `filter`; Vite's build manifest (`.vite/`, for tools/perf/bundle-report.mjs) stays behind. */
 function copy(from, to, filter = () => true) {
-  fs.cpSync(from, to, { recursive: true, filter: (src) => fs.statSync(src).isDirectory() || filter(path.basename(src)) });
+  fs.cpSync(from, to, { recursive: true, filter: (src) => (fs.statSync(src).isDirectory() ? path.basename(src) !== ".vite" : filter(path.basename(src))) });
 }
 
 async function main() {

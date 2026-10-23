@@ -39,7 +39,9 @@ sections.
 
 - **General:** app zoom (80 to 150 percent; Ctrl +, Ctrl - and Ctrl 0 in the settings window; the studio keeps
   Ctrl + `=` / `-` for canvas zoom), start at login (default on, starts hidden in the tray), open the studio on
-  launch, start the server on launch, close to tray, remember window size and position.
+  launch, start the server on launch, close to tray, remember window size and position, refresh the Studio
+  (reload it now and then while unfocused) and release the hidden studio (close its page after 1 minute, 10 minutes
+  (default), an hour or never in the tray).
 - **Server:** start, stop and restart; who can connect (this computer only on 127.0.0.1, or the local network on
   0.0.0.0 with the LAN IP shown); the port (default 3922); extra allowed host names for LAN access;
   restart automatically after a crash; the kiosk URL. The port, who can connect, the allowed host names and debug
@@ -83,7 +85,8 @@ right end (close hides to the tray). The start and settings pages have a matchin
 
 While the studio window is hidden to the tray or minimized, its webview is suspended (WebView2 `TrySuspend`, else a
 Low memory target) after the page is flushed, and resumed before it shows again. Kiosk view on screen is never
-suspended. Why and how: [webview-performance.md](webview-performance.md).
+suspended. A window hidden to the tray for long enough (**Release the hidden studio**, 10 minutes by default) is
+destroyed after a flush, and rebuilt when the tray shows it. Why and how: [webview-performance.md](webview-performance.md).
 
 ## Debug mode (errors and leaks)
 
@@ -108,11 +111,20 @@ Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer 
 
 | Variable | Effect |
 |---|---|
-| `INFOPANEL_STUDIO_CONFIG_DIR` | Where the app keeps `settings.json` and its logs |
+| `INFOPANEL_STUDIO_CONFIG_DIR` | Where the app keeps `settings.json` and its logs, and the WebView2 profile (`EBWebView/`), so a test run never shares the installed app's profile or its running WebView2 |
 | `INFOPANEL_STUDIO_DATA_DIR` | Passed to the server as `DASHBOARD_DATA_DIR` (its own config and assets) |
 | `INFOPANEL_STUDIO_DEBUG=1` | Debug mode for this run |
-| `INFOPANEL_STUDIO_CDP_PORT` | In debug mode only, adds `--remote-debugging-port` to WebView2 (the port did not open on the WebView2 build tested here; Windows UI Automation works instead) |
+| `INFOPANEL_STUDIO_CDP_PORT` | In debug builds only (never a release build), adds `--remote-debugging-port` to WebView2, so Playwright can attach (`connectOverCDP`) |
 
 Seed the config folder with a `settings.json` that uses a spare port, `"startAtLogin": false` and
-`"agents": { "enabled": false }`. To try the agent toggle safely, also set `USERPROFILE` to a temp
-folder: the bundled Node then writes the hooks there.
+`"agents": { "enabled": false }`. Quit an installed InfoPanel Studio first: the app is single-instance, so a
+running one takes the launch.
+
+The debugging port opens only when WebView2 starts a browser process of its own: not while another app's process
+holds the same profile (the reason for the profile under `INFOPANEL_STUDIO_CONFIG_DIR`), and not with `USERPROFILE`
+pointed at another folder. To try the agent toggle with a temp `USERPROFILE` (the bundled Node then writes the hooks
+there), leave `INFOPANEL_STUDIO_CDP_PORT` out.
+
+The `desktop` Playwright project (`tests/desktop/`, Windows only) does all of this: build with
+`npm run desktop:web && npm run desktop:prepare && npx tauri build --debug --no-bundle`, then
+`npx playwright test --project=desktop`.

@@ -129,7 +129,7 @@ Overnight, a Studio window left visible but unfocused still grew its renderer to
   `windows.rs`): `ICoreWebView2_19::SetMemoryUsageTargetLevel` Low on losing focus, Normal on focus and in resume.
   Shares `MEMORY_LOWERED` with the suspend fallback; a suspended webview is left alone.
 - **Studio refresh** (`src-tauri/src/refresh.rs`, app setting `studioRefresh`: `idle` default, `daily`, `off`, in
-  Settings › App › Window). A thread checks once a minute; the decision is the pure `refresh::due`. `idle`: window
+  Settings › General › Window). A thread checks once a minute; the decision is the pure `refresh::due`. `idle`: window
   visible, not minimized, not suspended, unfocused for 30 minutes, once per unfocused stretch. `daily`: once per
   local day at or after 04:00, while unfocused (an app started after 04:00 skips that morning). A refresh flushes
   the page (`flush_studio`), then `location.reload()`, only on the Studio page and only if the window is still
@@ -141,6 +141,21 @@ Overnight, a Studio window left visible but unfocused still grew its renderer to
 
 Not verified without the real app: the memory effect, the crash reload and the runtime event (needs a runtime
 update while the app runs). Watch `app.log` for `studio refresh:` lines and compare `metrics.csv` overnight.
+
+## Releasing the hidden Studio
+
+A hidden, suspended webview still holds its renderer and GPU memory, so after a while in the tray the page is closed
+(`src-tauri/src/release.rs`, app setting `releaseHiddenStudio`: `after1m`, `after10m` default, `after60m`, `never`, in
+Settings › General › Window). `close_main` marks the time it hid the window (`release::hidden`), `show_main` clears it
+(`release::shown`). A thread checks every 10 s with the pure `release::due`; when due it confirms the window is still
+hidden, flushes the page (`flush_studio`), destroys the window and resets the suspend state (`webview2::forget`). The
+tray's Show rebuilds the window like a first launch. Edits are saved by the flush; the page's undo history is lost.
+The window-state plugin keeps the geometry in memory, so the rebuilt window opens where it was.
+- Logged at info: `studio released after <n>m hidden` and, when the window is shown again, `studio rebuilt (<n> ms)`.
+- `show_main` builds a missing window on its own thread: the tray and single-instance callbacks run on the main
+  thread, and building a webview there waits on the event loop it blocks (Show hung before this).
+- Measured (`tests/desktop/tray-close-releases-webview.desktop.ts`, debug build, `after1m`): no WebView2 process left
+  after the release; rebuilt in 294 ms (log), studio interactive 446 ms after Show.
 
 ## Overnight check (to do)
 
@@ -182,8 +197,9 @@ Never measure on the live data or the running installed app.
    every run is a first load (the "hot" state).
 3. For the installed app, read `metrics.csv` with `tools/perf/metrics-trend.mjs` (read-only), and use Process
    Explorer or the WebView2 task manager. WebView2 DevTools can't be attached to a running app;
-   `INFOPANEL_STUDIO_CDP_PORT` with debug mode adds a debugging port at launch, but the port did not open on the
-   WebView2 build tested before ([README](README.md#testing-without-touching-the-live-setup)).
+   a debug build with `INFOPANEL_STUDIO_CDP_PORT` opens a debugging port at launch (never a release build). It did
+   not open before because the test run shared the installed app's WebView2 profile and set `USERPROFILE`
+   ([README](README.md#testing-without-touching-the-live-setup)); the `desktop` Playwright project attaches to it.
 4. Other probes used in the investigation (kept in the session notes, not the repo): post-GC heap snapshots over 10
    minutes, Event Timing for click latency, per-widget `visibility: hidden` ablation, and wrapping
    `requestAnimationFrame` in an init script to count callers.

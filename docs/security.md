@@ -35,7 +35,7 @@ security model, what was fixed, what was decided, and what is deferred. Performa
 - **CSP for app pages** (`tauri.conf.json`): `default-src 'self'`, `object-src 'none'`, `base-uri 'none'`,
   `frame-ancestors 'none'`, IPC in `connect-src`; only `style-src 'unsafe-inline'` is soft.
 - **Updater.** Signed (minisign) over HTTPS GitHub URLs; CI fails without the signing secret.
-- **Browser arguments.** wry's defaults, plus a remote-debugging port only with debug mode and
+- **Browser arguments.** wry's defaults, plus a remote-debugging port only in debug builds, with
   `INFOPANEL_STUDIO_CDP_PORT`. No `--disable-web-security`, host objects or initialization scripts.
 
 ## Server

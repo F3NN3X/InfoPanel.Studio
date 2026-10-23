@@ -19,3 +19,6 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
 - Tests live in `tests/`, mirroring `src/` and `server/` (`src/lib/foo.ts` is tested by `tests/lib/foo.test.ts`).
 - `npm test` stays under about 10 s locally.
 - Rust tests live in their modules (`#[cfg(test)]`) and run in CI with `cargo test`.
+- The Playwright e2e specs (`tests/e2e/`, `npm run test:e2e`) cover what only a real browser and server show: the
+  kiosk rendering, live updates over SSE, the studio's save and undo, the proxy and request-guard rules over HTTP, and
+  the deterministic budgets. Keep them few. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.

@@ -1,0 +1,30 @@
+{
+  "profiles": {
+    "heavy": "perf-heavy",
+    "light": "perf-light"
+  },
+  "zones": {
+    "heavy": [
+      "perf-statusbar",
+      "perf-overview",
+      "perf-heatmap",
+      "perf-rings",
+      "perf-audio",
+      "perf-weather",
+      "perf-gauges"
+    ],
+    "light": [
+      "perf-clock",
+      "perf-cpu",
+      "perf-gpu"
+    ]
+  },
+  "gaugeIconZone": "perf-gauges",
+  "zoneSelector": "[data-zone-id]",
+  "kioskZoneSelector": ".kiosk > .grid > *",
+  "sensorKeys": [
+    "libre.amd_ryzen_9_9950x3d_cpu_total",
+    "libre.nvidia_geforce_rtx_5090_gpu_core_load"
+  ],
+  "configVersion": 11
+}
