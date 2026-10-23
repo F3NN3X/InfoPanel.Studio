@@ -42,7 +42,8 @@ jobs:
           fi
           # The native server (ips-server) is checked against the Node server's tests, fixtures and e2e suite, so a
           # change to either server, its tests or the parity tooling runs that job too.
-          if [ "${{ github.event_name }}" != "pull_request" ] \n            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|server\.mjs$|server/|tools/(parity|perf)/|tests/(server|e2e|fixtures)/|package(-lock)?\.json$|\.github/workflows/ci\.yml$)'; then
+          if [ "${{ github.event_name }}" != "pull_request" ] \
+            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|server\.mjs$|server/|tools/(parity|perf)/|tests/(server|e2e|fixtures)/|package(-lock)?\.json$|\.github/workflows/ci\.yml$)'; then
             echo "native=true" >> "$GITHUB_OUTPUT"
           fi
 
