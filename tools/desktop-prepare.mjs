@@ -3,6 +3,7 @@
 //
 //   node/node.exe   the official Node.js LTS for win-x64, pinned by version and SHA-256
 //   app/            server.mjs, server/ (no tests), dist/, tools/agent-*.mjs, package.json
+//   ips-agent.exe   the release build of src-tauri/crates/ips-agent (the agents' hook command)
 //
 // The Node zip is downloaded once into .cache/desktop/ and checked against NODE_SHA256 every
 // time. The studio comes from .cache/desktop/dist (`npm run desktop:web`), never the repo's dist/,
@@ -62,6 +63,13 @@ function extractNode(zip) {
   return exe;
 }
 
+/** The release ips-agent.exe, built (cargo is incremental) into the workspace's target folder. */
+function buildAgent() {
+  const manifest = path.join(ROOT, "src-tauri", "Cargo.toml");
+  execFileSync("cargo", ["build", "--release", "-p", "ips-agent", "--manifest-path", manifest], { stdio: "inherit" });
+  return path.join(ROOT, "src-tauri", "target", "release", "ips-agent.exe");
+}
+
 /** Whether a server/ file ships: tests stay behind. */
 export const shipsServerFile = (name) => !name.endsWith(".test.mjs");
 
@@ -75,9 +83,11 @@ async function main() {
   if (!fs.existsSync(path.join(web, "index.html"))) throw new Error(".cache/desktop/dist is missing: run `npm run desktop:web` first");
 
   const exe = extractNode(await nodeZip());
+  const agent = buildAgent();
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUT, "node"), { recursive: true });
   fs.copyFileSync(exe, path.join(OUT, "node", "node.exe"));
+  fs.copyFileSync(agent, path.join(OUT, "ips-agent.exe"));
 
   const app = path.join(OUT, "app");
   fs.mkdirSync(path.join(app, "tools"), { recursive: true });

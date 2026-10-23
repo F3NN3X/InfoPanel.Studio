@@ -33,6 +33,7 @@
     ],
     "resources": {
       "resources/node/": "node/",
+      "resources/ips-agent.exe": "ips-agent.exe",
       "resources/app/": "app/",
       "../CHANGELOG.md": "CHANGELOG.md"
     },

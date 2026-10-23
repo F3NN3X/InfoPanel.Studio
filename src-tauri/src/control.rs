@@ -585,8 +585,7 @@ fn on_running(app: &AppHandle) {
     add_studio_capability(app, &origin);
     windows::load_studio(app, &state::studio_url(&origin));
     windows::settings_follow_server(app, &origin);
-    let node = crate::paths::display(&st.paths.node_exe());
-    if agents::needs_reinstall(&s, &st.version, &node) {
+    if agents::needs_reinstall(&s, &st.version, &agents::agent_path(&st.paths)) {
         let app = app.clone();
         std::thread::spawn(move || refresh_agents(&app));
     }
@@ -618,18 +617,24 @@ fn add_studio_capability(app: &AppHandle, origin: &str) {
     }
 }
 
-/// Rewrites the agent hooks for the current port, node path and app version.
+/// Rewrites the agent hooks for the current port, ips-agent path and app version.
 pub fn refresh_agents(app: &AppHandle) {
     let st = app.state::<AppState>();
     let s = st.settings();
     if !s.agents.enabled {
         return;
     }
-    let result = agents::apply(&st.paths, &s, true);
+    let result = match app.path().home_dir() {
+        Ok(home) => agents::apply(&st.paths, &s, &home, true),
+        Err(e) => agents::failed(true, e.to_string()),
+    };
     if result.ok {
-        let node = crate::paths::display(&st.paths.node_exe());
         let mut current = lock(&st.settings);
-        current.agents.installed = Some(agents::install_record(&s, &st.version, &node));
+        current.agents.installed = Some(agents::install_record(
+            &s,
+            &st.version,
+            &agents::agent_path(&st.paths),
+        ));
         let _ = settings::save(&st.paths.config_dir, &current);
     } else {
         log::warn!("agents: refresh failed: {:?}", result.steps);

@@ -44,6 +44,7 @@ serde_json = { workspace = true }
 log = { workspace = true }
 sysinfo = { workspace = true }
 if-addrs = "0.13"
+ips-agent = { path = "crates/ips-agent" }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Threading"] }

@@ -10,7 +10,7 @@ pub struct Paths {
     pub config_dir: PathBuf,
     /// app.log, server.log, metrics.csv.
     pub log_dir: PathBuf,
-    /// The installed resources: node/node.exe and app/ (server.mjs, server/, dist/, tools/).
+    /// The installed resources: node/node.exe, app/ (server.mjs, server/, dist/, tools/) and ips-agent.exe.
     pub resource_dir: PathBuf,
     /// The server's data folder for test runs (INFOPANEL_STUDIO_DATA_DIR); None = server default.
     pub data_dir: Option<PathBuf>,
@@ -68,8 +68,9 @@ impl Paths {
         self.app_dir().join("dist")
     }
 
-    pub fn agent_install_script(&self) -> PathBuf {
-        self.app_dir().join("tools").join("agent-install.mjs")
+    /// The hook and statusline forwarder the agents run.
+    pub fn agent_exe(&self) -> PathBuf {
+        self.resource_dir.join("ips-agent.exe")
     }
 
     /// Present while the agent hooks are installed; the uninstaller only removes hooks then.
@@ -164,10 +165,7 @@ mod tests {
         };
         assert_eq!(p.node_exe(), Path::new("r/node/node.exe"));
         assert_eq!(p.server_script(), Path::new("r/app/server.mjs"));
-        assert_eq!(
-            p.agent_install_script(),
-            Path::new("r/app/tools/agent-install.mjs")
-        );
+        assert_eq!(p.agent_exe(), Path::new("r/ips-agent.exe"));
         assert_eq!(p.changelog(), Path::new("r/CHANGELOG.md"));
         let test_run = Paths {
             data_dir: Some("d".into()),

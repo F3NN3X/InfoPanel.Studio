@@ -408,12 +408,15 @@ fn agent_statuses(app: &AppHandle) -> CmdResult<Vec<agents::AgentStatus>> {
 fn apply_agents(app: &AppHandle, enabled: bool) -> agents::AgentResult {
     let st = app.state::<AppState>();
     let s = st.settings();
-    let result = agents::apply(&st.paths, &s, enabled);
-    let node = crate::paths::display(&st.paths.node_exe());
+    let result = match home_dir(app) {
+        Ok(home) => agents::apply(&st.paths, &s, &home, enabled),
+        Err(e) => agents::failed(enabled, e),
+    };
     let mut current = lock(&st.settings);
     if result.ok {
         current.agents.enabled = enabled;
-        current.agents.installed = enabled.then(|| agents::install_record(&s, &st.version, &node));
+        current.agents.installed = enabled
+            .then(|| agents::install_record(&s, &st.version, &agents::agent_path(&st.paths)));
     } else if enabled {
         // The old hooks may be gone already; nothing is installed for sure.
         current.agents.enabled = false;

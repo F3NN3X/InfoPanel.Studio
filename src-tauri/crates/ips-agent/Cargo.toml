@@ -5,4 +5,21 @@ description = "InfoPanel Studio's coding-agent hook and statusline forwarder"
 edition = "2021"
 publish = false
 
+[lib]
+name = "ips_agent"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ips-agent"
+path = "src/main.rs"
+
 [dependencies]
+base64 = "0.22"
+serde_json = { workspace = true, features = ["preserve_order"] }
+socket2 = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Networking_WinSock", "Win32_System_IO"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }

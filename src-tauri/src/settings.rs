@@ -140,7 +140,8 @@ pub struct AgentSettings {
 pub struct AgentInstall {
     pub version: String,
     pub url: String,
-    pub node: String,
+    /// The ips-agent the hooks run.
+    pub agent: String,
 }
 
 impl Default for Settings {
