@@ -55,12 +55,20 @@ export function createModel(base, seed = 1) {
     const s = base[key];
     if (typeof s.value !== "number") continue;
     const range = typeof s.max === "number" && typeof s.min === "number" && s.max > s.min ? s.max - s.min : Math.abs(s.value) || 1;
-    motion.set(key, { amp: range * 0.1, phase: rand() * Math.PI * 2, period: 5 + Math.floor(rand() * 25) });
+    // A state (`playback-state`, `session-state`) is an enum: it holds, so a player stays playing.
+    motion.set(key, { amp: key.endsWith("-state") ? 0 : range * 0.1, phase: rand() * Math.PI * 2, period: 5 + Math.floor(rand() * 25) });
   }
+  // Each audio device also reports a moving 32-band spectrum (the plugin's `spectrum` entry since v1.3.0, 0..100 per
+  // band), so a visualiser has real input; the capture predates the entry.
+  const devices = keys.map((k) => new RegExp(`^${AUDIO_PREFIX}\\.([^.]+)\\.audio-level$`).exec(k)?.[1]).filter(Boolean);
   return {
     keys,
     at(tick, audioTick) {
       const out = {};
+      for (const [d, dev] of devices.entries()) {
+        const bands = Array.from({ length: 32 }, (_, i) => Math.round(60 - i * 1.2 + 25 * Math.sin(d + i * 0.7 + audioTick * 0.9)));
+        out[`${AUDIO_PREFIX}.${dev}.spectrum`] = { text: bands.map((v) => Math.max(0, Math.min(100, v))).join(","), unit: "" };
+      }
       for (const key of keys) {
         const s = base[key];
         const m = motion.get(key);

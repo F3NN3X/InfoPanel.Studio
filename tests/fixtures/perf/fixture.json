@@ -1,7 +1,8 @@
 {
   "profiles": {
     "heavy": "perf-heavy",
-    "light": "perf-light"
+    "light": "perf-light",
+    "viz": "perf-viz"
   },
   "zones": {
     "heavy": [
@@ -17,6 +18,10 @@
       "perf-clock",
       "perf-cpu",
       "perf-gpu"
+    ],
+    "viz": [
+      "perf-nowplaying",
+      "perf-visualizer"
     ]
   },
   "gaugeIconZone": "perf-gauges",

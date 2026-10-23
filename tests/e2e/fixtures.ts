@@ -5,8 +5,8 @@ import { startScratch, FIXTURE_DIR, type Scratch } from "../../tools/perf/scratc
 
 /** tests/fixtures/perf/fixture.json: the fixture's profile and zone ids (tools/perf/make-fixture.mjs). */
 export interface FixtureManifest {
-  profiles: { heavy: string; light: string };
-  zones: { heavy: string[]; light: string[] };
+  profiles: { heavy: string; light: string; viz: string };
+  zones: { heavy: string[]; light: string[]; viz: string[] };
   gaugeIconZone: string;
   /** Studio zones (`data-zone-id`). */
   zoneSelector: string;
