@@ -80,6 +80,15 @@ describe("occurrences", () => {
     expect(occurrences(lastFriday, from, from + 20 * DAY).map((o) => new Date(o.start).toISOString().slice(0, 10))).toEqual(["2026-10-30"]);
   });
 
+  it("skips a month without the day and goes on to the next that has it", () => {
+    const thirtyFirst = parseIcs(feed(["UID:31", "SUMMARY:31", "DTSTART:20261031T080000Z", "RRULE:FREQ=MONTHLY;BYMONTHDAY=31"]));
+    // November has no 31st: December's still shows, and so does January's after it.
+    expect(occurrences(thirtyFirst, utc("2026-11-01T00:00:00Z"), utc("2027-01-31T23:00:00Z")).map((o) => new Date(o.start).toISOString().slice(0, 10))).toEqual(["2026-12-31", "2027-01-31"]);
+    // A yearly 29 February waits for the next leap year.
+    const leap = parseIcs(feed(["UID:29", "SUMMARY:29", "DTSTART:20240229T080000Z", "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=29"]));
+    expect(occurrences(leap, utc("2025-01-01T00:00:00Z"), utc("2028-12-31T00:00:00Z")).map((o) => new Date(o.start).toISOString().slice(0, 10))).toEqual(["2028-02-29"]);
+  });
+
   it("marks all-day events", () => {
     const list = occurrences(parseIcs(feed(["UID:h", "SUMMARY:Holiday", "DTSTART;VALUE=DATE:20261016", "DTEND;VALUE=DATE:20261017"])), from, to);
     expect(list).toHaveLength(1);

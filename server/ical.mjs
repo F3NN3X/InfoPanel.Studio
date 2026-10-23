@@ -288,6 +288,13 @@ function periodStarts(rule, start, period) {
   return [];
 }
 
+/** The earliest wall a period of a monthly or yearly rule can hold: the first of its first month. */
+function periodBegin(rule, start, period) {
+  const s = new Date(start);
+  const mm = rule.freq === "MONTHLY" ? s.getUTCMonth() + period * rule.interval : 12 * period * rule.interval;
+  return Date.UTC(s.getUTCFullYear() + Math.floor(mm / 12), ((mm % 12) + 12) % 12, 1);
+}
+
 /**
  * The start walls of a recurring event up to `toWall`, from its start (so COUNT is right) and
  * until UNTIL (an instant). A period with no match (a daily rule's weekend) still counts as a step.
@@ -300,8 +307,9 @@ function expand(ev, toWall) {
   let n = 0;
   for (let period = 0, steps = 0; steps < MAX_STEPS; period++, steps++) {
     const starts = periodStarts(rule, ev.start.wall, period);
-    const first = rule.freq === "DAILY" ? ev.start.wall + period * rule.interval * DAY_MS : starts[0];
-    if (first === undefined || first > toWall) break;
+    // A period with no match (a month without the 31st) is skipped, not the end of the rule.
+    const first = rule.freq === "DAILY" ? ev.start.wall + period * rule.interval * DAY_MS : (starts[0] ?? periodBegin(rule, ev.start.wall, period));
+    if (first > toWall) break;
     for (const t of starts) {
       if (t < ev.start.wall) continue;
       if (t > toWall || instant({ ...ev.start, wall: t }) > until) return out;
