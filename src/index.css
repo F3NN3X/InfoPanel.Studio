@@ -326,6 +326,12 @@
   transition: none !important;
   animation: none !important;
 }
+/* Over a solid page background a widget's blur has nothing to blur: no backdrop layer for it to redraw each
+   frame. Widgets only (the island, alerts and overlays float over widgets and keep theirs); the background is
+   a sibling of the grid (src/components/page-background.tsx). */
+*:has(> [data-page-background="color"]) [data-wp-tier] {
+  backdrop-filter: none !important;
+}
 /* An activity whose work is running: its dot breathes with a ring (PulseDot, on the shared ticker). */
 /* A notice's level bar (a volume) glides between readings. */
 .island-motion .island-level { transition: width 160ms ease-out; }

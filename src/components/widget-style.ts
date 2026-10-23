@@ -208,6 +208,8 @@ export interface SurfaceColors {
 
 const GLOW_BLUR = { soft: 14, strong: 32 } as const;
 
+const blurFilter = (px: number): string => (px > 0 ? `blur(${px}px)` : "none");
+
 /**
  * A widget's surface box: its background, text color and 1px edge, with
  * the user's border, edge glow, surface opacity and blur applied. The glow
@@ -224,8 +226,9 @@ export function surfaceBox(sv: SurfaceColors, chrome: ModernChrome | undefined):
     background: opacity < 1 ? fadeColors(sv.background, opacity) : sv.background,
     color: sv.fg,
     boxShadow: glow ? `${border}, ${glow}` : border,
+    // `none` rather than blur(0px): it still overrides a skin's blur, without a backdrop layer to keep.
     ...(chrome?.blur !== undefined
-      ? { backdropFilter: `blur(${chrome.blur}px)`, WebkitBackdropFilter: `blur(${chrome.blur}px)` }
+      ? { backdropFilter: blurFilter(chrome.blur), WebkitBackdropFilter: blurFilter(chrome.blur) }
       : null),
   };
 }

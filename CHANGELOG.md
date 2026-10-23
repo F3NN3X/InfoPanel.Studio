@@ -6,6 +6,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Less CPU and GPU on the kiosk.** Measured on a 1920×550 strip with 11 widgets, about 0.94 → 0.7 of a core at 60 fps, with nothing turned off:
+  - a widget's blur is skipped over a solid page background, where it shows nothing (images and videos keep it; the island and alerts always do);
+  - weather effects, the art drift behind games, visualizers and animated Meteocons draw at most 30 frames a second, even when Max FPS is higher (meters and values keep Max FPS);
+  - animated Meteocons follow Max FPS and stop while hidden: they used to animate at the display's rate;
+  - a smoothly scrolling graph redraws once its line has moved half a pixel instead of every frame;
+  - a Blur of 0 no longer keeps a blur layer.
+- `tools/perf/render-bench.cjs` measures a page's CPU and memory with one kind of drawing switched off at a time.
+
+### Fixed
+
+- **Edit canvas in the Library** opens the canvas editor. For an imported canvas not used on any screen yet, it showed the import dialog again; it now adds the canvas as a new screen and opens it. Double-click a canvas card to do the same.
+
 ## [1.3.0-beta.14] - 2026-10-23
 
 ### Fixed

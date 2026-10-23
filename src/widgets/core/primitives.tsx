@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 import { labelStyle, ws } from "@/components/widget-style";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useTick } from "@/hooks/use-tick";
+import { AMBIENT_FPS } from "@/lib/ticker";
 import { alternate } from "@/lib/curves";
 import { appIconName, weatherKind } from "@/lib/weather-icons";
-import { RangeEaser, SmoothScroll, useAnimationFrame, type ScrollPoint } from "./smoothing";
+import { RangeEaser, SmoothScroll, scrollWaitMs, useAnimationFrame, type ScrollPoint } from "./smoothing";
 import { HISTORY_LEN } from "./layout";
 import { scaleX, slideX } from "./motion";
 
@@ -365,9 +366,13 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
   // The loop stops once the curve has converged on its target (three identical paths in a row) and restarts with new values.
   const [settled, setSettled] = useState(false);
   const still = useRef({ d: "", n: 0 });
+  const svg = useRef<SVGSVGElement>(null);
+  // Redraws wait until the line has moved about half a pixel (`scrollWaitMs`); `widthPx` is read once per sample.
+  const pace = useRef({ widthPx: 0, waited: 0, easing: false });
   // before paint: a frame drawn between the new history and its arrival time would be skipped (a hitch)
   useLayoutEffect(() => {
     scroll.current.arrive(values.length, performance.now());
+    pace.current.widthPx = (svg.current?.getBoundingClientRect().width ?? 0) * (window.devicePixelRatio || 1);
     still.current.n = 0;
     setSettled(false);
   }, [values]);
@@ -376,12 +381,19 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
     still.current.n = 0;
     setSettled(false);
   }, [min, max, step]);
-  useAnimationFrame((now, dt) => {
+  useAnimationFrame((now, tickMs) => {
+    const pc = pace.current;
+    pc.waited += tickMs;
+    // A rescale eases at every frame; a plain scroll waits.
+    if (!pc.easing && pc.waited < scrollWaitMs(pc.widthPx, scroll.current.windowMs)) return;
+    const dt = pc.waited;
+    pc.waited = 0;
     const pts = line.current && scroll.current.frame(values, now, dt);
     if (!pts) return;
     const shown = pts.filter(([x]) => x >= -5 && x <= 105).map((p) => p[1]);
     const target = sparkRange(shown.length > 1 ? shown : values, min, max);
     const d = sparkPaths(pts, ...(fixed ? target : easer.current.next(target, dt)), step);
+    pc.easing = !fixed && easer.current.moving(target);
     line.current!.setAttribute("d", d.line);
     area.current?.setAttribute("d", d.area);
     const s = still.current;
@@ -393,7 +405,7 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
   // React write the static layout on every new sample, flashing it for a frame.
   const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max), step));
   return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-hidden ${className}`} style={style}>
+    <svg ref={svg} viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-hidden ${className}`} style={style}>
       <GraphPaths line={first.line} area={first.area} step={step} fill={fill} fillId={fillId} color={color} strokeWidth={strokeWidth} refs={{ line, area }} />
     </svg>
   );
@@ -539,7 +551,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
 }
 // Weather condition text / icon slug → Material Symbols name (Yr + OpenWeatherMap)
 export const weatherIcon = (text = ""): string => appIconName(weatherKind(undefined, text));
-// Slow pan/zoom background image (stepped on the shared ticker: Max FPS caps it, reduced motion stops it)
+// Slow pan/zoom background image (stepped on the shared ticker at the ambient rate: Max FPS caps it, reduced motion stops it)
 export function KenBurns({ src, className = "", on = true }: { src?: string; className?: string; on?: boolean }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const reduced = useReducedMotion();
@@ -551,7 +563,7 @@ export function KenBurns({ src, className = "", on = true }: { src?: string; cla
     start.current ??= now;
     const p = alternate(now - start.current, 22000);
     el.style.transform = `scale(${1.06 + 0.12 * p}) translate(${-2.5 * p}%,${-1.5 * p}%)`;
-  }, live);
+  }, live, AMBIENT_FPS);
   useEffect(() => {
     start.current = null;
     return () => {
