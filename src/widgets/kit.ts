@@ -3,6 +3,7 @@
 export * from "./core/types";
 export * from "./core/data";
 export * from "./core/layout";
+export * from "./core/frame-time";
 export * from "./core/tokens";
 export * from "./core/surfaces";
 export * from "./core/theme";

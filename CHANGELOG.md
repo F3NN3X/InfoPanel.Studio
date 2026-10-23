@@ -6,6 +6,16 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **Frame Pacing and the FPS widget's frame-time graph** no longer jitter or bend into odd shapes:
+  - a slow frame now rises, as on RivaTuner's own graph;
+  - the scale moves in round steps and ignores a game's loading spikes, which used to flatten the line, and the line is drawn straight between readings;
+  - a frame time RivaTuner reports that doesn't fit the frame rate (0.1 ms at 130 fps) is replaced by the frame rate's average;
+  - the budget lines are on the graph's own scale and read as "60 fps · 16.7 ms", with their labels beside the graph;
+  - the time axis says 2 min, the span of 120 one-a-second readings;
+  - the FPS graph cuts menu and loading-screen spikes.
+
 ## [1.3.0-beta.15] - 2026-10-23
 
 ### Changed
