@@ -42,8 +42,8 @@ describe("Widget look", () => {
 
   it("fades the card and blurs behind it from the look's opacity and blur", () => {
     const html = render({ surface: "glass", surfaceOpacity: 40, blur: "16" });
-    expect(html).toContain("backdrop-filter:blur(16px)");
-    expect(render({ surface: "solid", surfaceOpacity: 40, blur: "8" })).toContain("blur(8px)");
+    expect(html).toContain("backdrop-filter:blur(min(16px, var(--wp-blur-cap, 16px)))");
+    expect(render({ surface: "solid", surfaceOpacity: 40, blur: "8" })).toContain("blur(min(8px, var(--wp-blur-cap, 8px)))");
   });
 
   it("renders the default glass surface and the forced layout tier", () => {

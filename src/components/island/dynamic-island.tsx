@@ -170,6 +170,7 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus }: IslandP
 
   const radius = mode === "expanded" ? Math.round(box.height * 0.42) : box.height / 2;
   const notchRadius = mode === "expanded" ? Math.round(30 * k) : Math.round((mode === "line" ? 2.5 : 10) * k);
+  const shapeRadius = notch ? `0 0 ${notchRadius}px ${notchRadius}px` : radius;
   const ear = Math.round((mode === "expanded" ? EAR.open : EAR.closed) * k);
 
   return (
@@ -178,21 +179,23 @@ function IslandPill({ mode, snap, config, size, placement, onAck, bus }: IslandP
       style={{ top: islandTop(config) }}
       data-island={mode}
     >
-      <div className="relative max-w-full">
+      <div
+        className={cn("relative max-w-full", animate && item?.severity === "critical" && "island-glow")}
+        style={{ borderRadius: shapeRadius, transition: shape && springTransition(spring, ["border-radius"]), "--island-accent": accent } as CSSProperties}
+      >
         <div
           role={item ? (item.severity === "info" ? "status" : "alert") : undefined}
           onClick={tappable ? tap : undefined}
           className={cn(
             "island relative flex max-w-full items-center overflow-hidden",
             tappable && "pointer-events-auto cursor-pointer select-none",
-            animate && "island-motion",
-            animate && item?.severity === "critical" && "island-critical"
+            animate && "island-motion"
           )}
           style={
             {
               width: box.width,
               height: box.height,
-              borderRadius: notch ? `0 0 ${notchRadius}px ${notchRadius}px` : radius,
+              borderRadius: shapeRadius,
               fontSize: islandFontPx(size, config.scale),
               transition: shape && `${shape}, ${shadowTransition(SLOW)}`,
               ...skinStyle(skin, notch),

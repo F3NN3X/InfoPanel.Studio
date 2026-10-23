@@ -53,6 +53,18 @@ pub enum Channel {
     Beta,
 }
 
+/// When the Studio page reloads itself to give back memory a long session holds.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StudioRefresh {
+    /// After 30 minutes without focus.
+    #[default]
+    Idle,
+    /// Once a day, from 04:00, while the window isn't focused.
+    Daily,
+    Off,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -74,6 +86,8 @@ pub struct Settings {
     pub remember_bounds: bool,
     /// App zoom in percent, one of `ZOOMS`.
     pub zoom: u16,
+    /// Reload the Studio page now and then while the window isn't focused.
+    pub studio_refresh: StudioRefresh,
     /// Look for a new version shortly after the app starts.
     pub check_for_updates: bool,
     pub update_channel: Channel,
@@ -116,6 +130,7 @@ impl Default for Settings {
             close_to_tray: true,
             remember_bounds: true,
             zoom: DEFAULT_ZOOM,
+            studio_refresh: StudioRefresh::Idle,
             check_for_updates: true,
             update_channel: Channel::Stable,
             auto_download: false,
@@ -223,6 +238,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
             next.zoom = u16::try_from(zoom).unwrap_or(0);
             validate_zoom(next.zoom)?;
         }
+        "studioRefresh" => next.studio_refresh = parse(key, value)?,
         "checkForUpdates" => next.check_for_updates = parse(key, value)?,
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
@@ -398,6 +414,22 @@ mod tests {
     }
 
     #[test]
+    fn studio_refresh_defaults_to_idle_for_older_files() {
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().studio_refresh, StudioRefresh::Idle);
+        assert_eq!(load_from_str(r#"{ "studioRefresh": "daily" }"#).unwrap().studio_refresh, StudioRefresh::Daily);
+        assert_eq!(load_from_str(r#"{ "studioRefresh": "hourly" }"#).unwrap().studio_refresh, StudioRefresh::Idle);
+    }
+
+    #[test]
+    fn studio_refresh_takes_its_three_values_only() {
+        let s = Settings::default();
+        assert_eq!(with_setting(&s, "studioRefresh", json!("off")).unwrap().studio_refresh, StudioRefresh::Off);
+        assert_eq!(with_setting(&s, "studioRefresh", json!("daily")).unwrap().studio_refresh, StudioRefresh::Daily);
+        assert!(with_setting(&s, "studioRefresh", json!("hourly")).is_err());
+        assert!(with_setting(&s, "studioRefresh", json!(true)).is_err());
+    }
+
+    #[test]
     fn unknown_keys_are_ignored() {
         let s = load_from_str(r#"{ "port": 3942, "theme": "dark" }"#).unwrap();
         assert_eq!(s.port, 3942);
@@ -549,6 +581,7 @@ mod tests {
         "closeToTray",
         "rememberBounds",
         "zoom",
+        "studioRefresh",
         "checkForUpdates",
         "updateChannel",
         "autoDownload",

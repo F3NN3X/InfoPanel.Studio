@@ -34,6 +34,28 @@ describe("kioskPageNav", () => {
   });
 });
 
+describe("kioskRefresh", () => {
+  it("defaults to daily and is kept only as a valid choice", () => {
+    expect(GENERAL_DEFAULTS.kioskRefresh).toBe("daily");
+    expect(resolveGeneral({}).kioskRefresh).toBe("daily");
+    expect(resolveGeneral({ general: { kioskRefresh: "off" } }).kioskRefresh).toBe("off");
+    expect(normalizeGeneral({ kioskRefresh: "off" })).toEqual({ kioskRefresh: "off" });
+    for (const bad of ["weekly", "", 1, null, true]) expect(normalizeGeneral({ kioskRefresh: bad })).toBeUndefined();
+  });
+});
+
+describe("rendering options", () => {
+  it("default ringGlide, innerBlur and liveGlow off and blurLimit on, and are kept only as booleans", () => {
+    expect(GENERAL_DEFAULTS).toMatchObject({ ringGlide: false, blurLimit: true, innerBlur: false, liveGlow: false });
+    expect(resolveGeneral({ general: { blurLimit: false } }).blurLimit).toBe(false);
+    for (const key of ["ringGlide", "blurLimit", "innerBlur", "liveGlow"] as const) {
+      expect(normalizeGeneral({ [key]: true })).toEqual({ [key]: true });
+      expect(normalizeGeneral({ [key]: false })).toEqual({ [key]: false });
+      for (const bad of ["yes", 1, null]) expect(normalizeGeneral({ [key]: bad })).toBeUndefined();
+    }
+  });
+});
+
 describe("maxFps", () => {
   it("defaults to 60 and is kept only as a valid choice", () => {
     expect(GENERAL_DEFAULTS.maxFps).toBe(60);

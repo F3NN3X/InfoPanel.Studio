@@ -110,6 +110,8 @@ export class SmoothScroll {
   private readonly lagIvl = new DoubleEase();
   private readonly widthIvl = new DoubleEase();
   private right = -Infinity;
+  /** The time the graph's width spans (ms), as of the last frame; 0 before the first. */
+  windowMs = 0;
 
   constructor(
     private readonly capacity: number,
@@ -145,8 +147,23 @@ export class SmoothScroll {
     this.right = this.right === -Infinity ? goal : this.right + dtMs * (1 + MAX_DRIFT * Math.tanh((goal - this.right) / 1000));
     // held at the newest sample when the feed stalls
     this.right = Math.min(this.right, st[st.length - 1]);
-    return timePoints(values, st, this.right, (Math.max(this.capacity, values.length) - 2 - this.lag) * widthIvl);
+    this.windowMs = (Math.max(this.capacity, values.length) - 2 - this.lag) * widthIvl;
+    return timePoints(values, st, this.right, this.windowMs);
   }
+}
+
+/** How far (device px) a scrolling graph moves between redraws, and the longest it waits (ms). */
+const MIN_MOVE_PX = 0.5;
+const MAX_WAIT_MS = 200;
+
+/**
+ * The time (ms) a graph `widthPx` device pixels wide takes to scroll `MIN_MOVE_PX` across a window
+ * of `windowMs`: a slow graph redrawn on every display frame moves a tenth of a pixel each time, so
+ * it waits until the line has moved enough to see. 0 (every frame) while the width is unknown.
+ */
+export function scrollWaitMs(widthPx: number, windowMs: number): number {
+  if (!(widthPx > 0) || !(windowMs > 0)) return 0;
+  return Math.min(MAX_WAIT_MS, (MIN_MOVE_PX * windowMs) / widthPx);
 }
 
 /** Eases an axis range toward its target so the whole line never jumps when the scale changes. */
@@ -166,6 +183,13 @@ export class RangeEaser {
       this.hi = lerp(this.hi, target[1], a);
     }
     return [this.lo, this.hi];
+  }
+
+  /** Whether the range is still moving toward `target` (more than 0.5 % of the span). */
+  moving(target: readonly [number, number]): boolean {
+    if (this.lo === null) return false;
+    const span = Math.abs(target[1] - target[0]) || 1;
+    return Math.abs(this.lo - target[0]) + Math.abs(this.hi - target[1]) > span * 0.005;
   }
 }
 

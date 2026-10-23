@@ -1,6 +1,6 @@
 [package]
 name = "infopanel-studio"
-version = "1.3.0-beta.14"
+version = "1.3.0-beta.15"
 description = "InfoPanel Studio: the studio and dashboard server as one desktop app"
 edition = "2021"
 publish = false
@@ -28,7 +28,7 @@ sysinfo = "0.37"
 if-addrs = "0.13"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 # The same versions Tauri's wry uses: the WebView2 controller `with_webview` hands out is theirs.
 webview2-com = "0.39"
 windows-core = "0.62"

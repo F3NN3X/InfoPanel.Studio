@@ -16,6 +16,7 @@ import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
 import { applyTheme, resolveTheme } from "@/lib/theme";
+import { msUntilNextRefresh, REFRESH_JITTER_MS } from "@/lib/kiosk-refresh";
 import { fontStack, formatClock, resolveFont, resolveGeneral } from "@/lib/general";
 import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { GeneralProvider, useGeneral } from "@/hooks/use-general";
@@ -486,6 +487,30 @@ export default function App() {
     };
   }, [kiosk, handleStudioSave]);
 
+  // Kiosk pages run for weeks and their native memory creeps: reload daily at 04:00 (settings are saved, nothing is lost).
+  const kioskRefresh = general.kioskRefresh;
+  useEffect(() => {
+    if (!kiosk || kioskRefresh !== "daily") return;
+    const timer = window.setTimeout(() => window.location.reload(), msUntilNextRefresh(new Date(), Math.random() * REFRESH_JITTER_MS));
+    return () => window.clearTimeout(timer);
+  }, [kiosk, kioskRefresh]);
+
+  // Desktop shell: WebView2 updated itself in the background; the running window keeps the old one until a restart.
+  const [runtimeUpdated, setRuntimeUpdated] = useState(false);
+  useEffect(() => {
+    if (kiosk || !studio || !isTauri()) return;
+    let off: (() => void) | undefined;
+    let gone = false;
+    void import("@tauri-apps/api/event")
+      .then(({ listen }) => listen("webview-runtime-updated", () => setRuntimeUpdated(true)))
+      .then((unlisten) => (gone ? unlisten() : (off = unlisten)))
+      .catch(() => {});
+    return () => {
+      gone = true;
+      off?.();
+    };
+  }, [kiosk, studio]);
+
   // The dedicated studio replaces the whole view.
   if (studio) {
     return (
@@ -503,6 +528,17 @@ export default function App() {
               onClick={() => window.location.reload()}
             >
               Reload
+            </button>
+          </div>
+        )}
+        {runtimeUpdated && (
+          <div
+            role="status"
+            className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 border-b border-ui-menu bg-ui-raised px-4 py-2 font-ui text-[12px] text-ui-1"
+          >
+            WebView2 was updated. Restart InfoPanel Studio to use it.
+            <button type="button" onClick={() => setRuntimeUpdated(false)} className="rounded px-2 py-0.5 text-ui-2 hover:bg-ui-hover hover:text-ui-1">
+              Dismiss
             </button>
           </div>
         )}

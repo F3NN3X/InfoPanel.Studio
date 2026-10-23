@@ -140,8 +140,15 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
         })
         .build()?;
     let _ = window.set_zoom(zoom_factor(app));
+    crate::webview2::watch(&window);
     let handle = app.clone();
     window.on_window_event(move |event| {
+        if let tauri::WindowEvent::Focused(focused) = event {
+            crate::refresh::focus_changed(*focused);
+            if let Some(w) = handle.get_webview_window(MAIN) {
+                crate::webview2::set_unfocused(&w, !*focused);
+            }
+        }
         // Minimizing and restoring arrive as resizes; a minimized studio suspends like a hidden one.
         if let tauri::WindowEvent::Resized(_) = event {
             if let Some(w) = handle.get_webview_window(MAIN) {

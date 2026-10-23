@@ -300,7 +300,11 @@ export default function AudioMeter(p: AudioMeterProps) {
                               : { ...slideX(clamp(v)), background: `linear-gradient(90deg, ${lc} 0%, ${lc} 60%, ${STATE.warn} 82%, ${hc} 100%)` }
                           }
                         />
-                        {marker !== undefined && <div className="absolute inset-y-0 w-[2px] bg-[color:var(--w-fg)] transition-[left] duration-300" style={{ left: `${marker}%` }} />}
+                        {marker !== undefined && (
+                          <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `translateX(${marker}%)` }}>
+                            <div className="absolute inset-y-0 left-0 w-[2px] bg-[color:var(--w-fg)]" />
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex h-full flex-1">

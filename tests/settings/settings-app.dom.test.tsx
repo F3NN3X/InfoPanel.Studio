@@ -16,6 +16,7 @@ const settingsDefaults: Settings = {
   closeToTray: true,
   rememberBounds: true,
   zoom: 100,
+  studioRefresh: "idle",
   checkForUpdates: true,
   updateChannel: "stable",
   autoDownload: false,

@@ -53,7 +53,8 @@ export function Gauge({
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={c * (1 - p / 100)}
-            className="stroke-accent text-accent transition-all duration-300"
+            className="stroke-accent text-accent transition-[stroke-dashoffset] duration-300"
+            data-wp-ring=""
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">

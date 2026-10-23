@@ -75,7 +75,7 @@ describe("lookBox", () => {
     expect(s.boxShadow).toContain("inset 0 0 0 3px #ff0000");
     expect(s.boxShadow).toContain("inset 0 0 32px");
     expect(s.borderWidth).toBe(0);
-    expect(s.backdropFilter).toBe("blur(4px)");
+    expect(s.backdropFilter).toBe("blur(min(4px, var(--wp-blur-cap, 4px)))");
     const neon = lookBox(SURFACES.neon, look({ glow: "soft" }));
     expect(String(neon.boxShadow).startsWith(String(SURFACES.neon.s.boxShadow))).toBe(true);
   });

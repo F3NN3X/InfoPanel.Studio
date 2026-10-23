@@ -46,7 +46,7 @@ import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
 import { onFileDoor, openExportSheet, openImportDoor, type ExportRequest } from "./file-doors";
-import { canvasZoneOf } from "./import-actions";
+import { canvasZoneOf, importAsProfile } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
 import { useStudioCommands } from "./use-studio-commands";
@@ -661,13 +661,23 @@ function StudioViewBody({
     ui.openTheme({ kind: "base" });
     ui.setThemeEditing(preset.id);
   };
-  /** A Library canvas's "Edit canvas": its editor on the first zone made from it, else it comes in as a new screen (which opens it). */
+  /** A Library canvas's "Edit canvas": its editor on the first zone made from it, else it comes in as a new screen (no import dialog, it is already stored) that opens in the editor. */
   const editCanvas = async (item: LibraryItem) => {
     const stored = await dataOf<StoredCanvas>(item);
-    const use = stored ? findCanvasUse(config, stored) : undefined;
-    if (!use) return io.openImport("new", { canvasId: item.id }, true);
-    openOnLand.current = use.zoneId;
-    openZone(use.profileId, use.pageId, use.zoneId);
+    if (!stored) return;
+    const use = findCanvasUse(config, stored);
+    if (use) {
+      openOnLand.current = use.zoneId;
+      return openZone(use.profileId, use.pageId, use.zoneId);
+    }
+    const size = { width: Number(stored.profile.Width) || 1, height: Number(stored.profile.Height) || 1 };
+    const r = importAsProfile(config, stored, item.name, size, false);
+    setConfig(r.config);
+    selectProfile(r.profileId);
+    ui.setMode("design");
+    ui.fitZoom();
+    openOnLand.current = r.zoneId;
+    setPendingZone(r.zoneId);
   };
   const libraryEl = showLibrary && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>

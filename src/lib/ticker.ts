@@ -85,12 +85,34 @@ export function setTickerMaxFps(fps: number): void {
   maxFps = fps;
 }
 
-/** Calls `cb` on each tick, at most Max FPS times a second; the returned function unsubscribes. */
-export function subscribeTick(cb: Tick): () => void {
-  subscribers.add(cb);
+/**
+ * The cap for ambient motion (weather effects, art drift, animated icons, visualizers), below a
+ * higher Max FPS: it drifts slowly, so 30 frames look the same as 60 at half the drawing.
+ */
+export const AMBIENT_FPS = 30;
+
+/** `cb` called at most `fps` times a second however often it is ticked (0 = every tick). */
+export function capTick(cb: Tick, fps: number): Tick {
+  if (!(fps > 0)) return cb;
+  let at = -Infinity;
+  return (now) => {
+    const next = nextTick(now, at, fps);
+    if (next === null) return;
+    at = next;
+    cb(now);
+  };
+}
+
+/**
+ * Calls `cb` on each tick, at most Max FPS times a second, and at most `capFps` when given (lower
+ * of the two); the returned function unsubscribes.
+ */
+export function subscribeTick(cb: Tick, capFps = 0): () => void {
+  const run = capTick(cb, capFps);
+  subscribers.add(run);
   sync();
   return () => {
-    subscribers.delete(cb);
+    subscribers.delete(run);
     sync();
   };
 }

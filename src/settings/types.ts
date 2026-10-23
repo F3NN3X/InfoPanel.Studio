@@ -2,6 +2,7 @@
 
 export type Listen = "local" | "lan";
 export type Channel = "stable" | "beta";
+export type StudioRefresh = "idle" | "daily" | "off";
 
 export interface AgentSettings {
   enabled: boolean;
@@ -20,6 +21,7 @@ export interface Settings {
   closeToTray: boolean;
   rememberBounds: boolean;
   zoom: number;
+  studioRefresh: StudioRefresh;
   checkForUpdates: boolean;
   updateChannel: Channel;
   autoDownload: boolean;

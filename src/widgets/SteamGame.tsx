@@ -75,7 +75,7 @@ export default function SteamGame(p: SteamGameProps) {
                 </div>
               )}
               {size === "lg" && has(A("latest-achievement")) && (
-                <div className="mt-1 flex items-center gap-2.5 rounded-lg bg-black/35 p-2 backdrop-blur">
+                <div className="mt-1 flex items-center gap-2.5 rounded-lg bg-black/35 p-2 backdrop-blur" data-wp-inner-blur="">
                   <Img src={widgetImage(A("latest-achievement-icon"))} icon="trophy" className="h-8 w-8 rounded-md" />
                   <div className="flex min-w-0 flex-col">
                     <span className="text-[10.5px] text-[color:var(--w-faint)]">Latest achievement</span>

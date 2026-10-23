@@ -78,7 +78,7 @@ export function UploadTray({ rows, onClear, onShow }: { rows: UploadRow[]; onCle
             <div className={cn("ml-[22px] text-[11px]", r.state === "error" ? "text-ui-danger" : "text-ui-4")}>{r.message ?? STATE_TEXT[r.state]}</div>
             {(r.state === "reading" || r.state === "uploading" || r.state === "queued") && (
               <div className="ml-[22px] mt-1 h-1 overflow-hidden rounded-full bg-ui-subtle">
-                <div className={cn("h-full rounded-full bg-ui-accent transition-all", r.state === "queued" ? "w-0" : r.state === "reading" ? "w-1/3" : "w-2/3 animate-pulse")} />
+                <div className={cn("h-full rounded-full bg-ui-accent transition-[width]", r.state === "queued" ? "w-0" : r.state === "reading" ? "w-1/3" : "w-2/3 animate-pulse")} />
               </div>
             )}
           </li>

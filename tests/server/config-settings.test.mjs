@@ -45,6 +45,8 @@ describe("applySettingsPatch", () => {
     for (const maxFps of [5, 15, 30, 60, 0]) expect(applySettingsPatch(stored(), { general: { maxFps } }).config.general.maxFps).toBe(maxFps);
     expect(applySettingsPatch(stored(), { general: { locale: "" } }).config.general.locale).toBe("");
     expect(applySettingsPatch(stored(), { general: { locale: "de-CH" } }).config.general.locale).toBe("de-CH");
+    for (const key of ["ringGlide", "blurLimit", "innerBlur", "liveGlow"]) for (const on of [true, false]) expect(applySettingsPatch(stored(), { general: { [key]: on } }).config.general[key]).toBe(on);
+    for (const kioskRefresh of ["daily", "off"]) expect(applySettingsPatch(stored(), { general: { kioskRefresh } }).config.general.kioskRefresh).toBe(kioskRefresh);
   });
 
   it("refuses a patch with an unknown key or a bad value, whole", () => {
@@ -53,6 +55,8 @@ describe("applySettingsPatch", () => {
       { general: { font: "inter" } },
       { general: { maxFps: 24 } },
       { general: { motion: "slow" } },
+      { general: { kioskRefresh: "hourly" } },
+      { general: { blurLimit: "yes" } },
       { general: { showSeconds: "yes" } },
       { general: { locale: "not a locale!" } },
       { general: [] },
