@@ -63,12 +63,11 @@ export function serverCommand(env = process.env) {
 }
 
 /**
- * Start a scratch server. `fixture` is the data folder to copy; `env` adds to the server's environment;
- * `dataApiEnv` to the fake Data API's (RATE_HZ, AUDIO_HZ, SEED).
+ * A temp folder with a copy of `fixture` (its `dataApiUrl` pointed at a fresh fake Data API), an empty home and an
+ * empty InfoPanel folder. `stop` ends the fake Data API and anything pushed onto `children`, then removes the folder.
  */
-export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {} } = {}) {
+export async function prepareScratch({ fixture = FIXTURE_DIR, dataApiEnv = {} } = {}) {
   if (!fs.existsSync(path.join(fixture, "config.json"))) throw new Error(`no fixture at ${fixture}; run node tools/perf/make-fixture.mjs`);
-  const { cmd, args } = serverCommand({ ...process.env, ...env });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ips-scratch-"));
   const dataDir = path.join(tmp, "data");
   const home = path.join(tmp, "home");
@@ -87,31 +86,45 @@ export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv
     const api = await launch(process.execPath, [path.join(ROOT, "tools/perf/fake-data-api.mjs")], { ...process.env, ...dataApiEnv, PORT: "0", HOST: "127.0.0.1" }, DATA_API_LINE, "fake Data API");
     children.push(api.child);
     const dataApi = `http://127.0.0.1:${api.port}`;
-
     const configFile = path.join(dataDir, "config.json");
     const config = JSON.parse(fs.readFileSync(configFile, "utf8"));
     fs.writeFileSync(configFile, JSON.stringify({ ...config, dataApiUrl: dataApi }));
-
-    const serverEnv = {
-      ...process.env,
-      // The agent-usage scan reads the user's home; point it at an empty one.
-      HOME: home,
-      USERPROFILE: home,
-      INFOPANEL_DATA_DIR: infopanel,
-      HOST: "127.0.0.1",
-      ...env,
-      DASHBOARD_DATA_DIR: dataDir,
-      PORT: "0",
-    };
-    const server = await launch(cmd, args, serverEnv, SERVER_LINE, `server (${env.SERVER_IMPL || process.env.SERVER_IMPL || "node"})`);
-    children.push(server.child);
-    return { base: `http://127.0.0.1:${server.port}`, dataApi, dataDir, pid: server.child.pid, output: server.output, stop };
+    return { tmp, dataDir, home, infopanel, dataApi, children, stop };
   } catch (err) {
     stop();
     throw err;
   }
 }
 
+/**
+ * Start a scratch server. `fixture` is the data folder to copy; `env` adds to the server's environment;
+ * `dataApiEnv` to the fake Data API's (RATE_HZ, AUDIO_HZ, SEED); `nodeArgs` to node's command line (node only).
+ */
+export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {}, nodeArgs = [] } = {}) {
+  const server = serverCommand({ ...process.env, ...env });
+  // Node flags (V8 heap sizes, --trace-gc) go before the script; the native server takes none.
+  const args = server.cmd === process.execPath ? [...nodeArgs, ...server.args] : server.args;
+  const scratch = await prepareScratch({ fixture, dataApiEnv });
+  try {
+    const serverEnv = {
+      ...process.env,
+      // The agent-usage scan reads the user's home; point it at an empty one.
+      HOME: scratch.home,
+      USERPROFILE: scratch.home,
+      INFOPANEL_DATA_DIR: scratch.infopanel,
+      HOST: "127.0.0.1",
+      ...env,
+      DASHBOARD_DATA_DIR: scratch.dataDir,
+      PORT: "0",
+    };
+    const started = await launch(server.cmd, args, serverEnv, SERVER_LINE, `server (${env.SERVER_IMPL || process.env.SERVER_IMPL || "node"})`);
+    scratch.children.push(started.child);
+    return { base: `http://127.0.0.1:${started.port}`, dataApi: scratch.dataApi, dataDir: scratch.dataDir, pid: started.child.pid, output: started.output, stop: scratch.stop };
+  } catch (err) {
+    scratch.stop();
+    throw err;
+  }
+}
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const s = await startScratch();
   console.log(`scratch server ${s.base}  data API ${s.dataApi}  data ${s.dataDir}`);

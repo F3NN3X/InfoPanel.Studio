@@ -8,19 +8,20 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const ROLES = ["app", "sidecar", "webview", "renderer", "gpu", "utility"];
 const COLUMNS = ["time", ...ROLES.flatMap((r) => [`${r}.cpu`, `${r}.mb`, `${r}.n`]), "total.cpu", "total.mb"];
 
 /** Every process on the machine, with its CPU time (100 ns units) and private bytes. */
-function processes() {
+export function processes() {
   const ps =
     "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,KernelModeTime,UserModeTime,PrivatePageCount | ConvertTo-Json -Compress";
   return JSON.parse(execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps], { encoding: "utf8", maxBuffer: 64 << 20 }));
 }
 
 /** The app's process tree, each process with its role: the WebView2 ones by their --type. */
-function appTree(all) {
+export function appTree(all) {
   const roots = all.filter((p) => /^infopanel[- ]studio\.exe$/i.test(p.Name));
   const byParent = new Map();
   for (const p of all) byParent.set(p.ParentProcessId, [...(byParent.get(p.ParentProcessId) ?? []), p]);
@@ -125,11 +126,14 @@ function report(file, bucketMin) {
   if (restarts) console.log(`  renderer count changed ${restarts}× (a window opened or closed, or a renderer restarted)`);
 }
 
-const args = process.argv.slice(2);
-if (args[0] === "--report") {
-  if (!args[1]) throw new Error("usage: process-sampler.mjs --report <file.csv> [bucketMinutes]");
-  report(args[1], Number(args[2] || 60));
-} else {
-  const date = new Date().toISOString().slice(0, 10);
-  sample(args[0] || path.join(".cache", "perf", `processes-${date}.csv`), Number(args[1] || 60));
+// Imported (the desktop perf specs use processes() and appTree()), it only exports.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  if (args[0] === "--report") {
+    if (!args[1]) throw new Error("usage: process-sampler.mjs --report <file.csv> [bucketMinutes]");
+    report(args[1], Number(args[2] || 60));
+  } else {
+    const date = new Date().toISOString().slice(0, 10);
+    sample(args[0] || path.join(".cache", "perf", `processes-${date}.csv`), Number(args[1] || 60));
+  }
 }

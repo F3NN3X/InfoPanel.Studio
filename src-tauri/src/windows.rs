@@ -41,6 +41,15 @@ fn browser_args_for(debug_build: bool, port: Option<&str>) -> String {
     }
 }
 
+/// Every webview shares one WebView2 environment, so they all take the same data folder: a test run's own
+/// (paths::webview_data_dir), else WebView2's default.
+fn with_webview_data_dir<'a, R: tauri::Runtime, M: Manager<R>>(builder: WebviewWindowBuilder<'a, R, M>) -> WebviewWindowBuilder<'a, R, M> {
+    match crate::paths::webview_data_dir() {
+        Some(dir) => builder.data_directory(dir),
+        None => builder,
+    }
+}
+
 /// At most one external open per second, so a page can't flood the browser with tabs.
 fn external_allowed() -> bool {
     use std::time::{Duration, Instant};
@@ -106,7 +115,7 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     // Built hidden on the pages' dark background and shown once the first page has loaded, like the
     // settings and help windows, so launching the app never flashes a white, empty window.
     let shown = Arc::new(AtomicBool::new(false));
-    let window = WebviewWindowBuilder::new(app, MAIN, url)
+    let builder = WebviewWindowBuilder::new(app, MAIN, url)
         .title("InfoPanel Studio")
         .visible(false)
         .background_color(PAGE_BACKGROUND)
@@ -143,8 +152,8 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
-        })
-        .build()?;
+        });
+    let window = with_webview_data_dir(builder).build()?;
     let _ = window.set_zoom(zoom_factor(app));
     crate::webview2::watch(&window);
     let handle = app.clone();
@@ -393,7 +402,7 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
     // Built hidden on the pages' own dark background and shown once the first page has loaded, so
     // opening it never flashes a white, empty window.
     let shown = Arc::new(AtomicBool::new(false));
-    let built = WebviewWindowBuilder::new(app, label, url)
+    let builder = WebviewWindowBuilder::new(app, label, url)
         .title(title)
         .decorations(false)
         .visible(false)
@@ -423,8 +432,8 @@ fn show_page(app: &AppHandle, label: &str, title: &str, url: WebviewUrl, server:
                 let _ = window.show();
                 let _ = window.set_focus();
             }
-        })
-        .build();
+        });
+    let built = with_webview_data_dir(builder).build();
     match built {
         Ok(w) => {
             let _ = w.set_zoom(zoom_factor(app));
@@ -520,7 +529,9 @@ fn close_main(app: &AppHandle) {
             .dialog()
             .message(
                 "Closing InfoPanel Studio stops its dashboard server, so the kiosk page stops \
-                 updating until you start the app again.\n\nTo keep the server running with the \
+                 updating until you start the app again.
+
+To keep the server running with the \
                  window closed, turn on \"Close to tray\" in the settings.",
             )
             .title("Quit InfoPanel Studio?")

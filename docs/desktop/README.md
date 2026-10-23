@@ -111,11 +111,20 @@ Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer 
 
 | Variable | Effect |
 |---|---|
-| `INFOPANEL_STUDIO_CONFIG_DIR` | Where the app keeps `settings.json` and its logs |
+| `INFOPANEL_STUDIO_CONFIG_DIR` | Where the app keeps `settings.json` and its logs, and the WebView2 profile (`EBWebView/`), so a test run never shares the installed app's profile or its running WebView2 |
 | `INFOPANEL_STUDIO_DATA_DIR` | Passed to the server as `DASHBOARD_DATA_DIR` (its own config and assets) |
 | `INFOPANEL_STUDIO_DEBUG=1` | Debug mode for this run |
-| `INFOPANEL_STUDIO_CDP_PORT` | In debug builds only (never a release build), adds `--remote-debugging-port` to WebView2 (the port did not open on the WebView2 build tested here; Windows UI Automation works instead) |
+| `INFOPANEL_STUDIO_CDP_PORT` | In debug builds only (never a release build), adds `--remote-debugging-port` to WebView2, so Playwright can attach (`connectOverCDP`) |
 
 Seed the config folder with a `settings.json` that uses a spare port, `"startAtLogin": false` and
-`"agents": { "enabled": false }`. To try the agent toggle safely, also set `USERPROFILE` to a temp
-folder: the bundled Node then writes the hooks there.
+`"agents": { "enabled": false }`. Quit an installed InfoPanel Studio first: the app is single-instance, so a
+running one takes the launch.
+
+The debugging port opens only when WebView2 starts a browser process of its own: not while another app's process
+holds the same profile (the reason for the profile under `INFOPANEL_STUDIO_CONFIG_DIR`), and not with `USERPROFILE`
+pointed at another folder. To try the agent toggle with a temp `USERPROFILE` (the bundled Node then writes the hooks
+there), leave `INFOPANEL_STUDIO_CDP_PORT` out.
+
+The `desktop` Playwright project (`tests/desktop/`, Windows only) does all of this: build with
+`npm run desktop:web && npm run desktop:prepare && npx tauri build --debug --no-bundle`, then
+`npx playwright test --project=desktop`.
