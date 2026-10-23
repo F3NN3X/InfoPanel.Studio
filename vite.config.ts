@@ -15,6 +15,8 @@ export default defineConfig({
     },
   },
   build: {
+    // dist/.vite/manifest.json, read by tools/perf/bundle-report.mjs (the server never serves dot folders).
+    manifest: true,
     // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
     rollupOptions: { input: [path.resolve(__dirname, "index.html"), path.resolve(__dirname, "help.html")] },
   },

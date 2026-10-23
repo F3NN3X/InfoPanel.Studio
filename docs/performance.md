@@ -193,9 +193,45 @@ Notes:
    - Uppercase is listed as lost when importing Clock and Calendar.
    - The island level bar still animates `width`, but it's short and only shows during a notice.
 
-## How to measure
+## The harness
 
-These scripts lived in the session scratchpad and are not in the repo. The method:
+A committed, reproducible harness (Playwright, `playwright.config.ts`). It never touches the real data folder: every
+spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
+
+- **Fake Data API** (`tools/perf/fake-data-api.mjs`): `/api`, `/api/sources`, `/api/sensors`, `/events` and the
+  filtered `/events?prefix=&interval=` stream, in the shapes `src/lib/sensor-store.ts` reads. It serves the widget
+  fixtures' sensors (`src/widgets/__fixtures__`) with numeric values on a seeded wave: `RATE_HZ` (1), `AUDIO_HZ`
+  (10, the audio meter keys), `SEED` (1), `PORT=0`.
+- **Fixture** (`tests/fixtures/perf/`): built through the server's own API by `node tools/perf/make-fixture.mjs`.
+  - `perf-heavy`: StatusBar, SystemOverview with rings and heatmap, CoreHeatmap, GpuRings (RingStack), AudioMeter,
+    Weather with fx, an imported canvas with a gauge icon, the island, an image background.
+  - `perf-light`: Clock and two SensorValue zones, plus a second page.
+  - `fixture.json` names the profiles, zones and selectors the specs use.
+- **Scratch runner** (`tools/perf/scratch.mjs`): copies the fixture, starts the fake Data API and the server
+  (`SERVER_IMPL=node`, or `native` with `SERVER_CMD`), points `dataApiUrl` at the fake API, and gives the server an
+  empty home and InfoPanel folder. `node tools/perf/scratch.mjs` starts one by hand.
+- **Functional specs** (`tests/e2e/`, `npm run test:e2e`): kiosk render, live config update, control page switch,
+  studio edit/save/undo, image-proxy rules, request guard, and the kiosk request budget.
+- **Perf specs** (`tests/perf/`, `npm run perf:kiosk`, `npm run perf:studio`): each page measurement is a fresh
+  context, a load under a short trace (JS bytes, parse/compile ms, first zone, FCP, requests), a 5 s warm-up and a
+  10 s window (`Performance.getMetrics` deltas, rAF callbacks/s, running animations), repeated 3 times (median and
+  range). `kiosk-idle`, `studio-idle`, `studio-hot-cold` (HEADED=1 to reproduce the hidden tab) and `server-idle`
+  (server RSS with two kiosks and a studio open, every 5 s for 60 s). `PERF_REPEATS`, `PERF_WARMUP_MS`,
+  `PERF_WINDOW_MS` and `PERF_SERVER_MS` shorten a trial run.
+- **Reports**: `tools/perf/bundle-report.mjs` (entry closures from Vite's build manifest), `tools/perf/disk-report.mjs`
+  (installer, installed folder, `src-tauri/resources/`). Results land in `.cache/perf/<label>/` (`PERF_LABEL`, else
+  the git short SHA).
+- **`npm run perf:all`** builds and runs all of it; **`npm run perf:compare <A> <B>`** prints a markdown table, flagging
+  differences whose ranges overlap as noise.
+- **Budgets** (`tools/perf/budgets.json`, `npm run perf:budgets`, in CI): kiosk and studio entry gzip bytes, kiosk load
+  requests (in `tests/e2e/kiosk-budget.spec.ts`), and whether React's server renderer may be in the kiosk closure.
+  CPU, memory and frame counts are report-only.
+
+Results: [perf-results/](perf-results/).
+
+## How to measure by hand
+
+The method behind the harness, for a real profile:
 
 1. **Never measure on the live data.** Copy `%LOCALAPPDATA%\InfoPanel\Dashboard` and start a server on the copy with:
    - `DASHBOARD_DATA_DIR=<copy>`;
