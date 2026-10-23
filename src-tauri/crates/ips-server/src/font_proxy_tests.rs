@@ -29,8 +29,17 @@ fn offline() -> Fetch {
     Arc::new(|url| panic!("fetched {url}"))
 }
 
+/// A deadline that never matters.
+fn far() -> Instant {
+    Instant::now() + Duration::from_secs(3600)
+}
+
+fn far_timeout() -> Duration {
+    Duration::from_secs(3600)
+}
+
 async fn run(url: &str, fetch: &Fetch, dir: &Path) -> (u16, HeaderMap, String) {
-    let response = respond(&Method::GET, Some(url.to_string()), dir, fetch).await;
+    let response = respond(&Method::GET, Some(url.to_string()), dir, fetch, far_timeout()).await;
     let (parts, body) = response.into_parts();
     (parts.status.as_u16(), parts.headers, String::from_utf8(to_bytes(body, usize::MAX).await.unwrap().to_vec()).unwrap())
 }
@@ -58,14 +67,14 @@ fn follows_redirects_to_font_hosts_only() {
 #[tokio::test]
 async fn follows_a_checked_redirect() {
     let (fetch, seen) = fake(&[("https://www.fontsquirrel.com/a", 302, Some("https://cdn.jsdelivr.net/b"), ""), ("https://cdn.jsdelivr.net/b", 200, None, "font")]);
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/a", &fetch).await, Ok(b"font".to_vec()));
+    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/a", &fetch, far()).await, Ok(b"font".to_vec()));
     assert_eq!(*seen.lock().unwrap(), ["https://www.fontsquirrel.com/a", "https://cdn.jsdelivr.net/b"]);
 }
 
 #[tokio::test]
 async fn refuses_a_redirect_off_the_font_hosts() {
     let (fetch, seen) = fake(&[("https://www.fontsquirrel.com/a", 302, Some("http://169.254.169.254/"), "")]);
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/a", &fetch).await, Err("refusing to fetch http://169.254.169.254/".into()));
+    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/a", &fetch, far()).await, Err("refusing to fetch http://169.254.169.254/".into()));
     assert_eq!(seen.lock().unwrap().len(), 1);
 }
 
@@ -74,7 +83,7 @@ async fn gives_up_after_three_redirects_naming_the_last_url() {
     let hops: Vec<(String, Option<String>)> = (0..4).map(|i| (format!("https://www.fontsquirrel.com/{i}"), Some(format!("/{}", i + 1)))).collect();
     let routes: Vec<(&str, u16, Option<&str>, &str)> = hops.iter().map(|(u, l)| (u.as_str(), 302, l.as_deref(), "")).collect();
     let (fetch, seen) = fake(&routes);
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/0", &fetch).await, Err("https://www.fontsquirrel.com/4: too many redirects".into()));
+    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/0", &fetch, far()).await, Err("https://www.fontsquirrel.com/4: too many redirects".into()));
     assert_eq!(seen.lock().unwrap().len(), 4);
 }
 
@@ -82,22 +91,22 @@ async fn gives_up_after_three_redirects_naming_the_last_url() {
 async fn reports_a_status_a_bad_location_and_an_oversize_body() {
     let (fetch, _) = fake(&[("https://www.fontsquirrel.com/x", 302, None, ""), ("https://www.fontsquirrel.com/bad", 301, Some("https://[::1"), "")]);
     // The URL as given, not normalised.
-    assert_eq!(fetch_bytes("https://WWW.fontsquirrel.com/x", &fetch).await, Err("https://WWW.fontsquirrel.com/x: HTTP 302".into()));
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/gone", &fetch).await, Err("https://www.fontsquirrel.com/gone: HTTP 404".into()));
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/bad", &fetch).await, Err("Invalid URL".into()));
+    assert_eq!(fetch_bytes("https://WWW.fontsquirrel.com/x", &fetch, far()).await, Err("https://WWW.fontsquirrel.com/x: HTTP 302".into()));
+    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/gone", &fetch, far()).await, Err("https://www.fontsquirrel.com/gone: HTTP 404".into()));
+    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/bad", &fetch, far()).await, Err("Invalid URL".into()));
     let big: Fetch = Arc::new(|_| {
         let chunks: Vec<Result<Bytes, String>> = (0..31).map(|_| Ok(Bytes::from(vec![0u8; 1024 * 1024]))).collect();
         Box::pin(async move { Ok(Upstream { status: 200, headers: HeaderMap::new(), body: Box::pin(futures_util::stream::iter(chunks)) }) })
     });
-    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/big", &big).await, Err("https://www.fontsquirrel.com/big: over 31457280 bytes".into()));
+    assert_eq!(fetch_bytes("https://www.fontsquirrel.com/big", &big, far()).await, Err("https://www.fontsquirrel.com/big: over 31457280 bytes".into()));
 }
 
 #[tokio::test]
 async fn refuses_other_methods_and_urls() {
     let dir = tempfile::tempdir().unwrap();
-    assert_eq!(respond(&Method::POST, Some(CATALOGUE.into()), dir.path(), &offline()).await.status(), 405);
+    assert_eq!(respond(&Method::POST, Some(CATALOGUE.into()), dir.path(), &offline(), far_timeout()).await.status(), 405);
     for url in [None, Some("https://evil.example/x"), Some("http://www.fontsquirrel.com/x")] {
-        let response = respond(&Method::GET, url.map(str::to_string), dir.path(), &offline()).await;
+        let response = respond(&Method::GET, url.map(str::to_string), dir.path(), &offline(), far_timeout()).await;
         assert_eq!(response.status(), 400);
         assert_eq!(to_bytes(response.into_body(), 100).await.unwrap(), "not an allowed font URL");
     }
@@ -171,4 +180,27 @@ async fn only_the_exact_catalogue_url_is_cached() {
     assert_eq!(run(&url, &fetch, dir.path()).await.2, "[3]");
     assert_eq!(seen.lock().unwrap().len(), 1);
     assert!(!dir.path().join(CACHE_FILE).exists());
+}
+
+/// A fetch whose headers, or whose body after the headers, never arrive.
+fn stalled(after_headers: bool) -> Fetch {
+    Arc::new(move |_| {
+        Box::pin(async move {
+            if !after_headers {
+                std::future::pending::<()>().await;
+            }
+            let body = futures_util::stream::pending::<Result<Bytes, String>>();
+            Ok(Upstream { status: 200, headers: HeaderMap::new(), body: Box::pin(body) })
+        })
+    })
+}
+
+#[tokio::test]
+async fn a_deadline_before_the_headers_is_a_504_and_during_the_body_a_502() {
+    let dir = tempfile::tempdir().unwrap();
+    for (after_headers, expected) in [(false, 504), (true, 502)] {
+        let response = respond(&Method::GET, Some("https://www.fontsquirrel.com/x".into()), dir.path(), &stalled(after_headers), Duration::from_millis(50)).await;
+        assert_eq!(response.status(), expected);
+        assert!(to_bytes(response.into_body(), 100).await.unwrap().is_empty());
+    }
 }

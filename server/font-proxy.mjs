@@ -2,7 +2,8 @@
 // studio's Library › Fonts › Get a font, and for the import lab:
 //   GET /api/font-proxy?url=<https URL on www.fontsquirrel.com>
 // Only that host is proxied; every redirect hop must stay on a known font
-// host over HTTPS, and the body is capped. The answer is opaque bytes,
+// host over HTTPS, and the body is capped. The whole fetch has a 60 s deadline: 504 if it passes before the
+// headers arrive, 502 after (the image proxy's answers). The answer is opaque bytes,
 // sandboxed, never rendered here.
 //
 // Font Squirrel throttles (an empty 202), so its catalogue is kept in
@@ -21,6 +22,7 @@ const PROXIED = new Set(["www.fontsquirrel.com"]);
 const FONT_HOSTS = new Set(["api.fontsource.org", "cdn.jsdelivr.net", "fonts.google.com", "fonts.gstatic.com", "www.fontsquirrel.com"]);
 export const MAX_BYTES = 30 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
+export const FETCH_TIMEOUT_MS = 60_000;
 const WEEK = 7 * 24 * 3600 * 1000;
 
 /* ---------------- pure helpers ---------------- */
@@ -47,16 +49,31 @@ export function hopAllowed(url) {
 
 /* ---------------- fetching ---------------- */
 
-/** The body of `url`, following checked redirects by hand, at most MAX_BYTES. */
-export async function fetchBytes(url, fetchImpl = fetch) {
+/** The body of `url`, following checked redirects by hand, at most MAX_BYTES, within `timeoutMs` overall.
+ *  A passed deadline throws an error whose `status` is 504 before the headers and 502 after. */
+export async function fetchBytes(url, fetchImpl = fetch, timeoutMs = FETCH_TIMEOUT_MS) {
+  const signal = AbortSignal.timeout(timeoutMs);
+  let headed = false;
+  try {
+    return await follow(url, fetchImpl, signal, () => {
+      headed = true;
+    });
+  } catch (e) {
+    if (signal.aborted) throw Object.assign(new Error(`${url}: timed out`), { status: headed ? 502 : 504 });
+    throw e;
+  }
+}
+
+async function follow(url, fetchImpl, signal, onHeaders) {
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (!hopAllowed(url)) throw new Error(`refusing to fetch ${url}`);
-    const r = await fetchImpl(url, { redirect: "manual", headers: { "User-Agent": "infopanel-studio" } });
+    const r = await fetchImpl(url, { signal, redirect: "manual", headers: { "User-Agent": "infopanel-studio" } });
     const location = r.status >= 300 && r.status < 400 ? r.headers.get("location") : null;
     if (location) {
       url = new URL(location, url).href;
       continue;
     }
+    onHeaders();
     if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
     if (!r.body) return new Uint8Array();
     const chunks = [];
@@ -72,14 +89,14 @@ export async function fetchBytes(url, fetchImpl = fetch) {
 }
 
 /** The route. `send(res, status, body, type)` is the server's response helper. */
-export function createFontProxy({ cacheDir, send, fetchImpl = fetch }) {
+export function createFontProxy({ cacheDir, send, fetchImpl = fetch, timeoutMs = FETCH_TIMEOUT_MS }) {
   const cache = path.join(cacheDir, "fontsquirrel-list.json");
 
   async function catalogue() {
     const age = await fs.stat(cache).then((s) => Date.now() - s.mtimeMs, () => Infinity);
     if (age < WEEK) return fs.readFile(cache);
     try {
-      const body = await fetchBytes(CATALOGUE, fetchImpl);
+      const body = await fetchBytes(CATALOGUE, fetchImpl, timeoutMs);
       JSON.parse(new TextDecoder().decode(body)); // only a whole list replaces the copy
       await fs.mkdir(cacheDir, { recursive: true });
       // Atomic: a crash mid-write must not leave a cut list that a week of reads then serves.
@@ -97,7 +114,7 @@ export function createFontProxy({ cacheDir, send, fetchImpl = fetch }) {
     const url = query.get("url") ?? "";
     if (!proxyAllowed(url)) return send(res, 400, "not an allowed font URL");
     try {
-      const body = url === CATALOGUE ? await catalogue() : await fetchBytes(url, fetchImpl);
+      const body = url === CATALOGUE ? await catalogue() : await fetchBytes(url, fetchImpl, timeoutMs);
       if (body.length === 0 && url !== CATALOGUE) throw new Error(`${new URL(url).hostname} sent nothing (throttled?)`);
       res.writeHead(200, {
         "Content-Type": "application/octet-stream",
@@ -107,7 +124,9 @@ export function createFontProxy({ cacheDir, send, fetchImpl = fetch }) {
       });
       res.end(body);
     } catch (e) {
-      send(res, 502, String(e?.message ?? e));
+      if (e?.status === 504) send(res, 504);
+      else if (e?.status === 502) send(res, 502);
+      else send(res, 502, String(e?.message ?? e));
     }
   };
 }

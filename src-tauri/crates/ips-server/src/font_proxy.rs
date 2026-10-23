@@ -1,7 +1,8 @@
 // GET /api/font-proxy?url=<https URL on www.fontsquirrel.com> (server/font-proxy.mjs): font sources that send no CORS
 // headers (Font Squirrel), for the studio's Library › Fonts › Get a font and the import lab. Only that host is proxied;
 // every redirect hop must stay on a known font host over HTTPS, and the body is capped. The answer is opaque bytes,
-// sandboxed, never rendered here. As in Node there is no timeout and no address check: the hosts are an allowlist.
+// sandboxed, never rendered here. As in Node there is no address check (the hosts are an allowlist), but the whole fetch has a 60 s deadline: 504 if it
+// passes before the headers arrive, 502 after (the image proxy's answers).
 //
 // Font Squirrel throttles (an empty 202), so its catalogue is kept in `cacheDir/fontsquirrel-list.json` for a week and
 // served stale when a refresh fails. With no copy at all the page gets an empty body, which it reports as "throttled?"
@@ -14,6 +15,7 @@ use std::time::{Duration, SystemTime};
 use axum::body::Body;
 use axum::http::{Method, Response};
 use futures_util::StreamExt;
+use tokio::time::{timeout_at, Instant};
 use url::Url;
 
 use crate::guarded_net::{client_builder, describe};
@@ -26,6 +28,7 @@ const PROXIED: [&str; 1] = ["www.fontsquirrel.com"];
 const FONT_HOSTS: [&str; 5] = ["api.fontsource.org", "cdn.jsdelivr.net", "fonts.google.com", "fonts.gstatic.com", "www.fontsquirrel.com"];
 pub const MAX_BYTES: usize = 30 * 1024 * 1024;
 const MAX_REDIRECTS: usize = 3;
+pub const FETCH_TIMEOUT: Duration = Duration::from_secs(60);
 const WEEK: Duration = Duration::from_secs(7 * 24 * 3600);
 const CACHE_FILE: &str = "fontsquirrel-list.json";
 
@@ -44,34 +47,61 @@ pub fn hop_allowed(url: &str) -> bool {
     https_on(url, &FONT_HOSTS)
 }
 
-/// The body of `url`, following checked redirects by hand, at most `MAX_BYTES`. The errors are Node's messages, which
-/// go into the 502.
-pub async fn fetch_bytes(url: &str, fetch: &Fetch) -> Result<Vec<u8>, String> {
+/// Why a fetch failed: a passed deadline (with the status it answers) or Node's message, which goes into the 502.
+#[derive(Debug, PartialEq)]
+pub enum Failure {
+    Timeout(u16),
+    Message(String),
+}
+
+impl From<String> for Failure {
+    fn from(message: String) -> Self {
+        Self::Message(message)
+    }
+}
+
+impl From<&str> for Failure {
+    fn from(message: &str) -> Self {
+        Self::Message(message.to_string())
+    }
+}
+
+/// The body of `url`, following checked redirects by hand, at most `MAX_BYTES`, until `deadline`: a timeout is a 504
+/// before the final headers and a 502 after.
+pub async fn fetch_bytes(url: &str, fetch: &Fetch, deadline: Instant) -> Result<Vec<u8>, Failure> {
     let mut url = url.to_string();
     for _ in 0..=MAX_REDIRECTS {
         if !hop_allowed(&url) {
-            return Err(format!("refusing to fetch {url}"));
+            return Err(format!("refusing to fetch {url}").into());
         }
-        let parsed = Url::parse(&url).map_err(|_| "Invalid URL".to_string())?;
-        let mut upstream = fetch(parsed.clone()).await?;
+        let parsed = Url::parse(&url).map_err(|_| "Invalid URL")?;
+        let mut upstream = match timeout_at(deadline, fetch(parsed.clone())).await {
+            Ok(upstream) => upstream?,
+            Err(_) => return Err(Failure::Timeout(504)),
+        };
         if let Some(location) = upstream.location() {
-            url = parsed.join(&location).map_err(|_| "Invalid URL".to_string())?.to_string();
+            url = parsed.join(&location).map_err(|_| "Invalid URL")?.to_string();
             continue;
         }
         if !(200..300).contains(&upstream.status) {
-            return Err(format!("{url}: HTTP {}", upstream.status));
+            return Err(format!("{url}: HTTP {}", upstream.status).into());
         }
         let mut body = Vec::new();
-        while let Some(chunk) = upstream.body.next().await {
-            let chunk = chunk?;
-            if body.len() + chunk.len() > MAX_BYTES {
-                return Err(format!("{url}: over {MAX_BYTES} bytes"));
+        loop {
+            match timeout_at(deadline, upstream.body.next()).await {
+                Ok(Some(chunk)) => {
+                    let chunk = chunk?;
+                    if body.len() + chunk.len() > MAX_BYTES {
+                        return Err(format!("{url}: over {MAX_BYTES} bytes").into());
+                    }
+                    body.extend_from_slice(&chunk);
+                }
+                Ok(None) => return Ok(body),
+                Err(_) => return Err(Failure::Timeout(502)),
             }
-            body.extend_from_slice(&chunk);
         }
-        return Ok(body);
     }
-    Err(format!("{url}: too many redirects"))
+    Err(format!("{url}: too many redirects").into())
 }
 
 /// The server's fetch: no redirects, no proxy, Node's fetch error words.
@@ -94,7 +124,7 @@ fn default_fetch() -> Result<Fetch, String> {
 
 /// The catalogue: the copy while it is under a week old, else a fresh list (kept only when it is whole JSON), else
 /// the stale copy, else nothing.
-async fn catalogue(cache_dir: &Path, fetch: &Fetch) -> Result<Vec<u8>, String> {
+async fn catalogue(cache_dir: &Path, fetch: &Fetch, deadline: Instant) -> Result<Vec<u8>, String> {
     let cache = cache_dir.join(CACHE_FILE);
     let modified = tokio::fs::metadata(&cache).await.and_then(|m| m.modified()).ok();
     // A copy from the future counts as fresh, as Node's negative age does.
@@ -102,7 +132,7 @@ async fn catalogue(cache_dir: &Path, fetch: &Fetch) -> Result<Vec<u8>, String> {
         return tokio::fs::read(&cache).await.map_err(|e| e.to_string());
     }
     let fresh = async {
-        let body = fetch_bytes(CATALOGUE, fetch).await?;
+        let body = fetch_bytes(CATALOGUE, fetch, deadline).await.map_err(|_| "fetch failed".to_string())?;
         // Only a whole list replaces the copy. TextDecoder drops a byte order mark.
         let text = String::from_utf8_lossy(&body);
         json::parse(text.strip_prefix('\u{feff}').unwrap_or(&text)).ok_or("not JSON")?;
@@ -120,11 +150,12 @@ async fn catalogue(cache_dir: &Path, fetch: &Fetch) -> Result<Vec<u8>, String> {
 
 /// The route, on the server's network and data folder.
 pub async fn handle(app: &App, req: Req) -> Result<Response<Body>, String> {
-    Ok(respond(&req.method, req.query("url"), &app.cfg.data_dir.join("cache"), &default_fetch()?).await)
+    Ok(respond(&req.method, req.query("url"), &app.cfg.data_dir.join("cache"), &default_fetch()?, FETCH_TIMEOUT).await)
 }
 
-/// The route for a method and `url` parameter, with the catalogue copy in `cache_dir`, fetching through `fetch`.
-pub async fn respond(method: &Method, url: Option<String>, cache_dir: &Path, fetch: &Fetch) -> Response<Body> {
+/// The route for a method and `url` parameter, with the catalogue copy in `cache_dir`, fetching through `fetch` within
+/// `timeout`.
+pub async fn respond(method: &Method, url: Option<String>, cache_dir: &Path, fetch: &Fetch, timeout: Duration) -> Response<Body> {
     if method != Method::GET {
         return http::empty(405);
     }
@@ -132,7 +163,8 @@ pub async fn respond(method: &Method, url: Option<String>, cache_dir: &Path, fet
     if !proxy_allowed(&url) {
         return http::text(400, "not an allowed font URL");
     }
-    let body = if url == CATALOGUE { catalogue(cache_dir, fetch).await } else { fetch_bytes(&url, fetch).await };
+    let deadline = Instant::now() + timeout;
+    let body = if url == CATALOGUE { catalogue(cache_dir, fetch, deadline).await.map_err(Failure::from) } else { fetch_bytes(&url, fetch, deadline).await };
     match body {
         // proxy_allowed holds, so the host is Font Squirrel's.
         Ok(body) if body.is_empty() && url != CATALOGUE => http::text(502, format!("{} sent nothing (throttled?)", PROXIED[0])),
@@ -144,7 +176,8 @@ pub async fn respond(method: &Method, url: Option<String>, cache_dir: &Path, fet
             .header("Content-Security-Policy", "sandbox; default-src 'none'")
             .body(http::chunked(body))
             .unwrap_or_default(),
-        Err(message) => http::text(502, message),
+        Err(Failure::Timeout(status)) => http::empty(status),
+        Err(Failure::Message(message)) => http::text(502, message),
     }
 }
 
