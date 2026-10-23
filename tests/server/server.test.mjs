@@ -3,18 +3,21 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { serverCommand } from "../../tools/perf/server-command.mjs";
 import { repoRoot } from "../setup/repo-root.mjs";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect } from "vitest";
+import { SERVER_IMPL, serverIt as it } from "./native-pending.mjs";
 
 const root = repoRoot;
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 
-// Starts server.mjs with the given env on a port the OS picks (PORT=0), read back from its start
-// line, so no other process can take the port between choosing and binding it. It never touches
-// the real data folder.
+// Starts the server (server.mjs, or ips-server under SERVER_IMPL=native) with the given env on a port the OS picks
+// (PORT=0), read back from its start line, so no other process can take the port between choosing and binding it. It
+// never touches the real data folder.
 async function start(env) {
-  const child = spawn(process.execPath, [path.join(root, "server.mjs")], { env: { ...process.env, ...env, PORT: "0", HOST: "127.0.0.1" } });
+  const server = serverCommand();
+  const child = spawn(server.cmd, server.args, { env: { ...process.env, ...env, PORT: "0", HOST: "127.0.0.1" } });
   let out = "";
   child.stdout.on("data", (c) => (out += c));
   child.stderr.on("data", (c) => (out += c));
@@ -25,12 +28,12 @@ async function start(env) {
   }
   if (!port) {
     child.kill();
-    throw new Error(`server.mjs did not start:\n${out}`);
+    throw new Error(`the ${SERVER_IMPL} server did not start:\n${out}`);
   }
   return { port, base: `http://127.0.0.1:${port}`, output: () => out, stop: () => child.kill() };
 }
 
-describe("server.mjs", () => {
+describe(`server (${SERVER_IMPL})`, () => {
   let dir, plain, debug, upstream, upstreamPort;
   beforeAll(async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "ipd-server-"));
