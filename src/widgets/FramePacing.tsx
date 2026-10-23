@@ -1,4 +1,4 @@
-import { Widget, shell, get, num, fmt, useHistory, flipFrameTimes, Spark, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, useHistory, frameSample, frameBudgets, frameTimeTop, sparkY, Spark, Num, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "FramePacing",
@@ -27,16 +27,19 @@ export default function FramePacing(p: FramePacingProps) {
     ft = num(R("current frame time")),
     hz = num(R("refreshrate"));
   const idle = !(fps > 0);
-  const hist = useHistory(idle ? NaN : ft, p.window ?? 120, 1);
-  const budgets = (p.budgets ?? [hz, 60]).filter((b) => b > 0).map((b) => ({ hz: b, ms: 1000 / b }));
-  const top = Math.max(20, ...budgets.map((b) => b.ms * 1.25), ...hist);
-  // Drawn flipped, so a drop or stutter dips below the budget lines instead of peaking above them.
-  const graph = flipFrameTimes(hist, top);
+  // One reading a second, checked against the frame rate (`frameSample`); raw, so a stutter isn't eased away.
+  const frame = frameSample(ft, fps);
+  const samples = p.window ?? 120;
+  const hist = useHistory(idle ? NaN : frame, samples, 1);
+  const budgets = frameBudgets(p.budgets ?? [hz, 60]);
+  // A slow frame rises, as on RTSS's own graph; the scale steps (`frameTimeTop`), so a single spike doesn't squash the line.
+  const top = frameTimeTop(hist, budgets.map((b) => b.ms));
+  const graph = hist;
   const stats = [
     ["Average", fmt(num(R("avg-fps"))), "fps"],
     ["1% low", fmt(num(R("1% low fps"))), "fps"],
     ["Min / max", `${fmt(num(R("min-fps")))} / ${fmt(num(R("max-fps")))}`, ""],
-    ["Frame time", fmt(ft, 1), "ms"],
+    ["Frame time", fmt(frame, 1), "ms"],
   ];
   const cell = ([l, v, u]: string[]) => (
     <div key={l} className="flex min-w-0 flex-col gap-1">
@@ -47,17 +50,19 @@ export default function FramePacing(p: FramePacingProps) {
       </span>
     </div>
   );
-  // the dashed budget lines, with their Hz / ms labels where there is room for them
-  const lines = (labels: boolean) =>
+  // The dashed budget lines on the graph's own scale (`sparkY`): a frame above one missed that rate.
+  const lines = () =>
+    budgets.map((b) => <div key={b.hz} className="absolute inset-x-0 border-t border-dashed border-[color:var(--w-faint)]" style={{ top: `${sparkY(b.ms, 0, top)}%` }} />);
+  // Their labels in a column beside the graph, level with each line, so the line never runs through them.
+  const labels = () =>
     budgets.map((b) => (
-      <div key={b.hz} className="absolute inset-x-0 border-t border-dashed border-[color:var(--w-faint)]" style={{ top: `${(b.ms / top) * 100}%` }}>
-        {labels && (
-          <span className="absolute right-0 -translate-y-full pb-0.5 text-[10px] tabular-nums text-[color:var(--w-faint)]">
-            {fmt(b.hz)} Hz · {fmt(b.ms, 1)} ms
-          </span>
-        )}
-      </div>
+      <span key={b.hz} className="absolute right-0 -translate-y-1/2 whitespace-nowrap text-right text-[10px] leading-tight tabular-nums text-[color:var(--w-faint)]" style={{ top: `${sparkY(b.ms, 0, top)}%` }}>
+        {fmt(b.hz)} fps
+        <br />
+        {fmt(b.ms, 1)} ms
+      </span>
     ));
+  const span = samples >= 60 ? `−${Math.round(samples / 60)} min` : `−${samples}s`;
   return (
     <Widget
       {...shell(p)}
@@ -65,10 +70,10 @@ export default function FramePacing(p: FramePacingProps) {
       icon="timeline"
       compact={(box) =>
         box.shape === "tile" || box.shape === "column"
-          ? { label: "Frame time", value: idle ? "—" : ft, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, hist: idle ? undefined : graph, min: 0, max: top, kind: idle ? "value" : "spark" }
+          ? { label: "Frame time", value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, hist: idle ? undefined : graph, min: 0, max: top, kind: idle ? "value" : "spark" }
           : undefined
       }
-      studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : ft, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(R("1% low fps")))}`, hist: idle ? undefined : graph, min: 0, max: top }}
+      studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(R("1% low fps")))}`, hist: idle ? undefined : graph, min: 0, max: top }}
     >
       {({ w, h }) =>
         idle ? (
@@ -91,8 +96,8 @@ export default function FramePacing(p: FramePacingProps) {
           <div className="flex h-full min-w-0 items-center gap-4">
             <div className="flex shrink-0 gap-4">{stats.slice(0, w > 300 ? 2 : 1).map(cell)}</div>
             <div className="relative h-full max-h-14 min-w-0 flex-1">
-              {lines(false)}
-              <Spark values={graph} min={0} max={top} graph="line" fill={false} className="absolute inset-0 h-full" />
+              {lines()}
+              <Spark values={graph} min={0} max={top} graph="line" fill={false} curve={false} className="absolute inset-0 h-full" />
             </div>
           </div>
         ) : (
@@ -100,13 +105,16 @@ export default function FramePacing(p: FramePacingProps) {
             <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${w > 420 ? 4 : 2}, minmax(0,1fr))` }}>
               {stats.slice(0, w > 420 ? 4 : 2).map(cell)}
             </div>
-            <div className="relative min-h-[40px] flex-1">
-              {lines(true)}
-              <Spark values={graph} min={0} max={top} graph="line" fill={false} className="absolute inset-0 h-full" />
+            <div className="flex min-h-[40px] flex-1 gap-2">
+              <div className="relative min-w-0 flex-1">
+                {lines()}
+                <Spark values={graph} min={0} max={top} graph="line" fill={false} curve={false} className="absolute inset-0 h-full" />
+              </div>
+              {w > 260 && <div className="relative w-12 shrink-0">{labels()}</div>}
             </div>
             {h > 200 && (
-              <div className="flex justify-between text-[11px] text-[color:var(--w-faint)]">
-                <span>−{Math.round((p.window ?? 120) / 4)}s</span>
+              <div className={`flex justify-between text-[11px] text-[color:var(--w-faint)] ${w > 260 ? "mr-14" : ""}`}>
+                <span>{span}</span>
                 <span>now</span>
               </div>
             )}

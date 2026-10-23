@@ -310,11 +310,17 @@ function Braille({ values, lo, hi, className }: { values: number[]; lo: number; 
   );
 }
 
-/** The line and area paths of a line / area / step graph over [lo, hi]; the points' x runs 0–100. */
-function sparkPaths(pts: readonly ScrollPoint[], lo: number, hi: number, step: boolean): { line: string; area: string } {
-  const span = hi - lo || 1;
-  const P: Pt[] = pts.map(([x, v]) => [x, Math.min(98, Math.max(2, 100 - ((v - lo) / span) * 94 - 3))]);
-  const line = step ? P.reduce((a, p, i) => (i ? `${a}H${p[0].toFixed(2)}V${p[1].toFixed(2)}` : `M${p[0].toFixed(2)},${p[1]}`), "") : smoothPath(P);
+/** Where `v` sits in a graph over [lo, hi], in % from the top (a 3 % margin, clamped to 2–98): lines drawn over a Spark line up with it. */
+export const sparkY = (v: number, lo: number, hi: number): number => Math.min(98, Math.max(2, 100 - ((v - lo) / (hi - lo || 1)) * 94 - 3));
+
+/** The line and area paths of a line / area / step graph over [lo, hi]; the points' x runs 0–100. `curve` false: straight segments. */
+function sparkPaths(pts: readonly ScrollPoint[], lo: number, hi: number, step: boolean, curve = true): { line: string; area: string } {
+  const P: Pt[] = pts.map(([x, v]) => [x, sparkY(v, lo, hi)]);
+  const line = step
+    ? P.reduce((a, p, i) => (i ? `${a}H${p[0].toFixed(2)}V${p[1].toFixed(2)}` : `M${p[0].toFixed(2)},${p[1]}`), "")
+    : curve
+      ? smoothPath(P)
+      : P.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join("");
   const x0 = P[0][0].toFixed(2);
   return { line, area: step ? `${line}V100H${x0}Z` : `${line}L100,100L${x0},100Z` };
 }
@@ -334,6 +340,8 @@ interface GraphPathsProps {
   strokeWidth: number;
   /** The graph glows: a filter (`data-wp-glow`) or, under `data-glow-static`, a wide faint copy of the line. */
   glow?: boolean;
+  /** A curve through the samples (default); false draws straight segments, for spiky data a curve would overshoot. */
+  curve?: boolean;
 }
 
 /** The fill gradient, fill and line of a line / area / step graph. */
@@ -360,7 +368,7 @@ function GraphPaths({ line, area, step, fill, fillId, color, strokeWidth, glow, 
  * the segment into the newest reading slides in and uneven arrivals neither jump nor stop it; the
  * auto range eases. React renders once per sample; the animation loop writes the paths.
  */
-function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth, glow, className }: GraphPathsProps & { className: string }) {
+function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth, glow, curve = true, className }: GraphPathsProps & { className: string }) {
   const line = useRef<SVGPathElement>(null);
   const glowLine = useRef<SVGPathElement>(null);
   const area = useRef<SVGPathElement>(null);
@@ -396,7 +404,7 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
     if (!pts) return;
     const shown = pts.filter(([x]) => x >= -5 && x <= 105).map((p) => p[1]);
     const target = sparkRange(shown.length > 1 ? shown : values, min, max);
-    const d = sparkPaths(pts, ...(fixed ? target : easer.current.next(target, dt)), step);
+    const d = sparkPaths(pts, ...(fixed ? target : easer.current.next(target, dt)), step, curve);
     pc.easing = !fixed && easer.current.moving(target);
     line.current!.setAttribute("d", d.line);
     glowLine.current?.setAttribute("d", d.line);
@@ -408,7 +416,7 @@ function SmoothGraph({ values, min, max, step, fill, fillId, color, strokeWidth,
   }, !settled);
   // The first paint only: after mount the loop owns `d`. A path recomputed per render would make
   // React write the static layout on every new sample, flashing it for a frame.
-  const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max), step));
+  const [first] = useState(() => sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), ...sparkRange(values, min, max), step, curve));
   return (
     <svg ref={svg} viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-hidden ${className}`} data-wp-glow={glow ? "" : undefined}>
       <GraphPaths line={first.line} area={first.area} step={step} fill={fill} fillId={fillId} color={color} strokeWidth={strokeWidth} glow={glow} refs={{ line, area, glow: glowLine }} />
@@ -425,9 +433,11 @@ export interface SparkProps {
   color?: string;
   width?: number;
   graph?: string;
+  /** false: straight segments between samples instead of a curve (line / area graphs). */
+  curve?: boolean;
 }
 // Graph styles: area · line · step · bars · dots · braille (from the skin, or pass graph=)
-export function Spark({ values = [], min, max, className = "h-10", fill = true, color = "var(--accent)", width = 1.75, graph }: SparkProps) {
+export function Spark({ values = [], min, max, className = "h-10", fill = true, color = "var(--accent)", width = 1.75, graph, curve = true }: SparkProps) {
   const id = `sp${useId().replace(/:/g, "")}`;
   const sk = useSkin();
   const reduced = useReducedMotion();
@@ -440,9 +450,8 @@ export function Spark({ values = [], min, max, className = "h-10", fill = true, 
   const strokeWidth = (sk.skin === "ink" ? 1 : width) * sk.stroke;
   const showFill = fill && (mode === "area" || step);
   if (sk.smooth && !reduced && (mode === "area" || mode === "line" || step) && values.length >= 6)
-    return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} className={className} />;
-  const span = hi - lo || 1;
-  const Y = (v: number) => Math.min(98, Math.max(2, 100 - ((v - lo) / span) * 94 - 3));
+    return <SmoothGraph values={values} min={min} max={max} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} curve={curve} className={className} />;
+  const Y = (v: number) => sparkY(v, lo, hi);
   const svg = (kids: ReactNode) => (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={`block w-full overflow-visible ${className}`} data-wp-glow={glow ? "" : undefined}>
       {kids}
@@ -460,7 +469,7 @@ export function Spark({ values = [], min, max, className = "h-10", fill = true, 
       )
     );
   }
-  const d = sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), lo, hi, step);
+  const d = sparkPaths(values.map((v, i) => [(i / (values.length - 1)) * 100, v]), lo, hi, step, curve);
   return svg(<GraphPaths line={d.line} area={d.area} step={step} fill={showFill} fillId={id} color={color} strokeWidth={strokeWidth} glow={glow} />);
 }
 
