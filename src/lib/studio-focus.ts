@@ -32,10 +32,32 @@ export function throttleOf(s: FocusState, now: number): TickerThrottle {
   return now - s.blurredAt >= UNFOCUSED_DELAY_MS ? "slow" : "run";
 }
 
-/** When `throttleOf` next changes on its own (the unfocused delay running out), or null. */
+/**
+ * Unfocused for the whole delay, whatever the reduceUnfocusedAnimation setting (the Design preview's
+ * `frozenWhenUnfocused` follows this).
+ */
+export function unfocusedLong(s: FocusState, now: number): boolean {
+  return !s.focused && s.blurredAt !== null && now - s.blurredAt >= UNFOCUSED_DELAY_MS;
+}
+
+/** When `throttleOf` or `unfocusedLong` next changes on its own (the unfocused delay running out), or null. */
 export function nextChangeAt(s: FocusState, now: number): number | null {
-  if (throttleOf(s, now) !== "run" || s.focused || !s.reduce || s.blurredAt === null || !s.visible) return null;
+  if (s.focused || s.blurredAt === null || unfocusedLong(s, now)) return null;
   return s.blurredAt + UNFOCUSED_DELAY_MS;
+}
+
+/** `unfocusedLong` for the studio page, published while `useStudioFocusThrottle` runs. */
+let longUnfocused = false;
+const longListeners = new Set<() => void>();
+export const isStudioUnfocusedLong = (): boolean => longUnfocused;
+export function subscribeStudioUnfocusedLong(listener: () => void): () => void {
+  longListeners.add(listener);
+  return () => void longListeners.delete(listener);
+}
+function publishUnfocusedLong(next: boolean): void {
+  if (next === longUnfocused) return;
+  longUnfocused = next;
+  for (const l of longListeners) l();
 }
 
 /** Follows the studio's focus and visibility while `enabled`, throttling the shared ticker; restores it on cleanup. */
@@ -48,6 +70,7 @@ export function useStudioFocusThrottle(enabled: boolean): void {
       clearTimeout(timer);
       const now = performance.now();
       setTickerThrottle(throttleOf(state, now));
+      publishUnfocusedLong(unfocusedLong(state, now));
       const at = nextChangeAt(state, now);
       if (at !== null) timer = setTimeout(apply, at - now);
     };
@@ -86,6 +109,7 @@ export function useStudioFocusThrottle(enabled: boolean): void {
       window.removeEventListener("focus", onWindowFocus);
       unlisten?.();
       setTickerThrottle("run");
+      publishUnfocusedLong(false);
     };
   }, [enabled]);
 }

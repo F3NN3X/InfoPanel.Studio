@@ -185,13 +185,14 @@ export interface PageRun {
   load: Sample;
 }
 
-/** A fresh context and page with the rAF and first-zone probes, loaded and measured. */
-export async function openMeasured(browser: Browser, url: string, zoneSelector: string, viewport: { width: number; height: number }): Promise<PageRun> {
+/** A fresh context and page with the rAF and first-zone probes (and any init scripts), loaded and measured. */
+export async function openMeasured(browser: Browser, url: string, zoneSelector: string, viewport: { width: number; height: number }, init: string[] = []): Promise<PageRun> {
   const context = await browser.newContext({ viewport });
   // Never InfoPanel's real Data API: a fresh studio reaches for the default until its config arrives.
   await context.route(DEFAULT_DATA_API, (route) => route.abort("connectionrefused"));
   await context.addInitScript(RAF_INIT);
   await context.addInitScript(firstZoneInit(zoneSelector));
+  for (const script of init) await context.addInitScript(script);
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
   const load = await measureLoad(page, cdp, url, zoneSelector, new URL(url).origin);
@@ -207,14 +208,15 @@ export async function openDesign({ page }: Pick<PageRun, "page">): Promise<void>
 }
 
 /** Load + warm-up + idle window, `REPEATS` times; each repeat in a fresh context. */
-export async function measurePage(browser: Browser, url: string, zoneSelector: string, viewport: { width: number; height: number }, prepare?: (run: PageRun) => Promise<void>): Promise<Record<string, Stat>> {
+export async function measurePage(browser: Browser, url: string, zoneSelector: string, viewport: { width: number; height: number }, prepare?: (run: PageRun) => Promise<void>, init: string[] = [], extra?: (run: PageRun, windowMs: number) => Promise<Sample>): Promise<Record<string, Stat>> {
   const samples: Sample[] = [];
   for (let i = 0; i < REPEATS; i++) {
-    const run = await openMeasured(browser, url, zoneSelector, viewport);
+    const run = await openMeasured(browser, url, zoneSelector, viewport, init);
     try {
       await prepare?.(run);
       await run.page.waitForTimeout(WARMUP_MS);
-      samples.push({ ...run.load, ...(await measureIdle(run.page, run.cdp)) });
+      const [idle, more] = await Promise.all([measureIdle(run.page, run.cdp), extra?.(run, WINDOW_MS) ?? Promise.resolve({})]);
+      samples.push({ ...run.load, ...idle, ...more });
     } finally {
       await run.context.close();
     }

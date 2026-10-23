@@ -63,6 +63,16 @@ export function PerformanceProvider({ value, children }: { value: PerformanceOve
   return <OverrideContext.Provider value={value}>{children}</OverrideContext.Provider>;
 }
 
+/**
+ * Reduced motion for everything below while `reduce` (the frozen Design preview: one still frame per effect), on
+ * top of the inherited overrides. Unlike `PerformanceProvider` it leaves the page's ticker cap and CSS flags alone.
+ */
+export function MotionOverride({ reduce, children }: { reduce: boolean; children: ReactNode }) {
+  const inherited = useContext(OverrideContext);
+  const value = useMemo(() => (reduce ? { ...inherited, motion: "reduce" as const } : inherited), [reduce, inherited]);
+  return <OverrideContext.Provider value={value}>{children}</OverrideContext.Provider>;
+}
+
 /** Max FPS and reduced motion: URL > profile > general settings > default (see `resolvePerformance`). */
 export function usePerformance(override?: PerformanceOverride): ResolvedPerformance {
   const system = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

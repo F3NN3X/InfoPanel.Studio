@@ -1,10 +1,13 @@
 import { Minus, Plus } from "lucide-react";
 import { stepZoom, ZOOMS } from "@/app-window/zoom";
+import { usePreviewDataSetting } from "@/hooks/use-preview-data-setting";
+import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib/preview-data-pref";
 import { useStore } from "../store";
 import { Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
 
 export function GeneralSection() {
   const { settings, save, setZoom } = useStore();
+  const [previewData, setPreviewData] = usePreviewDataSetting();
   const step = (s: -1 | 1) => void setZoom(stepZoom(settings.zoom, s));
   const stepButton = "grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-s-input-line bg-s-input text-s-t2 hover:bg-[#1c1c21] disabled:cursor-default disabled:opacity-40";
   return (
@@ -104,6 +107,20 @@ export function GeneralSection() {
             checked={settings.reduceUnfocusedAnimation}
             onChange={(v) => void save("reduceUnfocusedAnimation", v)}
           />
+          <Row id="preview-data" label="Design preview data" hint={PREVIEW_DATA_HINT}>
+            <select
+              aria-label="Design preview data"
+              className="h-[30px] cursor-pointer rounded-lg border border-s-input-line bg-s-input px-2.5 text-[12.5px] text-s-t1"
+              value={previewData}
+              onChange={(e) => setPreviewData(parsePreviewData(e.target.value))}
+            >
+              {PREVIEW_DATA_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Row>
         </Card>
       </Group>
     </>

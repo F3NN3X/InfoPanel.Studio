@@ -1,4 +1,6 @@
-import { Grid3x3, Minus, Plus, RulerDimensionLine } from "lucide-react";
+import { Grid3x3, Minus, Plus, RefreshCw, RulerDimensionLine, Snowflake } from "lucide-react";
+import type { PreviewDataState } from "@/hooks/use-preview-data";
+import { openSettings } from "@/lib/desktop";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,8 @@ interface ZoomToolbarProps {
   onOpenProfile: () => void;
   /** Distance from the canvas bottom (above the phone's sheet); 16 px by default. */
   bottom?: number;
+  /** The Design preview data (a `Frozen` chip while frozen); none outside Design. */
+  preview?: PreviewDataState;
 }
 
 const BAR_BUTTON = "h-7 w-7 rounded-md hover:bg-[#24242a]";
@@ -46,6 +50,7 @@ export function ZoomToolbar({
   profile,
   onOpenProfile,
   bottom,
+  preview,
 }: ZoomToolbarProps) {
   return (
     <div
@@ -91,6 +96,40 @@ export function ZoomToolbar({
       >
         {profile.width}×{profile.height} ↗
       </button>
+      {preview?.frozen && <FrozenChip preview={preview} />}
     </div>
+  );
+}
+
+const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+/** `Frozen · HH:MM` while the Design preview shows a snapshot: Refresh, and Go live for this session. */
+function FrozenChip({ preview }: { preview: PreviewDataState }) {
+  const { snapshot } = preview;
+  const label =
+    snapshot.status === "loading" && snapshot.takenAt === null
+      ? "Freezing…"
+      : snapshot.status === "empty"
+        ? "Frozen · No data yet"
+        : `Frozen · ${snapshot.takenAt === null ? "" : clock(snapshot.takenAt)}`;
+  return (
+    <>
+      <Divider />
+      <button
+        type="button"
+        onClick={() => void openSettings("studio")}
+        title={`The canvas shows a snapshot of the sensor values, with weather, visualisers and other effects still (Design preview data: ${preview.mode === "frozenWhenUnfocused" ? "frozen when unfocused" : "frozen"}). Clocks still tick. The Data view, sensor pickers, kiosks and Kiosk view stay live. Click to change it in Settings › Studio.`}
+        className={cn(TEXT_BUTTON, "text-sky-300")}
+      >
+        <Snowflake className="h-[14px] w-[14px]" aria-hidden />
+        {label}
+      </button>
+      <IconButton label={`Refresh the snapshot (${KEYS.refreshPreview})`} className={BAR_BUTTON} onClick={preview.refresh}>
+        <RefreshCw className="h-[16px] w-[16px]" />
+      </IconButton>
+      <button type="button" onClick={() => preview.setSession("live")} title={`Show live data until the page reloads; the setting stays (${KEYS.togglePreview})`} className={TEXT_BUTTON}>
+        Go live for this session
+      </button>
+    </>
   );
 }

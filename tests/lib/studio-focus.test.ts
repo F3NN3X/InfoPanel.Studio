@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { focusChanged, initialFocus, nextChangeAt, throttleOf, UNFOCUSED_DELAY_MS } from "@/lib/studio-focus";
+import { focusChanged, initialFocus, nextChangeAt, throttleOf, UNFOCUSED_DELAY_MS, unfocusedLong } from "@/lib/studio-focus";
 
 describe("the unfocused studio throttle", () => {
   const focused = initialFocus(true, true);
@@ -29,12 +29,14 @@ describe("the unfocused studio throttle", () => {
 
   it("stops while hidden, focused or not", () => {
     expect(throttleOf({ ...focused, visible: false }, 0)).toBe("stop");
-    expect(nextChangeAt({ ...focusChanged(focused, false, 0), visible: false }, 0)).toBeNull();
+    expect(throttleOf({ ...focusChanged(focused, false, 0), visible: false }, UNFOCUSED_DELAY_MS)).toBe("stop");
   });
 
-  it("never slows with the setting off", () => {
+  it("never slows with the setting off, but still counts as unfocused for the preview", () => {
     const off = { ...focusChanged(focused, false, 0), reduce: false };
     expect(throttleOf(off, UNFOCUSED_DELAY_MS * 10)).toBe("run");
-    expect(nextChangeAt(off, 0)).toBeNull();
+    expect(unfocusedLong(off, UNFOCUSED_DELAY_MS - 1)).toBe(false);
+    expect(nextChangeAt(off, 0)).toBe(UNFOCUSED_DELAY_MS);
+    expect(unfocusedLong(off, UNFOCUSED_DELAY_MS)).toBe(true);
   });
 });
