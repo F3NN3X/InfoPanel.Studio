@@ -183,7 +183,10 @@ export function runInstall({ apply = false, remove = false, node, url, home, scr
         } else {
           fs.mkdirSync(path.dirname(t.file), { recursive: true });
         }
-        fs.writeFileSync(t.file, `${JSON.stringify(next, null, 2)}\n`);
+        // Atomic: the agent's own settings file must never be left cut off by a crash.
+        const tmp = `${t.file}.dashboard.tmp`;
+        fs.writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`);
+        fs.renameSync(tmp, t.file);
         lines.push("  written.");
       } catch (err) {
         result.status = "error";

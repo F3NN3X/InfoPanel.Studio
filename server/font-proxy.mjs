@@ -82,7 +82,10 @@ export function createFontProxy({ cacheDir, send, fetchImpl = fetch }) {
       const body = await fetchBytes(CATALOGUE, fetchImpl);
       JSON.parse(new TextDecoder().decode(body)); // only a whole list replaces the copy
       await fs.mkdir(cacheDir, { recursive: true });
-      await fs.writeFile(cache, body);
+      // Atomic: a crash mid-write must not leave a cut list that a week of reads then serves.
+      const tmp = `${cache}.tmp`;
+      await fs.writeFile(tmp, body);
+      await fs.rename(tmp, cache);
       return body;
     } catch {
       return fs.readFile(cache).catch(() => new Uint8Array());
