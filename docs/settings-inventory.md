@@ -667,7 +667,7 @@ overlay, Gauge row, Clock + date, Label / value list. Theme token presets: §5.4
 | `studio.zoom` | Canvas zoom: `fit` or a factor 0.25 to 2 (`zoom-pref.ts:2`) | | `fit` | zoom bar |
 | `studio.tipDismissed` | First-run tips card dismissed (`quick-tips.ts:2`) | `1` | unset | the tips card |
 | `infopanel.studio.profile-shots` | Profile thumbnail cache (`src/lib/profile-shot-cache.ts:13`) | map | unset | Profiles drawer (automatic) |
-| `studio.previewData` | Design preview data (`preview-data-pref.ts`): frozen renders Design from a snapshot, closes the studio's Data API stream while nothing live is open, and stills continuous effects | `live`, `frozen`, `frozenWhenUnfocused` (after the 60 s unfocused delay) | `live` | Settings › Studio, Settings › General › Window; the zoom bar's Frozen chip (Refresh, Go live for this session) |
+| `studio.previewData` | Design preview data (`preview-data-pref.ts`): frozen renders Design from a snapshot, closes the studio's Data API stream while nothing live is open, and stills continuous effects. Kept on the server too (`studio-prefs.json`, `/api/studio-prefs`), so it follows you between the app window and a browser studio; localStorage is this browser's copy | `live`, `frozen`, `frozenWhenUnfocused` (after the 60 s unfocused delay) | `frozenWhenUnfocused` | Settings › Studio, Settings › General › Window; the zoom bar's Frozen chip (Refresh, Go live for this session) |
 | `infopanel-dashboard:config:v1` | The offline copy of the config (`layout.ts:284`) | config JSON | | automatic |
 | session only | Style clipboard (Copy style), widget clipboard (Copy), settings search text | | | Not persisted |
 

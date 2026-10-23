@@ -56,3 +56,13 @@ column is what the studio added to it.
   client on the server (`studios` in `/api/server/stats`) were asserted.
 
 Not measured: a Settings window opened from the tray with the studio in a browser (the spec can't click the tray).
+
+## After the gate
+
+- Design preview data now defaults to `frozenWhenUnfocused`: live while you work, frozen a minute after the studio
+  loses focus. Open the studio in stays `appWindow`. The perf harness pins `live`, so the earlier baselines still
+  compare.
+- The preference is kept on the server (`GET`/`PUT /api/studio-prefs`, `studio-prefs.json` beside the config, this
+  machine only), so the app window and a browser studio share it; localStorage is each browser's copy.
+- A browser studio follows Settings changes made in the app: config events name the newest Settings revision, and
+  the studio fetches the patches it missed (`GET /api/config/settings?since=`).

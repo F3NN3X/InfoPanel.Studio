@@ -13,8 +13,10 @@ describe("the preview data setting", () => {
   it("reads its three values and falls back to live", () => {
     expect(parsePreviewData("frozen")).toBe("frozen");
     expect(parsePreviewData("frozenWhenUnfocused")).toBe("frozenWhenUnfocused");
-    expect(parsePreviewData(null)).toBe("live");
-    expect(parsePreviewData("paused")).toBe("live");
+    expect(parsePreviewData("live")).toBe("live");
+    // Unset or unknown: the default.
+    expect(parsePreviewData(null)).toBe("frozenWhenUnfocused");
+    expect(parsePreviewData("paused")).toBe("frozenWhenUnfocused");
   });
 
   it("freezes per the setting, after the unfocused delay for frozenWhenUnfocused, and a session override wins", () => {

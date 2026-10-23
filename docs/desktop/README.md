@@ -99,7 +99,9 @@ browser opens, with a warning in the log. A browser can't be told to focus a tab
 the server another open asks first (Open another / Cancel). Help follows the setting; Settings and Kiosk view stay
 app windows (in the browser studio, Kiosk view opens the kiosk in a popup). The browser studio saves when its tab is
 hidden and asks before closing while a change is unsaved. A non-Chromium default browser may render the preview a
-little differently from InfoPanel's WebView2; Settings says so when it can tell.
+little differently from InfoPanel's WebView2; Settings says so when it can tell. A Dashboard or Studio setting changed
+in the app's Settings window reaches a browser studio through the server's config stream (it fetches the patches it
+missed), and Design preview data is kept on the server (`studio-prefs.json`), so both windows share it.
 
 ## Debug mode (errors and leaks)
 

@@ -44,6 +44,9 @@ test("studio-unfocused-webview2", async () => {
   try {
     app.launch();
     const { browser, page } = await app.studio(60_000);
+    // Phase 2's throttle on the live studio: not the default's frozen preview after a minute unfocused.
+    await page.evaluate(() => localStorage.setItem("studio.previewData", "live"));
+    await page.reload();
     await page.evaluate(RAF_INIT);
     await openDesign({ page });
     await page.waitForTimeout(5000);

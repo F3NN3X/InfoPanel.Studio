@@ -32,13 +32,15 @@ import { KioskStrip } from "@/components/kiosk-strip";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
 import { trackEventSource } from "@/lib/sensor-store";
 import type { AdoptChange } from "@/hooks/use-config-history";
-import { withSettingsPatch } from "@/lib/settings-patch";
+import { type SettingsPatch, withSettingsPatch } from "@/lib/settings-patch";
 import { onStudioMessage } from "@/lib/studio-channel";
 import {
   CONFIG_EVENTS_URL,
   fetchConfig,
+  fetchSettingsPatches,
   isRemoteEditRefusal,
   isUnreachable,
+  knownSettingsRev,
   NewerConfigError,
   noteSettingsRev,
   pushConfig,
@@ -343,18 +345,34 @@ export default function App() {
       adopted.current = next;
       setConfig(next);
     };
+    // The studio view puts a patch into its working copy and every undo snapshot, so undo never reverts it. One the
+    // page already has (from both the channel and the stream, or in the config it read) is skipped.
+    const applyPatch = (patch: SettingsPatch, rev: number) => {
+      const known = knownSettingsRev();
+      if (known !== null && rev <= known) return;
+      noteSettingsRev(rev);
+      const change = (c: DashboardConfig) => withSettingsPatch(c, patch);
+      if (studioAdopt.current) {
+        const next = studioAdopt.current(change);
+        latestConfig.current = next;
+        adopted.current = next;
+      } else adopt(change(latestConfig.current));
+    };
+    // The channel reaches only pages in the same browser. A studio opened in another (Open the studio in › Edge or the
+    // default browser) learns of a change from the config stream, which names the newest revision, and fetches it.
+    const events = trackEventSource(new EventSource(CONFIG_EVENTS_URL));
+    events.onmessage = (e) => {
+      const rev = (JSON.parse(e.data) as { settingsRev?: number }).settingsRev;
+      const known = knownSettingsRev();
+      if (typeof rev !== "number" || known === null || rev <= known) return;
+      void fetchSettingsPatches(known)
+        .then((patches) => {
+          if (alive) for (const p of patches) applyPatch(p.patch, p.rev);
+        })
+        .catch(() => {});
+    };
     const off = onStudioMessage((message) => {
-      if (message.type === "settings") {
-        // The studio view puts it into its working copy and every undo snapshot, so undo never reverts it.
-        const { patch } = message;
-        noteSettingsRev(message.rev);
-        const change = (c: DashboardConfig) => withSettingsPatch(c, patch);
-        if (studioAdopt.current) {
-          const next = studioAdopt.current(change);
-          latestConfig.current = next;
-          adopted.current = next;
-        } else adopt(change(latestConfig.current));
-      }
+      if (message.type === "settings") applyPatch(message.patch, message.rev);
       if (message.type === "replaced") {
         void fetchConfig()
           .then((server) => alive && server && adopt(withPinnedProfile(mergeConfig(server))))
@@ -363,6 +381,7 @@ export default function App() {
     });
     return () => {
       alive = false;
+      events.close();
       off();
     };
   }, [kiosk]);

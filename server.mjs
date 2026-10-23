@@ -55,6 +55,7 @@ import { createFontProxy } from "./server/font-proxy.mjs";
 import { createInstalledProfiles, createInstalledRoutes, infopanelDataDir } from "./server/infopanel-local.mjs";
 import { createLibrary, createLibraryStore } from "./server/library.mjs";
 import { fetchProxied, isValidProxyTarget, resolveProxyType } from "./server/proxy.mjs";
+import { createStudioPrefs } from "./server/studio-prefs.mjs";
 import { agentWriteRefusal, configWriteRefusal, controlWriteRefusal, createRequestGuard, isLoopback, parseAllowedHosts, remoteEditRefusal } from "./server/request-guard.mjs";
 import { securityHeaders } from "./server/security-headers.mjs";
 
@@ -72,6 +73,7 @@ const ASSETS_DIR = path.join(DATA_DIR, "assets");
 const CONTROL_FILE = path.join(DATA_DIR, "control.json");
 const ALERTS_FILE = path.join(DATA_DIR, "alerts.json");
 const INTEGRATIONS_FILE = path.join(DATA_DIR, "integrations.json");
+const STUDIO_PREFS_FILE = path.join(DATA_DIR, "studio-prefs.json");
 const LIBRARY_DIR = path.join(DATA_DIR, "library");
 const CANVASES_DIR = path.join(DATA_DIR, "canvases");
 const CACHE_DIR = path.join(DATA_DIR, "cache");
@@ -79,6 +81,7 @@ const CACHE_DIR = path.join(DATA_DIR, "cache");
 const MAX_CONFIG_BYTES = 5 * 1024 * 1024;
 /** A Settings window patch: a few keys. */
 const MAX_SETTINGS_BYTES = 16 * 1024;
+const MAX_STUDIO_PREFS_BYTES = 4 * 1024;
 const MAX_PROXY_BYTES = 25 * 1024 * 1024;
 const PROXY_TIMEOUT_MS = 10_000;
 
@@ -117,12 +120,17 @@ let settingsRev = Date.now();
 const settingsLog = [];
 const SETTINGS_LOG_MAX = 50;
 
+const studioPrefs = createStudioPrefs(STUDIO_PREFS_FILE);
+
+/** A config event: the version, and the newest Settings patch's revision (a browser studio fetches what it missed). */
+const configEvent = () => `data: ${JSON.stringify({ version: configVersion, settingsRev })}\n\n`;
+
 function saveConfig(json) {
   const tmp = `${CONFIG_FILE}.tmp`;
   fs.writeFileSync(tmp, json);
   fs.renameSync(tmp, CONFIG_FILE);
   configVersion = Math.max(Date.now(), configVersion + 1);
-  const event = `data: ${JSON.stringify({ version: configVersion })}\n\n`;
+  const event = configEvent();
   for (const res of configListeners) res.write(event);
   control.configChanged();
   alerts.configChanged();
@@ -386,8 +394,16 @@ async function handleConfig(req, res) {
 /**
  * PATCH /api/config/settings → the Settings window's instant change (server/config-settings.mjs): merged into the
  * saved config, which kiosks then pull like any save. Same guards as POST /api/config.
+ * GET /api/config/settings?since=<rev> → the patches after that revision, for a studio the Settings window can't
+ * reach directly (one in a browser). Only what the log still holds: a push names its revision either way.
  */
-async function handleConfigSettings(req, res) {
+async function handleConfigSettings(req, res, query) {
+  if (req.method === "GET") {
+    const since = Number(query.get("since") || NaN);
+    if (!Number.isFinite(since)) return send(res, 400, "expected ?since=<revision>");
+    const patches = settingsLog.filter((entry) => entry.rev > since);
+    return send(res, 200, JSON.stringify({ settingsRev, patches }), TYPES[".json"]);
+  }
   if (req.method !== "PATCH") return send(res, 405);
   if (refuseRemoteEdit(req, res)) return;
   const refusal = configWriteRefusal(req.headers);
@@ -407,10 +423,11 @@ async function handleConfigSettings(req, res) {
   if (!fs.existsSync(CONFIG_FILE)) return send(res, 404, "no config saved yet");
   const result = applySettingsPatch(readConfigFile(), patch);
   if (!result.config) return send(res, result.status, result.message);
-  saveConfig(JSON.stringify(result.config));
+  // Numbered before the save, so its config event names this revision.
   settingsRev += 1;
   settingsLog.push({ rev: settingsRev, patch });
   if (settingsLog.length > SETTINGS_LOG_MAX) settingsLog.shift();
+  saveConfig(JSON.stringify(result.config));
   send(res, 200, JSON.stringify({ ok: true, version: configVersion, settingsRev }), TYPES[".json"]);
 }
 
@@ -420,7 +437,7 @@ function handleConfigEvents(req, res) {
     "Cache-Control": "no-store",
     Connection: "keep-alive",
   });
-  res.write(`data: ${JSON.stringify({ version: configVersion })}\n\n`);
+  res.write(configEvent());
   configListeners.add(res);
   const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), 15_000);
   const untrack = debug.sseOpen("config");
@@ -484,6 +501,27 @@ function handleDebugStats(req, res) {
   send(res, 200, JSON.stringify(debug.stats()), TYPES[".json"]);
 }
 
+/**
+ * GET and PUT /api/studio-prefs (server/studio-prefs.mjs): the studio's preferences that follow the user between the
+ * app window and a browser studio. This machine only; a write takes the config write headers.
+ */
+async function handleStudioPrefs(req, res) {
+  if (!isLoopback(req.socket.remoteAddress)) return send(res, 403, "studio preferences are served to this machine only");
+  if (req.method === "GET") return send(res, 200, JSON.stringify(studioPrefs.get()), TYPES[".json"]);
+  if (req.method !== "PUT") return send(res, 405);
+  const refusal = configWriteRefusal(req.headers);
+  if (refusal) return send(res, refusal.status, refusal.message);
+  let patch;
+  try {
+    patch = JSON.parse((await readBody(req, MAX_STUDIO_PREFS_BYTES)) || "{}");
+  } catch {
+    return send(res, 400, "expected a JSON object");
+  }
+  const result = studioPrefs.apply(patch);
+  if (result.error) return send(res, 400, result.error);
+  send(res, 200, JSON.stringify(result.prefs), TYPES[".json"]);
+}
+
 /** GET /api/server/stats → { uptimeSeconds, clients, studios } for the desktop app; only from this machine. */
 function handleServerStats(req, res) {
   if (req.method !== "GET") return send(res, 405);
@@ -536,7 +574,8 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/debug/stats") return handleDebugStats(req, res);
     if (pathname === "/api/server/stats") return handleServerStats(req, res);
     if (pathname === "/api/config") return await handleConfig(req, res);
-    if (pathname === "/api/config/settings") return await handleConfigSettings(req, res);
+    if (pathname === "/api/config/settings") return await handleConfigSettings(req, res, searchParams);
+    if (pathname === "/api/studio-prefs") return await handleStudioPrefs(req, res);
     if (pathname === "/events/config") return handleConfigEvents(req, res);
     if (pathname === "/api/control" || pathname.startsWith("/api/control/")) return await handleControl(req, res, pathname);
     if (pathname === "/api/alerts/history") return handleAlertHistory(req, res);

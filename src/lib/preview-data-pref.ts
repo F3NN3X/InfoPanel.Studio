@@ -4,8 +4,11 @@
 export type PreviewData = "live" | "frozen" | "frozenWhenUnfocused";
 export const PREVIEW_DATA_CHOICES: readonly PreviewData[] = ["live", "frozen", "frozenWhenUnfocused"];
 
-/** localStorage key (a studio preference: not in the config, so kiosks never see it). */
+/** The preference's key, on the server (/api/studio-prefs) and in localStorage: not in the config, so kiosks never see it. */
 export const PREVIEW_DATA_KEY = "studio.previewData";
+
+/** Live while you work; frozen a minute after the studio loses focus. */
+export const PREVIEW_DATA_DEFAULT: PreviewData = "frozenWhenUnfocused";
 
 /** The setting's choices, in Settings › Studio and Settings › General › Window. */
 export const PREVIEW_DATA_OPTIONS: { value: PreviewData; label: string }[] = [
@@ -17,7 +20,7 @@ export const PREVIEW_DATA_HINT =
   "Frozen shows a snapshot of the sensor values on the Design canvas with effects still, and uses less CPU. Frozen when unfocused: live while you work, frozen a minute after the studio loses focus. Kiosks, Kiosk view and the Data view stay live.";
 
 export function parsePreviewData(raw: string | null): PreviewData {
-  return PREVIEW_DATA_CHOICES.includes(raw as PreviewData) ? (raw as PreviewData) : "live";
+  return PREVIEW_DATA_CHOICES.includes(raw as PreviewData) ? (raw as PreviewData) : PREVIEW_DATA_DEFAULT;
 }
 
 /** A session-only choice that wins over the setting until the page reloads ("Go live for this session"). */

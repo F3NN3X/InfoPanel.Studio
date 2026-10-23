@@ -24,6 +24,19 @@ export const DEFAULT_KIOSK_URL = `http://127.0.0.1:${DEFAULT_SERVER_PORT}/?kiosk
  */
 let settingsRev: number | null = null;
 
+/** The newest Settings revision this page knows (null before the saved config was read). */
+export const knownSettingsRev = (): number | null => settingsRev;
+
+/**
+ * The Settings patches after revision `since` (GET /api/config/settings?since=): how a studio the Settings window
+ * can't reach directly (one in a browser) catches up when the config stream names a newer revision.
+ */
+export async function fetchSettingsPatches(since: number): Promise<{ rev: number; patch: SettingsPatch }[]> {
+  const res = await fetch(`${CONFIG_SETTINGS_URL}?since=${since}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`settings patches: ${res.status}`);
+  return ((await res.json()) as { patches: { rev: number; patch: SettingsPatch }[] }).patches;
+}
+
 /** Note a revision: from a read of the saved config, or a Settings change this window was told about. */
 export function noteSettingsRev(rev: number): void {
   if (Number.isFinite(rev)) settingsRev = Math.max(settingsRev ?? 0, rev);

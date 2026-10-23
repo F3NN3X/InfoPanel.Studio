@@ -192,6 +192,9 @@ export async function openMeasured(browser: Browser, url: string, zoneSelector: 
   await context.route(DEFAULT_DATA_API, (route) => route.abort("connectionrefused"));
   await context.addInitScript(RAF_INIT);
   await context.addInitScript(firstZoneInit(zoneSelector));
+  // The live studio, as the baselines measured it, unless a spec's own init says otherwise (the default freezes
+  // Design a minute after the studio loses focus).
+  await context.addInitScript(`localStorage.setItem("studio.previewData", "live");`);
   for (const script of init) await context.addInitScript(script);
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);

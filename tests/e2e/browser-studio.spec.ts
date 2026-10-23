@@ -90,3 +90,38 @@ test("Help opens the server's Help page in a tab", async ({ page, scratch, conte
   expect(new URL(help.url()).pathname).toBe("/help.html");
   await expect(help.getByRole("heading").first()).toBeVisible();
 });
+
+test("a Settings change made in another browser reaches the studio's working copy", async ({ page, scratch }) => {
+  await openStudio(page, scratch);
+  // The app's Settings window is another browser: its channel can't reach this page, only the server can.
+  const patched = await fetch(`${scratch.base}/api/config/settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", "X-Dashboard-Config": "1" },
+    body: JSON.stringify({ general: { maxFps: 15 } }),
+  });
+  expect(patched.status).toBe(200);
+  // Save writes the working copy to this browser's local copy too: the patch is in it.
+  const localMaxFps = () =>
+    page.evaluate(() => (JSON.parse(localStorage.getItem("infopanel-dashboard:config:v1") ?? "{}") as { general?: { maxFps?: number } }).general?.maxFps);
+  await expect
+    .poll(
+      async () => {
+        await page.keyboard.press("Control+s");
+        return localMaxFps();
+      },
+      { timeout: 5000 }
+    )
+    .toBe(15);
+});
+
+test("the preview setting saved from the app reaches a studio in a fresh browser", async ({ page, scratch }) => {
+  const saved = await fetch(`${scratch.base}/api/studio-prefs`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Dashboard-Config": "1" },
+    body: JSON.stringify({ "studio.previewData": "frozen" }),
+  });
+  expect(saved.status).toBe(200);
+  await openStudio(page, scratch);
+  await expect(page.getByText(/^Frozen · /)).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("studio.previewData"))).toBe("frozen");
+});

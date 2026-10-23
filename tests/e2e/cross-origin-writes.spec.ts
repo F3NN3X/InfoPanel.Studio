@@ -5,7 +5,8 @@ import { expect, saveConfig, test } from "./fixtures";
 // docs/security.md: a page from another origin (here another port on this machine, the case a studio open in a
 // normal browser invites) can't change the server's state. It tries every way a browser lets it: a simple
 // (no-cors) fetch, a CORS fetch carrying the write headers, and plain HTML form posts. The request guard
-// (server/request-guard.mjs) must refuse all of them; the state is compared before and after.
+// (server/request-guard.mjs) must refuse all of them; the state is compared before and after. The studio preferences
+// (server/studio-prefs.mjs) are in it too.
 
 const PNG_1PX = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
@@ -16,9 +17,10 @@ function attackerPage(target: string): string {
     { path: "/api/control/page", method: "POST", type: "application/json", headers: { "x-dashboard-control": "1" }, body: '{"page":"second"}' },
     { path: "/api/integrations", method: "PUT", type: "application/json", headers: { "x-dashboard-config": "1" }, body: '{"weather":{"key":"stolen"}}' },
     { path: "/api/assets", method: "POST", type: "image/png", headers: { "x-dashboard-asset": "1" }, body: "png" },
+    { path: "/api/studio-prefs", method: "PUT", type: "application/json", headers: { "x-dashboard-config": "1" }, body: '{"studio.previewData":"live"}' },
   ];
   // Form posts: text/plain can carry a JSON-looking body; urlencoded and multipart are the other simple types.
-  const forms = ["/api/config", "/api/control/page", "/api/assets", "/api/integrations"].flatMap((path, i) =>
+  const forms = ["/api/config", "/api/control/page", "/api/assets", "/api/integrations", "/api/studio-prefs"].flatMap((path, i) =>
     ["text/plain", "application/x-www-form-urlencoded", "multipart/form-data"].map(
       (enctype, j) =>
         `<iframe name="f${i}${j}"></iframe><form target="f${i}${j}" method="POST" enctype="${enctype}" action="${target}${path}"><input name='{"version":1,"profiles":[],"x":"' value='"}'></form>`
@@ -48,6 +50,7 @@ test("a page from another origin can't write: fetch, CORS or form", async ({ pag
     control: await (await fetch(`${scratch.base}/api/control`)).text(),
     integrations: await (await fetch(`${scratch.base}/api/integrations`)).text(),
     assets: await (await fetch(`${scratch.base}/api/assets`)).text(),
+    studioPrefs: await (await fetch(`${scratch.base}/api/studio-prefs`)).text(),
   });
   // The server's own config, saved once, so "unchanged" compares like with like.
   expect((await saveConfig(scratch.base, JSON.parse((await read()).config))).status).toBe(200);
@@ -76,5 +79,5 @@ test("a page from another origin can't write: fetch, CORS or form", async ({ pag
   expect(accepted, JSON.stringify(writes)).toEqual([]);
   // The attack did reach the server: the simple requests and the form posts, refused with 403.
   const refused = writes.filter((w) => w.status === 403).map((w) => w.path);
-  expect(new Set(refused), JSON.stringify(writes)).toEqual(new Set(["/api/config", "/api/control/page", "/api/assets", "/api/integrations"]));
+  expect(new Set(refused), JSON.stringify(writes)).toEqual(new Set(["/api/config", "/api/control/page", "/api/assets", "/api/integrations", "/api/studio-prefs"]));
 });

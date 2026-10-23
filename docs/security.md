@@ -50,8 +50,8 @@ security model, what was fixed, what was decided, and what is deferred. Performa
     (YouTube embeds refuse to play without a referrer) and `no-referrer` elsewhere.
 - **Remote edits** (`remoteEditRefusal` in `server/request-guard.mjs`): `POST /api/config`, `PATCH
   /api/config/settings`, `PUT /api/integrations` from non-loopback peers need `ALLOW_REMOTE_EDIT=1`. Assets, library
-  and canvases already needed `ALLOW_REMOTE_UPLOAD=1`. Agent posts, stats and installed-profile routes are
-  loopback-only.
+  and canvases already needed `ALLOW_REMOTE_UPLOAD=1`. Agent posts, stats, installed-profile routes and the studio
+  preferences (`GET`/`PUT /api/studio-prefs`, whose write also takes the config write headers) are loopback-only.
 - **Image proxy** (`server/proxy.mjs`): images only, SVG refused, `nosniff`, manual redirects with a hop limit, and
   since beta.10 it connects through the calendar's guarded lookup (`server/calendar.mjs`, with `blockLan`), so
   private, link-local, loopback and metadata addresses are refused on the first URL and every redirect, including IP
