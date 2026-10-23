@@ -694,6 +694,8 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 | `startServer` | Start the server on launch | boolean | `true` | Settings › General › Startup |
 | `closeToTray` | Close to tray | boolean | `true` | Settings › General › Window |
 | `rememberBounds` | Remember window size and position | boolean | `true` | Settings › General › Window |
+| `studioRefresh` | Refresh the Studio (reload the page after saving while unfocused) | `idle` (30 minutes), `daily` (04:00), `off` | `idle` | Settings › General › Window |
+| `releaseHiddenStudio` | Release the hidden studio (close its page while hidden in the tray) | `after1m`, `after10m`, `after60m`, `never` | `after10m` | Settings › General › Window |
 | `listen` | Who can connect (becomes `HOST`: `127.0.0.1` or `0.0.0.0`) | `local` (This computer only), `lan` (Local network) | `local` | Settings › Server › Network |
 | `port` | Port (becomes `PORT`) | 1024 to 65535 | `3922` | Settings › Server › Network |
 | `allowedHosts` | Allowed host names (`ALLOWED_HOSTS`; request guard) | list, or a comma-separated string; letters, digits, `.`, `-`, `:`, `[`, `]` | empty | Settings › Server › Network (only while `listen` is `lan`) |

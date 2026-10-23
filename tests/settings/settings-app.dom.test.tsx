@@ -17,6 +17,7 @@ const settingsDefaults: Settings = {
   rememberBounds: true,
   zoom: 100,
   studioRefresh: "idle",
+  releaseHiddenStudio: "after10m",
   checkForUpdates: true,
   updateChannel: "stable",
   autoDownload: false,

@@ -39,7 +39,9 @@ sections.
 
 - **General:** app zoom (80 to 150 percent; Ctrl +, Ctrl - and Ctrl 0 in the settings window; the studio keeps
   Ctrl + `=` / `-` for canvas zoom), start at login (default on, starts hidden in the tray), open the studio on
-  launch, start the server on launch, close to tray, remember window size and position.
+  launch, start the server on launch, close to tray, remember window size and position, refresh the Studio
+  (reload it now and then while unfocused) and release the hidden studio (close its page after 1 minute, 10 minutes
+  (default), an hour or never in the tray).
 - **Server:** start, stop and restart; who can connect (this computer only on 127.0.0.1, or the local network on
   0.0.0.0 with the LAN IP shown); the port (default 3922); extra allowed host names for LAN access;
   restart automatically after a crash; the kiosk URL. The port, who can connect, the allowed host names and debug
@@ -83,7 +85,8 @@ right end (close hides to the tray). The start and settings pages have a matchin
 
 While the studio window is hidden to the tray or minimized, its webview is suspended (WebView2 `TrySuspend`, else a
 Low memory target) after the page is flushed, and resumed before it shows again. Kiosk view on screen is never
-suspended. Why and how: [webview-performance.md](webview-performance.md).
+suspended. A window hidden to the tray for long enough (**Release the hidden studio**, 10 minutes by default) is
+destroyed after a flush, and rebuilt when the tray shows it. Why and how: [webview-performance.md](webview-performance.md).
 
 ## Debug mode (errors and leaks)
 

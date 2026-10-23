@@ -101,6 +101,8 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let origin = st.origin.clone();
     let nav_app = app.clone();
     let popup_app = app.clone();
+    let started = std::time::Instant::now();
+    let rebuilding = crate::release::take_rebuilding();
     // Built hidden on the pages' dark background and shown once the first page has loaded, like the
     // settings and help windows, so launching the app never flashes a white, empty window.
     let shown = Arc::new(AtomicBool::new(false));
@@ -134,6 +136,9 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             let finished = payload.event() == PageLoadEvent::Finished;
             zoom_on_load(window.clone(), payload);
             if finished && !shown.swap(true, Ordering::SeqCst) {
+                if rebuilding {
+                    log::info!("studio rebuilt ({} ms)", started.elapsed().as_millis());
+                }
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
@@ -202,6 +207,7 @@ static MINIMIZE_FLUSH: AtomicBool = AtomicBool::new(false);
 /// Shows (creating if needed) and focuses the studio window. A new one shows itself once its first
 /// page has loaded.
 pub fn show_main(app: &AppHandle) {
+    crate::release::shown();
     let window = match app.get_webview_window(MAIN) {
         Some(w) => w,
         None => {
@@ -493,6 +499,7 @@ fn close_main(app: &AppHandle) {
             let _ = w.hide();
             // After the flush, which needs the page awake; nobody sees it until the tray shows it.
             crate::webview2::suspend(&w);
+            crate::release::hidden();
         }
         log::debug!("window hidden to the tray");
         return;

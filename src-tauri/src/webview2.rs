@@ -28,6 +28,13 @@ static RESUMES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new
 #[cfg(windows)]
 static MEMORY_LOWERED: AtomicBool = AtomicBool::new(false);
 
+/// The main webview was destroyed: the next one is fresh, neither suspended nor at a lowered memory target.
+pub fn forget() {
+    SUSPENDED.store(false, Ordering::SeqCst);
+    #[cfg(windows)]
+    MEMORY_LOWERED.store(false, Ordering::SeqCst);
+}
+
 /// A window nobody can see: minimized or hidden. A visible, unminimized window (the studio, or
 /// Kiosk view in the same window) is never suspended.
 pub fn wants_suspend(minimized: bool, visible: bool) -> bool {

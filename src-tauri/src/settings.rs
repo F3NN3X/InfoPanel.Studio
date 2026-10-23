@@ -65,6 +65,17 @@ pub enum StudioRefresh {
     Off,
 }
 
+/// How long the hidden Studio window may sit in the tray before its page is closed.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReleaseHiddenStudio {
+    After1m,
+    #[default]
+    After10m,
+    After60m,
+    Never,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -88,6 +99,8 @@ pub struct Settings {
     pub zoom: u16,
     /// Reload the Studio page now and then while the window isn't focused.
     pub studio_refresh: StudioRefresh,
+    /// Close the hidden Studio's page after a while in the tray, to give back its memory.
+    pub release_hidden_studio: ReleaseHiddenStudio,
     /// Look for a new version shortly after the app starts.
     pub check_for_updates: bool,
     pub update_channel: Channel,
@@ -131,6 +144,7 @@ impl Default for Settings {
             remember_bounds: true,
             zoom: DEFAULT_ZOOM,
             studio_refresh: StudioRefresh::Idle,
+            release_hidden_studio: ReleaseHiddenStudio::After10m,
             check_for_updates: true,
             update_channel: Channel::Stable,
             auto_download: false,
@@ -239,6 +253,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
             validate_zoom(next.zoom)?;
         }
         "studioRefresh" => next.studio_refresh = parse(key, value)?,
+        "releaseHiddenStudio" => next.release_hidden_studio = parse(key, value)?,
         "checkForUpdates" => next.check_for_updates = parse(key, value)?,
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
@@ -430,6 +445,26 @@ mod tests {
     }
 
     #[test]
+    fn release_hidden_studio_defaults_to_ten_minutes_for_older_files() {
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::After10m);
+        assert_eq!(load_from_str(r#"{ "releaseHiddenStudio": "never" }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::Never);
+        assert_eq!(load_from_str(r#"{ "releaseHiddenStudio": "after1m" }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::After1m);
+        assert_eq!(load_from_str(r#"{ "releaseHiddenStudio": "soon" }"#).unwrap().release_hidden_studio, ReleaseHiddenStudio::After10m);
+    }
+
+    #[test]
+    fn release_hidden_studio_takes_its_four_values_only() {
+        let s = Settings::default();
+        let set = |v| with_setting(&s, "releaseHiddenStudio", v).map(|n| n.release_hidden_studio);
+        assert_eq!(set(json!("after1m")), Ok(ReleaseHiddenStudio::After1m));
+        assert_eq!(set(json!("after10m")), Ok(ReleaseHiddenStudio::After10m));
+        assert_eq!(set(json!("after60m")), Ok(ReleaseHiddenStudio::After60m));
+        assert_eq!(set(json!("never")), Ok(ReleaseHiddenStudio::Never));
+        assert!(set(json!("soon")).is_err());
+        assert!(set(json!(true)).is_err());
+    }
+
+    #[test]
     fn unknown_keys_are_ignored() {
         let s = load_from_str(r#"{ "port": 3942, "theme": "dark" }"#).unwrap();
         assert_eq!(s.port, 3942);
@@ -582,6 +617,7 @@ mod tests {
         "rememberBounds",
         "zoom",
         "studioRefresh",
+        "releaseHiddenStudio",
         "checkForUpdates",
         "updateChannel",
         "autoDownload",

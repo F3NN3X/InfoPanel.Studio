@@ -12,6 +12,7 @@ mod nav;
 mod paths;
 mod probe;
 mod refresh;
+mod release;
 mod settings;
 mod sidecar;
 mod state;
@@ -240,6 +241,7 @@ pub fn run() {
                 updater::check_soon(&handle);
             }
             refresh::start(&handle);
+            release::start(&handle);
             let sampler = handle.clone();
             std::thread::spawn(move || run_sampler(sampler));
             Ok(())

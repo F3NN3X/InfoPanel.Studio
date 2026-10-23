@@ -8,6 +8,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Changed
 
+- **The hidden Studio gives back its memory.** After 10 minutes in the tray its page is closed (Settings › General › Window › Release the hidden studio: 1 minute, 10 minutes, an hour or never); opening it from the tray rebuilds it in a moment. Edits are saved before it closes; unsaved undo history is lost.
 - **The kiosk page downloads about 200 KB less script.** Gauge icons come from markup made at build time, so the page no longer carries React's server renderer.
 
 ## [1.3.0-beta.16] - 2026-10-23
