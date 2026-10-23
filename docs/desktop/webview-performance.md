@@ -152,6 +152,10 @@ hidden, flushes the page (`flush_studio`), destroys the window and resets the su
 tray's Show rebuilds the window like a first launch. Edits are saved by the flush; the page's undo history is lost.
 The window-state plugin keeps the geometry in memory, so the rebuilt window opens where it was.
 - Logged at info: `studio released after <n>m hidden` and, when the window is shown again, `studio rebuilt (<n> ms)`.
+- `show_main` builds a missing window on its own thread: the tray and single-instance callbacks run on the main
+  thread, and building a webview there waits on the event loop it blocks (Show hung before this).
+- Measured (`tests/desktop/tray-close-releases-webview.desktop.ts`, debug build, `after1m`): no WebView2 process left
+  after the release; rebuilt in 294 ms (log), studio interactive 446 ms after Show.
 
 ## Overnight check (to do)
 

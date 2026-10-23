@@ -204,6 +204,9 @@ fn follow_window(app: &AppHandle, window: tauri::WebviewWindow) {
 /// A minimize's flush-then-suspend is running.
 static MINIMIZE_FLUSH: AtomicBool = AtomicBool::new(false);
 
+/// A new studio window is being built.
+static CREATING_MAIN: AtomicBool = AtomicBool::new(false);
+
 /// Shows (creating if needed) and focuses the studio window. A new one shows itself once its first
 /// page has loaded.
 pub fn show_main(app: &AppHandle) {
@@ -211,8 +214,16 @@ pub fn show_main(app: &AppHandle) {
     let window = match app.get_webview_window(MAIN) {
         Some(w) => w,
         None => {
-            if let Err(e) = create_main(app) {
-                log::error!("could not open the studio window: {e}");
+            // Built off the caller's thread: the tray and single-instance callbacks run on the main
+            // thread, where building a webview waits on the event loop it is blocking. One at a time.
+            if !CREATING_MAIN.swap(true, Ordering::SeqCst) {
+                let app = app.clone();
+                std::thread::spawn(move || {
+                    if let Err(e) = create_main(&app) {
+                        log::error!("could not open the studio window: {e}");
+                    }
+                    CREATING_MAIN.store(false, Ordering::SeqCst);
+                });
             }
             return;
         }
