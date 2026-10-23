@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.15] - 2026-10-23
+
 ### Changed
 
 - **Less CPU and GPU on the kiosk.** Measured on a 1920×550 strip with 11 widgets, about 0.94 → 0.7 of a core at 60 fps, with nothing turned off:
