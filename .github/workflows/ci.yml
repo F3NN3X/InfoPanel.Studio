@@ -70,13 +70,18 @@ jobs:
       - run: npx biome ci
       - run: npm run build
       - run: npm test
-      # The parity fixtures the native server's tests load must match what the Node server produces now.
-      - run: npm run parity:check
       # The deterministic bundle budgets (tools/perf/budgets.json); CPU and memory stay report-only.
       - run: npm run perf:budgets
       # The e2e suite against dist/ on a scratch server (tools/perf/scratch.mjs).
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # The parity fixtures the native server's tests load must match what the Node server produces now. The locale
+      # table in them is Node's ICU data (77.1 in 24.6.0), so this step runs on the Node the fixtures were made with.
+      # Move both together: bump the version here, then npm run parity:fixtures on it.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.6.0
+      - run: npm run parity:check
 
   # The Rust tests, only when the change touches the desktop app.
   rust:
