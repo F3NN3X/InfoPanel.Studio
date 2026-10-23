@@ -1,12 +1,12 @@
 import { manifest, test } from "../e2e/fixtures";
 import { measurePage, writeResult } from "./measure";
 
-// Kiosk idle cost: the heavy and light profiles at the default Max FPS and at &fps=60.
+// Kiosk idle cost: the heavy and light profiles at the default Max FPS (60) and at &fps=30.
 const CASES = [
   { name: "heavy", profile: manifest.profiles.heavy, query: "" },
-  { name: "heavy-fps60", profile: manifest.profiles.heavy, query: "&fps=60" },
+  { name: "heavy-fps30", profile: manifest.profiles.heavy, query: "&fps=30" },
   { name: "light", profile: manifest.profiles.light, query: "" },
-  { name: "light-fps60", profile: manifest.profiles.light, query: "&fps=60" },
+  { name: "light-fps30", profile: manifest.profiles.light, query: "&fps=30" },
 ];
 
 test("kiosk-idle", async ({ browser, scratch }, info) => {

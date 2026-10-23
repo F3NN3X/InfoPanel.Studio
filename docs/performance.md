@@ -215,8 +215,13 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
 - **Perf specs** (`tests/perf/`, `npm run perf:kiosk`, `npm run perf:studio`): each page measurement is a fresh
   context, a load under a short trace (JS bytes, parse/compile ms, first zone, FCP, requests), a 5 s warm-up and a
   10 s window (`Performance.getMetrics` deltas, rAF callbacks/s, running animations), repeated 3 times (median and
-  range). `kiosk-idle`, `studio-idle`, `studio-hot-cold` (HEADED=1 to reproduce the hidden tab) and `server-idle`
-  (server RSS with two kiosks and a studio open, every 5 s for 60 s). `PERF_REPEATS`, `PERF_WARMUP_MS`,
+  range). `kiosk-idle` (heavy and light, at the default 60 fps and at `&fps=30`), `studio-idle`, `studio-hot-cold`
+  (HEADED=1 to reproduce the hidden tab) and `server-idle` (server RSS with two kiosks and a studio open, every 5 s
+  for 60 s).
+- **Desktop specs** (`tests/desktop/`, Windows): the debug build on scratch folders, attached over CDP
+  (`INFOPANEL_STUDIO_CDP_PORT`, debug builds only), sampled with `tools/perf/process-sampler.mjs`:
+  `tray-close-releases-webview` and `studio-idle-webview2`. Setup in
+  [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup). `PERF_REPEATS`, `PERF_WARMUP_MS`,
   `PERF_WINDOW_MS` and `PERF_SERVER_MS` shorten a trial run.
 - **Reports**: `tools/perf/bundle-report.mjs` (entry closures from Vite's build manifest), `tools/perf/disk-report.mjs`
   (installer, installed folder, `src-tauri/resources/`). Results land in `.cache/perf/<label>/` (`PERF_LABEL`, else

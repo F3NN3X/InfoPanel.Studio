@@ -36,6 +36,22 @@
 | heavy: JS heap | 18.5 MB (14.6–21.9) | 11.7 MB (9.7–17.9) | noise |
 | heavy: rAF/s | 60.1 | 60.1 | 0 |
 
+### After the gate fixes (`kiosk-idle` again, `&fps=30` replacing `&fps=60`)
+
+The kiosk now waits for the server's config before it reports a profile, so its stray first control stream
+(`/events/control?profile=main`) is gone: load requests heavy 17 → 16, light 9 → 8 (budget lowered to 16). The
+matrix swapped `&fps=60` (the default already) for `&fps=30`:
+
+| Case | Task ms/s | Script ms/s | Layouts/s | Style recalcs/s | rAF/s |
+|---|---|---|---|---|---|
+| heavy (60) | 143 (142–145) | 87 (86–90) | 10.0 | 48.5 | 60.0 |
+| heavy, `&fps=30` | 131 (126–161) | 84 (79–105) | 10.7 | 6.8 | 35.9 |
+| light (60) | 3.9 | 1.9 | 1.0 | 0.3 | 0 |
+| light, `&fps=30` | 4.0 | 1.8 | 1.0 | 0.2 | 0 |
+
+At 30 fps style recalcs drop 86% (CSS motion off under `data-lite-motion`) but task time only ~9%, and rAF still
+runs at 36/s: most of the heavy kiosk's script time is not frame-bound. A lead for Phase 2.
+
 ## Studio idle (headless)
 
 | Metric | baseline | phase1 | Δ |
