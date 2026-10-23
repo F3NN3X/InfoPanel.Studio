@@ -2,7 +2,7 @@
 
 use crate::debug::History;
 use crate::paths::Paths;
-use crate::settings::{self, Listen, Settings};
+use crate::settings::{self, Listen, ServerImpl, Settings};
 use crate::sidecar::{RotatingLog, Sidecar};
 use serde::Serialize;
 use serde_json::Value;
@@ -51,6 +51,8 @@ pub struct RunningConfig {
     pub allowed_hosts: Vec<String>,
     /// Whether the server takes writes from other devices; read at start only.
     pub allow_remote_edit: bool,
+    /// The Node sidecar or ips-server in the app.
+    pub server: ServerImpl,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,6 +100,8 @@ pub fn kiosk_url(origin: &str) -> String {
 pub struct Server {
     pub status: Status,
     pub sidecar: Option<Sidecar>,
+    /// ips-server running in the app's process, in place of the sidecar.
+    pub native: Option<crate::native::Native>,
     /// Bumped by every start and stop; a monitor or start flow of an older generation gives up.
     pub generation: u64,
     pub restarts: VecDeque<Instant>,
@@ -208,6 +212,7 @@ impl AppState {
             server: Mutex::new(Server {
                 status,
                 sidecar: None,
+                native: None,
                 generation: 0,
                 restarts: VecDeque::new(),
             }),
@@ -288,10 +293,11 @@ mod tests {
             debug: true,
             allowed_hosts: vec!["panel.lan".into()],
             allow_remote_edit: true,
+            server: ServerImpl::Native,
         };
         assert_eq!(
             serde_json::to_value(rc).unwrap(),
-            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true })
+            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true, "server": "native" })
         );
     }
 

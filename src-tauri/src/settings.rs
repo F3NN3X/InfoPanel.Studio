@@ -87,6 +87,15 @@ pub enum OpenStudioIn {
     DefaultBrowser,
 }
 
+/// Which server the app runs: the bundled Node sidecar, or ips-server inside the app (experimental).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ServerImpl {
+    #[default]
+    Node,
+    Native,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -123,6 +132,8 @@ pub struct Settings {
     pub auto_download: bool,
     pub agents: AgentSettings,
     pub debug: bool,
+    /// The server the app starts; read at start only.
+    pub server: ServerImpl,
     /// The one-time "closing stops the kiosk" warning was shown (close to tray off).
     pub close_warning_shown: bool,
 }
@@ -168,6 +179,7 @@ impl Default for Settings {
             auto_download: false,
             agents: AgentSettings::default(),
             debug: false,
+            server: ServerImpl::Node,
             close_warning_shown: false,
         }
     }
@@ -278,6 +290,7 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
         "debug" => next.debug = parse(key, value)?,
+        "server" => next.server = parse(key, value)?,
         _ => return Err(format!("\"{key}\" is not a setting.")),
     }
     Ok(next)
@@ -507,6 +520,20 @@ mod tests {
     }
 
     #[test]
+    fn server_defaults_to_node_and_takes_its_two_values_only() {
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().server, ServerImpl::Node);
+        assert_eq!(load_from_str(r#"{ "server": "native" }"#).unwrap().server, ServerImpl::Native);
+        assert_eq!(load_from_str(r#"{ "server": "deno" }"#).unwrap().server, ServerImpl::Node);
+        assert_eq!(serde_json::to_value(Settings::default()).unwrap()["server"], "node");
+        let s = Settings::default();
+        let set = |v| with_setting(&s, "server", v).map(|n| n.server);
+        assert_eq!(set(json!("native")), Ok(ServerImpl::Native));
+        assert_eq!(set(json!("node")), Ok(ServerImpl::Node));
+        assert!(set(json!("deno")).is_err());
+        assert!(set(json!(true)).is_err());
+    }
+
+    #[test]
     fn unknown_keys_are_ignored() {
         let s = load_from_str(r#"{ "port": 3942, "theme": "dark" }"#).unwrap();
         assert_eq!(s.port, 3942);
@@ -666,6 +693,7 @@ mod tests {
         "updateChannel",
         "autoDownload",
         "debug",
+        "server",
     ];
 
     #[test]
