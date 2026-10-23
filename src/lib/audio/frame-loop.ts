@@ -1,4 +1,4 @@
-import { subscribeTick } from "@/lib/ticker";
+import { capTick, subscribeTick, trackTick } from "@/lib/ticker";
 
 type FrameListener = (nowMs: number) => void;
 type FramePhase = "update" | "paint";
@@ -7,10 +7,23 @@ const listeners = {
   paint: new Set<FrameListener>(),
   update: new Set<FrameListener>(),
 };
+/** Each listener's own cap (0: every frame the ticker gives). */
+const caps = new Map<FrameListener, number>();
 let unsubscribeTick: (() => void) | null = null;
+let tickCap = 0;
 let ticking = false;
 
 const hasListeners = () => listeners.update.size + listeners.paint.size > 0;
+
+/** The loop's own cap: every frame while any listener is uncapped, else the fastest listener's cap. */
+const loopCap = () => {
+  let cap = 0;
+  for (const c of caps.values()) {
+    if (!(c > 0)) return 0;
+    cap = Math.max(cap, c);
+  }
+  return cap;
+};
 
 const reportError = (error: unknown) => {
   queueMicrotask(() => {
@@ -30,7 +43,7 @@ const tick = (nowMs: number) => {
     }
   }
   ticking = false;
-  if (!hasListeners()) stopTick();
+  syncTick();
 };
 
 const stopTick = () => {
@@ -38,23 +51,40 @@ const stopTick = () => {
   unsubscribeTick = null;
 };
 
+/** Subscribe to the ticker at the listeners' cap (re-subscribing when it changes); unsubscribe when none are left. */
+const syncTick = () => {
+  if (!hasListeners()) return stopTick();
+  const cap = loopCap();
+  if (unsubscribeTick !== null && cap === tickCap) return;
+  stopTick();
+  tickCap = cap;
+  unsubscribeTick = subscribeTick(tick, cap, "frame-loop");
+};
+
 /**
  * Runs sources in the update phase, then renderers in the default paint phase.
  * One subscription to the shared ticker serves the whole page (so it follows
  * Max FPS) and ends when nothing is subscribed. The ticker pauses while the
- * tab is hidden.
+ * tab is hidden. `capFps` caps the listener (the loop then sleeps between
+ * frames when every listener is capped); `label` names it in the ticker's
+ * debug stats.
  */
 export const subscribeFrame = (
   listener: FrameListener,
-  phase: FramePhase = "paint"
+  phase: FramePhase = "paint",
+  label?: string,
+  capFps = 0
 ): (() => void) => {
-  listeners[phase].add(listener);
-  if (unsubscribeTick === null) {
-    unsubscribeTick = subscribeTick(tick);
-  }
+  const run: FrameListener = capFps > 0 ? capTick(listener, capFps, label) : listener;
+  listeners[phase].add(run);
+  caps.set(run, capFps > 0 ? capFps : 0);
+  const untrack = trackTick(label === undefined || capFps > 0 ? run : capTick(run, 0, label), "frame-loop");
+  if (!ticking) syncTick();
   return () => {
-    listeners[phase].delete(listener);
-    if (!hasListeners() && !ticking) stopTick();
+    untrack();
+    listeners[phase].delete(run);
+    caps.delete(run);
+    if (!ticking) syncTick();
   };
 };
 

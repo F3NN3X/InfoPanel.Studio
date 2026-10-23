@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useMediaVisualSource, type MediaVisualSource } from "@/hooks/use-media-visual-source";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { MAX_FRAME_GAP_MS, subscribeFrame } from "@/lib/audio/frame-loop";
+import { AMBIENT_FPS } from "@/lib/ticker";
 import type { VisualFrame } from "@/lib/audio/types";
 import { get, has, num } from "../data";
 import type { Data } from "../types";
@@ -100,7 +101,7 @@ export function useVizInput({ data, device, captureDeviceId, look, muted }: VizI
         readAt = performance.now();
         if (!unsubscribe) {
           lastMs = 0;
-          unsubscribe = subscribeFrame(update, "update");
+          unsubscribe = subscribeFrame(update, "update", "viz:input", AMBIENT_FPS);
         }
         return st.input;
       },

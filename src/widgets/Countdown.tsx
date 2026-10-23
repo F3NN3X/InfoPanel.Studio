@@ -40,13 +40,18 @@ export interface CountdownProps extends ShellProps {
   clock?: "auto" | "12" | "24";
 }
 
-/** The current moment, refreshed on the shared ticker whenever a `msFor` boundary passes (one second or a minute). */
+/**
+ * The current moment, refreshed on the shared ticker whenever a `msFor` boundary passes (one second or a minute);
+ * it sleeps in between.
+ */
 function useNow(msFor: (now: number) => number, on: boolean): Date {
   const [now, setNow] = useState(() => Date.now());
   useTick(() => {
     const t = Date.now();
     setNow((prev) => (Math.floor(t / msFor(prev)) !== Math.floor(prev / msFor(prev)) ? t : prev));
-  }, on);
+    const step = msFor(t);
+    return step - (t % step);
+  }, on, 0, "countdown:clock");
   return new Date(now);
 }
 

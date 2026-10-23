@@ -18,6 +18,7 @@ const settingsDefaults: Settings = {
   zoom: 100,
   studioRefresh: "idle",
   releaseHiddenStudio: "after10m",
+  reduceUnfocusedAnimation: true,
   checkForUpdates: true,
   updateChannel: "stable",
   autoDownload: false,

@@ -149,6 +149,8 @@ const HEAVY_ZONES = {
   gauges: "perf-gauges",
 };
 const LIGHT_ZONES = { clock: "perf-clock", cpu: "perf-cpu", gpu: "perf-gpu" };
+/** The visualisers (Phase 2's hot/cold round trip): a profile of its own, so the heavy and light numbers stay comparable. */
+const VIZ_ZONES = { nowPlaying: "perf-nowplaying", visualizer: "perf-visualizer" };
 
 function buildConfig({ canvasRef, backgroundSrc }) {
   const heavy = {
@@ -203,10 +205,29 @@ function buildConfig({ canvasRef, backgroundSrc }) {
       },
     ],
   };
+  const viz = {
+    id: "perf-viz",
+    name: "Perf visualisers",
+    width: 1920,
+    height: 550,
+    cols: 12,
+    rows: 6,
+    fit: "fill",
+    pages: [
+      {
+        id: "main",
+        name: "Main",
+        placements: [
+          zone(VIZ_ZONES.nowPlaying, "NowPlaying", 1, 1, 6, 6, { settings: { source: "media", progress: "visualizer", vizMode: "bars" } }),
+          zone(VIZ_ZONES.visualizer, "Visualizer", 7, 1, 6, 6, { settings: {} }),
+        ],
+      },
+    ],
+  };
   return {
     version: CONFIG_VERSION,
     activeProfile: "perf-heavy",
-    profiles: [heavy, light],
+    profiles: [heavy, light, viz],
     theme: {
       background: "240 10% 3.9%",
       foreground: "0 0% 98%",
@@ -304,8 +325,8 @@ const skipped = fs.readdirSync(tmp).filter((n) => !keep(n));
 fs.rmSync(tmp, { recursive: true, force: true });
 
 const manifest = {
-  profiles: { heavy: "perf-heavy", light: "perf-light" },
-  zones: { heavy: Object.values(HEAVY_ZONES), light: Object.values(LIGHT_ZONES) },
+  profiles: { heavy: "perf-heavy", light: "perf-light", viz: "perf-viz" },
+  zones: { heavy: Object.values(HEAVY_ZONES), light: Object.values(LIGHT_ZONES), viz: Object.values(VIZ_ZONES) },
   gaugeIconZone: HEAVY_ZONES.gauges,
   // The studio marks each zone with data-zone-id; the kiosk marks none, its zones are the grid's children in order.
   zoneSelector: "[data-zone-id]",

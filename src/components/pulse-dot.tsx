@@ -20,9 +20,12 @@ export function PulseDot({ color, pulse, className, label }: { color: string; pu
   useTick((now) => {
     const el = ref.current;
     if (!el) return;
-    const e = easeOut(Math.min(1, (now % PERIOD_MS) / PERIOD_MS / GROW));
+    const p = (now % PERIOD_MS) / PERIOD_MS;
+    const e = easeOut(Math.min(1, p / GROW));
     el.style.boxShadow = `0 0 0 ${(0.45 * e).toFixed(3)}em color-mix(in srgb, ${color} ${(70 * (1 - e)).toFixed(1)}%, transparent)`;
-  }, live);
+    // At rest (the ring has faded out) until the next period starts.
+    if (p >= GROW) return (1 - p) * PERIOD_MS;
+  }, live, 0, "pulse-dot");
   useEffect(() => {
     if (!live && ref.current) ref.current.style.boxShadow = "";
   }, [live]);

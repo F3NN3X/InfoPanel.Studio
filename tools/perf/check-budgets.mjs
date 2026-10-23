@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // CI check of the deterministic bundle budgets (tools/perf/budgets.json) against the build in dist/: the kiosk and
-// studio entry closures' gzip bytes, and no React server renderer in the kiosk closure. Exit 1 on a breach.
+// studio entry closures' gzip bytes, no React server renderer in the kiosk closure, and no debug-only globals in either.
+// Exit 1 on a breach.
 //   npm run build && node tools/perf/check-budgets.mjs
 import fs from "node:fs";
 import path from "node:path";
@@ -17,6 +18,7 @@ export function breaches(result, b = budgets) {
   if (kiosk.jsGzip > b.kioskEntryGzipBytes) out.push(`kiosk entry ${kiosk.jsGzip} B gzip > budget ${b.kioskEntryGzipBytes}`);
   if (studio.jsGzip > b.studioEntryGzipBytes) out.push(`studio entry ${studio.jsGzip} B gzip > budget ${b.studioEntryGzipBytes}`);
   if (kiosk.serverRenderer && !b.kioskServerRendererAllowed) out.push("react-dom/server code is in the kiosk closure");
+  for (const [name, e] of Object.entries({ kiosk, studio })) for (const s of e.debugSymbols ?? []) out.push(`debug-only ${s} is in the ${name} closure`);
   return out;
 }
 

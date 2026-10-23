@@ -16,6 +16,8 @@ import zlib from "node:zlib";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 /** Strings only React's server renderer (react-dom/server) carries: the stream API and Fizz's boundary script. */
 export const SERVER_RENDERER_MARKERS = ["renderToReadableStream", "$RC="];
+/** Globals only debug builds expose (src/lib/ticker.ts); a release closure carrying one leaks the debug hooks. */
+export const DEBUG_ONLY_MARKERS = ["__tickerStats"];
 
 export function label() {
   if (process.env.PERF_LABEL) return process.env.PERF_LABEL;
@@ -51,15 +53,14 @@ export function closure(manifest, roots) {
 
 const gzipSize = (buf) => zlib.gzipSync(buf, { level: 9 }).length;
 
-/** Sizes of a closure: JS (raw, gzip), CSS (raw, gzip), its chunk files, and the server-renderer check. */
+/** Sizes of a closure: JS (raw, gzip), CSS (raw, gzip), its chunk files, and the server-renderer and debug-symbol checks. */
 export function measureClosure(dist, manifest, keys) {
   const js = keys.map((k) => manifest[k].file);
   const css = [...new Set(keys.flatMap((k) => manifest[k].css ?? []))];
   const sum = (files, f) => files.reduce((n, file) => n + f(fs.readFileSync(path.join(dist, file))), 0);
-  const serverRenderer = js.some((file) => {
-    const text = fs.readFileSync(path.join(dist, file), "utf8");
-    return SERVER_RENDERER_MARKERS.some((m) => text.includes(m));
-  });
+  const texts = js.map((file) => fs.readFileSync(path.join(dist, file), "utf8"));
+  const serverRenderer = texts.some((text) => SERVER_RENDERER_MARKERS.some((m) => text.includes(m)));
+  const debugSymbols = DEBUG_ONLY_MARKERS.filter((m) => texts.some((text) => text.includes(m)));
   return {
     jsRaw: sum(js, (b) => b.length),
     jsGzip: sum(js, gzipSize),
@@ -67,6 +68,7 @@ export function measureClosure(dist, manifest, keys) {
     cssGzip: sum(css, gzipSize),
     chunks: js.length,
     serverRenderer,
+    debugSymbols,
     files: js,
   };
 }

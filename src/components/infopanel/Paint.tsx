@@ -93,7 +93,7 @@ export function PathPaint({ id, d, paint, stroke, rotate, space, turn }: PathPai
     const stop = subscribeTick((now) => {
       const t = latest.current;
       if (t) writePaint(target.current, t.at(now - t.start));
-    });
+    }, 0, "infopanel:paint-turn");
     // A turn that ends with the element still mounted leaves the static paint, not the last ticked angle.
     return () => {
       stop();

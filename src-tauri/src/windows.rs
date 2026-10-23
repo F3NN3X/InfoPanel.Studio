@@ -20,6 +20,15 @@ const PAGE_BACKGROUND: tauri::window::Color = tauri::window::Color(0x0c, 0x0c, 0
 pub const FLUSH_EVENT: &str = "studio://flush";
 /// Sent to the main window when the shell leaves Kiosk view on its own (a close from it).
 pub const KIOSK_LEFT_EVENT: &str = "kiosk-left";
+/// Sent to the main window when it gains or loses focus; the studio slows its animation a while after losing it
+/// (src/lib/studio-focus.ts), unless `reduce` (the reduceUnfocusedAnimation setting) is off.
+pub const STUDIO_FOCUS_EVENT: &str = "studio-focus";
+
+#[derive(Clone, Serialize)]
+struct StudioFocus {
+    focused: bool,
+    reduce: bool,
+}
 
 /// WebView2's own default flags (wry's), plus `--remote-debugging-port=<n>` in debug builds only, when
 /// `INFOPANEL_STUDIO_CDP_PORT` is set, so a test or debugging session can attach over CDP. A release
@@ -163,6 +172,8 @@ fn create_main(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             if let Some(w) = handle.get_webview_window(MAIN) {
                 crate::webview2::set_unfocused(&w, !*focused);
             }
+            let reduce = handle.state::<AppState>().settings().reduce_unfocused_animation;
+            let _ = handle.emit_to(MAIN, STUDIO_FOCUS_EVENT, StudioFocus { focused: *focused, reduce });
         }
         // Minimizing and restoring arrive as resizes; a minimized studio suspends like a hidden one.
         if let tauri::WindowEvent::Resized(_) = event {

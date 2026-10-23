@@ -97,6 +97,13 @@ export function GeneralSection() {
               <option value="never">Never</option>
             </select>
           </Row>
+          <SwitchRow
+            id="reduce-unfocused-animation"
+            label="Reduce studio animation when unfocused"
+            hint="After a minute in the background the studio's canvas moves at 5 frames a second and its weather, visualisers and other effects pause; they resume as soon as you come back."
+            checked={settings.reduceUnfocusedAnimation}
+            onChange={(v) => void save("reduceUnfocusedAnimation", v)}
+          />
         </Card>
       </Group>
     </>

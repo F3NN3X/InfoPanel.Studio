@@ -25,6 +25,8 @@ import { PerformanceProvider } from "@/hooks/use-performance";
 import { performanceFromSearch } from "@/lib/performance";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { setApiBase } from "@/lib/data-api";
+import { useStudioFocusThrottle } from "@/lib/studio-focus";
+import { wakeTicker } from "@/lib/ticker";
 import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush } from "@/lib/desktop";
 import { KioskStrip } from "@/components/kiosk-strip";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
@@ -103,12 +105,16 @@ export default function App() {
     setApiBase(loaded.dataApiUrl); // before the first sensor connection
     return withPinnedProfile(loaded);
   });
+  // An animation that settled under the old settings moves again (src/lib/ticker.ts).
+  useEffect(() => wakeTicker(), [config]);
   // First run (SPEC §10.5): this browser had no config when the page opened, and the server has none either.
   const [freshBrowser] = useState(() => !hasStoredConfig());
   const [serverEmpty, setServerEmpty] = useState(false);
   const [studio, setStudio] = useState(
     () => new URLSearchParams(window.location.search).has("studio")
   );
+  // The studio slows down a minute after it loses focus; a kiosk never does.
+  useStudioFocusThrottle(studio && !kiosk);
   const [windowSize, setWindowSize] = useState(() => ({
     w: window.innerWidth,
     h: window.innerHeight,

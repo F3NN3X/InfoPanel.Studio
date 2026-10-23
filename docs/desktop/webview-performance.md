@@ -169,21 +169,76 @@ The window-state plugin keeps the geometry in memory, so the rebuilt window open
 4. Also check by hand: the window comes back live (not black or frozen) from the tray and from minimized; a
    `target=_blank` link opens the browser; the task manager button opens.
 
+### Visible and unfocused, after the Phase 2 ticker
+
+The overnight native growth of a visible, unfocused studio (~110 MB/h of WebView memory) is the case Phase 2 targets:
+the idle ticker and the unfocused throttle stop the continuous compositing that drove it. Target: **WebView growth
+under 20 MB/h**.
+
+1. Build and install the branch's app: `npm run desktop:build`, then run the NSIS installer from
+   `src-tauri/target/release/bundle/nsis/` (a local build; nothing is released). Keep **Reduce studio animation when
+   unfocused** on (Settings › General › Window, the default) and turn on debug mode (Settings › Diagnostics) so
+   `metrics.csv` is written.
+2. Open the Studio on your usual profile in Design view, note the time in UTC (`Get-Date -AsUTC`), then click another
+   window so the Studio stays visible but unfocused. Don't minimize it or send it to the tray. Leave it 8 hours.
+3. In the morning: `node tools/perf/metrics-trend.mjs "" 60 <start time, UTC>`.
+   - **Pass:** `webview MB` grows less than 20 MB an hour after the first hour (the first hour includes the page's
+     own warm-up).
+   - The JS heap (`JS heap MB`) and `streams` should stay flat; a climbing JS heap is a page leak, not compositing.
+   - **Refresh the Studio** (idle, the default) reloads the page once, 30 minutes into the unfocused stretch
+     (`studio refresh: idle for 30 minutes` in `app.log`); measure the growth after that reload.
+   - Still ~100 MB/h: note it, with the hours it grew in.
+4. For a quicker look, `tests/desktop/studio-unfocused-webview2.desktop.ts` runs the debug build on the fixture for
+   30 minutes (`PERF_SAMPLER_MS`) and reports MB per hour per process role.
+
 ## Open items
 
 1. **The overnight result** above. Nothing has confirmed yet that suspension stops the native growth.
 2. **First-load cost with Smooth on.** The Design canvas still costs ~0.3–0.4 renderer + ~0.4–0.5 GPU cores in
    Chromium on first load. With every transition forced off it drops to ~0.28 + 0.25; the rest is compositor
    transform animations and the 300 ms ring glides.
-3. **The hot/cold mystery.** On first load the Studio is "hot" (the ticker requests ~257 frames a second, ~0.5 + 0.55
-   cores). After Design → Help → Design, or a reload after that, it is "cold" (~1 frame a second, ~0.07 + 0.02
-   cores) with the same widgets and live values; in the cold state the transitions barely run and the Now Playing
-   spectrum is flat. Cause not found. Ruled out: media playback, the first user gesture (AudioContext), localStorage,
-   sessionStorage (unused), `data-lite-motion`, resize loops outside widgets, the marquee, PulseDot's box-shadow,
-   capping rAF at 60 Hz. Next idea: compare which ticker subscribers exist in each state (instrument `subscribeTick`
-   in a debug build) — the cold state may be the bug (smoothing and visualisers not re-subscribing after a remount).
-4. **Periodic reload while hidden** (Microsoft's advice for long-running pages), if suspension alone isn't enough.
-5. `msWebView2SimulateMemoryPressureWhenInactive` and similar flags are undocumented; only with evidence.
+3. **Periodic reload while hidden** (Microsoft's advice for long-running pages), if suspension alone isn't enough.
+4. `msWebView2SimulateMemoryPressureWhenInactive` and similar flags are undocumented; only with evidence.
+
+## Hot and cold (footprint Phase 2)
+
+Before: on first load the Studio was "hot" (the ticker asked for ~257 frames a second, ~0.5 + 0.55 cores); after
+Design → Help → Design, or a reload after that, "cold" (~1 frame a second, ~0.07 + 0.02 cores) with a flat Now
+Playing spectrum. Ruled out then: media playback, the first user gesture, local and session storage,
+`data-lite-motion`, resize loops, the marquee, PulseDot's box-shadow, capping rAF at 60 Hz.
+
+What the instrumented ticker shows now (`window.__tickerStats()` in a `npm run build:stats` build;
+`tests/perf/studio-hot-cold.perf.ts`, headed, on the heavy fixture and on `perf-viz` with Now Playing's visualiser
+and a Visualizer fed a moving spectrum; the studio window minimized while Help is open, then Screens → Design to
+remount the canvas):
+
+| | Subscribers | rAF/s hot | rAF/s cold | Visualiser moves |
+|---|---|---|---|---|
+| heavy, before the Phase 2 ticker | `statusbar:clock` (uncapped), `weather-fx` (30) | 72 | 69 | |
+| `perf-viz`, before | `frame-loop` (uncapped) with `viz:input` ×2 (uncapped), `viz:paint` ×2 (30) | 75 | 72 | hot and cold |
+| heavy, after | the same; the clock asleep | 41 | 41 | |
+| `perf-viz`, after | `frame-loop` (30) with `viz:input` ×2 (30), `viz:paint` ×2 (30) | 38 | 38 | hot and cold |
+
+The only direct `requestAnimationFrame` caller while idle is the ticker itself; the others (`studio-nav.ts`,
+`inspector-view.tsx`, `theme-editor.tsx`, `use-studio-commands.ts`, `zone-inspector.tsx`, `studio-view.tsx`,
+`studio-inspector.tsx`, `context-menu.tsx`, `settings/window-pages.tsx`, `settings/sections/changelog.tsx`) run once
+after a click to scroll or focus, and `components/gauges/frames-preview.tsx` and `use-playback.ts` loop only while a
+gauge preview plays.
+
+**Findings.**
+- **The cold state no longer reproduces.** The same subscribers come back after a remount and after the page was
+  hidden, and the visualiser keeps moving. The flat spectrum isn't there on this build with the fixture's data. What
+  made the old build cold isn't known: the user's own dashboard data could not be used for the comparison, and the
+  measurement then used `tools/perf/studio-cpu.cjs` on another build.
+- **The hot state was waste.** Nothing visible needed 60 frames a second. The StatusBar and Countdown clocks asked for
+  every frame (Max FPS) to notice a minute or second boundary, and the loop woke at Max FPS even when every subscriber
+  was capped at 30. With nothing but a clock on the page, the ticker ran 60 frames a second for one change a minute.
+
+**Fix (Phase 2.3, "The shared ticker" in [performance.md](../performance.md#the-shared-ticker)).** Subscribers settle
+or sleep for a set time, clocks sleep until their next boundary, and the loop sleeps until the earliest subscriber is
+due. First load and after remounts now reach the same state, bounded by real work: the weather effect (30 fps) on the
+heavy profile, the visualisers (30 fps) on `perf-viz`. An e2e check (`tests/e2e/visualiser-round-trip.spec.ts`) keeps
+the visualiser moving after the round trip.
 
 ## How to measure
 

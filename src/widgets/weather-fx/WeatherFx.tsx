@@ -76,7 +76,7 @@ export function WeatherFx({ kind, night, temp, wind, opts }: WeatherFxProps) {
     const dt = last.current ? now - last.current : 0;
     last.current = now;
     engine.current?.frame(dt, now, live.current);
-  }, !reduced && !hidden && w > 0 && h > 0, AMBIENT_FPS);
+  }, !reduced && !hidden && w > 0 && h > 0, AMBIENT_FPS, "weather-fx");
 
   return (
     <div ref={ref} aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
