@@ -6,8 +6,18 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **The InfoPanel editor, on its own page.** InfoPanel on the rail opens it: the Add palette and Layers on the left, the canvas in the middle, the inspector on the right. It edits a canvas zone, with undo and redo in the studio's history; Edit items on a canvas zone opens it there, and with nothing open the page lists the dashboard's InfoPanel profiles.
+- **New InfoPanel profile.** A profile from scratch, with a name and a size (480 × 320 up to 1920 × 1080, or custom), as a new screen in the editor. It's on the InfoPanel page, in Design's Add list under Layouts, in the Import window, in the Library and in the command palette.
+- **Add palette for InfoPanel's 14 item kinds**, grouped as Text, Data, Media and Layout. Each new item gets InfoPanel's own defaults and goes where InfoPanel would put it: into the selected group unless it's locked, else on top.
+- **Profile settings.** With nothing selected the inspector edits the profile: name, size, background, font, colours, font scale, Show FPS, OpenGL and the web view settings, with InfoPanel's own checks. Resizing keeps every item in place.
+- **Sensor picker with native bindings.** Choose a live Data API sensor, by source and device; the item gets InfoPanel's own binding, so the .infopanel file reads that sensor. On an InfoPanel build that reports no sensor ids it binds the preview only, and says so.
+
 ### Fixed
 
+- **A remapped sensor was lost in the .infopanel export.** A Remap choice, in the editor or at import, now rewrites the item's InfoPanel binding too.
+- **The .infopanel export now writes `_valueType` next to `ValueType`**, as InfoPanel's own files do.
 - **Audio Meter's Auto said it picks the loudest device.** It meters the default device: the default output, or the default input when Show is Inputs. The Device list's Auto row now says so and names the device it follows right now.
 
 ## [1.3.0-beta.22] - 2026-10-24

@@ -21,12 +21,14 @@ export interface ExportRequest {
   gauge?: { name: string; gauge: VectorGauge };
 }
 
-export type FileDoorEvent = ({ type: "import" } & ImportRequest) | ({ type: "export" } & ExportRequest);
+export type FileDoorEvent = ({ type: "import" } & ImportRequest) | ({ type: "export" } & ExportRequest) | { type: "new-infopanel" };
 
 const listeners = new Set<(e: FileDoorEvent) => void>();
 
 export const openImportDoor = (req: ImportRequest = {}): void => listeners.forEach((l) => l({ type: "import", ...req }));
 export const openExportSheet = (req: ExportRequest = {}): void => listeners.forEach((l) => l({ type: "export", ...req }));
+/** "New InfoPanel profile…" (the Add panel, the Import door, the Library, the InfoPanel page). */
+export const openNewInfoPanel = (): void => listeners.forEach((l) => l({ type: "new-infopanel" }));
 
 /** The studio view's subscription; returns its unsubscribe. */
 export function onFileDoor(listener: (e: FileDoorEvent) => void): () => void {

@@ -27,6 +27,7 @@ export type CommandAction =
   | { type: "save" }
   | { type: "export" }
   | { type: "import" }
+  | { type: "new-infopanel" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "shortcuts" }
@@ -119,6 +120,7 @@ const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: strin
   { id: "design", label: "Design", target: { view: "design" }, hint: "the canvas" },
   { id: "library", label: "Library", target: { view: "library" }, hint: "themes, styles, panels, media, fonts, canvases" },
   { id: "gauges", label: "Gauges", target: { view: "gauges" }, hint: "build and edit gauges" },
+  { id: "infopanel", label: "InfoPanel editor", target: { view: "infopanel" }, hint: "profiles for InfoPanel itself" },
   { id: "data", label: "Data", target: { view: "data" }, hint: "sources, points, display names" },
   { id: "alerts", label: "Alerts & Island", target: { view: "alerts" } },
   { id: "alerts:rules", label: "Alerts & Island › Rules", target: { view: "alerts", tab: "rules" } },
@@ -147,6 +149,7 @@ function generalCommands(s: CommandState): Command[] {
     ...(s.canRedo ? [general("redo", "Redo", { type: "redo" }, KEYS.redo)] : []),
     general("export", "Export & back up…", { type: "export" }),
     general("import", "Import…", { type: "import" }),
+    general("new-infopanel", "New InfoPanel profile…", { type: "new-infopanel" }, "from scratch"),
     general("shortcuts", "Keyboard shortcuts", { type: "shortcuts" }, KEYS.cheatsheet),
     general("live", "Open Live", { type: "live" }, "kiosk control"),
     general("preview:toggle", "Freeze the preview data / go live", { type: "toggle-preview" }, "this session, F"),

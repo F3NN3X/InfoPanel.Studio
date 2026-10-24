@@ -11,7 +11,7 @@ import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops";
 import { valueOf } from "@/lib/infopanel/editor/registry";
 import { groupId } from "@/lib/infopanel/remap/remap";
 import type { DisplayItem, ItemKind } from "@/lib/infopanel/schema";
-import { isBound, type DataApiValue } from "@/lib/infopanel/sensors";
+import { bindingFromRef, bindingRef, isBound, type DataApiValue } from "@/lib/infopanel/sensors";
 import type { InspectorContext, InspectorSection } from "@/components/studio/inspector-model";
 import { InspectorView, type SectionParts } from "@/components/studio/inspector/inspector-view";
 import { ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/components/studio/inspector/infopanel-defs";
@@ -21,6 +21,7 @@ import { describeNative } from "../native";
 import { valueText } from "../remap-panel";
 import { Segmented } from "./canvas-toolbar";
 import { kindIcon } from "./items-tree";
+import { NOT_EXPORTABLE } from "./sensor-picker";
 import type { CanvasEditor } from "./use-canvas-editor";
 
 interface ItemInspectorProps {
@@ -28,6 +29,10 @@ interface ItemInspectorProps {
   /** Live values by Data API key (the Sensor button's reading). */
   live: Readonly<Record<string, DataApiValue>>;
   onRemap: () => void;
+  /** Choose a sensor for the selected item (the sensor picker). */
+  onPickSensor?: () => void;
+  /** The Data API's sensors by key (whether a key binds natively). */
+  sensors?: Readonly<Record<string, DataApiValue>>;
   /** A Gauge item's "Edit gauge…" (opens it in Gauges). */
   onEditGauge?: (path: Path) => void;
 }
@@ -45,7 +50,7 @@ function Placeholder({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-export function ItemInspector({ editor, live, onRemap, onEditGauge }: ItemInspectorProps) {
+export function ItemInspector({ editor, live, onRemap, onPickSensor, sensors, onEditGauge }: ItemInspectorProps) {
   const { selection } = editor;
   if (selection.length === 0) {
     return (
@@ -64,10 +69,12 @@ export function ItemInspector({ editor, live, onRemap, onEditGauge }: ItemInspec
   const path = selection[0];
   const item = itemAt(editor.committed, path);
   // Keyed by path: a draft or an error never carries over to another item.
-  return item ? <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onEditGauge={onEditGauge} /> : null;
+  return item ? (
+    <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onPickSensor={onPickSensor} sensors={sensors} onEditGauge={onEditGauge} />
+  ) : null;
 }
 
-function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
+function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const kind = item.kind as ItemKind;
@@ -125,8 +132,13 @@ function ItemFields({ editor, path, item, live, onRemap, onEditGauge }: ItemInsp
         return {
           body: (
             <>
-              <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} />
-              {item.kind === "Gauge" && onEditGauge && <EditGaugeButton onClick={() => onEditGauge(path)} />}
+              <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} onPickSensor={onPickSensor} sensors={sensors} />
+              {item.kind === "Gauge" && onEditGauge && (
+                <>
+                  {item.Images.length === 0 && !("vector" in item) && <p className="px-4 pb-1.5 text-[11.5px] leading-snug text-ui-4">No frames yet: InfoPanel draws a gauge from its images. Edit gauge to build them.</p>}
+                  <EditGaugeButton onClick={() => onEditGauge(path)} />
+                </>
+              )}
             </>
           ),
         };
@@ -330,8 +342,25 @@ function EditGaugeButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** The Sensor button (status, key, what InfoPanel named it, the live value; opens Remap), then the mock slider. */
-function SensorCard({ editor, item, live, onRemap }: { editor: CanvasEditor; item: DisplayItem; live: Readonly<Record<string, DataApiValue>>; onRemap: () => void }) {
+/**
+ * The Sensor button (status, key, what InfoPanel named it, the live value; opens Remap), Choose
+ * sensor, what the `.infopanel` export reads, then the mock slider.
+ */
+function SensorCard({
+  editor,
+  item,
+  live,
+  onRemap,
+  onPickSensor,
+  sensors = {},
+}: {
+  editor: CanvasEditor;
+  item: DisplayItem;
+  live: Readonly<Record<string, DataApiValue>>;
+  onRemap: () => void;
+  onPickSensor?: () => void;
+  sensors?: Readonly<Record<string, DataApiValue>>;
+}) {
   if (!isBound(item)) return null;
   const key = editKeyOf(item);
   const via = importOf(item)?.via;
@@ -343,6 +372,10 @@ function SensorCard({ editor, item, live, onRemap }: { editor: CanvasEditor; ite
   const rawMax = Number(valueOf(item, "MaxValue") ?? 100);
   const max = rawMax > min ? rawMax : min + 100;
   const mock = editor.mock.get(id) ?? MOCK_DEFAULT;
+  const native = bindingRef(item);
+  const entry = key ? sensors[key] : undefined;
+  // The key reads a sensor the Data API has no native id for: the export can't carry it.
+  const previewOnly = entry !== undefined && !(entry.ref && bindingFromRef(entry.ref));
   return (
     <div className="space-y-3 px-4 pb-3">
       <button
@@ -361,6 +394,19 @@ function SensorCard({ editor, item, live, onRemap }: { editor: CanvasEditor; ite
         </span>
         {value && <span className="shrink-0 font-ui-mono text-[12px] text-ui-2">{valueText(value)}</span>}
       </button>
+      {onPickSensor && (
+        <button
+          type="button"
+          onClick={onPickSensor}
+          className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong"
+        >
+          Choose sensor…
+        </button>
+      )}
+      <p className="truncate text-[11px] text-ui-4" title={native ?? undefined}>
+        InfoPanel reads <span className="font-ui-mono text-ui-3">{native ?? "no sensor"}</span>
+      </p>
+      {previewOnly && <p className="text-[11.5px] leading-snug text-ui-warning">{NOT_EXPORTABLE}.</p>}
       {editor.sensorMode === "mock" && (
         <label className="block">
           <span className="mb-1 flex justify-between text-[11px] text-ui-4">

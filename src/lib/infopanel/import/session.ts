@@ -4,6 +4,7 @@
  * reads it is handed; the dialog (src/components/infopanel/import) drives it.
  */
 import { entriesFromZip, loadExport, type ExportEntry, type ParsedExport } from "../archive.ts";
+import { rebindChosen, type SensorOf } from "../editor/bind.ts";
 import { assetFile, tableFromExport, tableOf, type AssetFile, type AssetTable } from "../assets/assets.ts";
 import { assetUrl } from "../canvas.ts";
 import type { FontRequest } from "../font-loader.ts";
@@ -214,6 +215,8 @@ export interface BuildInput {
   uploaded: ReadonlyMap<string, string>;
   /** The asset store id of InfoPanel's screenshot to keep for Compare. */
   screenshot?: string;
+  /** The Data API's sensors by key: a chosen sensor with a ref is written into the native binding too. */
+  sensorOf?: SensorOf;
   now?: Date;
 }
 
@@ -227,7 +230,8 @@ export function buildCanvas(input: BuildInput): StoredCanvas {
   const { profile } = source.parsed;
   const exts = extOverrides(source.assets, input.uploaded);
   const ctx = importContext(profile, source.assets, input.resolved, exts);
-  const items = withMode(source.parsed.items, ctx, input.mode);
+  const remapped = rebindChosen(withMode(source.parsed.items, ctx, input.mode), remapKeys(input.resolved, input.overrides), input.sensorOf ?? (() => undefined));
+  const items = remapped.items;
   const restored = new Map((source.restore?.fonts ?? []).map((f) => [JSON.stringify([f.request.font, f.request.style, f.request.bold, f.request.italic]), f]));
   const fonts = [...fontRequests(items)].map(([k, { request }]): StoredFont => restored.get(k) ?? { request, use: "infopanel" });
   const stored = toStored({
@@ -238,7 +242,7 @@ export function buildCanvas(input: BuildInput): StoredCanvas {
     profile: { ...profile, Name: input.name },
     items,
     assets: source.assets,
-    keyOf: remapKeys(input.resolved, input.overrides),
+    keyOf: remapped.keyOf,
     fonts,
     screenshot: input.screenshot,
     now: input.now,

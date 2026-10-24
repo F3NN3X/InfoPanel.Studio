@@ -512,12 +512,33 @@ shows "Offline · edits kept locally" in the top bar until the next push lands. 
 draws a hatched tile with a broken-image icon (`MissingImage.tsx`); with the Data API unreachable the canvas editor's
 Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesign/FEATURE_MAP.md` §20.
 
-### Editing a canvas zone
+### Editing a canvas zone: the InfoPanel page
 
-Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",
-opens the canvas editor (`src/components/infopanel/edit/`, lazy-loaded) in
-place of the studio canvas, drawer and inspector. Done or Esc (with nothing
-selected) closes it; so do leaving Design for another view and an undo that takes the zone away.
+The InfoPanel editor is a full page of the studio (rail item InfoPanel, `mode: "infopanel"`), as Gauges is.
+Double-clicking a canvas zone, or the canvas zone inspector's "Edit items", opens the editor
+(`src/components/infopanel/edit/`, lazy-loaded) there on that zone. Done or Esc (with nothing selected) closes it
+and goes back to Design with the zone selected; an undo that takes the zone away, or another screen or page in
+Design, closes it too. Leaving the page for another view keeps it open, and the Library covers it without
+unmounting it, so a Library drag can land in it. With nothing open the page lists every canvas zone in the
+config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
+
+- **Document model**: the page edits one canvas zone's stored form (`Placement.canvas`), the single source of
+  truth for that document; the zone is on the screen and page Design shows, so `withCanvas` writes it back. A
+  Library canvas item is a saved copy and is never edited in place: Edit canvas opens the first zone made from it
+  (`findCanvasUse`, by source name and import time), else places it as a new screen and opens that zone.
+- **New profile** (`new-profile-dialog.tsx`, `newStored` in `import/stored.ts`): a stored form from scratch
+  (InfoPanel's `PROFILE` defaults, a #FF0A0A0C background, white Segoe UI text, `source.origin: "new"`), placed
+  by `importAsProfile` as a new screen and opened on the page. `openNewInfoPanel` (`file-doors.ts`) opens the
+  dialog from the Add panel, the Import door, the Library and the command palette.
+- **Add palette** (`add-palette.tsx`, `editor/create.ts`): the 14 kinds with InfoPanel's creation defaults
+  (`newItem`), inserted by `AddDisplayItem`'s rules (`insertItem`) and centred. Sensor kinds then open the sensor
+  picker; Image and Sensor image first take a My library file (`withNewFileItem`, as a Library drop).
+- **Native bindings** (`editor/bind.ts`, `bindingFromRef` in `sensors.ts`): a chosen sensor's Data API `ref`
+  becomes SensorType and its id fields, plus SensorName, so the `.infopanel` export reads it. The sensor picker
+  (`sensor-picker.tsx`) does this, and so does a Remap choice, in the editor (`withGroupKeys`) and at import
+  (`rebindChosen` in `buildCanvas`). A sensor with no ref binds the preview only.
+- **Profile settings** (`profile-settings.tsx`): the inspector with nothing selected; every field InfoPanel's
+  export carries, checked by `checkValue` over `PROFILE`, committed with the items unchanged.
 
 - **State** (`use-canvas-editor.ts`): the zone's stored form opened
   (`openCanvas`) and its items as edited (`editItems`,

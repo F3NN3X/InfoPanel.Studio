@@ -42,6 +42,49 @@ export function bindingRef(item: BoundItem): string | null {
   }
 }
 
+/** InfoPanel's own binding fields (`SensorReader`): only the id field of the SensorType is read. */
+export type NativeBinding =
+  | { SensorType: "Libre"; LibreSensorId: string }
+  | { SensorType: "Plugin"; PluginSensorId: string }
+  | { SensorType: "HwInfo"; HwInfoRemoteIndex: number; Id: number; Instance: number; EntryId: number };
+
+const isUint = (s: string) => /^\d{1,10}$/.test(s) && Number(s) <= 0xffffffff;
+
+/**
+ * The inverse of `bindingRef`: a Data API `ref` as InfoPanel's binding fields, as
+ * `SensorSnapshotBuilder` makes them ("libre:" + identifier, "plugin:" + PluginSensorId,
+ * "hwinfo:{remote}/{id}/{instance}/{entry}"). Libre identifiers and plugin ids start with "/";
+ * the remote index is -1 for this machine. Null for anything else.
+ */
+export function bindingFromRef(ref: string): NativeBinding | null {
+  if (ref.startsWith("libre:")) {
+    const id = ref.slice(6);
+    return id.length > 1 && id.startsWith("/") ? { SensorType: "Libre", LibreSensorId: id } : null;
+  }
+  if (ref.startsWith("plugin:")) {
+    const id = ref.slice(7);
+    return id.length > 1 && id.startsWith("/") ? { SensorType: "Plugin", PluginSensorId: id } : null;
+  }
+  if (ref.startsWith("hwinfo:")) {
+    const parts = ref.slice(7).split("/");
+    if (parts.length !== 4 || !/^-?\d{1,10}$/.test(parts[0]) || !parts.slice(1).every(isUint)) return null;
+    const remote = Number(parts[0]);
+    if (remote < -1 || remote > 2 ** 31 - 1) return null;
+    return { SensorType: "HwInfo", HwInfoRemoteIndex: remote, Id: Number(parts[1]), Instance: Number(parts[2]), EntryId: Number(parts[3]) };
+  }
+  return null;
+}
+
+/**
+ * The item rebound as InfoPanel's Replace sensor does: SensorType, that type's id fields and
+ * SensorName; the other ids stay as they were. Null when the kind can't hold the binding (a
+ * table reads plugins only).
+ */
+export function withBinding<T extends BoundItem>(item: T, binding: NativeBinding, sensorName: string): T | null {
+  if (item.kind === "TableSensor" && binding.SensorType !== "Plugin") return null;
+  return { ...item, ...binding, SensorName: sensorName };
+}
+
 /** The Data API key of a PluginSensorId (`SensorSnapshotBuilder.PluginKey`). */
 export const pluginKey = (id: string) => "plugins." + id.replace(/^\/+/, "").replaceAll("/", ".");
 

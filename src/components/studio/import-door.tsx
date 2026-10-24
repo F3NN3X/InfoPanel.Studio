@@ -4,6 +4,7 @@ import { FileArchive, FileJson, FileQuestion, Film, Gauge, ImageIcon, Monitor, T
 import { destinationsOf, type Destination, type DestinationId, type ImportKind } from "@/lib/import-sniff";
 import { cn } from "@/lib/utils";
 import type { DoorChoices, DoorFile } from "./import-door-actions";
+import { openNewInfoPanel } from "./file-doors";
 
 const KIND_ICON: Record<ImportKind, LucideIcon> = {
   config: FileJson,
@@ -164,7 +165,20 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
                 <span className="text-[12.5px]">Drop files here, or choose them</span>
                 <span className="text-[11px] text-ui-4">Config backups, screens, .infopanel, gauges, images, videos, fonts</span>
               </button>
-            ) : (
+            ) : null}
+            {files.length === 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  openNewInfoPanel();
+                }}
+                className="-mt-2 self-start text-[12px] text-ui-accent-text hover:underline"
+              >
+                No file? New InfoPanel profile…
+              </button>
+            )}
+            {files.length === 0 ? null : (
               <section aria-label="Detected" className="rounded-[10px] border border-ui-default bg-ui-chrome px-3.5 py-1.5">
                 <ul className="divide-y divide-ui-subtle">
                   {files.map((f) => (

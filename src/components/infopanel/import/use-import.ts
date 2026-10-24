@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { uploadBytes } from "@/lib/assets";
 import { getApiBase } from "@/lib/data-api";
 import { useSensorCatalog } from "@/lib/catalog";
+import { sensorOfCatalog } from "@/lib/infopanel/editor/bind";
 import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader";
 import { searchName } from "@/lib/infopanel/font-sources";
 import { planFonts, type FontRow } from "@/lib/infopanel/font-supply";
@@ -194,6 +195,6 @@ export function useImport(source: OpenedSource | null): ImportState | null {
     online,
     dataApi,
     report,
-    build: (name, screenshot) => buildCanvas({ source, name, mode, resolved, overrides, dataApi, uploaded: upload.ids, screenshot }),
+    build: (name, screenshot) => buildCanvas({ source, name, mode, resolved, overrides, dataApi, uploaded: upload.ids, screenshot, sensorOf: sensorOfCatalog(sensors) }),
   };
 }

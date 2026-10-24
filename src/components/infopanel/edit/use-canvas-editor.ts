@@ -9,6 +9,7 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import type { Placement } from "@/lib/layout";
 import { openCanvas, type OpenCanvas } from "@/lib/infopanel/canvas";
 import {
+  bindItem,
   changedGroups,
   drawAllAs,
   editContext,
@@ -19,6 +20,9 @@ import {
   rangeSelect,
   storeItems,
   withGroupKeys,
+  withNewFileItem,
+  withNewItem,
+  type DroppedFile,
   type ItemMode,
   type SensorMode,
 } from "@/lib/infopanel/canvas-edit";
@@ -32,12 +36,15 @@ import {
   setField,
   topmost,
   ungroup as ungroupItem,
+  updateAt,
   type Path,
 } from "@/lib/infopanel/editor/ops";
+import { sensorOfCatalog, type ChosenSensor } from "@/lib/infopanel/editor/bind";
 import { remapKeys } from "@/lib/infopanel/import/stored";
 import type { ConvertContext } from "@/lib/infopanel/native/convert";
 import { groupBindings, resolveAll, type CatalogIndex, type Group } from "@/lib/infopanel/remap/remap";
-import type { DisplayItem } from "@/lib/infopanel/schema";
+import type { DisplayItem, Profile } from "@/lib/infopanel/schema";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { DashboardConfig } from "@/lib/layout";
 
@@ -72,6 +79,14 @@ export interface CanvasEditor {
   remove(): void;
   nudge(dx: number, dy: number): void;
   drawAll(native: boolean): void;
+  /** A profile field (Name, size, colours, WebView …), already checked: one step; a `key` coalesces typing. */
+  setProfile(field: keyof Profile, value: unknown, key?: string): void;
+  /** A new item (the Add palette) placed by InfoPanel's rules and selected; returns its path. */
+  add(item: DisplayItem): Path;
+  /** A new Image or Sensor image showing a file (it joins the canvas's files); returns its path. */
+  addWithFile(item: DisplayItem, file: DroppedFile): Path;
+  /** Binds an item to a Data API sensor, natively too when the Data API gives its ref. */
+  bind(path: Path, sensor: ChosenSensor, rename?: (item: DisplayItem) => DisplayItem): void;
   /** Remap: binding groups, the user's choices, and a change applied as one step. */
   groups: Group[];
   overrides: Map<string, string>;
@@ -113,6 +128,11 @@ export function useCanvasEditor(
   };
 
   const single = selection.length === 1 ? selection[0] : null;
+  const commitWith = (stored: StoredCanvas, nextSelection?: Path[], key?: string) => {
+    setDraft(null);
+    if (nextSelection) setSelection(nextSelection);
+    setConfig((c) => replace(c, zone.id, stored), key);
+  };
 
   return {
     zone,
@@ -134,11 +154,7 @@ export function useCanvasEditor(
     preview: setDraft,
     commit,
     setField: (path, field, value, key) => commit(setField(committed, path, field, value), key),
-    commitStored: (stored, nextSelection) => {
-      setDraft(null);
-      if (nextSelection) setSelection(nextSelection);
-      setConfig((c) => replace(c, zone.id, stored));
-    },
+    commitStored: (stored, nextSelection) => commitWith(stored, nextSelection),
     duplicate: () => {
       if (!selection.length) return;
       const r = duplicateItems(committed, selection);
@@ -165,13 +181,33 @@ export function useCanvasEditor(
       if (movable.length) commit(moveBy(committed, movable, dx, dy), `canvas-nudge:${zone.id}`);
     },
     drawAll: (native) => commit(drawAllAs(committed, modes, native)),
+    setProfile: (field, value, key) => {
+      if (Object.is(open.profile[field], value)) return;
+      commitWith(storeItems(open.stored, { ...open.profile, [field]: value }, committed), undefined, key);
+    },
+    add: (item) => {
+      const r = withNewItem(committed, open.profile, item, single);
+      commit(r.items, undefined, [r.path]);
+      setAnchor(r.path);
+      return r.path;
+    },
+    addWithFile: (item, file) => {
+      const r = withNewFileItem(open.stored, open.profile, committed, item, file, single);
+      commitWith(r.stored, [r.path]);
+      setAnchor(r.path);
+      return r.path;
+    },
+    bind: (path, sensor, rename = (i) => i) => {
+      const item = itemAt(committed, path);
+      if (item) commit(updateAt(committed, path, () => bindItem(rename(item), sensor)));
+    },
     groups,
     overrides,
     applyOverrides: (next, index) => {
       const changed = changedGroups(overrides, next);
       if (changed.size === 0) return;
       const resolved = resolveAll(groups, index, next);
-      commit(withGroupKeys(committed, remapKeys(resolved, next), changed));
+      commit(withGroupKeys(committed, remapKeys(resolved, next), changed, sensorOfCatalog(index.catalog.sensors as Record<string, DataApiValue>)));
     },
     sensorMode,
     setSensorMode,

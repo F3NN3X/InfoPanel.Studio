@@ -380,7 +380,7 @@ export function ZoneInspector({
 
   const canvasNote = zone.module === CANVAS_ID && zone.canvas && onEditCanvas && (
     <InspectorNote key="canvas">
-      An imported InfoPanel profile. Its items, modes and sensors are edited in the canvas editor.{" "}
+      An InfoPanel profile. Its items, modes and sensors are edited in the InfoPanel editor.{" "}
       <button type="button" onClick={onEditCanvas} className="font-medium text-ui-accent-text hover:underline">
         Edit items
       </button>

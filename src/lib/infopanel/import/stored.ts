@@ -67,7 +67,8 @@ export interface DataApiInfo {
 export interface StoredCanvas {
   format: typeof STORED_FORMAT;
   version: typeof STORED_VERSION;
-  source: { name: string; origin: "file" | "corpus" | "installed"; importedAt: string };
+  /** Where it came from; "new" was made from scratch in the studio. */
+  source: { name: string; origin: "file" | "corpus" | "installed" | "new"; importedAt: string };
   dataApi: DataApiInfo | null;
   defaultMode: DefaultMode;
   profile: Record<string, unknown>;
@@ -159,6 +160,28 @@ export function toStored(input: StoreInput): StoredCanvas {
     fonts: input.fonts,
     ...(input.screenshot ? { screenshot: input.screenshot } : {}),
   };
+}
+
+/** A new profile's own look: a near-black background with white text (InfoPanel's defaults are white with black text). */
+export const NEW_PROFILE_LOOK = { BackgroundColor: "#FF0A0A0C", Color: "#FFFFFFFF", Font: "Segoe UI" } as const;
+
+/**
+ * A profile made from scratch, without a parsed source: InfoPanel's profile defaults (`PROFILE`)
+ * with the name, size and `NEW_PROFILE_LOOK`, no items, files or fonts. Reads back through
+ * `readStored` as it is.
+ */
+export function newStored(input: { name: string; width: number; height: number; now?: Date }): StoredCanvas {
+  const defaults = Object.fromEntries(Object.entries(PROFILE as Schema).map(([k, s]) => [k, s.default])) as unknown as Profile;
+  const profile: Profile = {
+    ...defaults,
+    ...NEW_PROFILE_LOOK,
+    Guid: crypto.randomUUID(),
+    Name: input.name,
+    Width: Math.max(1, Math.round(input.width)),
+    Height: Math.max(1, Math.round(input.height)),
+    unknown: {},
+  };
+  return toStored({ name: input.name, origin: "new", dataApi: null, defaultMode: "infopanel", profile, items: [], assets: new Map(), keyOf: () => null, fonts: [], now: input.now });
 }
 
 /* ---- reading ---- */
@@ -313,7 +336,7 @@ export function readStored(raw: unknown): ReadStored {
     version: STORED_VERSION,
     source: {
       name: typeof src.name === "string" ? src.name.slice(0, 200) : profile.Name,
-      origin: src.origin === "corpus" || src.origin === "installed" ? src.origin : "file",
+      origin: src.origin === "corpus" || src.origin === "installed" || src.origin === "new" ? src.origin : "file",
       importedAt: typeof src.importedAt === "string" ? src.importedAt.slice(0, 40) : "",
     },
     dataApi: api ? { url: String(api.url ?? ""), ref: api.ref === true, tables: api.tables === true, fonts: api.fonts === true } : null,

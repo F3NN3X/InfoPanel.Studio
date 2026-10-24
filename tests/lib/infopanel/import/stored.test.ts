@@ -7,7 +7,10 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { BoundItem } from "@/lib/infopanel/sensors.ts";
 import { STARTERS } from "@/lib/infopanel/gauges/presets.ts";
 import { DEFAULT_GAUGE } from "@/lib/infopanel/gauges/vector.ts";
-import { assetsFrom, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "@/lib/infopanel/import/stored.ts";
+import { assetsFrom, newStored, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "@/lib/infopanel/import/stored.ts";
+import { profileXml } from "@/lib/infopanel/export/write.ts";
+import { checkValue } from "@/lib/infopanel/editor/registry.ts";
+import { PROFILE } from "@/lib/infopanel/schema.ts";
 
 const xml = import.meta.glob<string>("/lab/infopanel/corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
 const ids = [...new Set(Object.keys(xml).map((k) => k.split("/").at(-2)!))];
@@ -139,5 +142,45 @@ describe("bundle", () => {
     const entries = await Promise.all(listEntries(zip).map(async (e) => ({ name: e.name, data: await readEntry(zip, e) })));
     const tampered = writeZip(entries.map((e) => (e.name.startsWith("assets/") ? { ...e, data: new Uint8Array([9]) } : e)));
     expect((await openBundle(tampered)).missing).toEqual(["Logo.png", `assets/${logo.hash}`]);
+  });
+});
+
+describe("a profile from scratch", () => {
+  it("is a stored form readStored takes as it is", () => {
+    const s = newStored({ name: "Desk", width: 1920.4, height: 480, now: new Date("2026-10-24T00:00:00Z") });
+    const r = readStored(JSON.parse(JSON.stringify(s)));
+    expect(r.issues).toEqual([]);
+    expect(r.items).toEqual([]);
+    expect(r.stored.source).toEqual({ name: "Desk", origin: "new", importedAt: "2026-10-24T00:00:00.000Z" });
+    expect(r.profile).toMatchObject({ Name: "Desk", Width: 1920, Height: 480, BackgroundColor: "#FF0A0A0C", Color: "#FFFFFFFF", FontScale: Math.fround(1.33), FontSize: 26 });
+    expect(r.profile.Guid).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+describe("profile settings", () => {
+  it("every field InfoPanel exports round-trips through the stored form and Profile.xml", () => {
+    const edits: Record<string, unknown> = {
+      Name: "Side & panel", Width: 1280, Height: 480, BackgroundColor: "#FF112233", Font: "Orbitron", FontSize: 18, Color: "#CCFFEEDD",
+      FontScale: 1.5, ShowFps: true, OpenGL: true, WebViewEnabled: true, WebViewUrl: "http://127.0.0.1/x?a=1&b=2", WebViewInteractive: true,
+      WebViewDisableCache: true, WebViewAutoRefreshSeconds: 30, WebViewMaxFps: 60,
+    };
+    let profile = readStored(newStored({ name: "P", width: 800, height: 480 })).profile;
+    for (const [k, v] of Object.entries(edits)) {
+      const r = checkValue(PROFILE[k as keyof typeof PROFILE], v);
+      expect(r.ok, k).toBe(true);
+      if (r.ok) profile = { ...profile, [k]: r.value };
+    }
+    const stored = toStored(input([], { profile }));
+    const back = readStored(JSON.parse(JSON.stringify(stored))).profile;
+    expect(back).toEqual(profile);
+    expect(parseProfileXml(profileXml(back)).profile).toEqual(profile);
+  });
+
+  it("refuses what InfoPanel's setters refuse, and clamps what they clamp", () => {
+    expect(checkValue(PROFILE.Width, 0).ok).toBe(false);
+    expect(checkValue(PROFILE.FontSize, -1).ok).toBe(false);
+    expect(checkValue(PROFILE.WebViewAutoRefreshSeconds, 2)).toEqual({ ok: true, value: 5 });
+    expect(checkValue(PROFILE.WebViewAutoRefreshSeconds, -3)).toEqual({ ok: true, value: 0 });
+    expect(checkValue(PROFILE.WebViewMaxFps, 999)).toEqual({ ok: true, value: 240 });
   });
 });
