@@ -101,3 +101,87 @@ reported at 3B.
 - The contract's oddities are kept as they are and pinned by tests. The two real bugs it found (iCal months without
   the day; non-atomic font cache and agent settings writes) were fixed in the Node server first (#122), so the port
   copies the fixed behaviour.
+
+## Known differences from server.mjs (Gate 3B)
+
+Every difference the port, the parity fixtures and `parity:servers` turned up, with why it stays. "Close" means the
+native server answers with a status and `Connection: close` where Node resets the socket.
+
+**HTTP layer**
+- An HTTP/1.0 request gets an HTTP/1.0 status line (hyper echoes the version). `parity:servers` normalises it.
+- Header names are lowercase and hyper places `date` itself; no `Connection: keep-alive` / `Keep-Alive: timeout=5`
+  headers, no 5 s keep-alive idle timeout, and Node's 60 s header and 300 s request timeouts aren't mirrored. Clients
+  don't depend on any of these; the kiosk loads 282 B lighter for it.
+- Oversize bodies (config, control, canvas, library, calendar, hooks over 512 KiB): a status (400 or 413) and close,
+  where Node resets the socket. A status is the better answer (decided in step 3).
+- HEAD to an SSE route closes at once; Node keeps it open and counts it as a client.
+- A handler panic answers 500 `internal error`; its log line has no method or path. I/O error texts are Rust's.
+- `HOST` given as a name binds its first resolved address.
+- The proxies' 200s and `send()` bodies are chunked (no `Content-Length`), as Node's are (contract corrected).
+- Reason phrases use Node's wording where hyper's differ (418, 509, unknown codes).
+
+**JSON**
+- serde_json refuses nesting past 128, numbers like `1e400` and lone surrogate escapes (400) where `JSON.parse`
+  accepts them; a hook body with `1e999` is a 400 (Node reads Infinity and answers 204). None of these come from a
+  real client.
+- A pathological PATCH (profiles with null or primitive entries, a key `"undefined"`) leaves the config unchanged where
+  Node 500s or mangles it.
+- Prototype keys (`constructor`, `toString`) are plain unknown values: a control action without `profile` is "not
+  found", an alert severity `constructor` is unknown, a session file with status `toString` is idle.
+- Strings cut mid surrogate pair (library names, calendar labels and passwords, agent fields) get U+FFFD or drop the
+  half, where Node keeps a lone surrogate.
+
+**Runtime-specific**
+- `/api/debug/stats`: `memory` is `{ rss, virtual }` (no V8 heap), `resources` counts tasks, workers and SSE clients,
+  and `eventLoopDelayMs` is the lateness of a 10 ms timer (p50, p99 over about 10 s, max since start). `uptimeSeconds`
+  counts from bind. In the app, the server page's Memory is the app's own and the CSV's `sidecar.*` columns are empty.
+- Machine name from `sysinfo::System::host_name` (`GetComputerNameExW`, where `os.hostname` uses `GetHostNameW`): the
+  same name on an ordinary machine, not compared on this one.
+- `[debug]` lines go to stderr (Node's to stdout). In the app, server log lines carry the app log's prefix
+  (`[date][time][server][LEVEL]`).
+- `ALLOW_REMOTE_EDIT` is read once at start (Node reads it per call; the app restarts the server on change anyway). The
+  default `DASHBOARD_DIST` is `./dist` from the cwd and the version is embedded at build time (the app passes its own).
+- A relative `INFOPANEL_STUDIO_DATA_DIR` resolves against the app's cwd (Node's sidecar resolved it against `app/`);
+  only hand-run tests use one.
+
+**Text and dates**
+- Locale: BCP 47 grammar and the 452-language table from Node 24.6 / ICU 77.1; region aliases such as `sgn-BR` aren't
+  modelled. `parity:check` runs on Node 24.6.0 so the table matches.
+- `Date.parse`: ISO forms only (with V8's day overflow and `24:00`); legacy text and numeric strings are invalid (Node
+  reads `"5"` as 2001). Only ISO timestamps reach it.
+- `localeCompare` is approximated: ICU root order for ASCII, code point otherwise. The library sorts ISO `createdAt`
+  by code point, the same order.
+- Time zones from chrono-tz, case-insensitive plus offsets; its tz database may be newer or older than ICU's. Floating
+  calendar times use the system zone and ignore `TZ` on Windows (Node honours `TZ`).
+
+**Calendar and iCal**
+- Fetch errors name the innermost cause with URLs stripped (`getaddrinfo ENOTFOUND host`, `The operation was
+  aborted`); several feeds' errors join in link order (Node: completion order).
+- A reconfigure cancels a refresh in flight (Node lets it finish and discards it).
+- `INTERVAL` is truncated to an integer and clamped to 1..100000 (`1.5` differs).
+
+**Alerts, agents, OBS**
+- `alerts.json` is written only when the history changes (and once after the first pass); Node rewrites it about every
+  second with the same bytes. A deleted `alerts.json` comes back on the next change.
+- Alert streams: reqwest with no proxy, a 10 s connect timeout and redirects followed; no 300 s idle body timeout
+  (undici reconnects after 300 s of silence).
+- The agent-usage scan runs on a blocking thread, one at a time; Codex limits show at the end of a scan.
+- A session's process counts alive while it exists, another user's included (Node: `kill(pid, 0)` and EPERM). Native
+  asks with one `OpenProcess` per pid.
+- `profiles.xml` is read by text scanning like Node's regexes (a strict XML parser would reject files Node lists).
+- Upload slots are reserved before the size check (race-free, same answers). 507 quota, mid-stream 413 and 429 are
+  unit-tested in Rust but not compared against Node.
+
+**Proxies**
+- The loopback http path sends reqwest's default headers (not undici's `user-agent: node`, `accept-language: *`,
+  `sec-fetch-mode`, `accept-encoding`) and so gets no gzip. Node's fetch bad-ports list (82 ports) is reproduced.
+- Font errors read `fetch failed` / `terminated`; an unreadable cache's 502 text is the Rust I/O error.
+- The catalogue JSON check (serde_json, BOM stripped) also refuses lone surrogate escapes and nesting past 128.
+- Both servers now give the font proxy a 60 s deadline (it had none).
+
+**ips-agent** (against `tools/agent-status.mjs` and `agent-install.mjs`)
+- HTTPS base URLs aren't supported (the POST is skipped; Node would try TLS). The server is plain HTTP.
+- A refused connect on Windows fails fast, as libuv does (`SIO_TCP_INITIAL_RTO`); `localhost` tries IPv4 first.
+- `--wrap`'s lenient base64url is mimicked; exotic malformed input may decode differently.
+- Installer: serde's error text; a non-object settings root is an error (Node crashed); `1.0` stays `1.0` (JS writes
+  `1`); a bare `statusLine` string counts as absent; the exe path uses forward slashes; no CLI text output or `--node`.

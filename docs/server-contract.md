@@ -917,6 +917,12 @@ Invocations: `agent-status.mjs hook claude|codex [--url=<base>]`, `agent-status.
 - Tests: `agent-install.test.mjs` (9 cases; includes a spawn of the forwarder against a fake server).
 
 #### 4.3 Rust side (`src-tauri/src/agents.rs`)
+
+> **Since phase 3.5** the installer is ported to Rust (`src-tauri/crates/ips-agent/src/install.rs`, called in process by
+> `agents.rs`), and the hooks run `ips-agent.exe hook claude|codex` / `statusline` instead of node and
+> `agent-status.mjs`. Installing removes the old `agent-status.mjs` hooks; `needs_reinstall` keys on the ips-agent path;
+> the NSIS uninstaller runs `ips-agent remove-hooks`. The rest of this section describes the Node path that it replaced,
+> kept as the spec the port matches.
 The app does not reimplement the installer: it runs `<bundled node.exe> <app>/tools/agent-install.mjs …` with `current_dir = app_dir` (`run_script`, `:100-133`) and parses stdout JSON (`parse_output`: whole stdout as an object, else the last line that parses to an object; `output_has_error` = any `results[].status == "error"`; a step fails on non-zero exit, no parsable output, or an error status; error text = trimmed stderr or `agent-install exited with <status>`).
 - Install = two steps: `[--remove --apply --json]` then `[<script> --apply --node=<node> --url=<hook_url> --json]` (`agent_args`, `install_steps(true) = [false,true]`; disable = remove only). `hook_url` = `settings::server_origin(s)` (loopback origin `http://127.0.0.1:<port>`, test: LAN listen still gives `127.0.0.1`).
 - Marker: after success, write `<config_dir>/agents-installed` containing the node path (enable) or delete it (disable) (`:146-153`).
