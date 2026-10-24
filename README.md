@@ -12,7 +12,7 @@ Studio server (127.0.0.1:3922) ──studio, kiosk page, config──▶ desktop
 
 ## Install
 
-Download `InfoPanel Studio_<version>_x64-setup.exe` from [Releases](https://github.com/F3NN3X/InfoPanel.Studio/releases) and run it. It installs per user (no admin), ships its own Node and server, opens the studio in its own window, and keeps the server running from the tray so kiosk pages keep updating with the window closed; it can start at login. The installer is unsigned, so SmartScreen warns on first run. Settings and debug mode are in [docs/desktop/README.md](docs/desktop/README.md).
+Download `InfoPanel Studio_<version>_x64-setup.exe` from [Releases](https://github.com/F3NN3X/InfoPanel.Studio/releases) and run it. It installs per user (no admin), runs the dashboard server inside the app, opens the studio in its own window (or in Edge or your browser), and keeps the server running from the tray so kiosk pages keep updating with the window closed; it can start at login. The installer is unsigned, so SmartScreen warns on first run. Settings and debug mode are in [docs/desktop/README.md](docs/desktop/README.md).
 
 Your config lives in `%LOCALAPPDATA%\InfoPanel\Dashboard` and is shared by the desktop app and the server run from source, so switching between them keeps your layouts.
 

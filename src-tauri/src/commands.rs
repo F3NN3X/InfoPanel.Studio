@@ -872,7 +872,7 @@ mod tests {
             debug: false,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
-            server: crate::settings::ServerImpl::Node,
+            server: saved.server,
         };
         assert!(!restart_required(&saved, false, None));
         assert!(!restart_required(&saved, false, Some(&running)));
@@ -898,7 +898,7 @@ mod tests {
                 ..saved.clone()
             },
             Settings {
-                server: crate::settings::ServerImpl::Native,
+                server: crate::settings::ServerImpl::Node,
                 ..saved.clone()
             },
         ] {

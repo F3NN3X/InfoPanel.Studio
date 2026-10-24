@@ -47,8 +47,8 @@ export interface DesktopApp {
   stop(): void;
 }
 
-/** The server the specs run: DESKTOP_SERVER=native runs ips-server in the app, anything else the Node sidecar. */
-export const SERVER_MODE = process.env.DESKTOP_SERVER === "native" ? "native" : "node";
+/** The server the specs run: DESKTOP_SERVER=node runs the Node sidecar, anything else ips-server in the app. */
+export const SERVER_MODE = process.env.DESKTOP_SERVER === "node" ? "node" : "native";
 
 /**
  * Scratch config and data folders, settings merged over safe defaults; the app is launched by `launch()`. `extraEnv`

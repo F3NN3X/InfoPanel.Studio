@@ -3,7 +3,7 @@ id: studio
 title: The studio
 icon: space_dashboard
 related: [zones, widget-settings, shortcuts]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.18
 ---
 
 The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Design.
@@ -42,6 +42,22 @@ Shows the selected screen at its real size, scaled to fit the window. Grid lines
 The bar under the canvas toggles the left panel, the grid and rulers, zooms in and out, and has **Fit** and the resolution button.
 
 To move around, hold `Space` and drag, or drag with the middle mouse button, to pan the canvas at any zoom. **Fit** puts it back. `Ctrl` + mouse wheel zooms.
+
+## Design preview data
+
+The Design canvas can show live sensor values or a snapshot of them. A snapshot uses much less CPU: the studio closes its own Data API connection while nothing live is on screen, and weather, visualisers and other effects stand still. Choose in Settings › Studio, or under Window in Settings › App › General:
+
+| Choice | The canvas shows |
+|---|---|
+| **Live** | Live values, all the time |
+| **Frozen** | A snapshot, all the time |
+| **Frozen when unfocused** | Live values while you work, and a snapshot from a minute after the studio loses focus (the default) |
+
+While the canvas is frozen, the bar under it shows **Frozen · 14:05** with the time of the snapshot. Press the refresh button beside it (`Shift+F`) for a new snapshot, or **Go live for this session** to see live values until the page reloads; the setting stays as it is. `F` switches between frozen and live.
+
+Only the Design canvas and the Add widget list freeze. Kiosks, Kiosk view, the Data view, the sensor picker and alert previews always show live values.
+
+The setting follows you: the app window and a studio in a browser read the same one.
 
 ## Pages
 

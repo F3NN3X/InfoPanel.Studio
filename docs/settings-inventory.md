@@ -708,7 +708,7 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 | `autoDownload` | Download in the background | boolean | `false` | Settings › Updates |
 | `agents.enabled` | Connect coding agents (Claude Code and Codex hooks installed by the app) | boolean | `false` | Settings › Coding agents |
 | `debug` | Debug mode (debug logging and leak sampling; also `--debug`, `INFOPANEL_STUDIO_DEBUG=1`) | boolean | `false` | Settings › Diagnostics |
-| `server` | Server, experimental (which server the app starts: the bundled Node running `server.mjs`, or `ips-server` inside the app's process with the same inputs; read at start, so a change shows the restart bar) | `node` (Node), `native` (Native) | `node` | Settings › Diagnostics |
+| `server` | Server (which server the app starts: `ips-server` inside the app's process, or the bundled Node running `server.mjs` with the same inputs; read at start, so a change shows the restart bar). Settings version 3 moved a stored `node`, the old default, to `native` once | `native` (Native), `node` (Node) | `native` | Settings › Diagnostics |
 | `version`, `agents.installed`, `closeWarningShown` | Bookkeeping: file layout, what the hooks were last written for, the one-time close warning | | | Not edited by hand |
 
 The server's own environment variables (`PORT`, `HOST`, `ALLOWED_HOSTS`, `DASHBOARD_DIST`,

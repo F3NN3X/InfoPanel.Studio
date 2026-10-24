@@ -169,9 +169,9 @@ function ServerRow() {
   return (
     <div ref={found.ref} className={cn("flex items-center gap-4 border-t border-s-divider px-[18px] py-4", found.className)}>
       <div className="flex flex-1 flex-col gap-[3px]">
-        <span className="text-sm font-medium">Server (experimental)</span>
+        <span className="text-sm font-medium">Server</span>
         <span className="text-[12.5px] leading-[1.45] text-s-muted">
-          Native runs the dashboard server inside the app instead of the bundled Node. It is still being tested. Takes effect when the server restarts.
+          Native runs the dashboard server inside the app. Node runs the previous server in a separate process, for a while longer, in case Native gives you trouble. Takes effect when the server restarts.
         </span>
       </div>
       <Segmented<ServerImpl>

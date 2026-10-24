@@ -3,7 +3,7 @@ id: agents
 title: Coding agents
 icon: smart_toy
 related: [problems, diagnostics]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.18
 ---
 
 Show what Claude Code and Codex are doing, live on your dashboard.
@@ -24,7 +24,7 @@ Show what Claude Code and Codex are doing, live on your dashboard.
 | Claude Code | `~/.claude/settings.json` | Adds hooks, and wraps your statusline so it still prints as before |
 | Codex | `~/.codex/hooks.json` | Adds hooks |
 
-Each file is backed up before it is edited, and **Open backups** shows them. The hooks run InfoPanel Studio's own Node, so you don't need Node installed. Turning the setting off removes what was added.
+Each file is backed up before it is edited, and **Open backups** shows them. The hooks run `ips-agent.exe`, a small helper installed with InfoPanel Studio, so you don't need Node installed. It takes about 6 ms per event. Hooks written by an older version are moved over when the app starts. Turning the setting off removes what was added.
 
 ## If sessions don't appear
 
