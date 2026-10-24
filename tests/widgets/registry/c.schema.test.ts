@@ -21,11 +21,11 @@ function specProps(id: string): string[] {
 
 // Per template: the stored setting key behind each spec prop, or null for a shell-level callback.
 const MANIFEST: Record<string, Record<string, string | null>> = {
-  NowPlaying: { source: "source", showArt: "showArt", layout: "playerLayout", progress: "progress", vizMode: "vizStyle", vizDevice: "device", vizRamp: "vizColor1", showTimeline: "showTimeline" },
-  AudioMeter: { device: "device", mode: "mode", segments: "segments", meterStyle: "meterStyle" },
+  NowPlaying: { source: "source", showArt: "showArt", layout: "playerLayout", progress: "progress", vizMode: "vizStyle", vizDevices: "vizDevices", vizFlow: "flow", vizRamp: "vizColor1", showTimeline: "showTimeline" },
+  AudioMeter: { device: "device", devices: "devices", flow: "flow", mode: "mode", segments: "segments", meterStyle: "meterStyle" },
   VolumeMixer: { onSetVolume: null, onToggleMute: null },
-  MeterBridge: { channels: "devices", orientation: "orientation", floor: "floor", segments: "segments", holdMs: "holdMs", warnDb: "warn.db", clipDb: "crit.db", showScale: "showScale", showVolume: "showVolume", ladder: "ladder" },
-  Visualizer: { mode: "mode", device: "device", bands: "bands", ramp: "ramp", sensitivity: "sensitivity", peaks: "peaks" },
+  MeterBridge: { channels: "devices", orientation: "orientation", floor: "floor", segments: "segments", holdMs: "holdMs", warnDb: "warn.db", clipDb: "crit.db", showScale: "showScale", showVolume: "showVolume", ladder: "ladder", flow: "flow" },
+  Visualizer: { mode: "mode", devices: "devices", flow: "flow", bands: "bands", ramp: "ramp", sensitivity: "sensitivity", peaks: "peaks" },
   WaveLink: {},
 };
 
@@ -62,7 +62,7 @@ describe("group C dependent settings", () => {
     const mod = GROUP_C.find((m) => m.id === id)!;
     return (mod.settings ?? []).filter((d) => isVisible(d, { ...effectiveSettings(mod, {}), ...values })).map((d) => d.key);
   };
-  const VIZ_KEYS = ["vizStyle", "vizBars", "device", "showTimeline", "vizShape", "vizGap", "vizPeaks", "vizColorMode", "vizPeakColor", "vizGain", "vizFloorDb", "liveCapture"];
+  const VIZ_KEYS = ["vizStyle", "vizBars", "vizDevices", "showTimeline", "vizShape", "vizGap", "vizPeaks", "vizColorMode", "vizPeakColor", "vizGain", "vizFloorDb", "liveCapture"];
 
   it("shows the NowPlaying visualiser settings only for the Visualizer progress row", () => {
     for (const k of VIZ_KEYS) expect(shown("NowPlaying", { progress: "bar" }), k).not.toContain(k);

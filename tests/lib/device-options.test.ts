@@ -28,6 +28,15 @@ describe("deviceOptions", () => {
     expect(deviceOptions("adapter", sensors).map((o) => o.value)).toEqual(["", "ethernet"]);
   });
 
+  it("tags each audio device with its flow, a device without data-flow being an output", () => {
+    const withInput = { ...sensors, "plugins.audio-level-meter.mic-1.device-name": t("Microphone (USB)"), "plugins.audio-level-meter.mic-1.data-flow": t("input") };
+    expect(deviceOptions("audio", withInput).filter((o) => o.value).map((o) => [o.value, o.flow])).toEqual([
+      ["default-audio", "output"],
+      ["dev-1", "output"],
+      ["mic-1", "input"],
+    ]);
+  });
+
   it("is just Auto with no live keys", () => {
     expect(deviceOptions("cpu", {})).toEqual([{ value: "", label: "Auto" }]);
   });

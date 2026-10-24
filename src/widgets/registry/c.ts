@@ -3,7 +3,7 @@ import { BALLISTICS } from "@/lib/audio/ballistics";
 import { deviceOf, devicesOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
-import { audioSettings, ballisticsOf, WAVELINK_SETTINGS, wavelinkToProps } from "./audio-settings";
+import { audioFlowSetting, audioSettings, ballisticsOf, flowOfSettings, pickedDevicesOf, WAVELINK_SETTINGS, wavelinkToProps } from "./audio-settings";
 import { boolOf, boolSetting, colorSetting, deviceSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, pick, stringOf, thresholdSetting, viewOnly, viewSetting } from "./settings-kit";
 import AudioMeter, { AUDIO_HOT_DB, AUDIO_WARN_DB, meta as audioMeter, type AudioMeterProps } from "../AudioMeter";
 import MeterBridge, { meta as meterBridge, type MeterBridgeProps } from "../MeterBridge";
@@ -78,7 +78,8 @@ export const GROUP_C: DashboardModule[] = [
       vizLook: { ...shared.vizLook, colorMode: colorModeOf(s, saved), peaks: boolOf(s.vizPeaks) },
       vizMode: vizStyleOf(hidden),
       // unset / Auto = "" (the loudest live device); undefined would pin default-audio
-      vizDevice: deviceOf(hidden, "liveSource") ?? "",
+      vizDevices: pickedDevicesOf(hidden, "vizDevices"),
+      vizFlow: flowOfSettings(s),
       vizRamp: stringOf(s.vizColor1) ?? stringOf(hidden.vizRamp),
       };
     },
@@ -96,6 +97,8 @@ export const GROUP_C: DashboardModule[] = [
       colorSetting("levelColor", "Level", { role: "ok", more: false }),
       colorSetting("hotColor", "Hot level", { role: "crit", more: false }),
       single(deviceSetting("Device", "audio", { group: DEVICE })),
+      bridge(devicesSetting("Devices (none = all)", "audio", { group: DEVICE })),
+      audioFlowSetting(DEVICE),
       // The hot zone is the Audio level threshold (config v8): its own defaults are the meter's old 72 % / 90 % of full scale.
       thresholdSetting("db", { default: AUDIO_WARN_DB, defaultY: AUDIO_HOT_DB }),
       ...audioSettings("meterBallistics"),
@@ -104,6 +107,8 @@ export const GROUP_C: DashboardModule[] = [
       ...pick<AudioMeterProps>(["showDevice", "showDetails", "showVolume", "showMute", "levelColor", "hotColor"])(s),
       ...hotLevels(s),
       device: deviceOf(s),
+      devices: pickedDevicesOf(s, "devices"),
+      flow: flowOfSettings(s),
       mode: oneOf(s.mode, ["single", "bridge"]),
       meterStyle: oneOf(s.meterStyle, METER_STYLES),
       segments: autoCount(s.segments),
@@ -118,10 +123,11 @@ export const GROUP_C: DashboardModule[] = [
       ...audioSettings("showDevice", "showMute").map((d) => (d.key === "showMute" ? { ...d, label: "Show mute state" } : d)),
       // The level follows the theme's OK ("" = the accent).
       colorSetting("levelColor", "Level", { role: "ok", more: false }),
-      deviceSetting("Device (Auto = all)", "audio", { group: DEVICE }),
+      devicesSetting("Devices (none = all)", "audio", { group: DEVICE }),
+      audioFlowSetting(DEVICE),
     ],
     // read-only: the volume plugin has no write path
-    toProps: (s) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), device: deviceOf(s) }),
+    toProps: (s) => ({ ...pick<VolumeMixerProps>(["showDevice", "showMute", "levelColor"])(s), devices: pickedDevicesOf(s, "devices"), flow: flowOfSettings(s) }),
     island: volumeMixerIsland,
   }),
   templateModule({
@@ -138,6 +144,7 @@ export const GROUP_C: DashboardModule[] = [
       colorSetting("levelColor", "Level", { role: "ok", more: false }),
       colorSetting("hotColor", "Clip level", { role: "crit", more: false }),
       devicesSetting("Channels (none = all devices)", "audio", { group: "Channels" }),
+      audioFlowSetting("Channels"),
       boolSetting("includeDefault", "Include the default device", false, { group: "Channels", tab: "data" }),
       numberSetting("floor", "Floor (dB)", -60, { min: -120, max: -20, step: 1, group: "Bar scale", tab: "data" }),
       numberSetting("holdMs", "Peak hold (ms)", BALLISTICS.peak.peakHoldMs, { min: 0, max: 5000, step: 100, group: "Dynamics", tab: "behaviour", visibleIf: (v) => ballisticsOf(v) === "peak" }),
@@ -147,6 +154,7 @@ export const GROUP_C: DashboardModule[] = [
     toProps: (s, saved) => ({
       ...pick<MeterBridgeProps>(["includeDefault", "showScale", "showVolume", "showDetails", "showMute", "levelColor", "hotColor"])(s),
       channels: devicesOf(s, "channels"),
+      flow: flowOfSettings(s),
       orientation: oneOf(s.orientation, ["vertical", "horizontal"]),
       ladder: oneOf(s.ladder, ["led", "smooth"]),
       segments: autoCount(s.segments),
@@ -167,7 +175,8 @@ export const GROUP_C: DashboardModule[] = [
       boolSetting("peaks", "Peak caps", true, { group: SPECTRUM }),
       ...vizShapeSettings("mode").map((d) => ({ ...d, group: SPECTRUM, more: true })),
       ...vizColorSettings(colorSetting("ramp", "Color")).map((d) => ({ ...d, ...VIZ_COLOR_ROWS[d.key] })),
-      deviceSetting("Audio device", "audio", { group: "Audio device" }),
+      devicesSetting("Audio devices (none = loudest)", "audio", { group: "Audio device" }),
+      audioFlowSetting("Audio device"),
       numberSetting("sensitivity", "Sensitivity", 1.4, { min: 0.2, max: 4, step: 0.1, group: VIZ_DYNAMICS_GROUP, tab: "behaviour" }),
       { ...AUTO_GAIN, more: false },
       ...DYNAMICS.filter((d) => d !== AUTO_GAIN),
@@ -176,7 +185,8 @@ export const GROUP_C: DashboardModule[] = [
       ...pick<VisualizerProps>(["peaks"])(s),
       vizLook: vizLookOf(s, saved),
       mode: oneOf(s.mode, VIZ_MODES),
-      device: deviceOf(s),
+      devices: pickedDevicesOf(s, "devices"),
+      flow: flowOfSettings(s),
       bands: autoCount(s.bands),
       ramp: stringOf(s.ramp),
       sensitivity: numberOf(s.sensitivity),

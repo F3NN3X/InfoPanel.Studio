@@ -180,7 +180,7 @@ describe("v8: the chain from v3", () => {
       } as unknown as StoredConfig)
     );
     expect(z.module).toBe("NowPlaying");
-    expect(z.settings).toMatchObject({ vizStyle: "line", device: "x", vizColor1: "#00ff00", progress: "visualizer" });
+    expect(z.settings).toMatchObject({ vizStyle: "line", vizDevices: "x", vizColor1: "#00ff00", progress: "visualizer" });
     for (const key of ["waveform", "waveformMode", "waveformVariant", "vizEngine", "liveSource", "vizRamp"]) expect(z.settings, key).not.toHaveProperty(key);
     expect(z.follow).toEqual({ palette: false });
   });

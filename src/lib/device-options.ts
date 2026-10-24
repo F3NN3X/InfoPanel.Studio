@@ -1,10 +1,12 @@
-import { audioIds, deviceLabel } from "@/widgets/audio-data";
+import { audioIds, deviceLabel, type Flow } from "@/widgets/audio-data";
 import { detect, diskName, fmtRate, hw, pretty } from "@/widgets/core/data";
 import type { DeviceKind, SensorMap } from "@/modules/types";
 
 export interface DeviceOption {
   value: string;
   label: string;
+  /** Audio devices: whether it plays (output) or records (input). */
+  flow?: Flow;
 }
 
 const DRIVE_NAME = /^plugins\.drive-info-plugin\.([^.]+)\.name$/;
@@ -47,6 +49,7 @@ export function deviceOptions(kind: DeviceKind, sensors: SensorMap): DeviceOptio
         ...audioIds(data).map((id) => ({
           value: id,
           label: deviceLabel(id, text(sensors, `plugins.audio-level-meter.${id}.device-name`)) || id,
+          flow: text(sensors, `plugins.audio-level-meter.${id}.data-flow`) === "input" ? ("input" as const) : ("output" as const),
         })),
       ];
     case "drive": {

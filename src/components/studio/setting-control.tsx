@@ -69,6 +69,7 @@ export function SettingRow({
   hint,
   tempUnit,
   roleLabel,
+  flow,
 }: {
   def: ModuleSetting;
   value: ModuleSettingValue;
@@ -96,6 +97,8 @@ export function SettingRow({
   tempUnit?: "c" | "f";
   /** Type "color" following its palette role: the role's name stands for the value ("Series 1"). */
   roleLabel?: string;
+  /** Types "select" listing audio devices or Wave Link meters: the widget's Show filter (all / output / input). */
+  flow?: string;
 }) {
   const label: RowLabelProps = { label: def.label, lead, trail, changed, hint };
   switch (def.type) {
@@ -208,11 +211,11 @@ export function SettingRow({
       // Wave Link meters: options come from the plugin's live inventory
       // (channels + output devices), so a dedicated component owns it.
       if (def.optionsFrom === "wavelink") {
-        return <WavelinkMeterPicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
+        return <WavelinkMeterPicker def={def} value={String(value)} onChange={onChange} lead={lead} hint={hint} flow={flow} />;
       }
       // Hardware / audio / drive devices found in the live keys: Auto and its pick, or a checkbox list.
       if (isDeviceKind(def.optionsFrom)) {
-        return <DevicePicker def={def} kind={def.optionsFrom} value={String(value)} onChange={onChange} lead={lead} hint={hint} />;
+        return <DevicePicker def={def} kind={def.optionsFrom} value={String(value)} onChange={onChange} lead={lead} hint={hint} flow={flow} />;
       }
       // Dynamic options resolved from live sensor data (a plugin's
       // currently-exposed containers), falling back to the static list.

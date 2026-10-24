@@ -3,7 +3,7 @@ import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
 import type { ModuleSettings } from "@/modules/types";
 import { useFitRows, Widget, shell, fmt, Dot, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
-import { audioIds, readDevice } from "./audio-data";
+import { audioIdsIn, pickedIds, readDevice, type FlowFilter } from "./audio-data";
 
 export const meta: WidgetMeta = {
   id: "MeterBridge",
@@ -42,6 +42,8 @@ export interface MeterBridgeProps extends ShellProps {
   look?: ModuleSettings;
   /** device names / ids; default all */
   channels?: string[];
+  /** Outputs or inputs only; default both. */
+  flow?: FlowFilter;
   orientation?: "vertical" | "horizontal";
   /** dB, default -60 */
   floor?: number;
@@ -79,12 +81,12 @@ export default function MeterBridge(p: MeterBridgeProps) {
     clipDb = p.clipDb ?? -6,
     holdMs = p.holdMs ?? 1500;
   const step = useMeterBallistics(p.ballistics);
-  const ids = audioIds(d).filter((id) => p.includeDefault || id !== "default-audio");
+  const ids = audioIdsIn(d, p.flow ?? "all").filter((id) => p.includeDefault || (id !== "default-audio" && id !== "default-input"));
   const found = ids.map((id) => {
     const m = readDevice(d, id);
     return { id, name: m.name, full: m.full, pl: m.l, pr: m.r, vol: m.vol, muted: m.muted };
   });
-  const picked = p.channels ? p.channels.map((c) => found.find((x) => x.id === c || x.name.toLowerCase() === String(c).toLowerCase())).filter((x): x is (typeof found)[number] => !!x) : found;
+  const picked = pickedIds(d, ids, p.channels).map((id) => found.find((x) => x.id === id)!);
   // peak hold: the held value lives in a ref and is stamped onto each channel
   const hold = useRef<Record<string, Held>>({});
   const now = Date.now();

@@ -3,7 +3,7 @@ import { modules } from "@/modules";
 import { settingKeys } from "@/modules/types";
 import type { Placement } from "@/lib/layout";
 import { LEGACY_MODULE_IDS, migrateLegacyZone, migrateLegacyZones } from "@/lib/legacy-zones";
-import { migrateSettingsV7, migrateSettingsV8 } from "@/lib/settings-migrate";
+import { migratePlacementV12, migrateSettingsV7, migrateSettingsV8 } from "@/lib/settings-migrate";
 import { CASES } from "@/lib/legacy-zones.cases";
 
 const zone = (module: string, settings?: Placement["settings"]): Placement => ({ id: "z", module, colStart: 1, rowStart: 1, colSpan: 3, rowSpan: 2, visible: true, settings });
@@ -18,9 +18,9 @@ describe("migrateLegacyZone", () => {
       const out = migrateLegacyZone(zone(c.module, c.settings), plain);
       expect({ module: out.module, settings: out.settings }).toMatchSnapshot();
       // Only keys the template has a setting for (once the later steps renamed the shared keys, config v7,
-      // and the sample widgets' own, v8), besides the ones it reads from the saved values.
+      // and the sample widgets' own, v8, and the audio widgets' device picks, v12), besides the ones it reads from the saved values.
       const known = new Set((byId.get(out.module)?.settings ?? []).flatMap(settingKeys));
-      const later = migrateSettingsV8(out.module, migrateSettingsV7(out.module, out.settings, true).settings, true).settings;
+      const later = migratePlacementV12({ ...out, settings: migrateSettingsV8(out.module, migrateSettingsV7(out.module, out.settings, true).settings, true).settings }).settings;
       expect(Object.keys(later ?? {}).filter((k) => !known.has(k))).toEqual(c.unlisted ?? []);
     });
 

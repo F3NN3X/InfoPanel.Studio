@@ -602,7 +602,7 @@ least one widget is visible.
 
 ### Types (`src/lib/layout.ts`)
 
-- `DashboardConfig` - `version: 11` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
+- `DashboardConfig` - `version: 12` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
   `profiles`, `theme`, `radius`, `dataApiUrl?`, `stylePresets?`,
   `panelPresets?`, `sourcePrefs?`, `background?` (the page background),
   `style?` (the dashboard style, every profile), `styleEnforce?`

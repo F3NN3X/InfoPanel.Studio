@@ -103,11 +103,13 @@ export function MediaDevicePicker({ def, value, onChange, lead, hint }: PickerPr
  * widget meters them per input. Handles both single-select and multi-select
  * (`def.multiple`); "" means all meters.
  */
-export function WavelinkMeterPicker({ def, value, onChange, lead, hint }: PickerProps) {
+export function WavelinkMeterPicker({ def, value, onChange, lead, hint, flow }: PickerProps & { flow?: string }) {
   const state = useWavelinkState();
+  // Show: Inputs = the channels and input devices, Outputs = the mixes
   const options = [
-    ...state.channels.map((c) => ({ value: meterKey.channel(c.id), label: `Channel · ${c.name}` })),
-    ...state.devices.map((d) => ({ value: meterKey.device(d.id), label: `Input · ${d.name}` })),
+    ...(flow === "output" ? [] : state.channels.map((c) => ({ value: meterKey.channel(c.id), label: `Channel · ${c.name}` }))),
+    ...(flow === "output" ? [] : state.devices.map((d) => ({ value: meterKey.device(d.id), label: `Input · ${d.name}` }))),
+    ...(flow === "input" ? [] : state.mixes.map((m) => ({ value: meterKey.mix(m.id), label: `Output · ${m.name}` }))),
   ];
   return (
     <StackRow label={def.label} lead={lead} hint={hint}>
@@ -156,13 +158,18 @@ function DeviceRow({ on, multi, label, detail, onClick }: { on: boolean; multi: 
  * (Auto: "auto"); `def.multiple` ticks several (`devices`, comma-separated, none = all). A stored device
  * that is not live right now stays listed, so opening the inspector never rewrites it.
  */
-export function DevicePicker({ def, kind, value, onChange, lead, hint }: PickerProps & { kind: DeviceKind }) {
+export function DevicePicker({ def, kind, value, onChange, lead, hint, flow }: PickerProps & { kind: DeviceKind; flow?: string }) {
   const { sensors } = useSensorCatalog();
-  const live = deviceOptions(kind, sensors).filter((o) => o.value !== "");
+  // audio devices: the widget's Show filter (Outputs / Inputs) narrows the list; each row says which it is
+  const live = deviceOptions(kind, sensors).filter((o) => o.value !== "" && (flow !== "output" && flow !== "input" ? true : o.flow === flow));
   const labelOf = (id: string) => live.find((o) => o.value === id)?.label ?? `${id} (not live)`;
   const stored = def.multiple ? splitList(value) : value && value !== "auto" ? [value] : [];
   const listed = [...live.map((o) => o.value), ...stored.filter((id) => !live.some((o) => o.value === id))];
-  const rows = listed.map((id) => ({ id, label: labelOf(id), detail: deviceReading(kind, id, sensors) }));
+  const flowTag = (id: string) => {
+    const f = live.find((o) => o.value === id)?.flow;
+    return f ? (f === "input" ? "Input" : "Output") : undefined;
+  };
+  const rows = listed.map((id) => ({ id, label: labelOf(id), detail: [flowTag(id), deviceReading(kind, id, sensors)].filter(Boolean).join(" · ") || undefined }));
   if (def.multiple) {
     const toggle = (id: string) => onChange((stored.includes(id) ? stored.filter((v) => v !== id) : [...stored, id]).join(","));
     return (
@@ -176,7 +183,8 @@ export function DevicePicker({ def, kind, value, onChange, lead, hint }: PickerP
       </StackRow>
     );
   }
-  const now = autoDevice(kind, sensors);
+  const auto = autoDevice(kind, sensors);
+  const now = live.some((o) => o.value === auto) ? auto : undefined;
   const rule = `${AUTO_RULES[kind]}${now ? ` · now ${labelOf(now)}` : ""}`;
   return (
     <StackRow label={def.label} lead={lead} hint={hint}>

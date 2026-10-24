@@ -65,6 +65,9 @@ function bundleOf(def: ModuleSetting, fields: FieldsApi): ModuleSettings {
   );
 }
 
+/** The audio widgets' Show filter row, read for the device pickers. */
+const FLOW_ROW: ModuleSetting = { key: "flow", label: "Show", type: "select", default: "all" };
+
 /** The quick-bar pin at a row's end: grey outline, or filled accent when pinned. */
 function PinButton({ pinned, label, onToggle }: { pinned: boolean; label: string; onToggle: () => void }) {
   const title = pinned ? `Unpin ${label} from the quick bar` : `Pin ${label} to the quick bar`;
@@ -125,6 +128,7 @@ export function SettingField({
         hint={def.hint}
         tempUnit={def.quantity === "temp" ? tempUnitOf({ tempUnit: fields.shown("tempUnit", TEMP_UNIT) }) : undefined}
         roleLabel={readOnly && def.role ? ROLE_LABELS[def.role] : undefined}
+        flow={def.optionsFrom === "audio" || def.optionsFrom === "wavelink" ? String(fields.shown("flow", FLOW_ROW)) : undefined}
         changed={SET_HERE.has(state)}
         lead={<SourceDot state={state} onReset={() => fields.onClear(settingKeys(def))} />}
         trail={pins && <PinButton pinned={pins.has(def.key)} label={def.label} onToggle={() => pins.toggle(def.key)} />}

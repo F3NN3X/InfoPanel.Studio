@@ -2,7 +2,7 @@ import type { ModuleSettings } from "@/modules/types";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
 import { Widget, useFitRows, shell, fmt, Num, Spark, LedLadder, slideX, STATE, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
-import { audioIds, readDevice, type AudioDevice } from "./audio-data";
+import { audioIdsIn, pickedIds, readDevice, type AudioDevice, type FlowFilter } from "./audio-data";
 
 export const meta: WidgetMeta = {
   id: "AudioMeter",
@@ -58,6 +58,10 @@ export interface AudioMeterProps extends ShellProps {
   look?: ModuleSettings;
   /** container id, default "default-audio" */
   device?: string;
+  /** Bridge only: the devices with a column, container ids; default all. */
+  devices?: string[];
+  /** Outputs or inputs only; default both. */
+  flow?: FlowFilter;
   mode?: "single" | "bridge";
   segments?: number;
   /** `bar` is the accent → amber → red gradient fill, `solid` one colour that turns hot. */
@@ -90,9 +94,11 @@ export interface AudioMeterProps extends ShellProps {
 export default function AudioMeter(p: AudioMeterProps) {
   useFastSensors(AUDIO);
   const d = p.data;
-  const all = audioIds(d);
+  const all = audioIdsIn(d, p.flow ?? "all");
   const bridge = p.mode === "bridge";
-  const one = readDevice(d, p.device ?? (all.includes("default-audio") ? "default-audio" : all[0] ?? ""));
+  // Auto: the default device of the flow shown (the default input for Inputs), else the first
+  const auto = p.flow === "input" ? "default-input" : "default-audio";
+  const one = readDevice(d, p.device ?? (all.includes(auto) ? auto : all[0] ?? ""));
   const lH = useHistory(one.l, 72, 0.6);
   const rH = useHistory(one.r, 72, 0.6);
   const step = useMeterBallistics(p.ballistics ?? "peak");
@@ -114,7 +120,7 @@ export default function AudioMeter(p: AudioMeterProps) {
     ["L", ls.v, ls.hold],
     ["R", rs.v, rs.hold],
   ];
-  const devices: AudioDevice[] = bridge ? all.map((id) => readDevice(d, id)) : [];
+  const devices: AudioDevice[] = bridge ? pickedIds(d, all, p.devices).map((id) => readDevice(d, id)) : [];
   const name = showDevice ? one.name : "Audio";
   return (
     <Widget

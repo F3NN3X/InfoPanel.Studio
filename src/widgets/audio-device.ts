@@ -80,12 +80,14 @@ export const spectrumOf = (d: Data, device: string): Float32Array | null => pars
 
 /**
  * `levelDevice` with a sticky Auto (`stickyDevice`): unset = `default-audio`; a pinned device while it
- * reports; else ("" or a pinned device gone quiet) Auto, which holds its pick between renders.
+ * reports; else ("" or a pinned device gone quiet) Auto, which holds its pick between renders. `among`
+ * limits Auto to those containers: the loudest of the devices a widget has picked.
  */
-export function useLevelDevice(d: Data, wanted: string | undefined, names?: Record<string, string>): string {
+export function useLevelDevice(d: Data, wanted: string | undefined, names?: Record<string, string>, among?: readonly string[]): string {
   const hold = useRef<DeviceHold | null>(null);
   if (wanted === undefined) return "default-audio";
   if (wanted && has(get(d, `${AUDIO}${wanted}.audio-level`))) return wanted;
-  hold.current = stickyDevice(deviceLevels(d, names), hold.current, performance.now());
+  const levels = Object.entries(deviceLevels(d, names)).filter(([id]) => !among || among.includes(id));
+  hold.current = stickyDevice(Object.fromEntries(levels), hold.current, performance.now());
   return hold.current.device || wanted;
 }

@@ -4,7 +4,8 @@ import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { VIZ_STYLES, type VizLook, type VizStyle } from "../core/viz/types";
 import { meta, type NowPlayingProps } from "../NowPlaying";
 import { devicesOf } from "@/modules/setting-readers";
-import { boolSetting, colorSetting, deviceSetting, enumSetting, numberOf, numberSetting, oneOf, viewOnly, viewSetting } from "../registry/settings-kit";
+import { audioFlowSetting } from "../registry/audio-settings";
+import { boolSetting, colorSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, viewOnly, viewSetting } from "../registry/settings-kit";
 import { VIZ_COLORS_GROUP, VIZ_DYNAMICS_GROUP, vizColorRows, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "../registry/viz-settings";
 
 /** The audio-level-meter plugin, which drives the visualizers' live level. */
@@ -52,7 +53,8 @@ const OWN_SETTINGS: ModuleSetting[] = [
   boolSetting("artBackground", "Blurred cover behind", false, { tab: "style", perWidget: true }),
   ...vizColorSettings(colorSetting("vizColor1", "Color 1")).map((d) => ({ ...d, ...COLOR_ROWS[d.key] })),
   enumSetting("source", "Source", "auto", [{ value: "auto", label: "Auto" }, { value: "media", label: "Windows" }, { value: "spotify", label: "Spotify" }, { value: "pushed", label: "Pushed" }], { group: "Player source", tab: "data", hint: "Auto: Spotify when connected, else Windows Media." }),
-  deviceSetting("Device", "audio", { group: AUDIO_SOURCE }),
+  { ...devicesSetting("Audio devices (none = loudest)", "audio", { group: AUDIO_SOURCE }), key: "vizDevices" },
+  audioFlowSetting(AUDIO_SOURCE),
   boolSetting("liveCapture", "Live capture (Web Audio)", false, { group: AUDIO_SOURCE, tab: "data", more: true, hint: "Needs the profile set to Interactive once, then Allow in the prompt; captures an input device (a loopback such as a Wave Link output)." }),
   // `liveSources` until config v7 (`devices`, the shared multi-device key).
   { key: "devices", label: "Capture devices (one visualizer row each)", type: "select", default: "", optionsFrom: "media", multiple: true, group: AUDIO_SOURCE, tab: "data", more: true },

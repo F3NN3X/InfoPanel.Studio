@@ -9,6 +9,7 @@ import {
   migrateProfileV6,
   migrateProfileV7,
   migrateProfileV10,
+  migrateProfileV12,
   migrateProfileV8,
   migrateStyleV7,
   type LegacyProfileFields,
@@ -229,8 +230,11 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     already sit in the zone's settings, so a v9 build only loses the marker.
  * v11: a sensor alert holds a list of `conditions` (`alerts.ts` `normalizeAlerts`); a rule saved with
  *     one `key` / `op` / `value` becomes a one-item list, which a v10 build would drop as unreadable.
+ * v12: the Volume Mixer, Visualizer and Now Playing visualiser pick several audio devices
+ *     (`settings-migrate.ts` `migratePlacementV12`); the single `device` becomes a one-device `devices`
+ *     (`vizDevices`), which a v11 build would ignore and draw every device.
  */
-export const CONFIG_VERSION = 11;
+export const CONFIG_VERSION = 12;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -495,7 +499,7 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * legacy module ids to their templates, v5→v6 moves the style onto the
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
  * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
- * drops the widget `preset` key; a
+ * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick; a
  * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
@@ -517,7 +521,8 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
     )
     .map((p) => migrateProfileV7(p, { legacy: (parsed.version ?? 0) < 7 }))
     .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
-    .map(migrateProfileV10);
+    .map(migrateProfileV10)
+    .map(migrateProfileV12);
   // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
   const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
   // A pin to a profile that is gone falls back to Auto.

@@ -21,8 +21,10 @@ export const meta: WidgetMeta = {
 
 export interface WaveLinkProps extends ShellProps {
   look?: ModuleSettings;
-  /** Meter keys to show, comma-separated (`channel:<id>` / `device:<id>`); "" = all. */
+  /** Meter keys to show, comma-separated (`channel:<id>` / `device:<id>` / `mix:<id>`); "" = all. Mixes are all shown unless one is picked. */
   source?: string;
+  /** Inputs = the channels and input devices, Outputs = the mixes; default both. */
+  flow?: "all" | "output" | "input";
   /** dB readouts and scale; default on. */
   showReadout?: boolean;
   /** Fader level; default on. */
@@ -252,12 +254,16 @@ export interface WaveLinkLayoutProps {
   state: WlState;
   channels: WlChannel[];
   devices: WlDevice[];
+  /** The mixes listed; default all of the state's. */
+  mixes?: WlMix[];
   o: Opts;
   vertical: boolean;
 }
 
 /** Mixer columns where the zone is tall enough (and `vertical`), else a row per channel; devices and mixes on lg. */
-export function WaveLinkLayout({ size, w, h, up, state, channels, devices, o, vertical }: WaveLinkLayoutProps) {
+export function WaveLinkLayout({ size, w, h, up, state, channels, devices, mixes = state.mixes, o, vertical }: WaveLinkLayoutProps) {
+  // only mixes to show (Show: Outputs): list them
+  if (!channels.length && !devices.length && up && mixes.length) return <div className="flex h-full flex-col justify-center"><MixFooter mixes={mixes} /></div>;
   if (!channels.length && !devices.length) return <Empty icon="mic_off" label={up ? "No channels" : "Wave Link is not running"} />;
   const dim = up ? "" : "opacity-60";
   const cols = Math.max(1, Math.min(6, channels.length, Math.floor((w + 12) / (96 + 12))));
@@ -280,7 +286,7 @@ export function WaveLinkLayout({ size, w, h, up, state, channels, devices, o, ve
             </div>
           )}
         </div>
-        {o.mixes && state.mixes.length > 0 && size === "lg" && h >= 200 && <MixFooter mixes={state.mixes} />}
+        {o.mixes && mixes.length > 0 && size === "lg" && h >= 200 && <MixFooter mixes={mixes} />}
       </div>
     );
   }
@@ -311,8 +317,12 @@ export default function WaveLink(p: WaveLinkProps) {
   const state = useWavelinkState();
   const up = state.status === "up";
   const picked = p.source ? p.source.split(",").map((s) => s.trim()).filter(Boolean) : null;
-  const channels = picked ? state.channels.filter((c) => picked.includes(meterKey.channel(c.id))) : state.channels;
-  const devices = picked ? state.devices.filter((d) => picked.includes(meterKey.device(d.id))) : state.devices;
+  const inputs = p.flow !== "output",
+    outputs = p.flow !== "input";
+  const channels = !inputs ? [] : picked ? state.channels.filter((c) => picked.includes(meterKey.channel(c.id))) : state.channels;
+  const devices = !inputs ? [] : picked ? state.devices.filter((d) => picked.includes(meterKey.device(d.id))) : state.devices;
+  const pickedMixes = picked?.some((k) => k.startsWith("mix:"));
+  const mixes = !outputs ? [] : pickedMixes ? state.mixes.filter((m) => picked!.includes(meterKey.mix(m.id))) : state.mixes;
   const o: Opts = { readout: p.showReadout !== false, fader: p.showFader !== false, mixes: p.showMixes !== false, variant: p.meterVariant ?? "solid", preset: p.ballistics ?? "peak", color: p.levelColor || undefined };
   const first = channels[0];
   const vars = { "--wl-live": p.liveColor || STATE.ok, "--wl-mute": p.muteColor || STATE.crit } as CSSProperties;
@@ -331,7 +341,7 @@ export default function WaveLink(p: WaveLinkProps) {
       studio={{ label: "Wave Link", live: up, value: first ? (first.isMuted ? "Muted" : "Live") : up ? "Up" : "Off", sub: first?.name, meters: channels.map((c) => ({ n: c.name, v: c.isMuted ? 0 : (c.level ?? 0) * 100 })) }}
       compact={channels.length > 1 ? undefined : first ? { label: first.name, value: first.isMuted ? "Muted" : "Live", sub: o.fader ? `Fader ${fader(first.level, first.levelDb)}` : undefined, icon: first.isMuted ? "mic_off" : "mic", kind: "value", t: first.isMuted ? "crit" : "ok" } : { label: "Wave Link", value: up ? "Up" : "Off", kind: "value" }}
     >
-      {({ size, w, h }) => <WaveLinkLayout size={size} w={w} h={h} up={up} state={state} channels={channels} devices={devices} o={o} vertical={p.meterOrientation !== "horizontal"} />}
+      {({ size, w, h }) => <WaveLinkLayout size={size} w={w} h={h} up={up} state={state} channels={channels} devices={devices} mixes={mixes} o={o} vertical={p.meterOrientation !== "horizontal"} />}
     </Widget>
   );
 }

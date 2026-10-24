@@ -18,7 +18,7 @@ Common shell props (every widget): `data`, `accent`, `surface`, `radius`, `skin`
 Widget-specific:
 ```
 channels (array of device names/ids; default all), orientation 'vertical' | 'horizontal', floor (dB, default -60),
-segments, holdMs (default 1500), warnDb (-18), clipDb (-6), showScale, showVolume, ladder 'led' | 'smooth'
+segments, holdMs (default 1500), warnDb (-18), clipDb (-6), showScale, showVolume, ladder 'led' | 'smooth', flow 'all' | 'output' | 'input'
 ```
 
 ## Data

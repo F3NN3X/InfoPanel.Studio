@@ -24,7 +24,10 @@ it lives), `docs/redesign/DECISIONS.md` (the answers to §8), `docs/redesign/IMP
 > `align` (+ `alignSpread`), thresholds → `warn.<q>` / `crit.<q>`, device keys → `device`, `autoScale`
 > dropped, `styleMode` → `Placement.follow` per section, `style` / `styleEnforce` → `widgetTheme`
 > (values and locks), `general.hour12` → the themed `clock`. `src/lib/settings-migrate.ts` maps the old
-> names on load. §1 to §3 below list the shared and panel keys as the inspector shows them today.
+> names on load. Config v12: the audio widgets' single `device` (Volume Mixer, Visualizer, Now Playing's
+> visualizer) becomes the multi-device `devices` (`vizDevices`), and every audio widget gets `flow`
+> (Show: all / output / input), see [widget-settings.md](widget-settings.md#audio-devices-inputs-and-outputs-config-v12).
+> §1 to §3 below list the shared and panel keys as the inspector shows them today.
 
 ## How to read this
 

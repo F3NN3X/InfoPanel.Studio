@@ -3,7 +3,8 @@
 import type { BallisticsPreset } from "@/lib/audio/ballistics";
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import type { WaveLinkProps } from "../WaveLink";
-import { colorSetting } from "./settings-kit";
+import { flowFilterOf } from "../audio-data";
+import { colorSetting, enumSetting, splitKeys } from "./settings-kit";
 
 /** The meters' response (Behaviour › Motion), themed: the theme editor lists it too. */
 export const METER_BALLISTICS: ModuleSetting = {
@@ -32,6 +33,29 @@ const METER_VARIANT: ModuleSetting = {
   ],
   group: "Meter",
 };
+
+/** The Show filter of every audio widget (`flow`): it narrows the device picker and what "all devices" means. */
+export const audioFlowSetting = (group: string, extra: Partial<ModuleSetting> = {}): ModuleSetting =>
+  enumSetting(
+    "flow",
+    "Show",
+    "all",
+    [
+      { value: "all", label: "All devices" },
+      { value: "output", label: "Outputs" },
+      { value: "input", label: "Inputs" },
+    ],
+    { group, tab: "data", keywords: ["input", "output", "microphone"], ...extra }
+  );
+
+/** The stored Show filter. */
+export const flowOfSettings = (s: ModuleSettings) => flowFilterOf(s.flow);
+
+/** The picked devices (`key`, comma-separated); undefined = all. */
+export function pickedDevicesOf(s: ModuleSettings, key: string): string[] | undefined {
+  const picked = splitKeys(s[key]);
+  return picked.length > 0 ? picked : undefined;
+}
 
 const AUDIO_SETTINGS: ModuleSetting[] = [
   { key: "showDevice", label: "Device name", type: "boolean", default: true, group: "Details" },
@@ -101,11 +125,13 @@ export const WAVELINK_SETTINGS: ModuleSetting[] = [
     group: "Meters",
     tab: "data",
   },
+  audioFlowSetting("Meters", { hint: "Inputs are the channels and input devices, Outputs the mixes" }),
   METER_BALLISTICS,
 ];
 
 export const wavelinkToProps = (s: ModuleSettings): Partial<WaveLinkProps> => ({
   source: String(s.source ?? ""),
+  flow: flowOfSettings(s),
   showReadout: Boolean(s.showReadout),
   showFader: Boolean(s.showFader),
   showMixes: Boolean(s.showMixes),

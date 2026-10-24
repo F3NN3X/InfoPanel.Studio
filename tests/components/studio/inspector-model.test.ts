@@ -154,7 +154,7 @@ describe("widget sections", () => {
     const data = sectionsFor(spotify, "data");
     expect(titles(data)).toEqual(["Bound data", "Player source", "Visualizer audio"]);
     expect(data[0]).toMatchObject({ special: "boundData" });
-    expect(keysOf(data)).toEqual(["source", "device", "liveCapture", "devices"]);
+    expect(keysOf(data)).toEqual(["source", "vizDevices", "flow", "liveCapture", "devices"]);
     expect(titles(sectionsFor(spotify, "show"))).not.toContain("Visualizer audio");
   });
 

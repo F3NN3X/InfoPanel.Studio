@@ -23,11 +23,15 @@ beforeEach(() => {
     return next++;
   });
   vi.stubGlobal("cancelAnimationFrame", (id: number) => queue.delete(id));
+  // The ticker schedules by performance.now(): it must read this clock, or a fresh worker (real clock under a second)
+  // sits behind the ticks the previous test left and sleeps on a timer instead of asking for a frame.
+  vi.spyOn(performance, "now").mockImplementation(() => now);
 });
 
 afterEach(() => {
   setTickerMaxFps(60);
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 

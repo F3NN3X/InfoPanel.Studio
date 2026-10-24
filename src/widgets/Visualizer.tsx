@@ -5,6 +5,7 @@ import { AudioViz } from "./core/viz/AudioViz";
 import { resolveLook, type VizLook } from "./core/viz/types";
 import { useVizInput } from "./core/viz/use-viz-input";
 import { AUDIO, useLevelDevice } from "./audio-device";
+import { audioIdsIn, pickedIds, type FlowFilter } from "./audio-data";
 
 export const meta: WidgetMeta = {
   id: "Visualizer",
@@ -24,8 +25,10 @@ type Mode = "bars" | "mirror" | "radial" | "wave" | "blob" | "dots" | "line" | "
 export interface VisualizerProps extends ShellProps {
   look?: ModuleSettings;
   mode?: Mode;
-  /** audio-level-meter container, default "default-audio" */
-  device?: string;
+  /** audio-level-meter containers to draw the loudest of; default all */
+  devices?: string[];
+  /** Outputs or inputs only; default both. */
+  flow?: FlowFilter;
   bands?: number;
   ramp?: string;
   sensitivity?: number;
@@ -42,8 +45,8 @@ export const NEUTRAL_SENS = 1.4;
 export default function Visualizer(p: VisualizerProps) {
   useFastSensors(AUDIO);
   const d = p.data;
-  // Auto ("" or unset) follows the loudest live device, like the media widget
-  const dev = useLevelDevice(d, p.device ?? "", p.names);
+  // the loudest live device of the picked ones (none picked: of all in the Show filter), like the media widget
+  const dev = useLevelDevice(d, "", p.names, pickedIds(d, audioIdsIn(d, p.flow ?? "all"), p.devices));
   const k = (s: string) => num(get(d, `plugins.audio-level-meter.${dev}.${s}`));
   const name = String(get(d, `plugins.audio-level-meter.${dev}.device-name`) || "Audio").replace(/\s*\(.+\)$/, "");
   const look = resolveLook({ ...p.vizLook, count: p.bands, color1: p.ramp, peaks: p.peaks !== false, gain: (p.sensitivity ?? NEUTRAL_SENS) / NEUTRAL_SENS });

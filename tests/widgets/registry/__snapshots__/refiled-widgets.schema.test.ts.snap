@@ -2022,6 +2022,7 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
     {
       "Channels": [
         "devices",
+        "flow",
         "includeDefault",
       ],
     },
@@ -4150,7 +4151,8 @@ exports[`Visualizer > files its rows by the rules 1`] = `
     },
     {
       "Audio device": [
-        "device",
+        "devices",
+        "flow",
       ],
     },
   ],
@@ -4352,7 +4354,8 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
     },
     {
       "Device": [
-        "device",
+        "devices",
+        "flow",
       ],
     },
   ],
@@ -4459,6 +4462,7 @@ exports[`WaveLink > files its rows by the rules 1`] = `
     {
       "Meters": [
         "source",
+        "flow",
       ],
     },
   ],

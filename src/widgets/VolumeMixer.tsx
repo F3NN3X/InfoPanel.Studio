@@ -1,7 +1,7 @@
 import type { ModuleSettings } from "@/modules/types";
 import { alignOf } from "@/modules/setting-readers";
 import { bodyGap, useFitRows, Widget, shell, get, num, fmt, Num, Ring, Icon, Dot, Chip, STATE, type ShellProps, type WidgetMeta } from "./kit";
-import { guidOf } from "./audio-data";
+import { inFlow, volumeFlowOf, volumePicked, type FlowFilter } from "./audio-data";
 
 export const meta: WidgetMeta = {
   id: "VolumeMixer",
@@ -18,8 +18,10 @@ export const meta: WidgetMeta = {
 
 export interface VolumeMixerProps extends ShellProps {
   look?: ModuleSettings;
-  /** One device: a level-meter container id (matched to its volume entry by GUID) or "default-audio"; default all. */
-  device?: string;
+  /** The devices listed: level-meter container ids (matched to their volume entries by GUID) or "default-audio"; default all. */
+  devices?: string[];
+  /** Outputs or inputs only; an entry's flow is its level-meter container's. Default both. */
+  flow?: FlowFilter;
   /** Device names; default on. */
   showDevice?: boolean;
   /** The muted state (icon and dimmed bar); read-only, the plugin has no write path. Default on. */
@@ -38,8 +40,8 @@ export default function VolumeMixer(p: VolumeMixerProps) {
     return { id, name: String(k("short_name")).replace(/\s*\(.+$/, ""), full: k("friendly_name"), dev: k("device_friendly_name"), vol: num(k("volume")), mute: showMute && k("mute") === "True" };
   });
   const def = ch.find((c) => c.id === "default") ?? ch[0];
-  const guid = p.device && guidOf(p.device);
-  const list = p.device === "default-audio" ? (def ? [def] : []) : ch.filter((c) => c.id !== "default" && (!p.device || (guid ? c.id.includes(guid) : c.id === p.device)));
+  const flow = p.flow ?? "all";
+  const list = ch.filter((c) => (p.devices ? volumePicked(c.id, p.devices) : c.id !== "default") && inFlow(c.id === "default" ? "output" : volumeFlowOf(d, c.id), flow));
   const fill = p.levelColor || "var(--accent)";
   const wl = get(d, "plugins.wavelink-plugin.wavelink.status") === "up";
   return (

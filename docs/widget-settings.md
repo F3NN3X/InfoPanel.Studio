@@ -208,7 +208,7 @@ One control per concept, with the same key and label in every widget
   rule and the current pick ("Busiest adapter · now Wi-Fi"), then the live
   devices with a reading. Multi-device rows (Meter bridge channels, Now playing
   live sources) use the same rows as a checkbox list under `devices`, empty =
-  all.
+  all. The audio widgets add the Show filter (`flow`, below).
 - **Small zones** and **Density** - `compact` and `sizeTier` (above).
 - **Align** - `align` (a 3×3 cell code) and `alignSpread`.
 - **Units & format** - `tempUnit` (c / f), `rateUnit`, `decimals` (auto, 0, 1,
@@ -391,6 +391,7 @@ volume and peak readouts. Options (besides the shared `showDevice`,
 | key | options | default |
 |---|---|---|
 | `channels` | devices (none = all) | `""` |
+| `flow` | Show: all / output / input (see Audio devices below) | `all` |
 | `includeDefault` | include the default device | off |
 | `orientation` | vertical (columns) / horizontal (rows) | `vertical` |
 | `ladder` | led / smooth | `led` |
@@ -519,6 +520,26 @@ The audiocn views are options of the Audio and Now Playing widgets only (the cla
 `audio` / `spotify` / `media` modules were retired in the 2026-10-09
 cleanup). The static `Waveform` component remains vendored but is no longer
 used by the widgets (the `waveform` view is now live).
+
+### Audio devices: inputs and outputs (config v12)
+
+Every audio widget picks its devices and can show outputs, inputs or both. The AudioMeter plugin
+publishes `plugins.audio-level-meter.<container>.data-flow` (`output` or `input`) and a
+`default-input` container next to `default-audio` (plugin 1.5.0); a container without `data-flow`
+is an output (`flowOf`, `audio-data.ts`).
+
+| widget | device rows | what is drawn |
+|---|---|---|
+| Audio Meter | `device` (One device, list follows Show); `devices` (All devices: a column per pick) | Auto is `default-audio`, or `default-input` under Show: Inputs |
+| Meter Bridge | `devices` (old `channels`) | a column per pick |
+| Volume Mixer | `devices` | its rows (the volume plugin's entries); an entry's flow is its level-meter container's, matched by the device GUID (`volumeFlowOf`), else output |
+| Visualizer | `devices` | the loudest of the picks |
+| Now Playing (visualizer) | `vizDevices` (`devices` there is the Web Audio capture list) | the loudest of the picks |
+| Wave Link | `source` (channels, input devices and `mix:<id>` mixes) | Show: Inputs = channels and input devices, Outputs = the mixes |
+
+`flow` (Show: All devices / Outputs / Inputs) narrows both the picker's list and what "none picked"
+means. Config v12 (`migratePlacementV12`) turns the Volume Mixer's, Visualizer's and Now Playing's
+single `device` into a one-device `devices` / `vizDevices` (Auto drops the key).
 
 ## Shared primitives
 

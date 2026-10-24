@@ -50,7 +50,7 @@
      "peaks": false
     },
     "vizMode": "bars",
-    "vizDevice": ""
+    "vizFlow": "all"
    }
   },
   "np-viz": {
@@ -93,7 +93,7 @@
      "peaks": false
     },
     "vizMode": "mirror",
-    "vizDevice": "",
+    "vizFlow": "all",
     "vizRamp": "#00ff00"
    }
   },
@@ -133,7 +133,7 @@
      "peaks": false
     },
     "vizMode": "scroll",
-    "vizDevice": ""
+    "vizFlow": "all"
    }
   },
   "np-waveform-static": {
@@ -172,7 +172,7 @@
      "peaks": false
     },
     "vizMode": "mirror",
-    "vizDevice": ""
+    "vizFlow": "all"
    }
   },
   "np-bars-mirrored": {
@@ -211,7 +211,7 @@
      "peaks": false
     },
     "vizMode": "mirror",
-    "vizDevice": ""
+    "vizFlow": "all"
    }
   },
   "np-mode": {
@@ -251,7 +251,7 @@
      "peaks": false
     },
     "vizMode": "dots",
-    "vizDevice": "",
+    "vizFlow": "all",
     "vizRamp": "#00ff00"
    }
   },
