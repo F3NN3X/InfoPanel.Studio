@@ -102,7 +102,7 @@ The weather forecast comes from the yr plugin (`plugins.yr-weather-plugin.<locat
 
 ## Development and releases
 
-Scripts, tests and the verification checklist are in [docs/development.md](docs/development.md). CI (`.github/workflows/ci.yml`) runs the build and the tests on pull requests and on `main`. Changes are recorded in [CHANGELOG.md](CHANGELOG.md). Pushing a tag `vX.Y.Z` that matches the `version` in `package.json` runs the release workflow (`.github/workflows/release.yml`): it builds the InfoPanel Studio installer with `npm run desktop:build` on `windows-latest` and publishes a GitHub release with that version's changelog section as its notes.
+Scripts, tests and the verification checklist are in [docs/development.md](docs/development.md). CI (`.github/workflows/ci.yml`) runs the checks a pull request's changes need, and `ci-ok` must pass before it merges; a nightly run (`.github/workflows/nightly.yml`) runs everything. Changes are recorded in [CHANGELOG.md](CHANGELOG.md). Pushing a tag `vX.Y.Z` that matches the `version` in `package.json` runs the release workflow (`.github/workflows/release.yml`): once CI has passed for that commit, it builds the InfoPanel Studio installer with `npm run desktop:build` on `windows-latest` and publishes a GitHub release with that version's changelog section as its notes.
 
 ## Documentation
 
