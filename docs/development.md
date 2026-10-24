@@ -95,6 +95,9 @@ three matching entries in `src-tauri/Cargo.lock` (`cargo check --workspace --loc
 the **Unreleased** entries in `CHANGELOG.md` under `## [X.Y.Z] - YYYY-MM-DD`. Open a pull request, merge it once
 `ci-ok` is green, then tag the merge commit on `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
+If the release changes the `.infopanel` writer or the InfoPanel schema, also run `import-check` first on a PC with the
+InfoPanel source (CI can't; see [TESTING.md](TESTING.md#the-infopanel-export-check)) and make sure it passes.
+
 ## Dev server vs the standalone server
 
 **Standalone server (`ips-server`, `src-tauri/crates/ips-server`).** Serves the built `dist/`, stores the

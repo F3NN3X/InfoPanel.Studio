@@ -3,7 +3,7 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.24
+verified: 1.3.0-beta.25
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
@@ -132,6 +132,15 @@ Name, width and height, background, font, font size, text colour, font scale, **
 Export the zone as an .infopanel file from **Export & back up**. A remap choice changes the item's InfoPanel binding too, so the file carries the sensor you chose.
 
 With **Bake stale gauges and elements first** on, the Export window makes the frames and images for every gauge and element whose look changed, and shows its progress. It also lists every Approximated element with what it loses.
+
+The file is written the way InfoPanel's own export writes it, and the lab reads it back with InfoPanel's own reader. It leaves out the window state of this PC (active, topmost, window position), as InfoPanel does, so an imported profile doesn't arrive inactive.
+
+### On the PC that opens it
+
+The Export window ends with what the other PC needs.
+
+- **Fonts.** InfoPanel draws with installed fonts only, and an .infopanel carries none. The window lists the fonts the profile uses that Windows doesn't ship; install them on the other PC. The stored form (.canvas.zip) does carry the fonts you supplied.
+- **Sensors.** InfoPanel matches HWiNFO sensors by name when it imports a profile. Libre and plugin sensors are matched by id, so those sensors have to exist on the other PC. The window says which sources the profile reads.
 
 ## What InfoPanel can't do
 

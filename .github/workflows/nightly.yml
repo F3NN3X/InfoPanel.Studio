@@ -56,7 +56,9 @@ jobs:
           shared-key: tauri
       - run: npm run desktop:build
       - run: npx playwright install chromium
-      - run: node tools/verify.mjs --full
+      # import-check needs an InfoPanel source folder, which the runner doesn't have (see docs/TESTING.md), so it reports
+      # "not run" (exit 3). Nothing else is Windows-only-and-missing here, so incomplete is not a failure.
+      - run: node tools/verify.mjs --full --allow-incomplete
 
   # The perf suites measure and never gate (docs/performance.md). The JSON goes up as an artifact, and the table against
   # the previous nightly's artifact lands in the run summary.

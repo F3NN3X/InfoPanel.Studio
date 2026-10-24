@@ -28,6 +28,25 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
   kiosk rendering, live updates over SSE, the studio's save and undo, the proxy and request-guard rules over HTTP, and
   the deterministic budgets. Keep them few. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.
 
+## The InfoPanel export check
+
+`import-check` (`node lab/infopanel/scripts/import-check.mts`) hands our `.infopanel` exports to InfoPanel's own
+`XmlSerializer` (the .NET tool in `lab/infopanel/tools/import-check`) and compares what InfoPanel then holds with what we wrote,
+field by field. Its inputs are one export per item kind and one with all kinds (every field set,
+`tests/lib/infopanel/export/kind-cases.ts`, the same cases `kinds.test.ts` round-trips), one with empty lists, and every
+extracted corpus profile. The differences it allows are InfoPanel's computed values (TableSensor `Font` "", HttpImage `HttpUrl` and
+`Type`) and Profile fields an older InfoPanel build doesn't have (the WebView ones); anything else fails.
+
+- Needs Windows, the .NET SDK and an InfoPanel source folder: `INFOPANEL_PROJECT` (its `InfoPanel.csproj`), else
+  `PublicRepos/infopanel-pr173` beside any parent folder of the repo. Otherwise it exits 3 and `verify` reports it as not run.
+- It runs in `verify` for the `infopanel-import-export` and `import-lab` features, and so in `verify:full`, but **not in CI
+  or the nightly**: the runner has .NET but no InfoPanel source, and building InfoPanel (WPF, plugins) from a pinned fork
+  branch there is untested. The nightly Windows job therefore runs `--full --allow-incomplete`.
+- So it is a manual step before a release that touches the writer: run `npm run verify -- --feature infopanel-import-export`
+  on a PC with the InfoPanel source, and expect no NOT RUN for `import-check`.
+- The corpus tests that need `lab/infopanel/corpus` (`order.test.ts`, `idempotent.test.ts`, `corpus.test.ts`) run in
+  `npm run lab:test` and skip where it is absent.
+
 ## The feature map and `verify`
 
 `tests/feature-map.json` maps every tracked file to a feature, and each feature to the tests and checks that cover it.
