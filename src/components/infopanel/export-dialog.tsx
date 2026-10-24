@@ -1,6 +1,7 @@
 /**
  * Export (§9): a canvas zone written as its stored form (`.canvas.zip`) or as an `.infopanel` for
- * InfoPanel. Baking stale vector gauges first puts the new frames on the zone as one undo step.
+ * InfoPanel. Baking first (stale vector gauges, rings and LED bars to frames; cards, glows, dividers
+ * and icons to one image each) puts the new files on the zone as one undo step.
  */
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
@@ -14,6 +15,9 @@ import { readStoreFile } from "@/lib/infopanel/canvas";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import { bakeSignature, safeStem, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames";
 import { bake } from "@/lib/infopanel/gauges/raster";
+import { approximations } from "@/lib/infopanel/elements/apply";
+import { elementSignature, setElementFile, staleElements, staticOf } from "@/lib/infopanel/elements/bake";
+import { bakeElement } from "@/lib/infopanel/elements/raster";
 import {
   canvasZip,
   defaultFontChoice,
@@ -110,6 +114,9 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
 
   const doc: Doc = { items: opened.parsed.items, assets: opened.assets };
   const stale = staleGauges(doc.items);
+  const staleStatic = staleElements(doc.items);
+  const bakes = stale.length + staleStatic.length;
+  const approx = approximations(doc.items);
   const unused = unusedFiles(doc);
   const fontFiles = opened.restore?.fontFiles ?? new Map<string, Uint8Array>();
   const keptFonts = licences.filter((r) => choices.get(r.hash) !== "leave");
@@ -145,13 +152,24 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
         return;
       }
       let next = doc;
-      if (bakeFirst && stale.length) {
+      if (bakeFirst && bakes) {
+        let done = 0;
         for (const path of stale) {
           const g = itemAt(next.items, path) as GaugeItem;
           const spec = vectorOf(g)!;
           const count = g.Images.length > 1 ? g.Images.length : 101;
-          setBusy(`Baking ${g.Name || path}…`);
-          next = setFrameFiles(next, path, await bake(spec, count, safeStem(g.Name)), bakeSignature(spec, count));
+          const label = `Baking ${done + 1} of ${bakes}: ${g.Name || path}`;
+          setBusy(`${label}…`);
+          next = setFrameFiles(next, path, await bake(spec, count, safeStem(g.Name), (n) => setBusy(`${label}, frame ${n} of ${count}…`)), bakeSignature(spec, count));
+          done++;
+        }
+        for (const path of staleStatic) {
+          const item = itemAt(next.items, path);
+          const el = staticOf(item);
+          if (!item || !el) continue;
+          setBusy(`Baking ${done + 1} of ${bakes}: ${item.Name || path}…`);
+          next = setElementFile(next, path, await bakeElement(el.spec, el.width, el.height, item.Name), elementSignature(el.spec, el.width, el.height));
+          done++;
         }
         // The new frames go to the asset store, then onto the zone (one undo step).
         setBusy("Storing frames…");
@@ -168,8 +186,8 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
       const leaveOut = leaveUnused ? unusedFiles(next).names : [];
       const file = infopanelFile(opened.parsed.profile, next, leaveOut);
       await download(fileName, file.bytes, "application/octet-stream");
-      const left = bakeFirst ? 0 : stale.length;
-      onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} vector gauges keep their old frames` : ""}`);
+      const left = bakeFirst ? 0 : bakes;
+      onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} gauges and elements keep their old images` : ""}`);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -236,12 +254,14 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
           <div className="flex flex-col rounded-[10px] border border-ui-default">
             <div className="flex items-center gap-3 border-b border-ui-subtle px-3.5 py-3">
               <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-[12.5px] font-medium text-ui-1">Bake stale vector gauges first</span>
-                <span className={cn("text-[11.5px]", stale.length ? "text-ui-warning" : "text-ui-4")}>
-                  {stale.length ? `${stale.length} gauges have frames out of date` : "Every gauge’s frames are up to date"}
+                <span className="text-[12.5px] font-medium text-ui-1">Bake stale gauges and elements first</span>
+                <span className={cn("text-[11.5px]", bakes ? "text-ui-warning" : "text-ui-4")}>
+                  {bakes
+                    ? [stale.length && `${stale.length} gauges, rings or LED bars need new frames`, staleStatic.length && `${staleStatic.length} cards, glows, dividers or icons need a new image`].filter(Boolean).join(" · ")
+                    : "Every gauge’s frames and element’s image are up to date"}
                 </span>
               </div>
-              <Toggle on={bakeFirst} onChange={setBakeFirst} label="Bake stale vector gauges first" />
+              <Toggle on={bakeFirst} onChange={setBakeFirst} label="Bake stale gauges and elements first" />
             </div>
             <div className="flex items-center gap-3 px-3.5 py-3">
               <div className="flex flex-1 flex-col gap-0.5">
@@ -252,6 +272,18 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
               </div>
               <Toggle on={leaveUnused} onChange={setLeaveUnused} label="Leave unused assets out" />
             </div>
+          </div>
+        )}
+        {out === "infopanel" && approx.length > 0 && (
+          <div className="rounded-[10px] border border-ui-default px-3.5 py-3">
+            <div className="text-[12.5px] font-medium text-ui-1">Approximated in InfoPanel</div>
+            <ul className="mt-1 space-y-0.5 text-[12px] text-ui-3">
+              {approx.map((a) => (
+                <li key={a.path}>
+                  <span className="text-ui-2">{a.name}</span>: loses {a.lost.join(", ")}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         {out === "infopanel" && (

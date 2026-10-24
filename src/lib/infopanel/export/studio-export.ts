@@ -56,6 +56,7 @@ export function restoreStored(
     keyOf: (item) => importRecord(keys.get(pathOf.get(item) ?? "")),
     fonts: stored.fonts,
     screenshot: stored.screenshot,
+    palette: stored.palette,
   });
   return {
     ...next,

@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import type { ModeState } from "@/lib/infopanel/canvas-edit";
 import type { Path } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
+import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
+import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
 import type { CanvasEditor } from "./use-canvas-editor";
 
 const ICONS: Partial<Record<DisplayItem["kind"], LucideIcon>> = {
@@ -83,7 +85,9 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
       <div role="tree" aria-multiselectable className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-1.5 pb-2">
         {rows.length === 0 && <p className="px-2 py-1 text-[12px] leading-snug text-ui-4">No items yet. Add one above.</p>}
         {rows.map(({ item, path, depth }) => {
-          const Icon = kindIcon(item.kind);
+          const element = elementOf(item);
+          const Icon = element ? ELEMENT_ICONS[element.type] : kindIcon(item.kind);
+          const badge = badgeOf(item);
           const state = editor.modes.get(path)?.state;
           const selected = editor.selection.includes(path);
           const isGroup = item.kind === "Group";
@@ -122,6 +126,7 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
               )}
               <Icon className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />
               <span className={cn("min-w-0 flex-1 truncate text-[12.5px]", item.Hidden ? "text-ui-5" : "text-ui-2")}>{item.Name || item.kind}</span>
+              {badge && <BadgeChip badge={badge} compact />}
               {state && <span title={MODE_TITLE[state]} aria-label={MODE_TITLE[state]} className={cn("h-1.5 w-1.5 shrink-0 rounded-full", MODE_DOT[state])} />}
               <button
                 type="button"

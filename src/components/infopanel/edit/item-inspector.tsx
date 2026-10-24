@@ -17,7 +17,11 @@ import { InspectorView, type SectionParts } from "@/components/studio/inspector/
 import { ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/components/studio/inspector/infopanel-defs";
 import type { FieldsApi } from "@/components/studio/settings-panel";
 import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
+import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
+import { ELEMENTS } from "@/lib/infopanel/elements/create";
 import { describeNative } from "../native";
+import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
+import { ElementPanel } from "./element-panel";
 import { valueText } from "../remap-panel";
 import { Segmented } from "./canvas-toolbar";
 import { kindIcon } from "./items-tree";
@@ -74,12 +78,15 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
   const [query, setQuery] = useState("");
   const kind = item.kind as ItemKind;
   const groups = ipGroups(kind);
+  const element = elementOf(item);
+  const badge = badgeOf(item);
   const context: InspectorContext = {
     kind: "infopanel",
     groups,
     group: item.kind === "Group",
     bound: isBound(item),
     unknown: Object.keys(item.unknown).length > 0,
+    ...(element ? { element: ELEMENTS.find((e) => e.type === element.type)?.label ?? "Element" } : {}),
   };
   const editKey = (field: string) => `canvas-field:${editor.zone.id}:${path}:${field}`;
   const setError = (field: string, reason: string | null) =>
@@ -119,6 +126,20 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
 
   const parts = (s: InspectorSection): SectionParts => {
     switch (s.special) {
+      case "ipElement":
+        return {
+          body: element ? (
+            <>
+              {badge && (
+                <p className="px-4 pb-2 text-[11.5px] leading-snug text-ui-4">
+                  {badge.reason}
+                  {badge.lost.length > 0 && <span className="text-ui-warning"> Lost: {badge.lost.join(", ")}.</span>}
+                </p>
+              )}
+              <ElementPanel editor={editor} path={path} item={item} spec={element} sensors={sensors ?? {}} />
+            </>
+          ) : null,
+        };
       case "ipMode":
         return { body: <DrawAs editor={editor} path={path} /> };
       case "ipPosition":
@@ -128,7 +149,7 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
           body: (
             <>
               <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} onPickSensor={onPickSensor} sensors={sensors} />
-              {item.kind === "Gauge" && onEditGauge && (
+              {item.kind === "Gauge" && onEditGauge && !element && (
                 <>
                   {item.Images.length === 0 && !("vector" in item) && <p className="px-4 pb-1.5 text-[11.5px] leading-snug text-ui-4">No frames yet: InfoPanel draws a gauge from its images. Edit gauge to build them.</p>}
                   <EditGaugeButton onClick={() => onEditGauge(path)} />
@@ -155,7 +176,7 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
     }
   };
 
-  const Icon = kindIcon(item.kind);
+  const Icon = element ? ELEMENT_ICONS[element.type] : kindIcon(item.kind);
   const name = item.Name || item.kind;
   return (
     <InspectorView
@@ -170,6 +191,7 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
             <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{name}</div>
             <div className="truncate text-[11px] text-ui-4">InfoPanel · {item.kind}</div>
           </div>
+          {badge && <BadgeChip badge={badge} />}
         </div>
       }
       fields={fields}

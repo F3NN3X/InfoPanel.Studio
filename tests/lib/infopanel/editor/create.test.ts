@@ -72,7 +72,7 @@ describe("the styled new-item look", () => {
       if (value === null) continue;
       expect(checkValue(spec, value), field).toEqual({ ok: true, value });
     }
-    const { vector: _studioOnly, ...plain } = item as DisplayItem & { vector?: unknown };
+    const { vector: _studioOnly, slots: _slots, ...plain } = item as DisplayItem & { vector?: unknown; slots?: unknown };
     const back = await loadExport(entriesFromZip(infopanelExport(profile, [item], [])));
     expect(back.items).toEqual([plain]);
   });
@@ -121,8 +121,8 @@ describe("a profile from scratch, exported", () => {
     let items: DisplayItem[] = [];
     for (const { kind } of PALETTE) items = withNewItem(items, profile, newItem(kind, profile), null).items;
     const back = await loadExport(entriesFromZip(infopanelExport(profile, items, [])));
-    // A new gauge's ring is a vector spec (studio-only), baked to frames by the Export dialog.
-    expect(back.items).toEqual(items.map(({ vector: _v, ...plain }: DisplayItem & { vector?: unknown }) => plain));
+    // A new gauge's ring is a vector spec (studio-only), baked to frames by the Export dialog; the palette slots are studio-only too.
+    expect(back.items).toEqual(items.map(({ vector: _v, slots: _s, ...plain }: DisplayItem & { vector?: unknown; slots?: unknown }) => plain));
     expect(back.profile).toEqual(profile);
     expect(back.issues.filter((i) => i.code !== "unknown-field")).toEqual([]);
   });

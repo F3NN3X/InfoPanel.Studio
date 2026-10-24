@@ -9,6 +9,7 @@ import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
 import type { DisplayItem, Profile } from "@/lib/infopanel/schema.ts";
 import type { BoundItem } from "@/lib/infopanel/sensors.ts";
+import { ElementSvg } from "./ElementSvg.tsx";
 import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
 import { PathPaint } from "./Paint.tsx";
@@ -168,6 +169,12 @@ function Node({ node, id, font, canvas, start }: { node: DrawNode; id: string; f
         </div>
       );
     }
+    case "element":
+      return (
+        <div data-path={node.path} style={{ position: "absolute", left: node.x, top: node.y, width: node.width, height: node.height, ...boxTransform(node.width, node.height, node.rotation, false) }}>
+          <ElementSvg spec={node.spec} width={node.width} height={node.height} id={id} />
+        </div>
+      );
     case "vector":
       return (
         <div

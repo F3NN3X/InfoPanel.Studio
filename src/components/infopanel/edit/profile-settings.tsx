@@ -12,6 +12,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import type { CanvasEditor } from "./use-canvas-editor";
 import { dotnetFloat } from "@/lib/infopanel/export/write";
+import { argbOf, SLOT_LABEL, SLOTS, type Slot } from "@/lib/infopanel/elements/palette";
 
 type Field = keyof typeof PROFILE;
 
@@ -101,6 +102,47 @@ function ColourField({ field, value, onSet, onCommit }: { field: Field; value: s
   );
 }
 
+/** One palette slot: typed as #AARRGGBB (or #RRGGBB), or picked with the swatch (which keeps the alpha). */
+function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: (v: string) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const c = argbOf(draft);
+    setError(c ? null : "A colour is #RRGGBB or #AARRGGBB. The value isn’t stored.");
+    if (c) onSet(c);
+    setDraft(null);
+  };
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <span className="w-[72px] shrink-0 text-[12px] text-ui-2">{SLOT_LABEL[slot]}</span>
+        <input
+          aria-label={`Palette ${SLOT_LABEL[slot]}`}
+          value={draft ?? value}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setDraft(null);
+          }}
+          className={cn(INPUT, error ? "border-ui-danger" : "border-ui-default")}
+        />
+        <label className="relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden rounded-md border border-ui-strong" style={{ backgroundColor: toCss(value) }}>
+          <input
+            type="color"
+            aria-label={`Palette ${SLOT_LABEL[slot]} swatch`}
+            value={toCss(value) || "#000000"}
+            onChange={(e) => onSet(fromCss(e.currentTarget.value, value))}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </label>
+      </div>
+      {error && <Message>{error}</Message>}
+    </div>
+  );
+}
+
 export function ProfileSettings({ editor }: { editor: CanvasEditor }) {
   const { profile } = editor.open;
   const key = (f: Field) => `canvas-profile:${editor.zone.id}:${f}`;
@@ -139,6 +181,17 @@ export function ProfileSettings({ editor }: { editor: CanvasEditor }) {
           {s.note && <p className="mt-2 text-[11.5px] leading-snug text-ui-4">{s.note}</p>}
         </section>
       ))}
+      <section aria-label="Palette" className="border-b border-ui-subtle px-4 py-3">
+        <div className="mb-2 text-[12px] font-semibold text-ui-1">Palette</div>
+        <div className="flex flex-col gap-1.5">
+          {SLOTS.map((slot) => (
+            <PaletteRow key={slot} slot={slot} value={editor.palette[slot]} onSet={(v) => editor.setPalette(slot, v, `canvas-palette:${editor.zone.id}:${slot}`)} />
+          ))}
+        </div>
+        <p className="mt-2 text-[11.5px] leading-snug text-ui-4">
+          Studio only, never exported. New items and elements take these colours; changing one recolours everything that uses it, and baked elements bake again on export.
+        </p>
+      </section>
       <p className="px-4 py-3 text-[11.5px] leading-snug text-ui-4">Select an item on the canvas or in Layers to edit it.</p>
     </div>
   );

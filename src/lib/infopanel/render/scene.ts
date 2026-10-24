@@ -6,6 +6,8 @@
  * Positions are whole pixels: InfoPanel floors X and Y (scale 1).
  */
 import type { FontRequest } from "../font-loader.ts";
+import type { StaticSpec } from "../elements/spec.ts";
+import { staticOf } from "../elements/svg.ts";
 import { vectorOf } from "../gauges/frames.ts";
 import { fraction, type VectorGauge } from "../gauges/vector.ts";
 import type { DisplayItem, GaugeItem, ImageItem, Profile } from "../schema.ts";
@@ -127,6 +129,16 @@ export type DrawNode =
       gauge: VectorGauge;
       /** 0..1 of the range. */
       p: number;
+    })
+  | (Base & {
+      /** A static studio element (card, glow, divider, icon), drawn live from its spec: what its baked image shows. */
+      kind: "element";
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rotation: number;
+      spec: StaticSpec;
     })
   | (Base & {
       kind: "image";
@@ -253,6 +265,11 @@ export function buildScene(input: SceneInput): DrawNode[] {
       case "Image":
       case "HttpImage":
       case "SensorImage": {
+        const element = staticOf(item);
+        if (element) {
+          nodes.push({ kind: "element", path, item, x, y, width: element.width, height: element.height, rotation: item.Rotation, spec: element.spec });
+          return;
+        }
         if (item.kind === "SensorImage") {
           const r = state.reading;
           if (!r) return;

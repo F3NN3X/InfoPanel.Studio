@@ -358,7 +358,8 @@ A canvas zone (`module: "infopanel"`, `CANVAS_ID`) holds an imported
 InfoPanel profile in `Placement.canvas`: the stored form
 (`src/lib/infopanel/import/stored.ts`, `infopanel-canvas` v1), with
 InfoPanel's own field names, unknown fields kept, and the import's
-decisions per item under `$` (mode, Data API key). `placementContent`
+decisions per item under `$` (mode, Data API key; the studio-only fields
+below). `placementContent`
 subscribes the zone to the keys its items read (`canvas-keys.ts`, read
 straight from the JSON) and lazy-loads `CanvasZone`
 (`src/components/infopanel/`), so the InfoPanel renderer is its own chunk.
@@ -549,6 +550,34 @@ config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
   resolve from the binding they have.
 - **Profile settings** (`profile-settings.tsx`): the inspector with nothing selected; every field InfoPanel's
   export carries, checked by `checkValue` over `PROFILE`, committed with the items unchanged.
+- **Studio elements** (`src/lib/infopanel/elements/`): Ring, LED bar, Card, Glow, Divider, Icon, Cores and Sparkline.
+  Each is an ordinary InfoPanel item carrying a spec in the studio-only `$.element` (`spec.ts`, checked by
+  `normalizeElement` in `readStored`, and only on the kinds it can be). `applyElement` (`apply.ts`) derives the
+  item's InfoPanel fields from the spec and the item's box, and the editor runs it over the tree on every commit
+  (`syncElements`), so a resize, a moved group or a spec edit lands as one step:
+  - Ring and LED bar are Gauges whose `$.vector` is derived (`ringVector`, `ledVector`; the vector spec gained an
+    optional end `dot`). They bake to frames like any vector gauge (`$.vectorBaked`).
+  - Card and Divider are a Shape while one colour, a stroke and corners say it all (Native), else an Image (Baked).
+    A baked card's image is grown by its shadow and glow; the margin is kept as `pad` in the spec.
+  - Glow and Icon are Images (Baked). The icons are a curated lucide set, generated as markup
+    (`icons.generated.ts`, `tools/gen-element-icons.mjs`), loaded as their own chunk on first use (`icons.ts`):
+    a kiosk with no Icon element never fetches them.
+  - Cores is a Group of Bars, each bound natively to a per-core load sensor (`cores.ts` reads Libre refs
+    `/<cpu>/<n>/load/<i>` named "Core #n"), laid out from the group's X and Y (`coresLayout`).
+  - Sparkline is a Graph (Native, or Approximated when its end dot or gradient fill is on).
+
+  Static elements are drawn live from the spec (`svg.ts`, the `element` scene node, `ElementSvg`), in both draw
+  modes and on the kiosk. **Baking runs on export**, as for vector gauges: the Export dialog bakes every stale
+  vector gauge to frames and every stale static element to one PNG (`elements/raster.ts`), content-addressed by
+  SHA-256 in the canvas's assets, and records what it baked (`$.elementBaked`: spec and size); the old files
+  become unused and the export's unused-files cleanup leaves them out. `badgeOf` gives each element's export
+  badge (Native, Baked or Approximated, with a reason and what is lost), shown on Layers rows, in the inspector
+  header and, for approximations, in the Export dialog.
+- **Palette** (`elements/palette.ts`): the stored form's studio-only `palette` (accent 1–3, text, sub-text, track,
+  card, warn, crit; without one, `defaultPalette` from the profile, accent 1 being the styled defaults' accent).
+  An element's colours are inks (`{ color, slot? }`) and a styled native field records its slot in `$.slots`
+  (`{ Field: { slot, alpha? } }`), so the colour InfoPanel exports is always a plain field. `recolour` carries a
+  slot change into every ink and slot field, then re-derives the elements, which marks the baked ones stale.
 
 - **State** (`use-canvas-editor.ts`): the zone's stored form opened
   (`openCanvas`) and its items as edited (`editItems`,

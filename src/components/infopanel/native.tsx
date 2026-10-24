@@ -13,6 +13,7 @@ import type { SensorValue } from "@/hooks/useSensors";
 import type { SensorMap } from "@/modules/types";
 import { imageSrc, WidgetView } from "@/components/widgets/WidgetView";
 import { fraction } from "@/lib/infopanel/gauges/vector.ts";
+import { ElementSvg } from "./ElementSvg.tsx";
 import { VectorGaugeSvg } from "./VectorGaugeSvg.tsx";
 import { boundsOf, gaugeFrame, gradientAngle, gradientPaint, graphParts, rotatePoints, shapeGeometry, type Paint } from "@/lib/infopanel/render/geometry.ts";
 import { cssColor } from "@/lib/infopanel/render/color.ts";
@@ -52,6 +53,8 @@ export function describeNative(n: NativeItem): string {
       return "custom gauge widget, drawn live from its spec (studio prototype)";
     case "frames":
       return "image-sequence gauge widget (studio prototype)";
+    case "element":
+      return `studio ${n.custom.spec.type}, drawn live from its spec (studio prototype)`;
     case "shape":
       return `shape widget with ${n.needs[0] ?? "this shape"} (studio prototype)`;
     case "text":
@@ -175,6 +178,8 @@ function CustomView({ custom, n, path, sensors, view }: { custom: Custom; n: Nat
   switch (custom.kind) {
     case "vector":
       return <VectorGaugeSvg gauge={custom.gauge} p={fraction(value ?? null, custom.min, custom.max)} width={w} height={h} id={`native-${path}`} />;
+    case "element":
+      return <ElementSvg spec={custom.spec} width={w ?? 0} height={h ?? 0} id={`native-${path}`} />;
     case "frames": {
       const index = gaugeFrame(custom.urls.length, value ?? null, custom.min, custom.max);
       return <img src={custom.urls[index]} alt="" draggable={false} style={{ display: "block", width: w, height: h }} />;

@@ -44,6 +44,9 @@ import {
 import { align as alignBoxes, distribute as distributeBoxes, type AlignEdge, type Shift } from "@/lib/infopanel/editor/arrange";
 import { sensorOfCatalog, type ChosenSensor } from "@/lib/infopanel/editor/bind";
 import type { ConvertContext } from "@/lib/infopanel/native/convert";
+import { recolour, syncElements } from "@/lib/infopanel/elements/apply";
+import { defaultPalette, type Palette, type Slot } from "@/lib/infopanel/elements/palette";
+import type { ElementSpec } from "@/lib/infopanel/elements/spec";
 import { groupBindings, type CatalogIndex, type Group } from "@/lib/infopanel/remap/remap";
 import type { DisplayItem, Profile } from "@/lib/infopanel/schema";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
@@ -92,6 +95,12 @@ export interface CanvasEditor {
   drawAll(native: boolean): void;
   /** A profile field (Name, size, colours, WebView …), already checked: one step; a `key` coalesces typing. */
   setProfile(field: keyof Profile, value: unknown, key?: string): void;
+  /** The profile's palette (studio-only): the stored one, else the default. */
+  palette: Palette;
+  /** One palette slot set (#AARRGGBB): every element and styled field following it is recoloured, in one step. */
+  setPalette(slot: Slot, color: string, key?: string): void;
+  /** A studio element's spec replaced; its InfoPanel fields follow on commit. */
+  setElement(path: Path, spec: ElementSpec, key?: string): void;
   /** A new item (the Add palette) placed by InfoPanel's rules, centred or where it was dropped, and selected; returns its path. */
   add(item: DisplayItem, place?: DropPlace): Path;
   /** A new Image or Sensor image showing a file (it joins the canvas's files); returns its path. */
@@ -131,11 +140,14 @@ export function useCanvasEditor(
   // An undo can take selected items away: select only what is still there.
   const selection = useMemo(() => livePaths(committed, rawSelection), [committed, rawSelection]);
 
+  const palette = useMemo(() => open.stored.palette ?? defaultPalette(open.profile), [open]);
+
   const commit = (next: DisplayItem[], key?: string, nextSelection?: Path[]) => {
     setDraft(null);
     if (nextSelection) setSelection(nextSelection);
     if (next === committed) return;
-    const stored = storeItems(open.stored, open.profile, next);
+    // Studio elements follow their spec and box: a resize, a moved group or a spec edit lands with its derived fields.
+    const stored = storeItems(open.stored, open.profile, syncElements(next));
     setConfig((c) => replace(c, zone.id, stored), key);
   };
 
@@ -211,6 +223,13 @@ export function useCanvasEditor(
       if (Object.is(open.profile[field], value)) return;
       commitWith(storeItems(open.stored, { ...open.profile, [field]: value }, committed), undefined, key);
     },
+    palette,
+    setPalette: (slot, color, key) => {
+      if (palette[slot] === color) return;
+      const next = { ...palette, [slot]: color };
+      commitWith(storeItems({ ...open.stored, palette: next }, open.profile, recolour(committed, next)), undefined, key);
+    },
+    setElement: (path, spec, key) => commit(updateAt(committed, path, (item) => ({ ...item, element: spec }) as unknown as DisplayItem), key),
     add: (item, place) => {
       const r = withNewItem(committed, open.profile, item, single, place);
       commit(r.items, undefined, [r.path]);

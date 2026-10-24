@@ -13,7 +13,10 @@ import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
 import { useSensorCatalog } from "@/lib/catalog";
 import { editKeyOf } from "@/lib/infopanel/canvas-edit";
-import { namedFor, newItem, PALETTE, type PaletteEntry } from "@/lib/infopanel/editor/create";
+import { namedFor, newItem, type PaletteEntry } from "@/lib/infopanel/editor/create";
+import { applyElement } from "@/lib/infopanel/elements/apply";
+import { detectCores } from "@/lib/infopanel/elements/cores";
+import { newCores, newElement, type ElementEntry } from "@/lib/infopanel/elements/create";
 import type { DropPlace } from "@/lib/infopanel/canvas-edit";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import type { Placement } from "@/lib/layout";
@@ -28,7 +31,7 @@ import { PaneSheet } from "@/components/studio/pane-sheet";
 import { DOCKED_MIN_WIDTH, FLOATING_MIN_WIDTH, type InspectorMode } from "@/components/studio/studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
-import { AddPalette } from "./add-palette";
+import { AddPalette, type AddEntry } from "./add-palette";
 import { canvasKeyAction } from "./canvas-keys";
 import { CanvasToolbar, CompareStrip, ModesStrip } from "./canvas-toolbar";
 import { EditCanvas, type Compare } from "./edit-canvas";
@@ -85,9 +88,26 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
   const askSensor = (entry: PaletteEntry, path: Path) => {
     if (entry.sensor) setPickFor({ path, label: entry.label, pluginOnly: entry.pluginOnly === true, fresh: true });
   };
-  const onAdd = (entry: PaletteEntry, place?: DropPlace) => {
+  /** A studio element: a ring, LED bar or sparkline asks for its sensor; Cores binds to the cores the Data API reports. */
+  const addElement = (entry: ElementEntry, place?: DropPlace) => {
+    const { profile } = editor.open;
+    if (entry.type === "cores") {
+      const cores = detectCores(sensors);
+      const group = newCores(profile, editor.palette, cores, 0, 0);
+      const size = "element" in group ? (group.element as { width: number; height: number }) : { width: 0, height: 0 };
+      const at = place?.at ?? { x: profile.Width / 2, y: profile.Height / 2 };
+      editor.add(applyElement({ ...group, X: Math.round(at.x - size.width / 2), Y: Math.round(at.y - size.height / 2) }));
+      if (cores.length === 0) toast("No per-core load sensors found, so Cores shows placeholder bars");
+      return;
+    }
+    const path = editor.add(newElement(entry.type, profile, editor.palette), place);
+    if (entry.sensor) setPickFor({ path, label: entry.label, pluginOnly: false, fresh: true });
+  };
+  const onAdd = (add: AddEntry, place?: DropPlace) => {
+    if (add.kind === "element") return addElement(add.entry, place);
+    const { entry } = add;
     if (entry.file) return setFileFor({ entry, place });
-    askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile), place));
+    askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile, editor.palette), place));
   };
   const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
   const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;
@@ -210,10 +230,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
           compare={compareOn ? compare : null}
           onRefused={toast}
           onCompareFailed={() => setCompare(null)}
-          onPlace={(kind, place) => {
-            const entry = PALETTE.find((p) => p.kind === kind);
-            if (entry) onAdd(entry, place);
-          }}
+          onPlace={onAdd}
         />
         <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
           Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.
@@ -272,7 +289,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
         title={`Choose an image for ${fileFor?.entry.label ?? "the item"}`}
         onPick={(file) => {
           if (!fileFor) return;
-          const path = editor.addWithFile(newItem(fileFor.entry.kind, editor.open.profile), file, fileFor.place);
+          const path = editor.addWithFile(newItem(fileFor.entry.kind, editor.open.profile, editor.palette), file, fileFor.place);
           askSensor(fileFor.entry, path);
         }}
       />

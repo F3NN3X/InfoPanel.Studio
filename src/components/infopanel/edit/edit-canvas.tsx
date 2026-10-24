@@ -8,7 +8,6 @@ import { useCallback, useMemo, type DragEvent, type PointerEvent } from "react";
 import { withDroppedImage, type DropPlace } from "@/lib/infopanel/canvas-edit";
 import { profilePoint } from "@/lib/infopanel/editor/arrange";
 import { snapMove, snapThreshold } from "@/lib/infopanel/editor/snap";
-import type { ItemKind } from "@/lib/infopanel/schema";
 import { recordCopy } from "@/lib/my-library/copies";
 import { activeLibraryDrag, libraryDragKind, libraryDragOf, setActiveLibraryDrag } from "@/lib/my-library/drag";
 import { droppedFileOf } from "@/lib/my-library/model";
@@ -23,7 +22,7 @@ import { useNow } from "../CanvasZone";
 import { nativeLayer } from "../native";
 import { useSuppliedFonts, withSupplied } from "../supplied-fonts";
 import { ProfileView, useFonts, type AssetSource } from "../ProfileView";
-import { PALETTE_DRAG, paletteKindOf } from "./add-palette";
+import { PALETTE_DRAG, paletteEntryOf, type AddEntry } from "./add-palette";
 import { EditLayer, measureTargets } from "./edit-layer";
 import type { CanvasEditor } from "./use-canvas-editor";
 
@@ -50,7 +49,7 @@ interface EditCanvasProps {
   /** The screenshot would not load (a kept one whose file is gone). */
   onCompareFailed?: () => void;
   /** A kind dragged from the Add palette and dropped: where, with the snapping to apply to its box. */
-  onPlace?: (kind: ItemKind, place: DropPlace) => void;
+  onPlace?: (entry: AddEntry, place: DropPlace) => void;
 }
 
 export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace }: EditCanvasProps) {
@@ -80,7 +79,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     return profilePoint({ x: e.clientX, y: e.clientY }, { left: box.left, top: box.top, width: w, height: h }, profile, scale);
   };
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
-    const kind = paletteKindOf(e.dataTransfer.getData(PALETTE_DRAG));
+    const kind = paletteEntryOf(e.dataTransfer.getData(PALETTE_DRAG));
     if (kind) {
       e.preventDefault();
       const layer = e.currentTarget.querySelector<HTMLElement>("[data-canvas-edit-layer]");

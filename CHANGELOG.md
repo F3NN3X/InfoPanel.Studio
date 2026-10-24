@@ -6,6 +6,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **Elements in the InfoPanel editor.** A new Elements group in Add: Ring (a value arc with a gradient, end dot, ticks, LED segments or a glow), LED bar, Card (rounded, with a gradient, stroke, drop shadow or glow), Glow, Divider, Icon (a searchable set of icons), Cores (one bar per CPU core, bound to its load) and Sparkline. They draw live in the editor and on kiosks, and export as InfoPanel items: what InfoPanel can draw goes as its own items, the rest is baked into images or gauge frames when you export.
+- **Export badges.** Layers and the inspector mark each element Native, Baked or Approximated, with the reason. The Export window bakes everything that needs it, with progress, and lists what an approximation loses.
+- **A palette for each InfoPanel profile.** Accent 1 to 3, text, sub-text, track, card, warning and critical, in the profile settings. New items and elements take these colours, and changing one recolours everything that uses it. The palette stays in the studio; the .infopanel file carries plain colours.
+
 ## [1.3.0-beta.23] - 2026-10-24
 
 ### Added
