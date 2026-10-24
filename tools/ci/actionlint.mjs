@@ -36,7 +36,7 @@ async function ensureBinary() {
   const archive = path.join(dir, asset.name);
   fs.writeFileSync(archive, bytes);
   // Windows: its own bsdtar reads zip (a GNU tar on PATH, as in Git Bash, takes "E:" for a host).
-  const tar = process.platform === "win32" ? path.join(process.env.SystemRoot ?? "C:\Windows", "System32", "tar.exe") : "tar";
+  const tar = process.platform === "win32" ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "tar.exe") : "tar";
   execFileSync(tar, ["-xf", archive, "-C", dir, path.basename(bin)]);
   fs.rmSync(archive);
   return bin;
