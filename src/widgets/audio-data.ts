@@ -16,8 +16,13 @@ export const shortName = (full: string): string => full.replace(/\s*\(.+\)$/, ""
 /** The container that meters the active default device is labelled so it does not read as a duplicate. */
 export const deviceLabel = (id: string, full: string): string => (id === "default-audio" ? "Default device" : shortName(full));
 
-/** `volume` / `mute` of the volume-plugin entry for a container, matched by the device GUID its id ends with. */
+/** `volume` / `mute` of the volume-plugin entry for a container, matched by the device GUID its id ends with. The
+ * default-device container has no GUID; the plugin publishes the default device under `default`. */
 export function volumeEntry(d: Data, id: string, suffix: "volume" | "mute"): string | undefined {
+  if (id === "default-audio") {
+    const key = `plugins.volume-plugin.default.${suffix}`;
+    return d?.[key] == null ? undefined : get(d, key);
+  }
   const g = guidOf(id);
   const key = g && Object.keys(d).find((k) => k.startsWith("plugins.volume-plugin") && k.includes(`{${g}}`) && k.endsWith(`.${suffix}`));
   return key ? get(d, key) : undefined;

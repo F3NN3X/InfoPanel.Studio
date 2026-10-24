@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **Audio Meter's Volume bar and mute marker never showed for the default device.** One device meters the default device unless you pick another, and its volume and mute weren't found; they now come from the volume plugin's default device. Meter Bridge's default-device column gets them too.
+
 ## [1.3.0-beta.20] - 2026-10-24
 
 ### Changed
