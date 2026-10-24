@@ -90,3 +90,4 @@ security model, what was fixed, what was decided, and what is deferred. Performa
 - The desktop app's IPC under the new server CSP, and a Web Page widget under it (both reasoned from the policy).
 - A real write from another LAN device (unit tests cover `remoteEditRefusal`; route tests bind 127.0.0.1).
 - The proxy's connect-time pinning against a real public host.
+
