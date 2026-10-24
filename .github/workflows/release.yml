@@ -6,15 +6,20 @@ on:
 
 permissions:
   contents: write
+  # The release gate reads the commit's check runs, its pull request and the nightly's runs.
+  checks: read
+  pull-requests: read
+  actions: read
 
 jobs:
   release:
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The signed build installs from scratch: npm ci verifies every package against the lockfile (the npm
       # cache holds only those verified tarballs). Node is only the build tool for the web app; nothing of it ships.
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -40,12 +45,24 @@ jobs:
             exit 1
           fi
 
-      # The snapshot tests render the clock in the machine's locale; match the one they were taken in.
-      - name: Use the en-150 locale
-        shell: pwsh
-        run: Set-Culture en-150
+      # A release comes from a commit CI vouches for: a green ci-ok on it or on the pull request that merged it, or the
+      # last green nightly's commit (tools/ci/release-gate.mjs).
+      - name: Check CI passed for this commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/ci/release-gate.mjs --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY"
       - run: npm ci
       - run: npm test
+      # The Rust tests before anything is built. The stub only stands in for the resources tauri-build checks; the
+      # installer build below prepares the real ones.
+      - name: cargo test (server, agent)
+        run: cargo test -p ips-server -p ips-agent
+        working-directory: src-tauri
+      - run: node tools/ci-stub-desktop.mjs
+      - name: cargo test (app)
+        run: cargo test
+        working-directory: src-tauri
       - name: Check the updater signing key is set
         shell: bash
         env:

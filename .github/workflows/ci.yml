@@ -1,10 +1,13 @@
 name: CI
 
-# PRs run the checks. A push to main runs them only when the dependencies change: GitHub shares caches
-# saved on main with every PR, so this keeps the npm and Rust caches warm for the next PRs.
-# Every code change already passed this check in its PR, and a release tag re-runs the tests in release.yml.
+# PRs run the checks their change needs. `plan` asks tools/verify.mjs (tests/feature-map.json) which checks the changed
+# files call for and the jobs below run or skip accordingly; `ci-ok` is the one required status check. A push to main
+# runs only when the dependencies change (GitHub shares caches saved on main with every PR, so that keeps the npm and
+# Rust caches warm) and then runs everything. The label ci:full does the same on a PR. Every code change already passed
+# this check in its PR, and a release tag re-checks it in release.yml.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]
     paths:
@@ -13,6 +16,7 @@ on:
       - src-tauri/Cargo.toml
       - tools/desktop-prepare.mjs
       - .github/workflows/ci.yml
+      - .github/actions/**
 
 permissions:
   contents: read
@@ -23,117 +27,121 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Which parts the change touches. A push to main (a dependency change) runs everything.
-  changes:
+  # Which jobs the change needs (tools/ci/plan-outputs.mjs). A push to main or the ci:full label turns every one on.
+  plan:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      rust: ${{ steps.diff.outputs.rust }}
-      native: ${{ steps.diff.outputs.native }}
+      lint: ${{ steps.plan.outputs.lint }}
+      typecheck: ${{ steps.plan.outputs.typecheck }}
+      unit: ${{ steps.plan.outputs.unit }}
+      build: ${{ steps.plan.outputs.build }}
+      budgets: ${{ steps.plan.outputs.budgets }}
+      settings: ${{ steps.plan.outputs.settings }}
+      server: ${{ steps.plan.outputs.server }}
+      e2e: ${{ steps.plan.outputs.e2e }}
+      lab: ${{ steps.plan.outputs.lab }}
+      rust: ${{ steps.plan.outputs.rust }}
+      windows: ${{ steps.plan.outputs.windows }}
+      actionlint: ${{ steps.plan.outputs.actionlint }}
+      full: ${{ steps.plan.outputs.full }}
+      docs_only: ${{ steps.plan.outputs.docs_only }}
     steps:
-      # Depth 2: the PR's merge commit and its first parent (the base).
-      - uses: actions/checkout@v7
+      # Full history: the plan diffs against the merge base with the PR's base branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
-      - id: diff
+          fetch-depth: 0
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+          FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full') }}
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ] \
-            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|tools/desktop-prepare\.mjs$|\.github/workflows/ci\.yml$)'; then
-            echo "rust=true" >> "$GITHUB_OUTPUT"
-          fi
-          # The server (ips-server, in src-tauri/crates/) is checked by the server suite and the e2e suite, which run
-          # against the built web app: a change to the server, the web app, either suite or their tooling runs that job.
-          if [ "${{ github.event_name }}" != "pull_request" ] \
-            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|src/|public/|tools/|tests/|index\.html$|help\.html$|vite[^/]*\.ts$|package(-lock)?\.json$|\.github/workflows/ci\.yml$)'; then
-            echo "native=true" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" != "pull_request" ] || [ "$FULL_LABEL" = "true" ]; then
+            echo '{"mode":"full","steps":[]}' | node tools/ci/plan-outputs.mjs --all
+          else
+            node tools/verify.mjs --plan --json --base "origin/$BASE" > plan.json
+            node tools/ci/plan-outputs.mjs < plan.json
           fi
 
-  # Lint, typecheck, build and the Vitest suite (the server suite and the e2e suite run in the native job).
-  web:
+  lint:
+    needs: plan
+    if: needs.plan.outputs.lint == 'true' || needs.plan.outputs.actionlint == 'true'
     runs-on: ubuntu-latest
-    # The snapshot tests render the clock in the en-150 locale.
-    env:
-      LANG: en_150.UTF-8
-      LC_ALL: en_150.UTF-8
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-      - id: modules
-        uses: actions/cache@v6
-        with:
-          path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - if: steps.modules.outputs.cache-hit != 'true'
-        run: npm ci
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
       # Biome lint (biome.json); the formatter is off until a one-off format commit.
-      - run: npx biome ci
-      - run: npm run build
-      - run: npm test
+      - if: needs.plan.outputs.lint == 'true'
+        run: npx biome ci
+      # The workflows themselves: a pinned actionlint (tools/ci/actionlint.mjs).
+      - if: needs.plan.outputs.actionlint == 'true'
+        run: node tools/ci/actionlint.mjs
+
+  # tsc -b, the kiosk and studio build, the Settings window build and the gating bundle budgets.
+  typecheck-build:
+    needs: plan
+    if: needs.plan.outputs.typecheck == 'true' || needs.plan.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - if: needs.plan.outputs.build != 'true'
+        run: npx tsc -b
+      - if: needs.plan.outputs.build == 'true'
+        run: npm run build
+      - if: needs.plan.outputs.settings == 'true'
+        run: npm run desktop:settings
       # The deterministic bundle budgets (tools/perf/budgets.json); CPU and memory stay report-only.
-      - run: npm run perf:budgets
+      - if: needs.plan.outputs.budgets == 'true'
+        run: npm run perf:budgets
+      - if: needs.plan.outputs.e2e == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
 
-  # The Rust tests, only when the change touches the desktop app.
-  rust:
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
-    runs-on: windows-latest
+  # The whole Vitest suite, whatever the change: the selective runs are local, CI is the complete backstop.
+  unit:
+    needs: plan
+    if: needs.plan.outputs.unit == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-      - id: modules
-        uses: actions/cache@v6
-        with:
-          path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - if: steps.modules.outputs.cache-hit != 'true'
-        run: npm ci
-      # shared-key: the release job reuses this cache (its key would otherwise include the job name).
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-          shared-key: tauri
-      # The Tauri build script wants the bundled pages and resources in place before it compiles. The web
-      # job typechecks, so these build with Vite alone.
-      - run: npx vite build --outDir .cache/desktop/dist --emptyOutDir
-      - run: npm run desktop:settings
-      - run: npm run desktop:prepare
-      - name: cargo test
-        run: cargo test
-        working-directory: src-tauri
-      - name: cargo clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-        working-directory: src-tauri
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm test
 
-  # The server, on Linux and Windows: the server suite against ips-server and the Rust tests of the two crates (the
-  # Tauri app builds on Windows only, see the rust job). Linux also runs the e2e suite against ips-server.
-  native:
-    needs: changes
-    if: needs.changes.outputs.native == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  # The import lab: its typecheck and its tests (the InfoPanel corpus round-trips).
+  lab:
+    needs: plan
+    if: needs.plan.outputs.lab == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-      - id: modules
-        uses: actions/cache@v6
-        with:
-          path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - if: steps.modules.outputs.cache-hit != 'true'
-        run: npm ci
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm run lab:typecheck
+      - run: npm run lab:test
+
+  # The dashboard server on Linux: the HTTP suite against ips-server and the Rust tests and clippy of ips-server and
+  # ips-agent. Windows runs the same Rust tests in `rust`.
+  server:
+    needs: plan
+    if: needs.plan.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           components: clippy
-      # Its own key: the tauri cache belongs to the rust and release jobs.
-      - uses: Swatinem/rust-cache@v2
+      # Its own key: the tauri cache belongs to the rust job and the release.
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
           shared-key: native
@@ -144,10 +152,94 @@ jobs:
       - name: cargo clippy
         run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
         working-directory: src-tauri
-      - if: runner.os == 'Linux'
-        run: npm run build
-      - if: runner.os == 'Linux'
+
+  # The Playwright specs against the built pages (artifact from typecheck-build) and a debug ips-server built here: a
+  # warm Rust cache makes that build seconds, so no binary changes hands between jobs.
+  e2e:
+    needs: [plan, typecheck-build]
+    if: needs.plan.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: native
+      - run: cargo build -p ips-server
+        working-directory: src-tauri
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
-      # test:server built the debug binary the scratch server runs.
-      - if: runner.os == 'Linux'
-        run: npm run test:e2e
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-report
+          path: .cache/playwright
+          retention-days: 7
+
+  # Windows: the Rust tests and clippy of ips-server and ips-agent (the server leg that used to be a matrix entry), and
+  # when the app crate is in play, the Tauri app's. tools/ci-stub-desktop.mjs stands in for the web build, the Node
+  # download and the release agent build of `npm run desktop:prepare`: only tauri-build's resource checks need them.
+  rust:
+    needs: plan
+    if: needs.plan.outputs.windows == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
+      # shared-key: the release job reuses this cache (its key would otherwise include the job name).
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: tauri
+      - name: cargo test (server, agent)
+        run: cargo test -p ips-server -p ips-agent
+        working-directory: src-tauri
+      - name: cargo clippy (server, agent)
+        run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
+        working-directory: src-tauri
+      # The agent is built by the tests above; the stub copies it, so tauri-build does not leave an empty file over it.
+      - if: needs.plan.outputs.rust == 'true'
+        run: node tools/ci-stub-desktop.mjs
+      - if: needs.plan.outputs.rust == 'true'
+        name: cargo test (app)
+        run: cargo test
+        working-directory: src-tauri
+      - if: needs.plan.outputs.rust == 'true'
+        name: cargo clippy (workspace)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: src-tauri
+
+  # The one required status check. Skipped jobs (not needed for this change) pass; a failed or cancelled one fails it.
+  ci-ok:
+    if: always()
+    needs: [plan, lint, typecheck-build, unit, lab, server, e2e, rust]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          case " $RESULTS " in
+            *" failure "*|*" cancelled "*) echo "::error::a needed job failed or was cancelled"; exit 1 ;;
+          esac
