@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.21] - 2026-10-24
+
 ### Added
 
 - **Pick audio devices, inputs and outputs, in every audio widget.** Audio Meter, Meter Bridge, Volume Mixer, Visualizer, Now Playing's visualizer and Wave Link have a device list you can tick several from, and **Show** (All devices, Outputs or Inputs) narrows it. The Visualizer draws the loudest of the devices you pick. Wave Link's Inputs are its channels and input devices, its Outputs the mixes. Inputs need InfoPanel.AudioMeter 1.5.0; with an older plugin every device counts as an output. A saved single device carries over as one picked device.
