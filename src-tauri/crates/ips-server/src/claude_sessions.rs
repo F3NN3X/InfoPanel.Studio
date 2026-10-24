@@ -6,7 +6,6 @@
 use std::path::Path;
 
 use serde_json::Value;
-use sysinfo::{Pid, ProcessesToUpdate, System};
 
 use crate::agents::{project_of, slice16, LiveSession};
 use crate::js;
@@ -44,13 +43,31 @@ pub fn parse_claude_session(text: &str) -> Option<ClaudeSession> {
     })
 }
 
-/// Whether a process exists (one owned by someone else counts).
+/// Whether a process exists (one owned by someone else counts): `process.kill(pid, 0)`, one OpenProcess per pid. A
+/// sysinfo refresh here enumerated every process on the machine for each session file.
+#[cfg(windows)]
 pub fn is_alive(pid: u64) -> bool {
+    use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ACCESS_DENIED, STILL_ACTIVE};
+    use windows_sys::Win32::System::Threading::{GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
     let Ok(pid) = u32::try_from(pid) else { return false };
-    let mut system = System::new();
-    let target = [Pid::from_u32(pid)];
-    system.refresh_processes(ProcessesToUpdate::Some(&target), true);
-    system.process(target[0]).is_some()
+    // SAFETY: plain Win32 calls on a handle this function owns and closes.
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if handle.is_null() {
+            return GetLastError() == ERROR_ACCESS_DENIED;
+        }
+        let mut code = 0u32;
+        let running = GetExitCodeProcess(handle, &mut code) != 0 && code == STILL_ACTIVE as u32;
+        CloseHandle(handle);
+        running
+    }
+}
+
+#[cfg(unix)]
+pub fn is_alive(pid: u64) -> bool {
+    let Ok(pid) = libc::pid_t::try_from(pid) else { return false };
+    // SAFETY: signal 0 only checks that the process exists.
+    unsafe { libc::kill(pid, 0) == 0 } || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
 }
 
 /// Every session file under `home`, each with whether its process is alive (a crash leaves the file behind).
@@ -117,5 +134,14 @@ mod tests {
     fn knows_this_process_is_alive_and_a_huge_pid_is_not() {
         assert!(is_alive(u64::from(std::process::id())));
         assert!(!is_alive(u64::MAX));
+    }
+
+    #[test]
+    fn a_process_that_exited_is_not_alive() {
+        let mut child = if cfg!(windows) { std::process::Command::new("cmd").args(["/c", "exit"]).spawn() } else { std::process::Command::new("true").spawn() }.unwrap();
+        let pid = u64::from(child.id());
+        child.wait().unwrap();
+        drop(child);
+        assert!(!is_alive(pid));
     }
 }

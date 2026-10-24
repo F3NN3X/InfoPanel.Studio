@@ -1965,6 +1965,7 @@ dependencies = [
  "futures-util",
  "http-body",
  "hyper",
+ "libc",
  "log",
  "reqwest",
  "rustls",
@@ -1979,6 +1980,7 @@ dependencies = [
  "tower-http",
  "url",
  "uuid",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
