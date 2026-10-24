@@ -31,7 +31,7 @@ Settings › App › Server shows the state (**Server running**, **Server stoppe
 On Local network, anyone on your network can open the kiosk and the studio. Windows may ask to allow it through the firewall. **Allowed host names** limits which names the server answers to.
 :::
 
-Other devices can view the dashboard and kiosks but can't change anything unless **Allow editing from other devices** is on. It is off by default and appears only on Local network. With it off, a studio opened on another device is read-only. Stream Deck and kiosk control keep working either way.
+Other devices can view the dashboard and kiosks but can't change anything unless **Allow editing from other devices** is on. It is off by default and appears only on Local network. With it off, a studio opened on another device says so in a banner, and changes made there aren't saved. Stream Deck and kiosk control keep working either way.
 
 ## Changing the port
 
