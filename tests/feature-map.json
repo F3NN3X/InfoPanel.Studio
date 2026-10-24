@@ -32,6 +32,12 @@
       "when": "the HTTP suite in tests/server, run against the built ips-server"
     },
     "lab": { "cmd": "npm run lab:typecheck && npm run lab:test", "when": "the import lab or the InfoPanel parsers it shares" },
+    "import-check": {
+      "cmd": "node lab/infopanel/scripts/import-check.mts",
+      "platform": "win32",
+      "notRunExit": 3,
+      "when": "the .infopanel writer: our exports read by InfoPanel's own XmlSerializer (.NET, an InfoPanel source folder), compared field by field. Exit 3 where .NET or the source is missing"
+    },
     "e2e": {
       "cmd": "npx playwright test --project=e2e {tests}",
       "fullCmd": "npm run test:e2e",
@@ -469,8 +475,8 @@
       "paths": ["src/lib/infopanel/**", "src/components/infopanel/**", "tools/ip-import.cjs", "tools/gen-element-icons.mjs", "tools/gen-element-icons.d.mts"],
       "exclude": ["src/lib/infopanel/gauges/**"],
       "tests": ["tests/lib/infopanel/**", "tests/components/infopanel/**"],
-      "checks": ["typecheck", "unit", "lab"],
-      "note": "The corpus round-trips live in the lab (lab/infopanel/src/corpus.test.ts), outside npm test."
+      "checks": ["typecheck", "unit", "lab", "import-check"],
+      "note": "The corpus round-trips live in the lab (lab/infopanel/src/corpus.test.ts, order.test.ts, idempotent.test.ts), outside npm test. import-check needs Windows, .NET and an InfoPanel source folder (docs/TESTING.md)."
     },
     {
       "id": "help",
@@ -516,7 +522,7 @@
       "summary": "The InfoPanel import lab (its own Vite and Vitest config).",
       "paths": ["lab/**"],
       "tests": [],
-      "checks": ["lab"]
+      "checks": ["lab", "import-check"]
     },
     {
       "id": "e2e-harness",

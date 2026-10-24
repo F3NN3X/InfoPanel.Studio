@@ -18,6 +18,7 @@ import { bake } from "@/lib/infopanel/gauges/raster";
 import { approximations } from "@/lib/infopanel/elements/apply";
 import { elementSignature, setElementFile, staleElements, staticOf } from "@/lib/infopanel/elements/bake";
 import { bakeElement } from "@/lib/infopanel/elements/raster";
+import { fontsToInstall, sensorNote, sensorSources } from "@/lib/infopanel/export/needs";
 import {
   canvasZip,
   defaultFontChoice,
@@ -117,6 +118,8 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
   const staleStatic = staleElements(doc.items);
   const bakes = stale.length + staleStatic.length;
   const approx = approximations(doc.items);
+  const fonts = fontsToInstall(doc.items);
+  const sensors = sensorNote(sensorSources(doc.items));
   const unused = unusedFiles(doc);
   const fontFiles = opened.restore?.fontFiles ?? new Map<string, Uint8Array>();
   const keptFonts = licences.filter((r) => choices.get(r.hash) !== "leave");
@@ -287,7 +290,17 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
           </div>
         )}
         {out === "infopanel" && (
-          <p className="text-[11.5px] text-ui-4">InfoPanel draws with the fonts installed on its PC: an .infopanel carries no font files.</p>
+          <div className="rounded-[10px] border border-ui-default px-3.5 py-3">
+            <div className="text-[12.5px] font-medium text-ui-1">On the PC that opens it</div>
+            <ul className="mt-1 space-y-0.5 text-[12px] text-ui-3">
+              <li>
+                {fonts.length > 0
+                  ? `InfoPanel draws with installed fonts only, and an .infopanel carries none. Install ${fonts.join(", ")} there.`
+                  : "Every font is one Windows ships with, so nothing needs installing."}
+              </li>
+              {sensors && <li>{sensors}</li>}
+            </ul>
+          </div>
         )}
         {out === "stored" && <FontLicenceReview rows={licences} choices={choices} targets={targets} onChoose={(hash, c) => setChoices(new Map(choices).set(hash, c))} />}
         <div className="flex flex-col gap-[5px] rounded-[10px] border border-ui-subtle bg-ui-chrome px-3.5 py-3">

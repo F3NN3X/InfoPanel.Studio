@@ -68,18 +68,15 @@ export const SHAPE_TYPES = [
 ] as const;
 export const GRADIENT_TYPES = ["Linear", "Sweep", "Radial", "Diamond", "Reflected", "Spiral"] as const;
 
+/** In the order XmlSerializer writes them: the declared members, then the generated ones (IsSelected, ShowFps, OpenGL, FontScale). */
 export const PROFILE = {
   Guid: str(""),
   Name: str("Profile"),
-  IsSelected: bool(false),
   Width: int(600, positive),
   Height: int(400, positive),
-  ShowFps: bool(false),
   Drag: bool(true),
   BackgroundColor: color("#FFFFFFFF"),
   Active: bool(true),
-  OpenGL: bool(false),
-  FontScale: float(1.33),
   Topmost: bool(false),
   /** C# default: the first installed system family; "" stands for it here. */
   Font: str(""),
@@ -98,6 +95,10 @@ export const PROFILE = {
   WebViewAutoRefreshSeconds: int(0, (v) => (v <= 0 ? 0 : Math.max(5, v))),
   /** 0 leaves the page at the display's refresh rate; at most 240. Newer InfoPanel builds only. */
   WebViewMaxFps: int(0, (v) => Math.min(240, Math.max(0, v))),
+  IsSelected: bool(false),
+  ShowFps: bool(false),
+  OpenGL: bool(false),
+  FontScale: float(1.33),
 } satisfies Schema;
 
 const BASE = {
@@ -164,6 +165,16 @@ const CHART = {
   Color: color("#808080"),
 } satisfies Schema;
 
+/**
+ * RtspUrl and HttpUrl setters: empty or null is stored, otherwise the scheme must match or the value is ignored.
+ * The first scheme is compared ignoring case, the second exactly (`StartsWith` with and without OrdinalIgnoreCase).
+ */
+const urlOrNull = (loose: string, exact: string): FieldSpec<string | null> => ({
+  kind: "string",
+  default: null,
+  accept: (v) => (!v || v.slice(0, loose.length).toLowerCase() === loose || v.startsWith(exact) ? v : undefined),
+});
+
 const IMAGE = {
   ...BASE,
   Type: oneOf(["FILE", "URL", "RTSP"] as const, "FILE"),
@@ -171,8 +182,8 @@ const IMAGE = {
   FilePath: strOrNull(),
   RelativePath: bool(false),
   Volume: int(0),
-  RtspUrl: strOrNull(),
-  HttpUrl: strOrNull(),
+  RtspUrl: urlOrNull("rtsp://", "rtsps://"),
+  HttpUrl: urlOrNull("http://", "https://"),
   Cache: bool(true),
   Scale: int(100),
   Width: int(0),
@@ -241,8 +252,8 @@ export const SCHEMAS = {
     Height: int(0),
   },
   Image: IMAGE,
-  /** Always a URL: C#'s Type getter returns URL and its setter does nothing. */
-  HttpImage: { ...IMAGE, ...BINDING, Type: { ...IMAGE.Type, default: "URL", accept: () => "URL" } as FieldSpec<(typeof IMAGE.Type)["default"]> },
+  /** Always a URL: C#'s Type getter returns URL and its setter does nothing; HttpUrl is computed from the sensor and takes any text. */
+  HttpImage: { ...IMAGE, ...BINDING, HttpUrl: strOrNull(), Type: { ...IMAGE.Type, default: "URL", accept: () => "URL" } as FieldSpec<(typeof IMAGE.Type)["default"]> },
   SensorImage: { ...IMAGE, ...BINDING, Threshold1: double(0), Threshold2: double(100) },
   Shape: {
     ...BASE,

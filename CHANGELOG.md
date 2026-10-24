@@ -6,6 +6,18 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **The Export window says what the other PC needs.** For an .infopanel it lists the fonts the profile uses that Windows doesn't ship, and which sensor sources it reads: HWiNFO sensors are matched by name when InfoPanel imports, Libre and plugin sensors must exist there with the same ids.
+
+### Changed
+
+- **Profile.xml now matches what InfoPanel's own export writes.** The same elements in InfoPanel's order, empty text as `<X />`, and the window state of the PC it came from (active, topmost, window position, process triggers) left at a fresh profile's values, so an imported profile doesn't arrive inactive or pinned. Item elements and empty groups and gauges follow InfoPanel's order too, checked against real profiles.
+
+### Fixed
+
+- **Image and gauge-frame URLs InfoPanel would ignore.** InfoPanel only keeps an HTTP address that starts with http:// or https:// and an RTSP address that starts with rtsp:// or rtsps://; the editor now refuses others instead of exporting them.
+
 ## [1.3.0-beta.24] - 2026-10-25
 
 ### Added

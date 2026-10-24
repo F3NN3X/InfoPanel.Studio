@@ -54,12 +54,14 @@ function printPlan(plan, grouped, notes, mergeBase) {
 }
 
 /** Run one planned step; returns its result record. */
-function runStep(step, { json }) {
+function runStep(step, { json, map }) {
   const started = Date.now();
   console.error(`\n== ${step.id}: ${shorten(step.cmd, 140)}`);
   const stdio = json ? ["ignore", process.stderr.fd, process.stderr.fd] : "inherit";
   const run = spawnSync(step.cmd, { cwd: path.join(ROOT, step.cwd), shell: true, stdio });
-  return { id: step.id, status: run.status === 0 ? "passed" : "failed", ms: Date.now() - started };
+  // A check that can tell it has nothing to run on (no .NET, no source folder) says so with its `notRunExit`; the script printed why.
+  const notRun = run.status !== 0 && run.status === map.checks[step.id]?.notRunExit;
+  return { id: step.id, status: run.status === 0 ? "passed" : notRun ? "not-run" : "failed", ms: Date.now() - started };
 }
 
 function main() {
@@ -144,7 +146,7 @@ function main() {
       results.push({ id: step.id, status: "not-run", ms: 0 });
     } else if (stopped) results.push({ id: step.id, status: "skipped", ms: 0 });
     else {
-      const result = runStep(step, { json });
+      const result = runStep(step, { json, map });
       results.push(result);
       if (result.status === "failed" && !flags.has("--keep-going")) stopped = true;
     }
