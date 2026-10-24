@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.18] - 2026-10-24
+
 ### Changed
 
 - **The native dashboard server is now the default.** The app runs the dashboard server itself instead of a separate Node process: about half the memory (41 MB against 82 MB), less idle CPU and one process fewer. Existing installs move over on their next start. If something misbehaves, Settings › Diagnostics › Server › Node switches back, and please report it: Node is going away in a later release.
