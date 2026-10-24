@@ -1,8 +1,6 @@
 # Widget library: documentation
 
-**Claude Code:** start with [CLAUDE_CODE.md](CLAUDE_CODE.md), the step-by-step implementation guide (Phase 9), and [../CLAUDE.md](../CLAUDE.md) for the standing rules.
-
-Then follow the links:
+Follow the links:
 1. **[ARCHITECTURE.md](ARCHITECTURE.md):** folder layout, the rendering contract, shell props, sizing rules, data flow, performance rules and app integration steps.
 2. **[AUDIT.md](AUDIT.md):** what was consolidated for reuse, the remaining consolidation to do while porting, and the consistency rules.
 3. **[DESIGN_TOKENS.md](DESIGN_TOKENS.md):** colours, state colours, ramps, typography, radii, spacing and motion.

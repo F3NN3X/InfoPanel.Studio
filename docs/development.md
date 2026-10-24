@@ -28,6 +28,7 @@ From `package.json`:
 | `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
 | `npm start` | `node tools/start.mjs` | Builds `dist/` when it is missing, then runs `cargo run --release -p ips-server` (Rust stable needed): serves `dist/` and the config endpoints |
 | `npm run serve` | `npm run build && node tools/start.mjs` | Build, then start |
+| `npm run verify`, `verify:full`, `verify:plan` | `node tools/verify.mjs` | Runs the checks the changed files need, every check, or only prints the plan |
 | `npm run test:server` | `node tools/parity/test-native.mjs` | Builds the debug `ips-server`, then runs `tests/server` against it (`SERVER_CMD` points at another binary) |
 
 InfoPanel import lab (`lab/infopanel/`, a dev tool over `src/lib/infopanel/`; see its
@@ -56,20 +57,35 @@ To run the app without touching the live setup set `INFOPANEL_STUDIO_CONFIG_DIR`
 `INFOPANEL_STUDIO_DEBUG=1` and a spare port in `settings.json`; never stop
 the servers on 3921 or 3922. See [desktop/README.md](desktop/README.md).
 
+## Verifying a change
+
+`npm run verify` runs the checks the changed files need (the feature map and the modes are in [TESTING.md](TESTING.md)).
+Run `npm run verify:full` before opening a pull request. Optionally, `git config core.hooksPath .githooks` enables
+`.githooks/pre-push`, which runs `node tools/verify.mjs --check-fresh` and, if the last run is stale, `npm run verify`.
+
 ## CI and releases
 
-`.github/workflows/ci.yml` runs on every pull request (and on `main` when the dependencies change). The `web` job runs
-`npx biome ci`, `npm run build`, `npm test` and `npm run perf:budgets`. The `native` job, when the change touches the
-server, the web app, the tests or their tooling, runs `npm run test:server` and `cargo test`/`clippy` for `ips-server`
-and `ips-agent` on Linux and Windows, and `npm run test:e2e` on Linux. The `rust` job runs `cargo test` and `clippy` for
-the whole workspace on `windows-latest` when the change touches `src-tauri/`.
+`.github/workflows/ci.yml` runs on every pull request (and on `main` when the dependencies or `src-tauri/` change, then everything, which keeps main's caches warm for PRs).
+Its `plan` job asks `node tools/verify.mjs --plan --json` which checks the change needs, so a docs change runs almost
+nothing and a widget change skips Rust. The jobs: `lint` (Biome, and actionlint when `.github/` changed),
+`typecheck-build` (`tsc -b`, the build, the Settings build, the bundle budgets), `unit` (the whole Vitest suite),
+`lab`, `server` (Linux: `npm run test:server`, `cargo test`/`clippy` for `ips-server` and `ips-agent`), `e2e`
+(Playwright against the built pages and a debug `ips-server`) and `rust` (Windows: the same Rust tests for the server
+crates, plus the Tauri app's `cargo test` and `clippy --workspace` when the app crate is involved). `ci-ok` is the one
+required check: it passes when every job that ran passed. The label `ci:full` on a pull request runs everything. On
+the Windows runner `tools/ci-stub-desktop.mjs` replaces `npm run desktop:prepare`: tauri-build only checks that the
+bundled resources exist.
 
-`.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless
-the tag matches `version` in `package.json` and `CHANGELOG.md` has a `## [X.Y.Z]`
-section, then runs `npm test` and `npm run desktop:build` on `windows-latest` and
-creates a GitHub release with that section as its notes and the NSIS installer
-(`InfoPanel Studio_<version>_x64-setup.exe`) attached. Both workflows run in the
-`en-150` locale, which the clock snapshot tests were taken in.
+`.github/workflows/nightly.yml` (23:30 UTC, 01:30 in Oslo in summer) runs every check on Linux and Windows, an unsigned
+installer build, and the perf suites (report-only, with a table against the previous night). One issue, "Nightly
+failing", follows its result.
+
+`.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless the tag matches `version` in
+`package.json` and `CHANGELOG.md` has a `## [X.Y.Z]` section, and unless CI vouches for the commit (a green `ci-ok` on it
+or on the pull request that merged it, or the last green nightly: `tools/ci/release-gate.mjs`). It then runs
+`npm test`, the Rust tests and `npm run desktop:build` on `windows-latest` and creates a GitHub release with that
+section as its notes and the NSIS installer (`InfoPanel Studio_<version>_x64-setup.exe`) attached. No test depends on
+the machine's locale.
 
 To release: bump `version` in `package.json` (and `npm install` to update the
 lockfile), move the **Unreleased** entries in `CHANGELOG.md` under

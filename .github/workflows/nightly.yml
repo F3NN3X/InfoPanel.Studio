@@ -1,0 +1,135 @@
+name: Nightly
+
+# The slow, complete run CI's selective plan leaves out: every check on Linux and on Windows (with the real desktop
+# resources and an unsigned installer build), the perf suites in report-only mode, and one "Nightly failing" issue that
+# follows the result. 23:30 UTC is 01:30 in Oslo in summer (CEST) and 00:30 in winter (CET), outside 07:00 to 18:00.
+on:
+  schedule:
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+    inputs:
+      issues:
+        description: Open, update or close the "Nightly failing" issue from this run (always done on the schedule)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  # Every check in tests/feature-map.json on Linux. cargo-app needs Windows, so exit 3 (incomplete) is expected here
+  # and the Windows job covers it.
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: native
+      - run: npx playwright install --with-deps chromium
+      - run: node tools/verify.mjs --full --allow-incomplete
+
+  # Windows: the unsigned installer build (what release.yml does without the updater key, so packaging breaks show here
+  # first), then every check with cargo-app running against the real resources it just prepared.
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: tauri
+      - run: npm run desktop:build
+      - run: npx playwright install chromium
+      - run: node tools/verify.mjs --full
+
+  # The perf suites measure and never gate (docs/performance.md). The JSON goes up as an artifact, and the table against
+  # the previous nightly's artifact lands in the run summary.
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PERF_LABEL: nightly
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-deps
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri
+          shared-key: native
+      - run: cargo build -p ips-server
+        working-directory: src-tauri
+      - run: npx playwright install --with-deps chromium
+      - run: npm run perf:all
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: perf-nightly
+          path: .cache/perf/nightly
+          retention-days: 30
+      - name: Compare with the previous nightly
+        run: |
+          previous=$(gh run list --workflow nightly.yml --status completed --limit 5 --json databaseId,conclusion --jq '[.[] | select(.databaseId != ${{ github.run_id }})][0].databaseId')
+          if [ -n "$previous" ] && gh run download "$previous" -n perf-nightly -D .cache/perf/previous; then
+            node tools/perf/compare.mjs previous nightly | tee .cache/perf/compare.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No previous nightly perf artifact to compare with." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: perf-compare
+          path: .cache/perf/compare.md
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # One issue, "Nightly failing": opened (or commented on) when a run fails, commented on and closed when one passes.
+  # Only the schedule or an explicit `issues` input touches issues; the job holds no other permission.
+  report:
+    needs: [linux, windows, perf]
+    if: always() && (github.event_name == 'schedule' || inputs.issues)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      RESULTS: ${{ needs.linux.result }} ${{ needs.windows.result }}
+    steps:
+      - run: |
+          existing=$(gh issue list --state open --search '"Nightly failing" in:title' --json number,title --jq '[.[] | select(.title == "Nightly failing")][0].number // empty')
+          case " $RESULTS " in
+            *" failure "*)
+              if [ -n "$existing" ]; then
+                gh issue comment "$existing" --body "Still failing: $RUN_URL"
+              else
+                gh issue create --title "Nightly failing" --body "The nightly run failed: $RUN_URL"
+              fi ;;
+            *" cancelled "*|*" skipped "*) echo "Run was cancelled or skipped: leaving the issue as it is." ;;
+            *)
+              if [ -n "$existing" ]; then
+                gh issue comment "$existing" --body "Green again: $RUN_URL"
+                gh issue close "$existing"
+              fi ;;
+          esac

@@ -1,4 +1,4 @@
-// Shared widget-library types (docs/redesign/widgets/docs/CLAUDE_CODE.md §6).
+// Shared widget-library types.
 import type { CSSProperties, ReactNode } from "react";
 import type { ModuleSettings } from "@/modules/types";
 
@@ -86,7 +86,7 @@ export interface WidgetView {
   applies?: ModuleSettings;
 }
 
-/** Skin token keys (CLAUDE_CODE §5); all optional. */
+/** Skin token keys; all optional. */
 export interface SkinTokens {
   surface: string;
   radius: number;
