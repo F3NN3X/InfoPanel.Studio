@@ -4,13 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { serverCommand } from "../../tools/perf/server-command.mjs";
-import { SERVER_IMPL } from "./native-pending.mjs";
 
-// The data folder between the two servers: what Node writes the native server reads, what the native server writes
-// Node reads, and a Settings patch re-serialises the config to the same bytes on either. Runs with SERVER_IMPL=native.
+// The data folder across restarts of ips-server: what one run writes the next reads, and what it writes back is the
+// same bytes (the files keep the formats of the Node server it replaced, which InfoPanel Studio's older installs read).
 
-async function start(impl, dataDir) {
-  const server = serverCommand({ ...process.env, SERVER_IMPL: impl });
+async function start(dataDir) {
+  const server = serverCommand();
   const child = spawn(server.cmd, server.args, { env: { ...process.env, DASHBOARD_DATA_DIR: dataDir, DASHBOARD_DIST: path.join(dataDir, "no-dist"), PORT: "0", HOST: "127.0.0.1" } });
   let out = "";
   child.stdout.on("data", (c) => (out += c));
@@ -24,7 +23,7 @@ async function start(impl, dataDir) {
     }
   }
   child.kill();
-  throw new Error(`the ${impl} server did not start:\n${out}`);
+  throw new Error(`the server did not start:\n${out}`);
 }
 
 const headers = { "Content-Type": "application/json", "X-Dashboard-Config": "1" };
@@ -43,7 +42,7 @@ async function write(base, config, patch, previewData, controls) {
 }
 
 
-describe.skipIf(SERVER_IMPL !== "native")("data folder between node and native", () => {
+describe("data folder across restarts", () => {
   let root;
   afterEach(() => root && fs.rmSync(root, { recursive: true, force: true }));
 
@@ -55,48 +54,32 @@ describe.skipIf(SERVER_IMPL !== "native")("data folder between node and native",
     const nextControls = [["kiosk", { action: "dim", profile: "wall", level: 0.25 }], ["kiosk", { action: "island", profile: "wall", state: "on" }], ["rotate", { profile: "desk", state: "off" }]];
     const patch = { general: { maxFps: 15, locale: "nb-NO" }, style: { clock: "12" }, profiles: { desk: { performance: { motion: "reduce" } } } };
 
-    const node = await start("node", shared);
-    await write(node.base, config, patch, "frozen", controls);
-    await node.stop();
-    const byNode = { config: read(shared, "config.json"), prefs: read(shared, "studio-prefs.json"), control: read(shared, "control.json") };
+    const one = await start(shared);
+    await write(one.base, config, patch, "frozen", controls);
+    await one.stop();
+    const byOne = { config: read(shared, "config.json"), prefs: read(shared, "studio-prefs.json"), control: read(shared, "control.json") };
 
-    const native = await start("native", shared);
-    expect(await (await fetch(`${native.base}/api/config`)).text()).toBe(byNode.config);
-    expect(await (await fetch(`${native.base}/api/studio-prefs`)).text()).toBe(byNode.prefs);
-    expect({ config: read(shared, "config.json"), prefs: read(shared, "studio-prefs.json"), control: read(shared, "control.json") }).toEqual(byNode);
-    expect((await (await fetch(`${native.base}/api/control`)).json()).profile).toBe("desk");
+    const two = await start(shared);
+    expect(await (await fetch(`${two.base}/api/config`)).text()).toBe(byOne.config);
+    expect(await (await fetch(`${two.base}/api/studio-prefs`)).text()).toBe(byOne.prefs);
+    expect({ config: read(shared, "config.json"), prefs: read(shared, "studio-prefs.json"), control: read(shared, "control.json") }).toEqual(byOne);
+    expect((await (await fetch(`${two.base}/api/control`)).json()).profile).toBe("desk");
     const next = '{"version":12,"1":{"b":2,"a":1e-7},"profiles":[{"id":"desk"},{"id":"wall","performance":{"maxFps":5}}]}';
     const nextPatch = { general: { showSeconds: true }, profiles: { wall: { performance: null }, desk: { performance: { maxFps: 60 } } } };
-    await write(native.base, next, nextPatch, "frozenWhenUnfocused", nextControls);
-    await native.stop();
-    const byNative = { config: read(shared, "config.json"), prefs: read(shared, "studio-prefs.json"), control: read(shared, "control.json") };
+    await write(two.base, next, nextPatch, "frozenWhenUnfocused", nextControls);
+    await two.stop();
+    const byTwo = { config: read(shared, "config.json"), prefs: read(shared, "studio-prefs.json"), control: read(shared, "control.json") };
 
-    const again = await start("node", shared);
-    expect(await (await fetch(`${again.base}/api/config`)).text()).toBe(byNative.config);
-    expect(await (await fetch(`${again.base}/api/studio-prefs`)).text()).toBe(byNative.prefs);
-    const profiles = (await (await fetch(`${again.base}/api/control`)).json()).profiles;
+    const three = await start(shared);
+    expect(await (await fetch(`${three.base}/api/config`)).text()).toBe(byTwo.config);
+    expect(await (await fetch(`${three.base}/api/studio-prefs`)).text()).toBe(byTwo.prefs);
+    const profiles = (await (await fetch(`${three.base}/api/control`)).json()).profiles;
     expect([profiles.wall.dim, profiles.wall.islandOverride, profiles.desk.dim, profiles.desk.override]).toEqual([0.25, "on", 0.4, "off"]);
-    await again.stop();
-
-    // The same writes on a fresh folder each: byte-identical files.
-    for (const [config_, patch_, prefs_, controls_] of [
-      [config, patch, "frozen", controls],
-      [next, nextPatch, "frozenWhenUnfocused", nextControls],
-    ]) {
-      const files = {};
-      for (const impl of ["node", "native"]) {
-        const dir = path.join(root, `${impl}-${prefs_}`);
-        const s = await start(impl, dir);
-        await write(s.base, config_, patch_, prefs_, controls_);
-        await s.stop();
-        files[impl] = { config: read(dir, "config.json"), prefs: read(dir, "studio-prefs.json"), control: read(dir, "control.json") };
-      }
-      expect(files.native).toEqual(files.node);
-    }
+    await three.stop();
   }, 30_000);
 });
 
-describe.skipIf(SERVER_IMPL !== "native")("media between node and native", () => {
+describe("media across restarts", () => {
   let root;
   afterEach(() => root && fs.rmSync(root, { recursive: true, force: true }));
 
@@ -117,38 +100,38 @@ describe.skipIf(SERVER_IMPL !== "native")("media between node and native", () =>
 
   it("reads what the other wrote and writes files the other reads back unchanged", async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "ips-media-"));
-    const node = await start("node", root);
-    const first = await save(node.base, "node");
-    await node.stop();
+    const one = await start(root);
+    const first = await save(one.base, "one");
+    await one.stop();
 
-    const native = await start("native", root);
-    const list = await (await fetch(`${native.base}/api/assets`)).json();
+    const two = await start(root);
+    const list = await (await fetch(`${two.base}/api/assets`)).json();
     expect(list.map((x) => x.id)).toEqual([first.asset]);
-    expect(Buffer.from(await (await fetch(`${native.base}/api/assets/${first.asset}`)).arrayBuffer())).toEqual(gif("node"));
-    expect(await (await fetch(`${native.base}/api/canvases/${first.canvas}`)).text()).toBe(canvas("node"));
-    expect((await (await fetch(`${native.base}/api/library/${first.item}`)).json()).name).toBe("node");
-    // The library item Node wrote names the asset, so it is in use.
-    expect(await fetch(`${native.base}/api/assets?unused=1`).then((r) => r.json())).toEqual([]);
-    const second = await save(native.base, "native");
-    const put = await fetch(`${native.base}/api/library/${first.item}`, { method: "PUT", headers: library, body: JSON.stringify({ name: "renamed", copies: [{ profileId: "p" }] }) });
+    expect(Buffer.from(await (await fetch(`${two.base}/api/assets/${first.asset}`)).arrayBuffer())).toEqual(gif("one"));
+    expect(await (await fetch(`${two.base}/api/canvases/${first.canvas}`)).text()).toBe(canvas("one"));
+    expect((await (await fetch(`${two.base}/api/library/${first.item}`)).json()).name).toBe("one");
+    // The library item the first run wrote names the asset, so it is in use.
+    expect(await fetch(`${two.base}/api/assets?unused=1`).then((r) => r.json())).toEqual([]);
+    const second = await save(two.base, "two");
+    const put = await fetch(`${two.base}/api/library/${first.item}`, { method: "PUT", headers: library, body: JSON.stringify({ name: "renamed", copies: [{ profileId: "p" }] }) });
     expect(put.status).toBe(200);
-    await native.stop();
+    await two.stop();
 
-    const again = await start("node", root);
-    expect((await (await fetch(`${again.base}/api/assets`)).json()).map((x) => x.id).sort()).toEqual([first.asset, second.asset].sort());
-    expect(await (await fetch(`${again.base}/api/canvases/${second.canvas}`)).text()).toBe(canvas("native"));
+    const three = await start(root);
+    expect((await (await fetch(`${three.base}/api/assets`)).json()).map((x) => x.id).sort()).toEqual([first.asset, second.asset].sort());
+    expect(await (await fetch(`${three.base}/api/canvases/${second.canvas}`)).text()).toBe(canvas("two"));
     for (const id of [first.item, second.item]) {
-      // Node re-serialises what it reads: the same bytes only when the native file was written as Node writes it.
-      const body = await (await fetch(`${again.base}/api/library/${id}`)).text();
+      // What the server reads and re-serialises is the file it wrote.
+      const body = await (await fetch(`${three.base}/api/library/${id}`)).text();
       expect(fs.readFileSync(path.join(root, "library", `${id}.json`), "utf8")).toBe(body);
     }
-    expect((await (await fetch(`${again.base}/api/library/${first.item}`)).json()).name).toBe("renamed");
-    expect((await (await fetch(`${again.base}/api/library`)).json()).length).toBe(2);
-    await again.stop();
+    expect((await (await fetch(`${three.base}/api/library/${first.item}`)).json()).name).toBe("renamed");
+    expect((await (await fetch(`${three.base}/api/library`)).json()).length).toBe(2);
+    await three.stop();
   }, 30_000);
 });
 
-describe.skipIf(SERVER_IMPL !== "native")("integrations between node and native", () => {
+describe("integrations across restarts", () => {
   let root;
   afterEach(() => root && fs.rmSync(root, { recursive: true, force: true }));
 
@@ -158,36 +141,36 @@ describe.skipIf(SERVER_IMPL !== "native")("integrations between node and native"
   it("reads the pretty file the other wrote and writes the same bytes for the same patch", async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "ips-integrations-"));
     const first = { obs: { host: "obs-pc", port: 4456, password: "pässword" }, calendar: { links: [{ url: "webcal://a.example/private/x.ics", label: "A" }, { url: "HTTPS://B.example:8443/b c.ics" }] } };
-    const node = await start("node", root);
-    expect((await put(node.base, first)).status).toBe(200);
-    const stored = await publicOf(node.base);
-    await node.stop();
-    const byNode = read(root, "integrations.json");
-    expect(byNode.startsWith('{\n  "obs": {\n    "host": "obs-pc"')).toBe(true);
-    expect(byNode.endsWith("}")).toBe(true);
+    const one = await start(root);
+    expect((await put(one.base, first)).status).toBe(200);
+    const stored = await publicOf(one.base);
+    await one.stop();
+    const byOne = read(root, "integrations.json");
+    expect(byOne.startsWith('{\n  "obs": {\n    "host": "obs-pc"')).toBe(true);
+    expect(byOne.endsWith("}")).toBe(true);
 
     const patch = { obs: { port: 4457 }, calendar: { links: [{ id: stored.calendar.links[1].id, label: "B" }] } };
-    const native = await start("native", root);
-    expect(await publicOf(native.base)).toEqual(stored);
-    expect((await put(native.base, patch)).status).toBe(200);
-    const after = await publicOf(native.base);
-    await native.stop();
-    const byNative = read(root, "integrations.json");
+    const two = await start(root);
+    expect(await publicOf(two.base)).toEqual(stored);
+    expect((await put(two.base, patch)).status).toBe(200);
+    const after = await publicOf(two.base);
+    await two.stop();
+    const byTwo = read(root, "integrations.json");
 
-    // The same patch on Node, from a copy of the file it wrote first.
+    // The same patch on a third run, from a copy of the file the first run wrote.
     const copy = path.join(root, "copy");
     fs.mkdirSync(copy);
-    fs.writeFileSync(path.join(copy, "integrations.json"), byNode);
-    const again = await start("node", copy);
-    expect((await put(again.base, patch)).status).toBe(200);
-    expect(await publicOf(again.base)).toEqual(after);
-    await again.stop();
-    expect(read(copy, "integrations.json")).toBe(byNative);
+    fs.writeFileSync(path.join(copy, "integrations.json"), byOne);
+    const three = await start(copy);
+    expect((await put(three.base, patch)).status).toBe(200);
+    expect(await publicOf(three.base)).toEqual(after);
+    await three.stop();
+    expect(read(copy, "integrations.json")).toBe(byTwo);
     expect(after).toEqual({ obs: { host: "obs-pc", port: 4457, hasPassword: true }, calendar: { links: [{ id: stored.calendar.links[1].id, label: "B", host: "b.example:8443" }] } });
   }, 30_000);
 });
 
-describe.skipIf(SERVER_IMPL !== "native")("alerts between node and native", () => {
+describe("alerts across restarts", () => {
   let root;
   afterEach(() => root && fs.rmSync(root, { recursive: true, force: true }));
 
@@ -207,28 +190,28 @@ describe.skipIf(SERVER_IMPL !== "native")("alerts between node and native", () =
   it("reads the history the other wrote, closes the entries left open, and writes a file the other reads back", async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "ips-alerts-"));
     fs.writeFileSync(path.join(root, "config.json"), JSON.stringify({ profiles: [{ id: "desk", pages: [{ id: "main" }] }], alerts: { enabled: true, rules: [rule] } }));
-    const node = await start("node", root);
-    expect((await testAlert(node.base)).status).toBe(200);
-    const byNode = await saved(root, 1);
-    await node.stop();
-    expect(byNode.startsWith('{"history":[{"id":"')).toBe(true);
-    expect(byNode).not.toContain("endedAt");
+    const one = await start(root);
+    expect((await testAlert(one.base)).status).toBe(200);
+    const byOne = await saved(root, 1);
+    await one.stop();
+    expect(byOne.startsWith('{"history":[{"id":"')).toBe(true);
+    expect(byOne).not.toContain("endedAt");
 
-    const native = await start("native", root);
-    const loaded = await historyOf(native.base);
+    const two = await start(root);
+    const loaded = await historyOf(two.base);
     expect(loaded).toHaveLength(1);
     expect(loaded[0]).toMatchObject({ ruleId: "r1", test: true, text: "" });
     expect(typeof loaded[0].endedAt).toBe("number");
-    expect((await testAlert(native.base)).status).toBe(200);
-    const byNative = await saved(root, 2);
-    const live = await historyOf(native.base);
-    await native.stop();
-    // Compact, newest first, the Node entry (now closed) after the native one.
-    expect(byNative).toBe(JSON.stringify({ history: live }));
+    expect((await testAlert(two.base)).status).toBe(200);
+    const byTwo = await saved(root, 2);
+    const live = await historyOf(two.base);
+    await two.stop();
+    // Compact, newest first, the first run's entry (now closed) after the second run's.
+    expect(byTwo).toBe(JSON.stringify({ history: live }));
     expect(live.map((h) => h.id)).toEqual([live[0].id, loaded[0].id]);
 
-    const again = await start("node", root);
-    expect(await historyOf(again.base)).toEqual(live.map((h) => ({ ...h, endedAt: h.endedAt ?? expect.any(Number) })));
-    await again.stop();
+    const three = await start(root);
+    expect(await historyOf(three.base)).toEqual(live.map((h) => ({ ...h, endedAt: h.endedAt ?? expect.any(Number) })));
+    await three.stop();
   }, 30_000);
 });

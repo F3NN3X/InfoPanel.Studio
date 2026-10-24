@@ -39,7 +39,6 @@ test("server-idle", async ({ browser, scratch }) => {
   const endStats = await (await fetch(`${scratch.base}/api/server/stats`)).json();
   for (const page of pages) await page.close();
   writeResult("server-idle", {
-    impl: process.env.SERVER_IMPL || "node",
     cases: { server: summarize(samples) },
     first: samples[0],
     last: samples[samples.length - 1],

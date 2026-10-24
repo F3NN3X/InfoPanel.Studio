@@ -4,13 +4,14 @@
 // tests/fixtures/perf/fixture.json the e2e specs read. Output is deterministic: the ids are fixed, the
 // asset and canvas files are named by content, and the canvas carries a fixed import time.
 //   node tools/perf/make-fixture.mjs
-// Starts server.mjs on a temp DASHBOARD_DATA_DIR; never touches the real data folder.
+// Starts ips-server (tools/perf/server-command.mjs) on a temp DASHBOARD_DATA_DIR; never touches the real data folder.
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { serverCommand } from "./server-command.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const outDir = path.join(root, "tests/fixtures/perf");
@@ -258,7 +259,8 @@ function buildConfig({ canvasRef, backgroundSrc }) {
 /* ---------------- running the server ---------------- */
 
 async function startServer(dataDir) {
-  const child = spawn(process.execPath, [path.join(root, "server.mjs")], {
+  const server = serverCommand();
+  const child = spawn(server.cmd, server.args, {
     env: { ...process.env, DASHBOARD_DATA_DIR: dataDir, PORT: "0", HOST: "127.0.0.1" },
   });
   let out = "";
@@ -271,7 +273,7 @@ async function startServer(dataDir) {
   }
   if (!port) {
     child.kill();
-    throw new Error(`server.mjs did not start:\n${out}`);
+    throw new Error(`the server did not start:\n${out}`);
   }
   return { base: `http://127.0.0.1:${port}`, stop: () => child.kill() };
 }

@@ -4,7 +4,7 @@ import { ConfigRejectedError, fetchConfig, isUnreachable, pushConfig } from "@/l
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { defaultConfig, loadConfig, saveConfig, type DashboardConfig, type Placement } from "@/lib/layout";
 
-/** A stand-in for server.mjs: the canvas store (ids by content) and the config, with failures to order. */
+/** A stand-in for the server: the canvas store (ids by content) and the config, with failures to order. */
 function fakeServer() {
   const canvases = new Map<string, string>();
   const state = { config: null as string | null, failConfig: false, refuseCanvases: false };

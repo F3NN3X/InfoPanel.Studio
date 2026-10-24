@@ -28,7 +28,8 @@ export default defineConfig(({ mode }) => ({
   // lab/ has its own Vitest config (npm run lab:test).
   test: {
     include: ["tests/**/*.test.{ts,tsx,mjs}"],
-    exclude: [...configDefaults.exclude, ".claude/**", "lab/**"],
+    // tests/server runs against the ips-server binary: `npm run test:server`.
+    exclude: [...configDefaults.exclude, ".claude/**", "lab/**", ...(process.env.SERVER_SUITE ? [] : ["tests/server/**"])],
     // Component tests opt into a DOM per file (`// @vitest-environment happy-dom`); the setup is a no-op in Node.
     setupFiles: ["tests/setup/dom-setup.ts"],
     // Worker threads start faster than forked processes: about 7.5 s against 10 s for the suite.
@@ -37,7 +38,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     // The config store and image proxy live in the dashboard server
-    // (server.mjs, `npm start`); forward them so dev and the built pages
+    // (ips-server, `npm start`); forward them so dev and the built pages
     // share one config.
     proxy: {
       "/api": "http://127.0.0.1:3922",
