@@ -476,7 +476,7 @@
       "exclude": ["src/lib/infopanel/gauges/**"],
       "tests": ["tests/lib/infopanel/**", "tests/components/infopanel/**"],
       "checks": ["typecheck", "unit", "lab", "import-check"],
-      "note": "The corpus round-trips live in the lab (lab/infopanel/src/corpus.test.ts, order.test.ts, idempotent.test.ts), outside npm test. import-check needs Windows, .NET and an InfoPanel source folder (docs/TESTING.md)."
+      "note": "The corpus round-trips live in the lab (lab/infopanel/src/corpus.test.ts, order.test.ts, idempotent.test.ts), outside npm test, and so does the profile templates' every-size export sweep (lab/infopanel/src/templates.test.ts). import-check needs Windows, .NET and an InfoPanel source folder (docs/TESTING.md)."
     },
     {
       "id": "help",

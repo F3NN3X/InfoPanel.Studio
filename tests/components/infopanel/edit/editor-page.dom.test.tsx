@@ -57,6 +57,20 @@ describe("the InfoPanel editor page", () => {
     expect(screen.getByText(/Hold Alt to stop snapping/)).toBeTruthy();
   });
 
+  it("names a new template's unbound sensors over the canvas, with Remap and Dismiss", () => {
+    const onDismiss = vi.fn();
+    render(
+      <ToastProvider>
+        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" unbound={["GPU power", "Uptime"]} onDismissUnbound={onDismiss} />
+      </ToastProvider>,
+    );
+    const note = screen.getByText("Not found on this PC, so left unbound: GPU power, Uptime.").closest<HTMLElement>('[role="status"]')!;
+    fireEvent.click(within(note).getByRole("button", { name: "Dismiss" }));
+    expect(onDismiss).toHaveBeenCalled();
+    fireEvent.click(within(note).getByRole("button", { name: "Remap" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
   it("lists the dashboard's InfoPanel profiles when nothing is open", () => {
     const onOpen = vi.fn();
     render(<InfoPanelStart config={config} onOpen={onOpen} onNew={vi.fn()} onImport={vi.fn()} />);
