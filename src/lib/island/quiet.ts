@@ -10,7 +10,7 @@ const minutes = (hhmm: string): number | undefined => {
 
 /**
  * Whether `now` (local time) is inside the alerts' quiet window and `severity` is below its minimum:
- * the server's `isQuiet` (server/alerts.mjs), for the notices the dashboard raises itself.
+ * the server's `isQuiet` (ips-server's alerts.rs), for the notices the dashboard raises itself.
  */
 export function isQuiet(quiet: QuietHours | undefined, severity: Severity, now: number): boolean {
   if (!quiet) return false;

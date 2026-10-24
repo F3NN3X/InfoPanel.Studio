@@ -20,7 +20,6 @@
     "allow-find-free-port",
     "allow-server-stats",
     "allow-use-foreign-server",
-    "allow-stop-foreign-server",
     "allow-foreign-server-info",
     "allow-open-studio",
     "allow-open-logs-folder",

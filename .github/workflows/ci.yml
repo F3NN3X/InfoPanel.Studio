@@ -1,7 +1,7 @@
 name: CI
 
 # PRs run the checks. A push to main runs them only when the dependencies change: GitHub shares caches
-# saved on main with every PR, so this keeps the npm, Node and Rust caches warm for the next PRs.
+# saved on main with every PR, so this keeps the npm and Rust caches warm for the next PRs.
 # Every code change already passed this check in its PR, and a release tag re-runs the tests in release.yml.
 on:
   pull_request:
@@ -40,14 +40,14 @@ jobs:
             || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|tools/desktop-prepare\.mjs$|\.github/workflows/ci\.yml$)'; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
           fi
-          # The native server (ips-server) is checked against the Node server's tests, fixtures and e2e suite, so a
-          # change to either server, its tests or the parity tooling runs that job too.
+          # The server (ips-server, in src-tauri/crates/) is checked by the server suite and the e2e suite, which run
+          # against the built web app: a change to the server, the web app, either suite or their tooling runs that job.
           if [ "${{ github.event_name }}" != "pull_request" ] \
-            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|server\.mjs$|server/|tools/(parity|perf)/|tests/(server|e2e|fixtures)/|package(-lock)?\.json$|\.github/workflows/ci\.yml$)'; then
+            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|src/|public/|tools/|tests/|index\.html$|help\.html$|vite[^/]*\.ts$|package(-lock)?\.json$|\.github/workflows/ci\.yml$)'; then
             echo "native=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # Lint, typecheck, build and the Vitest suite.
+  # Lint, typecheck, build and the Vitest suite (the server suite and the e2e suite run in the native job).
   web:
     runs-on: ubuntu-latest
     # The snapshot tests render the clock in the en-150 locale.
@@ -72,16 +72,6 @@ jobs:
       - run: npm test
       # The deterministic bundle budgets (tools/perf/budgets.json); CPU and memory stay report-only.
       - run: npm run perf:budgets
-      # The e2e suite against dist/ on a scratch server (tools/perf/scratch.mjs).
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      # The parity fixtures the native server's tests load must match what the Node server produces now. The locale
-      # table in them is Node's ICU data (77.1 in 24.6.0), so this step runs on the Node the fixtures were made with.
-      # Move both together: bump the version here, then npm run parity:fixtures on it.
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24.6.0
-      - run: npm run parity:check
 
   # The Rust tests, only when the change touches the desktop app.
   rust:
@@ -100,11 +90,6 @@ jobs:
           key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - if: steps.modules.outputs.cache-hit != 'true'
         run: npm ci
-      # The Node runtime desktop:prepare bundles, pinned by version in tools/desktop-prepare.mjs.
-      - uses: actions/cache@v6
-        with:
-          path: .cache/desktop/node-v*
-          key: desktop-node-${{ hashFiles('tools/desktop-prepare.mjs') }}
       # shared-key: the release job reuses this cache (its key would otherwise include the job name).
       - uses: Swatinem/rust-cache@v2
         with:
@@ -118,10 +103,12 @@ jobs:
       - name: cargo test
         run: cargo test
         working-directory: src-tauri
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: src-tauri
 
-  # Both servers, on Linux and Windows: the Node server's suite, the same suite against ips-server, the Rust tests of
-  # the two crates (the Tauri app builds on Windows only, see the rust job) and the differential check. Linux also runs
-  # the e2e suite against ips-server.
+  # The server, on Linux and Windows: the server suite against ips-server and the Rust tests of the two crates (the
+  # Tauri app builds on Windows only, see the rust job). Linux also runs the e2e suite against ips-server.
   native:
     needs: changes
     if: needs.changes.outputs.native == 'true'
@@ -143,23 +130,24 @@ jobs:
       - if: steps.modules.outputs.cache-hit != 'true'
         run: npm ci
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
       # Its own key: the tauri cache belongs to the rust and release jobs.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
           shared-key: native
-      - run: npm run test:server:node
-      - run: npm run test:server:native
+      - run: npm run test:server
       - name: cargo test
         run: cargo test -p ips-server -p ips-agent
         working-directory: src-tauri
-      - run: npm run parity:servers
+      - name: cargo clippy
+        run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
+        working-directory: src-tauri
       - if: runner.os == 'Linux'
         run: npm run build
       - if: runner.os == 'Linux'
         run: npx playwright install --with-deps chromium
-      # test:server:native built the debug binary the scratch server runs.
+      # test:server built the debug binary the scratch server runs.
       - if: runner.os == 'Linux'
         run: npm run test:e2e
-        env:
-          SERVER_IMPL: native

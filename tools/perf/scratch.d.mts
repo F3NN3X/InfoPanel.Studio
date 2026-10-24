@@ -15,7 +15,6 @@ export interface ScratchOptions {
   fixture?: string;
   env?: Record<string, string>;
   dataApiEnv?: Record<string, string>;
-  nodeArgs?: string[];
 }
 
 export interface PreparedScratch {

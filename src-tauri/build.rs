@@ -14,7 +14,6 @@ fn main() {
         "find_free_port",
         "server_stats",
         "use_foreign_server",
-        "stop_foreign_server",
         "foreign_server_info",
         "open_studio",
         "open_logs_folder",

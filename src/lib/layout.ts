@@ -113,7 +113,7 @@ export interface Placement {
    * files: the server's copy holds `canvasRef` instead (src/lib/canvas-store.ts).
    */
   canvas?: StoredCanvas;
-  /** The canvas's file in the server's canvas store (server/canvases.mjs), in place of `canvas`. */
+  /** The canvas's file in the server's canvas store (ips-server's canvases.rs), in place of `canvas`. */
   canvasRef?: string;
   /**
    * Per followable section (`theme-model.ts`): `false` = custom, the

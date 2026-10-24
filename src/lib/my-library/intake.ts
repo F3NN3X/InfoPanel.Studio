@@ -6,9 +6,9 @@
 import { sniff } from "@/lib/infopanel/assets/assets";
 import type { LibraryKind } from "@/lib/library";
 
-/** The asset store's SVG limit (server/assets.mjs SVG_LIMIT). */
+/** The asset store's SVG limit (ips-server's assets.rs SVG_LIMIT). */
 export const SVG_LIMIT = 256 * 1024;
-/** The store's limits per kind (server/assets.mjs LIMITS). */
+/** The store's limits per kind (ips-server's assets.rs LIMITS). */
 export const LIMITS = { image: 25 * 1024 * 1024, video: 300 * 1024 * 1024, font: 30 * 1024 * 1024 };
 
 export type Intake =

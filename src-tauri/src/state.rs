@@ -2,8 +2,8 @@
 
 use crate::debug::History;
 use crate::paths::Paths;
-use crate::settings::{self, Listen, ServerImpl, Settings};
-use crate::sidecar::{RotatingLog, Sidecar};
+use crate::settings::{self, Listen, Settings};
+use crate::server_log::RotatingLog;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{HashSet, VecDeque};
@@ -51,8 +51,6 @@ pub struct RunningConfig {
     pub allowed_hosts: Vec<String>,
     /// Whether the server takes writes from other devices; read at start only.
     pub allow_remote_edit: bool,
-    /// The Node sidecar or ips-server in the app.
-    pub server: ServerImpl,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -99,8 +97,7 @@ pub fn kiosk_url(origin: &str) -> String {
 
 pub struct Server {
     pub status: Status,
-    pub sidecar: Option<Sidecar>,
-    /// ips-server running in the app's process, in place of the sidecar.
+    /// ips-server running in the app's process.
     pub native: Option<crate::native::Native>,
     /// Bumped by every start and stop; a monitor or start flow of an older generation gives up.
     pub generation: u64,
@@ -178,8 +175,8 @@ impl AppState {
         let server_log = RotatingLog::new(
             &paths.log_dir,
             "server",
-            crate::sidecar::SERVER_LOG_MAX,
-            crate::sidecar::SERVER_LOG_FILES,
+            crate::server_log::SERVER_LOG_MAX,
+            crate::server_log::SERVER_LOG_FILES,
         );
         let status = Status {
             state: if settings.start_server {
@@ -211,7 +208,6 @@ impl AppState {
             settings: Mutex::new(settings),
             server: Mutex::new(Server {
                 status,
-                sidecar: None,
                 native: None,
                 generation: 0,
                 restarts: VecDeque::new(),
@@ -293,11 +289,10 @@ mod tests {
             debug: true,
             allowed_hosts: vec!["panel.lan".into()],
             allow_remote_edit: true,
-            server: ServerImpl::Native,
         };
         assert_eq!(
             serde_json::to_value(rc).unwrap(),
-            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true, "server": "native" })
+            serde_json::json!({ "listen": "lan", "port": 3942, "debug": true, "allowedHosts": ["panel.lan"], "allowRemoteEdit": true })
         );
     }
 

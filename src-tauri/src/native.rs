@@ -1,5 +1,4 @@
-// ips-server inside the app (the `server: "native"` setting): its config from the same inputs as the sidecar's
-// environment, served on Tauri's runtime until a graceful stop.
+// ips-server inside the app: its config from the settings and paths, served on Tauri's runtime until a graceful stop.
 
 use crate::paths::{self, Paths};
 use crate::settings::Settings;
@@ -13,8 +12,7 @@ use tokio::sync::oneshot;
 /// How long a stop waits for open requests before the server is dropped.
 pub const STOP_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// What `sidecar_env` hands the Node server, as ips-server's config: `ServerConfig::from_env` over that environment,
-/// with the app's version for GET /api/health.
+/// The settings as ips-server's config, with the app's version for GET /api/health.
 pub fn server_config(s: &Settings, paths: &Paths, debug: bool, version: &str) -> ServerConfig {
     ServerConfig {
         host: s.host().into(),
@@ -43,7 +41,7 @@ pub fn error_code(e: &StartError) -> Option<ErrorCode> {
     }
 }
 
-/// The line server.mjs prints once it listens, for server.log.
+/// The line the server logs once it listens, for server.log.
 pub fn start_line(cfg: &ServerConfig, port: u16) -> String {
     format!(
         "InfoPanel Studio on http://{}:{port} (config: {})",
@@ -142,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn config_carries_what_the_sidecar_env_does() {
+    fn config_carries_the_settings() {
         let root = scratch("config");
         let s = Settings {
             listen: Listen::Lan,

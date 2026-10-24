@@ -8,8 +8,7 @@ export type ServerIcon = "running" | "stopped" | "error" | "restarting";
 export type CalloutAction =
   | { kind: "use-port"; port: number }
   | { kind: "logs" }
-  | { kind: "use-foreign" }
-  | { kind: "stop-foreign" };
+  | { kind: "use-foreign" };
 
 export interface Callout {
   message: string;
@@ -97,8 +96,8 @@ export function callout(status: Status): Callout {
   if (status.state === "foreign_dashboard") {
     const version = status.foreignVersion ? ` (version ${status.foreignVersion})` : "";
     return {
-      message: `Another InfoPanel Studio server${version} is already running on port ${port}, for example from start-dashboard.bat. Use it, stop it, or pick another port.`,
-      actions: [{ kind: "use-foreign" }, { kind: "stop-foreign" }],
+      message: `Another InfoPanel Studio server${version} is already running on port ${port}, for example from start-dashboard.bat. Use it, close it, or pick another port.`,
+      actions: [{ kind: "use-foreign" }],
     };
   }
   const code = status.errorCode ?? (status.state === "port_in_use" ? "EADDRINUSE" : "OTHER");

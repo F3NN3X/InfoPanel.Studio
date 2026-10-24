@@ -1,4 +1,4 @@
-// The production build (server.mjs `serveStatic`): any path the routes did not take. Dot segments are 404; anything
+// The production build (the Node server's `serveStatic`): any path the routes did not take. Dot segments are 404; anything
 // else that is not a file under DIST is index.html (the app routes client-side via query strings), with status 200.
 // HTML gets the CSP and `no-store`, the rest `no-cache`; no ETag, no Last-Modified, no ranges, no length.
 

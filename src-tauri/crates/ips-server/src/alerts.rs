@@ -613,4 +613,46 @@ mod tests {
         std::fs::write(&file, "{broken").unwrap();
         assert!(load_history(&file, 99.0).is_empty());
     }
+
+    #[test]
+    fn a_tick_advances_a_duration_without_new_data() {
+        use std::sync::atomic::{AtomicI64, Ordering};
+        let dir = tempfile::tempdir().unwrap();
+        let config = json!({
+            "activeProfile": "auto",
+            "profiles": [{ "id": "desk", "pages": [{ "id": "main", "name": "main", "placements": [] }] }],
+            "alerts": { "enabled": true, "rules": [{
+                "id": "r1", "name": "GPU temp", "enabled": true, "severity": "critical",
+                "source": { "kind": "sensor", "key": "gpu.temp", "op": ">", "value": 80, "forSeconds": 3 },
+                "cooldownSeconds": 0, "outputs": {},
+            }] },
+        });
+        let read = {
+            let config = config.clone();
+            move || Some(config.clone())
+        };
+        let clock = Arc::new(AtomicI64::new(1_000_000));
+        let control = Control::new(dir.path().join("control.json"), 1_000_000, read.clone());
+        let alerts = Alerts::new(Options {
+            file: dir.path().join("alerts.json"),
+            control: Arc::clone(&control),
+            read_config: Box::new(read),
+            now: Box::new({
+                let clock = Arc::clone(&clock);
+                move || clock.load(Ordering::SeqCst) as f64
+            }),
+            zone: LocalZone::System,
+            connect: Arc::new(|_, _| StreamHandle::none()),
+            save_after: Duration::ZERO,
+        });
+        alerts.feed(&json!({ "sensors": { "gpu.temp": { "value": 90 } }, "removed": [] }));
+        assert_eq!(control.get()["alerts"], json!([]));
+        clock.store(1_002_000, Ordering::SeqCst);
+        alerts.tick();
+        assert_eq!(control.get()["alerts"], json!([]));
+        clock.store(1_003_000, Ordering::SeqCst);
+        alerts.tick();
+        assert_eq!(control.get()["alerts"].as_array().unwrap().len(), 1);
+        alerts.stop();
+    }
 }

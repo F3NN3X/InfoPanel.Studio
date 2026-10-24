@@ -2,8 +2,8 @@
 // restarts, and what the window and tray show for each outcome.
 
 use crate::probe::{self, Probe};
-use crate::settings::{self, ServerImpl, Settings, MIN_PORT};
-use crate::sidecar::{self, allow_restart};
+use crate::server_log::{self, allow_restart};
+use crate::settings::{self, Settings, MIN_PORT};
 use crate::state::{self, lock, now_ms, AppState, ErrorCode, Phase, RunningConfig, Status};
 use crate::{agents, native, tray, windows};
 use std::sync::atomic::Ordering;
@@ -55,7 +55,6 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-server-stats",
     "allow-foreign-server-info",
     "allow-use-foreign-server",
-    "allow-stop-foreign-server",
     "allow-list-local-addresses",
     "allow-set-agents",
     "allow-agents-status",
@@ -177,46 +176,31 @@ fn next_generation(app: &AppHandle) -> u64 {
 /// Stops the server if the app started it.
 pub fn stop_owned(app: &AppHandle) {
     let st = app.state::<AppState>();
-    let (sidecar, native) = {
+    let native = {
         let mut server = lock(&st.server);
         server.generation += 1;
         server.status.owned = false;
         server.status.pid = None;
-        (server.sidecar.take(), server.native.take())
+        server.native.take()
     };
-    if let Some(mut sc) = sidecar {
-        log::info!("stopping server (pid {})", sc.pid);
-        let _ = sc.child.kill();
-        let _ = sc.child.wait();
-    }
     if let Some(server) = native {
         log::info!("stopping the in-app server");
         server.stop();
     }
 }
 
-/// The process that holds the server's memory: the sidecar's, or the app's own for the in-app server.
+/// The process that holds the server's memory: the app's own for the in-app server.
 pub fn server_pid(status: &Status) -> Option<u32> {
-    let in_app = status.owned
-        && status
-            .running_config
-            .as_ref()
-            .is_some_and(|rc| rc.server == ServerImpl::Native);
-    if in_app {
+    if status.owned {
         Some(std::process::id())
     } else {
         status.pid
     }
 }
 
-/// Whether `pid` (the port's listener) is the app's own server: its sidecar or the app itself.
-fn is_own_server(app: &AppHandle, pid: u32) -> bool {
+/// Whether `pid` (the port's listener) is the app's own server, which runs inside the app.
+fn is_own_server(pid: u32) -> bool {
     pid == std::process::id()
-        || lock(&app.state::<AppState>().server)
-            .sidecar
-            .as_ref()
-            .map(|sc| sc.pid)
-            == Some(pid)
 }
 
 /// Shows "stopped" without spawning anything: a launch with `startServer` off, or after a stop.
@@ -336,18 +320,6 @@ fn run_start(app: &AppHandle) {
     let host = settings::connect_host(s.host());
     let found = probe::probe(&host, s.port, probe::PROBE_TIMEOUT);
     log::debug!("probe {host}:{} -> {found:?}", s.port);
-    if found != Probe::Free {
-        // Another dashboard server (start-dashboard.bat, an older build without /api/health, ...)
-        // is closed so the app can use the port; any other program is left alone.
-        match stop_dashboard_on_port(app) {
-            Ok(stopped) => {
-                log::info!("{stopped}; starting the app's own server");
-                spawn_and_wait(app, generation);
-                return;
-            }
-            Err(why) => log::debug!("port {} not taken over: {why}", s.port),
-        }
-    }
     match found {
         Probe::Free => spawn_and_wait(app, generation),
         Probe::Dashboard { version } => {
@@ -393,40 +365,8 @@ fn fail(app: &AppHandle, generation: u64, code: ErrorCode, message: String) {
     });
 }
 
-/// Spawns the Node sidecar; false when it did not start (the status says why) or the start was superseded.
-fn spawn_sidecar(app: &AppHandle, generation: u64, s: &Settings, debug: bool) -> bool {
-    let st = app.state::<AppState>();
-    let spawned = sidecar::spawn(s, &st.paths, debug, st.server_log.clone());
-    let pid = match spawned {
-        Err(e) => {
-            fail(
-                app,
-                generation,
-                ErrorCode::Other,
-                format!("The server could not start: {e}"),
-            );
-            return false;
-        }
-        Ok(sc) => {
-            let pid = sc.pid;
-            let mut server = lock(&st.server);
-            if server.generation != generation {
-                drop(server);
-                let mut sc = sc;
-                let _ = sc.child.kill();
-                return false;
-            }
-            server.sidecar = Some(sc);
-            server.status.pid = Some(pid);
-            pid
-        }
-    };
-    log::info!("server started (pid {pid}) on {}:{}", s.host(), s.port);
-    true
-}
-
-/// Starts ips-server in the app; false when the bind failed (the status says why, with the sidecar's error codes)
-/// or the start was superseded. Its start and bind failure go to server.log, as the sidecar's output does.
+/// Starts ips-server in the app; false when the bind failed (the status says why, with its error codes) or the
+/// start was superseded. Its start and bind failure go to server.log.
 fn start_native(app: &AppHandle, generation: u64, s: &Settings, debug: bool) -> bool {
     let st = app.state::<AppState>();
     let cfg = native::server_config(s, &st.paths, debug, &st.version);
@@ -437,7 +377,7 @@ fn start_native(app: &AppHandle, generation: u64, s: &Settings, debug: bool) -> 
     };
     write(&format!(
         "[{}] --- starting the in-app server on {}:{} ---",
-        sidecar::timestamp(),
+        server_log::timestamp(),
         s.host(),
         s.port
     ));
@@ -466,11 +406,7 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
     let st = app.state::<AppState>();
     let s = st.settings();
     let debug = st.debug();
-    let started = match s.server {
-        ServerImpl::Node => spawn_sidecar(app, generation, &s, debug),
-        ServerImpl::Native => start_native(app, generation, &s, debug),
-    };
-    if !started {
+    if !start_native(app, generation, &s, debug) {
         return;
     }
     let monitor = app.clone();
@@ -497,7 +433,6 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
                     debug,
                     allowed_hosts: s.allowed_hosts.clone(),
                     allow_remote_edit: s.allow_remote_edit,
-                    server: s.server,
                 });
             }) {
                 on_running(app);
@@ -506,17 +441,13 @@ fn spawn_and_wait(app: &AppHandle, generation: u64) {
         }
         std::thread::sleep(HEALTH_POLL);
     }
-    let (sidecar, native) = {
+    let native = {
         let mut server = lock(&st.server);
         if server.generation != generation {
             return;
         }
-        (server.sidecar.take(), server.native.take())
+        server.native.take()
     };
-    if let Some(mut sc) = sidecar {
-        let _ = sc.child.kill();
-        let _ = sc.child.wait();
-    }
     if let Some(server) = native {
         server.stop();
     }
@@ -549,37 +480,27 @@ pub fn after_crash(auto_restart: bool, budget_left: bool) -> AfterCrash {
     }
 }
 
-/// Watches the server (the sidecar process or the in-app server) of `generation`; restarts it after a crash while
+/// Watches the in-app server of `generation`; restarts it after a crash while
 /// the budget lasts.
 fn watch(app: &AppHandle, generation: u64) {
     let st = app.state::<AppState>();
     loop {
         std::thread::sleep(HEALTH_POLL);
-        let (exit, was_running, sidecar) = {
+        let (exit, was_running) = {
             let mut server = lock(&st.server);
             if server.generation != generation {
                 return;
             }
-            let exit = if let Some(native) = server.native.as_ref() {
-                if !native.ended() {
-                    continue;
-                }
-                server.native = None;
-                "the in-app server ended".to_string()
-            } else {
-                let Some(sc) = server.sidecar.as_mut() else {
-                    return;
-                };
-                match sc.child.try_wait() {
-                    Ok(None) => continue,
-                    Ok(Some(code)) => code.to_string(),
-                    Err(e) => e.to_string(),
-                }
+            let Some(native) = server.native.as_ref() else {
+                return;
             };
+            if !native.ended() {
+                continue;
+            }
+            server.native = None;
             (
-                exit,
+                "the in-app server ended".to_string(),
                 server.status.state == Phase::Running,
-                server.sidecar.take(),
             )
         };
         if st.is_quitting() {
@@ -587,8 +508,7 @@ fn watch(app: &AppHandle, generation: u64) {
         }
         let s = st.settings();
         if !was_running {
-            let code = sidecar.and_then(|sc| sc.exit_error(Duration::from_secs(1)));
-            let (code, message) = start_failure(code, s.port, &exit);
+            let (code, message) = start_failure(None, s.port, &exit);
             return fail(app, generation, code, message);
         }
         let budget_left =
@@ -613,7 +533,7 @@ fn watch(app: &AppHandle, generation: u64) {
                 ErrorCode::Other,
                 format!(
                     "The server crashed {} times within a minute ({exit}).",
-                    sidecar::MAX_RESTARTS + 1
+                    server_log::MAX_RESTARTS + 1
                 ),
             ),
         }
@@ -622,21 +542,21 @@ fn watch(app: &AppHandle, generation: u64) {
 }
 
 /// Uses a dashboard server the app did not start, until the next restart. Re-checks the listener
-/// first: only a node.exe or an ips-server owned by the current user is adopted.
+/// first: only an ips-server owned by the current user is adopted.
 pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
     let st = app.state::<AppState>();
     let port = st.settings().port;
     let pid = probe::listener_pid(port)
         .ok_or_else(|| format!("Could not find the process that holds port {port}."))?;
     let info = probe::process_info(pid).ok_or_else(|| format!("Process {pid} has gone."))?;
-    if is_own_server(app, pid) {
+    if is_own_server(pid) {
         return Err("That is the app's own server.".into());
     }
     if !probe::may_adopt(&info) {
-        let why = if probe::is_node(&info) || probe::is_ips_server(&info) {
+        let why = if probe::is_ips_server(&info) {
             "running as another user"
         } else {
-            "which is neither node.exe nor ips-server"
+            "which is not an ips-server"
         };
         return Err(format!(
             "Port {port} is held by {} (PID {pid}), {why}; it was not used.",
@@ -657,7 +577,6 @@ pub fn use_foreign(app: &AppHandle) -> Result<(), String> {
             debug,
             allowed_hosts: s.allowed_hosts.clone(),
             allow_remote_edit: s.allow_remote_edit,
-            server: s.server,
         });
     }) {
         on_running(app);
@@ -732,56 +651,6 @@ pub fn refresh_agents(app: &AppHandle) {
     } else {
         log::warn!("agents: refresh failed: {:?}", result.steps);
     }
-}
-
-/// Stops a foreign dashboard server after re-checking it, then starts ours.
-pub fn stop_foreign(app: &AppHandle) -> Result<String, String> {
-    let stopped = stop_dashboard_on_port(app)?;
-    start(app);
-    Ok(stopped)
-}
-
-/// Stops the dashboard server the app did not start that holds the configured port: a node.exe
-/// that answers as the dashboard or runs `server.mjs` (older builds have no /api/health). Anything
-/// else, and the app's own server, is left alone. Waits up to 5 s for the port to free.
-fn stop_dashboard_on_port(app: &AppHandle) -> Result<String, String> {
-    let st = app.state::<AppState>();
-    let s = st.settings();
-    let host = settings::connect_host(s.host());
-    let pid = probe::listener_pid(s.port)
-        .ok_or_else(|| format!("Could not find the process that holds port {}.", s.port))?;
-    let info = probe::process_info(pid).ok_or_else(|| format!("Process {pid} has gone."))?;
-    if is_own_server(app, pid) {
-        return Err("That is the app's own server.".into());
-    }
-    let answers = matches!(
-        probe::probe(&host, s.port, probe::PROBE_TIMEOUT),
-        Probe::Dashboard { .. }
-    );
-    if !probe::is_node(&info) || !(answers || probe::runs_dashboard_server(&info)) {
-        return Err(format!(
-            "Port {} is held by {} (PID {pid}), which is not an InfoPanel Studio server; it was not stopped.",
-            s.port, info.name
-        ));
-    }
-    log::info!("stopping dashboard server {} (pid {pid})", info.name);
-    if !probe::kill(pid) {
-        return Err(format!(
-            "Windows refused to stop {} (PID {pid}).",
-            info.name
-        ));
-    }
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while probe::probe(&host, s.port, Duration::from_millis(500)) != Probe::Free {
-        if Instant::now() >= deadline {
-            return Err(format!(
-                "Stopped {} (PID {pid}), but port {} is still busy.",
-                info.name, s.port
-            ));
-        }
-        std::thread::sleep(HEALTH_POLL);
-    }
-    Ok(format!("Stopped {} (PID {pid})", info.name))
 }
 
 #[cfg(test)]
@@ -906,7 +775,6 @@ mod tests {
             debug: false,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
-            server: ServerImpl::Node,
         };
         assert_eq!(status_address(Some(&running), &saved), ("127.0.0.1", 3922));
     }

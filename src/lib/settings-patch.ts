@@ -1,6 +1,6 @@
 /**
  * A change made in the Settings window (PLAN decisions 21 and 22): only the dashboard-wide keys it touches. The
- * server merges it into the saved config (PATCH /api/config/settings, server/config-settings.mjs, which checks every
+ * server merges it into the saved config (PATCH /api/config/settings, ips-server's config_settings.rs, which checks every
  * value); the Settings window and the Studio window apply the same patch to their own copy with `withSettingsPatch`.
  * null puts a key back to its default, and a screen's performance back to All screens'.
  */

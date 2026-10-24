@@ -80,12 +80,16 @@ impl Req {
     }
 
     /// The body as UTF-8 text (invalid bytes read as U+FFFD), or `Err` when it is over `limit` bytes or breaks off.
-    pub async fn read_body(&mut self, limit: usize) -> Result<String, ()> {
+    pub async fn read_body(&mut self, limit: usize) -> Result<String, BodyRefused> {
         let body = std::mem::take(&mut self.body);
-        let bytes = to_bytes(body, limit).await.map_err(|_| ())?;
+        let bytes = to_bytes(body, limit).await.map_err(|_| BodyRefused)?;
         Ok(String::from_utf8_lossy(&bytes).into_owned())
     }
 }
+
+/// A request body over its limit, or one that broke off.
+#[derive(Debug, PartialEq, Eq)]
+pub struct BodyRefused;
 
 /// `send(res, status, body, type)`. Node writes the head before the body, so the body goes chunked, without a length.
 pub fn send(status: u16, body: impl Into<Bytes>, content_type: &str) -> Response<Body> {

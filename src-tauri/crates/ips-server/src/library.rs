@@ -259,7 +259,8 @@ impl LibraryStore {
 }
 
 /// A write's JSON body, or the answer that refuses it.
-async fn body(app: &App, req: &mut Req) -> Result<Value, Response<Body>> {
+/// The refusal is boxed: a response is large next to the value.
+async fn body(app: &App, req: &mut Req) -> Result<Value, Box<Response<Body>>> {
     let guard = library_write_refusal(
         req.header("content-type").as_deref(),
         req.header("x-dashboard-library").as_deref(),
@@ -268,10 +269,10 @@ async fn body(app: &App, req: &mut Req) -> Result<Value, Response<Body>> {
         true,
     );
     if let Some(refusal) = guard {
-        return Err(http::text(refusal.status, refusal.message));
+        return Err(Box::new(http::text(refusal.status, refusal.message)));
     }
-    let text = req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|()| http::closing(http::text(400, BODY_REFUSED)))?;
-    json::parse(&text).ok_or_else(|| http::text(400, BODY_REFUSED))
+    let text = req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|http::BodyRefused| Box::new(http::closing(http::text(400, BODY_REFUSED))))?;
+    json::parse(&text).ok_or_else(|| Box::new(http::text(400, BODY_REFUSED)))
 }
 
 fn answer(status: u16, made: Result<Value, String>) -> Response<Body> {
@@ -289,7 +290,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
             Method::GET => http::json(200, &Value::Array(app.library.list().iter().map(summary_of).collect())),
             Method::POST => match body(app, &mut req).await {
                 Ok(raw) => answer(201, app.library.create(&raw, now)?),
-                Err(refusal) => refusal,
+                Err(refusal) => *refusal,
             },
             _ => http::empty(405),
         });
@@ -302,7 +303,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
         Method::GET => app.library.get(&id).map_or_else(|| http::empty(404), |item| http::json(200, &item)),
         Method::PUT => match body(app, &mut req).await {
             Ok(raw) => app.library.update(&id, &raw, now)?.map_or_else(|| http::empty(404), |made| answer(200, made)),
-            Err(refusal) => refusal,
+            Err(refusal) => *refusal,
         },
         Method::DELETE => {
             let guard = library_write_refusal(
@@ -393,6 +394,24 @@ mod tests {
         assert!(store.remove(a["id"].as_str().unwrap()).unwrap());
         assert!(!store.remove(a["id"].as_str().unwrap()).unwrap());
         assert_eq!(store.texts().len(), 2);
+    }
+
+    #[test]
+    fn refuses_ids_that_could_be_paths_and_skips_files_that_are_not_items() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = dir.path().join("library");
+        let store = LibraryStore::new(library.clone());
+        let item = store.create(&json!({ "kind": "image", "name": "a" }), NOW).unwrap().unwrap();
+        assert!(is_item_id(item["id"].as_str().unwrap()) && is_item_id(&new_item_id()));
+        std::fs::write(library.join("lib_aaaaaaaaaaaa.json"), "{broken").unwrap();
+        std::fs::write(library.join("notes.json"), "{}").unwrap();
+        std::fs::write(dir.path().join("config.json"), "{}").unwrap();
+        assert_eq!(store.list().len(), 1);
+        for id in ["../config", "..\\x", "lib_aaaaaaaaaaaa/../../config", "notes"] {
+            assert!(store.get(id).is_none() && !store.remove(id).unwrap(), "{id}");
+        }
+        assert!(store.update("../config", &json!({ "name": "x" }), NOW).unwrap().is_none());
+        assert!(dir.path().join("config.json").exists() && library.join("notes.json").exists());
     }
 
     #[test]

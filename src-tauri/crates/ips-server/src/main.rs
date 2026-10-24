@@ -1,4 +1,4 @@
-// The standalone server: the environment server.mjs reads, the same start line on stdout, logs on stderr. Ctrl+C
+// The standalone server: the environment variables, the start line on stdout, logs on stderr. Ctrl+C
 // stops it gracefully.
 
 use ips_server::{bind, ServerConfig};

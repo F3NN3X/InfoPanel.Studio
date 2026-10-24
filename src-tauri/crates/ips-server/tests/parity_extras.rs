@@ -1,5 +1,5 @@
 // The parity fixtures for the extras (ical, ical-rules, integrations, obs, calendar; tests/fixtures/parity/*.json,
-// written from the Node server by tools/parity/extras-fixtures.mjs): each case's input through the native function must
+// written once from the Node server (removed; tests/fixtures/parity/README.md)): each case's input through the native function must
 // give the Node output exactly. Floating times are read in Europe/Oslo, the zone the fixtures were built in.
 
 use std::path::PathBuf;

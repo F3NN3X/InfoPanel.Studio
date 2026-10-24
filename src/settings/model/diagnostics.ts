@@ -33,7 +33,7 @@ export function isNotable(s: Series): boolean {
 }
 
 export interface SeriesGroup {
-  /** The first dotted segment: `app`, `server`, `sidecar`, `studio`, `webview`. */
+  /** The first dotted segment: `app`, `server`, `studio`, `webview`. */
   name: string;
   rows: { series: Series; name: string }[];
 }

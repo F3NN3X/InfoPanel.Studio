@@ -308,3 +308,19 @@ pub async fn handle(app: &App, req: Req) -> std::io::Result<Response<Body>> {
         _ => Ok(http::empty(405)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sums_the_entries_of_the_folder_and_is_zero_when_it_is_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let assets = Assets::with_max_bytes(dir.path().join("assets"), false, 1000.0);
+        assert_eq!(assets.dir_bytes(), 0);
+        std::fs::create_dir_all(&assets.dir).unwrap();
+        std::fs::write(assets.dir.join("a"), [0u8; 10]).unwrap();
+        std::fs::write(assets.dir.join(format!("{TEMP_PREFIX}b.tmp")), [0u8; 5]).unwrap();
+        assert_eq!(assets.dir_bytes(), 15);
+    }
+}

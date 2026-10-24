@@ -1,11 +1,11 @@
 /**
  * Serves InfoPanel's installed profiles to the lab, read-only, in the corpus
  * layout (/local/index.json, /local/<guid>/{Profile.xml,DisplayItems.xml,assets/<name>}).
- * Data folder: INFOPANEL_DATA_DIR, else %LOCALAPPDATA%\InfoPanel. The reading is the
- * dashboard server's own (server/infopanel-local.mjs); nothing is written.
+ * Data folder: INFOPANEL_DATA_DIR, else %LOCALAPPDATA%\InfoPanel. The reading is a copy of the
+ * dashboard server's former Node module (dev/infopanel-local.mjs); nothing is written.
  */
 import type { Plugin } from "vite";
-import { createInstalledProfiles, infopanelDataDir, isGuid } from "../../server/infopanel-local.mjs";
+import { createInstalledProfiles, infopanelDataDir, isGuid } from "./dev/infopanel-local.mjs";
 
 export function infopanelData(dir = infopanelDataDir(process.env)): Plugin {
   const installed = createInstalledProfiles(dir);

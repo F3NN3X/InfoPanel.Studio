@@ -239,7 +239,7 @@ pub async fn handle(app: &App, mut req: Req) -> Response<Body> {
     let body = match req.read_body(MAX_CONTROL_BYTES).await {
         Ok(text) if text.is_empty() => Some(json!({})),
         Ok(text) => parse_json(&text),
-        Err(()) => return http::closing(http::text(400, "expected a JSON object")),
+        Err(http::BodyRefused) => return http::closing(http::text(400, "expected a JSON object")),
     };
     let Some(Value::Object(mut action)) = body else {
         return http::text(400, "expected a JSON object");
@@ -286,6 +286,9 @@ mod tests {
         assert_eq!(first["shown"], "desk");
         // `shown` changed (not yet a kiosk), then the kiosk joined.
         assert!(watcher.try_recv().is_ok() && watcher.try_recv().is_ok());
+        // Kiosks are live state: control.json never lists them or their addresses.
+        let saved = std::fs::read_to_string(dir.path().join("control.json")).unwrap_or_default();
+        assert!(!saved.contains("kiosks") && !saved.contains("10.0.0.2"), "{saved}");
         drop(stream);
         assert!(watcher.try_recv().is_ok());
         assert_eq!(control.get()["kiosks"], json!([]));

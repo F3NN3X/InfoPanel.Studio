@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// Hook latency, node vs native: how long `agent-status.mjs hook claude` and `ips-agent hook claude` take from spawn
-// to exit, 50 runs each against a local test server. Prints p50, p95 and the extremes. Measures, never gates.
+// Hook latency: how long `ips-agent hook claude` takes from spawn to exit, 50 runs against a local test server. Prints p50, p95 and the extremes. Measures, never gates.
 //   node tools/perf/agent-latency.mjs [--runs=50] [--agent=<ips-agent.exe>]
 // --agent defaults to src-tauri/target/release/ips-agent.exe (cargo build --release -p ips-agent).
 import { spawn } from "node:child_process";
@@ -52,9 +51,8 @@ const server = http.createServer((req, res) => {
 await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
 const url = `--url=http://127.0.0.1:${server.address().port}`;
 try {
-  const node = await measure("node", process.execPath, [path.join(ROOT, "tools", "agent-status.mjs"), "hook", "claude", url]);
-  const native = await measure("ips-agent", AGENT, ["hook", "claude", url]);
-  console.log(`posts received: ${posts} (expected ${2 * (RUNS + 1)}); p50 ${(node.p50 / native.p50).toFixed(1)}x faster, p95 ${(node.p95 / native.p95).toFixed(1)}x faster`);
+  await measure("ips-agent", AGENT, ["hook", "claude", url]);
+  console.log(`posts received: ${posts} (expected ${RUNS + 1})`);
 } finally {
   server.close();
 }

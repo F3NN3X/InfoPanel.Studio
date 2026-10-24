@@ -5,9 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { serverCommand } from "../../tools/perf/server-command.mjs";
-import { SERVER_IMPL } from "./native-pending.mjs";
 
-// The alert engine through the server, whichever implementation SERVER_IMPL names: it reads a fake Data API for the rules'
+// The alert engine through the server, (ips-server): it reads a fake Data API for the rules'
 // sensors, fires and clears alerts into the control state, switches pages, keeps the history, and answers the alert action.
 
 const control = { "Content-Type": "application/json", "X-Dashboard-Control": "1" };
@@ -47,7 +46,7 @@ async function fakeDataApi() {
 }
 
 async function start(dataDir) {
-  const server = serverCommand({ ...process.env, SERVER_IMPL });
+  const server = serverCommand();
   const child = spawn(server.cmd, server.args, { env: { ...process.env, HOME: path.join(dataDir, "home"), USERPROFILE: path.join(dataDir, "home"), INFOPANEL_DATA_DIR: path.join(dataDir, "infopanel"), DASHBOARD_DATA_DIR: dataDir, DASHBOARD_DIST: path.join(dataDir, "no-dist"), PORT: "0", HOST: "127.0.0.1" } });
   let out = "";
   child.stdout.on("data", (c) => (out += c));
@@ -58,7 +57,7 @@ async function start(dataDir) {
     if (port) return { base: `http://127.0.0.1:${port}`, stop: () => child.kill() };
   }
   child.kill();
-  throw new Error(`the ${SERVER_IMPL} server did not start:\n${out}`);
+  throw new Error(`the server did not start:\n${out}`);
 }
 
 const rule = (over = {}) => ({
@@ -73,7 +72,7 @@ const configWith = (api, rules) => ({
   alerts: { enabled: true, rules, defaults: { seconds: 8 } },
 });
 
-describe(`alerts through the server (${SERVER_IMPL})`, () => {
+describe("alerts through the server", () => {
   let dir, api, server;
   afterEach(async () => {
     server?.stop();
@@ -167,11 +166,11 @@ describe(`alerts through the server (${SERVER_IMPL})`, () => {
   });
 });
 
-describe.skipIf(SERVER_IMPL !== "native")("alerts.json between node and native", () => {
+describe("alerts.json across restarts", () => {
   let dir;
   afterEach(() => dir && fs.rmSync(dir, { recursive: true, force: true }));
 
-  it("reads the history the other wrote, closing open entries, and keeps writing it compact", async () => {
+  it("reads a history file, closing open entries, and keeps writing it compact", async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "ips-alerts-rt-"));
     fs.writeFileSync(path.join(dir, "alerts.json"), JSON.stringify({ history: [{ id: "a-1", ruleId: "r", name: "N", severity: "info", text: "t", startedAt: 5 }, { id: "a-2", endedAt: 9, extra: [1, { z: 2 }] }, { nope: 1 }] }));
     const server = await start(dir);

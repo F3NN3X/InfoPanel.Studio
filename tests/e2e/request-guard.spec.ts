@@ -2,7 +2,7 @@ import http from "node:http";
 import os from "node:os";
 import { expect, test } from "./fixtures";
 
-// server/request-guard.mjs at the HTTP level (tests/server/request-guard.test.mjs tests the pure functions).
+// ips-server's request_guard.rs at the HTTP level.
 // fetch can't set Host, so these requests go through node:http.
 
 interface Answer {

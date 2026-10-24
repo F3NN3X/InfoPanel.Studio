@@ -27,8 +27,8 @@ The installer is NSIS, per user (no admin) and unsigned, so SmartScreen warns on
 |---|---|
 | App settings | `%APPDATA%\dev.f3nn3x.infopanel-studio\settings.json` |
 | Logs (`app.log`, `server.log`, `metrics.csv`) | `%LOCALAPPDATA%\dev.f3nn3x.infopanel-studio\logs\` |
-| Dashboard config, assets, alerts | `%LOCALAPPDATA%\InfoPanel\Dashboard\` (the same folder `server.mjs` always used) |
-| Bundled runtime | `<install dir>\node\node.exe`, `<install dir>\app\` |
+| Dashboard config, assets, alerts | `%LOCALAPPDATA%\InfoPanel\Dashboard\` (the same folder the server has always used) |
+| Bundled files | `<install dir>\app\dist\` (the built web app), `<install dir>\ips-agent.exe` |
 
 ## Settings
 
@@ -56,9 +56,7 @@ sections.
   `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's `ips-agent.exe` and the current
   port. They are rewritten after a port change or an app update, and removed when you turn it off or
   uninstall the app.
-- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the server (Native, the default: `ips-server`
-  running inside the app; or Node, the bundled `server.mjs`, until it is removed; read when the server starts, so a
-  change shows the restart bar), the live logs of the server, app and studio, versions and file locations, and the bundled changelog.
+- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the live logs of the server, app and studio, versions and file locations, and the bundled changelog.
 
 ## Releases and updates
 
@@ -72,13 +70,12 @@ does not make updater artifacts and needs no key.
 
 ## Another server on the port
 
-If `start-dashboard.bat` (or any `node server.mjs`) already holds the chosen port, the app closes it
-on startup and starts its own server. It only stops a `node.exe` that owns the port and either answers
-`/api/health` as the dashboard or runs `server.mjs` (older builds have no health route). Any other
-program is left alone, and the start screen says the port is in use and offers the settings. If the
-stop fails, the start screen offers it again, or "use it for this session". The .bat's console window
-then shows "The dashboard failed to start" because its server was stopped: close it, and remove the
-.bat from Windows startup once the app is installed.
+If another program holds the chosen port, the app leaves it alone. When it answers `/api/health` as a dashboard
+server, the start screen says another InfoPanel Studio server is running; if that server is an `ips-server` of
+your own user (for example from `start-dashboard.bat` or `npm start`), it offers "use it for this session".
+Anything else, such as a Node server from an older checkout, is just another program on the port: the start
+screen says the port is in use and offers the next free one. Close `start-dashboard.bat` yourself, and remove it
+from Windows startup once the app is installed.
 
 ## Window
 
@@ -123,9 +120,9 @@ Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STU
 
 Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer resolution, not a stall.
 
-With the native server the server runs in the app's process: its lines (target `server`) still go to `server.log`,
+The server runs in the app's process: its lines (target `server`) still go to `server.log`,
 with the app log's `[date][time][server][LEVEL]` prefix; the Server page's Memory is the app's; in `metrics.csv` the
-`sidecar.*` columns stay empty (`app.rssMb` is the figure), `server.memory.rss` is the app's too, the V8 heap
+`sidecar.*` columns (from the removed Node server process) stay empty (`app.rssMb` is the figure), `server.memory.rss` is the app's too, the V8 heap
 columns are empty, and `server.eventLoopDelayMs.p99` is the runtime's scheduling delay.
 
 ## Testing without touching the live setup
@@ -145,10 +142,9 @@ running one takes the launch.
 
 The debugging port opens only when WebView2 starts a browser process of its own: not while another app's process
 holds the same profile (the reason for the profile under `INFOPANEL_STUDIO_CONFIG_DIR`), and not with `USERPROFILE`
-pointed at another folder. To try the agent toggle with a temp `USERPROFILE` (the bundled Node then writes the hooks
+pointed at another folder. To try the agent toggle with a temp `USERPROFILE` (the app then writes the hooks
 there), leave `INFOPANEL_STUDIO_CDP_PORT` out.
 
 The `desktop` Playwright project (`tests/desktop/`, Windows only) does all of this: build with
 `npm run desktop:web && npm run desktop:prepare && npx tauri build --debug --no-bundle`, then
-`npx playwright test --project=desktop`. They run against the native server; `DESKTOP_SERVER=node` runs them
-against the Node sidecar (it writes `"server": "node"` into the scratch settings).
+`npx playwright test --project=desktop`.

@@ -1,4 +1,4 @@
-// Where the app keeps its settings and logs, and where the bundled runtime lives.
+// Where the app keeps its settings and logs, and where the installed resources live.
 
 use std::path::{Path, PathBuf};
 
@@ -10,7 +10,7 @@ pub struct Paths {
     pub config_dir: PathBuf,
     /// app.log, server.log, metrics.csv.
     pub log_dir: PathBuf,
-    /// The installed resources: node/node.exe, app/ (server.mjs, server/, dist/, tools/) and ips-agent.exe.
+    /// The installed resources: app/ (the built web app in dist/) and ips-agent.exe.
     pub resource_dir: PathBuf,
     /// The server's data folder for test runs (INFOPANEL_STUDIO_DATA_DIR); None = server default.
     pub data_dir: Option<PathBuf>,
@@ -52,16 +52,8 @@ impl Paths {
         }
     }
 
-    pub fn node_exe(&self) -> PathBuf {
-        self.resource_dir.join("node").join("node.exe")
-    }
-
     pub fn app_dir(&self) -> PathBuf {
         self.resource_dir.join("app")
-    }
-
-    pub fn server_script(&self) -> PathBuf {
-        self.app_dir().join("server.mjs")
     }
 
     pub fn dist_dir(&self) -> PathBuf {
@@ -83,7 +75,7 @@ impl Paths {
     }
 
     /// The server's data folder (dashboards, themes, assets): DASHBOARD_DATA_DIR as the app passes
-    /// it, else server.mjs's default `%LOCALAPPDATA%\InfoPanel\Dashboard`.
+    /// it, else the default `%LOCALAPPDATA%\InfoPanel\Dashboard`.
     pub fn server_data_dir(&self) -> PathBuf {
         self.data_dir.clone().unwrap_or_else(|| {
             env_path("LOCALAPPDATA")
@@ -163,8 +155,7 @@ mod tests {
             resource_dir: PathBuf::from("r"),
             data_dir: None,
         };
-        assert_eq!(p.node_exe(), Path::new("r/node/node.exe"));
-        assert_eq!(p.server_script(), Path::new("r/app/server.mjs"));
+        assert_eq!(p.dist_dir(), Path::new("r/app/dist"));
         assert_eq!(p.agent_exe(), Path::new("r/ips-agent.exe"));
         assert_eq!(p.changelog(), Path::new("r/CHANGELOG.md"));
         let test_run = Paths {

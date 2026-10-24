@@ -93,3 +93,20 @@ Close to tray releases WebView2 with no sidecar left; the studio rebuilt in 262 
 - Font proxy: the host allowlist, redirect rules, the 30 MiB cap, the exact catalogue URL check and its cache, the
   atomic cache write, the 60 s deadline.
 - e2e: the cross-origin write spec covers `/api/studio-prefs` (403).
+
+## After 3.7 (Node removed), against the baseline
+
+Release build of `feat/remove-node` (1.3.0-beta.18 plus 3.7), same machine. The installed size is what the installer
+lays down (exe and `app/`); it wasn't installed over the real copy.
+
+| | baseline | after 3.7 | Δ |
+|---|---|---|---|
+| Installer | 26.8 MB (1.3.0-beta.1) | 6.57 MB | −20.2 MB (−75%) |
+| Installed | 148.3 MB (`node/` 89.5, `app/` 45.7, exe 12.9) | about 21.9 MB (exe 16.8, `app/` 5.1) | about −126 MB |
+| Processes, tray, studio closed | 2 (app + node sidecar) | 1 | −1 |
+| Idle memory, tray, 5 SSE clients | 84.4 MB (app 11.0 + sidecar 73.4) | 40.9 MB | −43.5 MB (−52%) |
+| Idle CPU, steady (10-min soak) | 0.0026 cores | 0.0018 cores | −31% |
+
+The baseline's installed `app/` carried stale chunks from earlier updates (see [baseline.md](baseline.md#disk)); a fresh
+Node install was about 106 MB. Close to tray still releases WebView2 (0 processes after a minute, rebuilt in 261 ms);
+`studio-in-browser` on the debug build: app window 704 MB, Edge app warm +102 MB.

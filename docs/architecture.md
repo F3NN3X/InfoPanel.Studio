@@ -10,10 +10,10 @@ InfoPanel Data API  (default http://127.0.0.1:3921)
         │  read straight from the browser (CORS)
         ▼
  browser page ──── /api/config, /events/config, /api/image-proxy, /api/assets ────▶ dashboard server
- (kiosk or studio)                                                                   (server.mjs, 127.0.0.1:3922)
+ (kiosk or studio)                                                                   (ips-server, 127.0.0.1:3922)
 ```
 
-Sensor data never passes through the dashboard server. `server.mjs` serves
+Sensor data never passes through the dashboard server. `ips-server` serves
 the build, stores the config and uploaded media, and proxies cover-art
 images; the page talks to the Data API directly.
 
@@ -93,7 +93,7 @@ API image path). `resolveImageUrl` resolves a root-relative
 server. To sample colors from cover art, the Now Playing widget fetches it
 (`src/widgets/NowPlaying/art-tint.ts`) through `/api/image-proxy?url=` on the
 dashboard server (https anywhere, http only on loopback), except same-origin
-images, which it loads directly. The proxy relays only images (`server/proxy.mjs`):
+images, which it loads directly. The proxy relays only images (`crates/ips-server/src/proxy.rs`):
 `image/*` except SVG, or `application/octet-stream` / no type when the bytes are
 png, jpeg, gif, webp or avif (served with the sniffed type); anything else is 406.
 Responses carry `X-Content-Type-Options: nosniff`.
@@ -376,7 +376,7 @@ Only the page holds `Placement.canvas`. The server's config keeps a
 `canvasRef` in its place (config v5), so it stays under its 5 MB cap and
 its push to every kiosk stays small: each canvas is a file in
 `DATA_DIR/canvases`, named by the SHA-256 of its bytes
-(`server/canvases.mjs`; POST `/api/canvases` from this machine,
+(`crates/ips-server/src/canvases.rs`; POST `/api/canvases` from this machine,
 GET `/api/canvases/<id>` from any). `src/lib/canvas-store.ts` swaps the
 two at the edge: `fetchConfig` loads the refs (cached by ref), `pushConfig`
 saves each new or edited canvas and then the config with its refs, on the
@@ -721,7 +721,7 @@ for both the local copy and the server copy:
   (`vbz`, `notifications`, `textfile`, `streamdeck`) get `surface: "theme"`
   unless the dashboard or the zone's profile style picks a surface. Unknown
   ids pass through. The server refuses a save from an older version
-  (`server/config-guard.mjs`), so a v3 build cannot write back over v4;
+  (`crates/ips-server/src/config_guard.rs`), so a v3 build cannot write back over v4;
 - no shipped profile is added: a fresh install (`defaultConfig`) has one
   blank profile, `main`. Stored copies of the formerly shipped Sample and
   ARCv2 profiles stay as they are;
@@ -769,14 +769,14 @@ has the current shape straight away; a saved panel brings its own settings.
 | Browser | `localStorage` key `infopanel-dashboard:config:v1` | every page, on each config change (`saveConfig`) |
 | Server | `config.json` in the dashboard server's data directory | `POST /api/config` |
 
-`server.mjs` writes the file as `<data dir>\config.json`, where the data
+`ips-server` writes the file as `<data dir>\config.json`, where the data
 directory is `%LOCALAPPDATA%\InfoPanel\Dashboard`. If `LOCALAPPDATA` is not
 set it uses `$HOME/.local/share/InfoPanel/Dashboard` (`./.local/share/…` when
 `HOME` is unset too). It writes a temp file and renames it. A body must be a
 JSON object and at most 5 MB, otherwise the server answers 400 or 413.
 `GET /api/config` answers 404 until a config has been saved.
 `DASHBOARD_DATA_DIR` replaces that directory and `DASHBOARD_DIST` the folder
-served (default `dist/` beside `server.mjs`).
+served (default `dist/` in the working directory).
 
 Two small routes beside the config: `GET /api/health` answers
 `{ app: "infopanel-dashboard", version, configVersion }` (`version` is
@@ -785,10 +785,10 @@ server from another one on the port. With `DASHBOARD_DEBUG=1` the server logs
 each request (method, path, status, ms) and every SSE connect and disconnect
 per channel (`config`, `control`, `extras`) with the current count, and
 `GET /api/debug/stats` (404 otherwise, 403 from other machines;
-`server/debug.mjs`) returns the memory use, uptime, SSE clients per channel,
+`crates/ips-server/src/debug.rs`) returns the memory use, uptime, SSE clients per channel,
 active resources by type and the event-loop delay (p50, p99, max in ms).
 
-### Uploaded media (`server/assets.mjs`, `src/lib/assets.ts`)
+### Uploaded media (`crates/ips-server/src/assets.rs`, `src/lib/assets.ts`)
 
 Images and videos uploaded in the studio are stored by the dashboard server
 in `<data dir>\assets`, next to `config.json` (created on the first upload).
@@ -847,7 +847,7 @@ Rules the server enforces:
 - **Read errors.** A file that vanishes while being streamed (a concurrent
   delete) destroys that response; it never crashes the server.
 
-### For the InfoPanel import (`server/library.mjs`, `infopanel-local.mjs`, `font-proxy.mjs`)
+### For the InfoPanel import (`crates/ips-server/src/library.rs`, `infopanel-local.mjs`, `font-proxy.mjs`)
 
 | Route | Answer |
 |---|---|
@@ -869,7 +869,7 @@ where it was placed (copy semantics: a profile never points back). Writes
 need `X-Dashboard-Library: 1` and JSON, from loopback unless
 `ALLOW_REMOTE_UPLOAD=1`; an item is at most 8 MB.
 
-#### Request gate (`server/request-guard.mjs`)
+#### Request gate (`crates/ips-server/src/request_guard.rs`)
 
 Every request passes this gate before routing:
 
@@ -897,7 +897,7 @@ inspector) lists the files and offers **Clean up unused**, which deletes what
 a file used by an edit that has not been saved yet, or only by the undo
 history, counts as unused.
 
-### Sync (`src/App.tsx`, `src/lib/dashboard-server.ts`, `server.mjs`)
+### Sync (`src/App.tsx`, `src/lib/dashboard-server.ts`, `crates/ips-server/src/config.rs`)
 
 - **Load first.** A page that is not in kiosk mode first reads `/api/config`
   (`fetchConfig`). If the server has a config, the page adopts it (merged and
@@ -914,7 +914,7 @@ history, counts as unused.
   gets the current version straight away; a 15 s keep-alive comment keeps the
   stream open.
 - **Downgrade guard.** `POST /api/config` is refused with 409
-  (`versionRefusal`, `server/config-guard.mjs`) when the stored config's
+  (`versionRefusal`, `crates/ips-server/src/config_guard.rs`) when the stored config's
   `version` is above the posted one, so an older build cannot overwrite a
   config with pages it cannot read. The studio then stops auto-pushing and
   shows a banner asking for a reload.
@@ -927,7 +927,7 @@ The Vite dev server (`npm run dev`) proxies `/api`, `/events/config` and `/event
 `http://127.0.0.1:3922`, so a dev page shares the config of the running
 dashboard server (`vite.config.ts`).
 
-### Control channel (`server/control.mjs`, `src/lib/control.ts`)
+### Control channel (`crates/ips-server/src/control.rs`, `src/lib/control.ts`)
 
 Runtime state that is not config (no undo, not in `config.json`): the page each
 profile shows, a profile override, and page auto-rotation with its runtime
@@ -1393,7 +1393,7 @@ on the kiosk (a later phase).
 ### Alerts
 
 Rules are config (`config.alerts`, types and `normalizeAlerts` in `src/lib/alerts.ts`); active alerts and
-the history are server state. The engine (`server/alerts.mjs`, started from `server.mjs`) subscribes to
+the history are server state. The engine (`crates/ips-server/src/alerts.rs`, started with the server) subscribes to
 the Data API keys the rules use, evaluates thresholds (duration, hysteresis, cooldown), `changes`,
 `contains` and notification filters, and publishes the active list as `alerts` in the control state
 (`/events/control`, `src/lib/control.ts`). Acknowledge, dismiss and test go through
@@ -1436,14 +1436,13 @@ through one notice bus (`islandBus`, a pure queue in `queue.ts` driven by one ti
   the OBS Live dot) show beside the time while nothing is open; the highest priority, then the newest,
   shows.
 
-The server's extras (`server/extras.mjs`) hold one OBS connection (`obs.mjs`, obs-websocket 5 over
-Node's WebSocket) and fetch the calendar links (`calendar.mjs`, parsed by `ical.mjs`) for every kiosk.
-It also holds the coding agents (`agents.mjs`): `tools/agent-status.mjs`, run by Claude Code's and
-Codex's hooks and Claude's statusline (installed by `tools/agent-install.mjs`), posts each event to
+The server's extras (`crates/ips-server/src/extras.rs`) hold one OBS connection (`obs.rs`, obs-websocket 5) and fetch the calendar links (`calendar.rs`, parsed by `ical.rs`) for every kiosk.
+It also holds the coding agents (`agents.rs`): `ips-agent`, run by Claude Code's and
+Codex's hooks and Claude's statusline (installed by the app, or `ips-agent install`), posts each event to
 `POST /api/agents/event` or `/api/agents/statusline`. Only loopback requests with a JSON body and the
 `X-Agent-Event: 1` header are taken (`agentWriteRefusal`, so a web page cannot forge one). The reducer
 keeps a session per hashed id and publishes only the state, tool, folder name, context and plan
-percentages. `agent-usage.mjs` adds tokens per day from the transcripts, read incrementally in 8 MB steps.
+percentages. `agent_usage.rs` adds tokens per day from the transcripts, read incrementally in 8 MB steps.
 The Coding Agents widget and the island's *Coding agents* notice read the same state.
 
 The OBS and calendar settings are in `integrations.json` beside the config, never in `config.json`: the studio writes
@@ -1496,18 +1495,18 @@ Full reference: [desktop/README.md](desktop/README.md); design, decisions and th
 IPC contract: [desktop/TAURI_PLAN.md](desktop/TAURI_PLAN.md).
 
 `src-tauri/` is a Tauri 2 shell around the same server and the same studio. The
-shell starts a bundled `node.exe` running `server.mjs` (the sidecar, `sidecar.rs`)
-with `PORT`, `HOST`, `ALLOWED_HOSTS` and `DASHBOARD_DIST` set, waits for
+shell runs the server (`ips-server`, `native.rs`) inside its own process, on the
+port and with the host, allowed hosts and `dist` folder from the settings, waits for
 `/api/health`, then loads the studio from the server origin
 (`http://127.0.0.1:<port>/?studio=1`), so stored `/api/assets/<id>` links and the
-same-origin request guard keep working. The server joins a kill-on-close job
-object (no server outlives a killed app), is restarted after a crash (3 times a
-minute) and writes `server.log`; the app writes `app.log`.
+same-origin request guard keep working. The server is restarted after a crash (3
+times a minute) and logs to `server.log`; the app writes `app.log`. No Node ships
+with the app.
 
-- **Takeover.** If the port is held by an older `node server.mjs` or
-  `start-dashboard.bat` (a `node.exe` that answers `/api/health` as the dashboard or
-  runs `server.mjs`), the app stops it and starts its own. Anything else on the port
-  is left alone and the local start page offers the settings.
+- **Another server on the port.** If something already holds the port, the app
+  probes `/api/health`. A server of this app (another copy, or an `ips-server` run
+  from source by the same user) can be used from the start page; anything else is
+  left alone and the start page offers another port.
 - **Local pages** (`src-tauri/pages/`: start; the React settings window is built into `pages/app/`) are served by Tauri, so they
   work when the server can't start. They use the capability `default.json` (app
   settings, server control, agents, window controls).
@@ -1530,8 +1529,8 @@ minute) and writes `server.log`; the app writes `app.log`.
   `studio://flush`; `App.tsx` pushes the pending config (the push is otherwise
   debounced 400 ms; the studio gives up after 1200 ms) and calls `flush_done`. Rust
   waits at most 1500 ms.
-- **Debug mode** (the setting, `--debug` or `INFOPANEL_STUDIO_DEBUG=1`). The sidecar
-  gets `DASHBOARD_DEBUG=1` (request and SSE log, `/api/debug/stats`).
+- **Debug mode** (the setting, `--debug` or `INFOPANEL_STUDIO_DEBUG=1`). The in-app server
+  runs with debug on (request and SSE log, `/api/debug/stats`).
   `src/lib/desktop-debug.ts` forwards the studio's errors, warnings and unhandled
   rejections (rate limited) with `log_frontend` and, every 30 s, sends the JS heap,
   DOM node count and open EventSources with `report_metrics`. Rust adds the memory

@@ -5,8 +5,8 @@ import { expect, saveConfig, test } from "./fixtures";
 // docs/security.md: a page from another origin (here another port on this machine, the case a studio open in a
 // normal browser invites) can't change the server's state. It tries every way a browser lets it: a simple
 // (no-cors) fetch, a CORS fetch carrying the write headers, and plain HTML form posts. The request guard
-// (server/request-guard.mjs) must refuse all of them; the state is compared before and after. The studio preferences
-// (server/studio-prefs.mjs) are in it too.
+// (ips-server's request_guard.rs) must refuse all of them; the state is compared before and after. The studio preferences
+// (ips-server's studio_prefs.rs) are in it too.
 
 const PNG_1PX = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 

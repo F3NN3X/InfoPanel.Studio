@@ -14,8 +14,8 @@ mod paths;
 mod probe;
 mod refresh;
 mod release;
+mod server_log;
 mod settings;
-mod sidecar;
 mod state;
 mod studio_target;
 mod tray;
@@ -64,7 +64,7 @@ fn run_sampler(app: tauri::AppHandle) {
             continue;
         }
         let status = st.status();
-        let mut sample = sampler.sample(status.pid);
+        let mut sample = sampler.sample();
         if status.state == Phase::Running {
             let host = settings::connect_host(&status.host);
             if let Ok(r) = http::get(
@@ -103,12 +103,12 @@ pub fn run() {
     // The settings and log folders are known before Tauri starts; resources only once it has.
     let early = paths::Paths::from_env(Default::default());
     let log_dir = early.log_dir;
-    // server.log: the sidecar's output, or the in-app server's log lines (target `server`).
-    let server_log = Arc::new(Mutex::new(sidecar::RotatingLog::new(
+    // server.log: the in-app server's log lines (target `server`).
+    let server_log = Arc::new(Mutex::new(server_log::RotatingLog::new(
         &log_dir,
         "server",
-        sidecar::SERVER_LOG_MAX,
-        sidecar::SERVER_LOG_FILES,
+        server_log::SERVER_LOG_MAX,
+        server_log::SERVER_LOG_FILES,
     )));
     let server_lines = server_log.clone();
     // Only a peek: `setup` loads (and logs about) the file once the log is up.
@@ -199,7 +199,6 @@ pub fn run() {
             commands::find_free_port,
             commands::server_stats,
             commands::use_foreign_server,
-            commands::stop_foreign_server,
             commands::foreign_server_info,
             commands::open_studio,
             commands::open_logs_folder,

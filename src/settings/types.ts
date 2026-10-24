@@ -5,8 +5,6 @@ export type Channel = "stable" | "beta";
 export type StudioRefresh = "idle" | "daily" | "off";
 export type ReleaseHiddenStudio = "after1m" | "after10m" | "after60m" | "never";
 export type OpenStudioIn = "appWindow" | "edgeApp" | "defaultBrowser";
-/** The server the app runs: the bundled Node sidecar, or ips-server inside the app (experimental). */
-export type ServerImpl = "node" | "native";
 /** The default browser's engine (`default_browser_kind`); unknown when it couldn't be read. */
 export type BrowserKind = "chromium" | "other" | "unknown";
 
@@ -36,7 +34,6 @@ export interface Settings {
   autoDownload: boolean;
   agents: AgentSettings;
   debug: boolean;
-  server: ServerImpl;
 }
 
 /** The settings `set_setting` takes by key (everything but agents, which `set_agents` owns). */
@@ -67,7 +64,6 @@ export interface RunningConfig {
   debug: boolean;
   allowedHosts: string[];
   allowRemoteEdit: boolean;
-  server: ServerImpl;
 }
 
 export interface Status {
@@ -100,7 +96,6 @@ export interface ForeignInfo {
   pid: number;
   exe: string;
   name: string;
-  stoppable: boolean;
   adoptable: boolean;
 }
 
@@ -184,7 +179,6 @@ export interface AppInfo {
   version: string;
   channel: Channel;
   buildDate: string;
-  node: string | null;
   webview: string | null;
   os: string;
   paths: { settingsFile: string; dataDir: string; logsDir: string };

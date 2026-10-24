@@ -1,5 +1,5 @@
-// InfoPanel's installed profiles, read-only, for the studio's Import dialog
-// (Source › Installed in InfoPanel) and the import lab.
+// InfoPanel's installed profiles, read-only, for the import lab (the app's own server has the same in Rust,
+// src-tauri/crates/ips-server/src/infopanel_local.rs).
 //
 // InfoPanel keeps its data in %LOCALAPPDATA%\InfoPanel (INFOPANEL_DATA_DIR
 // overrides it): `profiles.xml` lists the profiles, `profiles/<guid>.xml`
@@ -17,7 +17,12 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isLoopback } from "./assets.mjs";
+
+/** True for a loopback peer address (IPv4, IPv6 or IPv4-mapped). */
+export function isLoopback(address) {
+  const a = String(address ?? "");
+  return a === "::1" || /^(::ffff:)?127\./.test(a);
+}
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

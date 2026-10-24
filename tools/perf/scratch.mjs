@@ -4,7 +4,7 @@
 // OS picks. It never touches the real data folder, InfoPanel's data or the user's agent sessions.
 //   import { startScratch } from "./scratch.mjs";  const { base, dataApi, dataDir, pid, stop } = await startScratch();
 //   node tools/perf/scratch.mjs     starts one and prints its URLs until Ctrl+C
-// SERVER_IMPL=node (default) runs `node server.mjs`; SERVER_IMPL=native runs the ips-server binary (server-command.mjs).
+// The server is the ips-server binary (server-command.mjs: the debug build, or SERVER_CMD).
 // DASHBOARD_DIST is passed through (default dist/; run `npm run build` first).
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -88,12 +88,10 @@ export async function prepareScratch({ fixture = FIXTURE_DIR, dataApiEnv = {} } 
 
 /**
  * Start a scratch server. `fixture` is the data folder to copy; `env` adds to the server's environment;
- * `dataApiEnv` to the fake Data API's (RATE_HZ, AUDIO_HZ, SEED); `nodeArgs` to node's command line (node only).
+ * `dataApiEnv` to the fake Data API's (RATE_HZ, AUDIO_HZ, SEED).
  */
-export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {}, nodeArgs = [] } = {}) {
+export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {} } = {}) {
   const server = serverCommand({ ...process.env, ...env });
-  // Node flags (V8 heap sizes, --trace-gc) go before the script; the native server takes none.
-  const args = server.cmd === process.execPath ? [...nodeArgs, ...server.args] : server.args;
   const scratch = await prepareScratch({ fixture, dataApiEnv });
   try {
     const serverEnv = {
@@ -107,7 +105,7 @@ export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv
       DASHBOARD_DATA_DIR: scratch.dataDir,
       PORT: "0",
     };
-    const started = await launch(server.cmd, args, serverEnv, SERVER_LINE, `server (${env.SERVER_IMPL || process.env.SERVER_IMPL || "node"})`);
+    const started = await launch(server.cmd, server.args, serverEnv, SERVER_LINE, "server");
     scratch.children.push(started.child);
     return { base: `http://127.0.0.1:${started.port}`, dataApi: scratch.dataApi, dataDir: scratch.dataDir, pid: started.child.pid, output: started.output, stop: scratch.stop };
   } catch (err) {

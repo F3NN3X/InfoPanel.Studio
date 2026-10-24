@@ -71,7 +71,6 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "channel", label: "Release channel", section: "updates" },
   { row: "auto-download", label: "Download in the background", section: "updates" },
   { row: "debug", label: "Debug mode", section: "diagnostics" },
-  { row: "server-impl", label: "Server: Node or native (experimental)", section: "diagnostics" },
   { row: "diag-table", label: "Diagnostics / memory", section: "diagnostics" },
   { row: "diag-actions", label: "Open DevTools", section: "diagnostics" },
   { row: "diag-actions", label: "Copy diagnostics summary", section: "diagnostics" },

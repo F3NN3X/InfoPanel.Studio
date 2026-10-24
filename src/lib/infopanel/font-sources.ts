@@ -114,7 +114,7 @@ async function list<T>(fetchImpl: Fetch, url: string): Promise<T[] | string> {
 
 /**
  * Font Squirrel sends no CORS headers: pages reach it through a same-origin proxy (the dashboard
- * server's /api/font-proxy, server/font-proxy.mjs, which keeps the same host lists).
+ * server's /api/font-proxy, ips-server's font_proxy.rs, which keeps the same host lists).
  */
 export const PROXIED = new Set(["www.fontsquirrel.com"]);
 

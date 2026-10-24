@@ -1,5 +1,5 @@
 /**
- * Coding agents (Claude Code, Codex) as the dashboard server reports them (server/agents.mjs), in the
+ * Coding agents (Claude Code, Codex) as the dashboard server reports them (ips-server's agents.rs), in the
  * extras stream: their sessions, plan use and token history. Metadata only: no prompts or paths.
  */
 

@@ -29,11 +29,13 @@ impl FakeApi {
         let url = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
         let (events, _) = broadcast::channel(64);
         let api = Self { url, seen: Arc::default(), open: Arc::default(), events };
-        let (seen, open, tx, failing) = (Arc::clone(&api.seen), Arc::clone(&api.open), api.events.clone(), Arc::new(AtomicUsize::new(fail)));
+        let (seen, open, tx, mut failing) = (Arc::clone(&api.seen), Arc::clone(&api.open), api.events.clone(), fail);
         tokio::spawn(async move {
             loop {
                 let Ok((stream, _)) = listener.accept().await else { return };
-                let fail_this = failing.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1)).is_ok();
+                // Only this loop counts the failures, so a plain counter does.
+                let fail_this = failing > 0;
+                failing -= usize::from(fail_this);
                 tokio::spawn(serve_stream(stream, fail_this, Arc::clone(&seen), Arc::clone(&open), tx.subscribe()));
             }
         });

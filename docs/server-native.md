@@ -1,7 +1,8 @@
 # Native server: workspace and dependencies
 
-Footprint Phase 3 replaces the Node sidecar with `ips-server`, a Rust server the app runs in-process, and the Node
-agent hooks with `ips-agent`. What it must do is [server-contract.md](server-contract.md); this is how it is built.
+Footprint Phase 3 replaced the Node sidecar with `ips-server`, a Rust server the app runs in-process, and the Node
+agent hooks with `ips-agent`. The Node server (its entry script and `server/` folder) and its tests were removed in 3.7; the
+sections below keep the plan as it was written. What it must do is [server-contract.md](server-contract.md); this is how it is built.
 
 ## Workspace layout
 
@@ -31,19 +32,19 @@ Why a root package rather than a repo-root workspace:
 - Shared versions go in `[workspace.dependencies]`, so the app and `ips-server` can't drift on tokio, reqwest or
   serde.
 
-CI change: `cargo test --workspace` (and the server suite with `SERVER_IMPL=native`) on ubuntu-latest and
+CI change: `cargo test --workspace` (and the server suite, `npm run test:server`) on ubuntu-latest and
 windows-latest. The app crate builds only on Windows in practice (Tauri system deps on Linux). The ubuntu job therefore
 runs `cargo test -p ips-server -p ips-agent` rather than the whole workspace. I'll confirm that at 3.1.
 
 ### `ips-server` API
 
 ```rust
-pub struct ServerConfig {          // the same inputs as sidecar.rs's sidecar_env
+pub struct ServerConfig {          // the settings and paths of the app, or the environment
     pub host: IpAddr, pub port: u16,          // port 0: the OS picks
     pub allowed_hosts: Vec<String>, pub allow_remote_edit: bool, pub allow_remote_upload: bool,
     pub dist: PathBuf, pub data_dir: PathBuf, pub infopanel_dir: PathBuf, pub debug: bool,
 }
-impl ServerConfig { pub fn from_env() -> Result<Self> }      // the env names server.mjs reads, same defaults
+impl ServerConfig { pub fn from_env() -> Result<Self> }      // the env names the Node server read, same defaults
 pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError>;   // binds, prints/logs the same start line
 impl Bound { pub fn port(&self) -> u16; pub async fn serve(self, shutdown: impl Future<Output = ()>) }
 ```
@@ -102,13 +103,13 @@ reported at 3B.
   the day; non-atomic font cache and agent settings writes) were fixed in the Node server first (#122), so the port
   copies the fixed behaviour.
 
-## Known differences from server.mjs (Gate 3B)
+## Differences from the removed Node server
 
-Every difference the port, the parity fixtures and `parity:servers` turned up, with why it stays. "Close" means the
+History: every difference the port, the parity fixtures and the (since removed) server-against-server comparison turned up, with why it stays. "Close" means the
 native server answers with a status and `Connection: close` where Node resets the socket.
 
 **HTTP layer**
-- An HTTP/1.0 request gets an HTTP/1.0 status line (hyper echoes the version). `parity:servers` normalises it.
+- An HTTP/1.0 request gets an HTTP/1.0 status line (hyper echoes the version). The comparison normalised it.
 - Header names are lowercase and hyper places `date` itself; no `Connection: keep-alive` / `Keep-Alive: timeout=5`
   headers, no 5 s keep-alive idle timeout, and Node's 60 s header and 300 s request timeouts aren't mirrored. Clients
   don't depend on any of these; the kiosk loads 282 B lighter for it.
@@ -146,7 +147,7 @@ native server answers with a status and `Connection: close` where Node resets th
 
 **Text and dates**
 - Locale: BCP 47 grammar and the 452-language table from Node 24.6 / ICU 77.1; region aliases such as `sgn-BR` aren't
-  modelled. `parity:check` runs on Node 24.6.0 so the table matches.
+  modelled. The fixtures were made on Node 24.6.0 so the table matches.
 - `Date.parse`: ISO forms only (with V8's day overflow and `24:00`); legacy text and numeric strings are invalid (Node
   reads `"5"` as 2001). Only ISO timestamps reach it.
 - `localeCompare` is approximated: ICU root order for ASCII, code point otherwise. The library sorts ISO `createdAt`
@@ -179,7 +180,7 @@ native server answers with a status and `Connection: close` where Node resets th
 - The catalogue JSON check (serde_json, BOM stripped) also refuses lone surrogate escapes and nesting past 128.
 - Both servers now give the font proxy a 60 s deadline (it had none).
 
-**ips-agent** (against `tools/agent-status.mjs` and `agent-install.mjs`)
+**ips-agent** (against the removed Node forwarder and installer)
 - HTTPS base URLs aren't supported (the POST is skipped; Node would try TLS). The server is plain HTTP.
 - A refused connect on Windows fails fast, as libuv does (`SIO_TCP_INITIAL_RTO`); `localhost` tries IPv4 first.
 - `--wrap`'s lenient base64url is mimicked; exotic malformed input may decode differently.

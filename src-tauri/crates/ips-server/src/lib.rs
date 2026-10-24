@@ -1,7 +1,7 @@
-// InfoPanel Studio's dashboard server, the native port of server.mjs (docs/server-contract.md is the spec,
-// docs/server-native.md the plan). `bind` takes the port and prints the start line; `Bound::serve` answers until its
+// InfoPanel Studio's dashboard server, the port of the Node server it replaced (docs/server-contract.md is the spec,
+// docs/server-native.md the notes). `bind` takes the port and prints the start line; `Bound::serve` answers until its
 // shutdown future resolves. Every request passes the request guard, then goes to the first route that matches its raw
-// pathname, in server.mjs's order; anything that is not /api/ is the static build.
+// pathname, in the Node server's order; anything that is not /api/ is the static build.
 
 pub mod agent_usage;
 pub mod agents;
@@ -97,7 +97,7 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-    /// The config from the environment server.mjs reads, with its defaults. The build defaults to `./dist`.
+    /// The config from the environment, with its defaults. The build defaults to `./dist`.
     pub fn from_env() -> Result<Self, String> {
         let flag = |name: &str| std::env::var(name).is_ok_and(|v| v == "1");
         Ok(Self {
@@ -188,7 +188,7 @@ fn listen_socket(addr: SocketAddr) -> std::io::Result<std::net::TcpListener> {
     Ok(socket.into())
 }
 
-/// Takes the port, loads the data folder and prints the start line (stdout), as server.mjs does on listen.
+/// Takes the port, loads the data folder and prints the start line (stdout), as the Node server did on listen.
 pub async fn bind(cfg: ServerConfig) -> Result<Bound, StartError> {
     bind_with_home(cfg, std::env::home_dir().unwrap_or_else(|| PathBuf::from("."))).await
 }
@@ -223,7 +223,7 @@ pub async fn bind_with_home(cfg: ServerConfig, home: PathBuf) -> Result<Bound, S
         let config = Arc::clone(&config);
         move || config.read()
     });
-    // After every config save, as server.mjs's saveConfig does.
+    // After every config save, as the Node server's saveConfig did.
     config.on_saved({
         let control = Arc::clone(&control);
         move || control.config_changed()
@@ -415,7 +415,7 @@ async fn studio_prefs(app: &App, mut req: Req) -> std::io::Result<Response<Body>
     let patch = match req.read_body(MAX_STUDIO_PREFS_BYTES).await {
         Ok(body) if body.is_empty() => Some(json!({})),
         Ok(body) => json::parse(&body),
-        Err(()) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let Some(patch) = patch else {
         return Ok(http::text(400, "expected a JSON object"));

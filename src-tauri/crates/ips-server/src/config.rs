@@ -1,4 +1,4 @@
-// The config store (server.mjs): DATA_DIR/config.json, stored as the studio sends it; its version, which open pages
+// The config store: DATA_DIR/config.json, stored as the studio sends it; its version, which open pages
 // compare to decide when to reload; the Settings patches (PATCH /api/config/settings), numbered so a Studio push built
 // before one landed gets it applied again; and the config event stream.
 //

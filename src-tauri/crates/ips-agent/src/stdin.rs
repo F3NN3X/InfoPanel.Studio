@@ -1,4 +1,4 @@
-// All of stdin, like agent-status.mjs: empty on a terminal, and whatever has arrived once the
+// All of stdin, like the Node forwarder it replaced: empty on a terminal, and whatever has arrived once the
 // timeout passes.
 
 use std::io::{IsTerminal, Read};

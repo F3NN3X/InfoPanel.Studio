@@ -1,4 +1,4 @@
-// InfoPanel Studio's coding-agent forwarder: what tools/agent-status.mjs does, as a native program.
+// InfoPanel Studio's coding-agent forwarder: a native program (it replaced a Node script).
 //
 //   ips-agent hook claude|codex [--url=<base>]            posts its stdin JSON, prints nothing
 //   ips-agent statusline [--wrap=<base64url>] [--url=..]  posts the statusline JSON, runs the wrapped

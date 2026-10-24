@@ -1,5 +1,5 @@
 /**
- * Media uploaded to the dashboard server (server/assets.mjs): images and
+ * Media uploaded to the dashboard server (ips-server's assets.rs): images and
  * videos stored by content hash and served at `/api/assets/<id>`, so
  * every view of the dashboard — the kiosk's WebView2 included — loads
  * them from the server rather than from browser storage.

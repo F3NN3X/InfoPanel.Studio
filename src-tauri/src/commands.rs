@@ -76,7 +76,6 @@ pub fn restart_required(
             || rc.port != saved.port
             || rc.allowed_hosts != saved.allowed_hosts
             || rc.allow_remote_edit != saved.allow_remote_edit
-            || rc.server != saved.server
             || rc.debug != (saved.debug || debug_forced)
     })
 }
@@ -243,25 +242,13 @@ pub struct StopResult {
     pub message: String,
 }
 
-#[tauri::command]
-pub async fn stop_foreign_server(app: AppHandle) -> CmdResult<StopResult> {
-    log::debug!("ipc: stop_foreign_server");
-    blocking(move || match control::stop_foreign(&app) {
-        Ok(message) => StopResult { ok: true, message },
-        Err(message) => StopResult { ok: false, message },
-    })
-    .await
-}
-
 #[derive(Debug, Serialize)]
 pub struct ForeignInfo {
     pub pid: u32,
     /// The executable path, or the image name when Windows hides the path.
     pub exe: String,
     pub name: String,
-    /// node.exe holding the port: the page may offer to stop it.
-    pub stoppable: bool,
-    /// node.exe of the current user holding the port: the page may offer to use it.
+    /// An ips-server of the current user holding the port: the page may offer to use it.
     pub adoptable: bool,
 }
 
@@ -275,7 +262,6 @@ pub async fn foreign_server_info(app: AppHandle) -> CmdResult<Option<ForeignInfo
         Some(ForeignInfo {
             pid,
             exe: info.exe.clone().unwrap_or_else(|| info.name.clone()),
-            stoppable: probe::is_node(&info),
             adoptable: probe::may_adopt(&info),
             name: info.name,
         })
@@ -356,7 +342,7 @@ pub fn read_log_tail(app: AppHandle, name: String, lines: Option<usize>) -> CmdR
         return Err(format!("unknown log \"{name}\""));
     }
     let dir = &app.state::<AppState>().paths.log_dir;
-    Ok(crate::sidecar::tail(
+    Ok(crate::server_log::tail(
         dir,
         &name,
         lines.unwrap_or(200).clamp(1, 2000),
@@ -567,7 +553,6 @@ pub async fn install_update(app: AppHandle) -> CmdResult<()> {
     blocking(move || updater::install(&app)).await?
 }
 
-/// Async: the first call runs the bundled node for its version.
 #[tauri::command]
 pub async fn app_info(app: AppHandle) -> CmdResult<AppInfo> {
     log::debug!("ipc: app_info");
@@ -872,7 +857,6 @@ mod tests {
             debug: false,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
-            server: saved.server,
         };
         assert!(!restart_required(&saved, false, None));
         assert!(!restart_required(&saved, false, Some(&running)));
@@ -895,10 +879,6 @@ mod tests {
             },
             Settings {
                 allow_remote_edit: true,
-                ..saved.clone()
-            },
-            Settings {
-                server: crate::settings::ServerImpl::Node,
                 ..saved.clone()
             },
         ] {

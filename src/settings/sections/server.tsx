@@ -64,11 +64,6 @@ function StatusCard() {
       const r = await ipc.useForeignServer();
       if (!r.ok) toast(r.message, true);
     });
-  const stopForeign = () =>
-    run(async () => {
-      const r = await ipc.stopForeignServer();
-      if (!r.ok) toast(r.message, true);
-    });
   const usePort = (port: number) =>
     run(async () => {
       if ((await save("port", port)).ok) setStatus(await ipc.startServer());
@@ -82,8 +77,6 @@ function StatusCard() {
         return <CalloutButton key={a.kind} onClick={() => go("logs")}>View logs</CalloutButton>;
       case "use-foreign":
         return foreign?.adoptable ? <CalloutButton key={a.kind} onClick={() => void useForeign()} disabled={busy}>Use it</CalloutButton> : null;
-      case "stop-foreign":
-        return foreign?.stoppable ? <CalloutButton key={a.kind} onClick={() => void stopForeign()} disabled={busy}>Stop it and start the app's server</CalloutButton> : null;
     }
   };
 

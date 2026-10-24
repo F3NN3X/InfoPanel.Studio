@@ -1,12 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { appTree, processes } from "../../tools/perf/process-sampler.mjs";
 import { writeResult } from "../perf/measure";
-import { prepareApp, SERVER_MODE } from "./app";
+import { prepareApp } from "./app";
 
 // Phase 3.6's long run: the app in the tray (no WebView2) with five SSE clients, sampled every minute for
-// PERF_SOAK_MS (30 minutes by default): CPU and private MB of the app, the sidecar (none with the native server) and
-// the total. Use a release build (DESKTOP_EXE) and DESKTOP_SERVER to pick the server. Measures, never gates.
+// PERF_SOAK_MS (30 minutes by default): CPU and private MB of the app and the total (the server runs
+// inside the app). Use a release build (DESKTOP_EXE). Measures, never gates.
 
+// The result files keep the name from when a Node server was compared with this one.
+const SERVER_MODE = "native";
 const DURATION_MS = Number(process.env.PERF_SOAK_MS) || 30 * 60_000;
 const EVERY_MS = Number(process.env.PERF_SOAK_EVERY_MS) || 60_000;
 

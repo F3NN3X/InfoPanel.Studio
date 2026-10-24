@@ -3,24 +3,24 @@ import type { DashboardConfig } from "@/lib/layout";
 import type { SettingsPatch } from "@/lib/settings-patch";
 
 /**
- * Endpoints of the dashboard's own server (server.mjs), which serves this
+ * Endpoints of the dashboard's own server (ips-server), which serves this
  * page — so they are same-origin paths. `npm run dev` proxies them to the
  * running server (vite.config.ts). Sensor data comes from InfoPanel's
  * Data API instead (see lib/data-api).
  */
 export const CONFIG_URL = "/api/config";
 export const CONFIG_EVENTS_URL = "/events/config";
-/** The Settings window's instant writes (server/config-settings.mjs). */
+/** The Settings window's instant writes (ips-server's config_settings.rs). */
 export const CONFIG_SETTINGS_URL = "/api/config/settings";
 export const IMAGE_PROXY_URL = "/api/image-proxy";
 
-/** The port the server listens on until the app settings say otherwise (server.mjs and src-tauri/src/settings.rs use the same), and the kiosk page on it. */
+/** The port the server listens on until the app settings say otherwise (the server and src-tauri/src/settings.rs use the same), and the kiosk page on it. */
 export const DEFAULT_SERVER_PORT = 3922;
 export const DEFAULT_KIOSK_URL = `http://127.0.0.1:${DEFAULT_SERVER_PORT}/?kiosk=1`;
 
 /**
  * The newest Settings patch this window knows the server has taken (X-Settings-Rev), sent with each push so the
- * server can apply again any patch that landed after the config being pushed was built (server.mjs `settingsRev`).
+ * server can apply again any patch that landed after the config being pushed was built (the server's `settingsRev`).
  */
 let settingsRev: number | null = null;
 
@@ -75,7 +75,7 @@ export class ConfigRejectedError extends Error {
   }
 }
 
-/** The server refused a save because it takes edits from its own computer only (ALLOW_REMOTE_EDIT, server/request-guard.mjs). */
+/** The server refused a save because it takes edits from its own computer only (ALLOW_REMOTE_EDIT, ips-server's request_guard.rs). */
 export function isRemoteEditRefusal(err: unknown): boolean {
   return err instanceof ConfigRejectedError && err.status === 403 && err.message.includes("other devices");
 }
@@ -101,7 +101,7 @@ export function pushConfig(config: DashboardConfig, replace = false): Promise<vo
     });
     const res = await fetch(CONFIG_URL, {
       method: "POST",
-      // The custom header makes a cross-site POST preflight (see server.mjs).
+      // The custom header makes a cross-site POST preflight (see the server's request guard).
       headers: {
         "Content-Type": "application/json",
         "X-Dashboard-Config": "1",
@@ -110,7 +110,7 @@ export function pushConfig(config: DashboardConfig, replace = false): Promise<vo
       body: JSON.stringify(lifted),
     });
     if (res.status === 409) throw new NewerConfigError();
-    // 422: a canvasRef names no file in the canvas store (server.mjs).
+    // 422: a canvasRef names no file in the canvas store.
     if (!res.ok) throw new ConfigRejectedError(res.status, (await res.text().catch(() => "")).slice(0, 200));
   });
   pushing = run.catch(() => {});

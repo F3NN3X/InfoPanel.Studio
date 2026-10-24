@@ -115,7 +115,8 @@ test("the studio opens in a browser with no WebView2, and what that saves", asyn
   let appWindow: { appMb: number; totalMb: number };
   try {
     app.launch();
-    const { browser } = await app.studio(60_000);
+    // The first WebView2 start after a fresh build can take over a minute.
+    const { browser } = await app.studio(120_000);
     await browser.close().catch(() => {});
     const mb = await settledMb(null);
     expect(webviews()).toBeGreaterThan(0);

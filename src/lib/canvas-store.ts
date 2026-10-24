@@ -2,7 +2,7 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { DashboardConfig, Placement } from "@/lib/layout";
 
 /**
- * Canvas zones and the server's canvas store (server/canvases.mjs, #44). In
+ * Canvas zones and the server's canvas store (ips-server's canvases.rs, #44). In
  * memory every canvas zone holds its `canvas`; the server's config holds only
  * `canvasRef`, so the config stays under its 5 MB cap. The swap happens at the
  * edge: `inlineCanvases` after a config is fetched, `liftCanvases` before one is
@@ -19,7 +19,7 @@ const refs = new WeakMap<StoredCanvas, { ref: string; at: number }>();
 
 /**
  * How long a known ref is trusted without sending the canvas again. The server sweeps files no
- * config references after an hour (server/canvases.mjs); a canvas back from undo after that, or
+ * config references after an hour (ips-server's canvases.rs); a canvas back from undo after that, or
  * one loaded from the store, is sent again, which renews its file.
  */
 export const REUSE_MS = 10 * 60 * 1000;

@@ -1,4 +1,4 @@
-// Connects Claude Code and Codex to the dashboard: what tools/agent-install.mjs does, with
+// Connects Claude Code and Codex to the dashboard: the hook installer, with
 // `ips-agent` as the hook command. Claude Code gets a hook per lifecycle event and its statusline
 // wrapped (~/.claude/settings.json); Codex gets the same hooks (~/.codex/hooks.json).
 //
@@ -332,7 +332,7 @@ pub struct Options<'a> {
     pub home: &'a Path,
 }
 
-/// `{ apply, results: [{ agent, status, file, backup, message }] }`, the shape agent-install.mjs printed.
+/// `{ apply, results: [{ agent, status, file, backup, message }] }`, the shape the Node installer printed.
 pub fn to_json(apply: bool, outcomes: &[Outcome]) -> Value {
     let results: Vec<Value> = outcomes
         .iter()

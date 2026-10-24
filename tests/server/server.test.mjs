@@ -5,14 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import { serverCommand } from "../../tools/perf/server-command.mjs";
 import { repoRoot } from "../setup/repo-root.mjs";
-import { afterAll, beforeAll, describe, expect } from "vitest";
-import { SERVER_IMPL, serverIt as it } from "./native-pending.mjs";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const root = repoRoot;
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 
-// Starts the server (server.mjs, or ips-server under SERVER_IMPL=native) with the given env on a port the OS picks
+// Starts the server (ips-server) with the given env on a port the OS picks
 // (PORT=0), read back from its start line, so no other process can take the port between choosing and binding it. It
 // never touches the real data folder.
 // The server reads the user's home (os.homedir: USERPROFILE on Windows, HOME elsewhere) and %LOCALAPPDATA%\InfoPanel;
@@ -35,12 +34,12 @@ async function start(env) {
   }
   if (!port) {
     child.kill();
-    throw new Error(`the ${SERVER_IMPL} server did not start:\n${out}`);
+    throw new Error(`the server did not start:\n${out}`);
   }
   return { port, base: `http://127.0.0.1:${port}`, output: () => out, stop: () => child.kill() };
 }
 
-describe(`server (${SERVER_IMPL})`, () => {
+describe("server", () => {
   let dir, plain, debug, upstream, upstreamPort;
   beforeAll(async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "ipd-server-"));

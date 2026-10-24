@@ -626,4 +626,49 @@ mod tests {
         assert_eq!(stringify(&Value::Object(with_key(&obj, "b", Some(json!(9))))), r#"{"b":9,"a":2,"c":3}"#);
         assert_eq!(stringify(&Value::Object(with_key(&obj, "b", None))), r#"{"a":2,"c":3}"#);
     }
+
+    #[test]
+    fn a_missing_or_broken_control_json_loads_the_empty_state() {
+        assert_eq!(load(None, 5000.0), State::default());
+        assert_eq!(load(Some("{broken"), 5000.0), State::default());
+    }
+
+    #[test]
+    fn control_json_drops_bad_values_on_load() {
+        let text = json!({
+            "mutedUntil": 1000.0 + 1441.0 * 60_000.0,
+            "dim": { "desk": 5, "strip": 0.5, "x": "a", "y": null },
+            "dimLevel": { "desk": 99, "strip": 0.2 },
+            "islandOverride": { "desk": "yes", "strip": "off" },
+        })
+        .to_string();
+        let s = load(Some(&text), 1000.0);
+        assert_eq!(s.muted_until, None);
+        assert_eq!(stringify(&Value::Object(s.dim)), r#"{"strip":0.5}"#);
+        assert_eq!(stringify(&Value::Object(s.dim_level)), r#"{"strip":0.2}"#);
+        assert_eq!(stringify(&Value::Object(s.island_override)), r#"{"strip":"off"}"#);
+    }
+
+    #[test]
+    fn a_saved_mute_loads_only_while_it_lasts() {
+        let text = json!({ "mutedUntil": 60_000 }).to_string();
+        assert_eq!(load(Some(&text), 59_999.0).muted_until, Some(60_000.0));
+        assert_eq!(load(Some(&text), 60_000.0).muted_until, None);
+    }
+
+    #[test]
+    fn a_saved_config_drops_a_deleted_profiles_dim() {
+        let profile = |id: &str| json!({ "id": id, "pages": [{ "id": "main" }] });
+        let before = json!({ "profiles": [profile("desk"), profile("strip")] });
+        let after = json!({ "profiles": [profile("desk")] });
+        let state = State {
+            dim: serde_json::from_str(r#"{"strip":0.5,"desk":0.3}"#).unwrap(),
+            dim_level: serde_json::from_str(r#"{"strip":0.5}"#).unwrap(),
+            ..State::default()
+        };
+        let next = reduce_config(&state, &before, &after).expect("changed");
+        assert_eq!(stringify(&Value::Object(next.dim.clone())), r#"{"desk":0.3}"#);
+        assert!(next.dim_level.is_empty());
+        assert!(reduce_config(&next, &after, &after).is_none());
+    }
 }

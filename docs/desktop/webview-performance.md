@@ -245,7 +245,7 @@ the visualiser moving after the round trip.
 Never measure on the live data or the running installed app.
 
 1. Copy `%LOCALAPPDATA%\InfoPanel\Dashboard` to a scratch folder and start a server on it:
-   `PORT=39601 DASHBOARD_DATA_DIR=<copy> node server.mjs` (add `DASHBOARD_DIST=<folder>` to serve another build; an
+   `PORT=39601 DASHBOARD_DATA_DIR=<copy> DASHBOARD_DIST=<dist folder> src-tauri/target/release/ips-server` (add `DASHBOARD_DIST=<folder>` to serve another build; an
    unminified build, `npx vite build --minify false --outDir <folder>`, gives readable function names in profiles).
 2. `PW_CORE=<path to playwright-core> CHROME=<chrome.exe> node tools/perf/studio-cpu.cjs "http://127.0.0.1:39601/?studio=1" cpu 15`
    for renderer/GPU cores, or `trace` for frame and invalidation counts. It uses a throwaway browser profile, so

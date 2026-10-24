@@ -6,6 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Removed
+
+- **The bundled Node.** The app no longer ships `node.exe`, so the installer and the installed app are about 80 MB smaller. The dashboard server runs inside the app, as it has since beta.18.
+- **The Server setting** (Settings › Diagnostics). It chose between Node and the app's own server; there is only the app's own server now, and a stored Node choice is dropped when the app starts. `npm start` and `start-dashboard.bat` now run the same server from source and need Rust (stable) installed.
+
 ## [1.3.0-beta.18] - 2026-10-24
 
 ### Changed
