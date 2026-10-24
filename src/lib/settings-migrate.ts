@@ -724,3 +724,32 @@ export function migrateProfileV10<P extends MigratableProfile>(p: P): P {
   });
   return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
 }
+
+/* ───────── v12: the audio widgets pick several devices ───────── */
+
+/** Where each widget stored its single audio device (`device`), and the multi-device key that replaces it. */
+const AUDIO_DEVICE_TO_DEVICES: Readonly<Record<string, string>> = { VolumeMixer: "devices", Visualizer: "devices", NowPlaying: "vizDevices" };
+
+/**
+ * v12, per placement and keyed on the field's presence: the Volume Mixer's, Visualizer's and Now Playing's
+ * visualiser's single `device` becomes a one-device pick (`devices`, Now Playing's `vizDevices`); Auto
+ * ("", "auto") becomes no pick. A pick already saved under the new key wins. A v11 build would draw them
+ * from every device.
+ */
+export function migratePlacementV12<P extends MigratablePlacement>(p: P): P {
+  const to = AUDIO_DEVICE_TO_DEVICES[p.module];
+  if (!to || !p.settings || p.settings.device === undefined) return p;
+  const { device, ...rest } = p.settings;
+  const settings = typeof device === "string" && device !== "" && device !== "auto" && rest[to] === undefined ? { ...rest, [to]: device } : rest;
+  const { settings: _s, ...others } = p;
+  return { ...others, ...(Object.keys(settings).length > 0 ? { settings } : {}) } as P;
+}
+
+/** v12 for one profile: its zones. */
+export function migrateProfileV12<P extends MigratableProfile>(p: P): P {
+  const pages = p.pages.map((pg) => {
+    const placements = pg.placements.map(migratePlacementV12);
+    return placements.every((pl, i) => pl === pg.placements[i]) ? pg : { ...pg, placements };
+  });
+  return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
+}

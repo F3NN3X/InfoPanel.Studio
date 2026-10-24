@@ -17,7 +17,7 @@ Common shell props (every widget): `data`, `accent`, `surface`, `radius`, `skin`
 
 Widget-specific:
 ```
-device (container id, default "default-audio"), mode 'single' | 'bridge', segments,
+device (container id, default "default-audio"), devices (container ids of the bridge columns; default all), flow 'all' | 'output' | 'input', mode 'single' | 'bridge', segments,
 meterStyle 'led' | 'bar' | 'vu' | 'ring' | 'mirror' | 'wave'
 ```
 

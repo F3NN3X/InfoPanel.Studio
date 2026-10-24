@@ -17,7 +17,7 @@ Common shell props (every widget): `data`, `accent`, `surface`, `radius`, `skin`
 
 Widget-specific:
 ```
-mode 'bars' | 'mirror' | 'radial' | 'wave' | 'blob' | 'dots', device (audio-level-meter container), bands, ramp, sensitivity, peaks (default true)
+mode 'bars' | 'mirror' | 'radial' | 'wave' | 'blob' | 'dots', devices (audio-level-meter containers; the loudest is drawn), flow 'all' | 'output' | 'input', bands, ramp, sensitivity, peaks (default true)
 ```
 
 ## Data

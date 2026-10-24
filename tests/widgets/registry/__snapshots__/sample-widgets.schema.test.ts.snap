@@ -22,6 +22,8 @@ exports[`AudioMeter > files its rows as drawn 1`] = `
     {
       "Device": [
         "device",
+        "devices",
+        "flow",
       ],
     },
   ],
@@ -262,7 +264,8 @@ exports[`NowPlaying > files its rows as drawn 1`] = `
     },
     {
       "Visualizer audio": [
-        "device",
+        "vizDevices",
+        "flow",
         "liveCapture · more",
         "devices · more",
       ],

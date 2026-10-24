@@ -8,6 +8,7 @@ import type { VizLook, VizStyle } from "./core/viz/types";
 import { widgetImage } from "./data-adapter";
 import { useArtTint } from "./NowPlaying/art-tint";
 import { AUDIO, levelDevice, useLevelDevice } from "./audio-device";
+import { audioIdsIn, pickedIds, type FlowFilter } from "./audio-data";
 import { useFastSensors } from "@/hooks/useSensors";
 
 export { levelDevice };
@@ -97,8 +98,10 @@ export interface NowPlayingProps extends ShellProps {
   layout?: "card" | "vinyl" | "backdrop" | "wave";
   progress?: "bar" | "wave" | "visualizer";
   vizMode?: VizStyle;
-  /** audio-level-meter container; "" = the loudest live device */
-  vizDevice?: string;
+  /** audio-level-meter containers the visualiser draws the loudest of; unset = the loudest live device */
+  vizDevices?: string[];
+  /** Outputs or inputs only; default both. */
+  vizFlow?: FlowFilter;
   vizRamp?: string;
   /** thin progress under the visualiser, default true */
   showTimeline?: boolean;
@@ -132,7 +135,7 @@ export default function NowPlaying(p: NowPlayingProps) {
   const showProgress = p.showProgress !== false;
   const viz = showProgress && p.progress === "visualizer";
   useFastSensors(viz ? AUDIO : null);
-  const device = useLevelDevice(d, p.vizDevice, p.names);
+  const device = useLevelDevice(d, "", p.names, pickedIds(d, audioIdsIn(d, p.vizFlow ?? "all"), p.vizDevices));
   const vizLook = { ...p.vizLook, color1: p.vizRamp };
   const media = (mode: MediaProgressMode, h = "", barClassName?: string) =>
     showProgress && (

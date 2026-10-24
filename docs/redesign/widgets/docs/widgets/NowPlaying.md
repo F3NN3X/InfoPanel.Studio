@@ -18,7 +18,7 @@ Common shell props (every widget): `data`, `accent`, `surface`, `radius`, `skin`
 Widget-specific:
 ```
 source 'auto' | 'media' | 'spotify' | 'pushed', showArt (default true), layout 'card' | 'vinyl' | 'backdrop' | 'wave',
-progress 'bar' | 'wave' | 'visualizer', vizMode 'bars' | 'mirror' | 'wave' | 'dots' | 'line', vizDevice (audio-level-meter container), vizRamp, showTimeline (thin progress under the visualiser, default true)
+progress 'bar' | 'wave' | 'visualizer', vizMode 'bars' | 'mirror' | 'wave' | 'dots' | 'line', vizDevices (audio-level-meter containers; the loudest is drawn), vizFlow 'all' | 'output' | 'input', vizRamp, showTimeline (thin progress under the visualiser, default true)
 ```
 
 ## Data

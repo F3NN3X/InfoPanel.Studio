@@ -35,7 +35,7 @@ A dot beside a row shows where its value comes from. No dot means the default. O
 | Control | Works like this |
 |---|---|
 | Thresholds | A green, amber and red bar with **Warning** and **Critical** sliders. Critical can't go below Warning. **Off** turns thresholds off. The quantity is Load, Temperature, Fullness, Audio level or Value. |
-| Device | **Auto** first, with its rule and current pick (for example "busiest adapter"), then every detected device. |
+| Device | **Auto** first, with its rule and current pick (for example "busiest adapter"), then every detected device. Audio widgets let you tick several devices, and **Show** (All devices, Outputs or Inputs) narrows the list. Each device is tagged Input or Output. |
 | Units & format | Temperature °C / °F, speed units, decimals, clock format. Set once in the theme. |
 | Widget colors | Each color has a role (Series 1 to 6, OK, Warning, Critical, Accent) that follows the theme palette until customized. |
 
