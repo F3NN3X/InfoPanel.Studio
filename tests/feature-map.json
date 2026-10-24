@@ -9,6 +9,7 @@
       "always": true,
       "when": "every change, the changed files Biome covers (skipped when there are none)"
     },
+    "actionlint": { "cmd": "node tools/ci/actionlint.mjs", "when": "workflow files: actionlint, a pinned release checked by SHA-256" },
     "typecheck": { "cmd": "npx tsc -b", "when": "any TypeScript change (src/ and tests/ share one project)" },
     "unit": {
       "cmd": "npx vitest related --run --passWithNoTests {tests}",
@@ -44,7 +45,9 @@
       "cwd": "src-tauri",
       "when": "the dashboard server and the agent hooks (runs on every platform); includes the parity tests over tests/fixtures/parity"
     },
+    "stub-desktop": { "cmd": "node tools/ci-stub-desktop.mjs", "platform": "win32", "when": "creates src-tauri/resources only where it is missing (a clean CI runner); needs the built ips-agent" },
     "cargo-app": {
+      "needs": ["stub-desktop"],
       "cmd": "cargo test && cargo clippy --workspace --all-targets -- -D warnings",
       "cwd": "src-tauri",
       "platform": "win32",
@@ -503,10 +506,10 @@
     },
     {
       "id": "ci-workflows",
-      "summary": "The CI and release workflows.",
-      "paths": [".github/**"],
-      "tests": [],
-      "checks": []
+      "summary": "The CI, nightly and release workflows, and the scripts they run (plan outputs, release gate, actionlint pin, desktop stub).",
+      "paths": [".github/**", "tools/ci/**", "tools/ci-stub-desktop.mjs"],
+      "tests": ["tests/tools/ci*.test.mjs"],
+      "checks": ["unit", "actionlint"]
     },
     {
       "id": "import-lab",
