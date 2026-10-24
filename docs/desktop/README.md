@@ -12,7 +12,7 @@ and the Windows SDK, Node 20+. WebView2 ships with Windows 11.
 | Command | What it does |
 |---|---|
 | `npm run desktop:web` | Type-checks and builds the studio into `.cache/desktop/dist` (never `dist/`, which a running dashboard server may be serving) |
-| `npm run desktop:prepare` | Downloads the pinned Node (checked by SHA-256, cached in `.cache/desktop/`) and fills `src-tauri/resources/` |
+| `npm run desktop:prepare` | Builds the release `ips-agent.exe` and fills `src-tauri/resources/` with it and the built studio |
 | `npm run desktop:build` | All of the above, then `tauri build`: `src-tauri/target/release/bundle/nsis/InfoPanel Studio_<version>_x64-setup.exe` |
 | `npm run desktop:dev` | The same, then `tauri dev` |
 
@@ -45,14 +45,15 @@ sections.
   unfocused the canvas runs at 5 fps and ambient effects pause), open the studio in (the app window, Microsoft Edge
   in app mode, or the default browser) and Design preview data (live, frozen, or frozen when unfocused).
 - **Server:** start, stop and restart; who can connect (this computer only on 127.0.0.1, or the local network on
-  0.0.0.0 with the LAN IP shown); the port (default 3922); extra allowed host names for LAN access;
-  restart automatically after a crash; the kiosk URL. The port, who can connect, the allowed host names and debug
+  0.0.0.0 with the LAN IP shown); the port (default 3922); on the network, extra allowed host names and Allow editing
+  from other devices (default off: other devices view, only this computer changes data); restart automatically
+  after a crash (default on); the kiosk URL. The port, who can connect, the allowed host names and debug
   mode are read when the server starts, so changing one shows a restart bar (Undo or Restart server).
 - **Updates:** the installed version, the Stable or Beta channel, "Check for updates at startup" (default on; one
-  check about 15 seconds after launch, in the background), background download, and Check now / Download /
+  check about 15 seconds after launch, in the background), "Download in the background" (default off), and Check now / Download /
   Restart and update. A found update also shows in the tray as `Update to vX.Y.Z…`. Installing stops the app's
   server, runs the installer and relaunches the app.
-- **Coding agents:** off by default. Turning it on writes the Claude Code and Codex hooks (backing up
+- **Coding agents:** off by default. Connect coding agents writes the Claude Code and Codex hooks (backing up
   `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's `ips-agent.exe` and the current
   port. They are rewritten after a port change or an app update, and removed when you turn it off or
   uninstall the app.
@@ -73,7 +74,7 @@ does not make updater artifacts and needs no key.
 If another program holds the chosen port, the app leaves it alone. When it answers `/api/health` as a dashboard
 server, the start screen says another InfoPanel Studio server is running; if that server is an `ips-server` of
 your own user (for example from `start-dashboard.bat` or `npm start`), it offers "use it for this session".
-Anything else, such as a Node server from an older checkout, is just another program on the port: the start
+Anything else is just another program on the port: the start
 screen says the port is in use and offers the next free one. Close `start-dashboard.bat` yourself, and remove it
 from Windows startup once the app is installed.
 
@@ -108,9 +109,9 @@ Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STU
 - `app.log` switches to debug level: probes, server start and exit, settings, IPC calls, window and tray
   events, and the studio's errors, warnings and unhandled rejections (rate-limited).
 - `server.log` gets every request (method, path, status, ms) and SSE connects and disconnects;
-  `GET /api/debug/stats` (loopback only) returns memory, open SSE clients, active handles and
-  event-loop delay.
-- Every 30 s a sample (the app's, the server's and the WebView2 processes' memory, the server stats, the
+  `GET /api/debug/stats` (loopback only) returns memory, open SSE clients, the runtime's tasks and
+  workers, and timer delay.
+- Every 30 s a sample (the app's, which includes the server, and the WebView2 processes' memory, the server stats, the
   studio's JS heap, DOM nodes and open EventSources) goes to `metrics.csv` and to the Diagnostics table in
   the settings window's Diagnostics page. A series is flagged "growing" when it rose in at least 80% of the samples over the
   last hour and by more than 20%.
@@ -118,7 +119,7 @@ Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STU
 - **Open WebView2 task manager** (Diagnostics, any mode) shows memory and CPU per WebView2 process (renderer, GPU
   and the rest), to tell which one grows. `node tools/perf/metrics-trend.mjs` summarises `metrics.csv` over time.
 
-Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer resolution, not a stall.
+Timer delay figures on Windows sit around 15 ms at idle: that is the timer resolution, not a stall.
 
 The server runs in the app's process: its lines (target `server`) still go to `server.log`,
 with the app log's `[date][time][server][LEVEL]` prefix; the Server page's Memory is the app's; in `metrics.csv` the

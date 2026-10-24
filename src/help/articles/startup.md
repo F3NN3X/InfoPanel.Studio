@@ -3,7 +3,7 @@ id: startup
 title: Startup and tray
 icon: power_settings_new
 related: [kiosk, updates]
-verified: 1.3.0-beta.18
+verified: 1.3.0-beta.20
 ---
 
 Keep the kiosk working after a reboot, without the studio in the way.
@@ -35,14 +35,15 @@ In a browser, the studio saves as soon as you switch away from its tab and asks 
 
 ## The studio in the background
 
-Three settings, also under Window, keep a studio you aren't using from costing much:
+Four settings, also under Window, keep a studio you aren't using from costing much:
 
 | Setting | Default | What it does |
 |---|---|---|
+| **Refresh the Studio** | When idle for 30 minutes | Reloads the Studio page once it has sat unfocused this long, to give back memory a long session holds. The other choices are **Daily at 04:00** and **Off**. Edits are saved first |
 | **Release the hidden studio** | After 10 minutes | When the studio has sat in the tray this long, its page is closed to give back its memory. Opening it from the tray rebuilds it in a moment. Edits are saved first; the undo history is lost |
 | **Reduce studio animation when unfocused** | On | A minute after the studio loses focus, the canvas runs at 5 frames a second and weather, visualisers and other effects pause. They resume when you come back |
 | **Design preview data** | Frozen when unfocused | Whether the Design canvas shows live sensor values or a snapshot. See [The studio](studio#design-preview-data) |
 
 ## App zoom
 
-**App zoom** scales the Settings window from 80 % to 150 %. It doesn't change the kiosk. `Ctrl +` and `Ctrl −` step through the sizes and `Ctrl 0` resets, while the Settings window is focused. In the studio, those keys zoom the canvas instead.
+**App zoom** scales the studio and the app window from 80 % to 150 %. It doesn't change the kiosk. `Ctrl +` and `Ctrl −` step through the sizes and `Ctrl 0` resets, while the Settings window is focused. In the studio, those keys zoom the canvas instead.

@@ -462,7 +462,7 @@ id). Delete is off with one profile left. Target: the rail's Profiles drawer
 | `alerts` | `enabled` (Alerts on, default on), `rules` (a sensor rule's source is `{ kind: "sensor", conditions: [{ key, op, value, clearBelow? }], forSeconds }`, firing when any condition holds; v11), `quietHours` (`from` `23:00`, `to` `07:00`, `minSeverity` `critical` once set), `defaults` (`style` `toast`, `position` `top-right`, `backdrop` `none`, `size` `m`, `seconds` `8`; `src/lib/alerts.ts:143`) | unset | Alerts drawer (rail; `src/components/studio/alerts-panel.tsx`, `alerts-defaults.tsx`) |
 
 The server's copy is `/api/config` (`src/lib/dashboard-server.ts:10`); the browser keeps an offline
-copy under `infopanel-dashboard:config:v1` (`layout.ts:284`).
+copy under `infopanel-dashboard:config:v1` (`layout.ts`).
 
 ### 5.2 Widget style (`style`, `widgetTheme`; Look › Widget style and the rail Theme page)
 
@@ -656,16 +656,18 @@ overlay, Gauge row, Clock + date, Label / value list. Theme token presets: §5.4
 | Key | What | Values | Default | Target |
 |---|---|---|---|---|
 | `studio.dockCollapsed` | Docked inspector collapsed (Ctrl+\) (`use-studio-layout.ts:15`) | `1` / unset | expanded | the inspector's collapse tab; Ctrl+\ |
-| `studio.quickBar` | Quick bar shown (`inspector-prefs.ts:110`) | `true` / `false` | `true` | Behaviour › Studio › Quick bar |
-| `studio.accordion` | Inspector sections: one open or many (`inspector-prefs.ts:111`) | one, many | `one` | Behaviour › Studio › Inspector sections |
-| `studio.quickPins` | Pinned quick-bar settings per widget type, max 6 (`inspector-prefs.ts:112`) | map | unset (a default set applies) | Pin button on each inspector row |
-| `studio.inspectorTabs` | The open inspector tab per context (`inspector-prefs.ts:9`) | map | the first tab | the tab strip |
-| `studio.drawer` | Open left drawer (`left-rail.tsx:73`) | add, layers, profiles, island, alerts, none | `add` | Rail |
-| `studio.drawerWidth` | Dragged left drawer width (`left-rail.tsx:23`) | px | the least | the drawer's edge |
+| `studio.quickBar` | Quick bar shown (`inspector-prefs.ts`) | `true` / `false` | `true` | Settings › Studio › Editor › Quick bar |
+| `studio.accordion` | Inspector sections: one open or many (`inspector-prefs.ts`) | one, many | `one` | Settings › Studio › Editor › Inspector sections |
+| `studio.inspector.advanced` | Show every inspector setting, including ones the theme controls (`inspector-prefs.ts`) | `true` / `false` | `false` | Settings › Studio › Editor › Advanced settings |
+| `studio.quickPins` | Pinned quick-bar settings per widget type, max 6 (`inspector-prefs.ts`) | map | unset (a default set applies) | Pin button on each inspector row |
+| `studio.inspectorTabs` | The open inspector tab per context (`inspector-prefs.ts`) | map | the first tab | the tab strip |
+| `studio.editor.leftPanelWidth` | Design's left panel width (`add-prefs.ts`; the old `studio.drawerWidth` px value moves to the nearest option) | `narrow` (300 px), `default` (340), `wide` (380) | `default` | Settings › Studio › Editor › Left panel width |
+| `studio.editor.addListDensity` | Add widget list (`add-prefs.ts`) | `comfortable`, `compact` | `comfortable` | Settings › Studio › Editor › Widget list |
+| `studio.editor.addPreviewOnHover` | Add widget preview while hovering (`add-prefs.ts`) | boolean | on | Settings › Studio › Editor › Preview on hover |
 | `studio.pinnedProfile` | The profile the studio edits: the selected card (`pinned-profile.ts:7`) | profile id | the profile the window size picks | Profiles drawer |
-| `studio.grid`, `studio.rulers` | Canvas grid and rulers shown (`use-studio-ui.ts:39-40`) | `1` / `0` | `1` | zoom bar |
-| `studio.zoom` | Canvas zoom: `fit` or a factor 0.25 to 2 (`zoom-pref.ts:2`) | | `fit` | zoom bar |
-| `studio.tipDismissed` | First-run tips card dismissed (`quick-tips.ts:2`) | `1` | unset | the tips card |
+| `studio.grid`, `studio.rulers` | Canvas grid and rulers shown (`use-stored-flag.ts`) | `1` / `0` | `1` | zoom bar; Settings › Studio › Editor › Show grid, Show rulers |
+| `studio.zoom` | Canvas zoom: `fit` or a factor 0.25 to 2 (`zoom-pref.ts`) | | `fit` | zoom bar; Settings › Studio › Editor › Default zoom |
+| `studio.tipDismissed` | First-run tips card dismissed (`quick-tips.ts`) | `1` | unset | the tips card |
 | `infopanel.studio.profile-shots` | Profile thumbnail cache (`src/lib/profile-shot-cache.ts:13`) | map | unset | Profiles drawer (automatic) |
 | `studio.previewData` | Design preview data (`preview-data-pref.ts`): frozen renders Design from a snapshot, closes the studio's Data API stream while nothing live is open, and stills continuous effects. Kept on the server too (`studio-prefs.json`, `/api/studio-prefs`), so it follows you between the app window and a browser studio; localStorage is this browser's copy | `live`, `frozen`, `frozenWhenUnfocused` (after the 60 s unfocused delay) | `frozenWhenUnfocused` | Settings › Studio, Settings › General › Window; the zoom bar's Frozen chip (Refresh, Go live for this session) |
 | `infopanel-dashboard:config:v1` | The offline copy of the config (`layout.ts:284`) | config JSON | | automatic |
@@ -679,17 +681,17 @@ load, `inspector-prefs.ts:97`).
 ## 7a. Desktop app settings (InfoPanel Studio; `settings.json`, not in the config)
 
 Kept by the desktop app, not by the studio: `%APPDATA%\dev.f3nn3x.infopanel-studio\settings.json`
-(see [desktop/README.md](desktop/README.md); layout version 2, `SETTINGS_VERSION`,
+(see [desktop/README.md](desktop/README.md); layout version 4, `SETTINGS_VERSION`,
 `src-tauri/src/settings.rs:10`). Edited in the app's Settings window (`src/settings/`; the rail's
 Settings button, desktop only, and the profile inspector's footer "Server, updates and startup are in
 App settings"). The window's sections: General, Server, Coding agents, Updates, Diagnostics, Logs,
 About, Changelog. Missing or invalid keys fall back to their default (`load_from_str`,
-`settings.rs:286`); each write is validated (`with_setting`, `settings.rs:185`); a v1 `host` becomes
+`settings.rs:349`); each write is validated (`with_setting`, `settings.rs:235`); a v1 `host` becomes
 `listen` on load.
 
 | Key | Label | Values | Default | Target |
 |---|---|---|---|---|
-| `zoom` | App zoom (steps; Ctrl + / Ctrl − / Ctrl 0) | 80, 90, 100, 110, 125, 150 % | `100` | Settings › General › Appearance |
+| `zoom` | App zoom (steps; Ctrl + / Ctrl − / Ctrl 0) | 80, 90, 100, 110, 125, 150 % | `100` | Settings › General › Zoom |
 | `startAtLogin` | Start at login | boolean | `true` | Settings › General › Startup |
 | `openStudioOnLaunch` | Open the studio on launch | boolean | `true` | Settings › General › Startup |
 | `startServer` | Start the server on launch | boolean | `true` | Settings › General › Startup |
@@ -702,6 +704,7 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 | `listen` | Who can connect (becomes `HOST`: `127.0.0.1` or `0.0.0.0`) | `local` (This computer only), `lan` (Local network) | `local` | Settings › Server › Network |
 | `port` | Port (becomes `PORT`) | 1024 to 65535 | `3922` | Settings › Server › Network |
 | `allowedHosts` | Allowed host names (`ALLOWED_HOSTS`; request guard) | list, or a comma-separated string; letters, digits, `.`, `-`, `:`, `[`, `]` | empty | Settings › Server › Network (only while `listen` is `lan`) |
+| `allowRemoteEdit` | Allow editing from other devices (`ALLOW_REMOTE_EDIT` and `ALLOW_REMOTE_UPLOAD`; off: other devices only view, writes get a 403) | boolean | `false` | Settings › Server › Network (only while `listen` is `lan`) |
 | `autoRestart` | Restart automatically if it crashes (3 tries a minute) | boolean | `true` | Settings › Server › Network |
 | `updateChannel` | Release channel | `stable` (Stable), `beta` (Beta) | `stable` | Settings › Updates |
 | `checkForUpdates` | Check for updates at startup | boolean | `true` | Settings › Updates |
@@ -712,7 +715,7 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 
 The server's own environment variables (`PORT`, `HOST`, `ALLOWED_HOSTS`, `DASHBOARD_DIST`,
 `DASHBOARD_DATA_DIR`, `DASHBOARD_DEBUG`) are in [development.md](development.md); the app sets
-`PORT`, `HOST`, `ALLOWED_HOSTS` and `DASHBOARD_DEBUG` from these keys as a `ServerConfig` for `ips-server`, which runs inside the app (`src-tauri/src/native.rs`).
+`PORT`, `HOST`, `ALLOWED_HOSTS`, `ALLOW_REMOTE_EDIT` and `DASHBOARD_DEBUG` from these keys as a `ServerConfig` for `ips-server`, which runs inside the app (`src-tauri/src/native.rs`).
 
 ---
 
@@ -721,7 +724,7 @@ The server's own environment variables (`PORT`, `HOST`, `ALLOWED_HOSTS`, `DASHBO
 Runtime state the server holds (`crates/ips-server/src/control.rs`, `src/lib/control.ts`): kiosks and the studio read
 it over one SSE stream (`/events/control`) and write it with `POST /api/control/<action>`. None of it
 is config, so none of it enters undo or the exported config. The durable part is saved to
-`control.json`: `mutedUntil`, the dim levels, `islandOverride` (`control.mjs:30`); the rest is
+`control.json`: `mutedUntil`, the dim levels, `islandOverride` (`control_store.rs`); the rest is
 runtime only.
 
 | State | What | Actions (`ControlAction`) | Studio UI |

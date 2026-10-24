@@ -32,4 +32,5 @@ The project overview, install steps and server endpoints are in the
 - [Development](development.md) - scripts (including the InfoPanel lab), running dev and the standalone server, tests, typecheck, CI and the release workflow, adding a widget, and a verification checklist.
 - `tools/perf/metrics-trend.mjs` summarises the desktop app's debug `metrics.csv` over time; `tools/perf/studio-cpu.cjs` measures a page's renderer and GPU cost in headed Chromium (see [webview-performance](desktop/webview-performance.md#how-to-measure)).
 - `tools/ip-import.cjs` imports an InfoPanel profile as a dashboard layout (see the header of the file for usage).
+- `tools/gen-gauge-icons.mjs` regenerates `src/lib/infopanel/gauges/icon-markup.generated.ts`, the gauge icons as markup the kiosk bundle carries instead of React's server renderer (`node tools/gen-gauge-icons.mjs` after changing the widget icons; a test fails while it is stale).
 - `tools/gen-bg.mjs` regenerates `public/assets/bg/aurora.png`, the page background of the Glass and Frosted appearance presets (`node tools/gen-bg.mjs`).
