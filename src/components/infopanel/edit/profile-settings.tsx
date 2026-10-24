@@ -11,6 +11,7 @@ import { PROFILE, type Profile } from "@/lib/infopanel/schema";
 import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import type { CanvasEditor } from "./use-canvas-editor";
+import { dotnetFloat } from "@/lib/infopanel/export/write";
 
 type Field = keyof typeof PROFILE;
 
@@ -61,7 +62,7 @@ function TypedField({ field, value, onCommit }: { field: Field; value: unknown; 
         aria-label={label}
         aria-invalid={error !== null}
         inputMode={PROFILE[field].kind === "string" ? undefined : "decimal"}
-        value={draft ?? String(value ?? "")}
+        value={draft ?? (PROFILE[field].kind === "float" && typeof value === "number" ? dotnetFloat(value) : String(value ?? ""))}
         placeholder={field === "Font" ? "InfoPanel’s default" : undefined}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
