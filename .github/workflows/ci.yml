@@ -2,8 +2,8 @@ name: CI
 
 # PRs run the checks their change needs. `plan` asks tools/verify.mjs (tests/feature-map.json) which checks the changed
 # files call for and the jobs below run or skip accordingly; `ci-ok` is the one required status check. A push to main
-# runs only when the dependencies change (GitHub shares caches saved on main with every PR, so that keeps the npm and
-# Rust caches warm) and then runs everything. The label ci:full does the same on a PR. Every code change already passed
+# runs only when the dependencies or the Rust code change (GitHub shares caches saved on main with every PR, so that
+# keeps the npm and Rust caches warm for the next PRs) and then runs everything. The label ci:full does the same on a PR. Every code change already passed
 # this check in its PR, and a release tag re-checks it in release.yml.
 on:
   pull_request:
@@ -12,8 +12,7 @@ on:
     branches: [main]
     paths:
       - package-lock.json
-      - src-tauri/Cargo.lock
-      - src-tauri/Cargo.toml
+      - src-tauri/**
       - tools/desktop-prepare.mjs
       - .github/workflows/ci.yml
       - .github/actions/**

@@ -65,7 +65,7 @@ Run `npm run verify:full` before opening a pull request. Optionally, `git config
 
 ## CI and releases
 
-`.github/workflows/ci.yml` runs on every pull request (and on `main` when the dependencies change, then everything).
+`.github/workflows/ci.yml` runs on every pull request (and on `main` when the dependencies or `src-tauri/` change, then everything, which keeps main's caches warm for PRs).
 Its `plan` job asks `node tools/verify.mjs --plan --json` which checks the change needs, so a docs change runs almost
 nothing and a widget change skips Rust. The jobs: `lint` (Biome, and actionlint when `.github/` changed),
 `typecheck-build` (`tsc -b`, the build, the Settings build, the bundle budgets), `unit` (the whole Vitest suite),
