@@ -4,6 +4,8 @@ name: Nightly
 # resources and an unsigned installer build), the perf suites in report-only mode, and one "Nightly failing" issue that
 # follows the result. 23:30 UTC is 01:30 in Oslo in summer (CEST) and 00:30 in winter (CET), outside 07:00 to 18:00.
 on:
+  pull_request:
+    paths: [".github/workflows/nightly.yml"]
   schedule:
     - cron: "30 23 * * *"
   workflow_dispatch:
