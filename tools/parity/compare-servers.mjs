@@ -174,33 +174,33 @@ try {
       console.log(`ok [${c.module}] ${c.label}`);
     }
   }
-  // alerts.json is written a second after the history last changed.
+  // alerts.json is written a second after the history last changed (native) or every second (Node), and an alert
+  // a case started may end after the cases: compare until the files agree, for up to 10 s.
+  const compareFiles = () => {
+    const found = [];
+    for (const [where, pair] of Object.entries(running)) {
+      for (const f of FILES) {
+        const read = (s) => (fs.existsSync(path.join(s.dir, "data", f)) ? fs.readFileSync(path.join(s.dir, "data", f), "utf8").replace(UUID, "<uuid>").replace(CLOCK, (m) => (m.startsWith('"id"') ? '"id":"<id>"' : `${m.split(":")[0]}:<ms>`)) : null);
+        const [x, y] = [read(pair.node), read(pair.native)];
+        if (x !== y) found.push(`--- DIFF [${where}] data/${f}\nNODE:   ${x}\nNATIVE: ${y}\n`);
+      }
+      for (const d of DIRS) {
+        const read = (s) => {
+          const dir = path.join(s.dir, "data", d);
+          return fs.existsSync(dir) ? fs.readdirSync(dir).sort().map((n) => `${n} ${fs.readFileSync(path.join(dir, n)).toString("base64")}`).join("\n") : null;
+        };
+        const [x, y] = [read(pair.node), read(pair.native)];
+        if (x !== y) found.push(`--- DIFF [${where}] data/${d}/\nNODE:   ${x}\nNATIVE: ${y}\n`);
+      }
+    }
+    return found;
+  };
   await new Promise((r) => setTimeout(r, 2200));
-  for (const [where, pair] of Object.entries(running)) {
-    for (const f of FILES) {
-      const read = (s) => (fs.existsSync(path.join(s.dir, "data", f)) ? fs.readFileSync(path.join(s.dir, "data", f), "utf8").replace(UUID, "<uuid>").replace(CLOCK, (m) => (m.startsWith('"id"') ? '"id":"<id>"' : `${m.split(":")[0]}:<ms>`)) : null);
-      const [x, y] = [read(pair.node), read(pair.native)];
-      if (x !== y) {
-        diffs += 1;
-        console.log(`--- DIFF [${where}] data/${f}\nNODE:   ${x}\nNATIVE: ${y}\n`);
-      } else if (verbose) {
-        console.log(`ok [${where}] data/${f} ${x === null ? "absent" : "equal"}`);
-      }
-    }
-    for (const d of DIRS) {
-      const read = (s) => {
-        const dir = path.join(s.dir, "data", d);
-        return fs.existsSync(dir) ? fs.readdirSync(dir).sort().map((n) => `${n} ${fs.readFileSync(path.join(dir, n)).toString("base64")}`).join("\n") : null;
-      };
-      const [x, y] = [read(pair.node), read(pair.native)];
-      if (x !== y) {
-        diffs += 1;
-        console.log(`--- DIFF [${where}] data/${d}/\nNODE:   ${x}\nNATIVE: ${y}\n`);
-      } else if (verbose) {
-        console.log(`ok [${where}] data/${d}/ ${x === null ? "absent" : "equal"}`);
-      }
-    }
-  }
+  let fileDiffs = compareFiles();
+  for (const end = Date.now() + 8000; fileDiffs.length && Date.now() < end; fileDiffs = compareFiles()) await new Promise((r) => setTimeout(r, 500));
+  for (const d of fileDiffs) console.log(d);
+  if (verbose && !fileDiffs.length) console.log("ok data files equal");
+  diffs += fileDiffs.length;
 } finally {
   stop();
 }

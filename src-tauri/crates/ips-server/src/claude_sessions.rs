@@ -67,7 +67,8 @@ pub fn is_alive(pid: u64) -> bool {
 pub fn is_alive(pid: u64) -> bool {
     let Ok(pid) = libc::pid_t::try_from(pid) else { return false };
     // SAFETY: signal 0 only checks that the process exists.
-    unsafe { libc::kill(pid, 0) == 0 } || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+    let sent = unsafe { libc::kill(pid, 0) } == 0;
+    sent || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
 }
 
 /// Every session file under `home`, each with whether its process is alive (a crash leaves the file behind).
