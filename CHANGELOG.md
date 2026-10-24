@@ -6,6 +6,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.20] - 2026-10-24
+
+### Changed
+
+- **Help covers the newer settings.** Startup explains where the studio opens, Release the hidden studio, Reduce studio animation when unfocused and Refresh the Studio; The studio explains Design preview data and the Frozen chip; Diagnostics lists Open WebView2 task manager; Kiosk explains Allow editing from other devices. App zoom is described correctly: it scales the studio and the app window.
+
 ## [1.3.0-beta.19] - 2026-10-24
 
 ### Removed
