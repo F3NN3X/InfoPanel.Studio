@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.24] - 2026-10-25
+
 ### Added
 
 - **Elements in the InfoPanel editor.** A new Elements group in Add: Ring (a value arc with a gradient, end dot, ticks, LED segments or a glow), LED bar, Card (rounded, with a gradient, stroke, drop shadow or glow), Glow, Divider, Icon (a searchable set of icons), Cores (one bar per CPU core, bound to its load) and Sparkline. They draw live in the editor and on kiosks, and export as InfoPanel items: what InfoPanel can draw goes as its own items, the rest is baked into images or gauge frames when you export.
