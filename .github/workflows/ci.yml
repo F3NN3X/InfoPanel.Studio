@@ -60,8 +60,8 @@ jobs:
           if [ "$EVENT" != "pull_request" ] || [ "$FULL_LABEL" = "true" ]; then
             echo '{"mode":"full","steps":[]}' | node tools/ci/plan-outputs.mjs --all
           else
-            node tools/verify.mjs --plan --json --base "origin/$BASE" > plan.json
-            node tools/ci/plan-outputs.mjs < plan.json
+            node tools/verify.mjs --plan --json --base "origin/$BASE" > "$RUNNER_TEMP/plan.json"
+            node tools/ci/plan-outputs.mjs < "$RUNNER_TEMP/plan.json"
           fi
 
   lint:
