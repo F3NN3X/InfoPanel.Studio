@@ -80,7 +80,7 @@ lockfile), move the **Unreleased** entries in `CHANGELOG.md` under
 **Standalone server (`ips-server`, `src-tauri/crates/ips-server`).** Serves the built `dist/`, stores the
 studio config and uploaded media, streams config changes to kiosk pages and
 proxies cover-art images. It is the same code the desktop app runs inside its own
-process; the media routes are in `crates/ips-server/src/assets.rs`. Environment variables it reads:
+process; the media routes are in `src-tauri/crates/ips-server/src/assets.rs`. Environment variables it reads:
 
 | Variable | Default | Meaning |
 |---|---|---|

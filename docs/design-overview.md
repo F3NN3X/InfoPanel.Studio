@@ -49,7 +49,7 @@ There are 16 widgets (modules). Each claims sensor keys from InfoPanel's Data AP
 - **Adaptive layout:** the modern media, audio, Bluetooth and hardware widgets pick compact, simple, card or standard from their measured size; the Layout setting can force one.
 - **Hide when idle:** removed; a widget with no data at all is still hidden in the kiosk.
 - **Tint:** Spotify, Media and Weather can tint their surface from the cover art or the conditions; Steam uses its banner.
-- **Add drawer chips:** All, Layouts, My panels, System, Media, Network, Info, Other.
+- **Add panel:** Widgets | Panels | Layouts, and on Widgets the category chips that exist (System, Hardware, Storage, Network, Media, Audio, Info, Gaming, Generic).
 
 ## Panels
 
@@ -84,9 +84,9 @@ Every panel widget also has label, sensor, unit, color, size and placement (Hug/
 
 ## Layouts & presets
 
-Five kinds of reusable starting points exist: profiles (whole pages), panel presets and layout starters (one panel each), saved panels (the user's own), and style and appearance presets (looks only).
+Five kinds of reusable starting points exist: profiles (whole pages), panel presets and layout starters (one panel each), saved panels (the user's own), and Styles and Themes (looks only).
 
-**Profiles** are pages with a design size, a uniform grid (cols × rows), a fit mode (Fill: the grid fills the height; Scroll: 120 px rows and the page scrolls), gap (default 12 px) and padding. Auto picks the profile closest to the window size. A new profile gets 6 or 12 columns and 4 or 6 rows depending on its size.
+**Profiles** (screens in the studio) are pages with a design size, a uniform grid (cols × rows), a fit mode (Fill: the grid fills the height; Scroll: 120 px rows and the page scrolls), gap (default 12 px) and padding. Auto picks the profile closest to the window size. A new profile gets 6 or 12 columns and 4 or 6 rows depending on its size.
 
 | Shipped profile | Size | Grid | Fit | Contents |
 | --- | --- | --- | --- | --- |
@@ -109,37 +109,25 @@ Five kinds of reusable starting points exist: profiles (whole pages), panel pres
 | Clock + date | 2×1 | Centered column, time over date, no card |
 | Label / value list | 2×2 | 2-column grid of label + right-aligned value |
 
-**Saved panels (My panels):** any panel saved from its "…" menu, with its look and size; shared by all profiles and exported with the config. Each use is a fresh copy.
+**Saved panels (My panels):** any panel saved with Save as Panel, with its look and size; shared by all profiles and exported with the config. Each use is a fresh copy.
 
-**Style presets:** a widget's look keys only (surface, accent, typography, spacing, border, effects, custom CSS), saved and applied per widget; the same menu copies, pastes or uses a style as the global one.
+**Styles:** a widget's look keys only (surface, accent, typography, spacing, border, effects, custom CSS), saved to Library › Styles and applied per widget from the Style tab's toolbar; Copy style and Paste style move a look between widgets, and Make this the theme for… sends it to All screens, the screen or the page.
 
-| Appearance preset | Theme | Radius (rem) | Look | Background |
-| --- | --- | --- | --- | --- |
-| Dark | zinc | 0.5 | matte dark cards | — |
-| Light | paper | 0.75 | theme cards | — |
-| Glass | zinc | 0.75 | glass, 60 % opacity, 16 px blur, 1 px light border | aurora image, dim 20 |
-| Frosted | zinc | 1 | glass, 40 % opacity, 24 px blur, soft glow | aurora image, dim 35 |
-| Matte | neutral | 0.75 | matte dark, 12 px radius | — |
-| Neon | slate | 0.5 | matte dark, cyan accent, strong glow, mono font | — |
-| Minimal | zinc | 0.5 | no card or border, 8 px padding | — |
-| Ocean | ocean | 0.75 | theme cards | — |
-| Forest | forest | 0.75 | theme cards | — |
-
-An appearance preset applies to All profiles or This profile in one undo step. Its background only lands where none is set unless "Replace the page background" is ticked. Users can save the current look as their own preset.
+**Themes** (appearance presets) are the user's own: Theme › Save as Theme keeps the scope's colors, corners, widget style and (optionally) background in Library › Themes, and Apply a theme here… (or Start from) applies one to All screens, a screen or a page in one undo step. Its background only lands where none is set unless Include background is ticked. Six color palettes (Zinc, Neutral, Slate, Ocean, Forest, Paper) are built in.
 
 ## Styling model
 
 A widget's look (and its units, thresholds and motion) is resolved in five layers, lowest first, per section; content settings (sensors, views, labels) always come from the widget itself.
 
 1. Widget default
-2. Dashboard style (All profiles)
-3. Profile theme (This profile)
+2. Dashboard style (All screens)
+3. Screen theme
 4. Page theme
 5. The widget's own settings, where its section is custom
 
-- **Follow / Customize:** a widget section that follows the theme ignores its own values (they stay stored); Customize lets them win key by key. A page can have its own theme sections between the profile and the widget.
-- **Lock:** a profile can lock a section so every widget follows it, on every page. A locked Colors section also overrides panel widgets' own colors (fills take the accent).
-- **Setting dots:** each row shows where its value comes from — default, set here, dashboard, profile or overriding — and hovering a set dot resets it.
+- **Follow / Customize:** a widget section that follows the theme ignores its own values (they stay stored); Customize lets them win key by key. A page can have its own theme sections between the screen and the widget.
+- **Lock:** a screen can lock a section so every widget follows it, on every page. A locked Colors section also overrides panel widgets' own colors (fills take the accent).
+- **Setting dots:** each row shows where its value comes from — default, set here, dashboard, screen or overriding — and hovering a set dot resets it.
 
 | Surface | Look |
 | --- | --- |
@@ -149,36 +137,43 @@ A widget's look (and its units, thresholds and motion) is resolved in five layer
 | Theme | Built from the theme tokens (card, foreground, primary, border); follows light or dark themes |
 | None / Card / Bordered card | Panels only: transparent, half-opacity card, or card with a border ring |
 
-Surface opacity, background blur, border width/color and glow (none/soft/strong) apply on top of any surface.
+Opacity, blur, border width/color and glow (none/soft/strong) apply on top of any surface.
 
-**Theme:** 19 color tokens (background, foreground, card, primary, accent, muted, border…) plus a corner radius, from 6 presets (Zinc, Neutral, Slate, Ocean, Forest, Paper light) or custom colors; a profile can inherit or set its own.
+**Theme:** 19 color tokens (background, foreground, card, primary, accent, muted, border…) plus a corner radius, from 6 presets (Zinc, Neutral, Slate, Ocean, Forest, Paper light) or custom colors; a screen can inherit or set its own (Theme › Colors).
 
-**Page background:** none, color, gradient, image or video (URL or upload), with fit (cover/contain/stretch/center/tile), position, dim, tint and blur. Video loops muted, pauses when hidden and shows only its poster on reduced motion. Set for all profiles, then per profile Inherit / Custom / None.
+**Page background:** none, color, gradient, image or video (URL or upload), with fit (cover/contain/stretch/center/tile), position, dim, tint and blur. Video loops muted, pauses when hidden and shows only its poster on reduced motion. Set at All screens, then per screen Inherit / Custom / None (Theme › Background).
 
-**General settings:** font (system, sans, rounded, serif, mono), clock 12/24 h and seconds, date locale, motion (system/reduce/full), hide the cursor in kiosk mode, and the Data API URL.
+**General settings:** the page font (system, sans, rounded, serif, mono and web fonts; Theme › Typography), and in Settings › Dashboard the frame-rate cap, animations (system/reduce/full), kiosk page refresh, rendering switches, clock 12/24 h and seconds, date locale, page dots and swipe, and hiding the cursor in kiosk mode. The Data API URL is in Data › Connection.
 
 ## Settings categories
 
-Selecting a zone opens one sheet: a fixed header, then the seven general cards every zone shares, then the widget's own categories. A category list on the left jumps to a card; each card shows how many settings are changed and resets only its own.
+Selecting a zone opens the inspector: a fixed header, then four tabs (Show, Style, Data, Behaviour), each an accordion of sections. The shared sections every zone has come first; the widget's own categories follow. A section shows how many settings are changed and resets only its own; a themed section carries a chip saying whether it follows the theme.
 
 **Header:** zone name, hide / duplicate / remove / close, the zone box (column, row, width, height in cells) and search.
 
-| General card | Holds |
+| Tab › shared section | Holds |
 | --- | --- |
-| Widget | Widget type (Change), show title, custom title, icon, visible |
-| Size & alignment | Layout (auto/card/standard/compact/simple), scale with the zone, size %, 3×3 alignment |
-| Typography | Text and secondary colors, font, value weight, label case |
-| Spacing & shape | Inner padding, gap, corner radius, ring/bar thickness |
-| Colors & surface | Follow global / Custom, style preset, surface, accent, background image, surface opacity, background blur; copy/paste/save style |
-| Border & effects | Border width and color, glow and glow color, zone frame (accent, background, title header) |
-| Advanced | Custom CSS |
+| Show › Header | Widget type (Change), show title, custom title, icon, visible |
+| Show › Fit | Small zones (auto/full/card/dense), density |
+| Style › Skin | Skin, ring/bar thickness, graph and meter style |
+| Style › Colors | Accent, text and secondary text colors |
+| Style › Widget colors | The widget's own colors |
+| Style › Typography | Font, value weight, label case |
+| Style › Shape & spacing | Size %, 3×3 alignment, inner padding, gap, corner radius |
+| Style › Surface & effects | Surface, opacity, blur, background image |
+| Style › Border & glow | Border width and color, glow and glow color, zone frame (accent, background, title header) |
+| Style › Advanced · CSS & locks | Custom CSS |
+| Data › Units & format | Temperature, speed units, decimals, clock |
+| Behaviour › Thresholds, Motion, Send to island | Warning and critical levels, graph updates, what the widget sends to the island |
+
+The Style tab opens with a toolbar: Start from a Style, Save as Style, Update, Make this the theme for….
 
 **Then, per zone type:**
 
 - **Widget:** its own categories from the Widgets table (e.g. System: Devices, CPU, GPU, Memory, Drives, Trends, Thresholds, Units & labels, Device colors).
-- **Panel:** a Panel group (Panel with Visual/Code, Layout, Background for Overlay, Widgets list), then a Selected widget group (the widget's kind card, Display, Size & placement, Typography, Colors, Advanced).
+- **Panel:** Show › Panel (Visual/Code), Layout, Background (Overlay) and Widgets; a selected panel widget gets its own four tabs (Kind, Content, Size & placement, Typography, Color, Custom CSS, Binding, Units & format, Thresholds, ...).
 - **Blank zone:** only Widget (Pick a widget) and the zone frame.
 
-**Nothing selected:** the same sheet shows Appearance (scope All profiles / This profile, Presets gallery), Page (Theme colors, Background), General (Type, Clock & date, Display) and Connection (Data API URL).
+**Nothing selected:** the Page inspector shows the page's name and icon, the sections it customises over its screen's theme, Show on kiosks now, and Duplicate / Delete page. A screen's size, grid, rotation and performance are in Screens, the look every level inherits in Theme, preferences in Settings and the Data API URL in Data.
 
 **Studio layout:** the inspector's placement follows the studio width: docked (a 320 px column, collapses with Ctrl+\) from 1100 px, a floating card over the canvas from 640 px, a bottom sheet below that. A quick bar over the canvas holds the pinned settings of the selection.
