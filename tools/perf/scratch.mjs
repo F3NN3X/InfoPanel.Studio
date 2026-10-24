@@ -4,13 +4,16 @@
 // OS picks. It never touches the real data folder, InfoPanel's data or the user's agent sessions.
 //   import { startScratch } from "./scratch.mjs";  const { base, dataApi, dataDir, pid, stop } = await startScratch();
 //   node tools/perf/scratch.mjs     starts one and prints its URLs until Ctrl+C
-// SERVER_IMPL=node (default) runs `node server.mjs`; SERVER_IMPL=native runs the ips-server binary at SERVER_CMD.
+// SERVER_IMPL=node (default) runs `node server.mjs`; SERVER_IMPL=native runs the ips-server binary (server-command.mjs).
 // DASHBOARD_DIST is passed through (default dist/; run `npm run build` first).
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { serverCommand } from "./server-command.mjs";
+
+export { serverCommand };
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const FIXTURE_DIR = path.join(ROOT, "tests/fixtures/perf/data");
@@ -47,19 +50,6 @@ function launch(cmd, args, env, pattern, name) {
       reject(new Error(`${name} exited (${code}) before starting:\n${out}`));
     });
   });
-}
-
-/** The server command for SERVER_IMPL. */
-export function serverCommand(env = process.env) {
-  const impl = env.SERVER_IMPL || "node";
-  if (impl === "node") return { cmd: process.execPath, args: [path.join(ROOT, "server.mjs")] };
-  if (impl === "native") {
-    if (!env.SERVER_CMD || !fs.existsSync(env.SERVER_CMD)) {
-      throw new Error("SERVER_IMPL=native needs the ips-server binary (Phase 3) at SERVER_CMD; it is not built yet.");
-    }
-    return { cmd: env.SERVER_CMD, args: [] };
-  }
-  throw new Error(`SERVER_IMPL must be node or native, not ${impl}`);
 }
 
 /**

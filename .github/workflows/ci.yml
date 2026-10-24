@@ -28,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       rust: ${{ steps.diff.outputs.rust }}
+      native: ${{ steps.diff.outputs.native }}
     steps:
       # Depth 2: the PR's merge commit and its first parent (the base).
       - uses: actions/checkout@v7
@@ -38,6 +39,12 @@ jobs:
           if [ "${{ github.event_name }}" != "pull_request" ] \
             || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|tools/desktop-prepare\.mjs$|\.github/workflows/ci\.yml$)'; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
+          fi
+          # The native server (ips-server) is checked against the Node server's tests, fixtures and e2e suite, so a
+          # change to either server, its tests or the parity tooling runs that job too.
+          if [ "${{ github.event_name }}" != "pull_request" ] \
+            || git diff --name-only HEAD^1 HEAD | grep -qE '^(src-tauri/|server\.mjs$|server/|tools/(parity|perf)/|tests/(server|e2e|fixtures)/|package(-lock)?\.json$|\.github/workflows/ci\.yml$)'; then
+            echo "native=true" >> "$GITHUB_OUTPUT"
           fi
 
   # Lint, typecheck, build and the Vitest suite.
@@ -68,6 +75,13 @@ jobs:
       # The e2e suite against dist/ on a scratch server (tools/perf/scratch.mjs).
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # The parity fixtures the native server's tests load must match what the Node server produces now. The locale
+      # table in them is Node's ICU data (77.1 in 24.6.0), so this step runs on the Node the fixtures were made with.
+      # Move both together: bump the version here, then npm run parity:fixtures on it.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.6.0
+      - run: npm run parity:check
 
   # The Rust tests, only when the change touches the desktop app.
   rust:
@@ -104,3 +118,48 @@ jobs:
       - name: cargo test
         run: cargo test
         working-directory: src-tauri
+
+  # Both servers, on Linux and Windows: the Node server's suite, the same suite against ips-server, the Rust tests of
+  # the two crates (the Tauri app builds on Windows only, see the rust job) and the differential check. Linux also runs
+  # the e2e suite against ips-server.
+  native:
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: modules
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      # Its own key: the tauri cache belongs to the rust and release jobs.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: native
+      - run: npm run test:server:node
+      - run: npm run test:server:native
+      - name: cargo test
+        run: cargo test -p ips-server -p ips-agent
+        working-directory: src-tauri
+      - run: npm run parity:servers
+      - if: runner.os == 'Linux'
+        run: npm run build
+      - if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      # test:server:native built the debug binary the scratch server runs.
+      - if: runner.os == 'Linux'
+        run: npm run test:e2e
+        env:
+          SERVER_IMPL: native

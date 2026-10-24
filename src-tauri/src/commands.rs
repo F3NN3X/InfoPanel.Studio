@@ -41,7 +41,7 @@ pub struct SetResult {
     pub ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
-    /// Port, listen, allowed hosts, remote editing or debug differ from what the running server was started with.
+    /// Port, listen, allowed hosts, remote editing, debug or the server differ from what the running server was started with.
     pub restart_required: bool,
     pub settings: Settings,
 }
@@ -76,6 +76,7 @@ pub fn restart_required(
             || rc.port != saved.port
             || rc.allowed_hosts != saved.allowed_hosts
             || rc.allow_remote_edit != saved.allow_remote_edit
+            || rc.server != saved.server
             || rc.debug != (saved.debug || debug_forced)
     })
 }
@@ -216,7 +217,7 @@ pub async fn server_stats(app: AppHandle) -> CmdResult<ServerStats> {
         .and_then(|r| debug::parse_server_stats(&r.body));
         ServerStats {
             clients: answer.map(|(_, c)| c),
-            rss_bytes: status.pid.and_then(debug::process_rss),
+            rss_bytes: control::server_pid(&status).and_then(debug::process_rss),
             uptime_ms: answer.map(|(u, _)| u),
         }
     })
@@ -408,12 +409,15 @@ fn agent_statuses(app: &AppHandle) -> CmdResult<Vec<agents::AgentStatus>> {
 fn apply_agents(app: &AppHandle, enabled: bool) -> agents::AgentResult {
     let st = app.state::<AppState>();
     let s = st.settings();
-    let result = agents::apply(&st.paths, &s, enabled);
-    let node = crate::paths::display(&st.paths.node_exe());
+    let result = match home_dir(app) {
+        Ok(home) => agents::apply(&st.paths, &s, &home, enabled),
+        Err(e) => agents::failed(enabled, e),
+    };
     let mut current = lock(&st.settings);
     if result.ok {
         current.agents.enabled = enabled;
-        current.agents.installed = enabled.then(|| agents::install_record(&s, &st.version, &node));
+        current.agents.installed = enabled
+            .then(|| agents::install_record(&s, &st.version, &agents::agent_path(&st.paths)));
     } else if enabled {
         // The old hooks may be gone already; nothing is installed for sure.
         current.agents.enabled = false;
@@ -868,6 +872,7 @@ mod tests {
             debug: false,
             allowed_hosts: Vec::new(),
             allow_remote_edit: false,
+            server: crate::settings::ServerImpl::Node,
         };
         assert!(!restart_required(&saved, false, None));
         assert!(!restart_required(&saved, false, Some(&running)));
@@ -890,6 +895,10 @@ mod tests {
             },
             Settings {
                 allow_remote_edit: true,
+                ..saved.clone()
+            },
+            Settings {
+                server: crate::settings::ServerImpl::Native,
                 ..saved.clone()
             },
         ] {

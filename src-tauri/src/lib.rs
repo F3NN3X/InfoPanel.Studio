@@ -9,6 +9,7 @@ mod http;
 mod kiosk;
 mod logs;
 mod nav;
+mod native;
 mod paths;
 mod probe;
 mod refresh;
@@ -23,6 +24,7 @@ mod webview2;
 mod windows;
 
 use crate::state::{lock, AppState, Phase};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{Manager, RunEvent};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
@@ -101,6 +103,14 @@ pub fn run() {
     // The settings and log folders are known before Tauri starts; resources only once it has.
     let early = paths::Paths::from_env(Default::default());
     let log_dir = early.log_dir;
+    // server.log: the sidecar's output, or the in-app server's log lines (target `server`).
+    let server_log = Arc::new(Mutex::new(sidecar::RotatingLog::new(
+        &log_dir,
+        "server",
+        sidecar::SERVER_LOG_MAX,
+        sidecar::SERVER_LOG_FILES,
+    )));
+    let server_lines = server_log.clone();
     // Only a peek: `setup` loads (and logs about) the file once the log is up.
     let remember_bounds = std::fs::read_to_string(settings::settings_file(&early.config_dir))
         .ok()
@@ -117,10 +127,25 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .clear_targets()
-                .target(Target::new(TargetKind::Folder {
-                    path: log_dir,
-                    file_name: Some("app".into()),
-                }))
+                .target(
+                    Target::new(TargetKind::Folder {
+                        path: log_dir,
+                        file_name: Some("app".into()),
+                    })
+                    .filter(|m| m.target() != "server"),
+                )
+                .target(
+                    Target::new(TargetKind::Dispatch(
+                        tauri_plugin_log::fern::Dispatch::new().chain(
+                            tauri_plugin_log::fern::Output::call(move |record| {
+                                if let Ok(mut l) = server_lines.lock() {
+                                    let _ = l.write_line(&record.args().to_string());
+                                }
+                            }),
+                        ),
+                    ))
+                    .filter(|m| m.target() == "server"),
+                )
                 .max_file_size(APP_LOG_MAX)
                 .rotation_strategy(RotationStrategy::KeepSome(3))
                 .level(log::LevelFilter::Debug)
@@ -225,7 +250,10 @@ pub fn run() {
             let check_updates = s.check_for_updates;
             let start_server = s.start_server;
             app.manage(updater::Updates::new(&version));
-            let st = AppState::new(paths, version, s, forced, hidden);
+            let st = AppState {
+                server_log,
+                ..AppState::new(paths, version, s, forced, hidden)
+            };
             apply_log_level(st.debug());
             app.manage(st);
             commands::sync_autostart(&handle, start_at_login);

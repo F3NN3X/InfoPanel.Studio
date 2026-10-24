@@ -6,8 +6,16 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **A native dashboard server (experimental).** Settings › Diagnostics › Server (experimental) › Native runs the dashboard server inside the app instead of as a separate Node process. The server answers the same, reads and writes the same files, so you can switch back and forth. It uses about half the memory: 41 MB against 82 MB for the app plus the Node server, idle or with five kiosks connected. Node stays the default for now.
+- **Design preview data.** The Design canvas can show a snapshot of the sensor values instead of live data: *Frozen*, or *Frozen when unfocused* (now the default: live while you work, frozen a minute after the Studio loses focus). A frozen Studio stops its own Data API stream and its effects, using a fraction of the CPU. The zoom bar shows "Frozen · HH:MM" with Refresh (Shift+F) and Go live for this session; F toggles it. Kiosks, Kiosk view and the Data view stay live. Settings › Studio, or Settings › General › Window.
+- **Open the studio in Microsoft Edge or your browser.** Settings › General › Window › Open the studio in: the app window (default), Microsoft Edge in app mode, or the default browser. The app then runs no studio window of its own; with Edge already open this saves most of the studio's memory. The tray, a second launch and Settings' links open it there, and asks before opening a second one. In a browser the Studio saves as soon as its tab is hidden, asks before closing with an unsaved change, opens Kiosk view in a window of its own, and opens Help in a tab.
+
 ### Changed
 
+- **Coding agent hooks start about eight times faster.** The Claude Code and Codex hooks now run a small native helper (`ips-agent.exe`) instead of Node: about 6 ms per event instead of 50. The app moves existing hooks over on its next start; nothing to do.
+- **The Design preview setting follows you between the app window and a browser studio**, and a browser studio picks up Dashboard and Studio settings changed in the app's Settings window.
 - **The hidden Studio gives back its memory.** After 10 minutes in the tray its page is closed (Settings › General › Window › Release the hidden studio: 1 minute, 10 minutes, an hour or never); opening it from the tray rebuilds it in a moment. Edits are saved before it closes; unsaved undo history is lost.
 - **The kiosk page downloads about 200 KB less script.** Gauge icons come from markup made at build time, so the page no longer carries React's server renderer.
 - **Kiosks and the Studio draw fewer frames when nothing moves.** Clocks wake only when the time they show changes, finished animations stop asking for frames, and the animation loop sleeps until something is due: a page with only a clock, weather or visualisers runs at about 35 frames a second instead of 60, and at none with nothing animating.
@@ -15,6 +23,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Fixed
 
+- **Calendar events on the 31st (or 29 February) kept repeating only until the first month without that day.** They now skip such a month and carry on.
+- **The font list cache and the coding agents' settings files are written atomically**, so a crash can no longer leave a cut file.
 - **A kiosk no longer starts on its local copy of the layout.** Until the server's config arrived it showed the local copy (the defaults in a fresh browser), reported that profile (`main`) as shown, and its widgets connected to that copy's Data API address. It now waits for the server's config (or for the server to be unreachable) before it draws.
 
 ## [1.3.0-beta.16] - 2026-10-23

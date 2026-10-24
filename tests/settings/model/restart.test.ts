@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { RunningConfig } from "@/settings/types";
 import { parseHosts, parsePort, restartItems, restartText } from "@/settings/model/restart";
 
-const running: RunningConfig = { listen: "local", port: 3922, debug: false, allowedHosts: [], allowRemoteEdit: false };
-const saved = { listen: "local" as const, port: 3922, debug: false, allowedHosts: [] as string[], allowRemoteEdit: false };
+const running: RunningConfig = { listen: "local", port: 3922, debug: false, allowedHosts: [], allowRemoteEdit: false, server: "node" };
+const saved = { listen: "local" as const, port: 3922, debug: false, allowedHosts: [] as string[], allowRemoteEdit: false, server: "node" as const };
 
 describe("restartItems", () => {
   it("is empty while nothing differs, or no server runs", () => {
@@ -12,15 +12,18 @@ describe("restartItems", () => {
   });
 
   it("lists each setting the running server hasn't picked up, with the value Undo restores", () => {
-    const items = restartItems({ listen: "lan", port: 3923, debug: true, allowedHosts: ["panel.lan"], allowRemoteEdit: true }, running);
+    const items = restartItems({ listen: "lan", port: 3923, debug: true, allowedHosts: ["panel.lan"], allowRemoteEdit: true, server: "native" }, running);
     expect(items.map((i) => [i.key, i.running])).toEqual([
       ["port", 3922],
       ["listen", "local"],
       ["debug", false],
       ["allowedHosts", []],
       ["allowRemoteEdit", false],
+      ["server", "node"],
     ]);
-    expect(restartText(items)).toBe("Restart the server to apply: port 3923, local network access, debug mode on, allowed host names, editing from other devices on.");
+    expect(restartText(items)).toBe(
+      "Restart the server to apply: port 3923, local network access, debug mode on, allowed host names, editing from other devices on, the native server."
+    );
   });
 
   it("words listen and debug by the saved value", () => {

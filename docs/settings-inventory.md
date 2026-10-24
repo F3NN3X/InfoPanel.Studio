@@ -708,11 +708,13 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 | `autoDownload` | Download in the background | boolean | `false` | Settings › Updates |
 | `agents.enabled` | Connect coding agents (Claude Code and Codex hooks installed by the app) | boolean | `false` | Settings › Coding agents |
 | `debug` | Debug mode (debug logging and leak sampling; also `--debug`, `INFOPANEL_STUDIO_DEBUG=1`) | boolean | `false` | Settings › Diagnostics |
+| `server` | Server, experimental (which server the app starts: the bundled Node running `server.mjs`, or `ips-server` inside the app's process with the same inputs; read at start, so a change shows the restart bar) | `node` (Node), `native` (Native) | `node` | Settings › Diagnostics |
 | `version`, `agents.installed`, `closeWarningShown` | Bookkeeping: file layout, what the hooks were last written for, the one-time close warning | | | Not edited by hand |
 
 The server's own environment variables (`PORT`, `HOST`, `ALLOWED_HOSTS`, `DASHBOARD_DIST`,
 `DASHBOARD_DATA_DIR`, `DASHBOARD_DEBUG`) are in [development.md](development.md); the app sets
-`PORT`, `HOST`, `ALLOWED_HOSTS` and `DASHBOARD_DEBUG` from these keys (`src-tauri/src/sidecar.rs:36-40`).
+`PORT`, `HOST`, `ALLOWED_HOSTS` and `DASHBOARD_DEBUG` from these keys (`src-tauri/src/sidecar.rs:36-40`). With
+`server` set to `native` the same values go to `ips-server` as a `ServerConfig` instead (`src-tauri/src/native.rs`).
 
 ---
 

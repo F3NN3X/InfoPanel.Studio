@@ -56,8 +56,9 @@ sections.
   `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's own Node and the current
   port. They are rewritten after a port change or an app update, and removed when you turn it off or
   uninstall the app.
-- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the live logs of the server, app and studio,
-  versions and file locations, and the bundled changelog.
+- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the server (experimental: Node, the bundled
+  `server.mjs`, or Native, `ips-server` running inside the app; read when the server starts, so a change shows the
+  restart bar), the live logs of the server, app and studio, versions and file locations, and the bundled changelog.
 
 ## Releases and updates
 
@@ -122,6 +123,11 @@ Turn it on in the settings page, or for one run with `--debug` or `INFOPANEL_STU
 
 Event-loop delay figures on Windows sit around 15 ms at idle: that is the timer resolution, not a stall.
 
+With the native server the server runs in the app's process: its lines (target `server`) still go to `server.log`,
+with the app log's `[date][time][server][LEVEL]` prefix; the Server page's Memory is the app's; in `metrics.csv` the
+`sidecar.*` columns stay empty (`app.rssMb` is the figure), `server.memory.rss` is the app's too, the V8 heap
+columns are empty, and `server.eventLoopDelayMs.p99` is the runtime's scheduling delay.
+
 ## Testing without touching the live setup
 
 | Variable | Effect |
@@ -144,4 +150,5 @@ there), leave `INFOPANEL_STUDIO_CDP_PORT` out.
 
 The `desktop` Playwright project (`tests/desktop/`, Windows only) does all of this: build with
 `npm run desktop:web && npm run desktop:prepare && npx tauri build --debug --no-bundle`, then
-`npx playwright test --project=desktop`.
+`npx playwright test --project=desktop`. `DESKTOP_SERVER=native` runs them against the native server (it writes
+`"server": "native"` into the scratch settings).

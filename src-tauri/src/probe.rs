@@ -148,9 +148,15 @@ pub fn is_node(info: &ProcessInfo) -> bool {
     info.name.eq_ignore_ascii_case("node.exe")
 }
 
-/// Only a node.exe owned by the current user may be adopted as the session's server.
+/// ips-server run on its own (`cargo run -p ips-server` from a checkout): a dashboard server by its image name.
+pub fn is_ips_server(info: &ProcessInfo) -> bool {
+    info.name.eq_ignore_ascii_case("ips-server.exe") || info.name == "ips-server"
+}
+
+/// Only a node.exe or an ips-server owned by the current user may be adopted as the session's server. An
+/// ips-server is never stopped for the user (`kill` takes node.exe only): it is a developer's from-source run.
 pub fn may_adopt(info: &ProcessInfo) -> bool {
-    is_node(info) && info.same_user
+    (is_node(info) || is_ips_server(info)) && info.same_user
 }
 
 /// A node.exe running the dashboard's `server.mjs` (as start-dashboard.bat and `npm start` do),
@@ -267,6 +273,11 @@ Active Connections
         assert!(may_adopt(&info("node.exe", true)));
         assert!(!may_adopt(&info("node.exe", false)));
         assert!(!may_adopt(&info("InfoPanel.exe", true)));
+        assert!(may_adopt(&info("ips-server.exe", true)));
+        assert!(may_adopt(&info("IPS-SERVER.EXE", true)));
+        assert!(!may_adopt(&info("ips-server.exe", false)));
+        assert!(!may_adopt(&info("ips-agent.exe", true)));
+        assert!(!is_node(&info("ips-server.exe", true)), "an ips-server is adopted, never stopped");
     }
 
     #[test]

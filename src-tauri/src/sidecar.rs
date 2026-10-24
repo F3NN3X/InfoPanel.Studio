@@ -149,7 +149,7 @@ pub fn tail(dir: &Path, name: &str, n: usize) -> String {
     lines[start..].join("\n")
 }
 
-fn timestamp() -> String {
+pub fn timestamp() -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())

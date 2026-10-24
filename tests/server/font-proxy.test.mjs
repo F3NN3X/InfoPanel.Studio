@@ -39,7 +39,7 @@ describe("fetchBytes", () => {
 });
 
 describe("the route", () => {
-  const run = async (url, fake, cacheDir) => {
+  const run = async (url, fake, cacheDir, timeoutMs) => {
     const out = {};
     const res = {
       writeHead: (status, headers) => Object.assign(out, { status, headers }),
@@ -49,7 +49,7 @@ describe("the route", () => {
       r.writeHead(status, {});
       r.end(body);
     };
-    await createFontProxy({ cacheDir, send, fetchImpl: fake })({ method: "GET" }, res, new URLSearchParams({ url }));
+    await createFontProxy({ cacheDir, send, fetchImpl: fake, timeoutMs })({ method: "GET" }, res, new URLSearchParams({ url }));
     return out;
   };
 
@@ -61,6 +61,23 @@ describe("the route", () => {
     const out = await run("https://www.fontsquirrel.com/fonts/download/x", async () => response(200, "zip"), os.tmpdir());
     expect(out).toMatchObject({ status: 200, body: "zip" });
     expect(out.headers["Content-Security-Policy"]).toContain("sandbox");
+  });
+
+  // A fetch that never answers until the deadline aborts it, as the real one does.
+  const stalls = (init) => new Promise((_, reject) => init.signal.addEventListener("abort", () => reject(new Error("aborted"))));
+
+  it("answers 504 when the deadline passes before the headers", async () => {
+    const out = await run("https://www.fontsquirrel.com/fonts/download/x", (_url, init) => stalls(init), os.tmpdir(), 30);
+    expect(out).toMatchObject({ status: 504, body: "" });
+  });
+
+  it("answers 502 when the deadline passes during the body", async () => {
+    const stalledBody = (_url, init) => {
+      const body = new ReadableStream({ pull: () => stalls(init) });
+      return Promise.resolve(new Response(body, { status: 200 }));
+    };
+    const out = await run("https://www.fontsquirrel.com/fonts/download/x", stalledBody, os.tmpdir(), 30);
+    expect(out).toMatchObject({ status: 502, body: "" });
   });
 
   it("keeps the catalogue and serves the copy while Font Squirrel throttles", async () => {
