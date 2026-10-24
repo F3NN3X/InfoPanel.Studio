@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.23] - 2026-10-24
+
 ### Added
 
 - **The InfoPanel editor, on its own page.** InfoPanel on the rail opens it: the Add palette and Layers on the left, the canvas in the middle, the inspector on the right. It edits a canvas zone, with undo and redo in the studio's history; Edit items on a canvas zone opens it there, and with nothing open the page lists the dashboard's InfoPanel profiles.
@@ -25,7 +27,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **A remapped sensor was lost in the .infopanel export.** A Remap choice, in the editor or at import, now rewrites the item's InfoPanel binding too.
 - **The .infopanel export now writes `_valueType` next to `ValueType`**, as InfoPanel's own files do.
 - **Reset to automatic in Remap now restores the original sensor.** After a choice it used to resolve the new binding, so only undo brought the old one back.
-- **The Remap panel kept its selected row after a choice.** It used to jump back to the first row.
+- **The Remap panel keeps its selected row after a choice.** It used to jump back to the first row.
 - **Audio Meter's Auto said it picks the loudest device.** It meters the default device: the default output, or the default input when Show is Inputs. The Device list's Auto row now says so and names the device it follows right now.
 
 ## [1.3.0-beta.22] - 2026-10-24
