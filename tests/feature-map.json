@@ -466,7 +466,7 @@
       "id": "infopanel-import-export",
       "critical": true,
       "summary": "InfoPanel profile parsing, conversion, canvas editing, fonts, archives, export, with the corpus round-trips.",
-      "paths": ["src/lib/infopanel/**", "src/components/infopanel/**", "tools/ip-import.cjs"],
+      "paths": ["src/lib/infopanel/**", "src/components/infopanel/**", "tools/ip-import.cjs", "tools/gen-element-icons.mjs", "tools/gen-element-icons.d.mts"],
       "exclude": ["src/lib/infopanel/gauges/**"],
       "tests": ["tests/lib/infopanel/**", "tests/components/infopanel/**"],
       "checks": ["typecheck", "unit", "lab"],

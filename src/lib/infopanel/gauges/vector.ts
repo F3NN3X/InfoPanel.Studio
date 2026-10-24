@@ -231,6 +231,8 @@ export interface VectorGauge {
   background?: Background;
   /** Glow around the fill, blur radius px. */
   glow?: number;
+  /** A dot where the fill ends (an arc's or a bar's value end); `size` is its diameter, px. */
+  dot?: { color: Paint; size: number };
   shadow?: Shadow;
   liquid?: Liquid;
   grid?: Grid;
@@ -442,6 +444,10 @@ function arcPrims(g: VectorGauge, p: number): Prim[] {
 
   if (g.ticks && g.ticks.count >= 2) out.push(...arcTicks(g, { cx, cy, r, sweep }));
   if (g.needle) out.push(...arcNeedle(g, { cx, cy, r }, valueAt(p)));
+  if (g.dot && p > 0.005) {
+    const [x, y] = at(valueAt(p));
+    out.push(lit({ kind: "path", d: circlePath(x, y, g.dot.size / 2), fill: g.dot.color }));
+  }
   return out;
 }
 
@@ -512,6 +518,11 @@ function barPrims(g: VectorGauge, p: number): Prim[] {
       : `M${fmt(g.reverse ? at.x : at.x + at.w)} ${fmt(offset + across / 2 - over / 2)}v${fmt(over)}`;
     out.push({ kind: "path", d, stroke: n.color, width: n.width, cap: "round" });
   }
+  if (g.dot && p > 0.005) {
+    const at = box(0, length * p);
+    const [x, y] = vertical ? [offset + across / 2, g.reverse ? at.y + at.h : at.y] : [g.reverse ? at.x : at.x + at.w, offset + across / 2];
+    out.push(lit({ kind: "path", d: circlePath(x, y, g.dot.size / 2), fill: g.dot.color }));
+  }
   return out;
 }
 
@@ -557,6 +568,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
   const bg = obj(o.background);
   const border = obj(bg?.border);
   const shadow = obj(o.shadow);
+  const dot = obj(o.dot);
   const [warn, crit] = [finite(fill.warn), finite(fill.crit)];
   // Only checked for shape here (this also runs on the dev server); the browser sanitizes it before use.
   const template = typeof o.template === "string" && o.template.length <= MAX_TEMPLATE && /^<svg\b/.test(o.template) ? o.template : null;
@@ -617,6 +629,7 @@ export function normalizeGauge(raw: unknown): VectorGauge {
         }
       : {}),
     ...(o.glow !== undefined ? { glow: num(o.glow, 0, 0, 64) } : {}),
+    ...(dot ? { dot: { color: color(dot.color, "#FFFFFF"), size: num(dot.size, 8, 1, 256) } } : {}),
     ...(shadow
       ? { shadow: { blur: num(shadow.blur, 6, 0, 64), dx: num(shadow.dx, 0, -64, 64), dy: num(shadow.dy, 2, -64, 64), color: color(shadow.color, "#000000"), opacity: num(shadow.opacity, 0.5, 0, 1) } }
       : {}),

@@ -218,7 +218,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
                 </button>
               }
             >
-              <p className="pl-[30px] text-[11.5px] text-ui-4">Bake vector gauges first · Leave unused assets out · Stored form or .infopanel: you choose them in the next step.</p>
+              <p className="pl-[30px] text-[11.5px] text-ui-4">Bake gauges and elements first · Leave unused assets out · Stored form or .infopanel: you choose them in the next step.</p>
             </ExportRow>
             <ExportRow
               {...common}

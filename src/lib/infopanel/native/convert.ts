@@ -12,6 +12,8 @@
  * InfoPanel fields, so switching back is lossless.
  */
 import type { Widget } from "@/lib/panel-model";
+import type { StaticSpec } from "../elements/spec.ts";
+import { staticOf } from "../elements/svg.ts";
 import { vectorOf } from "../gauges/frames.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "../gauges/vector.ts";
 import { cssColor } from "../render/color.ts";
@@ -34,6 +36,8 @@ export interface NativeBox {
 export type Custom =
   /** The custom gauge widget: a vector spec drawn live (L7). */
   | { kind: "vector"; gauge: VectorGauge; min: number; max: number }
+  /** A static studio element (card, glow, divider, icon) drawn live from its spec. */
+  | { kind: "element"; spec: StaticSpec }
   /** An image-sequence gauge: the frame for the value. */
   | { kind: "frames"; urls: string[]; min: number; max: number }
   /** The image stretched over the box with InfoPanel's colour layer (#AARRGGBB) on top; nothing without an image. */
@@ -305,6 +309,11 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
     case "Image":
     case "HttpImage":
     case "SensorImage": {
+      const element = staticOf(item);
+      if (element) {
+        const box = { x: Math.floor(item.X), y: Math.floor(item.Y), w: element.width, h: element.height };
+        return ok({ kind: "image", height: element.height }, box, [], { custom: { kind: "element", spec: element.spec }, needs: ["studio element"] });
+      }
       if (item.Type === "RTSP") return no("RTSP video: no dashboard widget plays it");
       const src = imageSource(item);
       const url = src.kind === "url" ? src.url : src.kind === "asset" ? ctx.assetUrl(src.name) : null;

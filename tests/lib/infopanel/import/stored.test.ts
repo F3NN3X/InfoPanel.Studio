@@ -10,7 +10,9 @@ import { DEFAULT_GAUGE } from "@/lib/infopanel/gauges/vector.ts";
 import { assetsFrom, newStored, overridesFrom, readStored, remapKeys, toStored, type StoreInput } from "@/lib/infopanel/import/stored.ts";
 import { profileXml } from "@/lib/infopanel/export/write.ts";
 import { checkValue } from "@/lib/infopanel/editor/registry.ts";
-import { PROFILE } from "@/lib/infopanel/schema.ts";
+import { defaultItem, PROFILE } from "@/lib/infopanel/schema.ts";
+import { newItem } from "@/lib/infopanel/editor/create.ts";
+import { defaultPalette } from "@/lib/infopanel/elements/palette.ts";
 
 const xml = import.meta.glob<string>("/lab/infopanel/corpus/*/*.xml", { query: "?raw", import: "default", eager: true });
 const ids = [...new Set(Object.keys(xml).map((k) => k.split("/").at(-2)!))];
@@ -201,5 +203,52 @@ describe("the original binding a remap keeps", () => {
       expect(r.keys.get("0")).toEqual({ key: "k", via: "chosen" });
       expect(r.issues).toEqual([expect.objectContaining({ code: "invalid-value", field: "$.original" })]);
     }
+  });
+});
+
+describe("studio elements and the palette in the stored form", () => {
+  const base = newStored({ name: "Cards", width: 800, height: 480, now: new Date("2026-10-24T00:00:00Z") });
+  const profile = readStored(base).profile;
+  const ring = {
+    ...newItem("Gauge", profile),
+    element: { type: "ring", start: -135, sweep: 270, thickness: 12, track: { color: "#FF2C2C2E", slot: "track" }, fill: [{ color: "#FF3B82F6", slot: "accent1" }], rounded: true, dot: true, ticks: 0, segments: 0, gap: 3, glow: 0 },
+  } as unknown as DisplayItem;
+  const shape = newItem("Shape", profile);
+  const storeInput = (items: DisplayItem[]): StoreInput => ({ name: "Cards", origin: "new", dataApi: null, defaultMode: "infopanel", profile, items, assets: new Map(), keyOf: () => null, fonts: [] });
+  const store = (items: DisplayItem[], extra: object = {}) => JSON.parse(JSON.stringify({ ...toStored(storeInput(items)), ...extra }));
+
+  it("keeps an element's spec, a baked record, the slots and the palette through JSON", () => {
+    const palette = { ...defaultPalette(profile), accent1: "#FFFF0000" };
+    const baked = { ...shape, element: { type: "glow", color: { color: "#FFFF0000", slot: "accent1" }, alpha: 0.4, radius: 50 }, elementBaked: "sig" } as unknown as DisplayItem;
+    const r = readStored(store([ring, shape], { palette }));
+    expect(r.issues).toEqual([]);
+    expect(r.items[0]).toMatchObject({ element: { type: "ring", dot: true, fill: [{ slot: "accent1" }] } });
+    expect(r.items[1]).toMatchObject({ slots: { FillColor: { slot: "card" } } });
+    expect(r.stored.palette).toEqual(palette);
+    // A glow is an Image: on a Shape it is refused, its record with it.
+    const wrong = readStored(store([baked]));
+    expect(wrong.items[0]).not.toHaveProperty("element");
+    expect(wrong.items[0]).not.toHaveProperty("elementBaked");
+    expect(wrong.issues).toEqual([expect.objectContaining({ code: "invalid-value", field: "$.element" })]);
+  });
+
+  it("refuses slots on a field that is not a colour, or with an unknown slot", () => {
+    for (const slots of [{ Width: { slot: "card" } }, { FillColor: { slot: "nope" } }, { FillColor: { slot: "card", alpha: 2 } }]) {
+      const raw = store([{ ...shape, slots } as unknown as DisplayItem]);
+      const r = readStored(raw);
+      expect(r.items[0]).not.toHaveProperty("slots");
+      expect(r.issues).toEqual([expect.objectContaining({ field: "$.slots" })]);
+    }
+  });
+
+  it("reads an older stored form, without elements, slots or palette, as before", () => {
+    const old = store([{ ...defaultItem("Shape"), Name: "s" } as DisplayItem]);
+    delete old.palette;
+    const r = readStored(old);
+    expect(r.issues).toEqual([]);
+    expect(r.stored).not.toHaveProperty("palette");
+    expect(r.items[0]).not.toHaveProperty("element");
+    // A bad palette slot takes the profile's default.
+    expect(readStored({ ...old, palette: { accent1: 7 } }).stored.palette).toEqual(defaultPalette(profile));
   });
 });

@@ -3,8 +3,10 @@
  * save (`Placement.canvas`, PLAN.md decisions 1–2). The profile and items keep
  * InfoPanel's field names and values, unknown fields included, so an export
  * back to `.infopanel` stays exact; what the import decided per item lives
- * under `$` (mode, the Data API key, a vector gauge spec). Assets and supplied
- * fonts are referenced by SHA-256; their bytes travel next to it.
+ * under `$` (mode, the Data API key, a vector gauge spec, a studio element's
+ * spec and the palette slots its colours follow). Assets and supplied fonts are
+ * referenced by SHA-256; their bytes travel next to it. The profile's palette is
+ * studio-only too (`palette`), never exported.
  *
  * Reading checks everything against the schema tables, the same source of
  * truth as the XML parser: a wrong value keeps the C# default and is reported.
@@ -12,6 +14,9 @@
 import { assetKey, HASH_HEX, type AssetTable, type AssetType } from "../assets/assets.ts";
 import type { FontRequest } from "../font-loader.ts";
 import type { Use } from "../font-supply.ts";
+import type { SlotRef } from "../elements/apply.ts";
+import { defaultPalette, isSlot, normalizePalette, type Palette } from "../elements/palette.ts";
+import { ELEMENT_KINDS, normalizeElement, type ElementSpec } from "../elements/spec.ts";
 import { normalizeGauge, type VectorGauge } from "../gauges/vector.ts";
 import type { Issue } from "../parse.ts";
 import { groupId, type Overrides, type Status } from "../remap/remap.ts";
@@ -34,6 +39,12 @@ export interface ItemImport {
   via?: Status;
   vector?: VectorGauge;
   vectorBaked?: string;
+  /** A studio element's spec (elements/spec.ts); the item's InfoPanel fields are derived from it. */
+  element?: ElementSpec;
+  /** What a static element's image was baked from. */
+  elementBaked?: string;
+  /** Colour fields that follow a palette slot, by field name. */
+  slots?: Record<string, SlotRef>;
   /**
    * InfoPanel's binding fields as imported, kept when a remap choice first rewrote them, so Reset
    * to automatic can put them back. Older stored forms have none.
@@ -94,6 +105,8 @@ export interface StoredCanvas {
   fonts: StoredFont[];
   /** The asset store id of InfoPanel's screenshot of the profile, kept for Compare (opt-in at import). */
   screenshot?: string;
+  /** The editor's palette (studio-only); without one the profile's default palette applies. */
+  palette?: Palette;
 }
 
 type Spec = { kind: string; default: unknown; values?: readonly string[]; accept?(v: unknown): unknown };
@@ -114,13 +127,16 @@ function encodeFields(schema: Schema, obj: Record<string, unknown>): Record<stri
   return out;
 }
 
-/** The lab's fields on an item (native, vector, vectorBaked), as `$`. */
+/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots), as `$`. */
 function labImport(item: DisplayItem): ItemImport {
-  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string };
+  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; slots?: Record<string, SlotRef> };
   return {
     ...(lab.native ? { mode: "native" as const } : {}),
     ...(lab.vector !== undefined ? { vector: normalizeGauge(lab.vector) } : {}),
     ...(typeof lab.vectorBaked === "string" ? { vectorBaked: lab.vectorBaked } : {}),
+    ...(lab.element ? { element: lab.element } : {}),
+    ...(typeof lab.elementBaked === "string" ? { elementBaked: lab.elementBaked } : {}),
+    ...(lab.slots && Object.keys(lab.slots).length ? { slots: lab.slots } : {}),
   };
 }
 
@@ -161,6 +177,7 @@ export interface StoreInput {
   keyOf: KeyOf;
   fonts: StoredFont[];
   screenshot?: string;
+  palette?: Palette;
   now?: Date;
 }
 
@@ -176,6 +193,7 @@ export function toStored(input: StoreInput): StoredCanvas {
     assets: [...input.assets.values()].map((f) => ({ name: f.name, hash: f.hash, type: f.type, size: f.bytes.length })),
     fonts: input.fonts,
     ...(input.screenshot ? { screenshot: input.screenshot } : {}),
+    ...(input.palette ? { palette: input.palette } : {}),
   };
 }
 
@@ -272,10 +290,31 @@ function decodeOriginal(raw: unknown, kind: ItemKind): OriginalBinding | null {
   return typeof out.SensorType === "string" ? out : null;
 }
 
-function decodeImport(raw: unknown, kind: ItemKind, report: () => void): ItemImport {
+/** Stored slot references, each on a colour field of the kind with a known slot; null when any is wrong. */
+function decodeSlots(raw: unknown, kind: ItemKind): Record<string, SlotRef> | null {
+  const o = obj(raw);
+  if (!o) return null;
+  const schema = SCHEMAS[kind] as Schema;
+  const out: Record<string, SlotRef> = {};
+  for (const [field, v] of Object.entries(o)) {
+    const ref = obj(v);
+    const alpha = ref?.alpha;
+    if (schema[field]?.kind !== "color" || !ref || !isSlot(ref.slot) || (alpha !== undefined && !(typeof alpha === "number" && alpha >= 0 && alpha <= 1))) return null;
+    out[field] = alpha === undefined ? { slot: ref.slot } : { slot: ref.slot, alpha };
+  }
+  return out;
+}
+
+function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, value: unknown) => void): ItemImport {
   const o = obj(raw) ?? {};
   const original = o.original !== undefined ? decodeOriginal(o.original, kind) : null;
-  if (o.original !== undefined && !original) report();
+  if (o.original !== undefined && !original) report("$.original", o.original);
+  // An element only on the kinds it can be (a card is a Shape or an Image, a ring a Gauge …).
+  const element = o.element !== undefined ? normalizeElement(o.element) : null;
+  const fits = element !== null && ELEMENT_KINDS[element.type].includes(kind);
+  if (o.element !== undefined && !fits) report("$.element", o.element);
+  const slots = o.slots !== undefined ? decodeSlots(o.slots, kind) : null;
+  if (o.slots !== undefined && !slots) report("$.slots", o.slots);
   const via = typeof o.via === "string" && ["exact", "name", "suggested", "chosen", "unbound", "unresolved"].includes(o.via) ? (o.via as Status) : undefined;
   return {
     ...(o.mode === "native" ? { mode: "native" as const } : {}),
@@ -284,6 +323,9 @@ function decodeImport(raw: unknown, kind: ItemKind, report: () => void): ItemImp
     ...(o.vector !== undefined ? { vector: normalizeGauge(o.vector) } : {}),
     ...(typeof o.vectorBaked === "string" ? { vectorBaked: o.vectorBaked.slice(0, 100_000) } : {}),
     ...(original ? { original } : {}),
+    ...(element && fits ? { element } : {}),
+    ...(element && fits && typeof o.elementBaked === "string" ? { elementBaked: o.elementBaked.slice(0, 100_000) } : {}),
+    ...(slots && Object.keys(slots).length ? { slots } : {}),
   };
 }
 
@@ -303,10 +345,13 @@ function decodeItem(raw: unknown, path: string, issues: Issue[], depth: number, 
   const list = (v: unknown) => (Array.isArray(v) ? v : []);
   if (kind === "Group") item.DisplayItems = list(o.DisplayItems).flatMap((c, i) => decodeItem(c, `${path}/${i}`, issues, depth + 1) ?? []);
   if (kind === "Gauge") item.Images = list(o.Images).flatMap((f, i) => decodeItem(f, `${path}/${i}`, issues, depth + 1, true) ?? []);
-  const $ = decodeImport(o.$, kind, () => issues.push({ code: "invalid-value", path, kind, field: "$.original", value: JSON.stringify(o.$ && (o.$ as Record<string, unknown>).original)?.slice(0, 80) }));
+  const $ = decodeImport(o.$, kind, (field, value) => issues.push({ code: "invalid-value", path, kind, field, value: JSON.stringify(value)?.slice(0, 80) }));
   if ($.mode === "native") item.native = true;
   if ($.vector) item.vector = $.vector;
   if ($.vectorBaked) item.vectorBaked = $.vectorBaked;
+  if ($.element) item.element = $.element;
+  if ($.elementBaked) item.elementBaked = $.elementBaked;
+  if ($.slots) item.slots = $.slots;
   const rec = importRecord($);
   return { ...(item as unknown as DisplayItem), ...(rec ? { $import: rec } : {}) };
 }
@@ -382,6 +427,7 @@ export function readStored(raw: unknown): ReadStored {
     assets,
     fonts,
     ...(typeof o.screenshot === "string" && SCREENSHOT_ID.test(o.screenshot) ? { screenshot: o.screenshot } : {}),
+    ...(o.palette !== undefined ? { palette: normalizePalette(o.palette, defaultPalette(profile)) } : {}),
   };
   return { stored, profile, items, keys, issues };
 }

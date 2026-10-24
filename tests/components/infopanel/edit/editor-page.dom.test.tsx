@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
 import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
 import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
-import { PALETTE_DRAG, paletteKindOf } from "@/components/infopanel/edit/add-palette";
+import { PALETTE_DRAG, paletteEntryOf } from "@/components/infopanel/edit/add-palette";
 import { withCanvas } from "@/components/studio/import-actions";
 import { readStored, newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import { CANVAS_ID, type DashboardConfig, type Placement } from "@/lib/layout";
@@ -26,7 +26,9 @@ describe("the InfoPanel editor page", () => {
       </ToastProvider>,
     );
     const palette = screen.getByRole("region", { name: "Add" });
-    expect(within(palette).getAllByRole("button")).toHaveLength(14);
+    // InfoPanel's 14 kinds, then the 8 studio elements.
+    expect(within(palette).getAllByRole("button")).toHaveLength(22);
+    expect(within(within(palette).getByRole("group", { name: "Elements" })).getAllByRole("button")).toHaveLength(8);
     expect(screen.getByRole("region", { name: "Layers" })).toBeTruthy();
     expect(screen.getByLabelText("Name")).toHaveProperty("value", "Desk");
 
@@ -49,8 +51,9 @@ describe("the InfoPanel editor page", () => {
     expect(bar.getAttribute("draggable")).toBe("true");
     fireEvent.dragStart(bar, { dataTransfer: { setData, effectAllowed: "" } });
     expect(setData).toHaveBeenCalledWith(PALETTE_DRAG, "Bar");
-    expect(paletteKindOf("Bar")).toBe("Bar");
-    expect(paletteKindOf("text/plain")).toBeNull();
+    expect(paletteEntryOf("Bar")).toMatchObject({ kind: "item", entry: { kind: "Bar" } });
+    expect(paletteEntryOf("element:ring")).toMatchObject({ kind: "element", entry: { type: "ring" } });
+    expect(paletteEntryOf("text/plain")).toBeNull();
     expect(screen.getByText(/Hold Alt to stop snapping/)).toBeTruthy();
   });
 

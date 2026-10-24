@@ -8,6 +8,7 @@ import { rebindChosen, type SensorOf } from "../editor/bind.ts";
 import { assetFile, tableFromExport, tableOf, type AssetFile, type AssetTable } from "../assets/assets.ts";
 import { assetUrl } from "../canvas.ts";
 import type { FontRequest } from "../font-loader.ts";
+import type { Palette } from "../elements/palette.ts";
 import type { ConvertContext } from "../native/convert.ts";
 import { withMode } from "../native/modes.ts";
 import { walkItems } from "../parse.ts";
@@ -33,6 +34,8 @@ export interface Restore {
   keys: Map<string, ItemImport>;
   /** The saved canvas's screenshot (an asset store id). */
   screenshot?: string;
+  /** The saved canvas's palette (studio-only). */
+  palette?: Palette;
 }
 
 export interface OpenedSource {
@@ -68,7 +71,7 @@ export async function openZip(fileName: string, bytes: Uint8Array): Promise<Open
       origin: s.source.origin,
       parsed: o.parsed,
       assets: o.assets,
-      restore: { overrides: o.overrides, defaultMode: s.defaultMode, fonts: s.fonts, fontFiles: o.fonts, missing: o.missing, keys: o.read.keys, screenshot: s.screenshot },
+      restore: { overrides: o.overrides, defaultMode: s.defaultMode, fonts: s.fonts, fontFiles: o.fonts, missing: o.missing, keys: o.read.keys, screenshot: s.screenshot, palette: s.palette },
     };
   }
   return openEntries(stemOf(fileName), entriesFromZip(bytes), "file");
@@ -245,6 +248,7 @@ export function buildCanvas(input: BuildInput): StoredCanvas {
     keyOf: remapped.keyOf,
     fonts,
     screenshot: input.screenshot,
+    palette: source.restore?.palette,
     now: input.now,
   });
   return { ...stored, assets: stored.assets.map((a) => (exts.has(a.hash) ? { ...a, ext: exts.get(a.hash) } : a)) };
@@ -295,6 +299,6 @@ export async function openStored(raw: unknown, read: (hash: string, ext: string 
     origin: r.stored.source.origin,
     parsed,
     assets: tableOf(files),
-    restore: { overrides: overridesFrom(r.items, r.keys), defaultMode: r.stored.defaultMode, fonts: r.stored.fonts, fontFiles, missing, keys: r.keys, screenshot: r.stored.screenshot },
+    restore: { overrides: overridesFrom(r.items, r.keys), defaultMode: r.stored.defaultMode, fonts: r.stored.fonts, fontFiles, missing, keys: r.keys, screenshot: r.stored.screenshot, palette: r.stored.palette },
   };
 }

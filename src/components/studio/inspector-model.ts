@@ -100,6 +100,8 @@ export type InspectorContext =
       group: boolean;
       bound: boolean;
       unknown: boolean;
+      /** A studio element: its spec's settings come first, as the Element section. */
+      element?: string;
     };
 
 /** The context of a selected widget zone. */
@@ -127,6 +129,7 @@ export type SpecialSection =
   | "ipMode"
   | "ipPosition"
   | "ipSensor"
+  | "ipElement"
   | "ipUnknown";
 
 /** Custom UI placed inside a section next to its settings. */
@@ -376,6 +379,7 @@ function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel
   // The Position group's other fields (scale, corner radius) are rows under the X / Y / W / H grid.
   const position = context.group ? undefined : context.groups.find((g) => g.id === "ip-position");
   return [
+    ...(context.element ? [ip("ip-element", context.element, "ipElement", ["Element", "Ring", "Card", "Glow", "Icon", "Cores", "Palette", "Gradient"])] : []),
     ...(context.group ? [] : [ip("ip-mode", "Draw as", "ipMode", ["Native", "InfoPanel", "Faithful", "Mode", "Convert"])]),
     ...(context.group
       ? []

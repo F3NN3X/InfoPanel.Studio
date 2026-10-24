@@ -5,7 +5,8 @@
 import { DEFAULT_GAUGE, normalizeGauge } from "../gauges/vector.ts";
 import { defaultItem, type DisplayItem, type ItemKind, type Profile } from "../schema.ts";
 import { isBound } from "../sensors.ts";
-import { lookOf, withAlpha } from "./look.ts";
+import { defaultPalette, type Palette } from "../elements/palette.ts";
+import { withAlpha } from "./look.ts";
 import { itemAt, updateAt, type Box, type Path } from "./ops.ts";
 
 export type PaletteGroup = "Text" | "Data" | "Media" | "Layout";
@@ -67,12 +68,15 @@ const NAMES: Record<ItemKind, string> = {
  * would clash: Table text in the profile's font and colour; Bar, Graph and Donut on a muted track
  * with the accent and no frame; a Gauge as a ring in the accent (a vector spec the export bakes to
  * frames); a Shape as a rounded card a little off the background, with no frame or gradient.
+ * The colours come from the profile's palette (accent 1, track, card), and the fields that took
+ * one record their slot (`slots`), so a palette change recolours them.
  */
-export function newItem(kind: ItemKind, profile: Pick<Profile, "Font" | "FontSize" | "Color" | "BackgroundColor">): DisplayItem {
+export function newItem(kind: ItemKind, profile: Pick<Profile, "Font" | "FontSize" | "Color" | "BackgroundColor">, palette: Palette = defaultPalette(profile)): DisplayItem {
   const base = { ...defaultItem(kind), Name: NAMES[kind] } as DisplayItem;
-  const look = { Font: profile.Font, FontSize: profile.FontSize, Color: profile.Color };
-  const { accent, track, card } = lookOf(profile);
-  const chart = { Frame: false, Background: true, BackgroundColor: track, Color: accent };
+  // Text takes the profile's colour, which a new profile's palette starts its Text slot from.
+  const look = { Font: profile.Font, FontSize: profile.FontSize, Color: profile.Color, ...(profile.Color.toUpperCase() === palette.text ? { slots: { Color: { slot: "text" } } } : {}) };
+  const { accent1: accent, track, card } = palette;
+  const chart = { Frame: false, Background: true, BackgroundColor: track, Color: accent, slots: { Color: { slot: "accent1" }, BackgroundColor: { slot: "track" } } };
   switch (kind) {
     case "Text":
     case "Sensor":
@@ -84,7 +88,7 @@ export function newItem(kind: ItemKind, profile: Pick<Profile, "Font" | "FontSiz
     case "Bar":
       return { ...base, ...chart, Width: 240, Height: 16, CornerRadius: 8, Gradient: false } as DisplayItem;
     case "Graph":
-      return { ...base, ...chart, Width: 240, Height: 80, Fill: true, FillColor: withAlpha(accent, 0.25) } as DisplayItem;
+      return { ...base, ...chart, Width: 240, Height: 80, Fill: true, FillColor: withAlpha(accent, 0.25), slots: { ...chart.slots, FillColor: { slot: "accent1", alpha: 0.25 } } } as unknown as DisplayItem;
     case "Donut":
       return { ...base, ...chart, Width: 100, Height: 100, Rotation: 90 } as DisplayItem;
     case "Gauge": {
@@ -97,7 +101,7 @@ export function newItem(kind: ItemKind, profile: Pick<Profile, "Font" | "FontSiz
     case "SensorImage":
       return { ...base, Width: 100, Height: 100 } as DisplayItem;
     case "Shape":
-      return { ...base, Width: 200, Height: 120, CornerRadius: 12, ShowFrame: false, ShowGradient: false, FillColor: card } as DisplayItem;
+      return { ...base, Width: 200, Height: 120, CornerRadius: 12, ShowFrame: false, ShowGradient: false, FillColor: card, slots: { FillColor: { slot: "card" } } } as unknown as DisplayItem;
     default:
       return base;
   }

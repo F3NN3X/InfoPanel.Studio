@@ -1,5 +1,5 @@
 /**
- * Snapping in the InfoPanel editor, as Ember's editor does it: a moved or resized box snaps to
+ * Snapping in the InfoPanel editor: a moved or resized box snaps to
  * the canvas's edges and centre and to the other visible items' edges and centres, within 4
  * screen pixels whatever the zoom; Alt turns it off. Shift keeps a drag on one axis and a resize
  * in proportion. Pure: the edit layer measures the boxes and draws the guides.
