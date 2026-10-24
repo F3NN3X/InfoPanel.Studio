@@ -249,6 +249,20 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
       { keys: "Drag a tab", label: "Reorder the pages" },
     ],
   },
+  {
+    title: "InfoPanel editor",
+    items: [
+      { keys: "Arrows", label: "Nudge 1 px" },
+      { keys: "Shift+Arrows", label: "Nudge 10 px" },
+      { keys: "Alt+drag", label: "Move or resize without snapping" },
+      { keys: "Shift+drag", label: "Move on one axis; resize keeping the shape" },
+      { keys: KEYS.duplicate, label: "Duplicate" },
+      { keys: "Ctrl+G", label: "Group" },
+      { keys: "Ctrl+Shift+G", label: "Ungroup" },
+      { keys: `${KEYS.remove} / Backspace`, label: "Delete" },
+      { keys: KEYS.deselect, label: "Clear the selection, then leave the editor" },
+    ],
+  },
 ];
 
 /** Whether keys typed now go to a form field. */

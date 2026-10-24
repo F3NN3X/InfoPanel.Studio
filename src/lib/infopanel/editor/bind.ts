@@ -4,7 +4,7 @@
  */
 import type { KeyOf } from "../import/stored.ts";
 import type { DisplayItem } from "../schema.ts";
-import { bindingFromRef, isBound, withBinding, type DataApiValue } from "../sensors.ts";
+import { bindingFromRef, bindingOf, isBound, withBinding, type DataApiValue } from "../sensors.ts";
 
 /** A Data API sensor as the editor binds to it: its key, display name, unit, and native ref when the Data API reports one. */
 export interface ChosenSensor {
@@ -12,6 +12,8 @@ export interface ChosenSensor {
   name: string;
   unit?: string;
   ref?: string;
+  /** A plugin table's default column format, when the Data API reports it. */
+  format?: string;
 }
 
 /** The catalog's sensor for a key, if it has one. */
@@ -21,7 +23,7 @@ export const sensorOfCatalog =
   (sensors: Readonly<Record<string, DataApiValue>>): SensorOf =>
   (key) => {
     const v = sensors[key];
-    return v ? { key, name: v.name ?? key, unit: v.unit, ...(v.ref ? { ref: v.ref } : {}) } : undefined;
+    return v ? { key, name: v.name ?? key, unit: v.unit, ...(v.ref ? { ref: v.ref } : {}), ...(v.table?.format ? { format: v.table.format } : {}) } : undefined;
   };
 
 /** InfoPanel's binding fields set from a sensor's ref; the item unchanged when there is none, or it can't hold it. */
@@ -58,7 +60,8 @@ export function rebindChosen(items: readonly DisplayItem[], keyOf: KeyOf, sensor
   const next = mapItems(items, (item) => {
     const rec = keyOf(item);
     const out = rec?.via === "chosen" && rec.key ? rebound(item, sensorOf(rec.key)) : item;
-    if (rec) records.set(out, rec);
+    // A rebound item keeps the binding it was imported with, for Reset to automatic.
+    if (rec) records.set(out, out !== item && isBound(item) ? { ...rec, original: bindingOf(item) } : rec);
     return out;
   });
   return { items: next, keyOf: (item) => records.get(item) ?? null };

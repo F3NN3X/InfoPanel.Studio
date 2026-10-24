@@ -2,9 +2,11 @@
  * New items as InfoPanel's own editor makes them (`CommonActions`, `SensorActions`,
  * `PluginSensors`), and where they go in the tree (`SharedModel.AddDisplayItem`).
  */
+import { DEFAULT_GAUGE, normalizeGauge } from "../gauges/vector.ts";
 import { defaultItem, type DisplayItem, type ItemKind, type Profile } from "../schema.ts";
 import { isBound } from "../sensors.ts";
-import { itemAt, updateAt, type Path } from "./ops.ts";
+import { lookOf, withAlpha } from "./look.ts";
+import { itemAt, updateAt, type Box, type Path } from "./ops.ts";
 
 export type PaletteGroup = "Text" | "Data" | "Media" | "Layout";
 
@@ -59,26 +61,43 @@ const NAMES: Record<ItemKind, string> = {
 };
 
 /**
- * A new item of `kind` with InfoPanel's creation defaults: text kinds and Value take the profile's
- * Font, FontSize and Color (Clock and Calendar uppercase, as CommonActions makes them); Donut is
- * 100×100 without a frame on #FFDCDCDC; the images a sensor drives are 100×100. Every other field
- * is the constructor's default (`defaultItem`).
+ * A new item of `kind`: InfoPanel's creation defaults (text kinds and Value take the profile's
+ * Font, FontSize and Color, Clock and Calendar uppercase, as CommonActions makes them; the images
+ * a sensor drives are 100×100), styled from the profile (`lookOf`) where InfoPanel's raw defaults
+ * would clash: Table text in the profile's font and colour; Bar, Graph and Donut on a muted track
+ * with the accent and no frame; a Gauge as a ring in the accent (a vector spec the export bakes to
+ * frames); a Shape as a rounded card a little off the background, with no frame or gradient.
  */
-export function newItem(kind: ItemKind, profile: Pick<Profile, "Font" | "FontSize" | "Color">): DisplayItem {
+export function newItem(kind: ItemKind, profile: Pick<Profile, "Font" | "FontSize" | "Color" | "BackgroundColor">): DisplayItem {
   const base = { ...defaultItem(kind), Name: NAMES[kind] } as DisplayItem;
   const look = { Font: profile.Font, FontSize: profile.FontSize, Color: profile.Color };
+  const { accent, track, card } = lookOf(profile);
+  const chart = { Frame: false, Background: true, BackgroundColor: track, Color: accent };
   switch (kind) {
     case "Text":
     case "Sensor":
+    case "TableSensor":
       return { ...base, ...look } as DisplayItem;
     case "Clock":
     case "Calendar":
       return { ...base, ...look, Uppercase: true } as DisplayItem;
+    case "Bar":
+      return { ...base, ...chart, Width: 240, Height: 16, CornerRadius: 8, Gradient: false } as DisplayItem;
+    case "Graph":
+      return { ...base, ...chart, Width: 240, Height: 80, Fill: true, FillColor: withAlpha(accent, 0.25) } as DisplayItem;
     case "Donut":
-      return { ...base, Frame: false, BackgroundColor: "#FFDCDCDC", Width: 100, Height: 100, Rotation: 90 } as DisplayItem;
+      return { ...base, ...chart, Width: 100, Height: 100, Rotation: 90 } as DisplayItem;
+    case "Gauge": {
+      // The vector spec takes #RRGGBB.
+      const rgb = (c: string) => "#" + c.slice(3);
+      const vector = normalizeGauge({ ...DEFAULT_GAUGE, width: 120, height: 120, start: 0, sweep: 360, thickness: 12, track: rgb(track), fill: { ...DEFAULT_GAUGE.fill, mode: "solid", color: rgb(accent) } });
+      return { ...base, Width: 120, Height: 120, vector } as unknown as DisplayItem;
+    }
     case "HttpImage":
     case "SensorImage":
       return { ...base, Width: 100, Height: 100 } as DisplayItem;
+    case "Shape":
+      return { ...base, Width: 200, Height: 120, CornerRadius: 12, ShowFrame: false, ShowGradient: false, FillColor: card } as DisplayItem;
     default:
       return base;
   }
@@ -126,9 +145,22 @@ function roughSize(item: DisplayItem, fontScale: number): { width: number; heigh
   return { width: w > 0 ? w : Math.round(chars * size * 0.55), height: h > 0 ? h : Math.round(size * 1.25) };
 }
 
-/** The item moved so it is centred on the canvas (a group's children move with it; it has no box of its own). */
-export function centred(item: DisplayItem, profile: Pick<Profile, "Width" | "Height" | "FontScale">): DisplayItem {
+/**
+ * Where a new item goes: centred on `at` (a drop), else on the canvas, then moved by `snap` (the
+ * edit layer's snapping on the rough box). A group has no box of its own and stays as it is.
+ */
+export function placed(
+  item: DisplayItem,
+  profile: Pick<Profile, "Width" | "Height" | "FontScale">,
+  at: { x: number; y: number } | null = null,
+  snap?: (box: Box) => { dx: number; dy: number },
+): DisplayItem {
   if (item.kind === "Group") return item;
   const { width, height } = roughSize(item, profile.FontScale);
-  return { ...item, X: Math.round((profile.Width - width) / 2), Y: Math.round((profile.Height - height) / 2) } as DisplayItem;
+  const box = at ? { x: at.x - width / 2, y: at.y - height / 2, width, height } : { x: (profile.Width - width) / 2, y: (profile.Height - height) / 2, width, height };
+  const d = snap?.(box) ?? { dx: 0, dy: 0 };
+  return { ...item, X: Math.round(box.x + d.dx), Y: Math.round(box.y + d.dy) } as DisplayItem;
 }
+
+/** The item moved so it is centred on the canvas. */
+export const centred = (item: DisplayItem, profile: Pick<Profile, "Width" | "Height" | "FontScale">): DisplayItem => placed(item, profile);

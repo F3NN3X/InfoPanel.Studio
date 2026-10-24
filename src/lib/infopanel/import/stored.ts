@@ -16,7 +16,7 @@ import { normalizeGauge, type VectorGauge } from "../gauges/vector.ts";
 import type { Issue } from "../parse.ts";
 import { groupId, type Overrides, type Status } from "../remap/remap.ts";
 import { ALIASES, PROFILE, SCHEMAS, type DisplayItem, type ItemKind, type Profile } from "../schema.ts";
-import { isBound, type Match } from "../sensors.ts";
+import { BINDING_FIELDS, isBound, type Match } from "../sensors.ts";
 
 export const STORED_FORMAT = "infopanel-canvas";
 export const STORED_VERSION = 1;
@@ -34,6 +34,23 @@ export interface ItemImport {
   via?: Status;
   vector?: VectorGauge;
   vectorBaked?: string;
+  /**
+   * InfoPanel's binding fields as imported, kept when a remap choice first rewrote them, so Reset
+   * to automatic can put them back. Older stored forms have none.
+   */
+  original?: OriginalBinding;
+}
+
+/** An item's InfoPanel binding fields (SensorType, SensorName and the id fields its kind has). */
+export type OriginalBinding = Record<string, string | number>;
+
+/** The fields of an import record an edited item carries (`$import`): the key, how it was found, and the original binding. */
+export type ImportRecord = Pick<ItemImport, "key" | "via" | "original">;
+
+/** An import record with only the parts it has; null when it has neither a key nor a way it was found. */
+export function importRecord(k: ImportRecord | undefined): ImportRecord | null {
+  if (!k || (k.key === undefined && !k.via)) return null;
+  return { ...(k.key !== undefined ? { key: k.key } : {}), ...(k.via ? { via: k.via } : {}), ...(k.original ? { original: k.original } : {}) };
 }
 
 export type StoredItem = Record<string, unknown> & { kind: string; unknown: Record<string, string>; $?: ItemImport };
@@ -107,7 +124,7 @@ function labImport(item: DisplayItem): ItemImport {
   };
 }
 
-export type KeyOf = (item: DisplayItem) => { key?: string; via?: Status } | null;
+export type KeyOf = (item: DisplayItem) => ImportRecord | null;
 
 export function encodeItem(item: DisplayItem, keyOf: KeyOf): StoredItem {
   const fields = encodeFields(SCHEMAS[item.kind as ItemKind] as Schema, item as unknown as Record<string, unknown>);
@@ -240,8 +257,25 @@ function decodeFields(schema: Schema, raw: Record<string, unknown>, ctx: Ctx, co
   return { ...out, unknown };
 }
 
-function decodeImport(raw: unknown): ItemImport {
+/** A stored original binding, checked field by field against the kind's schema; null when any field is wrong. */
+function decodeOriginal(raw: unknown, kind: ItemKind): OriginalBinding | null {
+  const o = obj(raw);
+  if (!o) return null;
+  const schema = SCHEMAS[kind] as Schema;
+  const out: OriginalBinding = {};
+  for (const [k, v] of Object.entries(o)) {
+    const spec = BINDING_FIELDS.includes(k) ? schema[k] : undefined;
+    const value = spec ? decodeValue(spec, v) : undefined;
+    if (value === undefined || (spec?.accept && spec.accept(value) === undefined)) return null;
+    out[k] = value as string | number;
+  }
+  return typeof out.SensorType === "string" ? out : null;
+}
+
+function decodeImport(raw: unknown, kind: ItemKind, report: () => void): ItemImport {
   const o = obj(raw) ?? {};
+  const original = o.original !== undefined ? decodeOriginal(o.original, kind) : null;
+  if (o.original !== undefined && !original) report();
   const via = typeof o.via === "string" && ["exact", "name", "suggested", "chosen", "unbound", "unresolved"].includes(o.via) ? (o.via as Status) : undefined;
   return {
     ...(o.mode === "native" ? { mode: "native" as const } : {}),
@@ -249,6 +283,7 @@ function decodeImport(raw: unknown): ItemImport {
     ...(via ? { via } : {}),
     ...(o.vector !== undefined ? { vector: normalizeGauge(o.vector) } : {}),
     ...(typeof o.vectorBaked === "string" ? { vectorBaked: o.vectorBaked.slice(0, 100_000) } : {}),
+    ...(original ? { original } : {}),
   };
 }
 
@@ -268,11 +303,12 @@ function decodeItem(raw: unknown, path: string, issues: Issue[], depth: number, 
   const list = (v: unknown) => (Array.isArray(v) ? v : []);
   if (kind === "Group") item.DisplayItems = list(o.DisplayItems).flatMap((c, i) => decodeItem(c, `${path}/${i}`, issues, depth + 1) ?? []);
   if (kind === "Gauge") item.Images = list(o.Images).flatMap((f, i) => decodeItem(f, `${path}/${i}`, issues, depth + 1, true) ?? []);
-  const $ = decodeImport(o.$);
+  const $ = decodeImport(o.$, kind, () => issues.push({ code: "invalid-value", path, kind, field: "$.original", value: JSON.stringify(o.$ && (o.$ as Record<string, unknown>).original)?.slice(0, 80) }));
   if ($.mode === "native") item.native = true;
   if ($.vector) item.vector = $.vector;
   if ($.vectorBaked) item.vectorBaked = $.vectorBaked;
-  return { ...(item as unknown as DisplayItem), ...(($.key !== undefined || $.via) ? { $import: { key: $.key, via: $.via } } : {}) };
+  const rec = importRecord($);
+  return { ...(item as unknown as DisplayItem), ...(rec ? { $import: rec } : {}) };
 }
 
 /** Strips the per-item key records (kept for the overrides), returning plain lab items. */

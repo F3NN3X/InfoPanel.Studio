@@ -168,14 +168,24 @@ function KeyPicker({
   );
 }
 
+/**
+ * The row the user picked: by its group, else (a choice rebinds the items, which renames the
+ * group) by the first item the group had, so the row stays selected after a choice.
+ */
+export function selectedRow(rows: readonly RemapRow[], picked: { id: string; path: string } | null): RemapRow | undefined {
+  if (!picked) return undefined;
+  return rows.find((r) => r.group.id === picked.id) ?? rows.find((r) => r.group.paths.includes(picked.path));
+}
+
 export function RemapPanel({ groups, resolved, index, overrides, onOverrides, onSelectItems }: RemapPanelProps) {
   const rows = remapRows(groups, index, resolved, overrides);
   const counts = filterCounts(rows);
   const [filter, setFilter] = useState<RemapFilter>("all");
   const shown = rows.filter((r) => inFilter(r.state, filter));
-  const firstOpen = rows.find((r) => r.state === "unresolved" || r.state === "check");
-  const [selId, setSelId] = useState<string | null>(firstOpen?.group.id ?? rows[0]?.group.id ?? null);
-  const sel = rows.find((r) => r.group.id === selId) ?? shown[0] ?? null;
+  const firstOpen = rows.find((r) => r.state === "unresolved" || r.state === "check") ?? rows[0];
+  const [picked, setPicked] = useState<{ id: string; path: string } | null>(firstOpen ? { id: firstOpen.group.id, path: firstOpen.group.paths[0] } : null);
+  const sel = selectedRow(rows, picked) ?? shown[0] ?? null;
+  const setSelId = (r: RemapRow) => setPicked({ id: r.group.id, path: r.group.paths[0] });
   const bindings = groups.reduce((n, g) => n + g.paths.length, 0);
 
   if (rows.length === 0) {
@@ -223,11 +233,11 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
                 role="button"
                 tabIndex={0}
                 aria-pressed={selected}
-                onClick={() => setSelId(r.group.id)}
+                onClick={() => setSelId(r)}
                 onKeyDown={(e) => {
                   if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
                     e.preventDefault();
-                    setSelId(r.group.id);
+                    setSelId(r);
                   }
                 }}
                 className={cn(

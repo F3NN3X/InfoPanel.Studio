@@ -19,9 +19,10 @@ import {
   livePaths,
   rangeSelect,
   storeItems,
-  withGroupKeys,
   withNewFileItem,
   withNewItem,
+  withRemap,
+  type DropPlace,
   type DroppedFile,
   type ItemMode,
   type SensorMode,
@@ -37,12 +38,13 @@ import {
   topmost,
   ungroup as ungroupItem,
   updateAt,
+  type Box,
   type Path,
 } from "@/lib/infopanel/editor/ops";
+import { align as alignBoxes, distribute as distributeBoxes, type AlignEdge, type Shift } from "@/lib/infopanel/editor/arrange";
 import { sensorOfCatalog, type ChosenSensor } from "@/lib/infopanel/editor/bind";
-import { remapKeys } from "@/lib/infopanel/import/stored";
 import type { ConvertContext } from "@/lib/infopanel/native/convert";
-import { groupBindings, resolveAll, type CatalogIndex, type Group } from "@/lib/infopanel/remap/remap";
+import { groupBindings, type CatalogIndex, type Group } from "@/lib/infopanel/remap/remap";
 import type { DisplayItem, Profile } from "@/lib/infopanel/schema";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -78,13 +80,22 @@ export interface CanvasEditor {
   reorder(step: -1 | 1): void;
   remove(): void;
   nudge(dx: number, dy: number): void;
+  /** The drawn boxes of the selected items, in profile pixels, as the edit layer last measured them. */
+  boxes: Readonly<Record<Path, Box>>;
+  setBoxes(boxes: Record<Path, Box>): void;
+  /** Aligns two or more unlocked selected items: one step. */
+  align(edge: AlignEdge): void;
+  /** Spreads three or more unlocked selected items evenly: one step. */
+  distribute(axis: "horizontal" | "vertical"): void;
+  /** One field set on every selected item that has it, each value already checked: one step. */
+  setFields(values: ReadonlyMap<Path, unknown>, field: string): void;
   drawAll(native: boolean): void;
   /** A profile field (Name, size, colours, WebView …), already checked: one step; a `key` coalesces typing. */
   setProfile(field: keyof Profile, value: unknown, key?: string): void;
-  /** A new item (the Add palette) placed by InfoPanel's rules and selected; returns its path. */
-  add(item: DisplayItem): Path;
+  /** A new item (the Add palette) placed by InfoPanel's rules, centred or where it was dropped, and selected; returns its path. */
+  add(item: DisplayItem, place?: DropPlace): Path;
   /** A new Image or Sensor image showing a file (it joins the canvas's files); returns its path. */
-  addWithFile(item: DisplayItem, file: DroppedFile): Path;
+  addWithFile(item: DisplayItem, file: DroppedFile, place?: DropPlace): Path;
   /** Binds an item to a Data API sensor, natively too when the Data API gives its ref. */
   bind(path: Path, sensor: ChosenSensor, rename?: (item: DisplayItem) => DisplayItem): void;
   /** Remap: binding groups, the user's choices, and a change applied as one step. */
@@ -111,6 +122,7 @@ export function useCanvasEditor(
   const [anchor, setAnchor] = useState<Path | null>(null);
   const [sensorMode, setSensorMode] = useState<SensorMode>("live");
   const [mock, setMockMap] = useState<ReadonlyMap<string, number>>(new Map());
+  const [boxes, setBoxes] = useState<Record<Path, Box>>({});
   const items = draft ?? committed;
   const ctx = useMemo(() => editContext(open), [open]);
   const modes = useMemo(() => itemModes(items, ctx), [items, ctx]);
@@ -132,6 +144,11 @@ export function useCanvasEditor(
     setDraft(null);
     if (nextSelection) setSelection(nextSelection);
     setConfig((c) => replace(c, zone.id, stored), key);
+  };
+  // Align and distribute move what they can: locked items stay put and are left out.
+  const placed = () => selection.filter((p) => boxes[p] && !itemAt(committed, p)?.IsLocked).map((p) => ({ path: p, box: boxes[p] }));
+  const shifted = (shifts: Shift[]) => {
+    if (shifts.length) commit(shifts.reduce((tree, s) => moveBy(tree, [s.path], s.dx, s.dy), committed));
   };
 
   return {
@@ -180,19 +197,28 @@ export function useCanvasEditor(
       const movable = selection.filter((p) => !itemAt(committed, p)?.IsLocked);
       if (movable.length) commit(moveBy(committed, movable, dx, dy), `canvas-nudge:${zone.id}`);
     },
+    boxes,
+    setBoxes,
+    align: (edge) => shifted(alignBoxes(placed(), edge)),
+    distribute: (axis) => shifted(distributeBoxes(placed(), axis)),
+    setFields: (values, field) => {
+      let next = committed;
+      for (const [p, v] of values) next = setField(next, p, field, v);
+      if (next !== committed) commit(next);
+    },
     drawAll: (native) => commit(drawAllAs(committed, modes, native)),
     setProfile: (field, value, key) => {
       if (Object.is(open.profile[field], value)) return;
       commitWith(storeItems(open.stored, { ...open.profile, [field]: value }, committed), undefined, key);
     },
-    add: (item) => {
-      const r = withNewItem(committed, open.profile, item, single);
+    add: (item, place) => {
+      const r = withNewItem(committed, open.profile, item, single, place);
       commit(r.items, undefined, [r.path]);
       setAnchor(r.path);
       return r.path;
     },
-    addWithFile: (item, file) => {
-      const r = withNewFileItem(open.stored, open.profile, committed, item, file, single);
+    addWithFile: (item, file, place) => {
+      const r = withNewFileItem(open.stored, open.profile, committed, item, file, single, place);
       commitWith(r.stored, [r.path]);
       setAnchor(r.path);
       return r.path;
@@ -204,10 +230,8 @@ export function useCanvasEditor(
     groups,
     overrides,
     applyOverrides: (next, index) => {
-      const changed = changedGroups(overrides, next);
-      if (changed.size === 0) return;
-      const resolved = resolveAll(groups, index, next);
-      commit(withGroupKeys(committed, remapKeys(resolved, next), changed, sensorOfCatalog(index.catalog.sensors as Record<string, DataApiValue>)));
+      if (changedGroups(overrides, next).size === 0) return;
+      commit(withRemap(committed, overrides, next, index, sensorOfCatalog(index.catalog.sensors as Record<string, DataApiValue>)));
     },
     sensorMode,
     setSensorMode,

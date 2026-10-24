@@ -13,9 +13,9 @@ The editor is the **InfoPanel** page on the rail; see [The InfoPanel editor](inf
 ## Selecting and moving
 
 - Click an item on the canvas or in Layers. `Shift` or `Ctrl` adds to the selection; `Shift` in the tree selects a range.
-- Drag to move. Drag a handle to resize.
+- Drag to move. Drag a handle to resize. Both snap to the canvas and the other items; hold `Alt` to stop snapping.
 - Arrow keys nudge 1 px, `Shift`+arrow 10 px.
-- Locked items can be selected but not moved.
+- Locked items ignore the mouse on the canvas: a click goes to the item below. Select them in Layers.
 
 ## Layers
 

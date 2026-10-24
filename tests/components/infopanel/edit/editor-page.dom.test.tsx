@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
 import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
 import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { PALETTE_DRAG, paletteKindOf } from "@/components/infopanel/edit/add-palette";
 import { withCanvas } from "@/components/studio/import-actions";
 import { readStored, newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import { CANVAS_ID, type DashboardConfig, type Placement } from "@/lib/layout";
@@ -35,6 +36,22 @@ describe("the InfoPanel editor page", () => {
     const items = readStored(next.profiles[0].pages[0].placements[0].canvas).items;
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ kind: "Text", Name: "Custom Text", Font: "Segoe UI", Color: "#FFFFFFFF" });
+  });
+
+  it("a palette entry drags its kind, and shows the hint line under the canvas", () => {
+    render(
+      <ToastProvider>
+        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+      </ToastProvider>,
+    );
+    const setData = vi.fn();
+    const bar = within(screen.getByRole("region", { name: "Add" })).getByRole("button", { name: "Bar" });
+    expect(bar.getAttribute("draggable")).toBe("true");
+    fireEvent.dragStart(bar, { dataTransfer: { setData, effectAllowed: "" } });
+    expect(setData).toHaveBeenCalledWith(PALETTE_DRAG, "Bar");
+    expect(paletteKindOf("Bar")).toBe("Bar");
+    expect(paletteKindOf("text/plain")).toBeNull();
+    expect(screen.getByText(/Hold Alt to stop snapping/)).toBeTruthy();
   });
 
   it("lists the dashboard's InfoPanel profiles when nothing is open", () => {

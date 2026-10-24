@@ -1,10 +1,14 @@
 /**
  * The canvas zone editor's drawing (spec §7): the profile at its own size, scaled to fit, items
  * in InfoPanel's draw order (native ones by the app's widgets), the edit layer over it and, when
- * Compare is on, InfoPanel's screenshot laid over the render with a difference blend.
+ * Compare is on, InfoPanel's screenshot laid over the render with a difference blend. A kind
+ * dragged from the Add palette is created where it is dropped, snapped as a move would be.
  */
 import { useCallback, useMemo, type DragEvent, type PointerEvent } from "react";
-import { withDroppedImage } from "@/lib/infopanel/canvas-edit";
+import { withDroppedImage, type DropPlace } from "@/lib/infopanel/canvas-edit";
+import { profilePoint } from "@/lib/infopanel/editor/arrange";
+import { snapMove, snapThreshold } from "@/lib/infopanel/editor/snap";
+import type { ItemKind } from "@/lib/infopanel/schema";
 import { recordCopy } from "@/lib/my-library/copies";
 import { activeLibraryDrag, libraryDragKind, libraryDragOf, setActiveLibraryDrag } from "@/lib/my-library/drag";
 import { droppedFileOf } from "@/lib/my-library/model";
@@ -19,7 +23,8 @@ import { useNow } from "../CanvasZone";
 import { nativeLayer } from "../native";
 import { useSuppliedFonts, withSupplied } from "../supplied-fonts";
 import { ProfileView, useFonts, type AssetSource } from "../ProfileView";
-import { EditLayer } from "./edit-layer";
+import { PALETTE_DRAG, paletteKindOf } from "./add-palette";
+import { EditLayer, measureTargets } from "./edit-layer";
 import type { CanvasEditor } from "./use-canvas-editor";
 
 /** Room around the profile, so handles and badges at its edges stay on screen. */
@@ -44,9 +49,11 @@ interface EditCanvasProps {
   onRefused?: (message: string) => void;
   /** The screenshot would not load (a kept one whose file is gone). */
   onCompareFailed?: () => void;
+  /** A kind dragged from the Add palette and dropped: where, with the snapping to apply to its box. */
+  onPlace?: (kind: ItemKind, place: DropPlace) => void;
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed }: EditCanvasProps) {
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -68,7 +75,21 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     const k = libraryDragKind(types);
     return k === "image" || k === "svg" || k === "video";
   };
+  const pointOf = (e: DragEvent<HTMLDivElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    return profilePoint({ x: e.clientX, y: e.clientY }, { left: box.left, top: box.top, width: w, height: h }, profile, scale);
+  };
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    const kind = paletteKindOf(e.dataTransfer.getData(PALETTE_DRAG));
+    if (kind) {
+      e.preventDefault();
+      const layer = e.currentTarget.querySelector<HTMLElement>("[data-canvas-edit-layer]");
+      const root = layer?.parentElement;
+      const k = 1 / scale;
+      const targets = layer && root ? measureTargets(root, layer, editor.committed, profile, [], k) : null;
+      const threshold = snapThreshold(k, e.altKey);
+      return onPlace?.(kind, { at: pointOf(e), ...(targets ? { snap: (b) => snapMove(b, targets, threshold) } : {}) });
+    }
     const drag = libraryDragOf((t) => e.dataTransfer.getData(t));
     const item = activeLibraryDrag();
     if (!drag || !item || item.id !== drag.libraryItemId) return;
@@ -76,9 +97,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     setActiveLibraryDrag(null);
     const file = droppedFileOf(item);
     if (!file) return onRefused?.(`${item.name} can’t be drawn by InfoPanel`);
-    const box = e.currentTarget.getBoundingClientRect();
-    const at = { x: (e.clientX - box.left - (w - profile.Width * scale) / 2) / scale, y: (e.clientY - box.top - (h - profile.Height * scale) / 2) / scale };
-    const r = withDroppedImage(open.stored, profile, editor.committed, file, at);
+    const r = withDroppedImage(open.stored, profile, editor.committed, file, pointOf(e));
     editor.commitStored(r.stored, [r.path]);
     void recordCopy(item, { profileId, zoneId: editor.zone.id, itemPath: r.path, label: `${open.stored.source.name} › ${file.name}` });
   };
@@ -91,7 +110,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
       ref={ref}
       onPointerDown={onBackground}
       onDragOver={(e) => {
-        if (isMediaDrag(e.dataTransfer.types)) e.preventDefault();
+        if (isMediaDrag(e.dataTransfer.types) || (onPlace && e.dataTransfer.types.includes(PALETTE_DRAG))) e.preventDefault();
       }}
       onDrop={onDrop}
       className="relative min-h-0 flex-1 overflow-hidden bg-ui-app"
@@ -127,7 +146,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
                 />
               ) : null
             }
-            controls={<EditLayer editor={editor} profileWidth={profile.Width} showModes={showModes} />}
+            controls={<EditLayer editor={editor} profileWidth={profile.Width} profileHeight={profile.Height} showModes={showModes} />}
           />
         </div>
       )}

@@ -6,13 +6,14 @@ import { readStored, toStored } from "@/lib/infopanel/import/stored.ts";
 import { openCanvas } from "@/lib/infopanel/canvas.ts";
 import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys.ts";
 import { duplicate, group, itemAt, moveBy, setField } from "@/lib/infopanel/editor/ops.ts";
-import { groupId } from "@/lib/infopanel/remap/remap.ts";
+import { groupId, indexCatalog } from "@/lib/infopanel/remap/remap.ts";
 import { STARTERS } from "@/lib/infopanel/gauges/presets.ts";
 import { normalizeGauge } from "@/lib/infopanel/gauges/vector.ts";
 import { loadExport, entriesFromZip } from "@/lib/infopanel/archive.ts";
 import { sensorOfCatalog } from "@/lib/infopanel/editor/bind.ts";
 import { infopanelExport } from "@/lib/infopanel/export/write.ts";
-import { bindingRef } from "@/lib/infopanel/sensors.ts";
+import { bindingRef, buildCatalog } from "@/lib/infopanel/sensors.ts";
+import { newItem } from "@/lib/infopanel/editor/create.ts";
 import {
   allMode,
   bindItem,
@@ -36,6 +37,8 @@ import {
   sensorView,
   storeItems,
   withGroupKeys,
+  withRemap,
+  importOf,
 } from "@/lib/infopanel/canvas-edit.ts";
 
 const DEFAULT_GAUGE_SPEC = normalizeGauge(STARTERS[0].gauge);
@@ -320,5 +323,64 @@ describe("native bindings follow the chosen sensor", () => {
   it("bindItem writes the type, ids and name, and our key as chosen", () => {
     const next = bindItem(editItems(canvas())[0], sensorOf("libre.amd")!);
     expect(next).toMatchObject({ SensorType: "Libre", LibreSensorId: "/amdcpu/0/temperature/2", SensorName: "Core (Tctl/Tdie)", $import: { key: "libre.amd", via: "chosen" } });
+  });
+});
+
+describe("Reset to automatic after a remap choice", () => {
+  const sensors = {
+    "libre.cpu": { name: "CPU", ref: "libre:/cpu/0" },
+    "hwinfo.fps": { name: "Framerate", ref: "hwinfo:-1/4026535920/0/134217728" },
+  };
+  const index = indexCatalog(buildCatalog(sensors));
+  const sensorOf = sensorOfCatalog(sensors);
+  /** The items saved and opened again, as the studio does between edits. */
+  const reopen = (items: DisplayItem[]) => editItems(openCanvas(JSON.parse(JSON.stringify(storeItems(canvas().stored, profile, items)))));
+  const choose = () => {
+    const items = editItems(canvas());
+    return reopen(withRemap(items, itemOverrides(items), new Map([[gid(items[0]), "hwinfo.fps"]]), index, sensorOf));
+  };
+
+  it("puts the imported binding back, resolves it again, and exports it", async () => {
+    const chosen = choose();
+    expect(bindingRef(chosen[0] as BoundItem)).toBe("hwinfo:-1/4026535920/0/134217728");
+    expect(importOf(chosen[0])?.original).toMatchObject({ SensorType: "Libre", LibreSensorId: "/cpu/0", SensorName: "CPU" });
+
+    const reset = reopen(withRemap(chosen, itemOverrides(chosen), new Map(), index, sensorOf));
+    expect(reset[0]).toMatchObject({ SensorType: "Libre", LibreSensorId: "/cpu/0", SensorName: "CPU" });
+    expect(importOf(reset[0])).toEqual({ key: "libre.cpu", via: "exact" });
+    const back = await loadExport(entriesFromZip(infopanelExport(profile, readStored(storeItems(canvas().stored, profile, reset)).items, [])));
+    expect(back.items[0]).toMatchObject({ SensorType: "Libre", LibreSensorId: "/cpu/0", SensorName: "CPU" });
+  });
+
+  it("keeps the first original through a second choice", () => {
+    const chosen = choose();
+    const again = withRemap(chosen, itemOverrides(chosen), new Map([[gid(chosen[0]), "libre.cpu"]]), index, sensorOf);
+    expect(importOf(again[0])?.original).toMatchObject({ LibreSensorId: "/cpu/0" });
+  });
+
+  it("an older stored form without the original still loads, and resets from the binding it has", () => {
+    const old = JSON.parse(JSON.stringify(storeItems(canvas().stored, profile, choose())));
+    delete old.items[0].$.original;
+    const opened = openCanvas(old);
+    expect(opened.issues).toEqual([]);
+    const items = editItems(opened);
+    const reset = withRemap(items, itemOverrides(items), new Map(), index, sensorOf);
+    expect(bindingRef(reset[0] as BoundItem)).toBe("hwinfo:-1/4026535920/0/134217728");
+    expect(importOf(reset[0])).toEqual({ key: "hwinfo.fps", via: "exact" });
+  });
+
+  it("an item the import never saw keeps no original", () => {
+    const next = bindItem(newItem("Sensor", profile), sensorOf("hwinfo.fps")!);
+    expect(importOf(next)).toEqual({ key: "hwinfo.fps", via: "chosen" });
+  });
+});
+
+describe("a bound table's column format", () => {
+  it("is the plugin's when the Data API reports it, else InfoPanel's default", () => {
+    const table = newItem("TableSensor", profile);
+    const chosen = { key: "plugins.t", name: "Top", ref: "plugin:/t/top" };
+    expect(bindItem(table, { ...chosen, format: "0:150|1:60" })).toMatchObject({ TableFormat: "0:150|1:60", PluginSensorId: "/t/top" });
+    expect(bindItem(table, chosen)).toMatchObject({ TableFormat: "0:10|1:10|2:10|3:10|4:10|5:10" });
+    expect(sensorOfCatalog({ "plugins.t": { name: "Top", ref: "plugin:/t/top", table: { columns: [], rows: [], format: "0:150" } } })("plugins.t")).toMatchObject({ format: "0:150" });
   });
 });

@@ -13,7 +13,8 @@ import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
 import { useSensorCatalog } from "@/lib/catalog";
 import { editKeyOf } from "@/lib/infopanel/canvas-edit";
-import { namedFor, newItem, type PaletteEntry } from "@/lib/infopanel/editor/create";
+import { namedFor, newItem, PALETTE, type PaletteEntry } from "@/lib/infopanel/editor/create";
+import type { DropPlace } from "@/lib/infopanel/canvas-edit";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import type { Placement } from "@/lib/layout";
 import { filterCounts, remapRows, resolveAll } from "@/lib/infopanel/remap/remap";
@@ -79,14 +80,14 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
   const { index, online, unreachable } = useRemapIndex();
   const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
   const [pickFor, setPickFor] = useState<PickFor | null>(null);
-  const [fileFor, setFileFor] = useState<PaletteEntry | null>(null);
-  /** An Add palette click: the kind with InfoPanel's defaults, selected; a sensor kind asks for its sensor. */
+  const [fileFor, setFileFor] = useState<{ entry: PaletteEntry; place?: DropPlace } | null>(null);
+  /** An Add palette click or drop: the kind with its new-item look, selected; a sensor kind asks for its sensor. */
   const askSensor = (entry: PaletteEntry, path: Path) => {
     if (entry.sensor) setPickFor({ path, label: entry.label, pluginOnly: entry.pluginOnly === true, fresh: true });
   };
-  const onAdd = (entry: PaletteEntry) => {
-    if (entry.file) return setFileFor(entry);
-    askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile)));
+  const onAdd = (entry: PaletteEntry, place?: DropPlace) => {
+    if (entry.file) return setFileFor({ entry, place });
+    askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile), place));
   };
   const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
   const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;
@@ -200,7 +201,23 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
         />
         {showModes && <ModesStrip editor={editor} />}
         {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
-        <EditCanvas editor={editor} ctx={view.ctx} values={view.values} showModes={showModes} profileId={profileId} compare={compareOn ? compare : null} onRefused={toast} onCompareFailed={() => setCompare(null)} />
+        <EditCanvas
+          editor={editor}
+          ctx={view.ctx}
+          values={view.values}
+          showModes={showModes}
+          profileId={profileId}
+          compare={compareOn ? compare : null}
+          onRefused={toast}
+          onCompareFailed={() => setCompare(null)}
+          onPlace={(kind, place) => {
+            const entry = PALETTE.find((p) => p.kind === kind);
+            if (entry) onAdd(entry, place);
+          }}
+        />
+        <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
+          Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.
+        </p>
       </div>
       {mode === "docked" && (
         <aside aria-label="Item" className="flex w-[308px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">
@@ -252,11 +269,11 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
       <ImagePicker
         open={fileFor !== null}
         onOpenChange={(open) => !open && setFileFor(null)}
-        title={`Choose an image for ${fileFor?.label ?? "the item"}`}
+        title={`Choose an image for ${fileFor?.entry.label ?? "the item"}`}
         onPick={(file) => {
           if (!fileFor) return;
-          const path = editor.addWithFile(newItem(fileFor.kind, editor.open.profile), file);
-          askSensor(fileFor, path);
+          const path = editor.addWithFile(newItem(fileFor.entry.kind, editor.open.profile), file, fileFor.place);
+          askSensor(fileFor.entry, path);
         }}
       />
     </div>

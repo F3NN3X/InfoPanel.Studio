@@ -10,25 +10,26 @@ import { itemAt, setField, updateAt } from "./editor/ops.ts";
 import { insertVectorGauge } from "./gauges/frames.ts";
 import type { VectorGauge } from "./gauges/vector.ts";
 import { fontRequests } from "./import/session.ts";
-import { toStored, type ItemImport, type KeyOf, type StoredAsset, type StoredCanvas, type StoredFont } from "./import/stored.ts";
+import { importRecord, remapKeys, toStored, type ImportRecord, type KeyOf, type StoredAsset, type StoredCanvas, type StoredFont } from "./import/stored.ts";
 import type { AssetType } from "./assets/assets.ts";
 import { convert, type Conversion, type ConvertContext } from "./native/convert.ts";
 import { isNative, walkPaths } from "./native/modes.ts";
 import { defaultItem, type DisplayItem, type Profile } from "./schema.ts";
-import { groupId } from "./remap/remap.ts";
-import { isBound, type BoundItem, type DataApiValue } from "./sensors.ts";
+import { groupBindings, groupId, resolveAll, type CatalogIndex, type Overrides } from "./remap/remap.ts";
+import { bindingOf, isBound, type BoundItem, type DataApiValue } from "./sensors.ts";
 import { mapItems, rebound, type ChosenSensor, type SensorOf } from "./editor/bind.ts";
-import { centred, insertItem } from "./editor/create.ts";
+import { insertItem, placed } from "./editor/create.ts";
+import type { Box } from "./editor/ops.ts";
 
-type WithImport = { $import?: Pick<ItemImport, "key" | "via"> };
+type WithImport = { $import?: ImportRecord };
 
-/** The import's record of an item: its Data API key and how it was found. */
-export const importOf = (item: DisplayItem): Pick<ItemImport, "key" | "via"> | undefined => (item as DisplayItem & WithImport).$import;
+/** The import's record of an item: its Data API key, how it was found, and its binding as imported once a remap rewrote it. */
+export const importOf = (item: DisplayItem): ImportRecord | undefined => (item as DisplayItem & WithImport).$import;
 
 /** The Data API key an edited item reads, if any. */
 export const editKeyOf = (item: DisplayItem): string | null => importOf(item)?.key ?? null;
 
-function attach(items: readonly DisplayItem[], keyAt: (item: DisplayItem, path: Path) => Pick<ItemImport, "key" | "via"> | null, prefix = ""): DisplayItem[] {
+function attach(items: readonly DisplayItem[], keyAt: (item: DisplayItem, path: Path) => ImportRecord | null, prefix = ""): DisplayItem[] {
   return items.map((item, i) => {
     const path = prefix ? `${prefix}.${i}` : String(i);
     const { $import: _old, ...plain } = item as DisplayItem & WithImport;
@@ -38,8 +39,21 @@ function attach(items: readonly DisplayItem[], keyAt: (item: DisplayItem, path: 
   });
 }
 
-const pick = (k: ItemImport | undefined) =>
-  k && (k.key !== undefined || k.via) ? { ...(k.key !== undefined ? { key: k.key } : {}), ...(k.via ? { via: k.via } : {}) } : null;
+const pick = importRecord;
+
+/**
+ * The binding to remember before a choice rewrites it: the one already kept, else the item's
+ * own when it still holds what the import found (an item the import never saw, or an older
+ * stored form already rebound, keeps none).
+ */
+function originalFor(item: DisplayItem, chosen: boolean): ImportRecord["original"] {
+  const prev = importOf(item);
+  if (prev?.original) return prev.original;
+  return chosen && isBound(item) && prev?.via && prev.via !== "chosen" ? bindingOf(item) : undefined;
+}
+
+const withOriginal = (rec: ImportRecord | null, original: ImportRecord["original"]): ImportRecord | null =>
+  rec && original ? { ...rec, original } : rec;
 
 /** The opened canvas's items, each bound one carrying its import record. */
 export function editItems(open: OpenCanvas): DisplayItem[] {
@@ -66,7 +80,7 @@ export function storeItems(stored: StoredCanvas, profile: Profile, items: readon
     profile,
     items,
     assets: new Map(),
-    keyOf: (item) => pick(importOf(item) as ItemImport | undefined),
+    keyOf: (item) => pick(importOf(item)),
     fonts,
     screenshot: stored.screenshot,
   });
@@ -307,9 +321,15 @@ export function withDroppedGauge(
 
 /* ---- adding ---- */
 
-/** A new item (the Add palette) placed by InfoPanel's insertion rules (`insertItem`) and centred on the canvas. */
-export function withNewItem(items: readonly DisplayItem[], profile: Profile, item: DisplayItem, selected: Path | null): { items: DisplayItem[]; path: Path } {
-  return insertItem(items, centred(item, profile), selected);
+/** Where a new item lands: a drop point, and the edit layer's snapping. Without one it is centred. */
+export interface DropPlace {
+  at: { x: number; y: number };
+  snap?: (box: Box) => { dx: number; dy: number };
+}
+
+/** A new item (the Add palette) placed by InfoPanel's insertion rules (`insertItem`), centred on the canvas or on a drop. */
+export function withNewItem(items: readonly DisplayItem[], profile: Profile, item: DisplayItem, selected: Path | null, place?: DropPlace): { items: DisplayItem[]; path: Path } {
+  return insertItem(items, placed(item, profile, place?.at ?? null, place?.snap), selected);
 }
 
 /**
@@ -324,10 +344,11 @@ export function withNewFileItem(
   item: DisplayItem,
   file: DroppedFile,
   selected: Path | null,
+  place?: DropPlace,
 ): { stored: StoredCanvas; path: Path } {
   const { assets, name } = withAsset(stored.assets, file);
   const sized = { ...item, FilePath: name, RelativePath: true, ...fileSize(profile, file) } as DisplayItem;
-  const r = withNewItem(items, profile, sized, selected);
+  const r = withNewItem(items, profile, sized, selected, place);
   return { stored: storeItems({ ...stored, assets }, profile, r.items), path: r.path };
 }
 
@@ -342,8 +363,10 @@ export function withNewFileItem(
 export function bindItem(item: DisplayItem, sensor: ChosenSensor): DisplayItem {
   if (!isBound(item)) return item;
   const { $import: _old, ...plain } = item as DisplayItem & WithImport;
-  const rec: WithImport["$import"] = { key: sensor.key, via: "chosen" };
-  return { ...rebound(plain as DisplayItem, sensor), $import: rec } as unknown as DisplayItem;
+  const rec = withOriginal({ key: sensor.key, via: "chosen" }, originalFor(item, true));
+  // InfoPanel gives a new table its plugin's column format; a Data API that doesn't report one keeps the default.
+  const table = item.kind === "TableSensor" && sensor.format ? { TableFormat: sensor.format } : {};
+  return { ...rebound(plain as DisplayItem, sensor), ...table, $import: rec } as unknown as DisplayItem;
 }
 
 /** Where the editor's values come from (spec §7 toolbar): none, the app's live values, or mock sliders. */
@@ -404,12 +427,39 @@ export function itemOverrides(items: readonly DisplayItem[]): Map<string, string
  * `.infopanel` export carries the remap.
  */
 export function withGroupKeys(items: readonly DisplayItem[], keyOf: KeyOf, changed: ReadonlySet<string>, sensorOf: SensorOf = () => undefined): DisplayItem[] {
-  const keyed = attach(items, (item) => (changed.has(groupId(item as BoundItem)) ? keyOf(item) : pick(importOf(item) as ItemImport | undefined)));
+  const keyed = attach(items, (item) => {
+    if (!changed.has(groupId(item as BoundItem))) return pick(importOf(item));
+    const rec = keyOf(item);
+    return withOriginal(rec, originalFor(item, rec?.via === "chosen"));
+  });
   // Rebinding changes the group id, so it comes after the keys are set.
   return mapItems(keyed, (item) => {
     const rec = importOf(item);
     return isBound(item) && changed.has(groupId(item)) && rec?.via === "chosen" && rec.key ? rebound(item, sensorOf(rec.key)) : item;
   });
+}
+
+/**
+ * A Remap change applied (`applyOverrides`): a group set back to automatic first gets the binding
+ * it was imported with again (`$import.original`), then every changed group resolves as usual
+ * (`withGroupKeys`). Items without a recorded original (older stored forms) resolve from the
+ * binding they have, as before.
+ */
+export function withRemap(items: readonly DisplayItem[], before: Overrides, next: Overrides, index: CatalogIndex, sensorOf: SensorOf = () => undefined): DisplayItem[] {
+  const changed = changedGroups(before, next);
+  if (changed.size === 0) return items as DisplayItem[];
+  const restoredIds = new Set<string>();
+  const restored = mapItems(items, (item) => {
+    const rec = importOf(item);
+    if (!isBound(item) || !rec?.original || next.has(groupId(item)) || !changed.has(groupId(item))) return item;
+    const { $import: _old, ...plain } = item as DisplayItem & WithImport;
+    const { original, ...rest } = rec;
+    const back = { ...plain, ...original } as BoundItem;
+    restoredIds.add(groupId(back));
+    return { ...back, $import: rest } as unknown as DisplayItem;
+  });
+  const all = new Set([...changed, ...restoredIds]);
+  return withGroupKeys(restored, remapKeys(resolveAll(groupBindings(restored), index, next), next), all, sensorOf);
 }
 
 /** The groups whose choice differs between two sets of overrides. */

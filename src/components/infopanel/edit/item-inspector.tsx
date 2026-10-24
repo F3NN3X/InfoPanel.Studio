@@ -21,6 +21,7 @@ import { describeNative } from "../native";
 import { valueText } from "../remap-panel";
 import { Segmented } from "./canvas-toolbar";
 import { kindIcon } from "./items-tree";
+import { MultiInspector } from "./multi-inspector";
 import { NOT_EXPORTABLE } from "./sensor-picker";
 import type { CanvasEditor } from "./use-canvas-editor";
 
@@ -55,17 +56,11 @@ export function ItemInspector({ editor, live, onRemap, onPickSensor, sensors, on
   if (selection.length === 0) {
     return (
       <Placeholder title="No item selected">
-        Click an item on the canvas or in the tree. Shift or Ctrl adds to the selection; arrows nudge it, Shift+arrows by 10 px.
+        Click an item on the canvas or in Layers. Shift or Ctrl adds to the selection; arrows nudge it, Shift+arrows by 10 px.
       </Placeholder>
     );
   }
-  if (selection.length > 1) {
-    return (
-      <Placeholder title={`${selection.length} items selected`}>
-        Drag, nudge, duplicate, group or delete them together. Select one item to edit its fields.
-      </Placeholder>
-    );
-  }
+  if (selection.length > 1) return <MultiInspector editor={editor} />;
   const path = selection[0];
   const item = itemAt(editor.committed, path);
   // Keyed by path: a draft or an error never carries over to another item.
@@ -326,6 +321,13 @@ function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path
   );
 }
 
+/** Where a bound table's column format comes from: its plugin, or InfoPanel's default when the Data API doesn't say. */
+export function tableFormatNote(entry: DataApiValue | undefined): string {
+  return entry?.table?.format
+    ? "Table format is the plugin’s own column format."
+    : "This InfoPanel build doesn’t report the plugin’s column format, so Table format keeps InfoPanel’s default.";
+}
+
 /** A Gauge item's way into Gauges, styled as the Sensor button. */
 function EditGaugeButton({ onClick }: { onClick: () => void }) {
   return (
@@ -407,6 +409,7 @@ function SensorCard({
         InfoPanel reads <span className="font-ui-mono text-ui-3">{native ?? "no sensor"}</span>
       </p>
       {previewOnly && <p className="text-[11.5px] leading-snug text-ui-warning">{NOT_EXPORTABLE}.</p>}
+      {item.kind === "TableSensor" && key && <p className="text-[11px] leading-snug text-ui-4">{tableFormatNote(entry)}</p>}
       {editor.sensorMode === "mock" && (
         <label className="block">
           <span className="mb-1 flex justify-between text-[11px] text-ui-4">

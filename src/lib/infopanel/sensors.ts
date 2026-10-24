@@ -21,7 +21,7 @@ export interface DataApiValue {
   source?: string;
   ref?: string;
   /** A plugin table with column names, each cell as InfoPanel draws it (null: not drawn). Fork follow-up to PR #173. */
-  table?: { columns: string[]; rows: (string | null)[][] };
+  table?: { columns: string[]; rows: (string | null)[][]; format?: string };
 }
 
 export type BoundItem = Extract<DisplayItem, { SensorType: unknown }>;
@@ -40,6 +40,15 @@ export function bindingRef(item: BoundItem): string | null {
     case "HwInfo":
       return "Id" in item ? `hwinfo:${item.HwInfoRemoteIndex}/${item.Id}/${item.Instance}/${item.EntryId}` : null;
   }
+}
+
+/** Every binding field a kind may have: what a remap rewrites and Reset to automatic puts back. */
+export const BINDING_FIELDS: readonly string[] = ["SensorType", "SensorName", "HwInfoRemoteIndex", "Id", "Instance", "EntryId", "LibreSensorId", "PluginSensorId"];
+
+/** The item's binding fields, as they are. */
+export function bindingOf(item: BoundItem): Record<string, string | number> {
+  const o = item as unknown as Record<string, string | number>;
+  return Object.fromEntries(BINDING_FIELDS.filter((k) => k in item).map((k) => [k, o[k]]));
 }
 
 /** InfoPanel's own binding fields (`SensorReader`): only the id field of the SensorType is read. */

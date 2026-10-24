@@ -63,7 +63,7 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
   const noRefs = model.points.length > 0 && model.points.every((p) => !sensors[p.key]?.ref);
   const pick = (p: DataPoint) => {
     const v = sensors[p.key];
-    onPick({ key: p.key, name: v?.name ?? p.name, ...(v?.unit ? { unit: v.unit } : {}), ...(v?.ref ? { ref: v.ref } : {}) });
+    onPick({ key: p.key, name: v?.name ?? p.name, ...(v?.unit ? { unit: v.unit } : {}), ...(v?.ref ? { ref: v.ref } : {}), ...(v?.table?.format ? { format: v.table.format } : {}) });
     onOpenChange(false);
   };
   return (

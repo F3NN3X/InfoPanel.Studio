@@ -3,7 +3,7 @@ id: shortcuts
 title: Keyboard shortcuts
 icon: keyboard
 related: [studio, canvas]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.23
 ---
 
 Shortcuts never fire while you are typing in a field.
@@ -14,18 +14,7 @@ Shortcuts never fire while you are typing in a field.
 
 `Ctrl+K` opens the command palette in the studio, and the search box in Settings.
 
-## Canvas zones
-
-These work in the item editor of an imported canvas.
-
-:::keys
-Ctrl+D — Duplicate
-Ctrl+G — Group
-Ctrl+Shift+G — Ungroup
-Delete — Delete
-Arrows — Nudge 1 px
-Shift+Arrows — Nudge 10 px
-:::
+The **InfoPanel editor** group works on the InfoPanel page, in a canvas zone's items.
 
 ## Settings window
 

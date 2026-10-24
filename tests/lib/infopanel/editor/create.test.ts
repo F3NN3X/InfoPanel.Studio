@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { loadExport, entriesFromZip } from "@/lib/infopanel/archive.ts";
 import { withNewItem } from "@/lib/infopanel/canvas-edit.ts";
-import { centred, insertItem, namedFor, newItem, PALETTE } from "@/lib/infopanel/editor/create.ts";
+import { centred, insertItem, namedFor, newItem, PALETTE, placed } from "@/lib/infopanel/editor/create.ts";
+import { ACCENT, lookOf } from "@/lib/infopanel/editor/look.ts";
+import { checkValue } from "@/lib/infopanel/editor/registry.ts";
 import { infopanelExport } from "@/lib/infopanel/export/write.ts";
 import { newStored, readStored } from "@/lib/infopanel/import/stored.ts";
-import { defaultItem, SCHEMAS, type DisplayItem, type GroupItem } from "@/lib/infopanel/schema.ts";
+import { defaultItem, SCHEMAS, type DisplayItem, type FieldSpec, type GroupItem } from "@/lib/infopanel/schema.ts";
 
 const profile = readStored(newStored({ name: "Desk", width: 800, height: 480 })).profile;
 const group = (name: string, kids: DisplayItem[], locked = false): GroupItem => ({ ...defaultItem("Group"), Name: name, IsLocked: locked, DisplayItems: kids });
@@ -27,8 +29,8 @@ describe("newItem (InfoPanel's creation defaults)", () => {
   });
 
   it("makes Donut, Bar and the sensor images as InfoPanel's constructors do", () => {
-    expect(newItem("Donut", profile)).toMatchObject({ Frame: false, BackgroundColor: "#FFDCDCDC", Width: 100, Height: 100, Rotation: 90 });
-    expect(newItem("Bar", profile)).toMatchObject({ Width: 400, Height: 50, MinValue: 0, MaxValue: 100, Frame: true, Background: true });
+    expect(newItem("Donut", profile)).toMatchObject({ Frame: false, Width: 100, Height: 100, Rotation: 90 });
+    expect(newItem("Bar", profile)).toMatchObject({ MinValue: 0, MaxValue: 100, Background: true });
     expect(newItem("Graph", profile)).toMatchObject({ Type: "LINE" });
     expect(newItem("SensorImage", profile)).toMatchObject({ Width: 100, Height: 100, Threshold1: 0, Threshold2: 100 });
     expect(newItem("HttpImage", profile)).toMatchObject({ Width: 100, Height: 100 });
@@ -41,10 +43,48 @@ describe("newItem (InfoPanel's creation defaults)", () => {
   });
 
   it("centres an item with a box, and estimates text", () => {
-    expect(centred(newItem("Shape", profile), profile)).toMatchObject({ X: 350, Y: 190 });
+    expect(centred(newItem("Shape", profile), profile)).toMatchObject({ X: 300, Y: 180 });
     const t = centred(newItem("Text", profile), profile);
     expect(t.X).toBeGreaterThan(0);
     expect(t.X).toBeLessThan(400);
+  });
+});
+
+describe("the styled new-item look", () => {
+  const look = lookOf(profile);
+
+  it("derives the track and card from the profile, and fills with one accent", () => {
+    // Near black #0A0A0C moved 14 % and 7 % toward white text.
+    expect(look).toEqual({ text: "#FFFFFFFF", accent: ACCENT, track: "#FF2C2C2E", card: "#FF1B1B1D" });
+    for (const kind of ["Bar", "Graph", "Donut"] as const) {
+      expect(newItem(kind, profile)).toMatchObject({ Frame: false, Background: true, BackgroundColor: look.track, Color: ACCENT });
+    }
+    expect(newItem("Bar", profile)).toMatchObject({ Gradient: false });
+    expect(newItem("Shape", profile)).toMatchObject({ FillColor: look.card, ShowFrame: false, ShowGradient: false, CornerRadius: 12 });
+    expect(newItem("TableSensor", profile)).toMatchObject({ Font: "Segoe UI", Color: "#FFFFFFFF" });
+    expect(newItem("Gauge", profile)).toMatchObject({ vector: { track: "#2C2C2E", fill: { mode: "solid", color: "#3B82F6" } } });
+  });
+
+  it.each(PALETTE.map((p) => p.kind))("%s passes InfoPanel's setter checks and survives export, then parse", async (kind) => {
+    const item = newItem(kind, profile);
+    for (const [field, spec] of Object.entries(SCHEMAS[kind] as Record<string, FieldSpec<unknown>>)) {
+      const value = (item as unknown as Record<string, unknown>)[field];
+      if (value === null) continue;
+      expect(checkValue(spec, value), field).toEqual({ ok: true, value });
+    }
+    const { vector: _studioOnly, ...plain } = item as DisplayItem & { vector?: unknown };
+    const back = await loadExport(entriesFromZip(infopanelExport(profile, [item], [])));
+    expect(back.items).toEqual([plain]);
+  });
+});
+
+describe("placed (where a new item lands)", () => {
+  it("centres on a drop point, then takes the snap's shift", () => {
+    const shape = newItem("Shape", profile);
+    expect(placed(shape, profile, { x: 150, y: 100 })).toMatchObject({ X: 50, Y: 40 });
+    expect(placed(shape, profile, { x: 150, y: 100 }, () => ({ dx: -2, dy: 3 }))).toMatchObject({ X: 48, Y: 43 });
+    const g = newItem("Group", profile);
+    expect(placed(g, profile, { x: 1, y: 1 })).toBe(g);
   });
 });
 
@@ -81,7 +121,8 @@ describe("a profile from scratch, exported", () => {
     let items: DisplayItem[] = [];
     for (const { kind } of PALETTE) items = withNewItem(items, profile, newItem(kind, profile), null).items;
     const back = await loadExport(entriesFromZip(infopanelExport(profile, items, [])));
-    expect(back.items).toEqual(items);
+    // A new gauge's ring is a vector spec (studio-only), baked to frames by the Export dialog.
+    expect(back.items).toEqual(items.map(({ vector: _v, ...plain }: DisplayItem & { vector?: unknown }) => plain));
     expect(back.profile).toEqual(profile);
     expect(back.issues.filter((i) => i.code !== "unknown-field")).toEqual([]);
   });

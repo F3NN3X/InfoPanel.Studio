@@ -184,3 +184,22 @@ describe("profile settings", () => {
     expect(checkValue(PROFILE.WebViewMaxFps, 999)).toEqual({ ok: true, value: 240 });
   });
 });
+
+describe("the original binding a remap keeps", () => {
+  const [sensor] = parse('<DisplayItem xsi:type="SensorDisplayItem"><SensorName>CPU</SensorName><SensorType>Libre</SensorType><LibreSensorId>/cpu/0</LibreSensorId></DisplayItem>');
+  const original = { SensorType: "Libre", SensorName: "CPU", LibreSensorId: "/cpu/0" };
+
+  it("is read back as it was stored", () => {
+    const r = roundTrip(toStored(input([sensor], { keyOf: () => ({ key: "k", via: "chosen", original }) })));
+    expect(r.keys.get("0")).toEqual({ key: "k", via: "chosen", original });
+    expect(r.issues).toEqual([]);
+  });
+
+  it("is dropped and reported when a field is not the kind's, or not a value it takes", () => {
+    for (const bad of [{ ...original, SensorType: "Bogus" }, { ...original, Font: "x" }, { SensorName: "CPU" }, "libre"]) {
+      const r = roundTrip(toStored(input([sensor], { keyOf: () => ({ key: "k", via: "chosen", original: bad as never }) })));
+      expect(r.keys.get("0")).toEqual({ key: "k", via: "chosen" });
+      expect(r.issues).toEqual([expect.objectContaining({ code: "invalid-value", field: "$.original" })]);
+    }
+  });
+});
