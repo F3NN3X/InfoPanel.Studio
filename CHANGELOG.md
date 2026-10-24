@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **Audio Meter's Auto said it picks the loudest device.** It meters the default device: the default output, or the default input when Show is Inputs. The Device list's Auto row now says so and names the device it follows right now.
+
 ## [1.3.0-beta.22] - 2026-10-24
 
 ### Changed

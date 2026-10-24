@@ -69,7 +69,7 @@ export const AUTO_RULES: Readonly<Record<DeviceKind, string>> = {
   disk: "First detected drive",
   drive: "First detected drive",
   adapter: "Busiest adapter",
-  audio: "Loudest live device",
+  audio: "Default device",
 };
 
 const reading = (sensors: SensorMap, key: string): number | undefined => {
@@ -110,10 +110,17 @@ export function deviceReading(kind: DeviceKind, id: string, sensors: SensorMap):
   return `${Math.round(v)} %`;
 }
 
-/** The device Auto picks right now (undefined: none found): the busiest adapter, the loudest audio device, else the first. */
-export function autoDevice(kind: DeviceKind, sensors: SensorMap): string | undefined {
-  const ids = deviceOptions(kind, sensors).flatMap((o) => (o.value ? [o.value] : []));
-  if (kind !== "adapter" && kind !== "audio") return ids[0];
+/**
+ * The device Auto picks right now (undefined: none found): the busiest adapter; for audio the default device of the
+ * Show filter (the default input for Inputs), else the first device the filter shows (as Audio Meter does); else the first.
+ */
+export function autoDevice(kind: DeviceKind, sensors: SensorMap, flow?: Flow): string | undefined {
+  const ids = deviceOptions(kind, sensors).flatMap((o) => (o.value && (!flow || o.flow === flow) ? [o.value] : []));
+  if (kind === "audio") {
+    const fallback = flow === "input" ? "default-input" : "default-audio";
+    return ids.includes(fallback) ? fallback : ids[0];
+  }
+  if (kind !== "adapter") return ids[0];
   const ranked = ids.map((id) => [id, activity(kind, id, sensors) ?? -Infinity] as const).sort((a, b) => b[1] - a[1]);
   return ranked[0]?.[0];
 }
