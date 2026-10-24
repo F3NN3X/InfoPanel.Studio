@@ -35,6 +35,9 @@ pub fn flatten(prefix: &str, v: &Value, out: &mut Sample) {
 
 /// The columns of metrics.csv. Rust process numbers first, then the server and studio series
 /// the leak check cares about most; every flattened series is still in memory for the page.
+///
+/// The `sidecar.*` columns belong to the removed Node server process; they stay (empty) so older metrics.csv files
+/// still line up for tools/perf/metrics-trend.mjs.
 pub const CSV_COLUMNS: &[&str] = &[
     "sidecar.rssMb",
     "sidecar.cpuPct",
@@ -205,7 +208,7 @@ impl History {
     }
 }
 
-/// Memory and CPU of the sidecar, the WebView2 processes under this app, and the app itself.
+/// Memory of the WebView2 processes under this app, and the app itself.
 pub struct ProcessSampler {
     sys: sysinfo::System,
 }
@@ -221,7 +224,7 @@ impl Default for ProcessSampler {
 const MB: f64 = 1024.0 * 1024.0;
 
 impl ProcessSampler {
-    pub fn sample(&mut self, sidecar_pid: Option<u32>) -> Sample {
+    pub fn sample(&mut self) -> Sample {
         use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate};
         self.sys.refresh_processes_specifics(
             ProcessesToUpdate::All,
@@ -232,10 +235,6 @@ impl ProcessSampler {
         let me = Pid::from_u32(std::process::id());
         if let Some(p) = self.sys.process(me) {
             out.insert("app.rssMb".into(), p.memory() as f64 / MB);
-        }
-        if let Some(p) = sidecar_pid.and_then(|pid| self.sys.process(Pid::from_u32(pid))) {
-            out.insert("sidecar.rssMb".into(), p.memory() as f64 / MB);
-            out.insert("sidecar.cpuPct".into(), p.cpu_usage() as f64);
         }
         // WebView2 processes descend from this app; sysinfo's virtual memory on Windows is the
         // private commit (PagefileUsage).

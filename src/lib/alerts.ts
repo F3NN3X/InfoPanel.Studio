@@ -1,6 +1,6 @@
 /**
  * Alerts: rules the studio edits (`DashboardConfig.alerts`) and the runtime
- * shapes the server publishes (server/alerts.mjs). Rules are config; active
+ * shapes the server publishes (ips-server's alerts.rs). Rules are config; active
  * alerts and history are server state, so none of that enters undo.
  * See docs/redesign/alerts/PLAN.md.
  */

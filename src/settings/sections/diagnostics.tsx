@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { deltaTone, diagnosticsSummary, fmt, fmtDelta, groupSeries, isNotable, sampleSummary, type DeltaTone } from "../model/diagnostics";
 import { useFound, useStore } from "../store";
-import type { Diagnostics, Growth, Series, ServerImpl } from "../types";
+import type { Diagnostics, Growth, Series } from "../types";
 import { Button, Segmented, Switch, useFlag } from "../ui";
 
 /** Samples arrive every 30 s. */
@@ -110,7 +110,6 @@ export function DiagnosticsSection() {
             {copied ? "Copied" : "Copy diagnostics summary"}
           </Button>
         </div>
-        <ServerRow />
       </div>
 
       {diag && !sampling && (
@@ -159,30 +158,6 @@ function DebugRow({ onSaved }: { onSaved: () => void }) {
         <span className="text-[12.5px] leading-[1.45] text-s-muted">Logs every server request and samples memory every 30 s to find errors and leaks. Needs a server restart.</span>
       </div>
       <Switch checked={settings.debug} onChange={(v) => void save("debug", v).then(onSaved)} label="Debug mode" />
-    </div>
-  );
-}
-
-function ServerRow() {
-  const { settings, save } = useStore();
-  const found = useFound("server-impl");
-  return (
-    <div ref={found.ref} className={cn("flex items-center gap-4 border-t border-s-divider px-[18px] py-4", found.className)}>
-      <div className="flex flex-1 flex-col gap-[3px]">
-        <span className="text-sm font-medium">Server</span>
-        <span className="text-[12.5px] leading-[1.45] text-s-muted">
-          Native runs the dashboard server inside the app. Node runs the previous server in a separate process, for a while longer, in case Native gives you trouble. Takes effect when the server restarts.
-        </span>
-      </div>
-      <Segmented<ServerImpl>
-        label="Server"
-        options={[
-          { value: "node", label: "Node" },
-          { value: "native", label: "Native" },
-        ]}
-        value={settings.server}
-        onChange={(v) => void save("server", v)}
-      />
     </div>
   );
 }

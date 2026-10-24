@@ -1,11 +1,10 @@
-// ips-agent against tools/agent-status.mjs: the same stdin, arguments and environment against a
-// test HTTP server each, and the posted requests, stdout and exit code must be identical. Needs
-// `node` on the PATH (the tests say so and pass without it).
+// ips-agent end to end: stdin, arguments and environment in, against a test HTTP server, and the posted requests,
+// stdout and exit code out. The cases are the ones the removed Node forwarder was held to;
+// the assertions are what it did.
 
 use ips_agent::wrap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -161,26 +160,13 @@ impl Case {
     }
 }
 
-fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..")
-}
-
-fn node_available() -> bool {
-    Command::new("node")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
-}
-
-fn run(mut command: Command, case: &Case, url: &str) -> (Outcome, Duration) {
+fn run(mut command: Command, case: &Case, url: &str) -> Outcome {
     let fill = |s: &str| s.replace("{URL}", url);
     command.args(case.args.iter().map(|a| fill(a)));
     command.env_remove("DASHBOARD_URL");
     if let Some(env) = &case.env_url {
         command.env("DASHBOARD_URL", fill(env));
     }
-    let started = Instant::now();
     let mut child = command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -194,54 +180,30 @@ fn run(mut command: Command, case: &Case, url: &str) -> (Outcome, Duration) {
         drop(stdin);
     }
     let out = child.wait_with_output().unwrap();
-    let elapsed = started.elapsed();
-    (
-        Outcome {
-            stdout: out.stdout,
-            stderr: out.stderr,
-            code: out.status.code(),
-        },
-        elapsed,
-    )
+    Outcome {
+        stdout: out.stdout,
+        stderr: out.stderr,
+        code: out.status.code(),
+    }
 }
 
-/// Runs the case through both programs and asserts they agree; returns the posted requests.
-fn parity(case: Case) -> Vec<Recorded> {
-    if !node_available() {
-        eprintln!("node is not on the PATH: parity case skipped");
-        return Vec::new();
-    }
+/// Runs the case and returns what the program printed and the requests the test server saw.
+fn run_case(case: &Case) -> (Outcome, Vec<Recorded>) {
     let dead = {
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         format!("http://127.0.0.1:{}", l.local_addr().unwrap().port())
     };
-    let node_server = Server::start(case.reply);
-    let native_server = Server::start(case.reply);
-    let (node_url, native_url) = if case.down {
-        (dead.clone(), dead)
-    } else {
-        (node_server.url(), native_server.url())
-    };
+    let server = Server::start(case.reply);
+    let url = if case.down { dead } else { server.url() };
+    let outcome = run(Command::new(env!("CARGO_BIN_EXE_ips-agent")), case, &url);
+    (outcome, server.requests())
+}
 
-    let mut node = Command::new("node");
-    node.arg(repo_root().join("tools").join("agent-status.mjs"));
-    let (js, js_time) = run(node, &case, &node_url);
-    let native = Command::new(env!("CARGO_BIN_EXE_ips-agent"));
-    let (rust, rust_time) = run(native, &case, &native_url);
-
-    assert_eq!(rust, js, "stdout, stderr and exit code");
-    assert_eq!(rust.code, Some(0));
-    assert_eq!(
-        native_server.requests(),
-        node_server.requests(),
-        "posted requests"
-    );
-    // No slower than the script is: a dead or silent server holds it up for the one-second post only.
-    assert!(
-        rust_time < js_time + Duration::from_millis(700),
-        "{rust_time:?} vs {js_time:?}"
-    );
-    node_server.requests()
+/// Runs the case, asserts the agent exits 0 whatever happened, and returns the posted requests.
+fn post(case: Case) -> Vec<Recorded> {
+    let (outcome, requests) = run_case(&case);
+    assert_eq!(outcome.code, Some(0), "exit code");
+    requests
 }
 
 fn hook<'a>(extra: &[&'a str]) -> Vec<&'a str> {
@@ -251,7 +213,11 @@ fn hook<'a>(extra: &[&'a str]) -> Vec<&'a str> {
         .collect()
 }
 
-const ECHO: &str = r#"node -e "process.stdin.pipe(process.stdout)""#;
+/// The wrapped statusline command: prints its stdin.
+#[cfg(windows)]
+const ECHO: &str = r#"findstr "^""#;
+#[cfg(not(windows))]
+const ECHO: &str = "cat";
 
 fn wrapped(command: &str) -> String {
     format!("--wrap={}", wrap::encode(command))
@@ -259,15 +225,17 @@ fn wrapped(command: &str) -> String {
 
 #[test]
 fn hooks_post_the_raw_stdin_and_print_nothing() {
-    let claude = parity(Case::new(
+    let stop = Case::new(
         &["hook", "claude", "--url={URL}"],
         r#"{"hook_event_name":"Stop","session_id":"x"}"#,
-    ));
+    );
+    let (outcome, claude) = run_case(&stop);
+    assert_eq!((outcome.stdout, outcome.stderr, outcome.code), (vec![], vec![], Some(0)));
     assert_eq!(claude.len(), 1);
     assert_eq!(claude[0].path, "/api/agents/event?agent=claude");
     assert_eq!(claude[0].content_type, "application/json");
     assert_eq!(claude[0].agent_event, "1");
-    let codex = parity(Case::new(
+    let codex = post(Case::new(
         &["hook", "codex", "--url={URL}"],
         "  {\"a\":\"æøå\"}\n",
     ));
@@ -275,11 +243,11 @@ fn hooks_post_the_raw_stdin_and_print_nothing() {
     assert_eq!(codex[0].body, "  {\"a\":\"æøå\"}\n".as_bytes());
     // Any other agent name means claude; a flag before the agent hides it.
     assert_eq!(
-        parity(Case::new(&["hook", "gemini", "--url={URL}"], "{}"))[0].path,
+        post(Case::new(&["hook", "gemini", "--url={URL}"], "{}"))[0].path,
         "/api/agents/event?agent=claude"
     );
     assert_eq!(
-        parity(Case::new(&["hook", "--url={URL}", "codex"], "{}"))[0].path,
+        post(Case::new(&["hook", "--url={URL}", "codex"], "{}"))[0].path,
         "/api/agents/event?agent=claude"
     );
 }
@@ -288,21 +256,21 @@ fn hooks_post_the_raw_stdin_and_print_nothing() {
 fn blank_or_odd_input() {
     for blank in ["", "   ", "\r\n\t", "\u{feff}", "\u{a0}\u{2028}"] {
         assert!(
-            parity(Case::new(&["hook", "claude", "--url={URL}"], blank)).is_empty(),
+            post(Case::new(&["hook", "claude", "--url={URL}"], blank)).is_empty(),
             "{blank:?}"
         );
     }
     // U+0085 is not whitespace to JavaScript's trim.
     assert_eq!(
-        parity(Case::new(&["hook", "claude", "--url={URL}"], "\u{85}")).len(),
+        post(Case::new(&["hook", "claude", "--url={URL}"], "\u{85}")).len(),
         1
     );
     // Not JSON, and not UTF-8: posted as the text it decodes to.
     assert_eq!(
-        parity(Case::new(&["hook", "claude", "--url={URL}"], "not json")).len(),
+        post(Case::new(&["hook", "claude", "--url={URL}"], "not json")).len(),
         1
     );
-    let bad = parity(
+    let bad = post(
         Case::new(&["hook", "claude", "--url={URL}"], "")
             .bytes(&[0x7b, 0xff, 0xfe, 0xc3, 0x28, 0x7d]),
     );
@@ -312,22 +280,23 @@ fn blank_or_odd_input() {
 #[test]
 fn statusline_posts_and_passes_the_wrapped_output_through() {
     let input = r#"{"session_id":"x","rate_limits":{}}"#;
-    let plain = parity(Case::new(&["statusline", "--url={URL}"], input));
+    let plain = post(Case::new(&["statusline", "--url={URL}"], input));
     assert_eq!(plain[0].path, "/api/agents/statusline");
     assert_eq!(plain[0].body, input.as_bytes());
-    let echoed = parity(Case::new(
+    let (outcome, echoed) = run_case(&Case::new(
         &["statusline", &wrapped(ECHO), "--url={URL}"],
         input,
     ));
     assert_eq!(echoed.len(), 1);
+    assert!(String::from_utf8_lossy(&outcome.stdout).contains(input), "the wrapped output");
     // Blank input: nothing is posted but the wrapped command still gets it.
-    assert!(parity(Case::new(
+    assert!(post(Case::new(
         &["statusline", &wrapped(ECHO), "--url={URL}"],
         "\n"
     ))
     .is_empty());
     // Quotes and non-ASCII survive the shell.
-    parity(Case::new(
+    post(Case::new(
         &[
             "statusline",
             &wrapped(r#"echo "æøå 'q' & more""#),
@@ -346,7 +315,7 @@ fn a_failing_wrapped_command_changes_nothing() {
         "echo out & echo err 1>&2 & exit 1",
     ] {
         assert_eq!(
-            parity(Case::new(
+            post(Case::new(
                 &["statusline", &wrapped(command), "--url={URL}"],
                 input
             ))
@@ -357,11 +326,11 @@ fn a_failing_wrapped_command_changes_nothing() {
     }
     // Nothing usable to wrap.
     assert_eq!(
-        parity(Case::new(&["statusline", "--wrap=", "--url={URL}"], input)).len(),
+        post(Case::new(&["statusline", "--wrap=", "--url={URL}"], input)).len(),
         1
     );
     assert_eq!(
-        parity(Case::new(
+        post(Case::new(
             &["statusline", "--wrap=!!!", "--url={URL}"],
             input
         ))
@@ -373,21 +342,21 @@ fn a_failing_wrapped_command_changes_nothing() {
 #[test]
 fn the_url_comes_from_the_flag_then_the_environment() {
     // Trailing slashes are stripped and a path prefix is kept.
-    let prefixed = parity(Case::new(&hook(&["--url={URL}/pre//"]), "{}"));
+    let prefixed = post(Case::new(&hook(&["--url={URL}/pre//"]), "{}"));
     assert_eq!(prefixed[0].path, "/pre/api/agents/event?agent=claude");
-    assert_eq!(parity(Case::new(&hook(&[]), "{}").env("{URL}")).len(), 1);
+    assert_eq!(post(Case::new(&hook(&[]), "{}").env("{URL}")).len(), 1);
     // The flag wins over a dead environment URL; an empty one falls through to it.
     assert_eq!(
-        parity(Case::new(&hook(&["--url={URL}"]), "{}").env("http://127.0.0.1:9")).len(),
+        post(Case::new(&hook(&["--url={URL}"]), "{}").env("http://127.0.0.1:9")).len(),
         1
     );
     assert_eq!(
-        parity(Case::new(&hook(&["--url="]), "{}").env("{URL}")).len(),
+        post(Case::new(&hook(&["--url="]), "{}").env("{URL}")).len(),
         1
     );
     // The first --url= is the one that counts.
     assert_eq!(
-        parity(Case::new(
+        post(Case::new(
             &hook(&["--url={URL}", "--url=http://127.0.0.1:9"]),
             "{}"
         ))
@@ -398,30 +367,30 @@ fn the_url_comes_from_the_flag_then_the_environment() {
 
 #[test]
 fn an_error_reply_changes_nothing() {
-    let seen = parity(Case::new(&["hook", "codex", "--url={URL}"], "{}").reply(Reply::ServerError));
+    let seen = post(Case::new(&["hook", "codex", "--url={URL}"], "{}").reply(Reply::ServerError));
     assert_eq!(seen.len(), 1);
 }
 
 #[test]
 fn unknown_modes_do_nothing() {
-    assert!(parity(Case::new(&["whatever", "--url={URL}"], "{}")).is_empty());
-    assert!(parity(Case::new(&[], "{}")).is_empty());
+    assert!(post(Case::new(&["whatever", "--url={URL}"], "{}")).is_empty());
+    assert!(post(Case::new(&[], "{}")).is_empty());
 }
 
 #[test]
 fn a_dead_server_is_not_an_error() {
     let mut case = Case::new(&["hook", "claude", "--url={URL}"], "{}");
     case.down = true;
-    assert!(parity(case).is_empty());
+    assert!(post(case).is_empty());
     let mut line = Case::new(&["statusline", &wrapped(ECHO), "--url={URL}"], r#"{"a":1}"#);
     line.down = true;
-    parity(line);
+    post(line);
 }
 
 #[test]
 fn a_silent_server_is_given_up_on_after_a_second() {
     let started = Instant::now();
-    let seen = parity(
+    let seen = post(
         Case::new(&["hook", "claude", "--url={URL}"], r#"{"slow":true}"#).reply(Reply::Hang),
     );
     if !seen.is_empty() {
@@ -434,7 +403,7 @@ fn a_silent_server_is_given_up_on_after_a_second() {
 fn stdin_that_never_closes_is_posted_after_three_seconds() {
     let mut case = Case::new(&["hook", "claude", "--url={URL}"], r#"{"partial":true}"#);
     case.hold_stdin = Duration::from_secs(10);
-    let seen = parity(case);
+    let seen = post(case);
     if !seen.is_empty() {
         assert_eq!(seen[0].body, br#"{"partial":true}"#);
     }

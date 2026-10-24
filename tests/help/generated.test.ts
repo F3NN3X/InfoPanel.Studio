@@ -73,7 +73,7 @@ describe("the defaults table", () => {
   });
 
   it("agrees with the server and the app on the default port", () => {
-    expect(fs.readFileSync("server.mjs", "utf8")).toMatch(/process\.env\.PORT === "" \? 3922/);
+    expect(fs.readFileSync("src-tauri/crates/ips-server/src/env.rs", "utf8")).toMatch(/return Ok\(3922\)/);
     expect(fs.readFileSync("src-tauri/src/settings.rs", "utf8")).toMatch(/DEFAULT_PORT: u16 = 3922;/);
   });
 });

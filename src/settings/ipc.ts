@@ -32,7 +32,6 @@ export const ipc = {
   defaultBrowserKind: () => invoke<BrowserKind>("default_browser_kind"),
   foreignServerInfo: () => invoke<ForeignInfo | null>("foreign_server_info"),
   useForeignServer: () => invoke<StopResult>("use_foreign_server"),
-  stopForeignServer: () => invoke<StopResult>("stop_foreign_server"),
   listLocalAddresses: () => invoke<string[]>("list_local_addresses"),
   setAgents: (enabled: boolean) => invoke<SetAgentsResult>("set_agents", { enabled }),
   agentsStatus: () => invoke<AgentStatus[]>("agents_status"),

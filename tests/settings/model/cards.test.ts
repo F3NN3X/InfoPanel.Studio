@@ -67,10 +67,10 @@ describe("callout", () => {
     expect(callout(status({ state: "failed" })).actions).toEqual([{ kind: "logs" }]);
   });
 
-  it("another dashboard server can be used or stopped", () => {
+  it("another dashboard server can be used", () => {
     const c = callout(status({ state: "foreign_dashboard", foreignVersion: "1.1.0" }));
     expect(c.message).toContain("version 1.1.0");
-    expect(c.actions.map((a) => a.kind)).toEqual(["use-foreign", "stop-foreign"]);
+    expect(c.actions.map((a) => a.kind)).toEqual(["use-foreign"]);
     expect(serverCard(status({ state: "foreign_dashboard" })).canStart).toBe(false);
   });
 });

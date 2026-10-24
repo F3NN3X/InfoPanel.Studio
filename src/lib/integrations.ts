@@ -1,5 +1,5 @@
 /**
- * The dashboard server's integrations as the studio sees them (server/integrations.mjs): the OBS
+ * The dashboard server's integrations as the studio sees them (ips-server's integrations.rs): the OBS
  * connection and the calendar links, without their secrets. A password or link is sent once and
  * never read back.
  */

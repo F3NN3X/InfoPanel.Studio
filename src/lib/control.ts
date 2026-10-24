@@ -4,7 +4,7 @@ import type { ActiveAlert, AlertAction } from "./alerts";
 import type { DashboardConfig, MonitorProfile } from "./layout";
 
 /**
- * The control channel — runtime state the server holds (server/control.mjs):
+ * The control channel — runtime state the server holds (ips-server's control.rs):
  * the page each profile shows, a profile override, page auto-rotation, the alert mute, the
  * kiosk's reload, dim and island controls, and the kiosks connected right now.
  * Kiosks and the studio read it over one SSE stream and write it with POSTs;
@@ -81,7 +81,7 @@ export async function postControl(action: ControlAction, body: object): Promise<
   try {
     const res = await fetch(`${CONTROL_URL}/${action}`, {
       method: "POST",
-      // The custom header makes a cross-site POST preflight (see server.mjs).
+      // The custom header makes a cross-site POST preflight (see the server's request guard).
       headers: { "Content-Type": "application/json", "X-Dashboard-Control": "1" },
       body: JSON.stringify(body),
     });

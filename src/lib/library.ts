@@ -1,5 +1,5 @@
 /**
- * My library on the dashboard server (server/library.mjs): the user's reusable images, videos, fonts,
+ * My library on the dashboard server (ips-server's library.rs): the user's reusable images, videos, fonts,
  * SVG templates, gauges, panels, style presets and imported canvases. Placing an item copies it into
  * a profile; the item only counts its copies.
  */

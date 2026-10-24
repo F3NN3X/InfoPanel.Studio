@@ -7,7 +7,7 @@ use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 
 /// Current settings file layout; bump with a migration in `load_from_str`.
-pub const SETTINGS_VERSION: u32 = 3;
+pub const SETTINGS_VERSION: u32 = 4;
 
 pub const DEFAULT_HOST: &str = "127.0.0.1";
 pub const LAN_HOST: &str = "0.0.0.0";
@@ -87,15 +87,6 @@ pub enum OpenStudioIn {
     DefaultBrowser,
 }
 
-/// Which server the app runs: ips-server inside the app (the default), or the bundled Node sidecar.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ServerImpl {
-    Node,
-    #[default]
-    Native,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -132,8 +123,6 @@ pub struct Settings {
     pub auto_download: bool,
     pub agents: AgentSettings,
     pub debug: bool,
-    /// The server the app starts; read at start only.
-    pub server: ServerImpl,
     /// The one-time "closing stops the kiosk" warning was shown (close to tray off).
     pub close_warning_shown: bool,
 }
@@ -179,7 +168,6 @@ impl Default for Settings {
             auto_download: false,
             agents: AgentSettings::default(),
             debug: false,
-            server: ServerImpl::Native,
             close_warning_shown: false,
         }
     }
@@ -290,7 +278,6 @@ pub fn with_setting(s: &Settings, key: &str, value: Value) -> Result<Settings, S
         "updateChannel" => next.update_channel = parse(key, value)?,
         "autoDownload" => next.auto_download = parse(key, value)?,
         "debug" => next.debug = parse(key, value)?,
-        "server" => next.server = parse(key, value)?,
         _ => return Err(format!("\"{key}\" is not a setting.")),
     }
     Ok(next)
@@ -316,8 +303,8 @@ pub fn server_origin(s: &Settings) -> String {
     origin(s.host(), s.port)
 }
 
-/// Version 1 kept the bind address as `host`; it becomes `listen`. Version 2 saved `server: "node"`, the default
-/// then, for everyone: it becomes native, the new default (Settings › Diagnostics switches back).
+/// Version 1 kept the bind address as `host`; it becomes `listen`. Versions before 4 could save `server`, which chose
+/// between the bundled Node and the app's own server; Node is gone, so the key is dropped.
 fn migrate(raw: &mut Value) {
     let Some(map) = raw.as_object_mut() else {
         return;
@@ -334,9 +321,12 @@ fn migrate(raw: &mut Value) {
             }
         }
     }
-    if version < 3 && map.get("server").and_then(Value::as_str) == Some("node") {
-        map.remove("server");
-        log::info!("settings: the server moves from node to native, the new default");
+    if version < 4 {
+        if let Some(server) = map.remove("server") {
+            if server.as_str() == Some("node") {
+                log::info!("settings: the Node server is gone; the app runs its own server");
+            }
+        }
     }
 }
 
@@ -525,17 +515,9 @@ mod tests {
     }
 
     #[test]
-    fn server_defaults_to_native_and_takes_its_two_values_only() {
-        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().server, ServerImpl::Native);
-        assert_eq!(load_from_str(r#"{ "version": 3, "server": "node" }"#).unwrap().server, ServerImpl::Node);
-        assert_eq!(load_from_str(r#"{ "server": "deno" }"#).unwrap().server, ServerImpl::Native);
-        assert_eq!(serde_json::to_value(Settings::default()).unwrap()["server"], "native");
-        let s = Settings::default();
-        let set = |v| with_setting(&s, "server", v).map(|n| n.server);
-        assert_eq!(set(json!("native")), Ok(ServerImpl::Native));
-        assert_eq!(set(json!("node")), Ok(ServerImpl::Node));
-        assert!(set(json!("deno")).is_err());
-        assert!(set(json!(true)).is_err());
+    fn server_is_no_longer_a_setting() {
+        assert!(serde_json::to_value(Settings::default()).unwrap().get("server").is_none());
+        assert!(with_setting(&Settings::default(), "server", json!("native")).is_err());
     }
 
     #[test]
@@ -575,13 +557,17 @@ mod tests {
     }
 
     #[test]
-    fn v2_node_server_migrates_to_native() {
-        for version in [0, 1, 2] {
-            let text = format!(r#"{{ "version": {version}, "server": "node", "port": 3942 }}"#);
-            let s = load_from_str(&text).unwrap();
-            assert_eq!((s.server, s.port, s.version), (ServerImpl::Native, 3942, 3), "v{version}");
+    fn the_server_key_is_dropped_below_version_4() {
+        for version in [0, 1, 2, 3] {
+            for server in ["node", "native"] {
+                let text = format!(r#"{{ "version": {version}, "server": "{server}", "port": 3942 }}"#);
+                let s = load_from_str(&text).unwrap();
+                assert_eq!((s.port, s.version), (3942, SETTINGS_VERSION), "v{version} {server}");
+                let mut raw: Value = serde_json::from_str(&text).unwrap();
+                migrate(&mut raw);
+                assert!(raw.get("server").is_none(), "v{version} {server}");
+            }
         }
-        assert_eq!(load_from_str(r#"{ "version": 2, "server": "native" }"#).unwrap().server, ServerImpl::Native);
     }
 
     #[test]
@@ -708,7 +694,6 @@ mod tests {
         "updateChannel",
         "autoDownload",
         "debug",
-        "server",
     ];
 
     #[test]

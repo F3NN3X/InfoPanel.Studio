@@ -25,7 +25,6 @@ const settingsDefaults: Settings = {
   autoDownload: false,
   agents: { enabled: false },
   debug: false,
-  server: "node",
 };
 
 const running: Status = {
@@ -42,7 +41,7 @@ const running: Status = {
   debug: false,
   pid: 10,
   startedAt: Date.now(),
-  runningConfig: { listen: "local", port: 3922, debug: false, allowedHosts: [], allowRemoteEdit: false, server: "node" },
+  runningConfig: { listen: "local", port: 3922, debug: false, allowedHosts: [], allowRemoteEdit: false },
   errorCode: null,
   failedAt: null,
   suggestedPort: null,

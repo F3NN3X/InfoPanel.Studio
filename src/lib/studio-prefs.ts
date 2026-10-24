@@ -1,4 +1,4 @@
-// The studio preferences the server keeps (GET and PUT /api/studio-prefs, server/studio-prefs.mjs), so they follow the
+// The studio preferences the server keeps (GET and PUT /api/studio-prefs, ips-server's studio_prefs.rs), so they follow the
 // user between the app window and a studio opened in a browser, which each have their own localStorage.
 
 export const STUDIO_PREFS_URL = "/api/studio-prefs";

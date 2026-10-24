@@ -3,7 +3,7 @@ id: glossary
 title: Glossary
 icon: menu_book
 related: [concepts]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.19
 ---
 
 The words this app uses, in one place.
@@ -21,7 +21,6 @@ The words this app uses, in one place.
 | Native | Drawn as a dashboard widget that follows the theme |
 | Panel | A zone composed of panel widgets in a Stack, Grid or Overlay |
 | Screen | A design for one display size, with its own grid (called a profile in files and in InfoPanel) |
-| Sidecar | The bundled Node server process that runs beside the app |
 | Skin | A built-in widget rendering family, picked in Theme › Start from |
 | Theme | The whole inherited look at any level; a saved Theme is a bundle |
 | Live | Control of the kiosks right now; never saved |

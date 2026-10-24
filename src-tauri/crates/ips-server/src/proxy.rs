@@ -1,4 +1,4 @@
-// GET /api/image-proxy?url= (server.mjs's handleImageProxy and server/proxy.mjs): cover art the page cannot load
+// GET /api/image-proxy?url= (the Node server's image proxy): cover art the page cannot load
 // itself, relayed from the dashboard's own origin.
 //
 // Whatever it relays must not be able to run as a page there: only image types go through (406 otherwise), and the

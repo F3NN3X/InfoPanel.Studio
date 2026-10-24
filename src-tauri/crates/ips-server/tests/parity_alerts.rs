@@ -1,5 +1,5 @@
 // The parity fixtures for the alert engine (alerts, alerts-thresholds, alerts-rules, alerts-output, alerts-live;
-// tests/fixtures/parity/*.json, written from the Node server by tools/parity/alerts-fixtures.mjs): each case's input
+// tests/fixtures/parity/*.json, written once from the Node server (removed; tests/fixtures/parity/README.md)): each case's input
 // through the native engine must give the Node output exactly. Quiet hours are read in Europe/Oslo, the zone the
 // fixtures were built in.
 

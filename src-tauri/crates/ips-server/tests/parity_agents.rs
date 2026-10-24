@@ -1,5 +1,4 @@
-// The parity fixtures for the coding agents (agents, agent-usage, claude-sessions; tests/fixtures/parity/*.json, written
-// from the Node server by tools/parity/agents-fixtures.mjs): each case's input through the native function must give the
+// The parity fixtures for the coding agents (agents, agent-usage, claude-sessions; tests/fixtures/parity/*.json, written once from the Node server (removed; tests/fixtures/parity/README.md)): each case's input through the native function must give the
 // Node output exactly. The scans and the local days are read in Europe/Oslo, the zone the fixtures were built in.
 
 use std::path::PathBuf;

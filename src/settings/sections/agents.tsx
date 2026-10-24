@@ -98,7 +98,7 @@ export function AgentsSection() {
           <AgentFile key={f.agent} item={f} />
         ))}
         <div className="text-pretty text-[12.5px] leading-normal text-s-muted">
-          Adds hooks that run InfoPanel Studio's own Node, and wraps your Claude Code statusline so it keeps printing as before. Each file is backed up first. Turning this off removes them.
+          Adds hooks that run InfoPanel Studio's own small helper, and wraps your Claude Code statusline so it keeps printing as before. Each file is backed up first. Turning this off removes them.
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => void ipc.openAgentBackups().catch((e) => toast(errorText(e), true))}>

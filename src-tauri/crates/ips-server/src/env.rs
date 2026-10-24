@@ -1,10 +1,10 @@
-// The environment server.mjs and server/env.mjs read, with their defaults and parsing.
+// The environment the server reads, with its defaults and parsing.
 
 use std::path::{Path, PathBuf};
 
 use crate::js;
 
-/// The package.json beside server.mjs, whose version GET /api/health reports.
+/// The repo's package.json, whose version GET /api/health reports.
 const PACKAGE_JSON: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../package.json"));
 
 /// The `version` of a package.json's text, or "0.0.0" when it has none.

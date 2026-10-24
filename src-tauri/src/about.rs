@@ -4,7 +4,6 @@
 use crate::paths::{self, Paths};
 use crate::settings::Channel;
 use serde::Serialize;
-use std::sync::OnceLock;
 
 /// The day the app was built (build.rs), YYYY-MM-DD.
 pub const BUILD_DATE: &str = env!("BUILD_DATE");
@@ -23,27 +22,10 @@ pub struct AppInfo {
     pub version: String,
     pub channel: Channel,
     pub build_date: &'static str,
-    /// The bundled node's version, e.g. `v24.1.0`.
-    pub node: Option<String>,
     /// The WebView2 runtime's version.
     pub webview: Option<String>,
     pub os: String,
     pub paths: AppPaths,
-}
-
-/// `node --version` of the bundled node, asked once per run.
-fn node_version(paths: &Paths) -> Option<String> {
-    static VERSION: OnceLock<Option<String>> = OnceLock::new();
-    VERSION
-        .get_or_init(|| {
-            let out = crate::sidecar::hidden_command(paths::display(&paths.node_exe()))
-                .arg("--version")
-                .output()
-                .ok()?;
-            let text = String::from_utf8_lossy(&out.stdout).trim().to_owned();
-            (out.status.success() && !text.is_empty()).then_some(text)
-        })
-        .clone()
 }
 
 /// `Windows 11 Pro (build 26300)`: the long OS name and the kernel build.
@@ -61,7 +43,6 @@ pub fn info(paths: &Paths, version: &str, channel: Channel) -> AppInfo {
         version: version.into(),
         channel,
         build_date: BUILD_DATE,
-        node: node_version(paths),
         webview: tauri::webview_version().ok(),
         os: os_text(
             sysinfo::System::long_os_version(),

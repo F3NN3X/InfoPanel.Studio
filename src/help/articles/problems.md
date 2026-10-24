@@ -3,7 +3,7 @@ id: problems
 title: Common problems
 icon: build
 related: [diagnostics, kiosk, performance, sensors]
-verified: 1.3.0-beta.18
+verified: 1.3.0-beta.19
 ---
 
 Quick fixes for the things that go wrong most.
@@ -18,17 +18,13 @@ Quick fixes for the things that go wrong most.
 
 Another program holds the port. Settings › App › Server explains "Port N is already in use by another app" and offers a button to switch to the next free port, such as **Use 3923**. Press it, then update the kiosk URL in InfoPanel.
 
-If the message says another InfoPanel Studio server is already running on that port, for example from `start-dashboard.bat`, choose **Use it**, or **Stop it and start the app's server**. If Windows blocked the port, the message offers **View logs**.
+If the message says another InfoPanel Studio server is already running on that port, for example from `start-dashboard.bat`, choose **Use it** when the button is offered, or close that program and start the server again. If Windows blocked the port, the message offers **View logs**.
 
 ## The studio opens in the app window, not the browser
 
 - With **Microsoft Edge (app mode)**, the studio does open in Edge, in a window with no tabs or address bar. Its taskbar button is Edge's.
 - If the studio window is already open, the tray brings it to the front. Close it to the tray, then open the studio again.
 - If the server isn't running within 30 seconds, the app shows its own window with the start page, which names the problem.
-
-## Something works with Node but not with Native
-
-Open Settings › Diagnostics, set **Server** to Node and restart the server. Then report the problem with the lines from Settings › Logs around the time it happened. See [Diagnostics and logs](diagnostics#server).
 
 ## Widgets show dashes or zeros
 

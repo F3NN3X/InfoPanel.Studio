@@ -1,6 +1,6 @@
 /**
  * The server's extras: what the dashboard server learns from OBS and the calendar links
- * (server/extras.mjs). Kiosks read only this state; the OBS password and the calendar URLs stay on
+ * (ips-server's extras.rs). Kiosks read only this state; the OBS password and the calendar URLs stay on
  * the server (`/api/integrations`). One shared EventSource, opened on the first subscriber.
  */
 

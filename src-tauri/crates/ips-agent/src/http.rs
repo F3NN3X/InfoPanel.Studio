@@ -1,4 +1,4 @@
-// One POST, like agent-status.mjs's fetch: raw TcpStream, no TLS, gives up after the timeout
+// One POST, like the Node forwarder's fetch: raw TcpStream, no TLS, gives up after the timeout
 // (connect, write and waiting for the response head together) and never reports a failure.
 
 use socket2::{Domain, Protocol, Socket, Type};

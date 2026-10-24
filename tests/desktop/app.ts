@@ -47,9 +47,6 @@ export interface DesktopApp {
   stop(): void;
 }
 
-/** The server the specs run: DESKTOP_SERVER=node runs the Node sidecar, anything else ips-server in the app. */
-export const SERVER_MODE = process.env.DESKTOP_SERVER === "node" ? "node" : "native";
-
 /**
  * Scratch config and data folders, settings merged over safe defaults; the app is launched by `launch()`. `extraEnv`
  * adds to the app's environment (the debug build's spec hooks, e.g. INFOPANEL_STUDIO_BROWSER_PROFILE).
@@ -65,7 +62,7 @@ export async function prepareApp(settings: Record<string, unknown> = {}, extraEn
   const cdpPort = await freePort();
   fs.writeFileSync(
     path.join(configDir, "settings.json"),
-    JSON.stringify({ port, startAtLogin: false, startServer: true, closeToTray: true, closeWarningShown: true, checkForUpdates: false, agents: { enabled: false }, server: SERVER_MODE, ...settings })
+    JSON.stringify({ port, startAtLogin: false, startServer: true, closeToTray: true, closeWarningShown: true, checkForUpdates: false, agents: { enabled: false }, ...settings })
   );
   const env = {
     ...process.env,

@@ -76,14 +76,14 @@ pub fn parse_listener_pid(netstat: &str, port: u16) -> Option<u32> {
 }
 
 pub fn listener_pid(port: u16) -> Option<u32> {
-    let out = crate::sidecar::hidden_command("netstat")
+    let out = crate::server_log::hidden_command("netstat")
         .args(["-ano", "-p", "TCP"])
         .output()
         .ok()?;
     let text = String::from_utf8_lossy(&out.stdout);
     parse_listener_pid(&text, port).or_else(|| {
         // IPv6 listeners only show without `-p TCP`.
-        let out = crate::sidecar::hidden_command("netstat")
+        let out = crate::server_log::hidden_command("netstat")
             .arg("-ano")
             .output()
             .ok()?;
@@ -94,13 +94,10 @@ pub fn listener_pid(port: u16) -> Option<u32> {
 #[derive(Debug, Clone, Serialize)]
 pub struct ProcessInfo {
     pub pid: u32,
-    /// The image name, e.g. `node.exe`.
+    /// The image name, e.g. `ips-server.exe`.
     pub name: String,
     /// The full executable path when Windows lets us read it.
     pub exe: Option<String>,
-    /// The command line arguments (empty when Windows doesn't let us read them).
-    #[serde(skip)]
-    pub cmd: Vec<String>,
     /// Owned by the same user as this app; false when either owner is unknown.
     #[serde(skip)]
     pub same_user: bool,
@@ -122,7 +119,6 @@ pub fn process_info(pid: u32) -> Option<ProcessInfo> {
         true,
         ProcessRefreshKind::nothing()
             .with_exe(UpdateKind::Always)
-            .with_cmd(UpdateKind::Always)
             .with_user(UpdateKind::Always),
     );
     let p = sys.process(spid)?;
@@ -134,18 +130,8 @@ pub fn process_info(pid: u32) -> Option<ProcessInfo> {
         pid,
         name: p.name().to_string_lossy().into_owned(),
         exe: p.exe().map(|e| e.to_string_lossy().into_owned()),
-        cmd: p
-            .cmd()
-            .iter()
-            .map(|a| a.to_string_lossy().into_owned())
-            .collect(),
         same_user,
     })
-}
-
-/// Only a node.exe may be stopped for the user.
-pub fn is_node(info: &ProcessInfo) -> bool {
-    info.name.eq_ignore_ascii_case("node.exe")
 }
 
 /// ips-server run on its own (`cargo run -p ips-server` from a checkout): a dashboard server by its image name.
@@ -153,34 +139,10 @@ pub fn is_ips_server(info: &ProcessInfo) -> bool {
     info.name.eq_ignore_ascii_case("ips-server.exe") || info.name == "ips-server"
 }
 
-/// Only a node.exe or an ips-server owned by the current user may be adopted as the session's server. An
-/// ips-server is never stopped for the user (`kill` takes node.exe only): it is a developer's from-source run.
+/// Only an ips-server owned by the current user may be adopted as the session's server. The app never stops one
+/// for the user: it is a developer's from-source run.
 pub fn may_adopt(info: &ProcessInfo) -> bool {
-    (is_node(info) || is_ips_server(info)) && info.same_user
-}
-
-/// A node.exe running the dashboard's `server.mjs` (as start-dashboard.bat and `npm start` do),
-/// recognised even when it is an older build that has no /api/health.
-pub fn runs_dashboard_server(info: &ProcessInfo) -> bool {
-    is_node(info)
-        && info.cmd.iter().skip(1).any(|arg| {
-            let file = arg.rsplit(['/', '\\']).next().unwrap_or(arg);
-            file.eq_ignore_ascii_case("server.mjs")
-        })
-}
-
-pub fn kill(pid: u32) -> bool {
-    use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
-    let mut sys = System::new();
-    let spid = Pid::from_u32(pid);
-    sys.refresh_processes_specifics(
-        ProcessesToUpdate::Some(&[spid]),
-        true,
-        ProcessRefreshKind::nothing(),
-    );
-    // Checked again right before the kill, in case the PID changed hands since the user confirmed.
-    sys.process(spid)
-        .is_some_and(|p| p.name().eq_ignore_ascii_case("node.exe") && p.kill())
+    is_ips_server(info) && info.same_user
 }
 
 #[cfg(test)]
@@ -248,36 +210,19 @@ Active Connections
     }
 
     #[test]
-    fn only_node_is_stoppable() {
-        let info = |name: &str| ProcessInfo {
-            pid: 1,
-            name: name.into(),
-            exe: None,
-            cmd: Vec::new(),
-            same_user: false,
-        };
-        assert!(is_node(&info("node.exe")));
-        assert!(is_node(&info("NODE.EXE")));
-        assert!(!is_node(&info("InfoPanel.exe")));
-    }
-
-    #[test]
-    fn only_a_node_of_the_same_user_is_adoptable() {
+    fn only_an_ips_server_of_the_same_user_is_adoptable() {
         let info = |name: &str, same_user: bool| ProcessInfo {
             pid: 1,
             name: name.into(),
             exe: None,
-            cmd: Vec::new(),
             same_user,
         };
-        assert!(may_adopt(&info("node.exe", true)));
-        assert!(!may_adopt(&info("node.exe", false)));
+        assert!(!may_adopt(&info("node.exe", true)), "a Node server is just another app");
         assert!(!may_adopt(&info("InfoPanel.exe", true)));
         assert!(may_adopt(&info("ips-server.exe", true)));
         assert!(may_adopt(&info("IPS-SERVER.EXE", true)));
         assert!(!may_adopt(&info("ips-server.exe", false)));
         assert!(!may_adopt(&info("ips-agent.exe", true)));
-        assert!(!is_node(&info("ips-server.exe", true)), "an ips-server is adopted, never stopped");
     }
 
     #[test]
@@ -293,42 +238,5 @@ Active Connections
         let info = info.expect("child process");
         assert!(info.same_user, "child not seen as the same user");
         assert!(own.is_some(), "own process not found");
-    }
-
-    #[test]
-    fn a_dashboard_server_is_node_running_server_mjs() {
-        let info = |name: &str, cmd: &[&str]| ProcessInfo {
-            pid: 1,
-            name: name.into(),
-            exe: None,
-            cmd: cmd.iter().map(|a| a.to_string()).collect(),
-            same_user: false,
-        };
-        assert!(runs_dashboard_server(&info(
-            "node.exe",
-            &["node", "server.mjs"]
-        )));
-        assert!(runs_dashboard_server(&info(
-            "node.exe",
-            &[r"C:\nvm\node.exe", r"E:\repo\Server.MJS"]
-        )));
-        assert!(runs_dashboard_server(&info(
-            "node.exe",
-            &["node", "E:/repo/server.mjs"]
-        )));
-        assert!(!runs_dashboard_server(&info(
-            "node.exe",
-            &["node", "other.mjs"]
-        )));
-        assert!(!runs_dashboard_server(&info("node.exe", &["server.mjs"])));
-        assert!(!runs_dashboard_server(&info(
-            "node.exe",
-            &["node", "my-server.mjs"]
-        )));
-        assert!(!runs_dashboard_server(&info(
-            "python.exe",
-            &["python", "server.mjs"]
-        )));
-        assert!(!runs_dashboard_server(&info("node.exe", &[])));
     }
 }

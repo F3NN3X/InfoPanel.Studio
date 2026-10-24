@@ -1,5 +1,5 @@
 // The parity fixtures for the media modules (assets, canvases, library, infopanel-local; tests/fixtures/parity/*.json,
-// written from the Node server by tools/parity/media-fixtures.mjs): each case's input through the native function must
+// written once from the Node server (removed; tests/fixtures/parity/README.md)): each case's input through the native function must
 // give the Node output exactly.
 
 use std::path::PathBuf;
