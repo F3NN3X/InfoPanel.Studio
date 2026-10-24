@@ -239,7 +239,7 @@ pub async fn handle(app: &App, mut req: Req) -> Response<Body> {
     let body = match req.read_body(MAX_CONTROL_BYTES).await {
         Ok(text) if text.is_empty() => Some(json!({})),
         Ok(text) => parse_json(&text),
-        Err(()) => return http::closing(http::text(400, "expected a JSON object")),
+        Err(http::BodyRefused) => return http::closing(http::text(400, "expected a JSON object")),
     };
     let Some(Value::Object(mut action)) = body else {
         return http::text(400, "expected a JSON object");

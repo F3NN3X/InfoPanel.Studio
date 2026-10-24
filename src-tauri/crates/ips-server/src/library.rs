@@ -259,7 +259,8 @@ impl LibraryStore {
 }
 
 /// A write's JSON body, or the answer that refuses it.
-async fn body(app: &App, req: &mut Req) -> Result<Value, Response<Body>> {
+/// The refusal is boxed: a response is large next to the value.
+async fn body(app: &App, req: &mut Req) -> Result<Value, Box<Response<Body>>> {
     let guard = library_write_refusal(
         req.header("content-type").as_deref(),
         req.header("x-dashboard-library").as_deref(),
@@ -268,10 +269,10 @@ async fn body(app: &App, req: &mut Req) -> Result<Value, Response<Body>> {
         true,
     );
     if let Some(refusal) = guard {
-        return Err(http::text(refusal.status, refusal.message));
+        return Err(Box::new(http::text(refusal.status, refusal.message)));
     }
-    let text = req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|()| http::closing(http::text(400, BODY_REFUSED)))?;
-    json::parse(&text).ok_or_else(|| http::text(400, BODY_REFUSED))
+    let text = req.read_body(MAX_ITEM_BYTES + 1024).await.map_err(|http::BodyRefused| Box::new(http::closing(http::text(400, BODY_REFUSED))))?;
+    json::parse(&text).ok_or_else(|| Box::new(http::text(400, BODY_REFUSED)))
 }
 
 fn answer(status: u16, made: Result<Value, String>) -> Response<Body> {
@@ -289,7 +290,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
             Method::GET => http::json(200, &Value::Array(app.library.list().iter().map(summary_of).collect())),
             Method::POST => match body(app, &mut req).await {
                 Ok(raw) => answer(201, app.library.create(&raw, now)?),
-                Err(refusal) => refusal,
+                Err(refusal) => *refusal,
             },
             _ => http::empty(405),
         });
@@ -302,7 +303,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
         Method::GET => app.library.get(&id).map_or_else(|| http::empty(404), |item| http::json(200, &item)),
         Method::PUT => match body(app, &mut req).await {
             Ok(raw) => app.library.update(&id, &raw, now)?.map_or_else(|| http::empty(404), |made| answer(200, made)),
-            Err(refusal) => refusal,
+            Err(refusal) => *refusal,
         },
         Method::DELETE => {
             let guard = library_write_refusal(

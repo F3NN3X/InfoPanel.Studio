@@ -415,7 +415,7 @@ async fn studio_prefs(app: &App, mut req: Req) -> std::io::Result<Response<Body>
     let patch = match req.read_body(MAX_STUDIO_PREFS_BYTES).await {
         Ok(body) if body.is_empty() => Some(json!({})),
         Ok(body) => json::parse(&body),
-        Err(()) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let Some(patch) = patch else {
         return Ok(http::text(400, "expected a JSON object"));

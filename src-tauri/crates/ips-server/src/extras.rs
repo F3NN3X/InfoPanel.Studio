@@ -165,7 +165,7 @@ pub async fn handle_integrations(app: &App, mut req: Req) -> std::io::Result<Res
     let body = match req.read_body(MAX_INTEGRATIONS_BYTES).await {
         Ok(body) if body.is_empty() => Some(json!({})),
         Ok(body) => parse_json(&body),
-        Err(()) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "expected a JSON object"))),
     };
     let Some(patch) = body else {
         return Ok(http::text(400, "expected a JSON object"));

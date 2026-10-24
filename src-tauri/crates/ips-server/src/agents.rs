@@ -709,7 +709,7 @@ pub async fn handle(app: &App, mut req: Req) -> std::io::Result<Response<Body>> 
     }
     let payload = match req.read_body(MAX_AGENT_BYTES).await {
         Ok(body) => parse_json(&body),
-        Err(()) => return Ok(http::closing(http::text(400, "invalid JSON"))),
+        Err(http::BodyRefused) => return Ok(http::closing(http::text(400, "invalid JSON"))),
     };
     let Some(payload) = payload else {
         return Ok(http::text(400, "invalid JSON"));
