@@ -1,16 +1,20 @@
 /**
- * The canvas zone's item tree (spec §7): an indent per depth, a chevron on groups, the kind's
+ * The InfoPanel editor's Layers: the canvas's item tree (spec §7), an indent per depth, a chevron on groups, the kind's
  * icon, the name, the mode dot (blue native, amber InfoPanel, red can't convert), the lock and
  * InfoPanel's Hidden flag as a checkbox. Shift selects a range, Ctrl adds.
  */
 import { useState, type MouseEvent } from "react";
 import {
+  CalendarDays,
   ChevronDown,
   ChevronRight,
   Clock,
   Folder,
   Gauge,
+  Globe,
+  Hash,
   Image,
+  Images,
   Lock,
   LockOpen,
   ChartLine,
@@ -30,17 +34,17 @@ import type { CanvasEditor } from "./use-canvas-editor";
 const ICONS: Partial<Record<DisplayItem["kind"], LucideIcon>> = {
   Group: Folder,
   Text: Type,
-  Sensor: Gauge,
+  Sensor: Hash,
   Clock: Clock,
-  Calendar: Clock,
+  Calendar: CalendarDays,
   TableSensor: Table,
   Bar: ChartBar,
   Graph: ChartLine,
   Donut: CircleDot,
   Gauge: Gauge,
   Image: Image,
-  HttpImage: Image,
-  SensorImage: Image,
+  HttpImage: Globe,
+  SensorImage: Images,
   Shape: Shapes,
 };
 
@@ -71,12 +75,13 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
     else editor.pick(path, e.ctrlKey || e.metaKey);
   };
   return (
-    <aside aria-label="Items" className="flex w-64 shrink-0 flex-col border-r border-ui-subtle bg-ui-panel font-ui">
-      <div className="flex items-baseline gap-2 px-3.5 pb-2.5 pt-3.5">
-        <span className="text-[13px] font-semibold text-ui-1">Items</span>
+    <section aria-label="Layers" className="flex min-h-0 flex-1 flex-col font-ui">
+      <div className="flex items-baseline gap-2 px-3.5 pb-2.5 pt-3">
+        <span className="text-[13px] font-semibold text-ui-1">Layers</span>
         <span className="truncate font-ui-mono text-[11px] text-ui-4">Canvas · {name}</span>
       </div>
       <div role="tree" aria-multiselectable className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto px-1.5 pb-2">
+        {rows.length === 0 && <p className="px-2 py-1 text-[12px] leading-snug text-ui-4">No items yet. Add one above.</p>}
         {rows.map(({ item, path, depth }) => {
           const Icon = kindIcon(item.kind);
           const state = editor.modes.get(path)?.state;
@@ -156,6 +161,6 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
           Can’t convert yet
         </div>
       </div>
-    </aside>
+    </section>
   );
 }

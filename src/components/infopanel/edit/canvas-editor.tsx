@@ -1,15 +1,20 @@
 /**
- * The canvas zone editor (A5, spec §7), in place of the studio's canvas while it is open: the
- * items tree (256 px), the toolbar and canvas, and the item inspector (308 px). Every edit is a
- * change to the zone's stored form through the studio's history, so undo, redo and auto-save
- * work as anywhere in the studio. Lazy-loaded: the InfoPanel model stays out of the studio's
- * first bundle.
+ * The InfoPanel editor (A5, spec §7), the body of the studio's InfoPanel page: on the left the
+ * Add palette with Layers (the item tree) below it, 256 px; the toolbar and canvas; and the
+ * inspector (308 px), which shows the profile's settings when nothing is selected. It edits one
+ * canvas zone's stored form, and every edit goes through the studio's history, so undo, redo and
+ * auto-save work as anywhere in the studio. Lazy-loaded: the InfoPanel model stays out of the
+ * studio's first bundle.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
+import { useSensorCatalog } from "@/lib/catalog";
+import { editKeyOf } from "@/lib/infopanel/canvas-edit";
+import { namedFor, newItem, type PaletteEntry } from "@/lib/infopanel/editor/create";
+import { itemAt } from "@/lib/infopanel/editor/ops";
 import type { Placement } from "@/lib/layout";
 import { filterCounts, remapRows, resolveAll } from "@/lib/infopanel/remap/remap";
 import { keptScreenshot } from "@/lib/infopanel/canvas";
@@ -22,11 +27,15 @@ import { PaneSheet } from "@/components/studio/pane-sheet";
 import { DOCKED_MIN_WIDTH, FLOATING_MIN_WIDTH, type InspectorMode } from "@/components/studio/studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
+import { AddPalette } from "./add-palette";
 import { canvasKeyAction } from "./canvas-keys";
 import { CanvasToolbar, CompareStrip, ModesStrip } from "./canvas-toolbar";
 import { EditCanvas, type Compare } from "./edit-canvas";
+import { ImagePicker } from "./image-picker";
 import { ItemInspector } from "./item-inspector";
 import { ItemsTree } from "./items-tree";
+import { ProfileSettings } from "./profile-settings";
+import { SensorPicker } from "./sensor-picker";
 import { useCanvasEditor } from "./use-canvas-editor";
 
 export interface CanvasEditorProps {
@@ -46,6 +55,17 @@ export interface CanvasEditorProps {
 
 const isTyping = (el: Element | null) =>
   el instanceof HTMLElement && (el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
+/** The item the sensor picker binds; `fresh` (just added) takes the sensor's name too, as InfoPanel names it. */
+interface PickFor {
+  path: Path;
+  label: string;
+  pluginOnly: boolean;
+  fresh: boolean;
+}
+
+/** InfoPanel lists only plugin sensors for these. */
+const PLUGIN_ONLY = new Set(["TableSensor", "HttpImage"]);
+
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
 export default function CanvasEditorView({ zone, setConfig, history, onDone, hidden = false, profileId, initialSelection, onEditGauge }: CanvasEditorProps) {
@@ -57,6 +77,19 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
   const [compare, setCompare] = useState<Compare | null>(() => keptScreenshot(zone.canvas));
   const [remapOpen, setRemapOpen] = useState(false);
   const { index, online, unreachable } = useRemapIndex();
+  const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
+  const [pickFor, setPickFor] = useState<PickFor | null>(null);
+  const [fileFor, setFileFor] = useState<PaletteEntry | null>(null);
+  /** An Add palette click: the kind with InfoPanel's defaults, selected; a sensor kind asks for its sensor. */
+  const askSensor = (entry: PaletteEntry, path: Path) => {
+    if (entry.sensor) setPickFor({ path, label: entry.label, pluginOnly: entry.pluginOnly === true, fresh: true });
+  };
+  const onAdd = (entry: PaletteEntry) => {
+    if (entry.file) return setFileFor(entry);
+    askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile)));
+  };
+  const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
+  const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;
   // The studio inspector's modes (docked column, floating card, bottom sheet) on the studio's viewport
   // breakpoints, not the editor's own width: that changes when the inspector docks, which flipped the mode back.
   const belowDocked = useViewportBelow(DOCKED_MIN_WIDTH);
@@ -129,11 +162,29 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
   shot.current = compare;
   useEffect(() => () => void (shot.current && URL.revokeObjectURL(shot.current.src)), []);
 
-  const name = editor.open.stored.source.name;
-  const inspector = <ItemInspector editor={editor} live={live} onRemap={() => setRemapOpen(true)} onEditGauge={onEditGauge} />;
+  const name = editor.open.profile.Name || editor.open.stored.source.name;
+  const inspector = hasSelection ? (
+    <ItemInspector
+      editor={editor}
+      live={live}
+      sensors={sensors}
+      onRemap={() => setRemapOpen(true)}
+      onPickSensor={
+        single && "SensorType" in single
+          ? () => setPickFor({ path: editor.selection[0], label: single.Name || single.kind, pluginOnly: PLUGIN_ONLY.has(single.kind), fresh: false })
+          : undefined
+      }
+      onEditGauge={onEditGauge}
+    />
+  ) : (
+    <ProfileSettings editor={editor} />
+  );
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 bg-ui-app">
-      <ItemsTree editor={editor} name={name} />
+      <aside aria-label="Add and layers" className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-ui-subtle bg-ui-panel">
+        <AddPalette onAdd={onAdd} />
+        <ItemsTree editor={editor} name={name} />
+      </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <CanvasToolbar
           editor={editor}
@@ -189,6 +240,24 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
         online={online}
         onOverrides={(next) => editor.applyOverrides(next, index)}
         onSelectItems={editor.select}
+      />
+      <SensorPicker
+        open={pickFor !== null}
+        onOpenChange={(open) => !open && setPickFor(null)}
+        title={`Choose a sensor for ${pickFor?.label ?? "the item"}`}
+        pluginOnly={pickFor?.pluginOnly ?? false}
+        current={pickTarget ? editKeyOf(pickTarget) : null}
+        onPick={(sensor) => pickFor && editor.bind(pickFor.path, sensor, pickFor.fresh ? (item) => namedFor(item, sensor) : undefined)}
+      />
+      <ImagePicker
+        open={fileFor !== null}
+        onOpenChange={(open) => !open && setFileFor(null)}
+        title={`Choose an image for ${fileFor?.label ?? "the item"}`}
+        onPick={(file) => {
+          if (!fileFor) return;
+          const path = editor.addWithFile(newItem(fileFor.kind, editor.open.profile), file);
+          askSensor(fileFor, path);
+        }}
       />
     </div>
   );

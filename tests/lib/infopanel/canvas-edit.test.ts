@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 import { parseDisplayItemsXml, parseProfileXml } from "@/lib/infopanel/parse.ts";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import { isBound, type BoundItem } from "@/lib/infopanel/sensors.ts";
-import { toStored } from "@/lib/infopanel/import/stored.ts";
+import { readStored, toStored } from "@/lib/infopanel/import/stored.ts";
 import { openCanvas } from "@/lib/infopanel/canvas.ts";
 import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys.ts";
 import { duplicate, group, itemAt, moveBy, setField } from "@/lib/infopanel/editor/ops.ts";
 import { groupId } from "@/lib/infopanel/remap/remap.ts";
 import { STARTERS } from "@/lib/infopanel/gauges/presets.ts";
 import { normalizeGauge } from "@/lib/infopanel/gauges/vector.ts";
+import { loadExport, entriesFromZip } from "@/lib/infopanel/archive.ts";
+import { sensorOfCatalog } from "@/lib/infopanel/editor/bind.ts";
+import { infopanelExport } from "@/lib/infopanel/export/write.ts";
+import { bindingRef } from "@/lib/infopanel/sensors.ts";
 import {
   allMode,
+  bindItem,
   changedGroups,
   checkGeometry,
   drawAllAs,
@@ -281,5 +286,39 @@ describe("library drops", () => {
       expect(r.stored.assets.slice(-2).map((a) => a.name)).toEqual(["f0.png", "f1.png"]);
       expect(r.stored.assets).toHaveLength(open.stored.assets.length + 2);
     });
+  });
+});
+
+describe("native bindings follow the chosen sensor", () => {
+  const sensors = {
+    "libre.amd": { name: "Core (Tctl/Tdie)", ref: "libre:/amdcpu/0/temperature/2", unit: "°C" },
+    "hwinfo.fps": { name: "Framerate", ref: "hwinfo:-1/4026535920/0/134217728" },
+    "plugins.old": { name: "Old build" },
+  };
+  const sensorOf = sensorOfCatalog(sensors);
+
+  it("a remap choice, exported to .infopanel, reads the remapped sensor", async () => {
+    const items = editItems(canvas());
+    const cpu = gid(items[0]);
+    const next = withGroupKeys(items, (item) => (gid(item) === cpu ? { key: "hwinfo.fps", via: "chosen" } : null), new Set([cpu]), sensorOf);
+    expect(editKeyOf(next[0])).toBe("hwinfo.fps");
+    const stored = storeItems(canvas().stored, profile, next);
+    const back = await loadExport(entriesFromZip(infopanelExport(profile, readStored(stored).items, [])));
+    expect(back.items[0]).toMatchObject({ SensorType: "HwInfo", HwInfoRemoteIndex: -1, Id: 4026535920, Instance: 0, EntryId: 134217728, SensorName: "Framerate" });
+    // The other groups keep their own binding.
+    expect(bindingRef(back.items[2] as BoundItem)).toBe("libre:/fan/0");
+  });
+
+  it("a sensor the Data API gives no ref for binds the preview only", () => {
+    const items = editItems(canvas());
+    const next = bindItem(items[0], { key: "plugins.old", name: "Old build" });
+    expect(editKeyOf(next)).toBe("plugins.old");
+    expect(bindingRef(next as BoundItem)).toBe("libre:/cpu/0");
+    expect((next as BoundItem).SensorName).toBe("CPU");
+  });
+
+  it("bindItem writes the type, ids and name, and our key as chosen", () => {
+    const next = bindItem(editItems(canvas())[0], sensorOf("libre.amd")!);
+    expect(next).toMatchObject({ SensorType: "Libre", LibreSensorId: "/amdcpu/0/temperature/2", SensorName: "Core (Tctl/Tdie)", $import: { key: "libre.amd", via: "chosen" } });
   });
 });

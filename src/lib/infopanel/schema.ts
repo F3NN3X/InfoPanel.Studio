@@ -94,7 +94,10 @@ export const PROFILE = {
   WebViewUrl: str(""),
   WebViewInteractive: bool(false),
   WebViewDisableCache: bool(false),
-  WebViewAutoRefreshSeconds: int(0),
+  /** Off at 0, else at least 5 seconds. */
+  WebViewAutoRefreshSeconds: int(0, (v) => (v <= 0 ? 0 : Math.max(5, v))),
+  /** 0 leaves the page at the display's refresh rate; at most 240. Newer InfoPanel builds only. */
+  WebViewMaxFps: int(0, (v) => Math.min(240, Math.max(0, v))),
 } satisfies Schema;
 
 const BASE = {
@@ -238,7 +241,8 @@ export const SCHEMAS = {
     Height: int(0),
   },
   Image: IMAGE,
-  HttpImage: { ...IMAGE, ...BINDING },
+  /** Always a URL: C#'s Type getter returns URL and its setter does nothing. */
+  HttpImage: { ...IMAGE, ...BINDING, Type: { ...IMAGE.Type, default: "URL", accept: () => "URL" } as FieldSpec<(typeof IMAGE.Type)["default"]> },
   SensorImage: { ...IMAGE, ...BINDING, Threshold1: double(0), Threshold2: double(100) },
   Shape: {
     ...BASE,

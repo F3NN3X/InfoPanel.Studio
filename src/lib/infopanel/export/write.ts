@@ -56,6 +56,8 @@ function fields(schema: Record<string, Spec>, obj: Record<string, unknown>, inde
     const v = obj[k];
     if (skip(k, v)) continue;
     const text = valueText(spec, v);
+    // XmlSerializer also writes SensorDisplayItem's public `_valueType` field, just before SensorName.
+    if (k === "SensorName" && "ValueType" in schema) out.push(`${indent}<_valueType>${valueText(schema.ValueType, obj.ValueType)}</_valueType>`);
     if (text !== null) out.push(`${indent}<${k}>${text}</${k}>`);
   }
   for (const [k, raw] of Object.entries((obj.unknown as Record<string, string> | undefined) ?? {})) out.push(`${indent}<${k}>${esc(raw)}</${k}>`);

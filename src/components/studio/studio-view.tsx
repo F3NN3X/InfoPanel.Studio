@@ -45,7 +45,9 @@ import { QuickBar } from "./quick-bar";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
-import { onFileDoor, openExportSheet, openImportDoor, type ExportRequest } from "./file-doors";
+import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
+import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { NewProfileDialog, type NewProfile } from "@/components/infopanel/new-profile-dialog";
 import { canvasZoneOf, importAsProfile } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
@@ -87,7 +89,7 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
 const NO_REQUEST: ExportRequest = {};
 
-/** The canvas zone editor (A5), loaded when a canvas zone's items are first edited. */
+/** The InfoPanel editor (A5), the InfoPanel page's body, loaded when a profile is first opened there. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
@@ -226,6 +228,7 @@ function StudioViewBody({
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
   const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, fullPage } = ui;
+  const showInfoPanel = ui.mode === "infopanel";
   const phone = isPhone(windowWidth);
   const narrowRail = !phone && railWidth(windowWidth) < 72;
   const railActive: RailItem = showSources
@@ -234,7 +237,9 @@ function StudioViewBody({
       ? "library"
       : showGauges
         ? "gauges"
-        : showTheme
+        : showInfoPanel
+          ? "infopanel"
+          : showTheme
           ? "theme"
           : showAlerts
             ? "alerts"
@@ -280,9 +285,9 @@ function StudioViewBody({
     setPendingZone(null);
     focusZone(pendingZone);
     if (openOnLand.current === pendingZone) {
-      // A fresh import opens its canvas zone in the editor (spec §4).
+      // A fresh import, or a new profile, opens its canvas zone in the InfoPanel editor (spec §4).
       openOnLand.current = null;
-      ui.setMode("design");
+      ui.setMode("infopanel");
       setCanvasSelection(undefined);
       setEditingCanvas(pendingZone);
     }
@@ -303,17 +308,37 @@ function StudioViewBody({
     onSelectProfile: selectProfile,
   });
   /**
-   * The canvas zone whose items are being edited: the editor takes the canvas, drawer and
-   * inspector's place. It closes when the zone goes (an undo past its import, another page).
+   * The InfoPanel page's open document: one canvas zone, on the screen and page Design shows. Its
+   * stored form in the config is the one source of truth, so the studio's history undoes every
+   * edit. It closes when the zone goes (an undo past its import, another screen or page).
    */
   const [editingCanvas, setEditingCanvas] = useState<string | null>(null);
+  /** Edit a canvas zone of the page Design shows: the InfoPanel page opens on it. */
+  const editCanvasZone = (zoneId: string) => {
+    setCanvasSelection(undefined);
+    setEditingCanvas(zoneId);
+    ui.setMode("infopanel");
+  };
   /** Items the editor opens with selected (the Library's "uses"). */
   const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(undefined);
   const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
   useEffect(() => {
-    // The Library page covers the editor without closing it, so a Library drag can land in it.
-    if (editingCanvas && (!canvasZone || (fullPage && !showLibrary))) setEditingCanvas(null);
-  }, [editingCanvas, canvasZone, fullPage, showLibrary]);
+    // Leaving the page keeps the document open (the rail brings it back); the zone going closes it.
+    if (editingCanvas && !canvasZone) setEditingCanvas(null);
+  }, [editingCanvas, canvasZone]);
+  /** "New InfoPanel profile…": from scratch, as a new screen (not made active), opened in the editor. */
+  const [newProfileOpen, setNewProfileOpen] = useState(false);
+  useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && setNewProfileOpen(true)), []);
+  const createInfoPanel = async ({ name, width, height }: NewProfile) => {
+    const { newStored } = await import("@/lib/infopanel/import/stored");
+    const r = importAsProfile(config, newStored({ name, width, height }), name, { width, height }, false);
+    setConfig(r.config);
+    selectProfile(r.profileId);
+    ui.fitZoom();
+    openOnLand.current = r.zoneId;
+    setPendingZone(r.zoneId);
+    toast(`New InfoPanel profile ${name} · ${width} × ${height} · 1 undo step`);
+  };
   /** Bumped to reopen the editor with new initial selection (the Library's "uses" while it is mounted). */
   const [editorEpoch, setEditorEpoch] = useState(0);
   const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
@@ -391,7 +416,7 @@ function StudioViewBody({
         setFocusPointKey(key);
         ui.setMode("sources");
       }}
-      onEditCanvas={setEditingCanvas}
+      onEditCanvas={editCanvasZone}
       onEditGauge={(zoneId) => openGauge({ kind: "widget", zoneId })}
     />
   );
@@ -411,6 +436,7 @@ function StudioViewBody({
         onRenamePreset: edit.renameSavedPanel,
         onDeletePreset: edit.deleteSavedPanel,
         onImportCanvas: () => openImportDoor({ prefer: "canvas-zone" }),
+        onNewInfoPanel: openNewInfoPanel,
         density: addDensity,
         previewOnHover: addPreviewOnHover,
         appearance,
@@ -516,7 +542,7 @@ function StudioViewBody({
         // A blank zone picked on the canvas is the Add panel's target: the panel shows, its search takes the cursor.
         if (how !== "toggle" && profile.placements.find((p) => p.id === id)?.module === BLANK_MODULE) ui.setLeftTab("add");
       }}
-      onOpenSettings={(id) => (isCanvasZone(id) ? setEditingCanvas(id) : studioLayout.showInspector())}
+      onOpenSettings={(id) => (isCanvasZone(id) ? editCanvasZone(id) : studioLayout.showInspector())}
       inset={studioLayout.layout.inset}
       selectedWidgetId={selectedWidgetId}
       onSelectWidget={sel.selectWidget}
@@ -620,7 +646,8 @@ function StudioViewBody({
     </>
   );
 
-  const canvasEditor = canvasZone?.canvas && (
+  // Mounted on its page, and kept (hidden) while the Library covers it, so a Library drag can land in it.
+  const canvasEditor = canvasZone?.canvas && (showInfoPanel || showLibrary) && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
       <CanvasEditorView
         key={`${canvasZone.id}:${editorEpoch}`}
@@ -632,8 +659,11 @@ function StudioViewBody({
         initialSelection={canvasSelection}
         onEditGauge={(path) => openGauge({ kind: "canvas", zoneId: canvasZone.id, path })}
         onDone={() => {
+          const id = canvasZone.id;
           setEditingCanvas(null);
           setCanvasSelection(undefined);
+          ui.setMode("design");
+          focusZone(id);
         }}
       />
     </Suspense>
@@ -713,7 +743,7 @@ function StudioViewBody({
           zones: canvasZones,
           setConfig,
           onSelectUses: (zoneId, paths) => {
-            ui.setMode("design");
+            ui.setMode("infopanel");
             setCanvasSelection(paths);
             setEditorEpoch((n) => n + 1);
             setEditingCanvas(zoneId);
@@ -721,6 +751,19 @@ function StudioViewBody({
         }}
       />
     </Suspense>
+  );
+
+  /** The InfoPanel page with nothing open: the profiles placed in the dashboard, New and Import. */
+  const infopanelStart = showInfoPanel && !canvasEditor && (
+    <InfoPanelStart
+      config={config}
+      onOpen={(c) => {
+        openOnLand.current = c.zoneId;
+        openZone(c.profileId, c.pageId, c.zoneId);
+      }}
+      onNew={() => setNewProfileOpen(true)}
+      onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+    />
   );
 
   const gaugesEl = showGauges && (
@@ -828,7 +871,7 @@ function StudioViewBody({
         rail={phone ? null : <LeftRail active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
-        main={alertsEl || screensEl || gaugesEl || themeEl || (
+        main={alertsEl || screensEl || gaugesEl || themeEl || infopanelStart || (
           <>
             {libraryEl}
             {canvasEditor ? (
@@ -884,6 +927,7 @@ function StudioViewBody({
         onClose={() => ui.setIconPage(null)}
       />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
+      {newProfileOpen && <NewProfileDialog open onOpenChange={setNewProfileOpen} onCreate={(p) => void createInfoPanel(p)} />}
       {io.dialogs}
       {importDoor}
       <FirstRun

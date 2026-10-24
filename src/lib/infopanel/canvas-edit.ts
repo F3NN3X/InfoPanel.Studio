@@ -17,6 +17,8 @@ import { isNative, walkPaths } from "./native/modes.ts";
 import { defaultItem, type DisplayItem, type Profile } from "./schema.ts";
 import { groupId } from "./remap/remap.ts";
 import { isBound, type BoundItem, type DataApiValue } from "./sensors.ts";
+import { mapItems, rebound, type ChosenSensor, type SensorOf } from "./editor/bind.ts";
+import { centred, insertItem } from "./editor/create.ts";
 
 type WithImport = { $import?: Pick<ItemImport, "key" | "via"> };
 
@@ -211,6 +213,14 @@ function withAsset(assets: StoredAsset[], file: DroppedFile): { assets: StoredAs
   return { assets: [...assets, { name, hash: file.hash, type: file.type, size: file.size, ...(file.ext ? { ext: file.ext } : {}) }], name };
 }
 
+/** A file drawn at its own size, at most half the profile, keeping its shape. */
+function fileSize(profile: Profile, file: DroppedFile): { width: number; height: number } {
+  const w0 = file.width && file.width > 0 ? file.width : Math.round(profile.Width / 4);
+  const h0 = file.height && file.height > 0 ? file.height : Math.round(profile.Height / 4);
+  const k = Math.min(1, profile.Width / 2 / w0, profile.Height / 2 / h0);
+  return { width: Math.max(1, Math.round(w0 * k)), height: Math.max(1, Math.round(h0 * k)) };
+}
+
 /**
  * A library image or video dropped into the canvas editor: a FILE Image item centred on `at`,
  * drawn at the file's size (at most half the profile, keeping its shape), on top of the rest; its
@@ -225,11 +235,7 @@ export function withDroppedImage(
   at: { x: number; y: number },
 ): { stored: StoredCanvas; path: Path } {
   const { assets, name } = withAsset(stored.assets, file);
-  const w0 = file.width && file.width > 0 ? file.width : Math.round(profile.Width / 4);
-  const h0 = file.height && file.height > 0 ? file.height : Math.round(profile.Height / 4);
-  const k = Math.min(1, profile.Width / 2 / w0, profile.Height / 2 / h0);
-  const width = Math.max(1, Math.round(w0 * k));
-  const height = Math.max(1, Math.round(h0 * k));
+  const { width, height } = fileSize(profile, file);
   const item = {
     ...defaultItem("Image"),
     Name: name,
@@ -299,7 +305,46 @@ export function withDroppedGauge(
   return { stored: storeItems({ ...stored, assets: added.assets }, profile, next), path: base.path };
 }
 
+/* ---- adding ---- */
+
+/** A new item (the Add palette) placed by InfoPanel's insertion rules (`insertItem`) and centred on the canvas. */
+export function withNewItem(items: readonly DisplayItem[], profile: Profile, item: DisplayItem, selected: Path | null): { items: DisplayItem[]; path: Path } {
+  return insertItem(items, centred(item, profile), selected);
+}
+
+/**
+ * A new Image or Sensor image (the Add palette) showing a file: the file joins the canvas's files
+ * (the same bytes already there are reused), the item reads it by its relative name and is drawn
+ * at the file's size, centred, as a Library drop is. Returns the stored form and the item's path.
+ */
+export function withNewFileItem(
+  stored: StoredCanvas,
+  profile: Profile,
+  items: readonly DisplayItem[],
+  item: DisplayItem,
+  file: DroppedFile,
+  selected: Path | null,
+): { stored: StoredCanvas; path: Path } {
+  const { assets, name } = withAsset(stored.assets, file);
+  const sized = { ...item, FilePath: name, RelativePath: true, ...fileSize(profile, file) } as DisplayItem;
+  const r = withNewItem(items, profile, sized, selected);
+  return { stored: storeItems({ ...stored, assets }, profile, r.items), path: r.path };
+}
+
 /* ---- sensors ---- */
+
+/**
+ * An item bound to a chosen sensor: our key (`$import`, chosen) and, from the sensor's ref,
+ * InfoPanel's SensorType, id fields and SensorName, so the `.infopanel` export reads the same
+ * sensor. Without a ref (an older InfoPanel build) only the preview is bound and the native
+ * fields stay as they were.
+ */
+export function bindItem(item: DisplayItem, sensor: ChosenSensor): DisplayItem {
+  if (!isBound(item)) return item;
+  const { $import: _old, ...plain } = item as DisplayItem & WithImport;
+  const rec: WithImport["$import"] = { key: sensor.key, via: "chosen" };
+  return { ...rebound(plain as DisplayItem, sensor), $import: rec } as unknown as DisplayItem;
+}
 
 /** Where the editor's values come from (spec §7 toolbar): none, the app's live values, or mock sliders. */
 export type SensorMode = "unbound" | "live" | "mock";
@@ -354,10 +399,17 @@ export function itemOverrides(items: readonly DisplayItem[]): Map<string, string
 
 /**
  * The items after a remap change: only the groups in `changed` take their new record, so a
- * catalog that cannot resolve the others (the Data API offline) never clears their keys.
+ * catalog that cannot resolve the others (the Data API offline) never clears their keys. A
+ * chosen sensor is written into InfoPanel's binding fields too (`bindItem`), so the
+ * `.infopanel` export carries the remap.
  */
-export function withGroupKeys(items: readonly DisplayItem[], keyOf: KeyOf, changed: ReadonlySet<string>): DisplayItem[] {
-  return attach(items, (item) => (changed.has(groupId(item as BoundItem)) ? keyOf(item) : pick(importOf(item) as ItemImport | undefined)));
+export function withGroupKeys(items: readonly DisplayItem[], keyOf: KeyOf, changed: ReadonlySet<string>, sensorOf: SensorOf = () => undefined): DisplayItem[] {
+  const keyed = attach(items, (item) => (changed.has(groupId(item as BoundItem)) ? keyOf(item) : pick(importOf(item) as ItemImport | undefined)));
+  // Rebinding changes the group id, so it comes after the keys are set.
+  return mapItems(keyed, (item) => {
+    const rec = importOf(item);
+    return isBound(item) && changed.has(groupId(item)) && rec?.via === "chosen" && rec.key ? rebound(item, sensorOf(rec.key)) : item;
+  });
 }
 
 /** The groups whose choice differs between two sets of overrides. */

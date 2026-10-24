@@ -40,3 +40,13 @@ describe.skipIf(ids.length === 0)("corpus round trip", () => {
     expect(profileXml(back.profile)).toBe(profileXml(profile.profile));
   });
 });
+
+describe("_valueType", () => {
+  it("is written just before SensorName with the ValueType, as InfoPanel's XmlSerializer writes it", () => {
+    const [item] = parseDisplayItemsXml('<ArrayOfDisplayItem xmlns:xsi="x"><DisplayItem xsi:type="SensorDisplayItem"><SensorName>CPU</SensorName><ValueType>MAX</ValueType></DisplayItem></ArrayOfDisplayItem>').items;
+    const out = displayItemsXml([item]);
+    expect(out).toContain("<_valueType>MAX</_valueType>\r\n    <SensorName>CPU</SensorName>");
+    expect(out).toContain("<ValueType>MAX</ValueType>");
+    expect(displayItemsXml(parseDisplayItemsXml('<ArrayOfDisplayItem xmlns:xsi="x"><DisplayItem xsi:type="TextDisplayItem"/></ArrayOfDisplayItem>').items)).not.toContain("_valueType");
+  });
+});

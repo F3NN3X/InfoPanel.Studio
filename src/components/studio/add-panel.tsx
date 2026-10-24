@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { FileUp, LayoutGrid, Search, SquareDashedMousePointer, X } from "lucide-react";
+import { FilePlus2, FileUp, LayoutGrid, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { iconFor } from "@/widgets/core/icons";
@@ -52,6 +52,8 @@ export interface AddPanelProps {
   onDeletePreset: (id: string) => void;
   /** "Canvas from a file…" under Layouts › Empty: the Import door. */
   onImportCanvas?: () => void;
+  /** "New InfoPanel profile…" beside it: one from scratch, opened in the InfoPanel editor. */
+  onNewInfoPanel?: () => void;
   density: AddListDensity;
   previewOnHover: boolean;
   /** What the preview renders the widget under: the page's style and theme. */
@@ -73,6 +75,7 @@ export function AddPanel({
   onRenamePreset,
   onDeletePreset,
   onImportCanvas,
+  onNewInfoPanel,
   density,
   previewOnHover,
   appearance,
@@ -395,19 +398,10 @@ export function AddPanel({
                 );
               })}
               {kind === "layout" && g.title === "Empty" && !query.trim() && onImportCanvas && (
-                <button
-                  type="button"
-                  onClick={onImportCanvas}
-                  className={cn("flex w-full items-center gap-2.5 rounded-[8px] px-2 text-left hover:bg-[#1c1c21]", compact ? "h-10" : "h-[52px]", FOCUS)}
-                >
-                  <span className={cn("flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-[#c8c8ce]", compact ? "h-7 w-7" : "h-[34px] w-[34px]")}>
-                    <FileUp className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                  </span>
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-[12.5px] font-medium text-ui-1">Canvas from a file…</span>
-                    {!compact && <span className="truncate text-[11.5px] text-[#8a8a94]">An .infopanel profile, through Import</span>}
-                  </span>
-                </button>
+                <DoorRow compact={compact} icon={FileUp} title="Canvas from a file…" note="An .infopanel profile, through Import" onClick={onImportCanvas} />
+              )}
+              {kind === "layout" && g.title === "Empty" && !query.trim() && onNewInfoPanel && (
+                <DoorRow compact={compact} icon={FilePlus2} title="New InfoPanel profile…" note="From scratch, in the InfoPanel editor" onClick={onNewInfoPanel} />
               )}
             </section>
           ))
@@ -439,3 +433,21 @@ export function AddPanel({
   );
 }
 
+/** A row under Layouts › Empty that leads out of the list (Import, a new InfoPanel profile). */
+function DoorRow({ compact, icon: Icon, title, note, onClick }: { compact: boolean; icon: LucideIcon; title: string; note: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn("flex w-full items-center gap-2.5 rounded-[8px] px-2 text-left hover:bg-[#1c1c21]", compact ? "h-10" : "h-[52px]", FOCUS)}
+    >
+      <span className={cn("flex shrink-0 items-center justify-center rounded-[8px] border border-ui-default bg-ui-raised text-[#c8c8ce]", compact ? "h-7 w-7" : "h-[34px] w-[34px]")}>
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-[12.5px] font-medium text-ui-1">{title}</span>
+        {!compact && <span className="truncate text-[11.5px] text-[#8a8a94]">{note}</span>}
+      </span>
+    </button>
+  );
+}

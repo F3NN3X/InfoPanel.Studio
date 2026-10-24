@@ -2,24 +2,24 @@
 id: canvas
 title: Editing a canvas
 icon: draw
-related: [import, remap, gauges]
-verified: 1.3.0-beta.1
+related: [infopanel-editor, import, remap, gauges]
+verified: 1.3.0-beta.23
 ---
 
 A free-form editor over the imported profile. Every edit stays valid for export back to InfoPanel.
 
-Select a canvas zone, and in the inspector press **Edit items** on the note about the imported InfoPanel profile. Press **Done** to leave.
+The editor is the **InfoPanel** page on the rail; see [The InfoPanel editor](infopanel-editor) for adding items, choosing sensors and the profile settings. To open a canvas zone there, select it and press **Edit items** on the note about the InfoPanel profile in the inspector, or double-click it. Press **Done** to go back to Design.
 
 ## Selecting and moving
 
-- Click an item on the canvas or in the item tree. `Shift` or `Ctrl` adds to the selection; `Shift` in the tree selects a range.
+- Click an item on the canvas or in Layers. `Shift` or `Ctrl` adds to the selection; `Shift` in the tree selects a range.
 - Drag to move. Drag a handle to resize.
 - Arrow keys nudge 1 px, `Shift`+arrow 10 px.
 - Locked items can be selected but not moved.
 
-## Item tree
+## Layers
 
-Groups nest. Each row has a lock toggle, and a checkbox that sets InfoPanel's Hidden flag.
+The item tree. Groups nest. Each row has a lock toggle, and a checkbox that sets InfoPanel's Hidden flag.
 
 ## The toolbar
 

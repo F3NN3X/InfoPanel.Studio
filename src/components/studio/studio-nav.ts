@@ -9,7 +9,7 @@ import type { ThemeScope } from "./theme-editor-model";
  */
 
 /** The studio's full views (SPEC §3.2), plus Screens (reached from the switcher and links), and the Settings window. */
-export type StudioView = "design" | "theme" | "library" | "gauges" | "data" | "alerts" | "screens" | "settings";
+export type StudioView = "design" | "theme" | "library" | "gauges" | "infopanel" | "data" | "alerts" | "screens" | "settings";
 
 export interface NavTarget {
   view: StudioView;

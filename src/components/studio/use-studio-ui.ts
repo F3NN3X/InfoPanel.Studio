@@ -205,6 +205,9 @@ export function useStudioUi(
       case "gauges":
         setMode("gauges");
         break;
+      case "infopanel":
+        setMode("infopanel");
+        break;
       case "data":
         setMode("sources");
         break;

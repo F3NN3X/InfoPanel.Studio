@@ -56,7 +56,7 @@ import { LibraryDetail, type DetailAction } from "./library-detail";
 import { PresetDetail } from "./preset-detail";
 import { isPresetItem, presetPrimary, presetScopes, presetSecondary, renamePreset, type PresetContext } from "./preset-actions";
 import { GridView, LibrarySidebar, ShelvesView } from "./library-views";
-import { openImportDoor } from "@/components/studio/file-doors";
+import { openImportDoor, openNewInfoPanel } from "@/components/studio/file-doors";
 import { optimiseItem } from "./optimise";
 import { FontsView } from "./fonts-view";
 import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
@@ -435,6 +435,14 @@ export default function LibraryPage(p: LibraryPageProps) {
           <span className="truncate">Canvas files · {p.profileName}</span>
         </button>
         <span className="flex-1" />
+        <button
+          type="button"
+          onClick={() => openNewInfoPanel()}
+          title="An InfoPanel profile from scratch, as a new screen in the InfoPanel editor"
+          className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
+        >
+          New InfoPanel profile…
+        </button>
         <button
           type="button"
           onClick={() => openImportDoor()}
