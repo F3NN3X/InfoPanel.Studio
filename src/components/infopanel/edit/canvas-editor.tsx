@@ -55,6 +55,9 @@ export interface CanvasEditorProps {
   initialSelection?: string[];
   /** A Gauge item's "Edit gauge…": open it in Gauges. */
   onEditGauge?: (path: Path) => void;
+  /** A new profile's template sensors that weren't found on this machine, shown with Remap until dismissed. */
+  unbound?: readonly string[];
+  onDismissUnbound?: () => void;
 }
 
 const isTyping = (el: Element | null) =>
@@ -72,7 +75,7 @@ const PLUGIN_ONLY = new Set(["TableSensor", "HttpImage"]);
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, onDone, hidden = false, profileId, initialSelection, onEditGauge }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, onDone, hidden = false, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound }: CanvasEditorProps) {
   const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection);
   const toast = useToast();
   const [showModes, setShowModes] = useState(false);
@@ -219,6 +222,19 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
           apiUnreachable={unreachable}
           onDone={onDone}
         />
+        {unbound && unbound.length > 0 && (
+          <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">
+            <span className="min-w-0 flex-1">
+              Not found on this PC, so left unbound: {unbound.join(", ")}.
+            </span>
+            <button type="button" onClick={() => setRemapOpen(true)} className="h-7 rounded-[7px] border border-ui-default px-2.5 text-ui-1 hover:bg-ui-hover">
+              Remap
+            </button>
+            <button type="button" aria-label="Dismiss" onClick={onDismissUnbound} className="grid h-7 w-7 place-items-center rounded-[7px] text-ui-4 hover:bg-ui-hover hover:text-ui-1">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {showModes && <ModesStrip editor={editor} />}
         {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
         <EditCanvas

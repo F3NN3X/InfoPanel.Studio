@@ -16,7 +16,30 @@ Each InfoPanel profile lives in a canvas zone on a screen. The page edits that z
 
 ## A new profile
 
-**New InfoPanel profile…** asks for a name and a size: 480 × 320, 800 × 480, 1024 × 600, 1280 × 480, 1920 × 480, 1920 × 1080, or **Custom**. It comes in as a new screen and opens here, with a near black background and white Segoe UI text. You'll also find it in Design's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
+**New InfoPanel profile…** asks for a name, what to start from, and a size: 480 × 320, 800 × 480, 1024 × 600, 1280 × 480, 1920 × 480, 1920 × 1080, or **Custom**. It comes in as a new screen and opens here. You'll also find it in Design's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
+
+Under **Start from**, **Blank** is an empty profile with a near black background and white Segoe UI text. The others are templates.
+
+## Templates
+
+A template is a finished profile made from the editor's own items and elements, bound to your PC's sensors. Each card in **Start from** shows it at the size you picked, with made-up values. Pick one, then a set of **Colours**, and **Create**.
+
+| Template | Look |
+|---|---|
+| Graphite | Flat grey cards with one accent and rings |
+| Glass | See-through cards with a soft sheen over coloured glows |
+| Neon | Dark panels with glowing outlines, LED rings and bars |
+| Paper | A light theme: white cards with soft shadows |
+| Mono | Black, with very large thin numbers and fine lines |
+| Terminal | Green on black console lines in Consolas, with LED meters |
+| Clock | A large clock inside a ring of 60 segments that fills with CPU load |
+| Cores | One bar per CPU core or thread, under the CPU temperature |
+
+Every template is drawn for 480 × 320 and laid out again for the size you pick. A wide size, such as 1280 × 480 or 1920 × 480, puts its cards in one row. A portrait size stacks them. Anything else keeps the 480 × 320 layout, scaled up. Text, lines and gaps grow with the size.
+
+The sensors are matched to what your PC's Data API reports: CPU and GPU load, temperature, clock and power, RAM, disk, download and upload, and uptime. A sensor that can't be found is left unbound, and the editor opens with a line naming each one. **Remap** on that line opens [Sensor remap](remap), where you can pick a sensor for it. Close the line with **×**.
+
+A template's colours come from the profile's palette (see The palette, below), so you can change them all in one place later. Everything in it can be moved, changed or deleted like anything you add yourself, and it exports like any profile: cards, rings and glows that InfoPanel can't draw are baked when you export.
 
 ## The page
 

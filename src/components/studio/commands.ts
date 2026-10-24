@@ -149,7 +149,7 @@ function generalCommands(s: CommandState): Command[] {
     ...(s.canRedo ? [general("redo", "Redo", { type: "redo" }, KEYS.redo)] : []),
     general("export", "Export & back up…", { type: "export" }),
     general("import", "Import…", { type: "import" }),
-    general("new-infopanel", "New InfoPanel profile…", { type: "new-infopanel" }, "from scratch"),
+    general("new-infopanel", "New InfoPanel profile…", { type: "new-infopanel" }, "blank or from a template"),
     general("shortcuts", "Keyboard shortcuts", { type: "shortcuts" }, KEYS.cheatsheet),
     general("live", "Open Live", { type: "live" }, "kiosk control"),
     general("preview:toggle", "Freeze the preview data / go live", { type: "toggle-preview" }, "this session, F"),

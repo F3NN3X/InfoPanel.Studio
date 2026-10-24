@@ -1,11 +1,20 @@
 /**
- * "New InfoPanel profile": a name and a size (InfoPanel panel sizes, or custom). The studio makes
- * it from scratch (`newStored`) as a new screen and opens it in the InfoPanel editor.
+ * "New InfoPanel profile": a name, Blank or a profile template from the gallery (with a palette
+ * variant), and a size (InfoPanel panel sizes, or custom). Blank is made from scratch
+ * (`newStored`); a template is made for the size with its sensors matched to this machine's Data
+ * API (`instantiate`), anything not found listed for Remap. The studio adds it as a new screen and
+ * opens it in the InfoPanel editor. Lazy-loaded with its gallery and the template data.
  */
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSensorCatalog } from "@/lib/catalog";
+import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
+import { templateById } from "@/lib/infopanel/templates/catalog";
+import { instantiate } from "@/lib/infopanel/templates/instantiate";
+import { TemplateGallery, type GalleryChoice } from "./template-gallery";
 
 export const SIZE_PRESETS: readonly { width: number; height: number }[] = [
   { width: 480, height: 320 },
@@ -23,6 +32,9 @@ export interface NewProfile {
   name: string;
   width: number;
   height: number;
+  stored: StoredCanvas;
+  /** The template's sensors not found on this machine, in plain words; empty for Blank. */
+  unbound: string[];
 }
 
 interface NewProfileDialogProps {
@@ -44,22 +56,30 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
   const [preset, setPreset] = useState<number | "custom">(1);
   const [w, setW] = useState("800");
   const [h, setH] = useState("480");
+  const [choice, setChoice] = useState<GalleryChoice>({ template: null, variant: "" });
+  const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
   const size = preset === "custom" ? { width: sideOf(w), height: sideOf(h) } : SIZE_PRESETS[preset];
   const ok = name.trim() !== "" && size.width !== null && size.height !== null;
   const create = () => {
     if (!ok) return;
-    onCreate({ name: name.trim(), width: size.width!, height: size.height! });
+    const p = { name: name.trim(), width: size.width!, height: size.height! };
+    const template = choice.template ? templateById(choice.template) : undefined;
+    const made = template ? instantiate(template, { ...p, variant: choice.variant, sensors }) : { stored: newStored(p), unbound: [] };
+    onCreate({ ...p, ...made });
     onOpenChange(false);
   };
+  // The thumbnails follow the size; a custom one being typed keeps the last good shape.
+  const shown = { width: size.width ?? 800, height: size.height ?? 480 };
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Popup
           data-help-article="infopanel-editor"
-          className="fixed left-1/2 top-1/2 z-50 flex w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-32px)] w-[min(820px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <form
+            className="flex min-h-0 flex-col"
             onSubmit={(e) => {
               e.preventDefault();
               create();
@@ -71,14 +91,18 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
                 <X className="h-4 w-4" />
               </Dialog.Close>
             </div>
-            <div className="space-y-4 px-5 py-4">
-              <label className="block">
+            <div className="min-h-0 space-y-4 overflow-y-auto px-5 py-4">
+              <label className="block max-w-[400px]">
                 <span className="mb-1 block text-[12px] text-ui-3">Name</span>
                 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
               </label>
+              <div>
+                <span className="mb-1 block text-[12px] text-ui-3">Start from</span>
+                <TemplateGallery choice={choice} onChoice={setChoice} width={shown.width} height={shown.height} />
+              </div>
               <div role="radiogroup" aria-label="Size">
                 <span className="mb-1 block text-[12px] text-ui-3">Size</span>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
                   {SIZE_PRESETS.map((s, i) => (
                     <button
                       key={i}
@@ -96,7 +120,7 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
                     role="radio"
                     aria-checked={preset === "custom"}
                     onClick={() => setPreset("custom")}
-                    className={cn("col-span-3 h-8 rounded-[7px] border text-[12px]", preset === "custom" ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
+                    className={cn("col-span-3 h-8 rounded-[7px] border text-[12px] sm:col-span-6", preset === "custom" ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
                   >
                     Custom
                   </button>
@@ -112,7 +136,10 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
                   <p className="mt-1.5 text-[11.5px] text-ui-danger">Width and height are whole numbers from 1 to {MAX_SIDE}.</p>
                 )}
               </div>
-              <p className="text-[11.5px] leading-snug text-ui-4">It comes in as a new screen and opens in the InfoPanel editor. You can change the size later in its profile settings.</p>
+              <p className="text-[11.5px] leading-snug text-ui-4">
+                It comes in as a new screen and opens in the InfoPanel editor. You can change the size later in its profile settings.
+                {choice.template !== null && " A template's sensors are matched to this PC's; anything not found is left unbound for you to Remap."}
+              </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">
               <Dialog.Close type="button" className="h-8 rounded-[8px] px-3 text-[12.5px] text-ui-3 hover:text-ui-1">
@@ -128,3 +155,5 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
     </Dialog.Root>
   );
 }
+
+export default NewProfileDialog;

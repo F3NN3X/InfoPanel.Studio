@@ -47,7 +47,7 @@ import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
 import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
 import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
-import { NewProfileDialog, type NewProfile } from "@/components/infopanel/new-profile-dialog";
+import type { NewProfile } from "@/components/infopanel/new-profile-dialog";
 import { canvasZoneOf, importAsProfile } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
@@ -91,6 +91,8 @@ const NO_REQUEST: ExportRequest = {};
 
 /** The InfoPanel editor (A5), the InfoPanel page's body, loaded when a profile is first opened there. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
+/** The gallery and its template data load only when the dialog opens. */
+const NewProfileDialog = lazy(() => import("@/components/infopanel/new-profile-dialog"));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
 /** The Gauges view (A7), loaded when the rail first opens it. */
@@ -326,17 +328,21 @@ function StudioViewBody({
     // Leaving the page keeps the document open (the rail brings it back); the zone going closes it.
     if (editingCanvas && !canvasZone) setEditingCanvas(null);
   }, [editingCanvas, canvasZone]);
-  /** "New InfoPanel profile…": from scratch, as a new screen (not made active), opened in the editor. */
+  /**
+   * "New InfoPanel profile…": blank or from a template, as a new screen (not made active), opened
+   * in the editor; a template's sensors not found on this machine are listed there with Remap.
+   */
   const [newProfileOpen, setNewProfileOpen] = useState(false);
+  const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
   useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && setNewProfileOpen(true)), []);
-  const createInfoPanel = async ({ name, width, height }: NewProfile) => {
-    const { newStored } = await import("@/lib/infopanel/import/stored");
-    const r = importAsProfile(config, newStored({ name, width, height }), name, { width, height }, false);
+  const createInfoPanel = ({ name, width, height, stored, unbound }: NewProfile) => {
+    const r = importAsProfile(config, stored, name, { width, height }, false);
     setConfig(r.config);
     selectProfile(r.profileId);
     ui.fitZoom();
     openOnLand.current = r.zoneId;
     setPendingZone(r.zoneId);
+    setUnboundNote(unbound.length ? { zoneId: r.zoneId, labels: unbound } : null);
     toast(`New InfoPanel profile ${name} · ${width} × ${height} · 1 undo step`);
   };
   /** Bumped to reopen the editor with new initial selection (the Library's "uses" while it is mounted). */
@@ -657,6 +663,8 @@ function StudioViewBody({
         setConfig={setConfig}
         history={history}
         initialSelection={canvasSelection}
+        unbound={unboundNote?.zoneId === canvasZone.id ? unboundNote.labels : undefined}
+        onDismissUnbound={() => setUnboundNote(null)}
         onEditGauge={(path) => openGauge({ kind: "canvas", zoneId: canvasZone.id, path })}
         onDone={() => {
           const id = canvasZone.id;
@@ -927,7 +935,11 @@ function StudioViewBody({
         onClose={() => ui.setIconPage(null)}
       />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
-      {newProfileOpen && <NewProfileDialog open onOpenChange={setNewProfileOpen} onCreate={(p) => void createInfoPanel(p)} />}
+      {newProfileOpen && (
+        <Suspense fallback={null}>
+          <NewProfileDialog open onOpenChange={setNewProfileOpen} onCreate={createInfoPanel} />
+        </Suspense>
+      )}
       {io.dialogs}
       {importDoor}
       <FirstRun

@@ -9,6 +9,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ### Added
 
 - **The Export window says what the other PC needs.** For an .infopanel it lists the fonts the profile uses that Windows doesn't ship, and which sensor sources it reads: HWiNFO sensors are matched by name when InfoPanel imports, Libre and plugin sensors must exist there with the same ids.
+- **Profile templates.** New InfoPanel profile now starts from Blank or one of eight templates: Graphite, Glass, Neon, Paper, Mono, Terminal, Clock and Cores, each with three sets of colours and a live preview at the size you pick. A template lays itself out for any size, binds to your PC's CPU, GPU, RAM, disk, network and uptime sensors, and leaves anything it can't find unbound, named in a line over the canvas with a Remap button. It's built from the editor's own items and elements, takes its colours from the profile's palette, and exports like any profile.
 
 ### Changed
 
