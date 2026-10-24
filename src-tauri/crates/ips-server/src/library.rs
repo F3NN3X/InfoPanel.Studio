@@ -396,6 +396,24 @@ mod tests {
     }
 
     #[test]
+    fn refuses_ids_that_could_be_paths_and_skips_files_that_are_not_items() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = dir.path().join("library");
+        let store = LibraryStore::new(library.clone());
+        let item = store.create(&json!({ "kind": "image", "name": "a" }), NOW).unwrap().unwrap();
+        assert!(is_item_id(item["id"].as_str().unwrap()) && is_item_id(&new_item_id()));
+        std::fs::write(library.join("lib_aaaaaaaaaaaa.json"), "{broken").unwrap();
+        std::fs::write(library.join("notes.json"), "{}").unwrap();
+        std::fs::write(dir.path().join("config.json"), "{}").unwrap();
+        assert_eq!(store.list().len(), 1);
+        for id in ["../config", "..\\x", "lib_aaaaaaaaaaaa/../../config", "notes"] {
+            assert!(store.get(id).is_none() && !store.remove(id).unwrap(), "{id}");
+        }
+        assert!(store.update("../config", &json!({ "name": "x" }), NOW).unwrap().is_none());
+        assert!(dir.path().join("config.json").exists() && library.join("notes.json").exists());
+    }
+
+    #[test]
     fn guards_library_writes_in_order() {
         let ok = Some("application/json");
         assert!(library_write_refusal(ok, Some("1"), Some("127.0.0.1"), false, true).is_none());

@@ -76,3 +76,23 @@ impl StudioPrefs {
         Ok(Ok(merged))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_broken_file_is_no_preferences_replaced_by_the_next_write_and_a_refused_patch_leaves_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("studio-prefs.json");
+        std::fs::write(&file, "{not json").unwrap();
+        let prefs = StudioPrefs::load(&file);
+        assert_eq!(prefs.get(), json!({}));
+        let frozen = json!({ "studio.previewData": "frozenWhenUnfocused" });
+        assert_eq!(prefs.apply(&frozen).unwrap().unwrap(), frozen);
+        assert_eq!(StudioPrefs::load(&file).get(), frozen);
+        assert!(prefs.apply(&json!({ "studio.previewData": "x" })).unwrap().is_err());
+        assert_eq!(StudioPrefs::load(&file).get(), frozen);
+    }
+}
