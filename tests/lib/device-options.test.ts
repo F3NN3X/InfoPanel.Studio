@@ -51,11 +51,23 @@ describe("Auto (SPEC §4.5)", () => {
     "plugins.audio-level-meter.dev-1.audio-level": { value: 60, unit: "%" },
   };
 
-  it("picks the busiest adapter, the loudest audio device, else the first", () => {
+  it("picks the busiest adapter, the default audio device, else the first", () => {
     expect(autoDevice("adapter", live)).toBe("wifi");
-    expect(autoDevice("audio", live)).toBe("dev-1");
+    expect(autoDevice("audio", live)).toBe("default-audio");
     expect(autoDevice("cpu", live)).toBe("amd_ryzen_9_9950x3d");
     expect(autoDevice("gpu", {})).toBeUndefined();
+  });
+
+  it("follows the Show filter for audio, as Audio Meter meters it", () => {
+    const mic = (id: string): SensorMap => ({
+      [`plugins.audio-level-meter.${id}.device-name`]: t("Microphone (USB)"),
+      [`plugins.audio-level-meter.${id}.data-flow`]: { value: 0, unit: "", text: "input" },
+    });
+    expect(autoDevice("audio", { ...live, ...mic("mic-1"), ...mic("default-input") }, "input")).toBe("default-input");
+    // no default container in the filter: the first device it shows
+    expect(autoDevice("audio", { ...live, ...mic("mic-1") }, "input")).toBe("mic-1");
+    expect(autoDevice("audio", live, "output")).toBe("default-audio");
+    expect(autoDevice("audio", live, "input")).toBeUndefined();
   });
 
 });

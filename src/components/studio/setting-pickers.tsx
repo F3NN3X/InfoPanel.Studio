@@ -6,6 +6,7 @@ import { parseNameList } from "@/lib/name-list";
 import { AUTO_RULES, autoDevice, deviceOptions, deviceReading } from "@/lib/device-options";
 import { cn } from "@/lib/utils";
 import { meterKey, useWavelinkState } from "@/lib/wavelink";
+import { shortName } from "@/widgets/audio-data";
 import type { DeviceKind, ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { ChipsField } from "./alerts-fields";
 import { SELECT as SELECT_BASE, StackRow, type RowLabelProps } from "./setting-rows";
@@ -183,9 +184,14 @@ export function DevicePicker({ def, kind, value, onChange, lead, hint, flow }: P
       </StackRow>
     );
   }
-  const auto = autoDevice(kind, sensors);
+  const shown = flow === "output" || flow === "input" ? flow : undefined;
+  const auto = autoDevice(kind, sensors, shown);
   const now = live.some((o) => o.value === auto) ? auto : undefined;
-  const rule = `${AUTO_RULES[kind]}${now ? ` · now ${labelOf(now)}` : ""}`;
+  // a default-device container is named for the device it follows right now
+  const nowName = (id: string) =>
+    (id.startsWith("default-") && shortName(String(sensors[`plugins.audio-level-meter.${id}.device-name`]?.text ?? ""))) || labelOf(id);
+  const ruleText = kind === "audio" && shown === "input" ? "Default input" : AUTO_RULES[kind];
+  const rule = `${ruleText}${now ? ` · now ${nowName(now)}` : ""}`;
   return (
     <StackRow label={def.label} lead={lead} hint={hint}>
       <div role="radiogroup" aria-label={def.label} className="flex flex-col">
