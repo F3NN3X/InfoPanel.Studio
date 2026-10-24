@@ -3,7 +3,7 @@ id: diagnostics
 title: Diagnostics and logs
 icon: monitoring
 related: [problems, kiosk]
-verified: 1.3.0-beta.19
+verified: 1.3.0-beta.20
 ---
 
 Find out what went wrong, and give a bug report everything it needs.
@@ -14,7 +14,7 @@ Find out what went wrong, and give a bug report everything it needs.
 
 :::open settings/diagnostics Settings › Diagnostics
 
-The page also has **View logs**, **Open logs folder**, **Open DevTools** and **Copy diagnostics summary**.
+The page also has **View logs**, **Open logs folder**, **Open DevTools** (debug mode only), **Open WebView2 task manager** and **Copy diagnostics summary**. The task manager shows memory and CPU for each WebView2 process, such as the renderer and the GPU process, so you can tell which one grows.
 
 ## Reading the samples
 

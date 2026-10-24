@@ -4,6 +4,7 @@
 
 - Node.js 20 or newer (as stated in the [README](../README.md)).
 - npm. The repo carries a `package-lock.json`; install with `npm install`.
+- Rust stable, to run the server from source (`npm start`, `npm run test:server`) or build the desktop app.
 - For live data, InfoPanel with its Data API enabled (default
   `http://127.0.0.1:3921`). Without it the dashboard still starts; zones show
   no data.
@@ -39,7 +40,7 @@ and `lab:font-get`. None of it reaches `npm run build`.
 | Script | What it does |
 |---|---|
 | `npm run desktop:web` | `tsc -b`, then builds the studio into `.cache/desktop/dist` |
-| `npm run desktop:prepare` | Downloads the pinned Node (SHA-256 checked, cached in `.cache/desktop/`) and fills `src-tauri/resources/` |
+| `npm run desktop:prepare` | Builds the release `ips-agent.exe` and fills `src-tauri/resources/` with it and the built studio |
 | `npm run desktop:build` | `desktop:web`, `desktop:prepare`, then `tauri build` (NSIS installer in `src-tauri/target/release/bundle/nsis/`) |
 | `npm run desktop:dev` | The same two steps, then `tauri dev` |
 
@@ -57,9 +58,11 @@ the servers on 3921 or 3922. See [desktop/README.md](desktop/README.md).
 
 ## CI and releases
 
-`.github/workflows/ci.yml` runs `npx biome ci`, `npm run build`, `npm test`, `npm run perf:budgets` and
-`npm run test:e2e` on `ubuntu-latest` for every pull request (and on `main` when the dependencies change), and
-`cargo test` on `windows-latest` when the change touches the desktop app.
+`.github/workflows/ci.yml` runs on every pull request (and on `main` when the dependencies change). The `web` job runs
+`npx biome ci`, `npm run build`, `npm test` and `npm run perf:budgets`. The `native` job, when the change touches the
+server, the web app, the tests or their tooling, runs `npm run test:server` and `cargo test`/`clippy` for `ips-server`
+and `ips-agent` on Linux and Windows, and `npm run test:e2e` on Linux. The `rust` job runs `cargo test` and `clippy` for
+the whole workspace on `windows-latest` when the change touches `src-tauri/`.
 
 `.github/workflows/release.yml` runs when a tag `vX.Y.Z` is pushed. It fails unless
 the tag matches `version` in `package.json` and `CHANGELOG.md` has a `## [X.Y.Z]`
@@ -77,7 +80,7 @@ lockfile), move the **Unreleased** entries in `CHANGELOG.md` under
 **Standalone server (`ips-server`, `src-tauri/crates/ips-server`).** Serves the built `dist/`, stores the
 studio config and uploaded media, streams config changes to kiosk pages and
 proxies cover-art images. It is the same code the desktop app runs inside its own
-process; the media routes are in `crates/ips-server/src/assets.rs`. Environment variables it reads:
+process; the media routes are in `src-tauri/crates/ips-server/src/assets.rs`. Environment variables it reads:
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -90,7 +93,7 @@ process; the media routes are in `crates/ips-server/src/assets.rs`. Environment 
 | `ASSETS_MAX_BYTES` | `2147483648` | Cap on the total size of the uploaded media; an upload that would pass it gets 507 |
 | `DASHBOARD_DIST` | `dist` in the working directory (`npm start` sets the repo's) | The built app to serve (the desktop app points it at its bundled copy) |
 | `DASHBOARD_DATA_DIR` | `%LOCALAPPDATA%\InfoPanel\Dashboard` | Where `config.json`, `assets` and the other state files live; takes precedence over `LOCALAPPDATA` (use a temp folder for tests) |
-| `DASHBOARD_DEBUG` | unset | `1` logs every request (method, path, status, ms) and SSE connect/disconnect per channel, and serves `GET /api/debug/stats` (memory, uptime, SSE clients, active resources, event-loop delay) to this machine only |
+| `DASHBOARD_DEBUG` | unset | `1` logs every request (method, path, status, ms) and SSE connect/disconnect per channel, and serves `GET /api/debug/stats` (memory, uptime, SSE clients, the runtime's tasks and workers, timer delay) to this machine only |
 
 Uploaded images and videos go to an `assets` folder next to `config.json`
 (`%LOCALAPPDATA%\InfoPanel\Dashboard\assets`), created on the first upload.
@@ -98,7 +101,7 @@ Files are named by content hash; deleting one by hand breaks every config
 that refers to it, so prefer the studio's library (it can list what the saved
 config no longer uses). Copy the folder along with `config.json` to move a
 dashboard to another machine. Routes and security rules are in
-[architecture](architecture.md#uploaded-media-serverassetsmjs-srclibassetsts).
+[architecture](architecture.md#uploaded-media-cratesips-serversrcassetsrs-srclibassetsts).
 
 It answers 503 for pages until `dist/` exists, so run `npm run build` once
 (or use `npm run serve`). Endpoints are listed in the README.
@@ -119,7 +122,7 @@ run a second server with its own config instead of using the live one:
 `PORT=3999 LOCALAPPDATA=<some folder> npm start`.
 
 **Windows launcher (`start-dashboard.bat`).** Double-click it to start the
-standalone server. It checks that Node is on PATH, runs `npm ci` when
+standalone server. It checks that Node is on PATH (it builds the web app), runs `npm ci` when
 `node_modules` is missing, runs `npm run build` when `dist\index.html` is
 missing, then runs `src-tauri\target\release\ips-server.exe` when it exists, else
 `cargo run --release -p ips-server`. `start-dashboard.bat rebuild` builds
@@ -151,14 +154,14 @@ matchers (no jest-dom). Tests sit beside the code they cover:
 | Sensor streaming | `tests/lib/sensor-stream.test.ts` (merging, namespaces, stream planning), `tests/lib/sensor-store.test.ts` (reference counting, reconnects, discovery) |
 | Data API | `tests/lib/data-api.test.ts`, `tests/lib/catalog.test.ts`, `tests/lib/sources.test.ts`, `tests/lib/sensors.test.ts` |
 | Readings | `tests/lib/system-metrics.test.ts` (System widget readings, thresholds, units), `tests/lib/image.test.ts` |
-| Widget style | `tests/components/widget-style.test.ts` (zoom, `--wp-*` variables, `chromeOf`, `surfaceBox`, scoped CSS, profile style), `tests/components/surfaces.test.ts` |
+| Widget style | `tests/components/widget-style.test.ts` (zoom, `--wp-*` variables, `chromeOf`, `surfaceBox`, scoped CSS, profile style) |
 | Config and appearance | `tests/lib/layout.test.ts` (`mergeConfig` migration and guards), `tests/lib/panel-model.test.ts`, `tests/lib/style-resolve.test.ts` (style layers), `tests/lib/appearance-presets.test.ts` (applying, overrides, saved looks), `tests/lib/theme.test.ts` (profile theme over the dashboard's), `tests/lib/general.test.ts` (general settings, clock formatting), `tests/lib/profile-grid.test.ts` (gap / padding defaults and the track math for gaps 0, 12 and 24) |
-| Studio | `tests/components/studio/placement-content.test.ts` (per-zone prefixes and content), `tests/components/studio/inspector-model.test.ts` (tabs, sections, search, Advanced, source dots) and `inspector-categories.test.ts` (every module's settings resolve to a known category), `studio-layout.test.ts` (Side / Bottom / Auto, fit zoom), `use-studio-shortcuts.test.ts`, `zone-menu.test.ts`, and the other `*.test.ts` beside the studio modules (commands, zone geometry, studio and appearance actions, the explorer model, …) |
+| Studio | `tests/components/studio/placement-content.test.ts` (per-zone prefixes and content), `tests/components/studio/inspector-model.test.ts` (tabs, sections, search, Advanced, source dots) and `inspector-categories.test.ts` (every module's settings resolve to a known category), `studio-layout.test.ts` (Side / Bottom / Auto, fit zoom), `use-studio-shortcuts.test.ts`, and the other `*.test.ts` beside the studio modules (commands, zone geometry, studio and appearance actions, the explorer model, …) |
 | Data layer and history | `tests/lib/data-points.test.ts` (normalising the catalog, health, search), `tests/lib/data-usage.test.ts` (Used by, bind / unbind), `tests/lib/sample-history.test.ts`, `tests/lib/fonts.test.ts` (the font catalog), `tests/hooks/config-history.test.ts` (undo stacks, coalescing, transactions) |
 | Page background and media | `tests/lib/appearance.test.ts` (background layers, video style and `videoPolicy`), `tests/lib/assets.test.ts` (upload / library requests with a mocked `fetch`) |
 | InfoPanel import | `tests/lib/infopanel/**/*.test.ts` (parsing, formatting, fonts, canvas model and editing, remap, export, gauges, assets; a few read the lab's gitignored `corpus/` and skip without it), `tests/lib/gauge-studio/`, `tests/widgets/registry/*.schema.test.ts` (settings schema per widget group) |
-| Component (DOM) | `tests/components/gauges/gauges-page.test.tsx` (open a gauge, toggle a part, the Save / Discard / Cancel dialog, details pane vs sheet), `tests/components/studio/pane-sheet.test.tsx` (stacked vs side-by-side at the 900px breakpoint, the bottom sheet's handle and Close) |
-| Server | `tests/server/*.test.mjs`: `assets.test.mjs` (magic-byte sniffing, asset id validation against traversal, `Range` parsing, loopback check), `library`, `infopanel-local`, `font-proxy`, `proxy`, `config-guard` and the rest beside their modules. Vitest's default pattern picks up `.test.mjs`, so `npm test` runs it |
+| Component (DOM) | `tests/components/gauges/gauges-page.test.tsx` (open a gauge, toggle a part, the Save / Discard / Cancel dialog, details pane vs sheet) |
+| Server | `tests/server/*.test.mjs` (`server`, `alerts-http`, `data-roundtrip`): HTTP cases against a running `ips-server`. `npm test` skips them; `npm run test:server` builds the server and runs them (`SERVER_SUITE=1`). The server's own Rust tests are in `src-tauri/crates/ips-server/` (`cargo test`) |
 
 `npm test` prints the current number of test files and tests; all of them
 should pass.
@@ -170,9 +173,9 @@ should pass.
 
 | Project | Specs | Runs |
 |---|---|---|
-| `e2e` | `tests/e2e/*.spec.ts`: kiosk render (incl. the gauge icon), live config update, control page switch, studio edit/save/undo, image-proxy rules, request guard, kiosk request budget, the visualiser after a hide and remount | `npm run test:e2e`, in CI |
-| `perf-kiosk`, `perf-studio` | `tests/perf/*.perf.ts`: `kiosk-idle`, `server-idle`, `studio-idle`, `studio-hot-cold`, `studio-unfocused` | `npm run perf:kiosk` / `perf:studio`, report only |
-| `desktop` | `tests/desktop/*.desktop.ts`: the debug build over CDP (`tray-close-releases-webview`, `studio-idle-webview2`, `studio-unfocused-webview2`) | Windows, by hand: see [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup) |
+| `e2e` | `tests/e2e/*.spec.ts`: kiosk render (incl. the gauge icon), live config update, control page switch, studio edit/save/undo, image-proxy rules, request guard, kiosk request budget, the visualiser after a hide and remount, the studio in a browser tab, cross-origin writes refused, the frozen Design preview | `npm run test:e2e`, in CI |
+| `perf-kiosk`, `perf-studio` | `tests/perf/*.perf.ts`: `kiosk-idle`, `server-idle`, `studio-idle`, `studio-hot-cold`, `studio-unfocused`, `studio-frozen` | `npm run perf:kiosk` / `perf:studio`, report only |
+| `desktop` | `tests/desktop/*.desktop.ts`: the debug build over CDP (`tray-close-releases-webview`, `studio-idle-webview2`, `studio-unfocused-webview2`, `studio-in-browser`, `server-soak`) | Windows, by hand: see [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup) |
 
 The method, the fixture and the reports are in [performance.md, "The harness"](performance.md#the-harness).
 Regenerate the fixture with `node tools/perf/make-fixture.mjs` after a config version bump.

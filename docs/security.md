@@ -17,6 +17,10 @@ security model, what was fixed, what was decided, and what is deferred. Performa
   - The guards (Host allow-list, Origin/`Sec-Fetch-Site` checks, custom headers, JSON content type) stop a web page in
     someone's browser from writing (CSRF, DNS rebinding). They are **not authentication**: with editing allowed, any
     program on the LAN can write.
+- **The studio in a browser** (Settings › General › Open the studio in: Microsoft Edge or the default browser) is an
+  ordinary page on the server's origin: it has no IPC, and other tabs and sites in that browser are other origins. The
+  request guard refuses their writes (a no-cors fetch, a CORS fetch with the write headers, a form post); the e2e spec
+  `cross-origin-writes.spec.ts` tries each.
 - **Web pages loaded inside widgets** (Web Page frames, images, fonts) are untrusted and never get IPC.
 - Same-user local software is out of scope (it can already read and write the data folder).
 
@@ -66,7 +70,7 @@ security model, what was fixed, what was decided, and what is deferred. Performa
 | Severity | Finding | Outcome |
 |---|---|---|
 | Medium | Opener plugin link handler denied by ACL (links did nothing) | Fixed: handler off, `on_new_window` opens links |
-| Medium | No CSP / framing / nosniff headers on server HTML, where the Studio has IPC | Fixed: `security-headers.mjs` |
+| Medium | No CSP / framing / nosniff headers on server HTML, where the Studio has IPC | Fixed: `security_headers.rs` |
 | Medium | Config, settings and integrations writable from any LAN device | Fixed: opt-in "Allow editing from other devices", off by default (decision) |
 | Medium | Image proxy could reach LAN, loopback and metadata addresses (SSRF) | Fixed: guarded lookup with `blockLan` |
 | Low | Integrations PUT from LAN could repoint OBS host/password | Fixed by the remote-edit opt-in |

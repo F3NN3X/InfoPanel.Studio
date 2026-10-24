@@ -93,7 +93,7 @@ API image path). `resolveImageUrl` resolves a root-relative
 server. To sample colors from cover art, the Now Playing widget fetches it
 (`src/widgets/NowPlaying/art-tint.ts`) through `/api/image-proxy?url=` on the
 dashboard server (https anywhere, http only on loopback), except same-origin
-images, which it loads directly. The proxy relays only images (`crates/ips-server/src/proxy.rs`):
+images, which it loads directly. The proxy relays only images (`src-tauri/crates/ips-server/src/proxy.rs`):
 `image/*` except SVG, or `application/octet-stream` / no type when the bytes are
 png, jpeg, gif, webp or avif (served with the sniffed type); anything else is 406.
 Responses carry `X-Content-Type-Options: nosniff`.
@@ -268,11 +268,11 @@ plain cards keep the four. Picking a skin sets `surface: "auto"` (the skin
 option's `applies`), so a skin shows whole until a surface is chosen again.
 The other look keys that override a skin token when set: accent, font,
 value weight, graph, meter, stroke. The card's corner is the look's `radius`,
-else the profile's (`var(--radius)`, Profile › Corner radius, falling back to the
-dashboard `radius`), like panels;
-the skins' `radius` token no longer reaches the shell. Appearance › Theme &
-surface also sets the global `surfaceOpacity` and `blur` (Background opacity
-and blur), which let a page image or video show through the cards. `smoothing` (Graph updates: Stepped / Smooth) sets `SkinCtx.smooth`; `Spark` then
+else the screen's (`var(--radius)`, Theme › Shape & spacing › Corners at the screen scope, falling back to
+the dashboard `radius`), like panels;
+the skins' `radius` token no longer reaches the shell. Theme › Surface & effects
+also sets the global `surfaceOpacity` and `blur` (Opacity and Blur), which let a page image or video show
+through the cards. `smoothing` (Graph updates: Stepped / Smooth) sets `SkinCtx.smooth`; `Spark` then
 draws line / area / step graphs through `SmoothGraph`, which scrolls them by time: each sample
 sits at its arrival time and the right edge moves at real-time speed about two measured intervals
 (`FeedClock`) behind the feed (`SmoothScroll`), drifting at most ±5 % to keep that lag, so readings
@@ -292,10 +292,9 @@ would be 102 GB/s; as bytes it is 860 Mb/s, and only bytes match the adapter's
 `auto` or a fixed `RateUnit` (MB/s, Mb/s, KB/s, Kb/s, Mbps; Network Traffic's `rateUnit`), and `toMBps`
 gives the number for widgets that print the unit apart.
 `compact` (Small zones, with `dense` the dense view) is a layout mode
-under Fit, not a style, and no theme sets it. In the studio, Appearance › Skins draws
-every skin live (`skin-gallery.tsx`) above the user's saved looks, and Theme &
-surface shows surface and theme swatches (`surface-picker.tsx`,
-`theme-panel.tsx`) over the editable theme colours.
+under Fit, not a style, and no theme sets it. In the studio, Theme › Start from lists
+every skin beside the palettes and the user's saved Themes (`theme-start-from.tsx`), and the Surface & effects
+card holds the surface and skin rows.
 A skin's accent applies only when no accent is set and the surface is not
 light. Skin fonts load lazily (`ensureSkinFonts`). Custom panels use the skin
 through `components/widgets/panel-skin.tsx` when a skin is set; with `auto`
@@ -318,7 +317,7 @@ serials) are looked up with `entryText` and `containers`
 
 ### QA harness
 
-`?widget-qa` (a lazy chunk, `src/widgets/widget-qa.tsx`, never linked) renders
+`?widget-qa` (a lazy chunk, `src/widgets/widget-qa/`, never linked) renders
 every module at a set of spans through `placementContent` from fixture sensors
 (`src/widgets/__fixtures__/`), in both variants, any skin and surface, and on a
 light theme (`theme=paper`). `window.__qaOverflow()` reports, per zone, what
@@ -376,7 +375,7 @@ Only the page holds `Placement.canvas`. The server's config keeps a
 `canvasRef` in its place (config v5), so it stays under its 5 MB cap and
 its push to every kiosk stays small: each canvas is a file in
 `DATA_DIR/canvases`, named by the SHA-256 of its bytes
-(`crates/ips-server/src/canvases.rs`; POST `/api/canvases` from this machine,
+(`src-tauri/crates/ips-server/src/canvases.rs`; POST `/api/canvases` from this machine,
 GET `/api/canvases/<id>` from any). `src/lib/canvas-store.ts` swaps the
 two at the edge: `fetchConfig` loads the refs (cached by ref), `pushConfig`
 saves each new or edited canvas and then the config with its refs, on the
@@ -518,7 +517,7 @@ Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesig
 Double-clicking a canvas zone, or the canvas zone inspector's "Edit items",
 opens the canvas editor (`src/components/infopanel/edit/`, lazy-loaded) in
 place of the studio canvas, drawer and inspector. Done or Esc (with nothing
-selected) closes it; so do Sources mode and an undo that takes the zone away.
+selected) closes it; so do leaving Design for another view and an undo that takes the zone away.
 
 - **State** (`use-canvas-editor.ts`): the zone's stored form opened
   (`openCanvas`) and its items as edited (`editItems`,
@@ -693,7 +692,7 @@ stay) and, for "all", drops the profiles' styles, themes and radii.
 own colours over the dashboard's). `saveAppearancePreset`, `renameAppearancePreset` and
 `deleteAppearancePreset` manage the user's list. The studio wires them through `useAppearancePresets`
 (`src/components/studio/use-appearance-presets.ts`); the palette's
-**Apply appearance: …** commands apply to "all".
+**Apply theme: …** commands apply to All screens.
 
 `isValidStyleValue` / `invalidStyleKeys` check look values against the
 options of `PROFILE_STYLE_SETTINGS` (select options, number bounds, CSS
@@ -721,7 +720,7 @@ for both the local copy and the server copy:
   (`vbz`, `notifications`, `textfile`, `streamdeck`) get `surface: "theme"`
   unless the dashboard or the zone's profile style picks a surface. Unknown
   ids pass through. The server refuses a save from an older version
-  (`crates/ips-server/src/config_guard.rs`), so a v3 build cannot write back over v4;
+  (`src-tauri/crates/ips-server/src/config_guard.rs`), so a v3 build cannot write back over v4;
 - no shipped profile is added: a fresh install (`defaultConfig`) has one
   blank profile, `main`. Stored copies of the formerly shipped Sample and
   ARCv2 profiles stay as they are;
@@ -785,10 +784,10 @@ server from another one on the port. With `DASHBOARD_DEBUG=1` the server logs
 each request (method, path, status, ms) and every SSE connect and disconnect
 per channel (`config`, `control`, `extras`) with the current count, and
 `GET /api/debug/stats` (404 otherwise, 403 from other machines;
-`crates/ips-server/src/debug.rs`) returns the memory use, uptime, SSE clients per channel,
+`src-tauri/crates/ips-server/src/debug.rs`) returns the memory use, uptime, SSE clients per channel,
 active resources by type and the event-loop delay (p50, p99, max in ms).
 
-### Uploaded media (`crates/ips-server/src/assets.rs`, `src/lib/assets.ts`)
+### Uploaded media (`src-tauri/crates/ips-server/src/assets.rs`, `src/lib/assets.ts`)
 
 Images and videos uploaded in the studio are stored by the dashboard server
 in `<data dir>\assets`, next to `config.json` (created on the first upload).
@@ -847,7 +846,7 @@ Rules the server enforces:
 - **Read errors.** A file that vanishes while being streamed (a concurrent
   delete) destroys that response; it never crashes the server.
 
-### For the InfoPanel import (`crates/ips-server/src/library.rs`, `infopanel-local.mjs`, `font-proxy.mjs`)
+### For the InfoPanel import (`src-tauri/crates/ips-server/src/library.rs`, `infopanel_local.rs`, `font_proxy.rs`)
 
 | Route | Answer |
 |---|---|
@@ -869,7 +868,7 @@ where it was placed (copy semantics: a profile never points back). Writes
 need `X-Dashboard-Library: 1` and JSON, from loopback unless
 `ALLOW_REMOTE_UPLOAD=1`; an item is at most 8 MB.
 
-#### Request gate (`crates/ips-server/src/request_guard.rs`)
+#### Request gate (`src-tauri/crates/ips-server/src/request_guard.rs`)
 
 Every request passes this gate before routing:
 
@@ -897,7 +896,7 @@ inspector) lists the files and offers **Clean up unused**, which deletes what
 a file used by an edit that has not been saved yet, or only by the undo
 history, counts as unused.
 
-### Sync (`src/App.tsx`, `src/lib/dashboard-server.ts`, `crates/ips-server/src/config.rs`)
+### Sync (`src/App.tsx`, `src/lib/dashboard-server.ts`, `src-tauri/crates/ips-server/src/config.rs`)
 
 - **Load first.** A page that is not in kiosk mode first reads `/api/config`
   (`fetchConfig`). If the server has a config, the page adopts it (merged and
@@ -914,7 +913,7 @@ history, counts as unused.
   gets the current version straight away; a 15 s keep-alive comment keeps the
   stream open.
 - **Downgrade guard.** `POST /api/config` is refused with 409
-  (`versionRefusal`, `crates/ips-server/src/config_guard.rs`) when the stored config's
+  (`versionRefusal`, `src-tauri/crates/ips-server/src/config_guard.rs`) when the stored config's
   `version` is above the posted one, so an older build cannot overwrite a
   config with pages it cannot read. The studio then stops auto-pushing and
   shows a banner asking for a reload.
@@ -927,7 +926,7 @@ The Vite dev server (`npm run dev`) proxies `/api`, `/events/config` and `/event
 `http://127.0.0.1:3922`, so a dev page shares the config of the running
 dashboard server (`vite.config.ts`).
 
-### Control channel (`crates/ips-server/src/control.rs`, `src/lib/control.ts`)
+### Control channel (`src-tauri/crates/ips-server/src/control.rs`, `src/lib/control.ts`)
 
 Runtime state that is not config (no undo, not in `config.json`): the page each
 profile shows, a profile override, and page auto-rotation with its runtime
@@ -985,7 +984,7 @@ stays in step.
 
 The studio is loaded lazily (`React.lazy`), so kiosk pages that never open it
 do not download it. The wrench button on a non-kiosk page enters the studio;
-the studio's **Kiosk view** button leaves it and clears the query string.
+the Live popover's **Open kiosk view** leaves it and clears the query string.
 
 **Profile selection** (`resolveProfile`): when `activeProfile` is a profile
 id that exists, that profile is used. Otherwise (`"auto"`, or an unknown id)
@@ -1060,8 +1059,8 @@ preload="auto">` between the fill and the overlay, styled by `videoStyle`:
 fit and position as `object-fit` / `object-position` (`stretch` is `fill`;
 `tile` can't repeat and centers), blur with the same edge bleed as an image.
 `videoPolicy({ motion, hidden })` decides what it does: `poster` on reduced
-motion (`use-reduced-motion.ts`: the OS setting unless General > Motion
-overrides it), where `posterBackground`
+motion (`use-reduced-motion.ts`: the OS setting unless Animations in Settings › Dashboard (or
+the screen's) overrides it), where `posterBackground`
 swaps in the poster as an image background (or only the fill without a
 poster) and no video is loaded; `pause` while the page is hidden
 (`use-document-hidden.ts`, the `visibilitychange` event); `play` otherwise.
@@ -1071,15 +1070,15 @@ play with sound and falls back to muted when the browser refuses
 (`NotAllowedError`).
 
 **Studio shell** (`src/components/studio/studio-view.tsx`). The studio is a
-top bar over the studio body, which `studio-shell.tsx` assembles: the icon
-rail (`left-rail.tsx`), the open left panel (`studio-drawers.tsx`: Layers,
-Add or Profiles in a 256 px column), the canvas (`studio-canvas.tsx`, or the
-Data Explorer in Sources mode) with the floating zoom bar over it
+top bar over the studio body, which `studio-shell.tsx` assembles: the labelled
+rail (`left-rail.tsx`), in Design the left panel (`design-left-panel.tsx`: Layers
+| Add), the canvas (`studio-canvas.tsx`) with the floating zoom bar over it
 (`zoom-toolbar.tsx`) and the inspector, docked, floating or in a bottom
-sheet by the studio width, see Studio layout below. `studio-view.tsx` only
+sheet by the studio width, see Studio layout below. The other views (Screens,
+Theme, Library, Gauges, Alerts & Island, Data) take the canvas's place as a full page and have no
+inspector column. `studio-view.tsx` only
 composes; the state lives in hooks beside it: `use-studio-selection.ts` (the
-zone selection and the selected panel widget), `use-studio-ui.ts` (mode, open
-panel, grid and ruler flags, zoom, dialogs, inspector search and jump
+zone selection and the selected panel widget), `use-studio-ui.ts` (the view (`mode`), the left panel's tab, grid and ruler flags, zoom, dialogs, inspector search and jump
 requests, the style and widget clipboards), `use-studio-layout.ts`,
 `use-studio-mutations.ts` (every control turned into a config change through
 the pure profile mutations in `studio-actions.ts`), `use-studio-commands.ts`
@@ -1123,24 +1122,24 @@ card (Browse, or Use sample layout: the `sampleLayout()` template in
 Esc or window blur cancel it.
 
 **Studio inspector** (`inspector-model.ts`, `inspector/`, `zone-inspector.tsx`,
-`document-inspector.tsx`, `studio-inspector.tsx`). One registry drives every
+`studio-inspector.tsx`). One registry drives every
 inspector. `inspector-model.ts` is pure: given an `InspectorContext` (a
 widget zone with its module's `settings`, a panel, a blank zone, several
-zones, the dashboard, a panel item or the theme editor's scope) it returns
+zones, a panel item, an imported InfoPanel item or a Theme scope) it returns
 the tabs (`inspectorTabs`: Show / Style / Data / Behaviour for a widget or
-panel, a tab with no sections disabled; Profile / Appearance / General for
-the dashboard; none for a blank or multi selection) and the ordered
+panel, a tab with no sections disabled; Style / Data / Behaviour for Theme's rows; none for a blank,
+multi or InfoPanel selection) and the ordered
 `InspectorSection`s of each (`allSections`, `sectionsFor`). A section is a
 list of `ModuleSetting`s, optional `extras` (the widget picker, Visible,
-the style tools, the zone frame), the Follow bar of a followable section
+the style toolbar, the zone frame), the inheritance chip of a followable section
 (`followInfo`) and optionally a `special` marker for custom UI (the panel
 editor, Bound data, the presets gallery, ...). `searchAll` searches every tab
 at once, More rows included; `splitMore` splits a section into its rows and
 its More rows; `sourceState` and `changedCount` give each row's source dot and
 the "N changed" counts (own values that apply only). Sections come from
-`inspector-categories.ts`: `SHARED_SECTIONS` (Header, Fit, Skin & graphics,
-Colors, Widget colors, Surface, Typography, Size & spacing, Border & glow,
-Custom CSS, Units & format, Thresholds, Dynamic Island, Motion) own the
+`inspector-categories.ts`: `SHARED_SECTIONS` (Header, Fit, Skin,
+Colors, Widget colors, Typography, Shape & spacing, Surface & effects, Border & glow,
+Advanced · CSS & locks, Units & format, Thresholds, Motion, Send to island) own the
 standard keys (`ModuleSetting.section`, or `sharedSectionOf` for a widget's
 own row such as a colour or a threshold), each in its fixed tab and before
 (`lead`) or after (`trail`) the widget's own sections; `categorize(defs)`
@@ -1163,8 +1162,8 @@ and the accordion mode (`studio.accordion`, one open or many open, default
 one). The open section is plain component state; there is no scroll-spy.
 
 *Quick bar* (`quick-bar.tsx`, `quick-sets.ts`). A floating pill centred at the
-top of the canvas, below the page tabs and over the canvas only (docked and floating placements; Dashboard › General ›
-Studio › "Quick bar", `studio.quickBar`, default on): identity, the pinned
+top of the canvas, below the page tabs and over the canvas only (docked and floating placements; Settings › Studio ›
+Editor › Quick bar, `studio.quickBar`, default on): identity, the pinned
 settings as compact controls, visibility and, floating, "All settings". Pins
 are set from the pin button on each inspector row, are kept per widget type (all
 panels share one set), at most 6, in `studio.quickPins`. `quick-sets.ts` is
@@ -1195,7 +1194,7 @@ rows are `boundRows` (a panel's widgets' sensors, or the keys a widget zone
 claims, from `data-usage.ts`), and `data-picker.tsx` is the bind dialog
 (widget mode: multi-toggle; item mode: a panel widget's Sensor field).
 Several zones use `inspector/multi-inspector.tsx` (the shared Style sections,
-written to every selected zone; the Follow bar shows the primary zone's state).
+written to every selected zone; the inheritance chip shows the primary zone's state).
 
 *Panel items* (`item-inspector.tsx` over `inspector/item-model.ts`). A selected
 panel widget gets the same four tabs from the item sections
@@ -1205,28 +1204,35 @@ Fill, built from the shared rows and written back by `withItemValues`.
 `panel-item.ts` holds the follow rules (`ITEM_SECTION_FIELDS`: type, colors,
 format, thresholds), so the renderer and the inspector agree.
 
-*Theme editor* (`theme-editor.tsx`, a studio mode; `theme-editor-model.ts`,
-`theme-editor-settings.ts`). Pure scope edits (`ThemeScope`: `base` = all
-profiles, `profile`, `page`; `withScopeValues`, `withLock`, `withPageFollow`,
-`withZonesFollowing`), the rows of the Style / Data / Behaviour tabs
-(`THEME_EDITOR_SETTINGS`, with Status & series colors) and the previews
-(`previewZones` through `LivePlacement` under the scope's levels). It
-replaces the former Global style tab.
+*Theme* (`theme-editor.tsx`, the Theme view; `theme-cards.ts`, `theme-editor-model.ts`,
+`theme-editor-settings.ts`, `theme-exceptions.ts`). The scope is All screens, a screen or a page
+(`ThemeScope`: `base`, `profile`, `page`; `theme-scope-bar.tsx`). `THEME_CARDS` are the ten section cards: each
+names the widget-style sections it covers and the two-level data it also holds (color tokens, corner radius,
+page font, background). Pure scope edits: `withScopeValues`, `withLock` / `withLockAll` / `withCardLock`,
+`withPageFollow`, `customiseCard`, `resetCard`, and `withToken`, `withThemeRadius`, `withPageFont`,
+`withBackgroundAt`. The rows are `THEME_EDITOR_SETTINGS` (the `theme` inspector context), the preview is
+`ThemePreview` over `previewProfile` (the page at that scope), and `exceptionsOf` finds the widgets and pages
+that do not follow (`makeFollow`, `makeAllFollow`). Saved Themes: `theme-gallery.tsx`,
+`theme-start-from.tsx`, `use-appearance-presets.ts`. The page background is `background-editor.tsx` and
+`background-video.tsx`; its edits go through `withBackground`, undo-keyed per scope by `backgroundKey`.
 
-*Dashboard inspector* (`document-inspector.tsx`, nothing selected, over
-`use-document-props.ts` for its data and edits). Profile
-(`inspector/profile-sections.tsx`: profile fields, This profile
-Inherit / Custom, Auto-pick), Appearance (`appearance-panel.tsx`'s Apply to
-scope, with a button to the theme editor, the presets gallery `appearance-gallery.tsx`, `theme-panel.tsx` /
-`profile-theme-panel.tsx`, and the page background `background-panel.tsx`,
-`background-editor.tsx`, `background-video.tsx`; background edits go through
-`withBackground`, undo-keyed per scope by `backgroundKey`) and General (`general-panel.tsx`: Type, Clock & date, Display,
-Studio = the Quick bar and Inspector sections switches, Connection = the Data API URL). See the
-[customization guide](customization-guide.md).
+*Page inspector* (`page-inspector.tsx`, nothing selected): the page's Name and Icon, a Rotation link to Screens,
+the sections the page customises over its screen's theme with the way into Theme at the page scope, Live ›
+Show on kiosks now, and Duplicate / Delete page.
+
+*Screens* (`screens-view.tsx`, `screen-detail.tsx`, `screens-model.ts`): a card per screen with the launch rule
+("When the app opens", `withLaunch`), and for the selected screen Size & fit and Grid (`screen-layout.tsx`),
+Rotation and the pages list (`screen-pages.tsx`), Performance (a per-screen override with an inheritance chip,
+`withScreenPerformance`) and links to Theme and Alerts & Island.
+
+*Settings* (the Settings window, `src/settings/`): Dashboard (`settings-dashboard.tsx`: Performance, Clock &
+date, Kiosk and the danger zone; each change is saved on the server at once through `withSettingsPatch`) and
+Studio (`settings-studio.tsx`: the editor's `studio.*` preferences) beside the App pages. The Data API URL is the
+Connection card of Data (`connection-card.tsx`). See the [customization guide](customization-guide.md).
 
 **Data Explorer and binding** (`sources-panel.tsx`, `explorer/`,
 `src/lib/data-points.ts`, `data-usage.ts`, `data-live.ts`,
-`sample-history.ts`). Sources mode swaps the canvas and the inspector for
+`sample-history.ts`). The Data view replaces the canvas and the inspector with
 `sources-panel.tsx`. `data-points.ts` normalises the catalog (`/api/sources`
 plus the `/api/sensors` snapshot, via `useSensorCatalog`) into
 source → container → point: `buildDataModel` classifies each value
@@ -1281,7 +1287,7 @@ the canvas draws it. `studio-shell.tsx` renders the mode: a row (rail, left
 panel, canvas with the zoom bar floating over it, inspector column) when
 docked, the same row with the card over the canvas when floating, and the
 sheet over the canvas bottom on a phone, where the top bar also hides the
-summary, the Kiosk view label and Undo / Redo (they move into the "..." menu).
+summary and Undo / Redo, Import and Export (they move into the "..." menu).
 
 **Sticky fit** (`use-canvas-zoom.ts`, `zoom-pref.ts`). `useCanvasZoom(page)`
 measures the canvas scroll container with a ResizeObserver; while `fitting`
@@ -1300,23 +1306,23 @@ and value box (left panels keep the stacked slider).
 `inspector-scroll.ts` finds the scrolling element for scroll-to-top and the
 widget-editor reveal.
 
-**Studio left rail and panels** (`left-rail.tsx`). A 52 px icon rail opens
-one panel at a time, remembered in localStorage (`studio.drawer`): **Add**
-(`insert-panel.tsx`: search, category chips, widget / layout / panel cards
-that drag (HTML5 drag, MIME in `studio-modules.ts`) or click to place;
-`filterInsertables` searches and filters, `InsertList` is reusable with an
-`onPick` callback), **Layers** (`layers-panel.tsx`, zones in `sortZones`
-order, Shift / Ctrl-click to multi-select) and **Profiles**
-(`profiles-panel.tsx`: profile list with a thumbnail, the Auto entry via
-`resolveProfile`, Auto-pick). **Sources** is not a panel: it swaps the canvas
-for the Data Explorer. The keyboard icon opens `shortcuts-dialog.tsx`.
+**Studio left rail and views** (`left-rail.tsx`). A labelled rail (72 px, 48 px under 960 px) opens one full
+view at a time: **Screens**, **Design**, **Theme**, **Library**, **Gauges**, **Alerts & Island** and **Data**,
+with Help and Settings at the foot (each opens its own page or window). Design's left panel
+(`design-left-panel.tsx`) is **Layers** (`layers-panel.tsx`, zones in `sortZones` order, Shift / Ctrl-click to
+multi-select) | **Add** (`add-panel.tsx` over `use-add-panel.ts` and `add-catalog.ts`: search, category chips
+and widget / layout / panel rows that drag (HTML5 drag, MIME in `studio-modules.ts`) or click to place;
+`searchItems` and `categoriesOf` filter). `insert-panel.tsx` keeps `filterInsertables`, `InsertFilters` and
+`InsertList` for the widget picker and the palette. Screens are the cards of `screens-view.tsx`: the
+launch rule ("When the app opens", `resolveProfile`'s Auto) and a card per screen.
 
-**Studio top bar.** `studio-top-bar.tsx` holds the profile switcher (a Base UI
-menu), the Design | Sources switch, Undo / Redo, Kiosk view, Save (a dot while
-edits are not pushed yet) and a "..." menu: Export / Import
-(`config-file.ts`), Copy profile JSON, Command palette, Keyboard shortcuts,
-Reset everything (behind `reset-config-dialog.tsx`) and the build id. (The desktop
-app opens its settings from a Settings button at the foot of the left rail.) In the desktop app the bar is also the
+**Studio top bar.** `studio-top-bar.tsx` holds the screen / page switcher (`screen-switcher.tsx`, with a ⚙ to
+Screens), the search field that opens the command palette, Undo / Redo, Import and Export (`file-doors.ts`:
+the Import door and the Export & back up sheet, `config-file.ts` underneath), the Live popover
+(`live-popover.tsx`: Show on a page, Rotation, Mute alerts, Dynamic Island, Dim screens, Reload all kiosks, Open
+kiosk view), Save (a dot while edits are not pushed yet) and, on a phone, a "..." menu with the same actions.
+Reset everything is in Settings › Dashboard (behind `reset-config-dialog.tsx`), the shortcut list in Help, the
+build id in Settings › App › About. In the desktop app the bar is also the
 window's title bar: its empty space carries `data-tauri-drag-region` and
 `window-controls.tsx` adds minimize, maximize and close at the right end.
 `widget-picker-dialog.tsx` reuses `InsertFilters` and `InsertList` to assign a
@@ -1387,27 +1393,28 @@ one undo step. A page switch clears the selection, which never spans pages. "Mov
 menu is `moveZonesToPage` (`studio-actions.ts`): a zone keeps its box when free on the target page,
 else takes the first free spot at its size, and the whole move is refused when any zone has no room.
 Ctrl+PageUp / PageDown step through the pages (wrapping) and the palette has the page commands. The
-profile inspector's Auto-rotate section writes `rotate` through `updateStored`; rotation itself runs
+Screens' Rotation section writes `rotate` through `setRotate`; rotation itself runs
 on the kiosk (a later phase).
 
 ### Alerts
 
 Rules are config (`config.alerts`, types and `normalizeAlerts` in `src/lib/alerts.ts`); active alerts and
-the history are server state. The engine (`crates/ips-server/src/alerts.rs`, started with the server) subscribes to
+the history are server state. The engine (`src-tauri/crates/ips-server/src/alerts.rs`, started with the server) subscribes to
 the Data API keys the rules use, evaluates thresholds (duration, hysteresis, cooldown), `changes`,
 `contains` and notification filters, and publishes the active list as `alerts` in the control state
 (`/events/control`, `src/lib/control.ts`). Acknowledge, dismiss and test go through
 `POST /api/control/alert`; `GET /api/alerts/history` returns the last 200. Nothing here enters undo.
 
-The studio's Alerts panel (rail item "Alerts", `src/components/studio/alerts-panel.tsx`) shows the
-master switch, the live active list (`alerts-live.tsx`, history refetched when the list changes), the
-rules and the global defaults (`alerts-defaults.tsx`). A rule opens in `alerts-rule-editor.tsx` with the
+The studio's Alerts & Island view (`alerts-view.tsx`; tabs Rules, Island, Defaults, History) shows the
+master switch and the rules (`alerts-rules.tsx`), the island's settings (`island-tab.tsx`), the global
+defaults (`alerts-defaults.tsx`), and the live active list with the history (`alerts-live.tsx`, history
+refetched when the list changes). A rule opens in `alerts-rule-editor.tsx` with the
 outputs in `alerts-outputs.tsx`. Edits are pure functions on the config (`alerts-model.ts`) run through
 `setConfig` with a key per rule and field, so a burst of typing is one undo step; add, delete, duplicate
 and preset each are one step. New rules come from `src/lib/alert-presets.ts`: a preset's regex picks the
 first live numeric point of the catalogue, and leaves the key empty when none matches. Test fires the
-rule through the real path and waits while edits are not pushed yet. The palette has "Open alerts" and
-"New alert rule".
+rule through the real path and waits while edits are not pushed yet. The palette has the Alerts & Island
+destinations and "New alert rule".
 
 The `missing` condition ("stops reporting") fires once a key the rule has seen has been absent for
 `forSeconds`; the Data API drops a stopped plugin's keys, so this is "plugin stopped reporting".
@@ -1436,7 +1443,7 @@ through one notice bus (`islandBus`, a pure queue in `queue.ts` driven by one ti
   the OBS Live dot) show beside the time while nothing is open; the highest priority, then the newest,
   shows.
 
-The server's extras (`crates/ips-server/src/extras.rs`) hold one OBS connection (`obs.rs`, obs-websocket 5) and fetch the calendar links (`calendar.rs`, parsed by `ical.rs`) for every kiosk.
+The server's extras (`src-tauri/crates/ips-server/src/extras.rs`) hold one OBS connection (`obs.rs`, obs-websocket 5) and fetch the calendar links (`calendar.rs`, parsed by `ical.rs`) for every kiosk.
 It also holds the coding agents (`agents.rs`): `ips-agent`, run by Claude Code's and
 Codex's hooks and Claude's statusline (installed by the app, or `ips-agent install`), posts each event to
 `POST /api/agents/event` or `/api/agents/statusline`. Only loopback requests with a JSON body and the
@@ -1524,7 +1531,7 @@ with the app.
 - **Studio bridge** `src/lib/desktop.ts`. `isTauri()` gates everything and
   `@tauri-apps/api` is imported lazily, so the browser and kiosk bundles carry no
   Tauri code and every call is a no-op outside the app. `config-file.ts` uses the
-  native Save and Open dialogs there, and the left rail gains a Settings button that opens the settings window.
+  native Save and Open dialogs there, and the rail's Settings button opens the settings window.
 - **Flush on hide and quit.** Before the window hides or the app quits, Rust emits
   `studio://flush`; `App.tsx` pushes the pending config (the push is otherwise
   debounced 400 ms; the studio gives up after 1200 ms) and calls `flush_done`. Rust
@@ -1536,3 +1543,20 @@ with the app.
   DOM node count and open EventSources with `report_metrics`. Rust adds the memory
   of the app, the server and WebView2 plus the server stats and writes one
   `metrics.csv` line per sample; the settings page flags growing series.
+- **Where the studio opens** (`studio_target.rs`, setting `openStudioIn`). Every path that opens the studio (the
+  tray, a second launch, Open the studio on launch, Settings' links) asks it first: the app window, Microsoft Edge
+  with `--app=<url>` (found in the registry) or the default browser. The browser targets start the server if it is
+  stopped, open `http://127.0.0.1:<port>/?studio=1` and build no WebView. A browser studio is an ordinary page on the
+  server origin with no IPC; it saves when its tab is hidden.
+- **Giving memory back.** A hidden or minimized studio webview is suspended (`webview2.rs`). After `releaseHiddenStudio`
+  in the tray the window is destroyed (`release.rs`) and rebuilt on Show; `studioRefresh` (`refresh.rs`) reloads a page
+  left unfocused. A minute after the studio loses focus the shell sends `studio-focus` and `src/lib/studio-focus.ts`
+  sets the ticker to `slow` (5 fps, ambient effects paused) when `reduceUnfocusedAnimation` is on.
+- **Design preview data** (`src/lib/preview-data.ts`, `src/lib/preview-data-pref.ts`). In `frozen` mode the Design
+  canvas renders from one `GET {url}/api/sensors` snapshot and opens no stream of its own, so the sensor store's
+  reference counting closes the page's streams. Kiosks and the Data view stay live. The choice is kept on the server
+  (`studio-prefs.json`, `GET`/`PUT /api/studio-prefs`, `src-tauri/crates/ips-server/src/studio_prefs.rs`) with a
+  `localStorage` copy, so the app window and a browser studio share it.
+- **Kiosk bundle.** The kiosk page doesn't carry React's server renderer: the gauge icons are markup generated by
+  `tools/gen-gauge-icons.mjs` (`src/lib/infopanel/gauges/icon-markup.generated.ts`). The animation ticker sleeps
+  between frames, see [performance.md](performance.md#the-shared-ticker).

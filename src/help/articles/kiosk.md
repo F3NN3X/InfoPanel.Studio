@@ -3,7 +3,7 @@ id: kiosk
 title: Kiosk and server
 icon: dns
 related: [startup, performance, problems, diagnostics]
-verified: 1.3.0-beta.5
+verified: 1.3.0-beta.20
 ---
 
 The local server hosts your dashboard. InfoPanel shows it through the kiosk URL.
@@ -30,6 +30,8 @@ Settings › App › Server shows the state (**Server running**, **Server stoppe
 :::warn
 On Local network, anyone on your network can open the kiosk and the studio. Windows may ask to allow it through the firewall. **Allowed host names** limits which names the server answers to.
 :::
+
+Other devices can view the dashboard and kiosks but can't change anything unless **Allow editing from other devices** is on. It is off by default and appears only on Local network. With it off, a studio opened on another device says so in a banner, and changes made there aren't saved. Stream Deck and kiosk control keep working either way.
 
 ## Changing the port
 
@@ -59,4 +61,4 @@ With **Restart automatically if it crashes** on, the server comes back up to 3 t
 
 ## The tray menu
 
-Open studio, Open kiosk in browser, Settings, Check for updates…, Start server or Stop server, Restart server, and Quit.
+Open studio, Open kiosk in browser, Settings, Help, Check for updates…, Start server or Stop server, Restart server, and Quit.

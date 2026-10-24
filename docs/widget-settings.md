@@ -54,23 +54,20 @@ A widget that sends to the Dynamic Island gets **Send to island** (`island`) and
 own options (keys starting with `island`, shown only while it is on) after its own settings, in its
 own group (`islandSettings`, `src/lib/island/sources.ts`; see `docs/redesign/island/PLAN.md`).
 
-### Presets (select options with `applies`)
+### Bundles (options with `applies`)
 
 A `select` option can carry an `applies` bundle: extra key/values persisted
 **alongside** the option's own value when it is chosen. The bundle is a
-one-click style preset — the individual options stay editable afterwards.
+one-click preset — the individual options stay editable afterwards.
 Bundles apply to keys the module declares; unknown keys are saved and
-harmlessly ignored by `effectiveSettings`.
+harmlessly ignored by `effectiveSettings`. The standard `skin` select uses one:
+every skin option carries `applies: { surface: "auto" }`.
 
 ```ts
 {
-  key: "preset", label: "Preset", type: "select", default: "default",
-  options: [
-    { value: "default", label: "Default" },
-    { value: "dark", label: "Dark",
-      applies: { surface: "matte-dark", tint: false } },
-    ...
-  ],
+  key: "skin", label: "Skin", type: "select", default: "auto",
+  options: autoOptions(SKIN_PACKS.map((p) => p.name))
+    .map((o) => ({ ...o, applies: { surface: "auto" } })),
 }
 ```
 
@@ -108,32 +105,31 @@ Every widget spreads
 | `icon` | icon | `""` | Header (More) | header icon (empty = none) |
 | `compact` | select | `auto` | Fit | Small zones: Auto (1×1, one-row and one-column zones show the summary card) / Full (never) / Card (always, only where the widget has a card) / Dense (a dense summary) |
 | `sizeTier` | select | `auto` | Fit (More) | Density: Auto / Roomy / Standard / Compact / Minimal forces the size class |
-| `skin` | select | `auto` | Skin & graphics | auto / one of the 14 skins (see Look below) |
-| `stroke` | number | `100` | Skin & graphics | ring / bar thickness %, 50–250 |
-| `graph` | select | `auto` | Skin & graphics (More) | graph style: auto / area / line / step / bars / dots / braille |
-| `meter` | select | `auto` | Skin & graphics (More) | meter style: auto / bar / pill / segments / blocks / hair / wave / square |
+| `skin` | select | `auto` | Skin | auto / one of the 14 skins (see Look below) |
+| `stroke` | number | `100` | Skin | ring / bar thickness %, 50–250 |
+| `graph` | select | `auto` | Skin (More) | graph style: auto / area / line / step / bars / dots / braille |
+| `meter` | select | `auto` | Skin (More) | meter style: auto / bar / pill / segments / blocks / hair / wave / square |
 | `accent` | color | `""` | Colors | accent for fills / header icon (empty = auto) |
 | `textColor` | color | `""` | Colors | main text color |
 | `mutedColor` | color | `""` | Colors | secondary text color |
-| `preset` | select | `default` | Colors (More) | one-click bundle — see presets below |
-| `surface` | select | `glass` | Surface | glass / matte-light / matte-dark / theme (from the theme tokens) |
-| `surfaceOpacity` | number | `100` | Surface | surface background opacity %, 0–100 |
-| `blur` | select | `auto` | Surface | backdrop blur, px |
-| `background` | image | `""` | Surface (More) | background image URL (per widget) |
-| `backgroundOn` | boolean | `false` | Surface (More) | use that image behind the surface (per widget) |
-| `font` | select | `auto` | Typography | theme (the page font, General > Font) / sans / rounded / serif / mono |
+| `surface` | select | `glass` | Surface & effects | glass / matte-light / matte-dark / theme (from the theme tokens) |
+| `surfaceOpacity` | number | `100` | Surface & effects | surface background opacity %, 0–100 |
+| `blur` | select | `auto` | Surface & effects | backdrop blur, px |
+| `background` | image | `""` | Surface & effects (More) | background image URL (per widget) |
+| `backgroundOn` | boolean | `false` | Surface & effects (More) | use that image behind the surface (per widget) |
+| `font` | select | `auto` | Typography | theme (the page font, Theme › Typography) / sans / rounded / serif / mono |
 | `fontWeight` | select | `auto` | Typography | weight of the big values |
 | `labelCase` | select | `auto` | Typography | caption case: UPPERCASE / as written / Capitalized |
-| `scale` | number | `100` | Size & spacing | size %, 50–200 |
-| `align` + `alignSpread` | align | `auto` | Size & spacing | one 3×3 picker (cell codes `tl`…`br`) and Spread |
-| `padding` | select | `auto` | Size & spacing | inner padding, px |
-| `gap` | select | `auto` | Size & spacing | gap between items, px |
-| `radius` | select | `auto` | Size & spacing | corner radius, px or pill |
+| `scale` | number | `100` | Shape & spacing | size %, 50–200 |
+| `align` + `alignSpread` | align | `auto` | Shape & spacing | one 3×3 picker (cell codes `tl`…`br`) and Spread |
+| `padding` | select | `auto` | Shape & spacing | inner padding, px |
+| `gap` | select | `auto` | Shape & spacing | gap between items, px |
+| `radius` | select | `auto` | Shape & spacing | corner radius, px or pill |
 | `borderWidth` | select | `auto` | Border & glow | surface edge width, px (auto = 1px) |
 | `borderColor` | color | `""` | Border & glow | surface edge color |
 | `glow` | select | `none` | Border & glow | inner edge glow: none / soft / strong |
 | `glowColor` | color | `""` | Border & glow | glow color (empty = accent) |
-| `customCss` | text (multi-line) | `""` | Custom CSS (More) | CSS scoped to this widget (`:scope` = its root) |
+| `customCss` | text (multi-line) | `""` | Advanced · CSS & locks (More) | CSS scoped to this widget (`:scope` = its root) |
 | `smoothing` | select | `stepped` | Motion | Graph updates: stepped (jump to each reading) / smooth (line, area and step graphs scroll by time at a constant speed two measured intervals behind the feed, with an eased range; bars and rings glide linearly). Reduced motion keeps it stepped (`core/smoothing.ts`) |
 
 `STYLE_SETTINGS` is the look block, `SURFACE_SETTINGS` the surface keys (widgets
@@ -149,9 +145,9 @@ The shared sections live in four tabs, in this order (`SHARED_SECTIONS`):
 | Tab | Sections |
 |---|---|
 | Show | Header · the widget's own sections · Fit |
-| Style | Skin & graphics · Colors · Widget colors · Surface · Typography · Size & spacing · Border & glow · Custom CSS |
+| Style | Skin · Colors · Widget colors · Typography · Shape & spacing · Surface & effects · Border & glow · Advanced · CSS & locks |
 | Data | the widget's source sections (Device, Sensors…) · Units & format |
-| Behaviour | Thresholds · the widget's own behaviour sections (History, Dynamics, Sorting, Interaction…) · Dynamic Island · Motion |
+| Behaviour | Thresholds · the widget's own behaviour sections (History, Dynamics, Sorting, Interaction…) · Motion · Send to island |
 
 A tab with no sections is disabled. How a widget fills the shared sections is
 its `InspectorMeta` (`src/widgets/registry/inspector-meta.ts`): `header`
@@ -163,7 +159,7 @@ Small zones choices exist; without a card the Card choice is gone), `fmt` (the
 Units & format rows it draws) and `thr` (the threshold quantities it draws).
 Fit is omitted for Web page.
 
-`preset` and `surface` carry no `group`. "Auto" / empty always means the
+`surface` carries no `group`. "Auto" / empty always means the
 widget's own look. A widget's own row never lands in a section named like a
 shared one, like the widget, or "Content": the audit tests
 (`refile-audit.test.ts`, `inspector-categories.test.ts`) fail for such a
@@ -267,16 +263,16 @@ everywhere, including on pages. The inspector marks each row with a dot (own
 value, from the dashboard style, from the profile style, or own value
 overriding them), and a hover reset drops an own value.
 
-The inspector's style tools copy a widget's style (Copy / Paste), make it
-the theme of a level (Use as global… → All profiles / This profile), and save /
-apply named presets (`DashboardConfig.stylePresets`). Paste and Apply
+The inspector copies a widget's style (Copy style / Paste style), makes it
+the theme of a level (Make this the theme for… → All screens / This screen / This page), and saves /
+applies named Styles (`DashboardConfig.stylePresets`). Paste and Apply
 replace the widget's style wholesale (`replaceStyle`): unset keys fall back
 to the theme / defaults again, content settings are untouched, and keys the widget has
 no setting for are skipped. Outside data goes through the same migrations
 (`withPastedStyle`, `followFromOwn`) so a pasted old-format style lands as
 current keys.
 
-Appearance presets (`DashboardConfig.appearancePresets` and the built-ins in
+Saved Themes (appearance presets: `DashboardConfig.appearancePresets`,
 `src/lib/appearance-presets.ts`) work one level up: they set the theme, the
 radius and the dashboard or profile style (plus, optionally, the page
 background) - a whole look, not one widget. Their `style` uses the same
@@ -303,7 +299,7 @@ rows, each with a palette role. Examples: Media - *Player*, *Visualizer*,
 
 A custom panel zone's look is its placement's `settings` too, rendered on
 the general sections from `PANEL_SETTINGS` (`src/modules/standard-settings.ts`):
-the standard block without `preset`, `compact`, `sizeTier`, `stroke` and
+the standard block without `compact`, `sizeTier`, `stroke` and
 `showTitle` (a panel has no small-zone views, size tiers or rings of its own),
 with two changes:
 
@@ -333,22 +329,11 @@ alignment, a widget's align self) reuse the `align` control
 (`AlignGrid`) with a **Stretch** toggle on the cross axis besides Spread;
 they write PanelDef / widget fields, not settings.
 
-### Presets
-
-| preset | applies |
-|---|---|
-| `default` | — (the module's own defaults) |
-| `dark` | `surface: matte-dark`, `tint: off` |
-| `light` | `surface: matte-light`, `tint: off` |
-| `vivid` | `surface: glass`, `tint: on` |
-| `mono` | `surface: matte-dark`, `tint: off`, `accent: #fafafa` |
-
 ### View presets (per-widget `view` select)
 
-The standard `preset` select is **style-only** (surface / tint / accent).
-Widgets that offer more than one *layout* get a separate module-specific
-`view` select whose options also use `applies` bundles — a one-click layout
-preset that sets the module's own option keys:
+Widgets that offer more than one *layout* get a module-specific `view` select
+whose options use `applies` bundles — a one-click layout preset that sets the
+module's own option keys:
 
 ```ts
 // registry/e.ts — Bluetooth's views each set all three switches
@@ -362,7 +347,7 @@ enumSetting("view", "View", "full", [
 A view that is only a preset sets **every** switch it bundles, in every
 option: an option that set none (Weather's Full, Bluetooth's Status + devices
 before the settings audit) picked nothing, so choosing it did nothing.
-`settings-audit.test.tsx` guards this.
+`tests/widgets/registry/refiled-widgets.schema.test.ts` guards the Bluetooth and FpsMonitor views.
 
 Picking a `view` option persists both the option's own value **and** the
 `applies` bundle, so the studio stores a complete, editable state. The
@@ -551,8 +536,8 @@ re-exported from `src/widgets/kit.ts`; a widget imports them from the kit.
 - **State colors** — `STATE` (ok / warn / crit) are the only fixed colors;
   everything else derives from the accent (`hue(deg)`).
 
-The panel widgets keep their own small set: `lib/sparkline.tsx` (`useHistory`,
-`Sparkline`) feeds the panel `sparkline` widget; with a skin set the panel
+The panel widgets keep their own small set: `Sparkline` (`components/widgets/WidgetView.tsx`, over `useHistory` in
+`widgets/core/layout.ts`) feeds the panel `sparkline` widget; with a skin set the panel
 renderers use the library primitives instead (`components/widgets/panel-skin.tsx`).
 
 ## The widget shell and the chrome layer
@@ -715,14 +700,13 @@ templateModule({
   The renderer is fully schema-driven; nothing else changes.
 - **New icon** — one line in `lib/widget-icons.ts` (`WIDGET_ICONS`); it
   shows up in every icon picker.
-- **New preset** — an option with `applies` on the standard `preset`
-  select; it applies to every module that declares those keys.
+- **New bundle** — an option with `applies` on a select (or a `preset` row);
+  choosing it writes those keys, wherever the module declares them.
 
 ## The studio Data Explorer
 
-The studio's left icon rail has a **Sources** button (and the top bar a
-**Design | Sources** switch) that swaps the canvas and the inspector for the
-Data Explorer (`components/studio/sources-panel.tsx`, `explorer/`): a source
+The studio's **Data** view (the rail's Data item) replaces the canvas and the
+inspector with the Data Explorer (`components/studio/sources-panel.tsx`, `explorer/`): a source
 tree, a table of every data point with its live value and the zones that use
 it, and a point inspector. The customization guide describes it
 ([Data Explorer and binding](customization-guide.md#data-explorer-and-binding));

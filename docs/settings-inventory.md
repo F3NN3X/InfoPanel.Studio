@@ -1,19 +1,18 @@
 # Settings inventory
 
-Every setting the studio edits today, read from the code at commit `a51bd17` (config v9,
-`CONFIG_VERSION` at `src/lib/layout.ts:226`). It began as the Phase 0 snapshot of the studio redesign
-(commit `6c465bf`, config v4) and is kept in step with the code. Other docs cite it by section number
-(`redesign/DECISIONS.md` cites §8, `redesign/FEATURE_MAP.md` cites §3.3 and questions 2, 5 and 7), so
-the numbering and headings 1 to 8 stay. The prototype was not used as a source.
+Every setting the studio edits today, read from the code (config v11, `CONFIG_VERSION` at
+`src/lib/layout.ts:233`). Other docs cite it by section number (`redesign/DECISIONS.md` cites §8,
+`redesign/FEATURE_MAP.md` cites §3.3 and questions 2, 5 and 7), so the numbering and headings 1 to 8 stay. The
+prototype was not used as a source.
 
-> **Since then (settings IA, `feat/settings-ia`):** the keys are the same, but most surfaces moved. The
-> drawers, the profile inspector and the Look tab are gone; every setting's new home (Design, Theme,
-> Library, Gauges, Data, Alerts & Island, Screens, Settings › Dashboard / Studio / App) is mapped in
+> **Where things are edited:** a screen's size, grid, rotation, pages and performance in Screens; a zone and
+> the page in Design; the look every level inherits in Theme; saved Themes, Styles and Panels in Library;
+> sensors and the Data API URL in Data; alerts and the island in Alerts & Island; global preferences in
+> Settings (Dashboard, Studio and the App pages). Where each setting sat in the older surfaces is mapped in
 > [`redesign/settings-ia/IA_AUDIT.md`](redesign/settings-ia/IA_AUDIT.md) and
-> [`redesign/settings-ia/STATUS.md`](redesign/settings-ia/STATUS.md). Config v10 drops the zone `preset` key;
-> v11 turns a sensor alert's `key`/`op`/`value`/`clearBelow` into a `conditions` list (see §5, `alerts`).
-> `MonitorProfile.font` (the screen's page font) is new and optional. The surface columns below still name
-> the pre-redesign places.
+> [`redesign/settings-ia/STATUS.md`](redesign/settings-ia/STATUS.md). Zones have no `preset` key (dropped in
+> config v10); a sensor alert's checks are a `conditions` list (v11, see §5, `alerts`).
+> `MonitorProfile.font` (the screen's page font) is optional.
 
 Companion docs: `docs/redesign/DATA_MODEL.md` (what exists), `docs/redesign/FEATURE_MAP.md` (where
 it lives), `docs/redesign/DECISIONS.md` (the answers to §8), `docs/redesign/IMPLEMENTATION_PLAN.md`.
@@ -45,14 +44,14 @@ it lives), `docs/redesign/DECISIONS.md` (the answers to §8), `docs/redesign/IMP
 | **Server / live** | Runtime state the server holds (`src/lib/control.ts`, §7b); not config, not in undo |
 | **Desktop** | The desktop app's `settings.json` (§7a); not in the config |
 
-**Target** = where the setting lives in today's studio, as tab › section. A zone (widget or panel) has
-four tabs: **Show**, **Style**, **Data**, **Behaviour** (`TAB_LABELS`, `src/components/studio/inspector-model.ts:50`).
-With nothing selected the Profile settings inspector has three: **Layout**, **Look**, **Behaviour**
-(`DASHBOARD_TABS`, `inspector-model.ts:60`; sections at `inspector-model.ts:389`, rendered by
-`src/components/studio/document-inspector.tsx`). A section's rows behind its **More (n)** link are
-marked **(More)**. The old tab names Content, Profile, Appearance and General are stored-tab aliases
-only (`RENAMED_TABS`, `src/components/studio/inspector/inspector-prefs.ts:15`). The rail's **Theme**
-page is a third home of the widget style (§5.2); **Rail** names other rail destinations.
+**Target** = where the setting lives in the studio, as view › tab › section. A zone (widget or panel) has four
+inspector tabs in Design: **Show**, **Style**, **Data**, **Behaviour** (`TAB_LABELS`,
+`src/components/studio/inspector-model.ts:50`). With nothing selected the inspector is the page's
+(`page-inspector.tsx`, §4); a screen's own settings are in **Screens**, the look every level inherits in
+**Theme**, and preferences in **Settings** (§5.6, §7). A section's rows behind its **More (n)** link are
+marked **(More)**. The old tab names Content, Profile, Appearance and General are stored-tab aliases only
+(`RENAMED_TABS`, `src/components/studio/inspector/inspector-prefs.ts:15`). **Theme** is the home of the widget
+style at every level (§5.2).
 
 **Controls** follow `setting-control.tsx` and the schema table in [widget-settings.md](widget-settings.md):
 `boolean` Toggle; `number` Slider with value box (min / max / step; a number field when it has no
@@ -83,9 +82,10 @@ themed keys (`THEMED_KEYS`, 11 sections: `skin`, `colors`, `palette`, `surface`,
 
 A following section keeps its own values stored but does not apply them. A locked section is the
 profile's on every page and widget. Panel widgets follow their panel the same way (`Widget.follow`,
-`type`, `colors`, `format`, `thresholds`; `src/lib/panel-model.ts:42-49`). Color tokens and corner
+`type`, `colors`, `format`, `thresholds`; `src/lib/panel-model.ts:44-49`). Color tokens and corner
 radius have two levels only (dashboard, profile; `resolveTheme`, `src/lib/theme.ts:254`); the page
-font is global (§5.6). Source-dot states on a row (`src/components/studio/inspector/source-dot.tsx:6-31`):
+font has the same two (`resolveFont`, §5.6). Source-dot states on a row (`DOT_MEANING`,
+`src/components/studio/inspector/source-dot.tsx:15`):
 default, dashboard (all-profiles style), profile, here (set here), overriding (set here over a global
 value), ignored (set here, its section follows the theme).
 
@@ -97,15 +97,15 @@ Which block each zone type spreads (the inspector builds the shared sections fro
 
 | Zone type | Settings it gets |
 |---|---|
-| Template widgets | `STANDARD_SETTINGS` (§1.1 to §1.4), then the widget's own sections. Web Page takes only the sections its `styleSubset` names (`colors:accent`, `spacing:scale,radius`, `border`; `src/widgets/registry/inspector-meta.ts:80`) |
-| **Other sensors** (`cards`) | `CARD_SETTINGS`: `surface` (default **Theme**), `accent`, all of `STYLE_SETTINGS`, all of `SURFACE_SETTINGS`. No `showTitle`, `label`, `icon`, `preset`, `compact`, `sizeTier`, `background`, `backgroundOn` |
+| Template widgets | `STANDARD_SETTINGS` (§1.1 to §1.4), then the widget's own sections. Web Page takes only the sections its `styleSubset` names (`colors:accent`, `spacing:scale,radius`, `border`; `src/widgets/registry/inspector-meta.ts:82`) |
+| **Other sensors** (`cards`) | `CARD_SETTINGS`: `surface` (default **Theme**), `accent`, all of `STYLE_SETTINGS`, all of `SURFACE_SETTINGS`. No `showTitle`, `label`, `icon`, `compact`, `sizeTier`, `background`, `backgroundOn` |
 | Custom panel | `PANEL_SETTINGS` (§1.6) |
 | Blank zone | none; the Show tab has a Widget section (pick a widget) and Zone frame (`blankSections`, `inspector-model.ts`) |
 | Canvas zone (`infopanel`, an imported InfoPanel profile) | no `settings`; the selected item's fields come from the InfoPanel schema (`kind: "infopanel"` context) |
 
-The shared sections and their tab (`SHARED_SECTIONS`, `src/components/studio/inspector-categories.ts:30`):
-Show: Header, Fit. Style: Skin & graphics, Colors, Widget colors, Surface, Typography, Size & spacing,
-Border & glow, Custom CSS. Data: Units & format. Behaviour: Thresholds, Dynamic Island, Motion.
+The shared sections and their tab (`SHARED_SECTIONS`, `src/components/studio/inspector-categories.ts:31`):
+Show: Header, Fit. Style: Skin, Colors, Widget colors, Typography, Shape & spacing, Surface & effects,
+Border & glow, Advanced · CSS & locks. Data: Units & format. Behaviour: Thresholds, Motion, Send to island.
 
 ### 1.1 Widget identity (`STANDARD_SETTINGS`, not look keys)
 
@@ -127,21 +127,21 @@ All are themed (§1.5) and show a Follow bar per section. Defaults are `THEME_DE
 
 | Key | Label | Control | Options | Default | Level | Target |
 |---|---|---|---|---|---|---|
-| `skin` | Skin | select | Auto + the 14 skins: default, tui, macos, fluent, hud, ink, retro, ios, android, synth, brutal, cyber, nixie, instrument (`SKIN_PACKS`, `src/widgets/core/theme.ts:23`); picking one writes `surface = auto` | `auto` | Zone, themed | Style › Skin & graphics |
-| `stroke` | Ring / bar thickness (%) | slider 50 to 250 step 10 | | `100` | same | Style › Skin & graphics |
-| `graph` | Graph style | select | auto, area, line, step, bars, dots, braille | `auto` | same | Style › Skin & graphics (More) |
-| `meter` | Meter style | select | auto, bar, pill, segments, blocks, hair, wave, square | `auto` | same | Style › Skin & graphics (More) |
+| `skin` | Skin | select | Auto + the 14 skins: default, tui, macos, fluent, hud, ink, retro, ios, android, synth, brutal, cyber, nixie, instrument (`SKIN_PACKS`, `src/widgets/core/theme.ts:23`); picking one writes `surface = auto` | `auto` | Zone, themed | Style › Skin |
+| `stroke` | Ring / bar thickness (%) | slider 50 to 250 step 10 | | `100` | same | Style › Skin |
+| `graph` | Graph style | select | auto, area, line, step, bars, dots, braille | `auto` | same | Style › Skin (More) |
+| `meter` | Meter style | select | auto, bar, pill, segments, blocks, hair, wave, square | `auto` | same | Style › Skin (More) |
 | `textColor` | Text color | color | | `""` | same | Style › Colors |
 | `mutedColor` | Secondary text color | color | | `""` | same | Style › Colors |
 | `font` | Font | select | Theme (`auto`) + the 25 fonts of `FONT_CATALOG` except System (`src/lib/fonts.ts`: sans, rounded, serif, mono and 21 web fonts) | `auto` | same | Style › Typography |
 | `fontWeight` | Value weight | select | auto, 400 Regular, 500 Medium, 600 Semibold, 700 Bold, 800 Heavy | `auto` | same | Style › Typography |
 | `labelCase` | Label case | select | auto, UPPERCASE, As written (`none`), Capitalized | `auto` | same | Style › Typography |
-| `scale` | Size (%) | slider 50 to 200 step 5 | | `100` | same | Style › Size & spacing |
-| `align` + `alignSpread` | Alignment | 3×3 align grid (cell codes `tl` to `br`) + Spread | `auto` or a cell; Spread on/off | `auto` / `false` | same | Style › Size & spacing |
-| `padding` | Inner padding | select | auto, 0, 4, 8, 12, 16, 20, 24, 32, 48 px | `auto` | same | Style › Size & spacing |
-| `gap` | Gap between items | select | auto, 0, 4, 8, 12, 16, 24, 32, 48 px | `auto` | same | Style › Size & spacing |
-| `radius` | Corner radius | select | auto, 0, 4, 8, 12, 16, 20, 28 px, Pill (`999`) | `auto` | same | Style › Size & spacing |
-| `customCss` | Custom CSS (@scope, :scope = root) | textarea | | `""` | same | Style › Custom CSS (More; in the theme editor not behind More) |
+| `scale` | Size (%) | slider 50 to 200 step 5 | | `100` | same | Style › Shape & spacing |
+| `align` + `alignSpread` | Alignment | 3×3 align grid (cell codes `tl` to `br`) + Spread | `auto` or a cell; Spread on/off | `auto` / `false` | same | Style › Shape & spacing |
+| `padding` | Inner padding | select | auto, 0, 4, 8, 12, 16, 20, 24, 32, 48 px | `auto` | same | Style › Shape & spacing |
+| `gap` | Gap between items | select | auto, 0, 4, 8, 12, 16, 24, 32, 48 px | `auto` | same | Style › Shape & spacing |
+| `radius` | Corner radius | select | auto, 0, 4, 8, 12, 16, 20, 28 px, Pill (`999`) | `auto` | same | Style › Shape & spacing |
+| `customCss` | Custom CSS (@scope, :scope = root) | textarea | | `""` | same | Style › Advanced · CSS & locks (More; in Theme not behind More) |
 | `smoothing` | Graph updates | select | stepped (Stepped), smooth (Smooth) | `stepped` | same | Behaviour › Motion |
 
 ### 1.3 Surface and edge (`SURFACE_SETTINGS`; look keys, surfaced widgets)
@@ -152,24 +152,22 @@ All are themed (§1.5) and show a Follow bar per section. Defaults are `THEME_DE
 | `borderColor` | Border color | color | | `""` | same | same | Style › Border & glow |
 | `glow` | Edge glow | select | none (None), soft (Soft), strong (Strong) | `none` | same | same | Style › Border & glow |
 | `glowColor` | Glow color (hint: Auto uses the accent) | color | | `""` | `glow` is not none | same | Style › Border & glow |
-| `surfaceOpacity` | Surface opacity (%) | slider 0 to 100 step 5 | | `100` | surfaced widgets | same | Style › Surface |
-| `blur` | Background blur | select | auto, 0, 4, 8, 16, 24, 40 px | `auto` | same | same | Style › Surface |
+| `surfaceOpacity` | Opacity (%) | slider 0 to 100 step 5 | | `100` | surfaced widgets | same | Style › Surface & effects |
+| `blur` | Blur | select | auto, 0, 4, 8, 16, 24, 40 px | `auto` | same | same | Style › Surface & effects |
 
-### 1.4 Preset, fit, surface, accent, background (`STANDARD_SETTINGS`)
+### 1.4 Fit, surface, accent, background (`STANDARD_SETTINGS`)
 
 | Key | Label | Control | Options | Default | Level | Themed | Target |
 |---|---|---|---|---|---|---|---|
-| `preset` | Style preset | select | default; dark (applies `surface=matte-dark`, `tint=false`); light (`matte-light`, `tint=false`); vivid (`glass`, `tint=true`); mono (`matte-dark`, `tint=false`, `accent=#fafafa`) | `default` | Zone | no | Style › Colors (More) |
 | `compact` | Small zones | select | auto, full (Full), card (Card), dense (Dense); the registry drops what a widget cannot draw (`fitSettings`) | `auto` | Zone | no | Show › Fit |
 | `sizeTier` | Density | select | auto, lg (Roomy), md (Standard), sm (Compact), xs (Minimal) | `auto` | Zone | no | Show › Fit (More) |
-| `surface` | Surface | select | auto (Auto, the skin's card), glass, matte-light (Matte (light)), matte-dark (Matte (dark)), theme (Theme), and 12 skin surfaces: solid, outline, flat, tinted, aurora, neon, holo, mesh, carbon, inset, studio, terminal (`BASE_SURFACES`, `src/widgets/core/surfaces.ts:21`) | `glass` (Other sensors and the plain card widgets: `theme`) | Zone, themed | yes | Style › Surface |
+| `surface` | Surface | select | auto (Auto, the skin's card), glass, matte-light (Matte (light)), matte-dark (Matte (dark)), theme (Theme), and 12 skin surfaces: solid, outline, flat, tinted, aurora, neon, holo, mesh, carbon, inset, studio, terminal (`BASE_SURFACES`, `src/widgets/core/surfaces.ts:21`) | `glass` (Other sensors and the plain card widgets: `theme`) | Zone, themed | yes | Style › Surface & effects |
 | `accent` | Accent color | color | | `""` | Zone, themed | yes | Style › Colors |
-| `background` | Background image | image field | | `""` | Zone | no | Style › Surface (More) |
-| `backgroundOn` | Use as background | toggle | | `false` | Zone | no | Style › Surface (More) |
-| `island`, `island*` | Send to island, and the source's own keys (shown while on; `islandSettings`, `src/lib/island/sources.ts:94`) | toggle + rows | | per widget (`defaultOn`) | Zone | no | Behaviour › Dynamic Island |
+| `background` | Background image | image field | | `""` | Zone | no | Style › Surface & effects (More) |
+| `backgroundOn` | Use as background | toggle | | `false` | Zone | no | Style › Surface & effects (More) |
+| `island`, `island*` | Send to island, and the source's own keys (shown while on; `islandSettings`, `src/lib/island/sources.ts:94`) | toggle + rows | | per widget (`defaultOn`) | Zone | no | Behaviour › Send to island |
 
-`applies` bundles: choosing a `preset` also writes the listed extra keys (`surface`, `tint`, `accent`)
-into the zone's settings. Standard colour rows with a palette `role` (`s1` to `s6`, `ok`, `warn`,
+A skin option carries `applies` (`surface = auto`): picking it also writes that key into the zone's settings. Standard colour rows with a palette `role` (`s1` to `s6`, `ok`, `warn`,
 `crit`, `accent`) sit in Style › Widget colors; see widget-settings.md. The Units & format rows
 (`tempUnit` Temperature c / f, `rateUnit` Speed units, `decimals` Decimals auto / 0 / 1 / 2, `clock`
 Clock Locale / 24 h / 12 h; Data › Units & format), the thresholds (`warn.<q>` / `crit.<q>`,
@@ -184,7 +182,7 @@ declared per widget (`fmt`, `thr` in `InspectorMeta`); the defaults are `THEME_D
   (`skin`, `graph`, `meter`, `smoothing`, `scale`, `align`, `alignSpread`, `padding`, `gap`, `radius`,
   `textColor`, `mutedColor`, `font`, `fontWeight`, `labelCase`, `stroke`, `customCss`, `borderWidth`,
   `borderColor`, `glow`, `glowColor`, `surfaceOpacity`, `blur`; 25 keys). Copy style, Paste style and
-  saved style presets carry exactly these (`styleOf`, `replaceStyle`). `preset`, `compact`, `sizeTier`,
+  saved style presets carry exactly these (`styleOf`, `replaceStyle`). `compact`, `sizeTier`,
   `showTitle`, `label`, `icon`, `background`, `backgroundOn` and all content keys are per zone only.
 - **`THEMED_KEYS`** (`theme-model.ts:127`, `SECTION_KEYS`): the keys a theme can set, by section.
   `skin`: `skin`, `stroke`, `graph`, `meter`. `colors`: `accent`, `textColor`, `mutedColor`. `palette`:
@@ -193,18 +191,18 @@ declared per widget (`fmt`, `thr` in `InspectorMeta`); the defaults are `THEME_D
   (and the legacy `alignX`, `alignY`). `border`: `borderWidth`, `borderColor`, `glow`, `glowColor`.
   `css`: `customCss`. `format`: `tempUnit`, `rateUnit`, `decimals`, `clock`. `thresholds`: `warn.<q>`,
   `crit.<q>` for `load`, `temp`, `full`, `db`, `value`. `motion`: `smoothing`, `meterBallistics`. Saved
-  looks (§6.1) keep only these.
+  Themes (§6.1) keep only these.
 
 ### 1.6 Custom panel look (`PANEL_SETTINGS`)
 
-`STANDARD_SETTINGS` minus `preset`, `compact`, `sizeTier`, `stroke` and `showTitle`
+`STANDARD_SETTINGS` minus `compact`, `sizeTier`, `stroke` and `showTitle`
 (`NOT_FOR_PANELS`), with two changes. Stored in the panel zone's `settings` like any widget; the
 shared sections are the same (Show › Header, Style, Behaviour).
 
 | Key | Change for panels | Target |
 |---|---|---|
 | `label` | Label becomes "Title (empty = hidden)"; empty hides the title | Show › Header |
-| `surface` | Default `panel`; options none (None), panel (Card), bordered (Bordered card), then glass, matte-light, matte-dark, theme (no skin cards) | Style › Surface |
+| `surface` | Default `panel`; options none (None), panel (Card), bordered (Bordered card), then glass, matte-light, matte-dark, theme (no skin cards) | Style › Surface & effects |
 
 All other keys (`icon`, `accent`, `background`, `backgroundOn`, §1.2 and §1.3 minus the removed ones)
 behave as in §1.2 to §1.4. Legacy fallback: `PanelDef.title`, `titleVisible`, `accent` and
@@ -215,21 +213,22 @@ behave as in §1.2 to §1.4. Legacy fallback: `PanelDef.title`, `titleVisible`, 
 
 | Field | Label (today) | Control | Options | Default | Level | Target |
 |---|---|---|---|---|---|---|
-| `Placement.colStart`, `rowStart`, `colSpan`, `rowSpan` | COL / ROW / W / H | 4 number fields (min 1, max = grid size) | | set when drawn or added | Zone field | the zone header's placement row (`src/components/studio/zone-inspector-parts.tsx:249`) |
+| `Placement.colStart`, `rowStart`, `colSpan`, `rowSpan` | COL / ROW / W / H | 4 number fields (min 1, max = grid size) | | set when drawn or added | Zone field | the zone header's placement row (`src/components/studio/zone-inspector-parts.tsx:261`) |
 | `Placement.design.accent` | Frame accent | color | | unset | Zone field | Style › Border & glow › Zone frame (More) |
 | `Placement.design.background` | Frame background | segmented | none (None), panel (Panel), bordered (Bordered) | `none` | Zone field | same; hidden for panels (their Surface covers it) |
 | `Placement.design.header` | Frame title header | toggle | | `false` | Zone field | same |
-| `Placement.follow` | Follow bar per themed section: "Follows the profile theme" / "Custom for this widget" / "Locked by the profile theme"; buttons Customize, Use theme | bar per section | per section: follow or custom | unset (follows) | Zone field | the top of each themed Style, Data and Behaviour section (`src/components/studio/inspector/follow-bar.tsx`) |
+| `Placement.follow` | Inheritance chip per themed section: "From ‹level›" / "Custom here" / "Locked by ‹level›"; Customise here, Reset to inherited, Edit ‹level› ↗; with Advanced off a following section is one line, "Follows theme · Customise" | chip + menu per section | per section: follow or custom | unset (follows) | Zone field | the top of each themed Style, Data and Behaviour section (`inherit-chip.tsx`, `section-inherit.tsx`, `inspector/follows-theme.tsx`) |
 | `Placement.visible` | Visible / eye | toggle | | `true` | Zone field | §1.1 |
 
 ### 1.8 Zone style tools (actions, not stored settings)
 
-On Style › Colors (the section's actions, `styleTools` in `inspector-model.ts`; `style-tools.tsx`):
-Copy style, Paste style (replaces the zone's look keys and turns the sections it sets custom; session
-clipboard), and a "…" menu with Use as global… (All profiles / This profile; writes
-`DashboardConfig.style` or the profile's `widgetTheme.values`), Apply preset, Save as preset… and
-Delete preset (`DashboardConfig.stylePresets`, §6.2). Also per section: the "N changed" badge and
-Reset; and the context menu (FEATURE_MAP §9).
+On the Style tab, one toolbar (`style-toolbar.tsx`): Start from a Style ▾ (the built-in Styles and the saved
+ones; applying writes their sections as the widget's own), Save as Style (into Library › Styles,
+`DashboardConfig.stylePresets`, §6.2), Update ‹name› when the look is built on a saved Style, and Make this the
+theme for… ▾ (All screens / This screen / This page; writes the widget's custom sections to that level's
+style, `makeTheme`). Copy style and Paste style (zone context menu, command palette, Ctrl+Alt+C / Ctrl+Alt+V)
+replace the zone's look keys and turn the sections they set custom (session clipboard). Also per section: the
+"N changed" badge and Reset; and the context menu (FEATURE_MAP §9).
 
 ---
 
@@ -287,8 +286,8 @@ Widgets, and Panel JSON (Code view), then the shared Style, Data and Behaviour s
 | `css` | (panel CSS, scoped to the zone; travels with the panel in presets) | no dedicated control: the Code view, and the zone's Custom CSS joins it | | | | Show › Panel JSON |
 | `title`, `titleVisible`, `accent`, `background`, `visible`, `id` | legacy / identity | not edited directly; kept in step with the Title / Accent / Surface settings, and editable in Code | | | | none |
 
-The panel header's "…" menu has **Save as panel preset…** (name input; writes
-`DashboardConfig.panelPresets`, §6.3).
+The panel header's "…" menu has **Save as Panel** (name input; writes `DashboardConfig.panelPresets`,
+§6.3).
 
 ### 3.2 Widget list (the "Widgets" section)
 
@@ -374,37 +373,43 @@ widget makes the section custom (`Widget.follow`, `ITEM_SECTIONS`). The kinds: `
 
 ## 4. Profile (`MonitorProfile`)
 
-The profile inspector (nothing selected) edits the profile being edited, chosen in the Profiles panel
-(§7 `studio.pinnedProfile`). Layout holds the screen and grid; Look and Behaviour hold the scoped
-sections (§5); a section with an "All profiles / This profile" switch stores the profile's own value
-only while the switch says This profile (`scopeOf`, `inspector/profile-scope.ts:30-71`).
+The studio calls a profile a **screen**. Screens (the rail's first item) lists the screens as cards and edits the
+selected one in a detail column (`screen-detail.tsx`): SIZE & FIT, GRID, ROTATION, PERFORMANCE, LINKED — EDITED
+ELSEWHERE and PAGES · ORDER & ROTATION. The selected card is the screen Design edits (§7
+`studio.pinnedProfile`). A screen's look is edited in Theme at its scope (§5.2) and its island in Alerts &
+Island › Island, both reached from the LINKED group.
 
 | Field | Label | Control | Range / options | Default | Level | Target |
 |---|---|---|---|---|---|---|
-| `name` | Name | text (a blank name is never saved) | | first profile `Main display`; new: `<window W>×<H>` | Profile | Layout › Screen |
-| `width`, `height` | Design size (select of 1920×550, 1920×1080, 2560×720, 1280×400, 1024×600, 800×480, or the current size) + Width, Height; "Use this window's size (W × H)" when it differs | select + 2 number fields | whole px, min 1 | first profile 1920×1080; new: the window size | Profile | Layout › Screen |
-| `fit` | When it doesn't fit: Fill / Scroll | segmented | fill, scroll | new: fill when height ≤ 700 and width ≥ 1600, else scroll; first profile scroll | Profile | Layout › Screen |
-| `cols` | Columns | stepper −/+ | 2 to 24; a smaller grid is refused while a zone, on any page, would fall outside | first profile 12; new: 6 when width ≤ 1280, else 12 | Profile | Layout › Grid |
-| `rows` | Rows | stepper −/+ | 1 to 24 (same refusal) | first profile 6; new: 4 when height ≤ 700, else 6 | Profile | Layout › Grid |
-| `gap` | Gap (px field + slider) | number, empty = default | 0 to 200 | `12` (`DEFAULT_GRID_GAP`) | Profile | Layout › Grid |
-| `padding` | Edge padding (px field + slider) | number, empty = default | 0 to 200 | 0 for a fill kiosk page, 12 for fill in the studio, 24 for scroll | Profile | Layout › Grid |
-| `widgetTheme.values` | Look › Widget style, switch This profile | skins, saved looks, Surface, opacity, blur (§5.2); the rest in the rail Theme page | themed keys | unset (inherits `DashboardConfig.style`) | Profile | Look › Widget style; Theme page › Profile theme |
-| `widgetTheme.locks` | Apply to every widget (Look › Widget style); per-section Lock / Unlock and Lock all / Unlock all (Theme page) | toggle / buttons | per section of the 11 | none locked | Profile | same |
-| `theme`, `radius` | Look › Theme, switch This profile (colors and Corners) | theme editor (§5.4) | | unset (inherits) | Profile | Look › Theme |
-| `background` | Look › Background, switch This profile | background editor (§5.5) | | unset (inherits; `{ type: "none" }` = none for this profile) | Profile | Look › Background |
-| `performance` | Behaviour › Performance, switch This profile | `maxFps`, `motion` (§5.6) | | unset (inherits `general`) | Profile | Behaviour › Performance |
-| `rotate` | Cycle through pages; Switch every (10 s, 30 s, 1 min, 5 min); Seconds (3 to 3600); Pages (none ticked = every page) | toggle, segmented, number, checklist | `enabled`, `seconds`, `pages` | off; 15 s; every page | Profile | Behaviour › Pages |
-| `island` | Show Dynamic Island and its sections (see below) | toggle + rows | | unset (no island; first toggle creates it with `enabled: true`) | Profile | Behaviour › Dynamic Island; the rail's Dynamic Island drawer (same rows) |
-| `pages` | the page list: drag to reorder, Delete, Add page | list | at least one page | one page `Main` | Profile | Behaviour › Pages; page tabs; Profiles card |
+| `name` | Name | text on the card, from its ⋯ › Rename (a blank name is never saved) | | first profile `Main display`; new: `<window W>×<H>` | Profile | Screens › card |
+| `width`, `height` | Size preset (select of 1920×550, 1920×1080, 2560×720, 1280×400, 1024×600, 800×480, or the current size) + Width, Height; "Match this window" (Use W × H) when it differs | select + 2 number fields | whole px, min 1 | first profile 1920×1080; new: the window size | Profile | Screens › Size & fit |
+| `fit` | When it doesn't fit: Fill / Scroll | segmented | fill, scroll | new: fill when height ≤ 700 and width ≥ 1600, else scroll; first profile scroll | Profile | Screens › Size & fit |
+| `cols` | Columns | stepper −/+ | 2 to 24; a smaller grid is refused while a zone, on any page, would fall outside | first profile 12; new: 6 when width ≤ 1280, else 12 | Profile | Screens › Grid |
+| `rows` | Rows | stepper −/+ | 1 to 24 (same refusal) | first profile 6; new: 4 when height ≤ 700, else 6 | Profile | Screens › Grid |
+| `gap` | Gap (px field + slider) | number, empty = default | 0 to 200 | `12` (`DEFAULT_GRID_GAP`) | Profile | Screens › Grid |
+| `padding` | Edge padding (px field + slider) | number, empty = default | 0 to 200 | 0 for a fill kiosk page, 12 for fill in the studio, 24 for scroll | Profile | Screens › Grid |
+| `widgetTheme.values` | the screen's widget style: skins, surface, opacity, blur and every other themed row (§5.2) | Theme cards at the screen scope | themed keys | unset (inherits `DashboardConfig.style`) | Profile | Theme › the screen |
+| `widgetTheme.locks` | a lock per Theme card (all 11 sections), Lock all / Unlock all | toggle / button | per section of the 11 | none locked | Profile | Theme › the screen |
+| `theme`, `radius` | Color tokens and Corners (§5.4) | Theme › Colors, Shape & spacing | | unset (inherits) | Profile | Theme › the screen |
+| `font` | Page font (§5.6) | select | `FONT_CATALOG` | unset (inherits `general.font`) | Profile | Theme › Typography |
+| `background` | Background editor (§5.5) | Theme › Background | | unset (inherits; `{ type: "none" }` = none for this screen) | Profile | Theme › the screen |
+| `performance` | Frame-rate cap, Animations (`maxFps`, `motion`; §5.6), with an inheritance chip | segmented | | unset (inherits `general`) | Profile | Screens › Performance |
+| `rotate` | Rotate pages; Every (seconds, 3 to 3600); a switch per page for "in rotation" (none on = every page) | toggle, number, switches | `enabled`, `seconds`, `pages` | off; 15 s; every page | Profile | Screens › Rotation, Pages · order & rotation |
+| `island` | Show Dynamic Island and its sections (see below) | toggle + rows | | unset (no island; first toggle creates it with `enabled: true`) | Profile | Alerts & Island › Island |
+| `pages` | the page list: drag to reorder, + Add page | list | at least one page | one page `Main` | Profile | Screens › Pages · order & rotation; page tabs; Page inspector |
 | `id`, `sampleVersion` | identity; sample-layout version (old configs only, no longer read) | not editable | | | Profile | none |
 
 Pages (`ProfilePage`): `name` (page tab ⋯ › Rename, default `Page N`), `icon` (⋯ › Icon…; none by
-default), `widgetTheme` (⋯ › Theme… opens the Theme page at that page; values and per-section `follow`,
-§5.2), `placements` (the zones). Page tab ⋯ menu: Rename, Icon…, Theme…, Duplicate, Show on kiosk
-(live, §7b), Delete (off on the only page; `pageMenuEntries`, `src/components/studio/page-tabs.tsx:61`).
+default), `widgetTheme` (values and per-section `follow`, edited in Theme at the page scope, §5.2),
+`placements` (the zones). Page tab ⋯ menu: Rename, Icon…, Duplicate, Delete (off on the only page), Page
+settings (`pageMenuEntries`, `src/components/studio/page-tabs.tsx:60`). With nothing selected, Design's
+inspector is the **Page inspector** (`page-inspector.tsx`): Name, Icon, Rotation (a link to Screens), This
+page's look (the sections the page customises, Edit in Theme ↗, Customise a section…), Live › Show on
+kiosks now (§7b) and Duplicate page / Delete page.
 
 **Dynamic Island** (`IslandConfig`, `src/lib/island/config.ts`; rows in
-`src/components/studio/inspector/island-section.tsx`). Defaults are `ISLAND_DEFAULTS`.
+`src/components/studio/inspector/island-section.tsx`, shown by Alerts & Island › Island, `island-tab.tsx`,
+for the screen picked in "Island for"). Defaults are `ISLAND_DEFAULTS`.
 
 | Section | Key | Label | Control / options | Default |
 |---|---|---|---|---|
@@ -412,34 +417,35 @@ default), `widgetTheme` (⋯ › Theme… opens the Theme page at that page; val
 | Shape | `shape` | Style | Pill, Notch | `pill` |
 | Shape | `size` | Size | S, M, L | `m` |
 | Shape | `scale` | Scale | slider 80 to 150 % | `100` |
-| Shape | `offsetY` | Offset from top | 0 to 64 px | `8` |
+| Shape | `offsetY` | Offset from top (Pill only) | 0 to 64 px | `8` |
 | Shape | `reserve` | Reserve space | toggle | `false` |
 | Idle | `idle` | When idle | Time, Time and date, Time and values, Line, Hidden | `time` |
-| Idle | `stats` | values (Label, Orange at, Red at; at most 3) | list | none |
-| Idle | `rotate` | Rotate every | 0 to 60 s (0 = side by side) | `0` |
+| Idle | `stats` | values (Label, Orange at, Red at; at most 3; Time and values only) | list | none |
+| Idle | `rotate` | Rotate every (Time and date, Time and values, or Calendar countdown on) | 0 to 60 s (0 = side by side) | `0` |
 | Look | `tint` | Color | Black, Theme, Custom | `black` |
 | Look | `bgColor`, `fgColor` | Background, Text (Custom) | colors | `#000000`, `#ffffff` |
 | Look | `opacity` | Opacity | percent, min 30 | `100` |
 | Look | `border` | Border | None, Subtle, Accent | `none` |
 | Look | `shadow` | Shadow | toggle | `true` |
-| Look | `font` | Font | the font catalog | `system` |
+| Look | `font` | Font (a link to Theme; "Follow Theme" puts `system` back) | the font catalog | `system` |
 | Look | `weight` | Weight | Regular, Medium, Semibold, Bold | `semibold` |
-| Clock | `seconds` | Seconds | As General, Show, Hide | `general` |
-| Clock | `hours` | Hours | As General, 24 h, 12 h | `general` |
+| Clock | `seconds`, `hours` | Clock format (a link to Settings › Dashboard › Clock & date; "Follow the Dashboard" puts both back) | As General / Show / Hide; As General / 24 h / 12 h | `general`, `general` |
 | Motion | `motion` | Animation | Lively, Smooth, Off | `lively` |
-| Alerts | `collapseAfter` | Collapse alerts after | 0 to 600 s (0 = until tapped) | `0` |
+| Alerts | `collapseAfter` | Collapse alerts after | 0 to 120 s in the slider (stored up to 600; 0 = until tapped) | `0` |
 | Alerts | `group` | Group notices | toggle | `false` |
 | Dashboard notices | `notices.page`, `.layout`, `.plugins`, `.onAir`, `.calendar`, `.agents` | Page name, Layout updated, Plugin back, On air (OBS), Calendar countdown, Coding agents | toggles | all `false` |
 | Dashboard notices | `calendarLead` | Count down from | minutes, up to 120 | `10` |
 
-The "As General" tooltips still say "Dashboard › General › Clock" (`island-section.tsx:62,67`), a path
-that no longer exists; the rows follow `general.showSeconds` and the themed `clock` (§5.6).
+The Font and Clock format rows are read-only: Font shows the page font (Theme) unless the island keeps its own
+`font`, and Clock format shows the Dashboard's hours and seconds (`general.showSeconds` and the themed `clock`,
+§5.6) unless the island keeps its own `hours` or `seconds`. A "Preview an alert" button plays a notice in the
+preview only. The tab also lists the widgets that send to the island (Open widget ↗; each is switched on in its
+own Behaviour › Send to island) and links to the alert rules that show on it.
 
-Profile actions: New profile, Import (a profile JSON), card ⋯ (Rename, Duplicate, Always open this
-one, Export profile, Copy profile JSON, Delete), the "When the app opens" radio group (Best fit for
-the window / Always the same profile; `DashboardConfig.activeProfile` holds `"auto"` or the profile
-id). Delete is off with one profile left. Target: the rail's Profiles drawer
-(`src/components/studio/profiles-panel.tsx`), where the selected card is the profile edited.
+Screens actions: New screen, Import a screen…, card ⋯ (Rename, Duplicate, Always open this one, Export
+screen, Delete), the "When the app opens" radio group (Best fit for the window / Always the same screen;
+`DashboardConfig.activeProfile` holds `"auto"` or the profile id). Delete is off with one screen left.
+Target: Screens (`src/components/studio/screens-view.tsx`).
 
 ---
 
@@ -449,62 +455,70 @@ id). Delete is off with one profile left. Target: the rail's Profiles drawer
 
 | Field | What | Default | Target |
 |---|---|---|---|
-| `version` | config schema, currently `9` (older clients are refused) | `9` | none |
-| `activeProfile` | the profile displays open on: a profile id or `auto` | `auto` | Profiles drawer › When the app opens (§4) |
-| `profiles` | see §4 | one blank profile (`main`, "Main display", 1920×1080, 12×6, scroll, one page) on a fresh install | Profiles drawer |
-| `theme`, `radius` | dashboard theme colors and corner radius (§5.4) | `DEFAULT_THEME`, `0.5` rem | Look › Theme (All profiles) |
-| `style` | the all-profiles widget style: the base layer of the theme (§5.2) | unset | Look › Widget style (All profiles); Theme page › All profiles |
-| `background` | page background (§5.5) | unset (the theme background shows) | Look › Background (All profiles) |
-| `general` | §5.6 | unset (defaults) | Look › Theme (font); Behaviour › Pages, Performance, Clock and date, Display |
-| `dataApiUrl` | §5.7 | unset (`http://127.0.0.1:3921`) | Behaviour › Connection |
-| `sourcePrefs` | §5.8 | unset | Data sources (rail) |
+| `version` | config schema, currently `11` (older clients are refused) | `11` | none |
+| `activeProfile` | the profile displays open on: a profile id or `auto` | `auto` | Screens › When the app opens (§4) |
+| `profiles` | see §4 | one blank profile (`main`, "Main display", 1920×1080, 12×6, scroll, one page) on a fresh install | Screens |
+| `theme`, `radius` | dashboard theme colors and corner radius (§5.4) | `DEFAULT_THEME`, `0.5` rem | Theme › Colors, Shape & spacing (All screens) |
+| `style` | the all-profiles widget style: the base layer of the theme (§5.2) | unset | Theme (All screens) |
+| `background` | page background (§5.5) | unset (the theme background shows) | Theme › Background (All screens) |
+| `general` | §5.6 | unset (defaults) | Theme › Typography (font); Settings › Dashboard (the rest) |
+| `dataApiUrl` | §5.7 | unset (`http://127.0.0.1:3921`) | Data › Connection |
+| `sourcePrefs` | §5.8 | unset | Data |
 | `stylePresets`, `appearancePresets`, `panelPresets` | §6 | unset | see §6 |
-| `alerts` | `enabled` (Alerts on, default on), `rules` (a sensor rule's source is `{ kind: "sensor", conditions: [{ key, op, value, clearBelow? }], forSeconds }`, firing when any condition holds; v11), `quietHours` (`from` `23:00`, `to` `07:00`, `minSeverity` `critical` once set), `defaults` (`style` `toast`, `position` `top-right`, `backdrop` `none`, `size` `m`, `seconds` `8`; `src/lib/alerts.ts:143`) | unset | Alerts drawer (rail; `src/components/studio/alerts-panel.tsx`, `alerts-defaults.tsx`) |
+| `alerts` | `enabled` (Alerts on, default on), `rules` (a sensor rule's source is `{ kind: "sensor", conditions: [{ key, op, value, clearBelow? }], forSeconds }`, firing when any condition holds; v11), `quietHours` (`from` `23:00`, `to` `07:00`, `minSeverity` `critical` once set), `defaults` (`style` `toast`, `position` `top-right`, `backdrop` `none`, `size` `m`, `seconds` `8`; `DEFAULT_ALERT_DISPLAY`, `src/lib/alerts.ts:151`) | unset | Alerts & Island › Rules, Defaults (`src/components/studio/alerts-rules.tsx`, `alerts-defaults.tsx`) |
 
-The server's copy is `/api/config` (`src/lib/dashboard-server.ts:10`); the browser keeps an offline
-copy under `infopanel-dashboard:config:v1` (`layout.ts:284`).
+The server's copy is `/api/config` (`src/lib/dashboard-server.ts:11`); the browser keeps an offline
+copy under `infopanel-dashboard:config:v1` (`layout.ts:291`).
 
-### 5.2 Widget style (`style`, `widgetTheme`; Look › Widget style and the rail Theme page)
+### 5.2 Widget style (`style`, `widgetTheme`; Theme)
 
-The widget style is edited in two places that write the same stores.
+The widget style is edited in Theme (`theme-editor.tsx`, the rail's Theme view) at the scope the top bar names:
+All screens › a screen › a page (`theme-scope-bar.tsx`). The 360 px column holds the scope's help, **1 · Start
+from** (not on a page: saved Themes, palettes and skins) and ten section cards (`THEME_CARDS`, `theme-cards.ts`):
+Colors, Typography, Shape & spacing, Surface & effects, Border & glow, Background, Units & format, Thresholds,
+Motion and Advanced (custom CSS). Each card header carries an inheritance chip (Set here / From ‹level› / Custom
+here / Locked by ‹level›), the count of changed rows and Reset; at a screen it also has a lock, and the top bar
+has Lock all / Unlock all. The right area is the live preview of the page at that scope and its **Exceptions**
+(the widgets and pages that keep their own value of a card, each with Follow, and Follow all).
 
-**Look › Widget style** (`StyleBody`, `inspector/profile-look.tsx:174`), with an All profiles / This
-profile switch: Skin (14 skins; picking one writes `surface = auto`), Saved looks (§5.3), Surface (17
-materials, as swatches), Background opacity (`surfaceOpacity`, 0 to 100 %), Background blur (px)
-(`blur`: Off, 4, 8, 16, 24, 40), Apply to every widget, and Edit widget style (opens the Theme page).
+Rows are `THEME_EDITOR_SETTINGS` (`theme-editor-settings.ts`): every themed standard row (§1.2 and §1.3 themed
+keys, `accent`, `surface`), the palette roles, the four Units & format rows, the thresholds of every quantity and
+`meterBallistics`. The cards hold:
 
-**Rail Theme page** (`theme-editor.tsx`, `theme-editor-settings.ts`, `theme-editor-model.ts`): a Scope
-list and the same sections at that scope, in a 320 px inspector with the tabs Style · Data · Behaviour
-(`THEME_TABS`, `inspector-model.ts:62`). Rows are `THEME_EDITOR_SETTINGS`: every themed standard row
-(§1.2 and §1.3 themed keys, `accent`, `surface`), the palette roles, the four Units & format rows, the
-thresholds of every quantity and `meterBallistics`. Sections: Style: Skin & graphics, Colors, Status &
-series colors (the palette; rows Series 1 to 6, OK, Warning, Critical, default `""` = each widget's
-own colour), Surface, Typography, Size & spacing, Border & glow, Custom CSS; Data: Units & format;
-Behaviour: Thresholds, Motion. The middle column shows previews and "Who doesn't follow the theme"
-(per section, the widgets of the page that are custom, with Reset to theme).
+| Card | Holds |
+|---|---|
+| Colors | Color tokens (§5.4; All screens and a screen only); Widget colors (`accent`, `textColor`, `mutedColor`); Status & series colors (the palette: Series 1 to 6, OK, Warning, Critical, default `""` = each widget's own colour) |
+| Typography | Page font (§5.6); Font, Value weight, Label case |
+| Shape & spacing | Corners (rem; §5.4); Size, Alignment, Inner padding, Gap between items, Corner radius |
+| Surface & effects | Surface, Opacity, Blur; Skin (Skin, Ring / bar thickness, Graph style, Meter style) |
+| Border & glow | Border width and color, Edge glow, Glow color |
+| Background | the page background (§5.5; All screens and a screen only; not lockable) |
+| Units & format | Temperature, Speed units, Decimals, Clock |
+| Thresholds | the Warning and Critical levels of every quantity |
+| Motion | Graph updates, Meter response (while it is Smooth, a note lists the screens where Smooth is off: a cap below 60 fps, or reduced animations) |
+| Advanced (custom CSS) | Custom CSS (not behind More; not lockable) |
 
 | Scope | Writes | Per-section control | Level |
 |---|---|---|---|
-| All profiles (Look switch; Theme page "All profiles", sub "Base layer · no locks") | `DashboardConfig.style` (`withScopeTheme` base, `theme-editor-model.ts:103`; `withScopeStyle`, `appearance-actions.ts:40`) | none (no locks) | Dashboard |
-| This profile (Look switch; Theme page "Profile theme") | `MonitorProfile.widgetTheme.values` (`setProfileStyle`, `studio-actions.ts:448`) | Lock / Unlock per section (`widgetTheme.locks`); Lock all / Unlock all (`withLockAll`, `theme-editor-model.ts:142`); Look: Apply to every widget | Profile |
-| A page (Theme page, one entry per page; page tab ⋯ › Theme…) | `ProfilePage.widgetTheme.values` and `follow` | Customize / Use profile per section (`withPageFollow`, `theme-editor-model.ts:146`) | Page |
-| A widget (zone inspector Follow bars) | `Placement.follow`, `Placement.settings` | Customize / Use theme per section | Zone |
+| All screens (scope bar "All screens"; chip "Set here") | `DashboardConfig.style` (`withScopeTheme` base, `theme-editor-model.ts:82`; `withScopeStyle`, `appearance-actions.ts:40`) | none (no locks) | Dashboard |
+| A screen | `MonitorProfile.widgetTheme.values` (`setProfileStyle`, `studio-actions.ts:456`) | a lock per card (`widgetTheme.locks`, `withCardLock`, `theme-cards.ts:243`); Lock all / Unlock all (`withLockAll`, `theme-editor-model.ts:121`) | Profile |
+| A page | `ProfilePage.widgetTheme.values` and `follow` | Customise here / Reset per card (`withPageFollow`, `theme-editor-model.ts:125`; `customiseCard`, `resetCard`) | Page |
+| A widget (zone inspector chips) | `Placement.follow`, `Placement.settings` | Customise here / Reset to inherited per section; Make this the theme for… ▾ (All screens / This screen / This page) | Zone |
 
-Default scope of a Look switch: All profiles, This profile when the profile already holds its own
-value (`scopeOf`). Switching to This profile starts the profile's own values empty over the shared
-style (`profileInScope`, `profile-scope.ts:52`); switching back drops them.
+A screen's own values sit over All screens'; Reset on a card drops them (`resetCard`). A locked card is the
+screen's on every page and widget.
 
-### 5.3 Saved looks (Appearance presets; Look › Widget style › Saved looks)
+### 5.3 Saved themes (Appearance presets; Theme › Apply a theme here…, Library › Themes)
 
 See §6.1.
 
-### 5.4 Theme (`ThemeTokens`, `src/lib/theme.ts`; Look › Theme, `theme-panel.tsx`, `theme-rows.ts`)
+### 5.4 Theme (`ThemeTokens`, `src/lib/theme.ts`; Theme › Colors › Color tokens, `theme-editor.tsx`, `theme-rows.ts`)
 
 All values are `"h s% l%"` triplets edited with a native color input (converted to hex and back).
-Defaults are `DEFAULT_THEME` (the Zinc preset). Stored at **Dashboard** (`theme`, `radius`) with the
-switch All profiles, or per **Profile** (`theme` partial, `radius`) with This profile (starting as a
-copy of the dashboard's). Six tokens are shown, seven more behind **More** (`VISIBLE_TOKENS`,
-`ADVANCED_TOKENS`, `theme-rows.ts:7,16`; DECISIONS #8).
+Defaults are `DEFAULT_THEME` (the Zinc preset). Stored at **Dashboard** (`theme`, `radius`) at the All screens
+scope, or per **Profile** (`theme` partial, `radius`) at a screen's. On a page the card shows a link row
+("Edit on ‹screen›") instead of editors. Six tokens are shown, seven more behind **More** (`VISIBLE_TOKENS`,
+`ADVANCED_TOKENS`, `theme-rows.ts:6,15`; DECISIONS #8).
 
 | Key | Label in the editor | Shown | Default (Zinc) |
 |---|---|---|---|
@@ -525,23 +539,21 @@ copy of the dashboard's). Six tokens are shown, seven more behind **More** (`VIS
 
 | Control | Label | Control type | Range / options | Default |
 |---|---|---|---|---|
-| `radius` | Corners (rem; hint: a widget's own Corner radius wins) | slider | 0 to 1.5 step 0.05 | `0.5` |
-| theme preset | swatches (`THEME_PRESETS`, `theme.ts:68`) | 6: Zinc, Neutral, Slate, Ocean, Forest, Paper (light); changes colors only, not corners | | Zinc |
-| `general.font` | Font (also in Look › Theme, but global; §5.6) | select | `FONT_CATALOG` (26 incl. System) | `system` |
+| `radius` | Corners (rem; hint: a widget's own Corner radius wins; Theme › Shape & spacing) | slider | 0 to 1.5 step 0.05 | `0.5` |
+| palette | swatches (`THEME_PRESETS`, `theme.ts:68`) in Start from and Apply a theme here… | 6: Zinc, Neutral, Slate, Ocean, Forest, Paper (light); changes colors only, not corners | | Zinc |
+| `general.font` / `MonitorProfile.font` | Page font (Theme › Typography; §5.6) | select | `FONT_CATALOG` (26 incl. System) | `system` |
 
-An "edited" tag shows when the tokens match no preset. The switch's note reads "Shared by all N
-profiles" or "Only <name> uses this".
+On a page the Colors card reads "Custom" when the tokens match no palette.
 
-### 5.5 Page background (`PageBackground`, `src/lib/appearance.ts`; Look › Background; `background-editor.tsx`, `background-video.tsx`)
+### 5.5 Page background (`PageBackground`, `src/lib/appearance.ts`; Theme › Background; `background-editor.tsx`, `background-video.tsx`)
 
-Stored at **Dashboard** (`background`, switch All profiles) and per **Profile** (`background`, switch
-This profile; `{ type: "none" }` = explicitly none; unset = inherit; `withBackground`,
-`appearance.ts:184`). Sparse; unset fields use the defaults below. Fit, Position, Fill, Tint, Tint
+Stored at **Dashboard** (`background`, scope All screens) and per **Profile** (`background`, scope a
+screen; `{ type: "none" }` = explicitly none; unset = inherit; `withBackgroundAt`, `theme-cards.ts:280`,
+over `withBackground`, `appearance.ts:184`). A page has no background of its own. Sparse; unset fields use the defaults below. Fit, Position, Fill, Tint, Tint
 opacity and Blur (and the video options) are behind **More**.
 
 | Field | Label | Control | Options / range | Default | Visible when |
 |---|---|---|---|---|---|
-| scope | All profiles / This profile | segmented (section header) | | All profiles (This profile when the profile has its own) | always |
 | `type` | Type | segmented | none (None), color (Color), gradient (Gradient), image (Image), video (Video) | `none` | always |
 | `color` | Color / Fill (behind the image) / Fill (behind the video) | color | | `#0b0b0f` | color; image, video (letterbox fill, More) |
 | `gradient.from`, `gradient.to` | From, To | 2 colors | | `#1e1b4b`, `#0b0b0f` | gradient |
@@ -559,49 +571,54 @@ opacity and Blur (and the video options) are behind **More**.
 | `blur` | Blur | slider 0 to 40 px (More) | | `0` | same |
 
 Behaviours that are not settings: a video pauses when the page is hidden and shows only its poster
-under reduced motion (Behaviour › Performance › Animations).
+under reduced motion (Settings › Dashboard › Performance › Animations).
 
 ### 5.6 General (`DashboardConfig.general`; `src/lib/general.ts`)
 
-Only changed keys are stored (`withGeneral`). Every one is global: the Look and Behaviour tabs show
-it with a note "Applies to all profiles" (the Font under the Theme switch included), except the
-Performance pair, which a profile can override.
+Only changed keys are stored (`withGeneral`). Settings › Dashboard edits them and saves on the server at
+once (`withSettingsPatch`). Every one is global, except the page font (a screen can set its own in Theme) and
+the Performance pair, which a screen can override in Screens › Performance.
 
 | Key | Label | Control | Options | Default | Level | Target |
 |---|---|---|---|---|---|---|
-| `font` | Font | select | `FONT_CATALOG` (26): System, Sans, Rounded, Serif, Mono and 21 web fonts | `system` | General | Look › Theme (always global, whatever the switch says) |
-| `showSeconds` | Show seconds | toggle | | `true` | General | Behaviour › Clock and date |
-| `locale` | Date locale | select | System (`""`), plus 14 locales (`COMMON_LOCALES`, `general.ts:128`: en-US, en-GB, de-DE, de-CH, fr-FR, it-IT, es-ES, nl-NL, sv-SE, nb-NO, pl-PL, pt-BR, ja-JP, zh-CN), shown as `<name> · <tag>`; a saved unknown locale is added | `""` | General | Behaviour › Clock and date |
-| `maxFps` | Frame rate limit | segmented | 5, 15, 30, 60, No limit (`0`) | `60` | General (profile `performance.maxFps` overrides) | Behaviour › Performance |
-| `motion` | Animations | segmented | system (Follow system), reduce (Reduced), full (Full) | `system` | General (profile `performance.motion` overrides) | Behaviour › Performance |
-| `hideCursor` | Hide cursor in kiosk mode | toggle | | `false` | General | Behaviour › Display |
-| `kioskPageNav` | Page dots and swipe | toggle | | `false` | General | Behaviour › Pages |
-| *(themed `clock`, in `DashboardConfig.style`)* | Clock | segmented | auto (Locale), 24 (24 h), 12 (12 h) | `auto` (unset) | Dashboard (all-profiles style; was `general.hour12` before v7) | Behaviour › Clock and date |
+| `font` | Page font | select | `FONT_CATALOG` (26): System, Sans, Rounded, Serif, Mono and 21 web fonts | `system` | General (`MonitorProfile.font` overrides) | Theme › Typography |
+| `showSeconds` | Show seconds | toggle | | `true` | General | Settings › Dashboard › Clock & date |
+| `locale` | Date locale | select | System (`""`), plus 14 locales (`COMMON_LOCALES`, `general.ts:164`: en-US, en-GB, de-DE, de-CH, fr-FR, it-IT, es-ES, nl-NL, sv-SE, nb-NO, pl-PL, pt-BR, ja-JP, zh-CN), shown as `<name> · <tag>`; a saved unknown locale is added | `""` | General | Settings › Dashboard › Clock & date |
+| `maxFps` | Frame-rate cap | segmented | 5, 15, 30, 60, No limit (`0`) | `60` | General (a screen's `performance.maxFps` overrides) | Settings › Dashboard › Performance; Screens › Performance |
+| `motion` | Animations | segmented | system (Follow system), reduce (Reduced), full (Full) | `system` | General (a screen's `performance.motion` overrides) | Settings › Dashboard › Performance; Screens › Performance |
+| `kioskRefresh` | Refresh kiosk pages | select | daily (Daily at 04:00), off (Off) | `daily` | General | Settings › Dashboard › Performance |
+| `ringGlide` | Ring glides | toggle | | `false` | General | Settings › Dashboard › Performance |
+| `blurLimit` | Limit blur (caps a widget's blur at 12 px) | toggle | | `true` (stored only when `false`) | General | Settings › Dashboard › Performance |
+| `innerBlur` | Blur inside widgets | toggle | | `false` | General | Settings › Dashboard › Performance |
+| `liveGlow` | Live graph glow | toggle | | `false` | General | Settings › Dashboard › Performance |
+| `hideCursor` | Hide cursor | toggle | | `false` | General | Settings › Dashboard › Kiosk |
+| `kioskPageNav` | Page dots & swipe | toggle | | `false` | General | Settings › Dashboard › Kiosk |
+| *(themed `clock`, in `DashboardConfig.style`)* | Clock | segmented | auto (Locale), 24 (24 h), 12 (12 h) | `auto` (unset) | Dashboard (all-screens style; was `general.hour12` before v7) | Settings › Dashboard › Clock & date |
 
 Resolution of the performance pair (`src/lib/performance.ts:54`): kiosk URL (`&fps=`, `&animations=0`,
-`&motion=`) over the profile's `performance`, over `general`, over the default. This profile on the
-Performance switch starts from the shared values (`profile-scope.ts:60`).
+`&motion=`) over the profile's `performance`, over `general`, over the default. Settings › Dashboard lists the screens that set their own value of a
+default there, each with Reset and a jump to Screens.
 
-The "Studio" section (Quick bar, Inspector sections) has no stored setting in the config: see §7.
+Settings › Studio (the Editor group) has no stored setting in the config: see §7.
 
-### 5.7 Connection (`dataApiUrl`; Behaviour › Connection; `data-api-panel.tsx`)
+### 5.7 Connection (`dataApiUrl`; Data › Connection; `connection-card.tsx`)
 
 | Field | Label | Control | Notes | Default | Level | Target |
 |---|---|---|---|---|---|---|
-| `dataApiUrl` | Data API URL (hint: where the dashboard reads sensor data from) | text; commits on Enter or blur; red text "Enter an http(s) URL." when invalid | `normalizeApiBase`; stored only when changed | `http://127.0.0.1:3921` | Dashboard | Behaviour › Connection |
-| (action) | Test connection | button, shows testing / connected / not reachable | | | UI | same |
-| (link) | Open API index | link to `<base>/` | | | UI | same |
+| `dataApiUrl` | Data API URL (hint: where the dashboard reads sensor data from) | text; commits on Enter or blur; red text "Enter an http(s) URL." when invalid | `normalizeApiBase`; stored only when changed | `http://127.0.0.1:3921` | Dashboard | Data › Connection |
+| (action) | Test connection (button Test) | shows testing / connected / not reachable | | | UI | same |
+| (link) | API index (Open ↗) | link to `<base>/` | | | UI | same |
 
-### 5.8 Source preferences (`sourcePrefs`; the Data explorer, `sources-panel.tsx`, `explorer/`)
+### 5.8 Source preferences (`sourcePrefs`; Data, `sources-panel.tsx`, `explorer/`)
 
 Key = `{plugin}::{container}` (`""` container for flat sources). Stored at **Dashboard**. Nothing
 outside the Data explorer reads `sourcePrefs` (no kiosk or widget consumer; open question 12).
 
 | Field | Label | Control | Default | Target |
 |---|---|---|---|---|
-| `enabled` | Show in dashboard (group summary: one Toggle per container; the source tree menu: Show in dashboard / Hide in dashboard) | toggle | `true` (stored only when changed) | Data sources › group summary (`explorer/group-summary.tsx:75`), tree row menu (`explorer/source-tree.tsx:91`) |
+| `enabled` | Show in dashboard (group summary: one Toggle per container; the source tree menu: Show in dashboard / Hide in dashboard) | toggle | `true` (stored only when changed) | Data › group summary (`explorer/group-summary.tsx:78`), tree row menu (`explorer/source-tree.tsx:81`) |
 | `displayName` | Display name (placeholder = the container's title) | text | unset | same |
-| bind / unbind | Bind / Unbind in the point inspector and the point table | button | n/a | Data sources › point inspector; Data tab › Bound data |
+| bind / unbind | Bind / Unbind in the point inspector and the point table | button | n/a | Data › point inspector; Data tab › Bound data |
 
 Bind (`bindPoint`, `src/lib/data-usage.ts:160`) writes a panel widget's `sensor`, or, on a widget zone
 whose module has a source select for the key's plugin, that setting (a `multiple` one gains the
@@ -611,37 +628,38 @@ container in its comma-separated list); any other module has no per-key binding 
 
 ## 6. Presets and saved items
 
-### 6.1 Appearance presets (Saved looks; `appearancePresets`, `src/lib/appearance-presets.ts`)
+### 6.1 Appearance presets (Themes; `appearancePresets`, `src/lib/appearance-presets.ts`)
 
 Shape: `{ id, name, description, theme (tokens or preset name), radius, style (themed keys),
-background? }`. All are the user's: the built-in looks were removed (the skin gallery replaced them);
-the `builtin:` id prefix stays reserved (`isBuiltinPreset`, `appearance-presets.ts:35-39`). Stored:
+background? }`. All are the user's; the `builtin:` id prefix is reserved (`isBuiltinPreset`,
+`appearance-presets.ts:36-39`). Stored:
 **Dashboard** (`DashboardConfig.appearancePresets`).
 
 | Control | Label | Control type | Default | Target |
 |---|---|---|---|---|
-| Gallery card | (preview, name) | click applies to the section's scope (All profiles or This profile): the theme, corners, style and (optionally) background | | Look › Widget style › Saved looks |
-| Replace the page background | toggle (hint: otherwise a preset's background is only set where there is none) | | off | same |
-| Save current look as preset | name input (label "Look name"), Enter saves | | | same |
-| Saved look menu | Rename…, Delete | | | same |
-| Overrides banner | "N widgets keep their own style · N profiles have their own look", Make them follow, Dismiss | | | same |
+| Theme top bar | Apply a theme here… | popover of Saved themes and Palettes; a click applies the theme, corners, style and (optionally) background to the scope | | Theme |
+| Include background | check (disabled on a page: "Set per screen") | | off | Apply a theme here…, Save as Theme |
+| Theme top bar | Save as Theme | name input (label "Theme name"), Enter saves the scope's resolved colors, widget style and (optionally) background | | Theme; the Theme lands in Library › Themes |
+| Theme top bar | Update ‹name› | overwrites the matched saved Theme with the scope's look (one undo step) | | Theme |
+| Saved theme card menu | Rename…, Delete | | | Apply a theme here…; Library › Themes |
+| Start from › Saved themes | click applies the Theme to the scope | | | Theme (not on a page) |
 
-An apply is one undo step (`useAppearancePresets`, `use-appearance-presets.ts:50-55`). A profile
-apply writes the profile's `theme`, `radius`, `widgetTheme.values` and `background`
-(`applyAppearancePreset`, `src/lib/appearance-preset-apply.ts:69`).
+An apply is one undo step (`useAppearancePresets`, `use-appearance-presets.ts:38`). A screen
+apply writes the screen's `theme`, `radius`, `widgetTheme.values` and `background`
+(`applyAppearancePreset`, `src/lib/appearance-preset-apply.ts:76`).
 
-### 6.2 Style presets (`stylePresets`: `{ id, name, settings }`)
+### 6.2 Style presets (Styles; `stylePresets`: `{ id, name, settings }`)
 
-Look keys only (`PROFILE_STYLE_KEYS`, §1.5). Stored: **Dashboard**. Controls: zone Style › Colors "…"
-menu: Apply preset (submenu), Save as preset… (name input), Delete preset (submenu). Target: Style ›
-Colors.
+Look keys only (`PROFILE_STYLE_KEYS`, §1.5). Stored: **Dashboard**. Controls: the zone Style toolbar (§1.8):
+Start from a Style ▾, Save as Style (name input), Update ‹name›; Library › Styles lists them. Target: Style
+tab.
 
 ### 6.3 Saved panels (`panelPresets`: `UserPanelPreset`)
 
 `{ id, name, panel (PanelDef), settings? (the panel look), colSpan?, rowSpan? }`. Stored:
 **Dashboard**; shared by all profiles; exported with the config; each use is a fresh copy. Controls:
-Save as panel preset… (the panel header's "…"), zone menu "Save to My panels"
-(`zone-menu.ts:84`), the Widgets drawer's My panels (Rename…, Delete on each row; `insert-panel.tsx`).
+Save as Panel (the panel header's "…"), zone menu "Save as Panel" (`zone-menu.ts:84`), Library › Panels and
+Add › My panels (Rename, Delete on each row; `add-catalog.ts`).
 
 ### 6.4 Built-in panel presets and layout starters (code, not config)
 
@@ -656,40 +674,43 @@ overlay, Gauge row, Clock + date, Label / value list. Theme token presets: §5.4
 | Key | What | Values | Default | Target |
 |---|---|---|---|---|
 | `studio.dockCollapsed` | Docked inspector collapsed (Ctrl+\) (`use-studio-layout.ts:15`) | `1` / unset | expanded | the inspector's collapse tab; Ctrl+\ |
-| `studio.quickBar` | Quick bar shown (`inspector-prefs.ts:110`) | `true` / `false` | `true` | Behaviour › Studio › Quick bar |
-| `studio.accordion` | Inspector sections: one open or many (`inspector-prefs.ts:111`) | one, many | `one` | Behaviour › Studio › Inspector sections |
-| `studio.quickPins` | Pinned quick-bar settings per widget type, max 6 (`inspector-prefs.ts:112`) | map | unset (a default set applies) | Pin button on each inspector row |
-| `studio.inspectorTabs` | The open inspector tab per context (`inspector-prefs.ts:9`) | map | the first tab | the tab strip |
-| `studio.drawer` | Open left drawer (`left-rail.tsx:73`) | add, layers, profiles, island, alerts, none | `add` | Rail |
-| `studio.drawerWidth` | Dragged left drawer width (`left-rail.tsx:23`) | px | the least | the drawer's edge |
-| `studio.pinnedProfile` | The profile the studio edits: the selected card (`pinned-profile.ts:7`) | profile id | the profile the window size picks | Profiles drawer |
-| `studio.grid`, `studio.rulers` | Canvas grid and rulers shown (`use-studio-ui.ts:39-40`) | `1` / `0` | `1` | zoom bar |
-| `studio.zoom` | Canvas zoom: `fit` or a factor 0.25 to 2 (`zoom-pref.ts:2`) | | `fit` | zoom bar |
-| `studio.tipDismissed` | First-run tips card dismissed (`quick-tips.ts:2`) | `1` | unset | the tips card |
-| `infopanel.studio.profile-shots` | Profile thumbnail cache (`src/lib/profile-shot-cache.ts:13`) | map | unset | Profiles drawer (automatic) |
+| `studio.quickBar` | Quick bar shown (`inspector-prefs.ts`) | `true` / `false` | `true` | Settings › Studio › Editor › Quick bar |
+| `studio.accordion` | Inspector sections: one open or many (`inspector-prefs.ts`) | one, many | `one` | Settings › Studio › Editor › Inspector sections |
+| `studio.inspector.advanced` | Show every inspector setting, including ones the theme controls (`inspector-prefs.ts`) | `true` / `false` | `false` | Settings › Studio › Editor › Advanced settings |
+| `studio.quickPins` | Pinned quick-bar settings per widget type, max 6 (`inspector-prefs.ts`) | map | unset (a default set applies) | Pin button on each inspector row |
+| `studio.inspectorTabs` | The open inspector tab per context (`inspector-prefs.ts`) | map | the first tab | the tab strip |
+| `studio.editor.leftPanelWidth` | Design's left panel width (`add-prefs.ts`; the old `studio.drawerWidth` px value moves to the nearest option) | `narrow` (300 px), `default` (340), `wide` (380) | `default` | Settings › Studio › Editor › Left panel width |
+| `studio.editor.addListDensity` | Add widget list (`add-prefs.ts`) | `comfortable`, `compact` | `comfortable` | Settings › Studio › Editor › Widget list |
+| `studio.editor.addPreviewOnHover` | Add widget preview while hovering (`add-prefs.ts`) | boolean | on | Settings › Studio › Editor › Preview on hover |
+| `studio.pinnedProfile` | The profile the studio edits: the selected card (`pinned-profile.ts:7`) | profile id | the profile the window size picks | Screens (card click) |
+| `studio.grid`, `studio.rulers` | Canvas grid and rulers shown (`use-stored-flag.ts`) | `1` / `0` | `1` | zoom bar; Settings › Studio › Editor › Show grid, Show rulers |
+| `studio.zoom` | Canvas zoom: `fit` or a factor 0.25 to 2 (`zoom-pref.ts`) | | `fit` | zoom bar; Settings › Studio › Editor › Default zoom |
+| `studio.tipDismissed` | First-run tips card dismissed (`quick-tips.ts`) | `1` | unset | the tips card |
+| `infopanel.studio.profile-shots` | Screen thumbnail cache (`src/lib/profile-shot-cache.ts:13`) | map | unset | Screens cards (automatic) |
+| `studio.addPanel.recent` | Recently placed widgets in Add (`add-recent.ts:4`) | list | unset | Add (automatic) |
+| `studio.runSetup` | Help › Run setup again: asks the studio to open first-run (`setup-request.ts:5`) | flag | unset | Help |
 | `studio.previewData` | Design preview data (`preview-data-pref.ts`): frozen renders Design from a snapshot, closes the studio's Data API stream while nothing live is open, and stills continuous effects. Kept on the server too (`studio-prefs.json`, `/api/studio-prefs`), so it follows you between the app window and a browser studio; localStorage is this browser's copy | `live`, `frozen`, `frozenWhenUnfocused` (after the 60 s unfocused delay) | `frozenWhenUnfocused` | Settings › Studio, Settings › General › Window; the zoom bar's Frozen chip (Refresh, Go live for this session) |
-| `infopanel-dashboard:config:v1` | The offline copy of the config (`layout.ts:284`) | config JSON | | automatic |
+| `infopanel-dashboard:config:v1` | The offline copy of the config (`layout.ts:291`) | config JSON | | automatic |
 | session only | Style clipboard (Copy style), widget clipboard (Copy), settings search text | | | Not persisted |
 
 Retired: `studio.layout` (inspector position; DECISIONS #15), `studio.inspectorAdvanced` (dropped on
-load, `inspector-prefs.ts:97`).
+load, `inspector-prefs.ts:107`).
 
 ---
 
 ## 7a. Desktop app settings (InfoPanel Studio; `settings.json`, not in the config)
 
 Kept by the desktop app, not by the studio: `%APPDATA%\dev.f3nn3x.infopanel-studio\settings.json`
-(see [desktop/README.md](desktop/README.md); layout version 2, `SETTINGS_VERSION`,
-`src-tauri/src/settings.rs:10`). Edited in the app's Settings window (`src/settings/`; the rail's
-Settings button, desktop only, and the profile inspector's footer "Server, updates and startup are in
-App settings"). The window's sections: General, Server, Coding agents, Updates, Diagnostics, Logs,
-About, Changelog. Missing or invalid keys fall back to their default (`load_from_str`,
-`settings.rs:286`); each write is validated (`with_setting`, `settings.rs:185`); a v1 `host` becomes
+(see [desktop/README.md](desktop/README.md); layout version 4, `SETTINGS_VERSION`,
+`src-tauri/src/settings.rs:10`). Edited in the Settings window (`src/settings/`; the rail's Settings
+button). Its pages: Dashboard and Studio (Preferences, §5.6 and §7), then the App pages these keys belong to:
+General, Server, Coding agents, Updates, Diagnostics, Logs, About, Changelog. Missing or invalid keys fall back to their default (`load_from_str`,
+`settings.rs:349`); each write is validated (`with_setting`, `settings.rs:235`); a v1 `host` becomes
 `listen` on load.
 
 | Key | Label | Values | Default | Target |
 |---|---|---|---|---|
-| `zoom` | App zoom (steps; Ctrl + / Ctrl − / Ctrl 0) | 80, 90, 100, 110, 125, 150 % | `100` | Settings › General › Appearance |
+| `zoom` | App zoom (steps; Ctrl + / Ctrl − / Ctrl 0) | 80, 90, 100, 110, 125, 150 % | `100` | Settings › General › Zoom |
 | `startAtLogin` | Start at login | boolean | `true` | Settings › General › Startup |
 | `openStudioOnLaunch` | Open the studio on launch | boolean | `true` | Settings › General › Startup |
 | `startServer` | Start the server on launch | boolean | `true` | Settings › General › Startup |
@@ -702,6 +723,7 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 | `listen` | Who can connect (becomes `HOST`: `127.0.0.1` or `0.0.0.0`) | `local` (This computer only), `lan` (Local network) | `local` | Settings › Server › Network |
 | `port` | Port (becomes `PORT`) | 1024 to 65535 | `3922` | Settings › Server › Network |
 | `allowedHosts` | Allowed host names (`ALLOWED_HOSTS`; request guard) | list, or a comma-separated string; letters, digits, `.`, `-`, `:`, `[`, `]` | empty | Settings › Server › Network (only while `listen` is `lan`) |
+| `allowRemoteEdit` | Allow editing from other devices (`ALLOW_REMOTE_EDIT` and `ALLOW_REMOTE_UPLOAD`; off: other devices only view, writes get a 403) | boolean | `false` | Settings › Server › Network (only while `listen` is `lan`) |
 | `autoRestart` | Restart automatically if it crashes (3 tries a minute) | boolean | `true` | Settings › Server › Network |
 | `updateChannel` | Release channel | `stable` (Stable), `beta` (Beta) | `stable` | Settings › Updates |
 | `checkForUpdates` | Check for updates at startup | boolean | `true` | Settings › Updates |
@@ -712,29 +734,29 @@ About, Changelog. Missing or invalid keys fall back to their default (`load_from
 
 The server's own environment variables (`PORT`, `HOST`, `ALLOWED_HOSTS`, `DASHBOARD_DIST`,
 `DASHBOARD_DATA_DIR`, `DASHBOARD_DEBUG`) are in [development.md](development.md); the app sets
-`PORT`, `HOST`, `ALLOWED_HOSTS` and `DASHBOARD_DEBUG` from these keys as a `ServerConfig` for `ips-server`, which runs inside the app (`src-tauri/src/native.rs`).
+`PORT`, `HOST`, `ALLOWED_HOSTS`, `ALLOW_REMOTE_EDIT` and `DASHBOARD_DEBUG` from these keys as a `ServerConfig` for `ips-server`, which runs inside the app (`src-tauri/src/native.rs`).
 
 ---
 
 ## 7b. Live state (server, not config)
 
-Runtime state the server holds (`crates/ips-server/src/control.rs`, `src/lib/control.ts`): kiosks and the studio read
+Runtime state the server holds (`src-tauri/crates/ips-server/src/control.rs`, `src/lib/control.ts`): kiosks and the studio read
 it over one SSE stream (`/events/control`) and write it with `POST /api/control/<action>`. None of it
 is config, so none of it enters undo or the exported config. The durable part is saved to
-`control.json`: `mutedUntil`, the dim levels, `islandOverride` (`control.mjs:30`); the rest is
+`control.json`: `mutedUntil`, the dim levels, `islandOverride` (`control_store.rs`); the rest is
 runtime only.
 
 | State | What | Actions (`ControlAction`) | Studio UI |
 |---|---|---|---|
-| page shown per profile (`pages`) | the page a kiosk shows | `page` (id, `next`, `prev`) | yes: page tab ⋯ › Show on kiosk (`studio-view.tsx:499`); the kiosk's page dots and swipe |
+| page shown per profile (`pages`) | the page a kiosk shows | `page` (id, `next`, `prev`) | yes: Page inspector › Show on kiosks now (`page-inspector.tsx`), the Live popover's Show on … (`live-popover.tsx`); the kiosk's page dots and swipe |
 | profile override (`profile`) | a profile every kiosk shows regardless of the window | `profile` | none |
 | profile shown (`shown`) | the profile a kiosk last reported | `shown` (kiosk only) | none |
-| rotation override (`override`) | page cycling on or off over the saved `rotate` | `rotate` (`on`, `off`, `toggle`, `saved`), `touch` (a touch pauses it 30 s) | yes: the page strip's Play / Pause with "Back to the saved setting" (`studio-view.tsx:503-504`); long-press the kiosk dots |
-| active alerts (`alerts`) | what the alert engine holds, with acknowledge | `alert` (`ack`, `dismiss`, `test`) | yes: Alerts drawer › Active now (`alerts-live.tsx:55`); tap on the kiosk |
-| alert mute (`mutedUntil`) | alerts muted until a time (0 to 1440 minutes) | `alert` `{ action: "mute", minutes }` | none |
-| reload counters (`reload`, `reloads`) | a kiosk reloads when its counter grows | `kiosk` `reload` | none |
-| dim (`dim`, per profile) | a black veil over the page and island (0.1 to 0.9, default 0.6) | `kiosk` `dim` (`on`, `off`, `toggle`, `level`) | none (the kiosk renders it) |
-| island override (`islandOverride`) | show or hide the island over the saved `island.enabled` | `kiosk` `island` (`on`, `off`, `toggle`, `saved`) | none |
+| rotation override (`override`) | page cycling on or off over the saved `rotate` | `rotate` (`on`, `off`, `toggle`, `saved`), `touch` (a touch pauses it 30 s) | yes: the Live popover's Rotation (`live-popover.tsx`); long-press the kiosk dots |
+| active alerts (`alerts`) | what the alert engine holds, with acknowledge | `alert` (`ack`, `dismiss`, `test`) | yes: Alerts & Island › History › Active now (`alerts-live.tsx:55`); tap on the kiosk |
+| alert mute (`mutedUntil`) | alerts muted until a time (0 to 1440 minutes) | `alert` `{ action: "mute", minutes }` | yes: Live popover › Mute alerts for 1 h |
+| reload counters (`reload`, `reloads`) | a kiosk reloads when its counter grows | `kiosk` `reload` | yes: Live popover › Reload all kiosks |
+| dim (`dim`, per profile) | a black veil over the page and island (0.1 to 0.9, default 0.6) | `kiosk` `dim` (`on`, `off`, `toggle`, `level`) | yes: Live popover › Dim screens (the kiosk renders it) |
+| island override (`islandOverride`) | show or hide the island over the saved `island.enabled` | `kiosk` `island` (`on`, `off`, `toggle`, `saved`) | yes: Live popover › Dynamic Island |
 
 The Stream Deck plugin and the server's HTTP API are the other writers (`docs/redesign/streamdeck/`).
 
@@ -804,51 +826,46 @@ Kept as the historical record of the Phase 0 inventory. The answers are in
 
 ## 9. Where each surface writes
 
-UI surface (exact label) → the scope it writes → the code that writes it. The label is the one the
-studio shows; "All profiles / This profile" is the section's own switch.
+UI surface (exact label) → the scope it writes → the code that writes it. Labels are the ones the studio
+shows; Theme's scope is the scope bar (All screens, a screen, a page).
 
 | UI surface | Scope written | Code |
 |---|---|---|
-| Look › Theme › color rows, theme swatches (All profiles) | `DashboardConfig.theme` | `use-document-props.ts:82-83`, `:50-53` |
-| Look › Theme › color rows, theme swatches (This profile) | `MonitorProfile.theme` | `use-document-props.ts:56-57` |
-| Look › Theme › Corners (rem) | `DashboardConfig.radius`, or `MonitorProfile.radius` | `use-document-props.ts:64-65`, `profile-scope.ts:79` |
-| Look › Theme › Font (either switch value) | `general.font` (global) | `document-inspector.tsx:235`, `use-document-props.ts:75-76` |
-| All profiles / This profile switch of Theme, Widget style, Background, Performance | adds or drops the profile's own `theme` + `radius`, `widgetTheme.values`, `background`, `performance` | `use-document-props.ts:60-61`, `profile-scope.ts:74` |
-| Look › Widget style (Skin, Surface, Background opacity, Background blur) | `DashboardConfig.style`, or `MonitorProfile.widgetTheme.values` | `use-document-props.ts:39-40`, `appearance-actions.ts:40`, `studio-actions.ts:448` |
-| Look › Widget style › Apply to every widget | `MonitorProfile.widgetTheme.locks` (all 11 sections) | `use-document-props.ts:72`, `profile-scope.ts:102` |
-| Look › Widget style › Saved looks (card, Save current look as preset, Rename…, Delete) | applies theme, radius, style, background to the scope; saves `DashboardConfig.appearancePresets` | `use-appearance-presets.ts:50-55` |
-| Look › Background | `DashboardConfig.background`, or `MonitorProfile.background` | `use-document-props.ts:45-48`, `appearance.ts:184` |
-| Layout › Screen (Name, Design size, Width, Height, When it doesn't fit) | `MonitorProfile` fields | `profile-layout.tsx:101` |
-| Layout › Grid (Columns, Rows, Gap, Edge padding) | `MonitorProfile.cols`, `rows`, `gap`, `padding` | `profile-layout.tsx:251-258` |
-| Behaviour › Pages (drag, Add page, Delete) and the page tab strip | `MonitorProfile.pages` | `use-studio-mutations.ts:311-340` |
-| Behaviour › Pages (Cycle through pages, Switch every, Seconds, Pages) | `MonitorProfile.rotate` | `use-studio-mutations.ts:366` |
-| Behaviour › Pages › Page dots and swipe | `general.kioskPageNav` (global) | `document-inspector.tsx:285` |
-| Behaviour › Dynamic Island, and the rail's Dynamic Island drawer | `MonitorProfile.island` | `document-inspector.tsx:298`, `island-panel.tsx:43`, `island/config.ts:204` |
-| Behaviour › Performance (Frame rate limit, Animations): All profiles | `general.maxFps`, `general.motion` | `profile-behaviour.tsx:254,261` |
-| Behaviour › Performance: This profile | `MonitorProfile.performance` | `use-document-props.ts:68-69` |
-| Behaviour › Clock and date › Clock | `DashboardConfig.style.clock` (all-profiles style) | `document-inspector.tsx:186-187` |
-| Behaviour › Clock and date › Show seconds, Date locale | `general.showSeconds`, `general.locale` | `profile-behaviour.tsx:306,312` |
-| Behaviour › Display › Hide cursor in kiosk mode | `general.hideCursor` | `document-inspector.tsx:323` |
-| Behaviour › Studio › Quick bar, Inspector sections | Browser `studio.quickBar`, `studio.accordion` | `inspector-prefs.ts:158-159` |
-| Behaviour › Connection › Data API URL | `DashboardConfig.dataApiUrl` | `use-document-props.ts:99` |
-| Rail › Theme: Scope All profiles | `DashboardConfig.style` | `theme-editor-model.ts:103` |
-| Rail › Theme: Scope Profile theme (rows, Lock, Lock all) | `MonitorProfile.widgetTheme` (`values`, `locks`) | `theme-editor-model.ts:103,138,142` |
-| Rail › Theme: a page scope (rows, Customize, Use profile); page tab ⋯ › Theme… | `ProfilePage.widgetTheme` (`values`, `follow`) | `theme-editor-model.ts:103,146` |
-| Rail › Theme › Reset to theme | `Placement.follow` (the zones follow again) | `theme-editor-model.ts:155` |
-| Zone inspector rows (Show, Style, Data, Behaviour) | `Placement.settings` | `use-studio-mutations.ts:84-90`, `studio-inspector.tsx:121` |
-| Zone inspector Follow bar: Customize, Use theme | `Placement.follow[section]` | `zone-fields.ts:62` |
-| Zone Style › Colors "…" › Use as global… (All profiles / This profile) | `DashboardConfig.style`, or `widgetTheme.values` | `studio-inspector.tsx:125` |
-| Zone Style › Colors "…" › Save as preset…, Delete preset | `DashboardConfig.stylePresets` | `use-studio-mutations.ts:407-415` |
-| Zone Style › Border & glow › More › Frame accent, Frame background, Frame title header | `Placement.design` | `zone-inspector.tsx:274-283` |
+| Theme › Colors › Color tokens, Start from palettes, Apply a theme here… palettes (All screens / a screen) | `DashboardConfig.theme`, or `MonitorProfile.theme` | `withToken`, `withTokens` (`theme-cards.ts:253,259`) |
+| Theme › Shape & spacing › Corners (rem) | `DashboardConfig.radius`, or `MonitorProfile.radius` | `withThemeRadius` (`theme-cards.ts:265`) |
+| Theme › Typography › Page font | `general.font` (All screens), or `MonitorProfile.font` | `withPageFont` (`theme-cards.ts:274`) |
+| Theme › Background | `DashboardConfig.background`, or `MonitorProfile.background` | `withBackgroundAt` (`theme-cards.ts:280`), `withBackground` (`appearance.ts:184`) |
+| Theme › a widget-style row at All screens | `DashboardConfig.style` | `withScopeValues` (`theme-editor-model.ts:108`), `withScopeTheme` (`:82`), `withScopeStyle` (`appearance-actions.ts:40`) |
+| Theme › a widget-style row at a screen | `MonitorProfile.widgetTheme.values` | `withScopeValues`, `setProfileStyle` (`studio-actions.ts:456`) |
+| Theme › a widget-style row at a page; Customise here / Reset on a card | `ProfilePage.widgetTheme.values` and `follow` | `withScopeValues`, `withPageFollow` (`theme-editor-model.ts:125`), `customiseCard`, `resetCard` (`theme-cards.ts:232,226`) |
+| Theme › a card's lock (screen scope), Lock all / Unlock all | `MonitorProfile.widgetTheme.locks` | `withCardLock` (`theme-cards.ts:243`), `withLock`, `withLockAll` (`theme-editor-model.ts:117,121`) |
+| Theme › Exceptions › Follow, Follow all | `Placement.follow` (the zones follow again) | `makeFollow`, `makeAllFollow` (`theme-exceptions.ts:79,87`) |
+| Theme › Apply a theme here…, Save as Theme, Update ‹name› | applies theme, corners, style and background to the scope; saves `DashboardConfig.appearancePresets` | `useAppearancePresets` (`use-appearance-presets.ts:38`), `applyAppearancePreset` (`appearance-preset-apply.ts:76`) |
+| Screens › When the app opens; card ⋯ › Always open this one | `DashboardConfig.activeProfile` | `withLaunch` (`screens-model.ts:19`) |
+| Screens › card click | Browser `studio.pinnedProfile` | `pinned-profile.ts:30` |
+| Screens › card ⋯ › Rename | `MonitorProfile.name` | `rename` (`screens-view.tsx`) |
+| Screens › Size & fit (Size preset, Width, Height, When it doesn't fit) | `MonitorProfile` `width`, `height`, `fit` | `SizeFitSection` (`screen-layout.tsx`) |
+| Screens › Grid (Columns, Rows, Gap, Edge padding) | `MonitorProfile.cols`, `rows`, `gap`, `padding` | `GridSection` (`screen-layout.tsx`) |
+| Screens › Rotation (Rotate pages, Every), the pages' in-rotation switches | `MonitorProfile.rotate` | `setRotate` (`use-studio-mutations.ts:374`) |
+| Screens › Performance (Frame-rate cap, Animations) | `MonitorProfile.performance` | `withScreenPerformance` (`screens-model.ts:39`) |
+| Screens › Pages · order & rotation (drag, + Add page); the page tab strip | `MonitorProfile.pages` | `movePageTo`, `addNewPage` (`use-studio-mutations.ts`) |
+| Design › page tab ⋯ and Page inspector › Name, Icon | `ProfilePage.name`, `ProfilePage.icon` | `renamePageTo`, `setIconOfPage` (`use-studio-mutations.ts`) |
+| Design › Page inspector › Show on kiosks now; Live popover › Show on …, Rotation | live: control channel `page`, `rotate` | `live-popover.tsx`, `page-inspector.tsx` |
+| Alerts & Island › Island | `MonitorProfile.island` | `patchIsland` (`island-tab.tsx`), `withIsland` (`island/config.ts:204`) |
+| Alerts & Island › Rules (Alerts on, rules) | `DashboardConfig.alerts` | `alerts-model.ts:34-70` |
+| Alerts & Island › Defaults | `alerts.defaults`, `alerts.quietHours` | `patchDefaults`, `setQuietHours` (`alerts-model.ts:38,42`) |
+| Alerts & Island › History › Active now (Acknowledge, Dismiss) | live: control channel `alert` | `alerts-live.tsx:55-60` |
+| Data › Connection › Data API URL | `DashboardConfig.dataApiUrl` | `connection-card.tsx`, `sources-panel.tsx:241` |
+| Data › Show in dashboard, Display name | `DashboardConfig.sourcePrefs` | `explorer-actions.ts:49` |
+| Data › Bind, Unbind | a zone's source setting, or a panel widget's `sensor` | `sources-panel.tsx:150-161`, `data-usage.ts:160` |
+| Zone inspector rows (Show, Style, Data, Behaviour) | `Placement.settings` | `updateSelected` (`use-studio-mutations.ts:94`) |
+| Zone inspector chip: Customise here, Reset to inherited | `Placement.follow[section]` | `withFollow` (`zone-fields.ts:62`), `customiseInheritance`, `resetInheritance` (`inheritance-actions.ts`) |
+| Zone Style › Make this the theme for… | `DashboardConfig.style`, a screen's `widgetTheme.values` or a page's | `makeTheme` (`inheritance-actions.ts:164`) |
+| Zone Style › Save as Style, Update ‹name› | `DashboardConfig.stylePresets` | `saveStylePreset`, `updateSavedStyle` (`use-studio-mutations.ts:415,422`) |
+| Zone Style › Border & glow › More › Frame accent, Frame background, Frame title header | `Placement.design` | `frameFields` (`zone-inspector.tsx:283`) |
 | Zone Show › Panel, Layout, Background, Widgets; panel widget rows | `Placement.panel` | `panel-layout-section.tsx`, `inspector/item-model.ts` |
-| Panel "…" › Save as panel preset…; zone menu › Save to My panels | `DashboardConfig.panelPresets` | `use-studio-mutations.ts:169-178` |
-| Page tab ⋯ › Rename, Icon… | `ProfilePage.name`, `ProfilePage.icon` | `use-studio-mutations.ts:339-340` |
-| Page tab ⋯ › Show on kiosk; Play / Pause | live: control channel `page`, `rotate` | `studio-view.tsx:499,503` |
-| Profiles drawer › When the app opens, card ⋯ › Always open this one | `DashboardConfig.activeProfile` | `use-studio-mutations.ts:405`, `profiles-panel.tsx:451` |
-| Profiles drawer › card click | Browser `studio.pinnedProfile` | `pinned-profile.ts:30` |
-| Data sources › Show in dashboard, Display name | `DashboardConfig.sourcePrefs` | `sources-panel.tsx:171-175` |
-| Data sources › Bind, Unbind | a zone's source setting, or a panel widget's `sensor` | `sources-panel.tsx:138-153`, `data-usage.ts:160` |
-| Alerts drawer (Alerts on, Global defaults, rules) | `DashboardConfig.alerts` | `alerts-model.ts:34-70` |
-| Alerts drawer › Active now (Acknowledge, Dismiss) | live: control channel `alert` | `alerts-live.tsx:55-60` |
-| Rail, zoom bar, inspector collapse, first-run tips | Browser `studio.drawer`, `studio.drawerWidth`, `studio.grid`, `studio.rulers`, `studio.zoom`, `studio.dockCollapsed`, `studio.tipDismissed` | `left-rail.tsx:73,23`, `use-studio-ui.ts:39-40`, `zoom-pref.ts:2`, `use-studio-layout.ts:15`, `quick-tips.ts:2` |
-| Settings window (App zoom, Start at login, Port, Release channel, ...) | Desktop `settings.json` | `src/settings/store.tsx:162`, `src-tauri/src/settings.rs:185` |
+| Panel header menu › Save as Panel; zone menu › Save as Panel | `DashboardConfig.panelPresets` | `savePanelAsPreset` (`use-studio-mutations.ts:177`) |
+| Settings › Dashboard (Performance, Clock & date, Kiosk) | `general` keys, `style.clock`; saved on the server at once | `SettingsDashboard` (`settings-dashboard.tsx`), `withSettingsPatch` (`settings-patch.ts:34`) |
+| Settings › Studio (Editor) | Browser `studio.*` keys (§7) | `SettingsStudio` (`settings-studio.tsx`) |
+| Zoom bar, inspector collapse, first-run tips | Browser `studio.grid`, `studio.rulers`, `studio.zoom`, `studio.dockCollapsed`, `studio.tipDismissed` | `use-stored-flag.ts:9`, `zoom-pref.ts:2`, `use-studio-layout.ts:15`, `quick-tips.ts:2` |
+| Settings window › App pages (App zoom, Start at login, Port, Release channel, ...) | Desktop `settings.json` | `save` (`src/settings/store.tsx:167`), `with_setting` (`src-tauri/src/settings.rs:235`) |

@@ -92,7 +92,8 @@ The weather forecast comes from the yr plugin (`plugins.yr-weather-plugin.<locat
 | GET | `/events/config` | Server-sent events: the config version on connect and after each save |
 | GET | `/api/image-proxy?url=` | Fetches an image so the page can sample its colours (https anywhere, http only on loopback; images only, anything else is 406) |
 | GET | `/api/health` | `{ app, version, configVersion }`, so a client can tell this server from another one on the port |
-| GET | `/api/debug/stats` | Memory, SSE clients and event-loop numbers; only with `DASHBOARD_DEBUG=1`, this machine only |
+| GET | `/api/debug/stats` | Memory, SSE clients and timer-delay numbers; only with `DASHBOARD_DEBUG=1`, this machine only |
+| GET / PUT | `/api/studio-prefs` | The studio's own preferences that follow you between the app window and a browser studio (Design preview data); this machine only, kept in `studio-prefs.json`, never in the config |
 | GET / POST | `/api/assets` | List uploaded images and videos (`?unused=1`: those the saved config doesn't use), or upload one (header `X-Dashboard-Asset: 1`, loopback only unless `ALLOW_REMOTE_UPLOAD=1`) |
 | GET / DELETE | `/api/assets/<id>` | Serve an uploaded file (immutable cache, `Range` support) or delete it |
 | GET / POST / PUT / DELETE | `/api/library`, `/api/library/<id>` | My library items for the Library page (writes need header `X-Dashboard-Library: 1`) |

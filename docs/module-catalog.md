@@ -29,7 +29,7 @@ shell and registered through `templateModule` (`src/widgets/registry/a.ts` –
 minimum footprint comes from its `meta.minSize`. All of them take the standard
 block and the Look keys (skin, variant, graph, meter, summary card), listed
 in [widget-settings.md](widget-settings.md); the options of each are in the
-inspector's Content tab.
+inspector's Show, Data and Behaviour tabs.
 
 | Category | Widgets (id · minimum) |
 |---|---|
