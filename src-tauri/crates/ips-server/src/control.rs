@@ -661,9 +661,11 @@ mod tests {
         let profile = |id: &str| json!({ "id": id, "pages": [{ "id": "main" }] });
         let before = json!({ "profiles": [profile("desk"), profile("strip")] });
         let after = json!({ "profiles": [profile("desk")] });
-        let mut state = State::default();
-        state.dim = serde_json::from_str(r#"{"strip":0.5,"desk":0.3}"#).unwrap();
-        state.dim_level = serde_json::from_str(r#"{"strip":0.5}"#).unwrap();
+        let state = State {
+            dim: serde_json::from_str(r#"{"strip":0.5,"desk":0.3}"#).unwrap(),
+            dim_level: serde_json::from_str(r#"{"strip":0.5}"#).unwrap(),
+            ..State::default()
+        };
         let next = reduce_config(&state, &before, &after).expect("changed");
         assert_eq!(stringify(&Value::Object(next.dim.clone())), r#"{"desk":0.3}"#);
         assert!(next.dim_level.is_empty());

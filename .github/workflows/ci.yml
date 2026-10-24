@@ -103,6 +103,9 @@ jobs:
       - name: cargo test
         run: cargo test
         working-directory: src-tauri
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: src-tauri
 
   # The server, on Linux and Windows: the server suite against ips-server and the Rust tests of the two crates (the
   # Tauri app builds on Windows only, see the rust job). Linux also runs the e2e suite against ips-server.
@@ -127,6 +130,8 @@ jobs:
       - if: steps.modules.outputs.cache-hit != 'true'
         run: npm ci
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: clippy
       # Its own key: the tauri cache belongs to the rust and release jobs.
       - uses: Swatinem/rust-cache@v2
         with:
@@ -135,6 +140,9 @@ jobs:
       - run: npm run test:server
       - name: cargo test
         run: cargo test -p ips-server -p ips-agent
+        working-directory: src-tauri
+      - name: cargo clippy
+        run: cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings
         working-directory: src-tauri
       - if: runner.os == 'Linux'
         run: npm run build

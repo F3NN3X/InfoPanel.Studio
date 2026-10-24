@@ -286,6 +286,9 @@ mod tests {
         assert_eq!(first["shown"], "desk");
         // `shown` changed (not yet a kiosk), then the kiosk joined.
         assert!(watcher.try_recv().is_ok() && watcher.try_recv().is_ok());
+        // Kiosks are live state: control.json never lists them or their addresses.
+        let saved = std::fs::read_to_string(dir.path().join("control.json")).unwrap_or_default();
+        assert!(!saved.contains("kiosks") && !saved.contains("10.0.0.2"), "{saved}");
         drop(stream);
         assert!(watcher.try_recv().is_ok());
         assert_eq!(control.get()["kiosks"], json!([]));

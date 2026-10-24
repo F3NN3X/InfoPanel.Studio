@@ -235,6 +235,7 @@ Active Connections
         let info = process_info(child.id());
         let own = process_info(std::process::id());
         let _ = child.kill();
+        let _ = child.wait();
         let info = info.expect("child process");
         assert!(info.same_user, "child not seen as the same user");
         assert!(own.is_some(), "own process not found");
