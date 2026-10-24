@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.17] - 2026-10-24
+
 ### Added
 
 - **A native dashboard server (experimental).** Settings › Diagnostics › Server (experimental) › Native runs the dashboard server inside the app instead of as a separate Node process. The server answers the same, reads and writes the same files, so you can switch back and forth. It uses about half the memory: 41 MB against 82 MB for the app plus the Node server, idle or with five kiosks connected. Node stays the default for now.
