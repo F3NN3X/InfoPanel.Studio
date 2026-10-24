@@ -87,9 +87,13 @@ or on the pull request that merged it, or the last green nightly: `tools/ci/rele
 section as its notes and the NSIS installer (`InfoPanel Studio_<version>_x64-setup.exe`) attached. No test depends on
 the machine's locale.
 
-To release: bump `version` in `package.json` (and `npm install` to update the
-lockfile), move the **Unreleased** entries in `CHANGELOG.md` under
-`## [X.Y.Z] - YYYY-MM-DD`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+`main` takes changes only through pull requests: its ruleset requires `ci-ok` and blocks deleting the branch.
+
+To release, on a branch: bump the version in `package.json`, `package-lock.json` (both `version` fields),
+`src-tauri/Cargo.toml`, `src-tauri/crates/ips-server/Cargo.toml`, `src-tauri/crates/ips-agent/Cargo.toml` and the
+three matching entries in `src-tauri/Cargo.lock` (`cargo check --workspace --locked` confirms the lockfile), and move
+the **Unreleased** entries in `CHANGELOG.md` under `## [X.Y.Z] - YYYY-MM-DD`. Open a pull request, merge it once
+`ci-ok` is green, then tag the merge commit on `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 ## Dev server vs the standalone server
 

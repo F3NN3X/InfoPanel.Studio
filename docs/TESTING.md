@@ -22,12 +22,8 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
   own: unit tests in its modules, route tests over a real socket (`crates/ips-server/tests/routes*.rs`) and parity tests
   (`tests/parity*.rs`) that read the frozen Node-server cases in `tests/fixtures/parity/` and are never regenerated.
   `ips-agent` has unit tests and a forwarder test over a real socket.
-- `npm run test:server` builds `ips-server` and runs the HTTP suite in `tests/server/` against it; a plain `npm test`
-  leaves that suite out. The server (`ips-server`) is the
-  Rust code in `src-tauri/crates/ips-server`: its unit tests sit in its modules, and `tests/parity*.rs` read the frozen
-  fixtures in `tests/fixtures/parity/` (output of the removed Node server, never regenerated).
-- `tests/server/` (`npm run test:server`) is the HTTP-level server suite, run against the built `ips-server` binary
-  (`SERVER_CMD` overrides the debug build). A plain `npm test` leaves it out because it needs that binary.
+- `tests/server/` is the HTTP-level server suite. `npm run test:server` builds `ips-server` and runs it against that
+  binary (`SERVER_CMD` overrides the debug build); a plain `npm test` leaves it out because it needs the binary.
 - The Playwright e2e specs (`tests/e2e/`, `npm run test:e2e`) cover what only a real browser and server show: the
   kiosk rendering, live updates over SSE, the studio's save and undo, the proxy and request-guard rules over HTTP, and
   the deterministic budgets. Keep them few. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.
@@ -39,7 +35,8 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
 
 - `npm run verify` works out the changed files (commits since the merge base with `origin/main`, staged, unstaged,
   untracked), finds their features and runs the checks those features need, fast to slow: lint (changed files), typecheck,
-  unit, build, budgets, settings build, server suite, lab, e2e, `cargo-server`, `cargo-app`. The unit step runs the
+  unit, build, budgets, settings build, server build and suite, lab, e2e, `cargo-server`, then `cargo-app` (after
+  `tools/ci-stub-desktop.mjs`). actionlint runs after lint when a workflow changed. The unit step runs the
   features' tests plus the tests that import a changed source file (`vitest related`), in one call.
 - `--fast` runs only the features' own tests. `--full` (or `npm run verify:full`) runs every check. A change to the map,
   to `tools/verify*` or to the dependencies runs everything.
