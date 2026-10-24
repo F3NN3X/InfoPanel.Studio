@@ -3,7 +3,7 @@ id: remap
 title: Sensor remap
 icon: swap_horiz
 related: [import, sensors]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.23
 ---
 
 Profiles from another PC read other hardware. Remap points them at yours.
@@ -27,4 +27,4 @@ Bindings are grouped by the sensor they read, so one choice fixes every item tha
 2. Then an automatic match: reference, plugin key, then name.
 3. Then a suggestion, when one sensor of the same type stands out.
 
-**Reset to automatic** takes a group back to the automatic match, and **Leave unbound** empties it on purpose. Reopen remap any time from the canvas editor.
+**Reset to automatic** takes a group back to the sensor the profile came with, then matches it again. **Leave unbound** empties it on purpose. Reopen remap any time from the canvas editor.

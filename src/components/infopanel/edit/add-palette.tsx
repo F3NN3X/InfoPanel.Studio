@@ -1,10 +1,17 @@
 /**
  * The InfoPanel editor's Add palette: InfoPanel's 14 item kinds in four groups (Text, Data,
- * Media, Layout). A click adds the kind with InfoPanel's creation defaults; a sensor kind then
- * asks for its sensor, an image kind for its file first.
+ * Media, Layout). A click adds the kind centred on the canvas, a drag onto the canvas adds it
+ * where it is dropped; a sensor kind then asks for its sensor, an image kind for its file first.
  */
 import { PALETTE, PALETTE_GROUPS, type PaletteEntry } from "@/lib/infopanel/editor/create";
+import type { ItemKind } from "@/lib/infopanel/schema";
 import { kindIcon } from "./items-tree";
+
+/** The drag type a palette entry carries (its kind). */
+export const PALETTE_DRAG = "application/x-infopanel-kind";
+
+/** The kind a palette drag carries; null for anything else. */
+export const paletteKindOf = (data: string): ItemKind | null => PALETTE.find((p) => p.kind === data)?.kind ?? null;
 
 interface AddPaletteProps {
   onAdd: (entry: PaletteEntry) => void;
@@ -29,7 +36,12 @@ export function AddPalette({ onAdd }: AddPaletteProps) {
                   key={p.kind}
                   type="button"
                   onClick={() => onAdd(p)}
-                  title={`Add ${p.label}${native && native !== p.label ? ` (InfoPanel’s ${native})` : ""}${p.sensor ? ", then choose its sensor" : ""}`}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData(PALETTE_DRAG, p.kind);
+                    e.dataTransfer.effectAllowed = "copy";
+                  }}
+                  title={`Add ${p.label} (or drag it onto the canvas)${native && native !== p.label ? ` (InfoPanel’s ${native})` : ""}${p.sensor ? ", then choose its sensor" : ""}`}
                   className="flex h-8 min-w-0 items-center gap-2 rounded-[7px] px-2 text-left text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60"
                 >
                   <Icon className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />

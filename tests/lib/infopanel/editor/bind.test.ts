@@ -18,8 +18,11 @@ describe("rebindChosen (the import's remap choices)", () => {
     const bar = (group as Extract<typeof group, { kind: "Group" }>).DisplayItems[0];
     for (const item of [cpu, bar]) {
       expect(bindingRef(item as BoundItem)).toBe("plugin:/p/c/fps");
-      expect(r.keyOf(item)).toEqual({ key: "plugins.p.c.fps", via: "chosen" });
+      expect(r.keyOf(item)).toMatchObject({ key: "plugins.p.c.fps", via: "chosen" });
     }
+    // Each keeps the binding it was imported with, for Reset to automatic.
+    expect(r.keyOf(cpu)?.original).toEqual({ SensorType: "Libre", SensorName: "CPU", HwInfoRemoteIndex: -1, Id: 0, Instance: 0, EntryId: 0, LibreSensorId: "/cpu/0", PluginSensorId: "" });
+    expect(r.keyOf(bar)?.original).toMatchObject({ SensorType: "Libre", LibreSensorId: "/gpu/0" });
   });
 
   it("leaves automatic matches, left unbound, and unknown keys as they were", () => {

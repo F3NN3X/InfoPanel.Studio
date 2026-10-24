@@ -12,12 +12,20 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **New InfoPanel profile.** A profile from scratch, with a name and a size (480 × 320 up to 1920 × 1080, or custom), as a new screen in the editor. It's on the InfoPanel page, in Design's Add list under Layouts, in the Import window, in the Library and in the command palette.
 - **Add palette for InfoPanel's 14 item kinds**, grouped as Text, Data, Media and Layout. Each new item gets InfoPanel's own defaults and goes where InfoPanel would put it: into the selected group unless it's locked, else on top.
 - **Profile settings.** With nothing selected the inspector edits the profile: name, size, background, font, colours, font scale, Show FPS, OpenGL and the web view settings, with InfoPanel's own checks. Resizing keeps every item in place.
+- **Snapping and guides in the InfoPanel editor.** A move or resize snaps to the canvas's edges and centre and to the other items, with guide lines; hold Alt to stop it. Shift keeps a drag on one axis and a resize in proportion. The selection shows its size, and a hint line under the canvas names the keys.
+- **Several items at once.** With more than one item selected, the inspector aligns them (left, centre, right, top, middle, bottom), spreads them evenly across or down, and edits the fields they share, such as X, Y, font and colours. Each is one undo step.
+- **Drag from Add.** Drag a kind from the Add palette onto the canvas to create it there; a click still adds it centred.
+- **New items look at home on the profile.** Text takes the profile's colour; Bar, Graph and Donut sit on a muted track with a blue accent and no frame; a Gauge is a blue ring; a Shape is a rounded card a little lighter than the background. They're ordinary InfoPanel fields, so the .infopanel file carries them.
+- **A bound Table takes its plugin's column format**, when the InfoPanel build reports it.
+- **Locked items let clicks through on the canvas**, to the item below. Select them in Layers.
 - **Sensor picker with native bindings.** Choose a live Data API sensor, by source and device; the item gets InfoPanel's own binding, so the .infopanel file reads that sensor. On an InfoPanel build that reports no sensor ids it binds the preview only, and says so.
 
 ### Fixed
 
 - **A remapped sensor was lost in the .infopanel export.** A Remap choice, in the editor or at import, now rewrites the item's InfoPanel binding too.
 - **The .infopanel export now writes `_valueType` next to `ValueType`**, as InfoPanel's own files do.
+- **Reset to automatic in Remap now restores the original sensor.** After a choice it used to resolve the new binding, so only undo brought the old one back.
+- **The Remap panel kept its selected row after a choice.** It used to jump back to the first row.
 - **Audio Meter's Auto said it picks the loudest device.** It meters the default device: the default output, or the default input when Show is Inputs. The Device list's Auto row now says so and names the device it follows right now.
 
 ## [1.3.0-beta.22] - 2026-10-24

@@ -125,7 +125,7 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
               {state && <span title={MODE_TITLE[state]} aria-label={MODE_TITLE[state]} className={cn("h-1.5 w-1.5 shrink-0 rounded-full", MODE_DOT[state])} />}
               <button
                 type="button"
-                title={item.IsLocked ? "Locked: selects but doesn’t move" : "Lock"}
+                title={item.IsLocked ? "Locked: the mouse ignores it on the canvas; select it here" : "Lock"}
                 aria-label={item.IsLocked ? `Unlock ${item.Name}` : `Lock ${item.Name}`}
                 aria-pressed={item.IsLocked}
                 onClick={(e) => {

@@ -531,12 +531,22 @@ config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
   by `importAsProfile` as a new screen and opened on the page. `openNewInfoPanel` (`file-doors.ts`) opens the
   dialog from the Add panel, the Import door, the Library and the command palette.
 - **Add palette** (`add-palette.tsx`, `editor/create.ts`): the 14 kinds with InfoPanel's creation defaults
-  (`newItem`), inserted by `AddDisplayItem`'s rules (`insertItem`) and centred. Sensor kinds then open the sensor
-  picker; Image and Sensor image first take a My library file (`withNewFileItem`, as a Library drop).
+  (`newItem`), styled from the profile (`editor/look.ts`: text in the profile's Color; Bar, Graph and Donut on a
+  track 14 % from the background toward the text colour, filled with `ACCENT` #FF3B82F6, no frame; a Gauge as a
+  vector ring in the same accent, baked to frames on export; a Shape as a 12 px rounded card 7 % off the
+  background, no frame or gradient). All are ordinary InfoPanel fields, so the export is unchanged. Inserted by
+  `AddDisplayItem`'s rules (`insertItem`), centred on a click or on the drop point of a drag onto the canvas
+  (`placed`, snapped as a move). Sensor kinds then open the sensor picker; Image and Sensor image first take a
+  My library file (`withNewFileItem`, as a Library drop).
 - **Native bindings** (`editor/bind.ts`, `bindingFromRef` in `sensors.ts`): a chosen sensor's Data API `ref`
   becomes SensorType and its id fields, plus SensorName, so the `.infopanel` export reads it. The sensor picker
   (`sensor-picker.tsx`) does this, and so does a Remap choice, in the editor (`withGroupKeys`) and at import
-  (`rebindChosen` in `buildCanvas`). A sensor with no ref binds the preview only.
+  (`rebindChosen` in `buildCanvas`). A sensor with no ref binds the preview only. A bound Table takes its plugin's
+  `TableFormat` from the Data API's `table.format` (the fork's `IPluginTable.DefaultFormat`), else keeps the default.
+- **Remap reset** (`withRemap` in `canvas-edit.ts`): the first choice that rewrites an imported item's binding keeps
+  the binding as imported under `$.original` (studio-only; `readStored` checks it against the kind's schema).
+  Reset to automatic puts it back, then the group resolves as usual. Older stored forms have no original and
+  resolve from the binding they have.
 - **Profile settings** (`profile-settings.tsx`): the inspector with nothing selected; every field InfoPanel's
   export carries, checked by `checkValue` over `PROFILE`, committed with the items unchanged.
 
@@ -552,9 +562,21 @@ config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
 - **Canvas** (`edit-canvas.tsx`, `edit-layer.tsx`): `ProfileView` and
   `nativeLayer` as the zone draws, with the edit layer over it. The layer
   finds items through the drawn `data-path` attributes, previews a drag and
-  commits once. Show modes tints each item (native, InfoPanel, can't
-  convert); Compare lays a chosen InfoPanel screenshot over the render with
-  a difference blend.
+  commits once. A click picks the topmost item the mouse takes
+  (`editor/arrange.ts` `hitTest`: locked and hidden items let it through, a
+  full-canvas background wins only alone). A move or resize snaps within 4
+  screen pixels to the canvas's and the other items' edges and centres
+  (`editor/snap.ts`), drawing the guides; Alt turns it off, Shift keeps a
+  move on one axis and a resize in proportion. The selection shows its size.
+  Several selected items get the multi inspector (`multi-inspector.tsx`):
+  align, distribute and their shared fields, one step each. Show modes tints
+  each item (native, InfoPanel, can't convert); Compare lays a chosen
+  InfoPanel screenshot over the render with a difference blend.
+- **Live on the screen**: no separate path. Every commit is a config change,
+  which the studio pushes to the server 400 ms later (`pushConfig` in
+  `App.tsx`, as any edit); the server's config stream tells each kiosk and
+  desktop panel, which pulls the config and redraws the zone. A drag's
+  preview is not pushed; its commit on release is.
 - **Sensors**: Unbound, Live or Mock (`sensorView`). Live subscribes to
   the items' keys through `useSensors`; Mock gives each binding group one
   slider value. Remap (`src/components/infopanel/remap-dialog.tsx`) wraps
@@ -566,8 +588,9 @@ config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
   panel per kind); Draw as, Position (with `checkGeometry`'s refusals),
   Sensor and the unknown fields are its special sections. A value
   InfoPanel's setter would refuse is shown with its message and not stored.
-- **Keys** (`canvas-keys.ts`, capture phase): Ctrl+D, Ctrl+G,
-  Ctrl+Shift+G, Del, arrows (Shift: 10 px), Esc. The studio's other zone
+- **Keys** (`canvas-keys.ts`, capture phase; the cheat sheet's "InfoPanel
+  editor" group): Ctrl+D, Ctrl+G, Ctrl+Shift+G, Del, arrows (Shift: 10 px),
+  Esc. Nudges never snap. The studio's other zone
   shortcuts are held back while the editor is open; undo, redo, save, the
   palette and the cheat sheet pass through. Nothing fires while typing or
   with a dialog open.

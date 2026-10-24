@@ -9,7 +9,7 @@ import { reviewFont, type Verdict } from "../font-licence.ts";
 import { matchSupplied, type SuppliedFace } from "../font-supply.ts";
 import { gaugePaths, isStale } from "../gauges/frames.ts";
 import type { DataApiInfo } from "../import/stored.ts";
-import { toStored, type ItemImport, type StoredCanvas, type StoredFont } from "../import/stored.ts";
+import { importRecord, toStored, type ItemImport, type StoredCanvas, type StoredFont } from "../import/stored.ts";
 import { bundle } from "../import/bundle.ts";
 import { readFaces, type FontCategory } from "../sfnt.ts";
 import type { DisplayItem, Profile } from "../schema.ts";
@@ -53,10 +53,7 @@ export function restoreStored(
     profile,
     items: doc.items,
     assets: doc.assets,
-    keyOf: (item) => {
-      const k = keys.get(pathOf.get(item) ?? "");
-      return k && (k.key !== undefined || k.via) ? { ...(k.key !== undefined ? { key: k.key } : {}), ...(k.via ? { via: k.via } : {}) } : null;
-    },
+    keyOf: (item) => importRecord(keys.get(pathOf.get(item) ?? "")),
     fonts: stored.fonts,
     screenshot: stored.screenshot,
   });

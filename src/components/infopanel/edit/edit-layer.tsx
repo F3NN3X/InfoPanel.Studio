@@ -1,17 +1,35 @@
 /**
  * The editing surface over the drawn profile (spec §7): click to select (Shift or Ctrl adds),
  * drag to move, drag a handle to resize. It finds what is under the pointer through the drawn
- * items' `data-path` attributes, so the renderer has no editing code. A selected item gets an
- * accent outline and a badge naming its mode and kind; Show modes tints every item. Coordinates
- * are profile pixels. Ported from the lab's EditLayer.
+ * items' `data-path` attributes, so the renderer has no editing code; the click goes to the
+ * topmost item the mouse takes (`hitTest`: locked and hidden items let it through). A move or
+ * resize snaps to the canvas and the other items with guides drawn (Alt: off), Shift keeps a move
+ * on one axis and a resize in proportion. A selected item gets an accent outline, a badge naming
+ * its mode and kind, and its size; Show modes tints every item. Coordinates are profile pixels.
+ * Ported from the lab's EditLayer.
  */
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { Lock } from "lucide-react";
+import { flatPaths } from "@/lib/infopanel/canvas-edit";
+import { hitTest } from "@/lib/infopanel/editor/arrange";
 import { itemAt, moveBy, setBox, type Box, type Path } from "@/lib/infopanel/editor/ops";
+import {
+  constrainAxis,
+  guidesAt,
+  keepAspect,
+  snapMove,
+  snapResize,
+  snapTargets,
+  snapThreshold,
+  unionBox,
+  type Guide,
+  type Handle,
+  type SnapTargets,
+} from "@/lib/infopanel/editor/snap";
+import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { ModeState } from "@/lib/infopanel/canvas-edit";
 import type { CanvasEditor } from "./use-canvas-editor";
 
-type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 const HANDLES: Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const DRAG_THRESHOLD = 2;
 
@@ -24,11 +42,14 @@ interface Drag {
   paths: Path[];
   handle?: Handle;
   box?: Box;
+  /** The moved items' box at the start (a move snaps it as one). */
+  start: Box | null;
+  targets: SnapTargets;
   moved: boolean;
 }
 
 /** The union box of an item's drawn elements (a group's children included), in profile pixels. */
-function measure(root: HTMLElement, layer: HTMLElement, path: Path, k: number): Box | null {
+export function measure(root: HTMLElement, layer: HTMLElement, path: Path, k: number): Box | null {
   const r = root.getBoundingClientRect();
   const parts = [...root.querySelectorAll(`[data-path="${path}"], [data-path^="${path}."]`)]
     .filter((e) => !layer.contains(e))
@@ -47,11 +68,23 @@ function measure(root: HTMLElement, layer: HTMLElement, path: Path, k: number): 
   };
 }
 
+/**
+ * What a move or resize snaps to: the canvas, and every drawn item but the moving ones (and what
+ * they hold). Groups have no box of their own; their items count one by one.
+ */
+export function measureTargets(root: HTMLElement, layer: HTMLElement, items: readonly DisplayItem[], profile: { Width: number; Height: number }, moving: readonly Path[], k: number): SnapTargets {
+  const others = flatPaths(items)
+    .filter((p) => itemAt(items, p)?.kind !== "Group" && !moving.some((m) => p === m || p.startsWith(m + ".")))
+    .flatMap((p) => measure(root, layer, p, k) ?? []);
+  return snapTargets(profile, others);
+}
+
 const sameBoxes = (a: Record<string, Box>, b: Record<string, Box>) =>
   Object.keys(a).length === Object.keys(b).length &&
   Object.entries(a).every(([p, x]) => b[p] && (["x", "y", "width", "height"] as const).every((f) => Math.abs(x[f] - b[p][f]) < 0.25));
 
 const ACCENT = "var(--ui-accent)";
+const GUIDE = "oklch(0.72 0.24 340)";
 const TINT: Record<ModeState, { bg: string; border: string }> = {
   native: { bg: "oklch(0.72 0.15 255 / 0.16)", border: "oklch(0.72 0.15 255 / 0.7)" },
   infopanel: { bg: "oklch(0.8 0.15 75 / 0.16)", border: "oklch(0.8 0.15 75 / 0.7)" },
@@ -65,10 +98,19 @@ export function badgeText(kind: string, state: ModeState | undefined): string {
   return state === "native" ? `Native · ${kind}` : state === "stuck" ? `InfoPanel · ${kind} · can’t convert` : `InfoPanel · ${kind}`;
 }
 
-export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasEditor; profileWidth: number; showModes: boolean }) {
+export interface EditLayerProps {
+  editor: CanvasEditor;
+  profileWidth: number;
+  profileHeight: number;
+  showModes: boolean;
+}
+
+export function EditLayer({ editor, profileWidth, profileHeight, showModes }: EditLayerProps) {
   const layer = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
-  const [boxes, setBoxes] = useState<Record<string, Box>>({});
+  const { boxes, setBoxes } = editor;
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const profile = { Width: profileWidth, Height: profileHeight };
   /** Profile pixels per screen pixel, so handles and badges keep their screen size at any zoom. */
   const [zoomK, setZoomK] = useState(1);
   const measured = showModes ? [...new Set([...editor.modes.keys(), ...editor.selection])] : editor.selection;
@@ -110,13 +152,14 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
     const handle = (e.target as HTMLElement).dataset.handle as Handle | undefined;
     const additive = e.shiftKey || e.ctrlKey || e.metaKey;
     let paths = editor.selection;
+    const root = layer.current!.parentElement!;
+    const k = scaleOf();
     if (!handle) {
-      const root = layer.current!.parentElement!;
-      const hit = document
+      const under = document
         .elementsFromPoint(e.clientX, e.clientY)
-        .find((el) => root.contains(el) && !layer.current!.contains(el) && el.closest("[data-path]"))
-        ?.closest("[data-path]")
-        ?.getAttribute("data-path");
+        .filter((el) => root.contains(el) && !layer.current!.contains(el))
+        .flatMap((el) => el.closest("[data-path]")?.getAttribute("data-path") ?? []);
+      const hit = hitTest(editor.committed, under, (p) => measure(root, layer.current!, p, k), profile);
       if (hit == null) {
         if (!additive) editor.select([]);
         return;
@@ -137,11 +180,13 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
     drag.current = {
       x: e.clientX,
       y: e.clientY,
-      k: scaleOf(),
+      k,
       base: editor.committed,
       paths: movable,
       handle,
       box: handle && single ? boxes[single] : undefined,
+      start: handle ? null : unionBox(movable.flatMap((p) => measure(root, layer.current!, p, k) ?? [])),
+      targets: measureTargets(root, layer.current!, editor.committed, profile, movable, k),
       moved: false,
     };
   };
@@ -153,8 +198,10 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
     const dy = (e.clientY - d.y) * d.k;
     if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_THRESHOLD) return;
     d.moved = true;
+    // Snapping is in screen pixels, so it feels the same at any zoom; Alt turns it off.
+    const threshold = snapThreshold(d.k, e.altKey);
     if (d.handle && d.box && single) {
-      const b = { ...d.box };
+      let b = { ...d.box };
       if (d.handle.includes("e")) b.width = Math.max(1, d.box.width + dx);
       if (d.handle.includes("s")) b.height = Math.max(1, d.box.height + dy);
       if (d.handle.includes("w")) {
@@ -165,15 +212,27 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
         b.height = Math.max(1, d.box.height - dy);
         b.y = d.box.y + d.box.height - b.height;
       }
+      const snapped = snapResize(b, d.handle, d.targets, threshold);
+      b = snapped.box;
+      // Shift keeps the shape; the guides show what the kept shape still lines up with.
+      if (e.shiftKey) b = keepAspect(d.box, b, d.handle);
+      setGuides(e.shiftKey ? (threshold > 0 ? guidesAt(b, d.targets) : []) : snapped.guides);
       editor.preview(setBox(d.base, single, b));
     } else {
-      editor.preview(moveBy(d.base, d.paths, Math.round(dx), Math.round(dy)));
+      const free = e.shiftKey ? constrainAxis(dx, dy) : { dx, dy };
+      const s = d.start ? snapMove({ ...d.start, x: d.start.x + free.dx, y: d.start.y + free.dy }, d.targets, threshold) : { dx: 0, dy: 0, guides: [] };
+      // On one axis only that axis snaps.
+      const lockX = e.shiftKey && free.dx === 0;
+      const lockY = e.shiftKey && free.dy === 0;
+      setGuides(s.guides.filter((g) => (g.axis === "x" ? !lockX : !lockY)));
+      editor.preview(moveBy(d.base, d.paths, Math.round(free.dx + (lockX ? 0 : s.dx)), Math.round(free.dy + (lockY ? 0 : s.dy))));
     }
   };
 
   const onPointerUp = () => {
     const d = drag.current;
     drag.current = null;
+    setGuides([]);
     if (!d) return;
     // One drag, one undo step.
     if (d.moved) editor.commit(editor.items);
@@ -182,6 +241,7 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
 
   const onPointerCancel = () => {
     drag.current = null;
+    setGuides([]);
     editor.preview(null);
   };
 
@@ -261,6 +321,27 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
                 {item.IsLocked && <Lock style={{ width: fontPx, height: fontPx }} aria-label="Locked" />}
               </span>
             )}
+            {p === single && (
+              <span
+                data-size-label=""
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: `calc(100% + ${6 * zoomK}px)`,
+                  transform: "translateX(-50%)",
+                  whiteSpace: "nowrap",
+                  padding: `${1 * zoomK}px ${6 * zoomK}px`,
+                  borderRadius: 4 * zoomK,
+                  background: ACCENT,
+                  color: "#fff",
+                  fontSize: 10.5 * zoomK,
+                  lineHeight: 1.3,
+                  fontFamily: "var(--font-ui-mono, monospace)",
+                }}
+              >
+                {Math.round(b.width)} × {Math.round(b.height)}
+              </span>
+            )}
             {p === single &&
               resizable &&
               HANDLES.map((h) => (
@@ -284,6 +365,18 @@ export function EditLayer({ editor, profileWidth, showModes }: { editor: CanvasE
           </div>
         );
       })}
+      {guides.map((g) => (
+        <div
+          key={`${g.axis}${g.at}`}
+          data-guide={g.axis}
+          style={{
+            position: "absolute",
+            pointerEvents: "none",
+            background: GUIDE,
+            ...(g.axis === "x" ? { left: g.at - zoomK / 2, top: 0, width: zoomK, height: "100%" } : { top: g.at - zoomK / 2, left: 0, height: zoomK, width: "100%" }),
+          }}
+        />
+      ))}
     </div>
   );
 }
