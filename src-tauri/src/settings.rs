@@ -7,7 +7,7 @@ use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 
 /// Current settings file layout; bump with a migration in `load_from_str`.
-pub const SETTINGS_VERSION: u32 = 2;
+pub const SETTINGS_VERSION: u32 = 3;
 
 pub const DEFAULT_HOST: &str = "127.0.0.1";
 pub const LAN_HOST: &str = "0.0.0.0";
@@ -87,12 +87,12 @@ pub enum OpenStudioIn {
     DefaultBrowser,
 }
 
-/// Which server the app runs: the bundled Node sidecar, or ips-server inside the app (experimental).
+/// Which server the app runs: ips-server inside the app (the default), or the bundled Node sidecar.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ServerImpl {
-    #[default]
     Node,
+    #[default]
     Native,
 }
 
@@ -179,7 +179,7 @@ impl Default for Settings {
             auto_download: false,
             agents: AgentSettings::default(),
             debug: false,
-            server: ServerImpl::Node,
+            server: ServerImpl::Native,
             close_warning_shown: false,
         }
     }
@@ -316,7 +316,8 @@ pub fn server_origin(s: &Settings) -> String {
     origin(s.host(), s.port)
 }
 
-/// Version 1 kept the bind address as `host`; it becomes `listen`.
+/// Version 1 kept the bind address as `host`; it becomes `listen`. Version 2 saved `server: "node"`, the default
+/// then, for everyone: it becomes native, the new default (Settings › Diagnostics switches back).
 fn migrate(raw: &mut Value) {
     let Some(map) = raw.as_object_mut() else {
         return;
@@ -332,6 +333,10 @@ fn migrate(raw: &mut Value) {
                 );
             }
         }
+    }
+    if version < 3 && map.get("server").and_then(Value::as_str) == Some("node") {
+        map.remove("server");
+        log::info!("settings: the server moves from node to native, the new default");
     }
 }
 
@@ -439,7 +444,7 @@ mod tests {
         assert_eq!(v["allowedHosts"], json!([]));
         assert_eq!(v["allowRemoteEdit"], false);
         assert_eq!(v["agents"]["enabled"], false);
-        assert_eq!(v["version"], 2);
+        assert_eq!(v["version"], SETTINGS_VERSION);
         assert!(v.get("host").is_none());
     }
 
@@ -520,11 +525,11 @@ mod tests {
     }
 
     #[test]
-    fn server_defaults_to_node_and_takes_its_two_values_only() {
-        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().server, ServerImpl::Node);
-        assert_eq!(load_from_str(r#"{ "server": "native" }"#).unwrap().server, ServerImpl::Native);
-        assert_eq!(load_from_str(r#"{ "server": "deno" }"#).unwrap().server, ServerImpl::Node);
-        assert_eq!(serde_json::to_value(Settings::default()).unwrap()["server"], "node");
+    fn server_defaults_to_native_and_takes_its_two_values_only() {
+        assert_eq!(load_from_str(r#"{ "port": 3942 }"#).unwrap().server, ServerImpl::Native);
+        assert_eq!(load_from_str(r#"{ "version": 3, "server": "node" }"#).unwrap().server, ServerImpl::Node);
+        assert_eq!(load_from_str(r#"{ "server": "deno" }"#).unwrap().server, ServerImpl::Native);
+        assert_eq!(serde_json::to_value(Settings::default()).unwrap()["server"], "native");
         let s = Settings::default();
         let set = |v| with_setting(&s, "server", v).map(|n| n.server);
         assert_eq!(set(json!("native")), Ok(ServerImpl::Native));
@@ -570,6 +575,16 @@ mod tests {
     }
 
     #[test]
+    fn v2_node_server_migrates_to_native() {
+        for version in [0, 1, 2] {
+            let text = format!(r#"{{ "version": {version}, "server": "node", "port": 3942 }}"#);
+            let s = load_from_str(&text).unwrap();
+            assert_eq!((s.server, s.port, s.version), (ServerImpl::Native, 3942, 3), "v{version}");
+        }
+        assert_eq!(load_from_str(r#"{ "version": 2, "server": "native" }"#).unwrap().server, ServerImpl::Native);
+    }
+
+    #[test]
     fn v1_host_migrates_to_listen() {
         for (host, listen) in [
             ("127.0.0.1", Listen::Local),
@@ -583,7 +598,7 @@ mod tests {
             let s = load_from_str(&text).unwrap();
             assert_eq!(s.listen, listen, "{host}");
             assert_eq!(s.port, 3942);
-            assert_eq!(s.version, 2);
+            assert_eq!(s.version, SETTINGS_VERSION);
         }
         // Version 0 had no version key at all.
         assert_eq!(

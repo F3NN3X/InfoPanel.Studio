@@ -1,6 +1,6 @@
 # InfoPanel Studio (desktop app)
 
-A Tauri 2 app that runs the dashboard server itself (a bundled Node and `server.mjs`) and opens the
+A Tauri 2 app that runs the dashboard server itself (`ips-server`, inside the app's process) and opens the
 studio in its own window. The kiosk page InfoPanel shows keeps working while the app sits in the tray.
 The design and decisions are in [TAURI_PLAN.md](TAURI_PLAN.md).
 
@@ -53,12 +53,12 @@ sections.
   Restart and update. A found update also shows in the tray as `Update to vX.Y.Z…`. Installing stops the app's
   server, runs the installer and relaunches the app.
 - **Coding agents:** off by default. Turning it on writes the Claude Code and Codex hooks (backing up
-  `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's own Node and the current
+  `~/.claude/settings.json` and `~/.codex/hooks.json`), pointing at the app's `ips-agent.exe` and the current
   port. They are rewritten after a port change or an app update, and removed when you turn it off or
   uninstall the app.
-- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the server (experimental: Node, the bundled
-  `server.mjs`, or Native, `ips-server` running inside the app; read when the server starts, so a change shows the
-  restart bar), the live logs of the server, app and studio, versions and file locations, and the bundled changelog.
+- **Diagnostics, Logs, About and Changelog:** debug mode (see below), the server (Native, the default: `ips-server`
+  running inside the app; or Node, the bundled `server.mjs`, until it is removed; read when the server starts, so a
+  change shows the restart bar), the live logs of the server, app and studio, versions and file locations, and the bundled changelog.
 
 ## Releases and updates
 
@@ -150,5 +150,5 @@ there), leave `INFOPANEL_STUDIO_CDP_PORT` out.
 
 The `desktop` Playwright project (`tests/desktop/`, Windows only) does all of this: build with
 `npm run desktop:web && npm run desktop:prepare && npx tauri build --debug --no-bundle`, then
-`npx playwright test --project=desktop`. `DESKTOP_SERVER=native` runs them against the native server (it writes
-`"server": "native"` into the scratch settings).
+`npx playwright test --project=desktop`. They run against the native server; `DESKTOP_SERVER=node` runs them
+against the Node sidecar (it writes `"server": "node"` into the scratch settings).
