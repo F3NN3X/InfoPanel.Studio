@@ -6,6 +6,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.22] - 2026-10-24
+
+### Changed
+
+- **Every release is built from code that passed its checks.** The release build now stops unless the tagged commit passed CI (or the nightly run), and it runs the desktop app's Rust tests before building the installer.
+
 ## [1.3.0-beta.21] - 2026-10-24
 
 ### Added
