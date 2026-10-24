@@ -1,6 +1,7 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { hashTree, mergeChangeSets, parseNameStatus } from "../../tools/verify/git.mjs";
-import { featuresOf, resolveChanges } from "../../tools/verify/map.mjs";
+import { featuresOf, matchesGlob, resolveChanges } from "../../tools/verify/map.mjs";
 import { buildPlan, EXIT, exitCodeFor } from "../../tools/verify/plan.mjs";
 import { freshness, freshnessExit } from "../../tools/verify/record.mjs";
 
@@ -35,6 +36,14 @@ describe("change set", () => {
     const out = ["M", "src/a/m.ts", "R100", "src/a/old.ts", "src/b/new.ts", "D", "src/b/gone.ts", ""].join("\0");
     expect(parseNameStatus(out)).toEqual(["src/a/m.ts", "src/a/old.ts", "src/b/new.ts", "src/b/gone.ts"]);
     expect(mergeChangeSets(["b", "a"], ["a", "c"], [])).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("glob matching", () => {
+  it("agrees with Node's path.matchesGlob, dotfiles and braces included", () => {
+    const files = ["a/b.ts", "a/b/c.ts", "a/.x/c.ts", "a/.f.json", ".github/ci.yml", "x.test.tsx", "t/x.test.ts", "t/x.test", "a"];
+    const globs = ["a/**", "a/*", "a/**/*.ts", "**/*.ts", "*.{mjs,ts}", ".github/**", "a/.f.json", "t/x.test.*", "t/?.test.ts", "{a,t}/**", "a/b?ts"];
+    for (const glob of globs) for (const file of files) expect(matchesGlob(file, glob), `${glob} vs ${file}`).toBe(path.posix.matchesGlob(file, glob));
   });
 });
 
