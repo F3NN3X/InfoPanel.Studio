@@ -16,9 +16,13 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
 
 - One case per behaviour, plus its boundaries. No size x variant x skin matrix sweeps; use a table only where each row hits a different branch.
 - happy-dom only when the test needs a DOM.
-- Tests live in `tests/`, mirroring `src/` and `server/` (`src/lib/foo.ts` is tested by `tests/lib/foo.test.ts`).
+- Tests live in `tests/`, mirroring `src/` and `tools/` (`src/lib/foo.ts` is tested by `tests/lib/foo.test.ts`).
 - `npm test` stays under about 10 s locally.
-- Rust tests live in their modules (`#[cfg(test)]`) and run in CI with `cargo test`.
+- Rust tests live in their modules (`#[cfg(test)]`) and run in CI with `cargo test`. The server (`ips-server`) is the
+  Rust code in `src-tauri/crates/ips-server`: its unit tests sit in its modules, and `tests/parity*.rs` read the frozen
+  fixtures in `tests/fixtures/parity/` (output of the removed Node server, never regenerated).
+- `tests/server/` (`npm run test:server`) is the HTTP-level server suite, run against the built `ips-server` binary
+  (`SERVER_CMD` overrides the debug build). A plain `npm test` leaves it out because it needs that binary.
 - The Playwright e2e specs (`tests/e2e/`, `npm run test:e2e`) cover what only a real browser and server show: the
   kiosk rendering, live updates over SSE, the studio's save and undo, the proxy and request-guard rules over HTTP, and
   the deterministic budgets. Keep them few. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.

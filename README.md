@@ -19,7 +19,7 @@ Your config lives in `%LOCALAPPDATA%\InfoPanel\Dashboard` and is shared by the d
 ## Requirements
 
 - InfoPanel with its Data API enabled (it provides `/api/sensors` and `/events`, by default on `http://127.0.0.1:3921`)
-- To run from source: Node.js 20 or newer
+- To run from source: Node.js 20 or newer (builds the web app) and Rust stable (runs the server, `cargo`); the desktop app needs neither
 - Optional: the `wavelink-plugin` for the Wave Link widget, the `yr-weather-plugin` for the weather forecast, and `InfoPanel.Notifications` 2.0+ for alerts on Windows notifications
 
 ## Run from source
@@ -29,16 +29,17 @@ npm install
 npm run serve      # build, then start the server
 ```
 
-Open http://127.0.0.1:3922. After the first build, `npm start` starts the server without rebuilding.
+Open http://127.0.0.1:3922. `npm start` runs the server (`ips-server`, built with `cargo run --release`, so the first start compiles it) and builds the web app first when `dist/` is missing.
 
-On Windows you can double-click `start-dashboard.bat` instead. On the first run it installs the dependencies and builds the studio, then starts the server. Run `start-dashboard.bat rebuild` to build again after an update. The desktop app replaces it; it still works.
+On Windows you can double-click `start-dashboard.bat` instead. On the first run it installs the dependencies and builds the studio, then starts the server. Run `start-dashboard.bat rebuild` to build again after an update. It runs `src-tauri\target\release\ips-server.exe` when that is built, otherwise `cargo run --release -p ips-server`. The desktop app replaces it; it still works.
 
 | Script | What it does |
 |---|---|
 | `npm run dev` | Vite dev server on http://localhost:5173 with hot reload. Config and image-proxy requests are forwarded to the running server, so start that too. |
 | `npm run build` | Type-checks and builds `dist/`. |
-| `npm start` | Serves `dist/` on port 3922. |
+| `npm start` | Runs the server (`cargo run --release -p ips-server`) and serves `dist/` on port 3922. |
 | `npm run serve` | Both of the above. |
+| `npm run test:server` | Builds `ips-server` and runs the server suite (`tests/server`) against it. |
 | `npm run desktop:build` | Builds the desktop installer (see [docs/desktop/README.md](docs/desktop/README.md)). |
 
 The server listens on `127.0.0.1:3922`; set `PORT` or `HOST` to change it.

@@ -1438,16 +1438,11 @@ and blur. Reduced motion (General, or the system setting) turns it off. On a kio
 widget read what the agents report through their hooks and Claude's statusline, plus the
 token counts in their session files. Nothing is sent but the state, the tool's name, the
 project folder's name and the plan percentages; prompts, paths and session ids stay on
-the PC. Once, in a terminal in the dashboard folder:
-
-1. `node tools/agent-install.mjs` shows what it would add to `~/.claude/settings.json` and
-   `~/.codex/hooks.json`, and changes nothing.
-2. `node tools/agent-install.mjs --apply` adds them, keeping a dated backup of each file.
-   Your own hooks stay; your statusline keeps printing, wrapped by the forwarder.
-3. In Codex, run `/hooks` and approve the new hooks.
-
-`node tools/agent-install.mjs --remove --apply` takes them out again (`--remove` alone
-shows what it would take out). The hooks post to
+the PC. In the desktop app, turn on **Settings › Coding agents**: the app backs up
+`~/.claude/settings.json` and `~/.codex/hooks.json`, then adds its hooks with a dated backup of
+each file. Your own hooks stay; your statusline keeps printing, wrapped by the forwarder
+(`ips-agent.exe`). In Codex, run `/hooks` and approve the new hooks. Turning the setting off,
+or uninstalling the app, takes them out again. The hooks post to
 `http://127.0.0.1:3922` (set `DASHBOARD_URL` for another port) and never slow an agent
 down: with the dashboard closed they give up after a second.
 
@@ -1481,7 +1476,7 @@ In the **InfoPanel Studio** desktop app (see [desktop/README.md](desktop/README.
 
 - The top bar is the window's title bar. Drag it by its empty space, double-click it to maximize, and use the minimize, maximize and close buttons at its right end. Close hides the app to the tray; the server keeps running, so the kiosk page keeps updating.
 - **The Settings button at the foot of the left rail** (desktop app only) opens the app's settings: app zoom, start at login, open the studio on launch, close to tray, where the server listens (this computer or the local network; the port; extra allowed host names), updates, the **Coding agents** toggle, debug mode, logs and the changelog.
-- **Coding agents:** turning the toggle on writes the Claude Code and Codex hooks for you (with backups), using the app's own Node and the current port, so the `node tools/agent-install.mjs` steps above are not needed. Turning it off, or uninstalling the app, removes them. In Codex, still run `/hooks` once to approve them.
+- **Coding agents:** turning the toggle on writes the Claude Code and Codex hooks for you (with backups), using the app's `ips-agent.exe` and the current port. Turning it off, or uninstalling the app, removes them. In Codex, still run `/hooks` once to approve them.
 - **Export config** and **Import config…** use the system Save and Open dialogs. Import merges as before and is one undo step.
 - Pending edits are saved before the window hides or the app quits.
 

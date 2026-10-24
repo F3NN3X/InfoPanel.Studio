@@ -25,8 +25,9 @@ From `package.json`:
 | `npm run perf:budgets` | `node tools/perf/check-budgets.mjs` | The deterministic bundle budgets (CI) |
 | `npm run build:stats` | `vite build --mode stats` | An unminified build in `.cache/dist-stats` with the ticker's debug stats (`window.__tickerStats()`); serve it with `DASHBOARD_DIST` |
 | `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
-| `npm start` | `node server.mjs` | Serves `dist/` and the config endpoints |
-| `npm run serve` | `npm run build && node server.mjs` | Build, then start |
+| `npm start` | `node tools/start.mjs` | Builds `dist/` when it is missing, then runs `cargo run --release -p ips-server` (Rust stable needed): serves `dist/` and the config endpoints |
+| `npm run serve` | `npm run build && node tools/start.mjs` | Build, then start |
+| `npm run test:server` | `node tools/parity/test-native.mjs` | Builds the debug `ips-server`, then runs `tests/server` against it (`SERVER_CMD` points at another binary) |
 
 InfoPanel import lab (`lab/infopanel/`, a dev tool over `src/lib/infopanel/`; see its
 [README](../lab/infopanel/README.md)): `npm run lab` (page on http://localhost:5174),
@@ -73,10 +74,10 @@ lockfile), move the **Unreleased** entries in `CHANGELOG.md` under
 
 ## Dev server vs the standalone server
 
-**Standalone server (`server.mjs`).** Serves the built `dist/`, stores the
+**Standalone server (`ips-server`, `src-tauri/crates/ips-server`).** Serves the built `dist/`, stores the
 studio config and uploaded media, streams config changes to kiosk pages and
-proxies cover-art images. It uses only Node built-ins; the media routes are
-in `server/assets.mjs`. Environment variables it reads:
+proxies cover-art images. It is the same code the desktop app runs inside its own
+process; the media routes are in `crates/ips-server/src/assets.rs`. Environment variables it reads:
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -87,7 +88,7 @@ in `server/assets.mjs`. Environment variables it reads:
 | `ALLOW_REMOTE_EDIT` | unset | `1` accepts config and integrations writes from other machines; otherwise only from loopback (403). Control and reads stay open |
 | `ALLOWED_HOSTS` | unset | Extra `Host` names to serve, comma separated (e.g. `kiosk.lan,panel.example`). Without it only `localhost`, `127.0.0.1`, `[::1]` and `HOST` are served (421 otherwise); with `HOST=0.0.0.0` any IP address and the machine name work too |
 | `ASSETS_MAX_BYTES` | `2147483648` | Cap on the total size of the uploaded media; an upload that would pass it gets 507 |
-| `DASHBOARD_DIST` | `dist` beside `server.mjs` | The built app to serve (the desktop app points it at its bundled copy) |
+| `DASHBOARD_DIST` | `dist` in the working directory (`npm start` sets the repo's) | The built app to serve (the desktop app points it at its bundled copy) |
 | `DASHBOARD_DATA_DIR` | `%LOCALAPPDATA%\InfoPanel\Dashboard` | Where `config.json`, `assets` and the other state files live; takes precedence over `LOCALAPPDATA` (use a temp folder for tests) |
 | `DASHBOARD_DEBUG` | unset | `1` logs every request (method, path, status, ms) and SSE connect/disconnect per channel, and serves `GET /api/debug/stats` (memory, uptime, SSE clients, active resources, event-loop delay) to this machine only |
 
@@ -115,12 +116,13 @@ Because a non-kiosk page loads the server's config on open and then pushes
 every change back, a dev page and the standalone dashboard share one config
 (see "Sync" in [architecture](architecture.md#3-config)). For experiments,
 run a second server with its own config instead of using the live one:
-`PORT=3999 LOCALAPPDATA=<some folder> node server.mjs`.
+`PORT=3999 LOCALAPPDATA=<some folder> npm start`.
 
 **Windows launcher (`start-dashboard.bat`).** Double-click it to start the
 standalone server. It checks that Node is on PATH, runs `npm ci` when
 `node_modules` is missing, runs `npm run build` when `dist\index.html` is
-missing, then runs `node server.mjs`. `start-dashboard.bat rebuild` builds
+missing, then runs `src-tauri\target\release\ips-server.exe` when it exists, else
+`cargo run --release -p ips-server`. `start-dashboard.bat rebuild` builds
 before starting. Set `PORT` / `HOST` beforehand to change where it listens. On
 an error it pauses so the window stays open.
 

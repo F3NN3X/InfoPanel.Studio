@@ -1,5 +1,10 @@
 # Server contract
 
+> **The Node source this cites was removed in 1.3.0 (footprint 3.7).** `server.mjs`, `server/*.mjs` and
+> `tools/agent-*.mjs` no longer exist; the file and line cites below point at commit `59c784f`. The document stays as
+> the specification of the server's behaviour. The frozen outputs of the removed code are in
+> `tests/fixtures/parity/`, and `ips-server` (`src-tauri/crates/ips-server`) is the implementation.
+
 The specification the native server (`ips-server`, footprint Phase 3) must reproduce: everything `server.mjs` and
 `server/*.mjs` do that a client, a kiosk or the data folder can observe. Written from the code at `59c784f`; every rule
 cites `file:line`. Where the two parts' "Discrepancies and oddities" call something a bug, the port keeps it unless a

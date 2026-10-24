@@ -245,7 +245,7 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
     32-band `spectrum` and holds `*-state` enums, so the player stays playing.
   - `fixture.json` names the profiles, zones and selectors the specs use.
 - **Scratch runner** (`tools/perf/scratch.mjs`): copies the fixture, starts the fake Data API and the server
-  (`SERVER_IMPL=node`, or `native` with `SERVER_CMD`), points `dataApiUrl` at the fake API, and gives the server an
+  (the `ips-server` debug build, or the binary `SERVER_CMD` names), points `dataApiUrl` at the fake API, and gives the server an
   empty home and InfoPanel folder. `node tools/perf/scratch.mjs` starts one by hand.
 - **Functional specs** (`tests/e2e/`, `npm run test:e2e`): kiosk render, live config update, control page switch,
   studio edit/save/undo, image-proxy rules, request guard, and the kiosk request budget.
@@ -276,7 +276,7 @@ spec starts its own scratch server on a temp copy of `tests/fixtures/perf/data`.
 
 Results: [perf-results/](perf-results/).
 
-### Node sidecar heap flags (tried, not kept)
+### Node server heap flags (tried, not kept; the Node server is gone)
 
 `--max-old-space-size=96 --max-semi-space-size=2` on the sidecar, measured on the heavy fixture with three alert
 rules firing and clearing (36 alerts in each run), two kiosks and a studio open, 10 minutes each, `--trace-gc` on
@@ -287,8 +287,8 @@ both (2026-10-23, Node 24.6, Windows):
 | no flags | 63.6 MB | 64.8 MB | 16.6 ms | 103 (101 + 2) | 19.8 ms |
 | flags | 61.1 MB | 62.1 MB | 16.6 ms | 129 (126 + 3) | 24.8 ms |
 
-RSS fell 3.8%, short of the 15% that would justify the flags, and GC ran 25% more often, so `sidecar.rs` is
-unchanged. The heap is ~10 MB of the ~62 MB: the rest is Node's own runtime, which no heap flag reaches. The p99
+RSS fell 3.8%, short of the 15% that would justify the flags, and GC ran 25% more often, so the Node server was
+left unchanged. The heap is ~10 MB of the ~62 MB: the rest is Node's own runtime, which no heap flag reaches. The p99
 is Windows' ~15.6 ms timer resolution (see `docs/desktop/README.md`), not a stall.
 
 ## How to measure by hand
@@ -320,6 +320,6 @@ The method behind the harness, for a real profile:
 
 Run the app as you normally would (kiosk shown, Studio open or closed), then in a terminal at the repo root:
 
-1. `node tools/perf/process-sampler.mjs`: one line a minute to `.cache/perf/processes-<date>.csv` with CPU (% of one core) and private MB for the app, its server sidecar and each WebView2 role (browser, renderer, GPU, utility). Debug mode is not needed. Leave it running; Ctrl+C stops it.
+1. `node tools/perf/process-sampler.mjs`: one line a minute to `.cache/perf/processes-<date>.csv` with CPU (% of one core) and private MB for the app, its server process (none now: the server runs in the app) and each WebView2 role (browser, renderer, GPU, utility). Debug mode is not needed. Leave it running; Ctrl+C stops it.
 2. Optionally turn on debug mode (Settings › Diagnostics) too: `metrics.csv` adds the JS heap, DOM nodes and event streams inside the page and the server's own heap.
 3. Next day: `node tools/perf/process-sampler.mjs --report .cache/perf/processes-<date>.csv` prints hourly averages and the per-hour trend; `node tools/perf/metrics-trend.mjs` does the same for `metrics.csv`. A renderer or server MB that keeps climbing hour after hour is a leak; a flat line after the first hour is the working set.

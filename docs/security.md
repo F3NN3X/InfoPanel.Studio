@@ -40,7 +40,7 @@ security model, what was fixed, what was decided, and what is deferred. Performa
 
 ## Server
 
-- **Security headers** (`server/security-headers.mjs`):
+- **Security headers** (`crates/ips-server/src/security_headers.rs`):
   - HTML: a CSP with `script-src 'self'` (no inline script; the build emits none), `object-src 'none'`,
     `base-uri 'none'`, `connect-src` allowing http/ws (the Data API may be on another port or host, and Tauri IPC is
     `http://ipc.localhost`), `frame-src` http/https (Web Page widget), `style-src 'unsafe-inline'` (React style props).
@@ -48,12 +48,12 @@ security model, what was fixed, what was decided, and what is deferred. Performa
     sites; kiosk pages stay embeddable (e.g. a Home Assistant panel).
   - `X-Content-Type-Options: nosniff` everywhere; `Referrer-Policy: strict-origin-when-cross-origin` on HTML
     (YouTube embeds refuse to play without a referrer) and `no-referrer` elsewhere.
-- **Remote edits** (`remoteEditRefusal` in `server/request-guard.mjs`): `POST /api/config`, `PATCH
+- **Remote edits** (`remoteEditRefusal` in `crates/ips-server/src/request_guard.rs`): `POST /api/config`, `PATCH
   /api/config/settings`, `PUT /api/integrations` from non-loopback peers need `ALLOW_REMOTE_EDIT=1`. Assets, library
   and canvases already needed `ALLOW_REMOTE_UPLOAD=1`. Agent posts, stats, installed-profile routes and the studio
   preferences (`GET`/`PUT /api/studio-prefs`, whose write also takes the config write headers) are loopback-only.
-- **Image proxy** (`server/proxy.mjs`): images only, SVG refused, `nosniff`, manual redirects with a hop limit, and
-  since beta.10 it connects through the calendar's guarded lookup (`server/calendar.mjs`, with `blockLan`), so
+- **Image proxy** (`crates/ips-server/src/proxy.rs`): images only, SVG refused, `nosniff`, manual redirects with a hop limit, and
+  since beta.10 it connects through the calendar's guarded lookup (`crates/ips-server/src/calendar.rs`, with `blockLan`), so
   private, link-local, loopback and metadata addresses are refused on the first URL and every redirect, including IP
   literals and IPv4-mapped IPv6. It sends `user-agent: InfoPanel-Studio`.
 - **Calendar and font proxies**: connect-time address pinning and size caps; the font proxy is pinned to Font
