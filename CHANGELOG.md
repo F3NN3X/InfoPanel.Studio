@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.25] - 2026-10-25
+
 ### Added
 
 - **The Export window says what the other PC needs.** For an .infopanel it lists the fonts the profile uses that Windows doesn't ship, and which sensor sources it reads: HWiNFO sensors are matched by name when InfoPanel imports, Libre and plugin sensors must exist there with the same ids.
