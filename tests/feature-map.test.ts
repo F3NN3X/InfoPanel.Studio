@@ -73,7 +73,7 @@ describe("the checks", () => {
       const node = /^node (\S+)/.exec(part);
       if (node && !fs.existsSync(path.join(ROOT, node[1]))) return `"${part}": ${node[1]} does not exist`;
       const npx = /^npx (?:--[\w-]+ )*(\S+)/.exec(part);
-      if (npx && !(pkg.devDependencies ?? {})[BIN_PACKAGE[npx[1]]]) return `"${part}": ${npx[1]} is not a devDependency`;
+      if (npx && !pkg.devDependencies?.[BIN_PACKAGE[npx[1]]]) return `"${part}": ${npx[1]} is not a devDependency`;
       if (/^cargo /.test(part) && !fs.existsSync(path.join(ROOT, cwd, "Cargo.toml"))) return `"${part}": no Cargo.toml in ${cwd}`;
     }
     return null;

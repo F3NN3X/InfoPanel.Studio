@@ -12,3 +12,4 @@ tests/fixtures/parity/*.json text eol=lf
 tools/parity/*.mjs text eol=lf
 # The optional pre-push hook is a shell script.
 .githooks/* text eol=lf
+tools/ci/*.mjs text eol=lf
