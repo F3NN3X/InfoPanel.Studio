@@ -28,6 +28,7 @@ From `package.json`:
 | `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
 | `npm start` | `node tools/start.mjs` | Builds `dist/` when it is missing, then runs `cargo run --release -p ips-server` (Rust stable needed): serves `dist/` and the config endpoints |
 | `npm run serve` | `npm run build && node tools/start.mjs` | Build, then start |
+| `npm run verify`, `verify:full`, `verify:plan` | `node tools/verify.mjs` | Runs the checks the changed files need, every check, or only prints the plan |
 | `npm run test:server` | `node tools/parity/test-native.mjs` | Builds the debug `ips-server`, then runs `tests/server` against it (`SERVER_CMD` points at another binary) |
 
 InfoPanel import lab (`lab/infopanel/`, a dev tool over `src/lib/infopanel/`; see its
@@ -55,6 +56,12 @@ To run the app without touching the live setup set `INFOPANEL_STUDIO_CONFIG_DIR`
 (settings and logs), `INFOPANEL_STUDIO_DATA_DIR` (the server's `DASHBOARD_DATA_DIR`),
 `INFOPANEL_STUDIO_DEBUG=1` and a spare port in `settings.json`; never stop
 the servers on 3921 or 3922. See [desktop/README.md](desktop/README.md).
+
+## Verifying a change
+
+`npm run verify` runs the checks the changed files need (the feature map and the modes are in [TESTING.md](TESTING.md)).
+Run `npm run verify:full` before opening a pull request. Optionally, `git config core.hooksPath .githooks` enables
+`.githooks/pre-push`, which runs `node tools/verify.mjs --check-fresh` and, if the last run is stale, `npm run verify`.
 
 ## CI and releases
 

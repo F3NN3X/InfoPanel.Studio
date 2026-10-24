@@ -1,0 +1,607 @@
+{
+  "$comment": "Feature -> test map for InfoPanel Studio. Every tracked source file must match at least one feature's `paths`; every file under tests/ must match a feature's `tests` (or `paths`, for harness files). tools/verify.mjs reads this file; tests/feature-map.test.ts keeps it honest. Globs are relative to the repo root; `**` skips dotfiles, so list those by name. Order of `checks` is the order verify runs them in. A check marked `always` (lint) runs on every change without being listed per feature.",
+  "version": 1,
+  "checks": {
+    "lint": {
+      "cmd": "npx biome lint --no-errors-on-unmatched {files}",
+      "fullCmd": "npx biome ci",
+      "files": ["src/**/*.{ts,tsx,css}", "tests/**/*.{ts,tsx,mjs}", "tools/**/*.{mjs,cjs,ts,tsx}", "lab/infopanel/**/*.{ts,tsx}", "*.{mjs,ts}"],
+      "always": true,
+      "when": "every change, the changed files Biome covers (skipped when there are none)"
+    },
+    "typecheck": { "cmd": "npx tsc -b", "when": "any TypeScript change (src/ and tests/ share one project)" },
+    "unit": {
+      "cmd": "npx vitest related --run --passWithNoTests {tests}",
+      "fullCmd": "npx vitest run",
+      "fastCmd": "npx vitest run --passWithNoTests {tests}",
+      "tests": ["tests/**/*.test.*"],
+      "testsExclude": ["tests/server/**"],
+      "related": true,
+      "when": "the feature's Vitest files plus the tests that import a changed source file"
+    },
+    "build": { "cmd": "npm run build", "when": "entry points, Vite config, public assets, dependencies" },
+    "budgets": { "cmd": "npm run perf:budgets", "needs": ["build"], "when": "the gzip and request budgets (tools/perf/budgets.json); gating" },
+    "settings-build": { "cmd": "npm run desktop:settings", "when": "the Settings window's own entry" },
+    "server-bin": { "cmd": "cargo build -p ips-server", "cwd": "src-tauri", "when": "the debug ips-server the e2e specs start" },
+    "server-suite": {
+      "cmd": "npm run test:server -- {tests}",
+      "fullCmd": "npm run test:server",
+      "tests": ["tests/server/**/*.test.*"],
+      "emptyMeansAll": true,
+      "when": "the HTTP suite in tests/server, run against the built ips-server"
+    },
+    "lab": { "cmd": "npm run lab:typecheck && npm run lab:test", "when": "the import lab or the InfoPanel parsers it shares" },
+    "e2e": {
+      "cmd": "npx playwright test --project=e2e {tests}",
+      "fullCmd": "npm run test:e2e",
+      "tests": ["tests/e2e/*.spec.ts"],
+      "emptyMeansAll": true,
+      "needs": ["build", "server-bin"],
+      "when": "the Playwright specs: real browser, real server, scratch data"
+    },
+    "cargo-server": {
+      "cmd": "cargo test -p ips-server -p ips-agent && cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings",
+      "cwd": "src-tauri",
+      "when": "the dashboard server and the agent hooks (runs on every platform); includes the parity tests over tests/fixtures/parity"
+    },
+    "cargo-app": {
+      "cmd": "cargo test && cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": "src-tauri",
+      "platform": "win32",
+      "when": "the Tauri app crate (WebView2 crates: Windows only); needs src-tauri/resources in place"
+    },
+    "full": { "escalate": true, "when": "tooling or dependency changes that can affect everything: runs every check above" }
+  },
+  "features": [
+    {
+      "id": "config-model",
+      "critical": true,
+      "summary": "Config load, save, migrations (every version), settings patches, undo history.",
+      "paths": [
+        "src/lib/settings-migrate*.ts",
+        "src/lib/legacy-zones*.ts",
+        "src/lib/settings-patch.ts",
+        "src/lib/general.ts",
+        "src/hooks/**"
+      ],
+      "tests": [
+        "tests/lib/settings-migrate*.test.*",
+        "tests/lib/legacy-zones*.test.*",
+        "tests/lib/__snapshots__/legacy-zones*",
+        "tests/lib/__fixtures__/**",
+        "tests/lib/settings-patch.test.ts",
+        "tests/lib/general.test.ts",
+        "tests/hooks/**",
+        "tests/e2e/config-live-update.spec.ts"
+      ],
+      "checks": ["typecheck", "unit", "e2e"]
+    },
+    {
+      "id": "server-core",
+      "critical": true,
+      "summary": "ips-server routing, request guard, security headers, config API and downgrade guard, debug stats, image and font proxies, static files, the HTTP suite runner.",
+      "paths": [
+        "src-tauri/crates/ips-server/**",
+        "tools/parity/**",
+        "tools/start.mjs",
+        "start-dashboard.bat",
+        "src/lib/dashboard-server.ts",
+        "src/lib/studio-prefs.ts"
+      ],
+      "exclude": [
+        "src-tauri/crates/ips-server/src/assets.rs",
+        "src-tauri/crates/ips-server/src/asset_types.rs",
+        "src-tauri/crates/ips-server/src/canvases.rs",
+        "src-tauri/crates/ips-server/src/library.rs",
+        "src-tauri/crates/ips-server/tests/*_media.rs",
+        "src-tauri/crates/ips-server/src/control*.rs",
+        "src-tauri/crates/ips-server/src/alerts*.rs",
+        "src-tauri/crates/ips-server/tests/*_alerts.rs",
+        "src-tauri/crates/ips-server/src/extras.rs",
+        "src-tauri/crates/ips-server/src/integrations.rs",
+        "src-tauri/crates/ips-server/src/obs.rs",
+        "src-tauri/crates/ips-server/src/calendar.rs",
+        "src-tauri/crates/ips-server/src/ical.rs",
+        "src-tauri/crates/ips-server/tests/*_extras.rs",
+        "src-tauri/crates/ips-server/src/agent*.rs",
+        "src-tauri/crates/ips-server/src/claude_sessions.rs",
+        "src-tauri/crates/ips-server/tests/*_agents.rs",
+        "src-tauri/crates/ips-server/src/infopanel_local.rs"
+      ],
+      "tests": [
+        "tests/server/server.test.mjs",
+        "tests/lib/dashboard-server.test.ts",
+        "tests/help/generated.test.ts",
+        "tests/fixtures/parity/README.md",
+        "tests/fixtures/parity/config-guard.json",
+        "tests/fixtures/parity/config-settings.json",
+        "tests/fixtures/parity/font-proxy.json",
+        "tests/fixtures/parity/proxy.json",
+        "tests/fixtures/parity/request-guard.json",
+        "tests/fixtures/parity/security-headers.json",
+        "tests/fixtures/parity/studio-prefs.json",
+        "tests/e2e/config-live-update.spec.ts",
+        "tests/e2e/cross-origin-writes.spec.ts",
+        "tests/e2e/image-proxy-rules.spec.ts",
+        "tests/e2e/request-guard.spec.ts"
+      ],
+      "checks": ["typecheck", "unit", "server-suite", "e2e", "cargo-server", "cargo-app"],
+      "note": "The Rust modules carry their own tests (cargo-server); routes*.rs run over a real socket and parity*.rs read the frozen fixtures in tests/fixtures/parity. tests/help/generated.test.ts reads env.rs for the default port. cargo-app is here because the app links this crate."
+    },
+    {
+      "id": "server-stores",
+      "critical": true,
+      "summary": "Content-addressed assets, the canvas store and its sweep, the user's library (never delete a used file).",
+      "paths": [
+        "src-tauri/crates/ips-server/src/assets.rs",
+        "src-tauri/crates/ips-server/src/asset_types.rs",
+        "src-tauri/crates/ips-server/src/canvases.rs",
+        "src-tauri/crates/ips-server/src/library.rs",
+        "src-tauri/crates/ips-server/tests/*_media.rs",
+        "src/lib/assets.ts",
+        "src/lib/canvas-store.ts",
+        "src/lib/library.ts"
+      ],
+      "tests": [
+        "tests/server/data-roundtrip.test.mjs",
+        "tests/server/server.test.mjs",
+        "tests/lib/assets.test.ts",
+        "tests/lib/canvas-store.test.ts",
+        "tests/fixtures/parity/assets.json",
+        "tests/fixtures/parity/canvases.json",
+        "tests/fixtures/parity/library.json"
+      ],
+      "checks": ["typecheck", "unit", "server-suite", "cargo-server"]
+    },
+    {
+      "id": "control-alerts",
+      "summary": "Runtime control state (page per profile, rotation), the alert engine and presets, the alerts UI.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/control*.rs",
+        "src-tauri/crates/ips-server/src/alerts*.rs",
+        "src-tauri/crates/ips-server/tests/*_alerts.rs",
+        "src/lib/control.ts",
+        "src/lib/alerts.ts",
+        "src/lib/alert-presets.ts",
+        "src/components/alerts/**"
+      ],
+      "tests": [
+        "tests/server/alerts-http.test.mjs",
+        "tests/server/server.test.mjs",
+        "tests/lib/control.test.ts",
+        "tests/lib/alerts.test.ts",
+        "tests/lib/alert-presets.test.ts",
+        "tests/components/alerts/**",
+        "tests/fixtures/parity/alerts*.json",
+        "tests/fixtures/parity/control.json",
+        "tests/e2e/control-page-switch.spec.ts"
+      ],
+      "checks": ["typecheck", "unit", "server-suite", "e2e", "cargo-server"]
+    },
+    {
+      "id": "extras-integrations",
+      "summary": "OBS on-air state, calendar links and the iCalendar reader, integrations secrets, countdowns.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/extras.rs",
+        "src-tauri/crates/ips-server/src/integrations.rs",
+        "src-tauri/crates/ips-server/src/obs.rs",
+        "src-tauri/crates/ips-server/src/calendar.rs",
+        "src-tauri/crates/ips-server/src/ical.rs",
+        "src-tauri/crates/ips-server/tests/*_extras.rs",
+        "src/lib/extras.ts",
+        "src/lib/integrations.ts",
+        "src/lib/countdown.ts"
+      ],
+      "tests": [
+        "tests/server/server.test.mjs",
+        "tests/lib/countdown.test.ts",
+        "tests/fixtures/parity/calendar.json",
+        "tests/fixtures/parity/ical*.json",
+        "tests/fixtures/parity/integrations.json",
+        "tests/fixtures/parity/obs.json"
+      ],
+      "checks": ["typecheck", "unit", "server-suite", "cargo-server"]
+    },
+    {
+      "id": "coding-agents",
+      "summary": "Claude Code and Codex hooks (ips-agent), statusline, token usage, live sessions, the Agents widget, hook install from the desktop app.",
+      "paths": [
+        "src-tauri/crates/ips-server/src/agent*.rs",
+        "src-tauri/crates/ips-server/src/claude_sessions.rs",
+        "src-tauri/crates/ips-server/tests/*_agents.rs",
+        "src-tauri/crates/ips-agent/**",
+        "src-tauri/src/agents.rs",
+        "src/lib/agents.ts",
+        "src/widgets/CodingAgents/**",
+        "src/widgets/CodingAgents.tsx"
+      ],
+      "tests": [
+        "tests/server/server.test.mjs",
+        "tests/lib/agents.test.ts",
+        "tests/widgets/CodingAgents/**",
+        "tests/fixtures/parity/agent*.json",
+        "tests/fixtures/parity/claude-sessions.json"
+      ],
+      "checks": ["typecheck", "unit", "server-suite", "cargo-server", "cargo-app"]
+    },
+    {
+      "id": "infopanel-installed",
+      "summary": "Read-only access to InfoPanel's installed profiles for the Import dialog.",
+      "paths": ["src-tauri/crates/ips-server/src/infopanel_local.rs"],
+      "tests": ["tests/server/server.test.mjs", "tests/fixtures/parity/infopanel-local.json"],
+      "checks": ["server-suite", "cargo-server"]
+    },
+    {
+      "id": "data-pipeline",
+      "critical": true,
+      "summary": "Data API client, sensor store and streams, sensor catalog, sample history, value formatting that feeds widgets.",
+      "paths": [
+        "src/lib/sensor-store.ts",
+        "src/lib/sensor-stream.ts",
+        "src/lib/sensors.ts",
+        "src/lib/data-api.ts",
+        "src/lib/data-live.ts",
+        "src/lib/data-points.ts",
+        "src/lib/data-usage.ts",
+        "src/lib/preview-data*.ts",
+        "src/lib/sample-history.ts",
+        "src/lib/system-metrics.ts",
+        "src/lib/sources.ts",
+        "src/lib/catalog.ts",
+        "src/lib/wavelink.ts",
+        "src/lib/clock-format.ts",
+        "src/lib/weather-days.ts",
+        "src/lib/weather-icons.ts",
+        "src/widgets/data-adapter.ts",
+        "src/widgets/hardware-readings.ts"
+      ],
+      "tests": [
+        "tests/lib/sensor-store.test.ts",
+        "tests/lib/sensor-stream.test.ts",
+        "tests/lib/sensors.test.ts",
+        "tests/lib/data-api.test.ts",
+        "tests/lib/data-points.test.ts",
+        "tests/lib/data-usage.test.ts",
+        "tests/lib/preview-data.test.ts",
+        "tests/lib/sample-history.test.ts",
+        "tests/lib/system-metrics.test.ts",
+        "tests/lib/sources.test.ts",
+        "tests/lib/catalog.test.ts",
+        "tests/lib/wavelink.test.ts",
+        "tests/lib/clock-format.test.ts",
+        "tests/lib/weather-days.test.ts",
+        "tests/lib/weather-icons.test.ts",
+        "tests/widgets/data-adapter.test.ts",
+        "tests/widgets/hardware-readings.test.ts"
+      ],
+      "checks": ["typecheck", "unit"]
+    },
+    {
+      "id": "motion",
+      "summary": "The shared ticker, marquee, timers, swipe, performance settings, audio frame loop.",
+      "paths": [
+        "src/lib/ticker.ts",
+        "src/lib/marquee.ts",
+        "src/lib/timer.ts",
+        "src/lib/swipe.ts",
+        "src/lib/performance.ts",
+        "src/lib/curves.ts",
+        "src/lib/audio/**",
+        "src/widgets/audio-data.ts",
+        "src/widgets/audio-device.ts"
+      ],
+      "tests": [
+        "tests/lib/ticker.test.ts",
+        "tests/lib/marquee.test.ts",
+        "tests/lib/timer.test.ts",
+        "tests/lib/performance.test.ts",
+        "tests/lib/audio/**",
+        "tests/widgets/audio-data.test.ts"
+      ],
+      "checks": ["typecheck", "unit"],
+      "note": "Widely imported: `vitest related` on ticker.ts pulls in about half the suite. That is expected."
+    },
+    {
+      "id": "widgets",
+      "critical": true,
+      "summary": "The widget registry (every kind renders once), widget settings schemas, widget views, weather fx, island sources.",
+      "paths": [
+        "src/widgets/**",
+        "src/assets/**",
+        "src/lib/widget-icons.ts",
+        "docs/redesign/widgets/docs/widgets/*.md",
+        "docs/redesign/widgets/docs/.facts.json"
+      ],
+      "exclude": ["src/widgets/CodingAgents/**", "src/widgets/CodingAgents.tsx"],
+      "tests": [
+        "tests/widgets/*.test.*",
+        "tests/widgets/registry/**",
+        "tests/widgets/core/**",
+        "tests/widgets/island/**",
+        "tests/widgets/NowPlaying/**",
+        "tests/widgets/StatusBar/**",
+        "tests/widgets/weather-fx/**",
+        "tests/e2e/kiosk-renders.spec.ts",
+        "tests/e2e/visualiser-round-trip.spec.ts"
+      ],
+      "checks": ["typecheck", "unit", "e2e"],
+      "report": ["npm run audit:views"],
+      "note": "The registry schema tests and key-audit read docs/redesign/widgets/docs/widgets/*.md and .facts.json: a change there is a test change."
+    },
+    {
+      "id": "components-ui",
+      "summary": "Shared widget chrome and UI primitives, zone error boundary, widget style, panels, island UI.",
+      "paths": [
+        "src/components/ui/**",
+        "src/components/widgets/**",
+        "src/components/island/**",
+        "src/components/Gauge.tsx",
+        "src/components/widget-style.ts",
+        "src/components/zone-error-boundary.tsx",
+        "src/components/surfaces.ts",
+        "src/lib/island/**",
+        "src/lib/panel-*.ts",
+        "src/lib/panelPresets.ts"
+      ],
+      "tests": [
+        "tests/components/*.test.*",
+        "tests/components/widgets/**",
+        "tests/lib/island/**",
+        "tests/lib/panel-*.test.ts",
+        "tests/lib/shipped-panels.test.ts"
+      ],
+      "checks": ["typecheck", "unit"]
+    },
+    {
+      "id": "styles-themes",
+      "summary": "Themes, appearance presets, style presets and resolution, inheritance, fonts, look modules.",
+      "paths": [
+        "src/lib/theme*.ts",
+        "src/lib/appearance*.ts",
+        "src/lib/style-*.ts",
+        "src/lib/builtin-styles.ts",
+        "src/lib/inheritance.ts",
+        "src/lib/fonts.ts",
+        "src/modules/**",
+        "src/index.css",
+        "src/select.css"
+      ],
+      "tests": [
+        "tests/lib/theme*.test.ts",
+        "tests/lib/appearance*.test.ts",
+        "tests/lib/style-*.test.ts",
+        "tests/lib/inheritance.test.ts",
+        "tests/lib/fonts.test.ts",
+        "tests/modules/**"
+      ],
+      "checks": ["typecheck", "unit"]
+    },
+    {
+      "id": "layout-kiosk",
+      "critical": true,
+      "summary": "Page and profile layout, the kiosk page and its refresh, profile shots, the app entry.",
+      "paths": [
+        "src/lib/layout.ts",
+        "src/lib/pages.ts",
+        "src/lib/profile-grid.ts",
+        "src/lib/profile-shot*.ts",
+        "src/lib/kiosk-refresh.ts",
+        "src/lib/sample-layout.ts",
+        "src/lib/device-options.ts",
+        "src/lib/name-list.ts",
+        "src/lib/panel-starters.ts",
+        "src/App.tsx",
+        "src/main.tsx",
+        "src/components/kiosk-strip.tsx",
+        "src/components/page-*.tsx",
+        "src/components/modern-chrome.tsx",
+        "src/components/pulse-dot.tsx",
+        "index.html"
+      ],
+      "tests": [
+        "tests/lib/layout.test.ts",
+        "tests/lib/layout-pages.test.ts",
+        "tests/lib/pages.test.ts",
+        "tests/lib/profile-grid.test.ts",
+        "tests/lib/profile-shot*.test.ts",
+        "tests/lib/kiosk-refresh.test.ts",
+        "tests/lib/device-options.test.ts",
+        "tests/e2e/kiosk-renders.spec.ts",
+        "tests/e2e/kiosk-budget.spec.ts",
+        "tests/e2e/config-live-update.spec.ts",
+        "tests/e2e/control-page-switch.spec.ts"
+      ],
+      "checks": ["typecheck", "unit", "build", "budgets", "e2e"]
+    },
+    {
+      "id": "studio",
+      "summary": "The studio: explorer, inspector, add widget, screens, theme editor, first run, shortcuts, app window chrome.",
+      "paths": [
+        "src/components/studio/**",
+        "src/app-window/**",
+        "src/lib/studio-channel.ts",
+        "src/lib/studio-focus.ts",
+        "src/lib/native-menu.ts",
+        "src/lib/setup-request.ts",
+        "src/lib/import-sniff.ts",
+        "src/lib/image.ts",
+        "src/lib/utils.ts",
+        "src/lib/buildInfo.ts"
+      ],
+      "tests": [
+        "tests/components/studio/**",
+        "tests/lib/image.test.ts",
+        "tests/lib/import-sniff.test.ts",
+        "tests/lib/studio-focus.test.ts",
+        "tests/e2e/browser-studio.spec.ts",
+        "tests/e2e/studio-basics.spec.ts",
+        "tests/e2e/frozen-preview.spec.ts"
+      ],
+      "checks": ["typecheck", "unit", "e2e"]
+    },
+    {
+      "id": "library",
+      "critical": true,
+      "summary": "My library: items, loose files, drops, remove safety.",
+      "paths": ["src/components/library/**", "src/lib/my-library/**"],
+      "tests": ["tests/components/library/**", "tests/lib/my-library/**"],
+      "checks": ["typecheck", "unit"]
+    },
+    {
+      "id": "gauges",
+      "summary": "Gauge studio, gauge frames and import, vector gauges and their icons.",
+      "paths": [
+        "src/components/gauges/**",
+        "src/lib/gauge-studio/**",
+        "src/lib/infopanel/gauges/**",
+        "tools/gen-gauge-icons.mjs"
+      ],
+      "tests": ["tests/components/gauges/**", "tests/lib/gauge-studio/**", "tests/lib/infopanel/gauges/**"],
+      "checks": ["typecheck", "unit"]
+    },
+    {
+      "id": "infopanel-import-export",
+      "critical": true,
+      "summary": "InfoPanel profile parsing, conversion, canvas editing, fonts, archives, export, with the corpus round-trips.",
+      "paths": ["src/lib/infopanel/**", "src/components/infopanel/**", "tools/ip-import.cjs"],
+      "exclude": ["src/lib/infopanel/gauges/**"],
+      "tests": ["tests/lib/infopanel/**", "tests/components/infopanel/**"],
+      "checks": ["typecheck", "unit", "lab"],
+      "note": "The corpus round-trips live in the lab (lab/infopanel/src/corpus.test.ts), outside npm test."
+    },
+    {
+      "id": "help",
+      "summary": "Help content, search, context links, generated settings reference.",
+      "paths": ["src/help/**", "help.html"],
+      "tests": ["tests/help/**"],
+      "checks": ["typecheck", "unit", "build"],
+      "note": "tests/help/generated.test.ts reads src-tauri/src/settings.rs and the server's env.rs, so desktop-shell and server-core run it too."
+    },
+    {
+      "id": "settings-window",
+      "summary": "The Settings window: app and dashboard settings, updates, logs, restart, changelog.",
+      "paths": ["src/settings/**", "settings.html", "vite.settings.config.ts", "CHANGELOG.md"],
+      "tests": ["tests/settings/**"],
+      "checks": ["typecheck", "unit", "settings-build"],
+      "note": "tests/settings/model/changelog.test.ts parses CHANGELOG.md."
+    },
+    {
+      "id": "desktop-shell",
+      "summary": "The Tauri shell: windows, tray, sidecar, probe, settings, updater, WebView2 handling, kiosk view, logs, debug metrics.",
+      "paths": ["src-tauri/**", "src/lib/desktop*.ts"],
+      "exclude": ["src-tauri/crates/**", "src-tauri/src/agents.rs"],
+      "tests": ["tests/lib/desktop.test.ts", "tests/help/generated.test.ts", "tests/settings/**"],
+      "checks": ["typecheck", "unit", "cargo-app"],
+      "note": "Rust tests live in their modules. The app crate needs Windows (WebView2 crates); elsewhere verify reports cargo-app as not run (exit 3)."
+    },
+    {
+      "id": "release",
+      "summary": "Updater manifest and desktop resource preparation.",
+      "paths": ["tools/updater-manifest.mjs", "tools/desktop-prepare.mjs"],
+      "tests": ["tests/tools/updater-manifest.test.mjs"],
+      "checks": ["unit"]
+    },
+    {
+      "id": "ci-workflows",
+      "summary": "The CI and release workflows.",
+      "paths": [".github/**"],
+      "tests": [],
+      "checks": []
+    },
+    {
+      "id": "import-lab",
+      "summary": "The InfoPanel import lab (its own Vite and Vitest config).",
+      "paths": ["lab/**"],
+      "tests": [],
+      "checks": ["lab"]
+    },
+    {
+      "id": "e2e-harness",
+      "summary": "What the Playwright specs run on: the scratch server, the fake Data API, the perf fixture, the specs' shared fixtures.",
+      "paths": [
+        "playwright.config.ts",
+        "tools/perf/scratch.mjs",
+        "tools/perf/scratch.d.mts",
+        "tools/perf/server-command.mjs",
+        "tools/perf/fake-data-api.mjs",
+        "tools/perf/make-fixture.mjs"
+      ],
+      "tests": ["tests/e2e/fixtures.ts", "tests/fixtures/perf/**"],
+      "checks": ["typecheck", "e2e"]
+    },
+    {
+      "id": "budgets",
+      "summary": "The gating bundle budgets and the report that feeds them.",
+      "paths": ["tools/perf/budgets.json", "tools/perf/check-budgets.mjs", "tools/perf/bundle-report.mjs"],
+      "tests": [],
+      "checks": ["build", "budgets"]
+    },
+    {
+      "id": "perf",
+      "summary": "Report-only perf and desktop specs, samplers and reports. They measure and never gate.",
+      "paths": [
+        "tools/perf/**",
+        "tests/perf/**",
+        "tests/desktop/**"
+      ],
+      "exclude": [
+        "tools/perf/budgets.json",
+        "tools/perf/check-budgets.mjs",
+        "tools/perf/bundle-report.mjs",
+        "tools/perf/scratch.mjs",
+        "tools/perf/scratch.d.mts",
+        "tools/perf/server-command.mjs",
+        "tools/perf/fake-data-api.mjs",
+        "tools/perf/make-fixture.mjs"
+      ],
+      "tests": [],
+      "checks": ["typecheck"],
+      "report": ["npm run perf:kiosk", "npm run perf:studio", "npm run perf:compare"],
+      "note": "Never a gating check: run them by hand (docs/performance.md)."
+    },
+    {
+      "id": "dev-tools",
+      "summary": "Audits and asset generators.",
+      "paths": ["tools/audit/**", "tools/gen-bg.mjs", "tools/vendor-meteocons.mjs"],
+      "tests": [],
+      "checks": [],
+      "report": ["npm run audit:views"]
+    },
+    {
+      "id": "public-assets",
+      "summary": "Static files served as-is.",
+      "paths": ["public/**"],
+      "tests": [],
+      "checks": ["build"]
+    },
+    {
+      "id": "tooling",
+      "summary": "Dependencies, compiler, bundler, linter, test setup and verify itself: anything here can break everything.",
+      "paths": [
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "vite.config.ts",
+        "biome.json",
+        "tests/setup/**",
+        "tests/feature-map.json",
+        "tools/verify.mjs",
+        "tools/verify/**",
+        ".githooks/**",
+        ".gitignore",
+        ".gitattributes"
+      ],
+      "tests": ["tests/feature-map.test.ts", "tests/tools/verify*.test.mjs", "tests/tools/stop-hook.test.mjs"],
+      "checks": ["full"]
+    },
+    {
+      "id": "docs",
+      "fallback": true,
+      "summary": "Prose docs with no test reading them.",
+      "paths": ["docs/**", "README.md"],
+      "tests": [],
+      "checks": [],
+      "note": "Lowest priority: a path matched by another feature takes that feature's checks instead."
+    }
+  ]
+}

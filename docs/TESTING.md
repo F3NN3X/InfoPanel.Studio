@@ -31,3 +31,22 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
 - The Playwright e2e specs (`tests/e2e/`, `npm run test:e2e`) cover what only a real browser and server show: the
   kiosk rendering, live updates over SSE, the studio's save and undo, the proxy and request-guard rules over HTTP, and
   the deterministic budgets. Keep them few. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.
+
+## The feature map and `verify`
+
+`tests/feature-map.json` maps every tracked file to a feature, and each feature to the tests and checks that cover it.
+`tests/feature-map.test.ts` fails when a file or a glob is unmapped, and says what to add. A new source file or test file goes into the map in the same change.
+
+- `npm run verify` works out the changed files (commits since the merge base with `origin/main`, staged, unstaged,
+  untracked), finds their features and runs the checks those features need, fast to slow: lint (changed files), typecheck,
+  unit, build, budgets, settings build, server suite, lab, e2e, `cargo-server`, `cargo-app`. The unit step runs the
+  features' tests plus the tests that import a changed source file (`vitest related`), in one call.
+- `--fast` runs only the features' own tests. `--full` (or `npm run verify:full`) runs every check. A change to the map,
+  to `tools/verify*` or to the dependencies runs everything.
+- `--plan` prints the plan and runs nothing. `--feature a,b` runs those features' checks. `--where <path>` prints a
+  file's features and test globs, to decide where a new test goes. `--json` makes the plan and summary machine-readable.
+- Exit codes: 0 passed, 1 a check failed, 2 usage error or an unmapped file, 3 a needed check could not run on this
+  platform (`cargo-app` needs Windows), 4 only from `--check-fresh` (stale). `--allow-incomplete` turns 3 into 0.
+- Each run writes `.cache/verify/last.json` (commit, a hash of the changed content, per-check results).
+  `--check-fresh` compares it with the tree now: `fresh-pass` (exit 0), `fresh-fail` (1), `stale` (4).
+- Report-only work (perf specs, `audit:views`) is listed under `report` in the map and never gates.
