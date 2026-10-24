@@ -247,7 +247,10 @@ fn guarded(lookup: Lookup) -> GuardedClient {
 
 /// A listener that answers every request with `answer` and closes, counting connections.
 async fn listen(addr: &str, answer: &'static [u8]) -> (u16, Arc<AtomicUsize>) {
-    let listener = TcpListener::bind(addr).await.unwrap();
+    serve(TcpListener::bind(addr).await.unwrap(), answer)
+}
+
+fn serve(listener: TcpListener, answer: &'static [u8]) -> (u16, Arc<AtomicUsize>) {
     let port = listener.local_addr().unwrap().port();
     let accepted = Arc::new(AtomicUsize::new(0));
     let count = Arc::clone(&accepted);
@@ -266,9 +269,19 @@ const PNG_ANSWER: &[u8] = b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConten
 
 #[tokio::test]
 async fn a_name_that_rebinds_to_a_private_address_is_never_connected_to() {
-    // The "public" server on 127.0.0.1 and a private one (::1) on the same port.
-    let (port, private) = listen("[::1]:0", PNG_ANSWER).await;
-    let (_, public) = listen(&format!("127.0.0.1:{port}"), PNG_ANSWER).await;
+    // The "public" server on 127.0.0.1 and a private one (::1) on the same port; another test may hold that port on
+    // 127.0.0.1, so take a new one until both are free.
+    let mut tries = 0;
+    let (port, private, public) = loop {
+        let v6 = TcpListener::bind("[::1]:0").await.unwrap();
+        let port = v6.local_addr().unwrap().port();
+        if let Ok(v4) = TcpListener::bind(format!("127.0.0.1:{port}")).await {
+            let (_, private) = serve(v6, PNG_ANSWER);
+            break (port, private, serve(v4, PNG_ANSWER).1);
+        }
+        tries += 1;
+        assert!(tries < 20, "no port free on both ::1 and 127.0.0.1");
+    };
     let (lookup, calls) = lookup_seq(vec![vec!["127.0.0.1".parse().unwrap()], vec!["::1".parse().unwrap()]]);
     let client = guarded(lookup);
     let url = Url::parse(&format!("http://rebind.test:{port}/a.png")).unwrap();
