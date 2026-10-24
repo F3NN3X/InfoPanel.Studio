@@ -6,10 +6,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.19] - 2026-10-24
+
 ### Removed
 
 - **The bundled Node.** The app no longer ships `node.exe`, so the installer and the installed app are about 80 MB smaller. The dashboard server runs inside the app, as it has since beta.18.
 - **The Server setting** (Settings › Diagnostics). It chose between Node and the app's own server; there is only the app's own server now, and a stored Node choice is dropped when the app starts. `npm start` and `start-dashboard.bat` now run the same server from source and need Rust (stable) installed.
+- **"Stop it and start the app's server"** when another server holds the port. A server you run yourself from source (`npm start`) is used as it is; anything else on the port gets the usual choices (use the next free port, view logs).
+
+### Fixed
+
+- **Updates leave no old files behind.** Installing over an earlier version now clears the bundled Node folder and the app's old web files first, which an update used to keep (about 90 MB on an install that started before this release).
 
 ## [1.3.0-beta.18] - 2026-10-24
 
