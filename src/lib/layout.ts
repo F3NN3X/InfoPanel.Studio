@@ -199,6 +199,8 @@ export interface MonitorProfile {
   font?: GeneralFont;
   /** Set on the profiles earlier versions shipped (Sample, ARCv2); kept, no longer read. */
   sampleVersion?: number;
+  /** ISO time of the last studio edit (the Screens page's "Last edited" sort); unset until the screen is edited. */
+  updatedAt?: string;
 }
 
 /**
@@ -435,6 +437,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     island: normalizeIsland(p.island),
     performance: normalizePerformance(p.performance),
     font: normalizeFont(p.font),
+    updatedAt: typeof p.updatedAt === "string" && !Number.isNaN(Date.parse(p.updatedAt)) ? p.updatedAt : undefined,
   };
 }
 

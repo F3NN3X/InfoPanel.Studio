@@ -432,6 +432,7 @@
         "src/app-window/**",
         "src/lib/studio-channel.ts",
         "src/lib/studio-focus.ts",
+        "src/lib/screens/**",
         "src/lib/native-menu.ts",
         "src/lib/setup-request.ts",
         "src/lib/import-sniff.ts",
@@ -444,6 +445,8 @@
         "tests/lib/image.test.ts",
         "tests/lib/import-sniff.test.ts",
         "tests/lib/studio-focus.test.ts",
+        "tests/lib/screens/**",
+        "tests/e2e/screens-manager.spec.ts",
         "tests/e2e/browser-studio.spec.ts",
         "tests/e2e/studio-basics.spec.ts",
         "tests/e2e/frozen-preview.spec.ts"

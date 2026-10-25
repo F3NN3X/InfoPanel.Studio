@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { newStored } from "@/lib/infopanel/import/stored";
 import { defaultConfig, newProfile, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { importedProfile, parseProfileFile, PROFILE_FILE_TYPE, profileFileText, screenPayload } from "@/components/studio/profile-file";
 
@@ -30,6 +31,17 @@ describe("profile file", () => {
   it("round-trips a profile through export and import", () => {
     const source = profile();
     expect(ok(profileFileText(source))).toEqual(source);
+  });
+
+  it("round-trips an InfoPanel screen with its canvas, and does not import the edit time", () => {
+    const canvas = newStored({ name: "Desk", width: 800, height: 480, now: new Date("2026-10-25T10:00:00Z") });
+    const source = profile();
+    source.updatedAt = "2026-10-25T10:00:00.000Z";
+    source.pages[0].placements.push({ id: "c1", module: "infopanel", colStart: 1, rowStart: 3, colSpan: 4, rowSpan: 2, visible: true, canvas });
+    const back = ok(profileFileText(source));
+    expect(back.pages[0].placements[1].canvas).toEqual(canvas);
+    expect(back.updatedAt).toBeUndefined();
+    expect(screenPayload({ ...defaultConfig(), profiles: [source] }, source)).toMatchObject({ name: "Wide.json" });
   });
 
   it("keeps the screen's page font through export and import, and drops an unknown one", () => {

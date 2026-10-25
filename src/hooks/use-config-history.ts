@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { DashboardConfig } from "@/lib/layout";
+import { stampEdited } from "@/lib/screens/edited";
 import {
   beginTransaction,
   cancelTransaction,
@@ -20,8 +21,11 @@ import {
   type History,
 } from "./config-history";
 
+/** The edit time a change stamps is no change of its own. */
+const withoutStamp = (key: string, value: unknown) => (key === "updatedAt" ? undefined : value);
+
 /** Deep equality for the config, which is plain JSON (a drag back to its start is no step). */
-const sameValue = (a: DashboardConfig, b: DashboardConfig) => a === b || JSON.stringify(a) === JSON.stringify(b);
+const sameValue = (a: DashboardConfig, b: DashboardConfig) => a === b || JSON.stringify(a, withoutStamp) === JSON.stringify(b, withoutStamp);
 
 /** A config setter that records an undo step; `key` coalesces repeats. */
 export type HistorySetter = (action: SetStateAction<DashboardConfig>, key?: string) => void;
@@ -67,8 +71,10 @@ export function useConfigHistory(
   const set: HistorySetter = useCallback(
     (action, key) => {
       const prev = latest.current;
-      const next = typeof action === "function" ? action(prev) : action;
-      if (next === prev) return;
+      const made = typeof action === "function" ? action(prev) : action;
+      if (made === prev) return;
+      // Each edited screen carries its edit time (the Screens page's "Last edited").
+      const next = stampEdited(prev, made, new Date());
       apply(next, recordChange(history.current, prev, key, Date.now()));
     },
     [apply]

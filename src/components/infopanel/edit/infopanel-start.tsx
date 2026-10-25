@@ -4,15 +4,16 @@
  * dialog on that choice), every InfoPanel profile placed in the dashboard (a canvas zone, on any screen and
  * page) and the saved profiles in the Library that aren't placed here, as cards with live thumbnails; and Import.
  */
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
-import { Copy, FileUp, Pencil, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
+import { lazy, Suspense } from "react";
+import { FileUp, Pencil } from "lucide-react";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
-import { createLibraryItem, listLibrary, type LibraryItem } from "@/lib/library";
-import { canvasData, canvasItem, copyOfProfile, unplacedProfiles } from "@/lib/my-library/canvas-link";
+import type { LibraryItem } from "@/lib/library";
 import { CANVAS_ID, type DashboardConfig } from "@/lib/layout";
+import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "../../studio/screens/profile-card";
+import { SavedCard } from "../../studio/screens/saved-card";
+import { useSavedProfiles } from "../../studio/screens/use-saved-profiles";
 import type { GalleryChoice } from "../template-gallery";
-import { CanvasThumb, ProfileThumb } from "../profile-thumb";
+import { CanvasThumb } from "../profile-thumb";
 
 /** The gallery and its template data load with the home page, never in the studio's first bundle. */
 const TemplateGallery = lazy(() => import("../template-gallery").then((m) => ({ default: m.TemplateGallery })));
@@ -66,87 +67,20 @@ interface InfoPanelStartProps {
   /** Blank, or a template card: the New InfoPanel profile dialog opens on it. */
   onNew: (choice?: GalleryChoice) => void;
   onImport: () => void;
+  /** "Manage all screens": the Screens page, where delete and assignment live. */
+  onManage: () => void;
 }
 
 const BUTTON = "inline-flex h-8 items-center gap-2 rounded-[8px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover";
-const CARD = "flex min-w-0 flex-col overflow-hidden rounded-[10px] border border-ui-default bg-ui-panel";
-const LINK = "inline-flex h-7 items-center gap-1.5 rounded-[7px] px-2 text-[12px] text-ui-2 hover:bg-ui-hover hover:text-ui-1";
 const NO_CHOICE: GalleryChoice = { template: "", variant: "" };
+const GRID = "mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
 
-/** The strip a profile is drawn in: its own shape, within 3:1 to 1:1. */
-const aspectOf = (width: number, height: number) => Math.min(3, Math.max(1, width && height ? width / height : 1.6));
 const counted = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
 
-interface ProfileCardProps {
-  name: string;
-  detail: string;
-  size: string;
-  aspect: number;
-  thumb: ReactNode;
-  onOpen: () => void;
-  openLabel: string;
-  children?: ReactNode;
-}
-
-function ProfileCard({ name, detail, size, aspect, thumb, onOpen, openLabel, children }: ProfileCardProps) {
-  return (
-    <li className={CARD}>
-      <button type="button" aria-label={`${openLabel} ${name}`} onClick={onOpen} className="flex min-w-0 flex-col text-left outline-none hover:bg-ui-hover focus-visible:bg-ui-hover">
-        <div className="w-full" style={{ aspectRatio: aspect }}>
-          {thumb}
-        </div>
-        <span className="truncate px-3 pt-2 text-[13px] font-medium text-ui-1">{name}</span>
-        {detail && <span className="truncate px-3 text-[11.5px] text-ui-4">{detail}</span>}
-        <span className="truncate px-3 pb-2 font-ui-mono text-[11.5px] text-ui-3">{size}</span>
-      </button>
-      <div className="flex items-center gap-0.5 border-t border-ui-subtle px-1.5 py-1">{children}</div>
-    </li>
-  );
-}
-
-export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibrary, onNew, onImport }: InfoPanelStartProps) {
-  const toast = useToast();
+export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibrary, onNew, onImport, onManage }: InfoPanelStartProps) {
   const places = canvasPlaces(config);
-  const [saved, setSaved] = useState<LibraryItem[]>([]);
-  const [removing, setRemoving] = useState<string | null>(null);
-  const refresh = () =>
-    listLibrary().then(
-      (all) => setSaved(all.filter((i) => i.kind === "canvas")),
-      () => {},
-    );
-  useEffect(() => {
-    let live = true;
-    listLibrary().then(
-      (all) => live && setSaved(all.filter((i) => i.kind === "canvas")),
-      () => {},
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
-  const inLibrary = unplacedProfiles(saved, config);
-  const duplicate = async (item: LibraryItem) => {
-    try {
-      const stored = await canvasData(item);
-      if (!stored) throw new Error("it couldn’t be read");
-      const name = `${item.name} copy`;
-      await createLibraryItem(canvasItem(copyOfProfile(stored, name), name));
-      await refresh();
-    } catch (e) {
-      toast(`Not duplicated: ${(e as Error).message}`);
-    }
-  };
-  const remove = async (item: LibraryItem) => {
-    setRemoving(null);
-    try {
-      // The files go with it unless something else uses them: the dashboard's profiles are checked first.
-      const { removeItem } = await import("@/components/library/remove-item");
-      await removeItem(item, () => JSON.stringify(config));
-      await refresh();
-    } catch (e) {
-      toast(`Not removed: ${(e as Error).message}`);
-    }
-  };
+  const savedApi = useSavedProfiles(config);
+  const inLibrary = savedApi.saved;
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-ui-app font-ui" data-help-article="infopanel-editor">
       <div className="mx-auto w-full max-w-[920px] px-6 py-8">
@@ -165,15 +99,15 @@ export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibr
         {current && (
           <>
             <h2 className="mt-8 text-[13px] font-semibold text-ui-1">Continue editing</h2>
-            <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className={GRID}>
               <ProfileCard
                 name={current.name}
                 detail={current.where === current.name ? "" : current.where}
-                size={`${current.width} × ${current.height} · ${counted(current.items)}`}
+                meta={`${current.width} × ${current.height} · ${counted(current.items)}`}
                 aspect={aspectOf(current.width, current.height)}
                 thumb={<CanvasThumb canvas={current.canvas} />}
-                onOpen={onContinue}
-                openLabel="Continue editing"
+                onClick={onContinue}
+                label={`Continue editing ${current.name}`}
               />
             </ul>
           </>
@@ -184,23 +118,29 @@ export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibr
             <TemplateGallery launch choice={NO_CHOICE} onChoice={(c) => onNew(c.template === null ? undefined : c)} width={800} height={480} />
           </Suspense>
         </div>
-        <h2 className="mt-8 text-[13px] font-semibold text-ui-1">In this dashboard</h2>
+        <div className="mt-8 flex items-baseline gap-3">
+          <h2 className="text-[13px] font-semibold text-ui-1">In this dashboard</h2>
+          <button type="button" onClick={onManage} className="rounded-sm text-[12px] text-ui-accent-text hover:underline">
+            Manage all screens
+          </button>
+        </div>
         {places.length === 0 ? (
           <p className="mt-2 text-[12.5px] text-ui-4">No InfoPanel profiles yet. Make a new one, or import an .infopanel file.</p>
         ) : (
-          <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className={GRID}>
             {places.map((c) => (
               <ProfileCard
                 key={c.zoneId}
                 name={c.name}
+                badges={<Badge tone="accent">InfoPanel</Badge>}
                 detail={c.where === c.name ? "" : c.where}
-                size={`${c.width} × ${c.height} · ${counted(c.items)}`}
+                meta={`${c.width} × ${c.height} · ${counted(c.items)}`}
                 aspect={aspectOf(c.width, c.height)}
                 thumb={<CanvasThumb canvas={c.canvas} />}
-                onOpen={() => onOpen(c)}
-                openLabel="Open"
+                onClick={() => onOpen(c)}
+                label={`Open ${c.name}`}
               >
-                <button type="button" onClick={() => onOpen(c)} className={LINK}>
+                <button type="button" onClick={() => onOpen(c)} className={CARD_BUTTON}>
                   <Pencil className="h-3.5 w-3.5" />
                   Open
                 </button>
@@ -211,49 +151,10 @@ export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibr
         {inLibrary.length > 0 && (
           <>
             <h2 className="mt-8 text-[13px] font-semibold text-ui-1">In your Library</h2>
-            <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {inLibrary.map((item) => {
-                const width = Number(item.meta.width) || 0;
-                const height = Number(item.meta.height) || 0;
-                return (
-                  <ProfileCard
-                    key={item.id}
-                    name={item.name}
-                    detail="Opens as a new screen"
-                    size={`${width} × ${height} · ${counted(Number(item.meta.items) || 0)}`}
-                    aspect={aspectOf(width, height)}
-                    thumb={<ProfileThumb item={item} />}
-                    onOpen={() => onOpenLibrary(item)}
-                    openLabel="Open"
-                  >
-                    {removing === item.id ? (
-                      <>
-                        <span className="min-w-0 flex-1 truncate px-1.5 text-[12px] text-ui-3">Remove from the Library?</span>
-                        <button type="button" onClick={() => void remove(item)} className={`${LINK} text-ui-danger`}>
-                          Remove
-                        </button>
-                        <button type="button" onClick={() => setRemoving(null)} className={LINK}>
-                          Keep
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button type="button" onClick={() => onOpenLibrary(item)} className={LINK}>
-                          <Pencil className="h-3.5 w-3.5" />
-                          Open
-                        </button>
-                        <button type="button" onClick={() => void duplicate(item)} className={LINK}>
-                          <Copy className="h-3.5 w-3.5" />
-                          Duplicate
-                        </button>
-                        <button type="button" onClick={() => setRemoving(item.id)} className={`${LINK} ml-auto`} aria-label={`Remove ${item.name}`}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    )}
-                  </ProfileCard>
-                );
-              })}
+            <ul className={GRID}>
+              {inLibrary.map((item) => (
+                <SavedCard key={item.id} item={item} api={savedApi} action="Open" detail="Opens as a new screen" onOpen={() => onOpenLibrary(item)} />
+              ))}
             </ul>
           </>
         )}
