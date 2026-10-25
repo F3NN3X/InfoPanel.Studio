@@ -38,7 +38,7 @@ describe("rowsOf", () => {
   it("is one row for a module, with the module's default", () => {
     const [r] = rowsOf(zone("CpuMonitor"), title);
     expect(r).toMatchObject({ key: "zone", fallback: "recreate", options: ["recreate", "snapshot", "leave"] });
-    expect(rowsOf(zone("Fans"), title)[0]).toMatchObject({ fallback: "snapshot" });
+    expect(rowsOf(zone("Fans"), title)[0]).toMatchObject({ fallback: "recreate" });
   });
 
   it("says a widget that isn't InfoPanel data is left out, with only that option", () => {

@@ -7,7 +7,7 @@ import { sampleScreen } from "@/lib/screens/create";
 import { filterEntries, KIND_LABEL, savedEntries, screenEntries, screenKind, sortEntries, type ListFilter, type ListSort } from "@/lib/screens/list";
 import { moveProfile } from "@/lib/screens/order";
 import type { LibraryItem } from "@/lib/library";
-import { openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors";
+import { openConvertDialog, openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors";
 import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { DeleteDialog } from "./screens/delete-dialog";
@@ -205,6 +205,11 @@ export function ScreensView({
                       onMove={(by) => setConfig((c) => moveProfile(c, p.id, by))}
                       onCopyLink={() => copyLink(p.id)}
                       onExport={() => openExportSheet({ row: "screen", screenId: p.id })}
+                      // The conversion reads the zones where they are drawn, so the screen opens on the canvas first.
+                      onConvert={() => {
+                        onOpenScreen(p.id);
+                        window.setTimeout(() => openConvertDialog("screen"), 300);
+                      }}
                       onDelete={() => setDeletingId(p.id)}
                     />
                   }

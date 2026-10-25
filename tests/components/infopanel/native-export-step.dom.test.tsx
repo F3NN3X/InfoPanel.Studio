@@ -9,7 +9,10 @@ import type { NativeChoice } from "@/lib/infopanel/native/tiers";
 
 const zone = (id: string, module: string): Placement => ({ id, module, colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 2, visible: true });
 const titles: Record<string, string> = { CpuMonitor: "CPU Monitor", Fans: "Fans", Countdown: "Countdown" };
-const rows = [zone("a", "CpuMonitor"), zone("b", "Fans"), zone("c", "Countdown")].flatMap((p) => rowsOf(p, (id) => titles[id]));
+// Fans stands for a widget that can't be rebuilt yet: no module is in that state, so its row is made so here.
+const rows = [zone("a", "CpuMonitor"), zone("b", "Fans"), zone("c", "Countdown")]
+  .flatMap((p) => rowsOf(p, (id) => titles[id]))
+  .map((r) => (r.zoneId === "b" ? { ...r, entry: { ...r.entry, built: false }, fallback: "snapshot" as const, options: ["snapshot", "leave"] as NativeChoice[] } : r));
 
 function Harness({ stored = {} }: { stored?: Record<string, Choices> }) {
   const [choices, setChoices] = useState(stored);

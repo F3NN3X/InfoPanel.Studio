@@ -249,15 +249,15 @@ The Export window ends with what the other PC needs.
 
 ## Converting dashboard widgets
 
-InfoPanel can't draw the dashboard's widgets, so a zone or a whole screen can be rebuilt from InfoPanel's own items. Right-click a zone and choose **Convert zone to InfoPanel…**, or open the command palette and choose **Convert screen to InfoPanel profile…**. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
+InfoPanel can't draw the dashboard's widgets, so a zone or a whole screen can be rebuilt from InfoPanel's own items. Right-click a zone and choose **Convert zone to InfoPanel…**, open the command palette and choose **Convert screen to InfoPanel profile…**, or use **Convert to InfoPanel profile** in a screen card's menu in Screens. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
 
 For each widget you choose what it becomes:
 
-- **Recreate** rebuilds it. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. A widget with a plugin behind it (Weather, Now Playing, the Steam widgets, Clock, Drive Space) is built from that plugin's readings, and the cover art, the weather icon and the avatars are web images. For CPU, GPU and Memory, the numbers, bars and rings become bound items over a picture of the rest.
+- **Recreate** rebuilds it. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. Every other widget is built from the readings it shows: hardware by role (CPU load, GPU temperature, FPS), plugins by their entries (Weather, Now Playing, the Steam widgets, Clock, Drive Space, the audio meters and so on). The cover art, the weather icon and the avatars are web images. A rebuilt widget is a card with InfoPanel items on it, bound to the same sensors. For CPU, GPU and Memory, the numbers, bars and rings become bound items over a picture of the rest.
 - **Static snapshot** is a picture of the widget as it is now. It never updates.
 - **Leave out** drops it.
 
-Recreate is the default where it is available. A widget that can't be rebuilt yet goes as a snapshot, and says so. Your choices are kept on the zone, so the next conversion starts from them. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
+Recreate is the default. A widget whose readings aren't on this PC goes as a snapshot, and the report says so. Your choices are kept on the zone, so the next conversion starts from them. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
 
 Coding Agents, Countdown, Timer, Web Page and WaveLink aren't InfoPanel data. They can't be converted, and the window says each one is left out.
 

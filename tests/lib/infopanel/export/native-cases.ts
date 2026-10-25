@@ -31,6 +31,45 @@ const drive = (n: number): [string, DataApiValue][] => [
   [`free${n}`, { value: 900, unit: "GB", name: `Disk ${n} Free Space`, ref: `libre:/nvme/${n}/data/${3 + n}` }],
 ];
 
+/** The hardware readings the role-based widgets find (CPU, GPU, memory, network, FPS, cores), with the refs LibreHardwareMonitor gives. */
+function hardware(): [string, DataApiValue][] {
+  const r = (key: string, name: string, ref: string, value = 20, unit = "%"): [string, DataApiValue] => [key, { value, unit, name, ref }];
+  return [
+    r("libre.cpu_temp", "Core (Tctl/Tdie)", "libre:/amdcpu/0/temperature/2", 55, "°C"),
+    r("libre.cpu_power", "Package", "libre:/amdcpu/0/power/0", 90, "W"),
+    r("libre.cpu_core1", "CPU Core #1", "libre:/amdcpu/0/load/1"),
+    r("libre.cpu_core2", "CPU Core #2", "libre:/amdcpu/0/load/2"),
+    r("libre.gpu_load", "GPU Core", "libre:/gpu-nvidia/0/load/0", 40),
+    r("libre.gpu_temp", "GPU Core", "libre:/gpu-nvidia/0/temperature/0", 60, "°C"),
+    r("libre.gpu_power", "GPU Package", "libre:/gpu-nvidia/0/power/0", 200, "W"),
+    r("libre.gpu_fan", "GPU Fan 1", "libre:/gpu-nvidia/0/fan/1", 1500, "RPM"),
+    r("libre.disk_load", "Total Activity", "libre:/nvme/0/load/30", 5),
+    ["system.cpu.load", { value: 9, unit: "%", name: "CPU Load" }],
+    ["system.ram.load", { value: 68, unit: "%", name: "RAM Load" }],
+    ["system.ram.free", { value: 31, unit: "%", name: "RAM Free" }],
+    ...["name", "ipv4-0"].map((e) => plugin(`network-info-plugin/{ABC}/${e}`)),
+    ...["battery-level", "device-name"].map((e) => plugin(`bluetooth-battery-plugin/headset/${e}`)),
+    plugin("InfoPanel.VBZ/departures/next", { text: "5 min" }),
+    plugin("InfoPanel.StreamDeck/deck/key-1", { text: "x" }),
+    plugin("InfoPanel.TextFile/file/line-1", { text: "x" }),
+    plugin("InfoPanel.SteamAPI/SteamAPI-Session/current-game"),
+    plugin("InfoPanel.SteamAPI/SteamAPI-Session/current-game-playtime"),
+    plugin("InfoPanel.SteamAPI/SteamAPI-Profile/current_game_banner_url"),
+    plugin("InfoPanel.SteamAPI/SteamAPI-Social/friends-activity"),
+    plugin("InfoPanel.SteamAPI/SteamAPI-News/library-news"),
+    r("libre.ram_load", "Memory", "libre:/ram/load/0", 60),
+    r("libre.net_down", "Download Speed", "libre:/nic/{GUID}/throughput/8", 2048, "KB/s"),
+    r("libre.net_up", "Upload Speed", "libre:/nic/{GUID}/throughput/7", 512, "KB/s"),
+    ...["fps", "1% low fps", "current frame time"].map((n, i) => r(`rtss.${i}`, n, `plugin:/InfoPanel.RTSS/rtss/${n}`, 90, "")),
+    ...[["processes", "top-cpu-usage"], ["processes", "top-memory-usage"]].map(([c, e]) => plugin(`system-info-plugin/${c}/${e}`)),
+    plugin("system-info-plugin/uptime/formatted"),
+    plugin("windows-plugin/windows/latest"),
+    plugin("windows-plugin/windows/count", { value: 2 }),
+    ...["left-channel", "right-channel", "peak-hold", "audio-level"].map((e) => plugin(`audio-level-meter/dev1/${e}`, { value: 30 })),
+    ...["volume", "mute"].map((e) => plugin(`volume-plugin/dev1/${e}`, { value: 1 })),
+  ];
+}
+
 /** The readings the conversions read, with the refs the Data API reports. */
 export const NATIVE_SENSORS: Record<string, DataApiValue> = Object.fromEntries([
   ["libre.cpu", { value: 12, unit: "%", name: "CPU Total", ref: "libre:/amdcpu/0/load/0" }],
@@ -43,6 +82,7 @@ export const NATIVE_SENSORS: Record<string, DataApiValue> = Object.fromEntries([
   ...["second", "minute", "12-hour"].map((e) => plugin(`clock-plugin/clock/${e}`)),
   ...drive(1),
   ...drive(2),
+  ...hardware(),
 ]);
 
 const box: Rect = { x: 0, y: 0, w: 360, h: 140 };
@@ -51,7 +91,10 @@ const widget = (kind: Widget["kind"], rest: Partial<Widget> = {}): Widget => ({ 
 /** Every converted widget, each in its own band down the canvas. */
 export function nativeItems(profile: Profile): DisplayItem[] {
   const ctx: ConvertContext = { look: profile, palette: defaultPalette(profile), sensors: NATIVE_SENSORS, notes: [] };
-  const at = (i: number): Rect => ({ ...box, y: 10 + i * (box.h + 10) });
+  // A dense screen: every converter in its own cell of a grid four wide.
+  const COLS = 4;
+  const at = (i: number): Rect => ({ ...box, x: 10 + (i % COLS) * (box.w + 10), y: 10 + Math.floor(i / COLS) * (box.h + 10) });
+  const rows = Math.ceil((Object.keys(CONVERTERS).length + 2) / COLS);
   const panel: PanelDef = {
     id: "p",
     title: "Panel",
@@ -79,12 +122,12 @@ export function nativeItems(profile: Profile): DisplayItem[] {
     taggedItem({ key: "libre.cpu", kind: "value", box: { x: 20, y: 20, w: 120, h: 50 }, fontSize: 36, color: "rgb(255, 255, 255)", bold: true, unit: "%", decimals: 0 }, at(0), ctx),
     taggedItem({ key: "libre.cpu", kind: "bar", box: { x: 20, y: 90, w: 300, h: 10 }, fontSize: 12, color: "rgb(255, 255, 255)", bold: false, max: 100 }, at(0), ctx),
   ];
-  return [...decomposed, panelToItems(panel, { x: 380, y: 10, w: 360, h: 600 }, new Map(), ctx), ...converted];
+  return [...decomposed, panelToItems(panel, { x: 10, y: 10 + rows * (box.h + 10), w: 360, h: 600 }, new Map(), ctx), ...converted];
 }
 
 /** The profile, its baked doc and the exported .infopanel bytes. */
 export async function nativeExport(profile: Profile): Promise<{ name: string; profile: Profile; doc: Doc; bytes: Uint8Array; items: DisplayItem[] }> {
-  const named = { ...profile, Name: NATIVE_CASE, Width: 800, Height: 1200 };
+  const named = { ...profile, Name: NATIVE_CASE, Width: 1500, Height: 5000 };
   const stored = JSON.parse(JSON.stringify(storeItems(newStored({ name: NATIVE_CASE, width: named.Width, height: named.Height }), named, nativeItems(named))));
   const read = readStored(stored);
   const background = await assetFile("cpu_background.png", png(360, 140, 4242), "added");

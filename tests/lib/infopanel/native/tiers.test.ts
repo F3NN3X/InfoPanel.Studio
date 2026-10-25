@@ -28,6 +28,6 @@ describe("tiers", () => {
 
   it("defaults a built module to recreate and an unbuilt one to a snapshot, and never offers a live image", () => {
     expect(choicesFor(tierOf("CpuMonitor"))).toEqual(["recreate", "snapshot", "leave"]);
-    expect(choicesFor(tierOf("Fans"))).toEqual(["snapshot", "leave"]);
+    expect(choicesFor({ tier: "native", built: false })).toEqual(["snapshot", "leave"]);
   });
 });

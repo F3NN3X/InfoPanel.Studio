@@ -18,6 +18,8 @@ export interface TierEntry {
   built: boolean;
   /** What the InfoPanel version approximates or loses. */
   approximated?: string;
+  /** Why a module that is not built goes as a snapshot. */
+  gap?: string;
   /** Why a `native-only` widget isn't exported. */
   reason?: string;
 }
@@ -38,8 +40,8 @@ export const PANEL_KIND_TIERS: Record<WidgetKind, { approximated?: string }> = {
   shape: {},
 };
 
-const hw = (built = false, approximated?: string): TierEntry => ({ tier: "native", built, ...(approximated ? { approximated } : {}) });
-const plug = (built = false, approximated?: string): TierEntry => ({ tier: "plugin", built, ...(approximated ? { approximated } : {}) });
+const hw = (built = true, approximated?: string): TierEntry => ({ tier: "native", built, ...(approximated ? { approximated } : {}) });
+const plug = (built = true, approximated?: string): TierEntry => ({ tier: "plugin", built, ...(approximated ? { approximated } : {}) });
 const only = (reason: string): TierEntry => ({ tier: "native-only", built: false, reason });
 
 const TREND = "the trend line starts empty";
@@ -48,50 +50,50 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   CpuMonitor: hw(true, TREND),
   GpuMonitor: hw(true, TREND),
   MemoryUsage: hw(true, TREND),
-  PowerDraw: hw(false, TREND),
+  PowerDraw: hw(true, TREND),
   Fans: hw(),
-  Thermals: hw(false, "the hottest-first order is fixed at export"),
+  Thermals: hw(true, "the hottest-first order is fixed at export"),
   Vitals: hw(),
-  SystemOverview: hw(false, TREND),
+  SystemOverview: hw(true, TREND),
   MenuBar: hw(),
   KpiTiles: hw(),
-  GpuRings: hw(false, "the rings are baked as frames"),
-  CoreHeatmap: hw(false, "the colour ramp becomes two thresholds"),
-  StatusTracker: hw(false, "block colours become one colour"),
-  DiskIO: hw(false, "the auto-scaled axis becomes a fixed maximum"),
-  NetworkThroughput: hw(false, "the auto-scaled axis becomes a fixed maximum"),
+  GpuRings: hw(true, "the rings are baked as frames"),
+  CoreHeatmap: hw(true, "the colour ramp becomes two thresholds"),
+  StatusTracker: hw(true, "block colours become one colour"),
+  DiskIO: hw(true, "the auto-scaled axis becomes a fixed maximum"),
+  NetworkThroughput: hw(true, "the auto-scaled axis becomes a fixed maximum"),
   StorageHealth: hw(),
   DriveSpace: hw(true),
   SensorGroup: hw(),
-  SensorValue: hw(false, TREND),
+  SensorValue: hw(true, TREND),
   CustomGauge: hw(),
-  SystemStatus: hw(false, "the Data API health line is lost"),
-  ServiceHealth: plug(false, "values are shown instead of status dots"),
-  ProcessList: plug(false, "the per-row bars are lost"),
+  SystemStatus: hw(true, "the Data API health line is lost"),
+  ServiceHealth: plug(true, "values are shown instead of status dots"),
+  ProcessList: plug(true, "the per-row bars are lost"),
   Uptime: plug(),
-  NetworkAdapters: plug(false, "adapters re-bind by name on another PC"),
+  NetworkAdapters: plug(true, "adapters re-bind by name on another PC"),
   Clock: plug(true, "an analog hand steps"),
-  Calendar: plug(false, "the month grid is lost"),
-  StatusBar: plug(false, "the island and page dots are lost"),
+  Calendar: plug(true, "the month grid is lost"),
+  StatusBar: plug(true, "the island and page dots are lost"),
   Weather: plug(true, "the animated sky becomes a static icon"),
-  Forecast: plug(false, "per-day icons and the hi/lo bars are lost"),
+  Forecast: plug(true, "per-day icons and the hi/lo bars are lost"),
   NowPlaying: plug(true, "the art-tinted background becomes a fixed colour"),
-  AudioMeter: plug(false, "InfoPanel's refresh rate sets the motion"),
-  MeterBridge: plug(false, "InfoPanel's refresh rate sets the motion"),
-  Visualizer: plug(false, "the spectrum can't be bound: level bars instead"),
-  VolumeMixer: plug(false, "the mute icon becomes a value"),
+  AudioMeter: plug(true, "InfoPanel's refresh rate sets the motion"),
+  MeterBridge: plug(true, "InfoPanel's refresh rate sets the motion"),
+  Visualizer: plug(true, "the spectrum can't be bound: level bars instead"),
+  VolumeMixer: plug(true, "the mute icon becomes a value"),
   SteamProfile: plug(true, "the status colour is lost"),
   SteamGame: plug(true),
   Achievements: plug(true),
   SteamFriends: plug(true, "avatars and grouping by status are lost"),
   SteamLibrary: plug(true, "cover thumbnails are lost"),
   SteamNews: plug(true, "cover thumbnails are lost"),
-  PlaytimeShare: plug(false, "the share bars are lost"),
-  GameSpotlight: plug(false, "the blur and tint are lost"),
-  FpsMonitor: hw(false, "the auto-scaled axis becomes a fixed maximum"),
+  PlaytimeShare: plug(true, "the share bars are lost"),
+  GameSpotlight: plug(true, "the blur and tint are lost"),
+  FpsMonitor: hw(true, "the auto-scaled axis becomes a fixed maximum"),
   OsdStrip: hw(),
-  FramePacing: hw(false, "the auto-scaled axis becomes a fixed maximum"),
-  Notifications: plug(false, "only the latest notification shows"),
+  FramePacing: hw(true, "the auto-scaled axis becomes a fixed maximum"),
+  Notifications: plug(true, "only the latest notification shows"),
   Bluetooth: plug(),
   Departures: plug(),
   StreamDeck: plug(),
@@ -105,6 +107,17 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
 
 /** The tier entry of a registry module; an id without one is `native-only` (the guard test keeps this from happening). */
 export const tierOf = (moduleId: string): TierEntry => MODULE_TIERS[moduleId] ?? only("it has no InfoPanel version yet");
+
+/** Every module and what the conversion makes of it: recreated, a snapshot (not built, with the gap), or left out (native-only). */
+export function coverage(): { id: string; outcome: "recreated" | "snapshot" | "native-only"; reason?: string }[] {
+  return Object.entries(MODULE_TIERS).map(([id, e]) =>
+    e.tier === "native-only"
+      ? { id, outcome: "native-only", reason: e.reason }
+      : e.built
+        ? { id, outcome: "recreated", ...(e.approximated ? { reason: `approximated: ${e.approximated}` } : {}) }
+        : { id, outcome: "snapshot", reason: e.gap ?? "not built yet" },
+  );
+}
 
 /** The choices a widget offers; the first is its default. */
 export function choicesFor(entry: TierEntry): NativeChoice[] {

@@ -4,9 +4,11 @@ import { driveSpace } from "./drive-space.ts";
 import type { Converter } from "./kit.ts";
 import { nowPlaying } from "./now-playing.ts";
 import { achievements, steamFriends, steamGame, steamLibrary, steamNews, steamProfile } from "./steam.ts";
+import { SPEC_CONVERTERS } from "./specs.ts";
 import { weather } from "./weather.ts";
 
 export const CONVERTERS: Readonly<Record<string, Converter>> = {
+  ...SPEC_CONVERTERS,
   Weather: weather,
   NowPlaying: nowPlaying,
   SteamProfile: steamProfile,

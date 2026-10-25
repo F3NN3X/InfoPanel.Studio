@@ -96,7 +96,7 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
       if (result.items.length === 0) return;
       const box = scope === "zone" ? zones[0] : undefined;
       const name = scope === "screen" ? `${profile.name} (InfoPanel)` : `${box ? titleOf(box.module) : "Zone"} (InfoPanel)`;
-      const size = scope === "screen" ? { width: profile.width, height: profile.height } : zoneSize(profile, zones[0]);
+      const size = result.size;
       const canvas = await canvasFromItems(result.items, result.assets, { name, ...size });
       const why = onConverted({ scope, canvas, name, size });
       if (why) setError(why);
@@ -134,11 +134,6 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
       </div>
     </>
   );
-}
-
-/** A zone's size in design px, from its cells. */
-function zoneSize(profile: ProfileView, zone: Placement): { width: number; height: number } {
-  return { width: Math.max(1, Math.round((profile.width / profile.cols) * zone.colSpan)), height: Math.max(1, Math.round((profile.fit === "fill" ? profile.height / profile.rows : 120) * zone.rowSpan)) };
 }
 
 export function ConvertDialog({ open, onOpenChange, ...rest }: ConvertDialogProps) {

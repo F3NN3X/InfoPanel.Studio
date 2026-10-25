@@ -13,6 +13,7 @@ import { domToPng } from "modern-screenshot";
 import { fetchForShot, keep } from "../../profile-shot.ts";
 import { PANEL_ID, type Placement } from "../../layout.ts";
 import { assetFile, type AssetFile } from "../assets/assets.ts";
+import { moveBy } from "../editor/ops.ts";
 import { safeStem } from "../gauges/frames.ts";
 import { defaultPalette } from "../elements/palette.ts";
 import { choiceFor, readChoices, rowsOf, type ExportRow } from "../export/native-choices.ts";
@@ -49,9 +50,12 @@ export interface Converted {
   items: DisplayItem[];
   assets: AssetFile[];
   report: ReportRow[];
+  /** The canvas the items fill, in design px: the grid the zones sit in, or the one zone when only that is converted. */
+  size: { width: number; height: number };
 }
 
-const bytesOf = async (dataUrl: string): Promise<Uint8Array> => new Uint8Array(await (await fetch(dataUrl)).arrayBuffer());
+/** A data URL's bytes. (Not `fetch`: the page's connect-src doesn't allow data: URLs.) */
+const bytesOf = (dataUrl: string): Uint8Array => Uint8Array.from(atob(dataUrl.slice(dataUrl.indexOf(",") + 1)), (c) => c.charCodeAt(0));
 
 /** A picture of `el` at its design size (the studio zoom taken out); `hide` is told about each cloned node. */
 async function picture(el: HTMLElement, size: { w: number; h: number }, hide?: (n: Node) => void): Promise<Uint8Array> {
@@ -70,14 +74,14 @@ async function picture(el: HTMLElement, size: { w: number; h: number }, hide?: (
 const stem = (s: string, n: number) => `${safeStem(s) || "zone"}_${n}`;
 
 /** The zone's element on the page, its box on the grid it sits in, and the zoom the page is drawn at. */
-function locate(scope: ParentNode, zoneId: string): { el: HTMLElement; box: Rect; zoom: number } | null {
+function locate(scope: ParentNode, zoneId: string): { el: HTMLElement; box: Rect; zoom: number; grid: { width: number; height: number } } | null {
   const el = scope.querySelector<HTMLElement>(`[data-zone-id="${CSS.escape(zoneId)}"]`);
   const grid = el?.parentElement;
   if (!el || !grid) return null;
   const g = grid.getBoundingClientRect();
   const zoom = grid.offsetWidth > 0 && g.width > 0 ? g.width / grid.offsetWidth : 1;
   const r = el.getBoundingClientRect();
-  return { el, zoom, box: { x: (r.left - g.left) / zoom, y: (r.top - g.top) / zoom, w: r.width / zoom, h: r.height / zoom } };
+  return { el, zoom, grid: { width: grid.offsetWidth, height: Math.max(grid.scrollHeight, grid.offsetHeight) }, box: { x: (r.left - g.left) / zoom, y: (r.top - g.top) / zoom, w: r.width / zoom, h: r.height / zoom } };
 }
 
 /** The widgets of a panel zone with the box each is drawn at, from the page (`.wp-widget[data-widget-id]`). */
@@ -100,6 +104,8 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
   const assets: AssetFile[] = [];
   const report: ReportRow[] = [];
   let n = 0;
+  let grid = { width: 0, height: 0 };
+  let only: Rect | undefined;
 
   const ctxFor = (notes: Note[]): ConvertContext => ({ look: req.look, palette, sensors: req.sensors, notes });
   const image = async (bytes: Uint8Array, name: string, box: Rect): Promise<DisplayItem> => {
@@ -115,6 +121,10 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     const stored = readChoices(p.settings);
     const spot = locate(req.scope, p.id);
     const row0 = rows[0];
+    if (spot) {
+      grid = spot.grid;
+      if (req.only) only = spot.box;
+    }
 
     // A module that isn't InfoPanel data, or a zone that isn't on the page to read.
     if (row0.entry.tier === "native-only") {
@@ -165,9 +175,10 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     const converter = CONVERTERS[p.module];
     if (converter) {
       const made = converter(spot.box, ctx, p.settings ?? {});
-      if (made.length === 0) await snapshot("its plugin isn't running, so a picture of it now");
+      if (made.length === 0) await snapshot("its readings aren't on this PC, so a picture of it now");
       else {
-        items.push(...made);
+        // The widget's card, behind its items (the dashboard's own surface isn't an InfoPanel item).
+        items.push(make("Shape", ctx, spot.box, `${row0.name} card`, { FillColor: palette.card, CornerRadius: 12, ShowFrame: false, ShowGradient: false }), ...made);
         done("rebuilt from InfoPanel items", notes.map((x) => x.text));
       }
       continue;
@@ -181,7 +192,12 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     items.push({ ...defaultItem("Group"), Name: row0.name, X: Math.round(spot.box.x), Y: Math.round(spot.box.y), DisplayItems: [chrome, ...tagged] } as DisplayItem);
     done("values rebuilt over a picture of the rest", [...new Set(notes.map((x) => x.text))]);
   }
-  return { items, assets, report };
+  // One zone alone becomes a canvas of its own size, its items moved to the corner.
+  if (only) {
+    const moved = moveBy(items, items.map((_, i) => String(i)), -only.x, -only.y);
+    return { items: moved, assets, report, size: { width: Math.max(1, Math.round(only.w)), height: Math.max(1, Math.round(only.h)) } };
+  }
+  return { items, assets, report, size: { width: Math.max(1, grid.width), height: Math.max(1, grid.height) } };
 }
 
 export type { ExportRow };
