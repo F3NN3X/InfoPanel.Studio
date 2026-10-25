@@ -8,7 +8,7 @@ import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
 import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
-import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops";
+import { itemAt, setField, updateAt, type Path } from "@/lib/infopanel/editor/ops";
 import { NOT_EXPORTABLE, PLUGIN_ONLY } from "@/lib/infopanel/editor/sensor-list";
 import { labelOf, valueOf } from "@/lib/infopanel/editor/registry";
 import { groupId } from "@/lib/infopanel/remap/remap";
@@ -20,7 +20,7 @@ import { BINDING_IDS, ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/com
 import type { FieldsApi } from "@/components/studio/settings-panel";
 import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
-import { ELEMENTS } from "@/lib/infopanel/elements/create";
+import { ELEMENTS, gradientBar } from "@/lib/infopanel/elements/create";
 import { describeNative } from "../native";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
 import { ElementPanel } from "./element-panel";
@@ -157,6 +157,16 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
                   {item.Images.length === 0 && !("vector" in item) && <p className="px-4 pb-1.5 text-[11.5px] leading-snug text-ui-4">No frames yet: InfoPanel draws a gauge from its images. Edit gauge to build them.</p>}
                   <EditGaugeButton onClick={() => onEditGauge(path)} />
                 </>
+              )}
+              {item.kind === "Bar" && (
+                <button
+                  type="button"
+                  title="Round the corners to half the height and fill with a gradient from accent 1 to accent 2"
+                  onClick={() => editor.commit(updateAt(editor.committed, path, (bar) => gradientBar(bar, editor.palette)))}
+                  className="mx-4 mb-2 flex h-7 w-[calc(100%-2rem)] items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong"
+                >
+                  Rounded gradient look
+                </button>
               )}
             </>
           ),

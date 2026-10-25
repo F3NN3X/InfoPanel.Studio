@@ -16,7 +16,8 @@ import { editKeyOf } from "@/lib/infopanel/canvas-edit";
 import { namedFor, newItem, type PaletteEntry } from "@/lib/infopanel/editor/create";
 import { applyElement } from "@/lib/infopanel/elements/apply";
 import { detectCores } from "@/lib/infopanel/elements/cores";
-import { newCores, newElement, type ElementEntry } from "@/lib/infopanel/elements/create";
+import { detectDrives } from "@/lib/infopanel/elements/drives";
+import { elementSize, isComposite, newComposite, newCores, newElement, type ElementEntry } from "@/lib/infopanel/elements/create";
 import type { DropPlace } from "@/lib/infopanel/canvas-edit";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import type { Placement } from "@/lib/layout";
@@ -101,6 +102,16 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
       const at = place?.at ?? { x: profile.Width / 2, y: profile.Height / 2 };
       editor.add(applyElement({ ...group, X: Math.round(at.x - size.width / 2), Y: Math.round(at.y - size.height / 2) }));
       if (cores.length === 0) toast("No per-core load sensors found, so Cores shows placeholder bars");
+      return;
+    }
+    if (isComposite(entry.type)) {
+      const drives = entry.type === "drives" ? detectDrives(sensors) : [];
+      const probe = newComposite(entry.type, profile, editor.palette, drives, 0, 0);
+      const size = elementSize((probe as unknown as { element: Parameters<typeof elementSize>[0] }).element);
+      const at = place?.at ?? { x: profile.Width / 2, y: profile.Height / 2 };
+      editor.add(newComposite(entry.type, profile, editor.palette, drives, Math.round(at.x - size.width / 2), Math.round(at.y - size.height / 2)));
+      if (entry.type === "drives" && drives.length === 0) toast("No drives found in the Data API, so Drives shows placeholder tiles");
+      else if (entry.type !== "drives") toast("Pick a part in Layers to choose its sensor");
       return;
     }
     const path = editor.add(newElement(entry.type, profile, editor.palette), place);

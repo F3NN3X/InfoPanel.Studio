@@ -6,10 +6,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { coreBars } from "@/lib/infopanel/elements/create";
+import { coreBars, driveTile, PLACEHOLDER_DRIVES } from "@/lib/infopanel/elements/create";
 import { detectCores } from "@/lib/infopanel/elements/cores";
+import { detectDrives } from "@/lib/infopanel/elements/drives";
 import { isSlot, SLOT_LABEL, SLOTS, slotInk, type Ink } from "@/lib/infopanel/elements/palette";
-import { normalizeElement, type ElementSpec } from "@/lib/infopanel/elements/spec";
+import { normalizeElement, type ElementSpec, type Threshold } from "@/lib/infopanel/elements/spec";
 import { iconMarkupOf, iconNames, iconsLoaded, loadIcons } from "@/lib/infopanel/elements/icons";
 import { updateAt, type Path } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
@@ -206,8 +207,156 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
     </Row>
   );
 
+  /** Colours by value: each threshold's colour takes over from its place in the range, up. */
+  const byValue = (list: Threshold[] | undefined, field: string) => (
+    <>
+      <SwitchRow
+        label="Colours by value"
+        on={!!list?.length}
+        onChange={(on) => set({ [field]: on ? [{ at: 70, ink: slotInk(palette, "warn") }, { at: 90, ink: slotInk(palette, "crit") }] : [] })}
+      />
+      {list?.map((t, i) => (
+        <div key={i} className="space-y-1">
+          <NumberField label={`From (%) ${i + 1}`} value={t.at} onCommit={(at) => set({ [field]: list.map((x, k) => (k === i ? { ...x, at } : x)) }, `${field}-${i}-at`)} />
+          <InkField label={`Colour ${i + 1}`} ink={t.ink} palette={palette} onChange={(next) => set({ [field]: list.map((x, k) => (k === i ? { ...x, ink: next } : x)) }, `${field}-${i}-ink`)} />
+        </div>
+      ))}
+      {!!list?.length && <p className="text-[11.5px] leading-snug text-ui-4">The first fill colour holds below the first threshold. Each frame takes the colour of its value.</p>}
+    </>
+  );
+  /** A row's look, shared by Row and Rows. */
+  const rowLook = (s: Extract<ElementSpec, { type: "row" | "rows" }>) => (
+    <>
+      {num("Font size", "size", s.size)}
+      {ink("Label", "label", s.label)}
+      {ink("Value", "value", s.value)}
+      <SwitchRow label="Icon" on={s.icon !== null} onChange={(on) => set({ icon: on ? "cpu" : null })} />
+      {s.icon !== null && (
+        <>
+          {ink("Icon colour", "iconInk", s.iconInk)}
+          <IconPicker value={s.icon} onPick={(icon) => set({ icon })} />
+        </>
+      )}
+      <SwitchRow label="Thin bar" on={s.bar} onChange={(bar) => set({ bar })} />
+      {s.bar && (
+        <>
+          {ink("Bar fill", "barFill", s.barFill)}
+          {ink("Bar track", "barTrack", s.barTrack)}
+        </>
+      )}
+    </>
+  );
+  const partsHint = <p className="text-[11.5px] leading-snug text-ui-4">Select a part in Layers to choose its sensor or edit its text. The element lays the parts out.</p>;
+
   let body: ReactNode;
   switch (spec.type) {
+    case "row":
+    case "rows":
+      body = (
+        <>
+          {num("Width", "width", spec.width)}
+          {num(spec.type === "rows" ? "Row height" : "Height", "height", spec.height)}
+          {spec.type === "rows" && num("Rows", "count", spec.count)}
+          {spec.type === "rows" && num("Gap", "gap", spec.gap)}
+          {rowLook(spec)}
+          {partsHint}
+        </>
+      );
+      break;
+    case "stack":
+      body = (
+        <>
+          {num("Graphs", "count", spec.count)}
+          {num("Width", "width", spec.width)}
+          {num("Graph height", "height", spec.height)}
+          {num("Gap", "gap", spec.gap)}
+          {num("Label size", "size", spec.size)}
+          {ink("Label", "label", spec.label)}
+          {ink("Graph colour", "color", spec.color)}
+          <SwitchRow label="Fill" on={spec.area} onChange={(area) => set({ area })} />
+          {partsHint}
+        </>
+      );
+      break;
+    case "dual":
+      body = (
+        <>
+          {num("Width", "width", spec.width)}
+          {num("Height", "height", spec.height)}
+          {ink("Series A", "a", spec.a)}
+          {ink("Series B", "b", spec.b)}
+          <SwitchRow label="Fill series A" on={spec.area} onChange={(area) => set({ area })} />
+          {partsHint}
+        </>
+      );
+      break;
+    case "doublering":
+      body = (
+        <>
+          {num("Size", "size", spec.size)}
+          {num("Thickness", "thickness", spec.thickness)}
+          {num("Gap between rings", "gap", spec.gap)}
+          {num("Start (°)", "start", spec.start)}
+          {num("Sweep (°)", "sweep", spec.sweep)}
+          {ink("Track", "track", spec.track)}
+          <InksField label="Outer fill" inks={spec.outer} max={3} palette={palette} onChange={(outer) => set({ outer })} />
+          <InksField label="Inner fill" inks={spec.inner} max={3} palette={palette} onChange={(inner) => set({ inner })} />
+          {byValue(spec.innerThresholds, "innerThresholds")}
+          {num("Value size", "valueSize", spec.valueSize)}
+          {ink("Value", "value", spec.value)}
+          {partsHint}
+        </>
+      );
+      break;
+    case "drives": {
+      const found = detectDrives(sensors);
+      body = (
+        <>
+          {direction(spec.orientation)}
+          {num("Width", "width", spec.width)}
+          {num("Height", "height", spec.height)}
+          {num("Gap", "gap", spec.gap)}
+          {num("Corner radius", "radius", spec.radius)}
+          {ink("Card", "card", spec.card)}
+          {ink("Text", "text", spec.text)}
+          {ink("Sub-text", "sub", spec.sub)}
+          {ink("Bar fill", "fill", spec.fill)}
+          {ink("Bar track", "track", spec.track)}
+          {ink("Icon", "icon", spec.icon)}
+          {found.length === 0 ? (
+            <p className="text-[11.5px] leading-snug text-ui-warning">This machine’s drives weren’t found: the Data API reports no LibreHardwareMonitor drive sensors. The tiles are placeholders and export unbound.</p>
+          ) : (
+            <p className="text-[11.5px] leading-snug text-ui-4">{found.length} drives found in the Data API.</p>
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              editor.commit(
+                updateAt(editor.committed, path, (g) =>
+                  g.kind === "Group"
+                    ? { ...g, DisplayItems: (found.length ? found : Array.from({ length: PLACEHOLDER_DRIVES }, () => null)).map((d, i) => driveTile(editor.open.profile, palette, d, i + 1)) }
+                    : g,
+                ),
+              )
+            }
+            className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong"
+          >
+            Find the drives again
+          </button>
+        </>
+      );
+      break;
+    }
+    case "shadowtext":
+      body = (
+        <>
+          {num("Offset X", "dx", spec.dx)}
+          {num("Offset Y", "dy", spec.dy)}
+          {ink("Shadow colour", "color", spec.color)}
+          <p className="text-[11.5px] leading-snug text-ui-4">InfoPanel can’t blur a shadow, so this is a sharp dark copy behind the text. Select the second item in Layers to change the text or its sensor. For a glow, use the Text’s own Glow.</p>
+        </>
+      );
+      break;
     case "ring":
       body = (
         <>
@@ -222,6 +371,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {num("LED segments", "segments", spec.segments)}
           {spec.segments > 0 && num("Gap (°)", "gap", spec.gap)}
           {num("Glow", "glow", spec.glow)}
+          {byValue(spec.thresholds, "thresholds")}
         </>
       );
       break;
@@ -235,6 +385,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {ink("Track", "track", spec.track)}
           <InksField label="Fill" inks={spec.fill} max={3} palette={palette} onChange={(fill) => set({ fill })} />
           {num("Glow", "glow", spec.glow)}
+          {byValue(spec.thresholds, "thresholds")}
         </>
       );
       break;
@@ -342,10 +493,12 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
               options={[
                 { value: "line", label: "Line" },
                 { value: "area", label: "Area" },
+                { value: "bars", label: "Bars" },
               ]}
               onChange={(style) => set({ style })}
             />
           </Row>
+          {spec.style !== "line" && <NumberField label="Fill (%)" value={spec.fillAlpha * 100} onCommit={(n) => set({ fillAlpha: n / 100 })} />}
           {ink("Colour", "color", spec.color)}
           <SwitchRow label="End dot" on={spec.dot} onChange={(dot) => set({ dot })} />
           {spec.style === "area" && <SwitchRow label="Gradient fill" on={spec.gradient} onChange={(gradient) => set({ gradient })} />}

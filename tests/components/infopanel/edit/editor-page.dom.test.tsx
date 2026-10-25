@@ -26,9 +26,9 @@ describe("the InfoPanel editor page", () => {
       </ToastProvider>,
     );
     const palette = screen.getByRole("region", { name: "Add" });
-    // InfoPanel's 14 kinds, then the 8 studio elements.
-    expect(within(palette).getAllByRole("button")).toHaveLength(22);
-    expect(within(within(palette).getByRole("group", { name: "Elements" })).getAllByRole("button")).toHaveLength(8);
+    // InfoPanel's 14 kinds, then the 15 studio elements.
+    expect(within(palette).getAllByRole("button")).toHaveLength(29);
+    expect(within(within(palette).getByRole("group", { name: "Elements" })).getAllByRole("button")).toHaveLength(15);
     expect(screen.getByRole("region", { name: "Layers" })).toBeTruthy();
     expect(screen.getByLabelText("Name")).toHaveProperty("value", "Desk");
 

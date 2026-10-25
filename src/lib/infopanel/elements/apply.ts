@@ -10,7 +10,8 @@ import { withAlpha } from "../editor/look.ts";
 import { normalizeGauge, type VectorGauge } from "../gauges/vector.ts";
 import { defaultItem, type DisplayItem, type GroupItem } from "../schema.ts";
 import { alphaOf, resolveInk, rgbOf, type Ink, type Palette, type Slot } from "./palette.ts";
-import { elementOf, mapInks, type CardSpec, type CoresSpec, type DividerSpec, type ElementSpec, type LedBarSpec, type RingSpec, type SparklineSpec } from "./spec.ts";
+import { applyDoubleRing, applyDrives, applyDual, applyRow, applyRows, applyShadowText, applyStack } from "./compose.ts";
+import { elementOf, mapInks, type CardSpec, type CoresSpec, type Threshold, type DividerSpec, type ElementSpec, type LedBarSpec, type RingSpec, type SparklineSpec } from "./spec.ts";
 
 /** A styled InfoPanel colour field that follows a palette slot; `alpha` (0–1) scales the slot colour's own. */
 export interface SlotRef {
@@ -39,8 +40,10 @@ const baseOf = (item: DisplayItem) => ({ Name: item.Name, Hidden: item.Hidden, X
 const boxOf = (item: DisplayItem) => ({ w: "Width" in item ? Math.max(1, item.Width) : 1, h: "Height" in item ? Math.max(1, item.Height) : 1 });
 
 /** Inks as the vector spec takes them: #RRGGBB stops spread evenly over the range. */
-function vectorFill(fill: readonly Ink[]): VectorGauge["fill"] {
+function vectorFill(fill: readonly Ink[], thresholds?: readonly Threshold[]): VectorGauge["fill"] {
   const color = rgbOf(fill[0].color);
+  // Colours by value: zones, the first colour from 0 and each threshold's from its place.
+  if (thresholds?.length) return { mode: "zones", color, stops: [{ at: 0, color }, ...thresholds.map((t) => ({ at: t.at, color: rgbOf(t.ink.color) }))] };
   if (fill.length < 2) return { mode: "solid", color, stops: [{ at: 0, color }] };
   return { mode: "gradient", color, stops: fill.map((ink, i) => ({ at: (i / (fill.length - 1)) * 100, color: rgbOf(ink.color) })) };
 }
@@ -51,10 +54,10 @@ const track = (ink: Ink) => ({ track: rgbOf(ink.color), ...(alphaOf(ink.color) <
 export function ringVector(s: RingSpec, w: number, h: number): VectorGauge {
   return normalizeGauge({
     shape: "arc", width: w, height: h, start: s.start, sweep: s.sweep, thickness: s.thickness, rounded: s.rounded,
-    segments: s.segments, gap: s.gap, ...track(s.track), fill: vectorFill(s.fill), needle: null, reverse: false,
+    segments: s.segments, gap: s.gap, ...track(s.track), fill: vectorFill(s.fill, s.thresholds), needle: null, reverse: false,
     ticks: s.ticks >= 2 ? { count: s.ticks, length: Math.max(3, Math.round(s.thickness / 2)), width: 2, color: rgbOf(s.track.color) } : null,
     ...(s.glow > 0 ? { glow: s.glow } : {}),
-    ...(s.dot ? { dot: { color: rgbOf(s.fill.at(-1)!.color), size: Math.round(s.thickness * 1.6) } } : {}),
+    ...(s.dot && !s.thresholds?.length ? { dot: { color: rgbOf(s.fill.at(-1)!.color), size: Math.round(s.thickness * 1.6) } } : {}),
   });
 }
 
@@ -63,7 +66,7 @@ export function ledVector(s: LedBarSpec, w: number, h: number): VectorGauge {
   const vertical = s.orientation === "vertical";
   return normalizeGauge({
     shape: "bar", width: w, height: h, orientation: s.orientation, thickness: vertical ? w : h, rounded: false, radius: s.radius,
-    segments: s.segments, gap: s.gap, ...track(s.track), fill: vectorFill(s.fill), needle: null, ticks: null, reverse: false,
+    segments: s.segments, gap: s.gap, ...track(s.track), fill: vectorFill(s.fill, s.thresholds), needle: null, ticks: null, reverse: false,
     ...(s.glow > 0 ? { glow: s.glow } : {}),
   });
 }
@@ -144,7 +147,7 @@ export function applyCores(group: GroupItem, s: CoresSpec): GroupItem {
 
 function applySparkline(item: DisplayItem, s: SparklineSpec): DisplayItem {
   if (item.kind !== "Graph") return item;
-  return { ...item, Type: "LINE", Color: s.color.color, Fill: s.style === "area", FillColor: withAlpha(s.color.color, 0.25 * alphaOf(s.color.color)) } as DisplayItem;
+  return { ...item, Type: s.style === "bars" ? "HISTOGRAM" : "LINE", Color: s.color.color, Fill: s.style !== "line", FillColor: withAlpha(s.color.color, s.fillAlpha * alphaOf(s.color.color)) } as DisplayItem;
 }
 
 /** The item's InfoPanel fields derived from its element spec; any other item as it is. */
@@ -168,10 +171,24 @@ export function applyElement(item: DisplayItem): DisplayItem {
       return item.kind === "Group" ? applyCores(item, s) : item;
     case "sparkline":
       return applySparkline(item, s);
+    case "row":
+      return item.kind === "Group" ? applyRow(item, s, applyElement) : item;
+    case "rows":
+      return item.kind === "Group" ? applyRows(item, s, applyElement) : item;
+    case "stack":
+      return item.kind === "Group" ? applyStack(item, s, applyElement) : item;
+    case "dual":
+      return item.kind === "Group" ? applyDual(item, s, applyElement) : item;
+    case "doublering":
+      return item.kind === "Group" ? applyDoubleRing(item, s, applyElement) : item;
+    case "drives":
+      return item.kind === "Group" ? applyDrives(item, s, applyElement) : item;
+    case "shadowtext":
+      return item.kind === "Group" ? applyShadowText(item, s) : item;
   }
 }
 
-/** Every element in the tree re-derived (a cores group before its bars). */
+/** Every element in the tree re-derived (a managed group before its children). */
 export const syncElements = (items: readonly DisplayItem[]): DisplayItem[] => mapItems(items, (item) => (elementOf(item) ? applyElement(item) : item));
 
 /**
@@ -231,7 +248,26 @@ export function badgeOf(item: DisplayItem): Badge | null {
       const n = item.kind === "Group" ? item.DisplayItems.length : 0;
       return badge("native", `Exported as a Group of ${n} Bar items, one per core.`);
     }
+    case "row": {
+      const parts = ["Text", "Value", ...(s.bar ? ["Bar"] : []), ...(s.icon ? ["Image"] : [])];
+      return badge("native", `Exported as a Group of ${parts.join(", ")}${s.icon ? " (the icon is a baked image)" : ""}.`);
+    }
+    case "rows":
+      return badge("native", `Exported as a Group of ${s.count} row Groups, each a Text and a Value${s.bar ? " and a Bar" : ""}${s.icon ? " and an icon image" : ""}.`);
+    case "stack":
+      return badge("native", `Exported as a Group of ${s.count} Text and Graph pairs.`);
+    case "dual":
+      return badge("native", "Exported as a Group of two transparent Graphs.");
+    case "doublering":
+      return badge("baked", "Exported as a Group of two Gauges with image frames, and the centre Value.");
+    case "drives": {
+      const n = item.kind === "Group" ? item.DisplayItems.length : 0;
+      return badge("native", `Exported as a Group of ${n} drive tiles: a Shape, Text, Bar and Values each, with the icon as a baked image.`);
+    }
+    case "shadowtext":
+      return badge("approximated", "Exported as two Texts, a dark copy behind the text.", ["a blurred shadow (InfoPanel draws none; the copy is sharp)"]);
     case "sparkline": {
+      if (s.style === "bars") return badge("native", "Exported as InfoPanel’s Graph in histogram mode.");
       const lost = [...(s.dot ? ["the end dot"] : []), ...(s.gradient && s.style === "area" ? ["the gradient fill (InfoPanel fills one colour)"] : [])];
       return lost.length ? badge("approximated", "Exported as InfoPanel’s Graph, without some of its look.", lost) : badge("native", "Exported as InfoPanel’s Graph.");
     }

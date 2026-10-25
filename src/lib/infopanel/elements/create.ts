@@ -3,12 +3,14 @@
  * in the profile's palette (every colour follows a slot until the user picks a fixed one).
  */
 import { bindItem } from "../canvas-edit.ts";
+import type { ChosenSensor } from "../editor/bind.ts";
 import { newItem } from "../editor/create.ts";
 import { defaultItem, type DisplayItem, type GroupItem, type Profile } from "../schema.ts";
 import { applyElement } from "./apply.ts";
 import type { CoreSensor } from "./cores.ts";
+import type { DriveSensors } from "./drives.ts";
 import { slotInk, type Palette } from "./palette.ts";
-import type { CoresSpec, ElementSpec, ElementType } from "./spec.ts";
+import type { CoresSpec, ElementSpec, ElementType, RowLook } from "./spec.ts";
 
 export interface ElementEntry {
   type: ElementType;
@@ -27,8 +29,22 @@ export const ELEMENTS: readonly ElementEntry[] = [
   { type: "divider", label: "Divider", sensor: false, hint: "A thin line, solid or gradient" },
   { type: "icon", label: "Icon", sensor: false, hint: "A lucide icon; one image" },
   { type: "cores", label: "Cores", sensor: false, hint: "One Bar per CPU core or thread, bound to its load" },
-  { type: "sparkline", label: "Sparkline", sensor: true, hint: "A line or area graph; exported as InfoPanel’s Graph" },
+  { type: "sparkline", label: "Sparkline", sensor: true, hint: "A line, area or histogram graph; exported as InfoPanel’s Graph" },
+  { type: "row", label: "Row", sensor: false, hint: "A label, its value right-aligned, an optional icon and thin bar; a Group of Text and Value" },
+  { type: "rows", label: "Rows", sensor: false, hint: "A list of rows, evenly spaced; a Group of row Groups" },
+  { type: "stack", label: "Graph stack", sensor: false, hint: "2 to 4 labelled graphs in rows; Text and Graph items" },
+  { type: "dual", label: "Dual graph", sensor: false, hint: "Two series overlaid on transparent Graphs" },
+  { type: "doublering", label: "Double ring", sensor: false, hint: "An outer and an inner ring, each on its own sensor, and a centre value; baked to gauge frames" },
+  { type: "drives", label: "Drives", sensor: false, hint: "One tile per drive: name, used bar, temperature and free space" },
+  { type: "shadowtext", label: "Shadow text", sensor: false, hint: "A Text or Value with a dark offset shadow; two Texts, approximated" },
 ];
+
+/** The elements that are a Group the element lays out, apart from Cores (which `newCores` makes). */
+export type CompositeType = "row" | "rows" | "stack" | "dual" | "doublering" | "drives" | "shadowtext";
+export const isComposite = (t: ElementType): t is CompositeType => ["row", "rows", "stack", "dual", "doublering", "drives", "shadowtext"].includes(t);
+
+/** How many tiles Drives shows when the machine's drives can't be found (unbound, for the preview). */
+export const PLACEHOLDER_DRIVES = 3;
 
 /** How many bars Cores shows when the machine's cores can't be found (unbound, for the preview). */
 export const PLACEHOLDER_CORES = 8;
@@ -56,7 +72,7 @@ export function newCores(profile: Look, palette: Palette, cores: readonly CoreSe
 }
 
 /** A new element of `type`, not placed yet (Cores is placed by `newCores`). */
-export function newElement(type: Exclude<ElementType, "cores">, profile: Look, palette: Palette): DisplayItem {
+export function newElement(type: Exclude<ElementType, "cores" | CompositeType>, profile: Look, palette: Palette): DisplayItem {
   const ink = (slot: Parameters<typeof slotInk>[1]) => slotInk(palette, slot);
   switch (type) {
     case "ring":
@@ -78,7 +94,103 @@ export function newElement(type: Exclude<ElementType, "cores">, profile: Look, p
       return named("Image", "Icon", { Width: 48, Height: 48 }, { type: "icon", name: "cpu", color: ink("accent1") });
     case "sparkline": {
       const graph = { ...newItem("Graph", profile, palette), Name: "Sparkline", Height: 60, Background: false };
-      return applyElement({ ...graph, element: { type: "sparkline", style: "area", color: ink("accent1"), dot: true, gradient: true } } as unknown as DisplayItem);
+      return applyElement({ ...graph, element: { type: "sparkline", style: "area", color: ink("accent1"), dot: true, gradient: true, fillAlpha: 0.25 } } as unknown as DisplayItem);
     }
   }
+}
+
+/** A row's look in the palette: the label in the sub-text slot, the value in the text slot. */
+export const rowLook = (palette: Palette, over: Partial<RowLook> = {}): RowLook => ({
+  size: 14, label: slotInk(palette, "subtext"), value: slotInk(palette, "text"), icon: null, iconInk: slotInk(palette, "accent1"),
+  bar: false, barFill: slotInk(palette, "accent1"), barTrack: slotInk(palette, "track"), ...over,
+});
+
+const rowGroup = (profile: Look, palette: Palette, label: string): DisplayItem[] => [
+  { ...newItem("Text", profile, palette), Name: label },
+  { ...newItem("Sensor", profile, palette), Name: "Value" },
+];
+
+/** One drive's tile: a card, an icon, the name, the used bar and %, the temperature and the free space, bound natively where the sensors are known. */
+export function driveTile(profile: Look, palette: Palette, drive: DriveSensors | null, n: number): DisplayItem {
+  const bind = (item: DisplayItem, sensor: ChosenSensor | undefined) => (sensor ? bindItem(item, sensor) : item);
+  const name = drive?.name ?? `Drive ${n}`;
+  return {
+    ...defaultItem("Group"), Name: name,
+    DisplayItems: [
+      newItem("Shape", profile, palette),
+      defaultItem("Image"),
+      { ...newItem("Text", profile, palette), Name: name },
+      { ...newItem("Bar", profile, palette), MinValue: 0, MaxValue: 100 },
+      bind(newItem("Sensor", profile, palette), drive?.used),
+      bind(newItem("Sensor", profile, palette), drive?.temp),
+      bind(newItem("Sensor", profile, palette), drive?.free),
+    ],
+  } as DisplayItem;
+}
+
+/** The size a composite element covers, from its spec. */
+export function elementSize(spec: ElementSpec): { width: number; height: number } {
+  switch (spec.type) {
+    case "rows":
+    case "stack":
+      return { width: spec.width, height: spec.count * spec.height + (spec.count - 1) * spec.gap };
+    case "doublering":
+      return { width: spec.size, height: spec.size };
+    case "cores":
+    case "row":
+    case "dual":
+    case "drives":
+      return { width: spec.width, height: spec.height };
+    case "shadowtext":
+      return { width: 160, height: 40 };
+    default:
+      return { width: 0, height: 0 };
+  }
+}
+
+/** A composite element's Group at `x`, `y` with its children laid out (a shadowed text is placed by its text). */
+export function newComposite(type: CompositeType, profile: Look, palette: Palette, drives: readonly DriveSensors[], x: number, y: number): GroupItem {
+  const ink = (slot: Parameters<typeof slotInk>[1]) => slotInk(palette, slot);
+  const base = { ...defaultItem("Group"), X: x, Y: y };
+  const make = (name: string, element: ElementSpec, DisplayItems: DisplayItem[] = []) => applyElement({ ...base, Name: name, DisplayItems, element } as unknown as DisplayItem) as GroupItem;
+  switch (type) {
+    case "row":
+      return make("Row", { type: "row", width: 240, height: 28, ...rowLook(palette, { bar: true }) }, rowGroup(profile, palette, "Label"));
+    case "rows":
+      return make("Rows", { type: "rows", count: 4, gap: 4, width: 240, height: 28, ...rowLook(palette) }, [1, 2, 3, 4].map((i) => ({ ...defaultItem("Group"), Name: `Row ${i}`, DisplayItems: rowGroup(profile, palette, `Row ${i}`) }) as DisplayItem));
+    case "stack": {
+      const kids = [1, 2, 3].flatMap((i) => [{ ...newItem("Text", profile, palette), Name: `Graph ${i}` }, newItem("Graph", profile, palette)]);
+      return make("Graph stack", { type: "stack", count: 3, gap: 8, width: 300, height: 56, size: 14, label: ink("subtext"), color: ink("accent1"), area: true }, kids);
+    }
+    case "dual":
+      return make("Dual graph", { type: "dual", width: 300, height: 80, a: ink("accent1"), b: ink("accent2"), area: true }, [newItem("Graph", profile, palette), newItem("Graph", profile, palette)]);
+    case "doublering":
+      return make("Double ring", {
+        type: "doublering", size: 160, thickness: 12, gap: 6, start: -135, sweep: 270, track: ink("track"), outer: [ink("accent1")], inner: [ink("accent2")],
+        innerThresholds: [], valueSize: 28, value: ink("text"),
+      }, [newItem("Gauge", profile, palette), newItem("Gauge", profile, palette), newItem("Sensor", profile, palette)]);
+    case "drives": {
+      const tiles = drives.length ? drives : Array.from({ length: PLACEHOLDER_DRIVES }, () => null);
+      return make("Drives", {
+        type: "drives", orientation: "horizontal", gap: 12, width: Math.max(300, tiles.length * 200), height: 120, radius: 10,
+        card: ink("card"), text: ink("text"), sub: ink("subtext"), fill: ink("accent1"), track: ink("track"), icon: ink("accent1"),
+      }, tiles.map((d, i) => driveTile(profile, palette, d, i + 1)));
+    }
+    case "shadowtext": {
+      const text = { ...newItem("Sensor", profile, palette), Name: "Value", X: x, Y: y, FontSize: 28, Width: 160, Height: 40 } as DisplayItem;
+      return make("Shadow text", { type: "shadowtext", dx: 1, dy: 2, color: { color: "#99000000" } }, [text, text]);
+    }
+  }
+}
+
+/**
+ * The rounded gradient progress bar as a preset of InfoPanel's own Bar: corners at half the height,
+ * a gradient from accent 1 to accent 2, no frame. It sets existing fields only; the bar stays a Bar.
+ */
+export function gradientBar(item: DisplayItem, palette: Palette): DisplayItem {
+  if (item.kind !== "Bar") return item;
+  return {
+    ...item, CornerRadius: Math.floor(item.Height / 2), Gradient: true, GradientColor: palette.accent2, Color: palette.accent1, Frame: false,
+    slots: { ...(item as DisplayItem & { slots?: object }).slots, Color: { slot: "accent1" }, GradientColor: { slot: "accent2" } },
+  } as unknown as DisplayItem;
 }
