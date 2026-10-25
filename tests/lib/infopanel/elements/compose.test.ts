@@ -1,37 +1,21 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { entriesFromZip, loadExport } from "@/lib/infopanel/archive.ts";
-import { assetFile, type Doc } from "@/lib/infopanel/assets/assets.ts";
 import { storeItems } from "@/lib/infopanel/canvas-edit.ts";
 import { applyElement, badgeOf, elementOf, ringVector } from "@/lib/infopanel/elements/apply.ts";
-import { elementSignature, setElementFile, staleElements, staticOf } from "@/lib/infopanel/elements/bake.ts";
+import { staleElements } from "@/lib/infopanel/elements/bake.ts";
 import { rowLayout, drivesLayout } from "@/lib/infopanel/elements/compose.ts";
 import { elementSize, gradientBar, newComposite, newElement, type CompositeType } from "@/lib/infopanel/elements/create.ts";
 import { detectDrives } from "@/lib/infopanel/elements/drives.ts";
-import { elementSvg } from "@/lib/infopanel/elements/svg.ts";
 import type { RingSpec, RowSpec, SparklineSpec } from "@/lib/infopanel/elements/spec.ts";
-import { infopanelFile, staleGauges } from "@/lib/infopanel/export/studio-export.ts";
-import { itemAt } from "@/lib/infopanel/editor/ops.ts";
-import { bakeSignature, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames.ts";
 import { colorOf } from "@/lib/infopanel/gauges/vector.ts";
 import { newItem } from "@/lib/infopanel/editor/create.ts";
 import { newStored, readStored } from "@/lib/infopanel/import/stored.ts";
 import type { DisplayItem, GroupItem } from "@/lib/infopanel/schema.ts";
 import type { DataApiValue } from "@/lib/infopanel/sensors.ts";
+import { COMPOSITES, elementExport } from "../export/element-cases.ts";
+import { walkItems } from "@/lib/infopanel/parse.ts";
+import type { GaugeItem, ImageItem } from "@/lib/infopanel/schema.ts";
 import { palette, profile } from "./fixture.ts";
-
-vi.mock("@/lib/infopanel/gauges/raster.ts", () => ({
-  rasterSvg: async (svg: string, w: number, h: number) => png(w, h, svg.length),
-}));
-
-function png(w: number, h: number, seed: number): Uint8Array {
-  const b = new Uint8Array(32);
-  b.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
-  const dv = new DataView(b.buffer);
-  dv.setUint32(16, w);
-  dv.setUint32(20, h);
-  dv.setUint32(28, seed);
-  return b;
-}
 
 const drive = (n: number, name: string): Record<string, DataApiValue> => ({
   [`used${n}`]: { value: 40, unit: "%", name: `${name} Used Space`, ref: `libre:/nvme/${n}/load/${50 + n}` },
@@ -123,6 +107,21 @@ describe("Drives", () => {
     expect(detectDrives({})).toEqual([]);
   });
 
+  it("finds HWiNFO drives by their group names when no Libre drive is there (written from HWiNFO's naming, not a real capture)", () => {
+    const hw = (name: string, unit: string): DataApiValue => ({ value: 1, unit, name, ref: "hwinfo:0/1/2/3" });
+    const found = detectDrives({
+      t: hw("Drive: Model X 2TB · Drive Temperature", "°C"),
+      a: hw("Drive: Model X 2TB · Total Activity", "%"),
+      life: hw("S.M.A.R.T.: Model X 2TB · Drive Remaining Life", "%"),
+      t2: hw("Drive: Model Y 1TB - Drive Temperature", "°C"),
+      cpu: hw("CPU Package Temp", "°C"),
+    });
+    expect(found.map((d) => [d.name, d.used?.key, d.temp?.key, d.free])).toEqual([
+      ["Model X 2TB", "a", "t", undefined],
+      ["Model Y 1TB", undefined, "t2", undefined],
+    ]);
+  });
+
   it("binds each tile natively, lays the tiles out and relays them out on a resize", () => {
     const drives = make("drives") as GroupItem;
     const tiles = drives.DisplayItems as GroupItem[];
@@ -188,27 +187,17 @@ describe("Shadow text", () => {
 });
 
 describe("the new elements exported, then parsed", () => {
-  it("reads back as InfoPanel items only, every baked file present", async () => {
-    const ring = { ...newElement("ring", profile, palette), element: { ...(elementOf(newElement("ring", profile, palette)) as RingSpec), thresholds: [{ at: 80, ink: { color: "#FFFF0000" } }] } } as unknown as DisplayItem;
-    const items = [...TYPES.map(make), applyElement(ring), applyElement({ ...newElement("sparkline", profile, palette), element: { ...elementOf(newElement("sparkline", profile, palette)), style: "bars" } } as unknown as DisplayItem)];
-    const stored = JSON.parse(JSON.stringify(storeItems(newStored({ name: "C", width: 800, height: 480 }), profile, items)));
-    const read = readStored(stored);
-    let doc: Doc = { items: read.items, assets: new Map() };
-    for (const path of staleElements(doc.items)) {
-      const el = staticOf(itemAt(doc.items, path))!;
-      doc = setElementFile(doc, path, await assetFile(`el_${path}.png`, png(el.width, el.height, elementSvg(el.spec, el.width, el.height).length), "added"), elementSignature(el.spec, el.width, el.height));
-    }
-    for (const path of staleGauges(doc.items)) {
-      const spec = vectorOf(itemAt(doc.items, path))!;
-      const files = await Promise.all([0, 1].map((i) => assetFile(`g${path}_${i}.png`, png(spec.width, spec.height, i + path.length), "added")));
-      doc = setFrameFiles(doc, path, files, bakeSignature(spec, 2));
-    }
-    const file = infopanelFile(profile, doc);
-    const back = await loadExport(entriesFromZip(file.bytes));
+  it("reads back as InfoPanel items only, every baked file present and referenced relatively", async () => {
+    const out = await elementExport(profile);
+    const back = await loadExport(entriesFromZip(out.bytes));
     expect(back.issues.filter((i) => i.code !== "unknown-field")).toEqual([]);
-    expect(back.items.map((i) => i.kind)).toEqual([...TYPES.map(() => "Group"), "Gauge", "Graph"]);
+    expect(back.items.map((i) => i.kind)).toEqual([...COMPOSITES.map(() => "Group"), "Gauge", "Gauge", "Graph"]);
     expect(back.items.at(-1)).toMatchObject({ Type: "HISTOGRAM" });
-    expect(new TextDecoder().decode(file.bytes)).not.toMatch(/doublering|shadowtext|innerThresholds/);
+    const names = new Set(back.assets.keys());
+    const files = [...walkItems(back.items)].flatMap(({ item }) => (item.kind === "Image" ? [item as ImageItem] : item.kind === "Gauge" ? (item as GaugeItem).Images : []));
+    expect(files.length).toBeGreaterThan(6);
+    for (const f of files) expect(f.RelativePath && names.has(f.FilePath!.toLowerCase()), f.FilePath ?? "").toBe(true);
+    expect(new TextDecoder().decode(out.bytes)).not.toMatch(/doublering|shadowtext|innerThresholds|fillAlpha/);
   });
 });
 

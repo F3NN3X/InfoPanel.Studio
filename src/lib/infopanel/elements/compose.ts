@@ -176,9 +176,9 @@ function applyTile(tile: GroupItem, s: DrivesSpec, at: { x: number; y: number; w
   const [card, icon, name, bar, used, temp, free] = reconcile(tile.DisplayItems, TILE, TILE_NAMES);
   const pad = Math.max(4, Math.round(Math.min(at.width, at.height) * 0.08));
   const iconS = Math.max(8, Math.round(at.height * 0.26));
-  const size = Math.max(7, Math.round(at.height * 0.1));
+  const size = Math.max(7, Math.round(at.height * 0.06));
   const inner = at.width - 2 * pad;
-  const pctW = Math.round(inner * 0.24);
+  const pctW = Math.max(Math.round(inner * 0.26), size * 4);
   const barH = Math.max(3, Math.round(at.height * 0.05));
   const barY = at.y + pad + iconS + pad;
   const lineH = Math.round(size * 1.8);
