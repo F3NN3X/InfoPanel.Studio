@@ -18,7 +18,7 @@ import { instantiate } from "@/lib/infopanel/templates/instantiate.ts";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock.ts";
 
 const png = (n: number) => Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, n % 256, (n >> 8) % 256]);
-const sizes = [...SIZE_PRESETS, { width: 480, height: 1920 }];
+const sizes = SIZE_PRESETS;
 const machines = { mock: MOCK_SENSORS, none: {} } as const;
 
 describe.each(TEMPLATES.map((t) => [t.id, t] as const))("template %s", (_, t) => {

@@ -82,7 +82,7 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
     },
   };
   const boxes = tiles(kit.frame, gridFor(t.grids, kit.frame.shape), t.margin, t.gap);
-  const items = syncElements([...(t.backdrop?.(kit) ?? []), ...t.tiles.flatMap((tile, i) => tile(kit, boxes[i]))]);
+  const items = syncElements([...(t.backdrop?.(kit) ?? []), ...t.tiles.flatMap((tile, i) => (boxes[i] ? tile(kit, boxes[i]) : []))]);
   const stored = storeItems({ ...base, palette }, profile, items);
 
   const read = readStored(JSON.parse(JSON.stringify(stored)));

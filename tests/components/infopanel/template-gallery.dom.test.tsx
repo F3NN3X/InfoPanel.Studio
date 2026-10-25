@@ -39,4 +39,15 @@ describe("the New InfoPanel profile gallery", () => {
     expect(made.unbound).toContain("CPU load");
     expect(made.toLibrary).toBe(false);
   });
+
+  it("picks the size a template is made for", () => {
+    const onCreate = vi.fn();
+    render(<NewProfileDialog open onOpenChange={vi.fn()} onCreate={onCreate} />);
+    const gallery = screen.getByRole("radiogroup", { name: "Start from" });
+    expect(screen.getByRole("radio", { name: "800 × 480" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(within(gallery).getByRole("radio", { name: /Ticker/ }));
+    expect(screen.getByRole("radio", { name: "1280 × 160" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(onCreate.mock.calls[0][0]).toMatchObject({ width: 1280, height: 160 });
+  });
 });

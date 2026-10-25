@@ -46,8 +46,17 @@ A template is a finished profile made from the editor's own items and elements, 
 | Terminal | Green on black console lines in Consolas, with LED meters |
 | Clock | A large clock inside a ring of 60 segments that counts the seconds |
 | Cores | One bar per CPU core or thread, under the CPU temperature |
+| Deck | A second-screen dashboard of cards: CPU and GPU rings, FPS with a frame-time histogram, the clock, memory, three graphs and the network |
+| Meters | A wide pill in three zones: double rings, rows with thin bars, and FPS with a line graph |
+| Orbit | A pill with a load ring at each end, the temperatures and power beside them, and FPS in the middle |
+| Tower | A tall card with FPS, CPU and GPU as lists of readings, each with a small graph |
+| Ticker | One long pill of text: CPU, GPU, FPS and the time |
 
-Every template is drawn for 480 × 320 and laid out again for the size you pick. A wide size, such as 1280 × 480 or 1920 × 480, puts its cards in one row. A portrait size stacks them. Anything else keeps the 480 × 320 layout, scaled up. Text, lines and gaps grow with the size.
+Deck, Meters, Orbit, Tower and Ticker come in Dark, White and Smoke, and in Float, which has no cards and puts a dark shadow behind every line of text (Deck also has Tint). They are made for their own sizes, which the Size row offers and picks for you: Deck 1920 × 1080 (it also lays out for 1920 × 480 and for upright screens), Meters 1600 × 300, Orbit 1080 × 240, Ticker 1280 × 160 and Tower 480 × 1920. At other sizes they stack their parts and still fit.
+
+FPS needs InfoPanel's RTSS plugin and RivaTuner running. Deck, Meters, Orbit, Tower and Ticker all show FPS, and the rows for it stay unbound without RTSS, so Create lists them and **Remap** can point them at another sensor. The 0.1% low is the least certain of them. Deck's clock and date are InfoPanel's own Clock and Calendar items, and change them in the editor to put the date the other way round. Deck's graphs show about 60 seconds of history, and the performance strip about two minutes. Voltage, fan speed and the memory temperature come from LibreHardwareMonitor or HWiNFO. Nothing in these five reads the 12V rail.
+
+Every other template is drawn for 480 × 320 and laid out again for the size you pick. A wide size, such as 1280 × 480 or 1920 × 480, puts its cards in one row. A portrait size stacks them. Anything else keeps the 480 × 320 layout, scaled up. Text, lines and gaps grow with the size.
 
 The sensors are matched to what your PC's Data API reports: CPU and GPU load, temperature, clock and power, RAM, disk, download and upload, and uptime.
 
