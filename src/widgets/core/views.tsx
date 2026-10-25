@@ -22,7 +22,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
   const textLen = String(val ?? "–").length + (c.unit ? String(c.unit).length * 0.45 : 0);
   const fit = (base: number, avail: number) => ({ fontSize: Math.round(Math.max(13, Math.min(base, avail / (Math.max(2.5, textLen) * 0.62 * (sk.numWide ?? 1))))) });
   const value = (cls: string, base?: number, avail = 0) => (
-    <span className={`${cls} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow ? { ...NUM_GLOW, ...(sk.numShadow ? { textShadow: sk.numShadow } : null) } : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null) }}>
+    <span className={`${cls} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow ? NUM_GLOW : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null) }}>
       {val ?? "–"}
       {c.unit && <span className="ml-0.5 text-[0.45em] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
     </span>
@@ -123,7 +123,7 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
   const val = typeof c.value === "number" ? fmt(c.value, c.d ?? 0) : c.value;
   // The skin's UI face, else the shell's (the look's Font or the page font): no fixed mono, so the summary follows the styling.
   const mono = sk.font ? { fontFamily: sk.font } : undefined;
-  const glow = sk.numGlow ? { textShadow: sk.numShadow ?? "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null;
+  const glow = sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null;
   const toneC = c.t && c.t !== "ok" ? TONES[c.t] : undefined;
   const label = (className = "") => (c.label || c.right || c.live != null) && (
     <div className={`flex min-w-0 shrink-0 items-center gap-1.5 text-[9.5px] uppercase tracking-[0.06em] text-[color:var(--w-muted)] ${className}`} style={{ ...mono, ...labelStyle() }}>

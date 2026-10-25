@@ -311,6 +311,8 @@ const shadowOf = (v: unknown): Shadow | null => {
   return o ? { blur: num(o.blur, 12, 0, 64), dx: num(o.dx, 0, -64, 64), dy: num(o.dy, 4, -64, 64), color: ink(o.color, { color: "#80000000" }) } : null;
 };
 
+const glowInks = (g: ValueGlow | null, map: (ink: Ink) => Ink) => g && { ...g, color: map(g.color) };
+
 const valueGlowOf = (v: unknown): ValueGlow | null => {
   const o = obj(v);
   return o ? { radius: clampGlowRadius(o.radius), color: ink(o.color) } : null;
@@ -434,13 +436,13 @@ export function mapInks(spec: ElementSpec, map: (ink: Ink) => Ink): ElementSpec 
       return { ...spec, track: map(spec.track), fill: m(spec.fill), ...(spec.thresholds ? { thresholds: th(spec.thresholds) } : {}) };
     case "row":
     case "rows":
-      return { ...spec, label: map(spec.label), value: map(spec.value), valueGlow: spec.valueGlow && { ...spec.valueGlow, color: map(spec.valueGlow.color) }, iconInk: map(spec.iconInk), barFill: map(spec.barFill), barTrack: map(spec.barTrack) };
+      return { ...spec, label: map(spec.label), value: map(spec.value), valueGlow: glowInks(spec.valueGlow, map), iconInk: map(spec.iconInk), barFill: map(spec.barFill), barTrack: map(spec.barTrack) };
     case "stack":
       return { ...spec, label: map(spec.label), color: map(spec.color) };
     case "dual":
       return { ...spec, a: map(spec.a), b: map(spec.b) };
     case "doublering":
-      return { ...spec, track: map(spec.track), outer: m(spec.outer), inner: m(spec.inner), innerThresholds: th(spec.innerThresholds), value: map(spec.value), valueGlow: spec.valueGlow && { ...spec.valueGlow, color: map(spec.valueGlow.color) } };
+      return { ...spec, track: map(spec.track), outer: m(spec.outer), inner: m(spec.inner), innerThresholds: th(spec.innerThresholds), value: map(spec.value), valueGlow: glowInks(spec.valueGlow, map) };
     case "drives":
       return { ...spec, card: map(spec.card), text: map(spec.text), sub: map(spec.sub), fill: map(spec.fill), track: map(spec.track), icon: map(spec.icon) };
     case "shadowtext":

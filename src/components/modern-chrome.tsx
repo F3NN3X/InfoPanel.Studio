@@ -4,7 +4,7 @@ import type { FontId } from "@/lib/fonts";
 import { widgetIcon } from "@/lib/widget-icons";
 import { useElementSize } from "@/hooks/use-element-size";
 import { cn } from "@/lib/utils";
-import { chromeVars, scopedCss, ws, zoomFor, type DesignSizeSpec } from "./widget-style";
+import { chromeVars, numGlowAttr, scopedCss, ws, zoomFor, type DesignSizeSpec } from "./widget-style";
 
 /**
  * The header text: the text color (the user's, else the theme's) at 75 %,
@@ -124,6 +124,7 @@ export function ModernChrome({
       className={cn("relative h-full w-full", className)}
       style={chromeVars(chrome)}
       data-wp-scope={css ? scope : undefined}
+      {...numGlowAttr(chrome)}
     >
       {css && <style>{css}</style>}
       {showBackground && (

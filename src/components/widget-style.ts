@@ -109,6 +109,9 @@ export function tokenScope(chrome: ModernChrome | undefined): Record<string, str
   return v;
 }
 
+/** The look's Number glow as the attribute `index.css` draws the scope's numerals by (off, soft or strong; Auto sets none). */
+export const numGlowAttr = (chrome: ModernChrome | undefined): { "data-wp-numglow"?: string } => (chrome?.numGlow && chrome.numGlow !== "auto" ? { "data-wp-numglow": chrome.numGlow } : {});
+
 /**
  * The `--wp-*` variables for the chosen options (unset ones are omitted),
  * plus the re-scoped theme tokens (`tokenScope`).
@@ -116,6 +119,7 @@ export function tokenScope(chrome: ModernChrome | undefined): Record<string, str
 export function chromeVars(chrome: ModernChrome | undefined): CSSProperties | undefined {
   if (!chrome) return undefined;
   const v: Record<string, string> = tokenScope(chrome);
+  if (chrome.numGlowColor) v["--w-num-c"] = chrome.numGlowColor;
   if (chrome.accent) v["--wp-accent"] = chrome.accent;
   if (chrome.padding !== undefined) v["--wp-pad"] = `${chrome.padding}px`;
   if (chrome.gap !== undefined) v["--wp-gap"] = `${chrome.gap}px`;

@@ -5,7 +5,6 @@ import type { ModernChrome } from "@/components/modern-chrome";
 import { SCRIM } from "@/components/modern-chrome";
 import { fadeColors, surfaceBox } from "@/components/widget-style";
 import { FONT_STACKS } from "@/lib/general";
-import { glowShadow, levelRadius } from "@/lib/effects/glow";
 import { sizeTierOf } from "@/modules/setting-readers";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
@@ -52,14 +51,6 @@ export function forcedTier(look: ModuleSettings | undefined, size: Tier | "auto"
   return (look && sizeTierOf(look)) ?? size;
 }
 
-/** The look's Number glow over the skin's: Off clears it, Soft and Strong set it (in the look's colour, else the accent). */
-function numGlowOf(chrome: ModernChrome | undefined): Partial<SkinTokens> {
-  const level = chrome?.numGlow ?? "auto";
-  if (level === "off") return { numGlow: false };
-  const radius = levelRadius(level);
-  return radius === null ? {} : { numGlow: true, numShadow: glowShadow(radius, chrome?.numGlowColor) };
-}
-
 /**
  * The skin context for a widget: the skin's tokens with graph / meter resolved (`auto` = the
  * skin's), and the look applied — `stroke` scales the ring factor and graph strokes, `font`
@@ -82,7 +73,6 @@ export function skinContext(skin: string, opts: { graph?: string; meter?: string
     ...(weight ? { numWeight: weight } : null),
     ...(chrome?.gap !== undefined ? { gap: chrome.gap } : null),
     ...(chrome?.smoothing === "smooth" ? { smooth: true } : null),
-    ...numGlowOf(chrome),
   };
 }
 

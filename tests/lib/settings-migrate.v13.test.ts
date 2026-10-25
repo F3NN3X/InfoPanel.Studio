@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CONFIG_VERSION, mergeConfig, type Placement, type StoredConfig } from "@/lib/layout";
 import { chromeOf } from "@/modules/standard-settings";
+import { chromeVars, numGlowAttr } from "@/components/widget-style";
 import { skinContext } from "@/widgets/core/look";
 
 const zone = (id: string, module: string, settings?: Record<string, unknown>) => ({ id, module, colStart: 1, rowStart: 1, colSpan: 3, rowSpan: 2, visible: true, ...(settings ? { settings } : {}) });
@@ -38,12 +39,11 @@ describe("the Number glow look key", () => {
     expect(chromeOf({ numGlow: "huge" }).numGlow).toBe("auto");
   });
 
-  it("Soft and Strong set the skin's numeral shadow, in the chosen colour; Off clears the skin's own; Auto leaves it", () => {
-    const soft = skinContext("default", { chrome: chromeOf({ numGlow: "soft" }) });
-    expect(soft).toMatchObject({ numGlow: true, numShadow: "0 0 3px var(--accent), 0 0 12px var(--accent)" });
-    expect(skinContext("default", { chrome: chromeOf({ numGlow: "strong", numGlowColor: "#0ff" }) }).numShadow).toBe("0 0 6px #0ff, 0 0 24px #0ff");
-    expect(skinContext("nixie", { chrome: chromeOf({ numGlow: "off" }) }).numGlow).toBe(false);
+  it("anything but Auto flags the scope (index.css draws it); the colour is a variable; Auto sets nothing", () => {
     expect(skinContext("nixie", { chrome: chromeOf({}) })).toMatchObject({ numGlow: true });
-    expect(skinContext("nixie", { chrome: chromeOf({}) }).numShadow).toBeUndefined();
+    for (const numGlow of ["off", "soft", "strong"]) expect(numGlowAttr(chromeOf({ numGlow }))).toEqual({ "data-wp-numglow": numGlow });
+    expect(numGlowAttr(chromeOf({}))).toEqual({});
+    expect(chromeVars(chromeOf({ numGlow: "strong", numGlowColor: "#0ff" }))).toMatchObject({ "--w-num-c": "#0ff" });
+    expect(chromeVars(chromeOf({})) ?? {}).not.toHaveProperty("--w-num-c");
   });
 });

@@ -97,8 +97,6 @@ export interface SkinTokens {
   numStretch: string;
   numUp: boolean;
   numGlow: boolean;
-  /** The numerals' text-shadow when the `numGlow` look key sets one (else the skin's default glow). */
-  numShadow: string;
   /** Numeral advance relative to a normal sans (1); wide display faces set more so fitted numbers still fit. */
   numWide: number;
   glow: boolean;

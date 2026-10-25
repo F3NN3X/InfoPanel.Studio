@@ -105,7 +105,7 @@ export const numFont = (sk: Partial<SkinTokens>, weight = 700): CSSProperties =>
   fontFamily: sk.num,
   fontWeight: sk.numWeight ?? weight,
   fontStretch: sk.numStretch,
-  ...(sk.numGlow ? { textShadow: sk.numShadow ?? "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null),
+  ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null),
 });
 // Semantic state colours (stay meaningful under every skin)
 export const STATE = { ok: "#3CC97F", warn: "#EDB232", crit: "#F2665E", none: "rgba(255,255,255,0.07)" } as const;
