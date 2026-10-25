@@ -48,6 +48,7 @@ export const QUOTA: Template = {
   id: "quota",
   name: "Quota",
   blurb: "A big clock and a system footer",
+  fits: ["strip", "wide", "standard"],
   background: "#FF090B0E",
   color: "#FFF5F7FA",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

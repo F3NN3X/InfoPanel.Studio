@@ -38,6 +38,20 @@ export function frameOf(width: number, height: number): Frame {
   return { width, height, shape, u: Math.min(width / DESIGN.width, height / DESIGN.height) };
 }
 
+/** The class the gallery sorts a size into, by aspect only; the layout above still has its three shapes. */
+export type ShapeClass = "strip" | "wide" | "standard" | "tall";
+
+export const SHAPE_CLASSES: readonly ShapeClass[] = ["strip", "wide", "standard", "tall"];
+
+/** The aspect from which a canvas counts as a strip (1280 × 160, 1600 × 300, 1080 × 240, 1920 × 480). */
+export const STRIP_FROM = 4;
+
+/** Strip: 4:1 or wider; wide: 2.4:1 up to 4:1; standard: square up to 2.4:1; tall: narrower than square. */
+export function shapeClassOf(width: number, height: number): ShapeClass {
+  const aspect = width / height;
+  return aspect >= STRIP_FROM ? "strip" : aspect >= WIDE_FROM ? "wide" : aspect >= 1 ? "standard" : "tall";
+}
+
 /** A cell of a grid: column, row, and how many of each it spans. */
 export type Cell = readonly [col: number, row: number, cols: number, rows: number];
 

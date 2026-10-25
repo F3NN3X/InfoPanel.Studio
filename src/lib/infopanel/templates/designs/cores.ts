@@ -46,6 +46,7 @@ export const CORES: Template = {
   id: "cores",
   name: "Cores",
   blurb: "A per-core load wall under a temperature header",
+  fits: ["strip", "wide", "standard"],
   background: "#FF0C0D10",
   color: "#FFF2F3F5",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

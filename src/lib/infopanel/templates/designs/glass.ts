@@ -11,6 +11,7 @@ export const GLASS: Template = {
   id: "glass",
   name: "Glass",
   blurb: "Translucent cards on soft glows",
+  fits: ["strip", "wide", "standard", "tall"],
   background: "#FF0A0F1E",
   color: "#FFF1F5FF",
   type: { family: "Segoe UI", light: "Light", regular: "Semilight", strong: "Semibold" },

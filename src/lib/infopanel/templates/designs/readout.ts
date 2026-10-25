@@ -128,6 +128,7 @@ export const READOUT: Template = {
   id: "readout",
   name: "Readout",
   blurb: "Three instrument panels, one huge number each",
+  fits: ["wide", "standard"],
   background: "#FF08090C",
   color: "#FFF4F5F7",
   type: { family: "Bahnschrift", light: "Light", regular: "Regular", strong: "SemiBold" },

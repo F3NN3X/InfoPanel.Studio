@@ -137,6 +137,7 @@ export const FROSTBAR: Template = {
   id: "frostbar",
   name: "Frost Bar",
   blurb: "Frosted glass cards over a soft wash",
+  fits: ["wide", "standard"],
   background: "#FF0A0A1E",
   color: "#FFFFFFFF",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

@@ -168,6 +168,7 @@ export const CONSOLE: Template = {
   id: "console",
   name: "Console",
   blurb: "A header strip, CPU and GPU rings, memory bars and drives",
+  fits: ["wide", "standard"],
   background: "#FF07090D",
   color: "#FFF2F6FA",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

@@ -57,6 +57,7 @@ export const TOWER: Template = {
   id: "tower",
   name: "Tower",
   blurb: "A tall card: FPS, CPU and GPU readings with a graph each",
+  fits: ["tall"],
   size: { width: 480, height: 1920 },
   background: "#FF2A3A66",
   color: "#FFFFFFFF",

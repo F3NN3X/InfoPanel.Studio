@@ -98,6 +98,7 @@ export const TICKER: Template = {
   id: "ticker",
   name: "Ticker",
   blurb: "One long pill: CPU, GPU, FPS and the time",
+  fits: ["strip"],
   size: { width: 1280, height: 160 },
   background: "#FF2A3A66",
   color: "#FFFFFFFF",

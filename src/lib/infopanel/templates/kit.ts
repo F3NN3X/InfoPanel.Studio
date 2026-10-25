@@ -13,7 +13,7 @@ import { newCores, newElement } from "../elements/create.ts";
 import { slotInk, type Ink, type Palette, type Slot } from "../elements/palette.ts";
 import { elementOf, type CardSpec, type CoresSpec, type DividerSpec, type ElementSpec, type LedBarSpec, type RingSpec, type SparklineSpec } from "../elements/spec.ts";
 import type { DisplayItem, Profile } from "../schema.ts";
-import type { Box, Frame, Grids } from "./layout.ts";
+import type { Box, Frame, Grids, ShapeClass } from "./layout.ts";
 import { ROLE_INFO, type Role } from "./roles.ts";
 
 /** A template's type: one family and the InfoPanel FontStyle names it uses for each weight. */
@@ -53,6 +53,8 @@ export interface Template {
   name: string;
   /** One line for the gallery. */
   blurb: string;
+  /** The shape classes it looks designed for (by `shapeClassOf`); the gallery sorts by them. Includes the class of `size`. */
+  fits: readonly ShapeClass[];
   /** The size the template is made for; the gallery picks it when the template is chosen (a preset). */
   size?: { width: number; height: number };
   /** The profile's own look: background, text colour and type. */

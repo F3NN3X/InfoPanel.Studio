@@ -14,6 +14,9 @@ describe("the New InfoPanel profile gallery", () => {
     const onCreate = vi.fn();
     render(<NewProfileDialog open onOpenChange={vi.fn()} onCreate={onCreate} />);
     const gallery = screen.getByRole("radiogroup", { name: "Start from" });
+    // The chip starts on the size's class; All lists every template once, in sections.
+    expect(screen.getByRole("radio", { name: "Standard" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "All" }));
     const cards = within(gallery).getAllByRole("radio");
     expect(cards).toHaveLength(TEMPLATES.length + 1);
     expect(cards[0].textContent).toBe("Blank");
@@ -45,9 +48,24 @@ describe("the New InfoPanel profile gallery", () => {
     render(<NewProfileDialog open onOpenChange={vi.fn()} onCreate={onCreate} />);
     const gallery = screen.getByRole("radiogroup", { name: "Start from" });
     expect(screen.getByRole("radio", { name: "800 × 480" }).getAttribute("aria-checked")).toBe("true");
+    expect(within(gallery).queryByRole("radio", { name: /Ticker/ })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "All" }));
     fireEvent.click(within(gallery).getByRole("radio", { name: /Ticker/ }));
     expect(screen.getByRole("radio", { name: "1280 × 160" }).getAttribute("aria-checked")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
     expect(onCreate.mock.calls[0][0]).toMatchObject({ width: 1280, height: 160 });
+  });
+
+  it("at a tall size a strip template is not in the size's section, and choosing it switches the size", () => {
+    render(<NewProfileDialog open onOpenChange={vi.fn()} onCreate={vi.fn()} />);
+    const gallery = screen.getByRole("radiogroup", { name: "Start from" });
+    fireEvent.click(screen.getByRole("radio", { name: "480 × 1920" }));
+    expect(screen.getByRole("radio", { name: "Tall" }).getAttribute("aria-checked")).toBe("true");
+    expect(within(gallery).getByRole("radio", { name: /Tower/ })).toBeTruthy();
+    expect(within(gallery).queryByRole("radio", { name: /Ticker/ })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "All" }));
+    expect(within(screen.getByRole("region", { name: "Tall" })).queryByRole("radio", { name: /Ticker/ })).toBeNull();
+    fireEvent.click(within(screen.getByRole("region", { name: "Strip" })).getByRole("radio", { name: /Ticker/ }));
+    expect(screen.getByRole("radio", { name: "1280 × 160" }).getAttribute("aria-checked")).toBe("true");
   });
 });

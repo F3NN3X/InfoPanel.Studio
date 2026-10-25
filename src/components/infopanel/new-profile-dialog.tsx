@@ -21,33 +21,22 @@ import { instantiate } from "@/lib/infopanel/templates/instantiate";
 import type { Role } from "@/lib/infopanel/templates/roles";
 import { listLibrary, type LibraryItem } from "@/lib/library";
 import { canvasData, copyOfProfile } from "@/lib/my-library/canvas-link";
+import { shapeClassOf } from "@/lib/infopanel/templates/layout";
 import { RoleSensors, type RoleOverrides } from "./role-sensors";
+import { SIZE_PRESETS, presetForChoice } from "./size-presets";
 import { TemplateGallery, type GalleryChoice } from "./template-gallery";
 
-export const SIZE_PRESETS: readonly { width: number; height: number }[] = [
-  { width: 480, height: 320 },
-  { width: 800, height: 480 },
-  { width: 1024, height: 600 },
-  { width: 1280, height: 480 },
-  { width: 1920, height: 480 },
-  { width: 1920, height: 540 },
-  { width: 1920, height: 1080 },
-  { width: 1920, height: 720 },
-  { width: 1600, height: 300 },
-  { width: 1280, height: 160 },
-  { width: 1080, height: 240 },
-  { width: 480, height: 1920 },
-];
+export { SIZE_PRESETS };
 
-/** The preset a template is made for, if it has one. */
-const presetOf = (templateId: string | null): number | undefined => {
-  const size = templateId ? templateById(templateId)?.size : undefined;
-  const i = size ? SIZE_PRESETS.findIndex((p) => p.width === size.width && p.height === size.height) : -1;
-  return i < 0 ? undefined : i;
-};
 
 /** The largest size the editor takes, either way. */
 const MAX_SIDE = 8192;
+
+/** The preset a template is made for, when it does not fit the standard shape the dialog opens at. */
+const presetOfChoice = (templateId: string | null): number | undefined => {
+  const t = templateId ? templateById(templateId) : undefined;
+  return t ? presetForChoice(t, "standard") : undefined;
+};
 
 export interface NewProfile {
   name: string;
@@ -78,7 +67,7 @@ const INPUT = "h-8 w-full min-w-0 rounded-[7px] border border-ui-default bg-ui-r
 
 export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewProfileDialogProps) {
   const [name, setName] = useState("New profile");
-  const [preset, setPreset] = useState<number | "custom">(() => presetOf(initial?.template ?? null) ?? 1);
+  const [preset, setPreset] = useState<number | "custom">(() => presetOfChoice(initial?.template ?? null) ?? 1);
   const [w, setW] = useState("800");
   const [h, setH] = useState("480");
   const [choice, setChoice] = useState<GalleryChoice>(initial ?? { template: null, variant: "" });
@@ -101,10 +90,14 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
     () => (template ? instantiate(template, { name: "roles", width: 480, height: 320, variant: choice.variant, sensors, hwinfo, overrides }).roles : []),
     [template, choice.variant, sensors, hwinfo, overrides],
   );
+  // The thumbnails follow the size; a custom one being typed keeps the last good shape.
+  const shown = { width: size.width ?? 800, height: size.height ?? 480 };
+  const sizeClass = shapeClassOf(shown.width, shown.height);
   const choose = (next: GalleryChoice) => {
     setOverrides({});
     setError(null);
-    const made = next.template !== choice.template ? presetOf(next.template) : undefined;
+    const t = next.template !== null && next.template !== choice.template ? templateById(next.template) : undefined;
+    const made = t ? presetForChoice(t, sizeClass) : undefined;
     if (made !== undefined) setPreset(made);
     setChoice(next);
   };
@@ -122,8 +115,6 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
     }
     onOpenChange(false);
   };
-  // The thumbnails follow the size; a custom one being typed keeps the last good shape.
-  const shown = { width: size.width ?? 800, height: size.height ?? 480 };
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
