@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Converting to InfoPanel is experimental.** Convert zone and Convert screen say so in their menus and window. The conversion stays as it is; new widgets and effects are made for the dashboard's own screens.
+
 ## [1.3.0-beta.27] - 2026-10-25
 
 ### Changed

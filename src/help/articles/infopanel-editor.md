@@ -249,7 +249,9 @@ The Export window ends with what the other PC needs.
 
 ## Converting dashboard widgets
 
-InfoPanel can't draw the dashboard's widgets, so a zone or a whole screen can be rebuilt from InfoPanel's own items. Right-click a zone and choose **Convert zone to InfoPanel…**, open the command palette and choose **Convert screen to InfoPanel profile…**, or use **Convert to InfoPanel profile** in a screen card's menu in Screens. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
+InfoPanel can't draw the dashboard's widgets, so a zone or a whole screen can be rebuilt from InfoPanel's own items. Right-click a zone and choose **Convert zone to InfoPanel (experimental)…**, open the command palette and choose **Convert screen to InfoPanel profile (experimental)…**, or use **Convert to InfoPanel profile (experimental)** in a screen card's menu in Screens. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
+
+Conversion is experimental and stays as it is: the dashboard's own screens are where new widgets and effects go, and many of them have no InfoPanel equivalent. Use it for a plain InfoPanel copy of a screen, not a faithful one.
 
 For each widget you choose what it becomes:
 
