@@ -12,6 +12,7 @@ import { detectCores } from "@/lib/infopanel/elements/cores";
 import { detectDrives } from "@/lib/infopanel/elements/drives";
 import { DEFAULT_FACE, FACE_PATTERNS, type FaceSpec } from "@/lib/effects/face";
 import { isSlot, rgbOf, SLOT_LABEL, SLOTS, slotInk, type Ink } from "@/lib/infopanel/elements/palette";
+import { iconFileOf, lucideNameOf } from "@/lib/effects/icon";
 import { normalizeElement, type ElementSpec, type Threshold, type ValueGlow } from "@/lib/infopanel/elements/spec";
 import { iconMarkupOf, iconNames, iconsLoaded, loadIcons } from "@/lib/infopanel/elements/icons";
 import { updateAt, type Path } from "@/lib/infopanel/editor/ops";
@@ -20,6 +21,7 @@ import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import { Segmented } from "./canvas-toolbar";
+import { DriveIcons, IconFileButtons } from "./icon-source";
 import type { CanvasEditor } from "./use-canvas-editor";
 
 /** The spec as plain data without one key (a switched-off effect is an absent key, not a null). */
@@ -375,6 +377,21 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {ink("Bar fill", "fill", spec.fill)}
           {ink("Bar track", "track", spec.track)}
           {ink("Icon", "icon", spec.icon)}
+          <DriveIcons
+            item={item}
+            spec={spec}
+            onIcons={(icons) => set({ icons }, "icons")}
+            onFile={(driveKey, file) => editor.setElementFile(path, file, (source) => normalizeElement({ ...spec, icons: { ...spec.icons, [driveKey]: source } }))}
+            lucide={(driveKey, close) => (
+              <IconPicker
+                value={spec.icons?.[driveKey] && "lucide" in spec.icons[driveKey] ? spec.icons[driveKey].lucide : ""}
+                onPick={(name) => {
+                  set({ icons: { ...spec.icons, [driveKey]: { lucide: name } } }, "icons");
+                  close();
+                }}
+              />
+            )}
+          />
           {found.length === 0 ? (
             <p className="text-[11.5px] leading-snug text-ui-warning">This machine’s drives weren’t found: the Data API reports no LibreHardwareMonitor or HWiNFO drive sensors. The tiles are placeholders and export unbound.</p>
           ) : (
@@ -514,7 +531,18 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
         <>
           {ink("Colour", "color", spec.color)}
           <p className="text-[11.5px] text-ui-4">Its size is the item’s W and H.</p>
-          <IconPicker value={spec.name} onPick={(name) => set({ name })} />
+          <IconFileButtons
+            label="Icon"
+            title="Choose an icon image"
+            source={spec.source ?? null}
+            onFile={(file) => editor.setElementFile(path, file, (source) => normalizeElement({ ...spec, source }))}
+            onReset={() => set({ source: undefined }, "source")}
+          />
+          {iconFileOf(spec.source) ? (
+            <p className="text-[11.5px] leading-snug text-ui-4">Using {iconFileOf(spec.source)}. A file is drawn as it is: the colour doesn’t tint it.</p>
+          ) : (
+            <IconPicker value={lucideNameOf(spec)} onPick={(name) => set({ name, source: undefined }, "name")} />
+          )}
         </>
       );
       break;

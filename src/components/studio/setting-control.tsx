@@ -19,6 +19,7 @@ import {
   ToggleRow,
   type RowLabelProps,
 } from "./setting-rows";
+import { DriveIconsField } from "./drive-icons-field";
 import { DevicePicker, MediaDevicePicker, MultiSelect, NameListField, WavelinkMeterPicker } from "./setting-pickers";
 import { SensorField } from "./widget-editor/sensor-field";
 import { SensorListField } from "./widget-editor/sensor-list-field";
@@ -279,6 +280,7 @@ export function SettingRow({
     }
 
     default:
+      if (def.driveIcons) return <DriveIconsField {...label} def={def} value={String(value)} onChange={onChange} />;
       if (def.suggestKey) return <NameListField {...label} def={def} value={String(value)} onChange={onChange} />;
       return (
         <TextRow

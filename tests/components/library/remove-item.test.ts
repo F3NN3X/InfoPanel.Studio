@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { IconSource } from "@/lib/effects/icon";
+import { withElementFile } from "@/lib/infopanel/canvas-edit";
+import { elementOf } from "@/lib/infopanel/elements/apply";
+import { newComposite } from "@/lib/infopanel/elements/create";
+import { defaultPalette } from "@/lib/infopanel/elements/palette";
+import { normalizeElement } from "@/lib/infopanel/elements/spec";
+import { newStored, readStored } from "@/lib/infopanel/import/stored";
 import type { LibraryItem } from "@/lib/library";
 import { filesToDrop, removeItem } from "@/components/library/remove-item";
 
@@ -80,5 +87,39 @@ describe("removeItem", () => {
   it("reports the files kept when the unused scan fails", async () => {
     api.unusedAssets.mockRejectedValueOnce(new Error("down"));
     expect(await removeItem(item(), () => "")).toEqual({ deleted: 0, kept: 1 });
+  });
+});
+
+describe("an icon used only by a Drives tile", () => {
+  // The icon is picked for one drive and joins the canvas's files; nothing else names it.
+  const hash = "d".repeat(64);
+  const iconId = `${hash}.png`;
+  const canvasWith = () => {
+    const stored = newStored({ name: "Drives", width: 800, height: 480 });
+    const profile = readStored(stored).profile;
+    const drives = newComposite("drives", profile, defaultPalette(profile), [], 0, 0);
+    const make = (source: IconSource) => normalizeElement({ ...elementOf(drives), icons: { "Drive 1": source } });
+    return withElementFile(stored, profile, [drives], "0", { name: "disk.png", hash, type: "png", size: 8 }, make)!;
+  };
+  /** What the server's `?unused=1` answers: the files whose hash no stored canvas text names. */
+  const unusedBy = (canvas: unknown) => (JSON.stringify(canvas).includes(hash) ? [] : [{ id: iconId }]);
+
+  it("is kept when the Library item goes: the canvas names its file", async () => {
+    const canvas = canvasWith();
+    expect(JSON.stringify(canvas)).toContain(hash);
+    api.unusedAssets.mockResolvedValue(unusedBy(canvas));
+    expect(await removeItem(item({ files: [iconId] }), () => "")).toEqual({ deleted: 0, kept: 0 });
+    expect(api.deleteAsset).not.toHaveBeenCalled();
+  });
+
+  it("is kept while the studio's unsaved config names it, even if the saved canvas doesn't yet", async () => {
+    api.unusedAssets.mockResolvedValue([{ id: iconId }]);
+    expect(await removeItem(item({ files: [iconId] }), () => JSON.stringify({ zones: [{ canvas: canvasWith() }] }))).toEqual({ deleted: 0, kept: 0 });
+    expect(api.deleteAsset).not.toHaveBeenCalled();
+  });
+
+  it("is deleted once the Drives tile no longer has it", async () => {
+    api.unusedAssets.mockResolvedValue(unusedBy({ assets: [] }));
+    expect(await removeItem(item({ files: [iconId] }), () => "")).toEqual({ deleted: 1, kept: 0 });
   });
 });

@@ -4,7 +4,8 @@
  * baked with stand-in PNGs (no canvas under Node; the readers look at the XML) and exported. Used by the export test and,
  * as one more input, by import-check (lab/infopanel/scripts/import-check.mts).
  */
-import { assetFile, type Doc } from "../../../../src/lib/infopanel/assets/assets.ts";
+import type { IconSource } from "../../../../src/lib/effects/icon.ts";
+import { add, assetFile, type Doc } from "../../../../src/lib/infopanel/assets/assets.ts";
 import { bindItem, storeItems } from "../../../../src/lib/infopanel/canvas-edit.ts";
 import { itemAt } from "../../../../src/lib/infopanel/editor/ops.ts";
 import { applyElement, elementOf } from "../../../../src/lib/infopanel/elements/apply.ts";
@@ -43,11 +44,13 @@ function png(w: number, h: number, seed: number): Uint8Array {
   return b;
 }
 
-/** The elements, bound where the element has a sensor of its own to bind. */
-export function elementItems(profile: Profile): DisplayItem[] {
+/** The elements, bound where the element has a sensor of its own to bind; the first drive of the Drives element shows `driveIcon`, a file of the canvas. */
+export function elementItems(profile: Profile, driveIcon?: IconSource): DisplayItem[] {
   const palette = defaultPalette(profile);
   const composites = COMPOSITES.map((type, i) => {
     const g = newComposite(type, profile, palette, type === "drives" ? detectDrives(DRIVE_SENSORS) : [], 20, 20 + i * 60);
+    // The first drive's own icon: an Image of the canvas's file, in place of the baked drive icon.
+    if (type === "drives" && driveIcon) return applyElement({ ...g, element: { ...elementOf(g)!, icons: { "/nvme/2": driveIcon } } } as unknown as DisplayItem);
     // A Row's value gets a sensor; its bar follows.
     const bound = type === "row" ? applyElement({ ...g, DisplayItems: g.DisplayItems.map((k, j) => (j === 1 ? bindItem(k, cpu) : k)) } as DisplayItem) : g;
     // The Row's and the Double ring's values glow: Text/Value GlowEnabled, GlowRadius and GlowColor, which InfoPanel draws itself.
@@ -73,9 +76,10 @@ export function elementItems(profile: Profile): DisplayItem[] {
 /** The profile, its baked doc and the exported .infopanel bytes. */
 export async function elementExport(profile: Profile): Promise<{ name: string; profile: Profile; doc: Doc; bytes: Uint8Array; items: DisplayItem[] }> {
   const named = { ...profile, Name: ELEMENTS_CASE };
-  const stored = JSON.parse(JSON.stringify(storeItems(newStored({ name: ELEMENTS_CASE, width: profile.Width, height: profile.Height }), named, elementItems(named))));
+  const icon = await assetFile("drive-icon.png", png(32, 32, 777), "added");
+  const stored = JSON.parse(JSON.stringify(storeItems(newStored({ name: ELEMENTS_CASE, width: profile.Width, height: profile.Height }), named, elementItems(named, { asset: icon.hash, file: icon.name }))));
   const read = readStored(stored);
-  let doc: Doc = { items: read.items, assets: new Map() };
+  let doc: Doc = add({ items: read.items, assets: new Map() }, [icon]).doc;
   let n = 0;
   for (const path of staleElements(doc.items)) {
     const el = staticOf(itemAt(doc.items, path))!;

@@ -224,6 +224,8 @@ describe("intake", () => {
   it("refuses what the store would, with the reason per file", () => {
     expect(classify("bad.ttf", "", text("hello"))).toEqual({ ok: false, reason: "Not a font this app can read" });
     expect(classify("x.svg", "", text('<svg onload="alert(1)"></svg>'))).toEqual({ ok: false, reason: "Unsafe SVG: it has scripts or event handlers" });
+    // An icon you supply for a drive goes through the same intake.
+    expect(classify("drive.svg", "", text('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'))).toEqual({ ok: false, reason: "Unsafe SVG: it has scripts or event handlers" });
     expect(classify("x.svg", "", text(`<svg>${"a".repeat(256 * 1024)}</svg>`))).toEqual({ ok: false, reason: "SVG over 256 KB" });
     expect(classify("notes.txt", "text/plain", text("hi"))).toEqual({ ok: false, reason: "Not an image, video, SVG or font" });
   });

@@ -6,6 +6,7 @@
  */
 import { clamp, fmt, rad } from "../gauges/geom.ts";
 import type { DisplayItem } from "../schema.ts";
+import { iconFileOf, lucideNameOf } from "../../effects/icon.ts";
 import { iconMarkupOf } from "./icons.ts";
 import { cssOf, type Ink } from "./palette.ts";
 import { elementOf, isStaticSpec, type CardSpec, type DividerSpec, type GlowSpec, type IconSpec, type StaticSpec } from "./spec.ts";
@@ -16,6 +17,8 @@ export type { StaticSpec } from "./spec.ts";
 export function staticOf(item: DisplayItem | undefined): { spec: StaticSpec; width: number; height: number } | null {
   const spec = elementOf(item);
   if (item?.kind !== "Image" || !isStaticSpec(spec)) return null;
+  // The user's own file is a plain Image of that file: nothing to bake.
+  if (spec.type === "icon" && iconFileOf(spec.source)) return null;
   return { spec, width: Math.max(1, item.Width), height: Math.max(1, item.Height) };
 }
 
@@ -82,7 +85,7 @@ function icon(s: IconSpec, w: number, h: number): string {
   const color = cssOf(s.color.color);
   return (
     `<g transform="translate(${fmt((w - size) / 2)} ${fmt((h - size) / 2)}) scale(${k})"` +
-    ` style="color:${color};fill:none;stroke:${color};stroke-width:2;stroke-linecap:round;stroke-linejoin:round">${iconMarkupOf(s.name)}</g>`
+    ` style="color:${color};fill:none;stroke:${color};stroke-width:2;stroke-linecap:round;stroke-linejoin:round">${iconMarkupOf(lucideNameOf(s))}</g>`
   );
 }
 

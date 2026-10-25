@@ -10,6 +10,7 @@
 import { clampBlur } from "../../effects/blur.ts";
 import { normalizeFace, type FaceSpec } from "../../effects/face.ts";
 import { clampGlowRadius } from "../../effects/glow.ts";
+import { normalizeDriveIcons, normalizeIconSource, type IconSource } from "../../effects/icon.ts";
 import { clamp } from "../gauges/geom.ts";
 import type { DisplayItem } from "../schema.ts";
 import { normalizeInk, type Ink } from "./palette.ts";
@@ -115,6 +116,8 @@ export interface IconSpec {
   /** A lucide icon name (icons.generated.ts). */
   name: string;
   color: Ink;
+  /** The user's own file or another lucide icon; it replaces `name`. A file is drawn as it is, so `color` doesn't tint it. */
+  source?: IconSource;
 }
 
 export interface CoresSpec {
@@ -248,6 +251,8 @@ export interface DrivesSpec {
   fill: Ink;
   track: Ink;
   icon: Ink;
+  /** Your own icon per drive, by drive id (else by name); a drive without one shows `icon`'s hard drive. */
+  icons?: Record<string, IconSource>;
 }
 
 /** A Text or Value with a dark offset shadow: a Group of a copy behind and the text itself. */
@@ -298,6 +303,8 @@ const obj = (v: unknown): Record<string, unknown> | null => (v && typeof v === "
 const num = (v: unknown, def: number, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) ? clamp(v, lo, hi) : def);
 const int = (v: unknown, def: number, lo: number, hi: number) => Math.round(num(v, def, lo, hi));
 const bool = (v: unknown, def: boolean) => (typeof v === "boolean" ? v : def);
+/** `{ key: value }`, or nothing when there is no value. */
+const sparse = <K extends string, V>(key: K, value: V | null | undefined): { [P in K]?: V } => (value === null || value === undefined ? {} : ({ [key]: value } as { [P in K]?: V }));
 const BLACK: Ink = { color: "#FF000000" };
 const ink = (v: unknown, def: Ink = BLACK): Ink => normalizeInk(v) ?? def;
 const inks = (v: unknown, lo: number, hi: number): Ink[] | null => {
@@ -348,7 +355,7 @@ export function normalizeElement(raw: unknown): ElementSpec | null {
 }
 
 /** Keys a known spec leaves out when they hold nothing, so an invalid value isn't carried as an "unknown" one. */
-const OPTIONAL_KEYS = ["frames", "thresholds", "face", "blur"];
+const OPTIONAL_KEYS = ["frames", "thresholds", "face", "blur", "source", "icons"];
 
 const hexColor = (v: unknown, def: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : def);
 const optFace = (v: unknown) => {
@@ -400,7 +407,8 @@ function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
       return fill ? { type: "divider", orientation: orientation(o.orientation), thickness: o.thickness === 2 ? 2 : 1, fill } : null;
     }
     case "icon":
-      return typeof o.name === "string" && /^[a-z0-9-]{1,48}$/.test(o.name) ? { type: "icon", name: o.name, color: ink(o.color) } : null;
+      if (typeof o.name !== "string" || !/^[a-z0-9-]{1,48}$/.test(o.name)) return null;
+      return { type: "icon", name: o.name, color: ink(o.color), ...sparse("source", normalizeIconSource(o.source)) };
     case "cores":
       return {
         type: "cores", orientation: orientation(o.orientation), gap: num(o.gap, 4, 0, 64), width: int(o.width, 240, 1, 4096), height: int(o.height, 60, 1, 4096),
@@ -438,6 +446,7 @@ function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
       return {
         type: "drives", orientation: orientation(o.orientation), gap: num(o.gap, 12, 0, 256), width: int(o.width, 600, 90, 8192), height: int(o.height, 120, 60, 4096),
         radius: num(o.radius, 10, 0, 256), card: ink(o.card), text: ink(o.text), sub: ink(o.sub), fill: ink(o.fill), track: ink(o.track), icon: ink(o.icon),
+        ...sparse("icons", normalizeDriveIcons(o.icons)),
       };
     case "shadowtext":
       return { type: "shadowtext", dx: num(o.dx, 1, -32, 32), dy: num(o.dy, 2, -32, 32), color: ink(o.color, { color: "#99000000" }) };

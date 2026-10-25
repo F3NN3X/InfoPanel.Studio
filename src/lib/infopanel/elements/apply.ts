@@ -9,6 +9,7 @@ import { mapItems } from "../editor/bind.ts";
 import { withAlpha } from "../editor/look.ts";
 import { normalizeGauge, type VectorGauge } from "../gauges/vector.ts";
 import { defaultItem, type DisplayItem, type GroupItem } from "../schema.ts";
+import { iconFileOf } from "../../effects/icon.ts";
 import { alphaOf, resolveInk, rgbOf, type Ink, type Palette, type Slot } from "./palette.ts";
 import { applyDoubleRing, applyDrives, applyDual, applyRow, applyRows, applyShadowText, applyStack } from "./compose.ts";
 import { elementOf, mapInks, type CardSpec, type CoresSpec, type Threshold, type DividerSpec, type ElementSpec, type LedBarSpec, type RingSpec, type SparklineSpec } from "./spec.ts";
@@ -28,6 +29,8 @@ export interface ElementFields {
   slots?: Record<string, SlotRef>;
   vector?: VectorGauge;
   vectorBaked?: string;
+  /** A Drives tile's drive id, which picks its icon from the element's `icons`. */
+  driveId?: string;
 }
 
 type Lab = DisplayItem & ElementFields;
@@ -165,8 +168,14 @@ export function applyElement(item: DisplayItem): DisplayItem {
       return applyCard(item, s);
     case "divider":
       return applyDivider(item, s);
+    case "icon": {
+      // The user's own file: a native Image of the canvas's file, never baked (a baked record from a lucide icon goes).
+      const file = iconFileOf(s.source);
+      if (!file) return { ...asImage(item, item.X, item.Y, w, h), element: s } as unknown as DisplayItem;
+      const { elementBaked: _b, ...image } = asImage(item, item.X, item.Y, w, h) as Lab;
+      return { ...image, FilePath: file, element: s } as unknown as DisplayItem;
+    }
     case "glow":
-    case "icon":
       return { ...asImage(item, item.X, item.Y, w, h), element: s } as unknown as DisplayItem;
     case "cores":
       return item.kind === "Group" ? applyCores(item, s) : item;
@@ -247,7 +256,7 @@ export function badgeOf(item: DisplayItem): Badge | null {
     case "glow":
       return badge("baked", "Exported as one image, transparency kept.");
     case "icon":
-      return badge("baked", "Exported as one image of the icon.");
+      return iconFileOf(s.source) ? badge("native", "Exported as an Image of your file, drawn by InfoPanel as it is.") : badge("baked", "Exported as one image of the icon.");
     case "cores": {
       const n = item.kind === "Group" ? item.DisplayItems.length : 0;
       return badge("native", `Exported as a Group of ${n} Bar items, one per core.`);
@@ -266,7 +275,7 @@ export function badgeOf(item: DisplayItem): Badge | null {
       return badge("baked", "Exported as a Group of two Gauges with image frames, and the centre Value.");
     case "drives": {
       const n = item.kind === "Group" ? item.DisplayItems.length : 0;
-      return badge("native", `Exported as a Group of ${n} drive tiles: a Shape, Text, Bar and Values each, with the icon as a baked image.`);
+      return badge("native", `Exported as a Group of ${n} drive tiles: a Shape, Text, Bar and Values each, with the icon as a baked image, or an Image of your file for a drive that has one.`);
     }
     case "shadowtext":
       return badge("approximated", "Exported as two Texts, a dark copy behind the text.", ["a blurred shadow (InfoPanel draws none; the copy is sharp)"]);

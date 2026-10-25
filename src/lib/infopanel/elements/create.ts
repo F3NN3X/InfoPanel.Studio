@@ -115,7 +115,7 @@ export function driveTile(profile: Look, palette: Palette, drive: DriveSensors |
   const bind = (item: DisplayItem, sensor: ChosenSensor | undefined) => (sensor ? bindItem(item, sensor) : item);
   const name = drive?.name ?? `Drive ${n}`;
   return {
-    ...defaultItem("Group"), Name: name,
+    ...defaultItem("Group"), Name: name, ...(drive ? { driveId: drive.id } : {}),
     DisplayItems: [
       newItem("Shape", profile, palette),
       defaultItem("Image"),
