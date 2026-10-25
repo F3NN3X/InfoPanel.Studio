@@ -1,7 +1,8 @@
+import { useContext } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { isImageUrl } from "@/lib/image";
 import { widgetImage } from "./data-adapter";
-import { Widget, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, tone, type ShellProps, type WidgetMeta } from "./kit";
+import { IpTagCtx, Widget, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, tone, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "SensorValue",
@@ -38,6 +39,8 @@ export const isNumericText = (raw: string): boolean => /^-?\d[\d,]*(?:\.\d+)?(?:
 
 export default function SensorValue(p: SensorValueProps) {
   const d = p.data;
+  // The studio canvas hints at the missing binding; the kiosk stays quiet.
+  const onCanvas = useContext(IpTagCtx);
   const raw = get(d, p.sensor ?? "");
   const v = num(raw);
   const unit = p.unit ?? String(raw).replace(/^[-\d.,\s]+/, "").trim();
@@ -65,7 +68,9 @@ export default function SensorValue(p: SensorValueProps) {
       }
     >
       {({ size }) =>
-        !numeric ? (
+        !p.sensor ? (
+          onCanvas ? <div className="flex h-full items-center text-xs text-[color:var(--w-faint)]">Pick a sensor</div> : null
+        ) : !numeric ? (
           <div className="flex h-full flex-col justify-center">
             {size === "xs" && p.look?.showTitle !== false && <span className="text-[11px] text-[color:var(--w-muted)]">{label}</span>}
             {has(raw) && isImageUrl(raw, p.sensor) ? (

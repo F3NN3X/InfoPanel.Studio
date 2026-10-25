@@ -232,7 +232,7 @@ export default function FpsMonitor(p: FpsMonitorProps) {
       {...shell(p)}
       title={p.title ?? (idle ? "FPS" : title)}
       icon="speed"
-      compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : `1% ${fmt(low)} · ${fmt(frame, 1)} ms`, hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
+      compact={gauge ? gaugeCompact : { label: idle ? "FPS" : title, value: idle ? "–" : fps, unit: idle ? "" : "FPS", sub: idle ? "No game running" : `1% ${fmt(low)} · ${fmt(frame, 1)} ms`, idle: idle ? "No game running" : undefined, icon: "sports_esports", hist: idle ? undefined : fpsH, kind: idle ? "value" : "spark", t: idle ? "ok" : t }}
       right={has(k("graphics-api")) && <Chip>{k("graphics-api")}</Chip>}
     >
       {({ size, w, h }) =>

@@ -1,6 +1,6 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, toMBps, pretty, Spark, useHistory, useSkin, numFont, hw, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, rateParts, toMBps, pretty, Spark, useHistory, useSkin, numFont, hw, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "KpiTiles",
@@ -20,6 +20,8 @@ interface Kpi {
   l: string;
   v: number;
   u: string;
+  /** The number as shown, where the unit scales with the value (a throughput). */
+  text?: string;
   sub: string;
   d?: number;
   max?: number;
@@ -39,11 +41,12 @@ export default function KpiTiles(p: KpiTilesProps) {
     gpu = hw(d).gpu;
   const sys = readSystemFlat(d ?? {}, p.names);
   const L = (k: string) => num(get(d, `libre.${k}`));
+  const rate = rateParts(L("ethernet_download_speed"));
   const ALL: Record<Metric, Kpi> = {
     cpu: { l: "CPU", v: L(`${cpu}_cpu_total`), u: "%", sub: (sys.cpu.name ?? pretty(cpu ?? "")).replace(/^AMD Ryzen/, "Ryzen"), max: 100 },
     gpu: { l: "GPU", v: L(`${gpu}_gpu_core_load`), u: "%", sub: (sys.gpu.name ?? pretty(gpu ?? "")).replace(/^NVIDIA /, ""), max: 100 },
     ram: { l: "Memory", v: L("total_memory_memory_used"), u: "GB", d: 1, sub: `of ${fmt(L("total_memory_memory_used") + L("total_memory_memory_available"), 0)} GB` },
-    net: { l: "Download", v: toMBps(L("ethernet_download_speed")), u: "MB/s", sub: "Ethernet" },
+    net: { l: "Download", v: toMBps(L("ethernet_download_speed")), text: rate.text, u: rate.unit, sub: "Ethernet" },
     vram: { l: "VRAM", v: L(`${gpu}_gpu_memory_used`) / 1024, u: "GB", d: 1, sub: `of ${fmt(L(`${gpu}_gpu_memory_total`) / 1024, 0)} GB` },
     power: { l: "Power", v: L(`${cpu}_package`) + L(`${gpu}_gpu_package`), u: "W", sub: "CPU + GPU" },
   };
@@ -63,7 +66,7 @@ export default function KpiTiles(p: KpiTilesProps) {
     <Widget
       {...shell(p)}
       showHeader={false}
-      studio={{ label: first.l, value: first.v, unit: first.u, hist: firstHist, min: 0, rows: keys.map((key) => ({ n: ALL[key].l, v: `${fmt(ALL[key].v, ALL[key].d ?? 0)} ${ALL[key].u}`, pct: ALL[key].max ? ALL[key].v : undefined })) }}
+      studio={{ label: first.l, value: first.v, unit: first.u, hist: firstHist, min: 0, rows: keys.map((key) => ({ n: ALL[key].l, v: `${ALL[key].text ?? fmt(ALL[key].v, ALL[key].d ?? 0)} ${ALL[key].u}`, pct: ALL[key].max ? ALL[key].v : undefined })) }}
       compact={(box) => (box.shape === "tile" ? { label: first.l, value: first.v, unit: first.u, hist: firstHist, min: 0 } : undefined)}
     >
       {({ w, h }) => {
@@ -79,7 +82,8 @@ export default function KpiTiles(p: KpiTilesProps) {
                 prev = hist[Math.max(0, hist.length - 1 - back)],
                 delta = m.v - prev,
                 pct = prev ? (delta / Math.abs(prev)) * 100 : 0;
-              const len = fmt(m.v, m.d ?? 0).length + m.u.length * 0.5;
+              const shown = m.text ?? fmt(m.v, m.d ?? 0);
+              const len = shown.length + m.u.length * 0.5;
               const big = Math.max(14, Math.min(36, Math.max(20, Math.min(tileH * 0.32, tileH - 62)), tileW / (Math.max(2.5, len) * 0.66)));
               const last = hist[hist.length - 1] ?? 0;
               return (
@@ -91,7 +95,7 @@ export default function KpiTiles(p: KpiTilesProps) {
                     </span>}
                   </div>
                   <span className="whitespace-nowrap font-bold leading-none tracking-[-0.01em] tabular-nums" style={{ fontSize: big, ...numFont(sk) }}>
-                    {fmt(m.v, m.d ?? 0)}
+                    {shown}
                     <span className="ml-0.5 text-[0.5em] font-semibold text-[color:var(--w-muted)]">{m.u}</span>
                   </span>
                   {tileH > 126 && m.sub && <span className="truncate text-xs text-[color:var(--w-faint)]">{m.sub}</span>}

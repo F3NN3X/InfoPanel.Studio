@@ -40,6 +40,12 @@ export const fmtRate = (bytesPerSec: number, unit: RateUnit = "auto"): string =>
   const v = bytesPerSec / div;
   return `${fmt(v, u === "B/s" ? 0 : rateDecimals(v))} ${u}`;
 };
+/** A throughput's number and unit apart (auto-scaled like `fmtRate`), for widgets that set the unit small beside it. */
+export const rateParts = (bytesPerSec: number): { text: string; unit: string } => {
+  const [unit, div] = rateUnitOf(bytesPerSec);
+  const v = bytesPerSec / div;
+  return { text: fmt(v, unit === "B/s" ? 0 : rateDecimals(v)), unit };
+};
 /** The unit `fmtRate` shows a throughput in, and what it divides the bytes per second by for it. */
 export const rateUnitOf = (bytesPerSec: number, unit: RateUnit = "auto"): [string, number] =>
   unit !== "auto" ? [unit, RATE_DIVISOR[unit]] : bytesPerSec >= 1e9 ? ["GB/s", 1e9] : bytesPerSec >= 1e6 ? ["MB/s", 1e6] : bytesPerSec >= 1e3 ? ["KB/s", 1e3] : ["B/s", 1];

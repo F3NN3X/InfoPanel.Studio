@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detect, diskName, diskShort, firstDisk, fmtRate } from "@/widgets/core/data";
+import { detect, diskName, diskShort, firstDisk, fmtRate, rateParts } from "@/widgets/core/data";
 
 describe("fmtRate", () => {
   it("reads the rate sensors as bytes per second and scales them (decimal prefixes)", () => {
@@ -10,6 +10,12 @@ describe("fmtRate", () => {
     expect(fmtRate(107_450_768)).toBe("107 MB/s"); // an Ethernet max: ~860 Mb/s, not 102 GB/s
     expect(fmtRate(2_330_114_048)).toBe("2.33 GB/s");
     expect(fmtRate(NaN)).toBe("–");
+  });
+
+  it("rateParts scales the number and unit apart, so a tile never rounds a KB/s reading to 0 MB/s", () => {
+    expect(rateParts(13_500)).toEqual({ text: "13.5", unit: "KB/s" });
+    expect(rateParts(3_276_000)).toEqual({ text: "3.28", unit: "MB/s" });
+    expect(rateParts(0)).toEqual({ text: "0", unit: "B/s" });
   });
 
 });

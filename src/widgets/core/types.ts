@@ -43,6 +43,8 @@ export interface Compact {
   img?: string;
   viz?: (heightClass: string) => ReactNode;
   kind?: "spark" | "bar" | "ring" | "text" | "value";
+  /** Nothing to show (no game running): in a tall zone, a centred icon and this text instead of a dash. */
+  idle?: string;
   /** The value's InfoPanel tag (`useIpTag`), on the studio canvas only. */
   ip?: Record<string, string | number>;
 }

@@ -217,7 +217,7 @@ function DenseRow({ channel, o, w }: { channel: WlChannel; o: Opts; w: number })
         </span>
         {channel.isMuted && <MuteMark />}
       </span>
-      {o.fader && !narrow && <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-[color:var(--w-muted)]">{fader(channel.level, channel.levelDb)}</span>}
+      {o.fader && !narrow && <span className="w-[54px] shrink-0 whitespace-nowrap text-right text-[11px] tabular-nums text-[color:var(--w-muted)]">{fader(channel.level, channel.levelDb)}</span>}
       <MeterPair levels={levels} variant={o.variant} color={o.color ?? "var(--accent)"} hot={STATE.crit} thickness={5} className="min-w-0 flex-1" />
       {o.readout && w >= 280 && (
         <span className="w-[60px] shrink-0 text-right font-mono text-[10px] tabular-nums text-[color:var(--w-muted)]">

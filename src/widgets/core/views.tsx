@@ -11,20 +11,29 @@ import { scaleX, scaleY, slideY } from "./motion";
 import type { Compact, Shape, Studio } from "./types";
 
 const NUM_GLOW: CSSProperties = { color: "color-mix(in oklab, var(--accent) 55%, var(--w-fg))", textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" };
+/** A reading that has no value yet ("–" from `fmt`, or nothing): drawn quiet, not as a bright full-weight dash. */
+const isNoValue = (v: unknown): boolean => v == null || v === "" || v === "–" || v === "—";
+/** A text value with no spaces (an IP address) cannot wrap: shrink it to the width instead of cutting it off. */
+const tokenFit = (v: unknown, avail: number, base: number): CSSProperties | undefined =>
+  typeof v === "string" && v.length > 0 && !/\s/.test(v) ? { fontSize: Math.max(11, Math.min(base, avail / (v.length * 0.6))) } : undefined;
+const NO_VALUE: CSSProperties = { color: "var(--w-faint)", fontWeight: 400, textShadow: "none", opacity: 0.7 };
 
 /* Compact views — rendered automatically for tile / strip / column shapes when a widget passes `compact`.
    compact = { label, value, unit, d, sub, icon, t, pct, hist, img, kind: 'spark' | 'bar' | 'ring' | 'text' } */
 export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape; w: number; h: number; icon?: string }) {
   const sk = useSkin();
-  const kind = c.kind ?? (c.hist ? "spark" : Number.isFinite(c.pct) ? "bar" : "text");
+  // A count handed over as text ("7" with unit "online") is still a number: the text layout would drop its unit.
+  const counted = c.unit && typeof c.value === "string" && /^-?\d[\d,]*(\.\d+)?$/.test(c.value.trim());
+  const kind = c.kind ?? (c.hist ? "spark" : Number.isFinite(c.pct) ? "bar" : counted ? "value" : "text");
   const val = typeof c.value === "number" ? fmt(c.value, c.d ?? 0) : c.value;
+  const none = isNoValue(val);
   // numbers shrink to fit the available width instead of overflowing (text values clamp instead)
   const textLen = String(val ?? "–").length + (c.unit ? String(c.unit).length * 0.45 : 0);
   const fit = (base: number, avail: number) => ({ fontSize: Math.round(Math.max(13, Math.min(base, avail / (Math.max(2.5, textLen) * 0.62 * (sk.numWide ?? 1))))) });
   const value = (cls: string, base?: number, avail = 0) => (
-    <span {...c.ip} className={`${cls} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow ? NUM_GLOW : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null) }}>
+    <span {...c.ip} className={`${cls} block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(base ? fit(base, avail) : null), fontFamily: sk.num, fontWeight: sk.numWeight, ...(sk.numGlow ? NUM_GLOW : null), ...(c.t && c.t !== "ok" ? { color: TONES[c.t] } : null), ...(none ? NO_VALUE : null) }}>
       {val ?? "–"}
-      {c.unit && <span className="ml-0.5 text-[0.45em] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
+      {c.unit && !none && <span className="ml-0.5 text-[0.45em] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
     </span>
   );
   const label = c.label && (
@@ -45,6 +54,13 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
           {c.sub && <span className="truncate text-[11px] text-zinc-300">{c.sub}</span>}
           {c.viz ? <div className="mt-1.5">{c.viz("h-6")}</div> : Number.isFinite(c.pct) && <Bar value={c.pct!} className="mt-1.5 h-1" track="bg-white/20" />}
         </div>
+      </div>
+    );
+  if (c.idle && shape !== "strip" && h >= 180)
+    return (
+      <div className="flex h-full min-w-0 flex-col items-center justify-center gap-1 text-center text-[color:var(--w-faint)]">
+        <Icon name={c.icon ?? icon} className="text-3xl" />
+        <span className="text-sm text-[color:var(--w-fg)]">{c.idle}</span>
       </div>
     );
   if (shape === "strip")
@@ -70,7 +86,7 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
     return (
       <div className="flex h-full min-w-0 flex-col gap-2">
         {label}
-        {textVal ? <span {...c.ip} className="line-clamp-3 text-base font-semibold leading-tight">{val}</span> : value("", w < 150 ? 24 : 36, w - 26)}
+        {textVal ? <span {...c.ip} className="line-clamp-3 text-base font-semibold leading-tight" style={tokenFit(val, w - 26, 16)}>{val}</span> : value("", w < 150 ? 24 : 36, w - 26)}
         {c.sub && <span className="line-clamp-2 text-[11px] text-[color:var(--w-faint)]">{c.sub}</span>}
         <div className="relative mt-auto min-h-0 flex-1">
           {kind === "spark" && <Spark values={c.hist} min={c.min} max={c.max} color={c.color} className="absolute inset-0 h-full" />}
@@ -92,9 +108,9 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
         <div className="flex min-h-0 flex-1 items-center justify-center pt-1.5" style={{ containerType: "size" }}>
           <div className="shrink-0" style={{ width: "100cqmin" }}>
             <Ring value={c.pct!} t={c.t} color={c.color} thickness={10}>
-              <span {...c.ip} className="font-semibold tabular-nums" style={{ fontSize: Math.max(12, Math.min(18, (w * 0.45) / Math.max(2.5, String(val).length * 0.62))) }}>
+              <span {...c.ip} className="font-semibold tabular-nums" style={{ fontSize: Math.max(12, Math.min(18, (w * 0.45) / Math.max(2.5, String(val).length * 0.62))), ...(none ? NO_VALUE : null) }}>
                 {val}
-                <span className="text-[10px] text-[color:var(--w-muted)]">{c.unit}</span>
+                {!none && <span className="text-[10px] text-[color:var(--w-muted)]">{c.unit}</span>}
               </span>
             </Ring>
           </div>
@@ -143,9 +159,9 @@ export function StudioView({ c, w, h, icon }: { c: Studio; w: number; h: number;
     c.kind === "text" ? (
       <span {...c.ip} className="line-clamp-2 text-[15px] font-semibold leading-snug">{val ?? "—"}</span>
     ) : (
-      <span {...c.ip} className="block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-[1.05] tracking-[-0.02em] tabular-nums" style={{ fontSize: fitPx(max), fontFamily: sk.num, fontWeight: sk.numWeight ?? 600, color: toneC, ...glow }}>
+      <span {...c.ip} className="block max-w-full overflow-x-clip whitespace-nowrap font-semibold leading-[1.05] tracking-[-0.02em] tabular-nums" style={{ fontSize: fitPx(max), fontFamily: sk.num, fontWeight: sk.numWeight ?? 600, color: toneC, ...glow, ...(isNoValue(val) ? NO_VALUE : null) }}>
         {val ?? "–"}
-        {c.unit && <span className="ml-0.5 text-[0.5em] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
+        {c.unit && !isNoValue(val) && <span className="ml-0.5 text-[0.5em] font-medium text-[color:var(--w-muted)]">{c.unit}</span>}
       </span>
     );
   // single-row zones: label ← → value

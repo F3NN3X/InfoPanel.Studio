@@ -88,7 +88,7 @@ export default function GpuRings(p: GpuRingsProps) {
               <div className="grid min-w-0 flex-1 gap-1.5 self-stretch content-center">
                 {/* by position: both rings may show the same metric */}
                 {legend.slice(0, rows).map(([c, l, v, k], i) => (
-                  <LegendRow key={i} color={c} label={l} value={v} tag={tag(k)} />
+                  <LegendRow key={i} color={c} label={l} value={legendW < 110 ? v.replace(/ \/ [\d.,]+/, "") : v} tag={tag(k)} />
                 ))}
               </div>
             )}
