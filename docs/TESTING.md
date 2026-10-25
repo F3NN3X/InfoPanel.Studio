@@ -61,6 +61,9 @@ extracted corpus profile. The differences it allows are InfoPanel's computed val
   features' tests plus the tests that import a changed source file (`vitest related`), in one call.
 - `--fast` runs only the features' own tests. `--full` (or `npm run verify:full`) runs every check. A change to the map,
   to `tools/verify*` or to the dependencies runs everything.
+- A manifest changed in its version fields only (`package.json`, `package-lock.json`, `Cargo.toml`, `Cargo.lock`: a release bump,
+  decided by content in `tools/verify/release.mjs`) goes to the `release-version` feature instead of its usual ones: it runs
+  `cargo-server` (which builds with the lock) and neither `full` nor e2e. Any other change in those files escalates as before.
 - `--plan` prints the plan and runs nothing. `--feature a,b` runs those features' checks. `--where <path>` prints a
   file's features and test globs, to decide where a new test goes. `--json` makes the plan and summary machine-readable.
 - Exit codes: 0 passed, 1 a check failed, 2 usage error or an unmapped file, 3 a needed check could not run on this
