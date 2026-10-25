@@ -4,7 +4,9 @@ import { useToast } from "@/components/ui/toast";
 import { createLibraryItem } from "@/lib/library";
 import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
 import type { ImportCommit, ImportSource } from "@/components/infopanel/import/import-dialog";
-import { canvasMeta } from "@/lib/my-library/canvas-link";
+import { canvasMeta, componentItem } from "@/lib/my-library/canvas-link";
+import { saveComponent } from "@/lib/infopanel/component";
+import { readStored } from "@/lib/infopanel/import/stored";
 import type { ConvertedCanvas, ConvertScope } from "@/components/infopanel/convert-dialog";
 import { canvasZoneOf, importAsProfile, importIntoProfile, withCanvas, withZoneSettings } from "./import-actions";
 import { onFileDoor } from "./file-doors";
@@ -52,6 +54,14 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
       if (!r) return "No free cell on this page: make room, or convert the whole screen";
       setConfig(r.config);
       onLanded(r.zoneId, false);
+      // Also a component in the Library, to place again on any InfoPanel profile (sensors matched by role).
+      const { profile: look, items } = readStored(c.canvas);
+      const made = saveComponent({ stored: c.canvas, profile: look, items, selection: items.map((_, i) => String(i)), name: c.name });
+      if (made)
+        createLibraryItem(componentItem(made.stored, c.name, made.roles)).then(
+          () => toast(`Saved ${c.name} as a component in the Library`),
+          (e: Error) => toast(`Not saved as a component: ${e.message}`),
+        );
       return null;
     }
     const r = importAsProfile(cfg, c.canvas, c.name, c.size, false);

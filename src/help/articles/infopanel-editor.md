@@ -261,7 +261,7 @@ Recreate is the default. A widget whose readings aren't on this PC goes as a sna
 
 Coding Agents, Countdown, Timer, Web Page and WaveLink aren't InfoPanel data. They can't be converted, and the window says each one is left out.
 
-A zone lands as an InfoPanel canvas zone in a free cell of the page. A screen becomes a new profile with one canvas zone. The window ends with a report of what each widget became. Export the result with **Export & back up**.
+A zone lands as an InfoPanel canvas zone in a free cell of the page, and is saved to the Library as a component you can place on any InfoPanel profile. A screen becomes a new profile with one canvas zone. The window ends with a report of what each widget became. Export the result with **Export & back up**.
 
 ## What InfoPanel can't do
 
