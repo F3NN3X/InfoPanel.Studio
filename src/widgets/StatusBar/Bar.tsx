@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode, type RefObject } from "react";
-import { Icon, Num, WeatherGlyph, usePane, type WeatherIconProps } from "../kit";
+import { Icon, Num, WeatherGlyph, useIpTag, usePane, type WeatherIconProps } from "../kit";
 import { shownOf, type Display, type ItemKey, type Reading } from "./items";
 import { splitCenter, type Slots } from "./layout";
 
@@ -24,6 +24,7 @@ export interface BarProps {
 
 function ItemView({ r, display, fs, icons }: { r: Reading; display: Display; fs: number; icons: WeatherIconProps }) {
   const shown = shownOf(r, display);
+  const tag = useIpTag();
   return (
     <span className="flex min-w-0 items-center whitespace-nowrap font-normal" style={{ gap: fs * 0.4, fontSize: fs }}>
       {shown.icon &&
@@ -45,7 +46,7 @@ function ItemView({ r, display, fs, icons }: { r: Reading; display: Display; fs:
             </Fragment>
           ))
         ) : (
-          <Num weight={400} className="truncate" style={{ maxWidth: fs * 18 }}>
+          <Num weight={400} ip={tag(r.ip?.key, r.ip)} className="truncate" style={{ maxWidth: fs * 18 }}>
             {shown.value}
           </Num>
         ))}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "CoreHeatmap",
@@ -53,9 +53,12 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
   const d = p.data;
   const id = p.cpu ?? hw(d).cpu;
   const k = (s: string) => num(get(d, `libre.${id}_${s}`));
+  const tag = useIpTag();
   const metric = p.metric ?? "load",
     ramp = p.ramp ?? "accent",
     shape = p.shape ?? "grid";
+  // Tagged only on the studio canvas, so the kiosk draws the label as it did.
+  const ip = metric === "load" && Object.keys(tag("x")).length > 0;
   const cores: Core[] = [];
   for (let i = 1; i <= 64; i++) {
     const l = k(`cpu_core__${i}`);
@@ -200,7 +203,8 @@ export default function CoreHeatmap(p: CoreHeatmapProps) {
                   className="flex min-h-0 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums"
                   style={{ background: `color-mix(in srgb, ${heat(v, ramp)} ${Math.round(18 + v * 0.82)}%, var(--w-track))`, color: text(v), outline: v > hotLine ? "2px solid #F2665E" : "none", outlineOffset: -2 }}
                 >
-                  {(p.showValues ?? size !== "xs") && label(c)}
+                  {/* the load is tagged for the InfoPanel conversion; the other metrics are scaled, so they stay in its picture */}
+                  {(p.showValues ?? size !== "xs") && (ip ? <span {...tag(`libre.${id}_cpu_core__${c.i}`)}>{label(c)}</span> : label(c))}
                 </div>
               );
             })}

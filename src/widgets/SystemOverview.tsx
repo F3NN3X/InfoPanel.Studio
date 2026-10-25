@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { diskMetric, filterDisks, formatTemp, netMetric, pickAdapter, pickDisk, rateTop, readAdaptersFlat, readSystemFlat, type DiskReading, type DiskValue, type NetDirection } from "@/lib/system-metrics";
+import { diskMetric, filterDisks, formatTemp, netMetric, pickAdapter, pickDisk, rateTop, readAdaptersFlat, readSystemFlat, systemKeysFlat, type DiskReading, type DiskValue, type NetDirection } from "@/lib/system-metrics";
 import { MetricGauges, MetricGraphs, type MetricRow } from "./SystemOverviewViews";
-import { useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, type ShellProps, type Tone, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, type ShellProps, type Tone, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "SystemOverview",
@@ -81,6 +81,9 @@ interface Stat {
   t?: Tone;
   /** In the inline detail line, the value alone ("64°C") instead of "label value". */
   bare?: boolean;
+  /** The Data API key it shows, and its scale to the shown unit (MHz as GHz: 0.001), for the InfoPanel conversion's tags. */
+  k?: string;
+  mul?: number;
 }
 
 interface SectionData {
@@ -92,6 +95,8 @@ interface SectionData {
   capacity?: boolean;
   /** Whether the machine reports this section at all. */
   present: boolean;
+  /** The Data API key of `v`, for the InfoPanel conversion's tags. */
+  key?: string;
 }
 
 interface Drive {
@@ -175,6 +180,9 @@ export default function SystemOverview(p: SystemOverviewProps) {
   const cpu = hw(d).cpu,
     gpu = hw(d).gpu;
   const r = readSystemFlat(d, p.names);
+  const rk = systemKeysFlat(d);
+  const tag = useIpTag();
+  const has = (k: string) => (get(d, k) !== "" ? k : undefined);
   const adapters = readAdaptersFlat(d, p.names);
   const L = (k: string) => num(get(d, `libre.${k}`));
   const C = (k: string) => L(`${cpu}_${k}`),
@@ -189,7 +197,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
     capCrit = p.vramCrit ?? crit;
   const pct = (v: number) => `${fmt(v, dec)}%`;
   // Thresholds are in °C; the text follows the chosen unit.
-  const temp = (l: string, c: number | undefined, bare = false): Stat[] => (c === undefined ? [] : [{ l, v: formatTemp(c, p.tempUnit ?? "c", dec), t: tone(c, tempWarn, tempCrit), bare }]);
+  const temp = (l: string, c: number | undefined, bare = false, k?: string): Stat[] => (c === undefined ? [] : [{ l, v: formatTemp(c, p.tempUnit ?? "c", dec), t: tone(c, tempWarn, tempCrit), bare, k: p.tempUnit === "f" ? undefined : k }]);
   const stat = (show: boolean, value: number | undefined, s: (v: number) => Stat | null): Stat[] => {
     const out = show && value !== undefined && Number.isFinite(value) ? s(value) : null;
     return out ? [out] : [];
@@ -220,43 +228,50 @@ export default function SystemOverview(p: SystemOverviewProps) {
       v: r.cpu.load ?? NaN,
       name: on("names") ? (r.cpu.name ?? pretty(cpu ?? "")).replace(/^AMD Ryzen/, "Ryzen") : "",
       stats: [
-        ...(on("temps") ? temp("Temp", r.cpu.temp, true) : []),
-        ...stat(on("power"), r.cpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true })),
+        ...(on("temps") ? temp("Temp", r.cpu.temp, true, rk.cpuTemp) : []),
+        ...stat(on("power"), r.cpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true, k: rk.cpuPower })),
         // a clock sensor reading 0 is a missing one
-        ...stat(true, C("cores__average_effective"), (v) => (v > 0 ? { l: "Clock", v: `${fmt(v / 1000, 2)} GHz` } : null)),
-        ...stat(true, C("cpu_core_max"), (v) => ({ l: "Max core", v: `${fmt(v, 0)}%` })),
+        ...stat(true, C("cores__average_effective"), (v) => (v > 0 ? { l: "Clock", v: `${fmt(v / 1000, 2)} GHz`, k: `libre.${cpu}_cores__average_effective`, mul: 0.001 } : null)),
+        ...stat(true, C("cpu_core_max"), (v) => ({ l: "Max core", v: `${fmt(v, 0)}%`, k: `libre.${cpu}_cpu_core_max` })),
       ],
       present: r.cpu.load !== undefined,
+      key: has("system.cpu.load") ?? rk.cpuLoad,
     },
     gpu: {
       v: r.gpu.load ?? NaN,
       name: on("names") ? (get(d, "plugins.InfoPanel.RTSS.rtss.gpu-name") || r.gpu.name || pretty(gpu ?? "")).replace(/^NVIDIA /, "") : "",
       stats: [
-        ...(on("temps") ? temp("Temp", r.gpu.temp, true) : []),
-        ...(on("hotspot") ? temp("Hotspot", r.gpu.hotspot) : []),
-        ...stat(on("power"), r.gpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true })),
-        ...stat(on("powerLimit"), r.gpu.powerLimit, (v) => ({ l: "Limit", v: `${fmt(v, 0)}%` })),
-        ...stat(on("clock"), r.gpu.clock, (v) => ({ l: "Clock", v: `${fmt(v, 0)} MHz`, bare: true })),
-        ...stat(on("memClock"), r.gpu.memClock, (v) => ({ l: "Mem", v: `${fmt(v, 0)} MHz` })),
+        ...(on("temps") ? temp("Temp", r.gpu.temp, true, rk.gpuTemp) : []),
+        ...(on("hotspot") ? temp("Hotspot", r.gpu.hotspot, false, rk.gpuHotspot) : []),
+        ...stat(on("power"), r.gpu.power, (v) => ({ l: "Power", v: `${fmt(v, 0)} W`, bare: true, k: rk.gpuPower })),
+        ...stat(on("powerLimit"), r.gpu.powerLimit, (v) => ({ l: "Limit", v: `${fmt(v, 0)}%`, k: rk.gpuPowerLimit })),
+        ...stat(on("clock"), r.gpu.clock, (v) => ({ l: "Clock", v: `${fmt(v, 0)} MHz`, bare: true, k: rk.gpuClock })),
+        ...stat(on("memClock"), r.gpu.memClock, (v) => ({ l: "Mem", v: `${fmt(v, 0)} MHz`, k: rk.gpuMemClock })),
         ...(on("fans") && r.gpu.load !== undefined ? [{ l: "Fans", v: r.gpu.fanRpm !== undefined ? `${fmt(r.gpu.fanRpm, 0)} rpm${r.gpu.fanPct !== undefined ? ` · ${fmt(r.gpu.fanPct, 0)}%` : ""}` : "idle" }] : []),
       ],
       present: r.gpu.load !== undefined,
+      key: rk.gpuLoad,
     },
     ram: {
       v: r.ram.load ?? NaN,
       name: on("memory") && r.ram.used !== undefined && r.ram.total !== undefined ? `${gb(r.ram.used)} / ${gb(r.ram.total)} GB` : "",
       stats: [
-        ...stat(on("memory"), L("total_memory_memory_available"), (v) => ({ l: "Free", v: `${fmt(v, 1)} GB` })),
+        ...stat(on("memory"), L("total_memory_memory_available"), (v) => ({ l: "Free", v: `${fmt(v, 1)} GB`, k: "libre.total_memory_memory_available" })),
         ...(on("pageFile") && page?.used !== undefined && page.total !== undefined ? [{ l: "Page", v: `${gb(page.used)} / ${gb(page.total)} GB` }] : []),
-        ...stat(on("pageFile"), page?.load, (v) => ({ l: "Page load", v: pct(v) })),
+        ...stat(on("pageFile"), page?.load, (v) => ({ l: "Page load", v: pct(v), k: rk.pageLoad })),
       ],
       present: r.ram.load !== undefined,
+      key: has("system.ram.load") ?? has("libre.total_memory_memory"),
     },
     vram: {
       v: vr.load ?? NaN,
       name: on("memory") && vr.used !== undefined && vr.total !== undefined ? `${gb(vr.used)} / ${gb(vr.total)} GB` : "",
-      stats: [...stat(on("memory"), G("gpu_memory_free"), (v) => ({ l: "Free", v: `${fmt(v / 1024, 1)} GB` })), ...stat(true, G("gpu_memory_controller"), (v) => ({ l: "Ctrl", v: `${fmt(v, 0)}%` }))],
+      stats: [
+        ...stat(on("memory"), G("gpu_memory_free"), (v) => ({ l: "Free", v: `${fmt(v / 1024, 1)} GB`, k: `libre.${gpu}_gpu_memory_free`, mul: 1 / 1024 })),
+        ...stat(true, G("gpu_memory_controller"), (v) => ({ l: "Ctrl", v: `${fmt(v, 0)}%`, k: `libre.${gpu}_gpu_memory_controller` })),
+      ],
       capacity: true,
+      key: rk.vramLoad,
       present: vr.load !== undefined,
     },
     disk: { v: fullest?.used ?? NaN, name: fullest?.name ?? "", stats: [], capacity: true, present: drives.length > 0 },
@@ -369,15 +384,15 @@ export default function SystemOverview(p: SystemOverviewProps) {
                   <div className="flex min-w-0 items-center gap-3">
                     {ring && (
                       <div className="shrink-0" style={{ width: rpx, height: rpx }}>
-                        <Ring value={s.v} t={t} thickness={9} className="h-full w-full">
-                          <Num style={{ fontSize: rpx * 0.3 }}>{fmt(s.v, 0)}</Num>
+                        <Ring ipKey={s.key} value={s.v} t={t} thickness={9} className="h-full w-full">
+                          <Num ipKey={s.key} ipUnit="" style={{ fontSize: rpx * 0.3 }}>{fmt(s.v, 0)}</Num>
                         </Ring>
                       </div>
                     )}
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <div className={`flex min-w-0 gap-x-2 ${stacked ? "flex-col gap-y-1" : "items-baseline"}`}>
                         <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--w-muted)]">{label(k)}</span>
-                        <Num className="whitespace-nowrap leading-none" style={{ fontSize: Math.max(12, Math.min(20, (cellW - (ring ? rpx + 12 : 0) - (stacked ? 0 : 44) - 2) / (big.length * 0.68 * (sk.numWide ?? 1)))), color: t === "ok" ? "var(--accent)" : TONES[t] }}>
+                        <Num ipKey={s.big ? undefined : s.key} className="whitespace-nowrap leading-none" style={{ fontSize: Math.max(12, Math.min(20, (cellW - (ring ? rpx + 12 : 0) - (stacked ? 0 : 44) - 2) / (big.length * 0.68 * (sk.numWide ?? 1)))), color: t === "ok" ? "var(--accent)" : TONES[t] }}>
                           {big}
                         </Num>
                       </div>
@@ -387,18 +402,18 @@ export default function SystemOverview(p: SystemOverviewProps) {
                   </div>
                   {level === "full" && s.stats.length > 0 && (
                     <div className="grid gap-x-3 gap-y-1" style={{ gridTemplateColumns: cellW < 230 ? "minmax(0,1fr)" : "repeat(2, minmax(0,1fr))" }}>
-                      {s.stats.slice(0, Math.max(2, Math.min(cellW < 130 ? 2 : cellW < 230 ? 3 : 6, Math.floor((cellH - headH - 40) / (cellW < 130 ? 28 : 18)) * (cellW < 230 ? 1 : 2)))).map(({ l, v, t: st }) =>
+                      {s.stats.slice(0, Math.max(2, Math.min(cellW < 130 ? 2 : cellW < 230 ? 3 : 6, Math.floor((cellH - headH - 40) / (cellW < 130 ? 28 : 18)) * (cellW < 230 ? 1 : 2)))).map(({ l, v, t: st, k: sk2, mul }) =>
                         cellW < 130 ? (
                           <div key={l} className="flex min-w-0 flex-col whitespace-nowrap text-[11px] leading-tight">
                             <span className="truncate text-[color:var(--w-faint)]">{l}</span>
-                            <span className="truncate tabular-nums text-[color:var(--w-fg)]" style={st && st !== "ok" ? { color: TONES[st] } : undefined}>
+                            <span {...tag(sk2, { mul })} className="truncate tabular-nums text-[color:var(--w-fg)]" style={st && st !== "ok" ? { color: TONES[st] } : undefined}>
                               {v}
                             </span>
                           </div>
                         ) : (
                           <div key={l} className="flex min-w-0 items-baseline justify-between gap-2 whitespace-nowrap text-[11.5px]">
                             <span className="min-w-0 truncate text-[color:var(--w-faint)]">{l}</span>
-                            <span className="shrink-0 text-right tabular-nums text-[color:var(--w-fg)]" style={st && st !== "ok" ? { color: TONES[st] } : undefined}>
+                            <span {...tag(sk2, { mul })} className="shrink-0 text-right tabular-nums text-[color:var(--w-fg)]" style={st && st !== "ok" ? { color: TONES[st] } : undefined}>
                               {v}
                             </span>
                           </div>
@@ -412,7 +427,7 @@ export default function SystemOverview(p: SystemOverviewProps) {
                       {showCores ? (
                         showSpark && level === "full" ? (
                           <div className="absolute inset-0 flex flex-col gap-1.5">
-                            <Spark values={H.cpu} min={0} max={100} className="h-5 shrink-0" />
+                            <Spark ipKey={ALL.cpu.key} values={H.cpu} min={0} max={100} className="h-5 shrink-0" />
                             <div className="relative min-h-0 flex-1">
                               <CoreGrid cores={cores} cellW={cellW} view={coreView} ramp={p.heatRamp} />
                             </div>
@@ -422,8 +437,8 @@ export default function SystemOverview(p: SystemOverviewProps) {
                         )
                       ) : (
                         <div className="absolute inset-x-0 bottom-0 flex h-full max-h-12 flex-col justify-end gap-1.5">
-                          {showSpark && <Spark values={H[k]} min={0} max={k === "net" ? undefined : 100} className="min-h-0 flex-1" />}
-                          {showBar && <Bar value={s.v} t={t} className="h-1.5 shrink-0" />}
+                          {showSpark && <Spark ipKey={k === "net" ? undefined : s.key} values={H[k]} min={0} max={k === "net" ? undefined : 100} className="min-h-0 flex-1" />}
+                          {showBar && <Bar ipKey={s.key} value={s.v} t={t} className="h-1.5 shrink-0" />}
                         </div>
                       )}
                     </div>

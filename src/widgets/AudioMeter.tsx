@@ -314,7 +314,7 @@ export default function AudioMeter(p: AudioMeterProps) {
                       </div>
                     ) : (
                       <div className="flex h-full flex-1">
-                        <LedLadder zones={zones} value={v} n={p.segments ?? (size === "sm" ? 20 : 32)} color={lc} hotColor={hc} hold={marker} />
+                        <LedLadder ipKey={`plugins.audio-level-meter.${one.id}.${c === "L" ? "left" : "right"}-channel`} zones={zones} value={v} n={p.segments ?? (size === "sm" ? 20 : 32)} color={lc} hotColor={hc} hold={marker} />
                       </div>
                     )}
                   </div>

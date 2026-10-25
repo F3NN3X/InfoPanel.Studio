@@ -1,7 +1,7 @@
 // What each Status Bar item reads from the data, as plain values: an item whose data is absent is null, so the bar never shows "–".
 import { weatherKind, type WeatherCondition } from "@/lib/weather-icons";
 import { inUnit } from "@/modules/setting-readers";
-import { adapterOf, detect, fmt, fmtRate, get, has, hw, num, type Data, type RateUnit } from "../kit";
+import { adapterOf, detect, fmt, fmtRate, get, has, hw, num, type Data, type IpTagExtra, type RateUnit } from "../kit";
 import { trackOf } from "../NowPlaying";
 
 export const ITEMS = ["logo", "text", "date", "time", "datetime", "weather", "cpu", "gpu", "ram", "cpuTemp", "gpuTemp", "down", "up", "disk", "network", "volume", "battery", "media", "uptime"] as const;
@@ -40,6 +40,8 @@ export interface Reading {
   parts?: string[];
   /** The icon says it (a level, a link): the value shows only when the bar is set to values. */
   glyph?: boolean;
+  /** What the value reads, for the InfoPanel conversion's tags: a Data API key, or "time" / "date" with a .NET format. */
+  ip?: IpTagExtra & { key: string };
 }
 
 export interface ReadCtx {
@@ -78,7 +80,7 @@ export function shownOf(r: Reading, display: Display): { icon: boolean; value: s
 
 const L = (d: Data, k: string) => num(get(d, `libre.${k}`));
 const pct = (v: number) => (Number.isFinite(v) ? `${fmt(v, 0)}%` : undefined);
-const withIcon = (icon: string, value: string | undefined): Reading | null => (value === undefined ? null : { icon, value });
+const withIcon = (icon: string, value: string | undefined, key?: string): Reading | null => (value === undefined ? null : { icon, value, ...(key ? { ip: { key } } : {}) });
 const rate = (bytesPerSec: number, unit: RateUnit | undefined) => (Number.isFinite(bytesPerSec) ? fmtRate(bytesPerSec, unit) : undefined);
 
 /** A °C reading in the unit, "23°C". */
@@ -95,7 +97,7 @@ function weather(c: ReadCtx): Reading | null {
   const yr = detect(c.d, /^plugins\.yr-weather-plugin\.([^.]+)\.temp$/)[0];
   const base = yr ? `plugins.yr-weather-plugin.${yr}` : "plugins.weather-plugin.weather";
   const value = temp(num(get(c.d, `${base}.temp`)), c.tempUnit);
-  return value === undefined ? null : { weather: weatherKind(get(c.d, `${base}.weather_icon`), get(c.d, `${base}.weather_desc`)), value };
+  return value === undefined ? null : { weather: weatherKind(get(c.d, `${base}.weather_icon`), get(c.d, `${base}.weather_desc`)), value, ...(c.tempUnit === "c" ? { ip: { key: `${base}.temp` } } : {}) };
 }
 
 function network(d: Data): Reading | null {
@@ -150,23 +152,23 @@ export function readingOf(key: ItemKey, c: ReadCtx): Reading | null {
     case "text":
       return c.text ? { value: c.text } : null;
     case "date":
-      return { value: dateText(c.now, c.locale) };
+      return { value: dateText(c.now, c.locale), ip: { key: "date", kind: "clock", format: "ddd d MMM" } };
     case "time":
-      return { value: timeText(c.now, c.locale, c.clock, c.seconds) };
+      return { value: timeText(c.now, c.locale, c.clock, c.seconds), ip: { key: "time", kind: "clock", format: `${c.clock === "12" ? "h" : "HH"}:mm${c.seconds ? ":ss" : ""}${c.clock === "12" ? " tt" : ""}` } };
     case "datetime":
       return { parts: [dateText(c.now, c.locale), timeText(c.now, c.locale, c.clock, c.seconds)] };
     case "weather":
       return weather(c);
     case "cpu":
-      return withIcon("memory", pct(L(d, `${cpu}_cpu_total`)));
+      return withIcon("memory", pct(L(d, `${cpu}_cpu_total`)), `libre.${cpu}_cpu_total`);
     case "gpu":
-      return withIcon("developer_board", pct(L(d, `${gpu}_gpu_core_load`)));
+      return withIcon("developer_board", pct(L(d, `${gpu}_gpu_core_load`)), `libre.${gpu}_gpu_core_load`);
     case "ram":
-      return withIcon("memory_alt", pct(L(d, "total_memory_memory")));
+      return withIcon("memory_alt", pct(L(d, "total_memory_memory")), "libre.total_memory_memory");
     case "cpuTemp":
-      return withIcon("device_thermostat", temp(L(d, `${cpu}_core__tctl_tdie`), c.tempUnit));
+      return withIcon("device_thermostat", temp(L(d, `${cpu}_core__tctl_tdie`), c.tempUnit), c.tempUnit === "c" ? `libre.${cpu}_core__tctl_tdie` : undefined);
     case "gpuTemp":
-      return withIcon("device_thermostat", temp(L(d, `${gpu}_gpu_core`), c.tempUnit));
+      return withIcon("device_thermostat", temp(L(d, `${gpu}_gpu_core`), c.tempUnit), c.tempUnit === "c" ? `libre.${gpu}_gpu_core` : undefined);
     case "down":
       return adapter ? withIcon("south", rate(L(d, `${adapter}_download_speed`), c.rateUnit)) : null;
     case "up":

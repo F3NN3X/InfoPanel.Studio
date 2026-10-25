@@ -3,7 +3,7 @@ import { weatherKind, type WeatherKind } from "@/lib/weather-icons";
 import { windValue } from "./weather-fx/config";
 import { WeatherFx, type WeatherFxOpts } from "./weather-fx/WeatherFx";
 import Forecast from "./Forecast";
-import { Widget, shell, get, num, fmt, has, rows, Stat, Num, WeatherGlyph, weatherIcon, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, rows, Stat, Num, WeatherGlyph, weatherIcon, useIpTag, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
 import { WeatherGlance, WeatherWeek, weekDays } from "./WeatherViews";
 
 export const meta: WidgetMeta = {
@@ -85,6 +85,9 @@ function Current(p: WeatherProps) {
   const base = prov === "yr" ? `plugins.yr-weather-plugin.${p.location ?? yr[0]}` : "plugins.weather-plugin.weather";
   const k = (s: string) => get(d, `${base}.${s}`);
   const F = p.units === "F";
+  const tag = useIpTag();
+  // The InfoPanel conversion's tags: a reading's key, in °C only (InfoPanel shows the plugin's own unit).
+  const at = (s: string, extra?: { unit?: string; decimals?: number }) => tag(F && s.includes("temp") ? undefined : `${base}.${s}`, extra);
   const T = (c: number) => (F ? (c * 9) / 5 + 32 : c);
   const temp = num(k("temp")),
     feels = num(k("feels_like"));
@@ -135,10 +138,10 @@ function Current(p: WeatherProps) {
           <div className="flex min-w-0 items-center gap-3">
             <WeatherGlyph {...cond} {...icons} fill className={`${{ xs: "text-3xl", sm: "text-5xl", md: "text-6xl", lg: "text-7xl" }[size]} text-[color:var(--accent)]`} />
             <div className="flex min-w-0 flex-col">
-              <Num className={`${{ xs: "text-2xl", sm: "text-4xl", md: "text-5xl", lg: "text-6xl" }[size]} font-semibold leading-none tracking-tight`}>{fmt(T(temp), 0)}°</Num>
+              <Num ip={at("temp", { unit: "°", decimals: 0 })} className={`${{ xs: "text-2xl", sm: "text-4xl", md: "text-5xl", lg: "text-6xl" }[size]} font-semibold leading-none tracking-tight`}>{fmt(T(temp), 0)}°</Num>
               {size !== "xs" && (
                 <>
-                  <span className="mt-1 truncate text-xs text-[color:var(--w-muted)]">{k("weather_desc")}</span>
+                  <span {...at("weather_desc")} className="mt-1 truncate text-xs text-[color:var(--w-muted)]">{k("weather_desc")}</span>
                   {feelsLine && <span className="truncate text-xs text-[color:var(--w-muted)] first-letter:uppercase">{feelsLine}</span>}
                 </>
               )}
@@ -163,12 +166,12 @@ function Current(p: WeatherProps) {
               {now}
               {showStats && <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2">
                 <Stat label="Wind" value={`${fmt(num(k("wind_speed")), 1)} m/s ${compass(num(k("wind_deg")))}`} />
-                <Stat label="Humidity" value={`${fmt(num(k("humidity")))}%`} />
+                <Stat label="Humidity" value={`${fmt(num(k("humidity")))}%`} tag={at("humidity")} />
                 {size === "lg" && (
                   <>
-                    <Stat label="Gusts" value={`${fmt(num(k("wind_gust")), 1)} m/s`} />
-                    <Stat label="Pressure" value={`${fmt(num(k("pressure")))} hPa`} />
-                    <Stat label="Clouds" value={`${fmt(num(k("clouds")))}%`} />
+                    <Stat label="Gusts" value={`${fmt(num(k("wind_gust")), 1)} m/s`} tag={at("wind_gust")} />
+                    <Stat label="Pressure" value={`${fmt(num(k("pressure")))} hPa`} tag={at("pressure")} />
+                    <Stat label="Clouds" value={`${fmt(num(k("clouds")))}%`} tag={at("clouds")} />
                     <Stat label={snow ? "Snow" : "Rain"} value={`${fmt(num(k(snow ? "snow" : "rain")), 1)} mm/h`} />
                   </>
                 )}

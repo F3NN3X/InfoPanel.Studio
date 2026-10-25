@@ -84,6 +84,34 @@ const RING_GLIDE_MS = 300;
 /** On in the studio canvas only, where the InfoPanel conversion reads the tags; the kiosk and the previews draw without them. */
 export const IpTagCtx = createContext(false);
 
+/** What a tag can say besides its key: `kind` (default value), and how a value is shown (`unit`, `decimals`, `mul`) or a clock's .NET `format`. */
+export interface IpTagExtra {
+  kind?: "value" | "bar" | "ring" | "graph" | "clock" | "meter";
+  unit?: string;
+  decimals?: number;
+  mul?: number;
+  max?: number;
+  format?: string;
+}
+
+/**
+ * For modules that draw a value themselves: `tag(key)` gives the `data-ip-*` attributes to spread on the node that
+ * shows it (nothing outside the studio canvas, or without a key).
+ */
+export function useIpTag(): (key: string | undefined, extra?: IpTagExtra) => Record<string, string | number> {
+  const on = useContext(IpTagCtx);
+  return (key, extra = {}) => {
+    if (!on || !key) return {};
+    const out: Record<string, string | number> = { "data-ip-key": key, "data-ip-kind": extra.kind ?? "value" };
+    if (extra.unit !== undefined) out["data-ip-unit"] = extra.unit;
+    if (extra.decimals !== undefined) out["data-ip-decimals"] = extra.decimals;
+    if (extra.mul !== undefined) out["data-ip-mul"] = extra.mul;
+    if (extra.max !== undefined) out["data-ip-max"] = extra.max;
+    if (extra.format !== undefined) out["data-ip-format"] = extra.format;
+    return out;
+  };
+}
+
 export function Bar(p: BarProps & { ipKey?: string }) {
   const tagging = useContext(IpTagCtx);
   const { ipKey, ...rest } = p;
@@ -189,7 +217,8 @@ export interface RingProps {
 }
 export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, track, sweep = 360, children, className = "", ipKey: key }: RingProps) {
   const ipKey = useContext(IpTagCtx) ? key : undefined;
-  const tag = ipKey ? { "data-ip-key": ipKey, "data-ip-kind": "ring", "data-ip-max": max } : undefined;
+  // On the value arc itself, so the track stays in the picture the conversion takes of the rest.
+  const tag = ipKey ? { "data-ip-key": ipKey, "data-ip-kind": "ring", "data-ip-max": max, "data-ip-start": sweep < 360 ? -sweep / 2 : 0, "data-ip-sweep": Math.min(360, sweep) } : undefined;
   const sk = useSkin();
   const thickness = Math.max(1.5, th0 * (sk.ring ?? 1));
   const r = 50 - thickness / 2,
@@ -201,12 +230,12 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, tr
     // an open arc centred on the top: it starts `sweep / 2` before 12 o'clock (the svg is already turned to start there)
     const arc = (c * clamp(sweep, 1, 360)) / 360;
     return (
-      <div {...tag} className={`relative aspect-square ${className}`}>
+      <div className={`relative aspect-square ${className}`}>
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <g transform={`rotate(${-sweep / 2} 50 50)`}>
             <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} strokeLinecap={cap} strokeDasharray={`${arc} ${c}`} />
             <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
-              strokeDasharray={`${arc * pct} ${c}`} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring="" />
+              strokeDasharray={`${arc * pct} ${c}`} style={sk.smooth ? { transition: `stroke-dasharray ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring="" {...tag} />
           </g>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
@@ -214,11 +243,11 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, tr
     );
   }
   return (
-    <div {...tag} className={`relative aspect-square ${className}`}>
+    <div className={`relative aspect-square ${className}`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
         <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
-          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={glide} data-wp-ring="" />
+          strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={glide} data-wp-ring="" {...tag} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
@@ -230,6 +259,8 @@ export interface RingStackRing {
   v: number;
   color: string;
   track?: string;
+  /** The Data API key the ring shows: tags it for the InfoPanel conversion (`data-ip-key`). */
+  ipKey?: string;
 }
 export interface RingStackProps {
   rings: RingStackRing[];
@@ -241,6 +272,7 @@ export interface RingStackProps {
 }
 export function RingStack({ rings, thickness: th0 = 9, gap = 3, children, className = "", style }: RingStackProps) {
   const sk = useSkin();
+  const tagging = useContext(IpTagCtx);
   const thickness = Math.max(1.5, th0 * (sk.ring ?? 1));
   const cap = sk.skin === "hud" || sk.skin === "tui" ? "butt" : "round";
   return (
@@ -248,14 +280,15 @@ export function RingStack({ rings, thickness: th0 = 9, gap = 3, children, classN
       {/* rotate the drawing, not the svg: a rotated non-square svg's box pokes out of its zone */}
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" className="h-full w-full">
         <g transform="rotate(-90 50 50)">
-          {rings.map(({ v, color, track }, i) => {
+          {rings.map(({ v, color, track, ipKey }, i) => {
             const r = Math.max(thickness / 2 + 1, 50 - thickness / 2 - i * (thickness + gap)),
               c = 2 * Math.PI * r;
             return (
               <g key={i}>
                 <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
                 <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth={thickness} strokeLinecap={cap}
-                  strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v || 0) / 100)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring="" />
+                  strokeDasharray={c} strokeDashoffset={c * (1 - clamp(v || 0) / 100)} style={sk.smooth ? { transition: `stroke-dashoffset ${RING_GLIDE_MS}ms linear` } : undefined} data-wp-ring=""
+                  {...(tagging && ipKey ? { "data-ip-key": ipKey, "data-ip-kind": "ring", "data-ip-max": 100 } : null)} />
               </g>
             );
           })}
@@ -515,10 +548,10 @@ export const Dot = ({ ok, className = "" }: { ok?: boolean; className?: string }
 export const Chip = ({ children, className = "" }: { children?: ReactNode; className?: string }) => (
   <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md bg-[color:var(--w-track)] px-1.5 py-0.5 text-[10.5px] font-medium text-[color:var(--w-fg)] ${className}`}>{children}</span>
 );
-export const Stat = ({ label, value, className = "" }: { label?: ReactNode; value?: ReactNode; className?: string }) => (
+export const Stat = ({ label, value, className = "", tag }: { label?: ReactNode; value?: ReactNode; className?: string; tag?: Record<string, string | number> }) => (
   <div className={`flex min-w-0 flex-col gap-0.5 ${className}`} style={{ alignItems: "var(--wp-x-cross, stretch)" }}>
     <span className="max-w-full truncate text-[10.5px] text-[color:var(--w-faint)]" style={labelStyle("none")}>{label}</span>
-    <span className="max-w-full truncate text-[13px] font-medium tabular-nums text-[color:var(--w-fg)]">{value}</span>
+    <span {...tag} className="max-w-full truncate text-[13px] font-medium tabular-nums text-[color:var(--w-fg)]">{value}</span>
   </div>
 );
 /** A footer row of label/value stats under a rule, `cols` per row (3 or 4). */
@@ -532,12 +565,12 @@ export function StatGrid({ items, cols = 4 }: { items: { label: ReactNode; value
   );
 }
 /** One legend line: colour swatch, label, trailing value. A null colour keeps the column but draws no swatch. */
-export function LegendRow({ color, label, value, className = "text-[12.5px]" }: { color?: string | null; label: ReactNode; value?: ReactNode; className?: string }) {
+export function LegendRow({ color, label, value, className = "text-[12.5px]", tag }: { color?: string | null; label: ReactNode; value?: ReactNode; className?: string; tag?: Record<string, string | number> }) {
   return (
     <div className={`grid min-w-0 grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-2 ${className}`}>
       <i className={`h-2.5 w-2.5 rounded-[3px] ${color ? "ring-1 ring-inset ring-[color:var(--w-fg)]/15" : ""}`} style={{ background: color ?? "transparent" }} />
       <span className="truncate text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>
-      <span className="font-medium tabular-nums">{value}</span>
+      <span {...tag} className="font-medium tabular-nums">{value}</span>
     </div>
   );
 }
@@ -568,11 +601,11 @@ export function Img({ src, className = "", icon = "image", alt = "" }: { src?: s
 
 /* ───────── shared building blocks (extracted from widgets during the audit) ───────── */
 // Skin-aware big numerals (font, weight, stretch, glow). Use for every hero number.
-export function Num({ children, className = "", style, weight = 700, ipKey: key, ipUnit }: { children?: ReactNode; className?: string; style?: CSSProperties; weight?: number; ipKey?: string; ipUnit?: string }) {
+export function Num({ children, className = "", style, weight = 700, ipKey: key, ipUnit, ipMul, ip }: { children?: ReactNode; className?: string; style?: CSSProperties; weight?: number; ipKey?: string; ipUnit?: string; ipMul?: number; ip?: Record<string, string | number> }) {
   const sk = useSkin();
   const ipKey = useContext(IpTagCtx) ? key : undefined;
   return (
-    <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey ? ipUnit : undefined} className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
+    <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey ? ipUnit : undefined} data-ip-mul={ipKey ? ipMul : undefined} {...ip} className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
       {children}
     </span>
   );
@@ -666,13 +699,20 @@ export interface LedLadderProps {
   color?: string;
   /** Colour of the clip zone, default red. */
   hotColor?: string;
+  /** The Data API key of the level: tags the ladder for the InfoPanel conversion, which redraws it as a segmented gauge. */
+  ipKey?: string;
 }
 // Segmented level ladder, accent → amber → red; a segment is lit when its centre is at or below the value.
 const UNLIT = 12;
-export function LedLadder({ value, n = 24, vertical, reverse, zones = [72, 90], hold, color = "var(--accent)", hotColor = STATE.crit }: LedLadderProps) {
+export function LedLadder({ value, n = 24, vertical, reverse, zones = [72, 90], hold, color = "var(--accent)", hotColor = STATE.crit, ipKey }: LedLadderProps) {
   const v = clamp(value);
+  const tagging = useContext(IpTagCtx) && ipKey;
+  // The zone colours as CSS (the conversion resolves them on the page), the unlit one last.
+  const tag = tagging
+    ? { "data-ip-key": ipKey, "data-ip-kind": "meter", "data-ip-segments": n, "data-ip-zones": `${zones[0]},${zones[1]}`, "data-ip-colors": JSON.stringify([color, STATE.warn, hotColor, `color-mix(in oklab, ${color} ${UNLIT}%, var(--w-track))`]), ...(vertical ? { "data-ip-vertical": "" } : {}), ...(reverse ? { "data-ip-reverse": "" } : {}) }
+    : undefined;
   return (
-    <div className={`relative flex flex-1 gap-[2px] ${vertical ? "w-full flex-col-reverse" : `h-full ${reverse ? "flex-row-reverse" : "flex-row"}`}`}>
+    <div {...tag} className={`relative flex flex-1 gap-[2px] ${vertical ? "w-full flex-col-reverse" : `h-full ${reverse ? "flex-row-reverse" : "flex-row"}`}`}>
       {Array.from({ length: n }, (_, i) => {
         const at = ((i + 0.5) / n) * 100;
         const c = at > zones[1] ? hotColor : at > zones[0] ? STATE.warn : color;
