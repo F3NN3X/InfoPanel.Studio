@@ -59,7 +59,7 @@ import { SelectionChip } from "./selection-chip";
 import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
 import { widgetName } from "./widget-kinds";
 import { WidgetPickerDialog } from "./widget-picker-dialog";
-import { kiosksOf, postControl, useControl } from "@/lib/control";
+import { kiosksOf, postControl, useControl, type ControlDisplay } from "@/lib/control";
 import { openHelp } from "@/lib/desktop";
 import { dialogArticle, focusedSection, studioHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
@@ -98,6 +98,7 @@ const NewProfileDialog = lazy(() => import("@/components/infopanel/new-profile-d
 /** The Data, Alerts and Screens views load when the rail first opens them. */
 const SourcesPanel = lazy(() => import("./sources-panel").then((m) => ({ default: m.SourcesPanel })));
 const AlertsView = lazy(() => import("./alerts-view").then((m) => ({ default: m.AlertsView })));
+const NO_DISPLAYS: readonly ControlDisplay[] = [];
 const ScreensView = lazy(() => import("./screens-view").then((m) => ({ default: m.ScreensView })));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
@@ -538,6 +539,7 @@ function StudioViewBody({
       onOpenLive={() => ui.setLiveOpen(true)}
       navigateTo={ui.navigateTo}
       kiosks={kiosksOf(control)}
+      displays={control?.displays ?? NO_DISPLAYS}
       onOpenScreen={openScreen}
       onAddProfile={edit.addProfile}
       onAddMadeProfile={edit.addImportedProfile}

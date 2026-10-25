@@ -567,6 +567,48 @@ Host: localhost:{port}
 }
 
 #[tokio::test]
+async fn lists_a_named_display_online_and_pushes_its_assigned_screen() {
+    let s = start().await;
+    assert_eq!(post_config(s.port, CONTROL_CONFIG, &[]).await.status, 200);
+    let mut kiosk = TcpStream::connect(("127.0.0.1", s.port)).await.unwrap();
+    let request = format!("GET /events/control?profile=desk&display=hall-1 HTTP/1.1\r\nHost: localhost:{}\r\n\r\n", s.port);
+    kiosk.write_all(request.as_bytes()).await.unwrap();
+    let last_state = |seen: &str| -> serde_json::Value {
+        let line = seen.lines().rfind(|l| l.starts_with("data: ")).unwrap();
+        serde_json::from_str(line.trim_start_matches("data: ")).unwrap()
+    };
+
+    // The first state is queued after `shown` and the connect, which already counted the display as online.
+    let mut seen = String::new();
+    events(&mut kiosk, &mut seen, 1).await;
+    let display = last_state(&seen)["displays"][0].clone();
+    assert_eq!((display["name"].as_str(), display["online"].as_bool(), display["screen"].as_str()), (Some("hall-1"), Some(true), Some("follow")));
+    assert_eq!(last_state(&seen)["kiosks"][0]["display"], "hall-1");
+
+    // Assigning a screen pushes it to the stream; an unknown screen or display is refused.
+    let assigned = post_control(s.port, "display", r#"{"action":"assign","display":"hall-1","screen":"strip"}"#).await;
+    assert_eq!(assigned.status, 200);
+    events(&mut kiosk, &mut seen, 2).await;
+    let display = last_state(&seen)["displays"][0].clone();
+    assert_eq!((display["screen"].as_str(), display["shows"].as_str()), (Some("strip"), Some("strip")));
+    assert_eq!(post_control(s.port, "display", r#"{"action":"assign","display":"hall-1","screen":"gone"}"#).await.status, 400);
+    assert_eq!(post_control(s.port, "display", r#"{"action":"assign","display":"nobody","screen":"strip"}"#).await.status, 400);
+
+    // Closing the stream leaves the display known and offline; forgetting removes it.
+    drop(kiosk);
+    for _ in 0..200 {
+        if json(&get(s.port, "/api/control").await)["displays"][0]["online"] == false {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!(json(&get(s.port, "/api/control").await)["displays"][0]["online"], false);
+    assert_eq!(post_control(s.port, "display", r#"{"action":"forget","display":"hall-1"}"#).await.status, 200);
+    assert!(json(&get(s.port, "/api/control").await).get("displays").is_none());
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn serves_debug_stats_only_in_debug_mode() {
     let s = start().await;
     for method in ["GET", "POST", "PUT"] {

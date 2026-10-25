@@ -29,6 +29,8 @@ export interface ControlState {
   reload: number;
   /** The open kiosk streams, oldest first (absent from a server before the registry). */
   kiosks?: ControlKiosk[];
+  /** The named displays the server knows, in the order first seen (absent while there are none). */
+  displays?: ControlDisplay[];
   /** Client only: which connection delivered this state (changes on every reconnect). */
   link?: number;
 }
@@ -44,7 +46,26 @@ export interface ControlKiosk {
   address: string | null;
   /** When it connected (epoch ms). */
   since: number;
+  /** The `?display=` name of its link. */
+  display?: string;
 }
+
+/** A named display: a kiosk link with `?display=<name>`, and the screen the studio chose for it. */
+export interface ControlDisplay {
+  name: string;
+  /** The assigned screen's id, or "follow" (the app's own rule, "When the app opens"). */
+  screen: string;
+  /** When it was first and last seen (epoch ms). */
+  firstSeen: number;
+  lastSeen: number;
+  online: boolean;
+  /** Its kiosk's address while online (only a kiosk on this PC reports one). */
+  address: string | null;
+  /** The screen it shows now, when known. */
+  shows: string | null;
+}
+
+export const DISPLAY_FOLLOW = "follow";
 
 /** One profile in the control state. */
 export interface ControlProfile {
@@ -59,7 +80,12 @@ export interface ControlProfile {
   reload: number;
 }
 
-export type ControlAction = "page" | "profile" | "rotate" | "touch" | "alert" | "kiosk";
+export type ControlAction = "page" | "profile" | "rotate" | "touch" | "alert" | "kiosk" | "display";
+
+/** Assign a named display a screen (`screen`: an id or "follow"), or forget it. */
+export type DisplayAction =
+  | { action: "assign"; display: string; screen: string }
+  | { action: "forget"; display: string };
 
 /** A kiosk action: reload, dim or the island. `profile` unset = the usual target (every kiosk for reload). */
 export type KioskAction =
@@ -76,6 +102,7 @@ export async function postControl(
   body: AlertAction | { action: "mute"; minutes: number },
 ): Promise<{ alerts: ActiveAlert[]; mutedUntil: number | null } | null>;
 export async function postControl(action: "kiosk", body: KioskAction): Promise<ControlState | null>;
+export async function postControl(action: "display", body: DisplayAction): Promise<ControlState | null>;
 export async function postControl(action: ControlAction, body: object): Promise<ControlState | null>;
 export async function postControl(action: ControlAction, body: object): Promise<unknown> {
   try {
@@ -100,11 +127,19 @@ let connections = 0;
  * kiosk shows (and `pinnedPage` its `?page=` pin), which lists it as a kiosk.
  * One subscription per page — never per zone. `enabled` off opens nothing.
  */
-export function useControl(shownProfile?: string, enabled = true, pinnedPage?: string, studio = false): ControlState | null {
+export function useControl(
+  shownProfile?: string,
+  enabled = true,
+  pinnedPage?: string,
+  studio = false,
+  display?: KioskDisplay,
+): ControlState | null {
   const [state, setState] = useState<ControlState | null>(null);
+  const displayName = display?.name;
+  const displayPinned = display?.pinned;
   useEffect(() => {
     if (!enabled || typeof EventSource === "undefined") return;
-    const url = controlEventsUrl(shownProfile, pinnedPage, studio);
+    const url = controlEventsUrl(shownProfile, pinnedPage, studio, displayName ? { name: displayName, pinned: !!displayPinned } : undefined);
     const events = trackEventSource(new EventSource(url));
     let link = 0;
     events.onopen = () => {
@@ -118,17 +153,27 @@ export function useControl(shownProfile?: string, enabled = true, pinnedPage?: s
       }
     };
     return () => events.close();
-  }, [shownProfile, enabled, pinnedPage, studio]);
+  }, [shownProfile, enabled, pinnedPage, studio, displayName, displayPinned]);
   return state;
 }
 
+/** A kiosk's `?display=` name, and whether its link also pins a profile (which beats the assigned screen). */
+export interface KioskDisplay {
+  name: string;
+  pinned: boolean;
+}
+
 /**
- * The control stream's URL: a kiosk reports its profile and page pin; the studio marks itself, so the app can tell
- * a studio already open in a browser.
+ * The control stream's URL: a kiosk reports its profile, page pin and display; the studio marks itself, so the app
+ * can tell a studio already open in a browser.
  */
-export function controlEventsUrl(shownProfile?: string, pinnedPage?: string, studio = false): string {
+export function controlEventsUrl(shownProfile?: string, pinnedPage?: string, studio = false, display?: KioskDisplay): string {
   if (!shownProfile) return studio ? `${CONTROL_EVENTS_URL}?client=studio` : CONTROL_EVENTS_URL;
-  const q = new URLSearchParams({ profile: shownProfile, ...(pinnedPage ? { page: pinnedPage } : {}) });
+  const q = new URLSearchParams({
+    profile: shownProfile,
+    ...(pinnedPage ? { page: pinnedPage } : {}),
+    ...(display ? { display: display.name, ...(display.pinned ? { pinned: "1" } : {}) } : {}),
+  });
   return `${CONTROL_EVENTS_URL}?${q}`;
 }
 
@@ -156,17 +201,21 @@ export function kioskPageId(args: {
 
 /**
  * The profile a kiosk shows when something forces it: the `?profile=` pin
- * (each kiosk window keeps its own), then the control channel's override.
+ * (each kiosk window keeps its own), then the screen assigned to its `?display=`,
+ * then the control channel's override.
  * Undefined = resolve as usual (the config's pin, or by window size).
  */
 export function kioskProfileId(args: {
   pin: string | null | undefined;
   control: ControlState | null;
   config: Pick<DashboardConfig, "profiles">;
+  display?: string;
 }): string | undefined {
   const has = (id: string | null | undefined): id is string =>
     id != null && args.config.profiles.some((p) => p.id === id);
   if (has(args.pin)) return args.pin;
+  const assigned = args.control?.displays?.find((d) => d.name === args.display)?.screen;
+  if (has(assigned)) return assigned;
   return has(args.control?.profile) ? args.control.profile : undefined;
 }
 

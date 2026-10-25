@@ -26,7 +26,7 @@ use crate::{js, sse, store, supervisor, App};
 const TICK: Duration = Duration::from_secs(1);
 const MAX_CONTROL_BYTES: usize = 4096;
 /// The action types a POST may name (`alert` is the alerts module's).
-const CONTROL_ACTIONS: [&str; 6] = ["page", "profile", "rotate", "touch", "alert", "kiosk"];
+const CONTROL_ACTIONS: [&str; 7] = ["page", "profile", "rotate", "touch", "alert", "kiosk", "display"];
 
 struct Inner {
     state: State,
@@ -34,6 +34,19 @@ struct Inner {
     listeners: BTreeMap<u64, mpsc::UnboundedSender<Bytes>>,
     next_listener: u64,
     kiosk_seq: u64,
+}
+
+/// What a kiosk's control stream says about itself (its link's `?profile=`, `?page=`, `?display=`).
+#[derive(Clone, Copy, Default)]
+pub struct KioskLink<'a> {
+    /// The profile it shows.
+    pub profile: &'a str,
+    pub page: Option<&'a str>,
+    pub address: Option<&'a str>,
+    /// The display name from the link (checked by the reducer).
+    pub display: Option<&'a str>,
+    /// The link pins its profile.
+    pub pinned: bool,
 }
 
 /// The live control store: `dispatch` applies an action and returns the public state or an error; listeners get the
@@ -140,15 +153,18 @@ impl Control {
         }
     }
 
-    /// A kiosk stream opened (`profile` from `?profile=`, `page` from `?page=`): its id for `disconnect`.
-    pub fn connect(&self, profile: &str, page: Option<&str>, address: Option<&str>) -> Option<String> {
-        self.connect_locked(&mut lock(&self.inner), profile, page, address)
+    /// A kiosk stream opened: its id for `disconnect`.
+    pub fn connect(&self, link: KioskLink) -> Option<String> {
+        self.connect_locked(&mut lock(&self.inner), link)
     }
 
-    fn connect_locked(&self, inner: &mut Inner, profile: &str, page: Option<&str>, address: Option<&str>) -> Option<String> {
+    fn connect_locked(&self, inner: &mut Inner, link: KioskLink) -> Option<String> {
         inner.kiosk_seq += 1;
         let id = format!("k{}", inner.kiosk_seq);
-        let action = json!({ "type": "connect", "id": id, "profile": profile, "page": page, "address": address });
+        let action = json!({
+            "type": "connect", "id": id, "profile": link.profile, "page": link.page, "address": link.address,
+            "display": link.display, "pinned": link.pinned,
+        });
         self.dispatch_locked(inner, &action, now_ms() as f64).ok().map(|_| id)
     }
 
@@ -172,13 +188,13 @@ impl Control {
 
     /// A control event stream: a kiosk (`profile` given) is reported as shown and listed until the stream closes. The
     /// current state is queued first, then every change.
-    fn open_stream(self: &Arc<Self>, kiosk: Option<(&str, Option<&str>, Option<&str>)>) -> (mpsc::UnboundedReceiver<Bytes>, Stream) {
+    fn open_stream(self: &Arc<Self>, kiosk: Option<KioskLink>) -> (mpsc::UnboundedReceiver<Bytes>, Stream) {
         let (tx, rx) = mpsc::unbounded_channel();
         let mut inner = lock(&self.inner);
         let mut id = None;
-        if let Some((profile, page, address)) = kiosk {
-            let _ = self.dispatch_locked(&mut inner, &json!({ "type": "shown", "profile": profile }), now_ms() as f64);
-            id = self.connect_locked(&mut inner, profile, page, address);
+        if let Some(link) = kiosk {
+            let _ = self.dispatch_locked(&mut inner, &json!({ "type": "shown", "profile": link.profile }), now_ms() as f64);
+            id = self.connect_locked(&mut inner, link);
         }
         let _ = tx.send(view_event(&public_state(&inner.state, &inner.config)));
         (rx, self.register(&mut inner, tx, id))
@@ -255,13 +271,17 @@ pub async fn handle(app: &App, mut req: Req) -> Response<Body> {
 }
 
 /// The control stream. `?profile=<id>` reports the profile this kiosk shows (and `?page=<id>` its page pin), which
-/// lists the stream as a kiosk in the state until it closes. Only a kiosk on this machine has its address listed: the
+/// lists the stream as a kiosk in the state until it closes; `?display=<name>` names the display it is, and `pinned=1`
+/// says its link pins the profile. Only a kiosk on this machine has its address listed: the
 /// state is public. `?client=studio` from this machine counts the stream as an open studio (/api/server/stats).
 pub fn handle_events(app: &App, req: &Req) -> Response<Body> {
     let shown = req.query("profile").filter(|p| !p.is_empty());
     let page = req.query("page");
     let address = req.is_loopback().then_some(req.peer.as_str());
-    let (rx, stream) = app.control.open_stream(shown.as_deref().map(|profile| (profile, page.as_deref(), address)));
+    let display = req.query("display");
+    let pinned = req.query("pinned").as_deref() == Some("1");
+    let link = |profile| KioskLink { profile, page: page.as_deref(), address, display: display.as_deref(), pinned };
+    let (rx, stream) = app.control.open_stream(shown.as_deref().map(link));
     let studio = shown.is_none() && req.query("client").as_deref() == Some("studio") && req.is_loopback();
     let client = app.debug.sse_open(if studio { "studio" } else { "control" });
     sse::response(rx, app.shutdown.clone(), Box::new((stream, client)))
@@ -280,7 +300,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let control = Control::new(dir.path().join("control.json"), 1000, || Some(config()));
         let (mut watcher, _guard) = control.subscribe();
-        let (mut rx, stream) = control.open_stream(Some(("desk", None, Some("::ffff:10.0.0.2"))));
+        let (mut rx, stream) = control.open_stream(Some(KioskLink { profile: "desk", address: Some("::ffff:10.0.0.2"), ..KioskLink::default() }));
         let first: Value = serde_json::from_str(std::str::from_utf8(&rx.try_recv().unwrap()).unwrap().trim_start_matches("data: ").trim()).unwrap();
         assert_eq!(first["kiosks"][0]["address"], "10.0.0.2");
         assert_eq!(first["shown"], "desk");

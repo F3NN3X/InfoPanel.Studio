@@ -65,6 +65,7 @@ import {
   useKioskReload,
   withControlPage,
 } from "@/lib/control";
+import { isDisplayName } from "@/lib/screens/display-name";
 import { swipeDirection } from "@/lib/swipe";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,10 @@ const pagePin = new URLSearchParams(window.location.search).get("page") ?? undef
 
 /** The ?profile= pin, if any: it wins over the control channel's profile. */
 const profilePin = new URLSearchParams(window.location.search).get("profile");
+
+/** The ?display= name, if valid: the studio can assign this kiosk a screen by it. */
+const displayParam = new URLSearchParams(window.location.search).get("display");
+const displayName = isDisplayName(displayParam) ? displayParam : undefined;
 
 const NO_ALERTS: readonly never[] = [];
 
@@ -127,7 +132,7 @@ export default function App() {
   // Kiosk: the control channel decides the profile (unless ?profile= pins one)
   // and the page. The stream also tells the server which profile this kiosk shows.
   const [shownId, setShownId] = useState<string>();
-  const control = useControl(shownId, kiosk && shownId !== undefined, pagePin);
+  const control = useControl(shownId, kiosk && shownId !== undefined, pagePin, false, displayName ? { name: displayName, pinned: !!profilePin } : undefined);
   // A tap or swipe switches at once; the server's state takes over when it arrives.
   const [optimistic, setOptimistic] = useState<{ profile: string; page: string } | null>(null);
   // Kiosk: studio saves pulled since load (the island's "Layout updated").
@@ -144,7 +149,7 @@ export default function App() {
   // Desktop Kiosk view: the profile the studio was editing, kept as it is (Auto doesn't re-resolve on resize).
   const [viewProfile, setViewProfile] = useState<string>();
   const forcedProfile = kiosk
-    ? kioskProfileId({ pin: profilePin, control, config })
+    ? kioskProfileId({ pin: profilePin, control, config, display: displayName })
     : studio
       ? editedProfileId(config, pinnedId, windowSize.w, windowSize.h)
       : viewProfile;

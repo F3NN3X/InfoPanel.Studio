@@ -278,6 +278,21 @@ describe("server", () => {
     expect(left).toEqual([]);
   });
 
+  it("lists a named display from its control stream and forgets it on request", async () => {
+    const displays = async () => (await (await fetch(`${plain.base}/api/control`)).json()).displays ?? [];
+    const kiosk = await fetch(`${plain.base}/events/control?profile=desk&display=hall-9`);
+    // A name that is not a slug is ignored.
+    const bad = await fetch(`${plain.base}/events/control?profile=desk&display=no%20good`);
+    expect(await displays()).toEqual([expect.objectContaining({ name: "hall-9", online: true, screen: "follow" })]);
+    await kiosk.body.cancel();
+    await bad.body.cancel();
+    const post = (body) =>
+      fetch(`${plain.base}/api/control/display`, { method: "POST", headers: { "Content-Type": "application/json", "X-Dashboard-Control": "1" }, body: JSON.stringify(body) });
+    expect((await post({ action: "assign", display: "hall-9", screen: "gone" })).status).toBe(400);
+    expect((await post({ action: "forget", display: "hall-9" })).status).toBe(200);
+    expect(await displays()).toEqual([]);
+  });
+
   it("serves /api/debug/stats only in debug mode and logs requests", async () => {
     expect((await fetch(`${plain.base}/api/debug/stats`)).status).toBe(404);
     const sse = await fetch(`${debug.base}/events/config`);

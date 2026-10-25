@@ -58,7 +58,22 @@ A screen holds one or more pages that share its grid. See [The studio](studio#pa
 - **Best fit for the window** picks the screen whose size is closest to the window. Keep one screen per physical display and each one opens the right screen.
 - **Always** followed by a screen name opens that screen whatever the window size. You can also use **Always open this one** in a card's **⋯** menu.
 
-**Copy kiosk link** gives an address such as `http://127.0.0.1:3922/?kiosk=1&profile=…`. Open it on a kiosk to pin that kiosk to the screen; on another device use this PC's address instead of `127.0.0.1`. Assigning a screen to a named kiosk isn't built yet.
+**Copy kiosk link** gives an address such as `http://127.0.0.1:3922/?kiosk=1&profile=…`. Open it on a kiosk to pin that kiosk to the screen; on another device use this PC's address instead of `127.0.0.1`.
+
+## Named displays
+
+Give a display a name and you can choose its screen from the studio, with no new link to type on the kiosk. In **Copy kiosk link**, fill in **Display name (optional)**: letters, digits, `-` and `_`, up to 32 characters. The link then looks like `http://127.0.0.1:3922/?kiosk=1&display=hall`. It doesn't pin a screen, because a pin would win over your choice.
+
+To set up a display on InfoPanel, add a web page profile and paste the link as its URL. Each web page profile needs its own name in the link, since InfoPanel's web pages share one browser storage and the address is the only thing that tells them apart.
+
+The display shows up in **Displays** on **Screens** the first time its link opens. Each row has the name, whether it's online, when it was last seen, its address while online, and a picker:
+
+- **Follow “When the app opens”** is the default. The display shows what that setting says.
+- A screen from the list always shows that screen on the display. If you delete the screen, the display goes back to following.
+
+**Forget** removes a row; it returns the next time its link opens. A screen's **Shown on** panel lists the displays set to it. Only a kiosk on this PC shows its address.
+
+A `?profile=` pin in a link still wins over everything else, then the display's screen, then a screen switched from **Live**, then **When the app opens**.
 
 A display can still show another screen when its kiosk URL has `?profile=`, or when the screen is switched from **Live**.
 
