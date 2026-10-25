@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.27] - 2026-10-25
+
 ### Changed
 
 - **The startup screen is a setting.** "When the app opens" moved from the Screens page to **Settings › Dashboard › Startup screen**, where you pick Best fit for the window or one screen. A screen's **Shown on** panel links to it. The saved setting is the same one, so nothing changes for your displays.
