@@ -361,6 +361,29 @@
 [data-wp-glow-line] {
   display: none;
 }
+/* The look's Number glow (lib/effects/glow.ts): the widget shell and panels set data-wp-numglow to off, soft or strong
+   (and --w-num-c for a colour). Every numeral under the scope takes it: HTML as a text-shadow, SVG text as a filter
+   (which SVG text needs). The variables sit on the scope, so the nearest scope wins when they nest. */
+[data-wp-numglow="soft"] {
+  --w-num-glow: 0 0 3px var(--w-num-c, var(--accent)), 0 0 12px var(--w-num-c, var(--accent));
+  --w-num-drop: drop-shadow(0 0 3px var(--w-num-c, var(--accent)));
+}
+[data-wp-numglow="strong"] {
+  --w-num-glow: 0 0 6px var(--w-num-c, var(--accent)), 0 0 24px var(--w-num-c, var(--accent));
+  --w-num-drop: drop-shadow(0 0 6px var(--w-num-c, var(--accent)));
+}
+[data-wp-numglow="off"] {
+  --w-num-glow: none;
+  --w-num-drop: none;
+}
+[data-wp-numglow] .tabular-nums,
+[data-wp-numglow] .font-mono,
+[data-wp-numglow] [data-wp-num] {
+  text-shadow: var(--w-num-glow) !important; /* over a skin's own inline glow */
+}
+[data-wp-numglow] svg text {
+  filter: var(--w-num-drop) !important;
+}
 [data-glow-static] [data-wp-glow] {
   filter: none;
 }

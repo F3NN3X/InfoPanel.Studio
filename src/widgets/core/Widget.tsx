@@ -1,7 +1,7 @@
 // The Widget shell every template renders into: measures itself, applies skin + surface + the standard
 // look, picks the view.
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { chromeVars, scopedCss, zoomFor } from "@/components/widget-style";
+import { chromeVars, numGlowAttr, scopedCss, zoomFor } from "@/components/widget-style";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
 import { summaryShape, useBox, type Box } from "./layout";
@@ -124,7 +124,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
   return (
     <SkinCtx.Provider value={ctx}>
       <PaneCtx.Provider value={{ className: surf.c, style: surfBox }}>
-      <div ref={ref} style={rootStyle} data-wp-scope={css ? scope : undefined} data-wp-tier={box.size} data-wp-shape={box.shape} data-wp-view={isStudio ? "studio" : useCompact ? "compact" : "body"} className={`relative flex h-full w-full min-w-0 flex-col overflow-hidden antialiased ${surf.c} ${className}`}>
+      <div ref={ref} style={rootStyle} data-wp-scope={css ? scope : undefined} {...numGlowAttr(chrome)} data-wp-tier={box.size} data-wp-shape={box.shape} data-wp-view={isStudio ? "studio" : useCompact ? "compact" : "body"} className={`relative flex h-full w-full min-w-0 flex-col overflow-hidden antialiased ${surf.c} ${className}`}>
         {css && <style>{css}</style>}
         {background && (
           <>

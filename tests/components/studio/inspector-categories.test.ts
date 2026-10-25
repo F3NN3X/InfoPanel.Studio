@@ -84,7 +84,7 @@ describe("shared sections", () => {
     expect(keysOf("skin").sort()).toEqual(["graph", "meter", "skin", "stroke"]);
     expect(keysOf("colors").sort()).toEqual(["accent", "mutedColor", "textColor"]);
     expect(keysOf("surface").sort()).toEqual(["background", "backgroundOn", "blur", "surface", "surfaceOpacity"]);
-    expect(keysOf("type")).toEqual(["font", "fontWeight", "labelCase"]);
+    expect(keysOf("type")).toEqual(["font", "fontWeight", "labelCase", "numGlow", "numGlowColor"]);
     expect(keysOf("border")).toEqual(["borderWidth", "borderColor", "glow", "glowColor"]);
     expect(keysOf("css")).toEqual(["customCss"]);
     expect(keysOf("motion")).toEqual(["smoothing"]);
@@ -92,7 +92,7 @@ describe("shared sections", () => {
 
   it("puts the spec's More rows behind More", () => {
     const more = STANDARD_SETTINGS.filter((d) => d.more).map((d) => d.key).sort();
-    expect(more).toEqual(["background", "backgroundOn", "customCss", "graph", "icon", "meter", "sizeTier"]);
+    expect(more).toEqual(["background", "backgroundOn", "customCss", "graph", "icon", "meter", "numGlowColor", "sizeTier"]);
     expect(STANDARD_SETTINGS.some((d) => d.advanced)).toBe(false);
   });
 

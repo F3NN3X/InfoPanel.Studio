@@ -233,8 +233,12 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  * v12: the Volume Mixer, Visualizer and Now Playing visualiser pick several audio devices
  *     (`settings-migrate.ts` `migratePlacementV12`); the single `device` becomes a one-device `devices`
  *     (`vizDevices`), which a v11 build would ignore and draw every device.
+ * v13: glow (`lib/effects/glow.ts`): the look keys `numGlow` / `numGlowColor`, and the InfoPanel
+ *     elements' `valueGlow` plus any spec key a newer build adds (`normalizeElement` keeps them). No data
+ *     changes shape, so the migration is the identity; a v12 build would strip the new keys on its next
+ *     save, so the server refuses its save (`config_guard.rs`, a version below the stored one).
  */
-export const CONFIG_VERSION = 12;
+export const CONFIG_VERSION = 13;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -499,7 +503,7 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * legacy module ids to their templates, v5→v6 moves the style onto the
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
  * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
- * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick; a
+ * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version; a
  * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {

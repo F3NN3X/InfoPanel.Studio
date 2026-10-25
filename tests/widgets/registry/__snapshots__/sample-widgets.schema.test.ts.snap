@@ -81,6 +81,8 @@ exports[`AudioMeter > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -191,6 +193,8 @@ exports[`CpuMonitor > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -342,6 +346,8 @@ exports[`NowPlaying > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -461,6 +467,8 @@ exports[`SensorGroup > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -553,6 +561,8 @@ exports[`SteamProfile > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -727,6 +737,8 @@ exports[`SystemOverview > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -815,6 +827,8 @@ exports[`Uptime > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -948,6 +962,8 @@ exports[`Weather > files its rows as drawn 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {

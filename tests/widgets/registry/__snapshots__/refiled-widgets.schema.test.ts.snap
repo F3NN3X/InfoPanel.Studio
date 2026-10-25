@@ -60,6 +60,8 @@ exports[`Achievements > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -157,6 +159,8 @@ exports[`Bluetooth > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -244,6 +248,8 @@ exports[`Calendar > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -346,6 +352,8 @@ exports[`Clock > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -458,6 +466,8 @@ exports[`CodingAgents > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -568,6 +578,8 @@ exports[`CoreHeatmap > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -659,6 +671,8 @@ exports[`CustomGauge > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -751,6 +765,8 @@ exports[`Departures > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -850,6 +866,8 @@ exports[`DiskIO > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -963,6 +981,8 @@ exports[`DriveSpace > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1060,6 +1080,8 @@ exports[`Fans > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1162,6 +1184,8 @@ exports[`Forecast > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1270,6 +1294,8 @@ exports[`FpsMonitor > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1367,6 +1393,8 @@ exports[`FramePacing > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1473,6 +1501,8 @@ exports[`GameSpotlight > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1570,6 +1600,8 @@ exports[`GpuMonitor > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1670,6 +1702,8 @@ exports[`GpuRings > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1762,6 +1796,8 @@ exports[`KpiTiles > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1854,6 +1890,8 @@ exports[`MemoryUsage > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -1958,6 +1996,8 @@ exports[`MenuBar > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2086,6 +2126,8 @@ exports[`MeterBridge > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2190,6 +2232,8 @@ exports[`NetworkAdapters > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2302,6 +2346,8 @@ exports[`NetworkThroughput > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2406,6 +2452,8 @@ exports[`Notifications > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2498,6 +2546,8 @@ exports[`OsdStrip > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2591,6 +2641,8 @@ exports[`PlaytimeShare > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2683,6 +2735,8 @@ exports[`PowerDraw > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2780,6 +2834,8 @@ exports[`ProcessList > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2894,6 +2950,8 @@ exports[`SensorValue > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -2986,6 +3044,8 @@ exports[`ServiceHealth > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3109,6 +3169,8 @@ exports[`StatusTracker > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3219,6 +3281,8 @@ exports[`SteamFriends > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3307,6 +3371,8 @@ exports[`SteamGame > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3399,6 +3465,8 @@ exports[`SteamLibrary > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3496,6 +3564,8 @@ exports[`SteamNews > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3588,6 +3658,8 @@ exports[`StorageHealth > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3685,6 +3757,8 @@ exports[`StreamDeck > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3777,6 +3851,8 @@ exports[`SystemStatus > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3869,6 +3945,8 @@ exports[`TextFile > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -3985,6 +4063,8 @@ exports[`Thermals > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -4088,6 +4168,8 @@ exports[`Timer > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -4209,6 +4291,8 @@ exports[`Visualizer > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -4296,6 +4380,8 @@ exports[`Vitals > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -4402,6 +4488,8 @@ exports[`VolumeMixer > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {
@@ -4518,6 +4606,8 @@ exports[`WaveLink > files its rows by the rules 1`] = `
         "font",
         "fontWeight",
         "labelCase",
+        "numGlow",
+        "numGlowColor · more",
       ],
     },
     {

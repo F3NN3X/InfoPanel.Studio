@@ -51,8 +51,8 @@ A template is a finished profile made from the editor's own items and elements, 
 | Orbit | A pill with a load ring at each end, the temperatures and power beside them, and FPS in the middle |
 | Tower | A tall card with FPS, CPU and GPU as lists of readings, each with a small graph |
 | Ticker | One long pill of text: CPU, GPU, FPS and the time |
-| Readout | Three instrument panels (GPU, CPU, System), each with one very large number and two meters that change colour as they fill. Colours: Mono, Tint |
-| Console | A strip of six readouts, CPU and GPU rings, RAM and VRAM bars, and a tile for each drive. Colours: Ice, Amber, Steel |
+| Readout | Three instrument panels (GPU, CPU, System), each with one very large number and two meters that change colour as they fill. Colours: Mono, Glow (Mono with glowing numbers), Tint |
+| Console | A strip of six readouts, CPU and GPU rings, RAM and VRAM bars, and a tile for each drive. Colours: Ice, Ice glow (Ice with glowing numbers), Amber, Steel |
 | Frost Bar | Frosted glass cards over a soft wash: load rings, memory, clock, uptime, network and three temperature rings. Colours: Aurora, Smoke |
 | Quota | A large clock and a list of CPU, RAM, GPU and Disk load, one thin bar each. Colours: Slate, Sand |
 
@@ -119,6 +119,8 @@ The **Elements** group in **Add** has looks InfoPanel has no item for. Each one 
 Ring, LED bar and Sparkline ask for a sensor when you add them. Cores finds the cores in the Data API by itself. If it can't find them, it shows placeholder bars, and its inspector says so. **Find the cores again** binds the bars once the Data API reports them. Changing a Cores setting lays its bars out again.
 
 Row, Rows, Graph stack, Dual graph and Double ring start with no sensors. Select a part in **Layers** to choose its sensor or change its text; the element places the parts, so moving or resizing the element moves them all. A Row's thin bar follows the sensor of its value. Drives finds your drives in the Data API (LibreHardwareMonitor's drive sensors) and binds each tile. With none found it shows three placeholder tiles, and **Find the drives again** binds them once the Data API reports them.
+
+**Glow** is on every Text and Value, in its Glow section: a switch, a radius from 2 to 20 and a colour. InfoPanel draws it itself, so it exports as it looks. Row, Rows and Double ring have a **Value glow** switch that sets it on their values. The dashboard's **Number glow** (Style, Typography) is the same idea for the dashboard's own widgets.
 
 **Colours by value** is in the Ring and LED bar settings, and in the Double ring for the inner ring. Each colour takes over from its percent of the range, so a frame has the colour of its value. That gives a ring that turns amber and then red as it fills. The end dot is left off while it's on, so it can't disagree with the ring.
 

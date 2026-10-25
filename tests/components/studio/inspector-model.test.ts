@@ -546,7 +546,7 @@ describe("searchAll", () => {
 
   it("lists matching rows only, not their whole category", () => {
     const { groups, total } = searchAll(system, "glow");
-    expect(keysOf(groups.map((g) => g.section)).sort()).toEqual(["glow", "glowColor"]);
+    expect(keysOf(groups.map((g) => g.section)).sort()).toEqual(["glow", "glowColor", "numGlow", "numGlowColor"]);
     expect(total).toBeGreaterThanOrEqual(2);
   });
 

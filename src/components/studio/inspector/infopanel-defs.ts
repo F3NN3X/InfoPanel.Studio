@@ -49,8 +49,10 @@ const toSetting = (d: FieldDef): ModuleSetting => {
  */
 export function ipGroups(kind: ItemKind): IpGroup[] {
   const fields = fieldsOf(kind).filter((d) => !GRID_FIELDS.has(d.name));
-  const colours = fields.filter((d) => d.spec.kind === "color");
-  const rest = fields.filter((d) => d.spec.kind !== "color" && !(BINDING_IDS as readonly string[]).includes(d.name));
+  // The glow's colour stays with its radius in the Glow section.
+  const isColour = (d: FieldDef) => d.spec.kind === "color" && d.group !== "Glow";
+  const colours = fields.filter(isColour);
+  const rest = fields.filter((d) => !isColour(d) && !(BINDING_IDS as readonly string[]).includes(d.name));
   const groups = [...new Set(rest.map((d) => d.group))].map(
     (g): IpGroup => ({ id: `ip-${g.toLowerCase()}`, title: TITLES[g] ?? g, defs: rest.filter((d) => d.group === g).map(toSetting), advanced: ADVANCED.has(g) }),
   );

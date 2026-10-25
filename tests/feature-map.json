@@ -370,6 +370,7 @@
         "src/lib/style-*.ts",
         "src/lib/builtin-styles.ts",
         "src/lib/inheritance.ts",
+        "src/lib/effects/**",
         "src/lib/fonts.ts",
         "src/modules/**",
         "src/index.css",
@@ -380,6 +381,7 @@
         "tests/lib/appearance*.test.ts",
         "tests/lib/style-*.test.ts",
         "tests/lib/inheritance.test.ts",
+        "tests/lib/effects/**",
         "tests/lib/fonts.test.ts",
         "tests/modules/**"
       ],

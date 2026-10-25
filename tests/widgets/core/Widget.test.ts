@@ -5,7 +5,7 @@ import { STANDARD_DEFAULTS } from "@/modules/standard-settings";
 import { SKIN_NAMES, SkinCtx } from "@/widgets/core/theme";
 import { skinContext } from "@/widgets/core/look";
 import { CompactView, StudioView } from "@/widgets/core/views";
-import { Spark } from "@/widgets/core/primitives";
+import { Num, Ring, Spark } from "@/widgets/core/primitives";
 import { chromeOf } from "@/modules/standard-settings";
 import { Widget, type LayoutBox } from "@/widgets/core/Widget";
 import type { Compact, Shape, Studio, Tier } from "@/widgets/core/types";
@@ -118,5 +118,23 @@ describe("views", () => {
       [{ label: "Now", value: "Song", img: "/c.png", progress: { a: "1:00", b: "3:00", pct: 33 } }, 300, 160],
     ];
     for (const [c, w, hh] of cases) expect(inCtx(h(StudioView, { c, w, h: hh }))).toContain(c.img ? String(c.value) : c.label!);
+  });
+});
+
+describe("Number glow reaches a ring's centre", () => {
+  const ring = () => h(Ring, { value: 72 }, h(Num, null, "72"));
+  const render = (look: Record<string, string>) =>
+    // biome-ignore lint/correctness/noChildrenProp: the Widget takes a render function as children.
+    renderToString(h(Widget, { title: "CPU", surface: "auto", look: { ...STANDARD_DEFAULTS, ...look }, children: ring }));
+
+  it("flags the scope and sets the glow variables, and the ring's number is a numeral the stylesheet reaches", () => {
+    const html = render({ numGlow: "strong" });
+    expect(html).toContain('data-wp-numglow="strong"');
+    expect(html).toMatch(/class="tabular-nums[^"]*"[^>]*>72</);
+  });
+
+  it("leaves a widget on Auto unflagged", () => {
+    const html = render({});
+    expect(html).not.toContain("data-wp-numglow");
   });
 });

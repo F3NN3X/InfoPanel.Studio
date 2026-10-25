@@ -7,7 +7,7 @@
 import type { Slot } from "../../elements/palette.ts";
 import type { DisplayItem } from "../../schema.ts";
 import { figure, labelRows } from "../composites.ts";
-import { card, clock, divider, ink, ledbar, text, value, type Kit, type Template } from "../kit.ts";
+import { card, clock, divider, ink, ledbar, glows, text, value, type Kit, type Template } from "../kit.ts";
 import { inset, split, type Box } from "../layout.ts";
 import { lineOf } from "../parts.ts";
 import type { Role } from "../roles.ts";
@@ -69,7 +69,7 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
   const labH = lineOf(labPx);
   const bigPx = Math.round(Math.max(px(24), Math.min((bodyH - labH) / 1.35, px(150), bigZ.w * 0.42)));
   const bigBox = { x: bigZ.x, y: bodyTop + labH + (bodyH - labH - lineOf(bigPx)) / 2 - bigPx * 0.04, width: bigZ.w, height: lineOf(bigPx) };
-  const big = [label(p.big.label, bigZ.x, bodyTop), ...figure(k, p.big.role, bigBox, { px: bigPx, unit: p.big.unit ?? "°C", weight: "strong" })];
+  const big = [label(p.big.label, bigZ.x, bodyTop), ...figure(k, p.big.role, bigBox, { px: bigPx, unit: p.big.unit ?? "°C", weight: "strong", glow: glows(k) })];
 
   const blockH = bodyH / 2;
   // The secondary column: labels and numbers share the zone's right edge, each block under the same pattern.
@@ -77,7 +77,7 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
   const sidePx = Math.round(Math.max(px(18), Math.min((blockH - labH) / 1.35, px(52), sideZ.w / (3 + 0.19 * unitLen))));
   const side = p.side.flatMap((st, i) => {
     const y = bodyTop + i * blockH;
-    return [text(k, st.label.toUpperCase(), { x: sideZ.x, y, px: labPx, width: sideZ.w, align: "right", slot: "subtext", upper: true }), ...figure(k, st.role, { x: sideZ.x, y: y + labH, width: sideZ.w, height: lineOf(sidePx) }, { px: sidePx, unit: st.unit ?? "°C", weight: "strong" })];
+    return [text(k, st.label.toUpperCase(), { x: sideZ.x, y, px: labPx, width: sideZ.w, align: "right", slot: "subtext", upper: true }), ...figure(k, st.role, { x: sideZ.x, y: y + labH, width: sideZ.w, height: lineOf(sidePx) }, { px: sidePx, unit: st.unit ?? "°C", weight: "strong", glow: glows(k) })];
   });
 
   const list = p.list && listZ
@@ -93,7 +93,7 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
     const c = cols[i];
     return [
       label(st.label, c.x, footTop + (lineOf(valPx) - labH) * 0.85),
-      value(k, st.role, { x: c.x, y: footTop, px: valPx, width: c.width, align: "right", slot: "text", weight: "strong" }),
+      value(k, st.role, { x: c.x, y: footTop, px: valPx, width: c.width, align: "right", slot: "text", weight: "strong", glow: glows(k) }),
       ledbar(k, st.role, { x: c.x, y: inner.y + inner.height - barH, width: c.width, height: barH }, { segments: 0, gap: 0, radius: Math.round(barH / 2), thresholds: zones }),
     ];
   });
@@ -137,6 +137,7 @@ export const READOUT: Template = {
   },
   variants: [
     { id: "mono", name: "Mono", palette: {} },
+    { id: "glow", name: "Glow", palette: {} },
     { id: "tint", name: "Tint", palette: { accent1: "#FFB388FF", accent2: "#FF3DD9C0", accent3: "#FF4D9DFF", card: "#FF14151B", track: "#FF343844" } },
   ],
   grids: {

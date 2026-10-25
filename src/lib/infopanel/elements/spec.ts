@@ -7,6 +7,7 @@
  * Sizes come from the item's own box; the spec holds the look. Colours are inks: a colour and the
  * palette slot it follows, if any.
  */
+import { clampGlowRadius } from "../../effects/glow.ts";
 import { clamp } from "../gauges/geom.ts";
 import type { DisplayItem } from "../schema.ts";
 import { normalizeInk, type Ink } from "./palette.ts";
@@ -133,6 +134,12 @@ export interface SparklineSpec {
   fillAlpha: number;
 }
 
+/** A glow on a value item: InfoPanel's GlowRadius and GlowColor (`lib/effects/glow.ts`). */
+export interface ValueGlow {
+  radius: number;
+  color: Ink;
+}
+
 /** What a row, and each row of a list, looks like. */
 export interface RowLook {
   /** Font size, InfoPanel's FontSize. */
@@ -140,6 +147,8 @@ export interface RowLook {
   /** The label takes the sub-text slot, the value the text slot. */
   label: Ink;
   value: Ink;
+  /** The value's glow; null for none. */
+  valueGlow: ValueGlow | null;
   /** A lucide icon before the label; null for none. */
   icon: string | null;
   iconInk: Ink;
@@ -209,6 +218,8 @@ export interface DoubleRingSpec {
   innerThresholds: Threshold[];
   valueSize: number;
   value: Ink;
+  /** The centre value's glow; null for none. */
+  valueGlow: ValueGlow | null;
 }
 
 /** One tile per drive: a Group of tile Groups, each an icon, name, used bar and %, temperature and free space. */
@@ -300,8 +311,15 @@ const shadowOf = (v: unknown): Shadow | null => {
   return o ? { blur: num(o.blur, 12, 0, 64), dx: num(o.dx, 0, -64, 64), dy: num(o.dy, 4, -64, 64), color: ink(o.color, { color: "#80000000" }) } : null;
 };
 
+const glowInks = (g: ValueGlow | null, map: (ink: Ink) => Ink) => g && { ...g, color: map(g.color) };
+
+const valueGlowOf = (v: unknown): ValueGlow | null => {
+  const o = obj(v);
+  return o ? { radius: clampGlowRadius(o.radius), color: ink(o.color) } : null;
+};
+
 const rowLook = (o: Record<string, unknown>): RowLook => ({
-  size: int(o.size, 14, 6, 200), label: ink(o.label), value: ink(o.value),
+  size: int(o.size, 14, 6, 200), label: ink(o.label), value: ink(o.value), valueGlow: valueGlowOf(o.valueGlow),
   icon: typeof o.icon === "string" && /^[a-z0-9-]{1,48}$/.test(o.icon) ? o.icon : null, iconInk: ink(o.iconInk),
   bar: bool(o.bar, false), barFill: ink(o.barFill), barTrack: ink(o.barTrack),
 });
@@ -313,6 +331,15 @@ const rowLook = (o: Record<string, unknown>): RowLook => ({
 export function normalizeElement(raw: unknown): ElementSpec | null {
   const o = obj(raw);
   if (!o) return null;
+  const known = normalizeKnown(o);
+  // Keys this build doesn't know (a newer studio's) ride along, so saving never strips them.
+  return known && { ...Object.fromEntries(Object.entries(o).filter(([k]) => !OPTIONAL_KEYS.includes(k))), ...known };
+}
+
+/** Keys a known spec leaves out when they hold nothing, so an invalid value isn't carried as an "unknown" one. */
+const OPTIONAL_KEYS = ["frames", "thresholds"];
+
+function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
   switch (o.type) {
     case "ring": {
       const fill = inks(o.fill, 1, 3);
@@ -383,7 +410,7 @@ export function normalizeElement(raw: unknown): ElementSpec | null {
         ? {
             type: "doublering", size: int(o.size, 160, 24, 1024), thickness: num(o.thickness, 12, 1, 128), gap: num(o.gap, 6, 0, 64),
             start: num(o.start, -135, -360, 360), sweep: num(o.sweep, 270, 1, 360), track: ink(o.track), outer, inner,
-            innerThresholds: thresholds(o.innerThresholds), valueSize: int(o.valueSize, 28, 6, 400), value: ink(o.value),
+            innerThresholds: thresholds(o.innerThresholds), valueSize: int(o.valueSize, 28, 6, 400), value: ink(o.value), valueGlow: valueGlowOf(o.valueGlow),
           }
         : null;
     }
@@ -409,13 +436,13 @@ export function mapInks(spec: ElementSpec, map: (ink: Ink) => Ink): ElementSpec 
       return { ...spec, track: map(spec.track), fill: m(spec.fill), ...(spec.thresholds ? { thresholds: th(spec.thresholds) } : {}) };
     case "row":
     case "rows":
-      return { ...spec, label: map(spec.label), value: map(spec.value), iconInk: map(spec.iconInk), barFill: map(spec.barFill), barTrack: map(spec.barTrack) };
+      return { ...spec, label: map(spec.label), value: map(spec.value), valueGlow: glowInks(spec.valueGlow, map), iconInk: map(spec.iconInk), barFill: map(spec.barFill), barTrack: map(spec.barTrack) };
     case "stack":
       return { ...spec, label: map(spec.label), color: map(spec.color) };
     case "dual":
       return { ...spec, a: map(spec.a), b: map(spec.b) };
     case "doublering":
-      return { ...spec, track: map(spec.track), outer: m(spec.outer), inner: m(spec.inner), innerThresholds: th(spec.innerThresholds), value: map(spec.value) };
+      return { ...spec, track: map(spec.track), outer: m(spec.outer), inner: m(spec.inner), innerThresholds: th(spec.innerThresholds), value: map(spec.value), valueGlow: glowInks(spec.valueGlow, map) };
     case "drives":
       return { ...spec, card: map(spec.card), text: map(spec.text), sub: map(spec.sub), fill: map(spec.fill), track: map(spec.track), icon: map(spec.icon) };
     case "shadowtext":

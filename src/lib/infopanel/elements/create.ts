@@ -101,7 +101,7 @@ export function newElement(type: Exclude<ElementType, "cores" | CompositeType>, 
 
 /** A row's look in the palette: the label in the sub-text slot, the value in the text slot. */
 export const rowLook = (palette: Palette, over: Partial<RowLook> = {}): RowLook => ({
-  size: 14, label: slotInk(palette, "subtext"), value: slotInk(palette, "text"), icon: null, iconInk: slotInk(palette, "accent1"),
+  size: 14, label: slotInk(palette, "subtext"), value: slotInk(palette, "text"), valueGlow: null, icon: null, iconInk: slotInk(palette, "accent1"),
   bar: false, barFill: slotInk(palette, "accent1"), barTrack: slotInk(palette, "track"), ...over,
 });
 
@@ -167,7 +167,7 @@ export function newComposite(type: CompositeType, profile: Look, palette: Palett
     case "doublering":
       return make("Double ring", {
         type: "doublering", size: 160, thickness: 12, gap: 6, start: -135, sweep: 270, track: ink("track"), outer: [ink("accent1")], inner: [ink("accent2")],
-        innerThresholds: [], valueSize: 28, value: ink("text"),
+        innerThresholds: [], valueSize: 28, value: ink("text"), valueGlow: null,
       }, [newItem("Gauge", profile, palette), newItem("Gauge", profile, palette), newItem("Sensor", profile, palette)]);
     case "drives": {
       const tiles = drives.length ? drives : Array.from({ length: PLACEHOLDER_DRIVES }, () => null);

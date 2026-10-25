@@ -1,4 +1,5 @@
 import type { ModernChrome } from "@/components/modern-chrome";
+import { GLOW_LEVELS } from "@/lib/effects/glow";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { BASE_SURFACES } from "@/widgets/core/surfaces";
 import { SKIN_PACKS } from "@/widgets/core/theme";
@@ -25,7 +26,7 @@ import { defaultOf, settingKeys, type ModuleSetting, type ModuleSettings } from 
  * - Colors: `accent`, `textColor`, `mutedColor`
  * - Surface: `surface`, `surfaceOpacity`, `blur` (the last two on surfaced
  *   widgets only); More: `background`, `backgroundOn`
- * - Typography: `font`, `fontWeight`, `labelCase`
+ * - Typography: `font`, `fontWeight`, `labelCase`, `numGlow`, `numGlowColor`
  * - Size & spacing: `scale`, `align` (+ `alignSpread`), `padding`, `gap`, `radius`
  * - Border & glow: `borderWidth`, `borderColor`, `glow`, `glowColor`
  *   (surfaced widgets only)
@@ -194,6 +195,16 @@ export const STYLE_SETTINGS: ModuleSetting[] = [
     ],
     section: "type",
   },
+  {
+    // New key (default auto = the skin's own glow, as numbers always drew); see `lib/effects/glow.ts`.
+    key: "numGlow",
+    label: "Number glow",
+    type: "select",
+    default: "auto",
+    options: autoOptions(["off", "soft", "strong"]),
+    section: "type",
+  },
+  { key: "numGlowColor", label: "Number glow color", type: "color", default: "", more: true, section: "type" },
   {
     key: "stroke",
     label: "Ring / bar thickness (%)",
@@ -486,6 +497,8 @@ export function chromeOf(cfg: ModuleSettings): ModernChrome {
     font: pick(cfg.font, FONT_CATALOG.map((f) => (f.id === "system" ? "auto" : f.id)), "auto"),
     fontWeight: pick(cfg.fontWeight, ["auto", "400", "500", "600", "700", "800"] as const, "auto"),
     labelCase: pick(cfg.labelCase, ["auto", "uppercase", "none", "capitalize"] as const, "auto"),
+    numGlow: pick(cfg.numGlow, GLOW_LEVELS, "auto"),
+    numGlowColor: String(cfg.numGlowColor ?? ""),
     stroke: percent(cfg.stroke),
     borderWidth: px(cfg.borderWidth),
     borderColor: String(cfg.borderColor ?? ""),
