@@ -8,6 +8,7 @@ import { createElement } from "react";
 import { IpTagCtx } from "../../../../src/widgets/core/primitives.tsx";
 import { TEMPLATE_MODULES } from "../../../../src/widgets/registry.ts";
 import { fixtureSensors } from "../../../../src/widgets/__fixtures__/index.ts";
+import type { ModuleSettings } from "../../../../src/modules/types.ts";
 
 const look = { Font: "Segoe UI", FontSize: 20, Color: "#FFFFFFFF", BackgroundColor: "#FF101010" };
 const ctx = (): ConvertContext => ({
@@ -170,5 +171,101 @@ describe("tagged widgets", () => {
     const render = (on: boolean) => renderToStaticMarkup(createElement(IpTagCtx.Provider, { value: on }, mod.render(fixtureSensors(), {}) as never));
     expect(render(false)).not.toContain("data-ip-key");
     expect(render(true)).toContain("data-ip-key");
+  });
+
+  it.each<[string, ModuleSettings]>([
+    ["Clock", {}],
+    ["Calendar", {}],
+    ["Uptime", {}],
+    ["SteamFriends", { view: "table" }],
+    ["NetworkThroughput", {}],
+    ["OsdStrip", {}],
+    ["PlaytimeShare", {}],
+  ])("%s (round 4) tags its values on the studio canvas only", (id, settings) => {
+    const mod = TEMPLATE_MODULES.find((m) => m.id === id)!;
+    const render = (on: boolean) => renderToStaticMarkup(createElement(IpTagCtx.Provider, { value: on }, mod.render(fixtureSensors(), settings) as never));
+    expect(render(false)).not.toContain("data-ip-");
+    expect(render(true)).toContain("data-ip-key");
+  });
+});
+
+describe("tables, images, text readings and graph tops", () => {
+  const sensors = {
+    "plugins.InfoPanel.SteamAPI.SteamAPI-Social.friends-activity": { text: "Ann, Away, Game, 1 hour ago", name: "Friends", ref: "plugin:/InfoPanel.SteamAPI/SteamAPI-Social/friends-activity" },
+    "plugins.InfoPanel.SteamAPI.SteamAPI-Profile.game_logo_url": { text: "https://x/logo.png", name: "Logo", ref: "plugin:/InfoPanel.SteamAPI/SteamAPI-Profile/game_logo_url" },
+    "plugins.yr.temp": { text: "9.4 °C", name: "Temperature", ref: "plugin:/yr/temp" },
+    "libre.net_down": { value: 1200, unit: "KB/s", name: "Download", ref: "libre:/nic/0/throughput/7" },
+  };
+  const c = (): ConvertContext => ({ ...ctx(), sensors });
+  const at = (el: Element, left: number, top: number, width: number, height: number) => {
+    el.getBoundingClientRect = () => ({ left, top, width, height, right: left + width, bottom: top + height }) as DOMRect;
+  };
+
+  /** A friends table: a header row (the plugin's columns 0, 1 and 3) and one row of text. */
+  function table() {
+    const root = document.createElement("div");
+    root.innerHTML = `
+      <div data-ip-key="plugins.InfoPanel.SteamAPI.SteamAPI-Social.friends-activity" data-ip-kind="table" data-ip-rows="6">
+        <span data-ip-col="0">Friend</span><span data-ip-col="1">Status</span><span data-ip-col="3">Last online</span>
+        <span style="font-size:12px;color:rgb(244, 244, 245)">Ann</span><span>Away</span><span>1 hour ago</span>
+      </div>`;
+    document.body.append(root);
+    at(root, 0, 0, 400, 200);
+    const grid = root.firstElementChild!;
+    at(grid, 10, 10, 380, 150);
+    const [f, s, l, ann, away, when] = [...grid.children];
+    at(f, 20, 10, 120, 16);
+    at(s, 150, 10, 80, 16);
+    at(l, 300, 10, 90, 16);
+    at(ann, 20, 34, 30, 14);
+    at(away, 150, 34, 30, 14);
+    at(when, 300, 34, 60, 14);
+    return root;
+  }
+
+  it("makes a tagged table a TableSensor under its header, its columns as wide as their headers run", () => {
+    const [item] = decompose(table(), { x: 0, y: 0, w: 400, h: 200 }, c());
+    expect(item).toMatchObject({ kind: "TableSensor", X: 10, Y: 34, ShowHeader: false, MaxRows: 6, FontSize: fontSizeOf(12), Color: "#FFF4F4F5" });
+    // InfoPanel puts 10 px between columns: each runs to the next header's left edge.
+    expect((item as unknown as { TableFormat: string }).TableFormat).toBe("0:120|1:140|3:90");
+  });
+
+  it("keeps a table's header in the picture and hides its rows", () => {
+    const clone = table().cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("*").forEach(hideTagged);
+    expect(clone.querySelector<HTMLElement>("[data-ip-kind=table]")!.style.visibility).toBe("hidden");
+    expect([...clone.querySelectorAll<HTMLElement>("[data-ip-col]")].every((h) => h.style.visibility === "visible")).toBe(true);
+  });
+
+  it("makes a tagged image a bound web image at its box", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<div data-ip-key="plugins.InfoPanel.SteamAPI.SteamAPI-Profile.game_logo_url" data-ip-kind="image"></div>`;
+    document.body.append(root);
+    at(root, 0, 0, 400, 200);
+    at(root.firstElementChild!, 20, 30, 200, 60);
+    const [item] = decompose(root, { x: 100, y: 0, w: 400, h: 200 }, c());
+    expect(item).toMatchObject({ kind: "HttpImage", X: 120, Y: 30, Width: 200, Height: 60, PluginSensorId: "/InfoPanel.SteamAPI/SteamAPI-Profile/game_logo_url" });
+  });
+
+  it("lets a right-aligned text reading grow to the right of where the widget's text starts", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<span data-ip-key="plugins.yr.temp" data-ip-kind="value" style="text-align:right">9°C</span>`;
+    document.body.append(root);
+    at(root, 0, 0, 400, 30);
+    at(root.firstElementChild!, 300, 5, 30, 16);
+    const [item] = decompose(root, { x: 0, y: 0, w: 400, h: 30 }, c());
+    expect(item).toMatchObject({ kind: "Sensor", X: 300, Width: 0, RightAlign: false, ShowUnit: false });
+  });
+
+  it("scales a graph without a fixed top to its readings, and keeps a fixed one", () => {
+    const graph = (max?: number) => {
+      const root = document.createElement("div");
+      root.innerHTML = `<div data-ip-key="libre.net_down" data-ip-kind="graph" ${max === undefined ? "" : `data-ip-max="${max}"`}><svg><path style="stroke:rgb(255, 0, 0)"></path></svg></div>`;
+      document.body.append(root);
+      at(root.firstElementChild!, 0, 0, 100, 20);
+      return decompose(root, { x: 0, y: 0, w: 100, h: 20 }, c())[0] as unknown as { AutoValue: boolean; MaxValue: number };
+    };
+    expect(graph().AutoValue).toBe(true);
+    expect(graph(100)).toMatchObject({ AutoValue: false, MaxValue: 100 });
   });
 });

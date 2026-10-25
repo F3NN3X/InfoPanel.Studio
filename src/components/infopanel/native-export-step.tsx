@@ -1,7 +1,7 @@
 /**
  * The step before a native zone or screen goes to InfoPanel: what each dashboard widget becomes there. Recreate
  * rebuilds it from InfoPanel items, a snapshot is a picture of it as it is now, leave out drops it. A widget whose
- * data isn't InfoPanel's can't be recreated or pictured, and says so.
+ * data isn't InfoPanel's can't be recreated: it says so, and is left out unless a snapshot of it is picked.
  */
 import { Info, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ export interface NativeExportStepProps {
 
 export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeExportStepProps) {
   const left = notices(rows);
-  const asked = rows.filter((r) => r.entry.tier !== "native-only");
+  const asked = rows;
   return (
     <div className="flex flex-col gap-3">
       <p className="flex gap-2 text-[12px] text-ui-3">
@@ -77,8 +77,8 @@ export function NativeExportStep({ rows, choices, onChoose, onSetAll }: NativeEx
                   })}
                 </div>
               </div>
-              {r.note && <span className="text-[11.5px] text-ui-4">Approximated: {r.note}</span>}
-              {!r.entry.built && <span className="text-[11.5px] text-ui-4">Rebuilding this one isn’t available yet: it goes as a snapshot.</span>}
+              {r.note && r.entry.tier !== "native-only" && <span className="text-[11.5px] text-ui-4">Approximated: {r.note}</span>}
+              {!r.entry.built && r.entry.tier !== "native-only" && <span className="text-[11.5px] text-ui-4">Rebuilding this one isn’t available yet: it goes as a snapshot.</span>}
             </div>
           );
         })}

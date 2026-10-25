@@ -9,7 +9,7 @@ import type { WidgetKind } from "../../panel-model.ts";
 
 export type NativeTier = "native" | "plugin" | "native-only";
 
-/** What the user picks per widget. A `native-only` widget has only "leave". */
+/** What the user picks per widget. A `native-only` widget is left out unless a snapshot of it is picked. */
 export type NativeChoice = "recreate" | "snapshot" | "leave";
 
 export interface TierEntry {
@@ -61,7 +61,7 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   CoreHeatmap: hw(true, "the colour ramp becomes two thresholds"),
   StatusTracker: hw(true, "block colours become one colour"),
   DiskIO: hw(true, "the auto-scaled axis becomes a fixed maximum"),
-  NetworkThroughput: hw(true, "the auto-scaled axis becomes a fixed maximum"),
+  NetworkThroughput: hw(true, "the rates keep the unit they have at export; the graph starts empty"),
   StorageHealth: hw(),
   DriveSpace: hw(true),
   SensorGroup: hw(),
@@ -70,10 +70,10 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   SystemStatus: hw(true, "the Data API health line is lost"),
   ServiceHealth: plug(true, "values are shown instead of status dots"),
   ProcessList: plug(true, "the per-row bars are lost"),
-  Uptime: plug(),
+  Uptime: plug(true, "a short view shows the plugin's days:hours:minutes:seconds text"),
   NetworkAdapters: plug(true, "adapters re-bind by name on another PC"),
   Clock: plug(true, "an analog hand steps"),
-  Calendar: plug(true, "the month grid is lost"),
+  Calendar: plug(true, "the month grid is fixed at export; the month and today's date stay live"),
   StatusBar: plug(true, "the island and page dots are lost"),
   Weather: plug(true, "the animated sky becomes a static icon"),
   Forecast: plug(true, "per-day icons and the hi/lo bars are lost"),
@@ -85,11 +85,11 @@ export const MODULE_TIERS: Record<string, TierEntry> = {
   SteamProfile: plug(true, "the status colour is lost"),
   SteamGame: plug(true),
   Achievements: plug(true),
-  SteamFriends: plug(true, "avatars and grouping by status are lost"),
+  SteamFriends: plug(true, "status colours and avatars are lost; a table lists friends in the plugin's order"),
   SteamLibrary: plug(true, "cover thumbnails are lost"),
   SteamNews: plug(true, "cover thumbnails are lost"),
-  PlaytimeShare: plug(true, "the share bars are lost"),
-  GameSpotlight: plug(true, "the blur and tint are lost"),
+  PlaytimeShare: plug(true, "the share bar and game rows are fixed at export; the totals stay live"),
+  GameSpotlight: plug(true, "the art's slow motion is lost; the achievement bar is fixed at export"),
   FpsMonitor: hw(true, "the auto-scaled axis becomes a fixed maximum"),
   OsdStrip: hw(),
   FramePacing: hw(true, "the auto-scaled axis becomes a fixed maximum"),
@@ -121,7 +121,7 @@ export function coverage(): { id: string; outcome: "recreated" | "snapshot" | "n
 
 /** The choices a widget offers; the first is its default. */
 export function choicesFor(entry: TierEntry): NativeChoice[] {
-  if (entry.tier === "native-only") return ["leave"];
+  if (entry.tier === "native-only") return ["leave", "snapshot"];
   return entry.built ? ["recreate", "snapshot", "leave"] : ["snapshot", "leave"];
 }
 

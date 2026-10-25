@@ -36,13 +36,13 @@ const rateDecimals = (v: number): number => (v >= 100 ? 0 : v >= 10 ? 1 : 2);
  */
 export const fmtRate = (bytesPerSec: number, unit: RateUnit = "auto"): string => {
   if (!Number.isFinite(bytesPerSec)) return "–";
-  if (unit !== "auto") {
-    const v = bytesPerSec / RATE_DIVISOR[unit];
-    return `${fmt(v, rateDecimals(v))} ${unit}`;
-  }
-  const [v, u] = bytesPerSec >= 1e9 ? [bytesPerSec / 1e9, "GB/s"] : bytesPerSec >= 1e6 ? [bytesPerSec / 1e6, "MB/s"] : bytesPerSec >= 1e3 ? [bytesPerSec / 1e3, "KB/s"] : [bytesPerSec, "B/s"];
+  const [u, div] = rateUnitOf(bytesPerSec, unit);
+  const v = bytesPerSec / div;
   return `${fmt(v, u === "B/s" ? 0 : rateDecimals(v))} ${u}`;
 };
+/** The unit `fmtRate` shows a throughput in, and what it divides the bytes per second by for it. */
+export const rateUnitOf = (bytesPerSec: number, unit: RateUnit = "auto"): [string, number] =>
+  unit !== "auto" ? [unit, RATE_DIVISOR[unit]] : bytesPerSec >= 1e9 ? ["GB/s", 1e9] : bytesPerSec >= 1e6 ? ["MB/s", 1e6] : bytesPerSec >= 1e3 ? ["KB/s", 1e3] : ["B/s", 1];
 /** Bytes per second as megabytes per second (decimal), for widgets that print the number and unit apart. */
 export const toMBps = (bytesPerSec: number): number => bytesPerSec / 1e6;
 export const fmtMB = (mb: number): string => {

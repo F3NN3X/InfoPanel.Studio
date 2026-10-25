@@ -86,12 +86,14 @@ export const IpTagCtx = createContext(false);
 
 /** What a tag can say besides its key: `kind` (default value), and how a value is shown (`unit`, `decimals`, `mul`) or a clock's .NET `format`. */
 export interface IpTagExtra {
-  kind?: "value" | "bar" | "ring" | "graph" | "clock" | "meter";
+  kind?: "value" | "bar" | "ring" | "graph" | "clock" | "meter" | "image" | "table";
   unit?: string;
   decimals?: number;
   mul?: number;
   max?: number;
   format?: string;
+  /** A table's rows shown. */
+  rows?: number;
 }
 
 /**
@@ -108,6 +110,7 @@ export function useIpTag(): (key: string | undefined, extra?: IpTagExtra) => Rec
     if (extra.mul !== undefined) out["data-ip-mul"] = extra.mul;
     if (extra.max !== undefined) out["data-ip-max"] = extra.max;
     if (extra.format !== undefined) out["data-ip-format"] = extra.format;
+    if (extra.rows !== undefined) out["data-ip-rows"] = extra.rows;
     return out;
   };
 }
@@ -500,7 +503,7 @@ export function Spark(p: SparkProps & { ipKey?: string }) {
   const { ipKey, ...rest } = p;
   if (!ipKey || !tagging) return <SparkBase {...rest} />;
   return (
-    <div data-ip-key={ipKey} data-ip-kind="graph" className={rest.className ?? "h-10"}>
+    <div data-ip-key={ipKey} data-ip-kind="graph" data-ip-max={rest.max} className={rest.className ?? "h-10"}>
       <SparkBase {...rest} className="h-full" />
     </div>
   );
@@ -636,7 +639,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
 // Weather condition text / icon slug → Material Symbols name (Yr + OpenWeatherMap)
 export const weatherIcon = (text = ""): string => appIconName(weatherKind(undefined, text));
 // Slow pan/zoom background image (stepped on the shared ticker at the ambient rate: Max FPS caps it, reduced motion stops it)
-export function KenBurns({ src, className = "", on = true }: { src?: string; className?: string; on?: boolean }) {
+export function KenBurns({ src, className = "", on = true, ip }: { src?: string; className?: string; on?: boolean; ip?: Record<string, string | number> }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const reduced = useReducedMotion();
   const live = on && !reduced;
@@ -656,7 +659,7 @@ export function KenBurns({ src, className = "", on = true }: { src?: string; cla
   }, [live, src]);
   // the art is scaled past its box; its own clip keeps that bleed out of the widget's scroll area
   return (
-    <div data-qa-bleed className="absolute inset-0 overflow-hidden">
+    <div data-qa-bleed {...ip} className="absolute inset-0 overflow-hidden">
       <div ref={ref} className={`absolute inset-0 ${className}`}>
         <Img src={src} icon="sports_esports" className="h-full w-full" />
       </div>
@@ -664,11 +667,11 @@ export function KenBurns({ src, className = "", on = true }: { src?: string; cla
   );
 }
 // Logo image that falls back to a typeset title when the URL can't load (uppercase inline: a name, not a label, so the label case leaves it)
-export function Logo({ src, name, className = "", size = "text-3xl" }: { src?: string; name?: string; className?: string; size?: string }) {
+export function Logo({ src, name, className = "", size = "text-3xl", ip }: { src?: string; name?: string; className?: string; size?: string; ip?: Record<string, string | number> }) {
   const [bad, setBad] = useState(false);
   useEffect(() => setBad(false), [src]);
   if (!has(src) || bad) return <span style={{ textTransform: "uppercase" }} className={`block font-black leading-[0.9] tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,.8)] ${size} ${className}`}>{name}</span>;
-  return <img src={src} alt={name} onError={() => setBad(true)} className={`object-contain object-left drop-shadow-[0_4px_18px_rgba(0,0,0,.7)] ${className}`} />;
+  return <img src={src} alt={name} onError={() => setBad(true)} {...ip} className={`object-contain object-left drop-shadow-[0_4px_18px_rgba(0,0,0,.7)] ${className}`} />;
 }
 
 /** A peak-hold tick at `at` % along a meter. A full-size wrapper slides with transform (percent of itself = of the meter). */
