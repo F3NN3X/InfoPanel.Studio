@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useSensorCatalog } from "@/lib/catalog";
 import { deviceOptions } from "@/lib/device-options";
 import { driveIconsOfSetting, normalizeDriveIcons, type IconSource } from "@/lib/effects/icon";
-import { cn } from "@/lib/utils";
 import type { ModuleSetting, ModuleSettingValue } from "@/modules/types";
 import { MediaField } from "./media-field";
-import { FIELD, StackRow, type RowLabelProps } from "./setting-rows";
+import { StackRow, type RowLabelProps } from "./setting-rows";
 
 /** The asset id ("<sha256>.<ext>") a stored asset URL names. */
+/** The searchable icon list, loaded when a drive's Icon set is opened. */
+const IconPicker = lazy(() => import("@/components/infopanel/edit/icon-picker").then((m) => ({ default: m.IconPicker })));
+
 const assetIdOf = (url: string): string | undefined => url.match(/\/api\/assets\/([0-9a-f]{64}\.[a-z0-9]{1,5})$/)?.[1];
 
 /**
@@ -16,15 +18,7 @@ const assetIdOf = (url: string): string | undefined => url.match(/\/api\/assets\
  */
 export function DriveIconsField({ def, value, onChange, ...label }: RowLabelProps & { def: ModuleSetting; value: string; onChange: (v: ModuleSettingValue) => void }) {
   const { sensors } = useSensorCatalog();
-  const [names, setNames] = useState<string[]>([]);
-  useEffect(() => {
-    let live = true;
-    // The generated set, not icons.ts: that module is shared with the kiosk's canvas zone, and sharing it adds a chunk there.
-    void import("@/lib/infopanel/elements/icons.generated").then((m) => live && setNames(Object.keys(m.ELEMENT_ICON_MARKUP).sort()));
-    return () => {
-      live = false;
-    };
-  }, []);
+  const [listFor, setListFor] = useState<string | null>(null);
   const icons = driveIconsOfSetting(value) ?? {};
   const drives = deviceOptions("drive", sensors).filter((o) => o.value !== "");
   const set = (id: string, source: IconSource | null) => {
@@ -52,23 +46,33 @@ export function DriveIconsField({ def, value, onChange, ...label }: RowLabelProp
                 }}
                 preview="thumb"
               />
-              <input
-                aria-label={`${d.label} icon from the set`}
-                list={`drive-icon-names-${d.value}`}
-                placeholder="or an icon name, e.g. hard-drive"
-                defaultValue={own && "lucide" in own ? own.lucide : ""}
-                onBlur={(e) => {
-                  const name = e.target.value.trim().toLowerCase();
-                  if (name === "" && own && "lucide" in own) set(d.value, null);
-                  else if (name !== "" && names.includes(name)) set(d.value, { lucide: name });
-                }}
-                className={cn(FIELD, "w-full font-ui")}
-              />
-              <datalist id={`drive-icon-names-${d.value}`}>
-                {names.map((n) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  aria-label={`${d.label}: pick an icon from the set`}
+                  aria-expanded={listFor === d.value}
+                  onClick={() => setListFor(listFor === d.value ? null : d.value)}
+                  className="flex h-7 items-center rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12px] text-ui-1 hover:border-ui-strong"
+                >
+                  Icon set{own && "lucide" in own ? `: ${own.lucide}` : ""}
+                </button>
+                {own && (
+                  <button type="button" aria-label={`${d.label}: back to the default`} onClick={() => set(d.value, null)} className="flex h-7 items-center rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12px] text-ui-3 hover:border-ui-strong">
+                    Reset
+                  </button>
+                )}
+              </div>
+              {listFor === d.value && (
+                <Suspense fallback={<p className="text-[11.5px] text-ui-4">Loading icons…</p>}>
+                  <IconPicker
+                    value={own && "lucide" in own ? own.lucide : ""}
+                    onPick={(name) => {
+                      set(d.value, { lucide: name });
+                      setListFor(null);
+                    }}
+                  />
+                </Suspense>
+              )}
             </div>
           );
         })}

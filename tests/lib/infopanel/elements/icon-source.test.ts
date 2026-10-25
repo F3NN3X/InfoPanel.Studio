@@ -63,6 +63,18 @@ describe("Drives with an icon per drive", () => {
     expect(iconOfTile(g, 0).FilePath).not.toBe("disk.png");
   });
 
+  it("exports a wide or a tall file at its fitted box inside the tile's icon box, not stretched", () => {
+    const box = iconOfTile(drivesOf([0, 1]), 1);
+    const wide = iconOfTile(drivesOf([0, 1], { "/nvme/3": { asset: hash, file: "disk.png", width: 400, height: 100 } }), 1);
+    const tall = iconOfTile(drivesOf([0, 1], { "/nvme/3": { asset: hash, file: "disk.png", width: 100, height: 400 } }), 1);
+    expect(wide.Width).toBe(box.Width);
+    expect(wide.Height).toBeLessThan(box.Height / 2);
+    expect(wide.Y).toBeGreaterThan(box.Y);
+    expect(tall.Height).toBe(box.Height);
+    expect(tall.Width).toBeLessThan(box.Width / 2);
+    expect(tall.X).toBeGreaterThan(box.X);
+  });
+
   it("keeps each icon with its drive when the drives come back in another order", () => {
     const g = drivesOf([1, 0], icons);
     expect(iconOfTile(g, 0).FilePath).toBe("disk.png");

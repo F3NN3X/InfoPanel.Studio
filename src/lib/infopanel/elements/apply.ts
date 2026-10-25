@@ -9,7 +9,7 @@ import { mapItems } from "../editor/bind.ts";
 import { withAlpha } from "../editor/look.ts";
 import { normalizeGauge, type VectorGauge } from "../gauges/vector.ts";
 import { defaultItem, type DisplayItem, type GroupItem } from "../schema.ts";
-import { iconFileOf } from "../../effects/icon.ts";
+import { fitIcon, iconFileOf } from "../../effects/icon.ts";
 import { alphaOf, resolveInk, rgbOf, type Ink, type Palette, type Slot } from "./palette.ts";
 import { applyDoubleRing, applyDrives, applyDual, applyRow, applyRows, applyShadowText, applyStack } from "./compose.ts";
 import { elementOf, mapInks, type CardSpec, type CoresSpec, type Threshold, type DividerSpec, type ElementSpec, type LedBarSpec, type RingSpec, type SparklineSpec } from "./spec.ts";
@@ -172,7 +172,9 @@ export function applyElement(item: DisplayItem): DisplayItem {
       // The user's own file: a native Image of the canvas's file, never baked (a baked record from a lucide icon goes).
       const file = iconFileOf(s.source);
       if (!file) return { ...asImage(item, item.X, item.Y, w, h), element: s } as unknown as DisplayItem;
-      const { elementBaked: _b, ...image } = asImage(item, item.X, item.Y, w, h) as Lab;
+      // InfoPanel draws an image stretched to its box, so the box is the fitted one inside the icon's.
+      const fit = fitIcon(s.source, { x: item.X, y: item.Y, w, h });
+      const { elementBaked: _b, ...image } = asImage(item, fit.x, fit.y, fit.w, fit.h) as Lab;
       return { ...image, FilePath: file, element: s } as unknown as DisplayItem;
     }
     case "glow":

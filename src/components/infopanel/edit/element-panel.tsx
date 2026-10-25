@@ -3,8 +3,7 @@
  * by the spec's own normalizer and committed as one step (typing coalesces). Colours are inks: a
  * palette slot, or a fixed colour from the swatch.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Search } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { getCatalog } from "@/lib/catalog";
 import { coreBars, driveTile, PLACEHOLDER_DRIVES } from "@/lib/infopanel/elements/create";
@@ -14,13 +13,13 @@ import { DEFAULT_FACE, FACE_PATTERNS, type FaceSpec } from "@/lib/effects/face";
 import { isSlot, rgbOf, SLOT_LABEL, SLOTS, slotInk, type Ink } from "@/lib/infopanel/elements/palette";
 import { iconFileOf, lucideNameOf } from "@/lib/effects/icon";
 import { normalizeElement, type ElementSpec, type Threshold, type ValueGlow } from "@/lib/infopanel/elements/spec";
-import { iconMarkupOf, iconNames, iconsLoaded, loadIcons } from "@/lib/infopanel/elements/icons";
 import { updateAt, type Path } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import { Segmented } from "./canvas-toolbar";
+import { IconPicker } from "./icon-picker";
 import { DriveIcons, IconFileButtons } from "./icon-source";
 import type { CanvasEditor } from "./use-canvas-editor";
 
@@ -125,60 +124,6 @@ function SwitchRow({ label, on, onChange }: { label: string; on: boolean; onChan
     <Row label={label}>
       <Toggle checked={on} onChange={onChange} label={label} />
     </Row>
-  );
-}
-
-/** The Icon element's searchable icon list. */
-function IconPicker({ value, onPick }: { value: string; onPick: (name: string) => void }) {
-  const [query, setQuery] = useState("");
-  const [ready, setReady] = useState(iconsLoaded);
-  useEffect(() => {
-    let live = true;
-    void loadIcons().then(() => live && setReady(true));
-    return () => {
-      live = false;
-    };
-  }, []);
-  const names = useMemo(() => {
-    const all = ready ? iconNames() : [];
-    const q = query.trim().toLowerCase().replace(/\s+/g, "-");
-    return q ? all.filter((n) => n.includes(q)) : all;
-  }, [query, ready]);
-  return (
-    <div className="space-y-1.5">
-      <label className="relative block">
-        <Search className="pointer-events-none absolute left-2 top-1.5 h-4 w-4 text-ui-4" />
-        <input aria-label="Search icons" placeholder="Search icons" value={query} onChange={(e) => setQuery(e.target.value)} className={cn(INPUT, "pl-7 font-ui")} />
-      </label>
-      <div role="listbox" aria-label="Icons" className="grid max-h-44 grid-cols-8 gap-1 overflow-y-auto">
-        {names.map((n) => (
-          <button
-            key={n}
-            type="button"
-            role="option"
-            aria-selected={n === value}
-            title={n}
-            aria-label={n}
-            onClick={() => onPick(n)}
-            className={cn("grid h-7 place-items-center rounded-[6px] text-ui-2 hover:bg-ui-hover", n === value && "bg-ui-active text-ui-1")}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width={16}
-              height={16}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: the icon set's own generated markup, never user text.
-              dangerouslySetInnerHTML={{ __html: iconMarkupOf(n) }}
-            />
-          </button>
-        ))}
-        {names.length === 0 && <p className="col-span-8 py-1 text-[11.5px] text-ui-4">{ready ? "No icon matches." : "Loading icons…"}</p>}
-      </div>
-    </div>
   );
 }
 

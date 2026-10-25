@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { driveIconOf, driveIconsOfSetting, iconFileOf, lucideNameOf, normalizeDriveIcons, normalizeIconSource } from "@/lib/effects/icon";
+import { driveIconOf, driveIconsOfSetting, fitIcon, iconFileOf, lucideNameOf, normalizeDriveIcons, normalizeIconSource } from "@/lib/effects/icon";
 
 const hash = "a".repeat(64);
 
@@ -25,6 +25,22 @@ describe("icon sources", () => {
     expect(driveIconOf(icons, "hwinfo:-1/0", "Disk B")).toEqual({ lucide: "zap" });
     expect(driveIconOf(icons, "/nvme/9", "constructor")).toBeNull();
     expect(driveIconOf(undefined, "/nvme/2", "Disk A")).toBeNull();
+  });
+
+  it("fits a file into the icon box aspect-fit and centred, at the extremes", () => {
+    const box = { x: 10, y: 20, w: 40, h: 40 };
+    const file = (width: number, height: number) => ({ asset: hash, file: "a.png", width, height });
+    expect(fitIcon(file(400, 100), box)).toEqual({ x: 10, y: 35, w: 40, h: 10 });
+    expect(fitIcon(file(100, 400), box)).toEqual({ x: 25, y: 20, w: 10, h: 40 });
+    expect(fitIcon(file(4000, 1), box)).toEqual({ x: 10, y: 40, w: 40, h: 1 });
+    expect(fitIcon(file(40, 40), box)).toEqual(box);
+    // Fitting a fitted box changes nothing, so a re-derived element doesn't shrink.
+    const wide = fitIcon(file(400, 100), box);
+    expect(fitIcon(file(400, 100), wide)).toEqual(wide);
+    // No known size, or a lucide icon: the whole box.
+    expect(fitIcon({ asset: hash, file: "a.png" }, box)).toEqual(box);
+    expect(fitIcon({ lucide: "cpu" }, box)).toEqual(box);
+    expect(normalizeIconSource({ asset: hash, file: "a.png", width: 0, height: 5 })).toEqual({ asset: hash, file: "a.png" });
   });
 
   it("names the canvas file of a user's file only, and reads a setting's JSON safely", () => {

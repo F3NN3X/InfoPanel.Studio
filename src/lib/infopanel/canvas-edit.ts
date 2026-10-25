@@ -371,7 +371,7 @@ export function withElementFile(
   make: (source: IconSource) => ElementSpec | null,
 ): StoredCanvas | null {
   const { assets, name } = withAsset(stored.assets, file);
-  const spec = make({ asset: file.hash, file: name });
+  const spec = make({ asset: file.hash, file: name, ...(file.width && file.height ? { width: file.width, height: file.height } : {}) });
   if (!spec) return null;
   const next = updateAt(items, path, (item) => ({ ...item, element: spec }) as unknown as DisplayItem);
   return storeItems({ ...stored, assets }, profile, syncElements(next));
