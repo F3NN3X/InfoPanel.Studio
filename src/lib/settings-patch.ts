@@ -2,7 +2,7 @@
  * A change made in the Settings window (PLAN decisions 21 and 22): only the dashboard-wide keys it touches. The
  * server merges it into the saved config (PATCH /api/config/settings, ips-server's config_settings.rs, which checks every
  * value); the Settings window and the Studio window apply the same patch to their own copy with `withSettingsPatch`.
- * null puts a key back to its default, and a screen's performance back to All screens'.
+ * null puts a key back to its default, a screen's performance back to All screens', and the startup screen to "auto".
  */
 
 import type { GeneralSettings } from "@/lib/general";
@@ -18,6 +18,8 @@ export interface SettingsPatch {
   style?: { clock?: "12" | "24" | null };
   /** A screen's own frame-rate cap and animations, by screen id. */
   profiles?: Record<string, { performance: PerformanceOverride | null }>;
+  /** What the app opens on: "auto" (the screen that fits the window) or a screen id; null is "auto". */
+  activeProfile?: string | null;
 }
 
 /** `target` with each key of `patch` set, or removed when null; undefined when nothing is left. */
@@ -45,5 +47,7 @@ export function withSettingsPatch(config: DashboardConfig, patch: SettingsPatch)
         }),
       }
     : {};
-  return { ...config, ...general, ...style, ...profiles };
+  const id = patch.activeProfile ?? "auto";
+  const launch = patch.activeProfile !== undefined && (id === "auto" || config.profiles.some((p) => p.id === id)) ? { activeProfile: id } : {};
+  return { ...config, ...general, ...style, ...profiles, ...launch };
 }

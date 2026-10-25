@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **The startup screen is a setting.** "When the app opens" moved from the Screens page to **Settings › Dashboard › Startup screen**, where you pick Best fit for the window or one screen. A screen's **Shown on** panel links to it. The saved setting is the same one, so nothing changes for your displays.
+
 ### Added
 
 - **A screen and profile manager.** Screens is now one page for every screen and saved InfoPanel profile. Cards have thumbnails and a kind badge (Dashboard, InfoPanel, Mixed); search by name, kind or size, filter by kind, and sort by last edited, name, size or your own order (Move earlier, Move later). **New** makes a blank screen, a screen from the sample layout, or an InfoPanel profile or template. Rename, Duplicate, Export and **Copy kiosk link** are on each card's menu, and a panel shows whether the app opens on a screen and which kiosks show it now. Delete names what goes (pages, zones, InfoPanel canvases, the launch screen, kiosks) and an **Undo** in the message brings the screen back, canvases included; the last screen can't be deleted. Saved InfoPanel profiles from My library are listed too, to place, duplicate, rename or remove. The InfoPanel home uses the same cards and links to **Manage all screens**. Everything the old Screens page had is still there. Each screen now remembers when it was last edited.

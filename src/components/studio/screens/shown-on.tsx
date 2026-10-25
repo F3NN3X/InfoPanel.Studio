@@ -28,20 +28,27 @@ interface ShownOnProps {
   isBestFit: boolean;
   /** The kiosks connected now. */
   kiosks: readonly ControlKiosk[];
+  /** Open Settings › Dashboard › Startup screen, where the default is chosen. */
+  onChangeDefault: () => void;
 }
 
 /**
  * "Shown on": the default (what the app opens on) apart from the active (what kiosks show now), and the link that
  * pins a kiosk to this screen. Assigning a screen to a named kiosk is not built: a kiosk takes its screen from this link.
  */
-export function ShownOn({ screenId, isDefault, isBestFit, kiosks }: ShownOnProps) {
+export function ShownOn({ screenId, isDefault, isBestFit, kiosks, onChangeDefault }: ShownOnProps) {
   const copy = useCopyKioskLink();
   const showing = kiosks.filter((k) => k.profile === screenId);
   return (
     <div className="flex flex-col gap-2 text-[12.5px] text-ui-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-ui-3">Default</span>
-        <span>{isDefault ? "The app opens on it" : isBestFit ? "Best fit picks it now" : "No"}</span>
+        <span className="flex items-center gap-2">
+          {isDefault ? "The app opens on it" : isBestFit ? "Best fit picks it now" : "No"}
+          <button type="button" onClick={onChangeDefault} className="rounded-sm text-[11.5px] text-ui-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent">
+            Settings ↗
+          </button>
+        </span>
       </div>
       <div className="flex items-start justify-between gap-2">
         <span className="text-ui-3">Active</span>

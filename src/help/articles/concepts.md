@@ -3,7 +3,7 @@ id: concepts
 title: Core concepts
 icon: account_tree
 related: [profiles, zones, themes]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.27
 ---
 
 The five building blocks, from the whole dashboard down to a single readout.
@@ -21,7 +21,7 @@ Everything you build: the theme for all screens, the page background, fonts and 
 
 ## Screen
 
-A design for one display size (a profile in files and InfoPanel), with its own grid (columns × rows), fit mode, gap and padding. A screen can inherit the theme for all screens or set its own. With **Best fit for the window** (Screens › When the app opens), each display opens the screen closest to its window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
+A design for one display size (a profile in files and InfoPanel), with its own grid (columns × rows), fit mode, gap and padding. A screen can inherit the theme for all screens or set its own. With **Best fit for the window** (Settings › Dashboard › Startup screen), each display opens the screen closest to its window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
 
 ## Zone
 

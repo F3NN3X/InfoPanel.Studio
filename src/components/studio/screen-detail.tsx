@@ -140,6 +140,7 @@ export function ScreenDetail({
           isDefault={config.activeProfile === stored.id}
           isBestFit={config.activeProfile === "auto" && autoProfileId === stored.id}
           kiosks={kiosks}
+          onChangeDefault={() => navigateTo({ view: "settings", tab: "dashboard", section: "startup" })}
         />
       </Group>
 

@@ -40,7 +40,7 @@ Select a screen's card in **Screens**. The panel on the right holds the settings
 |---|---|
 | **Size & fit** | **Size preset** offers 1920 × 550, 1920 × 1080, 2560 × 720, 1280 × 400, 1024 × 600 and 800 × 480; a size that isn't a preset shows first. **Width** and **Height** hold the exact pixels. **Match this window** takes the studio window's size. **When it doesn't fit**: **Fill** stretches rows so the whole grid fits the screen height, **Scroll** keeps rows 120 px tall and the page scrolls. |
 | **Grid** | 2 to 24 columns and 1 to 24 rows. A change that would push a zone off the grid is refused. The preview draws the grid with its gap and padding. **Gap** (default 12 px) and **Edge padding** go to 64 px on the sliders, and the boxes accept up to 200. |
-| **Shown on** | Whether the app opens on this screen and which kiosks show it now, and **Copy kiosk link**. |
+| **Shown on** | Whether the app opens on this screen, with a **Settings ↗** link to where that is chosen, which kiosks show it now, and **Copy kiosk link**. |
 | **Rotation** | **Rotate pages** and **Every** (3 to 3600 seconds) step the kiosk through the pages. |
 | **Performance** | The frame-rate cap and **Animations** for this screen. The chip says whether they come from **Settings › Dashboard** (all screens) or are this screen's own. |
 | **Pages · order & rotation** | **Add page**, drag a page's handle to reorder it (the page tabs follow), switch it in or out of the rotation, or **Open** it in Design. |
@@ -53,10 +53,10 @@ A screen holds one or more pages that share its grid. See [The studio](studio#pa
 
 ## Which screen opens
 
-**When the app opens**, at the top of **Screens**, decides which screen a display shows:
+**When the app opens**, under **Settings › Dashboard › Startup screen**, decides which screen a display shows. In **Screens**, **Shown on** has a **Settings ↗** link to it.
 
-- **Best fit for the window** picks the screen whose size is closest to the window. Keep one screen per physical display and each one opens the right screen. The line under it names the screen this studio window would open, and it updates as you resize the window.
-- **Always the same screen** opens one screen whatever the window size. Pick it in the list under the option, or use **Always open this one** in a card's **⋯** menu.
+- **Best fit for the window** picks the screen whose size is closest to the window. Keep one screen per physical display and each one opens the right screen.
+- **Always** followed by a screen name opens that screen whatever the window size. You can also use **Always open this one** in a card's **⋯** menu.
 
 **Copy kiosk link** gives an address such as `http://127.0.0.1:3922/?kiosk=1&profile=…`. Open it on a kiosk to pin that kiosk to the screen; on another device use this PC's address instead of `127.0.0.1`. Assigning a screen to a named kiosk isn't built yet.
 

@@ -162,9 +162,10 @@ The other views are pages of their own:
 **Screens** lists the monitor profiles as cards (a thumbnail, the size, the
 grid and page count). Click a card to select it for editing: it is the screen
 Design, the page tabs and the canvas follow, and it never changes what the app
-opens on. **When the app opens** is a choice between **Best fit for the window**
-(the screen closest to the kiosk window's size; the card tagged *Best fit now*)
-and **Always the same screen** (tagged *Opens on launch*). A card's **...** menu
+opens on. **Settings > Dashboard > Startup screen** ("When the app opens") is a
+choice between **Best fit for the window** (the screen closest to the kiosk
+window's size; the card tagged *Best fit now*) and one screen (tagged *Opens on
+launch*). A card's **...** menu
 has **Rename**, **Duplicate**, **Always open this one**, **Export screen** and
 **Delete** (not the last screen). **New screen** adds one for the current window
 size; **Import a screen...** reads a screen file.

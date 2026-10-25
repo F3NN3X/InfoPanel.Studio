@@ -1,7 +1,7 @@
 // PATCH /api/config/settings (server/config-settings.mjs): the Settings window's instant writes. A patch names only
 // the dashboard-wide settings it changes and the saved config keeps everything else:
 //
-//   { general?: { <key>: value | null }, style?: { clock: "12" | "24" | null },
+//   { general?: { <key>: value | null }, style?: { clock: "12" | "24" | null }, activeProfile?: "auto" | <screen id> | null,
 //     profiles?: { <id>: { performance: { maxFps?, motion? } | null } } }
 //
 // null puts a key back to its default. Every value is checked the way the studio reads it; a patch with anything else
@@ -106,7 +106,8 @@ fn with_key(config: &Map<String, Value>, key: &str, value: Option<Value>) -> Map
 }
 
 /// The stored config with the patch applied, or the refusal: 409 when the stored config is not an object, 400 when
-/// the patch is not one, 404 when it names a screen the config does not have.
+/// the patch is not one, 404 when it names a screen the config does not have. `activeProfile` is "auto" or a screen the
+/// config has (400 otherwise); null is "auto".
 pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refusal> {
     let Some(stored) = stored.as_object() else {
         return Err(Refusal::new(409, "the saved config is not readable"));
@@ -114,10 +115,22 @@ pub fn apply_settings_patch(stored: &Value, patch: &Value) -> Result<Value, Refu
     let Some(patch) = patch.as_object() else {
         return Err(bad("expected a settings patch".into()));
     };
-    if let Some(extra) = json::keys(patch).into_iter().find(|k| !["general", "style", "profiles"].contains(&k.as_str())) {
+    if let Some(extra) = json::keys(patch).into_iter().find(|k| !["general", "style", "profiles", "activeProfile"].contains(&k.as_str())) {
         return Err(bad(format!("not a setting: {extra}")));
     }
     let mut config = stored.clone();
+
+    if let Some(launch) = patch.get("activeProfile") {
+        let known = |id: &str| {
+            config.get("profiles").and_then(Value::as_array).is_some_and(|ps| ps.iter().any(|p| p.get("id").and_then(Value::as_str) == Some(id)))
+        };
+        let id = match launch {
+            Value::Null => "auto",
+            Value::String(id) if id == "auto" || known(id) => id,
+            _ => return Err(bad("not a valid activeProfile".into())),
+        };
+        config.insert("activeProfile".into(), Value::String(id.to_string()));
+    }
 
     for (name, checks) in [("general", general_check as fn(&str) -> Option<Check>), ("style", style_check)] {
         let Some(section) = patch.get(name) else { continue };

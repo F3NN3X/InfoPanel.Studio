@@ -45,6 +45,17 @@ describe("withSettingsPatch", () => {
     expect(reset.profiles[0].pages).toBe(before.profiles[0].pages);
   });
 
+  it("sets the startup screen to auto or a screen, null resets to auto, and an unknown id is no change", () => {
+    const before = config();
+    const fixed = withSettingsPatch(before, { activeProfile: "wall" });
+    expect(fixed.activeProfile).toBe("wall");
+    expect(fixed.profiles).toBe(before.profiles);
+    expect(withSettingsPatch(fixed, { activeProfile: null }).activeProfile).toBe("auto");
+    expect(withSettingsPatch(fixed, { activeProfile: "auto" }).activeProfile).toBe("auto");
+    expect(withSettingsPatch(fixed, { activeProfile: "gone" }).activeProfile).toBe("wall");
+    expect(withSettingsPatch(fixed, { general: { maxFps: 15 } }).activeProfile).toBe("wall");
+  });
+
   it("ignores a screen the config does not have, and leaves the input untouched", () => {
     const before = config();
     const next = withSettingsPatch(before, { profiles: { gone: { performance: null } } });
