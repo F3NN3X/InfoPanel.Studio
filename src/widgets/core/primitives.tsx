@@ -48,7 +48,7 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
   return (
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
       {label && <span className="max-w-full truncate text-[11px] font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>}
-      <span className={`${big} font-semibold leading-none tracking-tight tabular-nums`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+      <span className={`${big} font-semibold leading-none tracking-tight tabular-nums`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? { ...NUM_GLOW, ...(sk.numShadow ? { textShadow: sk.numShadow } : null) } : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
         {shown}
         {unit && <span className="ml-0.5 inline-block align-top leading-none text-[0.45em] font-medium text-[color:var(--w-muted)]">{unit}</span>}
       </span>
@@ -535,7 +535,7 @@ export function Img({ src, className = "", icon = "image", alt = "" }: { src?: s
 export function Num({ children, className = "", style, weight = 700 }: { children?: ReactNode; className?: string; style?: CSSProperties; weight?: number }) {
   const sk = useSkin();
   return (
-    <span className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
+    <span className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: sk.numShadow ?? "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
       {children}
     </span>
   );

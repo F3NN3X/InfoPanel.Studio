@@ -11,7 +11,7 @@ import { coreBars, driveTile, PLACEHOLDER_DRIVES } from "@/lib/infopanel/element
 import { detectCores } from "@/lib/infopanel/elements/cores";
 import { detectDrives } from "@/lib/infopanel/elements/drives";
 import { isSlot, SLOT_LABEL, SLOTS, slotInk, type Ink } from "@/lib/infopanel/elements/palette";
-import { normalizeElement, type ElementSpec, type Threshold } from "@/lib/infopanel/elements/spec";
+import { normalizeElement, type ElementSpec, type Threshold, type ValueGlow } from "@/lib/infopanel/elements/spec";
 import { iconMarkupOf, iconNames, iconsLoaded, loadIcons } from "@/lib/infopanel/elements/icons";
 import { updateAt, type Path } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
@@ -225,12 +225,25 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       {!!list?.length && <p className="text-[11.5px] leading-snug text-ui-4">The first fill colour holds below the first threshold. Each frame takes the colour of its value.</p>}
     </>
   );
+  /** The value's glow (Text/Value GlowEnabled, GlowRadius, GlowColor): a switch, then its radius and colour. */
+  const valueGlow = (glow: ValueGlow | null) => (
+    <>
+      <SwitchRow label="Value glow" on={glow !== null} onChange={(on) => set({ valueGlow: on ? { radius: 8, color: slotInk(palette, "accent1") } : null })} />
+      {glow && (
+        <>
+          <NumberField label="Glow radius" value={glow.radius} onCommit={(radius) => set({ valueGlow: { ...glow, radius } }, "valueGlow-radius")} />
+          <InkField label="Glow colour" ink={glow.color} palette={palette} onChange={(color) => set({ valueGlow: { ...glow, color } }, "valueGlow-color")} />
+        </>
+      )}
+    </>
+  );
   /** A row's look, shared by Row and Rows. */
   const rowLook = (s: Extract<ElementSpec, { type: "row" | "rows" }>) => (
     <>
       {num("Font size", "size", s.size)}
       {ink("Label", "label", s.label)}
       {ink("Value", "value", s.value)}
+      {valueGlow(s.valueGlow)}
       <SwitchRow label="Icon" on={s.icon !== null} onChange={(on) => set({ icon: on ? "cpu" : null })} />
       {s.icon !== null && (
         <>
@@ -305,6 +318,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {byValue(spec.innerThresholds, "innerThresholds")}
           {num("Value size", "valueSize", spec.valueSize)}
           {ink("Value", "value", spec.value)}
+          {valueGlow(spec.valueGlow)}
           {partsHint}
         </>
       );

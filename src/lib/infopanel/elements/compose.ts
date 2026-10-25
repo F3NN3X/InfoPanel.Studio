@@ -6,10 +6,11 @@
  * doesn't need is dropped. Editing the spec relays the group out, so a resize or a toggle is one step.
  * Pure; `apply` derives a child that is itself an element (an icon, a ring, a sparkline).
  */
+import { glowToInfoPanel } from "../../effects/glow.ts";
 import { defaultItem, type DisplayItem, type GroupItem, type ItemKind } from "../schema.ts";
 import { bindingOf, isBound } from "../sensors.ts";
 import type { Ink } from "./palette.ts";
-import type { DoubleRingSpec, DrivesSpec, DualSpec, RowLook, RowSpec, RowsSpec, ShadowTextSpec, StackSpec } from "./spec.ts";
+import type { DoubleRingSpec, DrivesSpec, DualSpec, RowLook, RowSpec, RowsSpec, ShadowTextSpec, StackSpec, ValueGlow } from "./spec.ts";
 
 export type Apply = (item: DisplayItem) => DisplayItem;
 
@@ -24,6 +25,12 @@ function reconcile(kids: readonly DisplayItem[], kinds: readonly ItemKind[], nam
 const inked = (fields: Record<string, Ink>): Fields => ({
   ...Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v.color])),
   slots: Object.fromEntries(Object.entries(fields).flatMap(([k, v]) => (v.slot ? [[k, { slot: v.slot }]] : []))),
+});
+
+/** A value's colour and glow as Text/Value fields; the glow colour follows its palette slot like any ink. */
+const valued = (value: Ink, glow: ValueGlow | null): Fields => ({
+  ...glowToInfoPanel(glow && { radius: glow.radius, color: glow.color.color }),
+  ...inked({ Color: value, ...(glow ? { GlowColor: glow.color } : {}) }),
 });
 
 /** The item bound to the same sensor as `from` (its record of the chosen sensor too). */
@@ -62,7 +69,7 @@ export function applyRow(group: GroupItem, s: RowSpec | (RowLook & { width: numb
   const [label, value, ...rest] = reconcile(group.DisplayItems, ["Text", "Sensor", ...(s.bar ? (["Bar"] as const) : []), ...(s.icon ? (["Image"] as const) : [])], ["Label", "Value", "Bar", "Icon"]);
   const kids: DisplayItem[] = [
     { ...label, ...box(x + indent, y + textY, labelW, textH - textY), ...line(s.size, "left"), ...inked({ Color: s.label }) } as DisplayItem,
-    { ...value, ...box(x + s.width - valueW, y + textY, valueW, textH - textY), ...line(s.size, "right"), ...inked({ Color: s.value }) } as DisplayItem,
+    { ...value, ...box(x + s.width - valueW, y + textY, valueW, textH - textY), ...line(s.size, "right"), ...valued(s.value, s.valueGlow) } as DisplayItem,
   ];
   const bar = s.bar ? rest[0] : undefined;
   if (bar) {
@@ -149,7 +156,7 @@ export function applyDoubleRing(group: GroupItem, s: DoubleRingSpec, apply: Appl
     DisplayItems: [
       ring(outer, lay.outer, s.outer, {}),
       ring(inner, lay.inner, s.inner, s.innerThresholds.length ? { thresholds: s.innerThresholds } : {}),
-      { ...centre, ...box(group.X + (s.size - vw) / 2, group.Y + (s.size - vh) / 2, vw, vh), ...line(s.valueSize, "centre"), ...inked({ Color: s.value }) } as DisplayItem,
+      { ...centre, ...box(group.X + (s.size - vw) / 2, group.Y + (s.size - vh) / 2, vw, vh), ...line(s.valueSize, "centre"), ...valued(s.value, s.valueGlow) } as DisplayItem,
     ],
   };
 }

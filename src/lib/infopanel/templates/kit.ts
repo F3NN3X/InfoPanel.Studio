@@ -4,6 +4,7 @@
  * recolours the whole profile, and each sensor item bound through `bind` by its role. Sizes are
  * in canvas pixels; text sizes are the drawn pixel height, turned into InfoPanel's FontSize.
  */
+import { glowToInfoPanel } from "../../effects/glow.ts";
 import { newItem } from "../editor/create.ts";
 import { applyElement } from "../elements/apply.ts";
 import type { CoreSensor } from "../elements/cores.ts";
@@ -89,7 +90,12 @@ export interface TextOpts {
   width?: number;
   align?: "left" | "center" | "right";
   upper?: boolean;
+  /** A glow in accent 1, sized to the text (the glow variants' numbers). */
+  glow?: boolean;
 }
+
+/** The glow variants (a template's variant "glow") light their big numbers. */
+export const glows = (k: Kit): boolean => k.variant === "glow";
 
 function textFields(k: Kit, o: TextOpts) {
   const slot = o.slot ?? "text";
@@ -97,7 +103,9 @@ function textFields(k: Kit, o: TextOpts) {
   return {
     X: Math.round(o.x), Y: Math.round(o.y), Font: k.type.family, FontStyle: k.type[o.weight ?? "regular"], FontSize: fontSize(k, o.px),
     Color: k.palette[slot], Width: o.width ? Math.round(o.width) : 0, CenterAlign: align === "center", RightAlign: align === "right",
-    Uppercase: o.upper ?? false, slots: { Color: { slot } },
+    Uppercase: o.upper ?? false,
+    ...(o.glow ? glowToInfoPanel({ radius: Math.round(o.px * 0.1), color: k.palette.accent1 }) : {}),
+    slots: { Color: { slot }, ...(o.glow ? { GlowColor: { slot: "accent1" as const } } : {}) },
   };
 }
 

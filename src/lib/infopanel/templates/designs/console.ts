@@ -6,7 +6,7 @@
 import type { Slot } from "../../elements/palette.ts";
 import type { DisplayItem } from "../../schema.ts";
 import { drives, figure } from "../composites.ts";
-import { card, clock, icon, ink, ledbar, text, value, type Kit, type Template } from "../kit.ts";
+import { card, clock, glows, icon, ink, ledbar, text, value, type Kit, type Template } from "../kit.ts";
 import { inset, split, type Box } from "../layout.ts";
 import { lineOf, ringValue } from "../parts.ts";
 import type { Role } from "../roles.ts";
@@ -54,7 +54,7 @@ function header(k: Kit, b: Box): DisplayItem[] {
       icon(k, cell.icon, { x: c.x + pad, y: Math.round(c.y + (c.height - ic) / 2), width: ic, height: ic }, "subtext"),
       text(k, cell.caption.toUpperCase(), { x: tx, y: c.y + pad * 0.7, px: capPx, slot: "subtext", upper: true }),
       ...(cell.role
-        ? figure(k, cell.role, valBox, { px: valPx, unit: cell.unit ?? "", unitSlot: "accent1", unitScale: 0.5 })
+        ? figure(k, cell.role, valBox, { px: valPx, unit: cell.unit ?? "", unitSlot: "accent1", unitScale: 0.5, glow: glows(k) })
         : [clock(k, cell.format ?? "", { x: tx, y: valBox.y, px: valPx, width: valBox.width, align: "left" }, cell.date)]),
     ];
   });
@@ -121,7 +121,7 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
         card(k, `${r.label} box`, box, { radius: px(7), fill: [dim], stroke: ink(k, "track") }),
         icon(k, r.icon, { x: box.x + gap, y: Math.round(box.y + (rowH - valPx * 1.3) / 2), width: Math.round(valPx * 1.3), height: Math.round(valPx * 1.3) }, p.slot),
         text(k, r.label.toUpperCase(), { x: box.x + gap * 2 + valPx * 1.3, y: box.y + (rowH - lineOf(labPx)) / 2, px: labPx, slot: "subtext", upper: true }),
-        value(k, r.role, { x: box.x, y: box.y + (rowH - lineOf(valPx)) / 2 - valPx * 0.05, px: valPx, width: box.width - gap, align: "right", slot: "text" }),
+        value(k, r.role, { x: box.x, y: box.y + (rowH - lineOf(valPx)) / 2 - valPx * 0.05, px: valPx, width: box.width - gap, align: "right", slot: "text", glow: glows(k) }),
       ];
     }),
   ];
@@ -148,7 +148,7 @@ function memory(k: Kit, b: Box, m: MemSpec): DisplayItem[] {
   const valPx = px(30);
   const block = (c: Box, caption: string, role: Role): DisplayItem[] => [
     text(k, caption.toUpperCase(), { x: c.x, y: c.y + c.height / 2 - lineOf(capPx) - valPx * 0.1, px: capPx, slot: "subtext", upper: true }),
-    value(k, role, { x: c.x, y: c.y + c.height / 2 - valPx * 0.1, px: valPx, weight: "regular" }),
+    value(k, role, { x: c.x, y: c.y + c.height / 2 - valPx * 0.1, px: valPx, weight: "regular", glow: glows(k) }),
   ];
   const barH = Math.max(4, Math.round(b.height * 0.2));
   return [
@@ -177,6 +177,7 @@ export const CONSOLE: Template = {
   },
   variants: [
     { id: "ice", name: "Ice", palette: {} },
+    { id: "glow", name: "Ice glow", palette: {} },
     { id: "amber", name: "Amber", palette: { accent1: "#FFFFB02E", accent2: "#FFFF6A3D", accent3: "#FFFFE0A0", warn: "#FFFFC27A", card: "#FF130F0A", track: "#FF352B20", subtext: "#FFB5A592" } },
     { id: "steel", name: "Steel", palette: { accent1: "#FFC4CCD6", accent2: "#FF8E99A8", accent3: "#FFF0F3F7", warn: "#FFD9DEE5", card: "#FF101114", track: "#FF2C2F36" } },
   ],

@@ -1,4 +1,5 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
+import type { GlowLevel } from "@/lib/effects/glow";
 import type { FontId } from "@/lib/fonts";
 import { widgetIcon } from "@/lib/widget-icons";
 import { useElementSize } from "@/hooks/use-element-size";
@@ -77,6 +78,10 @@ export interface ModernChrome {
   /** "" = the surface's own edge color. */
   borderColor?: string;
   glow?: GlowChoice;
+  /** Number glow: auto keeps the skin's own, off removes it, soft / strong set it (`lib/effects/glow.ts`). */
+  numGlow?: GlowLevel;
+  /** "" = the accent color. */
+  numGlowColor?: string;
   /** "" = the accent color. */
   glowColor?: string;
   /** Surface background opacity, 0–1 (1 = as designed). */

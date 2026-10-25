@@ -28,6 +28,8 @@ const drive = (n: number, name: string): Record<string, DataApiValue> => ({
 });
 export const DRIVE_SENSORS: Record<string, DataApiValue> = { ...drive(2, "Disk A"), ...drive(3, "Disk B") };
 
+const GLOW = { radius: 12, color: { color: "#FF22D3EE", slot: "accent2" } };
+
 const cpu = { key: "libre.cpu", name: "CPU Total", unit: "%", ref: "libre:/amdcpu/0/load/0" };
 
 /** A header-only PNG of the drawn size, its last bytes `seed`, so different drawings hash apart. */
@@ -47,7 +49,9 @@ export function elementItems(profile: Profile): DisplayItem[] {
   const composites = COMPOSITES.map((type, i) => {
     const g = newComposite(type, profile, palette, type === "drives" ? detectDrives(DRIVE_SENSORS) : [], 20, 20 + i * 60);
     // A Row's value gets a sensor; its bar follows.
-    return type === "row" ? applyElement({ ...g, DisplayItems: g.DisplayItems.map((k, j) => (j === 1 ? bindItem(k, cpu) : k)) } as DisplayItem) : g;
+    const bound = type === "row" ? applyElement({ ...g, DisplayItems: g.DisplayItems.map((k, j) => (j === 1 ? bindItem(k, cpu) : k)) } as DisplayItem) : g;
+    // The Row's and the Double ring's values glow: Text/Value GlowEnabled, GlowRadius and GlowColor, which InfoPanel draws itself.
+    return type === "row" || type === "doublering" ? applyElement({ ...bound, element: { ...elementOf(bound)!, valueGlow: GLOW } } as unknown as DisplayItem) : bound;
   });
   const ring = bindItem(newElement("ring", profile, palette), cpu);
   const led = bindItem(newElement("ledbar", profile, palette), cpu);

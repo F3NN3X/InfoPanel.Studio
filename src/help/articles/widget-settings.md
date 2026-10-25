@@ -3,7 +3,7 @@ id: widget-settings
 title: Widget settings
 icon: tune
 related: [themes, widgets, custom-css]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.27
 ---
 
 Every widget and panel has the same four tabs, filed by the question they answer.
@@ -11,7 +11,7 @@ Every widget and panel has the same four tabs, filed by the question they answer
 | Tab | Answers | Holds |
 |---|---|---|
 | **Show** | What is on it? | Header (title, icon, widget type, visible), the widget's own content sections, Fit (small zones, density) |
-| **Style** | How does it look? | Skin, Colors (with the widget's own colors), Typography, Shape & spacing, Surface & effects, Border & glow, Advanced · CSS & locks |
+| **Style** | How does it look? | Skin, Colors (with the widget's own colors), Typography (with Number glow: Auto keeps the skin's own glow, Off removes it, Soft and Strong set one, in the accent or a color you pick), Shape & spacing, Surface & effects, Border & glow, Advanced · CSS & locks |
 | **Data** | Where do values come from? | Bound data, device and sources, Units & format |
 | **Behaviour** | How does it react? | Thresholds, the widget's own behaviour, Motion, Send to island |
 

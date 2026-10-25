@@ -30,6 +30,26 @@ const TYPES: CompositeType[] = ["row", "rows", "stack", "dual", "doublering", "d
 const make = (type: CompositeType) => newComposite(type, profile, palette, type === "drives" ? detectDrives(sensors) : [], 20, 30);
 const kidsOf = (g: DisplayItem) => (g as GroupItem).DisplayItems;
 
+describe("a value glow", () => {
+  const glow = { radius: 9, color: { color: "#FF22D3EE", slot: "accent2" as const } };
+  const valueOf = (type: "row" | "doublering", valueGlow: typeof glow | null) => {
+    const g = make(type);
+    const out = applyElement({ ...g, element: { ...elementOf(g)!, valueGlow } } as unknown as DisplayItem);
+    return kidsOf(out).find((k) => k.kind === "Sensor") as unknown as Record<string, unknown>;
+  };
+
+  it.each(["row", "doublering"] as const)("sets the %s value's GlowEnabled, GlowRadius and GlowColor, and the colour follows its slot", (type) => {
+    const v = valueOf(type, glow);
+    expect(v).toMatchObject({ GlowEnabled: true, GlowRadius: 9, GlowColor: "#FF22D3EE" });
+    expect((v.slots as Record<string, unknown>).GlowColor).toEqual({ slot: "accent2" });
+  });
+
+  it("turns the glow off again without touching the value's colour", () => {
+    expect(valueOf("row", glow)).toMatchObject({ GlowEnabled: true });
+    expect(valueOf("row", null)).toMatchObject({ GlowEnabled: false });
+  });
+});
+
 describe("each composite as InfoPanel items", () => {
   it.each([
     ["row", ["Text", "Sensor", "Bar"], "native"],
