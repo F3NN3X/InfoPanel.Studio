@@ -108,7 +108,7 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
   const rowH = (list.height - gap * (n - 1)) / n;
   // One size for both panels' boxes whatever their row count: sized for the longest list, labels small beside the values.
   const valPx = Math.max(10, Math.round(Math.min(px(26), list.width * 0.06, ((list.height - gap * 4) / 5) * 0.5)));
-  const labPx = Math.max(8, Math.round(valPx * 0.45));
+  const labPx = Math.max(Math.round((12 * k.frame.u) / 2.25), Math.round(valPx * 0.6));
   const usagePx = Math.max(8, Math.round(size * 0.075));
   return [
     card(k, `${p.title} panel`, b, { radius: px(10), fill: [ink(k, "card")], stroke: ink(k, p.slot) }),
