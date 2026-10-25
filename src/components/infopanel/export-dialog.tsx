@@ -16,6 +16,7 @@ import { itemAt } from "@/lib/infopanel/editor/ops";
 import { bakeSignature, safeStem, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames";
 import { bake } from "@/lib/infopanel/gauges/raster";
 import { approximations } from "@/lib/infopanel/elements/apply";
+import { backdropLayers, backdropSignature } from "@/lib/infopanel/elements/backdrop";
 import { elementSignature, setElementFile, staleElements, staticOf } from "@/lib/infopanel/elements/bake";
 import { elementOf } from "@/lib/infopanel/elements/spec";
 import { bakeElement } from "@/lib/infopanel/elements/raster";
@@ -116,7 +117,14 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
 
   const doc: Doc = { items: opened.parsed.items, assets: opened.assets };
   const stale = staleGauges(doc.items);
-  const staleStatic = staleElements(doc.items);
+  // A blurred card is baked over what is behind it, so a change there (or to the blur) makes it stale.
+  const backdropOf = (items: Doc["items"], assets: Doc["assets"]) => (path: string) => {
+    const el = staticOf(itemAt(items, path));
+    if (el?.spec.type !== "card" || !el.spec.blur) return undefined;
+    const { BackgroundColor: bg, Width: width, Height: height } = opened.parsed.profile;
+    return backdropSignature(el.spec.blur, backdropLayers(items, path, bg, assets, { width, height }));
+  };
+  const staleStatic = staleElements(doc.items, "", backdropOf(doc.items, doc.assets));
   const bakes = stale.length + staleStatic.length;
   const approx = approximations(doc.items);
   const fonts = fontsToInstall(doc.items);
@@ -173,7 +181,8 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
           const el = staticOf(item);
           if (!item || !el) continue;
           setBusy(`Baking ${done + 1} of ${bakes}: ${item.Name || path}…`);
-          next = setElementFile(next, path, await bakeElement(el.spec, el.width, el.height, item.Name), elementSignature(el.spec, el.width, el.height));
+          const backdrop = el.spec.type === "card" && el.spec.blur ? { layers: backdropLayers(next.items, path, opened.parsed.profile.BackgroundColor, next.assets, { width: opened.parsed.profile.Width, height: opened.parsed.profile.Height }), assets: next.assets, at: { x: item.X, y: item.Y } } : undefined;
+          next = setElementFile(next, path, await bakeElement(el.spec, el.width, el.height, item.Name, backdrop), elementSignature(el.spec, el.width, el.height, backdropOf(next.items, next.assets)(path)));
           done++;
         }
         // The new frames go to the asset store, then onto the zone (one undo step).

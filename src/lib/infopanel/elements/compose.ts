@@ -155,7 +155,7 @@ export function applyDoubleRing(group: GroupItem, s: DoubleRingSpec, apply: Appl
     ...group,
     DisplayItems: [
       ring(outer, lay.outer, s.outer, {}),
-      ring(inner, lay.inner, s.inner, s.innerThresholds.length ? { thresholds: s.innerThresholds } : {}),
+      ring(inner, lay.inner, s.inner, { ...(s.innerThresholds.length ? { thresholds: s.innerThresholds } : {}), ...(s.face ? { face: s.face } : {}) }),
       { ...centre, ...box(group.X + (s.size - vw) / 2, group.Y + (s.size - vh) / 2, vw, vh), ...line(s.valueSize, "centre"), ...valued(s.value, s.valueGlow) } as DisplayItem,
     ],
   };

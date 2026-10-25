@@ -57,11 +57,16 @@ export function elementItems(profile: Profile): DisplayItem[] {
   const led = bindItem(newElement("ledbar", profile, palette), cpu);
   const thresholds = [{ at: 70, ink: { color: "#FFEDB232" } }, { at: 90, ink: { color: "#FFF2665E" } }];
   const spark = bindItem(newElement("sparkline", profile, palette), cpu);
+  // A ring with a hex face (baked into its frames) and a blurred card (its backdrop baked under its image): both Approximated or Baked, never native.
+  const faced = bindItem(newElement("ring", profile, palette), cpu);
+  const frosted = newElement("card", profile, palette);
   return [
     ...composites,
     applyElement({ ...ring, element: { ...elementOf(ring)!, thresholds } } as unknown as DisplayItem),
     applyElement({ ...led, element: { ...elementOf(led)!, thresholds } } as unknown as DisplayItem),
     applyElement({ ...spark, element: { ...elementOf(spark)!, style: "bars", dot: false, gradient: false, fillAlpha: 0.6 } } as unknown as DisplayItem),
+    applyElement({ ...faced, element: { ...elementOf(faced)!, sweep: 360, start: 0, face: { pattern: "hex", color: "#FFFFFF", opacity: 0.08, size: 14, fill: "#06090D" } } } as unknown as DisplayItem),
+    applyElement({ ...frosted, element: { ...elementOf(frosted)!, fill: [{ color: "#2AFFFFFF" }], blur: 16 } } as unknown as DisplayItem),
   ];
 }
 

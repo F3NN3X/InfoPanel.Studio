@@ -1,4 +1,5 @@
 /** Decor: background, rings (arc), pattern and icon row (bar), the centre icon. */
+import { DEFAULT_FACE, FACE_PATTERNS, type FaceSpec } from "@/lib/effects/face";
 import { BACKGROUND } from "@/lib/gauge-studio/parts";
 import { DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_PATTERN, DEFAULT_RINGS } from "@/lib/infopanel/gauges/shapes";
 import { GAUGE_ICONS, type Background, type CentreIcon, type IconRow, type Pattern, type Rings } from "@/lib/infopanel/gauges/vector";
@@ -22,6 +23,21 @@ export function BackgroundInspector({ g, set }: InspectorProps) {
         </>
       )}
       {rectangular && <NumRow label="Corner radius" value={b.radius} min={0} max={200} unit="px" onChange={(radius) => patch({ radius }, "radius")} />}
+    </div>
+  );
+}
+
+export function FaceInspector({ g, set }: InspectorProps) {
+  const f = g.face ?? DEFAULT_FACE;
+  const patch = (p: Partial<FaceSpec>, key?: string) => set({ ...g, face: { ...f, ...p } }, key);
+  return (
+    <div className="space-y-1">
+      <ChoiceRow label="Pattern" value={f.pattern} options={FACE_PATTERNS.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))} onChange={(pattern) => patch({ pattern })} />
+      <PaintRow label="Pattern colour" value={f.color} onChange={(color) => patch({ color }, "color")} />
+      <NumRow label="Pattern opacity" value={f.opacity} min={0} max={1} step={0.01} onChange={(opacity) => patch({ opacity }, "opacity")} />
+      <NumRow label="Cell size" value={f.size} min={4} max={64} unit="px" onChange={(size) => patch({ size }, "size")} />
+      <ToggleRow label="Disc fill" value={f.fill !== null} onChange={(on) => patch({ fill: on ? DEFAULT_FACE.fill : null })} />
+      {f.fill !== null && <PaintRow label="Disc colour" value={f.fill} onChange={(fill) => patch({ fill }, "fill")} />}
     </div>
   );
 }

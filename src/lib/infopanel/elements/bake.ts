@@ -15,20 +15,24 @@ import { staticOf } from "./svg.ts";
 export { staticOf } from "./svg.ts";
 
 /** What baking a static element at a size is recorded as. */
-export const elementSignature = (spec: StaticSpec, width: number, height: number) => JSON.stringify([width, height, spec]);
+export const elementSignature = (spec: StaticSpec, width: number, height: number, backdrop?: string) =>
+  JSON.stringify(backdrop === undefined ? [width, height, spec] : [width, height, spec, backdrop]);
 
 /** The element has no image yet, or its spec or size changed since it was baked. */
-export function isElementStale(item: DisplayItem | undefined): boolean {
+export function isElementStale(item: DisplayItem | undefined, backdrop?: string): boolean {
   const s = staticOf(item);
   if (!s || item?.kind !== "Image") return false;
-  return !item.FilePath || (item as DisplayItem & ElementFields).elementBaked !== elementSignature(s.spec, s.width, s.height);
+  return !item.FilePath || (item as DisplayItem & ElementFields).elementBaked !== elementSignature(s.spec, s.width, s.height, backdrop);
 }
 
+/** What a blurred card's backdrop is baked from, by path; undefined for an element that has none. */
+export type BackdropOf = (path: Path) => string | undefined;
+
 /** Paths of the static elements that need baking, in tree order. */
-export function staleElements(items: readonly DisplayItem[], prefix = ""): Path[] {
+export function staleElements(items: readonly DisplayItem[], prefix = "", backdropOf?: BackdropOf): Path[] {
   return items.flatMap((item, i) => {
     const path = prefix ? `${prefix}.${i}` : String(i);
-    return [...(isElementStale(item) ? [path] : []), ...(item.kind === "Group" ? staleElements(item.DisplayItems, path) : [])];
+    return [...(isElementStale(item, backdropOf?.(path)) ? [path] : []), ...(item.kind === "Group" ? staleElements(item.DisplayItems, path, backdropOf) : [])];
   });
 }
 

@@ -31,8 +31,8 @@ describe("normalizeElement", () => {
   it("keeps the keys it does not know (a newer studio's), unless a known field overrides them", () => {
     const row = normalizeElement({ type: "row", future: { a: 1 }, size: 9999, valueGlow: null });
     expect(row).toMatchObject({ type: "row", future: { a: 1 }, size: 200, valueGlow: null });
-    const ring = normalizeElement({ type: "ring", fill: [red], thresholds: "junk", frames: undefined, face: "hex" });
-    expect(ring).toMatchObject({ face: "hex" });
+    const ring = normalizeElement({ type: "ring", fill: [red], thresholds: "junk", frames: undefined, bevel: "hex" });
+    expect(ring).toMatchObject({ bevel: "hex" });
     expect(ring).not.toHaveProperty("thresholds");
   });
 

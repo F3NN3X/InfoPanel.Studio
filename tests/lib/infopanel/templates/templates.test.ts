@@ -100,6 +100,26 @@ describe("the Console template's drives", () => {
   });
 });
 
+describe("faces and glass in the templates", () => {
+  const items = (id: string, width: number, height: number) => {
+    const t = TEMPLATES.find((x) => x.id === id)!;
+    return [...walkItems(readStored(JSON.parse(JSON.stringify(instantiate(t, { name: t.name, width, height, sensors: MOCK_SENSORS, now }).stored))).items)].map(({ item }) => item);
+  };
+
+  it("gives Console's CPU and GPU rings a hex face", () => {
+    const faced = items("console", 1920, 720).filter((i) => (elementOf(i) as { face?: { pattern: string } } | null)?.face?.pattern === "hex");
+    expect(faced).toHaveLength(2);
+  });
+
+  it("blurs every glass card in Frost Bar, and not the wash behind them", () => {
+    const cards = items("frostbar", 1920, 720).filter((i) => elementOf(i)?.type === "card");
+    const glass = cards.filter((i) => i.Name.endsWith(" card"));
+    expect(glass.length).toBeGreaterThanOrEqual(8);
+    for (const c of glass) expect((elementOf(c) as { blur?: number }).blur, c.Name).toBeGreaterThan(0);
+    expect(elementOf(cards.find((i) => i.Name === "Wash")!)).not.toHaveProperty("blur");
+  });
+});
+
 describe("profile templates", () => {
   it("offers at least eight, each with distinct ids and 2 to 3 palette variants", () => {
     expect(TEMPLATES.length).toBeGreaterThanOrEqual(8);

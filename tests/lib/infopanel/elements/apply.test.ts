@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyElement, approximations, badgeOf, elementOf, recolour, syncElements } from "@/lib/infopanel/elements/apply.ts";
 import { isElementStale } from "@/lib/infopanel/elements/bake.ts";
-import { newElement } from "@/lib/infopanel/elements/create.ts";
+import { newComposite, newElement } from "@/lib/infopanel/elements/create.ts";
 import type { CardSpec, DividerSpec, ElementSpec } from "@/lib/infopanel/elements/spec.ts";
 import { bakeSignature, isStale } from "@/lib/infopanel/gauges/frames.ts";
 import { newItem } from "@/lib/infopanel/editor/create.ts";
@@ -138,5 +138,26 @@ describe("recolour (a palette slot changed)", () => {
   it("leaves a fixed ink alone", () => {
     const glow = withSpec(newElement("glow", profile, palette), { color: { color: "#FF00FF00" } } as never);
     expect(elementOf(recolour([glow], next)[0])).toMatchObject({ color: { color: "#FF00FF00" } });
+  });
+});
+
+describe("a ring's face", () => {
+  const face = { pattern: "hex", color: "#FFFFFF", opacity: 0.08, size: 14, fill: "#06090D" } as const;
+
+  it("goes into the vector spec the export bakes, and a changed face makes the frames stale", () => {
+    const plain = newElement("ring", profile, palette);
+    const faced = withSpec(plain, { face } as Partial<ElementSpec>);
+    expect(lab(faced).vector).toMatchObject({ face });
+    expect(lab(plain).vector).not.toHaveProperty("face");
+    expect(bakeSignature(lab(faced).vector as never, 101)).not.toBe(bakeSignature(lab(plain).vector as never, 101));
+    expect(badgeOf(faced)).toMatchObject({ kind: "baked" });
+  });
+
+  it("is on a Double ring's inner ring only", () => {
+    const made = newComposite("doublering", profile, palette, [], 0, 0);
+    const g = applyElement({ ...made, element: { ...elementOf(made)!, face } } as unknown as DisplayItem) as GroupItem;
+    const [outer, inner] = g.DisplayItems.map((i) => lab(i).vector);
+    expect(outer).not.toHaveProperty("face");
+    expect(inner).toMatchObject({ face });
   });
 });

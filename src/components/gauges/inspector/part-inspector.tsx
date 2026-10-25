@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import { InspectorChromeProvider } from "@/components/studio/inspector-layout";
 import { ALWAYS_ON, addPart, hasPart, partLabel, removePart, type PartId } from "@/lib/gauge-studio/parts";
-import { BackgroundInspector, CentreIconInspector, IconsInspector, PatternInspector, RingsInspector } from "./decor";
+import { BackgroundInspector, CentreIconInspector, FaceInspector, IconsInspector, PatternInspector, RingsInspector } from "./decor";
 import { BubblesInspector, GlowInspector, ShadowInspector, ShineInspector, WaveInspector } from "./effects";
 import { FillInspector } from "./fill";
 import { NeedleInspector, TrackInspector } from "./indicator";
@@ -23,6 +23,7 @@ const BODY: Record<PartId, (p: InspectorProps) => ReactNode> = {
   text: TextInspector,
   title: TitleInspector,
   background: BackgroundInspector,
+  face: FaceInspector,
   rings: RingsInspector,
   pattern: PatternInspector,
   icons: IconsInspector,
@@ -44,6 +45,7 @@ const BLURB: Partial<Record<PartId, string>> = {
   text: "The value as text, in the middle.",
   title: "A caption.",
   background: "Behind the gauge.",
+  face: "A textured disc inside the ring: hex, dots, grid or carbon. Baked into the frames on export.",
   rings: "Faint rings outside the arc.",
   pattern: "Stripes, dots or chevrons over the bar fill.",
   icons: "A row of icons in place of the bar.",

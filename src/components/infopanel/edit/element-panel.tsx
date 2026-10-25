@@ -10,7 +10,8 @@ import { getCatalog } from "@/lib/catalog";
 import { coreBars, driveTile, PLACEHOLDER_DRIVES } from "@/lib/infopanel/elements/create";
 import { detectCores } from "@/lib/infopanel/elements/cores";
 import { detectDrives } from "@/lib/infopanel/elements/drives";
-import { isSlot, SLOT_LABEL, SLOTS, slotInk, type Ink } from "@/lib/infopanel/elements/palette";
+import { DEFAULT_FACE, FACE_PATTERNS, type FaceSpec } from "@/lib/effects/face";
+import { isSlot, rgbOf, SLOT_LABEL, SLOTS, slotInk, type Ink } from "@/lib/infopanel/elements/palette";
 import { normalizeElement, type ElementSpec, type Threshold, type ValueGlow } from "@/lib/infopanel/elements/spec";
 import { iconMarkupOf, iconNames, iconsLoaded, loadIcons } from "@/lib/infopanel/elements/icons";
 import { updateAt, type Path } from "@/lib/infopanel/editor/ops";
@@ -20,6 +21,9 @@ import { Toggle } from "@/components/ui/toggle";
 import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import { Segmented } from "./canvas-toolbar";
 import type { CanvasEditor } from "./use-canvas-editor";
+
+/** The spec as plain data without one key (a switched-off effect is an absent key, not a null). */
+const withoutKey = (spec: ElementSpec, key: string) => Object.fromEntries(Object.entries(spec).filter(([k]) => k !== key));
 
 const INPUT = "h-7 w-full min-w-0 rounded-[6px] border border-ui-default bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
 
@@ -237,6 +241,38 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       )}
     </>
   );
+  /** A textured face inside the ring (effects/face.ts): a switch, then its pattern, colours, cell size and opacity. */
+  const faceRows = (face: FaceSpec | undefined) => {
+    const patch = (p: Partial<FaceSpec>, field: string) => set({ face: { ...(face ?? DEFAULT_FACE), ...p } }, `face-${field}`);
+    const argb = (rgb: string) => ({ color: `#FF${rgb.slice(1)}` });
+    return (
+      <>
+        <SwitchRow
+          label="Face"
+          on={!!face}
+          onChange={(on) => {
+            // Off drops the key: `set` merges, so the spec is rebuilt without it.
+            if (on) return set({ face: DEFAULT_FACE }, "face");
+            const rest = withoutKey(spec, "face");
+            const next = normalizeElement(rest);
+            if (next) editor.setElement(path, next, key("face"));
+          }}
+        />
+        {face && (
+          <>
+            <Row label="Pattern">
+              <Segmented label="Face pattern" value={face.pattern} options={FACE_PATTERNS.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))} onChange={(pattern) => patch({ pattern }, "pattern")} />
+            </Row>
+            <InkField label="Pattern colour" ink={argb(face.color)} palette={palette} onChange={(v) => patch({ color: rgbOf(v.color) }, "color")} />
+            <NumberField label="Pattern opacity" value={face.opacity} onCommit={(opacity) => patch({ opacity }, "opacity")} />
+            <NumberField label="Cell size" value={face.size} onCommit={(size) => patch({ size }, "size")} />
+            <SwitchRow label="Disc fill" on={face.fill !== null} onChange={(on) => patch({ fill: on ? DEFAULT_FACE.fill : null }, "fillon")} />
+            {face.fill !== null && <InkField label="Disc colour" ink={argb(face.fill)} palette={palette} onChange={(v) => patch({ fill: rgbOf(v.color) }, "fill")} />}
+          </>
+        )}
+      </>
+    );
+  };
   /** A row's look, shared by Row and Rows. */
   const rowLook = (s: Extract<ElementSpec, { type: "row" | "rows" }>) => (
     <>
@@ -319,6 +355,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {num("Value size", "valueSize", spec.valueSize)}
           {ink("Value", "value", spec.value)}
           {valueGlow(spec.valueGlow)}
+          {faceRows(spec.face)}
           {partsHint}
         </>
       );
@@ -387,6 +424,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {spec.segments > 0 && num("Gap (°)", "gap", spec.gap)}
           {num("Glow", "glow", spec.glow)}
           {byValue(spec.thresholds, "thresholds")}
+          {faceRows(spec.face)}
         </>
       );
       break;
@@ -421,6 +459,18 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
               <InkField label="Shadow colour" ink={spec.shadow.color} palette={palette} onChange={(color) => set({ shadow: { ...spec.shadow, color } }, "shadow-color")} />
             </>
           )}
+          <SwitchRow
+            label="Background blur"
+            on={!!spec.blur}
+            onChange={(on) => {
+              if (on) return set({ blur: 16 });
+              const rest = withoutKey(spec, "blur");
+              const next = normalizeElement(rest);
+              if (next) editor.setElement(path, next, key("blur"));
+            }}
+          />
+          {!!spec.blur && num("Blur radius", "blur", spec.blur)}
+          {!!spec.blur && <p className="text-[11.5px] leading-snug text-ui-4">Blurs what is behind the card, with a translucent fill. InfoPanel can’t, so the export bakes the background, images and shapes under it into the card’s image. Text and gauges behind it aren’t blurred there.</p>}
           <SwitchRow label="Outer glow" on={spec.glow !== null} onChange={(on) => set({ glow: on ? { blur: 16, color: slotInk(palette, "accent1") } : null })} />
           {spec.glow && (
             <>

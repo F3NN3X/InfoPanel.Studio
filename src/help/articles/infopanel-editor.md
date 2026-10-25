@@ -52,8 +52,8 @@ A template is a finished profile made from the editor's own items and elements, 
 | Tower | A tall card with FPS, CPU and GPU as lists of readings, each with a small graph |
 | Ticker | One long pill of text: CPU, GPU, FPS and the time |
 | Readout | Three instrument panels (GPU, CPU, System), each with one very large number and two meters that change colour as they fill. Colours: Mono, Glow (Mono with glowing numbers), Tint |
-| Console | A strip of six readouts, CPU and GPU rings, RAM and VRAM bars, and a tile for each drive. Colours: Ice, Ice glow (Ice with glowing numbers), Amber, Steel |
-| Frost Bar | Frosted glass cards over a soft wash: load rings, memory, clock, uptime, network and three temperature rings. Colours: Aurora, Smoke |
+| Console | A strip of six readouts, CPU and GPU rings on a hex face, RAM and VRAM bars, and a tile for each drive. Colours: Ice, Ice glow (Ice with glowing numbers), Amber, Steel |
+| Frost Bar | Frosted glass cards that blur the wash behind them: load rings, memory, clock, uptime, network and three temperature rings. Colours: Aurora, Smoke |
 | Quota | A large clock and a list of CPU, RAM, GPU and Disk load, one thin bar each. Colours: Slate, Sand |
 
 Deck, Meters, Orbit, Tower and Ticker come in Dark, White and Smoke, and in Float, which has no cards and puts a dark shadow behind every line of text (Deck also has Tint). They are made for their own sizes, which the Size row offers and picks for you: Deck 1920 × 1080 (it also lays out for 1920 × 480 and for upright screens), Meters 1600 × 300, Orbit 1080 × 240, Ticker 1280 × 160 and Tower 480 × 1920. At other sizes they stack their parts and still fit.
@@ -100,9 +100,9 @@ The **Elements** group in **Add** has looks InfoPanel has no item for. Each one 
 
 | Element | What it is | In the .infopanel file |
 |---|---|---|
-| Ring | A value arc: start and sweep, thickness, track, one colour or a 2 or 3 stop gradient, round or flat ends, an end dot, ticks, LED segments, a glow | A Gauge with 101 image frames, bound to its sensor with Min and Max |
-| LED bar | A bar of segments, across or down, with a gradient and a glow | A Gauge with image frames |
-| Card | A rounded card: a fill or a 2 colour gradient at an angle, a 1 px stroke, a drop shadow, an outer glow | A Shape while it has only a fill, a stroke and corners; one image otherwise |
+| Ring | A value arc: start and sweep, thickness, track, one colour or a 2 or 3 stop gradient, round or flat ends, an end dot, ticks, LED segments, a glow, a textured face inside the ring | A Gauge with 101 image frames, bound to its sensor with Min and Max; the face is baked into them || A Gauge with 101 image frames, bound to its sensor with Min and Max |
+| LED bar | A bar of segments, across or down, with a gradient and a glow, a textured face inside the ring | A Gauge with 101 image frames, bound to its sensor with Min and Max; the face is baked into them || A Gauge with image frames |
+| Card | A rounded card: a fill or a 2 colour gradient at an angle, a 1 px stroke, a drop shadow, an outer glow, a background blur | A Shape while it has only a fill, a stroke and corners; one image otherwise, and with a blur one image with the blurred background baked in || A Shape while it has only a fill, a stroke and corners; one image otherwise |
 | Glow | A soft round light, for behind content | One image, see-through where the light fades |
 | Divider | A 1 or 2 px line, one colour or a gradient | A Shape when it's one colour; one image otherwise |
 | Icon | An icon from a searchable list, in a colour, as big as its box | One image |
@@ -122,6 +122,10 @@ Row, Rows, Graph stack, Dual graph and Double ring start with no sensors. Select
 
 **Glow** is on every Text and Value, in its Glow section: a switch, a radius from 2 to 20 and a colour. InfoPanel draws it itself, so it exports as it looks. Row, Rows and Double ring have a **Value glow** switch that sets it on their values. The dashboard's **Number glow** (Style, Typography) is the same idea for the dashboard's own widgets.
 
+**Face** is on Ring and Double ring (on its inner ring): a dark disc inside the ring with a repeating pattern on it, Hex, Dots, Grid or Carbon, with its own colour, opacity and cell size. InfoPanel can't draw a pattern, so the face is baked into the ring's frames when you export. The same Face is a part in the Gauges editor, so a Custom gauge on the dashboard can have one.
+
+**Background blur** is on Card. It blurs whatever is drawn behind the card, so give the card a see-through fill. InfoPanel can't blur what is behind an item, so the export bakes the blurred background into the card's image, and the card is badged Approximated. The bake covers the profile's background colour and the images, shapes and cards under the card. Text, values and gauges behind it aren't in the baked picture, so they show sharp in InfoPanel.
+
 **Colours by value** is in the Ring and LED bar settings, and in the Double ring for the inner ring. Each colour takes over from its percent of the range, so a frame has the colour of its value. That gives a ring that turns amber and then red as it fills. The end dot is left off while it's on, so it can't disagree with the ring.
 
 For a rounded progress bar, a Bar's Sensor section has **Rounded gradient look**: it sets the corner radius to half the height and fills with a gradient from accent 1 to accent 2. The Bar stays a native Bar.
@@ -134,7 +138,7 @@ Each element shows how it leaves for InfoPanel, in **Layers** (a letter) and in 
 - **Baked**: it goes as images or gauge frames, made when you export.
 - **Approximated**: it goes as the closest InfoPanel item. Hover over the badge, or look in the inspector, for what's lost.
 
-A Card or Divider changes badge as you change it: a shadow, glow or gradient makes it Baked.
+A Card or Divider changes badge as you change it: a shadow, glow or gradient makes it Baked, and a background blur makes a Card Approximated.
 
 ## The palette
 
