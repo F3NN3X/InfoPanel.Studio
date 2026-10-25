@@ -184,13 +184,14 @@ export function drivesLayout(s: Pick<DrivesSpec, "orientation" | "gap" | "width"
 export function tileLayout(at: { x: number; y: number; width: number; height: number }) {
   const pad = Math.max(3, Math.round(Math.min(at.width, at.height) * 0.07));
   const iconS = Math.round(at.height * 0.26);
-  const size = Math.min(14, Math.max(6, Math.round(Math.min(at.height, at.width) * 0.06)));
+  const size = Math.min(22, Math.max(6, Math.round(Math.min(at.height, at.width) * 0.1)));
   const inner = at.width - 2 * pad;
   const lineH = Math.round(size * 1.8);
   const pctW = Math.max(Math.round(inner * 0.26), size * 4);
   const barH = Math.max(3, Math.round(at.height * 0.05));
-  const rowY = at.y + pad + iconS + 3;
   const lowY = at.y + at.height - pad - lineH;
+  // The bar row sits midway between the name row and the bottom row.
+  const rowY = at.y + pad + iconS + Math.max(3, Math.round((lowY - (at.y + pad + iconS) - lineH) / 2));
   return {
     pad, iconS, size, inner, lineH,
     icon: { x: at.x + pad, y: at.y + pad, w: iconS, h: iconS },

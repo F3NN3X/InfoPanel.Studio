@@ -5,7 +5,7 @@
  */
 import type { Slot } from "../../elements/palette.ts";
 import type { DisplayItem } from "../../schema.ts";
-import { drives, figure, labelRow } from "../composites.ts";
+import { drives, figure } from "../composites.ts";
 import { card, clock, icon, ink, ledbar, text, value, type Kit, type Template } from "../kit.ts";
 import { inset, split, type Box } from "../layout.ts";
 import { lineOf, ringValue } from "../parts.ts";
@@ -54,7 +54,7 @@ function header(k: Kit, b: Box): DisplayItem[] {
       icon(k, cell.icon, { x: c.x + pad, y: Math.round(c.y + (c.height - ic) / 2), width: ic, height: ic }, "subtext"),
       text(k, cell.caption.toUpperCase(), { x: tx, y: c.y + pad * 0.7, px: capPx, slot: "subtext", upper: true }),
       ...(cell.role
-        ? figure(k, cell.role, valBox, { px: valPx, unit: cell.unit ?? "", unitSlot: "accent1" })
+        ? figure(k, cell.role, valBox, { px: valPx, unit: cell.unit ?? "", unitSlot: "accent1", unitScale: 0.5 })
         : [clock(k, cell.format ?? "", { x: tx, y: valBox.y, px: valPx, width: valBox.width, align: "left" }, cell.date)]),
     ];
   });
@@ -106,7 +106,9 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
   const gap = px(8);
   const n = p.rows.length;
   const rowH = (list.height - gap * (n - 1)) / n;
-  const rowPx = Math.max(9, Math.round(Math.min(rowH * 0.4, list.width * 0.07)));
+  // One size for both panels' boxes whatever their row count: sized for the longest list, labels small beside the values.
+  const valPx = Math.max(10, Math.round(Math.min(px(26), list.width * 0.06, ((list.height - gap * 4) / 5) * 0.5)));
+  const labPx = Math.max(8, Math.round(valPx * 0.45));
   const usagePx = Math.max(8, Math.round(size * 0.075));
   return [
     card(k, `${p.title} panel`, b, { radius: px(10), fill: [ink(k, "card")], stroke: ink(k, p.slot) }),
@@ -117,7 +119,9 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
       const box = { x: list.x, y: list.y + i * (rowH + gap), width: list.width, height: rowH };
       return [
         card(k, `${r.label} box`, box, { radius: px(7), fill: [dim], stroke: ink(k, "track") }),
-        labelRow(k, inset(box, Math.round(rowH * 0.18)), r.label, r.role, { px: rowPx, icon: r.icon, iconSlot: p.slot, value: "text", upper: true }),
+        icon(k, r.icon, { x: box.x + gap, y: Math.round(box.y + (rowH - valPx * 1.3) / 2), width: Math.round(valPx * 1.3), height: Math.round(valPx * 1.3) }, p.slot),
+        text(k, r.label.toUpperCase(), { x: box.x + gap * 2 + valPx * 1.3, y: box.y + (rowH - lineOf(labPx)) / 2, px: labPx, slot: "subtext", upper: true }),
+        value(k, r.role, { x: box.x, y: box.y + (rowH - lineOf(valPx)) / 2 - valPx * 0.05, px: valPx, width: box.width - gap, align: "right", slot: "text" }),
       ];
     }),
   ];

@@ -102,11 +102,13 @@ export interface FigureOpts {
   slot?: Slot;
   weight?: Weight;
   unitSlot?: Slot;
+  /** The unit's size as a share of the value's; 0.3 when absent. */
+  unitScale?: number;
 }
 
 /** A big value with its unit set small after it, the pair right-aligned in the box. */
 export function figure(k: Kit, role: Role, b: Box, o: FigureOpts): DisplayItem[] {
-  const uPx = Math.max(8, Math.round(o.px * 0.3));
+  const uPx = Math.max(8, Math.round(o.px * (o.unitScale ?? 0.3)));
   const uW = Math.round(o.unit.length * uPx * 0.62 + uPx * 0.5);
   return [
     value(k, role, { x: b.x, y: b.y, px: o.px, width: Math.max(1, b.width - uW), align: "right", slot: o.slot, weight: o.weight, unit: false }),

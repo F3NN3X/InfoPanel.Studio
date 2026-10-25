@@ -72,10 +72,12 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
   const big = [label(p.big.label, bigZ.x, bodyTop), ...figure(k, p.big.role, bigBox, { px: bigPx, unit: p.big.unit ?? "°C", weight: "strong" })];
 
   const blockH = bodyH / 2;
-  const sidePx = Math.round(Math.max(px(18), Math.min((blockH - labH) / 1.35, px(52), sideZ.w * 0.34)));
+  // The secondary column: labels and numbers share the zone's right edge, each block under the same pattern.
+  const unitLen = Math.max(...p.side.map((st) => (st.unit ?? "°C").length));
+  const sidePx = Math.round(Math.max(px(18), Math.min((blockH - labH) / 1.35, px(52), sideZ.w / (3 + 0.19 * unitLen))));
   const side = p.side.flatMap((st, i) => {
     const y = bodyTop + i * blockH;
-    return [label(st.label, sideZ.x, y), ...figure(k, st.role, { x: sideZ.x, y: y + labH, width: sideZ.w, height: lineOf(sidePx) }, { px: sidePx, unit: st.unit ?? "°C", weight: "strong" })];
+    return [text(k, st.label.toUpperCase(), { x: sideZ.x, y, px: labPx, width: sideZ.w, align: "right", slot: "subtext", upper: true }), ...figure(k, st.role, { x: sideZ.x, y: y + labH, width: sideZ.w, height: lineOf(sidePx) }, { px: sidePx, unit: st.unit ?? "°C", weight: "strong" })];
   });
 
   const list = p.list && listZ
@@ -117,8 +119,8 @@ const CPU: PanelSpec = {
 
 const SYSTEM: PanelSpec = {
   title: "System", slot: "accent3", head: "clock",
-  big: { label: "Download", role: "net.down", unit: "MB/s" },
-  side: [{ label: "Upload", role: "net.up", unit: "MB/s" }, { label: "Disk", role: "disk.temp" }],
+  big: { label: "Memory", role: "ram.load", unit: "%" },
+  side: [{ label: "Download", role: "net.down", unit: "MB/s" }, { label: "Upload", role: "net.up", unit: "MB/s" }],
   foot: [{ label: "RAM", role: "ram.used" }, { label: "Disk", role: "disk.load" }],
 };
 

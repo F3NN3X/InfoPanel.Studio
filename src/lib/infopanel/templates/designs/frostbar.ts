@@ -6,8 +6,8 @@
  */
 import type { Slot } from "../../elements/palette.ts";
 import type { DisplayItem } from "../../schema.ts";
-import { doubleRing, labelRow, labelRows } from "../composites.ts";
-import { bar, card, clock, glow, ink, text, value, type Kit, type Template } from "../kit.ts";
+import { doubleRing, labelRows } from "../composites.ts";
+import { bar, card, clock, glow, icon, ink, text, value, type Kit, type Template } from "../kit.ts";
 import { inset, square, type Box } from "../layout.ts";
 import { lineOf, ringValue } from "../parts.ts";
 
@@ -105,8 +105,17 @@ function networkCard(k: Kit, b: Box): DisplayItem[] {
   return [
     glass(k, "Network card", b),
     text(k, "Network", { x: inner.x, y: inner.y, px: px(18), slot: "accent1", weight: "strong" }),
-    labelRow(k, { x: inner.x, y: rowsTop, width: inner.width, height: rowH }, "Down", "net.down", { px: px(14), icon: "arrow-down", iconSlot: "accent1", value: "text" }),
-    labelRow(k, { x: inner.x, y: rowsTop + rowH, width: inner.width, height: rowH }, "Up", "net.up", { px: px(14), icon: "arrow-up", iconSlot: "accent3", value: "text" }),
+    ...(["net.down", "net.up"] as const).flatMap((role, i) => {
+      const y = rowsTop + i * rowH;
+      const s = Math.round(rowH * 0.7);
+      // The arrow says which way; the value takes the rest of the row, wide enough for "10429.3MB/s".
+      const vx = inner.x + s + px(8);
+      const vPx = Math.max(8, Math.min(px(17), Math.round((inner.x + inner.width - vx) / (12 * 0.55))));
+      return [
+        icon(k, i === 0 ? "arrow-down" : "arrow-up", { x: inner.x, y: Math.round(y + (rowH - s) / 2), width: s, height: s }, i === 0 ? "accent1" : "accent3"),
+        value(k, role, { x: vx, y: y + (rowH - lineOf(vPx)) / 2, px: vPx, width: inner.x + inner.width - vx, align: "right", slot: "text" }),
+      ];
+    }),
   ];
 }
 
