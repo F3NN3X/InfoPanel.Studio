@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { ArrangeOp } from "./zone-arrange";
 
 /** What a studio keyboard shortcut does. */
 export type ShortcutAction =
@@ -8,6 +9,7 @@ export type ShortcutAction =
   | { type: "select-all" }
   | { type: "copy-style" }
   | { type: "paste-style" }
+  | { type: "arrange"; op: ArrangeOp }
   | { type: "escape" }
   | { type: "nudge"; cols: number; rows: number }
   | { type: "resize"; cols: number; rows: number }
@@ -130,10 +132,20 @@ function styleAction(e: KeyInput): ShortcutAction | null {
   return null;
 }
 
+/** Alt+A / D / W / S align the selection left / right / top / bottom; Alt+Shift+H / V distribute it (by `code`). */
+function arrangeAction(e: KeyInput): ShortcutAction | null {
+  if (e.altGraph || e.ctrlKey || e.metaKey) return null;
+  const ops: Record<string, ArrangeOp> = e.shiftKey
+    ? { KeyH: "distribute-h", KeyV: "distribute-v" }
+    : { KeyA: "align-left", KeyD: "align-right", KeyW: "align-top", KeyS: "align-bottom" };
+  const op = e.code ? ops[e.code] : undefined;
+  return op ? { type: "arrange", op } : null;
+}
+
 /** `shortcutAction` without a selected widget. */
 function zoneAction(e: KeyInput, ctx: ShortcutContext): ShortcutAction | null {
   if (e.altKey) {
-    const action = e.ctrlKey || e.metaKey ? styleAction(e) : null;
+    const action = e.ctrlKey || e.metaKey ? styleAction(e) : arrangeAction(e);
     return action && !ctx.typing && !ctx.overlay ? action : null;
   }
   if (e.ctrlKey || e.metaKey) {
@@ -167,6 +179,12 @@ export const KEYS = {
   duplicate: "Ctrl+D",
   copyStyle: "Ctrl+Alt+C",
   pasteStyle: "Ctrl+Alt+V",
+  alignLeft: "Alt+A",
+  alignRight: "Alt+D",
+  alignTop: "Alt+W",
+  alignBottom: "Alt+S",
+  distributeH: "Alt+Shift+H",
+  distributeV: "Alt+Shift+V",
   selectAll: "Ctrl+A",
   remove: "Del",
   copy: "Ctrl+C",
@@ -208,6 +226,9 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
       { keys: "← ↑ → ↓", label: "Move the selection one cell" },
       { keys: "Shift+← / →", label: "Narrower / wider (the primary zone)" },
       { keys: "Shift+↑ / ↓", label: "Shorter / taller (the primary zone)" },
+      { keys: "Shift+drag on empty grid", label: "Select the zones inside the box" },
+      { keys: "Alt+A / D / W / S", label: "Align left / right / top / bottom (several zones)" },
+      { keys: `${KEYS.distributeH} / V`, label: "Spread three or more zones evenly across / down" },
       { keys: KEYS.duplicate, label: "Duplicate" },
       { keys: KEYS.hide, label: "Hide / show" },
       { keys: KEYS.copyStyle, label: "Copy the primary zone's style" },

@@ -26,6 +26,7 @@ import { sampleLayout } from "@/lib/sample-layout";
 import { updateStylePreset } from "@/lib/style-presets";
 import type { ModuleSettings } from "@/modules/types";
 import * as actions from "./studio-actions";
+import { arrangeZones, type ArrangeOp } from "./zone-arrange";
 import { deletePanelPreset, renamePanelPreset, savePanelPreset } from "./panel-preset-actions";
 import { duplicateProfile as duplicateInConfig, withoutProfile, withProfile } from "./profile-actions";
 import { moduleDropSize, type LibraryItem } from "./drop-ghost";
@@ -266,6 +267,20 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     if (rects) setZoneRects(rects, `zone-nudge:${ids.join()}`);
   };
 
+  /** The boxes an arrangement would give the selection (null = it doesn't fit, or moves nothing). */
+  const arrangement = (op: ArrangeOp) =>
+    selected && sel.selectedIds.length > 1
+      ? arrangeZones(op, profile.placements, sel.selectedIds, selected.id, profile.cols, profile.rows, actions.zoneMinSize)
+      : null;
+
+  /** Align, match or distribute the selection (one undo step). */
+  const arrangeSelection = (op: ArrangeOp) => {
+    if (sel.selectedIds.length < 2) return;
+    const rects = arrangement(op);
+    if (rects) setZoneRects(rects);
+    else toast("Nothing to change, or no room for it");
+  };
+
   /** The primary zone at a new size (toolbar steps); null = blocked. */
   const resizeSelected = (size: { cols: number; rows: number }) =>
     selected
@@ -446,6 +461,8 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     removeSelection,
     setZoneRect,
     setZoneRects,
+    arrangement,
+    arrangeSelection,
     moveSelection,
     resizeSelected,
     resizePrimary,

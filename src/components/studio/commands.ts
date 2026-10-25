@@ -6,6 +6,7 @@ import { placementTitle } from "./studio-modules";
 import { KEYS } from "./use-studio-shortcuts";
 import { widgetName } from "./widget-kinds";
 import { sortZones } from "./zone-geometry";
+import type { ArrangeOp } from "./zone-arrange";
 
 /** What a command palette entry does (the studio carries it out). */
 export type CommandAction =
@@ -61,6 +62,7 @@ export type CommandAction =
   | { type: "open-theme"; section?: string }
   | { type: "copy-style" }
   | { type: "paste-style" }
+  | { type: "arrange"; op: ArrangeOp }
   | { type: "follow-global" }
   | { type: "deselect" }
   | { type: "resize-step"; cols: number; rows: number }
@@ -216,10 +218,10 @@ function pageCommands(s: CommandState): Command[] {
   ];
 }
 
-/** Hide, duplicate and remove for several selected zones at once. */
+/** Hide, duplicate, remove, align and distribute for several selected zones at once. */
 function selectionCommands(selection: Placement[]): Command[] {
   const n = selection.length;
-  const zone = (id: string, label: string, action: CommandAction, hint: string): Command => ({
+  const zone = (id: string, label: string, action: CommandAction, hint?: string): Command => ({
     id: `zone:${id}`,
     label,
     group: "Selected zones",
@@ -235,6 +237,18 @@ function selectionCommands(selection: Placement[]): Command[] {
       KEYS.hide
     ),
     zone("remove", `Remove ${n} zones`, { type: "remove" }, KEYS.remove),
+    zone("align-left", "Align left", { type: "arrange", op: "align-left" }, KEYS.alignLeft),
+    zone("align-right", "Align right", { type: "arrange", op: "align-right" }, KEYS.alignRight),
+    zone("align-top", "Align top", { type: "arrange", op: "align-top" }, KEYS.alignTop),
+    zone("align-bottom", "Align bottom", { type: "arrange", op: "align-bottom" }, KEYS.alignBottom),
+    zone("match-width", "Match width of the primary zone", { type: "arrange", op: "match-width" }),
+    zone("match-height", "Match height of the primary zone", { type: "arrange", op: "match-height" }),
+    ...(n >= 3
+      ? [
+          zone("distribute-h", "Distribute horizontally", { type: "arrange", op: "distribute-h" }, KEYS.distributeH),
+          zone("distribute-v", "Distribute vertically", { type: "arrange", op: "distribute-v" }, KEYS.distributeV),
+        ]
+      : []),
   ];
 }
 

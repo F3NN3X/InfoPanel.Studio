@@ -231,6 +231,8 @@ export function useStudioCommands({
     }
     if (!selected) return;
     switch (action.type) {
+      case "arrange":
+        return edit.arrangeSelection(action.op);
       case "duplicate":
         return edit.duplicateSelection();
       case "toggle-visible":

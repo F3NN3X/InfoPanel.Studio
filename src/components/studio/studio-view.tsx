@@ -602,6 +602,7 @@ function StudioViewBody({
       selectedWidgetId={selectedWidgetId}
       onSelectWidget={sel.selectWidget}
       onDrawZone={edit.addDrawnZone}
+      onSelectMany={sel.selectMany}
       onZoneRect={(id, rect) => edit.setZoneRect(id, rect, `zone-drag:${id}`)}
       onZoneRects={(id, rects) => edit.setZoneRects(rects, `zone-drag:${id}`)}
       onPickWidget={(id) => {
@@ -995,6 +996,7 @@ function StudioViewBody({
             selected !== null &&
             edit.resizeSelected({ cols: selected.colSpan + cols, rows: selected.rowSpan + rows }) !== null
           }
+          canArrange={(op) => edit.arrangement(op) !== null}
           otherPages={storedProfile.pages.filter((p) => p.id !== profile.pageId)}
           onRun={runCommand}
           onClose={menus.close}

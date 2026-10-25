@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **Align, distribute and multi-edit on the Design canvas.** Hold `Shift` and drag over empty grid to select every zone the box touches. With two or more zones selected, **Align and distribute** in the right-click menu and the command palette aligns them left, right, top or bottom (`Alt+A`, `Alt+D`, `Alt+W`, `Alt+S`), matches their width or height to the primary zone, and with three or more spaces them evenly (`Alt+Shift+H`, `Alt+Shift+V`). It works in grid cells; a change that would overlap a zone, leave the grid or go under a minimum size is refused and nothing moves. The inspector marks a setting **Mixed** where the selected zones differ. Each action is one undo step. Saved settings are unchanged.
+
 ### Changed
 
 - **Converting to InfoPanel is experimental.** Convert zone and Convert screen say so in their menus and window. The conversion stays as it is; new widgets and effects are made for the dashboard's own screens.

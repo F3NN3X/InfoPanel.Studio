@@ -3,7 +3,7 @@ id: zones
 title: Zones
 icon: grid_view
 related: [widgets, panels, studio]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.28
 ---
 
 Every box on the grid is a zone. Select one to move, resize or fill it.
@@ -14,7 +14,24 @@ Every box on the grid is a zone. Select one to move, resize or fill it.
 - Drag the corner handle to resize. A zone can't go below its widget's minimum size.
 - Or type exact values in the zone box at the top of the inspector: **COL**, **ROW**, **W**, **H**.
 - Arrow keys move the selected zone and `Shift`+arrow resizes it. The right-click menu has **Narrower**, **Wider**, **Shorter** and **Taller**.
-- Select several zones with `Shift`+click or `Ctrl`+click, or all of them with `Ctrl+A`.
+- Select several zones with `Shift`+click or `Ctrl`+click, or all of them with `Ctrl+A`. To select by area, hold `Shift` and drag a box over empty grid; every zone it touches is selected. `Esc` clears the selection.
+- Several selected zones move together, and delete and duplicate together. Each is one undo step.
+
+## Align and distribute
+
+With two or more zones selected, the right-click menu has **Align and distribute**. It works in grid cells.
+
+| Action | Keys | What it does |
+|---|---|---|
+| Align left, right, top, bottom | `Alt+A`, `Alt+D`, `Alt+W`, `Alt+S` | Lines the zones up on that edge of the box around them |
+| Match width, match height | | Gives every zone the primary zone's width or height (the last one you selected) |
+| Distribute horizontally, vertically | `Alt+Shift+H`, `Alt+Shift+V` | With three or more zones, spaces them evenly between the first and last |
+
+A change that would overlap another zone, leave the grid or push a zone under its minimum size is refused and nothing moves. The same actions are in the command palette. Each is one undo step.
+
+## Editing several zones
+
+With several zones selected, the inspector shows the Style settings they share. A row where the zones differ is marked **Mixed** and shows the primary zone's value. Change it and every selected zone gets that value.
 
 ## Zone kinds
 
@@ -30,3 +47,5 @@ Every box on the grid is a zone. Select one to move, resize or fill it.
 The inspector header has **Hide**, **Duplicate** and **Delete**. Hidden zones stay in the layout but don't render on the kiosk. Use the **Widget type** row (or **Change widget…** in the right-click menu) to swap the widget while keeping the zone and its look.
 
 Right-click also offers **Move to page** when the screen has more than one page, **Copy style** and **Paste style**, and **Save as Panel** on a panel.
+
+**Copy style** (`Ctrl+Alt+C`) takes a zone's look: theme and widget theme values, effects such as glow, blur and ring face, and the card chrome. It never takes the zone's data or sensor settings. **Paste style** (`Ctrl+Alt+V`) puts it on every selected zone.
