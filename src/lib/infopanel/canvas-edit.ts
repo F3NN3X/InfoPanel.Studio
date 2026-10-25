@@ -117,6 +117,12 @@ export function itemMode(item: DisplayItem, path: Path, ctx: ConvertContext): It
   return { state: !conversion.ok ? "stuck" : isNative(item) ? "native" : "infopanel", conversion };
 }
 
+/** "Native · Bar", "InfoPanel · Text", "InfoPanel · Gauge · can't convert": an item's mode and kind, for the inspector. */
+export function badgeText(kind: string, state: ModeState | undefined): string {
+  if (!state) return kind;
+  return state === "native" ? `Native · ${kind}` : state === "stuck" ? `InfoPanel · ${kind} · can’t convert` : `InfoPanel · ${kind}`;
+}
+
 /** Every item's mode by path (groups left out), for the tree dots, the tints and the counts. */
 export function itemModes(items: readonly DisplayItem[], ctx: ConvertContext): Map<Path, ItemMode> {
   const out = new Map<Path, ItemMode>();

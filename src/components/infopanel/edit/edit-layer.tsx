@@ -4,12 +4,11 @@
  * items' `data-path` attributes, so the renderer has no editing code; the click goes to the
  * topmost item the mouse takes (`hitTest`: locked and hidden items let it through). A move or
  * resize snaps to the canvas and the other items with guides drawn (Alt: off), Shift keeps a move
- * on one axis and a resize in proportion. A selected item gets an accent outline, a badge naming
- * its mode and kind, and its size; Show modes tints every item. Coordinates are profile pixels.
+ * on one axis and a resize in proportion. A selected item gets an accent outline, and its size while
+ * it is dragged or resized (its mode and kind are in the inspector); Show modes tints every item. Coordinates are profile pixels.
  * Ported from the lab's EditLayer.
  */
 import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
-import { Lock } from "lucide-react";
 import { flatPaths } from "@/lib/infopanel/canvas-edit";
 import { hitTest, unitPick } from "@/lib/infopanel/editor/arrange";
 import { itemAt, moveBy, setBox, type Box, type Path } from "@/lib/infopanel/editor/ops";
@@ -86,17 +85,10 @@ const sameBoxes = (a: Record<string, Box>, b: Record<string, Box>) =>
 const ACCENT = "var(--ui-accent)";
 const GUIDE = "oklch(0.72 0.24 340)";
 const TINT: Record<ModeState, { bg: string; border: string }> = {
-  native: { bg: "oklch(0.72 0.15 255 / 0.16)", border: "oklch(0.72 0.15 255 / 0.7)" },
-  infopanel: { bg: "oklch(0.8 0.15 75 / 0.16)", border: "oklch(0.8 0.15 75 / 0.7)" },
-  stuck: { bg: "repeating-linear-gradient(45deg, oklch(0.72 0.17 25 / 0.26) 0 6px, transparent 6px 12px)", border: "oklch(0.72 0.17 25 / 0.7)" },
+  native: { bg: "oklch(0.72 0.15 255 / 0.07)", border: "oklch(0.72 0.15 255 / 0.7)" },
+  infopanel: { bg: "oklch(0.8 0.15 75 / 0.07)", border: "oklch(0.8 0.15 75 / 0.7)" },
+  stuck: { bg: "repeating-linear-gradient(45deg, oklch(0.72 0.17 25 / 0.12) 0 6px, transparent 6px 12px)", border: "oklch(0.72 0.17 25 / 0.7)" },
 };
-const BADGE_BORDER: Record<ModeState, string> = { native: ACCENT, infopanel: "var(--ui-warning)", stuck: "var(--ui-danger)" };
-
-/** "Native · Bar", "InfoPanel · Text", "InfoPanel · Gauge · can't convert". */
-export function badgeText(kind: string, state: ModeState | undefined): string {
-  if (!state) return kind;
-  return state === "native" ? `Native · ${kind}` : state === "stuck" ? `InfoPanel · ${kind} · can’t convert` : `InfoPanel · ${kind}`;
-}
 
 export interface EditLayerProps {
   editor: CanvasEditor;
@@ -110,8 +102,10 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
   const drag = useRef<Drag | null>(null);
   const { boxes, setBoxes } = editor;
   const [guides, setGuides] = useState<Guide[]>([]);
+  /** A drag is moving or resizing: the size label shows only then. */
+  const [sizing, setSizing] = useState(false);
   const profile = { Width: profileWidth, Height: profileHeight };
-  /** Profile pixels per screen pixel, so handles and badges keep their screen size at any zoom. */
+  /** Profile pixels per screen pixel, so handles and labels keep their screen size at any zoom. */
   const [zoomK, setZoomK] = useState(1);
   const measured = showModes ? [...new Set([...editor.modes.keys(), ...editor.selection])] : editor.selection;
 
@@ -211,6 +205,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
     const dx = (e.clientX - d.x) * d.k;
     const dy = (e.clientY - d.y) * d.k;
     if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_THRESHOLD) return;
+    if (!d.moved) setSizing(true);
     d.moved = true;
     // Snapping is in screen pixels, so it feels the same at any zoom; Alt turns it off.
     const threshold = snapThreshold(d.k, e.altKey);
@@ -247,6 +242,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
     const d = drag.current;
     drag.current = null;
     setGuides([]);
+    setSizing(false);
     if (!d) return;
     // One drag, one undo step.
     if (d.moved) editor.commit(editor.items);
@@ -256,10 +252,10 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
   const onPointerCancel = () => {
     drag.current = null;
     setGuides([]);
+    setSizing(false);
     editor.preview(null);
   };
 
-  const fontPx = 11 * zoomK;
   return (
     <div
       ref={layer}
@@ -296,8 +292,6 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
       {editor.selection.map((p) => {
         const b = boxes[p];
         if (!b) return null;
-        const item = itemAt(editor.items, p);
-        const state = editor.modes.get(p)?.state;
         return (
           <div
             key={p}
@@ -312,31 +306,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
               pointerEvents: "none",
             }}
           >
-            {p === single && item && (
-              <span
-                style={{
-                  position: "absolute",
-                  // With no room above the box (at the canvas top), the tag sits inside its top-left corner.
-                  ...(b.y > 28 * zoomK ? { left: -2 * zoomK, bottom: `calc(100% + ${6 * zoomK}px)` } : { left: 4 * zoomK, top: 4 * zoomK }),
-                  whiteSpace: "nowrap",
-                  padding: `${2 * zoomK}px ${7 * zoomK}px`,
-                  borderRadius: 5 * zoomK,
-                  background: "#16161b",
-                  border: `${zoomK}px solid ${state ? BADGE_BORDER[state] : "#3a3a42"}`,
-                  color: "#ededf0",
-                  fontSize: fontPx,
-                  lineHeight: 1.3,
-                  fontFamily: "var(--font-ui, sans-serif)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4 * zoomK,
-                }}
-              >
-                {badgeText(item.kind, state)}
-                {item.IsLocked && <Lock style={{ width: fontPx, height: fontPx }} aria-label="Locked" />}
-              </span>
-            )}
-            {p === single && (
+            {p === single && sizing && (
               <span
                 data-size-label=""
                 style={{
