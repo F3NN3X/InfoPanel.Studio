@@ -7,10 +7,11 @@
  * Draw order is list order, a group's children drawn in the group's place and in their own order, so
  * the Layers rows read top to bottom in that order (the first row is drawn first, at the back).
  *
- * A Cores element is a group of bars the element lays out itself: its bars can't be moved in or
- * out, but the group can move into another group as a whole.
+ * Cores, Row, Rows, Graph stack, Dual graph, Double ring, Drives and Shadow text are groups the
+ * element lays out itself: their parts (and, for Rows and Drives, the parts' parts) can't be moved
+ * in or out, but the group can move into another group as a whole.
  */
-import { elementOf } from "../elements/spec.ts";
+import { elementOf, isManagedGroup, type ElementType } from "../elements/spec.ts";
 import type { DisplayItem, GroupItem } from "../schema.ts";
 import { itemAt, topmost, updateList, type Path } from "./ops.ts";
 
@@ -26,17 +27,41 @@ const byTree = (a: Path, b: Path) => {
   return x.length - y.length;
 };
 
-/** Whether the item is a group the element lays out itself (Cores). */
-export const isManaged = (item: DisplayItem | undefined): boolean => item?.kind === "Group" && elementOf(item)?.type === "cores";
+/** Whether the item is a group the element lays out itself. */
+export const isManaged = (item: DisplayItem | undefined): boolean => item?.kind === "Group" && isManagedGroup(elementOf(item));
 
-const MANAGED = "Cores places its own bars, so they can’t be moved in or out.";
+/** What each managed group calls its parts, for the reason a drop is refused. */
+const PARTS: Partial<Record<ElementType, [string, string]>> = {
+  cores: ["Cores", "bars"],
+  row: ["A Row", "parts"],
+  rows: ["Rows", "rows"],
+  stack: ["A Graph stack", "graphs and labels"],
+  dual: ["A Dual graph", "graphs"],
+  doublering: ["A Double ring", "rings and value"],
+  drives: ["Drives", "tiles"],
+  shadowtext: ["Shadow text", "text and its copy"],
+};
+
+const managedReason = (group: DisplayItem | undefined): string => {
+  const [name, parts] = PARTS[elementOf(group)?.type as ElementType] ?? ["This element", "parts"];
+  return `${name} places its own ${parts}, so they can’t be moved in or out.`;
+};
 const LOCKED = "That group is locked.";
 
-/** The reason `path` can't leave or join its parent, or null: a Cores bar, or a locked group's item. */
+/** The nearest managed group at or above `path` (a Drives tile's parts belong to Drives), or undefined. */
+function managedAt(items: readonly DisplayItem[], path: Path): DisplayItem | undefined {
+  for (let p = path; p !== ""; p = parentOf(p)) {
+    const it = itemAt(items, p);
+    if (isManaged(it)) return it;
+  }
+  return undefined;
+}
+
+/** The reason `path` can't leave or join its parent, or null: a part of a managed group, or a locked group's item. */
 function heldBy(items: readonly DisplayItem[], path: Path): string | null {
-  const parent = itemAt(items, parentOf(path));
   if (parentOf(path) === "") return null;
-  return isManaged(parent) ? MANAGED : parent?.IsLocked ? LOCKED : null;
+  const managed = managedAt(items, parentOf(path));
+  return managed ? managedReason(managed) : itemAt(items, parentOf(path))?.IsLocked ? LOCKED : null;
 }
 
 export type Moved = { ok: true; items: DisplayItem[]; paths: Path[] } | { ok: false; reason: string };
@@ -56,7 +81,8 @@ export function moveBlock(items: readonly DisplayItem[], paths: readonly Path[],
   if (parent === "") return null;
   const target = itemAt(items, parent);
   if (target?.kind !== "Group") return "Items can only go into a group.";
-  return isManaged(target) ? MANAGED : target.IsLocked ? LOCKED : null;
+  const managed = managedAt(items, parent);
+  return managed ? managedReason(managed) : target.IsLocked ? LOCKED : null;
 }
 
 /**
@@ -122,11 +148,11 @@ export function groupItems(items: readonly DisplayItem[], paths: readonly Path[]
 /**
  * Replaces a group with its children, in place, each keeping its position on the canvas; a hidden
  * or locked group leaves its children hidden or locked (as InfoPanel applies the flags to them).
- * Returns their paths, or null for a non-group or a Cores group (its bars belong to the element).
+ * Returns their paths, or null for a non-group or a managed group (its parts belong to the element).
  */
 export function ungroupAt(items: readonly DisplayItem[], path: Path): { items: DisplayItem[]; paths: Path[] } | null {
   const g = itemAt(items, path);
-  if (g?.kind !== "Group" || isManaged(g)) return null;
+  if (g?.kind !== "Group" || isManaged(g) || managedAt(items, parentOf(path))) return null;
   const parent = parentOf(path);
   const i = split(path).at(-1)!;
   const kids = g.DisplayItems.map((c) => (g.Hidden || g.IsLocked ? ({ ...c, Hidden: c.Hidden || g.Hidden, IsLocked: c.IsLocked || g.IsLocked } as DisplayItem) : c));

@@ -3,7 +3,7 @@ import { unitPick } from "@/lib/infopanel/editor/arrange.ts";
 import { groupItems, moveItems, ungroupAt } from "@/lib/infopanel/editor/groups.ts";
 import { itemAt } from "@/lib/infopanel/editor/ops.ts";
 import { flatPaths } from "@/lib/infopanel/canvas-edit.ts";
-import { newCores } from "@/lib/infopanel/elements/create.ts";
+import { newComposite, newCores, type CompositeType } from "@/lib/infopanel/elements/create.ts";
 import { defaultItem, type DisplayItem, type GroupItem } from "@/lib/infopanel/schema.ts";
 import { palette, profile } from "../elements/fixture.ts";
 
@@ -151,5 +151,40 @@ describe("unitPick", () => {
     expect(unitPick("1.2.0", [], true)).toBe("1.2.0");
     expect(unitPick("1.0", ["1.1"], false)).toBe("1.0");
     expect(unitPick("4", [], false)).toBe("4");
+  });
+});
+
+describe("every element-managed group keeps its parts", () => {
+  const drives = [{ id: "/nvme/2", name: "Disk A" }];
+  const parts: [CompositeType | "cores", string, string][] = [
+    ["cores", "Cores places its own bars", "0.0"],
+    ["row", "A Row places its own parts", "0.0"],
+    ["rows", "Rows places its own rows", "0.0"],
+    ["rows", "A Row places its own parts", "0.0.0"],
+    ["stack", "A Graph stack places its own graphs and labels", "0.1"],
+    ["dual", "A Dual graph places its own graphs", "0.0"],
+    ["doublering", "A Double ring places its own rings and value", "0.2"],
+    ["drives", "Drives places its own tiles", "0.0"],
+    ["drives", "Drives places its own tiles", "0.0.4"],
+    ["shadowtext", "Shadow text places its own text and its copy", "0.1"],
+  ];
+  const make = (type: CompositeType | "cores"): DisplayItem[] => [
+    type === "cores" ? newCores(profile, palette, [], 0, 0) : newComposite(type, profile, palette, type === "drives" ? drives : [], 0, 0),
+    text("loose", 500),
+  ];
+
+  it.each(parts)("%s: a part (%s at %s) can't leave, group or ungroup", (type, reason, part) => {
+    const items = make(type);
+    expect(itemAt(items, part)).toBeDefined();
+    expect(moveItems(items, [part], "", 0)).toMatchObject({ ok: false, reason: expect.stringContaining(reason) });
+    expect(groupItems(items, [part])).toMatchObject({ ok: false, reason: expect.stringContaining(reason) });
+    if (part.split(".").length === 3) expect(ungroupAt(items, part.split(".").slice(0, 2).join("."))).toBeNull();
+  });
+
+  it.each([...new Set(parts.map((p) => p[0]))])("%s: nothing can be dropped into it, and it groups whole", (type) => {
+    const items = make(type);
+    expect(moveItems(items, ["1"], "0", 0)).toMatchObject({ ok: false, reason: expect.stringContaining("so they can’t be moved in or out") });
+    expect(ungroupAt(items, "0")).toBeNull();
+    expect(groupItems(items, ["0"]).ok).toBe(true);
   });
 });
