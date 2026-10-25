@@ -1,5 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { driveIconOf, driveIconsOfSetting } from "@/lib/effects/icon";
+
+type Own = { asset: string } | { lucide: string };
+
+/** The setting's icon for this drive (by id, else name), read here and not through effects/icon.ts: that module is in the kiosk entry, and sharing it would make it a chunk of its own. */
+function ownIcon(json: string, id: string, name: string): Own | null {
+  let all: unknown;
+  try {
+    all = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (typeof all !== "object" || all === null) return null;
+  const at = (key: string) => (Object.hasOwn(all as object, key) ? (all as Record<string, unknown>)[key] : undefined);
+  const v = at(id) ?? at(name);
+  if (typeof v !== "object" || v === null) return null;
+  const { lucide, asset } = v as { lucide?: unknown; asset?: unknown };
+  if (typeof lucide === "string") return { lucide };
+  return typeof asset === "string" && /^[0-9a-f]{64}\.[a-z0-9]{1,5}$/.test(asset) ? { asset } : null;
+}
 
 /**
  * A drive's own icon: the user's file from the asset store, or a lucide icon (its set is its own
@@ -9,7 +27,7 @@ import { driveIconOf, driveIconsOfSetting } from "@/lib/effects/icon";
  * more request when the kiosk loads.
  */
 export default function DriveIcon({ icons, id, name, px, fallback }: { icons: string; id: string; name: string; px: number; fallback: ReactNode }) {
-  const source = driveIconOf(driveIconsOfSetting(icons), id, name);
+  const source = ownIcon(icons, id, name);
   const lucide = source && "lucide" in source ? source.lucide : null;
   const [markup, setMarkup] = useState<Readonly<Record<string, string>> | null>(null);
   useEffect(() => {
@@ -21,7 +39,7 @@ export default function DriveIcon({ icons, id, name, px, fallback }: { icons: st
     };
   }, [lucide]);
   if (!source) return <>{fallback}</>;
-  if ("asset" in source) return source.asset.includes(".") ? <img src={`/api/assets/${source.asset}`} alt="" width={px} height={px} className="shrink-0 object-contain" style={{ width: px, height: px }} /> : null;
+  if ("asset" in source) return <img src={`/api/assets/${source.asset}`} alt="" width={px} height={px} className="shrink-0 object-contain" style={{ width: px, height: px }} />;
   return (
     <svg
       viewBox="0 0 24 24"
