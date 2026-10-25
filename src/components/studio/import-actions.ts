@@ -86,7 +86,4 @@ export function withCanvas(config: DashboardConfig, zoneId: string, canvas: Stor
   return hit ? { ...config, profiles } : config;
 }
 
-/** Every item in a canvas, inside groups too (the Library card's count). */
-export function countItems(items: StoredCanvas["items"]): number {
-  return items.reduce((n, i) => n + 1 + ("DisplayItems" in i && Array.isArray(i.DisplayItems) ? countItems(i.DisplayItems) : 0), 0);
-}
+export { countItems } from "@/lib/my-library/canvas-link";

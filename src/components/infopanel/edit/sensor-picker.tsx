@@ -9,36 +9,10 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { refreshCatalog, useSensorCatalog } from "@/lib/catalog";
-import { buildDataModel, searchPoints, type DataPoint } from "@/lib/data-points";
+import { buildDataModel, type DataPoint } from "@/lib/data-points";
 import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
-import { bindingFromRef, type DataApiValue } from "@/lib/infopanel/sensors";
-
-/** Shown when the Data API reports no sensor ids. */
-export const NOT_EXPORTABLE = "Not exportable to InfoPanel: this InfoPanel build doesn’t report sensor ids";
-
-const LIMIT = 200;
-
-interface Section {
-  title: string;
-  points: DataPoint[];
-}
-
-/** The points a kind may bind, matching the query, in sections "Source › Device". */
-export function pickerSections(points: readonly DataPoint[], sensors: Readonly<Record<string, DataApiValue>>, query: string, pluginOnly: boolean): Section[] {
-  const isPlugin = (p: DataPoint) => {
-    const ref = sensors[p.key]?.ref;
-    return ref ? ref.startsWith("plugin:") : p.key.startsWith("plugins.");
-  };
-  const shown = searchPoints(points, query)
-    .filter((p) => !pluginOnly || isPlugin(p))
-    .slice(0, LIMIT);
-  const sections = new Map<string, DataPoint[]>();
-  for (const p of shown) {
-    const title = p.containerTitle && p.containerTitle !== p.sourceName ? `${p.sourceName} › ${p.containerTitle}` : p.sourceName;
-    sections.set(title, [...(sections.get(title) ?? []), p]);
-  }
-  return [...sections].map(([title, list]) => ({ title, points: list }));
-}
+import { chosenOf, isNative, NOT_EXPORTABLE, pickerSections } from "@/lib/infopanel/editor/sensor-list";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
 
 interface SensorPickerProps {
   open: boolean;
@@ -62,8 +36,7 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
   const sections = useMemo(() => pickerSections(model.points, sensors, query, pluginOnly), [model, sensors, query, pluginOnly]);
   const noRefs = model.points.length > 0 && model.points.every((p) => !sensors[p.key]?.ref);
   const pick = (p: DataPoint) => {
-    const v = sensors[p.key];
-    onPick({ key: p.key, name: v?.name ?? p.name, ...(v?.unit ? { unit: v.unit } : {}), ...(v?.ref ? { ref: v.ref } : {}), ...(v?.table?.format ? { format: v.table.format } : {}) });
+    onPick(chosenOf(p, sensors));
     onOpenChange(false);
   };
   return (
@@ -111,7 +84,7 @@ export function SensorPicker({ open, onOpenChange, title, pluginOnly, current, o
                 <ul>
                   {s.points.map((p) => {
                     const ref = sensors[p.key]?.ref;
-                    const native = ref ? bindingFromRef(ref) !== null : false;
+                    const native = isNative(p.key, sensors);
                     return (
                       <li key={p.key}>
                         <button

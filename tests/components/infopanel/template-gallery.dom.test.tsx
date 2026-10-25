@@ -19,8 +19,12 @@ describe("the New InfoPanel profile gallery", () => {
     expect(cards[0].textContent).toBe("Blank");
     expect(cards[0].getAttribute("aria-checked")).toBe("true");
     expect(screen.queryByRole("radiogroup", { name: "Colours" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Sensors" })).toBeNull();
+    expect((screen.getByRole("checkbox", { name: "Also save to Library" }) as HTMLInputElement).checked).toBe(false);
 
     fireEvent.click(within(gallery).getByRole("radio", { name: /Neon/ }));
+    // One dropdown per role the template reads, each unbound here (the Data API is offline).
+    expect(within(screen.getByRole("group", { name: "Sensors" })).getAllByRole("combobox").length).toBeGreaterThan(4);
     const colours = screen.getByRole("radiogroup", { name: "Colours" });
     expect(within(colours).getAllByRole("radio")).toHaveLength(3);
     fireEvent.click(within(colours).getByRole("radio", { name: /Toxic/ }));
@@ -33,5 +37,6 @@ describe("the New InfoPanel profile gallery", () => {
     expect(read.stored.palette?.accent1).toBe("#FF7CFF4D");
     // The Data API is offline here: every sensor is listed for Remap.
     expect(made.unbound).toContain("CPU load");
+    expect(made.toLibrary).toBe(false);
   });
 });

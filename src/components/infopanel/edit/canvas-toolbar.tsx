@@ -1,7 +1,7 @@
 /**
  * The canvas zone editor's toolbar (spec §7), left to right: undo / redo (the studio's history),
  * duplicate, group, ungroup, draw order, delete, Draw all as, Show modes, the sensor source,
- * Remap with its badge, Compare; then Done. Show modes and Compare open a strip below it. When the
+ * Remap with its badge, Compare; then Save to Library and Done. Show modes and Compare open a strip below it. When the
  * row does not fit, the sensor source and Compare move into a "More" menu.
  */
 import { useRef, useState, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import {
   Copy,
   Group,
   Layers,
+  Library,
   MoreHorizontal,
   Redo2,
   Trash2,
@@ -27,6 +28,7 @@ import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu
 import { itemAt, topmost } from "@/lib/infopanel/editor/ops";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
+import type { LibraryLink } from "./use-library-link";
 import { useToolbarFit } from "./use-toolbar-fit";
 
 function ToolButton({ icon: Icon, label, onClick, disabled, active }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean; active?: boolean }) {
@@ -99,10 +101,12 @@ export interface CanvasToolbarProps {
   onRemap: () => void;
   /** The Data API did not answer: the Live sensor source is off. */
   apiUnreachable: boolean;
+  /** Save to Library, or Update in Library once the profile has an item. */
+  library?: LibraryLink;
   onDone: () => void;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, onDone }: CanvasToolbarProps) {
+export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onDone }: CanvasToolbarProps) {
   const { selection } = editor;
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
@@ -203,6 +207,18 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
       )}
       {collapsed && menuAt && <ContextMenu x={menuAt.x} y={menuAt.y} entries={moreEntries} onClose={() => setMenuAt(null)} />}
       <span className="flex-1" />
+      {library && (
+        <button
+          type="button"
+          onClick={library.run}
+          disabled={library.busy}
+          title="Keep this profile in your Library, to start new profiles from"
+          className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:opacity-50"
+        >
+          <Library className="h-3.5 w-3.5" />
+          {library.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={onDone}

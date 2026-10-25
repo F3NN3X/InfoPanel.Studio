@@ -32,6 +32,8 @@ export interface RingSpec {
   gap: number;
   /** Soft glow around the fill, blur px; 0 is off. */
   glow: number;
+  /** Frames the export bakes (a 0–59 clock ring uses 60, one per second); the default 101 when absent. */
+  frames?: number;
 }
 
 export interface LedBarSpec {
@@ -170,6 +172,7 @@ export function normalizeElement(raw: unknown): ElementSpec | null {
             type: "ring", start: num(o.start, -135, -360, 360), sweep: num(o.sweep, 270, 1, 360), thickness: num(o.thickness, 12, 1, 512),
             track: ink(o.track), fill, rounded: bool(o.rounded, true), dot: bool(o.dot, false), ticks: int(o.ticks, 0, 0, 120),
             segments: int(o.segments, 0, 0, 200), gap: num(o.gap, 3, 0, 60), glow: num(o.glow, 0, 0, 32),
+            ...(o.frames === undefined ? {} : { frames: int(o.frames, 101, 2, 360) }),
           }
         : null;
     }

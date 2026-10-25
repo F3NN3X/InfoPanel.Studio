@@ -1,7 +1,7 @@
 /**
  * The Library page (spec §3, §10.4), opened from the rail: a 56 px header (title and tagline, search
  * everything, [Grid | Shelves], the "Used by" screen filter, Add files…) over the collections
- * sidebar (smart collections, then Themes · Styles · Panels · Gauges · Media · Fonts · Canvases), the
+ * sidebar (smart collections, then Themes · Styles · Panels · Gauges · Media · Fonts · InfoPanel profiles), the
  * grid or shelves, and the detail pane. Fonts are a collection with its own view; a gauge opens in the
  * Gauges view; the edited screen's canvas files are one button away. Lazy-loaded.
  */
@@ -80,7 +80,7 @@ export interface LibraryPageProps {
   selectionStyle: ModuleSettings | null;
   /** A saved Theme's "Edit in Theme": Theme opens at All screens with it applied. */
   onEditInTheme: (preset: AppearancePreset) => void;
-  /** A canvas's primary action: its editor, on the zone that uses it (else it comes in as a new screen). */
+  /** A profile's primary action: the InfoPanel editor, on the zone that uses it (else it comes in as a new screen). */
   onEditCanvas: (item: LibraryItem) => void;
   /** A card dragged onto "Drop on the canvas": the page makes way so the drag goes on to the canvas. */
   onShowCanvas: () => void;
@@ -184,7 +184,7 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "gauge":
         return { label: "Open in editor", icon: Gauge, run: () => p.onOpenGauge(item.id) };
       case "canvas":
-        return { label: "Edit canvas", icon: MonitorPlay, run: () => p.onEditCanvas(item) };
+        return { label: "Edit profile", icon: MonitorPlay, run: () => p.onEditCanvas(item) };
       case "style":
       case "theme":
         return presetPrimary(item, presetCtx);

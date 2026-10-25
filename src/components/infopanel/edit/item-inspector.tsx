@@ -7,14 +7,16 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
+import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
 import { itemAt, setField, type Path } from "@/lib/infopanel/editor/ops";
-import { valueOf } from "@/lib/infopanel/editor/registry";
+import { NOT_EXPORTABLE, PLUGIN_ONLY } from "@/lib/infopanel/editor/sensor-list";
+import { labelOf, valueOf } from "@/lib/infopanel/editor/registry";
 import { groupId } from "@/lib/infopanel/remap/remap";
 import type { DisplayItem, ItemKind } from "@/lib/infopanel/schema";
 import { bindingFromRef, bindingRef, isBound, type DataApiValue } from "@/lib/infopanel/sensors";
 import type { InspectorContext, InspectorSection } from "@/components/studio/inspector-model";
 import { InspectorView, type SectionParts } from "@/components/studio/inspector/inspector-view";
-import { ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/components/studio/inspector/infopanel-defs";
+import { BINDING_IDS, ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/components/studio/inspector/infopanel-defs";
 import type { FieldsApi } from "@/components/studio/settings-panel";
 import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
@@ -26,7 +28,7 @@ import { valueText } from "../remap-panel";
 import { Segmented } from "./canvas-toolbar";
 import { kindIcon } from "./items-tree";
 import { MultiInspector } from "./multi-inspector";
-import { NOT_EXPORTABLE } from "./sensor-picker";
+import { SensorSelect } from "./sensor-select";
 import type { CanvasEditor } from "./use-canvas-editor";
 
 interface ItemInspectorProps {
@@ -34,8 +36,8 @@ interface ItemInspectorProps {
   /** Live values by Data API key (the Sensor button's reading). */
   live: Readonly<Record<string, DataApiValue>>;
   onRemap: () => void;
-  /** Choose a sensor for the selected item (the sensor picker). */
-  onPickSensor?: () => void;
+  /** Bind the selected item to the sensor chosen in the Sensor dropdown. */
+  onBindSensor?: (sensor: ChosenSensor) => void;
   /** The Data API's sensors by key (whether a key binds natively). */
   sensors?: Readonly<Record<string, DataApiValue>>;
   /** A Gauge item's "Edit gauge…" (opens it in Gauges). */
@@ -55,7 +57,7 @@ function Placeholder({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-export function ItemInspector({ editor, live, onRemap, onPickSensor, sensors, onEditGauge }: ItemInspectorProps) {
+export function ItemInspector({ editor, live, onRemap, onBindSensor, sensors, onEditGauge }: ItemInspectorProps) {
   const { selection } = editor;
   if (selection.length === 0) {
     return (
@@ -69,11 +71,11 @@ export function ItemInspector({ editor, live, onRemap, onPickSensor, sensors, on
   const item = itemAt(editor.committed, path);
   // Keyed by path: a draft or an error never carries over to another item.
   return item ? (
-    <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onPickSensor={onPickSensor} sensors={sensors} onEditGauge={onEditGauge} />
+    <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onBindSensor={onBindSensor} sensors={sensors} onEditGauge={onEditGauge} />
   ) : null;
 }
 
-function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
+function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const kind = item.kind as ItemKind;
@@ -125,6 +127,7 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
   };
 
   const parts = (s: InspectorSection): SectionParts => {
+    if (s.id === "ip-sensor") return { top: <BindingReadout item={item} />, bottom: errorsOf(s) };
     switch (s.special) {
       case "ipElement":
         return {
@@ -148,7 +151,7 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
         return {
           body: (
             <>
-              <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} onPickSensor={onPickSensor} sensors={sensors} />
+              <SensorCard editor={editor} item={item} live={live} onRemap={onRemap} onBindSensor={onBindSensor} sensors={sensors} />
               {item.kind === "Gauge" && onEditGauge && !element && (
                 <>
                   {item.Images.length === 0 && !("vector" in item) && <p className="px-4 pb-1.5 text-[11.5px] leading-snug text-ui-4">No frames yet: InfoPanel draws a gauge from its images. Edit gauge to build them.</p>}
@@ -200,6 +203,24 @@ function ItemFields({ editor, path, item, live, onRemap, onPickSensor, sensors, 
       onQuery={setQuery}
       identity={{ icon: <Icon />, name, meta: () => `InfoPanel · ${item.kind}` }}
     />
+  );
+}
+
+/** What InfoPanel reads, as stored: the ids the Sensor dropdown wrote, for reference and never typed. */
+function BindingReadout({ item }: { item: DisplayItem }) {
+  const rows = BINDING_IDS.map((f) => [f, valueOf(item, f)] as const).filter(([, v]) => v !== null && v !== "");
+  if (rows.length === 0) return null;
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-4 pb-2 text-[11.5px]">
+      {rows.map(([f, v]) => (
+        <div key={f} className="contents">
+          <dt className="text-ui-4">{labelOf(f)}</dt>
+          <dd className="truncate text-right font-ui-mono text-ui-3" title={String(v)}>
+            {String(v)}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -367,22 +388,22 @@ function EditGaugeButton({ onClick }: { onClick: () => void }) {
 }
 
 /**
- * The Sensor button (status, key, what InfoPanel named it, the live value; opens Remap), Choose
- * sensor, what the `.infopanel` export reads, then the mock slider.
+ * The Sensor dropdown, the status button (key, what InfoPanel named it, the live value; opens
+ * Remap), what the `.infopanel` export reads, then the mock slider.
  */
 function SensorCard({
   editor,
   item,
   live,
   onRemap,
-  onPickSensor,
+  onBindSensor,
   sensors = {},
 }: {
   editor: CanvasEditor;
   item: DisplayItem;
   live: Readonly<Record<string, DataApiValue>>;
   onRemap: () => void;
-  onPickSensor?: () => void;
+  onBindSensor?: (sensor: ChosenSensor) => void;
   sensors?: Readonly<Record<string, DataApiValue>>;
 }) {
   if (!isBound(item)) return null;
@@ -402,6 +423,9 @@ function SensorCard({
   const previewOnly = entry !== undefined && !(entry.ref && bindingFromRef(entry.ref));
   return (
     <div className="space-y-3 px-4 pb-3">
+      {onBindSensor && (
+        <SensorSelect label="Sensor" current={key} fallbackName={item.SensorName} reading={value} pluginOnly={PLUGIN_ONLY.has(item.kind)} onPick={onBindSensor} />
+      )}
       <button
         type="button"
         onClick={onRemap}
@@ -418,15 +442,6 @@ function SensorCard({
         </span>
         {value && <span className="shrink-0 font-ui-mono text-[12px] text-ui-2">{valueText(value)}</span>}
       </button>
-      {onPickSensor && (
-        <button
-          type="button"
-          onClick={onPickSensor}
-          className="flex h-7 w-full items-center justify-center rounded-[7px] border border-ui-default bg-ui-raised text-[12px] text-ui-1 hover:border-ui-strong"
-        >
-          Choose sensor…
-        </button>
-      )}
       <p className="truncate text-[11px] text-ui-4" title={native ?? undefined}>
         InfoPanel reads <span className="font-ui-mono text-ui-3">{native ?? "no sensor"}</span>
       </p>

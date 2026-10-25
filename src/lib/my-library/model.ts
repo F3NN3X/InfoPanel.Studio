@@ -160,7 +160,7 @@ export const COLLECTIONS: Collection[] = [
   { id: "icons", label: "Icons", section: "Library", parent: "media" },
   { id: "svg", label: "SVG templates", section: "Library", parent: "media" },
   { id: "fonts", label: "Fonts", section: "Library", hint: "Fonts appear in every Typography picker." },
-  { id: "canvases", label: "Canvases", section: "Library", hint: "InfoPanel canvases imported as zones." },
+  { id: "canvases", label: "InfoPanel profiles", section: "Library", hint: "Profiles for the InfoPanel editor. Edit opens one there; a new profile can start from one." },
 ];
 
 /** The hint line of a collection (a sub-kind of Media shows Media's); none for the smart ones. */

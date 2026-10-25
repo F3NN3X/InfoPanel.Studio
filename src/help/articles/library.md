@@ -3,7 +3,7 @@ id: library
 title: Library
 icon: perm_media
 related: [assets, gauges, import]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.26
 ---
 
 One place for what you reuse: Themes, Styles, Panels, gauges, images, videos, fonts and imported canvases. Gauges are built and edited in their own view, **Gauges** on the rail.
@@ -12,7 +12,7 @@ Open **Library** on the rail. The sidebar lists the **Smart** collections and th
 
 ## Collections
 
-Smart: All items, Recent, Unused, Large files, Duplicates and Suggested for theme. By type: Themes, Styles, Panels, Gauges, Media (Images, Videos, Backgrounds, Icons and SVG templates), Fonts and Canvases. Saved Themes and Styles sit beside the built-in ones.
+Smart: All items, Recent, Unused, Large files, Duplicates and Suggested for theme. By type: Themes, Styles, Panels, Gauges, Media (Images, Videos, Backgrounds, Icons and SVG templates), Fonts and InfoPanel profiles. Saved Themes and Styles sit beside the built-in ones.
 
 ## Themes and Styles
 
@@ -22,7 +22,7 @@ Select a Style to see its settings. **Apply to selection** gives them to the sel
 
 ## The right-click menu
 
-Right-click an item. The first row depends on what it is: Set as background, Open in editor (a gauge opens in Gauges), Edit canvas, Edit in Theme, Apply to selection, Add to screen, Show font or Add to canvas. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Edit canvas opens the canvas editor on the screen and page that use the canvas, or, for a canvas nothing uses yet, brings it in as a new screen and opens the editor there; Add to this page… puts it in a canvas zone on the current page. Every item has **Rename** and **Remove from library…** (`Delete`).
+Right-click an item. The first row depends on what it is: Set as background, Open in editor (a gauge opens in Gauges), Edit profile, Edit in Theme, Apply to selection, Add to screen, Show font or Add to canvas. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Edit profile opens the InfoPanel editor on the screen and page that use the profile, or, for a profile nothing uses yet, brings it in as a new screen and opens the editor there. The cards show the profile itself. Save one from the editor with **Save to Library**; Add to this page… puts it in a canvas zone on the current page. Every item has **Rename** and **Remove from library…** (`Delete`).
 
 ## Removing an item
 

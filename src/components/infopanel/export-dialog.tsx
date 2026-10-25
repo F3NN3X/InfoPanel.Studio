@@ -17,6 +17,7 @@ import { bakeSignature, safeStem, setFrameFiles, vectorOf } from "@/lib/infopane
 import { bake } from "@/lib/infopanel/gauges/raster";
 import { approximations } from "@/lib/infopanel/elements/apply";
 import { elementSignature, setElementFile, staleElements, staticOf } from "@/lib/infopanel/elements/bake";
+import { elementOf } from "@/lib/infopanel/elements/spec";
 import { bakeElement } from "@/lib/infopanel/elements/raster";
 import { fontsToInstall, sensorNote, sensorSources } from "@/lib/infopanel/export/needs";
 import {
@@ -160,7 +161,8 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
         for (const path of stale) {
           const g = itemAt(next.items, path) as GaugeItem;
           const spec = vectorOf(g)!;
-          const count = g.Images.length > 1 ? g.Images.length : 101;
+          const el = elementOf(g);
+          const count = g.Images.length > 1 ? g.Images.length : el?.type === "ring" && el.frames ? el.frames : 101;
           const label = `Baking ${done + 1} of ${bakes}: ${g.Name || path}`;
           setBusy(`${label}…`);
           next = setFrameFiles(next, path, await bake(spec, count, safeStem(g.Name), (n) => setBusy(`${label}, frame ${n} of ${count}…`)), bakeSignature(spec, count));

@@ -28,6 +28,9 @@ describe("the template sensor roles", () => {
     ["net.down", { "libre.wifi": v("WiFi Download Speed", "KB/s", undefined, 10), "libre.eth": v("Ethernet Download Speed", "KB/s", undefined, 900), "libre.ts": v("Tailscale Download Speed", "KB/s", undefined, 5000) }, "libre.eth"],
     ["net.up", { "hwinfo.up": v("Current UP rate", "KB/s") }, "hwinfo.up"],
     ["uptime", { "plugins.u.h": v("Uptime · Hours", "", "plugin:/system-info-plugin/uptime/hours"), "plugins.u.f": v("Uptime · Formatted", "", "plugin:/system-info-plugin/uptime/formatted") }, "plugins.u.f"],
+    // The clock plugin's seconds, by ref, or by name when the Data API reports no refs (the dot arrives mangled).
+    ["clock.second", { "plugins.clock-plugin.clock.minute": v("Clock · Minute", "", "plugin:/clock-plugin/clock/minute"), "plugins.clock-plugin.clock.second": v("Clock · Second", "", "plugin:/clock-plugin/clock/second") }, "plugins.clock-plugin.clock.second"],
+    ["clock.second", { "plugins.c.minute": v("Clock \uFFFD Minute", ""), "plugins.c.second": v("Clock \uFFFD Second", "") }, "plugins.c.second"],
   ])("%s picks the right sensor (%#)", (role, sensors, key) => {
     expect(resolveRole(role, sensors)?.key).toBe(key);
   });
