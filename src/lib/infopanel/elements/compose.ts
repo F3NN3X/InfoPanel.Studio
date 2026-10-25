@@ -36,9 +36,9 @@ function mirror(to: DisplayItem, from: DisplayItem): DisplayItem {
 
 const box = (X: number, Y: number, Width: number, Height: number) => ({ X: Math.round(X), Y: Math.round(Y), Width: Math.max(1, Math.round(Width)), Height: Math.max(1, Math.round(Height)) });
 
-/** A single line of text in a box: no wrap, the font size set, an alignment. */
+/** A single line of text in a box, cut with an ellipsis: InfoPanel's Wrap is "one line" (MaxLines = 1), so it is on. */
 const line = (size: number, align: "left" | "right" | "centre"): Fields => ({
-  FontSize: size, Wrap: false, Ellipsis: true, Marquee: false, RightAlign: align === "right", CenterAlign: align === "centre",
+  FontSize: size, Wrap: true, Ellipsis: true, Marquee: false, RightAlign: align === "right", CenterAlign: align === "centre",
 });
 
 /** Where a line of `size` text sits to be centred in a band `h` tall (InfoPanel draws FontSize at its scale, about 1.6 px per unit with the leading). */
@@ -160,47 +160,66 @@ export function applyDoubleRing(group: GroupItem, s: DoubleRingSpec, apply: Appl
 const TILE: readonly ItemKind[] = ["Shape", "Image", "Text", "Bar", "Sensor", "Sensor", "Sensor"];
 const TILE_NAMES = ["Card", "Icon", "Name", "Used bar", "Used", "Temperature", "Free"];
 
-/** The tiles' boxes, side by side or stacked with `gap` between, on whole pixels. */
+/** The smallest tile the layout keeps clear of overlaps: the element grows to hold `n` of them. */
+export const TILE_MIN = { width: 90, height: 60 };
+
+/** The tiles' boxes, side by side or stacked with `gap` between, on whole pixels, none smaller than `TILE_MIN`. */
 export function drivesLayout(s: Pick<DrivesSpec, "orientation" | "gap" | "width" | "height">, x: number, y: number, n: number): { x: number; y: number; width: number; height: number }[] {
   if (n <= 0) return [];
   const horizontal = s.orientation === "horizontal";
-  const each = ((horizontal ? s.width : s.height) - s.gap * (n - 1)) / n;
+  const across = Math.max(horizontal ? s.width : s.height, (horizontal ? TILE_MIN.width : TILE_MIN.height) * n + s.gap * (n - 1));
+  const cross = Math.max(horizontal ? s.height : s.width, horizontal ? TILE_MIN.height : TILE_MIN.width);
+  const each = (across - s.gap * (n - 1)) / n;
   return Array.from({ length: n }, (_, i) => {
     const a = Math.round(i * (each + s.gap));
     const len = Math.max(1, Math.round(i * (each + s.gap) + each) - a);
-    return horizontal ? { x: x + a, y, width: len, height: s.height } : { x, y: y + a, width: s.width, height: len };
+    return horizontal ? { x: x + a, y, width: len, height: cross } : { x, y: y + a, width: cross, height: len };
   });
+}
+
+/**
+ * One tile's parts' boxes. Three rows that never meet: the icon and the name (one line), the used
+ * bar with its percent at the right, and the temperature and free space along the bottom.
+ */
+export function tileLayout(at: { x: number; y: number; width: number; height: number }) {
+  const pad = Math.max(3, Math.round(Math.min(at.width, at.height) * 0.07));
+  const iconS = Math.round(at.height * 0.26);
+  const size = Math.min(14, Math.max(6, Math.round(Math.min(at.height, at.width) * 0.06)));
+  const inner = at.width - 2 * pad;
+  const lineH = Math.round(size * 1.8);
+  const pctW = Math.max(Math.round(inner * 0.26), size * 4);
+  const barH = Math.max(3, Math.round(at.height * 0.05));
+  const rowY = at.y + pad + iconS + 3;
+  const lowY = at.y + at.height - pad - lineH;
+  return {
+    pad, iconS, size, inner, lineH,
+    icon: { x: at.x + pad, y: at.y + pad, w: iconS, h: iconS },
+    name: { x: at.x + pad + iconS + 6, y: at.y + pad + Math.round((iconS - lineH) / 2), w: inner - iconS - 6, h: lineH },
+    bar: { x: at.x + pad, y: rowY + Math.round((lineH - barH) / 2), w: inner - pctW - 6, h: barH },
+    pct: { x: at.x + at.width - pad - pctW, y: rowY, w: pctW, h: lineH },
+    temp: { x: at.x + pad, y: lowY, w: Math.round(inner / 2), h: lineH },
+    free: { x: at.x + pad + Math.round(inner / 2), y: lowY, w: inner - Math.round(inner / 2), h: lineH },
+  };
 }
 
 function applyTile(tile: GroupItem, s: DrivesSpec, at: { x: number; y: number; width: number; height: number }, apply: Apply): GroupItem {
   const [card, icon, name, bar, used, temp, free] = reconcile(tile.DisplayItems, TILE, TILE_NAMES);
-  const pad = Math.max(4, Math.round(Math.min(at.width, at.height) * 0.08));
-  const iconS = Math.max(8, Math.round(at.height * 0.26));
-  const size = Math.max(7, Math.round(at.height * 0.06));
-  const inner = at.width - 2 * pad;
-  const pctW = Math.max(Math.round(inner * 0.26), size * 4);
-  const barH = Math.max(3, Math.round(at.height * 0.05));
-  const barY = at.y + pad + iconS + pad;
-  const lineH = Math.round(size * 1.8);
-  const lowY = at.y + at.height - pad - lineH;
-  const half = Math.round(inner / 2);
+  const L = tileLayout(at);
+  const b = (r: { x: number; y: number; w: number; h: number }) => box(r.x, r.y, r.w, r.h);
   const kids: DisplayItem[] = [
     {
       ...card, ...box(at.x, at.y, at.width, at.height), Type: "Rectangle", CornerRadius: Math.round(s.radius), ShowFrame: false, ShowGradient: false, ShowFill: true,
       ...inked({ FillColor: s.card }),
     } as DisplayItem,
-    apply({ ...icon, ...box(at.x + pad, at.y + pad, iconS, iconS), element: { type: "icon", name: "hard-drive", color: s.icon } } as unknown as DisplayItem),
-    { ...name, ...box(at.x + pad + iconS + 6, centredY(at.y + pad, iconS, size), inner - iconS - 6, iconS), ...line(size, "left"), ...inked({ Color: s.text }) } as DisplayItem,
+    apply({ ...icon, ...b(L.icon), element: { type: "icon", name: "hard-drive", color: s.icon } } as unknown as DisplayItem),
+    { ...name, ...b(L.name), ...line(L.size, "left"), ...inked({ Color: s.text }) } as DisplayItem,
     mirror(
-      {
-        ...bar, ...box(at.x + pad, barY, inner - pctW - 6, barH), CornerRadius: Math.round(barH / 2), Background: true, Frame: false, Gradient: false,
-        MinValue: 0, MaxValue: 100, ...inked({ Color: s.fill, BackgroundColor: s.track }),
-      } as DisplayItem,
+      { ...bar, ...b(L.bar), CornerRadius: Math.round(L.bar.h / 2), Background: true, Frame: false, Gradient: false, MinValue: 0, MaxValue: 100, ...inked({ Color: s.fill, BackgroundColor: s.track }) } as DisplayItem,
       used,
     ),
-    { ...used, ...box(at.x + at.width - pad - pctW, centredY(barY + barH / 2 - size, size * 2, size), pctW, lineH), ...line(size, "right"), ...inked({ Color: s.text }) } as DisplayItem,
-    { ...temp, ...box(at.x + pad, lowY, half, lineH), ...line(size, "left"), ...inked({ Color: s.sub }) } as DisplayItem,
-    { ...free, ...box(at.x + pad + half, lowY, inner - half, lineH), ...line(size, "right"), ...inked({ Color: s.sub }) } as DisplayItem,
+    { ...used, ...b(L.pct), ...line(L.size, "right"), ...inked({ Color: s.text }) } as DisplayItem,
+    { ...temp, ...b(L.temp), ...line(L.size, "left"), ...inked({ Color: s.sub }) } as DisplayItem,
+    { ...free, ...b(L.free), ...line(L.size, "right"), ...inked({ Color: s.sub }) } as DisplayItem,
   ];
   return { ...tile, ...{ X: at.x, Y: at.y }, DisplayItems: kids };
 }

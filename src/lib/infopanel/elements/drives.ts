@@ -66,3 +66,15 @@ export function detectDrives(sensors: Readonly<Record<string, DataApiValue>>): D
     .map(({ n: _n, tempIndex: _t, ...drive }) => drive);
   return libre.length ? libre : hwinfoDrives(sensors);
 }
+
+/**
+ * A drive's name for a tile's one line: a leading vendor word goes when a model follows ("WDC WDS100T2B0A-00SM50" is
+ * "WDS100T2B0A-00SM50"; a word is a vendor when it has no digit and a later word does), and a trailing " #n" moves to
+ * the front ("#2 SFYRD2000G") so a second drive of one model stays apart and survives the ellipsis.
+ */
+export function shortDriveName(name: string): string {
+  const index = /\s+#(\d+)$/.exec(name.trim());
+  const words = name.trim().replace(/\s+#\d+$/, "").split(/\s+/).filter(Boolean);
+  const body = words.length > 1 && !/\d/.test(words[0]) && words.slice(1).some((w) => /\d/.test(w)) ? words.slice(1) : words;
+  return (index ? `#${index[1]} ` : "") + body.join(" ");
+}

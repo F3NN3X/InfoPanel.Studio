@@ -5,7 +5,7 @@ import { applyElement, badgeOf, elementOf, ringVector } from "@/lib/infopanel/el
 import { staleElements } from "@/lib/infopanel/elements/bake.ts";
 import { rowLayout, drivesLayout } from "@/lib/infopanel/elements/compose.ts";
 import { elementSize, gradientBar, newComposite, newElement, type CompositeType } from "@/lib/infopanel/elements/create.ts";
-import { detectDrives } from "@/lib/infopanel/elements/drives.ts";
+import { detectDrives, shortDriveName } from "@/lib/infopanel/elements/drives.ts";
 import type { RingSpec, RowSpec, SparklineSpec } from "@/lib/infopanel/elements/spec.ts";
 import { colorOf } from "@/lib/infopanel/gauges/vector.ts";
 import { newItem } from "@/lib/infopanel/editor/create.ts";
@@ -136,6 +136,39 @@ describe("Drives", () => {
     const tall = applyElement({ ...drives, element: { ...elementOf(drives)!, orientation: "vertical", width: 200, height: 300 } } as unknown as DisplayItem) as GroupItem;
     expect((tall.DisplayItems[1] as GroupItem).DisplayItems[0]).toMatchObject({ X: 20, Width: 200 });
     expect((tall.DisplayItems[1] as GroupItem).DisplayItems[0].Y).toBeGreaterThan(30 + 100);
+  });
+
+  it("shortens a name: the vendor word goes before a model, a trailing #n moves to the front", () => {
+    expect(shortDriveName("WDC WDS100T2B0A-00SM50")).toBe("WDS100T2B0A-00SM50");
+    expect(shortDriveName("KINGSTON SFYRD2000G #2")).toBe("#2 SFYRD2000G");
+    expect(shortDriveName("Samsung SSD 990 PRO 2TB")).toBe("SSD 990 PRO 2TB");
+    expect(shortDriveName("Samsung")).toBe("Samsung");
+    expect(shortDriveName("Disk A")).toBe("Disk A");
+    expect(shortDriveName("990 PRO")).toBe("990 PRO");
+  });
+
+  it.each([
+    ["the narrowest tile", 90, 60, 1],
+    ["a one-drive layout", 600, 120, 1],
+    ["a wide tile", 400, 200, 1],
+    ["five narrow tiles in an element too small for them", 200, 60, 5],
+  ])("keeps the name, the bar, the %% and the rest apart on %s", (_label, width, height, n) => {
+    const long = { id: "/nvme/9", name: "VeryLongVendorName WDS100T2B0A-00SM50-EXTRA #12", used: { key: "u", name: "Used", ref: "libre:/nvme/9/load/1" } };
+    const g = newComposite("drives", profile, palette, Array.from({ length: n }, () => long), 0, 0);
+    const spec = elementOf(g)!;
+    const sized = applyElement({ ...g, element: { ...spec, width, height } } as unknown as DisplayItem) as GroupItem;
+    for (const tile of sized.DisplayItems as GroupItem[]) {
+      const [card, icon, name, bar, pct, temp, free] = tile.DisplayItems as unknown as { X: number; Y: number; Width: number; Height: number; Wrap?: boolean; Ellipsis?: boolean }[];
+      const parts = [icon, name, bar, pct, temp, free];
+      const hit = (a: (typeof parts)[number], b: (typeof parts)[number]) => a.X < b.X + b.Width && b.X < a.X + a.Width && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
+      for (let i = 0; i < parts.length; i++) {
+        for (let j = i + 1; j < parts.length; j++) expect(hit(parts[i], parts[j]), `${i} against ${j}`).toBe(false);
+        expect(parts[i].X >= card.X && parts[i].X + parts[i].Width <= card.X + card.Width && parts[i].Y >= card.Y && parts[i].Y + parts[i].Height <= card.Y + card.Height, `part ${i} inside the card`).toBe(true);
+      }
+      // One line cut with an ellipsis: InfoPanel's Wrap is MaxLines = 1.
+      expect(name).toMatchObject({ Wrap: true, Ellipsis: true });
+      expect(name.Height).toBeLessThan(bar.Y - name.Y + bar.Height);
+    }
   });
 
   it("shows placeholder tiles, unbound, when no drive is found", () => {

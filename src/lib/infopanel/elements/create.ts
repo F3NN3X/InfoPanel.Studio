@@ -8,7 +8,7 @@ import { newItem } from "../editor/create.ts";
 import { defaultItem, type DisplayItem, type GroupItem, type Profile } from "../schema.ts";
 import { applyElement } from "./apply.ts";
 import type { CoreSensor } from "./cores.ts";
-import type { DriveSensors } from "./drives.ts";
+import { shortDriveName, type DriveSensors } from "./drives.ts";
 import { slotInk, type Palette } from "./palette.ts";
 import type { CoresSpec, ElementSpec, ElementType, RowLook } from "./spec.ts";
 
@@ -119,7 +119,7 @@ export function driveTile(profile: Look, palette: Palette, drive: DriveSensors |
     DisplayItems: [
       newItem("Shape", profile, palette),
       defaultItem("Image"),
-      { ...newItem("Text", profile, palette), Name: name },
+      { ...newItem("Text", profile, palette), Name: shortDriveName(name) },
       { ...newItem("Bar", profile, palette), MinValue: 0, MaxValue: 100 },
       bind(newItem("Sensor", profile, palette), drive?.used),
       bind(newItem("Sensor", profile, palette), drive?.temp),

@@ -389,7 +389,7 @@ export function normalizeElement(raw: unknown): ElementSpec | null {
     }
     case "drives":
       return {
-        type: "drives", orientation: orientation(o.orientation), gap: num(o.gap, 12, 0, 256), width: int(o.width, 600, 16, 8192), height: int(o.height, 120, 16, 4096),
+        type: "drives", orientation: orientation(o.orientation), gap: num(o.gap, 12, 0, 256), width: int(o.width, 600, 90, 8192), height: int(o.height, 120, 60, 4096),
         radius: num(o.radius, 10, 0, 256), card: ink(o.card), text: ink(o.text), sub: ink(o.sub), fill: ink(o.fill), track: ink(o.track), icon: ink(o.icon),
       };
     case "shadowtext":
