@@ -1,6 +1,6 @@
 import type { ModuleSettings } from "@/modules/types";
 import { fitFontPx } from "./fit-font";
-import { bodyGap, fitRows, Widget, shell, get, num, fmt, fmtRate, toMBps, detect, Spark, useHistory, useSkin, tone, TONES, hw, type ShellProps, type WidgetMeta } from "./kit";
+import { bodyGap, fitRows, Widget, shell, get, num, fmt, fmtRate, rateParts, toMBps, detect, Spark, useHistory, useSkin, tone, TONES, hw, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "Vitals",
@@ -20,6 +20,8 @@ interface Vital {
   label: string;
   v: number;
   unit: string;
+  /** The number as shown, where the unit scales with the value (a throughput). */
+  text?: string;
   max?: number;
   sub: string;
 }
@@ -33,7 +35,7 @@ export interface VitalsProps extends ShellProps {
 function VitalCard({ m, hist, w, h, tui }: { m: Vital; hist: number[]; w: number; h: number; tui: boolean }) {
   const braille = useSkin().graph === "braille";
   const t = m.max ? tone(m.v, 75, 90) : "ok";
-  const text = fmt(m.v, m.unit === "MB/s" ? 1 : 0);
+  const text = m.text ?? fmt(m.v, 0);
   // short cards trade vertical padding for numeral height
   const padY = h - 33 < 13 ? 4 : 8;
   // the padding + the 13px label line + 4px under the value leave the rest to the numerals
@@ -64,11 +66,13 @@ export default function Vitals(p: VitalsProps) {
     gpu = hw(d).gpu;
   const L = (k: string) => num(get(d, `libre.${k}`));
   const net = detect(d, /^libre\.(.+)_download_speed$/).reduce((a, n) => a + (L(`${n}_download_speed`) || 0), 0);
+  const up = detect(d, /^libre\.(.+)_upload_speed$/).reduce((a, n) => a + (L(`${n}_upload_speed`) || 0), 0);
+  const rate = rateParts(net);
   const all: Record<Metric, Vital> = {
     cpu: { label: "CPU", v: L(`${cpu}_cpu_total`), unit: "%", max: 100, sub: `${fmt(L(`${cpu}_core__tctl_tdie`), 0)}°C` },
     gpu: { label: "GPU", v: L(`${gpu}_gpu_core_load`), unit: "%", max: 100, sub: `${fmt(L(`${gpu}_gpu_core`), 0)}°C` },
     ram: { label: "RAM", v: L("total_memory_memory"), unit: "%", max: 100, sub: `${fmt(L("total_memory_memory_used"), 1)} GB` },
-    net: { label: "Net ↓", v: toMBps(net), unit: "MB/s", sub: fmtRate(net) },
+    net: { label: "Net ↓", v: toMBps(net), text: rate.text, unit: rate.unit, sub: `↑ ${fmtRate(up)}` },
     vram: { label: "VRAM", v: (L(`${gpu}_gpu_memory_used`) / L(`${gpu}_gpu_memory_total`)) * 100, unit: "%", max: 100, sub: `${fmt(L(`${gpu}_gpu_memory_used`) / 1024, 1)} GB` },
     fps: { label: "FPS", v: num(get(d, "plugins.InfoPanel.RTSS.rtss.fps")), unit: "", sub: get(d, "plugins.InfoPanel.RTSS.rtss.resolution") },
   };
@@ -78,7 +82,7 @@ export default function Vitals(p: VitalsProps) {
     <Widget
       {...shell(p)}
       showHeader={false}
-      studio={{ label: "Vitals", value: all.cpu.v, unit: "%", sub: "CPU", hist: H.cpu, min: 0, max: 100, rows: keys.map((k) => ({ n: all[k].label, v: `${fmt(all[k].v, all[k].unit === "MB/s" ? 1 : 0)} ${all[k].unit}`, pct: all[k].max ? all[k].v : undefined })) }}
+      studio={{ label: "Vitals", value: all.cpu.v, unit: "%", sub: "CPU", hist: H.cpu, min: 0, max: 100, rows: keys.map((k) => ({ n: all[k].label, v: `${all[k].text ?? fmt(all[k].v, 0)} ${all[k].unit}`, pct: all[k].max ? all[k].v : undefined })) }}
       compact={(box) => (box.shape === "tile" ? { label: "CPU · GPU", value: all.cpu.v, unit: "%", sub: `GPU ${fmt(all.gpu.v, 0)}% · RAM ${fmt(all.ram.v, 0)}%`, hist: H.cpu, min: 0, max: 100, icon: "vital_signs" } : undefined)}
     >
       {({ w, h }) => {
