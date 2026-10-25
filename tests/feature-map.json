@@ -616,6 +616,14 @@
       "checks": ["full"]
     },
     {
+      "id": "release-version",
+      "summary": "A release bump: package.json, package-lock.json, Cargo.toml or Cargo.lock changed in their version fields only (tools/verify/release.mjs decides by content).",
+      "paths": [],
+      "tests": [],
+      "checks": ["cargo-server"],
+      "note": "Claims no path: verify routes version-only manifests here instead of to tooling and server-core, so a release skips the full run and e2e. cargo-server builds with the lock, so a mismatched Cargo.lock still fails."
+    },
+    {
       "id": "docs",
       "fallback": true,
       "summary": "Prose docs with no test reading them.",

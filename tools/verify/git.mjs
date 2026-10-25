@@ -63,6 +63,15 @@ export function mergeBase(root, base) {
   return null;
 }
 
+/** The text of `file` at `sha`, or null when it isn't there. */
+export function fileAt(root, sha, file) {
+  try {
+    return gitText(root, ["show", `${sha}:${file}`]);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Every file changed relative to the base: commits since the merge base, staged, unstaged and untracked (not ignored).
  * `mergeBase: null` means the base wasn't found (shallow clone, detached HEAD): the caller falls back to a full run.

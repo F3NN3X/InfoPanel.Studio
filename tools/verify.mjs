@@ -14,9 +14,10 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { changedFiles, head, trackedFiles, treeHash } from "./verify/git.mjs";
+import { changedFiles, fileAt, head, trackedFiles, treeHash } from "./verify/git.mjs";
 import { loadMap, resolveChanges, whereIs } from "./verify/map.mjs";
 import { buildPlan, EXIT, exitCodeFor } from "./verify/plan.mjs";
+import { RELEASE_FEATURE, splitVersionOnly } from "./verify/release.mjs";
 import { freshness, freshnessExit, readRecord, writeRecord } from "./verify/record.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -106,7 +107,14 @@ function main() {
       notes.push("no merge base with origin/main or main (shallow clone or detached HEAD?): running the full suite");
       mode = "full";
     }
-    const { byFeature, unmapped } = resolveChanges(changes.files, map);
+    // A manifest whose only change is its version (a release bump) goes to release-version, not to the features that own it.
+    const { versionOnly, rest } = splitVersionOnly(changes.files, (file) => {
+      const old = changes.mergeBase && fileAt(ROOT, changes.mergeBase.sha, file);
+      const now = fs.existsSync(path.join(ROOT, file)) ? fs.readFileSync(path.join(ROOT, file), "utf8") : null;
+      return old != null && now != null ? { old, new: now } : null;
+    });
+    const { byFeature, unmapped } = resolveChanges(rest, map);
+    if (versionOnly.length) byFeature.set(RELEASE_FEATURE, versionOnly);
     if (unmapped.length) {
       for (const file of unmapped) console.error(`unmapped: ${file}, add it to tests/feature-map.json`);
       return EXIT.usage;
