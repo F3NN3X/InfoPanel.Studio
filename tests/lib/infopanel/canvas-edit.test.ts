@@ -5,7 +5,8 @@ import { isBound, type BoundItem } from "@/lib/infopanel/sensors.ts";
 import { readStored, toStored } from "@/lib/infopanel/import/stored.ts";
 import { openCanvas } from "@/lib/infopanel/canvas.ts";
 import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys.ts";
-import { duplicate, group, itemAt, moveBy, setField } from "@/lib/infopanel/editor/ops.ts";
+import { groupItems } from "@/lib/infopanel/editor/groups.ts";
+import { duplicate, itemAt, moveBy, setField } from "@/lib/infopanel/editor/ops.ts";
 import { groupId, indexCatalog } from "@/lib/infopanel/remap/remap.ts";
 import { STARTERS } from "@/lib/infopanel/gauges/presets.ts";
 import { normalizeGauge } from "@/lib/infopanel/gauges/vector.ts";
@@ -84,8 +85,8 @@ describe("editItems / storeItems", () => {
     expect(editKeyOf(items[2])).toBeNull();
 
     const dup = duplicate(items, ["0"]);
-    const grouped = group(dup.items, ["0", "2"]);
-    const stored = storeItems(open.stored, open.profile, grouped!.items);
+    const grouped = groupItems(dup.items, ["0", "2"]);
+    const stored = storeItems(open.stored, open.profile, (grouped as { items: typeof dup.items }).items);
     expect(storedCanvasKeys(stored)).toEqual(["libre.cpu", "libre.gpu"]);
     const reopened = editItems(openCanvas(JSON.parse(JSON.stringify(stored))));
     const keys = flatPaths(reopened).map((p) => editKeyOf(itemAt(reopened, p)!));

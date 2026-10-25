@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { parseDisplayItemsXml } from "@/lib/infopanel/parse.ts";
 import { SCHEMAS } from "@/lib/infopanel/schema.ts";
 import { commit, redo, start, undo } from "@/lib/infopanel/editor/history.ts";
-import { duplicate, group, itemAt, moveBy, removeAll, reorder, setBox, setField, topmost, ungroup } from "@/lib/infopanel/editor/ops.ts";
+import { groupItems, ungroupAt } from "@/lib/infopanel/editor/groups.ts";
+import { duplicate, itemAt, moveBy, removeAll, reorder, setBox, setField, topmost } from "@/lib/infopanel/editor/ops.ts";
 import { checkValue, fieldsOf, labelOf } from "@/lib/infopanel/editor/registry.ts";
 
 const item = (type: string, fields = "") => `<DisplayItem xsi:type="${type}DisplayItem">${fields}</DisplayItem>`;
@@ -37,10 +38,9 @@ describe("ops", () => {
   });
 
   it("groups siblings at the first one's place and ungroups in place", () => {
-    const g = group(tree, ["2", "0"], "new")!;
+    const g = groupItems(tree, ["2", "0"], "new") as Extract<ReturnType<typeof groupItems>, { ok: true }>;
     expect([names(g.items), g.path]).toEqual([[{ new: ["a", "d"] }, { g: ["b", "c"] }], "0"]);
-    expect(group(tree, ["0", "1.0"])).toBeNull();
-    const u = ungroup(tree, "1")!;
+    const u = ungroupAt(tree, "1")!;
     expect([names(u.items), u.paths]).toEqual([["a", "b", "c", "d"], ["1", "2"]]);
   });
 

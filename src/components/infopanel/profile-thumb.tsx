@@ -24,6 +24,11 @@ export function ProfileThumb({ item }: { item: Pick<LibraryItem, "id" | "updated
       live = false;
     };
   }, [item.id, item.updatedAt, item.data]);
+  return <CanvasThumb canvas={canvas} />;
+}
+
+/** A stored canvas already in hand (a profile placed in the dashboard) drawn the same way. */
+export function CanvasThumb({ canvas }: { canvas: StoredCanvas | null }) {
   return (
     <div aria-hidden="true" className="relative h-full w-full overflow-hidden" style={{ background: "#0a0a0c" }}>
       {canvas && (

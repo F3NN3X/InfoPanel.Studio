@@ -29,18 +29,16 @@ import {
 } from "@/lib/infopanel/canvas-edit";
 import {
   duplicate as duplicateItems,
-  group as groupItems,
   itemAt,
   moveBy,
   removeAll,
   reorder as reorderItem,
   setField,
-  topmost,
-  ungroup as ungroupItem,
   updateAt,
   type Box,
   type Path,
 } from "@/lib/infopanel/editor/ops";
+import { groupItems, moveItems, ungroupAt } from "@/lib/infopanel/editor/groups";
 import { align as alignBoxes, distribute as distributeBoxes, type AlignEdge, type Shift } from "@/lib/infopanel/editor/arrange";
 import { sensorOfCatalog, type ChosenSensor } from "@/lib/infopanel/editor/bind";
 import type { ConvertContext } from "@/lib/infopanel/native/convert";
@@ -78,8 +76,12 @@ export interface CanvasEditor {
   /** A whole new stored form (items and assets changed together, e.g. a dropped library image): one step. */
   commitStored(stored: StoredCanvas, selection?: Path[]): void;
   duplicate(): void;
+  /** Groups the selection (any parents) into a new group: one step, or the reason it can't is shown. */
   group(): void;
+  /** Replaces the selected group with its children: one step, or the reason it can't is shown. */
   ungroup(): void;
+  /** Moves the selection into the group at `parent` ("" is the top level), ahead of that list's child `index`: one step, or the reason it can't is shown. */
+  move(parent: Path, index: number): void;
   reorder(step: -1 | 1): void;
   remove(): void;
   nudge(dx: number, dy: number): void;
@@ -123,6 +125,7 @@ export function useCanvasEditor(
   setConfig: HistorySetter,
   replace: ReplaceCanvas,
   initialSelection: Path[] = [],
+  refuse: (reason: string) => void = () => {},
 ): CanvasEditor {
   const open = useMemo(() => openCanvas(zone.canvas), [zone.canvas]);
   const committed = useMemo(() => editItems(open), [open]);
@@ -190,12 +193,22 @@ export function useCanvasEditor(
       commit(r.items, undefined, r.paths);
     },
     group: () => {
-      const r = topmost(selection).length > 1 ? groupItems(committed, selection) : null;
-      if (r) commit(r.items, undefined, [r.path]);
+      const r = groupItems(committed, selection);
+      if (!r.ok) return refuse(r.reason);
+      commit(r.items, undefined, [r.path]);
     },
     ungroup: () => {
-      const r = single ? ungroupItem(committed, single) : null;
-      if (r) commit(r.items, undefined, r.paths);
+      const g = single ? itemAt(committed, single) : undefined;
+      const r = single ? ungroupAt(committed, single) : null;
+      if (!r) return g?.kind === "Group" ? refuse("Cores places its own bars, so it can’t be ungrouped.") : undefined;
+      commit(r.items, undefined, r.paths);
+    },
+    move: (parent, index) => {
+      // A group dropped into opens first (on the paths as they are now), so the move shows.
+      const base = parent === "" ? committed : updateAt(committed, parent, (g) => (g.kind === "Group" && !g.IsExpanded ? { ...g, IsExpanded: true } : g));
+      const r = moveItems(base, selection, parent, index);
+      if (!r.ok) return refuse(r.reason);
+      commit(r.items, undefined, r.paths);
     },
     reorder: (step) => {
       if (!single) return;

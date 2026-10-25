@@ -50,6 +50,8 @@ interface NewProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreate: (p: NewProfile) => void;
+  /** The gallery card the home page started from, chosen when the dialog opens. */
+  initial?: GalleryChoice;
 }
 
 /** A typed side, or null when it is not a whole number from 1 to 8192. */
@@ -60,12 +62,12 @@ export function sideOf(raw: string): number | null {
 
 const INPUT = "h-8 w-full min-w-0 rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent";
 
-export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDialogProps) {
+export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewProfileDialogProps) {
   const [name, setName] = useState("New profile");
   const [preset, setPreset] = useState<number | "custom">(1);
   const [w, setW] = useState("800");
   const [h, setH] = useState("480");
-  const [choice, setChoice] = useState<GalleryChoice>({ template: null, variant: "" });
+  const [choice, setChoice] = useState<GalleryChoice>(initial ?? { template: null, variant: "" });
   const [overrides, setOverrides] = useState<RoleOverrides>({});
   const [toLibrary, setToLibrary] = useState(false);
   const [profiles, setProfiles] = useState<LibraryItem[]>([]);

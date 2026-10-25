@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { canvasPlaces, InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { TEMPLATES } from "@/lib/infopanel/templates/catalog";
 import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import { CANVAS_ID, type DashboardConfig, type Placement } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
@@ -24,11 +25,30 @@ beforeEach(() => {
 describe("the InfoPanel start view", () => {
   it("lists the Library profiles that aren't placed here, and opens one", async () => {
     const onOpenLibrary = vi.fn();
-    render(<InfoPanelStart config={config} onOpen={vi.fn()} onOpenLibrary={onOpenLibrary} onNew={vi.fn()} onImport={vi.fn()} />);
+    render(<InfoPanelStart config={config} onOpen={vi.fn()} onContinue={vi.fn()} onOpenLibrary={onOpenLibrary} onNew={vi.fn()} onImport={vi.fn()} />);
     expect(await screen.findByRole("heading", { name: "In your Library" })).toBeTruthy();
     // The placed one is under "In this dashboard" only.
     expect(screen.getAllByText("Desk")).toHaveLength(1);
     fireEvent.click(screen.getByText("Spare"));
     expect(onOpenLibrary).toHaveBeenCalledWith(expect.objectContaining({ id: "lib-spare" }));
+  });
+});
+
+describe("the InfoPanel home page", () => {
+  it("leads with the open document, then Create, the dashboard's profiles and the Library's", async () => {
+    const onContinue = vi.fn();
+    const onNew = vi.fn();
+    const current = canvasPlaces(config)[0];
+    render(<InfoPanelStart config={config} current={current} onContinue={onContinue} onOpen={vi.fn()} onOpenLibrary={vi.fn()} onNew={onNew} onImport={vi.fn()} />);
+    await screen.findByRole("heading", { name: "In your Library" });
+    const heads = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(heads).toEqual(["Continue editing", "Create", "In this dashboard", "In your Library"]);
+    fireEvent.click(screen.getByRole("button", { name: "Continue editing Desk" }));
+    expect(onContinue).toHaveBeenCalled();
+    // A gallery card starts the New InfoPanel profile dialog on that template; Blank on nothing.
+    fireEvent.click(await screen.findByRole("button", { name: "Blank" }, { timeout: 8000 }));
+    expect(onNew).toHaveBeenLastCalledWith(undefined);
+    fireEvent.click(await screen.findByRole("button", { name: TEMPLATES[0].name }, { timeout: 8000 }));
+    expect(onNew).toHaveBeenLastCalledWith({ template: TEMPLATES[0].id, variant: TEMPLATES[0].variants[0].id });
   });
 });

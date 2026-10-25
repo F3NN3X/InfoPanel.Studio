@@ -6,6 +6,11 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **An InfoPanel home page.** The rail's InfoPanel button now always opens it, even with a profile open. It leads with Continue editing, then Create (Blank and the templates, as cards that open New InfoPanel profile on that choice), then the profiles in this dashboard and in your Library as cards with live thumbnails, with Open, and Duplicate and Remove for the Library's. The editor's toolbar has a Profiles button back to it; the profile stays open.
+- **Group management in the InfoPanel editor.** `Ctrl+G` groups the selection, from different groups too, and `Ctrl+Shift+G` ungroups; the Layers menu has both, plus Rename, Duplicate and Delete. Layers rows drag to reorder, into a group or out of one, several at once, with an indicator for above, inside and below, and a line saying why when a drop isn't allowed. Groups open and close (InfoPanel's IsExpanded) and rename in place. A click on the canvas selects a whole group; `Alt`+click or a double-click selects the item inside. Items keep their canvas positions through every move. A Cores element's bars stay managed by the element.
+
 ## [1.3.0-beta.26] - 2026-10-25
 
 ### Added

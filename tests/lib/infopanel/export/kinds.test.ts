@@ -107,7 +107,7 @@ describe("setter boundaries", () => {
 describe("fixtures", () => {
   it("has one per kind and a mixed one, each carrying the files it names", () => {
     const all = fixtures();
-    expect(all.map((f) => f.name)).toEqual([...KINDS.map((k: ItemKind) => `Kind-${k}`), "Kinds-mixed", "Kinds-empty"]);
+    expect(all.map((f) => f.name)).toEqual([...KINDS.map((k: ItemKind) => `Kind-${k}`), "Kinds-mixed", "Kinds-empty", "Groups-nested"]);
     expect(all.find((f) => f.name === "Kinds-mixed")!.assets.length).toBeGreaterThan(3);
     expect(fullItem("Image")).toMatchObject({ FilePath: "pic & more.png" });
   });

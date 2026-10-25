@@ -8,10 +8,10 @@
  * its mode and kind, and its size; Show modes tints every item. Coordinates are profile pixels.
  * Ported from the lab's EditLayer.
  */
-import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { Lock } from "lucide-react";
 import { flatPaths } from "@/lib/infopanel/canvas-edit";
-import { hitTest } from "@/lib/infopanel/editor/arrange";
+import { hitTest, unitPick } from "@/lib/infopanel/editor/arrange";
 import { itemAt, moveBy, setBox, type Box, type Path } from "@/lib/infopanel/editor/ops";
 import {
   constrainAxis,
@@ -139,6 +139,22 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
   const hs = 8 * zoomK;
   const scaleOf = () => profileWidth / layer.current!.parentElement!.getBoundingClientRect().width;
 
+  /** The topmost item the mouse takes at a client point, or null. */
+  const hitAt = (x: number, y: number, k: number) => {
+    const root = layer.current!.parentElement!;
+    const under = document
+      .elementsFromPoint(x, y)
+      .filter((el) => root.contains(el) && !layer.current!.contains(el))
+      .flatMap((el) => el.closest("[data-path]")?.getAttribute("data-path") ?? []);
+    return hitTest(editor.committed, under, (p) => measure(root, layer.current!, p, k), profile);
+  };
+
+  /** Double-click goes into a group: it selects the item under the pointer. */
+  const onDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
+    const hit = hitAt(e.clientX, e.clientY, scaleOf());
+    if (hit !== null) editor.select([hit]);
+  };
+
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     // A text selection elsewhere would turn the drag into a native drag-and-drop, which cancels the pointer.
@@ -155,11 +171,9 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
     const root = layer.current!.parentElement!;
     const k = scaleOf();
     if (!handle) {
-      const under = document
-        .elementsFromPoint(e.clientX, e.clientY)
-        .filter((el) => root.contains(el) && !layer.current!.contains(el))
-        .flatMap((el) => el.closest("[data-path]")?.getAttribute("data-path") ?? []);
-      const hit = hitTest(editor.committed, under, (p) => measure(root, layer.current!, p, k), profile);
+      const hit0 = hitAt(e.clientX, e.clientY, k);
+      // A group's item selects the group as one; Alt-click goes in for the item.
+      const hit = hit0 === null ? null : unitPick(hit0, editor.selection, e.altKey);
       if (hit == null) {
         if (!additive) editor.select([]);
         return;
@@ -254,6 +268,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onDoubleClick={onDoubleClick}
       onDragStart={(e) => e.preventDefault()}
       style={{ position: "absolute", inset: 0, touchAction: "none", userSelect: "none" }}
     >
@@ -301,8 +316,8 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
               <span
                 style={{
                   position: "absolute",
-                  left: -2 * zoomK,
-                  bottom: `calc(100% + ${6 * zoomK}px)`,
+                  // With no room above the box (at the canvas top), the tag sits inside its top-left corner.
+                  ...(b.y > 28 * zoomK ? { left: -2 * zoomK, bottom: `calc(100% + ${6 * zoomK}px)` } : { left: 4 * zoomK, top: 4 * zoomK }),
                   whiteSpace: "nowrap",
                   padding: `${2 * zoomK}px ${7 * zoomK}px`,
                   borderRadius: 5 * zoomK,
@@ -327,7 +342,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
                 style={{
                   position: "absolute",
                   left: "50%",
-                  top: `calc(100% + ${6 * zoomK}px)`,
+                  ...(b.y + b.height < profileHeight - 28 * zoomK ? { top: `calc(100% + ${6 * zoomK}px)` } : { bottom: 4 * zoomK }),
                   transform: "translateX(-50%)",
                   whiteSpace: "nowrap",
                   padding: `${1 * zoomK}px ${6 * zoomK}px`,

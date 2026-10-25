@@ -7,7 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { AssetTable, Doc } from "@/lib/infopanel/assets/assets.ts";
 import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import { commit, redo, start, undo, type History } from "@/lib/infopanel/editor/history.ts";
-import { duplicate, group, itemAt, moveBy, removeAll, reorder, setField, ungroup, type Path } from "@/lib/infopanel/editor/ops.ts";
+import { groupItems, ungroupAt } from "@/lib/infopanel/editor/groups.ts";
+import { duplicate, itemAt, moveBy, removeAll, reorder, setField, type Path } from "@/lib/infopanel/editor/ops.ts";
 
 export interface Editor {
   /** What to draw: the preview while a drag runs, else the present. */
@@ -83,11 +84,11 @@ export function useEditor(initial: DisplayItem[], initialAssets: AssetTable = NO
       apply(r.items, r.paths);
     },
     group: () => {
-      const r = group(present, valid);
-      if (r) apply(r.items, [r.path]);
+      const r = groupItems(present, valid);
+      if (r.ok) apply(r.items, [r.path]);
     },
     ungroup: () => {
-      const r = valid.length === 1 ? ungroup(present, valid[0]) : null;
+      const r = valid.length === 1 ? ungroupAt(present, valid[0]) : null;
       if (r) apply(r.items, r.paths);
     },
     reorder: (step) => {

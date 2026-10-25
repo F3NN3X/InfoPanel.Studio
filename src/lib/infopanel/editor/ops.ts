@@ -5,7 +5,7 @@
  * InfoPanel groups do not offset their children: a child's X/Y is on the canvas,
  * so moving a group moves every item in it.
  */
-import type { DisplayItem, GroupItem } from "../schema.ts";
+import type { DisplayItem } from "../schema.ts";
 
 export type Path = string;
 const split = (p: Path) => p.split(".").map(Number);
@@ -34,7 +34,7 @@ export function updateAt(items: readonly DisplayItem[], path: Path, fn: (item: D
 }
 
 /** The children list at `parent` ("" for the top level), replaced by `fn(list)`. */
-function updateList(items: readonly DisplayItem[], parent: Path, fn: (list: DisplayItem[]) => DisplayItem[]): DisplayItem[] {
+export function updateList(items: readonly DisplayItem[], parent: Path, fn: (list: DisplayItem[]) => DisplayItem[]): DisplayItem[] {
   if (parent === "") return fn([...items]);
   return updateAt(items, parent, (g) => (g.kind === "Group" ? { ...g, DisplayItems: fn([...g.DisplayItems]) } : g));
 }
@@ -84,36 +84,6 @@ export function reorder(items: readonly DisplayItem[], path: Path, step: -1 | 1)
     return next;
   });
   return { items: tree, path: ok ? child(parent, j) : path };
-}
-
-/** Wraps sibling items in a new group at the first one's place; returns the group's path. Null when not siblings. */
-export function group(items: readonly DisplayItem[], paths: readonly Path[], name = "Group"): { items: DisplayItem[]; path: Path } | null {
-  const sel = topmost(paths);
-  if (sel.length === 0) return null;
-  const parent = parentOf(sel[0]);
-  if (sel.some((p) => parentOf(p) !== parent)) return null;
-  const idx = sel.map(indexOf).sort((a, b) => a - b);
-  const first = itemAt(items, sel[0])!;
-  const tree = updateList(items, parent, (list) => {
-    const g: GroupItem = {
-      kind: "Group", Name: name, Hidden: false, X: first.X, Y: first.Y, IsLocked: false, Rotation: 0,
-      IsExpanded: true, DisplayItems: idx.map((i) => list[i]), unknown: {},
-    };
-    const rest = list.filter((_, i) => !idx.includes(i));
-    rest.splice(idx[0], 0, g);
-    return rest;
-  });
-  return { items: tree, path: child(parent, idx[0]) };
-}
-
-/** Replaces a group with its children, in place; returns their paths. */
-export function ungroup(items: readonly DisplayItem[], path: Path): { items: DisplayItem[]; paths: Path[] } | null {
-  const g = itemAt(items, path);
-  if (g?.kind !== "Group") return null;
-  const parent = parentOf(path);
-  const i = indexOf(path);
-  const tree = updateList(items, parent, (list) => [...list.slice(0, i), ...g.DisplayItems, ...list.slice(i + 1)]);
-  return { items: tree, paths: g.DisplayItems.map((_, k) => child(parent, i + k)) };
 }
 
 /** Copies items (offset by 10 px) right after the last of them; returns the copies' paths. */
