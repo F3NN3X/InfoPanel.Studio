@@ -120,6 +120,20 @@ describe("a value's item and the picture under it", () => {
   });
 });
 
+describe("a graph's colour", () => {
+  it("is its line's stroke, not the area's 'none', and always a colour InfoPanel reads", () => {
+    const at = (svg: string) => {
+      const root = document.createElement("div");
+      root.innerHTML = `<div data-ip-key="libre.cpu_total" data-ip-kind="graph"><svg>${svg}</svg></div>`;
+      document.body.append(root);
+      root.querySelector<HTMLElement>("[data-ip-key]")!.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 20 }) as DOMRect;
+      return decompose(root, { x: 0, y: 0, w: 100, h: 20 }, ctx())[0] as unknown as { Color: string };
+    };
+    expect(at(`<path style="stroke:none"></path><path style="stroke:rgb(255, 0, 0)"></path>`).Color).toBe("#FFFF0000");
+    expect(at(`<path style="stroke:none"></path>`).Color).toMatch(/^#[0-9A-F]{8}$/);
+  });
+});
+
 describe("shownAs", () => {
   it.each([
     ["63°C", { decimals: 0, unit: "°C" }],

@@ -171,8 +171,9 @@ function readOne(el: HTMLElement, origin: DOMRect, zoom: number): Tagged | null 
       };
     }
     case "graph": {
-      const line = el.querySelector("path, polyline");
-      return { ...base, color: line ? getComputedStyle(line).stroke || base.color : base.color };
+      // The line, not the area under it (a fill path has no stroke).
+      const stroke = [...el.querySelectorAll("path, polyline, line")].map((n) => getComputedStyle(n).stroke).find((c) => c && c !== "none" && !c.startsWith("url("));
+      return { ...base, color: stroke ?? base.color };
     }
     case "ring": {
       // The value circle in a 100-unit viewBox: its px stroke is the viewBox's scale times its width.
@@ -217,6 +218,12 @@ export function cssToArgb(css: string): string {
   return `#${hex(a * 255)}${hex(Number(m[1]))}${hex(Number(m[2]))}${hex(Number(m[3]))}`.toUpperCase();
 }
 
+/** A CSS colour as InfoPanel's `#AARRGGBB`, or `fallback` when it isn't one (a "none" stroke, a gradient). */
+const ink = (css: string, fallback: string): string => {
+  const c = cssToArgb(css);
+  return /^#[0-9A-F]{8}$/.test(c) ? c : fallback;
+};
+
 /** A CSS colour as the vector spec's `#RRGGBB` (its alpha dropped), or null when it can't be read. */
 const rgbHex = (css: string | undefined): string | null => {
   if (!css) return null;
@@ -250,7 +257,7 @@ export function taggedItem(t: Tagged, origin: Rect, ctx: ConvertContext): Displa
   const name = t.key;
   const font = {
     FontSize: fontSizeOf(t.fontSize),
-    Color: cssToArgb(t.color),
+    Color: ink(t.color, ctx.look.Color),
     Bold: t.bold,
     ...(t.font ? { Font: t.font } : {}),
     Wrap: false,
@@ -283,8 +290,8 @@ export function taggedItem(t: Tagged, origin: Rect, ctx: ConvertContext): Displa
         make("Bar", ctx, box, name, {
           MinValue: 0,
           MaxValue: t.max ?? 100,
-          Color: cssToArgb(t.color),
-          ...(t.track ? { Background: true, BackgroundColor: cssToArgb(t.track) } : {}),
+          Color: ink(t.color, ctx.palette.accent1),
+          ...(t.track && ink(t.track, "") ? { Background: true, BackgroundColor: ink(t.track, "") } : {}),
           CornerRadius: Math.round(t.radius ?? 0),
           Gradient: false,
           Frame: false,
@@ -327,7 +334,7 @@ export function taggedItem(t: Tagged, origin: Rect, ctx: ConvertContext): Displa
       return bound({ ...make("Gauge", ctx, box, name, { MaxValue: t.max ?? 100 }), vector } as unknown as DisplayItem, t.key, ctx);
     }
     case "graph":
-      return bound(make("Graph", ctx, box, name, { MinValue: 0, MaxValue: t.max ?? 100, Color: cssToArgb(t.color), Background: false, Fill: false }), t.key, ctx);
+      return bound(make("Graph", ctx, box, name, { MinValue: 0, MaxValue: t.max ?? 100, Color: ink(t.color, ctx.palette.accent1), Background: false, Fill: false }), t.key, ctx);
   }
 }
 
