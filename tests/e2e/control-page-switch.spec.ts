@@ -6,6 +6,10 @@ test("a control page switch moves an open kiosk", async ({ page, scratch }) => {
   await page.goto(`${scratch.base}/?kiosk=1&profile=${manifest.profiles.light}`);
   await expect(page.locator(manifest.kioskZoneSelector)).toHaveCount(manifest.zones.light.length);
   await expect(page.getByText("Second page")).toHaveCount(0);
+  // The switch is pushed to the streams open now: wait until the server lists this kiosk's.
+  await expect
+    .poll(async () => ((await (await fetch(`${scratch.base}/api/control`)).json()) as { kiosks: unknown[] }).kiosks.length)
+    .toBe(1);
 
   const res = await fetch(`${scratch.base}/api/control/page`, {
     method: "POST",

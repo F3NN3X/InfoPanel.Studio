@@ -21,6 +21,8 @@ export const FIXTURE_DIR = path.join(ROOT, "tests/fixtures/perf/data");
 const SERVER_LINE = /InfoPanel Studio on http:\/\/[^:]+:(\d+)/;
 const DATA_API_LINE = /Fake Data API on http:\/\/[^:]+:(\d+)/;
 const START_TIMEOUT_MS = 15_000;
+/** Ports at or above 1024 that Chromium refuses to navigate to (net::ERR_UNSAFE_PORT); an OS-picked port can land on one. */
+const UNSAFE_PORTS = new Set([1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
 
 /** Spawn a process and wait for its start line; resolves with the port. */
 function launch(cmd, args, env, pattern, name) {
@@ -73,8 +75,12 @@ export async function prepareScratch({ fixture = FIXTURE_DIR, dataApiEnv = {} } 
     setTimeout(() => fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 }), 200).unref?.();
   };
   try {
-    const api = await launch(process.execPath, [path.join(ROOT, "tools/perf/fake-data-api.mjs")], { ...process.env, ...dataApiEnv, PORT: "0", HOST: "127.0.0.1" }, DATA_API_LINE, "fake Data API");
-    children.push(api.child);
+    let api;
+    do {
+      api = await launch(process.execPath, [path.join(ROOT, "tools/perf/fake-data-api.mjs")], { ...process.env, ...dataApiEnv, PORT: "0", HOST: "127.0.0.1" }, DATA_API_LINE, "fake Data API");
+      children.push(api.child);
+      if (UNSAFE_PORTS.has(api.port)) api.child.kill();
+    } while (UNSAFE_PORTS.has(api.port));
     const dataApi = `http://127.0.0.1:${api.port}`;
     const configFile = path.join(dataDir, "config.json");
     const config = JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -90,7 +96,15 @@ export async function prepareScratch({ fixture = FIXTURE_DIR, dataApiEnv = {} } 
  * Start a scratch server. `fixture` is the data folder to copy; `env` adds to the server's environment;
  * `dataApiEnv` to the fake Data API's (RATE_HZ, AUDIO_HZ, SEED).
  */
-export async function startScratch({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {} } = {}) {
+export async function startScratch(options = {}) {
+  for (let attempt = 0; ; attempt++) {
+    const scratch = await startScratchOnce(options);
+    if (!UNSAFE_PORTS.has(Number(new URL(scratch.base).port)) || attempt >= 9) return scratch;
+    scratch.stop();
+  }
+}
+
+async function startScratchOnce({ fixture = FIXTURE_DIR, env = {}, dataApiEnv = {} }) {
   const server = serverCommand({ ...process.env, ...env });
   const scratch = await prepareScratch({ fixture, dataApiEnv });
   try {

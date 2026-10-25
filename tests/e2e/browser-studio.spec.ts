@@ -43,19 +43,21 @@ test("closing the tab inside the save delay never loses the edit silently", asyn
 
 test("hiding the tab saves the pending edit at once, and leaving after that doesn't ask", async ({ page, scratch }) => {
   await openStudio(page, scratch);
+  // A paused page clock: the edit's own 400 ms push can't run however slow the machine is, so a request after the
+  // hide can only be the hide's.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 60_000));
   await page.locator(`[data-zone-id="${manifest.zones.light[1]}"]`).click();
   const name = page.getByLabel("Zone name");
   await name.fill("Hidden tab edit");
   await name.press("Enter");
   // The edit's own push waits 400 ms; the hide's goes out at once.
   const push = page.waitForRequest((r) => r.method() === "POST" && r.url() === `${scratch.base}/api/config`, { timeout: 2000 });
-  const t0 = Date.now();
   await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
     document.dispatchEvent(new Event("visibilitychange"));
   });
   await push;
-  expect(Date.now() - t0).toBeLessThan(200);
   await expect.poll(() => savedText(scratch), { timeout: 5000 }).toContain("Hidden tab edit");
   // Saved, once the studio has the server's answer: nothing to ask about.
   await expect(page.getByLabel("Unsaved changes")).toHaveCount(0);

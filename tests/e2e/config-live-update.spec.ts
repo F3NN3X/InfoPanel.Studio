@@ -11,8 +11,25 @@ interface Config {
 }
 
 test("a saved change shows on an open kiosk without a reload", async ({ page, scratch }) => {
+  // The save is pushed to the streams open now: note when the kiosk's config stream has connected.
+  await page.addInitScript(() => {
+    const Native = window.EventSource;
+    const flag = window as unknown as { __configStreamOpen: boolean };
+    flag.__configStreamOpen = false;
+    window.EventSource = class extends Native {
+      constructor(url: string | URL, init?: EventSourceInit) {
+        super(url, init);
+        if (String(url).startsWith("/events/config")) {
+          this.addEventListener("open", () => {
+            flag.__configStreamOpen = true;
+          });
+        }
+      }
+    };
+  });
   await page.goto(`${scratch.base}/?kiosk=1&profile=${manifest.profiles.light}`);
   await expect(page.locator(manifest.kioskZoneSelector)).toHaveCount(manifest.zones.light.length);
+  await page.waitForFunction(() => (window as unknown as { __configStreamOpen: boolean }).__configStreamOpen);
   await page.evaluate(() => {
     (window as unknown as { __notReloaded: boolean }).__notReloaded = true;
   });

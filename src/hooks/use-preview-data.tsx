@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { MotionOverride } from "@/hooks/use-performance";
 import { storedPreviewData, usePreviewDataSetting } from "@/hooks/use-preview-data-setting";
 import {
@@ -53,8 +53,13 @@ export function usePreviewData(): PreviewDataState {
  */
 export function PreviewDataProvider({ children }: { children: ReactNode }) {
   const { frozen } = usePreviewData();
+  const mounted = useRef(false);
   useEffect(() => {
-    if (frozen) void previewSnapshot.take();
+    const first = !mounted.current;
+    mounted.current = true;
+    // The page holds one snapshot, shared by every provider. One mounting onto a snapshot already taken (the
+    // offscreen thumbnails' one, when Design opens) uses it: a new one would move the canvas right after it froze.
+    if (frozen && (!first || previewSnapshot.getState().takenAt === null)) void previewSnapshot.take();
   }, [frozen]);
   return (
     <FrozenSensorsContext.Provider value={frozen ? previewSnapshot : null}>
