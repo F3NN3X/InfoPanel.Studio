@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useConfigHistory, type AdoptChange } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
-import { SourcesPanel } from "./sources-panel";
 import { ThemeEditor } from "./theme-editor";
 import {
   BLANK_MODULE,
@@ -34,8 +33,6 @@ import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
 import { useAddPanel } from "./use-add-panel";
 import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
-import { AlertsView } from "./alerts-view";
-import { ScreensView } from "./screens-view";
 import { withScreenPerformance } from "./screens-model";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
@@ -95,6 +92,10 @@ const NO_REQUEST: ExportRequest = {};
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The gallery and its template data load only when the dialog opens. */
 const NewProfileDialog = lazy(() => import("@/components/infopanel/new-profile-dialog"));
+/** The Data, Alerts and Screens views load when the rail first opens them. */
+const SourcesPanel = lazy(() => import("./sources-panel").then((m) => ({ default: m.SourcesPanel })));
+const AlertsView = lazy(() => import("./alerts-view").then((m) => ({ default: m.AlertsView })));
+const ScreensView = lazy(() => import("./screens-view").then((m) => ({ default: m.ScreensView })));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
 /** The Gauges view (A7), loaded when the rail first opens it. */
@@ -480,6 +481,7 @@ function StudioViewBody({
   );
 
   const alertsEl = showAlerts && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
     <AlertsView
       tab={ui.alertsTab}
       onTab={ui.setAlertsTab}
@@ -496,9 +498,11 @@ function StudioViewBody({
       onOpenZone={openZone}
       navigateTo={ui.navigateTo}
     />
+    </Suspense>
   );
 
   const screensEl = showScreens && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
     <ScreensView
       config={config}
       profile={profile}
@@ -521,12 +525,14 @@ function StudioViewBody({
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
     />
+    </Suspense>
   );
 
   const statusBar = useStatusBar(control, offline ? "offline" : pushPending ? "unsaved" : "saved");
 
   const canvasEl = showSources ? (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background/40">
+      <Suspense fallback={null}>
       <SourcesPanel
         config={config}
         setConfig={setConfig}
@@ -541,6 +547,7 @@ function StudioViewBody({
           if (opts?.dataTab) ui.requestInspectorTab("data");
         }}
       />
+      </Suspense>
     </div>
   ) : (
     <PreviewDataProvider>
