@@ -30,8 +30,21 @@ export interface ApiPlugin {
   containers: ApiContainer[];
 }
 
+/** One HWiNFO device (a sensor group such as "CPU [#0]: AMD Ryzen" or "S.M.A.R.T.: KINGSTON") with its readings. */
+export interface ApiHwinfoDevice {
+  /** `{remote}/{sensorId}/{instance}`. */
+  id: string;
+  name: string;
+  sensorId: number;
+  instance: number;
+  remote: number;
+  entries: (ApiEntry & { ref: string })[];
+}
+
 export interface ApiSources {
   plugins: ApiPlugin[];
+  /** HWiNFO's devices; absent from InfoPanel builds that predate it, then HWiNFO is one flat list. */
+  hwinfo?: ApiHwinfoDevice[];
 }
 
 export interface SensorCatalog {
@@ -67,7 +80,7 @@ async function load(base: string): Promise<void> {
     const snapshot = (await sensorsRes.json()) as { sensors?: SensorMap };
     if (base !== getApiBase()) return; // the URL setting moved on
     set({
-      sources: { plugins: sources.plugins ?? [] },
+      sources: { plugins: sources.plugins ?? [], ...(Array.isArray(sources.hwinfo) ? { hwinfo: sources.hwinfo } : {}) },
       sensors: snapshot.sensors ?? {},
       status: "ready",
       fetchedAt: Date.now(),

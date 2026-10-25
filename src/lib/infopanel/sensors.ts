@@ -24,6 +24,12 @@ export interface DataApiValue {
   table?: { columns: string[]; rows: (string | null)[][]; format?: string };
 }
 
+/**
+ * The unit as it should read. InfoPanel builds before the fix to its HWiNFO string decoding send "°C" as
+ * "Â°C" (HWiNFO's UTF-8 read as ANSI); newer builds send it right, and this leaves that alone.
+ */
+export const fixUnit = (unit: string | undefined): string | undefined => unit?.replace(/Â(?=[°²³µ])/g, "");
+
 export type BoundItem = Extract<DisplayItem, { SensorType: unknown }>;
 
 export function isBound(item: DisplayItem): item is BoundItem {
@@ -163,7 +169,7 @@ export function toReading(v: DataApiValue | undefined): SensorReading | null {
   if (v.value === undefined && v.text !== undefined) {
     return { now: 0, min: 0, max: 0, avg: 0, unit: "", text: v.text.split("\n")[0] };
   }
-  return { now: v.value ?? 0, min: v.min ?? 0, max: v.max ?? 0, avg: v.avg ?? 0, unit: v.unit ?? "" };
+  return { now: v.value ?? 0, min: v.min ?? 0, max: v.max ?? 0, avg: v.avg ?? 0, unit: fixUnit(v.unit) ?? "" };
 }
 
 /** InfoPanel's Data API on this machine. */

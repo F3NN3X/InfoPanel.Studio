@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { DataApiValue } from "@/lib/infopanel/sensors.ts";
 import { ROLES, resolveRole, resolveRoles, type Role } from "@/lib/infopanel/templates/roles.ts";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock.ts";
+import capture from "../__fixtures__/hwinfo-capture.json";
 
 const v = (name: string, unit: string, ref?: string, value = 1): DataApiValue => ({ name, unit, value, ...(ref ? { ref } : {}) });
 
@@ -70,5 +71,50 @@ describe("the template sensor roles", () => {
 
   it("resolves every role on the gallery's mock machine", () => {
     expect([...resolveRoles(MOCK_SENSORS).keys()]).toEqual([...ROLES]);
+  });
+});
+
+// A trimmed real capture of one PC with HWiNFO running (AMD CPU, NVIDIA GPU, five drives). HWiNFO reports its
+// temperatures as "Â°C" (the degree sign's first byte doubled).
+describe("roles against a real HWiNFO capture", () => {
+  const all = capture as Record<string, DataApiValue>;
+  const hwinfoOnly = Object.fromEntries(Object.entries(all).filter(([k]) => k.startsWith("hwinfo.")));
+
+  it.each<[Role, string]>([
+    // HWiNFO has what LibreHardwareMonitor lacks
+    ["gpu.hotspot", "hwinfo.gpu_hot_spot_temperature"],
+    ["ram.speed", "hwinfo.memory_clock"],
+    ["psu.12v", "hwinfo.12v"],
+    // LibreHardwareMonitor first where it has the reading
+    ["cpu.load", "libre.amd_ryzen_9_9950x3d_cpu_total"],
+    ["gpu.memclock", "libre.nvidia_geforce_rtx_5090_gpu_memory_clock"],
+  ])("%s finds %s on the whole machine", (role, key) => {
+    expect(resolveRole(role, all)?.key).toBe(key);
+  });
+
+  it.each<[Role, string]>([
+    ["cpu.temp", "hwinfo.cpu__tctl_tdie"],
+    ["cpu.ccd1", "hwinfo.cpu_ccd1__tdie"],
+    ["cpu.ccd2", "hwinfo.cpu_ccd2__tdie"],
+    ["gpu.temp", "hwinfo.gpu_temperature"],
+    ["gpu.fan", "hwinfo.gpu_fan1"],
+    ["vram.temp", "hwinfo.gpu_memory_junction_temperature"],
+    ["gpu.hotspot", "hwinfo.gpu_hot_spot_temperature"],
+    ["gpu.memclock", "hwinfo.gpu_memory_clock"],
+    ["ram.speed", "hwinfo.memory_clock"],
+    ["fps", "hwinfo.framerate"],
+    ["disk.temp", "hwinfo.drive_temperature"],
+  ])("%s finds %s from HWiNFO alone", (role, key) => {
+    expect(resolveRole(role, hwinfoOnly)?.key).toBe(key);
+  });
+
+  it("reads the doubled degree sign as °C, and picks the DRAM clock over the GPU's and the ratio", () => {
+    expect(resolveRole("gpu.hotspot", hwinfoOnly)).toMatchObject({ unit: "°C", ref: "hwinfo:-1/3758104576/0/16777221" });
+    expect(resolveRole("ram.speed", hwinfoOnly)?.ref).toBe("hwinfo:-1/4026532609/1/100663296");
+  });
+
+  it("leaves a role this PC has no sensor for unbound", () => {
+    expect(resolveRole("ups.power", all)).toBeUndefined();
+    expect(resolveRole("ram.total", all)).toBeUndefined();
   });
 });

@@ -98,3 +98,39 @@ describe("pickerOptions", () => {
     expect(options.find((o) => o.key === "libre.cpu_load")?.where).toBe("LibreHardwareMonitor");
   });
 });
+
+describe("HWiNFO's device tree", () => {
+  const entry = (id: string, name: string, key: string) => ({ id, name, type: "sensor", key, ref: `hwinfo:-1/1/0/${id}` });
+  const tree: ApiSources = {
+    plugins: [],
+    hwinfo: [
+      { id: "-1/1/0", name: "CPU [#0]: AMD Ryzen", sensorId: 1, instance: 0, remote: -1, entries: [entry("1", "Core 0 Power", "hwinfo.core_0_power")] },
+      { id: "-1/2/0", name: "S.M.A.R.T.: KINGSTON", sensorId: 2, instance: 0, remote: -1, entries: [entry("2", "Drive Temperature", "hwinfo.drive_temperature")] },
+    ],
+  };
+  const live = {
+    "hwinfo.core_0_power": { value: 5, unit: "W", name: "Core 0 Power" },
+    "hwinfo.drive_temperature": { value: 30, unit: "Â°C", name: "Drive Temperature" },
+    "hwinfo.new_reading": { value: 1, unit: "", name: "Not in the tree" },
+  };
+
+  it("groups HWiNFO by device, leftovers apart, and cleans the unit", () => {
+    const hw = groupSources(tree, live).find((g) => g.id === "hwinfo");
+    expect(hw?.sources.map((s) => [s.label, s.entries.map((e) => e.key)])).toEqual([
+      ["CPU [#0]: AMD Ryzen", ["hwinfo.core_0_power"]],
+      ["S.M.A.R.T.: KINGSTON", ["hwinfo.drive_temperature"]],
+      ["Other", ["hwinfo.new_reading"]],
+    ]);
+    expect(hw?.sources[1].entries[0].unit).toBe("°C");
+  });
+
+  it("stays one flat list when the Data API sends no tree", () => {
+    const hw = groupSources({ plugins: [] }, live).find((g) => g.id === "hwinfo");
+    expect(hw?.sources).toHaveLength(1);
+    expect(hw?.sources[0].entries).toHaveLength(3);
+  });
+
+  it("offers the picker the device in each option's place", () => {
+    expect(pickerOptions(tree, live).find((o) => o.key === "hwinfo.drive_temperature")?.where).toBe("HWiNFO › S.M.A.R.T.: KINGSTON");
+  });
+});

@@ -11,7 +11,7 @@ import { X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
 import { useSensors } from "@/hooks/useSensors";
-import { useSensorCatalog } from "@/lib/catalog";
+import { getCatalog, useSensorCatalog } from "@/lib/catalog";
 import { editKeyOf } from "@/lib/infopanel/canvas-edit";
 import { namedFor, newItem, type PaletteEntry } from "@/lib/infopanel/editor/create";
 import { applyElement } from "@/lib/infopanel/elements/apply";
@@ -105,7 +105,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
       return;
     }
     if (isComposite(entry.type)) {
-      const drives = entry.type === "drives" ? detectDrives(sensors) : [];
+      const drives = entry.type === "drives" ? detectDrives(sensors, getCatalog().sources?.hwinfo) : [];
       const probe = newComposite(entry.type, profile, editor.palette, drives, 0, 0);
       const size = elementSize((probe as unknown as { element: Parameters<typeof elementSize>[0] }).element);
       const at = place?.at ?? { x: profile.Width / 2, y: profile.Height / 2 };

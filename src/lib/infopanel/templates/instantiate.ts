@@ -12,6 +12,7 @@ import { elementOf } from "../elements/spec.ts";
 import { storeItems } from "../canvas-edit.ts";
 import { newStored, readStored, type StoredCanvas } from "../import/stored.ts";
 import { walkItems } from "../parse.ts";
+import type { ApiHwinfoDevice } from "../../catalog.ts";
 import type { DisplayItem, Profile } from "../schema.ts";
 import { isBound, type DataApiValue } from "../sensors.ts";
 import type { Kit, Template } from "./kit.ts";
@@ -26,6 +27,8 @@ export interface TemplateInput {
   variant?: string;
   /** The live Data API's sensors (empty when it can't be reached). */
   sensors: Readonly<Record<string, DataApiValue>>;
+  /** The Data API's HWiNFO devices, which name the drives found there. */
+  hwinfo?: readonly ApiHwinfoDevice[];
   /** A role's sensor chosen over the one found: a sensor binds it, null leaves it unbound. */
   overrides?: Readonly<Partial<Record<Role, ChosenSensor | null>>>;
   now?: Date;
@@ -70,7 +73,7 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
     frame: frameOf(profile.Width, profile.Height),
     type: t.type,
     cores: detectCores(input.sensors),
-    drives: detectDrives(input.sensors),
+    drives: detectDrives(input.sensors, input.hwinfo),
     variant: t.variants.find((v) => v.id === input.variant)?.id ?? t.variants[0].id,
     bind: (item, role) => {
       if (!isBound(item)) return item;

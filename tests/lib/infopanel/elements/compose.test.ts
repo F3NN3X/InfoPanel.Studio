@@ -16,6 +16,7 @@ import { COMPOSITES, elementExport } from "../export/element-cases.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
 import type { GaugeItem, ImageItem } from "@/lib/infopanel/schema.ts";
 import { palette, profile } from "./fixture.ts";
+import capture from "../__fixtures__/hwinfo-capture.json";
 
 const drive = (n: number, name: string): Record<string, DataApiValue> => ({
   [`used${n}`]: { value: 40, unit: "%", name: `${name} Used Space`, ref: `libre:/nvme/${n}/load/${50 + n}` },
@@ -107,19 +108,25 @@ describe("Drives", () => {
     expect(detectDrives({})).toEqual([]);
   });
 
-  it("finds HWiNFO drives by their group names when no Libre drive is there (written from HWiNFO's naming, not a real capture)", () => {
-    const hw = (name: string, unit: string): DataApiValue => ({ value: 1, unit, name, ref: "hwinfo:0/1/2/3" });
-    const found = detectDrives({
-      t: hw("Drive: Model X 2TB · Drive Temperature", "°C"),
-      a: hw("Drive: Model X 2TB · Total Activity", "%"),
-      life: hw("S.M.A.R.T.: Model X 2TB · Drive Remaining Life", "%"),
-      t2: hw("Drive: Model Y 1TB - Drive Temperature", "°C"),
-      cpu: hw("CPU Package Temp", "°C"),
-    });
-    expect(found.map((d) => [d.name, d.used?.key, d.temp?.key, d.free])).toEqual([
-      ["Model X 2TB", "a", "t", undefined],
-      ["Model Y 1TB", undefined, "t2", undefined],
+  it("finds HWiNFO's drives in a real capture: one per instance, temperature from S.M.A.R.T., activity from the drive", () => {
+    const found = detectDrives(capture as Record<string, DataApiValue>);
+    expect(found.map((d) => [d.id, d.name, d.temp?.ref, d.used?.ref, d.free])).toEqual(
+      [0, 1, 2, 3, 4].map((i) => [`hwinfo:-1/${i}`, `Drive ${i + 1}`, `hwinfo:-1/4026532096/${i}/16777216`, `hwinfo:-1/4026532097/${i}/117440514`, undefined])
+    );
+    expect(found[0].temp).toMatchObject({ key: "hwinfo.drive_temperature", unit: "°C" });
+  });
+
+  it("names HWiNFO's drives from the Data API's device tree", () => {
+    const device = (sensorId: number, instance: number, name: string) => ({ id: `-1/${sensorId}/${instance}`, name, sensorId, instance, remote: -1, entries: [] });
+    const found = detectDrives(capture as Record<string, DataApiValue>, [
+      device(4026532096, 2, "S.M.A.R.T.: KINGSTON SFYRD2000G (50026B768718D84B)"),
+      device(4026532097, 0, "Drive: WDC WDS100T2B0A (1) [G:]"),
     ]);
+    expect(found.map((d) => d.name)).toEqual(["WDC WDS100T2B0A (1) [G:]", "Drive 2", "KINGSTON SFYRD2000G (50026B768718D84B)", "Drive 4", "Drive 5"]);
+  });
+
+  it("keeps LibreHardwareMonitor's drives when HWiNFO's are there too", () => {
+    expect(detectDrives({ ...(capture as Record<string, DataApiValue>), ...sensors }).map((d) => d.id)).toEqual(["/nvme/2", "/nvme/3"]);
   });
 
   it("binds each tile natively, lays the tiles out and relays them out on a resize", () => {

@@ -306,3 +306,24 @@ describe("hardware monitors without a device on the reading", () => {
     expect(model.byKey.get("libre.odd")?.name).toBe("Odd One");
   });
 });
+
+describe("buildDataModel with HWiNFO's device tree", () => {
+  const sources = {
+    plugins: [],
+    hwinfo: [
+      { id: "-1/1/0", name: "CPU [#0]: AMD Ryzen", sensorId: 1, instance: 0, remote: -1, entries: [{ id: "1", name: "Core 0 Power", type: "sensor", key: "hwinfo.core_0_power", ref: "hwinfo:-1/1/0/1" }] },
+    ],
+  };
+  const sensors = { "hwinfo.core_0_power": { value: 5, unit: "W", name: "Core 0 Power" } };
+
+  it("makes a container per device", () => {
+    const hw = buildDataModel(sources, sensors).sources.find((s) => s.id === "hwinfo");
+    expect(hw?.category).toBe("Hardware monitors");
+    expect(hw?.containers.map((c) => [c.title, c.points.map((p) => p.key)])).toEqual([["CPU [#0]: AMD Ryzen", ["hwinfo.core_0_power"]]]);
+  });
+
+  it("falls back to the flat list without a tree", () => {
+    const hw = buildDataModel({ plugins: [] }, sensors).sources.find((s) => s.id === "hwinfo");
+    expect(hw?.containers.map((c) => c.points.length)).toEqual([1]);
+  });
+});

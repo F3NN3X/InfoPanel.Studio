@@ -236,6 +236,10 @@ function deviceContainers(group: PluginGroup, sensors: SensorMap): RawContainer[
 }
 
 function rawContainers(group: PluginGroup, category: SourceCategory, sensors: SensorMap): RawContainer[] {
+  // HWiNFO's own device tree, when the Data API sends one (its sources carry the device's id).
+  if (group.id === "hwinfo" && group.sources.some((s) => s.id !== "")) {
+    return group.sources.map((s) => ({ rawId: s.id, title: s.label, entries: s.entries }));
+  }
   if (category === "Hardware monitors") return deviceContainers(group, sensors);
   return group.sources.map((s) => ({ rawId: s.id, title: s.label, entries: s.entries }));
 }

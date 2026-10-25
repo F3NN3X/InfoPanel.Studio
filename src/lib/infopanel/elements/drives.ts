@@ -4,14 +4,16 @@
  * (data, GB) and the "Composite Temperature" (or the first temperature). The drive's name is the
  * sensor name without its trailing "Used Space" or "Free Space".
  *
- * HWiNFO (best effort, written from how it names things, not from a capture): its drive groups are
- * "Drive: <model>" and "S.M.A.R.T.: <model>", with readings "Drive Temperature", "Total Activity",
- * "Drive Remaining Life", "Read Rate" and "Write Rate". The Data API joins group and reading in the
- * name; a separator of "·", "-" or ":" or a space is accepted. HWiNFO reports no used space for a
- * drive, so its tile's bar and percent read "Total Activity", and it has no free space.
+ * HWiNFO, from a real capture: a drive is two devices of one instance number, "S.M.A.R.T.: <model>"
+ * (sensor id 4026532096, with "Drive Temperature") and "Drive: <model>" (4026532097, with "Total
+ * Activity"). The readings carry no device in their names, so drives pair by instance, and the name
+ * is the device's (from the Data API's HWiNFO tree) without its "S.M.A.R.T.:" or "Drive:" prefix, else
+ * "Drive 1", "Drive 2". HWiNFO reports no used space for a drive, so its tile's bar and percent read
+ * "Total Activity", and it has no free space.
  */
+import type { ApiHwinfoDevice } from "../../catalog.ts";
 import type { ChosenSensor } from "../editor/bind.ts";
-import type { DataApiValue } from "../sensors.ts";
+import { fixUnit, type DataApiValue } from "../sensors.ts";
 
 export interface DriveSensors {
   /** The drive's device path ("/nvme/2"). */
@@ -24,27 +26,36 @@ export interface DriveSensors {
 
 const REF = /^libre:(\/(?:nvme|ssd|hdd)\/(\d+))\/(load|data|temperature)\/(\d+)$/i;
 
-const chosen = (key: string, v: DataApiValue): ChosenSensor => ({ key, name: v.name ?? key, ...(v.unit ? { unit: v.unit } : {}), ...(v.ref ? { ref: v.ref } : {}) });
+const chosen = (key: string, v: DataApiValue): ChosenSensor => ({ key, name: v.name ?? key, ...(v.unit ? { unit: fixUnit(v.unit) } : {}), ...(v.ref ? { ref: v.ref } : {}) });
 
-const HWINFO = /^(?:S\.M\.A\.R\.T\.|Drive):\s*(.+?)\s*(?:[·:-]\s*|\s)(Drive Temperature|Total Activity|Drive Remaining Life|Read Rate|Write Rate)$/i;
+const HWINFO_REF = /^hwinfo:(-?\d+)\/(\d+)\/(\d+)\/\d+$/i;
+const SMART = 4026532096;
+const DRIVE = 4026532097;
 
-/** HWiNFO's drives by model, in the order they first appear. */
-function hwinfoDrives(sensors: Readonly<Record<string, DataApiValue>>): DriveSensors[] {
-  const byModel = new Map<string, DriveSensors>();
+/** HWiNFO's drives by instance, in instance order. */
+function hwinfoDrives(sensors: Readonly<Record<string, DataApiValue>>, devices: readonly ApiHwinfoDevice[]): DriveSensors[] {
+  const byInstance = new Map<string, DriveSensors & { remote: number; instance: number }>();
   for (const [key, v] of Object.entries(sensors)) {
-    const m = v.name ? HWINFO.exec(v.name.trim()) : null;
-    if (!m || (v.ref && !/^hwinfo:/i.test(v.ref))) continue;
-    const drive = byModel.get(m[1].toLowerCase()) ?? { id: `hwinfo:${m[1]}`, name: m[1] };
-    const reading = m[2].toLowerCase();
-    if (reading === "drive temperature") drive.temp ??= chosen(key, v);
-    else if (reading === "total activity") drive.used ??= chosen(key, v);
-    byModel.set(m[1].toLowerCase(), drive);
+    const m = v.ref ? HWINFO_REF.exec(v.ref) : null;
+    const name = v.name?.trim();
+    if (!m || (Number(m[2]) !== SMART && Number(m[2]) !== DRIVE)) continue;
+    const reading = name === "Drive Temperature" ? "temp" : name === "Total Activity" ? "used" : null;
+    if (!reading) continue;
+    const id = `hwinfo:${m[1]}/${m[3]}`;
+    const drive = byInstance.get(id) ?? { id, name: "", remote: Number(m[1]), instance: Number(m[3]) };
+    drive[reading] ??= chosen(key, v);
+    byInstance.set(id, drive);
   }
-  return [...byModel.values()].filter((d) => d.used || d.temp);
+  return [...byInstance.values()]
+    .sort((a, b) => a.remote - b.remote || a.instance - b.instance)
+    .map(({ remote, instance, ...drive }, i) => {
+      const device = [SMART, DRIVE].map((sensorId) => devices.find((d) => d.id === `${remote}/${sensorId}/${instance}`)?.name).find(Boolean);
+      return { ...drive, name: device?.replace(/^(?:S\.M\.A\.R\.T\.|Drive):\s*/i, "").trim() || `Drive ${i + 1}` };
+    });
 }
 
 /** The machine's drives in device order (LibreHardwareMonitor's, then HWiNFO's); empty when none are found. */
-export function detectDrives(sensors: Readonly<Record<string, DataApiValue>>): DriveSensors[] {
+export function detectDrives(sensors: Readonly<Record<string, DataApiValue>>, hwinfo: readonly ApiHwinfoDevice[] = []): DriveSensors[] {
   const byId = new Map<string, DriveSensors & { n: number; tempIndex: number }>();
   for (const [key, v] of Object.entries(sensors)) {
     const m = v.ref ? REF.exec(v.ref) : null;
@@ -64,7 +75,7 @@ export function detectDrives(sensors: Readonly<Record<string, DataApiValue>>): D
     .filter((d) => d.used || d.free)
     .sort((a, b) => a.n - b.n)
     .map(({ n: _n, tempIndex: _t, ...drive }) => drive);
-  return libre.length ? libre : hwinfoDrives(sensors);
+  return libre.length ? libre : hwinfoDrives(sensors, hwinfo);
 }
 
 /**
