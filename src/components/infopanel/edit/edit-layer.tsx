@@ -316,8 +316,8 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
               <span
                 style={{
                   position: "absolute",
-                  left: -2 * zoomK,
-                  bottom: `calc(100% + ${6 * zoomK}px)`,
+                  // With no room above the box (at the canvas top), the tag sits inside its top-left corner.
+                  ...(b.y > 28 * zoomK ? { left: -2 * zoomK, bottom: `calc(100% + ${6 * zoomK}px)` } : { left: 4 * zoomK, top: 4 * zoomK }),
                   whiteSpace: "nowrap",
                   padding: `${2 * zoomK}px ${7 * zoomK}px`,
                   borderRadius: 5 * zoomK,
@@ -342,7 +342,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
                 style={{
                   position: "absolute",
                   left: "50%",
-                  top: `calc(100% + ${6 * zoomK}px)`,
+                  ...(b.y + b.height < profileHeight - 28 * zoomK ? { top: `calc(100% + ${6 * zoomK}px)` } : { bottom: 4 * zoomK }),
                   transform: "translateX(-50%)",
                   whiteSpace: "nowrap",
                   padding: `${1 * zoomK}px ${6 * zoomK}px`,

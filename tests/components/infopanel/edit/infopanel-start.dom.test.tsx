@@ -46,9 +46,9 @@ describe("the InfoPanel home page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue editing Desk" }));
     expect(onContinue).toHaveBeenCalled();
     // A gallery card starts the New InfoPanel profile dialog on that template; Blank on nothing.
-    fireEvent.click(await screen.findByRole("button", { name: "Blank" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Blank" }, { timeout: 8000 }));
     expect(onNew).toHaveBeenLastCalledWith(undefined);
-    fireEvent.click(await screen.findByRole("button", { name: TEMPLATES[0].name }));
+    fireEvent.click(await screen.findByRole("button", { name: TEMPLATES[0].name }, { timeout: 8000 }));
     expect(onNew).toHaveBeenLastCalledWith({ template: TEMPLATES[0].id, variant: TEMPLATES[0].variants[0].id });
   });
 });

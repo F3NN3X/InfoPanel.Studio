@@ -96,9 +96,9 @@ function placeOf(items: readonly DisplayItem[], row: Path | null, where: Where):
 }
 
 const DROP_STYLE: Record<Where, string> = {
-  above: "shadow-[inset_0_2px_0_0_var(--ui-accent)]",
-  below: "shadow-[inset_0_-2px_0_0_var(--ui-accent)]",
-  inside: "bg-ui-accent/15 shadow-[inset_0_0_0_1.5px_var(--ui-accent)]",
+  above: "",
+  below: "",
+  inside: "bg-ui-accent/25 shadow-[inset_0_0_0_2px_var(--ui-accent)]",
 };
 
 export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string }) {
@@ -204,13 +204,20 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
                 setMenu({ x: e.clientX, y: e.clientY });
               }}
               className={cn(
-                "flex h-[30px] shrink-0 cursor-pointer items-center gap-[7px] rounded-[7px] pr-1 hover:bg-ui-hover",
+                "relative flex h-[30px] shrink-0 cursor-pointer items-center gap-[7px] rounded-[7px] pr-1 hover:bg-ui-hover",
                 isSelected && "bg-ui-active hover:bg-ui-active",
                 mark && DROP_STYLE[mark],
               )}
               data-drop={mark ?? undefined}
               style={{ paddingLeft: 8 + depth * 16 }}
             >
+              {(mark === "above" || mark === "below") && (
+                <span
+                  aria-hidden="true"
+                  className={cn("pointer-events-none absolute right-0 z-10 h-[3px] rounded-full bg-ui-accent", mark === "above" ? "-top-[2px]" : "-bottom-[2px]")}
+                  style={{ left: 8 + depth * 16 }}
+                />
+              )}
               {isGroup ? (
                 <button
                   type="button"

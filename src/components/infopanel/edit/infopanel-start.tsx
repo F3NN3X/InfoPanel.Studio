@@ -96,7 +96,7 @@ function ProfileCard({ name, detail, size, aspect, thumb, onOpen, openLabel, chi
           {thumb}
         </div>
         <span className="truncate px-3 pt-2 text-[13px] font-medium text-ui-1">{name}</span>
-        <span className="truncate px-3 text-[11.5px] text-ui-4">{detail}</span>
+        {detail && <span className="truncate px-3 text-[11.5px] text-ui-4">{detail}</span>}
         <span className="truncate px-3 pb-2 font-ui-mono text-[11.5px] text-ui-3">{size}</span>
       </button>
       <div className="flex items-center gap-0.5 border-t border-ui-subtle px-1.5 py-1">{children}</div>
@@ -168,7 +168,7 @@ export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibr
             <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <ProfileCard
                 name={current.name}
-                detail={current.where}
+                detail={current.where === current.name ? "" : current.where}
                 size={`${current.width} × ${current.height} · ${counted(current.items)}`}
                 aspect={aspectOf(current.width, current.height)}
                 thumb={<CanvasThumb canvas={current.canvas} />}
@@ -193,7 +193,7 @@ export function InfoPanelStart({ config, current, onContinue, onOpen, onOpenLibr
               <ProfileCard
                 key={c.zoneId}
                 name={c.name}
-                detail={c.where}
+                detail={c.where === c.name ? "" : c.where}
                 size={`${c.width} × ${c.height} · ${counted(c.items)}`}
                 aspect={aspectOf(c.width, c.height)}
                 thumb={<CanvasThumb canvas={c.canvas} />}
