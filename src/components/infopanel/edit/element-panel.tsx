@@ -395,7 +395,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
         <>
           {direction(spec.orientation)}
           {num("Segments", "segments", spec.segments)}
-          {num("Gap", "gap", spec.gap)}
+          {spec.segments > 0 && num("Gap", "gap", spec.gap)}
           {num("Corner radius", "radius", spec.radius)}
           {ink("Track", "track", spec.track)}
           <InksField label="Fill" inks={spec.fill} max={3} palette={palette} onChange={(fill) => set({ fill })} />
