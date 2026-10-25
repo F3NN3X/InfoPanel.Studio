@@ -5,6 +5,7 @@
  * `style` so `var(...)` works; every value written is a checked number, a
  * checked colour or escaped text (normalizeGauge).
  */
+import { faceTile } from "../../effects/face.ts";
 import { clamp, fmt } from "./geom.ts";
 import { iconMarkup } from "./icon-markup.ts";
 import { resolvePaint, templateVars, withValue, gaugePrims, type Paint, type PaintMode, type PatternPaint, type Prim, type VectorGauge } from "./vector.ts";
@@ -17,6 +18,8 @@ export interface SvgOptions {
   /** Drawn size; the spec's size by default. A different size stretches it. */
   width?: number;
   height?: number;
+  /** "face": only the ring's face (a static layer); "body": everything else. All of it by default. */
+  layer?: "face" | "body";
 }
 
 const esc = (s: string) => s.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -103,6 +106,17 @@ export function gaugeSvg(g: VectorGauge, p: number, opts: SvgOptions = {}): stri
           ` style="color:${color};fill:none;stroke:${color};stroke-width:2;stroke-linecap:round;stroke-linejoin:round"${common(prim)}>${iconMarkup(prim.name)}</g>`
         );
       }
+      case "face": {
+        const f = prim.face;
+        const key = `${id}f${n++}`;
+        const tile = faceTile(f.pattern, f.size, paint(f.color));
+        defs.push(
+          `<pattern id="${key}" patternUnits="userSpaceOnUse" width="${fmt(tile.w)}" height="${fmt(tile.h)}" patternTransform="translate(${fmt(prim.cx)} ${fmt(prim.cy)})">` +
+            `<g opacity="${fmt(clamp(f.opacity, 0, 1))}">${tile.markup}</g></pattern>`,
+        );
+        const disc = (fill: string) => `<circle cx="${fmt(prim.cx)}" cy="${fmt(prim.cy)}" r="${fmt(prim.r)}" style="fill:${fill}"/>`;
+        return `<g${common(prim)}>${f.fill ? disc(paint(f.fill)) : ""}${disc(`url(#${key})`)}</g>`;
+      }
       case "group": {
         const key = `${id}c${n++}`;
         defs.push(`<clipPath id="${key}"><path d="${prim.clip}"/></clipPath>`);
@@ -130,7 +144,8 @@ export function gaugeSvg(g: VectorGauge, p: number, opts: SvgOptions = {}): stri
       }
     }
   };
-  const body = gaugePrims(g, p).map(draw).join("");
+  const prims = gaugePrims(g, p).filter((prim) => !opts.layer || (prim.kind === "face") === (opts.layer === "face"));
+  const body = prims.map(draw).join("");
 
   const w = opts.width ?? g.width;
   const h = opts.height ?? g.height;

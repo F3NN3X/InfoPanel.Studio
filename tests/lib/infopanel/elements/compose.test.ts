@@ -251,13 +251,13 @@ describe("the new elements exported, then parsed", () => {
     const out = await elementExport(profile);
     const back = await loadExport(entriesFromZip(out.bytes));
     expect(back.issues.filter((i) => i.code !== "unknown-field")).toEqual([]);
-    expect(back.items.map((i) => i.kind)).toEqual([...COMPOSITES.map(() => "Group"), "Gauge", "Gauge", "Graph"]);
-    expect(back.items.at(-1)).toMatchObject({ Type: "HISTOGRAM" });
+    expect(back.items.map((i) => i.kind)).toEqual([...COMPOSITES.map(() => "Group"), "Gauge", "Gauge", "Graph", "Gauge", "Image"]);
+    expect(back.items.at(-3)).toMatchObject({ Type: "HISTOGRAM" });
     const names = new Set(back.assets.keys());
     const files = [...walkItems(back.items)].flatMap(({ item }) => (item.kind === "Image" ? [item as ImageItem] : item.kind === "Gauge" ? (item as GaugeItem).Images : []));
     expect(files.length).toBeGreaterThan(6);
     for (const f of files) expect(f.RelativePath && names.has(f.FilePath!.toLowerCase()), f.FilePath ?? "").toBe(true);
-    expect(new TextDecoder().decode(out.bytes)).not.toMatch(/doublering|shadowtext|innerThresholds|fillAlpha/);
+    expect(new TextDecoder().decode(out.bytes)).not.toMatch(/doublering|shadowtext|innerThresholds|fillAlpha|<face|<blur/i);
   });
 });
 

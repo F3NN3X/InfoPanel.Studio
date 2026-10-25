@@ -1,6 +1,6 @@
 /**
  * Console: a header strip of six readouts, a CPU and a GPU panel (a thick gradient ring with its
- * load, and a column of label boxes), RAM and VRAM as long bars, and a tile per drive. The label
+ * load on a hex face, and a column of label boxes), RAM and VRAM as long bars, and a tile per drive. The label
  * boxes are Row elements, the drives a Drives element. Ice is blue over orange; Amber is warm; Steel is neutral.
  */
 import type { Slot } from "../../elements/palette.ts";
@@ -113,7 +113,7 @@ function panel(k: Kit, b: Box, p: PanelSpec): DisplayItem[] {
   return [
     card(k, `${p.title} panel`, b, { radius: px(10), fill: [ink(k, "card")], stroke: ink(k, p.slot) }),
     text(k, p.title, { x: inner.x, y: inner.y, px: titlePx, weight: "strong" }),
-    ...ringValue(k, p.ring, sq, { ring: { start: 0, sweep: 360, thickness: Math.round(size * 0.1), rounded: true, dot: false, glow: px(4), fill: [ink(k, p.light), ink(k, p.slot)] }, scale: 0.2 }),
+    ...ringValue(k, p.ring, sq, { ring: { start: 0, sweep: 360, thickness: Math.round(size * 0.1), rounded: true, dot: false, glow: px(4), fill: [ink(k, p.light), ink(k, p.slot)], face: { pattern: "hex", color: "#FFFFFF", opacity: 0.08, size: Math.max(6, Math.round(size * 0.075)), fill: "#06090D" } }, scale: 0.2 }),
     text(k, "USAGE", { x: sq.x, y: sq.y + size * 0.27, px: usagePx, width: size, align: "center", slot: "subtext", upper: true }),
     ...p.rows.flatMap((r, i) => {
       const box = { x: list.x, y: list.y + i * (rowH + gap), width: list.width, height: rowH };

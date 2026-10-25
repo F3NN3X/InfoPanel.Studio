@@ -57,6 +57,7 @@ export function ringVector(s: RingSpec, w: number, h: number): VectorGauge {
     segments: s.segments, gap: s.gap, ...track(s.track), fill: vectorFill(s.fill, s.thresholds), needle: null, reverse: false,
     ticks: s.ticks >= 2 ? { count: s.ticks, length: Math.max(3, Math.round(s.thickness / 2)), width: 2, color: rgbOf(s.track.color) } : null,
     ...(s.glow > 0 ? { glow: s.glow } : {}),
+    ...(s.face ? { face: s.face } : {}),
     ...(s.dot && !s.thresholds?.length ? { dot: { color: rgbOf(s.fill.at(-1)!.color), size: Math.round(s.thickness * 1.6) } } : {}),
   });
 }
@@ -79,7 +80,7 @@ export function cardPad(spec: Pick<CardSpec, "shadow" | "glow">): number {
 }
 
 /** Whether a card or divider can export as a native Shape: one colour, no shadow or glow. */
-export const shapeNative = (s: CardSpec | DividerSpec): boolean => s.fill.length === 1 && (s.type === "divider" || (!s.shadow && !s.glow));
+export const shapeNative = (s: CardSpec | DividerSpec): boolean => s.fill.length === 1 && (s.type === "divider" || (!s.shadow && !s.glow && !s.blur));
 
 /** The item as an Image showing its baked file (kept when it already was one). */
 function asImage(item: DisplayItem, x: number, y: number, w: number, h: number): DisplayItem {
@@ -235,6 +236,9 @@ export function badgeOf(item: DisplayItem): Badge | null {
     case "ledbar":
       return badge("baked", "Exported as a Gauge with image frames, bound to its sensor with Min and Max.");
     case "card":
+      if (s.blur) {
+        return badge("approximated", "Exported as one image with the background behind it blurred in.", ["live values behind the card (the blur covers the background, images and shapes under it, not text or gauges)"]);
+      }
       return shapeNative(s)
         ? badge("native", "Exported as a Shape: InfoPanel draws its fill, stroke and corners as they are.")
         : badge("baked", `Exported as one image: InfoPanel can’t draw its ${[s.fill.length > 1 && "gradient", s.shadow && "shadow", s.glow && "glow"].filter(Boolean).join(", ")}.`);

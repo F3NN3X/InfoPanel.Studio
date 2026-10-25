@@ -2,7 +2,7 @@
  * Frost Bar: frosted glass cards over a soft wash. A big card holds a double ring (CPU load outside,
  * GPU load inside), two large percentages and two bars; beside it a memory card, a clock card, two
  * small cards (uptime, network) and three square temperature rings. The glass is a translucent
- * Card with a hairline and a shadow; the wash behind is a baked gradient and glows.
+ * Card with a hairline, a shadow and a real blur of the wash behind it (baked into an export); the wash is a baked gradient and glows.
  */
 import type { Slot } from "../../elements/palette.ts";
 import type { DisplayItem } from "../../schema.ts";
@@ -21,6 +21,7 @@ const glass = (k: Kit, name: string, b: Box): DisplayItem =>
     angle: 0,
     stroke: ink(k, "track"),
     shadow: { blur: Math.round(22 * k.frame.u), dx: 0, dy: Math.round(8 * k.frame.u), color: { color: "#59000000" } },
+    blur: Math.max(6, Math.round(14 * k.frame.u)),
   });
 
 /** The big card: the double ring, CPU and GPU load, and two bars. */

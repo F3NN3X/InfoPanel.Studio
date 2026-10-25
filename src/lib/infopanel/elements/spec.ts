@@ -7,6 +7,8 @@
  * Sizes come from the item's own box; the spec holds the look. Colours are inks: a colour and the
  * palette slot it follows, if any.
  */
+import { clampBlur } from "../../effects/blur.ts";
+import { normalizeFace, type FaceSpec } from "../../effects/face.ts";
 import { clampGlowRadius } from "../../effects/glow.ts";
 import { clamp } from "../gauges/geom.ts";
 import type { DisplayItem } from "../schema.ts";
@@ -43,6 +45,8 @@ export interface RingSpec {
   frames?: number;
   /** Colours by value: each frame takes the colour of its value (a segmented ring, of each segment's place). Replaces `fill`. */
   thresholds?: Threshold[];
+  /** A textured disc inside the ring (effects/face.ts); only a full-circle-ish arc has room for one. */
+  face?: FaceSpec;
 }
 
 export interface LedBarSpec {
@@ -77,6 +81,11 @@ export interface CardSpec {
   stroke: Ink | null;
   shadow: Shadow | null;
   glow: { blur: number; color: Ink } | null;
+  /**
+   * Frosted glass (effects/blur.ts): the blur radius, px, of what is behind the card. Live in the
+   * editor and kiosk; the export bakes the backdrop under the card's image, an approximation.
+   */
+  blur?: number;
   /**
    * The margin a baked card's image has around the card for its shadow and glow, px, as last
    * applied: the item's box is the card's grown by it.
@@ -220,6 +229,8 @@ export interface DoubleRingSpec {
   value: Ink;
   /** The centre value's glow; null for none. */
   valueGlow: ValueGlow | null;
+  /** A textured face inside the inner ring. */
+  face?: FaceSpec;
 }
 
 /** One tile per drive: a Group of tile Groups, each an icon, name, used bar and %, temperature and free space. */
@@ -337,7 +348,13 @@ export function normalizeElement(raw: unknown): ElementSpec | null {
 }
 
 /** Keys a known spec leaves out when they hold nothing, so an invalid value isn't carried as an "unknown" one. */
-const OPTIONAL_KEYS = ["frames", "thresholds"];
+const OPTIONAL_KEYS = ["frames", "thresholds", "face", "blur"];
+
+const hexColor = (v: unknown, def: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : def);
+const optFace = (v: unknown) => {
+  const face = normalizeFace(v, hexColor);
+  return face ? { face } : {};
+};
 
 function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
   switch (o.type) {
@@ -350,6 +367,7 @@ function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
             segments: int(o.segments, 0, 0, 200), gap: num(o.gap, 3, 0, 60), glow: num(o.glow, 0, 0, 32),
             ...(o.frames === undefined ? {} : { frames: int(o.frames, 101, 2, 360) }),
             ...optThresholds(o.thresholds),
+            ...optFace(o.face),
           }
         : null;
     }
@@ -371,6 +389,7 @@ function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
             stroke: o.stroke === null || o.stroke === undefined ? null : ink(o.stroke),
             shadow: shadowOf(o.shadow), glow: glow ? { blur: num(glow.blur, 16, 1, 64), color: ink(glow.color) } : null,
             pad: int(o.pad, 0, 0, 512),
+            ...(clampBlur(o.blur) > 0 ? { blur: clampBlur(o.blur) } : {}),
           }
         : null;
     }
@@ -411,6 +430,7 @@ function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
             type: "doublering", size: int(o.size, 160, 24, 1024), thickness: num(o.thickness, 12, 1, 128), gap: num(o.gap, 6, 0, 64),
             start: num(o.start, -135, -360, 360), sweep: num(o.sweep, 270, 1, 360), track: ink(o.track), outer, inner,
             innerThresholds: thresholds(o.innerThresholds), valueSize: int(o.valueSize, 28, 6, 400), value: ink(o.value), valueGlow: valueGlowOf(o.valueGlow),
+            ...optFace(o.face),
           }
         : null;
     }

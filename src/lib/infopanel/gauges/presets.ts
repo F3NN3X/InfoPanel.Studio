@@ -1,4 +1,5 @@
 /** Starting points for a new vector gauge (L7, L9, L10, L13). */
+import { DEFAULT_FACE } from "../../effects/face.ts";
 import { BUBBLES, CELL_BORDER, DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "./shapes.ts";
 import { DEFAULT_GAUGE, type VectorGauge } from "./vector.ts";
 
@@ -26,6 +27,7 @@ const zones = { ...DEFAULT_GAUGE.fill, mode: "zones" as const };
 
 export const STARTERS: { name: string; gauge: VectorGauge }[] = [
   { name: "Ring", gauge: { ...DEFAULT_GAUGE, start: 0, sweep: 360 } },
+  { name: "Ring with a hex face", gauge: { ...DEFAULT_GAUGE, start: 0, sweep: 360, thickness: 18, face: DEFAULT_FACE, text: { size: 40, color: "fg", font: "", weight: 600, y: 0.5, format: "{value}{unit}" }, scale: { min: 0, max: 100, unit: "%", decimals: 0 } } },
   { name: "Dial with needle", gauge: { ...DEFAULT_GAUGE, rounded: false, needle: { color: "#F1F5F9", length: 0.85, width: 6 }, ticks: { count: 11, length: 8, width: 2, color: "#94A3B8" }, fill: { ...DEFAULT_GAUGE.fill, mode: "gradient" } } },
   { name: "Segmented tachometer", gauge: { ...DEFAULT_GAUGE, rounded: false, segments: 24, gap: 2, fill: zones } },
   { name: "Bar", gauge: { ...DEFAULT_GAUGE, shape: "bar", width: 300, height: 24, thickness: 16 } },

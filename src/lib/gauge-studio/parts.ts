@@ -3,6 +3,7 @@
  * it with sensible defaults. Every function returns a new spec; an absent part is an absent field,
  * so older specs read and draw as before.
  */
+import { DEFAULT_FACE } from "@/lib/effects/face";
 import { SAMPLE_TEMPLATE } from "@/lib/infopanel/gauges/presets";
 import { BUBBLES, DEFAULT_GRID, DEFAULT_ICON, DEFAULT_ICONS, DEFAULT_LIQUID, DEFAULT_PATTERN, DEFAULT_RINGS } from "@/lib/infopanel/gauges/shapes";
 import { DEFAULT_GAUGE, type Background, type Shadow, type Ticks, type Title, type ValueText, type VectorGauge } from "@/lib/infopanel/gauges/vector";
@@ -12,7 +13,7 @@ export type PartId =
   | "needle" | "marker"
   | "ticks" | "labels" | "scale"
   | "text" | "title"
-  | "background" | "rings" | "pattern" | "icons" | "icon"
+  | "background" | "face" | "rings" | "pattern" | "icons" | "icon"
   | "glow" | "shadow"
   | "wave" | "shine" | "bubbles";
 
@@ -43,6 +44,7 @@ export const PARTS: readonly PartDef[] = [
   { id: "text", label: "Value text", group: "Text", shapes: DRAWN },
   { id: "title", label: "Title", group: "Text", shapes: DRAWN },
   { id: "background", label: "Background", group: "Decor", shapes: DRAWN },
+  { id: "face", label: "Face", group: "Decor", shapes: ["arc"] },
   { id: "rings", label: "Rings", group: "Decor", shapes: ["arc"] },
   { id: "pattern", label: "Pattern", group: "Decor", shapes: ["bar"] },
   { id: "icons", label: "Icon row", group: "Decor", shapes: ["bar"] },
@@ -85,6 +87,7 @@ export function hasPart(g: VectorGauge, id: PartId): boolean {
     case "text": return !!g.text;
     case "title": return !!g.title;
     case "background": return !!g.background;
+    case "face": return !!g.face;
     case "rings": return !!g.rings;
     case "pattern": return !!g.pattern;
     case "icons": return !!g.icons;
@@ -132,6 +135,7 @@ export function addPart(g: VectorGauge, id: PartId): VectorGauge {
     case "text": return { ...g, text: TEXT };
     case "title": return { ...g, title: TITLE };
     case "background": return { ...g, background: BACKGROUND };
+    case "face": return { ...g, face: DEFAULT_FACE };
     case "rings": return { ...g, rings: DEFAULT_RINGS };
     case "pattern": return { ...g, pattern: DEFAULT_PATTERN };
     case "icons": return { ...g, icons: DEFAULT_ICONS };
@@ -160,6 +164,7 @@ export function removePart(g: VectorGauge, id: PartId): VectorGauge {
     case "text": return without(g, "text");
     case "title": return without(g, "title");
     case "background": return without(g, "background");
+    case "face": return without(g, "face");
     case "rings": return without(g, "rings");
     case "pattern": return without(g, "pattern");
     case "icons": return without(g, "icons");

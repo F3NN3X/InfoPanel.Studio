@@ -4,6 +4,8 @@
  * (font-loader), images come from the export's assets or their URLs.
  */
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { backdropFilter } from "@/lib/effects/blur.ts";
+import type { CardSpec } from "@/lib/infopanel/elements/spec.ts";
 import type { ExportEntry } from "@/lib/infopanel/archive.ts";
 import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
@@ -132,6 +134,18 @@ function Placeholder({ width: w, height: h }: { width: number; height: number })
   );
 }
 
+/** A card's frosted glass: the blur of what is drawn before it, over the card's rounded box (the card's own image goes on top). */
+function Frosted({ spec, width, height }: { spec: CardSpec; width: number; height: number }) {
+  const [w, h] = [Math.max(0, width - 2 * spec.pad), Math.max(0, height - 2 * spec.pad)];
+  const filter = backdropFilter(spec.blur ?? 0);
+  return (
+    <div
+      aria-hidden
+      style={{ position: "absolute", left: spec.pad, top: spec.pad, width: w, height: h, borderRadius: Math.min(spec.radius, w / 2, h / 2), backdropFilter: filter, WebkitBackdropFilter: filter }}
+    />
+  );
+}
+
 /** DrawImage's transform: flip, then rotate, both about the destination's integer centre. */
 function boxTransform(width: number, height: number, rotation: number, flipX: boolean): CSSProperties {
   const t = [flipX && "scaleX(-1)", rotation !== 0 && `rotate(${rotation}deg)`].filter(Boolean).join(" ");
@@ -172,6 +186,7 @@ function Node({ node, id, font, canvas, start }: { node: DrawNode; id: string; f
     case "element":
       return (
         <div data-path={node.path} style={{ position: "absolute", left: node.x, top: node.y, width: node.width, height: node.height, ...boxTransform(node.width, node.height, node.rotation, false) }}>
+          {node.spec.type === "card" && !!node.spec.blur && <Frosted spec={node.spec} width={node.width} height={node.height} />}
           <ElementSvg spec={node.spec} width={node.width} height={node.height} id={id} />
         </div>
       );

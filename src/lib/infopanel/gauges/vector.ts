@@ -14,6 +14,7 @@
  * ok / warn / crit tone, and the scale uses their min, max, unit and decimals.
  * Every part added after L7 is optional, so older specs read and bake as before.
  */
+import { normalizeFace, type FaceSpec } from "../../effects/face.ts";
 import { arcPath, circlePath, clamp, fmt, polar, type ContainerShape } from "./geom.ts";
 export type { ContainerShape } from "./geom.ts";
 import { arcNeedle, arcTicks, backgroundPrims, barTicks, scaleOf, titleText, valueText } from "./parts.ts";
@@ -240,6 +241,8 @@ export interface VectorGauge {
   pattern?: Pattern;
   icons?: IconRow;
   icon?: CentreIcon;
+  /** Arc: a textured disc inside the ring (effects/face.ts), drawn under the arc in a layer of its own. */
+  face?: FaceSpec;
   /**
    * Shape "svg" only: the template, sanitized (svg-template.ts). It reads the value as the CSS custom
    * properties `--value` (0–1) and `--percent` (0–100, whole), set on its root element.
@@ -302,6 +305,7 @@ export type Prim =
   | ({ kind: "rect"; x: number; y: number; w: number; h: number; r: number; fill: Paint | LinearGradient | PatternPaint | null; stroke?: Paint; width?: number } & PrimCommon)
   | ({ kind: "text"; x: number; y: number; text: string; size: number; color: Paint; font: string; weight: number; anchor: "start" | "middle" | "end" } & PrimCommon)
   | ({ kind: "icon"; name: GaugeIcon; x: number; y: number; size: number; color: Paint } & PrimCommon)
+  | ({ kind: "face"; cx: number; cy: number; r: number; face: FaceSpec } & PrimCommon)
   | ({ kind: "group"; clip: string; children: Prim[]; drift?: { dx: number; dy: number; seconds: number } } & PrimCommon);
 
 /** Live only: moves up from `from` to `to` px (offsets from where it is drawn), fading in and out, on a loop. */
@@ -451,6 +455,12 @@ function arcPrims(g: VectorGauge, p: number): Prim[] {
   return out;
 }
 
+/** The face's disc: inside the arc's stroke, with a pixel of margin. */
+function facePrim(g: VectorGauge, face: FaceSpec): Prim {
+  const { cx, cy, r } = arcGeometry(g);
+  return { kind: "face", cx, cy, r: Math.max(1, r - g.thickness / 2 - 1), face };
+}
+
 /* ---- bar ---- */
 
 function barPrims(g: VectorGauge, p: number): Prim[] {
@@ -531,7 +541,7 @@ export function gaugePrims(g: VectorGauge, p: number): Prim[] {
   const v = clamp(Number.isFinite(p) ? p : 0, 0, 1);
   if (g.shape === "svg") return [];
   const body = g.shape === "arc" ? arcPrims(g, v) : g.shape === "liquid" ? liquidPrims(g, v) : g.shape === "grid" ? gridPrims(g, v) : barPrims(g, v);
-  return [...backgroundPrims(g), ...body, ...(g.icon && g.shape !== "bar" ? [centreIcon(g)] : []), ...(g.title?.text ? [titleText(g)] : []), ...(g.text ? [valueText(g, v)] : [])];
+  return [...backgroundPrims(g), ...(g.face && g.shape === "arc" ? [facePrim(g, g.face)] : []), ...body, ...(g.icon && g.shape !== "bar" ? [centreIcon(g)] : []), ...(g.title?.text ? [titleText(g)] : []), ...(g.text ? [valueText(g, v)] : [])];
 }
 
 /**
@@ -634,9 +644,15 @@ export function normalizeGauge(raw: unknown): VectorGauge {
       ? { shadow: { blur: num(shadow.blur, 6, 0, 64), dx: num(shadow.dx, 0, -64, 64), dy: num(shadow.dy, 2, -64, 64), color: color(shadow.color, "#000000"), opacity: num(shadow.opacity, 0.5, 0, 1) } }
       : {}),
     ...normalizeShapeParts(o, { num, color, obj }),
+    ...faceOf(o.face, color),
     ...(o.shape === "svg" && template ? { template } : {}),
   };
 }
+
+const faceOf = (raw: unknown, color: (v: unknown, def: Paint) => Paint): { face?: FaceSpec } => {
+  const face = normalizeFace(raw, color);
+  return face ? { face } : {};
+};
 
 /** The checks normalizeGauge lends to the shape parts' normalizer. */
 export interface Checks {
