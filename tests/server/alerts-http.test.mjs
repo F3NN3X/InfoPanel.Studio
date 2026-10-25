@@ -1,10 +1,9 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { serverCommand } from "../../tools/perf/server-command.mjs";
+import { listenOnGoodPort, startServer } from "./harness.mjs";
 
 // The alert engine through the server, (ips-server): it reads a fake Data API for the rules'
 // sensors, fires and clears alerts into the control state, switches pages, keeps the history, and answers the alert action.
@@ -32,9 +31,9 @@ async function fakeDataApi() {
     streams.add(res);
     res.on("close", () => streams.delete(res));
   });
-  await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+  const port = await listenOnGoodPort(server);
   return {
-    url: `http://127.0.0.1:${server.address().port}`,
+    url: `http://127.0.0.1:${port}`,
     requests,
     open: () => streams.size,
     send: (message) => streams.forEach((res) => res.write(`data: ${JSON.stringify(message)}\n\n`)),
@@ -45,20 +44,7 @@ async function fakeDataApi() {
   };
 }
 
-async function start(dataDir) {
-  const server = serverCommand();
-  const child = spawn(server.cmd, server.args, { env: { ...process.env, HOME: path.join(dataDir, "home"), USERPROFILE: path.join(dataDir, "home"), INFOPANEL_DATA_DIR: path.join(dataDir, "infopanel"), DASHBOARD_DATA_DIR: dataDir, DASHBOARD_DIST: path.join(dataDir, "no-dist"), PORT: "0", HOST: "127.0.0.1" } });
-  let out = "";
-  child.stdout.on("data", (c) => (out += c));
-  child.stderr.on("data", (c) => (out += c));
-  for (let i = 0; i < 200; i++) {
-    await wait(25);
-    const port = Number(/InfoPanel Studio on http:\/\/[^:]+:(\d+)/.exec(out)?.[1]);
-    if (port) return { base: `http://127.0.0.1:${port}`, stop: () => child.kill() };
-  }
-  child.kill();
-  throw new Error(`the server did not start:\n${out}`);
-}
+const start = (dataDir) => startServer({ HOME: path.join(dataDir, "home"), USERPROFILE: path.join(dataDir, "home"), INFOPANEL_DATA_DIR: path.join(dataDir, "infopanel"), DASHBOARD_DATA_DIR: dataDir, DASHBOARD_DIST: path.join(dataDir, "no-dist") });
 
 const rule = (over = {}) => ({
   id: "r1", name: "GPU temp", enabled: true, severity: "critical", cooldownSeconds: 0,
@@ -75,10 +61,8 @@ const configWith = (api, rules) => ({
 describe("alerts through the server", () => {
   let dir, api, server;
   afterEach(async () => {
-    server?.stop();
+    await server?.stop();
     api?.close();
-    // The server may still be closing its files.
-    await wait(100);
     fs.rmSync(dir, { recursive: true, force: true });
   });
   async function setup(rules) {
@@ -167,13 +151,16 @@ describe("alerts through the server", () => {
 });
 
 describe("alerts.json across restarts", () => {
-  let dir;
-  afterEach(() => dir && fs.rmSync(dir, { recursive: true, force: true }));
+  let dir, server;
+  afterEach(async () => {
+    await server?.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
 
   it("reads a history file, closing open entries, and keeps writing it compact", async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "ips-alerts-rt-"));
     fs.writeFileSync(path.join(dir, "alerts.json"), JSON.stringify({ history: [{ id: "a-1", ruleId: "r", name: "N", severity: "info", text: "t", startedAt: 5 }, { id: "a-2", endedAt: 9, extra: [1, { z: 2 }] }, { nope: 1 }] }));
-    const server = await start(dir);
+    server = await start(dir);
     const history = await (await fetch(`${server.base}/api/alerts/history`)).json();
     expect(history.map((h) => h.id)).toEqual(["a-1", "a-2"]);
     expect(history[0].endedAt).toBeGreaterThan(5);
@@ -181,6 +168,5 @@ describe("alerts.json across restarts", () => {
     const file = path.join(dir, "alerts.json");
     await until("alerts.json rewritten", () => !fs.readFileSync(file, "utf8").includes("nope"));
     expect(JSON.parse(fs.readFileSync(file, "utf8")).history).toEqual(history);
-    server.stop();
   });
 });

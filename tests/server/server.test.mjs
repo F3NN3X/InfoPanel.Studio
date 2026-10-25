@@ -1,19 +1,16 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { serverCommand } from "../../tools/perf/server-command.mjs";
 import { repoRoot } from "../setup/repo-root.mjs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { listenOnGoodPort, startServer } from "./harness.mjs";
 
 const root = repoRoot;
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 
-// Starts the server (ips-server) with the given env on a port the OS picks
-// (PORT=0), read back from its start line, so no other process can take the port between choosing and binding it. It
-// never touches the real data folder.
+// Starts the server (ips-server, tests/server/harness.mjs) with the given env. It never touches the real data folder.
 // The server reads the user's home (os.homedir: USERPROFILE on Windows, HOME elsewhere) and %LOCALAPPDATA%\InfoPanel;
 // both point inside the test's own folder, so a test never scans real files.
 function isolatedHome(dataDir) {
@@ -21,23 +18,7 @@ function isolatedHome(dataDir) {
   return { HOME: home, USERPROFILE: home, INFOPANEL_DATA_DIR: path.join(dataDir, "infopanel") };
 }
 
-async function start(env) {
-  const server = serverCommand();
-  const child = spawn(server.cmd, server.args, { env: { ...process.env, ...isolatedHome(env.DASHBOARD_DATA_DIR), ...env, PORT: "0", HOST: "127.0.0.1" } });
-  let out = "";
-  child.stdout.on("data", (c) => (out += c));
-  child.stderr.on("data", (c) => (out += c));
-  let port = null;
-  for (let i = 0; i < 200 && !port; i++) {
-    await new Promise((r) => setTimeout(r, 50));
-    port = Number(/InfoPanel Studio on http:\/\/[^:]+:(\d+)/.exec(out)?.[1]) || null;
-  }
-  if (!port) {
-    child.kill();
-    throw new Error(`the server did not start:\n${out}`);
-  }
-  return { port, base: `http://127.0.0.1:${port}`, output: () => out, stop: () => child.kill() };
-}
+const start = (env) => startServer({ ...isolatedHome(env.DASHBOARD_DATA_DIR), ...env });
 
 describe("server", () => {
   let dir, plain, debug, upstream, upstreamPort;
@@ -56,15 +37,13 @@ describe("server", () => {
       else if (req.url === "/bin") res.writeHead(200, { "Content-Type": "application/octet-stream" }).end("<html>");
       else res.writeHead(200, { "Content-Type": "text/html" }).end("<html>");
     });
-    await new Promise((ok) => upstream.listen(0, "127.0.0.1", ok));
-    upstreamPort = upstream.address().port;
+    upstreamPort = await listenOnGoodPort(upstream);
     const env = { DASHBOARD_DATA_DIR: path.join(dir, "data"), DASHBOARD_DIST: dist };
     plain = await start(env);
     debug = await start({ ...env, DASHBOARD_DEBUG: "1" });
   }, 20_000);
-  afterAll(() => {
-    plain?.stop();
-    debug?.stop();
+  afterAll(async () => {
+    await Promise.all([plain?.stop(), debug?.stop()]);
     upstream?.close();
     fs.rmSync(dir, { recursive: true, force: true });
   });
@@ -288,9 +267,11 @@ describe("server", () => {
     expect(stats.memory.rss).toBeGreaterThan(0);
     expect(stats.eventLoopDelayMs).toHaveProperty("p99");
     expect(stats.sseClients).toHaveProperty("config");
-    await new Promise((r) => setTimeout(r, 100));
+    // The server logs to its stdout as it serves, which reaches us a moment later.
+    const logged = /\[debug\] GET \/api\/debug\/stats 200 \d+ms/;
+    for (let i = 0; i < 100 && !(debug.output().includes("[debug] sse connect config") && logged.test(debug.output())); i++) await new Promise((r) => setTimeout(r, 25));
     expect(debug.output()).toContain("[debug] sse connect config");
-    expect(debug.output()).toMatch(/\[debug\] GET \/api\/debug\/stats 200 \d+ms/);
+    expect(debug.output()).toMatch(logged);
     expect(plain.output()).not.toContain("[debug]");
   });
 });

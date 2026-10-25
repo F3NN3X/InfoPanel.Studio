@@ -1,30 +1,13 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { serverCommand } from "../../tools/perf/server-command.mjs";
+import { startServer } from "./harness.mjs";
 
 // The data folder across restarts of ips-server: what one run writes the next reads, and what it writes back is the
 // same bytes (the files keep the formats of the Node server it replaced, which InfoPanel Studio's older installs read).
 
-async function start(dataDir) {
-  const server = serverCommand();
-  const child = spawn(server.cmd, server.args, { env: { ...process.env, DASHBOARD_DATA_DIR: dataDir, DASHBOARD_DIST: path.join(dataDir, "no-dist"), PORT: "0", HOST: "127.0.0.1" } });
-  let out = "";
-  child.stdout.on("data", (c) => (out += c));
-  child.stderr.on("data", (c) => (out += c));
-  for (let i = 0; i < 200; i++) {
-    await new Promise((r) => setTimeout(r, 25));
-    const port = Number(/InfoPanel Studio on http:\/\/[^:]+:(\d+)/.exec(out)?.[1]);
-    if (port) {
-      const stop = () => new Promise((done) => (child.exitCode !== null ? done() : (child.once("exit", done), child.kill())));
-      return { base: `http://127.0.0.1:${port}`, stop };
-    }
-  }
-  child.kill();
-  throw new Error(`the server did not start:\n${out}`);
-}
+const start = (dataDir) => startServer({ DASHBOARD_DATA_DIR: dataDir, DASHBOARD_DIST: path.join(dataDir, "no-dist") });
 
 const headers = { "Content-Type": "application/json", "X-Dashboard-Config": "1" };
 const controlHeaders = { "Content-Type": "application/json", "X-Dashboard-Control": "1" };
