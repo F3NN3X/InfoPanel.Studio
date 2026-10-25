@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import type { IconSource } from "@/lib/effects/icon";
+import { useEffect, useState, type ReactNode } from "react";
+import { driveIconOf, driveIconsOfSetting } from "@/lib/effects/icon";
 
 /**
  * A drive's own icon: the user's file from the asset store, or a lucide icon (its set is its own
@@ -8,8 +8,9 @@ import type { IconSource } from "@/lib/effects/icon";
  * `icons.ts`: that one is shared with the canvas zone, and sharing it would make it a chunk of its own, one
  * more request when the kiosk loads.
  */
-export default function DriveIcon({ source, px }: { source: IconSource; px: number }) {
-  const lucide = "lucide" in source ? source.lucide : null;
+export default function DriveIcon({ icons, id, name, px, fallback }: { icons: string; id: string; name: string; px: number; fallback: ReactNode }) {
+  const source = driveIconOf(driveIconsOfSetting(icons), id, name);
+  const lucide = source && "lucide" in source ? source.lucide : null;
   const [markup, setMarkup] = useState<Readonly<Record<string, string>> | null>(null);
   useEffect(() => {
     if (!lucide) return;
@@ -19,6 +20,7 @@ export default function DriveIcon({ source, px }: { source: IconSource; px: numb
       live = false;
     };
   }, [lucide]);
+  if (!source) return <>{fallback}</>;
   if ("asset" in source) return source.asset.includes(".") ? <img src={`/api/assets/${source.asset}`} alt="" width={px} height={px} className="shrink-0 object-contain" style={{ width: px, height: px }} /> : null;
   return (
     <svg

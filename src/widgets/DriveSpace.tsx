@@ -1,4 +1,3 @@
-import { driveIconOf, type IconSource } from "@/lib/effects/icon";
 import type { ModuleSettings } from "@/modules/types";
 import { DriveIcon, DriveRows, type DriveRow } from "./DriveSpaceViews";
 import { useFitRows, Widget, shell, get, num, fmt, fmtMB, Bar, BarRow, Ring, Num, tone, Pill, type ShellProps, type WidgetMeta, type Tone } from "./kit";
@@ -32,8 +31,8 @@ export interface DriveSpaceProps extends ShellProps {
   sort?: "usage" | "name";
   /** Neutral tone below the thresholds (default true). */
   neutral?: boolean;
-  /** Your own icon per drive, by drive letter (else by name). */
-  icons?: Record<string, IconSource>;
+  /** Your own icon per drive, by drive letter (else by name): the setting's JSON, read when a drive has one. */
+  icons?: string;
 }
 
 export default function DriveSpace(p: DriveSpaceProps) {
@@ -75,8 +74,8 @@ export default function DriveSpace(p: DriveSpaceProps) {
             </div>
           );
         if (p.view === "segments" || p.view === "bars") {
-          const rows: DriveRow[] = list.map((x) => ({ key: x.id, name: x.label ? `${x.label} (${x.name})` : x.name, text: `${fmtMB(x.used)} / ${fmtMB(x.total)}`, pct: x.pct, t: tone(x.pct, warn, crit), icon: driveIconOf(p.icons, x.id, x.name) }));
-          return <DriveRows rows={rows} view={p.view} size={size} h={h} />;
+          const rows: DriveRow[] = list.map((x) => ({ key: x.id, name: x.label ? `${x.label} (${x.name})` : x.name, text: `${fmtMB(x.used)} / ${fmtMB(x.total)}`, pct: x.pct, t: tone(x.pct, warn, crit), id: x.id }));
+          return <DriveRows rows={rows} view={p.view} size={size} h={h} icons={p.icons} />;
         }
         if (one && size !== "sm")
           return (
@@ -101,19 +100,16 @@ export default function DriveSpace(p: DriveSpaceProps) {
         const n = useFitRows(h, size === "lg" ? 46 : 38);
         return (
           <div className="flex h-full flex-col gap-3 overflow-hidden">
-            {list.slice(0, n).map((x) => {
-              const own = driveIconOf(p.icons, x.id, x.name);
-              return (
+            {list.slice(0, n).map((x) => (
               <BarRow
                 key={x.id}
-                label={<>{own && <span className="mr-1.5 inline-flex align-middle"><DriveIcon source={own} px={16} /></span>}<span className="font-semibold">{x.name}</span> <span className="text-[color:var(--w-faint)]">{x.label}</span></>}
+                label={<>{p.icons && <span className="mr-1.5 inline-flex align-middle"><DriveIcon icons={p.icons} id={x.id} name={x.name} px={16} fallback={null} /></span>}<span className="font-semibold">{x.name}</span> <span className="text-[color:var(--w-faint)]">{x.label}</span></>}
                 hint={size === "lg" ? `${x.format} · ${fmtMB(x.total)}` : null}
                 value={x.pct}
                 t={tn(x.pct) as Tone}
                 display={`${fmtMB(x.free)} free`}
               />
-              );
-            })}
+            ))}
           </div>
         );
       }}

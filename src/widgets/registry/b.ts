@@ -1,5 +1,4 @@
 // Template widgets, group B: storage, network, info, generic (see docs/redesign/phase9/brief-9.3c-templates.md).
-import { driveIconsOfSetting } from "@/lib/effects/icon";
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
@@ -275,7 +274,7 @@ export const GROUP_B: DashboardModule[] = [
     meta: DriveSpace.meta,
     Component: DriveSpace.default,
     settings: DRIVE_SETTINGS,
-    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral), icons: driveIconsOfSetting(s.icons) }),
+    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral), icons: stringOf(s.icons) }),
     island: driveSpaceIsland,
   }),
   // any vendor's drive: the keys are read, not owned (the fallback grid keeps the rest of `libre.`)
