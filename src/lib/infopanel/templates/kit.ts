@@ -7,6 +7,7 @@
 import { newItem } from "../editor/create.ts";
 import { applyElement } from "../elements/apply.ts";
 import type { CoreSensor } from "../elements/cores.ts";
+import type { DriveSensors } from "../elements/drives.ts";
 import { newCores, newElement } from "../elements/create.ts";
 import { slotInk, type Ink, type Palette, type Slot } from "../elements/palette.ts";
 import { elementOf, type CardSpec, type CoresSpec, type DividerSpec, type ElementSpec, type LedBarSpec, type RingSpec, type SparklineSpec } from "../elements/spec.ts";
@@ -31,6 +32,10 @@ export interface Kit {
   type: Type;
   /** The machine's per-core load sensors (Cores), empty when none were found. */
   cores: readonly CoreSensor[];
+  /** The machine's drives (Drives), empty when none were found. */
+  drives: readonly DriveSensors[];
+  /** The palette variant's id the profile is made with. */
+  variant: string;
   /** The item bound to the role's sensor, or left unbound and named for the role. */
   bind: (item: DisplayItem, role: Role) => DisplayItem;
 }

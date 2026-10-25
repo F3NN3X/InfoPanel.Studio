@@ -15,6 +15,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Histogram and fill opacity on Sparkline.** A Sparkline can draw bars, which export as InfoPanel's histogram graph, and its fill has an opacity.
 - **Colours by value on Ring and LED bar.** Each colour takes over from a percent of the range, so a ring turns amber and red as it fills.
 - **Rounded gradient look on Bar.** One button sets half-height corners and a gradient fill.
+- **Four more InfoPanel templates: Readout, Console, Frost Bar and Quota.** Readout is three instrument panels with one huge number each. Console is a header strip, CPU and GPU rings, RAM and VRAM bars and a tile for each drive. Frost Bar is frosted glass cards over a soft wash. Quota is a large clock with a CPU, RAM, GPU and Disk list. Each has two or three colour sets, and New InfoPanel profile has 1920 × 540 and 1920 × 720 sizes. Memory speed is a new sensor role.
 - **New sensor roles for templates:** FPS, 1% and 0.1% low, frame time, VRAM used, total and temperature, GPU memory clock, hot spot, fan and voltage, RAM total and free, disk free, busiest CPU core, CCD1 and CCD2 temperatures, 12V rail and UPS power.
 
 ## [1.3.0-beta.26] - 2026-10-25

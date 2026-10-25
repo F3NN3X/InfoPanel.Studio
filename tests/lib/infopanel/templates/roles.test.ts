@@ -52,6 +52,7 @@ describe("the template sensor roles", () => {
     ["cpu.ccd2", { "l.1": v("AMD CCD1 (Tdie)", "°C", "libre:/amdcpu/0/temperature/3"), "l.2": v("AMD CCD2 (Tdie)", "°C", "libre:/amdcpu/0/temperature/4") }, "l.2"],
     ["psu.12v", { "h.5": v("+5V", "V"), "h.12": v("+12V", "V") }, "h.12"],
     ["ups.power", { "p.load": v("UPS Battery", "%"), "p.w": v("UPS Power", "W") }, "p.w"],
+    ["ram.speed", { "m.t": v("Memory Timings", "ns"), "m.c": v("Memory Clock", "MHz") }, "m.c"],
     ["clock.second", { "plugins.c.minute": v("Clock \uFFFD Minute", ""), "plugins.c.second": v("Clock \uFFFD Second", "") }, "plugins.c.second"],
   ])("%s picks the right sensor (%#)", (role, sensors, key) => {
     expect(resolveRole(role, sensors)?.key).toBe(key);

@@ -29,6 +29,8 @@ export const SIZE_PRESETS: readonly { width: number; height: number }[] = [
   { width: 1024, height: 600 },
   { width: 1280, height: 480 },
   { width: 1920, height: 480 },
+  { width: 1920, height: 540 },
+  { width: 1920, height: 720 },
   { width: 1920, height: 1080 },
   { width: 1920, height: 720 },
   { width: 1600, height: 300 },
