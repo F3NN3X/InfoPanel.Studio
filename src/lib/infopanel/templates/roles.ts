@@ -14,6 +14,12 @@ export const ROLES = [
   "gpu.load", "gpu.temp", "gpu.clock", "gpu.power",
   "ram.load", "ram.used", "disk.load", "disk.temp",
   "net.down", "net.up", "uptime", "clock.second",
+  "fps", "fps.low1", "fps.low01", "frametime",
+  "vram.used", "vram.total", "vram.temp",
+  "gpu.memclock", "gpu.hotspot", "gpu.fan", "gpu.volt",
+  "ram.total", "ram.free", "disk.free",
+  "cpu.maxcore", "cpu.ccd1", "cpu.ccd2",
+  "psu.12v", "ups.power",
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -51,6 +57,25 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
   "net.up": { label: "Upload", unit: "KB/s", min: 0, max: 100000, precision: 1, scaled: { divide: 1024, unit: "MB/s" } },
   uptime: { label: "Uptime", unit: "", min: 0, max: 100, precision: 0 },
   "clock.second": { label: "Clock second", unit: "", min: 0, max: 59, precision: 0 },
+  fps: { label: "FPS", unit: "FPS", min: 0, max: 240, precision: 0 },
+  "fps.low1": { label: "1% low FPS", unit: "FPS", min: 0, max: 240, precision: 0 },
+  "fps.low01": { label: "0.1% low FPS", unit: "FPS", min: 0, max: 240, precision: 0 },
+  frametime: { label: "Frame time", unit: "ms", min: 0, max: 50, precision: 1 },
+  "vram.used": { label: "VRAM used", unit: "MB", min: 0, max: 32768, precision: 1, scaled: { divide: 1024, unit: "GB" } },
+  "vram.total": { label: "VRAM total", unit: "MB", min: 0, max: 32768, precision: 0, scaled: { divide: 1024, unit: "GB" } },
+  "vram.temp": { label: "VRAM temperature", unit: "°C", min: 0, max: 120, precision: 0, warn: 85, crit: 100 },
+  "gpu.memclock": { label: "GPU memory clock", unit: "MHz", min: 0, max: 15000, precision: 0 },
+  "gpu.hotspot": { label: "GPU hot spot", unit: "°C", min: 0, max: 120, precision: 0, warn: 85, crit: 100 },
+  "gpu.fan": { label: "GPU fan", unit: "RPM", min: 0, max: 4000, precision: 0 },
+  "gpu.volt": { label: "GPU voltage", unit: "V", min: 0, max: 1.5, precision: 2 },
+  "ram.total": { label: "RAM total", unit: "GB", min: 0, max: 128, precision: 0 },
+  "ram.free": { label: "RAM free", unit: "GB", min: 0, max: 128, precision: 1 },
+  "disk.free": { label: "Disk free", unit: "GB", min: 0, max: 4000, precision: 0 },
+  "cpu.maxcore": { label: "CPU busiest core", unit: "%", min: 0, max: 100, precision: 0, warn: 80, crit: 95 },
+  "cpu.ccd1": { label: "CPU CCD1 temperature", unit: "°C", min: 0, max: 100, precision: 0, warn: 75, crit: 90 },
+  "cpu.ccd2": { label: "CPU CCD2 temperature", unit: "°C", min: 0, max: 100, precision: 0, warn: 75, crit: 90 },
+  "psu.12v": { label: "12V rail", unit: "V", min: 10, max: 14, precision: 2 },
+  "ups.power": { label: "UPS power", unit: "W", min: 0, max: 1500, precision: 0 },
 };
 
 /** One way to recognise a role's sensor: every pattern given must match. */
@@ -64,6 +89,7 @@ const CPU = String.raw`^libre:\/[a-z]*cpu\/0\/`;
 const GPU = String.raw`^libre:\/gpu-[a-z]+\/0\/`;
 const DISK = String.raw`^libre:\/(?:nvme|ssd|hdd)\/\d+\/`;
 const re = (s: string) => new RegExp(s, "i");
+const RTSS = (id: string) => new RegExp(String.raw`^plugin:\/InfoPanel\.RTSS\/rtss\/${id}$`, "i");
 
 const RULES: Record<Role, readonly Rule[]> = {
   "cpu.load": [{ ref: re(CPU + "load/0$") }, { name: /\bCPU Total$/i, unit: "%" }, { name: /^Total CPU Usage$/i }, { name: /^CPU Load$/i }],
@@ -110,6 +136,27 @@ const RULES: Record<Role, readonly Rule[]> = {
   uptime: [{ ref: /^plugin:\/.+\/uptime\/formatted$/i }, { name: /^Uptime · Formatted$/i }, { name: /^(System )?Uptime$/i }],
   // InfoPanel's clock plugin; the Data API names it "Clock · Second" (the dot may arrive mangled).
   "clock.second": [{ ref: /^plugin:\/clock-plugin\/clock\/second$/i }, { name: /^Clock\W+Second$/i }],
+  // RTSS through InfoPanel's RTSS plugin; HWiNFO's own frame readings by name.
+  fps: [{ ref: RTSS("fps") }, { name: /^RTSS\W+Frames Per Second$/i }, { name: /^Framerate \(Presented\)$/i }],
+  "fps.low1": [{ ref: RTSS("1% low fps") }, { name: /^RTSS\W+1% Low FPS$/i }, { name: /^Framerate 1% Low$/i }],
+  "fps.low01": [{ ref: RTSS("0\\.1% low fps") }, { name: /^RTSS\W+0\.1% Low FPS$/i }, { name: /^Framerate 0\.1% Low$/i }],
+  frametime: [{ ref: RTSS("current frame time") }, { name: /^RTSS\W+Current Frame Time$/i }, { name: /^Frame Time$/i, unit: "ms" }],
+  "vram.used": [{ ref: re(GPU + "smalldata/1$") }, { name: /\bGPU Memory Used$/i }, { name: /^GPU Memory Allocated$/i }],
+  "vram.total": [{ ref: re(GPU + "smalldata/2$") }, { name: /\bGPU Memory Total$/i }],
+  "vram.temp": [{ ref: re(GPU + "temperature/3$"), name: /Memory (Junction|Temperature)$/i }, { name: /\bGPU Memory (Junction|Temperature)$/i, unit: "°C" }],
+  "gpu.memclock": [{ ref: re(GPU + "clock/4$") }, { name: /\bGPU Memory$/i, unit: "MHz" }, { name: /^GPU Memory Clock$/i }],
+  "gpu.hotspot": [{ ref: re(GPU + "temperature/2$"), name: /Hot ?Spot$/i }, { name: /\bGPU Hot ?Spot$/i, unit: "°C" }, { name: /^GPU Hot Spot Temperature$/i }],
+  "gpu.fan": [{ ref: re(GPU + "fan/1$") }, { name: /\bGPU Fan( 1)?$/i, unit: "RPM" }, { name: /^GPU Fan$/i }],
+  "gpu.volt": [{ ref: re(GPU + "voltage/0$") }, { name: /\bGPU Core Voltage$/i, unit: "V" }],
+  "ram.total": [{ name: /^(Physical|Total Physical) Memory Total$/i }, { name: /^Total Physical Memory$/i }],
+  "ram.free": [{ ref: /^libre:\/ram\/data\/1$/i }, { name: /^(?!.*(Virtual|GPU|D3D)).*\bMemory Available$/i, unit: "GB" }, { name: /^Physical Memory Available$/i }],
+  "disk.free": [{ ref: re(DISK + "data/"), name: /Free Space$/i }, { name: /\bFree Space$/i, unit: "GB" }],
+  "cpu.maxcore": [{ ref: re(CPU + "load/1$"), name: /Core Max$/i }, { name: /^(?!.*GPU).*CPU Core Max$/i, unit: "%" }, { name: /^Max CPU\/Thread Usage$/i }],
+  "cpu.ccd1": [{ ref: re(CPU + "temperature/"), name: /CCD1 \(Tdie\)$/i }, { name: /CCD1 \(Tdie\)$/i, unit: "°C" }],
+  "cpu.ccd2": [{ ref: re(CPU + "temperature/"), name: /CCD2 \(Tdie\)$/i }, { name: /CCD2 \(Tdie\)$/i, unit: "°C" }],
+  // Best effort: boards and UPS plugins name these as they please.
+  "psu.12v": [{ name: /^(\+12V|12V|PSU 12V|12V Rail)$/i, unit: "V" }],
+  "ups.power": [{ name: /^UPS .*(Power|Load)$/i, unit: "W" }, { name: /^UPS Power$/i }],
 };
 
 /** Adapters that aren't the machine's own link (virtual switches, VPNs, Bluetooth). */

@@ -30,6 +30,28 @@ describe("the template sensor roles", () => {
     ["uptime", { "plugins.u.h": v("Uptime · Hours", "", "plugin:/system-info-plugin/uptime/hours"), "plugins.u.f": v("Uptime · Formatted", "", "plugin:/system-info-plugin/uptime/formatted") }, "plugins.u.f"],
     // The clock plugin's seconds, by ref, or by name when the Data API reports no refs (the dot arrives mangled).
     ["clock.second", { "plugins.clock-plugin.clock.minute": v("Clock · Minute", "", "plugin:/clock-plugin/clock/minute"), "plugins.clock-plugin.clock.second": v("Clock · Second", "", "plugin:/clock-plugin/clock/second") }, "plugins.clock-plugin.clock.second"],
+    // RTSS through InfoPanel's plugin, by ref and (no refs) by name; the other frame readings are not mistaken for fps.
+    ["fps", { "p.low": v("RTSS · 1% Low FPS", "FPS", "plugin:/InfoPanel.RTSS/rtss/1% low fps"), "p.fps": v("RTSS · Frames Per Second", "FPS", "plugin:/InfoPanel.RTSS/rtss/fps") }, "p.fps"],
+    ["fps", { "p.max": v("RTSS · Max FPS", "FPS"), "p.fps": v("RTSS · Frames Per Second", "FPS") }, "p.fps"],
+    ["fps.low1", { "p.fps": v("RTSS · Frames Per Second", "FPS", "plugin:/InfoPanel.RTSS/rtss/fps"), "p.low": v("RTSS · 1% Low FPS", "FPS", "plugin:/InfoPanel.RTSS/rtss/1% low fps") }, "p.low"],
+    ["fps.low01", { "p.low1": v("RTSS · 1% Low FPS", "FPS", "plugin:/InfoPanel.RTSS/rtss/1% low fps"), "p.low": v("RTSS · 0.1% Low FPS", "FPS", "plugin:/InfoPanel.RTSS/rtss/0.1% low fps") }, "p.low"],
+    ["frametime", { "p.ft": v("RTSS · Current Frame Time", "ms", "plugin:/InfoPanel.RTSS/rtss/current frame time"), "p.fps": v("RTSS · Frames Per Second", "FPS") }, "p.ft"],
+    ["vram.used", { "l.free": v("NVIDIA GPU Memory Free", "", "libre:/gpu-nvidia/0/smalldata/0"), "l.used": v("NVIDIA GPU Memory Used", "", "libre:/gpu-nvidia/0/smalldata/1"), "l.d3d": v("NVIDIA D3D Dedicated Memory Used", "", "libre:/gpu-nvidia/0/smalldata/3") }, "l.used"],
+    ["vram.total", { "l.used": v("NVIDIA GPU Memory Used", "", "libre:/gpu-nvidia/0/smalldata/1"), "l.total": v("NVIDIA GPU Memory Total", "", "libre:/gpu-nvidia/0/smalldata/2") }, "l.total"],
+    ["vram.temp", { "l.core": v("NVIDIA GPU Core", "°C", "libre:/gpu-nvidia/0/temperature/0"), "l.mem": v("NVIDIA GPU Memory Junction", "°C", "libre:/gpu-nvidia/0/temperature/3") }, "l.mem"],
+    ["gpu.memclock", { "l.core": v("NVIDIA GPU Core", "MHz", "libre:/gpu-nvidia/0/clock/0"), "l.mem": v("NVIDIA GPU Memory", "MHz", "libre:/gpu-nvidia/0/clock/4") }, "l.mem"],
+    ["gpu.hotspot", { "l.core": v("NVIDIA GPU Core", "°C", "libre:/gpu-nvidia/0/temperature/0"), "l.hot": v("NVIDIA GPU Hot Spot", "°C", "libre:/gpu-nvidia/0/temperature/2") }, "l.hot"],
+    ["gpu.hotspot", { "h.hot": v("GPU Hot Spot Temperature", "°C") }, "h.hot"],
+    ["gpu.fan", { "l.ctl": v("NVIDIA GPU Fan 1", "%", "libre:/gpu-nvidia/0/control/1"), "l.fan": v("NVIDIA GPU Fan 1", "RPM", "libre:/gpu-nvidia/0/fan/1") }, "l.fan"],
+    ["gpu.volt", { "l.v": v("NVIDIA GPU Core Voltage", "V", "libre:/gpu-nvidia/0/voltage/0"), "l.cpu": v("AMD Core #1 VID", "V", "libre:/amdcpu/0/voltage/2") }, "l.v"],
+    ["ram.total", { "h.t": v("Physical Memory Total", "GB"), "h.u": v("Physical Memory Used", "GB") }, "h.t"],
+    ["ram.free", { "l.v": v("Virtual Memory Memory Available", "GB", "libre:/vram/data/3"), "l.a": v("Total Memory Memory Available", "GB", "libre:/ram/data/1") }, "l.a"],
+    ["disk.free", { "l.used": v("SSD Used Space", "%", "libre:/nvme/2/load/52"), "l.free": v("SSD Free Space", "GB", "libre:/nvme/2/data/3") }, "l.free"],
+    ["cpu.maxcore", { "l.t": v("AMD CPU Total", "%", "libre:/amdcpu/0/load/0"), "l.m": v("AMD CPU Core Max", "%", "libre:/amdcpu/0/load/1") }, "l.m"],
+    ["cpu.ccd1", { "l.2": v("AMD CCD2 (Tdie)", "°C", "libre:/amdcpu/0/temperature/4"), "l.1": v("AMD CCD1 (Tdie)", "°C", "libre:/amdcpu/0/temperature/3") }, "l.1"],
+    ["cpu.ccd2", { "l.1": v("AMD CCD1 (Tdie)", "°C", "libre:/amdcpu/0/temperature/3"), "l.2": v("AMD CCD2 (Tdie)", "°C", "libre:/amdcpu/0/temperature/4") }, "l.2"],
+    ["psu.12v", { "h.5": v("+5V", "V"), "h.12": v("+12V", "V") }, "h.12"],
+    ["ups.power", { "p.load": v("UPS Battery", "%"), "p.w": v("UPS Power", "W") }, "p.w"],
     ["clock.second", { "plugins.c.minute": v("Clock \uFFFD Minute", ""), "plugins.c.second": v("Clock \uFFFD Second", "") }, "plugins.c.second"],
   ])("%s picks the right sensor (%#)", (role, sensors, key) => {
     expect(resolveRole(role, sensors)?.key).toBe(key);

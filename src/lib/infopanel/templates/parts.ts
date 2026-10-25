@@ -95,6 +95,12 @@ export const SHORT: Record<Role, string> = {
   "gpu.load": "Load", "gpu.temp": "Temp", "gpu.clock": "Clock", "gpu.power": "Power",
   "ram.load": "RAM", "ram.used": "Used", "disk.load": "Disk", "disk.temp": "Disk temp",
   "net.down": "Down", "net.up": "Up", uptime: "Up", "clock.second": "Second",
+  fps: "FPS", "fps.low1": "1% low", "fps.low01": "0.1% low", frametime: "Frame time",
+  "vram.used": "VRAM", "vram.total": "VRAM total", "vram.temp": "VRAM temp",
+  "gpu.memclock": "Memory clock", "gpu.hotspot": "Hot spot", "gpu.fan": "Fan", "gpu.volt": "Voltage",
+  "ram.total": "Total", "ram.free": "Free", "disk.free": "Free",
+  "cpu.maxcore": "Busiest core", "cpu.ccd1": "CCD1", "cpu.ccd2": "CCD2",
+  "psu.12v": "12V", "ups.power": "UPS",
 };
 
 /**
