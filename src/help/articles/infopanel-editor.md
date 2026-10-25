@@ -3,12 +3,22 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.26
+verified: 1.3.0-beta.27
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
 
-Open **InfoPanel** on the rail. With no profile open, the page lists every InfoPanel profile in the dashboard, with **New InfoPanel profile…** and **Import…** above them. Below that, **In your Library** lists the profiles you saved to the [Library](library) that aren't on a screen yet; click one to bring it in as a new screen and open it. **Edit items** on a canvas zone opens that zone here too.
+## The home page
+
+**InfoPanel** on the rail always opens the home page, even while a profile is open. It has:
+
+- **Continue editing**, when a profile is open: one click puts you back in it, with your selection and undo as you left them.
+- **Create**: **Blank** and the templates, as cards. Click one and the New InfoPanel profile window opens with that card already chosen, for the name, size, colours and sensors.
+- **In this dashboard**: every InfoPanel profile on a screen, drawn small. Click a card, or **Open**, to edit it.
+- **In your Library**: the profiles you saved to the [Library](library) that aren't on a screen yet. **Open** brings one in as a new screen. **Duplicate** makes an independent copy in the Library. The bin removes it, after a question, and keeps any file that a profile still uses.
+- **Import…** for an .infopanel file.
+
+Inside the editor, **Profiles** at the left of the toolbar goes back to the home page. The profile stays open. **Done** still leaves for the dashboard. **Edit items** on a canvas zone opens that zone here too.
 
 ## What the page edits
 
@@ -48,7 +58,7 @@ A template's colours come from the profile's palette (see The palette, below), s
 ## The page
 
 - **Add**, on the left: InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, then the studio's **Elements**.
-- **Layers**, below it: the item tree, with a lock and a visibility checkbox on each row.
+- **Layers**, below it: the item tree, with a lock and a visibility checkbox on each row. See Groups.
 - The canvas, in the middle, with the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
 - The inspector, on the right. With nothing selected it shows the profile's settings.
 
@@ -125,6 +135,21 @@ Ctrl+Shift+Z / Ctrl+Y — Redo
 :::
 
 Nudging with the arrow keys never snaps. Keys don't work while you type in a field.
+
+## Groups
+
+A group holds items and moves as one. Its children keep their own X and Y, measured on the canvas, as InfoPanel stores them: a group never offsets what is in it, so grouping, ungrouping and moving items between groups never shifts anything on the canvas. Groups can hold groups.
+
+- **Group** (`Ctrl+G`, the toolbar, or **Group selection** in the Layers menu) wraps the selected items in a new group, at the place of the first of them in **Layers**. Items from different groups can be grouped together. They keep their order.
+- **Ungroup** (`Ctrl+Shift+G`, the toolbar or the menu) puts the children back in the group's place. A hidden or locked group leaves its children hidden or locked.
+- **Layers** read in draw order. The first row is drawn first, at the back. A group's items are drawn at the group's place, in their own order. This is InfoPanel's own order.
+- Drag a row in **Layers** to reorder it. Drop on the upper or lower edge of a row to go above or below it, on the middle of a group to go inside it, or on the empty space under the list to go to the end of the top level. A line or a box shows where it will land. Drag out of a group the same way. Several selected rows move together, in their order.
+- A group can't go inside itself or inside anything it holds. When a drop isn't allowed, **Layers** says why.
+- The chevron opens and closes a group; the state is saved in the profile (InfoPanel's `IsExpanded`). Double-click a name, or choose **Rename** in the menu, to rename it.
+- **Hidden** and **Lock** on a group act on everything in it. A locked group's items can't be dragged out or in.
+- **Delete** removes a group with its children, and **Duplicate** copies it with them. Each is one undo step, and so is every other group action.
+- On the canvas, a click on an item in a group selects the whole group, to move it. `Alt`+click or a double-click selects the item itself. With an item of the group already selected, a plain click picks items inside it.
+- A **Cores** element is a group of bars that the element places itself. Its bars can't be moved in or out, and it can't be ungrouped. The whole Cores group can go inside another group.
 
 ## Several items
 

@@ -41,21 +41,23 @@ interface TemplateGalleryProps {
   height: number;
   /** The user's saved InfoPanel profiles, offered after the templates. */
   profiles?: readonly LibraryItem[];
+  /** The home page: each card starts something (`onChoice`) instead of choosing, so none is checked. */
+  launch?: boolean;
 }
 
 const CARD = "flex min-w-0 flex-col overflow-hidden rounded-[10px] border text-left outline-none focus-visible:border-ui-accent";
 
-export function TemplateGallery({ choice, onChoice, width, height, profiles = [] }: TemplateGalleryProps) {
+export function TemplateGallery({ choice, onChoice, width, height, profiles = [], launch = false }: TemplateGalleryProps) {
   const chosen = TEMPLATES.find((t) => t.id === choice.template);
   // Thumbnails keep the canvas's shape, within a strip from 3:1 to 1:1.
   const aspect = Math.min(3, Math.max(1, width / height));
   return (
     <div>
-      <div role="radiogroup" aria-label="Start from" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <div role={launch ? "group" : "radiogroup"} aria-label="Start from" className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         <button
           type="button"
-          role="radio"
-          aria-checked={choice.template === null && !choice.library}
+          role={launch ? undefined : "radio"}
+          aria-checked={launch ? undefined : choice.template === null && !choice.library}
           onClick={() => onChoice({ template: null, variant: "" })}
           className={cn(CARD, choice.template === null && !choice.library ? "border-ui-accent bg-ui-accent/10" : "border-ui-default hover:bg-ui-hover")}
         >
@@ -68,8 +70,8 @@ export function TemplateGallery({ choice, onChoice, width, height, profiles = []
           <button
             key={t.id}
             type="button"
-            role="radio"
-            aria-checked={choice.template === t.id}
+            role={launch ? undefined : "radio"}
+            aria-checked={launch ? undefined : choice.template === t.id}
             aria-label={t.name}
             title={t.blurb}
             onClick={() => onChoice({ template: t.id, variant: choice.template === t.id ? choice.variant : t.variants[0].id })}
@@ -86,8 +88,8 @@ export function TemplateGallery({ choice, onChoice, width, height, profiles = []
           <button
             key={item.id}
             type="button"
-            role="radio"
-            aria-checked={choice.library === item.id}
+            role={launch ? undefined : "radio"}
+            aria-checked={launch ? undefined : choice.library === item.id}
             aria-label={item.name}
             title="Your saved profile; Create makes a copy of it"
             onClick={() => onChoice({ template: null, variant: "", library: item.id })}
@@ -110,7 +112,7 @@ export function TemplateGallery({ choice, onChoice, width, height, profiles = []
               <button
                 key={v.id}
                 type="button"
-                role="radio"
+                role={launch ? undefined : "radio"}
                 aria-checked={choice.variant === v.id}
                 onClick={() => onChoice({ template: chosen.id, variant: v.id })}
                 className={cn(

@@ -92,6 +92,17 @@ function pickable(items: readonly DisplayItem[], path: Path): boolean {
   return true;
 }
 
+/**
+ * What a click on the canvas selects once `hitTest` found the item under it: a group's item selects
+ * the outermost group as one, unless the selection already holds something inside that group (the
+ * user is in it) or `deep` (Alt-click, double-click) asks for the item itself.
+ */
+export function unitPick(hit: Path, selection: readonly Path[], deep: boolean): Path {
+  const root = hit.split(".")[0];
+  if (deep || root === hit || selection.some((p) => p.startsWith(root + "."))) return hit;
+  return root;
+}
+
 /** A box over the whole canvas: a background, which only takes a click with nothing else there. */
 export const coversCanvas = (b: Box, canvas: { Width: number; Height: number }): boolean =>
   b.x <= 0.5 && b.y <= 0.5 && b.x + b.width >= canvas.Width - 0.5 && b.y + b.height >= canvas.Height - 0.5;

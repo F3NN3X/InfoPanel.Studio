@@ -46,8 +46,9 @@ import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
 import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
-import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { canvasPlaces, InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
 import type { NewProfile } from "@/components/infopanel/new-profile-dialog";
+import type { GalleryChoice } from "@/components/infopanel/template-gallery";
 import { canvasZoneOf, importAsProfile } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
@@ -315,7 +316,17 @@ function StudioViewBody({
    * stored form in the config is the one source of truth, so the studio's history undoes every
    * edit. It closes when the zone goes (an undo past its import, another screen or page).
    */
-  const [editingCanvas, setEditingCanvas] = useState<string | null>(null);
+  const [editingCanvas, setEditing] = useState<string | null>(null);
+  /** The InfoPanel home page covers the open document: the rail's InfoPanel button and the editor's "Profiles" show it, opening a document hides it. */
+  const [infopanelHome, setInfopanelHome] = useState(false);
+  const setEditingCanvas = (id: string | null) => {
+    if (id) setInfopanelHome(false);
+    setEditing(id);
+  };
+  const onRail = (item: RailItem) => {
+    if (item === "infopanel") setInfopanelHome(true);
+    ui.onRail(item);
+  };
   /** Edit a canvas zone of the page Design shows: the InfoPanel page opens on it. */
   const editCanvasZone = (zoneId: string) => {
     setCanvasSelection(undefined);
@@ -334,8 +345,10 @@ function StudioViewBody({
    * in the editor; a template's sensors not found on this machine are listed there with Remap.
    */
   const [newProfileOpen, setNewProfileOpen] = useState(false);
+  /** The home page's gallery card the dialog opens on (none: Blank). */
+  const [newProfileChoice, setNewProfileChoice] = useState<GalleryChoice | undefined>(undefined);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
-  useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && setNewProfileOpen(true)), []);
+  useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && (setNewProfileChoice(undefined), setNewProfileOpen(true))), []);
   const createInfoPanel = ({ name, width, height, stored, unbound, toLibrary }: NewProfile) => {
     const r = importAsProfile(config, stored, name, { width, height }, false);
     setConfig(r.config);
@@ -658,12 +671,15 @@ function StudioViewBody({
     </>
   );
 
-  // Mounted on its page, and kept (hidden) while the Library covers it, so a Library drag can land in it.
+  /** The home page shows over the InfoPanel page when asked for, and whenever no document is open. */
+  const homeShown = showInfoPanel && (infopanelHome || !canvasZone?.canvas);
+  // Mounted on its page, and kept (hidden) while the Library or the home page covers it, so a Library drag can land in it and the selection survives.
   const canvasEditor = canvasZone?.canvas && (showInfoPanel || showLibrary) && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
       <CanvasEditorView
         key={`${canvasZone.id}:${editorEpoch}`}
-        hidden={showLibrary}
+        hidden={showLibrary || homeShown}
+        onHome={() => setInfopanelHome(true)}
         profileId={storedProfile.id}
         zone={{ ...canvasZone, canvas: canvasZone.canvas }}
         setConfig={setConfig}
@@ -767,18 +783,31 @@ function StudioViewBody({
     </Suspense>
   );
 
-  /** The InfoPanel page with nothing open: the profiles placed in the dashboard, New and Import. */
-  const infopanelStart = showInfoPanel && !canvasEditor && (
-    <InfoPanelStart
-      config={config}
-      onOpen={(c) => {
-        openOnLand.current = c.zoneId;
-        openZone(c.profileId, c.pageId, c.zoneId);
-      }}
-      onOpenLibrary={(item) => void editCanvas(item)}
-      onNew={() => setNewProfileOpen(true)}
-      onImport={() => openImportDoor({ prefer: "canvas-zone" })}
-    />
+  /** The InfoPanel home page: Continue editing, Create, and the profiles in the dashboard and the Library. */
+  const currentPlace = canvasPlaces(config).find((c) => c.zoneId === editingCanvas);
+  const infopanelStart = homeShown && (
+    <>
+      <InfoPanelStart
+        config={config}
+        current={currentPlace}
+        onContinue={() => setInfopanelHome(false)}
+        onOpen={(c) => {
+          openOnLand.current = c.zoneId;
+          openZone(c.profileId, c.pageId, c.zoneId);
+        }}
+        onOpenLibrary={(item) => void editCanvas(item)}
+        onNew={(choice) => {
+          setNewProfileChoice(choice);
+          setNewProfileOpen(true);
+        }}
+        onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+      />
+      {canvasEditor && (
+        <div hidden inert className="hidden">
+          {canvasEditor}
+        </div>
+      )}
+    </>
   );
 
   const gaugesEl = showGauges && (
@@ -883,7 +912,7 @@ function StudioViewBody({
       />
       <StudioShell
         layout={studioLayout}
-        rail={phone ? null : <LeftRail active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
+        rail={phone ? null : <LeftRail active={railActive} onSelect={onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
         main={alertsEl || screensEl || gaugesEl || themeEl || infopanelStart || (
@@ -903,7 +932,7 @@ function StudioViewBody({
         inspector={fullPage || canvasEditor ? null : inspectorAside}
       />
       <StatusBar {...statusBar} onNavigate={ui.navigateTo} onOpenLive={() => ui.setLiveOpen(true)} />
-      {phone && <PhoneTabBar active={railActive} onSelect={ui.onRail} onHelp={openHelpWindow} />}
+      {phone && <PhoneTabBar active={railActive} onSelect={onRail} onHelp={openHelpWindow} />}
 
       <WidgetPickerDialog
         placement={profile.placements.find((p) => p.id === ui.pickerFor) ?? null}
@@ -944,7 +973,7 @@ function StudioViewBody({
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
       {newProfileOpen && (
         <Suspense fallback={null}>
-          <NewProfileDialog open onOpenChange={setNewProfileOpen} onCreate={createInfoPanel} />
+          <NewProfileDialog open onOpenChange={setNewProfileOpen} onCreate={createInfoPanel} initial={newProfileChoice} />
         </Suspense>
       )}
       {io.dialogs}

@@ -10,6 +10,7 @@ import {
   ArrowUp,
   Cable,
   Check,
+  ChevronLeft,
   Contrast,
   Copy,
   Group,
@@ -104,9 +105,11 @@ export interface CanvasToolbarProps {
   /** Save to Library, or Update in Library once the profile has an item. */
   library?: LibraryLink;
   onDone: () => void;
+  /** Back to the InfoPanel home page, the document still open. */
+  onHome?: () => void;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onDone }: CanvasToolbarProps) {
+export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onDone, onHome }: CanvasToolbarProps) {
   const { selection } = editor;
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
@@ -135,11 +138,25 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
   ];
   return (
     <div ref={ref} role="toolbar" aria-label="Canvas items" className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-ui-subtle bg-ui-panel px-3 font-ui">
+      {onHome && (
+        <>
+          <button
+            type="button"
+            onClick={onHome}
+            title="Back to your InfoPanel profiles; this one stays open"
+            className="flex h-[30px] shrink-0 items-center gap-1 rounded-[8px] border border-ui-default pl-1.5 pr-2.5 text-[12px] text-ui-2 hover:bg-ui-hover"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Profiles
+          </button>
+          <Sep />
+        </>
+      )}
       <ToolButton icon={Undo2} label="Undo (Ctrl+Z)" onClick={history.undo} disabled={!history.canUndo} />
       <ToolButton icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={history.redo} disabled={!history.canRedo} />
       <Sep />
       <ToolButton icon={Copy} label="Duplicate (Ctrl+D)" onClick={editor.duplicate} disabled={selection.length === 0} />
-      <ToolButton icon={Group} label="Group (Ctrl+G)" onClick={editor.group} disabled={topmost(selection).length < 2} />
+      <ToolButton icon={Group} label="Group (Ctrl+G)" onClick={editor.group} disabled={topmost(selection).length < 1} />
       <ToolButton icon={Ungroup} label="Ungroup (Ctrl+Shift+G)" onClick={editor.ungroup} disabled={single?.kind !== "Group"} />
       <ToolButton icon={ArrowUp} label="Draw later (up)" onClick={() => editor.reorder(1)} disabled={!single} />
       <ToolButton icon={ArrowDown} label="Draw earlier (down)" onClick={() => editor.reorder(-1)} disabled={!single} />

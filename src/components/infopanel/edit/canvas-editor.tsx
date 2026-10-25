@@ -48,6 +48,8 @@ export interface CanvasEditorProps {
   setConfig: HistorySetter;
   history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void };
   onDone: () => void;
+  /** The "Profiles" back control: the InfoPanel home page. The document stays open. */
+  onHome?: () => void;
   /** The Library page covers the editor: it stays mounted but its keys do nothing. */
   hidden?: boolean;
   /** The active profile (a dropped Library image is recorded as a copy there). */
@@ -73,9 +75,9 @@ interface PickFor {
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, onDone, hidden = false, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound }: CanvasEditorProps) {
-  const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection);
+export default function CanvasEditorView({ zone, setConfig, history, onDone, onHome, hidden = false, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound }: CanvasEditorProps) {
   const toast = useToast();
+  const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection, toast);
   const [showModes, setShowModes] = useState(false);
   const [compareOn, setCompareOn] = useState(false);
   // The screenshot the canvas kept at import is Compare's start; "choose another" replaces it.
@@ -217,6 +219,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
           apiUnreachable={unreachable}
           library={libraryLink}
           onDone={onDone}
+          onHome={onHome}
         />
         {unbound && unbound.length > 0 && (
           <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">

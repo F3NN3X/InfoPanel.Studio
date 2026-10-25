@@ -3,6 +3,7 @@
  * (kinds.test.ts) and of the import-check script (lab/infopanel/scripts/import-check.mts), which hands the same files
  * to InfoPanel's own reader. Relative imports and no TypeScript-only syntax beyond types, because Node runs it directly.
  */
+import { groupItems, moveItems } from "../../../../src/lib/infopanel/editor/groups.ts";
 import { checkValue } from "../../../../src/lib/infopanel/editor/registry.ts";
 import { defaultItem, PROFILE, SCHEMAS } from "../../../../src/lib/infopanel/schema.ts";
 import type { DisplayItem, FieldSpec, GaugeItem, GroupItem, ImageItem, ItemKind, Profile } from "../../../../src/lib/infopanel/schema.ts";
@@ -115,10 +116,25 @@ export const PNG = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB
 /** A group and a gauge with nothing in them: InfoPanel writes both as `<X />`. */
 export const EMPTY_LISTS = "Kinds-empty";
 
-/** One fixture per kind, one with all of them and one with empty lists. Every image names a file the fixture carries. */
+/** Groups two levels deep, made by the editor's own operations. */
+export const NESTED = "Groups-nested";
+
+/** a b c d e → Inner { b c } → Outer { a Inner } → d moved into Inner, first: Outer { a, Inner { d, b, c } }, e. */
+export function nestedGroups(): DisplayItem[] {
+  const start = ["a", "b", "c", "d", "e"].map((name, i) => ({ ...fullItem("Text"), Name: name, X: 10 * i, Y: 10 * i + 5 }) as DisplayItem);
+  const ok = <T extends { ok: boolean }>(r: T): Extract<T, { ok: true }> => {
+    if (!r.ok) throw new Error(String((r as { reason?: string }).reason));
+    return r as Extract<T, { ok: true }>;
+  };
+  const inner = ok(groupItems(start, ["1", "2"], "Inner"));
+  const outer = ok(groupItems(inner.items, ["0", "1"], "Outer"));
+  return ok(moveItems(outer.items, ["1"], "0.1", 0)).items;
+}
+
+/** One fixture per kind, one with all of them, one with empty lists and one with nested groups. Every image names a file the fixture carries. */
 export function fixtures(): { name: string; profile: Profile; items: DisplayItem[]; assets: { name: string; bytes: Uint8Array }[] }[] {
   const profile = { ...fullProfile() };
   const make = (name: string, items: DisplayItem[]) => ({ name, profile: { ...profile, Name: name }, items, assets: assetNames(items).map((n) => ({ name: n, bytes: PNG })) });
   const empty = [{ ...fullItem("Group"), DisplayItems: [] }, { ...fullItem("Gauge"), Images: [] }] as DisplayItem[];
-  return [...KINDS.map((kind) => make(`Kind-${kind}`, [withChildren(kind)])), make("Kinds-mixed", KINDS.map(withChildren)), make(EMPTY_LISTS, empty)];
+  return [...KINDS.map((kind) => make(`Kind-${kind}`, [withChildren(kind)])), make("Kinds-mixed", KINDS.map(withChildren)), make(EMPTY_LISTS, empty), make(NESTED, nestedGroups())];
 }
