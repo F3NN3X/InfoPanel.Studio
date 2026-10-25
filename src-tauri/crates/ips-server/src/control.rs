@@ -24,8 +24,11 @@ pub const MUTE_MAX_MINUTES: f64 = 1440.0;
 pub const RELOAD_COALESCE_MS: f64 = 2000.0;
 /// A display's screen when the studio hasn't chosen one: it follows the app's own rule ("When the app opens").
 pub const DISPLAY_FOLLOW: &str = "follow";
-/// Known displays are kept up to this many; a new name beyond it is not remembered.
+/// Known displays are kept up to this many. A new name beyond it takes the place of the least recently seen display
+/// that was never assigned a screen; with none of those, it is not remembered.
 pub const DISPLAYS_MAX: usize = 64;
+/// A display's last-seen time alone is written to control.json at most this often.
+pub const DISPLAY_SEEN_SAVE_MS: f64 = 300_000.0;
 
 type Dict = Map<String, Value>;
 
@@ -530,6 +533,18 @@ fn seen_display(displays: &[(String, Display)], name: &str, now: f64) -> Vec<(St
     displays.iter().map(|(n, d)| (n.clone(), if n == name { Display { last_seen: now, ..d.clone() } } else { d.clone() })).collect()
 }
 
+/// Drops the least recently seen display that still follows (was never assigned a screen); false when there is none.
+fn evict_idle_display(displays: &mut Vec<(String, Display)>) -> bool {
+    let idle = displays.iter().enumerate().filter(|(_, (_, d))| d.screen == DISPLAY_FOLLOW).min_by(|a, b| a.1 .1.last_seen.total_cmp(&b.1 .1.last_seen));
+    match idle.map(|(at, _)| at) {
+        Some(at) => {
+            displays.remove(at);
+            true
+        }
+        None => false,
+    }
+}
+
 /// A named display assigned a screen, or forgotten.
 fn reduce_display(state: &State, action: &Value, config: &Value) -> Reduced {
     let name = action.get("display").and_then(Value::as_str).filter(|n| valid_display(n)).ok_or("bad display")?;
@@ -573,7 +588,7 @@ fn reduce_connect(state: &State, action: &Value, now: f64) -> Reduced {
     if let Some(name) = &kiosk.display {
         if displays.iter().any(|(n, _)| n == name) {
             displays = seen_display(&displays, name, now);
-        } else if displays.len() < DISPLAYS_MAX {
+        } else if displays.len() < DISPLAYS_MAX || evict_idle_display(&mut displays) {
             displays.push((name.clone(), Display { screen: DISPLAY_FOLLOW.to_string(), first_seen: now, last_seen: now }));
         }
     }
@@ -741,6 +756,15 @@ pub(crate) fn durable(state: &State) -> Value {
         saved["displays"] = durable_displays(&state.displays);
     }
     saved
+}
+
+/// The durable part without the displays' last-seen times: a change to this alone is what rewrites control.json.
+pub(crate) fn durable_shape(state: &State) -> Value {
+    let mut shape = state.clone();
+    for (_, d) in &mut shape.displays {
+        d.last_seen = 0.0;
+    }
+    durable(&shape)
 }
 
 /// The state saved in `text` (control.json), or the empty one when it is not JSON.
@@ -953,5 +977,42 @@ mod tests {
             state = connect(&state, &format!("k{i}"), json!({ "display": format!("d{i}") }), i as f64);
         }
         assert_eq!(state.displays.len(), DISPLAYS_MAX);
+    }
+
+    fn full_registry() -> State {
+        let mut state = State::default();
+        for i in 0..DISPLAYS_MAX {
+            // d0 was seen last, d1 first, and so on up.
+            state = connect(&state, &format!("k{i}"), json!({ "display": format!("d{i}") }), (1000 + i) as f64);
+        }
+        state
+    }
+
+    #[test]
+    fn a_full_registry_makes_room_by_dropping_the_least_recently_seen_unassigned_display() {
+        let mut state = full_registry();
+        // d0 is the oldest but assigned, so d1 goes instead.
+        state.displays[0].1.screen = "desk".into();
+        let next = connect(&state, "new", json!({ "display": "fresh" }), 9000.0);
+        let names: Vec<&str> = next.displays.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(names.len(), DISPLAYS_MAX);
+        assert!(names.contains(&"d0") && names.contains(&"fresh") && !names.contains(&"d1"));
+        // Seen again, a display is no longer the oldest.
+        let mut seen = full_registry();
+        seen.displays = seen_display(&seen.displays, "d1", 5000.0);
+        let next = connect(&seen, "new", json!({ "display": "fresh" }), 9000.0);
+        assert!(next.displays.iter().all(|(n, _)| n != "d0") && next.displays.iter().any(|(n, _)| n == "d1"));
+    }
+
+    #[test]
+    fn a_full_registry_of_assigned_displays_refuses_a_new_name() {
+        let mut state = full_registry();
+        for (_, d) in &mut state.displays {
+            d.screen = "desk".into();
+        }
+        let next = connect(&state, "new", json!({ "display": "fresh" }), 9000.0);
+        assert_eq!(next.displays, state.displays);
+        // The kiosk itself still connects.
+        assert_eq!(next.kiosks.last().map(|(id, _)| id.as_str()), Some("new"));
     }
 }

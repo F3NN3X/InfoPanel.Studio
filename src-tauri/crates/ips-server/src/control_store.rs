@@ -17,7 +17,7 @@ use tokio::time::{interval_at, Instant, MissedTickBehavior};
 
 use crate::alerts;
 use crate::config::now_ms;
-use crate::control::{durable, load, public_state, reduce, reduce_config, State};
+use crate::control::{durable, durable_shape, load, public_state, reduce, reduce_config, State, DISPLAY_SEEN_SAVE_MS};
 use crate::http::{self, Req};
 use crate::json::{parse as parse_json, stringify};
 use crate::request_guard::control_write_refusal;
@@ -34,6 +34,8 @@ struct Inner {
     listeners: BTreeMap<u64, mpsc::UnboundedSender<Bytes>>,
     next_listener: u64,
     kiosk_seq: u64,
+    /// When control.json was last written (epoch ms).
+    saved_at: f64,
 }
 
 /// What a kiosk's control stream says about itself (its link's `?profile=`, `?page=`, `?display=`).
@@ -70,7 +72,7 @@ impl Control {
     pub fn new(file: PathBuf, now: i64, read_config: impl Fn() -> Option<Value> + Send + Sync + 'static) -> Arc<Self> {
         let state = State { reload: now as f64, ..load(store::read_text(&file).ok().as_deref(), now as f64) };
         let config = read_config().unwrap_or(Value::Null);
-        let inner = Inner { state, config, listeners: BTreeMap::new(), next_listener: 0, kiosk_seq: 0 };
+        let inner = Inner { state, config, listeners: BTreeMap::new(), next_listener: 0, kiosk_seq: 0, saved_at: now_ms() as f64 };
         Arc::new(Self { file, read_config: Box::new(read_config), inner: Mutex::new(inner) })
     }
 
@@ -89,7 +91,11 @@ impl Control {
         if next == inner.state {
             return;
         }
-        let persist = stringify(&durable(&next)) != stringify(&durable(&inner.state));
+        // Connecting and disconnecting only move a display's last-seen time: that waits for another durable write, or
+        // for DISPLAY_SEEN_SAVE_MS, so a flood of connections can't churn the file.
+        let now = now_ms() as f64;
+        let seen_due = now - inner.saved_at >= DISPLAY_SEEN_SAVE_MS && stringify(&durable(&next)) != stringify(&durable(&inner.state));
+        let persist = seen_due || stringify(&durable_shape(&next)) != stringify(&durable_shape(&inner.state));
         let was_muted = inner.state.muted_until;
         inner.state = next;
         if inner.state.muted_until != was_muted {
@@ -99,6 +105,7 @@ impl Control {
             }
         }
         if persist {
+            inner.saved_at = now;
             if let Err(e) = store::write_atomic(&self.file, stringify(&durable(&inner.state)).as_bytes()) {
                 log::error!(target: "server", "control.json save failed: {e}");
             }
@@ -312,6 +319,30 @@ mod tests {
         drop(stream);
         assert!(watcher.try_recv().is_ok());
         assert_eq!(control.get()["kiosks"], json!([]));
+    }
+
+    #[test]
+    fn a_plain_reconnect_of_a_known_display_does_not_rewrite_control_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("control.json");
+        let control = Control::new(file.clone(), 1000, || Some(config()));
+        let link = KioskLink { profile: "desk", display: Some("hall"), ..KioskLink::default() };
+        // Registering writes the file.
+        let (_rx, stream) = control.open_stream(Some(link));
+        let saved = std::fs::read_to_string(&file).unwrap();
+        assert!(saved.contains("\"hall\""), "{saved}");
+        // Going away and coming back moves last seen in memory only.
+        drop(stream);
+        std::thread::sleep(Duration::from_millis(5));
+        let (_rx, _stream) = control.open_stream(Some(link));
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), saved);
+        let seen = control.get()["displays"][0]["lastSeen"].as_f64().unwrap();
+        assert!(seen > serde_json::from_str::<Value>(&saved).unwrap()["displays"]["hall"]["lastSeen"].as_f64().unwrap());
+        // Assigning is durable and carries the newer last seen along.
+        control.dispatch(&json!({ "type": "display", "action": "assign", "display": "hall", "screen": "desk" })).unwrap();
+        let after: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
+        assert_eq!(after["displays"]["hall"]["screen"], "desk");
+        assert_eq!(after["displays"]["hall"]["lastSeen"].as_f64().unwrap(), seen);
     }
 
     #[test]
