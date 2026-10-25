@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  controlEventsUrl,
   kioskPageId,
   kioskProfileId,
   islandEffective,
@@ -40,6 +41,16 @@ describe("kioskPageId", () => {
 
 describe("kioskProfileId", () => {
   const config = { profiles: [{ id: "p1" }, { id: "p2" }] } as never;
+
+  it("takes the display's assigned screen after the pin and before the override", () => {
+    const displays = [{ name: "hall", screen: "p1", firstSeen: 0, lastSeen: 0, online: true, address: null, shows: "p1" }];
+    const control = state({ profile: "p2", displays });
+    expect(kioskProfileId({ pin: null, control, config, display: "hall" })).toBe("p1");
+    expect(kioskProfileId({ pin: "p2", control, config, display: "hall" })).toBe("p2");
+    expect(kioskProfileId({ pin: null, control, config, display: "other" })).toBe("p2");
+    const follow = state({ profile: "p2", displays: [{ ...displays[0], screen: "follow" }] });
+    expect(kioskProfileId({ pin: null, control: follow, config, display: "hall" })).toBe("p2");
+  });
 
   it("lets the URL pin win over the control override", () => {
     expect(kioskProfileId({ pin: "p1", control: state({ profile: "p2" }), config })).toBe("p1");
@@ -143,5 +154,13 @@ describe("reloadCheck", () => {
     expect(own.reload).toBe(true);
     expect(reloadCheck(own.baseline, at(5, 8), "p1").reload).toBe(false);
     expect(reloadCheck(first.baseline, at(9, 7), "p1").reload).toBe(true);
+  });
+});
+
+describe("controlEventsUrl", () => {
+  it("carries a kiosk's display and whether its link pins a profile", () => {
+    expect(controlEventsUrl("p1", undefined, false, { name: "hall", pinned: false })).toBe("/events/control?profile=p1&display=hall");
+    expect(controlEventsUrl("p1", "b", false, { name: "hall", pinned: true })).toBe("/events/control?profile=p1&page=b&display=hall&pinned=1");
+    expect(controlEventsUrl("p1")).toBe("/events/control?profile=p1");
   });
 });

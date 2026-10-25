@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig, newProfile, type DashboardConfig } from "@/lib/layout";
 import { sampleScreen } from "@/lib/screens/create";
+import { isDisplayName } from "@/lib/screens/display-name";
 import { kioskLink } from "@/lib/screens/kiosk-link";
 import { moveProfile } from "@/lib/screens/order";
 
@@ -23,6 +24,19 @@ describe("moveProfile", () => {
 describe("kioskLink", () => {
   it("pins a kiosk to the screen, escaping the id and trimming the origin's slash", () => {
     expect(kioskLink("http://192.168.1.5:3922/", "profile 1/x")).toBe("http://192.168.1.5:3922/?kiosk=1&profile=profile%201%2Fx");
+  });
+});
+
+describe("kioskLink with a display name", () => {
+  it("names the display and leaves the screen to the studio, so it does not pin one", () => {
+    expect(kioskLink("http://pc:3922", "p1", "hall-1")).toBe("http://pc:3922/?kiosk=1&display=hall-1");
+  });
+});
+
+describe("isDisplayName", () => {
+  it("takes short slugs only", () => {
+    for (const ok of ["desk", "Hall_1", "a-b", "x".repeat(32)]) expect(isDisplayName(ok)).toBe(true);
+    for (const bad of ["", "has space", "a/b", "a.b", "x".repeat(33), null, undefined]) expect(isDisplayName(bad)).toBe(false);
   });
 });
 

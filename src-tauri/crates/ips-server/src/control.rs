@@ -22,6 +22,13 @@ pub const DIM_MAX: f64 = 0.9;
 pub const MUTE_MAX_MINUTES: f64 = 1440.0;
 /// A reload bump within this long of the last one is ignored, so a loop of POSTs can't storm the kiosks.
 pub const RELOAD_COALESCE_MS: f64 = 2000.0;
+/// A display's screen when the studio hasn't chosen one: it follows the app's own rule ("When the app opens").
+pub const DISPLAY_FOLLOW: &str = "follow";
+/// Known displays are kept up to this many. A new name beyond it takes the place of the least recently seen display
+/// that was never assigned a screen; with none of those, it is not remembered.
+pub const DISPLAYS_MAX: usize = 64;
+/// A display's last-seen time alone is written to control.json at most this often.
+pub const DISPLAY_SEEN_SAVE_MS: f64 = 300_000.0;
 
 type Dict = Map<String, Value>;
 
@@ -32,12 +39,32 @@ pub struct Kiosk {
     pub page: Option<String>,
     pub address: Option<String>,
     pub since: f64,
+    /// The `?display=` name of the link, when it had a valid one.
+    pub display: Option<String>,
+    /// The link carried a `?profile=` pin, which beats the display's assignment.
+    pub pinned: bool,
+}
+
+/// A named display (a kiosk link with `?display=<name>`): the screen the studio assigned (`follow` or a profile id)
+/// and when it was first and last seen (epoch ms).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Display {
+    pub screen: String,
+    pub first_seen: f64,
+    pub last_seen: f64,
+}
+
+/// A display name is a short slug: letters, digits, `-` and `_`, 1 to 32 characters.
+pub fn valid_display(name: &str) -> bool {
+    (1..=32).contains(&name.len()) && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 /// The control state. `muted_until`, `dim` (the level while on), `dim_level` (the last one used) and `island_override`
 /// are durable, as are `profile`, `pages` and `override_`. The rest is runtime only: `shown` (the profile a kiosk last
 /// reported), `next_at`, `alerts`, `kiosks` (by connection id, oldest first) and the reload counters (`reload` starts at
-/// the server start time; `reload_at` is when the last bump was taken).
+/// the server start time; `reload_at` is when the last bump was taken). `displays` (by name, in the order first seen)
+/// is durable and is left out of the JSON forms while empty, so a server without named displays reads and writes
+/// what it always did.
 #[derive(Clone, Debug, PartialEq)]
 pub struct State {
     pub profile: Value,
@@ -54,6 +81,7 @@ pub struct State {
     pub reloads: Dict,
     pub reload_at: Option<f64>,
     pub kiosks: Vec<(String, Kiosk)>,
+    pub displays: Vec<(String, Display)>,
 }
 
 impl Default for State {
@@ -73,6 +101,7 @@ impl Default for State {
             reloads: Dict::new(),
             reload_at: None,
             kiosks: Vec::new(),
+            displays: Vec::new(),
         }
     }
 }
@@ -100,16 +129,24 @@ impl State {
             .kiosks
             .iter()
             .map(|(id, k)| {
-                let kiosk = json!({ "profile": k.profile, "page": opt_str(&k.page), "address": opt_str(&k.address), "since": num(k.since) });
+                let mut kiosk = json!({ "profile": k.profile, "page": opt_str(&k.page), "address": opt_str(&k.address), "since": num(k.since) });
+                if let Some(display) = &k.display {
+                    kiosk["display"] = json!(display);
+                    kiosk["pinned"] = json!(k.pinned);
+                }
                 (id.clone(), kiosk)
             })
             .collect();
-        json!({
+        let mut value = json!({
             "profile": self.profile, "shown": self.shown, "pages": self.pages, "override": self.override_, "nextAt": self.next_at,
             "alerts": self.alerts, "mutedUntil": opt_num(self.muted_until), "dim": self.dim, "dimLevel": self.dim_level,
             "islandOverride": self.island_override, "reload": num(self.reload), "reloads": self.reloads,
             "reloadAt": opt_num(self.reload_at), "kiosks": kiosks,
-        })
+        });
+        if !self.displays.is_empty() {
+            value["displays"] = durable_displays(&self.displays);
+        }
+        value
     }
 
     /// The inverse of `to_value`, for a state written as Node's object.
@@ -120,6 +157,8 @@ impl State {
             page: k["page"].as_str().map(String::from),
             address: k["address"].as_str().map(String::from),
             since: k["since"].as_f64().unwrap_or(0.0),
+            display: k["display"].as_str().map(String::from),
+            pinned: k["pinned"].as_bool().unwrap_or(false),
         };
         Self {
             profile: v.get("profile").cloned().unwrap_or(Value::Null),
@@ -136,8 +175,35 @@ impl State {
             reloads: dict("reloads"),
             reload_at: v.get("reloadAt").and_then(Value::as_f64),
             kiosks: dict("kiosks").iter().map(|(id, k)| (id.clone(), kiosk(k))).collect(),
+            displays: read_displays(v),
         }
     }
+}
+
+/// The displays as control.json holds them: `{ name: { screen, firstSeen, lastSeen } }`.
+fn durable_displays(displays: &[(String, Display)]) -> Value {
+    let map: Dict = displays
+        .iter()
+        .map(|(name, d)| (name.clone(), json!({ "screen": d.screen, "firstSeen": num(d.first_seen), "lastSeen": num(d.last_seen) })))
+        .collect();
+    Value::Object(map)
+}
+
+/// The displays in a saved state: bad names, and entries without a screen, are dropped.
+fn read_displays(v: &Value) -> Vec<(String, Display)> {
+    let Some(saved) = v.get("displays").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    let seen = |d: &Value, key: &str| d.get(key).and_then(Value::as_f64).filter(|n| n.is_finite()).unwrap_or(0.0);
+    saved
+        .iter()
+        .filter(|(name, _)| valid_display(name))
+        .filter_map(|(name, d)| {
+            let screen = d.get("screen").and_then(Value::as_str).filter(|s| !s.is_empty())?;
+            Some((name.clone(), Display { screen: screen.to_string(), first_seen: seen(d, "firstSeen"), last_seen: seen(d, "lastSeen") }))
+        })
+        .take(DISPLAYS_MAX)
+        .collect()
 }
 
 /* ---------------- reading the config and the actions as JavaScript does ---------------- */
@@ -294,8 +360,10 @@ pub type Reduced = Result<Option<State>, &'static str>;
 /// Actions: `{ type: "page", profile?, page: id | "next" | "prev" }`, `{ type: "profile", profile: id | null }`,
 /// `{ type: "rotate", profile?, state: "on" | "off" | "toggle" | "saved" }`, `{ type: "touch", profile? }`,
 /// `{ type: "shown", profile }`, `{ type: "tick" }`, `{ type: "config", previous }`, `{ type: "mute", minutes }` (0 unmutes),
-/// `{ type: "kiosk", action: "reload" | "dim" | "island", profile?, state?, level? }`; internal only (never a POST):
-/// `{ type: "connect", id, profile, page?, address? }` and `{ type: "disconnect", id }` for a kiosk stream.
+/// `{ type: "kiosk", action: "reload" | "dim" | "island", profile?, state?, level? }`,
+/// `{ type: "display", action: "assign" | "forget", display, screen? }` (`screen`: a profile id or "follow");
+/// internal only (never a POST): `{ type: "connect", id, profile, page?, address?, display?, pinned? }` and
+/// `{ type: "disconnect", id }` for a kiosk stream.
 pub fn reduce(state: &State, action: &Value, config: &Value, now: f64) -> Reduced {
     match action.get("type").and_then(Value::as_str) {
         Some("page") => reduce_page(state, action, config, now),
@@ -314,11 +382,15 @@ pub fn reduce(state: &State, action: &Value, config: &Value, now: f64) -> Reduce
         }
         Some("mute") => reduce_mute(state, action, now),
         Some("kiosk") => reduce_kiosk(state, action, config, now),
+        Some("display") => reduce_display(state, action, config),
         Some("connect") => reduce_connect(state, action, now),
         Some("disconnect") => {
             let id = key_of(action.get("id").unwrap_or(&Value::Null));
-            let known = state.kiosks.iter().any(|(k, _)| *k == id);
-            Ok(known.then(|| State { kiosks: state.kiosks.iter().filter(|(k, _)| *k != id).cloned().collect(), ..state.clone() }))
+            let Some((_, gone)) = state.kiosks.iter().find(|(k, _)| *k == id) else {
+                return Ok(None);
+            };
+            let displays = gone.display.as_deref().map_or_else(|| state.displays.clone(), |name| seen_display(&state.displays, name, now));
+            Ok(Some(State { kiosks: state.kiosks.iter().filter(|(k, _)| *k != id).cloned().collect(), displays, ..state.clone() }))
         }
         Some("tick") => Ok(reduce_tick(state, config, now)),
         Some("config") => Ok(reduce_config(state, action.get("previous").unwrap_or(&Value::Null), config)),
@@ -456,6 +528,46 @@ fn reduce_island(state: &State, config: &Value, id: &Value, want: Option<&str>) 
     Ok(Some(State { island_override: with_key(&state.island_override, &key, str_value(override_)), ..state.clone() }))
 }
 
+/// The displays with `name` seen at `now`.
+fn seen_display(displays: &[(String, Display)], name: &str, now: f64) -> Vec<(String, Display)> {
+    displays.iter().map(|(n, d)| (n.clone(), if n == name { Display { last_seen: now, ..d.clone() } } else { d.clone() })).collect()
+}
+
+/// Drops the least recently seen display that still follows (was never assigned a screen); false when there is none.
+fn evict_idle_display(displays: &mut Vec<(String, Display)>) -> bool {
+    let idle = displays.iter().enumerate().filter(|(_, (_, d))| d.screen == DISPLAY_FOLLOW).min_by(|a, b| a.1 .1.last_seen.total_cmp(&b.1 .1.last_seen));
+    match idle.map(|(at, _)| at) {
+        Some(at) => {
+            displays.remove(at);
+            true
+        }
+        None => false,
+    }
+}
+
+/// A named display assigned a screen, or forgotten.
+fn reduce_display(state: &State, action: &Value, config: &Value) -> Reduced {
+    let name = action.get("display").and_then(Value::as_str).filter(|n| valid_display(n)).ok_or("bad display")?;
+    let at = state.displays.iter().position(|(n, _)| n == name).ok_or("unknown display")?;
+    let displays = match action.get("action").and_then(Value::as_str) {
+        Some("forget") => state.displays.iter().filter(|(n, _)| n != name).cloned().collect(),
+        Some("assign") => {
+            let screen = action.get("screen").and_then(Value::as_str).ok_or("bad screen")?;
+            if screen != DISPLAY_FOLLOW && find_profile(config, &Value::String(screen.to_string())).is_none() {
+                return Err("unknown profile");
+            }
+            if state.displays[at].1.screen == screen {
+                return Ok(None);
+            }
+            let mut next = state.displays.clone();
+            next[at].1.screen = screen.to_string();
+            next
+        }
+        _ => return Err("unknown display action"),
+    };
+    Ok(Some(State { displays, ..state.clone() }))
+}
+
 fn reduce_connect(state: &State, action: &Value, now: f64) -> Reduced {
     let (Some(id), Some(profile)) = (action.get("id").and_then(Value::as_str), action.get("profile").and_then(Value::as_str)) else {
         return Err("bad kiosk");
@@ -469,13 +581,23 @@ fn reduce_connect(state: &State, action: &Value, now: f64) -> Reduced {
         page: action.get("page").and_then(Value::as_str).filter(|p| !p.is_empty()).map(String::from),
         address: action.get("address").and_then(Value::as_str).map(|a| a.strip_prefix("::ffff:").unwrap_or(a).to_string()),
         since: now,
+        display: action.get("display").and_then(Value::as_str).filter(|n| valid_display(n)).map(String::from),
+        pinned: action.get("pinned").and_then(Value::as_bool).unwrap_or(false),
     };
+    let mut displays = state.displays.clone();
+    if let Some(name) = &kiosk.display {
+        if displays.iter().any(|(n, _)| n == name) {
+            displays = seen_display(&displays, name, now);
+        } else if displays.len() < DISPLAYS_MAX || evict_idle_display(&mut displays) {
+            displays.push((name.clone(), Display { screen: DISPLAY_FOLLOW.to_string(), first_seen: now, last_seen: now }));
+        }
+    }
     let mut kiosks = state.kiosks.clone();
     match kiosks.iter_mut().find(|(k, _)| k == id) {
         Some(slot) => slot.1 = kiosk,
         None => kiosks.push((id.to_string(), kiosk)),
     }
-    Ok(Some(State { kiosks, ..state.clone() }))
+    Ok(Some(State { kiosks, displays, ..state.clone() }))
 }
 
 fn reduce_tick(state: &State, config: &Value, now: f64) -> Option<State> {
@@ -521,8 +643,8 @@ fn field_changed(previous: &Value, config: &Value, id: &str, field: &str) -> boo
     text(previous) != text(config) || find_profile(config, &id).is_none()
 }
 
-/// A saved config change: a profile's rotate or island option replaces its runtime override, and a deleted profile's
-/// dim goes with it. `pages`, `profile` and `shown` keep stale ids (reads tolerate them).
+/// A saved config change: a profile's rotate or island option replaces its runtime override, a deleted profile's
+/// dim goes with it, and a display assigned to a deleted profile goes back to following. `pages`, `profile` and `shown` keep stale ids (reads tolerate them).
 pub(crate) fn reduce_config(state: &State, previous: &Value, config: &Value) -> Option<State> {
     let mut next = state.clone();
     for id in state.override_.keys().filter(|id| field_changed(previous, config, id, "rotate")) {
@@ -537,7 +659,17 @@ pub(crate) fn reduce_config(state: &State, previous: &Value, config: &Value) -> 
     for id in state.dim_level.keys().filter(|id| find_profile(config, &Value::String((*id).clone())).is_none()) {
         next.dim_level = with_key(&next.dim_level, id, None);
     }
+    for (name, d) in &state.displays {
+        if d.screen != DISPLAY_FOLLOW && find_profile(config, &Value::String(d.screen.clone())).is_none() {
+            next.displays = with_screen(&next.displays, name, DISPLAY_FOLLOW);
+        }
+    }
     (next != *state).then_some(next)
+}
+
+/// The displays with `name` assigned `screen`.
+fn with_screen(displays: &[(String, Display)], name: &str, screen: &str) -> Vec<(String, Display)> {
+    displays.iter().map(|(n, d)| (n.clone(), if n == name { Display { screen: screen.to_string(), ..d.clone() } } else { d.clone() })).collect()
 }
 
 /* ---------------- what clients see ---------------- */
@@ -560,9 +692,42 @@ pub fn public_state(state: &State, config: &Value) -> Value {
         profiles.insert(key, entry);
     }
     let kiosks: Vec<Value> = state.kiosks.iter().map(|(id, k)| public_kiosk(state, config, id, k)).collect();
-    json!({
+    let mut view = json!({
         "profile": state.profile, "shown": state.shown, "profiles": profiles, "alerts": state.alerts,
         "mutedUntil": opt_num(state.muted_until), "reload": num(state.reload), "kiosks": kiosks,
+    });
+    if !state.displays.is_empty() {
+        view["displays"] = Value::Array(state.displays.iter().map(|(name, d)| public_display(state, config, name, d)).collect());
+    }
+    view
+}
+
+/// The screen a display shows: its link's `?profile=` pin, then the screen the studio assigned (while it exists),
+/// then the global override, then the startup rule (`activeProfile`). With none of them, "Best fit" decides on the
+/// kiosk itself, so an online display shows what it reported, and an offline one has no known screen.
+pub fn display_screen(state: &State, config: &Value, display: &Display, kiosk: Option<&Kiosk>) -> Option<String> {
+    let exists = |id: &str| find_profile(config, &Value::String(id.to_string())).is_some();
+    if let Some(k) = kiosk.filter(|k| k.pinned) {
+        return Some(k.profile.clone());
+    }
+    let startup = config.get("activeProfile").and_then(Value::as_str).filter(|a| *a != "auto");
+    let candidates = [Some(display.screen.as_str()).filter(|s| *s != DISPLAY_FOLLOW), state.profile.as_str(), startup];
+    candidates.into_iter().flatten().find(|id| exists(id)).map(String::from).or_else(|| kiosk.map(|k| k.profile.clone()))
+}
+
+/// A display as clients see it: `screen` is the assignment (a profile id that still exists, else "follow"), `shows`
+/// the screen it resolves to, `address` the newest open kiosk's.
+fn public_display(state: &State, config: &Value, name: &str, display: &Display) -> Value {
+    let kiosk = state.kiosks.iter().rev().map(|(_, k)| k).find(|k| k.display.as_deref() == Some(name));
+    let assigned = display.screen != DISPLAY_FOLLOW && find_profile(config, &Value::String(display.screen.clone())).is_some();
+    json!({
+        "name": name,
+        "screen": if assigned { display.screen.as_str() } else { DISPLAY_FOLLOW },
+        "firstSeen": num(display.first_seen),
+        "lastSeen": num(display.last_seen),
+        "online": kiosk.is_some(),
+        "address": kiosk.map_or(Value::Null, |k| opt_str(&k.address)),
+        "shows": display_screen(state, config, display, kiosk).map_or(Value::Null, Value::String),
     })
 }
 
@@ -574,15 +739,32 @@ fn public_kiosk(state: &State, config: &Value, id: &str, kiosk: &Kiosk) -> Value
         Some(pin) if ids.contains(pin) => Some(pin.clone()),
         _ => current_page(state, config, &profile),
     };
-    json!({ "id": id, "profile": kiosk.profile, "page": page, "address": opt_str(&kiosk.address), "since": num(kiosk.since) })
+    let mut view = json!({ "id": id, "profile": kiosk.profile, "page": page, "address": opt_str(&kiosk.address), "since": num(kiosk.since) });
+    if let Some(display) = &kiosk.display {
+        view["display"] = json!(display);
+    }
+    view
 }
 
 /// The durable part, as saved to control.json.
 pub(crate) fn durable(state: &State) -> Value {
-    json!({
+    let mut saved = json!({
         "profile": state.profile, "pages": state.pages, "override": state.override_, "mutedUntil": opt_num(state.muted_until),
         "dim": state.dim, "dimLevel": state.dim_level, "islandOverride": state.island_override,
-    })
+    });
+    if !state.displays.is_empty() {
+        saved["displays"] = durable_displays(&state.displays);
+    }
+    saved
+}
+
+/// The durable part without the displays' last-seen times: a change to this alone is what rewrites control.json.
+pub(crate) fn durable_shape(state: &State) -> Value {
+    let mut shape = state.clone();
+    for (_, d) in &mut shape.displays {
+        d.last_seen = 0.0;
+    }
+    durable(&shape)
 }
 
 /// The state saved in `text` (control.json), or the empty one when it is not JSON.
@@ -602,6 +784,7 @@ pub fn load(text: Option<&str>, now: f64) -> State {
         dim: pick("dim", &valid_dim),
         dim_level: pick("dimLevel", &valid_dim),
         island_override: pick("islandOverride", &|v| matches!(v.as_str(), Some("on" | "off"))),
+        displays: read_displays(&raw),
         ..State::default()
     }
 }
@@ -670,5 +853,166 @@ mod tests {
         assert_eq!(stringify(&Value::Object(next.dim.clone())), r#"{"desk":0.3}"#);
         assert!(next.dim_level.is_empty());
         assert!(reduce_config(&next, &after, &after).is_none());
+    }
+
+    fn three_screens() -> Value {
+        let profile = |id: &str| json!({ "id": id, "pages": [{ "id": "main" }] });
+        json!({ "activeProfile": "auto", "profiles": [profile("desk"), profile("strip"), profile("wall")] })
+    }
+
+    fn connect(state: &State, id: &str, extra: Value, now: f64) -> State {
+        let mut action = json!({ "type": "connect", "id": id, "profile": "desk" });
+        action.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        reduce(state, &action, &three_screens(), now).unwrap().unwrap()
+    }
+
+    fn display_action(state: &State, action: Value) -> Reduced {
+        let mut full = json!({ "type": "display" });
+        full.as_object_mut().unwrap().extend(action.as_object().unwrap().clone());
+        reduce(state, &full, &three_screens(), 0.0)
+    }
+
+    #[test]
+    fn display_names_are_short_slugs() {
+        for ok in ["desk", "Hall_1", "a-b", &"x".repeat(32)] {
+            assert!(valid_display(ok), "{ok}");
+        }
+        for bad in ["", "has space", "a/b", "ünï", "a.b", &"x".repeat(33)] {
+            assert!(!valid_display(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_kiosk_with_a_display_name_registers_it_and_a_bad_name_does_not() {
+        let state = connect(&State::default(), "k1", json!({ "display": "hall" }), 1000.0);
+        assert_eq!(state.displays, vec![("hall".into(), Display { screen: "follow".into(), first_seen: 1000.0, last_seen: 1000.0 })]);
+        let bad = connect(&State::default(), "k1", json!({ "display": "no good" }), 1000.0);
+        assert!(bad.displays.is_empty() && bad.kiosks[0].1.display.is_none());
+        // Seen again later: first seen stays, last seen moves, on connect and on disconnect.
+        let later = connect(&state, "k2", json!({ "display": "hall" }), 5000.0);
+        assert_eq!((later.displays[0].1.first_seen, later.displays[0].1.last_seen), (1000.0, 5000.0));
+        let gone = reduce(&later, &json!({ "type": "disconnect", "id": "k2" }), &three_screens(), 9000.0).unwrap().unwrap();
+        assert_eq!(gone.displays[0].1.last_seen, 9000.0);
+        // No display, no registry: the JSON forms stay as they were.
+        assert!(connect(&State::default(), "k1", json!({}), 1.0).to_value().get("displays").is_none());
+        assert!(public_state(&State::default(), &three_screens()).get("displays").is_none());
+        assert!(durable(&State::default()).get("displays").is_none());
+    }
+
+    #[test]
+    fn assign_and_forget_change_a_known_display_only() {
+        let state = connect(&State::default(), "k1", json!({ "display": "hall" }), 1000.0);
+        let assign = |screen: &str| json!({ "action": "assign", "display": "hall", "screen": screen });
+        let assigned = display_action(&state, assign("strip")).unwrap().unwrap();
+        assert_eq!(assigned.displays[0].1.screen, "strip");
+        assert_eq!(display_action(&assigned, assign("strip")).unwrap(), None);
+        let followed = display_action(&assigned, assign("follow")).unwrap().unwrap();
+        assert_eq!(followed.displays[0].1.screen, "follow");
+        assert_eq!(display_action(&state, assign("gone")), Err("unknown profile"));
+        assert_eq!(display_action(&state, json!({ "action": "assign", "display": "nobody", "screen": "desk" })), Err("unknown display"));
+        assert_eq!(display_action(&state, json!({ "action": "assign", "display": "bad name", "screen": "desk" })), Err("bad display"));
+        assert_eq!(display_action(&state, json!({ "action": "assign", "display": "hall" })), Err("bad screen"));
+        assert_eq!(display_action(&state, json!({ "action": "dance", "display": "hall" })), Err("unknown display action"));
+        let forgotten = display_action(&assigned, json!({ "action": "forget", "display": "hall" })).unwrap().unwrap();
+        assert!(forgotten.displays.is_empty());
+    }
+
+    #[test]
+    fn a_display_shows_the_pin_then_its_assignment_then_the_override_then_the_startup_rule() {
+        let registered = connect(&State::default(), "k1", json!({ "display": "hall", "profile": "wall" }), 1000.0);
+        let shows = |s: &State, config: &Value| public_state(s, config)["displays"][0]["shows"].as_str().map(String::from);
+        // Nothing decides: an online display shows what its kiosk reported (Best fit is the kiosk's call).
+        assert_eq!(shows(&registered, &three_screens()).as_deref(), Some("wall"));
+        let offline = reduce(&registered, &json!({ "type": "disconnect", "id": "k1" }), &three_screens(), 2000.0).unwrap().unwrap();
+        assert_eq!(shows(&offline, &three_screens()), None);
+        // The startup rule, the override over it, the assignment over both.
+        let mut config = three_screens();
+        config["activeProfile"] = json!("strip");
+        assert_eq!(shows(&offline, &config).as_deref(), Some("strip"));
+        let overridden = State { profile: json!("desk"), ..offline };
+        assert_eq!(shows(&overridden, &config).as_deref(), Some("desk"));
+        let mut assigned = overridden;
+        assigned.displays[0].1.screen = "wall".into();
+        assert_eq!(shows(&assigned, &config).as_deref(), Some("wall"));
+        // A link's pin beats the assignment.
+        let pinned = connect(&assigned, "k2", json!({ "display": "hall", "profile": "desk", "pinned": true }), 3000.0);
+        assert_eq!(shows(&pinned, &config).as_deref(), Some("desk"));
+    }
+
+    #[test]
+    fn a_screen_that_no_longer_exists_means_follow() {
+        let mut state = connect(&State::default(), "k1", json!({ "display": "hall" }), 1000.0);
+        state.displays[0].1.screen = "wall".into();
+        let before = three_screens();
+        let mut after = three_screens();
+        after["profiles"].as_array_mut().unwrap().retain(|p| p["id"] != "wall");
+        // Read straight away, the stale assignment already counts as follow ...
+        assert_eq!(public_state(&state, &after)["displays"][0]["screen"], "follow");
+        // ... and the saved config change puts it back for good.
+        let next = reduce_config(&state, &before, &after).expect("changed");
+        assert_eq!(next.displays[0].1.screen, "follow");
+        assert!(reduce_config(&next, &after, &after).is_none());
+    }
+
+    #[test]
+    fn displays_round_trip_through_control_json_and_bad_entries_are_dropped() {
+        let mut state = connect(&State::default(), "k1", json!({ "display": "hall" }), 1000.0);
+        state.displays[0].1.screen = "strip".into();
+        let state = connect(&state, "k2", json!({ "display": "desk_2" }), 2000.0);
+        let text = stringify(&durable(&state));
+        let loaded = load(Some(&text), 5000.0);
+        assert_eq!(loaded.displays, state.displays);
+        assert_eq!(stringify(&durable(&loaded)), text);
+        // The kiosks stay runtime only.
+        assert!(!text.contains("kiosks") && !text.contains("k1"));
+        let messy = json!({ "displays": { "ok": { "screen": "desk", "firstSeen": 1, "lastSeen": 2 }, "bad name": { "screen": "desk" }, "noscreen": {}, "t": { "screen": "" } } });
+        let loaded = load(Some(&messy.to_string()), 0.0);
+        assert_eq!(loaded.displays.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>(), ["ok"]);
+    }
+
+    #[test]
+    fn only_so_many_displays_are_remembered() {
+        let mut state = State::default();
+        for i in 0..=DISPLAYS_MAX {
+            state = connect(&state, &format!("k{i}"), json!({ "display": format!("d{i}") }), i as f64);
+        }
+        assert_eq!(state.displays.len(), DISPLAYS_MAX);
+    }
+
+    fn full_registry() -> State {
+        let mut state = State::default();
+        for i in 0..DISPLAYS_MAX {
+            // d0 was seen last, d1 first, and so on up.
+            state = connect(&state, &format!("k{i}"), json!({ "display": format!("d{i}") }), (1000 + i) as f64);
+        }
+        state
+    }
+
+    #[test]
+    fn a_full_registry_makes_room_by_dropping_the_least_recently_seen_unassigned_display() {
+        let mut state = full_registry();
+        // d0 is the oldest but assigned, so d1 goes instead.
+        state.displays[0].1.screen = "desk".into();
+        let next = connect(&state, "new", json!({ "display": "fresh" }), 9000.0);
+        let names: Vec<&str> = next.displays.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(names.len(), DISPLAYS_MAX);
+        assert!(names.contains(&"d0") && names.contains(&"fresh") && !names.contains(&"d1"));
+        // Seen again, a display is no longer the oldest.
+        let mut seen = full_registry();
+        seen.displays = seen_display(&seen.displays, "d1", 5000.0);
+        let next = connect(&seen, "new", json!({ "display": "fresh" }), 9000.0);
+        assert!(next.displays.iter().all(|(n, _)| n != "d0") && next.displays.iter().any(|(n, _)| n == "d1"));
+    }
+
+    #[test]
+    fn a_full_registry_of_assigned_displays_refuses_a_new_name() {
+        let mut state = full_registry();
+        for (_, d) in &mut state.displays {
+            d.screen = "desk".into();
+        }
+        let next = connect(&state, "new", json!({ "display": "fresh" }), 9000.0);
+        assert_eq!(next.displays, state.displays);
+        // The kiosk itself still connects.
+        assert_eq!(next.kiosks.last().map(|(id, _)| id.as_str()), Some("new"));
     }
 }

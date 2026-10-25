@@ -11,6 +11,7 @@ import { openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors"
 import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { DeleteDialog } from "./screens/delete-dialog";
+import { DisplaysList } from "./screens/displays-list";
 import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "./screens/profile-card";
 import { SavedCard } from "./screens/saved-card";
 import { ScreenMenu } from "./screens/screen-menu";
@@ -39,6 +40,7 @@ interface ScreensViewProps
     | "onOpenLive"
     | "navigateTo"
     | "kiosks"
+    | "displays"
     | "autoProfileId"
     | "onOpenScreen"
   > {
@@ -76,6 +78,7 @@ export function ScreensView({
   windowSize,
   autoProfileId,
   kiosks,
+  displays,
   onSelectProfile,
   onAddProfile,
   onAddMadeProfile,
@@ -143,6 +146,8 @@ export function ScreensView({
           }}
           onNewInfoPanel={() => openNewInfoPanel()}
         />
+
+        <DisplaysList displays={displays} profiles={config.profiles} />
 
         {empty && (
           <p className="rounded-[10px] border border-dashed border-ui-default px-4 py-8 text-center text-[12.5px] text-ui-4">
@@ -232,6 +237,7 @@ export function ScreensView({
         stored={stored}
         windowSize={windowSize}
         kiosks={kiosks}
+        displays={displays}
         autoProfileId={autoProfileId}
         {...detail}
       />

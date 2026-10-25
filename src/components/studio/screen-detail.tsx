@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Monitor } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { Toggle } from "@/components/ui/toggle";
-import type { ControlKiosk } from "@/lib/control";
+import type { ControlDisplay, ControlKiosk } from "@/lib/control";
 import { resolveGeneral } from "@/lib/general";
 import { valueText } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfileView } from "@/lib/layout";
@@ -41,6 +41,8 @@ interface ScreenDetailProps {
   navigateTo: (target: NavTarget) => void;
   /** The kiosks connected now (Shown on). */
   kiosks: readonly ControlKiosk[];
+  /** The named displays (Shown on). */
+  displays: readonly ControlDisplay[];
   /** The screen "Best fit" resolves to for the studio window. */
   autoProfileId: string;
   /** Open the screen in Design, or in the InfoPanel editor when it is one InfoPanel profile. */
@@ -108,6 +110,7 @@ export function ScreenDetail({
   onOpenLive,
   navigateTo,
   kiosks,
+  displays,
   autoProfileId,
   onOpenScreen,
 }: ScreenDetailProps) {
@@ -141,6 +144,7 @@ export function ScreenDetail({
           isBestFit={config.activeProfile === "auto" && autoProfileId === stored.id}
           kiosks={kiosks}
           onChangeDefault={() => navigateTo({ view: "settings", tab: "dashboard", section: "startup" })}
+          displays={displays}
         />
       </Group>
 
