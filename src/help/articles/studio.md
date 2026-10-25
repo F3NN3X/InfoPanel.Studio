@@ -3,7 +3,7 @@ id: studio
 title: The studio
 icon: space_dashboard
 related: [zones, widget-settings, shortcuts]
-verified: 1.3.0-beta.18
+verified: 1.3.0-beta.27
 ---
 
 The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Design.
