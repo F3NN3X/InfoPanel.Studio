@@ -2,12 +2,13 @@
  * The sensors a profile template reads, by role ("CPU load", "GPU temperature"), found in the live
  * Data API. Each role has rules in order of trust: the native `ref` first (LibreHardwareMonitor
  * identifiers and plugin ids), then the sensor's name and unit, as LibreHardwareMonitor and HWiNFO
- * name them, for Data API builds that report no refs. The first rule that matches anything wins;
+ * name them, for Data API builds that report no refs and for HWiNFO, which fills in what
+ * LibreHardwareMonitor lacks (a GPU's hot spot). The first rule that matches anything wins;
  * among its matches, a sensor with a ref comes first (it exports natively), then key order. Network
  * speeds skip virtual adapters and take the busiest one. A role nothing matches stays unbound.
  */
 import type { ChosenSensor } from "../editor/bind.ts";
-import type { DataApiValue } from "../sensors.ts";
+import { fixUnit, type DataApiValue } from "../sensors.ts";
 
 export const ROLES = [
   "cpu.load", "cpu.temp", "cpu.clock", "cpu.power",
@@ -96,6 +97,7 @@ const RULES: Record<Role, readonly Rule[]> = {
   "cpu.load": [{ ref: re(CPU + "load/0$") }, { name: /\bCPU Total$/i, unit: "%" }, { name: /^Total CPU Usage$/i }, { name: /^CPU Load$/i }],
   "cpu.temp": [
     { ref: re(CPU + "temperature/"), name: /(Tctl\/Tdie\)|\bPackage)$/i },
+    { name: /^CPU \(Tctl\/Tdie\)$/i, unit: "°C" },
     { name: /^(?!.*GPU).*(Core \(Tctl\/Tdie\)|CPU Package)$/i, unit: "°C" },
     { name: /^(CPU \(Tctl\/Tdie\)|CPU Package|CPU Package Temp|CPU Die \(average\))$/i },
     { ref: re(CPU + "temperature/") },
@@ -138,16 +140,16 @@ const RULES: Record<Role, readonly Rule[]> = {
   // InfoPanel's clock plugin; the Data API names it "Clock · Second" (the dot may arrive mangled).
   "clock.second": [{ ref: /^plugin:\/clock-plugin\/clock\/second$/i }, { name: /^Clock\W+Second$/i }],
   // RTSS through InfoPanel's RTSS plugin; HWiNFO's own frame readings by name.
-  fps: [{ ref: RTSS("fps") }, { name: /^RTSS\W+Frames Per Second$/i }, { name: /^Framerate \(Presented\)$/i }],
+  fps: [{ ref: RTSS("fps") }, { name: /^RTSS\W+Frames Per Second$/i }, { name: /^Framerate( \(Presented\))?$/i }],
   "fps.low1": [{ ref: RTSS("1% low fps") }, { name: /^RTSS\W+1% Low FPS$/i }, { name: /^Framerate 1% Low$/i }],
   "fps.low01": [{ ref: RTSS("0\\.1% low fps") }, { name: /^RTSS\W+0\.1% Low FPS$/i }, { name: /^Framerate 0\.1% Low$/i }],
   frametime: [{ ref: RTSS("current frame time") }, { name: /^RTSS\W+Current Frame Time$/i }, { name: /^Frame Time$/i, unit: "ms" }],
   "vram.used": [{ ref: re(GPU + "smalldata/1$") }, { name: /\bGPU Memory Used$/i }, { name: /^GPU Memory Allocated$/i }],
   "vram.total": [{ ref: re(GPU + "smalldata/2$") }, { name: /\bGPU Memory Total$/i }],
-  "vram.temp": [{ ref: re(GPU + "temperature/3$"), name: /Memory (Junction|Temperature)$/i }, { name: /\bGPU Memory (Junction|Temperature)$/i, unit: "°C" }],
+  "vram.temp": [{ ref: re(GPU + "temperature/3$"), name: /Memory (Junction|Temperature)$/i }, { name: /\bGPU Memory (Junction( Temperature)?|Temperature)$/i, unit: "°C" }],
   "gpu.memclock": [{ ref: re(GPU + "clock/4$") }, { name: /\bGPU Memory$/i, unit: "MHz" }, { name: /^GPU Memory Clock$/i }],
-  "gpu.hotspot": [{ ref: re(GPU + "temperature/2$"), name: /Hot ?Spot$/i }, { name: /\bGPU Hot ?Spot$/i, unit: "°C" }, { name: /^GPU Hot Spot Temperature$/i }],
-  "gpu.fan": [{ ref: re(GPU + "fan/1$") }, { name: /\bGPU Fan( 1)?$/i, unit: "RPM" }, { name: /^GPU Fan$/i }],
+  "gpu.hotspot": [{ ref: re(GPU + "temperature/2$"), name: /Hot ?Spot$/i }, { name: /\bGPU Hot ?Spot( Temperature)?$/i, unit: "°C" }, { name: /^GPU Hot Spot Temperature$/i }],
+  "gpu.fan": [{ ref: re(GPU + "fan/1$") }, { name: /\bGPU Fan ?1?$/i, unit: "RPM" }, { name: /^GPU Fan$/i }],
   "gpu.volt": [{ ref: re(GPU + "voltage/0$") }, { name: /\bGPU Core Voltage$/i, unit: "V" }],
   "ram.total": [{ name: /^(Physical|Total Physical) Memory Total$/i }, { name: /^Total Physical Memory$/i }],
   "ram.free": [{ ref: /^libre:\/ram\/data\/1$/i }, { name: /^(?!.*(Virtual|GPU|D3D)).*\bMemory Available$/i, unit: "GB" }, { name: /^Physical Memory Available$/i }],
@@ -158,7 +160,7 @@ const RULES: Record<Role, readonly Rule[]> = {
   // Best effort: boards and UPS plugins name these as they please.
   "psu.12v": [{ name: /^(\+12V|12V|PSU 12V|12V Rail)$/i, unit: "V" }],
   "ups.power": [{ name: /^UPS .*(Power|Load)$/i, unit: "W" }, { name: /^UPS Power$/i }],
-  // HWiNFO's memory group; best effort, not in the capture.
+  // HWiNFO's memory group: "Memory Clock" is the DRAM's (the GPU's is "GPU Memory Clock").
   "ram.speed": [{ name: /^(Memory Clock|DRAM Frequency)$/i, unit: "MHz" }],
 };
 
@@ -168,7 +170,7 @@ const VIRTUAL_NIC = /vEthernet|Bluetooth|Tailscale|ZeroTier|Loopback|VPN|Hyper-V
 const matches = (rule: Rule, v: DataApiValue): boolean =>
   (!rule.ref || (v.ref !== undefined && rule.ref.test(v.ref))) &&
   (!rule.name || (v.name !== undefined && rule.name.test(v.name.trim()))) &&
-  (rule.unit === undefined || (v.unit ?? "") === rule.unit);
+  (rule.unit === undefined || (fixUnit(v.unit) ?? "") === rule.unit);
 
 const byKey = new Intl.Collator("en", { numeric: true }).compare;
 
@@ -182,7 +184,7 @@ export function resolveRole(role: Role, sensors: Readonly<Record<string, DataApi
     const value = (v: DataApiValue) => (typeof v.value === "number" ? v.value : -1);
     hits.sort(([ka, a], [kb, b]) => Number(!a.ref) - Number(!b.ref) || (net ? value(b) - value(a) : 0) || byKey(ka, kb));
     const [key, v] = hits[0];
-    return { key, name: v.name ?? key, ...(v.unit ? { unit: v.unit } : {}), ...(v.ref ? { ref: v.ref } : {}) };
+    return { key, name: v.name ?? key, ...(v.unit ? { unit: fixUnit(v.unit) } : {}), ...(v.ref ? { ref: v.ref } : {}) };
   }
   return undefined;
 }

@@ -85,7 +85,9 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
   const [toLibrary, setToLibrary] = useState(false);
   const [profiles, setProfiles] = useState<LibraryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
+  const catalog = useSensorCatalog();
+  const sensors = catalog.sensors as unknown as Record<string, DataApiValue>;
+  const hwinfo = catalog.sources?.hwinfo;
   const fromLibrary = choice.library ? profiles.find((i) => i.id === choice.library) : undefined;
   const size = fromLibrary ? { width: Number(fromLibrary.meta.width) || 800, height: Number(fromLibrary.meta.height) || 480 } : preset === "custom" ? { width: sideOf(w), height: sideOf(h) } : SIZE_PRESETS[preset];
   const ok = name.trim() !== "" && size.width !== null && size.height !== null;
@@ -95,8 +97,8 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
   }, [open]);
   // The roles the template reads and the sensor each has (size doesn't change them).
   const roles = useMemo(
-    () => (template ? instantiate(template, { name: "roles", width: 480, height: 320, variant: choice.variant, sensors, overrides }).roles : []),
-    [template, choice.variant, sensors, overrides],
+    () => (template ? instantiate(template, { name: "roles", width: 480, height: 320, variant: choice.variant, sensors, hwinfo, overrides }).roles : []),
+    [template, choice.variant, sensors, hwinfo, overrides],
   );
   const choose = (next: GalleryChoice) => {
     setOverrides({});
@@ -114,7 +116,7 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
       if (!stored) return setError("That profile couldn’t be read from the Library.");
       onCreate({ ...p, stored: copyOfProfile(stored, p.name), unbound: [], toLibrary });
     } else {
-      const made = template ? instantiate(template, { ...p, variant: choice.variant, sensors, overrides }) : { stored: newStored(p), unbound: [] };
+      const made = template ? instantiate(template, { ...p, variant: choice.variant, sensors, hwinfo, overrides }) : { stored: newStored(p), unbound: [] };
       onCreate({ ...p, stored: made.stored, unbound: made.unbound, toLibrary });
     }
     onOpenChange(false);

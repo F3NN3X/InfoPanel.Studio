@@ -1,6 +1,7 @@
-import type { ApiSources } from "@/lib/catalog";
+import type { ApiHwinfoDevice, ApiSources } from "@/lib/catalog";
 import type { SensorMap } from "@/modules/types";
 import { YR_FORECAST_KEY, YR_FORECAST_RE } from "@/lib/sensors";
+import { fixUnit } from "@/lib/infopanel/sensors";
 
 /**
  * The studio's view of "sources": every plugin the Data API exposes with
@@ -78,7 +79,7 @@ function pluginGroups(sources: ApiSources | null, sensors: SensorMap): PluginGro
             type: e.type,
             value: s?.value,
             text: s?.text,
-            unit: s?.unit,
+            unit: fixUnit(s?.unit),
           };
         }),
       }))
@@ -89,22 +90,47 @@ function pluginGroups(sources: ApiSources | null, sensors: SensorMap): PluginGro
   }));
 }
 
-function flatGroups(sensors: SensorMap): PluginGroup[] {
+function flatEntry(key: string, id: string, s: SensorMap[string]): SourceEntry {
+  return {
+    key,
+    id,
+    label: s.name?.trim() || key,
+    type: s.value !== undefined ? "sensor" : "text",
+    value: s.value,
+    text: s.text,
+    unit: fixUnit(s.unit),
+  };
+}
+
+/**
+ * HWiNFO by device, in the order the Data API lists them. Readings the tree doesn't name (a build
+ * that lists devices but missed some) follow in one "Other" source.
+ */
+function hwinfoSources(devices: readonly ApiHwinfoDevice[], entries: readonly SourceEntry[]): SourceInfo[] {
+  const byKey = new Map(entries.map((e) => [e.key, e]));
+  const placed = new Set<string>();
+  const out: SourceInfo[] = [];
+  for (const device of devices) {
+    const own = device.entries.flatMap((e) => {
+      const entry = byKey.get(e.key);
+      placed.add(e.key);
+      return entry ? [entry] : [];
+    });
+    if (own.length > 0) out.push({ id: device.id, pluginId: "hwinfo", label: device.name, entries: own });
+  }
+  const rest = entries.filter((e) => !placed.has(e.key)).sort(byLabel);
+  if (rest.length > 0) out.push({ id: "other", pluginId: "hwinfo", label: "Other", entries: rest });
+  return out;
+}
+
+function flatGroups(sensors: SensorMap, devices: readonly ApiHwinfoDevice[] | undefined): PluginGroup[] {
   const byNs = new Map<string, SourceEntry[]>();
   for (const [key, s] of Object.entries(sensors)) {
     if (key.startsWith("plugins.")) continue;
     const dot = key.indexOf(".");
     const ns = dot < 0 ? key : key.slice(0, dot);
     const list = byNs.get(ns) ?? [];
-    list.push({
-      key,
-      id: key.slice(dot + 1),
-      label: s.name?.trim() || key,
-      type: s.value !== undefined ? "sensor" : "text",
-      value: s.value,
-      text: s.text,
-      unit: s.unit,
-    });
+    list.push(flatEntry(key, key.slice(dot + 1), s));
     byNs.set(ns, list);
   }
   return [...byNs].map(([ns, entries]) => {
@@ -112,14 +138,17 @@ function flatGroups(sensors: SensorMap): PluginGroup[] {
     return {
       id: ns,
       name,
-      sources: [{ id: "", pluginId: ns, label: name, entries: entries.sort(byLabel) }],
+      sources:
+        ns === "hwinfo" && devices && devices.length > 0
+          ? hwinfoSources(devices, entries)
+          : [{ id: "", pluginId: ns, label: name, entries: entries.sort(byLabel) }],
     };
   });
 }
 
 /** Every source the Data API offers, grouped plugin → container → entry. */
 export function groupSources(sources: ApiSources | null, sensors: SensorMap): PluginGroup[] {
-  return [...pluginGroups(sources, sensors), ...flatGroups(sensors)].sort((a, b) =>
+  return [...pluginGroups(sources, sensors), ...flatGroups(sensors, sources?.hwinfo)].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
 }

@@ -8,6 +8,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Added
 
+- **HWiNFO sensors grouped by device.** The Data page, the widget pickers and the InfoPanel editor's sensor list now show HWiNFO's sensors under the device HWiNFO reports ("CPU [#0]: ...", "S.M.A.R.T.: ...", "GPU [#0]: ..."). This needs an InfoPanel build that lists HWiNFO's devices in the Data API; with an older build HWiNFO stays one flat list.
 - **An InfoPanel home page.** The rail's InfoPanel button now always opens it, even with a profile open. It leads with Continue editing, then Create (Blank and the templates, as cards that open New InfoPanel profile on that choice), then the profiles in this dashboard and in your Library as cards with live thumbnails, with Open, and Duplicate and Remove for the Library's. The editor's toolbar has a Profiles button back to it; the profile stays open.
 - **Group management in the InfoPanel editor.** `Ctrl+G` groups the selection, from different groups too, and `Ctrl+Shift+G` ungroups; the Layers menu has both, plus Rename, Duplicate and Delete. Layers rows drag to reorder, into a group or out of one, several at once, with an indicator for above, inside and below, and a line saying why when a drop isn't allowed. Groups open and close (InfoPanel's IsExpanded) and rename in place. A click on the canvas selects a whole group; `Alt`+click or a double-click selects the item inside. Items keep their canvas positions through every move. A Cores element's bars stay managed by the element.
 - **More elements in the InfoPanel editor.** Add now has Row, Rows, Graph stack, Dual graph, Double ring, Drives and Shadow text. A Row is a label with its value on the right, an optional icon and a thin bar; Rows lists several, evenly spaced. Graph stack puts 2 to 4 labelled graphs in rows, and Dual graph draws two series over each other. Double ring is two rings, each on its own sensor, with a value in the middle. Drives makes a tile per drive from the Data API. Shadow text puts a dark copy behind a Text or Value. The Help article says what each exports as.
@@ -17,6 +18,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Rounded gradient look on Bar.** One button sets half-height corners and a gradient fill.
 - **Four more InfoPanel templates: Readout, Console, Frost Bar and Quota.** Readout is three instrument panels with one huge number each. Console is a header strip, CPU and GPU rings, RAM and VRAM bars and a tile for each drive. Frost Bar is frosted glass cards over a soft wash. Quota is a large clock with a CPU, RAM, GPU and Disk list. Each has two or three colour sets, and New InfoPanel profile has 1920 × 540 and 1920 × 720 sizes. Memory speed is a new sensor role.
 - **New sensor roles for templates:** FPS, 1% and 0.1% low, frame time, VRAM used, total and temperature, GPU memory clock, hot spot, fan and voltage, RAM total and free, disk free, busiest CPU core, CCD1 and CCD2 temperatures, 12V rail and UPS power.
+
+### Fixed
+
+- **Sensor roles and drives found in HWiNFO.** GPU hot spot, memory speed, GPU fan, memory temperature, CCD temperatures and FPS are found in HWiNFO when LibreHardwareMonitor has no such reading, and HWiNFO's temperatures no longer show "Â°C". The Drives element finds HWiNFO's drives as they are really reported, named from the device list when the Data API sends one.
 
 ## [1.3.0-beta.26] - 2026-10-25
 

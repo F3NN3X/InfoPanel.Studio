@@ -113,7 +113,7 @@ The **Elements** group in **Add** has looks InfoPanel has no item for. Each one 
 | Graph stack | 2 to 4 graphs in rows, each with a label | A Group of Text and Graph items |
 | Dual graph | Two series drawn over each other | A Group of two Graphs with no background |
 | Double ring | An outer and an inner ring, each on its own sensor, with a value in the middle | A Group of two Gauges with image frames and a Value |
-| Drives | A tile for each drive: icon, name, used bar and percent, temperature and free space | A Group of tile Groups made of a Shape, Text, Bar and Values; the icon is an image |
+| Drives | A tile for each drive (from LibreHardwareMonitor, or HWiNFO's S.M.A.R.T. and drive devices): icon, name, used bar and percent, temperature and free space | A Group of tile Groups made of a Shape, Text, Bar and Values; the icon is an image |
 | Shadow text | A Text or Value with a dark copy behind it | Two Text items, the copy offset behind the text |
 
 Ring, LED bar and Sparkline ask for a sensor when you add them. Cores finds the cores in the Data API by itself. If it can't find them, it shows placeholder bars, and its inspector says so. **Find the cores again** binds the bars once the Data API reports them. Changing a Cores setting lays its bars out again.

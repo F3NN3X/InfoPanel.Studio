@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCatalog } from "@/lib/catalog";
 import { coreBars, driveTile, PLACEHOLDER_DRIVES } from "@/lib/infopanel/elements/create";
 import { detectCores } from "@/lib/infopanel/elements/cores";
 import { detectDrives } from "@/lib/infopanel/elements/drives";
@@ -309,7 +310,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
       );
       break;
     case "drives": {
-      const found = detectDrives(sensors);
+      const found = detectDrives(sensors, getCatalog().sources?.hwinfo);
       body = (
         <>
           {direction(spec.orientation)}
@@ -324,7 +325,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {ink("Bar track", "track", spec.track)}
           {ink("Icon", "icon", spec.icon)}
           {found.length === 0 ? (
-            <p className="text-[11.5px] leading-snug text-ui-warning">This machine’s drives weren’t found: the Data API reports no LibreHardwareMonitor drive sensors. The tiles are placeholders and export unbound.</p>
+            <p className="text-[11.5px] leading-snug text-ui-warning">This machine’s drives weren’t found: the Data API reports no LibreHardwareMonitor or HWiNFO drive sensors. The tiles are placeholders and export unbound.</p>
           ) : (
             <p className="text-[11.5px] leading-snug text-ui-4">{found.length} drives found in the Data API.</p>
           )}

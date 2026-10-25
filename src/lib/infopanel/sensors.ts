@@ -24,6 +24,9 @@ export interface DataApiValue {
   table?: { columns: string[]; rows: (string | null)[][]; format?: string };
 }
 
+/** HWiNFO reports "°C" with its first byte doubled ("Â°C"); the unit as it should read. */
+export const fixUnit = (unit: string | undefined): string | undefined => unit?.replace(/Â(?=[°²³µ])/g, "");
+
 export type BoundItem = Extract<DisplayItem, { SensorType: unknown }>;
 
 export function isBound(item: DisplayItem): item is BoundItem {
@@ -163,7 +166,7 @@ export function toReading(v: DataApiValue | undefined): SensorReading | null {
   if (v.value === undefined && v.text !== undefined) {
     return { now: 0, min: 0, max: 0, avg: 0, unit: "", text: v.text.split("\n")[0] };
   }
-  return { now: v.value ?? 0, min: v.min ?? 0, max: v.max ?? 0, avg: v.avg ?? 0, unit: v.unit ?? "" };
+  return { now: v.value ?? 0, min: v.min ?? 0, max: v.max ?? 0, avg: v.avg ?? 0, unit: fixUnit(v.unit) ?? "" };
 }
 
 /** InfoPanel's Data API on this machine. */

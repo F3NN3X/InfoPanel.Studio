@@ -1,0 +1,404 @@
+{
+ "hwinfo.total_activity": {
+  "name": "Total Activity",
+  "unit": "%",
+  "value": 0,
+  "ref": "hwinfo:-1/4026532097/0/117440514"
+ },
+ "hwinfo.total_activity_drive__wdc_wds100t2b0a_00sm50__210376445501___g": {
+  "name": "Total Activity",
+  "unit": "%",
+  "value": 0,
+  "ref": "hwinfo:-1/4026532097/1/117440514"
+ },
+ "hwinfo.total_activity_drive__kingston_sfyrd2000g__50026b768718d84b___c": {
+  "name": "Total Activity",
+  "unit": "%",
+  "value": 3.5,
+  "ref": "hwinfo:-1/4026532097/2/117440514"
+ },
+ "hwinfo.total_activity_drive__kingston_sfyrd2000g__50026b7383a22e37___d": {
+  "name": "Total Activity",
+  "unit": "%",
+  "value": 0,
+  "ref": "hwinfo:-1/4026532097/3/117440514"
+ },
+ "hwinfo.total_activity_drive__kingston_sfyrd2000g__50026b7383a22e92___e": {
+  "name": "Total Activity",
+  "unit": "%",
+  "value": 0,
+  "ref": "hwinfo:-1/4026532097/4/117440514"
+ },
+ "hwinfo.gpu_core_voltage": {
+  "name": "GPU Core Voltage",
+  "unit": "V",
+  "value": 1,
+  "ref": "hwinfo:-1/3758104576/0/33554432"
+ },
+ "hwinfo.framerate": {
+  "name": "Framerate",
+  "unit": "FPS",
+  "value": 0,
+  "ref": "hwinfo:-1/4027535360/0/134217728"
+ },
+ "hwinfo.gpu_fan2": {
+  "name": "GPU Fan2",
+  "unit": "RPM",
+  "value": 1245,
+  "ref": "hwinfo:-1/3758104576/0/50331649"
+ },
+ "hwinfo.gpu_fan2_dgpu___0___nvidia_geforce_rtx_5090__msi_geforce_rtx_5090_ventus_3x_oc": {
+  "name": "GPU Fan2",
+  "unit": "%",
+  "value": 32,
+  "ref": "hwinfo:-1/3758104576/0/134217729"
+ },
+ "hwinfo.memory_clock": {
+  "name": "Memory Clock",
+  "unit": "MHz",
+  "value": 3000,
+  "ref": "hwinfo:-1/4026532609/1/100663296"
+ },
+ "hwinfo.drive_temperature": {
+  "name": "Drive Temperature",
+  "unit": "Â°C",
+  "value": 29,
+  "ref": "hwinfo:-1/4026532096/0/16777216"
+ },
+ "hwinfo.drive_temperature_s_m_a_r_t___wdc_wds100t2b0a_00sm50__210376445501___g": {
+  "name": "Drive Temperature",
+  "unit": "Â°C",
+  "value": 31,
+  "ref": "hwinfo:-1/4026532096/1/16777216"
+ },
+ "hwinfo.drive_temperature_s_m_a_r_t___kingston_sfyrd2000g__50026b768718d84b___c": {
+  "name": "Drive Temperature",
+  "unit": "Â°C",
+  "value": 50,
+  "ref": "hwinfo:-1/4026532096/2/16777216"
+ },
+ "hwinfo.drive_temperature_s_m_a_r_t___kingston_sfyrd2000g__50026b7383a22e37___d": {
+  "name": "Drive Temperature",
+  "unit": "Â°C",
+  "value": 35,
+  "ref": "hwinfo:-1/4026532096/3/16777216"
+ },
+ "hwinfo.drive_temperature_s_m_a_r_t___kingston_sfyrd2000g__50026b7383a22e92___e": {
+  "name": "Drive Temperature",
+  "unit": "Â°C",
+  "value": 36,
+  "ref": "hwinfo:-1/4026532096/4/16777216"
+ },
+ "hwinfo.current_up_rate": {
+  "name": "Current UP rate",
+  "unit": "KB/s",
+  "value": 56.3,
+  "ref": "hwinfo:-1/4026591744/0/134217731"
+ },
+ "hwinfo.current_up_rate_network__mediatek_mt7925_wi_fi_7_wireless_lan_card___wifi": {
+  "name": "Current UP rate",
+  "unit": "KB/s",
+  "value": 0,
+  "ref": "hwinfo:-1/4026591744/8/134217731"
+ },
+ "hwinfo.current_up_rate_network__mediatek_mt7925_wi_fi_7_wireless_lan_card___wifi_3": {
+  "name": "Current UP rate",
+  "unit": "KB/s",
+  "value": 0,
+  "ref": "hwinfo:-1/4026591744/9/134217731"
+ },
+ "hwinfo.current_up_rate_network__mediatek_mt7925_wi_fi_7_wireless_lan_card___wifi_4": {
+  "name": "Current UP rate",
+  "unit": "KB/s",
+  "value": 0,
+  "ref": "hwinfo:-1/4026591744/10/134217731"
+ },
+ "hwinfo.drive_temperature_3": {
+  "name": "Drive Temperature 3",
+  "unit": "Â°C",
+  "value": 64,
+  "ref": "hwinfo:-1/4026532096/2/16777218"
+ },
+ "hwinfo.drive_temperature_3_s_m_a_r_t___kingston_sfyrd2000g__50026b7383a22e37___d": {
+  "name": "Drive Temperature 3",
+  "unit": "Â°C",
+  "value": 56,
+  "ref": "hwinfo:-1/4026532096/3/16777218"
+ },
+ "hwinfo.drive_temperature_3_s_m_a_r_t___kingston_sfyrd2000g__50026b7383a22e92___e": {
+  "name": "Drive Temperature 3",
+  "unit": "Â°C",
+  "value": 54,
+  "ref": "hwinfo:-1/4026532096/4/16777218"
+ },
+ "hwinfo.framerate_0_1__low": {
+  "name": "Framerate 0.1% Low",
+  "unit": "FPS",
+  "value": 0,
+  "ref": "hwinfo:-1/4027535360/0/134217730"
+ },
+ "hwinfo.framerate_1__low": {
+  "name": "Framerate 1% Low",
+  "unit": "FPS",
+  "value": 0,
+  "ref": "hwinfo:-1/4027535360/0/134217729"
+ },
+ "hwinfo.current_dl_rate": {
+  "name": "Current DL rate",
+  "unit": "KB/s",
+  "value": 12.31,
+  "ref": "hwinfo:-1/4026591744/0/134217730"
+ },
+ "hwinfo.current_dl_rate_network__mediatek_mt7925_wi_fi_7_wireless_lan_card___wifi": {
+  "name": "Current DL rate",
+  "unit": "KB/s",
+  "value": 0,
+  "ref": "hwinfo:-1/4026591744/8/134217730"
+ },
+ "hwinfo.current_dl_rate_network__mediatek_mt7925_wi_fi_7_wireless_lan_card___wifi_3": {
+  "name": "Current DL rate",
+  "unit": "KB/s",
+  "value": 0,
+  "ref": "hwinfo:-1/4026591744/9/134217730"
+ },
+ "hwinfo.current_dl_rate_network__mediatek_mt7925_wi_fi_7_wireless_lan_card___wifi_4": {
+  "name": "Current DL rate",
+  "unit": "KB/s",
+  "value": 0,
+  "ref": "hwinfo:-1/4026591744/10/134217730"
+ },
+ "hwinfo.drive_remaining_life": {
+  "name": "Drive Remaining Life",
+  "unit": "%",
+  "value": 97,
+  "ref": "hwinfo:-1/4026532096/0/117440512"
+ },
+ "hwinfo.drive_remaining_life_s_m_a_r_t___wdc_wds100t2b0a_00sm50__210376445501___g": {
+  "name": "Drive Remaining Life",
+  "unit": "%",
+  "value": 99,
+  "ref": "hwinfo:-1/4026532096/1/117440512"
+ },
+ "hwinfo.drive_remaining_life_s_m_a_r_t___kingston_sfyrd2000g__50026b768718d84b___c": {
+  "name": "Drive Remaining Life",
+  "unit": "%",
+  "value": 86,
+  "ref": "hwinfo:-1/4026532096/2/117440512"
+ },
+ "hwinfo.drive_remaining_life_s_m_a_r_t___kingston_sfyrd2000g__50026b7383a22e37___d": {
+  "name": "Drive Remaining Life",
+  "unit": "%",
+  "value": 99,
+  "ref": "hwinfo:-1/4026532096/3/117440512"
+ },
+ "hwinfo.drive_remaining_life_s_m_a_r_t___kingston_sfyrd2000g__50026b7383a22e92___e": {
+  "name": "Drive Remaining Life",
+  "unit": "%",
+  "value": 100,
+  "ref": "hwinfo:-1/4026532096/4/117440512"
+ },
+ "hwinfo.cpu_package": {
+  "name": "CPU Package",
+  "unit": "Â°C",
+  "value": 61,
+  "ref": "hwinfo:-1/4144394256/0/16777223"
+ },
+ "hwinfo.physical_memory_available": {
+  "name": "Physical Memory Available",
+  "unit": "MB",
+  "value": 20337,
+  "ref": "hwinfo:-1/4026532609/0/134217732"
+ },
+ "hwinfo.gpu_memory_clock": {
+  "name": "GPU Memory Clock",
+  "unit": "MHz",
+  "value": 1750.13,
+  "ref": "hwinfo:-1/3758104576/0/100663300"
+ },
+ "hwinfo.memory_controller_clock__uclk": {
+  "name": "Memory Controller Clock (UCLK)",
+  "unit": "MHz",
+  "value": 3000,
+  "ref": "hwinfo:-1/4026533121/0/100663297"
+ },
+ "hwinfo.average_effective_clock": {
+  "name": "Average Effective Clock",
+  "unit": "MHz",
+  "value": 1194.97,
+  "ref": "hwinfo:-1/4026532608/0/100663354"
+ },
+ "hwinfo.gpu_memory_junction_temperature": {
+  "name": "GPU Memory Junction Temperature",
+  "unit": "Â°C",
+  "value": 48,
+  "ref": "hwinfo:-1/3758104576/0/16777220"
+ },
+ "hwinfo.total_cpu_usage": {
+  "name": "Total CPU Usage",
+  "unit": "%",
+  "value": 18.83,
+  "ref": "hwinfo:-1/4026532608/0/117440545"
+ },
+ "hwinfo.max_cpu_thread_usage": {
+  "name": "Max CPU/Thread Usage",
+  "unit": "%",
+  "value": 55.49,
+  "ref": "hwinfo:-1/4026532608/0/117440544"
+ },
+ "hwinfo.gpu_fan1": {
+  "name": "GPU Fan1",
+  "unit": "RPM",
+  "value": 1246,
+  "ref": "hwinfo:-1/3758104576/0/50331648"
+ },
+ "hwinfo.gpu_fan1_dgpu___0___nvidia_geforce_rtx_5090__msi_geforce_rtx_5090_ventus_3x_oc": {
+  "name": "GPU Fan1",
+  "unit": "%",
+  "value": 32,
+  "ref": "hwinfo:-1/3758104576/0/134217728"
+ },
+ "hwinfo.physical_memory_used": {
+  "name": "Physical Memory Used",
+  "unit": "MB",
+  "value": 44868,
+  "ref": "hwinfo:-1/4026532609/0/134217731"
+ },
+ "hwinfo.gpu_clock": {
+  "name": "GPU Clock",
+  "unit": "MHz",
+  "value": 1717,
+  "ref": "hwinfo:-1/3758104576/0/100663296"
+ },
+ "hwinfo.cpu_package_power": {
+  "name": "CPU Package Power",
+  "unit": "W",
+  "value": 121.62,
+  "ref": "hwinfo:-1/4026533121/0/83886080"
+ },
+ "hwinfo.cpu_ccd2__tdie": {
+  "name": "CPU CCD2 (Tdie)",
+  "unit": "Â°C",
+  "value": 56.38,
+  "ref": "hwinfo:-1/4026533121/0/16777225"
+ },
+ "hwinfo.physical_memory_load": {
+  "name": "Physical Memory Load",
+  "unit": "%",
+  "value": 68.8,
+  "ref": "hwinfo:-1/4026532609/0/134217733"
+ },
+ "hwinfo.cpu_iod_hotspot": {
+  "name": "CPU IOD Hotspot",
+  "unit": "Â°C",
+  "value": 48.75,
+  "ref": "hwinfo:-1/4026533121/0/16777464"
+ },
+ "hwinfo.gpu_core_load": {
+  "name": "GPU Core Load",
+  "unit": "%",
+  "value": 12,
+  "ref": "hwinfo:-1/3758104576/0/117440512"
+ },
+ "hwinfo.gpu_power": {
+  "name": "GPU Power",
+  "unit": "W",
+  "value": 84.82,
+  "ref": "hwinfo:-1/3758104576/0/83886080"
+ },
+ "hwinfo.cpu_ccd1__tdie": {
+  "name": "CPU CCD1 (Tdie)",
+  "unit": "Â°C",
+  "value": 42.25,
+  "ref": "hwinfo:-1/4026533121/0/16777224"
+ },
+ "hwinfo.gpu_memory_allocated": {
+  "name": "GPU Memory Allocated",
+  "unit": "MB",
+  "value": 5401.61,
+  "ref": "hwinfo:-1/3758104576/0/134217980"
+ },
+ "hwinfo.memory_clock_ratio": {
+  "name": "Memory Clock Ratio",
+  "unit": "x",
+  "value": 30,
+  "ref": "hwinfo:-1/4026532609/1/134217728"
+ },
+ "hwinfo.frame_time": {
+  "name": "Frame Time",
+  "unit": "ms",
+  "value": 0,
+  "ref": "hwinfo:-1/4027535360/0/134217731"
+ },
+ "hwinfo.gpu_hot_spot_temperature": {
+  "name": "GPU Hot Spot Temperature",
+  "unit": "Â°C",
+  "value": 39.31,
+  "ref": "hwinfo:-1/3758104576/0/16777221"
+ },
+ "hwinfo.12v": {
+  "name": "+12V",
+  "unit": "V",
+  "value": 12.08,
+  "ref": "hwinfo:-1/4144394256/0/33554436"
+ },
+ "hwinfo.gpu_temperature": {
+  "name": "GPU Temperature",
+  "unit": "Â°C",
+  "value": 35.96,
+  "ref": "hwinfo:-1/3758104576/0/16777216"
+ },
+ "hwinfo.cpu__tctl_tdie": {
+  "name": "CPU (Tctl/Tdie)",
+  "unit": "Â°C",
+  "value": 61.25,
+  "ref": "hwinfo:-1/4026533121/0/16777216"
+ },
+ "libre.nvidia_geforce_rtx_5090_gpu_core": {
+  "name": "NVIDIA GeForce RTX 5090 GPU Core",
+  "unit": "°C",
+  "value": 36.25,
+  "ref": "libre:/gpu-nvidia/0/temperature/0"
+ },
+ "libre.nvidia_geforce_rtx_5090_gpu_core_load": {
+  "name": "NVIDIA GeForce RTX 5090 GPU Core",
+  "unit": "%",
+  "value": 17,
+  "ref": "libre:/gpu-nvidia/0/load/0"
+ },
+ "libre.nvidia_geforce_rtx_5090_gpu_core_clock": {
+  "name": "NVIDIA GeForce RTX 5090 GPU Core",
+  "unit": "MHz",
+  "value": 1912,
+  "ref": "libre:/gpu-nvidia/0/clock/0"
+ },
+ "libre.nvidia_geforce_rtx_5090_gpu_memory_clock": {
+  "name": "NVIDIA GeForce RTX 5090 GPU Memory",
+  "unit": "MHz",
+  "value": 14001,
+  "ref": "libre:/gpu-nvidia/0/clock/4"
+ },
+ "libre.amd_ryzen_9_9950x3d_cpu_total": {
+  "name": "AMD Ryzen 9 9950X3D CPU Total",
+  "unit": "%",
+  "value": 18.96,
+  "ref": "libre:/amdcpu/0/load/0"
+ },
+ "libre.total_memory_memory_used": {
+  "name": "Total Memory Memory Used",
+  "unit": "GB",
+  "value": 43.82,
+  "ref": "libre:/ram/data/0"
+ },
+ "libre.total_memory_memory": {
+  "name": "Total Memory Memory",
+  "unit": "%",
+  "value": 68.82,
+  "ref": "libre:/ram/load/0"
+ },
+ "libre.amd_ryzen_9_9950x3d_core__tctl_tdie": {
+  "name": "AMD Ryzen 9 9950X3D Core (Tctl/Tdie)",
+  "unit": "°C",
+  "value": 61,
+  "ref": "libre:/amdcpu/0/temperature/2"
+ }
+}
