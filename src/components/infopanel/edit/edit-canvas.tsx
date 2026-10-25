@@ -146,63 +146,67 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     if (e.target === e.currentTarget) editor.select([]);
   };
   return (
-    <div
-      ref={ref}
-      onPointerDown={onBackground}
-      onDragOver={(e) => {
-        if (isMediaDrag(e.dataTransfer.types) || (onPlace && e.dataTransfer.types.includes(PALETTE_DRAG))) e.preventDefault();
-      }}
-      onDrop={onDrop}
-      className="relative min-h-0 flex-1 overflow-hidden bg-ui-app"
-    >
-      {w > 0 && h > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            left: (w - profile.Width * scale) / 2 + pan.x,
-            top: (h - profile.Height * scale) / 2 + pan.y,
-            width: profile.Width,
-            height: profile.Height,
-            transform: `scale(${scale})`,
-            transformOrigin: "0 0",
-          }}
-        >
-          {showRulers && <RulerLabels width={profile.Width} height={profile.Height} />}
-          <ProfileView
-            profile={profile}
-            items={editor.items}
-            sensor={(item) => canvasSensor(item, ctx.keyOf(item), values, read)}
-            now={now}
-            font={font}
-            assets={assets}
-            hidden={native.hidden}
-            native={native.elements}
-            overlay={
-              compare && compare.opacity > 0 ? (
-                <img
-                  src={compare.src}
-                  alt="InfoPanel screenshot"
-                  onError={onCompareFailed}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: compare.opacity, mixBlendMode: "difference", pointerEvents: "none" }}
-                />
-              ) : null
-            }
-            controls={<EditLayer editor={editor} profileWidth={profile.Width} profileHeight={profile.Height} showModes={showModes} />}
-          />
-        </div>
-      )}
-      <ZoomToolbar
-        zoom={scale}
-        fitting={zoom === null}
-        showRulers={showRulers}
-        onToggleRulers={() => setShowRulers((on) => !on)}
-        onZoomStep={(dir) => setZoom(stepZoom(scaleRef.current, dir))}
-        onFit={onFit}
-        profile={{ width: profile.Width, height: profile.Height } as ProfileSize}
-        onOpenProfile={onOpenSettings}
-        sizeTitle="Profile size, background and fonts"
-        bottom={4}
-      />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        ref={ref}
+        onPointerDown={onBackground}
+        onDragOver={(e) => {
+          if (isMediaDrag(e.dataTransfer.types) || (onPlace && e.dataTransfer.types.includes(PALETTE_DRAG))) e.preventDefault();
+        }}
+        onDrop={onDrop}
+        className="relative min-h-0 flex-1 overflow-hidden bg-ui-app"
+      >
+        {w > 0 && h > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              left: (w - profile.Width * scale) / 2 + pan.x,
+              top: (h - profile.Height * scale) / 2 + pan.y,
+              width: profile.Width,
+              height: profile.Height,
+              transform: `scale(${scale})`,
+              transformOrigin: "0 0",
+            }}
+          >
+            {showRulers && <RulerLabels width={profile.Width} height={profile.Height} />}
+            <ProfileView
+              profile={profile}
+              items={editor.items}
+              sensor={(item) => canvasSensor(item, ctx.keyOf(item), values, read)}
+              now={now}
+              font={font}
+              assets={assets}
+              hidden={native.hidden}
+              native={native.elements}
+              overlay={
+                compare && compare.opacity > 0 ? (
+                  <img
+                    src={compare.src}
+                    alt="InfoPanel screenshot"
+                    onError={onCompareFailed}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: compare.opacity, mixBlendMode: "difference", pointerEvents: "none" }}
+                  />
+                ) : null
+              }
+              controls={<EditLayer editor={editor} profileWidth={profile.Width} profileHeight={profile.Height} showModes={showModes} />}
+            />
+          </div>
+        )}
+      </div>
+      <div className="relative h-11 shrink-0 border-t border-ui-subtle bg-ui-panel">
+        <ZoomToolbar
+          zoom={scale}
+          fitting={zoom === null}
+          showRulers={showRulers}
+          onToggleRulers={() => setShowRulers((on) => !on)}
+          onZoomStep={(dir) => setZoom(stepZoom(scaleRef.current, dir))}
+          onFit={onFit}
+          profile={{ width: profile.Width, height: profile.Height } as ProfileSize}
+          onOpenProfile={onOpenSettings}
+          sizeTitle="Profile size, background and fonts"
+          bottom={4}
+        />
+      </div>
     </div>
   );
 }
