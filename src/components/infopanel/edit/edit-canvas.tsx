@@ -4,7 +4,7 @@
  * Compare is on, InfoPanel's screenshot laid over the render with a difference blend. A kind
  * dragged from the Add palette is created where it is dropped, snapped as a move would be.
  */
-import { useCallback, useMemo, type DragEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent } from "react";
 import { withDroppedImage, type DropPlace } from "@/lib/infopanel/canvas-edit";
 import { profilePoint } from "@/lib/infopanel/editor/arrange";
 import { snapMove, snapThreshold } from "@/lib/infopanel/editor/snap";
@@ -20,6 +20,9 @@ import { FontLoader } from "@/lib/infopanel/font-loader";
 import type { ConvertContext } from "@/lib/infopanel/native/convert";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import type { SensorMap } from "@/modules/types";
+import { RulerLabels } from "@/components/studio/rulers";
+import { stepZoom } from "@/components/studio/studio-layout";
+import { ZoomToolbar } from "@/components/studio/zoom-toolbar";
 import { useNow } from "../CanvasZone";
 import { nativeLayer } from "../native";
 import { useSuppliedFonts, withSupplied } from "../supplied-fonts";
@@ -30,6 +33,7 @@ import type { CanvasEditor } from "./use-canvas-editor";
 
 /** Room around the profile, so handles and badges at its edges stay on screen. */
 const PAD = 40;
+type ProfileSize = Parameters<typeof ZoomToolbar>[0]["profile"];
 
 export interface Compare {
   src: string;
@@ -54,9 +58,11 @@ interface EditCanvasProps {
   onPlace?: (entry: AddEntry, place: DropPlace) => void;
   /** A Library component dropped at a point (profile pixels): the editor merges it. */
   onComponent?: (item: LibraryItem, at: { x: number; y: number }) => void;
+  /** The size button on the zoom bar: show the profile's own settings. */
+  onOpenSettings: () => void;
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent }: EditCanvasProps) {
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -72,7 +78,36 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
   const read = (key: string) => history.get(key);
   const native = nativeLayer(editor.items, ctx, values as SensorMap, { font, now, history: read });
   const { profile } = open;
-  const scale = fitScale(profile, w - 2 * PAD, h - 2 * PAD);
+  // The zoom follows the fit until a manual one is set; the wheel then pans.
+  const [zoom, setZoom] = useState<number | null>(null);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [showRulers, setShowRulers] = useState(true);
+  const scale = zoom ?? fitScale(profile, w - 2 * PAD, h - 2 * PAD);
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const onFit = () => {
+    setZoom(null);
+    setPan({ x: 0, y: 0 });
+  };
+  const wheel = useRef<(e: WheelEvent) => void>(() => {});
+  wheel.current = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      // Advance the ref too: several wheel events can land before a render.
+      scaleRef.current = stepZoom(scaleRef.current, e.deltaY < 0 ? 1 : -1);
+      setZoom(scaleRef.current);
+    } else if (zoom !== null) {
+      e.preventDefault();
+      setPan((p) => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+    }
+  };
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const on = (e: WheelEvent) => wheel.current(e);
+    el.addEventListener("wheel", on, { passive: false });
+    return () => el.removeEventListener("wheel", on);
+  }, [ref]);
   // A My library image, SVG or video dropped on the canvas becomes an Image item there (spec §8).
   const isMediaDrag = (types: readonly string[]) => {
     const k = libraryDragKind(types);
@@ -81,7 +116,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
   };
   const pointOf = (e: DragEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
-    return profilePoint({ x: e.clientX, y: e.clientY }, { left: box.left, top: box.top, width: w, height: h }, profile, scale);
+    return profilePoint({ x: e.clientX, y: e.clientY }, { left: box.left + pan.x, top: box.top + pan.y, width: w, height: h }, profile, scale);
   };
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     const kind = paletteEntryOf(e.dataTransfer.getData(PALETTE_DRAG));
@@ -124,14 +159,15 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
         <div
           style={{
             position: "absolute",
-            left: (w - profile.Width * scale) / 2,
-            top: (h - profile.Height * scale) / 2,
+            left: (w - profile.Width * scale) / 2 + pan.x,
+            top: (h - profile.Height * scale) / 2 + pan.y,
             width: profile.Width,
             height: profile.Height,
             transform: `scale(${scale})`,
             transformOrigin: "0 0",
           }}
         >
+          {showRulers && <RulerLabels width={profile.Width} height={profile.Height} />}
           <ProfileView
             profile={profile}
             items={editor.items}
@@ -155,6 +191,18 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
           />
         </div>
       )}
+      <ZoomToolbar
+        zoom={scale}
+        fitting={zoom === null}
+        showRulers={showRulers}
+        onToggleRulers={() => setShowRulers((on) => !on)}
+        onZoomStep={(dir) => setZoom(stepZoom(scaleRef.current, dir))}
+        onFit={onFit}
+        profile={{ width: profile.Width, height: profile.Height } as ProfileSize}
+        onOpenProfile={onOpenSettings}
+        sizeTitle="Profile size, background and fonts"
+        bottom={4}
+      />
     </div>
   );
 }

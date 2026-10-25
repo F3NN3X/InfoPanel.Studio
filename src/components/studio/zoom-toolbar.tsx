@@ -10,8 +10,9 @@ interface ZoomToolbarProps {
   zoom: number;
   /** The zoom follows the fit (the Fit button shows active). */
   fitting: boolean;
-  showGrid: boolean;
-  onToggleGrid: () => void;
+  /** Both off outside the studio canvas: the InfoPanel editor has no dot grid. */
+  showGrid?: boolean;
+  onToggleGrid?: () => void;
   showRulers: boolean;
   onToggleRulers: () => void;
   onZoomStep: (dir: 1 | -1) => void;
@@ -20,6 +21,8 @@ interface ZoomToolbarProps {
   profile: ProfileView;
   /** The size link: open Screens. */
   onOpenProfile: () => void;
+  /** The size link's tooltip, when it opens something other than Screens. */
+  sizeTitle?: string;
   /** Distance from the canvas bottom (above the phone's sheet); 16 px by default. */
   bottom?: number;
   /** The Design preview data (a `Frozen` chip while frozen); none outside Design. */
@@ -49,6 +52,7 @@ export function ZoomToolbar({
   onFit,
   profile,
   onOpenProfile,
+  sizeTitle = "Screen size, grid and spacing: open Screens",
   bottom,
   preview,
 }: ZoomToolbarProps) {
@@ -61,9 +65,11 @@ export function ZoomToolbar({
         "rounded-[10px] border border-ui-strong bg-ui-raised font-ui shadow-ui-float"
       )}
     >
-      <IconButton label="Toggle grid" className={TOGGLE_BUTTON} active={showGrid} aria-pressed={showGrid} onClick={onToggleGrid}>
-        <Grid3x3 className="h-[18px] w-[18px]" />
-      </IconButton>
+      {onToggleGrid && (
+        <IconButton label="Toggle grid" className={TOGGLE_BUTTON} active={showGrid} aria-pressed={showGrid} onClick={onToggleGrid}>
+          <Grid3x3 className="h-[18px] w-[18px]" />
+        </IconButton>
+      )}
       <IconButton label="Toggle rulers" className={TOGGLE_BUTTON} active={showRulers} aria-pressed={showRulers} onClick={onToggleRulers}>
         <RulerDimensionLine className="h-[18px] w-[18px]" />
       </IconButton>
@@ -91,7 +97,7 @@ export function ZoomToolbar({
       <button
         type="button"
         onClick={onOpenProfile}
-        title="Screen size, grid and spacing: open Screens"
+        title={sizeTitle}
         className={cn(TEXT_BUTTON, "font-ui-mono text-[11px]")}
       >
         {profile.width}×{profile.height} ↗

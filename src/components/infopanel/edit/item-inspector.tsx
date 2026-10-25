@@ -5,8 +5,9 @@
  * shown with its message and not stored.
  */
 import { useState, type ReactNode } from "react";
+import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
+import { badgeText, checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
 import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
 import { itemAt, setField, updateAt, type Path } from "@/lib/infopanel/editor/ops";
 import { NOT_EXPORTABLE, PLUGIN_ONLY } from "@/lib/infopanel/editor/sensor-list";
@@ -202,8 +203,9 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
           </HeaderIcon>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{name}</div>
-            <div className="truncate text-[11px] text-ui-4">InfoPanel · {item.kind}</div>
+            <div className="truncate text-[11px] text-ui-4">{badgeText(item.kind, editor.modes.get(path)?.state)}</div>
           </div>
+          {item.IsLocked && <Lock className="h-3.5 w-3.5 shrink-0 text-ui-4" aria-label="Locked" />}
           {badge && <BadgeChip badge={badge} />}
         </div>
       }
@@ -211,7 +213,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
       parts={parts}
       query={query}
       onQuery={setQuery}
-      identity={{ icon: <Icon />, name, meta: () => `InfoPanel · ${item.kind}` }}
+      identity={{ icon: <Icon />, name, meta: () => badgeText(item.kind, editor.modes.get(path)?.state) }}
     />
   );
 }

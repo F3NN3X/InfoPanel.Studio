@@ -142,7 +142,14 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
   const selectionKey = editor.selection.join("\n");
   const [closedFor, setClosedFor] = useState<string | null>(null);
   const hasSelection = editor.selection.length > 0;
-  const floatOpen = hasSelection && closedFor !== selectionKey;
+  // The zoom bar's size button shows the profile's settings with nothing selected.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = () => {
+    editor.select([]);
+    setClosedFor(null);
+    setSettingsOpen(true);
+  };
+  const floatOpen = hasSelection ? closedFor !== selectionKey : settingsOpen;
 
   // Live needs the Data API: when it is not reachable the toolbar disables it and the editor leaves it.
   useEffect(() => {
@@ -297,6 +304,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           onCompareFailed={() => setCompare(null)}
           onPlace={onAdd}
           onComponent={(item, at) => void placeComponent(item, at)}
+          onOpenSettings={openSettings}
         />
         <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
           Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.
@@ -316,7 +324,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
             <button
               type="button"
               aria-label="Close"
-              onClick={() => setClosedFor(selectionKey)}
+              onClick={() => (hasSelection ? setClosedFor(selectionKey) : setSettingsOpen(false))}
               className="flex h-7 w-7 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
             >
               <X className="h-4 w-4" />
@@ -325,8 +333,14 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           {inspector}
         </aside>
       )}
-      {mode === "sheet" && hasSelection && (
-        <PaneSheet label="Item" onClose={() => editor.select([])}>
+      {mode === "sheet" && (hasSelection || settingsOpen) && (
+        <PaneSheet
+          label="Item"
+          onClose={() => {
+            editor.select([]);
+            setSettingsOpen(false);
+          }}
+        >
           <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{inspector}</div>
         </PaneSheet>
       )}
