@@ -29,14 +29,15 @@ import type { ComponentRoles } from "../my-library/component-meta.ts";
 const SCALED = new Set(["Image", "HttpImage", "SensorImage", "Gauge"]);
 const parentOf = (p: Path) => p.split(".").slice(0, -1).join(".");
 
-/** The paths to save: the topmost selected, each lifted to the managed element (Row, Drives …) it is a part of, so those are saved whole. */
+/** The paths to save, in tree order: the topmost selected, each lifted to the managed element (Row, Drives …) it is a part of, so those are saved whole. */
 export function componentPaths(items: readonly DisplayItem[], selection: readonly Path[]): Path[] {
   const lifted = topmost(selection).map((path) => {
     let at = path;
     for (let p = parentOf(path); p !== ""; p = parentOf(p)) if (isManaged(itemAt(items, p))) at = p;
     return at;
   });
-  return topmost(lifted);
+  // Tree order, not the order they were clicked in: that is the draw order the component keeps.
+  return topmost(lifted).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
 function union(boxes: readonly Box[]): Box | null {

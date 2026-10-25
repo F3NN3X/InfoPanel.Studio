@@ -72,6 +72,15 @@ describe("saveComponent", () => {
     expect(saveComponent({ stored: s.stored, profile: openCanvas(s.stored).profile, items: s.items, selection: [], name: "x" })).toBeNull();
   });
 
+  it("keeps the draw order of the tree, not the order the items were selected in", () => {
+    const card = at(defaultItem("Shape"), 0, 0, 300, 100);
+    const label = at(defaultItem("Text"), 10, 10, 100, 30);
+    const s = source([card, label]);
+    // The label is clicked first, the card behind it second.
+    const made = save(s, ["1", "0"]);
+    expect(readStored(JSON.parse(JSON.stringify(made.stored))).items.map((i) => i.kind)).toEqual(["Shape", "Text"]);
+  });
+
   it("saves a managed element whole when one of its parts is selected", () => {
     const profile = readStored(newStored({ name: "p", width: 800, height: 480 })).profile;
     const row = newComposite("row", profile, defaultPalette(profile), [], 100, 100);

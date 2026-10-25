@@ -48,8 +48,8 @@ export function SaveComponentDialog({ open, onOpenChange, count, initialName, on
                 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" className={INPUT} />
               </label>
               <p className="text-[11.5px] leading-snug text-ui-4">
-                {count === 1 ? "The selected item" : `The ${count} selected items`} go to the Library as a component, with the files and palette colours they use. Drag it onto
-                any screen or into an InfoPanel profile; sensors are matched to that PC.
+                {count === 1 ? "The selected item goes" : `The ${count} selected items go`} to the Library as a component, with the files and palette colours{" "}
+                {count === 1 ? "it uses" : "they use"}. Drag it onto any screen or into an InfoPanel profile; sensors are matched to that PC.
               </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">
