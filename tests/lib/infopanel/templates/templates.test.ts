@@ -34,6 +34,53 @@ async function baked(items: DisplayItem[]): Promise<Doc> {
 
 const ids = (item: DisplayItem) => (isBound(item) ? (item as unknown as Record<string, unknown>) : {});
 
+describe("the Create dialog's sensor choices", () => {
+  const graphite = TEMPLATES.find((t) => t.id === "graphite")!;
+  const input = { name: "Desk", width: 480, height: 320, sensors: MOCK_SENSORS, now };
+  const libreId = (stored: ReturnType<typeof instantiate>["stored"], name: string) => {
+    const item = [...walkItems(readStored(JSON.parse(JSON.stringify(stored))).items)].find(({ item }) => item.Name === name)?.item;
+    return item && isBound(item) ? String((item as unknown as Record<string, unknown>).LibreSensorId) : undefined;
+  };
+
+  it("lists every role the template reads with the sensor found for it", () => {
+    const { roles } = instantiate(graphite, input);
+    expect(roles.length).toBeGreaterThan(4);
+    expect(roles.find((r) => r.role === "cpu.load")?.sensor?.ref).toBe("libre:/amdcpu/0/load/0");
+  });
+
+  it("binds a chosen sensor over the found one, and leaves a role unbound when let go", () => {
+    const chosen = { key: "mock.gpu.load", name: "Mock GPU Core", unit: "%", ref: "libre:/gpu-nvidia/0/load/0" };
+    const over = instantiate(graphite, { ...input, overrides: { "cpu.load": chosen, "gpu.temp": null } });
+    expect(libreId(over.stored, "CPU load")).toBe("/gpu-nvidia/0/load/0");
+    expect(over.roles.find((r) => r.role === "cpu.load")?.sensor).toEqual(chosen);
+    expect(over.roles.find((r) => r.role === "gpu.temp")?.sensor).toBeNull();
+    expect(over.unbound).toEqual(["GPU temperature"]);
+    expect(libreId(over.stored, "GPU temperature")).toBe("");
+    // The ones nobody touched still resolve as before.
+    expect(libreId(over.stored, "RAM load")).toBe("/ram/load/0");
+  });
+});
+
+describe("the Clock template's seconds ring", () => {
+  const clock = TEMPLATES.find((t) => t.id === "clock")!;
+
+  it("is bound to the clock plugin's second, 0 to 59, with a frame for each second and no CPU readout", () => {
+    const { stored, unbound, roles } = instantiate(clock, { name: "Clock", width: 480, height: 320, sensors: MOCK_SENSORS, now });
+    expect(unbound).toEqual([]);
+    expect(roles.find((r) => r.role === "clock.second")?.sensor?.ref).toBe("plugin:/clock-plugin/clock/second");
+    const items = [...walkItems(readStored(JSON.parse(JSON.stringify(stored))).items)].map(({ item }) => item);
+    const ring = items.find((i) => i.Name === "Clock second ring") as unknown as GaugeItem & { element: { frames: number; segments: number } };
+    expect(ring).toMatchObject({ MinValue: 0, MaxValue: 59, PluginSensorId: "/clock-plugin/clock/second" });
+    expect(ring.element).toMatchObject({ frames: 60, segments: 60 });
+    expect(items.some((i) => i.Name === "CPU load" || i.Name === "CPU")).toBe(false);
+  });
+
+  it("lists the ring for Remap when the PC has no clock plugin", () => {
+    const sensors = Object.fromEntries(Object.entries(MOCK_SENSORS).filter(([k]) => !k.startsWith("mock.clock."))) as typeof MOCK_SENSORS;
+    expect(instantiate(clock, { name: "Clock", width: 480, height: 320, sensors, now }).unbound).toEqual(["Clock second"]);
+  });
+});
+
 describe("profile templates", () => {
   it("offers at least eight, each with distinct ids and 2 to 3 palette variants", () => {
     expect(TEMPLATES.length).toBeGreaterThanOrEqual(8);

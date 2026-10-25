@@ -18,10 +18,11 @@ export interface IpGroup {
 
 /** The Position section's grid (the rest of the Position group are rows under it). */
 export const GRID_FIELDS = new Set(["X", "Y", "Width", "Height", "Rotation", "FlipX"]);
-/** The raw binding ids: the Sensor section shows the mapped key; these are for the curious. */
+/** The raw binding apart from the Sensor section (the dropdown, Remap): last, and collapsed. */
 const ADVANCED = new Set(["Sensor", "Other"]);
-/** The raw binding apart from the Sensor section (the mapped key, Remap). */
-const TITLES: Record<string, string> = { Sensor: "Binding ids" };
+const TITLES: Record<string, string> = { Sensor: "Binding details" };
+/** The binding ids the sensor dropdown writes: shown read-only under Binding details, never typed. */
+export const BINDING_IDS = ["SensorType", "HwInfoRemoteIndex", "Id", "Instance", "EntryId", "LibreSensorId", "PluginSensorId"] as const;
 
 const toSetting = (d: FieldDef): ModuleSetting => {
   const base = { key: d.name, label: d.label, keywords: [d.name] };
@@ -49,7 +50,7 @@ const toSetting = (d: FieldDef): ModuleSetting => {
 export function ipGroups(kind: ItemKind): IpGroup[] {
   const fields = fieldsOf(kind).filter((d) => !GRID_FIELDS.has(d.name));
   const colours = fields.filter((d) => d.spec.kind === "color");
-  const rest = fields.filter((d) => d.spec.kind !== "color");
+  const rest = fields.filter((d) => d.spec.kind !== "color" && !(BINDING_IDS as readonly string[]).includes(d.name));
   const groups = [...new Set(rest.map((d) => d.group))].map(
     (g): IpGroup => ({ id: `ip-${g.toLowerCase()}`, title: TITLES[g] ?? g, defs: rest.filter((d) => d.group === g).map(toSetting), advanced: ADVANCED.has(g) }),
   );

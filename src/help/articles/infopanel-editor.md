@@ -3,22 +3,24 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.25
+verified: 1.3.0-beta.26
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
 
-Open **InfoPanel** on the rail. With no profile open, the page lists every InfoPanel profile in the dashboard, with **New InfoPanel profile…** and **Import…** above them. **Edit items** on a canvas zone opens that zone here too.
+Open **InfoPanel** on the rail. With no profile open, the page lists every InfoPanel profile in the dashboard, with **New InfoPanel profile…** and **Import…** above them. Below that, **In your Library** lists the profiles you saved to the [Library](library) that aren't on a screen yet; click one to bring it in as a new screen and open it. **Edit items** on a canvas zone opens that zone here too.
 
 ## What the page edits
 
-Each InfoPanel profile lives in a canvas zone on a screen. The page edits that zone, so every change is one step in the studio's undo history and saves with the dashboard. A canvas in the Library is a saved copy: **Edit canvas** opens the zone made from it, or places it as a new screen first. Editing the zone never changes the Library copy.
+Each InfoPanel profile lives in a canvas zone on a screen. The page edits that zone, so every change is one step in the studio's undo history and saves with the dashboard. An InfoPanel profile in the Library is a saved copy: **Edit profile** opens the zone made from it in this editor, or places it as a new screen first. Editing the zone doesn't change the Library copy until you choose **Update in Library** (see Saving to the Library).
 
 ## A new profile
 
 **New InfoPanel profile…** asks for a name, what to start from, and a size: 480 × 320, 800 × 480, 1024 × 600, 1280 × 480, 1920 × 480, 1920 × 1080, or **Custom**. It comes in as a new screen and opens here. You'll also find it in Design's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
 
-Under **Start from**, **Blank** is an empty profile with a near black background and white Segoe UI text. The others are templates.
+Under **Start from**, **Blank** is an empty profile with a near black background and white Segoe UI text. Then come the templates, then your own profiles from the Library. A Library profile is copied as it is, at its own size, so **Size** goes away. Tick **Also save to Library** to keep the new profile there too; it's off unless you tick it.
+
+When you pick a template, **Sensors** appears under **Start from**: one row for each sensor the template reads, with the sensor found on your PC. Open a row to pick another, or choose **Leave unbound**. A row that found nothing says so; open it to choose one. Whatever is still unbound when you press **Create** is listed over the canvas afterwards.
 
 ## Templates
 
@@ -32,12 +34,14 @@ A template is a finished profile made from the editor's own items and elements, 
 | Paper | A light theme: white cards with soft shadows |
 | Mono | Black, with very large thin numbers and fine lines |
 | Terminal | Green on black console lines in Consolas, with LED meters |
-| Clock | A large clock inside a ring of 60 segments that fills with CPU load |
+| Clock | A large clock inside a ring of 60 segments that counts the seconds |
 | Cores | One bar per CPU core or thread, under the CPU temperature |
 
 Every template is drawn for 480 × 320 and laid out again for the size you pick. A wide size, such as 1280 × 480 or 1920 × 480, puts its cards in one row. A portrait size stacks them. Anything else keeps the 480 × 320 layout, scaled up. Text, lines and gaps grow with the size.
 
-The sensors are matched to what your PC's Data API reports: CPU and GPU load, temperature, clock and power, RAM, disk, download and upload, and uptime. A sensor that can't be found is left unbound, and the editor opens with a line naming each one. **Remap** on that line opens [Sensor remap](remap), where you can pick a sensor for it. Close the line with **×**.
+The sensors are matched to what your PC's Data API reports: CPU and GPU load, temperature, clock and power, RAM, disk, download and upload, and uptime.
+
+The Clock template's ring reads InfoPanel's clock plugin (Clock · Second, 0 to 59), so it needs that plugin. Without it the ring is left unbound and Remap lists it as Clock second. The ring is exported with 60 frames, one for each second. A sensor that can't be found is left unbound, and the editor opens with a line naming each one. **Remap** on that line opens [Sensor remap](remap), where you can pick a sensor for it. Close the line with **×**.
 
 A template's colours come from the profile's palette (see The palette, below), so you can change them all in one place later. Everything in it can be moved, changed or deleted like anything you add yourself, and it exports like any profile: cards, rings and glows that InfoPanel can't draw are baked when you export.
 
@@ -138,7 +142,9 @@ Every edit here is saved to the dashboard a moment later, as any studio edit is,
 
 ## Choosing a sensor
 
-The sensor picker lists the Data API's live sensors by source and device. Search by name, key or value. Choosing one sets InfoPanel's own binding on the item, so the exported file reads the same sensor. **Choose sensor…** in an item's inspector changes it later, and the line under it shows what InfoPanel reads.
+At the top of an item's **Sensor** section is a dropdown. It shows the item's sensor with its live value. Open it to search the Data API's live sensors, listed by source and device. Search by name, key or value. Use the arrow keys, `Enter` to choose and `Esc` to close. Choosing one sets InfoPanel's own binding on the item, so the exported file reads the same sensor. The line under it shows what InfoPanel reads. A new item you add from **Add** asks for its sensor in a window with the same list.
+
+You don't type a binding. The ids InfoPanel stores are in **Binding details**, a section below the others, and they're shown but can't be changed: the sensor type, the HWiNFO ids, the Libre sensor id and the plugin sensor id. **Sensor name** is there too and you can edit it, since InfoPanel shows it and uses it to match HWiNFO sensors. **Value type** is a choice list. To read a different sensor, choose it in the dropdown, or use [Sensor remap](remap).
 
 A Table takes its plugin's column format when your InfoPanel build reports it. Otherwise it keeps InfoPanel's default, and the inspector says so.
 
@@ -149,6 +155,12 @@ If your InfoPanel build doesn't report sensor ids, a choice binds the preview on
 ## Profile settings
 
 Name, width and height, background, font, font size, text colour, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is.
+
+## Saving to the Library
+
+**Save to Library** in the toolbar keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
+
+New profiles can start from a Library profile, and **Edit profile** in the Library opens one here. Removing an item from the Library never deletes a file that a profile on a screen still uses.
 
 ## Exporting
 

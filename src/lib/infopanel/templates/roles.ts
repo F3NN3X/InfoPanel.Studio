@@ -13,7 +13,7 @@ export const ROLES = [
   "cpu.load", "cpu.temp", "cpu.clock", "cpu.power",
   "gpu.load", "gpu.temp", "gpu.clock", "gpu.power",
   "ram.load", "ram.used", "disk.load", "disk.temp",
-  "net.down", "net.up", "uptime",
+  "net.down", "net.up", "uptime", "clock.second",
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -50,6 +50,7 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
   "net.down": { label: "Download", unit: "KB/s", min: 0, max: 100000, precision: 1, scaled: { divide: 1024, unit: "MB/s" } },
   "net.up": { label: "Upload", unit: "KB/s", min: 0, max: 100000, precision: 1, scaled: { divide: 1024, unit: "MB/s" } },
   uptime: { label: "Uptime", unit: "", min: 0, max: 100, precision: 0 },
+  "clock.second": { label: "Clock second", unit: "", min: 0, max: 59, precision: 0 },
 };
 
 /** One way to recognise a role's sensor: every pattern given must match. */
@@ -107,6 +108,8 @@ const RULES: Record<Role, readonly Rule[]> = {
   "net.down": [{ ref: /^libre:\/nic\/.+\/throughput\/8$/i }, { name: /\bDownload Speed$/i }, { name: /^Current DL rate$/i }],
   "net.up": [{ ref: /^libre:\/nic\/.+\/throughput\/7$/i }, { name: /\bUpload Speed$/i }, { name: /^Current UP rate$/i }],
   uptime: [{ ref: /^plugin:\/.+\/uptime\/formatted$/i }, { name: /^Uptime · Formatted$/i }, { name: /^(System )?Uptime$/i }],
+  // InfoPanel's clock plugin; the Data API names it "Clock · Second" (the dot may arrive mangled).
+  "clock.second": [{ ref: /^plugin:\/clock-plugin\/clock\/second$/i }, { name: /^Clock\W+Second$/i }],
 };
 
 /** Adapters that aren't the machine's own link (virtual switches, VPNs, Bluetooth). */

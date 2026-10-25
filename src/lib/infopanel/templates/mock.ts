@@ -25,5 +25,7 @@ export const MOCK_SENSORS: Readonly<Record<string, DataApiValue>> = {
   "mock.net.down": libre("/nic/%7B0%7D/throughput/8", "Ethernet Download Speed", "KB/s", 18240),
   "mock.net.up": libre("/nic/%7B0%7D/throughput/7", "Ethernet Upload Speed", "KB/s", 2310),
   "mock.uptime": { text: "3:07:42:10", unit: "", name: "Uptime · Formatted", ref: "plugin:/system-info-plugin/uptime/formatted" },
+  "mock.clock.second": { value: 37, unit: "", name: "Clock · Second", ref: "plugin:/clock-plugin/clock/second", source: "infopanel" },
+  "mock.clock.minute": { value: 24, unit: "", name: "Clock · Minute", ref: "plugin:/clock-plugin/clock/minute", source: "infopanel" },
   ...Object.fromEntries(CORE_LOADS.map((v, i) => [`mock.core.${i + 1}`, libre(`/amdcpu/0/load/${i + 2}`, `Mock CPU Core #${i + 1}`, "%", v)])),
 };

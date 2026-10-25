@@ -1,9 +1,12 @@
 /**
  * The InfoPanel page with no profile open: every InfoPanel profile placed in the dashboard (a
- * canvas zone, on any screen and page), to open in the editor, and the ways to start one: New
- * InfoPanel profile, or Import.
+ * canvas zone, on any screen and page), to open in the editor, the saved profiles in the Library
+ * that aren't placed here, and the ways to start one: New InfoPanel profile, or Import.
  */
-import { FilePlus2, FileUp, PanelsTopLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FilePlus2, FileUp, Library, PanelsTopLeft } from "lucide-react";
+import { listLibrary, type LibraryItem } from "@/lib/library";
+import { unplacedProfiles } from "@/lib/my-library/canvas-link";
 import { CANVAS_ID, type DashboardConfig } from "@/lib/layout";
 
 export interface CanvasPlace {
@@ -45,14 +48,28 @@ export function canvasPlaces(config: Pick<DashboardConfig, "profiles">): CanvasP
 interface InfoPanelStartProps {
   config: Pick<DashboardConfig, "profiles">;
   onOpen: (place: CanvasPlace) => void;
+  /** A Library profile with no zone here: place it and open it in the editor. */
+  onOpenLibrary: (item: LibraryItem) => void;
   onNew: () => void;
   onImport: () => void;
 }
 
 const BUTTON = "inline-flex h-8 items-center gap-2 rounded-[8px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover";
 
-export function InfoPanelStart({ config, onOpen, onNew, onImport }: InfoPanelStartProps) {
+export function InfoPanelStart({ config, onOpen, onOpenLibrary, onNew, onImport }: InfoPanelStartProps) {
   const places = canvasPlaces(config);
+  const [saved, setSaved] = useState<LibraryItem[]>([]);
+  useEffect(() => {
+    let live = true;
+    listLibrary().then(
+      (all) => live && setSaved(all.filter((i) => i.kind === "canvas")),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  const inLibrary = unplacedProfiles(saved, config);
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-ui-app font-ui" data-help-article="infopanel-editor">
       <div className="mx-auto w-full max-w-[760px] px-6 py-8">
@@ -94,6 +111,31 @@ export function InfoPanelStart({ config, onOpen, onNew, onImport }: InfoPanelSta
               </li>
             ))}
           </ul>
+        )}
+        {inLibrary.length > 0 && (
+          <>
+            <h2 className="mt-8 text-[13px] font-semibold text-ui-1">In your Library</h2>
+            <ul className="mt-2 flex flex-col gap-1">
+              {inLibrary.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenLibrary(item)}
+                    className="flex w-full items-center gap-3 rounded-lg border border-ui-default bg-ui-panel px-3 py-2.5 text-left hover:border-ui-strong"
+                  >
+                    <Library className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] text-ui-1">{item.name}</span>
+                      <span className="block truncate text-[11.5px] text-ui-4">Opens as a new screen</span>
+                    </span>
+                    <span className="shrink-0 font-ui-mono text-[11.5px] text-ui-3">
+                      {Number(item.meta.width) || 0} × {Number(item.meta.height) || 0} · {Number(item.meta.items) || 0} {Number(item.meta.items) === 1 ? "item" : "items"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>

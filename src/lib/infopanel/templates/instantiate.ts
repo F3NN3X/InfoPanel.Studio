@@ -1,10 +1,10 @@
 /**
  * A profile template made into a new profile's stored form: the template's items laid out for the
  * size (layout.ts), its palette with the chosen variant, and every sensor item bound to the role's
- * sensor on this machine (roles.ts). A role nothing matches is left unbound, named for the role, so
- * the Remap dialog lists it. The result is checked by `readStored` before it is used.
+ * sensor on this machine (roles.ts), or the one the user chose for it. A role nothing matches is
+ * left unbound, named for the role, so the Remap dialog lists it. The result is checked by `readStored` before it is used.
  */
-import { rebound } from "../editor/bind.ts";
+import { rebound, type ChosenSensor } from "../editor/bind.ts";
 import { syncElements } from "../elements/apply.ts";
 import { detectCores } from "../elements/cores.ts";
 import { elementOf } from "../elements/spec.ts";
@@ -25,13 +25,23 @@ export interface TemplateInput {
   variant?: string;
   /** The live Data API's sensors (empty when it can't be reached). */
   sensors: Readonly<Record<string, DataApiValue>>;
+  /** A role's sensor chosen over the one found: a sensor binds it, null leaves it unbound. */
+  overrides?: Readonly<Partial<Record<Role, ChosenSensor | null>>>;
   now?: Date;
+}
+
+/** A role the template reads and the sensor it ended up with (null: unbound). */
+export interface RoleChoice {
+  role: Role;
+  sensor: ChosenSensor | null;
 }
 
 export interface Instance {
   stored: StoredCanvas;
   /** What couldn't be found on this machine, in plain words ("GPU power", "CPU cores"), in template order. */
   unbound: string[];
+  /** Every role the template reads, in template order, with its sensor. */
+  roles: RoleChoice[];
 }
 
 /** The label the Remap dialog shows for the cores a Cores element couldn't find. */
@@ -44,6 +54,11 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
   const profile: Profile = { ...readStored(base).profile, BackgroundColor: t.background, Color: t.color, Font: t.type.family };
   const palette = { ...t.palette, ...(t.variants.find((v) => v.id === input.variant)?.palette ?? {}) };
   const found = resolveRoles(input.sensors);
+  for (const [role, sensor] of Object.entries(input.overrides ?? {}) as [Role, ChosenSensor | null][]) {
+    if (sensor) found.set(role, sensor);
+    else found.delete(role);
+  }
+  const used = new Set<Role>();
   const missing = new Set<Role>();
   const kit: Kit = {
     profile,
@@ -53,6 +68,7 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
     cores: detectCores(input.sensors),
     bind: (item, role) => {
       if (!isBound(item)) return item;
+      used.add(role);
       const sensor = found.get(role);
       if (!sensor) {
         missing.add(role);
@@ -75,5 +91,6 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
 
   const coresMissing = kit.cores.length === 0 && [...walkItems(items)].some(({ item }) => elementOf(item)?.type === "cores");
   const unbound = [...missing].map((r) => ROLE_INFO[r].label);
-  return { stored, unbound: coresMissing ? [...unbound, CORES_LABEL] : unbound };
+  const roles = [...used].map((role) => ({ role, sensor: found.get(role) ?? null }));
+  return { stored, unbound: coresMissing ? [...unbound, CORES_LABEL] : unbound, roles };
 }

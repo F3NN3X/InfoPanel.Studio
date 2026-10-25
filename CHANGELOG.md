@@ -6,6 +6,16 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **A sensor dropdown in the InfoPanel editor.** An item's Sensor section now opens a searchable list of the Data API's sensors, grouped by source and device, with each sensor's live value. It works from the keyboard, binds the item natively, and replaces the Choose sensor button. The raw bindings (sensor type, HWiNFO ids, Libre and plugin ids) are shown read-only under Binding details; Sensor name is still editable there, and Value type is still a choice list.
+- **Sensors at Create.** New InfoPanel profile lists every sensor the chosen template reads, with the one found on your PC, in the same dropdown. Change any of them, or leave one unbound, before you press Create.
+- **InfoPanel profiles in the Library.** The Library's Canvases are now InfoPanel profiles, drawn on their cards. Edit profile opens the InfoPanel editor. The editor's toolbar has Save to Library, which becomes Update in Library once the profile has an item. The InfoPanel page lists the saved profiles that aren't on a screen under In your Library, and New InfoPanel profile can start from one and, with Also save to Library, keep the new profile there too.
+
+### Changed
+
+- **The Clock template counts seconds.** Its ring now reads InfoPanel's clock plugin (Clock · Second) over 0 to 59 and is baked with 60 frames, one for each second, instead of showing CPU load. The CPU label and value under the date are gone. Without the clock plugin the ring is left unbound and Remap lists it.
+
 ## [1.3.0-beta.25] - 2026-10-25
 
 ### Added

@@ -80,7 +80,8 @@ import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
 import { useToast } from "@/components/ui/toast";
-import type { LibraryCopy, LibraryItem } from "@/lib/library";
+import { createLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
+import { canvasItem } from "@/lib/my-library/canvas-link";
 import { findCanvasUse } from "@/lib/my-library/canvas-use";
 import { applyThemeAt } from "@/lib/appearance-preset-apply";
 import type { AppearancePreset } from "@/lib/appearance-presets";
@@ -335,7 +336,7 @@ function StudioViewBody({
   const [newProfileOpen, setNewProfileOpen] = useState(false);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
   useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && setNewProfileOpen(true)), []);
-  const createInfoPanel = ({ name, width, height, stored, unbound }: NewProfile) => {
+  const createInfoPanel = ({ name, width, height, stored, unbound, toLibrary }: NewProfile) => {
     const r = importAsProfile(config, stored, name, { width, height }, false);
     setConfig(r.config);
     selectProfile(r.profileId);
@@ -344,6 +345,11 @@ function StudioViewBody({
     setPendingZone(r.zoneId);
     setUnboundNote(unbound.length ? { zoneId: r.zoneId, labels: unbound } : null);
     toast(`New InfoPanel profile ${name} · ${width} × ${height} · 1 undo step`);
+    if (toLibrary)
+      createLibraryItem(canvasItem(stored, name)).then(
+        () => toast(`Saved ${name} to the Library`),
+        (e: Error) => toast(`Not saved to the Library: ${e.message}`),
+      );
   };
   /** Bumped to reopen the editor with new initial selection (the Library's "uses" while it is mounted). */
   const [editorEpoch, setEditorEpoch] = useState(0);
@@ -705,7 +711,7 @@ function StudioViewBody({
     ui.openTheme({ kind: "base" });
     ui.setThemeEditing(preset.id);
   };
-  /** A Library canvas's "Edit canvas": its editor on the first zone made from it, else it comes in as a new screen (no import dialog, it is already stored) that opens in the editor. */
+  /** A Library profile's "Edit profile": the InfoPanel editor on the first zone made from it, else it comes in as a new screen (no import dialog, it is already stored) that opens in the editor. */
   const editCanvas = async (item: LibraryItem) => {
     const stored = await dataOf<StoredCanvas>(item);
     if (!stored) return;
@@ -718,10 +724,10 @@ function StudioViewBody({
     const r = importAsProfile(config, stored, item.name, size, false);
     setConfig(r.config);
     selectProfile(r.profileId);
-    ui.setMode("design");
     ui.fitZoom();
     openOnLand.current = r.zoneId;
     setPendingZone(r.zoneId);
+    void recordCopy(item, { profileId: r.profileId, zoneId: r.zoneId, label: item.name });
   };
   const libraryEl = showLibrary && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
@@ -769,6 +775,7 @@ function StudioViewBody({
         openOnLand.current = c.zoneId;
         openZone(c.profileId, c.pageId, c.zoneId);
       }}
+      onOpenLibrary={(item) => void editCanvas(item)}
       onNew={() => setNewProfileOpen(true)}
       onImport={() => openImportDoor({ prefer: "canvas-zone" })}
     />

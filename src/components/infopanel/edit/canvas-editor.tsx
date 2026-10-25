@@ -41,6 +41,7 @@ import { ItemsTree } from "./items-tree";
 import { ProfileSettings } from "./profile-settings";
 import { SensorPicker } from "./sensor-picker";
 import { useCanvasEditor } from "./use-canvas-editor";
+import { useLibraryLink } from "./use-library-link";
 
 export interface CanvasEditorProps {
   zone: Placement & { canvas: StoredCanvas };
@@ -69,9 +70,6 @@ interface PickFor {
   pluginOnly: boolean;
   fresh: boolean;
 }
-
-/** InfoPanel lists only plugin sensors for these. */
-const PLUGIN_ONLY = new Set(["TableSensor", "HttpImage"]);
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
@@ -112,6 +110,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
     if (entry.file) return setFileFor({ entry, place });
     askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile, editor.palette), place));
   };
+  const libraryLink = useLibraryLink(zone.id, zone.canvas, editor.open.profile.Name || zone.canvas.source.name);
   const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
   const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;
   // The studio inspector's modes (docked column, floating card, bottom sheet) on the studio's viewport
@@ -193,11 +192,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
       live={live}
       sensors={sensors}
       onRemap={() => setRemapOpen(true)}
-      onPickSensor={
-        single && "SensorType" in single
-          ? () => setPickFor({ path: editor.selection[0], label: single.Name || single.kind, pluginOnly: PLUGIN_ONLY.has(single.kind), fresh: false })
-          : undefined
-      }
+      onBindSensor={single && "SensorType" in single ? (sensor) => editor.bind(editor.selection[0], sensor) : undefined}
       onEditGauge={onEditGauge}
     />
   ) : (
@@ -220,6 +215,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, hid
           remapCount={remapCount}
           onRemap={() => setRemapOpen(true)}
           apiUnreachable={unreachable}
+          library={libraryLink}
           onDone={onDone}
         />
         {unbound && unbound.length > 0 && (

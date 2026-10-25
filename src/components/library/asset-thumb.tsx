@@ -2,7 +2,7 @@
  * A library item's thumbnail (the concept's AssetThumb): an image or video frame filling the box
  * (a tall one centred on dark), a play badge with the length on videos, an SVG or icon contained,
  * "Aa" in a font's own face, a panel's cell grid, a style's sample tile, a theme's swatches, a gauge drawn from its spec
- * (else its first frame). `live` (the selected item's detail preview) sweeps a gauge and plays a video.
+ * (else its first frame), an InfoPanel profile drawn by the canvas renderer (loaded when the card is shown). `live` (the selected item's detail preview) sweeps a gauge and plays a video.
  */
 import { useEffect, useRef, useState } from "react";
 import { Gauge, ImageOff, Monitor, Pause, Play } from "lucide-react";
@@ -16,6 +16,7 @@ import { previewScope } from "@/lib/gauge-studio/preview";
 import { getLibraryItem, type LibraryItem } from "@/lib/library";
 import { DEFAULT_THEME } from "@/lib/theme";
 import { fileUrl, metaOf } from "@/lib/my-library/model";
+import { ProfileThumb } from "@/components/infopanel/profile-thumb";
 
 export type ThumbSize = "sm" | "md" | "lg";
 
@@ -242,6 +243,16 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
           ) : (
             <Gauge className="h-2/5 w-2/5 text-ui-4" strokeWidth={1.25} />
           )}
+        </div>
+      );
+    case "canvas":
+      return size === "sm" ? (
+        <div className={box}>
+          <Monitor className="h-1/2 w-1/2 text-ui-4" strokeWidth={1.25} />
+        </div>
+      ) : (
+        <div className={box}>
+          <ProfileThumb item={item} />
         </div>
       );
     default:

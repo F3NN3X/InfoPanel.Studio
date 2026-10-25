@@ -1,7 +1,7 @@
 /**
  * Clock: a big centred time inside a ring of sixty segments, with the date under it and two quiet
- * columns of readings either side. InfoPanel has no seconds to drive a ring, so the sixty segments
- * fill with CPU load, which the line under the date says.
+ * columns of readings either side. The ring is the clock plugin's seconds, 0 to 59, baked as sixty
+ * frames so each second lands on its own segment.
  */
 import type { DisplayItem } from "../../schema.ts";
 import { clock, ink, ring, text, value, type Kit, type Template } from "../kit.ts";
@@ -13,16 +13,14 @@ function face(k: Kit, b: Box): DisplayItem[] {
   const sq = square(b);
   const px = Math.round(sq.width * 0.2);
   const datePx = Math.max(9, Math.round(px * 0.26));
-  const top = sq.y + sq.height / 2 - lineOf(px) * 0.62;
+  const top = sq.y + sq.height / 2 - (lineOf(px) * 0.92 + lineOf(datePx)) / 2;
   return [
-    ring(k, "cpu.load", sq, {
+    ring(k, "clock.second", sq, {
       start: 0, sweep: 360, thickness: Math.max(4, Math.round(sq.width * 0.035)), segments: 60, gap: 1.8, rounded: false, dot: false,
-      fill: [ink(k, "accent1"), ink(k, "accent2")], glow: 0,
+      fill: [ink(k, "accent1"), ink(k, "accent2")], glow: 0, frames: 60,
     }),
     clock(k, "HH:mm", { x: sq.x, y: top, px, width: sq.width, align: "center", weight: "light" }),
     clock(k, "ddd d MMM", { x: sq.x, y: top + lineOf(px) * 0.92, px: datePx, width: sq.width, align: "center", slot: "subtext", upper: true }, true),
-    text(k, "CPU", { x: sq.x, y: top + lineOf(px) * 0.92 + lineOf(datePx) * 1.2, px: datePx, width: sq.width / 2 - datePx * 0.2, align: "right", slot: "subtext", weight: "strong" }),
-    value(k, "cpu.load", { x: sq.x + sq.width / 2 + datePx * 0.2, y: top + lineOf(px) * 0.92 + lineOf(datePx) * 1.2, px: datePx, slot: "accent1" }),
   ];
 }
 

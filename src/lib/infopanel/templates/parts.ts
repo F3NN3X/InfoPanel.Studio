@@ -94,7 +94,7 @@ export const SHORT: Record<Role, string> = {
   "cpu.load": "Load", "cpu.temp": "Temp", "cpu.clock": "Clock", "cpu.power": "Power",
   "gpu.load": "Load", "gpu.temp": "Temp", "gpu.clock": "Clock", "gpu.power": "Power",
   "ram.load": "RAM", "ram.used": "Used", "disk.load": "Disk", "disk.temp": "Disk temp",
-  "net.down": "Down", "net.up": "Up", uptime: "Up",
+  "net.down": "Down", "net.up": "Up", uptime: "Up", "clock.second": "Second",
 };
 
 /**

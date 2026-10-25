@@ -1,19 +1,26 @@
 /**
- * "New InfoPanel profile": a name, Blank or a profile template from the gallery (with a palette
- * variant), and a size (InfoPanel panel sizes, or custom). Blank is made from scratch
- * (`newStored`); a template is made for the size with its sensors matched to this machine's Data
- * API (`instantiate`), anything not found listed for Remap. The studio adds it as a new screen and
- * opens it in the InfoPanel editor. Lazy-loaded with its gallery and the template data.
+ * "New InfoPanel profile": a name, Blank, a profile template from the gallery (with a palette
+ * variant) or one of the user's Library profiles, and a size (InfoPanel panel sizes, or custom).
+ * Blank is made from scratch (`newStored`); a template is made for the size with its sensors
+ * matched to this machine's Data API (`instantiate`), each role's sensor changeable in the Sensors
+ * section, anything left unbound listed for Remap; a Library profile is copied as it is. The studio
+ * adds it as a new screen and opens it in the InfoPanel editor. Lazy-loaded with its gallery and
+ * the template data.
  */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSensorCatalog } from "@/lib/catalog";
 import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
+import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { templateById } from "@/lib/infopanel/templates/catalog";
 import { instantiate } from "@/lib/infopanel/templates/instantiate";
+import type { Role } from "@/lib/infopanel/templates/roles";
+import { listLibrary, type LibraryItem } from "@/lib/library";
+import { canvasData, copyOfProfile } from "@/lib/my-library/canvas-link";
+import { RoleSensors, type RoleOverrides } from "./role-sensors";
 import { TemplateGallery, type GalleryChoice } from "./template-gallery";
 
 export const SIZE_PRESETS: readonly { width: number; height: number }[] = [
@@ -33,8 +40,10 @@ export interface NewProfile {
   width: number;
   height: number;
   stored: StoredCanvas;
-  /** The template's sensors not found on this machine, in plain words; empty for Blank. */
+  /** The template's sensors left unbound (not found on this machine, or let go in Create), in plain words; empty for Blank. */
   unbound: string[];
+  /** "Also save to Library" was ticked: the studio saves the new profile as a Library item. */
+  toLibrary: boolean;
 }
 
 interface NewProfileDialogProps {
@@ -57,15 +66,40 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
   const [w, setW] = useState("800");
   const [h, setH] = useState("480");
   const [choice, setChoice] = useState<GalleryChoice>({ template: null, variant: "" });
+  const [overrides, setOverrides] = useState<RoleOverrides>({});
+  const [toLibrary, setToLibrary] = useState(false);
+  const [profiles, setProfiles] = useState<LibraryItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
-  const size = preset === "custom" ? { width: sideOf(w), height: sideOf(h) } : SIZE_PRESETS[preset];
+  const fromLibrary = choice.library ? profiles.find((i) => i.id === choice.library) : undefined;
+  const size = fromLibrary ? { width: Number(fromLibrary.meta.width) || 800, height: Number(fromLibrary.meta.height) || 480 } : preset === "custom" ? { width: sideOf(w), height: sideOf(h) } : SIZE_PRESETS[preset];
   const ok = name.trim() !== "" && size.width !== null && size.height !== null;
-  const create = () => {
+  const template = choice.template ? templateById(choice.template) : undefined;
+  useEffect(() => {
+    if (open) listLibrary().then((all) => setProfiles(all.filter((i) => i.kind === "canvas")), () => setProfiles([]));
+  }, [open]);
+  // The roles the template reads and the sensor each has (size doesn't change them).
+  const roles = useMemo(
+    () => (template ? instantiate(template, { name: "roles", width: 480, height: 320, variant: choice.variant, sensors, overrides }).roles : []),
+    [template, choice.variant, sensors, overrides],
+  );
+  const choose = (next: GalleryChoice) => {
+    setOverrides({});
+    setError(null);
+    setChoice(next);
+  };
+  const override = (role: Role, sensor: ChosenSensor | null) => setOverrides((o) => ({ ...o, [role]: sensor }));
+  const create = async () => {
     if (!ok) return;
     const p = { name: name.trim(), width: size.width!, height: size.height! };
-    const template = choice.template ? templateById(choice.template) : undefined;
-    const made = template ? instantiate(template, { ...p, variant: choice.variant, sensors }) : { stored: newStored(p), unbound: [] };
-    onCreate({ ...p, ...made });
+    if (fromLibrary) {
+      const stored = await canvasData(fromLibrary).catch(() => undefined);
+      if (!stored) return setError("That profile couldn’t be read from the Library.");
+      onCreate({ ...p, stored: copyOfProfile(stored, p.name), unbound: [], toLibrary });
+    } else {
+      const made = template ? instantiate(template, { ...p, variant: choice.variant, sensors, overrides }) : { stored: newStored(p), unbound: [] };
+      onCreate({ ...p, stored: made.stored, unbound: made.unbound, toLibrary });
+    }
     onOpenChange(false);
   };
   // The thumbnails follow the size; a custom one being typed keeps the last good shape.
@@ -82,7 +116,7 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
             className="flex min-h-0 flex-col"
             onSubmit={(e) => {
               e.preventDefault();
-              create();
+              void create();
             }}
           >
             <div className="flex items-center gap-3 border-b border-ui-subtle px-5 py-3.5">
@@ -98,8 +132,10 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
               </label>
               <div>
                 <span className="mb-1 block text-[12px] text-ui-3">Start from</span>
-                <TemplateGallery choice={choice} onChoice={setChoice} width={shown.width} height={shown.height} />
+                <TemplateGallery choice={choice} onChoice={choose} width={shown.width} height={shown.height} profiles={profiles} />
               </div>
+              <RoleSensors roles={roles} onOverride={override} />
+              {!fromLibrary && (
               <div role="radiogroup" aria-label="Size">
                 <span className="mb-1 block text-[12px] text-ui-3">Size</span>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
@@ -136,6 +172,12 @@ export function NewProfileDialog({ open, onOpenChange, onCreate }: NewProfileDia
                   <p className="mt-1.5 text-[11.5px] text-ui-danger">Width and height are whole numbers from 1 to {MAX_SIDE}.</p>
                 )}
               </div>
+              )}
+              <label className="flex items-center gap-2 text-[12.5px] text-ui-2">
+                <input type="checkbox" checked={toLibrary} onChange={(e) => setToLibrary(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--ui-accent)]" />
+                Also save to Library
+              </label>
+              {error && <p className="text-[11.5px] text-ui-danger">{error}</p>}
               <p className="text-[11.5px] leading-snug text-ui-4">
                 It comes in as a new screen and opens in the InfoPanel editor. You can change the size later in its profile settings.
                 {choice.template !== null && " A template's sensors are matched to this PC's; anything not found is left unbound for you to Remap."}

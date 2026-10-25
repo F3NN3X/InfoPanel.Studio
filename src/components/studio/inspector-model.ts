@@ -387,8 +387,8 @@ function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel
     ...(context.bound ? [ip("ip-binding", "Sensor", "ipSensor", ["Sensor", "Remap", "Data API key"])] : []),
     ...context.groups
       .filter((g) => g !== position)
-      // An advanced group's fields all sit behind its "More (n)".
-      .map((g) => section({ id: g.id, title: g.title, tab: "show", settings: g.advanced ? g.defs.map((d) => ({ ...d, more: true })) : g.defs })),
+      // An advanced group's fields all sit behind its "More (n)"; Binding details is a collapsed section of its own.
+      .map((g) => section({ id: g.id, title: g.title, tab: "show", settings: g.advanced && g.id !== "ip-sensor" ? g.defs.map((d) => ({ ...d, more: true })) : g.defs })),
     ...(context.unknown ? [ip("ip-unknown", "Unknown fields", "ipUnknown", ["Unknown", "Kept"])] : []),
   ];
 }
