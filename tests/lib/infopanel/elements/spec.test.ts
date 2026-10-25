@@ -21,6 +21,12 @@ describe("normalizeElement", () => {
     expect(ring && "fill" in ring && ring.fill).toHaveLength(3);
   });
 
+  it("keeps an LED bar continuous at 0 segments, as templates draw it, and in range otherwise", () => {
+    expect(normalizeElement({ type: "ledbar", fill: [red], segments: 0 })).toMatchObject({ segments: 0 });
+    expect(normalizeElement({ type: "ledbar", fill: [red], segments: -3 })).toMatchObject({ segments: 0 });
+    expect(normalizeElement({ type: "ledbar", fill: [red], segments: 999 })).toMatchObject({ segments: 200 });
+  });
+
   it("reads a card's optional stroke, shadow and glow, and nothing when they are null", () => {
     expect(normalizeElement({ type: "card", fill: [red], stroke: null, shadow: null, glow: null })).toMatchObject({ stroke: null, shadow: null, glow: null, pad: 0 });
     expect(normalizeElement({ type: "card", fill: [red], stroke: red, shadow: { blur: 200 }, glow: { blur: 0, color: red } })).toMatchObject({

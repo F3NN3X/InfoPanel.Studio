@@ -53,6 +53,7 @@ export interface RingSpec {
 export interface LedBarSpec {
   type: "ledbar";
   orientation: "horizontal" | "vertical";
+  /** That many segments with `gap` px between; 0 is one continuous bar. */
   segments: number;
   /** px between segments. */
   gap: number;
@@ -382,7 +383,7 @@ function normalizeKnown(o: Record<string, unknown>): ElementSpec | null {
       const fill = inks(o.fill, 1, 3);
       return fill
         ? {
-            type: "ledbar", orientation: orientation(o.orientation), segments: int(o.segments, 12, 1, 200), gap: num(o.gap, 3, 0, 60),
+            type: "ledbar", orientation: orientation(o.orientation), segments: int(o.segments, 12, 0, 200), gap: num(o.gap, 3, 0, 60),
             radius: num(o.radius, 2, 0, 256), track: ink(o.track), fill, glow: num(o.glow, 0, 0, 32), ...optThresholds(o.thresholds),
           }
         : null;
