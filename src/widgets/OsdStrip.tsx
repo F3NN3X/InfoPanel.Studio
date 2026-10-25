@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
-import { Widget, shell, get, num, fmt, has, useSkin, hw, type ShellProps, type WidgetMeta } from "./kit";
+import type { CSSProperties, ReactNode } from "react";
+import { Widget, shell, get, num, fmt, has, useSkin, useIpTag, hw, type IpTagExtra, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "OsdStrip",
@@ -52,6 +52,29 @@ export default function OsdStrip(p: OsdStripProps) {
     display: ["Display", `${resL} · ${fmt(hz)} Hz`, null],
   };
   const keys = (p.cells ?? (Object.keys(ALL) as OsdCell[])).filter((k) => k in ALL);
+  // Each cell's readings for InfoPanel: one per part of its text (the GPU cell is a load and a temperature).
+  const tag = useIpTag();
+  const rtss = (s: string) => `plugins.InfoPanel.RTSS.rtss.${s}`;
+  const IP: Partial<Record<OsdCell, [string, IpTagExtra][]>> = {
+    fps: [[rtss("fps"), { decimals: 0, unit: "" }]],
+    low: [[rtss("1% low fps"), { decimals: 0, unit: "" }]],
+    ft: [[rtss("current frame time"), { decimals: 1, unit: " ms" }]],
+    gpu: [[`libre.${gpu}_gpu_core_load`, { decimals: 0, unit: "%" }], [`libre.${gpu}_gpu_core`, { decimals: 0, unit: "°" }]],
+    cpu: [[`libre.${cpu}_cpu_total`, { decimals: 0, unit: "%" }]],
+    vram: [[`libre.${gpu}_gpu_memory_used`, { decimals: 1, unit: " GB", mul: 1 / 1024 }]],
+  };
+  // Tagged (the studio canvas only), a two-part text is two spans; elsewhere the cell's markup is as it was.
+  const shownAs = (k: OsdCell, v: string): ReactNode => {
+    const parts = IP[k]?.map(([key, extra]) => tag(key, extra)) ?? [];
+    if (!parts[0]?.["data-ip-key"]) return v;
+    if (parts.length === 1) return <span {...parts[0]}>{v}</span>;
+    const [a, b] = v.split(" · ");
+    return (
+      <>
+        <span {...parts[0]}>{a}</span> · <span {...parts[1]}>{b}</span>
+      </>
+    );
+  };
   return (
     <Widget
       {...shell(p)}
@@ -75,7 +98,7 @@ export default function OsdStrip(p: OsdStripProps) {
                       className="truncate text-[15px] font-medium tabular-nums text-[color:var(--w-fg)]"
                       style={{ fontFamily: sk.skin === "retro" || sk.skin === "tui" ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--accent)" : undefined) }}
                     >
-                      {v}
+                      {shownAs(k, v)}
                     </span>
                   </div>
                 );

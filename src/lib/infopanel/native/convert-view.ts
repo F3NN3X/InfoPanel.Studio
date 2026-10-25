@@ -23,7 +23,7 @@ import { defaultPalette } from "../elements/palette.ts";
 import { choiceFor, readChoices, rowsOf, type ExportRow } from "../export/native-choices.ts";
 import { defaultItem, type DisplayItem } from "../schema.ts";
 import type { DataApiValue } from "../sensors.ts";
-import { decompose, hideTagged } from "./decompose.ts";
+import { cssToArgb, decompose, hideTagged } from "./decompose.ts";
 import { make, type ConvertContext, type Look, type Note, type Rect } from "./items.ts";
 import { CONVERTERS, type Converter } from "./modules/index.ts";
 import { notCompatible, type NativeChoice } from "./tiers.ts";
@@ -76,6 +76,70 @@ async function picture(el: HTMLElement, size: { w: number; h: number }, hide?: (
 }
 
 const stem = (s: string, n: number) => `${safeStem(s) || "zone"}_${n}`;
+
+/**
+ * The page background's blurred layers (an image or gradient under a CSS blur) blurred for a picture, which leaves CSS
+ * filters out: each layer is pictured on its own, blurred on a canvas and shown in its place, unfiltered, until the
+ * returned `restore` puts the layer back as it was.
+ */
+export async function preBlur(page: HTMLElement): Promise<() => void> {
+  const undo: (() => void)[] = [];
+  for (const el of page.querySelectorAll<HTMLElement>("[data-page-background] > *")) {
+    const px = Number(/blur\(([\d.]+)px\)/.exec(getComputedStyle(el).filter)?.[1] ?? 0);
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    // A video's frame is drawn over its own background, so it stays as the picture takes it (unblurred).
+    if (!(px > 0) || w <= 0 || h <= 0 || el instanceof HTMLVideoElement) continue;
+    const sharp = await createImageBitmap(new Blob([bytesOf(await domToPng(el, { width: w, height: h, scale: 1, style: { filter: "none", inset: "0", zoom: "1" }, fetchFn: fetchForShot })) as BlobPart], { type: "image/png" }));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const g = canvas.getContext("2d");
+    if (!g) continue;
+    g.filter = `blur(${px}px)`;
+    g.drawImage(sharp, 0, 0);
+    const before = el.getAttribute("style");
+    // The layer's box is kept (its bleed past the page included); what it draws is the blurred picture.
+    el.style.filter = "none";
+    el.style.background = `url("${canvas.toDataURL("image/png")}") 0 0 / 100% 100% no-repeat`;
+    undo.push(() => (before === null ? el.removeAttribute("style") : el.setAttribute("style", before)));
+  }
+  return () => {
+    for (const u of undo) u();
+  };
+}
+
+/**
+ * Which items are the widget's backdrop: a live image over most of it (art under a scrim) where the picture of the
+ * rest is see-through, so it goes under the picture and the scrim and text stay on top. Everything else goes over it.
+ */
+export async function backdrops(png: Uint8Array, items: readonly DisplayItem[], zone: Rect): Promise<boolean[]> {
+  const art = items.map((it) => it.kind === "HttpImage" && it.Width * it.Height >= 0.8 * zone.w * zone.h);
+  if (!art.some(Boolean) || typeof createImageBitmap !== "function") return art.map(() => false);
+  const bmp = await createImageBitmap(new Blob([png as BlobPart], { type: "image/png" }));
+  const canvas = document.createElement("canvas");
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  const g = canvas.getContext("2d", { willReadFrequently: true });
+  if (!g) return art.map(() => false);
+  g.drawImage(bmp, 0, 0);
+  return items.map((it, i) => {
+    if (!art[i] || it.kind !== "HttpImage") return false;
+    const x = Math.min(bmp.width - 1, Math.max(0, Math.round(it.X - zone.x + it.Width / 2)));
+    const y = Math.min(bmp.height - 1, Math.max(0, Math.round(it.Y - zone.y + it.Height / 2)));
+    return g.getImageData(x, y, 1, 1).data[3] < 230;
+  });
+}
+
+/** A widget's surface as InfoPanel draws a card: its colour (`#AARRGGBB`) and corner radius; null when it is see-through. */
+export function surfaceOf(zone: HTMLElement, zoom = 1): { color: string; radius: number } | null {
+  const root = zone.querySelector<HTMLElement>("[data-wp-tier]");
+  if (!root) return null;
+  const style = getComputedStyle(root);
+  const color = cssToArgb(style.backgroundColor);
+  if (!/^#[0-9A-F]{8}$/.test(color) || color.startsWith("#00")) return null;
+  return { color, radius: Math.round((parseFloat(style.borderTopLeftRadius) || 0) / zoom) };
+}
 
 /** The page's own drawing: the zones and the Dynamic Island (a dashboard overlay InfoPanel has no item for) are left out. */
 const notPage = (n: Node): boolean => n instanceof Element && n.matches("[data-zone-id], [data-island]");
@@ -144,7 +208,12 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     const first = req.placements.map((p) => locate(req.scope, p.id)).find((s) => s !== null);
     if (first) {
       const size = { w: first.grid.width, h: first.grid.height };
-      items.push(await image(await picture(first.page, size, undefined, notPage), "Page background", { x: 0, y: 0, ...size }));
+      const restore = await preBlur(first.page);
+      try {
+        items.push(await image(await picture(first.page, size, undefined, notPage), "Page background", { x: 0, y: 0, ...size }));
+      } finally {
+        restore();
+      }
     }
   }
 
@@ -177,8 +246,8 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
       if (req.only) only = spot.box;
     }
 
-    // A module that isn't InfoPanel data, or a zone that isn't on the page to read.
-    if (row0.entry.tier === "native-only") {
+    // A module that isn't InfoPanel data (pictured only when a snapshot of it is picked), or a zone that isn't on the page to read.
+    if (row0.entry.tier === "native-only" && (choiceFor(row0, stored) !== "snapshot" || !spot)) {
       report.push({ name: row0.name, choice: "not-compatible", outcome: notCompatible(row0.name), notes: [] });
       continue;
     }
@@ -226,8 +295,11 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     // The widget as drawn, its values hidden, with each value a native item at its place.
     const tagged = decompose(spot.el, spot.box, ctx, spot.zoom);
     if (tagged.length > 0) {
-      const chrome = await image(await picture(spot.el, spot.box, hideTagged), `${row0.name} background`, spot.box);
-      items.push({ ...defaultItem("Group"), Name: row0.name, X: Math.round(spot.box.x), Y: Math.round(spot.box.y), DisplayItems: [chrome, ...tagged] } as DisplayItem);
+      const bytes = await picture(spot.el, spot.box, hideTagged);
+      const chrome = await image(bytes, `${row0.name} background`, spot.box);
+      const under = await backdrops(bytes, tagged, spot.box);
+      const kids = [...tagged.filter((_, i) => under[i]), chrome, ...tagged.filter((_, i) => !under[i])];
+      items.push({ ...defaultItem("Group"), Name: row0.name, X: Math.round(spot.box.x), Y: Math.round(spot.box.y), DisplayItems: kids } as DisplayItem);
       done("values rebuilt over a picture of the rest", [...new Set(notes.map((x) => x.text))]);
       continue;
     }
@@ -237,8 +309,9 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
       await snapshot(p.module in CONVERTERS ? "its readings aren't on this PC, so a picture of it now" : "its values aren't readable yet, so a picture of it now");
       continue;
     }
-    // The widget's card, behind its items (the dashboard's own surface isn't an InfoPanel item).
-    items.push(make("Shape", ctx, spot.box, `${row0.name} card`, { FillColor: palette.card, CornerRadius: 12, ShowFrame: false, ShowGradient: false }), ...made);
+    // The widget's own surface behind its items, as drawn (none where it is see-through).
+    const card = surfaceOf(spot.el, spot.zoom);
+    items.push(...(card ? [make("Shape", ctx, spot.box, `${row0.name} card`, { FillColor: card.color, CornerRadius: card.radius, ShowFrame: false, ShowGradient: false })] : []), ...made);
     done("rebuilt from InfoPanel items", notes.map((x) => x.text));
   }
   // One zone alone becomes a canvas of its own size, its items moved to the corner.

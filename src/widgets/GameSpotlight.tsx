@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Widget, GlassPill, shell, get, num, fmt, has, Img, Icon, Bar, Ring, Dot, MediaProgress, KenBurns, Logo, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, GlassPill, shell, get, num, fmt, has, Img, Icon, Bar, Ring, Dot, MediaProgress, KenBurns, Logo, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 import type { ModuleSettings } from "@/modules/types";
 import { sizeTierOf } from "@/modules/setting-readers";
 import type { VizStyle } from "./core/viz/types";
@@ -108,7 +108,14 @@ export default function GameSpotlight(p: GameSpotlightProps) {
   const motion = p.motion !== false,
     scrim = p.scrim ?? 0.6;
   const statusText = P("game-status-text") || "Now playing";
-  const stats: [string, string][] = [["Session", S("current-session-time")], ["Playtime", hoursText(S("current-game-playtime"))], ["Avg session", S("avg-session-time")], ...(fps > 0 ? [["FPS", fmt(fps)] as [string, string]] : [])];
+  const stats: [string, string, string][] = [
+    ["Session", S("current-session-time"), "SteamAPI-Session.current-session-time"],
+    ["Playtime", hoursText(S("current-game-playtime")), "SteamAPI-Session.current-game-playtime"],
+    ["Avg session", S("avg-session-time"), "SteamAPI-Session.avg-session-time"],
+    ...(fps > 0 ? [["FPS", fmt(fps), ""] as [string, string, string]] : []),
+  ];
+  const tag = useIpTag();
+  const steam = (entry: string) => (entry ? `plugins.InfoPanel.SteamAPI.${entry}` : undefined);
 
   return (
     <Widget
@@ -253,7 +260,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
           );
         return (
           <div className="relative h-full overflow-hidden" style={ON_ART}>
-            <KenBurns src={banner} on={motion} />
+            <KenBurns src={banner} on={motion} ip={tag(banner ? steam("SteamAPI-Profile.current_game_banner_url") : undefined, { kind: "image" })} />
             <div className="absolute inset-0" style={{ background: `linear-gradient(0deg, rgba(8,8,10,${Math.min(1, scrim + 0.35)}) 0%, rgba(8,8,10,${scrim * 0.5}) 45%, rgba(8,8,10,${scrim * 0.15}) 100%), linear-gradient(90deg, rgba(8,8,10,${scrim * 0.7}), transparent 60%)` }} />
             <div className="relative flex h-full flex-col p-4">
               <div className="flex items-center gap-2">
@@ -273,7 +280,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                 </GlassPill>
               </div>
               <div className="mt-auto flex flex-col gap-3">
-                <Logo src={logo} name={game} size={big} className={`${h > 220 ? "max-h-24" : "max-h-14"} max-w-[65%]`} />
+                <Logo src={logo} name={game} size={big} ip={tag(logo ? steam("SteamAPI-Profile.game_logo_url") : undefined, { kind: "image" })} className={`${h > 220 ? "max-h-24" : "max-h-14"} max-w-[65%]`} />
                 {lay === "combo" && has(track) ? (
                   <div className="flex max-w-md items-center gap-3 rounded-2xl bg-black/45 p-2.5 ring-1 ring-white/10 backdrop-blur-xl" data-wp-inner-blur="">
                     <Img src={widgetImage(get(d, `${ms}.cover-art`))} icon="music_note" className="h-10 w-10 shrink-0 rounded-lg" />
@@ -294,10 +301,10 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                 ) : (
                   h > 150 && (
                     <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
-                      {stats.slice(0, w > 560 ? 4 : 2).map(([l, v]) => (
+                      {stats.slice(0, w > 560 ? 4 : 2).map(([l, v, entry]) => (
                         <div key={l} className="flex flex-col">
                           <span className="text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--w-faint)]">{l}</span>
-                          <span className="text-[15px] font-semibold tabular-nums">{v}</span>
+                          <span {...tag(steam(entry), entry.endsWith("playtime") ? { decimals: 1, unit: " h" } : undefined)} className="text-[15px] font-semibold tabular-nums">{v}</span>
                         </div>
                       ))}
                       {Number.isFinite(ach) && w > 420 && (
@@ -307,7 +314,7 @@ export default function GameSpotlight(p: GameSpotlightProps) {
                               <Icon name="trophy" className="text-sm text-amber-300" />
                               {A("latest-achievement")}
                             </span>
-                            <span className="shrink-0 tabular-nums text-[color:var(--w-fg)]">{fmt(ach)}%</span>
+                            <span {...tag(steam("SteamAPI-Achievements.current-achievements"), { decimals: 0, unit: "%" })} className="shrink-0 tabular-nums text-[color:var(--w-fg)]">{fmt(ach)}%</span>
                           </div>
                           <Bar value={ach} className="h-1.5" track="bg-white/15" />
                         </div>

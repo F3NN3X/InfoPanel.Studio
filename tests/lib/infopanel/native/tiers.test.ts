@@ -16,12 +16,12 @@ describe("tiers", () => {
     expect(Object.keys(MODULE_TIERS).filter((id) => !ids.includes(id))).toEqual([]);
   });
 
-  it("marks the five widgets that aren't InfoPanel data native-only, each with a reason, and offers only leave", () => {
+  it("marks the five widgets that aren't InfoPanel data native-only, each with a reason, left out unless a snapshot is picked", () => {
     const only = Object.entries(MODULE_TIERS).filter(([, e]) => e.tier === "native-only");
     expect(only.map(([id]) => id).sort()).toEqual(["CodingAgents", "Countdown", "Timer", "WaveLink", "WebPage"]);
     for (const [, e] of only) {
       expect(e.reason).toBeTruthy();
-      expect(choicesFor(e)).toEqual(["leave"]);
+      expect(choicesFor(e)).toEqual(["leave", "snapshot"]);
     }
     expect(notCompatible("Countdown")).toBe("Countdown isn't compatible with InfoPanel and is left out");
   });

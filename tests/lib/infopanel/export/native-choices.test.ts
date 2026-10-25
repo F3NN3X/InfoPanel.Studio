@@ -41,9 +41,9 @@ describe("rowsOf", () => {
     expect(rowsOf(zone("Fans"), title)[0]).toMatchObject({ fallback: "recreate" });
   });
 
-  it("says a widget that isn't InfoPanel data is left out, with only that option", () => {
+  it("says a widget that isn't InfoPanel data is left out unless a snapshot of it is picked", () => {
     const rows = rowsOf(zone("Countdown"), (id) => id);
-    expect(rows[0]).toMatchObject({ fallback: "leave", options: ["leave"] });
+    expect(rows[0]).toMatchObject({ fallback: "leave", options: ["leave", "snapshot"] });
     expect(notices(rows)).toEqual(["Countdown isn't compatible with InfoPanel and is left out"]);
   });
 

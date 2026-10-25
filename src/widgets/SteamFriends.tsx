@@ -1,4 +1,4 @@
-import { Empty, fitRows, Widget, shell, get, rows, has, type ShellProps, type WidgetMeta } from "./kit";
+import { Empty, fitRows, Widget, shell, get, rows, has, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "SteamFriends",
@@ -92,6 +92,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
   const friends = friendsOf(S("friends-activity"), p.sort ?? "status", p.ingameOnly ?? false);
   const showTime = p.showTime ?? true;
   const counts = `${S("friends-online")} online · ${S("friends-ingame")} in-game · ${S("total-friends")} friends`;
+  const tag = useIpTag();
   return (
     <Widget
       {...shell(p)}
@@ -121,7 +122,7 @@ export default function SteamFriends(p: SteamFriendsProps) {
           <div className="flex h-full min-h-0 flex-col gap-3">
             {p.showCounts && <div className="shrink-0 truncate text-xs leading-4 text-[color:var(--w-muted)]">{counts}</div>}
             {table ? (
-              <FriendTable friends={shown} colorOf={colorOf} showTime={showTime} w={w} />
+              <FriendTable friends={shown} colorOf={colorOf} showTime={showTime} w={w} ip={tag("plugins.InfoPanel.SteamAPI.SteamAPI-Social.friends-activity", { kind: "table", rows: shown.length })} />
             ) : (
               <ul className={`flex min-h-0 flex-col overflow-hidden ${twoLine ? "gap-2.5" : "gap-1.5"}`}>
                 {shown.map((f, i) => (
@@ -155,20 +156,22 @@ export default function SteamFriends(p: SteamFriendsProps) {
   );
 }
 
-function FriendTable({ friends, colorOf, showTime, w }: { friends: Friend[]; colorOf: (f: Friend) => string; showTime: boolean; w: number }) {
+function FriendTable({ friends, colorOf, showTime, w, ip }: { friends: Friend[]; colorOf: (f: Friend) => string; showTime: boolean; w: number; ip: Record<string, string | number> }) {
   // columns drop from the right as the box narrows: status from 300px, time from 220px, game from 160px
   const status = w >= 300;
   const time = showTime && w >= 220;
   const game = w >= 160;
   const cols = ["10px", "minmax(0,1.2fr)", status && "minmax(0,0.8fr)", game && "minmax(0,1.4fr)", time && "auto"].filter(Boolean).join(" ");
   const cell = "truncate";
+  // Tagged for InfoPanel, each header names the plugin's column it heads.
+  const col = (i: number) => (ip["data-ip-key"] ? { "data-ip-col": i } : {});
   return (
-    <div className="grid min-h-0 content-start items-center gap-x-3 overflow-hidden text-xs" style={{ gridTemplateColumns: cols, gridAutoRows: "22px" }}>
+    <div {...ip} className="grid min-h-0 content-start items-center gap-x-3 overflow-hidden text-xs" style={{ gridTemplateColumns: cols, gridAutoRows: "22px" }}>
       <span />
-      <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`}>Friend</span>
-      {status && <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`}>Status</span>}
-      {game && <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`}>Playing</span>}
-      {time && <span className={`${cell} text-right text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`}>Last online</span>}
+      <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(0)}>Friend</span>
+      {status && <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(1)}>Status</span>}
+      {game && <span className={`${cell} text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(2)}>Playing</span>}
+      {time && <span className={`${cell} text-right text-[10.5px] font-medium uppercase tracking-[0.06em] text-[color:var(--w-faint)]`} {...col(3)}>Last online</span>}
       {friends.map((f, i) => (
         <FriendRow key={i} f={f} color={colorOf(f)} status={status} game={game} time={time} cell={cell} />
       ))}

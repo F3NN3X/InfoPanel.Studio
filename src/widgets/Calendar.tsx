@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "Calendar",
@@ -44,6 +44,7 @@ export default function Calendar(p: CalendarProps) {
   const len = new Date(yr, mon, 0).getDate();
   const cells: (number | null)[] = [...Array(Number.isFinite(first) ? first : 0).fill(null), ...Array.from({ length: Number.isFinite(len) ? len : 0 }, (_, i) => i + 1)];
   const week = Math.ceil((date.getTime() - new Date(yr, 0, 1).getTime()) / 864e5 / 7);
+  const tag = useIpTag();
   return (
     <Widget {...shell(p)} title={p.title} showHeader={false} compact={{ label: W[date.getDay()], value: day, sub: `${M[mon - 1]} ${yr}`, kind: "value", icon: "calendar_today" }}>
       {({ size, w, h }) =>
@@ -76,15 +77,15 @@ export default function Calendar(p: CalendarProps) {
         <div className="flex h-full gap-5">
           {(size === "lg" || w > 420) && (
             <div className="flex shrink-0 flex-col justify-between">
-              <span className="text-sm font-medium" style={{ color: "color-mix(in oklab, var(--accent) 60%, var(--w-fg))" }}>{W[date.getDay()]}</span>
-              <Num className="text-7xl font-semibold leading-none tracking-tight">{day}</Num>
+              <span {...tag("date", { kind: "clock", format: "dddd" })} className="text-sm font-medium" style={{ color: "color-mix(in oklab, var(--accent) 60%, var(--w-fg))" }}>{W[date.getDay()]}</span>
+              <Num ip={tag("date", { kind: "clock", format: "%d" })} className="text-7xl font-semibold leading-none tracking-tight">{day}</Num>
               <span className="text-sm text-[color:var(--w-muted)]">
                 {M[mon - 1]} {yr} · W{week}
               </span>
             </div>
           )}
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[color:var(--w-fg)]">{M[mon - 1]}</span>
+            <span {...tag("date", { kind: "clock", format: "MMMM" })} className="text-xs font-semibold text-[color:var(--w-fg)]">{M[mon - 1]}</span>
             <div className="grid min-h-0 flex-1 grid-cols-7 gap-0.5 text-center text-[11px]" style={{ gridAutoRows: "minmax(0,1fr)" }}>
               {Array.from({ length: 7 }, (_, i) => (
                 <span key={`h${i}`} className="text-[10px] font-medium text-[color:var(--w-faint)]">

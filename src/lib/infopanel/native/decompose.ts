@@ -7,15 +7,20 @@
  *  - ring: the value arc of a ring (the circle itself, so its track stays in the picture), with `-start` and `-sweep`;
  *  - graph: a sparkline;
  *  - meter: a segmented level ladder, with `-segments`, `-zones` and `-colors` (the zones' CSS colours, the unlit one last);
- *  - clock: the time or date, with `-format` (.NET), as a Clock or Calendar.
+ *  - clock: the time or date, with `-format` (.NET), as a Clock or Calendar;
+ *  - image: a picture whose URL is a reading (a plugin's art), as an HttpImage over the box it is drawn in;
+ *  - table: a plugin's table, as a TableSensor: its header cells carry `data-ip-col` (the plugin's column) and stay in
+ *    the picture, its rows start at the first text under them, and `-rows` says how many are shown.
  * Reading a rendered zone gives each tagged node as a native item at its box. The picture of everything else is taken
  * with the tagged nodes hidden (`hideTagged`, visibility only, so nothing moves), so the live values are never baked in.
+ * A text reading (a plugin's "9.4 °C") can come out longer than the widget's own formatting of it, so it grows to the
+ * right from where the widget's text starts; a graph without a fixed top scales to its readings, as the widget's does.
  */
 import { argb, bound, fontSizeOf, make, type ConvertContext, type Rect } from "./items.ts";
 import type { DisplayItem } from "../schema.ts";
 import { DEFAULT_GAUGE, normalizeGauge } from "../gauges/vector.ts";
 
-export type TaggedKind = "value" | "bar" | "ring" | "graph" | "clock" | "meter";
+export type TaggedKind = "value" | "bar" | "ring" | "graph" | "clock" | "meter" | "image" | "table";
 
 export interface Tagged {
   key: string;
@@ -50,9 +55,12 @@ export interface Tagged {
   colors?: [string, string, string];
   vertical?: boolean;
   reverse?: boolean;
+  /** Table: the plugin's columns in the order drawn, each with its left edge (from the table's) and width; the rows shown. */
+  columns?: { index: number; dx: number; w: number }[];
+  rows?: number;
 }
 
-const KINDS: readonly string[] = ["value", "bar", "ring", "graph", "clock", "meter"];
+const KINDS: readonly string[] = ["value", "bar", "ring", "graph", "clock", "meter", "image", "table"];
 const GENERIC = /^(system-ui|ui-sans-serif|sans-serif|serif|monospace|ui-monospace|-apple-system|inherit)$/i;
 
 const num = (v: string | undefined): number | undefined => (v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : undefined);
@@ -112,6 +120,53 @@ function resolveColor(css: string, inside: Element): string | undefined {
   g.fillRect(0, 0, 1, 1);
   const [r, gr, b, a] = g.getImageData(0, 0, 1, 1).data;
   return `rgba(${r}, ${gr}, ${b}, ${Math.round((a / 255) * 100) / 100})`;
+}
+
+/** Where an image is drawn: a contained `<img>` at its picture's own box inside the element, anything else at its box. */
+function imageRect(el: HTMLElement): DOMRect | { left: number; top: number; width: number; height: number } {
+  const own = el.getBoundingClientRect();
+  if (!(el instanceof HTMLImageElement) || !el.naturalWidth || !el.naturalHeight) return own;
+  const style = getComputedStyle(el);
+  if (style.objectFit !== "contain" && style.objectFit !== "scale-down") return own;
+  const s = Math.min(own.width / el.naturalWidth, own.height / el.naturalHeight, style.objectFit === "scale-down" ? 1 : Infinity);
+  const w = el.naturalWidth * s;
+  const h = el.naturalHeight * s;
+  // object-position as a share of the free space ("0% 50%", "left center") or px.
+  const at = (v: string | undefined, free: number) =>
+    v === "left" || v === "top" ? 0 : v === "right" || v === "bottom" ? free : v?.endsWith("%") ? (parseFloat(v) / 100) * free : v?.endsWith("px") ? parseFloat(v) : free / 2;
+  const [px, py] = style.objectPosition.split(/\s+/);
+  return { left: own.left + at(px, own.width - w), top: own.top + at(py, own.height - h), width: w, height: h };
+}
+
+/** A table: its columns from the header cells (`data-ip-col`), its rows from the first text under them, in that text's font. */
+function readTable(el: HTMLElement, base: Tagged, origin: DOMRect, zoom: number): Tagged | null {
+  const heads = [...el.querySelectorAll<HTMLElement>("[data-ip-col]")];
+  if (heads.length === 0) return null;
+  const own = el.getBoundingClientRect();
+  const bottom = Math.max(...heads.map((h) => h.getBoundingClientRect().bottom));
+  const first = [...el.querySelectorAll<HTMLElement>("*")].find(
+    (n) => !n.closest("[data-ip-col]") && n.childElementCount === 0 && (n.textContent ?? "").trim() !== "" && n.getBoundingClientRect().top >= bottom - 1,
+  );
+  if (!first) return null;
+  const top = textRect(first).top;
+  const style = getComputedStyle(first);
+  const columns = heads
+    .map((h) => {
+      const r = h.getBoundingClientRect();
+      return { index: Number(h.dataset.ipCol), dx: (r.left - own.left) / zoom, w: r.width / zoom };
+    })
+    .filter((c) => Number.isInteger(c.index) && c.index >= 0)
+    .sort((a, b) => a.dx - b.dx);
+  return {
+    ...base,
+    box: rectOf({ left: own.left, top, width: own.width, height: own.bottom - top }, origin, zoom),
+    fontSize: parseFloat(style.fontSize) || base.fontSize,
+    color: style.color,
+    bold: Number(style.fontWeight) >= 600,
+    font: firstFamily(style.fontFamily),
+    columns,
+    rows: num(el.dataset.ipRows),
+  };
 }
 
 function readOne(el: HTMLElement, origin: DOMRect, zoom: number): Tagged | null {
@@ -175,6 +230,10 @@ function readOne(el: HTMLElement, origin: DOMRect, zoom: number): Tagged | null 
       const stroke = [...el.querySelectorAll("path, polyline, line")].map((n) => getComputedStyle(n).stroke).find((c) => c && c !== "none" && !c.startsWith("url("));
       return { ...base, color: stroke ?? base.color };
     }
+    case "image":
+      return { ...base, box: rectOf(imageRect(el), origin, zoom) };
+    case "table":
+      return readTable(el, base, origin, zoom);
     case "ring": {
       // The value circle in a 100-unit viewBox: its px stroke is the viewBox's scale times its width.
       const svg = el.closest("svg");
@@ -204,9 +263,12 @@ export function readTagged(root: Element, zoom = 1): Tagged[] {
   return [...root.querySelectorAll<HTMLElement>("[data-ip-key]")].flatMap((el) => readOne(el, origin, zoom) ?? []);
 }
 
-/** For `onCloneEachNode` of the picture: the tagged nodes keep their box but are not drawn. */
+/** For `onCloneEachNode` of the picture: the tagged nodes keep their box but are not drawn; a table's header stays. */
 export function hideTagged(cloned: Node): void {
-  if (cloned instanceof Element && (cloned as HTMLElement | SVGElement).dataset?.ipKey) (cloned as HTMLElement | SVGElement).style.visibility = "hidden";
+  if (!(cloned instanceof Element)) return;
+  const el = cloned as HTMLElement | SVGElement;
+  if (el.dataset?.ipKey) el.style.visibility = "hidden";
+  else if (el.dataset?.ipCol !== undefined) el.style.visibility = "visible";
 }
 
 /** "rgb(r, g, b)" / "rgba(r, g, b, a)" as `#AARRGGBB`. */
@@ -278,7 +340,9 @@ export function taggedItem(t: Tagged, origin: Rect, ctx: ConvertContext): Displa
         ...(read.thousands ? { ShowThousandsSeparator: true } : {}),
         ...(t.mul !== undefined && t.mul !== 1 ? { MultiplicationModifier: t.mul } : {}),
       });
-      // A plugin's text can run much longer than the widget's own formatting of it.
+      // A plugin's text can run longer than the widget's own formatting of it: right-aligned, it grows to the right from
+      // where the widget's text starts (into the gap after it, not over the icon or label before it).
+      if (text && t.align === "right") return bound({ ...item, RightAlign: false, Width: 0 } as DisplayItem, t.key, ctx);
       return bound(widen(item, t.align, text ? 1.5 : 0.5), t.key, ctx);
     }
     case "clock": {
@@ -334,7 +398,19 @@ export function taggedItem(t: Tagged, origin: Rect, ctx: ConvertContext): Displa
       return bound({ ...make("Gauge", ctx, box, name, { MaxValue: t.max ?? 100 }), vector } as unknown as DisplayItem, t.key, ctx);
     }
     case "graph":
-      return bound(make("Graph", ctx, box, name, { MinValue: 0, MaxValue: t.max ?? 100, Color: ink(t.color, ctx.palette.accent1), Background: false, Fill: false }), t.key, ctx);
+      return bound(
+        make("Graph", ctx, box, name, { MinValue: 0, MaxValue: t.max ?? 100, ...(t.max === undefined ? { AutoValue: true } : {}), Color: ink(t.color, ctx.palette.accent1), Background: false, Fill: false }),
+        t.key,
+        ctx,
+      );
+    case "image":
+      return bound(make("HttpImage", ctx, box, name), t.key, ctx);
+    case "table": {
+      // InfoPanel puts 10 px between columns: each one's width runs to the next one's left edge.
+      const cols = t.columns ?? [];
+      const format = cols.map((c, i) => `${c.index}:${Math.max(1, Math.round(i + 1 < cols.length ? cols[i + 1].dx - c.dx - 10 : c.w))}`).join("|");
+      return bound(make("TableSensor", ctx, box, name, { ...font, TableFormat: format, ShowHeader: false, MaxRows: t.rows ?? 10, Ellipsis: true }), t.key, ctx);
+    }
   }
 }
 

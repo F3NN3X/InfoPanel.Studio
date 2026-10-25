@@ -2,7 +2,7 @@ import { useGeneral } from "@/hooks/use-general";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { localeHour12 } from "@/lib/general";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "Clock",
@@ -72,6 +72,7 @@ export default function Clock(p: ClockProps) {
   const pad = (v: number) => String(Number.isFinite(v) ? v : 0).padStart(2, "0");
   const date = new Date(yr, mon - 1, day);
   const secs = p.showSeconds ?? true;
+  const tag = useIpTag();
   return (
     <Widget
       {...shell(p)}
@@ -98,16 +99,16 @@ export default function Clock(p: ClockProps) {
         ) : (
           <div className="flex h-full flex-col justify-center">
             <div className="flex items-baseline gap-1.5 leading-none">
-              <Num className="font-semibold tracking-tight" style={{ fontSize: timePx(size, w, h, secs && size !== "xs", h12, p.showDate !== false) }}>
+              <Num ip={tag("time", { kind: "clock", format: h12 ? "hh:mm" : "HH:mm" })} className="font-semibold tracking-tight" style={{ fontSize: timePx(size, w, h, secs && size !== "xs", h12, p.showDate !== false) }}>
                 {pad(hh)}
                 <span className="inline-block text-[color:var(--accent)]" style={{ opacity: !reduced && S % 2 === 1 ? 0.3 : 1 }}>:</span>
                 {pad(M)}
               </Num>
-              {secs && size !== "xs" && <span className="font-mono text-lg tabular-nums text-[color:var(--w-faint)]">{pad(S)}</span>}
-              {h12 && <span className="text-sm font-medium text-[color:var(--w-muted)]">{k("pm") ? "PM" : "AM"}</span>}
+              {secs && size !== "xs" && <span {...tag("time", { kind: "clock", format: "ss" })} className="font-mono text-lg tabular-nums text-[color:var(--w-faint)]">{pad(S)}</span>}
+              {h12 && <span {...tag("time", { kind: "clock", format: "tt" })} className="text-sm font-medium text-[color:var(--w-muted)]">{k("pm") ? "PM" : "AM"}</span>}
             </div>
             {p.showDate !== false && (
-              <span className={`${size === "xs" ? "mt-1 text-[11px]" : "mt-2 text-sm"} text-[color:var(--w-muted)]`}>
+              <span {...tag("date", { kind: "clock", format: size === "lg" ? "dddd, d MMM yyyy" : "dddd, d MMM" })} className={`${size === "xs" ? "mt-1 text-[11px]" : "mt-2 text-sm"} text-[color:var(--w-muted)]`}>
                 {DAYS[date.getDay()]}, {day} {MONTHS[mon - 1]}
                 {size === "lg" ? ` ${yr}` : ""}
               </span>

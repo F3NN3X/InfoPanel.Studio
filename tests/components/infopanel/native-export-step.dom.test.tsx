@@ -33,8 +33,11 @@ describe("NativeExportStep", () => {
     render(<Harness />);
     expect(screen.getByText(/rebuilt from InfoPanel items/)).toBeTruthy();
     expect(screen.getByText("Countdown isn't compatible with InfoPanel and is left out")).toBeTruthy();
-    // It has no row to choose for.
-    expect(screen.queryByRole("radiogroup", { name: "Countdown in InfoPanel" })).toBeNull();
+    // Left out by default; a snapshot can be picked instead, never a rebuild.
+    expect(checked("Countdown in InfoPanel")).toEqual([" Leave out"]);
+    const [recreate, snapshot] = screen.getByRole("radiogroup", { name: "Countdown in InfoPanel" }).querySelectorAll("button");
+    expect((recreate as HTMLButtonElement).disabled).toBe(true);
+    expect((snapshot as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("defaults a rebuilt widget to Recreate and an unbuilt one to Static snapshot, with no live image anywhere", () => {

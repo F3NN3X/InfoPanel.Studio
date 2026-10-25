@@ -43,6 +43,8 @@ export interface Compact {
   img?: string;
   viz?: (heightClass: string) => ReactNode;
   kind?: "spark" | "bar" | "ring" | "text" | "value";
+  /** The value's InfoPanel tag (`useIpTag`), on the studio canvas only. */
+  ip?: Record<string, string | number>;
 }
 
 export interface Studio extends Compact {
