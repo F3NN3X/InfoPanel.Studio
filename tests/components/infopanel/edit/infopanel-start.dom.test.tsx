@@ -25,7 +25,7 @@ beforeEach(() => {
 describe("the InfoPanel start view", () => {
   it("lists the Library profiles that aren't placed here, and opens one", async () => {
     const onOpenLibrary = vi.fn();
-    render(<InfoPanelStart config={config} onOpen={vi.fn()} onContinue={vi.fn()} onOpenLibrary={onOpenLibrary} onNew={vi.fn()} onImport={vi.fn()} />);
+    render(<InfoPanelStart config={config} onOpen={vi.fn()} onContinue={vi.fn()} onOpenLibrary={onOpenLibrary} onNew={vi.fn()} onImport={vi.fn()} onManage={vi.fn()} />);
     expect(await screen.findByRole("heading", { name: "In your Library" })).toBeTruthy();
     // The placed one is under "In this dashboard" only.
     expect(screen.getAllByText("Desk")).toHaveLength(1);
@@ -39,7 +39,7 @@ describe("the InfoPanel home page", () => {
     const onContinue = vi.fn();
     const onNew = vi.fn();
     const current = canvasPlaces(config)[0];
-    render(<InfoPanelStart config={config} current={current} onContinue={onContinue} onOpen={vi.fn()} onOpenLibrary={vi.fn()} onNew={onNew} onImport={vi.fn()} />);
+    render(<InfoPanelStart config={config} current={current} onContinue={onContinue} onOpen={vi.fn()} onOpenLibrary={vi.fn()} onNew={onNew} onImport={vi.fn()} onManage={vi.fn()} />);
     await screen.findByRole("heading", { name: "In your Library" });
     const heads = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     expect(heads).toEqual(["Continue editing", "Create", "In this dashboard", "In your Library"]);

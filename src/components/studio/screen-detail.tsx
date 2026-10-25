@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Monitor } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { Toggle } from "@/components/ui/toggle";
+import type { ControlKiosk } from "@/lib/control";
 import { resolveGeneral } from "@/lib/general";
 import { valueText } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfileView } from "@/lib/layout";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { FPS_OPTIONS, MOTION_OPTIONS, ROTATE_DEFAULT_SECONDS, ROTATE_MAX_SECONDS, ROTATE_MIN_SECONDS, clampSeconds } from "./inspector/behaviour-model";
 import { InheritChip } from "./inherit-chip";
 import { LinkRow } from "./link-row";
+import { ShownOn } from "./screens/shown-on";
 import { GridSection, SizeFitSection } from "./screen-layout";
 import { ScreenPages } from "./screen-pages";
 import { screenMeta } from "./screens-model";
@@ -37,6 +39,12 @@ interface ScreenDetailProps {
   /** The Live popover ("Pause it for now from Live ↗"). */
   onOpenLive: () => void;
   navigateTo: (target: NavTarget) => void;
+  /** The kiosks connected now (Shown on). */
+  kiosks: readonly ControlKiosk[];
+  /** The screen "Best fit" resolves to for the studio window. */
+  autoProfileId: string;
+  /** Open the screen in Design, or in the InfoPanel editor when it is one InfoPanel profile. */
+  onOpenScreen: (id: string) => void;
 }
 
 const LABEL = "font-ui-mono text-[10px] tracking-[0.06em] text-[#7c7c86]";
@@ -99,6 +107,9 @@ export function ScreenDetail({
   onOpenPage,
   onOpenLive,
   navigateTo,
+  kiosks,
+  autoProfileId,
+  onOpenScreen,
 }: ScreenDetailProps) {
   const rotate = stored.rotate;
   const general = resolveGeneral(config);
@@ -107,14 +118,30 @@ export function ScreenDetail({
   const motion = stored.performance?.motion ?? general.motion;
   const look = ownCount(config, { level: "screen", profileId: stored.id });
   return (
-    <aside aria-label="Screen details" className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel max-sm:w-full max-sm:overflow-visible max-sm:border-l-0 max-sm:border-t">
+    <aside aria-label="Screen details" className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel max-[899px]:w-full max-[899px]:overflow-visible max-[899px]:border-l-0 max-[899px]:border-t">
       <div className="flex items-center gap-2 border-b border-ui-subtle p-3.5">
         <Monitor className="h-[18px] w-[18px] shrink-0 text-ui-3" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] font-semibold text-ui-1">{stored.name}</div>
           <div className="truncate font-ui-mono text-[10.5px] text-ui-4">{screenMeta(stored)}</div>
         </div>
+        <button
+          type="button"
+          onClick={() => onOpenScreen(stored.id)}
+          className="inline-flex h-7 shrink-0 items-center rounded-[7px] bg-ui-1 px-3 text-[12px] font-semibold text-ui-inverse-fg hover:opacity-90"
+        >
+          Open
+        </button>
       </div>
+
+      <Group id="shown" label="SHOWN ON">
+        <ShownOn
+          screenId={stored.id}
+          isDefault={config.activeProfile === stored.id}
+          isBestFit={config.activeProfile === "auto" && autoProfileId === stored.id}
+          kiosks={kiosks}
+        />
+      </Group>
 
       <Group id="size" label="SIZE & FIT">
         <SizeFitSection profile={profile} updateProfile={updateProfile} windowSize={windowSize} />

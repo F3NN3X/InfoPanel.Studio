@@ -33,6 +33,7 @@ import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
 import { useAddPanel } from "./use-add-panel";
 import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
+import { screenKind } from "@/lib/screens/list";
 import { withScreenPerformance } from "./screens-model";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
@@ -501,6 +502,19 @@ function StudioViewBody({
     </Suspense>
   );
 
+  /** A Screens card's Open: a screen that is one InfoPanel profile opens in the InfoPanel editor, any other in Design. */
+  const openScreen = (id: string) => {
+    const place = canvasPlaces(config).find((c) => c.profileId === id);
+    const target = config.profiles.find((p) => p.id === id);
+    if (place && target && screenKind(target) === "infopanel") {
+      openOnLand.current = place.zoneId;
+      openZone(place.profileId, place.pageId, place.zoneId);
+      return;
+    }
+    selectProfile(id);
+    ui.setMode("design");
+  };
+
   const screensEl = showScreens && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
     <ScreensView
@@ -521,9 +535,14 @@ function StudioViewBody({
       }}
       onOpenLive={() => ui.setLiveOpen(true)}
       navigateTo={ui.navigateTo}
+      kiosks={kiosksOf(control)}
+      onOpenScreen={openScreen}
       onAddProfile={edit.addProfile}
+      onAddMadeProfile={edit.addImportedProfile}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
+      onUndo={history.undo}
+      onOpenSaved={(item) => void editCanvas(item)}
     />
     </Suspense>
   );
@@ -808,6 +827,7 @@ function StudioViewBody({
           setNewProfileOpen(true);
         }}
         onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+        onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
       />
       {canvasEditor && (
         <div hidden inert className="hidden">
