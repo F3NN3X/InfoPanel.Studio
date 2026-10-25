@@ -70,7 +70,7 @@ export default function FramePacing(p: FramePacingProps) {
       icon="timeline"
       compact={(box) =>
         box.shape === "tile" || box.shape === "column"
-          ? { label: "Frame time", value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, hist: idle ? undefined : graph, min: 0, max: top, kind: idle ? "value" : "spark" }
+          ? { label: "Frame time", value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps`, idle: idle ? "No game running" : undefined, hist: idle ? undefined : graph, min: 0, max: top, kind: idle ? "value" : "spark" }
           : undefined
       }
       studio={{ label: "Frame pacing", live: !idle, value: idle ? "—" : frame, d: 1, unit: idle ? "" : "ms", sub: idle ? "No game running" : `${fmt(fps)} fps · 1% ${fmt(num(R("1% low fps")))}`, hist: idle ? undefined : graph, min: 0, max: top }}

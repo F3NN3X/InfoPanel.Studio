@@ -22,7 +22,9 @@ const NO_VALUE: CSSProperties = { color: "var(--w-faint)", fontWeight: 400, text
    compact = { label, value, unit, d, sub, icon, t, pct, hist, img, kind: 'spark' | 'bar' | 'ring' | 'text' } */
 export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape; w: number; h: number; icon?: string }) {
   const sk = useSkin();
-  const kind = c.kind ?? (c.hist ? "spark" : Number.isFinite(c.pct) ? "bar" : "text");
+  // A count handed over as text ("7" with unit "online") is still a number: the text layout would drop its unit.
+  const counted = c.unit && typeof c.value === "string" && /^-?\d[\d,]*(\.\d+)?$/.test(c.value.trim());
+  const kind = c.kind ?? (c.hist ? "spark" : Number.isFinite(c.pct) ? "bar" : counted ? "value" : "text");
   const val = typeof c.value === "number" ? fmt(c.value, c.d ?? 0) : c.value;
   const none = isNoValue(val);
   // numbers shrink to fit the available width instead of overflowing (text values clamp instead)
@@ -52,6 +54,13 @@ export function CompactView({ c, shape, w, h, icon }: { c: Compact; shape: Shape
           {c.sub && <span className="truncate text-[11px] text-zinc-300">{c.sub}</span>}
           {c.viz ? <div className="mt-1.5">{c.viz("h-6")}</div> : Number.isFinite(c.pct) && <Bar value={c.pct!} className="mt-1.5 h-1" track="bg-white/20" />}
         </div>
+      </div>
+    );
+  if (c.idle && shape !== "strip" && h >= 180)
+    return (
+      <div className="flex h-full min-w-0 flex-col items-center justify-center gap-1 text-center text-[color:var(--w-faint)]">
+        <Icon name={c.icon ?? icon} className="text-3xl" />
+        <span className="text-sm text-[color:var(--w-fg)]">{c.idle}</span>
       </div>
     );
   if (shape === "strip")

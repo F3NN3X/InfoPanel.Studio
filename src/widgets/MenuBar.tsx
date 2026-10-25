@@ -96,7 +96,9 @@ export default function MenuBar(p: MenuBarProps) {
         const stacked = p.stacked ?? h >= 40;
         const per = stacked ? 74 : 92,
           n = Math.max(1, Math.min(keys.length, Math.floor((w - 8) / per)));
-        const it = open ? ALL[open] : undefined;
+        // a tall zone shows a detail card even before an item is picked (the first one), so it is never an empty card
+        const detailKey = open ?? keys[0];
+        const it = detailKey ? ALL[detailKey] : undefined;
         // the items that fit; the open one always stays among them (it takes the last place)
         const first = keys.slice(0, n);
         const visible = open && keys.includes(open) && !first.includes(open) ? [...first.slice(0, n - 1), open] : first;
@@ -133,7 +135,7 @@ export default function MenuBar(p: MenuBarProps) {
               })}
             </div>
             {/* the detail needs the bar (~44px) plus its own ~110px; shorter zones keep just the selected tab */}
-            {it && open && h >= 160 && (
+            {it && detailKey && h >= 160 && (
               <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-[10px] border border-[color:var(--w-track)] bg-black/25 p-3 shadow-[0_8px_24px_-12px_rgba(0,0,0,.5)]">
                 <div className="flex items-baseline justify-between gap-3">
                   <b className="text-sm font-semibold">{it.k}</b>
@@ -142,7 +144,7 @@ export default function MenuBar(p: MenuBarProps) {
                     <span className={`text-[0.6em] font-semibold ${it.text ? "ml-1" : ""}`}>{shown(it)[1]}</span>
                   </span>
                 </div>
-                <Spark values={H[open]} min={0} max={it.max} className="min-h-[24px] flex-1" />
+                <Spark values={H[detailKey]} min={0} max={it.max} className="min-h-[24px] flex-1" />
                 <div className="grid gap-x-4 gap-y-1 text-xs" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))" }}>
                   {it.more.map(([a, b]) => (
                     <div key={a} className="flex flex-col">

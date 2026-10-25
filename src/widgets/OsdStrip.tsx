@@ -80,7 +80,7 @@ export default function OsdStrip(p: OsdStripProps) {
       {...shell(p)}
       showHeader={false}
       compact={(box) =>
-        box.shape === "strip" ? undefined : { label: "FPS", value: idle ? "—" : fps, sub: idle ? "No game running" : `1% ${fmt(low)} · ${fmt(ft, 1)} ms`, kind: "value", icon: "videogame_asset", t: drop(fps) === "#F2665E" ? "crit" : drop(fps) ? "warn" : "ok" }
+        box.shape === "strip" ? undefined : { label: "FPS", value: idle ? "—" : fps, sub: idle ? "No game running" : `1% ${fmt(low)} · ${fmt(ft, 1)} ms`, idle: idle ? "No game running" : undefined, kind: "value", icon: idle ? "sports_esports" : "videogame_asset", t: drop(fps) === "#F2665E" ? "crit" : drop(fps) ? "warn" : "ok" }
       }
       studio={{ label: "OSD", live: !idle, value: idle ? "—" : fps, unit: idle ? "" : "fps", rows: keys.map((k) => ({ n: ALL[k][0], v: ALL[k][1] })) }}
     >

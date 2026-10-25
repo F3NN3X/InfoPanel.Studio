@@ -37,10 +37,12 @@ function RateGraph({ rH, wH, rd, wr }: { rH: number[]; wH: number[]; rd: number;
       </div>
     );
   return (
-    <div className="relative min-h-0 flex-1">
-      <Spark values={rH} min={0} className="absolute inset-0 h-full" />
-      <Spark values={wH} min={0} fill={false} color="#a78bfa" className="absolute inset-0 h-full" />
-      <div className="absolute right-0 top-0 grid gap-0.5">{legend}</div>
+    <div className="flex min-h-0 flex-1 flex-col gap-1">
+      <div className="grid grid-cols-2 gap-3">{legend}</div>
+      <div className="relative min-h-0 flex-1">
+        <Spark values={rH} min={0} className="absolute inset-0 h-full" />
+        <Spark values={wH} min={0} fill={false} color="#a78bfa" className="absolute inset-0 h-full" />
+      </div>
     </div>
   );
 }

@@ -48,7 +48,7 @@ export default function SteamGame(p: SteamGameProps) {
           <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, rgba(10,10,12,${scrim * 0.3}) 0%, rgba(10,10,12,${Math.min(1, scrim + 0.35)}) 100%)` }} />
           <div className={`relative flex h-full flex-col ${size === "xs" ? "p-2.5" : "p-4"}`}>
             <div className="flex items-center gap-2">
-              {size !== "xs" && <Img src={widgetImage(P("game_icon_url"))} icon="stadia_controller" className="h-6 w-6 rounded-md" />}
+              {size !== "xs" && <Img src={widgetImage(P("game_icon_url"))} icon="stadia_controller" className="h-6 w-6 shrink-0 rounded-md" />}
               <span className="truncate text-[11px] font-medium uppercase tracking-[0.08em] text-[color:var(--w-muted)]">{P("game-status-text") || "Now playing"}</span>
               {size !== "xs" && <GlassPill className="ml-auto">⏱ {S("current-session-time")}</GlassPill>}
             </div>
