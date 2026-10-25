@@ -89,12 +89,13 @@ describe("profile templates", () => {
   });
 
   describe.each(TEMPLATES.map((t) => [t.id, t] as const))("%s", (_, t) => {
-    it("instantiates bound to the machine, reads back, and exports with its baked files", async () => {
-      const { stored, unbound } = instantiate(t, { name: t.name, width: 480, height: 320, variant: t.variants[1].id, sensors: MOCK_SENSORS, now });
+    // 480 × 320, and the size a template is made for.
+    it.each([{ width: 480, height: 320 }, ...(t.size ? [t.size] : [])])("instantiates bound to the machine at $width × $height, reads back, and exports with its baked files", async ({ width, height }) => {
+      const { stored, unbound } = instantiate(t, { name: t.name, width, height, variant: t.variants[1].id, sensors: MOCK_SENSORS, now });
       expect(unbound).toEqual([]);
       const read = readStored(JSON.parse(JSON.stringify(stored)));
       expect(read.issues.filter((i) => i.code !== "unknown-field")).toEqual([]);
-      expect(read.profile).toMatchObject({ Width: 480, Height: 320, BackgroundColor: t.background, Font: t.type.family });
+      expect(read.profile).toMatchObject({ Width: width, Height: height, BackgroundColor: t.background, Font: t.type.family });
       expect(read.stored.palette).toEqual({ ...t.palette, ...t.variants[1].palette });
       // Every sensor item reads a mock sensor, natively.
       const bound = [...walkItems(read.items)].filter(({ item }) => isBound(item));
@@ -126,5 +127,41 @@ describe("profile templates", () => {
     const { stored } = instantiate(t, { name: "G", width: 480, height: 320, sensors: MOCK_SENSORS, now });
     const slotted = stored.items.filter((i) => (i.$ as { slots?: object; element?: object } | undefined)?.slots || (i.$ as { element?: object } | undefined)?.element);
     expect(slotted.length).toBe(stored.items.length);
+  });
+});
+
+describe("the Dark, White, Smoke and Float templates", () => {
+  const family = ["deck", "meters", "orbit", "tower", "ticker"].map((id) => TEMPLATES.find((t) => t.id === id)!);
+  const input = { name: "T", width: 480, height: 320, sensors: MOCK_SENSORS, now };
+  const elementTypes = (stored: ReturnType<typeof instantiate>["stored"]) => {
+    const items = [...walkItems(readStored(JSON.parse(JSON.stringify(stored))).items)].map(({ item }) => item as DisplayItem & { element?: { type: string } });
+    return items.map((i) => i.element?.type);
+  };
+
+  it.each(family.map((t) => [t.id, t] as const))("%s has Dark, White, Smoke and Float, and its own size", (_, t) => {
+    expect(t.variants.map((v) => v.id)).toEqual(expect.arrayContaining(["dark", "white", "smoke", "float"]));
+    expect(t.size).toBeDefined();
+  });
+
+  it.each(family.map((t) => [t.id, t] as const))("%s in Float draws no cards and shadows its text", (_, t) => {
+    const float = elementTypes(instantiate(t, { ...input, variant: "float" }).stored);
+    const dark = elementTypes(instantiate(t, { ...input, variant: "dark" }).stored);
+    expect(float).not.toContain("card");
+    expect(float).toContain("shadowtext");
+    expect(dark).toContain("card");
+    expect(dark).not.toContain("shadowtext");
+  });
+
+  it("Deck's wide layout leaves out the performance and network tiles, and its standard one has them", () => {
+    const deck = family[0];
+    const names = (width: number, height: number) => [...walkItems(readStored(JSON.parse(JSON.stringify(instantiate(deck, { ...input, width, height }).stored))).items)].map(({ item }) => item.Name);
+    expect(names(1920, 480)).not.toContain("Performance card");
+    expect(names(1920, 480)).not.toContain("Network card");
+    expect(names(1920, 1080)).toEqual(expect.arrayContaining(["Performance card", "Network card"]));
+  });
+
+  it("Deck's network graph is two series, and Meters' rings are double rings", () => {
+    expect(elementTypes(instantiate(family[0], input).stored)).toEqual(expect.arrayContaining(["dual", "rows"]));
+    expect(elementTypes(instantiate(family[1], { ...input, width: 1600, height: 300 }).stored)).toContain("doublering");
   });
 });

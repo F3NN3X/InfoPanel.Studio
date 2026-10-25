@@ -47,6 +47,8 @@ export interface Template {
   name: string;
   /** One line for the gallery. */
   blurb: string;
+  /** The size the template is made for; the gallery picks it when the template is chosen (a preset). */
+  size?: { width: number; height: number };
   /** The profile's own look: background, text colour and type. */
   background: string;
   color: string;
@@ -67,7 +69,7 @@ export interface Template {
 export const ink = (k: Kit, slot: Slot): Ink => slotInk(k.palette, slot);
 
 /** InfoPanel's FontSize for text drawn `px` high (FontSize × FontScale is the drawn size). */
-const fontSize = (k: Kit, px: number) => Math.max(4, Math.round(px / k.profile.FontScale));
+export const fontSize = (k: Kit, px: number) => Math.max(4, Math.round(px / k.profile.FontScale));
 
 const round = (b: Box): Box => ({ x: Math.round(b.x), y: Math.round(b.y), width: Math.max(1, Math.round(b.width)), height: Math.max(1, Math.round(b.height)) });
 

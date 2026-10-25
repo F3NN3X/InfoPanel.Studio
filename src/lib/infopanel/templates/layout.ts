@@ -44,7 +44,7 @@ export type Cell = readonly [col: number, row: number, cols: number, rows: numbe
 export interface Grid {
   cols: number;
   rows: number;
-  /** One cell per tile, in the template's tile order. */
+  /** One cell per tile, in the template's tile order; a shape that has fewer cells drops the tiles at the end. */
   cells: readonly Cell[];
 }
 
