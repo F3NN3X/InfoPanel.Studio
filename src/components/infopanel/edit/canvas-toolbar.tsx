@@ -17,6 +17,7 @@ import {
   Layers,
   Library,
   MoreHorizontal,
+  PackagePlus,
   Redo2,
   Trash2,
   Undo2,
@@ -104,12 +105,14 @@ export interface CanvasToolbarProps {
   apiUnreachable: boolean;
   /** Save to Library, or Update in Library once the profile has an item. */
   library?: LibraryLink;
+  /** "Save as component…" for the selection. */
+  onSaveComponent?: () => void;
   onDone: () => void;
   /** Back to the InfoPanel home page, the document still open. */
   onHome?: () => void;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onDone, onHome }: CanvasToolbarProps) {
+export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onSaveComponent, onDone, onHome }: CanvasToolbarProps) {
   const { selection } = editor;
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
@@ -158,6 +161,7 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
       <ToolButton icon={Copy} label="Duplicate (Ctrl+D)" onClick={editor.duplicate} disabled={selection.length === 0} />
       <ToolButton icon={Group} label="Group (Ctrl+G)" onClick={editor.group} disabled={topmost(selection).length < 1} />
       <ToolButton icon={Ungroup} label="Ungroup (Ctrl+Shift+G)" onClick={editor.ungroup} disabled={single?.kind !== "Group"} />
+      {onSaveComponent && <ToolButton icon={PackagePlus} label="Save as component (Ctrl+Shift+S)" onClick={onSaveComponent} disabled={selection.length === 0} />}
       <ToolButton icon={ArrowUp} label="Draw later (up)" onClick={() => editor.reorder(1)} disabled={!single} />
       <ToolButton icon={ArrowDown} label="Draw earlier (down)" onClick={() => editor.reorder(-1)} disabled={!single} />
       <ToolButton icon={Trash2} label="Delete (Del)" onClick={editor.remove} disabled={selection.length === 0} />

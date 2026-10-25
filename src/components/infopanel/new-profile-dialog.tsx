@@ -7,6 +7,7 @@
  * adds it as a new screen and opens it in the InfoPanel editor. Lazy-loaded with its gallery and
  * the template data.
  */
+import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
@@ -93,7 +94,7 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
   const ok = name.trim() !== "" && size.width !== null && size.height !== null;
   const template = choice.template ? templateById(choice.template) : undefined;
   useEffect(() => {
-    if (open) listLibrary().then((all) => setProfiles(all.filter((i) => i.kind === "canvas")), () => setProfiles([]));
+    if (open) listLibrary().then((all) => setProfiles(all.filter(isProfileItem)), () => setProfiles([]));
   }, [open]);
   // The roles the template reads and the sensor each has (size doesn't change them).
   const roles = useMemo(

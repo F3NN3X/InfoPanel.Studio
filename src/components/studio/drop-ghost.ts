@@ -4,6 +4,7 @@ import { settingKeys, type ModuleSettings } from "@/modules/types";
 import { DND_MIME, DND_MIME_PANEL, DND_MIME_SETTINGS, ALL_MODULES } from "./studio-modules";
 import { zoneFits, type ZoneRect } from "./zone-geometry";
 import type { LibraryItem as MyLibraryItem } from "@/lib/library";
+import { isComponent } from "@/lib/my-library/component-meta";
 import { activeLibraryDrag, libraryDragOf } from "@/lib/my-library/drag";
 
 type Size = { cols: number; rows: number };
@@ -129,5 +130,5 @@ const CANVAS_DROP_KINDS: readonly string[] = ["image", "svg", "video", "gauge"];
  * the grid's placement ghost, and its "No room", would be wrong there.
  */
 export function canvasTakesDrop(dragged: CanvasDrop | null, over: CanvasPoint | null): boolean {
-  return !!over && dragged?.kind === "mylib" && !!dragged.item && CANVAS_DROP_KINDS.includes(dragged.item.kind);
+  return !!over && dragged?.kind === "mylib" && !!dragged.item && (CANVAS_DROP_KINDS.includes(dragged.item.kind) || isComponent(dragged.item));
 }

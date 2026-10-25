@@ -10,7 +10,9 @@ import { profilePoint } from "@/lib/infopanel/editor/arrange";
 import { snapMove, snapThreshold } from "@/lib/infopanel/editor/snap";
 import { recordCopy } from "@/lib/my-library/copies";
 import { activeLibraryDrag, libraryDragKind, libraryDragOf, setActiveLibraryDrag } from "@/lib/my-library/drag";
+import { isComponent } from "@/lib/my-library/component-meta";
 import { droppedFileOf } from "@/lib/my-library/model";
+import type { LibraryItem } from "@/lib/library";
 import { useElementSize } from "@/hooks/use-element-size";
 import { getApiBase } from "@/lib/data-api";
 import { canvasSensor, fitScale, KeyHistory } from "@/lib/infopanel/canvas";
@@ -50,9 +52,11 @@ interface EditCanvasProps {
   onCompareFailed?: () => void;
   /** A kind dragged from the Add palette and dropped: where, with the snapping to apply to its box. */
   onPlace?: (entry: AddEntry, place: DropPlace) => void;
+  /** A Library component dropped at a point (profile pixels): the editor merges it. */
+  onComponent?: (item: LibraryItem, at: { x: number; y: number }) => void;
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace }: EditCanvasProps) {
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -72,7 +76,8 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
   // A My library image, SVG or video dropped on the canvas becomes an Image item there (spec §8).
   const isMediaDrag = (types: readonly string[]) => {
     const k = libraryDragKind(types);
-    return k === "image" || k === "svg" || k === "video";
+    const active = activeLibraryDrag();
+    return k === "image" || k === "svg" || k === "video" || (k === "canvas" && !!onComponent && !!active && isComponent(active));
   };
   const pointOf = (e: DragEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
@@ -94,6 +99,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     if (!drag || !item || item.id !== drag.libraryItemId) return;
     e.preventDefault();
     setActiveLibraryDrag(null);
+    if (isComponent(item)) return onComponent?.(item, pointOf(e));
     const file = droppedFileOf(item);
     if (!file) return onRefused?.(`${item.name} can’t be drawn by InfoPanel`);
     const r = withDroppedImage(open.stored, profile, editor.committed, file, pointOf(e));

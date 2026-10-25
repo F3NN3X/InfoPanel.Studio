@@ -259,6 +259,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
       { keys: KEYS.duplicate, label: "Duplicate" },
       { keys: "Ctrl+G", label: "Group" },
       { keys: "Ctrl+Shift+G", label: "Ungroup" },
+      { keys: "Ctrl+Shift+S", label: "Save as component" },
       { keys: `${KEYS.remove} / Backspace`, label: "Delete" },
       { keys: KEYS.deselect, label: "Clear the selection, then leave the editor" },
     ],

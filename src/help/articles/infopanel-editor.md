@@ -164,6 +164,7 @@ Shift+drag — Move on one axis; resize keeping the shape
 Ctrl+D — Duplicate
 Ctrl+G — Group
 Ctrl+Shift+G — Ungroup
+Ctrl+Shift+S — Save the selection as a component
 Del — Delete
 Esc — Clear the selection, then leave the editor
 Ctrl+Z — Undo
@@ -222,6 +223,14 @@ Name, width and height, background, font, font size, text colour, font scale, **
 **Save to Library** in the toolbar keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
 
 New profiles can start from a Library profile, and **Edit profile** in the Library opens one here. Removing an item from the Library never deletes a file that a profile on a screen still uses.
+
+## Components
+
+Select items, a group or an element and choose **Save as component** (`Ctrl+Shift+S`, the toolbar or the Layers menu). Name it, and it goes to the Library's **Components**. A part of an element such as a Row is saved with the whole element. The component keeps the files its items use, the palette slots they follow, and for each sensor the role it fills (CPU load, GPU temperature and so on) when it matches one.
+
+Drag a component from the Library onto the canvas. Its items land where you drop them, in front, as one undo step. A file already in the profile is reused, and a different file with the same name gets a new one. Colours that follow a palette slot take this profile's colour for that slot; fixed colours stay as they were.
+
+Sensors the profile can't find are matched by role on this PC. Any that still don't match open Remap. A component placed on a screen's grid becomes a canvas zone of its own, with its own copy of the items.
 
 ## Exporting
 

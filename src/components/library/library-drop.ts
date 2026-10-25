@@ -13,9 +13,12 @@ import type { DashboardConfig } from "@/lib/layout";
 import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { UserPanelPreset } from "@/lib/panel-model";
+import { isComponent, rolesOf } from "@/lib/my-library/component-meta";
 import { setActiveLibraryDrag } from "@/lib/my-library/drag";
 import { droppedFileOf, fileUrl, KIND_LABEL, metaOf } from "@/lib/my-library/model";
-import { withCanvas } from "@/components/studio/import-actions";
+import { importIntoProfile, withCanvas } from "@/components/studio/import-actions";
+import { getCatalog } from "@/lib/catalog";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
 import type { CanvasPoint } from "@/components/studio/drop-ghost";
 import type { ZoneRect } from "@/components/studio/zone-geometry";
 import { addGaugeZone, addToProfile, applyStyle, dataOf, imagePanel, setAsBackground, type StudioBridge } from "./library-actions";
@@ -34,6 +37,15 @@ export function librarySizeOf(item: LibraryItem | undefined, grid: { cols: numbe
     case "panel": {
       const data = item.data as UserPanelPreset | undefined;
       return { cols: Math.min(grid.cols, data?.colSpan ?? 2), rows: Math.min(grid.rows, data?.rowSpan ?? 1) };
+    }
+    case "canvas": {
+      // A component takes the footprint of its own shape, at most half the grid.
+      if (!isComponent(item)) return null;
+      const m = metaOf(item);
+      const aspect = m.width && m.height ? m.width / m.height : 16 / 10;
+      const cell = { w: grid.width / Math.max(1, grid.cols), h: grid.height / Math.max(1, grid.rows) };
+      const rows = Math.max(1, Math.min(Math.ceil(grid.rows / 2), 2));
+      return { cols: Math.max(1, Math.min(grid.cols, Math.round((rows * cell.h * aspect) / cell.w) || 1)), rows };
     }
     // The ghost marks the cell: the style lands on the zone there.
     case "style":
@@ -64,7 +76,8 @@ export async function dropLibraryItem(
   setActiveLibraryDrag(null);
   const item = drop.item ?? (await getLibraryItem(drop.id).catch(() => null));
   if (!item) return b.toast("That library item is no longer there");
-  const target = inCanvas && (item.kind === "image" || item.kind === "svg" || item.kind === "video" || item.kind === "gauge") ? b.profile.placements.find((z) => z.id === inCanvas.zoneId && z.canvas) : undefined;
+  const target = inCanvas && (isComponent(item) || item.kind === "image" || item.kind === "svg" || item.kind === "video" || item.kind === "gauge") ? b.profile.placements.find((z) => z.id === inCanvas.zoneId && z.canvas) : undefined;
+  if (inCanvas && target?.canvas && isComponent(item)) return dropComponentIntoCanvas(b, item, target.id, inCanvas);
   if (inCanvas && target?.canvas) return item.kind === "gauge" ? dropGaugeIntoCanvas(b, item, target.id, inCanvas) : dropIntoCanvas(b, item, target.id, target.canvas, inCanvas);
   switch (item.kind) {
     case "image":
@@ -81,6 +94,8 @@ export async function dropLibraryItem(
       return setAsBackground(b, item);
     case "gauge":
       return dropGaugeOnGrid(b, item, rect);
+    case "canvas":
+      return isComponent(item) ? addComponentZone(b, item, rect) : b.toast("Open an InfoPanel profile from the Library to place it");
     default:
       return b.toast(`${KIND_LABEL[item.kind]}s don’t go on the page: open it from the Library`);
   }
@@ -161,4 +176,55 @@ async function dropGaugeIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: s
   if (!placed) return b.toast(`The canvas zone is gone, so ${item.name} wasn’t added`);
   b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId, itemPath: placed.path, label: `${placed.name} › ${item.name}` });
   b.toast(`Added ${item.name} to ${placed.name}`);
+}
+
+/** The Data API's sensors as the role lookup reads them. */
+const liveSensors = () => getCatalog().sensors as unknown as Record<string, DataApiValue>;
+
+/** A component's canvas, from the item. */
+async function componentOf(b: StudioBridge, item: LibraryItem): Promise<StoredCanvas | null> {
+  const stored = await dataOf<StoredCanvas>(item).catch(() => undefined);
+  if (!stored) b.toast(`${item.name} couldn’t be read from the Library`);
+  return stored ?? null;
+}
+
+/**
+ * A component as a canvas zone of its own on the page, in `rect` or the free cell that draws it largest: one undo
+ * step, one copy. Its sensors are matched by role on this PC first.
+ */
+export async function addComponentZone(b: StudioBridge, item: LibraryItem, rect?: ZoneRect | null): Promise<void> {
+  const stored = await componentOf(b, item);
+  if (!stored) return;
+  const [{ componentCanvas, withComponent }, { openCanvas }] = await Promise.all([import("@/lib/infopanel/component"), import("@/lib/infopanel/canvas")]);
+  const own = componentCanvas(stored, item.name);
+  // The roles bind the zone's own copy: merge it into an empty canvas of its size, which keeps the sensors it finds.
+  const open = openCanvas(own);
+  const size = { width: open.profile.Width, height: open.profile.Height };
+  const bound = withComponent({ ...own, items: [], assets: [], fonts: [] }, open.profile, [], own, { at: { x: size.width / 2, y: size.height / 2 } }, { roles: rolesOf(item), sensors: liveSensors() });
+  const canvas = { ...bound.stored, assets: own.assets, source: own.source, profile: own.profile };
+  const r = importIntoProfile(b.config, b.profile, canvas, size, rect ?? undefined);
+  if (!r) return b.toast("No free cell on this page: make room first");
+  b.setConfig(r.config);
+  b.select(r.zoneId);
+  b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId: r.zoneId, label: item.name });
+  b.toast(bound.open > 0 ? `Added ${item.name}; ${bound.open} sensor${bound.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name}`);
+}
+
+/** A component merged into a canvas zone at the drop point: one undo step, one copy. */
+async function dropComponentIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: string, at: CanvasPoint): Promise<void> {
+  const data = await componentOf(b, item);
+  if (!data) return;
+  const [{ openCanvas }, { editItems }, { withComponent }] = await Promise.all([import("@/lib/infopanel/canvas"), import("@/lib/infopanel/canvas-edit"), import("@/lib/infopanel/component")]);
+  let placed: { path: string; name: string; open: number } | undefined;
+  b.setConfig((c) => {
+    const current = canvasIn(c, zoneId);
+    if (!current) return c;
+    const open = openCanvas(current);
+    const r = withComponent(open.stored, open.profile, editItems(open), data, { at: { x: at.fx * open.profile.Width, y: at.fy * open.profile.Height } }, { roles: rolesOf(item), sensors: liveSensors() });
+    placed = { path: r.paths[0], name: open.stored.source.name, open: r.open };
+    return withCanvas(c, zoneId, r.stored);
+  });
+  if (!placed) return b.toast(`The canvas zone is gone, so ${item.name} wasn’t added`);
+  b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId, itemPath: placed.path, label: `${placed.name} › ${item.name}` });
+  b.toast(placed.open > 0 ? `Added ${item.name} to ${placed.name}; ${placed.open} sensor${placed.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name} to ${placed.name}`);
 }

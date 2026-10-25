@@ -9,6 +9,7 @@ import type { DroppedFile } from "@/lib/infopanel/canvas-edit";
 import type { Verdict } from "@/lib/infopanel/font-licence";
 import type { LibraryItem, LibraryKind } from "@/lib/library";
 import { aspectTag, hamming, type PixelStats } from "./analyse";
+import { isComponent, isProfileItem } from "./component-meta";
 import { BUILTIN_STYLE, BUILTIN_THEME, CONFIG_PREFIXES } from "./config-items";
 
 export type Licence = Verdict;
@@ -130,7 +131,8 @@ export type CollectionId =
   | "gauges"
   | "panels"
   | "styles"
-  | "canvases";
+  | "canvases"
+  | "components";
 
 export interface Collection {
   id: CollectionId;
@@ -160,6 +162,7 @@ export const COLLECTIONS: Collection[] = [
   { id: "icons", label: "Icons", section: "Library", parent: "media" },
   { id: "svg", label: "SVG templates", section: "Library", parent: "media" },
   { id: "fonts", label: "Fonts", section: "Library", hint: "Fonts appear in every Typography picker." },
+  { id: "components", label: "Components", section: "Library", hint: "Pieces of an InfoPanel profile. Drag one onto the screen or into the InfoPanel editor, or save one from a selection there." },
   { id: "canvases", label: "InfoPanel profiles", section: "Library", hint: "Profiles for the InfoPanel editor. Edit opens one there; a new profile can start from one." },
 ];
 
@@ -194,10 +197,11 @@ const KIND_OF: Partial<Record<CollectionId, LibraryKind>> = {
   gauges: "gauge",
   panels: "panel",
   styles: "style",
-  canvases: "canvas",
 };
 
 export function inCollection(item: LibraryItem, id: CollectionId, index: LibraryIndex, now = Date.now()): boolean {
+  if (id === "canvases") return isProfileItem(item);
+  if (id === "components") return isComponent(item);
   const kind = KIND_OF[id];
   if (kind) return item.kind === kind;
   const m = metaOf(item);
@@ -385,6 +389,7 @@ export function metaLine(item: LibraryItem): string {
     case "theme":
       return "Theme";
     case "canvas":
+      if (isComponent(item)) return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Component";
       return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Canvas";
     default:
       return [px, bytes].filter(Boolean).join(" · ");
@@ -407,7 +412,7 @@ export function cardTag(item: Pick<LibraryItem, "id" | "kind" | "meta">): { text
     case "font":
       return { text: m.origin ?? "Added", builtin: false };
     case "canvas":
-      return { text: "Imported", builtin: false };
+      return { text: isComponent(item) ? "Component" : "Imported", builtin: false };
     default:
       return { text: "Saved", builtin: false };
   }

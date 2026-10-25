@@ -224,7 +224,7 @@ export function freeAssetName(assets: readonly StoredAsset[], name: string): str
 }
 
 /** The canvas's files with `file` among them: the same bytes already there are reused (and keep their name). */
-function withAsset(assets: StoredAsset[], file: DroppedFile): { assets: StoredAsset[]; name: string } {
+export function withAsset(assets: StoredAsset[], file: DroppedFile): { assets: StoredAsset[]; name: string } {
   const same = assets.find((a) => a.hash === file.hash);
   if (same) return { assets, name: same.name };
   const name = freeAssetName(assets, file.name);

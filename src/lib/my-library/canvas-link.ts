@@ -11,6 +11,7 @@ import type { StoredCanvas } from "../infopanel/import/stored.ts";
 import { CANVAS_ID, type DashboardConfig } from "../layout.ts";
 import { getLibraryItem, type LibraryItem, type NewLibraryItem } from "../library.ts";
 import { findCanvasUse } from "./canvas-use.ts";
+import { isProfileItem, type ComponentRoles } from "./component-meta.ts";
 
 const ASSET_PREFIX = "/api/assets/";
 
@@ -47,6 +48,11 @@ export function canvasItem(stored: StoredCanvas, name: string): NewLibraryItem<S
   return { kind: "canvas", name, data: stored, files: canvasFiles(stored), meta: canvasMeta(stored) };
 }
 
+/** A new Library item for a component: a canvas flagged in its meta, with the roles its sensors were saved with. */
+export function componentItem(stored: StoredCanvas, name: string, roles: ComponentRoles): NewLibraryItem<StoredCanvas> {
+  return { ...canvasItem(stored, name), meta: { ...canvasMeta(stored), component: true, roles } };
+}
+
 /** The patch that brings an item up to date with an edited profile: its data, files and meta (the name stays the user's). */
 export function canvasUpdate(item: Pick<LibraryItem, "files" | "meta">, stored: StoredCanvas): Pick<NewLibraryItem<StoredCanvas>, "data" | "files" | "meta"> {
   return { data: stored, files: canvasFiles(stored, item.files), meta: { ...item.meta, ...canvasMeta(stored) } };
@@ -64,7 +70,7 @@ const isSource = (item: Pick<LibraryItem, "meta">, source: StoredCanvas["source"
 
 /** The Library profile a placed one was saved to or came from; undefined when it has no item. */
 export function linkedItem(items: readonly LibraryItem[], canvas: Pick<StoredCanvas, "source">, zoneId: string): LibraryItem | undefined {
-  const profiles = items.filter((i) => i.kind === "canvas");
+  const profiles = items.filter(isProfileItem);
   return profiles.find((i) => isSource(i, canvas.source)) ?? profiles.find((i) => i.copies.some((c) => c.zoneId === zoneId));
 }
 
@@ -72,7 +78,7 @@ export function linkedItem(items: readonly LibraryItem[], canvas: Pick<StoredCan
 export function unplacedProfiles(items: readonly LibraryItem[], config: Pick<DashboardConfig, "profiles">): LibraryItem[] {
   const zones = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements.filter((z) => z.module === CANVAS_ID && z.canvas)));
   return items.filter((i) => {
-    if (i.kind !== "canvas") return false;
+    if (!isProfileItem(i)) return false;
     const s = metaSource(i);
     if (s && findCanvasUse(config, { source: { ...s, origin: "new" } })) return false;
     return !i.copies.some((c) => zones.some((z) => z.id === c.zoneId));

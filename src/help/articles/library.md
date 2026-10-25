@@ -3,7 +3,7 @@ id: library
 title: Library
 icon: perm_media
 related: [assets, gauges, import]
-verified: 1.3.0-beta.26
+verified: 1.3.0-beta.27
 ---
 
 One place for what you reuse: Themes, Styles, Panels, gauges, images, videos, fonts and imported canvases. Gauges are built and edited in their own view, **Gauges** on the rail.
@@ -12,7 +12,13 @@ Open **Library** on the rail. The sidebar lists the **Smart** collections and th
 
 ## Collections
 
-Smart: All items, Recent, Unused, Large files, Duplicates and Suggested for theme. By type: Themes, Styles, Panels, Gauges, Media (Images, Videos, Backgrounds, Icons and SVG templates), Fonts and InfoPanel profiles. Saved Themes and Styles sit beside the built-in ones.
+Smart: All items, Recent, Unused, Large files, Duplicates and Suggested for theme. By type: Themes, Styles, Panels, Gauges, Media (Images, Videos, Backgrounds, Icons and SVG templates), Fonts, Components and InfoPanel profiles. Saved Themes and Styles sit beside the built-in ones.
+
+## Components
+
+A component is a piece of an InfoPanel profile you saved to reuse: a few items, a group, or an element such as a Row or Drives. Save one in the InfoPanel editor (see [InfoPanel editor](infopanel-editor)). **Components** lists them with a thumbnail of each. A component isn't a profile, so it doesn't appear under InfoPanel profiles or on the InfoPanel home page.
+
+Drag a component onto the screen to get a canvas zone of its own, or onto a canvas zone to merge its items there. **Place on this page** does the first in the free cell that draws it largest. Each placement counts as a copy, so the component shows as used, and removing it from the Library never deletes a file a placed copy still draws.
 
 ## Themes and Styles
 
