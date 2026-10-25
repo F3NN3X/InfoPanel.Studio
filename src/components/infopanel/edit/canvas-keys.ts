@@ -1,13 +1,13 @@
 /**
  * The canvas zone editor's keys (spec §7): Ctrl+D duplicate, Ctrl+G group, Ctrl+Shift+G ungroup,
- * Del delete, arrows nudge 1 px (Shift: 10 px), Esc clears the selection, then leaves. While the
+ * Ctrl+Shift+S save as component, Del delete, arrows nudge 1 px (Shift: 10 px), Esc clears the selection, then leaves. While the
  * editor is open the studio's zone shortcuts are held back ("block"), apart from the ones that
  * still make sense: undo, redo, save, the palette and the cheat sheet.
  */
 import { shortcutAction, type KeyInput } from "@/components/studio/use-studio-shortcuts";
 
 export type CanvasKeyAction =
-  | { type: "duplicate" | "group" | "ungroup" | "remove" | "escape" | "block" }
+  | { type: "duplicate" | "group" | "ungroup" | "component" | "remove" | "escape" | "block" }
   | { type: "nudge"; dx: number; dy: number };
 
 const PASS = new Set(["undo", "redo", "save", "palette", "cheatsheet"]);
@@ -18,6 +18,7 @@ export function canvasKeyAction(e: KeyInput, ctx: { typing: boolean; overlay: bo
   if (ctx.typing || ctx.overlay) return null;
   const mod = e.ctrlKey || e.metaKey;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (mod && !e.altKey && e.shiftKey && key === "s") return { type: "component" };
   if (mod && !e.altKey && key === "d" && !e.shiftKey) return { type: "duplicate" };
   if (mod && !e.altKey && key === "g") return { type: e.shiftKey ? "ungroup" : "group" };
   if (!mod && !e.altKey && (key === "Delete" || key === "Backspace")) return { type: "remove" };

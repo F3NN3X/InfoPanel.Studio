@@ -3,6 +3,7 @@
  * reaches the config until "Import <name>", which is one undo step; assets upload to the asset
  * store in the background from the moment a source opens.
  */
+import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, FileArchive, FolderOpen, HardDrive, Library, Monitor, Upload } from "lucide-react";
@@ -112,7 +113,7 @@ function SourceStep({
     }
     if (kind === "canvas" && canvases === null) {
       listLibrary().then(
-        (all) => setCanvases(all.filter((i) => i.kind === "canvas")),
+        (all) => setCanvases(all.filter(isProfileItem)),
         (e: Error) => {
           setCanvases([]);
           setListError(e.message);

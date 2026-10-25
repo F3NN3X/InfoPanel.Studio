@@ -10,6 +10,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
+import { createLibraryItem, type LibraryItem } from "@/lib/library";
+import { saveComponent, componentPaths, withComponent } from "@/lib/infopanel/component";
+import { recordCopy } from "@/lib/my-library/copies";
+import { canvasData, componentItem } from "@/lib/my-library/canvas-link";
+import { rolesOf } from "@/lib/my-library/component-meta";
 import { useSensors } from "@/hooks/useSensors";
 import { getCatalog, useSensorCatalog } from "@/lib/catalog";
 import { editKeyOf } from "@/lib/infopanel/canvas-edit";
@@ -39,6 +44,7 @@ import { EditCanvas, type Compare } from "./edit-canvas";
 import { ImagePicker } from "./image-picker";
 import { ItemInspector } from "./item-inspector";
 import { ItemsTree } from "./items-tree";
+import { SaveComponentDialog } from "./save-component-dialog";
 import { ProfileSettings } from "./profile-settings";
 import { SensorPicker } from "./sensor-picker";
 import { useCanvasEditor } from "./use-canvas-editor";
@@ -84,6 +90,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
   // The screenshot the canvas kept at import is Compare's start; "choose another" replaces it.
   const [compare, setCompare] = useState<Compare | null>(() => keptScreenshot(zone.canvas));
   const [remapOpen, setRemapOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const { index, online, unreachable } = useRemapIndex();
   const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
   const [pickFor, setPickFor] = useState<PickFor | null>(null);
@@ -160,8 +167,37 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
   }, [online, editor.groups, index, editor.overrides]);
 
   // The editor's keys, in the capture phase so the studio's zone shortcuts never see them.
-  const latest = useRef({ editor, onDone, hidden });
-  latest.current = { editor, onDone, hidden };
+  const openSave = () => setSaveOpen(true);
+  /** Save the selection to the Library as a component (the items, their files and palette, the roles of their sensors). */
+  const saveAsComponent = (name: string) => {
+    const made = saveComponent({
+      stored: editor.open.stored,
+      profile: editor.open.profile,
+      items: editor.committed,
+      selection: editor.selection,
+      boxes: editor.boxes,
+      name,
+      palette: editor.palette,
+    });
+    if (!made) return toast("Select something to save as a component");
+    createLibraryItem(componentItem(made.stored, name, made.roles)).then(
+      () => toast(`Saved ${name} as a component in the Library`),
+      (e: Error) => toast(`Not saved as a component: ${e.message}`),
+    );
+  };
+  /** A Library component dropped on the canvas: merged at the point as one step, sensors matched by role, one copy counted. */
+  const placeComponent = async (item: LibraryItem, at: { x: number; y: number }) => {
+    const data = await canvasData(item).catch(() => undefined);
+    if (!data) return toast(`${item.name} couldn’t be read from the Library`);
+    const { editor: ed } = latest.current;
+    const r = withComponent(ed.open.stored, ed.open.profile, ed.committed, data, { at }, { roles: rolesOf(item), sensors });
+    ed.commitStored(r.stored, r.paths);
+    void recordCopy(item, { profileId, zoneId: ed.zone.id, itemPath: r.paths[0], label: `${ed.open.stored.source.name} › ${item.name}` });
+    toast(r.open > 0 ? `Added ${item.name}; ${r.open} sensor${r.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name}${r.bound > 0 ? `; ${r.bound} sensor${r.bound === 1 ? "" : "s"} matched by role` : ""}`);
+    if (r.open > 0) setRemapOpen(true);
+  };
+  const latest = useRef({ editor, onDone, hidden, openSave });
+  latest.current = { editor, onDone, hidden, openSave };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
@@ -175,6 +211,8 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
       switch (action.type) {
         case "duplicate":
           return ed.duplicate();
+        case "component":
+          return ed.selection.length ? latest.current.openSave() : undefined;
         case "group":
           return ed.group();
         case "ungroup":
@@ -215,7 +253,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
     <div className="relative flex min-h-0 min-w-0 flex-1 bg-ui-app">
       <aside aria-label="Add and layers" className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-ui-subtle bg-ui-panel">
         <AddPalette onAdd={onAdd} />
-        <ItemsTree editor={editor} name={name} />
+        <ItemsTree editor={editor} name={name} onSaveComponent={openSave} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <CanvasToolbar
@@ -229,6 +267,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           onRemap={() => setRemapOpen(true)}
           apiUnreachable={unreachable}
           library={libraryLink}
+          onSaveComponent={openSave}
           onDone={onDone}
           onHome={onHome}
         />
@@ -257,6 +296,7 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           onRefused={toast}
           onCompareFailed={() => setCompare(null)}
           onPlace={onAdd}
+          onComponent={(item, at) => void placeComponent(item, at)}
         />
         <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
           Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.
@@ -301,6 +341,15 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
         onOverrides={(next) => editor.applyOverrides(next, index)}
         onSelectItems={editor.select}
       />
+      {saveOpen && (
+        <SaveComponentDialog
+          open
+          onOpenChange={setSaveOpen}
+          count={componentPaths(editor.committed, editor.selection).length}
+          initialName={editor.selection.length === 1 ? (itemAt(editor.committed, editor.selection[0])?.Name ?? "Component") : "Component"}
+          onSave={saveAsComponent}
+        />
+      )}
       <SensorPicker
         open={pickFor !== null}
         onOpenChange={(open) => !open && setPickFor(null)}

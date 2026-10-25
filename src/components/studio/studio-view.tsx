@@ -78,6 +78,8 @@ import { dataOf, setAsBackground, type StudioBridge } from "@/components/library
 import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
+import { isComponent } from "@/lib/my-library/component-meta";
+import { activeLibraryDrag } from "@/lib/my-library/drag";
 import { useToast } from "@/components/ui/toast";
 import { createLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
 import { canvasItem } from "@/lib/my-library/canvas-link";
@@ -781,7 +783,11 @@ function StudioViewBody({
         selectionStyle={selected ? ownStyle(selected, appearance) : null}
         onEditInTheme={editInTheme}
         onEditCanvas={(item) => void editCanvas(item)}
-        onShowCanvas={() => ui.setMode("design")}
+        onShowCanvas={() => {
+          // A component dragged out of the Library goes back to the InfoPanel editor that is open, not to Design.
+          const drag = activeLibraryDrag();
+          ui.setMode(drag && isComponent(drag) && canvasZone?.canvas && !infopanelHome ? "infopanel" : "design");
+        }}
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
         onImport={(source, dest) => io.openImport(dest, source, true)}

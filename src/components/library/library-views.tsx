@@ -51,6 +51,7 @@ export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
   panels: LayoutDashboard,
   styles: Paintbrush,
   canvases: Layers,
+  components: Shapes,
 };
 
 /* ---- sidebar ---- */

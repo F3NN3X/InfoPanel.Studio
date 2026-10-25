@@ -101,7 +101,7 @@ const DROP_STYLE: Record<Where, string> = {
   inside: "bg-ui-accent/25 shadow-[inset_0_0_0_2px_var(--ui-accent)]",
 };
 
-export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string }) {
+export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEditor; name: string; onSaveComponent?: () => void }) {
   const rows = rowsOf(editor.committed);
   const [drop, setDrop] = useState<Drop | null>(null);
   const [why, setWhy] = useState<string | null>(null);
@@ -148,6 +148,7 @@ export function ItemsTree({ editor, name }: { editor: CanvasEditor; name: string
   const entries: ContextMenuEntry[] = [
     { id: "group", label: "Group selection", hint: "Ctrl+G", disabled: topmost(selected).length < 1, onSelect: editor.group },
     { id: "ungroup", label: "Ungroup", hint: "Ctrl+Shift+G", disabled: single?.kind !== "Group", onSelect: editor.ungroup },
+    { id: "component", label: "Save as component…", hint: "Ctrl+Shift+S", disabled: selected.length === 0 || !onSaveComponent, onSelect: () => onSaveComponent?.() },
     "separator",
     { id: "rename", label: "Rename", disabled: !single, onSelect: () => setRenaming(selected[0]) },
     { id: "duplicate", label: "Duplicate", hint: "Ctrl+D", disabled: selected.length === 0, onSelect: editor.duplicate },

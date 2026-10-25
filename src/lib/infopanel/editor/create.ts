@@ -140,7 +140,7 @@ export function insertItem(items: readonly DisplayItem[], item: DisplayItem, sel
 }
 
 /** The size an item is drawn at before it has been measured: its box, else about one line of its text. */
-function roughSize(item: DisplayItem, fontScale: number): { width: number; height: number } {
+export function roughSize(item: DisplayItem, fontScale: number): { width: number; height: number } {
   const w = "Width" in item ? item.Width : 0;
   const h = "Height" in item ? item.Height : 0;
   if (w > 0 && h > 0) return { width: w, height: h };

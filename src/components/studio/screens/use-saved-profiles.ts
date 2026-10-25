@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useToast } from "@/components/ui/toast";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, listLibrary, updateLibraryItem, type LibraryItem } from "@/lib/library";
@@ -14,7 +15,7 @@ export function useSavedProfiles(config: Pick<DashboardConfig, "profiles">) {
   const refresh = useCallback(
     () =>
       listLibrary().then(
-        (all) => setItems(all.filter((i) => i.kind === "canvas")),
+        (all) => setItems(all.filter(isProfileItem)),
         () => {},
       ),
     [],

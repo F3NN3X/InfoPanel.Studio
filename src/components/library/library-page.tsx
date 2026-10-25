@@ -64,7 +64,9 @@ import { UploadTray } from "./upload-tray";
 import { LooseUploads } from "./loose-uploads";
 import { RemoveItemDialog } from "./remove-item-dialog";
 import { useMyLibrary } from "./use-my-library";
+import { isComponent } from "@/lib/my-library/component-meta";
 import { LIBRARY_MIME, setActiveLibraryDrag } from "@/lib/my-library/drag";
+import { addComponentZone } from "./library-drop";
 import { useViewportBelow } from "@/hooks/use-viewport-below";
 import { PaneSheet } from "@/components/studio/pane-sheet";
 import { NARROW_PAGE_WIDTH } from "@/components/studio/studio-layout";
@@ -184,7 +186,9 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "gauge":
         return { label: "Open in editor", icon: Gauge, run: () => p.onOpenGauge(item.id) };
       case "canvas":
-        return { label: "Edit profile", icon: MonitorPlay, run: () => p.onEditCanvas(item) };
+        return isComponent(item)
+          ? { label: "Place on this page", icon: Plus, run: () => void addComponentZone(bridge, item) }
+          : { label: "Edit profile", icon: MonitorPlay, run: () => p.onEditCanvas(item) };
       case "style":
       case "theme":
         return presetPrimary(item, presetCtx);
@@ -243,7 +247,7 @@ export default function LibraryPage(p: LibraryPageProps) {
       });
     if (item.kind === "canvas") {
       out.push({ label: "Export…", icon: Download, run: () => p.onExportCanvas(item) });
-      out.push({ label: "Add to this page…", icon: FolderInput, run: () => p.onImport({ canvasId: item.id }, "zone") });
+      if (!isComponent(item)) out.push({ label: "Add to this page…", icon: FolderInput, run: () => p.onImport({ canvasId: item.id }, "zone") });
     }
     return out;
   }

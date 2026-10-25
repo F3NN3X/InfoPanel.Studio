@@ -58,8 +58,9 @@ export function importIntoProfile(
   view: ProfileView,
   canvas: StoredCanvas,
   size: { width: number; height: number },
+  at?: ZoneRect,
 ): { config: DashboardConfig; zoneId: string } | null {
-  const rect = canvasRect(view, size.width, size.height);
+  const rect = at ?? canvasRect(view, size.width, size.height);
   if (!rect) return null;
   const zoneId = uid(CANVAS_ID);
   const add = onPage(view.pageId, (v) => ({ ...v, placements: [...v.placements, canvasZone(zoneId, canvas, rect)] }));
