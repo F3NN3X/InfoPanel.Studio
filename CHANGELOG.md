@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.26] - 2026-10-25
+
 ### Added
 
 - **A sensor dropdown in the InfoPanel editor.** An item's Sensor section now opens a searchable list of the Data API's sensors, grouped by source and device, with each sensor's live value. It works from the keyboard, binds the item natively, and replaces the Choose sensor button. The raw bindings (sensor type, HWiNFO ids, Libre and plugin ids) are shown read-only under Binding details; Sensor name is still editable there, and Value type is still a choice list.
