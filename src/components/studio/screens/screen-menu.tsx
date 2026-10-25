@@ -80,7 +80,7 @@ export function ScreenMenu({ canDelete, canMoveEarlier, canMoveLater, onRename, 
               <Row icon={Share}>Export screen</Row>
             </Menu.Item>
             <Menu.Item className={ITEM} onClick={onConvert}>
-              <Row icon={Shuffle}>Convert to InfoPanel profile</Row>
+              <Row icon={Shuffle}>Convert to InfoPanel profile (experimental)</Row>
             </Menu.Item>
             <Menu.Separator className={SEPARATOR} />
             <Menu.Item className={cn(ITEM, "text-ui-danger data-disabled:text-ui-5")} disabled={!canDelete} onClick={onDelete}>

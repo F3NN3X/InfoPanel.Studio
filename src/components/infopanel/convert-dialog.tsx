@@ -111,7 +111,7 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
   return (
     <>
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
-        <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile" : "Convert zone to InfoPanel"}</Dialog.Title>
+        <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile (experimental)" : "Convert zone to InfoPanel (experimental)"}</Dialog.Title>
         <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
         </Dialog.Close>

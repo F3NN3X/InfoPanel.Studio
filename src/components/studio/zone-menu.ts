@@ -85,7 +85,7 @@ export function zoneMenu(s: ZoneMenuState): MenuSpec {
     { id: "edit-style", label: "Edit style" },
     ...(single ? [{ id: "bind-data" as const, label: "Bind data…" }] : []),
     ...(single && s.panel ? [{ id: "save-panel" as const, label: "Save as Panel" }] : []),
-    ...(single && s.convertible ? [{ id: "convert-zone" as const, label: "Convert zone to InfoPanel…" }] : []),
+    ...(single && s.convertible ? [{ id: "convert-zone" as const, label: "Convert zone to InfoPanel (experimental)…" }] : []),
     { id: "duplicate", label: "Duplicate", hint: `${MOD}D` },
     { id: "visible", label: s.anyVisible ? "Hide" : "Show", hint: "H" },
     ...(s.otherPages && s.otherPages.length > 0
