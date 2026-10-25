@@ -377,6 +377,16 @@ describe("pasteStyleToZones", () => {
     expect(out.placements[2]).toBe(p.placements[2]);
   });
 
+  it("never carries a sensor binding: a copied look leaves the target's data alone", () => {
+    const source = zone("src", 1, 1, 2, 1, { module: "FpsMonitor", settings: { accent: "#00f", glow: "soft", sensor: "gpu/fps" }, follow: { colors: false, border: false } });
+    const target = zone("dst", 3, 1, 2, 1, { module: "FpsMonitor", settings: { sensor: "cpu/fps", accent: "#f00" } });
+    const copied = ownStyle(source, {});
+    expect(copied).not.toHaveProperty("sensor");
+    const out = pasteStyleToZones(profile([source, target]), ["dst"], copied).placements[1];
+    expect(out.settings?.sensor).toBe("cpu/fps");
+    expect(out.settings?.accent).toBe("#00f");
+  });
+
   it("makes the sections the style sets custom, so it shows; the others keep their state", () => {
     const p = profile([zone("a", 1, 1, 2, 1, { module: "FpsMonitor", follow: { type: false } })]);
     expect(pasteStyleToZones(p, ["a"], { accent: "#00f", glow: "soft" }).placements[0].follow).toEqual({

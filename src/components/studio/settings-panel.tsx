@@ -35,6 +35,8 @@ export interface FieldsApi {
   pins?: { has: (key: string) => boolean; toggle: (key: string) => void };
   /** A zone: whether a row shows its theme value read-only (its section follows the theme). */
   readOnly?: (def: ModuleSetting) => boolean;
+  /** Several zones: whether the selected zones show different values for this row (it reads "Mixed"). */
+  mixed?: (def: ModuleSetting) => boolean;
 }
 
 /** Setting types whose value is one plain key (a toggle, number, colour, choice, text or icon). */
@@ -108,6 +110,7 @@ export function SettingField({
   const state = sourceState(def, fields.values);
   const pins = fields.pins;
   const readOnly = fields.readOnly?.(def) ?? false;
+  const mixed = fields.mixed?.(def) ?? false;
   return (
     <fieldset
       data-setting-key={def.key}
@@ -131,7 +134,20 @@ export function SettingField({
         flow={def.optionsFrom === "audio" || def.optionsFrom === "wavelink" ? String(fields.shown("flow", FLOW_ROW)) : undefined}
         changed={SET_HERE.has(state)}
         lead={<SourceDot state={state} onReset={() => fields.onClear(settingKeys(def))} />}
-        trail={pins && <PinButton pinned={pins.has(def.key)} label={def.label} onToggle={() => pins.toggle(def.key)} />}
+        trail={
+          mixed || pins ? (
+          <>
+            {mixed && (
+              <span
+                title="The selected zones differ here: the value shown is the primary zone's, and a change sets it on all of them"
+                className="shrink-0 rounded-[5px] bg-[#1e1e24] px-1.5 py-px text-[10px] font-medium text-ui-3"
+              >
+                Mixed
+              </span>
+            )}
+            {pins && <PinButton pinned={pins.has(def.key)} label={def.label} onToggle={() => pins.toggle(def.key)} />}
+          </>) : undefined
+        }
       />
     </fieldset>
   );

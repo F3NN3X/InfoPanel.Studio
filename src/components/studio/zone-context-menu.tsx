@@ -1,6 +1,15 @@
 import { useState, type ReactNode } from "react";
 import {
+  AlignHorizontalDistributeCenter,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyEnd,
+  AlignStartHorizontal,
+  AlignEndHorizontal,
+  AlignVerticalDistributeCenter,
   BookmarkPlus,
+  LayoutPanelLeft,
+  MoveHorizontal,
+  MoveVertical,
   Clipboard,
   ClipboardPaste,
   Copy,
@@ -27,6 +36,7 @@ import {
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { BLANK_MODULE, CANVAS_ID, CARDS_ID } from "@/lib/layout";
 import type { CommandAction } from "./commands";
+import type { ArrangeOp } from "./zone-arrange";
 import type { StudioSelection } from "./use-studio-selection";
 import { canvasMenu, menuAction, zoneMenu, type MenuItemId, type MenuSpec } from "./zone-menu";
 
@@ -53,6 +63,15 @@ const ICONS: Record<MenuItemId, ReactNode> = {
   taller: <UnfoldVertical />,
   "copy-style": <Clipboard />,
   "paste-style": <ClipboardPaste />,
+  arrange: <LayoutPanelLeft />,
+  "align-left": <AlignHorizontalJustifyStart />,
+  "align-right": <AlignHorizontalJustifyEnd />,
+  "align-top": <AlignStartHorizontal />,
+  "align-bottom": <AlignEndHorizontal />,
+  "match-width": <MoveHorizontal />,
+  "match-height": <MoveVertical />,
+  "distribute-h": <AlignHorizontalDistributeCenter />,
+  "distribute-v": <AlignVerticalDistributeCenter />,
   "follow-global": <Globe />,
   "global-all": <Globe />,
   "global-profile": <Globe />,
@@ -68,6 +87,9 @@ const ICONS: Record<MenuItemId, ReactNode> = {
 function entriesOf(spec: MenuSpec, run: (action: CommandAction) => void): ContextMenuEntry[] {
   return spec.map((item): ContextMenuEntry => {
     if (item === "separator") return item;
+    if (item.id === "arrange") {
+      return { id: item.id, label: item.label, icon: ICONS[item.id], submenu: entriesOf(item.items ?? [], run) };
+    }
     if (item.id === "move-to-page") {
       return {
         id: item.id,
@@ -113,6 +135,8 @@ interface StudioContextMenuProps {
   canPasteStyle: boolean;
   /** Whether the primary zone can take this size step. */
   canStep: (cols: number, rows: number) => boolean;
+  /** Whether the selection can take this arrangement. */
+  canArrange: (op: ArrangeOp) => boolean;
   /** The profile's other pages, for "Move to page". */
   otherPages: { id: string; name: string }[];
   onRun: (action: CommandAction) => void;
@@ -120,7 +144,7 @@ interface StudioContextMenuProps {
 }
 
 /** The zone menu (selection) or the canvas menu, as a right-click popup. */
-export function StudioContextMenu({ menu, sel, canPasteStyle, canStep, otherPages, onRun, onClose }: StudioContextMenuProps) {
+export function StudioContextMenu({ menu, sel, canPasteStyle, canStep, canArrange, otherPages, onRun, onClose }: StudioContextMenuProps) {
   const spec =
     menu.kind === "canvas" || !sel.selected
       ? canvasMenu()
@@ -131,6 +155,7 @@ export function StudioContextMenu({ menu, sel, canPasteStyle, canStep, otherPage
           anyVisible: sel.selection.some((p) => p.visible),
           canPasteStyle,
           canStep,
+          canArrange,
           otherPages,
         });
   return <ContextMenu x={menu.x} y={menu.y} entries={entriesOf(spec, onRun)} onClose={onClose} />;

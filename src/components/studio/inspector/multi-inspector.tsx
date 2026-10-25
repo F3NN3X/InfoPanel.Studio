@@ -1,7 +1,7 @@
 import { BoxSelect } from "lucide-react";
 import type { ProfileView, Placement } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
-import type { ModuleSettings } from "@/modules/types";
+import { settingKeys, type ModuleSetting, type ModuleSettings } from "@/modules/types";
 import { chipSections, isVisible, sharedDefs, type InspectorContext, type InspectorSection } from "../inspector-model";
 import { sectionInherit } from "../section-inherit";
 import type { FieldsApi } from "../settings-panel";
@@ -63,8 +63,20 @@ export function MultiInspector({
   const each = (fn: (z: Placement) => Placement, key?: string) =>
     updateProfile((p) => ({ ...p, placements: p.placements.map((z) => (ids.has(z.id) ? fn(z) : z)) }), key);
 
+  /** The value each zone shows for a row's keys; the row is mixed when they differ. */
+  const mixed = (def: ModuleSetting) => {
+    const seen = new Set(
+      zones.map((z) => {
+        const own = zoneLookValues(z, appearance);
+        return JSON.stringify(settingKeys(def).map((key) => shownValue(own, key, def)));
+      })
+    );
+    return seen.size > 1;
+  };
+
   const fields: FieldsApi = {
     values,
+    mixed,
     shown: (key, def) => shownValue(values, key, def),
     onChange: (key, v) => each((z) => withSettings(z, { [key]: v }), `multi-setting:${key}`),
     onPatch: (patch: ModuleSettings) => each((z) => withSettings(z, patch), `multi-setting:${Object.keys(patch).join()}`),

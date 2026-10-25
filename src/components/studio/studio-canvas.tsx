@@ -47,6 +47,7 @@ import { SelectionChipLayer } from "./selection-chip";
 import { zoneMinSize } from "./studio-actions";
 import type { CanvasInset } from "./studio-layout";
 import { pageSize } from "./use-studio-layout";
+import { zonesInRect } from "./zone-arrange";
 import { enforceMinSize, fitZoneRect, moveZoneSet, type ZoneRect } from "./zone-geometry";
 
 /** The canvas' dot grid, at a fixed pitch on the scroll area (not scaled by the zoom). */
@@ -107,6 +108,8 @@ interface StudioCanvasProps {
   onSelectWidget: (zoneId: string, widgetId: string | null) => void;
   /** A zone was drawn on empty grid space (box already clamped). */
   onDrawZone: (rect: ZoneRect) => void;
+  /** A Shift+drag box on empty grid space selected these zones (the last one primary). */
+  onSelectMany: (ids: string[]) => void;
   /** A zone is being moved/resized (box already clamped, fires per cell). */
   onZoneRect: (id: string, rect: ZoneRect) => void;
   /**
@@ -178,6 +181,7 @@ export function StudioCanvas({
   selectedWidgetId,
   onSelectWidget,
   onDrawZone,
+  onSelectMany,
   onZoneRect,
   onZoneRects,
   onDragBegin,
@@ -323,6 +327,8 @@ export function StudioCanvas({
    * Draw a new zone: press on an empty grid cell and drag out a box; on
    * release a blank zone is created (the user then assigns a widget). A
    * press that never leaves the drag threshold is a plain click: it deselects.
+   * With Shift held the box selects the zones it touches instead (a plain
+   * Shift+click keeps the selection).
    */
   const startDraw = (e: ReactPointerEvent) => {
     if (e.button !== 0) return;
@@ -331,6 +337,7 @@ export function StudioCanvas({
     if (!start) return;
     e.preventDefault();
     const [startX, startY] = [e.clientX, e.clientY];
+    const marquee = e.shiftKey;
     let rect: ZoneRect = { col: start.col, row: start.row, cols: 1, rows: 1 };
     let dragging = false;
     stopDraw.current = trackPointer(
@@ -353,9 +360,10 @@ export function StudioCanvas({
       (cancelled) => {
         setDrawing(null);
         if (cancelled) return;
-        if (!dragging) return onSelect(null);
+        if (!dragging) return marquee ? undefined : onSelect(null);
         drewRef.current = true;
         setTimeout(() => (drewRef.current = false), 0);
+        if (marquee) return onSelectMany(zonesInRect(profile.placements, rect));
         // No room for the drawn box (the grid is full there): nothing is added.
         const fitted = fitZoneRect(rect, profile.placements, profile.cols, profile.rows);
         if (fitted) onDrawZone(fitted);
@@ -569,7 +577,7 @@ export function StudioCanvas({
                   }}
                   onPointerDown={startDraw}
                   onClick={(e) => {
-                    if (e.target === e.currentTarget && !drewRef.current) onSelect(null);
+                    if (e.target === e.currentTarget && !drewRef.current && !e.shiftKey) onSelect(null);
                   }}
                 >
                   {/* Optional grid, over the tiles (below the selection) */}

@@ -113,4 +113,25 @@ describe("page shortcuts", () => {
     expect(shortcutAction(key("PageDown", { metaKey: true }), IDLE)).toEqual({ type: "page-next" });
   });
 
+
+describe("align and distribute keys", () => {
+  const ctx = { typing: false, overlay: false };
+  const alt = (code: string, mods: Partial<KeyInput> = {}) => key(code.slice(3).toLowerCase(), { altKey: true, code, ...mods });
+
+  it("maps Alt+A / D / W / S to the four aligns and Alt+Shift+H / V to distribute", () => {
+    expect(shortcutAction(alt("KeyA"), ctx)).toEqual({ type: "arrange", op: "align-left" });
+    expect(shortcutAction(alt("KeyD"), ctx)).toEqual({ type: "arrange", op: "align-right" });
+    expect(shortcutAction(alt("KeyW"), ctx)).toEqual({ type: "arrange", op: "align-top" });
+    expect(shortcutAction(alt("KeyS"), ctx)).toEqual({ type: "arrange", op: "align-bottom" });
+    expect(shortcutAction(alt("KeyH", { shiftKey: true }), ctx)).toEqual({ type: "arrange", op: "distribute-h" });
+    expect(shortcutAction(alt("KeyV", { shiftKey: true }), ctx)).toEqual({ type: "arrange", op: "distribute-v" });
+  });
+
+  it("leaves Ctrl+Alt+C / V to the style copy, and text fields and AltGr to themselves", () => {
+    expect(shortcutAction(alt("KeyC", { ctrlKey: true }), ctx)).toEqual({ type: "copy-style" });
+    expect(shortcutAction(alt("KeyA"), { ...ctx, typing: true })).toBeNull();
+    expect(shortcutAction(alt("KeyA", { altGraph: true }), ctx)).toBeNull();
+    expect(shortcutAction(alt("KeyA", { ctrlKey: true }), ctx)).toBeNull();
+  });
+});
 });

@@ -118,10 +118,25 @@ describe("buildCommands with several zones selected", () => {
   const a = zone("a", 1, 1);
   const b = zone("b", 3, 2, false);
 
-  it("offers hide, duplicate and remove for the whole selection only", () => {
+  it("offers hide, duplicate, remove and align for the whole selection only; distribute needs three zones", () => {
     const list = buildCommands({ ...base, selected: b, selection: [a, b] });
     const group = list.filter((c) => c.group === "Selected zones");
-    expect(group.map((c) => c.label)).toEqual(["Duplicate 2 zones", "Hide 2 zones", "Remove 2 zones"]);
+    expect(group.map((c) => c.label)).toEqual([
+      "Duplicate 2 zones",
+      "Hide 2 zones",
+      "Remove 2 zones",
+      "Align left",
+      "Align right",
+      "Align top",
+      "Align bottom",
+      "Match width of the primary zone",
+      "Match height of the primary zone",
+    ]);
+    const three = buildCommands({ ...base, selected: b, selection: [a, b, zone("c", 5, 5)] });
+    expect(three.filter((c) => c.id.startsWith("zone:distribute")).map((c) => c.action)).toEqual([
+      { type: "arrange", op: "distribute-h" },
+      { type: "arrange", op: "distribute-v" },
+    ]);
     expect(list.some((c) => c.id === "zone:pick")).toBe(false);
   });
 

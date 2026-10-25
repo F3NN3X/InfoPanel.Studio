@@ -1,4 +1,6 @@
 import type { CommandAction } from "./commands";
+import type { ArrangeOp } from "./zone-arrange";
+import { KEYS } from "./use-studio-shortcuts";
 
 /** The shortcut modifier as the platform names it. */
 const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
@@ -20,6 +22,8 @@ export type MenuItemId =
   | "taller"
   | "copy-style"
   | "paste-style"
+  | "arrange"
+  | ArrangeOp
   | "follow-global"
   | "global-all"
   | "global-profile"
@@ -39,6 +43,8 @@ export interface MenuItemSpec {
   disabled?: boolean;
   /** A flyout of pages to pick from (Move to page). */
   pages?: { id: string; name: string }[];
+  /** A flyout of rows (Align and distribute). */
+  items?: MenuItemSpec[];
 }
 
 export type MenuSpec = (MenuItemSpec | "separator")[];
@@ -56,6 +62,8 @@ export interface ZoneMenuState {
   canPasteStyle: boolean;
   /** Whether the primary zone can take this size step (cells). */
   canStep: (cols: number, rows: number) => boolean;
+  /** Whether the selection can take this arrangement now (it fits the grid and moves something). */
+  canArrange?: (op: ArrangeOp) => boolean;
   /** The profile's other pages; "Move to page" is offered when there are any. */
   otherPages?: { id: string; name: string }[];
 }
@@ -65,6 +73,17 @@ const STEPS: { id: MenuItemId; label: string; hint: string; cols: number; rows: 
   { id: "wider", label: "Wider", hint: "Shift+→", cols: 1, rows: 0 },
   { id: "shorter", label: "Shorter", hint: "Shift+↑", cols: 0, rows: -1 },
   { id: "taller", label: "Taller", hint: "Shift+↓", cols: 0, rows: 1 },
+];
+
+const ARRANGE: { id: ArrangeOp; label: string; hint?: string }[] = [
+  { id: "align-left", label: "Align left", hint: KEYS.alignLeft },
+  { id: "align-right", label: "Align right", hint: KEYS.alignRight },
+  { id: "align-top", label: "Align top", hint: KEYS.alignTop },
+  { id: "align-bottom", label: "Align bottom", hint: KEYS.alignBottom },
+  { id: "match-width", label: "Match width" },
+  { id: "match-height", label: "Match height" },
+  { id: "distribute-h", label: "Distribute horizontally", hint: KEYS.distributeH },
+  { id: "distribute-v", label: "Distribute vertically", hint: KEYS.distributeV },
 ];
 
 /** Drops separators that lead, trail or double up (groups left empty). */
@@ -90,6 +109,15 @@ export function zoneMenu(s: ZoneMenuState): MenuSpec {
     { id: "visible", label: s.anyVisible ? "Hide" : "Show", hint: "H" },
     ...(s.otherPages && s.otherPages.length > 0
       ? [{ id: "move-to-page" as const, label: "Move to page", pages: s.otherPages }]
+      : []),
+    ...(s.count > 1
+      ? [
+          {
+            id: "arrange" as const,
+            label: "Align and distribute",
+            items: ARRANGE.map((a) => ({ ...a, disabled: s.canArrange ? !s.canArrange(a.id) : false })),
+          },
+        ]
       : []),
     "separator",
     { id: "copy-style", label: "Copy style", hint: `${MOD}${ALT}C`, disabled: !single },
@@ -122,8 +150,17 @@ export function canvasMenu(): MenuSpec {
 }
 
 /** The command a menu row runs. */
-export function menuAction(id: Exclude<MenuItemId, "move-to-page">): CommandAction {
+export function menuAction(id: Exclude<MenuItemId, "move-to-page" | "arrange">): CommandAction {
   switch (id) {
+    case "align-left":
+    case "align-right":
+    case "align-top":
+    case "align-bottom":
+    case "match-width":
+    case "match-height":
+    case "distribute-h":
+    case "distribute-v":
+      return { type: "arrange", op: id };
     case "pick":
       return { type: "pick-widget" };
     case "edit-style":
