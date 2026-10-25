@@ -10,7 +10,7 @@
  * Items carry no ids of their own in this model, so a "fresh id" is the clone plus a new profile Guid.
  */
 import { assetKey, type AssetType } from "./assets/assets.ts";
-import { bindItem, editItems, storeItems, withAsset, type DropPlace, type DroppedFile } from "./canvas-edit.ts";
+import { bindItem, editItems, storeItems, withAsset, withGroupKeys, type DropPlace, type DroppedFile } from "./canvas-edit.ts";
 import { openCanvas } from "./canvas.ts";
 import { mapItems } from "./editor/bind.ts";
 import { roughSize } from "./editor/create.ts";
@@ -19,7 +19,7 @@ import { itemAt, moveBy, topmost, type Box, type Path } from "./editor/ops.ts";
 import { recolour, syncElements } from "./elements/apply.ts";
 import { defaultPalette, type Palette, type Slot } from "./elements/palette.ts";
 import { elementOf, mapInks } from "./elements/spec.ts";
-import { newStored, type StoredCanvas } from "./import/stored.ts";
+import { newStored, remapKeys, type StoredCanvas } from "./import/stored.ts";
 import { buildCatalog, bindingRef, isBound, type BoundItem, type DataApiValue } from "./sensors.ts";
 import { groupBindings, groupId, indexCatalog, resolveAll } from "./remap/remap.ts";
 import type { DisplayItem, Profile } from "./schema.ts";
@@ -218,6 +218,9 @@ export function bindByRoles(items: readonly DisplayItem[], roles: ComponentRoles
     if (sensor) chosen.set(g.id, sensor);
     else open++;
   }
-  const next = mapItems(items, (item) => (isBound(item) && chosen.has(groupId(item)) ? bindItem(item, chosen.get(groupId(item))!) : item));
+  // A group the catalog resolves by itself takes this PC's key, not the one it was saved with.
+  const found = new Set(groups.filter((g) => resolved.get(g.id)).map((g) => g.id));
+  const keyed = found.size ? withGroupKeys(items, remapKeys(resolved, new Map()), found) : [...items];
+  const next = mapItems(keyed, (item) => (isBound(item) && chosen.has(groupId(item)) ? bindItem(item, chosen.get(groupId(item))!) : item));
   return { items: next, bound: chosen.size, open };
 }

@@ -179,6 +179,13 @@ describe("bindByRoles", () => {
     expect(r.items[0]).toMatchObject({ LibreSensorId: "/amdcpu/0/load/0" });
   });
 
+  it("gives a group the catalog resolves by its ref this PC's key, not the one it was saved with", () => {
+    const saved = { ...unresolvable, LibreSensorId: "/amdcpu/0/load/0", SensorName: "CPU Total", $import: { key: "mock.cpu.load", via: "exact" } } as unknown as DisplayItem;
+    const r = bindByRoles([saved], {}, SENSORS);
+    expect(r).toMatchObject({ bound: 0, open: 0 });
+    expect(importOf(r.items[0])).toMatchObject({ key: "libre.cpu.load", via: "exact" });
+  });
+
   it("counts a group with no role as left for Remap", () => {
     expect(bindByRoles([unresolvable], {}, SENSORS)).toMatchObject({ bound: 0, open: 1 });
   });
