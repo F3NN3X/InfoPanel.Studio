@@ -119,6 +119,7 @@
       ],
       "tests": [
         "tests/server/server.test.mjs",
+        "tests/server/harness.mjs",
         "tests/lib/dashboard-server.test.ts",
         "tests/help/generated.test.ts",
         "tests/fixtures/parity/README.md",
@@ -153,7 +154,9 @@
       ],
       "tests": [
         "tests/server/data-roundtrip.test.mjs",
+        "tests/server/harness.mjs",
         "tests/server/server.test.mjs",
+        "tests/server/harness.mjs",
         "tests/lib/assets.test.ts",
         "tests/lib/canvas-store.test.ts",
         "tests/fixtures/parity/assets.json",
@@ -176,7 +179,9 @@
       ],
       "tests": [
         "tests/server/alerts-http.test.mjs",
+        "tests/server/harness.mjs",
         "tests/server/server.test.mjs",
+        "tests/server/harness.mjs",
         "tests/lib/control.test.ts",
         "tests/lib/alerts.test.ts",
         "tests/lib/alert-presets.test.ts",
@@ -203,6 +208,7 @@
       ],
       "tests": [
         "tests/server/server.test.mjs",
+        "tests/server/harness.mjs",
         "tests/lib/countdown.test.ts",
         "tests/fixtures/parity/calendar.json",
         "tests/fixtures/parity/ical*.json",
@@ -226,6 +232,7 @@
       ],
       "tests": [
         "tests/server/server.test.mjs",
+        "tests/server/harness.mjs",
         "tests/lib/agents.test.ts",
         "tests/widgets/CodingAgents/**",
         "tests/fixtures/parity/agent*.json",
