@@ -247,6 +247,22 @@ The Export window ends with what the other PC needs.
 - **Fonts.** InfoPanel draws with installed fonts only, and an .infopanel carries none. The window lists the fonts the profile uses that Windows doesn't ship; install them on the other PC. The stored form (.canvas.zip) does carry the fonts you supplied.
 - **Sensors.** InfoPanel matches HWiNFO sensors by name when it imports a profile. Libre and plugin sensors are matched by id, so those sensors have to exist on the other PC. The window says which sources the profile reads.
 
+## Converting dashboard widgets
+
+InfoPanel can't draw the dashboard's widgets, so a zone or a whole screen can be rebuilt from InfoPanel's own items. Right-click a zone and choose **Convert zone to InfoPanel…**, or open the command palette and choose **Convert screen to InfoPanel profile…**. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
+
+For each widget you choose what it becomes:
+
+- **Recreate** rebuilds it. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. A widget with a plugin behind it (Weather, Now Playing, the Steam widgets, Clock, Drive Space) is built from that plugin's readings, and the cover art, the weather icon and the avatars are web images. For CPU, GPU and Memory, the numbers, bars and rings become bound items over a picture of the rest.
+- **Static snapshot** is a picture of the widget as it is now. It never updates.
+- **Leave out** drops it.
+
+Recreate is the default where it is available. A widget that can't be rebuilt yet goes as a snapshot, and says so. Your choices are kept on the zone, so the next conversion starts from them. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
+
+Coding Agents, Countdown, Timer, Web Page and WaveLink aren't InfoPanel data. They can't be converted, and the window says each one is left out.
+
+A zone lands as an InfoPanel canvas zone in a free cell of the page. A screen becomes a new profile with one canvas zone. The window ends with a report of what each widget became. Export the result with **Export & back up**.
+
 ## What InfoPanel can't do
 
 - **Letter spacing.** InfoPanel's text has no setting for the space between letters, so the editor doesn't offer one.

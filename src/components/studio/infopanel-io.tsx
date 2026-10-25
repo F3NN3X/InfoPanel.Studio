@@ -1,14 +1,17 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
 import { createLibraryItem } from "@/lib/library";
 import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
 import type { ImportCommit, ImportSource } from "@/components/infopanel/import/import-dialog";
 import { canvasMeta } from "@/lib/my-library/canvas-link";
-import { canvasZoneOf, importAsProfile, importIntoProfile, withCanvas } from "./import-actions";
+import type { ConvertedCanvas, ConvertScope } from "@/components/infopanel/convert-dialog";
+import { canvasZoneOf, importAsProfile, importIntoProfile, withCanvas, withZoneSettings } from "./import-actions";
+import { onFileDoor } from "./file-doors";
 
 // The dialogs carry the InfoPanel parser and writer: loaded on first open, never in the kiosk bundle.
 const ImportDialog = lazy(() => import("@/components/infopanel/import/import-dialog").then((m) => ({ default: m.ImportDialog })));
+const ConvertDialog = lazy(() => import("@/components/infopanel/convert-dialog").then((m) => ({ default: m.ConvertDialog })));
 const ExportDialog = lazy(() => import("@/components/infopanel/export-dialog").then((m) => ({ default: m.ExportDialog })));
 
 interface InfoPanelIoDeps {
@@ -34,6 +37,29 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
   /** A canvas from the Library, exported without placing it. */
   const [exportOverride, setExportOverride] = useState<Placement | null>(null);
   const exportZone = canvasZoneOf(profile, selectedId);
+  /** "Convert zone / screen to InfoPanel" (the zone menu, the command palette): the dialog's scope while it is open. */
+  const [convert, setConvert] = useState<ConvertScope | null>(null);
+  useEffect(() => onFileDoor((e) => e.type === "convert" && setConvert(e.scope)), []);
+  // The conversion runs after the choices were written to the config, so it places its canvas on the config as it is by then.
+  const latest = useRef({ config, profile });
+  latest.current = { config, profile };
+
+  /** The converted canvas: a zone lands in a free cell of this page, a screen as a new profile (edited, not displayed). */
+  const place = (c: ConvertedCanvas): string | null => {
+    const { config: cfg, profile: view } = latest.current;
+    if (c.scope === "zone") {
+      const r = importIntoProfile(cfg, view, c.canvas, c.size);
+      if (!r) return "No free cell on this page: make room, or convert the whole screen";
+      setConfig(r.config);
+      onLanded(r.zoneId, false);
+      return null;
+    }
+    const r = importAsProfile(cfg, c.canvas, c.name, c.size, false);
+    setConfig(r.config);
+    onSelectProfile(r.profileId);
+    onLanded(r.zoneId, true);
+    return null;
+  };
 
   const commit = async (c: ImportCommit): Promise<string | null> => {
     let zoneId: string;
@@ -77,6 +103,18 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
           initialSource={importSource}
           lockDest={importLocked}
           onImport={commit}
+        />
+      )}
+      {convert && (
+        <ConvertDialog
+          open
+          onOpenChange={(open) => !open && setConvert(null)}
+          scope={convert}
+          profile={profile}
+          zoneId={selectedId}
+          onRemember={(zoneId, settings) => setConfig((cfg) => withZoneSettings(cfg, zoneId, settings))}
+          onConverted={place}
+          onDone={toast}
         />
       )}
       {exportOpen && (

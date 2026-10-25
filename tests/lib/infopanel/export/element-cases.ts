@@ -34,7 +34,7 @@ const GLOW = { radius: 12, color: { color: "#FF22D3EE", slot: "accent2" } };
 const cpu = { key: "libre.cpu", name: "CPU Total", unit: "%", ref: "libre:/amdcpu/0/load/0" };
 
 /** A header-only PNG of the drawn size, its last bytes `seed`, so different drawings hash apart. */
-function png(w: number, h: number, seed: number): Uint8Array {
+export function png(w: number, h: number, seed: number): Uint8Array {
   const b = new Uint8Array(32);
   b.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
   const dv = new DataView(b.buffer);

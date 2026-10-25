@@ -11,6 +11,7 @@ import { profileGap, trackPitch } from "@/lib/profile-grid";
 import { hexToHsl } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { ZoneErrorBoundary } from "@/components/zone-error-boundary";
+import { IpTagCtx } from "@/widgets/core/primitives";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { isToggleClick, type SelectMode } from "./selection";
 import type { ZoneRect } from "./zone-geometry";
@@ -155,7 +156,7 @@ export function PlacementFrame({
 
   const body = (
     <ZoneErrorBoundary title={title} resetKey={placement}>
-      {children}
+      <IpTagCtx.Provider value={!!studio}>{children}</IpTagCtx.Provider>
     </ZoneErrorBoundary>
   );
 

@@ -1,7 +1,7 @@
 // Primitives: icons, numerals, meters, rings, graphs, chips, images and the inline visualiser.
 // Text and track colours come from the shell's --w-* variables (decision 5); labels, alignment and gaps follow
 // the standard look's --wp-* variables, with the primitive's own value as the fallback.
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { has, clamp, fmt } from "./data";
 import { mix } from "./tokens";
 import { useSkin, STATE, TONES, tone } from "./theme";
@@ -39,8 +39,11 @@ export interface MetricProps {
   t?: Tone;
   align?: "left" | "center";
   className?: string;
+  /** The Data API key the number shows: tags it for the InfoPanel conversion (`data-ip-key`). */
+  ipKey?: string;
 }
-export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "" }: MetricProps) {
+export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key }: MetricProps) {
+  const ipKey = useContext(IpTagCtx) ? key : undefined;
   const sk = useSkin();
   const sc = sk.numUp ? SCALES[Math.min(4, SCALES.indexOf(scale) + 1)] : scale;
   const big = { sm: "text-lg", md: "text-2xl", lg: "text-4xl", xl: "text-5xl", "2xl": "text-7xl" }[sc];
@@ -48,7 +51,7 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
   return (
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
       {label && <span className="max-w-full truncate text-[11px] font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>}
-      <span className={`${big} font-semibold leading-none tracking-tight tabular-nums`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+      <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${big} font-semibold leading-none tracking-tight tabular-nums`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
         {shown}
         {unit && <span className="ml-0.5 inline-block align-top leading-none text-[0.45em] font-medium text-[color:var(--w-muted)]">{unit}</span>}
       </span>
@@ -74,7 +77,25 @@ const GLIDE_MS = 1000;
 /** A ring glide is a main-thread repaint every frame, so it is kept short. */
 const RING_GLIDE_MS = 300;
 
-export function Bar({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments }: BarProps) {
+/**
+ * A bar or graph that carries the Data API key it draws, for the InfoPanel conversion (`lib/infopanel/native/decompose.ts`):
+ * the key's box is found by `data-ip-key`. Without a key the primitive is drawn as it was.
+ */
+/** On in the studio canvas only, where the InfoPanel conversion reads the tags; the kiosk and the previews draw without them. */
+export const IpTagCtx = createContext(false);
+
+export function Bar(p: BarProps & { ipKey?: string }) {
+  const tagging = useContext(IpTagCtx);
+  const { ipKey, ...rest } = p;
+  if (!ipKey || !tagging) return <BarBase {...rest} />;
+  return (
+    <div data-ip-key={ipKey} data-ip-kind="bar" data-ip-max={rest.max ?? 100} className={rest.className ?? "h-1.5"}>
+      <BarBase {...rest} className="h-full" />
+    </div>
+  );
+}
+
+function BarBase({ value, max = 100, t = "ok", className = "h-1.5", track = "bg-[color:var(--w-track)]", style: meterStyle, segments }: BarProps) {
   const sk = useSkin();
   const m = meterStyle ?? sk.meter ?? "bar";
   const pct = clamp((value / max) * 100);
@@ -157,6 +178,8 @@ export interface RingProps {
   t?: Tone;
   /** Stroke colour; replaces the tone's. */
   color?: string;
+  /** The Data API key the ring shows: tags it for the InfoPanel conversion (`data-ip-key`). */
+  ipKey?: string;
   /** Track colour (default `--w-track`). */
   track?: string;
   /** Degrees of the arc (default 360, a full ring); less leaves the gap at the bottom. */
@@ -164,7 +187,9 @@ export interface RingProps {
   children?: ReactNode;
   className?: string;
 }
-export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, track, sweep = 360, children, className = "" }: RingProps) {
+export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, track, sweep = 360, children, className = "", ipKey: key }: RingProps) {
+  const ipKey = useContext(IpTagCtx) ? key : undefined;
+  const tag = ipKey ? { "data-ip-key": ipKey, "data-ip-kind": "ring", "data-ip-max": max } : undefined;
   const sk = useSkin();
   const thickness = Math.max(1.5, th0 * (sk.ring ?? 1));
   const r = 50 - thickness / 2,
@@ -176,7 +201,7 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, tr
     // an open arc centred on the top: it starts `sweep / 2` before 12 o'clock (the svg is already turned to start there)
     const arc = (c * clamp(sweep, 1, 360)) / 360;
     return (
-      <div className={`relative aspect-square ${className}`}>
+      <div {...tag} className={`relative aspect-square ${className}`}>
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <g transform={`rotate(${-sweep / 2} 50 50)`}>
             <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} strokeLinecap={cap} strokeDasharray={`${arc} ${c}`} />
@@ -189,7 +214,7 @@ export function Ring({ value, max = 100, thickness: th0 = 8, t = "ok", color, tr
     );
   }
   return (
-    <div className={`relative aspect-square ${className}`}>
+    <div {...tag} className={`relative aspect-square ${className}`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <circle cx="50" cy="50" r={r} fill="none" stroke={track ?? "var(--w-track)"} strokeWidth={thickness} />
         <circle cx="50" cy="50" r={r} fill="none" stroke={color ?? TONES[t]} strokeWidth={thickness} strokeLinecap={cap}
@@ -437,7 +462,18 @@ export interface SparkProps {
   curve?: boolean;
 }
 // Graph styles: area · line · step · bars · dots · braille (from the skin, or pass graph=)
-export function Spark({ values = [], min, max, className = "h-10", fill = true, color = "var(--accent)", width = 1.75, graph, curve = true }: SparkProps) {
+export function Spark(p: SparkProps & { ipKey?: string }) {
+  const tagging = useContext(IpTagCtx);
+  const { ipKey, ...rest } = p;
+  if (!ipKey || !tagging) return <SparkBase {...rest} />;
+  return (
+    <div data-ip-key={ipKey} data-ip-kind="graph" className={rest.className ?? "h-10"}>
+      <SparkBase {...rest} className="h-full" />
+    </div>
+  );
+}
+
+function SparkBase({ values = [], min, max, className = "h-10", fill = true, color = "var(--accent)", width = 1.75, graph, curve = true }: SparkProps) {
   const id = `sp${useId().replace(/:/g, "")}`;
   const sk = useSkin();
   const reduced = useReducedMotion();
@@ -532,10 +568,11 @@ export function Img({ src, className = "", icon = "image", alt = "" }: { src?: s
 
 /* ───────── shared building blocks (extracted from widgets during the audit) ───────── */
 // Skin-aware big numerals (font, weight, stretch, glow). Use for every hero number.
-export function Num({ children, className = "", style, weight = 700 }: { children?: ReactNode; className?: string; style?: CSSProperties; weight?: number }) {
+export function Num({ children, className = "", style, weight = 700, ipKey: key, ipUnit }: { children?: ReactNode; className?: string; style?: CSSProperties; weight?: number; ipKey?: string; ipUnit?: string }) {
   const sk = useSkin();
+  const ipKey = useContext(IpTagCtx) ? key : undefined;
   return (
-    <span className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
+    <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey ? ipUnit : undefined} className={`tabular-nums ${className}`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight ?? weight, fontStretch: sk.numStretch, ...(sk.numGlow ? { textShadow: "0 0 4px var(--accent), 0 0 14px var(--accent)" } : null), ...style }}>
       {children}
     </span>
   );

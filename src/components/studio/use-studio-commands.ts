@@ -11,7 +11,7 @@ import type { Appearance } from "@/lib/style-resolve";
 import { addRule, alertsKey } from "./alerts-model";
 import { followAll, toggleEnforce } from "./appearance-actions";
 import { buildCommands, type CommandAction } from "./commands";
-import { openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors";
+import { openConvertDialog, openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors";
 import { insertables } from "./insert-panel";
 import { widgetContext, type InspectorContext } from "./inspector-model";
 import { toggleAdvanced } from "./inspector/inspector-prefs";
@@ -164,6 +164,8 @@ export function useStudioCommands({
         return openExportSheet();
       case "import":
         return openImportDoor();
+      case "convert":
+        return openConvertDialog(action.scope);
       case "new-infopanel":
         return openNewInfoPanel();
       case "undo":
