@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import type { HistorySetter } from "@/hooks/use-config-history";
+import type { IconSource } from "@/lib/effects/icon";
 import type { Placement } from "@/lib/layout";
 import { openCanvas, type OpenCanvas } from "@/lib/infopanel/canvas";
 import {
@@ -19,6 +20,7 @@ import {
   livePaths,
   rangeSelect,
   storeItems,
+  withElementFile,
   withNewFileItem,
   withNewItem,
   withRemap,
@@ -103,6 +105,8 @@ export interface CanvasEditor {
   setPalette(slot: Slot, color: string, key?: string): void;
   /** A studio element's spec replaced; its InfoPanel fields follow on commit. */
   setElement(path: Path, spec: ElementSpec, key?: string): void;
+  /** A studio element's spec built from a Library file, which joins the canvas's files; one step. */
+  setElementFile(path: Path, file: DroppedFile, make: (source: IconSource) => ElementSpec | null): void;
   /** A new item (the Add palette) placed by InfoPanel's rules, centred or where it was dropped, and selected; returns its path. */
   add(item: DisplayItem, place?: DropPlace): Path;
   /** A new Image or Sensor image showing a file (it joins the canvas's files); returns its path. */
@@ -243,6 +247,10 @@ export function useCanvasEditor(
       commitWith(storeItems({ ...open.stored, palette: next }, open.profile, recolour(committed, next)), undefined, key);
     },
     setElement: (path, spec, key) => commit(updateAt(committed, path, (item) => ({ ...item, element: spec }) as unknown as DisplayItem), key),
+    setElementFile: (path, file, make) => {
+      const stored = withElementFile(open.stored, open.profile, committed, path, file, make);
+      if (stored) commitWith(stored);
+    },
     add: (item, place) => {
       const r = withNewItem(committed, open.profile, item, single, place);
       commit(r.items, undefined, [r.path]);

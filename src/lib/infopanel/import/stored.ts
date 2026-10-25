@@ -43,6 +43,8 @@ export interface ItemImport {
   element?: ElementSpec;
   /** What a static element's image was baked from. */
   elementBaked?: string;
+  /** A Drives tile's drive id (the element's `icons` are keyed by it). */
+  driveId?: string;
   /** Colour fields that follow a palette slot, by field name. */
   slots?: Record<string, SlotRef>;
   /**
@@ -129,13 +131,14 @@ function encodeFields(schema: Schema, obj: Record<string, unknown>): Record<stri
 
 /** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots), as `$`. */
 function labImport(item: DisplayItem): ItemImport {
-  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; slots?: Record<string, SlotRef> };
+  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string; slots?: Record<string, SlotRef> };
   return {
     ...(lab.native ? { mode: "native" as const } : {}),
     ...(lab.vector !== undefined ? { vector: normalizeGauge(lab.vector) } : {}),
     ...(typeof lab.vectorBaked === "string" ? { vectorBaked: lab.vectorBaked } : {}),
     ...(lab.element ? { element: lab.element } : {}),
     ...(typeof lab.elementBaked === "string" ? { elementBaked: lab.elementBaked } : {}),
+    ...(typeof lab.driveId === "string" ? { driveId: lab.driveId } : {}),
     ...(lab.slots && Object.keys(lab.slots).length ? { slots: lab.slots } : {}),
   };
 }
@@ -325,6 +328,7 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
     ...(original ? { original } : {}),
     ...(element && fits ? { element } : {}),
     ...(element && fits && typeof o.elementBaked === "string" ? { elementBaked: o.elementBaked.slice(0, 100_000) } : {}),
+    ...(typeof o.driveId === "string" && kind === "Group" && o.driveId.length <= 200 ? { driveId: o.driveId } : {}),
     ...(slots && Object.keys(slots).length ? { slots } : {}),
   };
 }
@@ -351,6 +355,7 @@ function decodeItem(raw: unknown, path: string, issues: Issue[], depth: number, 
   if ($.vectorBaked) item.vectorBaked = $.vectorBaked;
   if ($.element) item.element = $.element;
   if ($.elementBaked) item.elementBaked = $.elementBaked;
+  if ($.driveId) item.driveId = $.driveId;
   if ($.slots) item.slots = $.slots;
   const rec = importRecord($);
   return { ...(item as unknown as DisplayItem), ...(rec ? { $import: rec } : {}) };

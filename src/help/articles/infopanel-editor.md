@@ -105,7 +105,7 @@ The **Elements** group in **Add** has looks InfoPanel has no item for. Each one 
 | Card | A rounded card: a fill or a 2 colour gradient at an angle, a 1 px stroke, a drop shadow, an outer glow, a background blur | A Shape while it has only a fill, a stroke and corners; one image otherwise, and with a blur one image with the blurred background baked in || A Shape while it has only a fill, a stroke and corners; one image otherwise |
 | Glow | A soft round light, for behind content | One image, see-through where the light fades |
 | Divider | A 1 or 2 px line, one colour or a gradient | A Shape when it's one colour; one image otherwise |
-| Icon | An icon from a searchable list, in a colour, as big as its box | One image |
+| Icon | An icon from a searchable list, in a colour, as big as its box; or your own image or SVG from My library | One image of the icon, or an Image of your file |
 | Cores | One bar per CPU core or thread, side by side or stacked | A Group of Bar items, each bound to its core |
 | Sparkline | A line, area or bar (histogram) graph, with a fill opacity, an end dot and a gradient fill | InfoPanel's Graph, in line or histogram mode; without the dot and the gradient |
 | Row | A label, its value on the right, an optional icon and a thin bar under it, laid out for you | A Group of a Text and a Value, plus a Bar and an icon image if you turn them on |
@@ -113,12 +113,14 @@ The **Elements** group in **Add** has looks InfoPanel has no item for. Each one 
 | Graph stack | 2 to 4 graphs in rows, each with a label | A Group of Text and Graph items |
 | Dual graph | Two series drawn over each other | A Group of two Graphs with no background |
 | Double ring | An outer and an inner ring, each on its own sensor, with a value in the middle | A Group of two Gauges with image frames and a Value |
-| Drives | A tile for each drive (from LibreHardwareMonitor, or HWiNFO's S.M.A.R.T. and drive devices): icon, name, used bar and percent, temperature and free space | A Group of tile Groups made of a Shape, Text, Bar and Values; the icon is an image |
+| Drives | A tile for each drive (from LibreHardwareMonitor, or HWiNFO's S.M.A.R.T. and drive devices): icon, name, used bar and percent, temperature and free space | A Group of tile Groups made of a Shape, Text, Bar and Values; the icon is an image, or an Image of your own file for a drive that has one |
 | Shadow text | A Text or Value with a dark copy behind it | Two Text items, the copy offset behind the text |
 
 Ring, LED bar and Sparkline ask for a sensor when you add them. Cores finds the cores in the Data API by itself. If it can't find them, it shows placeholder bars, and its inspector says so. **Find the cores again** binds the bars once the Data API reports them. Changing a Cores setting lays its bars out again.
 
 Row, Rows, Graph stack, Dual graph and Double ring start with no sensors. Select a part in **Layers** to choose its sensor or change its text; the element places the parts, so moving or resizing the element moves them all. A Row's thin bar follows the sensor of its value. Drives finds your drives in the Data API (LibreHardwareMonitor's drive sensors) and binds each tile. With none found it shows three placeholder tiles, and **Find the drives again** binds them once the Data API reports them.
+
+**Your own icons.** An Icon element's **Your image…** button picks a file from My library, or uploads one there. Drives has a row for each drive with **Your image…** and **Icon set**; **Reset** goes back to the hard drive. The file joins the profile's files, so it exports with the profile and My library won't remove it while a profile uses it. A file is drawn as it is: the icon colour doesn't tint an SVG, so pick an image that already suits the card. A wide or tall image is fitted inside the icon box, keeping its shape and centred; the exported Image is that fitted size. A drive keeps its icon when you use **Find the drives again** or the drives come back in another order. HWiNFO drives are matched by name when they have no stable id. We don't ship brand or game emblems: add your own files.
 
 **Glow** is on every Text and Value, in its Glow section: a switch, a radius from 2 to 20 and a colour. InfoPanel draws it itself, so it exports as it looks. Row, Rows and Double ring have a **Value glow** switch that sets it on their values. The dashboard's **Number glow** (Style, Typography) is the same idea for the dashboard's own widgets.
 

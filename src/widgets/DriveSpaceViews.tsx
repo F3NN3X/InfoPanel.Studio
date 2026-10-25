@@ -1,4 +1,18 @@
+import { lazy, Suspense } from "react";
+import type { ReactNode } from "react";
 import { Bar, fitRows, Icon, TONES, type Tone } from "./kit";
+
+const DriveIconImpl = lazy(() => import("./DriveIcon"));
+
+/** A drive's own icon, in its own chunk so a screen with none doesn't load it. */
+export const DriveIcon = (p: { icons?: string; id: string; name: string; px: number; fallback: ReactNode }) =>
+  p.icons ? (
+    <Suspense fallback={p.fallback}>
+      <DriveIconImpl {...p} icons={p.icons} />
+    </Suspense>
+  ) : (
+    <>{p.fallback}</>
+  );
 
 export interface DriveRow {
   key: string;
@@ -8,22 +22,25 @@ export interface DriveRow {
   text: string;
   pct: number;
   t: Tone;
+  /** The user's own icon for this drive, instead of the stock one. */
+  id: string;
 }
 
 const SEGMENTS = 12;
 const GAP = 12;
 
 /** Segments / Bars: an icon with a status dot, the name and used / total, and the fill bar under them. */
-export function DriveRows({ rows, view, size, h }: { rows: DriveRow[]; view: "segments" | "bars"; size: string; h: number }) {
+export function DriveRows({ rows, view, size, h, icons }: { rows: DriveRow[]; view: "segments" | "bars"; size: string; h: number; icons?: string }) {
   const rowH = size === "lg" ? 52 : size === "sm" ? 36 : 44;
   const icon = size === "lg" ? "text-[32px]" : size === "sm" ? "text-[22px]" : "text-[28px]";
+  const iconPx = size === "lg" ? 32 : size === "sm" ? 22 : 28;
   const shown = rows.slice(0, h > 0 ? fitRows(h, rowH, GAP) : rows.length);
   return (
     <div className="flex h-full flex-col overflow-hidden" style={{ gap: GAP }}>
       {shown.map((r) => (
         <div key={r.key} className="flex min-w-0 items-center gap-3" style={{ minHeight: rowH }}>
           <span className="relative shrink-0 text-[color:var(--w-muted)]">
-            <Icon name="hard_drive" className={icon} />
+            <DriveIcon icons={icons} id={r.id} name={r.name} px={iconPx} fallback={<Icon name="hard_drive" className={icon} />} />
             <span className="absolute -bottom-0.5 -left-0.5 h-2 w-2 rounded-full" style={{ background: TONES[r.t] }} />
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">

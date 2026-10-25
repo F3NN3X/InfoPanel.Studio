@@ -49,6 +49,7 @@ const DRIVE_SETTINGS: ModuleSetting[] = [
   // Segments and Bars always colour by fullness.
   viewOnly(DriveSpace.meta, "list")(boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true })),
   thresholdSetting("full"),
+  textSetting("icons", "Drive icons", "", { group: "Drive", driveIcons: true, keywords: ["emblem", "image", "logo"], hint: "Your own image or an icon for each drive" }),
 ];
 
 /** A stored number where 0 (and blank) = off / automatic. */
@@ -273,7 +274,7 @@ export const GROUP_B: DashboardModule[] = [
     meta: DriveSpace.meta,
     Component: DriveSpace.default,
     settings: DRIVE_SETTINGS,
-    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral) }),
+    toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral), icons: stringOf(s.icons) }),
     island: driveSpaceIsland,
   }),
   // any vendor's drive: the keys are read, not owned (the fallback grid keeps the rest of `libre.`)

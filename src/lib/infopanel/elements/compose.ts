@@ -10,6 +10,7 @@ import { glowToInfoPanel } from "../../effects/glow.ts";
 import { defaultItem, type DisplayItem, type GroupItem, type ItemKind } from "../schema.ts";
 import { bindingOf, isBound } from "../sensors.ts";
 import type { Ink } from "./palette.ts";
+import { driveIconOf } from "../../effects/icon.ts";
 import type { DoubleRingSpec, DrivesSpec, DualSpec, RowLook, RowSpec, RowsSpec, ShadowTextSpec, StackSpec, ValueGlow } from "./spec.ts";
 
 export type Apply = (item: DisplayItem) => DisplayItem;
@@ -213,13 +214,14 @@ export function tileLayout(at: { x: number; y: number; width: number; height: nu
 function applyTile(tile: GroupItem, s: DrivesSpec, at: { x: number; y: number; width: number; height: number }, apply: Apply): GroupItem {
   const [card, icon, name, bar, used, temp, free] = reconcile(tile.DisplayItems, TILE, TILE_NAMES);
   const L = tileLayout(at);
+  const mine = driveIconOf(s.icons, (tile as GroupItem & { driveId?: string }).driveId, tile.Name);
   const b = (r: { x: number; y: number; w: number; h: number }) => box(r.x, r.y, r.w, r.h);
   const kids: DisplayItem[] = [
     {
       ...card, ...box(at.x, at.y, at.width, at.height), Type: "Rectangle", CornerRadius: Math.round(s.radius), ShowFrame: false, ShowGradient: false, ShowFill: true,
       ...inked({ FillColor: s.card }),
     } as DisplayItem,
-    apply({ ...icon, ...b(L.icon), element: { type: "icon", name: "hard-drive", color: s.icon } } as unknown as DisplayItem),
+    apply({ ...icon, ...b(L.icon), element: { type: "icon", name: "hard-drive", color: s.icon, ...(mine ? { source: mine } : {}) } } as unknown as DisplayItem),
     { ...name, ...b(L.name), ...line(L.size, "left"), ...inked({ Color: s.text }) } as DisplayItem,
     mirror(
       { ...bar, ...b(L.bar), CornerRadius: Math.round(L.bar.h / 2), Background: true, Frame: false, Gradient: false, MinValue: 0, MaxValue: 100, ...inked({ Color: s.fill, BackgroundColor: s.track }) } as DisplayItem,

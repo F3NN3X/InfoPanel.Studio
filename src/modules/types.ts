@@ -130,6 +130,8 @@ export interface ModuleSetting {
    * listed at this sensor key (a JSON array or a comma list) offered while typing.
    */
   suggestKey?: string;
+  /** For type "text": the value is a JSON object of icons by drive (`effects/icon.ts`), edited one drive per row. */
+  driveIcons?: boolean;
   /** Bounds/step for type "number" (rendered as a slider when set). */
   min?: number;
   max?: number;

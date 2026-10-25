@@ -4,7 +4,10 @@
  * so a reorder, group or duplicate keeps it, and the items written back as the stored form.
  * Pure: the studio keeps the stored form in its config, so every commit is one undo step there.
  */
+import type { IconSource } from "../effects/icon.ts";
 import type { OpenCanvas } from "./canvas.ts";
+import { syncElements } from "./elements/apply.ts";
+import type { ElementSpec } from "./elements/spec.ts";
 import type { Path } from "./editor/ops.ts";
 import { itemAt, setField, updateAt } from "./editor/ops.ts";
 import { insertVectorGauge } from "./gauges/frames.ts";
@@ -351,6 +354,27 @@ export function withNewFileItem(
   const sized = { ...item, FilePath: name, RelativePath: true, ...fileSize(profile, file) } as DisplayItem;
   const r = withNewItem(items, profile, sized, selected, place);
   return { stored: storeItems({ ...stored, assets }, profile, r.items), path: r.path };
+}
+
+/**
+ * An element's spec set from a Library file the element shows (an Icon, a Drives tile's icon): the file joins the
+ * canvas's files (the same bytes already there are reused), `make` builds the spec from the file's source, and the
+ * element's InfoPanel fields follow. Null when `make` declines. The file stays in the canvas's files, so the Library's
+ * remove guard sees it as used.
+ */
+export function withElementFile(
+  stored: StoredCanvas,
+  profile: Profile,
+  items: readonly DisplayItem[],
+  path: Path,
+  file: DroppedFile,
+  make: (source: IconSource) => ElementSpec | null,
+): StoredCanvas | null {
+  const { assets, name } = withAsset(stored.assets, file);
+  const spec = make({ asset: file.hash, file: name, ...(file.width && file.height ? { width: file.width, height: file.height } : {}) });
+  if (!spec) return null;
+  const next = updateAt(items, path, (item) => ({ ...item, element: spec }) as unknown as DisplayItem);
+  return storeItems({ ...stored, assets }, profile, syncElements(next));
 }
 
 /* ---- sensors ---- */
