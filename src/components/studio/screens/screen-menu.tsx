@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Menu } from "@base-ui/react/menu";
-import { ArrowDown, ArrowUp, Copy, Link, MoreHorizontal, Pencil, Rocket, Share, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Link, MoreHorizontal, Pencil, Rocket, Share, Shuffle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ITEM, POPUP, SEPARATOR } from "../menu-styles";
 
@@ -16,6 +16,8 @@ interface ScreenMenuProps {
   onMove: (by: number) => void;
   onCopyLink: () => void;
   onExport: () => void;
+  /** Opens the screen on the canvas and the Convert to InfoPanel profile dialog. */
+  onConvert: () => void;
   onDelete: () => void;
 }
 
@@ -27,7 +29,7 @@ const Row = ({ icon: Icon, children }: { icon: typeof Copy; children: string }) 
 );
 
 /** The screen card's actions. */
-export function ScreenMenu({ canDelete, canMoveEarlier, canMoveLater, onRename, onDuplicate, onAlwaysOpen, onMove, onCopyLink, onExport, onDelete }: ScreenMenuProps) {
+export function ScreenMenu({ canDelete, canMoveEarlier, canMoveLater, onRename, onDuplicate, onAlwaysOpen, onMove, onCopyLink, onExport, onConvert, onDelete }: ScreenMenuProps) {
   // Rename hands the cursor to the card's name field: the menu must not take it back.
   const renaming = useRef(false);
   return (
@@ -76,6 +78,9 @@ export function ScreenMenu({ canDelete, canMoveEarlier, canMoveLater, onRename, 
             </Menu.Item>
             <Menu.Item className={ITEM} onClick={onExport}>
               <Row icon={Share}>Export screen</Row>
+            </Menu.Item>
+            <Menu.Item className={ITEM} onClick={onConvert}>
+              <Row icon={Shuffle}>Convert to InfoPanel profile</Row>
             </Menu.Item>
             <Menu.Separator className={SEPARATOR} />
             <Menu.Item className={cn(ITEM, "text-ui-danger data-disabled:text-ui-5")} disabled={!canDelete} onClick={onDelete}>

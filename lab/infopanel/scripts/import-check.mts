@@ -4,7 +4,7 @@
 //   node lab/infopanel/scripts/import-check.mts [--keep]
 //
 // Inputs: one export per item kind and one with all of them (tests/lib/infopanel/export/kind-cases.ts, every field set), plus
-// one with the studio elements (tests/lib/infopanel/export/element-cases.ts), plus every extracted corpus profile when lab/infopanel/corpus is there (INFOPANEL_CORPUS points elsewhere). Needs Windows, the
+// one with the studio elements (tests/lib/infopanel/export/element-cases.ts), one with converted native widgets (native-cases.ts), plus every extracted corpus profile when lab/infopanel/corpus is there (INFOPANEL_CORPUS points elsewhere). Needs Windows, the
 // .NET SDK and an InfoPanel checkout: INFOPANEL_PROJECT (the InfoPanel.csproj), else PublicRepos/infopanel-pr173 beside
 // the repo's parent folders. Exit 0 passed, 1 a difference, 3 not run here (what is missing is printed).
 import { spawnSync } from "node:child_process";
@@ -17,6 +17,7 @@ import { parseDisplayItemsXml, parseProfileXml, walkItems } from "../../../src/l
 import { listEntries, readEntry } from "../../../src/lib/infopanel/zip.ts";
 import type { DisplayItem } from "../../../src/lib/infopanel/schema.ts";
 import { elementExport } from "../../../tests/lib/infopanel/export/element-cases.ts";
+import { nativeExport } from "../../../tests/lib/infopanel/export/native-cases.ts";
 import { EMPTY_LISTS, fixtures, fullProfile } from "../../../tests/lib/infopanel/export/kind-cases.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -55,6 +56,8 @@ const add = (name: string, bytes: Uint8Array) => {
 for (const f of fixtures()) add(f.name, infopanelExport(f.profile, f.items, f.assets));
 // The studio elements (composites, bars graph, threshold rings), baked with stand-in files.
 add("Elements-8a", (await elementExport(fullProfile())).bytes);
+// Converted native widgets (a panel, a decomposed zone and each dedicated converter), baked with stand-in files.
+add("Native-6a", (await nativeExport(fullProfile())).bytes);
 const corpus = process.env.INFOPANEL_CORPUS ?? join(root, "lab", "infopanel", "corpus");
 if (existsSync(corpus)) {
   for (const id of readdirSync(corpus, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)) {

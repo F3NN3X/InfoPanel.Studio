@@ -28,6 +28,7 @@ export type CommandAction =
   | { type: "export" }
   | { type: "import" }
   | { type: "new-infopanel" }
+  | { type: "convert"; scope: "zone" | "screen" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "shortcuts" }
@@ -148,6 +149,7 @@ function generalCommands(s: CommandState): Command[] {
     ...(s.canUndo ? [general("undo", "Undo", { type: "undo" }, KEYS.undo)] : []),
     ...(s.canRedo ? [general("redo", "Redo", { type: "redo" }, KEYS.redo)] : []),
     general("export", "Export & back up…", { type: "export" }),
+    general("convert-screen", "Convert screen to InfoPanel profile…", { type: "convert", scope: "screen" }),
     general("import", "Import…", { type: "import" }),
     general("new-infopanel", "New InfoPanel profile…", { type: "new-infopanel" }, "blank or from a template"),
     general("shortcuts", "Keyboard shortcuts", { type: "shortcuts" }, KEYS.cheatsheet),

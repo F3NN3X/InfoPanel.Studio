@@ -17,6 +17,7 @@ import {
   Palette,
   Plus,
   Replace,
+  Share,
   SquareDashedMousePointer,
   Trash2,
   UnfoldHorizontal,
@@ -24,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
+import { BLANK_MODULE, CANVAS_ID, CARDS_ID } from "@/lib/layout";
 import type { CommandAction } from "./commands";
 import type { StudioSelection } from "./use-studio-selection";
 import { canvasMenu, menuAction, zoneMenu, type MenuItemId, type MenuSpec } from "./zone-menu";
@@ -41,6 +43,7 @@ const ICONS: Record<MenuItemId, ReactNode> = {
   "edit-style": <Paintbrush />,
   "bind-data": <Link2 />,
   "save-panel": <BookmarkPlus />,
+  "convert-zone": <Share />,
   duplicate: <Copy />,
   visible: null, // Eye / EyeOff by the label
   "move-to-page": <MoveRight />,
@@ -124,6 +127,7 @@ export function StudioContextMenu({ menu, sel, canPasteStyle, canStep, otherPage
       : zoneMenu({
           count: sel.selection.length,
           panel: Boolean(sel.selected.panel),
+          convertible: ![CANVAS_ID, BLANK_MODULE, CARDS_ID].includes(sel.selected.module),
           anyVisible: sel.selection.some((p) => p.visible),
           canPasteStyle,
           canStep,

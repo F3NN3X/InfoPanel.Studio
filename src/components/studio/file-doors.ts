@@ -21,7 +21,7 @@ export interface ExportRequest {
   gauge?: { name: string; gauge: VectorGauge };
 }
 
-export type FileDoorEvent = ({ type: "import" } & ImportRequest) | ({ type: "export" } & ExportRequest) | { type: "new-infopanel" };
+export type FileDoorEvent = ({ type: "import" } & ImportRequest) | ({ type: "export" } & ExportRequest) | { type: "new-infopanel" } | { type: "convert"; scope: "zone" | "screen" };
 
 const listeners = new Set<(e: FileDoorEvent) => void>();
 
@@ -29,6 +29,9 @@ export const openImportDoor = (req: ImportRequest = {}): void => listeners.forEa
 export const openExportSheet = (req: ExportRequest = {}): void => listeners.forEach((l) => l({ type: "export", ...req }));
 /** "New InfoPanel profile…" (the Add panel, the Import door, the Library, the InfoPanel page). */
 export const openNewInfoPanel = (): void => listeners.forEach((l) => l({ type: "new-infopanel" }));
+
+/** "Convert zone to InfoPanel" / "Convert screen to InfoPanel profile…" (the zone menu, the command palette). */
+export const openConvertDialog = (scope: "zone" | "screen"): void => listeners.forEach((l) => l({ type: "convert", scope }));
 
 /** The studio view's subscription; returns its unsubscribe. */
 export function onFileDoor(listener: (e: FileDoorEvent) => void): () => void {

@@ -10,6 +10,7 @@ export type MenuItemId =
   | "edit-style"
   | "bind-data"
   | "save-panel"
+  | "convert-zone"
   | "duplicate"
   | "visible"
   | "move-to-page"
@@ -45,6 +46,8 @@ export type MenuSpec = (MenuItemSpec | "separator")[];
 export interface ZoneMenuState {
   /** How many zones are selected. */
   count: number;
+  /** The primary zone is a dashboard widget or panel (not a canvas or blank zone): it can be converted to InfoPanel. */
+  convertible?: boolean;
   /** The primary zone is a panel. */
   panel: boolean;
   /** Any selected zone shows (the row hides them), else it shows them all. */
@@ -82,6 +85,7 @@ export function zoneMenu(s: ZoneMenuState): MenuSpec {
     { id: "edit-style", label: "Edit style" },
     ...(single ? [{ id: "bind-data" as const, label: "Bind data…" }] : []),
     ...(single && s.panel ? [{ id: "save-panel" as const, label: "Save as Panel" }] : []),
+    ...(single && s.convertible ? [{ id: "convert-zone" as const, label: "Convert zone to InfoPanel…" }] : []),
     { id: "duplicate", label: "Duplicate", hint: `${MOD}D` },
     { id: "visible", label: s.anyVisible ? "Hide" : "Show", hint: "H" },
     ...(s.otherPages && s.otherPages.length > 0
@@ -126,6 +130,8 @@ export function menuAction(id: Exclude<MenuItemId, "move-to-page">): CommandActi
       return { type: "edit-style" };
     case "bind-data":
       return { type: "bind-data" };
+    case "convert-zone":
+      return { type: "convert", scope: "zone" };
     case "save-panel":
       return { type: "save-panel-preset" };
     case "duplicate":

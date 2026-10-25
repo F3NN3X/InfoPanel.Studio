@@ -1,5 +1,5 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, pretty, useSkin, numFont, hue, hw, RingStack, LegendRow, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, pretty, useSkin, numFont, hue, hw, RingStack, LegendRow, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
   id: "GpuRings",
@@ -29,31 +29,34 @@ export default function GpuRings(p: GpuRingsProps) {
   const sk = useSkin();
   const gpu = p.gpu ?? hw(d).gpu;
   const G = (k: string) => num(get(d, `libre.${gpu}_${k}`));
+  const key = (k: string) => `libre.${gpu}_${k}`;
+  const tag = useIpTag();
   const vram = (G("gpu_memory_used") / G("gpu_memory_total")) * 100;
   const fans = [1, 2, 3].map((i) => G(`gpu_fan_${i}`)).filter((v) => v > 0),
     duty = G("gpu_fan_1_control");
-  const M: Record<Ring, { l: string; v: number; txt: string }> = {
-    vram: { l: "VRAM", v: vram, txt: `${fmt(G("gpu_memory_used") / 1024, 1)} / ${fmt(G("gpu_memory_total") / 1024, 1)} GB` },
-    load: { l: "Core load", v: G("gpu_core_load"), txt: `${fmt(G("gpu_core_load"), 0)}%` },
-    power: { l: "Board power", v: G("gpu_board_power"), txt: `${fmt(G("gpu_board_power"), 1)}%` },
-    fan: { l: "Fan duty", v: duty, txt: `${fmt(duty, 0)}%` },
+  // `k`: the Data API key of the ring's value (VRAM is a share of two, so it has none), for the InfoPanel conversion's tags.
+  const M: Record<Ring, { l: string; v: number; txt: string; k?: string }> = {
+    vram: { l: "VRAM", v: vram, txt: `${fmt(G("gpu_memory_used") / 1024, 1)} / ${fmt(G("gpu_memory_total") / 1024, 1)} GB`, k: get(d, key("gpu_memory")) !== "" ? key("gpu_memory") : undefined },
+    load: { l: "Core load", v: G("gpu_core_load"), txt: `${fmt(G("gpu_core_load"), 0)}%`, k: key("gpu_core_load") },
+    power: { l: "Board power", v: G("gpu_board_power"), txt: `${fmt(G("gpu_board_power"), 1)}%`, k: key("gpu_board_power") },
+    fan: { l: "Fan duty", v: duty, txt: `${fmt(duty, 0)}%`, k: key("gpu_fan_1_control") },
   };
   const outer = M[p.outer ?? "vram"],
     inner = M[p.inner ?? "load"];
   const cO = p.colors?.outer ?? "var(--accent)",
     cI = p.colors?.inner ?? hue(70);
-  const legend: [string | null, string, string][] = [
-    [cO, outer.l, outer.txt],
-    [cI, inner.l, inner.txt],
-    [null, "Clock", `${fmt(G("gpu_core_clock"), 0)} MHz`],
-    [null, "Power", `${fmt(G("gpu_package"), 1)} W`],
+  const legend: [string | null, string, string, string?][] = [
+    [cO, outer.l, outer.txt, outer === M.vram ? undefined : outer.k],
+    [cI, inner.l, inner.txt, inner === M.vram ? undefined : inner.k],
+    [null, "Clock", `${fmt(G("gpu_core_clock"), 0)} MHz`, key("gpu_core_clock")],
+    [null, "Power", `${fmt(G("gpu_package"), 1)} W`, key("gpu_package")],
     [null, "Fans", fans.length ? `${fmt(fans.reduce((a, b) => a + b, 0) / fans.length, 0)} RPM · ${fmt(duty, 0)}%` : "idle"],
-    [null, "Mem junction", `${fmt(G("gpu_memory_junction"), 0)}°C`],
+    [null, "Mem junction", `${fmt(G("gpu_memory_junction"), 0)}°C`, key("gpu_memory_junction")],
   ];
   const name = (get(d, "plugins.InfoPanel.RTSS.rtss.gpu-name") || pretty(gpu ?? "")).replace(/^NVIDIA GeForce /, "");
   const rings = (size: number) => (
-    <RingStack rings={[{ v: outer.v, color: cO }, { v: inner.v, color: cI }]} thickness={size < 110 ? 6 : 9} gap={3} className="shrink-0" style={{ width: size, height: size }}>
-      <b className="font-bold leading-none tabular-nums" style={{ fontSize: size * 0.19, ...numFont(sk) }}>
+    <RingStack rings={[{ v: outer.v, color: cO, ipKey: outer.k }, { v: inner.v, color: cI, ipKey: inner.k }]} thickness={size < 110 ? 6 : 9} gap={3} className="shrink-0" style={{ width: size, height: size }}>
+      <b {...tag(key("gpu_core"))} className="font-bold leading-none tabular-nums" style={{ fontSize: size * 0.19, ...numFont(sk) }}>
         {fmt(G("gpu_core"), 0)}°C
       </b>
       {size > 100 && <span className="text-[11px] text-[color:var(--w-muted)]">Core</span>}
@@ -84,8 +87,8 @@ export default function GpuRings(p: GpuRingsProps) {
             {(side ? w - size > 120 : h - size > 40) && (
               <div className="grid min-w-0 flex-1 gap-1.5 self-stretch content-center">
                 {/* by position: both rings may show the same metric */}
-                {legend.slice(0, rows).map(([c, l, v], i) => (
-                  <LegendRow key={i} color={c} label={l} value={v} />
+                {legend.slice(0, rows).map(([c, l, v, k], i) => (
+                  <LegendRow key={i} color={c} label={l} value={v} tag={tag(k)} />
                 ))}
               </div>
             )}

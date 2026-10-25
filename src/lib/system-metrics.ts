@@ -382,5 +382,10 @@ export function readSystemFlat(data: Record<string, string | { value: string }>,
   return readings;
 }
 
+/** The key each reading of `readSystemFlat` comes from (`cpuTemp` → `libre.…_core__tctl_tdie`), for the InfoPanel conversion's tags. */
+export function systemKeysFlat(data: Record<string, string | { value: string }>): Partial<Record<RuleName, string>> {
+  return Object.fromEntries(Object.entries(findAll(flatSensors(data))).map(([name, hit]) => [name, hit?.[0]]));
+}
+
 /** The network adapters from the templates' flat data (data order). */
 export const readAdaptersFlat = (data: Record<string, string | { value: string }>, names?: Record<string, string>): AdapterReading[] => readAdapters(flatSensors(data, names));

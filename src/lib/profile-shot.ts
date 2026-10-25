@@ -13,7 +13,7 @@ const FETCH_TIMEOUT_MS = 8000;
  */
 const SKIPPED = "[data-shot-skip], [data-screen-fold], [data-hidden-zone], [data-resize-handle]";
 
-const keep = (node: Node): boolean => !(node instanceof Element && node.matches(SKIPPED));
+export const keep = (node: Node): boolean => !(node instanceof Element && node.matches(SKIPPED));
 
 /** What an image the proxy can't fetch becomes in a shot: a transparent pixel, not a blocked request. */
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";

@@ -41,6 +41,7 @@ export default function CpuMonitor(p: CpuMonitorProps) {
   const d = p.data;
   const id = p.cpu ?? hw(d).cpu;
   const k = (s: string) => get(d, `libre.${id}_${s}`);
+  const totalKey = `libre.${id}_cpu_total`;
   const total = num(k("cpu_total")),
     maxCore = num(k("cpu_core_max"));
   const temp = num(k("core__tctl_tdie")),
@@ -84,13 +85,13 @@ export default function CpuMonitor(p: CpuMonitorProps) {
       {({ size, h }) =>
         size === "xs" ? (
           <div className="flex h-full items-center justify-between gap-2">
-            <Metric label={h >= 72 ? "CPU" : undefined} value={total} unit="%" scale={h >= 100 ? "lg" : h >= 60 ? "md" : "sm"} t={tone(total, warn, crit)} />
-            <Spark values={hist} min={0} max={100} className="h-8 w-1/2" />
+            <Metric ipKey={totalKey} label={h >= 72 ? "CPU" : undefined} value={total} unit="%" scale={h >= 100 ? "lg" : h >= 60 ? "md" : "sm"} t={tone(total, warn, crit)} />
+            <Spark ipKey={totalKey} values={hist} min={0} max={100} className="h-8 w-1/2" />
           </div>
         ) : size === "sm" ? (
           <div className="flex h-full items-center gap-3">
-            <Ring value={total} t={tone(total, warn, crit)} thickness={9} className="h-full max-h-28">
-              <Num className="text-xl font-semibold">
+            <Ring ipKey={totalKey} value={total} t={tone(total, warn, crit)} thickness={9} className="h-full max-h-28">
+              <Num ipKey={totalKey} ipUnit="%" className="text-xl font-semibold">
                 {fmt(total, 0)}
                 <span className="text-xs text-[color:var(--w-muted)]">%</span>
               </Num>
@@ -106,14 +107,14 @@ export default function CpuMonitor(p: CpuMonitorProps) {
         ) : (
           <div className="flex h-full flex-col gap-3">
             <div className="flex items-end gap-5">
-              <Metric value={total} unit="%" scale={size === "lg" ? "xl" : "lg"} sub="Total load" t={tone(total, warn, crit)} />
+              <Metric ipKey={totalKey} value={total} unit="%" scale={size === "lg" ? "xl" : "lg"} sub="Total load" t={tone(total, warn, crit)} />
               <div className="grid flex-1 grid-cols-3 gap-3">
                 <Stat label="Max core" value={`${fmt(maxCore, 0)}%`} />
                 <Stat label="Package" value={`${fmt(power, 1)} W`} />
                 <Stat label="Avg clock" value={`${fmt(clock / 1000, 2)} GHz`} />
               </div>
             </div>
-            {size === "md" && <Spark values={hist} min={0} max={100} className="min-h-0 flex-1" />}
+            {size === "md" && <Spark ipKey={totalKey} values={hist} min={0} max={100} className="min-h-0 flex-1" />}
             {cores.length > 0 && view === "heatmap" && (
               // rows share the height left over (20px at most below large), so a short box squeezes them instead of overflowing
               <div className="grid min-h-0 flex-1 gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridAutoRows: "minmax(0,1fr)", maxHeight: size === "lg" ? undefined : Math.ceil(cores.length / cols) * 24 - 4 }}>
