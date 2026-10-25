@@ -1294,7 +1294,7 @@ the sections the page customises over its screen's theme with the way into Theme
 Show on kiosks now, and Duplicate / Delete page.
 
 *Screens* (`screens-view.tsx`, `screen-detail.tsx`, `screens-model.ts`): a card per screen with the launch rule
-("When the app opens", `withLaunch`), and for the selected screen Size & fit and Grid (`screen-layout.tsx`),
+(the card menu's `withLaunch`; "When the app opens" is Settings › Dashboard › Startup screen), and for the selected screen Size & fit and Grid (`screen-layout.tsx`),
 Rotation and the pages list (`screen-pages.tsx`), Performance (a per-screen override with an inheritance chip,
 `withScreenPerformance`) and links to Theme and Alerts & Island.
 
@@ -1387,7 +1387,7 @@ multi-select) | **Add** (`add-panel.tsx` over `use-add-panel.ts` and `add-catalo
 and widget / layout / panel rows that drag (HTML5 drag, MIME in `studio-modules.ts`) or click to place;
 `searchItems` and `categoriesOf` filter). `insert-panel.tsx` keeps `filterInsertables`, `InsertFilters` and
 `InsertList` for the widget picker and the palette. Screens are the cards of `screens-view.tsx`: the
-launch rule ("When the app opens", `resolveProfile`'s Auto) and a card per screen.
+a card per screen (the launch rule, `resolveProfile`'s Auto, is Settings › Dashboard › Startup screen).
 
 **Studio top bar.** `studio-top-bar.tsx` holds the screen / page switcher (`screen-switcher.tsx`, with a ⚙ to
 Screens), the search field that opens the command palette, Undo / Redo, Import and Export (`file-doors.ts`:

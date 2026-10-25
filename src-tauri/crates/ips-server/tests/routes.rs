@@ -214,6 +214,22 @@ async fn stores_the_config_verbatim_behind_its_guards() {
 }
 
 #[tokio::test]
+async fn settings_patch_sets_the_startup_screen() {
+    let s = start().await;
+    post_config(s.port, r#"{"version":11,"activeProfile":"auto","profiles":[{"id":"desk","pages":[]}]}"#, &[]).await;
+    for bad in [r#""gone""#, "1", "true"] {
+        let refused = patch_settings(s.port, &format!(r#"{{"activeProfile":{bad}}}"#)).await;
+        assert_eq!((refused.status, refused.text()), (400, "not a valid activeProfile".to_string()));
+    }
+    assert_eq!(patch_settings(s.port, r#"{"activeProfile":"desk"}"#).await.status, 200);
+    assert_eq!(json(&get(s.port, "/api/config").await)["activeProfile"], "desk");
+    assert_eq!(patch_settings(s.port, r#"{"activeProfile":null}"#).await.status, 200);
+    assert_eq!(json(&get(s.port, "/api/config").await)["activeProfile"], "auto");
+    assert_eq!(patch_settings(s.port, r#"{"activeProfile":"auto"}"#).await.status, 200);
+    s.stop().await;
+}
+
+#[tokio::test]
 async fn merges_settings_patches_and_feeds_them() {
     let s = start().await;
     assert_eq!(patch_settings(s.port, r#"{"general":{"maxFps":15}}"#).await.text(), "no config saved yet");

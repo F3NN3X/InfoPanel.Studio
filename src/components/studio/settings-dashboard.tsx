@@ -4,7 +4,7 @@ import type { DashboardConfig } from "@/lib/layout";
 import type { DashboardGeneralKey, SettingsPatch } from "@/lib/settings-patch";
 import { FPS_OPTIONS, MOTION_OPTIONS } from "./inspector/behaviour-model";
 import { ResetConfigDialog } from "./reset-config-dialog";
-import { performanceWithout, screensOverriding } from "./screens-model";
+import { launchRule, performanceWithout, screensOverriding } from "./screens-model";
 import { SegmentedRow, SelectRow, ToggleRow } from "./setting-rows";
 import { SettingsGroup } from "./settings-group";
 
@@ -58,6 +58,11 @@ const CLOCKS = [
   { value: "12", label: "12 h" },
 ];
 
+/** "When the app opens": Best fit, then each screen by name. */
+function startupOptions(config: DashboardConfig): { value: string; label: string }[] {
+  return [{ value: "auto", label: "Best fit for the window" }, ...config.profiles.map((p) => ({ value: p.id, label: `Always ${p.name}` }))];
+}
+
 /** The locale options: System, the common locales, and a saved one not among them. */
 function localeOptions(current: string): { value: string; label: string }[] {
   const known = current === "" || COMMON_LOCALES.some((l) => l.value === current);
@@ -70,8 +75,8 @@ function localeOptions(current: string): { value: string; label: string }[] {
 
 /**
  * Settings › Dashboard (SPEC §10.1, PLAN decisions 21 and 22), in the Settings window: what applies to every screen,
- * saved the moment it changes. Performance is the default screens inherit (a screen's own is set in Screens), then
- * the clock and date, the kiosk's page dots and cursor, and the danger zone.
+ * saved the moment it changes. The startup screen, then performance is
+ * the default screens inherit (a screen's own is set in Screens), then the clock and date, the kiosk's page dots and cursor, and the danger zone.
  */
 export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenScreen }: SettingsDashboardProps) {
   const [confirmReset, setConfirmReset] = useState(false);
@@ -83,6 +88,16 @@ export function SettingsDashboard({ config, onPatch, onExport, onReset, onOpenSc
   const setHours = (value: "12" | "24" | undefined) => onPatch({ style: { clock: value ?? null } });
   return (
     <>
+      <SettingsGroup id="startup" title="Startup screen" scope="Default for the app">
+        <SelectRow
+          label="When the app opens"
+          hint="Best fit picks the screen whose size is closest to the window it opens in. Choose a screen to open on it whatever the window size. Kiosks pinned to a screen by their link ignore this."
+          options={startupOptions(config)}
+          value={launchRule(config) === "fixed" ? config.activeProfile : "auto"}
+          onChange={(v) => onPatch({ activeProfile: v === "auto" ? null : v })}
+        />
+      </SettingsGroup>
+
       <SettingsGroup id="performance" title="Performance" scope="Default for all screens">
         <div data-nav-control="fps">
           <SegmentedRow

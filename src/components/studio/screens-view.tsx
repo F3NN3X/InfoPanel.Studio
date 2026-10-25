@@ -11,7 +11,6 @@ import { openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors"
 import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { DeleteDialog } from "./screens/delete-dialog";
-import { LaunchRule } from "./screens/launch-rule";
 import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "./screens/profile-card";
 import { SavedCard } from "./screens/saved-card";
 import { ScreenMenu } from "./screens/screen-menu";
@@ -67,7 +66,7 @@ const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 /**
  * Screens (SPEC §8): the manager for every screen and saved InfoPanel profile. Cards with thumbnails you can search,
  * filter by kind and sort; create (blank, sample layout, InfoPanel template), rename, duplicate, reorder, export and
- * delete with a confirm that names what goes, then an Undo. "When the app opens" is the default screen; the kiosks'
+ * delete with a confirm that names what goes, then an Undo. The default screen is chosen in Settings › Dashboard; the kiosks'
  * current screens are the active ones. A click selects a card for editing (the detail panel, the canvas, the page tabs); it
  * never changes what the app opens on.
  */
@@ -144,8 +143,6 @@ export function ScreensView({
           }}
           onNewInfoPanel={() => openNewInfoPanel()}
         />
-
-        <LaunchRule config={config} setConfig={setConfig} windowSize={windowSize} autoProfileId={autoProfileId} editedId={stored.id} />
 
         {empty && (
           <p className="rounded-[10px] border border-dashed border-ui-default px-4 py-8 text-center text-[12.5px] text-ui-4">
