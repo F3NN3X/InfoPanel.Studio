@@ -7,6 +7,7 @@
 import { rebound, type ChosenSensor } from "../editor/bind.ts";
 import { syncElements } from "../elements/apply.ts";
 import { detectCores } from "../elements/cores.ts";
+import { detectDrives } from "../elements/drives.ts";
 import { elementOf } from "../elements/spec.ts";
 import { storeItems } from "../canvas-edit.ts";
 import { newStored, readStored, type StoredCanvas } from "../import/stored.ts";
@@ -47,6 +48,9 @@ export interface Instance {
 /** The label the Remap dialog shows for the cores a Cores element couldn't find. */
 export const CORES_LABEL = "CPU cores";
 
+/** The label for the drives a Drives element couldn't find. */
+export const DRIVES_LABEL = "Drives";
+
 type WithImport = DisplayItem & { $import?: { key?: string; via?: string } };
 
 export function instantiate(t: Template, input: TemplateInput): Instance {
@@ -66,6 +70,8 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
     frame: frameOf(profile.Width, profile.Height),
     type: t.type,
     cores: detectCores(input.sensors),
+    drives: detectDrives(input.sensors),
+    variant: t.variants.find((v) => v.id === input.variant)?.id ?? t.variants[0].id,
     bind: (item, role) => {
       if (!isBound(item)) return item;
       used.add(role);
@@ -90,7 +96,8 @@ export function instantiate(t: Template, input: TemplateInput): Instance {
   if (issues.length) throw new Error(`Template ${t.id} doesn't read back: ${issues.map((i) => `${i.path} ${i.field}`).join(", ")}`);
 
   const coresMissing = kit.cores.length === 0 && [...walkItems(items)].some(({ item }) => elementOf(item)?.type === "cores");
+  const drivesMissing = kit.drives.length === 0 && [...walkItems(items)].some(({ item }) => elementOf(item)?.type === "drives");
   const unbound = [...missing].map((r) => ROLE_INFO[r].label);
   const roles = [...used].map((role) => ({ role, sensor: found.get(role) ?? null }));
-  return { stored, unbound: coresMissing ? [...unbound, CORES_LABEL] : unbound, roles };
+  return { stored, unbound: [...unbound, ...(coresMissing ? [CORES_LABEL] : []), ...(drivesMissing ? [DRIVES_LABEL] : [])], roles };
 }

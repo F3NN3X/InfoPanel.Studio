@@ -9,6 +9,13 @@ const libre = (id: string, name: string, unit: string, value: number): DataApiVa
 
 const rtss = (id: string, name: string, unit: string, value: number): DataApiValue => ({ value, unit, name, ref: `plugin:/InfoPanel.RTSS/rtss/${id}`, source: "infopanel" });
 
+/** A drive's used %, free GB and temperature, as LibreHardwareMonitor reports a drive. */
+const drive = (n: number, name: string, used: number, free: number, temp: number): Record<string, DataApiValue> => ({
+  [`mock.drive.${n}.used`]: libre(`/nvme/${n}/load/0`, `${name} Used Space`, "%", used),
+  [`mock.drive.${n}.free`]: libre(`/nvme/${n}/data/1`, `${name} Free Space`, "GB", free),
+  [`mock.drive.${n}.temp`]: libre(`/nvme/${n}/temperature/0`, `${name} Composite Temperature`, "°C", temp),
+});
+
 const CORE_LOADS = [62, 48, 71, 35, 54, 80, 41, 66, 29, 58, 73, 44];
 
 export const MOCK_SENSORS: Readonly<Record<string, DataApiValue>> = {
@@ -47,6 +54,10 @@ export const MOCK_SENSORS: Readonly<Record<string, DataApiValue>> = {
   "mock.cpu.ccd1": libre("/amdcpu/0/temperature/3", "Mock CPU CCD1 (Tdie)", "°C", 57),
   "mock.cpu.ccd2": libre("/amdcpu/0/temperature/4", "Mock CPU CCD2 (Tdie)", "°C", 60),
   "mock.psu.12v": { value: 12.1, unit: "V", name: "+12V" },
-  "mock.ups.power": { value: 212, unit: "W", name: "UPS Power" },
+  "mock.ups.power": { value: 212, unit: "W", name: "UPS Power", ref: "plugin:/ups-plugin/ups/power" },
+  "mock.ram.speed": { value: 6000, unit: "MHz", name: "Memory Clock", ref: "plugin:/hwinfo-plugin/memory/clock" },
+  "mock.drive.0.used": libre("/nvme/0/load/1", "Mock SSD Used Space", "%", 48),
+  ...drive(1,"Mock Archive SSD", 61, 1620, 38),
+  ...drive(2, "Mock Scratch SSD", 27, 410, 44),
   ...Object.fromEntries(CORE_LOADS.map((v, i) => [`mock.core.${i + 1}`, libre(`/amdcpu/0/load/${i + 2}`, `Mock CPU Core #${i + 1}`, "%", v)])),
 };

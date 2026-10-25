@@ -8,9 +8,10 @@ import { bakeSignature, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/f
 import { readStored } from "@/lib/infopanel/import/stored.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
 import type { DisplayItem, GaugeItem, ImageItem } from "@/lib/infopanel/schema.ts";
+import { elementOf } from "@/lib/infopanel/elements/spec.ts";
 import { isBound } from "@/lib/infopanel/sensors.ts";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog.ts";
-import { CORES_LABEL, instantiate } from "@/lib/infopanel/templates/instantiate.ts";
+import { CORES_LABEL, DRIVES_LABEL, instantiate } from "@/lib/infopanel/templates/instantiate.ts";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock.ts";
 
 const now = new Date("2026-10-25T00:00:00Z");
@@ -78,6 +79,24 @@ describe("the Clock template's seconds ring", () => {
   it("lists the ring for Remap when the PC has no clock plugin", () => {
     const sensors = Object.fromEntries(Object.entries(MOCK_SENSORS).filter(([k]) => !k.startsWith("mock.clock."))) as typeof MOCK_SENSORS;
     expect(instantiate(clock, { name: "Clock", width: 480, height: 320, sensors, now }).unbound).toEqual(["Clock second"]);
+  });
+});
+
+describe("the Console template's drives", () => {
+  const console_ = TEMPLATES.find((t) => t.id === "console")!;
+  const tiles = (sensors: typeof MOCK_SENSORS) => {
+    const { stored, unbound } = instantiate(console_, { name: "Console", width: 1920, height: 720, sensors, now });
+    const group = [...walkItems(readStored(JSON.parse(JSON.stringify(stored))).items)].find(({ item }) => elementOf(item)?.type === "drives")!.item;
+    return { unbound, tiles: (group as unknown as { DisplayItems: DisplayItem[] }).DisplayItems.length };
+  };
+
+  it("makes a tile for each drive found on the machine", () => {
+    expect(tiles(MOCK_SENSORS)).toEqual({ unbound: [], tiles: 3 });
+  });
+
+  it("keeps placeholder tiles and lists Drives for Remap when none are found", () => {
+    expect(tiles({}).unbound).toContain(DRIVES_LABEL);
+    expect(tiles({}).tiles).toBeGreaterThan(0);
   });
 });
 

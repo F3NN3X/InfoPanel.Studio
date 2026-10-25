@@ -19,7 +19,7 @@ export const ROLES = [
   "gpu.memclock", "gpu.hotspot", "gpu.fan", "gpu.volt",
   "ram.total", "ram.free", "disk.free",
   "cpu.maxcore", "cpu.ccd1", "cpu.ccd2",
-  "psu.12v", "ups.power",
+  "psu.12v", "ups.power", "ram.speed",
 ] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -76,6 +76,7 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
   "cpu.ccd2": { label: "CPU CCD2 temperature", unit: "°C", min: 0, max: 100, precision: 0, warn: 75, crit: 90 },
   "psu.12v": { label: "12V rail", unit: "V", min: 10, max: 14, precision: 2 },
   "ups.power": { label: "UPS power", unit: "W", min: 0, max: 1500, precision: 0 },
+  "ram.speed": { label: "Memory speed", unit: "MHz", min: 0, max: 8000, precision: 0 },
 };
 
 /** One way to recognise a role's sensor: every pattern given must match. */
@@ -157,6 +158,8 @@ const RULES: Record<Role, readonly Rule[]> = {
   // Best effort: boards and UPS plugins name these as they please.
   "psu.12v": [{ name: /^(\+12V|12V|PSU 12V|12V Rail)$/i, unit: "V" }],
   "ups.power": [{ name: /^UPS .*(Power|Load)$/i, unit: "W" }, { name: /^UPS Power$/i }],
+  // HWiNFO's memory group; best effort, not in the capture.
+  "ram.speed": [{ name: /^(Memory Clock|DRAM Frequency)$/i, unit: "MHz" }],
 };
 
 /** Adapters that aren't the machine's own link (virtual switches, VPNs, Bluetooth). */

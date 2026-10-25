@@ -51,6 +51,10 @@ A template is a finished profile made from the editor's own items and elements, 
 | Orbit | A pill with a load ring at each end, the temperatures and power beside them, and FPS in the middle |
 | Tower | A tall card with FPS, CPU and GPU as lists of readings, each with a small graph |
 | Ticker | One long pill of text: CPU, GPU, FPS and the time |
+| Readout | Three instrument panels (GPU, CPU, System), each with one very large number and two meters that change colour as they fill. Colours: Mono, Tint |
+| Console | A strip of six readouts, CPU and GPU rings, RAM and VRAM bars, and a tile for each drive. Colours: Ice, Amber, Steel |
+| Frost Bar | Frosted glass cards over a soft wash: load rings, memory, clock, uptime, network and three temperature rings. Colours: Aurora, Smoke |
+| Quota | A large clock and a list of CPU, RAM, GPU and Disk load, one thin bar each. Colours: Slate, Sand |
 
 Deck, Meters, Orbit, Tower and Ticker come in Dark, White and Smoke, and in Float, which has no cards and puts a dark shadow behind every line of text (Deck also has Tint). They are made for their own sizes, which the Size row offers and picks for you: Deck 1920 × 1080 (it also lays out for 1920 × 480 and for upright screens), Meters 1600 × 300, Orbit 1080 × 240, Ticker 1280 × 160 and Tower 480 × 1920. At other sizes they stack their parts and still fit.
 
@@ -61,6 +65,8 @@ Every other template is drawn for 480 × 320 and laid out again for the size you
 The sensors are matched to what your PC's Data API reports: CPU and GPU load, temperature, clock and power, RAM, disk, download and upload, and uptime.
 
 The Clock template's ring reads InfoPanel's clock plugin (Clock · Second, 0 to 59), so it needs that plugin. Without it the ring is left unbound and Remap lists it as Clock second. The ring is exported with 60 frames, one for each second. A sensor that can't be found is left unbound, and the editor opens with a line naming each one. **Remap** on that line opens [Sensor remap](remap), where you can pick a sensor for it. Close the line with **×**.
+
+Some templates read sensors your PC may not have. Console shows FPS from RTSS (through InfoPanel's RTSS plugin), memory speed from HWiNFO, and UPS power from a UPS plugin; without them those readouts stay empty and Remap lists them. Readout and Console show a GPU hot spot, which NVIDIA cards often don't report, and Readout shows the CPU's two CCD temperatures, which only some Ryzen chips have. Console's drive tiles come from the drives in your Data API, one tile each, with placeholders if there are none. Console is drawn for 1920 × 720 and Quota for 1920 × 540; both are in the Size list. Frost Bar and Readout are drawn for 1920 × 480.
 
 A template's colours come from the profile's palette (see The palette, below), so you can change them all in one place later. Everything in it can be moved, changed or deleted like anything you add yourself, and it exports like any profile: cards, rings and glows that InfoPanel can't draw are baked when you export.
 
