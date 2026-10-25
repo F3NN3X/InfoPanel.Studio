@@ -171,6 +171,7 @@ export const DECK: Template = {
   id: "deck",
   name: "Deck",
   blurb: "A second-screen dashboard: rings, graphs, FPS, clock and network",
+  fits: ["wide", "standard"],
   size: { width: 1920, height: 1080 },
   background: "#FF2C3A63",
   color: "#FFFFFFFF",

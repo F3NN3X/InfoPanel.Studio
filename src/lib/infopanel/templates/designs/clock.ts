@@ -44,6 +44,7 @@ export const CLOCK: Template = {
   id: "clock",
   name: "Clock",
   blurb: "A big centred clock in a ring of sixty segments",
+  fits: ["wide", "standard"],
   background: "#FF07090F",
   color: "#FFF4F6FB",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

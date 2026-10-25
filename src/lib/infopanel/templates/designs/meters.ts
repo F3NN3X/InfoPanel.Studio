@@ -102,6 +102,7 @@ export const METERS: Template = {
   id: "meters",
   name: "Meters",
   blurb: "A wide pill: double rings, rows with thin bars, FPS and a graph",
+  fits: ["strip", "wide", "standard"],
   size: { width: 1600, height: 300 },
   background: "#FF2A3A66",
   color: "#FFFFFFFF",

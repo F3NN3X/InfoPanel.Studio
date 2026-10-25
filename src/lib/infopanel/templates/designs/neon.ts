@@ -16,6 +16,7 @@ export const NEON: Template = {
   id: "neon",
   name: "Neon",
   blurb: "Dark panels, glowing outlines, LED segments",
+  fits: ["strip", "wide", "standard", "tall"],
   background: "#FF06040B",
   color: "#FFF5F3FF",
   type: { family: "Bahnschrift", light: "Light", regular: "Regular", strong: "SemiBold" },

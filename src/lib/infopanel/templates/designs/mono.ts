@@ -28,6 +28,7 @@ export const MONO: Template = {
   id: "mono",
   name: "Mono",
   blurb: "Black, huge thin numerals, hairlines",
+  fits: ["strip", "wide", "standard"],
   background: "#FF000000",
   color: "#FFFFFFFF",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

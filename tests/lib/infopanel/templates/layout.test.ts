@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SIZE_PRESETS } from "@/components/infopanel/new-profile-dialog";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog.ts";
-import { frameOf, gridFor, tiles, transpose, type Box } from "@/lib/infopanel/templates/layout.ts";
+import { frameOf, gridFor, shapeClassOf, tiles, transpose, type Box } from "@/lib/infopanel/templates/layout.ts";
 
 const overlap = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
@@ -16,6 +16,26 @@ describe("template size rules", () => {
     [600, 250, "wide", 0.78125],
   ])("%i × %i is %s at %f", (w, h, shape, u) => {
     expect(frameOf(w, h)).toEqual({ width: w, height: h, shape, u });
+  });
+
+  // The gallery's classes, by aspect only: each row is a different branch or boundary.
+  it.each([
+    [1280, 160, "strip"],
+    [1920, 480, "strip"],
+    [1920, 540, "wide"],
+    [1280, 480, "wide"],
+    [480, 320, "standard"],
+    [1000, 1000, "standard"],
+    [480, 1920, "tall"],
+  ])("sorts %i × %i as %s", (w, h, cls) => {
+    expect(shapeClassOf(w, h)).toBe(cls);
+  });
+
+  it("every template fits the class of the size it is made for, and at least one class", () => {
+    for (const t of TEMPLATES) {
+      expect(t.fits.length, t.id).toBeGreaterThan(0);
+      if (t.size) expect(t.fits, t.id).toContain(shapeClassOf(t.size.width, t.size.height));
+    }
   });
 
   it("a tall canvas without its own grid uses the standard one on its side", () => {

@@ -44,6 +44,7 @@ export const TERMINAL: Template = {
   id: "terminal",
   name: "Terminal",
   blurb: "Monospace, green on black, a console",
+  fits: ["strip", "wide", "standard"],
   background: "#FF010402",
   color: "#FF39FF88",
   type: { family: "Consolas", light: "Regular", regular: "Regular", strong: "Bold" },

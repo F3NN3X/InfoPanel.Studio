@@ -12,6 +12,7 @@ export const PAPER: Template = {
   id: "paper",
   name: "Paper",
   blurb: "Light, white cards with soft shadows",
+  fits: ["strip", "wide", "standard", "tall"],
   background: "#FFF2EFE9",
   color: "#FF1C1F24",
   type: { family: "Segoe UI", light: "Light", regular: "Regular", strong: "Semibold" },

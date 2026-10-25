@@ -77,6 +77,7 @@ export const ORBIT: Template = {
   id: "orbit",
   name: "Orbit",
   blurb: "A pill with a load ring at each end and FPS in the middle",
+  fits: ["strip", "wide"],
   size: { width: 1080, height: 240 },
   background: "#FF2A3A66",
   color: "#FFFFFFFF",
