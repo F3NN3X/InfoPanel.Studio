@@ -24,7 +24,10 @@ export interface DataApiValue {
   table?: { columns: string[]; rows: (string | null)[][]; format?: string };
 }
 
-/** HWiNFO reports "°C" with its first byte doubled ("Â°C"); the unit as it should read. */
+/**
+ * The unit as it should read. InfoPanel builds before the fix to its HWiNFO string decoding send "°C" as
+ * "Â°C" (HWiNFO's UTF-8 read as ANSI); newer builds send it right, and this leaves that alone.
+ */
 export const fixUnit = (unit: string | undefined): string | undefined => unit?.replace(/Â(?=[°²³µ])/g, "");
 
 export type BoundItem = Extract<DisplayItem, { SensorType: unknown }>;
