@@ -82,7 +82,12 @@ const lanAddress = Object.values(os.networkInterfaces())
   .flat()
   .find((i) => i && i.family === "IPv4" && !i.internal)?.address;
 
+// Listening beyond loopback makes Windows Firewall prompt for every new ips-server path (each worktree builds its own),
+// so on a dev machine this runs only when asked (VERIFY_LAN=1). CI always runs it.
+const lanRun = !!process.env.CI || process.env.VERIFY_LAN === "1";
+
 test.describe("writes from another machine", () => {
+  test.skip(!lanRun, "listens on the network: CI only, or VERIFY_LAN=1 (avoids the Windows Firewall prompt)");
   test.skip(!lanAddress, "needs a non-loopback IPv4 address");
   for (const remoteEdit of ["0", "1"]) {
     test(`ALLOW_REMOTE_EDIT=${remoteEdit}`, async () => {

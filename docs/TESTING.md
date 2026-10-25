@@ -26,7 +26,9 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
   binary (`SERVER_CMD` overrides the debug build); a plain `npm test` leaves it out because it needs the binary.
 - The Playwright e2e specs (`tests/e2e/`, `npm run test:e2e`) cover what only a real browser and server show: the
   kiosk rendering, live updates over SSE, the studio's save and undo, the proxy and request-guard rules over HTTP, and
-  the deterministic budgets. Keep them few. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.
+  the deterministic budgets. Keep them few. The "writes from another machine" request-guard case listens on the network,
+  which makes Windows Firewall prompt for every new `ips-server` build path, so it runs in CI and locally only with
+  `VERIFY_LAN=1`. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.
 
 ## The InfoPanel export check
 
