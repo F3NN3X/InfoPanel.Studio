@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { entryHeadline, headlineShortens, parseChangelog, renderMarkdown, safeHref, sectionEntries, sectionTone, shortDate } from "@/settings/model/changelog";
+import { entryHeadline, headlineShortens, latestReleases, parseChangelog, renderMarkdown, safeHref, sectionEntries, sectionTone, shortDate } from "@/settings/model/changelog";
 
 const SAMPLE = `# Changelog
 
@@ -56,6 +56,17 @@ describe("parseChangelog", () => {
     expect(empty.map((r) => [r.version, r.date])).toEqual([["1.3.0-beta.1", "2026-10-20"]]);
     const notes = parseChangelog("## [Unreleased]\n\n### Fixed\n- B\n\n## [1.2.0] - 2026-10-20\n\n### Added\n- A\n");
     expect(notes.map((r) => r.version)).toEqual(["Unreleased", "1.2.0"]);
+  });
+
+  it("cuts to the newest releases and keeps Unreleased on top without counting it", () => {
+    const versions = Array.from({ length: 12 }, (_, i) => `## [1.0.${11 - i}] - 2026-10-${String(20 - i).padStart(2, "0")}\n\n### Added\n- n${i}\n`);
+    const source = `## [Unreleased]\n\n### Fixed\n- B\n\n${versions.join("\n")}`;
+    const cut = latestReleases(parseChangelog(source));
+    expect(cut).toHaveLength(11);
+    expect(cut[0].version).toBe("Unreleased");
+    expect(cut[10].version).toBe("1.0.2");
+    expect(latestReleases(parseChangelog(source), 3).map((r) => r.version)).toEqual(["Unreleased", "1.0.11", "1.0.10", "1.0.9"]);
+    expect(latestReleases(parseChangelog(SAMPLE))).toHaveLength(3);
   });
 
   it("parses the real file", () => {

@@ -3,7 +3,7 @@ id: updates
 title: Updates
 icon: system_update
 related: [startup, kiosk]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 Get new versions, and see what changed.
@@ -18,6 +18,6 @@ Settings › App › Updates checks for a new version, downloads it and installs
 
 :::open settings/updates Settings › App › Updates
 
-The full changelog lives in Settings › Changelog, with every release. The newest release is open and older ones are collapsed; each category lists its main changes, with **Show all** for the full notes. An "Installed" chip marks your version.
+Settings › Changelog lists the last 10 releases. The newest is open and older ones are collapsed; each category lists its main changes, with **Show all** for the full notes. An "Installed" chip marks your version. Older releases are on GitHub: the link at the end of the page and **Releases on GitHub** in the sidebar both open the releases page in your browser.
 
 :::open settings/changelog Settings › Changelog
