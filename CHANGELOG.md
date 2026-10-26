@@ -8,6 +8,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Added
 
+- **Day Planner, Radial Clock Stack and On-Air Beacon widgets.** Day Planner puts today's calendar events on a time rail with a now line and a temperature and rain band behind them. Radial Clock Stack shows the day, the year or week, a sensor and the time to the next event as rings around the time. On-Air Beacon shows LIVE, REC or Off air from OBS, with the time it has been going. They refresh once a minute; only the live pulse animates. A sensor bound in a widget's settings is now streamed to the kiosk with the widget.
 - **Align, distribute and multi-edit on the Design canvas.** Hold `Shift` and drag over empty grid to select every zone the box touches. With two or more zones selected, **Align and distribute** in the right-click menu and the command palette aligns them left, right, top or bottom (`Alt+A`, `Alt+D`, `Alt+W`, `Alt+S`), matches their width or height to the primary zone, and with three or more spaces them evenly (`Alt+Shift+H`, `Alt+Shift+V`). It works in grid cells; a change that would overlap a zone, leave the grid or go under a minimum size is refused and nothing moves. The inspector marks a setting **Mixed** where the selected zones differ. Each action is one undo step. Saved settings are unchanged.
 
 ### Changed

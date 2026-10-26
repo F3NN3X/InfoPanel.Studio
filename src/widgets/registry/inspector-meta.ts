@@ -85,6 +85,10 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   Departures: yes(BOTH),
   Bluetooth: yes(BOTH),
   StreamDeck: yes(BOTH),
+  // Time and status: the calendar, weather, OBS and the clock
+  DayPlanner: yes(BOTH),
+  RadialClockStack: yes(BOTH),
+  OnAirBeacon: yes(NONE),
 };
 
 /**

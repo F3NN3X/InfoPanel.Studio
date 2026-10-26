@@ -261,7 +261,7 @@ For each widget you choose what it becomes:
 
 Recreate is the default. A widget whose readings aren't on this PC goes as a snapshot, and the report says so. Your choices are kept on the zone, so the next conversion starts from them. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
 
-Coding Agents, Countdown, Timer, Web Page and WaveLink aren't InfoPanel data. They can't be converted, and the window says each one is left out.
+Coding Agents, Countdown, Timer, Web Page, WaveLink, Day Planner, Radial Clock Stack and On-Air Beacon aren't InfoPanel data. They can't be converted, and the window says each one is left out.
 
 A zone lands as an InfoPanel canvas zone in a free cell of the page, and is saved to the Library as a component you can place on any InfoPanel profile. A screen becomes a new profile with one canvas zone. The window ends with a report of what each widget became. Export the result with **Export & back up**.
 
