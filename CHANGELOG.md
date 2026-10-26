@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.28] - 2026-10-26
+
 ### Added
 
 - **History and analysis widgets.** **Bottleneck Lens** names what holds a game back (CPU-bound, GPU-bound, VRAM full, thermal throttling, power limited or balanced) with the reason under it, and holds a verdict for a few seconds before it changes. **Frame Histogram** bins frame times over the last minute with the 1% and 0.1% lows and the 60 and 120 fps guides. **Session Stats** keeps min, average, max and time above a level for up to six sensors, with Reset in the studio. **Threshold Timeline** draws a green, amber and red lane per sensor over the last few minutes. They choose their sensors on drop and keep a short history in the page only: a reload starts it again. The kiosk entry grows by about 9 KB gzipped, and its budget with it.
