@@ -6,6 +6,15 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **One editor for screens and InfoPanel profiles.** Design is now **Edit**, and it edits both: a grid screen, or an InfoPanel profile on its free canvas, with the same rail, Layers and Add tabs, page tabs and inspector. The InfoPanel item on the rail is gone. InfoPanel profiles are in **Screens** with an **InfoPanel** tag, and the filter is **All**, **Studio** and **InfoPanel**. **Import .infopanel** is in the Screens toolbar. Links that opened the InfoPanel view now open Screens on that filter. Undo covers grid and canvas edits in one history.
+- **Renaming an InfoPanel screen renames its profile** in the same step.
+
+### Added
+
+- **The Export check.** On an InfoPanel profile, a button in the toolbar counts the parts that export as is, are approximated, become a picture or are left out, and updates as you edit. It opens a list in place of the inspector, where a click selects the part. Layers, the canvas and the inspector mark the parts and the settings InfoPanel can't draw, such as a card's background blur or a sparkline's end dot. The Export window lists the same check.
+
 ## [1.3.0-beta.34] - 2026-10-26
 
 ### Changed

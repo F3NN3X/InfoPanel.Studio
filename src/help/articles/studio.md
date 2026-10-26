@@ -3,21 +3,20 @@ id: studio
 title: The studio
 icon: space_dashboard
 related: [zones, widget-settings, shortcuts]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.35
 ---
 
-The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Design.
+The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Edit.
 
 ## The rail
 
 | View | What it holds |
 |---|---|
 | **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. **New** opens the New page, where you start from Blank or a template. See [Screens and the grid](profiles). |
-| **Design** | The canvas, the page tabs and the inspector. The left panel switches between **Layers** (the zones of this page: hide, rename, reorder, select) and **Add**, which has tabs for **Widgets**, **Panels** (yours and the presets) and **Layouts** (starters). |
+| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (the zones of this page, or a profile's items: hide, rename, reorder, select) and **Add**, which has tabs for **Widgets**, **Panels** (yours and the presets) and **Layouts** (starters), or InfoPanel's items and elements on a profile. See [The InfoPanel editor](infopanel-editor) for profiles. |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
 | **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
 | **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
-| **InfoPanel** | The InfoPanel home and editor, for profiles drawn on a free canvas. See [The InfoPanel editor](infopanel-editor). |
 | **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
 | **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
 | **Help** | Opens this help at the article for where you are (`F1` does the same). |
@@ -46,7 +45,7 @@ To move around, hold `Space` and drag, or drag with the middle mouse button, to 
 
 ## Design preview data
 
-The Design canvas can show live sensor values or a snapshot of them. A snapshot uses much less CPU: the studio closes its own Data API connection while nothing live is on screen, and weather, visualisers and other effects stand still. Choose in Settings › Studio, or under Window in Settings › App › General:
+The Edit canvas can show live sensor values or a snapshot of them. A snapshot uses much less CPU: the studio closes its own Data API connection while nothing live is on screen, and weather, visualisers and other effects stand still. Choose in Settings › Studio, or under Window in Settings › App › General:
 
 | Choice | The canvas shows |
 |---|---|
@@ -56,7 +55,7 @@ The Design canvas can show live sensor values or a snapshot of them. A snapshot 
 
 While the canvas is frozen, the bar under it shows **Frozen · 14:05** with the time of the snapshot. Press the refresh button beside it (`Shift+F`) for a new snapshot, or **Go live for this session** to see live values until the page reloads; the setting stays as it is. `F` switches between frozen and live.
 
-Only the Design canvas and the Add list freeze. Kiosks, Kiosk view, the Data view, the sensor picker and alert previews always show live values.
+Only the Edit canvas and the Add list freeze. Kiosks, Kiosk view, the Data view, the sensor picker and alert previews always show live values.
 
 The setting follows you: the app window and a studio in a browser read the same one.
 

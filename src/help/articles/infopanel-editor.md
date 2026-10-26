@@ -3,34 +3,28 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.35
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
 
-## The home page
+## Finding a profile
 
-**InfoPanel** on the rail always opens the home page, even while a profile is open. It works like [Screens](profiles#managing-screens), with the same cards, toolbar and menus, but it lists InfoPanel profiles instead of screens.
+InfoPanel profiles are listed in [Screens](profiles#managing-screens) with your other screens, and each card has an **InfoPanel** tag. **InfoPanel** in the **Show** filter lists only them. **Import .infopanel** in the Screens toolbar brings in an .infopanel file as a new screen. **Open** on a profile's card opens it in **Edit**, the same view that edits a grid screen, with the same rail, left panel and inspector.
 
-- When a profile is open, **Continue editing** comes first. One click on its card puts you back in it, with your selection and undo as you left them. The same profile has an **Open** badge in the list below.
-- The next cards are every InfoPanel profile on a screen, drawn small. Click a card, or **Open**, to edit it.
-- **Saved in your Library** lists the profiles you saved to the [Library](library) that aren't on a screen yet. **Open** brings one in as a new screen. A saved card can also be duplicated, renamed or removed, from its footer or its **⋯** menu. Removing asks first and keeps any file that a profile still uses.
-- **Search** finds a profile by name or size (`1920x480` works). **All**, **On screens** and **Saved** narrow the list, and **Sort** orders it by last edited, name, size or your own order.
-- **New** opens the New InfoPanel profile page, where you pick Blank or a template (see [A new profile](infopanel-editor#a-new-profile)). **Import…** brings in an .infopanel file.
+Profiles you saved to the [Library](library) that aren't on a screen yet are in the Library's **InfoPanel profiles**. **Edit profile** there brings one in as a new screen and opens it.
 
-Right-click a profile card for the same menu as its **⋯** button. It has **Open**, **Rename**, **Duplicate** (a copy as a new screen, named "‹name› copy"), **Save to Library** (or **Update in Library** once the profile has a Library copy), **Export as .infopanel…**, **Show in Screens** and **Delete**. Rename, Duplicate and Delete are one undo step each.
+A profile's card has the same menu as any screen's. **Rename** renames the profile with the screen, in one undo step.
 
-Delete asks first. A profile that is the only thing on its screen takes the screen with it, as Delete on Screens does, unless it is your last screen. A profile that shares its screen with other zones leaves just its zone. A copy in the Library stays either way. Afterwards the **Undo** in the message, or Ctrl+Z, brings it back.
-
-Inside the editor, **Profiles** at the left of the toolbar goes back to the home page. The profile stays open. **Done** still leaves for the dashboard. **Edit items** on a canvas zone opens that zone here too.
+On a grid screen, **Edit items** on a canvas zone opens that zone in Edit, and **Done** goes back to the grid. Undo covers both: one Ctrl+Z history holds the grid and the canvas edits in the order you made them.
 
 ## What the page edits
 
-Each InfoPanel profile lives in a canvas zone on a screen. The page edits that zone, so every change is one step in the studio's undo history and saves with the dashboard. An InfoPanel profile in the Library is a saved copy: **Edit profile** opens the zone made from it in this editor, or places it as a new screen first. Editing the zone doesn't change the Library copy until you choose **Update in Library** (see Saving to the Library).
+Each InfoPanel profile lives in a canvas zone on a screen. The page edits that zone, so every change is one step in the studio's undo history and saves with the dashboard. An InfoPanel profile in the Library is a saved copy: **Edit profile** opens the zone made from it in Edit, or places it as a new screen first. Editing the zone doesn't change the Library copy until you choose **Update in Library** (see Saving to the Library).
 
 ## A new profile
 
-**New InfoPanel profile…** opens the same page as **New screen** on Screens, set to **InfoPanel profile**: the templates on the left, and on the right a preview of the one you picked with its **Size**, **Colours**, **Sensors** and **Name**. Press **Create profile**, or Enter, whenever it looks right; **Cancel** or Esc leaves without making anything. It comes in as a new screen and opens here. **Screen** at the top of the page, or **A screen instead**, switches it to making a screen, and the rail follows. You'll also find the page in Design's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
+**New InfoPanel profile…** opens the same page as **New screen** on Screens, set to **InfoPanel profile**: the templates on the left, and on the right a preview of the one you picked with its **Size**, **Colours**, **Sensors** and **Name**. Press **Create profile**, or Enter, whenever it looks right; **Cancel** or Esc leaves without making anything. It comes in as a new screen and opens here. **Screen** at the top of the page, or **A screen instead**, switches it to making a screen. You'll also find the page in Edit's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
 
 The search, the shape chips, the colour dots on the cards, **Recently used** and the sizes work as they do for screens (see [Screen templates](profiles#screen-templates)). The new profile's name is the template's until you type one.
 
@@ -80,10 +74,9 @@ A template's colours come from the profile's palette (see The palette, below), s
 
 ## The page
 
-- **Add**, on the left: InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, then the studio's **Elements**.
-- **Layers**, below it: the item tree, with a lock and a visibility checkbox on each row. See Groups.
-- The canvas, in the middle, with the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
-- The inspector, on the right. With nothing selected it shows the profile's settings.
+- **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** has InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, then the studio's **Elements**. **Layers** is the item tree, with a lock and a visibility checkbox on each row and a mark for how the item exports. See Groups.
+- The canvas, in the middle, with the page tabs and the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
+- The inspector, on the right, headed **Item**. With nothing selected it shows the profile's settings. The **Export check** button in the toolbar shows the check there instead (see The Export check).
 
 ## Adding items
 
@@ -150,6 +143,24 @@ Each element shows how it leaves for InfoPanel, in **Layers** (a letter) and in 
 
 A Card or Divider changes badge as you change it: a shadow, glow or gradient makes it Baked, and a background blur makes a Card Approximated.
 
+## The Export check
+
+On an InfoPanel profile, the toolbar has an **Export check** button after the profile's tag. It counts the parts of the profile by what they become in the .infopanel file, and it updates as you edit:
+
+- **Exports as is**: InfoPanel reads it as it is. Elements baked into images or gauge frames count here too.
+- **Approximated**: InfoPanel gets the closest item it has, without a look the studio adds.
+- **Becomes a picture** and **Left out**: a dashboard widget on the screen that InfoPanel can't draw.
+
+Click the button to show the check in place of the inspector, grouped by those four. Each part says what it loses, and a click on it selects it. **Export .infopanel** at the bottom opens the Export window, which lists the same parts. Esc or the button again closes the check.
+
+The parts that don't export as is are marked on the canvas and in **Layers**. In the inspector, a setting that InfoPanel can't draw has an Approximated mark beside it, and the header has a line saying what happens on InfoPanel. These looks are:
+
+- **Background blur** on a Card: baked into the card's picture, so values behind it aren't blurred.
+- **Blurred shadow** on Shadow text: becomes a sharp copy.
+- **Gradient fill** under a Sparkline, and its **End dot**: dropped.
+
+A screen made for Studio panels shows none of this.
+
 ## The palette
 
 With nothing selected, the profile settings end with the **Palette**: Accent 1, Accent 2, Accent 3, Text, Sub-text, Track, Card, Warning and Critical. New items and elements take their colours from it. In an element's settings each colour is either a palette colour or **Fixed**, with its own swatch.
@@ -174,7 +185,7 @@ Ctrl+G — Group
 Ctrl+Shift+G — Ungroup
 Ctrl+Shift+S — Save the selection as a component
 Del — Delete
-Esc — Clear the selection, then leave the editor
+Esc — Close the Export check, then clear the selection
 Ctrl+Z — Undo
 Ctrl+Shift+Z / Ctrl+Y — Redo
 :::

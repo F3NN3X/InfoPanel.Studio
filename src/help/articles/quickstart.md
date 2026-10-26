@@ -3,7 +3,7 @@ id: quickstart
 title: Quick start
 icon: rocket_launch
 related: [concepts, studio, kiosk]
-verified: 1.3.0-beta.34
+verified: 1.3.0-beta.35
 ---
 
 From a fresh install to a live dashboard on your InfoPanel display.
@@ -41,7 +41,7 @@ To see a finished example first, press **Use sample layout** on the empty canvas
 
 ## 3. Add widgets
 
-1. In Design, open the **Add** tab in the left panel.
+1. In Edit, open the **Add** tab in the left panel.
 2. Filter the **Widgets** list with the chips (System, Hardware, Network, Media and more) or search.
 3. Drag a widget onto the grid. It snaps to cells and takes its minimum size.
 4. Drag the corner handle to make it bigger.

@@ -3,7 +3,7 @@ id: library
 title: Library
 icon: perm_media
 related: [assets, gauges, import]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.35
 ---
 
 One place for what you reuse: Themes, Styles, Panels, gauges, images, videos, fonts and imported canvases. Gauges are built and edited in their own view, **Gauges** on the rail.
@@ -16,7 +16,7 @@ Smart: All items, Recent, Unused, Large files, Duplicates and Suggested for them
 
 ## Components
 
-A component is a piece of an InfoPanel profile you saved to reuse: a few items, a group, or an element such as a Row or Drives. Save one in the InfoPanel editor (see [InfoPanel editor](infopanel-editor)). **Components** lists them with a thumbnail of each. A component isn't a profile, so it doesn't appear under InfoPanel profiles or on the InfoPanel home page.
+A component is a piece of an InfoPanel profile you saved to reuse: a few items, a group, or an element such as a Row or Drives. Save one in Edit on an InfoPanel profile (see [InfoPanel editor](infopanel-editor)). **Components** lists them with a thumbnail of each. A component isn't a profile, so it doesn't appear under InfoPanel profiles or in Screens.
 
 Drag a component onto the screen to get a canvas zone of its own, or onto a canvas zone to merge its items there. **Place on this page** does the first in the free cell that draws it largest. Each placement counts as a copy, so the component shows as used, and removing it from the Library never deletes a file a placed copy still draws.
 
@@ -28,7 +28,7 @@ Select a Style to see its settings. **Apply to selection** gives them to the sel
 
 ## The right-click menu
 
-Right-click an item. The first row depends on what it is: Set as background, Open in editor (a gauge opens in Gauges), Edit profile, Edit in Theme, Apply to selection, Add to screen, Show font or Add to canvas. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Edit profile opens the InfoPanel editor on the screen and page that use the profile, or, for a profile nothing uses yet, brings it in as a new screen and opens the editor there. The cards show the profile itself. Save one from the editor with **Save to Library**; Add to this page… puts it in a canvas zone on the current page. Every item has **Rename** and **Remove from library…** (`Delete`).
+Right-click an item. The first row depends on what it is: Set as background, Open in editor (a gauge opens in Gauges), Edit profile, Edit in Theme, Apply to selection, Add to screen, Show font or Add to canvas. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Edit profile opens Edit on the screen and page that use the profile, or, for a profile nothing uses yet, brings it in as a new screen and opens it there. The cards show the profile itself. Save one from Edit with **Save to Library**; Add to this page… puts it in a canvas zone on the current page. Every item has **Rename** and **Remove from library…** (`Delete`).
 
 ## Removing an item
 

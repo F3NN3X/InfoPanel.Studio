@@ -527,15 +527,24 @@ shows "Offline · edits kept locally" in the top bar until the next push lands. 
 draws a hatched tile with a broken-image icon (`MissingImage.tsx`); with the Data API unreachable the canvas editor's
 Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesign/FEATURE_MAP.md` §20.
 
-### Editing a canvas zone: the InfoPanel page
+### Editing a canvas zone: Edit
 
-The InfoPanel editor is a full page of the studio (rail item InfoPanel, `mode: "infopanel"`), as Gauges is.
-Double-clicking a canvas zone, or the canvas zone inspector's "Edit items", opens the editor
-(`src/components/infopanel/edit/`, lazy-loaded) there on that zone. Done or Esc (with nothing selected) closes it
-and goes back to Design with the zone selected; an undo that takes the zone away, or another screen or page in
-Design, closes it too. Leaving the page for another view keeps it open, and the Library covers it without
-unmounting it, so a Library drag can land in it. With nothing open the page lists every canvas zone in the
-config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
+There is one editor view, Edit (rail item `design`). On a grid screen it shows the grid; on a screen whose page is
+one free canvas zone (`freeCanvasOf` in `lib/screens/list.ts`) it hosts the canvas editor
+(`src/components/infopanel/edit/canvas-editor.tsx`, lazy-loaded) in the same studio shell: the rail, the left panel
+frame (`LeftPanelFrame`, Layers and Add tabs), the page tabs and the inspector column. Double-clicking a canvas zone
+on a grid, or the canvas zone inspector's "Edit items", opens the editor on that zone; there Done or Esc (with
+nothing selected) goes back to the grid with the zone selected. Both edit the config through the studio's one
+history, so one Ctrl+Z undoes grid and canvas edits in order. The Library covers the editor without unmounting it,
+so a Library drag can land in it. InfoPanel profiles are listed in Screens (All, Studio, InfoPanel filter;
+`lib/screens/list.ts`); the old `infopanel` view is a route alias in `use-studio-ui.ts` that opens Screens on the
+InfoPanel filter, or Edit on a named profile.
+
+The Export check (`lib/infopanel/export-check.ts`) classifies each item and, on a screen with widgets, each widget,
+as exports as is, approximated, becomes a picture or left out, and names the studio-only looks it loses. The editor
+shows it on a screen made for InfoPanel (`madeForInfoPanel`): the toolbar pill, the check panel in the inspector
+column (`export-check-panel.tsx`), marks in Layers, on the canvas and on inspector fields. The Export window reads
+the same check, so the two can't disagree.
 
 - **Document model**: the page edits one canvas zone's stored form (`Placement.canvas`), the single source of
   truth for that document; the zone is on the screen and page Design shows, so `withCanvas` writes it back. A
@@ -544,10 +553,10 @@ config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
 - **New profile** (`templates/new-page.tsx` on the profile kind, `newStored` in `import/stored.ts`): a stored form
   from scratch (InfoPanel's `PROFILE` defaults, a #FF0A0A0C background, white Segoe UI text, `source.origin:
   "new"`), placed by `importAsProfile` as a new screen and opened on the page. `openNewInfoPanel` (`file-doors.ts`)
-  opens the page over the InfoPanel home from the Add panel, the Import door, the Library and the command palette.
+  opens the page over Screens from the Add panel, the Import door, the Library and the command palette.
   New screen and New InfoPanel profile are one page (`templates/new-page.tsx`, the shell in
-  `templates/new-wizard.tsx`), held by `studio-view.tsx` over Screens or the InfoPanel home by its kind, so the
-  kind switch moves the rail without remounting it. The page and its gallery (`wizard-gallery.tsx`,
+  `templates/new-wizard.tsx`), held by `studio-view.tsx` over Screens for either kind, so the kind switch doesn't
+  remount it. The page and its gallery (`wizard-gallery.tsx`,
   `gallery-sections.ts`) carry no catalog: each kind's templates, thumbnails, preview, sensor fit and making come
   in a chunk of their own (`templates/wizard-kit.ts` loads `screen-kit.tsx` or `infopanel/profile-kit.tsx`), and
   the gallery is a skeleton until it arrives. The size rule is `templates/use-size-choice.ts`: the selection's
