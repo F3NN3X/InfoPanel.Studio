@@ -13,7 +13,6 @@ import {
 import {
   BLANK_MODULE,
   PANEL_ID,
-  newProfile,
   uid,
   type DashboardConfig,
   type MonitorProfile,
@@ -54,8 +53,6 @@ interface MutationDeps {
   sel: StudioSelection;
   /** Close the panel inspector's preset name input. */
   onPresetSaved: () => void;
-  /** The window size a new profile starts with. */
-  windowSize: { width: number; height: number };
   /** Show another page of the profile on the canvas (view state). */
   onPageChange: (pageId: string) => void;
   /** Select a profile for editing (studio-only view state, not in the config). */
@@ -66,7 +63,7 @@ interface MutationDeps {
  * Every edit the studio makes to the config, through the undo history.
  * Same-`key` changes coalesce into one undo step (a drag, a key repeat).
  */
-export function useStudioMutations({ config, profile, setConfig, sel, onPresetSaved, windowSize, onPageChange, onSelectProfile }: MutationDeps) {
+export function useStudioMutations({ config, profile, setConfig, sel, onPresetSaved, onPageChange, onSelectProfile }: MutationDeps) {
   const { selected } = sel;
   const toast = useToast();
 
@@ -389,13 +386,6 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   const setRotate = (patch: Partial<PageRotate>) =>
     updateStored((p) => ({ ...p, rotate: { enabled: false, seconds: 15, ...p.rotate, ...patch } }), "profile:rotate");
 
-  /** Add a profile and edit it; what displays open on is left alone. */
-  const addProfile = () => {
-    const np = newProfile(`${windowSize.width}×${windowSize.height}`, windowSize.width, windowSize.height);
-    setConfig((c) => withProfile(c, np, false));
-    onSelectProfile(np.id);
-  };
-
   /** Add a profile made elsewhere (an imported file, with fresh ids) and edit it. */
   const addImportedProfile = (np: MonitorProfile) => {
     setConfig((c) => withProfile(c, np, false));
@@ -468,7 +458,6 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     resizePrimary,
     setZoneBox,
     assignWidget,
-    addProfile,
     addImportedProfile,
     duplicateProfile,
     removeProfile,

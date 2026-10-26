@@ -3,7 +3,7 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.30
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
@@ -13,9 +13,9 @@ Build profiles for InfoPanel itself: its own item kinds and sensor bindings, sav
 **InfoPanel** on the rail always opens the home page, even while a profile is open. It has:
 
 - **Continue editing**, when a profile is open: one click puts you back in it, with your selection and undo as you left them.
-- **Create**: **Blank** and the templates, as cards. Click one and the New InfoPanel profile window opens with that card already chosen, for the name, size, colours and sensors.
-- **In this dashboard**: every InfoPanel profile on a screen, drawn small. Click a card, or **Open**, to edit it.
-- **In your Library**: the profiles you saved to the [Library](library) that aren't on a screen yet. **Open** brings one in as a new screen. **Duplicate** makes an independent copy in the Library. The bin removes it, after a question, and keeps any file that a profile still uses.
+- **Create**: **Blank** and the templates, as cards. Click one and the New InfoPanel profile page opens on its second step with that card already chosen, for the size, colours, sensors and name.
+- **In this dashboard**: every InfoPanel profile on a screen, drawn small. Click a card, or **Open**, to edit it. Its **⋯** menu, or a right-click on the card, also has **Export as .infopanel…** and **Show in Screens**.
+- **In your Library**: the profiles you saved to the [Library](library) that aren't on a screen yet. **Open** brings one in as a new screen. **Duplicate** makes an independent copy in the Library. The bin removes it, after a question, and keeps any file that a profile still uses. A right-click on the card, or its **⋯** menu, offers the same.
 - **Import…** for an .infopanel file.
 
 Inside the editor, **Profiles** at the left of the toolbar goes back to the home page. The profile stays open. **Done** still leaves for the dashboard. **Edit items** on a canvas zone opens that zone here too.
@@ -26,15 +26,17 @@ Each InfoPanel profile lives in a canvas zone on a screen. The page edits that z
 
 ## A new profile
 
-**New InfoPanel profile…** asks for a name, what to start from, and a size: 480 × 320, 800 × 480, 1024 × 600, 1280 × 480, 1920 × 480, 1920 × 1080, or **Custom**. It comes in as a new screen and opens here. You'll also find it in Design's **Add** list under Layouts, in the Import window, in the Library and in the command palette.
+**New InfoPanel profile…** opens a page with two steps, the same as **New screen** on Screens. In **Start from**, pick what to start from and press **Next**. In **Size and look**, choose a size (a panel preset or **Custom**), the template's **Colours**, its sensors and a name, with a preview at that size, then press **Create**. **Back** returns to the first step; **Cancel** or Esc leaves without making anything. It comes in as a new screen and opens here. You'll also find it in Design's **Add** list under Layouts, in the Import window, in the Library, in the command palette and on the New screen page.
+
+**Blank** starts at 800 × 480. A template comes at the size it is made for, Meters at 1600 × 300 and Deck at 1920 × 1080, until you change the size yourself; after that, picking another template keeps your size.
 
 Under **Start from**, **Blank** is an empty profile with a near black background and white Segoe UI text. Then come the templates, then your own profiles from the Library. A Library profile is copied as it is, at its own size, so **Size** goes away. Tick **Also save to Library** to keep the new profile there too; it's off unless you tick it.
 
-When you pick a template, **Sensors** appears under **Start from**: one row for each sensor the template reads, with the sensor found on your PC. Open a row to pick another, or choose **Leave unbound**. A row that found nothing says so; open it to choose one. Whatever is still unbound when you press **Create** is listed over the canvas afterwards.
+When you pick a template, **Sensors** appears on the second step: one row for each sensor the template reads, with the sensor found on your PC. Open a row to pick another, or choose **Leave unbound**. A row that found nothing says so; open it to choose one. Whatever is still unbound when you press **Create** is listed over the canvas afterwards.
 
 ## Templates
 
-A template is a finished profile made from the editor's own items and elements, bound to your PC's sensors. Each card in **Start from** shows it at the size you picked, with made-up values. Pick one, then a set of **Colours**, and **Create**.
+A template is a finished profile made from the editor's own items and elements, bound to your PC's sensors. Each card in **Start from** shows it with made-up values, at its own size when it has one. Pick one, then a set of **Colours**, and **Create**.
 
 | Template | Look |
 |---|---|

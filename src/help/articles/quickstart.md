@@ -3,7 +3,7 @@ id: quickstart
 title: Quick start
 icon: rocket_launch
 related: [concepts, studio, kiosk]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.30
 ---
 
 From a fresh install to a live dashboard on your InfoPanel display.
@@ -18,7 +18,7 @@ The Server item in the status bar at the bottom of the studio should show the po
 
 ## 2. Size a screen for your display
 
-A fresh install has one blank screen, **Main display**, at 1920 × 1080. Open **Screens** (on the rail) and press **New screen** to make one at your display size. A new screen is named after its size and uses the size of the studio window, so resize the window first, or pick a **Size preset** such as 1920 × 550 under **Size & fit**. The grid is created for you.
+A fresh install has one blank screen, **Main display**, at 1920 × 1080. Open **Screens** (on the rail) and press **New** to make one at your display size: pick **Blank** or a template, then its size. A template comes at the size it is made for until you choose another. You can change the size later under **Size & fit**. The grid is created for you.
 
 :::tip
 To see a finished example first, press **Use sample layout** on the empty canvas. It builds a 1920 × 550 screen you can take apart.

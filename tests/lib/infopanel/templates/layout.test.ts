@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SIZE_PRESETS } from "@/components/infopanel/new-profile-dialog";
+import { SIZE_PRESETS } from "@/components/templates/size-presets";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog.ts";
 import { frameOf, gridFor, shapeClassOf, tiles, transpose, type Box } from "@/lib/infopanel/templates/layout.ts";
 

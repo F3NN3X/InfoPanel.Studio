@@ -14,17 +14,21 @@ import { DeleteDialog } from "./screens/delete-dialog";
 import { DisplaysList } from "./screens/displays-list";
 import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "./screens/profile-card";
 import { SavedCard } from "./screens/saved-card";
-import { ScreenMenu } from "./screens/screen-menu";
+import { screenActions } from "./screens/screen-menu";
 import { ScreenThumb } from "./screens/screen-thumb";
 import { ScreensToolbar } from "./screens/screens-toolbar";
 import { useCopyKioskLink } from "./screens/shown-on";
 import { useSavedProfiles } from "./screens/use-saved-profiles";
 import { launchTag, screenMeta, withLaunch } from "./screens-model";
 import { uniqueProfileName } from "./profile-actions";
-import type { NewScreen } from "./screens/new-screen-dialog";
+import type { NewScreen } from "./screens/new-screen-wizard";
+import { presetIndexOf } from "../templates/size-presets";
 
-/** The New screen dialog and the template data load when it opens, never with the studio. */
-const NewScreenDialog = lazy(() => import("./screens/new-screen-dialog"));
+/** The New screen page and the template data load when it opens, never with the studio. */
+const NewScreenWizard = lazy(() => import("./screens/new-screen-wizard"));
+
+/** The size Blank opens at on the New screen page: the selected screen's when it is a panel preset. */
+const BLANK_SIZE = { width: 1024, height: 600 };
 
 type DetailProps = Parameters<typeof ScreenDetail>[0];
 
@@ -50,7 +54,6 @@ interface ScreensViewProps
   > {
   /** Select a screen for editing (never changes what the app opens on). */
   onSelectProfile: (id: string) => void;
-  onAddProfile: () => void;
   /** Add a screen made here (the sample layout) and edit it. */
   onAddMadeProfile: (profile: MonitorProfile) => void;
   onDuplicateProfile: (id: string) => void;
@@ -84,7 +87,6 @@ export function ScreensView({
   kiosks,
   displays,
   onSelectProfile,
-  onAddProfile,
   onAddMadeProfile,
   onDuplicateProfile,
   onRemoveProfile,
@@ -124,10 +126,36 @@ export function ScreensView({
   };
   const empty = screens.length === 0 && saved.length === 0;
   const addScreen = ({ profile: made, unbound }: NewScreen) => {
+    setNewScreenOpen(false);
     const name = uniqueProfileName(config.profiles, made.name);
     onAddMadeProfile({ ...made, name });
     toast(unbound.length > 0 ? `${name} created. Not found on this PC: ${unbound.join(", ")}` : `${name} created`);
   };
+
+  // "+ New" covers the manager with the New screen page until Create or Cancel.
+  if (newScreenOpen)
+    return (
+      <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+        <NewScreenWizard
+          start={presetIndexOf(stored) === undefined ? BLANK_SIZE : { width: stored.width, height: stored.height }}
+          onCreate={addScreen}
+          onCancel={() => setNewScreenOpen(false)}
+          onSample={() => {
+            setNewScreenOpen(false);
+            onAddMadeProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
+            toast("Screen created from the sample layout");
+          }}
+          onInfoPanel={() => {
+            setNewScreenOpen(false);
+            openNewInfoPanel();
+          }}
+          onImport={() => {
+            setNewScreenOpen(false);
+            openImportDoor();
+          }}
+        />
+      </Suspense>
+    );
 
   return (
     // On a phone the cards and the detail panel stack, and the view scrolls.
@@ -146,16 +174,7 @@ export function ScreensView({
           sort={sort}
           onSort={setSort}
           onImport={() => openImportDoor()}
-          onNewBlank={() => {
-            onAddProfile();
-            toast("Screen created");
-          }}
-          onNewTemplate={() => setNewScreenOpen(true)}
-          onNewSample={() => {
-            onAddMadeProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
-            toast("Screen created from the sample layout");
-          }}
-          onNewInfoPanel={() => openNewInfoPanel()}
+          onNew={() => setNewScreenOpen(true)}
         />
 
         <DisplaysList displays={displays} profiles={config.profiles} />
@@ -199,31 +218,31 @@ export function ScreensView({
                   selected={p.id === stored.id}
                   onClick={() => onSelectProfile(p.id)}
                   label={`Select ${p.name}`}
-                  menu={
-                    <ScreenMenu
-                      canDelete={config.profiles.length > 1}
-                      canMoveEarlier={index > 0}
-                      canMoveLater={index < config.profiles.length - 1}
-                      onRename={() => setRenamingId(p.id)}
-                      onDuplicate={() => {
-                        onDuplicateProfile(p.id);
-                        toast(`Duplicated ${p.name}`);
-                      }}
-                      onAlwaysOpen={() => {
-                        setConfig((c) => withLaunch(c, p.id));
-                        toast(`The app now always opens ${p.name}`);
-                      }}
-                      onMove={(by) => setConfig((c) => moveProfile(c, p.id, by))}
-                      onCopyLink={() => copyLink(p.id)}
-                      onExport={() => openExportSheet({ row: "screen", screenId: p.id })}
-                      // The conversion reads the zones where they are drawn, so the screen opens on the canvas first.
-                      onConvert={() => {
-                        onOpenScreen(p.id);
-                        window.setTimeout(() => openConvertDialog("screen"), 300);
-                      }}
-                      onDelete={() => setDeletingId(p.id)}
-                    />
-                  }
+                  actionsLabel="Screen actions"
+                  actions={screenActions({
+                    onOpen: () => onOpenScreen(p.id),
+                    canDelete: config.profiles.length > 1,
+                    canMoveEarlier: index > 0,
+                    canMoveLater: index < config.profiles.length - 1,
+                    onRename: () => setRenamingId(p.id),
+                    onDuplicate: () => {
+                      onDuplicateProfile(p.id);
+                      toast(`Duplicated ${p.name}`);
+                    },
+                    onAlwaysOpen: () => {
+                      setConfig((c) => withLaunch(c, p.id));
+                      toast(`The app now always opens ${p.name}`);
+                    },
+                    onMove: (by) => setConfig((c) => moveProfile(c, p.id, by)),
+                    onCopyLink: () => copyLink(p.id),
+                    onExport: () => openExportSheet({ row: "screen", screenId: p.id }),
+                    // The conversion reads the zones where they are drawn, so the screen opens on the canvas first.
+                    onConvert: () => {
+                      onOpenScreen(p.id);
+                      window.setTimeout(() => openConvertDialog("screen"), 300);
+                    },
+                    onDelete: () => setDeletingId(p.id),
+                  })}
                 >
                   <button type="button" onClick={() => onOpenScreen(p.id)} className={CARD_BUTTON}>
                     <Pencil className="h-3.5 w-3.5" />
@@ -257,12 +276,6 @@ export function ScreensView({
         autoProfileId={autoProfileId}
         {...detail}
       />
-
-      {newScreenOpen && (
-        <Suspense fallback={null}>
-          <NewScreenDialog open onOpenChange={setNewScreenOpen} onCreate={addScreen} size={windowSize} />
-        </Suspense>
-      )}
 
       <DeleteDialog plan={plan} onConfirm={() => deletingId && remove(deletingId, plan?.name ?? "")} onClose={() => setDeletingId(null)} />
     </div>

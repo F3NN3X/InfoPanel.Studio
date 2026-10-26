@@ -8,7 +8,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Changed
 
+- **New screen is a page, in two steps.** **New** on Screens opens a page in place of the cards instead of a menu and a popup. First **Start from**: Blank, the templates with their shape chips, and the sample layout, an InfoPanel profile or an import. Then **Size and look**: the size, the template's colours and a name beside a live preview at that size. **New InfoPanel profile** works the same way, and the InfoPanel home's Create cards open it on the second step.
+- **Templates come at the size they are made for.** A template used to be made at the studio window's size, so an untouched New screen came out as large as the desktop. Now each template brings its own size (Meters at 1600 × 300, Deck at 1920 × 1080, in both New pages), until you change the size yourself. Blank starts at 1024 × 600, or the edited screen's size when that is a panel preset, and the first-run setup starts on the Panel size. Five sizes join the presets: 1920 × 440, 1280 × 400, 480 × 800, 600 × 1024 and 1080 × 1920.
 - **Every template has a size of its own, and fits it.** Each screen template now names the size it is made for. The sizes of the text and readings inside it follow the screen's size from there, from 60 % to 160 %, so Cores, Tower and Quota no longer overflow on a small panel or look tiny on a large one. Gaming's top strip is tall enough to read on every size, Paper, Glass and Graphite have a wide arrangement of their own, Meters and Ticker fill the height of a strip, Cores' header labels are shorter, Deck's graphs are shorter on 1920 × 1080, Terminal shows three taller lines a pane on a strip, Streaming's wide arrangement uses the card player, and Console and Frost Bar have fewer cells on a standard screen.
+
+### Added
+
+- **Right-click menus on Screens and the InfoPanel home.** A right-click on a screen card, a saved Library card or an InfoPanel profile card opens the same actions as its **⋯** menu. Saved cards and the home's profile cards now have a **⋯** menu too, and a screen card's menu starts with **Open**.
 
 ## [1.3.0-beta.29] - 2026-10-26
 

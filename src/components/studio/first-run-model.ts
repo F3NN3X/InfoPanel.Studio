@@ -31,7 +31,7 @@ export interface ScreenChoice {
   height: number;
 }
 
-/** The step-2 cards: the detected window size first (preselected), then the presets and a custom size. */
+/** The step-2 cards: the detected window size first, then the presets and a custom size. */
 export function screenChoices(windowWidth: number, windowHeight: number, custom?: { width: number; height: number }): ScreenChoice[] {
   return [
     { id: "detected", label: "This window", width: windowWidth, height: windowHeight },

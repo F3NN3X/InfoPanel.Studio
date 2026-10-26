@@ -3,6 +3,7 @@ import { ArrowUpRight, Copy, PenLine, Trash2 } from "lucide-react";
 import type { LibraryItem } from "@/lib/library";
 import { ProfileThumb } from "@/components/infopanel/profile-thumb";
 import { RenameInput } from "../rename-input";
+import type { CardAction } from "./card-actions";
 import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "./profile-card";
 import type { SavedProfiles } from "./use-saved-profiles";
 
@@ -19,12 +20,40 @@ interface SavedCardProps {
 
 const counted = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
 
+interface SavedActionHandlers {
+  action: string;
+  renamable?: boolean;
+  onOpen: () => void;
+  onDuplicate: () => void;
+  onRename: () => void;
+  /** Asks first, in the card's footer. */
+  onRemove: () => void;
+}
+
+/** The saved card's actions, for its ⋯ menu and its right-click menu. */
+export function savedActions(h: SavedActionHandlers): CardAction[] {
+  return [
+    { id: "open", label: h.action, icon: ArrowUpRight, run: h.onOpen },
+    { id: "duplicate", label: "Duplicate", icon: Copy, run: h.onDuplicate },
+    ...(h.renamable ? [{ id: "rename", label: "Rename", icon: PenLine, run: h.onRename, focusesField: true }] : []),
+    { id: "remove", label: "Remove from the Library", icon: Trash2, run: h.onRemove, danger: true },
+  ];
+}
+
 /** A saved InfoPanel profile of the Library as a card: open it, duplicate it, rename it, or remove it (asked first). */
 export function SavedCard({ item, api, action, detail, renamable, onOpen }: SavedCardProps) {
   const [removing, setRemoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const width = Number(item.meta.width) || 0;
   const height = Number(item.meta.height) || 0;
+  const actions = savedActions({
+    action,
+    renamable,
+    onOpen,
+    onDuplicate: () => void api.duplicate(item),
+    onRename: () => setRenaming(true),
+    onRemove: () => setRemoving(true),
+  });
   return (
     <ProfileCard
       name={item.name}
@@ -47,6 +76,8 @@ export function SavedCard({ item, api, action, detail, renamable, onOpen }: Save
       thumb={<ProfileThumb item={item} />}
       onClick={onOpen}
       label={`${action} ${item.name}`}
+      actions={actions}
+      actionsLabel="Profile actions"
     >
       {removing ? (
         <>
