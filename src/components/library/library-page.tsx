@@ -82,7 +82,7 @@ export interface LibraryPageProps {
   selectionStyle: ModuleSettings | null;
   /** A saved Theme's "Edit in Theme": Theme opens at All screens with it applied. */
   onEditInTheme: (preset: AppearancePreset) => void;
-  /** A profile's primary action: the InfoPanel editor, on the zone that uses it (else it comes in as a new screen). */
+  /** A profile's primary action: Edit, on the zone that uses it (else it comes in as a new screen). */
   onEditCanvas: (item: LibraryItem) => void;
   /** A card dragged onto "Drop on the canvas": the page makes way so the drag goes on to the canvas. */
   onShowCanvas: () => void;
@@ -442,7 +442,7 @@ export default function LibraryPage(p: LibraryPageProps) {
         <button
           type="button"
           onClick={() => openNewInfoPanel()}
-          title="An InfoPanel profile from scratch, as a new screen in the InfoPanel editor"
+          title="An InfoPanel profile from scratch, as a new screen in Edit"
           className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-default px-3 text-[12.5px] text-ui-1 hover:bg-ui-hover"
         >
           New InfoPanel profile…

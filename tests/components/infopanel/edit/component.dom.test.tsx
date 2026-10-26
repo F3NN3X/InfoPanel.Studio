@@ -2,7 +2,7 @@
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { withCanvas } from "@/components/studio/import-actions";
 import { fitScale, openCanvas } from "@/lib/infopanel/canvas";
 import { editItems, storeItems } from "@/lib/infopanel/canvas-edit";
@@ -39,7 +39,7 @@ const history = { canUndo: false, canRedo: false, undo: vi.fn(), redo: vi.fn() }
 const mount = (setConfig = vi.fn()) =>
   render(
     <ToastProvider>
-      <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+      <HostedEditor tab="layers" zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
     </ToastProvider>,
   );
 const row = (name: string) => screen.getAllByRole("treeitem").find((r) => r.textContent?.includes(name))!;

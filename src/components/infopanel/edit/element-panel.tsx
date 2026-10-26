@@ -21,6 +21,7 @@ import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import { Segmented } from "./canvas-toolbar";
 import { IconPicker } from "./icon-picker";
 import { DriveIcons, IconFileButtons } from "./icon-source";
+import { ApproxMark, useExportCheck } from "../export-check-panel";
 import type { CanvasEditor } from "./use-canvas-editor";
 
 /** The spec as plain data without one key (a switched-off effect is an absent key, not a null). */
@@ -28,10 +29,13 @@ const withoutKey = (spec: ElementSpec, key: string) => Object.fromEntries(Object
 
 const INPUT = "h-7 w-full min-w-0 rounded-[6px] border border-ui-default bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+function Row({ label, children, approx = false }: { label: string; children: ReactNode; approx?: boolean }) {
   return (
     <div className="flex min-h-7 items-center justify-between gap-3 text-[12px] text-ui-2">
-      <span className="shrink-0">{label}</span>
+      <span className="flex shrink-0 items-center gap-1.5">
+        {label}
+        {approx && <ApproxMark />}
+      </span>
       <div className="flex min-w-0 justify-end">{children}</div>
     </div>
   );
@@ -119,9 +123,11 @@ function InksField({ label, inks, max, palette, onChange }: { label: string; ink
   );
 }
 
-function SwitchRow({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+/** A switch; `studioOnly` marks a look InfoPanel can't draw, Approximated while it is on and the screen is made for InfoPanel (D4). */
+function SwitchRow({ label, on, onChange, studioOnly = false }: { label: string; on: boolean; onChange: (on: boolean) => void; studioOnly?: boolean }) {
+  const check = useExportCheck();
   return (
-    <Row label={label}>
+    <Row label={label} approx={studioOnly && on && check.on}>
       <Toggle checked={on} onChange={onChange} label={label} />
     </Row>
   );
@@ -138,6 +144,7 @@ interface ElementPanelProps {
 
 export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanelProps) {
   const { palette } = editor;
+  const check = useExportCheck();
   const key = (field: string) => `canvas-element:${editor.zone.id}:${path}:${field}`;
   const set = (patch: Record<string, unknown>, field = Object.keys(patch)[0]) => {
     const next = normalizeElement({ ...spec, ...patch });
@@ -367,7 +374,13 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           {num("Offset X", "dx", spec.dx)}
           {num("Offset Y", "dy", spec.dy)}
           {ink("Shadow colour", "color", spec.color)}
-          <p className="text-[11.5px] leading-snug text-ui-4">InfoPanel can’t blur a shadow, so this is a sharp dark copy behind the text. Select the second item in Layers to change the text or its sensor. For a glow, use the Text’s own Glow.</p>
+          <p className="text-[11.5px] leading-snug text-ui-4">
+            {check.on && (
+              <span className="mr-1 inline-flex align-[-2px]">
+                <ApproxMark />
+              </span>
+            )}
+            InfoPanel can’t blur a shadow, so this is a sharp dark copy behind the text. Select the second item in Layers to change the text or its sensor. For a glow, use the Text’s own Glow.</p>
         </>
       );
       break;
@@ -423,6 +436,7 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           )}
           <SwitchRow
             label="Background blur"
+            studioOnly
             on={!!spec.blur}
             onChange={(on) => {
               if (on) return set({ blur: 16 });
@@ -538,8 +552,8 @@ export function ElementPanel({ editor, path, item, spec, sensors }: ElementPanel
           </Row>
           {spec.style !== "line" && <NumberField label="Fill (%)" value={spec.fillAlpha * 100} onCommit={(n) => set({ fillAlpha: n / 100 })} />}
           {ink("Colour", "color", spec.color)}
-          <SwitchRow label="End dot" on={spec.dot} onChange={(dot) => set({ dot })} />
-          {spec.style === "area" && <SwitchRow label="Gradient fill" on={spec.gradient} onChange={(gradient) => set({ gradient })} />}
+          <SwitchRow label="End dot" studioOnly on={spec.dot} onChange={(dot) => set({ dot })} />
+          {spec.style === "area" && <SwitchRow label="Gradient fill" studioOnly on={spec.gradient} onChange={(gradient) => set({ gradient })} />}
           <p className="text-[11.5px] leading-snug text-ui-4">InfoPanel draws its own Graph: the end dot and a gradient fill show only in the studio.</p>
         </>
       );

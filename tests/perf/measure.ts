@@ -203,7 +203,7 @@ export async function openMeasured(browser: Browser, url: string, zoneSelector: 
 }
 
 /** The studio's rail is its first stable element; the studio opens on Screens, so Design is a click away. */
-export const STUDIO_READY = '[aria-label="Design"]';
+export const STUDIO_READY = '[aria-label="Edit"]';
 
 export async function openDesign({ page }: Pick<PageRun, "page">): Promise<void> {
   await page.locator(STUDIO_READY).click();

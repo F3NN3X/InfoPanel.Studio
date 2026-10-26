@@ -22,7 +22,7 @@ export const KIND_TITLES: Record<WizardKind, string> = { screen: "New screen", i
 
 export const KIND_SENTENCES: Record<WizardKind, string> = {
   screen: "A screen is a grid of native widgets with live data, served to your panels and editable on Screens.",
-  ip: "A profile is free-placed elements on a canvas, edited in the InfoPanel editor and exportable to the InfoPanel app.",
+  ip: "A profile is free-placed elements on a canvas, edited in Edit and exportable to the InfoPanel app.",
 };
 
 const PRIMARY = "h-8 rounded-[8px] bg-ui-accent px-4 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:opacity-40";

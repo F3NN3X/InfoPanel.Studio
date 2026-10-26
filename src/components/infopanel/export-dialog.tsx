@@ -1,7 +1,8 @@
 /**
  * Export (§9): a canvas zone written as its stored form (`.canvas.zip`) or as an `.infopanel` for
  * InfoPanel. Baking first (stale vector gauges, rings and LED bars to frames; cards, glows, dividers
- * and icons to one image each) puts the new files on the zone as one undo step.
+ * and icons to one image each) puts the new files on the zone as one undo step. What it reports about each part is
+ * the editor's Export check (`exportCheck`), read from the items it writes, so the two never disagree.
  */
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
@@ -15,7 +16,7 @@ import { readStoreFile } from "@/lib/infopanel/canvas";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import { bakeSignature, safeStem, setFrameFiles, vectorOf } from "@/lib/infopanel/gauges/frames";
 import { bake } from "@/lib/infopanel/gauges/raster";
-import { approximations } from "@/lib/infopanel/elements/apply";
+import { checkItems } from "@/lib/infopanel/export-check";
 import { backdropLayers, backdropSignature } from "@/lib/infopanel/elements/backdrop";
 import { elementSignature, setElementFile, staleElements, staticOf } from "@/lib/infopanel/elements/bake";
 import { elementOf } from "@/lib/infopanel/elements/spec";
@@ -37,6 +38,7 @@ import {
 import { extOverrides, openStored, type OpenedSource } from "@/lib/infopanel/import/session";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { GaugeItem } from "@/lib/infopanel/schema";
+import { CheckGroups } from "./export-check-panel";
 import { FontLicenceReview } from "./font-licence-review";
 import { Radio } from "./import/import-steps";
 import { useSwapTargets } from "./use-swap-targets";
@@ -126,7 +128,8 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
   };
   const staleStatic = staleElements(doc.items, "", backdropOf(doc.items, doc.assets));
   const bakes = stale.length + staleStatic.length;
-  const approx = approximations(doc.items);
+  const check = checkItems(doc.items, opened.origin !== "new");
+  const surprises = check.rows.filter((r) => r.status !== "ok");
   const fonts = fontsToInstall(doc.items);
   const sensors = sensorNote(sensorSources(doc.items));
   const unused = unusedFiles(doc);
@@ -288,16 +291,11 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
             </div>
           </div>
         )}
-        {out === "infopanel" && approx.length > 0 && (
-          <div className="rounded-[10px] border border-ui-default px-3.5 py-3">
-            <div className="text-[12.5px] font-medium text-ui-1">Approximated in InfoPanel</div>
-            <ul className="mt-1 space-y-0.5 text-[12px] text-ui-3">
-              {approx.map((a) => (
-                <li key={a.path}>
-                  <span className="text-ui-2">{a.name}</span>: loses {a.lost.join(", ")}
-                </li>
-              ))}
-            </ul>
+        {out === "infopanel" && surprises.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-[10px] border border-ui-default px-3.5 py-3">
+            <div className="text-[12.5px] font-medium text-ui-1">Export check</div>
+            <CheckGroups rows={surprises} />
+            <span className="text-[11.5px] text-ui-4">{check.counts.ok} more export as they are.</span>
           </div>
         )}
         {out === "infopanel" && (

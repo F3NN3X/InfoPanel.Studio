@@ -1,8 +1,9 @@
 /**
- * The canvas zone editor's toolbar (spec §7), left to right: undo / redo (the studio's history),
- * duplicate, group, ungroup, draw order, delete, Draw all as, Show modes, the sensor source,
- * Remap with its badge, Compare; then Save to Library and Done. Show modes and Compare open a strip below it. When the
- * row does not fit, the sensor source and Compare move into a "More" menu.
+ * The canvas zone editor's toolbar (spec §7), left to right: the profile's kind (imported from InfoPanel, or made
+ * here) and the Export check pill, undo / redo (the studio's history), duplicate, group, ungroup, draw order, delete,
+ * Draw all as, Show modes, the sensor source, Remap with its badge, Compare; then Save to Library, and Done on a free
+ * area of a grid page. Show modes and Compare open a strip below it. When the row does not fit, the sensor source and
+ * Compare move into a "More" menu.
  */
 import { useRef, useState, type ReactNode } from "react";
 import {
@@ -10,12 +11,13 @@ import {
   ArrowUp,
   Cable,
   Check,
-  ChevronLeft,
   Contrast,
   Copy,
+  Download,
   Group,
   Layers,
   Library,
+  Monitor,
   MoreHorizontal,
   PackagePlus,
   Redo2,
@@ -107,12 +109,15 @@ export interface CanvasToolbarProps {
   library?: LibraryLink;
   /** "Save as component…" for the selection. */
   onSaveComponent?: () => void;
-  onDone: () => void;
-  /** Back to the InfoPanel home page, the document still open. */
-  onHome?: () => void;
+  /** Back to the grid page (a free area); a Free page has none. */
+  onDone?: () => void;
+  /** The canvas came from InfoPanel (the kind tag says so). */
+  imported?: boolean;
+  /** The Export check pill, when the screen is made for InfoPanel. */
+  check?: ReactNode;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onSaveComponent, onDone, onHome }: CanvasToolbarProps) {
+export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onSaveComponent, onDone, imported = false, check }: CanvasToolbarProps) {
   const { selection } = editor;
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
@@ -141,20 +146,15 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
   ];
   return (
     <div ref={ref} role="toolbar" aria-label="Canvas items" className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-ui-subtle bg-ui-panel px-3 font-ui">
-      {onHome && (
-        <>
-          <button
-            type="button"
-            onClick={onHome}
-            title="Back to your InfoPanel profiles; this one stays open"
-            className="flex h-[30px] shrink-0 items-center gap-1 rounded-[8px] border border-ui-default pl-1.5 pr-2.5 text-[12px] text-ui-2 hover:bg-ui-hover"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Profiles
-          </button>
-          <Sep />
-        </>
-      )}
+      <span
+        title={imported ? "This profile came from InfoPanel" : "A profile made in the studio"}
+        className="flex h-5 shrink-0 items-center gap-1 rounded-[5px] border border-ui-default bg-ui-hover px-1.5 text-[11px] text-ui-3"
+      >
+        {imported ? <Download className="h-[13px] w-[13px]" /> : <Monitor className="h-[13px] w-[13px]" />}
+        {imported ? "Imported from InfoPanel" : "Screen"}
+      </span>
+      {check}
+      <Sep />
       <ToolButton icon={Undo2} label="Undo (Ctrl+Z)" onClick={history.undo} disabled={!history.canUndo} />
       <ToolButton icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={history.redo} disabled={!history.canRedo} />
       <Sep />
@@ -240,15 +240,17 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
           {library.label}
         </button>
       )}
-      <button
-        type="button"
-        onClick={onDone}
-        title="Back to the dashboard (Esc)"
-        className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] bg-ui-accent px-3 text-[12px] font-medium text-ui-inverse-fg hover:opacity-90"
-      >
-        <Check className="h-3.5 w-3.5" />
-        Done
-      </button>
+      {onDone && (
+        <button
+          type="button"
+          onClick={onDone}
+          title="Back to the grid page (Esc)"
+          className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] bg-ui-accent px-3 text-[12px] font-medium text-ui-inverse-fg hover:opacity-90"
+        >
+          <Check className="h-3.5 w-3.5" />
+          Done
+        </button>
+      )}
     </div>
   );
 }

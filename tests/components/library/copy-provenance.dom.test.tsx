@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
 import { BackgroundEditor } from "@/components/studio/background-editor";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { LibraryDetail } from "@/components/library/library-detail";
 import { parseDisplayItemsXml, parseProfileXml } from "@/lib/infopanel/parse";
 import { toStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -51,7 +51,7 @@ describe("copy provenance", () => {
     const history = { canUndo: false, canRedo: false, undo: vi.fn(), redo: vi.fn() };
     const { container } = render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     fireEvent.drop(container.querySelector(".overflow-hidden.min-h-0.flex-1")!, drop());

@@ -2,8 +2,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
-import { InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { PALETTE_DRAG, paletteEntryOf } from "@/components/infopanel/edit/add-palette";
 import { withCanvas } from "@/components/studio/import-actions";
 import { readStored, newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -17,19 +16,18 @@ const zone = { id: "z", module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 2,
 const config = { profiles: [{ id: "p1", name: "Main", pages: [{ id: "pg", name: "Page 1", placements: [zone] }] }] } as unknown as DashboardConfig;
 const history = { canUndo: false, canRedo: false, undo: vi.fn(), redo: vi.fn() };
 
-describe("the InfoPanel editor page", () => {
-  it("renders the palette, layers and the profile's settings, and a palette click adds the item", () => {
+describe("the canvas editor in Edit", () => {
+  it("renders the palette and layers as the left panel's tabs, the profile's settings, and a palette click adds the item", () => {
     const setConfig = vi.fn();
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     const palette = screen.getByRole("region", { name: "Add" });
     // InfoPanel's 14 kinds, then the 15 studio elements.
     expect(within(palette).getAllByRole("button")).toHaveLength(29);
     expect(within(within(palette).getByRole("group", { name: "Elements" })).getAllByRole("button")).toHaveLength(15);
-    expect(screen.getByRole("region", { name: "Layers" })).toBeTruthy();
     expect(screen.getByLabelText("Name")).toHaveProperty("value", "Desk");
 
     fireEvent.click(within(palette).getByRole("button", { name: "Text" }));
@@ -38,12 +36,17 @@ describe("the InfoPanel editor page", () => {
     const items = readStored(next.profiles[0].pages[0].placements[0].canvas).items;
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ kind: "Text", Name: "Custom Text", Font: "Segoe UI", Color: "#FFFFFFFF" });
+
+    // Layers is the other tab of the same panel.
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Left panel" })).getByRole("radio", { name: "Layers" }));
+    expect(screen.getByRole("region", { name: "Layers" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Add" })).toBeNull();
   });
 
   it("a palette entry drags its kind, and shows the hint line under the canvas", () => {
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     const setData = vi.fn();
@@ -61,7 +64,7 @@ describe("the InfoPanel editor page", () => {
     const onDismiss = vi.fn();
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" unbound={["GPU power", "Uptime"]} onDismissUnbound={onDismiss} />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" unbound={["GPU power", "Uptime"]} onDismissUnbound={onDismiss} />
       </ToastProvider>,
     );
     const note = screen.getByText("Not found on this PC, so left unbound: GPU power, Uptime.").closest<HTMLElement>('[role="status"]')!;
@@ -71,22 +74,22 @@ describe("the InfoPanel editor page", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
-  it("lists the dashboard's InfoPanel profiles when nothing is open", () => {
-    const onOpen = vi.fn();
-    render(
-      <InfoPanelStart
-        config={config}
-        setConfig={vi.fn()}
-        onContinue={vi.fn()}
-        onOpen={onOpen}
-        onOpenLibrary={vi.fn()}
-        onNew={vi.fn()}
-        onImport={vi.fn()}
-        onRemoveProfile={vi.fn()}
-        onUndo={vi.fn()}
-      />,
+  it("has no Done on a Free page, and Done on a free area goes back to the grid", () => {
+    const { unmount } = render(
+      <ToastProvider>
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
+      </ToastProvider>,
     );
-    fireEvent.click(screen.getByText("Desk"));
-    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ profileId: "p1", pageId: "pg", zoneId: "z", width: 800, height: 480 }));
+    expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+    unmount();
+    const onDone = vi.fn();
+    render(
+      <ToastProvider>
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={onDone} profileId="p1" />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onDone).toHaveBeenCalled();
   });
+
 });

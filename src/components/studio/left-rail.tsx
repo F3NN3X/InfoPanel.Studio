@@ -1,22 +1,25 @@
 import { Fragment } from "react";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Bell, CircleHelp, Database, Gauge, Images, LayoutDashboard, Monitor, Palette, PanelsTopLeft, Settings, type LucideIcon } from "lucide-react";
+import { Bell, CircleHelp, Database, Gauge, Images, LayoutDashboard, Monitor, Palette, Settings, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** The rail's full views (SPEC §3.2, PLAN decision 24), and Settings, which opens its own window. */
+/**
+ * The rail's full views (SPEC §3.2, PLAN decision 24), and Settings, which opens its own window. `design` is Edit,
+ * for grid screens and InfoPanel profiles alike (one-editor SPEC §4.1, D1). `infopanel` has no button any more: it
+ * stays as a route alias for old links and commands, and lands on Screens' InfoPanel filter.
+ */
 export type RailItem = "design" | "theme" | "screens" | "library" | "gauges" | "infopanel" | "data" | "alerts" | "settings";
 
 /** The rail's items in groups; a thin divider sits between groups. Nothing addresses a button by position. */
 const GROUPS: { id: RailItem; label: string; icon: LucideIcon }[][] = [
   [
     { id: "screens", label: "Screens", icon: Monitor },
-    { id: "design", label: "Design", icon: LayoutDashboard },
+    { id: "design", label: "Edit", icon: LayoutDashboard },
   ],
   [
     { id: "theme", label: "Theme", icon: Palette },
     { id: "library", label: "Library", icon: Images },
     { id: "gauges", label: "Gauges", icon: Gauge },
-    { id: "infopanel", label: "InfoPanel", icon: PanelsTopLeft },
     { id: "alerts", label: "Alerts & Island", icon: Bell },
     { id: "data", label: "Data", icon: Database },
   ],

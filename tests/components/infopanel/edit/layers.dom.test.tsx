@@ -2,7 +2,7 @@
 import { createEvent, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { withCanvas } from "@/components/studio/import-actions";
 import { openCanvas } from "@/lib/infopanel/canvas";
 import { storeItems } from "@/lib/infopanel/canvas-edit";
@@ -37,7 +37,7 @@ describe("Layers", () => {
     const setConfig = vi.fn();
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     const group = row("Panel");
@@ -60,7 +60,7 @@ describe("Layers", () => {
   it("marks where a drop lands: a line above or below a row, a box inside a group", () => {
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     const rect = { top: 0, bottom: 30, height: 30, left: 0, right: 100, width: 100, x: 0, y: 0, toJSON: () => ({}) };
@@ -84,7 +84,7 @@ describe("Layers", () => {
   it("shows why a drop can't land: a group into itself", () => {
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     const group = row("Panel");

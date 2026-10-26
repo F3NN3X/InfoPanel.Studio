@@ -18,7 +18,6 @@ import { CommandPalette } from "./command-palette";
 import { exportConfigFile } from "./config-file";
 import { ownStyle } from "./studio-actions";
 import { useStyleEdits } from "./use-style-edits";
-import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar, type StudioMode } from "./studio-top-bar";
@@ -33,7 +32,7 @@ import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
 import { useAddPanel } from "./use-add-panel";
 import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
-import { screenKind } from "@/lib/screens/list";
+import { freeCanvasOf, madeForInfoPanel, screenKind } from "@/lib/screens/list";
 import { withScreenPerformance } from "./screens-model";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
@@ -80,8 +79,6 @@ import { dataOf, setAsBackground, type StudioBridge } from "@/components/library
 import type { GaugeSource } from "@/lib/gauge-studio/model";
 import { dropLibraryItem, librarySizeOf } from "@/components/library/library-drop";
 import { recordCopy } from "@/lib/my-library/copies";
-import { isComponent } from "@/lib/my-library/component-meta";
-import { activeLibraryDrag } from "@/lib/my-library/drag";
 import { useToast } from "@/components/ui/toast";
 import { createLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
 import { canvasItem } from "@/lib/my-library/canvas-link";
@@ -93,14 +90,12 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
 const NO_REQUEST: ExportRequest = {};
 
-/** The InfoPanel editor (A5), the InfoPanel page's body, loaded when a profile is first opened there. */
+/** The canvas editor (A5): Edit on a Free page or a free area, loaded when one is first opened. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The New page loads when it opens, and its templates after it (`wizard-kit.ts`). */
 const NewPage = lazy(() => import("@/components/templates/new-page"));
 /** The first-run setup comes in its own chunk, with the templates its Start step shows. */
 const FirstRunPage = lazy(() => import("./first-run/first-run-page"));
-/** The InfoPanel home page loads when it is first shown, never with the studio. */
-const InfoPanelStart = lazy(() => import("@/components/infopanel/edit/infopanel-start").then((m) => ({ default: m.InfoPanelStart })));
 /** The Data, Alerts and Screens views load when the rail first opens them. */
 const SourcesPanel = lazy(() => import("./sources-panel").then((m) => ({ default: m.SourcesPanel })));
 const AlertsView = lazy(() => import("./alerts-view").then((m) => ({ default: m.AlertsView })));
@@ -247,7 +242,6 @@ function StudioViewBody({
   const catalog = useSensorCatalog();
   const dataPoints = useMemo(() => buildDataModel(catalog.sources, catalog.sensors).points, [catalog.sources, catalog.sensors]);
   const { studioLayout, showSources, showLibrary, showGauges, showTheme, showAlerts, showScreens, fullPage } = ui;
-  const showInfoPanel = ui.mode === "infopanel";
   const phone = isPhone(windowWidth);
   const narrowRail = !phone && railWidth(windowWidth) < 72;
   const railActive: RailItem = showSources
@@ -256,9 +250,7 @@ function StudioViewBody({
       ? "library"
       : showGauges
         ? "gauges"
-        : showInfoPanel
-          ? "infopanel"
-          : showTheme
+        : showTheme
           ? "theme"
           : showAlerts
             ? "alerts"
@@ -271,7 +263,7 @@ function StudioViewBody({
     studioHelpTarget({
       dialog: dialogArticle(),
       section: focusedSection(),
-      view: ui.mode,
+      view: ui.mode === "design" && activeCanvas ? "infopanel" : ui.mode,
       zone: helpZoneKind(selected),
     });
   useHelpKey(helpTarget, (target) => void openHelp(target).catch(() => {}));
@@ -304,9 +296,9 @@ function StudioViewBody({
     setPendingZone(null);
     focusZone(pendingZone);
     if (openOnLand.current === pendingZone) {
-      // A fresh import, or a new profile, opens its canvas zone in the InfoPanel editor (spec §4).
+      // A fresh import, or a new profile, opens its canvas zone in Edit (spec §4).
       openOnLand.current = null;
-      ui.setMode("infopanel");
+      ui.setMode("design");
       setCanvasSelection(undefined);
       setEditingCanvas(pendingZone);
     }
@@ -327,41 +319,37 @@ function StudioViewBody({
     onSelectProfile: selectProfile,
   });
   /**
-   * The InfoPanel page's open document: one canvas zone, on the screen and page Design shows. Its
-   * stored form in the config is the one source of truth, so the studio's history undoes every
-   * edit. It closes when the zone goes (an undo past its import, another screen or page).
+   * A free area opened from a grid page (double-click, the inspector's Edit): one canvas zone on the screen and page
+   * Edit shows. Its stored form in the config is the one source of truth, so the studio's history undoes every edit.
+   * It closes when the zone goes (an undo past its import, another screen or page).
    */
-  const [editingCanvas, setEditing] = useState<string | null>(null);
-  /** The InfoPanel home page covers the open document: the rail's InfoPanel button and the editor's "Profiles" show it, opening a document hides it. */
-  const [infopanelHome, setInfopanelHome] = useState(false);
-  const setEditingCanvas = (id: string | null) => {
-    if (id) setInfopanelHome(false);
-    setEditing(id);
-  };
+  const [editingCanvas, setEditingCanvas] = useState<string | null>(null);
   const onRail = (item: RailItem) => {
     setNewPage(null);
-    if (item === "infopanel") setInfopanelHome(true);
     ui.onRail(item);
   };
-  /** Edit a canvas zone of the page Design shows: the InfoPanel page opens on it. */
+  /** Edit a canvas zone of the page Edit shows: the canvas editor opens on it. */
   const editCanvasZone = (zoneId: string) => {
     setCanvasSelection(undefined);
     setEditingCanvas(zoneId);
-    ui.setMode("infopanel");
+    ui.setMode("design");
   };
   /** Items the editor opens with selected (the Library's "uses"). */
   const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(undefined);
   const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
   useEffect(() => {
-    // Leaving the page keeps the document open (the rail brings it back); the zone going closes it. Only if it is
+    // Leaving the page keeps the area open (the rail brings it back); the zone going closes it. Only if it is
     // still the open one: an import onto another screen opens its own zone in the same commit.
-    if (editingCanvas && !canvasZone) setEditing((open) => (open === editingCanvas ? null : open));
+    if (editingCanvas && !canvasZone) setEditingCanvas((open) => (open === editingCanvas ? null : open));
   }, [editingCanvas, canvasZone]);
+  /** A Free page (one canvas filling the screen, as every InfoPanel profile is) is edited in the canvas editor. */
+  const freeZone = freeCanvasOf(profile, profile);
+  /** What Edit's canvas editor shows: the Free page's canvas, else the free area opened from the grid. */
+  const activeCanvas = freeZone?.canvas ? (freeZone as typeof freeZone & { canvas: NonNullable<typeof freeZone.canvas> }) : canvasZone?.canvas ? (canvasZone as typeof canvasZone & { canvas: NonNullable<typeof canvasZone.canvas> }) : undefined;
   /**
-   * The New page (New screen, New InfoPanel profile): a page over Screens or the InfoPanel home, whichever its kind
-   * is, so the rail follows the kind switch while the page stays. "New InfoPanel profile…" makes a new screen (not
-   * made active) opened in the editor, a template's sensors not found on this machine listed there with Remap; the
-   * choice it starts on, and the view Cancel goes back to.
+   * The New page (New screen, New InfoPanel profile): a page over Screens, for either kind. "New InfoPanel profile…"
+   * makes a new screen (not made active) opened in Edit, a template's sensors not found on this machine listed there
+   * with Remap; the choice it starts on, and the view Cancel goes back to.
    */
   const [newPage, setNewPage] = useState<{ kind: WizardKind; initial?: NewChoice; back: StudioMode; size?: { width: number; height: number } } | null>(null);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
@@ -369,19 +357,14 @@ function StudioViewBody({
   modeNow.current = ui.mode;
   const openNewProfile = (initial?: NewChoice) => {
     setNewPage({ kind: "ip", initial, back: modeNow.current });
-    setInfopanelHome(true);
-    ui.setMode("infopanel");
+    ui.setMode("screens");
   };
   const openNewScreen = () => setNewPage({ kind: "screen", back: "screens" });
-  const switchNewKind = (kind: WizardKind) => {
-    setNewPage((p) => p && { ...p, kind, initial: undefined });
-    if (kind === "ip") setInfopanelHome(true);
-    ui.setMode(kind === "ip" ? "infopanel" : "screens");
-  };
+  const switchNewKind = (kind: WizardKind) => setNewPage((p) => p && { ...p, kind, initial: undefined });
   useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && openNewProfile()), []);
   // Leaving the page's view (the rail, a link) drops the page.
   useEffect(() => {
-    if (newPage && ui.mode !== (newPage.kind === "ip" ? "infopanel" : "screens")) setNewPage(null);
+    if (newPage && ui.mode !== "screens") setNewPage(null);
   }, [ui.mode, newPage]);
   const createScreen = ({ profile: made, unbound }: NewScreen) => {
     setNewPage(null);
@@ -554,6 +537,11 @@ function StudioViewBody({
     selectProfile(id);
     ui.setMode("design");
   };
+  // A link to the old InfoPanel view that names a profile opens it in Edit, as Screens' Open does.
+  useEffect(() => {
+    if (ui.editRequest && config.profiles.some((p) => p.id === ui.editRequest?.id)) openScreen(ui.editRequest.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.editRequest?.seq]);
 
   const screensEl = showScreens && (
     <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
@@ -583,6 +571,7 @@ function StudioViewBody({
       onUndo={history.undo}
       onOpenSaved={(item) => void editCanvas(item)}
       onNew={openNewScreen}
+      filterRequest={ui.screensFilter}
     />
     </Suspense>
   );
@@ -699,11 +688,8 @@ function StudioViewBody({
   const rotateEntry = control?.profiles[storedProfile.id];
   const rotating = (rotateEntry?.rotating ?? storedProfile.rotate?.enabled === true) && storedProfile.pages.length >= 2;
 
-  // The page tabs sit above the canvas in Design mode.
-  const mainEl = showSources ? (
-    canvasEl
-  ) : (
-    <>
+  // The page tabs sit above the canvas in Edit, a grid page's or a Free page's.
+  const pageTabsEl = (
       <PageTabs
         leftOpen={ui.leftOpen}
         onToggleLeft={ui.toggleLeft}
@@ -730,6 +716,12 @@ function StudioViewBody({
         rotation={rotating ? `every ${cycleLabel(storedProfile.rotate?.seconds ?? 0)}` : "paused"}
         onOpenLive={() => ui.setLiveOpen(true)}
       />
+  );
+  const mainEl = showSources ? (
+    canvasEl
+  ) : (
+    <>
+      {pageTabsEl}
       {/* The quick bar floats over the canvas only, below the page tabs. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {canvasEl}
@@ -738,30 +730,44 @@ function StudioViewBody({
     </>
   );
 
-  /** The home page shows over the InfoPanel page when asked for, and whenever no document is open. */
-  const homeShown = showInfoPanel && (infopanelHome || !canvasZone?.canvas);
-  // Mounted on its page, and kept (hidden) while the Library or the home page covers it, so a Library drag can land in it and the selection survives.
-  const canvasEditor = canvasZone?.canvas && (showInfoPanel || showLibrary) && (
-    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+  /** Edit shows the canvas editor in the studio's shell on a Free page or an opened free area. */
+  const editorShown = !fullPage && activeCanvas !== undefined;
+  // Mounted in Edit, and kept (drawing nothing) while the Library covers it, so a Library drag can land in it and the selection survives.
+  const canvasEditor = activeCanvas && (editorShown || showLibrary) && (
+    <Suspense fallback={editorShown ? <div className="flex-1 bg-ui-app" /> : null}>
       <CanvasEditorView
-        key={`${canvasZone.id}:${editorEpoch}`}
-        hidden={showLibrary || homeShown}
-        onHome={() => setInfopanelHome(true)}
+        key={`${activeCanvas.id}:${editorEpoch}`}
+        hidden={!editorShown}
         profileId={storedProfile.id}
-        zone={{ ...canvasZone, canvas: canvasZone.canvas }}
+        zone={activeCanvas}
         setConfig={setConfig}
         history={history}
-        initialSelection={canvasSelection}
-        unbound={unboundNote?.zoneId === canvasZone.id ? unboundNote.labels : undefined}
-        onDismissUnbound={() => setUnboundNote(null)}
-        onEditGauge={(path) => openGauge({ kind: "canvas", zoneId: canvasZone.id, path })}
-        onDone={() => {
-          const id = canvasZone.id;
-          setEditingCanvas(null);
-          setCanvasSelection(undefined);
-          ui.setMode("design");
-          focusZone(id);
+        shell={{
+          layout: studioLayout,
+          rail: phone ? null : <LeftRail active={railActive} onSelect={onRail} onHelp={openHelpWindow} narrow={narrowRail} />,
+          railWidth: railWidth(windowWidth),
+          leftOpen: ui.leftOpen,
+          leftTab: ui.leftTab,
+          onLeftTab: ui.setLeftTab,
+          leftWidth: ui.leftWidth,
+          pageTabs: pageTabsEl,
         }}
+        checkOn={madeForInfoPanel(storedProfile)}
+        onExport={() => io.openExport(activeCanvas)}
+        initialSelection={canvasSelection}
+        unbound={unboundNote?.zoneId === activeCanvas.id ? unboundNote.labels : undefined}
+        onDismissUnbound={() => setUnboundNote(null)}
+        onEditGauge={(path) => openGauge({ kind: "canvas", zoneId: activeCanvas.id, path })}
+        onDone={
+          freeZone
+            ? undefined
+            : () => {
+                const id = activeCanvas.id;
+                setEditingCanvas(null);
+                setCanvasSelection(undefined);
+                focusZone(id);
+              }
+        }
       />
     </Suspense>
   );
@@ -823,9 +829,8 @@ function StudioViewBody({
         onEditInTheme={editInTheme}
         onEditCanvas={(item) => void editCanvas(item)}
         onShowCanvas={() => {
-          // A component dragged out of the Library goes back to the InfoPanel editor that is open, not to Design.
-          const drag = activeLibraryDrag();
-          ui.setMode(drag && isComponent(drag) && canvasZone?.canvas && !infopanelHome ? "infopanel" : "design");
+          // Edit: the canvas editor when one is open, where a component dragged out of the Library lands.
+          ui.setMode("design");
         }}
         theme={resolveTheme(config, profile).tokens}
         profileName={storedProfile.name}
@@ -844,7 +849,7 @@ function StudioViewBody({
           zones: canvasZones,
           setConfig,
           onSelectUses: (zoneId, paths) => {
-            ui.setMode("infopanel");
+            ui.setMode("design");
             setCanvasSelection(paths);
             setEditorEpoch((n) => n + 1);
             setEditingCanvas(zoneId);
@@ -854,75 +859,33 @@ function StudioViewBody({
     </Suspense>
   );
 
-  /** The InfoPanel home page: Screens' page for InfoPanel profiles (Continue editing, the dashboard's and the Library's). */
-  const currentPlace = canvasPlaces(config).find((c) => c.zoneId === editingCanvas);
-  // The New page, over Screens or the InfoPanel home by its kind; the same element in both, so the kind switch keeps it.
-  const newPageEl = newPage && (showScreens || showInfoPanel) && (
-    <>
-      <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-        <NewPage
-          kind={newPage.kind}
-          onKind={switchNewKind}
-          screen={newPage.size ?? storedProfile}
-          initial={newPage.initial}
-          onCreateScreen={createScreen}
-          onCreateProfile={createInfoPanel}
-          onCancel={() => {
-            setNewPage(null);
-            ui.setMode(newPage.back);
-          }}
-          onSample={() => {
-            setNewPage(null);
-            void import("@/lib/screens/create").then(({ sampleScreen }) => {
-              edit.addImportedProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
-              toast("Screen created from the sample layout");
-            });
-          }}
-          onImport={(kind) => {
-            setNewPage(null);
-            openImportDoor(kind === "ip" ? { prefer: "canvas-zone" } : undefined);
-          }}
-        />
-      </Suspense>
-      {/* An open document stays mounted, hidden, as it does under the home page. */}
-      {showInfoPanel && canvasEditor && (
-        <div hidden inert className="hidden">
-          {canvasEditor}
-        </div>
-      )}
-    </>
-  );
-  const infopanelStart = homeShown && (
-    <>
-      <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-        <InfoPanelStart
-          config={config}
-          setConfig={setConfig}
-          current={currentPlace}
-          onContinue={() => setInfopanelHome(false)}
-          onOpen={(c) => {
-            openOnLand.current = c.zoneId;
-            openZone(c.profileId, c.pageId, c.zoneId);
-          }}
-          onOpenLibrary={(item) => void editCanvas(item)}
-          onNew={() => openNewProfile()}
-          onImport={() => openImportDoor({ prefer: "canvas-zone" })}
-          onRemoveProfile={edit.removeProfile}
-          onUndo={history.undo}
-          shown={kiosksOf(control).map((k) => k.profile)}
-          onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
-          onExport={(c) => {
-            const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);
-            if (zone) io.openExport(zone);
-          }}
-        />
-      </Suspense>
-      {canvasEditor && (
-        <div hidden inert className="hidden">
-          {canvasEditor}
-        </div>
-      )}
-    </>
+  // The New page, over Screens, for a screen or an InfoPanel profile.
+  const newPageEl = newPage && showScreens && (
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+      <NewPage
+        kind={newPage.kind}
+        onKind={switchNewKind}
+        screen={newPage.size ?? storedProfile}
+        initial={newPage.initial}
+        onCreateScreen={createScreen}
+        onCreateProfile={createInfoPanel}
+        onCancel={() => {
+          setNewPage(null);
+          ui.setMode(newPage.back);
+        }}
+        onSample={() => {
+          setNewPage(null);
+          void import("@/lib/screens/create").then(({ sampleScreen }) => {
+            edit.addImportedProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
+            toast("Screen created from the sample layout");
+          });
+        }}
+        onImport={(kind) => {
+          setNewPage(null);
+          openImportDoor(kind === "ip" ? { prefer: "canvas-zone" } : undefined);
+        }}
+      />
+    </Suspense>
   );
 
   const gaugesEl = showGauges && (
@@ -964,7 +927,7 @@ function StudioViewBody({
   );
 
   const preview = usePreviewData();
-  const bar = fullPage || canvasEditor ? null : (
+  const bar = fullPage ? null : (
     <ZoomToolbar
       zoom={ui.zoom}
       fitting={ui.fitting}
@@ -1025,27 +988,19 @@ function StudioViewBody({
         onRedo={history.redo}
         onPalette={() => ui.setPaletteOpen(true)}
       />
-      <StudioShell
-        layout={studioLayout}
-        rail={phone ? null : <LeftRail active={railActive} onSelect={onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
-        railWidth={railWidth(windowWidth)}
-        drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
-        main={newPageEl || alertsEl || screensEl || gaugesEl || themeEl || infopanelStart || (
-          <>
-            {libraryEl}
-            {canvasEditor ? (
-              // Mounted but hidden while the Library shows, so its selection and undo survive the visit.
-              <div hidden={showLibrary} inert={showLibrary} className={cn("min-h-0 min-w-0 flex-1 flex-col", showLibrary ? "hidden" : "flex")}>
-                {canvasEditor}
-              </div>
-            ) : (
-              !libraryEl && mainEl
-            )}
-          </>
-        )}
-        bar={bar}
-        inspector={fullPage || canvasEditor ? null : inspectorAside}
-      />
+      {/* The canvas editor brings its own shell (same slots and widths): in Edit on a Free page or a free area. */}
+      {canvasEditor}
+      {!editorShown && (
+        <StudioShell
+          layout={studioLayout}
+          rail={phone ? null : <LeftRail active={railActive} onSelect={onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
+          railWidth={railWidth(windowWidth)}
+          drawer={!fullPage && ui.leftOpen && leftPanelEl}
+          main={newPageEl || alertsEl || screensEl || gaugesEl || themeEl || libraryEl || mainEl}
+          bar={bar}
+          inspector={fullPage ? null : inspectorAside}
+        />
+      )}
       <StatusBar {...statusBar} onNavigate={ui.navigateTo} onOpenLive={() => ui.setLiveOpen(true)} />
       {phone && <PhoneTabBar active={railActive} onSelect={onRail} onHelp={openHelpWindow} />}
 

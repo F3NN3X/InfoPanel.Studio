@@ -120,10 +120,10 @@ export type Drawer = "add" | "layers";
 
 /** One entry per destination (SPEC §13): the views, the tabs of Alerts & Island, and the Settings window's pages. */
 const DESTINATIONS: { id: string; label: string; target: NavTarget; hint?: string }[] = [
-  { id: "design", label: "Design", target: { view: "design" }, hint: "the canvas" },
+  { id: "design", label: "Edit", target: { view: "design" }, hint: "the canvas: screens and InfoPanel profiles" },
   { id: "library", label: "Library", target: { view: "library" }, hint: "themes, styles, panels, media, fonts, canvases" },
   { id: "gauges", label: "Gauges", target: { view: "gauges" }, hint: "build and edit gauges" },
-  { id: "infopanel", label: "InfoPanel editor", target: { view: "infopanel" }, hint: "profiles for InfoPanel itself" },
+  { id: "infopanel", label: "InfoPanel profiles", target: { view: "infopanel" }, hint: "Screens, filtered to InfoPanel" },
   { id: "data", label: "Data", target: { view: "data" }, hint: "sources, points, display names" },
   { id: "alerts", label: "Alerts & Island", target: { view: "alerts" } },
   { id: "alerts:rules", label: "Alerts & Island › Rules", target: { view: "alerts", tab: "rules" } },
@@ -159,8 +159,8 @@ function generalCommands(s: CommandState): Command[] {
     general("preview:toggle", "Freeze the preview data / go live", { type: "toggle-preview" }, "this session, F"),
     general("preview:refresh", "Refresh the frozen snapshot", { type: "refresh-preview" }, "Shift+F"),
     general("manage-screens", "Manage screens…", { type: "navigate", target: { view: "screens" } }),
-    general("drawer:add", "Design › Add widget", { type: "drawer", drawer: "add" }),
-    general("drawer:layers", "Design › Layers", { type: "drawer", drawer: "layers" }),
+    general("drawer:add", "Edit › Add", { type: "drawer", drawer: "add" }),
+    general("drawer:layers", "Edit › Layers", { type: "drawer", drawer: "layers" }),
     ...DESTINATIONS.map(({ id, label, target, hint }) => general(`go:${id}`, label, { type: "navigate", target }, hint)),
     general("help", "Help", { type: "help" }, "F1"),
     general("alert-new", "New alert rule", { type: "alert-new" }),

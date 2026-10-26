@@ -1,12 +1,13 @@
 /**
- * The InfoPanel editor (A5, spec §7), the body of the studio's InfoPanel page: on the left the
- * Add palette with Layers (the item tree) below it, 256 px; the toolbar and canvas; and the
- * inspector (308 px), which shows the profile's settings when nothing is selected. It edits one
- * canvas zone's stored form, and every edit goes through the studio's history, so undo, redo and
- * auto-save work as anywhere in the studio. Lazy-loaded: the InfoPanel model stays out of the
- * studio's first bundle.
+ * The canvas editor (A5, spec §7), Edit's body on a Free page (one canvas filling the screen) or on a free area
+ * opened from a grid page (one-editor SPEC §5). It sits in the studio's own shell, with Design's slots and widths:
+ * the left panel's Layers | Add tabs hold the item tree and the Add palette, the page tabs, toolbar and canvas fill
+ * the middle, and the inspector column shows the item, the profile's settings with nothing selected, or the Export
+ * check. It edits one canvas zone's stored form, and every edit goes through the studio's one history, so undo,
+ * redo and auto-save work as anywhere in the studio. Lazy-loaded: the InfoPanel model stays out of the studio's
+ * first bundle.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
 import { useToast } from "@/components/ui/toast";
@@ -32,10 +33,13 @@ import { editKeys, sensorView } from "@/lib/infopanel/canvas-edit";
 import type { Path } from "@/lib/infopanel/editor/ops";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
-import { useViewportBelow } from "@/hooks/use-viewport-below";
-import { PaneSheet } from "@/components/studio/pane-sheet";
-import { DOCKED_MIN_WIDTH, FLOATING_MIN_WIDTH, type InspectorMode } from "@/components/studio/studio-layout";
+import { cn } from "@/lib/utils";
+import { checkItems, isImported } from "@/lib/infopanel/export-check";
+import { LeftPanelFrame, type LeftTab } from "@/components/studio/design-left-panel";
+import { StudioShell } from "@/components/studio/studio-shell";
+import type { useStudioLayout } from "@/components/studio/use-studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
+import { ExportCheckContext, ExportCheckPanel, ExportCheckPill, type ExportCheckState } from "../export-check-panel";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
 import { AddPalette, type AddEntry } from "./add-palette";
 import { canvasKeyAction } from "./canvas-keys";
@@ -50,15 +54,32 @@ import { SensorPicker } from "./sensor-picker";
 import { useCanvasEditor } from "./use-canvas-editor";
 import { useLibraryLink } from "./use-library-link";
 
+/** The studio's shell around the editor: its layout, the rail, the left panel's state and the page tabs. */
+export interface EditorShell {
+  layout: ReturnType<typeof useStudioLayout>;
+  rail: ReactNode;
+  railWidth: number;
+  leftOpen: boolean;
+  leftTab: LeftTab;
+  onLeftTab: (tab: LeftTab) => void;
+  leftWidth: number;
+  /** The studio's page tabs, over the toolbar. */
+  pageTabs?: ReactNode;
+}
+
 export interface CanvasEditorProps {
   zone: Placement & { canvas: StoredCanvas };
   setConfig: HistorySetter;
   history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void };
-  onDone: () => void;
-  /** The "Profiles" back control: the InfoPanel home page. The document stays open. */
-  onHome?: () => void;
-  /** The Library page covers the editor: it stays mounted but its keys do nothing. */
+  shell: EditorShell;
+  /** Back to the grid page a free area is on (Done); none on a Free page, which is the page itself. */
+  onDone?: () => void;
+  /** Another view (the Library) covers the editor: it stays mounted, draws nothing, and its keys do nothing. */
   hidden?: boolean;
+  /** The screen is made for InfoPanel: the Export check pill, the badges and the On InfoPanel lines show. */
+  checkOn?: boolean;
+  /** Export .infopanel: the export dialog for this zone. */
+  onExport?: () => void;
   /** The active profile (a dropped Library image is recorded as a copy there). */
   profileId: string;
   /** Items selected on open (the Library's "uses", a font's text items). */
@@ -82,7 +103,7 @@ interface PickFor {
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, onDone, onHome, hidden = false, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound }: CanvasEditorProps) {
   const toast = useToast();
   const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection, toast);
   const [showModes, setShowModes] = useState(false);
@@ -133,23 +154,35 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
   const libraryLink = useLibraryLink(zone.id, zone.canvas, editor.open.profile.Name || zone.canvas.source.name);
   const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
   const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;
-  // The studio inspector's modes (docked column, floating card, bottom sheet) on the studio's viewport
-  // breakpoints, not the editor's own width: that changes when the inspector docks, which flipped the mode back.
-  const belowDocked = useViewportBelow(DOCKED_MIN_WIDTH);
-  const belowFloating = useViewportBelow(FLOATING_MIN_WIDTH);
-  const mode: InspectorMode = !belowDocked ? "docked" : !belowFloating ? "floating" : "sheet";
-  // The floating card opens with a selection; closing it holds until the selection changes.
+  const { layout } = shell;
   const selectionKey = editor.selection.join("\n");
-  const [closedFor, setClosedFor] = useState<string | null>(null);
   const hasSelection = editor.selection.length > 0;
+  /** The Export check in the inspector: the header pill opens it; selecting anything or Esc closes it. */
+  const [checkOpen, setCheckOpen] = useState(false);
+  // The inspector follows the selection as Design's does: a selection shows it, clearing puts a floating one away.
+  useEffect(() => {
+    if (hidden) return;
+    layout.setHasSelection(hasSelection);
+    if (hasSelection) {
+      setCheckOpen(false);
+      layout.showInspector();
+    } else layout.dismissInspector();
+  }, [selectionKey, hidden]);
   // The zoom bar's size button shows the profile's settings with nothing selected.
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const openSettings = () => {
     editor.select([]);
-    setClosedFor(null);
-    setSettingsOpen(true);
+    setCheckOpen(false);
+    layout.showInspector();
   };
-  const floatOpen = hasSelection ? closedFor !== selectionKey : settingsOpen;
+  const toggleCheck = () => {
+    if (checkOpen) return setCheckOpen(false);
+    editor.select([]);
+    setCheckOpen(true);
+    layout.showInspector();
+  };
+  // The Export check, live: the pill, the badges, the inspector's lines and the panel all read it.
+  const check = useMemo(() => checkItems(editor.committed, isImported(editor.open.stored)), [editor.committed, editor.open.stored]);
+  const checkState: ExportCheckState = useMemo(() => ({ on: checkOn, byPath: new Map(check.rows.map((r) => [r.path, r])) }), [checkOn, check]);
 
   // Live needs the Data API: when it is not reachable the toolbar disables it and the editor leaves it.
   useEffect(() => {
@@ -203,8 +236,8 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
     toast(r.open > 0 ? `Added ${item.name}; ${r.open} sensor${r.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name}${r.bound > 0 ? `; ${r.bound} sensor${r.bound === 1 ? "" : "s"} matched by role` : ""}`);
     if (r.open > 0) setRemapOpen(true);
   };
-  const latest = useRef({ editor, onDone, hidden, openSave });
-  latest.current = { editor, onDone, hidden, openSave };
+  const latest = useRef({ editor, onDone, hidden, openSave, checkOpen });
+  latest.current = { editor, onDone, hidden, openSave, checkOpen };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
@@ -229,7 +262,8 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
         case "nudge":
           return ed.nudge(action.dx, action.dy);
         case "escape":
-          return ed.selection.length ? ed.select([]) : done();
+          if (latest.current.checkOpen) return setCheckOpen(false);
+          return ed.selection.length ? ed.select([]) : done?.();
         case "block":
           return;
       }
@@ -244,25 +278,47 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
   useEffect(() => () => void (shot.current && URL.revokeObjectURL(shot.current.src)), []);
 
   const name = editor.open.profile.Name || editor.open.stored.source.name;
-  const inspector = hasSelection ? (
-    <ItemInspector
-      editor={editor}
-      live={live}
-      sensors={sensors}
-      onRemap={() => setRemapOpen(true)}
-      onBindSensor={single && "SensorType" in single ? (sensor) => editor.bind(editor.selection[0], sensor) : undefined}
-      onEditGauge={onEditGauge}
-    />
-  ) : (
-    <ProfileSettings editor={editor} />
+  if (hidden) return null;
+  const floating = layout.mode === "floating";
+  const inspectorBody =
+    checkOpen && checkOn ? (
+      <ExportCheckPanel
+        check={check}
+        onSelect={(path) => {
+          setCheckOpen(false);
+          editor.select([path]);
+        }}
+        onExport={() => onExport?.()}
+      />
+    ) : hasSelection ? (
+      <ItemInspector
+        editor={editor}
+        live={live}
+        sensors={sensors}
+        onRemap={() => setRemapOpen(true)}
+        onBindSensor={single && "SensorType" in single ? (sensor) => editor.bind(editor.selection[0], sensor) : undefined}
+        onEditGauge={onEditGauge}
+      />
+    ) : (
+      <ProfileSettings editor={editor} />
+    );
+  const inspector = (
+    <aside
+      aria-label={checkOpen && checkOn ? "Export check" : "Item"}
+      className={cn("flex flex-col overflow-y-auto bg-ui-panel font-ui", floating ? "h-full w-full" : "w-[320px] shrink-0 border-l border-ui-subtle")}
+    >
+      {inspectorBody}
+    </aside>
   );
-  return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 bg-ui-app">
-      <aside aria-label="Add and layers" className="flex w-64 shrink-0 flex-col overflow-y-auto border-r border-ui-subtle bg-ui-panel">
-        <AddPalette onAdd={onAdd} />
-        <ItemsTree editor={editor} name={name} onSaveComponent={openSave} />
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
+  const drawer = shell.leftOpen && (
+    <LeftPanelFrame tab={shell.leftTab} onTab={shell.onLeftTab} width={shell.leftWidth}>
+      {shell.leftTab === "layers" ? <ItemsTree editor={editor} name={name} onSaveComponent={openSave} /> : <AddPalette onAdd={onAdd} />}
+    </LeftPanelFrame>
+  );
+  const main = (
+    <>
+      {shell.pageTabs}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <CanvasToolbar
           editor={editor}
           history={history}
@@ -276,7 +332,8 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           library={libraryLink}
           onSaveComponent={openSave}
           onDone={onDone}
-          onHome={onHome}
+          imported={isImported(editor.open.stored)}
+          check={checkOn ? <ExportCheckPill check={check} open={checkOpen} onClick={toggleCheck} /> : undefined}
         />
         {unbound && unbound.length > 0 && (
           <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">
@@ -310,40 +367,11 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.
         </p>
       </div>
-      {mode === "docked" && (
-        <aside aria-label="Item" className="flex w-[308px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel">
-          {inspector}
-        </aside>
-      )}
-      {mode === "floating" && floatOpen && (
-        <aside
-          aria-label="Item"
-          className="absolute bottom-3 right-3 top-3 z-40 flex w-[320px] flex-col overflow-y-auto rounded-xl border border-ui-strong bg-ui-panel shadow-[0_16px_40px_rgba(0,0,0,.5)]"
-        >
-          <div className="flex shrink-0 justify-end px-2 pt-2">
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={() => (hasSelection ? setClosedFor(selectionKey) : setSettingsOpen(false))}
-              className="flex h-7 w-7 items-center justify-center rounded-[7px] text-ui-3 hover:bg-ui-hover hover:text-ui-1"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          {inspector}
-        </aside>
-      )}
-      {mode === "sheet" && (hasSelection || settingsOpen) && (
-        <PaneSheet
-          label="Item"
-          onClose={() => {
-            editor.select([]);
-            setSettingsOpen(false);
-          }}
-        >
-          <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{inspector}</div>
-        </PaneSheet>
-      )}
+    </>
+  );
+  return (
+    <ExportCheckContext.Provider value={checkState}>
+      <StudioShell layout={layout} rail={shell.rail} railWidth={shell.railWidth} drawer={drawer} main={main} bar={null} inspector={inspector} />
       <RemapDialog
         open={remapOpen}
         onOpenChange={setRemapOpen}
@@ -382,6 +410,6 @@ export default function CanvasEditorView({ zone, setConfig, history, onDone, onH
           askSensor(fileFor.entry, path);
         }}
       />
-    </div>
+    </ExportCheckContext.Provider>
   );
 }

@@ -21,6 +21,8 @@ import { BINDING_IDS, ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/com
 import type { FieldsApi } from "@/components/studio/settings-panel";
 import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
+import { STATUS_LABEL, studioOnlyOf, type CheckRow } from "@/lib/infopanel/export-check";
+import { StatusIcon, useExportCheck } from "../export-check-panel";
 import { ELEMENTS, gradientBar } from "@/lib/infopanel/elements/create";
 import { describeNative } from "../native";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
@@ -83,6 +85,8 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
   const groups = ipGroups(kind);
   const element = elementOf(item);
   const badge = badgeOf(item);
+  const check = useExportCheck();
+  const row = check.on ? check.byPath.get(path) : undefined;
   const context: InspectorContext = {
     kind: "infopanel",
     groups,
@@ -197,16 +201,19 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
       context={context}
       contextKey="infopanel"
       header={
-        <div className="flex items-center gap-2.5">
-          <HeaderIcon>
-            <Icon />
-          </HeaderIcon>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{name}</div>
-            <div className="truncate text-[11px] text-ui-4">{badgeText(item.kind, editor.modes.get(path)?.state)}</div>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2.5">
+            <HeaderIcon>
+              <Icon />
+            </HeaderIcon>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{name}</div>
+              <div className="truncate text-[11px] text-ui-4">InfoPanel item · {badgeText(item.kind, editor.modes.get(path)?.state)}</div>
+            </div>
+            {item.IsLocked && <Lock className="h-3.5 w-3.5 shrink-0 text-ui-4" aria-label="Locked" />}
+            {badge && <BadgeChip badge={badge} />}
           </div>
-          {item.IsLocked && <Lock className="h-3.5 w-3.5 shrink-0 text-ui-4" aria-label="Locked" />}
-          {badge && <BadgeChip badge={badge} />}
+          {row && <OnInfoPanel row={row} item={item} />}
         </div>
       }
       fields={fields}
@@ -215,6 +222,32 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
       onQuery={setQuery}
       identity={{ icon: <Icon />, name, meta: () => badgeText(item.kind, editor.modes.get(path)?.state) }}
     />
+  );
+}
+
+/** On InfoPanel (one-editor SPEC §5.5): the part's Export check status, and per studio-only look what InfoPanel shows instead. */
+function OnInfoPanel({ row, item }: { row: CheckRow; item: DisplayItem }) {
+  const looks = studioOnlyOf(item);
+  return (
+    <div role="note" aria-label="On InfoPanel" className="rounded-[8px] border border-ui-default px-2.5 py-2 text-[11.5px]">
+      <div className="flex items-center gap-1.5 text-ui-1">
+        <StatusIcon status={row.status} />
+        <span>
+          On InfoPanel: <span className="text-ui-2">{STATUS_LABEL[row.status].toLowerCase()}</span>
+        </span>
+      </div>
+      <ul className="mt-1 space-y-0.5 leading-snug text-ui-4">
+        {looks.length > 0 ? (
+          looks.map(({ field }) => (
+            <li key={field.key}>
+              {field.label} shows on Studio panels; on InfoPanel it {field.fate ?? "is dropped"}.
+            </li>
+          ))
+        ) : (
+          <li>{row.why.replace(/\.?$/, ".")}</li>
+        )}
+      </ul>
+    </div>
   );
 }
 

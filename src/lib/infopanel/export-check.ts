@@ -1,0 +1,153 @@
+/**
+ * The Export check (one-editor SPEC §7): what happens to each part of a page when it is exported to InfoPanel.
+ * One pure function feeds the editor's live check, its badges and the export dialog's report, so they never
+ * disagree. A Free page (one canvas filling the screen) lists its InfoPanel items; a grid page lists each zone as
+ * a Studio widget at its cell box, and the items of any free area (canvas zone) on it.
+ */
+import { BLANK_MODULE, CANVAS_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "../layout.ts";
+import { openCanvas } from "./canvas.ts";
+import { badgeOf, elementOf } from "./elements/apply.ts";
+import type { ElementSpec } from "./elements/spec.ts";
+import { choicesFor, tierOf, type NativeChoice } from "./native/tiers.ts";
+import { freeCanvasOf } from "../screens/list.ts";
+import type { DisplayItem } from "./schema.ts";
+import type { StoredCanvas } from "./import/stored.ts";
+
+export { freeCanvasOf, madeForInfoPanel } from "../screens/list.ts";
+
+export type CheckStatus = "ok" | "approx" | "pic" | "out";
+
+export interface CheckRow {
+  /** The part: an item's path on a Free page, a zone id on a grid page, `zoneId:path` for a free area's item. */
+  path: string;
+  name: string;
+  kind: "widget" | "item";
+  status: CheckStatus;
+  why: string;
+}
+
+export interface ExportCheck {
+  rows: CheckRow[];
+  counts: Record<CheckStatus, number>;
+}
+
+/** The order the check lists groups in: the surprises first. */
+export const STATUS_ORDER: readonly CheckStatus[] = ["out", "pic", "approx", "ok"];
+
+/** A status in full (the check's group headers, tooltips) and as the header pill counts it. */
+export const STATUS_LABEL: Record<CheckStatus, string> = { ok: "Exports as is", approx: "Approximated", pic: "Becomes a picture", out: "Left out" };
+export const STATUS_SHORT: Record<CheckStatus, string> = { ok: "as is", approx: "approximated", pic: "becomes a picture", out: "left out" };
+
+/**
+ * The looks Studio draws that InfoPanel can't (§7.3), by the element setting that holds them. A set one makes its
+ * item Approximated, names it in the check, and marks its field in the inspector. Letter spacing and text
+ * gradients have no setting on an InfoPanel item yet, so nothing is listed for them.
+ */
+export interface StudioOnlyField {
+  /** The element type and its spec key (the inspector marks the control for it). */
+  type: ElementSpec["type"];
+  key: string;
+  label: string;
+  /** The value as the check words it, or null when the look is off. */
+  value: (spec: ElementSpec) => string | null;
+  /** How the export treats it; "is dropped" unless it says otherwise. */
+  fate?: string;
+}
+
+export const STUDIO_ONLY_FIELDS: readonly StudioOnlyField[] = [
+  {
+    type: "card",
+    key: "blur",
+    label: "Backdrop blur",
+    value: (s) => (s.type === "card" && s.blur ? `${s.blur} px` : null),
+    fate: "is baked into the card's picture, so values behind it aren't blurred",
+  },
+  { type: "shadowtext", key: "shadow", label: "Blurred shadow", value: (s) => (s.type === "shadowtext" ? "on" : null), fate: "becomes a sharp copy" },
+  { type: "sparkline", key: "gradient", label: "Gradient fill under the graph", value: (s) => (s.type === "sparkline" && s.style === "area" && s.gradient ? "on" : null) },
+  { type: "sparkline", key: "dot", label: "End dot", value: (s) => (s.type === "sparkline" && s.dot ? "on" : null) },
+];
+
+/** The studio-only looks an item has set (empty for a plain InfoPanel item). */
+export function studioOnlyOf(item: DisplayItem): { field: StudioOnlyField; value: string }[] {
+  const spec = elementOf(item);
+  if (!spec) return [];
+  return STUDIO_ONLY_FIELDS.flatMap((field) => {
+    const value = field.type === spec.type ? field.value(spec) : null;
+    return value === null ? [] : [{ field, value }];
+  });
+}
+
+const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** One item's status: a studio-only look makes it Approximated; every other item (baked elements too) exports as is. */
+export function itemRow(item: DisplayItem, path: string, imported: boolean): CheckRow {
+  const name = item.Name || item.kind;
+  const badge = badgeOf(item);
+  if (badge?.kind === "approximated") {
+    const set = studioOnlyOf(item);
+    const why = set.length ? set.map(({ field, value }) => `${field.label} (${value}) ${field.fate ?? "is dropped"}`).join("; ") : sentence(badge.lost.join("; "));
+    return { path, name, kind: "item", status: "approx", why };
+  }
+  const why = badge ? badge.reason : imported ? "Original InfoPanel item" : `InfoPanel ${item.kind} item`;
+  return { path, name, kind: "item", status: "ok", why };
+}
+
+/** Rows for a tree of items: a plain group's children each get a row, a studio element (a managed group too) is one part. */
+export function itemRows(items: readonly DisplayItem[], imported: boolean, prefix = ""): CheckRow[] {
+  return items.flatMap((item, i) => {
+    const path = prefix ? `${prefix}.${i}` : String(i);
+    if (item.kind === "Group" && !elementOf(item)) return itemRows(item.DisplayItems, imported, path);
+    return [itemRow(item, path, imported)];
+  });
+}
+
+/** Whether a canvas came from InfoPanel (a file, the corpus or the installed app), not made here. */
+export const isImported = (canvas: Pick<StoredCanvas, "source">): boolean => canvas.source.origin !== "new";
+
+/** A widget's export rule: its choice, else the first its tier offers (decision D2). */
+export function widgetChoice(module: string, choice?: NativeChoice): NativeChoice {
+  const offered = choicesFor(tierOf(module));
+  return choice && offered.includes(choice) ? choice : offered[0];
+}
+
+/** One grid zone read as a Studio widget at its cell box. */
+export function widgetRow(zone: Placement, name: string): CheckRow {
+  const base = { path: zone.id, name, kind: "widget" as const };
+  if (zone.module === PANEL_ID) return { ...base, status: "ok", why: "Rebuilt as InfoPanel items" };
+  const entry = tierOf(zone.module);
+  const stored = zone.settings?.$onInfoPanel;
+  const choice = widgetChoice(zone.module, typeof stored === "string" ? (stored as NativeChoice) : undefined);
+  if (choice === "leave") return { ...base, status: "out", why: entry.tier === "native-only" ? "Can't be converted" : "Left out by you" };
+  if (choice === "snapshot") return { ...base, status: "pic", why: "Snapshot: a still picture" };
+  if (zone.module === "Clock" && zone.settings?.face !== "analog") return { ...base, status: "ok", why: "Becomes an InfoPanel Clock item" };
+  return { ...base, status: "pic", why: `Recreate: picture of the widget, live values on top${entry.approximated ? `; ${entry.approximated}` : ""}` };
+}
+
+/** Counts per status. */
+export function countRows(rows: readonly CheckRow[]): Record<CheckStatus, number> {
+  const counts: Record<CheckStatus, number> = { ok: 0, approx: 0, pic: 0, out: 0 };
+  for (const r of rows) counts[r.status]++;
+  return counts;
+}
+
+const checkOf = (rows: CheckRow[]): ExportCheck => ({ rows, counts: countRows(rows) });
+
+/** The check for a canvas's items (the export dialog reads its items from the stored form it opened). */
+export const checkItems = (items: readonly DisplayItem[], imported: boolean): ExportCheck => checkOf(itemRows(items, imported));
+
+/** The Export check of one page of a screen. `nameOf` names a grid zone (the studio's widget names). */
+export function exportCheck(
+  profile: Pick<MonitorProfile, "cols" | "rows">,
+  page: Pick<ProfilePage, "placements">,
+  nameOf: (zone: Placement) => string = (zone) => zone.module,
+): ExportCheck {
+  const free = freeCanvasOf(profile, page);
+  if (free) return free.canvas ? checkItems(openCanvas(free.canvas).items, isImported(free.canvas)) : checkOf([]);
+  const rows = page.placements.flatMap((zone): CheckRow[] => {
+    if (zone.module === BLANK_MODULE || !zone.visible) return [];
+    if (zone.module !== CANVAS_ID) return [widgetRow(zone, nameOf(zone))];
+    if (!zone.canvas) return [];
+    return itemRows(openCanvas(zone.canvas).items, isImported(zone.canvas)).map((r) => ({ ...r, path: `${zone.id}:${r.path}` }));
+  });
+  return checkOf(rows);
+}

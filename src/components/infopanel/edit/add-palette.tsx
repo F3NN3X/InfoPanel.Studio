@@ -57,8 +57,8 @@ const NATIVE_NAME: Partial<Record<PaletteEntry["kind"], string>> = { Sensor: "Se
 
 export function AddPalette({ onAdd }: AddPaletteProps) {
   return (
-    // At most half the column: an imported profile's Layers list (often 50-120 items) keeps the rest.
-    <section aria-label="Add" className="max-h-[45%] shrink-0 overflow-y-auto border-b border-ui-subtle px-2.5 pb-2.5 pt-3">
+    // The left panel's Add tab: Layers has its own tab, so the palette takes the column.
+    <section aria-label="Add" className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2.5 pt-1">
       <div className="px-1 pb-1.5 text-[13px] font-semibold text-ui-1">Add</div>
       {PALETTE_GROUPS.map((g) => (
         <div key={g} role="group" aria-label={g} className="mt-1.5">

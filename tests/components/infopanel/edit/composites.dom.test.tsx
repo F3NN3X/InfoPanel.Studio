@@ -2,7 +2,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { ProfileView } from "@/components/infopanel/ProfileView";
 import { storeItems } from "@/lib/infopanel/canvas-edit";
 import { newComposite, type CompositeType } from "@/lib/infopanel/elements/create";
@@ -38,7 +38,7 @@ describe("composite elements", () => {
   it.each(TYPES.map((t, i) => [t, i] as const))("shows %s's settings and badge in the inspector", (_t, index) => {
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" initialSelection={[String(index)]} />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" initialSelection={[String(index)]} />
       </ToastProvider>,
     );
     const inspector = screen.getByRole("complementary", { name: "Item" });
