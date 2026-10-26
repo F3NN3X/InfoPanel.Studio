@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import type { MonitorProfile } from "@/lib/layout";
@@ -21,6 +21,10 @@ import { useCopyKioskLink } from "./screens/shown-on";
 import { useSavedProfiles } from "./screens/use-saved-profiles";
 import { launchTag, screenMeta, withLaunch } from "./screens-model";
 import { uniqueProfileName } from "./profile-actions";
+import type { NewScreen } from "./screens/new-screen-dialog";
+
+/** The New screen dialog and the template data load when it opens, never with the studio. */
+const NewScreenDialog = lazy(() => import("./screens/new-screen-dialog"));
 
 type DetailProps = Parameters<typeof ScreenDetail>[0];
 
@@ -96,6 +100,7 @@ export function ScreensView({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ListFilter>("all");
   const [sort, setSort] = useState<ListSort>("edited");
+  const [newScreenOpen, setNewScreenOpen] = useState(false);
   const { setConfig, onOpenScreen } = detail;
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
 
@@ -118,6 +123,11 @@ export function ScreensView({
     toast(`Deleted ${name}`, { action: { label: "Undo", onClick: onUndo }, ms: 8000 });
   };
   const empty = screens.length === 0 && saved.length === 0;
+  const addScreen = ({ profile: made, unbound }: NewScreen) => {
+    const name = uniqueProfileName(config.profiles, made.name);
+    onAddMadeProfile({ ...made, name });
+    toast(unbound.length > 0 ? `${name} created. Not found on this PC: ${unbound.join(", ")}` : `${name} created`);
+  };
 
   return (
     // On a phone the cards and the detail panel stack, and the view scrolls.
@@ -140,6 +150,7 @@ export function ScreensView({
             onAddProfile();
             toast("Screen created");
           }}
+          onNewTemplate={() => setNewScreenOpen(true)}
           onNewSample={() => {
             onAddMadeProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
             toast("Screen created from the sample layout");
@@ -246,6 +257,12 @@ export function ScreensView({
         autoProfileId={autoProfileId}
         {...detail}
       />
+
+      {newScreenOpen && (
+        <Suspense fallback={null}>
+          <NewScreenDialog open onOpenChange={setNewScreenOpen} onCreate={addScreen} size={windowSize} />
+        </Suspense>
+      )}
 
       <DeleteDialog plan={plan} onConfirm={() => deletingId && remove(deletingId, plan?.name ?? "")} onClose={() => setDeletingId(null)} />
     </div>

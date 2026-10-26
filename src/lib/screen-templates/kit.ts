@@ -1,0 +1,88 @@
+/**
+ * Native screen templates as data: a starter screen the New screen gallery offers, made for any size of the shape
+ * classes it fits (`shapeClassOf`: strip, wide, standard, tall), the same way the InfoPanel profile templates are.
+ * A template is its look (an appearance preset's theme, radius, widget style and background, plus the zone spacing)
+ * and, per shape class, a grid with each page's zones: a widget, its settings and its box on that grid. Settings that
+ * name a sensor give a role instead (`roles`), found on this machine when the screen is made (`instantiate`).
+ * A new template is one more file of this data in `designs/` and a line in `catalog.ts`.
+ */
+import type { ModuleSettings } from "@/modules/types";
+import type { AppearancePreset } from "../appearance-presets";
+import type { ShapeClass } from "../infopanel/templates/layout";
+import type { Role } from "../infopanel/templates/roles";
+
+export type { ShapeClass };
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
+/** A zone's box on its layout's grid: 1-based column and row, and how many of each it spans. */
+export type At = readonly [col: number, row: number, cols: number, rows: number];
+
+export interface Zone {
+  /** The registry widget the zone shows (`src/widgets`). */
+  module: string;
+  at: At;
+  settings?: ModuleSettings;
+  /** Settings that hold a sensor key, by role: the key of this machine's sensor for it, left unset when none is found. */
+  roles?: Readonly<Record<string, Role>>;
+}
+
+/** One shape class's grid and each page's zones on it, in `pages` order. */
+export interface ShapeLayout {
+  cols: number;
+  rows: number;
+  pages: readonly (readonly Zone[])[];
+}
+
+export interface TemplatePage {
+  name: string;
+  /** A lucide icon name (the page switcher). */
+  icon?: string;
+}
+
+/**
+ * The template's look, as an appearance preset holds it (the theme, the corner radius, the widget style's themed
+ * keys and the page background), and the space between and around the zones in px at the class's reference size.
+ */
+export interface Look extends Pick<AppearancePreset, "theme" | "radius" | "style" | "background"> {
+  gap: number;
+  padding: number;
+}
+
+export interface ScreenTemplate {
+  id: string;
+  name: string;
+  /** One line for the gallery. */
+  blurb: string;
+  /** The shape classes it looks designed for; the gallery sorts by them. Includes the class of `size`. */
+  fits: readonly ShapeClass[];
+  /** The size it is made for; the gallery switches to it when the template is chosen at a size it doesn't fit. */
+  size?: Size;
+  look: Look;
+  /** The pages; one "Main" when unset. */
+  pages?: readonly TemplatePage[];
+  /** A layout for each class in `fits`. */
+  layouts: Readonly<Partial<Record<ShapeClass, ShapeLayout>>>;
+}
+
+/**
+ * The size each class's layouts are designed at: the grid keeps its cells' shape at other sizes of the class
+ * (`instantiate` splits columns or rows), and the spacing scales from it.
+ */
+export const REFERENCE: Readonly<Record<ShapeClass, Size>> = {
+  strip: { width: 1920, height: 480 },
+  wide: { width: 1920, height: 720 },
+  standard: { width: 1920, height: 1080 },
+  tall: { width: 1080, height: 1920 },
+};
+
+/** A zone: the widget, its box, its settings and the settings found by role. */
+export const zone = (module: string, at: At, settings?: ModuleSettings, roles?: Zone["roles"]): Zone => ({
+  module,
+  at,
+  ...(settings ? { settings } : {}),
+  ...(roles ? { roles } : {}),
+});

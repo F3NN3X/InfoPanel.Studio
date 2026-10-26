@@ -1,14 +1,20 @@
 /**
- * The InfoPanel panel sizes the New profile dialog offers, and how the gallery sorts templates by
- * the shape class of a size (`shapeClassOf`): where a template is listed, the size its thumbnail
- * is drawn at, and the preset choosing it switches to.
+ * The panel sizes the New profile and New screen dialogs offer, and how their galleries sort templates by the shape
+ * class of a size (`shapeClassOf`): where a template is listed, the size its thumbnail is drawn at, and the preset
+ * choosing it switches to. Any template with `fits` and a `size` sorts here, the InfoPanel profile templates and the
+ * native screen templates alike.
  */
 import { shapeClassOf, type ShapeClass } from "@/lib/infopanel/templates/layout";
-import type { Template } from "@/lib/infopanel/templates/kit";
 
 export interface Size {
   width: number;
   height: number;
+}
+
+/** What the sorting reads of a template: the classes it looks designed for and the size it is made for. */
+export interface Fitting {
+  fits: readonly ShapeClass[];
+  size?: Size;
 }
 
 export const SIZE_PRESETS: readonly Size[] = [
@@ -36,15 +42,15 @@ export const presetIndexOf = (size: Size | undefined): number | undefined => {
 export const firstPresetOf = (cls: ShapeClass): number => SIZE_PRESETS.findIndex((p) => shapeClassOf(p.width, p.height) === cls);
 
 /** The class a template is listed under for a chosen size: that size's own when it fits, else the class it is made for. */
-export const placementOf = (t: Template, sizeClass: ShapeClass): ShapeClass =>
+export const placementOf = (t: Fitting, sizeClass: ShapeClass): ShapeClass =>
   t.fits.includes(sizeClass) ? sizeClass : t.size ? shapeClassOf(t.size.width, t.size.height) : t.fits[0];
 
 /** The size a template's thumbnail is drawn at in a class's section: the chosen size there, else its own shape. */
-export const thumbSizeOf = (t: Template, cls: ShapeClass, sizeClass: ShapeClass, chosen: Size): Size =>
+export const thumbSizeOf = (t: Fitting, cls: ShapeClass, sizeClass: ShapeClass, chosen: Size): Size =>
   cls === sizeClass ? chosen : t.size && shapeClassOf(t.size.width, t.size.height) === cls ? t.size : SIZE_PRESETS[firstPresetOf(cls)];
 
 /** The preset index choosing a template switches to, or undefined when it fits the current size. */
-export const presetForChoice = (t: Template, sizeClass: ShapeClass): number | undefined => {
+export const presetForChoice = (t: Fitting, sizeClass: ShapeClass): number | undefined => {
   if (t.fits.includes(sizeClass)) return undefined;
   return presetIndexOf(t.size) ?? firstPresetOf(placementOf(t, sizeClass));
 };

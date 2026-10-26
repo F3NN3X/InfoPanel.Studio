@@ -3,7 +3,7 @@ id: profiles
 title: Screens and the grid
 icon: aspect_ratio
 related: [zones, themes, kiosk]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.28
 ---
 
 A screen (profile) is a design for one display size. Its grid decides where zones can go.
@@ -16,7 +16,7 @@ Open **Screens** from the rail, from the settings button beside the screen name 
 - Click a card to select it; its details open on the right. Clicking a card doesn't change which screen your displays show. **Open** on a card (or in the panel) opens the screen in Design, or in the InfoPanel editor when it is one InfoPanel profile.
 - **Search** finds a screen by name, kind or size (`1920x480` works). **All**, **Dashboard**, **InfoPanel** and **Saved** narrow the list; a Mixed screen shows under both Dashboard and InfoPanel. **Sort** by last edited (the default), name, size or your own order. Last edited starts counting from the first edit you make in this version, so older screens come last until you change them.
 - Badges: **Default** marks the screen the app opens on and **Default · best fit** the one the window picks when no screen is chosen (see [Which screen opens](profiles#which-screen-opens)). **Live on 2 kiosks** means kiosks show that screen right now. Default is what you chose; live is what is on the displays at this moment.
-- **New** offers a blank dashboard screen named after the studio window's size, a dashboard from the sample layout, and **InfoPanel profile or template…**, which opens New InfoPanel profile (blank, or a template from the gallery).
+- **New** offers a blank dashboard screen named after the studio window's size, **Dashboard from a template…** (see [Screen templates](profiles#screen-templates)), a dashboard from the sample layout, and **InfoPanel profile or template…**, which opens New InfoPanel profile (blank, or a template from the gallery).
 - **Import…** opens the Import door (see [Importing and exporting](import)); a `.json` file saved with **Export screen** becomes a new screen with a name of its own if one is already taken.
 - **Saved in your Library** lists InfoPanel profiles saved in My library that no screen uses yet. **Place** makes one a new screen and opens it. A saved card can also be duplicated, renamed or removed. Removing asks first and can't be undone with Ctrl+Z, but a file that any screen still uses is kept.
 - A card's **⋯** menu has:
@@ -31,6 +31,30 @@ Open **Screens** from the rail, from the settings button beside the screen name 
   Delete asks first and says what goes with the screen: its pages, zones and InfoPanel canvases, and whether the app opens on it or kiosks show it. Deleting the screen the app opens on makes the app open on the best fit. Afterwards the **Undo** in the message, or Ctrl+Z, brings the screen back with its InfoPanel canvases.
 
 A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 12 × 6 grid in Scroll mode. On the empty canvas, **Use sample layout** builds a 1920 × 550 sample you can take apart.
+
+## Screen templates
+
+**New › Dashboard from a template…** opens **New screen**. Pick **Blank** or a template, give the screen a name and choose its size, then press **Create**.
+
+| Template | What's on it |
+|---|---|
+| **General** | Clock, weather, CPU, GPU and RAM gauges, network and now playing, on frosted glass |
+| **Gaming** | An OSD strip, the frame rate, frame pacing, the game you're playing and your friends. A second page, **System**, has the GPU, the CPU, temperatures and power |
+| **Work** | Clock, calendar, weather, processes, system status and your coding agents |
+| **Hardware** | Core heatmap, GPU rings, temperatures, fans, power draw and drives, in the HUD skin |
+| **Streaming** | Now playing, a visualiser, the volume mixer, whether OBS has you live or recording, and the system state |
+| **Minimal** | A big clock with the date and three readings: CPU and GPU temperature and RAM load |
+| **Status bar** | One bar with the time, load, temperatures and network, for thin strip displays |
+
+- The chips above the cards sort them by shape: **Strip** (4:1 or wider), **Wide**, **Standard** and **Tall** (narrower than square). They start on the shape of the chosen size, and **All** lists every shape with that one first.
+- Each card is a plan of the template's zones at that size. A template has its own arrangement for each shape it lists under, so a tall screen gets a column and a strip gets a row.
+- Choosing a template that has no arrangement for the chosen size's shape switches the size to one it does have. **Status bar** only fits strips, so choosing it at 480 × 1920 switches to 1280 × 160.
+- The template brings its look as the screen's own: colours, background, widget skin and effects. Change them in **Theme** with the screen as the scope.
+- The grid is split to suit the size. A strip twice as long for its height gets twice the columns, so zones keep their shape and widgets you add later get sensible boxes.
+- Widgets that read one sensor, such as Minimal's three readings, find this PC's sensor for it. A reading that isn't found is named in the message after **Create**; pick its sensor in the inspector.
+- Creating the screen is one step, so Ctrl+Z removes it again.
+
+The first-run setup's **Start from a template** offers the same templates at the size you picked.
 
 ## Screen settings
 

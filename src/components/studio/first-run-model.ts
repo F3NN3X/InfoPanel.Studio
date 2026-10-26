@@ -155,6 +155,8 @@ export interface FirstRunChoices {
   pageName: string;
   /** The ticked widgets (Blank start only). */
   widgets: readonly DetectedWidget[];
+  /** The screen the chosen screen template makes at this size (Start from a template); without one, the sample layout. */
+  template?: MonitorProfile;
 }
 
 /** A fresh install: the one blank screen and nothing on it (the old empty-layout moment). */
@@ -168,6 +170,11 @@ function screenAt(base: MonitorProfile, name: string, c: FirstRunChoices): Monit
   const sized: MonitorProfile = { ...base, name, width: c.width, height: c.height, cols: grid.cols, rows: grid.rows, fit: grid.fit };
   const pageName = c.pageName.trim();
   const named: MonitorProfile = pageName ? { ...sized, pages: sized.pages.map((p, i) => (i === 0 ? { ...p, name: pageName } : p)) } : sized;
+  if (c.start === "template" && c.template) {
+    // The template's grid, look and pages on this screen, its first page under the typed name.
+    const { id: _id, name: _name, pages, ...made } = c.template;
+    return { ...sized, ...made, pages: pages.map((p, i) => (i === 0 ? { ...p, id: sized.pages[0].id, name: pageName || p.name } : p)) };
+  }
   if (c.start === "template") {
     // The sample layout is a 1920×550 bar's own grid; any other shape scales it onto the grid it has.
     return onPage(undefined, (view) => withSampleZones(view, sampleLayout(), looksLike(c.width, c.height).kind !== "bar"))(named);
