@@ -87,9 +87,9 @@ describe("applyFirstRun", () => {
     }
   });
 
-  it("changes nothing for Import, Browse all and Don't add a screen", () => {
+  it("changes nothing for Import and Don't add a screen", () => {
     const base = defaultConfig();
-    for (const start of ["import", "browse", "none"] as const) expect(applyFirstRun(base, choices({ start })).config).toBe(base);
+    for (const start of ["import", "none"] as const) expect(applyFirstRun(base, choices({ start })).config).toBe(base);
     const used = applyFirstRun(base, choices()).config;
     expect(applyFirstRun(used, choices({ start: "none" })).config.profiles).toBe(used.profiles);
   });
