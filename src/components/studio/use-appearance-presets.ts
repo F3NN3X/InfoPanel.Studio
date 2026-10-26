@@ -4,6 +4,7 @@ import {
   deleteAppearancePreset,
   duplicateAppearancePreset,
   renameAppearancePreset,
+  saveCopyOfPreset,
   saveThemeAt,
   updateAppearancePreset,
   type ThemeTarget,
@@ -24,6 +25,8 @@ export interface AppearancePresetsApi {
   update: (id: string, at: ThemeAt) => void;
   rename: (id: string, name: string) => void;
   duplicate: (id: string) => void;
+  /** Keep a built-in Theme (a template's look) as a saved one of the user's own. */
+  saveCopy: (preset: AppearancePreset) => void;
   remove: (id: string) => void;
 }
 
@@ -43,6 +46,7 @@ export function useAppearancePresets(config: DashboardConfig, setConfig: History
     update: (id, at) => setConfig((c) => updateAppearancePreset(c, id, themeTarget(at))),
     rename: (id, name) => setConfig((c) => renameAppearancePreset(c, id, name)),
     duplicate: (id) => setConfig((c) => duplicateAppearancePreset(c, id, uid("look"))),
+    saveCopy: (preset) => setConfig((c) => saveCopyOfPreset(c, preset, uid("look"))),
     remove: (id) => setConfig((c) => deleteAppearancePreset(c, id)),
   };
 }
