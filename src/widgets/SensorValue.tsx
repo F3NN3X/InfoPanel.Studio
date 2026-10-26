@@ -9,7 +9,7 @@ import { meta } from "./meta/SensorValue";
 
 export { meta };
 
-/** The smallest line text, px (less where the line itself is shorter). */
+/** The smallest line text, screen px (less where the line itself is shorter). */
 const LINE_MIN_PX = 10;
 /** A figure's side padding, px. */
 const FIGURE_PAD = 4;
@@ -52,6 +52,8 @@ interface LineProps {
   place?: "meter" | "end" | "next" | "only" | "stack";
   w: number;
   h: number;
+  /** The content's zoom: the floor is in screen px. */
+  zoom?: number;
 }
 
 /** A reading in the next unit up once it passes a thousand (13,493 KB/s as 13.2 MB/s, 5,414 MB as 5.3 GB). */
@@ -68,15 +70,16 @@ export function readingText(value: number | undefined, unit: string | undefined)
  * and its unit, the text sized from the line's height. Without a sensor the label alone, as a caption line; without a
  * label the value alone, quiet.
  */
-function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "meter", w, h }: LineProps) {
+function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "meter", w, h, zoom = 1 }: LineProps) {
   const metered = value !== undefined && ranged && place === "meter";
   const shown = text ?? readingText(value, unit);
-  // The same share of the width for every line of a kind, so a console's lines match; up to 0.42 of the line's height,
-  // never under LINE_MIN_PX (unless the line itself is shorter).
+  // The same share of the width for every line of a kind, so a console's lines match; up to 0.36 of the line's height,
+  // never under LINE_MIN_PX on screen, whatever the zone's Size % (unless the line itself is shorter).
   const em = value === undefined && text === undefined ? 18 : metered ? 27 : 11;
-  const px = Math.max(Math.min(LINE_MIN_PX, h * 0.9), fitFont(em, w, h * 0.42));
+  const px = Math.max(Math.min(LINE_MIN_PX / zoom, h * 0.9), fitFont(em, w, h * 0.36));
   if (place === "stack") {
-    const sp = Math.max(8, Math.min(h * 0.22, w / 14));
+    // its label (0.8em) keeps LINE_MIN_PX on screen while the stack (about 2.6em) fits the height
+    const sp = Math.max(Math.min(LINE_MIN_PX / zoom / 0.8, h / 2.6), Math.min(h * 0.22, w / 14));
     return (
       <div className="flex h-full min-w-0 flex-col justify-center gap-[0.4em] whitespace-nowrap leading-none" style={{ fontSize: sp, paddingInline: "0.9em" }}>
         <div className="flex items-baseline gap-[1em]">
@@ -160,9 +163,9 @@ export default function SensorValue(p: SensorValueProps) {
           : undefined
       }
     >
-      {({ size, w, h }) =>
+      {({ size, w, h, zoom }) =>
         disp === "line" ? (
-          <Line label={label} value={p.sensor && numeric ? v : undefined} text={p.sensor && !numeric ? (has(raw) ? String(raw) : "–") : undefined} unit={unit} ranged={max !== undefined && (p.max !== undefined || unit === "%" || unit.includes("°"))} min={min} max={max} tone={t} place={p.lineValue} w={w} h={h} />
+          <Line label={label} value={p.sensor && numeric ? v : undefined} text={p.sensor && !numeric ? (has(raw) ? String(raw) : "–") : undefined} unit={unit} ranged={max !== undefined && (p.max !== undefined || unit === "%" || unit.includes("°"))} min={min} max={max} tone={t} place={p.lineValue} w={w} h={h} zoom={zoom} />
         ) : disp === "figure" ? (
           <Figure label={label} text={numeric ? (p.smallUnit ? fmt(sv, p.decimals ?? (Math.abs(sv) < 10 || up ? 1 : 0)) : (readingText(v, unit) ?? "")) : has(raw) ? String(raw) : "–"} unit={numeric && p.smallUnit ? su : undefined} w={w} h={h} />
         ) : !p.sensor ? (

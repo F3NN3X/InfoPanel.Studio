@@ -16,6 +16,8 @@ import type { Compact, ShellProps, Studio, Tier } from "./types";
 export interface LayoutBox extends Box {
   outerW: number;
   outerH: number;
+  /** The content's zoom (the shell's and Size %): a size meant in screen px is this much smaller in the content's px. */
+  zoom: number;
 }
 
 export interface WidgetProps {
@@ -147,7 +149,7 @@ export function Widget({ title, icon, iconOverride, accent, surface, radius, siz
             ) : useCompact ? (
               <CompactView c={cObj!} shape={form ?? box.shape} w={box.w} h={box.h} icon={headIcon} />
             ) : typeof children === "function" ? (
-              children({ ...box, w: inner.w || box.w, h: inner.h || box.h, outerW: box.w, outerH: box.h })
+              children({ ...box, w: inner.w || box.w, h: inner.h || box.h, outerW: box.w, outerH: box.h, zoom })
             ) : (
               children
             )}
