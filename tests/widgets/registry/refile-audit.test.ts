@@ -14,11 +14,13 @@ const REFILED = [
   "DriveSpace", "StorageHealth", "DiskIO", "NetworkThroughput", "NetworkAdapters", "Clock", "Timer", "Countdown", "StatusBar", "CodingAgents", "Calendar", "Forecast", "SensorValue", "CustomGauge", "VolumeMixer", "MeterBridge", "Visualizer", "WaveLink",
   // Batch C
   "FpsMonitor", "GameSpotlight", "OsdStrip", "FramePacing", "PlaytimeShare", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews", "TextFile", "Notifications", "Departures", "Bluetooth", "StreamDeck",
+  // Time and status
+  "DayPlanner", "RadialClockStack", "OnAirBeacon",
 ];
 
-it("covers all 55 widgets", () => {
-  expect(REFILED).toHaveLength(56);
-  expect(new Set(REFILED).size).toBe(56);
+it("covers all 59 widgets", () => {
+  expect(REFILED).toHaveLength(59);
+  expect(new Set(REFILED).size).toBe(59);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 

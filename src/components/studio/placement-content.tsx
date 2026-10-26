@@ -51,7 +51,9 @@ export function placementPrefixes(p: Placement): string[] | null {
   if (p.module === CARDS_ID) return null;
   const mod = moduleById.get(p.module);
   if (mod?.readsAll) return null;
-  return mod ? moduleReads(mod) : [];
+  // The sensors a widget is bound to (a `sensor` setting) are read besides its own prefixes.
+  const bound = (mod?.settings ?? []).filter((d) => d.type === "sensor").flatMap((d) => String(p.settings?.[d.key] ?? "").split(",").filter(Boolean));
+  return mod ? [...moduleReads(mod), ...bound] : [];
 }
 
 /** Tokens for the zone frame (`undefined` when nothing is re-scoped). */
