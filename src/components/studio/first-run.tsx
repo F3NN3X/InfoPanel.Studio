@@ -126,8 +126,9 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
   const saved = dataApiUrl ?? DEFAULT_API_BASE;
   const [url, setUrl] = useState(saved);
   const [result, setResult] = useState<Probe>({ state: "testing" });
-  const [screenId, setScreenId] = useState<ScreenChoice["id"]>("detected");
-  const [custom, setCustom] = useState({ width: windowSize.width, height: windowSize.height });
+  // A desktop window is rarely the panel's size: the setup starts on the Panel card.
+  const [screenId, setScreenId] = useState<ScreenChoice["id"]>("panel");
+  const [custom, setCustom] = useState({ width: 1024, height: 600 });
   const [start, setStart] = useState<StartChoice>("template");
   const [pageName, setPageName] = useState("Main");
   // The template the setup starts on fits every shape.

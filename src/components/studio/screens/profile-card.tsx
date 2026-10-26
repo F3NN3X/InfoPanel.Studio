@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ContextMenu } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
+import { CardMenu, contextEntries, type CardAction } from "./card-actions";
 
 /** The strip a profile is drawn in: its own shape, within 3:1 to 1:1. */
 export const aspectOf = (width: number, height: number): number => Math.min(3, Math.max(1, width && height ? width / height : 1.6));
@@ -37,20 +39,33 @@ export interface ProfileCardProps {
   /** The thumbnail button's name: "Open Desk". */
   label: string;
   selected?: boolean;
-  /** The card's ⋯ menu. */
-  menu?: ReactNode;
+  /** The card's actions: its ⋯ menu and its right-click menu, named `actionsLabel` ("Screen actions"). */
+  actions?: readonly CardAction[];
+  actionsLabel?: string;
   /** The footer's buttons. */
   children?: ReactNode;
 }
 
 /**
  * One screen or profile as a card: a thumbnail in its own shape, the name with its badges, a size line and a
- * footer of actions. Shared by the Screens manager and the InfoPanel home, so both look and behave alike.
+ * footer of actions. Shared by the Screens manager and the InfoPanel home, so both look and behave alike. A right-click
+ * opens the same actions as the ⋯ menu.
  */
-export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thumb, onClick, label, selected, menu, children }: ProfileCardProps) {
+export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thumb, onClick, label, selected, actions, actionsLabel = "Actions", children }: ProfileCardProps) {
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   return (
     <li
       onClick={onClick}
+      onContextMenu={
+        actions
+          ? (e) => {
+              // The rename field keeps the browser's own menu.
+              if (e.target instanceof HTMLInputElement) return;
+              e.preventDefault();
+              setMenuAt({ x: e.clientX, y: e.clientY });
+            }
+          : undefined
+      }
       aria-current={selected ? "true" : undefined}
       className={cn(
         "group flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-[10px] border bg-ui-panel transition-colors",
@@ -65,7 +80,11 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
       <div className="flex min-w-0 flex-col gap-1 px-3 pb-2 pt-2">
         <div className="flex min-w-0 items-center gap-1">
           <div className="min-w-0 flex-1 text-[13px] font-medium text-ui-1">{nameField ?? <span className="block truncate">{name}</span>}</div>
-          {menu && <div onClick={(e) => e.stopPropagation()}>{menu}</div>}
+          {actions && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <CardMenu actions={actions} label={actionsLabel} />
+            </div>
+          )}
         </div>
         {badges && <div className="flex flex-wrap gap-1">{badges}</div>}
         {detail && <span className="truncate text-[11.5px] text-ui-4">{detail}</span>}
@@ -75,6 +94,12 @@ export function ProfileCard({ name, nameField, badges, detail, meta, aspect, thu
         <div onClick={(e) => e.stopPropagation()} className="mt-auto flex items-center gap-0.5 border-t border-ui-subtle px-1.5 py-1">
           {children}
         </div>
+      )}
+      {actions && menuAt && (
+        // The menu is portalled, but its clicks still bubble here through React: they must not reach the card.
+        <span className="contents" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.stopPropagation()}>
+          <ContextMenu x={menuAt.x} y={menuAt.y} entries={contextEntries(actions)} onClose={() => setMenuAt(null)} />
+        </span>
       )}
     </li>
   );

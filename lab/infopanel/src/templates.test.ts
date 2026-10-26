@@ -3,7 +3,7 @@
 // canvas under Node) and exported. The export must parse back item for item with every referenced file in the zip.
 // npm test keeps one size per template; this sweep is the heavy check.
 import { describe, expect, it } from "vitest";
-import { SIZE_PRESETS } from "@/components/infopanel/new-profile-dialog";
+import { SIZE_PRESETS } from "@/components/templates/size-presets";
 import { entriesFromZip, loadExport } from "@/lib/infopanel/archive.ts";
 import { assetFile, type Doc } from "@/lib/infopanel/assets/assets.ts";
 import { itemAt } from "@/lib/infopanel/editor/ops.ts";

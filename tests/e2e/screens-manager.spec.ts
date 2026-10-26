@@ -17,7 +17,7 @@ test("Screens: create from the sample layout, rename, delete, undo", async ({ pa
   const saved = async () => (await fetch(`${scratch.base}/api/config`)).text();
 
   await page.getByRole("button", { name: "New" }).click();
-  await page.getByRole("menuitem", { name: "Dashboard from the sample layout" }).click();
+  await page.getByRole("button", { name: /The sample layout/ }).click();
   await expect(cards).toHaveCount(before + 1);
 
   const actions = (name: string) => cards.filter({ hasText: name }).getByRole("button", { name: "Screen actions" });

@@ -6,6 +6,15 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **New screen is a page, in two steps.** **New** on Screens opens a page in place of the cards instead of a menu and a popup. First **Start from**: Blank, the templates with their shape chips, and the sample layout, an InfoPanel profile or an import. Then **Size and look**: the size, the template's colours and a name beside a live preview at that size. **New InfoPanel profile** works the same way, and the InfoPanel home's Create cards open it on the second step.
+- **Templates come at the size they are made for.** A template used to be made at the studio window's size, so an untouched New screen came out as large as the desktop. Now each template brings its own size (Meters at 1600 × 300, Deck at 1920 × 1080, in both New pages), until you change the size yourself. Blank starts at 1024 × 600, or the edited screen's size when that is a panel preset, and the first-run setup starts on the Panel size. Five sizes join the presets: 1920 × 440, 1280 × 400, 480 × 800, 600 × 1024 and 1080 × 1920.
+
+### Added
+
+- **Right-click menus on Screens and the InfoPanel home.** A right-click on a screen card, a saved Library card or an InfoPanel profile card opens the same actions as its **⋯** menu. Saved cards and the home's profile cards now have a **⋯** menu too, and a screen card's menu starts with **Open**.
+
 ## [1.3.0-beta.29] - 2026-10-26
 
 ### Changed

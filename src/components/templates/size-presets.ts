@@ -30,6 +30,12 @@ export const SIZE_PRESETS: readonly Size[] = [
   { width: 1280, height: 160 },
   { width: 1080, height: 240 },
   { width: 480, height: 1920 },
+  // Added after the first of each class, so a class's first preset stays the one above.
+  { width: 1920, height: 440 },
+  { width: 1280, height: 400 },
+  { width: 480, height: 800 },
+  { width: 600, height: 1024 },
+  { width: 1080, height: 1920 },
 ];
 
 /** The index of the preset that is this size, if any. */
@@ -45,12 +51,17 @@ export const firstPresetOf = (cls: ShapeClass): number => SIZE_PRESETS.findIndex
 export const placementOf = (t: Fitting, sizeClass: ShapeClass): ShapeClass =>
   t.fits.includes(sizeClass) ? sizeClass : t.size ? shapeClassOf(t.size.width, t.size.height) : t.fits[0];
 
-/** The size a template's thumbnail is drawn at in a class's section: the chosen size there, else its own shape. */
+/** The size a template's thumbnail is drawn at in a class's section: its own when that is of the class, else the chosen size there, else the class's first preset. */
 export const thumbSizeOf = (t: Fitting, cls: ShapeClass, sizeClass: ShapeClass, chosen: Size): Size =>
-  cls === sizeClass ? chosen : t.size && shapeClassOf(t.size.width, t.size.height) === cls ? t.size : SIZE_PRESETS[firstPresetOf(cls)];
+  t.size && shapeClassOf(t.size.width, t.size.height) === cls ? t.size : cls === sizeClass ? chosen : SIZE_PRESETS[firstPresetOf(cls)];
 
-/** The preset index choosing a template switches to, or undefined when it fits the current size. */
+/**
+ * The preset index choosing a template switches to: its own size's; without a size of its own, the first preset of
+ * its class when it doesn't fit the current size. Undefined keeps the size, or (a size of its own that isn't a
+ * preset) leaves it to the caller to type in.
+ */
 export const presetForChoice = (t: Fitting, sizeClass: ShapeClass): number | undefined => {
-  if (t.fits.includes(sizeClass)) return undefined;
-  return presetIndexOf(t.size) ?? firstPresetOf(placementOf(t, sizeClass));
+  const own = presetIndexOf(t.size);
+  if (own !== undefined || t.size || t.fits.includes(sizeClass)) return own;
+  return firstPresetOf(placementOf(t, sizeClass));
 };

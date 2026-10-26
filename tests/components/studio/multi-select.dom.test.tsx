@@ -37,7 +37,6 @@ function Harness() {
     setConfig: history.set,
     sel,
     onPresetSaved: () => {},
-    windowSize: { width: 1920, height: 1080 },
     onPageChange: () => {},
     onSelectProfile: () => {},
   });

@@ -5,8 +5,9 @@
  * Create makes; then the user's Library profiles, drawn from what they saved. Sorted by shape class
  * (strip, wide, standard, tall: `shapeClassOf`): chips filter by class, defaulting to the chosen
  * size's; All lists a section per class, the chosen size's first. A template that doesn't fit the
- * chosen size is drawn at its own shape, never squashed into it. Loaded with the dialog, never in
- * the studio's first bundle.
+ * chosen size is drawn at its own shape, never squashed into it. A template's palettes are offered on
+ * the wizard's next step (`paletteChips`). Loaded with the New InfoPanel profile page, never in the
+ * studio's first bundle.
  */
 import { useMemo, useState } from "react";
 import { FilePlus2 } from "lucide-react";
@@ -23,14 +24,22 @@ import CanvasZone from "./CanvasZone";
 import { ProfileThumb } from "./profile-thumb";
 import { CLASS_NAMES, COLUMNS, ShapeChips, aspectOf, sectionClasses, type ShapeFilter } from "../templates/shape-chips";
 import { SIZE_PRESETS, firstPresetOf, placementOf, thumbSizeOf } from "../templates/size-presets";
+import type { VariantChip } from "../templates/variant-chips";
 
 const MOCK = MOCK_SENSORS as unknown as SensorMap;
 
 /** The template drawn at the size, with mock values. */
-function Thumb({ template, variant, width, height }: { template: Template; variant: string; width: number; height: number }) {
+export function TemplateThumb({ template, variant, width, height }: { template: Template; variant: string; width: number; height: number }) {
   const canvas = useMemo(() => instantiate(template, { name: template.name, width, height, variant, sensors: MOCK_SENSORS }).stored, [template, variant, width, height]);
   return <CanvasZone canvas={canvas} sensors={MOCK} />;
 }
+
+/** A template's palettes as the "Colours" chips, each with its two accents and text colour. */
+export const paletteChips = (t: Template): VariantChip[] =>
+  t.variants.map((v) => {
+    const p = { ...t.palette, ...v.palette };
+    return { id: v.id, name: v.name, swatch: [p.accent1, p.accent2, p.text].map(cssOf) };
+  });
 
 export interface GalleryChoice {
   /** null: Blank, or a Library profile. */
@@ -56,7 +65,6 @@ const CARD = "flex min-w-0 flex-col overflow-hidden rounded-[10px] border text-l
 const profileSize = (item: LibraryItem) => ({ width: Number(item.meta.width) || 800, height: Number(item.meta.height) || 480 });
 
 export function TemplateGallery({ choice, onChoice, width, height, profiles = [], launch = false }: TemplateGalleryProps) {
-  const chosen = TEMPLATES.find((t) => t.id === choice.template);
   const sizeClass = shapeClassOf(width, height);
   // Until a chip is picked the filter follows the size's class; the home page has no size, so it starts on All.
   const [picked, setPicked] = useState<ShapeFilter | null>(null);
@@ -109,7 +117,7 @@ export function TemplateGallery({ choice, onChoice, width, height, profiles = []
                       className={cn(CARD, choice.template === t.id ? "border-ui-accent bg-ui-accent/10" : "border-ui-default hover:bg-ui-hover")}
                     >
                       <div aria-hidden="true" className="relative w-full" style={{ aspectRatio: aspectOf(size.width, size.height), background: cssOf(t.background) }}>
-                        <Thumb template={t} variant={choice.template === t.id ? choice.variant : t.variants[0].id} width={size.width} height={size.height} />
+                        <TemplateThumb template={t} variant={choice.template === t.id ? choice.variant : t.variants[0].id} width={size.width} height={size.height} />
                       </div>
                       <span className="truncate px-2 pt-1 text-[12px] font-medium text-ui-1">{t.name}</span>
                       <span className="truncate px-2 pb-1.5 text-[11px] text-ui-4">{t.blurb}</span>
@@ -142,32 +150,6 @@ export function TemplateGallery({ choice, onChoice, width, height, profiles = []
           );
         })}
       </div>
-      {chosen && (
-        <div role="radiogroup" aria-label="Colours" className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[12px] text-ui-3">Colours</span>
-          {chosen.variants.map((v) => {
-            const p = { ...chosen.palette, ...v.palette };
-            return (
-              <button
-                key={v.id}
-                type="button"
-                role={launch ? undefined : "radio"}
-                aria-checked={choice.variant === v.id}
-                onClick={() => onChoice({ template: chosen.id, variant: v.id })}
-                className={cn(
-                  "flex h-7 items-center gap-1.5 rounded-[7px] border px-2 text-[12px]",
-                  choice.variant === v.id ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover",
-                )}
-              >
-                {[p.accent1, p.accent2, p.text].map((c, i) => (
-                  <span key={i} className="h-3 w-3 rounded-full border border-black/30" style={{ background: cssOf(c) }} />
-                ))}
-                {v.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

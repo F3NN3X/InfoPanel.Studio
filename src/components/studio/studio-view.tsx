@@ -21,7 +21,7 @@ import { useStyleEdits } from "./use-style-edits";
 import { cn } from "@/lib/utils";
 import { ProfileShots } from "./profile-shots";
 import { StudioCanvas } from "./studio-canvas";
-import { StudioTopBar } from "./studio-top-bar";
+import { StudioTopBar, type StudioMode } from "./studio-top-bar";
 import { LeftRail, type RailItem } from "./left-rail";
 import { PhoneTabBar } from "./phone-tab-bar";
 import { FirstRun } from "./first-run";
@@ -45,7 +45,7 @@ import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
 import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
 import { canvasPlaces, InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
-import type { NewProfile } from "@/components/infopanel/new-profile-dialog";
+import type { NewProfile } from "@/components/infopanel/new-profile-wizard";
 import type { GalleryChoice } from "@/components/infopanel/template-gallery";
 import { canvasZoneOf, importAsProfile } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
@@ -94,7 +94,7 @@ const NO_REQUEST: ExportRequest = {};
 /** The InfoPanel editor (A5), the InfoPanel page's body, loaded when a profile is first opened there. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The gallery and its template data load only when the dialog opens. */
-const NewProfileDialog = lazy(() => import("@/components/infopanel/new-profile-dialog"));
+const NewProfileWizard = lazy(() => import("@/components/infopanel/new-profile-wizard"));
 /** The Data, Alerts and Screens views load when the rail first opens them. */
 const SourcesPanel = lazy(() => import("./sources-panel").then((m) => ({ default: m.SourcesPanel })));
 const AlertsView = lazy(() => import("./alerts-view").then((m) => ({ default: m.AlertsView })));
@@ -210,7 +210,6 @@ function StudioViewBody({
     setConfig,
     sel,
     onPresetSaved: () => ui.setPresetNaming(false),
-    windowSize: { width: windowWidth, height: windowHeight },
     onPageChange,
     onSelectProfile: selectProfile,
   });
@@ -348,14 +347,26 @@ function StudioViewBody({
   }, [editingCanvas, canvasZone]);
   /**
    * "New InfoPanel profile…": blank or from a template, as a new screen (not made active), opened
-   * in the editor; a template's sensors not found on this machine are listed there with Remap.
+   * in the editor; a template's sensors not found on this machine are listed there with Remap. It is
+   * a page over the InfoPanel home: the home's Create card it starts on (none: step 1), and the view
+   * Cancel goes back to.
    */
-  const [newProfileOpen, setNewProfileOpen] = useState(false);
-  /** The home page's gallery card the dialog opens on (none: Blank). */
-  const [newProfileChoice, setNewProfileChoice] = useState<GalleryChoice | undefined>(undefined);
+  const [newProfile, setNewProfile] = useState<{ initial?: GalleryChoice; back: StudioMode } | null>(null);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
-  useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && (setNewProfileChoice(undefined), setNewProfileOpen(true))), []);
+  const modeNow = useRef(ui.mode);
+  modeNow.current = ui.mode;
+  const openNewProfile = (initial?: GalleryChoice) => {
+    setNewProfile({ initial, back: modeNow.current });
+    setInfopanelHome(true);
+    ui.setMode("infopanel");
+  };
+  useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && openNewProfile()), []);
+  // Leaving the InfoPanel page drops the page.
+  useEffect(() => {
+    if (ui.mode !== "infopanel") setNewProfile(null);
+  }, [ui.mode]);
   const createInfoPanel = ({ name, width, height, stored, unbound, toLibrary }: NewProfile) => {
+    setNewProfile(null);
     const r = importAsProfile(config, stored, name, { width, height }, false);
     setConfig(r.config);
     selectProfile(r.profileId);
@@ -543,7 +554,6 @@ function StudioViewBody({
       kiosks={kiosksOf(control)}
       displays={control?.displays ?? NO_DISPLAYS}
       onOpenScreen={openScreen}
-      onAddProfile={edit.addProfile}
       onAddMadeProfile={edit.addImportedProfile}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
@@ -824,22 +834,41 @@ function StudioViewBody({
   const currentPlace = canvasPlaces(config).find((c) => c.zoneId === editingCanvas);
   const infopanelStart = homeShown && (
     <>
-      <InfoPanelStart
-        config={config}
-        current={currentPlace}
-        onContinue={() => setInfopanelHome(false)}
-        onOpen={(c) => {
-          openOnLand.current = c.zoneId;
-          openZone(c.profileId, c.pageId, c.zoneId);
-        }}
-        onOpenLibrary={(item) => void editCanvas(item)}
-        onNew={(choice) => {
-          setNewProfileChoice(choice);
-          setNewProfileOpen(true);
-        }}
-        onImport={() => openImportDoor({ prefer: "canvas-zone" })}
-        onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
-      />
+      {newProfile ? (
+        <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+          <NewProfileWizard
+            initial={newProfile.initial}
+            onCreate={createInfoPanel}
+            onCancel={() => {
+              setNewProfile(null);
+              ui.setMode(newProfile.back);
+            }}
+            onImport={() => {
+              setNewProfile(null);
+              openImportDoor({ prefer: "canvas-zone" });
+            }}
+          />
+        </Suspense>
+      ) : (
+        <InfoPanelStart
+          config={config}
+          current={currentPlace}
+          onContinue={() => setInfopanelHome(false)}
+          onOpen={(c) => {
+            openOnLand.current = c.zoneId;
+            openZone(c.profileId, c.pageId, c.zoneId);
+          }}
+          onOpenLibrary={(item) => void editCanvas(item)}
+          onNew={(choice) => openNewProfile(choice ?? { template: null, variant: "" })}
+          onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+          onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
+          onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
+          onExport={(c) => {
+            const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);
+            if (zone) io.openExport(zone);
+          }}
+        />
+      )}
       {canvasEditor && (
         <div hidden inert className="hidden">
           {canvasEditor}
@@ -1010,11 +1039,6 @@ function StudioViewBody({
         onClose={() => ui.setIconPage(null)}
       />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
-      {newProfileOpen && (
-        <Suspense fallback={null}>
-          <NewProfileDialog open onOpenChange={setNewProfileOpen} onCreate={createInfoPanel} initial={newProfileChoice} />
-        </Suspense>
-      )}
       {io.dialogs}
       {importDoor}
       <FirstRun
