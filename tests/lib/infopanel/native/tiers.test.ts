@@ -18,7 +18,7 @@ describe("tiers", () => {
 
   it("marks the widgets that are not InfoPanel data native-only, each with a reason, left out unless a snapshot is picked", () => {
     const only = Object.entries(MODULE_TIERS).filter(([, e]) => e.tier === "native-only");
-    expect(only.map(([id]) => id).sort()).toEqual(["BottleneckLens", "CodingAgents", "Countdown", "FrameHistogram", "SessionStats", "ThresholdTimeline", "Timer", "WaveLink", "WebPage"]);
+    expect(only.map(([id]) => id).sort()).toEqual(["BottleneckLens", "CodingAgents", "Countdown", "DayPlanner", "FrameHistogram", "OnAirBeacon", "RadialClockStack", "SessionStats", "ThresholdTimeline", "Timer", "WaveLink", "WebPage"]);
     for (const [, e] of only) {
       expect(e.reason).toBeTruthy();
       expect(choicesFor(e)).toEqual(["leave", "snapshot"]);

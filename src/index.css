@@ -332,6 +332,16 @@
   50% { opacity: 0; }
 }
 .wp-blink { animation: wp-blink 1s steps(1) infinite; }
+/* The On-Air Beacon's live pulse: a soft halo that grows and fades (opacity and transform only). The lite-motion
+   rule below turns it off with reduced motion; the media query covers a page that does not set the flag. */
+@keyframes wp-onair-halo {
+  0% { opacity: 0.45; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(2.1); }
+}
+.wp-onair-halo { animation: wp-onair-halo 2.4s ease-out infinite; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .wp-onair-halo { animation: none; }
+}
 /* Below 60 fps, or with reduced motion (PerformanceProvider sets the flag), a widget's CSS transitions
    and animations are off: they run at the display rate, past the Max FPS cap, and a width or height
    transition lays out every frame. Readings then step at the data rate. */

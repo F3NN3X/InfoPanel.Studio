@@ -90,6 +90,10 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   FrameHistogram: yes(CARD),
   SessionStats: yes(CARD),
   ThresholdTimeline: yes(CARD, { thr: ["value"] }),
+  // Time and status: the calendar, weather, OBS and the clock
+  DayPlanner: yes(BOTH),
+  RadialClockStack: yes(BOTH),
+  OnAirBeacon: yes(NONE),
 };
 
 /**

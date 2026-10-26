@@ -204,7 +204,7 @@ describe("header modes", () => {
     expect(modules.filter((m) => m.header === "none").map((m) => m.id).sort()).toEqual(NO_HEADER);
     expect(modules.filter((m) => m.header === "title-only").map((m) => m.id).sort()).toEqual(TITLE_ONLY);
     const noCard = modules.filter((m) => !m.compact?.card).map((m) => m.id).sort();
-    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
+    expect(noCard).toEqual(["Clock", "CoreHeatmap", "CustomGauge", "GpuRings", "MeterBridge", "OnAirBeacon", "StatusBar", "SystemOverview", "Timer", "Visualizer", "WebPage"]);
   });
 
   it("shows Show title, Title and Icon (More) on a widget with a header", () => {

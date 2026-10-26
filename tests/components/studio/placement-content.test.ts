@@ -55,6 +55,12 @@ describe("placementPrefixes", () => {
     expect(placementPrefixes(place({ module: "Calendar" }))).toEqual(["plugins.clock-plugin."]);
   });
 
+  it("subscribes a template to the sensor its settings bind, and to the weather it reads", () => {
+    expect(placementPrefixes(place({ module: "RadialClockStack" }))).toEqual([]);
+    expect(placementPrefixes(place({ module: "RadialClockStack", settings: { sensor: "libre.cpu_total" } }))).toEqual(["libre.cpu_total"]);
+    expect(placementPrefixes(place({ module: "DayPlanner" }))).toEqual(["plugins.yr-weather-plugin."]);
+  });
+
   it("subscribes a canvas zone to the keys its items read", () => {
     const canvas = { items: [{ kind: "Sensor", $: { key: "libre.cpu" } }, { kind: "Group", DisplayItems: [{ kind: "Bar", $: { key: "libre.gpu" } }] }] };
     expect(placementPrefixes(place({ module: CANVAS_ID, canvas: canvas as never }))).toEqual(["libre.cpu", "libre.gpu"]);
@@ -101,7 +107,7 @@ describe("placementContent", () => {
 
 describe("template zones with no data", () => {
   it("keeps an explicit allow-list of the templates that render without sensor keys", () => {
-    expect([...SENSORLESS].sort()).toEqual(["Calendar", "Clock", "CodingAgents", "Timer", "WaveLink", "WebPage"]);
+    expect([...SENSORLESS].sort()).toEqual(["Calendar", "Clock", "CodingAgents", "DayPlanner", "OnAirBeacon", "RadialClockStack", "Timer", "WaveLink", "WebPage"]);
   });
 
   it("hides every other template on an empty map and shows it with data", () => {
