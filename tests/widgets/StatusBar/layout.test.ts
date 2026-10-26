@@ -71,7 +71,7 @@ describe("bar size", () => {
     expect(s.u / 472).toBeCloseTo(s.fs / 173, 1);
   });
   it("stops at its floors when nothing fits, leaving the rest to the narrow-bar drop", () => {
-    expect(barSize(480, 472, () => false)).toEqual({ fs: 13, u: 32 });
+    expect(barSize(480, 472, () => false)).toEqual({ fs: 13, u: 60 });
   });
 });
 

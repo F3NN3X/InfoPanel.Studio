@@ -27,12 +27,12 @@ export function gapPlacement(o: { barLeft: number; barWidth: number; pageCentre:
 export const FS_SHARE = 0.36;
 export const FS_MIN = 13;
 /** The drawn items' smallest height, px (a lower bar keeps its own). */
-const U_MIN = 32;
+const U_MIN = 60;
 
 /**
  * The bar's text size (`fs`) and drawn-item height (`u`, at most `u0`, the room the bar has): the text follows the
  * height (0.36 of it, from 13 px), and both shrink together until `fits` says every item fits, down to 13 px text and
- * 32 px items. Past that the narrow-bar drop (`fitSlots` / `fitByRank`) takes over at the smallest size.
+ * 60 px items (their captions stay about 10 px). Past that the narrow-bar drop (`fitSlots` / `fitByRank`) takes over at the smallest size.
  */
 export function barSize(h: number, u0: number, fits: (fs: number, u: number) => boolean): { fs: number; u: number } {
   const fs0 = Math.max(FS_MIN, Math.round(h * FS_SHARE));

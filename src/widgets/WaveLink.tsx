@@ -296,6 +296,9 @@ export function WaveLinkLayout({ size, w, h, up, state, channels, devices, mixes
   );
 }
 
+/** The mixer columns with the devices beside them need about this much; the shell grows the content only past it. */
+const DESIGN = { w: 780, h: 440 };
+
 export default function WaveLink(p: WaveLinkProps) {
   const state = useWavelinkState();
   const up = state.status === "up";
@@ -314,6 +317,7 @@ export default function WaveLink(p: WaveLinkProps) {
       {...shell(p)}
       title={p.title ?? "Wave Link"}
       icon="mic"
+      design={DESIGN}
       style={{ ...vars, ...p.style }}
       right={
         <Chip>
