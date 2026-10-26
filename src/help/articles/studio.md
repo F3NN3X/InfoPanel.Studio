@@ -3,7 +3,7 @@ id: studio
 title: The studio
 icon: space_dashboard
 related: [zones, widget-settings, shortcuts]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.33
 ---
 
 The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Design.
@@ -12,17 +12,18 @@ The editor window: a rail of views on the left, the work area in the middle, and
 
 | View | What it holds |
 |---|---|
-| **Design** | The canvas, the page tabs and the inspector. The left panel switches between **Layers** (the zones of this page: hide, rename, reorder, select) and **Add widget** (every widget, layout starters and your panels). |
+| **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. **New** opens the New page, where you start from Blank or a template. See [Screens and the grid](profiles). |
+| **Design** | The canvas, the page tabs and the inspector. The left panel switches between **Layers** (the zones of this page: hide, rename, reorder, select) and **Add**, which has tabs for **Widgets**, **Panels** (yours and the presets) and **Layouts** (starters). |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
-| **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. See [Screens and the grid](profiles). |
 | **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
 | **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
-| **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
+| **InfoPanel** | The InfoPanel home and editor, for profiles drawn on a free canvas. See [The InfoPanel editor](infopanel-editor). |
 | **Alerts & Island** | Alert rules, defaults and history, and the Dynamic Island. See [Dynamic Island and alerts](island-alerts). |
+| **Data** | Every data point the Data API publishes, the connection and display names. See [Sensors and the Data API](sensors). |
 | **Help** | Opens this help at the article for where you are (`F1` does the same). |
 | **Settings** | Opens the Settings window (`Ctrl+,`, or Settings in the tray): **App** (General, Server, Coding agents and Updates, in the desktop app), **Dashboard** (every screen and kiosk, including the startup screen, saved the moment you change it), **Studio** (editor preferences, saved with the Studio on this device), then Diagnostics, Logs, About and Changelog. In a browser it opens as a tab with Dashboard and Studio. See [Startup and tray](startup). |
 
-On a phone, Screens is under **More**. Under 960 px the rail is icons only.
+On a phone, Screens and the views after Library are under **More**. Under 960 px the rail is icons only.
 
 ## The title bar
 
@@ -31,7 +32,7 @@ On a phone, Screens is under **More**. Under 960 px the rail is icons only.
 - The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view.
 - **Undo** and **Redo**, **Import**, **Export & back up** and **Save**. See [Importing and exporting](import).
 - **Live** shows how many kiosks are connected and opens the controls for them: show a page now, pause rotation, dim, mute alerts for an hour, switch the Dynamic Island and reload every kiosk. None of it is part of your design, so Save doesn't change it. **Open kiosk view** shows the kiosk in the Studio; in the desktop app it resizes the window to the screen's exact size, and moving the pointer to the top edge brings a strip with **Back to studio**, **Minimize** and **Close**.
-- Under 600 px a **⋯** menu holds Undo, Redo, Import and Export.
+- Under 640 px a **⋯** menu holds Undo, Redo, Import and Export.
 
 The status bar under the work area shows the Data API (connected, slow or unreachable), the server, how many kiosks are connected, updates, and whether your edits are saved. When the server can't be reached it reads **Offline · edits kept locally**.
 
@@ -55,7 +56,7 @@ The Design canvas can show live sensor values or a snapshot of them. A snapshot 
 
 While the canvas is frozen, the bar under it shows **Frozen · 14:05** with the time of the snapshot. Press the refresh button beside it (`Shift+F`) for a new snapshot, or **Go live for this session** to see live values until the page reloads; the setting stays as it is. `F` switches between frozen and live.
 
-Only the Design canvas and the Add widget list freeze. Kiosks, Kiosk view, the Data view, the sensor picker and alert previews always show live values.
+Only the Design canvas and the Add list freeze. Kiosks, Kiosk view, the Data view, the sensor picker and alert previews always show live values.
 
 The setting follows you: the app window and a studio in a browser read the same one.
 
@@ -67,13 +68,13 @@ With two or more pages, the kiosk can rotate them. Set it up in **Screens**, und
 
 ## Inspector
 
-The settings for whatever is selected. Where it sits depends on the width of the studio, and there is no setting for it:
+The settings for whatever is selected. Where it sits depends on the width of the window, and there is no setting for it:
 
-| Studio width | Inspector |
+| Window width | Inspector |
 |---|---|
-| 1100 px or more | Docked as a column on the right. `Ctrl+\` collapses it. |
-| 640 to 1099 px | A floating card. Open it with **All settings**, by double-clicking a zone, or with `Ctrl+\`. |
-| Under 640 px | A bottom sheet that you can pull to peek, half or full height. |
+| 960 px or more | Docked as a column on the right. `Ctrl+\` collapses it. |
+| 600 to 959 px | A floating card. Open it with **All settings**, by double-clicking a zone, or with `Ctrl+\`. |
+| Under 600 px | A bottom sheet that you can pull to peek, half or full height. |
 
 ## Saving
 

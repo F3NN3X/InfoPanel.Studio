@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Help checked against the app.** Every article was read against the current menus and labels. The Quick start walks through the New page, the rail lists the InfoPanel view, the inspector breakpoints are 960 and 600 px, Add widget's tabs and the Default tags on Screens are named as they appear, and the follow-theme chips use their current wording.
+
 ## [1.3.0-beta.32] - 2026-10-26
 
 ### Changed

@@ -3,7 +3,7 @@ id: problems
 title: Common problems
 icon: build
 related: [diagnostics, kiosk, performance, sensors]
-verified: 1.3.0-beta.19
+verified: 1.3.0-beta.33
 ---
 
 Quick fixes for the things that go wrong most.
@@ -35,7 +35,7 @@ If the message says another InfoPanel Studio server is already running on that p
 ## Edits don't show on the display
 
 - Look for a dot on the studio's **Save** button and press it.
-- Check the kiosk shows the screen you are editing. With **Best fit for the window** it opens the closest size, and the tag on each card in Screens shows which one. With **Always the same screen** it opens the card tagged **Opens on launch**.
+- Check the kiosk shows the screen you are editing. With **Best fit for the window** it opens the closest size, and the card tagged **Default · best fit** in Screens shows which one. With **Always ‹screen name›** it opens the card tagged **Default**.
 
 ## The display's GPU stays busy
 

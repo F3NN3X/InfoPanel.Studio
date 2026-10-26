@@ -3,7 +3,7 @@ id: widget-settings
 title: Widget settings
 icon: tune
 related: [themes, widgets, custom-css]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.33
 ---
 
 Every widget and panel has the same four tabs, filed by the question they answer.

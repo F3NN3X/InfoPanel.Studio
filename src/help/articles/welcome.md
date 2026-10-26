@@ -3,7 +3,7 @@ id: welcome
 title: Welcome to InfoPanel Studio
 icon: waving_hand
 related: [quickstart, concepts, kiosk]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 InfoPanel Studio designs live dashboards for the small screen next to your monitor, and serves them to InfoPanel as a kiosk page.
@@ -21,7 +21,7 @@ Everything runs on the PC running InfoPanel Studio. The studio saves to the loca
 
 ## What you can do
 
-- Build dashboards from ready-made widgets (system, media, weather, FPS, network and more) or from panels you compose yourself. See [Widgets](widgets) and [Panels](panels).
+- Start a screen from a template, which brings its own look as a theme, or build dashboards from ready-made widgets (system, media, weather, FPS, network and more) or from panels you compose yourself. See [Widgets](widgets) and [Panels](panels).
 - Make one dashboard fit several screens with a screen per display size. See [Screens and the grid](profiles).
 - Style everything at once with a theme, then let single widgets differ where you want. See [Themes](themes).
 - Import existing InfoPanel profiles, keep them pixel-exact or turn items into native widgets. See [Importing and exporting](import).
