@@ -89,17 +89,17 @@ export const DECK: ScreenTemplate = {
     },
     standard: {
       cols: 71,
-      rows: 35,
+      rows: 29,
       pages: [
         cards(
           [
             ...head(16),
             ...merged([
-              reading([1, 18, 52, 6], "CPU", "cpu.load", { display: "spark", accent: BLUE, ...NO_TITLE }),
-              reading([1, 24, 52, 6], "GPU", "gpu.load", { display: "spark", accent: PURPLE, ...NO_TITLE }),
-              reading([1, 30, 52, 6], "FPS", "fps", { display: "spark", accent: GREEN, ...NO_TITLE }),
+              reading([1, 18, 52, 4], "CPU", "cpu.load", { display: "spark", accent: BLUE, ...NO_TITLE }),
+              reading([1, 22, 52, 4], "GPU", "gpu.load", { display: "spark", accent: PURPLE, ...NO_TITLE }),
+              reading([1, 26, 52, 4], "FPS", "fps", { display: "spark", accent: GREEN, ...NO_TITLE }),
             ]),
-            ...merged([zone("NetworkThroughput", [55, 18, 17, 18], { sparkline: true, scale: 160 })]),
+            ...merged([zone("NetworkThroughput", [55, 18, 17, 12], { sparkline: true, scale: 160 })]),
           ],
           { surface: "theme" },
         ),

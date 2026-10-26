@@ -15,7 +15,7 @@ import { newProfile, uid, type MonitorProfile, type Placement } from "../layout"
 import { MAIN_PAGE_ID } from "../pages";
 import { sectionsWithValues, themedOf } from "../theme-model";
 import { placePage, type Placed } from "./fallback";
-import { REFERENCE, type ScreenTemplate, type ShapeLayout, type Variant } from "./kit";
+import { REFERENCE, type ScreenTemplate, type ShapeLayout, type Size, type Variant } from "./kit";
 
 export interface TemplateInput {
   name: string;
@@ -63,6 +63,12 @@ export function splitOf(layout: Pick<ShapeLayout, "cols" | "rows">, cls: ShapeCl
   return { kx: Math.max(1, kx), ky: Math.max(1, ky) };
 }
 
+/** How much a zone's Size % grows or shrinks at a size, against the size the template is designed for (1 there), within these bounds. */
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 1.6;
+export const zoneZoom = (design: Size, width: number, height: number): number =>
+  Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min(width / design.width, height / design.height)));
+
 const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** The settings with the variant's colours swapped wherever a value holds them, and its own values set where a zone has the key. */
@@ -86,6 +92,7 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
   const { kx, ky } = splitOf(layout, cls, input.width, input.height);
   const ref = REFERENCE[cls];
   const u = Math.min(input.width / ref.width, input.height / ref.height);
+  const zoom = zoneZoom(t.size, input.width, input.height);
   const space = (px: number) => Math.max(px > 0 ? 2 : 0, Math.round(px * Math.max(0.4, u)));
 
   const variant = t.variants?.find((x) => x.id === input.variant) ?? t.variants?.[0];
@@ -107,7 +114,10 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
   const placement = ({ zone: z, at, bound, roles, label }: Placed): Placement => {
     const [col, row, cols, rows] = at;
     const base = recolored(z.settings, variant);
-    const settings = { ...base, ...(label !== undefined && typeof base?.label === "string" ? { label } : {}), ...(base?.unit === undefined ? unitOf(z, bound, roles) : {}), ...bound };
+    const settings = { ...base, ...(label !== undefined && typeof base?.label === "string" ? { label } : {}), ...(base?.unit === undefined ? unitOf(z, bound, roles) : {}), ...bound,
+      // A zone's Size % is set for the template's own size, so it follows the screen's size from there.
+      ...(typeof base?.scale === "number" ? { scale: Math.round(base.scale * zoom) } : {}),
+    };
     // A zone's own look values (a bigger clock, its own surface) apply only in the sections it customises.
     const own = sectionsWithValues(base);
     return {

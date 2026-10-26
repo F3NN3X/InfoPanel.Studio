@@ -21,6 +21,7 @@ export const GRAPHITE: ScreenTemplate = {
   blurb: "Flat grey cards with one accent",
   port: true,
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 800, height: 480 },
   look: {
     theme: theme(COLOURS),
     radius: 0.625,
@@ -36,7 +37,8 @@ export const GRAPHITE: ScreenTemplate = {
   ],
   layouts: {
     strip: { cols: 6, rows: 1, pages: [tiles(flow(6, 6))] },
-    wide: { cols: 3, rows: 2, pages: [tiles(flow(3, 6))] },
+    // Rings and bars in cells of their own shape, the clock and the network across two.
+    wide: { cols: 4, rows: 2, pages: [tiles([[1, 1, 1, 1], [2, 1, 1, 1], [1, 2, 1, 1], [3, 1, 2, 1], [2, 2, 1, 1], [3, 2, 2, 1]])] },
     standard: { cols: 3, rows: 2, pages: [tiles(flow(3, 6))] },
     tall: { cols: 2, rows: 3, pages: [tiles(flow(2, 6))] },
   },

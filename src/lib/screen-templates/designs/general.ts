@@ -9,6 +9,7 @@ export const GENERAL: ScreenTemplate = {
   name: "General",
   blurb: "Time, weather, system, network and music",
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: "slate",
     radius: 0.75,

@@ -21,6 +21,7 @@ export const GLASS: ScreenTemplate = {
   blurb: "Translucent cards on soft glows",
   port: true,
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 800, height: 480 },
   look: {
     theme: theme(COLOURS),
     radius: 1,
@@ -36,7 +37,7 @@ export const GLASS: ScreenTemplate = {
   ],
   layouts: {
     strip: { cols: 6, rows: 1, pages: [tiles([[1, 1, 1, 1], [2, 1, 1, 1], [3, 1, 1, 1], [4, 1, 2, 1], [6, 1, 1, 1]])] },
-    wide: { cols: 3, rows: 2, pages: [tiles([[1, 1, 1, 1], [2, 1, 1, 1], [3, 1, 1, 1], [1, 2, 2, 1], [3, 2, 1, 1]])] },
+    wide: { cols: 4, rows: 2, pages: [tiles([[1, 1, 1, 1], [2, 1, 1, 1], [3, 1, 1, 1], [1, 2, 4, 1], [4, 1, 1, 1]])] },
     standard: { cols: 3, rows: 2, pages: [tiles([[1, 1, 1, 1], [2, 1, 1, 1], [3, 1, 1, 1], [1, 2, 2, 1], [3, 2, 1, 1]])] },
     tall: { cols: 2, rows: 3, pages: [tiles([[1, 1, 1, 1], [2, 1, 1, 1], [1, 2, 1, 1], [2, 2, 1, 1], [1, 3, 2, 1]])] },
   },

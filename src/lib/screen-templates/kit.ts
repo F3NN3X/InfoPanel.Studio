@@ -87,8 +87,8 @@ export interface ScreenTemplate {
   port?: boolean;
   /** The shape classes it looks designed for; the gallery sorts by them. Includes the class of `size`. */
   fits: readonly ShapeClass[];
-  /** The size it is made for; the gallery switches to it when the template is chosen at a size it doesn't fit. */
-  size?: Size;
+  /** The size it is made for: its design's zone sizes (`scale`) are right here, and the gallery opens it at this size. */
+  size: Size;
   look: Look;
   /** The pages; one "Main" when unset. */
   pages?: readonly TemplatePage[];
