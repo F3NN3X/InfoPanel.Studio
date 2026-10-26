@@ -65,6 +65,21 @@ export function parseChangelog(source: string): Release[] {
   return releases;
 }
 
+/** How many released versions the Changelog page lists; older ones are on GitHub. */
+export const RELEASES_SHOWN = 10;
+
+/** Where every release, old and new, is listed. */
+export const RELEASES_URL = "https://github.com/F3NN3X/InfoPanel.Studio/releases";
+
+/**
+ * The newest `limit` released versions. Unreleased stays when it has notes: it is not a release, so it does not use up
+ * one of the places.
+ */
+export function latestReleases(releases: Release[], limit = RELEASES_SHOWN): Release[] {
+  let released = 0;
+  return releases.filter((r) => r.unreleased || ++released <= limit);
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** `2026-10-12` as `12 Oct 2026`; anything else as it is. */

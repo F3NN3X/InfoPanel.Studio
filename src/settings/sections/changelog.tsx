@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
-import { entryHeadline, headlineShortens, parseChangelog, renderMarkdown, sectionEntries, sectionTone, shortDate, type Release, type SectionTone } from "../model/changelog";
+import { entryHeadline, headlineShortens, latestReleases, parseChangelog, RELEASES_SHOWN, RELEASES_URL, renderMarkdown, sectionEntries, sectionTone, shortDate, type Release, type SectionTone } from "../model/changelog";
 import { useFound, useStore } from "../store";
 
 const TONE_CLASS: Record<SectionTone, string> = {
@@ -54,6 +54,7 @@ export function ChangelogSection() {
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const found = useFound("changelog");
+  const foundLink = useFound("releases");
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +65,7 @@ export function ChangelogSection() {
   }, [toast]);
   useEffect(() => setRoot(wrap.current?.closest<HTMLElement>("[data-scroll-root]") ?? null), [source]);
 
-  const releases = useMemo(() => (source ? parseChangelog(source) : []), [source]);
+  const releases = useMemo(() => (source ? latestReleases(parseChangelog(source)) : []), [source]);
   const active = useScrollSpy(releases, root);
 
   const toggle = (set: Set<string>, key: string) => {
@@ -173,6 +174,13 @@ export function ChangelogSection() {
             );
           })}
         </div>
+        <p className={cn("mt-5 text-[12.5px] text-s-dim", foundLink.className)} ref={foundLink.ref}>
+          The last {RELEASES_SHOWN} releases are listed here.{" "}
+          <a href={RELEASES_URL} data-external rel="noopener noreferrer" className="text-s-accent-text hover:text-s-t1">
+            All releases are on GitHub
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

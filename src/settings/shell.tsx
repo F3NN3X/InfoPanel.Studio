@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { CircleCheck, CircleHelp, RotateCcw, X } from "lucide-react";
+import { CircleCheck, CircleHelp, ExternalLink, RotateCcw, X } from "lucide-react";
 import { SearchBox, useSearchShortcut } from "@/app-window/search-box";
 import { TitleBar as WindowTitleBar } from "@/app-window/title-bar";
 import { cn } from "@/lib/utils";
 import { settingsHelpTarget } from "@/help/context";
-import { ipc } from "./ipc";
+import { errorText, ipc } from "./ipc";
+import { RELEASES_URL } from "./model/changelog";
 import { displayAddress, serverCard } from "./model/cards";
 import { restartText } from "./model/restart";
 import { PAGE_NAMES, searchSettings, type PageId, type SearchEntry } from "./model/search";
@@ -31,7 +32,7 @@ interface SidebarProps {
 
 /** The nav: groups with indicators, or the search results. */
 export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
-  const { section, go, status, settings, update, lanIp } = useStore();
+  const { section, go, status, settings, update, lanIp, toast } = useStore();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -107,6 +108,19 @@ export function Sidebar({ groups = NAV_GROUPS, index }: SidebarProps) {
                 ))}
               </div>
             ))}
+            {/* The system browser opens it, as every link in the Settings window does. */}
+            <a
+              href={RELEASES_URL}
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                void ipc.openExternal(RELEASES_URL).catch((err) => toast(errorText(err), true));
+              }}
+              className="flex h-[34px] w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-s-t2 no-underline hover:bg-s-nav-hover"
+            >
+              <ExternalLink className="h-[18px] w-[18px] text-s-dim" />
+              <span className="flex-1">Releases on GitHub</span>
+            </a>
           </nav>
         )}
       </div>

@@ -78,6 +78,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { row: "about-hero", label: "Version", section: "about" },
   { row: "about-files", label: "Data folder", section: "about" },
   { row: "changelog", label: "Changelog", section: "changelog" },
+  { row: "releases", label: "All releases on GitHub", section: "changelog" },
 ];
 
 /** The Dashboard and Studio rows search finds, in the window on the Studio's server. */

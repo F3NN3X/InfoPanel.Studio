@@ -25,5 +25,5 @@ export const PAGES: Record<SectionId, Page> = {
   diagnostics: { subtitle: "Find errors and memory leaks.", wide: true, Section: DiagnosticsSection },
   logs: { subtitle: "Live output from the server, the app and the studio.", wide: true, Section: LogsSection },
   about: { subtitle: "Version, system and file locations.", Section: AboutSection },
-  changelog: { subtitle: "Everything that changed, newest first.", Section: ChangelogSection },
+  changelog: { subtitle: "What changed in the last 10 releases, newest first.", Section: ChangelogSection },
 };
