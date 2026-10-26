@@ -74,6 +74,21 @@ export interface WidgetItem {
   onInfoPanel?: NativeChoice;
 }
 
+// Here rather than in native/widget-item.ts, so the kiosk draws widget items without loading the export tiers.
+
+/** The widget an item hosts, or null for any other item. */
+export const widgetOf = (item: DisplayItem | undefined): WidgetItem | null =>
+  item?.kind === "Image" ? ((item as { widget?: WidgetItem }).widget ?? null) : null;
+
+export const isWidgetItem = (item: DisplayItem | undefined): boolean => widgetOf(item) !== null;
+
+/** A widget item's box on the canvas, in px (an Image's size is its Width × Height at its Scale). */
+export function widgetBox(item: DisplayItem): { x: number; y: number; w: number; h: number } {
+  const scale = item.kind === "Image" && item.Scale > 0 ? item.Scale / 100 : 1;
+  const o = item as unknown as { X: number; Y: number; Width?: number; Height?: number };
+  return { x: o.X, y: o.Y, w: (o.Width ?? 0) * scale, h: (o.Height ?? 0) * scale };
+}
+
 /** An item's InfoPanel binding fields (SensorType, SensorName and the id fields its kind has). */
 export type OriginalBinding = Record<string, string | number>;
 

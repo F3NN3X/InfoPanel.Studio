@@ -29,7 +29,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { Catalog } from "@/lib/infopanel/sensors.ts";
 import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "@/lib/infopanel/native/convert.ts";
 import { isNative, walkPaths } from "@/lib/infopanel/native/modes.ts";
-import { isWidgetItem, widgetBox } from "@/lib/infopanel/native/widget-item.ts";
+import { isWidgetItem, widgetBox } from "@/lib/infopanel/import/stored.ts";
 import { Marquee } from "@/components/ui/marquee";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 

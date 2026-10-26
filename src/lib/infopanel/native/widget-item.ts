@@ -6,20 +6,15 @@
  */
 import { assetKey, type AssetFile, type AssetTable } from "../assets/assets.ts";
 import { defaultItem, type DisplayItem } from "../schema.ts";
-import type { WidgetItem } from "../import/stored.ts";
+import { isWidgetItem, widgetBox, widgetOf, type WidgetItem } from "../import/stored.ts";
 import { choicesFor, tierOf, type NativeChoice } from "./tiers.ts";
 import type { Rect } from "./items.ts";
 
 export type { WidgetItem };
+export { isWidgetItem, widgetBox, widgetOf };
 
 /** PANEL_ID (lib/layout.ts), kept here so Node scripts don't load the config model. */
 export const WIDGET_PANEL = "panel";
-
-/** The widget an item hosts, or null for any other item. */
-export const widgetOf = (item: DisplayItem | undefined): WidgetItem | null =>
-  item?.kind === "Image" ? ((item as { widget?: WidgetItem }).widget ?? null) : null;
-
-export const isWidgetItem = (item: DisplayItem | undefined): boolean => widgetOf(item) !== null;
 
 /** A new widget item at `box` (px on the canvas), named `name`. */
 export function newWidgetItem(widget: WidgetItem, box: Rect, name: string): DisplayItem {
@@ -37,13 +32,6 @@ export function newWidgetItem(widget: WidgetItem, box: Rect, name: string): Disp
 /** The item with its widget record replaced; any other item as it is. */
 export function withWidget(item: DisplayItem, widget: WidgetItem): DisplayItem {
   return item.kind === "Image" ? ({ ...item, widget } as DisplayItem) : item;
-}
-
-/** A widget item's box on the canvas, in px (an Image's size is its Width × Height at its Scale). */
-export function widgetBox(item: DisplayItem): Rect {
-  const scale = item.kind === "Image" && item.Scale > 0 ? item.Scale / 100 : 1;
-  const o = item as unknown as { X: number; Y: number; Width?: number; Height?: number };
-  return { x: o.X, y: o.Y, w: (o.Width ?? 0) * scale, h: (o.Height ?? 0) * scale };
 }
 
 /** A widget's export rule: its own choice when its tier offers it, else the first its tier offers (decision D2). */
