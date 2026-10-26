@@ -2,7 +2,6 @@ import { useContext, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import type { ModuleSettings } from "@/modules/types";
 import { isImageUrl } from "@/lib/image";
-import { fixUnit } from "@/lib/infopanel/sensors";
 import { widgetImage } from "./data-adapter";
 import { IpTagCtx, Widget, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, tone, TONES, type ShellProps, type WidgetMeta } from "./kit";
 
@@ -117,7 +116,7 @@ export default function SensorValue(p: SensorValueProps) {
   const onCanvas = useContext(IpTagCtx);
   const raw = get(d, p.sensor ?? "");
   const v = num(raw);
-  const unit = p.unit ?? fixUnit(String(raw).replace(/^[-\d.,\s]+/, "").trim()) ?? "";
+  const unit = p.unit ?? String(raw).replace(/^[-\d.,\s]+/, "").trim().replace(/Â(?=[°²³µ])/g, "");
   const numeric = Number.isFinite(v) && isNumericText(String(raw));
   const hist = useHistory(v);
   const min = p.min ?? 0,
