@@ -25,7 +25,7 @@ export const ORBIT: ScreenTemplate = {
   variants: darkFamily(COLOURS, "white", "smoke", "float"),
   layouts: {
     strip: { cols: 12, rows: 1, pages: [bar([1, 1, 12, 1])] },
-    // A pill as long as the strip's, in the middle of the taller screen.
-    wide: { cols: 12, rows: 6, pages: [bar([1, 2, 12, 3])] },
+    // The whole screen: the bar draws its pill as tall as the rings fit across it, centred.
+    wide: { cols: 12, rows: 1, pages: [bar([1, 1, 12, 1])] },
   },
 };

@@ -64,9 +64,12 @@ export function splitOf(layout: Pick<ShapeLayout, "cols" | "rows">, cls: ShapeCl
   return { kx: Math.max(1, kx), ky: Math.max(1, ky) };
 }
 
-/** How much a zone's Size % grows or shrinks at a size, against the size the template is designed for (1 there), within these bounds. */
+/**
+ * How much a zone's Size % shrinks at a size smaller than the one the template is designed for (1 there and above),
+ * within these bounds. A larger screen's zones are grown by the widget shell's own zoom, so this one doesn't.
+ */
 const ZOOM_MIN = 0.6;
-const ZOOM_MAX = 1.6;
+const ZOOM_MAX = 1;
 export const zoneZoom = (design: Size, width: number, height: number): number =>
   Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min(width / design.width, height / design.height)));
 
