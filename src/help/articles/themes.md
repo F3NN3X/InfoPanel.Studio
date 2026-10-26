@@ -3,7 +3,7 @@ id: themes
 title: Themes
 icon: palette
 related: [widget-settings, background, presets]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.31
 ---
 
 Set the look once and every widget follows. Customize only where a widget should differ.
@@ -28,7 +28,7 @@ Each layer overrides the one before it. Content settings (sensors, what to show)
 - **A screen** shows what it changes from All screens. Editing any section makes it **Custom here**; **Reset to inherited** goes back.
 - **A page** lists only the sections it customises, then **Customise a section for this page**. Background is set per screen, a locked section can't be customised, and Shape & spacing is spacing only (the corner radius stays with the screen). In Colors a page has the widget colors; the color tokens link to the screen.
 
-**1 · Start from** opens with a **Current look** line (the saved Theme the scope matches, else its palette and skin, with "edited" when the colors match no palette), then plain starting points: your saved Themes, the built-in palettes and the skins (the first few, the rest under More). Nothing in these rows is marked as selected. **Update ‹name›** in the top bar saves the scope's look back into the Theme it started from or matches. Then the sections, in order: Colors (the color tokens and the widget colors), Typography (the page font and the widget type), Shape & spacing (corners and spacing), Surface & effects (surface, opacity, blur and the skin's details), Border & glow, Background, Units & format, Thresholds, Motion and Advanced (custom CSS). Each has a chip saying where its value comes from.
+**1 · Start from** opens with a **Current look** line (the saved Theme the scope matches, else its palette and skin, with "edited" when the colors match no palette), then plain starting points: your saved Themes, the built-in palettes and the skins (the first few, the rest under More). Nothing in these rows is marked as selected. Below them, **From templates** opens the look of every screen template, a row for each template and an item for each palette (Graphite · Amber, Neon · Toxic and so on). Press an item to apply that look to the scope, background included, on any screen. The copy button on its corner saves it to Library › Themes, where you can rename and edit it like your own. A template look is the colors, corners, widget style and background; the arrangement stays with the template. **Update ‹name›** in the top bar saves the scope's look back into the Theme it started from or matches. Then the sections, in order: Colors (the color tokens and the widget colors), Typography (the page font and the widget type), Shape & spacing (corners and spacing), Surface & effects (surface, opacity, blur and the skin's details), Border & glow, Background, Units & format, Thresholds, Motion and Advanced (custom CSS). Each has a chip saying where its value comes from.
 
 The preview on the right draws the page at the level you are editing, with a pencil on each widget that doesn't follow it. **Exceptions** lists what below this level doesn't follow it; **Make it follow** resets one, **Make all follow** resets them all (on a page, only its widgets).
 

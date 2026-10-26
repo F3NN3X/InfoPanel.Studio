@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **Every template look is a theme.** **Theme › Start from › From templates** lists the look of each screen template, and of each of its palettes (Graphite · Amber, Neon · Toxic, Frost Bar · Ice and so on), grouped by template. Press one to apply it to any screen, or the copy button to keep it in Library › Themes and edit it like your own. A new screen made from a template looks exactly as before.
+
 ## [1.3.0-beta.30] - 2026-10-26
 
 ### Changed

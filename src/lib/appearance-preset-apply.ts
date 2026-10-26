@@ -240,6 +240,12 @@ export function duplicateAppearancePreset(config: DashboardConfig, id: string, c
   return { ...config, appearancePresets: [...list.slice(0, at + 1), copy, ...list.slice(at + 1)] };
 }
 
+/** A built-in Theme kept as the user's own, named "‹name› copy", at the end of the saved Themes: free to rename and edit. */
+export const saveCopyOfPreset = (config: DashboardConfig, preset: AppearancePreset, copyId: string): DashboardConfig => ({
+  ...config,
+  appearancePresets: [...(config.appearancePresets ?? []), { ...structuredClone(preset), id: copyId, name: `${preset.name} copy` }],
+});
+
 export function renameAppearancePreset(config: DashboardConfig, id: string, name: string): DashboardConfig {
   return {
     ...config,

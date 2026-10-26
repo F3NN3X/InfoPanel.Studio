@@ -13,9 +13,10 @@ import { ROLE_INFO, resolveRole, type Role } from "../infopanel/templates/roles"
 import { presetTokens } from "../appearance-presets";
 import { newProfile, uid, type MonitorProfile, type Placement } from "../layout";
 import { MAIN_PAGE_ID } from "../pages";
-import { sectionsWithValues, themedOf } from "../theme-model";
+import { sectionsWithValues } from "../theme-model";
 import { placePage, type Placed } from "./fallback";
 import { REFERENCE, type ScreenTemplate, type ShapeLayout, type Size, type Variant } from "./kit";
+import { templatePreset, variantOf } from "./looks";
 
 export interface TemplateInput {
   name: string;
@@ -95,8 +96,8 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
   const zoom = zoneZoom(t.size, input.width, input.height);
   const space = (px: number) => Math.max(px > 0 ? 2 : 0, Math.round(px * Math.max(0.4, u)));
 
-  const variant = t.variants?.find((x) => x.id === input.variant) ?? t.variants?.[0];
-  const look = { ...t.look, ...(variant?.background ? { background: variant.background } : {}), style: { ...t.look.style, ...variant?.style } };
+  const variant = variantOf(t, input.variant);
+  const look = templatePreset(t, variant);
 
   // Without this machine's sensors (none given, or the Data API can't be reached) every zone stays, its sensor left to pick.
   const known = input.sensors !== undefined && Object.keys(input.sensors).length > 0;
@@ -135,7 +136,7 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
 
   const base = newProfile(input.name, input.width, input.height);
   const names = t.pages ?? [{ name: "Main" }];
-  const style = themedOf(look.style);
+  const style = look.style;
   const profile: MonitorProfile = {
     ...base,
     cols: layout.cols * kx,
@@ -144,8 +145,8 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
     fit: "fill",
     gap: space(t.look.gap),
     padding: space(t.look.padding),
-    theme: { ...presetTokens(look), ...(variant?.theme ?? {}) },
-    ...(look.radius !== undefined ? { radius: look.radius } : {}),
+    theme: presetTokens(look),
+    radius: look.radius,
     ...(Object.keys(style).length > 0 ? { widgetTheme: { values: style } } : {}),
     ...(look.background ? { background: { ...look.background } } : {}),
     pages: names.map((p, i) => ({

@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown, Copy } from "lucide-react";
 import { activePresetId, sameTokens } from "./appearance-actions";
 import { AppearancePreview } from "./appearance-preview";
 import { MoreRows, moreKey } from "./inspector/more-rows";
 import type { AppearancePreset } from "@/lib/appearance-presets";
+import type { TemplatePresetGroup } from "@/lib/screen-templates/template-presets";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import type { ModuleSettings } from "@/modules/types";
@@ -74,9 +75,15 @@ interface ThemeStartFromProps {
   radius: number;
   style: ModuleSettings;
   saved: readonly AppearancePreset[];
+  /** The template looks (built-in Themes), once loaded. */
+  templates?: readonly TemplatePresetGroup[];
   onPalette: (tokens: ThemeTokens) => void;
   onSkin: (skin: string) => void;
   onSaved: (preset: AppearancePreset) => void;
+  /** Apply a template's look. */
+  onTemplate: (preset: AppearancePreset) => void;
+  /** Keep a template's look as a saved Theme of the user's own. */
+  onCopy: (preset: AppearancePreset) => void;
   onLibrary: () => void;
   /** Collapsed to its header like the cards below it (the editor's accordion owns the state). */
   open: boolean;
@@ -89,9 +96,11 @@ interface ThemeStartFromProps {
  * plain starting points, three to a row. A row marks nothing as selected; the skins show the first few, the rest
  * behind More so the sections stay in reach. Its header collapses it like a section card.
  */
-export function ThemeStartFrom({ tokens, radius, style, saved, onPalette, onSkin, onSaved, onLibrary, open, onToggle }: ThemeStartFromProps) {
+export function ThemeStartFrom({ tokens, radius, style, saved, templates, onPalette, onSkin, onSaved, onTemplate, onCopy, onLibrary, open, onToggle }: ThemeStartFromProps) {
+  const [fromTemplates, setFromTemplates] = useState(false);
   const skin = !style.skin || style.skin === "auto" ? "default" : String(style.skin);
-  const savedName = saved.find((p) => p.id === activePresetId(saved, { tokens, radius, style }))?.name;
+  const known = [...saved, ...(templates?.flatMap((g) => g.presets) ?? [])];
+  const savedName = known.find((p) => p.id === activePresetId(known, { tokens, radius, style }))?.name;
   const palette = THEME_PRESETS.find((p) => sameTokens(p.tokens, tokens))?.label;
   const current = savedName ?? `${palette ?? "Custom"} palette · ${skin.charAt(0).toUpperCase()}${skin.slice(1)} skin${palette ? "" : " · edited"}`;
   const skinItem = (p: (typeof SKIN_PACKS)[number]) => (
@@ -146,6 +155,40 @@ export function ThemeStartFrom({ tokens, radius, style, saved, onPalette, onSkin
           <MoreRows storeKey={moreKey("theme", "start")} count={SKIN_PACKS.length - REGULAR_SKINS} className="pl-0">
             <div className="grid grid-cols-3 gap-1.5 bg-ui-chrome">{SKIN_PACKS.slice(REGULAR_SKINS).map(skinItem)}</div>
           </MoreRows>
+          {templates && (
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                aria-expanded={fromTemplates}
+                onClick={() => setFromTemplates(!fromTemplates)}
+                className="flex items-center gap-1 self-start rounded-sm text-[11px] text-ui-4 hover:text-ui-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+              >
+                From templates ({templates.reduce((n, g) => n + g.presets.length, 0)})
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-150", fromTemplates && "rotate-180")} />
+              </button>
+              {fromTemplates &&
+                templates.map((g) => (
+                  <Row key={g.id} label={g.name}>
+                    {g.presets.map((p) => (
+                      <div key={p.id} className="relative min-w-0 [&>button]:w-full">
+                        <Item name={p.name.split(" · ")[1] ?? p.name} kind="Template look" title={p.description} onPick={() => onTemplate(p)}>
+                          <AppearancePreview preset={p} className="h-full rounded-none border-0" />
+                        </Item>
+                        <button
+                          type="button"
+                          onClick={() => onCopy(p)}
+                          title="Save a copy to my themes"
+                          aria-label={`Save a copy of ${p.name} to my themes`}
+                          className="absolute right-1 top-1 rounded bg-black/50 p-0.5 text-white/80 hover:text-white focus-visible:outline-2 focus-visible:outline-ui-accent"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </Row>
+                ))}
+            </div>
+          )}
           <button
             type="button"
             onClick={onLibrary}
