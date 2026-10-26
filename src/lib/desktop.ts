@@ -106,6 +106,13 @@ export async function onShellEvent<T>(event: "server-status" | "update-state" | 
   return listen<T>(event, (e) => handler(e.payload));
 }
 
+/** Calls `handler` when Settings › General › Run setup asks for the setup; resolves to the unsubscribe. */
+export async function onRunSetup(handler: () => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen("run-setup", handler);
+}
+
 /** Native save dialog; resolves to whether a file was written. */
 export const saveTextFile = async (defaultName: string, contents: string): Promise<boolean> =>
   (await call<boolean>("save_text_file", { defaultName, contents })) === true;

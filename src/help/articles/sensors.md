@@ -3,12 +3,42 @@ id: sensors
 title: Sensors and the Data API
 icon: sensors
 related: [widgets, problems, panel-widgets]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.34
 ---
 
 Where every number on your dashboard comes from.
 
 InfoPanel collects readings from LibreHardwareMonitor, HWiNFO and its plugins (Spotify, weather, Steam, Bluetooth and more) and publishes them on its **Data API**, by default on port `3921`. The studio and kiosk read from there.
+
+The setup's **Data checks** step tests this link one piece at a time. The sections below cover what its fixes ask for.
+
+## Installing InfoPanel
+
+InfoPanel is a separate app, and Studio needs a version of it that has the Data API.
+
+1. Install InfoPanel with the Data API.
+2. Start **InfoPanel** once so it creates its data folder, `%LOCALAPPDATA%\InfoPanel`.
+3. In InfoPanel, open **Settings**. Under **Data API**, turn on **Enable Data API**. InfoPanel starts it at once and saves the setting.
+4. To have readings every time you sign in, turn on **Run on startup** in the same **Settings** page.
+
+InfoPanel asks to run as administrator, so Windows asks for permission when it starts, including when the setup's **Start InfoPanel** button starts it.
+
+## Updating InfoPanel
+
+If the setup says your InfoPanel doesn't have the Data API yet, its settings.xml has no Data API switch. Install a version of InfoPanel that has the Data API over the one you have: your profiles and settings are kept. Start InfoPanel again and turn on **Enable Data API** in its **Settings**.
+
+InfoPanel only writes a setting to settings.xml when a setting changes. If your InfoPanel already has the Data API but you've never changed a setting, turning on **Enable Data API** once is enough for the setup to find it.
+
+## A Data API on another PC
+
+The studio can read InfoPanel on another PC on your network. In the setup's **Data checks**, choose **Another PC** and type that PC's address, such as `http://192.168.1.40:3921`. Studio can't look at InfoPanel on another PC, so it skips the first four checks and asks the Data API directly.
+
+On the PC that runs InfoPanel:
+
+1. Open InfoPanel's **Settings**. Under **Data API**, turn **Enable Data API** off: InfoPanel lets you change the address and port only while it's off.
+2. Set **Listen IP** to that PC's network address instead of `127.0.0.1`, then turn **Enable Data API** on again.
+3. Allow InfoPanel through the firewall: **Windows Security** › **Firewall & network protection** › **Allow an app through firewall**, then tick **InfoPanel** for **Private** networks.
+4. Run `ipconfig` there and use its IPv4 address with the port, `3921` unless you changed it.
 
 ## How widgets find sensors
 
@@ -31,5 +61,5 @@ When HWiNFO is running, its sensors are grouped by device in every list: "CPU [#
 In the studio, open **Data**, and in its **Connection** card set the **Data API URL**. Press **Test connection** to check it. Only change it if InfoPanel runs on another PC or port.
 
 :::warn
-If every widget shows dashes, the Data API is unreachable. Check InfoPanel is running and its web server is enabled. See [Common problems](problems).
+If every widget shows dashes, the Data API is unreachable. Check InfoPanel is running and **Enable Data API** is on in its **Settings**, or run the setup's data checks again (Settings › General › **Run setup**). See [Common problems](problems).
 :::

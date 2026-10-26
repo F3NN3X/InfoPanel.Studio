@@ -6,6 +6,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **A new first-run setup.** It fills the window and has five steps: Welcome, Data checks, Your screen, Start and Finish. The data checks start as soon as it opens and test each link from InfoPanel to your screens in order: InfoPanel installed, running, a build with the Data API, the Data API turned on and answering, sensors found, readings that change, and Studio's own server. A check that fails or warns opens with numbered steps that use InfoPanel's own setting names, and some have a button: **Start InfoPanel**, **Restart InfoPanel**, or **Use** the address InfoPanel's settings name. Nothing blocks you: **Continue without live data** carries on. **Another PC** checks a Data API on another machine.
+- **Your screen and Start match the New page.** The 17 size presets in their four shapes, this window's size or a size you type, then a template from the top picks for that shape (drawn with your readings), an InfoPanel profile, a blank grid, or **Browse all**, which opens the New page at that size.
+
+### Added
+
+- **Your kiosk address with a QR code** in the setup, to open your dashboard on a tablet or phone. **Copy** and **Open in browser** sit beside it.
+- **Run setup in Settings › General.** Run again keeps your screens and saves nothing until you finish. Help's **Run setup again** opens it too.
+- **Help on installing and updating InfoPanel and on a Data API on another PC**, in Sensors and the Data API.
+
 ## [1.3.0-beta.33] - 2026-10-26
 
 ### Changed

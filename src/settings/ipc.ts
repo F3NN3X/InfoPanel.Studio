@@ -33,6 +33,8 @@ export const ipc = {
   foreignServerInfo: () => invoke<ForeignInfo | null>("foreign_server_info"),
   useForeignServer: () => invoke<StopResult>("use_foreign_server"),
   listLocalAddresses: () => invoke<string[]>("list_local_addresses"),
+  /** Opens the first-run setup in the studio, with the rights to start InfoPanel and set the setup's switches. */
+  runSetup: () => invoke<void>("run_setup"),
   setAgents: (enabled: boolean) => invoke<SetAgentsResult>("set_agents", { enabled }),
   agentsStatus: () => invoke<AgentStatus[]>("agents_status"),
   repairAgents: () => invoke<AgentStatus[]>("repair_agents"),

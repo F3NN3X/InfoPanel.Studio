@@ -45,6 +45,7 @@ export interface SearchEntry<P extends PageId = SectionId> {
 /** Every row search finds (SPEC 8). */
 export const SEARCH_INDEX: SearchEntry[] = [
   { row: "zoom", label: "App zoom", section: "general" },
+  { row: "run-setup", label: "Run setup", section: "general" },
   { row: "start-at-login", label: "Start at login", section: "general" },
   { row: "open-studio", label: "Open the studio on launch", section: "general" },
   { row: "start-server", label: "Start the server on launch", section: "general" },

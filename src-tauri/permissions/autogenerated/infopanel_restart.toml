@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-infopanel-restart"
+description = "Enables the infopanel_restart command without any pre-configured scope."
+commands.allow = ["infopanel_restart"]
+
+[[permission]]
+identifier = "deny-infopanel-restart"
+description = "Denies the infopanel_restart command without any pre-configured scope."
+commands.deny = ["infopanel_restart"]

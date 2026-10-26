@@ -49,6 +49,13 @@ fn main() {
         "changelog",
         "open_external",
         "default_browser_kind",
+        "infopanel_local",
+        "infopanel_start",
+        "infopanel_restart",
+        "port_owner",
+        "setup_options",
+        "setup_end",
+        "run_setup",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("failed to run the Tauri build script");

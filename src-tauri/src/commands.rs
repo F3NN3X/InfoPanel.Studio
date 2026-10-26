@@ -9,11 +9,11 @@ use crate::probe::{self, ProcessInfo};
 use crate::settings::{self, Settings};
 use crate::state::{lock, AppState, Phase, RunningConfig, Status};
 use crate::updater::{self, UpdateState};
-use crate::{agents, control, debug, http, kiosk, studio_target, windows};
+use crate::{agents, control, debug, http, infopanel_local, kiosk, studio_target, windows};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, Url};
+use tauri::{AppHandle, Emitter, Manager, Url};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
@@ -630,6 +630,90 @@ pub async fn open_help(app: AppHandle, article: Option<String>, heading: Option<
 pub fn default_browser_kind() -> studio_target::BrowserKind {
     log::debug!("ipc: default_browser_kind");
     studio_target::default_browser_kind()
+}
+
+// ---- First-run setup ----
+
+/// InfoPanel on this PC: data folder, profiles, the Data API switch, the running process and the exe; `setup` says
+/// whether a setup session is open (whether Start, Restart and the Finish switches may be offered).
+#[tauri::command]
+pub async fn infopanel_local(app: AppHandle) -> CmdResult<infopanel_local::Local> {
+    log::debug!("ipc: infopanel_local");
+    let setup = setup_open(&app);
+    blocking(move || infopanel_local::Local { setup, ..infopanel_local::local() }).await
+}
+
+fn setup_open(app: &AppHandle) -> bool {
+    app.state::<AppState>().setup.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// Starting InfoPanel and the setup's switches only work in a setup session the shell opened.
+fn setup_gate(app: &AppHandle) -> CmdResult<()> {
+    if setup_open(app) {
+        Ok(())
+    } else {
+        Err("Run setup from Settings → General to let Studio do this.".into())
+    }
+}
+
+/// Settings › General › Run setup: opens a setup session and the setup in the studio.
+#[tauri::command]
+pub fn run_setup(app: AppHandle) {
+    log::info!("ipc: run_setup");
+    control::open_setup(&app);
+    studio_target::open(&app);
+    let _ = app.emit_to(windows::MAIN, "run-setup", ());
+}
+
+/// The setup closed: the session's rights end.
+#[tauri::command]
+pub fn setup_end(app: AppHandle) {
+    log::info!("ipc: setup_end");
+    app.state::<AppState>().setup.store(false, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// Opens a path through the shell: InfoPanel asks to run as administrator, so only the shell can start it.
+fn shell_open(app: &AppHandle, path: &std::path::Path) -> Result<(), String> {
+    app.opener()
+        .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+/// Starts InfoPanel, or brings its window to the front when it runs.
+#[tauri::command]
+pub async fn infopanel_start(app: AppHandle) -> CmdResult<()> {
+    log::info!("ipc: infopanel_start");
+    setup_gate(&app)?;
+    blocking(move || infopanel_local::start(|p| shell_open(&app, p))).await?
+}
+
+/// Asks InfoPanel to close, then starts it again; an error when it doesn't close.
+#[tauri::command]
+pub async fn infopanel_restart(app: AppHandle) -> CmdResult<()> {
+    log::info!("ipc: infopanel_restart");
+    setup_gate(&app)?;
+    blocking(move || infopanel_local::restart(|p| shell_open(&app, p))).await?
+}
+
+/// The process listening on a port (the Data API's, when it doesn't answer).
+#[tauri::command]
+pub async fn port_owner(port: u16) -> CmdResult<Option<ProcessInfo>> {
+    log::debug!("ipc: port_owner {port}");
+    blocking(move || infopanel_local::port_owner(port)).await
+}
+
+/// The setup's Finish switches: start at login and the update check. Finishing ends the session.
+#[tauri::command]
+pub async fn setup_options(app: AppHandle, start_at_login: bool, check_for_updates: bool) -> CmdResult<Settings> {
+    log::info!("ipc: setup_options");
+    setup_gate(&app)?;
+    blocking(move || {
+        apply_setting(&app, "startAtLogin", Value::from(start_at_login));
+        let saved = apply_setting(&app, "checkForUpdates", Value::from(check_for_updates)).settings;
+        app.state::<AppState>().setup.store(false, std::sync::atomic::Ordering::SeqCst);
+        saved
+    })
+    .await
 }
 
 /// Kiosk view: with a size the window takes it exactly; without one it goes back to the studio's.

@@ -46,6 +46,7 @@
     "allow-changelog",
     "allow-open-external",
     "allow-default-browser-kind",
+    "allow-run-setup",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",
