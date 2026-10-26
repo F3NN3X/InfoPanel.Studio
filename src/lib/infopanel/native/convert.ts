@@ -318,7 +318,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       const src = imageSource(item);
       const url = src.kind === "url" ? src.url : src.kind === "asset" ? ctx.assetUrl(src.name) : null;
       if (item.kind !== "HttpImage" && !url) {
-        return no(src.kind === "none" ? src.why : "the image has no URL yet (uploading to the lab asset store, or not an image the widget shows)");
+        return no(src.kind === "asset" ? `its file ${src.name} is not in the export, or is not an image the widget shows` : src.kind === "none" ? src.why : "no image URL");
       }
       // InfoPanel draws a 0 × 0 image at its file's size; the widget needs the box.
       const natural = src.kind === "asset" ? (ctx.assetSize?.(src.name) ?? null) : null;
@@ -402,7 +402,7 @@ export function convert(item: DisplayItem, id: string, ctx: ConvertContext): Con
       if (item.Images.length === 0) return no("gauge without frames");
       const sources = item.Images.map((img) => imageSource(img));
       const urls = sources.map((s) => (s.kind === "url" ? s.url : s.kind === "asset" ? ctx.assetUrl(s.name) : null));
-      if (urls.some((u) => u === null)) return no("image-sequence gauge: its frames have no URL yet (uploading to the lab asset store)");
+      if (urls.some((u) => u === null)) return no("image-sequence gauge: some of its frames are not in the export");
       const first = sources[0].kind === "asset" ? (ctx.assetSize?.(sources[0].name) ?? null) : null;
       const w = Math.floor(((item.Width || first?.width || 0) * item.Scale) / 100);
       const h = Math.floor(((item.Height || first?.height || 0) * item.Scale) / 100);

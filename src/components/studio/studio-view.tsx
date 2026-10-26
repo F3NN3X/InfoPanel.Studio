@@ -342,8 +342,9 @@ function StudioViewBody({
   const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(undefined);
   const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
   useEffect(() => {
-    // Leaving the page keeps the document open (the rail brings it back); the zone going closes it.
-    if (editingCanvas && !canvasZone) setEditingCanvas(null);
+    // Leaving the page keeps the document open (the rail brings it back); the zone going closes it. Only if it is
+    // still the open one: an import onto another screen opens its own zone in the same commit.
+    if (editingCanvas && !canvasZone) setEditing((open) => (open === editingCanvas ? null : open));
   }, [editingCanvas, canvasZone]);
   /**
    * "New InfoPanel profile…": blank or from a template, as a new screen (not made active), opened
@@ -410,6 +411,7 @@ function StudioViewBody({
       else ui.openLibrary(go.collection);
     },
     onWizard: (file, dest) => io.openImport(dest, { file }, true),
+    onInstalled: () => io.openImport("new", { installed: true }),
     onLibraryChanged: () => setLibraryEpoch((n) => n + 1),
   });
   /** The Export & back up sheet: open with the row a request names (the title bar, a Screens card, the gauge editor). */

@@ -3,7 +3,7 @@ id: import
 title: Importing and exporting
 icon: download
 related: [canvas, remap, assets]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.29
 ---
 
 Bring files into the studio and take them out again, without losing anything.
@@ -19,6 +19,9 @@ Press **Import** in the title bar, or drop files anywhere in the window. The doo
 | An `.infopanel` file or a stored canvas | The InfoPanel steps below, landing as a new screen or a canvas zone on the current page, whichever you chose in the door. |
 | A gauge file, SVG template or frames `.zip` | Saved in Library › Gauges and opened in the gauge editor. |
 | An image, video, font or font pack | Saved in Library › Media or Fonts, with "Also use it as the background for ‹screen›". |
+
+With no file chosen, **From InfoPanel on this PC…** lists the profiles InfoPanel has installed here, and **No file? New
+InfoPanel profile…** starts an empty one.
 
 Drop several files together and the door lists each one; a file it doesn't recognise says so and the rest go on. One config and one InfoPanel file are taken per run.
 
@@ -37,7 +40,8 @@ Save — Into a canvas zone
 ## 1. Source
 
 - **File or folder**: an `.infopanel` file, an extracted folder, or a `.canvas.zip`. Use **Choose file…** or **Choose folder…**, or drop it on the door.
-- **Installed in InfoPanel**: a profile installed in InfoPanel on the PC running InfoPanel Studio (read-only).
+- **Installed in InfoPanel**: a profile installed in InfoPanel on the PC running InfoPanel Studio (read-only). The door's
+  **From InfoPanel on this PC…** opens this list directly.
 - **Saved canvas**: a canvas you saved earlier.
 
 ## 2. Mode
@@ -52,7 +56,11 @@ This only sets the starting point. You can switch any item later, without loss.
 
 ## 3. Review
 
-Before committing, the review shows tiles for Items, Native, Sensors, Assets, Fonts and Gauges. Below them: why some items stay InfoPanel, which app features native mode needs, items by kind, assets, fonts, whether the Data API on this PC answers, and any parse notes. Press **Looks right, continue**.
+Before committing, the review shows tiles for Items, Native, Sensors, Assets, Fonts and Gauges. Below them: why some items stay InfoPanel, which app features native mode needs, items by kind, assets, fonts, whether the Data API on this PC answers, and any parse notes. An item that stays InfoPanel because its picture is missing names the file the export lacks.
+Press **Looks right, continue**.
+
+Text draws with the font the profile names when it is installed on the PC showing the dashboard. When InfoPanel
+can't say which face it uses, the style it was given (Bold, SemiBold, Light and so on) still sets the weight.
 
 ## 4. Sensors and save
 

@@ -122,10 +122,12 @@ interface ImportDoorDialogProps {
   onRemove: (id: number) => void;
   onClose: () => void;
   onRun: () => void;
+  /** Pick a profile installed in InfoPanel on this PC (the wizard's Installed source). */
+  onInstalled: () => void;
 }
 
 /** The one Import dialog (SPEC §9.1): the files it detected, where each goes, the options, then the primary action. */
-export function ImportDoorDialog({ open, files, choices, onChoices, busy, current, onAdd, onRemove, onClose, onRun }: ImportDoorDialogProps) {
+export function ImportDoorDialog({ open, files, choices, onChoices, busy, current, onAdd, onRemove, onClose, onRun, onInstalled }: ImportDoorDialogProps) {
   const input = useRef<HTMLInputElement>(null);
   const groups = groupsOf(files, current);
   const pending = files.some((f) => !f.sniffed);
@@ -167,16 +169,21 @@ export function ImportDoorDialog({ open, files, choices, onChoices, busy, curren
               </button>
             ) : null}
             {files.length === 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  openNewInfoPanel();
-                }}
-                className="-mt-2 self-start text-[12px] text-ui-accent-text hover:underline"
-              >
-                No file? New InfoPanel profile…
-              </button>
+              <div className="-mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                <button type="button" onClick={onInstalled} className="text-[12px] text-ui-accent-text hover:underline">
+                  From InfoPanel on this PC…
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    openNewInfoPanel();
+                  }}
+                  className="text-[12px] text-ui-accent-text hover:underline"
+                >
+                  No file? New InfoPanel profile…
+                </button>
+              </div>
             )}
             {files.length === 0 ? null : (
               <section aria-label="Detected" className="rounded-[10px] border border-ui-default bg-ui-chrome px-3.5 py-1.5">
