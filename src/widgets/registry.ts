@@ -5,6 +5,7 @@ import { GROUP_B } from "./registry/b";
 import { GROUP_C } from "./registry/c";
 import { GROUP_D } from "./registry/d";
 import { GROUP_E } from "./registry/e";
+import { GROUP_HISTORY } from "./registry/history";
 import { TIME_WIDGETS } from "./registry/time";
 import { fitSettings, INSPECTOR_META } from "./registry/inspector-meta";
 
@@ -15,7 +16,7 @@ const deviceKindOf = (m: DashboardModule): DashboardModule["deviceKind"] => {
 };
 
 /** Each with its inspector metadata (header, small zones, ...; `inspector-meta.ts`) and the Fit rows it can draw. */
-export const TEMPLATE_MODULES: DashboardModule[] = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D, ...GROUP_E, ...TIME_WIDGETS].map((m) => {
+export const TEMPLATE_MODULES: DashboardModule[] = [...GROUP_A, ...GROUP_B, ...GROUP_C, ...GROUP_D, ...GROUP_E, ...TIME_WIDGETS, ...GROUP_HISTORY].map((m) => {
   const meta = INSPECTOR_META[m.id];
   const kind = deviceKindOf(m);
   return {

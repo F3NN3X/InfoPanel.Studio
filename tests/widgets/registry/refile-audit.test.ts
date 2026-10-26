@@ -5,7 +5,7 @@ import { modules } from "@/modules";
 import { INSPECTOR_META } from "@/widgets/registry/inspector-meta";
 
 // The audit of the refile (widget settings v2, SPEC §6.4 and §9), over every widget filed so far:
-// the nine sample widgets and the three batches of the rest: all 56.
+// the nine sample widgets, the three batches of the rest and the history widgets: all 63.
 const REFILED = [
   "SystemOverview", "NowPlaying", "SensorGroup", "AudioMeter", "Weather", "CpuMonitor", "Uptime", "SteamProfile", "WebPage",
   // Batch A
@@ -16,11 +16,13 @@ const REFILED = [
   "FpsMonitor", "GameSpotlight", "OsdStrip", "FramePacing", "PlaytimeShare", "SteamFriends", "SteamGame", "Achievements", "SteamLibrary", "SteamNews", "TextFile", "Notifications", "Departures", "Bluetooth", "StreamDeck",
   // Time and status
   "DayPlanner", "RadialClockStack", "OnAirBeacon",
+  // History and analysis
+  "BottleneckLens", "FrameHistogram", "SessionStats", "ThresholdTimeline",
 ];
 
-it("covers all 59 widgets", () => {
-  expect(REFILED).toHaveLength(59);
-  expect(new Set(REFILED).size).toBe(59);
+it("covers all 63 widgets", () => {
+  expect(REFILED).toHaveLength(63);
+  expect(new Set(REFILED).size).toBe(63);
   expect([...REFILED].sort()).toEqual(modules.filter((m) => INSPECTOR_META[m.id]).map((m) => m.id).sort());
 });
 
