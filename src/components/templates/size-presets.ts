@@ -38,6 +38,27 @@ export const SIZE_PRESETS: readonly Size[] = [
   { width: 1080, height: 1920 },
 ];
 
+/**
+ * The physical panel a preset is, where a seller's listing names a panel at that exact resolution (either way round);
+ * a size without one is only its pixels. Display-only: the New wizards group the presets by shape and show this beside them.
+ */
+export const PRESET_HINTS: Readonly<Record<string, string>> = {
+  "480x320": "3.5″ panel",
+  "800x480": "5″ / 7″ panel",
+  "1024x600": "7″ panel",
+  "1920x1080": "Full HD monitor",
+  "1920x720": "12.3″ bar",
+  "1280x400": "7.9″ bar",
+  "1920x480": "8.8″ bar",
+  "480x800": "5″ portrait",
+  "600x1024": "7″ portrait",
+  "480x1920": "8.8″ bar, portrait",
+  "1080x1920": "Full HD, portrait",
+};
+
+/** The physical panel a size is, if it is a known one. */
+export const hintOf = (size: Size): string | undefined => PRESET_HINTS[`${size.width}x${size.height}`];
+
 /** The index of the preset that is this size, if any. */
 export const presetIndexOf = (size: Size | undefined): number | undefined => {
   const i = size ? SIZE_PRESETS.findIndex((p) => p.width === size.width && p.height === size.height) : -1;

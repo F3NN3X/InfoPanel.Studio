@@ -45,8 +45,9 @@ import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
 import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
 import { canvasPlaces } from "@/components/infopanel/edit/canvas-places";
-import type { NewProfile } from "@/components/infopanel/new-profile-wizard";
-import type { GalleryChoice } from "@/components/infopanel/template-gallery";
+import type { NewChoice, NewProfile, NewScreen } from "@/components/templates/new-page";
+import type { WizardKind } from "@/components/templates/recent-templates";
+import { uniqueProfileName } from "./profile-actions";
 import { canvasZoneOf, importAsProfile } from "./import-actions";
 import { useImportDoor } from "./use-import-door";
 import { helpZoneKind } from "./help-zone";
@@ -93,8 +94,8 @@ const NO_REQUEST: ExportRequest = {};
 
 /** The InfoPanel editor (A5), the InfoPanel page's body, loaded when a profile is first opened there. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
-/** The gallery and its template data load only when the dialog opens. */
-const NewProfileWizard = lazy(() => import("@/components/infopanel/new-profile-wizard"));
+/** The New page loads when it opens, and its templates after it (`wizard-kit.ts`). */
+const NewPage = lazy(() => import("@/components/templates/new-page"));
 /** The InfoPanel home page loads when it is first shown, never with the studio. */
 const InfoPanelStart = lazy(() => import("@/components/infopanel/edit/infopanel-start").then((m) => ({ default: m.InfoPanelStart })));
 /** The Data, Alerts and Screens views load when the rail first opens them. */
@@ -330,6 +331,7 @@ function StudioViewBody({
     setEditing(id);
   };
   const onRail = (item: RailItem) => {
+    setNewPage(null);
     if (item === "infopanel") setInfopanelHome(true);
     ui.onRail(item);
   };
@@ -348,27 +350,39 @@ function StudioViewBody({
     if (editingCanvas && !canvasZone) setEditing((open) => (open === editingCanvas ? null : open));
   }, [editingCanvas, canvasZone]);
   /**
-   * "New InfoPanel profile…": blank or from a template, as a new screen (not made active), opened
-   * in the editor; a template's sensors not found on this machine are listed there with Remap. It is
-   * a page over the InfoPanel home: the home's Create card it starts on (none: step 1), and the view
-   * Cancel goes back to.
+   * The New page (New screen, New InfoPanel profile): a page over Screens or the InfoPanel home, whichever its kind
+   * is, so the rail follows the kind switch while the page stays. "New InfoPanel profile…" makes a new screen (not
+   * made active) opened in the editor, a template's sensors not found on this machine listed there with Remap; the
+   * home's Create card it starts on, and the view Cancel goes back to.
    */
-  const [newProfile, setNewProfile] = useState<{ initial?: GalleryChoice; back: StudioMode } | null>(null);
+  const [newPage, setNewPage] = useState<{ kind: WizardKind; initial?: NewChoice; back: StudioMode } | null>(null);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
   const modeNow = useRef(ui.mode);
   modeNow.current = ui.mode;
-  const openNewProfile = (initial?: GalleryChoice) => {
-    setNewProfile({ initial, back: modeNow.current });
+  const openNewProfile = (initial?: NewChoice) => {
+    setNewPage({ kind: "ip", initial, back: modeNow.current });
     setInfopanelHome(true);
     ui.setMode("infopanel");
   };
+  const openNewScreen = () => setNewPage({ kind: "screen", back: "screens" });
+  const switchNewKind = (kind: WizardKind) => {
+    setNewPage((p) => p && { ...p, kind, initial: undefined });
+    if (kind === "ip") setInfopanelHome(true);
+    ui.setMode(kind === "ip" ? "infopanel" : "screens");
+  };
   useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && openNewProfile()), []);
-  // Leaving the InfoPanel page drops the page.
+  // Leaving the page's view (the rail, a link) drops the page.
   useEffect(() => {
-    if (ui.mode !== "infopanel") setNewProfile(null);
-  }, [ui.mode]);
+    if (newPage && ui.mode !== (newPage.kind === "ip" ? "infopanel" : "screens")) setNewPage(null);
+  }, [ui.mode, newPage]);
+  const createScreen = ({ profile: made, unbound }: NewScreen) => {
+    setNewPage(null);
+    const name = uniqueProfileName(config.profiles, made.name);
+    edit.addImportedProfile({ ...made, name });
+    toast(unbound.length > 0 ? `${name} created. Not found on this PC: ${unbound.join(", ")}` : `${name} created`);
+  };
   const createInfoPanel = ({ name, width, height, stored, unbound, toLibrary }: NewProfile) => {
-    setNewProfile(null);
+    setNewPage(null);
     const r = importAsProfile(config, stored, name, { width, height }, false);
     setConfig(r.config);
     selectProfile(r.profileId);
@@ -556,11 +570,11 @@ function StudioViewBody({
       kiosks={kiosksOf(control)}
       displays={control?.displays ?? NO_DISPLAYS}
       onOpenScreen={openScreen}
-      onAddMadeProfile={edit.addImportedProfile}
       onDuplicateProfile={edit.duplicateProfile}
       onRemoveProfile={edit.removeProfile}
       onUndo={history.undo}
       onOpenSaved={(item) => void editCanvas(item)}
+      onNew={openNewScreen}
     />
     </Suspense>
   );
@@ -834,45 +848,64 @@ function StudioViewBody({
 
   /** The InfoPanel home page: Continue editing, Create, and the profiles in the dashboard and the Library. */
   const currentPlace = canvasPlaces(config).find((c) => c.zoneId === editingCanvas);
+  // The New page, over Screens or the InfoPanel home by its kind; the same element in both, so the kind switch keeps it.
+  const newPageEl = newPage && (showScreens || showInfoPanel) && (
+    <>
+      <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+        <NewPage
+          kind={newPage.kind}
+          onKind={switchNewKind}
+          screen={storedProfile}
+          initial={newPage.initial}
+          onCreateScreen={createScreen}
+          onCreateProfile={createInfoPanel}
+          onCancel={() => {
+            setNewPage(null);
+            ui.setMode(newPage.back);
+          }}
+          onSample={() => {
+            setNewPage(null);
+            void import("@/lib/screens/create").then(({ sampleScreen }) => {
+              edit.addImportedProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
+              toast("Screen created from the sample layout");
+            });
+          }}
+          onImport={(kind) => {
+            setNewPage(null);
+            openImportDoor(kind === "ip" ? { prefer: "canvas-zone" } : undefined);
+          }}
+        />
+      </Suspense>
+      {/* An open document stays mounted, hidden, as it does under the home page. */}
+      {showInfoPanel && canvasEditor && (
+        <div hidden inert className="hidden">
+          {canvasEditor}
+        </div>
+      )}
+    </>
+  );
   const infopanelStart = homeShown && (
     <>
-      {newProfile ? (
-        <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-          <NewProfileWizard
-            initial={newProfile.initial}
-            onCreate={createInfoPanel}
-            onCancel={() => {
-              setNewProfile(null);
-              ui.setMode(newProfile.back);
-            }}
-            onImport={() => {
-              setNewProfile(null);
-              openImportDoor({ prefer: "canvas-zone" });
-            }}
-          />
-        </Suspense>
-      ) : (
-        <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-          <InfoPanelStart
-            config={config}
-            current={currentPlace}
-            onContinue={() => setInfopanelHome(false)}
-            onOpen={(c) => {
-              openOnLand.current = c.zoneId;
-              openZone(c.profileId, c.pageId, c.zoneId);
-            }}
-            onOpenLibrary={(item) => void editCanvas(item)}
-            onNew={(choice) => openNewProfile(choice ?? { template: null, variant: "" })}
-            onImport={() => openImportDoor({ prefer: "canvas-zone" })}
-            onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
-            onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
-            onExport={(c) => {
-              const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);
-              if (zone) io.openExport(zone);
-            }}
-          />
-        </Suspense>
-      )}
+      <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+        <InfoPanelStart
+          config={config}
+          current={currentPlace}
+          onContinue={() => setInfopanelHome(false)}
+          onOpen={(c) => {
+            openOnLand.current = c.zoneId;
+            openZone(c.profileId, c.pageId, c.zoneId);
+          }}
+          onOpenLibrary={(item) => void editCanvas(item)}
+          onNew={(choice) => openNewProfile(choice ?? { template: null, variant: "" })}
+          onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+          onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
+          onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
+          onExport={(c) => {
+            const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);
+            if (zone) io.openExport(zone);
+          }}
+        />
+      </Suspense>
       {canvasEditor && (
         <div hidden inert className="hidden">
           {canvasEditor}
@@ -986,7 +1019,7 @@ function StudioViewBody({
         rail={phone ? null : <LeftRail active={railActive} onSelect={onRail} onHelp={openHelpWindow} narrow={narrowRail} />}
         railWidth={railWidth(windowWidth)}
         drawer={!fullPage && !canvasEditor && ui.leftOpen && leftPanelEl}
-        main={alertsEl || screensEl || gaugesEl || themeEl || infopanelStart || (
+        main={newPageEl || alertsEl || screensEl || gaugesEl || themeEl || infopanelStart || (
           <>
             {libraryEl}
             {canvasEditor ? (

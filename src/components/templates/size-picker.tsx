@@ -1,15 +1,18 @@
 /**
- * The template dialogs' size row (New InfoPanel profile, New screen): the panel size presets as radios, and Custom
- * with a width and a height typed as whole pixels.
+ * The New wizards' Size field: the panel presets in a row per shape class (Standard, Wide, Strip, Tall), a ★ on the
+ * chosen template's own size and the physical panel as each one's tooltip; then Custom, a width and a height that
+ * always show the size, where typing is choosing one. The header says whether the size follows the selection or was
+ * set here, with a way back to the selection's own. The grouping is display-only: `SIZE_PRESETS` keeps its order.
  */
+import { Star } from "lucide-react";
+import { shapeClassOf } from "@/lib/infopanel/templates/layout";
 import { cn } from "@/lib/utils";
-import { SIZE_PRESETS, type Size } from "./size-presets";
+import { CLASS_NAMES, CLASS_ORDER } from "./shape-chips";
+import { SIZE_PRESETS, hintOf, type Size } from "./size-presets";
+import type { SizeChoice } from "./use-size-choice";
 
 /** The largest size the editors take, either way. */
 export const MAX_SIDE = 8192;
-
-/** A preset's index, or a custom size. */
-export type SizeChoice = number | "custom";
 
 /** A typed side, or null when it is not a whole number from 1 to 8192. */
 export function sideOf(raw: string): number | null {
@@ -17,65 +20,98 @@ export function sideOf(raw: string): number | null {
   return raw.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= MAX_SIDE ? n : null;
 }
 
-/** The size chosen: a preset's, or the typed one (a side that isn't a valid number is null). */
-export const sizeOfChoice = (choice: SizeChoice, w: string, h: string): { width: number | null; height: number | null } =>
-  choice === "custom" ? { width: sideOf(w), height: sideOf(h) } : SIZE_PRESETS[choice];
+export const INPUT = "h-[30px] w-full min-w-0 rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent";
 
-/** The preset that is this size, else Custom (with the size typed in). */
-export const choiceOfSize = (size: Size): SizeChoice => {
-  const i = SIZE_PRESETS.findIndex((p) => p.width === size.width && p.height === size.height);
-  return i < 0 ? "custom" : i;
-};
-
-export const INPUT = "h-8 w-full min-w-0 rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent";
+const same = (a: Size, b: Size | undefined) => !!b && a.width === b.width && a.height === b.height;
 
 interface SizePickerProps {
-  choice: SizeChoice;
-  onChoice: (c: SizeChoice) => void;
-  w: string;
-  h: string;
-  onW: (w: string) => void;
-  onH: (h: string) => void;
+  sized: SizeChoice;
+  /** The selection's own size (★), and its name for the status ("Follows General"); no name for Blank. */
+  own?: Size;
+  owner?: string;
+  /** "Use W × H": back to the selection's own size. */
+  onUseOwn: () => void;
 }
 
-export function SizePicker({ choice, onChoice, w, h, onW, onH }: SizePickerProps) {
-  const size = sizeOfChoice(choice, w, h);
+export function SizePicker({ sized, own, owner, onUseOwn }: SizePickerProps) {
+  const { shown, invalid, touched } = sized;
+  const preset = !invalid && SIZE_PRESETS.some((p) => same(p, shown));
+  const status = touched ? "Set by you" : owner ? `Follows ${owner}` : "Default";
+  const back = touched && own && !same(own, shown) ? own : undefined;
+  const ratio = shown.width / shown.height;
   return (
-    <div role="radiogroup" aria-label="Size">
-      <span className="mb-1 block text-[12px] text-ui-3">Size</span>
-      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-        {SIZE_PRESETS.map((s, i) => (
-          <button
-            key={i}
-            type="button"
-            role="radio"
-            aria-checked={choice === i}
-            onClick={() => onChoice(i)}
-            className={cn("h-8 rounded-[7px] border text-[12px] tabular-nums", choice === i ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
-          >
-            {s.width} × {s.height}
+    <div role="group" aria-label="Size" className="flex flex-col gap-1.5">
+      <div className="flex items-baseline gap-2">
+        <span className="text-[12px] text-ui-2">Size</span>
+        <span className="flex-1" />
+        <span className="whitespace-nowrap text-[11px] text-ui-4">{status}</span>
+        {back && (
+          <button type="button" onClick={onUseOwn} className="whitespace-nowrap text-[11px] text-ui-accent-text hover:underline">
+            Use {back.width} × {back.height}
           </button>
-        ))}
-        <button
-          type="button"
-          role="radio"
-          aria-checked={choice === "custom"}
-          onClick={() => onChoice("custom")}
-          className={cn("col-span-3 h-8 rounded-[7px] border text-[12px] sm:col-span-6", choice === "custom" ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
-        >
-          Custom
-        </button>
+        )}
       </div>
-      {choice === "custom" && (
-        <div className="mt-2 flex items-center gap-2">
-          <input inputMode="numeric" aria-label="Width" value={w} onChange={(e) => onW(e.target.value)} className={cn(INPUT, sideOf(w) === null && "border-ui-danger")} />
-          <span className="text-ui-4">×</span>
-          <input inputMode="numeric" aria-label="Height" value={h} onChange={(e) => onH(e.target.value)} className={cn(INPUT, sideOf(h) === null && "border-ui-danger")} />
+      {CLASS_ORDER.map((cls) => (
+        <div key={cls} className="flex items-start gap-1">
+          <span className="w-14 shrink-0 pt-[5px] text-[11px] text-ui-4">{CLASS_NAMES[cls]}</span>
+          <div className="flex min-w-0 flex-1 flex-wrap gap-1">
+            {SIZE_PRESETS.filter((p) => shapeClassOf(p.width, p.height) === cls).map((p) => {
+              const on = !invalid && same(p, shown);
+              const mine = same(p, own);
+              const hint = hintOf(p);
+              return (
+                <button
+                  key={`${p.width}x${p.height}`}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={`${p.width} × ${p.height}`}
+                  title={[hint, mine ? "this template’s own size" : undefined].filter(Boolean).join(" · ") || undefined}
+                  onClick={() => sized.pick(p)}
+                  className={cn(
+                    "flex h-6 items-center gap-1 rounded-[6px] border px-[7px] font-ui-mono text-[11px] tabular-nums",
+                    on ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default bg-ui-raised text-ui-2 hover:bg-ui-hover",
+                  )}
+                >
+                  {p.width}×{p.height}
+                  {mine && <Star aria-hidden className="h-3 w-3 text-ui-accent" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
-      {choice === "custom" && (size.width === null || size.height === null) && (
-        <p className="mt-1.5 text-[11.5px] text-ui-danger">Width and height are whole numbers from 1 to {MAX_SIDE}.</p>
-      )}
+      ))}
+      <div className="flex items-center gap-1">
+        <span className="w-14 shrink-0 text-[11px] text-ui-4">Custom</span>
+        <div
+          className={cn(
+            "flex h-[26px] items-center rounded-[6px] border",
+            invalid ? "border-ui-danger" : !preset ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised focus-within:border-ui-accent",
+          )}
+        >
+          <input
+            inputMode="numeric"
+            aria-label="Width"
+            aria-invalid={invalid && sideOf(sized.w) === null}
+            value={sized.w}
+            onChange={(e) => sized.onW(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            className="h-full w-[46px] bg-transparent text-center font-ui-mono text-[11px] text-ui-1 outline-none focus-visible:shadow-none"
+          />
+          <span aria-hidden className="text-[10px] text-ui-4">×</span>
+          <input
+            inputMode="numeric"
+            aria-label="Height"
+            aria-invalid={invalid && sideOf(sized.h) === null}
+            value={sized.h}
+            onChange={(e) => sized.onH(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            className="h-full w-[46px] bg-transparent text-center font-ui-mono text-[11px] text-ui-1 outline-none focus-visible:shadow-none"
+          />
+        </div>
+        <span className={cn("ml-1.5 text-[11px]", invalid ? "text-ui-danger" : "text-ui-4")}>
+          {invalid ? `Whole numbers, 1 to ${MAX_SIDE}` : preset ? "Type any size" : `${CLASS_NAMES[shapeClassOf(shown.width, shown.height)]} · ${ratio.toFixed(2)}:1`}
+        </span>
+      </div>
     </div>
   );
 }
