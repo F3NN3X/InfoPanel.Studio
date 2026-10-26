@@ -6,6 +6,19 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **New screen and New InfoPanel profile are one page.** The templates sit on the left and a panel on the right shows the one you picked: a preview fitted to its shape (a tall one beside the fields), the size, the colours, the sensors and the name. **Create** works at any point, Enter makes it, and a double-click makes a card at the size it shows. **Screen** and **InfoPanel profile** at the top switch what the page makes, and the rail follows. On a narrow window it falls back to two steps, **Pick** and **Adjust**.
+- **The gallery shows every shape at once.** It opens on **All**, one section per shape with the shape of your size first, so strip and tall templates are in view without a click. The chips say how many templates fit each shape, and **A–Z** lists them by name. Blank, the sample layout, an InfoPanel profile and Import sit in a row above the templates that stays in view.
+- **Sizes are grouped by shape.** **Size** has a row each for Standard, Wide, Strip and Tall, a star on the template's own size, the panel a size is in its tooltip, and a width and height you can always type into. It says whether the size follows the template or was set by you, with a way back. A template at a shape it isn't made for gets a note that says how its zones are squeezed.
+- **Sensors fold into one line.** The panel says how many of a template's sensors this PC has; an InfoPanel profile's line opens onto a row per sensor to fix one before **Create**.
+- **A new InfoPanel profile is named after its template** until you type a name, as a new screen already was.
+
+### Added
+
+- **Search, colours and sensor counts on the cards.** Search finds a template by name, description, the widgets it uses and the sensors it reads (`fps` finds the frame-rate templates). Each card shows its colours as dots you can click, and how many of its sensors are found on this PC (`?` when the Data API can't be reached).
+- **Recently used.** The last three templates you made something from lead the gallery, separately for screens and InfoPanel profiles.
+
 ## [1.3.0-beta.31] - 2026-10-26
 
 ### Changed
