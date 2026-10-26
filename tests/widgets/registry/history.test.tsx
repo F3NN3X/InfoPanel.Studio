@@ -10,7 +10,9 @@ import FrameHistogram, { meta as histogram } from "@/widgets/FrameHistogram";
 import SessionStats, { meta as stats } from "@/widgets/SessionStats";
 import ThresholdTimeline, { meta as timeline } from "@/widgets/ThresholdTimeline";
 import { GROUP_HISTORY } from "@/widgets/registry/history";
-import { roleData } from "@/widgets/role-data";
+import { resolveRole } from "@/lib/infopanel/templates/roles";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
+import { RULES, roleData, type Role } from "@/widgets/role-data";
 
 const WIDGETS: [typeof bottleneck, ComponentType<ShellProps>][] = [
   [bottleneck, BottleneckLens],
@@ -81,5 +83,13 @@ describe("roleData", () => {
     });
     const f = roleData(flags.data, flags.names);
     expect([f.thermalThrottle, f.powerThrottle]).toEqual([true, false]);
+  });
+});
+
+describe("role rules", () => {
+  it("pick the same sensors as the shared roles table, by name", () => {
+    const byName = Object.fromEntries(Object.entries(SENSORS).map(([k, v]) => [k, { ...v, ref: undefined }])) as Record<string, DataApiValue>;
+    const mine = roleData(LIVE.data, LIVE.names).roles;
+    for (const role of Object.keys(RULES) as Role[]) expect(mine[role]?.key, role).toBe(resolveRole(role, byName)?.key);
   });
 });
