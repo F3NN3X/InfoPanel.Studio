@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.31] - 2026-10-26
+
 ### Changed
 
 - **Widgets grow with large zones.** A widget in a large zone used to keep the size of its largest layout and leave most of the card empty. Now its text, numbers and graphs grow with the zone, up to two and a half times, and a zone's **Size (%)** applies on top. **This changes how existing screens look:** their large zones now show bigger content. Small and medium zones look as before.
