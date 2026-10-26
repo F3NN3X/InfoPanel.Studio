@@ -1,24 +1,43 @@
 import { Plus, Search, Upload, X } from "lucide-react";
-import { FILTERS, SORTS, type ListFilter, type ListSort } from "@/lib/screens/list";
+import { SORTS, type ListFilter, type ListSort } from "@/lib/screens/list";
 import { cn } from "@/lib/utils";
 
-export interface ScreensToolbarProps {
+export interface ScreensToolbarProps<F extends string = ListFilter> {
   query: string;
   onQuery: (q: string) => void;
-  filter: ListFilter;
-  onFilter: (f: ListFilter) => void;
+  filter: F;
+  onFilter: (f: F) => void;
+  /** The Show filter's choices: Screens' kinds (`FILTERS`), or the InfoPanel home's own. */
+  filters: readonly { id: F; label: string }[];
   sort: ListSort;
   onSort: (s: ListSort) => void;
   onImport: () => void;
-  /** The New screen page: Blank, the templates and every other way to start. */
+  /** The New page: Blank, the templates and every other way to start. */
   onNew: () => void;
+  /** What the list holds, in the search's and the sort's names ("screens"). */
+  noun?: string;
+  placeholder?: string;
+  importTitle?: string;
 }
 
 const BUTTON =
   "inline-flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-strong bg-transparent px-2.5 text-[12px] text-ui-1 transition-colors hover:bg-ui-hover";
 
-/** Search, the kind filter, the sort, Import and New: the strip above the cards. */
-export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort, onImport, onNew }: ScreensToolbarProps) {
+/** Search, the Show filter, the sort, Import and New: the strip above the cards, on Screens and the InfoPanel home. */
+export function ScreensToolbar<F extends string = ListFilter>({
+  query,
+  onQuery,
+  filter,
+  onFilter,
+  filters,
+  sort,
+  onSort,
+  onImport,
+  onNew,
+  noun = "screens",
+  placeholder = "Search by name, kind or size",
+  importTitle = "Import a screen or an InfoPanel profile from a file",
+}: ScreensToolbarProps<F>) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label className="relative min-w-[160px] flex-1 basis-[200px]">
@@ -27,8 +46,8 @@ export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort,
           type="search"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
-          placeholder="Search by name, kind or size"
-          aria-label="Search screens"
+          placeholder={placeholder}
+          aria-label={`Search ${noun}`}
           className="h-8 w-full rounded-[7px] border border-ui-default bg-ui-raised pl-8 pr-7 text-[12.5px] text-ui-1 outline-none placeholder:text-ui-4 focus:border-ui-accent [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
@@ -43,7 +62,7 @@ export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort,
         )}
       </label>
       <div role="group" aria-label="Show" className="flex h-8 items-center rounded-[7px] border border-ui-default bg-ui-raised p-0.5">
-        {FILTERS.map((f) => (
+        {filters.map((f) => (
           <button
             key={f.id}
             type="button"
@@ -63,7 +82,7 @@ export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort,
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as ListSort)}
-          aria-label="Sort screens"
+          aria-label={`Sort ${noun}`}
           className="h-8 cursor-pointer rounded-[7px] border border-ui-default bg-ui-raised px-2 text-[12px] text-ui-1 outline-none focus:border-ui-accent"
         >
           {SORTS.map((s) => (
@@ -73,7 +92,7 @@ export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort,
           ))}
         </select>
       </label>
-      <button type="button" title="Import a screen or an InfoPanel profile from a file" onClick={onImport} className={BUTTON}>
+      <button type="button" title={importTitle} onClick={onImport} className={BUTTON}>
         <Upload className="h-3.5 w-3.5" />
         <span className="max-sm:sr-only">Import…</span>
       </button>
