@@ -245,7 +245,8 @@ const barUses = (...keys: (typeof ITEMS)[number][]) => (v: ModuleSettings) => [v
 const BAR_ITEMS = ITEMS.map((value) => ({ value, label: ITEM_LABELS[value] }));
 const usesWeather = barUses("weather");
 const STATUSBAR_SETTINGS: ModuleSetting[] = [
-  viewSetting(StatusBar.meta, { group: "Layout" }),
+  // The presets set the slots when added; switching View in the inspector changes the frame only, so it is a plain select
+  { ...viewSetting(StatusBar.meta, { group: "Layout" }), type: "select", options: (StatusBar.meta.views ?? []).map((v) => ({ value: v.id, label: v.name })) },
   enumSetting("left", "Left", "logo", BAR_ITEMS, { multiple: true, group: "Slots", hint: "Items show in the order picked; one with no data is left out" }),
   enumSetting("center", "Centre", "date,time", BAR_ITEMS, { multiple: true, group: "Slots" }),
   enumSetting("right", "Right", "weather,network,volume,battery", BAR_ITEMS, { multiple: true, group: "Slots" }),
@@ -380,7 +381,7 @@ export const GROUP_B: DashboardModule[] = [
     Component: StatusBar.default,
     settings: STATUSBAR_SETTINGS,
     toProps: (s): Partial<StatusBar.StatusBarProps> => ({
-      view: oneOf(s.view, ["edge", "pill", "islands"]),
+      view: oneOf(s.view, ["edge", "pill", "islands", "meters", "orbit", "ticker"]),
       left: slotOf(s.left),
       center: slotOf(s.center),
       right: slotOf(s.right),

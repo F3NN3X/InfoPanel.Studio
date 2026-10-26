@@ -49,3 +49,20 @@ export function splitCenter<K>(center: K[]): [K[], K[]] {
   const at = Math.ceil(center.length / 2);
   return [center.slice(0, at), center.slice(at)];
 }
+
+/**
+ * The items that fit `room` (px) in a bar that drops by priority: while the rest is too wide, the item with the
+ * lowest `rank` goes (the last of them on a tie), from any slot; slots and the order of the rest are kept.
+ */
+export function fitByRank<K>(slots: Slots<K>, room: number, cost: (k: K) => number, rank: (k: K) => number): Slots<K> {
+  let kept = slots;
+  const all = () => [...kept.left, ...kept.center, ...kept.right];
+  const total = () => all().reduce((s, k) => s + cost(k), 0);
+  while (total() > room && all().length > 1) {
+    const items = all();
+    const lowest = items.reduce((at, k, i) => (rank(k) <= rank(items[at]) ? i : at), 0);
+    const drop = (list: K[], from: number) => list.filter((_, i) => i + from !== lowest);
+    kept = { left: drop(kept.left, 0), center: drop(kept.center, kept.left.length), right: drop(kept.right, kept.left.length + kept.center.length) };
+  }
+  return kept;
+}
