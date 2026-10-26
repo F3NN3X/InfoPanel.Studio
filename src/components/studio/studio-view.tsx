@@ -44,7 +44,7 @@ import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
 import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
-import { canvasPlaces, InfoPanelStart } from "@/components/infopanel/edit/infopanel-start";
+import { canvasPlaces } from "@/components/infopanel/edit/canvas-places";
 import type { NewProfile } from "@/components/infopanel/new-profile-wizard";
 import type { GalleryChoice } from "@/components/infopanel/template-gallery";
 import { canvasZoneOf, importAsProfile } from "./import-actions";
@@ -95,6 +95,8 @@ const NO_REQUEST: ExportRequest = {};
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The gallery and its template data load only when the dialog opens. */
 const NewProfileWizard = lazy(() => import("@/components/infopanel/new-profile-wizard"));
+/** The InfoPanel home page loads when it is first shown, never with the studio. */
+const InfoPanelStart = lazy(() => import("@/components/infopanel/edit/infopanel-start").then((m) => ({ default: m.InfoPanelStart })));
 /** The Data, Alerts and Screens views load when the rail first opens them. */
 const SourcesPanel = lazy(() => import("./sources-panel").then((m) => ({ default: m.SourcesPanel })));
 const AlertsView = lazy(() => import("./alerts-view").then((m) => ({ default: m.AlertsView })));
@@ -850,24 +852,26 @@ function StudioViewBody({
           />
         </Suspense>
       ) : (
-        <InfoPanelStart
-          config={config}
-          current={currentPlace}
-          onContinue={() => setInfopanelHome(false)}
-          onOpen={(c) => {
-            openOnLand.current = c.zoneId;
-            openZone(c.profileId, c.pageId, c.zoneId);
-          }}
-          onOpenLibrary={(item) => void editCanvas(item)}
-          onNew={(choice) => openNewProfile(choice ?? { template: null, variant: "" })}
-          onImport={() => openImportDoor({ prefer: "canvas-zone" })}
-          onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
-          onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
-          onExport={(c) => {
-            const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);
-            if (zone) io.openExport(zone);
-          }}
-        />
+        <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+          <InfoPanelStart
+            config={config}
+            current={currentPlace}
+            onContinue={() => setInfopanelHome(false)}
+            onOpen={(c) => {
+              openOnLand.current = c.zoneId;
+              openZone(c.profileId, c.pageId, c.zoneId);
+            }}
+            onOpenLibrary={(item) => void editCanvas(item)}
+            onNew={(choice) => openNewProfile(choice ?? { template: null, variant: "" })}
+            onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+            onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
+            onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
+            onExport={(c) => {
+              const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);
+              if (zone) io.openExport(zone);
+            }}
+          />
+        </Suspense>
       )}
       {canvasEditor && (
         <div hidden inert className="hidden">

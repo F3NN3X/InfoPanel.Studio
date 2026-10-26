@@ -7,56 +7,20 @@
  */
 import { lazy, Suspense } from "react";
 import { FileUp, MonitorCog, Pencil, Share } from "lucide-react";
-import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { LibraryItem } from "@/lib/library";
-import { CANVAS_ID, type DashboardConfig } from "@/lib/layout";
+import type { DashboardConfig } from "@/lib/layout";
 import type { CardAction } from "../../studio/screens/card-actions";
 import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "../../studio/screens/profile-card";
 import { SavedCard } from "../../studio/screens/saved-card";
 import { useSavedProfiles } from "../../studio/screens/use-saved-profiles";
 import type { GalleryChoice } from "../template-gallery";
 import { CanvasThumb } from "../profile-thumb";
+import { canvasPlaces, type CanvasPlace } from "./canvas-places";
+
+export { canvasPlaces, type CanvasPlace } from "./canvas-places";
 
 /** The gallery and its template data load with the home page, never in the studio's first bundle. */
 const TemplateGallery = lazy(() => import("../template-gallery").then((m) => ({ default: m.TemplateGallery })));
-
-export interface CanvasPlace {
-  profileId: string;
-  pageId: string;
-  zoneId: string;
-  /** "ARCv2 › Page 1". */
-  where: string;
-  name: string;
-  width: number;
-  height: number;
-  items: number;
-  canvas: StoredCanvas;
-}
-
-/** Every canvas zone in the config, in screen then page order. */
-export function canvasPlaces(config: Pick<DashboardConfig, "profiles">): CanvasPlace[] {
-  return config.profiles.flatMap((p) =>
-    p.pages.flatMap((pg) =>
-      pg.placements.flatMap((z) =>
-        z.module === CANVAS_ID && z.canvas
-          ? [
-              {
-                profileId: p.id,
-                pageId: pg.id,
-                zoneId: z.id,
-                where: p.pages.length > 1 ? `${p.name} › ${pg.name}` : p.name,
-                name: String(z.canvas.profile.Name ?? z.canvas.source.name),
-                width: Number(z.canvas.profile.Width) || 0,
-                height: Number(z.canvas.profile.Height) || 0,
-                items: z.canvas.items.length,
-                canvas: z.canvas,
-              },
-            ]
-          : [],
-      ),
-    ),
-  );
-}
 
 interface InfoPanelStartProps {
   config: Pick<DashboardConfig, "profiles">;
