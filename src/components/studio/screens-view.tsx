@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { deletePlan } from "@/lib/screens/delete-plan";
-import { filterEntries, KIND_LABEL, savedEntries, screenEntries, screenKind, sortEntries, type ListFilter, type ListSort } from "@/lib/screens/list";
+import { deleteLines, deletePlan } from "@/lib/screens/delete-plan";
+import { FILTERS, filterEntries, KIND_LABEL, savedEntries, screenEntries, screenKind, sortEntries, type ListFilter, type ListSort } from "@/lib/screens/list";
 import { moveProfile } from "@/lib/screens/order";
 import type { LibraryItem } from "@/lib/library";
 import { openConvertDialog, openExportSheet, openImportDoor } from "./file-doors";
@@ -10,6 +10,7 @@ import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { DeleteDialog } from "./screens/delete-dialog";
 import { DisplaysList } from "./screens/displays-list";
+import { CARD_GRID, LIST_COLUMN, ListEmpty, ListSection, ListTitle } from "./screens/list-frame";
 import { aspectOf, Badge, CARD_BUTTON, ProfileCard } from "./screens/profile-card";
 import { SavedCard } from "./screens/saved-card";
 import { screenActions } from "./screens/screen-menu";
@@ -117,17 +118,15 @@ export function ScreensView({
   return (
     // On a phone the cards and the detail panel stack, and the view scrolls.
     <div className="flex min-h-0 flex-1 bg-ui-app/40 font-ui max-[899px]:flex-col max-[899px]:overflow-y-auto">
-      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-auto px-6 py-5 max-[899px]:shrink-0 max-[899px]:overflow-visible max-[899px]:px-3">
-        <div className="flex items-baseline gap-2">
-          <h1 className="m-0 text-[15px] font-semibold text-ui-1">Screens</h1>
-          <span className="text-[12px] text-ui-4">{plural(config.profiles.length, "screen")}</span>
-        </div>
+      <div className={LIST_COLUMN}>
+        <ListTitle title="Screens" count={plural(config.profiles.length, "screen")} />
 
         <ScreensToolbar
           query={query}
           onQuery={setQuery}
           filter={filter}
           onFilter={setFilter}
+          filters={FILTERS}
           sort={sort}
           onSort={setSort}
           onImport={() => openImportDoor()}
@@ -136,14 +135,10 @@ export function ScreensView({
 
         <DisplaysList displays={displays} profiles={config.profiles} />
 
-        {empty && (
-          <p className="rounded-[10px] border border-dashed border-ui-default px-4 py-8 text-center text-[12.5px] text-ui-4">
-            {query ? `Nothing matches "${query}".` : "Nothing here yet."}
-          </p>
-        )}
+        {empty && <ListEmpty>{query ? `Nothing matches "${query}".` : "Nothing here yet."}</ListEmpty>}
 
         {screens.length > 0 && (
-          <ul aria-label="Your screens" className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3">
+          <ul aria-label="Your screens" className={CARD_GRID}>
             {screens.map((p) => {
               const tag = launchTag(config, p.id, autoProfileId);
               const live = kiosks.filter((k) => k.profile === p.id).length;
@@ -213,8 +208,8 @@ export function ScreensView({
 
         {saved.length > 0 && (
           <>
-            <h2 className="m-0 mt-1 text-[13px] font-semibold text-ui-1">Saved in your Library</h2>
-            <ul aria-label="Saved InfoPanel profiles" className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3">
+            <ListSection title="Saved in your Library" />
+            <ul aria-label="Saved InfoPanel profiles" className={CARD_GRID}>
               {saved.map((item) => (
                 <SavedCard key={item.id} item={item} api={savedApi} action="Place" detail="Becomes a new screen" renamable onOpen={() => onOpenSaved(item)} />
               ))}
@@ -234,7 +229,7 @@ export function ScreensView({
         {...detail}
       />
 
-      <DeleteDialog plan={plan} onConfirm={() => deletingId && remove(deletingId, plan?.name ?? "")} onClose={() => setDeletingId(null)} />
+      <DeleteDialog name={plan?.name ?? null} lines={plan ? deleteLines(plan) : []} onConfirm={() => deletingId && remove(deletingId, plan?.name ?? "")} onClose={() => setDeletingId(null)} />
     </div>
   );
 }

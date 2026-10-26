@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **The InfoPanel home works like Screens.** It has the same title, toolbar (search, Show, sort, Import, New), cards and menus. Continue editing leads, then the profiles on your screens, then the ones saved in your Library. A profile card's menu adds Rename, Duplicate, Save to Library and Delete, each one undo step; Delete asks first and takes the screen too only when the profile is all that is on it. **New** opens the New InfoPanel profile page, which replaces the gallery the home used to show.
+
 ## [1.3.0-beta.32] - 2026-10-26
 
 ### Changed

@@ -3,7 +3,7 @@ id: profiles
 title: Screens and the grid
 icon: aspect_ratio
 related: [zones, themes, kiosk]
-verified: 1.3.0-beta.32
+verified: 1.3.0-beta.33
 ---
 
 A screen (profile) is a design for one display size. Its grid decides where zones can go.
@@ -19,6 +19,7 @@ Open **Screens** from the rail, from the settings button beside the screen name 
 - **New** opens the **New screen** page in place of the cards: the screen templates beside a panel with the preview, size, colours and name (see [Screen templates](profiles#screen-templates)), and above them **Blank grid**, **The sample layout**, **An InfoPanel profile** and **Import a file**.
 - **Import…** opens the Import door (see [Importing and exporting](import)); a `.json` file saved with **Export screen** becomes a new screen with a name of its own if one is already taken.
 - **Saved in your Library** lists InfoPanel profiles saved in My library that no screen uses yet. **Place** makes one a new screen and opens it. A saved card can also be duplicated, renamed or removed, from its footer or its **⋯** menu. Removing asks first and can't be undone with Ctrl+Z, but a file that any screen still uses is kept.
+- The InfoPanel home page, behind **InfoPanel** on the rail, is this page for InfoPanel profiles: the same cards, toolbar and menus, with every profile on a screen and the saved ones (see [The home page](infopanel-editor#the-home-page)).
 - Right-click a card for the same menu as its **⋯** button. A screen card's menu has:
   - **Open**, the same as the card's **Open** button;
   - **Rename**;

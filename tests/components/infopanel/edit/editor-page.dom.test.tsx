@@ -73,7 +73,19 @@ describe("the InfoPanel editor page", () => {
 
   it("lists the dashboard's InfoPanel profiles when nothing is open", () => {
     const onOpen = vi.fn();
-    render(<InfoPanelStart config={config} onContinue={vi.fn()} onOpen={onOpen} onOpenLibrary={vi.fn()} onNew={vi.fn()} onImport={vi.fn()} onManage={vi.fn()} />);
+    render(
+      <InfoPanelStart
+        config={config}
+        setConfig={vi.fn()}
+        onContinue={vi.fn()}
+        onOpen={onOpen}
+        onOpenLibrary={vi.fn()}
+        onNew={vi.fn()}
+        onImport={vi.fn()}
+        onRemoveProfile={vi.fn()}
+        onUndo={vi.fn()}
+      />,
+    );
     fireEvent.click(screen.getByText("Desk"));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ profileId: "p1", pageId: "pg", zoneId: "z", width: 800, height: 480 }));
   });

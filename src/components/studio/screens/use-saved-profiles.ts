@@ -51,7 +51,8 @@ export function useSavedProfiles(config: Pick<DashboardConfig, "profiles">) {
       toast(`Not removed: ${(e as Error).message}`);
     }
   };
-  return { saved: unplacedProfiles(items, config), duplicate, rename, remove };
+  /** `items`: every saved profile, placed or not (the home's "Save to Library" finds its link there). */
+  return { saved: unplacedProfiles(items, config), items, refresh, duplicate, rename, remove };
 }
 
 export type SavedProfiles = ReturnType<typeof useSavedProfiles>;
