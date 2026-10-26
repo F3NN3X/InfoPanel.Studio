@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Check, CircleAlert, FileInput, LayoutTemplate, Loader2, Square, type LucideIcon } from "lucide-react";
 import { useSensorCatalog, type ApiSources } from "@/lib/catalog";
@@ -19,6 +19,10 @@ import {
 } from "./first-run-model";
 
 const STEPS = ["Connect", "Screen", "Start", "First page"] as const;
+
+/** The screen templates' gallery and data load at the last step, never with the studio. */
+const gallery = () => import("../templates/screen-template-gallery");
+const ScreenTemplateGallery = lazy(() => gallery().then((m) => ({ default: m.ScreenTemplateGallery })));
 
 const PRIMARY = "h-8 shrink-0 rounded-[7px] bg-ui-inverse px-3.5 text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40";
 const OUTLINE = "h-8 shrink-0 rounded-[7px] border border-ui-strong px-3 text-[12.5px] font-medium text-ui-2 hover:bg-ui-hover hover:text-ui-1 disabled:cursor-not-allowed disabled:opacity-40";
@@ -126,6 +130,8 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
   const [custom, setCustom] = useState({ width: windowSize.width, height: windowSize.height });
   const [start, setStart] = useState<StartChoice>("template");
   const [pageName, setPageName] = useState("Main");
+  // The template the setup starts on fits every shape.
+  const [templateId, setTemplateId] = useState("general");
   /** The cards the person ticked or unticked; the rest follow what the sensors offer. */
   const [overrides, setOverrides] = useState<ReadonlyMap<FirstWidgetId, boolean>>(new Map());
   /** Sensors the widget cards are preselected from; the catalog loads once the Data API is known. */
@@ -153,11 +159,13 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
   const toggle = (id: FirstWidgetId, detected: boolean) => setOverrides((m) => new Map(m).set(id, !on(id, detected)));
 
   const last = step === STEPS.length - 1;
-  const finish = () =>
+  const finish = async () => {
+    const template = start === "template" ? (await gallery()).templateScreen(templateId, screen, catalog.sensors) : undefined;
     onFinish(
-      { width: screen.width, height: screen.height, start, pageName, widgets: widgets.filter((w) => on(w.id, w.detected)) },
+      { width: screen.width, height: screen.height, start, pageName, widgets: widgets.filter((w) => on(w.id, w.detected)), template },
       base && base !== normalizeApiBase(saved) ? base : undefined
     );
+  };
   const looks = looksLike(windowSize.width, windowSize.height);
 
   return (
@@ -295,7 +303,12 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
                     </div>
                   </>
                 ) : start === "template" ? (
-                  <Lead>The template fills this page with a ready-made layout. Everything on it can be changed.</Lead>
+                  <>
+                    <Lead>Pick a template. It fills this screen with a ready-made layout and look, and everything on it can be changed.</Lead>
+                    <Suspense fallback={null}>
+                      <ScreenTemplateGallery choice={templateId} onChoice={(id) => id && setTemplateId(id)} width={screen.width} height={screen.height} blank={false} />
+                    </Suspense>
+                  </>
                 ) : (
                   <Lead>Next, the Import door opens: choose your .infopanel file and it lands on this screen.</Lead>
                 )}
@@ -311,7 +324,7 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
             <button type="button" className={OUTLINE} disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
               Back
             </button>
-            <button type="button" className={PRIMARY} disabled={step === 1 && !sizeOk} onClick={() => (last ? finish() : setStep((s) => s + 1))}>
+            <button type="button" className={PRIMARY} disabled={step === 1 && !sizeOk} onClick={() => (last ? void finish() : setStep((s) => s + 1))}>
               {last ? "Open Studio" : "Continue"}
             </button>
           </div>

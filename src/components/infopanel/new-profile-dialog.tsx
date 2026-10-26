@@ -11,7 +11,6 @@ import { isProfileItem } from "@/lib/my-library/component-meta";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useSensorCatalog } from "@/lib/catalog";
 import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
@@ -23,14 +22,12 @@ import { listLibrary, type LibraryItem } from "@/lib/library";
 import { canvasData, copyOfProfile } from "@/lib/my-library/canvas-link";
 import { shapeClassOf } from "@/lib/infopanel/templates/layout";
 import { RoleSensors, type RoleOverrides } from "./role-sensors";
-import { SIZE_PRESETS, presetForChoice } from "./size-presets";
+import { SizePicker, INPUT, sizeOfChoice, type SizeChoice } from "../templates/size-picker";
+import { SIZE_PRESETS, presetForChoice } from "../templates/size-presets";
 import { TemplateGallery, type GalleryChoice } from "./template-gallery";
 
 export { SIZE_PRESETS };
-
-
-/** The largest size the editor takes, either way. */
-const MAX_SIDE = 8192;
+export { sideOf } from "../templates/size-picker";
 
 /** The preset a template is made for, when it does not fit the standard shape the dialog opens at. */
 const presetOfChoice = (templateId: string | null): number | undefined => {
@@ -57,17 +54,9 @@ interface NewProfileDialogProps {
   initial?: GalleryChoice;
 }
 
-/** A typed side, or null when it is not a whole number from 1 to 8192. */
-export function sideOf(raw: string): number | null {
-  const n = Number(raw.trim());
-  return raw.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= MAX_SIDE ? n : null;
-}
-
-const INPUT = "h-8 w-full min-w-0 rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent";
-
 export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewProfileDialogProps) {
   const [name, setName] = useState("New profile");
-  const [preset, setPreset] = useState<number | "custom">(() => presetOfChoice(initial?.template ?? null) ?? 1);
+  const [preset, setPreset] = useState<SizeChoice>(() => presetOfChoice(initial?.template ?? null) ?? 1);
   const [w, setW] = useState("800");
   const [h, setH] = useState("480");
   const [choice, setChoice] = useState<GalleryChoice>(initial ?? { template: null, variant: "" });
@@ -79,7 +68,7 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
   const sensors = catalog.sensors as unknown as Record<string, DataApiValue>;
   const hwinfo = catalog.sources?.hwinfo;
   const fromLibrary = choice.library ? profiles.find((i) => i.id === choice.library) : undefined;
-  const size = fromLibrary ? { width: Number(fromLibrary.meta.width) || 800, height: Number(fromLibrary.meta.height) || 480 } : preset === "custom" ? { width: sideOf(w), height: sideOf(h) } : SIZE_PRESETS[preset];
+  const size = fromLibrary ? { width: Number(fromLibrary.meta.width) || 800, height: Number(fromLibrary.meta.height) || 480 } : sizeOfChoice(preset, w, h);
   const ok = name.trim() !== "" && size.width !== null && size.height !== null;
   const template = choice.template ? templateById(choice.template) : undefined;
   useEffect(() => {
@@ -146,44 +135,7 @@ export function NewProfileDialog({ open, onOpenChange, onCreate, initial }: NewP
                 <TemplateGallery choice={choice} onChoice={choose} width={shown.width} height={shown.height} profiles={profiles} />
               </div>
               <RoleSensors roles={roles} onOverride={override} />
-              {!fromLibrary && (
-              <div role="radiogroup" aria-label="Size">
-                <span className="mb-1 block text-[12px] text-ui-3">Size</span>
-                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-                  {SIZE_PRESETS.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      role="radio"
-                      aria-checked={preset === i}
-                      onClick={() => setPreset(i)}
-                      className={cn("h-8 rounded-[7px] border text-[12px] tabular-nums", preset === i ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
-                    >
-                      {s.width} × {s.height}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={preset === "custom"}
-                    onClick={() => setPreset("custom")}
-                    className={cn("col-span-3 h-8 rounded-[7px] border text-[12px] sm:col-span-6", preset === "custom" ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
-                  >
-                    Custom
-                  </button>
-                </div>
-                {preset === "custom" && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <input inputMode="numeric" aria-label="Width" value={w} onChange={(e) => setW(e.target.value)} className={cn(INPUT, sideOf(w) === null && "border-ui-danger")} />
-                    <span className="text-ui-4">×</span>
-                    <input inputMode="numeric" aria-label="Height" value={h} onChange={(e) => setH(e.target.value)} className={cn(INPUT, sideOf(h) === null && "border-ui-danger")} />
-                  </div>
-                )}
-                {preset === "custom" && (size.width === null || size.height === null) && (
-                  <p className="mt-1.5 text-[11.5px] text-ui-danger">Width and height are whole numbers from 1 to {MAX_SIDE}.</p>
-                )}
-              </div>
-              )}
+              {!fromLibrary && <SizePicker choice={preset} onChoice={setPreset} w={w} h={h} onW={setW} onH={setH} />}
               <label className="flex items-center gap-2 text-[12.5px] text-ui-2">
                 <input type="checkbox" checked={toLibrary} onChange={(e) => setToLibrary(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--ui-accent)]" />
                 Also save to Library

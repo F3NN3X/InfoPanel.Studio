@@ -15,6 +15,8 @@ import {
 } from "@/components/studio/first-run-model";
 import { defaultConfig, mergeConfig, type DashboardConfig, type Placement } from "@/lib/layout";
 import { allPlacements, pageOf } from "@/lib/pages";
+import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
+import { instantiate } from "@/lib/screen-templates/instantiate";
 import type { SensorMap } from "@/modules/types";
 
 const sensor = (unit: string, name = "") => ({ unit, name, value: 1 });
@@ -226,6 +228,19 @@ describe("applyFirstRun", () => {
       expect(z.colStart + z.colSpan - 1).toBeLessThanOrEqual(6);
       expect(z.rowStart + z.rowSpan - 1).toBeLessThanOrEqual(4);
     }
+  });
+
+  it("makes the screen from the chosen screen template, its look and pages, under the screen's own id and name", () => {
+    const base = defaultConfig();
+    const gaming = SCREEN_TEMPLATES.find((t) => t.id === "gaming")!;
+    const template = instantiate(gaming, { name: gaming.name, width: 1024, height: 600 }).profile;
+    const { config } = applyFirstRun(base, choices({ start: "template", width: 1024, height: 600, pageName: "Play", widgets: [], template }));
+    const screen = config.profiles[0];
+    expect(screen).toMatchObject({ id: base.profiles[0].id, name: base.profiles[0].name, cols: template.cols, rows: template.rows, fit: "fill" });
+    expect(screen.background).toEqual(template.background);
+    expect(screen.pages.map((p) => p.name)).toEqual(["Play", "System"]);
+    expect(screen.pages[0].id).toBe(base.profiles[0].pages[0].id);
+    expect(screen.pages[0].placements).toEqual(template.pages[0].placements);
   });
 
   it("leaves the screen blank for Import, which the Import door fills", () => {

@@ -13,6 +13,8 @@ export interface ScreensToolbarProps {
   onSort: (s: ListSort) => void;
   onImport: () => void;
   onNewBlank: () => void;
+  /** The New screen dialog: Blank, or a screen template from its gallery. */
+  onNewTemplate: () => void;
   onNewSample: () => void;
   /** The New InfoPanel profile dialog: Blank, or a template from its gallery. */
   onNewInfoPanel: () => void;
@@ -22,7 +24,7 @@ const BUTTON =
   "inline-flex h-8 items-center gap-1.5 rounded-[7px] border border-ui-strong bg-transparent px-2.5 text-[12px] text-ui-1 transition-colors hover:bg-ui-hover";
 
 /** Search, the kind filter, the sort, Import and New: the strip above the cards. */
-export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort, onImport, onNewBlank, onNewSample, onNewInfoPanel }: ScreensToolbarProps) {
+export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort, onImport, onNewBlank, onNewTemplate, onNewSample, onNewInfoPanel }: ScreensToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label className="relative min-w-[160px] flex-1 basis-[200px]">
@@ -94,6 +96,12 @@ export function ScreensToolbar({ query, onQuery, filter, onFilter, sort, onSort,
                 <span className="flex items-center gap-2">
                   <Monitor className="h-3.5 w-3.5 text-ui-3" />
                   Blank dashboard screen
+                </span>
+              </Menu.Item>
+              <Menu.Item className={ITEM} onClick={onNewTemplate}>
+                <span className="flex items-center gap-2">
+                  <LayoutTemplate className="h-3.5 w-3.5 text-ui-3" />
+                  Dashboard from a template…
                 </span>
               </Menu.Item>
               <Menu.Item className={ITEM} onClick={onNewSample}>

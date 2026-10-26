@@ -16,12 +16,13 @@ import { cn } from "@/lib/utils";
 import type { Template } from "@/lib/infopanel/templates/kit";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog";
 import { instantiate } from "@/lib/infopanel/templates/instantiate";
-import { SHAPE_CLASSES, shapeClassOf, type ShapeClass } from "@/lib/infopanel/templates/layout";
+import { shapeClassOf } from "@/lib/infopanel/templates/layout";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock";
 import { cssOf } from "@/lib/infopanel/elements/palette";
 import CanvasZone from "./CanvasZone";
 import { ProfileThumb } from "./profile-thumb";
-import { SIZE_PRESETS, firstPresetOf, placementOf, thumbSizeOf } from "./size-presets";
+import { CLASS_NAMES, COLUMNS, ShapeChips, aspectOf, sectionClasses, type ShapeFilter } from "../templates/shape-chips";
+import { SIZE_PRESETS, firstPresetOf, placementOf, thumbSizeOf } from "../templates/size-presets";
 
 const MOCK = MOCK_SENSORS as unknown as SensorMap;
 
@@ -52,31 +53,15 @@ interface TemplateGalleryProps {
 
 const CARD = "flex min-w-0 flex-col overflow-hidden rounded-[10px] border text-left outline-none focus-visible:border-ui-accent";
 
-type Filter = ShapeClass | "all";
-
-const CLASS_NAMES: Record<ShapeClass, string> = { strip: "Strip", wide: "Wide", standard: "Standard", tall: "Tall" };
-
-/** Long shapes get fewer, wider cards across; tall ones narrow cards. */
-const COLUMNS: Record<ShapeClass, string> = {
-  strip: "grid-cols-2 sm:grid-cols-3",
-  wide: "grid-cols-2 sm:grid-cols-3",
-  standard: "grid-cols-3 sm:grid-cols-4",
-  tall: "grid-cols-3 sm:grid-cols-5",
-};
-
-/** A thumbnail keeps its canvas's shape, within 3:1 to 3:5. */
-const aspectOf = (width: number, height: number) => Math.min(3, Math.max(0.6, width / height));
-
 const profileSize = (item: LibraryItem) => ({ width: Number(item.meta.width) || 800, height: Number(item.meta.height) || 480 });
 
 export function TemplateGallery({ choice, onChoice, width, height, profiles = [], launch = false }: TemplateGalleryProps) {
   const chosen = TEMPLATES.find((t) => t.id === choice.template);
   const sizeClass = shapeClassOf(width, height);
   // Until a chip is picked the filter follows the size's class; the home page has no size, so it starts on All.
-  const [picked, setPicked] = useState<Filter | null>(null);
-  const filter: Filter = picked ?? (launch ? "all" : sizeClass);
-  const classes = filter === "all" ? [sizeClass, ...SHAPE_CLASSES.filter((c) => c !== sizeClass)] : [filter];
-  const sections = classes.map((cls) => ({
+  const [picked, setPicked] = useState<ShapeFilter | null>(null);
+  const filter: ShapeFilter = picked ?? (launch ? "all" : sizeClass);
+  const sections = sectionClasses(filter, sizeClass).map((cls) => ({
     cls,
     templates: TEMPLATES.filter((t) => (filter === "all" ? placementOf(t, sizeClass) === cls : t.fits.includes(cls))),
     items: profiles.filter((item) => {
@@ -87,20 +72,7 @@ export function TemplateGallery({ choice, onChoice, width, height, profiles = []
   const blank = choice.template === null && !choice.library;
   return (
     <div>
-      <div role="radiogroup" aria-label="Shape" className="mb-2 flex flex-wrap gap-1.5">
-        {(["all", ...SHAPE_CLASSES] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            role="radio"
-            aria-checked={filter === f}
-            onClick={() => setPicked(f)}
-            className={cn("h-7 rounded-[7px] border px-2.5 text-[12px]", filter === f ? "border-ui-accent bg-ui-accent/10 text-ui-1" : "border-ui-default text-ui-2 hover:bg-ui-hover")}
-          >
-            {f === "all" ? "All" : CLASS_NAMES[f]}
-          </button>
-        ))}
-      </div>
+      <ShapeChips filter={filter} onFilter={setPicked} />
       <div role={launch ? "group" : "radiogroup"} aria-label="Start from" className="space-y-3">
         {sections.map(({ cls, templates, items }, n) => {
           if (n > 0 && templates.length === 0 && items.length === 0) return null;
