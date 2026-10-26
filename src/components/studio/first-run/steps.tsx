@@ -2,7 +2,7 @@
  * The setup's Welcome, Your screen, Start and Finish steps (SPEC §7). They show what the page holds and hand changes
  * back; the page owns the state.
  */
-import { useMemo, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useMemo, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { AppWindow, ArrowRight, Ban, Cast, CircleCheck, CircleX, FileUp, LayoutGrid, LayoutTemplate, Plus, Radar, Radio, Ratio, Server, TriangleAlert, type LucideIcon } from "lucide-react";
 import { shapeClassOf, type ShapeClass } from "@/lib/infopanel/templates/layout";
 import { cn } from "@/lib/utils";
@@ -325,7 +325,12 @@ const fmtBytes = (n: number) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed
 const fmtDate = (ms: number) => (ms > 0 ? new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "");
 
 export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, profiles, noProfiles, sensors, noHardware }: StartStepProps) {
-  const picks = useMemo(() => topPicks(SCREEN_KIT.entries, size.width, size.height), [size.width, size.height]);
+  // Browse all lists every template here, the ones made for the size first; Create stays on this page.
+  const [all, setAll] = useState(false);
+  const picks = useMemo(() => {
+    const top = topPicks(SCREEN_KIT.entries, size.width, size.height, all ? SCREEN_KIT.entries.length : undefined);
+    return all ? [...top, ...SCREEN_KIT.entries.filter((e) => !top.includes(e))] : top;
+  }, [all, size.width, size.height]);
   const noData = !sensors || Object.keys(sensors).length === 0;
   const cards: { value: StartChoice; icon: LucideIcon; title: string; note: string }[] = [
     ...(rerun ? [{ value: "none" as const, icon: Ban, title: "Don’t add a screen", note: "Keep your screens as they are" }] : []),
@@ -333,7 +338,6 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
     { value: "import", icon: FileUp, title: "Import from InfoPanel", note: profiles ? `${profiles.length} ${profiles.length === 1 ? "profile" : "profiles"} found on this PC` : "Choose a .infopanel file" },
     { value: "blank", icon: Plus, title: "Blank grid", note: "Empty, add widgets yourself" },
   ];
-  const chosen = start === "browse" ? "template" : start;
   const Host = SCREEN_KIT.Host;
   return (
     <div className="flex flex-col gap-4">
@@ -347,12 +351,12 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
             key={c.value}
             type="button"
             role="radio"
-            aria-checked={chosen === c.value}
-            tabIndex={chosen === c.value ? 0 : -1}
+            aria-checked={start === c.value}
+            tabIndex={start === c.value ? 0 : -1}
             onClick={() => onStart(c.value)}
             className={cn(
               "flex h-12 min-w-0 items-center gap-2.5 rounded-[8px] border px-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60",
-              chosen === c.value ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised hover:bg-ui-hover",
+              start === c.value ? "border-ui-accent bg-ui-accent/10" : "border-ui-default bg-ui-raised hover:bg-ui-hover",
             )}
           >
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] border border-ui-default bg-ui-app">
@@ -362,19 +366,19 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
               <span className="truncate text-[12.5px] font-medium text-ui-1">{c.title}</span>
               <span className="truncate text-[11px] text-ui-3">{c.note}</span>
             </span>
-            <span aria-hidden className={cn("grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border", chosen === c.value ? "border-ui-accent" : "border-ui-strong")}>
-              {chosen === c.value && <span className="h-2 w-2 rounded-full bg-ui-accent" />}
+            <span aria-hidden className={cn("grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full border", start === c.value ? "border-ui-accent" : "border-ui-strong")}>
+              {start === c.value && <span className="h-2 w-2 rounded-full bg-ui-accent" />}
             </span>
           </button>
         ))}
       </div>
 
-      {chosen === "template" && (
+      {start === "template" && (
         <section aria-label="Top picks" className="flex flex-col gap-2">
           {Host && <Host />}
           <div className="flex items-baseline gap-2">
             <h2 className="m-0 text-[12.5px] font-medium text-ui-1">
-              Top picks for {size.width} × {size.height}
+              {all ? `All ${SCREEN_KIT.entries.length} templates at` : "Top picks for"} {size.width} × {size.height}
             </h2>
             <span className="text-[11px] text-ui-4">{noData ? "Shown with placeholders: no live data yet" : "Shown with your readings"}</span>
           </div>
@@ -411,26 +415,22 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
                 </button>
               );
             })}
-            <button
-              type="button"
-              role="radio"
-              aria-checked={start === "browse"}
-              tabIndex={-1}
-              onClick={() => onStart("browse")}
-              className={cn(
-                "flex min-h-[120px] flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed p-3 text-center outline-none focus-visible:border-ui-accent",
-                start === "browse" ? "border-ui-accent bg-ui-accent/10" : "border-ui-strong hover:bg-ui-hover",
-              )}
-            >
-              <LayoutGrid className="h-4 w-4 text-ui-3" />
-              <span className="text-[12.5px] font-medium text-ui-1">Browse all {SCREEN_KIT.entries.length} templates</span>
-              <span className="text-[11px] text-ui-3">Opens the New screen page after setup, at this size</span>
-            </button>
+            {!all && (
+              <button
+                type="button"
+                onClick={() => setAll(true)}
+                className="flex min-h-[120px] flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-ui-strong p-3 text-center outline-none hover:bg-ui-hover focus-visible:border-ui-accent"
+              >
+                <LayoutGrid className="h-4 w-4 text-ui-3" />
+                <span className="text-[12.5px] font-medium text-ui-1">Browse all {SCREEN_KIT.entries.length} templates</span>
+                <span className="text-[11px] text-ui-3">The ones made for this size come first</span>
+              </button>
+            )}
           </div>
         </section>
       )}
 
-      {chosen === "import" && (
+      {start === "import" && (
         <section aria-label="InfoPanel profiles" className="flex flex-col gap-2">
           <div className="flex items-baseline gap-2">
             <h2 className="m-0 text-[12.5px] font-medium text-ui-1">
@@ -458,7 +458,7 @@ export function StartStep({ headRef, rerun, size, start, onStart, pick, onPick, 
         </section>
       )}
 
-      {chosen === "blank" && (
+      {start === "blank" && (
         <p className="m-0 rounded-[9px] border border-ui-subtle bg-ui-panel px-3 py-2.5 text-[12px] text-ui-2">
           An empty {size.width} × {size.height} grid. Add widgets from the Add panel: it suggests the ones your sensors can fill.
         </p>

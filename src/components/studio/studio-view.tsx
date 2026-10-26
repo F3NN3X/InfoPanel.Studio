@@ -1112,9 +1112,6 @@ function StudioViewBody({
                 selectProfile(made.profileId);
                 ui.setMode("design");
                 ui.fitZoom();
-              } else if (outcome.next === "new") {
-                setNewPage({ kind: "screen", back: "screens", size: { width: outcome.choices.width, height: outcome.choices.height } });
-                ui.setMode("screens");
               } else if (outcome.next === "import-installed") io.openImport("new", { installed: true });
               else if (outcome.next === "import-file") openImportDoor();
               if (outcome.openKiosk) window.open(outcome.openKiosk, "_blank", "noopener,noreferrer");

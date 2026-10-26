@@ -50,7 +50,7 @@ export interface SetupOutcome {
   /** The Data API address to save; undefined keeps the config's. */
   dataApiUrl?: string;
   /** What opens next: the new screen, the New page at the size, the import (InfoPanel's list or a file), or nothing. */
-  next: "screen" | "new" | "import-installed" | "import-file" | "none";
+  next: "screen" | "import-installed" | "import-file" | "none";
   /** The kiosk to open in the browser. */
   openKiosk?: string;
 }
@@ -209,11 +209,11 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
   const importCount = profiles?.length ?? 0;
   const dataSub = t.running ? `Checking… ${Math.min(t.done + 1, 8)} of 8` : !t.api ? "Without live data" : t.fails > 0 ? `${t.fails} failed` : t.warns > 0 ? `${t.warns} ${t.warns === 1 ? "warning" : "warnings"}` : "All good";
   const startSub =
-    start === "template" ? (templateName ?? "A template") : start === "import" ? (importCount > 0 ? `Import ${importCount} ${importCount === 1 ? "profile" : "profiles"}` : "Import a file") : start === "blank" ? "Blank grid" : start === "browse" ? "All templates" : "Keep my screens";
+    start === "template" ? (templateName ?? "A template") : start === "import" ? (importCount > 0 ? `Import ${importCount} ${importCount === 1 ? "profile" : "profiles"}` : "Import a file") : start === "blank" ? "Blank grid" : "Keep my screens";
   const railSub = [rerun ? "Re-check and review" : "What Studio needs", dataSub, `${size.width} × ${size.height} · ${sizeNote(size, source).split(" · ")[0]}`, startSub, "Summary and options"];
 
   const primaryLabel =
-    step === FINISH ? (start === "browse" ? "Go to the templates" : "Go to the studio") : step === DATA && !t.running && !t.api ? "Continue without live data" : "Next";
+    step === FINISH ? "Go to the studio" : step === DATA && !t.running && !t.api ? "Continue without live data" : "Next";
 
   const finish = () => {
     let template: MonitorProfile | undefined;
@@ -226,7 +226,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
     onFinish({
       choices: { width: size.width, height: size.height, start, template },
       dataApiUrl: changedAddress,
-      next: start === "browse" ? "new" : start === "import" ? (profiles && profiles.length > 0 ? "import-installed" : "import-file") : start === "none" ? "none" : "screen",
+      next: start === "import" ? (profiles && profiles.length > 0 ? "import-installed" : "import-file") : start === "none" ? "none" : "screen",
       openKiosk: options.kiosk && kioskUrl ? kioskUrl : undefined,
     });
   };
@@ -291,9 +291,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
               : "Import a .infopanel file"
             : start === "blank"
               ? `A blank ${size.width} × ${size.height} grid`
-              : start === "browse"
-                ? "Choose on the New screen page"
-                : "Nothing new",
+              : "Nothing new",
       sub: start === "template" || start === "blank" ? (rerun ? "Added to Screens" : "Added to Screens as your first screen") : start === "none" ? "Your screens stay as they are" : "Opens next, with this size picked",
       step: 3,
     },

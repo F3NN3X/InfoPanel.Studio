@@ -17,7 +17,7 @@ export const DEFAULT_SIZE = { width: 1024, height: 600 } as const;
 /** A screen size a person can type: whole pixels, 100 to 8192. */
 export const validSize = (n: number): boolean => Number.isInteger(n) && n >= 100 && n <= 8192;
 
-export type StartChoice = "template" | "import" | "blank" | "browse" | "none";
+export type StartChoice = "template" | "import" | "blank" | "none";
 
 export interface FirstRunChoices {
   width: number;
@@ -32,7 +32,7 @@ export function isPristine(config: DashboardConfig): boolean {
   return config.profiles.length === 1 && zoneCount(config.profiles[0]) === 0;
 }
 
-/** The start choices that add a screen here; Import, Browse all and Don't add a screen leave the config alone. */
+/** The start choices that add a screen here; Import and Don't add a screen leave the config alone. */
 export const makesScreen = (start: StartChoice): boolean => start === "template" || start === "blank";
 
 /** The screen a size makes: a new profile's grid and fit, under the given name. */
@@ -55,7 +55,7 @@ function screenAt(base: MonitorProfile, name: string, c: FirstRunChoices): Monit
 
 /**
  * What the setup makes of the config. A fresh install sets up its one blank screen; with screens already there (run
- * again) the setup adds a new screen and leaves the rest alone. Import, Browse all and Don't add a screen change
+ * again) the setup adds a new screen and leaves the rest alone. Import and Don't add a screen change
  * nothing here (their own flows add screens). `profileId` is the screen to open.
  */
 export function applyFirstRun(config: DashboardConfig, c: FirstRunChoices): { config: DashboardConfig; profileId: string } {
