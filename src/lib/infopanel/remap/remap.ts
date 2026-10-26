@@ -131,7 +131,8 @@ function score(g: Group, c: Indexed): Candidate | null {
     const same = plug.plugin === c.plugin.plugin;
     const reading = plug.reading === c.plugin.reading;
     s += (same ? 3 : 0) + (reading ? 3 : 0) + (plug.group === c.plugin.group ? 1 : 0);
-    strong = same && reading;
+    // A plugin renamed between versions keeps its reading ids and names ("/fps-plugin/fps/fps" → "/InfoPanel.RTSS/rtss/fps").
+    strong = reading && (same || tail);
   }
   return s > 0 ? { key: c.key, score: Math.round(s * 100) / 100, strong } : null;
 }
@@ -161,12 +162,22 @@ export function search(index: CatalogIndex, query: string, limit = 50, group?: G
   return ranked.slice(0, limit).map((c) => c.key);
 }
 
+/** A plugin group's candidate that is another plugin's key. */
+function otherPlugin(g: Group, key: string): boolean {
+  const plugin = pluginParts(g.ref)?.plugin;
+  const k = key.toLowerCase();
+  return plugin !== undefined && k.startsWith("plugins.") && !k.startsWith(`plugins.${plugin}.`);
+}
+
 export function resolveGroup(g: Group, index: CatalogIndex, overrides: Overrides): Match | null {
   const chosen = overrides.get(g.id);
   if (chosen !== undefined) return chosen === "" ? null : { key: chosen, via: "chosen" };
   const auto = mapBinding(g.item, index.catalog);
   if (auto) return auto;
-  const strong = suggest(g, index, 50).filter((c) => c.strong);
+  const all = suggest(g, index, 50).filter((c) => c.strong);
+  // The plugin's own reading wins over the same reading of a plugin it may have been renamed to.
+  const own = all.filter((c) => !otherPlugin(g, c.key));
+  const strong = own.length > 0 ? own : all;
   return strong.length === 1 ? { key: strong[0].key, via: "suggested" } : null;
 }
 
@@ -203,7 +214,8 @@ export const remapDone = (s: RemapState) => s === "matched" || s === "confirmed"
 
 /** Why a candidate is offered, in a few words. */
 export function candidateReason(g: Group, c: Candidate): string {
-  if (c.strong) return g.type === "Plugin" ? "Strong · same plugin and reading" : "Strong · same reading type and name";
+  if (c.strong && g.type === "Plugin") return otherPlugin(g, c.key) ? "Strong · same reading and name" : "Strong · same plugin and reading";
+  if (c.strong) return "Strong · same reading type and name";
   return c.score >= 4 ? "Same reading type" : "Similar name";
 }
 
@@ -238,6 +250,13 @@ export function filterCounts(rows: readonly RemapRow[]): Record<RemapFilter, num
 export function confirmAll(rows: readonly RemapRow[], overrides: Overrides): Map<string, string> {
   const next = new Map(overrides);
   for (const r of rows) if (r.state === "check" && r.match) next.set(r.group.id, r.match.key);
+  return next;
+}
+
+/** The choices "Leave N unresolved unbound" makes: every Unresolved row left unbound, as one change. */
+export function leaveUnresolved(rows: readonly RemapRow[], overrides: Overrides): Map<string, string> {
+  const next = new Map(overrides);
+  for (const r of rows) if (r.state === "unresolved") next.set(r.group.id, "");
   return next;
 }
 

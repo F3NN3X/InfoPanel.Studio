@@ -8,7 +8,7 @@
  * 3. The ported createTypeface over the reference's font list, letting the
  *    browser find the family by name: close, not exact.
  */
-import { createTypeface, type FontSet, type Slant, type Typeface } from "./fonts.ts";
+import { createTypeface, namedTypeface, type FontSet, type Slant, type Typeface } from "./fonts.ts";
 import { DATA_API } from "./sensors.ts";
 import { readFaces } from "./sfnt.ts";
 
@@ -60,6 +60,40 @@ export const remoteTypeface = (r: RemoteFont): Typeface => ({
   slant: r.italic ? "Italic" : "Upright",
   via: "data-api",
 });
+
+const families = new Map<string, boolean>();
+
+/**
+ * Whether the browser has the family (installed, or a face already added): a sample drawn in it measures unlike
+ * the generic fallbacks. True where nothing can be measured (no DOM).
+ */
+export function hasFamily(family: string): boolean {
+  let known = families.get(family);
+  if (known !== undefined) return known;
+  const ctx = typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
+  if (!ctx) return true;
+  const sample = "mmmmmmmmmlli1WQ@#0";
+  known = ["monospace", "serif", "sans-serif"].some((generic) => {
+    ctx.font = `72px ${generic}`;
+    const width = ctx.measureText(sample).width;
+    ctx.font = `72px "${family.replace(/["\\]/g, "")}", ${generic}`;
+    return ctx.measureText(sample).width !== width;
+  });
+  families.set(family, known);
+  return known;
+}
+
+/**
+ * The request drawn with its family by name and its FontStyle's weight (no loader, or no answer). A FontStyle on
+ * a family that isn't there gets InfoPanel's default face, Segoe UI regular, as SKTypeface.CreateDefault() does.
+ */
+export function nameFont(request: FontRequest, has: (family: string) => boolean = hasFamily): ResolvedFont {
+  const typeface: Typeface =
+    request.style && !has(request.font)
+      ? { family: NO_REFERENCE.default.family, weight: 400, width: 5, slant: "Upright", via: "default" }
+      : namedTypeface(request.font, request.style, request.bold, request.italic);
+  return { typeface, css: { fontFamily: `"${typeface.family}"`, fontWeight: typeface.weight, fontStyle: cssStyle(typeface.slant) }, exact: false, file: null, source: "ported" };
+}
 
 const NO_REFERENCE: Reference = { default: { family: "Segoe UI" }, families: [], results: [] };
 /** The endpoint takes at most 256 requests per call. */
@@ -195,6 +229,8 @@ export class FontLoader {
       };
     }
 
+    // With no font list to run InfoPanel's choice over, the browser finds the family by name.
+    if (!this.hasReference) return nameFont(request);
     const typeface = createTypeface(this.fonts, request.font, request.style, request.bold, request.italic);
     const css = { fontWeight: typeface.weight, fontStyle: cssStyle(typeface.slant) } as const;
     const known = this.files.get(key(request));

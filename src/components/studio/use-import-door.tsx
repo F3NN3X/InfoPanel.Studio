@@ -33,6 +33,8 @@ interface ImportDoorDeps {
   onGo: (go: DoorGo) => void;
   /** An InfoPanel file for the wizard (the existing review steps, without "Lands in"). */
   onWizard: (file: File, dest: "new" | "zone") => void;
+  /** The wizard on the profiles installed in InfoPanel on this PC. */
+  onInstalled: () => void;
   /** Library items were added. */
   onLibraryChanged: () => void;
 }
@@ -117,9 +119,11 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
       return;
     }
     setBusy(false);
-    deps.toast(
-      r.failed.length > 0 ? `${r.done.length} imported · ${r.failed.join("; ")}` : r.done.length === 1 ? r.done[0] : `Imported ${r.done.length} files`,
-    );
+    // A lone .infopanel only hands over to the wizard, which says what it imported.
+    if (r.done.length > 0 || r.failed.length > 0 || !r.wizard)
+      deps.toast(
+        r.failed.length > 0 ? `${r.done.length} imported · ${r.failed.join("; ")}` : r.done.length === 1 ? r.done[0] : `Imported ${r.done.length} files`,
+      );
     // Nothing went in: the door stays open on its rows, so the bad file can be removed and the rest go on.
     if (r.done.length === 0 && !r.wizard) return;
     setOpen(false);
@@ -141,6 +145,10 @@ export function useImportDoor(deps: ImportDoorDeps): ReactNode {
         onRemove={(id) => setFiles((f) => f.filter((r) => r.id !== id))}
         onClose={() => setOpen(false)}
         onRun={() => void run()}
+        onInstalled={() => {
+          setOpen(false);
+          deps.onInstalled();
+        }}
       />
       {dragging && !open && <DropOverlay />}
     </>

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from "vitest";
-import { baseFamilyName, createTypeface, matchStyle, type FontSet, type SkiaFamily, type Slant } from "@/lib/infopanel/fonts.ts";
+import { baseFamilyName, createTypeface, matchStyle, namedTypeface, type FontSet, type SkiaFamily, type Slant } from "@/lib/infopanel/fonts.ts";
 
 const style = (name: string, weight: number, slant: Slant = "Upright", width = 5) => ({ name, weight, width, slant });
 
@@ -106,5 +106,23 @@ describe.skipIf(refs.length === 0)("createTypeface matches InfoPanel on this mac
         slant: r.typeface.slant,
       });
     }
+  });
+});
+
+describe("namedTypeface", () => {
+  it("takes weight and slant from the FontStyle InfoPanel picks, else from Bold and Italic", () => {
+    const face = (style: string, bold = false, italic = false) => {
+      const t = namedTypeface("Barlow", style, bold, italic);
+      return [t.family, t.weight, t.slant];
+    };
+    // InfoPanel draws FontStyle "Bold" bold with Bold off, and "Regular" regular with it on.
+    expect(face("Bold")).toEqual(["Barlow", 700, "Upright"]);
+    expect(face("Regular", true)).toEqual(["Barlow", 400, "Upright"]);
+    expect(face("SemiBold")).toEqual(["Barlow", 600, "Upright"]);
+    expect(face("Semilight")).toEqual(["Barlow", 350, "Upright"]);
+    expect(face("Medium Italic")).toEqual(["Barlow", 500, "Italic"]);
+    expect(face("Extra Bold")).toEqual(["Barlow", 800, "Upright"]);
+    expect(face("Condensed")).toEqual(["Barlow", 400, "Upright"]);
+    expect(face("", true, true)).toEqual(["Barlow", 700, "Italic"]);
   });
 });

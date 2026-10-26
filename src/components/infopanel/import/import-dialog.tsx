@@ -54,7 +54,8 @@ export interface ImportDialogProps {
 }
 
 /** A source the dialog opens with. */
-export type ImportSource = { file: File } | { canvasId: string; name?: string };
+/** A file to open, a Library canvas to reopen, or the list of profiles installed in InfoPanel to pick from. */
+export type ImportSource = { file: File } | { canvasId: string; name?: string } | { installed: true };
 
 const STEPS = ["Source", "Mode", "Review", "Sensors", "Save"] as const;
 const TITLES = ["Choose a source", "How should it be drawn?", "Review before importing", "Fix sensors", "Save"];
@@ -350,7 +351,8 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
   // A source handed over by the Library opens straight away.
   useEffect(() => {
     if (!initialSource) return;
-    if ("file" in initialSource) {
+    if ("installed" in initialSource) setKind("installed");
+    else if ("file" in initialSource) {
       const f = initialSource.file;
       setKind("file");
       open(f.name, f.size, async () => openZip(f.name, await bytesOf(f)));
