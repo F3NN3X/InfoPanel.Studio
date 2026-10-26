@@ -3,8 +3,10 @@ import { weatherKind, type WeatherCondition } from "@/lib/weather-icons";
 import { inUnit } from "@/modules/setting-readers";
 import { adapterOf, detect, fmt, fmtRate, get, has, hw, num, type Data, type IpTagExtra, type RateUnit } from "../kit";
 import { trackOf } from "../NowPlaying";
+import type { Card } from "./card-model";
+import { CARD_ITEMS, cardReading } from "./card-readings";
 
-export const ITEMS = ["logo", "text", "date", "time", "datetime", "weather", "cpu", "gpu", "ram", "cpuTemp", "gpuTemp", "down", "up", "disk", "network", "volume", "battery", "media", "uptime"] as const;
+export const ITEMS = ["logo", "text", "date", "time", "datetime", "weather", "cpu", "gpu", "ram", "cpuTemp", "gpuTemp", "down", "up", "disk", "network", "volume", "battery", "media", "uptime", ...CARD_ITEMS] as const;
 export type ItemKey = (typeof ITEMS)[number];
 export const ITEM_LABELS: Record<ItemKey, string> = {
   logo: "Logo",
@@ -26,7 +28,22 @@ export const ITEM_LABELS: Record<ItemKey, string> = {
   battery: "Battery",
   media: "Now playing",
   uptime: "Uptime",
+  cpuRing: "CPU ring",
+  gpuRing: "GPU ring",
+  cpuDual: "CPU double ring",
+  gpuDual: "GPU double ring",
+  fps: "FPS",
+  frameTime: "Frame time",
+  cpuLine: "CPU line",
+  gpuLine: "GPU line",
+  fpsLine: "FPS line",
 };
+
+/**
+ * The drop order in the presets when the bar is narrow: the lowest goes first. An item not listed ranks 0 and goes before these,
+ * the last one first.
+ */
+export const PRIORITY: Partial<Record<ItemKey, number>> = { frameTime: 0, time: 1, fpsLine: 2, fps: 2, gpuLine: 3, gpuRing: 3, gpuDual: 3, cpuLine: 4, cpuRing: 4, cpuDual: 4 };
 
 export type Display = "both" | "value" | "icon";
 
@@ -42,6 +59,8 @@ export interface Reading {
   glyph?: boolean;
   /** What the value reads, for the InfoPanel conversion's tags: a Data API key, or "time" / "date" with a .NET format. */
   ip?: IpTagExtra & { key: string };
+  /** A readout the bar draws itself (a ring, a stat, a line) instead of an icon and a value. */
+  card?: Card;
 }
 
 export interface ReadCtx {
@@ -185,5 +204,9 @@ export function readingOf(key: ItemKey, c: ReadCtx): Reading | null {
       return media(d);
     case "uptime":
       return uptime(d);
+    default: {
+      const card = cardReading(key, d, c.tempUnit);
+      return card ? { card } : null;
+    }
   }
 }

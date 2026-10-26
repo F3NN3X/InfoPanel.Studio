@@ -6,9 +6,10 @@ import { islandIdleWidth } from "@/components/island/island-model";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
 import { Widget, shell, type RateUnit, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
-import { Bar, type StatusBarView } from "./StatusBar/Bar";
-import { readingOf, shownOf, type Display, type ItemKey, type Reading } from "./StatusBar/items";
-import { fitSlots, gapWidth, type IslandGapMode, type Slots } from "./StatusBar/layout";
+import { Bar, barPad, isPreset, type StatusBarView } from "./StatusBar/Bar";
+import { cardWidth } from "./StatusBar/card-model";
+import { PRIORITY, readingOf, shownOf, type Display, type ItemKey, type Reading } from "./StatusBar/items";
+import { fitByRank, fitSlots, gapWidth, type IslandGapMode, type Slots } from "./StatusBar/layout";
 import { useGap } from "./StatusBar/use-gap";
 
 export const meta: WidgetMeta = {
@@ -26,6 +27,9 @@ export const meta: WidgetMeta = {
     { id: "edge", name: "Edge", blurb: "Flush bar with rounded bottom corners" },
     { id: "pill", name: "Pill", blurb: "A floating capsule", tags: "capsule rounded" },
     { id: "islands", name: "Islands", blurb: "Each slot in its own pill", tags: "waybar separate" },
+    { id: "meters", name: "Meters", blurb: "A wide pill: double rings with thin-bar rows", tags: "cpu gpu fps rings bars load temperature", defaultSize: [12, 1], applies: { left: "cpuDual", center: "gpuDual", right: "fps,frameTime", separators: false } },
+    { id: "orbit", name: "Orbit", blurb: "A pill with a load ring at each end", tags: "cpu gpu fps rings load temperature power", defaultSize: [12, 1], applies: { left: "cpuRing", center: "fps", right: "gpuRing", separators: false } },
+    { id: "ticker", name: "Ticker", blurb: "One long line: CPU, GPU, FPS and the time", tags: "cpu gpu fps text load temperature clock", defaultSize: [12, 1], applies: { left: "", center: "cpuLine,gpuLine,fpsLine,time", right: "", separators: true } },
   ],
 };
 
@@ -101,7 +105,7 @@ export default function StatusBar(p: StatusBarProps) {
   const radius = chromeOf(p.look ?? {})?.radius ?? p.radius;
   const corner = radius === undefined ? "var(--radius, 1rem)" : `${radius}px`;
   const style: CSSProperties =
-    view === "pill"
+    view === "pill" || isPreset(view)
       ? { borderRadius: 9999, margin: 4, width: "calc(100% - 8px)", height: "calc(100% - 8px)" }
       : view === "islands"
         ? { background: "transparent", border: "none", boxShadow: "none", backdropFilter: "none", WebkitBackdropFilter: "none", borderRadius: 0 }
@@ -112,15 +116,17 @@ export default function StatusBar(p: StatusBarProps) {
       {({ w, h }) => {
         const fs = Math.min(22, Math.max(13, Math.round(h * 0.36)));
         // an item's width: its icon, its text at ~0.58em a character and the spacing (and divider) after it
+        const u = Math.max(0, h - 8);
         const cost = (k: ItemKey) => {
           const r = readings[k]!;
+          if (r.card) return cardWidth(r.card, u) + spacing * (separators ? 2 : 1) + (separators ? 1 : 0);
           const shown = shownOf(r, display);
           const chars = Math.min(shown.value?.length ?? 0, k === "media" ? MEDIA_MAX_CHARS : Infinity);
           return (shown.icon ? fs * 1.6 : 0) + chars * fs * CHAR_EM + spacing * (separators ? 2 : 1) + (separators ? 1 : 0);
         };
-        const room = w - 2 * fs * 1.1 - (gap ? gap.width : 0) - 24;
-        const fit = w > 0 ? fitSlots(have, room, cost) : have;
-        return <Bar view={view} slots={fit} readings={readings} display={display} separators={separators} spacing={spacing} fs={fs} gap={gap} barRef={barRef} icons={{ set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated }} />;
+        const room = w - 2 * barPad(view, fs, u) - (gap ? gap.width : 0) - 24;
+        const fit = w <= 0 ? have : isPreset(view) ? fitByRank(have, room, cost, (k) => PRIORITY[k] ?? 0) : fitSlots(have, room, cost);
+        return <Bar view={view} u={u} slots={fit} readings={readings} display={display} separators={separators} spacing={spacing} fs={fs} gap={gap} barRef={barRef} icons={{ set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated }} />;
       }}
     </Widget>
   );
