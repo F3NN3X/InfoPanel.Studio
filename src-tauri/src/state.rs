@@ -156,6 +156,9 @@ pub struct AppState {
     pub studio_page: AtomicBool,
     /// The studio window's geometry while Kiosk view has resized it (see `kiosk`).
     pub kiosk: Mutex<Option<crate::kiosk::Saved>>,
+    /// A first-run setup session the shell opened (a first launch, or Settings › General › Run setup): only then may
+    /// the studio start or restart InfoPanel and set the setup's switches (`control::SETUP_PERMISSIONS`).
+    pub setup: AtomicBool,
 }
 
 /// Locks, recovering the data of a mutex a panicking thread left poisoned.
@@ -222,6 +225,7 @@ impl AppState {
             quitting: AtomicBool::new(false),
             studio_page: AtomicBool::new(false),
             kiosk: Mutex::new(None),
+            setup: AtomicBool::new(false),
         }
     }
 

@@ -31,13 +31,12 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-update-state",
     // The rail's Settings, Ctrl+, and the links to a Settings page.
     "allow-open-settings",
-    // The first-run setup: InfoPanel's checks and Start / Restart, the kiosk's network address, and its Finish switches.
+    // The first-run setup's reads: InfoPanel's checks, the port's owner and the kiosk's network address. Ending its
+    // session only takes rights away.
     "allow-infopanel-local",
-    "allow-infopanel-start",
-    "allow-infopanel-restart",
     "allow-port-owner",
     "allow-list-local-addresses",
-    "allow-setup-options",
+    "allow-setup-end",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     // The studio's top bar is the window's title bar (the window has no native frame).
@@ -48,6 +47,11 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "core:window:allow-start-dragging",
     "core:window:allow-is-maximized",
 ];
+
+/// What the studio gets on top only once the shell opens a setup session (`AppState::setup`): starting and restarting
+/// InfoPanel and the setup's Finish switches. Tauri can't take a capability back, so each command also refuses
+/// outside a session (`commands::setup_gate`).
+const SETUP_PERMISSIONS: &[&str] = &["allow-infopanel-start", "allow-infopanel-restart", "allow-setup-options"];
 
 /// The permissions the Settings window gets on the studio's origin (PLAN decision 21): exactly what its
 /// pages call (src/settings/ipc.ts), the Back up first save, the jump back to the studio, and its title bar.
@@ -87,6 +91,8 @@ const SETTINGS_PERMISSIONS: &[&str] = &[
     "allow-open-settings",
     "allow-save-text-file",
     "allow-show-studio",
+    // General › Run setup opens a setup session in the studio.
+    "allow-run-setup",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-minimize",
@@ -602,11 +608,39 @@ fn on_running(app: &AppHandle) {
         o.clone_from(&origin);
     }
     add_studio_capability(app, &origin);
+    add_setup_capability(app, &origin);
     windows::load_studio(app, &state::studio_url(&origin));
     windows::settings_follow_server(app, &origin);
     if agents::needs_reinstall(&s, &st.version, &agents::agent_path(&st.paths)) {
         let app = app.clone();
         std::thread::spawn(move || refresh_agents(&app));
+    }
+}
+
+/// Opens a setup session: the studio may start and restart InfoPanel and set the setup's switches until it ends.
+pub fn open_setup(app: &AppHandle) {
+    let st = app.state::<AppState>();
+    st.setup.store(true, Ordering::SeqCst);
+    let origin = st.status().origin;
+    add_setup_capability(app, &origin);
+}
+
+/// The setup permissions for the studio on `origin`, while a session is open (once per origin).
+fn add_setup_capability(app: &AppHandle, origin: &str) {
+    let st = app.state::<AppState>();
+    if !st.setup.load(Ordering::SeqCst) {
+        return;
+    }
+    let id = format!("setup-{}", origin.replace(|c: char| !c.is_ascii_alphanumeric(), "-"));
+    if !lock(&st.capabilities).insert(id.clone()) {
+        return;
+    }
+    let mut cap = tauri::ipc::CapabilityBuilder::new(id).remote(format!("{origin}/*")).window(windows::MAIN);
+    for p in SETUP_PERMISSIONS {
+        cap = cap.permission(*p);
+    }
+    if let Err(e) = app.add_capability(cap) {
+        log::error!("could not add the setup capability for {origin}: {e}");
     }
 }
 
@@ -686,11 +720,16 @@ mod tests {
     fn the_studio_keeps_only_what_it_calls() {
         assert_unique(STUDIO_PERMISSIONS);
         // The studio opens the Settings window and reads the status bar's state; it changes nothing in the shell.
-        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done", "allow-infopanel-local", "allow-setup-options"] {
+        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done", "allow-infopanel-local"] {
             assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
         }
         for command in ["allow-set-setting", "allow-stop-server", "allow-install-update", "allow-set-agents", "allow-read-log", "allow-reveal-path", "allow-show-studio"] {
             assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio");
+        }
+        // Starting or restarting InfoPanel and writing settings come only with a setup session the shell opens.
+        assert_unique(SETUP_PERMISSIONS);
+        for command in ["allow-infopanel-start", "allow-infopanel-restart", "allow-setup-options", "allow-run-setup"] {
+            assert!(!STUDIO_PERMISSIONS.contains(&command), "{command} is granted to the studio for the whole session");
         }
     }
 

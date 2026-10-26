@@ -240,6 +240,8 @@ pub fn run() {
             commands::infopanel_restart,
             commands::port_owner,
             commands::setup_options,
+            commands::setup_end,
+            commands::run_setup,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -260,6 +262,12 @@ pub fn run() {
                 ..AppState::new(paths, version, s, forced, hidden)
             };
             apply_log_level(st.debug());
+            // A first launch (no dashboard config yet) opens a setup session: the studio's first-run setup may start
+            // InfoPanel and set its switches until it ends.
+            let config = st.paths.data_dir.clone().unwrap_or_else(ips_server::env::default_data_dir).join("config.json");
+            if !config.exists() {
+                st.setup.store(true, std::sync::atomic::Ordering::SeqCst);
+            }
             app.manage(st);
             commands::sync_autostart(&handle, start_at_login);
             tray::create(&handle)?;

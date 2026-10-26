@@ -13,7 +13,7 @@ use crate::{agents, control, debug, http, infopanel_local, kiosk, studio_target,
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, Url};
+use tauri::{AppHandle, Emitter, Manager, Url};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
@@ -634,11 +634,42 @@ pub fn default_browser_kind() -> studio_target::BrowserKind {
 
 // ---- First-run setup ----
 
-/// InfoPanel on this PC: data folder, profiles, the Data API switch, the running process and the exe.
+/// InfoPanel on this PC: data folder, profiles, the Data API switch, the running process and the exe; `setup` says
+/// whether a setup session is open (whether Start, Restart and the Finish switches may be offered).
 #[tauri::command]
-pub async fn infopanel_local() -> CmdResult<infopanel_local::Local> {
+pub async fn infopanel_local(app: AppHandle) -> CmdResult<infopanel_local::Local> {
     log::debug!("ipc: infopanel_local");
-    blocking(infopanel_local::local).await
+    let setup = setup_open(&app);
+    blocking(move || infopanel_local::Local { setup, ..infopanel_local::local() }).await
+}
+
+fn setup_open(app: &AppHandle) -> bool {
+    app.state::<AppState>().setup.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// Starting InfoPanel and the setup's switches only work in a setup session the shell opened.
+fn setup_gate(app: &AppHandle) -> CmdResult<()> {
+    if setup_open(app) {
+        Ok(())
+    } else {
+        Err("Run setup from Settings → General to let Studio do this.".into())
+    }
+}
+
+/// Settings › General › Run setup: opens a setup session and the setup in the studio.
+#[tauri::command]
+pub fn run_setup(app: AppHandle) {
+    log::info!("ipc: run_setup");
+    control::open_setup(&app);
+    studio_target::open(&app);
+    let _ = app.emit_to(windows::MAIN, "run-setup", ());
+}
+
+/// The setup closed: the session's rights end.
+#[tauri::command]
+pub fn setup_end(app: AppHandle) {
+    log::info!("ipc: setup_end");
+    app.state::<AppState>().setup.store(false, std::sync::atomic::Ordering::SeqCst);
 }
 
 /// Opens a path through the shell: InfoPanel asks to run as administrator, so only the shell can start it.
@@ -652,6 +683,7 @@ fn shell_open(app: &AppHandle, path: &std::path::Path) -> Result<(), String> {
 #[tauri::command]
 pub async fn infopanel_start(app: AppHandle) -> CmdResult<()> {
     log::info!("ipc: infopanel_start");
+    setup_gate(&app)?;
     blocking(move || infopanel_local::start(|p| shell_open(&app, p))).await?
 }
 
@@ -659,6 +691,7 @@ pub async fn infopanel_start(app: AppHandle) -> CmdResult<()> {
 #[tauri::command]
 pub async fn infopanel_restart(app: AppHandle) -> CmdResult<()> {
     log::info!("ipc: infopanel_restart");
+    setup_gate(&app)?;
     blocking(move || infopanel_local::restart(|p| shell_open(&app, p))).await?
 }
 
@@ -669,13 +702,16 @@ pub async fn port_owner(port: u16) -> CmdResult<Option<ProcessInfo>> {
     blocking(move || infopanel_local::port_owner(port)).await
 }
 
-/// The setup's Finish switches: start at login and the update check, the only settings the studio may set.
+/// The setup's Finish switches: start at login and the update check. Finishing ends the session.
 #[tauri::command]
 pub async fn setup_options(app: AppHandle, start_at_login: bool, check_for_updates: bool) -> CmdResult<Settings> {
     log::info!("ipc: setup_options");
+    setup_gate(&app)?;
     blocking(move || {
         apply_setting(&app, "startAtLogin", Value::from(start_at_login));
-        apply_setting(&app, "checkForUpdates", Value::from(check_for_updates)).settings
+        let saved = apply_setting(&app, "checkForUpdates", Value::from(check_for_updates)).settings;
+        app.state::<AppState>().setup.store(false, std::sync::atomic::Ordering::SeqCst);
+        saved
     })
     .await
 }

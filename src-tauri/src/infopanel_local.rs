@@ -65,6 +65,8 @@ pub struct Local {
     pub exe: Option<String>,
     /// The exe's file version, e.g. "1.4.0".
     pub version: Option<String>,
+    /// A setup session is open: Start, Restart and the setup's switches work (set by the command).
+    pub setup: bool,
 }
 
 /// INFOPANEL_DATA_DIR, else `%LOCALAPPDATA%\InfoPanel` (ips-server's `infopanel_dir`).
@@ -225,6 +227,7 @@ pub fn local() -> Local {
         process,
         exe: exe.map(|p| p.to_string_lossy().into_owned()),
         version,
+        setup: false,
     }
 }
 
