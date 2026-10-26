@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.34] - 2026-10-26
+
 ### Changed
 
 - **A new first-run setup.** It fills the window and has five steps: Welcome, Data checks, Your screen, Start and Finish. The data checks start as soon as it opens and test each link from InfoPanel to your screens in order: InfoPanel installed, running, a build with the Data API, the Data API turned on and answering, sensors found, readings that change, and Studio's own server. A check that fails or warns opens with numbered steps that use InfoPanel's own setting names, and some have a button: **Start InfoPanel**, **Restart InfoPanel**, or **Use** the address InfoPanel's settings name. Nothing blocks you: **Continue without live data** carries on. **Another PC** checks a Data API on another machine.
