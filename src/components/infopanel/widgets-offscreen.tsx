@@ -10,8 +10,9 @@ import type { SensorMap } from "@/modules/types";
 import type { Appearance } from "@/lib/style-resolve";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
-import { widgetBox, widgetOf, widgetPaths } from "@/lib/infopanel/native/widget-item";
-import { WidgetItemView } from "./widget-item-view";
+import { widgetBox, widgetPaths } from "@/lib/infopanel/native/widget-item";
+// Through CanvasZone, the kiosk's chunk for it, so the export shares that chunk rather than splitting the view out.
+import { widgetDrawer } from "./CanvasZone";
 
 /** The widgets get this long to load and run their first draws (fonts and images are awaited as well). */
 export const WARMUP_MS = 1500;
@@ -37,6 +38,7 @@ export interface WidgetsOffscreenProps {
 
 export function WidgetsOffscreen({ items, width, height, sensors, appearance, onReady, warmup = WARMUP_MS }: WidgetsOffscreenProps) {
   const host = useRef<HTMLDivElement>(null);
+  const draw = widgetDrawer(sensors, appearance, true)!;
   useEffect(() => {
     let stop = false;
     void settled(host.current!, warmup).then(() => !stop && host.current && onReady(host.current));
@@ -51,7 +53,7 @@ export function WidgetsOffscreen({ items, width, height, sensors, appearance, on
         const box = widgetBox(item);
         return (
           <div key={path} data-widget-item={path} style={{ position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h }}>
-            <WidgetItemView widget={widgetOf(item)!} name={item.Name} width={box.w} height={box.h} sensors={sensors} appearance={appearance} tag />
+            {draw(item, path, box)}
           </div>
         );
       })}
