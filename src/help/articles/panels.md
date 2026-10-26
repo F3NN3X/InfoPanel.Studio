@@ -3,7 +3,7 @@ id: panels
 title: Panels
 icon: dashboard_customize
 related: [panel-widgets, presets, custom-css]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 Compose your own zone from small widgets when no ready-made widget fits.
@@ -35,4 +35,4 @@ Switch the Panel section's **Editor** from **Visual** to **Code** to edit the wh
 
 ## Saving a panel
 
-Right-click the panel (or use the inspector's **Panel** section) and choose **Save as Panel**, name it, and it appears under **My panels** in **Add widget** and in **Library › Panels**, for every screen. It is included when you export. Each use is a fresh copy.
+Right-click the panel (or use the inspector's **Panel** section) and choose **Save as Panel**, name it, and it appears under **My panels** on the **Panels** tab of **Add** and in **Library › Panels**, for every screen. It is included when you export. Each use is a fresh copy.

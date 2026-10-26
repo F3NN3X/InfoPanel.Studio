@@ -3,7 +3,7 @@ id: gauges
 title: Gauges
 icon: speed
 related: [canvas, assets, library]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.33
 ---
 
 Browse, edit and build gauges: vector gauges that need no frames, image sequences and SVG templates.

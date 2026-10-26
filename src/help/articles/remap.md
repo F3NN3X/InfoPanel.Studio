@@ -3,7 +3,7 @@ id: remap
 title: Sensor remap
 icon: swap_horiz
 related: [import, sensors]
-verified: 1.3.0-beta.29
+verified: 1.3.0-beta.33
 ---
 
 Profiles from another PC read other hardware. Remap points them at yours.
