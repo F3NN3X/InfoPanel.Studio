@@ -19,7 +19,7 @@ The editor is **Edit** on the rail, the same view that edits a grid screen; see 
 
 ## Layers
 
-The item tree. Groups nest. Each row has a lock toggle, and a checkbox that sets InfoPanel's Hidden flag.
+The item tree. Groups nest. Each row has a lock toggle, and a checkbox that sets InfoPanel's Hidden flag. A Studio widget on the page is a row too, with its widget icon in the accent colour and the word *widget*; see [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
 
 ## The toolbar
 

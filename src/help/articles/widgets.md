@@ -14,6 +14,8 @@ Ready-made modules that read sensors and adapt to their zone.
 
 To browse them, open the **Add** tab in Edit's left panel. On the **Widgets** tab the chips are All, System, Hardware, Storage, Network, Media, Audio, Info, Gaming and Generic. Panels and layout starters have their own tabs.
 
+On an InfoPanel profile, **Add** lists the widgets above InfoPanel's items, and a widget goes on the canvas at any place and size. Each one has an **On InfoPanel** choice for the export. See [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
+
 ## Adapting to size
 
 Most widgets pick a layout from the space they get. In **Show › Fit**, **Small zones** decides what happens when the zone is small:

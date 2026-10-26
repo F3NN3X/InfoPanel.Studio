@@ -706,7 +706,7 @@ least one widget is visible.
 
 ### Types (`src/lib/layout.ts`)
 
-- `DashboardConfig` - `version: 12` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
+- `DashboardConfig` - `version: 14` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
   `profiles`, `theme`, `radius`, `dataApiUrl?`, `stylePresets?`,
   `panelPresets?`, `sourcePrefs?`, `background?` (the page background),
   `style?` (the dashboard style, every profile), `styleEnforce?`
@@ -723,7 +723,21 @@ least one widget is visible.
   for the profile), `theme` (a partial `ThemeTokens` over the dashboard's
   theme) and `radius` (rem), `gap` and `padding` (px, see `profile-grid.ts`)
   and `sampleVersion` (set on the profiles earlier versions shipped; kept, no
-  longer read).
+  longer read). `madeFor?` (`"studio"` or `"infopanel"`, v14) records what the
+  profile was made for: the v14 step sets `infopanel` on a profile whose every
+  page is free, and an imported .infopanel profile gets it. The studio still
+  derives "made for InfoPanel" from the pages (`madeForInfoPanel`).
+- `ProfilePage.layout?` (`PageLayout`, v14): `"free"` marks a free page, one
+  canvas zone filling the page; `"grid"` or none is a grid page. The v14 step (`migrateProfileV14`,
+  `settings-migrate.ts`) sets it on every page that is one full-size canvas
+  zone, and an invalid value is dropped on load.
+- A free page's canvas holds Studio widgets as items (`$.widget` on an `Image`
+  item: `module`, `settings`, `design`, `follow`, `panel`, `onInfoPanel`,
+  `lib/infopanel/native/widget-item.ts`). The kiosk and the editor draw the
+  registry widget at the item's box. An .infopanel export replaces each by its
+  `onInfoPanel` rule (`native/widget-export.ts`, drawn from the open editor:
+  recreate as one Group, snapshot as one Image, or nothing), and any left
+  unconverted are stripped (`withoutWidgets`), so InfoPanel never sees `widget`.
 - `ProfileView` - one page of a profile as the studio and kiosk edit and draw it:
   the profile minus `pages`, plus that page's `placements` and `pageId`.
   `src/lib/pages.ts` converts (`profileWithPage`, `applyView`, `onPage`) and
