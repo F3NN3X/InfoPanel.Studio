@@ -8,6 +8,7 @@ import {
   groupBindings,
   inFilter,
   indexCatalog,
+  leaveUnresolved,
   needsAttention,
   remapRows,
   resolveAll,
@@ -91,6 +92,43 @@ describe("suggest", () => {
   it("matches a plugin reading across instances (another network adapter)", () => {
     expect(suggest(ipv4, index)[0]).toMatchObject({ key: "plugins.network-info-plugin.{b}.ipv4-0", strong: true });
   });
+
+  it("follows a renamed plugin by its reading id and name, and only then", () => {
+    const renamed = indexCatalog(
+      buildCatalog({
+        "plugins.InfoPanel.RTSS.rtss.fps": { value: 144, name: "RTSS · Frames Per Second", ref: "plugin:/InfoPanel.RTSS/rtss/fps" },
+        "plugins.InfoPanel.RTSS.rtss.1% low fps": { value: 90, name: "RTSS · 1% Low FPS", ref: "plugin:/InfoPanel.RTSS/rtss/1% low fps" },
+        "plugins.clock-plugin.clock.second": { value: 12, name: "Clock · Second", ref: "plugin:/clock-plugin/clock/second" },
+      }),
+    );
+    const [fps, low, title] = groupBindings(
+      parse(
+        item("Sensor", plugin("Frames Per Second", "/fps-plugin/fps/fps")) +
+          item("Sensor", plugin("1% Low Frames Per Second", "/fps-plugin/fps/1% low fps")) +
+          item("Sensor", plugin("Frames Per Second", "/fps-plugin/fps/average")),
+      ),
+    );
+    const [best] = suggest(fps, renamed);
+    expect(best).toMatchObject({ key: "plugins.InfoPanel.RTSS.rtss.fps", strong: true });
+    expect(candidateReason(fps, best)).toBe("Strong · same reading and name");
+    expect(resolveGroup(fps, renamed, new Map())).toEqual({ key: "plugins.InfoPanel.RTSS.rtss.fps", via: "suggested" });
+    // Same reading id but another name, or the same name on another reading: offered, not pre-filled.
+    expect(suggest(low, renamed)[0]).toMatchObject({ key: "plugins.InfoPanel.RTSS.rtss.1% low fps", strong: false });
+    expect(resolveGroup(low, renamed, new Map())).toBeNull();
+    expect(resolveGroup(title, renamed, new Map())).toBeNull();
+  });
+
+  it("prefers the plugin's own reading to the same reading of another plugin", () => {
+    const both = indexCatalog(
+      buildCatalog({
+        "plugins.yr-weather-plugin.oslo-norway.weather": { text: "Rain", name: "Oslo, Norway · Weather", ref: "plugin:/yr-weather-plugin/oslo-norway/weather" },
+        "plugins.weather-plugin.weather.weather": { text: "Sun", name: "Weather", ref: "plugin:/weather-plugin/weather/weather" },
+      }),
+    );
+    const [weather] = groupBindings(parse(item("Sensor", plugin("Weather", "/yr-weather-plugin/oslo/weather"))));
+    expect(suggest(weather, both).filter((c) => c.strong)).toHaveLength(2);
+    expect(resolveGroup(weather, both, new Map())).toEqual({ key: "plugins.yr-weather-plugin.oslo-norway.weather", via: "suggested" });
+  });
 });
 
 describe("resolve", () => {
@@ -162,6 +200,14 @@ describe("the remap panel's rows", () => {
     expect(filterCounts(rows)).toEqual({ all: 4, check: 1, unresolved: 0, done: 3 });
     expect(rows.filter((r) => inFilter(r.state, "done")).map((r) => r.group.id)).toEqual([fps, none, gone]);
     expect(withChoice(overrides, none, null)).toEqual(new Map([[gone, ""]]));
+  });
+
+  it("leaves every Unresolved row unbound in one change, keeping the other choices", () => {
+    const rows = remapRows(groups, index, resolveAll(groups, index, new Map()), new Map());
+    const left = leaveUnresolved(rows, new Map([[gpu, "libre.rtx_gpu_core"]]));
+    expect(left).toEqual(new Map([[gpu, "libre.rtx_gpu_core"], [none, ""], [gone, ""]]));
+    const after = remapRows(groups, index, resolveAll(groups, index, left), left);
+    expect(filterCounts(after)).toEqual({ all: 4, check: 0, unresolved: 0, done: 4 });
   });
 
   it("explains a candidate in a few words", () => {

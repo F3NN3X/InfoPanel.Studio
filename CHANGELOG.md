@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Imported InfoPanel profiles open and edit more faithfully.** Text drawn without InfoPanel's font answers now takes the weight of its style (a "Bold" or "SemiBold" style drew regular before), a font InfoPanel can't answer for draws by its name instead of Segoe UI, and a styled font that isn't installed draws Segoe UI regular, as InfoPanel does. Sensors of a plugin renamed in a later version are found by reading id and name. The Sensors step has **Leave N unresolved unbound**, so a profile from another PC no longer takes three clicks per missing sensor. The Import door has **From InfoPanel on this PC…** for the profiles InfoPanel has installed here. An item kept as InfoPanel because its picture is missing names the file; the door no longer says "Imported 0 files" when it hands an `.infopanel` to the import steps. The editor's Add palette takes at most half the column, so Layers shows more than a few rows.
+
 ## [1.3.0-beta.28] - 2026-10-26
 
 ### Added

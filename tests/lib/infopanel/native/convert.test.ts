@@ -212,7 +212,7 @@ describe("convert", () => {
       box: { w: 64, h: 32 }, needs: ["image-sequence gauge widget"], lost: ["AnimationSpeed (the frame changes at once)"],
       custom: { kind: "frames", urls: ["/corpus/p/assets/f0.png", "/corpus/p/assets/f1.png"], min: 0, max: 50 },
     });
-    expect(convert(item, "g", { ...sized, assetUrl: () => null })).toMatchObject({ ok: false, reason: expect.stringMatching(/no URL yet/) });
+    expect(convert(item, "g", { ...sized, assetUrl: () => null })).toMatchObject({ ok: false, reason: expect.stringMatching(/not in the export/) });
   });
 
   it("draws images stretched over their box, under the colour layer, nothing while there is none", () => {

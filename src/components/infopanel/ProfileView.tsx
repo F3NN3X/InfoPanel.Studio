@@ -7,7 +7,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { backdropFilter } from "@/lib/effects/blur.ts";
 import type { CardSpec } from "@/lib/infopanel/elements/spec.ts";
 import type { ExportEntry } from "@/lib/infopanel/archive.ts";
-import { FontLoader, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
+import { FontLoader, nameFont, type ResolvedFont } from "@/lib/infopanel/font-loader.ts";
 import { walkItems } from "@/lib/infopanel/parse.ts";
 import type { DisplayItem, Profile } from "@/lib/infopanel/schema.ts";
 import type { BoundItem } from "@/lib/infopanel/sensors.ts";
@@ -56,8 +56,7 @@ export function useFonts(items: DisplayItem[], load: () => Promise<FontLoader | 
   }, [key]);
   return (style) => {
     const r = resolved.get(fontKey(style));
-    if (r) return r.css;
-    return { fontFamily: `"${style.font.font}"`, fontWeight: style.font.bold ? 700 : 400, fontStyle: style.font.italic ? "italic" : "normal" };
+    return r ? r.css : nameFont(style.font).css;
   };
 }
 

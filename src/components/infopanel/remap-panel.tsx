@@ -4,13 +4,14 @@
  * step 4 and the Remap dialog.
  */
 import { useState } from "react";
-import { Check, CheckCheck, CornerDownRight, Search } from "lucide-react";
+import { Check, CheckCheck, CircleSlash, CornerDownRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   candidateReason,
   confirmAll,
   filterCounts,
   inFilter,
+  leaveUnresolved,
   remapRows,
   search,
   suggest,
@@ -219,6 +220,11 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
         {counts.check > 0 && (
           <button type="button" className={GHOST} onClick={() => onOverrides(confirmAll(rows, overrides))}>
             <CheckCheck className="h-4 w-4 text-ui-warning" /> Confirm all {counts.check} suggestions
+          </button>
+        )}
+        {counts.unresolved > 0 && (
+          <button type="button" className={GHOST} title="Each can still be remapped later from the zone" onClick={() => onOverrides(leaveUnresolved(rows, overrides))}>
+            <CircleSlash className="h-4 w-4 text-ui-4" /> Leave {counts.unresolved} unresolved unbound
           </button>
         )}
       </div>
