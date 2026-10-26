@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.33] - 2026-10-26
+
 ### Changed
 
 - **The Changelog page lists the last 10 releases.** It ends with a link to all releases on GitHub, and **Releases on GitHub** in the Settings sidebar opens the same page in your browser. Settings search finds both.
