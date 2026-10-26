@@ -103,9 +103,9 @@ export function Bar(p: BarProps) {
   };
   const [before, after] = splitCenter(slots.center);
   const cols = p.gap ? `${Math.max(0, p.gap.left - padX)}px ${p.gap.width}px minmax(0, 1fr)` : view === "meters" ? meterCols(slots) : "minmax(0, 1fr) auto minmax(0, 1fr)";
-  // Meters: the zones are split by upright dividers
+  // Meters: the zones are split by upright dividers, as tall as a drawn item (its ring is 0.8 of the bar), so none is clipped
   const zoned = view === "meters" && !p.gap;
-  const zone = (items: ItemKey[]): CSSProperties | undefined => (zoned && items.length > 0 ? { borderLeft: "1px solid var(--w-track)", paddingInline: padX * 0.5, height: "72%", alignSelf: "center" } : undefined);
+  const zone = (items: ItemKey[]): CSSProperties | undefined => (zoned && items.length > 0 ? { borderLeft: "1px solid var(--w-track)", paddingInline: padX * 0.5, height: "84%", alignSelf: "center" } : undefined);
   return (
     <div ref={p.barRef} className="h-full w-full min-w-0 overflow-hidden" style={{ fontSize: fs }}>
       <div className="grid h-full items-center" style={{ gridTemplateColumns: cols, paddingInline: padX, paddingBlock: islands ? Math.max(2, fs * 0.3) : 0, columnGap: 0 }}>

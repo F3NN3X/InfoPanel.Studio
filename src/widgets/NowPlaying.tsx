@@ -73,7 +73,7 @@ export interface NowPlayingProps extends ShellProps {
   captureDevices?: string[];
 }
 
-/** The cover beside the text in the card layout: the box's height, at most 40% of its width (a small zone keeps 56px). */
+/** The cover beside the text in the card layout: the box's height, at most 40% of its width (a small zone keeps 56px); the large layout's takes up to half. */
 const artPx = (size: string, w: number, h: number): number => (size === "sm" ? 56 : Math.max(56, Math.min(h, w * 0.4)));
 
 export default function NowPlaying(p: NowPlayingProps) {
@@ -242,7 +242,7 @@ export default function NowPlaying(p: NowPlayingProps) {
         if (size === "lg" && art)
           return (
             <div className="flex h-full gap-5">
-              <Img src={cover} icon="album" className="aspect-square h-full max-h-full shrink-0 rounded-xl" />
+              <Img src={cover} icon="album" className="aspect-square shrink-0 self-end rounded-xl" style={{ height: Math.min(h, w * 0.5) }} />
               <div className="flex min-w-0 flex-1 flex-col justify-end gap-3">
                 {text("text-2xl")}
                 {progress}

@@ -71,9 +71,10 @@ export function readingText(value: number | undefined, unit: string | undefined)
 function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "meter", w, h }: LineProps) {
   const metered = value !== undefined && ranged && place === "meter";
   const shown = text ?? readingText(value, unit);
-  // Half the line's height; a meter line keeps room for its meter, the others fit their own text (and its padding and gap).
-  const em = metered ? 27 : textEm(`${place === "only" ? "" : label}${shown ?? ""}`) + (shown !== undefined && place !== "only" ? 1.1 : 0) + 1.8;
-  const px = Math.max(Math.min(LINE_MIN_PX, h * 0.9), fitFont(em, w, h * 0.5));
+  // The same share of the width for every line of a kind, so a console's lines match; up to 0.42 of the line's height,
+  // never under LINE_MIN_PX (unless the line itself is shorter).
+  const em = value === undefined && text === undefined ? 18 : metered ? 27 : 11;
+  const px = Math.max(Math.min(LINE_MIN_PX, h * 0.9), fitFont(em, w, h * 0.42));
   if (place === "stack") {
     const sp = Math.max(8, Math.min(h * 0.22, w / 14));
     return (
@@ -107,7 +108,8 @@ export function Figure({ label, text, unit, w, h }: { label: string; text: strin
   const small = Math.max(9, Math.min(h * 0.13, w / 9));
   // The number's real width: with a small unit, the unit beside it at 0.4 of its size and its 0.2em margin.
   const em = textEm(text) * 0.98 + (unit ? (textEm(unit) + 0.2) * 0.4 : 0);
-  const px = Math.max(14, fitFont(em, w - FIGURE_PAD * 2, (h - small * 2) * 0.62));
+  // a little short of the full width, so figures side by side keep a gap
+  const px = Math.max(14, fitFont(em, (w - FIGURE_PAD * 2) * 0.94, (h - small * 2) * 0.62));
   return (
     <div className="flex h-full min-w-0 flex-col leading-none" style={{ paddingInline: FIGURE_PAD }}>
       <span className="truncate text-[color:var(--w-muted)]" style={{ fontSize: small, textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>
