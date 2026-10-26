@@ -74,8 +74,11 @@ function Pill({ children, fs }: { children: ReactNode; fs: number }) {
   );
 }
 
-/** Meters: the three zones share the width 3:3:2, and an empty one gives its share to the others. */
-const meterCols = (s: Slots<ItemKey>): string => [s.left, s.center, s.right].map((items, i) => (items.length > 0 ? `minmax(0, ${[3, 3, 2][i]}fr)` : "auto")).join(" ");
+/**
+ * Meters: the three zones share the width 3:3:2, never narrower than what they hold (the bar's size is fitted to
+ * the items, so that fits), and an empty one gives its share to the others.
+ */
+const meterCols = (s: Slots<ItemKey>): string => [s.left, s.center, s.right].map((items, i) => (items.length > 0 ? `minmax(min-content, ${[3, 3, 2][i]}fr)` : "auto")).join(" ");
 
 /** One edge-to-edge row of three slots; around an island's gap the centre slot splits to either side of it. */
 export function Bar(p: BarProps) {

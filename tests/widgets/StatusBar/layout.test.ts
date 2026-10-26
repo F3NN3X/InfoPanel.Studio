@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ISLAND_DEFAULTS } from "@/lib/island/config";
 import { islandIdleWidth } from "@/components/island/island-model";
-import { fitSlots, gapPlacement, gapWidth, splitCenter } from "@/widgets/StatusBar/layout";
+import { barSize, fitSlots, gapPlacement, gapWidth, splitCenter } from "@/widgets/StatusBar/layout";
 import { isWifi, shownOf } from "@/widgets/StatusBar/items";
 
 describe("island gap width", () => {
@@ -52,6 +52,26 @@ describe("narrow bar", () => {
   });
   it("splits the centre around the gap, the odd one to the left", () => {
     expect(splitCenter(["c", "d", "e"])).toEqual([["c", "d"], ["e"]]);
+  });
+});
+
+describe("bar size", () => {
+  // items that cost 10 em of text and 3 bar heights, in a 1900 px bar
+  const fits = (fs: number, u: number) => fs * 10 + u * 3 <= 1900;
+  it("follows the bar's height when everything fits", () => {
+    expect(barSize(100, 92, fits)).toEqual({ fs: 36, u: 92 });
+    // a low bar keeps the 13 px floor
+    expect(barSize(20, 12, () => true)).toEqual({ fs: 13, u: 12 });
+  });
+  it("shrinks the text and the items together, to the largest size that fits", () => {
+    const s = barSize(480, 472, fits);
+    expect(fits(s.fs, s.u)).toBe(true);
+    expect(s.fs).toBeLessThan(173);
+    expect(s.fs).toBeGreaterThan(60);
+    expect(s.u / 472).toBeCloseTo(s.fs / 173, 1);
+  });
+  it("stops at its floors when nothing fits, leaving the rest to the narrow-bar drop", () => {
+    expect(barSize(480, 472, () => false)).toEqual({ fs: 13, u: 32 });
   });
 });
 
