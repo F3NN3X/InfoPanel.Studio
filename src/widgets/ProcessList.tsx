@@ -7,6 +7,12 @@ export { meta };
 
 type Sort = "cpu" | "utility" | "memory";
 
+/** A row's height and the gap between rows, px (`h-5`, `gap-1.5`); the stats row's and the footer's heights. */
+const ROW_H = 20;
+const ROW_GAP = 6;
+const STATS_H = 46;
+const FOOTER_H = 60;
+
 export interface ProcessListProps extends ShellProps {
   look?: ModuleSettings;
   sort?: Sort;
@@ -44,7 +50,8 @@ export default function ProcessList(p: ProcessListProps) {
     >
       {({ size, h }) => {
         if (size === "xs") return <Metric label="Processes" value={num(k("process-count"))} scale="lg" sub={`${fmt(num(k("thread-count")))} threads`} className="h-full justify-center" />;
-        const n = p.rows ?? useFitRows(h - (size === "sm" ? 0 : 58), 26);
+        // Whole rows only: the room left by the stats above (md, lg) and the footer (lg), each with the 12px gap.
+        const n = p.rows ?? useFitRows(h - (size === "sm" ? 0 : STATS_H + 12) - (size === "lg" ? FOOTER_H + 12 : 0), ROW_H, ROW_GAP);
         return (
           <div className="flex h-full flex-col gap-3">
             {size !== "sm" && (

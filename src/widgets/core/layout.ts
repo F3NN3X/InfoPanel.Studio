@@ -8,6 +8,11 @@ import type { Shape, Tier } from "./types";
 // Measured on the widget's outer (border-box) size so padding changes can never feed back into the tier.
 export const tierOf = (w: number, h: number): Tier =>
   w < 220 || h < 140 ? "xs" : w < 340 || h < 210 ? "sm" : w < 500 || h < 320 ? "md" : "lg";
+/**
+ * The size a widget's content is drawn for unless its kind says otherwise: the `lg` tier's smallest box. Past it the
+ * shell zooms the content with the zone (`zoomFor`), so a large zone shows the `lg` layout bigger, not emptier.
+ */
+export const DESIGN_SIZE = { w: 500, h: 320 } as const;
 // Shape follows the zone's grid span: 1×1 → tile, 3×1 / 4×1 → strip, 1×2 / 1×3 → column, everything else → box.
 // A strip is one row of a square grid (under 160px tall): on a grid of short rows (a 1920×550 strip
 // profile) a wide zone several rows tall is a box, so it shows the widget, not the one-line summary.
@@ -52,7 +57,11 @@ export const boxOf = (w: number, h: number, forced: Tier | "auto" | undefined, z
   return { w: zw, h: zh, size: forced && forced !== "auto" ? forced : tierOf(zw, zh), shape: shapeOf(zw, zh) };
 };
 
-export function useBox(forced: Tier | "auto" | undefined, zoom = 1): [RefObject<HTMLDivElement | null>, Box] {
+/**
+ * The shell's measured box. `zoom` is the content's zoom, or how to get it from the measured outer size; the zoom
+ * used is returned with the box.
+ */
+export function useBox(forced: Tier | "auto" | undefined, zoom: number | ((w: number, h: number) => number) = 1): [RefObject<HTMLDivElement | null>, Box, number] {
   const ref = useRef<HTMLDivElement | null>(null);
   const [outer, setOuter] = useState({ w: 0, h: 0 });
   useLayoutEffect(() => {
@@ -67,8 +76,9 @@ export function useBox(forced: Tier | "auto" | undefined, zoom = 1): [RefObject<
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const box = outer.w || outer.h ? boxOf(outer.w, outer.h, forced, zoom) : { w: 0, h: 0, size: forced && forced !== "auto" ? forced : "md", shape: "box" as Shape };
-  return [ref, box];
+  const z = typeof zoom === "function" ? zoom(outer.w, outer.h) : zoom;
+  const box = outer.w || outer.h ? boxOf(outer.w, outer.h, forced, z) : { w: 0, h: 0, size: forced && forced !== "auto" ? forced : "md", shape: "box" as Shape };
+  return [ref, box, z];
 }
 
 export const pickBy = <T,>(size: Tier, map: Partial<Record<Tier, T>> & { md: T }): T => map[size] ?? map.md;

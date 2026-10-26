@@ -1,15 +1,15 @@
-import { useRef, useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useGeneral } from "@/hooks/use-general";
 import { usePageIsland } from "@/hooks/use-page-island";
 import { useTick } from "@/hooks/use-tick";
 import { islandIdleWidth } from "@/components/island/island-model";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, type RateUnit, type ShellProps, type WeatherIconProps } from "./kit";
+import { Widget, shell, usePane, type RateUnit, type ShellProps, type WeatherIconProps } from "./kit";
 import { Bar, barPad, isPreset, type StatusBarView } from "./StatusBar/Bar";
 import { cardWidth } from "./StatusBar/card-model";
 import { PRIORITY, readingOf, shownOf, type Display, type ItemKey, type Reading } from "./StatusBar/items";
-import { fitByRank, fitSlots, gapWidth, type IslandGapMode, type Slots } from "./StatusBar/layout";
+import { barSize, fitByRank, fitSlots, gapWidth, type IslandGapMode, type Slots } from "./StatusBar/layout";
 import { useGap } from "./StatusBar/use-gap";
 import { meta } from "./meta/StatusBar";
 
@@ -86,30 +86,51 @@ export default function StatusBar(p: StatusBarProps) {
 
   const radius = chromeOf(p.look ?? {})?.radius ?? p.radius;
   const corner = radius === undefined ? "var(--radius, 1rem)" : `${radius}px`;
-  const style: CSSProperties =
-    view === "pill" || isPreset(view)
-      ? { borderRadius: 9999, margin: 4, width: "calc(100% - 8px)", height: "calc(100% - 8px)" }
-      : view === "islands"
-        ? { background: "transparent", border: "none", boxShadow: "none", backdropFilter: "none", WebkitBackdropFilter: "none", borderRadius: 0 }
-        : { borderRadius: `0 0 ${corner} ${corner}` };
+  // A capsule (pill and the presets) is drawn inside a clear zone, at the height its items fit at, centred.
+  const capsule = view === "pill" || isPreset(view);
+  const style: CSSProperties = capsule || view === "islands" ? CLEAR : { borderRadius: `0 0 ${corner} ${corner}` };
 
   return (
-    <Widget {...shell(p)} title={p.title ?? "Status Bar"} icon="panel_top" showHeader={false} bleed compactView="off" style={{ ...p.style, ...style }} studio={{ label: "Status Bar", value: "" }}>
+    <Widget {...shell(p)} title={p.title ?? "Status Bar"} icon="panel_top" showHeader={false} bleed compactView="off" design={null} style={{ ...p.style, ...style }} studio={{ label: "Status Bar", value: "" }}>
       {({ w, h }) => {
-        const fs = Math.min(22, Math.max(13, Math.round(h * 0.36)));
+        // a capsule keeps 4px off the zone's edges
+        const bw = capsule ? w - 8 : w,
+          bh = capsule ? h - 8 : h;
         // an item's width: its icon, its text at ~0.58em a character and the spacing (and divider) after it
-        const u = Math.max(0, h - 8);
-        const cost = (k: ItemKey) => {
+        const cost = (k: ItemKey, fs: number, u: number) => {
           const r = readings[k]!;
           if (r.card) return cardWidth(r.card, u) + spacing * (separators ? 2 : 1) + (separators ? 1 : 0);
           const shown = shownOf(r, display);
           const chars = Math.min(shown.value?.length ?? 0, k === "media" ? MEDIA_MAX_CHARS : Infinity);
           return (shown.icon ? fs * 1.6 : 0) + chars * fs * CHAR_EM + spacing * (separators ? 2 : 1) + (separators ? 1 : 0);
         };
-        const room = w - 2 * barPad(view, fs, u) - (gap ? gap.width : 0) - 24;
-        const fit = w <= 0 ? have : isPreset(view) ? fitByRank(have, room, cost, (k) => PRIORITY[k] ?? 0) : fitSlots(have, room, cost);
-        return <Bar view={view} u={u} slots={fit} readings={readings} display={display} separators={separators} spacing={spacing} fs={fs} gap={gap} barRef={barRef} icons={{ set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated }} />;
+        const roomAt = (fs: number, u: number) => bw - 2 * barPad(view, fs, u) - (gap ? gap.width : 0) - 24;
+        const sum = (list: ItemKey[], fs: number, u: number) => list.reduce((s, k) => s + cost(k, fs, u), 0);
+        // The side slots share the width left of the centre equally (Meters and a gap lay out their own way).
+        const need = (fs: number, u: number) => (view === "meters" || gap ? sum([...have.left, ...have.center, ...have.right], fs, u) : sum(have.center, fs, u) + 2 * Math.max(sum(have.left, fs, u), sum(have.right, fs, u)));
+        // The text follows the bar's height and shrinks before any item is dropped.
+        const { fs, u } = barSize(bh, Math.max(0, bh - 8), (fs, u) => need(fs, u) <= roomAt(fs, u));
+        const room = roomAt(fs, u);
+        const costAt = (k: ItemKey) => cost(k, fs, u);
+        const fit = w <= 0 ? have : isPreset(view) ? fitByRank(have, room, costAt, (k) => PRIORITY[k] ?? 0) : fitSlots(have, room, costAt);
+        const bar = <Bar view={view} u={u} slots={fit} readings={readings} display={display} separators={separators} spacing={spacing} fs={fs} gap={gap} barRef={barRef} icons={{ set: p.iconSet, style: p.iconStyle, animated: p.iconAnimated }} />;
+        return capsule ? <Capsule height={Math.min(bh, Math.round(Math.max(u + 8, fs * 2.2)))}>{bar}</Capsule> : bar;
       }}
     </Widget>
+  );
+}
+
+/** The zone itself drawn clear: the islands' pills and the capsule carry the surface. */
+const CLEAR: CSSProperties = { background: "transparent", border: "none", boxShadow: "none", backdropFilter: "none", WebkitBackdropFilter: "none", borderRadius: 0 };
+
+/** The pill and the presets' capsule: the widget's surface, `height` px tall, centred in the zone. */
+function Capsule({ height, children }: { height: number; children: ReactNode }) {
+  const pane = usePane();
+  return (
+    <div className="flex h-full w-full items-center justify-center p-1">
+      <div className={`w-full min-w-0 overflow-hidden ${pane.className}`} style={{ ...pane.style, borderRadius: 9999, height }}>
+        {children}
+      </div>
+    </div>
   );
 }

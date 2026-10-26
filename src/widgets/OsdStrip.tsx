@@ -14,6 +14,9 @@ export interface OsdStripProps extends ShellProps {
 }
 
 // The strip is a dark panel of its own, so its text stays light on every surface.
+/** The content height (px) under which a cell's label and value go on one line. */
+const INLINE_H = 52;
+
 const OSD_TEXT = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8", "--w-faint": "#a1a1aa", "--w-track": "rgba(255,255,255,0.1)" } as CSSProperties;
 
 export default function OsdStrip(p: OsdStripProps) {
@@ -75,17 +78,19 @@ export default function OsdStrip(p: OsdStripProps) {
       studio={{ label: "OSD", live: !idle, value: idle ? "—" : fps, unit: idle ? "" : "fps", rows: keys.map((k) => ({ n: ALL[k][0], v: ALL[k][1] })) }}
     >
       {({ w, h }) => {
-        const n = Math.max(1, Math.min(keys.length, Math.floor(w / 92)));
+        // Under INLINE_H the label and the value share one line, so the strip still fits.
+        const inline = h > 0 && h < INLINE_H;
+        const n = Math.max(1, Math.min(keys.length, Math.floor(w / (inline ? 128 : 92))));
         return (
           <div className="flex h-full flex-col justify-center gap-1.5">
             <div className="grid min-w-0 overflow-hidden rounded-md bg-[#17171b] ring-1 ring-white/10" style={{ ...OSD_TEXT, gridTemplateColumns: `repeat(${n}, minmax(0,1fr))` }}>
               {keys.slice(0, n).map((k, i) => {
                 const [l, v, c] = ALL[k];
                 return (
-                  <div key={k} className={`flex min-w-0 flex-col gap-0.5 px-2.5 py-1.5 ${i ? "border-l border-white/10" : ""}`}>
-                    <span className="truncate text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]">{l}</span>
+                  <div key={k} className={`flex min-w-0 ${inline ? "items-baseline gap-1.5 px-2 py-1" : "flex-col gap-0.5 px-2.5 py-1.5"} ${i ? "border-l border-white/10" : ""}`}>
+                    <span className={`${inline ? "shrink-0 " : ""}truncate text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]`}>{l}</span>
                     <span
-                      className="truncate text-[15px] font-medium tabular-nums text-[color:var(--w-fg)]"
+                      className={`truncate ${inline && h < 30 ? "text-[13px]" : "text-[15px]"} font-medium tabular-nums text-[color:var(--w-fg)]`}
                       style={{ fontFamily: sk.skin === "retro" || sk.skin === "tui" ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--accent)" : undefined) }}
                     >
                       {shownAs(k, v)}

@@ -53,6 +53,8 @@ export default function WebPage(p: WebPageProps) {
       {...shell(p)}
       title={p.title ?? "Web Page"}
       icon="language"
+      // the page draws at its own size; a zoom would enlarge it
+      design={null}
       showHeader={false}
       bleed
       compactView="off"

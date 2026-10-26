@@ -5,8 +5,24 @@ import { cards, type Colours, darkFamily, theme } from "./ports";
 const bar = (at: At, slots: { left: string; center: string; right: string }): Zone => zone("StatusBar", at, { view: "meters", ...slots, separators: false });
 const all = { left: "cpuDual", center: "gpuDual", right: "fps,frameTime" };
 
-/** The whole bar across a grid: in the middle rows of a taller one, so the pill keeps a long shape. */
-const strip = (rows: number, from: number, span: number) => ({ cols: 12, rows, pages: [cards([bar([1, from, 12, span], all)], { surface: "theme" })] });
+/** One bar across a strip. */
+const strip = { cols: 12, rows: 1, pages: [cards([bar([1, 1, 12, 1], all)], { surface: "theme" })] };
+
+/** Taller screens stack one pill each for the CPU, the GPU and the frame rate, so each fills a third of the height. */
+const stack = {
+  cols: 12,
+  rows: 6,
+  pages: [
+    cards(
+      [
+        bar([1, 1, 12, 2], { left: "cpuDual", center: "", right: "" }),
+        bar([1, 3, 12, 2], { left: "gpuDual", center: "", right: "" }),
+        bar([1, 5, 12, 2], { left: "fps,frameTime", center: "", right: "" }),
+      ],
+      { surface: "theme" },
+    ),
+  ],
+};
 
 const COLOURS: Colours = { bg: "#2a3a66", fg: "#ffffff", card: "#11151f", sub: "#8a93a8", line: "#2a3040" };
 
@@ -27,22 +43,9 @@ export const METERS: ScreenTemplate = {
   },
   variants: darkFamily(COLOURS, "white", "smoke", "float"),
   layouts: {
-    strip: strip(1, 1, 1),
-    wide: strip(10, 4, 3),
-    // Taller screens stack one pill each for the CPU, the GPU and the frame rate.
-    standard: {
-      cols: 12,
-      rows: 6,
-      pages: [
-        cards(
-          [
-            bar([1, 1, 12, 2], { left: "cpuDual", center: "", right: "" }),
-            bar([1, 3, 12, 2], { left: "gpuDual", center: "", right: "" }),
-            bar([1, 5, 12, 2], { left: "fps,frameTime", center: "", right: "" }),
-          ],
-          { surface: "theme" },
-        ),
-      ],
-    },
+    strip,
+    // A wide screen's one pill would be a thin band: the stack fills it.
+    wide: stack,
+    standard: stack,
   },
 };

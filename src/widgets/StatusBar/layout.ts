@@ -23,6 +23,33 @@ export function gapPlacement(o: { barLeft: number; barWidth: number; pageCentre:
   return left < 0 || left + o.width > o.barWidth ? null : { left, width: o.width };
 }
 
+/** The bar's text size as a share of its height, and its smallest. */
+export const FS_SHARE = 0.36;
+export const FS_MIN = 13;
+/** The drawn items' smallest height, px (a lower bar keeps its own). */
+const U_MIN = 60;
+
+/**
+ * The bar's text size (`fs`) and drawn-item height (`u`, at most `u0`, the room the bar has): the text follows the
+ * height (0.36 of it, from 13 px), and both shrink together until `fits` says every item fits, down to 13 px text and
+ * 60 px items (their captions stay about 10 px). Past that the narrow-bar drop (`fitSlots` / `fitByRank`) takes over at the smallest size.
+ */
+export function barSize(h: number, u0: number, fits: (fs: number, u: number) => boolean): { fs: number; u: number } {
+  const fs0 = Math.max(FS_MIN, Math.round(h * FS_SHARE));
+  const at = (k: number) => ({ fs: Math.max(FS_MIN, Math.round(fs0 * k)), u: Math.max(Math.min(u0, U_MIN), Math.round(u0 * k)) });
+  if (fits(at(1).fs, at(1).u)) return at(1);
+  // The largest scale that fits; at 0 both are at their floors.
+  let lo = 0,
+    hi = 1;
+  for (let i = 0; i < 12; i++) {
+    const k = (lo + hi) / 2;
+    const s = at(k);
+    if (fits(s.fs, s.u)) lo = k;
+    else hi = k;
+  }
+  return at(lo);
+}
+
 export interface Slots<K> {
   left: K[];
   center: K[];

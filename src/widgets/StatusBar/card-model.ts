@@ -40,8 +40,8 @@ export function sizeOf(u: number): CardSize {
   return { ring: Math.round(u * 0.8), big: Math.max(11, Math.round(u * 0.34)), cap: Math.max(8, Math.round(u * 0.17)), small: Math.max(8, Math.round(u * 0.19)), stat: Math.max(12, Math.round(u * 0.46)), gap: Math.max(4, Math.round(u * 0.12)) };
 }
 
-/** The text size of a line card in a bar `u` px high (the other cards size by `sizeOf`). */
-export const lineSize = (u: number): number => Math.min(22, Math.max(12, Math.round(u * 0.3)));
+/** The text size of a line card in a bar `u` px high (the other cards size by `sizeOf`): it follows the height, as the bar's text does. */
+export const lineSize = (u: number): number => Math.max(12, Math.round(u * 0.36));
 
 /** The text size of a thin-bar row, px. */
 export const rowPx = (u: number): number => sizeOf(u).small * 0.85;

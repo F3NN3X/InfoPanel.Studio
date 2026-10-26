@@ -150,22 +150,23 @@ describe("native screen templates", () => {
     expect(noFan).toHaveLength(16);
   });
 
-  it("zooms a zone's Size % with the screen's size from the template's own, within bounds", () => {
+  it("shrinks a zone's Size % with the screen's size below the template's own, within bounds", () => {
     const design = { width: 1000, height: 500 };
     expect(zoneZoom(design, 1000, 500)).toBe(1);
     // The tighter side decides.
     expect(zoneZoom(design, 1200, 500)).toBe(1);
     expect(zoneZoom(design, 800, 500)).toBe(0.8);
     expect(zoneZoom(design, 10, 10)).toBe(0.6);
-    expect(zoneZoom(design, 10000, 10000)).toBe(1.6);
+    // A larger screen keeps it: the widget shell grows large zones itself.
+    expect(zoneZoom(design, 10000, 10000)).toBe(1);
   });
 
-  it("leaves a zone's Size % as designed at the template's size, and moves it at others", () => {
+  it("leaves a zone's Size % as designed at the template's size and above, and shrinks it below", () => {
     const quota = SCREEN_TEMPLATES.find((t) => t.id === "quota")!;
     const clock = (width: number, height: number) =>
       instantiate(quota, { name: "Q", width, height, sensors: CAPTURE }).profile.pages[0].placements.find((z) => z.module === "Clock")?.settings?.scale;
     expect(clock(quota.size.width, quota.size.height)).toBe(220);
-    expect(clock(1920, 1080)).toBe(352);
+    expect(clock(1920, 1080)).toBe(220);
     expect(clock(480, 320)).toBe(132);
   });
 

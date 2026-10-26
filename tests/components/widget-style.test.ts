@@ -21,6 +21,7 @@ import {
   styleOf,
 } from "@/modules/standard-settings";
 import { withProfileStyle } from "@/modules/types";
+import { DESIGN_SIZE } from "@/widgets/core/layout";
 
 const DESIGN = { w: 400, h: 200 };
 
@@ -33,7 +34,7 @@ describe("zoomFor", () => {
   it("clamps auto-scale and applies the user's size on top", () => {
     expect(zoomFor({ w: 100, h: 50 }, DESIGN, {})).toBe(MIN_AUTO_ZOOM);
     expect(zoomFor({ w: 9000, h: 9000 }, DESIGN, {})).toBe(MAX_AUTO_ZOOM);
-    expect(zoomFor({ w: 800, h: 400 }, DESIGN, { scale: 0.5 })).toBe(1);
+    expect(zoomFor({ w: 9000, h: 9000 }, DESIGN, { scale: 0.5 })).toBe(MAX_AUTO_ZOOM * 0.5);
   });
 
   it("uses only the user's size without a design size, a measurement or auto-scale", () => {
@@ -41,6 +42,19 @@ describe("zoomFor", () => {
     expect(zoomFor({ w: 0, h: 0 }, DESIGN, { scale: 1.25 })).toBe(1.25);
     expect(zoomFor({ w: 800, h: 400 }, DESIGN, { autoScale: false, scale: 1.25 })).toBe(1.25);
     expect(zoomFor({ w: 800, h: 400 }, DESIGN, undefined)).toBe(2);
+  });
+
+  it("grows a widget past the shell's design size, up to 2.5×, with Size % on top", () => {
+    // the lg tier's smallest box: no zoom there, and none below it
+    expect(zoomFor({ w: 500, h: 320 }, DESIGN_SIZE, undefined)).toBe(1);
+    expect(zoomFor({ w: 300, h: 200 }, DESIGN_SIZE, undefined)).toBe(1);
+    // twice the design on the tighter side
+    expect(zoomFor({ w: 1400, h: 640 }, DESIGN_SIZE, undefined)).toBe(2);
+    expect(zoomFor({ w: 1920, h: 1080 }, DESIGN_SIZE, undefined)).toBe(2.5);
+    expect(zoomFor({ w: 1920, h: 1080 }, DESIGN_SIZE, { scale: 0.8 })).toBe(2);
+    // a Size % that already fills the zone keeps its own zoom: the auto part only fills the room it leaves
+    expect(zoomFor({ w: 950, h: 500 }, DESIGN_SIZE, { scale: 1.6 })).toBe(1.6);
+    expect(zoomFor({ w: 1500, h: 1000 }, DESIGN_SIZE, { scale: 1.5 })).toBe(3);
   });
 
   it("picks the design size from the zone's shape", () => {
