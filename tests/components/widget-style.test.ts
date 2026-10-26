@@ -21,6 +21,7 @@ import {
   styleOf,
 } from "@/modules/standard-settings";
 import { withProfileStyle } from "@/modules/types";
+import { DESIGN_SIZE } from "@/widgets/core/layout";
 
 const DESIGN = { w: 400, h: 200 };
 
@@ -41,6 +42,16 @@ describe("zoomFor", () => {
     expect(zoomFor({ w: 0, h: 0 }, DESIGN, { scale: 1.25 })).toBe(1.25);
     expect(zoomFor({ w: 800, h: 400 }, DESIGN, { autoScale: false, scale: 1.25 })).toBe(1.25);
     expect(zoomFor({ w: 800, h: 400 }, DESIGN, undefined)).toBe(2);
+  });
+
+  it("grows a widget past the shell's design size, up to 2.5×, with Size % on top", () => {
+    // the lg tier's smallest box: no zoom there, and none below it
+    expect(zoomFor({ w: 500, h: 320 }, DESIGN_SIZE, undefined)).toBe(1);
+    expect(zoomFor({ w: 300, h: 200 }, DESIGN_SIZE, undefined)).toBe(1);
+    // twice the design on the tighter side
+    expect(zoomFor({ w: 1400, h: 640 }, DESIGN_SIZE, undefined)).toBe(2);
+    expect(zoomFor({ w: 1920, h: 1080 }, DESIGN_SIZE, undefined)).toBe(2.5);
+    expect(zoomFor({ w: 1000, h: 640 }, DESIGN_SIZE, { scale: 0.8 })).toBe(1.6);
   });
 
   it("picks the design size from the zone's shape", () => {

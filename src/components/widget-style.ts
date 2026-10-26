@@ -39,7 +39,7 @@ export const byShape =
  * still shrinks on request.
  */
 export const MIN_AUTO_ZOOM = 1;
-export const MAX_AUTO_ZOOM = 3;
+export const MAX_AUTO_ZOOM = 2.5;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -57,7 +57,8 @@ export function zoomFor(
   if (!design || chrome?.autoScale === false || !size.w || !size.h) return round(user);
   const d = typeof design === "function" ? design(size.w, size.h) : design;
   const fit = Math.min(size.w / d.w, size.h / d.h);
-  return round(clamp(fit, MIN_AUTO_ZOOM, MAX_AUTO_ZOOM) * user);
+  // Rounded down, so the zoomed zone still holds the design size (and keeps its tier).
+  return Math.floor(clamp(fit, MIN_AUTO_ZOOM, MAX_AUTO_ZOOM) * user * 100 + 1e-9) / 100;
 }
 
 /** Two decimals: avoids re-layout churn from sub-pixel size jitter. */

@@ -1,10 +1,10 @@
 // The Widget shell every template renders into: measures itself, applies skin + surface + the standard
 // look, picks the view.
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { chromeVars, numGlowAttr, scopedCss, zoomFor } from "@/components/widget-style";
+import { chromeVars, numGlowAttr, scopedCss, zoomFor, type DesignSizeSpec } from "@/components/widget-style";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
-import { summaryShape, useBox, type Box } from "./layout";
+import { DESIGN_SIZE, summaryShape, useBox, type Box } from "./layout";
 import { mix } from "./tokens";
 import { SKINS, SkinCtx, resolveSurface, textVars } from "./theme";
 import { bodyFlags, forcedTier, lookBox, patchBackground, resolveAccent, scrimFor, shellPad, skinContext, untitled, withUserLook } from "./look";
@@ -44,6 +44,11 @@ export interface WidgetProps {
   look?: ModuleSettings;
   /** A full-bleed layer under the content (e.g. blurred cover art). */
   backdrop?: ReactNode;
+  /**
+   * The size the content is drawn for: a larger zone zooms it (up to 2.5×) on top of Size %. Default `DESIGN_SIZE`;
+   * null for a widget that sizes itself to its zone (a bar, a web page).
+   */
+  design?: DesignSizeSpec | null;
 }
 
 type ShellInput = Partial<ShellProps> & { look?: ModuleSettings; iconOverride?: string };
@@ -72,11 +77,10 @@ export const shell = (p: ShellInput): Partial<WidgetProps> => ({
 
 const HUD_CORNERS = ["left-1.5 top-1.5 border-l border-t", "right-1.5 top-1.5 border-r border-t", "left-1.5 bottom-1.5 border-l border-b", "right-1.5 bottom-1.5 border-r border-b"];
 
-export function Widget({ title, icon, iconOverride, accent, surface, radius, size, showHeader = true, right, className = "", style, children, bleed, compact, compactView, skin = "default", graph, meter, variant, studio, look, backdrop }: WidgetProps) {
+export function Widget({ title, icon, iconOverride, accent, surface, radius, size, showHeader = true, right, className = "", style, children, bleed, compact, compactView, skin = "default", graph, meter, variant, studio, look, backdrop, design = DESIGN_SIZE }: WidgetProps) {
   const chrome = useMemo(() => (look ? chromeOf(look) : undefined), [look]);
-  // Size % zooms the content; the tier and shape are taken from the zoomed size.
-  const zoom = chrome ? zoomFor({ w: 0, h: 0 }, undefined, chrome) : 1;
-  const [ref, box] = useBox(forcedTier(look, size), zoom);
+  // A zone past the design size zooms the content with it, and Size % on top; the tier and shape are taken from the zoomed size.
+  const [ref, box, zoom] = useBox(forcedTier(look, size), (w, h) => zoomFor({ w, h }, design ?? undefined, chrome));
   // tier/shape come from the outer box; layouts get the inner content size (after padding + header)
   const cref = useRef<HTMLDivElement | null>(null);
   const [inner, setInner] = useState({ w: 0, h: 0 });
