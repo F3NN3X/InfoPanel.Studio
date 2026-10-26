@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { Lock, X } from "lucide-react";
 import type { HistorySetter } from "@/hooks/use-config-history";
+import { useToast } from "@/components/ui/toast";
 import { useSensorCatalog } from "@/lib/catalog";
+import type { TemplatePresetGroup } from "@/lib/screen-templates/template-presets";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { GENERAL_DEFAULTS, resolveFont, type GeneralFont } from "@/lib/general";
 import { resolveInheritance, valueText } from "@/lib/inheritance";
@@ -113,6 +115,12 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const [flash, setFlash] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
+  const toast = useToast();
+  // The template looks come in their own chunk (they pull in the whole template catalog).
+  const [templates, setTemplates] = useState<readonly TemplatePresetGroup[]>();
+  useEffect(() => {
+    void import("@/lib/screen-templates/template-presets").then((m) => setTemplates(m.TEMPLATE_PRESET_GROUPS));
+  }, []);
 
   const openCard = (id: string) => {
     setOpen((m) => (accordion === "one" ? { [id]: true } : { ...m, [id]: true }));
@@ -389,9 +397,18 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
                 radius={theme.radius}
                 style={shownStyle}
                 saved={presets.presets}
+                templates={templates}
                 onPalette={(tokens: ThemeTokens) => setConfig((c) => withTokens(c, twoLevel, tokens))}
                 onSkin={(skin) => edit((st) => ({ ...st, skin, surface: "auto" }), "skin")}
                 onSaved={(p) => presets.apply(p, at, false)}
+                onTemplate={(p) => {
+                  presets.apply(p, at, true);
+                  toast(`Applied ${p.name} to ${scopeName}`);
+                }}
+                onCopy={(p) => {
+                  presets.saveCopy(p);
+                  toast(`Saved ${p.name} copy to Library › Themes`);
+                }}
                 onLibrary={() => navigateTo({ view: "library", tab: "themes" })}
                 open={open.start ?? false}
                 onToggle={() => toggle("start")}
