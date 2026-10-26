@@ -353,7 +353,7 @@ function StudioViewBody({
    * The New page (New screen, New InfoPanel profile): a page over Screens or the InfoPanel home, whichever its kind
    * is, so the rail follows the kind switch while the page stays. "New InfoPanel profile…" makes a new screen (not
    * made active) opened in the editor, a template's sensors not found on this machine listed there with Remap; the
-   * home's Create card it starts on, and the view Cancel goes back to.
+   * choice it starts on, and the view Cancel goes back to.
    */
   const [newPage, setNewPage] = useState<{ kind: WizardKind; initial?: NewChoice; back: StudioMode } | null>(null);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
@@ -846,7 +846,7 @@ function StudioViewBody({
     </Suspense>
   );
 
-  /** The InfoPanel home page: Continue editing, Create, and the profiles in the dashboard and the Library. */
+  /** The InfoPanel home page: Screens' page for InfoPanel profiles (Continue editing, the dashboard's and the Library's). */
   const currentPlace = canvasPlaces(config).find((c) => c.zoneId === editingCanvas);
   // The New page, over Screens or the InfoPanel home by its kind; the same element in both, so the kind switch keeps it.
   const newPageEl = newPage && (showScreens || showInfoPanel) && (
@@ -889,6 +889,7 @@ function StudioViewBody({
       <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
         <InfoPanelStart
           config={config}
+          setConfig={setConfig}
           current={currentPlace}
           onContinue={() => setInfopanelHome(false)}
           onOpen={(c) => {
@@ -896,9 +897,11 @@ function StudioViewBody({
             openZone(c.profileId, c.pageId, c.zoneId);
           }}
           onOpenLibrary={(item) => void editCanvas(item)}
-          onNew={(choice) => openNewProfile(choice ?? { template: null, variant: "" })}
+          onNew={() => openNewProfile()}
           onImport={() => openImportDoor({ prefer: "canvas-zone" })}
-          onManage={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
+          onRemoveProfile={edit.removeProfile}
+          onUndo={history.undo}
+          shown={kiosksOf(control).map((k) => k.profile)}
           onShowInScreens={(c) => ui.navigateTo({ view: "screens", profileId: c.profileId })}
           onExport={(c) => {
             const zone = config.profiles.flatMap((p) => p.pages.flatMap((pg) => pg.placements)).find((z) => z.id === c.zoneId);

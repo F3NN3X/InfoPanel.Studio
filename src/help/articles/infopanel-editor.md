@@ -3,20 +3,24 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.32
+verified: 1.3.0-beta.33
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
 
 ## The home page
 
-**InfoPanel** on the rail always opens the home page, even while a profile is open. It has:
+**InfoPanel** on the rail always opens the home page, even while a profile is open. It works like [Screens](profiles#managing-screens), with the same cards, toolbar and menus, but it lists InfoPanel profiles instead of screens.
 
-- **Continue editing**, when a profile is open: one click puts you back in it, with your selection and undo as you left them.
-- **Create**: **Blank** and the templates, as cards. Click one and the New InfoPanel profile page opens with that card already picked, for the size, colours, sensors and name.
-- **In this dashboard**: every InfoPanel profile on a screen, drawn small. Click a card, or **Open**, to edit it. Its **⋯** menu, or a right-click on the card, also has **Export as .infopanel…** and **Show in Screens**.
-- **In your Library**: the profiles you saved to the [Library](library) that aren't on a screen yet. **Open** brings one in as a new screen. **Duplicate** makes an independent copy in the Library. The bin removes it, after a question, and keeps any file that a profile still uses. A right-click on the card, or its **⋯** menu, offers the same.
-- **Import…** for an .infopanel file.
+- When a profile is open, **Continue editing** comes first. One click on its card puts you back in it, with your selection and undo as you left them. The same profile has an **Open** badge in the list below.
+- The next cards are every InfoPanel profile on a screen, drawn small. Click a card, or **Open**, to edit it.
+- **Saved in your Library** lists the profiles you saved to the [Library](library) that aren't on a screen yet. **Open** brings one in as a new screen. A saved card can also be duplicated, renamed or removed, from its footer or its **⋯** menu. Removing asks first and keeps any file that a profile still uses.
+- **Search** finds a profile by name or size (`1920x480` works). **All**, **On screens** and **Saved** narrow the list, and **Sort** orders it by last edited, name, size or your own order.
+- **New** opens the New InfoPanel profile page, where you pick Blank or a template (see [A new profile](infopanel-editor#a-new-profile)). **Import…** brings in an .infopanel file.
+
+Right-click a profile card for the same menu as its **⋯** button. It has **Open**, **Rename**, **Duplicate** (a copy as a new screen, named "‹name› copy"), **Save to Library** (or **Update in Library** once the profile has a Library copy), **Export as .infopanel…**, **Show in Screens** and **Delete**. Rename, Duplicate and Delete are one undo step each.
+
+Delete asks first. A profile that is the only thing on its screen takes the screen with it, as Delete on Screens does, unless it is your last screen. A profile that shares its screen with other zones leaves just its zone. A copy in the Library stays either way. Afterwards the **Undo** in the message, or Ctrl+Z, brings it back.
 
 Inside the editor, **Profiles** at the left of the toolbar goes back to the home page. The profile stays open. **Done** still leaves for the dashboard. **Edit items** on a canvas zone opens that zone here too.
 

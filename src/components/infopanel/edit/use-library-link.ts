@@ -16,6 +16,13 @@ export interface LibraryLink {
   run: () => void;
 }
 
+/** Save a placed profile: its linked item updated, else a new one. Resolves to the toast's words. */
+export function saveToLibrary(linked: LibraryItem | undefined, canvas: StoredCanvas, name: string): Promise<string> {
+  return linked
+    ? updateLibraryItem(linked.id, canvasUpdate(linked, canvas)).then(() => `Updated ${linked.name} in the Library`)
+    : createLibraryItem(canvasItem(canvas, name)).then(() => `Saved ${name} to the Library`);
+}
+
 export function useLibraryLink(zoneId: string, canvas: StoredCanvas, name: string): LibraryLink {
   const toast = useToast();
   const [items, setItems] = useState<LibraryItem[]>([]);
@@ -25,8 +32,7 @@ export function useLibraryLink(zoneId: string, canvas: StoredCanvas, name: strin
   const linked = linkedItem(items, canvas, zoneId);
   const run = () => {
     setBusy(true);
-    const done = linked ? updateLibraryItem(linked.id, canvasUpdate(linked, canvas)).then(() => `Updated ${linked.name} in the Library`) : createLibraryItem(canvasItem(canvas, name)).then(() => `Saved ${name} to the Library`);
-    done.then(
+    saveToLibrary(linked, canvas, name).then(
       (message) => {
         toast(message);
         return load();
