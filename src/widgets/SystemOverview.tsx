@@ -2,25 +2,10 @@ import type { CSSProperties } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { diskMetric, filterDisks, formatTemp, netMetric, pickAdapter, pickDisk, rateTop, readAdaptersFlat, readSystemFlat, systemKeysFlat, type DiskReading, type DiskValue, type NetDirection } from "@/lib/system-metrics";
 import { MetricGauges, MetricGraphs, type MetricRow } from "./SystemOverviewViews";
-import { useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, type ShellProps, type Tone, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtRate, pretty, Ring, RingStack, Spark, Bar, Empty, heat, useHistory, tone, TONES, hw, Num, scaleY, useSkin, useIpTag, type ShellProps, type Tone } from "./kit";
+import { meta } from "./meta/SystemOverview";
 
-export const meta: WidgetMeta = {
-  id: "SystemOverview",
-  name: "System Overview",
-  category: "System",
-  icon: "dashboard",
-  prefixes: [],
-  defaultSize: [5, 2],
-  minSize: [1, 1],
-  blurb: "CPU, GPU and RAM in one panel",
-  tags: "overview vram rings heatmap",
-  description: "Unified CPU · GPU · RAM (+ VRAM, drives, network) panel. Each section has its own colour, ring, stats, smooth graph; CPU adds a load-intensity core heatmap.",
-  views: [
-    { id: "panel", name: "Panel" },
-    { id: "graphs", name: "Graphs", blurb: "One sparkline row per metric", defaultSize: [4, 3] },
-    { id: "gauges", name: "Gauges", blurb: "Open-arc dials per metric", defaultSize: [4, 3] },
-  ],
-};
+export { meta };
 
 export type Section = "cpu" | "gpu" | "ram" | "vram" | "disk" | "net";
 const DEF: Record<Section, string> = { cpu: "#38bdf8", gpu: "#a78bfa", ram: "#fbbf24", vram: "#facc15", disk: "#fb7185", net: "#34d399" };

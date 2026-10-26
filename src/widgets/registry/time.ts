@@ -3,10 +3,19 @@
 import { clockOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting } from "@/modules/types";
 import { templateModule, type TemplateOptions } from "../module";
+import { lazyWidget } from "../lazy-widget";
 import { boolOf, boolSetting, colorSetting, enumSetting, formatSetting, numberOf, numberSetting, oneOf, sensorSetting, stringOf, textSetting } from "./settings-kit";
-import DayPlanner, { meta as dayPlannerMeta, type DayPlannerProps } from "../DayPlanner";
-import OnAirBeacon, { meta as onAirMeta, type OnAirBeaconProps } from "../OnAirBeacon";
-import RadialClockStack, { meta as radialMeta, type RadialClockStackProps } from "../RadialClockStack";
+import type { DayPlannerProps } from "../DayPlanner";
+import { meta as dayPlannerMeta } from "../meta/DayPlanner";
+import type { OnAirBeaconProps } from "../OnAirBeacon";
+import { meta as onAirMeta } from "../meta/OnAirBeacon";
+import type { RadialClockStackProps } from "../RadialClockStack";
+import { meta as radialMeta } from "../meta/RadialClockStack";
+
+// Each component loads in its own chunk, the first time a zone draws it.
+const DayPlanner = lazyWidget(() => import("../DayPlanner"));
+const OnAirBeacon = lazyWidget(() => import("../OnAirBeacon"));
+const RadialClockStack = lazyWidget(() => import("../RadialClockStack"));
 
 export const DAYPLANNER_SETTINGS: ModuleSetting[] = [
   enumSetting(

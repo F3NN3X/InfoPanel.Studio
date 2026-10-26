@@ -9,6 +9,7 @@ import { ensureSkinFonts } from "./core/fonts";
 import { SKINS } from "./core/theme";
 import type { ShellProps, WidgetMeta } from "./core/types";
 import { toFlat, toNames } from "./data-adapter";
+import { preloadOf } from "./lazy-widget";
 
 export interface TemplateOptions<P extends object> {
   meta: WidgetMeta;
@@ -108,6 +109,7 @@ export function templateModule<P extends object>({ meta, Component, settings, to
     views: meta.views,
     viewKey: meta.viewKey,
     ...(island ? { island } : {}),
+    ...(preloadOf(Component) ? { preload: preloadOf(Component) } : {}),
     // No data renders nothing, so the kiosk hides the zone and the studio says "no live data yet".
     render: (sensors, saved) =>
       !SENSORLESS.has(meta.id) && !hasKeys(sensors, [...mod.prefixes, ...(mod.reads ?? [])]) ? null : (

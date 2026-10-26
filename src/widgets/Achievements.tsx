@@ -1,18 +1,8 @@
-import { Widget, shell, get, num, fmt, has, Ring, Img, Icon, useSkin, numFont, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, Ring, Img, Icon, useSkin, numFont, type ShellProps } from "./kit";
 import { widgetImage } from "./data-adapter";
+import { meta } from "./meta/Achievements";
 
-export const meta: WidgetMeta = {
-  id: "Achievements",
-  name: "Achievements",
-  category: "Gaming",
-  icon: "trophy",
-  prefixes: [],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "Achievement progress for this game",
-  tags: "steam",
-  description: "Current game achievement completion ring, unlocked / total and the latest unlock.",
-};
+export { meta };
 
 export interface AchievementsProps extends ShellProps {
   /** `pips` shows one square per achievement instead of the ring. */

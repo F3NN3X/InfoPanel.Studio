@@ -1,19 +1,9 @@
 import { readSystemFlat } from "@/lib/system-metrics";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, rateParts, toMBps, pretty, Spark, useHistory, useSkin, numFont, hw, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, rateParts, toMBps, pretty, Spark, useHistory, useSkin, numFont, hw, type ShellProps } from "./kit";
+import { meta } from "./meta/KpiTiles";
 
-export const meta: WidgetMeta = {
-  id: "KpiTiles",
-  name: "KPI Tiles",
-  category: "System",
-  icon: "query_stats",
-  prefixes: [],
-  defaultSize: [6, 1],
-  minSize: [1, 1],
-  blurb: "Four key numbers with trends",
-  tags: "kpi sparkline trend",
-  description: "The four numbers you check first: value, change since ~10 readings ago, then a trend sparkline with a live end dot.",
-};
+export { meta };
 
 type Metric = "cpu" | "gpu" | "ram" | "net" | "vram" | "power";
 interface Kpi {

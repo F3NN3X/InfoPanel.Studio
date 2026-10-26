@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, shell, get, num, fmt, fmtGB, fmtRate, detect, diskShort, firstDisk, Metric, Ring, Spark, Stat, Bar, Num, useHistory, useSkin, tone, Empty, LegendRow, type ShellProps, type WidgetMeta } from "./kit";
+import { StatGrid, Widget, shell, get, num, fmt, fmtGB, fmtRate, detect, diskShort, firstDisk, Metric, Ring, Spark, Stat, Bar, Num, useHistory, useSkin, tone, Empty, LegendRow, type ShellProps } from "./kit";
+import { meta } from "./meta/StorageHealth";
 
-export const meta: WidgetMeta = {
-  id: "StorageHealth",
-  name: "SSD Health",
-  category: "Storage",
-  icon: "health_metrics",
-  prefixes: [],
-  defaultSize: [3, 2],
-  minSize: [1, 1],
-  blurb: "SMART life, temperature and TBW",
-  tags: "disk smart nvme",
-  description: "SMART life, temperature, read/write rate, activity, TBW, spare and power-on hours.",
-};
+export { meta };
 
 export interface StorageHealthProps extends ShellProps {
   look?: ModuleSettings;

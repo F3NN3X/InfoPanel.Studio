@@ -1,24 +1,9 @@
 import type { ModuleSettings } from "@/modules/types";
 import { DriveIcon, DriveRows, type DriveRow } from "./DriveSpaceViews";
-import { useFitRows, Widget, shell, get, num, fmt, fmtMB, Bar, BarRow, Ring, Num, tone, Pill, type ShellProps, type WidgetMeta, type Tone } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtMB, Bar, BarRow, Ring, Num, tone, Pill, type ShellProps, type Tone } from "./kit";
+import { meta } from "./meta/DriveSpace";
 
-export const meta: WidgetMeta = {
-  id: "DriveSpace",
-  name: "Drive Space",
-  category: "Storage",
-  icon: "hard_drive",
-  prefixes: ["plugins.drive-info-plugin."],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Used and free space per drive",
-  tags: "disk volume ssd",
-  description: "Used / free space per volume with label, type and file system.",
-  views: [
-    { id: "list", name: "List" },
-    { id: "segments", name: "Segments", blurb: "Segmented fill bar per drive", defaultSize: [4, 3] },
-    { id: "bars", name: "Bars", blurb: "Slim fill bar per drive", defaultSize: [4, 3] },
-  ],
-};
+export { meta };
 
 export interface DriveSpaceProps extends ShellProps {
   look?: ModuleSettings;

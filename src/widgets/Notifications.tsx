@@ -1,21 +1,11 @@
 import type { ModuleSettings } from "@/modules/types";
 import { entryText } from "./entries";
-import { Widget, shell, num, Chip, Empty, Metric, STATE, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, num, Chip, Empty, Metric, STATE, type ShellProps } from "./kit";
+import { meta, P } from "./meta/Notifications";
 
-const P = "plugins.InfoPanel.Notifications.";
+export { meta };
 
-export const meta: WidgetMeta = {
-  id: "Notifications",
-  name: "Notifications",
-  category: "Info",
-  icon: "notifications",
-  prefixes: [P],
-  defaultSize: [3, 2],
-  minSize: [2, 1],
-  blurb: "Latest notification and history",
-  tags: "toast alerts",
-  description: "The latest toast notification and the history list from the Notifications plugin.",
-};
+
 
 export interface NotificationsProps extends ShellProps {
   look?: ModuleSettings;

@@ -1,18 +1,8 @@
-import { Widget, shell, get, rows, has, Img, Dot, Stat, Chip, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, rows, has, Img, Dot, Stat, Chip, type ShellProps } from "./kit";
 import { widgetImage } from "./data-adapter";
+import { meta } from "./meta/SteamProfile";
 
-export const meta: WidgetMeta = {
-  id: "SteamProfile",
-  name: "Steam Profile",
-  category: "Gaming",
-  icon: "account_circle",
-  prefixes: ["plugins.InfoPanel.SteamAPI.SteamAPI-Profile.", "plugins.InfoPanel.SteamAPI.SteamAPI-Social."],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Avatar, status and friends online",
-  tags: "steam friends",
-  description: "Avatar, persona, status, level and friends online / in-game with recent activity.",
-};
+export { meta };
 
 export type SteamProfileProps = ShellProps;
 

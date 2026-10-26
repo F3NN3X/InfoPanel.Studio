@@ -2,21 +2,11 @@ import { useRef } from "react";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, fmt, Dot, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, fmt, Dot, LedLadder, HoldMark, scaleX, scaleY, slideX, STATE, useMeterBallistics, type BallisticsPreset, type ShellProps } from "./kit";
 import { audioIdsIn, pickedIds, readDevice, type FlowFilter } from "./audio-data";
+import { meta } from "./meta/MeterBridge";
 
-export const meta: WidgetMeta = {
-  id: "MeterBridge",
-  name: "Meter Bridge",
-  category: "Audio",
-  icon: "graphic_eq",
-  prefixes: [],
-  defaultSize: [4, 3],
-  minSize: [1, 1],
-  blurb: "Multi-channel dB meters",
-  tags: "level studio sound",
-  description: "Studio-style multi-channel level meters: dB scale, stereo LED ladders with dimmed zone colours, peak-hold markers, per-channel volume and live L/R dB readouts.",
-};
+export { meta };
 
 const dbOf = (pct: number) => (pct > 0 ? 20 * Math.log10(pct / 100) : -Infinity);
 const fmtDb = (db: number) => (Number.isFinite(db) ? fmt(db, db > -10 ? 1 : 0) : "-∞");

@@ -1,21 +1,11 @@
 import { useContext, useRef, useState } from "react";
-import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, IpTagCtx, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, IpTagCtx, Num, type ShellProps } from "./kit";
 import { useOnData } from "./core/history";
 import { average, durationText, observe, type SessionStat } from "./core/session-stats";
 import { roleData, unitOf } from "./role-data";
+import { meta, MAX_SENSORS } from "./meta/SessionStats";
 
-export const meta: WidgetMeta = {
-  id: "SessionStats",
-  name: "Session Stats",
-  category: "Generic",
-  icon: "query_stats",
-  prefixes: [],
-  defaultSize: [4, 3],
-  minSize: [2, 1],
-  blurb: "Min, max, average and time above a level",
-  tags: "session min max average peak history statistics time above",
-  description: "Min, max, average and the time above a level for up to six sensors, counted since the page loaded. Nothing is stored: a reload starts again, and Reset in the studio starts over.",
-};
+export { meta, MAX_SENSORS };
 
 export interface SessionStatsProps extends ShellProps {
   /** Sensor keys (at most six); unset: CPU and GPU load and temperature. */
@@ -23,8 +13,6 @@ export interface SessionStatsProps extends ShellProps {
   /** The level time is counted above; default 80. */
   above?: number;
 }
-
-export const MAX_SENSORS = 6;
 
 const decimals = (v: number): number => (Math.abs(v) >= 100 ? 0 : 1);
 

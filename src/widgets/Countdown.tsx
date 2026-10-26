@@ -4,25 +4,10 @@ import { useTick } from "@/hooks/use-tick";
 import { breakdownOf, dateLine, phaseOf, targetOf, tickMs, unitWord, type Breakdown, type CountMode } from "@/lib/countdown";
 import type { ModuleSettings } from "@/modules/types";
 import { CountdownBodyView, type CountdownView } from "./CountdownViews";
-import { Empty, Widget, shell, type ShellProps, type WidgetMeta } from "./kit";
+import { Empty, Widget, shell, type ShellProps } from "./kit";
+import { meta } from "./meta/Countdown";
 
-export const meta: WidgetMeta = {
-  id: "Countdown",
-  name: "Countdown",
-  category: "Info",
-  icon: "event",
-  prefixes: [],
-  defaultSize: [4, 2],
-  minSize: [1, 1],
-  blurb: "Days until an event",
-  tags: "event countdown since until date",
-  description: "Counts down to an event, or up from it: years, months, days and live hours, minutes and seconds.",
-  views: [
-    { id: "inline", name: "Inline" },
-    { id: "tiles", name: "Tiles", blurb: "Each unit in its own box" },
-    { id: "big", name: "Big number", blurb: "One large number" },
-  ],
-};
+export { meta };
 
 export interface CountdownProps extends ShellProps {
   look?: ModuleSettings;

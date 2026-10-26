@@ -1,22 +1,12 @@
 import { imageUrl } from "@/lib/image";
 import type { ModuleSettings } from "@/modules/types";
 import { containers } from "./entries";
-import { Widget, shell, has, Empty, Icon, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, has, Empty, Icon, type ShellProps } from "./kit";
+import { meta, P } from "./meta/StreamDeck";
 
-const P = "plugins.InfoPanel.StreamDeck.";
+export { meta };
 
-export const meta: WidgetMeta = {
-  id: "StreamDeck",
-  name: "Stream Deck",
-  category: "Generic",
-  icon: "grid_view",
-  prefixes: [P],
-  defaultSize: [4, 3],
-  minSize: [3, 2],
-  blurb: "Stream Deck keys with icons and labels",
-  tags: "elgato buttons keys",
-  description: "Elgato Stream Deck keys with their icons and labels, one grid per connected device.",
-};
+
 
 export interface StreamDeckProps extends ShellProps {
   look?: ModuleSettings;

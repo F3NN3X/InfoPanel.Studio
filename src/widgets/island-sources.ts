@@ -4,14 +4,14 @@
 import { storeSource, type DataSourceDef, type SourceNotice } from "@/lib/island/sources";
 import { wavelink, type WlState } from "@/lib/wavelink";
 import { get } from "./kit";
-import { trackOf, type NowPlayingProps } from "./NowPlaying";
-import { friendsOf } from "./SteamFriends";
+import { trackOf, type TrackSource } from "./NowPlaying/track";
+import { friendsOf } from "./friends-data";
 import { widgetImage } from "./data-adapter";
 import { boolSetting } from "./registry/settings-kit";
-import { fader } from "./WaveLink";
+import { fader } from "./WaveLink/fader";
 
 const NP_SOURCES = ["auto", "media", "spotify", "pushed"] as const;
-const npSource = (v: unknown): NowPlayingProps["source"] => NP_SOURCES.find((s) => s === v);
+const npSource = (v: unknown): TrackSource | undefined => NP_SOURCES.find((s) => s === v);
 
 /** The playing track as the activity; a new track opens the island briefly. */
 export const nowPlayingIsland: DataSourceDef = {

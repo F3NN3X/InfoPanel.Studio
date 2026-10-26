@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, Num, useIpTag, type ShellProps } from "./kit";
+import { meta } from "./meta/Calendar";
 
-export const meta: WidgetMeta = {
-  id: "Calendar",
-  name: "Calendar",
-  category: "Info",
-  icon: "calendar_today",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Today and a month grid",
-  tags: "date month",
-  description: "Today plus a month grid, driven by the clock plugin date. Week starts Monday by default.",
-};
+export { meta };
 
 const M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const W = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

@@ -1,22 +1,12 @@
 import { useGeneral } from "@/hooks/use-general";
 import { hour12Of } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, hue, pretty, sensorLabel, Num, RingStack, TONES, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, hue, pretty, sensorLabel, Num, RingStack, TONES, type ShellProps } from "./kit";
 import { dayFraction, nextEvent, rangeFraction, secondFraction, untilText, weekFraction, yearFraction } from "./RadialClock/fractions";
 import { useExtras, useNow } from "./time-hooks";
+import { meta } from "./meta/RadialClockStack";
 
-export const meta: WidgetMeta = {
-  id: "RadialClockStack",
-  name: "Radial Clock Stack",
-  category: "Info",
-  icon: "donut_large",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Day, year, sensor and next event as rings",
-  tags: "rings clock progress year week day calendar time",
-  description: "Concentric rings for how far the day and the year (or week) have gone, one sensor and the time to the next calendar event, with the time in the middle.",
-};
+export { meta };
 
 export interface RadialClockStackProps extends ShellProps {
   look?: ModuleSettings;

@@ -1,17 +1,7 @@
-import { useFitRows, Widget, shell, get, rows, has, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, rows, has, type ShellProps } from "./kit";
+import { meta } from "./meta/SteamNews";
 
-export const meta: WidgetMeta = {
-  id: "SteamNews",
-  name: "Game News",
-  category: "Gaming",
-  icon: "newspaper",
-  prefixes: [],
-  defaultSize: [3, 1],
-  minSize: [1, 1],
-  blurb: "Headlines for your games",
-  tags: "steam news",
-  description: "Latest headlines for the current game and your library. Long titles clamp to fit.",
-};
+export { meta };
 
 export interface SteamNewsProps extends ShellProps {
   /** Title line clamp; default 2. */

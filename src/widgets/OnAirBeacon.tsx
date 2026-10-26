@@ -1,20 +1,10 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, Icon, Num, TONES, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, Icon, Num, TONES, type ShellProps } from "./kit";
 import { elapsedText, ON_AIR_LABEL, onAirKind, type OnAirKind } from "./OnAir/state";
 import { useExtras, useInStudio, useNow, useSince } from "./time-hooks";
+import { meta } from "./meta/OnAirBeacon";
 
-export const meta: WidgetMeta = {
-  id: "OnAirBeacon",
-  name: "On-Air Beacon",
-  category: "Info",
-  icon: "sensors",
-  prefixes: [],
-  defaultSize: [3, 1],
-  minSize: [1, 1],
-  blurb: "Live, recording or off air, from OBS",
-  tags: "obs stream streaming recording rec live broadcast",
-  description: "A large LIVE, REC or Off air state read from OBS, with how long it has been going. Connect OBS under Island › On air.",
-};
+export { meta };
 
 export interface OnAirBeaconProps extends ShellProps {
   look?: ModuleSettings;

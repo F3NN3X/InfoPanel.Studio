@@ -1,6 +1,7 @@
 // GameSpotlight's composite-layout settings (same keys, defaults and groups as the old Steam widget).
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
-import { meta, type GameSpotlightProps } from "./GameSpotlight";
+import type { GameSpotlightProps } from "./GameSpotlight";
+import { meta } from "./meta/GameSpotlight";
 import { viewSetting } from "./registry/settings-kit";
 
 export const SPOTLIGHT_COMPOSITE_SETTINGS: ModuleSetting[] = [

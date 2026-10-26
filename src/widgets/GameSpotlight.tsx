@@ -1,32 +1,13 @@
 import type { CSSProperties } from "react";
-import { Widget, GlassPill, shell, get, num, fmt, has, Img, Icon, Bar, Ring, Dot, MediaProgress, KenBurns, Logo, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, GlassPill, shell, get, num, fmt, has, Img, Icon, Bar, Ring, Dot, MediaProgress, KenBurns, Logo, useIpTag, type ShellProps } from "./kit";
 import type { ModuleSettings } from "@/modules/types";
 import { sizeTierOf } from "@/modules/setting-readers";
 import type { VizStyle } from "./core/viz/types";
 import { widgetImage } from "./data-adapter";
 import { CompositeView } from "./GameSpotlightComposite";
+import { meta } from "./meta/GameSpotlight";
 
-export const meta: WidgetMeta = {
-  id: "GameSpotlight",
-  name: "Game Spotlight",
-  category: "Gaming",
-  icon: "stadia_controller",
-  prefixes: [],
-  defaultSize: [4, 2],
-  minSize: [1, 1],
-  blurb: "Steam art for the game you’re playing",
-  tags: "steam banner",
-  description: "Now-playing for games: Steam hero banner with slow Ken Burns motion, game logo, poster art and icon, plus session, playtime, FPS, achievements, friends — and an optional music overlay.",
-  viewKey: "spotlightLayout",
-  views: [
-    { id: "hero", name: "Hero" },
-    { id: "poster", name: "Poster", blurb: "Game poster art beside its stats", tags: "cover grid art" },
-    { id: "logo", name: "Logo", blurb: "The game’s logo over its banner", tags: "title art" },
-    { id: "ticker", name: "Ticker", blurb: "One row: icon, logo and session pills", tags: "strip bar row", defaultSize: [4, 1] },
-    { id: "combo", name: "Combo (with music)", blurb: "Game banner with a music card", tags: "spotify media music" },
-    { id: "composite", name: "Composite (profile, stats, news)", blurb: "Game, profile, stats and news in one", tags: "profile news stats dashboard" },
-  ],
-};
+export { meta };
 
 // Everything here sits on artwork behind a dark scrim, so the text stays light on every surface.
 const ON_ART = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8", "--w-faint": "#a1a1aa", "--w-track": "rgba(255,255,255,0.15)" } as CSSProperties;

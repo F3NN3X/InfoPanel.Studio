@@ -189,6 +189,8 @@ export interface DashboardModule {
   readsAll?: boolean;
   /** Render the module's cards. Return null to hide the section. */
   render: (sensors: SensorMap, settings?: ModuleSettings) => ReactNode;
+  /** Fetches the chunk its component lives in (`src/widgets/lazy-widget.tsx`); unset: the component is in the entry. */
+  preload?: () => Promise<void>;
   /** Inspector-editable options; omit for modules with no settings. */
   settings?: ModuleSetting[];
   /** Library chip (`INSERT_CATEGORIES`); unset: "Generic". */

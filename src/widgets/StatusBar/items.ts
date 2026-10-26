@@ -2,7 +2,7 @@
 import { weatherKind, type WeatherCondition } from "@/lib/weather-icons";
 import { inUnit } from "@/modules/setting-readers";
 import { adapterOf, detect, fmt, fmtRate, get, has, hw, num, type Data, type IpTagExtra, type RateUnit } from "../kit";
-import { trackOf } from "../NowPlaying";
+import { trackOf } from "../NowPlaying/track";
 import type { Card } from "./card-model";
 import { CARD_ITEMS, cardReading } from "./card-readings";
 

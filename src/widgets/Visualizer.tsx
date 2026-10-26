@@ -1,24 +1,14 @@
 import { useFastSensors } from "@/hooks/useSensors";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, type ShellProps } from "./kit";
 import { AudioViz } from "./core/viz/AudioViz";
 import { resolveLook, type VizLook } from "./core/viz/types";
 import { useVizInput } from "./core/viz/use-viz-input";
 import { AUDIO, useLevelDevice } from "./audio-device";
 import { audioIdsIn, pickedIds, type FlowFilter } from "./audio-data";
+import { meta } from "./meta/Visualizer";
 
-export const meta: WidgetMeta = {
-  id: "Visualizer",
-  name: "Visualizer",
-  category: "Audio",
-  icon: "equalizer",
-  prefixes: [],
-  defaultSize: [3, 2],
-  minSize: [1, 1],
-  blurb: "Animated audio visualiser",
-  tags: "spectrum bars sound",
-  description: "Canvas audio visualiser driven by the level meter (L/R + level): bars, mirror, radial, wave, line, blob, LED-dot and scrolling modes at 60 fps.",
-};
+export { meta };
 
 type Mode = "bars" | "mirror" | "radial" | "wave" | "blob" | "dots" | "line" | "scroll";
 

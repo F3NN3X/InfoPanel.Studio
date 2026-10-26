@@ -1,22 +1,12 @@
 import { useRef } from "react";
-import { Widget, shell, Bar, TONES, tone, type ShellProps, type Tone, type WidgetMeta } from "./kit";
+import { Widget, shell, Bar, TONES, tone, type ShellProps, type Tone } from "./kit";
 import { DEFAULT_BOTTLENECK, VERDICT_LABEL, classify, holdVerdict, reasonFor, vramPct, type BottleneckInput, type HoldState, type Verdict } from "./core/bottleneck";
 import { useOnData } from "./core/history";
 import { fitFontPx } from "./fit-font";
 import { roleData, roleValue } from "./role-data";
+import { meta } from "./meta/BottleneckLens";
 
-export const meta: WidgetMeta = {
-  id: "BottleneckLens",
-  name: "Bottleneck Lens",
-  category: "Gaming",
-  icon: "speed",
-  prefixes: [],
-  defaultSize: [4, 2],
-  minSize: [2, 1],
-  blurb: "What holds your frame rate back",
-  tags: "bottleneck cpu gpu vram throttle limit game verdict",
-  description: "One verdict line for what holds a game back (CPU-bound, GPU-bound, VRAM full, thermal or power throttled, or balanced) with the reason in small type. A verdict has to hold for a few seconds before it changes. Quiet when no game runs.",
-};
+export { meta };
 
 export interface BottleneckLensProps extends ShellProps {
   /** Seconds a verdict must hold before it replaces the one shown; default 5. */

@@ -1,26 +1,12 @@
-import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, clamp, Metric, Ring, Spark, Stat, Chip, Num, hue, useHistory, frameSample, frameBudgets, frameTimeTop, clampSpikes, Icon, TONES, type ShellProps, type Tier, type Tone } from "./kit";
+import { meta } from "./meta/FpsMonitor";
+
+export { meta };
 
 const RTSS = "plugins.InfoPanel.RTSS.rtss.";
 const PRESENTMON = "plugins.fps-plugin.fps.";
 
-export const meta: WidgetMeta = {
-  id: "FpsMonitor",
-  name: "FPS Monitor",
-  category: "Gaming",
-  icon: "speed",
-  prefixes: ["plugins.InfoPanel.RTSS.", "plugins.fps-plugin."],
-  defaultSize: [3, 2],
-  minSize: [1, 1],
-  blurb: "Frame rate, 1% low and frame time",
-  tags: "rtss framerate",
-  description: "RTSS or PresentMon frame rate, 1% low, frame time graph, game and display info.",
-  views: [
-    // The frame-time graph draws none of the toggles, so any of their values suits it.
-    { id: "frametime", name: "Frame-time graph", applies: {} },
-    { id: "gauge", name: "Gauge", blurb: "Frame rate on a ring with 1% low", tags: "ring dial", applies: { sparkline: false } },
-    { id: "trend", name: "Trend", blurb: "Frame rate ring with a trend sparkline", tags: "ring sparkline history", applies: { sparkline: true } },
-  ],
-};
+
 
 export interface FpsMonitorProps extends ShellProps {
   /** Fps target line; default = refresh rate. */

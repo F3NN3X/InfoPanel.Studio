@@ -3,20 +3,10 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { localeHour12 } from "@/lib/general";
 import type { ModuleSettings } from "@/modules/types";
 import { Figure } from "./SensorValue";
-import { Widget, shell, get, num, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, Num, useIpTag, type ShellProps } from "./kit";
+import { meta } from "./meta/Clock";
 
-export const meta: WidgetMeta = {
-  id: "Clock",
-  name: "Clock",
-  category: "Info",
-  icon: "schedule",
-  prefixes: ["plugins.clock-plugin."],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "Digital or analog clock with date",
-  tags: "time",
-  description: "Digital or analog clock with date, 12/24h and seconds.",
-};
+export { meta };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

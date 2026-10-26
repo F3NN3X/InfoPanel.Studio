@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, Metric, Ring, Spark, Stat, Bar, useHistory, tone, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, Metric, Ring, Spark, Stat, Bar, useHistory, tone, Num, type ShellProps } from "./kit";
+import { meta } from "./meta/MemoryUsage";
 
-export const meta: WidgetMeta = {
-  id: "MemoryUsage",
-  name: "Memory",
-  category: "Hardware",
-  icon: "memory_alt",
-  prefixes: ["libre.total_memory", "libre.virtual_memory"],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "Physical and virtual memory in use",
-  tags: "ram",
-  description: "Physical + virtual memory load, used and available.",
-};
+export { meta };
 
 export interface MemoryUsageProps extends ShellProps {
   look?: ModuleSettings;

@@ -3,23 +3,13 @@ import { useGeneral } from "@/hooks/use-general";
 import { localeHour12 } from "@/lib/general";
 import { hour12Of } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, rows, fmt, mix, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, rows, fmt, mix, type ShellProps } from "./kit";
 import { allDayTitles, hourMarks, nowFraction, placeEvents, railWindow, type RailEvent, type RailWindow } from "./DayPlanner/layout";
 import { forecastDay, weatherBand, type BandPoint } from "./DayPlanner/weather-band";
 import { useExtras, useInStudio, useNow } from "./time-hooks";
+import { meta } from "./meta/DayPlanner";
 
-export const meta: WidgetMeta = {
-  id: "DayPlanner",
-  name: "Day Planner",
-  category: "Info",
-  icon: "timeline",
-  prefixes: ["plugins.yr-weather-plugin."],
-  defaultSize: [3, 4],
-  minSize: [2, 2],
-  blurb: "Calendar events on a time rail with weather",
-  tags: "calendar agenda schedule events timeline weather rain today tomorrow",
-  description: "Today's events on a time rail with a now line, over a band for the temperature and rain. It reads the calendar links set under Island › Calendar and the Yr weather plugin.",
-};
+export { meta };
 
 export interface DayPlannerProps extends ShellProps {
   look?: ModuleSettings;

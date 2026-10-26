@@ -183,6 +183,8 @@ Placement.settings
             → useZoneLook(defs, settings)         effectiveSettings; a chosen skin brings its
                                                   surface; skin fonts are loaded
             → <Component data names {...shellProps(look)} {...toProps(look)} look>
+                                                  the widget kind's own chunk (lazy-widget.tsx):
+                                                  nothing until it is in
                  → <Widget {...shell(p)}>         the shell (below): chromeOf(look) → zoom,
                                                   surface box, text variables, header
                       → content / <CompactView> / <StudioView>
@@ -190,6 +192,17 @@ Placement.settings
                                                   (PlacementRender.scope); studio chrome or kiosk plain
 ```
 
+- Each widget kind's component is its own chunk. The registry (`src/widgets/registry/`) keeps the catalog entry
+  (`src/widgets/meta/`), the settings and `toProps` in the entry and wraps the component in `lazyWidget`
+  (`src/widgets/lazy-widget.tsx`): a zone draws nothing until its chunk is in, then the widget on the next frame
+  (no Suspense, whose reveal throttle would hold it back). `useWidgetPreload` (`src/widgets/preload.ts`) fetches the
+  shown page's kinds together as soon as the profile is known, then, when idle, the other pages', so a page switch
+  draws at once. On a screen change a kiosk keeps the old screen up until the new one's kinds are in
+  (`useLoadedProfile`, at most 3 s), so it draws at once too; a kiosk never loads the kinds of screens it doesn't show. Sensor Value and Custom Gauge stay in the entry (the
+  fallback grid and the canvas gauges use them). The island and the Status Bar read their helpers
+  (`NowPlaying/track.ts`, `friends-data.ts`, `WaveLink/fader.ts`) apart from the widgets. Vitest renders with
+  `renderToString`, which cannot wait for a chunk, so there the groups load their widgets first (a plugin in
+  `vite.config.ts`; a top-level await in the source would split the kiosk entry).
 - `effectiveSettings` is in `src/modules/types.ts`,
   `chromeOf` in `src/modules/standard-settings.ts`, `surfaceBox`, `tokenScope`
   and the `--wp-*` helpers in `src/components/widget-style.ts`, and the

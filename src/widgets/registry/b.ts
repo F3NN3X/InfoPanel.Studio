@@ -2,28 +2,30 @@
 import { clockOf, decimalsOf, deviceOf, tempUnitOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
+import { lazyWidget } from "../lazy-widget";
+import * as M from "../meta";
 import { boolOf, boolSetting, colorSetting, dateSetting, deviceSetting, enumSetting, formatSetting, itemsOf, numberOf, numberSetting, oneOf, pass, rateUnitOf, rateUnitSetting, sensorSetting, splitKeys, stringOf, textSetting, thresholdSetting, timeSetting, viewOnly, viewsExcept, viewSetting } from "./settings-kit";
 import { driveSpaceIsland, networkAdaptersIsland, networkThroughputIsland } from "../island/hardware";
 import { weatherIsland } from "../island/info";
 import { countdownIsland } from "../island/countdown";
 import { timerIsland } from "../island/timer";
-import * as DriveSpace from "../DriveSpace";
-import * as StorageHealth from "../StorageHealth";
-import * as DiskIO from "../DiskIO";
-import * as NetworkThroughput from "../NetworkThroughput";
-import * as NetworkAdapters from "../NetworkAdapters";
-import * as Clock from "../Clock";
-import * as Calendar from "../Calendar";
-import * as Timer from "../Timer";
-import * as Countdown from "../Countdown";
-import * as StatusBar from "../StatusBar";
+import type * as DriveSpace from "../DriveSpace";
+import type * as StorageHealth from "../StorageHealth";
+import type * as DiskIO from "../DiskIO";
+import type * as NetworkThroughput from "../NetworkThroughput";
+import type * as NetworkAdapters from "../NetworkAdapters";
+import type * as Clock from "../Clock";
+import type * as Calendar from "../Calendar";
+import type * as Timer from "../Timer";
+import type * as Countdown from "../Countdown";
+import type * as StatusBar from "../StatusBar";
 import { ITEMS, ITEM_LABELS } from "../StatusBar/items";
 import { isDate, isTime } from "@/lib/countdown";
-import * as CodingAgents from "../CodingAgents";
-import * as Weather from "../Weather";
-import * as Forecast from "../Forecast";
+import type * as CodingAgents from "../CodingAgents";
+import type * as Weather from "../Weather";
+import type * as Forecast from "../Forecast";
 import * as SensorValue from "../SensorValue";
-import * as SensorGroup from "../SensorGroup";
+import type * as SensorGroup from "../SensorGroup";
 import * as CustomGauge from "../CustomGauge";
 
 /** "5, 15, 25" → [5, 15, 25]: whole minutes 1-1440, at most eight. */
@@ -43,11 +45,11 @@ const numbersOf = <K extends string>(s: ModuleSettings, keys: readonly K[]): Par
   Object.fromEntries(keys.flatMap((k) => (numberOf(s[k]) === undefined ? [] : [[k, numberOf(s[k])]]))) as Partial<Record<K, number>>;
 
 const DRIVE_SETTINGS: ModuleSetting[] = [
-  viewSetting(DriveSpace.meta, { group: "Drive" }),
+  viewSetting(M.DriveSpace, { group: "Drive" }),
   deviceSetting("Drive", "drive", { group: "Drive", hint: "Pin one volume; Auto lists all" }),
   enumSetting("sort", "Sort", "usage", [{ value: "usage", label: "By usage" }, { value: "name", label: "By name" }], { group: "Sorting", tab: "behaviour" }),
   // Segments and Bars always colour by fullness.
-  viewOnly(DriveSpace.meta, "list")(boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true })),
+  viewOnly(M.DriveSpace, "list")(boolSetting("neutral", "Neutral below thresholds", true, { tab: "style", perWidget: true })),
   thresholdSetting("full"),
   textSetting("icons", "Drive icons", "", { group: "Drive", driveIcons: true, keywords: ["emblem", "image", "logo"], hint: "Your own image or an icon for each drive" }),
 ];
@@ -79,7 +81,7 @@ const discovered = (v: ModuleSettings): boolean => v.mode === "auto";
 const listed = (v: ModuleSettings): boolean => !discovered(v);
 const SENSOR_GROUP_SETTINGS: ModuleSetting[] = [
   enumSetting("mode", "Readings", "pick", [{ value: "pick", label: "Pick sensors" }, { value: "auto", label: "Auto-discover" }], { group: "Readings" }),
-  viewSetting(SensorGroup.meta, { label: "Layout", group: "Readings", visibleIf: listed }),
+  viewSetting(M.SensorGroup, { label: "Layout", group: "Readings", visibleIf: listed }),
   boolSetting("bars", "Bar per item", true, { group: "Readings", visibleIf: listed }),
   numberSetting("maxRows", "Max rows (0 = all)", 12, { min: 0, max: 100, step: 2, group: "Readings", visibleIf: discovered }),
   // The dots of the discovered list: the theme's Critical, Series 3 and Series 5 ("" = red, blue, amber).
@@ -119,7 +121,7 @@ const NETWORK_SETTINGS: ModuleSetting[] = [
 
 /** Weather's view and toggles, under the old Weather widget's keys. */
 const WEATHER_ROWS: ModuleSetting[] = [
-  viewSetting(Weather.meta, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
+  viewSetting(M.Weather, { label: "Preset", group: "Display", hint: "Sets the three toggles below. Change one and the preset reads Custom." }),
   { key: "showStats", label: "Stats row", type: "boolean", default: true, group: "Display" },
   { key: "showFeels", label: "Feels-like", type: "boolean", default: true, group: "Display" },
   { key: "showForecast", label: "Forecast strip", type: "boolean", default: true, group: "Display" },
@@ -191,9 +193,9 @@ const WEATHER_ROWS: ModuleSetting[] = [
   { key: "fxPreview", label: "Show", type: "select", default: "auto", options: [{ value: "auto", label: "Live condition" }, { value: "clear", label: "Clear" }, { value: "cloudy", label: "Cloudy" }, { value: "rain", label: "Rain" }, { value: "snow", label: "Snow" }, { value: "hail", label: "Hail" }, { value: "thunder", label: "Thunder" }, { value: "fog", label: "Fog" }], group: "Background", perWidget: true, visibleIf: (v) => v.fxOn === true },
 ];
 /** The views that draw the stats, feels-like and forecast strip toggles (Glance and Week have their own layout). */
-const togglesShown = viewOnly(Weather.meta, "full", "now", "minimal");
+const togglesShown = viewOnly(M.Weather, "full", "now", "minimal");
 /** The Forecast view is the Forecast widget: no tint, background or provider of its own. */
-const notForecast = viewOnly(Weather.meta, ...viewsExcept(Weather.meta, "forecast"));
+const notForecast = viewOnly(M.Weather, ...viewsExcept(M.Weather, "forecast"));
 const WEATHER_GATE = (d: ModuleSetting): ModuleSetting =>
   ["showStats", "showFeels", "showForecast"].includes(d.key) ? togglesShown(d) : d.key === "tint" || d.key.startsWith("fx") ? notForecast(d) : d;
 const WEATHER_SETTINGS: ModuleSetting[] = WEATHER_ROWS.map(WEATHER_GATE);
@@ -249,7 +251,7 @@ const BAR_ITEMS = ITEMS.map((value) => ({ value, label: ITEM_LABELS[value] }));
 const usesWeather = barUses("weather");
 const STATUSBAR_SETTINGS: ModuleSetting[] = [
   // The presets set the slots when added; switching View in the inspector changes the frame only, so it is a plain select
-  { ...viewSetting(StatusBar.meta, { group: "Layout" }), type: "select", options: (StatusBar.meta.views ?? []).map((v) => ({ value: v.id, label: v.name })) },
+  { ...viewSetting(M.StatusBar, { group: "Layout" }), type: "select", options: (M.StatusBar.views ?? []).map((v) => ({ value: v.id, label: v.name })) },
   enumSetting("left", "Left", "logo", BAR_ITEMS, { multiple: true, group: "Slots", hint: "Items show in the order picked; one with no data is left out" }),
   enumSetting("center", "Centre", "date,time", BAR_ITEMS, { multiple: true, group: "Slots" }),
   enumSetting("right", "Right", "weather,network,volume,battery", BAR_ITEMS, { multiple: true, group: "Slots" }),
@@ -271,21 +273,21 @@ const STATUSBAR_SETTINGS: ModuleSetting[] = [
 ];
 
 /** The Coding Agents settings that only apply to the Full view. */
-const full = viewOnly(CodingAgents.meta, "full");
+const full = viewOnly(M.CodingAgents, "full");
 
 export const GROUP_B: DashboardModule[] = [
   templateModule({
-    meta: DriveSpace.meta,
-    Component: DriveSpace.default,
+    meta: M.DriveSpace,
+    Component: lazyWidget(() => import("../DriveSpace")),
     settings: DRIVE_SETTINGS,
     toProps: (s): Partial<DriveSpace.DriveSpaceProps> => ({ view: oneOf(s.view, ["list", "segments", "bars"]), drive: deviceOf(s, "drive"), sort: oneOf(s.sort, ["usage", "name"]), ...thresholdsOf(s, "full", ["warn", "crit"]), neutral: boolOf(s.neutral), icons: stringOf(s.icons) }),
     island: driveSpaceIsland,
   }),
   // any vendor's drive: the keys are read, not owned (the fallback grid keeps the rest of `libre.`)
-  templateModule({ meta: StorageHealth.meta, Component: StorageHealth.default, prefixes: ["libre."], settings: [deviceSetting("Disk", "disk", { group: "Disk" })], toProps: (s): Partial<StorageHealth.StorageHealthProps> => ({ disk: deviceOf(s, "disk") }) }),
+  templateModule({ meta: M.StorageHealth, Component: lazyWidget(() => import("../StorageHealth")), prefixes: ["libre."], settings: [deviceSetting("Disk", "disk", { group: "Disk" })], toProps: (s): Partial<StorageHealth.StorageHealthProps> => ({ disk: deviceOf(s, "disk") }) }),
   templateModule({
-    meta: DiskIO.meta,
-    Component: DiskIO.default,
+    meta: M.DiskIO,
+    Component: lazyWidget(() => import("../DiskIO")),
     settings: [
       boolSetting("showHistory", "Combined history", true, { group: "Chart" }),
       // Read and write follow the theme's Series 1 and 2 ("" = the widget's own colours).
@@ -296,8 +298,8 @@ export const GROUP_B: DashboardModule[] = [
     toProps: (s): Partial<DiskIO.DiskIOProps> => ({ ...pass<Partial<DiskIO.DiskIOProps>>("readColor", "writeColor")(s), disk: deviceOf(s, "disk"), showHistory: boolOf(s.showHistory) }),
   }),
   templateModule({
-    meta: NetworkThroughput.meta,
-    Component: NetworkThroughput.default,
+    meta: M.NetworkThroughput,
+    Component: lazyWidget(() => import("../NetworkThroughput")),
     settings: [
       ...NETWORK_SETTINGS,
       deviceSetting("Adapter", "adapter", { group: "Adapter" }),
@@ -311,8 +313,8 @@ export const GROUP_B: DashboardModule[] = [
     island: networkThroughputIsland,
   }),
   templateModule({
-    meta: NetworkAdapters.meta,
-    Component: NetworkAdapters.default,
+    meta: M.NetworkAdapters,
+    Component: lazyWidget(() => import("../NetworkAdapters")),
     settings: [
       boolSetting("showDown", "Show adapters that are down", false, { group: "Adapters" }),
       enumSetting("showIpv6", "IPv6 count", "auto", [{ value: "auto", label: "Large zones" }, { value: "show", label: "Show" }, { value: "hide", label: "Hide" }], { group: "Addresses" }),
@@ -322,8 +324,8 @@ export const GROUP_B: DashboardModule[] = [
     island: networkAdaptersIsland,
   }),
   templateModule({
-    meta: Clock.meta,
-    Component: Clock.default,
+    meta: M.Clock,
+    Component: lazyWidget(() => import("../Clock")),
     settings: [
       enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }], { group: "Face" }),
       boolSetting("showSeconds", "Seconds", true, { group: "Time & date" }),
@@ -337,8 +339,8 @@ export const GROUP_B: DashboardModule[] = [
     },
   }),
   templateModule({
-    meta: Timer.meta,
-    Component: Timer.default,
+    meta: M.Timer,
+    Component: lazyWidget(() => import("../Timer")),
     settings: [
       textSetting("presets", "Presets (minutes)", "5, 15, 25", { group: "Presets", hint: "The buttons, comma separated" }),
       boolSetting("pomodoro", "Pomodoro button", false, { group: "Pomodoro", hint: "Focus and break rounds until stopped" }),
@@ -354,10 +356,10 @@ export const GROUP_B: DashboardModule[] = [
     island: timerIsland,
   }),
   templateModule({
-    meta: Countdown.meta,
-    Component: Countdown.default,
+    meta: M.Countdown,
+    Component: lazyWidget(() => import("../Countdown")),
     settings: [
-      viewSetting(Countdown.meta, { group: "Event" }),
+      viewSetting(M.Countdown, { group: "Event" }),
       textSetting("eventName", "Event name", "", { group: "Event", hint: "Empty = no title line" }),
       dateSetting("date", "Date", "", { group: "Event", tab: "data" }),
       timeSetting("time", "Time of day", "", { group: "Event", tab: "data", hint: "Empty = an all-day event" }),
@@ -380,8 +382,8 @@ export const GROUP_B: DashboardModule[] = [
     island: countdownIsland,
   }),
   templateModule({
-    meta: StatusBar.meta,
-    Component: StatusBar.default,
+    meta: M.StatusBar,
+    Component: lazyWidget(() => import("../StatusBar")),
     settings: STATUSBAR_SETTINGS,
     toProps: (s): Partial<StatusBar.StatusBarProps> => ({
       view: oneOf(s.view, ["edge", "pill", "islands", "meters", "orbit", "ticker"]),
@@ -404,10 +406,10 @@ export const GROUP_B: DashboardModule[] = [
     }),
   }),
   templateModule({
-    meta: CodingAgents.meta,
-    Component: CodingAgents.default,
+    meta: M.CodingAgents,
+    Component: lazyWidget(() => import("../CodingAgents")),
     settings: [
-      viewSetting(CodingAgents.meta, { group: "Agents" }),
+      viewSetting(M.CodingAgents, { group: "Agents" }),
       enumSetting(
         "agents",
         "Agents",
@@ -452,16 +454,16 @@ export const GROUP_B: DashboardModule[] = [
     }),
   }),
   templateModule({
-    meta: Calendar.meta,
-    Component: Calendar.default,
+    meta: M.Calendar,
+    Component: lazyWidget(() => import("../Calendar")),
     // the date comes from the clock plugin, owned by Clock
     prefixes: ["plugins.clock-plugin."],
     settings: [enumSetting("weekStart", "Week starts on", "1", [{ value: "1", label: "Monday" }, { value: "0", label: "Sunday" }], { group: "Week" })],
     toProps: (s): Partial<Calendar.CalendarProps> => ({ weekStart: numberOf(oneOf(String(s.weekStart), ["0", "1"])) }),
   }),
   templateModule({
-    meta: Weather.meta,
-    Component: Weather.default,
+    meta: M.Weather,
+    Component: lazyWidget(() => import("../Weather")),
     settings: [
       ...WEATHER_SETTINGS,
       notForecast(enumSetting("provider", "Provider", "auto", [{ value: "auto", label: "Auto" }, { value: "yr", label: "Yr" }, { value: "owm", label: "OpenWeatherMap" }], { group: "Source", tab: "data" })),
@@ -473,8 +475,8 @@ export const GROUP_B: DashboardModule[] = [
     island: weatherIsland,
   }),
   templateModule({
-    meta: Forecast.meta,
-    Component: Forecast.default,
+    meta: M.Forecast,
+    Component: lazyWidget(() => import("../Forecast")),
     settings: [numberSetting("days", "Days", 0, { min: 0, max: 7, step: 1, group: "Days", hint: "0 = as many as fit" }), yrLocation("Location"), formatSetting("tempUnit")],
     toProps: (s): Partial<Forecast.ForecastProps> => ({ ...pass<Partial<Forecast.ForecastProps>>("location")(s), units: unitsOf(s), days: numberOf(s.days) || undefined }),
   }),
@@ -494,8 +496,8 @@ export const GROUP_B: DashboardModule[] = [
     },
   }),
   templateModule({
-    meta: SensorGroup.meta,
-    Component: SensorGroup.default,
+    meta: M.SensorGroup,
+    Component: lazyWidget(() => import("../SensorGroup")),
     settings: SENSOR_GROUP_SETTINGS,
     toProps: (s): Partial<SensorGroup.SensorGroupProps> => ({
       ...pass<Partial<SensorGroup.SensorGroupProps>>("bars", "maxRows", "tempColor", "fanColor", "powerColor")(s),

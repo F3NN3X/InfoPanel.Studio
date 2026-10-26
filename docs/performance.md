@@ -227,6 +227,25 @@ Notes:
    - Uppercase is listed as lost when importing Clock and Calendar.
    - The island level bar still animates `width`, but it's short and only shows during a notice.
 
+### Widgets on demand (bundle footprint, 2026-10-26)
+
+Each widget kind's component is its own chunk (`src/widgets/lazy-widget.tsx`, the design in
+[architecture.md](architecture.md#the-render-pipeline-of-a-module-zone)). Measured with `npm run perf:budgets` and
+`npm run perf:kiosk` (3 runs, median), before and after:
+
+| | Before | After |
+|---|---|---|
+| Kiosk entry closure, gzip | 350,222 B | 254,377 B (−27 %) |
+| Studio entry closure, gzip | 672,923 B | 577,460 B (−14 %) |
+| JS the heavy / light fixture kiosk loads (raw) | 1,224 / 1,116 KB | 1,001 / 782 KB |
+| Load requests, heavy / light | 16 / 8 | 34 / 15 |
+| First contentful paint, heavy / light | 204 / 184 ms | 188 / 196 ms (noise) |
+| Idle task time, heavy | 112 ms/s | 110 ms/s (noise) |
+
+The requests rise because each kind and the code its kinds share are chunks of their own, fetched in parallel from
+the local server; first paint and the first zone didn't move. Six of them are small shared chunks Rollup splits off
+the entry because the Help page also reaches the registry (`help/generated.ts` → `studio-modules.ts`).
+
 ## The harness
 
 A committed, reproducible harness (Playwright, `playwright.config.ts`). It never touches the real data folder: every

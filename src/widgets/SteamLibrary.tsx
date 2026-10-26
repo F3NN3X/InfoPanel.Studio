@@ -1,17 +1,7 @@
-import { Widget, shell, get, num, fmt, rows, Metric, Bar, Icon, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, rows, Metric, Bar, Icon, type ShellProps } from "./kit";
+import { meta } from "./meta/SteamLibrary";
 
-export const meta: WidgetMeta = {
-  id: "SteamLibrary",
-  name: "Steam Library",
-  category: "Gaming",
-  icon: "library_books",
-  prefixes: ["plugins.InfoPanel.SteamAPI.SteamAPI-Library.", "plugins.InfoPanel.SteamAPI.SteamAPI-News."],
-  defaultSize: [3, 2],
-  minSize: [1, 1],
-  blurb: "Games owned and recent playtime",
-  tags: "steam games",
-  description: "Games owned, total + recent playtime, recent games with 2-week hours, and game news.",
-};
+export { meta };
 
 export interface SteamLibraryProps extends ShellProps {
   /** Show the news block; default = at the lg tier only. */
