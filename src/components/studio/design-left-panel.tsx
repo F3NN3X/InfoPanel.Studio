@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
 import { AddPanel } from "./add-panel";
 import { LayersPanel } from "./layers-panel";
@@ -15,8 +15,8 @@ interface DesignLeftPanelProps {
   add: ComponentProps<typeof AddPanel>;
 }
 
-/** The Design view's left panel (SPEC §6.1): Layers | Add, beside the rail. */
-export function DesignLeftPanel({ tab, onTab, width, layers, add }: DesignLeftPanelProps) {
+/** The left panel's frame: the Layers | Add tabs over the tab's body. A grid page's and a Free page's share it. */
+export function LeftPanelFrame({ tab, onTab, width, children }: Pick<DesignLeftPanelProps, "tab" | "onTab" | "width"> & { children: ReactNode }) {
   return (
     <aside className="relative flex shrink-0 flex-col border-r border-ui-subtle bg-ui-panel font-ui" style={{ width }}>
       <div className="shrink-0 px-3 pb-2 pt-3">
@@ -31,7 +31,16 @@ export function DesignLeftPanel({ tab, onTab, width, layers, add }: DesignLeftPa
           ]}
         />
       </div>
-      {tab === "layers" ? <LayersPanel {...layers} /> : <AddPanel {...add} />}
+      {children}
     </aside>
+  );
+}
+
+/** Edit's left panel on a grid page (SPEC §6.1): Layers | Add, beside the rail. */
+export function DesignLeftPanel({ tab, onTab, width, layers, add }: DesignLeftPanelProps) {
+  return (
+    <LeftPanelFrame tab={tab} onTab={onTab} width={width}>
+      {tab === "layers" ? <LayersPanel {...layers} /> : <AddPanel {...add} />}
+    </LeftPanelFrame>
   );
 }

@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { ProfileView } from "@/components/infopanel/ProfileView";
 import { withCanvas } from "@/components/studio/import-actions";
 import { newStored, readStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -44,7 +44,7 @@ describe("studio elements", () => {
     const index = ["Ring", "LED bar", "Card", "Glow", "Divider", "Icon", "Cores", "Sparkline"].indexOf(name);
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" initialSelection={[String(index)]} />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" initialSelection={[String(index)]} />
       </ToastProvider>,
     );
     const inspector = screen.getByRole("complementary", { name: "Item" });
@@ -56,7 +56,7 @@ describe("studio elements", () => {
     const setConfig = vi.fn();
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" initialSelection={["2"]} />
+        <HostedEditor zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" initialSelection={["2"]} />
       </ToastProvider>,
     );
     fireEvent.click(screen.getByRole("switch", { name: "Drop shadow" }));
@@ -70,7 +70,7 @@ describe("studio elements", () => {
     const setConfig = vi.fn();
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     const field = screen.getByLabelText("Palette Card");

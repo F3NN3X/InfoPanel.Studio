@@ -40,13 +40,13 @@ test("the visualiser moves after the studio was hidden and remounted", async ({ 
   const local = fs.readFileSync(path.join(scratch.dataDir, "config.json"), "utf8");
   await page.addInitScript((value) => localStorage.setItem("infopanel-dashboard:config:v1", value), local);
   await page.goto(`${scratch.base}/?studio=1&profile=${manifest.profiles.viz}`);
-  await page.locator('[aria-label="Design"]').click();
+  await page.locator('[aria-label="Edit"]').click();
   await page.locator(`[data-zone-id="${zone}"] canvas`).first().waitFor();
   await expect.poll(() => moves(page), { timeout: 10_000 }).toBe(true);
 
   await hideAndShow(page);
   await page.locator('[aria-label="Screens"]').click();
-  await page.locator('[aria-label="Design"]').click();
+  await page.locator('[aria-label="Edit"]').click();
   await page.locator(`[data-zone-id="${zone}"] canvas`).first().waitFor();
   await expect.poll(() => moves(page), { timeout: 10_000 }).toBe(true);
   expect(errors).toEqual([]);

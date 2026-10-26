@@ -17,7 +17,7 @@ async function openStudio(page: Page, scratch: Scratch): Promise<void> {
     localStorage.setItem("infopanel-dashboard:config:v1", value);
   }, local);
   await page.goto(`${scratch.base}/?studio=1&profile=${manifest.profiles.light}`);
-  await page.getByRole("button", { name: "Design" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.locator(`[data-zone-id="${manifest.zones.light[1]}"]`).waitFor();
 }
 
@@ -82,7 +82,7 @@ test("Kiosk view opens the kiosk in a window of its own and the studio stays", a
   await expect(popup.locator(manifest.kioskZoneSelector).first()).toBeVisible();
   // The studio's tab is still the studio.
   expect(new URL(page.url()).searchParams.get("studio")).toBe("1");
-  await expect(page.getByRole("button", { name: "Design" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
 });
 
 test("Help opens the server's Help page in a tab", async ({ page, scratch, context }) => {

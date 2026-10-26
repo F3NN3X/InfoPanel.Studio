@@ -7,7 +7,7 @@ export interface StudioHelpState {
   dialog: string | null;
   /** The section the keyboard focus is in (`data-help-section`, a help hash): F1 opens its own heading. */
   section?: string | null;
-  /** The view on screen (`StudioMode`). */
+  /** The view on screen (`StudioMode`); `infopanel` is Edit with an InfoPanel canvas open (a Free page or a free area). */
   view: "design" | "sources" | "library" | "gauges" | "infopanel" | "theme" | "alerts" | "screens";
   /** The kind of the primary selected zone (Design only). */
   zone: "widget" | "panel" | "canvas" | "blank" | null;

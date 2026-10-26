@@ -82,6 +82,10 @@ export function useStudioUi(
   };
   /** A link to Screens named a screen to select (the studio selects it: `selectProfile` needs the fit zoom). */
   const [screenRequest, setScreenRequest] = useState<{ id: string; seq: number }>();
+  /** A link that lands on Screens' InfoPanel filter (the old InfoPanel view, with no profile named). */
+  const [screensFilter, setScreensFilter] = useState<{ filter: "infopanel"; seq: number }>();
+  /** A link that opens a screen in Edit (the old InfoPanel view naming a profile): the studio opens it as Screens' Open does. */
+  const [editRequest, setEditRequest] = useState<{ id: string; seq: number }>();
   /** The Live popover (the title bar's button and the status bar's Kiosks item). */
   const [liveOpen, setLiveOpen] = useState(false);
   const [showGrid, setShowGrid] = useStoredFlag(GRID_KEY, true);
@@ -166,9 +170,13 @@ export function useStudioUi(
     });
   };
 
-  /** A rail item opens its view; Data is the Sources view, and Settings its own window. */
+  /** A rail item opens its view; Data is the Sources view, Settings its own window, and the old InfoPanel item is a link. */
   const onRail = (item: RailItem) =>
-    item === "theme" ? openThemeView() : item === "settings" ? navigateTo({ view: "settings" }) : setMode(item === "data" ? "sources" : item);
+    item === "theme"
+      ? openThemeView()
+      : item === "settings" || item === "infopanel"
+        ? navigateTo({ view: item })
+        : setMode(item === "data" ? "sources" : item);
 
   /** A palette entry or link for the Design left panel: Add widget or Layers. */
   const openDrawer = (target: Drawer) => {
@@ -205,8 +213,15 @@ export function useStudioUi(
       case "gauges":
         setMode("gauges");
         break;
+      // The old InfoPanel view (one-editor SPEC §4.1): a profile opens in Edit, else Screens shows the InfoPanel ones.
       case "infopanel":
-        setMode("infopanel");
+        if (target.profileId) {
+          setEditRequest((r) => ({ id: target.profileId!, seq: (r?.seq ?? 0) + 1 }));
+          setMode("design");
+        } else {
+          setScreensFilter((r) => ({ filter: "infopanel", seq: (r?.seq ?? 0) + 1 }));
+          setMode("screens");
+        }
         break;
       case "data":
         setMode("sources");
@@ -256,6 +271,8 @@ export function useStudioUi(
     libraryRequest,
     openLibrary,
     screenRequest,
+    screensFilter,
+    editRequest,
     liveOpen,
     setLiveOpen,
     onRail,

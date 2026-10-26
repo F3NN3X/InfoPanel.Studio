@@ -52,7 +52,7 @@ export interface AddPanelProps {
   onDeletePreset: (id: string) => void;
   /** "Canvas from a file…" under Layouts › Empty: the Import door. */
   onImportCanvas?: () => void;
-  /** "New InfoPanel profile…" beside it: one from scratch, opened in the InfoPanel editor. */
+  /** "New InfoPanel profile…" beside it: one from scratch, opened in Edit. */
   onNewInfoPanel?: () => void;
   density: AddListDensity;
   previewOnHover: boolean;
@@ -401,7 +401,7 @@ export function AddPanel({
                 <DoorRow compact={compact} icon={FileUp} title="Canvas from a file…" note="An .infopanel profile, through Import" onClick={onImportCanvas} />
               )}
               {kind === "layout" && g.title === "Empty" && !query.trim() && onNewInfoPanel && (
-                <DoorRow compact={compact} icon={FilePlus2} title="New InfoPanel profile…" note="From scratch, in the InfoPanel editor" onClick={onNewInfoPanel} />
+                <DoorRow compact={compact} icon={FilePlus2} title="New InfoPanel profile…" note="From scratch, opened in Edit" onClick={onNewInfoPanel} />
               )}
             </section>
           ))

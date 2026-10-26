@@ -17,17 +17,17 @@ const profiles = [
 const names = (list: { name: string }[]) => list.map((e) => e.name);
 
 describe("screenKind", () => {
-  it("tells Dashboard, InfoPanel and Mixed by the zones; an empty screen is a Dashboard", () => {
+  it("tells Studio, InfoPanel and Mixed by the zones; an empty screen is a Studio one", () => {
     expect(profiles.map(screenKind)).toEqual(["infopanel", "dashboard", "mixed", "dashboard"]);
   });
 });
 
 describe("filterEntries", () => {
   const entries = screenEntries(profiles);
-  it("filters by kind, a Mixed screen counting for both Dashboard and InfoPanel", () => {
+  it("filters by kind, a Mixed screen counting for both Studio and InfoPanel", () => {
     expect(names(filterEntries(entries, "", "dashboard"))).toEqual(["Main", "Mixed bag", "Empty"]);
     expect(names(filterEntries(entries, "", "infopanel"))).toEqual(["Desk strip", "Mixed bag"]);
-    expect(filterEntries(entries, "", "saved")).toEqual([]);
+    expect(names(filterEntries(entries, "", "all"))).toEqual(["Desk strip", "Main", "Mixed bag", "Empty"]);
   });
   it("searches name, kind and size, with every word needed; the size may be typed with an x", () => {
     expect(names(filterEntries(entries, "main", "all"))).toEqual(["Main"]);
@@ -36,10 +36,10 @@ describe("filterEntries", () => {
     expect(names(filterEntries(entries, "1920×1080 main", "all"))).toEqual(["Main"]);
     expect(filterEntries(entries, "main strip", "all")).toEqual([]);
   });
-  it("lists saved Library profiles under InfoPanel and Saved only", () => {
+  it("lists saved Library profiles under All and InfoPanel only", () => {
     const saved = savedEntries([{ id: "s", name: "Console", meta: { width: 1920, height: 720 }, updatedAt: "2026-10-05T00:00:00Z" }]);
     expect(filterEntries(saved, "", "infopanel")).toHaveLength(1);
-    expect(filterEntries(saved, "", "saved")).toHaveLength(1);
+    expect(filterEntries(saved, "", "all")).toHaveLength(1);
     expect(filterEntries(saved, "", "dashboard")).toHaveLength(0);
     expect(filterEntries(saved, "1920x720", "all")).toHaveLength(1);
   });

@@ -1,6 +1,6 @@
 /**
  * Where the InfoPanel profiles are: every canvas zone in the config. Its own module so the studio can find them without
- * loading the InfoPanel home page (`infopanel-start.tsx`, lazy-loaded).
+ * loading the canvas editor (lazy-loaded).
  */
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { CANVAS_ID, type DashboardConfig } from "@/lib/layout";

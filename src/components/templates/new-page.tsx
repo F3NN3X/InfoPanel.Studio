@@ -362,7 +362,7 @@ function KindPage({ kind, onKind, screen, initial, carry, onCreateScreen, onCrea
       {error && <p className="m-0 text-[11.5px] text-ui-danger">{error}</p>}
       <p className="m-0 text-[11.5px] leading-normal text-ui-4">
         {ip
-          ? "It comes in as a new screen and opens in the InfoPanel editor. You can change the size later in its profile settings."
+          ? "It comes in as a new screen and opens in Edit. You can change the size later in its profile settings."
           : "It comes in as a new screen. You can change its size and grid later on Screens."}
       </p>
     </div>

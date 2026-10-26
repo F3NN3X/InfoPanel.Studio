@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { PanelsTopLeft, Pencil } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { deleteLines, deletePlan } from "@/lib/screens/delete-plan";
 import { FILTERS, filterEntries, KIND_LABEL, savedEntries, screenEntries, screenKind, sortEntries, type ListFilter, type ListSort } from "@/lib/screens/list";
 import { moveProfile } from "@/lib/screens/order";
+import { withPlaceName } from "@/components/infopanel/edit/place-actions";
 import type { LibraryItem } from "@/lib/library";
 import { openConvertDialog, openExportSheet, openImportDoor } from "./file-doors";
 import { RenameInput } from "./rename-input";
@@ -49,10 +50,12 @@ interface ScreensViewProps
   onRemoveProfile: (id: string) => void;
   /** Undo the last step (the Undo on the delete toast). */
   onUndo: () => void;
-  /** A saved Library profile: place it as a screen and open it in the InfoPanel editor. */
+  /** A saved Library profile: place it as a screen and open it in Edit. */
   onOpenSaved: (item: LibraryItem) => void;
   /** "+ New": the New page, on the screen kind. */
   onNew: () => void;
+  /** A link to Screens that names a filter (the old InfoPanel view lands on InfoPanel); `seq` makes a repeat count. */
+  filterRequest?: { filter: ListFilter; seq: number };
 }
 
 const TAGS = {
@@ -63,8 +66,8 @@ const TAGS = {
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 
 /**
- * Screens (SPEC §8): the manager for every screen and saved InfoPanel profile. Cards with thumbnails you can search,
- * filter by kind and sort; create (blank, sample layout, InfoPanel template), rename, duplicate, reorder, export and
+ * Screens (SPEC §8): the manager for every screen and InfoPanel profile, placed or saved in the Library. Cards with
+ * thumbnails you can search, filter (All, Studio, InfoPanel) and sort; import an .infopanel; create (blank, sample layout, InfoPanel template), rename, duplicate, reorder, export and
  * delete with a confirm that names what goes, then an Undo. The default screen is chosen in Settings › Dashboard; the kiosks'
  * current screens are the active ones. A click selects a card for editing (the detail panel, the canvas, the page tabs); it
  * never changes what the app opens on.
@@ -82,6 +85,7 @@ export function ScreensView({
   onUndo,
   onOpenSaved,
   onNew,
+  filterRequest,
   ...detail
 }: ScreensViewProps) {
   const toast = useToast();
@@ -90,7 +94,10 @@ export function ScreensView({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<ListFilter>("all");
+  const [filter, setFilter] = useState<ListFilter>(filterRequest?.filter ?? "all");
+  useEffect(() => {
+    if (filterRequest) setFilter(filterRequest.filter);
+  }, [filterRequest?.seq]);
   const [sort, setSort] = useState<ListSort>("edited");
   const { setConfig, onOpenScreen } = detail;
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
@@ -106,7 +113,11 @@ export function ScreensView({
 
   const rename = (id: string, name: string | null) => {
     setRenamingId(null);
-    if (name) setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === id ? { ...p, name } : p)) }), `profile-name:${id}`);
+    if (!name) return;
+    // An InfoPanel screen's canvas carries the name too (the editor and the export read it).
+    const target = config.profiles.find((p) => p.id === id);
+    const canvases = target && screenKind(target) === "infopanel" ? target.pages.flatMap((pg) => pg.placements.filter((z) => z.canvas).map((z) => z.id)) : [];
+    setConfig((c) => canvases.reduce((next, zoneId) => withPlaceName(next, zoneId, name), { ...c, profiles: c.profiles.map((p) => (p.id === id ? { ...p, name } : p)) }), `profile-name:${id}`);
   };
   const plan = deletingId ? deletePlan(config, deletingId, kiosks.map((k) => k.profile)) : null;
   const remove = (id: string, name: string) => {
@@ -130,6 +141,7 @@ export function ScreensView({
           sort={sort}
           onSort={setSort}
           onImport={() => openImportDoor()}
+          onImportInfoPanel={() => openImportDoor({ prefer: "canvas-zone" })}
           onNew={onNew}
         />
 
@@ -151,7 +163,14 @@ export function ScreensView({
                   nameField={renamingId === p.id ? <RenameInput initial={p.name} onDone={(name) => rename(p.id, name)} /> : undefined}
                   badges={
                     <>
-                      <Badge>{KIND_LABEL[kind]}</Badge>
+                      {kind === "infopanel" ? (
+                        <Badge title="An InfoPanel profile: it opens in Edit and exports to .infopanel">
+                          <PanelsTopLeft className="mr-1 h-3 w-3" />
+                          InfoPanel
+                        </Badge>
+                      ) : (
+                        <Badge>{KIND_LABEL[kind]}</Badge>
+                      )}
                       {tag && (
                         <Badge tone="accent" title={TAGS[tag].title}>
                           {TAGS[tag].text}

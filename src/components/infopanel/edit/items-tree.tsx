@@ -1,7 +1,8 @@
 /**
  * The InfoPanel editor's Layers: the canvas's item tree (spec §7), an indent per depth, a chevron on groups
  * (InfoPanel's IsExpanded), the kind's icon, the name (double-click renames), the mode dot (blue native, amber
- * InfoPanel, red can't convert), the lock and InfoPanel's Hidden flag as a checkbox. Shift selects a range, Ctrl adds.
+ * InfoPanel, red can't convert), the Export check's status on a screen made for InfoPanel, the lock and InfoPanel's
+ * Hidden flag as a checkbox. Shift selects a range, Ctrl adds.
  *
  * Rows read in draw order: the first row is drawn first (at the back), a group's children in its place. Rows drag:
  * onto the upper or lower edge of a row to go above or below it, onto the middle of a group to go inside it, onto the
@@ -36,6 +37,7 @@ import { moveBlock } from "@/lib/infopanel/editor/groups";
 import { itemAt, topmost, type Path } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
+import { StatusIcon, useExportCheck } from "../export-check-panel";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
 import type { CanvasEditor } from "./use-canvas-editor";
 
@@ -102,6 +104,7 @@ const DROP_STYLE: Record<Where, string> = {
 };
 
 export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEditor; name: string; onSaveComponent?: () => void }) {
+  const check = useExportCheck();
   const rows = rowsOf(editor.committed);
   const [drop, setDrop] = useState<Drop | null>(null);
   const [why, setWhy] = useState<string | null>(null);
@@ -174,6 +177,7 @@ export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEdi
           const Icon = element ? ELEMENT_ICONS[element.type] : kindIcon(item.kind);
           const badge = badgeOf(item);
           const state = editor.modes.get(path)?.state;
+          const status = check.on ? check.byPath.get(path)?.status : undefined;
           const isSelected = selected.includes(path);
           const isGroup = item.kind === "Group";
           const mark = drop?.path === path ? drop.where : null;
@@ -262,6 +266,7 @@ export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEdi
               )}
               {badge && <BadgeChip badge={badge} compact />}
               {state && <span title={MODE_TITLE[state]} aria-label={MODE_TITLE[state]} className={cn("h-1.5 w-1.5 shrink-0 rounded-full", MODE_DOT[state])} />}
+              {status && <StatusIcon status={status} />}
               <button
                 type="button"
                 title={item.IsLocked ? "Locked: the mouse ignores it on the canvas; select it here" : isGroup ? "Lock the group and what is in it" : "Lock"}

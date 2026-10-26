@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
-import CanvasEditorView from "@/components/infopanel/edit/canvas-editor";
+import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { openCanvas } from "@/lib/infopanel/canvas";
 import { storeItems } from "@/lib/infopanel/canvas-edit";
 import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -25,7 +25,7 @@ describe("the InfoPanel editor canvas", () => {
   it("keeps the mode and kind off the canvas: the inspector names them; the zoom bar opens the profile settings", () => {
     render(
       <ToastProvider>
-        <CanvasEditorView zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
       </ToastProvider>,
     );
     fireEvent.click(screen.getAllByRole("treeitem").find((r) => r.textContent?.includes("Title"))!);

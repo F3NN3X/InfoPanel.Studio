@@ -3,7 +3,7 @@ id: profiles
 title: Screens and the grid
 icon: aspect_ratio
 related: [zones, themes, kiosk]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.35
 ---
 
 A screen (profile) is a design for one display size. Its grid decides where zones can go.
@@ -12,14 +12,14 @@ A screen (profile) is a design for one display size. Its grid decides where zone
 
 Open **Screens** from the rail, from the settings button beside the screen name in the title bar (it opens Screens on the screen you are editing), from **Manage screens…** in the screen name's list, or from a size link.
 
-- Each screen is a card: a small picture of it, its name, a kind badge and a line such as `1920×550 · 3 pages · grid 12 × 6`. The badge says **Dashboard**, **InfoPanel** (the screen is one InfoPanel profile) or **Mixed** (both). An InfoPanel screen is drawn live; the others show a screenshot of the first page. The screenshot of the screen you are editing updates a couple of seconds after you stop editing and when you save. The others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
-- Click a card to select it; its details open on the right. Clicking a card doesn't change which screen your displays show. **Open** on a card (or in the panel) opens the screen in Design, or in the InfoPanel editor when it is one InfoPanel profile.
-- **Search** finds a screen by name, kind or size (`1920x480` works). **All**, **Dashboard**, **InfoPanel** and **Saved** narrow the list; a Mixed screen shows under both Dashboard and InfoPanel. **Sort** by last edited (the default), name, size or your own order. Last edited starts counting from the first edit you make in this version, so older screens come last until you change them.
+- Each screen is a card: a small picture of it, its name, a kind badge and a line such as `1920×550 · 3 pages · grid 12 × 6`. The badge says **Studio**, **InfoPanel** (the screen is one InfoPanel profile) or **Mixed** (both). An InfoPanel screen is drawn live; the others show a screenshot of the first page. The screenshot of the screen you are editing updates a couple of seconds after you stop editing and when you save. The others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
+- Click a card to select it; its details open on the right. Clicking a card doesn't change which screen your displays show. **Open** on a card (or in the panel) opens the screen in Edit, whether it is a grid or one InfoPanel profile.
+- **Search** finds a screen by name, kind or size (`1920x480` works). **All**, **Studio** and **InfoPanel** narrow the list; a Mixed screen shows under both, and the profiles saved in your Library show under InfoPanel. **Sort** by last edited (the default), name, size or your own order. Last edited starts counting from the first edit you make in this version, so older screens come last until you change them.
 - Badges: **Default** marks the screen the app opens on and **Default · best fit** the one the window picks when no screen is chosen (see [Which screen opens](profiles#which-screen-opens)). **Live on 2 kiosks** means kiosks show that screen right now. Default is what you chose; live is what is on the displays at this moment.
 - **New** opens the **New screen** page in place of the cards: the screen templates beside a panel with the preview, size, colours and name (see [Screen templates](profiles#screen-templates)), and above them **Blank grid**, **The sample layout**, **An InfoPanel profile** and **Import a file**.
+- **Import .infopanel** brings in an InfoPanel profile file as a new screen and opens it.
 - **Import…** opens the Import door (see [Importing and exporting](import)); a `.json` file saved with **Export screen** becomes a new screen with a name of its own if one is already taken.
 - **Saved in your Library** lists InfoPanel profiles saved in My library that no screen uses yet. **Place** makes one a new screen and opens it. A saved card can also be duplicated, renamed or removed, from its footer or its **⋯** menu. Removing asks first and can't be undone with Ctrl+Z, but a file that any screen still uses is kept.
-- The InfoPanel home page, behind **InfoPanel** on the rail, is this page for InfoPanel profiles: the same cards, toolbar and menus, with every profile on a screen and the saved ones (see [The home page](infopanel-editor#the-home-page)).
 - Right-click a card for the same menu as its **⋯** button. A screen card's menu has:
   - **Open**, the same as the card's **Open** button;
   - **Rename**;
@@ -38,7 +38,7 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 
 **New** opens **New screen**, one page. The templates fill the left, and the panel on the right shows the one you picked: a preview at its size, then **Size**, **Colours**, **Sensors** and **Name**. Press **Create screen**, or Enter, whenever it looks right. **Cancel** or Esc goes back to Screens without making anything.
 
-- **Screen** and **InfoPanel profile** at the top switch what the page makes, and the rail follows. A screen is a grid of widgets with live data; an InfoPanel profile is a free canvas you can export to the InfoPanel app (see [The InfoPanel editor](infopanel-editor#a-new-profile)). Switching starts the size, name and search over and keeps your template when the other kind has one of the same name.
+- **Screen** and **InfoPanel profile** at the top switch what the page makes. A screen is a grid of widgets with live data; an InfoPanel profile is a free canvas you can export to the InfoPanel app (see [The InfoPanel editor](infopanel-editor#a-new-profile)). Switching starts the size, name and search over and keeps your template when the other kind has one of the same name.
 - The row above the templates is always in view: **Blank grid** (an empty grid at 1024 × 600, picked like a card), **The sample layout**, **An InfoPanel profile** (the same as the switch) and **Import a file**.
 - **Search** finds a template by its name, its description, the widgets it uses or the sensors it reads, so `fps` finds the ones that show your frame rate. Enter in the search picks the first one it found. When nothing matches, **Start blank** or **Clear search**.
 - Click a card to pick it, double-click to make it at once at the size it shows, or use the arrow keys to move from card to card. The dots under a card are its colours: click one to pick the template in those colours.
@@ -82,7 +82,7 @@ Select a screen's card in **Screens**. The panel on the right holds the settings
 | **Shown on** | Whether the app opens on this screen, with a **Settings ↗** link to where that is chosen, which kiosks show it now, and **Copy kiosk link**. |
 | **Rotation** | **Rotate pages** and **Every** (3 to 3600 seconds) step the kiosk through the pages. |
 | **Performance** | The frame-rate cap and **Animations** for this screen. The chip says whether they come from **Settings › Dashboard** (all screens) or are this screen's own. |
-| **Pages · order & rotation** | **Add page**, drag a page's handle to reorder it (the page tabs follow), switch it in or out of the rotation, or **Open** it in Design. |
+| **Pages · order & rotation** | **Add page**, drag a page's handle to reorder it (the page tabs follow), switch it in or out of the rotation, or **Open** it in Edit. |
 
 The theme, skin and background are in **Theme**: pick the screen in its scope bar and edit a section to give this screen its own. See [Themes](themes#where-to-edit).
 

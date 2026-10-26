@@ -1,8 +1,9 @@
 /**
  * The canvas zone editor's keys (spec §7): Ctrl+D duplicate, Ctrl+G group, Ctrl+Shift+G ungroup,
- * Ctrl+Shift+S save as component, Del delete, arrows nudge 1 px (Shift: 10 px), Esc clears the selection, then leaves. While the
- * editor is open the studio's zone shortcuts are held back ("block"), apart from the ones that
- * still make sense: undo, redo, save, the palette and the cheat sheet.
+ * Ctrl+Shift+S save as component, Del delete, arrows nudge 1 px (Shift: 10 px), Esc closes the Export check, clears the
+ * selection, then leaves a free area. While the editor is open the studio's zone shortcuts are held back ("block"), apart
+ * from the ones that still make sense in Edit's shell: undo, redo, save, the palette, the cheat sheet, the inspector
+ * toggle and the page keys.
  */
 import { shortcutAction, type KeyInput } from "@/components/studio/use-studio-shortcuts";
 
@@ -10,7 +11,7 @@ export type CanvasKeyAction =
   | { type: "duplicate" | "group" | "ungroup" | "component" | "remove" | "escape" | "block" }
   | { type: "nudge"; dx: number; dy: number };
 
-const PASS = new Set(["undo", "redo", "save", "palette", "cheatsheet"]);
+const PASS = new Set(["undo", "redo", "save", "palette", "cheatsheet", "toggle-dock", "page-next", "page-prev"]);
 
 const ARROWS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 

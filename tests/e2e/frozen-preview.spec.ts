@@ -42,7 +42,7 @@ async function openStudio(page: Page, scratch: Scratch, previewData: string | nu
   );
   await page.addInitScript(STREAMS_INIT(scratch.dataApi));
   await page.goto(`${scratch.base}/?studio=1&profile=${manifest.profiles.light}`);
-  await page.locator('[aria-label="Design"]').click();
+  await page.locator('[aria-label="Edit"]').click();
   await page.locator(`[data-zone-id="${cpuZone}"]`).waitFor();
 }
 
@@ -78,7 +78,7 @@ test("frozen: the Data view is live, and its streams close when it does", async 
   await expect.poll(() => streams(page), { timeout: 10_000 }).toBe(0);
   await page.locator('[aria-label="Data"]').click();
   await expect.poll(() => streams(page), { timeout: 10_000 }).toBeGreaterThan(0);
-  await page.locator('[aria-label="Design"]').click();
+  await page.locator('[aria-label="Edit"]').click();
   // The store closes a released stream after a 2 s grace.
   await expect.poll(() => streams(page), { timeout: 10_000 }).toBe(0);
 });
@@ -100,7 +100,7 @@ test("the setting survives a reload; Go live lasts the session only", async ({ p
   await expect(page.getByText(/^Frozen · /)).toHaveCount(0);
   await expect.poll(() => streams(page), { timeout: 10_000 }).toBeGreaterThan(0);
   await page.reload();
-  await page.locator('[aria-label="Design"]').click();
+  await page.locator('[aria-label="Edit"]').click();
   await expect(page.getByText(/^Frozen · /)).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("studio.previewData"))).toBe("frozen");
 });

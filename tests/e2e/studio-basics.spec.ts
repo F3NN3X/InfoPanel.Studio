@@ -11,7 +11,7 @@ test("Design: select, edit, save and undo", async ({ page, scratch }) => {
   const local = fs.readFileSync(path.join(scratch.dataDir, "config.json"), "utf8");
   await page.addInitScript((value) => localStorage.setItem("infopanel-dashboard:config:v1", value), local);
   await page.goto(`${scratch.base}/?studio=1`);
-  await page.getByRole("button", { name: "Design" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(page.locator("[data-zone-id]")).toHaveCount(7);
 
   await page.locator('[data-zone-id="perf-statusbar"]').click();
