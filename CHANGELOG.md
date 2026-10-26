@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.30] - 2026-10-26
+
 ### Changed
 
 - **New screen is a page, in two steps.** **New** on Screens opens a page in place of the cards instead of a menu and a popup. First **Start from**: Blank, the templates with their shape chips, and the sample layout, an InfoPanel profile or an import. Then **Size and look**: the size, the template's colours and a name beside a live preview at that size. **New InfoPanel profile** works the same way, and the InfoPanel home's Create cards open it on the second step.
