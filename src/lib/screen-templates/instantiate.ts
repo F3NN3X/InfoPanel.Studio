@@ -98,10 +98,16 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
     if (!found.has(role)) found.set(role, input.sensors ? resolveRole(role, input.sensors)?.key : undefined);
     return found.get(role);
   };
-  const placement = ({ zone: z, at, bound, label }: Placed): Placement => {
+  /** A sensor that reports no unit (LibreHardwareMonitor's memory sizes) reads in its role's usual one, so a size can step up to GB. */
+  const unitOf = (z: Placed["zone"], bound: Placed["bound"], roles: Placed["roles"]): ModuleSettings => {
+    const role = roles.sensor;
+    const unit = role ? ROLE_INFO[role].unit : "";
+    return z.module === "SensorValue" && unit && bound.sensor && input.sensors?.[bound.sensor]?.unit === "" ? { unit } : {};
+  };
+  const placement = ({ zone: z, at, bound, roles, label }: Placed): Placement => {
     const [col, row, cols, rows] = at;
     const base = recolored(z.settings, variant);
-    const settings = { ...base, ...(label !== undefined && typeof base?.label === "string" ? { label } : {}), ...bound };
+    const settings = { ...base, ...(label !== undefined && typeof base?.label === "string" ? { label } : {}), ...(base?.unit === undefined ? unitOf(z, bound, roles) : {}), ...bound };
     // A zone's own look values (a bigger clock, its own surface) apply only in the sections it customises.
     const own = sectionsWithValues(base);
     return {
@@ -136,7 +142,7 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
       id: i === 0 ? MAIN_PAGE_ID : uid("page"),
       name: p.name,
       ...(p.icon ? { icon: p.icon } : {}),
-      placements: (known ? placePage(layout.pages[i] ?? [], keyOf) : (layout.pages[i] ?? []).map((zone): Placed => ({ zone, at: zone.at, bound: {} }))).map(placement),
+      placements: (known ? placePage(layout.pages[i] ?? [], keyOf) : (layout.pages[i] ?? []).map((zone): Placed => ({ zone, at: zone.at, bound: {}, roles: {} }))).map(placement),
     })),
   };
   const wanted = layout.pages.flat().flatMap((z) => Object.values(z.roles ?? {}));

@@ -2,6 +2,7 @@ import { useGeneral } from "@/hooks/use-general";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { localeHour12 } from "@/lib/general";
 import type { ModuleSettings } from "@/modules/types";
+import { Figure } from "./SensorValue";
 import { Widget, shell, get, num, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
 
 export const meta: WidgetMeta = {
@@ -53,7 +54,7 @@ export interface ClockProps extends ShellProps {
   format?: "24h" | "12h" | "auto";
   showSeconds?: boolean;
   showDate?: boolean;
-  face?: "digital" | "analog" | "line";
+  face?: "digital" | "analog" | "line" | "figure";
 }
 
 export default function Clock(p: ClockProps) {
@@ -81,7 +82,9 @@ export default function Clock(p: ClockProps) {
       studio={{ label: `${DAYS[date.getDay()]} · ${day} ${MONTHS[mon - 1]}`, value: `${pad(hh)}:${pad(M)}`, unit: h12 ? (k("pm") ? "PM" : "AM") : secs ? pad(S) : "", kind: "value" }}
     >
       {({ size, w, h }) =>
-        p.face === "line" ? (
+        p.face === "figure" ? (
+          <Figure label={p.showDate !== false ? "Date" : "Time"} text={p.showDate !== false ? `${day} ${MONTHS[mon - 1]}` : `${pad(hh)}:${pad(M)}${secs ? `:${pad(S)}` : ""}`} w={w} h={h} />
+        ) : p.face === "line" ? (
           <div className="flex h-full items-center justify-end whitespace-nowrap leading-none text-[color:var(--w-muted)]" style={{ fontSize: Math.max(8, Math.min(h * 0.36, w / 9)) }}>
             <Num>
               {pad(hh)}:{pad(M)}

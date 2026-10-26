@@ -11,6 +11,7 @@ describe("readingText", () => {
     expect(readingText(13493, "KB/s")).toBe("13.2MB/s");
     expect(readingText(999, "KB/s")).toBe("999KB/s");
     expect(readingText(5414, "MB")).toBe("5.3GB");
+    expect(readingText(43.8, "GB")).toBe("43.8GB");
   });
 
   it("has nothing to show without a reading", () => {

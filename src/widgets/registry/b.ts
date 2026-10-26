@@ -62,7 +62,8 @@ const ranged = (v: ModuleSettings): boolean => v.display === "gauge" || v.displa
 
 const SENSOR_VALUE_SETTINGS: ModuleSetting[] = [
   enumSetting("display", "Display", "value", [{ value: "value", label: "Value" }, { value: "gauge", label: "Gauge" }, { value: "bar", label: "Bar" }, { value: "spark", label: "Spark" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }], { group: "Display" }),
-  enumSetting("lineValue", "Value in the line", "meter", [{ value: "meter", label: "At the end, with a meter" }, { value: "end", label: "At the end" }, { value: "next", label: "Next to the label" }, { value: "only", label: "Value only" }], { group: "Display", visibleIf: (v) => v.display === "line" }),
+  enumSetting("lineValue", "Value in the line", "meter", [{ value: "meter", label: "At the end, with a meter" }, { value: "end", label: "At the end" }, { value: "next", label: "Next to the label" }, { value: "only", label: "Value only" }, { value: "stack", label: "Label and value over a thin bar" }], { group: "Display", visibleIf: (v) => v.display === "line" }),
+  boolSetting("labelInside", "Label inside the ring", false, { group: "Display", visibleIf: (v) => v.display === "gauge" }),
   boolSetting("smallUnit", "Small unit", false, { group: "Display", visibleIf: (v) => v.display === "figure" }),
   optional("unit", "Unit override", "Display", "Blank = the unit read from the value"),
   sensorSetting("sensor", "Sensor", { group: "Reading" }),
@@ -324,7 +325,7 @@ export const GROUP_B: DashboardModule[] = [
     meta: Clock.meta,
     Component: Clock.default,
     settings: [
-      enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }, { value: "line", label: "Line" }], { group: "Face" }),
+      enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }], { group: "Face" }),
       boolSetting("showSeconds", "Seconds", true, { group: "Time & date" }),
       boolSetting("showDate", "Date", true, { group: "Time & date" }),
       // Themed (config v7 moved the Clock's `format` here); 24 h stays this widget's own default.
@@ -484,7 +485,7 @@ export const GROUP_B: DashboardModule[] = [
     toProps: (s): Partial<SensorValue.SensorValueProps> => {
       const decimals = decimalsOf(s);
       return {
-        ...pass<Partial<SensorValue.SensorValueProps>>("sensor", "label", "display", "unit", "lineValue", "smallUnit")(s),
+        ...pass<Partial<SensorValue.SensorValueProps>>("sensor", "label", "display", "unit", "lineValue", "smallUnit", "labelInside")(s),
         ...numbersOf(s, ["min"]),
         ...(decimals !== undefined ? { decimals } : {}),
         ...thresholdsOf(s, "value", ["warn", "crit"]),

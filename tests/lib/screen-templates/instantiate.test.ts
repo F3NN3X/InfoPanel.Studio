@@ -123,6 +123,15 @@ describe("native screen templates", () => {
     expect(gauges("nope")).toEqual(gauges());
   });
 
+  it("gives a reading whose sensor reports no unit the unit of its role", () => {
+    const readout = SCREEN_TEMPLATES.find((t) => t.id === "readout")!;
+    const unit = (u: string) => Object.fromEntries(Object.entries(CAPTURE).map(([k, v]) => [k, k === resolveRole("vram.used", CAPTURE)?.key ? { ...v, unit: u } : v]));
+    const units = (sensors: Record<string, DataApiValue>) =>
+      instantiate(readout, { name: "R", width: 1920, height: 1080, sensors }).profile.pages[0].placements.filter((z) => z.settings?.label === "VRAM").map((z) => z.settings?.unit);
+    expect(units(unit(""))).toEqual(["MB", "MB"]);
+    expect(units(unit("GB"))).toEqual([undefined, undefined]);
+  });
+
   it("fills a missing reading from a similar one, or leaves it out and lets its neighbours take the room", () => {
     const tower = SCREEN_TEMPLATES.find((t) => t.id === "tower")!;
     const labels = (sensors: Record<string, DataApiValue>) =>

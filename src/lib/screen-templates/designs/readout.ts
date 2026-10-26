@@ -21,7 +21,7 @@ function panel(p: Panel, col: number, row: number, w: number): Zone[] {
   return [
     reading([col, row, half, 4], p.big[0], p.big[1], { display: "figure", smallUnit: true }),
     ...p.side.map(([label, role], i) => reading([col + half, row + i, half, 1], label, role, { display: "line", lineValue: "end", accent: SUB })),
-    ...p.bars.map(([label, role], i) => reading([col + i * half, row + 4, half, 2], label, role, { display: "line", max: ROLE_INFO[role].max })),
+    ...p.bars.map(([label, role], i) => reading([col + i * half, row + 4, half, 2], label, role, { display: "line", lineValue: "stack", max: ROLE_INFO[role].max })),
   ];
 }
 

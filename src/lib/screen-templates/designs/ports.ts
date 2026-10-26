@@ -83,6 +83,23 @@ export function darkFamily(base: Colours, ...ids: readonly ("white" | "smoke" | 
   return [{ id: "dark", name: "Dark", swatch: swatch("#ffffff") }, ...ids.map((id) => all[id])];
 }
 
+/**
+ * Zones that read as one card: the layout leaves no space between them (empty cells separate one card from the
+ * next), and only the corners of the group's outline are rounded.
+ */
+export function merged(zones: Zone[], radius = 14): Zone[] {
+  const x0 = Math.min(...zones.map((z) => z.at[0]));
+  const y0 = Math.min(...zones.map((z) => z.at[1]));
+  const x1 = Math.max(...zones.map((z) => z.at[0] + z.at[2]));
+  const y1 = Math.max(...zones.map((z) => z.at[1] + z.at[3]));
+  return zones.map((z) => {
+    const [c, r, w, h] = z.at;
+    const px = (on: boolean) => `${on ? radius : 0}px`;
+    const corners = [c === x0 && r === y0, c + w === x1 && r === y0, c + w === x1 && r + h === y1, c === x0 && r + h === y1].map(px).join(" ");
+    return { ...z, settings: { ...z.settings, customCss: `${z.settings?.customCss ?? ""} :scope { border-radius: ${corners} !important; }`.trim() } };
+  });
+}
+
 /** The first `n` cells of a `cols` wide grid, left to right and top to bottom, one cell each. */
 export const flow = (cols: number, n: number): At[] => Array.from({ length: n }, (_, i) => [(i % cols) + 1, Math.floor(i / cols) + 1, 1, 1] as const);
 

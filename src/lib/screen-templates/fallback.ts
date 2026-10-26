@@ -49,6 +49,8 @@ export interface Placed {
   at: At;
   /** Setting key to sensor key. */
   bound: Readonly<Record<string, string>>;
+  /** The role each bound setting ended up reading (a stand-in's, when one filled it). */
+  roles: Readonly<Record<string, Role>>;
   label?: string;
 }
 
@@ -83,21 +85,27 @@ export function placePage(zones: readonly Zone[], keyOf: (role: Role) => string 
   for (const zone of zones) {
     const entries = Object.entries(zone.roles ?? {});
     const bound: Record<string, string> = {};
+    const read: Record<string, Role> = {};
     let label: string | undefined;
     for (const [setting, role] of entries) {
       let key = keyOf(role);
+      let got = role;
       if (key === undefined && zone.spare) {
         const stand = FALLBACKS[role]?.find((f) => !used.has(f.role) && keyOf(f.role) !== undefined);
         if (stand) {
           used.add(stand.role);
           key = keyOf(stand.role);
+          got = stand.role;
           label = stand.label;
         }
       }
-      if (key !== undefined) bound[setting] = key;
+      if (key !== undefined) {
+        bound[setting] = key;
+        read[setting] = got;
+      }
     }
     if (zone.spare && entries.length > 0 && Object.keys(bound).length === 0) left.push(zone.at);
-    else kept.push({ zone, at: zone.at, bound, ...(label ? { label } : {}) });
+    else kept.push({ zone, at: zone.at, bound, roles: read, ...(label ? { label } : {}) });
   }
   // A left-out box next to another one is taken once that one is, so go over them again until none changes.
   let items: readonly Placed[] = kept;
