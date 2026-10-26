@@ -41,7 +41,21 @@ import type { useStudioLayout } from "@/components/studio/use-studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
 import { ExportCheckContext, ExportCheckPanel, ExportCheckPill, type ExportCheckState } from "../export-check-panel";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
-import { AddPalette, type AddEntry } from "./add-palette";
+import { AddPalette, ITEM_COUNT, PaletteGroups, type AddEntry } from "./add-palette";
+import { AddPanel } from "@/components/studio/add-panel";
+import { addCatalog, sameDrop, type AddItem } from "@/components/studio/add-catalog";
+import { freeSize } from "@/components/studio/add-place";
+import { useAddFilter, useAddListDensity, useAddPreviewOnHover } from "@/components/studio/add-prefs";
+import { useRecentWidgets } from "@/components/studio/add-recent";
+import { ADD_TOAST_MS } from "@/components/studio/use-add-panel";
+import { deletePanelPreset, renamePanelPreset } from "@/components/studio/panel-preset-actions";
+import { mergePrefixes, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
+import { widgetItemRow, type CheckStatus } from "@/lib/infopanel/export-check";
+import { isWidgetItem, newWidgetItem, widgetOf, widgetPaths } from "@/lib/infopanel/native/widget-item";
+import { StatusIcon } from "../export-check-panel";
+import { addedMessage, widgetRecordFor } from "./widget-add";
+import { WidgetItemInspector, type WidgetHost } from "./widget-item-inspector";
+import type { WidgetDrop } from "./edit-canvas";
 import { canvasKeyAction } from "./canvas-keys";
 import { CanvasToolbar, CompareStrip, ModesStrip } from "./canvas-toolbar";
 import { EditCanvas, type Compare } from "./edit-canvas";
@@ -89,6 +103,8 @@ export interface CanvasEditorProps {
   /** A new profile's template sensors that weren't found on this machine, shown with Remap until dismissed. */
   unbound?: readonly string[];
   onDismissUnbound?: () => void;
+  /** Studio widgets on the page (one-editor SPEC §3.3): on a Free page, Add offers them beside InfoPanel items. */
+  widgetHost?: WidgetHost;
 }
 
 const isTyping = (el: Element | null) =>
@@ -103,7 +119,7 @@ interface PickFor {
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost }: CanvasEditorProps) {
   const toast = useToast();
   const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection, toast);
   const [showModes, setShowModes] = useState(false);
@@ -151,6 +167,44 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     if (entry.file) return setFileFor({ entry, place });
     askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile, editor.palette), place));
   };
+  /** A Free page (not a free area opened from a grid page) takes Studio widgets too. */
+  const freePage = !onDone && widgetHost !== undefined;
+  const catalog = useMemo(() => addCatalog(widgetHost?.config.panelPresets), [widgetHost?.config.panelPresets]);
+  const [recent, pushRecent] = useRecentWidgets();
+  const [addFilter, setAddFilter] = useAddFilter();
+  const [addDensity] = useAddListDensity();
+  const [addPreview] = useAddPreviewOnHover();
+  /** A Studio widget from Add (a click, Enter or a drop at `at`): a widget item at its default size, selected, one step. */
+  const addWidget = (row: AddItem, at?: { x: number; y: number }) => {
+    const widget = widgetRecordFor(row, widgetHost?.config.panelPresets);
+    if (!widget) return;
+    const { profile } = editor.open;
+    const size = freeSize({ cols: row.w, rows: row.h }, { width: profile.Width, height: profile.Height });
+    editor.add(newWidgetItem(widget, { x: 0, y: 0, ...size }, row.name), at ? { at } : undefined);
+    if (row.kind === "widget") pushRecent(row.id);
+    if (checkOn) toast(addedMessage(row.name, widget), { action: { label: "Undo", onClick: history.undo }, ms: ADD_TOAST_MS });
+  };
+  const placeWidget = (drop: WidgetDrop, at: { x: number; y: number }) => {
+    const row = [...catalog.widget, ...catalog.panel].find((i) => sameDrop(i.drop, drop));
+    if (row) addWidget(row, at);
+  };
+  /** Each Add row's Export check status, on a screen made for InfoPanel. */
+  const rowStatus = useMemo(() => {
+    if (!checkOn) return undefined;
+    const byId = new Map<string, CheckStatus>();
+    for (const row of [...catalog.widget, ...catalog.panel]) {
+      const widget = widgetRecordFor(row, widgetHost?.config.panelPresets);
+      const r = widget && widgetItemRow(newWidgetItem(widget, { x: 0, y: 0, w: 1, h: 1 }, row.name), "0");
+      if (r) byId.set(`${row.kind}:${row.id}`, r.status);
+    }
+    return byId;
+  }, [checkOn, catalog, widgetHost?.config.panelPresets]);
+  // Live values for the Studio widgets' own keys, one subscription for the page (no stream per widget).
+  const widgetKeys = useMemo(
+    () => mergePrefixes(widgetPaths(editor.committed).map((p) => placementPrefixes(widgetPlacement(widgetOf(itemAt(editor.committed, p))!)))),
+    [editor.committed],
+  );
+  const widgetSensors = useSensors(widgetKeys);
   const libraryLink = useLibraryLink(zone.id, zone.canvas, editor.open.profile.Name || zone.canvas.source.name);
   const single = editor.selection.length === 1 ? itemAt(editor.committed, editor.selection[0]) : undefined;
   const pickTarget = pickFor ? itemAt(editor.committed, pickFor.path) : undefined;
@@ -290,6 +344,8 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
         }}
         onExport={() => onExport?.()}
       />
+    ) : single && widgetHost && isWidgetItem(single) ? (
+      <WidgetItemInspector key={editor.selection[0]} editor={editor} path={editor.selection[0]} item={single} host={widgetHost} />
     ) : hasSelection ? (
       <ItemInspector
         editor={editor}
@@ -312,7 +368,33 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
   );
   const drawer = shell.leftOpen && (
     <LeftPanelFrame tab={shell.leftTab} onTab={shell.onLeftTab} width={shell.leftWidth}>
-      {shell.leftTab === "layers" ? <ItemsTree editor={editor} name={name} onSaveComponent={openSave} /> : <AddPalette onAdd={onAdd} />}
+      {shell.leftTab === "layers" ? (
+        <ItemsTree editor={editor} name={name} onSaveComponent={openSave} />
+      ) : freePage && widgetHost ? (
+        <AddPanel
+          catalog={catalog}
+          recent={recent}
+          onClearTarget={() => {}}
+          onAdd={(row) => addWidget(row)}
+          onRenamePreset={(id, to) => setConfig((c) => renamePanelPreset(c, id, to))}
+          onDeletePreset={(id) => setConfig((c) => deletePanelPreset(c, id))}
+          density={addDensity}
+          previewOnHover={addPreview}
+          appearance={widgetHost.appearance}
+          free={{
+            filter: addFilter,
+            onFilter: setAddFilter,
+            itemCount: ITEM_COUNT,
+            items: (query) => <PaletteGroups onAdd={onAdd} query={query} status={checkOn ? () => <StatusIcon status="ok" /> : undefined} />,
+            status: rowStatus && ((row) => {
+              const s = rowStatus.get(`${row.kind}:${row.id}`);
+              return s ? <StatusIcon status={s} className="h-[11px] w-[11px]" /> : null;
+            }),
+          }}
+        />
+      ) : (
+        <AddPalette onAdd={onAdd} />
+      )}
     </LeftPanelFrame>
   );
   const main = (
@@ -362,6 +444,8 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           onPlace={onAdd}
           onComponent={(item, at) => void placeComponent(item, at)}
           onOpenSettings={openSettings}
+          widgets={widgetHost && { sensors: widgetSensors, appearance: widgetHost.appearance, scope: widgetHost.scope }}
+          onPlaceWidget={freePage ? placeWidget : undefined}
         />
         <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
           Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.

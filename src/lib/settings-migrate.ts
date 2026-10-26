@@ -753,3 +753,33 @@ export function migrateProfileV12<P extends MigratableProfile>(p: P): P {
   });
   return pages.every((pg, i) => pg === p.pages[i]) ? p : { ...p, pages };
 }
+
+/* ───────── v14: one editor ───────── */
+
+/** CANVAS_ID (layout.ts imports this file). */
+const CANVAS_MODULE = "infopanel";
+
+interface LayoutProfile {
+  cols: number;
+  rows: number;
+  madeFor?: "studio" | "infopanel";
+  pages: { layout?: "grid" | "free"; placements: { module: string; colStart: number; rowStart: number; colSpan: number; rowSpan: number }[] }[];
+}
+
+/**
+ * v14 for one profile, from a config before v14 only (one-editor SPEC §3.1, §3.2): a page that is exactly one canvas
+ * filling the grid gets `layout: "free"`, every other page nothing (it reads as grid); a profile whose pages are all
+ * Free gets `madeFor: "infopanel"`. That is every InfoPanel profile so far. No other data moves.
+ */
+export function migrateProfileV14<P extends LayoutProfile>(p: P, ctx: { legacy: boolean }): P {
+  if (!ctx.legacy) return p;
+  const free = (pg: LayoutProfile["pages"][number]) => {
+    const [only, ...rest] = pg.placements;
+    return !!only && rest.length === 0 && only.module === CANVAS_MODULE && only.colStart === 1 && only.rowStart === 1 && only.colSpan === p.cols && only.rowSpan === p.rows;
+  };
+  const pages = p.pages.map((pg) => (pg.layout === undefined && free(pg) ? { ...pg, layout: "free" as const } : pg));
+  const allFree = pages.length > 0 && pages.every((pg) => pg.layout === "free");
+  const madeFor = allFree && p.madeFor === undefined;
+  if (!madeFor && pages.every((pg, i) => pg === p.pages[i])) return p;
+  return { ...p, pages, ...(madeFor ? { madeFor: "infopanel" as const } : {}) };
+}

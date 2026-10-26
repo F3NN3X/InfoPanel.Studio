@@ -8,7 +8,8 @@ import { useCanvasEditor } from "@/components/infopanel/edit/use-canvas-editor";
 import { withCanvas } from "@/components/studio/import-actions";
 import { useConfigHistory } from "@/hooks/use-config-history";
 import { newItem } from "@/lib/infopanel/editor/create";
-import { moveBy } from "@/lib/infopanel/editor/ops";
+import { moveBy, updateAt } from "@/lib/infopanel/editor/ops";
+import { newWidgetItem, widgetOf, withWidget } from "@/lib/infopanel/native/widget-item";
 import { readStored, newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import { CANVAS_ID, type DashboardConfig, type Placement } from "@/lib/layout";
 
@@ -73,5 +74,30 @@ describe("one undo history for the grid and the canvas", () => {
     expect(items(result.current.config)).toHaveLength(1);
     act(() => result.current.history.undo());
     expect(items(result.current.config)).toHaveLength(0);
+  });
+
+  it("adds, moves, resizes and edits a Studio widget item as one step each (one-editor SPEC §9)", () => {
+    const { result } = renderHook(useEdit);
+    const ed = () => result.current.editor;
+    act(() => void ed().add(newWidgetItem({ module: "Weather" }, { x: 0, y: 0, w: 300, h: 150 }, "Weather"), { at: { x: 400, y: 240 } }));
+    const added = items(result.current.config)[0];
+    expect(widgetOf(added)).toEqual({ module: "Weather" });
+    expect(added).toMatchObject({ X: 250, Y: 165, Width: 300, Height: 150 });
+
+    act(() => ed().commit(moveBy(ed().committed, ["0"], 10, 0)));
+    act(() => ed().setField("0", "Width", 360));
+    act(() => ed().commit(updateAt(ed().committed, "0", (it) => withWidget(it, { module: "Weather", settings: { units: "imperial" }, onInfoPanel: "snapshot" }))));
+    expect(widgetOf(items(result.current.config)[0])).toEqual({ module: "Weather", settings: { units: "imperial" }, onInfoPanel: "snapshot" });
+
+    act(() => result.current.history.undo());
+    expect(widgetOf(items(result.current.config)[0])).toEqual({ module: "Weather" });
+    act(() => result.current.history.undo());
+    expect((items(result.current.config)[0] as { Width: number }).Width).toBe(300);
+    act(() => result.current.history.undo());
+    expect(items(result.current.config)[0].X).toBe(250);
+    act(() => result.current.history.undo());
+    expect(items(result.current.config)).toHaveLength(0);
+    act(() => result.current.history.redo());
+    expect(widgetOf(items(result.current.config)[0])).toEqual({ module: "Weather" });
   });
 });

@@ -4,7 +4,7 @@
  * InfoPanel's field names and values, unknown fields included, so an export
  * back to `.infopanel` stays exact; what the import decided per item lives
  * under `$` (mode, the Data API key, a vector gauge spec, a studio element's
- * spec and the palette slots its colours follow). Assets and supplied fonts are
+ * spec, the palette slots its colours follow, and a Studio widget an Image hosts). Assets and supplied fonts are
  * referenced by SHA-256; their bytes travel next to it. The profile's palette is
  * studio-only too (`palette`), never exported.
  *
@@ -18,6 +18,7 @@ import type { SlotRef } from "../elements/apply.ts";
 import { defaultPalette, isSlot, normalizePalette, type Palette } from "../elements/palette.ts";
 import { ELEMENT_KINDS, normalizeElement, type ElementSpec } from "../elements/spec.ts";
 import { normalizeGauge, type VectorGauge } from "../gauges/vector.ts";
+import type { NativeChoice } from "../native/tiers.ts";
 import type { Issue } from "../parse.ts";
 import { groupId, type Overrides, type Status } from "../remap/remap.ts";
 import { ALIASES, PROFILE, SCHEMAS, type DisplayItem, type ItemKind, type Profile } from "../schema.ts";
@@ -52,6 +53,25 @@ export interface ItemImport {
    * to automatic can put them back. Older stored forms have none.
    */
   original?: OriginalBinding;
+  /** A Studio widget on a Free page (one-editor SPEC §3.3): only on an Image, which is its box. */
+  widget?: WidgetItem;
+}
+
+/**
+ * A Studio widget stored in a canvas: what a grid zone holds for it, without the cells. An older build drops
+ * the record and sees an empty Image. Types are the config's (`Placement`), kept loose here so Node scripts
+ * that read the stored form don't pull in the studio's model.
+ */
+export interface WidgetItem {
+  /** Registry module id, or `panel` (PANEL_ID) for a saved Panel. */
+  module: string;
+  settings?: Record<string, string | number | boolean>;
+  design?: { accent?: string; background?: "none" | "panel" | "bordered"; header?: boolean };
+  follow?: Record<string, boolean>;
+  /** A panel's definition (`PanelDef`), normalised where it is drawn. */
+  panel?: Record<string, unknown>;
+  /** What an InfoPanel export makes of it; unset = the first of `choicesFor(tierOf(module))`. */
+  onInfoPanel?: NativeChoice;
 }
 
 /** An item's InfoPanel binding fields (SensorType, SensorName and the id fields its kind has). */
@@ -129,9 +149,9 @@ function encodeFields(schema: Schema, obj: Record<string, unknown>): Record<stri
   return out;
 }
 
-/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots), as `$`. */
+/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots, widget), as `$`. */
 function labImport(item: DisplayItem): ItemImport {
-  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string; slots?: Record<string, SlotRef> };
+  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string; slots?: Record<string, SlotRef>; widget?: WidgetItem };
   return {
     ...(lab.native ? { mode: "native" as const } : {}),
     ...(lab.vector !== undefined ? { vector: normalizeGauge(lab.vector) } : {}),
@@ -140,6 +160,7 @@ function labImport(item: DisplayItem): ItemImport {
     ...(typeof lab.elementBaked === "string" ? { elementBaked: lab.elementBaked } : {}),
     ...(typeof lab.driveId === "string" ? { driveId: lab.driveId } : {}),
     ...(lab.slots && Object.keys(lab.slots).length ? { slots: lab.slots } : {}),
+    ...(lab.widget ? { widget: lab.widget } : {}),
   };
 }
 
@@ -308,6 +329,37 @@ function decodeSlots(raw: unknown, kind: ItemKind): Record<string, SlotRef> | nu
   return out;
 }
 
+const CHOICES: readonly NativeChoice[] = ["recreate", "snapshot", "leave"];
+const SECTION_ID = /^[a-z][A-Za-z]{0,31}$/;
+/** A stored panel's largest size as JSON: a saved Panel is a few KB. */
+const MAX_PANEL_JSON = 200_000;
+
+/** A stored widget record, field by field: null when it isn't one; a bad optional field is dropped. */
+export function decodeWidget(raw: unknown): WidgetItem | null {
+  const o = obj(raw);
+  if (!o || typeof o.module !== "string" || !/^[A-Za-z][\w-]{0,63}$/.test(o.module)) return null;
+  const settings = Object.fromEntries(
+    Object.entries(obj(o.settings) ?? {}).filter(([k, v]) => k.length <= 64 && (typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v)) || (typeof v === "string" && v.length <= 10_000))),
+  ) as WidgetItem["settings"] & object;
+  const d = obj(o.design);
+  const design: WidgetItem["design"] & object = {
+    ...(typeof d?.accent === "string" && d.accent.length <= 64 ? { accent: d.accent } : {}),
+    ...(d?.background === "none" || d?.background === "panel" || d?.background === "bordered" ? { background: d.background } : {}),
+    ...(typeof d?.header === "boolean" ? { header: d.header } : {}),
+  };
+  const follow = Object.fromEntries(Object.entries(obj(o.follow) ?? {}).filter(([k, v]) => SECTION_ID.test(k) && typeof v === "boolean")) as Record<string, boolean>;
+  const panel = obj(o.panel);
+  const panelOk = panel !== null && Array.isArray(panel.widgets) && JSON.stringify(panel).length <= MAX_PANEL_JSON;
+  return {
+    module: o.module,
+    ...(Object.keys(settings).length ? { settings } : {}),
+    ...(Object.keys(design).length ? { design } : {}),
+    ...(Object.keys(follow).length ? { follow } : {}),
+    ...(panelOk ? { panel } : {}),
+    ...(CHOICES.includes(o.onInfoPanel as NativeChoice) ? { onInfoPanel: o.onInfoPanel as NativeChoice } : {}),
+  };
+}
+
 function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, value: unknown) => void): ItemImport {
   const o = obj(raw) ?? {};
   const original = o.original !== undefined ? decodeOriginal(o.original, kind) : null;
@@ -318,6 +370,9 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
   if (o.element !== undefined && !fits) report("$.element", o.element);
   const slots = o.slots !== undefined ? decodeSlots(o.slots, kind) : null;
   if (o.slots !== undefined && !slots) report("$.slots", o.slots);
+  // A widget only on an Image, its box.
+  const widget = o.widget !== undefined && kind === "Image" ? decodeWidget(o.widget) : null;
+  if (o.widget !== undefined && !widget) report("$.widget", o.widget);
   const via = typeof o.via === "string" && ["exact", "name", "suggested", "chosen", "unbound", "unresolved"].includes(o.via) ? (o.via as Status) : undefined;
   return {
     ...(o.mode === "native" ? { mode: "native" as const } : {}),
@@ -330,6 +385,7 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
     ...(element && fits && typeof o.elementBaked === "string" ? { elementBaked: o.elementBaked.slice(0, 100_000) } : {}),
     ...(typeof o.driveId === "string" && kind === "Group" && o.driveId.length <= 200 ? { driveId: o.driveId } : {}),
     ...(slots && Object.keys(slots).length ? { slots } : {}),
+    ...(widget ? { widget } : {}),
   };
 }
 
@@ -357,6 +413,7 @@ function decodeItem(raw: unknown, path: string, issues: Issue[], depth: number, 
   if ($.elementBaked) item.elementBaked = $.elementBaked;
   if ($.driveId) item.driveId = $.driveId;
   if ($.slots) item.slots = $.slots;
+  if ($.widget) item.widget = $.widget;
   const rec = importRecord($);
   return { ...(item as unknown as DisplayItem), ...(rec ? { $import: rec } : {}) };
 }

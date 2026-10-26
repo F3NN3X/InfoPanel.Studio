@@ -7,6 +7,8 @@
  *
  * The flag is a field on the item (set through the editor, so a switch is one
  * undo step); every InfoPanel field stays as it was, so switching back is lossless.
+ * A Studio widget item (one-editor SPEC §3.3) is drawn here too, by the view's
+ * `widget`, at its box.
  */
 import { useState, type CSSProperties, type ReactNode } from "react";
 import type { SensorValue } from "@/hooks/useSensors";
@@ -27,6 +29,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import type { Catalog } from "@/lib/infopanel/sensors.ts";
 import { convert, type Conversion, type ConvertContext, type Custom, type GraphStyle, type NativeItem, type TextSource } from "@/lib/infopanel/native/convert.ts";
 import { isNative, walkPaths } from "@/lib/infopanel/native/modes.ts";
+import { isWidgetItem, widgetBox } from "@/lib/infopanel/native/widget-item.ts";
 import { Marquee } from "@/components/ui/marquee";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
@@ -74,6 +77,8 @@ export interface NativeView {
   now: Date;
   /** A sensor key's recent values, oldest first (graphs). */
   history(key: string): readonly number[];
+  /** Draws a Studio widget item (one-editor SPEC §9); without it one shows as the empty Image it is to InfoPanel. */
+  widget?: (item: DisplayItem, path: string, box: { w: number; h: number }) => ReactNode;
 }
 
 /**
@@ -226,6 +231,18 @@ export function nativeLayer(items: DisplayItem[], ctx: ConvertContext, sensors: 
   const hidden = new Set<string>();
   const elements = new Map<string, ReactNode>();
   walkPaths(items, (item, path, isHidden) => {
+    if (view.widget && isWidgetItem(item)) {
+      hidden.add(path);
+      if (isHidden) return;
+      const b = widgetBox(item);
+      elements.set(
+        path,
+        <div key={`widget-${path}`} data-path={path} data-native="" data-widget-item={path} style={{ position: "absolute", left: b.x, top: b.y, width: b.w, height: b.h }}>
+          {view.widget(item, path, b)}
+        </div>,
+      );
+      return;
+    }
     if (!isNative(item)) return;
     const c = convert(item, path, ctx);
     conversions.set(path, c);

@@ -758,6 +758,17 @@ function StudioViewBody({
         unbound={unboundNote?.zoneId === activeCanvas.id ? unboundNote.labels : undefined}
         onDismissUnbound={() => setUnboundNote(null)}
         onEditGauge={(path) => openGauge({ kind: "canvas", zoneId: activeCanvas.id, path })}
+        widgetHost={{
+          config,
+          profile,
+          appearance,
+          scope: themeScope,
+          setConfig,
+          navigateTo: ui.navigateTo,
+          onHelp: () => void openHelp(helpTarget()).catch(() => {}),
+          onSaveStyle: edit.saveStylePreset,
+          onUpdateStyle: edit.updateSavedStyle,
+        }}
         onDone={
           freeZone
             ? undefined

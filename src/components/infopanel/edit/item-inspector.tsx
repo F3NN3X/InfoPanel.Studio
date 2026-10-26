@@ -21,8 +21,9 @@ import { BINDING_IDS, ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/com
 import type { FieldsApi } from "@/components/studio/settings-panel";
 import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
-import { STATUS_LABEL, studioOnlyOf, type CheckRow } from "@/lib/infopanel/export-check";
-import { StatusIcon, useExportCheck } from "../export-check-panel";
+import { studioOnlyOf, type CheckRow } from "@/lib/infopanel/export-check";
+import { OnInfoPanelSection } from "@/components/studio/inspector/on-infopanel-section";
+import { useExportCheck } from "../export-check-panel";
 import { ELEMENTS, gradientBar } from "@/lib/infopanel/elements/create";
 import { describeNative } from "../native";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
@@ -229,14 +230,8 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
 function OnInfoPanel({ row, item }: { row: CheckRow; item: DisplayItem }) {
   const looks = studioOnlyOf(item);
   return (
-    <div role="note" aria-label="On InfoPanel" className="rounded-[8px] border border-ui-default px-2.5 py-2 text-[11.5px]">
-      <div className="flex items-center gap-1.5 text-ui-1">
-        <StatusIcon status={row.status} />
-        <span>
-          On InfoPanel: <span className="text-ui-2">{STATUS_LABEL[row.status].toLowerCase()}</span>
-        </span>
-      </div>
-      <ul className="mt-1 space-y-0.5 leading-snug text-ui-4">
+    <OnInfoPanelSection row={row}>
+      <ul className="space-y-0.5">
         {looks.length > 0 ? (
           looks.map(({ field }) => (
             <li key={field.key}>
@@ -247,7 +242,7 @@ function OnInfoPanel({ row, item }: { row: CheckRow; item: DisplayItem }) {
           <li>{row.why.replace(/\.?$/, ".")}</li>
         )}
       </ul>
-    </div>
+    </OnInfoPanelSection>
   );
 }
 

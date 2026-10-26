@@ -9,9 +9,9 @@ import { useSensors } from "@/hooks/useSensors";
 import { PanelView } from "@/components/widgets/PanelView";
 import type { PanelSelection } from "@/components/widgets/panel-parts";
 import { YR_FORECAST_KEY, YR_FORECAST_PREFIX } from "@/lib/sensors";
-import { CARDS_ID, BLANK_MODULE, CANVAS_ID, canvasTitle, type Placement } from "@/lib/layout";
-import { storedCanvasKeys } from "@/lib/infopanel/canvas-keys";
-import { panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
+import { CARDS_ID, BLANK_MODULE, CANVAS_ID, PANEL_ID, canvasTitle, type Placement } from "@/lib/layout";
+import { storedCanvasKeys, storedCanvasWidgets, type StoredWidgetRef } from "@/lib/infopanel/canvas-keys";
+import { normalizePanelPlacement, panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import { lockedIn, resolveWith, type Appearance } from "@/lib/style-resolve";
 import { safeRender } from "@/components/zone-error-boundary";
 
@@ -37,7 +37,7 @@ export interface PlacementRender {
  */
 export function placementPrefixes(p: Placement): string[] | null {
   if (p.module === BLANK_MODULE) return [];
-  if (p.module === CANVAS_ID) return storedCanvasKeys(p.canvas);
+  if (p.module === CANVAS_ID) return mergePrefixes([storedCanvasKeys(p.canvas), ...storedCanvasWidgets(p.canvas).map((w) => placementPrefixes(widgetPlacement(w)))]);
   if (p.panel) {
     const keys = new Set<string>();
     for (const w of p.panel.widgets) {
@@ -55,6 +55,36 @@ export function placementPrefixes(p: Placement): string[] | null {
   const bound = (mod?.settings ?? []).filter((d) => d.type === "sensor").flatMap((d) => String(p.settings?.[d.key] ?? "").split(",").filter(Boolean));
   return mod ? [...moduleReads(mod), ...bound] : [];
 }
+
+/** Several placements' prefixes as one subscription: `null` (every sensor) when any reads all. */
+export function mergePrefixes(lists: readonly (readonly string[] | null)[]): string[] | null {
+  if (lists.some((l) => l === null)) return null;
+  return [...new Set(lists.flatMap((l) => l ?? []))].sort();
+}
+
+/**
+ * A Studio widget on a Free page (stored in its canvas, one-editor SPEC §3.3) as the zone it renders like: one cell,
+ * its module, settings, look and panel. The kiosk, the editor and the export draw and read it through this.
+ */
+export function widgetPlacement(w: StoredWidgetRef & { design?: Placement["design"]; follow?: Placement["follow"] }, id = "widget"): Placement {
+  const p: Placement = {
+    id,
+    module: w.module,
+    colStart: 1,
+    rowStart: 1,
+    colSpan: 1,
+    rowSpan: 1,
+    visible: true,
+    ...(w.settings ? { settings: w.settings as ModuleSettings } : {}),
+    ...(w.design ? { design: w.design } : {}),
+    ...(w.follow ? { follow: w.follow } : {}),
+    ...(w.panel && Array.isArray(w.panel.widgets) ? { panel: w.panel as unknown as Placement["panel"] } : {}),
+  };
+  return normalizePanelPlacement(p);
+}
+
+/** Whether this build has the widget a Free page's item names (§11: an older or newer build's is shown greyed). */
+export const knownWidget = (module: string): boolean => module === PANEL_ID || moduleById.has(module);
 
 /** Tokens for the zone frame (`undefined` when nothing is re-scoped). */
 function frameScope(settings: ModuleSettings | undefined): CSSProperties | undefined {
@@ -89,7 +119,7 @@ export function placementContent(
     return {
       content: (
         <Suspense fallback={null}>
-          <CanvasZone canvas={p.canvas} sensors={sensors} />
+          <CanvasZone canvas={p.canvas} sensors={sensors} appearance={appearance} />
         </Suspense>
       ),
       hasData: true,

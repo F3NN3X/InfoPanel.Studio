@@ -38,6 +38,10 @@ import {
 import { extOverrides, openStored, type OpenedSource } from "@/lib/infopanel/import/session";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { GaugeItem } from "@/lib/infopanel/schema";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
+import { useSensorCatalog } from "@/lib/catalog";
+import { widgetPaths } from "@/lib/infopanel/native/widget-item";
+import { knownWidget, widgetPlacement } from "@/components/studio/placement-content";
 import { CheckGroups } from "./export-check-panel";
 import { FontLicenceReview } from "./font-licence-review";
 import { Radio } from "./import/import-steps";
@@ -99,6 +103,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const targets = useSwapTargets(out === "stored" && licences.some((r) => r.verdict === "keep"));
+  const catalog = useSensorCatalog();
 
   useEffect(() => {
     let stop = false;
@@ -199,12 +204,28 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
         const keys = opened.restore?.keys ?? new Map();
         onBaked(zone.id, restoreStored(canvas, opened.parsed.profile, next, keys, exts));
       }
+      // Studio widgets go by their On InfoPanel rule, read from the editor's canvas; the screen keeps them as they are.
+      let widgetNote = "";
+      if (widgetPaths(next.items).length > 0) {
+        setBusy("Converting Studio widgets…");
+        const { exportWidgets } = await import("@/lib/infopanel/native/widget-export");
+        const r = await exportWidgets(next, {
+          root: document.querySelector("[data-canvas-edit-layer]")?.parentElement ?? null,
+          sensors: catalog.sensors as unknown as Record<string, DataApiValue>,
+          look: opened.parsed.profile,
+          zoneOf: (w, id) => widgetPlacement(w, id),
+          known: knownWidget,
+        });
+        next = r.doc;
+        const unseen = r.report.filter((x) => x.outcome.includes("isn't drawn")).length;
+        widgetNote = unseen ? ` · ${unseen} widget${unseen === 1 ? "" : "s"} left out: open the profile in Edit to export ${unseen === 1 ? "it" : "them"}` : "";
+      }
       setBusy("Writing…");
       const leaveOut = leaveUnused ? unusedFiles(next).names : [];
       const file = infopanelFile(opened.parsed.profile, next, leaveOut);
       await download(fileName, file.bytes, "application/octet-stream");
       const left = bakeFirst ? 0 : bakes;
-      onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} gauges and elements keep their old images` : ""}`);
+      onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} gauges and elements keep their old images` : ""}${widgetNote}`);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -18,3 +18,16 @@ pub fn version_refusal(stored_text: &str, incoming: &Value) -> Option<Refusal> {
     }
     Some(Refusal::new(409, "a newer dashboard version saved this config; reload"))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // v14 (Free pages, Studio widgets in a canvas): a v13 build would drop them on its next save.
+    #[test]
+    fn refuses_a_v13_save_over_a_v14_config() {
+        assert!(version_refusal(r#"{"version":14}"#, &serde_json::json!({ "version": 13 })).is_some());
+        assert!(version_refusal(r#"{"version":13}"#, &serde_json::json!({ "version": 14 })).is_none());
+        assert!(version_refusal(r#"{"version":14}"#, &serde_json::json!({ "version": 14 })).is_none());
+    }
+}
