@@ -125,6 +125,26 @@ export function baseFamilyName(name: string): string {
 
 const SYMBOL_FONTS = ["Webdings", "Wingdings", "Symbol", "Marlett"];
 
+/** DirectWrite's weight names, longest first so "SemiBold" is not read as "Bold". */
+const STYLE_WEIGHTS: [string, number][] = [
+  ["extrablack", 950], ["ultrablack", 950], ["extrabold", 800], ["ultrabold", 800], ["semibold", 600], ["demibold", 600],
+  ["extralight", 200], ["ultralight", 200], ["semilight", 350], ["black", 900], ["heavy", 900], ["bold", 700],
+  ["medium", 500], ["light", 300], ["thin", 100],
+];
+
+/**
+ * The typeface by the family's own name, for the browser to find, when no font list says more (InfoPanel's
+ * Data API has no font endpoints, or did not answer). A FontStyle names the style InfoPanel picks ("Bold"
+ * draws bold even with Bold off); without one, Bold and Italic choose it.
+ */
+export function namedTypeface(fontName: string, fontStyle: string, bold: boolean, italic: boolean): Typeface {
+  const style = fontStyle.toLowerCase().replace(/[\s_-]/g, "");
+  if (!style) return { family: fontName, weight: bold ? 700 : 400, width: 5, slant: italic ? "Italic" : "Upright", via: "family" };
+  const weight = STYLE_WEIGHTS.find(([name]) => style.includes(name))?.[1] ?? 400;
+  const slant: Slant = style.includes("italic") ? "Italic" : style.includes("oblique") ? "Oblique" : "Upright";
+  return { family: fontName, weight, width: 5, slant, via: "style" };
+}
+
 export function createTypeface(fonts: FontSet, fontName: string, fontStyle: string, bold: boolean, italic: boolean): Typeface {
   if (fontStyle) {
     const family = findFamily(fonts, fontName);
