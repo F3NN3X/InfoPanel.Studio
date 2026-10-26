@@ -3,7 +3,7 @@ id: background
 title: Page background
 icon: wallpaper
 related: [themes, profiles]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 A color, gradient, image or video behind all zones.

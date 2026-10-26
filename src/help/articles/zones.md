@@ -3,7 +3,7 @@ id: zones
 title: Zones
 icon: grid_view
 related: [widgets, panels, studio]
-verified: 1.3.0-beta.28
+verified: 1.3.0-beta.33
 ---
 
 Every box on the grid is a zone. Select one to move, resize or fill it.

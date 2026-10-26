@@ -3,7 +3,7 @@ id: diagnostics
 title: Diagnostics and logs
 icon: monitoring
 related: [problems, kiosk]
-verified: 1.3.0-beta.20
+verified: 1.3.0-beta.33
 ---
 
 Find out what went wrong, and give a bug report everything it needs.

@@ -3,10 +3,10 @@ id: import
 title: Importing and exporting
 icon: download
 related: [canvas, remap, assets]
-verified: 1.3.0-beta.29
+verified: 1.3.0-beta.33
 ---
 
-Bring files into the studio and take them out again, without losing anything.
+Bring files into the studio and take them out again.
 
 ## The Import door
 
@@ -64,7 +64,7 @@ can't say which face it uses, the style it was given (Bold, SemiBold, Light and 
 
 ## 4. Sensors and save
 
-Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap](remap)), then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or a **Canvas zone** on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
+Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap](remap)). **Leave N unresolved unbound** settles every unresolved group in one press. Then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or a **Canvas zone** on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
 
 ## Export & back up
 
@@ -84,4 +84,4 @@ The InfoPanel export dialog is titled "Export" followed by the canvas name.
 | **Stored form** | A `.canvas.zip` that reopens with your modes, remaps, fonts and assets intact |
 | **.infopanel for InfoPanel** | A profile InfoPanel can open, with assets included |
 
-For the InfoPanel form you can turn on **Bake stale vector gauges first** and **Leave unused assets out**. The dialog also reviews font licences before you share.
+For the InfoPanel form you can turn on **Bake stale gauges and elements first** and **Leave unused assets out**. The dialog also reviews font licences before you share.

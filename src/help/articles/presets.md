@@ -3,18 +3,18 @@ id: presets
 title: Layouts and presets
 icon: auto_awesome_mosaic
 related: [panels, themes, profiles]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 Starting points you can drop in and adjust: whole pages, single panels, and looks.
 
 | Kind | Is | Find it |
 |---|---|---|
-| Layout starters | One sensor-free panel; each widget asks for a sensor | **Add widget › Layouts** |
-| Panel presets | One panel already bound to sensors (samples) | **Add widget › Layouts** |
-| Panels | Panels you saved | **Add widget › My panels**, **Library › Panels** |
+| Layout starters | One sensor-free panel; each widget asks for a sensor | **Add › Layouts** |
+| Panel presets | One panel already bound to sensors (samples) | **Add › Panels** |
+| Panels | Panels you saved | **Add › Panels** (under My panels), **Library › Panels** |
 | Styles | One widget's look | Style tab, **Start from a Style**, **Library › Styles** |
-| Skins and saved Themes | A whole look for all screens, one screen or a page | **Theme › Start from**, **Apply a theme here…** |
+| Skins, saved Themes and template looks | A whole look for all screens, one screen or a page | **Theme › Start from**, **Apply a theme here…** |
 
 ## Layout starters
 
@@ -30,7 +30,7 @@ Panel presets were built against one PC's sensors. Expect to re-pick some sensor
 
 ## Skins
 
-The skins sit in **Theme › 1 · Start from**, beside the palettes and your saved Themes:
+The skins sit in **Theme › 1 · Start from**, beside the palettes and your saved Themes. Below them, **From templates** holds the look of every screen template:
 
 :::generated presets.appearance
 

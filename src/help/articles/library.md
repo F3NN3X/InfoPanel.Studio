@@ -3,7 +3,7 @@ id: library
 title: Library
 icon: perm_media
 related: [assets, gauges, import]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.33
 ---
 
 One place for what you reuse: Themes, Styles, Panels, gauges, images, videos, fonts and imported canvases. Gauges are built and edited in their own view, **Gauges** on the rail.

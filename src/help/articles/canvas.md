@@ -3,7 +3,7 @@ id: canvas
 title: Editing a canvas
 icon: draw
 related: [infopanel-editor, import, remap, gauges]
-verified: 1.3.0-beta.23
+verified: 1.3.0-beta.33
 ---
 
 A free-form editor over the imported profile. Every edit stays valid for export back to InfoPanel.

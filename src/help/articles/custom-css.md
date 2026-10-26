@@ -3,7 +3,7 @@ id: custom-css
 title: Custom CSS
 icon: code
 related: [panels, widget-settings]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 For looks the settings can't reach. CSS is scoped, so it never leaks into other zones.

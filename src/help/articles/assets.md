@@ -3,7 +3,7 @@ id: assets
 title: Assets and fonts
 icon: perm_media
 related: [import, canvas, library]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 Manage the images, videos and fonts an imported profile carries.

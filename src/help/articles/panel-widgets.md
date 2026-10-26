@@ -3,7 +3,7 @@ id: panel-widgets
 title: Panel widgets
 icon: view_comfy_alt
 related: [panels, sensors, custom-css]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 The small building blocks you place inside a panel.

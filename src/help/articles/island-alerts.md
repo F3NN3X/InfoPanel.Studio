@@ -3,7 +3,7 @@ id: island-alerts
 title: Dynamic Island and alerts
 icon: notifications
 related: [widget-settings, studio]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 A small pill at the top of the kiosk that shows the time, and expands to show alerts and notices.

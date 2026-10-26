@@ -3,7 +3,7 @@ id: agents
 title: Coding agents
 icon: smart_toy
 related: [problems, diagnostics]
-verified: 1.3.0-beta.18
+verified: 1.3.0-beta.33
 ---
 
 Show what Claude Code and Codex are doing, live on your dashboard.
