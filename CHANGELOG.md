@@ -6,6 +6,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Widgets grow with large zones.** A widget in a large zone used to keep the size of its largest layout and leave most of the card empty. Now its text, numbers and graphs grow with the zone, up to two and a half times, and a zone's **Size (%)** applies on top. **This changes how existing screens look:** their large zones now show bigger content. Small and medium zones look as before.
+- **Readings fit their box.** The Sensor widget fits its number to the box as a value, and sizes a gauge's number from the ring, so it fills a large tile and no longer spills out of a small one. A figure's "%" stays inside its zone, a console line keeps readable text, and a small ring drops its inside label instead of drawing it tiny.
+- **Status Bar text follows the bar's height.** The text was never larger than 22 px. Now it follows the bar's height, and when the items don't fit it shrinks before any is dropped, so Meters, Orbit and Ticker show every reading at every size. Their pill sits in the middle of the screen at the height its readings fit. Meters on a wide screen stacks a pill each for the CPU, the GPU and the frame rate, and Orbit fills a wide screen.
+- **Small fixes for short and tall zones.** The clock's time grows with its zone and its date and seconds grow with it. The OSD strip puts each label beside its value in a short row, the System widget puts CPU and RAM on one line, the process list shows only whole rows, and Now playing sizes its cover from the zone and gives the title two lines.
+
 ### Added
 
 - **Every template look is a theme.** **Theme › Start from › From templates** lists the look of each screen template, and of each of its palettes (Graphite · Amber, Neon · Toxic, Frost Bar · Ice and so on), grouped by template. Press one to apply it to any screen, or the copy button to keep it in Library › Themes and edit it like your own. A new screen made from a template looks exactly as before.

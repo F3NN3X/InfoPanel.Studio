@@ -253,8 +253,9 @@ string data, drawn inside one `<Widget>` (`src/widgets/core/Widget.tsx`).
   blur (`lookBox`), text colors, font and weight (replacing the skin's), label
   case, padding and gap (overriding the tier padding), `stroke` (scaling ring
   and graph strokes), the background image with a scrim, the scoped custom CSS
-  and the header icon and title. Size % zooms the content box; the tier and
-  shape are measured after the zoom.
+  and the header icon and title. A zone past the widget's design size
+  (`design`, default 500×320) zooms the content box with it (1–2.5×), Size %
+  on top; the tier and shape are measured after the zoom.
 - **Text colors.** The shell sets `--w-fg`, `--w-muted`, `--w-faint` and
   `--w-track` from the surface's tone (dark, light or theme), so text stays
   legible on matte-light and on a light theme. Widgets use these variables, not

@@ -3,7 +3,7 @@ id: widgets
 title: Widgets
 icon: widgets
 related: [widget-settings, sensors, panels]
-verified: 1.3.0-beta.28
+verified: 1.3.0-beta.31
 ---
 
 Ready-made modules that read sensors and adapt to their zone.
@@ -24,6 +24,8 @@ Most widgets pick a layout from the space they get. In **Show › Fit**, **Small
 - **Dense**: everything, packed tighter.
 
 Which choices appear depends on the widget. **Density** (Auto, Roomy, Standard, Compact, Minimal) sits under **More**.
+
+In a large zone the widget grows with it: its text, numbers and graphs get bigger, up to two and a half times, instead of leaving the card mostly empty. **Size (%)** under **Shape & spacing** makes it bigger or smaller on top of that. A single reading (the Sensor widget) and the Status Bar size their text to fit their box.
 
 ## Time and status widgets
 

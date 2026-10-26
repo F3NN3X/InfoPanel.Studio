@@ -585,11 +585,15 @@ font sizes come from the room that is really there. `ModernChrome`
 (`components/modern-chrome.tsx`) remains the root of custom panel zones; the
 `ModernChrome` type is the `chrome` object both use.
 
-- **Scaling** — the content box gets `zoom: s`, where `s` is the user's Size %
-  (50–200). The tier and shape are measured after the zoom, and the padding
-  option is not scaled by it. Library widgets adapt to their zone by tier and
-  shape rather than by scaling. The old `autoScale` key did nothing and was
-  dropped (config v7).
+- **Scaling** — the content box gets `zoom: a × s`: `s` is the user's Size %
+  (50–200), `a` how far the zone is past the widget's design size
+  (`zoomFor`, the `design` prop, default `DESIGN_SIZE` 500×320, the `lg`
+  tier's smallest box), clamped to 1–2.5 and rounded down. Below `lg` widgets
+  adapt by tier and shape; past it the `lg` layout grows with the zone. The
+  tier and shape are measured after the zoom, and the padding option is not
+  scaled by it. The Status Bar and the web page pass `design={null}` (they
+  size to their zone). The old `autoScale` key did nothing and was dropped
+  (config v7).
 - **Style variables** — the chosen options become `--wp-pad`, `--wp-gap`,
   `--wp-radius`, `--wp-fg`, `--wp-muted`, `--wp-weight`, `--wp-label-case`,
   `--wp-x` / `--wp-y` (+ `-cross`), `--wp-text-align`, `--wp-flex`, and the
