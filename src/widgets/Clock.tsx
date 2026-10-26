@@ -53,7 +53,7 @@ export interface ClockProps extends ShellProps {
   format?: "24h" | "12h" | "auto";
   showSeconds?: boolean;
   showDate?: boolean;
-  face?: "digital" | "analog";
+  face?: "digital" | "analog" | "line";
 }
 
 export default function Clock(p: ClockProps) {
@@ -81,7 +81,14 @@ export default function Clock(p: ClockProps) {
       studio={{ label: `${DAYS[date.getDay()]} · ${day} ${MONTHS[mon - 1]}`, value: `${pad(hh)}:${pad(M)}`, unit: h12 ? (k("pm") ? "PM" : "AM") : secs ? pad(S) : "", kind: "value" }}
     >
       {({ size, w, h }) =>
-        p.face === "analog" ? (
+        p.face === "line" ? (
+          <div className="flex h-full items-center justify-end whitespace-nowrap leading-none text-[color:var(--w-muted)]" style={{ fontSize: Math.max(8, Math.min(h * 0.36, w / 9)) }}>
+            <Num>
+              {pad(hh)}:{pad(M)}
+              {secs ? `:${pad(S)}` : ""}
+            </Num>
+          </div>
+        ) : p.face === "analog" ? (
           <div className="flex h-full items-center justify-center gap-5">
             <Analog h={H} m={M} s={S} seconds={secs} />
             {size !== "xs" && size !== "sm" && p.showDate !== false && (

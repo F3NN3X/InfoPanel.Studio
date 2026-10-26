@@ -4,7 +4,8 @@
  * what the card shows is the screen Create makes. Sorted by shape class like the New InfoPanel profile gallery
  * (`shape-chips.tsx`): chips filter by class, defaulting to the chosen size's; All lists a section per class, the size's
  * first. In each section the starters come first and the native versions of the InfoPanel templates follow under their own
- * heading. A template that doesn't fit the size is drawn at its own shape. Loaded with its dialog, never in the first bundle.
+ * heading. A template that offers palettes shows them as chips under the cards, and its card follows the pick. A template
+ * that doesn't fit the size is drawn at its own shape. Loaded with its dialog, never in the first bundle.
  */
 import { useMemo, useState } from "react";
 import { FilePlus2 } from "lucide-react";
@@ -22,23 +23,27 @@ import { ALL_MODULES } from "../studio/studio-modules";
 import { CLASS_NAMES, COLUMNS, ShapeChips, aspectOf, sectionClasses, type ShapeFilter } from "./shape-chips";
 import { SIZE_PRESETS, firstPresetOf, placementOf, thumbSizeOf } from "./size-presets";
 import { TemplateShotHost, useSeen, useTemplateShot } from "./template-shots";
+import { VariantChips } from "./variant-chips";
 
 /** The screen a template makes at the size with this machine's sensors (the first-run setup's Start from a template). */
-export function templateScreen(id: string, size: { width: number; height: number }, sensors: SensorMap): MonitorProfile | undefined {
+export function templateScreen(id: string, size: { width: number; height: number }, sensors: SensorMap, variant?: string): MonitorProfile | undefined {
   const t = screenTemplateById(id);
-  return t ? instantiate(t, { name: t.name, ...size, sensors: sensors as unknown as Record<string, DataApiValue> }).profile : undefined;
+  return t ? instantiate(t, { name: t.name, variant, ...size, sensors: sensors as unknown as Record<string, DataApiValue> }).profile : undefined;
 }
 
 const iconOf = (module: string) => iconFor(ALL_MODULES.find((m) => m.id === module)?.icon);
 const titleOf = (module: string) => ALL_MODULES.find((m) => m.id === module)?.title ?? module;
 
-/** The template made for the size: its picture once taken, until then its first page drawn as its zones. */
-export function ScreenTemplateThumb({ template, width, height }: { template: ScreenTemplate; width: number; height: number }) {
+/** The template made for the size in a palette: its picture once taken, until then its first page drawn as its zones. */
+export function ScreenTemplateThumb({ template, variant, width, height }: { template: ScreenTemplate; variant: string; width: number; height: number }) {
   const [ref, seen] = useSeen<HTMLDivElement>();
-  const shot = useTemplateShot(template, width, height, seen);
-  const profile = useMemo(() => instantiate(template, { name: template.name, width, height }).profile, [template, width, height]);
-  const bg = template.look.background ? backgroundLayers(template.look.background) : null;
-  const accent = typeof template.look.style.accent === "string" ? template.look.style.accent : "#a1a1aa";
+  const shot = useTemplateShot(template, variant, width, height, seen);
+  const profile = useMemo(() => instantiate(template, { name: template.name, variant, width, height }).profile, [template, variant, width, height]);
+  const palette = template.variants?.find((v) => v.id === variant);
+  const background = palette?.background ?? template.look.background;
+  const bg = background ? backgroundLayers(background) : null;
+  const style = { ...template.look.style, ...palette?.style };
+  const accent = typeof style.accent === "string" ? style.accent : "#a1a1aa";
   return (
     <div ref={ref} aria-hidden className="absolute inset-0 overflow-hidden" style={bg?.fill}>
       {bg?.media && <div className="absolute inset-0" style={bg.media} />}
@@ -72,13 +77,18 @@ interface ScreenTemplateGalleryProps {
   onChoice: (id: string | null) => void;
   width: number;
   height: number;
+  /** The chosen template's palette (its first when unset), and the pick of another; the palettes are offered when this is given. */
+  variant?: string;
+  onVariant?: (id: string) => void;
   /** Offer Blank first (the first-run setup asks for Blank a step earlier). */
   blank?: boolean;
 }
 
 const CARD = "flex min-w-0 flex-col overflow-hidden rounded-[10px] border text-left outline-none focus-visible:border-ui-accent";
 
-export function ScreenTemplateGallery({ choice, onChoice, width, height, blank = true }: ScreenTemplateGalleryProps) {
+export function ScreenTemplateGallery({ choice, onChoice, width, height, variant, onVariant, blank = true }: ScreenTemplateGalleryProps) {
+  const chosen = choice ? screenTemplateById(choice) : undefined;
+  const paletteOf = (t: ScreenTemplate) => (t.id === choice ? (variant ?? t.variants?.[0]?.id ?? "") : (t.variants?.[0]?.id ?? ""));
   const sizeClass = shapeClassOf(width, height);
   // Until a chip is picked the filter follows the size's class.
   const [picked, setPicked] = useState<ShapeFilter | null>(null);
@@ -109,7 +119,7 @@ export function ScreenTemplateGallery({ choice, onChoice, width, height, blank =
                 className={cn(CARD, choice === t.id ? "border-ui-accent bg-ui-accent/10" : "border-ui-default hover:bg-ui-hover")}
               >
                 <div className="relative w-full" style={{ aspectRatio: aspectOf(size.width, size.height) }}>
-                  <ScreenTemplateThumb template={t} width={size.width} height={size.height} />
+                  <ScreenTemplateThumb template={t} variant={paletteOf(t)} width={size.width} height={size.height} />
                 </div>
                 <span className="truncate px-2 pt-1 text-[12px] font-medium text-ui-1">{t.name}</span>
                 <span className="truncate px-2 pb-1.5 text-[11px] text-ui-4">{t.blurb}</span>
@@ -150,6 +160,7 @@ export function ScreenTemplateGallery({ choice, onChoice, width, height, blank =
           );
         })}
       </div>
+      {chosen?.variants && onVariant && <VariantChips variants={chosen.variants} value={paletteOf(chosen)} onChange={onVariant} />}
     </div>
   );
 }

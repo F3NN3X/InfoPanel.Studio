@@ -8,6 +8,7 @@
  */
 import type { ModuleSettings } from "@/modules/types";
 import type { AppearancePreset } from "../appearance-presets";
+import type { ThemeTokens } from "../theme";
 import type { ShapeClass } from "../infopanel/templates/layout";
 import type { Role } from "../infopanel/templates/roles";
 
@@ -28,6 +29,11 @@ export interface Zone {
   settings?: ModuleSettings;
   /** Settings that hold a sensor key, by role: the key of this machine's sensor for it, left unset when none is found. */
   roles?: Readonly<Record<string, Role>>;
+  /**
+   * A reading that may be filled from a similar one (`fallback.ts`) when its role isn't found on this PC, and left out,
+   * its neighbours taking the space, when nothing similar is found either.
+   */
+  spare?: boolean;
 }
 
 /** One shape class's grid and each page's zones on it, in `pages` order. */
@@ -52,6 +58,26 @@ export interface Look extends Pick<AppearancePreset, "theme" | "radius" | "style
   padding: number;
 }
 
+/**
+ * A palette of a template: what it changes of the template's own look. The first variant of a template changes nothing
+ * (the template as designed); it only names itself and gives its swatches.
+ */
+export interface Variant {
+  id: string;
+  name: string;
+  /** Three colours the gallery's chip shows. */
+  swatch: readonly [string, string, string];
+  /** The whole theme, in place of the template's. */
+  theme?: ThemeTokens;
+  /** Style keys it sets over the template's. */
+  style?: Look["style"];
+  background?: Look["background"];
+  /** Colours changed wherever a zone's settings hold them: "#rrggbb" to "#rrggbb", matched without regard to case. */
+  swap?: Readonly<Record<string, string>>;
+  /** Values set on every zone that has the key (a card's opacity). */
+  zones?: ModuleSettings;
+}
+
 export interface ScreenTemplate {
   id: string;
   name: string;
@@ -66,6 +92,8 @@ export interface ScreenTemplate {
   look: Look;
   /** The pages; one "Main" when unset. */
   pages?: readonly TemplatePage[];
+  /** The palettes it offers, the first being its own; none when it has only that. */
+  variants?: readonly Variant[];
   /** A layout for each class in `fits`. */
   layouts: Readonly<Partial<Record<ShapeClass, ShapeLayout>>>;
 }

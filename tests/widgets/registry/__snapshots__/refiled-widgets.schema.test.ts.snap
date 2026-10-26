@@ -2920,6 +2920,8 @@ exports[`SensorValue > files its rows by the rules 1`] = `
     {
       "Display": [
         "display",
+        "lineValue",
+        "smallUnit",
         "unit",
       ],
     },

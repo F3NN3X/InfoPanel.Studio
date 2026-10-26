@@ -4,6 +4,9 @@ import { invalidStyleKeys } from "@/lib/appearance-presets";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog";
 import { shapeClassOf, type ShapeClass } from "@/lib/infopanel/templates/layout";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
+import { resolveRole, type Role } from "@/lib/infopanel/templates/roles";
+import snapshot from "@/widgets/__fixtures__/snapshot.json";
+import extra from "@/widgets/__fixtures__/extra.json";
 import { CONFIG_VERSION, defaultConfig, mergeConfig } from "@/lib/layout";
 import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
 import { instantiate, splitOf } from "@/lib/screen-templates/instantiate";
@@ -35,12 +38,21 @@ function badSettings(module: string, settings: Record<string, unknown>): string[
   });
 }
 
-const rows = SCREEN_TEMPLATES.flatMap((t) => t.fits.map((cls) => [t.id, cls, t] as const));
+/** A real machine's sensors (the widgets' fixtures), and the same without the readings a role finds. */
+const CAPTURE = { ...snapshot.sensors, ...extra.sensors } as unknown as Record<string, DataApiValue>;
+const without = (roles: readonly Role[]) => {
+  const gone = new Set(roles.map((r) => resolveRole(r, CAPTURE)?.key));
+  return Object.fromEntries(Object.entries(CAPTURE).filter(([key]) => !gone.has(key)));
+};
+const MISSING: readonly Role[] = ["fps.low01", "gpu.hotspot", "cpu.ccd1", "cpu.ccd2", "vram.temp", "gpu.fan", "gpu.volt"];
+
+/** Every template in every palette it offers, at each class it fits. */
+const rows = SCREEN_TEMPLATES.flatMap((t) => t.fits.flatMap((cls) => (t.variants ?? [undefined]).map((v) => [t.id, cls, v?.id ?? "its own palette", t, v?.id] as const)));
 
 describe("native screen templates", () => {
-  it.each(rows)("%s at %s makes a valid screen at two sizes", (_id, cls, t) => {
-    for (const [width, height] of SIZES[cls]) {
-      const { profile } = instantiate(t, { name: t.name, width, height });
+  it.each(rows)("%s at %s in %s makes a valid screen at two sizes, with this machine's sensors and without", (_id, cls, _palette, t, variant) => {
+    for (const [width, height, sensors] of SIZES[cls].flatMap(([w, h]) => [[w, h, undefined], [w, h, CAPTURE], [w, h, without(MISSING)]] as const)) {
+      const { profile } = instantiate(t, { name: t.name, variant, width, height, sensors });
       expect(profile).toMatchObject({ width, height, fit: "fill" });
       expect(profile.pages).toHaveLength(t.pages?.length ?? 1);
       expect(invalidStyleKeys(profile.widgetTheme?.values ?? {})).toEqual([]);
@@ -80,7 +92,51 @@ describe("native screen templates", () => {
       const port = SCREEN_TEMPLATES.find((t) => t.id === ip.id);
       expect(port?.port, ip.id).toBe(true);
       expect(port?.fits, ip.id).toEqual(ip.fits);
+      // The same palettes, by id and in order, the first being the template's own.
+      expect(port?.variants?.map((v) => v.id), ip.id).toEqual(ip.variants.map((v) => v.id));
     }
+  });
+
+  it("gives every palette other than the first something that changes the screen", () => {
+    for (const t of SCREEN_TEMPLATES) {
+      const [own, ...others] = t.variants ?? [];
+      if (own) expect([own.theme, own.style, own.swap, own.zones, own.background], t.id).toEqual([undefined, undefined, undefined, undefined, undefined]);
+      for (const v of others) {
+        expect(v.theme ?? v.style ?? v.swap ?? v.zones ?? v.background, `${t.id} ${v.id}`).toBeDefined();
+        const [width, height] = t.size ? [t.size.width, t.size.height] : [1920, 1080];
+        const a = instantiate(t, { name: t.name, width, height, sensors: CAPTURE });
+        const b = instantiate(t, { name: t.name, variant: v.id, width, height, sensors: CAPTURE });
+        expect(JSON.stringify([b.profile.theme, b.profile.widgetTheme, b.profile.background, b.profile.pages.map((p) => p.placements.map((z) => z.settings))]), `${t.id} ${v.id}`).not.toBe(
+          JSON.stringify([a.profile.theme, a.profile.widgetTheme, a.profile.background, a.profile.pages.map((p) => p.placements.map((z) => z.settings))]),
+        );
+      }
+    }
+  });
+
+  it("recolours a palette's zones and keeps the first palette as designed", () => {
+    const glass = SCREEN_TEMPLATES.find((t) => t.id === "glass")!;
+    const gauges = (variant?: string) => instantiate(glass, { name: "G", variant, width: 1920, height: 1080, sensors: CAPTURE }).profile.pages[0].placements.map((z) => z.settings?.accent).filter(Boolean);
+    expect(gauges()).toEqual(["#60a5fa", "#a78bfa", "#22d3ee"]);
+    expect(gauges("aurora")).toEqual(gauges());
+    expect(gauges("sunset")).toEqual(["#fb7185", "#fdba74", "#f472b6"]);
+    // An id the template doesn't have falls back to the first palette.
+    expect(gauges("nope")).toEqual(gauges());
+  });
+
+  it("fills a missing reading from a similar one, or leaves it out and lets its neighbours take the room", () => {
+    const tower = SCREEN_TEMPLATES.find((t) => t.id === "tower")!;
+    const labels = (sensors: Record<string, DataApiValue>) =>
+      instantiate(tower, { name: "T", width: 480, height: 1920, sensors }).profile.pages[0].placements.map((z) => z.settings?.label);
+    // The capture has no 0.1% low reading and nothing else to stand in for it: its zone is left out.
+    const here = labels(CAPTURE);
+    expect(here).not.toContain("0.1% low");
+    expect(here).toContain("1% low");
+    expect(here).toHaveLength(16);
+    // A missing fan is filled by another GPU reading the page doesn't show yet.
+    const noFan = labels(without(["gpu.fan"]));
+    expect(noFan).not.toContain("Fan");
+    expect(noFan).toContain("Memory clock");
+    expect(noFan).toHaveLength(16);
   });
 
   it("splits the grid so its cells keep their shape at a longer size of the class", () => {

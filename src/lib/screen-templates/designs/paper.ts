@@ -1,8 +1,8 @@
 /** Paper: a light theme, white cards with soft shadows, dark type and one ink accent. The native version of the InfoPanel template. */
 import { zone, type At, type ScreenTemplate, type Zone } from "../kit";
-import { cards, reading, theme } from "./ports";
+import { cards, type Colours, reading, theme, variant } from "./ports";
 
-const shadow = "@scope { :scope { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14); } }";
+const shadow = ":scope { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14); }";
 
 const tiles = (at: readonly At[]): Zone[] =>
   cards(
@@ -16,6 +16,8 @@ const tiles = (at: readonly At[]): Zone[] =>
     { surface: "theme", customCss: shadow },
   );
 
+const COLOURS: Colours = { bg: "#d8d2c4", fg: "#1c1f24", card: "#ffffff", sub: "#6b6f78", line: "#e7e3db" };
+
 export const PAPER: ScreenTemplate = {
   id: "paper",
   name: "Paper",
@@ -23,13 +25,18 @@ export const PAPER: ScreenTemplate = {
   port: true,
   fits: ["strip", "wide", "standard", "tall"],
   look: {
-    theme: theme({ bg: "#d8d2c4", fg: "#1c1f24", card: "#ffffff", sub: "#6b6f78", line: "#e7e3db" }),
+    theme: theme(COLOURS),
     radius: 0.75,
     style: { skin: "default", surface: "theme", accent: "#2563eb", font: "inter", numGlow: "off" },
     background: { type: "color", color: "#d8d2c4" },
     gap: 12,
     padding: 12,
   },
+  variants: [
+    variant("ink", "Ink", ["#2563eb", "#0ea5e9", "#1c1f24"], COLOURS, {}),
+    variant("coral", "Coral", ["#f2604e", "#f59e0b", "#1c1f24"], COLOURS, {}, { style: { accent: "#f2604e" }, swap: { "#0ea5e9": "#f59e0b", "#6366f1": "#e11d48" } }),
+    variant("forest", "Forest", ["#15803d", "#0d9488", "#1c1f24"], COLOURS, {}, { style: { accent: "#15803d" }, swap: { "#0ea5e9": "#0d9488", "#6366f1": "#65a30d" } }),
+  ],
   layouts: {
     strip: { cols: 6, rows: 1, pages: [tiles([[1, 1, 2, 1], [3, 1, 1, 1], [4, 1, 1, 1], [5, 1, 1, 1], [6, 1, 1, 1]])] },
     wide: { cols: 6, rows: 1, pages: [tiles([[1, 1, 2, 1], [3, 1, 1, 1], [4, 1, 1, 1], [5, 1, 1, 1], [6, 1, 1, 1]])] },
