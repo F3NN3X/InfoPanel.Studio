@@ -79,7 +79,7 @@ export default function OsdStrip(p: OsdStripProps) {
     >
       {({ w, h }) => {
         // Under INLINE_H the label and the value share one line, so the strip still fits.
-        const inline = h < INLINE_H;
+        const inline = h > 0 && h < INLINE_H;
         const n = Math.max(1, Math.min(keys.length, Math.floor(w / (inline ? 128 : 92))));
         return (
           <div className="flex h-full flex-col justify-center gap-1.5">
@@ -88,9 +88,9 @@ export default function OsdStrip(p: OsdStripProps) {
                 const [l, v, c] = ALL[k];
                 return (
                   <div key={k} className={`flex min-w-0 ${inline ? "items-baseline gap-1.5 px-2 py-1" : "flex-col gap-0.5 px-2.5 py-1.5"} ${i ? "border-l border-white/10" : ""}`}>
-                    <span className="shrink-0 truncate text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]">{l}</span>
+                    <span className={`${inline ? "shrink-0 " : ""}truncate text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[color:var(--w-muted)]`}>{l}</span>
                     <span
-                      className={`truncate font-medium tabular-nums text-[color:var(--w-fg)] ${inline && h < 30 ? "text-[13px]" : "text-[15px]"}`}
+                      className={`truncate ${inline && h < 30 ? "text-[13px]" : "text-[15px]"} font-medium tabular-nums text-[color:var(--w-fg)]`}
                       style={{ fontFamily: sk.skin === "retro" || sk.skin === "tui" ? sk.num : "'IBM Plex Mono','JetBrains Mono',ui-monospace,monospace", color: c ?? (k === "fps" && !idle ? "var(--accent)" : undefined) }}
                     >
                       {shownAs(k, v)}

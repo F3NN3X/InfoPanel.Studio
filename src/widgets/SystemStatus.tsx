@@ -38,7 +38,7 @@ export default function SystemStatus(p: SystemStatusProps) {
     >
       {({ size, h }) => {
         // Too low for a label over the number: CPU and RAM on one line.
-        if (h < ONE_LINE_H)
+        if (h > 0 && h < ONE_LINE_H)
           return (
             <div className="flex h-full items-center gap-4 whitespace-nowrap leading-none">
               {[
