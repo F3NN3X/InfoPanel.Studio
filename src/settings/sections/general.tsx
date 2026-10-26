@@ -6,7 +6,7 @@ import { PREVIEW_DATA_HINT, PREVIEW_DATA_OPTIONS, parsePreviewData } from "@/lib
 import { ipc } from "../ipc";
 import { useStore } from "../store";
 import type { BrowserKind } from "../types";
-import { Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
+import { Button, Card, Group, Kbd, Row, Segmented, SwitchRow } from "../ui";
 
 export function GeneralSection() {
   const { settings, save, setZoom } = useStore();
@@ -65,6 +65,14 @@ export function GeneralSection() {
               </span>
             </div>
           </div>
+        </Card>
+      </Group>
+
+      <Group title="Setup">
+        <Card>
+          <Row id="run-setup" label="Run setup" hint="Checks the link to InfoPanel and its Data API again, shows your kiosk address, and can add a screen. Your screens are kept.">
+            <Button onClick={() => void ipc.runSetup().catch(() => {})}>Run setup</Button>
+          </Row>
         </Card>
       </Group>
 

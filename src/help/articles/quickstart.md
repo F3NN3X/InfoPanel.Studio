@@ -3,12 +3,20 @@ id: quickstart
 title: Quick start
 icon: rocket_launch
 related: [concepts, studio, kiosk]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.34
 ---
 
 From a fresh install to a live dashboard on your InfoPanel display.
 
-The first time the studio opens with no saved dashboard, a short setup walks you through connecting the Data API, picking your screen, starting from a template, an import or a blank screen, and building a first page. To repeat it, choose **Run setup again** at the bottom of this Help's sidebar.
+The first time the studio opens with no saved dashboard, the setup fills the window. It has five steps:
+
+1. **Welcome** shows how InfoPanel, Studio and your panels fit together. The data checks start here, in the background.
+2. **Data checks** tests each link from InfoPanel to your screens, in order: InfoPanel installed, running, a build with the Data API, the Data API turned on, the Data API answering, sensors found, readings that change, and Studio's own server. A check that fails or warns opens with the steps to fix it, and some fixes have a button (start InfoPanel, use the address InfoPanel's settings name). Nothing here blocks you: you can carry on without live data.
+3. **Your screen** picks the size of your display from the same presets as the New page, this window's size, or a size you type.
+4. **Start** makes your first screen from a template (shown with your own readings), an InfoPanel profile, or a blank grid. **Browse all** opens the New page at that size after setup.
+5. **Finish** sums it up and sets whether Studio starts with Windows and checks for updates.
+
+The data checks also show your kiosk address, with a QR code for a tablet or phone. To run the setup again, open Settings › General and choose **Run setup**, or choose **Run setup again** at the bottom of this Help's sidebar. Run again keeps your screens: it adds a screen only if you pick one in Start.
 
 ## 1. Check the server is running
 

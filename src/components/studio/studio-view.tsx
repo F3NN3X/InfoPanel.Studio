@@ -24,8 +24,8 @@ import { StudioCanvas } from "./studio-canvas";
 import { StudioTopBar, type StudioMode } from "./studio-top-bar";
 import { LeftRail, type RailItem } from "./left-rail";
 import { PhoneTabBar } from "./phone-tab-bar";
-import { FirstRun } from "./first-run";
 import { applyFirstRun } from "./first-run-model";
+import type { SetupOutcome } from "./first-run/first-run-page";
 import { onSetupRequest, takeSetupRequest } from "@/lib/setup-request";
 import { DesignLeftPanel } from "./design-left-panel";
 import { AddToast } from "./add-toast";
@@ -61,7 +61,8 @@ import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
 import { widgetName } from "./widget-kinds";
 import { WidgetPickerDialog } from "./widget-picker-dialog";
 import { kiosksOf, postControl, useControl, type ControlDisplay } from "@/lib/control";
-import { openHelp } from "@/lib/desktop";
+import { onRunSetup, openHelp } from "@/lib/desktop";
+import { DEFAULT_API_BASE } from "@/lib/data-api";
 import { dialogArticle, focusedSection, studioHelpTarget } from "@/help/context";
 import { useHelpKey } from "@/help/use-help-key";
 import { isIslandAlert } from "@/lib/island/from-alerts";
@@ -96,6 +97,8 @@ const NO_REQUEST: ExportRequest = {};
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The New page loads when it opens, and its templates after it (`wizard-kit.ts`). */
 const NewPage = lazy(() => import("@/components/templates/new-page"));
+/** The first-run setup comes in its own chunk, with the templates its Start step shows. */
+const FirstRunPage = lazy(() => import("./first-run/first-run-page"));
 /** The InfoPanel home page loads when it is first shown, never with the studio. */
 const InfoPanelStart = lazy(() => import("@/components/infopanel/edit/infopanel-start").then((m) => ({ default: m.InfoPanelStart })));
 /** The Data, Alerts and Screens views load when the rail first opens them. */
@@ -175,14 +178,19 @@ function StudioViewBody({
     };
   }, [adoptRef, history.adopt]);
   const toast = useToast();
-  // First-run setup (SPEC §10.5): a fresh install, or Help › Run setup again.
-  const [setupOpen, setSetupOpen] = useState(false);
+  // First-run setup: a fresh install, or run again (Help › Run setup again, Settings › General › Run setup).
+  const [setup, setSetup] = useState<{ rerun: boolean } | null>(null);
   useEffect(() => {
-    if (firstRun) setSetupOpen(true);
+    if (firstRun) setSetup({ rerun: false });
   }, [firstRun]);
   useEffect(() => {
-    if (takeSetupRequest()) setSetupOpen(true);
-    return onSetupRequest(() => setSetupOpen(true));
+    if (takeSetupRequest()) setSetup({ rerun: true });
+    const offRequest = onSetupRequest(() => setSetup({ rerun: true }));
+    const offShell = onRunSetup(() => setSetup({ rerun: true }));
+    return () => {
+      offRequest();
+      void offShell.then((off) => off());
+    };
   }, []);
   // Runtime state of the kiosks (page shown, rotating): not config, never in the undo history. The stream marks this
   // page as a studio (the app's "already open" check for a browser studio).
@@ -355,7 +363,7 @@ function StudioViewBody({
    * made active) opened in the editor, a template's sensors not found on this machine listed there with Remap; the
    * choice it starts on, and the view Cancel goes back to.
    */
-  const [newPage, setNewPage] = useState<{ kind: WizardKind; initial?: NewChoice; back: StudioMode } | null>(null);
+  const [newPage, setNewPage] = useState<{ kind: WizardKind; initial?: NewChoice; back: StudioMode; size?: { width: number; height: number } } | null>(null);
   const [unboundNote, setUnboundNote] = useState<{ zoneId: string; labels: string[] } | null>(null);
   const modeNow = useRef(ui.mode);
   modeNow.current = ui.mode;
@@ -855,7 +863,7 @@ function StudioViewBody({
         <NewPage
           kind={newPage.kind}
           onKind={switchNewKind}
-          screen={storedProfile}
+          screen={newPage.size ?? storedProfile}
           initial={newPage.initial}
           onCreateScreen={createScreen}
           onCreateProfile={createInfoPanel}
@@ -1081,21 +1089,39 @@ function StudioViewBody({
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
       {io.dialogs}
       {importDoor}
-      <FirstRun
-        open={setupOpen}
-        dataApiUrl={config.dataApiUrl}
-        windowSize={{ width: windowWidth, height: windowHeight }}
-        onSkip={() => setSetupOpen(false)}
-        onFinish={(choices, dataApiUrl) => {
-          setSetupOpen(false);
-          const made = applyFirstRun(config, choices);
-          setConfig(() => (dataApiUrl ? { ...made.config, dataApiUrl } : made.config), "first-run");
-          selectProfile(made.profileId);
-          ui.setMode("design");
-          ui.fitZoom();
-          if (choices.start === "import") openImportDoor();
-        }}
-      />
+      {setup && (
+        <Suspense fallback={<div className="fixed inset-0 z-50 bg-ui-app" />}>
+          <FirstRunPage
+            rerun={setup.rerun}
+            dataApiUrl={config.dataApiUrl}
+            windowSize={{ width: windowWidth, height: windowHeight }}
+            onSkip={(dataApiUrl) => {
+              const rerun = setup.rerun;
+              setSetup(null);
+              // Skipping a first run still marks it done: the config is saved with the Data API address.
+              if (!rerun) setConfig((c) => ({ ...c, dataApiUrl: dataApiUrl ?? c.dataApiUrl ?? DEFAULT_API_BASE }), "first-run");
+            }}
+            onFinish={(outcome: SetupOutcome) => {
+              const rerun = setup.rerun;
+              setSetup(null);
+              const made = applyFirstRun(config, outcome.choices);
+              const dataApiUrl = outcome.dataApiUrl ?? (rerun ? config.dataApiUrl : (config.dataApiUrl ?? DEFAULT_API_BASE));
+              const next = dataApiUrl === config.dataApiUrl ? made.config : { ...made.config, dataApiUrl };
+              if (next !== config) setConfig(() => next, "first-run");
+              if (outcome.next === "screen") {
+                selectProfile(made.profileId);
+                ui.setMode("design");
+                ui.fitZoom();
+              } else if (outcome.next === "new") {
+                setNewPage({ kind: "screen", back: "screens", size: { width: outcome.choices.width, height: outcome.choices.height } });
+                ui.setMode("screens");
+              } else if (outcome.next === "import-installed") io.openImport("new", { installed: true });
+              else if (outcome.next === "import-file") openImportDoor();
+              if (outcome.openKiosk) window.open(outcome.openKiosk, "_blank", "noopener,noreferrer");
+            }}
+          />
+        </Suspense>
+      )}
       <ExportSheet
         open={exportRequest !== null}
         request={exportRequest ?? NO_REQUEST}
