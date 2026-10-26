@@ -3,7 +3,7 @@ id: concepts
 title: Core concepts
 icon: account_tree
 related: [profiles, zones, themes]
-verified: 1.3.0-beta.27
+verified: 1.3.0-beta.33
 ---
 
 The five building blocks, from the whole dashboard down to a single readout.

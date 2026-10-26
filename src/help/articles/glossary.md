@@ -3,7 +3,7 @@ id: glossary
 title: Glossary
 icon: menu_book
 related: [concepts]
-verified: 1.3.0-beta.19
+verified: 1.3.0-beta.33
 ---
 
 The words this app uses, in one place.

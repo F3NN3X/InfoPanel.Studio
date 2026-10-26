@@ -3,7 +3,7 @@ id: themes
 title: Themes
 icon: palette
 related: [widget-settings, background, presets]
-verified: 1.3.0-beta.31
+verified: 1.3.0-beta.33
 ---
 
 Set the look once and every widget follows. Customize only where a widget should differ.
@@ -34,13 +34,12 @@ The preview on the right draws the page at the level you are editing, with a pen
 
 ## Follow theme, section by section
 
-Every themable section in a widget's settings (Colors, Surface, Typography, Size & spacing, Border & glow, Units & format, Thresholds, Motion and more) starts out following the theme. A pill beside the section shows **Theme**, **Custom** or **Locked**.
+Every themable section in a widget's settings (Colors, Surface, Typography, Size & spacing, Border & glow, Units & format, Thresholds, Motion and more) starts out following the theme. A chip beside the section says **From All screens**, **Custom here** or **Locked by Screen**.
 
-- Press **Customize** to change that section for this widget only. Rows start from the theme values.
-- Press **Use theme** to follow again. Your values are kept, so Customize brings them back.
-- Press the section's reset icon to clear them for good.
+- Change a row, or choose **Customise here** in the chip's menu, to change that section for this widget only. Rows start from the theme values.
+- Choose **Reset to inherited** to follow again.
 
-Inside a panel, a panel widget's section says "Follows panel" and offers **Use panel**.
+Inside a panel, a panel widget's chip says **From Panel** and its menu offers the same two choices.
 
 ## Locking
 

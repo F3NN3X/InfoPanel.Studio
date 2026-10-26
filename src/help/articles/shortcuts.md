@@ -3,7 +3,7 @@ id: shortcuts
 title: Keyboard shortcuts
 icon: keyboard
 related: [studio, canvas]
-verified: 1.3.0-beta.23
+verified: 1.3.0-beta.33
 ---
 
 Shortcuts never fire while you are typing in a field.

@@ -3,7 +3,7 @@ id: startup
 title: Startup and tray
 icon: power_settings_new
 related: [kiosk, updates]
-verified: 1.3.0-beta.20
+verified: 1.3.0-beta.33
 ---
 
 Keep the kiosk working after a reboot, without the studio in the way.

@@ -3,7 +3,7 @@ id: sensors
 title: Sensors and the Data API
 icon: sensors
 related: [widgets, problems, panel-widgets]
-verified: 1.3.0-beta.1
+verified: 1.3.0-beta.33
 ---
 
 Where every number on your dashboard comes from.
