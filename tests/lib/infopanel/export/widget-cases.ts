@@ -1,6 +1,6 @@
 /**
  * A Free page with Studio widget items exported each way (one-editor SPEC §7.4): a Weather widget recreated (its
- * converter's items spliced in as one Group), one as a snapshot (a stand-in picture), one left out, and a Timer, which
+ * picture and its values spliced in as one Group), one as a snapshot (a stand-in picture), one left out, and a Timer, which
  * can't convert. The conversion's DOM reading is the editor's (widget-export.ts); this case writes what it splices in,
  * so the export test and import-check (lab/infopanel/scripts/import-check.mts) see the items InfoPanel gets.
  */
@@ -13,7 +13,7 @@ import { newStored, readStored } from "../../../../src/lib/infopanel/import/stor
 import { make, type ConvertContext } from "../../../../src/lib/infopanel/native/items.ts";
 import { CONVERTERS } from "../../../../src/lib/infopanel/native/modules/index.ts";
 import { joinFiles, newWidgetItem, placeConverted, replaceWidgets, widgetBox, widgetOf, widgetRule } from "../../../../src/lib/infopanel/native/widget-item.ts";
-import type { DisplayItem, Profile } from "../../../../src/lib/infopanel/schema.ts";
+import { defaultItem, type DisplayItem, type Profile } from "../../../../src/lib/infopanel/schema.ts";
 import { png } from "./element-cases.ts";
 import { NATIVE_SENSORS } from "./native-cases.ts";
 
@@ -45,7 +45,15 @@ export async function widgetExport(base: Profile): Promise<{ profile: Profile; d
     if (!widget) continue;
     const rule = widgetRule(widget);
     const b = widgetBox(host);
-    if (rule === "recreate") made.set(String(i), placeConverted(CONVERTERS.Weather(b, ctx, {}), host, rule));
+    if (rule === "recreate") {
+      // As the conversion makes it: the widget's picture with its values hidden, the values on top, in one Group.
+      const back = await assetFile("Weather_background_1.png", png(360, 140, 15), "added");
+      const chrome = make("Image", ctx, b, "Weather background", { Type: "FILE", FilePath: back.name, RelativePath: true });
+      const group = { ...defaultItem("Group"), Name: "Weather", X: b.x, Y: b.y, DisplayItems: [chrome, ...CONVERTERS.Weather(b, ctx, {})] } as DisplayItem;
+      const joined = joinFiles(assets, [back], [group]);
+      assets = joined.assets;
+      made.set(String(i), placeConverted(joined.items, host, rule));
+    }
     if (rule === "snapshot") {
       const image = make("Image", ctx, b, host.Name, { Type: "FILE", FilePath: shot.name, RelativePath: true });
       const joined = joinFiles(assets, [shot], [image]);

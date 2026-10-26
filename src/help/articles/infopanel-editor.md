@@ -157,7 +157,7 @@ Its inspector has the widget's own settings, as in a grid zone, plus **Place** (
 
 A widget offers only the choices it can do, and starts on the first of them. A widget with no InfoPanel version is always left out, and says why. A Panel offers all three. Changing the choice is one undo step.
 
-The export draws each widget from the canvas, so export from Edit with the profile open. A widget the export can't see there is left out, and the message after the export says how many.
+The export draws each widget itself, out of sight and in the screen's theme, so the profile exports the same from Edit, from its card in Screens or from the Library. It takes a second or two longer with widgets on the page.
 
 ## The Export check
 

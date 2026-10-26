@@ -104,7 +104,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     [open],
   );
   const read = (key: string) => history.get(key);
-  const native = nativeLayer(editor.items, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance) } : {}) });
+  const native = nativeLayer(editor.items, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance, true) } : {}) });
   const { profile } = open;
   // The zoom follows the fit until a manual one is set; the wheel then pans.
   const [zoom, setZoom] = useState<number | null>(null);

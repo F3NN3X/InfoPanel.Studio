@@ -1,7 +1,7 @@
 /**
  * A Free page's Studio widgets in an `.infopanel` export (one-editor SPEC §7.4). Each widget item goes by its
- * `onInfoPanel` rule, through the same conversion a grid zone takes (`convertView`), read from where the editor draws
- * it (`[data-widget-item]`):
+ * `onInfoPanel` rule, through the same conversion a grid zone takes (`convertView`), read from where it is drawn with
+ * its values tagged (`[data-widget-item]`, the Export window's `WidgetsOffscreen`):
  *  - recreate: its values as InfoPanel items over a picture of the rest (or its converter's items, a panel widget by
  *    widget), spliced in at the item's place in the z-order as a Group named after the widget;
  *  - snapshot: a picture of it as it is now, one Image;
@@ -27,7 +27,7 @@ export interface WidgetReport {
 }
 
 export interface WidgetExportRequest {
-  /** Where the editor draws the canvas (its widget items carry `data-widget-item`); null when it isn't open. */
+  /** Where the canvas's widget items are drawn (each carries `data-widget-item`); null when they aren't. */
   root: ParentNode | null;
   sensors: Readonly<Record<string, DataApiValue>>;
   look: Look;

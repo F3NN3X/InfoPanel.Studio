@@ -735,7 +735,8 @@ least one widget is visible.
   item: `module`, `settings`, `design`, `follow`, `panel`, `onInfoPanel`,
   `lib/infopanel/native/widget-item.ts`). The kiosk and the editor draw the
   registry widget at the item's box. An .infopanel export replaces each by its
-  `onInfoPanel` rule (`native/widget-export.ts`, drawn from the open editor:
+  `onInfoPanel` rule (`native/widget-export.ts`, drawn offscreen with their
+  values tagged by `WidgetsOffscreen` in the Export window, whichever way it opened:
   recreate as one Group, snapshot as one Image, or nothing), and any left
   unconverted are stripped (`withoutWidgets`), so InfoPanel never sees `widget`.
 - `ProfileView` - one page of a profile as the studio and kiosk edit and draw it:

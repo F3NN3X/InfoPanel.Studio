@@ -11,6 +11,7 @@ import type { Appearance } from "@/lib/style-resolve";
 import type { WidgetItem } from "@/lib/infopanel/import/stored";
 import { knownWidget, placementContent, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
 import { PlacementFrame } from "@/components/studio/placement-frame";
+import { IpTagCtx } from "@/widgets/core/primitives";
 
 /** The one-cell grid a widget item's frame fills. */
 const ONE_CELL = { cols: 1, rows: 1, gap: 0 } as unknown as ProfileView;
@@ -25,6 +26,11 @@ export interface WidgetItemViewProps {
   sensors: SensorMap;
   /** The theme the widget follows (profile, then page), as a grid zone's does. */
   appearance?: Appearance;
+  /**
+   * Tag its live values (`data-ip-key`) as a studio zone does, so an export's Recreate puts them back as InfoPanel
+   * items over a picture of the rest. The editor and the export's offscreen drawing tag; the kiosk doesn't.
+   */
+  tag?: boolean;
 }
 
 /** Whether two sensor maps hold the same values under `prefixes` (null: every key). */
@@ -37,7 +43,7 @@ export function sameValues(a: SensorMap, b: SensorMap, prefixes: readonly string
   return true;
 }
 
-function Body({ widget, name, sensors, appearance }: WidgetItemViewProps) {
+function Body({ widget, name, sensors, appearance, tag = false }: WidgetItemViewProps) {
   const zone = useMemo(() => widgetPlacement({ ...widget, settings: widget.settings as ModuleSettings | undefined }), [widget]);
   if (!knownWidget(widget.module)) {
     return (
@@ -50,7 +56,7 @@ function Body({ widget, name, sensors, appearance }: WidgetItemViewProps) {
   return (
     <div style={FILL}>
       <PlacementFrame placement={zone} profile={ONE_CELL} studio={false} hasData={r.hasData} title={name || r.title} scope={r.scope}>
-        {r.content}
+        <IpTagCtx.Provider value={tag}>{r.content}</IpTagCtx.Provider>
       </PlacementFrame>
     </div>
   );
@@ -58,6 +64,6 @@ function Body({ widget, name, sensors, appearance }: WidgetItemViewProps) {
 
 /** Memoised per item on its widget, box, theme and the values of its own keys (the plan's perf risk). */
 export const WidgetItemView = memo(Body, (a, b) => {
-  if (a.widget !== b.widget || a.name !== b.name || a.width !== b.width || a.height !== b.height || a.appearance !== b.appearance) return false;
+  if (a.widget !== b.widget || a.tag !== b.tag || a.name !== b.name || a.width !== b.width || a.height !== b.height || a.appearance !== b.appearance) return false;
   return sameValues(a.sensors, b.sensors, placementPrefixes(widgetPlacement(a.widget)));
 });
