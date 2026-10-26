@@ -35,10 +35,10 @@ function Thin({ pct, color }: { pct: number; color: string }) {
 function Rows({ rows, color, u }: { rows: CardRow[]; color: string; u: number }) {
   const z = sizeOf(u);
   return (
-    <div className="flex min-w-0 flex-col justify-center" style={{ gap: Math.max(2, u * 0.03) }}>
+    <div className="flex min-w-0 flex-1 flex-col justify-center" style={{ gap: Math.max(2, u * 0.03), maxWidth: u * 5 }}>
       {rows.map((r) => (
-        <div key={r.label} className="flex min-w-0 flex-col whitespace-nowrap" style={{ gap: 1 }}>
-          <div className="flex items-baseline justify-between" style={{ gap: z.gap, fontSize: rowPx(u), lineHeight: 1.1 }}>
+        <div key={r.label} className="flex w-full min-w-0 flex-col whitespace-nowrap" style={{ gap: 1 }}>
+          <div className="flex w-full items-baseline justify-between" style={{ gap: z.gap, fontSize: rowPx(u), lineHeight: 1.1 }}>
             <span style={{ color: "var(--w-muted)" }}>{r.label}</span>
             <Num weight={600}>{r.text}</Num>
           </div>
@@ -68,8 +68,8 @@ export function CardView({ card, u, end }: { card: Card; u: number; end: boolean
     case "dual": {
       const rows = card.rows.slice(0, rowCount(u, card.rows.length));
       return (
-        <div className="flex min-w-0 items-center" style={{ gap: z.gap * 1.5 }}>
-          <div className="flex min-w-0 items-center" style={{ gap: z.gap }}>
+        <div className="flex w-full min-w-0 items-center" style={{ gap: z.gap * 1.5 }}>
+          <div className="flex min-w-0 shrink-0 items-center" style={{ gap: z.gap }}>
             <div className="shrink-0" style={{ width: z.ring, height: z.ring }}>
               <RingStack rings={[{ v: card.load, color, ipKey: card.loadKey }, { v: card.heat, color: heatOf(card.heat) }]} thickness={9} gap={3} className="h-full w-full">
                 <Num style={{ fontSize: z.ring * 0.26 }}>{fmt(card.load, 0)}</Num>

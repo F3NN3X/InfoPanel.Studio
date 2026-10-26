@@ -74,6 +74,9 @@ function Pill({ children, fs }: { children: ReactNode; fs: number }) {
   );
 }
 
+/** Meters: the three zones share the width 3:3:2, and an empty one gives its share to the others. */
+const meterCols = (s: Slots<ItemKey>): string => [s.left, s.center, s.right].map((items, i) => (items.length > 0 ? `minmax(0, ${[3, 3, 2][i]}fr)` : "auto")).join(" ");
+
 /** One edge-to-edge row of three slots; around an island's gap the centre slot splits to either side of it. */
 export function Bar(p: BarProps) {
   const { view, slots, fs } = p;
@@ -84,7 +87,7 @@ export function Bar(p: BarProps) {
   const slot = (items: ItemKey[], end = false) => {
     if (items.length === 0) return null;
     const row = (
-      <div className="flex min-w-0 items-center" style={{ gap: p.spacing }}>
+      <div className={`flex min-w-0 items-center ${view === "meters" ? "w-full" : ""}`} style={{ gap: p.spacing }}>
         {items.map((key, i) => (
           <Fragment key={key}>
             {i > 0 && p.separators && <span aria-hidden className="h-[1.1em] w-px shrink-0 bg-[color:var(--w-faint)] opacity-60" style={{ fontSize: fs }} />}
@@ -96,10 +99,10 @@ export function Bar(p: BarProps) {
     return islands ? <Pill fs={fs}>{row}</Pill> : row;
   };
   const [before, after] = splitCenter(slots.center);
-  const cols = p.gap ? `${Math.max(0, p.gap.left - padX)}px ${p.gap.width}px minmax(0, 1fr)` : view === "meters" ? "minmax(0, 3fr) minmax(0, 3fr) minmax(0, 2fr)" : "minmax(0, 1fr) auto minmax(0, 1fr)";
+  const cols = p.gap ? `${Math.max(0, p.gap.left - padX)}px ${p.gap.width}px minmax(0, 1fr)` : view === "meters" ? meterCols(slots) : "minmax(0, 1fr) auto minmax(0, 1fr)";
   // Meters: the zones are split by upright dividers
   const zoned = view === "meters" && !p.gap;
-  const zone: CSSProperties | undefined = zoned ? { borderLeft: "1px solid var(--w-track)", paddingInline: padX * 0.5, height: "72%", alignSelf: "center" } : undefined;
+  const zone = (items: ItemKey[]): CSSProperties | undefined => (zoned && items.length > 0 ? { borderLeft: "1px solid var(--w-track)", paddingInline: padX * 0.5, height: "72%", alignSelf: "center" } : undefined);
   return (
     <div ref={p.barRef} className="h-full w-full min-w-0 overflow-hidden" style={{ fontSize: fs }}>
       <div className="grid h-full items-center" style={{ gridTemplateColumns: cols, paddingInline: padX, paddingBlock: islands ? Math.max(2, fs * 0.3) : 0, columnGap: 0 }}>
@@ -118,8 +121,8 @@ export function Bar(p: BarProps) {
         ) : (
           <>
             <div className="flex h-full min-w-0 items-center justify-start overflow-hidden">{slot(slots.left)}</div>
-            <div className={`flex min-w-0 items-center overflow-hidden ${zoned ? "" : "h-full justify-center"}`} style={zone}>{slot(slots.center)}</div>
-            <div className={`flex min-w-0 items-center overflow-hidden ${zoned ? "" : "h-full justify-end"}`} style={zone}>{slot(slots.right, true)}</div>
+            <div className={`flex min-w-0 items-center overflow-hidden ${zoned ? "" : "h-full justify-center"}`} style={zone(slots.center)}>{slot(slots.center)}</div>
+            <div className={`flex min-w-0 items-center overflow-hidden ${zoned ? "" : "h-full justify-end"}`} style={zone(slots.right)}>{slot(slots.right, true)}</div>
           </>
         )}
       </div>

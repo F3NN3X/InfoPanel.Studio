@@ -66,7 +66,8 @@ export function cardWidth(card: Card, u: number): number {
     case "dual": {
       const text = Math.max(chars(card.label, z.cap) * 1.1, chars(card.temp, z.big));
       const rows = rowCount(u, card.rows.length);
-      const rowW = rows > 0 ? Math.max(...card.rows.slice(0, rows).map((r) => chars(`${r.label}  ${r.text}`, rowPx(u)))) : 0;
+      // the rows need room for a readable bar, not just their text
+      const rowW = rows > 0 ? Math.max(u * 1.9, ...card.rows.slice(0, rows).map((r) => chars(`${r.label}  ${r.text}`, rowPx(u)))) : 0;
       return z.ring + z.gap + text + (rowW > 0 ? z.gap * 1.5 + rowW : 0);
     }
     case "stat": {

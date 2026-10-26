@@ -33,6 +33,7 @@ describe("fitByRank (the presets on a narrow bar)", () => {
     expect(fitByRank(slots, 0, cost, rank).left).toEqual(["cpu"]);
   });
   it("ranks the time lowest and the CPU highest in the presets", () => {
+    expect(PRIORITY.frameTime).toBeLessThan(PRIORITY.time!);
     expect(PRIORITY.time).toBeLessThan(PRIORITY.fps!);
     expect(PRIORITY.fps).toBeLessThan(PRIORITY.gpuRing!);
     expect(PRIORITY.gpuRing).toBeLessThan(PRIORITY.cpuRing!);
@@ -74,6 +75,7 @@ describe("drawn item readings", () => {
     expect(fpsOf(data(live)).low).toBe(98);
     expect(cardReading("fps", data(live), "c")).toMatchObject({ kind: "stat", value: "144", low: "98", idle: false });
     expect(cardReading("fpsLine", data(live), "c")).toMatchObject({ kind: "line", values: ["144", "1% 98"] });
+    expect(cardReading("frameTime", data(idle), "c")).toBeNull();
     expect(cardReading("fps", data(idle), "c")).toMatchObject({ kind: "stat", value: "–", idle: true });
     expect(cardReading("fpsLine", data(idle), "c")).toBeNull();
   });

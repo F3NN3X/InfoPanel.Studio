@@ -33,6 +33,7 @@ export const ITEM_LABELS: Record<ItemKey, string> = {
   cpuDual: "CPU double ring",
   gpuDual: "GPU double ring",
   fps: "FPS",
+  frameTime: "Frame time",
   cpuLine: "CPU line",
   gpuLine: "GPU line",
   fpsLine: "FPS line",
@@ -42,7 +43,7 @@ export const ITEM_LABELS: Record<ItemKey, string> = {
  * The drop order in the presets when the bar is narrow: the lowest goes first. An item not listed ranks 0 and goes before these,
  * the last one first.
  */
-export const PRIORITY: Partial<Record<ItemKey, number>> = { time: 1, fpsLine: 2, fps: 2, gpuLine: 3, gpuRing: 3, gpuDual: 3, cpuLine: 4, cpuRing: 4, cpuDual: 4 };
+export const PRIORITY: Partial<Record<ItemKey, number>> = { frameTime: 0, time: 1, fpsLine: 2, fps: 2, gpuLine: 3, gpuRing: 3, gpuDual: 3, cpuLine: 4, cpuRing: 4, cpuDual: 4 };
 
 export type Display = "both" | "value" | "icon";
 

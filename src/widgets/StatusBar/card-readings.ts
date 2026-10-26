@@ -4,7 +4,7 @@ import { inUnit } from "@/modules/setting-readers";
 import { fmt, get, hw, num, type Data } from "../kit";
 import type { Card, CardRow } from "./card-model";
 
-export const CARD_ITEMS = ["cpuRing", "gpuRing", "cpuDual", "gpuDual", "fps", "cpuLine", "gpuLine", "fpsLine"] as const;
+export const CARD_ITEMS = ["cpuRing", "gpuRing", "cpuDual", "gpuDual", "fps", "frameTime", "cpuLine", "gpuLine", "fpsLine"] as const;
 export type CardKey = (typeof CARD_ITEMS)[number];
 
 const RTSS = "plugins.InfoPanel.RTSS.rtss.";
@@ -93,6 +93,10 @@ export function cardReading(key: CardKey, d: Data, unit: "c" | "f"): Card | null
   }
   const { fps, low, seen } = fpsOf(d);
   if (key === "fps") return seen ? { kind: "stat", label: "FPS", accent: 3, value: Number.isFinite(fps) ? fmt(fps, 0) : "–", idle: !Number.isFinite(fps), ...(Number.isFinite(low) ? { low: fmt(low, 0) } : {}) } : null;
+  if (key === "frameTime") {
+    const ft = ["current frame time"].flatMap((id) => [num(get(d, RTSS + id)), num(get(d, PRESENTMON + id))]).find((v) => Number.isFinite(v) && v > 0);
+    return ft !== undefined && Number.isFinite(fps) ? { kind: "stat", label: "FT ms", accent: 3, value: fmt(ft, 1) } : null;
+  }
   // fpsLine: gone while no game runs
   return Number.isFinite(fps) ? { kind: "line", label: "FPS", accent: 3, values: [fmt(fps, 0), ...(Number.isFinite(low) ? [`1% ${fmt(low, 0)}`] : [])] } : null;
 }
