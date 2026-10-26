@@ -7,6 +7,8 @@
 //   GET /events         SSE: the full snapshot every second
 //   GET /events?prefix=<p>&interval=<ms>   SSE: every key under <p> on connect, then only the changed and removed ones
 //   POST /api/fonts/resolve   [] (no InfoPanel fonts)
+//   GET /steam/logos/<file>   a 1×1 PNG: the capture's game art pointed at the capturing PC's image server, so its
+//                             URLs (CAPTURE_ORIGIN) are rewritten to this server's own origin and answered here
 // The sensors are the widget fixtures' capture (src/widgets/__fixtures__, extra wins). Numeric readings move on a
 // seeded wave, so two runs with the same SEED serve the same sequence.
 //   PORT (default 3921; 0 picks a free one)  HOST (127.0.0.1)  RATE_HZ (1)  AUDIO_HZ (10, the audio meter's keys)  SEED (1)
@@ -20,6 +22,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const FIXTURES = path.join(ROOT, "src/widgets/__fixtures__");
 /** Keys that update at AUDIO_HZ: the visualisers read them on the 100 ms fast stream. */
 const AUDIO_PREFIX = "plugins.audio-level-meter";
+/** Where the capture's image URLs pointed: a port on the capturing PC, so nothing answers there on another machine. */
+const CAPTURE_ORIGIN = "http://localhost:39482";
+/** A transparent 1×1 PNG, for those images. */
+const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
 /** The Data API's minimum stream interval. */
 const MIN_INTERVAL_MS = 100;
 
@@ -118,9 +124,11 @@ export function createFakeDataApi({ rateHz = 1, audioHz = 10, seed = 1, sensors 
   const clients = new Set();
 
   const cors = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" };
-  const json = (res, body) => {
+  /** The body as JSON, the capture's image URLs pointed at this server as the request reached it. */
+  const encode = (req, body) => JSON.stringify(body).replaceAll(CAPTURE_ORIGIN, `http://${req.headers.host}`);
+  const json = (res, body, req) => {
     res.writeHead(200, { ...cors, "Content-Type": "application/json; charset=utf-8" });
-    res.end(JSON.stringify(body));
+    res.end(req ? encode(req, body) : JSON.stringify(body));
   };
 
   function stream(req, res, query) {
@@ -128,7 +136,7 @@ export function createFakeDataApi({ rateHz = 1, audioHz = 10, seed = 1, sensors 
     const filtered = query.has("prefix");
     const prefix = query.get("prefix") ?? "";
     const interval = filtered ? Math.max(MIN_INTERVAL_MS, num(query.get("interval"), 1000)) : 1000;
-    const send = (body) => res.write(`data: ${JSON.stringify({ timestamp: Date.now(), ...body })}\n\n`);
+    const send = (body) => res.write(`data: ${encode(req, { timestamp: Date.now(), ...body })}\n\n`);
     let sent = under(current, prefix);
     send({ sensors: sent });
     const timer = setInterval(() => {
@@ -166,7 +174,11 @@ export function createFakeDataApi({ rateHz = 1, audioHz = 10, seed = 1, sensors 
     if (pathname === "/api") return json(res, { name: "fake-data-api" });
     // The plugin tree (src/lib/catalog.ts); the flat namespaces come from the snapshot.
     if (pathname === "/api/sources") return json(res, { plugins: [] });
-    if (pathname === "/api/sensors")return json(res, { timestamp: Date.now(), sensors: current });
+    if (pathname === "/api/sensors")return json(res, { timestamp: Date.now(), sensors: current }, req);
+    if (pathname.startsWith("/steam/logos/")) {
+      res.writeHead(200, { ...cors, "Content-Type": "image/png" });
+      return res.end(PIXEL);
+    }
     if (pathname === "/events") return stream(req, res, searchParams);
     res.writeHead(404, cors);
     res.end();
