@@ -586,9 +586,11 @@ font sizes come from the room that is really there. `ModernChrome`
 `ModernChrome` type is the `chrome` object both use.
 
 - **Scaling** — the content box gets `zoom: a × s`: `s` is the user's Size %
-  (50–200), `a` how far the zone is past the widget's design size
-  (`zoomFor`, the `design` prop, default `DESIGN_SIZE` 500×320, the `lg`
-  tier's smallest box), clamped to 1–2.5 and rounded down. Below `lg` widgets
+  (50–200), `a` how far the zone is past the widget's design size at that
+  Size % (`zoomFor`, the `design` prop, default `DESIGN_SIZE` 500×320, the
+  `lg` tier's smallest box), clamped to 1–2.5 and rounded down. So `a` only
+  fills the room `s` leaves: a Size % that already fills a large zone keeps
+  its zoom and its layout instead of doubling up. Below `lg` widgets
   adapt by tier and shape; past it the `lg` layout grows with the zone. The
   tier and shape are measured after the zoom, and the padding option is not
   scaled by it. The Status Bar and the web page pass `design={null}` (they
