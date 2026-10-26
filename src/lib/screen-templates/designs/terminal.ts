@@ -8,6 +8,10 @@ type Line = readonly [label: string, role: Role];
 const CPU_GPU: readonly Line[] = [["cpu", "cpu.load"], ["temp", "cpu.temp"], ["clock", "cpu.clock"], ["gpu", "gpu.load"], ["temp", "gpu.temp"], ["power", "gpu.power"]];
 const MEM_NET: readonly Line[] = [["ram", "ram.load"], ["disk", "disk.load"], ["rx", "net.down"], ["tx", "net.up"], ["cpu W", "cpu.power"], ["up", "uptime"]];
 
+/** The strip's panes: three lines each, taller than the full panes' six. */
+const STRIP_LEFT: readonly Line[] = [["cpu", "cpu.load"], ["temp", "cpu.temp"], ["gpu", "gpu.load"]];
+const STRIP_RIGHT: readonly Line[] = [["ram", "ram.load"], ["rx", "net.down"], ["tx", "net.up"]];
+
 const SUB = "#1f9d52";
 const EDGE = "#0d2b17";
 
@@ -23,7 +27,12 @@ const pane = (col: number, prompt: string, lines: readonly Line[], clock: boolea
   ...lines.map(([label, role], i) => reading([col, i + 2, 24, 1], label, role, { display: "line", showTitle: false, customCss: edge(false, i === lines.length - 1) })),
 ];
 
-const layout = { cols: 49, rows: 7, pages: [cards([...pane(1, "$ sensors --cpu --gpu", CPU_GPU, false), ...pane(26, "$ free && ifstat", MEM_NET, true)], { surface: "flat" })] };
+const panes = (left: readonly Line[], right: readonly Line[]) => ({
+  cols: 49,
+  rows: left.length + 1,
+  pages: [cards([...pane(1, "$ sensors --cpu --gpu", left, false), ...pane(26, "$ free && ifstat", right, true)], { surface: "flat" })],
+});
+const layout = panes(CPU_GPU, MEM_NET);
 
 const COLOURS: Colours = { bg: "#010402", fg: "#b8ffd3", card: "#030a06", sub: SUB, line: EDGE };
 
@@ -33,6 +42,7 @@ export const TERMINAL: ScreenTemplate = {
   blurb: "Monospace, green on black, a console",
   port: true,
   fits: ["strip", "wide", "standard"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: theme(COLOURS),
     radius: 0,
@@ -46,5 +56,5 @@ export const TERMINAL: ScreenTemplate = {
     variant("amber", "Amber", ["#ffb000", "#ffd27a", "#ffe2a8"], COLOURS, { fg: "#ffe2a8", card: "#0a0700", sub: "#9c6c00", line: "#2e2100" }, { style: { accent: "#ffb000" }, swap: { [SUB]: "#9c6c00", [EDGE]: "#2e2100" } }),
     variant("cyan", "Cyan", ["#4dd8ff", "#a8ecff", "#c9f3ff"], COLOURS, { fg: "#c9f3ff", card: "#02080b", sub: "#2a86a3", line: "#0b2530" }, { style: { accent: "#4dd8ff" }, swap: { [SUB]: "#2a86a3", [EDGE]: "#0b2530" } }),
   ],
-  layouts: { strip: layout, wide: layout, standard: layout },
+  layouts: { strip: panes(STRIP_LEFT, STRIP_RIGHT), wide: layout, standard: layout },
 };

@@ -40,6 +40,7 @@ export const MONO: ScreenTemplate = {
   blurb: "Black, huge thin numerals, hairlines",
   port: true,
   fits: ["strip", "wide", "standard"],
+  size: { width: 1920, height: 480 },
   look: {
     theme: theme(COLOURS),
     radius: 0,

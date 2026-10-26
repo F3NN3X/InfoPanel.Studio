@@ -35,6 +35,7 @@ export const READOUT: ScreenTemplate = {
   blurb: "Three instrument panels, one huge number each",
   port: true,
   fits: ["wide", "standard"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: theme(COLOURS),
     radius: 0.25,

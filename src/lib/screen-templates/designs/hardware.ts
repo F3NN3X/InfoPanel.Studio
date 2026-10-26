@@ -9,6 +9,7 @@ export const HARDWARE: ScreenTemplate = {
   name: "Hardware",
   blurb: "Thermals, fans, power, drives and cores",
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: "zinc",
     radius: 0.25,

@@ -5,7 +5,7 @@ import { cards, type Colours, darkFamily, theme } from "./ports";
 const bar = (at: At, slots: { left: string; center: string; right: string }): Zone => zone("StatusBar", at, { view: "meters", ...slots, separators: false });
 const all = { left: "cpuDual", center: "gpuDual", right: "fps,frameTime" };
 
-/** A strip of the whole bar, in the middle rows of a grid so the pill keeps a long shape. */
+/** The whole bar across a grid: in the middle rows of a taller one, so the pill keeps a long shape. */
 const strip = (rows: number, from: number, span: number) => ({ cols: 12, rows, pages: [cards([bar([1, from, 12, span], all)], { surface: "theme" })] });
 
 const COLOURS: Colours = { bg: "#2a3a66", fg: "#ffffff", card: "#11151f", sub: "#8a93a8", line: "#2a3040" };
@@ -27,7 +27,7 @@ export const METERS: ScreenTemplate = {
   },
   variants: darkFamily(COLOURS, "white", "smoke", "float"),
   layouts: {
-    strip: strip(7, 3, 3),
+    strip: strip(1, 1, 1),
     wide: strip(10, 4, 3),
     // Taller screens stack one pill each for the CPU, the GPU and the frame rate.
     standard: {

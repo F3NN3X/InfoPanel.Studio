@@ -15,6 +15,7 @@ export const MINIMAL: ScreenTemplate = {
   name: "Minimal",
   blurb: "A big clock and three key readings",
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 800, height: 480 },
   look: {
     theme: "zinc",
     radius: 0.5,

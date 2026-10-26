@@ -3,7 +3,7 @@ id: profiles
 title: Screens and the grid
 icon: aspect_ratio
 related: [zones, themes, kiosk]
-verified: 1.3.0-beta.29
+verified: 1.3.0-beta.30
 ---
 
 A screen (profile) is a design for one display size. Its grid decides where zones can go.
@@ -52,6 +52,7 @@ Below the starters, under **InfoPanel templates, made with native widgets**, sit
 - Each card is a picture of the template at that size, taken while you look at the list. Until it arrives you see a plan of its zones. A template has its own arrangement for each shape it lists under, so a tall screen gets a column and a strip gets a row.
 - Choosing a template that has no arrangement for the chosen size's shape switches the size to one it does have. **Status bar** only fits strips, so choosing it at 480 × 1920 switches to 1280 × 160.
 - The template brings its look as the screen's own: colours, background, widget skin and effects. Change them in **Theme** with the screen as the scope.
+- Every template has a size it is made for, and its text and readings are sized for that size. At a smaller or larger size they shrink or grow with it (down to 60 % and up to 160 % of their size), so a template no longer overflows on a small panel or looks tiny on a big one.
 - The grid is split to suit the size. A strip twice as long for its height gets twice the columns, so zones keep their shape and widgets you add later get sensible boxes.
 - Widgets that read one sensor, such as Minimal's three readings, find this PC's sensor for it. A reading that isn't found is named in the message after **Create**; pick its sensor in the inspector.
 - Creating the screen is one step, so Ctrl+Z removes it again.

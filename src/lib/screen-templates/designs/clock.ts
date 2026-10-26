@@ -29,6 +29,7 @@ export const CLOCK: ScreenTemplate = {
   blurb: "A big centred clock in rings, readings either side",
   port: true,
   fits: ["wide", "standard"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: theme(COLOURS),
     radius: 0.5,
