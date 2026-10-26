@@ -15,15 +15,15 @@ const NO_TITLE = { showTitle: false };
  * clock and power beside it, and the load's history under.
  */
 const processor = (col: number, label: string, load: Role, temp: Role, clock: Role, power: Role, accent: string, h: number): Zone[] => {
-  const ring = h === 16 ? 8 : 10;
-  const a = Math.round(ring / 2);
-  const b = Math.round(ring * 0.3);
+  const ring = h === 16 ? 10 : 12;
+  const a = Math.round(ring * 0.4);
+  const b = Math.floor((ring - a) / 2) + (ring - a) % 2;
   return merged([
-    reading([col, 1, 7, ring], label, load, { display: "gauge", stroke: 55, accent, labelInside: true, ...NO_TITLE }),
-    reading([col + 7, 1, 10, a], "Temp", temp, { display: "figure", ...NO_TITLE }),
-    reading([col + 7, 1 + a, 10, b], "Clock", clock, { display: "figure", ...NO_TITLE }),
-    reading([col + 7, 1 + a + b, 10, ring - a - b], "Power", power, { display: "figure", ...NO_TITLE }),
-    reading([col, ring + 1, T, h - ring], label, load, { display: "spark", accent, ...NO_TITLE }),
+    reading([col, 1, 8, ring], label, load, { display: "gauge", stroke: 55, accent, labelInside: true, ...NO_TITLE }),
+    reading([col + 8, 1, 9, a], "Temp", temp, { display: "figure", ...NO_TITLE }),
+    reading([col + 8, 1 + a, 9, b], "Clock", clock, { display: "figure", ...NO_TITLE }),
+    reading([col + 8, 1 + a + b, 9, ring - a - b], "Power", power, { display: "figure", ...NO_TITLE }),
+    reading([col, ring + 1, T, h - ring], "Temperature", temp, { display: "spark", accent, ...NO_TITLE }),
   ]);
 };
 
@@ -46,7 +46,7 @@ const side = (col: number, h: number): Zone[] => {
   const memory = clockRows + 2;
   const room = h - memory + 1;
   return [
-    ...merged([zone("Clock", [col, 1, T, clockRows], { showSeconds: false, scale: 180 })]),
+    ...merged([zone("Clock", [col, 1, T, clockRows - 2], { showSeconds: false, scale: 180 }), reading([col, clockRows - 1, T, 2], "Uptime", "uptime", { display: "line", lineValue: "end", ...NO_TITLE })]),
     ...merged([
       reading([col, memory, 8, room - 3], "RAM", "ram.used", { display: "figure", ...NO_TITLE }),
       reading([col + 8, memory, 9, room - 3], "VRAM", "vram.used", { display: "figure", ...NO_TITLE }),

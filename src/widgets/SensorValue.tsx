@@ -104,7 +104,7 @@ function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "me
 
 /** A figure: the label small and quiet on top, the reading below as large as the box allows, light, its unit as big as it. */
 export function Figure({ label, text, unit, w, h }: { label: string; text: string; unit?: string; w: number; h: number }) {
-  const small = Math.max(9, Math.min(h * 0.17, w / 9));
+  const small = Math.max(9, Math.min(h * 0.13, w / 9));
   // With a small unit the number is what the box holds; the unit beside it takes 0.4 of its size.
   const chars = unit ? text.length + unit.length * 0.4 : text.length;
   const px = Math.max(14, Math.min((h - small * 2) * 0.62, w / (chars * 0.55)));
@@ -179,7 +179,7 @@ export default function SensorValue(p: SensorValueProps) {
           <div className="flex h-full items-center justify-center">
             <Ring value={v - min} max={max - min} t={t} thickness={size === "xs" ? 10 : 8} className="h-full max-w-full">
               {p.labelInside ? (
-                <div className="flex flex-col items-center leading-none" style={{ fontSize: Math.max(12, Math.min(w, h) * 0.2) }}>
+                <div className="flex flex-col items-center leading-none" style={{ fontSize: Math.max(12, Math.min(w, h) * 0.28) }}>
                   <span className="text-[0.4em] text-[color:var(--w-muted)]" style={{ textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>
                   <Num className="mt-[0.15em] font-semibold">
                     {fmt(sv, p.decimals ?? (up ? 1 : 0))}
