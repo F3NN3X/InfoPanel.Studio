@@ -89,7 +89,7 @@ function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "me
   }
   return (
     <div className="flex h-full min-w-0 items-center gap-[1.1em] whitespace-nowrap leading-none" style={{ fontSize: px, paddingInline: "0.9em" }}>
-      {place !== "only" && <span className="shrink-0 truncate text-[color:var(--accent)]" style={{ minWidth: metered ? "4.2em" : undefined, textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>}
+      {place !== "only" && <span className="min-w-0 truncate leading-tight text-[color:var(--accent)]" style={{ minWidth: metered ? "4.2em" : undefined, textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>}
       {metered && <Bar value={value - min} max={max - min} t={t} className="h-[0.8em] min-w-0 flex-1" style="segments" segments={Math.max(8, Math.round(w / px / 1.1))} />}
       {shown !== undefined && (
         <Num
