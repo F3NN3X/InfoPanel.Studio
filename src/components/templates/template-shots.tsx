@@ -1,8 +1,9 @@
 /**
  * The gallery's live thumbnails: a template made for the size and drawn offscreen by the full renderer (`ProfilePage`,
  * the widgets with this machine's data), captured once as a small picture (`captureShot`, what Screens' cards use) and
- * kept for the session, one per template, palette and size. A card asks for its picture when it comes into view (`useTemplateShot`); at most two are drawn
- * at a time (`thumb-queue.ts`). Until it arrives the card shows the plan of the template's zones.
+ * kept for the session, one per template, palette and size. A card asks for its picture while it is in view
+ * (`useTemplateShot`), the selected card first; at most two are drawn at a time (`thumb-queue.ts`). Until it arrives
+ * the card shows the plan of the template's zones.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSensorCatalog } from "@/lib/catalog";
@@ -29,26 +30,26 @@ const GIVE_UP_MS = 15000;
 const queue = createThumbQueue<ShotSpec>(AT_ONCE);
 const keyOf = (t: ScreenTemplate, variant: string, width: number, height: number) => `${t.id}:${variant}:${width}x${height}`;
 
-/** The card's picture, or undefined until it is taken; asks for it while `visible`. */
-export function useTemplateShot(template: ScreenTemplate, variant: string, width: number, height: number, visible: boolean): string | undefined {
+/** The card's picture, or undefined until it is taken; asks for it while `visible`, ahead of the others when `first` (the selected card). */
+export function useTemplateShot(template: ScreenTemplate, variant: string, width: number, height: number, visible: boolean, first = false): string | undefined {
   const key = keyOf(template, variant, width, height);
   useSyncExternalStore(queue.subscribe, queue.version);
-  useEffect(() => (visible ? queue.want(key, { template, variant, width, height }) : undefined), [visible, key]);
+  useEffect(() => (visible ? queue.want(key, { template, variant, width, height }, first) : undefined), [visible, key, first]);
   return queue.get(key);
 }
 
-/** Whether the element is on screen (it stays so once seen: the picture is kept anyway). */
-export function useSeen<T extends Element>(): [React.RefObject<T | null>, boolean] {
+/** Whether the element is on screen now: a card scrolled away lets go of its place in the queue, and asks again when back. */
+export function useInView<T extends Element>(): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
-  const [seen, setSeen] = useState(false);
+  const [inView, setInView] = useState(false);
   useEffect(() => {
     const el = ref.current;
-    if (!el || seen || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setSeen(true));
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => e && setInView(e.isIntersecting));
     io.observe(el);
     return () => io.disconnect();
-  }, [seen]);
-  return [ref, seen];
+  }, []);
+  return [ref, inView];
 }
 
 function ShotJob({ id, spec }: { id: string; spec: ShotSpec }) {

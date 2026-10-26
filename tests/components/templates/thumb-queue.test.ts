@@ -37,6 +37,15 @@ describe("the gallery's thumbnail queue", () => {
     expect(q.get("a")).toBe("pic");
   });
 
+  it("draws a key asked for first ahead of those waiting (the selected card)", () => {
+    const q = createThumbQueue<string>(1);
+    q.want("a", "A");
+    q.want("b", "B");
+    q.want("c", "C", true);
+    q.done("a", "pic");
+    expect(keys(q)).toEqual(["c"]);
+  });
+
   it("keeps a key while any asker still wants it", () => {
     const q = createThumbQueue<string>(1);
     q.want("a", "A");

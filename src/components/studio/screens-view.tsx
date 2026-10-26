@@ -1,13 +1,11 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import type { MonitorProfile } from "@/lib/layout";
 import { deletePlan } from "@/lib/screens/delete-plan";
-import { sampleScreen } from "@/lib/screens/create";
 import { filterEntries, KIND_LABEL, savedEntries, screenEntries, screenKind, sortEntries, type ListFilter, type ListSort } from "@/lib/screens/list";
 import { moveProfile } from "@/lib/screens/order";
 import type { LibraryItem } from "@/lib/library";
-import { openConvertDialog, openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors";
+import { openConvertDialog, openExportSheet, openImportDoor } from "./file-doors";
 import { RenameInput } from "./rename-input";
 import { ScreenDetail } from "./screen-detail";
 import { DeleteDialog } from "./screens/delete-dialog";
@@ -20,15 +18,6 @@ import { ScreensToolbar } from "./screens/screens-toolbar";
 import { useCopyKioskLink } from "./screens/shown-on";
 import { useSavedProfiles } from "./screens/use-saved-profiles";
 import { launchTag, screenMeta, withLaunch } from "./screens-model";
-import { uniqueProfileName } from "./profile-actions";
-import type { NewScreen } from "./screens/new-screen-wizard";
-import { presetIndexOf } from "../templates/size-presets";
-
-/** The New screen page and the template data load when it opens, never with the studio. */
-const NewScreenWizard = lazy(() => import("./screens/new-screen-wizard"));
-
-/** The size Blank opens at on the New screen page: the selected screen's when it is a panel preset. */
-const BLANK_SIZE = { width: 1024, height: 600 };
 
 type DetailProps = Parameters<typeof ScreenDetail>[0];
 
@@ -54,8 +43,6 @@ interface ScreensViewProps
   > {
   /** Select a screen for editing (never changes what the app opens on). */
   onSelectProfile: (id: string) => void;
-  /** Add a screen made here (the sample layout) and edit it. */
-  onAddMadeProfile: (profile: MonitorProfile) => void;
   onDuplicateProfile: (id: string) => void;
   /** Delete a screen (after the confirm dialog); one undo step. */
   onRemoveProfile: (id: string) => void;
@@ -63,6 +50,8 @@ interface ScreensViewProps
   onUndo: () => void;
   /** A saved Library profile: place it as a screen and open it in the InfoPanel editor. */
   onOpenSaved: (item: LibraryItem) => void;
+  /** "+ New": the New page, on the screen kind. */
+  onNew: () => void;
 }
 
 const TAGS = {
@@ -87,11 +76,11 @@ export function ScreensView({
   kiosks,
   displays,
   onSelectProfile,
-  onAddMadeProfile,
   onDuplicateProfile,
   onRemoveProfile,
   onUndo,
   onOpenSaved,
+  onNew,
   ...detail
 }: ScreensViewProps) {
   const toast = useToast();
@@ -102,7 +91,6 @@ export function ScreensView({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ListFilter>("all");
   const [sort, setSort] = useState<ListSort>("edited");
-  const [newScreenOpen, setNewScreenOpen] = useState(false);
   const { setConfig, onOpenScreen } = detail;
   const stored = config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0];
 
@@ -125,37 +113,6 @@ export function ScreensView({
     toast(`Deleted ${name}`, { action: { label: "Undo", onClick: onUndo }, ms: 8000 });
   };
   const empty = screens.length === 0 && saved.length === 0;
-  const addScreen = ({ profile: made, unbound }: NewScreen) => {
-    setNewScreenOpen(false);
-    const name = uniqueProfileName(config.profiles, made.name);
-    onAddMadeProfile({ ...made, name });
-    toast(unbound.length > 0 ? `${name} created. Not found on this PC: ${unbound.join(", ")}` : `${name} created`);
-  };
-
-  // "+ New" covers the manager with the New screen page until Create or Cancel.
-  if (newScreenOpen)
-    return (
-      <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
-        <NewScreenWizard
-          start={presetIndexOf(stored) === undefined ? BLANK_SIZE : { width: stored.width, height: stored.height }}
-          onCreate={addScreen}
-          onCancel={() => setNewScreenOpen(false)}
-          onSample={() => {
-            setNewScreenOpen(false);
-            onAddMadeProfile(sampleScreen(uniqueProfileName(config.profiles, "Sample layout")));
-            toast("Screen created from the sample layout");
-          }}
-          onInfoPanel={() => {
-            setNewScreenOpen(false);
-            openNewInfoPanel();
-          }}
-          onImport={() => {
-            setNewScreenOpen(false);
-            openImportDoor();
-          }}
-        />
-      </Suspense>
-    );
 
   return (
     // On a phone the cards and the detail panel stack, and the view scrolls.
@@ -174,7 +131,7 @@ export function ScreensView({
           sort={sort}
           onSort={setSort}
           onImport={() => openImportDoor()}
-          onNew={() => setNewScreenOpen(true)}
+          onNew={onNew}
         />
 
         <DisplaysList displays={displays} profiles={config.profiles} />

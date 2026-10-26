@@ -541,13 +541,18 @@ config (`infopanel-start.tsx`) with New InfoPanel profile and Import.
   truth for that document; the zone is on the screen and page Design shows, so `withCanvas` writes it back. A
   Library canvas item is a saved copy and is never edited in place: Edit canvas opens the first zone made from it
   (`findCanvasUse`, by source name and import time), else places it as a new screen and opens that zone.
-- **New profile** (`new-profile-wizard.tsx`, `newStored` in `import/stored.ts`): a stored form from scratch
-  (InfoPanel's `PROFILE` defaults, a #FF0A0A0C background, white Segoe UI text, `source.origin: "new"`), placed
-  by `importAsProfile` as a new screen and opened on the page. `openNewInfoPanel` (`file-doors.ts`) opens the
-  page over the InfoPanel home from the Add panel, the Import door, the Library, the command palette and New
-  screen. It and New screen (`screens/new-screen-wizard.tsx`) share the two-step shell in
-  `templates/new-wizard.tsx` and the size rule in `templates/use-size-choice.ts`: a template's own `size` until
-  the size is changed there.
+- **New profile** (`templates/new-page.tsx` on the profile kind, `newStored` in `import/stored.ts`): a stored form
+  from scratch (InfoPanel's `PROFILE` defaults, a #FF0A0A0C background, white Segoe UI text, `source.origin:
+  "new"`), placed by `importAsProfile` as a new screen and opened on the page. `openNewInfoPanel` (`file-doors.ts`)
+  opens the page over the InfoPanel home from the Add panel, the Import door, the Library and the command palette.
+  New screen and New InfoPanel profile are one page (`templates/new-page.tsx`, the shell in
+  `templates/new-wizard.tsx`), held by `studio-view.tsx` over Screens or the InfoPanel home by its kind, so the
+  kind switch moves the rail without remounting it. The page and its gallery (`wizard-gallery.tsx`,
+  `gallery-sections.ts`) carry no catalog: each kind's templates, thumbnails, preview, sensor fit and making come
+  in a chunk of their own (`templates/wizard-kit.ts` loads `screen-kit.tsx` or `infopanel/profile-kit.tsx`), and
+  the gallery is a skeleton until it arrives. The size rule is `templates/use-size-choice.ts`: the selection's
+  size (the size its card was drawn at, else its own) until the size is set there. Recently used is
+  `templates/recent-templates.ts` (`studio.newWizard.recent.{screen|ip}`).
 - **Add palette** (`add-palette.tsx`, `editor/create.ts`): the 14 kinds with InfoPanel's creation defaults
   (`newItem`), styled from the profile (`editor/look.ts`: text in the profile's Color; Bar, Graph and Donut on a
   track 14 % from the background toward the text colour, filled with `ACCENT` #FF3B82F6, no frame; a Gauge as a
