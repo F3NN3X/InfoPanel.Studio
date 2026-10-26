@@ -10,6 +10,7 @@ import {
   migrateProfileV7,
   migrateProfileV10,
   migrateProfileV12,
+  migrateProfileV14,
   migrateProfileV8,
   migrateStyleV7,
   type LegacyProfileFields,
@@ -135,7 +136,18 @@ export interface ProfilePage {
    * use them instead of the profile's (unset: the profile's theme).
    */
   widgetTheme?: WidgetTheme;
+  /**
+   * How the page is laid out (one-editor SPEC §3.1). Unset = "grid". A "free" page holds exactly one
+   * placement: a CANVAS_ID placement spanning the whole grid (`normalizePages` drops the flag otherwise).
+   */
+  layout?: PageLayout;
 }
+
+/** A page's layout: zones on the grid's cells, or one canvas placed in pixels. */
+export type PageLayout = "grid" | "free";
+
+/** Who a screen is for (one-editor SPEC §3.2). */
+export type MadeFor = "studio" | "infopanel";
 
 /** Auto-rotate through pages; `enabled: false` keeps the interval and list stored. */
 export interface PageRotate {
@@ -201,6 +213,8 @@ export interface MonitorProfile {
   sampleVersion?: number;
   /** ISO time of the last studio edit (the Screens page's "Last edited" sort); unset until the screen is edited. */
   updatedAt?: string;
+  /** Who this screen is for; unset = "studio". "infopanel" turns on the export marks and the Export check. */
+  madeFor?: MadeFor;
 }
 
 /**
@@ -239,8 +253,12 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     elements' `valueGlow` plus any spec key a newer build adds (`normalizeElement` keeps them). No data
  *     changes shape, so the migration is the identity; a v12 build would strip the new keys on its next
  *     save, so the server refuses its save (`config_guard.rs`, a version below the stored one).
+ * v14: one editor (`settings-migrate.ts` `migrateProfileV14`): a page that is one canvas filling the screen gets
+ *     `layout: "free"`, a screen whose pages are all Free `madeFor: "infopanel"`, and a Free page's canvas can hold
+ *     Studio widgets (an Image item's `$.widget`). A v13 build would draw them as empty images and drop the new
+ *     fields on its next save, so the server refuses its save (`config_guard.rs`).
  */
-export const CONFIG_VERSION = 13;
+export const CONFIG_VERSION = 14;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -402,13 +420,24 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
     const id =
       typeof page.id === "string" && page.id && !seen.has(page.id) ? page.id : uid("page");
     seen.add(id);
+    const { layout, ...rest } = page;
+    const placements = normalizePlacements(page.placements ?? [], cols, rows);
     return {
-      ...page,
+      ...rest,
       id,
       name: typeof page.name === "string" && page.name ? page.name : `Page ${i + 1}`,
-      placements: normalizePlacements(page.placements ?? [], cols, rows),
+      placements,
+      ...(pageLayout(layout, placements, cols, rows) ? { layout } : {}),
     };
   });
+}
+
+/** Whether a stored page layout holds: "grid" always, "free" only for one canvas spanning the grid (else it reads as grid). */
+function pageLayout(layout: unknown, placements: Placement[], cols: number, rows: number): layout is PageLayout {
+  if (layout === "grid") return true;
+  if (layout !== "free" || placements.length !== 1) return false;
+  const [only] = placements;
+  return only.module === CANVAS_ID && only.colStart === 1 && only.rowStart === 1 && only.colSpan === cols && only.rowSpan === rows;
 }
 
 function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyProfileFields {
@@ -437,6 +466,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     island: normalizeIsland(p.island),
     performance: normalizePerformance(p.performance),
     font: normalizeFont(p.font),
+    madeFor: p.madeFor === "studio" || p.madeFor === "infopanel" ? p.madeFor : undefined,
     updatedAt: typeof p.updatedAt === "string" && !Number.isNaN(Date.parse(p.updatedAt)) ? p.updatedAt : undefined,
   };
 }
@@ -506,7 +536,8 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * legacy module ids to their templates, v5→v6 moves the style onto the
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
  * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
- * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version; a
+ * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version,
+ * v13→v14 marks Free pages and the screens made for InfoPanel; a
  * pin to a missing profile falls back to Auto.
  */
 export function mergeConfig(input: StoredConfig): DashboardConfig {
@@ -529,7 +560,8 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
     .map((p) => migrateProfileV7(p, { legacy: (parsed.version ?? 0) < 7 }))
     .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
     .map(migrateProfileV10)
-    .map(migrateProfileV12);
+    .map(migrateProfileV12)
+    .map((p) => migrateProfileV14(p, { legacy: (parsed.version ?? 0) < 14 }));
   // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
   const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
   // A pin to a profile that is gone falls back to Auto.

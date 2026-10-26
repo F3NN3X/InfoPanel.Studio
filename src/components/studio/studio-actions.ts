@@ -89,7 +89,7 @@ export function addModulePlacement(
  * A saved preset brings its own settings (under today's keys, config v7),
  * and shows them: the sections they set are custom (`followFromOwn`).
  */
-function withPreset(p: Placement, preset: PanelPreset): Placement {
+export function withPreset(p: Placement, preset: PanelPreset): Placement {
   const settings = migrateSettingsV7(PANEL_ID, preset.settings, false).settings;
   const follow = followFromOwn(settings);
   const { follow: _old, ...zone } = p;

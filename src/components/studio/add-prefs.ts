@@ -3,7 +3,8 @@ import { useStorageKey, useStoredFlag } from "./use-stored-flag";
 
 /**
  * Settings › Studio › Editor's Add panel rows (handoff SPEC §10): the left panel's width, the widget list's
- * density and the hover preview. Saved in this browser (localStorage), followed across windows.
+ * density and the hover preview, and the Free page's Add filter. Saved in this browser (localStorage), followed
+ * across windows.
  */
 
 export type LeftPanelWidth = "narrow" | "default" | "wide";
@@ -91,6 +92,20 @@ export function useLeftPanelWidth() {
 /** Widget list: Comfortable or Compact (no blurb, smaller rows). */
 export function useAddListDensity() {
   return useStoredChoice<AddListDensity>(DENSITY_KEY, () => parseDensity(read(DENSITY_KEY)), parseDensity);
+}
+
+/** On a Free page, what the Add list shows (one-editor SPEC §5.3): both, only Studio widgets, or only InfoPanel items. */
+export type AddFilter = "all" | "widgets" | "items";
+export const FILTER_KEY = "studio.editor.addFilter";
+const FILTERS: readonly AddFilter[] = ["all", "widgets", "items"];
+
+export function parseAddFilter(raw: string | null): AddFilter {
+  return FILTERS.includes(raw as AddFilter) ? (raw as AddFilter) : "all";
+}
+
+/** The Free page's Add filter: All (default), Widgets or InfoPanel items. */
+export function useAddFilter() {
+  return useStoredChoice<AddFilter>(FILTER_KEY, () => parseAddFilter(read(FILTER_KEY)), parseAddFilter);
 }
 
 /** Preview on hover (on by default); the keyboard always shows the preview. */

@@ -38,6 +38,8 @@ export interface ConvertRequest {
   titleOf: (moduleId: string) => string;
   /** Convert this zone only. */
   only?: string;
+  /** Where a zone is drawn; default: its `data-zone-id` element in `scope` (a Free page's widget items have their own). */
+  find?: (zoneId: string) => HTMLElement | null;
 }
 
 /** What one widget became. */
@@ -148,8 +150,12 @@ const notPage = (n: Node): boolean => n instanceof Element && n.matches("[data-z
 const pageOf = (el: HTMLElement): HTMLElement | null => el.closest<HTMLElement>("[data-studio-page]") ?? el.parentElement;
 
 /** The zone's element on the page, its box on the page, the zoom the page is drawn at, and the page. */
-function locate(scope: ParentNode, zoneId: string): { el: HTMLElement; box: Rect; zoom: number; page: HTMLElement; grid: { width: number; height: number } } | null {
-  const el = scope.querySelector<HTMLElement>(`[data-zone-id="${CSS.escape(zoneId)}"]`);
+function locate(
+  scope: ParentNode,
+  zoneId: string,
+  find?: ConvertRequest["find"],
+): { el: HTMLElement; box: Rect; zoom: number; page: HTMLElement; grid: { width: number; height: number } } | null {
+  const el = find ? find(zoneId) : scope.querySelector<HTMLElement>(`[data-zone-id="${CSS.escape(zoneId)}"]`);
   const page = el ? pageOf(el) : null;
   if (!el || !page) return null;
   const g = page.getBoundingClientRect();
@@ -205,7 +211,7 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
 
   // The page's background, once, under every zone (a screen only: a zone alone keeps its own card).
   if (!req.only) {
-    const first = req.placements.map((p) => locate(req.scope, p.id)).find((s) => s !== null);
+    const first = req.placements.map((p) => locate(req.scope, p.id, req.find)).find((s) => s !== null);
     if (first) {
       const size = { w: first.grid.width, h: first.grid.height };
       const restore = await preBlur(first.page);
@@ -221,7 +227,7 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     if (req.only && p.id !== req.only) continue;
     // A canvas zone is InfoPanel items already: kept, scaled into the zone and centred as the zone draws them.
     if (p.module === CANVAS_ID && p.canvas && p.visible) {
-      const spot = locate(req.scope, p.id);
+      const spot = locate(req.scope, p.id, req.find);
       if (!spot) continue;
       grid = spot.grid;
       if (req.only) only = spot.box;
@@ -239,7 +245,7 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     const rows = rowsOf(p, req.titleOf);
     if (rows.length === 0) continue;
     const stored = readChoices(p.settings);
-    const spot = locate(req.scope, p.id);
+    const spot = locate(req.scope, p.id, req.find);
     const row0 = rows[0];
     if (spot) {
       grid = spot.grid;

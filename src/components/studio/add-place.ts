@@ -33,6 +33,21 @@ export function autoPlace(grid: Grid, placements: Placement[], def: Size, min: S
   return null;
 }
 
+/** A cell in px for a widget placed on a Free page: the Add preview's native cell (add-preview.tsx). */
+export const FREE_CELL_PX = 150;
+export const FREE_GAP_PX = 10;
+
+/**
+ * A widget's default size on a Free page (one-editor SPEC §5.3): its cells at the native cell size, scaled down with
+ * the shape kept when that is larger than the canvas (with a 5% margin).
+ */
+export function freeSize(size: Size, canvas: { width: number; height: number }): { w: number; h: number } {
+  const w = size.cols * FREE_CELL_PX + (size.cols - 1) * FREE_GAP_PX;
+  const h = size.rows * FREE_CELL_PX + (size.rows - 1) * FREE_GAP_PX;
+  const k = Math.min(1, (canvas.width * 0.95) / w, (canvas.height * 0.95) / h);
+  return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) };
+}
+
 /** The visible blank zone covering a cell. */
 export function blankZoneAt(placements: Placement[], cell: { col: number; row: number }): Placement | undefined {
   return placements.find(

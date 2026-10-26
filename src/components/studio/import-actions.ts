@@ -10,7 +10,7 @@ function canvasZone(id: string, canvas: StoredCanvas, rect: ZoneRect): Placement
 }
 
 /**
- * A new profile sized like the InfoPanel one, its one canvas zone filling it, made the active
+ * A new profile sized like the InfoPanel one, its one canvas zone filling it (a Free page, made for InfoPanel), made the active
  * profile unless `activate` is off (the studio leaves what displays open on alone). Two columns, as profile normalization asks; the zone spans both.
  */
 export function importAsProfile(
@@ -27,7 +27,8 @@ export function importAsProfile(
     cols: 2,
     rows: 1,
     fit: "fill" as const,
-    pages: base.pages.map((p, i) => (i === 0 ? { ...p, placements: [canvasZone(zoneId, canvas, { col: 1, row: 1, cols: 2, rows: 1 })] } : p)),
+    madeFor: "infopanel" as const,
+    pages: base.pages.map((p, i) => (i === 0 ? { ...p, layout: "free" as const, placements: [canvasZone(zoneId, canvas, { col: 1, row: 1, cols: 2, rows: 1 })] } : p)),
   };
   return { config: withProfile(config, profile, activate), profileId: profile.id, zoneId };
 }

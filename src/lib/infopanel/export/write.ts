@@ -6,6 +6,7 @@
  * InfoPanel versions the lab does not know (`unknown`) are written back as read.
  */
 import { SCHEMAS, PROFILE, type DisplayItem, type GaugeItem, type ItemKind, type Profile } from "../schema.ts";
+import { withoutWidgets } from "../native/widget-item.ts";
 import { writeZip } from "../zip.ts";
 
 type Spec = { kind: string; default: unknown };
@@ -145,7 +146,8 @@ export function infopanelExport(profile: Profile, items: readonly DisplayItem[],
   const enc = new TextEncoder();
   return writeZip([
     { name: "Profile.xml", data: enc.encode(profileXml(profile)) },
-    { name: "DisplayItems.xml", data: enc.encode(displayItemsXml(items)) },
+    // A Studio widget item the export didn't convert is left out: InfoPanel would show an empty Image.
+    { name: "DisplayItems.xml", data: enc.encode(displayItemsXml(withoutWidgets(items))) },
     ...assets.map((a) => ({ name: `assets/${a.name}`, data: a.bytes })),
   ]);
 }

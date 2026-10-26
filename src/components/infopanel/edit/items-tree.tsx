@@ -38,6 +38,8 @@ import { itemAt, topmost, type Path } from "@/lib/infopanel/editor/ops";
 import type { DisplayItem } from "@/lib/infopanel/schema";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
 import { StatusIcon, useExportCheck } from "../export-check-panel";
+import { widgetOf } from "@/lib/infopanel/native/widget-item";
+import { moduleIcon } from "@/components/studio/zone-icons";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
 import type { CanvasEditor } from "./use-canvas-editor";
 
@@ -174,9 +176,11 @@ export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEdi
         {rows.length === 0 && <p className="px-2 py-1 text-[12px] leading-snug text-ui-4">No items yet. Add one above.</p>}
         {rows.map(({ item, path, depth }) => {
           const element = elementOf(item);
-          const Icon = element ? ELEMENT_ICONS[element.type] : kindIcon(item.kind);
+          const widget = widgetOf(item);
+          const Icon = widget ? moduleIcon(widget.module) : element ? ELEMENT_ICONS[element.type] : kindIcon(item.kind);
           const badge = badgeOf(item);
-          const state = editor.modes.get(path)?.state;
+          // A Studio widget is drawn by the studio, never in a draw mode.
+          const state = widget ? undefined : editor.modes.get(path)?.state;
           const status = check.on ? check.byPath.get(path)?.status : undefined;
           const isSelected = selected.includes(path);
           const isGroup = item.kind === "Group";
@@ -238,7 +242,7 @@ export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEdi
               ) : (
                 <span className="w-4 shrink-0" />
               )}
-              <Icon className="h-4 w-4 shrink-0 text-ui-4" strokeWidth={1.75} />
+              <Icon className={cn("h-4 w-4 shrink-0", widget ? "text-ui-accent" : "text-ui-4")} strokeWidth={1.75} />
               {renaming === path ? (
                 <input
                   autoFocus
@@ -266,6 +270,7 @@ export function ItemsTree({ editor, name, onSaveComponent }: { editor: CanvasEdi
               )}
               {badge && <BadgeChip badge={badge} compact />}
               {state && <span title={MODE_TITLE[state]} aria-label={MODE_TITLE[state]} className={cn("h-1.5 w-1.5 shrink-0 rounded-full", MODE_DOT[state])} />}
+              {!isGroup && <span className="shrink-0 text-[9.5px] text-ui-5">{widget ? "widget" : "item"}</span>}
               {status && <StatusIcon status={status} />}
               <button
                 type="button"

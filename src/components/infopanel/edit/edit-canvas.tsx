@@ -4,7 +4,9 @@
  * Compare is on, InfoPanel's screenshot laid over the render with a difference blend. A kind
  * dragged from the Add palette is created where it is dropped, snapped as a move would be.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent } from "react";
+import type { Appearance } from "@/lib/style-resolve";
+import { DND_MIME, DND_MIME_PANEL, DND_MIME_SETTINGS } from "@/components/studio/studio-modules";
 import { withDroppedImage, type DropPlace } from "@/lib/infopanel/canvas-edit";
 import { profilePoint } from "@/lib/infopanel/editor/arrange";
 import { snapMove, snapThreshold } from "@/lib/infopanel/editor/snap";
@@ -23,7 +25,7 @@ import type { SensorMap } from "@/modules/types";
 import { RulerLabels } from "@/components/studio/rulers";
 import { stepZoom } from "@/components/studio/studio-layout";
 import { ZoomToolbar } from "@/components/studio/zoom-toolbar";
-import { useNow } from "../CanvasZone";
+import { useNow, widgetDrawer } from "../CanvasZone";
 import { nativeLayer } from "../native";
 import { useSuppliedFonts, withSupplied } from "../supplied-fonts";
 import { ProfileView, useFonts, type AssetSource } from "../ProfileView";
@@ -60,9 +62,35 @@ interface EditCanvasProps {
   onComponent?: (item: LibraryItem, at: { x: number; y: number }) => void;
   /** The size button on the zoom bar: show the profile's own settings. */
   onOpenSettings: () => void;
+  /** Studio widget items (one-editor SPEC §9): their live values, the theme they follow, and the screen's own theme colours. */
+  widgets?: { sensors: SensorMap; appearance?: Appearance; scope?: CSSProperties };
+  /** A Studio widget dragged from the Add panel and dropped: its module, the settings its view adds, and the point. */
+  onPlaceWidget?: (drop: WidgetDrop, at: { x: number; y: number }) => void;
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings }: EditCanvasProps) {
+/** What a widget dragged from the Add panel carries. */
+export interface WidgetDrop {
+  kind: "module" | "panel";
+  id: string;
+  settings?: Record<string, string | number | boolean>;
+}
+
+/** The widget a drag from the Add panel carries (studio-modules' drag types), or null. */
+export function widgetDropOf(get: (type: string) => string): WidgetDrop | null {
+  const panel = get(DND_MIME_PANEL);
+  if (panel) return { kind: "panel", id: panel };
+  const id = get(DND_MIME);
+  if (!id) return null;
+  try {
+    const raw = get(DND_MIME_SETTINGS);
+    const settings: unknown = raw ? JSON.parse(raw) : undefined;
+    return settings && typeof settings === "object" && !Array.isArray(settings) ? { kind: "module", id, settings: settings as WidgetDrop["settings"] } : { kind: "module", id };
+  } catch {
+    return { kind: "module", id };
+  }
+}
+
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings, widgets, onPlaceWidget }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -76,7 +104,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     [open],
   );
   const read = (key: string) => history.get(key);
-  const native = nativeLayer(editor.items, ctx, values as SensorMap, { font, now, history: read });
+  const native = nativeLayer(editor.items, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance, true) } : {}) });
   const { profile } = open;
   // The zoom follows the fit until a manual one is set; the wheel then pans.
   const [zoom, setZoom] = useState<number | null>(null);
@@ -119,6 +147,11 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     return profilePoint({ x: e.clientX, y: e.clientY }, { left: box.left + pan.x, top: box.top + pan.y, width: w, height: h }, profile, scale);
   };
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    const widget = onPlaceWidget ? widgetDropOf((t) => e.dataTransfer.getData(t)) : null;
+    if (widget) {
+      e.preventDefault();
+      return onPlaceWidget?.(widget, pointOf(e));
+    }
     const kind = paletteEntryOf(e.dataTransfer.getData(PALETTE_DRAG));
     if (kind) {
       e.preventDefault();
@@ -151,7 +184,9 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
         ref={ref}
         onPointerDown={onBackground}
         onDragOver={(e) => {
-          if (isMediaDrag(e.dataTransfer.types) || (onPlace && e.dataTransfer.types.includes(PALETTE_DRAG))) e.preventDefault();
+          const types = e.dataTransfer.types;
+          const widget = onPlaceWidget && (types.includes(DND_MIME) || types.includes(DND_MIME_PANEL));
+          if (isMediaDrag(types) || (onPlace && types.includes(PALETTE_DRAG)) || widget) e.preventDefault();
         }}
         onDrop={onDrop}
         className="relative min-h-0 flex-1 overflow-hidden bg-ui-app"
@@ -166,6 +201,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
               height: profile.Height,
               transform: `scale(${scale})`,
               transformOrigin: "0 0",
+              ...widgets?.scope,
             }}
           >
             {showRulers && <RulerLabels width={profile.Width} height={profile.Height} />}

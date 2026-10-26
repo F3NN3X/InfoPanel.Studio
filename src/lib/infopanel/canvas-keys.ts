@@ -19,3 +19,27 @@ export function storedCanvasKeys(canvas: unknown): string[] {
   walk((canvas as { items?: unknown } | null | undefined)?.items, 0);
   return [...keys].sort();
 }
+
+/** A Studio widget's record as stored (`$.widget`), read loosely: only its module, settings and panel name its keys. */
+export interface StoredWidgetRef {
+  module: string;
+  settings?: Record<string, unknown>;
+  panel?: { widgets?: unknown };
+}
+
+/** The Studio widgets a stored canvas holds (Free pages, one-editor SPEC §3.3), groups included, straight from its JSON. */
+export function storedCanvasWidgets(canvas: unknown): StoredWidgetRef[] {
+  const out: StoredWidgetRef[] = [];
+  const walk = (list: unknown, depth: number) => {
+    if (!Array.isArray(list) || depth > MAX_DEPTH) return;
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const o = item as { kind?: unknown; $?: { widget?: unknown }; DisplayItems?: unknown };
+      const w = o.$?.widget as StoredWidgetRef | undefined;
+      if (o.kind === "Image" && w && typeof w === "object" && typeof w.module === "string") out.push(w);
+      walk(o.DisplayItems, depth + 1);
+    }
+  };
+  walk((canvas as { items?: unknown } | null | undefined)?.items, 0);
+  return out;
+}

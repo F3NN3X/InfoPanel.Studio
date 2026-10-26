@@ -101,6 +101,13 @@ interface ZoneInspectorProps {
   onEditCanvas?: () => void;
   /** A Custom gauge zone: open its spec in Gauges. */
   onEditGauge?: () => void;
+  /**
+   * A Studio widget on a Free page (one-editor SPEC §5.5): its Place section (px) instead of the grid row. Its look
+   * follows the theme as a grid zone's does, but it has no place in the config's zones, so no inheritance chips.
+   */
+  place?: ReactNode;
+  /** The On InfoPanel section under the header (a screen made for InfoPanel). */
+  onInfoPanel?: ReactNode;
 }
 
 /** A Custom gauge zone's spec drawn small (at p = 0.6), with the way into its editor. */
@@ -184,6 +191,8 @@ export function ZoneInspector({
   request,
   onEditCanvas,
   onEditGauge,
+  place,
+  onInfoPanel,
 }: ZoneInspectorProps) {
   const toast = useToast();
   const [picker, setPicker] = useState(false);
@@ -370,7 +379,7 @@ export function ZoneInspector({
   /** A section card's chip: the widget's inheritance of the theme sections it covers. */
   const inheritOf = (s: InspectorSection) => {
     const sections = chipSections(s);
-    return sections.length === 0 || blank ? undefined : sectionInherit({ sections, title: s.title, scope, ctx: inherit, onMakeTheme: askMakeTheme });
+    return sections.length === 0 || blank || place ? undefined : sectionInherit({ sections, title: s.title, scope, ctx: inherit, onMakeTheme: askMakeTheme });
   };
 
   const present = (s: InspectorSection) =>
@@ -435,7 +444,8 @@ export function ZoneInspector({
           onRemove={onRemove}
           onHelp={onHelp}
         />
-      <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />
+      {place ?? <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />}
+      {onInfoPanel}
     </>
   );
 

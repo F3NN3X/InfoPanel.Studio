@@ -11,15 +11,19 @@ import { getApiBase } from "@/lib/data-api";
 import { canvasSensor, fitScale, keyOf, KeyHistory, openCanvas, type OpenCanvas } from "@/lib/infopanel/canvas.ts";
 import { FontLoader } from "@/lib/infopanel/font-loader.ts";
 import type { ConvertContext } from "@/lib/infopanel/native/convert.ts";
-import type { StoredCanvas } from "@/lib/infopanel/import/stored.ts";
-import { nativeLayer } from "./native.tsx";
+import { widgetOf, type StoredCanvas } from "@/lib/infopanel/import/stored.ts";
+import type { Appearance } from "@/lib/style-resolve";
+import { nativeLayer, type NativeView } from "./native.tsx";
 import { useSuppliedFonts, withSupplied } from "./supplied-fonts";
 import { ProfileView, useFonts, type AssetSource } from "./ProfileView.tsx";
+import { WidgetItemView } from "./widget-item-view";
 
 export interface CanvasZoneProps {
   canvas: StoredCanvas;
-  /** The live values, as the zone's subscription delivers them. */
+  /** The live values, as the zone's subscription delivers them (its Studio widgets' keys too). */
   sensors: SensorMap;
+  /** The theme the canvas's Studio widgets follow, as the screen's grid zones do. */
+  appearance?: Appearance;
 }
 
 export function useNow(): Date {
@@ -39,7 +43,7 @@ function useHistory(canvas: OpenCanvas, sensors: SensorMap): KeyHistory {
   return history;
 }
 
-function CanvasView({ canvas, sensors }: { canvas: OpenCanvas; sensors: SensorMap }) {
+function CanvasView({ canvas, sensors, appearance }: { canvas: OpenCanvas; sensors: SensorMap; appearance?: Appearance }) {
   const { ref, w, h } = useElementSize();
   const now = useNow();
   const history = useHistory(canvas, sensors);
@@ -57,7 +61,7 @@ function CanvasView({ canvas, sensors }: { canvas: OpenCanvas; sensors: SensorMa
     }),
     [canvas],
   );
-  const native = nativeLayer(canvas.items, ctx, sensors, { font, now, history: (key) => history.get(key) });
+  const native = nativeLayer(canvas.items, ctx, sensors, { font, now, history: (key) => history.get(key), widget: widgetDrawer(sensors, appearance) });
   const { profile } = canvas;
   const scale = fitScale(profile, w, h);
   return (
@@ -92,7 +96,18 @@ function CanvasView({ canvas, sensors }: { canvas: OpenCanvas; sensors: SensorMa
   );
 }
 
-export default function CanvasZone({ canvas, sensors }: CanvasZoneProps) {
+/**
+ * The native layer's drawing of a Studio widget item: the registry widget at its box, from the zone's values. `tag`
+ * marks its live values for the export's conversion (the editor's drawing; the kiosk's stays untagged).
+ */
+export function widgetDrawer(sensors: SensorMap, appearance?: Appearance, tag = false): NativeView["widget"] {
+  return (item, _path, box) => {
+    const widget = widgetOf(item);
+    return widget ? <WidgetItemView widget={widget} name={item.Name} width={box.w} height={box.h} sensors={sensors} appearance={appearance} tag={tag} /> : null;
+  };
+}
+
+export default function CanvasZone({ canvas, sensors, appearance }: CanvasZoneProps) {
   const opened = useMemo((): OpenCanvas | Error => {
     try {
       return openCanvas(canvas);
@@ -103,5 +118,5 @@ export default function CanvasZone({ canvas, sensors }: CanvasZoneProps) {
   if (opened instanceof Error) {
     return <div className="grid h-full place-items-center p-3 text-center text-xs text-muted-foreground">{opened.message}</div>;
   }
-  return <CanvasView canvas={opened} sensors={sensors} />;
+  return <CanvasView canvas={opened} sensors={sensors} appearance={appearance} />;
 }

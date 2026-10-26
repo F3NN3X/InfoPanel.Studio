@@ -16,7 +16,7 @@ describe("v13: glow (the migration is the identity)", () => {
     const v12 = stored(12, [zone("cpu", "CpuMonitor", { device: "cpu0", accent: "#fff" })]);
     const out = mergeConfig(v12);
     expect(out.version).toBe(CONFIG_VERSION);
-    expect(CONFIG_VERSION).toBe(13);
+    expect(CONFIG_VERSION).toBeGreaterThanOrEqual(13);
     expect(zonesOf(out)[0].settings).toEqual({ device: "cpu0", accent: "#fff" });
   });
 
@@ -28,7 +28,7 @@ describe("v13: glow (the migration is the identity)", () => {
 
   it("migrates a v11 config through v12 to v13 in one load", () => {
     const out = mergeConfig(stored(11, [zone("mix", "VolumeMixer", { device: "default-audio" })]));
-    expect(out.version).toBe(13);
+    expect(out.version).toBe(CONFIG_VERSION);
     expect(zonesOf(out)[0].settings).toEqual({ devices: "default-audio" });
   });
 });

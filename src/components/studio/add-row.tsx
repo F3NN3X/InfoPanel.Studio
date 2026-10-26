@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useState, type DragEvent, type ReactNode } from "react";
 import {
   Bookmark,
   ChartColumn,
@@ -104,9 +104,11 @@ interface AddRowProps {
   /** A saved panel's rename and delete. */
   onRename?: (name: string) => void;
   onDelete?: () => void;
+  /** On a screen made for InfoPanel: what an export makes of it (its Export check icon). */
+  status?: ReactNode;
 }
 
-export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, onDragStart, onRename, onDelete }: AddRowProps) {
+export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, onDragStart, onRename, onDelete, status }: AddRowProps) {
   const [renaming, setRenaming] = useState(false);
   const needs = typeof tag === "object" ? tag.needs : undefined;
   const label = `${item.name}, ${item.blurb}, ${sizeText(item.w, item.h)}${tag === "best" ? ", best fit" : needs ? `, needs at least ${needs}` : ""}`;
@@ -167,6 +169,7 @@ export function AddRow({ item, id, highlighted, compact, tag, onPick, onHover, o
           <SavedPanelMenu onRename={() => setRenaming(true)} onDelete={onDelete} />
         </span>
       )}
+      {status}
       <Footprint item={item} on={highlighted} compact={compact} />
     </div>
   );

@@ -38,7 +38,15 @@ import {
 import { extOverrides, openStored, type OpenedSource } from "@/lib/infopanel/import/session";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { GaugeItem } from "@/lib/infopanel/schema";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
+import { useSensorCatalog } from "@/lib/catalog";
+import { widgetPaths } from "@/lib/infopanel/native/widget-item";
+import { knownWidget, widgetPlacement } from "@/components/studio/placement-content";
+import type { SensorMap } from "@/modules/types";
+import type { Appearance } from "@/lib/style-resolve";
+import type { DisplayItem } from "@/lib/infopanel/schema";
 import { CheckGroups } from "./export-check-panel";
+import { WidgetsOffscreen } from "./widgets-offscreen";
 import { FontLicenceReview } from "./font-licence-review";
 import { Radio } from "./import/import-steps";
 import { useSwapTargets } from "./use-swap-targets";
@@ -52,6 +60,8 @@ export interface ExportDialogProps {
   onBaked: (zoneId: string, canvas: StoredCanvas) => void;
   /** A finished export, for a toast. */
   onDone: (message: string) => void;
+  /** The theme the profile's Studio widgets follow, for drawing them for the export. */
+  appearance?: Appearance;
 }
 
 type Output = "stored" | "infopanel";
@@ -89,7 +99,9 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) 
   );
 }
 
-function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placement; canvas: StoredCanvas; onClose: () => void } & Pick<ExportDialogProps, "onBaked" | "onDone">) {
+function ExportBody({ zone, canvas, onClose, onBaked, onDone, appearance }: { zone: Placement; canvas: StoredCanvas; onClose: () => void } & Pick<ExportDialogProps, "onBaked" | "onDone" | "appearance">) {
+  /** The Studio widget items being drawn offscreen for the export, and who waits for them. */
+  const [offscreen, setOffscreen] = useState<{ items: readonly DisplayItem[]; ready: (root: HTMLElement) => void } | null>(null);
   const [opened, setOpened] = useState<OpenedSource | Error | null>(null);
   const [out, setOut] = useState<Output>("infopanel");
   const [bakeFirst, setBakeFirst] = useState(true);
@@ -99,6 +111,7 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const targets = useSwapTargets(out === "stored" && licences.some((r) => r.verdict === "keep"));
+  const catalog = useSensorCatalog();
 
   useEffect(() => {
     let stop = false;
@@ -199,12 +212,35 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
         const keys = opened.restore?.keys ?? new Map();
         onBaked(zone.id, restoreStored(canvas, opened.parsed.profile, next, keys, exts));
       }
+      // Studio widgets go by their On InfoPanel rule, drawn offscreen for it from wherever the export was opened;
+      // the screen keeps them as they are.
+      let widgetNote = "";
+      if (widgetPaths(next.items).length > 0) {
+        setBusy("Converting Studio widgets…");
+        const { exportWidgets } = await import("@/lib/infopanel/native/widget-export");
+        const items = next.items;
+        const root = await new Promise<HTMLElement>((ready) => setOffscreen({ items, ready }));
+        try {
+          const r = await exportWidgets(next, {
+            root,
+            sensors: catalog.sensors as unknown as Record<string, DataApiValue>,
+            look: opened.parsed.profile,
+            zoneOf: (w, id) => widgetPlacement(w, id),
+            known: knownWidget,
+          });
+          next = r.doc;
+          const unseen = r.report.filter((x) => x.outcome.includes("isn't drawn")).length;
+          widgetNote = unseen ? ` · ${unseen} widget${unseen === 1 ? "" : "s"} left out: not drawn` : "";
+        } finally {
+          setOffscreen(null);
+        }
+      }
       setBusy("Writing…");
       const leaveOut = leaveUnused ? unusedFiles(next).names : [];
       const file = infopanelFile(opened.parsed.profile, next, leaveOut);
       await download(fileName, file.bytes, "application/octet-stream");
       const left = bakeFirst ? 0 : bakes;
-      onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} gauges and elements keep their old images` : ""}`);
+      onDone(`Exported ${fileName} · ${file.files} assets${left ? ` · ${left} gauges and elements keep their old images` : ""}${widgetNote}`);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -231,6 +267,16 @@ function ExportBody({ zone, canvas, onClose, onBaked, onDone }: { zone: Placemen
   ];
   return (
     <>
+      {offscreen && !(opened instanceof Error) && opened && (
+        <WidgetsOffscreen
+          items={offscreen.items}
+          width={opened.parsed.profile.Width}
+          height={opened.parsed.profile.Height}
+          sensors={catalog.sensors as unknown as SensorMap}
+          appearance={appearance}
+          onReady={offscreen.ready}
+        />
+      )}
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
         <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">Export {name}</Dialog.Title>
         <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
@@ -345,7 +391,7 @@ function countItems(items: readonly { kind: string; DisplayItems?: readonly unkn
   return items.reduce((n, i) => n + 1 + (i.kind === "Group" ? countItems((i.DisplayItems ?? []) as never) : 0), 0);
 }
 
-export function ExportDialog({ open, onOpenChange, zone, onBaked, onDone }: ExportDialogProps) {
+export function ExportDialog({ open, onOpenChange, zone, onBaked, onDone, appearance }: ExportDialogProps) {
   const canvas = zone?.canvas;
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -353,7 +399,7 @@ export function ExportDialog({ open, onOpenChange, zone, onBaked, onDone }: Expo
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-48px)] w-[min(720px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none">
           {open && zone && canvas ? (
-            <ExportBody key={zone.id} zone={zone} canvas={canvas} onClose={() => onOpenChange(false)} onBaked={onBaked} onDone={onDone} />
+            <ExportBody key={zone.id} zone={zone} canvas={canvas} onClose={() => onOpenChange(false)} onBaked={onBaked} onDone={onDone} appearance={appearance} />
           ) : (
             <p className="p-5 text-[12.5px] text-ui-3">This screen has no canvas zone to export. Import an InfoPanel profile first.</p>
           )}

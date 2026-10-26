@@ -7,6 +7,8 @@ import type { ImportCommit, ImportSource } from "@/components/infopanel/import/i
 import { canvasMeta, componentItem } from "@/lib/my-library/canvas-link";
 import { saveComponent } from "@/lib/infopanel/component";
 import { readStored } from "@/lib/infopanel/import/stored";
+import { allPlacements } from "@/lib/pages";
+import { appearanceOf } from "@/lib/style-resolve";
 import type { ConvertedCanvas, ConvertScope } from "@/components/infopanel/convert-dialog";
 import { canvasZoneOf, importAsProfile, importIntoProfile, withCanvas, withZoneSettings } from "./import-actions";
 import { onFileDoor } from "./file-doors";
@@ -101,6 +103,10 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
     return null;
   };
 
+  /** The theme of the screen that holds the exported zone (the page on the canvas for a Library canvas). */
+  const exportAppearance = (zone: Placement | undefined) =>
+    appearanceOf(config, config.profiles.find((p) => allPlacements(p).some((z) => z.id === zone?.id)) ?? profile);
+
   const dialogs = (
     <Suspense fallback={null}>
       {importDest && (
@@ -134,6 +140,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
           zone={exportOverride ?? exportZone}
           onBaked={(zoneId, canvas) => setConfig((cfg) => withCanvas(cfg, zoneId, canvas))}
           onDone={toast}
+          appearance={exportAppearance(exportOverride ?? exportZone)}
         />
       )}
     </Suspense>

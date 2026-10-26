@@ -14,6 +14,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 ### Added
 
 - **The Export check.** On an InfoPanel profile, a button in the toolbar counts the parts that export as is, are approximated, become a picture or are left out, and updates as you edit. It opens a list in place of the inspector, where a click selects the part. Layers, the canvas and the inspector mark the parts and the settings InfoPanel can't draw, such as a card's background blur or a sparkline's end dot. The Export window lists the same check.
+- **Studio widgets on InfoPanel profiles.** On a profile's page, **Add** lists the Studio widgets above InfoPanel's items, with **Show** (All, Widgets, InfoPanel items) and one search. A widget goes anywhere on the canvas, moves, resizes, groups and locks like an item, and draws live in the kiosk. Its inspector has **Place** (X, Y, width, height in px) and **On InfoPanel**: **Recreate** (InfoPanel items in one Group), **Snapshot** (a picture) or **Leave out**. The Export check counts each by that choice.
+- **Config version 14.** A page that is one full-size InfoPanel canvas is marked a free page, and a profile whose pages are all free is marked as made for InfoPanel. The server refuses a save from an older version (13 or below) over a version 14 config, so an old tab can't drop the new fields.
 
 ## [1.3.0-beta.34] - 2026-10-26
 

@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { Segmented } from "@/components/ui/segmented";
+import type { AddFilter } from "./add-prefs";
 import { FilePlus2, FileUp, LayoutGrid, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
@@ -59,7 +61,27 @@ export interface AddPanelProps {
   /** What the preview renders the widget under: the page's style and theme. */
   appearance?: Appearance;
   pageStyle?: CSSProperties;
+  /** A Free page (one-editor SPEC §5.3): the InfoPanel items join the widgets, with a filter; layouts don't apply. */
+  free?: FreeAdd;
 }
+
+/** The merged Add panel's InfoPanel side, given by the canvas editor (it keeps the InfoPanel model out of this bundle). */
+export interface FreeAdd {
+  filter: AddFilter;
+  onFilter: (filter: AddFilter) => void;
+  /** The InfoPanel item kinds offered (the header's count). */
+  itemCount: number;
+  /** The InfoPanel items and Elements matching a query, as the palette's groups. */
+  items: (query: string) => ReactNode;
+  /** On a screen made for InfoPanel: a widget's Export check icon. */
+  status?: (item: AddItem) => ReactNode;
+}
+
+const FILTERS: { value: AddFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "widgets", label: "Widgets" },
+  { value: "items", label: "InfoPanel items" },
+];
 
 interface Highlight {
   index: number;
@@ -80,6 +102,7 @@ export function AddPanel({
   previewOnHover,
   appearance,
   pageStyle,
+  free,
 }: AddPanelProps) {
   const [kind, setKind] = useState<AddKind>("widget");
   const [category, setCategory] = useState("All");
@@ -96,7 +119,9 @@ export function AddPanel({
   const compact = density === "compact";
 
   const items = catalog[kind];
-  const groups = useMemo(() => addGroups(kind, items, { query, category, recent }), [kind, items, query, category, recent]);
+  // On a Free page the InfoPanel items filter hides the widgets.
+  const hideWidgets = free?.filter === "items" && kind === "widget";
+  const groups = useMemo(() => (hideWidgets ? [] : addGroups(kind, items, { query, category, recent })), [hideWidgets, kind, items, query, category, recent]);
   const rows = useMemo(() => groups.flatMap((g, gi) => g.items.map((item) => ({ item, gi }))), [groups]);
   const optionId = (i: number) => `add-opt-${rows[i].gi}-${rows[i].item.id}`;
   const current = hl && rows[hl.index] ? rows[hl.index].item : undefined;
@@ -219,11 +244,13 @@ export function AddPanel({
   };
 
   const counts = { widget: catalog.widget.length, panel: catalog.panel.length, layout: catalog.layout.length };
-  const showChips = kind === "widget" && !query.trim();
+  const showChips = kind === "widget" && !query.trim() && !hideWidgets;
   const sensor = catalog.widget.find((w) => w.id === "SensorValue");
   /** Another kind with hits for the query (Widgets, Panels, Layouts order). */
   const elsewhere = rows.length === 0 && query.trim() ? KINDS.filter((k) => k.kind !== kind).map((k) => ({ ...k, n: searchItems(catalog[k.kind], query).length })).find((k) => k.n > 0) : undefined;
-  const placeholder = kind === "widget" ? `Search ${counts.widget} widgets` : kind === "panel" ? "Search panels" : "Search layouts";
+  const placeholder = kind === "widget" ? (free ? "Search widgets and items" : `Search ${counts.widget} widgets`) : kind === "panel" ? "Search panels" : "Search layouts";
+  /** The InfoPanel items under the widgets on a Free page (unless the filter is Widgets). */
+  const freeItems = free && kind === "widget" && free.filter !== "widgets" ? free.items(query) : null;
   const listId = "add-panel-list";
 
   return (
@@ -265,24 +292,38 @@ export function AddPanel({
       </div>
 
       <div role="tablist" aria-label="What to add" className="mx-2.5 mt-2.5 flex shrink-0 gap-4 border-b border-ui-subtle">
-        {KINDS.map((k) => (
-          <button
-            key={k.kind}
-            type="button"
-            role="tab"
-            aria-selected={kind === k.kind}
-            onClick={() => pickKind(k.kind)}
-            className={cn(
-              "-mb-px flex h-[30px] items-center gap-1.5 text-[12.5px] font-medium",
-              FOCUS,
-              kind === k.kind ? "text-ui-1 shadow-[inset_0_-2px_0_#ededf0]" : "text-[#7c7c86] hover:text-ui-2"
-            )}
-          >
-            {k.label}
-            <span className="font-ui-mono text-[10.5px] font-normal text-[#6f6f79]">{counts[k.kind]}</span>
-          </button>
-        ))}
+        {KINDS.map((k) => {
+          // Layouts arrange a grid page: none on a Free page.
+          const off = !!free && k.kind === "layout";
+          return (
+            <button
+              key={k.kind}
+              type="button"
+              role="tab"
+              aria-selected={kind === k.kind}
+              disabled={off}
+              title={off ? "Layouts arrange a grid page." : undefined}
+              onClick={() => pickKind(k.kind)}
+              className={cn(
+                "-mb-px flex h-[30px] items-center gap-1.5 text-[12.5px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
+                FOCUS,
+                kind === k.kind ? "text-ui-1 shadow-[inset_0_-2px_0_#ededf0]" : "text-[#7c7c86] hover:text-ui-2"
+              )}
+            >
+              {k.label}
+              <span className="font-ui-mono text-[10.5px] font-normal text-[#6f6f79]">
+                {free && k.kind === "widget" ? `${counts.widget} · ${free.itemCount} items` : counts[k.kind]}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {free && kind === "widget" && (
+        <div className="shrink-0 px-2.5 pt-2.5">
+          <Segmented label="Show" className="w-full flex-nowrap [&>button]:flex-1" value={free.filter} onChange={(f) => { free.onFilter(f); reset(); }} options={FILTERS} />
+        </div>
+      )}
 
       {showChips && (
         <div className="relative shrink-0">
@@ -346,7 +387,7 @@ export function AddPanel({
         }}
         className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto px-1.5 pb-3 pt-1"
       >
-        {rows.length === 0 && query.trim() ? (
+        {rows.length === 0 && query.trim() && !freeItems ? (
           <div className="flex flex-col items-start gap-2.5 px-2 py-5">
             <div className="text-[12.5px] font-medium text-ui-1">Nothing matches “{query.trim()}”</div>
             <p className="text-[12px] leading-[1.5] text-[#8a8a94]">
@@ -394,6 +435,7 @@ export function AddPanel({
                     onDragStart={reset}
                     onRename={item.saved ? (name) => onRenamePreset(item.id, name) : undefined}
                     onDelete={item.saved ? () => onDeletePreset(item.id) : undefined}
+                    status={free?.status?.(item)}
                   />
                 );
               })}
@@ -405,6 +447,12 @@ export function AddPanel({
               )}
             </section>
           ))
+        )}
+        {freeItems && (
+          <section aria-label="InfoPanel items" className="px-1 pt-1">
+            <div className="sticky top-0 z-10 bg-ui-panel px-0.5 pb-0.5 pt-2.5 font-ui-mono text-[10px] uppercase tracking-[0.06em] text-[#8a8a94]">InfoPanel items</div>
+            {freeItems}
+          </section>
         )}
       </div>
 

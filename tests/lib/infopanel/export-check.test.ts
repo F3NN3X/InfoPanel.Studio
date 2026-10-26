@@ -11,8 +11,10 @@ import {
   madeForInfoPanel,
   studioOnlyOf,
   widgetChoice,
+  widgetItemRow,
   widgetRow,
 } from "@/lib/infopanel/export-check.ts";
+import { newWidgetItem } from "@/lib/infopanel/native/widget-item.ts";
 import { openStored } from "@/lib/infopanel/import/session.ts";
 import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored.ts";
 import { storeItems } from "@/lib/infopanel/canvas-edit.ts";
@@ -135,6 +137,38 @@ describe("a page's check", () => {
     expect(freeCanvasOf(screen, { placements: [...free.placements, zone("w", "Weather")] })).toBeNull();
     expect(madeForInfoPanel({ ...screen, pages: [{ id: "a", name: "A", ...free }] })).toBe(true);
     expect(madeForInfoPanel({ ...screen, pages: [{ id: "a", name: "A", ...free }, { id: "b", name: "B", placements: [] }] })).toBe(false);
+  });
+});
+
+describe("a Studio widget item's status (one-editor SPEC §7.1)", () => {
+  const widget = (module: string, extra: Record<string, unknown> = {}) => newWidgetItem({ module, ...extra }, { x: 0, y: 0, w: 300, h: 150 }, module);
+
+  it("is a widget, by its rule: Recreate by default, then Snapshot or Leave out", () => {
+    expect(itemRows([widget("Weather")], true)).toEqual([
+      { path: "0", name: "Weather", kind: "widget", status: "pic", why: "Recreate: picture of the widget, live values on top; the animated sky becomes a static icon" },
+    ]);
+    expect(widgetItemRow(widget("Weather", { onInfoPanel: "snapshot" }), "0")).toMatchObject({ status: "pic", why: "Snapshot: a still picture" });
+    expect(widgetItemRow(widget("Weather", { onInfoPanel: "leave" }), "0")).toMatchObject({ status: "out", why: "Left out by you" });
+  });
+
+  it("shows Left out for a widget that can't convert (decision D2), and for one this build doesn't have", () => {
+    for (const m of ["CodingAgents", "Countdown", "Timer", "WebPage", "WaveLink", "DayPlanner", "RadialClockStack", "OnAirBeacon"]) {
+      expect(widgetItemRow(widget(m), "0")).toMatchObject({ status: "out", why: "Can't be converted" });
+    }
+    expect(widgetItemRow(widget("Timer", { onInfoPanel: "snapshot" }), "0")?.status).toBe("pic");
+    expect(widgetItemRow(widget("FutureWidget"), "0")).toMatchObject({ status: "out", why: "Not available in this version" });
+  });
+
+  it("a digital Clock becomes a Clock item, a panel its items", () => {
+    expect(widgetItemRow(widget("Clock"), "0")).toMatchObject({ status: "ok", why: "Becomes an InfoPanel Clock item" });
+    expect(widgetItemRow(widget("panel", { panel: { widgets: [] } }), "0")).toMatchObject({ status: "ok", why: "Rebuilt as InfoPanel items" });
+    expect(widgetItemRow(widget("panel", { onInfoPanel: "leave" }), "0")?.status).toBe("out");
+  });
+
+  it("counts widget items on a Free page with the InfoPanel items", () => {
+    const text = newItem("Text", profile, palette);
+    const page = { placements: [zone("z", CANVAS_ID, { colSpan: 2, canvas: canvasWith([text, widget("Weather"), widget("Timer")], "file") })] };
+    expect(exportCheck(screen, page).counts).toEqual({ ok: 1, approx: 0, pic: 1, out: 1 });
   });
 });
 
