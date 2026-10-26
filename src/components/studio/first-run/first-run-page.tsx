@@ -21,8 +21,6 @@ import { AddressBar, CheckGroup, CheckRow, KioskCard, OUTLINE_BUTTON, PRIMARY_BU
 import {
   CHECK_IDS,
   DEFAULT_ADDRESS,
-  DOWNLOAD_URL,
-  HWINFO_URL,
   hostPort,
   progressLabel,
   sensorsLine,
@@ -176,12 +174,7 @@ export default function FirstRunPage({ rerun, dataApiUrl, windowSize, onFinish, 
   };
 
   const act = async (id: CheckId, action: CheckAction) => {
-    const external = (url: string) => void window.open(url, "_blank", "noopener,noreferrer");
     switch (action.kind) {
-      case "download":
-        return external(DOWNLOAD_URL);
-      case "hwinfo":
-        return external(HWINFO_URL);
       case "default":
         return applyAddress(DEFAULT_ADDRESS, "local");
       case "address":

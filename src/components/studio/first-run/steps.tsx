@@ -73,7 +73,7 @@ export function WelcomeStep({ headRef, rerun, narrow, results, onSeeChecks }: We
         <p className="m-0 mt-1.5 max-w-[600px] text-[13px] leading-[1.55] text-ui-2">
           {rerun
             ? "Check the link to InfoPanel again, see your kiosk address, or add a screen. Nothing changes until you finish, and your screens are kept."
-            : "Design dashboards for the small screens on and around your PC: USB panels, case screens and bar displays. Studio reads your sensors from InfoPanel, a separate app, through its Data API. It’s already checking that link."}
+            : "Design dashboards for the small screens on and around your PC: USB panels, case screens and bar displays. Studio reads your sensors from InfoPanel, a separate app, so it needs InfoPanel with the Data API installed. It’s already checking that link."}
         </p>
       </div>
       <ol className={cn("m-0 grid list-none items-stretch gap-0 p-0", narrow ? "grid-cols-1 gap-2" : "grid-cols-[1fr_auto_1fr_auto_1fr]")}>

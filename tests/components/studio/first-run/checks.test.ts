@@ -90,7 +90,7 @@ describe("runChecks", () => {
       "reachable:checking", "reachable:ok", "sensors:checking", "sensors:ok", "live:checking", "live:ok", "server:checking", "server:ok",
     ]);
     expect(results.reachable?.result).toBe("Answered in 12 ms · 2 plugins");
-    expect(results.version?.result).toBe("InfoPanel 1.4.0 · has the Data API");
+    expect(results.version?.result).toBe("Has the Data API");
     expect(results.installed?.details?.[2]).toEqual(["Profiles", "1 found · you can import it in Start"]);
   });
 
@@ -145,9 +145,9 @@ describe("runChecks", () => {
 
   it("fails version when settings.xml has no Data API switch, and 4 says so", async () => {
     const { results } = await run(fake({ local: { ...LOCAL, dataApi: null } }).probes);
-    expect(results.version).toMatchObject({ status: "fail", result: "InfoPanel 1.4.0 is too old: its settings have no Data API" });
+    expect(results.version).toMatchObject({ status: "fail", result: "This InfoPanel doesn’t have the Data API yet" });
+    expect(results.version?.steps?.[0]).toBe("Install a version of InfoPanel that has the Data API, over this one. Your profiles and settings are kept.");
     expect(results.switch?.result).toBe("Skipped: this InfoPanel has no Data API");
-    expect(results.version?.actions?.[0].kind).toBe("download");
   });
 
   it("fails a switch that's off with InfoPanel's own setting names", async () => {
@@ -173,6 +173,7 @@ describe("runChecks", () => {
     const noHw = await run(fake({ sources: { ok: true, ms: 5, sources: { ...SOURCES, hardware: { hwinfo: 0, libre: 0 } } } }).probes);
     expect(noHw.results.sensors).toMatchObject({ status: "warn", result: "HWiNFO: no sensors · the other plugins are fine" });
     expect(noHw.results.sensors?.chips?.[0]).toEqual({ name: "HWiNFO", icon: "hwinfo", count: 0 });
+    expect(noHw.results.sensors?.steps?.[0]).toBe("HWiNFO must be running with InfoPanel. Follow InfoPanel’s own HWiNFO setup instructions.");
     expect(noHw.results.live?.status).toBe("ok");
   });
 

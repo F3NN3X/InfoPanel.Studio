@@ -35,7 +35,7 @@ Your dashboards are stored in `%LOCALAPPDATA%\InfoPanel\Dashboard`.
 ## Requirements
 
 - Windows 10 or 11, 64 bit.
-- InfoPanel, running, with its Data API turned on. That is where every sensor value comes from. By default the studio looks for it at `http://127.0.0.1:3921`, and you can change the address in the studio.
+- InfoPanel with the Data API, installed and running, with the Data API turned on in its Settings. That is where every sensor value comes from. By default the studio looks for it at `http://127.0.0.1:3921`, and you can change the address in the studio.
 - Some widgets need an InfoPanel plugin: `wavelink-plugin` for Wave Link, `yr-weather-plugin` for the weather forecast, and `InfoPanel.Notifications` 2.0 or newer for alerts from Windows notifications.
 
 ## Quick start
@@ -57,7 +57,7 @@ http://127.0.0.1:3922/?kiosk=1&profile=<profile id>
 InfoPanel Studio is in beta. Expect rough edges, and expect screens you make today to change as templates and widgets do.
 
 - It runs on Windows only.
-- The sensors come from InfoPanel. When InfoPanel is not running or its Data API is off, widgets show dashes or zeros. If a sensor is renamed after a driver or hardware change, pick it again in the widget's Data tab.
+- The sensors come from InfoPanel, and only a version of InfoPanel with the Data API can serve them. When InfoPanel is not installed, not running or its Data API is off, widgets show dashes or zeros. If a sensor is renamed after a driver or hardware change, pick it again in the widget's Data tab.
 - A screen from a template was drawn against one PC's sensors. Some widgets may need a sensor picked again on your PC.
 - The installer is unsigned, so SmartScreen warns when you first run it.
 - The server listens on this PC only until you change Settings > Server to Local network. Other devices can then view the kiosk, but they can edit only if you also turn on Allow editing from other devices.

@@ -33,9 +33,6 @@ export type CheckStatus = "waiting" | "checking" | "ok" | "warn" | "fail" | "ski
 export const DEFAULT_ADDRESS = "http://127.0.0.1:3921";
 export const EXAMPLE_REMOTE = "http://192.168.1.40:3921";
 
-/** Where an InfoPanel with the Data API comes from: no official release has it yet, the community test builds do. */
-export const DOWNLOAD_URL = "https://github.com/F3NN3X/infopanel/releases";
-export const HWINFO_URL = "https://www.hwinfo.com/download/";
 
 /** A profile in InfoPanel's data folder (`infopanel_local`). */
 export interface ProfileFile {
@@ -96,7 +93,7 @@ export interface Probes {
 }
 
 /** A fix the setup can carry out, or a page it opens. */
-export type ActionKind = "download" | "start" | "restart" | "show" | "address" | "default" | "hwinfo";
+export type ActionKind = "start" | "restart" | "show" | "address" | "default";
 export interface CheckAction {
   kind: ActionKind;
   label: string;
@@ -226,14 +223,13 @@ export function installedResult(local: LocalInfo | null): CheckResult {
     return {
       status: "fail",
       result: "Not found on this PC",
-      why: `Studio looks for InfoPanel’s data folder, ${local.dataDir}, with its settings.xml. It isn’t there.`,
+      why: `Studio needs InfoPanel with the Data API installed on this PC. It looks for InfoPanel’s data folder, ${local.dataDir}, with its settings.xml, and it isn’t there.`,
       steps: [
-        "Download InfoPanel from its download page.",
-        "Run the installer, then start **InfoPanel** once so it creates its data folder.",
+        "Install a version of InfoPanel that has the Data API.",
+        "Start **InfoPanel** once so it creates its data folder.",
         "Come back here and choose **Check again**.",
       ],
       tip: "InfoPanel runs on another PC? Choose **Another PC** above.",
-      actions: [{ kind: "download", label: "Open download page" }],
       help: { label: "Installing InfoPanel", article: "sensors", heading: "installing-infopanel" },
       local,
     };
@@ -267,19 +263,16 @@ export function runningResult(local: LocalInfo): CheckResult {
 }
 
 export function versionResult(local: LocalInfo): CheckResult {
-  const named = local.version ? `InfoPanel ${local.version}` : "This InfoPanel";
-  if (local.dataApi) return { status: "ok", result: local.version ? `InfoPanel ${local.version} · has the Data API` : "Has the Data API", local };
+  if (local.dataApi) return { status: "ok", result: "Has the Data API", local };
   return {
     status: "fail",
-    result: `${named} is too old: its settings have no Data API`,
-    why: "The Data API isn’t in an official InfoPanel release yet. It’s in the community test builds, from 1.4.0-preview.3.f3nn3x.1 on, and this InfoPanel’s settings.xml has no switch for it.",
+    result: "This InfoPanel doesn’t have the Data API yet",
+    why: "Studio needs InfoPanel with the Data API. This InfoPanel’s settings.xml has no switch for it.",
     steps: [
-      "Download the latest community test build from its releases page.",
-      "Install it over this one. Your profiles and settings are kept.",
+      "Install a version of InfoPanel that has the Data API, over this one. Your profiles and settings are kept.",
       "Start InfoPanel again, then choose **Check again**.",
     ],
-    tip: "Already on a build with the Data API? Turn on **Enable Data API** in its **Settings** once: InfoPanel only writes the switch to settings.xml when a setting changes.",
-    actions: [{ kind: "download", label: "Open download page" }],
+    tip: "Already on a version with the Data API? Turn on **Enable Data API** in its **Settings** once: InfoPanel only writes the switch to settings.xml when a setting changes.",
     help: { label: "Updating InfoPanel", article: "sensors", heading: "updating-infopanel" },
     local,
   };
@@ -422,6 +415,9 @@ export function sensorsLine(s: SensorSummary): string {
   return `${s.count} ${s.count === 1 ? "sensor" : "sensors"} from ${sources} ${sources === 1 ? "source" : "sources"}`;
 }
 
+/** HWiNFO's setup is InfoPanel's to explain: the checks only say it has to run. */
+const HWINFO_LINE = "HWiNFO must be running with InfoPanel. Follow InfoPanel’s own HWiNFO setup instructions.";
+
 export function sensorsResult(s: SensorSummary, hardwareNeeded: boolean): CheckResult {
   const chips = sensorChips(s);
   if (s.count === 0)
@@ -431,10 +427,9 @@ export function sensorsResult(s: SensorSummary, hardwareNeeded: boolean): CheckR
       chips,
       steps: [
         "In InfoPanel, open **Plugins** and check that the plugins are enabled.",
-        "Start **HWiNFO** with **Shared Memory Support** on, in HWiNFO’s **Settings**.",
+        HWINFO_LINE,
         "Restart InfoPanel, then choose **Check again**.",
       ],
-      actions: [{ kind: "hwinfo", label: "Get HWiNFO" }],
       summary: s,
     };
   if (hardwareNeeded && (s.hwinfo ?? 0) === 0 && (s.libre ?? 0) === 0)
@@ -443,13 +438,7 @@ export function sensorsResult(s: SensorSummary, hardwareNeeded: boolean): CheckR
       result: "HWiNFO: no sensors · the other plugins are fine",
       chips,
       why: "Temperatures, fans, clocks and power come from HWiNFO. Templates that use them show placeholders for those readings.",
-      steps: [
-        "Start **HWiNFO**.",
-        "In HWiNFO’s **Settings**, turn on **Show sensors on startup** and **Shared Memory Support**, then choose **OK**.",
-        "Keep HWiNFO running while you use Studio and your panels.",
-        "Choose **Check again**.",
-      ],
-      actions: [{ kind: "hwinfo", label: "Get HWiNFO" }],
+      steps: [HWINFO_LINE, "Choose **Check again**."],
       summary: s,
     };
   return { status: "ok", result: sensorsLine(s), chips, summary: s };
@@ -495,7 +484,7 @@ export function liveResult(samples: readonly SensorMap[]): CheckResult {
     sample: sample || undefined,
     why: "The Data API answers, but with the same values each time. Usually HWiNFO has stopped updating.",
     steps: [
-      "In HWiNFO’s sensor window, check that the readings move. If they don’t, close HWiNFO and start it again.",
+      HWINFO_LINE,
       "If that doesn’t help, restart InfoPanel, then choose **Check again**.",
     ],
   };

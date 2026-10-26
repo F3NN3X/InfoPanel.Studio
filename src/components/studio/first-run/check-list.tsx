@@ -72,7 +72,7 @@ export function StatusIcon({ status }: { status: CheckResult["status"] }) {
 /** Plugin chips shown before "n more": the hardware sources and the plugins with the most sensors. */
 const CHIPS_SHOWN = 6;
 const CHIP_ICON: Record<Chip["icon"], LucideIcon> = { hwinfo: Thermometer, system: Cpu, network: Network, media: Music, plugin: Puzzle };
-const ACTION_ICON: Partial<Record<CheckAction["kind"], LucideIcon>> = { download: ExternalLink, hwinfo: ExternalLink, start: Play, show: ExternalLink, restart: RotateCcw };
+const ACTION_ICON: Partial<Record<CheckAction["kind"], LucideIcon>> = { start: Play, show: ExternalLink, restart: RotateCcw };
 
 const BUTTON = "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] border px-2.5 text-[12px] outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60";
 export const PRIMARY_BUTTON = cn(BUTTON, "border-ui-accent bg-ui-accent font-semibold text-ui-inverse-fg hover:opacity-90");

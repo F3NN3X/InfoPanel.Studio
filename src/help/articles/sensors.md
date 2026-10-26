@@ -14,10 +14,10 @@ The setup's **Data checks** step tests this link one piece at a time. The sectio
 
 ## Installing InfoPanel
 
-InfoPanel is a separate app. The Data API isn't in an official InfoPanel release yet: it's in the community test builds of InfoPanel, from `1.4.0-preview.3.f3nn3x.1` on, on the releases page of github.com/F3NN3X/infopanel.
+InfoPanel is a separate app, and Studio needs a version of it that has the Data API.
 
-1. Download the latest build's installer from that page.
-2. Run it, then start **InfoPanel** once so it creates its data folder, `%LOCALAPPDATA%\InfoPanel`.
+1. Install InfoPanel with the Data API.
+2. Start **InfoPanel** once so it creates its data folder, `%LOCALAPPDATA%\InfoPanel`.
 3. In InfoPanel, open **Settings**. Under **Data API**, turn on **Enable Data API**. InfoPanel starts it at once and saves the setting.
 4. To have readings every time you sign in, turn on **Run on startup** in the same **Settings** page.
 
@@ -25,9 +25,9 @@ InfoPanel asks to run as administrator, so Windows asks for permission when it s
 
 ## Updating InfoPanel
 
-If the setup says your InfoPanel is too old, its settings.xml has no Data API switch. Install the latest community test build over the one you have: your profiles and settings are kept. Start InfoPanel again and turn on **Enable Data API** in its **Settings**.
+If the setup says your InfoPanel doesn't have the Data API yet, its settings.xml has no Data API switch. Install a version of InfoPanel that has the Data API over the one you have: your profiles and settings are kept. Start InfoPanel again and turn on **Enable Data API** in its **Settings**.
 
-InfoPanel only writes a setting to settings.xml when a setting changes. If you already run a build with the Data API but have never changed a setting, turning on **Enable Data API** once is enough for the setup to find it.
+InfoPanel only writes a setting to settings.xml when a setting changes. If your InfoPanel already has the Data API but you've never changed a setting, turning on **Enable Data API** once is enough for the setup to find it.
 
 ## A Data API on another PC
 
