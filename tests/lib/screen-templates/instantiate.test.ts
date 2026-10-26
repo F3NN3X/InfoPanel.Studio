@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { zoneFits } from "@/components/studio/zone-geometry";
 import { invalidStyleKeys } from "@/lib/appearance-presets";
+import { TEMPLATES } from "@/lib/infopanel/templates/catalog";
 import { shapeClassOf, type ShapeClass } from "@/lib/infopanel/templates/layout";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
 import { CONFIG_VERSION, defaultConfig, mergeConfig } from "@/lib/layout";
@@ -27,7 +28,8 @@ function badSettings(module: string, settings: Record<string, unknown>): string[
     if ((def.type === "select" || def.type === "preset") && def.options?.length) {
       const offered = def.options.map((o) => o.value);
       const parts = String(value).split(",");
-      return parts.every((p) => offered.includes(p)) ? [] : [`${key}=${String(value)}`];
+      // An empty list is a valid pick of a multiple select (a bar slot left empty), as the widgets' own presets set it.
+      return value === "" || parts.every((p) => offered.includes(p)) ? [] : [`${key}=${String(value)}`];
     }
     return [];
   });
@@ -71,6 +73,14 @@ describe("native screen templates", () => {
     expect(t.fits.length).toBeGreaterThan(0);
     if (t.size) expect(t.fits).toContain(shapeClassOf(t.size.width, t.size.height));
     for (const cls of t.fits) expect(t.layouts[cls]?.pages.length).toBe(t.pages?.length ?? 1);
+  });
+
+  it("has a native version of every InfoPanel template, listed under the same shapes", () => {
+    for (const ip of TEMPLATES) {
+      const port = SCREEN_TEMPLATES.find((t) => t.id === ip.id);
+      expect(port?.port, ip.id).toBe(true);
+      expect(port?.fits, ip.id).toEqual(ip.fits);
+    }
   });
 
   it("splits the grid so its cells keep their shape at a longer size of the class", () => {

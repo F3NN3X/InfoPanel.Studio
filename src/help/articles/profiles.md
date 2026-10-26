@@ -46,8 +46,10 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 | **Minimal** | A big clock with the date and three readings: CPU and GPU temperature and RAM load |
 | **Status bar** | One bar with the time, load, temperatures and network, for thin strip displays |
 
+Below the starters, under **InfoPanel templates, made with native widgets**, sit 17 templates that copy the look of the InfoPanel profile templates of the same names: Graphite, Glass, Neon, Paper, Mono, Terminal, Clock, Cores, Deck, Meters, Orbit, Tower, Ticker, Readout, Console, Frost Bar and Quota. They are real widgets, not a picture, so they keep up with the sensors and you can change any zone. Their own palette variants aren't carried over: each comes in its first colours, and **Theme** changes them. They list under the same shapes as the originals.
+
 - The chips above the cards sort them by shape: **Strip** (4:1 or wider), **Wide**, **Standard** and **Tall** (narrower than square). They start on the shape of the chosen size, and **All** lists every shape with that one first.
-- Each card is a plan of the template's zones at that size. A template has its own arrangement for each shape it lists under, so a tall screen gets a column and a strip gets a row.
+- Each card is a picture of the template at that size, taken while you look at the list. Until it arrives you see a plan of its zones. A template has its own arrangement for each shape it lists under, so a tall screen gets a column and a strip gets a row.
 - Choosing a template that has no arrangement for the chosen size's shape switches the size to one it does have. **Status bar** only fits strips, so choosing it at 480 × 1920 switches to 1280 × 160.
 - The template brings its look as the screen's own: colours, background, widget skin and effects. Change them in **Theme** with the screen as the scope.
 - The grid is split to suit the size. A strip twice as long for its height gets twice the columns, so zones keep their shape and widgets you add later get sensible boxes.

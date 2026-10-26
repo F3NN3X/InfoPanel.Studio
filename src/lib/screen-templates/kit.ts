@@ -57,6 +57,8 @@ export interface ScreenTemplate {
   name: string;
   /** One line for the gallery. */
   blurb: string;
+  /** A native version of an InfoPanel profile template (same look and content): the gallery lists it apart from the starters. */
+  port?: boolean;
   /** The shape classes it looks designed for; the gallery sorts by them. Includes the class of `size`. */
   fits: readonly ShapeClass[];
   /** The size it is made for; the gallery switches to it when the template is chosen at a size it doesn't fit. */
