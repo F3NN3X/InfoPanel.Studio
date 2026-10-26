@@ -1,19 +1,9 @@
 import type { ModuleSettings } from "@/modules/types";
 import { weatherKind } from "@/lib/weather-icons";
-import { Widget, shell, get, num, fmt, rows, WeatherGlyph, weatherIcon, type ShellProps, type WeatherIconProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, rows, WeatherGlyph, weatherIcon, type ShellProps, type WeatherIconProps } from "./kit";
+import { meta } from "./meta/Forecast";
 
-export const meta: WidgetMeta = {
-  id: "Forecast",
-  name: "Forecast",
-  category: "Info",
-  icon: "calendar_month",
-  prefixes: [],
-  defaultSize: [4, 1],
-  minSize: [1, 1],
-  blurb: "Multi-day forecast with highs and lows",
-  tags: "weather",
-  description: "Multi-day MET/Yr forecast — horizontal in wide zones, vertical list in tall ones, with hi/lo range bars.",
-};
+export { meta };
 
 interface Day {
   day: string;

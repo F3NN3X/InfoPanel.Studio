@@ -2,20 +2,10 @@ import { useId } from "react";
 import { VectorGaugeSvg } from "@/components/infopanel/VectorGaugeSvg";
 import { STARTERS } from "@/lib/infopanel/gauges/presets";
 import { fraction, normalizeGauge, type VectorGauge } from "@/lib/infopanel/gauges/vector";
-import { Widget, shell, get, num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, type ShellProps } from "./kit";
+import { meta } from "./meta/CustomGauge";
 
-export const meta: WidgetMeta = {
-  id: "CustomGauge",
-  name: "Custom gauge",
-  category: "Generic",
-  icon: "gauge",
-  prefixes: [],
-  defaultSize: [1, 1],
-  minSize: [1, 1],
-  blurb: "A gauge you design, on any value",
-  tags: "gauge dial custom",
-  description: "A gauge you design in Gauges, driven by any one data point.",
-};
+export { meta };
 
 export interface CustomGaugeProps extends ShellProps {
   /** The data key to bind. */

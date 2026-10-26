@@ -3,32 +3,18 @@ import { AGENT_COLORS, AGENT_IDS, AGENT_NAMES, bySalience, modelLabel, planView,
 import { extras } from "@/lib/extras";
 import { useNow } from "@/components/widgets/hooks";
 import { PulseDot } from "@/components/pulse-dot";
-import { Empty, Widget, fitRows, shell, type ShellProps, type WidgetMeta } from "./kit";
+import { Empty, Widget, fitRows, shell, type ShellProps } from "./kit";
 import { BarLimits, RingLimits, barDensity, densityH, ringLayout, type Density, type LimitStyle, type Percent, type PlanEntry, type RingLayout } from "./CodingAgents/limits";
 import { Breakdown, breakdownH, breakdownOf, tokensToday } from "./CodingAgents/breakdown";
 import { LimitsView, SummaryView } from "./CodingAgents/summary";
 import { BARS_H, DailyBars, HEADER_H, Heatmap, HistoryHeader, dayKey, heatmapFit, heatmapWeeks, type HeatFit, type HistoryStyle } from "./CodingAgents/history";
+import { meta } from "./meta/CodingAgents";
+
+export { meta };
 
 export { resetText } from "./CodingAgents/limits";
 
-export const meta: WidgetMeta = {
-  id: "CodingAgents",
-  name: "Coding Agents",
-  category: "System",
-  icon: "smart_toy",
-  prefixes: [],
-  defaultSize: [3, 3],
-  minSize: [1, 1],
-  blurb: "Claude Code and Codex sessions and usage",
-  tags: "claude codex ai agents tokens",
-  views: [
-    { id: "full", name: "Full" },
-    { id: "summary", name: "Summary", blurb: "Plan limits, today and sessions" },
-    { id: "limits", name: "Limits", blurb: "Plan limit bars only" },
-  ],
-  description:
-    "Claude Code and Codex: each session working, waiting for you or done (with its model and cost), the plan's 5-hour and weekly use, tokens per day, and this week's split by model and project. Connect them once with node tools/agent-install.mjs.",
-};
+
 
 export type AgentFilter = "both" | AgentId;
 

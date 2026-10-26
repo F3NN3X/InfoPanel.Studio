@@ -4,14 +4,29 @@ import { notificationsIsland } from "../island/info";
 import { styleSubsetSettings } from "@/modules/standard-settings";
 import type { DashboardModule, ModuleSetting, ModuleSettings } from "@/modules/types";
 import { templateModule, type TemplateOptions } from "../module";
+import { lazyWidget } from "../lazy-widget";
 import { INSPECTOR_META } from "./inspector-meta";
 import { boolOf, boolSetting, colorSetting, numberOf, numberSetting, stringOf, textSetting, viewSetting } from "./settings-kit";
-import Bluetooth, { meta as bluetoothMeta, type BluetoothProps } from "../Bluetooth";
-import Departures, { meta as departuresMeta, type DeparturesProps } from "../Departures";
-import Notifications, { meta as notificationsMeta, type NotificationsProps } from "../Notifications";
-import StreamDeck, { meta as streamDeckMeta, type StreamDeckProps } from "../StreamDeck";
-import TextFile, { meta as textFileMeta, type TextFileProps } from "../TextFile";
-import WebPage, { meta as webPageMeta, type WebPageProps } from "../WebPage";
+import type { BluetoothProps } from "../Bluetooth";
+import { meta as bluetoothMeta } from "../meta/Bluetooth";
+import type { DeparturesProps } from "../Departures";
+import { meta as departuresMeta } from "../meta/Departures";
+import type { NotificationsProps } from "../Notifications";
+import { meta as notificationsMeta } from "../meta/Notifications";
+import type { StreamDeckProps } from "../StreamDeck";
+import { meta as streamDeckMeta } from "../meta/StreamDeck";
+import type { TextFileProps } from "../TextFile";
+import { meta as textFileMeta } from "../meta/TextFile";
+import type { WebPageProps } from "../WebPage";
+import { meta as webPageMeta } from "../meta/WebPage";
+
+// Each component loads in its own chunk, the first time a zone draws it.
+const Bluetooth = lazyWidget(() => import("../Bluetooth"));
+const Departures = lazyWidget(() => import("../Departures"));
+const Notifications = lazyWidget(() => import("../Notifications"));
+const StreamDeck = lazyWidget(() => import("../StreamDeck"));
+const TextFile = lazyWidget(() => import("../TextFile"));
+const WebPage = lazyWidget(() => import("../WebPage"));
 
 /**
  * A web page has no layout of its own: a URL, and its declared look subset (size and corners, an

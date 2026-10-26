@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, Metric, BarRow, Ring, Spark, Dot, useHistory, tone, TONES, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, Metric, BarRow, Ring, Spark, Dot, useHistory, tone, TONES, Num, type ShellProps } from "./kit";
+import { meta } from "./meta/SystemStatus";
 
-export const meta: WidgetMeta = {
-  id: "SystemStatus",
-  name: "System Status",
-  category: "System",
-  icon: "monitor_heart",
-  prefixes: ["system."],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "CPU, RAM and Data API health",
-  tags: "health api cpu ram",
-  description: "CPU + RAM load and Data API health.",
-};
+export { meta };
 
 export interface SystemStatusProps extends ShellProps {
   look?: ModuleSettings;

@@ -1,23 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { bodyGap, useFitRows, Widget, shell, get, num, has, Dot, Pill, type ShellProps, type WidgetMeta } from "./kit";
+import { bodyGap, useFitRows, Widget, shell, get, num, has, Dot, Pill, type ShellProps } from "./kit";
+import { meta } from "./meta/ServiceHealth";
 
-export const meta: WidgetMeta = {
-  id: "ServiceHealth",
-  name: "Service Health",
-  category: "System",
-  icon: "health_and_safety",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Status of every data source",
-  tags: "plugins sources status",
-  description: "One status board for every data source: Data API, LibreHW, RTSS, Wave Link, Spotify, media, Steam, weather, network.",
-  viewKey: "healthLayout",
-  views: [
-    { id: "list", name: "List" },
-    { id: "pills", name: "Pills", blurb: "Every data source as a status pill", tags: "chips badges compact" },
-  ],
-};
+export { meta };
 
 export interface ServiceHealthProps extends ShellProps {
   look?: ModuleSettings;

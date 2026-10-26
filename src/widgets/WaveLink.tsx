@@ -1,23 +1,14 @@
 import type { CSSProperties } from "react";
-import { SILENCE_DB, formatDb } from "@/lib/audio/decibels";
+import { formatDb } from "@/lib/audio/decibels";
 import { meterKey, useWavelinkState, type WlChannel, type WlDevice, type WlGain, type WlMix, type WlState } from "@/lib/wavelink";
 import type { ModuleSettings } from "@/modules/types";
 import { useElementSize } from "@/hooks/use-element-size";
-import { useFitRows, Widget, shell, Icon, Chip, Empty, STATE, type BallisticsPreset, type ShellProps, type Tier, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, Icon, Chip, Empty, STATE, type BallisticsPreset, type ShellProps, type Tier } from "./kit";
 import { MeterPair, dbPos, fmtDb, useWlLevels, type MeterVariant } from "./WaveLink/meters";
+import { meta } from "./meta/WaveLink";
+import { fader } from "./WaveLink/fader";
 
-export const meta: WidgetMeta = {
-  id: "WaveLink",
-  name: "Wave Link",
-  category: "Audio",
-  icon: "mic",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Elgato Wave Link channels and gain",
-  tags: "elgato microphone",
-  description: "The Elgato Wave Link mixer: software channels with live L/R meters, fader, mute and mix routes, output devices and the app's mixes.",
-};
+export { meta, fader };
 
 export interface WaveLinkProps extends ShellProps {
   look?: ModuleSettings;
@@ -53,14 +44,6 @@ export interface Opts {
   color?: string;
 }
 
-/**
- * A fader as Wave Link's calibrated gain in dB (plugin 1.2+: `levelDb`, null = −∞), or its
- * position in % from older plugins.
- */
-export const fader = (level: number | null, levelDb?: number | null): string => {
-  if (levelDb !== undefined) return formatDb(levelDb ?? SILENCE_DB, { decimals: 1 });
-  return level === null ? "—" : `${Math.round(level * 100)}%`;
-};
 /**
  * Input gain in dB as Wave Link shows it, or % for a gain without a dB scale (plugin 1.2+ sends
  * `valueDb: null` for those). Older plugins send no `valueDb`: a Wave mic's `value × max` is its dB.

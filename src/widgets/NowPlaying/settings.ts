@@ -2,7 +2,8 @@
 // mapping from the stored keys to NowPlaying props; the old keys stay readable for unmigrated settings.
 import type { ModuleSetting, ModuleSettings } from "@/modules/types";
 import { VIZ_STYLES, type VizLook, type VizStyle } from "../core/viz/types";
-import { meta, type NowPlayingProps } from "../NowPlaying";
+import type { NowPlayingProps } from "../NowPlaying";
+import { meta } from "../meta/NowPlaying";
 import { devicesOf } from "@/modules/setting-readers";
 import { audioFlowSetting } from "../registry/audio-settings";
 import { boolSetting, colorSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, viewOnly, viewSetting } from "../registry/settings-kit";

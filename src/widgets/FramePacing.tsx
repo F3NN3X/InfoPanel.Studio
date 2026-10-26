@@ -1,17 +1,7 @@
-import { Widget, shell, get, num, fmt, useHistory, frameSample, frameBudgets, frameTimeTop, sparkY, Spark, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, useHistory, frameSample, frameBudgets, frameTimeTop, sparkY, Spark, Num, type ShellProps } from "./kit";
+import { meta } from "./meta/FramePacing";
 
-export const meta: WidgetMeta = {
-  id: "FramePacing",
-  name: "Frame Pacing",
-  category: "Gaming",
-  icon: "timeline",
-  prefixes: [],
-  defaultSize: [4, 2],
-  minSize: [2, 1],
-  blurb: "Frame-time graph with budget lines",
-  tags: "stutter fps frametime",
-  description: "Frame-time graph with refresh-rate and 60 Hz budget lines — average FPS hides stutter, frame-time spikes show it. Friendly empty state when no game runs.",
-};
+export { meta };
 
 export interface FramePacingProps extends ShellProps {
   /** Budget lines in Hz; default = [refresh rate, 60]. */

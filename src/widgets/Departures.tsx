@@ -1,21 +1,11 @@
 import type { ModuleSettings } from "@/modules/types";
 import { entryText } from "./entries";
-import { Widget, shell, Chip, Empty, Metric, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, Chip, Empty, Metric, Num, type ShellProps } from "./kit";
+import { meta, P } from "./meta/Departures";
 
-const P = "plugins.InfoPanel.VBZ.";
+export { meta };
 
-export const meta: WidgetMeta = {
-  id: "Departures",
-  name: "Departures",
-  category: "Info",
-  icon: "departure_board",
-  prefixes: [P],
-  defaultSize: [3, 2],
-  minSize: [2, 1],
-  blurb: "Next departures from your stop",
-  tags: "transit bus tram train vbz",
-  description: "Public transport departures from the VBZ plugin: time, line and destination, with the station and status.",
-};
+
 
 export interface DeparturesProps extends ShellProps {
   look?: ModuleSettings;

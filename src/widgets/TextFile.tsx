@@ -1,21 +1,11 @@
 import type { ModuleSettings } from "@/modules/types";
 import { entryText } from "./entries";
-import { Widget, shell, num, Empty, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, num, Empty, type ShellProps } from "./kit";
+import { meta, P } from "./meta/TextFile";
 
-const P = "plugins.InfoPanel.TextFile.";
+export { meta };
 
-export const meta: WidgetMeta = {
-  id: "TextFile",
-  name: "Text File",
-  category: "Info",
-  icon: "description",
-  prefixes: [P],
-  defaultSize: [3, 2],
-  minSize: [2, 1],
-  blurb: "A watched text file, live",
-  tags: "text file log",
-  description: "Shows a text file the TextFile plugin watches, with its size, line count and status.",
-};
+
 
 export interface TextFileProps extends ShellProps {
   look?: ModuleSettings;

@@ -3,20 +3,10 @@ import { cn } from "@/lib/utils";
 import type { ModuleSettings } from "@/modules/types";
 import { isImageUrl } from "@/lib/image";
 import { widgetImage } from "./data-adapter";
-import { IpTagCtx, Widget, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, tone, TONES, type ShellProps, type WidgetMeta } from "./kit";
+import { IpTagCtx, Widget, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, tone, TONES, type ShellProps } from "./kit";
+import { meta } from "./meta/SensorValue";
 
-export const meta: WidgetMeta = {
-  id: "SensorValue",
-  name: "Sensor",
-  category: "Generic",
-  icon: "sensors",
-  prefixes: [],
-  defaultSize: [1, 1],
-  minSize: [1, 1],
-  blurb: "Any single value as number, gauge or bar",
-  tags: "bind value custom",
-  description: "Bind any single data point. Shows it as a value, gauge, bar or sparkline with thresholds.",
-};
+export { meta };
 
 export interface SensorValueProps extends ShellProps {
   look?: ModuleSettings;

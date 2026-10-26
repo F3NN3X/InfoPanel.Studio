@@ -1,19 +1,9 @@
 import { useEffect, useRef } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, heat, rampColor, accentOf, hw, Num, useIpTag, type ShellProps } from "./kit";
+import { meta } from "./meta/CoreHeatmap";
 
-export const meta: WidgetMeta = {
-  id: "CoreHeatmap",
-  name: "Core Heatmap",
-  category: "Hardware",
-  icon: "grid_on",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Per-core load as a heatmap",
-  tags: "cpu cores honeycomb waterfall",
-  description: "Per-core CPU heatmap in four shapes: grid, honeycomb, radial and a scrolling waterfall, with selectable colour ramps.",
-};
+export { meta };
 
 const HEX = (cx: number, cy: number, r: number) =>
   Array.from({ length: 6 }, (_, i) => {

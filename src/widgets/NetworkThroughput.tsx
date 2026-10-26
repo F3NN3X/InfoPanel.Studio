@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, fmtGB, fmtRate, rateUnitOf, adapterOf, pretty, hue, Spark, Stat, Icon, Num, useHistory, useIpTag, Empty, type RateUnit, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, fmtGB, fmtRate, rateUnitOf, adapterOf, pretty, hue, Spark, Stat, Icon, Num, useHistory, useIpTag, Empty, type RateUnit, type ShellProps } from "./kit";
+import { meta } from "./meta/NetworkThroughput";
 
-export const meta: WidgetMeta = {
-  id: "NetworkThroughput",
-  name: "Network Traffic",
-  category: "Network",
-  icon: "swap_vert",
-  prefixes: ["libre.ethernet", "libre.wifi", "libre.tailscale", "libre.bluetooth_network", "libre.vethernet"],
-  defaultSize: [3, 1],
-  minSize: [1, 1],
-  blurb: "Live download and upload",
-  tags: "internet bandwidth speed",
-  description: "Live download / upload rate with history, totals and utilisation per adapter.",
-};
+export { meta };
 
 export interface NetworkThroughputProps extends ShellProps {
   look?: ModuleSettings;

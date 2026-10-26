@@ -1,18 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Widget, shell, get, num, fmt, has, useSkin, useIpTag, hw, type IpTagExtra, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, useSkin, useIpTag, hw, type IpTagExtra, type ShellProps } from "./kit";
+import { meta } from "./meta/OsdStrip";
 
-export const meta: WidgetMeta = {
-  id: "OsdStrip",
-  name: "OSD Strip",
-  category: "Gaming",
-  icon: "videogame_asset",
-  prefixes: [],
-  defaultSize: [6, 1],
-  minSize: [2, 1],
-  blurb: "In-game overlay strip",
-  tags: "rtss afterburner osd fps",
-  description: "In-game overlay strip (RTSS / Afterburner OSD): fixed cell order, monospace digits, colour only when a value drops.",
-};
+export { meta };
 
 export type OsdCell = "fps" | "low" | "ft" | "gpu" | "cpu" | "vram" | "display";
 

@@ -1,19 +1,9 @@
 import { useState } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, fmtMB, rows, Metric, Stat, Bar, Segmented, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, fmtMB, rows, Metric, Stat, Bar, Segmented, type ShellProps } from "./kit";
+import { meta } from "./meta/ProcessList";
 
-export const meta: WidgetMeta = {
-  id: "ProcessList",
-  name: "Processes",
-  category: "System",
-  icon: "list_alt",
-  prefixes: ["plugins.system-info-plugin.processes."],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Top processes by CPU or memory",
-  tags: "tasks threads",
-  description: "Top processes by CPU or memory, plus process / thread / handle counts.",
-};
+export { meta };
 
 type Sort = "cpu" | "utility" | "memory";
 

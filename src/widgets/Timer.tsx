@@ -1,20 +1,10 @@
 import { useSyncExternalStore } from "react";
 import type { ModuleSettings } from "@/modules/types";
 import { clockOf, leftOf, timer, type TimerState } from "@/lib/timer";
-import { Widget, shell, Num, Bar, Icon, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, Num, Bar, Icon, type ShellProps } from "./kit";
+import { meta } from "./meta/Timer";
 
-export const meta: WidgetMeta = {
-  id: "Timer",
-  name: "Timer",
-  category: "Info",
-  icon: "timer",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Countdown, presets and pomodoro",
-  tags: "countdown pomodoro stopwatch",
-  description: "A countdown with preset buttons and a pomodoro, for screens you can touch. Sends to the Dynamic Island.",
-};
+export { meta };
 
 export interface TimerProps extends ShellProps {
   look?: ModuleSettings;

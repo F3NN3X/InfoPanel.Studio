@@ -12,6 +12,7 @@ import { splitIslandAlerts } from "@/lib/island/from-alerts";
 import { ISLAND_DEFAULTS } from "@/lib/island/config";
 import { islandFeeds } from "@/lib/island/sources";
 import { modules } from "@/modules";
+import { useLoadedProfile, useWidgetPreload } from "@/widgets/preload";
 import { PageDots, PAGE_DOTS_STRIP_PX } from "@/components/page-dots";
 import { resolveBackground } from "@/lib/appearance";
 import { appearanceOf, zoneResolver } from "@/lib/style-resolve";
@@ -153,14 +154,15 @@ export default function App() {
     : studio
       ? editedProfileId(config, pinnedId, windowSize.w, windowSize.h)
       : viewProfile;
-  const stored = resolveProfile(
-    forcedProfile ? { ...config, activeProfile: forcedProfile } : config,
-    windowSize.w,
-    windowSize.h
-  );
   // Kiosk: the server's config has been asked for once. Until then the profile is the local copy's (the defaults in
   // a fresh browser), which is neither reported as shown nor rendered.
   const [kioskPulled, setKioskPulled] = useState(false);
+  // A kiosk keeps its screen up until the next screen's widgets are in (`src/widgets/preload.ts`).
+  const stored = useLoadedProfile(
+    resolveProfile(forcedProfile ? { ...config, activeProfile: forcedProfile } : config, windowSize.w, windowSize.h),
+    modules,
+    kiosk && kioskPulled
+  );
   useEffect(() => {
     if (kiosk && kioskPulled) setShownId(stored.id);
   }, [kiosk, kioskPulled, stored.id]);
@@ -175,6 +177,8 @@ export default function App() {
     () => profileWithPage(stored, studio ? studioPage : kioskPage),
     [stored, studio, studioPage, kioskPage]
   );
+  // The shown page's widget kinds load together once the profile is known; its other pages' follow when idle.
+  useWidgetPreload(stored, profile.pageId, modules, !kiosk || kioskPulled);
   // The page can vanish (delete, undo, another profile): the view fell back to the first one.
   useEffect(() => {
     if (studio && profile.pageId !== studioPage) setStudioPage(profile.pageId);

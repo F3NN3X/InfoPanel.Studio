@@ -1,30 +1,11 @@
 import type { ModuleSettings } from "@/modules/types";
 import { useFastSensors } from "@/hooks/useSensors";
 import { AUDIO } from "./audio-device";
-import { Widget, useFitRows, shell, fmt, Num, Spark, LedLadder, slideX, STATE, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, useFitRows, shell, fmt, Num, Spark, LedLadder, slideX, STATE, hue, useHistory, useMeterBallistics, clamp, type BallisticsPreset, type ShellProps } from "./kit";
 import { audioIdsIn, pickedIds, readDevice, type AudioDevice, type FlowFilter } from "./audio-data";
+import { meta, AUDIO_WARN_DB, AUDIO_HOT_DB } from "./meta/AudioMeter";
 
-export const meta: WidgetMeta = {
-  id: "AudioMeter",
-  name: "Audio Meter",
-  category: "Audio",
-  icon: "graphic_eq",
-  prefixes: ["plugins.audio-level-meter."],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "Left and right level with peak hold",
-  tags: "level db sound",
-  description: "L/R level, peak, RMS and peak-hold for one device, or a meter bridge for all devices.",
-  viewKey: "mode",
-  views: [
-    { id: "single", name: "One device" },
-    { id: "bridge", name: "All devices", blurb: "A meter bridge for every audio device", tags: "bridge mixer devices", defaultSize: [3, 2] },
-  ],
-};
-
-/** The amber and hot zones' defaults in dBFS: the LED ladder's 72 % and 90 % of full scale (before config v8 fixed). */
-export const AUDIO_WARN_DB = 20 * Math.log10(0.72);
-export const AUDIO_HOT_DB = 20 * Math.log10(0.9);
+export { meta, AUDIO_WARN_DB, AUDIO_HOT_DB };
 
 /** A dBFS level as the meter's % of full scale (linear amplitude, as Meter Bridge reads the levels), to 0.001 %; off (Infinity) never trips. */
 const pctOf = (db: number): number => (Number.isFinite(db) ? Math.round(100 * 10 ** (db / 20) * 1000) / 1000 : db > 0 ? Number.POSITIVE_INFINITY : 0);

@@ -1,19 +1,9 @@
 import { useRef } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { bodyGap, useFitRows, Widget, shell, get, num, fmt, STATE, hw, Pill, type ShellProps, type WidgetMeta } from "./kit";
+import { bodyGap, useFitRows, Widget, shell, get, num, fmt, STATE, hw, Pill, type ShellProps } from "./kit";
+import { meta } from "./meta/StatusTracker";
 
-export const meta: WidgetMeta = {
-  id: "StatusTracker",
-  name: "Status Tracker",
-  category: "System",
-  icon: "view_week",
-  prefixes: [],
-  defaultSize: [4, 2],
-  minSize: [2, 1],
-  blurb: "State history, one block per reading",
-  tags: "history tracker load",
-  description: "History of a state, one block per reading (Tremor Tracker style): OK, 50–80 %, above 80 %, no data. Hover a block for its value.",
-};
+export { meta };
 
 type St = "ok" | "warn" | "crit" | "none";
 interface Cell {

@@ -3,11 +3,22 @@
 import type { DashboardModule } from "@/modules/types";
 import { thresholdsOf } from "@/modules/setting-readers";
 import { templateModule } from "../module";
+import { lazyWidget } from "../lazy-widget";
 import { numberOf, numberSetting, sensorSetting, splitKeys, thresholdSetting } from "./settings-kit";
-import BottleneckLens, { meta as bottleneckMeta, type BottleneckLensProps } from "../BottleneckLens";
-import FrameHistogram, { meta as frameHistogramMeta, type FrameHistogramProps } from "../FrameHistogram";
-import SessionStats, { MAX_SENSORS, meta as sessionStatsMeta, type SessionStatsProps } from "../SessionStats";
-import ThresholdTimeline, { MAX_LANES, meta as thresholdTimelineMeta, type ThresholdTimelineProps } from "../ThresholdTimeline";
+import type { BottleneckLensProps } from "../BottleneckLens";
+import { meta as bottleneckMeta } from "../meta/BottleneckLens";
+import type { FrameHistogramProps } from "../FrameHistogram";
+import { meta as frameHistogramMeta } from "../meta/FrameHistogram";
+import type { SessionStatsProps } from "../SessionStats";
+import { MAX_SENSORS, meta as sessionStatsMeta } from "../meta/SessionStats";
+import type { ThresholdTimelineProps } from "../ThresholdTimeline";
+import { MAX_LANES, meta as thresholdTimelineMeta } from "../meta/ThresholdTimeline";
+
+// Each component loads in its own chunk, the first time a zone draws it.
+const BottleneckLens = lazyWidget(() => import("../BottleneckLens"));
+const FrameHistogram = lazyWidget(() => import("../FrameHistogram"));
+const SessionStats = lazyWidget(() => import("../SessionStats"));
+const ThresholdTimeline = lazyWidget(() => import("../ThresholdTimeline"));
 
 const SENSORS_HINT = (n: number) => `Up to ${n}. Empty = CPU and GPU load and temperature`;
 

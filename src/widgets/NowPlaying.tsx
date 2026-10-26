@@ -3,65 +3,19 @@ import { makeSurfacePalette, type ModernStyle } from "@/components/surfaces";
 import { surfaceBox } from "@/components/widget-style";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, has, Img, Chip, MediaProgress, scaleX, type MediaProgressMode, type ShellProps, type WidgetMeta, type Data } from "./kit";
+import { Widget, shell, has, Img, Chip, MediaProgress, scaleX, type MediaProgressMode, type ShellProps } from "./kit";
 import type { VizLook, VizStyle } from "./core/viz/types";
 import { widgetImage } from "./data-adapter";
 import { useArtTint } from "./NowPlaying/art-tint";
 import { AUDIO, levelDevice, useLevelDevice } from "./audio-device";
 import { audioIdsIn, pickedIds, type FlowFilter } from "./audio-data";
 import { useFastSensors } from "@/hooks/useSensors";
+import { meta } from "./meta/NowPlaying";
+import { trackOf, type Track, type TrackSource } from "./NowPlaying/track";
+
+export { meta, trackOf, type Track };
 
 export { levelDevice };
-
-export const meta: WidgetMeta = {
-  id: "NowPlaying",
-  name: "Now Playing",
-  category: "Media",
-  icon: "music_note",
-  prefixes: ["plugins.media-plugin.", "plugins.spotify-plugin.", "spotify."],
-  defaultSize: [3, 1],
-  minSize: [1, 1],
-  blurb: "Track, artist and cover art",
-  tags: "spotify music song",
-  description: "Track, artist, album, cover art and progress from Windows Media, Spotify or a pushed source.",
-  viewKey: "playerLayout",
-  views: [
-    { id: "card", name: "Card" },
-    { id: "vinyl", name: "Vinyl", blurb: "The cover on a spinning record", tags: "record turntable lp" },
-    { id: "backdrop", name: "Backdrop", blurb: "Track over its blurred cover art", tags: "background blur" },
-    { id: "wave", name: "Wave", blurb: "Track with a waveform progress line", tags: "waveform visualizer" },
-  ],
-};
-
-export interface Track {
-  track: string;
-  artist: string;
-  album: string;
-  elapsed?: string;
-  remaining?: string;
-  progress: number;
-  playing: boolean;
-  art: string;
-  app: string;
-}
-
-const SOURCES: Record<string, (d: Data) => Track> = {
-  media: (d) => {
-    const k = (s: string) => get(d, `plugins.media-plugin.media.${s}`);
-    const state = num(k("playback-state"));
-    return { track: k("current-track"), artist: k("artist"), album: k("album"), elapsed: k("elapsed-time"), remaining: k("remaining-time"), progress: num(k("track-progress")), playing: state === 4 || state === 2, art: k("cover-art"), app: "Media" };
-  },
-  // a pushed `spotify.*` value wins over the plugin's, as the legacy Spotify widget read them
-  spotify: (d) => {
-    const k = (s: string, pushed?: string) => (pushed && get(d, `spotify.${pushed}`)) || get(d, `plugins.spotify-plugin.spotify.${s}`);
-    const state = num(k("playback-state", "playing"));
-    return { track: k("current-track", "track"), artist: k("artist", "artist"), album: k("album", "album"), elapsed: k("elapsed-time"), remaining: k("remaining-time"), progress: num(k("track-progress", "progress")), playing: state === 1 || state === 2, art: k("cover-art", "art"), app: "Spotify" };
-  },
-  pushed: (d) => {
-    const k = (s: string) => get(d, `spotify.${s}`);
-    return { track: k("track"), artist: k("artist"), album: k("album"), progress: num(k("progress")), playing: k("playing") === "1", art: k("art"), app: "Pushed" };
-  },
-};
 
 function Eq({ on }: { on: boolean }) {
   return (
@@ -92,7 +46,7 @@ function Vinyl({ art, playing, className = "" }: { art?: string; playing: boolea
 const TINTABLE: readonly string[] = ["glass", "matte-light", "matte-dark"];
 export interface NowPlayingProps extends ShellProps {
   look?: ModuleSettings;
-  source?: "auto" | "media" | "spotify" | "pushed";
+  source?: TrackSource;
   showArt?: boolean;
   /** Stored as `playerLayout` (the standard `layout` keeps its meaning). */
   layout?: "card" | "vinyl" | "backdrop" | "wave";
@@ -118,13 +72,6 @@ export interface NowPlayingProps extends ShellProps {
   /** Web Audio capture devices, one live row each in place of the sensor row */
   captureDevices?: string[];
 }
-
-/** The track of the chosen source; Auto takes Spotify unless its plugin reports idle. */
-export const trackOf = (d: Data, source: NowPlayingProps["source"]): Track => {
-  const src = source && source !== "auto" ? source : /idle/i.test(get(d, "plugins.spotify-plugin.spotify.current-track")) ? "media" : "spotify";
-  return (SOURCES[src] ?? SOURCES.media)(d);
-};
-
 
 export default function NowPlaying(p: NowPlayingProps) {
   const d = p.data;

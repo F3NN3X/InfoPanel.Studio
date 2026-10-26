@@ -1,19 +1,9 @@
 import { useState } from "react";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, fmtGB, fmtRate, adapterOf, firstDisk, Spark, useHistory, tone, TONES, useSkin, numFont, hw, type RateUnit, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, fmtGB, fmtRate, adapterOf, firstDisk, Spark, useHistory, tone, TONES, useSkin, numFont, hw, type RateUnit, type ShellProps } from "./kit";
+import { meta } from "./meta/MenuBar";
 
-export const meta: WidgetMeta = {
-  id: "MenuBar",
-  name: "Menu Bar",
-  category: "System",
-  icon: "more_horiz",
-  prefixes: [],
-  defaultSize: [6, 1],
-  minSize: [2, 1],
-  blurb: "Glance strip of labels and values",
-  tags: "strip istat bar top",
-  description: "Always-visible glance strip (iStat Menus style): label stacked over value, mini bars, click an item (or pick an active one) to open its detail.",
-};
+export { meta };
 
 export type Key = "cpu" | "gpu" | "temp" | "mem" | "down" | "up" | "nvme";
 interface Item {

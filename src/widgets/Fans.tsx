@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, fitRows, Icon, Bar, hw, Num, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, fitRows, Icon, Bar, hw, Num, type ShellProps } from "./kit";
+import { meta } from "./meta/Fans";
 
-export const meta: WidgetMeta = {
-  id: "Fans",
-  name: "Fans",
-  category: "Hardware",
-  icon: "mode_fan",
-  prefixes: [],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "Fan speeds and duty",
-  tags: "rpm cooling",
-  description: "GPU fans 1–3 with duty %, plus CPU fan. Icons spin at a speed proportional to RPM.",
-};
+export { meta };
 
 export interface FansProps extends ShellProps {
   look?: ModuleSettings;

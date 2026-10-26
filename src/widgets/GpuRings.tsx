@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, get, num, fmt, pretty, useSkin, numFont, hue, hw, RingStack, LegendRow, useIpTag, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, pretty, useSkin, numFont, hue, hw, RingStack, LegendRow, useIpTag, type ShellProps } from "./kit";
+import { meta } from "./meta/GpuRings";
 
-export const meta: WidgetMeta = {
-  id: "GpuRings",
-  name: "GPU Rings",
-  category: "Hardware",
-  icon: "donut_large",
-  prefixes: [],
-  defaultSize: [3, 2],
-  minSize: [1, 1],
-  blurb: "GPU load, VRAM and temperature as rings",
-  tags: "graphics vram",
-  description: "Stacked radial rings for bounded percentages only — VRAM outer, core load inner, temperature in the centre — with a legend of clocks, power and fans.",
-};
+export { meta };
 
 type Ring = "vram" | "load" | "power" | "fan";
 

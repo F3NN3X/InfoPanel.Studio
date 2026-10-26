@@ -3,18 +3,32 @@ import { BALLISTICS } from "@/lib/audio/ballistics";
 import { deviceOf, devicesOf, thresholdsOf } from "@/modules/setting-readers";
 import type { DashboardModule, ModuleSettings } from "@/modules/types";
 import { templateModule } from "../module";
+import { lazyWidget } from "../lazy-widget";
 import { audioFlowSetting, audioSettings, ballisticsOf, flowOfSettings, pickedDevicesOf, WAVELINK_SETTINGS, wavelinkToProps } from "./audio-settings";
 import { boolOf, boolSetting, colorSetting, deviceSetting, devicesSetting, enumSetting, numberOf, numberSetting, oneOf, pick, stringOf, thresholdSetting, viewOnly, viewSetting } from "./settings-kit";
-import AudioMeter, { AUDIO_HOT_DB, AUDIO_WARN_DB, meta as audioMeter, type AudioMeterProps } from "../AudioMeter";
-import MeterBridge, { meta as meterBridge, type MeterBridgeProps } from "../MeterBridge";
-import NowPlaying, { meta as nowPlaying, type NowPlayingProps } from "../NowPlaying";
+import type { AudioMeterProps } from "../AudioMeter";
+import { AUDIO_HOT_DB, AUDIO_WARN_DB, meta as audioMeter } from "../meta/AudioMeter";
+import type { MeterBridgeProps } from "../MeterBridge";
+import { meta as meterBridge } from "../meta/MeterBridge";
+import type { NowPlayingProps } from "../NowPlaying";
+import { meta as nowPlaying } from "../meta/NowPlaying";
 import { NOW_PLAYING_SETTINGS, sharedPropsOf, vizStyleOf } from "../NowPlaying/settings";
 import { colorModeOf, VIZ_DYNAMICS_GROUP, vizColorRows, vizColorSettings, vizDynamicsSettings, vizLookOf, vizShapeSettings } from "./viz-settings";
-import Visualizer, { meta as visualizer, type VisualizerProps } from "../Visualizer";
-import VolumeMixer, { meta as volumeMixer, type VolumeMixerProps } from "../VolumeMixer";
-import WaveLink, { meta as waveLink } from "../WaveLink";
+import type { VisualizerProps } from "../Visualizer";
+import { meta as visualizer } from "../meta/Visualizer";
+import type { VolumeMixerProps } from "../VolumeMixer";
+import { meta as volumeMixer } from "../meta/VolumeMixer";
+import { meta as waveLink } from "../meta/WaveLink";
 import { nowPlayingIsland, waveLinkIsland } from "../island-sources";
 import { volumeMixerIsland } from "../island/audio";
+
+// Each component loads in its own chunk, the first time a zone draws it.
+const AudioMeter = lazyWidget(() => import("../AudioMeter"));
+const MeterBridge = lazyWidget(() => import("../MeterBridge"));
+const NowPlaying = lazyWidget(() => import("../NowPlaying"));
+const Visualizer = lazyWidget(() => import("../Visualizer"));
+const VolumeMixer = lazyWidget(() => import("../VolumeMixer"));
+const WaveLink = lazyWidget(() => import("../WaveLink"));
 
 const DEVICE = "Device";
 /** The bridge's warning and clip levels: the Audio level threshold (the old `warnDb` / `clipDb`). */

@@ -1,19 +1,9 @@
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, has, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps, type WidgetMeta } from "./kit";
+import { fitRows, StatGrid, Widget, shell, get, num, fmt, pretty, has, Metric, Ring, Spark, Stat, useHistory, tone, Empty, heat, hw, Num, scaleY, type ShellProps } from "./kit";
+import { meta } from "./meta/CpuMonitor";
 
-export const meta: WidgetMeta = {
-  id: "CpuMonitor",
-  name: "CPU Monitor",
-  category: "Hardware",
-  icon: "memory",
-  prefixes: ["libre.amd_", "libre.intel_", "libre.embedded_controller"],
-  defaultSize: [3, 2],
-  minSize: [1, 1],
-  blurb: "Load, clocks, temperature and power",
-  tags: "processor cores temp watts",
-  description: "Total + per-core load, clocks, temperature, package power, VID, VRM and fan.",
-};
+export { meta };
 
 export interface CpuMonitorProps extends ShellProps {
   look?: ModuleSettings;

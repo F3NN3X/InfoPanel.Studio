@@ -1,20 +1,10 @@
-import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, tone, TONES, STATE, Num, type ShellProps, type Tone, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, pretty, sensorLabel, fitRows, tone, TONES, STATE, Num, type ShellProps, type Tone } from "./kit";
 import { useSeries, type SeriesLimits } from "./core/history";
 import { laneColumns, laneRuns } from "./core/lanes";
 import { roleData, unitOf } from "./role-data";
+import { meta, MAX_LANES } from "./meta/ThresholdTimeline";
 
-export const meta: WidgetMeta = {
-  id: "ThresholdTimeline",
-  name: "Threshold Timeline",
-  category: "Generic",
-  icon: "health_metrics",
-  prefixes: [],
-  defaultSize: [4, 2],
-  minSize: [2, 1],
-  blurb: "Green, amber and red lanes over minutes",
-  tags: "timeline history lanes threshold heat strip status minutes",
-  description: "One lane per sensor (up to six), coloured green, amber or red by its thresholds over the last few minutes. Shows when a sensor was hot, not just that it is. Nothing is stored: a reload starts again.",
-};
+export { meta, MAX_LANES };
 
 export interface ThresholdTimelineProps extends ShellProps {
   /** Sensor keys (at most six); unset: CPU and GPU load and temperature. */
@@ -25,7 +15,6 @@ export interface ThresholdTimelineProps extends ShellProps {
   crit?: number;
 }
 
-export const MAX_LANES = 6;
 /** Columns a lane is folded into; adjacent columns of one colour draw as one rect. */
 const COLUMNS = 120;
 /** Samples one sensor keeps, whatever the window: the gap between samples widens with it. */

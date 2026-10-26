@@ -1,13 +1,28 @@
 /// <reference types="vitest/config" />
 import { defineConfig, configDefaults } from "vitest/config";
+import type { Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 
+/**
+ * Vitest renders the widgets with renderToString, which cannot wait for a widget's chunk (`src/widgets/lazy-widget.tsx`):
+ * there each registry group loads its widgets before it exports. A top-level await in the group files themselves would
+ * make Rollup split the kiosk entry into a chunk per module it shares with a widget.
+ */
+const loadWidgetsInTests = (): Plugin => ({
+  name: "load-widgets-in-tests",
+  transform(code, id) {
+    if (!/\/src\/widgets\/registry\/(a|b|c|d|e|history|time)\.ts$/.test(id.replace(/\\/g, "/"))) return;
+    const group = /^export const (GROUP_\w+|TIME_WIDGETS)\b/m.exec(code)?.[1];
+    return group ? `${code}\nawait (await import("@/widgets/lazy-widget")).loadAll(${group});\n` : undefined;
+  },
+});
+
 // `vite build --mode stats` (npm run build:stats): an unminified build in .cache/dist-stats with the ticker's debug stats
 // (window.__tickerStats, src/lib/ticker.ts) for the perf specs; release builds leave them out.
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), ...(mode === "test" ? [loadWidgetsInTests()] : [])],
   // Relative asset base: the build works from any path it is served at.
   base: "./",
   resolve: {

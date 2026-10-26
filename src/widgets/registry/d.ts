@@ -1,22 +1,47 @@
 // Template widgets, group D: gaming (see docs/redesign/phase9/brief-9.3c-templates.md).
 import type { DashboardModule, ModuleSettings, PaletteRole } from "@/modules/types";
 import { templateModule } from "../module";
+import { lazyWidget } from "../lazy-widget";
 import { boolOf, boolSetting, colorSetting, colorsOf, enumSetting, listOf, numberOf, numberSetting, oneOf, splitKeys, textSetting, viewOnly, viewSetting, viewsExcept, type ColorEntry } from "./settings-kit";
-import Achievements, { meta as achievementsMeta, type AchievementsProps } from "../Achievements";
-import FpsMonitor, { meta as fpsMonitorMeta, type FpsMonitorProps } from "../FpsMonitor";
-import FramePacing, { meta as framePacingMeta, type FramePacingProps } from "../FramePacing";
+import type { AchievementsProps } from "../Achievements";
+import { meta as achievementsMeta } from "../meta/Achievements";
+import type { FpsMonitorProps } from "../FpsMonitor";
+import { meta as fpsMonitorMeta } from "../meta/FpsMonitor";
+import type { FramePacingProps } from "../FramePacing";
+import { meta as framePacingMeta } from "../meta/FramePacing";
 import { FPS_LOOK_SETTINGS, fpsLookProps } from "../fps-settings";
-import GameSpotlight, { meta as gameSpotlightMeta, type GameSpotlightProps } from "../GameSpotlight";
+import type { GameSpotlightProps } from "../GameSpotlight";
+import { meta as gameSpotlightMeta } from "../meta/GameSpotlight";
 import { SPOTLIGHT_COMPOSITE_SETTINGS, SPOTLIGHT_LAYOUT_SETTING, compositeProps } from "../spotlight-settings";
-import OsdStrip, { meta as osdStripMeta, type OsdCell, type OsdStripProps } from "../OsdStrip";
-import PlaytimeShare, { PALETTE, meta as playtimeShareMeta, type PlaytimeShareProps } from "../PlaytimeShare";
-import SteamGame, { meta as steamGameMeta, type SteamGameProps } from "../SteamGame";
-import SteamLibrary, { meta as steamLibraryMeta, type SteamLibraryProps } from "../SteamLibrary";
-import SteamNews, { meta as steamNewsMeta, type SteamNewsProps } from "../SteamNews";
-import SteamProfile, { meta as steamProfileMeta, type SteamProfileProps } from "../SteamProfile";
-import SteamFriends, { meta as steamFriendsMeta, type FriendStatus, type SteamFriendsProps } from "../SteamFriends";
+import type { OsdCell, OsdStripProps } from "../OsdStrip";
+import { meta as osdStripMeta } from "../meta/OsdStrip";
+import type { PlaytimeShareProps } from "../PlaytimeShare";
+import { PALETTE, meta as playtimeShareMeta } from "../meta/PlaytimeShare";
+import type { SteamGameProps } from "../SteamGame";
+import { meta as steamGameMeta } from "../meta/SteamGame";
+import type { SteamLibraryProps } from "../SteamLibrary";
+import { meta as steamLibraryMeta } from "../meta/SteamLibrary";
+import type { SteamNewsProps } from "../SteamNews";
+import { meta as steamNewsMeta } from "../meta/SteamNews";
+import type { SteamProfileProps } from "../SteamProfile";
+import { meta as steamProfileMeta } from "../meta/SteamProfile";
+import type { FriendStatus, SteamFriendsProps } from "../SteamFriends";
+import { meta as steamFriendsMeta } from "../meta/SteamFriends";
 import { steamFriendsIsland } from "../island-sources";
 import { achievementsIsland, fpsIsland, steamNewsIsland } from "../island/gaming";
+
+// Each component loads in its own chunk, the first time a zone draws it.
+const Achievements = lazyWidget(() => import("../Achievements"));
+const FpsMonitor = lazyWidget(() => import("../FpsMonitor"));
+const FramePacing = lazyWidget(() => import("../FramePacing"));
+const GameSpotlight = lazyWidget(() => import("../GameSpotlight"));
+const OsdStrip = lazyWidget(() => import("../OsdStrip"));
+const PlaytimeShare = lazyWidget(() => import("../PlaytimeShare"));
+const SteamGame = lazyWidget(() => import("../SteamGame"));
+const SteamLibrary = lazyWidget(() => import("../SteamLibrary"));
+const SteamNews = lazyWidget(() => import("../SteamNews"));
+const SteamProfile = lazyWidget(() => import("../SteamProfile"));
+const SteamFriends = lazyWidget(() => import("../SteamFriends"));
 
 const OSD_CELLS = ["fps", "low", "ft", "gpu", "cpu", "vram", "display"] as const satisfies readonly OsdCell[];
 

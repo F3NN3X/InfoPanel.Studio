@@ -1,20 +1,10 @@
 import type { ModuleSettings } from "@/modules/types";
 import { alignOf } from "@/modules/setting-readers";
-import { bodyGap, useFitRows, Widget, shell, get, num, fmt, Num, Ring, Icon, Dot, Chip, STATE, type ShellProps, type WidgetMeta } from "./kit";
+import { bodyGap, useFitRows, Widget, shell, get, num, fmt, Num, Ring, Icon, Dot, Chip, STATE, type ShellProps } from "./kit";
 import { inFlow, volumeFlowOf, volumePicked, type FlowFilter } from "./audio-data";
+import { meta } from "./meta/VolumeMixer";
 
-export const meta: WidgetMeta = {
-  id: "VolumeMixer",
-  name: "Volume Mixer",
-  category: "Audio",
-  icon: "tune",
-  prefixes: ["plugins.volume-plugin.", "plugins.wavelink-plugin."],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Volume and mute per device",
-  tags: "sound",
-  description: "Per-device volume + mute, default device, and Wave Link status.",
-};
+export { meta };
 
 export interface VolumeMixerProps extends ShellProps {
   look?: ModuleSettings;

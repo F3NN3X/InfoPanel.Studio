@@ -1,18 +1,8 @@
 import type { ModuleSettings } from "@/modules/types";
-import { StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, stackX, type ShellProps, type WidgetMeta } from "./kit";
+import { StatGrid, Widget, shell, get, num, fmt, Spark, useHistory, hue, hw, Num, stackX, type ShellProps } from "./kit";
+import { meta } from "./meta/PowerDraw";
 
-export const meta: WidgetMeta = {
-  id: "PowerDraw",
-  name: "Power Draw",
-  category: "Hardware",
-  icon: "bolt",
-  prefixes: [],
-  defaultSize: [2, 1],
-  minSize: [1, 1],
-  blurb: "CPU and GPU watts with history",
-  tags: "watts power energy",
-  description: "CPU package + GPU package watts, split bar, total history and GPU board-power limit.",
-};
+export { meta };
 
 export interface PowerDrawProps extends ShellProps {
   look?: ModuleSettings;

@@ -1,24 +1,10 @@
 import { inUnit } from "@/modules/setting-readers";
 import type { ModuleSettings } from "@/modules/types";
-import { useFitRows, Widget, shell, get, num, fmt, detect, diskShort, tone, TONES, useHistory, Empty, Ring, Num, slideX, hw, type Tone, type ShellProps, type WidgetMeta } from "./kit";
+import { useFitRows, Widget, shell, get, num, fmt, detect, diskShort, tone, TONES, useHistory, Empty, Ring, Num, slideX, hw, type Tone, type ShellProps } from "./kit";
 import { readings } from "./hardware-readings";
+import { meta } from "./meta/Thermals";
 
-export const meta: WidgetMeta = {
-  id: "Thermals",
-  name: "Thermals",
-  category: "Hardware",
-  icon: "device_thermostat",
-  prefixes: [],
-  defaultSize: [2, 2],
-  minSize: [1, 1],
-  blurb: "Every temperature sensor, hottest first",
-  tags: "temp temperature heat hotspot",
-  description: "Every temperature sensor in one place — CPU, GPU core + hotspot, NVMe/SSD, VRM — hottest first.",
-  views: [
-    { id: "bars", name: "Bars" },
-    { id: "gauges", name: "Temp gauges", blurb: "Hottest four as rings, fans under them", tags: "ring dial fan rpm" },
-  ],
-};
+export { meta };
 
 export interface ThermalsProps extends ShellProps {
   look?: ModuleSettings;

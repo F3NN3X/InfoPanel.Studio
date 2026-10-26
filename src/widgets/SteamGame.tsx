@@ -1,20 +1,10 @@
 import type { CSSProperties } from "react";
-import { Widget, shell, get, num, fmt, has, Img, Bar, Stat, GlassPill, Icon, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, get, num, fmt, has, Img, Bar, Stat, GlassPill, Icon, type ShellProps } from "./kit";
 import { widgetImage } from "./data-adapter";
 import { hoursText } from "./GameSpotlight";
+import { meta } from "./meta/SteamGame";
 
-export const meta: WidgetMeta = {
-  id: "SteamGame",
-  name: "Current Game",
-  category: "Gaming",
-  icon: "stadia_controller",
-  prefixes: ["plugins.InfoPanel.SteamAPI.SteamAPI-Session.", "plugins.InfoPanel.SteamAPI.SteamAPI-Achievements.", "plugins.InfoPanel.SteamAPI.SteamAPI-Profile.current_game_banner_url", "plugins.InfoPanel.SteamAPI.SteamAPI-Profile.game_"],
-  defaultSize: [4, 2],
-  minSize: [2, 1],
-  blurb: "Session and total playtime",
-  tags: "steam session",
-  description: "Game hero art, session time, total playtime, average session and achievement progress.",
-};
+export { meta };
 
 // The text sits on artwork behind a dark scrim, so it stays light on every surface.
 const ON_ART = { color: "#f4f4f5", "--w-fg": "#f4f4f5", "--w-muted": "#d4d4d8", "--w-faint": "#a1a1aa", "--w-track": "rgba(255,255,255,0.15)" } as CSSProperties;

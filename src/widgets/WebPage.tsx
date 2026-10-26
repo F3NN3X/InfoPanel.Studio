@@ -1,20 +1,10 @@
 import { surfaceBox } from "@/components/widget-style";
 import { chromeOf } from "@/modules/standard-settings";
 import type { ModuleSettings } from "@/modules/types";
-import { Widget, shell, Icon, type ShellProps, type WidgetMeta } from "./kit";
+import { Widget, shell, Icon, type ShellProps } from "./kit";
+import { meta } from "./meta/WebPage";
 
-export const meta: WidgetMeta = {
-  id: "WebPage",
-  name: "Web Page",
-  category: "Generic",
-  icon: "language",
-  prefixes: [],
-  defaultSize: [6, 4],
-  minSize: [4, 2],
-  blurb: "A web page or video in a frame",
-  tags: "web youtube iframe browser",
-  description: "Embeds a web page or YouTube video in a frame that fills the zone.",
-};
+export { meta };
 
 export interface WebPageProps extends ShellProps {
   look?: ModuleSettings;
