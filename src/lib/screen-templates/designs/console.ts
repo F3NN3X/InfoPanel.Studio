@@ -8,7 +8,7 @@ const header = { view: "edge", left: "date", center: "down,up", right: "time", s
 /** A processor panel: a ring, then four readings beside it, from column `col` for 4 columns and 8 rows from row 3. */
 const panel = (col: number, label: string, load: Role, rows: readonly (readonly [string, Role])[], accent: string): Zone[] => [
   reading([col, 3, 2, 8], label, load, { display: "gauge", accent, stroke: 60 }),
-  ...rows.map(([name, role], i) => reading([col + 2, 3 + i * 2, 2, 2], name, role, { display: "value", scale: 90, accent })),
+  ...rows.map(([name, role], i) => reading([col + 2, 3 + i * 2, 2, 2], name, role, { display: "value", scale: 140, accent })),
 ];
 
 const tiles = (): Zone[] =>
@@ -17,9 +17,9 @@ const tiles = (): Zone[] =>
       zone("StatusBar", [1, 1, 8, 2], header),
       ...panel(1, "CPU", "cpu.load", [["Temperature", "cpu.temp"], ["Core clock", "cpu.clock"], ["Max core", "cpu.maxcore"], ["Power", "cpu.power"]], "#3fa0ff"),
       ...panel(5, "GPU", "gpu.load", [["Temperature", "gpu.temp"], ["Hot spot", "gpu.hotspot"], ["Core clock", "gpu.clock"], ["Power", "gpu.power"]], "#ff9a3c"),
-      reading([1, 11, 4, 2], "RAM", "ram.load", { display: "bar", accent: "#3fa0ff" }),
-      reading([5, 11, 4, 2], "VRAM", "vram.used", { display: "bar", accent: "#ff9a3c" }),
-      zone("DriveSpace", [1, 13, 8, 6], { view: "bars" }),
+      reading([1, 11, 4, 2], "RAM", "ram.load", { display: "bar", scale: 150, accent: "#3fa0ff" }),
+      reading([5, 11, 4, 2], "VRAM", "vram.used", { display: "bar", scale: 150, accent: "#ff9a3c" }),
+      zone("DriveSpace", [1, 13, 8, 6], { view: "bars", scale: 170 }),
     ],
     { surface: "theme" },
   );

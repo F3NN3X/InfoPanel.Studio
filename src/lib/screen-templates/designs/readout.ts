@@ -17,8 +17,8 @@ const SYS: Panel = { big: ["Memory", "ram.load"], side: [["Download", "net.down"
 function panel(p: Panel, col: number, row: number, w: number): Zone[] {
   const half = w / 2;
   return [
-    reading([col, row, half, 4], p.big[0], p.big[1], { display: "value", scale: 280, align: "ml" }),
-    ...p.side.map(([label, role], i) => reading([col + half, row + i, half, 1], label, role, { display: "value", scale: 90, align: "ml" })),
+    reading([col, row, half, 4], p.big[0], p.big[1], { display: "value", scale: 420, align: "ml" }),
+    ...p.side.map(([label, role], i) => reading([col + half, row + i, half, 1], label, role, { display: "value", scale: 160, align: "ml" })),
     ...p.bars.map(([label, role], i) => reading([col + i * half, row + 4, half, 2], label, role, { display: "bar" })),
   ];
 }

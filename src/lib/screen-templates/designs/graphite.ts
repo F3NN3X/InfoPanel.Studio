@@ -10,7 +10,7 @@ const tiles = (at: ReturnType<typeof flow>): Zone[] => cards([
   reading(at[2], "Memory", "ram.load", { display: "bar" }),
   zone("Clock", at[3]),
   reading(at[4], "Storage", "disk.load", { display: "bar" }),
-  zone("NetworkThroughput", at[5], { sparkline: true }),
+  zone("NetworkThroughput", at[5], { sparkline: true, scale: 140 }),
 ], CARD);
 
 export const GRAPHITE: ScreenTemplate = {

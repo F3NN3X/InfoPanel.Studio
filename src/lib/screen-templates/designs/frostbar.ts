@@ -7,10 +7,10 @@ const tiles = (at: readonly At[]): Zone[] =>
   cards(
     [
       zone("SystemOverview", at[0], { view: "gauges", sections: "cpu,gpu" }),
-      zone("MemoryUsage", at[1]),
-      zone("Clock", at[2], { showSeconds: false }),
-      zone("Uptime", at[3]),
-      zone("NetworkThroughput", at[4]),
+      zone("MemoryUsage", at[1], { scale: 130 }),
+      zone("Clock", at[2], { showSeconds: false, scale: 130 }),
+      zone("Uptime", at[3], { scale: 130 }),
+      zone("NetworkThroughput", at[4], { scale: 140 }),
       reading(at[5], "CPU", "cpu.temp", { display: "gauge", stroke: 55 }),
       reading(at[6], "GPU", "gpu.temp", { display: "gauge", stroke: 55, accent: "#4dd0ff" }),
       reading(at[7], "RAM", "ram.load", { display: "gauge", stroke: 55, accent: "#b07cff" }),

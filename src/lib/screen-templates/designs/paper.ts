@@ -11,7 +11,7 @@ const tiles = (at: readonly At[]): Zone[] =>
       reading(at[1], "CPU", "cpu.load", { display: "gauge", stroke: 60 }),
       reading(at[2], "GPU", "gpu.load", { display: "gauge", stroke: 60, accent: "#0ea5e9" }),
       reading(at[3], "Memory", "ram.load", { display: "bar" }),
-      zone("NetworkThroughput", at[4], { sparkline: true, accent: "#6366f1" }),
+      zone("NetworkThroughput", at[4], { sparkline: true, scale: 140, accent: "#6366f1" }),
     ],
     { surface: "theme", customCss: shadow },
   );

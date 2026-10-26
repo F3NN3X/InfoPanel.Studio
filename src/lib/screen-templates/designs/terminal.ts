@@ -11,7 +11,7 @@ const MEM_NET: readonly Line[] = [["ram", "ram.load", true], ["disk", "disk.load
 /** A pane: one line a row, in column `col`. */
 const pane = (lines: readonly Line[], col: number): Zone[] => lines.map(([label, role, bar], i) => reading([col, i + 1, 1, 1], label, role, { display: bar ? "bar" : "value", meter: "blocks", align: "ml" }));
 
-const layout = { cols: 2, rows: 6, pages: [cards([...pane(CPU_GPU, 1), ...pane(MEM_NET, 2)], { surface: "terminal", scale: 90 })] };
+const layout = { cols: 2, rows: 6, pages: [cards([...pane(CPU_GPU, 1), ...pane(MEM_NET, 2)], { surface: "terminal", scale: 150 })] };
 
 export const TERMINAL: ScreenTemplate = {
   id: "terminal",

@@ -9,7 +9,7 @@ const tiles = (at: readonly At[]): Zone[] => cards([
   reading(at[0], "CPU", "cpu.load", { display: "gauge", stroke: 60, accent: "#60a5fa" }),
   reading(at[1], "GPU", "gpu.load", { display: "gauge", stroke: 60, accent: "#a78bfa" }),
   reading(at[2], "Memory", "ram.load", { display: "gauge", stroke: 60, accent: "#22d3ee" }),
-  zone("NetworkThroughput", at[3], { sparkline: true }),
+  zone("NetworkThroughput", at[3], { sparkline: true, scale: 140 }),
   zone("Clock", at[4]),
 ], CARD);
 

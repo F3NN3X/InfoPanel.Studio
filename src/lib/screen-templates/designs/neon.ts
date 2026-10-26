@@ -15,7 +15,7 @@ const tiles = (at: readonly At[]): Zone[] =>
       reading(at[1], "GPU", "gpu.load", { ...pink, display: "gauge", stroke: 60 }),
       reading(at[2], "RAM", "ram.load", { ...pink, display: "bar" }),
       reading(at[3], "Disk", "disk.load", { ...pink, display: "bar" }),
-      zone("NetworkThroughput", at[4], { ...cyan, sparkline: true }),
+      zone("NetworkThroughput", at[4], { ...cyan, sparkline: true, scale: 140 }),
     ],
     CARD,
   );

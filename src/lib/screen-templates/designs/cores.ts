@@ -6,10 +6,10 @@ import { cards, reading, theme } from "./ports";
 const tiles = (head: readonly At[], wall: At): Zone[] =>
   cards(
     [
-      reading(head[0], "CPU temp", "cpu.temp", { display: "value", scale: 200 }),
-      reading(head[1], "Load", "cpu.load", { display: "value" }),
-      reading(head[2], "Clock", "cpu.clock", { display: "value" }),
-      reading(head[3], "Power", "cpu.power", { display: "value" }),
+      reading(head[0], "CPU temp", "cpu.temp", { display: "value", scale: 420 }),
+      reading(head[1], "Load", "cpu.load", { display: "value", scale: 280 }),
+      reading(head[2], "Clock", "cpu.clock", { display: "value", scale: 280 }),
+      reading(head[3], "Power", "cpu.power", { display: "value", scale: 280 }),
       zone("CpuMonitor", wall, { coreView: "bars" }),
     ],
     { surface: "theme" },
