@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.29] - 2026-10-26
+
 ### Changed
 
 - **Smaller kiosk download.** A kiosk screen now downloads only the widgets it shows. Each widget loads on its own, all of a page's at once as soon as the screen is known; the screen's other pages follow while the kiosk is idle, and a kiosk changing screens keeps the old one up until the new one's widgets are in, so switching draws at once. What a kiosk loads before it can draw drops from 342 KB to 248 KB gzipped (27 % less), and the studio's from 657 KB to 564 KB; the first paint comes about 30 ms sooner on a fast PC. The studio loads a widget the first time it shows one, on the canvas or in the Add list.
