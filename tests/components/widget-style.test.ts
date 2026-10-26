@@ -34,7 +34,7 @@ describe("zoomFor", () => {
   it("clamps auto-scale and applies the user's size on top", () => {
     expect(zoomFor({ w: 100, h: 50 }, DESIGN, {})).toBe(MIN_AUTO_ZOOM);
     expect(zoomFor({ w: 9000, h: 9000 }, DESIGN, {})).toBe(MAX_AUTO_ZOOM);
-    expect(zoomFor({ w: 800, h: 400 }, DESIGN, { scale: 0.5 })).toBe(1);
+    expect(zoomFor({ w: 9000, h: 9000 }, DESIGN, { scale: 0.5 })).toBe(MAX_AUTO_ZOOM * 0.5);
   });
 
   it("uses only the user's size without a design size, a measurement or auto-scale", () => {
@@ -51,7 +51,10 @@ describe("zoomFor", () => {
     // twice the design on the tighter side
     expect(zoomFor({ w: 1400, h: 640 }, DESIGN_SIZE, undefined)).toBe(2);
     expect(zoomFor({ w: 1920, h: 1080 }, DESIGN_SIZE, undefined)).toBe(2.5);
-    expect(zoomFor({ w: 1000, h: 640 }, DESIGN_SIZE, { scale: 0.8 })).toBe(1.6);
+    expect(zoomFor({ w: 1920, h: 1080 }, DESIGN_SIZE, { scale: 0.8 })).toBe(2);
+    // a Size % that already fills the zone keeps its own zoom: the auto part only fills the room it leaves
+    expect(zoomFor({ w: 950, h: 500 }, DESIGN_SIZE, { scale: 1.6 })).toBe(1.6);
+    expect(zoomFor({ w: 1500, h: 1000 }, DESIGN_SIZE, { scale: 1.5 })).toBe(3);
   });
 
   it("picks the design size from the zone's shape", () => {

@@ -45,8 +45,10 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 /**
  * The content zoom: the user's Size %, times — with auto-scale on and a
- * measured zone — how much bigger (or a little smaller) the zone is than
- * the widget's design size.
+ * measured zone — how much room the zone still has past the widget's
+ * design size at that Size %. Size % applies on top; the auto part only
+ * fills the room it leaves, so a Size % set to make a large zone's content
+ * bigger keeps the layout it had instead of doubling up.
  */
 export function zoomFor(
   size: { w: number; h: number },
@@ -56,7 +58,7 @@ export function zoomFor(
   const user = chrome?.scale && chrome.scale > 0 ? chrome.scale : 1;
   if (!design || chrome?.autoScale === false || !size.w || !size.h) return round(user);
   const d = typeof design === "function" ? design(size.w, size.h) : design;
-  const fit = Math.min(size.w / d.w, size.h / d.h);
+  const fit = Math.min(size.w / (d.w * user), size.h / (d.h * user));
   // Rounded down, so the zoomed zone still holds the design size (and keeps its tier).
   return Math.floor(clamp(fit, MIN_AUTO_ZOOM, MAX_AUTO_ZOOM) * user * 100 + 1e-9) / 100;
 }
