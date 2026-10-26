@@ -7,8 +7,8 @@
 export interface ThumbQueue<S> {
   /** The picture of a key, once taken. */
   get: (key: string) => string | undefined;
-  /** Ask for a key's picture; the result lets go of the ask. */
-  want: (key: string, spec: S) => () => void;
+  /** Ask for a key's picture (`first`: ahead of the others waiting); the result lets go of the ask. */
+  want: (key: string, spec: S, first?: boolean) => () => void;
   /** The keys being drawn now, with what draws them. */
   active: () => readonly (readonly [string, S])[];
   done: (key: string, picture: string) => void;
@@ -38,13 +38,18 @@ export function createThumbQueue<S>(limit: number): ThumbQueue<S> {
 
   return {
     get: (key) => pictures.get(key),
-    want(key, spec) {
+    want(key, spec, first = false) {
       wanted.set(key, (wanted.get(key) ?? 0) + 1);
       specs.set(key, spec);
-      if (!pictures.has(key) && !failed.has(key) && !drawing.has(key) && !waiting.includes(key)) {
-        waiting.push(key);
-        pump();
-        changed();
+      if (!pictures.has(key) && !failed.has(key) && !drawing.has(key)) {
+        const at = waiting.indexOf(key);
+        if (at >= 0 && first) waiting.splice(at, 1);
+        if (at < 0 || first) {
+          if (first) waiting.unshift(key);
+          else waiting.push(key);
+          pump();
+          changed();
+        }
       }
       let released = false;
       return () => {

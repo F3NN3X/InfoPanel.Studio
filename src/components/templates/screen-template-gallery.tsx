@@ -1,11 +1,11 @@
 /**
- * The New screen gallery: Blank first, then each native screen template as a live picture of the template made for the
- * size (`template-shots.tsx`; until it is taken, a plan of its zones on the template's own background and accent), so
- * what the card shows is the screen Create makes. Sorted by shape class like the New InfoPanel profile gallery
- * (`shape-chips.tsx`): chips filter by class, defaulting to the chosen size's; All lists a section per class, the size's
- * first. In each section the starters come first and the native versions of the InfoPanel templates follow under their own
- * heading. A template that offers palettes shows them as chips under the cards, and its card follows the pick. A template
- * that doesn't fit the size is drawn at its own shape. Loaded with its dialog, never in the first bundle.
+ * The first-run setup's screen template gallery: each native screen template as a live picture of the template made
+ * for the size (`template-shots.tsx`; until it is taken, a plan of its zones on the template's own background and
+ * accent), so what the card shows is the screen it makes. Sorted by shape class (`shape-chips.tsx`): chips filter by
+ * class, defaulting to the chosen size's; All lists a section per class, the size's first, the starters before the
+ * native versions of the InfoPanel templates. A template that offers palettes shows them as chips under the cards, and
+ * its card follows the pick. A template that doesn't fit the size is drawn at its own shape. Its thumbnail
+ * (`ScreenTemplateThumb`) is also the New wizard's. Loaded with its step, never in the first bundle.
  */
 import { useMemo, useState } from "react";
 import { FilePlus2 } from "lucide-react";
@@ -22,7 +22,7 @@ import { iconFor } from "@/widgets/core/icons";
 import { ALL_MODULES } from "../studio/studio-modules";
 import { CLASS_NAMES, COLUMNS, ShapeChips, aspectOf, sectionClasses, type ShapeFilter } from "./shape-chips";
 import { SIZE_PRESETS, firstPresetOf, placementOf, thumbSizeOf } from "./size-presets";
-import { TemplateShotHost, useSeen, useTemplateShot } from "./template-shots";
+import { TemplateShotHost, useInView, useTemplateShot } from "./template-shots";
 import { VariantChips } from "./variant-chips";
 
 /** The screen a template makes at the size with this machine's sensors (the first-run setup's Start from a template). */
@@ -34,10 +34,20 @@ export function templateScreen(id: string, size: { width: number; height: number
 const iconOf = (module: string) => iconFor(ALL_MODULES.find((m) => m.id === module)?.icon);
 const titleOf = (module: string) => ALL_MODULES.find((m) => m.id === module)?.title ?? module;
 
-/** The template made for the size in a palette: its picture once taken, until then its first page drawn as its zones. */
-export function ScreenTemplateThumb({ template, variant, width, height }: { template: ScreenTemplate; variant: string; width: number; height: number }) {
-  const [ref, seen] = useSeen<HTMLDivElement>();
-  const shot = useTemplateShot(template, variant, width, height, seen);
+interface ScreenTemplateThumbProps {
+  template: ScreenTemplate;
+  variant: string;
+  width: number;
+  height: number;
+  /** The selected card: its picture is taken before the others'. */
+  first?: boolean;
+}
+
+/** The template made for the size in a palette: its picture once taken (fading in), until then its first page drawn as its zones. */
+export function ScreenTemplateThumb({ template, variant, width, height, first }: ScreenTemplateThumbProps) {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const shot = useTemplateShot(template, variant, width, height, inView, first);
+  const [loaded, setLoaded] = useState<string | null>(null);
   const profile = useMemo(() => instantiate(template, { name: template.name, variant, width, height }).profile, [template, variant, width, height]);
   const palette = template.variants?.find((v) => v.id === variant);
   const background = palette?.background ?? template.look.background;
@@ -66,7 +76,16 @@ export function ScreenTemplateThumb({ template, variant, width, height }: { temp
           );
         })}
       </div>
-      {shot && <img src={shot} alt="" decoding="async" draggable={false} className="absolute inset-0 h-full w-full object-cover" />}
+      {shot && (
+        <img
+          src={shot}
+          alt=""
+          decoding="async"
+          draggable={false}
+          onLoad={() => setLoaded(shot)}
+          className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-150", loaded === shot ? "opacity-100" : "opacity-0")}
+        />
+      )}
     </div>
   );
 }
@@ -126,12 +145,10 @@ export function ScreenTemplateGallery({ choice, onChoice, width, height, variant
               </button>
             );
           };
-          const starters = templates.filter((t) => !t.port);
-          const ports = templates.filter((t) => t.port);
           return (
             <section key={cls} aria-label={filter === "all" ? CLASS_NAMES[cls] : undefined}>
               {filter === "all" && <h3 className="mb-1.5 text-[12px] text-ui-3">{CLASS_NAMES[cls]}</h3>}
-              {((blank && n === 0) || starters.length > 0) && (
+              {((blank && n === 0) || templates.length > 0) && (
                 <div className={cn("grid items-start gap-2", COLUMNS[cls])}>
                   {blank && n === 0 && (
                     <button
@@ -147,14 +164,8 @@ export function ScreenTemplateGallery({ choice, onChoice, width, height, variant
                       <span className="px-2 pb-1.5 pt-1 text-[12px] font-medium text-ui-1">Blank</span>
                     </button>
                   )}
-                  {starters.map(card)}
+                  {templates.map(card)}
                 </div>
-              )}
-              {ports.length > 0 && (
-                <>
-                  <h4 className="mb-1.5 mt-3 text-[11.5px] text-ui-4">InfoPanel templates, made with native widgets</h4>
-                  <div className={cn("grid items-start gap-2", COLUMNS[cls])}>{ports.map(card)}</div>
-                </>
               )}
             </section>
           );
