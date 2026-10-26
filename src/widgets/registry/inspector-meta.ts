@@ -85,6 +85,11 @@ export const INSPECTOR_META: Record<string, InspectorMeta> = {
   Departures: yes(BOTH),
   Bluetooth: yes(BOTH),
   StreamDeck: yes(BOTH),
+  // History and analysis
+  BottleneckLens: yes(CARD),
+  FrameHistogram: yes(CARD),
+  SessionStats: yes(CARD),
+  ThresholdTimeline: yes(CARD, { thr: ["value"] }),
 };
 
 /**
