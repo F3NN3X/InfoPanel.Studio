@@ -1,6 +1,6 @@
 /** Neon: near-black panels outlined in a glowing accent, LED-segment meters. The native version of the InfoPanel template. */
 import { zone, type At, type ScreenTemplate, type Zone } from "../kit";
-import { cards, reading, theme } from "./ports";
+import { cards, type Colours, reading, theme, variant } from "./ports";
 
 const cyan = { accent: "#00e5ff", glowColor: "#00e5ff" };
 const pink = { accent: "#ff2bd6", glowColor: "#ff2bd6" };
@@ -26,6 +26,8 @@ const grid = tiles([[1, 1, 1, 2], [2, 1, 1, 2], [1, 3, 1, 1], [1, 4, 1, 1], [2, 
 const wide = tiles([[1, 1, 2, 1], [3, 1, 2, 1], [1, 2, 1, 1], [2, 2, 1, 1], [3, 2, 2, 1]]);
 const tall = tiles([[1, 1, 2, 2], [1, 3, 2, 2], [1, 5, 1, 1], [1, 6, 1, 1], [2, 5, 1, 2]]);
 
+const COLOURS: Colours = { bg: "#06040b", fg: "#f5f3ff", card: "#0b0816", sub: "#8e86b3", line: "#1c1633" };
+
 export const NEON: ScreenTemplate = {
   id: "neon",
   name: "Neon",
@@ -33,13 +35,18 @@ export const NEON: ScreenTemplate = {
   port: true,
   fits: ["strip", "wide", "standard", "tall"],
   look: {
-    theme: theme({ bg: "#06040b", fg: "#f5f3ff", card: "#0b0816", sub: "#8e86b3", line: "#1c1633" }),
+    theme: theme(COLOURS),
     radius: 0.375,
     style: { skin: "cyber", surface: "neon", accent: "#00e5ff", glow: "soft", glowColor: "#00e5ff", meter: "segments", numGlow: "soft", font: "rajdhani" },
     background: { type: "color", color: "#06040b" },
     gap: 14,
     padding: 14,
   },
+  variants: [
+    variant("cyber", "Cyber", ["#00e5ff", "#ff2bd6", "#f5f3ff"], COLOURS, {}),
+    variant("toxic", "Toxic", ["#7cff4d", "#ffe14d", "#f5f3ff"], COLOURS, {}, { style: { accent: "#7cff4d", glowColor: "#7cff4d" }, swap: { "#00e5ff": "#7cff4d", "#ff2bd6": "#ffe14d" } }),
+    variant("synth", "Synth", ["#ff4da6", "#b34dff", "#f5f3ff"], COLOURS, {}, { style: { accent: "#ff4da6", glowColor: "#ff4da6" }, swap: { "#00e5ff": "#ff4da6", "#ff2bd6": "#b34dff" } }),
+  ],
   layouts: {
     strip: { cols: 4, rows: 2, pages: [row] },
     wide: { cols: 4, rows: 2, pages: [wide] },

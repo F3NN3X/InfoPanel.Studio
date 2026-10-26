@@ -58,10 +58,13 @@ const positiveOf = (v: unknown): number | undefined => numberOf(v) || undefined;
 const FINE_DECIMALS = formatSetting("decimals", { options: ["auto", "0", "1", "2", "3", "4"].map((value) => ({ value, label: value === "auto" ? "Auto" : value })) });
 /** A sensor's own thresholds: off until set (blank was off), unless the theme sets the Value levels. */
 const valueThresholds = (extra: Partial<ModuleSetting> = {}): ModuleSetting => thresholdSetting("value", { default: "off", defaultY: "off", ...extra });
-const ranged = (v: ModuleSettings): boolean => v.display === "gauge" || v.display === "bar";
+const ranged = (v: ModuleSettings): boolean => v.display === "gauge" || v.display === "bar" || v.display === "line";
 
 const SENSOR_VALUE_SETTINGS: ModuleSetting[] = [
-  enumSetting("display", "Display", "value", [{ value: "value", label: "Value" }, { value: "gauge", label: "Gauge" }, { value: "bar", label: "Bar" }, { value: "spark", label: "Spark" }], { group: "Display" }),
+  enumSetting("display", "Display", "value", [{ value: "value", label: "Value" }, { value: "gauge", label: "Gauge" }, { value: "bar", label: "Bar" }, { value: "spark", label: "Spark" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }], { group: "Display" }),
+  enumSetting("lineValue", "Value in the line", "meter", [{ value: "meter", label: "At the end, with a meter" }, { value: "end", label: "At the end" }, { value: "next", label: "Next to the label" }, { value: "only", label: "Value only" }, { value: "stack", label: "Label and value over a thin bar" }], { group: "Display", visibleIf: (v) => v.display === "line" }),
+  boolSetting("labelInside", "Label inside the ring", false, { group: "Display", visibleIf: (v) => v.display === "gauge" }),
+  boolSetting("smallUnit", "Small unit", false, { group: "Display", visibleIf: (v) => v.display === "figure" }),
   optional("unit", "Unit override", "Display", "Blank = the unit read from the value"),
   sensorSetting("sensor", "Sensor", { group: "Reading" }),
   numberSetting("min", "Minimum", 0, { group: "Bar scale", tab: "data", visibleIf: ranged }),
@@ -322,7 +325,7 @@ export const GROUP_B: DashboardModule[] = [
     meta: Clock.meta,
     Component: Clock.default,
     settings: [
-      enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }], { group: "Face" }),
+      enumSetting("face", "Face", "digital", [{ value: "digital", label: "Digital" }, { value: "analog", label: "Analog" }, { value: "line", label: "Line" }, { value: "figure", label: "Figure" }], { group: "Face" }),
       boolSetting("showSeconds", "Seconds", true, { group: "Time & date" }),
       boolSetting("showDate", "Date", true, { group: "Time & date" }),
       // Themed (config v7 moved the Clock's `format` here); 24 h stays this widget's own default.
@@ -482,7 +485,7 @@ export const GROUP_B: DashboardModule[] = [
     toProps: (s): Partial<SensorValue.SensorValueProps> => {
       const decimals = decimalsOf(s);
       return {
-        ...pass<Partial<SensorValue.SensorValueProps>>("sensor", "label", "display", "unit")(s),
+        ...pass<Partial<SensorValue.SensorValueProps>>("sensor", "label", "display", "unit", "lineValue", "smallUnit", "labelInside")(s),
         ...numbersOf(s, ["min"]),
         ...(decimals !== undefined ? { decimals } : {}),
         ...thresholdsOf(s, "value", ["warn", "crit"]),

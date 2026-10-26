@@ -2,9 +2,11 @@
  * A native screen template made into a new screen at a chosen size: the layout of the size's shape class (or the
  * nearest class the template has), its grid split so the cells keep the shape they have at the class's reference
  * size, the spacing scaled to the size, the template's look as the screen's own, and every setting given by role
- * bound to this machine's sensor for it. Zones keep their boxes exactly (a split multiplies them), so none overlap
+ * bound to this machine's sensor for it (a spare zone whose sensor isn't found takes a similar one or makes way for its
+ * neighbours: `fallback.ts`), in the palette of the variant chosen. Zones keep their boxes exactly (a split multiplies them), so none overlap
  * or leave the grid that didn't in the template.
  */
+import type { ModuleSettings } from "@/modules/types";
 import type { DataApiValue } from "../infopanel/sensors";
 import { shapeClassOf, type ShapeClass } from "../infopanel/templates/layout";
 import { ROLE_INFO, resolveRole, type Role } from "../infopanel/templates/roles";
@@ -12,10 +14,13 @@ import { presetTokens } from "../appearance-presets";
 import { newProfile, uid, type MonitorProfile, type Placement } from "../layout";
 import { MAIN_PAGE_ID } from "../pages";
 import { sectionsWithValues, themedOf } from "../theme-model";
-import { REFERENCE, type ScreenTemplate, type ShapeLayout, type Zone } from "./kit";
+import { placePage, type Placed } from "./fallback";
+import { REFERENCE, type ScreenTemplate, type ShapeLayout, type Variant } from "./kit";
 
 export interface TemplateInput {
   name: string;
+  /** The id of one of the template's palettes; its first when unset or unknown. */
+  variant?: string;
   width: number;
   height: number;
   /** The live Data API's sensors (empty when it can't be reached). */
@@ -58,6 +63,22 @@ export function splitOf(layout: Pick<ShapeLayout, "cols" | "rows">, cls: ShapeCl
   return { kx: Math.max(1, kx), ky: Math.max(1, ky) };
 }
 
+const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The settings with the variant's colours swapped wherever a value holds them, and its own values set where a zone has the key. */
+function recolored(settings: ModuleSettings | undefined, v: Variant | undefined): ModuleSettings | undefined {
+  if (!settings || !v) return settings;
+  const swap = Object.entries(v.swap ?? {});
+  const pattern = swap.length > 0 ? new RegExp(swap.map(([from]) => escaped(from)).join("|"), "gi") : undefined;
+  const to = new Map(swap.map(([from, hex]) => [from.toLowerCase(), hex]));
+  return Object.fromEntries(
+    Object.entries(settings).map(([key, value]) => [
+      key,
+      key in (v.zones ?? {}) ? v.zones![key] : pattern && typeof value === "string" ? value.replace(pattern, (m) => to.get(m.toLowerCase()) ?? m) : value,
+    ]),
+  );
+}
+
 export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
   const cls = layoutClassOf(t, input.width, input.height);
   const layout = t.layouts[cls];
@@ -67,20 +88,28 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
   const u = Math.min(input.width / ref.width, input.height / ref.height);
   const space = (px: number) => Math.max(px > 0 ? 2 : 0, Math.round(px * Math.max(0.4, u)));
 
+  const variant = t.variants?.find((x) => x.id === input.variant) ?? t.variants?.[0];
+  const look = { ...t.look, ...(variant?.background ? { background: variant.background } : {}), style: { ...t.look.style, ...variant?.style } };
+
+  // Without this machine's sensors (none given, or the Data API can't be reached) every zone stays, its sensor left to pick.
+  const known = input.sensors !== undefined && Object.keys(input.sensors).length > 0;
   const found = new Map<Role, string | undefined>();
   const keyOf = (role: Role) => {
     if (!found.has(role)) found.set(role, input.sensors ? resolveRole(role, input.sensors)?.key : undefined);
     return found.get(role);
   };
-  const placement = (z: Zone): Placement => {
-    const [col, row, cols, rows] = z.at;
-    const bound = Object.entries(z.roles ?? {}).flatMap(([key, role]) => {
-      const sensor = keyOf(role);
-      return sensor ? [[key, sensor] as const] : [];
-    });
-    const settings = { ...z.settings, ...Object.fromEntries(bound) };
+  /** A sensor that reports no unit (LibreHardwareMonitor's memory sizes) reads in its role's usual one, so a size can step up to GB. */
+  const unitOf = (z: Placed["zone"], bound: Placed["bound"], roles: Placed["roles"]): ModuleSettings => {
+    const role = roles.sensor;
+    const unit = role ? ROLE_INFO[role].unit : "";
+    return z.module === "SensorValue" && unit && bound.sensor && input.sensors?.[bound.sensor]?.unit === "" ? { unit } : {};
+  };
+  const placement = ({ zone: z, at, bound, roles, label }: Placed): Placement => {
+    const [col, row, cols, rows] = at;
+    const base = recolored(z.settings, variant);
+    const settings = { ...base, ...(label !== undefined && typeof base?.label === "string" ? { label } : {}), ...(base?.unit === undefined ? unitOf(z, bound, roles) : {}), ...bound };
     // A zone's own look values (a bigger clock, its own surface) apply only in the sections it customises.
-    const own = sectionsWithValues(z.settings);
+    const own = sectionsWithValues(base);
     return {
       id: uid(z.module),
       module: z.module,
@@ -96,7 +125,7 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
 
   const base = newProfile(input.name, input.width, input.height);
   const names = t.pages ?? [{ name: "Main" }];
-  const style = themedOf(t.look.style);
+  const style = themedOf(look.style);
   const profile: MonitorProfile = {
     ...base,
     cols: layout.cols * kx,
@@ -105,17 +134,18 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
     fit: "fill",
     gap: space(t.look.gap),
     padding: space(t.look.padding),
-    theme: { ...presetTokens(t.look) },
-    ...(t.look.radius !== undefined ? { radius: t.look.radius } : {}),
+    theme: { ...presetTokens(look), ...(variant?.theme ?? {}) },
+    ...(look.radius !== undefined ? { radius: look.radius } : {}),
     ...(Object.keys(style).length > 0 ? { widgetTheme: { values: style } } : {}),
-    ...(t.look.background ? { background: { ...t.look.background } } : {}),
+    ...(look.background ? { background: { ...look.background } } : {}),
     pages: names.map((p, i) => ({
       id: i === 0 ? MAIN_PAGE_ID : uid("page"),
       name: p.name,
       ...(p.icon ? { icon: p.icon } : {}),
-      placements: (layout.pages[i] ?? []).map(placement),
+      placements: (known ? placePage(layout.pages[i] ?? [], keyOf) : (layout.pages[i] ?? []).map((zone): Placed => ({ zone, at: zone.at, bound: {}, roles: {} }))).map(placement),
     })),
   };
-  const unbound = [...found].filter(([, key]) => key === undefined).map(([role]) => ROLE_INFO[role].label);
+  const wanted = layout.pages.flat().flatMap((z) => Object.values(z.roles ?? {}));
+  const unbound = [...new Set(wanted)].filter((role) => keyOf(role) === undefined).map((role) => ROLE_INFO[role].label);
   return { profile, unbound };
 }

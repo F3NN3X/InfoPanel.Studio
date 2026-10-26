@@ -37,6 +37,7 @@ export function NewScreenDialog({ open, onOpenChange, onCreate, size: start }: N
   const [w, setW] = useState(String(start.width));
   const [h, setH] = useState(String(start.height));
   const [choice, setChoice] = useState<string | null>(null);
+  const [variant, setVariant] = useState<string | undefined>();
   const catalog = useSensorCatalog();
   const template = choice ? screenTemplateById(choice) : undefined;
   const size = sizeOfChoice(preset, w, h);
@@ -49,13 +50,14 @@ export function NewScreenDialog({ open, onOpenChange, onCreate, size: start }: N
     const t = id !== null && id !== choice ? screenTemplateById(id) : undefined;
     const made = t ? presetForChoice(t, shapeClassOf(shown.width, shown.height)) : undefined;
     if (made !== undefined) setPreset(made);
+    if (id !== choice) setVariant(undefined);
     setChoice(id);
   };
   const create = () => {
     if (!ok) return;
     const p = { name: shownName.trim(), width: size.width!, height: size.height! };
     const sensors = catalog.sensors as unknown as Record<string, DataApiValue>;
-    onCreate(template ? instantiate(template, { ...p, sensors }) : { profile: newProfile(p.name, p.width, p.height), unbound: [] });
+    onCreate(template ? instantiate(template, { ...p, variant, sensors }) : { profile: newProfile(p.name, p.width, p.height), unbound: [] });
     onOpenChange(false);
   };
   return (
@@ -86,12 +88,12 @@ export function NewScreenDialog({ open, onOpenChange, onCreate, size: start }: N
               </label>
               <div>
                 <span className="mb-1 block text-[12px] text-ui-3">Start from</span>
-                <ScreenTemplateGallery choice={choice} onChoice={choose} width={shown.width} height={shown.height} />
+                <ScreenTemplateGallery choice={choice} onChoice={choose} variant={variant} onVariant={setVariant} width={shown.width} height={shown.height} />
               </div>
               <SizePicker choice={preset} onChoice={setPreset} w={w} h={h} onW={setW} onH={setH} />
               <p className="text-[11.5px] leading-snug text-ui-4">
                 It comes in as a new screen. You can change its size and grid later on Screens.
-                {choice !== null && " The template's widgets find this PC's sensors; a reading not found is left for you to pick."}
+                {choice !== null && " The template's widgets find this PC's sensors; a reading not found is replaced by a similar one or left out."}
               </p>
             </div>
             <div className="flex justify-end gap-2 border-t border-ui-subtle px-5 py-3">

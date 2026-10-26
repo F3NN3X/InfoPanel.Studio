@@ -1,6 +1,6 @@
 /** What the native versions of the InfoPanel templates share: a theme from a handful of colours, and the common zones. */
 import type { ThemeTokens } from "../../theme";
-import { zone, type At, type Zone } from "../kit";
+import { zone, type At, type Variant, type Zone } from "../kit";
 import type { Role } from "../../infopanel/templates/roles";
 
 /** "#rrggbb" as the HSL triplet the theme tokens hold ("210 40% 12%"). */
@@ -16,7 +16,7 @@ export function hsl(hex: string): string {
   return `${Math.round(h * 60)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-interface Palette {
+export interface Colours {
   /** The page. */
   bg: string;
   /** Text. */
@@ -30,7 +30,7 @@ interface Palette {
 }
 
 /** A theme from five colours, the way an InfoPanel template names its palette. */
-export function theme({ bg, fg, card, sub, line }: Palette): ThemeTokens {
+export function theme({ bg, fg, card, sub, line }: Colours): ThemeTokens {
   return {
     background: hsl(bg),
     foreground: hsl(fg),
@@ -54,6 +54,52 @@ export function theme({ bg, fg, card, sub, line }: Palette): ThemeTokens {
   };
 }
 
+/** A palette of a template: its colours with some changed, and what else it sets (`Variant`). */
+export const variant = (id: string, name: string, swatch: Variant["swatch"], base: Colours, change: Partial<Colours>, rest: Partial<Variant> = {}): Variant => ({
+  id,
+  name,
+  swatch,
+  ...(Object.keys(change).length > 0 ? { theme: theme({ ...base, ...change }) } : {}),
+  ...rest,
+});
+
+/** The blue, purple and green of the Dark family (Deck, Meters, Orbit, Tower, Ticker) and what each becomes on White. */
+const DARK = { blue: "#0a84ff", purple: "#bf5af2", green: "#30d158" };
+const WHITE = { blue: "#0a6ce8", purple: "#ae4fdb", green: "#1e9a47" };
+const SWAP_WHITE = { [DARK.blue]: WHITE.blue, [DARK.purple]: WHITE.purple, [DARK.green]: WHITE.green };
+
+/**
+ * The palettes Deck, Meters, Orbit, Tower and Ticker share, as the InfoPanel templates have them: Dark (as designed),
+ * White, Smoke and Tint (a see-through card in a lighter tone) and Float (no cards). `base` is the template's colours.
+ */
+export function darkFamily(base: Colours, ...ids: readonly ("white" | "smoke" | "tint" | "float")[]): Variant[] {
+  const swatch = (c: string): Variant["swatch"] => [DARK.blue, DARK.purple, c];
+  const all: Record<(typeof ids)[number], Variant> = {
+    white: variant("white", "White", [WHITE.blue, WHITE.purple, "#121216"], base, { fg: "#121216", card: "#e4e5e9", sub: "#5c5f6b", line: "#b4b6bf" }, { style: { accent: WHITE.blue }, swap: SWAP_WHITE }),
+    smoke: variant("smoke", "Smoke", swatch("#c6c9d6"), base, { card: "#3e4156", line: "#6c6f84", sub: "#c6c9d6" }, { zones: { surfaceOpacity: 72 } }),
+    tint: variant("tint", "Tint", swatch("#b4b9d2"), base, { card: "#1b2142", line: "#4b5272", sub: "#b4b9d2" }, { zones: { surfaceOpacity: 69 } }),
+    float: variant("float", "Float", swatch("#e6e8f2"), base, { sub: "#e6e8f2", line: "#a8adc2" }, { zones: { surfaceOpacity: 0 } }),
+  };
+  return [{ id: "dark", name: "Dark", swatch: swatch("#ffffff") }, ...ids.map((id) => all[id])];
+}
+
+/**
+ * Zones that read as one card: the layout leaves no space between them (empty cells separate one card from the
+ * next), and only the corners of the group's outline are rounded.
+ */
+export function merged(zones: Zone[], radius = 14): Zone[] {
+  const x0 = Math.min(...zones.map((z) => z.at[0]));
+  const y0 = Math.min(...zones.map((z) => z.at[1]));
+  const x1 = Math.max(...zones.map((z) => z.at[0] + z.at[2]));
+  const y1 = Math.max(...zones.map((z) => z.at[1] + z.at[3]));
+  return zones.map((z) => {
+    const [c, r, w, h] = z.at;
+    const px = (on: boolean) => `${on ? radius : 0}px`;
+    const corners = [c === x0 && r === y0, c + w === x1 && r === y0, c + w === x1 && r + h === y1, c === x0 && r + h === y1].map(px).join(" ");
+    return { ...z, settings: { ...z.settings, customCss: `${z.settings?.customCss ?? ""} :scope { border-radius: ${corners} !important; }`.trim() } };
+  });
+}
+
 /** The first `n` cells of a `cols` wide grid, left to right and top to bottom, one cell each. */
 export const flow = (cols: number, n: number): At[] => Array.from({ length: n }, (_, i) => [(i % cols) + 1, Math.floor(i / cols) + 1, 1, 1] as const);
 
@@ -61,7 +107,7 @@ export const flow = (cols: number, n: number): At[] => Array.from({ length: n },
  * Every zone given the same card: a reading or the CPU monitor draws none unless its surface and the surface's opacity
  * are set on the zone itself. A zone's own settings win over these.
  */
-export const cards = (zones: Zone[], card: Record<string, string | number>): Zone[] => zones.map((z) => ({ ...z, settings: { surfaceOpacity: 100, ...card, ...z.settings } }));
+export const cards = (zones: Zone[], card: Record<string, string | number | boolean>): Zone[] => zones.map((z) => ({ ...z, settings: { surfaceOpacity: 100, ...card, ...z.settings } }));
 
-/** A sensor reading found by role: a value, a ring, a bar or a sparkline. */
-export const reading = (at: At, label: string, role: Role, settings?: Zone["settings"]): Zone => zone("SensorValue", at, { label, ...settings }, { sensor: role });
+/** A sensor reading found by role: a value, a ring, a bar or a sparkline. One that isn't found on this PC is replaced by a similar one or left out. */
+export const reading = (at: At, label: string, role: Role, settings?: Zone["settings"]): Zone => ({ ...zone("SensorValue", at, { label, ...settings }, { sensor: role }), spare: true });

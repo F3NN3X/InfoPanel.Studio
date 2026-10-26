@@ -1,7 +1,7 @@
 /**
  * The gallery's live thumbnails: a template made for the size and drawn offscreen by the full renderer (`ProfilePage`,
  * the widgets with this machine's data), captured once as a small picture (`captureShot`, what Screens' cards use) and
- * kept for the session. A card asks for its picture when it comes into view (`useTemplateShot`); at most two are drawn
+ * kept for the session, one per template, palette and size. A card asks for its picture when it comes into view (`useTemplateShot`); at most two are drawn
  * at a time (`thumb-queue.ts`). Until it arrives the card shows the plan of the template's zones.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -16,6 +16,7 @@ import { createThumbQueue } from "./thumb-queue";
 
 interface ShotSpec {
   template: ScreenTemplate;
+  variant: string;
   width: number;
   height: number;
 }
@@ -26,13 +27,13 @@ const WARMUP_MS = 700;
 const GIVE_UP_MS = 15000;
 
 const queue = createThumbQueue<ShotSpec>(AT_ONCE);
-const keyOf = (t: ScreenTemplate, width: number, height: number) => `${t.id}:${width}x${height}`;
+const keyOf = (t: ScreenTemplate, variant: string, width: number, height: number) => `${t.id}:${variant}:${width}x${height}`;
 
 /** The card's picture, or undefined until it is taken; asks for it while `visible`. */
-export function useTemplateShot(template: ScreenTemplate, width: number, height: number, visible: boolean): string | undefined {
-  const key = keyOf(template, width, height);
+export function useTemplateShot(template: ScreenTemplate, variant: string, width: number, height: number, visible: boolean): string | undefined {
+  const key = keyOf(template, variant, width, height);
   useSyncExternalStore(queue.subscribe, queue.version);
-  useEffect(() => (visible ? queue.want(key, { template, width, height }) : undefined), [visible, key]);
+  useEffect(() => (visible ? queue.want(key, { template, variant, width, height }) : undefined), [visible, key]);
   return queue.get(key);
 }
 
@@ -54,7 +55,7 @@ function ShotJob({ id, spec }: { id: string; spec: ShotSpec }) {
   const host = useRef<HTMLDivElement>(null);
   const catalog = useSensorCatalog();
   const profile = useMemo(
-    () => instantiate(spec.template, { name: spec.template.name, width: spec.width, height: spec.height, sensors: catalog.sensors as unknown as Record<string, DataApiValue> }).profile,
+    () => instantiate(spec.template, { name: spec.template.name, variant: spec.variant, width: spec.width, height: spec.height, sensors: catalog.sensors as unknown as Record<string, DataApiValue> }).profile,
     [spec, catalog.sensors],
   );
   const dashboard = useMemo(() => defaultConfig(), []);

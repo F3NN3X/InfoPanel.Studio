@@ -3,7 +3,7 @@ id: profiles
 title: Screens and the grid
 icon: aspect_ratio
 related: [zones, themes, kiosk]
-verified: 1.3.0-beta.28
+verified: 1.3.0-beta.29
 ---
 
 A screen (profile) is a design for one display size. Its grid decides where zones can go.
@@ -46,7 +46,7 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 | **Minimal** | A big clock with the date and three readings: CPU and GPU temperature and RAM load |
 | **Status bar** | One bar with the time, load, temperatures and network, for thin strip displays |
 
-Below the starters, under **InfoPanel templates, made with native widgets**, sit 17 templates that copy the look of the InfoPanel profile templates of the same names: Graphite, Glass, Neon, Paper, Mono, Terminal, Clock, Cores, Deck, Meters, Orbit, Tower, Ticker, Readout, Console, Frost Bar and Quota. They are real widgets, not a picture, so they keep up with the sensors and you can change any zone. Their own palette variants aren't carried over: each comes in its first colours, and **Theme** changes them. They list under the same shapes as the originals.
+Below the starters, under **InfoPanel templates, made with native widgets**, sit 17 templates that copy the look of the InfoPanel profile templates of the same names: Graphite, Glass, Neon, Paper, Mono, Terminal, Clock, Cores, Deck, Meters, Orbit, Tower, Ticker, Readout, Console, Frost Bar and Quota. They are real widgets, not a picture, so they keep up with the sensors and you can change any zone. Each has the palettes of its original: pick one in the **Colours** row under the cards and the cards follow your pick. A reading this PC doesn't have is replaced by a similar one the screen doesn't show yet, or left out, and the zones next to it take its room. They list under the same shapes as the originals.
 
 - The chips above the cards sort them by shape: **Strip** (4:1 or wider), **Wide**, **Standard** and **Tall** (narrower than square). They start on the shape of the chosen size, and **All** lists every shape with that one first.
 - Each card is a picture of the template at that size, taken while you look at the list. Until it arrives you see a plan of its zones. A template has its own arrangement for each shape it lists under, so a tall screen gets a column and a strip gets a row.

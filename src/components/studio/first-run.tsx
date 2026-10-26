@@ -132,6 +132,7 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
   const [pageName, setPageName] = useState("Main");
   // The template the setup starts on fits every shape.
   const [templateId, setTemplateId] = useState("general");
+  const [templateVariant, setTemplateVariant] = useState<string | undefined>();
   /** The cards the person ticked or unticked; the rest follow what the sensors offer. */
   const [overrides, setOverrides] = useState<ReadonlyMap<FirstWidgetId, boolean>>(new Map());
   /** Sensors the widget cards are preselected from; the catalog loads once the Data API is known. */
@@ -160,7 +161,7 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
 
   const last = step === STEPS.length - 1;
   const finish = async () => {
-    const template = start === "template" ? (await gallery()).templateScreen(templateId, screen, catalog.sensors) : undefined;
+    const template = start === "template" ? (await gallery()).templateScreen(templateId, screen, catalog.sensors, templateVariant) : undefined;
     onFinish(
       { width: screen.width, height: screen.height, start, pageName, widgets: widgets.filter((w) => on(w.id, w.detected)), template },
       base && base !== normalizeApiBase(saved) ? base : undefined
@@ -306,7 +307,18 @@ export function FirstRun({ open, dataApiUrl, windowSize, onSkip, onFinish }: Fir
                   <>
                     <Lead>Pick a template. It fills this screen with a ready-made layout and look, and everything on it can be changed.</Lead>
                     <Suspense fallback={null}>
-                      <ScreenTemplateGallery choice={templateId} onChoice={(id) => id && setTemplateId(id)} width={screen.width} height={screen.height} blank={false} />
+                      <ScreenTemplateGallery
+                        choice={templateId}
+                        onChoice={(id) => {
+                          if (id && id !== templateId) setTemplateVariant(undefined);
+                          if (id) setTemplateId(id);
+                        }}
+                        variant={templateVariant}
+                        onVariant={setTemplateVariant}
+                        width={screen.width}
+                        height={screen.height}
+                        blank={false}
+                      />
                     </Suspense>
                   </>
                 ) : (
