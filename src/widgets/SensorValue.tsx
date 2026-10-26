@@ -82,7 +82,7 @@ export default function SensorValue(p: SensorValueProps) {
           </div>
         ) : disp === "gauge" ? (
           <div className="flex h-full items-center justify-center">
-            <Ring value={v - min} max={max - min} t={t} thickness={size === "xs" ? 10 : 8} className="h-full">
+            <Ring value={v - min} max={max - min} t={t} thickness={size === "xs" ? 10 : 8} className="h-full max-w-full">
               <Num className={`${size === "xs" ? "text-base" : size === "sm" ? "text-2xl" : "text-4xl"} font-semibold`}>{fmt(v, p.decimals ?? 0)}</Num>
               <span className="text-[10.5px] text-[color:var(--w-muted)]">{unit}</span>
             </Ring>

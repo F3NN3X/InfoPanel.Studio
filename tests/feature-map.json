@@ -459,6 +459,7 @@
         "tests/lib/studio-focus.test.ts",
         "tests/lib/screens/**",
         "tests/lib/screen-templates/**",
+        "tests/components/templates/**",
         "tests/e2e/screens-manager.spec.ts",
         "tests/e2e/browser-studio.spec.ts",
         "tests/e2e/studio-basics.spec.ts",
