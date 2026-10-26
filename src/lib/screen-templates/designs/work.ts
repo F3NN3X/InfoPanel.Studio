@@ -6,6 +6,7 @@ export const WORK: ScreenTemplate = {
   name: "Work",
   blurb: "Calendar, clock, weather, processes and agents",
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: "neutral",
     radius: 0.75,

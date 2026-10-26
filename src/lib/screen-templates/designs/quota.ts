@@ -26,6 +26,7 @@ export const QUOTA: ScreenTemplate = {
   blurb: "A big clock and a system footer",
   port: true,
   fits: ["strip", "wide", "standard"],
+  size: { width: 800, height: 480 },
   look: {
     theme: theme(COLOURS),
     radius: 0.5,

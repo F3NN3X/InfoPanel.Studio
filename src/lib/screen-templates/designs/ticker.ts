@@ -21,11 +21,11 @@ export const TICKER: ScreenTemplate = {
   },
   variants: darkFamily(COLOURS, "white", "smoke", "float"),
   layouts: {
-    // The pill takes the middle of the strip, as the original floats in its wash.
+    // The pill takes the strip's whole height.
     strip: {
       cols: 12,
-      rows: 4,
-      pages: [cards([zone("StatusBar", [1, 2, 12, 2], { view: "ticker", left: "", center: "cpuLine,gpuLine,fpsLine,time", right: "", separators: true })], { surface: "theme" })],
+      rows: 1,
+      pages: [cards([zone("StatusBar", [1, 1, 12, 1], { view: "ticker", left: "", center: "cpuLine,gpuLine,fpsLine,time", right: "", separators: true })], { surface: "theme" })],
     },
   },
 };

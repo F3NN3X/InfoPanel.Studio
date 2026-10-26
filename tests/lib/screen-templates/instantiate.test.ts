@@ -9,7 +9,7 @@ import snapshot from "@/widgets/__fixtures__/snapshot.json";
 import extra from "@/widgets/__fixtures__/extra.json";
 import { CONFIG_VERSION, defaultConfig, mergeConfig } from "@/lib/layout";
 import { SCREEN_TEMPLATES } from "@/lib/screen-templates/catalog";
-import { instantiate, splitOf } from "@/lib/screen-templates/instantiate";
+import { instantiate, splitOf, zoneZoom } from "@/lib/screen-templates/instantiate";
 import { modules } from "@/modules";
 
 /** Two sizes of each class, of different aspects, so the grid split is exercised. */
@@ -83,7 +83,9 @@ describe("native screen templates", () => {
 
   it.each(SCREEN_TEMPLATES.map((t) => [t.id, t] as const))("%s fits at least one class, its size's included, with a layout for each", (_id, t) => {
     expect(t.fits.length).toBeGreaterThan(0);
-    if (t.size) expect(t.fits).toContain(shapeClassOf(t.size.width, t.size.height));
+    expect(t.size.width).toBeGreaterThan(0);
+    expect(t.size.height).toBeGreaterThan(0);
+    expect(t.fits).toContain(shapeClassOf(t.size.width, t.size.height));
     for (const cls of t.fits) expect(t.layouts[cls]?.pages.length).toBe(t.pages?.length ?? 1);
   });
 
@@ -103,7 +105,7 @@ describe("native screen templates", () => {
       if (own) expect([own.theme, own.style, own.swap, own.zones, own.background], t.id).toEqual([undefined, undefined, undefined, undefined, undefined]);
       for (const v of others) {
         expect(v.theme ?? v.style ?? v.swap ?? v.zones ?? v.background, `${t.id} ${v.id}`).toBeDefined();
-        const [width, height] = t.size ? [t.size.width, t.size.height] : [1920, 1080];
+        const { width, height } = t.size;
         const a = instantiate(t, { name: t.name, width, height, sensors: CAPTURE });
         const b = instantiate(t, { name: t.name, variant: v.id, width, height, sensors: CAPTURE });
         expect(JSON.stringify([b.profile.theme, b.profile.widgetTheme, b.profile.background, b.profile.pages.map((p) => p.placements.map((z) => z.settings))]), `${t.id} ${v.id}`).not.toBe(
@@ -146,6 +148,25 @@ describe("native screen templates", () => {
     expect(noFan).not.toContain("Fan");
     expect(noFan).toContain("Memory clock");
     expect(noFan).toHaveLength(16);
+  });
+
+  it("zooms a zone's Size % with the screen's size from the template's own, within bounds", () => {
+    const design = { width: 1000, height: 500 };
+    expect(zoneZoom(design, 1000, 500)).toBe(1);
+    // The tighter side decides.
+    expect(zoneZoom(design, 1200, 500)).toBe(1);
+    expect(zoneZoom(design, 800, 500)).toBe(0.8);
+    expect(zoneZoom(design, 10, 10)).toBe(0.6);
+    expect(zoneZoom(design, 10000, 10000)).toBe(1.6);
+  });
+
+  it("leaves a zone's Size % as designed at the template's size, and moves it at others", () => {
+    const quota = SCREEN_TEMPLATES.find((t) => t.id === "quota")!;
+    const clock = (width: number, height: number) =>
+      instantiate(quota, { name: "Q", width, height, sensors: CAPTURE }).profile.pages[0].placements.find((z) => z.module === "Clock")?.settings?.scale;
+    expect(clock(quota.size.width, quota.size.height)).toBe(220);
+    expect(clock(1920, 1080)).toBe(352);
+    expect(clock(480, 320)).toBe(132);
   });
 
   it("splits the grid so its cells keep their shape at a longer size of the class", () => {

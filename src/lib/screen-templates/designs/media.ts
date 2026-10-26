@@ -8,6 +8,7 @@ export const MEDIA: ScreenTemplate = {
   name: "Streaming",
   blurb: "Now playing, visualiser, mixer and on air",
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: "zinc",
     radius: 1,
@@ -34,7 +35,7 @@ export const MEDIA: ScreenTemplate = {
       rows: 4,
       pages: [
         [
-          zone("NowPlaying", [1, 1, 5, 4], { playerLayout: "backdrop" }),
+          zone("NowPlaying", [1, 1, 5, 4], { playerLayout: "card" }),
           zone("Visualizer", [6, 1, 4, 3], viz),
           zone("OnAirBeacon", [6, 4, 2, 1]),
           zone("SystemStatus", [8, 4, 2, 1]),

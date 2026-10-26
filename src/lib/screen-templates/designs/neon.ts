@@ -34,6 +34,7 @@ export const NEON: ScreenTemplate = {
   blurb: "Dark panels, glowing outlines, LED segments",
   port: true,
   fits: ["strip", "wide", "standard", "tall"],
+  size: { width: 800, height: 480 },
   look: {
     theme: theme(COLOURS),
     radius: 0.375,

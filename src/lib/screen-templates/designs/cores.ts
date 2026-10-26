@@ -6,7 +6,7 @@ import { cards, type Colours, reading, theme, variant } from "./ports";
 const tiles = (head: readonly At[], wall: At): Zone[] =>
   cards(
     [
-      reading(head[0], "CPU temp", "cpu.temp", { display: "value", scale: 420 }),
+      reading(head[0], "Temp", "cpu.temp", { display: "value", scale: 420 }),
       reading(head[1], "Load", "cpu.load", { display: "value", scale: 280 }),
       reading(head[2], "Clock", "cpu.clock", { display: "value", scale: 280 }),
       reading(head[3], "Power", "cpu.power", { display: "value", scale: 280 }),
@@ -23,6 +23,7 @@ export const CORES: ScreenTemplate = {
   blurb: "A per-core load wall under a temperature header",
   port: true,
   fits: ["strip", "wide", "standard"],
+  size: { width: 1024, height: 600 },
   look: {
     theme: theme(COLOURS),
     radius: 0.625,

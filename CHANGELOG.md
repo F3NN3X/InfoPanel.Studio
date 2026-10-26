@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Every template has a size of its own, and fits it.** Each screen template now names the size it is made for. The sizes of the text and readings inside it follow the screen's size from there, from 60 % to 160 %, so Cores, Tower and Quota no longer overflow on a small panel or look tiny on a large one. Gaming's top strip is tall enough to read on every size, Paper, Glass and Graphite have a wide arrangement of their own, Meters and Ticker fill the height of a strip, Cores' header labels are shorter, Deck's graphs are shorter on 1920 × 1080, Terminal shows three taller lines a pane on a strip, Streaming's wide arrangement uses the card player, and Console and Frost Bar have fewer cells on a standard screen.
+
 ## [1.3.0-beta.29] - 2026-10-26
 
 ### Changed
