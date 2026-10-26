@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.32] - 2026-10-26
+
 ### Changed
 
 - **New screen and New InfoPanel profile are one page.** The templates sit on the left and a panel on the right shows the one you picked: a preview fitted to its shape (a tall one beside the fields), the size, the colours, the sensors and the name. **Create** works at any point, Enter makes it, and a double-click makes a card at the size it shows. **Screen** and **InfoPanel profile** at the top switch what the page makes, and the rail follows. On a narrow window it falls back to two steps, **Pick** and **Adjust**.
