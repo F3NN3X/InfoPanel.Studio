@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.28] - 2026-10-26
+
 ### Added
 
 - **Palettes for the native InfoPanel templates, and closer copies.** Each of the 17 templates now has the palettes of its InfoPanel original (Graphite amber, teal and violet, Terminal green, amber and cyan, the Dark, White, Smoke and Float family, and so on). New screen shows them as a **Colours** row under the cards, the cards follow the pick, and the first-run template step has the same row. A reading a template asks for that this PC doesn't have is filled from a similar one or left out, and the zones next to it take its room, so Tower no longer leaves empty tiles. Terminal, Mono, Readout, Console and Deck are closer to their originals: Sensor Value has new **Line** (label, meter and value in one row) and **Figure** (a large light number) displays, the Clock a **Line** face, a size like 5,414 MB reads as 5.3 GB, and a custom CSS rule that starts with `:scope` now applies in the templates that used it (Paper's shadows, Mono's hairlines).
