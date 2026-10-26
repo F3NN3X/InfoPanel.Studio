@@ -10,6 +10,9 @@ export interface SystemStatusProps extends ShellProps {
   crit?: number;
 }
 
+/** The content height (px) under which CPU and RAM share one line. */
+const ONE_LINE_H = 50;
+
 export default function SystemStatus(p: SystemStatusProps) {
   const d = p.data;
   const cpu = num(get(d, "system.cpu.load")),
@@ -33,7 +36,25 @@ export default function SystemStatus(p: SystemStatusProps) {
         </span>
       }
     >
-      {({ size }) => {
+      {({ size, h }) => {
+        // Too low for a label over the number: CPU and RAM on one line.
+        if (h < ONE_LINE_H)
+          return (
+            <div className="flex h-full items-center gap-4 whitespace-nowrap leading-none">
+              {[
+                { l: "CPU", v: cpu },
+                { l: "RAM", v: ram },
+              ].map(({ l, v }) => (
+                <span key={l} className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="text-[11px] font-medium text-[color:var(--w-muted)]">{l}</span>
+                  <Num className="text-xl font-semibold" style={tone(v, warn, crit) !== "ok" ? { color: TONES[tone(v, warn, crit)] } : undefined}>
+                    {fmt(v, 0)}
+                    <span className="ml-0.5 text-[0.6em] font-medium text-[color:var(--w-muted)]">%</span>
+                  </Num>
+                </span>
+              ))}
+            </div>
+          );
         if (size === "xs")
           return (
             <div className="grid h-full grid-cols-2 items-center gap-2">

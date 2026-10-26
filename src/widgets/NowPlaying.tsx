@@ -73,6 +73,9 @@ export interface NowPlayingProps extends ShellProps {
   captureDevices?: string[];
 }
 
+/** The cover beside the text in the card layout: the box's height, at most 40% of its width (a small zone keeps 56px). */
+const artPx = (size: string, w: number, h: number): number => (size === "sm" ? 56 : Math.max(56, Math.min(h, w * 0.4)));
+
 export default function NowPlaying(p: NowPlayingProps) {
   const d = p.data;
   const m = trackOf(d, p.source);
@@ -164,10 +167,11 @@ export default function NowPlaying(p: NowPlayingProps) {
         </Chip>
       }
     >
-      {({ size }) => {
+      {({ size, w, h }) => {
+        // The title takes two lines before it is cut short.
         const text = (big: string, onImage = false) => (
           <div className="flex min-w-0 flex-col">
-            <span className={`${big} truncate font-semibold leading-tight ${onImage ? "text-white" : ""}`}>{m.track || "—"}</span>
+            <span className={`${big} line-clamp-2 break-words font-semibold leading-tight ${onImage ? "text-white" : ""}`}>{m.track || "—"}</span>
             <span className={`truncate text-xs ${onImage ? "text-zinc-300" : "text-[color:var(--w-muted)]"}`}>
               {has(m.artist) ? m.artist : ""}
               {size === "lg" && has(m.album) ? ` · ${m.album}` : ""}
@@ -189,7 +193,7 @@ export default function NowPlaying(p: NowPlayingProps) {
               <Img src={cover} icon="album" className="absolute inset-0 h-full w-full scale-125 opacity-70 blur-2xl" />
               <div className="absolute inset-0" style={{ background: "linear-gradient(160deg, color-mix(in oklab, var(--accent) 35%, transparent), rgba(0,0,0,.55) 55%, rgba(0,0,0,.8))" }} />
               <div className="relative flex h-full items-end gap-4 p-5">
-                <Img src={cover} icon="album" className={`aspect-square shrink-0 rounded-xl shadow-2xl ${size === "lg" ? "h-[62%]" : "h-[58%]"} max-h-[180px]`} />
+                <Img src={cover} icon="album" className={`aspect-square shrink-0 rounded-xl shadow-2xl ${size === "lg" ? "h-[62%]" : "h-[58%]"}`} />
                 <div className="flex min-w-0 flex-1 flex-col gap-2.5 pb-1">
                   <div className="flex items-center gap-2">
                     <Eq on={m.playing} />
@@ -247,7 +251,7 @@ export default function NowPlaying(p: NowPlayingProps) {
           );
         return (
           <div className="flex h-full items-center gap-3">
-            {art && <Img src={cover} icon="album" className={`aspect-square shrink-0 rounded-lg ${size === "sm" ? "h-14" : "h-full max-h-28"}`} />}
+            {art && <Img src={cover} icon="album" className="aspect-square shrink-0 rounded-lg" style={{ height: artPx(size, w, h) }} />}
             <div className="flex min-w-0 flex-1 flex-col gap-2.5">
               {text(size === "md" ? "text-lg" : "text-sm")}
               {progress}
