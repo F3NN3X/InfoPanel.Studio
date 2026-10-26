@@ -41,8 +41,10 @@ export interface MetricProps {
   className?: string;
   /** The Data API key the number shows: tags it for the InfoPanel conversion (`data-ip-key`). */
   ipKey?: string;
+  /** The number's size in px, fitted by the caller; replaces `scale`. */
+  px?: number;
 }
-export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key }: MetricProps) {
+export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok", align = "left", className = "", ipKey: key, px }: MetricProps) {
   const ipKey = useContext(IpTagCtx) ? key : undefined;
   const sk = useSkin();
   const sc = sk.numUp ? SCALES[Math.min(4, SCALES.indexOf(scale) + 1)] : scale;
@@ -51,7 +53,7 @@ export function Metric({ label, value, unit, d = 0, scale = "md", sub, t = "ok",
   return (
     <div className={`flex min-w-0 flex-col ${align === "center" ? "items-center text-center" : ""} ${className}`} style={align === "center" ? { alignItems: "var(--wp-x-cross, center)", textAlign: "var(--wp-text-align, center)" as CSSProperties["textAlign"] } : { alignItems: "var(--wp-x-cross, stretch)" }}>
       {label && <span className="max-w-full truncate text-[11px] font-medium text-[color:var(--w-muted)]" style={labelStyle("none")}>{label}</span>}
-      <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${big} font-semibold leading-none tracking-tight tabular-nums`} style={{ fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
+      <span data-ip-key={ipKey} data-ip-kind={ipKey ? "value" : undefined} data-ip-unit={ipKey && typeof unit === "string" ? unit : undefined} data-ip-decimals={ipKey ? d : undefined} className={`${px ? "" : big} font-semibold leading-none tracking-tight tabular-nums`} style={{ ...(px ? { fontSize: px } : null), fontFamily: sk.num, fontWeight: sk.numWeight, fontStretch: sk.numStretch, ...(sk.numGlow ? NUM_GLOW : null), ...(t !== "ok" ? { color: TONES[t] } : null) }}>
         {shown}
         {unit && <span className="ml-0.5 inline-block align-top leading-none text-[0.45em] font-medium text-[color:var(--w-muted)]">{unit}</span>}
       </span>
@@ -590,16 +592,16 @@ export function Empty({ icon = "sensors_off", label = "No data" }: { icon?: stri
   );
 }
 // Image with graceful fallback (localhost cover art, Steam CDN, …)
-export function Img({ src, className = "", icon = "image", alt = "" }: { src?: string; className?: string; icon?: string; alt?: string }) {
+export function Img({ src, className = "", icon = "image", alt = "", style }: { src?: string; className?: string; icon?: string; alt?: string; style?: CSSProperties }) {
   const [bad, setBad] = useState(false);
   useEffect(() => setBad(false), [src]);
   if (!has(src) || bad)
     return (
-      <div className={`flex items-center justify-center bg-[color:var(--w-track)] text-[color:var(--w-faint)] ${className}`}>
+      <div className={`flex items-center justify-center bg-[color:var(--w-track)] text-[color:var(--w-faint)] ${className}`} style={style}>
         <Icon name={icon} className="text-[1.6em]" />
       </div>
     );
-  return <img src={src} alt={alt} onError={() => setBad(true)} className={`object-cover ${className}`} />;
+  return <img src={src} alt={alt} onError={() => setBad(true)} className={`object-cover ${className}`} style={style} />;
 }
 
 /* ───────── shared building blocks (extracted from widgets during the audit) ───────── */

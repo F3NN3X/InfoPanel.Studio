@@ -4,9 +4,17 @@ import type { ModuleSettings } from "@/modules/types";
 import { isImageUrl } from "@/lib/image";
 import { widgetImage } from "./data-adapter";
 import { IpTagCtx, Widget, shell, get, num, fmt, has, Metric, Ring, Spark, Bar, Num, useHistory, tone, TONES, type ShellProps } from "./kit";
+import { fitFont, ringFont, textEm, valueFont } from "./core/fit";
 import { meta } from "./meta/SensorValue";
 
 export { meta };
+
+/** The smallest line text, px (less where the line itself is shorter). */
+const LINE_MIN_PX = 10;
+/** A figure's side padding, px. */
+const FIGURE_PAD = 4;
+/** A ring under this diameter (px) has no room for a label inside: it shows the number only. */
+const RING_LABEL_MIN = 90;
 
 export interface SensorValueProps extends ShellProps {
   look?: ModuleSettings;
@@ -61,9 +69,11 @@ export function readingText(value: number | undefined, unit: string | undefined)
  * label the value alone, quiet.
  */
 function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "meter", w, h }: LineProps) {
-  const px = Math.max(8, Math.min(h * 0.36, w / (value === undefined && text === undefined ? 18 : place === "meter" ? 27 : 11)));
   const metered = value !== undefined && ranged && place === "meter";
   const shown = text ?? readingText(value, unit);
+  // Half the line's height; a meter line keeps room for its meter, the others fit their own text (and its padding and gap).
+  const em = metered ? 27 : textEm(`${place === "only" ? "" : label}${shown ?? ""}`) + (shown !== undefined && place !== "only" ? 1.1 : 0) + 1.8;
+  const px = Math.max(Math.min(LINE_MIN_PX, h * 0.9), fitFont(em, w, h * 0.5));
   if (place === "stack") {
     const sp = Math.max(8, Math.min(h * 0.22, w / 14));
     return (
@@ -95,11 +105,11 @@ function Line({ label, value, text, unit, ranged, min, max, tone: t, place = "me
 /** A figure: the label small and quiet on top, the reading below as large as the box allows, light, its unit as big as it. */
 export function Figure({ label, text, unit, w, h }: { label: string; text: string; unit?: string; w: number; h: number }) {
   const small = Math.max(9, Math.min(h * 0.13, w / 9));
-  // With a small unit the number is what the box holds; the unit beside it takes 0.4 of its size.
-  const chars = unit ? text.length + unit.length * 0.4 : text.length;
-  const px = Math.max(14, Math.min((h - small * 2) * 0.62, w / (chars * 0.55)));
+  // The number's real width: with a small unit, the unit beside it at 0.4 of its size and its 0.2em margin.
+  const em = textEm(text) * 0.98 + (unit ? (textEm(unit) + 0.2) * 0.4 : 0);
+  const px = Math.max(14, fitFont(em, w - FIGURE_PAD * 2, (h - small * 2) * 0.62));
   return (
-    <div className="flex h-full min-w-0 flex-col leading-none" style={{ paddingInline: "0.25em" }}>
+    <div className="flex h-full min-w-0 flex-col leading-none" style={{ paddingInline: FIGURE_PAD }}>
       <span className="truncate text-[color:var(--w-muted)]" style={{ fontSize: small, textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>
       <div className="flex min-h-0 flex-1 items-center">
         <Num className="whitespace-nowrap" style={{ fontSize: px, fontWeight: 300, letterSpacing: "-0.02em" }}>
@@ -169,24 +179,24 @@ export default function SensorValue(p: SensorValueProps) {
           <div className="flex h-full items-center justify-center">
             <Ring value={v - min} max={max - min} t={t} thickness={size === "xs" ? 10 : 8} className="h-full max-w-full">
               {p.labelInside ? (
-                <div className="flex flex-col items-center leading-none" style={{ fontSize: Math.max(12, Math.min(w, h) * 0.28) }}>
-                  <span className="text-[0.4em] text-[color:var(--w-muted)]" style={{ textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>
+                <div className="flex flex-col items-center leading-none" style={{ fontSize: ringFont(fmt(sv, p.decimals ?? (up ? 1 : 0)), su, 0.45, Math.min(w, h)) }}>
+                  {Math.min(w, h) >= RING_LABEL_MIN && <span className="text-[0.4em] text-[color:var(--w-muted)]" style={{ textTransform: "var(--wp-label-case, none)" as CSSProperties["textTransform"] }}>{label}</span>}
                   <Num className="mt-[0.15em] font-semibold">
                     {fmt(sv, p.decimals ?? (up ? 1 : 0))}
                     <span className="ml-[0.1em] text-[0.45em] font-medium text-[color:var(--w-muted)]">{su}</span>
                   </Num>
                 </div>
               ) : (
-                <>
-                  <Num className={`${size === "xs" ? "text-base" : size === "sm" ? "text-2xl" : "text-4xl"} font-semibold`}>{fmt(sv, p.decimals ?? (up ? 1 : 0))}</Num>
-                  <span className="text-[10.5px] text-[color:var(--w-muted)]">{su}</span>
-                </>
+                <div className="flex flex-col items-center leading-none" style={{ fontSize: ringFont(fmt(sv, p.decimals ?? (up ? 1 : 0)), "", 0, Math.min(w, h)) }}>
+                  <Num className="font-semibold">{fmt(sv, p.decimals ?? (up ? 1 : 0))}</Num>
+                  <span className="mt-[0.1em] text-[color:var(--w-muted)]" style={{ fontSize: "max(9px, 0.4em)" }}>{su}</span>
+                </div>
               )}
             </Ring>
           </div>
         ) : (
           <div className="flex h-full flex-col justify-center gap-2">
-            <Metric label={size === "xs" ? label : null} value={sv} d={p.decimals ?? (Math.abs(sv) < 10 || up ? 1 : 0)} unit={su} t={t} scale={{ xs: "lg", sm: "xl", md: "2xl", lg: "2xl" }[size] as "lg" | "xl" | "2xl"} />
+            <Metric label={size === "xs" ? label : null} value={sv} d={p.decimals ?? (Math.abs(sv) < 10 || up ? 1 : 0)} unit={su} t={t} px={valueFont(fmt(sv, p.decimals ?? (Math.abs(sv) < 10 || up ? 1 : 0)), su, w, h * (disp === "spark" ? 0.4 : disp === "bar" ? 0.55 : 0.62) - (size === "xs" ? 14 : 0) - (p.source ? 18 : 0))} />
             {disp === "bar" && <Bar value={v - min} max={max - min} t={t} className="h-2" />}
             {disp === "spark" && <Spark values={hist} className="min-h-0 flex-1" />}
             {source}
