@@ -99,7 +99,7 @@ pub fn browser_kind(prog_id: Option<&str>) -> BrowserKind {
 }
 
 #[cfg(windows)]
-mod registry {
+pub(crate) mod registry {
     use windows_sys::Win32::System::Registry::{RegGetValueW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
 
     fn wide(s: &str) -> Vec<u16> {

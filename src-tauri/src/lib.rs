@@ -6,6 +6,7 @@ mod commands;
 mod control;
 mod debug;
 mod http;
+mod infopanel_local;
 mod kiosk;
 mod logs;
 mod nav;
@@ -234,6 +235,11 @@ pub fn run() {
             commands::changelog,
             commands::open_external,
             commands::default_browser_kind,
+            commands::infopanel_local,
+            commands::infopanel_start,
+            commands::infopanel_restart,
+            commands::port_owner,
+            commands::setup_options,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-infopanel-start"
+description = "Enables the infopanel_start command without any pre-configured scope."
+commands.allow = ["infopanel_start"]
+
+[[permission]]
+identifier = "deny-infopanel-start"
+description = "Denies the infopanel_start command without any pre-configured scope."
+commands.deny = ["infopanel_start"]

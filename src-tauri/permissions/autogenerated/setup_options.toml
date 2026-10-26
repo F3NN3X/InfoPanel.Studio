@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-setup-options"
+description = "Enables the setup_options command without any pre-configured scope."
+commands.allow = ["setup_options"]
+
+[[permission]]
+identifier = "deny-setup-options"
+description = "Denies the setup_options command without any pre-configured scope."
+commands.deny = ["setup_options"]

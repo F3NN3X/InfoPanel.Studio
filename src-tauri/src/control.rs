@@ -31,6 +31,13 @@ const STUDIO_PERMISSIONS: &[&str] = &[
     "allow-update-state",
     // The rail's Settings, Ctrl+, and the links to a Settings page.
     "allow-open-settings",
+    // The first-run setup: InfoPanel's checks and Start / Restart, the kiosk's network address, and its Finish switches.
+    "allow-infopanel-local",
+    "allow-infopanel-start",
+    "allow-infopanel-restart",
+    "allow-port-owner",
+    "allow-list-local-addresses",
+    "allow-setup-options",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     // The studio's top bar is the window's title bar (the window has no native frame).
@@ -679,7 +686,7 @@ mod tests {
     fn the_studio_keeps_only_what_it_calls() {
         assert_unique(STUDIO_PERMISSIONS);
         // The studio opens the Settings window and reads the status bar's state; it changes nothing in the shell.
-        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done"] {
+        for command in ["allow-open-settings", "allow-get-settings", "allow-server-status", "allow-update-state", "allow-flush-done", "allow-infopanel-local", "allow-setup-options"] {
             assert!(STUDIO_PERMISSIONS.contains(&command), "{command} is missing");
         }
         for command in ["allow-set-setting", "allow-stop-server", "allow-install-update", "allow-set-agents", "allow-read-log", "allow-reveal-path", "allow-show-studio"] {
