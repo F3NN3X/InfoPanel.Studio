@@ -148,6 +148,18 @@ describe("ops on a screen page", () => {
     expect(after.groups![1]).toBe(before.groups![1]);
   });
 
+  it("renames a widget in its own name field; renamed to nothing it takes its widget's name again", () => {
+    const { before, after } = run([{ type: "rename", id: "clock", name: "Desk clock" }]);
+    expect(byId(after, "clock")).toEqual({ ...byId(before, "clock"), name: "Desk clock" });
+    expect(findNode(readPlacements(desk(), after).root, "clock")!.node.name).toBe("Desk clock");
+    // Read with the studio's names, a widget renamed reads by its name; an untouched one by the studio's.
+    const named = readPlacements(desk(), after, (p) => `the ${p.module}`);
+    expect([findNode(named.root, "clock")!.node.name, findNode(named.root, "cpu")!.node.name]).toEqual(["Desk clock", "the CpuMonitor"]);
+    const cleared = applyPlacements(desk(), after, [{ type: "rename", id: "clock", name: "" }]);
+    expect(byId(cleared, "clock")).not.toHaveProperty("name");
+    expect(findNode(readPlacements(desk(), cleared).root, "clock")!.node.name).toBe("Clock");
+  });
+
   it("a widget dragged into a group that holds an item: tree, z-order and saved data agree (acceptance 13)", () => {
     const { after } = run([{ type: "moveToGroup", ids: ["clock"], groupId: "g-overlay" }]);
     expect(byId(after, "clock").groupId).toBe("g-overlay");

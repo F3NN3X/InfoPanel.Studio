@@ -420,6 +420,9 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes, grid
       {editor.selection.map((p) => {
         const b = boxes[p];
         if (!b) return null;
+        // A group (Edit v3 SPEC §7.1): one box around its members, 3 px out, with a "{name} · group" chip above it.
+        const selectedItem = itemAt(editor.items, p);
+        const group = selectedItem?.kind === "Group" && !elementOf(selectedItem) ? selectedItem : null;
         return (
           <div
             key={p}
@@ -430,11 +433,32 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes, grid
               top: b.y,
               width: b.width,
               height: b.height,
-              outline: `${1.5 * zoomK}px solid ${ACCENT}`,
-              outlineOffset: zoomK,
+              outline: `${(group ? 2 : 1.5) * zoomK}px solid ${ACCENT}`,
+              outlineOffset: (group ? 3 : 1) * zoomK,
+              borderRadius: group ? 6 * zoomK : undefined,
               pointerEvents: "none",
             }}
           >
+            {group && (
+              <span
+                data-testid="group-chip"
+                style={{
+                  position: "absolute",
+                  left: -3 * zoomK,
+                  top: -26 * zoomK,
+                  whiteSpace: "nowrap",
+                  padding: `${2 * zoomK}px ${6 * zoomK}px`,
+                  borderRadius: 4 * zoomK,
+                  background: ACCENT,
+                  color: "var(--ui-inverse-fg)",
+                  fontSize: 10.5 * zoomK,
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                }}
+              >
+                {group.Name || "Group"} · group
+              </span>
+            )}
             {p === single && sizing && (
               <span
                 data-size-label=""

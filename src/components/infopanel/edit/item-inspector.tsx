@@ -31,7 +31,7 @@ import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
 import { ElementPanel, NumberField } from "./element-panel";
 import { valueText } from "../remap-panel";
 import { Segmented } from "./canvas-toolbar";
-import { kindIcon } from "./items-tree";
+import { kindIcon } from "./item-icons";
 import { MultiInspector } from "./multi-inspector";
 import { SensorSelect } from "./sensor-select";
 import type { CanvasEditor } from "./use-canvas-editor";

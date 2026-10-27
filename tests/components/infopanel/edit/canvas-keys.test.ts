@@ -26,4 +26,13 @@ describe("canvas keys", () => {
     expect(canvasKeyAction(key("[", { ctrlKey: true, code: "BracketLeft" }), GRID)).toEqual({ type: "backward" });
     expect(canvasKeyAction(key("ArrowRight"), { ...GRID, typing: true })).toBeNull();
   });
+
+  it("the layer menu's other keys: Ctrl+Shift+] / [ to the front / back, Ctrl+L lock, Ctrl+H hide, F2 rename", () => {
+    expect(canvasKeyAction(key("}", { ctrlKey: true, shiftKey: true, code: "BracketRight" }), GRID)).toEqual({ type: "layer", action: "front" });
+    expect(canvasKeyAction(key("{", { ctrlKey: true, shiftKey: true, code: "BracketLeft" }), GRID)).toEqual({ type: "layer", action: "back" });
+    expect(canvasKeyAction(key("l", { ctrlKey: true }), AREA)).toEqual({ type: "layer", action: "lock" });
+    expect(canvasKeyAction(key("h", { ctrlKey: true }), AREA)).toEqual({ type: "layer", action: "hide" });
+    expect(canvasKeyAction(key("F2"), GRID)).toEqual({ type: "rename" });
+    expect(canvasKeyAction(key("F2"), { ...GRID, typing: true })).toBeNull();
+  });
 });

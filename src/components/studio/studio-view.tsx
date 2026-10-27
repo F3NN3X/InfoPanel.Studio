@@ -67,6 +67,9 @@ import { isPhone, railWidth } from "./use-studio-layout";
 import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
 import { useItemSelection } from "./use-item-selection";
+import { usePageLayers } from "./use-page-layers";
+import { LayerSection } from "./layer-section";
+import { findNode, walk, type GroupNode } from "@/lib/page-model/model";
 import { useInspectorFollowsSelection, useStudioUi } from "./use-studio-ui";
 import { SelectionChip } from "./selection-chip";
 import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
@@ -110,6 +113,15 @@ const GridCheckPanel = lazy(() => import("@/components/infopanel/grid-export").t
 const GridOnInfoPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridOnInfoPanel })));
 const GridBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridBadge })));
 const GridItemBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridItemBadge })));
+const GroupInspector = lazy(() => import("./group-inspector").then((m) => ({ default: m.GroupInspector })));
+const LayerMenu = lazy(() => import("./layer-menu").then((m) => ({ default: m.LayerMenu })));
+/** The Export check and its status icon, loaded on a screen made for InfoPanel (Layers' row statuses). */
+interface CheckKit {
+  exportCheck: typeof import("@/lib/infopanel/export-check").exportCheck;
+  StatusIcon: typeof import("@/components/infopanel/export-check-panel").StatusIcon;
+}
+const loadCheckKit = (): Promise<CheckKit> =>
+  Promise.all([import("@/lib/infopanel/export-check"), import("@/components/infopanel/export-check-panel")]).then(([c, p]) => ({ exportCheck: c.exportCheck, StatusIcon: p.StatusIcon }));
 /** A grid page's InfoPanel items in Add, loaded when the panel first lists them. */
 const GridPalette = lazy(() => import("@/components/infopanel/edit/grid-palette"));
 /** How many InfoPanel item kinds Add offers (`PALETTE.length` in editor/create.ts; kept here so the palette stays lazy). */
@@ -384,14 +396,38 @@ function StudioViewBody({
   /** The stored page on the canvas. */
   const storedPage = storedProfile.pages.find((p) => p.id === profile.pageId) ?? storedProfile.pages[0];
   /** The page's InfoPanel items and elements selected on the canvas (selecting one clears the zones, and back). */
-  const items = useItemSelection({
+  const items = useItemSelection({ profileId: storedProfile.id, page: storedPage, zoneId: sel.primaryId, clearZones: () => sel.select(null) });
+  // The Export check's statuses for Layers' rows, loaded with the check on a screen made for InfoPanel.
+  const [checkKit, setCheckKit] = useState<CheckKit | null>(null);
+  const checkOnScreen = madeForInfoPanel(storedProfile);
+  useEffect(() => {
+    if (checkOnScreen && !checkKit) void loadCheckKit().then(setCheckKit);
+  }, [checkOnScreen, checkKit]);
+  const rowStatus = useMemo(
+    () => (checkOnScreen && checkKit ? new Map(checkKit.exportCheck(storedProfile, storedPage, zoneName).rows.map((r) => [r.path, r.status])) : null),
+    [checkOnScreen, checkKit, storedProfile, storedPage],
+  );
+  /** Layers on a screen's page: one selection of widgets, items and groups, and every layer action. */
+  const layers = usePageLayers({
     profile: storedProfile,
     page: storedPage,
-    zoneId: sel.primaryId,
-    clearZones: () => sel.select(null),
+    zones: sel,
+    items,
+    focusZone,
     applyPageOps: edit.applyPageOps,
     dragging: history.dragging,
+    statusIcon:
+      rowStatus && checkKit
+        ? (id) => {
+            const status = rowStatus.get(id);
+            return status ? <checkKit.StatusIcon status={status} /> : null;
+          }
+        : undefined,
+    showLayers: () => ui.setLeftTab("layers"),
+    toast,
   });
+  /** The layer menu, opened on a part or a group's box on the canvas (Layers opens its own). */
+  const [layerMenu, setLayerMenu] = useState<{ x: number; y: number } | null>(null);
   /** A Free page (its layout, one canvas filling the screen, as every InfoPanel profile's) is edited in the canvas editor. */
   const freeZone = isFreePage(profile, storedPage) ? profile.placements[0] : null;
   /** What Edit's canvas editor shows: the Free page's canvas, else the free area opened from the grid. */
@@ -619,6 +655,15 @@ function StudioViewBody({
         )
     : undefined;
 
+  /** The one page group selected alone: the Group inspector (SPEC §10.3). */
+  const groupNode = layers.selection.length === 1 && layers.groups.length === 1 ? (findNode(layers.model.root, layers.groups[0])?.node as GroupNode | undefined) : undefined;
+  /** The groups a node can go into: every group but itself and the ones inside it. */
+  const groupsFor = (id: string) => {
+    const inside = new Set<string>([id]);
+    const node = findNode(layers.model.root, id)?.node;
+    if (node?.type === "group") walk(node.children, (n) => inside.add(n.id));
+    return layers.groupList.filter((g) => !inside.has(g.id));
+  };
   const inspectorAside = gridCheckShown ? (
     <aside aria-label="Export check" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
       <Suspense fallback={null}>
@@ -634,6 +679,20 @@ function StudioViewBody({
           }}
           onConvert={() => openConvertDialog("screen")}
           onClose={() => setGridCheckOpen(false)}
+        />
+      </Suspense>
+    </aside>
+  ) : groupNode ? (
+    <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
+      <Suspense fallback={null}>
+        <GroupInspector
+          model={layers.model}
+          group={groupNode}
+          inGroup={findNode(layers.model.root, groupNode.id)?.parentId ?? null}
+          groups={groupsFor(groupNode.id)}
+          onAction={layers.run}
+          onInGroup={layers.moveInto}
+          onSelectContents={() => layers.selectMany(groupNode.children.map((c) => c.id))}
         />
       </Suspense>
     </aside>
@@ -657,6 +716,7 @@ function StudioViewBody({
       onLayout={switchPageLayout}
       layoutDisabled={layoutDisabled}
       onInfoPanelOf={onInfoPanelOf}
+      layerOf={(zone) => <LayerSection onAction={layers.run} groups={layers.groupList} inGroup={zone.groupId ?? null} onInGroup={layers.moveInto} />}
     />
   );
 
@@ -692,14 +752,7 @@ function StudioViewBody({
           ),
         },
       }}
-      layers={{
-        placements: profile.placements,
-        selectedIds: sel.selectedIds,
-        onSelect: (id, toggle) => (toggle ? sel.select(id, "toggle") : focusZone(id)),
-        onToggle: edit.toggleVisible,
-        onRemove: edit.removePlacement,
-        onContextMenu: menus.open,
-      }}
+      layers={layers.host}
     />
     </PreviewDataProvider>
   );
@@ -819,7 +872,12 @@ function StudioViewBody({
           studioLayout.dismissInspector();
           ui.setInspectorQuery("");
         }
-        items.clear();
+        // Shift / Ctrl adds a zone to a mixed selection; a plain click selects it alone.
+        if (how === "toggle") items.keep();
+        else {
+          items.clear();
+          layers.clearGroups();
+        }
         sel.select(id, how);
         // A blank zone picked on the canvas is the Add panel's target: the panel shows, its search takes the cursor.
         if (how !== "toggle" && profile.placements.find((p) => p.id === id)?.module === BLANK_MODULE) ui.setLeftTab("add");
@@ -866,7 +924,16 @@ function StudioViewBody({
         selectedIds: items.ids,
         onSelect: (id, toggle) => {
           setGridCheckOpen(false);
+          if (!toggle) layers.clearGroups();
           items.select(id, toggle);
+        },
+        onContextMenu: (_id, x, y) => setLayerMenu({ x, y }),
+        groups: {
+          selected: layers.groups,
+          onMove: layers.moveGroups,
+          onRefused: layers.refuseGroupMove,
+          onPick: (id) => layers.host.select(id, "only", []),
+          onContextMenu: (x, y) => setLayerMenu({ x, y }),
         },
         onOps: edit.applyPageOps,
         badgeOf: checkOn
@@ -1284,6 +1351,11 @@ function StudioViewBody({
         commands={commands}
         onRun={(command) => runCommand(command.action)}
       />
+      {layerMenu && (
+        <Suspense fallback={null}>
+          <LayerMenu x={layerMenu.x} y={layerMenu.y} host={{ ...layers.host.menu, rename: layers.selection.length === 1 ? layers.requestRename : undefined }} onClose={() => setLayerMenu(null)} />
+        </Suspense>
+      )}
       {menus.menu && (
         <StudioContextMenu
           menu={menus.menu}

@@ -28,6 +28,7 @@ export function zoneMeta(zone: Placement, info: { dataPoints: number; min: { col
 /** The name the header shows: a widget's custom title, else its kind's name. */
 export function zoneName(zone: Placement): string {
   if (zone.module === BLANK_MODULE) return "Blank zone";
+  if (zone.name) return zone.name;
   if (zone.panel) return placementTitle(zone);
   const label = String(zone.settings?.label ?? "").trim();
   return label !== "" ? label : placementTitle(zone);

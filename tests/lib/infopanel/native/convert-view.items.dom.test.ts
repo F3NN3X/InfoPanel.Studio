@@ -1,13 +1,14 @@
 // @vitest-environment happy-dom
 // The .infopanel writer for a screen page's item placements (Edit v3 SPEC §11.4, DECISIONS "After phase 2"): a
 // migrated beta.35 Free page and a migrated free area export every item they hold, as the items they are, at their
-// box, in layer order, with the page's files; hidden parts and hidden groups stay out, as on the kiosk.
+// box, in layer order, with the page's files; hidden parts and hidden groups stay out, as on the kiosk. Page groups
+// export as InfoPanel Group items named after them (DECISIONS "After phase 3"), so an import shows the same tree.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CANVAS_ID, ITEM_ID, mergeConfig, type MonitorProfile, type Placement, type ProfilePage, type StoredConfig } from "@/lib/layout";
 import { cellBox } from "@/lib/free-pages";
 import { toFree } from "@/lib/page-layout";
 import { profileWithPage } from "@/lib/pages";
-import { applyPage, cellRect } from "@/lib/page-model";
+import { applyPage, cellRect, readPage, type LayerNode } from "@/lib/page-model";
 import { screenGrid } from "@/lib/page-model/placements-adapter";
 import { exportCheck } from "@/lib/infopanel/export-check";
 import { storeItems } from "@/lib/infopanel/canvas-edit";
@@ -50,6 +51,8 @@ async function exportOf(profile: MonitorProfile, page: ProfilePage = profile.pag
 }
 
 const names = (items: readonly DisplayItem[]): string[] => items.flatMap((i) => (i.kind === "Group" ? names(i.DisplayItems) : [i.Name]));
+/** Every item, a group's children in its place (the groups left out). */
+const flat = (items: readonly DisplayItem[]): DisplayItem[] => items.flatMap((i) => (i.kind === "Group" ? flat(i.DisplayItems) : [i]));
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(PNG)));
@@ -62,7 +65,7 @@ describe("exporting a migrated free area", () => {
   it("writes every visible item at the pixels the area drew it, in layer order, with the page's file", async () => {
     const out = await exportOf(profile);
     expect(names(out.items)).toEqual(["Background", "Logo", "One", "Two"]);
-    expect(out.items.find((i) => i.Name === "Logo")).toMatchObject({ X: Math.round(box.left + 40), Y: Math.round(box.top + 50), Width: 60, Height: 30, FilePath: "logo.png" });
+    expect(flat(out.items).find((i) => i.Name === "Logo")).toMatchObject({ X: Math.round(box.left + 40), Y: Math.round(box.top + 50), Width: 60, Height: 30, FilePath: "logo.png" });
     expect(out.assets.map((a) => a.name)).toEqual(["logo.png"]);
     expect(out.size).toEqual({ width: 1024, height: 600 });
     // The .infopanel's item list holds them, in the same order.
@@ -87,9 +90,9 @@ describe("exporting a migrated free area", () => {
     ]);
     const moved = config.profiles[0];
     const out = await exportOf(moved);
-    expect(out.items.find((i) => i.Name === "Logo")).toMatchObject({ X: 7, Y: 9, Width: 60, Height: 30 });
+    expect(flat(out.items).find((i) => i.Name === "Logo")).toMatchObject({ X: 7, Y: 9, Width: 60, Height: 30 });
     const cell = cellRect(screenGrid(moved), { col: 2, row: 3, cols: 1, rows: 1 });
-    expect(out.items.find((i) => i.Name === "One")).toMatchObject({ X: Math.round(cell.x), Y: Math.round(cell.y) });
+    expect(flat(out.items).find((i) => i.Name === "One")).toMatchObject({ X: Math.round(cell.x), Y: Math.round(cell.y) });
   });
 
   it("leaves out a hidden group's items, in the export and in the check", async () => {
@@ -112,7 +115,58 @@ describe("exporting a migrated beta.35 Free page", () => {
     const parts = page.placements.filter((p) => p.module === ITEM_ID && p.visible);
     const out = await exportOf(profile);
     expect(names(out.items)).toEqual(parts.map((p) => p.item!.Name));
-    for (const p of parts) expect(out.items.find((i) => i.Name === p.item!.Name)).toMatchObject({ X: p.px!.x, Y: p.px!.y });
+    for (const p of parts) expect(flat(out.items).find((i) => i.Name === p.item!.Name)).toMatchObject({ X: p.px!.x, Y: p.px!.y });
     expect(out.report.map((row) => row.outcome)).toContain("kept: they are InfoPanel items");
+  });
+});
+
+describe("exporting a page's groups", () => {
+  const base = newStored({ name: "Desk", width: 1024, height: 600, now: NOW });
+  const { profile: look } = readStored(base);
+  const text = (id: string, x: number, extra: Partial<Placement> = {}): Placement =>
+    zone(id, ITEM_ID, [1, 1, 1, 1], { item: storeItems(base, look, [{ ...newItem("Text", look), Name: id, X: x, Y: 20 } as DisplayItem]).items[0], px: { x, y: 20, w: 80, h: 30 }, ...extra });
+  // Bottom first: Clock (a widget, not drawn here), A and B in Outer, C in Inner (inside Outer), D at the top level.
+  const page: ProfilePage = {
+    id: "pg",
+    name: "Main",
+    placements: [zone("clock", "Clock", [4, 3, 1, 1]), text("A", 10, { groupId: "outer" }), text("C", 200, { groupId: "inner" }), text("B", 100, { groupId: "outer" }), text("D", 300)],
+    groups: [{ id: "outer", name: "Outer" }, { id: "inner", name: "Inner", parentId: "outer" }],
+  };
+  const screen: MonitorProfile = { id: "s", name: "Desk", ...FILL, gap: 0, padding: 0, madeFor: "infopanel", pages: [page] };
+
+  /** A tree's names and nesting, top first, widgets left out (they export by their own choice). */
+  const shape = (nodes: readonly LayerNode[]): unknown[] =>
+    nodes.flatMap((n): unknown[] => (n.type === "group" ? [{ [n.name]: shape(n.children) }] : n.kind === "widget" ? [] : [n.name]));
+
+  it("writes each group as an InfoPanel Group named after it, its items inside in layer order", async () => {
+    const out = await exportOf(screen);
+    const tree = (items: readonly DisplayItem[]): unknown[] => items.map((i) => (i.kind === "Group" ? { [i.Name]: tree(i.DisplayItems) } : i.Name));
+    expect(tree(out.items)).toEqual([{ Outer: ["A", { Inner: ["C"] }, "B"] }, "D"]);
+    expect(flat(out.items).find((i) => i.Name === "C")).toMatchObject({ X: 200, Y: 20 });
+  });
+
+  it("imports back as the same tree", async () => {
+    const out = await exportOf(screen);
+    const canvas: StoredCanvas = { ...storeItems(base, look, out.items), source: { name: "Desk", origin: "file", importedAt: "" } };
+    const imported: MonitorProfile = { ...screen, pages: [{ id: "pg", name: "Main", placements: [zone("c", CANVAS_ID, [1, 1, 4, 3], { canvas })] }] };
+    const before = readPage(screen, page)!;
+    const after = readPage(imported, imported.pages[0])!;
+    expect(shape(after.root)).toEqual(shape(before.root));
+    expect(shape(before.root)).toEqual(["D", { Outer: ["B", { Inner: ["C"] }, "A"] }]);
+  });
+
+  it("lists each part in the grid page's Export check with the Group it exports inside", () => {
+    const rows = exportCheck(screen, page).rows;
+    expect(rows.find((r) => r.name === "C")?.why).toMatch(/; inside the Group Inner$/);
+    expect(rows.find((r) => r.name === "A")?.why).toMatch(/; inside the Group Outer$/);
+    expect(rows.find((r) => r.name === "D")?.why).not.toContain("inside the Group");
+  });
+
+  it("leaves out a hidden group and an empty one", async () => {
+    const hidden: ProfilePage = { ...page, groups: [{ id: "outer", name: "Outer" }, { id: "inner", name: "Inner", parentId: "outer", hidden: true }, { id: "empty", name: "Empty" }] };
+    const out = await exportOf({ ...screen, pages: [hidden] }, hidden);
+    expect(JSON.stringify(out.items)).not.toContain("Inner");
+    expect(JSON.stringify(out.items)).not.toContain("Empty");
+    expect(names(out.items)).toEqual(["A", "B", "D"]);
   });
 });

@@ -2,28 +2,10 @@
  * The studio elements' shared bits of UI: each element's icon (Add palette, Layers, inspector)
  * and the export badge (Native, Baked or Approximated) with its reason.
  */
-import { Activity, AlignJustify, ChartNoAxesCombined, CircleDashed, Cpu, Disc3, GripHorizontal, HardDrive, Layers, Minus, RectangleHorizontal, Rows3, Smile, Sparkles, Type, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BADGE_LABEL, type Badge } from "@/lib/infopanel/elements/apply";
-import type { ElementType } from "@/lib/infopanel/elements/spec";
 
-export const ELEMENT_ICONS: Record<ElementType, LucideIcon> = {
-  ring: CircleDashed,
-  ledbar: GripHorizontal,
-  card: RectangleHorizontal,
-  glow: Sparkles,
-  divider: Minus,
-  icon: Smile,
-  cores: Cpu,
-  sparkline: Activity,
-  row: AlignJustify,
-  rows: Rows3,
-  stack: ChartNoAxesCombined,
-  dual: Layers,
-  doublering: Disc3,
-  drives: HardDrive,
-  shadowtext: Type,
-};
+export { ELEMENT_ICONS } from "./element-icons";
 
 const BADGE_TONE: Record<Badge["kind"], string> = {
   native: "border-ui-success/40 text-ui-success",

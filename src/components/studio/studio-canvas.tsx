@@ -42,7 +42,7 @@ import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { LivePlacement } from "./placement-content";
 import { RulerLabels } from "./rulers";
 import { ScreenFold } from "./screen-fold";
-import { ItemParts, useAltHeld, type ItemGesture } from "./item-parts";
+import { ItemParts, useAltHeld, type GroupMoves, type ItemGesture } from "./item-parts";
 import { EmptyLayoutCard, QuickTipsCard } from "./canvas-cards";
 import { canvasPointAt, canvasTakesDrop, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint, type LibraryItem } from "./drop-ghost";
 import { addGhost, type Ghost } from "./add-place";
@@ -178,6 +178,8 @@ interface StudioCanvasProps {
     onOps: (ops: PageOp[], key: string) => void;
     onContextMenu?: (id: string, x: number, y: number) => void;
     badgeOf?: (p: Placement) => ReactNode;
+    /** The selected page groups: their boxes, and their moves. */
+    groups?: GroupMoves;
   };
 }
 
@@ -775,6 +777,7 @@ export function StudioCanvas({
                     onGesture={setGesture}
                     onContextMenu={items.onContextMenu}
                     badgeOf={items.badgeOf}
+                    groups={items.groups}
                   />
                 )}
               </div>

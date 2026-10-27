@@ -141,6 +141,8 @@ export interface Placement {
   groupId?: string;
   /** Locked: the canvas doesn't move, resize or delete it. */
   locked?: boolean;
+  /** A widget's own name (Layers' rename); unset = its widget's name. Studio-only: an older build ignores it. */
+  name?: string;
 }
 
 /** A box in design px. */

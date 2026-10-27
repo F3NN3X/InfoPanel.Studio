@@ -23,7 +23,7 @@ export const ITEMS_LAYER = "items-layer:";
 /** Whether a placement is one of these layers. */
 export const isItemsLayer = (p: Pick<Placement, "id">): boolean => p.id.startsWith(ITEMS_LAYER);
 
-type Screen = Pick<MonitorProfile, "width" | "height" | "cols" | "rows" | "fit" | "gap" | "padding">;
+export type Screen = Pick<MonitorProfile, "width" | "height" | "cols" | "rows" | "fit" | "gap" | "padding">;
 
 /**
  * An item placement's item where the part sits, in screen px: placed freely at its `px`, else at its cells' box, so
@@ -45,7 +45,7 @@ export function hiddenByGroups(page: Pick<ProfilePage, "groups">): (groupId: str
 }
 
 /** A see-through canvas `width`×`height` holding `items`, with the page's files, fonts and InfoPanel profile. */
-function pageCanvas(page: ProfilePage, items: StoredItem[], width: number, height: number): StoredCanvas {
+export function pageCanvas(page: ProfilePage, items: StoredItem[], width: number, height: number): StoredCanvas {
   const store = page.freeCanvas;
   return {
     format: FORMAT,
@@ -101,38 +101,5 @@ export function withItemLayers(profile: Screen, page: ProfilePage | undefined, z
   flush();
   // A zone the view has that the page doesn't (yet) still draws.
   for (const z of zones) if (!placed.has(z.id)) out.push(z);
-  return out;
-}
-
-/** One part of a screen page as the .infopanel writer takes it: a zone, or a run of item placements as a canvas. */
-export type ExportPart = { zone: Placement } | { items: StoredCanvas };
-
-/**
- * A screen page in the order it exports (SPEC §11.4), bottom first: each of `zones` (the zones to convert, by id) where
- * the page has it, and each run of item placements between them as one canvas the screen's size holding the items at
- * their box in screen px, so they export as the items they are and z-order follows the layer order. Hidden parts and
- * parts of hidden groups are left out, as the kiosk leaves them out.
- */
-export function exportParts(profile: Screen, page: ProfilePage, zones: readonly Placement[]): ExportPart[] {
-  const byId = new Map(zones.map((z) => [z.id, z]));
-  const inHidden = hiddenByGroups(page);
-  const out: ExportPart[] = [];
-  let run: StoredItem[] = [];
-  const flush = () => {
-    if (run.length) out.push({ items: pageCanvas(page, run, profile.width, profile.height) });
-    run = [];
-  };
-  for (const p of page.placements) {
-    if (inHidden(p.groupId)) continue;
-    if (p.module === ITEM_ID) {
-      if (p.visible && p.item) run.push(placedItem(profile, p)!);
-      continue;
-    }
-    const zone = byId.get(p.id);
-    if (!zone) continue;
-    flush();
-    out.push({ zone });
-  }
-  flush();
   return out;
 }

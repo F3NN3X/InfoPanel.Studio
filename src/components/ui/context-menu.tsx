@@ -26,6 +26,9 @@ interface ContextMenuProps {
   y: number;
   entries: ContextMenuEntry[];
   onClose: () => void;
+  /** The menu's width in px (default 220; the layer menu's is 230). */
+  width?: number;
+  testId?: string;
 }
 
 /**
@@ -34,7 +37,7 @@ interface ContextMenuProps {
  * Home / End move between items, Enter / Space pick, and focus returns to
  * where it was when the menu closes.
  */
-export function ContextMenu({ x, y, entries, onClose }: ContextMenuProps) {
+export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   /** The row whose flyout is open. */
   const [openSub, setOpenSub] = useState<string | null>(null);
@@ -94,7 +97,7 @@ export function ContextMenu({ x, y, entries, onClose }: ContextMenuProps) {
   const { left, top } = clampMenuPosition(
     x,
     y,
-    { width: MENU_WIDTH, height: menuHeight(entries.length - separators, separators) },
+    { width, height: menuHeight(entries.length - separators, separators) },
     { width: window.innerWidth, height: window.innerHeight }
   );
 
@@ -139,11 +142,11 @@ export function ContextMenu({ x, y, entries, onClose }: ContextMenuProps) {
             <div
               role="menu"
               data-sub={e.id}
-              style={{ width: MENU_WIDTH }}
+              style={{ width }}
               className={cn(
                 "absolute top-0 z-10 rounded-[9px] border border-ui-menu bg-ui-raised p-1 shadow-ui-menu",
                 // Flip to the left when the flyout would leave the viewport.
-                left + MENU_WIDTH * 2 + 8 > window.innerWidth ? "right-full mr-1" : "left-full ml-1"
+                left + width * 2 + 8 > window.innerWidth ? "right-full mr-1" : "left-full ml-1"
               )}
             >
               {rows(e.submenu, level + 1)}
@@ -157,7 +160,8 @@ export function ContextMenu({ x, y, entries, onClose }: ContextMenuProps) {
     <div
       ref={ref}
       role="menu"
-      style={{ left, top, width: MENU_WIDTH }}
+      data-testid={testId}
+      style={{ left, top, width }}
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={onMenuKey}
       className="fixed z-[90] rounded-[9px] border border-ui-menu bg-ui-raised p-1 font-ui shadow-ui-menu"

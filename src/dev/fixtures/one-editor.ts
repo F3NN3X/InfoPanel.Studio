@@ -49,7 +49,7 @@ function overlay(): { parts: Placement[]; store: ProfilePage["freeCanvas"] } {
 /** Desk panel: five widgets on a full 4 x 3 grid, no gap and no padding so the cells match the reference's percentages. */
 function deskPanel(madeFor: "studio" | "infopanel", groups = false): MonitorProfile {
   const gauge = (id: string, label: string, cell: [number, number, number, number]) =>
-    zone(id, "SensorValue", cell, { settings: { display: "gauge", label }, ...(groups ? { groupId: "gauges" } : {}) });
+    zone(id, "SensorValue", cell, { name: `${label} gauge`, settings: { display: "gauge", label }, ...(groups ? { groupId: "gauges" } : {}) });
   const over = groups ? overlay() : null;
   const page: ProfilePage = {
     id: "main",
