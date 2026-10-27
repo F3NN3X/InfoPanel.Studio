@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDensity, parseLeftPanelWidth, widthFromPx } from "@/components/studio/add-prefs";
+import { parseAddFilter, parseChip, parseDensity, parseLeftPanelWidth, widthFromPx } from "@/components/studio/add-prefs";
 
 describe("Left panel width migration", () => {
   it("moves an old pixel width to the nearest option", () => {
@@ -28,5 +28,12 @@ describe("Widget list density", () => {
     expect(parseDensity("compact")).toBe("compact");
     expect(parseDensity(null)).toBe("comfortable");
     expect(parseDensity("dense")).toBe("comfortable");
+  });
+});
+
+describe("Add's segment and chip", () => {
+  it("keeps a stored segment and chip, else All", () => {
+    expect([parseAddFilter("items"), parseAddFilter("junk"), parseAddFilter(null)]).toEqual(["items", "all", "all"]);
+    expect([parseChip("Media"), parseChip(""), parseChip(null)]).toEqual(["Media", "All", "All"]);
   });
 });

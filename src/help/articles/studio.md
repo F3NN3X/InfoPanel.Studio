@@ -13,7 +13,7 @@ The editor window: a rail of views on the left, the work area in the middle, and
 | View | What it holds |
 |---|---|
 | **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. **New** opens the New page, where you start from Blank or a template. See [Screens and the grid](profiles). |
-| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (every part of the page in one tree, see [Layers](studio#layers)) and **Add**, which has tabs for **Widgets**, **Panels** (yours and the presets) and **Layouts** (starters), or InfoPanel's items and elements on a profile. See [The InfoPanel editor](infopanel-editor) for profiles. |
+| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (every part of the page in one tree, see [Layers](studio#layers)) and **Add** (see [Add](studio#add)), which has tabs for **Widgets** (the widgets, InfoPanel's items and elements, as tiles), **Panels** (yours and the presets) and **Layouts** (starters). See [The InfoPanel editor](infopanel-editor) for profiles. |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
 | **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
 | **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
@@ -108,6 +108,18 @@ Esc — Clear the selection
 
 On a screen made for InfoPanel, each item has its Export check mark, and **Convert screen to InfoPanel profile** takes the items as the items they are, at the same place and in the same order. Hidden items, and items in a hidden group, stay out, as on the kiosk.
 
+## Add
+
+**Add** shows what you can put on the page as tiles, three to a row, each with an icon and a name. A widget's tile has its size at the top left. On a screen made for InfoPanel, each tile has its Export check status at the top right.
+
+- **Show** picks **All**, **Widgets** or **InfoPanel items**. On a screen made for InfoPanel the items come first. The chips under it narrow the list to one category, and the search covers everything.
+- **Recently used**, at the top, holds the last four things you added, widgets and items alike. It hides while you search or pick a chip.
+- Rest the pointer on a tile, or move to it with the arrow keys, and a card opens beside the panel after a moment: a preview, what it is, its size, and on a screen made for InfoPanel what it becomes on export. Scrolling, leaving the list or `Esc` closes it.
+- Click a tile or press `Enter` to add it. A widget takes the first free cells. An InfoPanel item or element goes in the middle of the page, on the cells, into the selected group if there is one. An item that reads a sensor asks for it next.
+- Drag a tile onto the canvas to put it where you drop it. Hold `Alt` as you drop an item to place it to the pixel.
+- On a screen made for InfoPanel, a message at the top of the canvas says what the new part becomes on export, with **Undo** and **Change**. **Change** opens its **On InfoPanel** setting.
+- **Panels** and **Layouts** keep their lists. On an imported InfoPanel profile **Layouts** is greyed out, because layouts replace the widgets while the items stay on top.
+
 ## Layers
 
 **Layers** lists every part of the page, the top one first: widgets, InfoPanel items, elements and groups. A group can hold any mix of them, and groups can hold groups. A screen's page and an InfoPanel profile use the same tree.
@@ -117,7 +129,8 @@ Each row has the part's icon, its name and what it is (*widget*, *item*, *elemen
 - Click a row to select it. `Ctrl`+click adds or removes a row and `Shift`+click selects a range. One selection can hold widgets, items and groups together, on the canvas too.
 - Double-click a name, or press `F2`, to rename it. `Enter` keeps the new name and `Esc` drops it. A widget's new name shows in the inspector too.
 - Drag a row between two rows to change what is drawn on top. Drop it on the middle of a group to put it inside, on top. A line or an outline shows where it lands. Reordering never moves a part on the page.
-- Right-click a row, or an item on the canvas, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate and Delete. The inspector's **Layer** section has the four order buttons and the group the part sits in.
+- On the canvas, a click on a part in a group selects the outermost group; double-click to select the part itself.
+- Right-click a row, or any part on the canvas, widgets included, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate and Delete. A widget's menu goes on below with the widget's own commands, such as Change widget, Edit style and Bind data. The inspector's **Layer** section has the four order buttons and the group the part sits in.
 - Select a group and the canvas draws one box around its parts, with its name above it. Drag the box to move the group. A group with a widget in it moves by whole cells; when a widget would land on a widget outside the group, the group stays put and a message says "Not enough room to move the group." A group of items and elements snaps to the cells, or goes to the pixel while you hold `Alt`. Double-click inside the box to select the part under the pointer.
 - A locked part can't be moved, resized or deleted on the canvas. You can still reorder it in Layers.
 - When the screen is exported to InfoPanel, each group becomes an InfoPanel Group with the same name and parts, so the profile has the same tree.

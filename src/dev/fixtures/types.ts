@@ -10,19 +10,22 @@ export interface FixtureStart {
   /** Item paths to select in the canvas editor of a Free page (`canvas-edit` paths, "0", "1.2"). */
   canvasSelection?: string[];
   leftTab: FixtureLeftTab;
+  /** Add's segment (`add-prefs.ts` `AddFilter`), the tile whose details card is open, and Recently used (tile keys). */
+  addSegment?: "all" | "widgets" | "items";
+  hoverTile?: string;
+  recent?: string[];
+  /** The toast after adding the selected widget (the reference's state 3). */
+  toast?: "addw";
 }
 
 /**
  * One state of the Edit v3 reference (`?fixture=one-editor/<name>`, dev and fixtures builds only). `route` names the
- * screen and page Edit opens on. The fields after `leftTab` are the reference's per-state UI (Add segment, hover card,
- * toast, Alt drag, layer menu): nothing reads them until the phase that builds that UI.
+ * screen and page Edit opens on. The fields after `route` are the reference's per-state UI (Alt drag, layer menu):
+ * nothing reads them until the phase that builds that UI.
  */
 export interface Fixture extends FixtureStart {
   config: DashboardConfig;
   route: { profileId: string; pageId: string };
-  addSegment?: "all" | "w" | "i" | "e";
-  hoverTile?: string;
-  toast?: "addw";
   altDrag?: { part: string };
   contextMenuFor?: string;
 }

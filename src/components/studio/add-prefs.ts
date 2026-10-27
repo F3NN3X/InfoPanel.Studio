@@ -3,7 +3,7 @@ import { useStorageKey, useStoredFlag } from "./use-stored-flag";
 
 /**
  * Settings › Studio › Editor's Add panel rows (handoff SPEC §10): the left panel's width, the widget list's
- * density and the hover preview, and the Free page's Add filter. Saved in this browser (localStorage), followed
+ * density and the hover preview, and the Add list's segment and chip. Saved in this browser (localStorage), followed
  * across windows.
  */
 
@@ -94,7 +94,7 @@ export function useAddListDensity() {
   return useStoredChoice<AddListDensity>(DENSITY_KEY, () => parseDensity(read(DENSITY_KEY)), parseDensity);
 }
 
-/** On a Free page, what the Add list shows (one-editor SPEC §5.3): both, only Studio widgets, or only InfoPanel items. */
+/** The Add list's segment (Edit v3 SPEC §9.1): All, only Studio widgets, or only InfoPanel items and elements. */
 export type AddFilter = "all" | "widgets" | "items";
 export const FILTER_KEY = "studio.editor.addFilter";
 const FILTERS: readonly AddFilter[] = ["all", "widgets", "items"];
@@ -103,9 +103,19 @@ export function parseAddFilter(raw: string | null): AddFilter {
   return FILTERS.includes(raw as AddFilter) ? (raw as AddFilter) : "all";
 }
 
-/** The Free page's Add filter: All (default), Widgets or InfoPanel items. */
+/** The Add list's segment: All (default), Widgets or InfoPanel items. */
 export function useAddFilter() {
   return useStoredChoice<AddFilter>(FILTER_KEY, () => parseAddFilter(read(FILTER_KEY)), parseAddFilter);
+}
+
+export const CHIP_KEY = "studio.editor.addChip";
+
+/** A stored chip, else "All" (the panel shows All when the segment has no such chip). */
+export const parseChip = (raw: string | null): string => (raw?.trim() ? raw : "All");
+
+/** The Add list's chip: a widget category, an item group or Elements; All by default. */
+export function useAddChip() {
+  return useStoredChoice<string>(CHIP_KEY, () => parseChip(read(CHIP_KEY)), parseChip);
 }
 
 /** Preview on hover (on by default); the keyboard always shows the preview. */
