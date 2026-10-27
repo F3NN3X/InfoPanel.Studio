@@ -7,7 +7,8 @@
 import { ITEM_ID, SCROLL_ROW_H, type MonitorProfile, type PageGroup, type Placement, type ProfilePage } from "../layout.ts";
 import { profileGap, profilePadding } from "../profile-grid.ts";
 import type { StoredItem } from "../infopanel/import/stored.ts";
-import { applyOps, nearestCells, samePlace, type GroupNode, type LayerNode, type PageGrid, type PageModel, type PageOp, type PartKind, type PartNode, type PartPlace } from "./model.ts";
+import { atBox } from "./stored-items.ts";
+import { applyOps, boxOf, nearestCells, samePlace, type GroupNode, type LayerNode, type PageGrid, type PageModel, type PageOp, type PartKind, type PartNode, type PartPlace } from "./model.ts";
 
 type GridProfile = Pick<MonitorProfile, "width" | "height" | "cols" | "rows" | "fit" | "gap" | "padding">;
 
@@ -114,7 +115,9 @@ function placementOf(grid: PageGrid, part: PartNode, groupId: string | undefined
   if (same) return base;
   const { px: _px, groupId: _g, locked: _l, ...rest } = base;
   const cells = "cell" in place ? place.cell : moved ? nearestCells(grid, place.px, true) : { col: base.colStart, row: base.rowStart, cols: base.colSpan, rows: base.rowSpan };
-  const item = base.item && (renamed || ("px" in place && moved)) ? { ...base.item, ...(renamed ? { Name: name } : {}), ...("px" in place ? { X: place.px.x, Y: place.px.y } : {}) } : base.item;
+  // The item's own X / Y / size follow its place, so InfoPanel and the kiosk read the box the editor shows.
+  const at = base.item && moved ? atBox(base.item, boxOf(grid, place)) : base.item;
+  const item = at && renamed ? { ...at, Name: name } : at;
   return {
     ...rest,
     colStart: cells.col,

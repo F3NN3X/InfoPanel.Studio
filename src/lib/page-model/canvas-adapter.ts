@@ -13,7 +13,7 @@ import { newWidgetItem } from "../infopanel/native/widget-item.ts";
 import { defaultItem, type DisplayItem } from "../infopanel/schema.ts";
 import { widgetOfZone } from "../page-layout.ts";
 import { applyOps, cellRect, nearestCells, samePlace, type LayerNode, type PageGrid, type PageModel, type PageOp, type PartNode, type PartPlace } from "./model.ts";
-import { num, obj, roughBox } from "./stored-items.ts";
+import { atBox, num, obj, roughBox } from "./stored-items.ts";
 
 /** The canvas's grid: its own size, the screen's columns, rows and gap, no padding. */
 export function canvasGrid(profile: Pick<MonitorProfile, "cols" | "rows" | "gap" | "fit" | "padding">, canvas: StoredCanvas): PageGrid {
@@ -24,7 +24,6 @@ const isGroup = (item: StoredItem) => item.kind === "Group" && !obj(item.$)?.ele
 const widgetRecord = (item: StoredItem): WidgetItem | null => (item.kind === "Image" ? ((obj(item.$)?.widget as WidgetItem | undefined) ?? null) : null);
 const cellOf = (item: StoredItem): CellBox | null => (obj(item.$)?.cell as CellBox | undefined) ?? null;
 const nameOf = (item: StoredItem, fallback: string) => (typeof item.Name === "string" && item.Name ? item.Name : fallback);
-const scaleOf = (item: StoredItem) => (item.kind === "Image" && typeof item.Scale === "number" && item.Scale > 0 ? item.Scale / 100 : 1);
 
 /** Where an item sits as stored: a widget on its cells (or the cells nearest its box), an item on its `$.cell` or at its box. */
 function storedPlace(grid: PageGrid, item: StoredItem, fontScale: number): PartPlace {
@@ -62,14 +61,8 @@ function placed(grid: PageGrid, item: StoredItem, place: PartPlace): StoredItem 
   const widget = widgetRecord(item);
   const cell = "cell" in place ? place.cell : widget ? nearestCells(grid, place.px) : null;
   const box = cell ? cellRect(grid, cell) : (place as { px: { x: number; y: number; w: number; h: number } }).px;
-  const scale = scaleOf(item);
-  const sized = num(item.Width) > 0 && num(item.Height) > 0;
-  const out: StoredItem = {
-    ...item,
-    X: Math.round(box.x),
-    Y: Math.round(box.y),
-    ...(sized ? { Width: Math.max(1, Math.round(box.w / scale)), Height: Math.max(1, Math.round(box.h / scale)) } : {}),
-  };
+  // A group (a studio element too) moves with its children, which InfoPanel keeps on the canvas.
+  const out: StoredItem = { ...atBox(item, box) };
   const { cell: _cell, ...$rest } = (item.$ ?? {}) as Record<string, unknown>;
   const $ = widget ? { ...$rest, widget: { ...widget, cell: cell! } } : cell ? { ...$rest, cell } : $rest;
   if (Object.keys($).length) out.$ = $ as StoredItem["$"];

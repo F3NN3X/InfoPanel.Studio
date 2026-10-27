@@ -13,7 +13,8 @@
  */
 import { domToPng } from "modern-screenshot";
 import { fetchForShot, keep } from "../../profile-shot.ts";
-import { CANVAS_ID, PANEL_ID, type Placement } from "../../layout.ts";
+import { CANVAS_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "../../layout.ts";
+import { exportParts, type ExportPart } from "../../page-model/items-layer.ts";
 import { fitScale, openCanvas, readStoreFile } from "../canvas.ts";
 import { editItems } from "../canvas-edit.ts";
 import { assetFile, type AssetFile } from "../assets/assets.ts";
@@ -38,6 +39,11 @@ export interface ConvertRequest {
   titleOf: (moduleId: string) => string;
   /** Convert this zone only. */
   only?: string;
+  /**
+   * The stored page the zones are on (a whole screen's conversion): its item placements export as the items they are,
+   * at their box, between the zones in the page's z-order (SPEC §11.4).
+   */
+  page?: { screen: Pick<MonitorProfile, "width" | "height" | "cols" | "rows" | "fit" | "gap" | "padding">; page: ProfilePage };
   /** Where a zone is drawn; default: its `data-zone-id` element in `scope` (a Free page's widget items have their own). */
   find?: (zoneId: string) => HTMLElement | null;
 }
@@ -143,8 +149,11 @@ export function surfaceOf(zone: HTMLElement, zoom = 1): { color: string; radius:
   return { color, radius: Math.round((parseFloat(style.borderTopLeftRadius) || 0) / zoom) };
 }
 
-/** The page's own drawing: the zones and the Dynamic Island (a dashboard overlay InfoPanel has no item for) are left out. */
-const notPage = (n: Node): boolean => n instanceof Element && n.matches("[data-zone-id], [data-island]");
+/**
+ * The page's own drawing: the zones, the item placements (they export as items) and the Dynamic Island (a dashboard
+ * overlay InfoPanel has no item for) are left out.
+ */
+const notPage = (n: Node): boolean => n instanceof Element && n.matches("[data-zone-id], [data-items-layer], [data-island]");
 
 /** The page a zone is drawn on (the studio's design-size page, else the grid it sits in). */
 const pageOf = (el: HTMLElement): HTMLElement | null => el.closest<HTMLElement>("[data-studio-page]") ?? el.parentElement;
@@ -223,7 +232,25 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     }
   }
 
-  for (const p of req.placements) {
+  // The page's item placements' files, read once for every run of them.
+  const itemFiles = new Set<string>();
+  const parts: ExportPart[] = req.page && !req.only ? exportParts(req.page.screen, req.page.page, req.placements) : req.placements.map((zone) => ({ zone }));
+  for (const part of parts) {
+    // A run of item placements: InfoPanel items already, at their screen px, kept as they are.
+    if ("items" in part) {
+      const open = openCanvas(part.items);
+      for (const a of open.stored.assets) {
+        if (itemFiles.has(a.name.toLowerCase())) continue;
+        itemFiles.add(a.name.toLowerCase());
+        const bytes = await readStoreFile(a.hash, a.ext, a.type);
+        if (bytes) assets.push(await assetFile(a.name, bytes, "added"));
+      }
+      const made = editItems(open);
+      items.push(...made);
+      report.push({ name: `${made.length} InfoPanel item${made.length === 1 ? "" : "s"}`, choice: "recreate", outcome: "kept: they are InfoPanel items", notes: [] });
+      continue;
+    }
+    const p = part.zone;
     if (req.only && p.id !== req.only) continue;
     // A canvas zone is InfoPanel items already: kept, scaled into the zone and centred as the zone draws them.
     if (p.module === CANVAS_ID && p.canvas && p.visible) {
@@ -325,6 +352,8 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
     const moved = moveBy(items, items.map((_, i) => String(i)), -only.x, -only.y);
     return { items: moved, assets, report, size: { width: Math.max(1, Math.round(only.w)), height: Math.max(1, Math.round(only.h)) } };
   }
+  // A page of only items has no zone to measure the page by: it is the screen's size.
+  if (grid.width <= 0 && req.page) grid = { width: req.page.screen.width, height: req.page.screen.height };
   return { items, assets, report, size: { width: Math.max(1, grid.width), height: Math.max(1, grid.height) } };
 }
 

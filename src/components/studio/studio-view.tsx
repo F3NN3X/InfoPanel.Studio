@@ -612,6 +612,7 @@ function StudioViewBody({
       <Suspense fallback={null}>
         <GridCheckPanel
           profile={profile}
+          page={storedPage}
           nameOf={zoneName}
           onSelect={(id) => {
             setGridCheckOpen(false);
@@ -927,7 +928,7 @@ function StudioViewBody({
   );
   const gridPill = checkOn && !freeZone && (
     <Suspense fallback={null}>
-      <GridCheckPill profile={profile} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
+      <GridCheckPill profile={profile} page={storedPage} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
     </Suspense>
   );
   const pageTabsEl = pageTabsFor(gridPill);

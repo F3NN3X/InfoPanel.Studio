@@ -2,7 +2,7 @@
  * The Export check (one-editor SPEC §7): what happens to each part of a page when it is exported to InfoPanel.
  * One pure function feeds the editor's live check, its badges and the export dialog's report, so they never
  * disagree. A Free page (one canvas filling the screen) lists its InfoPanel items; a grid page lists each zone as
- * a Studio widget at its cell box, and the items of any free area (canvas zone) on it.
+ * a Studio widget at its cell box, each item placement as the item it is, and the items of any free area (canvas zone).
  */
 import { BLANK_MODULE, CANVAS_ID, ITEM_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "../layout.ts";
 import { openCanvas } from "./canvas.ts";
@@ -11,6 +11,7 @@ import type { ElementSpec } from "./elements/spec.ts";
 import { choicesFor, MODULE_TIERS, tierOf, type NativeChoice } from "./native/tiers.ts";
 import { widgetOf, widgetRule } from "./native/widget-item.ts";
 import { freeCanvasOf } from "../screens/list.ts";
+import { hiddenByGroups } from "../page-model/items-layer.ts";
 import type { DisplayItem } from "./schema.ts";
 import { newStored, type StoredCanvas } from "./import/stored.ts";
 
@@ -197,13 +198,15 @@ const itemBase = (): StoredCanvas => (base ??= newStored({ name: "", width: 1, h
 /** The Export check of one page of a screen. `nameOf` names a grid zone (the studio's widget names). */
 export function exportCheck(
   profile: Pick<MonitorProfile, "cols" | "rows">,
-  page: Pick<ProfilePage, "placements">,
+  page: Pick<ProfilePage, "placements"> & Partial<Pick<ProfilePage, "groups">>,
   nameOf: (zone: Placement) => string = (zone) => zone.module,
 ): ExportCheck {
   const free = freeCanvasOf(profile, page);
   if (free) return free.canvas ? checkItems(openCanvas(free.canvas).items, isImported(free.canvas)) : checkOf([]);
+  // A part of a hidden group isn't drawn, so it doesn't export either (as a hidden part).
+  const inHidden = hiddenByGroups(page);
   const rows = page.placements.flatMap((zone): CheckRow[] => {
-    if (zone.module === BLANK_MODULE || !zone.visible) return [];
+    if (zone.module === BLANK_MODULE || !zone.visible || inHidden(zone.groupId)) return [];
     // An item placement (v15) exports as the item it is.
     if (zone.module === ITEM_ID) return zone.item ? itemRows(openCanvas({ ...itemBase(), items: [zone.item] }).items, false).map((r) => ({ ...r, path: zone.id })) : [];
     if (zone.module !== CANVAS_ID) return [widgetRow(zone, nameOf(zone))];
