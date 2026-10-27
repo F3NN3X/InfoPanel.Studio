@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.36] - 2026-10-27
+
 ### Changed
 
 - **Every upload is in My library.** Images and videos uploaded before the Library, or straight into a background or an image widget, are added to My library when you open it, each keeping its file. The "uploaded files aren't in My library" banner and its Review window are gone.
