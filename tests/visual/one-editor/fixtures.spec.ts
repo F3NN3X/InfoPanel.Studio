@@ -296,6 +296,7 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await altDrag(page, page.locator('[data-part-id="title"]'), 60, 40, async () => {
         await expect(page.getByTestId("alt-readout")).toHaveText(/^X \d+ {2}Y \d+ {2}W 140 {2}H 36 · free$/);
         await expect(page.locator("[data-item-parts] .border-dashed")).toHaveCount(1);
+        await shoot(page, "alt-drag");
       });
     },
     // Dropped with Alt over the CPU gauge: stored in px (data-free), moved by exactly the drag; then Alt released
