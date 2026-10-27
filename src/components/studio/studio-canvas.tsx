@@ -1,5 +1,7 @@
 import { NO_PAN, type PanOffset } from "./use-hand-pan";
 import {
+  lazy,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -19,7 +21,7 @@ import { islandReserve } from "@/components/island/island-model";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
-import { BLANK_MODULE, SCROLL_ROW_H, type ProfilePage, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, SCROLL_ROW_H, type MonitorProfile, type ProfilePage, type ProfileView, type Placement } from "@/lib/layout";
 import { withItemLayers } from "@/lib/page-model/items-layer";
 import type { PageOp } from "@/lib/page-model/model";
 import { AltHint } from "./alt-hint";
@@ -54,6 +56,9 @@ import type { CanvasInset } from "./studio-layout";
 import { pageSize } from "./use-studio-layout";
 import { zonesInRect } from "./zone-arrange";
 import { enforceMinSize, fitZoneRect, moveZoneSet, type ZoneRect } from "./zone-geometry";
+
+// The InfoPanel view's converter and renderer load only when the view is on.
+const InfoPanelViewLayer = lazy(() => import("./infopanel-view-layer"));
 
 /** The canvas' dot grid, at a fixed pitch on the scroll area (not scaled by the zoom). */
 const DOTS = "radial-gradient(#1f1f25 1px, transparent 1px)";
@@ -175,6 +180,8 @@ interface StudioCanvasProps {
   badgeOf?: (zone: Placement) => ReactNode;
   /** The InfoPanel view (decision Q10): the zones the export leaves out aren't drawn; they keep their cells. */
   leftOut?: ReadonlySet<string>;
+  /** The InfoPanel view's drawing (sign-off round 2): the page as the export makes it, over the zones (lazy). */
+  infoPanelView?: { screen: MonitorProfile; page: ProfilePage };
   /** The page's InfoPanel items and elements (item placements): their selection, and their edits as page model ops. */
   items?: {
     selectedIds: readonly string[];
@@ -237,6 +244,7 @@ export function StudioCanvas({
   islandAlerts = NO_ALERTS,
   badgeOf,
   leftOut,
+  infoPanelView,
   items,
 }: StudioCanvasProps) {
   /** An item gesture in flight (Alt, free): the hint and the faded cell lines. */
@@ -552,7 +560,8 @@ export function StudioCanvas({
 
   return (
     <PageIslandProvider value={pageIsland}>
-    <div className="relative flex min-h-0 flex-1 flex-col bg-ui-app">
+    {/* The app's toasts sit at its top centre (data-toast-anchor). */}
+    <div data-toast-anchor="" className="relative flex min-h-0 flex-1 flex-col bg-ui-app">
       <div
         className="relative min-h-0 flex-1"
         // On the wrapper, not the scroller: the cards over the canvas are drop targets too.
@@ -776,6 +785,19 @@ export function StudioCanvas({
                       )}
                     </LivePlacement>
                   ))}
+
+                  {infoPanelView && pageEl && gridEl && (
+                    <Suspense fallback={null}>
+                      <InfoPanelViewLayer
+                        page={pageEl}
+                        grid={gridEl}
+                        zoom={zoom}
+                        screen={infoPanelView.screen}
+                        storedPage={infoPanelView.page}
+                        placements={profile.placements.filter((p) => !leftOut?.has(p.id))}
+                      />
+                    </Suspense>
+                  )}
                 </div>
                 {page && items && (
                   <ItemParts
@@ -848,7 +870,7 @@ export function StudioCanvas({
           className="pointer-events-none fixed z-50 rounded-md border border-ui-menu bg-ui-raised px-2 py-1 font-ui text-[11px] font-medium text-ui-1 shadow-ui-float"
           style={{ left: zoneDrag.x + 14, top: zoneDrag.y + 14 }}
         >
-          {zoneDrag.ids.length > 1 ? `${zoneDrag.ids.length} zones` : placementTitle(dragged)}{" "}
+          {zoneDrag.ids.length > 1 ? `${zoneDrag.ids.length} widgets` : placementTitle(dragged)}{" "}
           <span className="font-ui-mono tabular-nums text-ui-3">
             → C{zoneDrag.rect.col} · R{zoneDrag.rect.row} · {zoneDrag.rect.cols}×{zoneDrag.rect.rows}
           </span>

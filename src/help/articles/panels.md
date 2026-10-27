@@ -3,10 +3,10 @@ id: panels
 title: Panels
 icon: dashboard_customize
 related: [panel-widgets, presets, custom-css]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
-Compose your own zone from small widgets when no ready-made widget fits.
+Compose your own widget from small ones when no ready-made widget fits.
 
 ## Three layouts
 
@@ -16,11 +16,11 @@ Compose your own zone from small widgets when no ready-made widget fits.
 | **Grid** | In cells | Columns 1 to 12, column sizes, row sizes, cell alignment; per widget: span and start |
 | **Overlay** | In bands over an image | Background image, a dark scrim over the image, band alignment, bottom band columns |
 
-A panel fills its zone (**Fill**) or shrinks to its content (**Hug**). Gap and padding go from 0 to 200 px, or auto.
+A panel fills its cells (**Fill**) or shrinks to its content (**Hug**). Gap and padding go from 0 to 200 px, or auto.
 
 ## Editing a panel
 
-1. Select the panel zone. The inspector shows the usual four tabs; the panel's own sections are **Panel**, **Layout** and **Widgets**.
+1. Select the panel. The inspector shows the usual four tabs; the panel's own sections are **Panel**, **Layout** and **Widgets**.
 2. In the Widgets list, choose **+ Add panel widget…** and pick a kind.
 3. Pick a sensor for it. The widget's own settings appear below the list.
 4. Each row has Move up, Hide, Duplicate and Delete, and a **Widget actions** menu with Copy, Paste after and Change kind.

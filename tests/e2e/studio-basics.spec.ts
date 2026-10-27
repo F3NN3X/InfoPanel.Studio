@@ -17,7 +17,7 @@ test("Design: select, edit, save and undo", async ({ page, scratch }) => {
   await expect(page.locator("[data-items-layer]")).toHaveCount(1);
 
   await page.locator('[data-zone-id="perf-statusbar"]').click();
-  const name = page.getByLabel("Zone name");
+  const name = page.getByLabel("Widget name");
   await name.fill("Edited zone");
   await name.press("Enter");
   await page.keyboard.press("Control+s");

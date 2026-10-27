@@ -98,12 +98,13 @@ function CanvasView({ canvas, sensors, appearance }: { canvas: OpenCanvas; senso
 
 /**
  * The native layer's drawing of a Studio widget item: the registry widget at its box, from the zone's values. `tag`
- * marks its live values for the export's conversion (the editor's drawing; the kiosk's stays untagged).
+ * marks its live values for the export's conversion and `editing` draws one without data as a stand-in (both the
+ * editor's drawing; the kiosk's stays untagged and leaves it out).
  */
-export function widgetDrawer(sensors: SensorMap, appearance?: Appearance, tag = false): NativeView["widget"] {
+export function widgetDrawer(sensors: SensorMap, appearance?: Appearance, tag = false, editing = false): NativeView["widget"] {
   return (item, _path, box) => {
     const widget = widgetOf(item);
-    return widget ? <WidgetItemView widget={widget} name={item.Name} width={box.w} height={box.h} sensors={sensors} appearance={appearance} tag={tag} /> : null;
+    return widget ? <WidgetItemView widget={widget} name={item.Name} width={box.w} height={box.h} sensors={sensors} appearance={appearance} tag={tag} editing={editing} /> : null;
   };
 }
 

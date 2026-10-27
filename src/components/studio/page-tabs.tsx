@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Cast, Copy, LayoutDashboard, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
+import { Cast, Copy, File, LayoutDashboard, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ProfilePage } from "@/lib/layout";
@@ -38,6 +38,8 @@ interface PageTabsProps {
   onDeletingChange: (id: string | null) => void;
   /** The page the kiosk shows for this profile (the control channel); unset while offline. */
   kioskPage?: string | null;
+  /** The screen was imported from InfoPanel: a page with no icon of its own shows File, not the grid (SPEC §6.2). */
+  imported?: boolean;
 }
 
 /** An interval for the chip: `30 s`, then minutes from 60 s (`1 min`, `1.5 min`). */
@@ -90,7 +92,7 @@ function DeleteDialog({
         <AlertDialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[24rem] -translate-x-1/2 -translate-y-1/2 space-y-3 rounded-xl border border-ui-strong bg-ui-raised p-4 font-ui text-ui-1 shadow-ui-modal outline-none">
           <AlertDialog.Title className="text-sm font-semibold text-ui-1">Delete {page?.name}?</AlertDialog.Title>
           <AlertDialog.Description className="text-xs leading-relaxed text-ui-3">
-            {n === 0 ? "This page is empty." : `This removes the page and its ${n} ${n === 1 ? "zone" : "zones"}.`} Undo
+            {n === 0 ? "This page is empty." : `This removes the page and its ${n} ${n === 1 ? "part" : "parts"}.`} Undo
             (Ctrl+Z) brings it back.
           </AlertDialog.Description>
           <div className="flex items-center justify-end gap-2 pt-1">
@@ -138,6 +140,7 @@ export function PageTabs({
   deletingId,
   onDeletingChange,
   kioskPage,
+  imported = false,
 }: PageTabsProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -197,7 +200,7 @@ export function PageTabs({
       </IconButton>
       <div ref={rowRef} role="tablist" aria-label="Pages" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
         {pages.map((page) => {
-          const Icon = pageIcon(page.icon) ?? LayoutDashboard;
+          const Icon = pageIcon(page.icon) ?? (imported ? File : LayoutDashboard);
           const active = page.id === current;
           return (
             <Fragment key={page.id}>

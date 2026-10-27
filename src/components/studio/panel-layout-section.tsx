@@ -248,10 +248,10 @@ export function PanelMainFields({
           className={FULL}
         />
       </Field>
-      <Field label="Size" hint="Fill the zone, or shrink to the content">
+      <Field label="Size" hint="Fill its space, or shrink to the content">
         <Segmented
           options={[
-            { value: "fill", label: "Fill", title: "Stretch over the whole zone" },
+            { value: "fill", label: "Fill", title: "Stretch over the whole space" },
             { value: "hug", label: "Hug", title: "Shrink to the content" },
           ]}
           value={panel.fit ?? "fill"}

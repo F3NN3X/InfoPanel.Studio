@@ -229,7 +229,7 @@ export function GridSection({
       </div>
       <SpacingField
         label="Gap"
-        hint="Space between zones, in px"
+        hint="Space between widgets, in px"
         value={profile.gap}
         placeholder={profileGap({ fit: profile.fit })}
         onChange={(gap) => patch({ gap })}

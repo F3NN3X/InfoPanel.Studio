@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { FIXTURE_NAMES, type FixtureName } from "@/dev/fixtures/types";
+import { DEFAULT_DATA_API as DATA_API } from "../../e2e/fixtures";
 import { CHECKS } from "./checks";
 import { expect, openFixture, shoot, test } from "./harness";
 
@@ -366,8 +367,10 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       });
       expect(under).toBe(true);
     },
+    // The reference's state: Weather selected, its menu open (the fixture's contextMenuFor).
     [CHECKS.layersF[2].text]: async (page) => {
-      await layersRow(page, "Fan gauge").click({ button: "right" });
+      await expect(page.getByTestId("inspector-kind")).toHaveText("Studio widget");
+      await layersRow(page, "Weather").click({ button: "right" });
       const menu = page.getByTestId("layer-menu");
       await expect(menu.getByRole("menuitem")).toHaveText([
         /^Bring to front/, /^Bring forward/, /^Send backward/, /^Send to back/,
@@ -401,6 +404,10 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await expect(page.getByTestId("group-chip")).toHaveText("Temps · group");
       await expect(page.locator("[data-selected-path]")).toHaveCount(1);
       await expect(layersRow(page, "CPU temp")).toHaveClass(/bg-ui-accent\/7/);
+      // SPEC §10.3, sign-off round 1: the group inspector has no tabs, as on a screen's page.
+      await expect(page.getByTestId("inspector-kind")).toHaveText("Group · 4 items");
+      await expect(page.getByRole("button", { name: "Select contents" })).toBeVisible();
+      await expect(page.getByRole("complementary", { name: "Item" }).getByRole("tab")).toHaveCount(0);
       await shoot(page, "layersF-group");
     },
     [CHECKS.layersF[5].text]: async (page) => {
@@ -447,6 +454,9 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await expect(page.getByTestId("layers-row").first()).toBeVisible();
       const names = await page.getByTestId("layers-row").evaluateAll((els) => els.map((e) => (e.getAttribute("data-kind") === "group" ? e.textContent?.replace(/group.*$/, "") : null)).filter(Boolean));
       expect(names).toEqual(["Overlay", "Gauges"]);
+      // The fixture opens with Overlay selected (its box takes the pointer); with nothing selected, Title text is on top.
+      await page.keyboard.press("Escape");
+      await expect(page.locator('[data-group-box="overlay"]')).toHaveCount(0);
       const title = (await page.locator('[data-part-id="title"]').boundingBox())!;
       const top = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("[data-part-id]")?.getAttribute("data-part-id") ?? null, [title.x + title.width / 2, title.y + title.height / 2]);
       expect(top).toBe("title");
@@ -751,21 +761,134 @@ test("one-editor/export: the zoom bar's InfoPanel view hides what the export lea
   await expect(page.locator("[data-zone-id]")).toHaveCount(5);
 });
 
-// Decision Q10 (after phase 6): the slim strip over an imported canvas is gone; Draw all as, Show modes, Sensors and
-// Compare sit in the page settings, and the view toggle in the zoom bar, so both page kinds share one chrome.
+// Sign-off round 2: the InfoPanel view draws the export's own conversion over the page. With readings for the gauges
+// (a Data API that answers this test only), the CPU gauge (Recreate) is a picture with an InfoPanel Gauge and Sensor
+// on top, the GPU gauge set to Snapshot is a picture alone, Clock is InfoPanel's clock items, Weather (no reading
+// here) a picture, and Coding agents is nothing. `data-view-parts` names what the layer draws, top level, bottom first.
+test("one-editor/export: the InfoPanel view draws the page as the export converts it", async ({ page, scratch }) => {
+  const reading = (name: string, value: number, ref: string) => ({ name, unit: "°C", value, ref });
+  const sensors = {
+    "hwinfo.cpu_package": reading("CPU Package", 61, "hwinfo:-1/4144394256/0/16777223"),
+    "hwinfo.gpu_temperature": reading("GPU Temperature", 35, "hwinfo:-1/3758104576/0/16777216"),
+  };
+  await page.route(DATA_API, (route) => {
+    const url = new URL(route.request().url());
+    const body = { timestamp: Date.now(), sensors };
+    if (url.pathname === "/events") return route.fulfill({ contentType: "text/event-stream", body: `data: ${JSON.stringify(body)}\n\n` });
+    if (url.pathname === "/api/sensors") return route.fulfill({ json: body });
+    if (url.pathname === "/api/sources") return route.fulfill({ json: { plugins: [] } });
+    return route.fulfill({ json: {} });
+  });
+  await openFixture(page, scratch.base, "export");
+  await page.getByTestId("layers-row").filter({ hasText: "GPU gauge" }).click();
+  await page.getByTestId("on-infopanel").getByRole("radio", { name: "Snapshot" }).click();
+  await page.getByTestId("export-view").getByRole("radio", { name: "InfoPanel" }).click();
+  const layer = page.locator("[data-infopanel-view]");
+  await expect(layer).toHaveAttribute("data-view-parts", /Clock/);
+  const parts = ((await layer.getAttribute("data-view-parts")) ?? "").split("|").map((p) => p.slice(p.indexOf(":") + 1));
+  expect(parts).toEqual(["Image", "Group[Image,Gauge,Sensor]", "Image", "Group[Image,Clock,Clock,Calendar]", "Image"]);
+  await expect(layer.locator("[data-path]").first()).toBeAttached();
+  await expect(page.getByTestId("canvas-badge")).toHaveCount(4);
+  await shoot(page, "export-infopanel-view-drawn");
+});
+
+// Decision Q10 (after phase 6): the slim strip over an imported canvas is gone; Show modes, Sensors and Compare sit in
+// the page settings' Preview section, and the view toggle in the zoom bar, so both page kinds share one chrome. Sign-off
+// round 1: Draw all as is gone (the zoom bar's Studio | InfoPanel does it), and the item inspector has no Position.
 test("one-editor/profile: no strip over the canvas; its tools are in the page settings", async ({ page, scratch }) => {
   await openFixture(page, scratch.base, "profile");
   await expect(page.getByRole("toolbar", { name: "Canvas items" })).toHaveCount(0);
   await expect(page.getByTestId("export-view")).toBeVisible();
+  await expect(page.getByTestId("inspector-place")).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Draw as" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Position/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
-  const drawing = page.getByRole("region", { name: "Drawing" });
-  await expect(drawing.getByRole("radiogroup", { name: "Draw all as" })).toBeVisible();
+  const drawing = page.getByRole("region", { name: "Preview" });
+  await expect(page.getByRole("radiogroup", { name: "Draw all as" })).toHaveCount(0);
   await expect(drawing.getByRole("radiogroup", { name: "Sensors" })).toBeVisible();
   await drawing.getByRole("switch", { name: "Show modes" }).click();
   await expect(drawing).toContainText("Native widget");
   await drawing.getByRole("switch", { name: "Compare" }).click();
   await expect(drawing.getByRole("button", { name: /InfoPanel screenshot|Change screenshot/ })).toBeVisible();
   await shoot(page, "profile-page-drawing");
+});
+
+// SPEC §7.1, sign-off round 1: a hidden widget isn't drawn in Edit; selected from Layers it shows a dashed outline at
+// its box, and its eye brings it back.
+test("one-editor/screen: a hidden widget isn't drawn; Layers selects it as an outline", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "screen");
+  const clock = page.locator('[data-zone-id="clock"]');
+  const before = (await clock.boundingBox())!;
+  await expect(clock.locator("*")).not.toHaveCount(0);
+  await layersRow(page, "Clock").hover();
+  await page.getByRole("button", { name: "Hide Clock" }).click();
+  await expect(clock).toHaveAttribute("data-hidden", "");
+  await expect(clock.locator("*")).toHaveCount(0);
+  await layersRow(page, "Clock").click();
+  await expect(clock.locator("[data-hidden-zone]")).toBeVisible();
+  expect(await clock.boundingBox()).toEqual(before);
+  await page.getByRole("button", { name: "Show Clock" }).click();
+  await expect(clock).not.toHaveAttribute("data-hidden");
+});
+
+// Sign-off round 3, SPEC §9.6: in Edit a toast sits at the top centre of the canvas, under the page tabs and clear of
+// the zoom bar.
+test("one-editor/layersG: Edit's toasts sit at the top centre of the canvas", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "layersG");
+  await layersRow(page, "Gauges").click();
+  const box = page.locator('[data-group-box="gauges"]');
+  await dragBy(page, box, 0, ((await page.locator('[data-zone-id="cpu"]').boundingBox())!.height) / 2);
+  const toast = page.getByRole("status").filter({ hasText: "Not enough room to move the group." });
+  await expect(toast).toBeVisible();
+  const [t, canvas, tabs, zoom] = await Promise.all([toast, page.locator("[data-toast-anchor]"), page.getByRole("tab", { name: /Main/ }).first(), page.getByRole("button", { name: "Fit" })].map(async (l) => (await l.boundingBox())!));
+  expect(t.y).toBeCloseTo(canvas.y + 14, 0);
+  expect(t.x + t.width / 2).toBeCloseTo(canvas.x + canvas.width / 2, 0);
+  expect(t.y).toBeGreaterThan(tabs.y + tabs.height);
+  expect(t.y + t.height).toBeLessThan(zoom.y);
+});
+
+// Sign-off round 3: at 1440 wide the Widgets chips run past the panel. The row fades at the right edge, and at the left
+// once scrolled; the wheel, a drag and a chip reached by keyboard scroll it, and a drag picks no chip.
+test("one-editor/addw: Add's category chips scroll sideways with a fade", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "addw");
+  await page.getByRole("radiogroup", { name: "Show" }).getByRole("radio", { name: "Widgets" }).click();
+  const row = page.locator(".add-chips");
+  const left = () => row.evaluate((el) => el.scrollLeft);
+  const reset = () => row.evaluate((el) => el.scrollTo({ left: 0 }));
+  await expect(row).toHaveAttribute("data-fade", "end");
+  const b = (await row.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(left).toBeGreaterThan(0);
+  await expect(row).toHaveAttribute("data-fade", "start end");
+  await reset();
+  await expect(row).toHaveAttribute("data-fade", "end");
+  await page.mouse.move(b.x + b.width - 20, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width - 120, b.y + b.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(left).toBeGreaterThan(50);
+  await expect(row.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  await reset();
+  await row.getByRole("button").last().focus();
+  await expect.poll(left).toBe(await row.evaluate((el) => el.scrollWidth - el.clientWidth));
+  await expect(row).toHaveAttribute("data-fade", "start");
+});
+
+// Sign-off round 3: a widget's inspector has no Visible switch; hide and show are the Layers eye and Ctrl+H.
+test("one-editor/screen: a widget is hidden from Layers or Ctrl+H, not its inspector", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "screen");
+  const clock = page.locator('[data-zone-id="clock"]');
+  await layersRow(page, "Clock").click();
+  await expect(page.getByText("Studio widget")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Visible" })).toHaveCount(0);
+  await expect(page.getByText("Visible", { exact: true })).toHaveCount(0);
+  await page.keyboard.press("Control+h");
+  await expect(clock).toHaveAttribute("data-hidden", "");
+  // Hiding drops the selection; selected again from Layers, Ctrl+H shows it.
+  await layersRow(page, "Clock").click();
+  await page.keyboard.press("Control+h");
+  await expect(clock).not.toHaveAttribute("data-hidden");
 });
 
 // SPEC §7.1, acceptance 18: a locked widget is drawn but can't be moved on the canvas.

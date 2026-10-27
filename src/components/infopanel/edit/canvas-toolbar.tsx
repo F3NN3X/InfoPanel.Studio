@@ -1,18 +1,19 @@
 /**
- * How an imported profile's canvas draws, in its page settings (decision Q10, after Edit v3 phase 6: no strip above
- * the canvas, so imported and screen pages share one chrome): Draw all as, Show modes with its legend, the sensor
- * source, Compare with InfoPanel's screenshot, and Save to Library for the profile.
+ * How an imported profile's canvas previews, in its page settings (decision Q10, after Edit v3 phase 6: no strip above
+ * the canvas, so imported and screen pages share one chrome): Show modes with its legend, the sensor source, Compare
+ * with InfoPanel's screenshot, and Save to Library for the profile. Drawing the page as InfoPanel does is the zoom
+ * bar's `Studio | InfoPanel` (sign-off round 1: no Draw all as here).
  */
 import { useRef } from "react";
 import { Library } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { allMode, modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
+import { modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
 import { Toggle } from "@/components/ui/toggle";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
 import type { LibraryLink } from "./use-library-link";
 
-/** A small segmented choice ("Draw all as", "Sensors"). */
+/** A small segmented choice ("Sensors", an item's "Draw as"). */
 export function Segmented<T extends string>({
   label,
   value,
@@ -63,30 +64,16 @@ export interface CanvasViewProps {
 
 const ROW = "flex min-h-7 items-center justify-between gap-2 text-[12px] text-ui-2";
 
-/** The page settings' Drawing section on an imported profile. */
+/** The page settings' Preview section on an imported profile. */
 export function CanvasViewSection({ editor, showModes, onShowModes, compareOn, onCompareOn, compare, onCompare, apiUnreachable, library }: CanvasViewProps) {
-  const mode = allMode(editor.modes);
-  const convertible = [...editor.modes.values()].some((m) => m.state !== "stuck");
   const sensorOptions: { value: SensorMode; label: string; disabled?: boolean; title?: string }[] = [
     { value: "unbound", label: "Unbound", title: "As InfoPanel draws with no sensor" },
     { value: "live", label: "Live", disabled: apiUnreachable, title: apiUnreachable ? "Data API not reachable" : undefined },
     { value: "mock", label: "Mock", title: "A slider per sensor in the inspector" },
   ];
   return (
-    <section aria-label="Drawing" className="flex flex-col gap-2 border-b border-ui-subtle px-4 py-3 font-ui">
-      <div className="text-[12px] font-semibold text-ui-1">Drawing</div>
-      <div className={ROW}>
-        Draw all as
-        <Segmented
-          label="Draw all as"
-          value={mode}
-          options={[
-            { value: "infopanel", label: "InfoPanel", disabled: !convertible },
-            { value: "native", label: "Native", disabled: !convertible },
-          ]}
-          onChange={(m) => editor.drawAll(m === "native")}
-        />
-      </div>
+    <section aria-label="Preview" className="flex flex-col gap-2 border-b border-ui-subtle px-4 py-3 font-ui">
+      <div className="text-[12px] font-semibold text-ui-1">Preview</div>
       <div className={ROW}>
         Show modes
         <Toggle checked={showModes} onChange={onShowModes} label="Show modes" />

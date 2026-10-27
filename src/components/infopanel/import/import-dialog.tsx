@@ -419,7 +419,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
       : step === 3 && sensorsBlocked
         ? `${state!.unresolved} groups need a sensor, or Leave unbound`
         : step === 3 && state && !state.online
-          ? "The Data API is not reachable: sensors stay unresolved until you remap them from the zone"
+          ? "The Data API is not reachable: sensors stay unresolved until you remap them from the page"
           : step === 4 && (busy || error)
             ? (error ?? "Importing…")
             : step === 4 && uploading

@@ -5,7 +5,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { EyeOff, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { BLANK_MODULE, CANVAS_ID, canvasNotLoaded, type ProfileView, type Placement } from "@/lib/layout";
 import { profileGap, trackPitch } from "@/lib/profile-grid";
 import { hexToHsl } from "@/lib/theme";
@@ -34,6 +34,16 @@ const HANDLES: { id: Handle; cursor: string; pos: string }[] = [
   { id: "se", cursor: "nwse-resize", pos: `${CORNER} -right-[7px] -bottom-[7px]` },
   { id: "sw", cursor: "nesw-resize", pos: `${CORNER} -left-[7px] -bottom-[7px]` },
 ];
+
+/** The editor's stand-in for a widget with no live data yet (the kiosk leaves it out). */
+export function NoLiveData({ title }: { title: ReactNode }) {
+  return (
+    <div data-shot-skip className="flex h-full min-h-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-card/40 p-4">
+      <div className="text-sm font-medium text-muted-foreground">{title}</div>
+      <div className="text-xs text-muted-foreground/60">no live data yet — appears when the plugin sends data</div>
+    </div>
+  );
+}
 
 interface PlacementFrameProps {
   placement: Placement;
@@ -168,6 +178,30 @@ export function PlacementFrame({
 
   // Hide empty modules (and blank zones) in kiosk mode (they claim no space).
   if (!studio && (!hasData || blank)) return null;
+  // Hidden (Layers' eye): not drawn (Edit v3 SPEC §7.1, sign-off round 1). Its cells stay its; selected from Layers it
+  // shows a dashed outline at its box, never the widget.
+  if (studio && !placement.visible) {
+    return (
+      <div
+        className="pointer-events-none relative min-w-0"
+        style={{ gridColumn: `${placement.colStart} / span ${span}`, gridRow: `${placement.rowStart} / span ${rowSpan}` }}
+        data-zone-id={placement.id}
+        data-testid="canvas-part"
+        data-kind={placement.module !== CANVAS_ID ? "widget" : undefined}
+        data-hidden=""
+        data-shot-skip=""
+      >
+        {selected && (
+          <div
+            aria-hidden
+            data-hidden-zone
+            className="absolute rounded-[10px] border-dashed border-ui-accent"
+            style={{ inset: -5 / zoom, borderWidth: 1.5 / zoom }}
+          />
+        )}
+      </div>
+    );
+  }
   /** Never moved or resized on the canvas: locked in Layers, or a canvas that isn't loaded. */
   const fixed = placement.locked === true || canvasNotLoaded(placement);
 
@@ -277,9 +311,7 @@ export function PlacementFrame({
     <div
       className={cn(
         "group/zone group relative min-w-0 transition-opacity",
-        studio && (ghost ? "cursor-grabbing" : "cursor-grab"),
-        // Hidden zones stay editable but show faded (the kiosk drops them).
-        studio && !placement.visible && "opacity-35"
+        studio && (ghost ? "cursor-grabbing" : "cursor-grab")
       )}
       style={{
         gridColumn: `${placement.colStart} / span ${span}`,
@@ -294,7 +326,6 @@ export function PlacementFrame({
       data-zone-id={studio ? placement.id : undefined}
       data-testid={studio ? "canvas-part" : undefined}
       data-kind={studio && placement.module !== CANVAS_ID ? "widget" : undefined}
-      data-shot-skip={!placement.visible ? "" : undefined}
       // Clicks the press doesn't handle (a control in the zone, a handle).
       onClick={(e) => {
         if (!selected && !isToggleClick(e)) onSelect?.("only");
@@ -338,23 +369,6 @@ export function PlacementFrame({
               style={{ borderWidth: 1 / zoom }}
             />
           )}
-          {/* Hidden: still editable, faded with a dashed border and a badge */}
-          {!placement.visible && (
-            <div
-              aria-hidden
-              data-hidden-zone
-              className="pointer-events-none absolute inset-0 z-[14] rounded-lg border-dashed border-[#8a8a94]"
-              style={{ borderWidth: 1.5 / zoom }}
-            >
-              <span
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 origin-top-right items-center justify-center rounded-md bg-[#17171b] text-[#c8c8d0]"
-                style={{ scale: String(1 / zoom) }}
-              >
-                <EyeOff className="h-3.5 w-3.5" />
-              </span>
-            </div>
-          )}
-
           {badge && (
             <span data-shot-skip className="pointer-events-none absolute right-0 top-0 z-[16] origin-top-right" style={{ scale: String(1 / zoom) }}>
               {badge}
@@ -402,14 +416,7 @@ export function PlacementFrame({
               )}
             </div>
           ) : studio && !hasData ? (
-            <div data-shot-skip className="flex h-full min-h-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-card/40 p-4">
-              <div className="text-sm font-medium text-muted-foreground">
-                {title}
-              </div>
-              <div className="text-xs text-muted-foreground/60">
-                no live data yet — appears when the plugin sends data
-              </div>
-            </div>
+            <NoLiveData title={title} />
           ) : (
             <>
               {design?.header && (

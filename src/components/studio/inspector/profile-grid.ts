@@ -3,7 +3,7 @@ import { profileGap, profilePadding } from "@/lib/profile-grid";
 import { changeCols, changeRows } from "../studio-actions";
 
 /** The toast when a smaller grid would cut a zone off. */
-export const GRID_REFUSED = "Some zones would fall outside the grid — move or resize them first";
+export const GRID_REFUSED = "Some widgets would fall outside the grid — move or resize them first";
 
 /**
  * Step the grid's columns or rows by `delta` (limits as `changeCols` /

@@ -4,6 +4,7 @@ import { defaultPalette } from "@/lib/infopanel/elements/palette";
 import { newItem } from "@/lib/infopanel/editor/create";
 import { newStored, readStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import { newWidgetItem } from "@/lib/infopanel/native/widget-item";
+import { bindingFromRef } from "@/lib/infopanel/sensors";
 import { defaultItem, type DisplayItem } from "@/lib/infopanel/schema";
 import { CANVAS_ID, ITEM_ID, defaultConfig, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
 import { withoutItems } from "@/lib/page-model/stored-items";
@@ -12,14 +13,30 @@ import type { Fixture, FixtureName } from "./types";
 /*
  * The eight states of the Edit v3 reference (scratchpad handoff "Unified Editor v3", SPEC §18), as today's model holds
  * them. Two screens: "Desk panel" (1024 x 600, 4 x 3, widgets) and "Neon Rig" (800 x 480, 8 x 5, an imported InfoPanel
- * profile on a Free page). What today's model can't hold yet, for the phases that add it:
- *  - sensor bindings: the items have none, so values read as placeholders, not 54 / 61 / 1240;
+ * profile on a Free page). The gauges and items read sensors of the repo's HWiNFO capture
+ * (`tests/lib/infopanel/__fixtures__/hwinfo-capture.json`), so behind a Data API serving it they show live-looking values;
+ * without one they read as placeholders. What today's model can't hold yet, for the phases that add it:
  *  - nested groups (the schema keeps a group out of a group): not needed by these states;
  *  - the per-state UI: Add's segment, hover card, Recently used and toast are read by Edit (phase 5); the Alt drag and
  *    layer menu are carried on the Fixture for later phases.
  */
 
 const NOW = new Date("2026-10-27T00:00:00Z");
+
+/** The capture's sensors the fixtures read: the Data API key (Studio widgets) and the HWiNFO ref (InfoPanel items). */
+const SENSOR = {
+  cpuTemp: { key: "hwinfo.cpu_package", ref: "hwinfo:-1/4144394256/0/16777223", name: "CPU Package" },
+  gpuTemp: { key: "hwinfo.gpu_temperature", ref: "hwinfo:-1/3758104576/0/16777216", name: "GPU Temperature" },
+  cpuLoad: { key: "hwinfo.total_cpu_usage", ref: "hwinfo:-1/4026532608/0/117440545", name: "Total CPU Usage" },
+  gpuLoad: { key: "hwinfo.gpu_core_load", ref: "hwinfo:-1/3758104576/0/117440512", name: "GPU Core Load" },
+  fan: { key: "hwinfo.gpu_fan1", ref: "hwinfo:-1/3758104576/0/50331648", name: "GPU Fan1" },
+} as const;
+/** The top of Neon Rig's Fan gauge. */
+export const FAN_MAX_RPM = 2000;
+
+/** An InfoPanel item bound to one of the capture's sensors, as the Sensor dropdown binds it: its ids, and the Data API key it reads. */
+const bound = (item: DisplayItem, s: (typeof SENSOR)[keyof typeof SENSOR]): DisplayItem =>
+  ({ ...item, ...bindingFromRef(s.ref), SensorName: s.name, $import: { key: s.key, via: "chosen" } }) as unknown as DisplayItem;
 const PINK = "#FFFF3EC8";
 
 const zone = (id: string, module: string, cell: [number, number, number, number], extra: Partial<Placement> = {}): Placement => ({
@@ -28,44 +45,46 @@ const zone = (id: string, module: string, cell: [number, number, number, number]
 
 /**
  * The Overlay group's parts (v15 item placements): Accent glow, an element on the cells of columns 1–2, row 1, and
- * Title text, an item placed freely over the gauges; with the page's InfoPanel side they draw with.
+ * Title text, an item placed freely over the gauges; with the page's InfoPanel side they draw with. `grouped` false:
+ * Title text alone, at the top level (the reference's alt state).
  */
-function overlay(): { parts: Placement[]; store: ProfilePage["freeCanvas"] } {
+function overlay(grouped: boolean): { parts: Placement[]; store: ProfilePage["freeCanvas"] } {
   const base = newStored({ name: "Desk panel", width: 1024, height: 600, now: NOW });
   const { profile } = readStored(base);
   const palette = defaultPalette(profile);
   const glow = { ...newElement("glow", profile, palette), Name: "Accent glow", X: 0, Y: 0, Width: 512, Height: 200 } as DisplayItem;
   const title = { ...newItem("Text", profile, palette), Name: "Title text", X: 48, Y: 28, FontSize: 22, Bold: true, Color: PINK } as DisplayItem;
-  const stored = storeItems(base, profile, [glow, title]);
-  const [g, t] = stored.items;
+  const stored = storeItems(base, profile, grouped ? [glow, title] : [title]);
+  const [g, t] = grouped ? stored.items : [undefined, stored.items[0]];
+  const titlePart = zone("title", ITEM_ID, [1, 1, 2, 1], { item: t, px: { x: 48, y: 28, w: 140, h: 36 }, ...(grouped ? { groupId: "overlay" } : {}) });
   return {
-    parts: [
-      zone("glow", ITEM_ID, [1, 1, 2, 1], { item: g, groupId: "overlay" }),
-      zone("title", ITEM_ID, [1, 1, 2, 1], { item: t, px: { x: 48, y: 28, w: 140, h: 36 }, groupId: "overlay" }),
-    ],
+    parts: g ? [zone("glow", ITEM_ID, [1, 1, 2, 1], { item: g, groupId: "overlay" }), titlePart] : [titlePart],
     store: withoutItems(stored),
   };
 }
 
+/** What Desk panel holds besides its widgets: nothing, Title text on its own, or the Gauges and Overlay groups. */
+type DeskExtra = "none" | "title" | "groups";
+
 /** Desk panel: five widgets on a full 4 x 3 grid, no gap and no padding so the cells match the reference's percentages. */
-function deskPanel(madeFor: "studio" | "infopanel", groups = false): MonitorProfile {
-  const gauge = (id: string, label: string, cell: [number, number, number, number]) =>
-    zone(id, "SensorValue", cell, { name: `${label} gauge`, settings: { display: "gauge", label }, ...(groups ? { groupId: "gauges" } : {}) });
-  const over = groups ? overlay() : null;
+function deskPanel(madeFor: "studio" | "infopanel", extra: DeskExtra = "none"): MonitorProfile {
+  const groups = extra === "groups";
+  const gauge = (id: string, label: string, sensor: string, cell: [number, number, number, number]) =>
+    zone(id, "SensorValue", cell, { name: `${label} gauge`, settings: { display: "gauge", label, sensor }, ...(groups ? { groupId: "gauges" } : {}) });
+  const over = extra === "none" ? null : overlay(groups);
   const page: ProfilePage = {
     id: "main",
     name: "Main",
     placements: [
-      gauge("cpu", "CPU", [1, 1, 2, 2]),
-      gauge("gpu", "GPU", [3, 1, 2, 2]),
+      gauge("cpu", "CPU", SENSOR.cpuTemp.key, [1, 1, 2, 2]),
+      gauge("gpu", "GPU", SENSOR.gpuTemp.key, [3, 1, 2, 2]),
       zone("clock", "Clock", [1, 3, 1, 1]),
       zone("weather", "Weather", [2, 3, 1, 1]),
       zone("agents", "CodingAgents", [3, 3, 2, 1]),
       ...(over?.parts ?? []),
     ],
-    ...(over
-      ? { groups: [{ id: "gauges", name: "Gauges" }, { id: "overlay", name: "Overlay" }], freeCanvas: over.store }
-      : {}),
+    ...(over ? { freeCanvas: over.store } : {}),
+    ...(groups ? { groups: [{ id: "gauges", name: "Gauges" }, { id: "overlay", name: "Overlay" }] } : {}),
   };
   return { id: "desk", name: "Desk panel", width: 1024, height: 600, cols: 4, rows: 3, fit: "fill", gap: 0, padding: 0, madeFor, pages: [page] };
 }
@@ -102,12 +121,13 @@ function neonParts(): { profile: ReturnType<typeof readStored>["profile"]; base:
     // Letter spacing is studio-only (v15 `$.letterSpacing`): the Export check reads it as approximated.
     title: { ...text("NEON RIG", box(4, 5, 44, 11), PINK), letterSpacing: 5 } as unknown as DisplayItem,
     clock: at({ ...make("Clock"), Format: "HH:mm" } as DisplayItem, "Clock", box(68, 5, 28, 11)),
-    cpuv: at(make("Sensor"), "CPU temp", box(4, 20, 28, 20)),
-    cpubar: at(make("Bar"), "CPU bar", box(4, 43, 28, 4)),
-    gpuv: at(make("Sensor"), "GPU temp", box(36, 20, 28, 20)),
-    gpubar: at(make("Bar"), "GPU bar", box(36, 43, 28, 4)),
-    graph: at(make("Graph"), "CPU load", box(4, 54, 60, 38)),
-    gauge: at(make("Gauge"), "Fan gauge", { ...box(68, 20, 28, 46), w: 221 }),
+    cpuv: at(bound(make("Sensor"), SENSOR.cpuTemp), "CPU temp", box(4, 20, 28, 20)),
+    cpubar: at(bound(make("Bar"), SENSOR.cpuLoad), "CPU bar", box(4, 43, 28, 4)),
+    gpuv: at(bound(make("Sensor"), SENSOR.gpuTemp), "GPU temp", box(36, 20, 28, 20)),
+    gpubar: at(bound(make("Bar"), SENSOR.gpuLoad), "GPU bar", box(36, 43, 28, 4)),
+    graph: at(bound(make("Graph"), SENSOR.cpuLoad), "CPU load", box(4, 54, 60, 38)),
+    // A fan's range in RPM: on the Gauge's default 0-100 its ~1,246 RPM reading is past the top, a full ring.
+    gauge: at({ ...bound(make("Gauge"), SENSOR.fan), MinValue: 0, MaxValue: FAN_MAX_RPM } as DisplayItem, "Fan gauge", { ...box(68, 20, 28, 46), w: 221 }),
     card: at(newElement("card", profile, palette), "Panel card", box(2, 17, 64, 33)),
     // On the cells COL 7 ROW 5 W 2 H 1 of the 8 x 5 grid (100 x 96 px cells), the host Image item their box.
     weather: newWidgetItem({ module: "Weather", cell: { col: 7, row: 5, cols: 2, rows: 1 } }, { x: 600, y: 384, w: 200, h: 96 }, "Weather"),
@@ -136,8 +156,8 @@ function withConfig(profile: MonitorProfile) {
   return { ...defaultConfig(), activeProfile: profile.id, profiles: [profile] };
 }
 
-function deskFixture(madeFor: "studio" | "infopanel", selection: string[], leftTab: Fixture["leftTab"], extra: Partial<Fixture> = {}, groups = false): Fixture {
-  const profile = deskPanel(madeFor, groups);
+function deskFixture(madeFor: "studio" | "infopanel", selection: string[], leftTab: Fixture["leftTab"], extra: Partial<Fixture> = {}, parts: DeskExtra = "none"): Fixture {
+  const profile = deskPanel(madeFor, parts);
   return { config: withConfig(profile), route: { profileId: profile.id, pageId: "main" }, selection, leftTab, ...extra };
 }
 
@@ -159,8 +179,8 @@ const RECENT = ["Weather", "CustomGauge"];
 const BUILD: Record<FixtureName, () => Fixture> = {
   screen: () => deskFixture("studio", ["weather"], "layers"),
   profile: () => neonFixture(profileItems, "CPU temp", "layers"),
-  addw: () => neonFixture((p) => [...profileItems(p), p.weather], "Weather", "add", { addSegment: "all", toast: "addw", recent: RECENT }),
-  alt: () => deskFixture("studio", ["cpu"], "layers", { altDrag: { part: "Title text" } }, true),
+  addw: () => neonFixture((p) => [...profileItems(p), p.weather], "Weather", "add", { addSegment: "all", toast: "addw", added: "Weather", recent: RECENT }),
+  alt: () => deskFixture("studio", ["title"], "layers", { altDrag: { part: "Title text" } }, "title"),
   export: () => deskFixture("infopanel", [], "layers"),
   layersF: () =>
     neonFixture(
@@ -169,7 +189,7 @@ const BUILD: Record<FixtureName, () => Fixture> = {
       "layers",
       { contextMenuFor: "Weather" }
     ),
-  layersG: () => deskFixture("studio", [], "layers", {}, true),
+  layersG: () => deskFixture("studio", ["overlay"], "layers", {}, "groups"),
   hover: () => neonFixture(profileItems, null, "add", { addSegment: "widgets", hoverTile: "Weather", recent: RECENT }),
 };
 

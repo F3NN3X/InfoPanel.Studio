@@ -51,7 +51,7 @@ test("a studio closed to the tray is released after a minute and rebuilt on Show
     let { browser, page } = await app.studio(60_000);
     await page.locator('[aria-label="Edit"]').click();
     await page.locator('[data-zone-id="perf-statusbar"]').click();
-    const name = page.getByLabel("Zone name");
+    const name = page.getByLabel("Widget name");
     await name.fill("Desktop edit");
     await name.press("Enter");
     const before = roleCounts();
@@ -89,7 +89,7 @@ test("a studio closed to the tray is released after a minute and rebuilt on Show
     const interactiveMs = Date.now() - shownAt;
     await page.locator('[aria-label="Edit"]').click();
     await page.locator('[data-zone-id="perf-statusbar"]').click();
-    await expect(page.getByLabel("Zone name")).toHaveValue("Desktop edit");
+    await expect(page.getByLabel("Widget name")).toHaveValue("Desktop edit");
     const rebuiltMs = Number(/studio rebuilt \((\d+) ms\)/.exec(app.log())?.[1]);
     await browser.close().catch(() => {});
 

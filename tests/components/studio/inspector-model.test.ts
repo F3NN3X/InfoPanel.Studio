@@ -108,7 +108,7 @@ describe("inspectorTabs", () => {
 describe("widget sections", () => {
   it("files Header, the widget's own sections and Fit in Show", () => {
     expect(titles(sectionsFor(spotify, "show"))).toEqual(["Header", "Player", "Visualizer", "Fit"]);
-    expect(find(sectionsFor(spotify, "show"), "Header").extras.map((e) => e.kind)).toEqual(["widgetPicker", "visible"]);
+    expect(find(sectionsFor(spotify, "show"), "Header").extras.map((e) => e.kind)).toEqual(["widgetPicker"]);
     expect(keysOf([find(sectionsFor(spotify, "show"), "Fit")])).toEqual(["compact", "sizeTier"]);
   });
 
@@ -226,7 +226,7 @@ describe("header modes", () => {
       const show = sectionsFor(widgetContext(mod(id)), "show");
       expect(titles(show), id).not.toContain("Header");
       expect(keysOf(show), id).not.toContain("showTitle");
-      expect(show[0].extras.map((e) => e.kind), id).toEqual(["widgetPicker", "visible"]);
+      expect(show[0].extras.map((e) => e.kind), id).toEqual(["widgetPicker"]);
       if (id === "WebPage") continue;
       expect(keysOf([find(show, "Fit")]).slice(-2), id).toEqual(["label", "icon"]);
     }
@@ -247,7 +247,7 @@ describe("Web Page", () => {
 describe("panel sections", () => {
   it("lists Panel, Layout and Widgets, then the Header, in Show", () => {
     expect(titles(sectionsFor(panel, "show"))).toEqual(["Panel", "Layout", "Widgets", "Header"]);
-    expect(find(sectionsFor(panel, "show"), "Header").extras.map((e) => e.kind)).toEqual(["visible"]);
+    expect(find(sectionsFor(panel, "show"), "Header").extras).toEqual([]);
     expect(keysOf([find(sectionsFor(panel, "show"), "Header")])).toEqual(["label", "icon"]);
   });
 
@@ -280,7 +280,7 @@ describe("panel sections", () => {
 describe("blank zone and several zones", () => {
   it("shows the Widget card and the zone frame, without tabs", () => {
     const sections = sectionsFor({ kind: "blank" });
-    expect(titles(sections)).toEqual(["Widget", "Zone frame"]);
+    expect(titles(sections)).toEqual(["Widget", "Widget frame"]);
     expect(sections[0].special).toBe("blankPick");
     expect(inspectorNotes({ kind: "blank" }, undefined)[0].kind).toBe("blank");
   });
@@ -598,6 +598,6 @@ describe("view helpers", () => {
   it("extraMatches searches custom UI by its terms", () => {
     expect(extraMatches({ kind: "zoneFrame", more: true, count: 3 }, "frame")).toBe(true);
     expect(extraMatches({ kind: "zoneFrame", more: true, count: 3 }, "glow")).toBe(false);
-    expect(extraMatches({ kind: "visible", more: false, count: 1 }, "")).toBe(true);
+    expect(extraMatches({ kind: "widgetPicker", more: false, count: 1 }, "")).toBe(true);
   });
 });

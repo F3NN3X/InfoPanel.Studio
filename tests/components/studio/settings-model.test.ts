@@ -74,9 +74,9 @@ describe("filterSettings", () => {
 
 describe("matchesQuery", () => {
   it("folds case and diacritics; blank matches", () => {
-    expect(matchesQuery(["Zone frame"], "FRAME")).toBe(true);
+    expect(matchesQuery(["Widget frame"], "FRAME")).toBe(true);
     expect(matchesQuery(["Fond d'écran"], "ecran")).toBe(true);
-    expect(matchesQuery(["Zone frame"], "glow")).toBe(false);
+    expect(matchesQuery(["Widget frame"], "glow")).toBe(false);
     expect(matchesQuery([], "")).toBe(true);
   });
 });

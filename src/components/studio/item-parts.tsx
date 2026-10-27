@@ -260,6 +260,18 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
     return node?.type === "group" && box ? [{ node, box }] : [];
   });
 
+  // Hidden parts and groups aren't drawn (SPEC §7.1); selected from Layers, each shows a dashed outline at its box.
+  const hiddenOutlines = [
+    ...partsOf(model.root)
+      .filter((p) => p.kind !== "widget" && selectedIds.includes(p.id) && (p.hidden || inHidden(byId.get(p.id)?.groupId)))
+      .map((p) => ({ id: p.id, box: boxOf(grid, p.place) })),
+    ...(groups?.selected ?? []).flatMap((id) => {
+      const node = findNode(model.root, id)?.node;
+      const box = node?.type === "group" && node.hidden ? unionBox(model, node) : null;
+      return box ? [{ id, box }] : [];
+    }),
+  ];
+
   const primary = selectedIds.at(-1);
   // Drawn over the parts, so a press inside a selected group drags the group and a double-click reaches its box.
   const boxes = groupBoxes.map(({ node, box }) => (
@@ -302,6 +314,15 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
           style={{ left: drag.from.x, top: drag.from.y, width: drag.from.w, height: drag.from.h }}
         />
       )}
+      {hiddenOutlines.map(({ id, box }) => (
+        <div
+          key={`hidden:${id}`}
+          data-shot-skip
+          data-hidden-outline={id}
+          className="absolute"
+          style={{ left: box.x, top: box.y, width: Math.max(1, box.w), height: Math.max(1, box.h), outline: `${1.5 / zoom}px dashed var(--ui-accent)`, outlineOffset: 1 / zoom }}
+        />
+      ))}
       {parts.map((part) => {
         const b = boxOf(grid, part.place);
         const placement = byId.get(part.id);

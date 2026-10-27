@@ -82,10 +82,10 @@ function ZoneActions({
       <IconButton label={`${hidden ? "Show" : "Hide"} (${KEYS.hide})`} onClick={onToggleVisible} className={touch}>
         {hidden && stateIcon ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </IconButton>
-      <IconButton label={zoneKeys ? `Duplicate (${KEYS.duplicate})` : "Duplicate zone"} onClick={onDuplicate} className={touch}>
+      <IconButton label={zoneKeys ? `Duplicate (${KEYS.duplicate})` : "Duplicate widget"} onClick={onDuplicate} className={touch}>
         <Copy className="h-4 w-4" />
       </IconButton>
-      <IconButton label={zoneKeys ? `Delete (${KEYS.remove})` : "Delete zone"} danger onClick={onRemove} className={touch}>
+      <IconButton label={zoneKeys ? `Delete (${KEYS.remove})` : "Delete widget"} danger onClick={onRemove} className={touch}>
         <Trash2 className="h-4 w-4" />
       </IconButton>
       <CloseButton />
@@ -177,7 +177,7 @@ export function ZoneHeader({
             <input
               value={name}
               placeholder={placeholder}
-              aria-label="Zone name"
+              aria-label="Widget name"
               spellCheck={false}
               onChange={(e) => onName(e.target.value)}
               className={cn(
@@ -236,7 +236,7 @@ export function MultiHeader({
           <BoxSelect />
         </HeaderIcon>
         <div className="min-w-0 flex-1">
-          <div className={TITLE}>{zones.length} zones selected</div>
+          <div className={TITLE}>{zones.length} widgets selected</div>
           <div className={META}>Style changes apply to all of them</div>
         </div>
         <ZoneActions
@@ -275,7 +275,7 @@ export function WidgetPicker({ placement, onPickWidget }: { placement: Placement
         <button
           type="button"
           onClick={onPickWidget}
-          title="Pick a widget for this zone"
+          title="Pick a widget to fill this space"
           className={cn(SELECT, "flex min-w-0 items-center gap-1 text-left hover:border-ui-menu")}
         >
           <span className={cn("min-w-0 flex-1 truncate", blank && "text-ui-4")}>

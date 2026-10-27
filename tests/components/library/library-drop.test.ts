@@ -156,7 +156,7 @@ describe("library gauge drops", () => {
     const { b, zones } = bridge();
     const frames = gauge({ frames: [{ id: frameId("a"), name: "f0.png" }], min: 0, max: 100, animationSpeed: 0 });
     await dropLibraryItem(b, { id: frames.id, item: frames }, rect, { col: 1, row: 2 });
-    expect(b.toast).toHaveBeenCalledWith("Image-sequence gauges go into a canvas zone");
+    expect(b.toast).toHaveBeenCalledWith("Image-sequence gauges go on an imported InfoPanel page");
     const g = gauge({ vector, min: 0, max: 100, animationSpeed: 0 });
     await dropLibraryItem(b, { id: g.id, item: g }, null, null);
     expect(b.toast).toHaveBeenCalledWith("No room there");
@@ -216,7 +216,7 @@ describe("library gauge drops", () => {
     await dropLibraryItem(gone.b, { id: g.id, item: g }, null, { col: 1, row: 1 }, { zoneId: "z1", fx: 0.5, fy: 0.5 });
     expect(gone.after().profiles[0].pages[0].placements).toHaveLength(0);
     expect(gone.b.addCopy).not.toHaveBeenCalled();
-    expect(gone.b.toast).toHaveBeenCalledWith("The canvas zone is gone, so Ring wasn’t added");
+    expect(gone.b.toast).toHaveBeenCalledWith("The page is gone, so Ring wasn’t added");
   });
 
   it("the bake and the item are one undo step: one setConfig", async () => {

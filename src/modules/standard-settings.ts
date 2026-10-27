@@ -283,7 +283,7 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
     // Replaces `variant` + `compactView` (config v7): the card or dense view in small zones.
     // The registry drops the choices a widget cannot draw (`fitSettings`, inspector-meta.ts).
     key: "compact",
-    label: "Small zones",
+    label: "Small sizes",
     type: "select",
     default: "auto",
     options: [
@@ -292,7 +292,7 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
       { value: "card", label: "Card" },
       { value: "dense", label: "Dense" },
     ],
-    hint: "Auto: 1×1, one-row and one-column zones show the summary card; Full keeps the full layout; Card shows the card at any size; Dense swaps the layout for a dense, uniform summary",
+    hint: "Auto: 1×1, one-row and one-column widgets show the summary card; Full keeps the full layout; Card shows the card at any size; Dense swaps the layout for a dense, uniform summary",
     keywords: ["small", "summary", "tile", "compact", "card", "dense", "studio", "variant"],
     section: "fit",
   },
@@ -302,7 +302,7 @@ export const STANDARD_SETTINGS: ModuleSetting[] = [
     label: "Density",
     type: "select",
     default: "auto",
-    hint: "Auto picks from the zone size",
+    hint: "Auto picks from the widget's size",
     options: [
       { value: "auto", label: "Auto" },
       { value: "lg", label: "Roomy" },

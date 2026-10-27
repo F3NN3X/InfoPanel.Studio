@@ -74,7 +74,7 @@ export function SelectionChip({
           )}
         </>
       )}
-      <span className="px-1 font-ui-mono font-medium tabular-nums opacity-70" title="Zone size (grid cells)">
+      <span className="px-1 font-ui-mono font-medium tabular-nums opacity-70" title="Widget size (grid cells)">
         {p.colSpan}×{p.rowSpan}
       </span>
       <button

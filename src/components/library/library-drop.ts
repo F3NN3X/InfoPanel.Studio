@@ -126,7 +126,7 @@ async function gaugeOf(b: StudioBridge, item: LibraryItem): Promise<GaugeLibrary
 async function dropGaugeOnGrid(b: StudioBridge, item: LibraryItem, rect: ZoneRect | null): Promise<void> {
   const data = await gaugeOf(b, item);
   if (!data) return;
-  if (!data.vector) return b.toast("Image-sequence gauges go into a canvas zone");
+  if (!data.vector) return b.toast("Image-sequence gauges go on an imported InfoPanel page");
   if (!rect) return b.toast("No room there");
   addGaugeZone(b, item.name, data.vector, rect, item, data.frames);
 }
@@ -173,7 +173,7 @@ async function dropGaugeIntoCanvas(b: StudioBridge, item: LibraryItem, zoneId: s
     placed = { path: r.path, name: open.stored.source.name };
     return withCanvas(c, zoneId, r.stored);
   });
-  if (!placed) return b.toast(`The canvas zone is gone, so ${item.name} wasn’t added`);
+  if (!placed) return b.toast(`The page is gone, so ${item.name} wasn’t added`);
   b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId, itemPath: placed.path, label: `${placed.name} › ${item.name}` });
   b.toast(`Added ${item.name} to ${placed.name}`);
 }
@@ -224,7 +224,7 @@ async function dropComponentIntoCanvas(b: StudioBridge, item: LibraryItem, zoneI
     placed = { path: r.paths[0], name: open.stored.source.name, open: r.open };
     return withCanvas(c, zoneId, r.stored);
   });
-  if (!placed) return b.toast(`The canvas zone is gone, so ${item.name} wasn’t added`);
+  if (!placed) return b.toast(`The page is gone, so ${item.name} wasn’t added`);
   b.addCopy(item, { profileId: b.profileId, ...(b.profile.pageId ? { pageId: b.profile.pageId } : {}), zoneId, itemPath: placed.path, label: `${placed.name} › ${item.name}` });
   b.toast(placed.open > 0 ? `Added ${item.name} to ${placed.name}; ${placed.open} sensor${placed.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name} to ${placed.name}`);
 }

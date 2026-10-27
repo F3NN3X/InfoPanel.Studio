@@ -119,7 +119,7 @@ export function itemRow(item: DisplayItem, path: string, imported: boolean): Che
     return { path, name, kind: "item", status: "approx", why: [why, ...looks].join("; ") };
   }
   if (looks.length) return { path, name, kind: "item", status: "approx", why: looks.join("; ") };
-  const why = badge ? badge.reason : imported ? "Original InfoPanel item" : `InfoPanel ${item.kind} item`;
+  const why = badge ? badge.reason : imported ? "Unchanged from the imported profile." : `InfoPanel ${item.kind} item`;
   return { path, name, kind: "item", status: "ok", why };
 }
 

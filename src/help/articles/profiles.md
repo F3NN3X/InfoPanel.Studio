@@ -6,7 +6,7 @@ related: [zones, themes, kiosk]
 verified: 1.3.0-beta.36
 ---
 
-A screen (profile) is a design for one display size. Its grid decides where zones can go.
+A screen (profile) is a design for one display size. Its grid decides where widgets can go.
 
 ## Managing screens
 
@@ -30,7 +30,7 @@ Open **Screens** from the rail, from **Manage screens…** or **Screen settings�
   - **Export screen**, which opens the Export & back up sheet on that screen;
   - **Delete**, which is off for your last screen.
 
-  Delete asks first and says what goes with the screen: its pages, zones and InfoPanel canvases, and whether the app opens on it or kiosks show it. Deleting the screen the app opens on makes the app open on the best fit. Afterwards the **Undo** in the message, or Ctrl+Z, brings the screen back with its InfoPanel canvases.
+  Delete asks first and says what goes with the screen: its pages, widgets and InfoPanel canvases, and whether the app opens on it or kiosks show it. Deleting the screen the app opens on makes the app open on the best fit. Afterwards the **Undo** in the message, or Ctrl+Z, brings the screen back with its InfoPanel canvases.
 
 A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 12 × 6 grid in Scroll mode. On the empty canvas, **Use sample layout** builds a 1920 × 550 sample you can take apart.
 
@@ -56,16 +56,16 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 | **Minimal** | A big clock with the date and three readings: CPU and GPU temperature and RAM load |
 | **Status bar** | One bar with the time, load, temperatures and network, for thin strip displays |
 
-With them are 17 templates that copy the look of the InfoPanel profile templates of the same names: Graphite, Glass, Neon, Paper, Mono, Terminal, Clock, Cores, Deck, Meters, Orbit, Tower, Ticker, Readout, Console, Frost Bar and Quota. They are real widgets, not a picture, so they keep up with the sensors and you can change any zone. Each has the palettes of its original. A reading this PC doesn't have is replaced by a similar one the screen doesn't show yet, or left out, and the zones next to it take its room.
+With them are 17 templates that copy the look of the InfoPanel profile templates of the same names: Graphite, Glass, Neon, Paper, Mono, Terminal, Clock, Cores, Deck, Meters, Orbit, Tower, Ticker, Readout, Console, Frost Bar and Quota. They are real widgets, not a picture, so they keep up with the sensors and you can change any widget. Each has the palettes of its original. A reading this PC doesn't have is replaced by a similar one the screen doesn't show yet, or left out, and the zones next to it take its room.
 
 - The templates are listed by shape: **Standard**, **Wide**, **Strip** (4:1 or wider) and **Tall** (narrower than square), the shape of your size first. A template that fits that shape is listed there; one that doesn't is listed under its own. The chips above the cards show one shape at a time, each card drawn at a size of that shape, and say how many templates fit it. **A–Z** lists them all by name instead.
-- Each card is a picture of the template at the size written on it, taken while you look at the list. Until it arrives you see a plan of its zones. A template has its own arrangement for each shape it fits, so a tall screen gets a column and a strip gets a row.
+- Each card is a picture of the template at the size written on it, taken while you look at the list. Until it arrives you see a plan of its widgets. A template has its own arrangement for each shape it fits, so a tall screen gets a column and a strip gets a row.
 - A template comes at the size its card shows: **Status bar** at 1280 × 160, **Tower** at 480 × 1920, General at 1024 × 600. **Blank grid** starts at 1024 × 600, or at the size of the screen you are editing when that is one of the presets. The size you'd get is marked with a star in **Size**, and the line above it says **Follows** and the template's name.
 - **Size** lists the panel sizes by shape, with the panel each one is in its tooltip. Type any width and height under **Custom**: whole pixels from 1 to 8192. Once you pick or type a size yourself it says **Set by you**, and picking another template keeps your size. **Use** and the template's size goes back to it.
-- A template can be made at any size. At a shape it isn't made for, a note says how its zones are squeezed, with **Use its own size** to go back, and the cards that don't fit your size are tagged, for example **Tall only**.
+- A template can be made at any size. At a shape it isn't made for, a note says how its widgets are squeezed, with **Use its own size** to go back, and the cards that don't fit your size are tagged, for example **Tall only**.
 - The template brings its look as the screen's own: colours, background, widget skin and effects. Change them in **Theme** with the screen as the scope.
 - Every template has a size it is made for, and its text and readings are sized for that size. At a smaller or larger size they shrink or grow with it (down to 60 % and up to 160 % of their size), so a template no longer overflows on a small panel or looks tiny on a big one.
-- The grid is split to suit the size. A strip twice as long for its height gets twice the columns, so zones keep their shape and widgets you add later get sensible boxes.
+- The grid is split to suit the size. A strip twice as long for its height gets twice the columns, so widgets keep their shape and the ones you add later get sensible boxes.
 - Widgets that read one sensor, such as Minimal's three readings, find this PC's sensor for it. A reading that isn't found is named in the message after **Create**; pick its sensor in the inspector.
 - Creating the screen is one step, so Ctrl+Z removes it again.
 
@@ -78,7 +78,7 @@ Select a screen's card in **Screens**. The panel on the right holds the settings
 | Group | What it does |
 |---|---|
 | **Size & fit** | **Size preset** offers 1920 × 550, 1920 × 1080, 2560 × 720, 1280 × 400, 1024 × 600 and 800 × 480; a size that isn't a preset shows first. **Width** and **Height** hold the exact pixels. **Match this window** takes the studio window's size. **When it doesn't fit**: **Fill** stretches rows so the whole grid fits the screen height, **Scroll** keeps rows 120 px tall and the page scrolls. |
-| **Grid** | 2 to 24 columns and 1 to 24 rows. A change that would push a zone off the grid is refused. The preview draws the grid with its gap and padding. **Gap** (default 12 px) and **Edge padding** go to 64 px on the sliders, and the boxes accept up to 200. |
+| **Grid** | 2 to 24 columns and 1 to 24 rows. A change that would push a widget off the grid is refused. The preview draws the grid with its gap and padding. **Gap** (default 12 px) and **Edge padding** go to 64 px on the sliders, and the boxes accept up to 200. |
 | **Shown on** | Whether the app opens on this screen, with a **Settings ↗** link to where that is chosen, which kiosks show it now, and **Copy kiosk link**. |
 | **Rotation** | **Rotate pages** and **Every** (3 to 3600 seconds) step the kiosk through the pages. |
 | **Performance** | The frame-rate cap and **Animations** for this screen. The chip says whether they come from **Settings › Dashboard** (all screens) or are this screen's own. |
@@ -123,5 +123,5 @@ A display can still show another screen when its kiosk URL has `?profile=`, or w
 Which screen you're editing belongs to this studio only. It isn't saved in the config, and it doesn't change what your displays show. **New**, **Duplicate**, **Import…** and importing an InfoPanel profile all switch the studio to the new screen.
 
 :::tip
-Changing the grid keeps zones where they are in cells. If you halve the columns, widen zones afterwards or they will look narrow.
+Changing the grid keeps widgets where they are in cells. If you halve the columns, widen them afterwards or they will look narrow.
 :::

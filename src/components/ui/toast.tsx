@@ -19,15 +19,24 @@ export function useToast(): ShowToast {
   return useContext(ToastContext);
 }
 
-/** Hosts the toast: top-centre (14px under the top bar), inverse colours, gone after ~1.8 s. */
+/** Where a toast sits: top centre of Edit's canvas (`data-toast-anchor`), 14px under the page tabs (SPEC §9.6). */
+function anchored(): { top: number; left: number } | null {
+  const r = document.querySelector("[data-toast-anchor]")?.getBoundingClientRect();
+  return r && r.width > 0 ? { top: r.top + 14, left: r.left + r.width / 2 } : null;
+}
+
+/**
+ * Hosts the toast: in Edit at the top centre of the canvas, elsewhere bottom-centre just above the status bar (never
+ * over the title bar or a screen's header and tabs); inverse colours, gone after ~1.8 s.
+ */
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ id: number; message: string; action?: ToastOptions["action"] } | null>(null);
+  const [toast, setToast] = useState<{ id: number; message: string; action?: ToastOptions["action"]; at: { top: number; left: number } | null } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const nextId = useRef(0);
 
   const show = useCallback<ShowToast>((message, options) => {
     clearTimeout(timer.current);
-    setToast({ id: nextId.current++, message, action: options?.action });
+    setToast({ id: nextId.current++, message, action: options?.action, at: anchored() });
     timer.current = setTimeout(() => setToast(null), options?.ms ?? TOAST_MS);
   }, []);
 
@@ -40,8 +49,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           key={toast.id}
           role="status"
+          style={toast.at ? { top: toast.at.top, left: toast.at.left, bottom: "auto" } : undefined}
           className={cn(
-            "fixed left-1/2 top-[62px] z-[100] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-ui-inverse px-3 py-[7px] font-ui text-xs font-medium text-ui-inverse-fg shadow-ui-float",
+            "fixed bottom-[38px] left-1/2 z-[100] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-ui-inverse px-3 py-[7px] font-ui text-xs font-medium text-ui-inverse-fg shadow-ui-float",
             !toast.action && "pointer-events-none"
           )}
         >

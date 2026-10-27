@@ -18,6 +18,8 @@ export interface IpGroup {
 
 /** The Position section's grid (the rest of the Position group are rows under it). */
 export const GRID_FIELDS = new Set(["X", "Y", "Width", "Height", "Rotation", "FlipX"]);
+/** The box, which the Place row edits where Edit shows one (Edit v3 SPEC §10.2). */
+const BOX_FIELDS = new Set(["X", "Y", "Width", "Height"]);
 /** The raw binding apart from the Sensor section (the dropdown, Remap): last, and collapsed. */
 const ADVANCED = new Set(["Sensor", "Other"]);
 const TITLES: Record<string, string> = { Sensor: "Binding details" };
@@ -45,10 +47,14 @@ const toSetting = (d: FieldDef): ModuleSetting => {
 
 /**
  * A kind's inspector groups: its fields by registry group, the colours gathered in one
- * "Colours" group (spec §7), the position grid's fields left to the Position section.
+ * "Colours" group (spec §7), the position grid's fields left to the Position section. With the
+ * Place row (`placeRow`) there is no Position section: the row has the box, and rotation, flip,
+ * scale and corner radius are rows of the Item section.
  */
-export function ipGroups(kind: ItemKind): IpGroup[] {
-  const fields = fieldsOf(kind).filter((d) => !GRID_FIELDS.has(d.name));
+export function ipGroups(kind: ItemKind, placeRow = false): IpGroup[] {
+  const fields = fieldsOf(kind)
+    .filter((d) => !(placeRow ? BOX_FIELDS : GRID_FIELDS).has(d.name))
+    .map((d) => (placeRow && d.group === "Position" ? { ...d, group: "Item" } : d));
   // The glow's colour stays with its radius in the Glow section.
   const isColour = (d: FieldDef) => d.spec.kind === "color" && d.group !== "Glow";
   const colours = fields.filter(isColour);

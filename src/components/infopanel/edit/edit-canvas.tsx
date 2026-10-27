@@ -115,7 +115,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
   const read = (key: string) => history.get(key);
   // The InfoPanel view draws the page as it exports; editing still goes to the stored items.
   const drawn = useMemo(() => (exportView?.infoPanel ? (asExported(editor.items, exportView.out) as typeof editor.items) : editor.items), [editor.items, exportView?.infoPanel, exportView?.out]);
-  const native = nativeLayer(drawn, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance, true) } : {}) });
+  const native = nativeLayer(drawn, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance, true, true) } : {}) });
   const { profile } = open;
   // The zoom follows the fit until a manual one is set; the wheel then pans.
   const [zoom, setZoom] = useState<number | null>(null);

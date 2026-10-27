@@ -3,18 +3,18 @@ id: custom-css
 title: Custom CSS
 icon: code
 related: [panels, widget-settings]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
-For looks the settings can't reach. CSS is scoped, so it never leaks into other zones.
+For looks the settings can't reach. CSS is scoped, so it never leaks into other widgets.
 
 ## Where to write it
 
-- A widget or panel zone: **Style › Custom CSS**, under **More**. It applies to that zone only.
+- A widget or panel: **Style › Custom CSS**, under **More**. It applies to that widget only.
 - A panel widget: **Style › Custom CSS › CSS**. It applies to that cell only.
 - A panel in Code mode: the `css` field.
 
-Inside, `:scope` is the zone or cell root.
+Inside, `:scope` is the widget's or the cell's root.
 
 ## Hooks
 

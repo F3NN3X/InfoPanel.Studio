@@ -158,7 +158,7 @@ function presetItem(p: PanelPreset, kind: AddKind, category: string): AddItem {
 const BLANK_ZONE: AddItem = {
   kind: "layout",
   id: BLANK_MODULE,
-  name: "Blank zone",
+  name: "Blank space",
   category: EMPTY,
   w: 2,
   h: 2,
@@ -166,7 +166,7 @@ const BLANK_ZONE: AddItem = {
   mh: 1,
   blurb: "Reserve space, fill it later",
   tags: "empty placeholder",
-  description: "An empty zone that holds its place. Select it later and pick a widget to fill it.",
+  description: "Empty space that holds its place. Select it later and pick a widget to fill it.",
   parts: [],
   dir: "row",
   drop: { kind: "module", id: BLANK_MODULE },

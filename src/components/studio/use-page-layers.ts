@@ -189,7 +189,7 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
       const ops = dropOps(model, ids, parentId, index);
       if (ops) apply(ops);
     },
-    menu: { available: layerActionsFor(model, selection), groups: groupList, run, moveToGroup: (id) => moveInto(id ?? "new") },
+    menu: { available: layerActionsFor(model, selection), groups: groupList, run, moveToGroup: (id) => moveInto(id ?? "new"), saveToLibrarySoon: true },
     iconOf,
     statusIcon,
     renameRequest,

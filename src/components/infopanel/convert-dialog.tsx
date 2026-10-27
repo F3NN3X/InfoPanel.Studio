@@ -10,7 +10,7 @@ import { modules } from "@/modules";
 import { useSensorCatalog } from "@/lib/catalog";
 import { ITEM_ID, type Placement, type ProfilePage, type ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { choiceFor, ON_INFOPANEL_KEY, rowsOf, startChoices, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
+import { choiceFor, CONVERT_LOOK, ON_INFOPANEL_KEY, rowsOf, startChoices, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { Converted, ReportRow } from "@/lib/infopanel/native/convert-view";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
@@ -42,7 +42,6 @@ export interface ConvertDialogProps {
   onDone: (message: string) => void;
 }
 
-const LOOK = { Font: "Segoe UI", FontSize: 20, Color: "#FFFFFFFF", BackgroundColor: "#FF0A0A0C" };
 const titleOf = (id: string) => modules.find((m) => m.id === id)?.title ?? id;
 
 function Report({ rows }: { rows: readonly ReportRow[] }) {
@@ -97,16 +96,16 @@ function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, on
         return { ...p, settings };
       });
       const [{ convertView }, { canvasFromItems }] = await Promise.all([import("@/lib/infopanel/native/convert-view"), import("@/lib/infopanel/native/to-canvas")]);
-      const result: Converted = await convertView({ placements: withChoices, scope: document, sensors, look: LOOK, titleOf, ...(scope === "zone" ? { only: zoneId } : {}), ...(itemPage ? { page: { screen: profile, page: itemPage } } : {}) });
+      const result: Converted = await convertView({ placements: withChoices, scope: document, sensors, look: CONVERT_LOOK, titleOf, ...(scope === "zone" ? { only: zoneId } : {}), ...(itemPage ? { page: { screen: profile, page: itemPage } } : {}) });
       setReport(result.report);
       if (result.items.length === 0) return;
       const box = scope === "zone" ? zones[0] : undefined;
-      const name = scope === "screen" ? `${profile.name} (InfoPanel)` : `${box ? titleOf(box.module) : "Zone"} (InfoPanel)`;
+      const name = scope === "screen" ? `${profile.name} (InfoPanel)` : `${box ? titleOf(box.module) : "Widget"} (InfoPanel)`;
       const size = result.size;
       const canvas = await canvasFromItems(result.items, result.assets, { name, ...size });
       const why = onConverted({ scope, canvas, name, size });
       if (why) setError(why);
-      else onDone(`Converted ${scope === "screen" ? "the screen" : "the zone"} to InfoPanel · ${result.report.length} widgets`);
+      else onDone(`Converted ${scope === "screen" ? "the screen" : "the widget"} to InfoPanel · ${result.report.length} widgets`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -117,7 +116,7 @@ function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, on
   return (
     <>
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
-        <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile (experimental)" : "Convert zone to InfoPanel (experimental)"}</Dialog.Title>
+        <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile (experimental)" : "Convert widget to InfoPanel (experimental)"}</Dialog.Title>
         <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
         </Dialog.Close>

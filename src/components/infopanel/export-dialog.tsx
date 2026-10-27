@@ -401,7 +401,7 @@ export function ExportDialog({ open, onOpenChange, zone, onBaked, onDone, appear
           {open && zone && canvas ? (
             <ExportBody key={zone.id} zone={zone} canvas={canvas} onClose={() => onOpenChange(false)} onBaked={onBaked} onDone={onDone} appearance={appearance} />
           ) : (
-            <p className="p-5 text-[12.5px] text-ui-3">This screen has no canvas zone to export. Import an InfoPanel profile first.</p>
+            <p className="p-5 text-[12.5px] text-ui-3">This screen has no InfoPanel page to export. Import an InfoPanel profile first.</p>
           )}
         </Dialog.Popup>
       </Dialog.Portal>

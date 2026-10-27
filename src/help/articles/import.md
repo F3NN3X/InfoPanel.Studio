@@ -16,7 +16,7 @@ Press **Import** in the title bar, or drop files anywhere in the window. The doo
 |---|---|
 | A config backup | **Replace everything** (the default) or **Add its screens only**. "Back up the current dashboard first" is on by default: a Save As asks where to keep the backup, and if you cancel it nothing is replaced (untick the box to replace without one). A restore is one undo step. |
 | A screen (profile) file | Becomes a new screen. |
-| An `.infopanel` file or a stored canvas | The InfoPanel steps below, landing as a new screen or a canvas zone on the current page, whichever you chose in the door. |
+| An `.infopanel` file or a stored canvas | The InfoPanel steps below, landing as a new screen or a group on the current page, whichever you chose in the door. |
 | A gauge file, SVG template or frames `.zip` | Saved in Library › Gauges and opened in the gauge editor. |
 | An image, video, font or font pack | Saved in Library › Media or Fonts, with "Also use it as the background for ‹screen›". |
 
@@ -34,7 +34,7 @@ Source — File or folder, installed, or saved
 Mode — Faithful, native or both
 Review — What converts and why
 Sensors — Fix sensors
-Save — Into a canvas zone
+Save — Onto the page
 :::
 
 ## 1. Source
@@ -72,7 +72,7 @@ Press **Export & back up** in the title bar. The sheet has a row for each thing 
 
 - **Back up everything**: **Save backup** writes `infopanel-studio-config.json`, which the Import door restores.
 - **Export this screen**: one screen as a `.json` file.
-- **Export a page for InfoPanel**: **Export…** opens the InfoPanel export below. It is off, with its reason, when the page has no canvas zone.
+- **Export a page for InfoPanel**: **Export…** opens the InfoPanel export below. It is off, with its reason, when the page has no InfoPanel profile on it.
 - **Export a gauge**: **Choose…** lists Library › Gauges.
 
 ## Exporting a canvas for InfoPanel

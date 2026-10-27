@@ -35,7 +35,12 @@ export interface LayerMenuHost {
   rename?: () => void;
   /** Save the selection to the Library (where the page can). */
   saveToLibrary?: () => void;
+  /** Save to Library is listed but off, `Coming soon` (a screen page, until it can save a selection: sign-off round 1). */
+  saveToLibrarySoon?: boolean;
 }
+
+/** The tooltip on Save to Library where it isn't built yet (a screen page; its Group inspector says the same). */
+const LIBRARY_SOON = "Coming soon";
 
 /** The menu's rows, in the SPEC's order. */
 export function layerMenuEntries(host: LayerMenuHost): ContextMenuEntry[] {
@@ -78,7 +83,9 @@ export function layerMenuEntries(host: LayerMenuHost): ContextMenuEntry[] {
     row("delete", "Delete", <Trash2 />, "Del", true),
     ...(host.saveToLibrary
       ? (["separator", { id: "save-to-library", label: "Save to Library", icon: <BookmarkPlus />, hint: "Ctrl+Shift+S", onSelect: host.saveToLibrary }] as ContextMenuEntry[])
-      : []),
+      : host.saveToLibrarySoon
+        ? (["separator", { id: "save-to-library", label: "Save to Library", icon: <BookmarkPlus />, disabled: true, title: LIBRARY_SOON }] as ContextMenuEntry[])
+        : []),
   ];
 }
 

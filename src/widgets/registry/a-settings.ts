@@ -32,7 +32,7 @@ const MENU_LABELS: [string, string][] = [["cpu", "CPU"], ["gpu", "GPU"], ["temp"
 const showsNet = (v: ModuleSettings): boolean => splitKeys(v.items ?? MENU_ITEMS.join(",")).some((k) => k === "down" || k === "up");
 export const MENUBAR_SETTINGS: ModuleSetting[] = [
   enumSetting("items", "Items", MENU_ITEMS.join(","), opts(...MENU_LABELS), { multiple: true, group: "Items" }),
-  enumSetting("active", "Active item", "", opts(["", "None"], ...MENU_LABELS), { group: "Items", hint: "Shown selected, with its detail when the zone is tall enough: for screens nobody clicks" }),
+  enumSetting("active", "Active item", "", opts(["", "None"], ...MENU_LABELS), { group: "Items", hint: "Shown selected, with its detail when the widget is tall enough: for screens nobody clicks" }),
   enumSetting("stacked", "Label placement", "auto", opts(["auto", "Auto"], ["stacked", "Stacked"], ["inline", "Inline"]), { group: "Items" }),
   deviceSetting("Network adapter", "adapter", { group: "Network adapter", visibleIf: showsNet }),
   boolSetting("dropdown", "Detail dropdown on click", true, { group: "Interaction", tab: "behaviour" }),

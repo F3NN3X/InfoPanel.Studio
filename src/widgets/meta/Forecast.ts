@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [1, 1],
   blurb: "Multi-day forecast with highs and lows",
   tags: "weather",
-  description: "Multi-day MET/Yr forecast — horizontal in wide zones, vertical list in tall ones, with hi/lo range bars.",
+  description: "Multi-day MET/Yr forecast — horizontal when wide, a vertical list when tall, with hi/lo range bars.",
 };

@@ -10,7 +10,7 @@ A free-form editor over the imported profile. Every edit stays valid for export 
 
 The editor is **Edit** on the rail, the same view that edits a grid screen. An imported InfoPanel profile opens in it from its card in Screens. See [InfoPanel profiles in Edit](infopanel-editor) for adding items, choosing sensors and the page's settings.
 
-An InfoPanel item or element added from **Add** to a grid page goes on the page itself, among the widgets, and no longer makes a canvas zone (see [Add](studio#add)).
+An InfoPanel item or element added from **Add** to a grid page goes on the page itself, among the widgets, and doesn't make an area of its own (see [Add](studio#add)).
 
 ## Selecting and moving
 
@@ -23,15 +23,15 @@ An InfoPanel item or element added from **Add** to a grid page goes on the page 
 
 The item tree, the top item first, as on a screen's page (see [Layers](studio#layers)). Groups nest. Each row has a lock and an eye, which sets InfoPanel's Hidden flag. A Studio widget on the page is a row too, with its widget icon in the accent colour and the word *widget*; see [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
 
-## Drawing, sensors and Compare
+## Preview, sensors and Compare
 
-There is no strip above the canvas. Click an empty part of the canvas: the page's settings have a **Drawing** section with **Draw all as** (InfoPanel or Native), **Show modes** (its legend shows under the switch), **Sensors**, **Compare** and **Save to Library**. **Remap sensors** is in the same settings, above it. Undo and Redo are in the title bar. Duplicate, Group, Ungroup, the draw order and Delete are in Layers, its right-click menu, the inspector's **LAYER** buttons and the keys.
+There is no strip above the canvas. Click an empty part of the canvas: the page's settings have a **Preview** section with **Show modes** (its legend shows under the switch), **Sensors**, **Compare** and **Save to Library**. **Remap sensors** is in the same settings, above it. Undo and Redo are in the title bar. Duplicate, Group, Ungroup, the draw order and Delete are in Layers, its right-click menu, the inspector's **LAYER** buttons and the keys.
 
-On a screen made for InfoPanel too, the zoom bar under the canvas has **Studio | InfoPanel**. **InfoPanel** draws the page as it exports: every item as InfoPanel draws it, letter spacing off, and the parts the export leaves out hidden. It's a view only. **Studio** goes back.
+To see the whole page as InfoPanel draws it, use the zoom bar: on a screen made for InfoPanel too it has **Studio | InfoPanel**. **InfoPanel** draws the page as it exports: every item as InfoPanel draws it, letter spacing off, and the parts the export leaves out hidden. It's a view only. **Studio** goes back.
 
 ## InfoPanel or native, per item
 
-In the item inspector, **Draw as** switches an item between InfoPanel and Native. It lists what would be lost ("Lost while native") and which app features the widget uses. Switching back restores every original field. Position holds X, Y, W, H, rotation and flip. A gauge item has **Edit gauge…**.
+In the item inspector, **Draw as** switches an item between InfoPanel and Native. It lists what would be lost ("Lost while native") and which app features the widget uses. Switching back restores every original field. **Draw as** is the first section of the **Item** tab. The Place row above the tabs holds X, Y, W and H; rotation, flip, scale and corner radius are rows of the **Item** section. A gauge item has **Edit gauge…**.
 
 ## Sensor source
 
@@ -47,7 +47,7 @@ The item's **Sensor** button opens [Sensor remap](remap).
 
 ## Compare overlay
 
-**Compare** in the page's **Drawing** settings lays InfoPanel's own screenshot over the render, with an opacity slider and a difference blend, to check the match. The screenshot is there when you kept it on import.
+**Compare** in the page's **Preview** settings lays InfoPanel's own screenshot over the render, with an opacity slider and a difference blend, to check the match. The screenshot is there when you kept it on import.
 
 | Keys | Action |
 |---|---|
