@@ -10,7 +10,7 @@ A screen (profile) is a design for one display size. Its grid decides where zone
 
 ## Managing screens
 
-Open **Screens** from the rail, from the settings button beside the screen name in the title bar (it opens Screens on the screen you are editing), from **Manage screens…** in the screen name's list, or from a size link.
+Open **Screens** from the rail, from **Manage screens…** or **Screen settings…** (Screens on the screen you are editing) in the screen name's list, or from a size link.
 
 - Each screen is a card: a small picture of it, its name, a kind badge and a line such as `1920×550 · 3 pages · grid 12 × 6`. The badge says **Studio**, **InfoPanel** (the screen is one InfoPanel profile) or **Mixed** (both). An InfoPanel screen is drawn live; the others show a screenshot of the first page. The screenshot of the screen you are editing updates a couple of seconds after you stop editing and when you save. The others are drawn in the background the first time. Screenshots are kept in this browser only, so a new browser draws them again.
 - Click a card to select it; its details open on the right. Clicking a card doesn't change which screen your displays show. **Open** on a card (or in the panel) opens the screen in Edit, whether it is a grid or one InfoPanel profile.

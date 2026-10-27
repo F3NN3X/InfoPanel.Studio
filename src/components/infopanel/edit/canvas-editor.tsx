@@ -93,6 +93,8 @@ export interface CanvasEditorProps {
   hidden?: boolean;
   /** The screen is made for InfoPanel: the Export check pill, the badges and the On InfoPanel lines show. */
   checkOn?: boolean;
+  /** The command palette's Export check: each new value opens the check in the inspector. */
+  checkRequest?: number;
   /** Export .infopanel: the export dialog for this zone. */
   onExport?: () => void;
   /** The active profile (a dropped Library image is recorded as a copy there). */
@@ -127,7 +129,7 @@ interface PickFor {
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, initialAdd }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, initialAdd }: CanvasEditorProps) {
   const toast = useToast();
   /** A Free page (not a free area opened from a grid page) takes Studio widgets too, and its size is the screen's. */
   const freePage = !onDone && widgetHost !== undefined;
@@ -242,6 +244,15 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     setCheckOpen(true);
     layout.showInspector();
   };
+  const seenRequest = useRef(checkRequest);
+  useEffect(() => {
+    if (checkRequest === seenRequest.current) return;
+    seenRequest.current = checkRequest;
+    if (hidden || !checkOn) return;
+    editor.select([]);
+    setCheckOpen(true);
+    layout.showInspector();
+  }, [checkRequest]);
   // The Export check, live: the pill, the badges, the inspector's lines and the panel all read it.
   const check = useMemo(() => checkItems(editor.committed, isImported(editor.open.stored)), [editor.committed, editor.open.stored]);
   const checkState: ExportCheckState = useMemo(() => ({ on: checkOn, byPath: new Map(check.rows.map((r) => [r.path, r])) }), [checkOn, check]);

@@ -13,6 +13,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Skins and templates no longer drag.** They had nothing to drop on; use their buttons.
 - **A used file can't be removed.** Removing an image, video or SVG that a screen still shows keeps it and says why.
 - **Edit's title bar and page tabs.** The title bar shows the screen, its size and the page, then a tag: **Imported from InfoPanel** or **Screen** (it was in the InfoPanel canvas toolbar). The page tabs show each page's icon instead of a Grid or Free icon, and end with **Made for** and then the **Export check** pill on every page, a Free page's too, or "Studio panels only · no export check".
+- **The kiosk chip moved to the status bar.** "Kiosks show Main · rotation paused" sits next to the kiosk count and opens Live; the page tabs now hold only the tabs, **Made for** and the Export check. The settings button in the title bar is gone: **Screen settings…** is in the screen name's list. **Export check** is in the command palette (Ctrl+K) on a screen made for InfoPanel.
 - **Every part gets an Export check mark.** On a screen made for InfoPanel, every part on the canvas carries its status in its top-right corner, the parts that export as is included, and grid widgets now have marks too. Esc now closes a grid page's Export check.
 
 ### Added

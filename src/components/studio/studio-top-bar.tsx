@@ -1,6 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
-import { Download, FileInput, FileOutput, MoreHorizontal, Radio, Redo2, Search, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
+import { Download, FileInput, FileOutput, MoreHorizontal, Radio, Redo2, Search, Tv, Undo2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { isTauri } from "@/lib/desktop";
 import type { ControlKiosk, ControlState } from "@/lib/control";
@@ -26,7 +26,7 @@ interface StudioTopBarProps {
   onSelectScreen: (profileId: string, pageId: string) => void;
   /** "Manage screens…". */
   onManageScreens: () => void;
-  /** The ⚙ beside the switcher: Screens with the current screen selected (PLAN decision 24). */
+  /** The breadcrumb's "Screen settings…": Screens with the current screen selected (PLAN decision 24). */
   onScreenSettings: () => void;
   /** The Live popover (the status bar's Kiosks item opens it too). */
   liveOpen: boolean;
@@ -158,11 +158,9 @@ export function StudioTopBar(props: StudioTopBarProps) {
         pageId={pageId}
         onSelect={props.onSelectScreen}
         onManage={props.onManageScreens}
+        onScreenSettings={props.onScreenSettings}
       />
       <KindTag profile={profile} />
-      <IconButton label={`${profile.name} settings`} size={28} onClick={props.onScreenSettings}>
-        <SlidersHorizontal className="h-[15px] w-[15px]" strokeWidth={1.75} />
-      </IconButton>
       <div data-tauri-drag-region className="flex min-w-0 flex-1 justify-center">
         <button
           type="button"

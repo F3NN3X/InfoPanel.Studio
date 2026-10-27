@@ -26,10 +26,9 @@ On a phone, Screens and the views after Library are under **More**. Under 960 px
 
 ## The title bar
 
-- The settings button after the screen's tag opens **Screens** on that screen.
-- The screen name, its size and the page you're on open a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**. Which screen your displays open is set in **Settings › Dashboard › Startup screen**. See [Screens and the grid](profiles#which-screen-opens).
+- The screen name, its size and the page you're on open a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**, and **Screen settings…** opens **Screens** on the screen you are editing. Which screen your displays open is set in **Settings › Dashboard › Startup screen**. See [Screens and the grid](profiles#which-screen-opens).
 - A tag beside the screen name says what the screen is: **Imported from InfoPanel** for a profile brought in from an .infopanel file or the InfoPanel app, otherwise **Screen**.
-- The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view.
+- The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view. **Export check** is in it too, on a screen made for InfoPanel.
 - **Undo** and **Redo**, **Import**, **Export & back up** and **Save**. See [Importing and exporting](import).
 - **Live** shows how many kiosks are connected and opens the controls for them: show a page now, pause rotation, dim, mute alerts for an hour, switch the Dynamic Island and reload every kiosk. None of it is part of your design, so Save doesn't change it. **Open kiosk view** shows the kiosk in the Studio; in the desktop app it resizes the window to the screen's exact size, and moving the pointer to the top edge brings a strip with **Back to studio**, **Minimize** and **Close**.
 - Under 640 px a **⋯** menu holds Undo, Redo, Import and Export.
@@ -64,7 +63,7 @@ The setting follows you: the app window and a studio in a browser read the same 
 
 A screen can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Duplicate, Layout, Page settings and Delete. The last page can't be deleted.
 
-With two or more pages, the kiosk can rotate them. Set it up in **Screens**, under **Rotation**: turn on **Rotate pages** and type **Every** (3 to 3600 seconds; the default is 15). In **Pages · order & rotation**, switch each page in or out of the rotation and drag them into order. A touch or remote switch pauses rotation for 30 seconds. The right end of the page strip shows which page the kiosks show and how often they switch. Pause or resume rotation from **Live**.
+With two or more pages, the kiosk can rotate them. Set it up in **Screens**, under **Rotation**: turn on **Rotate pages** and type **Every** (3 to 3600 seconds; the default is 15). In **Pages · order & rotation**, switch each page in or out of the rotation and drag them into order. A touch or remote switch pauses rotation for 30 seconds. The status bar at the bottom shows which page the kiosks show and how often they switch; click it to open **Live**. Pause or resume rotation from **Live**.
 
 ## Grid or Free
 

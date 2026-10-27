@@ -31,7 +31,7 @@ interface PageTabsProps {
   onPageSettings: (id: string) => void;
   /** Layout ▸ Grid / Free (one-editor SPEC §6): switch the page; unset hides the submenu. */
   onLayout?: (id: string, layout: PageLayout) => void;
-  /** Before the kiosk chip: the screen's Made for, then the Export check pill (made for InfoPanel) or the Studio note. */
+  /** At the end of the row: the screen's Made for, then the Export check pill (made for InfoPanel) or the Studio note. */
   extra?: ReactNode;
   /** The page being renamed inline (the palette asks for this too). */
   renamingId: string | null;
@@ -41,10 +41,6 @@ interface PageTabsProps {
   onDeletingChange: (id: string | null) => void;
   /** The page the kiosk shows for this profile (the control channel); unset while offline. */
   kioskPage?: string | null;
-  /** The chip's rotation wording ("paused", "every 20 s"). */
-  rotation: string;
-  /** The chip opens Live. */
-  onOpenLive: () => void;
 }
 
 /** An interval for the chip: `30 s`, then minutes from 60 s (`1 min`, `1.5 min`). */
@@ -144,7 +140,7 @@ function DeleteDialog({
  * tab per page of the profile with its icon (click to switch, double-click to rename, drag
  * to reorder; the page the kiosk shows has a green cast icon), "+" to add one,
  * a "⋯" / right-click menu (rename, icon, duplicate, delete, page settings),
- * the screen's Made for and Export check (`extra`) and the dashed chip that says what the kiosks show and opens Live.
+ * and the screen's Made for and Export check (`extra`).
  */
 export function PageTabs({
   pages,
@@ -166,8 +162,6 @@ export function PageTabs({
   deletingId,
   onDeletingChange,
   kioskPage,
-  rotation,
-  onOpenLive,
 }: PageTabsProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -307,19 +301,6 @@ export function PageTabs({
         <Plus className="h-4 w-4" />
       </IconButton>
       {extra && <div className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">{extra}</div>}
-      <button
-        type="button"
-        onClick={onOpenLive}
-        title="Open Live control"
-        className={cn("flex h-6 min-w-0 shrink items-center gap-1.5 rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2.5 text-[11.5px] text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)]", !extra && "ml-auto")}
-      >
-        <Cast aria-hidden className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">
-          {kioskPage
-            ? `Kiosks show ${pages.find((p) => p.id === kioskPage)?.name ?? "a page"} · rotation ${rotation}`
-            : "No kiosk shows this screen"}
-        </span>
-      </button>
       {menu && <ContextMenu x={menu.x} y={menu.y} entries={menuEntries(menu.id)} onClose={() => setMenu(null)} />}
       <DeleteDialog
         page={pages.find((p) => p.id === deletingId)}
