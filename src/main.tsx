@@ -20,7 +20,8 @@ const IaPreview = lazy(() => import("@/components/studio/ia-preview"));
 const iaPreview = new URLSearchParams(window.location.search).has("ia-preview");
 // ?settings: the Settings window (PLAN decision 21), in the desktop app's Settings window or a browser tab (a lazy chunk).
 const SettingsWindow = lazy(() => import("@/settings/window"));
-const settings = new URLSearchParams(window.location.search).has("settings");
+// A tool page wins over a stray `settings=` (?widget-qa&settings= is the QA page).
+const settings = new URLSearchParams(window.location.search).has("settings") && !widgetQa;
 
 // Desktop app: forward the studio's errors and (in debug mode) sample its health, once per page load. The Settings
 // window has the App pages' own Diagnostics and Logs.

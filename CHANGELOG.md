@@ -14,7 +14,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ### Added
 
+- **A note when a newer beta exists.** On the Stable channel, Settings › Updates shows the newest beta's version when it is newer than yours and than Stable's own, with **Switch to Beta and check**. Stable still never downloads a beta.
+- **Widget QA link in Diagnostics.** Settings › Diagnostics opens the widget QA page in your browser.
 - **The Library has everything.** New collections for **Skins** and **Screen templates**, and the built-in panels and the screen templates' looks sit beside your own panels and Themes, tagged **Built-in**. A skin applies to All screens, a screen or a page, and duplicates into a Theme of your own. A screen template's **New screen from this** opens the New screen page on it. Saved panels can be renamed, duplicated and deleted in the Library, and a built-in panel duplicated into one of your own.
+
+### Fixed
+
+- **`?widget-qa&settings=` opened the Settings window** instead of the QA page.
 
 ## [1.3.0-beta.35] - 2026-10-27
 

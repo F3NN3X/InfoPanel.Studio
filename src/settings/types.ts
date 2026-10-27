@@ -116,6 +116,8 @@ export interface UpdateState {
   downloaded?: number;
   total?: number;
   error?: string;
+  /** On Stable: a beta newer than this one and than Stable's offer. */
+  newerBeta?: string;
 }
 
 export type AgentName = "claude" | "codex";

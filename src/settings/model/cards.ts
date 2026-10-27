@@ -217,6 +217,11 @@ export function updateCard(u: UpdateState, now: number): UpdateCard {
   }
 }
 
+/** The newer beta to mention on the Stable channel (the shell only reports one there), or null. */
+export function betaNotice(u: UpdateState, channel: "stable" | "beta"): string | null {
+  return channel === "stable" ? (u.newerBeta ?? null) : null;
+}
+
 /** `2h 14m`, `14m`, or seconds for the first minute. */
 export function formatUptime(ms: number): string {
   const s = Math.floor(ms / 1000);
