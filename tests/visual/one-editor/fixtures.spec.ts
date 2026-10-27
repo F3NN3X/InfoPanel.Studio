@@ -536,9 +536,10 @@ test("one-editor/screen: Add puts InfoPanel items on the page as item placements
   await openFixture(page, scratch.base, "screen");
   await page.getByRole("radio", { name: "Add" }).click();
   const sections = () => page.getByRole("listbox").locator("> section").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(await sections()).toEqual(["STUDIO WIDGETS", "INFOPANEL ITEMS", "ELEMENTS"]);
+  // Add is its own chunk: wait for it to arrive.
+  await expect.poll(sections).toEqual(["STUDIO WIDGETS", "INFOPANEL ITEMS", "ELEMENTS"]);
   await page.getByRole("radio", { name: "InfoPanel items" }).click();
-  expect(await sections()).toEqual(["INFOPANEL ITEMS", "ELEMENTS"]);
+  await expect.poll(sections).toEqual(["INFOPANEL ITEMS", "ELEMENTS"]);
   const items = page.locator('[data-testid="canvas-part"][data-kind="item"]');
   await page.getByTestId("add-tile").filter({ hasText: /^Text$/ }).click();
   await expect(items).toHaveCount(1);
