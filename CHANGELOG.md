@@ -6,6 +6,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+## [1.3.0-beta.35] - 2026-10-27
+
 ### Changed
 
 - **One editor for screens and InfoPanel profiles.** Design is now **Edit**, and it edits both: a grid screen, or an InfoPanel profile on its free canvas, with the same rail, Layers and Add tabs, page tabs and inspector. The InfoPanel item on the rail is gone. InfoPanel profiles are in **Screens** with an **InfoPanel** tag, and the filter is **All**, **Studio** and **InfoPanel**. **Import .infopanel** is in the Screens toolbar. Links that opened the InfoPanel view now open Screens on that filter. Undo covers grid and canvas edits in one history.
