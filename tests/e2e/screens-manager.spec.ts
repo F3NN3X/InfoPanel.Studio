@@ -13,7 +13,11 @@ test("Screens: create from the sample layout, rename, delete, undo", async ({ pa
   await page.locator('[aria-label="Screens"]').click();
 
   const cards = page.getByRole("list", { name: "Your screens" }).getByRole("listitem");
-  const before = await cards.count();
+  // Wait for the list to show every screen of the config before counting (the view loads lazily; counting at once
+  // could read 0 while it rendered).
+  const before = (JSON.parse(local) as { profiles: unknown[] }).profiles.length;
+  expect(before).toBeGreaterThan(0);
+  await expect(cards).toHaveCount(before);
   const saved = async () => (await fetch(`${scratch.base}/api/config`)).text();
 
   await page.getByRole("button", { name: "New" }).click();
