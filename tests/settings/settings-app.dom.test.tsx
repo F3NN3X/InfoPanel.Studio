@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settings, Status, UpdateState } from "@/settings/types";
 
 const settingsDefaults: Settings = {
@@ -106,7 +106,11 @@ describe("the settings window", () => {
     saved = { ...settingsDefaults };
     updateNow = idle;
     invoke.mockClear();
+    // The window reads the dashboard config over HTTP; with no server a fetch fails as a TypeError, without a real connection to :3000.
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))));
   });
+
+  afterEach(() => vi.unstubAllGlobals());
 
   it("saves a toggle right away and says so", async () => {
     const user = userEvent.setup({ delay: null });

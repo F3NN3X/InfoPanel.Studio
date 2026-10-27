@@ -6,6 +6,15 @@ import NewPage, { type NewChoice } from "@/components/templates/new-page";
 import { recentKey, type WizardKind } from "@/components/templates/recent-templates";
 import { readStored } from "@/lib/infopanel/import/stored";
 import { templateById } from "@/lib/infopanel/templates/catalog";
+// The page loads each kit on first use, and importing a kit is the slow part under test (about 1.5 s for the screens'
+// on a quiet PC, several times that on a loaded runner). Import both here, at collection, so no test pays for it.
+import "@/components/templates/screen-kit";
+import "@/components/infopanel/profile-kit";
+
+// The cards' pictures (a whole screen of widgets each, drawn offscreen) are not what these tests check.
+vi.mock("@/components/templates/template-shots", async (original) => ({ ...(await original<typeof import("@/components/templates/template-shots")>()), TemplateShotHost: () => null }));
+vi.mock("@/components/templates/screen-template-gallery", async (original) => ({ ...(await original<typeof import("@/components/templates/screen-template-gallery")>()), ScreenTemplateThumb: () => null }));
+vi.mock("@/components/infopanel/template-gallery", async (original) => ({ ...(await original<typeof import("@/components/infopanel/template-gallery")>()), TemplateThumb: () => null }));
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
@@ -37,7 +46,6 @@ const spies = () => ({ screen: vi.fn(), profile: vi.fn(), cancel: vi.fn() });
 async function open(start: WizardKind = "screen", initial?: NewChoice) {
   const calls = spies();
   render(<Studio start={start} initial={initial} calls={calls} />);
-  // The first import of a kit is slow under test.
   await screen.findAllByRole("radio", { name: start === "ip" ? "Graphite" : "General" }, { timeout: 10000 });
   return calls;
 }
