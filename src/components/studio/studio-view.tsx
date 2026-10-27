@@ -786,6 +786,7 @@ function StudioViewBody({
     <PreviewDataProvider>
     <StudioCanvas
       profile={profile}
+      page={storedPage}
       background={resolveBackground(config, profile)}
       appearance={appearance}
       themeScope={themeScope}
@@ -895,6 +896,7 @@ function StudioViewBody({
         leftOpen={ui.leftOpen}
         onToggleLeft={ui.toggleLeft}
         pages={storedProfile.pages}
+        grid={storedProfile}
         current={profile.pageId ?? storedProfile.pages[0].id}
         onSelect={onPageChange}
         onAdd={addPage}

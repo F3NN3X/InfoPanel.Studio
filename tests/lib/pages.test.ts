@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MonitorProfile, Placement, ProfileView } from "@/lib/layout";
+import { ITEM_ID, type MonitorProfile, type Placement, type ProfileView } from "@/lib/layout";
 import {
   MAIN_PAGE_ID,
   addPage,
@@ -16,6 +16,7 @@ import {
   removePage,
   renamePage,
   setPageIcon,
+  withZones,
   zoneCount,
 } from "@/lib/pages";
 
@@ -93,6 +94,24 @@ describe("applyView", () => {
     const cleared = applyView(p, { ...profileWithPage(p, "a"), pageTheme: undefined });
     expect(cleared.pages[0]).not.toHaveProperty("widgetTheme");
     expect(cleared).not.toHaveProperty("pageTheme");
+  });
+
+  it("keeps the page's item placements (v15), each just above the zone it was above, when the zones change", () => {
+    const item = (id: string) => zone(id, { module: ITEM_ID, item: { kind: "Text", Name: id, unknown: {} }, px: { x: 1, y: 1, w: 9, h: 9 } });
+    const p = profile();
+    const withItems = { ...p, pages: [{ ...p.pages[0], placements: [item("under"), zone("a1"), item("over-a1"), zone("a2"), item("top")] }, p.pages[1]] };
+    const view = profileWithPage(withItems, "a");
+    // The grid's view never holds them.
+    expect(view.placements.map((z) => z.id)).toEqual(["a1", "a2"]);
+    const moved = applyView(withItems, { ...view, placements: [zone("a2"), zone("a1", { colStart: 3 })] });
+    expect(moved.pages[0].placements.map((z) => z.id)).toEqual(["under", "a2", "top", "a1", "over-a1"]);
+    // A zone deleted: its items stay, above the nearest zone before it that is left.
+    const gone = applyView(withItems, { ...view, placements: [zone("a2")] });
+    expect(gone.pages[0].placements.map((z) => z.id)).toEqual(["under", "over-a1", "a2", "top"]);
+    expect(withZones(withItems.pages[0].placements, [])).toEqual([item("under"), item("over-a1"), item("top")]);
+    // No item placements: the view's list as it is.
+    const plain = [zone("x")];
+    expect(withZones(p.pages[0].placements, plain)).toBe(plain);
   });
 
   it("targets the first page when the view has no page id", () => {

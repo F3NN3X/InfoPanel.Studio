@@ -78,6 +78,8 @@ export interface TextStyle {
   underline: boolean;
   strikeout: boolean;
   glow: { radius: number; color: string; blend: string } | null;
+  /** Studio-only letter spacing in px (`$.letterSpacing`, Edit v3 SPEC §10.5); 0 = none, as InfoPanel draws. */
+  letterSpacing: number;
 }
 
 interface Base {
@@ -179,6 +181,7 @@ export function textStyle(item: Extract<DisplayItem, { Font: string }>, fontScal
     underline: item.Underline,
     strikeout: item.Strikeout,
     glow: item.GlowEnabled && item.GlowRadius > 0 ? { radius: item.GlowRadius, color: item.GlowColor, blend: item.GlowBlendMode } : null,
+    letterSpacing: (item as { letterSpacing?: number }).letterSpacing ?? 0,
   };
 }
 

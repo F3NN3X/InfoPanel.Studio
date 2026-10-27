@@ -12,7 +12,9 @@ test("Design: select, edit, save and undo", async ({ page, scratch }) => {
   await page.addInitScript((value) => localStorage.setItem("infopanel-dashboard:config:v1", value), local);
   await page.goto(`${scratch.base}/?studio=1`);
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await expect(page.locator("[data-zone-id]")).toHaveCount(7);
+  // Six zones; the seventh, a free area, is a group of InfoPanel items since v15 (Edit v3), drawn as one items layer.
+  await expect(page.locator("[data-zone-id]")).toHaveCount(6);
+  await expect(page.locator("[data-items-layer]")).toHaveCount(1);
 
   await page.locator('[data-zone-id="perf-statusbar"]').click();
   const name = page.getByLabel("Zone name");

@@ -19,7 +19,8 @@ import { islandReserve } from "@/components/island/island-model";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
-import { BLANK_MODULE, CANVAS_ID, SCROLL_ROW_H, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, SCROLL_ROW_H, type ProfilePage, type ProfileView, type Placement } from "@/lib/layout";
+import { withItemLayers } from "@/lib/page-model/items-layer";
 
 /** The Add palette's drag type (`PALETTE_DRAG` in infopanel/edit/add-palette.tsx), kept here so the palette stays lazy. */
 const PALETTE_MIME = "application/x-infopanel-kind";
@@ -76,6 +77,8 @@ const NO_ALERTS: readonly ActiveAlert[] = [];
 
 interface StudioCanvasProps {
   profile: ProfileView;
+  /** The shown page as stored: its InfoPanel items (v15 item placements) draw over the zones, not editable yet. */
+  page?: ProfilePage;
   /** The profile's resolved page background, drawn behind its grid. */
   background?: Background;
   /** The global style the zones render under (see `resolveStyle`). */
@@ -174,6 +177,7 @@ interface StudioCanvasProps {
  */
 export function StudioCanvas({
   profile,
+  page,
   background,
   appearance,
   themeScope,
@@ -471,6 +475,7 @@ export function StudioCanvas({
   const gap = profileGap(profile);
   const padding = profilePadding(profile, true);
   const islandPage = { width: profile.width, height: profile.height };
+  const itemLayers = useMemo(() => withItemLayers(profile, page, []), [profile, page]);
   const pageIsland = useMemo(() => ({ island: profile.island?.enabled ? profile.island : undefined, page: { width: profile.width, height: profile.height } }), [profile.island, profile.width, profile.height]);
   /** "Reserve space": the zones start under the island, as on the kiosk. */
   const reserve = islandReserve(profile.island, islandPage);
@@ -727,6 +732,15 @@ export function StudioCanvas({
                     </LivePlacement>
                   ))}
 
+                  {itemLayers.map((p) => (
+                    <LivePlacement key={p.id} placement={p} appearance={appearance} studio>
+                      {({ content }) => (
+                        <div data-items-layer="" className="pointer-events-none relative z-[11]" style={{ gridColumn: "1 / -1", gridRow: "1 / -1" }}>
+                          {content}
+                        </div>
+                      )}
+                    </LivePlacement>
+                  ))}
                 </div>
               </div>
             </div>

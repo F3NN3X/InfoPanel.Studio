@@ -43,12 +43,12 @@ describe("a layout switch", () => {
     act(() => result.current.flip("grid"));
     expect(page().placements.map((z) => z.id)).toEqual(["clock", "weather"]);
     act(() => result.current.history.undo());
-    expect(page().layout).toBe("free");
+    expect(isFreePage(result.current.config.profiles[0], page())).toBe(true);
     act(() => result.current.history.undo());
     expect(page()).toEqual(screenProfile.pages[0]);
     expect(result.current.history.canUndo).toBe(false);
     act(() => result.current.history.redo());
-    expect(page().layout).toBe("free");
+    expect(isFreePage(result.current.config.profiles[0], page())).toBe(true);
     expect(page().placements[0].module).toBe(CANVAS_ID);
   });
 });
@@ -96,8 +96,11 @@ describe("the page tab menu", () => {
     expect(layout).toHaveBeenCalledWith("free");
     // Without a layout action the submenu isn't offered.
     expect(pageMenuEntries(screenProfile.pages, { rename: noop, icon: noop, duplicate: noop, remove: noop, settings: noop }).some((e) => e !== "separator" && e.id === "layout")).toBe(false);
-    expect(layoutOf({ layout: "free" })).toBe("free");
-    expect(layoutOf({})).toBe("grid");
+    // Read from the page's shape (v15 keeps no flag): one canvas spanning the grid is Free, anything else Grid.
+    const canvasZone = { id: "c", module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 4, rowSpan: 3, visible: true };
+    expect(layoutOf({ cols: 4, rows: 3 }, { placements: [canvasZone] })).toBe("free");
+    expect(layoutOf({ cols: 4, rows: 3 }, { placements: [{ ...canvasZone, colSpan: 3 }] })).toBe("grid");
+    expect(layoutOf({ cols: 4, rows: 3 }, { placements: [] })).toBe("grid");
   });
 });
 

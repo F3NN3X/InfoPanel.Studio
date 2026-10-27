@@ -5,6 +5,8 @@ import { openCanvas } from "@/lib/infopanel/canvas";
 import { itemAt } from "@/lib/infopanel/editor/ops";
 import { widgetBox, widgetOf } from "@/lib/infopanel/native/widget-item";
 import { CANVAS_ID, mergeConfig } from "@/lib/layout";
+import { isFreePage } from "@/lib/free-pages";
+import { exportCheck } from "@/lib/infopanel/export-check";
 
 // The eight Edit v3 reference states the Playwright specs open: each must name a screen, page and selection that exist.
 
@@ -39,7 +41,7 @@ describe("the one-editor fixtures", () => {
   it("Neon Rig is an imported 800 x 480 Free page; the selected item exists in its canvas", () => {
     const fixture = oneEditorFixture("profile")!;
     const [neon] = fixture.config.profiles;
-    expect([neon.width, neon.height, neon.cols, neon.rows, neon.madeFor, neon.pages[0].layout]).toEqual([800, 480, 8, 5, "infopanel", "free"]);
+    expect([neon.width, neon.height, neon.cols, neon.rows, neon.madeFor, isFreePage(neon, neon.pages[0])]).toEqual([800, 480, 8, 5, "infopanel", true]);
     const zone = neon.pages[0].placements[0];
     expect(zone.module).toBe(CANVAS_ID);
     const items = openCanvas(zone.canvas!).items;
@@ -47,11 +49,20 @@ describe("the one-editor fixtures", () => {
     expect(itemAt(items, fixture.canvasSelection![0])?.Name).toBe("CPU temp");
   });
 
+  it("Neon Rig's check reads 7 as is and 1 approximated: NEON RIG's letter spacing (acceptance 24)", () => {
+    const [neon] = oneEditorFixture("profile")!.config.profiles;
+    const check = exportCheck(neon, neon.pages[0]);
+    expect(check.counts).toEqual({ ok: 7, approx: 1, pic: 0, out: 0 });
+    expect(check.rows.find((r) => r.status === "approx")).toMatchObject({ name: "NEON RIG", why: "Letter spacing (5 px) is dropped" });
+  });
+
   it("the Add state has Weather at COL 7 ROW 5 W 2 H 1's box, and Layers F nests it with the Fan gauge", () => {
     const items = (name: string) => openCanvas(oneEditorFixture(name)!.config.profiles[0].pages[0].placements[0].canvas!).items;
     const added = items("addw").at(-1)!;
     expect(widgetOf(added)?.module).toBe("Weather");
     expect(widgetBox(added)).toMatchObject({ x: 600, y: 384, w: 200, h: 96 });
+    // v15: its cells are stored, in step with the box.
+    expect(widgetOf(added)?.cell).toEqual({ col: 7, row: 5, cols: 2, rows: 1 });
     const right = items("layersF").find((i) => i.Name === "Right column");
     expect(right?.kind === "Group" && right.DisplayItems.map((i) => i.Name)).toEqual(["Fan gauge", "Weather"]);
   });

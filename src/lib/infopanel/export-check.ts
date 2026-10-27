@@ -4,7 +4,7 @@
  * disagree. A Free page (one canvas filling the screen) lists its InfoPanel items; a grid page lists each zone as
  * a Studio widget at its cell box, and the items of any free area (canvas zone) on it.
  */
-import { BLANK_MODULE, CANVAS_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "../layout.ts";
+import { BLANK_MODULE, CANVAS_ID, ITEM_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "../layout.ts";
 import { openCanvas } from "./canvas.ts";
 import { badgeOf, elementOf } from "./elements/apply.ts";
 import type { ElementSpec } from "./elements/spec.ts";
@@ -12,7 +12,7 @@ import { choicesFor, MODULE_TIERS, tierOf, type NativeChoice } from "./native/ti
 import { widgetOf, widgetRule } from "./native/widget-item.ts";
 import { freeCanvasOf } from "../screens/list.ts";
 import type { DisplayItem } from "./schema.ts";
-import type { StoredCanvas } from "./import/stored.ts";
+import { newStored, type StoredCanvas } from "./import/stored.ts";
 
 export { freeCanvasOf, madeForInfoPanel } from "../screens/list.ts";
 
@@ -41,8 +41,8 @@ export const STATUS_SHORT: Record<CheckStatus, string> = { ok: "as is", approx: 
 
 /**
  * The looks Studio draws that InfoPanel can't (§7.3), by the element setting that holds them. A set one makes its
- * item Approximated, names it in the check, and marks its field in the inspector. Letter spacing and text
- * gradients have no setting on an InfoPanel item yet, so nothing is listed for them.
+ * item Approximated, names it in the check, and marks its field in the inspector. Letter spacing sits on the item
+ * itself (`STUDIO_ONLY_ITEM_FIELDS`); text gradients have no setting yet, so nothing is listed for them.
  */
 export interface StudioOnlyField {
   /** The element type and its spec key (the inspector marks the control for it). */
@@ -78,17 +78,46 @@ export function studioOnlyOf(item: DisplayItem): { field: StudioOnlyField; value
   });
 }
 
+/** A studio-only look an InfoPanel item itself holds (its `$` record, not an element's spec), as the check words it. */
+export interface StudioOnlyItemField {
+  /** The item's field (the inspector marks the control for it). */
+  key: "letterSpacing";
+  label: string;
+  value: (item: DisplayItem) => string | null;
+}
+
+export const STUDIO_ONLY_ITEM_FIELDS: readonly StudioOnlyItemField[] = [
+  {
+    key: "letterSpacing",
+    label: "Letter spacing",
+    value: (item) => {
+      const v = (item as { letterSpacing?: number }).letterSpacing;
+      return typeof v === "number" && v !== 0 ? `${v} px` : null;
+    },
+  },
+];
+
+/** The studio-only looks an InfoPanel item holds itself (letter spacing): each set one is dropped on export. */
+export function itemLooksOf(item: DisplayItem): { field: StudioOnlyItemField; value: string }[] {
+  return STUDIO_ONLY_ITEM_FIELDS.flatMap((field) => {
+    const value = field.value(item);
+    return value === null ? [] : [{ field, value }];
+  });
+}
+
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** One item's status: a studio-only look makes it Approximated; every other item (baked elements too) exports as is. */
 export function itemRow(item: DisplayItem, path: string, imported: boolean): CheckRow {
   const name = item.Name || item.kind;
   const badge = badgeOf(item);
+  const looks = itemLooksOf(item).map(({ field, value }) => `${field.label} (${value}) is dropped`);
   if (badge?.kind === "approximated") {
     const set = studioOnlyOf(item);
     const why = set.length ? set.map(({ field, value }) => `${field.label} (${value}) ${field.fate ?? "is dropped"}`).join("; ") : sentence(badge.lost.join("; "));
-    return { path, name, kind: "item", status: "approx", why };
+    return { path, name, kind: "item", status: "approx", why: [why, ...looks].join("; ") };
   }
+  if (looks.length) return { path, name, kind: "item", status: "approx", why: looks.join("; ") };
   const why = badge ? badge.reason : imported ? "Original InfoPanel item" : `InfoPanel ${item.kind} item`;
   return { path, name, kind: "item", status: "ok", why };
 }
@@ -161,6 +190,10 @@ const checkOf = (rows: CheckRow[]): ExportCheck => ({ rows, counts: countRows(ro
 /** The check for a canvas's items (the export dialog reads its items from the stored form it opened). */
 export const checkItems = (items: readonly DisplayItem[], imported: boolean): ExportCheck => checkOf(itemRows(items, imported));
 
+let base: StoredCanvas | null = null;
+/** A canvas to read one stored item through (its schema checks), made once. */
+const itemBase = (): StoredCanvas => (base ??= newStored({ name: "", width: 1, height: 1, now: new Date(0) }));
+
 /** The Export check of one page of a screen. `nameOf` names a grid zone (the studio's widget names). */
 export function exportCheck(
   profile: Pick<MonitorProfile, "cols" | "rows">,
@@ -171,6 +204,8 @@ export function exportCheck(
   if (free) return free.canvas ? checkItems(openCanvas(free.canvas).items, isImported(free.canvas)) : checkOf([]);
   const rows = page.placements.flatMap((zone): CheckRow[] => {
     if (zone.module === BLANK_MODULE || !zone.visible) return [];
+    // An item placement (v15) exports as the item it is.
+    if (zone.module === ITEM_ID) return zone.item ? itemRows(openCanvas({ ...itemBase(), items: [zone.item] }).items, false).map((r) => ({ ...r, path: zone.id })) : [];
     if (zone.module !== CANVAS_ID) return [widgetRow(zone, nameOf(zone))];
     if (!zone.canvas) return [];
     return itemRows(openCanvas(zone.canvas).items, isImported(zone.canvas)).map((r) => ({ ...r, path: `${zone.id}:${r.path}` }));

@@ -12,15 +12,16 @@
  * and fonts. The page keeps that canvas's settings (`ProfilePage.freeCanvas`), so the next switch to Free starts from
  * them. Positions and sizes keep the screen's pixels, through the same fit the kiosk draws a canvas with.
  */
-import { CANVAS_ID, canvasTitle, uid, type DashboardConfig, type MonitorProfile, type Placement, type ProfilePage } from "./layout";
-import { cellBox, gridArea, resizedCanvas, trackOf } from "./free-pages";
-import { profileGap, type GridBox } from "./profile-grid";
+import { CANVAS_ID, ITEM_ID, canvasTitle, uid, type DashboardConfig, type MonitorProfile, type Placement, type ProfilePage } from "./layout";
+import { cellBox, gridArea, isFreePage, resizedCanvas, trackOf } from "./free-pages";
+import { profileGap, profilePadding, type GridBox } from "./profile-grid";
 import { fitScale } from "./infopanel/canvas";
 import { assetKey } from "./infopanel/assets/assets";
-import { decodeWidget, encodeItem, newStored, type AreaRecord, type StoredAsset, type StoredCanvas, type StoredFont, type StoredItem, type WidgetItem } from "./infopanel/import/stored";
+import { decodeWidget, encodeItem, newStored, type AreaRecord, type StoredCanvas, type StoredItem, type WidgetItem } from "./infopanel/import/stored";
 import { newWidgetItem } from "./infopanel/native/widget-item";
 import { defaultItem, type DisplayItem } from "./infopanel/schema";
 import { ON_INFOPANEL_KEY } from "./infopanel/export/native-choices";
+import { joinAssets, joinFonts, moved, num, obj, renameFiles, roughBox, union, withoutItems } from "./page-model/stored-items";
 
 /**
  * On the free area a switch to Grid made of loose parts: where its canvas sat on the page's canvas, so the switch
@@ -53,8 +54,6 @@ interface Frame {
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
-const obj = (v: unknown): Record<string, unknown> | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
 
 /** The fit the kiosk draws a `width`×`height` canvas with when it fills the screen's grid (CanvasZone, centred). */
 function frameOf(profile: MonitorProfile, width: number, height: number): Frame {
@@ -77,21 +76,6 @@ function fingerprint(text: string): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
 }
 
-/**
- * A stored item moved to `dx + X * k`, and when `k` isn't 1 its size and font scaled with it (pictures and gauges by
- * their Scale); a group's children too. Everything else, `$` included, is kept as it is.
- */
-function moved(item: Raw, k: number, dx: number, dy: number): Raw {
-  const out: Raw = { ...item, X: Math.round(dx + num(item.X) * k), Y: Math.round(dy + num(item.Y) * k) };
-  if (k !== 1) {
-    if (typeof item.Scale === "number") out.Scale = Math.max(1, Math.round(item.Scale * k));
-    else for (const f of ["Width", "Height"] as const) if (typeof item[f] === "number" && (item[f] as number) > 0) out[f] = Math.max(1, Math.round((item[f] as number) * k));
-    if (typeof item.FontSize === "number") out.FontSize = Math.max(1, Math.round(item.FontSize * k));
-  }
-  if (Array.isArray(item.DisplayItems)) out.DisplayItems = (item.DisplayItems as Raw[]).map((c) => moved(c, k, dx, dy));
-  return out;
-}
-
 /** Children relative to their group's corner, as text: the fingerprint's input. */
 const relative = (items: readonly Raw[], x: number, y: number) => JSON.stringify(items.map((c) => moved(c, 1, -x, -y)));
 
@@ -105,60 +89,6 @@ function usedFiles(items: readonly Raw[]): Set<string> {
     return v;
   });
   return names;
-}
-
-/** The items with each file name `names` maps renamed (FilePath and an element's `file`). */
-function renameFiles(items: readonly Raw[], names: ReadonlyMap<string, string>): Raw[] {
-  if (names.size === 0) return [...items];
-  const swap = (v: unknown): unknown => {
-    if (Array.isArray(v)) return v.map(swap);
-    const o = obj(v);
-    if (!o) return v;
-    return Object.fromEntries(
-      Object.entries(o).map(([k, x]) => {
-        if (k === "FilePath" && typeof x === "string") return [k, names.get(assetKey(x)) ?? x];
-        if (k === "file" && typeof x === "string" && typeof o.asset === "string") return [k, names.get(assetKey(x)) ?? x];
-        return [k, swap(x)];
-      }),
-    );
-  };
-  return items.map((it) => swap(it) as Raw);
-}
-
-/**
- * Files joined to a list: the same bytes keep the name already there, a name another file has gets a free one
- * (`_2` …). Returns the list and the renames the joined items need.
- */
-function joinAssets(into: readonly StoredAsset[], add: readonly StoredAsset[]): { assets: StoredAsset[]; names: Map<string, string> } {
-  const assets = [...into];
-  const names = new Map<string, string>();
-  for (const a of add) {
-    const same = assets.find((b) => b.hash === a.hash);
-    if (same) {
-      if (assetKey(same.name) !== assetKey(a.name)) names.set(assetKey(a.name), same.name);
-      continue;
-    }
-    let name = a.name;
-    const dot = a.name.lastIndexOf(".");
-    const stem = dot > 0 ? a.name.slice(0, dot) : a.name;
-    const ext = dot > 0 ? a.name.slice(dot) : "";
-    for (let n = 2; assets.some((b) => assetKey(b.name) === assetKey(name)); n++) name = `${stem}_${n}${ext}`;
-    assets.push({ ...a, name });
-    if (name !== a.name) names.set(assetKey(a.name), name);
-  }
-  return { assets, names };
-}
-
-const fontKey = (f: StoredFont) => JSON.stringify([f.request.font, f.request.style, f.request.bold, f.request.italic]);
-const joinFonts = (into: readonly StoredFont[], add: readonly StoredFont[]): StoredFont[] => {
-  const seen = new Set(into.map(fontKey));
-  return [...into, ...add.filter((f) => !seen.has(fontKey(f)) && seen.add(fontKey(f)))];
-};
-
-/** A canvas's own settings without its items (`ProfilePage.freeCanvas`, an area's record). */
-function withoutItems(canvas: StoredCanvas): Omit<StoredCanvas, "items"> {
-  const { items: _items, ...rest } = canvas;
-  return rest;
 }
 
 /** A zone's cells from a box in the grid's area: the start and span rounded to the nearest cells (at least one), or out to the cells it touches. */
@@ -179,37 +109,11 @@ function snap(profile: MonitorProfile, box: GridBox, outward = false): Cells {
 const overlaps = (a: Cells, b: Cells) =>
   a.colStart < b.colStart + b.colSpan && b.colStart < a.colStart + a.colSpan && a.rowStart < b.rowStart + b.rowSpan && b.rowStart < a.rowStart + a.rowSpan;
 
-/** About where an item draws on its canvas, before anything measured it (a text's line, a picture at its Scale, a group around its children). */
-function roughBox(item: Raw, fontScale: number): Rect {
-  const x = num(item.X);
-  const y = num(item.Y);
-  if (item.kind === "Group") {
-    const kids = (Array.isArray(item.DisplayItems) ? (item.DisplayItems as Raw[]) : []).map((c) => roughBox(c, fontScale));
-    const area = obj(obj(item.$)?.area);
-    if (area) kids.push({ x, y, w: num(area.w), h: num(area.h) });
-    return kids.length ? union(kids) : { x, y, w: 1, h: 1 };
-  }
-  const scale = typeof item.Scale === "number" && item.Scale > 0 ? item.Scale / 100 : 1;
-  const w = num(item.Width) * scale;
-  const h = num(item.Height) * scale;
-  if (w > 0 && h > 0) return { x, y, w, h };
-  const size = (typeof item.FontSize === "number" ? item.FontSize : 20) * (fontScale || 1);
-  const name = typeof item.Name === "string" ? item.Name : "";
-  const chars = item.kind === "Clock" ? 11 : item.kind === "Calendar" ? 10 : name.length || 8;
-  return { x, y, w: w > 0 ? w : chars * size * 0.55, h: h > 0 ? h : size * 1.25 };
-}
-
-function union(boxes: readonly Rect[]): Rect {
-  const x = Math.min(...boxes.map((b) => b.x));
-  const y = Math.min(...boxes.map((b) => b.y));
-  return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x, h: Math.max(...boxes.map((b) => b.y + b.h)) - y };
-}
-
 /** A canvas box (page canvas px) in the grid's area. */
 const toGridBox = (f: Frame, r: Rect): GridBox => ({ left: f.x + r.x * f.s, top: f.y + r.y * f.s, width: r.w * f.s, height: r.h * f.s });
 
 /** A zone's widget record: what it hosts, without its cells. Its export rule moves from its settings onto the record. */
-function widgetOfZone(p: Placement): WidgetItem {
+export function widgetOfZone(p: Placement): WidgetItem {
   const { [ON_INFOPANEL_KEY]: rule, ...settings } = p.settings ?? {};
   return {
     module: p.module,
@@ -259,10 +163,11 @@ function freeBase(profile: MonitorProfile, page: ProfilePage): StoredCanvas {
 
 /** Grid → Free (§6.2): every zone where the kiosk drew it, on one canvas the screen's size. `nameOf` names a widget item. */
 export function toFree(profile: MonitorProfile, page: ProfilePage, nameOf: (zone: Placement) => string = (z) => z.module): SwitchResult {
-  if (page.layout === "free") return { refused: "This page is Free already." };
+  if (isFreePage(profile, page)) return { refused: "This page is Free already." };
   if (page.placements.some((p) => p.module === CANVAS_ID && !p.canvas)) return { refused: NOT_LOADED };
   const base = freeBase(profile, page);
   const f = frameOf(profile, profile.width, profile.height);
+  const pad = profilePadding(profile, true);
   let assets = [...base.assets];
   let fonts = [...base.fonts];
   const notes: string[] = [];
@@ -270,6 +175,14 @@ export function toFree(profile: MonitorProfile, page: ProfilePage, nameOf: (zone
   for (const p of page.placements) {
     const box = cellBox(profile, p);
     const corner = { x: Math.round((box.left - f.x) / f.s), y: Math.round((box.top - f.y) / f.s) };
+    if (p.module === ITEM_ID) {
+      // An item placement (v15): the item itself, where it is on the screen (its px, or its cells' box); its files are the page's (`freeCanvas`).
+      if (!p.item) continue;
+      const at = p.px ?? { x: pad + box.left, y: pad + box.top };
+      const item = moved({ ...p.item, X: at.x, Y: at.y }, 1 / f.s, -(pad + f.x) / f.s, -(pad + f.y) / f.s);
+      items.push({ ...item, ...(p.visible ? {} : { Hidden: true }), ...(p.locked ? { IsLocked: true } : {}) });
+      continue;
+    }
     if (p.module !== CANVAS_ID || !p.canvas) {
       const host = newWidgetItem(widgetOfZone(p), { x: corner.x, y: corner.y, w: box.width / f.s, h: box.height / f.s }, nameOf(p));
       items.push(encodeItem((p.visible ? host : { ...host, Hidden: true }) as DisplayItem, () => null));
@@ -316,7 +229,7 @@ export function toFree(profile: MonitorProfile, page: ProfilePage, nameOf: (zone
   const { freeCanvas: _kept, ...rest } = page;
   const canvas: StoredCanvas = { ...base, items, assets, fonts };
   const zone: Placement = { id: uid(CANVAS_ID), module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: profile.cols, rowSpan: profile.rows, visible: true, canvas };
-  return { page: { ...rest, layout: "free", placements: [zone] }, message: ["Page is now Free. Every widget kept its place and size.", ...notes].join(" "), kept: 0 };
+  return { page: { ...rest, placements: [zone] }, message: ["Page is now Free. Every widget kept its place and size.", ...notes].join(" "), kept: 0 };
 }
 
 /** A top-level part of a Free page that can be a zone of its own: a widget item, or a Group a free area became. */
@@ -330,7 +243,7 @@ interface Block {
 /** Free → Grid (§6.3): widgets snapped to cells, what can't be a zone of its own together in one free area. */
 export function toGrid(profile: MonitorProfile, page: ProfilePage): SwitchResult {
   const [zone] = page.placements;
-  if (page.layout !== "free" || !zone) return { refused: "This page is a Grid page already." };
+  if (!isFreePage(profile, page) || !zone) return { refused: "This page is a Grid page already." };
   if (!zone.canvas) return { refused: NOT_LOADED };
   const canvas = zone.canvas;
   const f = frameOf(profile, num(canvas.profile.Width), num(canvas.profile.Height));
@@ -413,7 +326,7 @@ export function toGrid(profile: MonitorProfile, page: ProfilePage): SwitchResult
     if (b) placements.push(zoneOf(b));
   });
 
-  const { layout: _layout, ...rest } = page;
+  const rest = page;
   const snapped = placed.filter((b) => b.widget).length;
   const kept = loose.size;
   const message = `Page is now Grid. ${plural(snapped, "widget")} snapped to cells.${kept ? ` ${plural(kept, "part")} stayed together in a free area.` : ""}`;
@@ -451,7 +364,6 @@ export function newFreePage(profile: MonitorProfile, from: ProfilePage | undefin
   return {
     id: uid("page"),
     name,
-    layout: "free",
     placements: [{ id: uid(CANVAS_ID), module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: profile.cols, rowSpan: profile.rows, visible: true, canvas }],
   };
 }
@@ -466,7 +378,7 @@ export function scaleFreePages(profile: MonitorProfile, from: { width: number; h
   let changed = false;
   const pages = profile.pages.map((page) => {
     const [zone] = page.placements;
-    if (page.layout !== "free" || !zone?.canvas) return page;
+    if (!isFreePage(profile, page) || !zone?.canvas) return page;
     changed = true;
     const canvas = { ...zone.canvas, items: zone.canvas.items.map((it) => moved(it, k, 0, 0)) };
     return { ...page, placements: [{ ...zone, canvas }] };

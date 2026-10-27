@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Cast, CircleHelp, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
-import type { MonitorProfile, PageLayout, ProfilePage } from "@/lib/layout";
+import { ITEM_ID, type MonitorProfile, type PageLayout, type ProfilePage } from "@/lib/layout";
 import { SECTION_IDS, type SectionId } from "@/lib/theme-model";
 import { cn } from "@/lib/utils";
 import { sectionIconById } from "./inspector/section-icons";
@@ -107,7 +107,8 @@ function Block({ label, children, labelClassName }: { label: string; children: R
 export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp, onLayout, layoutDisabled }: PageInspectorProps) {
   const Icon = pageIcon(page.icon);
   const custom = SECTION_IDS.filter((sec) => page.widgetTheme?.follow?.[sec] === false);
-  const zones = page.placements.length;
+  // The grid's zones: a page's InfoPanel items (v15 item placements) aren't zones.
+  const zones = page.placements.filter((p) => p.module !== ITEM_ID).length;
   const pageScope = { kind: "page", pageId: page.id } as const;
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -128,7 +129,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         {onLayout && (
           <Block label="Layout">
-            <LayoutControl layout={layoutOf(page)} onChange={(to) => onLayout(page.id, to)} disabled={layoutDisabled} />
+            <LayoutControl layout={layoutOf(profile, page)} onChange={(to) => onLayout(page.id, to)} disabled={layoutDisabled} />
           </Block>
         )}
         <section className="space-y-1 border-b border-[#1c1c21] px-4 py-3">

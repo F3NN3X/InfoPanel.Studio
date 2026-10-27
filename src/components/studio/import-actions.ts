@@ -3,6 +3,7 @@ import { CANVAS_ID, SCROLL_ROW_H, newProfile, uid, type DashboardConfig, type Pl
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { withProfile } from "./profile-actions";
 import { firstFreeRect, type ZoneRect } from "./zone-geometry";
+import { cellCount } from "@/lib/page-model/migrate";
 
 /** A canvas zone holding `canvas` in `rect`. */
 function canvasZone(id: string, canvas: StoredCanvas, rect: ZoneRect): Placement {
@@ -10,8 +11,9 @@ function canvasZone(id: string, canvas: StoredCanvas, rect: ZoneRect): Placement
 }
 
 /**
- * A new profile sized like the InfoPanel one, its one canvas zone filling it (a Free page, made for InfoPanel), made the active
- * profile unless `activate` is off (the studio leaves what displays open on alone). Two columns, as profile normalization asks; the zone spans both.
+ * A new profile sized like the InfoPanel one, its one canvas zone filling it (a canvas-backed page, made for InfoPanel), made the
+ * active profile unless `activate` is off (the studio leaves what displays open on alone). Its grid has cells of about 100 px with
+ * no gap or padding (Edit v3 SPEC §3.7); the zone spans it, so every item keeps its X / Y.
  */
 export function importAsProfile(
   config: DashboardConfig,
@@ -22,13 +24,16 @@ export function importAsProfile(
 ): { config: DashboardConfig; profileId: string; zoneId: string } {
   const zoneId = uid(CANVAS_ID);
   const base = newProfile(name, Math.max(1, Math.round(size.width)), Math.max(1, Math.round(size.height)));
+  const { cols, rows } = cellCount(base);
   const profile = {
     ...base,
-    cols: 2,
-    rows: 1,
+    cols,
+    rows,
+    gap: 0,
+    padding: 0,
     fit: "fill" as const,
     madeFor: "infopanel" as const,
-    pages: base.pages.map((p, i) => (i === 0 ? { ...p, layout: "free" as const, placements: [canvasZone(zoneId, canvas, { col: 1, row: 1, cols: 2, rows: 1 })] } : p)),
+    pages: base.pages.map((p, i) => (i === 0 ? { ...p, placements: [canvasZone(zoneId, canvas, { col: 1, row: 1, cols, rows })] } : p)),
   };
   return { config: withProfile(config, profile, activate), profileId: profile.id, zoneId };
 }

@@ -6,6 +6,7 @@ import type { ControlDisplay, ControlKiosk } from "@/lib/control";
 import { resolveGeneral } from "@/lib/general";
 import { valueText } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, PageRotate, ProfileView } from "@/lib/layout";
+import { isFreePage } from "@/lib/free-pages";
 import type { PerformanceOverride } from "@/lib/performance";
 import { cn } from "@/lib/utils";
 import { FPS_OPTIONS, MOTION_OPTIONS, ROTATE_DEFAULT_SECONDS, ROTATE_MAX_SECONDS, ROTATE_MIN_SECONDS, clampSeconds } from "./inspector/behaviour-model";
@@ -154,7 +155,7 @@ export function ScreenDetail({
           updateProfile={updateProfile}
           windowSize={windowSize}
           onScaleFree={
-            stored.pages.some((pg) => pg.layout === "free")
+            stored.pages.some((pg) => isFreePage(stored, pg))
               ? (from) =>
                   void import("@/lib/page-layout").then(({ scaleFreePages }) =>
                     setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === stored.id ? scaleFreePages(p, from) : p)) })),

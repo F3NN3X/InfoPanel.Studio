@@ -530,7 +530,7 @@ Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesig
 ### Editing a canvas zone: Edit
 
 There is one editor view, Edit (rail item `design`). On a grid page it shows the grid; on a Free page
-(`isFreePage` in `lib/free-pages.ts`: the page's `layout` and its one canvas zone filling the grid) it hosts the canvas editor
+(`isFreePage` in `lib/free-pages.ts`: one canvas zone filling the grid, read from the page's shape since v15) it hosts the canvas editor
 (`src/components/infopanel/edit/canvas-editor.tsx`, lazy-loaded) in the same studio shell: the rail, the left panel
 frame (`LeftPanelFrame`, Layers and Add tabs), the page tabs and the inspector column. Double-clicking a canvas zone
 on a grid, or the canvas zone inspector's "Edit items", opens the editor on that zone; there Done or Esc (with
@@ -551,6 +551,18 @@ when it makes a free area (`studio.confirmToGrid`). `fitFreePages`, run by `appl
 the grid and sized to the screen after a resize (items kept in place; `scaleFreePages` is the Scale contents
 action), and `withFreeCanvas` makes a canvas resize in the editor resize the screen. An InfoPanel item dropped on a
 grid cell makes a free area there (`freeArea`) and opens the editor on it with the item to add (`initialAdd`).
+
+The page model (`lib/page-model/`, Edit v3 SPEC §3.4) is the one shape the editor will work on for every page: a
+`PageModel` is a tree of parts (widget, item, element) and groups, top first, each part on cells (`cell`) or placed
+freely (`px`, the screen's design px, which the grid never moves). `placements-adapter.ts` reads and writes a screen's
+page (`placements[]` order is z, `ProfilePage.groups` with each member's `groupId`), `canvas-adapter.ts` an imported
+profile's canvas (item order is z, Group items are groups, `$.cell` and `$.widget.cell` hold cells); `index.ts` picks
+the adapter by the page's shape (`readPage`, `writePage`, `applyPage`), and `model.ts` holds the ops (move, resize,
+reorder, group, ungroup, moveToGroup, lock, hide, rename, add, remove, snapToGrid, Snap items). Both adapters write a
+node nothing changed as the object it was read from, so an untouched page (and an imported profile's export) stays
+the same. Until the editor mounts one canvas on the model, a screen page's item placements (`ITEM_ID`) are kept out of
+the grid's `ProfileView` (`applyView` puts them back, `withZones`) and drawn read-only: each run of them between zones
+is one canvas spanning the grid, in its place in the z-order (`items-layer.ts`, kiosk and studio canvas).
 
 The Export check (`lib/infopanel/export-check.ts`) classifies each item and, on a screen with widgets, each widget,
 as exports as is, approximated, becomes a picture or left out, and names the studio-only looks it loses. The editor
@@ -722,7 +734,7 @@ least one widget is visible.
 
 ### Types (`src/lib/layout.ts`)
 
-- `DashboardConfig` - `version: 14` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
+- `DashboardConfig` - `version: 15` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
   `profiles`, `theme`, `radius`, `dataApiUrl?`, `stylePresets?`,
   `panelPresets?`, `sourcePrefs?`, `background?` (the page background),
   `style?` (the dashboard style, every profile), `styleEnforce?`
@@ -743,13 +755,24 @@ least one widget is visible.
   profile was made for: the v14 step sets `infopanel` on a profile whose every
   page is free, and an imported .infopanel profile gets it. Every gate reads it
   (`madeForInfoPanel`): unset or `studio` hides the Export check and its marks.
-- `ProfilePage.layout?` (`PageLayout`, v14): `"free"` marks a free page, one
-  canvas zone filling the page; `"grid"` or none is a grid page. The v14 step (`migrateProfileV14`,
-  `settings-migrate.ts`) sets it on every page that is one full-size canvas
-  zone, and an invalid value is dropped on load. `freeCanvas?` keeps a page's canvas
-  settings (profile, files, fonts, palette) while it is a grid page, for the next switch to Free.
+- `ProfilePage.layout?` was v14's Free flag; v15 drops it (a page that is one full-size canvas zone is canvas-backed,
+  read from its shape). `freeCanvas?` holds the page's InfoPanel side besides its items (profile, files, fonts,
+  palette): what its item placements' files and fonts resolve against, and what a switch to Free starts from.
+  `snapItems?` (unset = on) and `groups?` (`PageGroup`: `id`, `name`, `parentId?`, `locked?`, `hidden?`, and `from?`,
+  what the v15 step made it from) are v15's; a group whose parent is gone or makes a loop loses the parent on load.
+- `Placement` v15 fields: `item?` (an `ITEM_ID` placement's InfoPanel item or element, stored form), `px?` (placed
+  freely: screen design px; its cells then hold the cells it covers), `groupId?`, `locked?`. Hidden is `visible: false`.
+- The v15 step (`migrateProfileV15`, `lib/page-model/migrate.ts`, run in `mergeConfig` for a config before v15, each
+  conversion a line in its `log`): an InfoPanel profile (every page one canvas whose `source.origin` is a file, the
+  corpus or the installed app, or on a screen made for InfoPanel: New InfoPanel profile) is made for InfoPanel and, on
+  a fill page, gets a grid of about 100 px cells with gap and padding 0, its canvas untouched; a Free page on a Studio
+  screen whose canvas was made here becomes a normal page (widget items back on their cells, the rest item placements at the same screen pixels in a group named after the page, the canvas's
+  background a locked Shape at the bottom); a free area becomes a group of item placements, fitted and scaled as the
+  area drew them, its files joined into the page's `freeCanvas` (renamed where names clash) and its own background a
+  locked Shape. A widget a free area held goes to the nearest free cells, or overlaps once and is logged. A canvas
+  that isn't loaded (only its `canvasRef`) is left as it is.
 - A free page's canvas holds Studio widgets as items (`$.widget` on an `Image`
-  item: `module`, `settings`, `design`, `follow`, `panel`, `onInfoPanel`,
+  item: `module`, `settings`, `design`, `follow`, `panel`, `onInfoPanel`, `cell` (v15),
   `lib/infopanel/native/widget-item.ts`). The kiosk and the editor draw the
   registry widget at the item's box. An .infopanel export replaces each by its
   `onInfoPanel` rule (`native/widget-export.ts`, drawn offscreen with their

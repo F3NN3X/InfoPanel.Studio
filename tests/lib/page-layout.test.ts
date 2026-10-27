@@ -1,7 +1,7 @@
 // Grid ↔ Free (one-editor SPEC §6, acceptance 6–8): a switch keeps every widget, item, setting and binding, puts
 // each part where the kiosk drew it, and a switch back gives the page it came from.
 import { describe, expect, it } from "vitest";
-import { CANVAS_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
+import { CANVAS_ID, ITEM_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
 import { cellBox, fitFreePages, gridArea, isFreePage, withFreeCanvas } from "@/lib/free-pages";
 import { FROM_FREE_KEY, NOT_LOADED, scaleFreePages, switchLayout, toFree, toGrid, type LayoutSwitch, type SwitchResult } from "@/lib/page-layout";
 import { encodeItem, newStored, readStored, type StoredCanvas, type StoredItem } from "@/lib/infopanel/import/stored";
@@ -63,7 +63,8 @@ describe("Grid → Free", () => {
   const free = ok(toFree(profile, pageOf(profile))).page;
 
   it("makes one canvas the screen's size, filling the grid", () => {
-    expect(free.layout).toBe("free");
+    // v15 keeps no layout flag: the page's shape says it is Free.
+    expect(free).not.toHaveProperty("layout");
     expect(isFreePage(profile, free)).toBe(true);
     const canvas = free.placements[0].canvas!;
     expect(canvas.profile).toMatchObject({ Width: 1024, Height: 600, BackgroundColor: "#00000000" });
@@ -144,7 +145,8 @@ describe("Grid → Free → Grid", () => {
     expect(back.page.placements[4].canvas!.items).toEqual(orig[4].canvas!.items);
     expect(back.page.placements[4].canvas!.assets).toEqual(orig[4].canvas!.assets);
     expect(back.page.placements[4].canvas!.profile).toEqual(orig[4].canvas!.profile);
-    expect(back.page.layout).toBeUndefined();
+    expect(back.page).not.toHaveProperty("layout");
+    expect(isFreePage(free, back.page)).toBe(false);
     expect(back.message).toBe("Page is now Grid. 4 widgets snapped to cells.");
   });
 
@@ -187,7 +189,7 @@ function freeScreen(items: DisplayItem[]): MonitorProfile {
   const canvas = { ...storeItems(base, { ...profile, BackgroundColor: "#FF112233" }, items), source: { name: "Imported", origin: "file" as const, importedAt: "" } };
   return {
     id: "s2", name: "Imported", width: 1024, height: 600, cols: 4, rows: 3, fit: "fill",
-    pages: [{ id: "pg", name: "Main", layout: "free", placements: [zone("z", CANVAS_ID, 1, 1, 4, 3, { canvas })] }],
+    pages: [{ id: "pg", name: "Main", placements: [zone("z", CANVAS_ID, 1, 1, 4, 3, { canvas })] }],
   };
 }
 const profileLook = readStored(newStored({ name: "x", width: 1, height: 1 })).profile;
@@ -307,7 +309,7 @@ describe("switchLayout", () => {
     const config = { profiles: [profile, { ...profile, id: "other" }] } as unknown as Parameters<typeof switchLayout>[0];
     const r = switchLayout(config, "s1", "pg", "free");
     if ("refused" in r) throw new Error(r.refused);
-    expect(r.config.profiles[0].pages[0].layout).toBe("free");
+    expect(isFreePage(r.config.profiles[0], r.config.profiles[0].pages[0])).toBe(true);
     expect(r.config.profiles[1]).toBe(config.profiles[1]);
     expect(switchLayout(config, "s1", "nope", "free")).toEqual({ refused: "That page is gone." });
   });
@@ -322,5 +324,26 @@ describe("the area record", () => {
     const text = encodeItem(newItem("Text", profileLook), () => null);
     const bad = readStored({ ...newStored({ name: "x", width: 10, height: 10 }), items: [{ ...text, $: { area: { zone: {}, canvas: {}, w: 1, h: 1, k: 1 } } }] });
     expect(bad.issues.some((i) => i.field === "$.area")).toBe(true);
+  });
+});
+
+describe("Grid → Free with item placements (v15)", () => {
+  it("puts each item on the canvas at its screen pixels, hidden and locked kept, never as a widget", () => {
+    const profile = screen();
+    const text = encodeItem({ ...newItem("Text", profileLook), Name: "Title" } as DisplayItem, () => null);
+    const items: Placement[] = [
+      zone("t", ITEM_ID, 1, 1, 1, 1, { item: text, px: { x: 40, y: 30, w: 100, h: 20 }, locked: true }),
+      zone("h", ITEM_ID, 2, 2, 1, 1, { item: { ...text, Name: "Hidden" }, visible: false }),
+    ];
+    const page = { ...pageOf(profile), placements: [...pageOf(profile).placements, ...items] };
+    const canvasItems = itemsOf(ok(toFree(profile, page)).page);
+    const title = canvasItems.find((i) => i.Name === "Title")!;
+    // The screen's kiosk padding is 0 here and the canvas fills the grid 1:1, so screen px are canvas px.
+    expect(title).toMatchObject({ kind: "Text", X: 40, Y: 30, IsLocked: true });
+    expect(title.$?.widget).toBeUndefined();
+    const hidden = canvasItems.find((i) => i.Name === "Hidden")!;
+    expect(hidden.Hidden).toBe(true);
+    const box = cellBox(profile, items[1]);
+    expect([hidden.X, hidden.Y]).toEqual([Math.round(box.left), Math.round(box.top)]);
   });
 });

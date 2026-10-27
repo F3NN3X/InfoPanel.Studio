@@ -22,6 +22,7 @@ import { YR_FORECAST_KEY } from "./sensors";
 import { mainPage, normalizeRotate } from "./pages";
 import { normalizeAlerts, type AlertsConfig } from "./alerts";
 import { migrateLegacyZones } from "./legacy-zones";
+import { migrateProfileV15 } from "./page-model/migrate";
 import { storageCopy } from "./canvas-store";
 import { normalizeIsland, type IslandConfig } from "./island/config";
 import { normalizePerformance, type PerformanceOverride } from "./performance";
@@ -33,7 +34,7 @@ import {
   type Widget,
   type WidgetKind,
 } from "./panel-model";
-import type { StoredCanvas } from "./infopanel/import/stored.ts";
+import type { StoredCanvas, StoredItem } from "./infopanel/import/stored.ts";
 
 /**
  * Layout engine — the dashboard is a grid of *placements*. Each placement
@@ -51,6 +52,8 @@ export const PANEL_ID = "panel";
 export const BLANK_MODULE = "blank";
 /** Sentinel module id for a canvas zone: an imported InfoPanel profile (`Placement.canvas`). */
 export const CANVAS_ID = "infopanel";
+/** Sentinel module id for an InfoPanel item or studio element on a screen page (`Placement.item`, Edit v3 SPEC §3.4). */
+export const ITEM_ID = "item";
 /** A canvas zone's title: the imported profile's name (undefined for other zones). */
 export function canvasTitle(p: Pick<Placement, "module" | "canvas">): string | undefined {
   if (p.module !== CANVAS_ID) return undefined;
@@ -101,6 +104,7 @@ export interface Placement {
   colSpan: number;
   /** Number of grid rows this zone spans (height). */
   rowSpan: number;
+  /** False: hidden (Layers' eye), not drawn in the kiosk; kept on save. */
   visible: boolean;
   /** Per-instance module settings, merged over the module's defaults. */
   settings?: ModuleSettings;
@@ -123,6 +127,42 @@ export interface Placement {
    * own values stay stored, ignored). Replaces the v5 `styleMode`.
    */
   follow?: SectionFlags;
+  /**
+   * An item placement (ITEM_ID, Edit v3 SPEC §3.4, decision Q8): the InfoPanel item or studio element in its stored
+   * form (`StoredItem`, `$` records included). Its files and fonts are the page's (`ProfilePage.freeCanvas`).
+   */
+  item?: StoredItem;
+  /**
+   * Placed freely (items and elements only, never a widget): the box in the screen's design px from its top-left
+   * corner, which the grid's columns, rows, gap and padding never move. The cells then hold the cells it covers.
+   */
+  px?: PixelBox;
+  /** The page group it sits in (`ProfilePage.groups`); unset = the page's top level. */
+  groupId?: string;
+  /** Locked: the canvas doesn't move, resize or delete it. */
+  locked?: boolean;
+}
+
+/** A box in design px. */
+export interface PixelBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** A group of parts on a screen page (Edit v3 SPEC §3.5): any mix, nested by `parentId`. It has no box of its own. */
+export interface PageGroup {
+  id: string;
+  name: string;
+  parentId?: string;
+  locked?: boolean;
+  hidden?: boolean;
+  /**
+   * What the group was made from, kept as it was by the v15 migration (`page-model/migrate.ts`): an InfoPanel Group
+   * item without its children, or a free area's zone and its canvas without the items.
+   */
+  from?: Record<string, unknown>;
 }
 
 export interface ProfilePage {
@@ -137,18 +177,20 @@ export interface ProfilePage {
    */
   widgetTheme?: WidgetTheme;
   /**
-   * How the page is laid out (one-editor SPEC §3.1). Unset = "grid". A "free" page holds exactly one
-   * placement: a CANVAS_ID placement spanning the whole grid (`normalizePages` drops the flag otherwise).
-   */
-  layout?: PageLayout;
-  /**
-   * What the page's canvas held besides its items when it was last Free (its InfoPanel profile, files, fonts and
-   * palette): a switch to Grid keeps it here and a switch back to Free starts from it (`lib/page-layout.ts`).
+   * The InfoPanel side of the page besides its items (its InfoPanel profile, files, fonts and palette): what the item
+   * placements' files and fonts resolve against, and what a switch to Free starts from (`lib/page-layout.ts`).
    */
   freeCanvas?: Omit<StoredCanvas, "items">;
+  /** Items and elements snap to cells while dragging (Edit v3 SPEC §3.2). Unset = true. Widgets always snap. */
+  snapItems?: boolean;
+  /** The page's groups (§3.5); a canvas-backed page keeps its groups as the canvas's Group items. */
+  groups?: PageGroup[];
 }
 
-/** A page's layout: zones on the grid's cells, or one canvas placed in pixels. */
+/**
+ * A page's layout as the editor still offers it until Edit v3 removes the switch: zones on the grid's cells, or one
+ * canvas filling the grid (read from the page's shape, `freeCanvasOf`; v15 stores no flag).
+ */
 export type PageLayout = "grid" | "free";
 
 /** Who a screen is for (one-editor SPEC §3.2). */
@@ -262,8 +304,15 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  *     `layout: "free"`, a screen whose pages are all Free `madeFor: "infopanel"`, and a Free page's canvas can hold
  *     Studio widgets (an Image item's `$.widget`). A v13 build would draw them as empty images and drop the new
  *     fields on its next save, so the server refuses its save (`config_guard.rs`).
+ * v15: Edit v3 (`page-model/migrate.ts` `migrateProfileV15`): one kind of page. The `layout` flag goes; a Free page on a
+ *     Studio screen (its canvas made here) becomes a normal page, its widgets on cells and its items placed freely
+ *     (`Placement.item`, `px`) in a group named after the page (`ProfilePage.groups`); a free area becomes a group of
+ *     such items; an imported profile, or one made with New InfoPanel profile, keeps its canvas and gets a grid of
+ *     about 100 px cells. A canvas's items and
+ *     widgets can hold their cells (`$.cell`, `$.widget.cell`) and its text items a letter spacing (`$.letterSpacing`).
+ *     A v14 build would drop the item placements and groups on its next save, so the server refuses its save.
  */
-export const CONFIG_VERSION = 14;
+export const CONFIG_VERSION = 15;
 
 export interface DashboardConfig {
   version: typeof CONFIG_VERSION;
@@ -370,7 +419,7 @@ function normalizePlacements(
   rows: number
 ): Placement[] {
   const placements = list.map((pl) => ({
-    ...normalizePanelPlacement(pl),
+    ...normalizePartFields(normalizePanelPlacement(pl)),
     colSpan: Math.max(1, Math.min(cols, pl.colSpan ?? 1)),
   }));
   if (placements.every((pl) => pl.colStart !== undefined && pl.rowStart !== undefined)) {
@@ -425,24 +474,77 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
     const id =
       typeof page.id === "string" && page.id && !seen.has(page.id) ? page.id : uid("page");
     seen.add(id);
-    const { layout, ...rest } = page;
-    const placements = normalizePlacements(page.placements ?? [], cols, rows);
+    // v15 stores no page layout (it reads from the page's shape); a v14 flag goes.
+    const { layout: _layout, groups: rawGroups, snapItems, ...rest } = page as ProfilePage & { layout?: unknown };
+    const groups = normalizeGroups(rawGroups);
+    const known = new Set(groups.map((g) => g.id));
+    const placements = normalizePlacements(page.placements ?? [], cols, rows).map((pl) => {
+      if (pl.groupId === undefined || known.has(pl.groupId)) return pl;
+      const { groupId: _gone, ...kept } = pl;
+      return kept;
+    });
     return {
       ...rest,
       id,
       name: typeof page.name === "string" && page.name ? page.name : `Page ${i + 1}`,
       placements,
-      ...(pageLayout(layout, placements, cols, rows) ? { layout } : {}),
+      ...(groups.length ? { groups } : {}),
+      ...(snapItems === false ? { snapItems } : {}),
     };
   });
 }
 
-/** Whether a stored page layout holds: "grid" always, "free" only for one canvas spanning the grid (else it reads as grid). */
-function pageLayout(layout: unknown, placements: Placement[], cols: number, rows: number): layout is PageLayout {
-  if (layout === "grid") return true;
-  if (layout !== "free" || placements.length !== 1) return false;
-  const [only] = placements;
-  return only.module === CANVAS_ID && only.colStart === 1 && only.rowStart === 1 && only.colSpan === cols && only.rowSpan === rows;
+/** A page's stored groups: each with a unique id and a name; a parent that is gone or makes a loop is dropped. */
+function normalizeGroups(raw: unknown): PageGroup[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const groups = raw.flatMap((g): PageGroup[] => {
+    if (!g || typeof g !== "object" || typeof g.id !== "string" || !g.id || seen.has(g.id)) return [];
+    seen.add(g.id);
+    const { parentId, locked, hidden, from, ...rest } = g as PageGroup;
+    return [
+      {
+        ...rest,
+        name: typeof g.name === "string" ? g.name : "Group",
+        ...(typeof parentId === "string" && parentId ? { parentId } : {}),
+        ...(locked === true ? { locked } : {}),
+        ...(hidden === true ? { hidden } : {}),
+        ...(from && typeof from === "object" && !Array.isArray(from) ? { from } : {}),
+      },
+    ];
+  });
+  // One at a time, so a loop loses only the first parent that closes it.
+  const byId = new Map(groups.map((g) => [g.id, g]));
+  const loops = (g: PageGroup): boolean => {
+    const path = new Set([g.id]);
+    for (let at = g.parentId; at !== undefined; at = byId.get(at)?.parentId) {
+      if (path.has(at) || !byId.has(at)) return true;
+      path.add(at);
+    }
+    return false;
+  };
+  return groups.map((g) => {
+    if (g.parentId === undefined || !loops(g)) return g;
+    const { parentId: _p, ...top } = g;
+    byId.set(g.id, top);
+    return top;
+  });
+}
+
+const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+/** v15's fields on a placement, guarded: a bad one is dropped (the placement stays). */
+function normalizePartFields(pl: Placement): Placement {
+  const { px, groupId, locked, item, ...rest } = pl;
+  const box = px && typeof px === "object" && finite(px.x) && finite(px.y) && finite(px.w) && finite(px.h) && px.w > 0 && px.h > 0 ? px : undefined;
+  const stored = item && typeof item === "object" && !Array.isArray(item) && typeof item.kind === "string" ? item : undefined;
+  return {
+    ...rest,
+    ...(box ? { px: { x: box.x, y: box.y, w: box.w, h: box.h } } : {}),
+    ...(typeof groupId === "string" && groupId ? { groupId } : {}),
+    ...(locked === true ? { locked } : {}),
+    ...(stored ? { item: stored } : {}),
+  };
 }
 
 function normalizeProfile(input: StoredProfile): MonitorProfile & LegacyProfileFields {
@@ -542,10 +644,10 @@ function migrateProfileZones<P extends MonitorProfile & LegacyProfileFields>(p: 
  * widget theme, v6→v7 renames the shared keys, v7→v8 the sample widgets', v8→v9 moves a Custom
  * gauge panel widget's width (`settings-migrate.ts`; the panels' own normalisation runs it), v9→v10
  * drops the widget `preset` key, v11→v12 turns the audio widgets' single `device` into a pick, v12→v13 only stamps the version,
- * v13→v14 marks Free pages and the screens made for InfoPanel; a
- * pin to a missing profile falls back to Auto.
+ * v13→v14 marks Free pages and the screens made for InfoPanel, v14→v15 makes every page one kind
+ * (`migrateProfileV15`, a line in `log` per change it makes); a pin to a missing profile falls back to Auto.
  */
-export function mergeConfig(input: StoredConfig): DashboardConfig {
+export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfig {
   const parsed = migrateAssetUrls(input);
   const defaults = defaultConfig();
   const profiles = (
@@ -566,7 +668,8 @@ export function mergeConfig(input: StoredConfig): DashboardConfig {
     .map((p) => migrateProfileV8(p, { legacy: (parsed.version ?? 0) < 8 }))
     .map(migrateProfileV10)
     .map(migrateProfileV12)
-    .map((p) => migrateProfileV14(p, { legacy: (parsed.version ?? 0) < 14 }));
+    .map((p) => migrateProfileV14(p, { legacy: (parsed.version ?? 0) < 14 }))
+    .map((p) => migrateProfileV15(p, { legacy: (parsed.version ?? 0) < 15, log }));
   // v7: the clocks' 12 / 24 h moves from `general` into the all-profiles style (its themed `clock`).
   const v7 = migrateGeneralV7(isSettings(parsed.general) ? parsed.general : undefined, isSettings(parsed.style) ? migrateStyleV7(migrateBaseStyleV6(parsed.style)) : undefined);
   // A pin to a profile that is gone falls back to Auto.

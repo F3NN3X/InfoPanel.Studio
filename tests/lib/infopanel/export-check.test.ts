@@ -7,6 +7,7 @@ import {
   checkItems,
   exportCheck,
   freeCanvasOf,
+  itemRow,
   itemRows,
   madeForInfoPanel,
   studioOnlyOf,
@@ -23,7 +24,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog.ts";
 import { instantiate } from "@/lib/infopanel/templates/instantiate.ts";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock.ts";
-import { CANVAS_ID, type MonitorProfile, type Placement } from "@/lib/layout";
+import { CANVAS_ID, ITEM_ID, type MonitorProfile, type Placement } from "@/lib/layout";
 import { palette, profile } from "./elements/fixture.ts";
 
 const withSpec = (item: DisplayItem, patch: Partial<ElementSpec>) => applyElement({ ...item, element: { ...elementOf(item)!, ...patch } } as unknown as DisplayItem);
@@ -189,5 +190,28 @@ describe("the live check and the export dialog's report", () => {
     const report = checkItems(opened.parsed.items, opened.origin !== "new");
     expect(report).toEqual(live);
     expect(live.rows.length).toBeGreaterThan(0);
+  });
+});
+
+describe("a studio-only letter spacing (v15, acceptance 24)", () => {
+  const spaced = { ...newItem("Text", profile, palette), Name: "NEON RIG", letterSpacing: 5 } as unknown as DisplayItem;
+
+  it("makes a text item Approximated, naming the look", () => {
+    expect(itemRow(spaced, "0", true)).toMatchObject({ status: "approx", why: "Letter spacing (5 px) is dropped" });
+    expect(itemRow({ ...spaced, letterSpacing: 0 } as unknown as DisplayItem, "0", true).status).toBe("ok");
+  });
+
+  it("survives the stored form, so the live check and the export dialog read it the same", () => {
+    const read = openCanvas(canvasWith([spaced], "file")).items[0];
+    expect(itemRows([read], true)).toEqual([{ path: "0", name: "NEON RIG", kind: "item", status: "approx", why: "Letter spacing (5 px) is dropped" }]);
+  });
+
+  it("an item placement on a screen page is read as the item it is", () => {
+    const stored = canvasWith([spaced]).items[0];
+    const page = { placements: [zone("w", "Weather"), zone("t", ITEM_ID, { item: stored, px: { x: 1, y: 1, w: 10, h: 10 } }), zone("h", ITEM_ID, { item: stored, visible: false })] };
+    expect(exportCheck(screen, page).rows.map((r) => [r.path, r.kind, r.status])).toEqual([
+      ["w", "widget", "pic"],
+      ["t", "item", "approx"],
+    ]);
   });
 });

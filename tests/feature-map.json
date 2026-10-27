@@ -446,6 +446,15 @@
       "checks": ["typecheck", "unit", "build", "budgets", "e2e"]
     },
     {
+      "id": "page-model",
+      "critical": true,
+      "summary": "The Edit v3 page model: both adapters (screen placements, imported canvases), its ops, the v15 migration and how item placements draw.",
+      "paths": ["src/lib/page-model/**"],
+      "tests": ["tests/lib/page-model/**", "tests/lib/settings-migrate.v15.test.ts", "tests/lib/infopanel/export/unedited-export.test.ts"],
+      "checks": ["typecheck", "unit", "build", "budgets", "e2e", "one-editor"],
+      "note": "The migration runs in mergeConfig, so it is in the kiosk's first bundle: keep it off the renderer (budgets)."
+    },
+    {
       "id": "studio",
       "summary": "The studio: explorer, inspector, add widget, screens and their templates, theme editor, first run, shortcuts, app window chrome.",
       "paths": [

@@ -36,6 +36,7 @@ export function textCss(style: TextStyle, font: FontCss): CSSProperties {
     color: cssColor(style.color) ?? "transparent",
     textDecoration: decoration || undefined,
     fontKerning: "normal",
+    ...(style.letterSpacing ? { letterSpacing: style.letterSpacing } : {}),
   };
   if (style.glow) {
     // Skia blurs with sigma = radius; a CSS shadow's blur is 2 sigma.
