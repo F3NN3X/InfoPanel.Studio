@@ -152,14 +152,14 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
     },
   },
   profile: {
-    // CPU temp as the import placed it: X 32, Y 96, W 224 (its drawn height is the font's, so not asserted).
+    // CPU temp as the import placed it: X 32, Y 96, W 224, H 96, its stored box (what exports), not the drawn line height.
     [CHECKS.profile[4].text]: async (page) => {
       await expect(page.getByTestId("inspector-kind")).toHaveText("InfoPanel item");
       const { row, mode, boxes } = await placeRow(page);
       expect(mode).toBe("free");
       await expect(row).toContainText(/Position and size \(px\)/i);
       await expect(row).toContainText("Placed freely");
-      expect([boxes.X, boxes.Y, boxes.W]).toEqual(["32", "96", "224"]);
+      expect([boxes.X, boxes.Y, boxes.W, boxes.H]).toEqual(["32", "96", "224", "96"]);
       await expect(page.getByTestId("snap-to-grid")).toHaveText("Snap to grid");
       await expect(page.getByTestId("on-infopanel")).toContainText("On InfoPanel:");
       await shoot(page, "profile-place");
@@ -296,6 +296,7 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await altDrag(page, page.locator('[data-part-id="title"]'), 60, 40, async () => {
         await expect(page.getByTestId("alt-readout")).toHaveText(/^X \d+ {2}Y \d+ {2}W 140 {2}H 36 · free$/);
         await expect(page.locator("[data-item-parts] .border-dashed")).toHaveCount(1);
+        await shoot(page, "alt-drag");
       });
     },
     // Dropped with Alt over the CPU gauge: stored in px (data-free), moved by exactly the drag; then Alt released
@@ -674,6 +675,108 @@ test("one-editor/layersG: a click selects the group, a double-click the part", a
   await expect(layersRow(page, "CPU gauge")).toHaveAttribute("data-selected", "");
   await page.locator('[data-part-id="title"]').click();
   await expect(page.getByTestId("group-chip")).toHaveText("Overlay · group");
+});
+
+/** Tab (keyboard only) until `target` has the focus. */
+async function tabTo(page: Page, target: Locator, max = 120) {
+  for (let i = 0; i < max; i++) {
+    if (await target.evaluate((el) => el === document.activeElement)) return;
+    await page.keyboard.press("Tab");
+  }
+  throw new Error("Tab never reached the target");
+}
+
+// SPEC §19 test 28: keyboard only on Neon Rig (made for InfoPanel): add a widget, add an item, place it freely, group
+// both, open the Export check, export.
+test("one-editor/profile: keyboard only, from Add to Export", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "profile");
+  await page.keyboard.press("Escape");
+  // "/" opens Add from Layers with its search focused.
+  await page.keyboard.press("/");
+  const search = page.getByPlaceholder("Search widgets and items");
+  await expect(search).toBeFocused();
+  await page.keyboard.type("Weather");
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("inspector-kind")).toHaveText("Studio widget");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(search).not.toBeFocused();
+  await page.keyboard.press("/");
+  await expect(search).toBeFocused();
+  await page.keyboard.type("Shape");
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("inspector-kind")).toHaveText("InfoPanel item");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(search).not.toBeFocused();
+  // Alt+Arrow nudges the item 1 px: it is placed freely.
+  await page.keyboard.press("Alt+ArrowRight");
+  expect((await placeRow(page)).mode).toBe("free");
+  // Layers by its tab, then the tree: the new item is the top row and its tab stop; Shift+Down takes the widget too.
+  const layersTab = page.getByRole("radio", { name: "Layers" });
+  await tabTo(page, layersTab);
+  await page.keyboard.press("Enter");
+  const top = page.getByTestId("layers-row").first();
+  await tabTo(page, top);
+  await expect(top).toHaveAttribute("data-selected", "");
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(page.locator('[data-testid="layers-row"][data-selected]')).toHaveCount(2);
+  await page.keyboard.press("Control+g");
+  const group = page.locator('[data-testid="layers-row"][data-kind="group"]').first();
+  await expect(group).toContainText("group · 2");
+  // The Export check from the command palette, then Export .infopanel from its footer.
+  await page.keyboard.press("Control+k");
+  await page.keyboard.type("Export check");
+  await page.keyboard.press("Enter");
+  const check = page.getByTestId("export-check");
+  await expect(check).toBeVisible();
+  const exportButton = check.getByRole("button", { name: "Export .infopanel" });
+  await tabTo(page, exportButton);
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+// Decision Q10 (after phase 6): `Studio | InfoPanel` in the zoom bar on a screen made for InfoPanel too. The InfoPanel
+// view draws the page as it exports: Coding agents (left out) isn't drawn and keeps its cells; the data is unchanged.
+test("one-editor/export: the zoom bar's InfoPanel view hides what the export leaves out", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "export");
+  const view = page.getByTestId("export-view");
+  await expect(view.getByRole("radio", { name: "Studio" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator('[data-zone-id="agents"]')).toHaveCount(1);
+  await view.getByRole("radio", { name: "InfoPanel" }).click();
+  await expect(page.locator('[data-zone-id="agents"]')).toHaveCount(0);
+  await expect(page.locator("[data-zone-id]")).toHaveCount(4);
+  await shoot(page, "export-infopanel-view");
+  await view.getByRole("radio", { name: "Studio" }).click();
+  await expect(page.locator("[data-zone-id]")).toHaveCount(5);
+});
+
+// Decision Q10 (after phase 6): the slim strip over an imported canvas is gone; Draw all as, Show modes, Sensors and
+// Compare sit in the page settings, and the view toggle in the zoom bar, so both page kinds share one chrome.
+test("one-editor/profile: no strip over the canvas; its tools are in the page settings", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "profile");
+  await expect(page.getByRole("toolbar", { name: "Canvas items" })).toHaveCount(0);
+  await expect(page.getByTestId("export-view")).toBeVisible();
+  await page.keyboard.press("Escape");
+  const drawing = page.getByRole("region", { name: "Drawing" });
+  await expect(drawing.getByRole("radiogroup", { name: "Draw all as" })).toBeVisible();
+  await expect(drawing.getByRole("radiogroup", { name: "Sensors" })).toBeVisible();
+  await drawing.getByRole("switch", { name: "Show modes" }).click();
+  await expect(drawing).toContainText("Native widget");
+  await drawing.getByRole("switch", { name: "Compare" }).click();
+  await expect(drawing.getByRole("button", { name: /InfoPanel screenshot|Change screenshot/ })).toBeVisible();
+  await shoot(page, "profile-page-drawing");
+});
+
+// SPEC §7.1, acceptance 18: a locked widget is drawn but can't be moved on the canvas.
+test("one-editor/screen: a locked widget doesn't move on the canvas", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "screen");
+  await layersRow(page, "Clock").hover();
+  await page.getByRole("button", { name: "Lock Clock" }).click();
+  const clock = page.locator('[data-zone-id="clock"]');
+  const before = await clock.boundingBox();
+  await dragBy(page, clock, 0, -150);
+  expect(await clock.boundingBox()).toEqual(before);
 });
 
 for (const name of FIXTURE_NAMES) {

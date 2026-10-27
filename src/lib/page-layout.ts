@@ -12,7 +12,7 @@
  * and fonts. The page keeps that canvas's settings (`ProfilePage.freeCanvas`), so the next switch to Free starts from
  * them. Positions and sizes keep the screen's pixels, through the same fit the kiosk draws a canvas with.
  */
-import { CANVAS_ID, ITEM_ID, canvasTitle, uid, type DashboardConfig, type MonitorProfile, type Placement, type ProfilePage } from "./layout";
+import { CANVAS_ID, ITEM_ID, NOT_LOADED, canvasTitle, uid, type DashboardConfig, type MonitorProfile, type Placement, type ProfilePage } from "./layout";
 import { cellBox, gridArea, isFreePage, resizedCanvas, trackOf } from "./free-pages";
 import { profileGap, profilePadding, type GridBox } from "./profile-grid";
 import { fitScale } from "./infopanel/canvas";
@@ -41,7 +41,7 @@ export interface LayoutSwitch {
 export type SwitchResult = LayoutSwitch | { refused: string };
 
 /** Why a page with a canvas not loaded yet can't switch (SPEC §11). */
-export const NOT_LOADED = "This page's content isn't loaded yet.";
+export { NOT_LOADED };
 
 type Raw = StoredItem;
 type Rect = { x: number; y: number; w: number; h: number };

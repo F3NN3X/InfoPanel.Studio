@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { EyeOff, Plus } from "lucide-react";
-import { BLANK_MODULE, CANVAS_ID, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, canvasNotLoaded, type ProfileView, type Placement } from "@/lib/layout";
 import { profileGap, trackPitch } from "@/lib/profile-grid";
 import { hexToHsl } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -168,6 +168,8 @@ export function PlacementFrame({
 
   // Hide empty modules (and blank zones) in kiosk mode (they claim no space).
   if (!studio && (!hasData || blank)) return null;
+  /** Never moved or resized on the canvas: locked in Layers, or a canvas that isn't loaded. */
+  const fixed = placement.locked === true || canvasNotLoaded(placement);
 
   /**
    * Move: press anywhere on the frame (except controls/handles) and drag.
@@ -194,6 +196,8 @@ export function PlacementFrame({
     // preventDefault() suppresses the click event in Chromium, so the
     // frame's onClick never fires — select on the press itself.
     onSelect?.("primary");
+    // Locked (Layers' lock), or a canvas not loaded: selected, never moved on the canvas (Edit v3 SPEC §7.1, §15).
+    if (fixed) return;
     const startX = e.clientX;
     const startY = e.clientY;
     const startCol = placement.colStart;
@@ -358,7 +362,7 @@ export function PlacementFrame({
           )}
 
           {/* Resize (the studio clamps to the grid + no overlap): invisible edges, the knob at the corner */}
-          {canResize &&
+          {canResize && !fixed &&
             HANDLES.map((h) => (
               <div
                 key={h.id}

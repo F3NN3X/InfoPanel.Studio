@@ -9,7 +9,7 @@ import { useSensors } from "@/hooks/useSensors";
 import { PanelView } from "@/components/widgets/PanelView";
 import type { PanelSelection } from "@/components/widgets/panel-parts";
 import { YR_FORECAST_KEY, YR_FORECAST_PREFIX } from "@/lib/sensors";
-import { CARDS_ID, BLANK_MODULE, CANVAS_ID, PANEL_ID, canvasTitle, type Placement } from "@/lib/layout";
+import { CARDS_ID, BLANK_MODULE, CANVAS_ID, NOT_LOADED, PANEL_ID, canvasTitle, type Placement } from "@/lib/layout";
 import { storedCanvasKeys, storedCanvasWidgets, type StoredWidgetRef } from "@/lib/infopanel/canvas-keys";
 import { normalizePanelPlacement, panelLegacyLook, panelOwnSettings } from "@/lib/panel-model";
 import { lockedIn, resolveWith, type Appearance } from "@/lib/style-resolve";
@@ -18,6 +18,15 @@ import { safeRender } from "@/components/zone-error-boundary";
 const moduleById = new Map(modules.map((m) => [m.id, m]));
 // The InfoPanel renderer loads only when a canvas zone is drawn.
 const CanvasZone = lazy(() => import("@/components/infopanel/CanvasZone"));
+
+/** A widget module this build doesn't know (Edit v3 SPEC §15): a grey box; the zone stays stored as it is. */
+export function UnavailableWidget() {
+  return (
+    <div className="grid h-full w-full place-items-center rounded-lg border border-dashed border-[#55555e] bg-[#2a2a30]/70 p-2 text-center text-[11px] text-[#a1a1aa]">
+      Widget not available in this version
+    </div>
+  );
+}
 
 export interface PlacementRender {
   content: ReactNode;
@@ -115,7 +124,19 @@ export function placementContent(
   if (p.module === CANVAS_ID) {
     // Drawn as InfoPanel draws it: the dashboard style does not reach the canvas.
     const title = canvasTitle(p) ?? "InfoPanel canvas";
-    if (!p.canvas) return { content: null, hasData: false, title };
+    if (!p.canvas) {
+      // Only its `canvasRef` (the store didn't hand it over): the studio says so; the kiosk draws nothing.
+      if (!studio) return { content: null, hasData: false, title };
+      return {
+        content: (
+          <div title={NOT_LOADED} className="grid h-full w-full place-items-center p-2 text-center text-[12px] text-ui-4">
+            {NOT_LOADED}
+          </div>
+        ),
+        hasData: true,
+        title,
+      };
+    }
     return {
       content: (
         <Suspense fallback={null}>
@@ -162,7 +183,8 @@ export function placementContent(
     };
   }
   const mod = moduleById.get(p.module);
-  if (!mod) return { content: null, hasData: false, title: p.module };
+  // A widget this build doesn't have (a newer or older one saved it): kept as it is, drawn as a grey box.
+  if (!mod) return { content: <UnavailableWidget />, hasData: true, title: p.module };
   const settings = resolveWith(appearance, p.settings, p.follow, undefined, mod.settings);
   const content = safeRender(mod.title, () => mod.render(sensors, settings));
   // Only the module's own keys (a stored color it has no option for stays inert).

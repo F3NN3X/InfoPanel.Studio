@@ -52,6 +52,9 @@ export const PANEL_ID = "panel";
 export const BLANK_MODULE = "blank";
 /** Sentinel module id for a canvas zone: an imported InfoPanel profile (`Placement.canvas`). */
 export const CANVAS_ID = "infopanel";
+/** A canvas zone whose canvas isn't loaded (only its `canvasRef`): shown, never edited (Edit v3 SPEC §15). */
+export const NOT_LOADED = "This page's content isn't loaded yet.";
+export const canvasNotLoaded = (p: Pick<Placement, "module" | "canvas">): boolean => p.module === CANVAS_ID && !p.canvas;
 /** Sentinel module id for an InfoPanel item or studio element on a screen page (`Placement.item`, Edit v3 SPEC §3.4). */
 export const ITEM_ID = "item";
 /** A canvas zone's title: the imported profile's name (undefined for other zones). */

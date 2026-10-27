@@ -269,7 +269,7 @@ Then **Name**, **Size**, **Columns × rows**, **Background**, **Palette** and **
 
 ## Saving to the Library
 
-**Save to Library** in the strip above the canvas keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
+**Save to Library**, in the **Drawing** section of the page's settings, keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
 
 New profiles can start from a Library profile, and **Edit profile** in the Library opens one here. Removing an item from the Library never deletes a file that a profile on a screen still uses.
 

@@ -39,7 +39,9 @@ The status bar under the work area shows the Data API (connected, slow or unreac
 
 Shows the selected screen at its real size, scaled to fit the window. Grid lines appear while you drag. Click a zone to select it; click empty space to select nothing and see the page's settings. Right-click a zone for its menu (change widget, edit style, bind data, duplicate, hide, move to page, copy and paste style, make this the theme for…, size steps, delete) or empty canvas for **Add widget…**, **Select all**, **Zoom to fit** and **Edit theme**.
 
-The bar under the canvas toggles the left panel, the grid and rulers, zooms in and out, and has **Fit** and the resolution button.
+The bar under the canvas toggles the left panel, the grid and rulers, zooms in and out, and has **Fit** and the resolution button. On a screen made for InfoPanel too it also has **Studio | InfoPanel**: **InfoPanel** draws the page as it exports, with the parts the export leaves out hidden (they keep their cells), and **Studio** goes back. It changes only what you see.
+
+An empty page shows **Drop widgets or InfoPanel items here**, with **Add**, **Import .infopanel** and **Use sample layout**. A widget this version doesn't have, saved by a newer or older one, shows as a grey box that says **Widget not available in this version**; it's kept as it is when you save. A page whose InfoPanel content didn't load says *This page's content isn't loaded yet.* and can't be moved until it does.
 
 To move around, hold `Space` and drag, or drag with the middle mouse button, to pan the canvas at any zoom. **Fit** puts it back. `Ctrl` + mouse wheel zooms.
 
@@ -72,7 +74,7 @@ Every page works the same way. Widgets sit on the grid's cells, and InfoPanel it
 Click an empty part of the canvas, or choose **Page settings** in a tab's menu, and the inspector shows the page as **Page · {name}**:
 
 - **GRID** has **Snap items to grid**. With it on, items and elements snap to the cells and `Alt` places one freely. With it off they move to the pixel and `Alt` snaps one to the cells. Widgets always snap. Each change is one undo step.
-- **Name**, **Size** and **Columns × rows**, then **Gap**, **Theme** and **Rotation**. Columns × rows reflows everything on the cells; items placed freely keep their pixels. If a widget wouldn't fit in the new grid, the change is refused with a message naming it, for example *CPU gauge and Weather don't fit in 3 × 2. Make room first.*
+- **Name**, **Size** and **Columns × rows**, then **Gap**, **Theme** and **Rotation**. Columns × rows reflows everything on the cells; items placed freely keep their pixels. If a widget wouldn't fit in the new grid, the change is refused with a message naming it, for example *CPU gauge and Weather don't fit in 3 × 2. Make room first.* Past three widgets it counts the rest: *CPU gauge, GPU gauge, Clock and 15 more don't fit in 2 × 1.*
 - **Icon**, the sections this page sets apart from its screen's theme, **Show on kiosks now**, and **Duplicate page** and **Delete page**.
 
 The rest of the screen's settings (fit, padding, performance, the island and which displays show it) are under **Screen settings…** in the title bar's screen menu.
@@ -119,7 +121,8 @@ On a screen made for InfoPanel, each item has its Export check mark, and **Conve
 - **Recently used**, at the top, holds the last four things you added, widgets and items alike. It hides while you search or pick a chip.
 - Rest the pointer on a tile, or move to it with the arrow keys, and a card opens beside the panel after a moment: a preview, what it is, its size, and on a screen made for InfoPanel what it becomes on export. Scrolling, leaving the list or `Esc` closes it.
 - Click a tile or press `Enter` to add it. A widget takes the first free cells. An InfoPanel item or element goes in the middle of the page, on the cells, into the selected group if there is one. An item that reads a sensor asks for it next.
-- Drag a tile onto the canvas to put it where you drop it. Hold `Alt` as you drop an item to place it to the pixel.
+- Drag a tile onto the canvas to put it where you drop it. Hold `Alt` as you drop an item to place it to the pixel. A widget dropped where it has no free cells isn't added, and a message says "No free cells here."
+- `/` opens Add from anywhere in Edit and puts the cursor in its search.
 - On a screen made for InfoPanel, a message at the top of the canvas says what the new part becomes on export, with **Undo** and **Change**. **Change** opens its **On InfoPanel** setting.
 - **Panels** and **Layouts** keep their lists. On an imported InfoPanel profile **Layouts** is greyed out. A layout adds Studio panel areas, and an imported profile keeps the layout it came with from InfoPanel.
 
@@ -130,6 +133,7 @@ On a screen made for InfoPanel, each item has its Export check mark, and **Conve
 Each row has the part's icon, its name and what it is (*widget*, *item*, *element* or *group* with its count). An item placed freely has a move mark. On a screen made for InfoPanel the row also shows its Export check status. Every row ends with a lock and an eye, and a hidden row is dimmed.
 
 - Click a row to select it. `Ctrl`+click adds or removes a row and `Shift`+click selects a range. One selection can hold widgets, items and groups together, on the canvas too.
+- From the keyboard, `Tab` reaches the selected row. The up and down arrows move between rows, `Shift`+arrow selects as it goes, `Enter` or `Space` selects the row and `Ctrl+Space` adds or removes it.
 - Double-click a name, or press `F2`, to rename it. `Enter` keeps the new name and `Esc` drops it. A widget's new name shows in the inspector too.
 - Drag a row between two rows to change what is drawn on top. Drop it on the middle of a group to put it inside, on top. A line or an outline shows where it lands. Reordering never moves a part on the page.
 - On the canvas, a click on a part in a group selects the outermost group; double-click to select the part itself.

@@ -1,7 +1,7 @@
 /**
  * The inspector with nothing selected on an imported profile's page (Edit v3 SPEC §10.1): the page header, GRID with
  * Snap items to grid, then Name, Size, Columns × rows, Background, Palette and Fonts, and Remap sensors (decision
- * Q10); under them the rest of the profile's own settings, every field InfoPanel's export carries. A typed value goes
+ * Q10), how the canvas draws; under them the rest of the profile's own settings, every field InfoPanel's export carries. A typed value goes
  * through the same setter checks as an item field (`checkValue` over `PROFILE`): a refused one is shown with its
  * message and not stored. Resizing keeps every item where it is.
  */
@@ -160,6 +160,8 @@ interface ProfileSettingsProps {
   /** Remap sensors (decision Q10), and how many binding groups still need a look. */
   onRemap?: () => void;
   remapCount?: number;
+  /** How the canvas draws (Draw all as, Show modes, Sensors, Compare, Save to Library), under the page's rows. */
+  drawing?: ReactNode;
 }
 
 /** The fonts the profile's items use, as InfoPanel names them, each once. */
@@ -176,7 +178,7 @@ export function fontsOf(items: readonly DisplayItem[]): string[] {
   return [...out];
 }
 
-export function ProfileSettings({ editor, page, onRemap, remapCount = 0 }: ProfileSettingsProps) {
+export function ProfileSettings({ editor, page, onRemap, remapCount = 0, drawing }: ProfileSettingsProps) {
   const { profile } = editor.open;
   const key = (f: Field) => `canvas-profile:${editor.zone.id}:${f}`;
   const commit = (f: Field, raw: unknown): string | null => {
@@ -241,6 +243,7 @@ export function ProfileSettings({ editor, page, onRemap, remapCount = 0 }: Profi
         )}
         <p className="text-[11px] leading-snug text-ui-4">Resizing keeps every item where it is.</p>
       </section>
+      {drawing}
       {SECTIONS.map((s) => (
         <section key={s.title} aria-label={s.title} className="border-b border-ui-subtle px-4 py-3">
           <div className="mb-2 text-[12px] font-semibold text-ui-1">{s.title}</div>

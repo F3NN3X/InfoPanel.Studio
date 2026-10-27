@@ -6,7 +6,7 @@
  * Right-click opens the layer menu. The page's host (`use-page-layers.ts` on a screen's page, `canvas-layers.ts` on an imported profile's) reads the
  * page into rows and runs every change.
  */
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, ChevronsDownUp, Eye, EyeOff, Folder, FolderOpen, FolderPlus, Lock, Move, type LucideIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import type { PartKind } from "@/lib/page-model/model";
@@ -137,6 +137,22 @@ export function LayersTree({ host }: { host: LayersHost }) {
 
   const visible = rows.map((r) => r.node.id);
   const onRow = (id: string, e: MouseEvent) => host.select(id, e.shiftKey ? "range" : e.ctrlKey || e.metaKey ? "toggle" : "only", visible);
+  /** The one row Tab reaches (a roving tab stop): the primary selection when it is shown, else the top row. */
+  const tabStop = primary !== undefined && visible.includes(primary) ? primary : visible[0];
+  /** Keys on a row (the tree's own, SPEC §14 keyboard use): arrows move between rows, Shift extends the selection, Enter or Space selects, Ctrl+Space toggles. */
+  const onRowKey = (id: string, e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      const next = visible[visible.indexOf(id) + (e.key === "ArrowDown" ? 1 : -1)];
+      if (next === undefined) return;
+      listRef.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(next)}"]`)?.focus();
+      if (e.shiftKey) host.select(next, "range", visible);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      host.select(id, e.key === " " && (e.ctrlKey || e.metaKey) ? "toggle" : "only", visible);
+    }
+  };
   const clear = () => {
     setDrop(null);
     setWhy(null);
@@ -214,7 +230,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
             <div
               key={node.id}
               role="treeitem"
-              tabIndex={-1}
+              tabIndex={node.id === tabStop ? 0 : -1}
               aria-selected={isSelected}
               aria-level={depth + 1}
               aria-expanded={group ? open : undefined}
@@ -244,12 +260,7 @@ export function LayersTree({ host }: { host: LayersHost }) {
               // Shift+click would extend a text selection over the rows.
               onMouseDown={(e) => e.shiftKey && e.preventDefault()}
               onClick={(e) => onRow(node.id, e)}
-              onKeyDown={(e) => {
-                if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-                  e.preventDefault();
-                  host.select(node.id, "only", visible);
-                }
-              }}
+              onKeyDown={(e) => onRowKey(node.id, e)}
               onContextMenu={(e) => {
                 e.preventDefault();
                 if (!isSelected) host.select(node.id, "only", visible);
