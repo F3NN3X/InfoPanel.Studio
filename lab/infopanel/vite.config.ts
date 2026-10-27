@@ -11,10 +11,15 @@ import { fontProxy } from "./font-proxy-plugin.ts";
 import { gaugeLibrary } from "./gauge-library-plugin.ts";
 import { infopanelData } from "./local-data-plugin.ts";
 
-export default defineConfig({
+// `npm run lab:build` builds the page as dist/lab/, which ips-server serves at /lab/ in debug mode only. The dev-server
+// plugins below (corpus, installed profiles, gauge library, asset store, font proxy) are dev-only: the built page works
+// on the files the user opens.
+export default defineConfig(({ command }) => ({
   root: __dirname,
+  base: command === "build" ? "./" : "/",
   plugins: [react(), tailwindcss(), infopanelData(), gaugeLibrary(path.join(__dirname, "gauges")), fontProxy(path.join(__dirname, "fonts")), assetStore(path.join(__dirname, "asset-store"))],
   resolve: { alias: { "@": path.resolve(__dirname, "../../src") } },
+  build: { outDir: path.resolve(__dirname, "../../dist/lab"), emptyOutDir: true },
   server: { port: 5174, strictPort: true },
   test: { include: ["src/**/*.test.{ts,tsx}"] },
-});
+}));

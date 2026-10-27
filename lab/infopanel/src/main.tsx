@@ -220,6 +220,8 @@ function Lab() {
   const [screenshot, setScreenshot] = useState<string | null>(null);
 
   useEffect(() => {
+    // The built page (served by the app at /lab/) has no corpus or installed-profile endpoints: only the dev server does.
+    if (import.meta.env.PROD) return;
     fetch("/corpus/index.json")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setCorpus, (e: Error) => setError(`No corpus (${e.message}). Run npm run lab:extract.`));
