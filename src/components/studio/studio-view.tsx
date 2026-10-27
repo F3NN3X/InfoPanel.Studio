@@ -97,6 +97,7 @@ import { findCanvasUse } from "@/lib/my-library/canvas-use";
 import { applyThemeAt } from "@/lib/appearance-preset-apply";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
+import type { FixtureStart } from "@/dev/fixtures/types";
 
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
 const NO_REQUEST: ExportRequest = {};
@@ -149,6 +150,8 @@ interface StudioViewProps {
   firstRun: boolean;
   /** Filled with the history's `adopt` while the view is open: how a Settings change gets in without ending the undo history. */
   adoptRef: MutableRefObject<AdoptChange | null>;
+  /** A dev fixture's start (src/dev/fixtures): Edit opens on it with its selection and left tab. */
+  fixture?: FixtureStart;
 }
 
 /**
@@ -184,6 +187,7 @@ function StudioViewBody({
   offline,
   firstRun,
   adoptRef,
+  fixture,
 }: StudioViewProps) {
   const history = useConfigHistory(config, setConfigState);
   useEffect(() => {
@@ -229,6 +233,16 @@ function StudioViewBody({
   };
   const sel = useStudioSelection(profile);
   const { selected, selectedWidget, selectedWidgetId } = sel;
+  // A fixture opens Edit on its tab and selection, once (the Studio otherwise opens on Screens).
+  const fixtureStart = useRef(fixture);
+  useEffect(() => {
+    const start = fixtureStart.current;
+    if (!start) return;
+    ui.setMode("design");
+    ui.setLeftTab(start.leftTab);
+    for (const id of start.selection) sel.select(id, "toggle");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useInspectorFollowsSelection(ui, sel.primaryId, selectedWidgetId);
   const edit = useStudioMutations({
     config,
@@ -355,7 +369,7 @@ function StudioViewBody({
     ui.setMode("design");
   };
   /** Items the editor opens with selected (the Library's "uses"). */
-  const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(undefined);
+  const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(fixture?.canvasSelection);
   const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
   useEffect(() => {
     // Leaving the page keeps the area open (the rail brings it back); the zone going closes it. Only if it is

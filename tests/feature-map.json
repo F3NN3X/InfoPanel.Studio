@@ -46,6 +46,14 @@
       "needs": ["build", "server-bin"],
       "when": "the Playwright specs: real browser, real server, scratch data"
     },
+    "one-editor": {
+      "cmd": "npx playwright test --project=one-editor {tests}",
+      "fullCmd": "npm run test:one-editor",
+      "tests": ["tests/visual/one-editor/*.spec.ts"],
+      "emptyMeansAll": true,
+      "needs": ["server-bin"],
+      "when": "the Edit v3 reference states (?fixture=one-editor/<name>, a fixtures build the project makes itself); their checklists run as the phases enable them"
+    },
     "cargo-server": {
       "cmd": "cargo test -p ips-server -p ips-agent && cargo clippy -p ips-server -p ips-agent --all-targets -- -D warnings",
       "cwd": "src-tauri",
@@ -559,6 +567,13 @@
       ],
       "tests": ["tests/e2e/fixtures.ts", "tests/fixtures/perf/**"],
       "checks": ["typecheck", "e2e"]
+    },
+    {
+      "id": "dev-fixtures",
+      "summary": "The Edit v3 dev fixtures (?fixture=one-editor/<name>, dev and fixtures builds only) and the Playwright specs that open them.",
+      "paths": ["src/dev/**"],
+      "tests": ["tests/dev/**", "tests/visual/one-editor/**"],
+      "checks": ["typecheck", "one-editor"]
     },
     {
       "id": "budgets",

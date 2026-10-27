@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:server": "node tools/parity/test-native.mjs",
     "test:e2e": "playwright test --project=e2e",
+    "test:one-editor": "playwright test --project=one-editor",
     "perf:kiosk": "playwright test --project=perf-kiosk --workers=1",
     "perf:studio": "playwright test --project=perf-studio --workers=1",
     "perf:all": "npm run build && npm run desktop:settings && playwright test --project=perf-kiosk --project=perf-studio --workers=1 && node tools/perf/bundle-report.mjs && node tools/perf/disk-report.mjs",
@@ -34,7 +35,8 @@
     "lab:fonts": "node lab/infopanel/scripts/fonts.mjs",
     "lab:font-get": "node lab/infopanel/scripts/font-get.mjs",
     "audit:views": "vitest run --config tools/audit/vitest.config.ts",
-    "build:stats": "vite build --mode stats"
+    "build:stats": "vite build --mode stats",
+    "build:fixtures": "vite build --mode fixtures"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

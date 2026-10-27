@@ -30,6 +30,10 @@ Add a test when a change touches one of those or fixes a regression. Don't test 
   which makes Windows Firewall prompt for every new `ips-server` build path, so it runs in CI and locally only with
   `VERIFY_LAN=1`. Perf specs (`tests/perf/`, `tests/desktop/`) measure and never gate.
 
+The Edit v3 fixtures (`?fixture=one-editor/<name>`, `src/dev/fixtures`) open the reference's eight states in dev builds and in
+`vite build --mode fixtures`, never in a release build. `tests/visual/one-editor/` opens each in Edit (`npm run test:one-editor`, the
+`one-editor` check); each reference checklist line is a skipped test naming the phase that enables it, and that phase turns it on.
+
 ## The InfoPanel export check
 
 `import-check` (`node lab/infopanel/scripts/import-check.mts`) hands our `.infopanel` exports to InfoPanel's own

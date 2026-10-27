@@ -18,6 +18,11 @@ const vizGallery = new URLSearchParams(window.location.search).has("viz-gallery"
 // ?ia-preview: the settings IA's chips, LinkRow and status bar in every state (a lazy chunk, never linked).
 const IaPreview = lazy(() => import("@/components/studio/ia-preview"));
 const iaPreview = new URLSearchParams(window.location.search).has("ia-preview");
+// ?fixture=one-editor/<name>: the Edit v3 reference states (src/dev/fixtures). Dev and `vite build --mode fixtures`
+// only; the condition is static, so a release build drops the chunk and the fixture data.
+const DevFixtures =
+  import.meta.env.DEV || import.meta.env.VITE_DEV_FIXTURES === "1" ? lazy(() => import("@/dev/fixtures/host")) : null;
+const devFixture = DevFixtures !== null && new URLSearchParams(window.location.search).has("fixture");
 // ?settings: the Settings window (PLAN decision 21), in the desktop app's Settings window or a browser tab (a lazy chunk).
 const SettingsWindow = lazy(() => import("@/settings/window"));
 // A tool page wins over a stray `settings=` (?widget-qa&settings= is the QA page).
@@ -48,6 +53,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     ) : vizGallery ? (
       <Suspense fallback={null}>
         <VizGallery />
+      </Suspense>
+    ) : DevFixtures && devFixture ? (
+      <Suspense fallback={null}>
+        <DevFixtures />
       </Suspense>
     ) : iaPreview ? (
       <Suspense fallback={null}>
