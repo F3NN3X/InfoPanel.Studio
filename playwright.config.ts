@@ -17,6 +17,21 @@ export default defineConfig({
       use: { browserName: "chromium", headless: true },
     },
     {
+      // Builds the fixtures build the one-editor specs serve.
+      name: "one-editor-build",
+      testDir: "tests/visual/one-editor",
+      testMatch: "build.setup.ts",
+    },
+    {
+      // The Edit v3 fixtures (src/dev/fixtures) on the fixtures build: npm run test:one-editor.
+      name: "one-editor",
+      testDir: "tests/visual/one-editor",
+      testMatch: "*.spec.ts",
+      dependencies: ["one-editor-build"],
+      timeout: 30_000,
+      use: { browserName: "chromium", headless: true },
+    },
+    {
       name: "perf-kiosk",
       testDir: "tests/perf",
       testMatch: ["kiosk-*.perf.ts", "server-*.perf.ts"],

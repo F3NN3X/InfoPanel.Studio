@@ -197,6 +197,8 @@ jobs:
           done
           exit 1
       - run: npm run test:e2e
+      # The Edit v3 fixtures (src/dev/fixtures); the project builds its own fixtures build.
+      - run: npm run test:one-editor
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

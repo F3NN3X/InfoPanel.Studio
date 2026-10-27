@@ -24,6 +24,7 @@ From `package.json`:
 | `npm run perf:all` | build, perf specs, bundle and disk reports | A full perf run; `PERF_LABEL` names it |
 | `npm run perf:compare <A> <B>` | `node tools/perf/compare.mjs` | Markdown table of two runs |
 | `npm run perf:budgets` | `node tools/perf/check-budgets.mjs` | The deterministic bundle budgets (CI) |
+| `npm run test:one-editor` | `playwright test --project=one-editor` | The Edit v3 reference states: opens each `?fixture=one-editor/<name>` (`src/dev/fixtures`) on a scratch server, after building `.cache/dist-fixtures` itself (`vite build --mode fixtures`, also `npm run build:fixtures`). Release builds leave the fixtures out |
 | `npm run build:stats` | `vite build --mode stats` | An unminified build in `.cache/dist-stats` with the ticker's debug stats (`window.__tickerStats()`); serve it with `DASHBOARD_DIST` |
 | `npm run lint` | `biome lint` | Lints with Biome (`biome.json`: the recommended rules, minus the ones this codebase deliberately does differently; the formatter is off). CI runs `npx biome ci` |
 | `npm start` | `node tools/start.mjs` | Builds `dist/` when it is missing, then runs `cargo run --release -p ips-server` (Rust stable needed): serves `dist/` and the config endpoints |
@@ -202,6 +203,7 @@ should pass.
 | Project | Specs | Runs |
 |---|---|---|
 | `e2e` | `tests/e2e/*.spec.ts`: kiosk render (incl. the gauge icon), live config update, control page switch, studio edit/save/undo, image-proxy rules, request guard, kiosk request budget, the visualiser after a hide and remount, the studio in a browser tab, cross-origin writes refused, the frozen Design preview | `npm run test:e2e`, in CI |
+| `one-editor` | `tests/visual/one-editor/*.spec.ts`: each Edit v3 fixture opens in Edit; its reference checklist is skipped until the phase that builds it | `npm run test:one-editor`, in CI |
 | `perf-kiosk`, `perf-studio` | `tests/perf/*.perf.ts`: `kiosk-idle`, `server-idle`, `studio-idle`, `studio-hot-cold`, `studio-unfocused`, `studio-frozen` | `npm run perf:kiosk` / `perf:studio`, report only |
 | `desktop` | `tests/desktop/*.desktop.ts`: the debug build over CDP (`tray-close-releases-webview`, `studio-idle-webview2`, `studio-unfocused-webview2`, `studio-in-browser`, `server-soak`) | Windows, by hand: see [desktop/README.md](desktop/README.md#testing-without-touching-the-live-setup) |
 

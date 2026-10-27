@@ -30,6 +30,7 @@ import { useStudioFocusThrottle } from "@/lib/studio-focus";
 import { wakeTicker } from "@/lib/ticker";
 import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush, openKioskPopup } from "@/lib/desktop";
 import { KioskStrip } from "@/components/kiosk-strip";
+import type { Fixture } from "@/dev/fixtures/types";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
 import { trackEventSource } from "@/lib/sensor-store";
 import type { AdoptChange } from "@/hooks/use-config-history";
@@ -98,7 +99,12 @@ const StudioView = lazy(() =>
   import("@/components/studio/studio-view").then((m) => ({ default: m.StudioView }))
 );
 
-export default function App() {
+interface AppProps {
+  /** A dev fixture (`?fixture=`, src/dev/fixtures): its config replaces the saved one, nothing is read from or saved to the server. */
+  fixture?: Fixture;
+}
+
+export default function App({ fixture }: AppProps = {}) {
 
   // Kiosk mode (?kiosk=1, e.g. an InfoPanel web page profile): display
   // only — no header, no studio chrome, and the layout comes from the
@@ -109,7 +115,7 @@ export default function App() {
   );
 
   const [config, setConfig] = useState<DashboardConfig>(() => {
-    const loaded = loadConfig();
+    const loaded = fixture?.config ?? loadConfig();
     setApiBase(loaded.dataApiUrl); // before the first sensor connection
     return withPinnedProfile(loaded);
   });
@@ -119,7 +125,7 @@ export default function App() {
   const [freshBrowser] = useState(() => !hasStoredConfig());
   const [serverEmpty, setServerEmpty] = useState(false);
   const [studio, setStudio] = useState(
-    () => new URLSearchParams(window.location.search).has("studio")
+    () => fixture !== undefined || new URLSearchParams(window.location.search).has("studio")
   );
   // The studio slows down a minute after it loses focus; a kiosk never does.
   useStudioFocusThrottle(studio && !kiosk);
@@ -129,7 +135,7 @@ export default function App() {
   }));
 
   // The page the studio edits (view state); the kiosk shows the pinned one.
-  const [studioPage, setStudioPage] = useState(pagePin);
+  const [studioPage, setStudioPage] = useState(fixture?.route.pageId ?? pagePin);
   // Kiosk: the control channel decides the profile (unless ?profile= pins one)
   // and the page. The stream also tells the server which profile this kiosk shows.
   const [shownId, setShownId] = useState<string>();
@@ -141,7 +147,7 @@ export default function App() {
   useEffect(() => setOptimistic(null), [control]);
   // Studio only: the profile selected in the Profiles panel, which the studio edits (view state, never in the
   // config; stored as the old "pin"). Displays follow `config.activeProfile`; an unknown selection is ignored.
-  const [pin, setPin] = useState(readPin);
+  const [pin, setPin] = useState(() => fixture?.route.profileId ?? readPin());
   const pinnedId = pin && config.profiles.some((p) => p.id === pin) ? pin : undefined;
   const pinProfile = useCallback((id: string | undefined) => {
     setPin(id);
@@ -255,14 +261,14 @@ export default function App() {
   };
 
   // Persist the config (layout, profiles, theme) on every change.
-  useEffect(() => saveConfig(config), [config]);
+  useEffect(() => (fixture ? undefined : saveConfig(config)), [config, fixture]);
 
   // Editing pages start from the server's copy: until it has been read, this
   // page's own storage (or the defaults, in a fresh browser) must not be
   // pushed over it. If the server can't be read, only Save pushes.
   const [synced, setSynced] = useState(false);
   useEffect(() => {
-    if (kiosk) return;
+    if (kiosk || fixture) return;
     let alive = true;
     fetchConfig()
       .then((server) => {
@@ -284,7 +290,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [kiosk]);
+  }, [kiosk, fixture]);
   // Once the server's copy is read, a selection of a profile that is not in it is dropped.
   useEffect(() => {
     if (synced && pin && !pinnedId) pinProfile(undefined);
@@ -503,6 +509,7 @@ export default function App() {
   // config event stream.
   // Resolves to whether the server took it, so the button only says "Saved" when it did.
   const handleStudioSave = useCallback((cfg: DashboardConfig) => {
+    if (fixture) return Promise.resolve(false); // a fixture never reaches the saved config
     saveConfig(cfg); // local copy first (offline fallback)
     return pushConfig(cfg)
       .then(() => {
@@ -518,7 +525,7 @@ export default function App() {
         if (isRemoteEditRefusal(err)) setReadOnly(true);
         return false;
       }); // Server offline — kiosk pages keep their last copy; the dot stays.
-  }, []);
+  }, [fixture]);
 
   // Desktop shell: before it hides or quits it asks for the same flush as Save, and waits for flush_done.
   useEffect(() => {
@@ -637,6 +644,7 @@ export default function App() {
             offline={offline}
             firstRun={freshBrowser && serverEmpty}
             adoptRef={studioAdopt}
+            fixture={fixture}
           />
         </Suspense>
       </PerformanceProvider>

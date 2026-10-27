@@ -32,8 +32,12 @@ export default defineConfig(({ mode }) => ({
     },
   },
   ...(mode === "stats" ? { define: { "import.meta.env.VITE_TICKER_STATS": JSON.stringify("1") } } : {}),
+  // `vite build --mode fixtures` (npm run build:fixtures): a build in .cache/dist-fixtures that serves
+  // ?fixture=one-editor/<name> (src/dev/fixtures) for the Edit v3 specs; release builds leave the fixtures out.
+  ...(mode === "fixtures" ? { define: { "import.meta.env.VITE_DEV_FIXTURES": JSON.stringify("1") } } : {}),
   build: {
     ...(mode === "stats" ? { outDir: ".cache/dist-stats", emptyOutDir: true, minify: false } : {}),
+    ...(mode === "fixtures" ? { outDir: ".cache/dist-fixtures", emptyOutDir: true } : {}),
     // dist/.vite/manifest.json, read by tools/perf/bundle-report.mjs (the server never serves dot folders).
     manifest: true,
     // The studio, and the Help page its rail opens in a browser tab (served as /help.html).
