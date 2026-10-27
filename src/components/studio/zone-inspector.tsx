@@ -31,7 +31,6 @@ import {
 } from "./inspector-model";
 import type { InspectorTab } from "@/modules/types";
 import { usePanelSheet } from "./panel-sheet";
-import { ToggleRow } from "./setting-rows";
 import type { FieldsApi } from "./settings-panel";
 import { makeTheme, makeThemeSections } from "./inheritance-actions";
 import { LinkRow } from "./link-row";
@@ -304,8 +303,6 @@ export function ZoneInspector({
     switch (e.kind) {
       case "widgetPicker":
         return { at: "top", node: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
-      case "visible":
-        return { at: "bottom", node: <ToggleRow label="Visible" hint="The eye in Layers: a hidden widget isn't drawn in Edit, Preview or the kiosk" value={zone.visible} onChange={onToggleVisible} /> };
       case "zoneFrame":
         // A panel draws its own card (Surface): no frame background around it.
         return { at: "more", node: frameFields(!zone.panel) };

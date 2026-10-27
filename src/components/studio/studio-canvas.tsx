@@ -560,7 +560,8 @@ export function StudioCanvas({
 
   return (
     <PageIslandProvider value={pageIsland}>
-    <div className="relative flex min-h-0 flex-1 flex-col bg-ui-app">
+    {/* The app's toasts sit at its top centre (data-toast-anchor). */}
+    <div data-toast-anchor="" className="relative flex min-h-0 flex-1 flex-col bg-ui-app">
       <div
         className="relative min-h-0 flex-1"
         // On the wrapper, not the scroller: the cards over the canvas are drop targets too.

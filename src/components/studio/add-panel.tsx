@@ -78,15 +78,20 @@ export interface AddPanelProps {
 }
 
 /** How far the chip row fades at an edge with more chips past it. */
-const FADE_PX = 24;
+const FADE_PX = 44;
+/** How far a press moves before it drags the chip row rather than clicking a chip. */
+const DRAG_PX = 4;
 
 /**
- * The category chips: one row that scrolls sideways (the wheel scrolls it too), fading at an edge with more chips past
- * it, so a cut-off chip reads as "more this way" (sign-off round 1).
+ * The category chips: one row that scrolls sideways (the wheel, a drag, and a chip reached by Tab scroll it), fading at
+ * an edge with more chips past it, so a cut-off chip reads as "more this way" (sign-off rounds 1 and 3).
  */
 function ChipRow({ chips, children }: { chips: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ start: false, end: false });
+  // A mouse press: where it started, and whether it has become a drag (the click that ends it then picks no chip).
+  const press = useRef<{ x: number; left: number; dragged: boolean } | null>(null);
+  const dragged = useRef(false);
   const measure = () => {
     const el = ref.current;
     if (!el) return;
@@ -110,6 +115,29 @@ function ChipRow({ chips, children }: { chips: string; children: ReactNode }) {
       onWheel={(e) => {
         const el = ref.current;
         if (el && Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY;
+      }}
+      onPointerDown={(e) => {
+        if (e.pointerType !== "mouse" || e.button !== 0 || !ref.current) return;
+        press.current = { x: e.clientX, left: ref.current.scrollLeft, dragged: false };
+        dragged.current = false;
+      }}
+      onPointerMove={(e) => {
+        const p = press.current;
+        const el = ref.current;
+        if (!p || !el || (e.buttons & 1) === 0) return;
+        if (!p.dragged && Math.abs(e.clientX - p.x) < DRAG_PX) return;
+        p.dragged = true;
+        el.scrollLeft = p.left - (e.clientX - p.x);
+      }}
+      onPointerUp={() => {
+        dragged.current = press.current?.dragged ?? false;
+        press.current = null;
+      }}
+      onClickCapture={(e) => {
+        if (!dragged.current) return;
+        dragged.current = false;
+        e.stopPropagation();
+        e.preventDefault();
       }}
       style={{ maskImage: mask, WebkitMaskImage: mask }}
       className="add-chips mt-2 flex h-6 shrink-0 gap-1 overflow-x-auto px-2.5"

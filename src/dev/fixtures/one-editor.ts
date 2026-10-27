@@ -31,6 +31,8 @@ const SENSOR = {
   gpuLoad: { key: "hwinfo.gpu_core_load", ref: "hwinfo:-1/3758104576/0/117440512", name: "GPU Core Load" },
   fan: { key: "hwinfo.gpu_fan1", ref: "hwinfo:-1/3758104576/0/50331648", name: "GPU Fan1" },
 } as const;
+/** The top of Neon Rig's Fan gauge. */
+export const FAN_MAX_RPM = 2000;
 
 /** An InfoPanel item bound to one of the capture's sensors, as the Sensor dropdown binds it: its ids, and the Data API key it reads. */
 const bound = (item: DisplayItem, s: (typeof SENSOR)[keyof typeof SENSOR]): DisplayItem =>
@@ -124,7 +126,8 @@ function neonParts(): { profile: ReturnType<typeof readStored>["profile"]; base:
     gpuv: at(bound(make("Sensor"), SENSOR.gpuTemp), "GPU temp", box(36, 20, 28, 20)),
     gpubar: at(bound(make("Bar"), SENSOR.gpuLoad), "GPU bar", box(36, 43, 28, 4)),
     graph: at(bound(make("Graph"), SENSOR.cpuLoad), "CPU load", box(4, 54, 60, 38)),
-    gauge: at(bound(make("Gauge"), SENSOR.fan), "Fan gauge", { ...box(68, 20, 28, 46), w: 221 }),
+    // A fan's range in RPM: on the Gauge's default 0-100 its ~1,246 RPM reading is past the top, a full ring.
+    gauge: at({ ...bound(make("Gauge"), SENSOR.fan), MinValue: 0, MaxValue: FAN_MAX_RPM } as DisplayItem, "Fan gauge", { ...box(68, 20, 28, 46), w: 221 }),
     card: at(newElement("card", profile, palette), "Panel card", box(2, 17, 64, 33)),
     // On the cells COL 7 ROW 5 W 2 H 1 of the 8 x 5 grid (100 x 96 px cells), the host Image item their box.
     weather: newWidgetItem({ module: "Weather", cell: { col: 7, row: 5, cols: 2, rows: 1 } }, { x: 600, y: 384, w: 200, h: 96 }, "Weather"),

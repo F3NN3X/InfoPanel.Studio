@@ -831,6 +831,66 @@ test("one-editor/screen: a hidden widget isn't drawn; Layers selects it as an ou
   await expect(clock).not.toHaveAttribute("data-hidden");
 });
 
+// Sign-off round 3, SPEC §9.6: in Edit a toast sits at the top centre of the canvas, under the page tabs and clear of
+// the zoom bar.
+test("one-editor/layersG: Edit's toasts sit at the top centre of the canvas", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "layersG");
+  await layersRow(page, "Gauges").click();
+  const box = page.locator('[data-group-box="gauges"]');
+  await dragBy(page, box, 0, ((await page.locator('[data-zone-id="cpu"]').boundingBox())!.height) / 2);
+  const toast = page.getByRole("status").filter({ hasText: "Not enough room to move the group." });
+  await expect(toast).toBeVisible();
+  const [t, canvas, tabs, zoom] = await Promise.all([toast, page.locator("[data-toast-anchor]"), page.getByRole("tab", { name: /Main/ }).first(), page.getByRole("button", { name: "Fit" })].map(async (l) => (await l.boundingBox())!));
+  expect(t.y).toBeCloseTo(canvas.y + 14, 0);
+  expect(t.x + t.width / 2).toBeCloseTo(canvas.x + canvas.width / 2, 0);
+  expect(t.y).toBeGreaterThan(tabs.y + tabs.height);
+  expect(t.y + t.height).toBeLessThan(zoom.y);
+});
+
+// Sign-off round 3: at 1440 wide the Widgets chips run past the panel. The row fades at the right edge, and at the left
+// once scrolled; the wheel, a drag and a chip reached by keyboard scroll it, and a drag picks no chip.
+test("one-editor/addw: Add's category chips scroll sideways with a fade", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "addw");
+  await page.getByRole("radiogroup", { name: "Show" }).getByRole("radio", { name: "Widgets" }).click();
+  const row = page.locator(".add-chips");
+  const left = () => row.evaluate((el) => el.scrollLeft);
+  const reset = () => row.evaluate((el) => el.scrollTo({ left: 0 }));
+  await expect(row).toHaveAttribute("data-fade", "end");
+  const b = (await row.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(left).toBeGreaterThan(0);
+  await expect(row).toHaveAttribute("data-fade", "start end");
+  await reset();
+  await expect(row).toHaveAttribute("data-fade", "end");
+  await page.mouse.move(b.x + b.width - 20, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width - 120, b.y + b.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(left).toBeGreaterThan(50);
+  await expect(row.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  await reset();
+  await row.getByRole("button").last().focus();
+  await expect.poll(left).toBe(await row.evaluate((el) => el.scrollWidth - el.clientWidth));
+  await expect(row).toHaveAttribute("data-fade", "start");
+});
+
+// Sign-off round 3: a widget's inspector has no Visible switch; hide and show are the Layers eye and Ctrl+H.
+test("one-editor/screen: a widget is hidden from Layers or Ctrl+H, not its inspector", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "screen");
+  const clock = page.locator('[data-zone-id="clock"]');
+  await layersRow(page, "Clock").click();
+  await expect(page.getByText("Studio widget")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Visible" })).toHaveCount(0);
+  await expect(page.getByText("Visible", { exact: true })).toHaveCount(0);
+  await page.keyboard.press("Control+h");
+  await expect(clock).toHaveAttribute("data-hidden", "");
+  // Hiding drops the selection; selected again from Layers, Ctrl+H shows it.
+  await layersRow(page, "Clock").click();
+  await page.keyboard.press("Control+h");
+  await expect(clock).not.toHaveAttribute("data-hidden");
+});
+
 // SPEC §7.1, acceptance 18: a locked widget is drawn but can't be moved on the canvas.
 test("one-editor/screen: a locked widget doesn't move on the canvas", async ({ page, scratch }) => {
   await openFixture(page, scratch.base, "screen");

@@ -149,7 +149,7 @@ export type SpecialSection =
   | "ipUnknown";
 
 /** Custom UI placed inside a section next to its settings. */
-export type ExtraKind = "widgetPicker" | "visible" | "zoneFrame";
+export type ExtraKind = "widgetPicker" | "zoneFrame";
 
 export interface SectionExtra {
   kind: ExtraKind;
@@ -161,7 +161,6 @@ export interface SectionExtra {
 
 const EXTRA_TERMS: Record<ExtraKind, string[]> = {
   widgetPicker: ["Widget type", "Change widget"],
-  visible: ["Visible", "Hide"],
   zoneFrame: ["Widget frame", "Frame accent", "Frame background", "Title header"],
 };
 
@@ -222,9 +221,8 @@ function extrasOf(category: InspectorCategory, context: InspectorContext): Secti
   }
 }
 
-/** The widget picker and Visible (the Header section's, or another's on a widget without one). */
-const identityExtras = (context: InspectorContext): SectionExtra[] =>
-  context.kind === "widget" ? [extra("widgetPicker"), extra("visible")] : context.kind === "panel" ? [extra("visible")] : [];
+/** The widget picker (the Header section's, or another's on a widget without one). Hide and show are the Layers eye and Ctrl+H. */
+const identityExtras = (context: InspectorContext): SectionExtra[] => (context.kind === "widget" ? [extra("widgetPicker")] : []);
 
 /**
  * A category as sections, one per tab its settings sit in (usually one).

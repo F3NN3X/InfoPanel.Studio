@@ -625,7 +625,8 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
             </button>
           </div>
         )}
-        <div className="relative flex min-h-0 flex-1 flex-col">
+        {/* The app's toasts sit at its top centre (data-toast-anchor). */}
+        <div data-toast-anchor="" className="relative flex min-h-0 flex-1 flex-col">
           <EditCanvas
             editor={editor}
             ctx={view.ctx}
