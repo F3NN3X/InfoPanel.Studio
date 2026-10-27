@@ -90,7 +90,9 @@ The theme, skin and background are in **Theme**: pick the screen in its scope ba
 
 A screen holds one or more pages that share its grid. See [The studio](studio#pages) for the page tabs and rotation.
 
-A page of an InfoPanel profile is a free page: one canvas the size of the screen, where InfoPanel items and Studio widgets sit at any place. See [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
+A page of an InfoPanel profile is a Free page: one canvas the size of the screen, where InfoPanel items and Studio widgets sit at any place. See [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile). Any page can be switched between Grid and Free; see [Grid or Free](studio#grid-or-free).
+
+Changing a screen's size resizes its Free pages with it and keeps every item where it is. The message that follows has **Scale contents**, which scales the items by as much as the screen changed.
 
 ## Which screen opens
 

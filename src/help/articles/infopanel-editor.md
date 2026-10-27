@@ -161,7 +161,7 @@ The export draws each widget itself, out of sight and in the screen's theme, so 
 
 ## The Export check
 
-On an InfoPanel profile, the toolbar has an **Export check** button after the profile's tag. It counts the parts of the profile by what they become in the .infopanel file, and it updates as you edit:
+On a screen made for InfoPanel (**Made for** › **InfoPanel too**, see [Made for](studio#made-for)), the toolbar has an **Export check** button after the profile's tag. It counts the parts of the profile by what they become in the .infopanel file, and it updates as you edit:
 
 - **Exports as is**: InfoPanel reads it as it is. Elements baked into images or gauge frames count here too.
 - **Approximated**: InfoPanel gets the closest item it has, without a look the studio adds.
@@ -175,7 +175,7 @@ The parts that don't export as is are marked on the canvas and in **Layers**. In
 - **Blurred shadow** on Shadow text: becomes a sharp copy.
 - **Gradient fill** under a Sparkline, and its **End dot**: dropped.
 
-A screen made for Studio panels shows none of this.
+A screen made for Studio panels shows none of this, whatever its pages are.
 
 ## The palette
 
@@ -251,7 +251,7 @@ If your InfoPanel build doesn't report sensor ids, a choice binds the preview on
 
 ## Profile settings
 
-Name, width and height, background, font, font size, text colour, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is.
+Name, width and height, background, font, font size, text colour, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is, and on a Free page it resizes the screen too. **Layout** at the top switches the page to Grid (see [Grid or Free](studio#grid-or-free)).
 
 ## Saving to the Library
 
@@ -294,7 +294,7 @@ For each widget you choose what it becomes:
 - **Static snapshot** is a picture of the widget as it is now. It never updates.
 - **Leave out** drops it.
 
-Recreate is the default. A widget whose readings aren't on this PC goes as a snapshot, and the report says so. Your choices are kept on the zone, so the next conversion starts from them. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
+Recreate is the default. A widget whose readings aren't on this PC goes as a snapshot, and the report says so. Your choices are kept on the zone, so the next conversion starts from them. On a screen made for InfoPanel, a widget's **On InfoPanel** choice in its inspector is where the conversion starts too, and a choice made here sets it. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
 
 Coding Agents, Countdown, Timer, Web Page, WaveLink, Day Planner, Radial Clock Stack and On-Air Beacon aren't InfoPanel data. They can't be converted, and the window says each one is left out.
 
