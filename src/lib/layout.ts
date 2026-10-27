@@ -307,7 +307,8 @@ export type ProfileView = Omit<MonitorProfile, "pages"> & {
  * v15: Edit v3 (`page-model/migrate.ts` `migrateProfileV15`): one kind of page. The `layout` flag goes; a Free page on a
  *     Studio screen (its canvas made here) becomes a normal page, its widgets on cells and its items placed freely
  *     (`Placement.item`, `px`) in a group named after the page (`ProfilePage.groups`); a free area becomes a group of
- *     such items; an imported profile keeps its canvas and gets a grid of about 100 px cells. A canvas's items and
+ *     such items; an imported profile, or one made with New InfoPanel profile, keeps its canvas and gets a grid of
+ *     about 100 px cells. A canvas's items and
  *     widgets can hold their cells (`$.cell`, `$.widget.cell`) and its text items a letter spacing (`$.letterSpacing`).
  *     A v14 build would drop the item placements and groups on its next save, so the server refuses its save.
  */

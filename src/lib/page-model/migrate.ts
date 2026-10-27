@@ -2,9 +2,10 @@
  * v15 (Edit v3 SPEC §3.8, decisions Q1, Q2, Q8): every page becomes one kind, nothing on it lost or moved.
  *
  * - A page that is one canvas filling the screen stays canvas-backed when the canvas came from InfoPanel (a file, the
- *   corpus or the installed app). A screen of only such pages is made for InfoPanel and gets a grid of about 100 px
- *   cells with no gap or padding (§3.7); its items keep their X / Y / W / H.
- * - One whose canvas was made here (a beta.35 Free page on a Studio screen) becomes a normal page: its widgets go on
+ *   corpus or the installed app) or its screen is made for InfoPanel (New InfoPanel profile). A screen of only such
+ *   pages is made for InfoPanel and gets a grid of about 100 px cells with no gap or padding (§3.7); its items keep
+ *   their X / Y / W / H.
+ * - One whose canvas was made here on a Studio screen (a beta.35 Free page) becomes a normal page: its widgets go on
  *   the cells nearest where they are, its InfoPanel items and elements become item placements (`Placement.item`)
  *   placed freely at the same screen pixels, in a group named after the page; a Group item becomes a nested group.
  * - A free area (a canvas zone on a grid page) becomes a group named after it, its items the same way, fitted and
@@ -38,8 +39,11 @@ interface Ctx {
   log: (line: string) => void;
 }
 
-/** Whether a canvas came from InfoPanel rather than being made here. */
-const importedCanvas = (canvas: Pick<StoredCanvas, "source">) => canvas.source.origin !== "new";
+/**
+ * Whether a page that is one canvas stays canvas-backed: the canvas came from InfoPanel, or its screen is made for
+ * InfoPanel (New InfoPanel profile, whose canvas is made here; v14 marked every screen of only such pages).
+ */
+const keepsCanvas = (profile: Pick<MonitorProfile, "madeFor">, canvas: Pick<StoredCanvas, "source">) => canvas.source.origin !== "new" || profile.madeFor === "infopanel";
 
 const flagged = (on: unknown) => on === true;
 
@@ -240,7 +244,7 @@ function migratePage(ctx: Ctx, page: ProfilePage): ProfilePage {
       ctx.log(`${where}: left as it is, its canvas isn't loaded.`);
       return page;
     }
-    return importedCanvas(whole.canvas) ? page : freePageToGrid(ctx, page, whole, whole.canvas);
+    return keepsCanvas(ctx.profile, whole.canvas) ? page : freePageToGrid(ctx, page, whole, whole.canvas);
   }
   const areas = page.placements.filter((p) => p.module === CANVAS_ID);
   if (areas.length === 0) return page;
@@ -285,29 +289,23 @@ export function migrateProfileV15<P extends MonitorProfile>(p: P, opts: { legacy
   const unflagged = stale ? p.pages.map((pg) => (Object.hasOwn(pg, "layout") ? (({ layout: _l, ...rest }) => rest)(pg as ProfilePage & { layout?: unknown }) : pg)) : p.pages;
   if (!opts.legacy) return stale ? { ...p, pages: unflagged } : p;
   const log = (line: string) => opts.log?.push(line);
-  // A profile made here as one InfoPanel canvas kept the import's 2 × 1 grid: its widgets get cells of about 100 px.
-  const madeHere = unflagged.length > 0 && unflagged.every((pg) => {
-    const canvas = freeCanvasOf(p, pg)?.canvas;
-    return canvas !== undefined && !importedCanvas(canvas);
-  });
-  const sized = madeHere && p.cols === 2 && p.rows === 1 ? cellsOf(p, unflagged) : { ...p, pages: unflagged };
-  if (sized.cols !== p.cols) log(`${p.name}: a grid of ${sized.cols} × ${sized.rows} cells for its widgets.`);
+  const base = { ...p, pages: unflagged };
   const ctx: Ctx = {
-    profile: sized,
-    grid: screenGrid(sized),
+    profile: base,
+    grid: screenGrid(base),
     taken: new Set(p.pages.flatMap((pg) => pg.placements.map((z) => z.id))),
     log,
   };
-  const pages = sized.pages.map((pg) => {
+  const pages = base.pages.map((pg) => {
     const next = migratePage(ctx, pg);
     // In the order the page model keeps: each group's members together, where its topmost member is.
-    return next === pg ? pg : writePlacements(next, readPlacements(sized, next));
+    return next === pg ? pg : writePlacements(next, readPlacements(base, next));
   });
-  let out: MonitorProfile = sized.cols === p.cols && pages.every((pg, i) => pg === p.pages[i]) ? p : { ...sized, pages };
-  // An imported profile: every page one canvas from InfoPanel, loaded.
+  let out: MonitorProfile = pages.every((pg, i) => pg === p.pages[i]) ? p : { ...base, pages };
+  // An InfoPanel profile (imported or made with New InfoPanel profile): every page one loaded canvas it keeps.
   const imported = out.pages.length > 0 && out.pages.every((pg) => {
     const canvas = freeCanvasOf(out, pg)?.canvas;
-    return canvas !== undefined && importedCanvas(canvas);
+    return canvas !== undefined && keepsCanvas(out, canvas);
   });
   if (imported) {
     if (out.madeFor === undefined) out = { ...out, madeFor: "infopanel" };

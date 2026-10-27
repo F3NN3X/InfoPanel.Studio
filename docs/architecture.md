@@ -763,10 +763,10 @@ least one widget is visible.
 - `Placement` v15 fields: `item?` (an `ITEM_ID` placement's InfoPanel item or element, stored form), `px?` (placed
   freely: screen design px; its cells then hold the cells it covers), `groupId?`, `locked?`. Hidden is `visible: false`.
 - The v15 step (`migrateProfileV15`, `lib/page-model/migrate.ts`, run in `mergeConfig` for a config before v15, each
-  conversion a line in its `log`): an imported profile (every page one canvas whose `source.origin` is a file, the
-  corpus or the installed app) is made for InfoPanel and, on a fill page, gets a grid of about 100 px cells with gap
-  and padding 0, its canvas untouched; a Free page whose canvas was made here becomes a normal page (widget items back
-  on their cells, the rest item placements at the same screen pixels in a group named after the page, the canvas's
+  conversion a line in its `log`): an InfoPanel profile (every page one canvas whose `source.origin` is a file, the
+  corpus or the installed app, or on a screen made for InfoPanel: New InfoPanel profile) is made for InfoPanel and, on
+  a fill page, gets a grid of about 100 px cells with gap and padding 0, its canvas untouched; a Free page on a Studio
+  screen whose canvas was made here becomes a normal page (widget items back on their cells, the rest item placements at the same screen pixels in a group named after the page, the canvas's
   background a locked Shape at the bottom); a free area becomes a group of item placements, fitted and scaled as the
   area drew them, its files joined into the page's `freeCanvas` (renamed where names clash) and its own background a
   locked Shape. A widget a free area held goes to the nearest free cells, or overlaps once and is logged. A canvas

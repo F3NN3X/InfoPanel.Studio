@@ -10,6 +10,8 @@ import { withItemLayers } from "@/lib/page-model/items-layer";
 import { openCanvas } from "@/lib/infopanel/canvas";
 import { storeItems } from "@/lib/infopanel/canvas-edit";
 import { newItem } from "@/lib/infopanel/editor/create";
+import { infopanelFile } from "@/lib/infopanel/export/studio-export";
+import { openStored } from "@/lib/infopanel/import/session";
 import { newStored, readStored, type StoredCanvas, type StoredItem } from "@/lib/infopanel/import/stored";
 import { newWidgetItem } from "@/lib/infopanel/native/widget-item";
 import { defaultItem, type DisplayItem } from "@/lib/infopanel/schema";
@@ -291,20 +293,55 @@ describe("v15: a Free page on a Studio screen (Q1)", () => {
     expect(writePlacements(p.pages[0], readPlacements(p, p.pages[0]))).toBe(p.pages[0]);
   });
 
-  it("a profile made here as one InfoPanel canvas (2 × 1) gets cells for its widgets, its background behind everything", () => {
-    const canvas = storeItems(newStored({ name: "Mine", width: 800, height: 480, now: NOW }), readStored(newStored({ name: "x", width: 800, height: 480 })).profile, [
-      newWidgetItem({ module: "Clock" }, { x: 0, y: 0, w: 200, h: 96 }, "Clock"),
-      { ...defaultItem("Text"), Name: "Hello", X: 300, Y: 200 } as DisplayItem,
-    ]);
-    const log: string[] = [];
-    const p = load(v14([{ id: "m", name: "Mine", width: 800, height: 480, cols: 2, rows: 1, fit: "fill", madeFor: "infopanel", pages: [{ id: "pg", name: "Main", layout: "free", placements: [zone("c", CANVAS_ID, [1, 1, 2, 1], { canvas })] }] }]), log).profiles[0];
-    expect(p).toMatchObject({ cols: 8, rows: 5, madeFor: "infopanel" });
+  it("its canvas's background goes behind everything, widgets too", () => {
+    const canvas = madeHere();
+    const p = load(v14([{ id: "m", name: "Mine", width: 800, height: 480, cols: 8, rows: 5, fit: "fill", pages: [{ id: "pg", name: "Main", layout: "free", placements: [zone("c", CANVAS_ID, [1, 1, 8, 5], { canvas })] }] }])).profiles[0];
     const page = p.pages[0];
     expect(page.placements[0].item).toMatchObject({ kind: "Shape", Name: "Background", FillColor: canvas.profile.BackgroundColor });
     expect(page.placements[0]).not.toHaveProperty("groupId");
     expect(page.placements.find((z) => z.module === "Clock")).toMatchObject({ colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1 });
     expect(named(page, "Hello").px).toMatchObject({ x: 300, y: 200 });
-    expect(log[0]).toBe("Mine: a grid of 8 × 5 cells for its widgets.");
+  });
+});
+
+/** A canvas made here (origin "new"), 800 × 480: a Clock widget and a text. */
+const madeHere = () =>
+  storeItems(newStored({ name: "Mine", width: 800, height: 480, now: NOW }), readStored(newStored({ name: "x", width: 800, height: 480 })).profile, [
+    newWidgetItem({ module: "Clock" }, { x: 0, y: 0, w: 200, h: 96 }, "Clock"),
+    { ...defaultItem("Text"), Name: "Hello", X: 300, Y: 200 } as DisplayItem,
+  ]);
+
+/** The .infopanel bytes a canvas exports (no files in it). */
+async function bytesOf(canvas: StoredCanvas): Promise<Uint8Array> {
+  const opened = await openStored(canvas, async () => null);
+  return infopanelFile(opened.parsed.profile, { items: opened.parsed.items, assets: opened.assets }).bytes;
+}
+
+describe("v15: a profile made with New InfoPanel profile stays canvas-backed (Q2)", () => {
+  const mine = (canvas: StoredCanvas, extra: Record<string, unknown> = {}) => ({
+    id: "m", name: "Mine", width: 800, height: 480, cols: 2, rows: 1, fit: "fill", ...extra,
+    pages: [{ id: "pg", name: "Main", placements: [zone("c", CANVAS_ID, [1, 1, 2, 1], { canvas })] }],
+  });
+
+  it("keeps its canvas untouched and exports the same bytes; only the §3.7 grid is added", async () => {
+    const canvas = madeHere();
+    const log: string[] = [];
+    const p = load(v14([{ ...mine(canvas, { madeFor: "infopanel" }), pages: [{ ...mine(canvas).pages[0], layout: "free" }] }]), log).profiles[0];
+    expect(p).toMatchObject({ cols: 8, rows: 5, gap: 0, padding: 0, madeFor: "infopanel" });
+    expect(p.pages[0].placements).toHaveLength(1);
+    expect(p.pages[0].placements[0]).toMatchObject({ id: "c", module: CANVAS_ID, colSpan: 8, rowSpan: 5 });
+    expect(p.pages[0].placements[0].canvas).toEqual(canvas);
+    expect(p.pages[0].groups).toBeUndefined();
+    expect(await bytesOf(p.pages[0].placements[0].canvas!)).toEqual(await bytesOf(canvas));
+    expect(log).toEqual(["Mine: a grid of 8 × 5 cells; every item kept its place."]);
+  });
+
+  it("from before v14 (no Made for yet): Made for InfoPanel is added, the canvas kept", () => {
+    const canvas = madeHere();
+    const p = load(JSON.parse(JSON.stringify({ version: 13, activeProfile: "auto", profiles: [mine(canvas)] })) as StoredConfig).profiles[0];
+    expect(p).toMatchObject({ cols: 8, rows: 5, madeFor: "infopanel" });
+    expect(p.pages[0].placements).toHaveLength(1);
+    expect(p.pages[0].placements[0].canvas).toEqual(canvas);
   });
 });
 
