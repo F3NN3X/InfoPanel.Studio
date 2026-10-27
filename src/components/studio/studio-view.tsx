@@ -272,6 +272,7 @@ function StudioViewBody({
     onPageChange,
     onSelectProfile: selectProfile,
     onHelp: () => void openHelp(helpTarget()).catch(() => {}),
+    onExportCheck: () => openExportCheck(),
   });
   /** Sensor names for widget names (toolbar crumb, palette). */
   const catalog = useSensorCatalog();
@@ -551,6 +552,16 @@ function StudioViewBody({
   const toggleGridCheck = () => {
     sel.select(null);
     setGridCheckOpen((o) => !o);
+    studioLayout.showInspector();
+  };
+  /** The palette's Export check: opens the canvas editor's check when it is showing, else the grid page's. */
+  const [checkRequest, setCheckRequest] = useState(0);
+  const openExportCheck = () => {
+    if (!checkOn) return;
+    if (editorShown) return setCheckRequest((n) => n + 1);
+    ui.setMode("design");
+    sel.select(null);
+    setGridCheckOpen(true);
     studioLayout.showInspector();
   };
 
@@ -875,6 +886,10 @@ function StudioViewBody({
 
   // The page tabs sit above the canvas in Edit, a grid page's or a Free page's. The pill is the Export check of what
   // the canvas shows: the grid page's, or the canvas editor's (a Free page, an opened free area).
+  const kioskPageId = control?.profiles[storedProfile.id]?.page;
+  const kioskChip = kioskPageId
+    ? `Kiosks show ${storedProfile.pages.find((p) => p.id === kioskPageId)?.name ?? "a page"} · rotation ${rotating ? `every ${cycleLabel(storedProfile.rotate?.seconds ?? 0)}` : "paused"}`
+    : "No kiosk shows this screen";
   const pageTabsFor = (pill: ReactNode) => (
       <PageTabs
         leftOpen={ui.leftOpen}
@@ -899,8 +914,6 @@ function StudioViewBody({
         deletingId={ui.deletingPage}
         onDeletingChange={ui.setDeletingPage}
         kioskPage={control?.profiles[storedProfile.id]?.page}
-        rotation={rotating ? `every ${cycleLabel(storedProfile.rotate?.seconds ?? 0)}` : "paused"}
-        onOpenLive={() => ui.setLiveOpen(true)}
         onLayout={switchPageLayout}
         extra={
           <>
@@ -952,6 +965,7 @@ function StudioViewBody({
           pageTabs: pageTabsFor,
         }}
         checkOn={checkOn}
+        checkRequest={checkRequest}
         onLayout={freeZone ? () => switchPageLayout(currentPageId, "grid") : undefined}
         initialAdd={pendingAdd?.zoneId === activeCanvas.id ? pendingAdd : undefined}
         onExport={() => io.openExport(activeCanvas)}
@@ -1216,7 +1230,7 @@ function StudioViewBody({
           inspector={fullPage ? null : inspectorAside}
         />
       )}
-      <StatusBar {...statusBar} onNavigate={ui.navigateTo} onOpenLive={() => ui.setLiveOpen(true)} />
+      <StatusBar {...statusBar} kioskChip={kioskChip} onNavigate={ui.navigateTo} onOpenLive={() => ui.setLiveOpen(true)} />
       {phone && <PhoneTabBar active={railActive} onSelect={onRail} onHelp={openHelpWindow} />}
 
       <WidgetPickerDialog

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Monitor } from "lucide-react";
+import { ChevronDown, Monitor } from "lucide-react";
 import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,8 @@ interface ScreenSwitcherProps {
   onSelect: (profileId: string, pageId: string) => void;
   /** "Manage screens…": the Screens view. */
   onManage: () => void;
+  /** "Screen settings…": Screens with this screen selected. */
+  onScreenSettings: () => void;
 }
 
 const ROW = "flex w-full items-center gap-2 rounded-md px-2 text-left outline-none hover:bg-ui-hover focus-visible:bg-ui-hover";
@@ -22,7 +24,7 @@ const ROW = "flex w-full items-center gap-2 rounded-md px-2 text-left outline-no
  * The title bar's breadcrumb (Edit v3 SPEC §6.1), which switches screen and page: every screen with its size, the current screen's
  * pages beneath it, and Manage screens…. Choosing a page switches screen and page.
  */
-export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage }: ScreenSwitcherProps) {
+export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage, onScreenSettings }: ScreenSwitcherProps) {
   const [open, setOpen] = useState(false);
   const page = profile.pages.find((p) => p.id === pageId) ?? profile.pages[0];
   const choose = (profileId: string, toPage: string) => {
@@ -44,6 +46,7 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage }
           /
         </span>
         <span className="truncate text-ui-1">{page.name}</span>
+        <ChevronDown aria-hidden className="h-3.5 w-3.5 shrink-0 text-ui-4" strokeWidth={1.75} />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">
@@ -80,6 +83,16 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage }
               }}
             >
               Manage screens…
+            </button>
+            <button
+              type="button"
+              className={cn(ROW, "h-8")}
+              onClick={() => {
+                setOpen(false);
+                onScreenSettings();
+              }}
+            >
+              Screen settings…
             </button>
           </Popover.Popup>
         </Popover.Positioner>

@@ -27,6 +27,7 @@ export type CommandAction =
   | { type: "zoom-out" }
   | { type: "save" }
   | { type: "export" }
+  | { type: "export-check" }
   | { type: "import" }
   | { type: "new-infopanel" }
   | { type: "convert"; scope: "zone" | "screen" }
@@ -113,6 +114,8 @@ export interface CommandState {
   enforced: boolean;
   /** The saved Themes (applied to All screens). */
   appearancePresets: { id: string; name: string }[];
+  /** The screen is made for InfoPanel: the palette offers its Export check. */
+  exportCheck?: boolean;
 }
 
 /** The Design left panel's two tabs. */
@@ -151,6 +154,7 @@ function generalCommands(s: CommandState): Command[] {
     ...(s.canUndo ? [general("undo", "Undo", { type: "undo" }, KEYS.undo)] : []),
     ...(s.canRedo ? [general("redo", "Redo", { type: "redo" }, KEYS.redo)] : []),
     general("export", "Export & back up…", { type: "export" }),
+    ...(s.exportCheck ? [general("export-check", "Export check", { type: "export-check" }, "what exports to InfoPanel")] : []),
     general("convert-screen", "Convert screen to InfoPanel profile (experimental)…", { type: "convert", scope: "screen" }),
     general("import", "Import…", { type: "import" }),
     general("new-infopanel", "New InfoPanel profile…", { type: "new-infopanel" }, "blank or from a template"),

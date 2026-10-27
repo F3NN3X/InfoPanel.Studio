@@ -62,6 +62,14 @@ describe("buildCommands", () => {
     expect(list.filter((id) => id.startsWith("drawer:"))).toEqual(["drawer:add", "drawer:layers"]);
   });
 
+  it("offers Export check only on a screen made for InfoPanel", () => {
+    expect(ids(base)).not.toContain("export-check");
+    expect(buildCommands({ ...base, exportCheck: true }).find((c) => c.id === "export-check")).toMatchObject({
+      label: "Export check",
+      action: { type: "export-check" },
+    });
+  });
+
   it("lists undo / redo only when there is something to undo / redo", () => {
     expect(ids(base)).not.toContain("undo");
     expect(ids(base)).not.toContain("redo");

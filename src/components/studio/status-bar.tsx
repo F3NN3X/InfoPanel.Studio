@@ -1,3 +1,4 @@
+import { Cast } from "lucide-react";
 import type { DataApiState } from "@/lib/data-api";
 import { cn } from "@/lib/utils";
 import type { Phase } from "@/settings/types";
@@ -23,6 +24,8 @@ export interface StatusBarData {
 }
 
 export interface StatusBarProps extends StatusBarData {
+  /** Edit: what the kiosks show ("Kiosks show Main · rotation paused"), a button that opens Live. */
+  kioskChip?: string;
   onNavigate: (target: NavTarget) => void;
   onOpenLive: () => void;
 }
@@ -81,8 +84,15 @@ const SAVE_TEXT: Readonly<Record<SaveState, string>> = {
  * and a pending restart, each a button to its home; the save state at the
  * end. Narrow windows show the dots only. Pure: `useStatusBar` feeds it.
  */
-export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save, onNavigate, onOpenLive }: StatusBarProps) {
+export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save, kioskChip, onNavigate, onOpenLive }: StatusBarProps) {
   const latency = typeof dataApi.latencyMs === "number" ? ` · ${dataApi.latencyMs} ms` : "";
+  const kioskItem: Item = {
+    id: "kiosks",
+    label: kiosks === 0 ? "No kiosks" : `${kiosks} kiosk${kiosks === 1 ? "" : "s"}`,
+    tone: kiosks === 0 ? "idle" : "ok",
+    tip: "Live control",
+    onClick: onOpenLive,
+  };
   const items: Item[] = [
     {
       id: "data-api",
@@ -92,13 +102,7 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
       onClick: () => onNavigate({ view: "data", section: "connection", control: "url" }),
     },
     serverItem(server, onNavigate),
-    {
-      id: "kiosks",
-      label: kiosks === 0 ? "No kiosks" : `${kiosks} kiosk${kiosks === 1 ? "" : "s"}`,
-      tone: kiosks === 0 ? "idle" : "ok",
-      tip: "Live control",
-      onClick: onOpenLive,
-    },
+    kioskItem,
     ...(update && server.kind === "desktop"
       ? [
           {
@@ -139,6 +143,17 @@ export function StatusBar({ dataApi, server, kiosks, update, restartNeeded, save
           <span className="max-[959px]:sr-only">{item.label}</span>
         </button>
       ))}
+      {kioskChip && (
+        <button
+          type="button"
+          title="Open Live control"
+          onClick={onOpenLive}
+          className="flex h-[20px] min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-dashed border-[oklch(0.78_0.15_150/0.5)] px-2 text-[11px] text-[oklch(0.88_0.10_150)] transition-colors hover:bg-[oklch(0.78_0.15_150/0.12)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ui-accent"
+        >
+          <Cast aria-hidden className="h-3 w-3 shrink-0" />
+          <span className="truncate max-[959px]:sr-only">{kioskChip}</span>
+        </button>
+      )}
       <div className="flex-1" />
       <span role="status" className="whitespace-nowrap px-2 max-[959px]:sr-only">
         {SAVE_TEXT[save]}

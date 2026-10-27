@@ -10,6 +10,7 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import type { Appearance } from "@/lib/style-resolve";
 import { addRule, alertsKey } from "./alerts-model";
 import { followAll, toggleEnforce } from "./appearance-actions";
+import { madeForInfoPanel } from "@/lib/screens/list";
 import { buildCommands, type CommandAction } from "./commands";
 import { openConvertDialog, openExportSheet, openImportDoor, openNewInfoPanel } from "./file-doors";
 import { insertables } from "./insert-panel";
@@ -41,6 +42,8 @@ interface CommandDeps {
   onSelectProfile: (id: string) => void;
   /** Open Help at the article for where the user is. */
   onHelp: () => void;
+  /** Open the Export check in the inspector (palette: Export check). */
+  onExportCheck: () => void;
 }
 
 /**
@@ -62,6 +65,7 @@ export function useStudioCommands({
   onPageChange,
   onSelectProfile,
   onHelp,
+  onExportCheck,
 }: CommandDeps) {
   const { selected, selectedWidget } = sel;
   const toast = useToast();
@@ -162,6 +166,8 @@ export function useStudioCommands({
         return ui.handleSave();
       case "export":
         return openExportSheet();
+      case "export-check":
+        return onExportCheck();
       case "import":
         return openImportDoor();
       case "convert":
@@ -325,6 +331,7 @@ export function useStudioCommands({
         showGrid: ui.showGrid,
         enforced: allLocked(appearance.profile),
         appearancePresets: appearancePresets.presets,
+        exportCheck: madeForInfoPanel(config.profiles.find((p) => p.id === profile.id) ?? config.profiles[0]),
       })
     : [];
 
