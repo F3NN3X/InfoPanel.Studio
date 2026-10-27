@@ -14,7 +14,7 @@
 import { domToPng } from "modern-screenshot";
 import { fetchForShot, keep } from "../../profile-shot.ts";
 import { CANVAS_ID, PANEL_ID, type MonitorProfile, type Placement, type ProfilePage } from "../../layout.ts";
-import { exportParts, type ExportPart } from "../../page-model/items-layer.ts";
+import { exportParts, type ExportPart } from "../../page-model/export-parts.ts";
 import { fitScale, openCanvas, readStoreFile } from "../canvas.ts";
 import { editItems } from "../canvas-edit.ts";
 import { assetFile, type AssetFile } from "../assets/assets.ts";

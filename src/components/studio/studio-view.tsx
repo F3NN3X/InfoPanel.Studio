@@ -68,9 +68,7 @@ import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
 import { useItemSelection } from "./use-item-selection";
 import { usePageLayers } from "./use-page-layers";
-import { GroupInspector } from "./group-inspector";
 import { LayerSection } from "./layer-section";
-import { LayerMenu } from "./layer-menu";
 import { findNode, walk, type GroupNode } from "@/lib/page-model/model";
 import { useInspectorFollowsSelection, useStudioUi } from "./use-studio-ui";
 import { SelectionChip } from "./selection-chip";
@@ -115,6 +113,8 @@ const GridCheckPanel = lazy(() => import("@/components/infopanel/grid-export").t
 const GridOnInfoPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridOnInfoPanel })));
 const GridBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridBadge })));
 const GridItemBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridItemBadge })));
+const GroupInspector = lazy(() => import("./group-inspector").then((m) => ({ default: m.GroupInspector })));
+const LayerMenu = lazy(() => import("./layer-menu").then((m) => ({ default: m.LayerMenu })));
 /** The Export check and its status icon, loaded on a screen made for InfoPanel (Layers' row statuses). */
 interface CheckKit {
   exportCheck: typeof import("@/lib/infopanel/export-check").exportCheck;
@@ -684,15 +684,17 @@ function StudioViewBody({
     </aside>
   ) : groupNode ? (
     <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
-      <GroupInspector
-        model={layers.model}
-        group={groupNode}
-        inGroup={findNode(layers.model.root, groupNode.id)?.parentId ?? null}
-        groups={groupsFor(groupNode.id)}
-        onAction={layers.run}
-        onInGroup={layers.moveInto}
-        onSelectContents={() => layers.selectMany(groupNode.children.map((c) => c.id))}
-      />
+      <Suspense fallback={null}>
+        <GroupInspector
+          model={layers.model}
+          group={groupNode}
+          inGroup={findNode(layers.model.root, groupNode.id)?.parentId ?? null}
+          groups={groupsFor(groupNode.id)}
+          onAction={layers.run}
+          onInGroup={layers.moveInto}
+          onSelectContents={() => layers.selectMany(groupNode.children.map((c) => c.id))}
+        />
+      </Suspense>
     </aside>
   ) : (
     <StudioInspector
@@ -1349,7 +1351,11 @@ function StudioViewBody({
         commands={commands}
         onRun={(command) => runCommand(command.action)}
       />
-      {layerMenu && <LayerMenu x={layerMenu.x} y={layerMenu.y} host={{ ...layers.host.menu, rename: layers.selection.length === 1 ? layers.requestRename : undefined }} onClose={() => setLayerMenu(null)} />}
+      {layerMenu && (
+        <Suspense fallback={null}>
+          <LayerMenu x={layerMenu.x} y={layerMenu.y} host={{ ...layers.host.menu, rename: layers.selection.length === 1 ? layers.requestRename : undefined }} onClose={() => setLayerMenu(null)} />
+        </Suspense>
+      )}
       {menus.menu && (
         <StudioContextMenu
           menu={menus.menu}

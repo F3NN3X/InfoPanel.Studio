@@ -6,12 +6,14 @@
  * Right-click opens the layer menu. The page's host (`use-page-layers.ts` on a screen's page, `canvas-layers.ts` on an imported profile's) reads the
  * page into rows and runs every change.
  */
-import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, ChevronsDownUp, Eye, EyeOff, Folder, FolderOpen, FolderPlus, Lock, Move, type LucideIcon } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import type { PartKind } from "@/lib/page-model/model";
 import { cn } from "@/lib/utils";
-import { LayerMenu, type LayerMenuHost } from "./layer-menu";
+import type { LayerMenuHost } from "./layer-menu";
+
+const LayerMenu = lazy(() => import("./layer-menu").then((m) => ({ default: m.LayerMenu })));
 
 /** A row's node: a part or a group with its children, top first. */
 export interface TreeNode {
@@ -363,12 +365,14 @@ export function LayersTree({ host }: { host: LayersHost }) {
         </p>
       )}
       {menu && (
-        <LayerMenu
-          x={menu.x}
-          y={menu.y}
-          host={{ ...host.menu, rename: selected.length === 1 ? () => setRenaming(selected[0]) : undefined }}
-          onClose={() => setMenu(null)}
-        />
+        <Suspense fallback={null}>
+          <LayerMenu
+            x={menu.x}
+            y={menu.y}
+            host={{ ...host.menu, rename: selected.length === 1 ? () => setRenaming(selected[0]) : undefined }}
+            onClose={() => setMenu(null)}
+          />
+        </Suspense>
       )}
       <div className="flex shrink-0 flex-col gap-0.5 border-t border-ui-subtle px-3.5 py-2.5 text-[10.5px]">
         <span className="text-ui-3">

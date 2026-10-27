@@ -9,8 +9,8 @@ import { CANVAS_ID, ITEM_ID, type MonitorProfile, type Placement, type ProfilePa
 import { gridArea } from "../free-pages.ts";
 import { profilePadding } from "../profile-grid.ts";
 import type { StoredCanvas, StoredItem } from "../infopanel/import/stored.ts";
-import { cellRect, type LayerNode } from "./model.ts";
-import { readPlacements, screenGrid } from "./placements-adapter.ts";
+import { cellRect } from "./model.ts";
+import { screenGrid } from "./placements-adapter.ts";
 import { atBox, moved } from "./stored-items.ts";
 
 /** `stored.ts`'s format and version, which this light module doesn't load. */
@@ -23,7 +23,7 @@ export const ITEMS_LAYER = "items-layer:";
 /** Whether a placement is one of these layers. */
 export const isItemsLayer = (p: Pick<Placement, "id">): boolean => p.id.startsWith(ITEMS_LAYER);
 
-type Screen = Pick<MonitorProfile, "width" | "height" | "cols" | "rows" | "fit" | "gap" | "padding">;
+export type Screen = Pick<MonitorProfile, "width" | "height" | "cols" | "rows" | "fit" | "gap" | "padding">;
 
 /**
  * An item placement's item where the part sits, in screen px: placed freely at its `px`, else at its cells' box, so
@@ -45,7 +45,7 @@ export function hiddenByGroups(page: Pick<ProfilePage, "groups">): (groupId: str
 }
 
 /** A see-through canvas `width`×`height` holding `items`, with the page's files, fonts and InfoPanel profile. */
-function pageCanvas(page: ProfilePage, items: StoredItem[], width: number, height: number): StoredCanvas {
+export function pageCanvas(page: ProfilePage, items: StoredItem[], width: number, height: number): StoredCanvas {
   const store = page.freeCanvas;
   return {
     format: FORMAT,
@@ -102,52 +102,4 @@ export function withItemLayers(profile: Screen, page: ProfilePage | undefined, z
   // A zone the view has that the page doesn't (yet) still draws.
   for (const z of zones) if (!placed.has(z.id)) out.push(z);
   return out;
-}
-
-/**
- * One part of a screen page as the .infopanel writer takes it: a zone, a run of item placements as a canvas, or a page
- * group with its own parts (an InfoPanel Group named after it).
- */
-export type ExportPart = { zone: Placement } | { items: StoredCanvas } | { group: { name: string; parts: ExportPart[] } };
-
-/**
- * A screen page in the order it exports (SPEC §11.4), bottom first, as its layer tree has it: each of `zones` (the
- * zones to convert, by id) where the page has it, each run of item placements between them as one canvas the screen's
- * size holding the items at their box in screen px, so they export as the items they are, and each page group as a
- * group of its own parts, so InfoPanel shows the same tree. Hidden parts and hidden groups are left out, as the kiosk
- * leaves them out; an empty group too.
- */
-export function exportParts(profile: Screen, page: ProfilePage, zones: readonly Placement[]): ExportPart[] {
-  const byId = new Map(zones.map((z) => [z.id, z]));
-  const list = (nodes: readonly LayerNode[]): ExportPart[] => {
-    const out: ExportPart[] = [];
-    let run: StoredItem[] = [];
-    const flush = () => {
-      if (run.length) out.push({ items: pageCanvas(page, run, profile.width, profile.height) });
-      run = [];
-    };
-    for (const n of [...nodes].reverse()) {
-      if (n.type === "group") {
-        if (n.hidden) continue;
-        const parts = list(n.children);
-        if (parts.length === 0) continue;
-        flush();
-        out.push({ group: { name: n.name, parts } });
-        continue;
-      }
-      if (n.ref.backing !== "placement") continue;
-      const p = n.ref.placement;
-      if (p.module === ITEM_ID) {
-        if (p.visible && p.item) run.push(placedItem(profile, p)!);
-        continue;
-      }
-      const zone = byId.get(p.id);
-      if (!zone) continue;
-      flush();
-      out.push({ zone });
-    }
-    flush();
-    return out;
-  };
-  return list(readPlacements(profile as MonitorProfile, page).root);
 }

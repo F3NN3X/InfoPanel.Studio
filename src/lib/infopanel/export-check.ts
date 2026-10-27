@@ -205,7 +205,7 @@ export function exportCheck(
   if (free) return free.canvas ? checkItems(openCanvas(free.canvas).items, isImported(free.canvas)) : checkOf([]);
   // A part of a hidden group isn't drawn, so it doesn't export either (as a hidden part).
   const inHidden = hiddenByGroups(page);
-  // A part in a page group exports inside an InfoPanel Group named after it (`items-layer.ts` `exportParts`).
+  // A part in a page group exports inside an InfoPanel Group named after it (`export-parts.ts`).
   const groupName = new Map((page.groups ?? []).map((g) => [g.id, g.name]));
   const inGroup = (zone: Placement) => (r: CheckRow): CheckRow => {
     const name = zone.groupId === undefined ? undefined : groupName.get(zone.groupId);

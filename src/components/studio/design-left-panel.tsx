@@ -1,7 +1,10 @@
-import type { ComponentProps, ReactNode } from "react";
+import { lazy, Suspense, type ComponentProps, type ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
 import { AddPanel } from "./add-panel";
-import { LayersTree, type LayersHost } from "./layers-tree";
+import type { LayersHost } from "./layers-tree";
+
+// Its own chunk, so the studio's first download stays within its budget.
+const LayersTree = lazy(() => import("./layers-tree").then((m) => ({ default: m.LayersTree })));
 
 /** The left panel's tabs: Layers or the Add panel. */
 export type LeftTab = "layers" | "add";
@@ -40,7 +43,13 @@ export function LeftPanelFrame({ tab, onTab, width, children }: Pick<DesignLeftP
 export function DesignLeftPanel({ tab, onTab, width, layers, add }: DesignLeftPanelProps) {
   return (
     <LeftPanelFrame tab={tab} onTab={onTab} width={width}>
-      {tab === "layers" ? <LayersTree host={layers} /> : <AddPanel {...add} />}
+      {tab === "layers" ? (
+        <Suspense fallback={<div className="flex-1" />}>
+          <LayersTree host={layers} />
+        </Suspense>
+      ) : (
+        <AddPanel {...add} />
+      )}
     </LeftPanelFrame>
   );
 }

@@ -6,6 +6,7 @@ import { createEvent, fireEvent, render, screen, within } from "@testing-library
 import { Box } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 import { LayersTree, type LayersHost, type TreeNode } from "@/components/studio/layers-tree";
+import { LayerSection } from "@/components/studio/layer-section";
 
 const NODES: TreeNode[] = [
   { id: "overlay", type: "group", name: "Overlay", children: [{ id: "title", type: "part", kind: "item", name: "Title text", free: true }, { id: "glow", type: "part", kind: "element", name: "Accent glow" }] },
@@ -109,11 +110,12 @@ describe("Layers rows", () => {
 });
 
 describe("the layer menu", () => {
-  it("lists the actions in the SPEC's order, disables what doesn't apply, and runs the one picked", () => {
+  it("lists the actions in the SPEC's order, disables what doesn't apply, and runs the one picked", async () => {
     const h = host({ selectedIds: ["weather"] });
     render(<LayersTree host={h} />);
     fireEvent.contextMenu(row("Weather"), { clientX: 10, clientY: 10 });
-    const menu = screen.getByTestId("layer-menu");
+    // The menu is its own chunk.
+    const menu = await screen.findByTestId("layer-menu");
     const items = within(menu).getAllByRole("menuitem");
     expect(items.map((i) => i.textContent?.replace(/(Ctrl\+.*|F2|Del)$/, ""))).toEqual([
       "Bring to front", "Bring forward", "Send backward", "Send to back",
@@ -153,5 +155,22 @@ describe("dragging rows", () => {
     over(row("Overlay"), 14);
     expect(row("Overlay").dataset.drop).toBeUndefined();
     expect(screen.getByRole("status").textContent).toContain("can’t go into itself");
+  });
+});
+
+describe("the inspector's LAYER section", () => {
+  it("runs the four order actions and moves into a group, out of it, or into a new one", () => {
+    const onAction = vi.fn();
+    const onInGroup = vi.fn();
+    render(<LayerSection onAction={onAction} groups={[{ id: "g1", name: "Gauges" }]} inGroup="g1" onInGroup={onInGroup} />);
+    const section = screen.getByTestId("inspector-layer");
+    for (const label of ["Bring to front", "Bring forward", "Send backward", "Send to back"]) fireEvent.click(within(section).getByRole("button", { name: label }));
+    expect(onAction.mock.calls.map((c) => c[0])).toEqual(["front", "forward", "backward", "back"]);
+    const select = within(section).getByRole("combobox", { name: "In group" }) as HTMLSelectElement;
+    expect(select.value).toBe("g1");
+    expect([...select.options].map((o) => o.text)).toEqual(["None", "Gauges", "New group…"]);
+    fireEvent.change(select, { target: { value: "" } });
+    fireEvent.change(select, { target: { value: select.options[2].value } });
+    expect(onInGroup.mock.calls).toEqual([[null], ["new"]]);
   });
 });
