@@ -1,10 +1,11 @@
 import { lazy, Suspense, type ComponentProps, type ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
-import { AddPanel } from "./add-panel";
+import type { AddPanel as AddPanelView } from "./add-panel";
 import type { LayersHost } from "./layers-tree";
 
-// Its own chunk, so the studio's first download stays within its budget.
+// Their own chunks, so the studio's first download stays within its budget.
 const LayersTree = lazy(() => import("./layers-tree").then((m) => ({ default: m.LayersTree })));
+const AddPanel = lazy(() => import("./add-panel").then((m) => ({ default: m.AddPanel })));
 
 /** The left panel's tabs: Layers or the Add panel. */
 export type LeftTab = "layers" | "add";
@@ -15,7 +16,7 @@ interface DesignLeftPanelProps {
   /** The panel's width (Settings › Studio › Editor › Left panel width). */
   width: number;
   layers: LayersHost;
-  add: ComponentProps<typeof AddPanel>;
+  add: ComponentProps<typeof AddPanelView>;
 }
 
 /** The left panel's frame: the Layers | Add tabs over the tab's body. A grid page's and a Free page's share it. */
@@ -48,7 +49,9 @@ export function DesignLeftPanel({ tab, onTab, width, layers, add }: DesignLeftPa
           <LayersTree host={layers} />
         </Suspense>
       ) : (
-        <AddPanel {...add} />
+        <Suspense fallback={<div className="flex-1" />}>
+          <AddPanel {...add} />
+        </Suspense>
       )}
     </LeftPanelFrame>
   );
