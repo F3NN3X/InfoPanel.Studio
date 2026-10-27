@@ -70,10 +70,17 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await expect(page.locator('[data-testid="canvas-badge"][data-status="ok"]')).toHaveCount(7);
       await expect(page.locator('[data-testid="canvas-badge"][data-status="approx"]')).toHaveCount(1);
     },
-    // The canvas editor draws the page's 8 × 5 cells; CPU temp is where the import put it, placed freely.
+    // The canvas editor draws the page's 8 × 5 cells; CPU temp is where the import put it, placed freely. A Sensor is
+    // a text item: its drawn height is its line's (the platform's font metrics), not the stored Height, so the
+    // selection is checked against the stored X, Y and Width and the height the item is drawn at.
     [CHECKS.profile[1].text]: async (page) => {
       await expect(page.locator("[data-cell-lines] rect")).toHaveCount(40);
-      expect(await profileBox(page, page.locator("[data-selected-path]"))).toEqual({ x: 32, y: 96, w: 224, h: 46 });
+      const selection = page.locator("[data-selected-path]");
+      const { h, ...at } = (await profileBox(page, selection))!;
+      expect(at).toEqual({ x: 32, y: 96, w: 224 });
+      const drawn = (await profileBox(page, page.locator(`[data-path="${await selection.first().getAttribute("data-selected-path")}"]`)))!;
+      expect(h).toBeGreaterThan(0);
+      expect(h).toBe(drawn.h);
       await expect(page.getByTestId("snap-label")).toHaveText("Snap: cells · Alt frees items");
     },
   },
