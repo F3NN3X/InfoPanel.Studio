@@ -90,30 +90,43 @@ describe("removeItem", () => {
   });
 });
 
-describe("removeBlocked: a file item stays while its file is in use", () => {
-  it("refuses an image a profile still uses (the server's scan)", async () => {
+describe("removeBlocked: a file item stays while the studio's config names its file", () => {
+  it("refuses an image a screen shows", async () => {
+    expect(await removeBlocked(item(), () => `{"src":"/api/assets/${id("a")}"}`)).toBe("used");
+  });
+
+  it("refuses a video or an SVG the same way", async () => {
+    for (const kind of ["video", "svg"] as const) expect(await removeBlocked(item({ kind }), () => `{"src":"/api/assets/${id("a")}"}`)).toBe("used");
+  });
+
+  it("lets a file nothing in the config names go, whatever the server's unused scan says of it", async () => {
+    // The scan reads the Library items too, so while the item still exists it lists its own file as used: that is not a reason to refuse.
     api.unusedAssets.mockResolvedValue([]);
-    expect(await removeBlocked(item(), () => "")).toBe("used");
+    expect(await removeBlocked(item(), () => `{"src":"/api/assets/${id("b")}"}`)).toBeNull();
+    expect(api.unusedAssets).not.toHaveBeenCalled();
   });
 
-  it("refuses a video the studio's unsaved config names", async () => {
-    api.unusedAssets.mockResolvedValue([{ id: id("a") }]);
-    expect(await removeBlocked(item({ kind: "video" }), () => `{"src":"/api/assets/${id("a")}"}`)).toBe("used");
+  it("refuses a file a canvas zone in the config carries (its asset table names the hash)", async () => {
+    const config = JSON.stringify({ zones: [{ canvas: { assets: [{ hash: "a".repeat(64), name: "bg.png" }] } }] });
+    expect(await removeBlocked(item(), () => config)).toBe("used");
   });
 
-  it("refuses when the use check fails: nothing is known to be free", async () => {
-    api.unusedAssets.mockRejectedValueOnce(new Error("down"));
-    expect(await removeBlocked(item({ kind: "svg" }), () => "")).toBe("unchecked");
-  });
-
-  it("lets an unused file go", async () => {
-    api.unusedAssets.mockResolvedValue([{ id: id("a") }]);
-    expect(await removeBlocked(item(), () => "")).toBeNull();
+  it("refuses a file a saved InfoPanel profile or a gauge in the Library holds", async () => {
+    const profile = item({ id: "p", kind: "canvas", files: [id("a")] });
+    const gauge = item({ id: "g", kind: "gauge", files: [], data: { frames: [{ id: id("a") }] } as never });
+    expect(await removeBlocked(item(), () => "", [profile])).toBe("used");
+    expect(await removeBlocked(item(), () => "", [gauge])).toBe("used");
+    expect(await removeBlocked(item(), () => "", [item({ id: "o", files: [id("b")] })])).toBeNull();
   });
 
   it("never blocks a gauge, panel, profile or font: removeItem keeps their used files", async () => {
-    for (const kind of ["gauge", "panel", "canvas", "font"] as const) expect(await removeBlocked(item({ kind }), () => "")).toBeNull();
-    expect(api.unusedAssets).not.toHaveBeenCalled();
+    for (const kind of ["gauge", "panel", "canvas", "font"] as const) expect(await removeBlocked(item({ kind }), () => id("a"))).toBeNull();
+  });
+
+  it("then removeItem still keeps a file another item or a canvas holds: the scan lists only unused ones", async () => {
+    api.unusedAssets.mockResolvedValue([]);
+    expect(await removeItem(item(), () => "")).toEqual({ deleted: 0, kept: 0 });
+    expect(api.deleteAsset).not.toHaveBeenCalled();
   });
 });
 

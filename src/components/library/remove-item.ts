@@ -17,22 +17,25 @@ export interface RemoveResult {
   refused?: RemoveBlock;
 }
 
-/** Why an item stays: a screen, a canvas or another item uses its file, or that couldn't be checked. */
-export type RemoveBlock = "used" | "unchecked";
+/** Why an item stays: a screen uses its file. */
+export type RemoveBlock = "used";
 
 /** The kinds that are one file: while that file is in use the item stays (else it would come back as an upload). */
 export const FILE_KINDS: ReadonlySet<LibraryKind> = new Set<LibraryKind>(["image", "video", "svg"]);
 
-/** Why a file item can't be removed now, or null when it can (other kinds always can: their files are kept as needed). */
-export async function removeBlocked(item: Pick<LibraryItem, "kind" | "files">, inUse: () => string): Promise<RemoveBlock | null> {
+/**
+ * Why a file item can't be removed now, or null when it can: the studio's config names its file (a background, a
+ * widget, or a canvas zone's asset table: canvases are inline in the live config), or another Library item holds
+ * it (a saved InfoPanel profile or component lists its files, a gauge its frames). The server's unused scan can't
+ * tell here, as the item itself still holds the file; `removeItem` runs it once the item is gone and deletes only
+ * a file nothing else uses. Other kinds are never blocked: their files are kept as needed.
+ */
+export async function removeBlocked(item: Pick<LibraryItem, "kind" | "files">, inUse: () => string, others: readonly Pick<LibraryItem, "files" | "data">[] = []): Promise<RemoveBlock | null> {
   if (!FILE_KINDS.has(item.kind) || item.files.length === 0) return null;
-  let unused: Asset[];
-  try {
-    unused = await unusedAssets();
-  } catch {
-    return "unchecked";
-  }
-  return filesToDrop(item.files, unused, inUse()).length < new Set(item.files).size ? "used" : null;
+  const config = inUse();
+  const hashes = new Set(item.files.map((id) => id.slice(0, 64)));
+  if ([...hashes].some((h) => config.includes(h))) return "used";
+  return others.some((o) => heldIds(o).some((id) => hashes.has(id.slice(0, 64)))) ? "used" : null;
 }
 
 /** The ids of `held` that are unused and not named in `inUse`. */

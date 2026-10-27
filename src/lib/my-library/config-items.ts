@@ -6,6 +6,9 @@
  */
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import { BUILTIN_STYLES } from "@/lib/builtin-styles";
+import { FONT_CATALOG } from "@/lib/fonts";
+import type { Template } from "@/lib/infopanel/templates/kit";
+import { ISLAND_LOOKS, type IslandLookPreset } from "@/lib/island/looks";
 import type { DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { panelPresets } from "@/lib/panelPresets";
@@ -25,7 +28,21 @@ export const BUILTIN_SKIN = "builtin-skin:";
 export const BUILTIN_LOOK = "builtin-look:";
 export const BUILTIN_PANEL = "builtin-panel:";
 export const BUILTIN_TEMPLATE = "builtin-template:";
-export const BUILTIN_PREFIXES: readonly string[] = [BUILTIN_THEME, BUILTIN_STYLE, BUILTIN_SKIN, BUILTIN_LOOK, BUILTIN_PANEL, BUILTIN_TEMPLATE];
+/** The InfoPanel profile templates, the Island looks and the font catalog. */
+export const BUILTIN_PROFILE_TEMPLATE = "builtin-ptemplate:";
+export const BUILTIN_ISLAND = "builtin-island:";
+export const BUILTIN_FONT = "builtin-font:";
+export const BUILTIN_PREFIXES: readonly string[] = [
+  BUILTIN_THEME,
+  BUILTIN_STYLE,
+  BUILTIN_SKIN,
+  BUILTIN_LOOK,
+  BUILTIN_PANEL,
+  BUILTIN_TEMPLATE,
+  BUILTIN_PROFILE_TEMPLATE,
+  BUILTIN_ISLAND,
+  BUILTIN_FONT,
+];
 export const CONFIG_PREFIXES: readonly string[] = [CONFIG_PANEL, CONFIG_STYLE, CONFIG_THEME, ...BUILTIN_PREFIXES];
 
 /** Something that ships with the app: shown, applied and duplicated, never renamed or deleted. */
@@ -65,6 +82,7 @@ export interface SkinData {
 export interface BuiltinSources {
   looks?: readonly AppearancePreset[];
   templates?: readonly ScreenTemplate[];
+  profileTemplates?: readonly Template[];
 }
 
 /** A skin's name as people write it ("macOS", "TUI"); the rest just capitalised. */
@@ -78,7 +96,7 @@ const skinName = (name: string) => SKIN_NAMES[name] ?? name.charAt(0).toUpperCas
 const builtinOrder = (i: number) => -1000 - i;
 
 /** The skins and built-in panels, then the template looks and screen templates once loaded, as library items. */
-export function builtinItems({ looks = [], templates = [] }: BuiltinSources = {}): LibraryItem[] {
+export function builtinItems({ looks = [], templates = [], profileTemplates = [] }: BuiltinSources = {}): LibraryItem[] {
   const skins = SKIN_PACKS.map((p, i) => {
     const data: SkinData = { name: p.name, description: p.description, settings: { skin: p.name, surface: "auto" } };
     return stand(BUILTIN_SKIN + p.name, "skin", skinName(p.name), { source: "builtin" }, data, builtinOrder(i));
@@ -88,5 +106,12 @@ export function builtinItems({ looks = [], templates = [] }: BuiltinSources = {}
   const templateItems = templates.map((t, i) =>
     stand(BUILTIN_TEMPLATE + t.id, "template", t.name, { source: "builtin", width: t.size.width, height: t.size.height }, t, builtinOrder(i)),
   );
-  return [...skins, ...panels, ...lookItems, ...templateItems];
+  const profileItems = profileTemplates.map((t, i) =>
+    stand(BUILTIN_PROFILE_TEMPLATE + t.id, "ptemplate", t.name, { source: "builtin", blurb: t.blurb, width: t.size?.width ?? 800, height: t.size?.height ?? 480 }, t, builtinOrder(i)),
+  );
+  const islands = ISLAND_LOOKS.map((l, i) => stand(BUILTIN_ISLAND + l.id, "island", l.name, { source: "builtin", blurb: l.description }, l satisfies IslandLookPreset, builtinOrder(i)));
+  const fonts = FONT_CATALOG.map((f, i) =>
+    stand(BUILTIN_FONT + f.id, "font", f.label, { source: "builtin", family: f.label, origin: "google" in f ? "Google Fonts" : "System", blurb: "google" in f ? "Loads from Google Fonts when used; a system font stands in offline" : "Uses a font already on the device" }, f, builtinOrder(i)),
+  );
+  return [...skins, ...panels, ...lookItems, ...templateItems, ...profileItems, ...islands, ...fonts];
 }

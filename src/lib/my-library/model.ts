@@ -55,6 +55,8 @@ export interface MediaMeta {
   rows?: number;
   /** Imported canvases: the item count. */
   items?: number;
+  /** Built-ins: a line saying what it is. */
+  blurb?: string;
   /** Themes: the page, surface and accent colours of the card's thumbnail (CSS colours). */
   swatch?: string[];
 }
@@ -134,7 +136,10 @@ export type CollectionId =
   | "styles"
   | "canvases"
   | "components"
-  | "templates";
+  | "templates"
+  | "ptemplates"
+  | "islands"
+  | "builtinfonts";
 
 export interface Collection {
   id: CollectionId;
@@ -165,9 +170,12 @@ export const COLLECTIONS: Collection[] = [
   { id: "icons", label: "Icons", section: "Library", parent: "media" },
   { id: "svg", label: "SVG templates", section: "Library", parent: "media" },
   { id: "fonts", label: "Fonts", section: "Library", hint: "Fonts appear in every Typography picker." },
+  { id: "builtinfonts", label: "Built-in fonts", section: "Library", parent: "fonts", hint: "The fonts every Typography picker offers. Google fonts load when used; offline a system font stands in." },
   { id: "components", label: "Components", section: "Library", hint: "Pieces of an InfoPanel profile. Drag one onto the screen or onto an InfoPanel profile in Edit, or save one from a selection there." },
   { id: "canvases", label: "InfoPanel profiles", section: "Library", hint: "Profiles for the InfoPanel app. Edit opens one in Edit; a new profile can start from one." },
-  { id: "templates", label: "Screen templates", section: "Library", hint: "Ready-made screens. New screen from this opens the New screen page on it." },
+  { id: "templates", label: "Screen templates", section: "Library", hint: "Ready-made screens. New screen from this opens the New screen page on it; Duplicate adds one to Screens at once." },
+  { id: "ptemplates", label: "InfoPanel templates", section: "Library", hint: "Ready-made InfoPanel profiles. New InfoPanel profile from this opens the New page on one." },
+  { id: "islands", label: "Island looks", section: "Library", hint: "How the Dynamic Island is drawn: shape, color, border and weight. Applying one keeps the rest of a screen’s island." },
 ];
 
 /** The hint line of a collection (a sub-kind of Media shows Media's); none for the smart ones. */
@@ -198,6 +206,8 @@ const KIND_OF: Partial<Record<CollectionId, LibraryKind>> = {
   themes: "theme",
   skins: "skin",
   templates: "template",
+  ptemplates: "ptemplate",
+  islands: "island",
   images: "image",
   videos: "video",
   svg: "svg",
@@ -210,6 +220,9 @@ const KIND_OF: Partial<Record<CollectionId, LibraryKind>> = {
 export function inCollection(item: LibraryItem, id: CollectionId, index: LibraryIndex, now = Date.now()): boolean {
   if (id === "canvases") return isProfileItem(item);
   if (id === "components") return isComponent(item);
+  // The font catalog is its own collection: Fonts is the files you added.
+  if (id === "fonts") return item.kind === "font" && !isBuiltinItem(item);
+  if (id === "builtinfonts") return item.kind === "font" && isBuiltinItem(item);
   const kind = KIND_OF[id];
   if (kind) return item.kind === kind;
   const m = metaOf(item);
@@ -338,6 +351,8 @@ export const KIND_LABEL: Record<LibraryKind, string> = {
   theme: "Theme",
   skin: "Skin",
   template: "Screen template",
+  ptemplate: "InfoPanel template",
+  island: "Island look",
 };
 
 /** Every word a search can match for an item: name, kind, type, pixel size and tags. */
@@ -417,6 +432,10 @@ export function metaLine(item: LibraryItem): string {
       return "Skin";
     case "template":
       return [px, "Screen template"].filter(Boolean).join(" · ");
+    case "ptemplate":
+      return [px, "InfoPanel template"].filter(Boolean).join(" · ");
+    case "island":
+      return "Island look";
     case "canvas":
       if (isComponent(item)) return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Component";
       return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Canvas";
@@ -427,6 +446,10 @@ export function metaLine(item: LibraryItem): string {
 
 /** An item the config or the app supplies (saved Themes, Styles and Panels, the built-ins): kept in the config, never on the server. */
 export const isConfigItem = (item: Pick<LibraryItem, "id">): boolean => CONFIG_PREFIXES.some((p) => item.id.startsWith(p));
+
+/** Whether a card can be dragged onto the canvas: the built-ins that are applied or started from, not placed, can't. */
+export const isDraggable = (item: Pick<LibraryItem, "id" | "kind">): boolean =>
+  !["skin", "template", "ptemplate", "island"].includes(item.kind) && !(item.kind === "font" && isBuiltinItem(item));
 
 /** A card's tag: Built-in (muted) for what ships with the app, else what the item is (accent). */
 export function cardTag(item: Pick<LibraryItem, "id" | "kind" | "meta">): { text: string; builtin: boolean } {

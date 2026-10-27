@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatBytes } from "@/lib/assets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import { copiesLine, hashOf, isConfigItem, KIND_LABEL, metaLine, metaOf, tagsOf, type LibraryIndex } from "@/lib/my-library/model";
+import { isBuiltinItem } from "@/lib/my-library/config-items";
 import { AssetThumb } from "./asset-thumb";
 import { isSavedPanel } from "./library-actions";
 
@@ -114,6 +115,7 @@ export function LibraryDetail(p: DetailProps) {
           className="w-full rounded-[6px] border border-transparent bg-transparent px-1 py-0.5 -mx-1 text-[14px] font-semibold text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent disabled:hover:border-transparent"
         />
         <div className="font-ui-mono text-[11px] text-ui-4">{metaLine(item) || KIND_LABEL[item.kind]}</div>
+        {m.blurb && <p className="mt-1.5 text-[12px] leading-snug text-ui-3">{m.blurb}</p>}
       </div>
       <div className="flex flex-col gap-2">
         {p.primary && <ActionButton action={p.primary} primary />}
@@ -199,7 +201,7 @@ export function LibraryDetail(p: DetailProps) {
         {m.family && <Fact label="Family">{m.family}</Fact>}
         {!config && Number.isFinite(added) && <Fact label="Added">{new Date(added).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</Fact>}
         {hash && <Fact label="Stored as">sha256 {hash.slice(0, 8)}…</Fact>}
-        {config && <Fact label="Kept in">this dashboard’s config</Fact>}
+        {config && <Fact label="Kept in">{isBuiltinItem(item) ? "the Studio (built in)" : "this dashboard’s config"}</Fact>}
       </div>
       {tags.length > 0 && (
         <div>

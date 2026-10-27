@@ -1,7 +1,7 @@
 /**
  * My library's state on the Library page (spec §3): the server's items plus the config's own
  * saved panels, Styles and Themes and the built-ins (palettes, Styles, skins, panels, and the template
- * looks and screen templates once their catalog loads), the upload queue
+ * looks, screen templates and InfoPanel templates once their catalogs load), the upload queue
  * behind the tray, and the item actions that change the library (copies, variants, merges).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -64,9 +64,9 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   const [sources, setSources] = useState<BuiltinSources>({});
   useEffect(() => {
     let live = true;
-    // The screen templates are a large catalog: their looks and the templates themselves come on demand.
-    void Promise.all([import("@/lib/screen-templates/template-presets"), import("@/lib/screen-templates/catalog")]).then(
-      ([looks, catalog]) => live && setSources({ looks: looks.TEMPLATE_PRESETS, templates: catalog.SCREEN_TEMPLATES }),
+    // The screen and InfoPanel templates are large catalogs: their looks and the templates themselves come on demand.
+    void Promise.all([import("@/lib/screen-templates/template-presets"), import("@/lib/screen-templates/catalog"), import("@/lib/infopanel/templates/catalog")]).then(
+      ([looks, catalog, profiles]) => live && setSources({ looks: looks.TEMPLATE_PRESETS, templates: catalog.SCREEN_TEMPLATES, profileTemplates: profiles.TEMPLATES }),
       () => {},
     );
     return () => {
@@ -181,7 +181,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     rename: (item, name) => void update(item, { name }),
     remove: async (item, inUse = () => "") => {
       if (isConfigItem(item)) return { deleted: 0, kept: 0 };
-      const refused = await removeBlocked(item, inUse);
+      const refused = await removeBlocked(item, inUse, known.current.filter((i) => i.id !== item.id));
       if (refused) return { deleted: 0, kept: 0, refused };
       setServer((list) => list.filter((i) => i.id !== item.id));
       try {

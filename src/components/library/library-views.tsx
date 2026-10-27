@@ -12,6 +12,8 @@ import {
   FileCode,
   Gauge,
   Palette,
+  PenTool,
+  Pill,
   HardDrive,
   Image,
   ImagePlus,
@@ -24,6 +26,7 @@ import {
   Sparkles,
   SprayCan,
   SwatchBook,
+  ListChecks,
   Trash2,
   Type,
   Wallpaper,
@@ -32,8 +35,9 @@ import {
 import { cn } from "@/lib/utils";
 import type { LibraryItem } from "@/lib/library";
 import { setActiveLibraryDrag, setLibraryDrag } from "@/lib/my-library/drag";
-import { COLLECTIONS, SORTS, cardTag, cleanupCounts, flagOf, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
+import { COLLECTIONS, SORTS, cardTag, cleanupCounts, flagOf, isDraggable, type CollectionId, type LibraryIndex, type SortId } from "@/lib/my-library/model";
 import { AssetThumb } from "./asset-thumb";
+import type { ClickMod } from "./multi-delete";
 
 export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
   all: LayoutGrid,
@@ -50,6 +54,9 @@ export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
   icons: Shapes,
   svg: FileCode,
   fonts: Type,
+  builtinfonts: Type,
+  ptemplates: PenTool,
+  islands: Pill,
   gauges: Gauge,
   panels: LayoutDashboard,
   styles: Paintbrush,
@@ -103,7 +110,11 @@ interface CardProps {
   item: LibraryItem;
   index: LibraryIndex;
   selected: boolean;
-  onSelect: () => void;
+  /** Part of a multi-selection (a ticked box). */
+  checked?: boolean;
+  /** Select mode: every card shows its box, and a click toggles it. */
+  selectMode?: boolean;
+  onSelect: (mod: ClickMod) => void;
   onOpen: () => void;
   /** Right-click (or the menu key) at a viewport point. */
   onMenu?: (x: number, y: number) => void;
@@ -114,25 +125,25 @@ interface CardProps {
   className?: string;
 }
 
-export function LibraryCard({ item, index, selected, onSelect, onOpen, onMenu, onRemove, reason, className }: CardProps) {
+export function LibraryCard({ item, index, selected, checked, selectMode, onSelect, onOpen, onMenu, onRemove, reason, className }: CardProps) {
   const flag = flagOf(item, index);
   const tag = cardTag(item);
   return (
     <div
       role="option"
-      aria-selected={selected}
+      aria-selected={selected || checked}
       tabIndex={0}
-      draggable
+      draggable={isDraggable(item)}
       onDragStart={(e) => {
         setLibraryDrag(e.dataTransfer, { libraryItemId: item.id, kind: item.kind });
         setActiveLibraryDrag(item);
       }}
-      onClick={onSelect}
+      onClick={(e) => onSelect({ toggle: e.ctrlKey || e.metaKey, range: e.shiftKey })}
       onDoubleClick={onOpen}
       onContextMenu={(e) => {
         if (!onMenu) return;
         e.preventDefault();
-        onSelect();
+        onSelect({ toggle: false, range: false });
         // The menu key fires at 0,0: open from the card instead.
         const r = e.currentTarget.getBoundingClientRect();
         if (e.clientX === 0 && e.clientY === 0) onMenu(r.left + 12, r.top + 12);
@@ -148,17 +159,31 @@ export function LibraryCard({ item, index, selected, onSelect, onOpen, onMenu, o
         }
         if (e.key === " ") {
           e.preventDefault();
-          onSelect();
+          onSelect({ toggle: e.ctrlKey || e.metaKey, range: e.shiftKey });
         }
       }}
       className={cn(
         "group flex cursor-pointer flex-col gap-2 rounded-[12px] border border-ui-subtle bg-ui-panel p-1.5 pb-2.5 outline-none hover:border-ui-default focus-visible:border-ui-accent",
-        selected && "border-ui-accent bg-ui-accent/[.06] hover:border-ui-accent",
+        (selected || checked) && "border-ui-accent bg-ui-accent/[.06] hover:border-ui-accent",
         className,
       )}
     >
       <div className="relative">
         <AssetThumb item={item} className="aspect-[4/3] w-full" />
+        {(selectMode || checked) && (
+          <input
+            type="checkbox"
+            aria-label={`Select ${item.name}`}
+            checked={!!checked}
+            onChange={() => {}}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect({ toggle: true, range: e.shiftKey });
+            }}
+            onDoubleClick={(e) => e.stopPropagation()}
+            className="absolute left-1.5 top-1.5 h-4 w-4 cursor-pointer accent-[var(--ui-accent)]"
+          />
+        )}
         {flag && (
           <span
             className={cn(
@@ -238,7 +263,14 @@ export interface GridViewProps {
   showCleanup: boolean;
   onCollection: (id: CollectionId) => void;
   selectedId: string | null;
-  onSelect: (item: LibraryItem) => void;
+  /** The cards ticked for a multi-delete. */
+  picked: readonly string[];
+  selectMode: boolean;
+  onSelectMode: (on: boolean) => void;
+  onPickAll: () => void;
+  onClearPicked: () => void;
+  onDeletePicked: () => void;
+  onSelect: (item: LibraryItem, mod: ClickMod) => void;
   onOpen: (item: LibraryItem) => void;
   /** Right-click on a card at a viewport point. */
   onMenu?: (item: LibraryItem, x: number, y: number) => void;
@@ -280,6 +312,35 @@ export function GridView(p: GridViewProps) {
           </button>
         ))}
         <span className="flex-1" />
+        {p.picked.length > 0 && (
+          <>
+            <span className="font-ui-mono text-[11.5px] text-ui-2">{p.picked.length} selected</span>
+            <button type="button" onClick={p.onPickAll} className="h-[28px] rounded-[7px] px-2 text-[12px] text-ui-3 hover:text-ui-1">
+              Select all
+            </button>
+            <button type="button" onClick={p.onClearPicked} className="h-[28px] rounded-[7px] px-2 text-[12px] text-ui-3 hover:text-ui-1">
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={p.onDeletePicked}
+              className="flex h-[28px] items-center gap-1.5 rounded-[7px] border border-ui-danger/50 px-2.5 text-[12px] text-ui-danger hover:bg-ui-danger/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete…
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          aria-pressed={p.selectMode}
+          onClick={() => p.onSelectMode(!p.selectMode)}
+          title="Tick cards to select several, then delete them together. Ctrl or Shift and click does the same."
+          className={cn("flex h-[28px] items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover", p.selectMode && "bg-ui-active")}
+        >
+          <ListChecks className="h-3.5 w-3.5" />
+          Select
+        </button>
         {p.action && (
           <button
             type="button"
@@ -337,7 +398,9 @@ export function GridView(p: GridViewProps) {
                 item={item}
                 index={p.index}
                 selected={p.selectedId === item.id}
-                onSelect={() => p.onSelect(item)}
+                checked={p.picked.includes(item.id)}
+                selectMode={p.selectMode}
+                onSelect={(mod) => p.onSelect(item, mod)}
                 onOpen={() => p.onOpen(item)}
                 onMenu={p.onMenu && ((x, y) => p.onMenu?.(item, x, y))}
                 onRemove={p.onRemove && (() => p.onRemove?.(item))}

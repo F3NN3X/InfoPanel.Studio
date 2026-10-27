@@ -10,6 +10,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 - **Every upload is in My library.** Images and videos uploaded before the Library, or straight into a background or an image widget, are added to My library when you open it, each keeping its file. The "uploaded files aren't in My library" banner and its Review window are gone.
 - **Not used** replaces Unused, and now counts a file shown as a background or in a widget as used. In Not used, **Remove these files…** removes the images, videos and SVGs listed, after a confirm; a file a screen uses always stays.
+- **Skins and templates no longer drag.** They had nothing to drop on; use their buttons.
 - **A used file can't be removed.** Removing an image, video or SVG that a screen still shows keeps it and says why.
 
 ### Added
@@ -18,8 +19,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Widget QA and the InfoPanel lab, in debug mode only.** With debug mode on and the server restarted, the server serves Widget QA at `/widget-qa` and the InfoPanel lab at `/lab/`, and Settings › Diagnostics links both to your browser. With it off the server answers 404 for both. The lab is a separate build (`dist/lab/`, about 1.4 MB, 0.25 MB compressed) that the studio and kiosk never load; in the app it works on the `.infopanel` files you open, without the corpus, installed-profile list, gauge library or font proxy of `npm run lab`.
 - **The Library has everything.** New collections for **Skins** and **Screen templates**, and the built-in panels and the screen templates' looks sit beside your own panels and Themes, tagged **Built-in**. A skin applies to All screens, a screen or a page, and duplicates into a Theme of your own. A screen template's **New screen from this** opens the New screen page on it. Saved panels can be renamed, duplicated and deleted in the Library, and a built-in panel duplicated into one of your own.
 
+- **More in the Library.** **InfoPanel templates**, **Island looks** and the **Built-in fonts** are listed, tagged **Built-in**. An InfoPanel template opens the New InfoPanel profile page on it, and an Island look applies to this screen or to all screens. A screen template has **Duplicate**: it adds a screen made from the template to Screens at once.
+- **Delete several items at once.** **Select** (or Ctrl and Shift click) ticks cards; **Delete…** asks once and says what stays: built-ins, and files a screen uses.
+
 ### Fixed
 
+- **Images, videos and SVGs couldn't be removed** from the Library: the check treated the item's own file as in use. Now only a file the screen config names stays.
 - **`?widget-qa&settings=` opened the Settings window** instead of the QA page.
 
 ## [1.3.0-beta.35] - 2026-10-27
