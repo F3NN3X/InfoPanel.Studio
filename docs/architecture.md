@@ -532,10 +532,13 @@ Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesig
 There is one editor view, Edit (rail item `design`). On a grid page it shows the grid; on a Free page
 (`isFreePage` in `lib/free-pages.ts`: one canvas zone filling the grid, read from the page's shape since v15) it hosts the canvas editor
 (`src/components/infopanel/edit/canvas-editor.tsx`, lazy-loaded) in the same studio shell: the rail, the left panel
-frame (`LeftPanelFrame`, Layers and Add tabs), the page tabs and the inspector column. Double-clicking a canvas zone
-on a grid, or the canvas zone inspector's "Edit items", opens the editor on that zone; there Done or Esc (with
-nothing selected) goes back to the grid with the zone selected. Both edit the config through the studio's one
-history, so one Ctrl+Z undoes grid and canvas edits in order. The Library covers the editor without unmounting it,
+frame (`LeftPanelFrame`, Layers and Add tabs), the page tabs and the inspector column. Since Edit v3 phase 6 there
+is no separate canvas-zone editor: an .infopanel imported onto a screen's page becomes a group of item placements
+(`importIntoProfile` in `studio/import-actions.ts`, through `canvasAsGroup` in `lib/page-model/canvas-group.ts`, kept
+out of `migrate.ts` so the kiosk's first bundle doesn't carry it). A single item placement selected on a screen's
+page gets the canvas editor's own inspector over a one-item canvas (`infopanel/edit/page-item-inspector.tsx`, lazy),
+its Place row writing through the page model. Both edit the config through the studio's one history, so one Ctrl+Z
+undoes grid and canvas edits in order. The Library covers the editor without unmounting it,
 so a Library drag can land in it. InfoPanel profiles are listed in Screens (All, Studio, InfoPanel filter;
 `lib/screens/list.ts`); the old `infopanel` view is a route alias in `use-studio-ui.ts` that opens Screens on the
 InfoPanel filter, or Edit on a named profile.
@@ -1396,9 +1399,15 @@ that do not follow (`makeFollow`, `makeAllFollow`). Saved Themes: `theme-gallery
 `theme-start-from.tsx`, `use-appearance-presets.ts`. The page background is `background-editor.tsx` and
 `background-video.tsx`; its edits go through `withBackground`, undo-keyed per scope by `backgroundKey`.
 
-*Page inspector* (`page-inspector.tsx`, nothing selected): the page's Name and Icon, a Rotation link to Screens,
-the sections the page customises over its screen's theme with the way into Theme at the page scope, Live ›
-Show on kiosks now, and Duplicate / Delete page.
+*Page inspector* (`page-inspector.tsx`, nothing selected; Edit v3 SPEC §10.1): the header and GRID section
+(`page-settings-parts.tsx`: Snap items to grid as a `setSnapItems` page op, the Alt hint), then Name, Size, Columns ×
+rows, Gap, Theme, Rotation and Icon, the sections the page customises over its screen's theme with the way into Theme
+at the page scope, Live › Show on kiosks now, and Duplicate / Delete page. Columns × rows goes through `regrid`
+(`lib/page-model/regrid.ts`, loaded on use): widgets keep their cells and a grid one wouldn't fit in is refused naming
+them (Q5); item placements on cells are clamped, items placed freely keep their px, and on an imported profile the
+canvas spans the new grid with its widget items and `$.cell` items reflowed, the others the same objects. An imported
+profile's page settings are `profile-settings.tsx` in the canvas editor, with the same parts. The item, widget and
+group inspectors share the Place row (`studio/place-row.tsx`): cells (`PLACE ON GRID`) or px with Snap to grid.
 
 *Screens* (`screens-view.tsx`, `screen-detail.tsx`, `screens-model.ts`): a card per screen with the launch rule
 (the card menu's `withLaunch`; "When the app opens" is Settings › Dashboard › Startup screen), and for the selected screen Size & fit and Grid (`screen-layout.tsx`),
