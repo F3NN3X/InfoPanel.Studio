@@ -42,7 +42,7 @@ function Row({ label, children, approx = false }: { label: string; children: Rea
 }
 
 /** A number, stored on Enter or leaving; the spec's normalizer keeps it in range. */
-function NumberField({ label, value, onCommit }: { label: string; value: number; onCommit: (n: number) => void }) {
+export function NumberField({ label, value, onCommit, approx = false }: { label: string; value: number; onCommit: (n: number) => void; approx?: boolean }) {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => {
     if (draft === null) return;
@@ -51,7 +51,7 @@ function NumberField({ label, value, onCommit }: { label: string; value: number;
     setDraft(null);
   };
   return (
-    <Row label={label}>
+    <Row label={label} approx={approx}>
       <input
         aria-label={label}
         inputMode="decimal"

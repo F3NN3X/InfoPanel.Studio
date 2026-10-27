@@ -128,7 +128,7 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         {onLayout && (
           <Block label="Layout">
-            <LayoutControl layout={layoutOf(page)} onChange={(to) => onLayout(page.id, to)} disabled={layoutDisabled} />
+            <LayoutControl layout={layoutOf(profile, page)} onChange={(to) => onLayout(page.id, to)} disabled={layoutDisabled} />
           </Block>
         )}
         <section className="space-y-1 border-b border-[#1c1c21] px-4 py-3">

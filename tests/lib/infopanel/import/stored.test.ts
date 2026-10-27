@@ -252,3 +252,44 @@ describe("studio elements and the palette in the stored form", () => {
     expect(readStored({ ...old, palette: { accent1: 7 } }).stored.palette).toEqual(defaultPalette(profile));
   });
 });
+
+describe("v15's studio-only fields: cells and letter spacing", () => {
+  const text = { ...defaultItem("Text"), Name: "t" } as DisplayItem;
+  const cell = { col: 7, row: 5, cols: 2, rows: 1 };
+
+  it("keeps an item's cells, a widget's cells and a text's letter spacing under $, and reads them back", () => {
+    const widget = { ...defaultItem("Image"), Name: "Weather", widget: { module: "Weather", cell } } as unknown as DisplayItem;
+    const items = [{ ...text, cell, letterSpacing: 5 }, widget] as unknown as DisplayItem[];
+    const s = toStored(input(items));
+    expect(s.items[0].$).toEqual({ cell, letterSpacing: 5 });
+    expect(s.items[1].$).toEqual({ widget: { module: "Weather", cell } });
+    const back = roundTrip(s);
+    expect(back.items).toEqual(items);
+    expect(back.issues).toEqual([]);
+  });
+
+  it("never writes a letter spacing of 0", () => {
+    expect(toStored(input([{ ...text, letterSpacing: 0 } as unknown as DisplayItem])).items[0]).not.toHaveProperty("$");
+  });
+
+  it("reports and drops cells on a Group or out of range, and a letter spacing on a non-text item or out of range; the item stays", () => {
+    const raw = toStored(input([text, { ...defaultItem("Group"), Name: "g", DisplayItems: [] } as DisplayItem, { ...defaultItem("Bar"), Name: "b" } as DisplayItem]));
+    raw.items[0].$ = { cell: { col: 0, row: 1, cols: 1, rows: 1 }, letterSpacing: 9999 };
+    raw.items[1].$ = { cell };
+    raw.items[2].$ = { letterSpacing: 3 } as never;
+    const r = readStored(JSON.parse(JSON.stringify(raw)));
+    expect(r.items.map((i) => i.Name)).toEqual(["t", "g", "b"]);
+    for (const i of r.items) {
+      expect(i).not.toHaveProperty("cell");
+      expect(i).not.toHaveProperty("letterSpacing");
+    }
+    expect(r.issues.map((i) => i.field).sort()).toEqual(["$.cell", "$.cell", "$.letterSpacing", "$.letterSpacing"]);
+  });
+
+  it("a widget whose cells are broken keeps its widget, without the cells", () => {
+    const raw = toStored(input([{ ...defaultItem("Image"), Name: "W", widget: { module: "Clock" } } as unknown as DisplayItem]));
+    (raw.items[0].$ as unknown as { widget: Record<string, unknown> }).widget.cell = { col: 1, row: "1", cols: 1, rows: 1 };
+    const r = readStored(JSON.parse(JSON.stringify(raw)));
+    expect((r.items[0] as unknown as { widget: unknown }).widget).toEqual({ module: "Clock" });
+  });
+});

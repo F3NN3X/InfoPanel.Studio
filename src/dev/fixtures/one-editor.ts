@@ -14,8 +14,6 @@ import type { Fixture, FixtureName } from "./types";
  * profile on a Free page). What today's model can't hold yet, for the phases that add it:
  *  - groups on a grid page (Gauges, Overlay) and items or elements on a grid page's cells: layersG shows the widgets only;
  *  - an item placed freely over widgets (the Title text of alt and layersG): the grid is full and a free area can't overlap;
- *  - a widget's cell on a Free page (Weather at COL 7 ROW 5): the host Image item has the cell's box in px, no `cell`;
- *  - letter spacing (NEON RIG, "Letter spacing (5 px)"): the schema has no such field;
  *  - sensor bindings: the items have none, so values read as placeholders, not 54 / 61 / 1240;
  *  - nested groups (the schema keeps a group out of a group): not needed by these states;
  *  - the per-state UI (Add segment, hover card, toast, Alt drag, layer menu): carried on the Fixture, read by later phases.
@@ -75,7 +73,8 @@ function neonParts(): { profile: ReturnType<typeof readStored>["profile"]; base:
   const make = (kind: Parameters<typeof newItem>[0]) => newItem(kind, profile, palette);
   const text = (name: string, s: Spot, color: string) => ({ ...at(make("Text"), name, s), Color: color, FontSize: 30, Bold: true }) as DisplayItem;
   const parts: Parts = {
-    title: text("NEON RIG", box(4, 5, 44, 11), PINK),
+    // Letter spacing is studio-only (v15 `$.letterSpacing`): the Export check reads it as approximated.
+    title: { ...text("NEON RIG", box(4, 5, 44, 11), PINK), letterSpacing: 5 } as unknown as DisplayItem,
     clock: at({ ...make("Clock"), Format: "HH:mm" } as DisplayItem, "Clock", box(68, 5, 28, 11)),
     cpuv: at(make("Sensor"), "CPU temp", box(4, 20, 28, 20)),
     cpubar: at(make("Bar"), "CPU bar", box(4, 43, 28, 4)),
@@ -84,8 +83,8 @@ function neonParts(): { profile: ReturnType<typeof readStored>["profile"]; base:
     graph: at(make("Graph"), "CPU load", box(4, 54, 60, 38)),
     gauge: at(make("Gauge"), "Fan gauge", { ...box(68, 20, 28, 46), w: 221 }),
     card: at(newElement("card", profile, palette), "Panel card", box(2, 17, 64, 33)),
-    // The cell COL 7 ROW 5 W 2 H 1 of the 8 x 5 grid (100 x 96 px cells), as a host Image item.
-    weather: newWidgetItem({ module: "Weather" }, { x: 600, y: 384, w: 200, h: 96 }, "Weather"),
+    // On the cells COL 7 ROW 5 W 2 H 1 of the 8 x 5 grid (100 x 96 px cells), the host Image item their box.
+    weather: newWidgetItem({ module: "Weather", cell: { col: 7, row: 5, cols: 2, rows: 1 } }, { x: 600, y: 384, w: 200, h: 96 }, "Weather"),
   };
   return { profile, base, parts };
 }
@@ -98,7 +97,6 @@ function neonRig(order: (p: Parts) => DisplayItem[]): { profile: MonitorProfile;
   const page: ProfilePage = {
     id: "main",
     name: "Main",
-    layout: "free",
     placements: [{ id: "neon-canvas", module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 8, rowSpan: 5, visible: true, canvas }],
   };
   return { profile: { id: "neon", name: "Neon Rig", width: 800, height: 480, cols: 8, rows: 5, fit: "fill", gap: 0, padding: 0, madeFor: "infopanel", pages: [page] }, items };

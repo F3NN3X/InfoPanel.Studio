@@ -1,4 +1,5 @@
 import {
+  ITEM_ID,
   clonePlacement,
   uid,
   type MonitorProfile,
@@ -31,23 +32,48 @@ export function pageOf(profile: MonitorProfile, pageId?: string): ProfilePage {
   return profile.pages.find((p) => p.id === pageId) ?? profile.pages[0];
 }
 
-/** One page of a profile as a `ProfileView` (the profile minus `pages`). */
+/**
+ * One page of a profile as a `ProfileView` (the profile minus `pages`). Its zones are the grid's: the page's item
+ * placements (`ITEM_ID`, v15) aren't zones, so the grid editor and the kiosk grid never see them; `applyView` keeps them.
+ */
 export function profileWithPage(profile: MonitorProfile, pageId?: string): ProfileView {
   const { pages: _pages, ...rest } = profile;
   const page = pageOf(profile, pageId);
-  return { ...rest, placements: page.placements, pageId: page.id, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}) };
+  const zones = page.placements.some(isItem) ? page.placements.filter((p) => !isItem(p)) : page.placements;
+  return { ...rest, placements: zones, pageId: page.id, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}) };
+}
+
+const isItem = (p: Placement) => p.module === ITEM_ID;
+
+/**
+ * A page's zones replaced by `zones`, its item placements kept: each stays just above the zone it was above (the
+ * nearest one before it that is still there), so the z-order holds.
+ */
+export function withZones(stored: readonly Placement[], zones: Placement[]): Placement[] {
+  if (!stored.some(isItem)) return zones;
+  const kept = new Set(zones.map((z) => z.id));
+  const after = new Map<string | null, Placement[]>();
+  let anchor: string | null = null;
+  for (const p of stored) {
+    if (!isItem(p)) {
+      if (kept.has(p.id)) anchor = p.id;
+      continue;
+    }
+    after.set(anchor, [...(after.get(anchor) ?? []), p]);
+  }
+  return [...(after.get(null) ?? []), ...zones.flatMap((z) => [z, ...(after.get(z.id) ?? [])])];
 }
 
 /**
- * The view's profile fields back on the profile, its zones and page theme into its page. A change to the screen's
- * size or grid carries over to its Free pages (`fitFreePages`), so they stay Free.
+ * The view's profile fields back on the profile, its zones and page theme into its page (its item placements kept,
+ * `withZones`). A change to the screen's size or grid carries over to its Free pages (`fitFreePages`), so they stay Free.
  */
 export function applyView(profile: MonitorProfile, view: ProfileView): MonitorProfile {
   const { placements, pageId, pageTheme, ...rest } = view;
   const target = pageOf(profile, pageId).id;
   const onto = (p: ProfilePage): ProfilePage => {
     const { widgetTheme: _old, ...page } = p;
-    return { ...page, placements, ...(pageTheme ? { widgetTheme: pageTheme } : {}) };
+    return { ...page, placements: withZones(p.placements, placements), ...(pageTheme ? { widgetTheme: pageTheme } : {}) };
   };
   return fitFreePages(profile, {
     ...rest,

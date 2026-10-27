@@ -27,11 +27,12 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await expect(page.getByRole("tablist", { name: "Pages" })).toBeVisible();
       await expect(page.getByTestId("made-for")).toContainText("InfoPanel too");
     },
-    // The reference's NEON RIG has letter spacing (approximated); the schema has no such field yet, so all 8 parts export as is.
+    // NEON RIG has letter spacing (studio-only, v15 `$.letterSpacing`): approximated, every other part as is.
     [CHECKS.profile[3].text]: async (page) => {
-      await expect(page.getByTestId("export-pill")).toHaveText("Export check8 as is");
+      await expect(page.getByTestId("export-pill")).toHaveText("Export check7 as is1 approximated");
       await expect(page.getByTestId("canvas-badge")).toHaveCount(8);
-      await expect(page.locator('[data-testid="canvas-badge"][data-status="ok"]')).toHaveCount(8);
+      await expect(page.locator('[data-testid="canvas-badge"][data-status="ok"]')).toHaveCount(7);
+      await expect(page.locator('[data-testid="canvas-badge"][data-status="approx"]')).toHaveCount(1);
     },
   },
   export: {

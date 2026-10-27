@@ -3,15 +3,16 @@ import { profileGap, profilePadding, trackSize, zoneBox, type GridBox } from "./
 import type { StoredCanvas } from "./infopanel/import/stored";
 
 /**
- * Free pages (one-editor SPEC §3.1, §6): a page whose `layout` is "free" holds one canvas placement spanning the
- * grid, its canvas the screen's size. The kiosk draws it as any canvas zone, fitted into the grid's area. These
- * helpers keep that true while the screen changes, and give the grid's geometry the layout switch (page-layout.ts)
- * and the free areas made from Add work in. Light on purpose: the studio's first bundle and the kiosk load it.
+ * Free pages (one-editor SPEC §3.1, §6): a page that is one canvas placement spanning the grid, its canvas the
+ * screen's size (v15 keeps no flag; the shape says it, Edit v3 SPEC §3.4's canvas-backed page). The kiosk draws it
+ * as any canvas zone, fitted into the grid's area. These helpers keep that true while the screen changes, and give
+ * the grid's geometry the layout switch (page-layout.ts) and the free areas made from Add work in. Light on purpose:
+ * the studio's first bundle and the kiosk load it.
  */
 
-/** A page that is Free: its flag set and its one canvas placement filling the grid. */
-export function isFreePage(profile: Pick<MonitorProfile, "cols" | "rows">, page: Pick<ProfilePage, "layout" | "placements"> | undefined): boolean {
-  return page?.layout === "free" && freePlacementOf(profile, page) !== null;
+/** A page that is Free: its one placement a canvas filling the grid. */
+export function isFreePage(profile: Pick<MonitorProfile, "cols" | "rows">, page: Pick<ProfilePage, "placements"> | undefined): boolean {
+  return page !== undefined && freePlacementOf(profile, page) !== null;
 }
 
 /** A page's one placement when it is a canvas filling the grid, else null. */
@@ -63,7 +64,7 @@ export function fitFreePages(prev: Pick<MonitorProfile, "width" | "height" | "co
   if (!sized && prev.cols === next.cols && prev.rows === next.rows) return next;
   let changed = false;
   const pages = next.pages.map((page) => {
-    if (page.layout !== "free" || !freePlacementOf(prev, page)) return page;
+    if (!freePlacementOf(prev, page)) return page;
     const [zone] = page.placements;
     const canvas = sized && zone.canvas ? resizedCanvas(zone.canvas, next.width, next.height) : zone.canvas;
     if (zone.colSpan === next.cols && zone.rowSpan === next.rows && canvas === zone.canvas) return page;

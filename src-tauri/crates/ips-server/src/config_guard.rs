@@ -30,4 +30,13 @@ mod tests {
         assert!(version_refusal(r#"{"version":13}"#, &serde_json::json!({ "version": 14 })).is_none());
         assert!(version_refusal(r#"{"version":14}"#, &serde_json::json!({ "version": 14 })).is_none());
     }
+
+    // v15 (Edit v3: item placements, page groups, a canvas's cells): a v14 build would drop them on its next save.
+    #[test]
+    fn refuses_a_v14_save_over_a_v15_config() {
+        assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 14 })).is_some());
+        assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 13 })).is_some());
+        assert!(version_refusal(r#"{"version":14}"#, &serde_json::json!({ "version": 15 })).is_none());
+        assert!(version_refusal(r#"{"version":15}"#, &serde_json::json!({ "version": 15 })).is_none());
+    }
 }

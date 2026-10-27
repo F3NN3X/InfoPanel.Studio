@@ -3,7 +3,8 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Cast, Check, Copy, LayoutDashboard, LayoutPanelTop, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import type { PageLayout, ProfilePage } from "@/lib/layout";
+import type { MonitorProfile, PageLayout, ProfilePage } from "@/lib/layout";
+import { isFreePage } from "@/lib/free-pages";
 import { cn } from "@/lib/utils";
 import { LAYOUT_UI } from "./layout-control";
 import { pageIcon } from "./page-icons";
@@ -31,6 +32,8 @@ interface PageTabsProps {
   onPageSettings: (id: string) => void;
   /** Layout ▸ Grid / Free (one-editor SPEC §6): switch the page; unset hides the submenu. */
   onLayout?: (id: string, layout: PageLayout) => void;
+  /** The screen's columns and rows: a page that is one canvas spanning them is Free. */
+  grid: Pick<MonitorProfile, "cols" | "rows">;
   /** At the end of the row: the screen's Made for, then the Export check pill (made for InfoPanel) or the Studio note. */
   extra?: ReactNode;
   /** The page being renamed inline (the palette asks for this too). */
@@ -57,8 +60,8 @@ export function dropIndex(rects: { left: number; width: number }[], from: number
   return rects.filter((r, i) => i !== from && r.left + r.width / 2 < x).length;
 }
 
-/** A page's layout: Free only when it says so (`normalizePages` and `fitFreePages` keep the flag true). */
-export const layoutOf = (page: Pick<ProfilePage, "layout">): PageLayout => (page.layout === "free" ? "free" : "grid");
+/** A page's layout: Free when it is one canvas filling the screen's grid (v15 keeps no flag, `isFreePage`). */
+export const layoutOf = (grid: Pick<MonitorProfile, "cols" | "rows">, page: Pick<ProfilePage, "placements">): PageLayout => (isFreePage(grid, page) ? "free" : "grid");
 
 /** The rows of a page's menu; Delete is off on the only page, and Layout ▸ shows when the page can switch. */
 export function pageMenuEntries(
@@ -144,6 +147,7 @@ function DeleteDialog({
  */
 export function PageTabs({
   pages,
+  grid,
   current,
   onSelect,
   onAdd,
@@ -208,7 +212,7 @@ export function PageTabs({
         settings: () => onPageSettings(id),
         ...(onLayout ? { layout: (to: PageLayout) => onLayout(id, to) } : {}),
       },
-      page ? layoutOf(page) : "grid",
+      page ? layoutOf(grid, page) : "grid",
     );
   };
 

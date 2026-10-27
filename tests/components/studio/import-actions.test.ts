@@ -35,9 +35,11 @@ describe("importAsProfile", () => {
     const p = out.profiles.find((x) => x.id === profileId)!;
     expect(out.activeProfile).toBe(profileId);
     expect(out.profiles).toHaveLength(2);
-    expect(p).toMatchObject({ name: "Arc", width: 1920, height: 550, cols: 2, rows: 1, fit: "fill" });
+    // Edit v3 SPEC §3.7: cells of about 100 px (1920 / 100, 550 / 100 rounded), no gap or padding.
+    expect(p).toMatchObject({ name: "Arc", width: 1920, height: 550, cols: 19, rows: 6, gap: 0, padding: 0, fit: "fill" });
+    expect(p.pages[0]).not.toHaveProperty("layout");
     expect(p.pages[0].placements).toEqual([
-      { id: zoneId, module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true, canvas: canvas() },
+      { id: zoneId, module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 19, rowSpan: 6, visible: true, canvas: canvas() },
     ]);
     expect(before.profiles).toHaveLength(1);
   });
@@ -52,7 +54,8 @@ describe("importAsProfile", () => {
     const { config: out, profileId } = importAsProfile(config(), canvas(), "Arc", { width: 1920, height: 550 });
     const back = mergeConfig(JSON.parse(JSON.stringify(out)));
     const p = back.profiles.find((x) => x.id === profileId)!;
-    expect(p.pages[0].placements[0]).toMatchObject({ module: CANVAS_ID, colSpan: 2, rowSpan: 1, canvas: canvas() });
+    expect(p.pages[0].placements[0]).toMatchObject({ module: CANVAS_ID, colSpan: 19, rowSpan: 6, canvas: canvas() });
+    expect(back.profiles.find((x) => x.id === profileId)).toEqual(out.profiles.find((x) => x.id === profileId));
   });
 });
 

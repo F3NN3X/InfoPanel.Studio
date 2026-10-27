@@ -57,7 +57,25 @@ export interface ItemImport {
   widget?: WidgetItem;
   /** A free area a Grid → Free switch turned into this Group (`lib/page-layout.ts`): only on a Group. */
   area?: AreaRecord;
+  /**
+   * The cells an item placed on the page's grid sits on (Edit v3 SPEC §3.4); unset = placed freely, at its X / Y.
+   * Never on a Group, which has no box of its own.
+   */
+  cell?: CellBox;
+  /** A text item's letter spacing in px (SPEC §10.5): drawn on Studio panels, dropped on InfoPanel export. */
+  letterSpacing?: number;
 }
+
+/** A box on the page's grid: its first column and row (1-based) and how many it spans. */
+export interface CellBox {
+  col: number;
+  row: number;
+  cols: number;
+  rows: number;
+}
+
+/** The item kinds that draw text, the ones a letter spacing applies to. */
+export const TEXT_KINDS: ReadonlySet<string> = new Set(["Text", "Clock", "Calendar", "Sensor"]);
 
 /**
  * What a free area (a canvas zone on a grid page) was, kept on the Group a switch to Free made of it, so a switch
@@ -97,6 +115,8 @@ export interface WidgetItem {
   panel?: Record<string, unknown>;
   /** What an InfoPanel export makes of it; unset = the first of `choicesFor(tierOf(module))`. */
   onInfoPanel?: NativeChoice;
+  /** The cells it sits on (Edit v3 SPEC §3.6); the Image's X / Y / Width / Height are their box, kept in step. */
+  cell?: CellBox;
 }
 
 // Here rather than in native/widget-item.ts, so the kiosk draws widget items without loading the export tiers.
@@ -189,9 +209,12 @@ function encodeFields(schema: Schema, obj: Record<string, unknown>): Record<stri
   return out;
 }
 
-/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots, widget, area), as `$`. */
+/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots, widget, area, cell, letterSpacing), as `$`. */
 function labImport(item: DisplayItem): ItemImport {
-  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string; slots?: Record<string, SlotRef>; widget?: WidgetItem; area?: AreaRecord };
+  const lab = item as {
+    native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string;
+    slots?: Record<string, SlotRef>; widget?: WidgetItem; area?: AreaRecord; cell?: CellBox; letterSpacing?: number;
+  };
   return {
     ...(lab.native ? { mode: "native" as const } : {}),
     ...(lab.vector !== undefined ? { vector: normalizeGauge(lab.vector) } : {}),
@@ -202,6 +225,8 @@ function labImport(item: DisplayItem): ItemImport {
     ...(lab.slots && Object.keys(lab.slots).length ? { slots: lab.slots } : {}),
     ...(lab.widget ? { widget: lab.widget } : {}),
     ...(lab.area ? { area: lab.area } : {}),
+    ...(lab.cell ? { cell: lab.cell } : {}),
+    ...(typeof lab.letterSpacing === "number" && lab.letterSpacing !== 0 ? { letterSpacing: lab.letterSpacing } : {}),
   };
 }
 
@@ -391,6 +416,7 @@ export function decodeWidget(raw: unknown): WidgetItem | null {
   const follow = Object.fromEntries(Object.entries(obj(o.follow) ?? {}).filter(([k, v]) => SECTION_ID.test(k) && typeof v === "boolean")) as Record<string, boolean>;
   const panel = obj(o.panel);
   const panelOk = panel !== null && Array.isArray(panel.widgets) && JSON.stringify(panel).length <= MAX_PANEL_JSON;
+  const cell = decodeCell(o.cell);
   return {
     module: o.module,
     ...(typeof o.id === "string" && /^[\w:.-]{1,200}$/.test(o.id) ? { id: o.id } : {}),
@@ -399,8 +425,23 @@ export function decodeWidget(raw: unknown): WidgetItem | null {
     ...(Object.keys(follow).length ? { follow } : {}),
     ...(panelOk ? { panel } : {}),
     ...(CHOICES.includes(o.onInfoPanel as NativeChoice) ? { onInfoPanel: o.onInfoPanel as NativeChoice } : {}),
+    ...(cell ? { cell } : {}),
   };
 }
+
+/** The most columns or rows a stored cell box may name. */
+const MAX_CELLS = 1000;
+
+/** A stored cell box: whole numbers, starting at 1, spanning at least one cell; null otherwise. */
+export function decodeCell(raw: unknown): CellBox | null {
+  const o = obj(raw);
+  const whole = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_CELLS;
+  if (!o || !whole(o.col) || !whole(o.row) || !whole(o.cols) || !whole(o.rows)) return null;
+  return { col: o.col, row: o.row, cols: o.cols, rows: o.rows };
+}
+
+/** The largest letter spacing a text item stores, either way (px). */
+export const MAX_LETTER_SPACING = 200;
 
 function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, value: unknown) => void): ItemImport {
   const o = obj(raw) ?? {};
@@ -418,6 +459,12 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
   // A free area's record only on a Group, the one a switch to Free made.
   const area = o.area !== undefined && kind === "Group" ? decodeArea(o.area) : null;
   if (o.area !== undefined && !area) report("$.area", o.area);
+  // Cells on any item with a box of its own (not a Group); a letter spacing on a text item only.
+  const cell = o.cell !== undefined && kind !== "Group" ? decodeCell(o.cell) : null;
+  if (o.cell !== undefined && !cell) report("$.cell", o.cell);
+  const spacing = o.letterSpacing;
+  const letterSpacing = TEXT_KINDS.has(kind) && typeof spacing === "number" && Number.isFinite(spacing) && spacing !== 0 && Math.abs(spacing) <= MAX_LETTER_SPACING ? spacing : undefined;
+  if (spacing !== undefined && letterSpacing === undefined) report("$.letterSpacing", spacing);
   const via = typeof o.via === "string" && ["exact", "name", "suggested", "chosen", "unbound", "unresolved"].includes(o.via) ? (o.via as Status) : undefined;
   return {
     ...(o.mode === "native" ? { mode: "native" as const } : {}),
@@ -432,6 +479,8 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
     ...(slots && Object.keys(slots).length ? { slots } : {}),
     ...(widget ? { widget } : {}),
     ...(area ? { area } : {}),
+    ...(cell ? { cell } : {}),
+    ...(letterSpacing !== undefined ? { letterSpacing } : {}),
   };
 }
 
@@ -472,6 +521,8 @@ function decodeItem(raw: unknown, path: string, issues: Issue[], depth: number, 
   if ($.slots) item.slots = $.slots;
   if ($.widget) item.widget = $.widget;
   if ($.area) item.area = $.area;
+  if ($.cell) item.cell = $.cell;
+  if ($.letterSpacing !== undefined) item.letterSpacing = $.letterSpacing;
   const rec = importRecord($);
   return { ...(item as unknown as DisplayItem), ...(rec ? { $import: rec } : {}) };
 }

@@ -28,7 +28,7 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { setApiBase } from "@/lib/data-api";
 import { useStudioFocusThrottle } from "@/lib/studio-focus";
 import { wakeTicker } from "@/lib/ticker";
-import { closeWindow, flushDone, isTauri, kioskWindow, onKioskLeft, onStudioFlush, openKioskPopup } from "@/lib/desktop";
+import { closeWindow, flushDone, isTauri, kioskWindow, logFrontend, onKioskLeft, onStudioFlush, openKioskPopup } from "@/lib/desktop";
 import { KioskStrip } from "@/components/kiosk-strip";
 import type { Fixture } from "@/dev/fixtures/types";
 import { editedProfileId, readPin, writePin } from "@/components/studio/pinned-profile";
@@ -56,7 +56,8 @@ import {
   SCROLL_ROW_H,
   type DashboardConfig,
 } from "@/lib/layout";
-import { profileWithPage } from "@/lib/pages";
+import { pageOf, profileWithPage } from "@/lib/pages";
+import { withItemLayers } from "@/lib/page-model/items-layer";
 import {
   kioskPageId,
   kioskProfileId,
@@ -183,6 +184,8 @@ export default function App({ fixture }: AppProps = {}) {
     () => profileWithPage(stored, studio ? studioPage : kioskPage),
     [stored, studio, studioPage, kioskPage]
   );
+  // The zones in z-order with the page's InfoPanel items (v15 item placements) drawn between them.
+  const drawn = useMemo(() => withItemLayers(profile, pageOf(stored, profile.pageId), profile.placements), [profile, stored]);
   // The shown page's widget kinds load together once the profile is known; its other pages' follow when idle.
   useWidgetPreload(stored, profile.pageId, modules, !kiosk || kioskPulled);
   // The page can vanish (delete, undo, another profile): the view fell back to the first one.
@@ -274,7 +277,9 @@ export default function App({ fixture }: AppProps = {}) {
       .then((server) => {
         if (!alive) return;
         if (server) {
-          const merged = withPinnedProfile(mergeConfig(server));
+          const log: string[] = [];
+          const merged = withPinnedProfile(mergeConfig(server, log));
+          logMigration(log);
           // Before the render that mounts its widgets: their effects run before ours.
           setApiBase(merged.dataApiUrl);
           saveConfig(merged);
@@ -726,7 +731,7 @@ export default function App({ fixture }: AppProps = {}) {
               : `repeat(${profile.rows}, ${SCROLL_ROW_H}px)`,
           }}
         >
-          {profile.placements
+          {drawn
             .filter((p) => p.visible)
             .map((p) => (
               <LivePlacement key={p.id} placement={p} appearance={appearance}>
@@ -790,6 +795,14 @@ export default function App({ fixture }: AppProps = {}) {
     </PerformanceProvider>
     </GeneralProvider>
   );
+}
+
+/** The migration log (`mergeConfig`'s v15 step): each conversion, in the console and the desktop app's log. */
+function logMigration(lines: readonly string[]) {
+  if (lines.length === 0) return;
+  const text = `Screens updated for this version:\n${lines.join("\n")}`;
+  console.warn(text);
+  void logFrontend("warn", text).catch(() => {});
 }
 
 /** Kiosk dim (Stream Deck): a black veil over the page and island, under the alerts. Stays mounted at opacity 0 so it fades both ways. */

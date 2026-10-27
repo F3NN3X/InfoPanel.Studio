@@ -21,13 +21,14 @@ import { BINDING_IDS, ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/com
 import type { FieldsApi } from "@/components/studio/settings-panel";
 import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
-import { studioOnlyOf, type CheckRow } from "@/lib/infopanel/export-check";
+import { itemLooksOf, studioOnlyOf, type CheckRow } from "@/lib/infopanel/export-check";
+import { MAX_LETTER_SPACING, TEXT_KINDS } from "@/lib/infopanel/import/stored";
 import { OnInfoPanelSection } from "@/components/studio/inspector/on-infopanel-section";
 import { useExportCheck } from "../export-check-panel";
 import { ELEMENTS, gradientBar } from "@/lib/infopanel/elements/create";
 import { describeNative } from "../native";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
-import { ElementPanel } from "./element-panel";
+import { ElementPanel, NumberField } from "./element-panel";
 import { valueText } from "../remap-panel";
 import { Segmented } from "./canvas-toolbar";
 import { kindIcon } from "./items-tree";
@@ -134,6 +135,27 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
 
   const parts = (s: InspectorSection): SectionParts => {
     if (s.id === "ip-sensor") return { top: <BindingReadout item={item} />, bottom: errorsOf(s) };
+    if (s.id === "ip-text" && TEXT_KINDS.has(item.kind)) {
+      const spacing = (item as { letterSpacing?: number }).letterSpacing ?? 0;
+      return {
+        bottom: (
+          <>
+            {errorsOf(s)}
+            <div className="px-4 pb-2">
+              <NumberField
+                label="Letter spacing"
+                value={spacing}
+                approx={check.on && spacing !== 0}
+                onCommit={(n) => {
+                  const v = Math.max(-MAX_LETTER_SPACING, Math.min(MAX_LETTER_SPACING, n));
+                  if (v !== spacing) editor.setField(path, "letterSpacing", v === 0 ? undefined : v, editKey("letterSpacing"));
+                }}
+              />
+            </div>
+          </>
+        ),
+      };
+    }
     switch (s.special) {
       case "ipElement":
         return {
@@ -229,15 +251,21 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
 /** On InfoPanel (one-editor SPEC §5.5): the part's Export check status, and per studio-only look what InfoPanel shows instead. */
 function OnInfoPanel({ row, item }: { row: CheckRow; item: DisplayItem }) {
   const looks = studioOnlyOf(item);
+  const own = itemLooksOf(item);
   return (
     <OnInfoPanelSection row={row}>
       <ul className="space-y-0.5">
-        {looks.length > 0 ? (
-          looks.map(({ field }) => (
-            <li key={field.key}>
-              {field.label} shows on Studio panels; on InfoPanel it {field.fate ?? "is dropped"}.
-            </li>
-          ))
+        {looks.length + own.length > 0 ? (
+          <>
+            {looks.map(({ field }) => (
+              <li key={field.key}>
+                {field.label} shows on Studio panels; on InfoPanel it {field.fate ?? "is dropped"}.
+              </li>
+            ))}
+            {own.map(({ field }) => (
+              <li key={field.key}>{field.label} stays on Studio panels; InfoPanel shows the text without it.</li>
+            ))}
+          </>
         ) : (
           <li>{row.why.replace(/\.?$/, ".")}</li>
         )}
