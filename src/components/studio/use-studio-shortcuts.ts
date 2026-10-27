@@ -241,6 +241,19 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
     ],
   },
   {
+    title: "Selected InfoPanel items",
+    items: [
+      { keys: "Alt+drag", label: "Place freely, to the pixel (widgets stay on the cells)" },
+      { keys: "Alt+Arrows", label: "Nudge 1 px, then placed freely (a widget moves one cell)" },
+      { keys: "Alt+Shift+Arrows", label: "Nudge 10 px" },
+      { keys: "Ctrl+] / Ctrl+[", label: "Bring forward / send backward" },
+      { keys: "Ctrl+Shift+] / Ctrl+Shift+[", label: "Bring to front / send to back" },
+      { keys: "Ctrl+G / Ctrl+Shift+G", label: "Group / ungroup" },
+      { keys: "Ctrl+L", label: "Lock" },
+      { keys: "Ctrl+H", label: "Hide" },
+    ],
+  },
+  {
     title: "Selected panel widget",
     items: [
       { keys: "Click / double-click", label: "Select a widget in the zone" },

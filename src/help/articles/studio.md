@@ -80,6 +80,34 @@ Nothing is lost either way. Settings, sensors and each widget's On InfoPanel cho
 
 The **Made for** button at the right of the page strip says who the screen is for. **Studio panels** is for screens shown by Studio. **InfoPanel too** also checks what would export to the InfoPanel app: the **Export check** pill appears after it, every part on the canvas gets a mark with its status, and the inspector shows each one's **On InfoPanel** line. On a Grid page the check lists every zone and says the page is converted when you export; **Review conversion…** and **Export .infopanel** open the conversion with each widget's choice already set. A change is one undo step. Imported InfoPanel profiles start as **InfoPanel too**, other screens as **Studio panels**.
 
+## InfoPanel items on a page
+
+A grid page can hold InfoPanel items and elements on top of its widgets, for example the ones of a page that was Free in an earlier version. Click one on the canvas to select it; `Shift` or `Ctrl`+click adds to the selection.
+
+- Drag it and it snaps to the cells. Hold `Alt` while you drag to place it to the pixel, on top of a widget if you like: the cell lines fade, a hint says **Placing freely**, a readout under the item shows its X, Y, W and H, and a dashed box marks where it started. Press or release `Alt` during the drag to switch.
+- Drag a handle to resize it, the same way.
+- Widgets always sit on the cells and never on another widget. With `Alt` held, a widget's drag says **Widgets always sit on the grid**.
+- On Linux, use `Ctrl+Alt` if the window manager takes `Alt`+drag. On a Mac, `Alt` is `Option`.
+
+The zoom bar says how parts snap. A drag is one undo step.
+
+:::keys
+Arrows — Move one cell (an item placed freely moves a cell's width)
+Alt+Arrows — Nudge an item 1 px; it's then placed freely. A widget moves one cell
+Alt+Shift+Arrows — Nudge an item 10 px
+Shift+Arrows — Make it a cell wider, narrower, taller or shorter
+Ctrl+] / Ctrl+[ — Bring forward / send backward
+Ctrl+Shift+] / Ctrl+Shift+[ — Bring to front / send to back
+Ctrl+G / Ctrl+Shift+G — Group / ungroup
+Ctrl+L — Lock
+Ctrl+H — Hide
+Ctrl+D — Duplicate
+Del — Delete
+Esc — Clear the selection
+:::
+
+On a screen made for InfoPanel, each item has its Export check mark, and **Convert screen to InfoPanel profile** takes the items as the items they are, at the same place and in the same order. Hidden items, and items in a hidden group, stay out, as on the kiosk.
+
 ## Inspector
 
 The settings for whatever is selected. Where it sits depends on the width of the window, and there is no setting for it:
