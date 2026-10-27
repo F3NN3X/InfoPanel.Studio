@@ -3,7 +3,7 @@ id: updates
 title: Updates
 icon: system_update
 related: [startup, kiosk]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
 Get new versions, and see what changed.
@@ -15,6 +15,8 @@ Settings › App › Updates checks for a new version, downloads it and installs
 | **Release channel** | **Stable**, or **Beta** to get features a few weeks early |
 | **Check for updates at startup** | Look for updates each time the app starts |
 | **Download in the background** | Download automatically; install on the next restart |
+
+On Stable, a note appears under the update card when a beta newer than your version exists. It names the version and has **Switch to Beta and check**. Stable itself never downloads a beta. If the beta list can't be read, the note doesn't show.
 
 :::open settings/updates Settings › App › Updates
 

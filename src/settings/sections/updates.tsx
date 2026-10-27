@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BadgeCheck, CircleAlert, Download, RefreshCw, RotateCw, Sparkles, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
-import { updateCard, type UpdateAction, type UpdateIcon } from "../model/cards";
+import { betaNotice, updateCard, type UpdateAction, type UpdateIcon } from "../model/cards";
 import { useStore } from "../store";
 import type { Channel } from "../types";
 import { Button, Card, HeroCard, Row, Segmented, StateTile, SwitchRow } from "../ui";
@@ -31,6 +31,7 @@ export function UpdatesSection() {
   const now = useNow(30_000);
   const card = updateCard(update, now);
   const Icon = ICONS[card.icon];
+  const beta = betaNotice(update, settings.updateChannel);
 
   const run = async (action: UpdateAction) => {
     try {
@@ -66,6 +67,16 @@ export function UpdatesSection() {
           </Button>
         </div>
       </HeroCard>
+
+      {beta && (
+        <div id="beta-notice" className="flex flex-wrap items-center gap-3 rounded-xl border border-s-card-line px-[18px] py-3">
+          <div className="flex min-w-[140px] flex-1 flex-col gap-[3px]">
+            <span className="text-sm font-medium">A newer beta is available</span>
+            <span className="text-[12.5px] leading-[1.45] text-s-muted">Version {beta} is on the Beta channel. Stable stays as it is unless you switch.</span>
+          </div>
+          <Button onClick={() => void save("updateChannel", "beta")}>Switch to Beta and check</Button>
+        </div>
+      )}
 
       <Card>
         <Row id="channel" label="Release channel" hint="Beta gets features a few weeks early.">

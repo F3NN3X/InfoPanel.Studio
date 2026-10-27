@@ -6,6 +6,15 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **A note when a newer beta exists.** On the Stable channel, Settings › Updates shows the newest beta's version when it is newer than yours and than Stable's own, with **Switch to Beta and check**. Stable still never downloads a beta.
+- **Widget QA link in Diagnostics.** Settings › Diagnostics opens the widget QA page in your browser.
+
+### Fixed
+
+- **`?widget-qa&settings=` opened the Settings window** instead of the QA page.
+
 ## [1.3.0-beta.35] - 2026-10-27
 
 ### Changed

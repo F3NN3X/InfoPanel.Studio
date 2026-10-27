@@ -1919,6 +1919,7 @@ dependencies = [
  "ips-agent",
  "ips-server",
  "log",
+ "semver",
  "serde",
  "serde_json",
  "sysinfo",

@@ -64,6 +64,9 @@ pub struct UpdateState {
     pub total: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// On Stable: a beta newer than the running version and than Stable's own offer.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub newer_beta: Option<String>,
 }
 
 /// What a check found.
@@ -86,6 +89,7 @@ impl UpdateState {
             downloaded: None,
             total: None,
             error: None,
+            newer_beta: None,
         }
     }
 
@@ -246,6 +250,7 @@ impl Flow {
         if !same {
             self.bytes = None;
             self.has_update = false;
+            self.state.newer_beta = None;
         }
         self.check_id += 1;
         self.checking = Some(channel);
@@ -413,6 +418,23 @@ fn found(update: &Update) -> Found {
     }
 }
 
+/// The beta to point a Stable user at: the Beta feed's version when it is newer than the running
+/// one and than Stable's own offer. Nothing on Beta, or when the feed could not be read.
+fn newer_beta(
+    channel: Channel,
+    current: &str,
+    stable_offer: Option<&str>,
+    beta: Result<Option<&str>, String>,
+) -> Option<String> {
+    if channel != Channel::Stable {
+        return None;
+    }
+    let beta = beta.ok().flatten()?;
+    let beta_v = semver::Version::parse(beta).ok()?;
+    let newer_than = |other: &str| semver::Version::parse(other).map_or(true, |v| beta_v > v);
+    (newer_than(current) && stable_offer.is_none_or(newer_than)).then(|| beta.to_string())
+}
+
 async fn fetch(app: &AppHandle, channel: Channel) -> Result<Option<Update>, String> {
     let url = Url::parse(feed(channel)).map_err(|e| e.to_string())?;
     app.updater_builder()
@@ -462,6 +484,28 @@ pub async fn check(app: &AppHandle) -> UpdateState {
             }
         }
     });
+    let state = if channel == Channel::Stable && state.error.is_none() {
+        let offer = state.version.clone();
+        let beta = fetch(app, Channel::Beta).await;
+        let beta = beta
+            .as_ref()
+            .map(|u| u.as_ref().map(|u| u.version.as_str()));
+        let notice = newer_beta(
+            channel,
+            &state.current_version,
+            offer.as_deref(),
+            beta.map_err(Clone::clone),
+        );
+        change(app, |inner| {
+            // A channel switched meanwhile has its own check; its answer stands.
+            if inner.flow.channel == Some(channel) {
+                inner.flow.state.newer_beta = notice;
+            }
+        })
+        .1
+    } else {
+        state
+    };
     if state.state == Phase::Available && s.auto_download {
         return download(app);
     }
@@ -681,6 +725,90 @@ mod tests {
         assert!(!t.ready(t0 + Duration::from_millis(50)));
         assert!(t.ready(t0 + Duration::from_millis(100)));
         assert!(!t.ready(t0 + Duration::from_millis(150)));
+    }
+
+    #[test]
+    fn a_newer_beta_is_offered_on_stable_only() {
+        let beta = |v: &'static str| Ok(Some(v));
+        let n = |ch, cur, offer, b| newer_beta(ch, cur, offer, b);
+        let some = |v: &str| Some(v.to_string());
+        // Stable, beta ahead of the running version and of Stable's offer.
+        assert_eq!(
+            n(
+                Channel::Stable,
+                "1.3.0-beta.34",
+                None,
+                beta("1.3.0-beta.35")
+            ),
+            some("1.3.0-beta.35")
+        );
+        assert_eq!(
+            n(
+                Channel::Stable,
+                "1.2.0",
+                Some("1.2.1"),
+                beta("1.3.0-beta.1")
+            ),
+            some("1.3.0-beta.1")
+        );
+        // Prerelease order: beta.9 < beta.10 < 1.3.0.
+        assert_eq!(
+            n(Channel::Stable, "1.3.0-beta.9", None, beta("1.3.0-beta.10")),
+            some("1.3.0-beta.10")
+        );
+        assert_eq!(
+            n(Channel::Stable, "1.3.0-beta.10", None, beta("1.3.0-beta.9")),
+            None
+        );
+        assert_eq!(
+            n(
+                Channel::Stable,
+                "1.2.0",
+                Some("1.3.0"),
+                beta("1.3.0-beta.40")
+            ),
+            None
+        );
+        // Not newer than the running version.
+        assert_eq!(
+            n(
+                Channel::Stable,
+                "1.3.0-beta.35",
+                None,
+                beta("1.3.0-beta.35")
+            ),
+            None
+        );
+        assert_eq!(
+            n(Channel::Stable, "1.3.0", None, beta("1.3.0-beta.35")),
+            None
+        );
+        // Beta channel, no beta, a feed error or a version that does not parse.
+        assert_eq!(
+            n(Channel::Beta, "1.3.0-beta.34", None, beta("1.3.0-beta.35")),
+            None
+        );
+        assert_eq!(n(Channel::Stable, "1.2.0", None, Ok(None)), None);
+        assert_eq!(
+            n(Channel::Stable, "1.2.0", None, Err("offline".into())),
+            None
+        );
+        assert_eq!(
+            n(Channel::Stable, "1.2.0", None, beta("not a version")),
+            None
+        );
+    }
+
+    #[test]
+    fn the_notice_serializes_and_a_channel_switch_clears_it() {
+        let mut flow = Flow::new("1.3.0-beta.34");
+        flow.state.newer_beta = Some("1.3.0-beta.35".into());
+        assert_eq!(
+            serde_json::to_value(&flow.state).unwrap()["newerBeta"],
+            "1.3.0-beta.35"
+        );
+        flow.begin_check(Channel::Beta);
+        assert_eq!(flow.state.newer_beta, None);
     }
 
     #[test]
