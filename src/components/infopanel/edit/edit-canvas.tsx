@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent } from "react";
 import type { Appearance } from "@/lib/style-resolve";
+import type { PageGrid } from "@/lib/page-model/model";
 import { DND_MIME, DND_MIME_PANEL, DND_MIME_SETTINGS } from "@/components/studio/studio-modules";
 import { withDroppedImage, type DropPlace } from "@/lib/infopanel/canvas-edit";
 import { profilePoint } from "@/lib/infopanel/editor/arrange";
@@ -25,6 +26,7 @@ import type { SensorMap } from "@/modules/types";
 import { RulerLabels } from "@/components/studio/rulers";
 import { stepZoom } from "@/components/studio/studio-layout";
 import { ZoomToolbar } from "@/components/studio/zoom-toolbar";
+import { AltHint } from "@/components/studio/alt-hint";
 import { useNow, widgetDrawer } from "../CanvasZone";
 import { nativeLayer } from "../native";
 import { useSuppliedFonts, withSupplied } from "../supplied-fonts";
@@ -66,6 +68,10 @@ interface EditCanvasProps {
   widgets?: { sensors: SensorMap; appearance?: Appearance; scope?: CSSProperties };
   /** A Studio widget dragged from the Add panel and dropped: its module, the settings its view adds, and the point. */
   onPlaceWidget?: (drop: WidgetDrop, at: { x: number; y: number }) => void;
+  /** The page's grid over the profile (an imported profile, Edit v3 SPEC §3.7): its cells, and where widgets sit. */
+  grid?: PageGrid;
+  /** Items snap while dragging (the page's Snap items); unset = true. */
+  snapItems?: boolean;
 }
 
 /** What a widget dragged from the Add panel carries. */
@@ -90,7 +96,7 @@ export function widgetDropOf(get: (type: string) => string): WidgetDrop | null {
   }
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings, widgets, onPlaceWidget }: EditCanvasProps) {
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings, widgets, onPlaceWidget, grid, snapItems }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -110,6 +116,8 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
   const [zoom, setZoom] = useState<number | null>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [showRulers, setShowRulers] = useState(true);
+  /** A drag holding Alt (Edit v3 SPEC §7.3): the hint at the top of the canvas. */
+  const [altHint, setAltHint] = useState<{ widget: boolean } | null>(null);
   const scale = zoom ?? fitScale(profile, w - 2 * PAD, h - 2 * PAD);
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
@@ -191,6 +199,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
         onDrop={onDrop}
         className="relative min-h-0 flex-1 overflow-hidden bg-ui-app"
       >
+        {altHint && <AltHint widget={altHint.widget} className="absolute left-1/2 top-3 z-40 -translate-x-1/2" />}
         {w > 0 && h > 0 && (
           <div
             style={{
@@ -224,7 +233,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
                   />
                 ) : null
               }
-              controls={<EditLayer editor={editor} profileWidth={profile.Width} profileHeight={profile.Height} showModes={showModes} />}
+              controls={<EditLayer editor={editor} profileWidth={profile.Width} profileHeight={profile.Height} showModes={showModes} grid={grid} snapItems={snapItems} onAltDrag={setAltHint} />}
             />
           </div>
         )}
@@ -241,6 +250,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
           onOpenProfile={onOpenSettings}
           sizeTitle="Profile size, background and fonts"
           bottom={4}
+          snapItems={grid ? snapItems !== false : undefined}
         />
       </div>
     </div>

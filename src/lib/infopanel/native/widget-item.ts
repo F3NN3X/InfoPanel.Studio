@@ -29,6 +29,14 @@ export function newWidgetItem(widget: WidgetItem, box: Rect, name: string): Disp
   } as DisplayItem;
 }
 
+/** A widget item moved onto cells: its box the cells' `box` (InfoPanel's X / Y / size), its record's `cell` set. */
+export function widgetOnCell(item: DisplayItem, cell: NonNullable<WidgetItem["cell"]>, box: Rect): DisplayItem {
+  const widget = widgetOf(item);
+  if (!widget) return item;
+  if (item.kind !== "Image") return item;
+  return { ...item, X: Math.round(box.x), Y: Math.round(box.y), Width: Math.max(1, Math.round(box.w)), Height: Math.max(1, Math.round(box.h)), widget: { ...widget, cell } } as DisplayItem;
+}
+
 /** The item with its widget record replaced; any other item as it is. */
 export function withWidget(item: DisplayItem, widget: WidgetItem): DisplayItem {
   return item.kind === "Image" ? ({ ...item, widget } as DisplayItem) : item;

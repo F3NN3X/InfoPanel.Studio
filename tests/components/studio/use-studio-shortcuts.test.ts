@@ -88,6 +88,15 @@ describe("shortcutAction", () => {
   });
 });
 
+describe("Alt+Arrows on a zone (Edit v3 SPEC §14)", () => {
+  it("move a widget one cell, with Shift too; a panel widget keeps Alt+↑ / ↓ for its order", () => {
+    expect(shortcutAction(key("ArrowLeft", { altKey: true }), IDLE)).toEqual({ type: "nudge", cols: -1, rows: 0 });
+    expect(shortcutAction(key("ArrowDown", { altKey: true, shiftKey: true }), IDLE)).toEqual({ type: "nudge", cols: 0, rows: 1 });
+    expect(shortcutAction(key("ArrowUp", { altKey: true }), { ...IDLE, widget: true })).toEqual({ type: "widget-move", delta: -1 });
+    expect(shortcutAction(key("ArrowLeft", { altKey: true }), TYPING)).toBeNull();
+  });
+});
+
 describe("shortcutAction guards", () => {
   it("leaves Esc and undo / redo to a text field while typing", () => {
     expect(shortcutAction(key("Escape"), TYPING)).toBeNull();

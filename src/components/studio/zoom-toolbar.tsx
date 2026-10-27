@@ -27,6 +27,8 @@ interface ZoomToolbarProps {
   bottom?: number;
   /** The Design preview data (a `Frozen` chip while frozen); none outside Design. */
   preview?: PreviewDataState;
+  /** The page's Snap items (Edit v3 SPEC §7.2): the bar says how parts snap; unset outside Edit. */
+  snapItems?: boolean;
 }
 
 const BAR_BUTTON = "h-7 w-7 rounded-md hover:bg-[#24242a]";
@@ -55,6 +57,7 @@ export function ZoomToolbar({
   sizeTitle = "Screen size, grid and spacing: open Screens",
   bottom,
   preview,
+  snapItems,
 }: ZoomToolbarProps) {
   return (
     <div
@@ -102,6 +105,14 @@ export function ZoomToolbar({
       >
         {profile.width}×{profile.height} ↗
       </button>
+      {snapItems !== undefined && (
+        <>
+          <Divider />
+          <span data-testid="snap-label" className="px-2 text-[11.5px] text-ui-3">
+            {snapItems ? "Snap: cells · Alt frees items" : "Items: free · widgets: cells"}
+          </span>
+        </>
+      )}
       {preview?.frozen && <FrozenChip preview={preview} />}
     </div>
   );

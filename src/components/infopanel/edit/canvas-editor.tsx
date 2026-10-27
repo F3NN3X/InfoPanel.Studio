@@ -25,7 +25,7 @@ import { detectCores } from "@/lib/infopanel/elements/cores";
 import { detectDrives } from "@/lib/infopanel/elements/drives";
 import { elementSize, isComposite, newComposite, newCores, newElement, type ElementEntry } from "@/lib/infopanel/elements/create";
 import type { DropPlace } from "@/lib/infopanel/canvas-edit";
-import { itemAt } from "@/lib/infopanel/editor/ops";
+import { itemAt, setBox } from "@/lib/infopanel/editor/ops";
 import type { Placement } from "@/lib/layout";
 import { filterCounts, remapRows, resolveAll } from "@/lib/infopanel/remap/remap";
 import { keptScreenshot } from "@/lib/infopanel/canvas";
@@ -53,6 +53,10 @@ import { deletePanelPreset, renamePanelPreset } from "@/components/studio/panel-
 import { mergePrefixes, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
 import { widgetItemRow, type CheckStatus } from "@/lib/infopanel/export-check";
 import { isWidgetItem, newWidgetItem, widgetOf, widgetPaths } from "@/lib/infopanel/native/widget-item";
+import { cellOfWidget, holdsWidget, moveOnCells, resizeOnCells } from "@/lib/infopanel/editor/cells";
+import { canvasGrid } from "@/lib/page-model/canvas-adapter";
+import { cellsForAdd } from "@/lib/page-model/gesture";
+import { cellRect, trackOf, type PageGrid } from "@/lib/page-model/model";
 import { StatusIcon } from "../export-check-panel";
 import { addedMessage, widgetRecordFor } from "./widget-add";
 import { WidgetItemInspector, type WidgetHost } from "./widget-item-inspector";
@@ -66,7 +70,7 @@ import { ItemsTree } from "./items-tree";
 import { SaveComponentDialog } from "./save-component-dialog";
 import { ProfileSettings } from "./profile-settings";
 import { SensorPicker } from "./sensor-picker";
-import { useCanvasEditor } from "./use-canvas-editor";
+import { useCanvasEditor, type CanvasEditor } from "./use-canvas-editor";
 import { useLibraryLink } from "./use-library-link";
 
 /** The studio's shell around the editor: its layout, the rail, the left panel's state and the page tabs. */
@@ -129,11 +133,39 @@ interface PickFor {
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
+/** The selection moved by whole cells (SPEC §14): widget items onto free cells (refused when they aren't), the rest by the cells' pitch. */
+function byCells(ed: CanvasEditor, grid: PageGrid, dc: number, dr: number) {
+  const movable = ed.selection.filter((p) => !itemAt(ed.committed, p)?.IsLocked);
+  const items = movable.length ? moveOnCells(grid, ed.committed, movable, dc, dr) : null;
+  if (items) ed.commit(items, `canvas-nudge:${ed.zone.id}`);
+}
+
+/** The one selected part a cell wider, narrower, taller or shorter: a widget item onto free cells, an item by the cells' pitch. */
+function resizeByCell(ed: CanvasEditor, grid: PageGrid, dx: number, dy: number) {
+  if (ed.selection.length !== 1) return;
+  const [path] = ed.selection;
+  const item = itemAt(ed.committed, path);
+  if (!item || item.IsLocked || item.kind === "Group") return;
+  const key = `canvas-nudge:${ed.zone.id}`;
+  if (isWidgetItem(item)) {
+    const c = cellOfWidget(grid, item);
+    const items = resizeOnCells(grid, ed.committed, path, cellRect(grid, { ...c, cols: Math.max(1, c.cols + dx), rows: Math.max(1, c.rows + dy) }));
+    if (items) ed.commit(items, key);
+    return;
+  }
+  const b = ed.boxes[path];
+  const t = trackOf(grid);
+  if (b) ed.commit(setBox(ed.committed, path, { ...b, width: Math.max(1, b.width + dx * (t.w + grid.gap)), height: Math.max(1, b.height + dy * (t.h + grid.gap)) }), key);
+}
+
 export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, initialAdd }: CanvasEditorProps) {
   const toast = useToast();
   /** A Free page (not a free area opened from a grid page) takes Studio widgets too, and its size is the screen's. */
   const freePage = !onDone && widgetHost !== undefined;
   const editor = useCanvasEditor(zone, setConfig, freePage ? withFreeCanvas : withCanvas, initialSelection, toast);
+  /** The page's grid over a canvas filling the screen (Edit v3 SPEC §3.7): cell lines, cell snapping, widgets on cells. */
+  const grid = useMemo(() => (freePage && widgetHost ? canvasGrid(widgetHost.profile, zone.canvas) : undefined), [freePage, widgetHost?.profile, zone.canvas]);
+  const snapItems = widgetHost?.config.profiles.find((p) => p.id === widgetHost.profile.id)?.pages.find((pg) => pg.id === widgetHost.profile.pageId)?.snapItems !== false;
   const [showModes, setShowModes] = useState(false);
   const [compareOn, setCompareOn] = useState(false);
   // The screenshot the canvas kept at import is Compare's start; "choose another" replaces it.
@@ -189,8 +221,17 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     const widget = widgetRecordFor(row, widgetHost?.config.panelPresets);
     if (!widget) return;
     const { profile } = editor.open;
-    const size = freeSize({ cols: row.w, rows: row.h }, { width: profile.Width, height: profile.Height });
-    editor.add(newWidgetItem(widget, { x: 0, y: 0, ...size }, row.name), at ? { at } : undefined);
+    if (grid) {
+      // On the page's cells: under the pointer, or the first free ones; the nearest free cells when others sit there.
+      const others = widgetPaths(editor.committed).map((p) => cellOfWidget(grid, itemAt(editor.committed, p)!));
+      const cell = cellsForAdd(grid, at ?? null, { cols: row.w, rows: row.h }, others);
+      if (!cell) return toast("No free cells here.");
+      const box = cellRect(grid, cell);
+      editor.add(newWidgetItem({ ...widget, cell }, box, row.name), { at: { x: box.x + box.w / 2, y: box.y + box.h / 2 } });
+    } else {
+      const size = freeSize({ cols: row.w, rows: row.h }, { width: profile.Width, height: profile.Height });
+      editor.add(newWidgetItem(widget, { x: 0, y: 0, ...size }, row.name), at ? { at } : undefined);
+    }
     if (row.kind === "widget") pushRecent(row.id);
     if (checkOn) toast(addedMessage(row.name, widget), { action: { label: "Undo", onClick: history.undo }, ms: ADD_TOAST_MS });
   };
@@ -309,18 +350,18 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     toast(r.open > 0 ? `Added ${item.name}; ${r.open} sensor${r.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name}${r.bound > 0 ? `; ${r.bound} sensor${r.bound === 1 ? "" : "s"} matched by role` : ""}`);
     if (r.open > 0) setRemapOpen(true);
   };
-  const latest = useRef({ editor, onDone, hidden, openSave, checkOpen });
-  latest.current = { editor, onDone, hidden, openSave, checkOpen };
+  const latest = useRef({ editor, onDone, hidden, openSave, checkOpen, grid });
+  latest.current = { editor, onDone, hidden, openSave, checkOpen, grid };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
       const action = canvasKeyAction(
         { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey, altGraph: e.getModifierState("AltGraph") },
-        { typing: isTyping(document.activeElement), overlay: hasOverlay() },
+        { typing: isTyping(document.activeElement), overlay: hasOverlay(), grid: latest.current.grid !== undefined },
       );
       if (!action) return;
       e.preventDefault();
-      const { editor: ed, onDone: done } = latest.current;
+      const { editor: ed, onDone: done, grid: g } = latest.current;
       switch (action.type) {
         case "duplicate":
           return ed.duplicate();
@@ -333,7 +374,17 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
         case "remove":
           return ed.remove();
         case "nudge":
+          // A widget stays on its cells: Alt+Arrows moves a selection holding one by a cell.
+          if (g && holdsWidget(ed.committed, ed.selection)) return byCells(ed, g, Math.sign(action.dx), Math.sign(action.dy));
           return ed.nudge(action.dx, action.dy);
+        case "nudge-cell":
+          return g ? byCells(ed, g, action.dx, action.dy) : undefined;
+        case "resize-cell":
+          return g ? resizeByCell(ed, g, action.dx, action.dy) : undefined;
+        case "forward":
+          return ed.reorder(1);
+        case "backward":
+          return ed.reorder(-1);
         case "escape":
           if (latest.current.checkOpen) return setCheckOpen(false);
           return ed.selection.length ? ed.select([]) : done?.();
@@ -473,9 +524,11 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           onOpenSettings={openSettings}
           widgets={widgetHost && { sensors: widgetSensors, appearance: widgetHost.appearance, scope: widgetHost.scope }}
           onPlaceWidget={freePage ? placeWidget : undefined}
+          grid={grid}
+          snapItems={snapItems}
         />
         <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
-          Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape.
+          {grid ? "Arrows move a cell · Alt+Arrows nudge items 1 px · Ctrl+G group · Ctrl+] forward" : "Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape."}
         </p>
       </div>
     </>

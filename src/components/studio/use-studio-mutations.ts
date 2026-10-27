@@ -21,6 +21,8 @@ import {
   type Placement,
 } from "@/lib/layout";
 import { findPanelPreset } from "@/lib/panelPresets";
+import type { PageOp } from "@/lib/page-model/model";
+import { applyPlacements } from "@/lib/page-model/placements-adapter";
 import { sampleLayout } from "@/lib/sample-layout";
 import { updateStylePreset } from "@/lib/style-presets";
 import type { ModuleSettings } from "@/modules/types";
@@ -83,6 +85,14 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
       return profiles.every((p, i) => p === c.profiles[i]) ? c : { ...c, profiles };
     }, key);
   };
+
+  /** Page model ops on the page on the canvas (Edit v3 SPEC §3.4): its items and elements, through the model. */
+  const applyPageOps = (ops: readonly PageOp[], key?: string) =>
+    updateStored((p) => {
+      const page = pageOf(p, profile.pageId);
+      const next = applyPlacements(p, page, ops);
+      return next === page ? p : { ...p, pages: p.pages.map((pg) => (pg === page ? next : pg)) };
+    }, key);
 
   /** Generic placement mutation (settings, design, ...). */
   const updatePlacement = (id: string, fn: (p: Placement) => Placement, key?: string) =>
@@ -429,6 +439,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
   return {
     updateProfile,
     updateStored,
+    applyPageOps,
     updatePlacement,
     updateSelected,
     addPlacement,

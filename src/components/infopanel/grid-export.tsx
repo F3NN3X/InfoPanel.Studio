@@ -24,6 +24,12 @@ export function GridBadge({ zone, name }: { zone: Placement; name: string }) {
   return <CheckBadge status={widgetRow(zone, name).status} />;
 }
 
+/** An item placement's badge on the canvas: its status as the InfoPanel item it exports as. */
+export function GridItemBadge({ placement }: { placement: Placement }) {
+  const status = useMemo(() => exportCheck({ cols: 1, rows: 1 }, { placements: [placement] }).rows[0]?.status, [placement]);
+  return status ? <CheckBadge status={status} /> : null;
+}
+
 export function GridCheckPill({ profile, page, nameOf, open, onClick }: { profile: ProfileView; page?: ProfilePage; nameOf: NameOf; open: boolean; onClick: () => void }) {
   return <ExportCheckPill check={useCheck(profile, nameOf, page)} open={open} onClick={onClick} />;
 }
