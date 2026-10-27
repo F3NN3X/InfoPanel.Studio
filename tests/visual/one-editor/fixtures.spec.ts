@@ -220,6 +220,8 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
   layersF: {
     [CHECKS.layersF[0].text]: async (page) => {
       const rows = page.getByTestId("layers-row");
+      // Layers is its own chunk: wait for its rows before reading them.
+      await expect(rows.first()).toBeVisible();
       const names = await rows.evaluateAll((els) => els.map((e) => [e.textContent?.match(/^[A-Za-z ]+?(?=group|widget|item|element)/)?.[0].trim(), e.getAttribute("data-depth"), e.getAttribute("data-kind")]));
       const at = names.findIndex((n) => n[0] === "Right column");
       expect(names.slice(at, at + 3)).toEqual([["Right column", "0", "group"], ["Weather", "1", "widget"], ["Fan gauge", "1", "item"]]);
@@ -314,6 +316,7 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       expect([(await cpu.boundingBox())!.x, (await gpu.boundingBox())!.x]).toEqual([c0.x, g0.x]);
     },
     [CHECKS.layersG[1].text]: async (page) => {
+      await expect(page.getByTestId("layers-row").first()).toBeVisible();
       const names = await page.getByTestId("layers-row").evaluateAll((els) => els.map((e) => (e.getAttribute("data-kind") === "group" ? e.textContent?.replace(/group.*$/, "") : null)).filter(Boolean));
       expect(names).toEqual(["Overlay", "Gauges"]);
       const title = (await page.locator('[data-part-id="title"]').boundingBox())!;
