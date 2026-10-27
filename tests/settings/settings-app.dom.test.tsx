@@ -47,6 +47,7 @@ const running: Status = {
   suggestedPort: null,
 };
 const idle: UpdateState = { state: "current", currentVersion: "1.2.0" };
+let updateNow: UpdateState = idle;
 
 /** The saved settings the fake backend holds; set_setting changes them like the real one. */
 let saved: Settings;
@@ -57,7 +58,7 @@ const invoke = vi.fn(async (command: string, args?: Record<string, unknown>): Pr
     case "server_status":
       return running;
     case "update_state":
-      return idle;
+      return updateNow;
     case "list_local_addresses":
       return ["192.168.1.20"];
     case "get_diagnostics":
@@ -103,6 +104,7 @@ async function openServerPage() {
 describe("the settings window", () => {
   beforeEach(() => {
     saved = { ...settingsDefaults };
+    updateNow = idle;
     invoke.mockClear();
   });
 
@@ -138,4 +140,22 @@ describe("the settings window", () => {
     expect(screen.queryByText(/Restart the server to apply/)).toBeNull();
   });
 
+
+  it("tells a Stable user about a newer beta and switches the channel on request", async () => {
+    updateNow = { ...idle, newerBeta: "1.3.0-beta.35" };
+    const user = userEvent.setup({ delay: null });
+    render(<SettingsApp />);
+    await user.click(await screen.findByRole("button", { name: "Updates" }));
+    expect(await screen.findByText(/Version 1\.3\.0-beta\.35 is on the Beta channel/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Switch to Beta and check" }));
+    expect(setCalls()).toEqual([{ key: "updateChannel", value: "beta" }]);
+  });
+
+  it("opens the widget QA page from Diagnostics on the server's origin", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<SettingsApp />);
+    await user.click(await screen.findByRole("button", { name: "Diagnostics" }));
+    await user.click(await screen.findByRole("button", { name: "Open" }));
+    expect(invoke).toHaveBeenCalledWith("open_external", { url: "http://127.0.0.1:3922/?widget-qa" });
+  });
 });

@@ -3,7 +3,7 @@ id: diagnostics
 title: Diagnostics and logs
 icon: monitoring
 related: [problems, kiosk]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
 Find out what went wrong, and give a bug report everything it needs.
@@ -15,6 +15,8 @@ Find out what went wrong, and give a bug report everything it needs.
 :::open settings/diagnostics Settings › Diagnostics
 
 The page also has **View logs**, **Open logs folder**, **Open DevTools** (debug mode only), **Open WebView2 task manager** and **Copy diagnostics summary**. The task manager shows memory and CPU for each WebView2 process, such as the renderer and the GPU process, so you can tell which one grows.
+
+**Widget QA** has an **Open** button below those. It opens a page in your browser that shows every widget at several sizes from fixture sensors, to spot text that overflows or is clipped.
 
 ## Reading the samples
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Code, Copy, FolderOpen, Gauge, ScrollText, Activity } from "lucide-react";
+import { Check, Code, Copy, ExternalLink, FolderOpen, Gauge, ScrollText, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorText, ipc } from "../ipc";
 import { deltaTone, diagnosticsSummary, fmt, fmtDelta, groupSeries, isNotable, sampleSummary, type DeltaTone } from "../model/diagnostics";
@@ -108,6 +108,19 @@ export function DiagnosticsSection() {
           <Button onClick={() => void copy()}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy diagnostics summary"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
+        <div className="flex items-center gap-4 px-[18px] py-4">
+          <div className="flex flex-1 flex-col gap-[3px]">
+            <span className="text-sm font-medium">Widget QA</span>
+            <span className="text-[12.5px] leading-[1.45] text-s-muted">Every widget at a set of sizes from fixture sensors, to spot overflow and clipping.</span>
+          </div>
+          <Button onClick={() => void ipc.openExternal(`${status.origin}/?widget-qa`).catch(fail)}>
+            <ExternalLink className="h-4 w-4" />
+            Open
           </Button>
         </div>
       </div>

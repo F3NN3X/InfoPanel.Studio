@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Status, UpdateState } from "@/settings/types";
-import { callout, serverCard, updateCard } from "@/settings/model/cards";
+import { betaNotice, callout, serverCard, updateCard } from "@/settings/model/cards";
 
 const base: Status = {
   state: "running",
@@ -106,5 +106,15 @@ describe("updateCard", () => {
 
   it("an error shows the reason and offers Try again", () => {
     expect(updateCard(update({ state: "error", error: "offline" }), now)).toMatchObject({ tone: "red", title: "Couldn't check for updates", detail: "offline", primary: { label: "Try again", action: "check" } });
+  });
+});
+
+describe("betaNotice", () => {
+  const update = (patch: Partial<UpdateState> = {}): UpdateState => ({ state: "current", currentVersion: "1.3.0-beta.34", ...patch });
+
+  it("names the newer beta on Stable only", () => {
+    expect(betaNotice(update({ newerBeta: "1.3.0-beta.35" }), "stable")).toBe("1.3.0-beta.35");
+    expect(betaNotice(update({ newerBeta: "1.3.0-beta.35" }), "beta")).toBeNull();
+    expect(betaNotice(update(), "stable")).toBeNull();
   });
 });
