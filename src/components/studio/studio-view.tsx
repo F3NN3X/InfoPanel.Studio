@@ -10,6 +10,7 @@ import {
   uid,
   type DashboardConfig,
   type MadeFor,
+  type MonitorProfile,
   type Placement,
   type ProfileView,
 } from "@/lib/layout";
@@ -390,6 +391,13 @@ function StudioViewBody({
   const rowStatus = useMemo(
     () => (checkOnScreen && checkKit ? new Map(checkKit.exportCheck(storedProfile, storedPage, zoneName).rows.map((r) => [r.path, r.status])) : null),
     [checkOnScreen, checkKit, storedProfile, storedPage],
+  );
+  /** `Studio | InfoPanel` in the zoom bar (decision Q10): the page drawn as it exports, on a screen made for InfoPanel too. */
+  const [infoPanelView, setInfoPanelView] = useState(false);
+  const exportView = checkOnScreen ? { infoPanel: infoPanelView, onChange: setInfoPanelView } : undefined;
+  const leftOut = useMemo(
+    () => (checkOnScreen && infoPanelView && rowStatus ? new Set([...rowStatus].flatMap(([id, status]) => (status === "out" ? [id] : []))) : undefined),
+    [checkOnScreen, infoPanelView, rowStatus],
   );
   /** Layers on a screen's page: one selection of widgets, items and groups, and every layer action. */
   const layers = usePageLayers({
@@ -952,6 +960,9 @@ function StudioViewBody({
       }
       onContextMenu={(id, x, y) => (id === null ? menus.open(null, x, y) : openPartMenu(id, x, y))}
       onOpenAdd={() => ui.openDrawer("add")}
+      leftOut={leftOut}
+      onImport={() => openImportDoor({ prefer: "canvas-zone" })}
+      onNoRoom={() => toast("No free cells here.")}
       onUseSample={() => runCommand({ type: "sample-layout" })}
       islandAlerts={islandTestAlerts}
       badgeOf={
@@ -1111,6 +1122,7 @@ function StudioViewBody({
           pageTabs: pageTabsFor,
         }}
         checkOn={checkOn}
+        exportView={exportView}
         checkRequest={checkRequest}
         addStart={fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, recent: fixture.recent, toast: fixture.toast }}
         onExport={() => io.openExport(activeCanvas)}
@@ -1133,13 +1145,18 @@ function StudioViewBody({
     </Suspense>
   );
 
+  /** The page holding a library copy: its own, else the one with its zone or (a component added onto a page) its group. */
+  const copyPage = (p: MonitorProfile, c: LibraryCopy) =>
+    p.pages.find((pg) => pg.id === c.pageId) ??
+    p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId) || (pg.groups ?? []).some((g) => g.id === c.zoneId));
   /** Where a library copy went: "ARCv2 › Page 1 › Background". */
   const copyLabel = (c: LibraryCopy) => {
     const p = config.profiles.find((x) => x.id === c.profileId);
     if (!p) return c.label ?? "A removed screen";
-    const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
+    const page = copyPage(p, c);
     const zone = page?.placements.find((z) => z.id === c.zoneId);
-    return [p.name, p.pages.length > 1 ? page?.name : null, zone ? zoneName(zone) : c.label].filter(Boolean).join(" › ");
+    const group = page?.groups?.find((g) => g.id === c.zoneId);
+    return [p.name, p.pages.length > 1 ? page?.name : null, zone ? zoneName(zone) : (group?.name ?? c.label)].filter(Boolean).join(" › ");
   };
   /** Jump to a copy: its profile and page, then its zone selected (a background opens Theme › Background for the screen). */
   const jumpToCopy = (c: LibraryCopy) => {
@@ -1147,9 +1164,11 @@ function StudioViewBody({
     const p = config.profiles.find((x) => x.id === c.profileId);
     if (!p) return;
     if (p.id !== storedProfile.id) selectProfile(p.id);
-    const page = p.pages.find((pg) => pg.id === c.pageId) ?? p.pages.find((pg) => pg.placements.some((z) => z.id === c.zoneId));
+    const page = copyPage(p, c);
     if (page && page.id !== (profile.pageId ?? storedProfile.pages[0].id)) onPageChange(page.id);
-    if (c.zoneId) setPendingZone(c.zoneId);
+    // A component added onto a page is a group of its items (importIntoProfile returns the group's id).
+    if (c.zoneId && page?.groups?.some((g) => g.id === c.zoneId)) setPendingGroup(c.zoneId);
+    else if (c.zoneId) setPendingZone(c.zoneId);
     else ui.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: p.id, section: "background" });
   };
   const canvasZones = profile.placements.filter(
@@ -1305,6 +1324,7 @@ function StudioViewBody({
       onOpenProfile={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
       preview={showSources ? undefined : preview}
       snapItems={showSources ? undefined : storedPage.snapItems !== false}
+      exportView={showSources ? undefined : exportView}
       bottom={
         inspectorMode === "sheet"
           ? Math.min(studioLayout.sheet.height, sheetHeight("half", studioLayout.sheet.area, true)) + 8

@@ -18,7 +18,7 @@ import type { LayersHost, SelectHow, TreeNode } from "./layers-tree";
 import type { ItemSelection } from "./use-item-selection";
 import type { StudioSelection } from "./use-studio-selection";
 import { zoneName } from "./inspector/zone-meta";
-import { hasOverlay, isTyping } from "./use-studio-shortcuts";
+import { hasOverlay, isTyping, treeKey } from "./use-studio-shortcuts";
 import { moduleIcon } from "./zone-icons";
 
 interface PageLayersDeps {
@@ -198,7 +198,7 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
   // The layer keys (see the header).
   const onKey = useRef<(e: KeyboardEvent) => void>(() => {});
   onKey.current = (e) => {
-    if (selection.length === 0 || e.defaultPrevented || e.isComposing || dragging() || isTyping(document.activeElement) || hasOverlay()) return;
+    if (selection.length === 0 || e.defaultPrevented || e.isComposing || dragging() || isTyping(document.activeElement) || treeKey(e, document.activeElement) || hasOverlay()) return;
     const ctrl = e.ctrlKey || e.metaKey;
     if (e.key === "F2" && !ctrl && !e.altKey && !e.shiftKey) {
       e.preventDefault();

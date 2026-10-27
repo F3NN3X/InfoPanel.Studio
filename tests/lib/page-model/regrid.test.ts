@@ -9,7 +9,7 @@ import { defaultItem, type DisplayItem } from "@/lib/infopanel/schema";
 import { defaultConfig, ITEM_ID, type MonitorProfile, type Placement } from "@/lib/layout";
 import { canvasGrid } from "@/lib/page-model/canvas-adapter";
 import { cellRect } from "@/lib/page-model/model";
-import { nameList, regrid } from "@/lib/page-model/regrid";
+import { nameList, refusal, regrid } from "@/lib/page-model/regrid";
 
 const zone = (id: string, col: number, row: number, cols: number, rows: number, extra: Partial<Placement> = {}): Placement => ({
   id, module: "Clock", colStart: col, rowStart: row, colSpan: cols, rowSpan: rows, visible: true, ...extra,
@@ -59,6 +59,11 @@ describe("regrid on a screen", () => {
 
   it("lists names as a sentence", () => {
     expect(nameList(["A", "B", "C"])).toBe("A, B and C");
+  });
+
+  it("names at most three widgets, then counts the rest", () => {
+    expect(refusal(["A", "B", "C"], 2, 1)).toBe("A, B and C don't fit in 2 × 1. Make room first.");
+    expect(refusal(["A", "B", "C", "D", "E"], 2, 1)).toBe("A, B, C and 2 more don't fit in 2 × 1. Make room first.");
   });
 });
 

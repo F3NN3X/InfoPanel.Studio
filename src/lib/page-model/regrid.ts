@@ -23,9 +23,14 @@ export function nameList(names: readonly string[]): string {
   return names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }
 
-/** Q5's message: `CPU gauge and Weather don't fit in 3 × 2. Make room first.` */
-export const refusal = (names: readonly string[], cols: number, rows: number) =>
-  `${nameList(names)} ${names.length === 1 ? "doesn't" : "don't"} fit in ${cols} × ${rows}. Make room first.`;
+/** At most this many widgets are named in a refusal; the rest are counted (`and 15 more`). */
+const NAMED = 3;
+
+/** Q5's message: `CPU gauge and Weather don't fit in 3 × 2. Make room first.`, past three names `A, B, C and 15 more don't …`. */
+export const refusal = (names: readonly string[], cols: number, rows: number) => {
+  const shown = names.length > NAMED ? [...names.slice(0, NAMED), `${names.length - NAMED} more`] : names;
+  return `${nameList(shown)} ${names.length === 1 ? "doesn't" : "don't"} fit in ${cols} × ${rows}. Make room first.`;
+};
 
 /** The canvas's widget items that would leave the grid, by name. */
 function canvasMisfits(items: readonly StoredItem[], cols: number, rows: number): string[] {

@@ -37,6 +37,7 @@ import { checkItems, isImported } from "@/lib/infopanel/export-check";
 import { LeftPanelFrame, type LeftTab } from "@/components/studio/design-left-panel";
 import { StudioShell } from "@/components/studio/studio-shell";
 import type { useStudioLayout } from "@/components/studio/use-studio-layout";
+import type { ExportView } from "@/components/studio/zoom-toolbar";
 import { withCanvas } from "@/components/studio/import-actions";
 import { withFreeCanvas } from "@/lib/free-pages";
 import { ExportCheckContext, ExportCheckPanel, ExportCheckPill, type ExportCheckState } from "../export-check-panel";
@@ -66,7 +67,8 @@ import { widgetRecordFor } from "./widget-add";
 import { WidgetItemInspector, type WidgetHost } from "./widget-item-inspector";
 import type { WidgetDrop } from "./edit-canvas";
 import { canvasKeyAction } from "./canvas-keys";
-import { CanvasToolbar, CompareStrip, ModesStrip } from "./canvas-toolbar";
+import { treeKey } from "@/components/studio/use-studio-shortcuts";
+import { CanvasViewSection } from "./canvas-toolbar";
 import { EditCanvas, type Compare } from "./edit-canvas";
 import { ImagePicker } from "./image-picker";
 import { ItemInspector } from "./item-inspector";
@@ -116,6 +118,8 @@ export interface CanvasEditorProps {
   onDismissUnbound?: () => void;
   /** Studio widgets on the page (Edit v3 SPEC §3.6): Add offers them beside InfoPanel items. */
   widgetHost?: WidgetHost;
+  /** `Studio | InfoPanel` in the zoom bar (decision Q10), shown with the check on. */
+  exportView?: ExportView;
   /** A fixture's Add state: the segment, the tile whose card is open, Recently used, and the add toast for the selected widget. */
   addStart?: { segment?: AddFilter; hoverTile?: string; recent?: string[]; toast?: "addw" };
 }
@@ -157,7 +161,7 @@ function resizeByCell(ed: CanvasEditor, grid: PageGrid, dx: number, dy: number) 
   if (b) ed.commit(setBox(ed.committed, path, { ...b, width: Math.max(1, b.width + dx * (t.w + grid.gap)), height: Math.max(1, b.height + dy * (t.h + grid.gap)) }), key);
 }
 
-export default function CanvasEditorView({ zone, setConfig, history, shell, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, addStart }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, addStart, exportView }: CanvasEditorProps) {
   const toast = useToast();
   /** The page (a canvas filling the screen) takes Studio widgets too, and its size is the screen's. */
   const freePage = widgetHost !== undefined;
@@ -312,6 +316,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
   // The Export check, live: the pill, the badges, the inspector's lines and the panel all read it.
   const check = useMemo(() => checkItems(editor.committed, isImported(editor.open.stored)), [editor.committed, editor.open.stored]);
   const checkState: ExportCheckState = useMemo(() => ({ on: checkOn, byPath: new Map(check.rows.map((r) => [r.path, r])) }), [checkOn, check]);
+  const leftOut = useMemo(() => new Set(check.rows.filter((r) => r.status === "out").map((r) => r.path)), [check]);
 
   // Live needs the Data API: when it is not reachable the toolbar disables it and the editor leaves it.
   useEffect(() => {
@@ -372,7 +377,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
   latest.current = { editor, hidden, openSave, checkOpen, grid, layers };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
+      if (e.defaultPrevented || e.isComposing || latest.current.hidden || treeKey(e, document.activeElement)) return;
       const action = canvasKeyAction(
         { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey, altGraph: e.getModifierState("AltGraph") },
         { typing: isTyping(document.activeElement), overlay: hasOverlay(), grid: latest.current.grid !== undefined },
@@ -455,9 +460,11 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
     }
     const cell = (item as { cell?: { col: number; row: number; cols: number; rows: number } }).cell;
     if (cell) return <PlaceRow cell={cell} onCells={(patch) => editor.commit(itemOnCells(grid, editor.committed, path, { ...cell, ...patch }))} disabled={locked} />;
+    // The stored box, which is what exports (a text item draws at its line height, not its Height); the drawn size
+    // only where nothing is stored.
     const b = editor.boxes[path];
     const o = item as unknown as Record<string, number>;
-    const px = b ? { x: b.x, y: b.y, w: b.width, h: b.height } : { x: o.X, y: o.Y, w: o.Width || 0, h: o.Height || 0 };
+    const px = { x: o.X || 0, y: o.Y || 0, w: o.Width || b?.width || 0, h: o.Height || b?.height || 0 };
     const onPx = (patch: PxPatch) => {
       const field = { x: "X", y: "Y", w: "Width", h: "Height" } as const;
       const [key, value] = Object.entries(patch)[0] as [keyof PxPatch, number];
@@ -513,7 +520,25 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
         }}
       />
     ) : (
-      <ProfileSettings editor={editor} page={pageSettings || undefined} onRemap={() => setRemapOpen(true)} remapCount={remapCount} />
+      <ProfileSettings
+        editor={editor}
+        page={pageSettings || undefined}
+        onRemap={() => setRemapOpen(true)}
+        remapCount={remapCount}
+        drawing={
+          <CanvasViewSection
+            editor={editor}
+            showModes={showModes}
+            onShowModes={setShowModes}
+            compareOn={compareOn}
+            onCompareOn={setCompareOn}
+            compare={compare}
+            onCompare={setCompare}
+            apiUnreachable={unreachable}
+            library={libraryLink}
+          />
+        }
+      />
     );
   const inspector = (
     <aside
@@ -553,15 +578,6 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
     <>
       {shell.pageTabs?.(checkOn ? <ExportCheckPill check={check} open={checkOpen} onClick={toggleCheck} /> : null)}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <CanvasToolbar
-          editor={editor}
-          showModes={showModes}
-          onShowModes={setShowModes}
-          compare={compareOn}
-          onCompare={setCompareOn}
-          apiUnreachable={unreachable}
-          library={libraryLink}
-        />
         {unbound && unbound.length > 0 && (
           <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">
             <span className="min-w-0 flex-1">
@@ -575,8 +591,6 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
             </button>
           </div>
         )}
-        {showModes && <ModesStrip editor={editor} />}
-        {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
         <div className="relative flex min-h-0 flex-1 flex-col">
           <EditCanvas
             editor={editor}
@@ -594,6 +608,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
             onPlaceWidget={freePage ? placeWidget : undefined}
             grid={grid}
             snapItems={snapItems}
+            exportView={checkOn && exportView ? { ...exportView, out: leftOut } : undefined}
           />
           {/* Top centre of the canvas (Edit v3 SPEC §9.6). */}
           {addToast.toast && (

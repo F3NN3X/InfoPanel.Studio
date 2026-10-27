@@ -316,6 +316,11 @@ export function isTyping(el: Element | null): boolean {
   );
 }
 
+/** A Layers row has the keys: its arrows (plain or with Shift) move between rows, not the selection on the canvas. */
+export function treeKey(e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey">, el: Element | null): boolean {
+  return el instanceof HTMLElement && el.getAttribute("role") === "treeitem" && e.key.startsWith("Arrow") && !e.ctrlKey && !e.metaKey && !e.altKey;
+}
+
 /** Whether a dialog or menu is open over the studio. */
 export function hasOverlay(): boolean {
   return document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
@@ -340,7 +345,7 @@ export function useStudioShortcuts(
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing) return;
+      if (e.defaultPrevented || e.isComposing || treeKey(e, document.activeElement)) return;
       const action = shortcutAction(
         {
           key: e.key,

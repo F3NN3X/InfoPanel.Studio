@@ -29,6 +29,17 @@ interface ZoomToolbarProps {
   preview?: PreviewDataState;
   /** The page's Snap items (Edit v3 SPEC §7.2): the bar says how parts snap; unset outside Edit. */
   snapItems?: boolean;
+  /**
+   * `Studio | InfoPanel` (decision Q10): on a screen made for InfoPanel too, the canvas drawn as it is or as the page
+   * exports; unset otherwise.
+   */
+  exportView?: ExportView;
+}
+
+/** The canvas's view on a screen made for InfoPanel too: true draws the page as it exports. */
+export interface ExportView {
+  infoPanel: boolean;
+  onChange: (infoPanel: boolean) => void;
 }
 
 const BAR_BUTTON = "h-7 w-7 rounded-md hover:bg-[#24242a]";
@@ -58,6 +69,7 @@ export function ZoomToolbar({
   bottom,
   preview,
   snapItems,
+  exportView,
 }: ZoomToolbarProps) {
   return (
     <div
@@ -113,7 +125,35 @@ export function ZoomToolbar({
           </span>
         </>
       )}
+      {exportView && (
+        <>
+          <Divider />
+          <ExportViewSwitch view={exportView} />
+        </>
+      )}
       {preview?.frozen && <FrozenChip preview={preview} />}
+    </div>
+  );
+}
+
+/** `Studio | InfoPanel`: the page as Studio draws it, or as InfoPanel will after export. */
+function ExportViewSwitch({ view }: { view: ExportView }) {
+  const option = (infoPanel: boolean, label: string, title: string) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={view.infoPanel === infoPanel}
+      title={title}
+      onClick={() => view.onChange(infoPanel)}
+      className={cn("h-[22px] rounded-[5px] px-2 text-[11.5px] transition-colors", view.infoPanel === infoPanel ? "bg-ui-active text-ui-1" : "text-[#8f8f99] hover:text-ui-1")}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div role="radiogroup" aria-label="View as" data-testid="export-view" className="flex h-[26px] items-center gap-0.5 rounded-md bg-ui-app p-0.5">
+      {option(false, "Studio", "The page as Studio panels show it")}
+      {option(true, "InfoPanel", "The page as it exports to InfoPanel: items drawn by InfoPanel, the parts left out hidden")}
     </div>
   );
 }

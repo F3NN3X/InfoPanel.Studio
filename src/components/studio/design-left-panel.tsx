@@ -1,7 +1,8 @@
-import { lazy, Suspense, type ComponentProps, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, type ComponentProps, type ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
 import type { AddPanel as AddPanelView } from "./add-panel";
 import type { LayersHost } from "./layers-tree";
+import { isTyping } from "./use-studio-shortcuts";
 
 // Their own chunks, so the studio's first download stays within its budget.
 const LayersTree = lazy(() => import("./layers-tree").then((m) => ({ default: m.LayersTree })));
@@ -19,8 +20,30 @@ interface DesignLeftPanelProps {
   add: ComponentProps<typeof AddPanelView>;
 }
 
+/** "/" pressed while Layers showed (Edit v3 SPEC §14): the Add panel takes its search once it mounts. */
+let searchWanted = false;
+/** Whether "/" asked for Add's search; asking clears it. */
+export function takeSearchRequest(): boolean {
+  const wanted = searchWanted;
+  searchWanted = false;
+  return wanted;
+}
+
 /** The left panel's frame: the Layers | Add tabs over the tab's body. A grid page's and a Free page's share it. */
 export function LeftPanelFrame({ tab, onTab, width, children }: Pick<DesignLeftPanelProps, "tab" | "onTab" | "width"> & { children: ReactNode }) {
+  // "/" anywhere in Edit opens Add with its search focused; on the Add tab the panel's own key does it.
+  const latest = useRef({ tab, onTab });
+  latest.current = { tab, onTab };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || latest.current.tab === "add" || isTyping(e.target as Element | null) || document.querySelector("[role=dialog]")) return;
+      e.preventDefault();
+      searchWanted = true;
+      latest.current.onTab("add");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   return (
     <aside className="relative flex shrink-0 flex-col border-r border-ui-subtle bg-ui-panel font-ui" style={{ width }}>
       <div className="shrink-0 px-3 pb-2 pt-3">

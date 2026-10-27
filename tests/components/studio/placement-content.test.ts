@@ -1,7 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { placementContent, placementPrefixes } from "@/components/studio/placement-content";
-import { BLANK_MODULE, CANVAS_ID, CARDS_ID, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, CARDS_ID, NOT_LOADED, type Placement } from "@/lib/layout";
 import { YR_FORECAST_KEY } from "@/lib/sensors";
 import { SENSORLESS } from "@/widgets/module";
 import { TEMPLATE_MODULES } from "@/widgets/registry";
@@ -74,6 +74,20 @@ describe("canvas zones", () => {
     const r = placementContent(place({ module: CANVAS_ID, canvas }), {}, []);
     expect(r).toMatchObject({ hasData: true, title: "ARCv2" });
     expect(placementContent(place({ module: CANVAS_ID }), {}, [])).toMatchObject({ content: null, hasData: false, title: "InfoPanel canvas" });
+  });
+
+  it("says in the studio that a canvas only its canvasRef points at isn't loaded yet (Edit v3 SPEC §15)", () => {
+    const r = placementContent(place({ module: CANVAS_ID, canvasRef: "abc" }), {}, [], undefined, true);
+    expect(r.hasData).toBe(true);
+    expect(renderToString(r.content).replaceAll("&#x27;", "'")).toContain(NOT_LOADED);
+  });
+});
+
+describe("a widget this build doesn't have (Edit v3 SPEC §15)", () => {
+  it("draws the grey box, so the zone is kept and shown, not dropped", () => {
+    const r = placementContent(place({ module: "FromANewerBuild" }), {}, []);
+    expect(r.hasData).toBe(true);
+    expect(renderToString(r.content)).toContain("Widget not available in this version");
   });
 });
 

@@ -161,6 +161,10 @@ interface StudioCanvasProps {
   onContextMenu: (id: string | null, x: number, y: number) => void;
   /** Open the Add drawer (the empty canvas card). */
   onOpenAdd: () => void;
+  /** Import an .infopanel file onto the page (the empty canvas card). */
+  onImport: () => void;
+  /** A widget dropped where it has no free cells: refused. */
+  onNoRoom?: () => void;
   /** Load the sample layout (the empty canvas card). */
   onUseSample: () => void;
   /** The selected zone's chip, kept above its frame. */
@@ -169,6 +173,8 @@ interface StudioCanvasProps {
   islandAlerts?: readonly ActiveAlert[];
   /** A zone's Export check badge, on a screen made for InfoPanel (Edit v3 SPEC §7.1). */
   badgeOf?: (zone: Placement) => ReactNode;
+  /** The InfoPanel view (decision Q10): the zones the export leaves out aren't drawn; they keep their cells. */
+  leftOut?: ReadonlySet<string>;
   /** The page's InfoPanel items and elements (item placements): their selection, and their edits as page model ops. */
   items?: {
     selectedIds: readonly string[];
@@ -224,10 +230,13 @@ export function StudioCanvas({
   toast,
   onContextMenu,
   onOpenAdd,
+  onImport,
+  onNoRoom,
   onUseSample,
   selectionChip,
   islandAlerts = NO_ALERTS,
   badgeOf,
+  leftOut,
   items,
 }: StudioCanvasProps) {
   /** An item gesture in flight (Alt, free): the hint and the faded cell lines. */
@@ -481,9 +490,10 @@ export function StudioCanvas({
     const cell = cellAt(e.clientX, e.clientY);
     const added = item.kind !== "mylib" ? addItemOf?.(item) : undefined;
     if (added) {
-      // A drop on an invalid ghost cancels, with no toast.
+      // A drop on an invalid ghost cancels; with no free cells under it, the toast says so (Edit v3 SPEC §15).
       const preview = cell && addPreview(added, cell);
       if (preview?.ok) onAddDrop?.(added, preview.ghost);
+      else if (preview && !preview.ghost.ok) onNoRoom?.();
       return;
     }
     const size = dropSizeOf(item) ?? (item.kind === "mylib" ? dropSize({ cols: 1, rows: 1 }, profile) : null);
@@ -715,7 +725,7 @@ export function StudioCanvas({
                     );
                   })}
 
-                  {profile.placements.map((p) => (
+                  {profile.placements.filter((p) => !leftOut?.has(p.id)).map((p) => (
                     <LivePlacement
                       key={p.id}
                       placement={p}
@@ -817,7 +827,7 @@ export function StudioCanvas({
           )}
 
           {profile.placements.length === 0 && !page?.placements.length && !drawing && (
-            <EmptyLayoutCard onBrowse={onOpenAdd} onUseSample={onUseSample} />
+            <EmptyLayoutCard onBrowse={onOpenAdd} onImport={onImport} onUseSample={onUseSample} />
           )}
 
           <QuickTipsCard />

@@ -81,6 +81,21 @@ describe("Layers rows", () => {
     expect(vi.mocked(h.select).mock.calls).toEqual([["weather", "only", visible], ["clock", "toggle", visible], ["title", "range", visible]]);
   });
 
+  it("works from the keyboard: the selection is the tab stop, arrows move, Shift extends, Enter and Ctrl+Space select", () => {
+    const h = host({ selectedIds: ["title"] });
+    render(<LayersTree host={h} />);
+    expect(screen.getAllByTestId("layers-row").filter((r) => r.tabIndex === 0)).toEqual([row("Title text")]);
+    row("Title text").focus();
+    fireEvent.keyDown(row("Title text"), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(row("Accent glow"));
+    fireEvent.keyDown(row("Accent glow"), { key: "ArrowDown", shiftKey: true });
+    expect(document.activeElement).toBe(row("Weather"));
+    fireEvent.keyDown(row("Weather"), { key: "Enter" });
+    fireEvent.keyDown(row("Weather"), { key: " ", ctrlKey: true });
+    const visible = ["overlay", "title", "glow", "weather", "clock"];
+    expect(vi.mocked(h.select).mock.calls).toEqual([["weather", "range", visible], ["weather", "only", visible], ["weather", "toggle", visible]]);
+  });
+
   it("toggles lock and eye, and Collapse all closes every group", () => {
     const h = host();
     render(<LayersTree host={h} />);

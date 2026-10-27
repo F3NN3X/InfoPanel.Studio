@@ -11,6 +11,7 @@ import { AddPreview, previewTop } from "./add-preview";
 import { AddRow, type RowTag } from "./add-row";
 import { TileCard, cardTop, type AddStatusKit } from "./add-tile-card";
 import { AddTileGrid, tileId } from "./add-tile-grid";
+import { takeSearchRequest } from "./design-left-panel";
 import { addSections, chipsFor, ELEMENT_TILES, ITEM_TILES, moveInGrid, tileRows, widgetTile, type AddTile } from "./add-tiles";
 
 /**
@@ -281,6 +282,11 @@ export function AddPanel({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Opened by "/" from Layers: the search takes the cursor.
+  useEffect(() => {
+    if (takeSearchRequest()) inputRef.current?.focus();
   }, []);
 
   // A blank zone picked on the canvas: search takes the cursor, ready to fill it.

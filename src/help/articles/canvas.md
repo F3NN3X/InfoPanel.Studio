@@ -23,9 +23,11 @@ An InfoPanel item or element added from **Add** to a grid page goes on the page 
 
 The item tree, the top item first, as on a screen's page (see [Layers](studio#layers)). Groups nest. Each row has a lock and an eye, which sets InfoPanel's Hidden flag. A Studio widget on the page is a row too, with its widget icon in the accent colour and the word *widget*; see [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
 
-## The strip above the canvas
+## Drawing, sensors and Compare
 
-**Draw all as** (InfoPanel or Native), **Show modes**, **Sensors**, **Compare** and **Save to Library**. Undo and Redo are in the title bar. Duplicate, Group, Ungroup, the draw order and Delete are in Layers, its right-click menu, the inspector's **LAYER** buttons and the keys. **Remap sensors** is in the page's settings: click an empty part of the canvas.
+There is no strip above the canvas. Click an empty part of the canvas: the page's settings have a **Drawing** section with **Draw all as** (InfoPanel or Native), **Show modes** (its legend shows under the switch), **Sensors**, **Compare** and **Save to Library**. **Remap sensors** is in the same settings, above it. Undo and Redo are in the title bar. Duplicate, Group, Ungroup, the draw order and Delete are in Layers, its right-click menu, the inspector's **LAYER** buttons and the keys.
+
+On a screen made for InfoPanel too, the zoom bar under the canvas has **Studio | InfoPanel**. **InfoPanel** draws the page as it exports: every item as InfoPanel draws it, letter spacing off, and the parts the export leaves out hidden. It's a view only. **Studio** goes back.
 
 ## InfoPanel or native, per item
 
@@ -45,7 +47,7 @@ The item's **Sensor** button opens [Sensor remap](remap).
 
 ## Compare overlay
 
-**Compare** lays InfoPanel's own screenshot over the render, with an opacity slider and a difference blend, to check the match. The screenshot is there when you kept it on import.
+**Compare** in the page's **Drawing** settings lays InfoPanel's own screenshot over the render, with an opacity slider and a difference blend, to check the match. The screenshot is there when you kept it on import.
 
 | Keys | Action |
 |---|---|

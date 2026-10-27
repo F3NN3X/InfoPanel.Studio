@@ -25,7 +25,8 @@ import type { DataApiValue } from "@/lib/infopanel/sensors";
 import type { SensorMap } from "@/modules/types";
 import { RulerLabels } from "@/components/studio/rulers";
 import { stepZoom } from "@/components/studio/studio-layout";
-import { ZoomToolbar } from "@/components/studio/zoom-toolbar";
+import { ZoomToolbar, type ExportView } from "@/components/studio/zoom-toolbar";
+import { asExported } from "@/lib/infopanel/export-view";
 import { AltHint } from "@/components/studio/alt-hint";
 import { useNow, widgetDrawer } from "../CanvasZone";
 import { nativeLayer } from "../native";
@@ -72,6 +73,8 @@ interface EditCanvasProps {
   grid?: PageGrid;
   /** Items snap while dragging (the page's Snap items); unset = true. */
   snapItems?: boolean;
+  /** `Studio | InfoPanel` on a screen made for InfoPanel too (decision Q10), and the paths the export leaves out. */
+  exportView?: ExportView & { out: ReadonlySet<string> };
 }
 
 /** What a widget dragged from the Add panel carries. */
@@ -96,7 +99,7 @@ export function widgetDropOf(get: (type: string) => string): WidgetDrop | null {
   }
 }
 
-export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings, widgets, onPlaceWidget, grid, snapItems }: EditCanvasProps) {
+export function EditCanvas({ editor, ctx, values, showModes, profileId, compare, onRefused, onCompareFailed, onPlace, onComponent, onOpenSettings, widgets, onPlaceWidget, grid, snapItems, exportView }: EditCanvasProps) {
   const { ref, w, h } = useElementSize(true);
   const now = useNow();
   // A new history per sensor mode: mock and live samples never share a graph.
@@ -110,7 +113,9 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
     [open],
   );
   const read = (key: string) => history.get(key);
-  const native = nativeLayer(editor.items, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance, true) } : {}) });
+  // The InfoPanel view draws the page as it exports; editing still goes to the stored items.
+  const drawn = useMemo(() => (exportView?.infoPanel ? (asExported(editor.items, exportView.out) as typeof editor.items) : editor.items), [editor.items, exportView?.infoPanel, exportView?.out]);
+  const native = nativeLayer(drawn, ctx, values as SensorMap, { font, now, history: read, ...(widgets ? { widget: widgetDrawer(widgets.sensors, widgets.appearance, true) } : {}) });
   const { profile } = open;
   // The zoom follows the fit until a manual one is set; the wheel then pans.
   const [zoom, setZoom] = useState<number | null>(null);
@@ -216,7 +221,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
             {showRulers && <RulerLabels width={profile.Width} height={profile.Height} />}
             <ProfileView
               profile={profile}
-              items={editor.items}
+              items={drawn}
               sensor={(item) => canvasSensor(item, ctx.keyOf(item), values, read)}
               now={now}
               font={font}
@@ -251,6 +256,7 @@ export function EditCanvas({ editor, ctx, values, showModes, profileId, compare,
           sizeTitle="Profile size, background and fonts"
           bottom={4}
           snapItems={grid ? snapItems !== false : undefined}
+          exportView={exportView}
         />
       </div>
     </div>

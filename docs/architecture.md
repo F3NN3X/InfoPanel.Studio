@@ -597,6 +597,12 @@ the studio's `PageTabs` through `EditorShell.pageTabs`), the check panel in the 
 Export window reads the same check, so the two can't disagree. On a grid page the pill, the panel, each zone's badge
 (`PlacementFrame`'s `badge`) and each widget's On InfoPanel section come from `components/infopanel/grid-export.tsx`, loaded only on a screen made for InfoPanel; the rule is
 stored as the zone's `settings.$onInfoPanel`, and the Convert dialog starts from it (`startChoices`).
+The zoom bar's `Studio | InfoPanel` (`ExportView` in `studio/zoom-toolbar.tsx`, shown on a screen made for InfoPanel)
+is a view only: on a grid page the canvas skips the zones the check leaves out (`StudioCanvas` `leftOut`, their cells
+stay taken); on an imported profile the canvas draws `asExported` (`lib/infopanel/export-view.ts`: no native drawing,
+no letter spacing, left-out parts hidden) while edits still go to the stored items. An imported profile has no strip
+over its canvas: Draw all as, Show modes, Sensors, Compare and Save to Library are the page settings' Drawing section
+(`infopanel/edit/canvas-toolbar.tsx`).
 
 - **Document model**: the page edits one canvas zone's stored form (`Placement.canvas`), the single source of
   truth for that document; the zone is on the screen and page Design shows, so `withCanvas` writes it back. A
