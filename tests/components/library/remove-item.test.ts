@@ -106,6 +106,19 @@ describe("removeBlocked: a file item stays while the studio's config names its f
     expect(api.unusedAssets).not.toHaveBeenCalled();
   });
 
+  it("refuses a file a canvas zone in the config carries (its asset table names the hash)", async () => {
+    const config = JSON.stringify({ zones: [{ canvas: { assets: [{ hash: "a".repeat(64), name: "bg.png" }] } }] });
+    expect(await removeBlocked(item(), () => config)).toBe("used");
+  });
+
+  it("refuses a file a saved InfoPanel profile or a gauge in the Library holds", async () => {
+    const profile = item({ id: "p", kind: "canvas", files: [id("a")] });
+    const gauge = item({ id: "g", kind: "gauge", files: [], data: { frames: [{ id: id("a") }] } as never });
+    expect(await removeBlocked(item(), () => "", [profile])).toBe("used");
+    expect(await removeBlocked(item(), () => "", [gauge])).toBe("used");
+    expect(await removeBlocked(item(), () => "", [item({ id: "o", files: [id("b")] })])).toBeNull();
+  });
+
   it("never blocks a gauge, panel, profile or font: removeItem keeps their used files", async () => {
     for (const kind of ["gauge", "panel", "canvas", "font"] as const) expect(await removeBlocked(item({ kind }), () => id("a"))).toBeNull();
   });

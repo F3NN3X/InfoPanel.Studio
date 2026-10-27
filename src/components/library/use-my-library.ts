@@ -181,7 +181,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     rename: (item, name) => void update(item, { name }),
     remove: async (item, inUse = () => "") => {
       if (isConfigItem(item)) return { deleted: 0, kept: 0 };
-      const refused = await removeBlocked(item, inUse);
+      const refused = await removeBlocked(item, inUse, known.current.filter((i) => i.id !== item.id));
       if (refused) return { deleted: 0, kept: 0, refused };
       setServer((list) => list.filter((i) => i.id !== item.id));
       try {
