@@ -21,6 +21,8 @@ import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
 import { BLANK_MODULE, CANVAS_ID, SCROLL_ROW_H, type ProfilePage, type ProfileView, type Placement } from "@/lib/layout";
 import { withItemLayers } from "@/lib/page-model/items-layer";
+import type { PageOp } from "@/lib/page-model/model";
+import { AltHint } from "./alt-hint";
 
 /** The Add palette's drag type (`PALETTE_DRAG` in infopanel/edit/add-palette.tsx), kept here so the palette stays lazy. */
 const PALETTE_MIME = "application/x-infopanel-kind";
@@ -40,6 +42,7 @@ import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { LivePlacement } from "./placement-content";
 import { RulerLabels } from "./rulers";
 import { ScreenFold } from "./screen-fold";
+import { ItemParts, useAltHeld, type ItemGesture } from "./item-parts";
 import { EmptyLayoutCard, QuickTipsCard } from "./canvas-cards";
 import { canvasPointAt, canvasTakesDrop, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint, type LibraryItem } from "./drop-ghost";
 import { addGhost, type Ghost } from "./add-place";
@@ -168,6 +171,14 @@ interface StudioCanvasProps {
   islandAlerts?: readonly ActiveAlert[];
   /** A zone's Export check badge, on a screen made for InfoPanel (Edit v3 SPEC §7.1). */
   badgeOf?: (zone: Placement) => ReactNode;
+  /** The page's InfoPanel items and elements (item placements): their selection, and their edits as page model ops. */
+  items?: {
+    selectedIds: readonly string[];
+    onSelect: (id: string, toggle: boolean) => void;
+    onOps: (ops: PageOp[], key: string) => void;
+    onContextMenu?: (id: string, x: number, y: number) => void;
+    badgeOf?: (p: Placement) => ReactNode;
+  };
 }
 
 /**
@@ -217,7 +228,10 @@ export function StudioCanvas({
   selectionChip,
   islandAlerts = NO_ALERTS,
   badgeOf,
+  items,
 }: StudioCanvasProps) {
+  /** An item gesture in flight (Alt, free): the hint and the faded cell lines. */
+  const [gesture, setGesture] = useState<ItemGesture | null>(null);
   const [zoneDrag, setZoneDrag] = useState<{
     id: string;
     /** The zones moving with it (just `id` unless a selection moves). */
@@ -228,6 +242,8 @@ export function StudioCanvas({
   } | null>(null);
   /** The zones' boxes when the drag in flight started. */
   const dragOrigin = useRef<Placement[] | null>(null);
+  /** Alt held while a widget is dragged: the hint says widgets stay on their cells. */
+  const widgetAlt = useAltHeld(zoneDrag !== null);
   const [drawing, setDrawing] = useState<ZoneRect | null>(null);
   /** Aborts a draw in flight (Esc / unmount are handled by `trackPointer`). */
   const stopDraw = useRef<(() => void) | null>(null);
@@ -621,9 +637,12 @@ export function StudioCanvas({
                   {showGrid && (
                     <div
                       aria-hidden
+                      data-cell-lines=""
                       data-shot-skip
                       className="pointer-events-none absolute inset-0 z-[12]"
                       style={{
+                        // Faded while a part is placed freely (SPEC §7.1).
+                        ...(gesture?.free && gesture.alt ? { opacity: 0.35 } : {}),
                         backgroundImage: GRID_LINES,
                         backgroundSize: `calc((100% + ${gap}px) / ${profile.cols}) calc((100% + ${gap}px) / ${profile.rows})`,
                       }}
@@ -742,6 +761,22 @@ export function StudioCanvas({
                     </LivePlacement>
                   ))}
                 </div>
+                {page && items && (
+                  <ItemParts
+                    profile={profile}
+                    page={page}
+                    zoom={zoom}
+                    selectedIds={items.selectedIds}
+                    onSelect={items.onSelect}
+                    onOps={items.onOps}
+                    onDragBegin={onDragBegin}
+                    onDragCommit={onDragCommit}
+                    onDragCancel={onDragCancel}
+                    onGesture={setGesture}
+                    onContextMenu={items.onContextMenu}
+                    badgeOf={items.badgeOf}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -773,12 +808,17 @@ export function StudioCanvas({
             </SelectionChipLayer>
           )}
 
-          {profile.placements.length === 0 && !drawing && (
+          {profile.placements.length === 0 && !page?.placements.length && !drawing && (
             <EmptyLayoutCard onBrowse={onOpenAdd} onUseSample={onUseSample} />
           )}
 
           <QuickTipsCard />
         </div>
+
+      {/* Alt while dragging (SPEC §7.3): an item goes free, a widget stays on its cells. */}
+      {((gesture?.alt && gesture.free) || (zoneDrag && widgetAlt)) && (
+        <AltHint widget={zoneDrag !== null} className="absolute left-1/2 top-3 z-40 -translate-x-1/2" />
+      )}
 
       {/* Above the zoom bar (bottom-4, 36 px tall), not on it. */}
       {toast && <div className="pointer-events-none absolute inset-x-0 bottom-16 z-40 flex justify-center">{toast}</div>}

@@ -187,6 +187,8 @@ Change a palette colour and everything that uses it changes too, in one undo ste
 
 - Drag an item to move it, or drag a handle to resize it. While you drag, it snaps to the edges and middle of the canvas and to the edges and middles of the other items, and a pink line shows what it lined up with.
 - Hold `Alt` while you drag to stop snapping.
+- An imported profile's page has a grid of about 100 px cells, drawn as faint dashed lines. Items also snap to the cell edges. With `Alt` held, the lines fade, a hint says **Placing freely**, the readout under the item shows its X, Y, W and H, and a dashed box marks where it started.
+- Studio widgets on the page sit on the cells. A dragged or resized widget goes by whole cells and never lands on another widget; with `Alt` held the hint says **Widgets always sit on the grid**. Dropped from **Add**, a widget takes the free cells under the pointer, or the nearest free ones.
 - Hold `Shift` while you move to keep to one direction, or while you resize to keep the shape. A square stays square.
 - The selected item shows its width and height under it.
 - A locked item ignores the mouse on the canvas, so a click goes to the item below it. Select it in **Layers** to edit it.
@@ -207,6 +209,16 @@ Ctrl+Shift+Z / Ctrl+Y — Redo
 :::
 
 Nudging with the arrow keys never snaps. Keys don't work while you type in a field.
+
+On an imported profile's page the arrows go by cells instead:
+
+:::keys
+Arrows — Move one cell's width or height
+Shift+Arrows — Make it a cell wider, narrower, taller or shorter
+Alt+Arrows — Nudge 1 px (a widget moves one cell)
+Alt+Shift+Arrows — Nudge 10 px
+Ctrl+] / Ctrl+[ — Bring forward / send backward
+:::
 
 ## Groups
 

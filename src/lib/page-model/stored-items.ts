@@ -33,6 +33,23 @@ export function moved(item: StoredItem, k: number, dx: number, dy: number): Stor
   return out;
 }
 
+/**
+ * A stored item at a box: moved to its corner (a group with its children, which InfoPanel keeps on the canvas), and
+ * sized to it where the item has a size (pictures and gauges by their Scale). The same item when it is there already.
+ */
+export function atBox(item: StoredItem, box: Rect): StoredItem {
+  const dx = Math.round(box.x) - num(item.X);
+  const dy = Math.round(box.y) - num(item.Y);
+  const out = dx || dy ? moved(item, 1, dx, dy) : item;
+  if (item.kind === "Group" || !(num(item.Width) > 0 && num(item.Height) > 0)) return out;
+  const scale = typeof item.Scale === "number" && item.Scale > 0 ? item.Scale / 100 : 1;
+  // A size already that box (to the pixel) is kept as it is, so a Scale never rounds it a pixel off.
+  const fit = (size: number, want: number) => (Math.round(size * scale) === Math.round(want) ? size : Math.max(1, Math.round(want / scale)));
+  const Width = fit(num(item.Width), box.w);
+  const Height = fit(num(item.Height), box.h);
+  return Width === item.Width && Height === item.Height ? out : { ...out, Width, Height };
+}
+
 /** The items with each file name `names` maps renamed (FilePath and an element's `file`). */
 export function renameFiles(items: readonly StoredItem[], names: ReadonlyMap<string, string>): StoredItem[] {
   if (names.size === 0) return [...items];

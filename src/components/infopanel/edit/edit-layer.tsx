@@ -10,10 +10,14 @@
  * Coordinates are profile pixels.
  * Ported from the lab's EditLayer.
  */
-import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { flatPaths } from "@/lib/infopanel/canvas-edit";
 import { hitTest, unitPick } from "@/lib/infopanel/editor/arrange";
 import { itemAt, moveBy, setBox, type Box, type Path } from "@/lib/infopanel/editor/ops";
+import { cellDelta, holdsWidget, moveOnCells, resizeOnCells } from "@/lib/infopanel/editor/cells";
+import { cellRect, type PageGrid } from "@/lib/page-model/model";
+import { placesFreely } from "@/lib/page-model/gesture";
+import { CellLines } from "@/components/studio/alt-hint";
 import {
   constrainAxis,
   guidesAt,
@@ -50,7 +54,34 @@ interface Drag {
   start: Box | null;
   targets: SnapTargets;
   moved: boolean;
+  /** The moving parts hold a Studio widget item: they move by whole cells, never onto another widget. */
+  widget: boolean;
+  /** The last pointer step (Alt pressed or released re-runs it). */
+  last?: { x: number; y: number; shift: boolean };
 }
+
+/** A drag that holds Alt: the hint over the canvas, and (for items) the dashed start box and the faded cell lines. */
+interface AltDrag {
+  widget: boolean;
+  free: boolean;
+  from: Box | null;
+}
+
+/** The cell edges a move or resize snaps to, besides the canvas and the other items (Edit v3 SPEC §7.3). */
+function withCells(targets: SnapTargets, grid: PageGrid): SnapTargets {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let col = 1; col <= grid.cols; col++) {
+    const r = cellRect(grid, { col, row: 1, cols: 1, rows: 1 });
+    xs.push(r.x, r.x + r.w);
+  }
+  for (let row = 1; row <= grid.rows; row++) {
+    const r = cellRect(grid, { col: 1, row, cols: 1, rows: 1 });
+    ys.push(r.y, r.y + r.h);
+  }
+  return { x: [...new Set([...targets.x, ...xs])], y: [...new Set([...targets.y, ...ys])] };
+}
+
 
 /** The union box of an item's drawn elements (a group's children included), in profile pixels. */
 export function measure(root: HTMLElement, layer: HTMLElement, path: Path, k: number): Box | null {
@@ -100,9 +131,21 @@ export interface EditLayerProps {
   profileWidth: number;
   profileHeight: number;
   showModes: boolean;
+  /**
+   * The page's grid in the profile's px (Edit v3 SPEC §3.7): its cell lines show, items snap to its cell edges, and
+   * Studio widget items sit on its cells.
+   */
+  grid?: PageGrid;
+  /** Items snap while dragging (the page's Snap items; Alt does the other). Unset = true. */
+  snapItems?: boolean;
+  /** A drag started or stopped holding Alt: the canvas shows the hint (a widget's, or placing freely), or hides it. */
+  onAltDrag?: (drag: { widget: boolean } | null) => void;
 }
 
-export function EditLayer({ editor, profileWidth, profileHeight, showModes }: EditLayerProps) {
+export function EditLayer({ editor, profileWidth, profileHeight, showModes, grid, snapItems = true, onAltDrag }: EditLayerProps) {
+  const [altDrag, setAltDrag] = useState<AltDrag | null>(null);
+  const hint = altDrag ? altDrag.widget : null;
+  useEffect(() => onAltDrag?.(hint === null ? null : { widget: hint }), [hint, onAltDrag]);
   const layer = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const { boxes, setBoxes } = editor;
@@ -192,6 +235,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
     const movable = paths.filter((p) => !itemAt(editor.committed, p)?.IsLocked);
     if (typing || movable.length === 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    const targets = measureTargets(root, layer.current!, editor.committed, profile, movable, k);
     drag.current = {
       x: e.clientX,
       y: e.clientY,
@@ -201,21 +245,33 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
       handle,
       box: handle && single ? boxes[single] : undefined,
       start: handle ? null : unionBox(movable.flatMap((p) => measure(root, layer.current!, p, k) ?? [])),
-      targets: measureTargets(root, layer.current!, editor.committed, profile, movable, k),
+      targets: grid ? withCells(targets, grid) : targets,
       moved: false,
+      widget: grid !== undefined && holdsWidget(editor.committed, movable),
     };
   };
 
-  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    if (!d) return;
-    const dx = (e.clientX - d.x) * d.k;
-    const dy = (e.clientY - d.y) * d.k;
-    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_THRESHOLD) return;
-    if (!d.moved) setSizing(true);
-    d.moved = true;
-    // Snapping is in screen pixels, so it feels the same at any zoom; Alt turns it off.
-    const threshold = snapThreshold(d.k, e.altKey);
+  /**
+   * A move or resize that takes widget items: they go by whole cells (a resize to the cells nearest the box), and
+   * the rest of the selection by the same px; null when a widget would leave the grid or land on another widget, so
+   * the parts stay where the last allowed step put them.
+   */
+  const onCells = (d: Drag, g: PageGrid, dx: number, dy: number, resized: Box | null): DisplayItem[] | null => {
+    if (resized) return single ? resizeOnCells(g, d.base, single, { x: resized.x, y: resized.y, w: resized.width, h: resized.height }) : null;
+    const { dc, dr } = cellDelta(g, dx, dy);
+    return moveOnCells(g, d.base, d.paths, dc, dr);
+  };
+
+  /** One step of a drag to a client point, with Alt and Shift as held (Alt pressed or released mid-drag re-runs it). */
+  const step = (d: Drag, cx: number, cy: number, alt: boolean, shift: boolean) => {
+    const dx = (cx - d.x) * d.k;
+    const dy = (cy - d.y) * d.k;
+    d.last = { x: cx, y: cy, shift };
+    // Snapping is in screen pixels, so it feels the same at any zoom; Alt places freely (with Snap items off, snaps).
+    const free = placesFreely(snapItems, alt);
+    const threshold = snapThreshold(d.k, free);
+    const widget = d.widget;
+    setAltDrag(alt && (free || widget) ? { widget, free: free && !widget, from: d.box ?? d.start } : null);
     if (d.handle && d.box && single) {
       let b = { ...d.box };
       if (d.handle.includes("e")) b.width = Math.max(1, d.box.width + dx);
@@ -228,28 +284,64 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
         b.height = Math.max(1, d.box.height - dy);
         b.y = d.box.y + d.box.height - b.height;
       }
+      if (grid && widget) {
+        const items = onCells(d, grid, dx, dy, b);
+        if (items) editor.preview(items);
+        return;
+      }
       const snapped = snapResize(b, d.handle, d.targets, threshold);
       b = snapped.box;
       // Shift keeps the shape; the guides show what the kept shape still lines up with.
-      if (e.shiftKey) b = keepAspect(d.box, b, d.handle);
-      setGuides(e.shiftKey ? (threshold > 0 ? guidesAt(b, d.targets) : []) : snapped.guides);
+      if (shift) b = keepAspect(d.box, b, d.handle);
+      setGuides(shift ? (threshold > 0 ? guidesAt(b, d.targets) : []) : snapped.guides);
       editor.preview(setBox(d.base, single, b));
     } else {
-      const free = e.shiftKey ? constrainAxis(dx, dy) : { dx, dy };
-      const s = d.start ? snapMove({ ...d.start, x: d.start.x + free.dx, y: d.start.y + free.dy }, d.targets, threshold) : { dx: 0, dy: 0, guides: [] };
+      const moved = shift ? constrainAxis(dx, dy) : { dx, dy };
+      if (grid && widget) {
+        const items = onCells(d, grid, moved.dx, moved.dy, null);
+        if (items) editor.preview(items);
+        return;
+      }
+      const s = d.start ? snapMove({ ...d.start, x: d.start.x + moved.dx, y: d.start.y + moved.dy }, d.targets, threshold) : { dx: 0, dy: 0, guides: [] };
       // On one axis only that axis snaps.
-      const lockX = e.shiftKey && free.dx === 0;
-      const lockY = e.shiftKey && free.dy === 0;
+      const lockX = shift && moved.dx === 0;
+      const lockY = shift && moved.dy === 0;
       setGuides(s.guides.filter((g) => (g.axis === "x" ? !lockX : !lockY)));
-      editor.preview(moveBy(d.base, d.paths, Math.round(free.dx + (lockX ? 0 : s.dx)), Math.round(free.dy + (lockY ? 0 : s.dy))));
+      editor.preview(moveBy(d.base, d.paths, Math.round(moved.dx + (lockX ? 0 : s.dx)), Math.round(moved.dy + (lockY ? 0 : s.dy))));
     }
   };
+
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_THRESHOLD) return;
+    if (!d.moved) setSizing(true);
+    d.moved = true;
+    step(d, e.clientX, e.clientY, e.altKey, e.shiftKey);
+  };
+
+  // Alt pressed or released mid-drag switches between snapped and free at once.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const d = drag.current;
+      if (e.key !== "Alt" || !d?.moved || !d.last) return;
+      e.preventDefault();
+      step(d, d.last.x, d.last.y, e.type === "keydown", d.last.shift);
+    };
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("keyup", onKey, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("keyup", onKey, true);
+    };
+  });
 
   const onPointerUp = () => {
     const d = drag.current;
     drag.current = null;
     setGuides([]);
     setSizing(false);
+    setAltDrag(null);
     if (!d) return;
     // One drag, one undo step.
     if (d.moved) editor.commit(editor.items);
@@ -260,6 +352,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
     drag.current = null;
     setGuides([]);
     setSizing(false);
+    setAltDrag(null);
     editor.preview(null);
   };
 
@@ -275,6 +368,13 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
       onDragStart={(e) => e.preventDefault()}
       style={{ position: "absolute", inset: 0, touchAction: "none", userSelect: "none" }}
     >
+      {grid && <CellLines grid={grid} k={zoomK} faded={altDrag?.free === true} />}
+      {altDrag?.free && altDrag.from && (
+        <div
+          data-start-outline=""
+          style={{ position: "absolute", left: altDrag.from.x, top: altDrag.from.y, width: altDrag.from.width, height: altDrag.from.height, border: `${zoomK}px dashed #ffffff40`, pointerEvents: "none" }}
+        />
+      )}
       {showModes &&
         [...editor.modes].map(([p, m]) => {
           const b = boxes[p];
@@ -323,6 +423,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
         return (
           <div
             key={p}
+            data-selected-path={p}
             style={{
               position: "absolute",
               left: b.x,
@@ -337,22 +438,23 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
             {p === single && sizing && (
               <span
                 data-size-label=""
+                data-testid={altDrag?.free ? "alt-readout" : undefined}
                 style={{
                   position: "absolute",
                   left: "50%",
                   ...(b.y + b.height < profileHeight - 28 * zoomK ? { top: `calc(100% + ${6 * zoomK}px)` } : { bottom: 4 * zoomK }),
                   transform: "translateX(-50%)",
-                  whiteSpace: "nowrap",
+                  whiteSpace: "pre",
                   padding: `${1 * zoomK}px ${6 * zoomK}px`,
                   borderRadius: 4 * zoomK,
                   background: ACCENT,
-                  color: "#fff",
+                  color: altDrag?.free ? "var(--ui-inverse-fg)" : "#fff",
                   fontSize: 10.5 * zoomK,
                   lineHeight: 1.3,
                   fontFamily: "var(--font-ui-mono, monospace)",
                 }}
               >
-                {Math.round(b.width)} × {Math.round(b.height)}
+                {altDrag?.free ? `X ${Math.round(b.x)}  Y ${Math.round(b.y)}  W ${Math.round(b.width)}  H ${Math.round(b.height)} · free` : `${Math.round(b.width)} × ${Math.round(b.height)}`}
               </span>
             )}
             {p === single &&

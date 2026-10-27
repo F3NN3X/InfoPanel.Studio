@@ -5,7 +5,7 @@
  * Convert dialog starts from).
  */
 import { useEffect, useMemo } from "react";
-import { PANEL_ID, type Placement, type ProfileView } from "@/lib/layout";
+import { PANEL_ID, type Placement, type ProfilePage, type ProfileView } from "@/lib/layout";
 import { exportCheck, widgetChoice, widgetRow } from "@/lib/infopanel/export-check";
 import { tierOf, type NativeChoice } from "@/lib/infopanel/native/tiers";
 import { widgetChoices } from "@/lib/infopanel/native/widget-item";
@@ -15,19 +15,29 @@ import { CheckBadge, ExportCheckPanel, ExportCheckPill } from "./export-check-pa
 
 type NameOf = (zone: Placement) => string;
 
-const useCheck = (profile: ProfileView, nameOf: NameOf) => useMemo(() => exportCheck(profile, profile, nameOf), [profile, nameOf]);
+/** The page's check: the stored page when there is one (its item placements and groups), else the view's zones. */
+const useCheck = (profile: ProfileView, nameOf: NameOf, page?: ProfilePage) =>
+  useMemo(() => exportCheck(profile, page ?? profile, nameOf), [profile, page, nameOf]);
 
 /** A grid zone's badge on the canvas: its status as a Studio widget. */
 export function GridBadge({ zone, name }: { zone: Placement; name: string }) {
   return <CheckBadge status={widgetRow(zone, name).status} />;
 }
 
-export function GridCheckPill({ profile, nameOf, open, onClick }: { profile: ProfileView; nameOf: NameOf; open: boolean; onClick: () => void }) {
-  return <ExportCheckPill check={useCheck(profile, nameOf)} open={open} onClick={onClick} />;
+/** An item placement's badge on the canvas: its status as the InfoPanel item it exports as. */
+export function GridItemBadge({ placement }: { placement: Placement }) {
+  const status = useMemo(() => exportCheck({ cols: 1, rows: 1 }, { placements: [placement] }).rows[0]?.status, [placement]);
+  return status ? <CheckBadge status={status} /> : null;
+}
+
+export function GridCheckPill({ profile, page, nameOf, open, onClick }: { profile: ProfileView; page?: ProfilePage; nameOf: NameOf; open: boolean; onClick: () => void }) {
+  return <ExportCheckPill check={useCheck(profile, nameOf, page)} open={open} onClick={onClick} />;
 }
 
 interface GridCheckPanelProps {
   profile: ProfileView;
+  /** The page as stored: its item placements are listed as the items they export as. */
+  page?: ProfilePage;
   nameOf: NameOf;
   /** A row: its zone (a free area's item selects the area). */
   onSelect: (zoneId: string) => void;
@@ -36,8 +46,8 @@ interface GridCheckPanelProps {
   onClose: () => void;
 }
 
-export function GridCheckPanel({ profile, nameOf, onSelect, onConvert, onClose }: GridCheckPanelProps) {
-  const check = useCheck(profile, nameOf);
+export function GridCheckPanel({ profile, page, nameOf, onSelect, onConvert, onClose }: GridCheckPanelProps) {
+  const check = useCheck(profile, nameOf, page);
   // Esc closes it, as selecting anything does: in the capture phase, before the studio's shortcuts take the key, and
   // not while a dialog or menu is open over it (Esc is theirs).
   useEffect(() => {

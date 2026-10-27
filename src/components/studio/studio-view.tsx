@@ -5,6 +5,7 @@ import { ThemeEditor } from "./theme-editor";
 import {
   BLANK_MODULE,
   CANVAS_ID,
+  ITEM_ID,
   resolveProfile,
   type DashboardConfig,
   type MadeFor,
@@ -65,6 +66,7 @@ import { useStudioCommands } from "./use-studio-commands";
 import { isPhone, railWidth } from "./use-studio-layout";
 import { useStudioMutations } from "./use-studio-mutations";
 import { useStudioSelection } from "./use-studio-selection";
+import { useItemSelection } from "./use-item-selection";
 import { useInspectorFollowsSelection, useStudioUi } from "./use-studio-ui";
 import { SelectionChip } from "./selection-chip";
 import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
@@ -107,6 +109,7 @@ const GridCheckPill = lazy(() => import("@/components/infopanel/grid-export").th
 const GridCheckPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridCheckPanel })));
 const GridOnInfoPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridOnInfoPanel })));
 const GridBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridBadge })));
+const GridItemBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridItemBadge })));
 /** A grid page's InfoPanel items in Add, loaded when the panel first lists them. */
 const GridPalette = lazy(() => import("@/components/infopanel/edit/grid-palette"));
 /** How many InfoPanel item kinds Add offers (`PALETTE.length` in editor/create.ts; kept here so the palette stays lazy). */
@@ -380,6 +383,15 @@ function StudioViewBody({
   }, [editingCanvas, canvasZone]);
   /** The stored page on the canvas. */
   const storedPage = storedProfile.pages.find((p) => p.id === profile.pageId) ?? storedProfile.pages[0];
+  /** The page's InfoPanel items and elements selected on the canvas (selecting one clears the zones, and back). */
+  const items = useItemSelection({
+    profile: storedProfile,
+    page: storedPage,
+    zoneId: sel.primaryId,
+    clearZones: () => sel.select(null),
+    applyPageOps: edit.applyPageOps,
+    dragging: history.dragging,
+  });
   /** A Free page (its layout, one canvas filling the screen, as every InfoPanel profile's) is edited in the canvas editor. */
   const freeZone = isFreePage(profile, storedPage) ? profile.placements[0] : null;
   /** What Edit's canvas editor shows: the Free page's canvas, else the free area opened from the grid. */
@@ -612,10 +624,13 @@ function StudioViewBody({
       <Suspense fallback={null}>
         <GridCheckPanel
           profile={profile}
+          page={storedPage}
           nameOf={zoneName}
           onSelect={(id) => {
             setGridCheckOpen(false);
-            focusZone(id);
+            // An item's row selects the item on the canvas.
+            if (storedPage.placements.some((p) => p.id === id && p.module === ITEM_ID)) items.select(id, false);
+            else focusZone(id);
           }}
           onConvert={() => openConvertDialog("screen")}
           onClose={() => setGridCheckOpen(false)}
@@ -804,6 +819,7 @@ function StudioViewBody({
           studioLayout.dismissInspector();
           ui.setInspectorQuery("");
         }
+        items.clear();
         sel.select(id, how);
         // A blank zone picked on the canvas is the Add panel's target: the panel shows, its search takes the cursor.
         if (how !== "toggle" && profile.placements.find((p) => p.id === id)?.module === BLANK_MODULE) ui.setLeftTab("add");
@@ -846,6 +862,21 @@ function StudioViewBody({
               )
           : undefined
       }
+      items={{
+        selectedIds: items.ids,
+        onSelect: (id, toggle) => {
+          setGridCheckOpen(false);
+          items.select(id, toggle);
+        },
+        onOps: edit.applyPageOps,
+        badgeOf: checkOn
+          ? (p) => (
+              <Suspense fallback={null}>
+                <GridItemBadge placement={p} />
+              </Suspense>
+            )
+          : undefined,
+      }}
       selectionChip={
         selected && (
           <SelectionChip
@@ -927,7 +958,7 @@ function StudioViewBody({
   );
   const gridPill = checkOn && !freeZone && (
     <Suspense fallback={null}>
-      <GridCheckPill profile={profile} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
+      <GridCheckPill profile={profile} page={storedPage} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
     </Suspense>
   );
   const pageTabsEl = pageTabsFor(gridPill);
@@ -1171,6 +1202,7 @@ function StudioViewBody({
       profile={profile}
       onOpenProfile={() => ui.navigateTo({ view: "screens", profileId: storedProfile.id })}
       preview={showSources ? undefined : preview}
+      snapItems={showSources ? undefined : storedPage.snapItems !== false}
       bottom={
         inspectorMode === "sheet"
           ? Math.min(studioLayout.sheet.height, sheetHeight("half", studioLayout.sheet.area, true)) + 8

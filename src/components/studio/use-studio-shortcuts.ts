@@ -144,6 +144,10 @@ function arrangeAction(e: KeyInput): ShortcutAction | null {
 
 /** `shortcutAction` without a selected widget. */
 function zoneAction(e: KeyInput, ctx: ShortcutContext): ShortcutAction | null {
+  // Alt+Arrows (and Alt+Shift+Arrows) nudge items to the pixel; a widget moves one cell (Edit v3 SPEC §14). A panel
+  // widget keeps Alt+↑ / ↓ for its own order.
+  const altArrow = e.altKey && !e.ctrlKey && !e.metaKey && !e.altGraph ? ARROWS[e.key] : undefined;
+  if (altArrow && !ctx.widget) return ctx.typing || ctx.overlay ? null : { type: "nudge", ...altArrow };
   if (e.altKey) {
     const action = e.ctrlKey || e.metaKey ? styleAction(e) : arrangeAction(e);
     return action && !ctx.typing && !ctx.overlay ? action : null;
@@ -237,6 +241,19 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
     ],
   },
   {
+    title: "Selected InfoPanel items",
+    items: [
+      { keys: "Alt+drag", label: "Place freely, to the pixel (widgets stay on the cells)" },
+      { keys: "Alt+Arrows", label: "Nudge 1 px, then placed freely (a widget moves one cell)" },
+      { keys: "Alt+Shift+Arrows", label: "Nudge 10 px" },
+      { keys: "Ctrl+] / Ctrl+[", label: "Bring forward / send backward" },
+      { keys: "Ctrl+Shift+] / Ctrl+Shift+[", label: "Bring to front / send to back" },
+      { keys: "Ctrl+G / Ctrl+Shift+G", label: "Group / ungroup" },
+      { keys: "Ctrl+L", label: "Lock" },
+      { keys: "Ctrl+H", label: "Hide" },
+    ],
+  },
+  {
     title: "Selected panel widget",
     items: [
       { keys: "Click / double-click", label: "Select a widget in the zone" },
@@ -288,7 +305,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
 ];
 
 /** Whether keys typed now go to a form field. */
-function isTyping(el: Element | null): boolean {
+export function isTyping(el: Element | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
   return (
     el.isContentEditable ||
@@ -299,7 +316,7 @@ function isTyping(el: Element | null): boolean {
 }
 
 /** Whether a dialog or menu is open over the studio. */
-function hasOverlay(): boolean {
+export function hasOverlay(): boolean {
   return document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 }
 

@@ -560,9 +560,15 @@ profile's canvas (item order is z, Group items are groups, `$.cell` and `$.widge
 the adapter by the page's shape (`readPage`, `writePage`, `applyPage`), and `model.ts` holds the ops (move, resize,
 reorder, group, ungroup, moveToGroup, lock, hide, rename, add, remove, snapToGrid, Snap items). Both adapters write a
 node nothing changed as the object it was read from, so an untouched page (and an imported profile's export) stays
-the same. Until the editor mounts one canvas on the model, a screen page's item placements (`ITEM_ID`) are kept out of
-the grid's `ProfileView` (`applyView` puts them back, `withZones`) and drawn read-only: each run of them between zones
-is one canvas spanning the grid, in its place in the z-order (`items-layer.ts`, kiosk and studio canvas).
+the same. A screen page's item placements (`ITEM_ID`) are kept out of the grid's `ProfileView` (`applyView` puts them
+back, `withZones`) and drawn as one canvas per run of them between zones, spanning the grid, in its place in the
+z-order (`items-layer.ts`, kiosk and studio canvas), each item at its place (`placedItem`: its `px`, or its cells' box,
+so it follows the grid). Over that drawing the studio canvas lays `item-parts.tsx`, which selects, drags and resizes
+them through the model's ops (`gesture.ts`: cells, or the pixel while Alt is held; `keys.ts`: SPEC §14's keys), a drag
+being one history transaction. The canvas editor of an imported profile gets the page's grid (`canvasGrid`): cell
+lines, cell edges as snap targets, and widget items moved by whole cells, never onto another widget
+(`lib/infopanel/editor/cells.ts`). A screen's conversion to InfoPanel (`convert-view.ts`) takes the page in z-order
+(`exportParts`): each zone by its choice, each run of item placements as the items they are, at their box.
 
 The Export check (`lib/infopanel/export-check.ts`) classifies each item and, on a screen with widgets, each widget,
 as exports as is, approximated, becomes a picture or left out, and names the studio-only looks it loses. The editor

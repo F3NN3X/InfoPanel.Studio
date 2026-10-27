@@ -5,15 +5,14 @@ import { newItem } from "@/lib/infopanel/editor/create";
 import { newStored, readStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
 import { newWidgetItem } from "@/lib/infopanel/native/widget-item";
 import { defaultItem, type DisplayItem } from "@/lib/infopanel/schema";
-import { CANVAS_ID, defaultConfig, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
+import { CANVAS_ID, ITEM_ID, defaultConfig, type MonitorProfile, type Placement, type ProfilePage } from "@/lib/layout";
+import { withoutItems } from "@/lib/page-model/stored-items";
 import type { Fixture, FixtureName } from "./types";
 
 /*
  * The eight states of the Edit v3 reference (scratchpad handoff "Unified Editor v3", SPEC §18), as today's model holds
  * them. Two screens: "Desk panel" (1024 x 600, 4 x 3, widgets) and "Neon Rig" (800 x 480, 8 x 5, an imported InfoPanel
  * profile on a Free page). What today's model can't hold yet, for the phases that add it:
- *  - groups on a grid page (Gauges, Overlay) and items or elements on a grid page's cells: layersG shows the widgets only;
- *  - an item placed freely over widgets (the Title text of alt and layersG): the grid is full and a free area can't overlap;
  *  - sensor bindings: the items have none, so values read as placeholders, not 54 / 61 / 1240;
  *  - nested groups (the schema keeps a group out of a group): not needed by these states;
  *  - the per-state UI (Add segment, hover card, toast, Alt drag, layer menu): carried on the Fixture, read by later phases.
@@ -26,10 +25,32 @@ const zone = (id: string, module: string, cell: [number, number, number, number]
   id, module, colStart: cell[0], rowStart: cell[1], colSpan: cell[2], rowSpan: cell[3], visible: true, ...extra,
 });
 
+/**
+ * The Overlay group's parts (v15 item placements): Accent glow, an element on the cells of columns 1–2, row 1, and
+ * Title text, an item placed freely over the gauges; with the page's InfoPanel side they draw with.
+ */
+function overlay(): { parts: Placement[]; store: ProfilePage["freeCanvas"] } {
+  const base = newStored({ name: "Desk panel", width: 1024, height: 600, now: NOW });
+  const { profile } = readStored(base);
+  const palette = defaultPalette(profile);
+  const glow = { ...newElement("glow", profile, palette), Name: "Accent glow", X: 0, Y: 0, Width: 512, Height: 200 } as DisplayItem;
+  const title = { ...newItem("Text", profile, palette), Name: "Title text", X: 48, Y: 28, FontSize: 22, Bold: true, Color: PINK } as DisplayItem;
+  const stored = storeItems(base, profile, [glow, title]);
+  const [g, t] = stored.items;
+  return {
+    parts: [
+      zone("glow", ITEM_ID, [1, 1, 2, 1], { item: g, groupId: "overlay" }),
+      zone("title", ITEM_ID, [1, 1, 2, 1], { item: t, px: { x: 48, y: 28, w: 140, h: 36 }, groupId: "overlay" }),
+    ],
+    store: withoutItems(stored),
+  };
+}
+
 /** Desk panel: five widgets on a full 4 x 3 grid, no gap and no padding so the cells match the reference's percentages. */
-function deskPanel(madeFor: "studio" | "infopanel"): MonitorProfile {
+function deskPanel(madeFor: "studio" | "infopanel", groups = false): MonitorProfile {
   const gauge = (id: string, label: string, cell: [number, number, number, number]) =>
-    zone(id, "SensorValue", cell, { settings: { display: "gauge", label } });
+    zone(id, "SensorValue", cell, { settings: { display: "gauge", label }, ...(groups ? { groupId: "gauges" } : {}) });
+  const over = groups ? overlay() : null;
   const page: ProfilePage = {
     id: "main",
     name: "Main",
@@ -39,7 +60,11 @@ function deskPanel(madeFor: "studio" | "infopanel"): MonitorProfile {
       zone("clock", "Clock", [1, 3, 1, 1]),
       zone("weather", "Weather", [2, 3, 1, 1]),
       zone("agents", "CodingAgents", [3, 3, 2, 1]),
+      ...(over?.parts ?? []),
     ],
+    ...(over
+      ? { groups: [{ id: "gauges", name: "Gauges" }, { id: "overlay", name: "Overlay" }], freeCanvas: over.store }
+      : {}),
   };
   return { id: "desk", name: "Desk panel", width: 1024, height: 600, cols: 4, rows: 3, fit: "fill", gap: 0, padding: 0, madeFor, pages: [page] };
 }
@@ -110,8 +135,8 @@ function withConfig(profile: MonitorProfile) {
   return { ...defaultConfig(), activeProfile: profile.id, profiles: [profile] };
 }
 
-function deskFixture(madeFor: "studio" | "infopanel", selection: string[], leftTab: Fixture["leftTab"], extra: Partial<Fixture> = {}): Fixture {
-  const profile = deskPanel(madeFor);
+function deskFixture(madeFor: "studio" | "infopanel", selection: string[], leftTab: Fixture["leftTab"], extra: Partial<Fixture> = {}, groups = false): Fixture {
+  const profile = deskPanel(madeFor, groups);
   return { config: withConfig(profile), route: { profileId: profile.id, pageId: "main" }, selection, leftTab, ...extra };
 }
 
@@ -131,7 +156,7 @@ const BUILD: Record<FixtureName, () => Fixture> = {
   screen: () => deskFixture("studio", ["weather"], "layers"),
   profile: () => neonFixture(profileItems, "CPU temp", "layers"),
   addw: () => neonFixture((p) => [...profileItems(p), p.weather], "Weather", "add", { addSegment: "all", toast: "addw" }),
-  alt: () => deskFixture("studio", ["cpu"], "layers", { altDrag: { part: "Title text" } }),
+  alt: () => deskFixture("studio", ["cpu"], "layers", { altDrag: { part: "Title text" } }, true),
   export: () => deskFixture("infopanel", [], "layers"),
   layersF: () =>
     neonFixture(
@@ -140,7 +165,7 @@ const BUILD: Record<FixtureName, () => Fixture> = {
       "layers",
       { contextMenuFor: "Weather" }
     ),
-  layersG: () => deskFixture("studio", [], "layers"),
+  layersG: () => deskFixture("studio", [], "layers", {}, true),
   hover: () => neonFixture(profileItems, null, "add", { addSegment: "w", hoverTile: "Weather" }),
 };
 

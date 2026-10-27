@@ -128,6 +128,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
           scope={convert}
           profile={profile}
           zoneId={selectedId}
+          page={config.profiles.find((p) => p.id === profile.id)?.pages.find((pg) => pg.id === profile.pageId)}
           onRemember={(zoneId, settings) => setConfig((cfg) => withZoneSettings(cfg, zoneId, settings))}
           onConverted={place}
           onDone={toast}

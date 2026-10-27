@@ -8,7 +8,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { modules } from "@/modules";
 import { useSensorCatalog } from "@/lib/catalog";
-import type { Placement, ProfileView } from "@/lib/layout";
+import { ITEM_ID, type Placement, type ProfilePage, type ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { choiceFor, ON_INFOPANEL_KEY, rowsOf, startChoices, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
@@ -33,6 +33,8 @@ export interface ConvertDialogProps {
   profile: ProfileView;
   /** The zone "Convert zone" is about. */
   zoneId?: string;
+  /** The page as stored: a screen's conversion takes its InfoPanel items too, as the items they are (SPEC §11.4). */
+  page?: ProfilePage;
   /** The choices to remember on their zones (one undo-free settings write per zone). */
   onRemember: (zoneId: string, settings: NonNullable<Placement["settings"]>) => void;
   /** The canvas it made, to place; a string back is why it couldn't be placed. */
@@ -65,10 +67,12 @@ function Report({ rows }: { rows: readonly ReportRow[] }) {
   );
 }
 
-function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, onClose }: Omit<ConvertDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
+function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, onDone, onClose }: Omit<ConvertDialogProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
   const zones = profile.placements.filter((p) => (scope === "zone" ? p.id === zoneId : p.visible));
   const rows = zones.flatMap((p) => rowsOf(p, titleOf));
+  /** The page whose InfoPanel items a screen's conversion keeps (there is nothing to choose for them). */
+  const itemPage = scope === "screen" && page?.placements.some((p) => p.module === ITEM_ID) ? page : undefined;
   const [choices, setChoices] = useState<Record<string, Choices>>(() => Object.fromEntries(zones.map((p) => [p.id, startChoices(p.settings)])));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +97,7 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
         return { ...p, settings };
       });
       const [{ convertView }, { canvasFromItems }] = await Promise.all([import("@/lib/infopanel/native/convert-view"), import("@/lib/infopanel/native/to-canvas")]);
-      const result: Converted = await convertView({ placements: withChoices, scope: document, sensors, look: LOOK, titleOf, ...(scope === "zone" ? { only: zoneId } : {}) });
+      const result: Converted = await convertView({ placements: withChoices, scope: document, sensors, look: LOOK, titleOf, ...(scope === "zone" ? { only: zoneId } : {}), ...(itemPage ? { page: { screen: profile, page: itemPage } } : {}) });
       setReport(result.report);
       if (result.items.length === 0) return;
       const box = scope === "zone" ? zones[0] : undefined;
@@ -129,7 +133,7 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
           {report ? "Close" : "Cancel"}
         </button>
         {!report && (
-          <button type="button" disabled={busy || rows.length === 0} onClick={() => void run()} className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:opacity-60">
+          <button type="button" disabled={busy || (rows.length === 0 && !itemPage)} onClick={() => void run()} className="h-8 rounded-[7px] bg-ui-inverse px-4 text-[12.5px] font-semibold text-ui-inverse-fg disabled:opacity-60">
             {busy ? "Converting…" : "Convert"}
           </button>
         )}
