@@ -130,6 +130,8 @@ export function useCanvasEditor(
   replace: ReplaceCanvas,
   initialSelection: Path[] = [],
   refuse: (reason: string) => void = () => {},
+  /** Brings what a commit changed back in line before it is stored (an item on cells that moved off them, `settleCells`). */
+  settle?: (items: DisplayItem[]) => DisplayItem[],
 ): CanvasEditor {
   const open = useMemo(() => openCanvas(zone.canvas), [zone.canvas]);
   const committed = useMemo(() => editItems(open), [open]);
@@ -154,7 +156,7 @@ export function useCanvasEditor(
     if (nextSelection) setSelection(nextSelection);
     if (next === committed) return;
     // Studio elements follow their spec and box: a resize, a moved group or a spec edit lands with its derived fields.
-    const stored = storeItems(open.stored, open.profile, syncElements(next));
+    const stored = storeItems(open.stored, open.profile, syncElements(settle ? settle(next) : next));
     setConfig((c) => replace(c, zone.id, stored), key);
   };
 

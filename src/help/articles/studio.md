@@ -13,7 +13,7 @@ The editor window: a rail of views on the left, the work area in the middle, and
 | View | What it holds |
 |---|---|
 | **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. **New** opens the New page, where you start from Blank or a template. See [Screens and the grid](profiles). |
-| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (every part of the page in one tree, see [Layers](studio#layers)) and **Add** (see [Add](studio#add)), which has tabs for **Widgets** (the widgets, InfoPanel's items and elements, as tiles), **Panels** (yours and the presets) and **Layouts** (starters). See [The InfoPanel editor](infopanel-editor) for profiles. |
+| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (every part of the page in one tree, see [Layers](studio#layers)) and **Add** (see [Add](studio#add)), which has tabs for **Widgets** (the widgets, InfoPanel's items and elements, as tiles), **Panels** (yours and the presets) and **Layouts** (starters). See [InfoPanel profiles in Edit](infopanel-editor) for profiles. |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
 | **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
 | **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
@@ -61,20 +61,21 @@ The setting follows you: the app window and a studio in a browser read the same 
 
 ## Pages
 
-A screen can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Duplicate, Layout, Page settings and Delete. The last page can't be deleted.
+A screen can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Duplicate, Delete and Page settings. The last page can't be deleted.
 
 With two or more pages, the kiosk can rotate them. Set it up in **Screens**, under **Rotation**: turn on **Rotate pages** and type **Every** (3 to 3600 seconds; the default is 15). In **Pages · order & rotation**, switch each page in or out of the rotation and drag them into order. A touch or remote switch pauses rotation for 30 seconds. The status bar at the bottom shows which page the kiosks show and how often they switch; click it to open **Live**. Pause or resume rotation from **Live**.
 
-## Grid or Free
+## Page settings
 
-Each page is **Grid** or **Free**, and its tab shows which with a small icon. On a Grid page, widgets snap to the cells. On a Free page they sit at any pixel, among InfoPanel items, as on an InfoPanel profile. A screen can mix both kinds, and the kiosk rotates through them as usual. A page added from a Free page is Free too.
+Every page works the same way. Widgets sit on the grid's cells, and InfoPanel items and elements snap to them unless you hold `Alt`. There's no layout to pick. Pages that were Free in an earlier version, and the InfoPanel areas a grid page held, came over as groups of their items at the same pixels.
 
-Switch a page with **Layout** in its tab menu, or with **Layout** at the top of the page settings (select nothing to see them):
+Click an empty part of the canvas, or choose **Page settings** in a tab's menu, and the inspector shows the page as **Page · {name}**:
 
-- **Grid → Free** keeps every widget where it is, in pixels. A canvas zone on the page becomes a group of its items. The page looks the same on the kiosk.
-- **Free → Grid** snaps each widget to the nearest cells. InfoPanel items, widgets that overlap one placed before them, and locked or rotated widgets stay together in one free area over the cells they cover, where you can still edit them freely. When that happens, a dialog asks first; **Don't ask again** turns it off.
+- **GRID** has **Snap items to grid**. With it on, items and elements snap to the cells and `Alt` places one freely. With it off they move to the pixel and `Alt` snaps one to the cells. Widgets always snap. Each change is one undo step.
+- **Name**, **Size** and **Columns × rows**, then **Gap**, **Theme** and **Rotation**. Columns × rows reflows everything on the cells; items placed freely keep their pixels. If a widget wouldn't fit in the new grid, the change is refused with a message naming it, for example *CPU gauge and Weather don't fit in 3 × 2. Make room first.*
+- **Icon**, the sections this page sets apart from its screen's theme, **Show on kiosks now**, and **Duplicate page** and **Delete page**.
 
-Nothing is lost either way. Settings, sensors and each widget's On InfoPanel choice go with it, and switching back gives the page you started from. Each switch is one undo step, and its message has **Undo**. A page whose content hasn't loaded yet can't switch.
+The rest of the screen's settings (fit, padding, performance, the island and which displays show it) are under **Screen settings…** in the title bar's screen menu.
 
 ## Made for
 
@@ -82,7 +83,7 @@ The **Made for** button at the right of the page strip says who the screen is fo
 
 ## InfoPanel items on a page
 
-A grid page can hold InfoPanel items and elements on top of its widgets, for example the ones of a page that was Free in an earlier version. Click one on the canvas to select it; `Shift` or `Ctrl`+click adds to the selection.
+A page can hold InfoPanel items and elements on top of its widgets. Add puts them there (see [Add](studio#add)), and an .infopanel file imported onto the page lands as a group of its items. Click one on the canvas to select it; `Shift` or `Ctrl`+click adds to the selection.
 
 - Drag it and it snaps to the cells. Hold `Alt` while you drag to place it to the pixel, on top of a widget if you like: the cell lines fade, a hint says **Placing freely**, a readout under the item shows its X, Y, W and H, and a dashed box marks where it started. Press or release `Alt` during the drag to switch.
 - Drag a handle to resize it, the same way.
@@ -90,6 +91,8 @@ A grid page can hold InfoPanel items and elements on top of its widgets, for exa
 - On Linux, use `Ctrl+Alt` if the window manager takes `Alt`+drag. On a Mac, `Alt` is `Option`.
 
 The zoom bar says how parts snap. A drag is one undo step.
+
+With one item selected, the inspector shows its name, **InfoPanel item** or **Element**, and Hide, Duplicate and Delete. Under them is where it sits. **PLACE ON GRID** with **On grid** gives its column, row, width and height in cells. **POSITION AND SIZE (PX)** with **Placed freely** gives X, Y, W and H in pixels, and **Snap to grid** moves it to the nearest cells. Type into a box and press Enter. Then come the tabs **Item**, **Sensor** and **Look**, the **LAYER** buttons with **In group**, and on a screen made for InfoPanel its **On InfoPanel** line. A new Image or Sensor image asks for its picture first, and a Sensor image then asks for its sensor.
 
 :::keys
 Arrows — Move one cell (an item placed freely moves a cell's width)
@@ -118,7 +121,7 @@ On a screen made for InfoPanel, each item has its Export check mark, and **Conve
 - Click a tile or press `Enter` to add it. A widget takes the first free cells. An InfoPanel item or element goes in the middle of the page, on the cells, into the selected group if there is one. An item that reads a sensor asks for it next.
 - Drag a tile onto the canvas to put it where you drop it. Hold `Alt` as you drop an item to place it to the pixel.
 - On a screen made for InfoPanel, a message at the top of the canvas says what the new part becomes on export, with **Undo** and **Change**. **Change** opens its **On InfoPanel** setting.
-- **Panels** and **Layouts** keep their lists. On an imported InfoPanel profile **Layouts** is greyed out, because layouts replace the widgets while the items stay on top.
+- **Panels** and **Layouts** keep their lists. On an imported InfoPanel profile **Layouts** is greyed out. A layout adds Studio panel areas, and an imported profile keeps the layout it came with from InfoPanel.
 
 ## Layers
 
@@ -152,6 +155,8 @@ The settings for whatever is selected. Where it sits depends on the width of the
 | 960 px or more | Docked as a column on the right. `Ctrl+\` collapses it. |
 | 600 to 959 px | A floating card. Open it with **All settings**, by double-clicking a zone, or with `Ctrl+\`. |
 | Under 600 px | A bottom sheet that you can pull to peek, half or full height. |
+
+A selected widget's inspector starts with **Studio widget** under its name and **PLACE ON GRID**: its column, row, width and height in cells. Type a value and press Enter; a box turns red when the widget can't go there because another widget is in the way. The tabs **Show**, **Style**, **Data** and **Behaviour** follow, then **LAYER** and, on a screen made for InfoPanel, **On InfoPanel**.
 
 ## Saving
 

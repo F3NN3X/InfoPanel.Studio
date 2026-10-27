@@ -37,7 +37,7 @@ describe("Layers", () => {
     const setConfig = vi.fn();
     render(
       <ToastProvider>
-        <HostedEditor tab="layers" zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={setConfig} history={history} profileId="p1" />
       </ToastProvider>,
     );
     const group = row("Panel");
@@ -60,7 +60,7 @@ describe("Layers", () => {
   it("marks where a drop lands: a line above or below a row, a box inside a group", () => {
     render(
       <ToastProvider>
-        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
       </ToastProvider>,
     );
     const rect = { top: 0, bottom: 30, height: 30, left: 0, right: 100, width: 100, x: 0, y: 0, toJSON: () => ({}) };
@@ -84,7 +84,7 @@ describe("Layers", () => {
   it("shows why a drop can't land: a group into itself", () => {
     render(
       <ToastProvider>
-        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
       </ToastProvider>,
     );
     const group = row("Panel");

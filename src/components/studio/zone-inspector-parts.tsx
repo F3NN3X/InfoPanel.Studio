@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -19,7 +19,6 @@ import { useInspectorChrome } from "./inspector-layout";
 import { FIELD, InlineRow, SELECT } from "./setting-rows";
 import { placementTitle } from "./studio-modules";
 import { KEYS } from "./use-studio-shortcuts";
-import type { ZoneRect } from "./zone-geometry";
 
 /** The 32 px icon box of a header (the glyph in the accent text colour). */
 export function HeaderIcon({ children }: { children: ReactNode }) {
@@ -135,6 +134,7 @@ export function ZoneHeader({
   placeholder,
   onName,
   meta,
+  kind,
   details,
   visible,
   widget,
@@ -153,6 +153,8 @@ export function ZoneHeader({
   onName?: (name: string) => void;
   /** The sub line: the widget type and its count of values set here. */
   meta: string;
+  /** The sub line as the part's kind (Edit v3 SPEC §10.2, `Studio widget` in the accent) in place of `meta`. */
+  kind?: string;
   /** Shown on hover over the sub line (size, minimum, data points). */
   details?: string;
   visible: boolean;
@@ -186,9 +188,15 @@ export function ZoneHeader({
           ) : (
             <div className={TITLE}>{name}</div>
           )}
-          <div className={META} title={details}>
-            {meta}
-          </div>
+          {kind ? (
+            <div data-testid="inspector-kind" className="truncate text-[10.5px] text-ui-accent" title={details}>
+              {kind}
+            </div>
+          ) : (
+            <div className={META} title={details}>
+              {meta}
+            </div>
+          )}
         </div>
         <ZoneActions
           hidden={!visible}
@@ -254,92 +262,6 @@ export function MultiHeader({
           </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-const ZONE_FIELDS = [
-  { key: "col", label: "COL" },
-  { key: "row", label: "ROW" },
-  { key: "cols", label: "W" },
-  { key: "rows", label: "H" },
-] as const;
-
-type BoxKey = (typeof ZONE_FIELDS)[number]["key"];
-
-/** One placement field: a draft while typing, red while the zone could not take it. */
-function BoxField({
-  label,
-  value,
-  max,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  onCommit: (value: number) => void;
-}) {
-  const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value]);
-  const refused = draft !== "" && Number(draft) !== value;
-  return (
-    <label
-      title={refused ? "That spot overlaps another widget or is below the minimum size" : undefined}
-      className={cn(
-        "flex h-[30px] items-center gap-1.5 rounded-[7px] border bg-ui-app px-2 focus-within:border-ui-accent",
-        refused ? "border-ui-danger" : "border-ui-default"
-      )}
-    >
-      <span className="font-ui-mono text-[10px] text-ui-4">{label}</span>
-      <input
-        type="number"
-        min={1}
-        max={max}
-        value={draft}
-        onChange={(e) => {
-          setDraft(e.target.value);
-          const n = parseInt(e.target.value, 10);
-          if (Number.isFinite(n)) onCommit(Math.max(1, n));
-        }}
-        onBlur={() => setDraft(String(value))}
-        className="w-full min-w-0 bg-transparent font-ui-mono text-[12px] text-ui-1 outline-none"
-      />
-    </label>
-  );
-}
-
-/**
- * The placement row: column, row, width and height in cells. The studio
- * checks every value against the grid, the other zones and the minimum size.
- */
-export function ZoneBoxFields({
-  placement,
-  cols,
-  rows,
-  onZoneBox,
-}: {
-  placement: Placement;
-  cols: number;
-  rows: number;
-  onZoneBox: (patch: Partial<ZoneRect>) => void;
-}) {
-  const values: Record<BoxKey, number> = {
-    col: placement.colStart,
-    row: placement.rowStart,
-    cols: placement.colSpan,
-    rows: placement.rowSpan,
-  };
-  return (
-    <div className="grid grid-cols-4 gap-1.5" title="Placement (grid cells)">
-      {ZONE_FIELDS.map(({ key, label }) => (
-        <BoxField
-          key={key}
-          label={label}
-          value={values[key]}
-          max={key === "col" || key === "cols" ? cols : rows}
-          onCommit={(v) => onZoneBox({ [key]: v } as Partial<ZoneRect>)}
-        />
-      ))}
     </div>
   );
 }

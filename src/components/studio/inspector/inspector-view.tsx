@@ -105,6 +105,14 @@ interface InspectorViewProps {
   footer?: ReactNode;
   /** An icon for each tab and a line under the tabs saying what the active one holds. */
   tabInfo?: Partial<Record<TabId, { icon: ReactNode; description: string }>>;
+  /** A part's Place row, edge to edge under the header (Edit v3 SPEC §10.2). */
+  place?: ReactNode;
+  /** After every section: a part's LAYER and On InfoPanel (SPEC §10.2 items 5 and 6). */
+  after?: ReactNode;
+  /** The tabs as a row of words with the active one underlined (SPEC §10.2), not a segmented pill. */
+  underline?: boolean;
+  /** The tabs' words, where the context names them its own way (an item's Item · Sensor · Look). */
+  tabLabels?: Partial<Record<TabId, string>>;
 }
 
 /** How long a jumped-to section stays outlined. */
@@ -133,14 +141,43 @@ function Tabs({
   counts,
   onTab,
   info,
+  underline,
 }: {
   tabs: { id: TabId; label: string; disabled: boolean }[];
   active: TabId | undefined;
   counts: Partial<Record<TabId, number>>;
   onTab: (tab: TabId) => void;
   info?: InspectorViewProps["tabInfo"];
+  underline?: boolean;
 }) {
   const description = active && info?.[active]?.description;
+  if (underline)
+    return (
+      <div role="tablist" className="flex shrink-0 gap-3.5 border-b border-ui-subtle px-3.5">
+        {tabs.map((t) => {
+          const selected = t.id === active;
+          const n = counts[t.id] ?? 0;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              disabled={t.disabled}
+              onClick={() => onTab(t.id)}
+              className={cn(
+                "-mb-px flex h-8 items-center gap-1.5 whitespace-nowrap border-b-2 text-[12px] transition-colors",
+                selected ? "border-ui-accent text-ui-1" : "border-transparent text-ui-4 enabled:hover:text-ui-1",
+                t.disabled && "opacity-35"
+              )}
+            >
+              {t.label}
+              {n > 0 && <Count n={n} />}
+            </button>
+          );
+        })}
+      </div>
+    );
   return (
     <div className={cn("shrink-0 pl-4 pr-3", description ? "pb-1.5" : "pb-2.5")}>
       <div role="tablist" className="flex flex-wrap gap-0.5 rounded-lg border border-ui-default bg-ui-app p-0.5">
@@ -222,6 +259,10 @@ export function InspectorView({
   searchable = true,
   footer,
   tabInfo,
+  place,
+  after,
+  underline = false,
+  tabLabels,
 }: InspectorViewProps) {
   const { sources } = useSensorCatalog();
   const { sheet } = useInspectorChrome();
@@ -244,7 +285,7 @@ export function InspectorView({
   const searching = searchable && query.trim() !== "";
   const filtering = searching;
   const all = visibleSections(allSections(context), visible).filter(present);
-  const tabs = tabStates(inspectorTabs(context), all);
+  const tabs = tabStates(inspectorTabs(context), all).map((t) => (tabLabels?.[t.id] ? { ...t, label: tabLabels[t.id]! } : t));
   const tab = pickTab(
     storedTab,
     tabs.map((t) => t.id),
@@ -402,6 +443,7 @@ export function InspectorView({
       <div data-inspector-header="" className="shrink-0 space-y-2.5 pb-2.5 pl-4 pr-3 pt-3">
         {typeof header === "function" ? header(ownAll) : header}
       </div>
+      {place}
       {searchable && (
         <div className="flex shrink-0 gap-1.5 pb-2.5 pl-4 pr-3">
           <div className="min-w-0 flex-1">
@@ -416,7 +458,7 @@ export function InspectorView({
           </label>
         </div>
       )}
-      {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} />}
+      {!filtering && tabs.length > 0 && <Tabs tabs={tabs} active={tab} counts={counts} onTab={setTab} info={tabInfo} underline={underline} />}
       {filtering && (
         <div className="flex shrink-0 items-center gap-2 pb-2 pl-4 pr-3 text-[11.5px] text-[#8a8a94]">
           <span className="flex-1">{`${shownCount} matching setting${shownCount === 1 ? "" : "s"}`}</span>
@@ -427,6 +469,7 @@ export function InspectorView({
         {!filtering && notes?.(tab)}
         {empty && <p className="px-4 py-6 text-[12.5px] text-[#8a8a94]">{empty}</p>}
         {sections.map(renderSection)}
+        {after}
       </div>
       {footer === undefined ? <Footer /> : footer}
     </div>

@@ -31,7 +31,7 @@ const ON_INFOPANEL_KEY = "$onInfoPanel";
 
 type Store = Omit<StoredCanvas, "items">;
 
-interface Ctx {
+export interface Ctx {
   profile: MonitorProfile;
   grid: PageGrid;
   /** Placement ids taken on the screen. */
@@ -208,7 +208,7 @@ function freePageToGrid(ctx: Ctx, page: ProfilePage, zone: Placement, canvas: St
 }
 
 /** A free area as a group of its items, at the pixels the area drew them; the page's store takes its files and fonts. */
-function areaToGroup(ctx: Ctx, page: ProfilePage, zone: Placement, canvas: StoredCanvas, store: Store | undefined, out: Placement[], groups: PageGroup[]): Store {
+export function areaToGroup(ctx: Ctx, page: ProfilePage, zone: Placement, canvas: StoredCanvas, store: Store | undefined, out: Placement[], groups: PageGroup[]): Store {
   const where = `${ctx.profile.name} › ${page.name}`;
   const name = typeof canvas.source?.name === "string" && canvas.source.name ? canvas.source.name : "Free area";
   const pad = profilePadding(ctx.profile, true);

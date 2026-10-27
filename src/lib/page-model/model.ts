@@ -24,6 +24,9 @@ export interface PageGrid {
   height: number;
 }
 
+/** A grid's limits on columns and rows, as Screens' steppers keep them. */
+export const GRID_LIMITS = { cols: { min: 2, max: 24 }, rows: { min: 1, max: 24 } } as const;
+
 export type PartKind = "widget" | "item" | "element";
 
 /**

@@ -8,10 +8,11 @@ import type { LayersHost, SelectHow, TreeNode } from "@/components/studio/layers
 import { moduleIcon } from "@/components/studio/zone-icons";
 import { elementOf } from "@/lib/infopanel/elements/apply";
 import { moveBlock } from "@/lib/infopanel/editor/groups";
-import { itemAt, setBox, type Path } from "@/lib/infopanel/editor/ops";
+import { itemOnCells } from "@/lib/infopanel/editor/cells";
+import { itemAt, type Path } from "@/lib/infopanel/editor/ops";
 import { widgetOf } from "@/lib/infopanel/native/widget-item";
 import type { DisplayItem } from "@/lib/infopanel/schema";
-import { cellRect, nearestCells, type PageGrid } from "@/lib/page-model/model";
+import { nearestCells, type PageGrid } from "@/lib/page-model/model";
 import type { LayerAction } from "@/lib/page-model/layer-actions";
 import { createElement } from "react";
 import { StatusIcon, type ExportCheckState } from "../export-check-panel";
@@ -101,11 +102,11 @@ export function useCanvasLayers(editor: CanvasEditor, grid: PageGrid | undefined
         return setFlag(selection, "Hidden", selection.some((p) => !itemAt(items, p)?.Hidden));
       case "snap": {
         if (!grid) return;
+        // On the cells nearest each one's box, and stored on them (`$.cell`): the Place row then shows it on grid.
         let next = items;
         for (const p of selection.filter(free)) {
           const b = editor.boxes[p];
-          const c = cellRect(grid, nearestCells(grid, { x: b.x, y: b.y, w: b.width, h: b.height }));
-          next = setBox(next, p, { x: c.x, y: c.y, width: c.w, height: c.h });
+          next = itemOnCells(grid, next, p, nearestCells(grid, { x: b.x, y: b.y, w: b.width, h: b.height }));
         }
         return editor.commit(next);
       }

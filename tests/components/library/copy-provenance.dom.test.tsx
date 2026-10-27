@@ -51,7 +51,7 @@ describe("copy provenance", () => {
     const history = { canUndo: false, canRedo: false, undo: vi.fn(), redo: vi.fn() };
     const { container } = render(
       <ToastProvider>
-        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
       </ToastProvider>,
     );
     fireEvent.drop(container.querySelector(".overflow-hidden.min-h-0.flex-1")!, drop());

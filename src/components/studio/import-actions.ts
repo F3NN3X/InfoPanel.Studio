@@ -3,6 +3,7 @@ import { CANVAS_ID, SCROLL_ROW_H, newProfile, uid, type DashboardConfig, type Pl
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { withProfile } from "./profile-actions";
 import { firstFreeRect, type ZoneRect } from "./zone-geometry";
+import { canvasAsGroup } from "@/lib/page-model/canvas-group";
 import { cellCount } from "@/lib/page-model/migrate";
 
 /** A canvas zone holding `canvas` in `rect`. */
@@ -58,7 +59,11 @@ export function canvasRect(view: ProfileView, width: number, height: number): Zo
   return best?.rect ?? null;
 }
 
-/** A canvas zone added to one page of a profile (one undo step); null when the page has no room. */
+/**
+ * An InfoPanel profile or component added to one page of a profile (one undo step), in the cells it draws largest
+ * in: its items become item placements at the pixels it draws them, in a group named after it (Edit v3 SPEC §3.8, as
+ * v15 converts a free area; none is made any more). `zoneId` is the group's id. Null when the page has no room.
+ */
 export function importIntoProfile(
   config: DashboardConfig,
   view: ProfileView,
@@ -70,7 +75,19 @@ export function importIntoProfile(
   if (!rect) return null;
   const zoneId = uid(CANVAS_ID);
   const add = onPage(view.pageId, (v) => ({ ...v, placements: [...v.placements, canvasZone(zoneId, canvas, rect)] }));
-  return { config: { ...config, profiles: config.profiles.map((p) => (p.id === view.id ? add(p) : p)) }, zoneId };
+  const made: { groupId: string | null } = { groupId: null };
+  const profiles = config.profiles.map((p) => {
+    if (p.id !== view.id) return p;
+    const added = add(p);
+    const pages = added.pages.map((pg) => {
+      if (!pg.placements.some((z) => z.id === zoneId)) return pg;
+      const r = canvasAsGroup(added, pg, zoneId);
+      made.groupId = r.groupId;
+      return r.page;
+    });
+    return { ...added, pages };
+  });
+  return made.groupId ? { config: { ...config, profiles }, zoneId: made.groupId } : null;
 }
 
 /** The canvas zone of a profile view the Export dialog writes: the selected one, else the first. */

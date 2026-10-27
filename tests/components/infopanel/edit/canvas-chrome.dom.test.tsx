@@ -25,13 +25,16 @@ describe("the InfoPanel editor canvas", () => {
   it("keeps the mode and kind off the canvas: the inspector names them; the zoom bar opens the profile settings", () => {
     render(
       <ToastProvider>
-        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor tab="layers" zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
       </ToastProvider>,
     );
     fireEvent.click(screen.getAllByRole("treeitem").find((r) => r.textContent?.includes("Title"))!);
     const layer = document.querySelector("[data-canvas-edit-layer]")!;
     expect(layer.textContent).not.toMatch(/Native|InfoPanel/);
-    expect(within(screen.getByRole("complementary", { name: "Item" })).getByText(/(Native|InfoPanel) · Text/)).toBeTruthy();
+    // The kind line says what it is (Edit v3 SPEC §10.2); its tooltip how it draws.
+    const kind = within(screen.getByRole("complementary", { name: "Item" })).getByTestId("inspector-kind");
+    expect(kind.textContent).toBe("InfoPanel item");
+    expect(kind.getAttribute("title")).toMatch(/^(Native|InfoPanel) · Text$/);
 
     fireEvent.click(screen.getByRole("button", { name: "Toggle rulers" }));
     fireEvent.click(screen.getByTitle("Profile size, background and fonts"));

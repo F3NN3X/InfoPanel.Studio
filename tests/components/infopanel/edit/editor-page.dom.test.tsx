@@ -21,7 +21,7 @@ describe("the canvas editor in Edit", () => {
     const setConfig = vi.fn();
     render(
       <ToastProvider>
-        <HostedEditor zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={setConfig} history={history} profileId="p1" />
       </ToastProvider>,
     );
     const palette = screen.getByRole("region", { name: "Add" });
@@ -46,7 +46,7 @@ describe("the canvas editor in Edit", () => {
   it("a palette entry drags its kind, and shows the hint line under the canvas", () => {
     render(
       <ToastProvider>
-        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
       </ToastProvider>,
     );
     const setData = vi.fn();
@@ -64,7 +64,7 @@ describe("the canvas editor in Edit", () => {
     const onDismiss = vi.fn();
     render(
       <ToastProvider>
-        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" unbound={["GPU power", "Uptime"]} onDismissUnbound={onDismiss} />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} profileId="p1" unbound={["GPU power", "Uptime"]} onDismissUnbound={onDismiss} />
       </ToastProvider>,
     );
     const note = screen.getByText("Not found on this PC, so left unbound: GPU power, Uptime.").closest<HTMLElement>('[role="status"]')!;
@@ -74,22 +74,14 @@ describe("the canvas editor in Edit", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
-  it("has no Done on a Free page, and Done on a free area goes back to the grid", () => {
-    const { unmount } = render(
+  it("has no Done: a page is never a free area opened from the grid (Edit v3 SPEC §1)", () => {
+    render(
       <ToastProvider>
         <HostedEditor zone={zone} setConfig={vi.fn()} history={history} profileId="p1" />
       </ToastProvider>,
     );
     expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
-    unmount();
-    const onDone = vi.fn();
-    render(
-      <ToastProvider>
-        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={onDone} profileId="p1" />
-      </ToastProvider>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
-    expect(onDone).toHaveBeenCalled();
+    expect(screen.queryByText(/Back to the grid page/)).toBeNull();
   });
 
 });

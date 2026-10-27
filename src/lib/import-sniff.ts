@@ -164,7 +164,7 @@ export function destinationsOf(kind: ImportKind, current: { screen: string; page
     case "canvas-zip":
       return [
         { id: "new-screen", title: "New screen", text: "One page per canvas, the canvas filling it" },
-        { id: "canvas-zone", title: `Canvas zone on “${current.page}”`, text: `Sits beside the widgets on ${current.screen}` },
+        { id: "canvas-zone", title: `A group on “${current.page}”`, text: `Its items join the widgets on ${current.screen}, where it draws them` },
       ];
     case "unknown":
       return [];

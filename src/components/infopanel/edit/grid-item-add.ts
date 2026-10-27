@@ -20,14 +20,16 @@ export interface NewPart {
   label: string;
   sensor: boolean;
   pluginOnly: boolean;
+  /** It asks for an image file first (Image, Sensor image). */
+  file: boolean;
 }
 
 /** The entry behind a palette drag id: an item kind, or `element:{type}`. */
 export function partOf(data: string): NewPart | null {
   const item = PALETTE.find((p) => p.kind === data);
-  if (item) return { label: item.label, sensor: item.sensor, pluginOnly: item.pluginOnly === true };
+  if (item) return { label: item.label, sensor: item.sensor, pluginOnly: item.pluginOnly === true, file: item.file === true };
   const element = ELEMENTS.find((e) => `element:${e.type}` === data);
-  return element ? { label: element.label, sensor: element.sensor, pluginOnly: false } : null;
+  return element ? { label: element.label, sensor: element.sensor, pluginOnly: false, file: false } : null;
 }
 
 /** The new item for a palette drag id in a profile's look, at 0, 0 (a group element laid out from there); null for an unknown id. */

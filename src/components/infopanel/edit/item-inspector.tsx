@@ -5,7 +5,7 @@
  * shown with its message and not stored.
  */
 import { useState, type ReactNode } from "react";
-import { Lock } from "lucide-react";
+import { Copy, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { badgeText, checkGeometry, editKeyOf, importOf, MOCK_DEFAULT, type GeoField } from "@/lib/infopanel/canvas-edit";
 import type { ChosenSensor } from "@/lib/infopanel/editor/bind";
@@ -19,14 +19,13 @@ import type { InspectorContext, InspectorSection } from "@/components/studio/ins
 import { InspectorView, type SectionParts } from "@/components/studio/inspector/inspector-view";
 import { BINDING_IDS, ipDefault, ipGroups, ipOwn, ipShown, ipValue } from "@/components/studio/inspector/infopanel-defs";
 import type { FieldsApi } from "@/components/studio/settings-panel";
-import { HeaderIcon } from "@/components/studio/zone-inspector-parts";
 import { badgeOf, elementOf } from "@/lib/infopanel/elements/apply";
 import { itemLooksOf, studioOnlyOf, type CheckRow } from "@/lib/infopanel/export-check";
 import { MAX_LETTER_SPACING, TEXT_KINDS } from "@/lib/infopanel/import/stored";
 import { OnInfoPanelSection } from "@/components/studio/inspector/on-infopanel-section";
 import { useExportCheck } from "../export-check-panel";
 import { ELEMENTS, gradientBar } from "@/lib/infopanel/elements/create";
-import { describeNative } from "../native";
+import { describeNative } from "@/lib/infopanel/native/describe";
 import { BadgeChip, ELEMENT_ICONS } from "./element-ui";
 import { ElementPanel, NumberField } from "./element-panel";
 import { valueText } from "../remap-panel";
@@ -47,6 +46,12 @@ interface ItemInspectorProps {
   sensors?: Readonly<Record<string, DataApiValue>>;
   /** A Gauge item's "Edit gauge…" (opens it in Gauges). */
   onEditGauge?: (path: Path) => void;
+  /** The Place row (Edit v3 SPEC §10.2): where the part is, on cells or in px; the position grid keeps rotation and flip. */
+  place?: ReactNode;
+  /** After the sections: the part's LAYER section (its On InfoPanel line comes last, under it). */
+  after?: ReactNode;
+  /** The header's Hide, Duplicate and Delete. */
+  actions?: { onToggleHidden: () => void; onDuplicate: () => void; onDelete: () => void };
 }
 
 const INPUT = "h-7 w-full min-w-0 rounded-[6px] border bg-ui-raised px-2 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
@@ -62,7 +67,7 @@ function Placeholder({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-export function ItemInspector({ editor, live, onRemap, onBindSensor, sensors, onEditGauge }: ItemInspectorProps) {
+export function ItemInspector({ editor, live, onRemap, onBindSensor, sensors, onEditGauge, place, after, actions }: ItemInspectorProps) {
   const { selection } = editor;
   if (selection.length === 0) {
     return (
@@ -76,11 +81,11 @@ export function ItemInspector({ editor, live, onRemap, onBindSensor, sensors, on
   const item = itemAt(editor.committed, path);
   // Keyed by path: a draft or an error never carries over to another item.
   return item ? (
-    <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onBindSensor={onBindSensor} sensors={sensors} onEditGauge={onEditGauge} />
+    <ItemFields key={path} editor={editor} path={path} item={item} live={live} onRemap={onRemap} onBindSensor={onBindSensor} sensors={sensors} onEditGauge={onEditGauge} place={place} after={after} actions={actions} />
   ) : null;
 }
 
-function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, onEditGauge }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
+function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, onEditGauge, place, after, actions }: ItemInspectorProps & { path: Path; item: DisplayItem }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const kind = item.kind as ItemKind;
@@ -174,7 +179,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
       case "ipMode":
         return { body: <DrawAs editor={editor} path={path} /> };
       case "ipPosition":
-        return { top: <PositionGrid editor={editor} path={path} item={item} />, bottom: errorsOf(s) };
+        return { top: <PositionGrid editor={editor} path={path} item={item} boxInPlace={place !== undefined} />, bottom: errorsOf(s) };
       case "ipSensor":
         return {
           body: (
@@ -219,34 +224,67 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
 
   const Icon = element ? ELEMENT_ICONS[element.type] : kindIcon(item.kind);
   const name = item.Name || item.kind;
+  const mode = badgeText(item.kind, editor.modes.get(path)?.state);
+  const kindWord = item.kind === "Group" && !element ? "Group" : element ? "Element" : "InfoPanel item";
+  const ACTION = "grid h-7 w-7 shrink-0 place-items-center rounded-md text-ui-5 transition-colors hover:bg-ui-hover hover:text-ui-1";
   return (
     <InspectorView
       context={context}
       contextKey="infopanel"
       header={
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2.5">
-            <HeaderIcon>
-              <Icon />
-            </HeaderIcon>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">{name}</div>
-              <div className="truncate text-[11px] text-ui-4">InfoPanel item · {badgeText(item.kind, editor.modes.get(path)?.state)}</div>
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg border border-ui-default bg-ui-raised text-ui-3 [&>svg]:h-[17px] [&>svg]:w-[17px]">
+            <Icon />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold text-ui-1">{name}</div>
+            <div data-testid="inspector-kind" title={mode} className="truncate text-[10.5px] text-ui-3">
+              {kindWord}
             </div>
-            {item.IsLocked && <Lock className="h-3.5 w-3.5 shrink-0 text-ui-4" aria-label="Locked" />}
-            {badge && <BadgeChip badge={badge} />}
           </div>
-          {row && <OnInfoPanel row={row} item={item} />}
+          {item.IsLocked && <Lock className="h-3.5 w-3.5 shrink-0 text-ui-4" aria-label="Locked" />}
+          {badge && <BadgeChip badge={badge} />}
+          {actions && (
+            <>
+              <button type="button" aria-label={item.Hidden ? "Show" : "Hide"} title={item.Hidden ? "Show (Ctrl+H)" : "Hide (Ctrl+H)"} className={ACTION} onClick={actions.onToggleHidden}>
+                {item.Hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+              <button type="button" aria-label="Duplicate" title="Duplicate (Ctrl+D)" className={ACTION} onClick={actions.onDuplicate}>
+                <Copy className="h-4 w-4" />
+              </button>
+              <button type="button" aria-label="Delete" title="Delete (Del)" disabled={item.IsLocked} className={cn(ACTION, "hover:text-ui-danger disabled:opacity-40")} onClick={actions.onDelete}>
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </>
+          )}
         </div>
       }
+      place={place}
+      after={
+        (after || row) && (
+          <>
+            {after}
+            {row && (
+              <div className="border-t border-ui-subtle px-3.5 py-3">
+                <OnInfoPanel row={row} item={item} />
+              </div>
+            )}
+          </>
+        )
+      }
+      underline
+      tabLabels={IP_TABS}
       fields={fields}
       parts={parts}
       query={query}
       onQuery={setQuery}
-      identity={{ icon: <Icon />, name, meta: () => badgeText(item.kind, editor.modes.get(path)?.state) }}
+      identity={{ icon: <Icon />, name, meta: () => mode }}
     />
   );
 }
+
+/** An item's tabs (Edit v3 SPEC §10.2): Item, Sensor, Look. */
+const IP_TABS = { show: "Item", data: "Sensor", style: "Look" } as const;
 
 /** On InfoPanel (one-editor SPEC §5.5): the part's Export check status, and per studio-only look what InfoPanel shows instead. */
 function OnInfoPanel({ row, item }: { row: CheckRow; item: DisplayItem }) {
@@ -383,12 +421,13 @@ function GeoInput({ label, value, onCommit }: { label: string; value: number; on
 const GRID: GeoField[] = ["X", "Y", "Width", "Height"];
 const GRID_LABEL: Record<GeoField, string> = { X: "X", Y: "Y", Width: "W", Height: "H" };
 
-function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path; item: DisplayItem }) {
+/** X / Y / W / H (unless the Place row has them, `boxInPlace`), then rotation and flip. */
+function PositionGrid({ editor, path, item, boxInPlace }: { editor: CanvasEditor; path: Path; item: DisplayItem; boxInPlace: boolean }) {
   const has = (f: string) => valueOf(item, f) !== null;
   const set = (field: string, value: unknown) => editor.setField(path, field, value, `canvas-field:${editor.zone.id}:${path}:${field}`);
   return (
     <div className="space-y-2.5 px-4 pb-2">
-      <div className="grid grid-cols-4 gap-2">
+      {!boxInPlace && <div className="grid grid-cols-4 gap-2">
         {GRID.filter(has).map((f) => (
           <GeoInput
             key={f}
@@ -402,7 +441,7 @@ function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path
             }}
           />
         ))}
-      </div>
+      </div>}
       <div className="grid grid-cols-4 items-end gap-2">
         {has("Rotation") && (
           <GeoInput

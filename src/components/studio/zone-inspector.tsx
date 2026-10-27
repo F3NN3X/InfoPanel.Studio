@@ -4,7 +4,7 @@ import { VectorGaugeSvg } from "@/components/infopanel/VectorGaugeSvg";
 import { useSensorCatalog } from "@/lib/catalog";
 import { CUSTOM_GAUGE_ID, widgetGauge } from "@/lib/gauge-studio/model";
 import { matchingStyle } from "@/lib/style-presets";
-import { BLANK_MODULE, CANVAS_ID, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
+import { BLANK_MODULE, type DashboardConfig, type ProfileView, type Placement, type StylePreset, type Widget } from "@/lib/layout";
 import { isLocked, type SectionId } from "@/lib/theme-model";
 import { convertKind, withPanelField } from "@/lib/panel-model";
 import type { Appearance } from "@/lib/style-resolve";
@@ -43,7 +43,8 @@ import type { InheritanceContext } from "./use-inheritance";import { widgetName 
 import { ZoneFrameFields, zoneFrameSet } from "./zone-design-section";
 import type { ZoneRect } from "./zone-geometry";
 import { moduleIcon } from "./zone-icons";
-import { WidgetPicker, ZoneBoxFields, ZoneHeader, changedLabel } from "./zone-inspector-parts";
+import { WidgetPicker, ZoneHeader, changedLabel } from "./zone-inspector-parts";
+import { PlaceRow } from "./place-row";
 import { pinsOf, setPin, useQuickPins } from "./inspector/inspector-prefs";
 import { defaultQuickKeys } from "./quick-sets";
 
@@ -75,7 +76,8 @@ interface ZoneInspectorProps {
   update: (fn: (p: Placement) => Placement, key?: string) => void;
   /** Mutate the active profile (bindings). */
   updateProfile: (fn: (p: ProfileView) => ProfileView, key?: string) => void;
-  onZoneBox: (patch: Partial<ZoneRect>) => void;
+  /** The zone's cells typed in; false when it can't take them. */
+  onZoneBox: (patch: Partial<ZoneRect>) => boolean | void;
   /** Open the widget picker for this zone. */
   onPickWidget: () => void;
   /** Keep the widget's own look as a Style (Library › Styles). */
@@ -97,16 +99,15 @@ interface ZoneInspectorProps {
   onOpenExplorer: () => void;
   /** Show a tab, and maybe the data picker, whenever `seq` changes (the zone context menu). */
   request?: { tab: InspectorTab; picker: boolean; seq: number };
-  /** A canvas zone: open its items in the canvas editor. */
-  onEditCanvas?: () => void;
   /** A Custom gauge zone: open its spec in Gauges. */
   onEditGauge?: () => void;
   /**
-   * A Studio widget on a Free page (one-editor SPEC §5.5): its Place section (px) instead of the grid row. Its look
-   * follows the theme as a grid zone's does, but it has no place in the config's zones, so no inheritance chips.
+   * A Studio widget on an imported profile's page (Edit v3 SPEC §3.6): its Place row on the page's cells instead of
+   * the grid zone's. Its look follows the theme as a grid zone's does, but it has no place in the config's zones, so
+   * no inheritance chips.
    */
   place?: ReactNode;
-  /** The On InfoPanel section under the header (a screen made for InfoPanel). */
+  /** The On InfoPanel section, last (a screen made for InfoPanel). */
   onInfoPanel?: ReactNode;
   /** The LAYER section (Edit v3 SPEC §10.2): z-order and the group it sits in. */
   layer?: ReactNode;
@@ -191,7 +192,6 @@ export function ZoneInspector({
   onOpenPoint,
   onOpenExplorer,
   request,
-  onEditCanvas,
   onEditGauge,
   place,
   onInfoPanel,
@@ -390,14 +390,6 @@ export function ZoneInspector({
     ["boundData", "panelData", "blankPick", "zoneFrame"].includes(s.special) ||
     (cards.get(s.special)?.length ?? 0) > 0;
 
-  const canvasNote = zone.module === CANVAS_ID && zone.canvas && onEditCanvas && (
-    <InspectorNote key="canvas">
-      An InfoPanel profile. Its items, modes and sensors are edited in the InfoPanel editor.{" "}
-      <button type="button" onClick={onEditCanvas} className="font-medium text-ui-accent-text hover:underline">
-        Edit items
-      </button>
-    </InspectorNote>
-  );
   const gaugeNote = zone.module === CUSTOM_GAUGE_ID && onEditGauge && <GaugeNote key="gauge" zone={zone} onEdit={onEditGauge} />;
   const customSections = makeThemeSections(config, scope);
   const styleToolbar = (context.kind === "widget" || context.kind === "panel") && (
@@ -415,7 +407,6 @@ export function ZoneInspector({
   );
   const notes = (tab: Parameters<typeof inspectorNotes>[1]) => [
     tab === "style" ? styleToolbar : null,
-    tab === "show" || tab === undefined ? canvasNote : null,
     tab === "show" || tab === undefined ? gaugeNote : null,
     ...inspectorNotes(context, tab).map((n) => <InspectorNote key={n.kind}>{n.text}</InspectorNote>),
   ];
@@ -437,6 +428,7 @@ export function ZoneInspector({
           placeholder={mod?.title}
           onName={onName}
           meta={`${typeName} · ${changedLabel(changed)}`}
+          kind={blank || item ? undefined : "Studio widget"}
           details={zoneMeta(zone, { dataPoints: data.usage.byZone.get(zone.id)?.length ?? 0, min: zoneMinSize(zone) })}
           visible={zone.visible}
           widget={selectedWidget && widgetName(selectedWidget, catalog)}
@@ -447,7 +439,13 @@ export function ZoneInspector({
           onRemove={onRemove}
           onHelp={onHelp}
         />
-      {place ?? <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />}
+    </>
+  );
+  const placeRow = place ?? (
+    <PlaceRow cell={{ col: zone.colStart, row: zone.rowStart, cols: zone.colSpan, rows: zone.rowSpan }} onCells={(patch) => onZoneBox(patch)} />
+  );
+  const after = (layer || onInfoPanel) && (
+    <>
       {layer}
       {onInfoPanel}
     </>
@@ -460,6 +458,8 @@ export function ZoneInspector({
         widget={item}
         appearance={appearance}
         header={header}
+        place={placeRow}
+        after={after}
         bound={bound}
         update={update}
         onChangeKind={(kind) => update((p) => ({ ...p, panel: { ...p.panel!, widgets: p.panel!.widgets.map((w) => (w.id === item.id ? convertKind(w, kind) : w)) } }))}
@@ -501,6 +501,9 @@ export function ZoneInspector({
         onToggleVisible,
       }}
       quickKeys={blank ? [] : pinned}
+      place={placeRow}
+      after={after}
+      underline
     />
     <MakeThemeDialog
       pending={makeThemePending}

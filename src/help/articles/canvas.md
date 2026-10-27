@@ -8,7 +8,7 @@ verified: 1.3.0-beta.36
 
 A free-form editor over the imported profile. Every edit stays valid for export back to InfoPanel.
 
-The editor is **Edit** on the rail, the same view that edits a grid screen, and it opens on every Free page (see [Grid or Free](studio#grid-or-free)); see [The InfoPanel editor](infopanel-editor) for adding items, choosing sensors and the profile settings. An InfoPanel profile opens in it from its card in Screens. To edit a canvas zone on a grid screen, select it and press **Edit items** on the note about the InfoPanel profile in the inspector, or double-click it. Press **Done** to go back to the grid.
+The editor is **Edit** on the rail, the same view that edits a grid screen. An imported InfoPanel profile opens in it from its card in Screens. See [InfoPanel profiles in Edit](infopanel-editor) for adding items, choosing sensors and the page's settings.
 
 An InfoPanel item or element added from **Add** to a grid page goes on the page itself, among the widgets, and no longer makes a canvas zone (see [Add](studio#add)).
 
@@ -23,9 +23,9 @@ An InfoPanel item or element added from **Add** to a grid page goes on the page 
 
 The item tree, the top item first, as on a screen's page (see [Layers](studio#layers)). Groups nest. Each row has a lock and an eye, which sets InfoPanel's Hidden flag. A Studio widget on the page is a row too, with its widget icon in the accent colour and the word *widget*; see [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
 
-## The toolbar
+## The strip above the canvas
 
-Undo and Redo, Duplicate, Group and Ungroup, Draw later and Draw earlier, Delete, **Draw all as** (InfoPanel or Native), **Show modes**, **Sensors**, **Remap** and **Compare**.
+**Draw all as** (InfoPanel or Native), **Show modes**, **Sensors**, **Compare** and **Save to Library**. Undo and Redo are in the title bar. Duplicate, Group, Ungroup, the draw order and Delete are in Layers, its right-click menu, the inspector's **LAYER** buttons and the keys. **Remap sensors** is in the page's settings: click an empty part of the canvas.
 
 ## InfoPanel or native, per item
 

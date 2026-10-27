@@ -3,7 +3,7 @@ id: profiles
 title: Screens and the grid
 icon: aspect_ratio
 related: [zones, themes, kiosk]
-verified: 1.3.0-beta.35
+verified: 1.3.0-beta.36
 ---
 
 A screen (profile) is a design for one display size. Its grid decides where zones can go.
@@ -38,7 +38,7 @@ A fresh install has one blank screen, **Main display**, at 1920 × 1080 with a 1
 
 **New** opens **New screen**, one page. The templates fill the left, and the panel on the right shows the one you picked: a preview at its size, then **Size**, **Colours**, **Sensors** and **Name**. Press **Create screen**, or Enter, whenever it looks right. **Cancel** or Esc goes back to Screens without making anything.
 
-- **Screen** and **InfoPanel profile** at the top switch what the page makes. A screen is a grid of widgets with live data; an InfoPanel profile is a free canvas you can export to the InfoPanel app (see [The InfoPanel editor](infopanel-editor#a-new-profile)). Switching starts the size, name and search over and keeps your template when the other kind has one of the same name.
+- **Screen** and **InfoPanel profile** at the top switch what the page makes. A screen is a grid of widgets with live data; an InfoPanel profile is a free canvas you can export to the InfoPanel app (see [InfoPanel profiles in Edit](infopanel-editor#a-new-profile)). Switching starts the size, name and search over and keeps your template when the other kind has one of the same name.
 - The row above the templates is always in view: **Blank grid** (an empty grid at 1024 × 600, picked like a card), **The sample layout**, **An InfoPanel profile** (the same as the switch) and **Import a file**.
 - **Search** finds a template by its name, its description, the widgets it uses or the sensors it reads, so `fps` finds the ones that show your frame rate. Enter in the search picks the first one it found. When nothing matches, **Start blank** or **Clear search**.
 - Click a card to pick it, double-click to make it at once at the size it shows, or use the arrow keys to move from card to card. The dots under a card are its colours: click one to pick the template in those colours.
@@ -90,9 +90,9 @@ The theme, skin and background are in **Theme**: pick the screen in its scope ba
 
 A screen holds one or more pages that share its grid. See [The studio](studio#pages) for the page tabs and rotation.
 
-A page of an InfoPanel profile is a Free page: one canvas the size of the screen, where InfoPanel items and Studio widgets sit at any place. See [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile). Any page can be switched between Grid and Free; see [Grid or Free](studio#grid-or-free).
+A page of an imported InfoPanel profile keeps every item at the pixels InfoPanel had it, over a grid of cells about 100 px wide, where Studio widgets sit. See [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile) and [Page settings](studio#page-settings).
 
-Changing a screen's size resizes its Free pages with it and keeps every item where it is. The message that follows has **Scale contents**, which scales the items by as much as the screen changed.
+Changing an InfoPanel profile's size keeps every item where it is. The message that follows has **Scale contents**, which scales the items by as much as the screen changed.
 
 ## Which screen opens
 

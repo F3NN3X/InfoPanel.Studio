@@ -327,8 +327,9 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
    * Set the primary zone's box (inspector inputs), at least its minimum
    * size, clamped + no overlap; a box that can't be placed keeps the old one.
    */
-  const setZoneBox = (patch: Partial<ZoneRect>) => {
-    if (!selected) return;
+  /** The selected zone's cells typed in (COL / ROW / W / H); false when it can't take them (another widget, the grid's edge). */
+  const setZoneBox = (patch: Partial<ZoneRect>): boolean => {
+    if (!selected) return false;
     const next = enforceMinSize(
       { col: selected.colStart, row: selected.rowStart, cols: selected.colSpan, rows: selected.rowSpan, ...patch },
       selected,
@@ -336,6 +337,7 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     );
     const clamped = fitZoneRect(next, profile.placements, profile.cols, profile.rows, selected.id);
     if (clamped) setZoneRect(selected.id, clamped, `zone-box:${selected.id}`);
+    return clamped !== null && (["col", "row", "cols", "rows"] as const).every((k) => patch[k] === undefined || patch[k] === clamped[k]);
   };
 
   /** Assign a widget to a zone (blank, module, or preset panel). */

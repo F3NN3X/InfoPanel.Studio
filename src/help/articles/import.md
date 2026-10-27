@@ -3,7 +3,7 @@ id: import
 title: Importing and exporting
 icon: download
 related: [canvas, remap, assets]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
 Bring files into the studio and take them out again.
@@ -64,7 +64,7 @@ can't say which face it uses, the style it was given (Bold, SemiBold, Light and 
 
 ## 4. Sensors and save
 
-Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap](remap)). **Leave N unresolved unbound** settles every unresolved group in one press. Then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or a **Canvas zone** on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
+Fix sensors that didn't match the PC running InfoPanel Studio (see [Sensor remap](remap)). **Leave N unresolved unbound** settles every unresolved group in one press. Then go to **Save**. Set the **Name**; where it lands (a **New screen** at the InfoPanel size, or **A group** of its items on the current page) was chosen in the door. You can also tick "Also save the stored form (.canvas.zip) to the Library". Press the **Import** button. The whole import is one undo step.
 
 ## Export & back up
 

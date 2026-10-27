@@ -24,7 +24,7 @@ Every image or video you upload is in My library, wherever you uploaded it: Add 
 
 ## Components
 
-A component is a piece of an InfoPanel profile you saved to reuse: a few items, a group, or an element such as a Row or Drives. Save one in Edit on an InfoPanel profile (see [InfoPanel editor](infopanel-editor)). **Components** lists them with a thumbnail of each. A component isn't a profile, so it doesn't appear under InfoPanel profiles or in Screens.
+A component is a piece of an InfoPanel profile you saved to reuse: a few items, a group, or an element such as a Row or Drives. Save one in Edit on an InfoPanel profile (see [InfoPanel profiles in Edit](infopanel-editor)). **Components** lists them with a thumbnail of each. A component isn't a profile, so it doesn't appear under InfoPanel profiles or in Screens.
 
 Drag a component onto the screen to get a canvas zone of its own, or onto a canvas zone to merge its items there. **Place on this page** does the first in the free cell that draws it largest. Each placement counts as a copy, so the component shows as used, and removing it from the Library never deletes a file a placed copy still draws.
 

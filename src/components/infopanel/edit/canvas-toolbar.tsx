@@ -1,32 +1,13 @@
 /**
- * The canvas zone editor's toolbar (spec §7), left to right: undo / redo (the studio's history), duplicate, group, ungroup, draw order, delete,
- * Draw all as, Show modes, the sensor source, Remap with its badge, Compare; then Save to Library, and Done on a free
- * area of a grid page. Show modes and Compare open a strip below it. When the row does not fit, the sensor source and
- * Compare move into a "More" menu.
+ * The canvas's view strip on an imported profile's page (spec §7), left to right: Draw all as, Show modes, the sensor
+ * source, Compare; then Save to Library. Show modes and Compare open a strip below it. When the row does not fit, the
+ * sensor source and Compare move into a "More" menu.
  */
 import { useRef, useState, type ReactNode } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  Cable,
-  Check,
-  Contrast,
-  Copy,
-  Group,
-  Layers,
-  Library,
-  MoreHorizontal,
-  PackagePlus,
-  Redo2,
-  Trash2,
-  Undo2,
-  Ungroup,
-  type LucideIcon,
-} from "lucide-react";
+import { Check, Contrast, Layers, Library, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { allMode, modeTally, type SensorMode } from "@/lib/infopanel/canvas-edit";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
-import { itemAt, topmost } from "@/lib/infopanel/editor/ops";
 import type { Compare } from "./edit-canvas";
 import type { CanvasEditor } from "./use-canvas-editor";
 import type { LibraryLink } from "./use-library-link";
@@ -92,27 +73,23 @@ const Label = ({ children }: { children: ReactNode }) => <span className="hidden
 
 export interface CanvasToolbarProps {
   editor: CanvasEditor;
-  history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void };
   showModes: boolean;
   onShowModes: (on: boolean) => void;
   compare: boolean;
   onCompare: (on: boolean) => void;
-  /** Binding groups that still need a look (the Remap badge). */
-  remapCount: number;
-  onRemap: () => void;
   /** The Data API did not answer: the Live sensor source is off. */
   apiUnreachable: boolean;
   /** Save to Library, or Update in Library once the profile has an item. */
   library?: LibraryLink;
-  /** "Save as component…" for the selection. */
-  onSaveComponent?: () => void;
-  /** Back to the grid page (a free area); a Free page has none. */
-  onDone?: () => void;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onSaveComponent, onDone }: CanvasToolbarProps) {
-  const { selection } = editor;
-  const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
+/**
+ * The canvas's view strip on an imported profile's page: how its items draw (Draw all as, Show modes), where their
+ * values come from (Sensors), Compare with InfoPanel's screenshot, and Save to Library for the profile. Undo, the layer
+ * actions, Save as component, Remap and Delete live in the title bar, Layers, the layer menu, the keys and the page's
+ * inspector (Edit v3 SPEC §8.3, decision Q10).
+ */
+export function CanvasToolbar({ editor, showModes, onShowModes, compare, onCompare, apiUnreachable, library }: CanvasToolbarProps) {
   const mode = allMode(editor.modes);
   const convertible = [...editor.modes.values()].some((m) => m.state !== "stuck");
   const { ref, collapsed } = useToolbarFit();
@@ -139,17 +116,6 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
   ];
   return (
     <div ref={ref} role="toolbar" aria-label="Canvas items" className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-ui-subtle bg-ui-panel px-3 font-ui">
-      <ToolButton icon={Undo2} label="Undo (Ctrl+Z)" onClick={history.undo} disabled={!history.canUndo} />
-      <ToolButton icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={history.redo} disabled={!history.canRedo} />
-      <Sep />
-      <ToolButton icon={Copy} label="Duplicate (Ctrl+D)" onClick={editor.duplicate} disabled={selection.length === 0} />
-      <ToolButton icon={Group} label="Group (Ctrl+G)" onClick={editor.group} disabled={topmost(selection).length < 1} />
-      <ToolButton icon={Ungroup} label="Ungroup (Ctrl+Shift+G)" onClick={editor.ungroup} disabled={single?.kind !== "Group"} />
-      {onSaveComponent && <ToolButton icon={PackagePlus} label="Save as component (Ctrl+Shift+S)" onClick={onSaveComponent} disabled={selection.length === 0} />}
-      <ToolButton icon={ArrowUp} label="Draw later (up)" onClick={() => editor.reorder(1)} disabled={!single} />
-      <ToolButton icon={ArrowDown} label="Draw earlier (down)" onClick={() => editor.reorder(-1)} disabled={!single} />
-      <ToolButton icon={Trash2} label="Delete (Del)" onClick={editor.remove} disabled={selection.length === 0} />
-      <Sep />
       <Label>Draw all as</Label>
       <Segmented
         label="Draw all as"
@@ -168,16 +134,6 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
           <Segmented<SensorMode> label="Sensors" value={editor.sensorMode} options={sensorOptions} onChange={editor.setSensorMode} />
         </>
       )}
-      <button
-        type="button"
-        onClick={onRemap}
-        disabled={editor.groups.length === 0}
-        className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] border border-ui-default px-2.5 text-[12px] text-ui-2 hover:bg-ui-hover disabled:pointer-events-none disabled:opacity-35"
-      >
-        <Cable className="h-3.5 w-3.5" />
-        Remap
-        {remapCount > 0 && <span className="rounded-full bg-ui-warning/20 px-1.5 font-ui-mono text-[10px] text-ui-warning">{remapCount}</span>}
-      </button>
       {!collapsed && (
         <button
           type="button"
@@ -222,17 +178,6 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
         >
           <Library className="h-3.5 w-3.5" />
           {library.label}
-        </button>
-      )}
-      {onDone && (
-        <button
-          type="button"
-          onClick={onDone}
-          title="Back to the grid page (Esc)"
-          className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-[8px] bg-ui-accent px-3 text-[12px] font-medium text-ui-inverse-fg hover:opacity-90"
-        >
-          <Check className="h-3.5 w-3.5" />
-          Done
         </button>
       )}
     </div>

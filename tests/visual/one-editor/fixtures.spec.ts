@@ -44,6 +44,25 @@ async function altDrag(page: Page, part: Locator, dx: number, dy: number, during
 /** A Layers row by its name. */
 const layersRow = (page: Page, name: string) => page.getByTestId("layers-row").filter({ hasText: name }).first();
 
+/** The page's settings from its tab menu (Page settings deselects, so the inspector shows the page); the menu's rows. */
+async function openPageSettings(page: Page, name = "Main") {
+  await page.getByRole("button", { name: `Page actions for ${name}` }).click();
+  const rows = page.getByRole("menuitem");
+  await expect(rows.first()).toBeVisible();
+  const labels = await rows.allTextContents();
+  await rows.filter({ hasText: /^Page settings/ }).click();
+  await expect(page.getByTestId("page-snap-toggle")).toBeVisible();
+  return labels;
+}
+
+/** The inspector's Place row: its mode, and each box's value by its label. */
+async function placeRow(page: Page) {
+  const row = page.getByTestId("inspector-place");
+  await expect(row).toBeVisible();
+  const boxes = await row.locator("label").evaluateAll((els) => els.map((e) => [e.querySelector("span")?.textContent, (e.querySelector("input") as HTMLInputElement | null)?.value ?? e.querySelectorAll("span")[1]?.textContent]));
+  return { row, mode: await row.getAttribute("data-mode"), boxes: Object.fromEntries(boxes) as Record<string, string> };
+}
+
 /** Start an HTML5 drag on a row and hover `target` at a fraction of its height; `release` drops it there. */
 async function dragRow(page: Page, from: Locator, target: Locator, f: number, release = false) {
   const a = (await from.boundingBox())!;
@@ -68,6 +87,35 @@ async function dragBy(page: Page, target: Locator, dx: number, dy: number) {
 /** The lines built so far, by fixture and line text; each runs on its fixture, opened in Edit. */
 const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<void>>>> = {
   screen: {
+    // Neither the tab menu nor the page settings offer a layout; no part is a "free area".
+    [CHECKS.screen[0].text]: async (page) => {
+      const labels = await openPageSettings(page);
+      expect(labels.some((l) => /Layout/.test(l))).toBe(false);
+      const inspector = page.locator("aside", { has: page.getByTestId("page-snap-toggle") });
+      await expect(inspector).toContainText("Columns × rows");
+      await expect(inspector).not.toContainText(/Layout|Grid → Free|Free → Grid/);
+      await expect(page.locator("body")).not.toContainText(/free area/i);
+    },
+    // The fixture selects Weather, at column 2, row 3, one cell.
+    [CHECKS.screen[4].text]: async (page) => {
+      await expect(page.getByTestId("inspector-kind")).toHaveText("Studio widget");
+      const { row, mode, boxes } = await placeRow(page);
+      expect(mode).toBe("grid");
+      await expect(row).toContainText(/Place on grid/i);
+      await expect(row).toContainText("On grid");
+      expect(boxes).toEqual({ COL: "2", ROW: "3", W: "1", H: "1" });
+      await shoot(page, "screen-place");
+    },
+    [CHECKS.screen[5].text]: async (page) => {
+      await openPageSettings(page);
+      await expect(page.getByText("Nothing selected")).toBeVisible();
+      await expect(page.getByText("Page · Main")).toBeVisible();
+      const toggle = page.getByTestId("page-snap-toggle");
+      await expect(toggle).toContainText("Snap items to grid");
+      await expect(toggle.getByRole("switch")).toHaveAttribute("aria-checked", "true");
+      await expect(toggle.locator("xpath=..").locator("kbd")).toHaveText("Alt");
+      await shoot(page, "screen-page");
+    },
     [CHECKS.screen[2].text]: async (page) => {
       const tabs = page.getByRole("radiogroup", { name: "Left panel" });
       await expect(tabs.getByRole("radio")).toHaveText(["Layers", "Add"]);
@@ -104,6 +152,31 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
     },
   },
   profile: {
+    // CPU temp as the import placed it: X 32, Y 96, W 224 (its drawn height is the font's, so not asserted).
+    [CHECKS.profile[4].text]: async (page) => {
+      await expect(page.getByTestId("inspector-kind")).toHaveText("InfoPanel item");
+      const { row, mode, boxes } = await placeRow(page);
+      expect(mode).toBe("free");
+      await expect(row).toContainText(/Position and size \(px\)/i);
+      await expect(row).toContainText("Placed freely");
+      expect([boxes.X, boxes.Y, boxes.W]).toEqual(["32", "96", "224"]);
+      await expect(page.getByTestId("snap-to-grid")).toHaveText("Snap to grid");
+      await expect(page.getByTestId("on-infopanel")).toContainText("On InfoPanel:");
+      await shoot(page, "profile-place");
+      // Snap to grid puts it on the nearest cells (100 × 96 px on 800 × 480): column 1, row 2, two wide (224 px).
+      await page.getByTestId("snap-to-grid").click();
+      const snapped = await placeRow(page);
+      expect(snapped.mode).toBe("grid");
+      expect([snapped.boxes.COL, snapped.boxes.ROW, snapped.boxes.W]).toEqual(["1", "2", "2"]);
+    },
+    [CHECKS.profile[5].text]: async (page) => {
+      await expect(page.locator("body")).not.toContainText(/InfoPanel editor|Edit items/);
+      await expect(page.getByRole("button", { name: /^Done$/ })).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("page-snap-toggle")).toBeVisible();
+      await expect(page.locator("body")).not.toContainText(/InfoPanel editor|Edit items/);
+      await shoot(page, "profile-page");
+    },
     [CHECKS.profile[0].text]: async (page) => {
       await expect(page.locator("header").getByText("Imported from InfoPanel", { exact: true })).toBeVisible();
       await expect(page.getByRole("tablist", { name: "Pages" })).toBeVisible();
@@ -139,6 +212,13 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
     },
   },
   addw: {
+    [CHECKS.addw[3].text]: async (page) => {
+      await expect(page.getByTestId("inspector-kind")).toHaveText("Studio widget");
+      const { mode, boxes } = await placeRow(page);
+      expect(mode).toBe("grid");
+      expect(boxes).toEqual({ COL: "7", ROW: "5", W: "2", H: "1" });
+      await expect(page.getByTestId("on-infopanel").getByRole("radio")).toHaveText(["Recreate", "Snapshot", "Leave out"]);
+    },
     // Neon Rig is made for InfoPanel: after Recently used, InfoPanel items and Elements come before the widgets.
     [CHECKS.addw[0].text]: async (page) => {
       const tiles = page.getByTestId("add-tile");
@@ -188,6 +268,19 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
     },
   },
   alt: {
+    // Title text sits in px (48, 28, 140 × 36); Snap to grid puts it back on cells, and it draws there.
+    [CHECKS.alt[4].text]: async (page) => {
+      const title = page.locator('[data-part-id="title"]');
+      await title.dblclick();
+      const { row, mode, boxes } = await placeRow(page);
+      expect(mode).toBe("free");
+      await expect(row).toContainText("Placed freely");
+      expect(boxes).toEqual({ X: "48", Y: "28", W: "140", H: "36" });
+      await shoot(page, "alt-place");
+      await page.getByTestId("snap-to-grid").click();
+      expect((await placeRow(page)).mode).toBe("grid");
+      await expect(title).not.toHaveAttribute("data-free");
+    },
     // Title text is in the Overlay group: a click selects the group, a double-click the part inside (SPEC §10.3 note).
     [CHECKS.alt[0].text]: async (page) => {
       const title = page.locator('[data-part-id="title"]');

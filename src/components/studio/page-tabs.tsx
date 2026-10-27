@@ -1,12 +1,10 @@
 import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Cast, Check, Copy, LayoutDashboard, LayoutPanelTop, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
+import { Cast, Copy, LayoutDashboard, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
-import type { MonitorProfile, PageLayout, ProfilePage } from "@/lib/layout";
-import { isFreePage } from "@/lib/free-pages";
+import type { ProfilePage } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { LAYOUT_UI } from "./layout-control";
 import { pageIcon } from "./page-icons";
 import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { RenameInput } from "./rename-input";
@@ -30,10 +28,6 @@ interface PageTabsProps {
   onIcon: (id: string) => void;
   /** Page settings: show the page and deselect, so the Page inspector shows. */
   onPageSettings: (id: string) => void;
-  /** Layout ▸ Grid / Free (one-editor SPEC §6): switch the page; unset hides the submenu. */
-  onLayout?: (id: string, layout: PageLayout) => void;
-  /** The screen's columns and rows: a page that is one canvas spanning them is Free. */
-  grid: Pick<MonitorProfile, "cols" | "rows">;
   /** At the end of the row: the screen's Made for, then the Export check pill (made for InfoPanel) or the Studio note. */
   extra?: ReactNode;
   /** The page being renamed inline (the palette asks for this too). */
@@ -60,35 +54,15 @@ export function dropIndex(rects: { left: number; width: number }[], from: number
   return rects.filter((r, i) => i !== from && r.left + r.width / 2 < x).length;
 }
 
-/** A page's layout: Free when it is one canvas filling the screen's grid (v15 keeps no flag, `isFreePage`). */
-export const layoutOf = (grid: Pick<MonitorProfile, "cols" | "rows">, page: Pick<ProfilePage, "placements">): PageLayout => (isFreePage(grid, page) ? "free" : "grid");
-
-/** The rows of a page's menu; Delete is off on the only page, and Layout ▸ shows when the page can switch. */
+/** The rows of a page's menu (Edit v3 SPEC §1: every page is one kind, so no layout to pick); Delete is off on the only page. */
 export function pageMenuEntries(
   pages: ProfilePage[],
-  actions: { rename: () => void; icon: () => void; duplicate: () => void; remove: () => void; settings: () => void; layout?: (to: PageLayout) => void },
-  current: PageLayout = "grid",
+  actions: { rename: () => void; icon: () => void; duplicate: () => void; remove: () => void; settings: () => void },
 ): ContextMenuEntry[] {
-  const layout: ContextMenuEntry[] = actions.layout
-    ? [
-        {
-          id: "layout",
-          label: "Layout",
-          icon: <LayoutPanelTop />,
-          submenu: (["grid", "free"] as const).map((to) => ({
-            id: `layout-${to}`,
-            label: LAYOUT_UI[to].label,
-            icon: to === current ? <Check /> : undefined,
-            onSelect: () => to !== current && actions.layout?.(to),
-          })),
-        },
-      ]
-    : [];
   return [
     { id: "rename", label: "Rename", icon: <Pencil />, onSelect: actions.rename },
     { id: "icon", label: "Icon…", icon: <Shapes />, onSelect: actions.icon },
     { id: "duplicate", label: "Duplicate", icon: <Copy />, onSelect: actions.duplicate },
-    ...layout,
     { id: "delete", label: "Delete", icon: <Trash2 />, danger: true, disabled: pages.length <= 1, onSelect: actions.remove },
     "separator",
     { id: "settings", label: "Page settings", icon: <Settings2 />, onSelect: actions.settings },
@@ -147,7 +121,6 @@ function DeleteDialog({
  */
 export function PageTabs({
   pages,
-  grid,
   current,
   onSelect,
   onAdd,
@@ -157,7 +130,6 @@ export function PageTabs({
   onDelete,
   onIcon,
   onPageSettings,
-  onLayout,
   extra,
   leftOpen,
   onToggleLeft,
@@ -200,21 +172,14 @@ export function PageTabs({
   };
 
   const openMenu = (id: string, x: number, y: number) => setMenu({ id, x, y });
-  const menuEntries = (id: string) => {
-    const page = pages.find((p) => p.id === id);
-    return pageMenuEntries(
-      pages,
-      {
-        rename: () => onRenamingChange(id),
-        icon: () => onIcon(id),
-        duplicate: () => onDuplicate(id),
-        remove: () => onDeletingChange(id),
-        settings: () => onPageSettings(id),
-        ...(onLayout ? { layout: (to: PageLayout) => onLayout(id, to) } : {}),
-      },
-      page ? layoutOf(grid, page) : "grid",
-    );
-  };
+  const menuEntries = (id: string) =>
+    pageMenuEntries(pages, {
+      rename: () => onRenamingChange(id),
+      icon: () => onIcon(id),
+      duplicate: () => onDuplicate(id),
+      remove: () => onDeletingChange(id),
+      settings: () => onPageSettings(id),
+    });
 
   // The slot the dragged tab would drop into, among the tabs without it.
   const others = drag ? pages.filter((p) => p.id !== drag.id) : pages;
