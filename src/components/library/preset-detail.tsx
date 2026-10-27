@@ -1,13 +1,14 @@
 /**
- * The Library's detail pane for a Theme or a Style: a preview, the name (renamed in place for the saved ones),
- * the actions (a Theme's "Apply to…" scopes, then the rest) and a readable summary: a Theme's colours, corners,
- * background, widget style and the screens that use it; a Style's keys.
+ * The Library's detail pane for a Theme, a skin or a Style: a preview, the name (renamed in place for the saved
+ * ones), the actions (a Theme's or a skin's "Apply to…" scopes, then the rest) and a readable summary: a Theme's
+ * colours, corners, background, widget style and the screens that use it; a skin's or a Style's keys.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import type { DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
+import { BUILTIN_LOOK } from "@/lib/my-library/config-items";
 import { KIND_LABEL, metaLine } from "@/lib/my-library/model";
 import type { ThemePreset } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
@@ -23,7 +24,7 @@ export interface PresetDetailProps {
   sheet?: boolean;
   config: DashboardConfig;
   primary: DetailAction | null;
-  /** A Theme's "Apply to…" choices. */
+  /** A Theme's or a skin's "Apply to…" choices. */
   scopes: ScopeChoice[];
   secondary: DetailAction[];
   /** Focus and select the name field (Rename). */
@@ -84,8 +85,9 @@ export function PresetDetail(p: PresetDetailProps) {
     onFocusedName?.();
   }, [focusName, onFocusedName]);
 
-  const saved = theme && user ? (item.data as AppearancePreset) : undefined;
-  const palette = theme && !user ? (item.data as ThemePreset) : undefined;
+  // A template look is a whole Theme like a saved one; a palette is colors only.
+  const saved = theme && (user || item.id.startsWith(BUILTIN_LOOK)) ? (item.data as AppearancePreset) : undefined;
+  const palette = theme && !saved ? (item.data as ThemePreset) : undefined;
   const settings: ModuleSettings = theme ? (saved?.style ?? {}) : (item.data as { settings: ModuleSettings }).settings;
   const rows = styleRows(settings);
   const usedBy = saved ? themeUsedBy(p.config, saved) : [];
@@ -157,7 +159,7 @@ export function PresetDetail(p: PresetDetailProps) {
         </Section>
       )}
       {(!theme || saved) && (
-        <Section title={theme ? "Widget style" : "Settings"}>
+        <Section title={theme || item.kind === "skin" ? "Widget style" : "Settings"}>
           {rows.length > 0 ? (
             <Rows rows={rows} />
           ) : (

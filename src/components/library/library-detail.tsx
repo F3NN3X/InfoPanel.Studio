@@ -11,6 +11,7 @@ import { formatBytes } from "@/lib/assets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import { copiesLine, hashOf, isConfigItem, KIND_LABEL, metaLine, metaOf, tagsOf, type LibraryIndex } from "@/lib/my-library/model";
 import { AssetThumb } from "./asset-thumb";
+import { isSavedPanel } from "./library-actions";
 
 export interface DetailAction {
   label: string;
@@ -75,6 +76,8 @@ export function LibraryDetail(p: DetailProps) {
   const { item } = p;
   const m = metaOf(item);
   const config = isConfigItem(item);
+  // A saved panel lives in the config, and is renamed and deleted there; the built-ins are neither.
+  const editable = !config || isSavedPanel(item);
   const [name, setName] = useState(item.name);
   const nameRef = useRef<HTMLInputElement>(null);
   const { focusName, onFocusedName } = p;
@@ -103,7 +106,7 @@ export function LibraryDetail(p: DetailProps) {
         <input
           aria-label="Name"
           value={name}
-          disabled={config}
+          disabled={!editable}
           ref={nameRef}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => name.trim() && name !== item.name && p.onRename(name.trim())}
@@ -231,7 +234,7 @@ export function LibraryDetail(p: DetailProps) {
           </div>
         </div>
       )}
-      {!config && (
+      {editable && (
         <button type="button" onClick={p.onRemove} className="mt-auto flex items-center gap-1.5 self-start text-[12px] text-ui-4 hover:text-ui-danger">
           <Trash2 className="h-3.5 w-3.5" /> Remove from library
         </button>

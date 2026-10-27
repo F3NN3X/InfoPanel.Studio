@@ -26,7 +26,7 @@ export function PaletteSwatch({ tokens }: { tokens: ThemeTokens }) {
 }
 
 /** One skin drawn live: its own card, fonts, numerals and graph at thumbnail size. */
-function SkinSwatch({ skin }: { skin: string }) {
+export function SkinSwatch({ skin }: { skin: string }) {
   return (
     <div className="h-full p-[3px]">
       <Widget skin={skin} surface="auto" radius={Math.min(SKINS[skin]?.radius ?? 16, 8)} showHeader={false}>

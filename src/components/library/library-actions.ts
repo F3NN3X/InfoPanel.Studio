@@ -12,6 +12,7 @@ import type { PanelDef, UserPanelPreset } from "@/lib/panel-model";
 import { userPanelPreset, type PanelPreset } from "@/lib/panelPresets";
 import { CUSTOM_GAUGE_ID, type LibraryFrame } from "@/lib/gauge-studio/model";
 import type { VectorGauge } from "@/lib/infopanel/gauges/vector";
+import { BUILTIN_PANEL, CONFIG_PANEL } from "@/lib/my-library/config-items";
 import { fileUrl, metaOf } from "@/lib/my-library/model";
 import type { ModuleSettings } from "@/modules/types";
 import * as studio from "@/components/studio/studio-actions";
@@ -104,8 +105,9 @@ function placePreset(b: StudioBridge, item: LibraryItem, preset: PanelPreset, re
   return id;
 }
 
-/** A library item as a panel preset: a saved panel, or an image widget; null for other kinds. */
+/** A library item as a panel preset: a built-in or saved panel, or an image widget; null for other kinds. */
 export async function presetOf(item: LibraryItem, grid: { cols: number; rows: number; width: number; height: number }): Promise<PanelPreset | null> {
+  if (item.id.startsWith(BUILTIN_PANEL)) return item.data as PanelPreset;
   if (item.kind === "panel") {
     const data = await dataOf<UserPanelPreset>(item);
     return data?.panel ? userPanelPreset({ ...data, name: item.name }) : null;
@@ -181,4 +183,23 @@ export function useForSelection(b: StudioBridge, name: string, src: string): voi
     }),
   }));
   b.toast(`${name} is the picture of ${ids.size === 1 ? "the widget" : `${ids.size} widgets`}`);
+}
+
+/** A panel saved in the config (`config.panelPresets`): renamed, duplicated and deleted there. */
+export const isSavedPanel = (item: Pick<LibraryItem, "id">): boolean => item.id.startsWith(CONFIG_PANEL);
+
+/**
+ * A built-in or saved panel's copy as a new saved panel (`id`), appended to `config.panelPresets`: one undo
+ * step. Its widgets are fresh copies, so changing one never changes the other.
+ */
+export function duplicatePanel(config: DashboardConfig, item: LibraryItem, id: string): DashboardConfig {
+  const copy: UserPanelPreset | null = item.id.startsWith(BUILTIN_PANEL)
+    ? (() => {
+        const p = item.data as PanelPreset;
+        return { id, name: `${item.name} copy`, colSpan: p.colSpan, rowSpan: p.rowSpan, panel: p.make(), ...(p.settings ? { settings: { ...p.settings } } : {}) };
+      })()
+    : isSavedPanel(item)
+      ? { ...structuredClone(item.data as UserPanelPreset), id, name: `${item.name} copy` }
+      : null;
+  return copy ? { ...config, panelPresets: [...(config.panelPresets ?? []), copy] } : config;
 }

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { LibraryItem } from "@/lib/library";
 import { BUILTIN_STYLES } from "@/lib/builtin-styles";
 import { THEME_PRESETS } from "@/lib/theme";
-import { configItems } from "@/lib/my-library/config-items";
+import { builtinItems, configItems, isBuiltinItem } from "@/lib/my-library/config-items";
+import { panelPresets } from "@/lib/panelPresets";
+import { SKIN_PACKS } from "@/widgets/core/theme";
 import {
   buildIndex,
   cardTag,
@@ -11,6 +13,7 @@ import {
   flagOf,
   hintOf,
   isConfigItem,
+  sortItems,
   usedByScreen,
 } from "@/lib/my-library/model";
 
@@ -60,6 +63,51 @@ describe("configItems", () => {
     expect(cardTag(items.find((i) => i.name === "Hot readout")!)).toEqual({ text: "Saved", builtin: false });
     expect(cardTag(file({ kind: "video" }))).toEqual({ text: "Video", builtin: false });
     expect(cardTag(file({ kind: "canvas" }))).toEqual({ text: "Imported", builtin: false });
+  });
+});
+
+describe("builtinItems", () => {
+  const look = { id: "glass:ice", name: "Glass · Ice", description: "", theme: "ocean" as const, radius: 0.75, style: {} };
+  const template = { id: "general", name: "General", size: { width: 1920, height: 1080 } } as never;
+
+  it("lists every skin and built-in panel, then the looks and templates once their catalog loads", () => {
+    const now = builtinItems();
+    expect(now.filter((i) => i.kind === "skin")).toHaveLength(SKIN_PACKS.length);
+    expect(now.filter((i) => i.kind === "panel")).toHaveLength(panelPresets.length);
+    expect(now.some((i) => i.kind === "template" || i.kind === "theme")).toBe(false);
+    const later = builtinItems({ looks: [look], templates: [template] });
+    expect(later.find((i) => i.kind === "theme")).toMatchObject({ name: "Glass · Ice", data: look });
+    expect(later.find((i) => i.kind === "template")).toMatchObject({ name: "General", meta: { width: 1920, height: 1080 } });
+  });
+
+  it("sort below the user's own items and the palettes, each catalog in its own order", () => {
+    const all = sortItems([...configItems(config), ...builtinItems({ looks: [look, { ...look, id: "glass:b", name: "Glass · B" }] })], "recent");
+    const themes = all.filter((i) => i.kind === "theme").map((i) => i.name);
+    expect(themes.slice(0, -2).sort()).toEqual(["Night shift", ...THEME_PRESETS.map((t) => t.label)].sort());
+    expect(themes.slice(-2)).toEqual(["Glass · Ice", "Glass · B"]);
+    expect(all.filter((i) => i.kind === "skin")[0].id).toBe(`builtin-skin:${SKIN_PACKS[0].name}`);
+  });
+
+  it("are built-ins: tagged so, never flagged Not used, sorted into their own collections", () => {
+    const items = builtinItems({ looks: [look], templates: [template] });
+    const index = buildIndex(items);
+    for (const item of items) {
+      expect(isBuiltinItem(item)).toBe(true);
+      expect(isConfigItem(item)).toBe(true);
+      expect(cardTag(item)).toEqual({ text: "Built-in", builtin: true });
+      expect(flagOf(item, index)).toBeNull();
+    }
+    const counts = collectionCounts(index);
+    expect(counts.skins).toBe(SKIN_PACKS.length);
+    expect(counts.templates).toBe(1);
+    expect(counts.themes).toBe(1);
+    expect(counts.unused).toBe(0);
+  });
+
+  it("gives a skin the widget style Theme › Start from writes", () => {
+    const tui = builtinItems().find((i) => i.id === "builtin-skin:tui")!;
+    expect(tui.name).toBe("TUI");
+    expect(tui.data).toMatchObject({ settings: { skin: "tui", surface: "auto" } });
   });
 });
 
