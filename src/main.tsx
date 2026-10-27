@@ -9,9 +9,10 @@ import { suppressNativeMenu } from "./lib/native-menu";
 // ?ui-preview: a gallery of the studio chrome primitives (a lazy chunk, never linked).
 const UiPreview = lazy(() => import("@/components/ui/ui-preview"));
 const preview = new URLSearchParams(window.location.search).has("ui-preview");
-// ?widget-qa: every module at a set of spans from fixture sensors, with an overflow probe (a lazy chunk, never linked).
+// /widget-qa (or ?widget-qa): every module at a set of spans from fixture sensors, with an overflow probe (a lazy chunk).
+// The server serves the page in debug mode only.
 const WidgetQa = lazy(() => import("@/widgets/widget-qa"));
-const widgetQa = new URLSearchParams(window.location.search).has("widget-qa");
+const widgetQa = window.location.pathname === "/widget-qa" || new URLSearchParams(window.location.search).has("widget-qa");
 // ?viz-gallery: every visualiser style and look from a deterministic test signal (a lazy chunk, never linked).
 const VizGallery = lazy(() => import("@/widgets/core/viz/viz-gallery"));
 const vizGallery = new URLSearchParams(window.location.search).has("viz-gallery");

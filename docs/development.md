@@ -35,7 +35,9 @@ From `package.json`:
 InfoPanel import lab (`lab/infopanel/`, a dev tool over `src/lib/infopanel/`; see its
 [README](../lab/infopanel/README.md)): `npm run lab` (page on http://localhost:5174),
 `lab:test`, `lab:typecheck`, and the Node tools `lab:extract`, `lab:map`, `lab:fonts`
-and `lab:font-get`. None of it reaches `npm run build`.
+and `lab:font-get`. `npm run lab:build` (part of `npm run build` and `desktop:web`) writes the page to `dist/lab/`, which
+ips-server serves at `/lab/` in debug mode only; the built page has none of the dev-server endpoints (corpus, installed
+profiles, gauge library, asset store, font proxy), only the files you open.
 
 ## Desktop app scripts
 

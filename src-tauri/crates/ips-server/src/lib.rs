@@ -345,7 +345,17 @@ async fn dispatch(State(app): State<Arc<App>>, ConnectInfo(peer): ConnectInfo<So
     app.debug.log_request(method.as_str(), &url, response)
 }
 
-async fn route(app: &App, req: Req) -> Result<Response<Body>, String> {
+/// What a debug tool's page answers while debug mode is off.
+fn debug_tools_off() -> Response<Body> {
+    http::text(404, "Turn on debug mode in Settings > Diagnostics, restart the server, and reload to use this page.")
+}
+
+/// Whether the request is for the Widget QA page: `/widget-qa`, or `/?widget-qa`.
+fn is_widget_qa(path: &str, search: &str) -> bool {
+    path == "/widget-qa" || url::form_urlencoded::parse(search.trim_start_matches('?').as_bytes()).any(|(key, _)| key == "widget-qa")
+}
+
+async fn route(app: &App, mut req: Req) -> Result<Response<Body>, String> {
     let io = |e: std::io::Error| e.to_string();
     match req.path.as_str() {
         "/api/health" => Ok(health(app, &req)),
@@ -369,6 +379,21 @@ async fn route(app: &App, req: Req) -> Result<Response<Body>, String> {
         p if is_family(p, "/api/canvases") => canvases::handle(app, req).await.map_err(io),
         p if is_family(p, "/api/infopanel/installed") => infopanel_local::handle(app, &req).map_err(io),
         p if p.starts_with("/api/") => Ok(http::empty(404)),
+        // The debug tools, served in debug mode only: the InfoPanel lab (dist/lab/, a separate build) and Widget QA
+        // (a page of the app, at /widget-qa or the older /?widget-qa).
+        p if p == "/lab" || p.starts_with("/lab/") => {
+            if !app.cfg.debug {
+                return Ok(debug_tools_off());
+            }
+            if p == "/lab" {
+                return Ok(Response::builder().status(302).header("Location", "/lab/").body(Body::empty()).unwrap_or_default());
+            }
+            if p.ends_with('/') {
+                req.path.push_str("index.html");
+            }
+            static_files::serve(&app.cfg.dist, &req)
+        }
+        p if (p == "/widget-qa" || p == "/") && is_widget_qa(p, &req.search) && !app.cfg.debug => Ok(debug_tools_off()),
         _ => static_files::serve(&app.cfg.dist, &req),
     }
 }

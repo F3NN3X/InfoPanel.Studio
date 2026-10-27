@@ -7,7 +7,7 @@ import { defaultPalette } from "@/lib/infopanel/elements/palette";
 import { normalizeElement } from "@/lib/infopanel/elements/spec";
 import { newStored, readStored } from "@/lib/infopanel/import/stored";
 import type { LibraryItem } from "@/lib/library";
-import { filesToDrop, removeItem } from "@/components/library/remove-item";
+import { filesToDrop, removeBlocked, removeItem } from "@/components/library/remove-item";
 
 const api = vi.hoisted(() => ({
   deleteAsset: vi.fn(async () => {}),
@@ -87,6 +87,33 @@ describe("removeItem", () => {
   it("reports the files kept when the unused scan fails", async () => {
     api.unusedAssets.mockRejectedValueOnce(new Error("down"));
     expect(await removeItem(item(), () => "")).toEqual({ deleted: 0, kept: 1 });
+  });
+});
+
+describe("removeBlocked: a file item stays while its file is in use", () => {
+  it("refuses an image a profile still uses (the server's scan)", async () => {
+    api.unusedAssets.mockResolvedValue([]);
+    expect(await removeBlocked(item(), () => "")).toBe("used");
+  });
+
+  it("refuses a video the studio's unsaved config names", async () => {
+    api.unusedAssets.mockResolvedValue([{ id: id("a") }]);
+    expect(await removeBlocked(item({ kind: "video" }), () => `{"src":"/api/assets/${id("a")}"}`)).toBe("used");
+  });
+
+  it("refuses when the use check fails: nothing is known to be free", async () => {
+    api.unusedAssets.mockRejectedValueOnce(new Error("down"));
+    expect(await removeBlocked(item({ kind: "svg" }), () => "")).toBe("unchecked");
+  });
+
+  it("lets an unused file go", async () => {
+    api.unusedAssets.mockResolvedValue([{ id: id("a") }]);
+    expect(await removeBlocked(item(), () => "")).toBeNull();
+  });
+
+  it("never blocks a gauge, panel, profile or font: removeItem keeps their used files", async () => {
+    for (const kind of ["gauge", "panel", "canvas", "font"] as const) expect(await removeBlocked(item({ kind }), () => "")).toBeNull();
+    expect(api.unusedAssets).not.toHaveBeenCalled();
   });
 });
 
