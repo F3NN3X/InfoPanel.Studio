@@ -11,7 +11,7 @@ export const LIBRARY_URL = "/api/library";
  * `theme`, `skin` and `template` are config-only (saved Themes, the built-in palettes, template looks, skins and
  * screen templates shown as items): the server never stores one.
  */
-export type LibraryKind = "image" | "video" | "font" | "svg" | "gauge" | "panel" | "style" | "canvas" | "theme" | "skin" | "template";
+export type LibraryKind = "image" | "video" | "font" | "svg" | "gauge" | "panel" | "style" | "canvas" | "theme" | "skin" | "template" | "ptemplate" | "island";
 
 /** Where a copy of an item was placed. */
 export interface LibraryCopy {

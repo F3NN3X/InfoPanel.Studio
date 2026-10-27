@@ -1,9 +1,10 @@
 /**
  * The Library page (spec §3, §10.4), opened from the rail: a 56 px header (title and tagline, search
  * everything, [Grid | Shelves], the "Used by" screen filter, Add files…) over the collections
- * sidebar (smart collections, then Themes · Skins · Styles · Panels · Gauges · Media · Fonts · Components ·
- * InfoPanel profiles · Screen templates), the grid or shelves, and the detail pane. Fonts are a collection with
- * its own view; a gauge opens in the Gauges view; a screen template opens the New screen page; the edited
+ * sidebar (smart collections, then Themes · Skins · Styles · Panels · Gauges · Media · Fonts (and the built-in ones) ·
+ * Components · InfoPanel profiles · Screen templates · InfoPanel templates · Island looks), the grid or shelves, and the detail pane. Fonts are a collection with
+ * its own view; a gauge opens in the Gauges view; a screen template opens the New screen page (Duplicate adds the screen at once), an InfoPanel template the New profile
+ * page, an Island look applies to a screen; ticked cards (Select, Ctrl, Shift) are deleted together; the edited
  * screen's canvas files are one button away. Every upload is an item (`useAdoptUploads`). Lazy-loaded.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,9 +15,11 @@ import {
   FolderInput,
   Gauge,
   ImageDown,
+  ListChecks,
   LayoutGrid,
   MonitorPlay,
   Pencil,
+  Pill,
   Plus,
   Rows3,
   Search,
@@ -54,6 +57,14 @@ import {
 import { suggestBackgrounds } from "@/lib/my-library/theme-suggest";
 import { downloadSpec } from "@/components/gauges/gauge-files";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
+import { pickedAfterClick, planDelete, deleteConfigItems, isSavedInConfig, type ClickMod, type DeletePlan } from "./multi-delete";
+import { withIslandLook } from "./island-look-actions";
+import { useSensorCatalog } from "@/lib/catalog";
+import { instantiate as instantiateScreen } from "@/lib/screen-templates/instantiate";
+import type { NewScreen } from "@/components/templates/new-page";
+import type { Template } from "@/lib/infopanel/templates/kit";
+import type { DataApiValue } from "@/lib/infopanel/sensors";
+import type { IslandLookPreset } from "@/lib/island/looks";
 import { addToProfile, dataOf, duplicatePanel, isSavedPanel, setAsBackground, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
 import { LibraryDetail, type DetailAction } from "./library-detail";
 import { PresetDetail } from "./preset-detail";
@@ -65,11 +76,11 @@ import { FontsView } from "./fonts-view";
 import { ProfileAssets, type ProfileAssetsProps } from "./profile-assets";
 import { UploadTray } from "./upload-tray";
 import { useAdoptUploads } from "./adopt-uploads";
-import { RemoveItemDialog, RemoveManyDialog } from "./remove-item-dialog";
+import { DeleteSelectedDialog, RemoveItemDialog, RemoveManyDialog } from "./remove-item-dialog";
 import { FILE_KINDS, type RemoveBlock } from "./remove-item";
 import { useMyLibrary } from "./use-my-library";
 import { isComponent } from "@/lib/my-library/component-meta";
-import { CONFIG_PANEL } from "@/lib/my-library/config-items";
+import { CONFIG_PANEL, isBuiltinItem } from "@/lib/my-library/config-items";
 import type { ScreenTemplate } from "@/lib/screen-templates/kit";
 import { uid } from "@/lib/layout";
 import { deletePanelPreset, renamePanelPreset } from "@/components/studio/panel-preset-actions";
@@ -103,6 +114,10 @@ export interface LibraryPageProps {
   onOpenGauge: (itemId: string) => void;
   /** A screen template's "New screen from this": the New screen page, on that template and palette. */
   onNewScreen: (templateId: string, variant: string) => void;
+  /** An InfoPanel template's "New InfoPanel profile from this": the New page, on that template and palette. */
+  onNewProfile: (templateId: string, variant: string) => void;
+  /** A screen template's Duplicate: the screen made from it, added to Screens. */
+  onAddScreen: (made: NewScreen) => void;
   /** Export a saved canvas (download) without placing it. */
   onExportCanvas: (item: LibraryItem) => void;
   copyLabel: (copy: LibraryCopy) => string;
@@ -114,6 +129,7 @@ export interface LibraryPageProps {
 export default function LibraryPage(p: LibraryPageProps) {
   const toast = useToast();
   const lib = useMyLibrary(p.bridge.config);
+  const sensors = useSensorCatalog().sensors;
   /** The edited screen's canvas files, in place of the collections (a button in the header). */
   const [showFiles, setShowFiles] = useState(false);
   /** The "Used by" filter: a screen id, "" = any screen. */
@@ -128,6 +144,11 @@ export default function LibraryPage(p: LibraryPageProps) {
   const [confirmRemove, setConfirmRemove] = useState<LibraryItem | null>(null);
   /** The Not used collection's "Remove all…", waiting for its confirm. */
   const [confirmMany, setConfirmMany] = useState<LibraryItem[] | null>(null);
+  /** The cards ticked for a multi-delete (in the order ticked), and Select mode, where a click ticks. */
+  const [picked, setPicked] = useState<string[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  /** The multi-delete waiting for its confirm. */
+  const [confirmPicked, setConfirmPicked] = useState<DeletePlan | null>(null);
   /** The item whose name field takes focus (Rename from the menu). */
   const [renameId, setRenameId] = useState<string | null>(null);
   // The studio's config as it is now, read when a removal decides which files to delete.
@@ -169,6 +190,7 @@ export default function LibraryPage(p: LibraryPageProps) {
   const pickCollection = (id: CollectionId) => {
     setShowFiles(false);
     setCollection(id);
+    setPicked([]);
     setQuery("");
     setTag(null);
     if (id !== "all") setView("grid");
@@ -180,9 +202,17 @@ export default function LibraryPage(p: LibraryPageProps) {
   /** Files chosen on the grid's upload tile: the Import door detects them. */
   const addFiles = (files: File[]) => openImportDoor({ files });
 
+  /** A click on a card: select it, or (Select mode, Ctrl, Shift) tick it into the multi-selection. */
+  const clickCard = (item: LibraryItem, mod: ClickMod) => {
+    const next = pickedAfterClick(picked, selectedId, shown.map((i) => i.id), item.id, mod, selectMode);
+    setPicked(next);
+    if (next.length === 0 || !mod.range) setSelectedId(item.id);
+  };
+
   const open = (item: LibraryItem) => {
     setSelectedId(item.id);
-    if (item.kind === "font") return pickCollection("fonts");
+    if (item.kind === "font" && !isBuiltinItem(item)) return pickCollection("fonts");
+    if (item.kind === "font") return;
     const primary = primaryOf(item);
     if (primary && !primary.disabled) primary.run();
   };
@@ -221,7 +251,24 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "panel":
         return { label: "Add to screen", icon: Plus, run: () => void addToProfile(bridge, item) };
       case "font":
-        return { label: "Show font", icon: Type, run: () => pickCollection("fonts") };
+        return isBuiltinItem(item) ? null : { label: "Show font", icon: Type, run: () => pickCollection("fonts") };
+      case "ptemplate": {
+        const t = item.data as Template;
+        return { label: "New InfoPanel profile from this", icon: MonitorPlay, run: () => p.onNewProfile(t.id, t.variants[0]?.id ?? ""), title: "Opens the New page on this template" };
+      }
+      case "island": {
+        const look = (item.data as IslandLookPreset).look;
+        const screen = p.bridge.config.profiles.find((x) => x.id === bridge.profileId);
+        return {
+          label: "Apply to this screen",
+          icon: Pill,
+          run: () => {
+            bridge.setConfig((c) => withIslandLook(c, look, bridge.profileId));
+            bridge.toast(`Applied ${item.name} to ${screen?.name ?? "this screen"}`);
+          },
+          title: "Sets the island’s shape, color, border and weight, and turns it on",
+        };
+      }
       case "svg":
         return { label: "Add to canvas", icon: Plus, run: () => void addToProfile(bridge, item) };
       default:
@@ -239,8 +286,32 @@ export default function LibraryPage(p: LibraryPageProps) {
 
   function secondaryOf(item: LibraryItem): DetailAction[] {
     if (isPresetItem(item)) return presetSecondary(item, presetCtx);
-    // A screen template has no copy of its own: a new screen from it is the copy.
-    if (item.kind === "template") return [];
+    // There is no store of your own templates: a screen template's copy is a new screen in Screens.
+    if (item.kind === "template") {
+      const t = item.data as ScreenTemplate;
+      return [
+        {
+          label: "Duplicate",
+          icon: Copy,
+          title: "Adds a new screen made from this template to Screens. The template itself stays as it is.",
+          run: () => p.onAddScreen(instantiateScreen(t, { name: `${t.name} copy`, width: t.size.width, height: t.size.height, variant: t.variants?.[0]?.id, sensors: sensors as unknown as Record<string, DataApiValue> })),
+        },
+      ];
+    }
+    if (item.kind === "island") {
+      const look = (item.data as IslandLookPreset).look;
+      return [
+        {
+          label: "Apply to all screens",
+          icon: Pill,
+          run: () => {
+            bridge.setConfig((c) => withIslandLook(c, look, "all"));
+            bridge.toast(`Applied ${item.name} to all screens`);
+          },
+        },
+      ];
+    }
+    if (isBuiltinItem(item) && (item.kind === "ptemplate" || item.kind === "font")) return [];
     if (item.kind === "panel" && isConfigItem(item)) return [{ label: "Duplicate", icon: Copy, run: () => duplicateConfigPanel(item), title: "A saved copy to change" }];
     const out: DetailAction[] = [];
     if (item.kind === "image") out.push({ label: "Add to canvas", icon: Plus, run: () => void addToProfile(bridge, item) });
@@ -296,10 +367,12 @@ export default function LibraryPage(p: LibraryPageProps) {
     toast(`Deleted ${item.name}`);
   };
   const askRemove = (item: LibraryItem) => {
+    // Delete on a ticked card deletes the whole ticked set.
+    if (picked.length > 1 && picked.includes(item.id)) return askDeletePicked();
     if (isSavedPanel(item)) return deleteSavedPanel(item);
     if (!isConfigItem(item)) setConfirmRemove(item);
   };
-  const keptWhy = (why: RemoveBlock) => (why === "used" ? "a screen uses its file. Take it off the screen first" : "couldn’t check whether a screen uses its file");
+  const keptWhy = (_why: RemoveBlock) => "a screen uses its file. Take it off the screen first";
   const remove = (item: LibraryItem) => {
     // The live config: it may hold a file the saved config doesn't yet.
     lib.remove(item, () => JSON.stringify(configRef.current)).then(
@@ -315,8 +388,8 @@ export default function LibraryPage(p: LibraryPageProps) {
       (e: Error) => toast(`Not removed: ${e.message}`),
     );
   };
-  /** Remove each in turn; one whose file a screen uses stays. */
-  const removeMany = async (items: readonly LibraryItem[]) => {
+  /** Remove each in turn; one whose file a screen uses stays (checked again here, on the live config). */
+  const removeEach = async (items: readonly LibraryItem[]) => {
     let removed = 0;
     let stayed = 0;
     let failed = 0;
@@ -330,8 +403,20 @@ export default function LibraryPage(p: LibraryPageProps) {
       }
     }
     if (selectedId && items.some((i) => i.id === selectedId)) setSelectedId(null);
-    toast([`Removed ${removed} item${removed === 1 ? "" : "s"}`, stayed && `${stayed} kept: a screen uses ${stayed === 1 ? "its file" : "their files"}`, failed && `${failed} failed`].filter(Boolean).join("; "));
+    return { removed, stayed, failed };
   };
+  const summary = (verb: string, r: { removed: number; stayed: number; failed: number }) =>
+    [`${verb} ${r.removed} item${r.removed === 1 ? "" : "s"}`, r.stayed && `${r.stayed} kept: a screen uses ${r.stayed === 1 ? "its file" : "their files"}`, r.failed && `${r.failed} failed`].filter(Boolean).join("; ");
+  const removeMany = async (items: readonly LibraryItem[]) => toast(summary("Removed", await removeEach(items)));
+  /** The multi-delete: saved Themes, Styles and panels from the config in one edit, the rest through the Library's remove. */
+  const deletePicked = async (items: readonly LibraryItem[]) => {
+    const own = items.filter(isSavedInConfig);
+    if (own.length > 0) p.bridge.setConfig((c) => deleteConfigItems(c, own));
+    const r = await removeEach(items.filter((i) => !isSavedInConfig(i)));
+    setPicked([]);
+    toast(summary("Deleted", { ...r, removed: r.removed + own.length }));
+  };
+  const askDeletePicked = () => setConfirmPicked(planDelete(picked.map((id) => index.items.find((i) => i.id === id)).filter((i): i is LibraryItem => !!i), used));
 
   function menuEntries(item: LibraryItem): ContextMenuEntry[] {
     const entry = (a: DetailAction): ContextMenuEntry => ({ id: a.label, label: a.label, icon: <a.icon />, disabled: a.disabled, onSelect: a.run });
@@ -589,7 +674,16 @@ export default function LibraryPage(p: LibraryPageProps) {
                       showCleanup={!searching && collection === "all"}
                       onCollection={pickCollection}
                       selectedId={selectedId}
-                      onSelect={(i) => setSelectedId(i.id)}
+                      picked={picked}
+                      selectMode={selectMode}
+                      onSelectMode={(on) => {
+                        setSelectMode(on);
+                        if (!on) setPicked([]);
+                      }}
+                      onPickAll={() => setPicked(shown.map((i) => i.id))}
+                      onClearPicked={() => setPicked([])}
+                      onDeletePicked={askDeletePicked}
+                      onSelect={clickCard}
                       onOpen={open}
                       onMenu={(item, x, y) => setMenu({ item, x, y })}
                       onRemove={askRemove}
@@ -602,7 +696,23 @@ export default function LibraryPage(p: LibraryPageProps) {
                     />
                   )}
                 </div>
-                {selected ? (
+                {picked.length > 1 ? (
+                  <aside aria-label="Selection" className="flex w-[320px] shrink-0 flex-col items-center justify-center gap-3 border-l border-ui-subtle bg-ui-panel p-6 text-center text-[12.5px] text-ui-3 max-sm:w-full">
+                    <ListChecks className="h-5 w-5" />
+                    {picked.length} items selected
+                    <button
+                      type="button"
+                      onClick={askDeletePicked}
+                      className="flex h-[34px] items-center gap-1.5 rounded-[8px] border border-ui-danger/50 px-3 text-ui-danger hover:bg-ui-danger/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete…
+                    </button>
+                    <button type="button" onClick={() => setPicked([])} className="text-[12px] text-ui-4 hover:text-ui-1">
+                      Clear selection
+                    </button>
+                  </aside>
+                ) : selected ? (
                   narrow ? (
                     <PaneSheet label="Item details" onClose={() => setSelectedId(null)}>
                       {detail(selected, true)}
@@ -624,6 +734,7 @@ export default function LibraryPage(p: LibraryPageProps) {
         )}
         {menu && <ContextMenu x={menu.x} y={menu.y} entries={menuEntries(menu.item)} onClose={() => setMenu(null)} />}
         <RemoveItemDialog item={confirmRemove} onClose={() => setConfirmRemove(null)} onRemove={remove} />
+        <DeleteSelectedDialog plan={confirmPicked} onClose={() => setConfirmPicked(null)} onDelete={(items) => void deletePicked(items)} />
         <RemoveManyDialog items={confirmMany} onClose={() => setConfirmMany(null)} onRemove={(items) => void removeMany(items)} />
         <UploadTray rows={lib.uploads} onClear={lib.clearUploads} onShow={(id) => setSelectedId(id)} />
         {dragging && (

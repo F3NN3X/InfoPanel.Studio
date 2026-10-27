@@ -1022,6 +1022,8 @@ function StudioViewBody({
         onImport={(source, dest) => io.openImport(dest, source, true)}
         onOpenGauge={(itemId) => openGauge({ kind: "library", itemId })}
         onNewScreen={openNewScreenFrom}
+        onNewProfile={(template, variant) => openNewProfile({ template, variant })}
+        onAddScreen={createScreen}
         onExportCanvas={(item) =>
           void dataOf<StoredCanvas>(item).then((canvas) =>
             canvas

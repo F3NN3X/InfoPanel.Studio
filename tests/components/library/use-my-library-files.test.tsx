@@ -77,9 +77,8 @@ describe("useMyLibrary.importAssets (adopting an upload)", () => {
 
 describe("useMyLibrary.remove (a used file stays)", () => {
   it("keeps an image a screen uses: the item stays and nothing is deleted", async () => {
-    api.unusedAssets.mockResolvedValue([]);
     const { result } = await mount([stored]);
-    expect(await result.current.remove(stored, () => "")).toEqual({ deleted: 0, kept: 0, refused: "used" });
+    expect(await result.current.remove(stored, () => `{"src":"/api/assets/${ID}"}`)).toEqual({ deleted: 0, kept: 0, refused: "used" });
     expect(api.deleteLibraryItem).not.toHaveBeenCalled();
     expect(api.deleteAsset).not.toHaveBeenCalled();
     expect(result.current.items.some((i) => i.id === "lib_1")).toBe(true);

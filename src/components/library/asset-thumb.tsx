@@ -16,6 +16,11 @@ import { gaugeDataOf, type GaugeLibraryData } from "@/lib/gauge-studio/model";
 import { previewScope } from "@/lib/gauge-studio/preview";
 import { getLibraryItem, type LibraryItem } from "@/lib/library";
 import { DEFAULT_THEME } from "@/lib/theme";
+import { ensureFont, fontById } from "@/lib/fonts";
+import { islandSkin } from "@/components/island/island-look";
+import { ISLAND_DEFAULTS } from "@/lib/island/config";
+import type { IslandLookPreset } from "@/lib/island/looks";
+import { BUILTIN_FONT, isBuiltinItem } from "@/lib/my-library/config-items";
 import { fileUrl, metaOf } from "@/lib/my-library/model";
 import { ProfileThumb } from "@/components/infopanel/profile-thumb";
 
@@ -51,6 +56,22 @@ export function useLibraryFont(item: Pick<LibraryItem, "id" | "kind" | "files">)
     };
   }, [url, item.id]);
   return family;
+}
+
+/** An Island look drawn as the pill would be, on a dark page (the theme tint stands in with fixed colours). */
+function IslandThumb({ look }: { look: IslandLookPreset["look"] }) {
+  const skin = islandSkin({ ...ISLAND_DEFAULTS, ...look, ...(look.tint === "theme" ? { tint: "custom", bgColor: "#2a2a33", fgColor: "#f2f2f5" } : {}) });
+  const notch = look.shape === "notch";
+  return (
+    <div className="absolute inset-0 bg-[linear-gradient(135deg,#2b3550_0%,#1a1d2b_60%,#3a2b46_100%)]">
+      <span
+        className={cn("absolute left-1/2 flex h-[22%] min-h-[14px] w-[46%] -translate-x-1/2 items-center justify-center font-ui-mono text-[11px]", notch ? "top-0 rounded-b-[14px]" : "top-[22%] rounded-full")}
+        style={{ ...skin, border: look.border === "accent" ? "1px solid var(--ui-accent)" : skin.border }}
+      >
+        9:41
+      </span>
+    </div>
+  );
 }
 
 const PLAY: Record<ThumbSize, string> = { sm: "h-[22px] w-[22px]", md: "h-[34px] w-[34px]", lg: "h-[52px] w-[52px]" };
@@ -138,6 +159,10 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
   const m = metaOf(item);
   const url = fileUrl(item);
   const family = useLibraryFont(item);
+  const builtinFont = item.kind === "font" && isBuiltinItem(item) ? fontById(item.id.slice(BUILTIN_FONT.length)) : undefined;
+  useEffect(() => {
+    if (builtinFont) ensureFont(builtinFont.id);
+  }, [builtinFont]);
   const [broken, setBroken] = useState(false);
   const data = useGaugeData(item);
   const spec = data?.vector ?? null;
@@ -196,7 +221,7 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
     case "font":
       return (
         <div className={box}>
-          <span className={cn("text-ui-1", AA[size])} style={{ fontFamily: family ? `"${family}"` : undefined }}>
+          <span className={cn("text-ui-1", AA[size])} style={{ fontFamily: builtinFont ? builtinFont.stack : family ? `"${family}"` : undefined }}>
             Aa
           </span>
         </div>
@@ -234,8 +259,15 @@ export function AssetThumb({ item, size = "md", live = false, className }: { ite
         </div>
       );
     }
+    case "island":
+      return (
+        <div className={box}>
+          <IslandThumb look={(item.data as IslandLookPreset).look} />
+        </div>
+      );
     case "skin":
     case "template":
+    case "ptemplate":
       return (
         <div className={box}>
           <div className="absolute inset-0">

@@ -10,6 +10,7 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 - **Every upload is in My library.** Images and videos uploaded before the Library, or straight into a background or an image widget, are added to My library when you open it, each keeping its file. The "uploaded files aren't in My library" banner and its Review window are gone.
 - **Not used** replaces Unused, and now counts a file shown as a background or in a widget as used. In Not used, **Remove these files…** removes the images, videos and SVGs listed, after a confirm; a file a screen uses always stays.
+- **Skins and templates no longer drag.** They had nothing to drop on; use their buttons.
 - **A used file can't be removed.** Removing an image, video or SVG that a screen still shows keeps it and says why.
 
 ### Added
@@ -18,8 +19,12 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Widget QA link in Diagnostics.** Settings › Diagnostics opens the widget QA page in your browser.
 - **The Library has everything.** New collections for **Skins** and **Screen templates**, and the built-in panels and the screen templates' looks sit beside your own panels and Themes, tagged **Built-in**. A skin applies to All screens, a screen or a page, and duplicates into a Theme of your own. A screen template's **New screen from this** opens the New screen page on it. Saved panels can be renamed, duplicated and deleted in the Library, and a built-in panel duplicated into one of your own.
 
+- **More in the Library.** **InfoPanel templates**, **Island looks** and the **Built-in fonts** are listed, tagged **Built-in**. An InfoPanel template opens the New InfoPanel profile page on it, and an Island look applies to this screen or to all screens. A screen template has **Duplicate**: it adds a screen made from the template to Screens at once.
+- **Delete several items at once.** **Select** (or Ctrl and Shift click) ticks cards; **Delete…** asks once and says what stays: built-ins, and files a screen uses.
+
 ### Fixed
 
+- **Images, videos and SVGs couldn't be removed** from the Library: the check treated the item's own file as in use. Now only a file the screen config names stays.
 - **`?widget-qa&settings=` opened the Settings window** instead of the QA page.
 
 ## [1.3.0-beta.35] - 2026-10-27
