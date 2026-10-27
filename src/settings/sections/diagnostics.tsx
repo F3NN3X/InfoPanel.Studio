@@ -112,18 +112,23 @@ export function DiagnosticsSection() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
-        <div className="flex items-center gap-4 px-[18px] py-4">
-          <div className="flex flex-1 flex-col gap-[3px]">
-            <span className="text-sm font-medium">Widget QA</span>
-            <span className="text-[12.5px] leading-[1.45] text-s-muted">Every widget at a set of sizes from fixture sensors, to spot overflow and clipping.</span>
-          </div>
-          <Button onClick={() => void ipc.openExternal(`${status.origin}/?widget-qa`).catch(fail)}>
-            <ExternalLink className="h-4 w-4" />
-            Open
-          </Button>
+      {/* The server serves these pages in debug mode only (it must be running with it). */}
+      {sampling ? (
+        <div className="overflow-hidden rounded-xl border border-s-card-line bg-s-card">
+          <ToolRow
+            title="Widget QA"
+            text="Every widget at a set of sizes from fixture sensors, to spot overflow and clipping."
+            onOpen={() => void ipc.openExternal(`${status.origin}/widget-qa`).catch(fail)}
+          />
+          <ToolRow
+            title="InfoPanel lab"
+            text="Opens .infopanel exports and compares InfoPanel's render with ours. Works on files you open."
+            onOpen={() => void ipc.openExternal(`${status.origin}/lab/`).catch(fail)}
+          />
         </div>
-      </div>
+      ) : (
+        <span className="px-0.5 text-[12.5px] leading-[1.45] text-s-dim">Widget QA and the InfoPanel lab are available while debug mode is on and the server has restarted with it.</span>
+      )}
 
       {diag && !sampling && (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-s-input-line px-5 py-9 text-center">
@@ -171,6 +176,21 @@ function DebugRow({ onSaved }: { onSaved: () => void }) {
         <span className="text-[12.5px] leading-[1.45] text-s-muted">Logs every server request and samples memory every 30 s to find errors and leaks. Needs a server restart.</span>
       </div>
       <Switch checked={settings.debug} onChange={(v) => void save("debug", v).then(onSaved)} label="Debug mode" />
+    </div>
+  );
+}
+
+function ToolRow({ title, text, onOpen }: { title: string; text: string; onOpen: () => void }) {
+  return (
+    <div className="flex items-center gap-4 px-[18px] py-4">
+      <div className="flex flex-1 flex-col gap-[3px]">
+        <span className="text-sm font-medium">{title}</span>
+        <span className="text-[12.5px] leading-[1.45] text-s-muted">{text}</span>
+      </div>
+      <Button onClick={onOpen}>
+        <ExternalLink className="h-4 w-4" />
+        Open
+      </Button>
     </div>
   );
 }

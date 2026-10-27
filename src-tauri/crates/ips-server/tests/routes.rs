@@ -640,3 +640,34 @@ Host: localhost:{}
     drop(stream);
     s.stop().await;
 }
+
+#[tokio::test]
+async fn serves_the_debug_tools_only_in_debug_mode() {
+    for debug in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let dist = dir.path().join("dist");
+        std::fs::create_dir_all(dist.join("lab")).unwrap();
+        std::fs::write(dist.join("index.html"), "<p>index</p>").unwrap();
+        std::fs::write(dist.join("lab").join("index.html"), "<p>lab</p>").unwrap();
+        let mut cfg = config(dir.path());
+        cfg.debug = debug;
+        let s = start_with(dir, cfg).await;
+        if debug {
+            let lab = get(s.port, "/lab/").await;
+            assert_eq!((lab.status, lab.body.as_slice()), (200, b"<p>lab</p>".as_slice()));
+            let bare = get(s.port, "/lab").await;
+            assert_eq!((bare.status, bare.header("location")), (302, Some("/lab/")));
+            for path in ["/widget-qa", "/?widget-qa", "/?widget-qa&settings=1"] {
+                let qa = get(s.port, path).await;
+                assert_eq!((qa.status, qa.body.as_slice()), (200, b"<p>index</p>".as_slice()), "{path}");
+            }
+        } else {
+            for path in ["/lab", "/lab/", "/lab/index.html", "/widget-qa", "/?widget-qa", "/?widget-qa&settings=1"] {
+                assert_eq!(get(s.port, path).await.status, 404, "{path}");
+            }
+            // The kiosk and studio are unaffected.
+            assert_eq!(get(s.port, "/?studio=1").await.status, 200);
+        }
+        s.stop().await;
+    }
+}

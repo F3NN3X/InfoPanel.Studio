@@ -151,11 +151,24 @@ describe("the settings window", () => {
     expect(setCalls()).toEqual([{ key: "updateChannel", value: "beta" }]);
   });
 
-  it("opens the widget QA page from Diagnostics on the server's origin", async () => {
+  it("links the debug tools from Diagnostics only while the server runs with debug mode", async () => {
     const user = userEvent.setup({ delay: null });
-    render(<SettingsApp />);
+    const { unmount } = render(<SettingsApp />);
     await user.click(await screen.findByRole("button", { name: "Diagnostics" }));
-    await user.click(await screen.findByRole("button", { name: "Open" }));
-    expect(invoke).toHaveBeenCalledWith("open_external", { url: "http://127.0.0.1:3922/?widget-qa" });
+    expect(screen.queryByRole("button", { name: "Open" })).toBeNull();
+    unmount();
+
+    running.runningConfig!.debug = true;
+    try {
+      render(<SettingsApp />);
+      await user.click(await screen.findByRole("button", { name: "Diagnostics" }));
+      const [qa, lab] = await screen.findAllByRole("button", { name: "Open" });
+      await user.click(qa);
+      await user.click(lab);
+      expect(invoke).toHaveBeenCalledWith("open_external", { url: "http://127.0.0.1:3922/widget-qa" });
+      expect(invoke).toHaveBeenCalledWith("open_external", { url: "http://127.0.0.1:3922/lab/" });
+    } finally {
+      running.runningConfig!.debug = false;
+    }
   });
 });

@@ -16,7 +16,7 @@ Find out what went wrong, and give a bug report everything it needs.
 
 The page also has **View logs**, **Open logs folder**, **Open DevTools** (debug mode only), **Open WebView2 task manager** and **Copy diagnostics summary**. The task manager shows memory and CPU for each WebView2 process, such as the renderer and the GPU process, so you can tell which one grows.
 
-**Widget QA** has an **Open** button below those. It opens a page in your browser that shows every widget at several sizes from fixture sensors, to spot text that overflows or is clipped.
+With debug mode on and the server restarted, two more entries appear. **Widget QA** shows every widget at several sizes from fixture sensors, to spot text that overflows or is clipped. **InfoPanel lab** opens `.infopanel` exports and compares InfoPanel's render with ours. **Open** shows each in your browser, at `/widget-qa` and `/lab/` on the server's address. With debug mode off, the server doesn't serve either page.
 
 ## Reading the samples
 
