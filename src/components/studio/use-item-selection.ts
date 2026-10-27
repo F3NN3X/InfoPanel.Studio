@@ -1,57 +1,47 @@
 import { useEffect, useRef, useState } from "react";
-import { uid, type MonitorProfile, type ProfilePage } from "@/lib/layout";
-import type { PageOp } from "@/lib/page-model/model";
-import { partKeyOps } from "@/lib/page-model/keys";
-import { readPlacements } from "@/lib/page-model/placements-adapter";
-import { hasOverlay, isTyping } from "./use-studio-shortcuts";
+import type { ProfilePage } from "@/lib/layout";
 
 interface ItemSelectionDeps {
-  profile: MonitorProfile;
+  profileId: string;
   /** The page on the canvas, as stored. */
   page: ProfilePage;
   /** The zone selection's primary zone: selecting a zone clears the items. */
   zoneId: string | null;
   /** Clear the zone selection (selecting an item clears the zones). */
   clearZones: () => void;
-  applyPageOps: (ops: readonly PageOp[], key?: string) => void;
-  /** A drag is in flight: the keys stand down. */
-  dragging: () => boolean;
 }
 
 /**
- * The InfoPanel items and elements selected on a screen page's canvas (Edit v3 SPEC §7.5), apart from the zone
- * selection: selecting one kind clears the other. While items are selected the keyboard (SPEC §14) acts on them,
- * ahead of the studio's zone shortcuts. A selected item an undo removes drops out.
+ * The InfoPanel items and elements selected on a screen page's canvas (Edit v3 SPEC §7.5), beside the zone selection:
+ * selecting one kind alone clears the other, Shift / Ctrl adds to it (a mixed selection, `use-page-layers.ts`, which
+ * also takes the keyboard for it). A selected item an undo removes drops out.
  */
-export function useItemSelection({ profile, page, zoneId, clearZones, applyPageOps, dragging }: ItemSelectionDeps) {
+export function useItemSelection({ profileId, page, zoneId, clearZones }: ItemSelectionDeps) {
   const [ids, setIds] = useState<string[]>([]);
-  useEffect(() => setIds([]), [profile.id, page.id]);
+  useEffect(() => setIds([]), [profileId, page.id]);
+  // A zone selected alone clears the items; one added with Shift / Ctrl (`keep`) keeps them.
+  const keep = useRef(false);
   useEffect(() => {
-    if (zoneId) setIds([]);
+    if (zoneId && !keep.current) setIds([]);
+    keep.current = false;
   }, [zoneId]);
   const live = ids.filter((id) => page.placements.some((p) => p.id === id));
 
   const select = (id: string, toggle: boolean) => {
-    clearZones();
+    if (!toggle) clearZones();
     setIds((now) => (toggle ? (now.includes(id) ? now.filter((x) => x !== id) : [...now, id]) : [id]));
   };
 
-  const onKey = useRef<(e: KeyboardEvent) => void>(() => {});
-  onKey.current = (e) => {
-    if (live.length === 0 || e.defaultPrevented || e.isComposing || dragging() || isTyping(document.activeElement) || hasOverlay()) return;
-    const result = partKeyOps(readPlacements(profile, page), live, { key: e.key, code: e.code, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, alt: e.altKey }, uid);
-    if (!result) return;
-    // Taken here, so the zone shortcuts don't act on it as well.
-    e.preventDefault();
-    if ("clear" in result) return setIds([]);
-    applyPageOps(result.ops, result.merge);
-    if (result.select) setIds(result.select);
+  return {
+    ids: live,
+    select,
+    clear: () => setIds([]),
+    setIds,
+    /** The next zone selection change keeps the items (a zone added to a mixed selection). */
+    keep: () => {
+      keep.current = true;
+    },
   };
-  useEffect(() => {
-    const handle = (e: KeyboardEvent) => onKey.current(e);
-    window.addEventListener("keydown", handle, true);
-    return () => window.removeEventListener("keydown", handle, true);
-  }, []);
-
-  return { ids: live, select, clear: () => setIds([]), setIds };
 }
+
+export type ItemSelection = ReturnType<typeof useItemSelection>;

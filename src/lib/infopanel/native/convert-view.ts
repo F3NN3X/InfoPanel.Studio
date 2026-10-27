@@ -201,6 +201,13 @@ function measureWidgets(el: HTMLElement, zone: Rect, zoom: number): Map<string, 
   );
 }
 
+/** An InfoPanel Group holding `kids` (bottom first), at their top-left corner, open in InfoPanel's tree. */
+function groupItem(name: string, kids: DisplayItem[]): DisplayItem {
+  const xs = kids.map((k) => Number((k as { X?: number }).X ?? 0));
+  const ys = kids.map((k) => Number((k as { Y?: number }).Y ?? 0));
+  return { ...defaultItem("Group"), Name: name, X: Math.min(...xs), Y: Math.min(...ys), IsExpanded: true, DisplayItems: kids } as DisplayItem;
+}
+
 export async function convertView(req: ConvertRequest): Promise<Converted> {
   await document.fonts?.ready;
   const palette = defaultPalette(req.look);
@@ -235,118 +242,128 @@ export async function convertView(req: ConvertRequest): Promise<Converted> {
   // The page's item placements' files, read once for every run of them.
   const itemFiles = new Set<string>();
   const parts: ExportPart[] = req.page && !req.only ? exportParts(req.page.screen, req.page.page, req.placements) : req.placements.map((zone) => ({ zone }));
-  for (const part of parts) {
-    // A run of item placements: InfoPanel items already, at their screen px, kept as they are.
-    if ("items" in part) {
-      const open = openCanvas(part.items);
-      for (const a of open.stored.assets) {
-        if (itemFiles.has(a.name.toLowerCase())) continue;
-        itemFiles.add(a.name.toLowerCase());
-        const bytes = await readStoreFile(a.hash, a.ext, a.type);
-        if (bytes) assets.push(await assetFile(a.name, bytes, "added"));
+  // Each part bottom first into `items`; a page group's into an InfoPanel Group named after it, in its place.
+  const convertParts = async (list: readonly ExportPart[], items: DisplayItem[]): Promise<void> => {
+    for (const part of list) {
+      if ("group" in part) {
+        const kids: DisplayItem[] = [];
+        await convertParts(part.group.parts, kids);
+        if (kids.length > 0) items.push(groupItem(part.group.name, kids));
+        continue;
       }
-      const made = editItems(open);
-      items.push(...made);
-      report.push({ name: `${made.length} InfoPanel item${made.length === 1 ? "" : "s"}`, choice: "recreate", outcome: "kept: they are InfoPanel items", notes: [] });
-      continue;
-    }
-    const p = part.zone;
-    if (req.only && p.id !== req.only) continue;
-    // A canvas zone is InfoPanel items already: kept, scaled into the zone and centred as the zone draws them.
-    if (p.module === CANVAS_ID && p.canvas && p.visible) {
+      // A run of item placements: InfoPanel items already, at their screen px, kept as they are.
+      if ("items" in part) {
+        const open = openCanvas(part.items);
+        for (const a of open.stored.assets) {
+          if (itemFiles.has(a.name.toLowerCase())) continue;
+          itemFiles.add(a.name.toLowerCase());
+          const bytes = await readStoreFile(a.hash, a.ext, a.type);
+          if (bytes) assets.push(await assetFile(a.name, bytes, "added"));
+        }
+        const made = editItems(open);
+        items.push(...made);
+        report.push({ name: `${made.length} InfoPanel item${made.length === 1 ? "" : "s"}`, choice: "recreate", outcome: "kept: they are InfoPanel items", notes: [] });
+        continue;
+      }
+      const p = part.zone;
+      if (req.only && p.id !== req.only) continue;
+      // A canvas zone is InfoPanel items already: kept, scaled into the zone and centred as the zone draws them.
+      if (p.module === CANVAS_ID && p.canvas && p.visible) {
+        const spot = locate(req.scope, p.id, req.find);
+        if (!spot) continue;
+        grid = spot.grid;
+        if (req.only) only = spot.box;
+        const open = openCanvas(p.canvas);
+        const s = fitScale(open.profile, spot.box.w, spot.box.h);
+        const at = { x: spot.box.x + (spot.box.w - open.profile.Width * s) / 2, y: spot.box.y + (spot.box.h - open.profile.Height * s) / 2 };
+        for (const a of open.stored.assets) {
+          const bytes = await readStoreFile(a.hash, a.ext, a.type);
+          if (bytes) assets.push(await assetFile(a.name, bytes, "added"));
+        }
+        items.push(...scaleItems(editItems(open), s, at));
+        report.push({ name: open.stored.source.name || "InfoPanel canvas", choice: "recreate", outcome: "kept: it is InfoPanel items", notes: s === 1 ? [] : [`scaled ${Math.round(s * 100)}% to fill its zone`] });
+        continue;
+      }
+      const rows = rowsOf(p, req.titleOf);
+      if (rows.length === 0) continue;
+      const stored = readChoices(p.settings);
       const spot = locate(req.scope, p.id, req.find);
-      if (!spot) continue;
-      grid = spot.grid;
-      if (req.only) only = spot.box;
-      const open = openCanvas(p.canvas);
-      const s = fitScale(open.profile, spot.box.w, spot.box.h);
-      const at = { x: spot.box.x + (spot.box.w - open.profile.Width * s) / 2, y: spot.box.y + (spot.box.h - open.profile.Height * s) / 2 };
-      for (const a of open.stored.assets) {
-        const bytes = await readStoreFile(a.hash, a.ext, a.type);
-        if (bytes) assets.push(await assetFile(a.name, bytes, "added"));
+      const row0 = rows[0];
+      if (spot) {
+        grid = spot.grid;
+        if (req.only) only = spot.box;
       }
-      items.push(...scaleItems(editItems(open), s, at));
-      report.push({ name: open.stored.source.name || "InfoPanel canvas", choice: "recreate", outcome: "kept: it is InfoPanel items", notes: s === 1 ? [] : [`scaled ${Math.round(s * 100)}% to fill its zone`] });
-      continue;
-    }
-    const rows = rowsOf(p, req.titleOf);
-    if (rows.length === 0) continue;
-    const stored = readChoices(p.settings);
-    const spot = locate(req.scope, p.id, req.find);
-    const row0 = rows[0];
-    if (spot) {
-      grid = spot.grid;
-      if (req.only) only = spot.box;
-    }
 
-    // A module that isn't InfoPanel data (pictured only when a snapshot of it is picked), or a zone that isn't on the page to read.
-    if (row0.entry.tier === "native-only" && (choiceFor(row0, stored) !== "snapshot" || !spot)) {
-      report.push({ name: row0.name, choice: "not-compatible", outcome: notCompatible(row0.name), notes: [] });
-      continue;
-    }
-    if (!spot) {
-      for (const r of rows) report.push({ name: r.name, choice: "leave", outcome: "left out: it isn't on this page", notes: [] });
-      continue;
-    }
+      // A module that isn't InfoPanel data (pictured only when a snapshot of it is picked), or a zone that isn't on the page to read.
+      if (row0.entry.tier === "native-only" && (choiceFor(row0, stored) !== "snapshot" || !spot)) {
+        report.push({ name: row0.name, choice: "not-compatible", outcome: notCompatible(row0.name), notes: [] });
+        continue;
+      }
+      if (!spot) {
+        for (const r of rows) report.push({ name: r.name, choice: "leave", outcome: "left out: it isn't on this page", notes: [] });
+        continue;
+      }
 
-    if (p.module === PANEL_ID || p.panel) {
+      if (p.module === PANEL_ID || p.panel) {
+        const notes: Note[] = [];
+        const widgets = measureWidgets(spot.el, spot.box, spot.zoom);
+        const kept: DisplayItem[] = [];
+        const recreate = rows.filter((r) => choiceFor(r, stored) === "recreate");
+        for (const r of rows) {
+          const choice = choiceFor(r, stored);
+          const m = widgets.get(r.key);
+          if (choice === "snapshot" && m) kept.push(await image(await picture(m.el, m, undefined), r.name, m));
+          report.push({ name: r.name, choice, outcome: choice === "recreate" ? "rebuilt from InfoPanel items" : choice === "snapshot" ? (m ? "a picture of it now" : "left out: it isn't drawn") : "left out", notes: [] });
+        }
+        if (recreate.length > 0 && p.panel) {
+          const only = { ...p.panel, widgets: p.panel.widgets.filter((w) => recreate.some((r) => r.key === w.id)) };
+          kept.push(panelToItems(only, spot.box, widgets, ctxFor(notes)));
+        }
+        for (const note of notes) report.find((r) => r.name === note.name || note.name.startsWith(r.name))?.notes.push(note.text);
+        items.push(...kept);
+        continue;
+      }
+
+      const choice = choiceFor(row0, stored);
+      const done = (outcome: string, notes: string[] = []) => report.push({ name: row0.name, choice, outcome, notes });
+      if (choice === "leave") {
+        done("left out");
+        continue;
+      }
+      const snapshot = async (why?: string) => {
+        items.push(await image(await picture(spot.el, spot.box), row0.name, spot.box));
+        done("a picture of it now", why ? [why] : []);
+      };
+      if (choice === "snapshot") {
+        await snapshot();
+        continue;
+      }
       const notes: Note[] = [];
-      const widgets = measureWidgets(spot.el, spot.box, spot.zoom);
-      const kept: DisplayItem[] = [];
-      const recreate = rows.filter((r) => choiceFor(r, stored) === "recreate");
-      for (const r of rows) {
-        const choice = choiceFor(r, stored);
-        const m = widgets.get(r.key);
-        if (choice === "snapshot" && m) kept.push(await image(await picture(m.el, m, undefined), r.name, m));
-        report.push({ name: r.name, choice, outcome: choice === "recreate" ? "rebuilt from InfoPanel items" : choice === "snapshot" ? (m ? "a picture of it now" : "left out: it isn't drawn") : "left out", notes: [] });
+      const ctx = ctxFor(notes);
+      // The widget as drawn, its values hidden, with each value a native item at its place.
+      const tagged = decompose(spot.el, spot.box, ctx, spot.zoom);
+      if (tagged.length > 0) {
+        const bytes = await picture(spot.el, spot.box, hideTagged);
+        const chrome = await image(bytes, `${row0.name} background`, spot.box);
+        const under = await backdrops(bytes, tagged, spot.box);
+        const kids = [...tagged.filter((_, i) => under[i]), chrome, ...tagged.filter((_, i) => !under[i])];
+        items.push({ ...defaultItem("Group"), Name: row0.name, X: Math.round(spot.box.x), Y: Math.round(spot.box.y), DisplayItems: kids } as DisplayItem);
+        done("values rebuilt over a picture of the rest", [...new Set(notes.map((x) => x.text))]);
+        continue;
       }
-      if (recreate.length > 0 && p.panel) {
-        const only = { ...p.panel, widgets: p.panel.widgets.filter((w) => recreate.some((r) => r.key === w.id)) };
-        kept.push(panelToItems(only, spot.box, widgets, ctxFor(notes)));
+      const converter: Converter | undefined = CONVERTERS[p.module];
+      const made = converter ? converter(spot.box, ctx, p.settings ?? {}) : [];
+      if (made.length === 0) {
+        await snapshot(p.module in CONVERTERS ? "its readings aren't on this PC, so a picture of it now" : "its values aren't readable yet, so a picture of it now");
+        continue;
       }
-      for (const note of notes) report.find((r) => r.name === note.name || note.name.startsWith(r.name))?.notes.push(note.text);
-      items.push(...kept);
-      continue;
+      // The widget's own surface behind its items, as drawn (none where it is see-through).
+      const card = surfaceOf(spot.el, spot.zoom);
+      items.push(...(card ? [make("Shape", ctx, spot.box, `${row0.name} card`, { FillColor: card.color, CornerRadius: card.radius, ShowFrame: false, ShowGradient: false })] : []), ...made);
+      done("rebuilt from InfoPanel items", notes.map((x) => x.text));
     }
-
-    const choice = choiceFor(row0, stored);
-    const done = (outcome: string, notes: string[] = []) => report.push({ name: row0.name, choice, outcome, notes });
-    if (choice === "leave") {
-      done("left out");
-      continue;
-    }
-    const snapshot = async (why?: string) => {
-      items.push(await image(await picture(spot.el, spot.box), row0.name, spot.box));
-      done("a picture of it now", why ? [why] : []);
-    };
-    if (choice === "snapshot") {
-      await snapshot();
-      continue;
-    }
-    const notes: Note[] = [];
-    const ctx = ctxFor(notes);
-    // The widget as drawn, its values hidden, with each value a native item at its place.
-    const tagged = decompose(spot.el, spot.box, ctx, spot.zoom);
-    if (tagged.length > 0) {
-      const bytes = await picture(spot.el, spot.box, hideTagged);
-      const chrome = await image(bytes, `${row0.name} background`, spot.box);
-      const under = await backdrops(bytes, tagged, spot.box);
-      const kids = [...tagged.filter((_, i) => under[i]), chrome, ...tagged.filter((_, i) => !under[i])];
-      items.push({ ...defaultItem("Group"), Name: row0.name, X: Math.round(spot.box.x), Y: Math.round(spot.box.y), DisplayItems: kids } as DisplayItem);
-      done("values rebuilt over a picture of the rest", [...new Set(notes.map((x) => x.text))]);
-      continue;
-    }
-    const converter: Converter | undefined = CONVERTERS[p.module];
-    const made = converter ? converter(spot.box, ctx, p.settings ?? {}) : [];
-    if (made.length === 0) {
-      await snapshot(p.module in CONVERTERS ? "its readings aren't on this PC, so a picture of it now" : "its values aren't readable yet, so a picture of it now");
-      continue;
-    }
-    // The widget's own surface behind its items, as drawn (none where it is see-through).
-    const card = surfaceOf(spot.el, spot.zoom);
-    items.push(...(card ? [make("Shape", ctx, spot.box, `${row0.name} card`, { FillColor: card.color, CornerRadius: card.radius, ShowFrame: false, ShowGradient: false })] : []), ...made);
-    done("rebuilt from InfoPanel items", notes.map((x) => x.text));
-  }
+  };
+  await convertParts(parts, items);
   // One zone alone becomes a canvas of its own size, its items moved to the corner.
   if (only) {
     const moved = moveBy(items, items.map((_, i) => String(i)), -only.x, -only.y);

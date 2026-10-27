@@ -567,8 +567,21 @@ so it follows the grid). Over that drawing the studio canvas lays `item-parts.ts
 them through the model's ops (`gesture.ts`: cells, or the pixel while Alt is held; `keys.ts`: SPEC §14's keys), a drag
 being one history transaction. The canvas editor of an imported profile gets the page's grid (`canvasGrid`): cell
 lines, cell edges as snap targets, and widget items moved by whole cells, never onto another widget
-(`lib/infopanel/editor/cells.ts`). A screen's conversion to InfoPanel (`convert-view.ts`) takes the page in z-order
-(`exportParts`): each zone by its choice, each run of item placements as the items they are, at their box.
+(`lib/infopanel/editor/cells.ts`). A screen's conversion to InfoPanel (`convert-view.ts`) takes the page as its layer
+tree (`exportParts`): each zone by its choice, each run of item placements as the items they are, at their box, and
+each page group as an InfoPanel Group named after it holding its own parts, so an import shows the same tree.
+
+Layers (SPEC §8) is one tree for every page, `layers-tree.tsx` over a `LayersHost` (rows top first, the selection,
+open groups, and each change). `use-page-layers.ts` hosts a screen's page: the page model's rows, one selection of
+zones (the zone selection), item placements (`use-item-selection.ts`) and page groups together, and every change as
+page model ops through `applyPageOps`, one undo step each (`layer-actions.ts`: z-order, group, ungroup, lock, hide,
+snap, duplicate, delete, Layers drops, and a group's move by cells when it holds a widget, refused onto another
+widget). It also takes the layer keys, and a selected group is drawn as one box on the canvas (`item-parts.tsx`) that
+drags the group, with the Group inspector (`group-inspector.tsx`). `canvas-layers.ts` hosts an imported profile's
+canvas: the canvas editor's items as rows (ids are item paths) and each change through the editor, so its history and
+an untouched item's bytes hold; a group's open state is InfoPanel's `IsExpanded`. The layer menu (`layer-menu.tsx`),
+the inspector's LAYER section (`layer-section.tsx`) and the keys run the same actions. A widget renamed in Layers
+keeps its name in `Placement.name` (studio-only, no version bump).
 
 The Export check (`lib/infopanel/export-check.ts`) classifies each item and, on a screen with widgets, each widget,
 as exports as is, approximated, becomes a picture or left out, and names the studio-only looks it loses. The editor
@@ -1474,8 +1487,8 @@ widget-editor reveal.
 **Studio left rail and views** (`left-rail.tsx`). A labelled rail (72 px, 48 px under 960 px) opens one full
 view at a time: **Screens**, **Design**, **Theme**, **Library**, **Gauges**, **Alerts & Island** and **Data**,
 with Help and Settings at the foot (each opens its own page or window). Design's left panel
-(`design-left-panel.tsx`) is **Layers** (`layers-panel.tsx`, zones in `sortZones` order, Shift / Ctrl-click to
-multi-select) | **Add** (`add-panel.tsx` over `use-add-panel.ts` and `add-catalog.ts`: search, category chips
+(`design-left-panel.tsx`) is **Layers** (`layers-tree.tsx`, the page's parts and groups top first, see the page
+model above) | **Add** (`add-panel.tsx` over `use-add-panel.ts` and `add-catalog.ts`: search, category chips
 and widget / layout / panel rows that drag (HTML5 drag, MIME in `studio-modules.ts`) or click to place;
 `searchItems` and `categoriesOf` filter). `insert-panel.tsx` keeps `filterInsertables`, `InsertFilters` and
 `InsertList` for the widget picker and the palette. Screens are the cards of `screens-view.tsx`: the

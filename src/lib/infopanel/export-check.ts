@@ -205,11 +205,17 @@ export function exportCheck(
   if (free) return free.canvas ? checkItems(openCanvas(free.canvas).items, isImported(free.canvas)) : checkOf([]);
   // A part of a hidden group isn't drawn, so it doesn't export either (as a hidden part).
   const inHidden = hiddenByGroups(page);
+  // A part in a page group exports inside an InfoPanel Group named after it (`items-layer.ts` `exportParts`).
+  const groupName = new Map((page.groups ?? []).map((g) => [g.id, g.name]));
+  const inGroup = (zone: Placement) => (r: CheckRow): CheckRow => {
+    const name = zone.groupId === undefined ? undefined : groupName.get(zone.groupId);
+    return name === undefined ? r : { ...r, why: `${r.why}; inside the Group ${name}` };
+  };
   const rows = page.placements.flatMap((zone): CheckRow[] => {
     if (zone.module === BLANK_MODULE || !zone.visible || inHidden(zone.groupId)) return [];
     // An item placement (v15) exports as the item it is.
-    if (zone.module === ITEM_ID) return zone.item ? itemRows(openCanvas({ ...itemBase(), items: [zone.item] }).items, false).map((r) => ({ ...r, path: zone.id })) : [];
-    if (zone.module !== CANVAS_ID) return [widgetRow(zone, nameOf(zone))];
+    if (zone.module === ITEM_ID) return zone.item ? itemRows(openCanvas({ ...itemBase(), items: [zone.item] }).items, false).map((r) => inGroup(zone)({ ...r, path: zone.id })) : [];
+    if (zone.module !== CANVAS_ID) return [inGroup(zone)(widgetRow(zone, nameOf(zone)))];
     if (!zone.canvas) return [];
     return itemRows(openCanvas(zone.canvas).items, isImported(zone.canvas)).map((r) => ({ ...r, path: `${zone.id}:${r.path}` }));
   });

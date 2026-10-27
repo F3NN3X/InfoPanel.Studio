@@ -74,7 +74,7 @@ A template's colours come from the profile's palette (see The palette, below), s
 
 ## The page
 
-- **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** lists the Studio widgets first, then InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, and the studio's **Elements**. **Layers** is the item tree, with a lock and a visibility checkbox on each row and a mark for how the item exports. See Groups, and Studio widgets on a profile.
+- **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** lists the Studio widgets first, then InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, and the studio's **Elements**. **Layers** is the item tree, the top item first, with a lock, an eye and the Export check's mark on each row (see [Layers](studio#layers)). See Groups, and Studio widgets on a profile.
 - The canvas, in the middle, with the page tabs and the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
 - The inspector, on the right, headed **Item**. With nothing selected it shows the profile's settings. The **Export check** pill at the right of the page tabs shows the check there instead (see The Export check).
 
@@ -135,7 +135,7 @@ For a rounded progress bar, a Bar's Sensor section has **Rounded gradient look**
 
 ### Badges
 
-Each element shows how it leaves for InfoPanel, in **Layers** (a letter) and in the inspector's header:
+Each element shows how it leaves for InfoPanel in the inspector's header:
 
 - **Native**: InfoPanel draws it as it is.
 - **Baked**: it goes as images or gauge frames, made when you export.
@@ -226,8 +226,8 @@ A group holds items and moves as one. Its children keep their own X and Y, measu
 
 - **Group** (`Ctrl+G`, the toolbar, or **Group selection** in the Layers menu) wraps the selected items in a new group, at the place of the first of them in **Layers**. Items from different groups can be grouped together. They keep their order.
 - **Ungroup** (`Ctrl+Shift+G`, the toolbar or the menu) puts the children back in the group's place. A hidden or locked group leaves its children hidden or locked.
-- **Layers** read in draw order. The first row is drawn first, at the back. A group's items are drawn at the group's place, in their own order. This is InfoPanel's own order.
-- Drag a row in **Layers** to reorder it. Drop on the upper or lower edge of a row to go above or below it, on the middle of a group to go inside it, or on the empty space under the list to go to the end of the top level. A line or a box shows where it will land. Drag out of a group the same way. Several selected rows move together, in their order.
+- **Layers** lists the top item first. The last row is drawn first, at the back. A group's items are drawn at the group's place, in their own order.
+- Drag a row in **Layers** to reorder it. Drop on the upper or lower edge of a row to go above or below it, on the middle of a group to go inside it on top, or on the empty space under the list to go to the back of the top level. A line or a box shows where it will land. Drag out of a group the same way. Several selected rows move together, in their order.
 - A group can't go inside itself or inside anything it holds. When a drop isn't allowed, **Layers** says why.
 - The chevron opens and closes a group; the state is saved in the profile (InfoPanel's `IsExpanded`). Double-click a name, or choose **Rename** in the menu, to rename it.
 - **Hidden** and **Lock** on a group act on everything in it. A locked group's items can't be dragged out or in.

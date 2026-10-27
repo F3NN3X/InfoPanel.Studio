@@ -1,9 +1,9 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
 import { AddPanel } from "./add-panel";
-import { LayersPanel } from "./layers-panel";
+import { LayersTree, type LayersHost } from "./layers-tree";
 
-/** The left panel's tabs: the zone list or the Add panel. */
+/** The left panel's tabs: Layers or the Add panel. */
 export type LeftTab = "layers" | "add";
 
 interface DesignLeftPanelProps {
@@ -11,7 +11,7 @@ interface DesignLeftPanelProps {
   onTab: (tab: LeftTab) => void;
   /** The panel's width (Settings › Studio › Editor › Left panel width). */
   width: number;
-  layers: ComponentProps<typeof LayersPanel>;
+  layers: LayersHost;
   add: ComponentProps<typeof AddPanel>;
 }
 
@@ -40,7 +40,7 @@ export function LeftPanelFrame({ tab, onTab, width, children }: Pick<DesignLeftP
 export function DesignLeftPanel({ tab, onTab, width, layers, add }: DesignLeftPanelProps) {
   return (
     <LeftPanelFrame tab={tab} onTab={onTab} width={width}>
-      {tab === "layers" ? <LayersPanel {...layers} /> : <AddPanel {...add} />}
+      {tab === "layers" ? <LayersTree host={layers} /> : <AddPanel {...add} />}
     </LeftPanelFrame>
   );
 }

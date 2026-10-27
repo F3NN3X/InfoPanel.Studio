@@ -3,7 +3,7 @@ id: canvas
 title: Editing a canvas
 icon: draw
 related: [infopanel-editor, import, remap, gauges]
-verified: 1.3.0-beta.35
+verified: 1.3.0-beta.36
 ---
 
 A free-form editor over the imported profile. Every edit stays valid for export back to InfoPanel.
@@ -21,7 +21,7 @@ Dragging an InfoPanel item or element from **Add** onto an empty cell of a grid 
 
 ## Layers
 
-The item tree. Groups nest. Each row has a lock toggle, and a checkbox that sets InfoPanel's Hidden flag. A Studio widget on the page is a row too, with its widget icon in the accent colour and the word *widget*; see [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
+The item tree, the top item first, as on a screen's page (see [Layers](studio#layers)). Groups nest. Each row has a lock and an eye, which sets InfoPanel's Hidden flag. A Studio widget on the page is a row too, with its widget icon in the accent colour and the word *widget*; see [Studio widgets on a profile](infopanel-editor#studio-widgets-on-a-profile).
 
 ## The toolbar
 

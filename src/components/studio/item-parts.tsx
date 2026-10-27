@@ -4,11 +4,15 @@
  * selected (Shift / Ctrl adds), moved and resized. A gesture snaps the part to cells, or places it freely to the pixel
  * while Alt is held (the page's Snap items off: the other way round); pressing or releasing Alt mid-drag switches at
  * once. While a part moves freely its start box shows dashed and a readout of its box follows it. Every change goes
- * through the page model's ops (`onOps`), and a drag is one undo step. Coordinates are the page's design px.
+ * through the page model's ops (`onOps`), and a drag is one undo step. A selected page group shows one accent box
+ * around its members with a `{name} · group` chip (SPEC §7.1): dragging it moves the group (by cells when it holds a
+ * widget, `layer-actions.ts` `groupMoveOps`), double-clicking it selects the part under the pointer. Coordinates are
+ * the page's design px.
  */
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import type { MonitorProfile, Placement, ProfilePage, ProfileView } from "@/lib/layout";
-import { boxOf, partsOf, type PageOp, type PartNode, type PixelBox } from "@/lib/page-model/model";
+import { boxOf, findNode, partsOf, type GroupNode, type PageModel, type PageOp, type PartNode, type PixelBox } from "@/lib/page-model/model";
+import { lockedInTree, unionBox } from "@/lib/page-model/layer-actions";
 import { readPlacements } from "@/lib/page-model/placements-adapter";
 import { moveOps, placesFreely, resizeOps, type Handle, type Start } from "@/lib/page-model/gesture";
 import { hiddenByGroups } from "@/lib/page-model/items-layer";
@@ -62,6 +66,19 @@ interface ItemPartsProps {
   onContextMenu?: (id: string, x: number, y: number) => void;
   /** An item placement's Export check badge, on a screen made for InfoPanel. */
   badgeOf?: (p: Placement) => ReactNode;
+  /** The selected page groups, drawn as one box each that drags the group. */
+  groups?: GroupMoves;
+}
+
+export interface GroupMoves {
+  selected: readonly string[];
+  /** Move the groups by a pointer delta from where they were in `from` (one drag, `key`); false when refused. */
+  onMove: (from: PageModel, ids: readonly string[], dx: number, dy: number, free: boolean, key: string) => boolean;
+  /** A drag ended where the group can't go (it went back). */
+  onRefused: () => void;
+  /** Double-click inside a group's box: select the part there. */
+  onPick: (id: string) => void;
+  onContextMenu?: (x: number, y: number) => void;
 }
 
 interface Drag {
@@ -75,7 +92,7 @@ interface Drag {
   moved: boolean;
 }
 
-export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, onDragBegin, onDragCommit, onDragCancel, onGesture, onContextMenu, badgeOf }: ItemPartsProps) {
+export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, onDragBegin, onDragCommit, onDragCancel, onGesture, onContextMenu, badgeOf, groups }: ItemPartsProps) {
   const model = useMemo(() => readPlacements(profile as unknown as MonitorProfile, page), [profile, page]);
   const inHidden = useMemo(() => hiddenByGroups(page), [page]);
   const byId = useMemo(() => new Map(page.placements.map((p) => [p.id, p])), [page]);
@@ -151,9 +168,89 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
     );
   };
 
+  /** A drag on a selected group's box: the group moves as one, Alt as for an item; one undo step. */
+  const startGroup = (e: ReactPointerEvent, group: GroupNode) => {
+    if (e.button !== 0 || !groups) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (lockedInTree(model, group.id)) return;
+    const from = model;
+    const ids = groups.selected;
+    const d = { x: e.clientX, y: e.clientY, moved: false, ok: true, alt: e.altKey };
+    stop.current = trackPointer(
+      (ev) => {
+        if (!d.moved) {
+          if (!pastDragThreshold(ev.clientX - d.x, ev.clientY - d.y)) return;
+          d.moved = true;
+          onDragBegin();
+        }
+        d.alt = ev.altKey;
+        onGesture({ alt: d.alt, free: placesFreely(from.snapItems, d.alt) });
+        d.ok = groups.onMove(from, ids, (ev.clientX - d.x) / zoom, (ev.clientY - d.y) / zoom, placesFreely(from.snapItems, d.alt), `group-drag:${group.id}`);
+      },
+      (cancelled) => {
+        if (!d.moved) return;
+        const swallow = (c: MouseEvent) => c.stopPropagation();
+        window.addEventListener("click", swallow, true);
+        setTimeout(() => window.removeEventListener("click", swallow, true), 0);
+        onGesture(null);
+        if (cancelled) return onDragCancel();
+        onDragCommit();
+        if (!d.ok) groups.onRefused();
+      },
+    );
+  };
+  /** The part of a group under a double-click, topmost first. */
+  const pickIn = (e: ReactMouseEvent, group: GroupNode) => {
+    const r = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
+    const x = (e.clientX - r.left) / zoom;
+    const y = (e.clientY - r.top) / zoom;
+    const hit = partsOf(group.children).find((p) => {
+      const b = boxOf(grid, p.place);
+      return !p.hidden && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+    });
+    if (hit) groups?.onPick(hit.id);
+  };
+  const groupBoxes = (groups?.selected ?? []).flatMap((id) => {
+    const node = findNode(model.root, id)?.node;
+    const box = node?.type === "group" && !node.hidden ? unionBox(model, node) : null;
+    return node?.type === "group" && box ? [{ node, box }] : [];
+  });
+
   const primary = selectedIds.at(-1);
   return (
     <div data-item-parts="" className="pointer-events-none absolute inset-0 z-[5]">
+      {groupBoxes.map(({ node, box }) => (
+        <div
+          key={node.id}
+          data-shot-skip
+          data-group-box={node.id}
+          className={cn("pointer-events-auto absolute", lockedInTree(model, node.id) ? "cursor-default" : "cursor-move")}
+          style={{
+            left: box.x - 3 / zoom,
+            top: box.y - 3 / zoom,
+            width: box.w + 6 / zoom,
+            height: box.h + 6 / zoom,
+            border: `${2 / zoom}px solid var(--ui-accent)`,
+            borderRadius: 6 / zoom,
+          }}
+          onPointerDown={(e) => startGroup(e, node)}
+          onDoubleClick={(e) => pickIn(e, node)}
+          onContextMenu={(e) => {
+            if (!groups?.onContextMenu) return;
+            e.preventDefault();
+            e.stopPropagation();
+            groups.onContextMenu(e.clientX, e.clientY);
+          }}
+        >
+          {/* The chip, 26 px above the box at its screen size whatever the zoom. */}
+          <span className="absolute left-0 whitespace-nowrap" style={{ zoom: 1 / zoom, top: -26 }}>
+            <span data-testid="group-chip" className="rounded-[4px] bg-ui-accent px-1.5 py-0.5 text-[10.5px] font-semibold text-ui-inverse-fg">
+              {node.name} · group
+            </span>
+          </span>
+        </div>
+      ))}
       {drag?.free && (
         <div
           data-shot-skip

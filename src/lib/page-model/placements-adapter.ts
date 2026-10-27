@@ -40,7 +40,7 @@ function partOf(p: Placement, nameOf: (p: Placement) => string): PartNode {
     type: "part",
     id: p.id,
     kind,
-    name: kind === "widget" ? nameOf(p) : (itemName(p.item) ?? p.item?.kind ?? "Item"),
+    name: kind === "widget" ? p.name || nameOf(p) : (itemName(p.item) ?? p.item?.kind ?? "Item"),
     place: placeOf(p),
     ...(p.locked ? { locked: true } : {}),
     ...(p.visible ? {} : { hidden: true }),
@@ -96,8 +96,8 @@ function flatten(nodes: readonly LayerNode[], parent: string | undefined, out: {
   }
 }
 
-/** A part as its placement, the one it was read from when nothing changed. */
-function placementOf(grid: PageGrid, part: PartNode, groupId: string | undefined): Placement {
+/** A part as its placement, the one it was read from when nothing changed; `nameOf` names a widget as it was read. */
+function placementOf(grid: PageGrid, part: PartNode, groupId: string | undefined, nameOf: (p: Placement) => string): Placement {
   const ref = part.ref;
   const base: Placement =
     ref.backing === "placement"
@@ -110,10 +110,13 @@ function placementOf(grid: PageGrid, part: PartNode, groupId: string | undefined
   const moved = fresh || !samePlace(place, placeOf(base));
   const name = kind === "widget" ? undefined : part.name;
   const renamed = name !== undefined && name !== (itemName(base.item) ?? base.item?.kind ?? "Item");
+  // A widget renamed keeps its new name; renamed to nothing, it takes its widget's name again.
+  const widgetRenamed = kind === "widget" && part.name !== (base.name || nameOf(base));
   const same =
-    !fresh && !moved && !renamed && Boolean(base.locked) === Boolean(part.locked) && base.visible === !part.hidden && base.groupId === groupId;
+    !fresh && !moved && !renamed && !widgetRenamed && Boolean(base.locked) === Boolean(part.locked) && base.visible === !part.hidden && base.groupId === groupId;
   if (same) return base;
-  const { px: _px, groupId: _g, locked: _l, ...rest } = base;
+  const { px: _px, groupId: _g, locked: _l, name: _n, ...rest } = base;
+  const widgetName = kind === "widget" ? (widgetRenamed ? part.name.trim() : base.name) : undefined;
   const cells = "cell" in place ? place.cell : moved ? nearestCells(grid, place.px, true) : { col: base.colStart, row: base.rowStart, cols: base.colSpan, rows: base.rowSpan };
   // The item's own X / Y / size follow its place, so InfoPanel and the kiosk read the box the editor shows.
   const at = base.item && moved ? atBox(base.item, boxOf(grid, place)) : base.item;
@@ -128,6 +131,7 @@ function placementOf(grid: PageGrid, part: PartNode, groupId: string | undefined
     ...("px" in place ? { px: place.px } : {}),
     ...(groupId !== undefined ? { groupId } : {}),
     ...(part.locked ? { locked: true } : {}),
+    ...(widgetName ? { name: widgetName } : {}),
     ...(item ? { item } : {}),
   };
 }
@@ -140,12 +144,12 @@ function pageGroupOf(node: GroupNode, parentId: string | undefined): PageGroup {
   return { ...rest, name: node.name, ...(parentId !== undefined ? { parentId } : {}), ...(node.locked ? { locked: true } : {}), ...(node.hidden ? { hidden: true } : {}) };
 }
 
-/** The model written back into the page; the same page when nothing changed. */
-export function writePlacements(page: ProfilePage, model: PageModel): ProfilePage {
+/** The model written back into the page; the same page when nothing changed. `nameOf` is the one it was read with. */
+export function writePlacements(page: ProfilePage, model: PageModel, nameOf: (p: Placement) => string = (p) => p.module): ProfilePage {
   const parts: { part: PartNode; groupId?: string }[] = [];
   const nodes: { node: GroupNode; parentId?: string }[] = [];
   flatten(model.root, undefined, parts, nodes);
-  const placements = parts.map(({ part, groupId }) => placementOf(model.grid, part, groupId));
+  const placements = parts.map(({ part, groupId }) => placementOf(model.grid, part, groupId, nameOf));
   // The groups in the order the page lists them, new ones after.
   const kept = new Map(nodes.map(({ node, parentId }) => [node.id, pageGroupOf(node, parentId)]));
   const before = page.groups ?? [];

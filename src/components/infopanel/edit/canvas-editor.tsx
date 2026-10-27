@@ -66,7 +66,9 @@ import { CanvasToolbar, CompareStrip, ModesStrip } from "./canvas-toolbar";
 import { EditCanvas, type Compare } from "./edit-canvas";
 import { ImagePicker } from "./image-picker";
 import { ItemInspector } from "./item-inspector";
-import { ItemsTree } from "./items-tree";
+import { LayersTree } from "@/components/studio/layers-tree";
+import { useCanvasLayers } from "./canvas-layers";
+import { LayerSection } from "@/components/studio/layer-section";
 import { SaveComponentDialog } from "./save-component-dialog";
 import { ProfileSettings } from "./profile-settings";
 import { SensorPicker } from "./sensor-picker";
@@ -350,8 +352,11 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     toast(r.open > 0 ? `Added ${item.name}; ${r.open} sensor${r.open === 1 ? "" : "s"} need a look in Remap` : `Added ${item.name}${r.bound > 0 ? `; ${r.bound} sensor${r.bound === 1 ? "" : "s"} matched by role` : ""}`);
     if (r.open > 0) setRemapOpen(true);
   };
-  const latest = useRef({ editor, onDone, hidden, openSave, checkOpen, grid });
-  latest.current = { editor, onDone, hidden, openSave, checkOpen, grid };
+  /** F2: each new value renames the selected part in Layers. */
+  const [renameRequest, setRenameRequest] = useState(0);
+  const layers = useCanvasLayers(editor, grid, renameRequest, checkState);
+  const latest = useRef({ editor, onDone, hidden, openSave, checkOpen, grid, layers });
+  latest.current = { editor, onDone, hidden, openSave, checkOpen, grid, layers };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
@@ -381,6 +386,12 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           return g ? byCells(ed, g, action.dx, action.dy) : undefined;
         case "resize-cell":
           return g ? resizeByCell(ed, g, action.dx, action.dy) : undefined;
+        case "layer":
+          return latest.current.layers.menu.run(action.action);
+        case "rename":
+          if (ed.selection.length !== 1) return;
+          shell.onLeftTab("layers");
+          return setRenameRequest((n) => n + 1);
         case "forward":
           return ed.reorder(1);
         case "backward":
@@ -438,18 +449,29 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     ) : (
       <ProfileSettings editor={editor} onLayout={freePage ? onLayout : undefined} />
     );
+  // The LAYER section under one selected part or group (Edit v3 SPEC §10.2): z-order and the group it sits in.
+  const layerPath = !(checkOpen && checkOn) && editor.selection.length === 1 ? editor.selection[0] : null;
+  const layerSection = layerPath !== null && (
+    <LayerSection
+      onAction={layers.menu.run}
+      groups={layers.menu.groups.filter((g) => g.id !== layerPath && !g.id.startsWith(`${layerPath}.`))}
+      inGroup={layerPath.includes(".") ? layerPath.split(".").slice(0, -1).join(".") : null}
+      onInGroup={(g) => (g === "new" ? editor.group() : g === null ? editor.move("", editor.committed.length) : layers.menu.moveToGroup(g))}
+    />
+  );
   const inspector = (
     <aside
       aria-label={checkOpen && checkOn ? "Export check" : "Item"}
       className={cn("flex flex-col overflow-y-auto bg-ui-panel font-ui", floating ? "h-full w-full" : "w-[320px] shrink-0 border-l border-ui-subtle")}
     >
       {inspectorBody}
+      {layerSection}
     </aside>
   );
   const drawer = shell.leftOpen && (
     <LeftPanelFrame tab={shell.leftTab} onTab={shell.onLeftTab} width={shell.leftWidth}>
       {shell.leftTab === "layers" ? (
-        <ItemsTree editor={editor} name={name} onSaveComponent={openSave} />
+        <LayersTree host={{ ...layers, menu: { ...layers.menu, saveToLibrary: editor.selection.length ? openSave : undefined } }} />
       ) : freePage && widgetHost ? (
         <AddPanel
           catalog={catalog}

@@ -108,6 +108,8 @@ interface ZoneInspectorProps {
   place?: ReactNode;
   /** The On InfoPanel section under the header (a screen made for InfoPanel). */
   onInfoPanel?: ReactNode;
+  /** The LAYER section (Edit v3 SPEC §10.2): z-order and the group it sits in. */
+  layer?: ReactNode;
 }
 
 /** A Custom gauge zone's spec drawn small (at p = 0.6), with the way into its editor. */
@@ -193,6 +195,7 @@ export function ZoneInspector({
   onEditGauge,
   place,
   onInfoPanel,
+  layer,
 }: ZoneInspectorProps) {
   const toast = useToast();
   const [picker, setPicker] = useState(false);
@@ -445,6 +448,7 @@ export function ZoneInspector({
           onHelp={onHelp}
         />
       {place ?? <ZoneBoxFields placement={zone} cols={profile.cols} rows={profile.rows} onZoneBox={onZoneBox} />}
+      {layer}
       {onInfoPanel}
     </>
   );

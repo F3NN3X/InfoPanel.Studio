@@ -55,12 +55,13 @@ export function panelTitle(p: Placement): string {
   return label !== "" ? label : (p.panel?.title ?? "");
 }
 
-/** Display title of a placement: panel title, module title, or its id. */
+/** Display title of a placement: the name it was given in Layers, panel title, module title, or its id. */
 export function placementTitle(p: Placement): string {
   return (
-    (p.panel ? panelTitle(p) : undefined) ??
-    canvasTitle(p) ??
-    ALL_MODULES.find((m) => m.id === p.module)?.title ??
-    p.module
+    p.name ||
+    ((p.panel ? panelTitle(p) : undefined) ??
+      canvasTitle(p) ??
+      ALL_MODULES.find((m) => m.id === p.module)?.title ??
+      p.module)
   );
 }

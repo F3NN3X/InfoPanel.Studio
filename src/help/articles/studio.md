@@ -13,7 +13,7 @@ The editor window: a rail of views on the left, the work area in the middle, and
 | View | What it holds |
 |---|---|
 | **Screens** | Your screens: which one opens, sizes, pages, rotation and each screen's own frame rate. **New** opens the New page, where you start from Blank or a template. See [Screens and the grid](profiles). |
-| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (the zones of this page, or a profile's items: hide, rename, reorder, select) and **Add**, which has tabs for **Widgets**, **Panels** (yours and the presets) and **Layouts** (starters), or InfoPanel's items and elements on a profile. See [The InfoPanel editor](infopanel-editor) for profiles. |
+| **Edit** | The canvas, the page tabs and the inspector, for a grid screen or an InfoPanel profile. The left panel switches between **Layers** (every part of the page in one tree, see [Layers](studio#layers)) and **Add**, which has tabs for **Widgets**, **Panels** (yours and the presets) and **Layouts** (starters), or InfoPanel's items and elements on a profile. See [The InfoPanel editor](infopanel-editor) for profiles. |
 | **Theme** | One editor for the look at every level. See [Themes](themes). |
 | **Library** | Your saved Themes, Styles, Panels, gauges, media, fonts and canvases. See [Library](library). |
 | **Gauges** | Browse, edit and build gauges. See [Gauges](gauges). |
@@ -107,6 +107,28 @@ Esc — Clear the selection
 :::
 
 On a screen made for InfoPanel, each item has its Export check mark, and **Convert screen to InfoPanel profile** takes the items as the items they are, at the same place and in the same order. Hidden items, and items in a hidden group, stay out, as on the kiosk.
+
+## Layers
+
+**Layers** lists every part of the page, the top one first: widgets, InfoPanel items, elements and groups. A group can hold any mix of them, and groups can hold groups. A screen's page and an InfoPanel profile use the same tree.
+
+Each row has the part's icon, its name and what it is (*widget*, *item*, *element* or *group* with its count). An item placed freely has a move mark. On a screen made for InfoPanel the row also shows its Export check status. Every row ends with a lock and an eye, and a hidden row is dimmed.
+
+- Click a row to select it. `Ctrl`+click adds or removes a row and `Shift`+click selects a range. One selection can hold widgets, items and groups together, on the canvas too.
+- Double-click a name, or press `F2`, to rename it. `Enter` keeps the new name and `Esc` drops it. A widget's new name shows in the inspector too.
+- Drag a row between two rows to change what is drawn on top. Drop it on the middle of a group to put it inside, on top. A line or an outline shows where it lands. Reordering never moves a part on the page.
+- Right-click a row, or an item on the canvas, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate and Delete. The inspector's **Layer** section has the four order buttons and the group the part sits in.
+- Select a group and the canvas draws one box around its parts, with its name above it. Drag the box to move the group. A group with a widget in it moves by whole cells; when a widget would land on a widget outside the group, the group stays put and a message says "Not enough room to move the group." A group of items and elements snaps to the cells, or goes to the pixel while you hold `Alt`. Double-click inside the box to select the part under the pointer.
+- A locked part can't be moved, resized or deleted on the canvas. You can still reorder it in Layers.
+- When the screen is exported to InfoPanel, each group becomes an InfoPanel Group with the same name and parts, so the profile has the same tree.
+
+| Keys | Action |
+|---|---|
+| `Ctrl+]` / `Ctrl+[` | Bring forward / send backward |
+| `Ctrl+Shift+]` / `Ctrl+Shift+[` | Bring to front / send to back |
+| `Ctrl+G` / `Ctrl+Shift+G` | Group / ungroup |
+| `Ctrl+L` / `Ctrl+H` | Lock / hide |
+| `F2` | Rename |
 
 ## Inspector
 

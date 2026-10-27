@@ -241,7 +241,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
     ],
   },
   {
-    title: "Selected InfoPanel items",
+    title: "Selected parts and groups",
     items: [
       { keys: "Alt+drag", label: "Place freely, to the pixel (widgets stay on the cells)" },
       { keys: "Alt+Arrows", label: "Nudge 1 px, then placed freely (a widget moves one cell)" },
@@ -251,6 +251,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
       { keys: "Ctrl+G / Ctrl+Shift+G", label: "Group / ungroup" },
       { keys: "Ctrl+L", label: "Lock" },
       { keys: "Ctrl+H", label: "Hide" },
+      { keys: "F2", label: "Rename in Layers" },
     ],
   },
   {

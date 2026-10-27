@@ -9,7 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import { PALETTE, PALETTE_GROUPS, type PaletteEntry } from "@/lib/infopanel/editor/create";
 import { ELEMENTS, type ElementEntry } from "@/lib/infopanel/elements/create";
 import { ELEMENT_ICONS } from "./element-ui";
-import { kindIcon } from "./items-tree";
+import { kindIcon } from "./item-icons";
 
 /** The drag type a palette entry carries: its kind, or `element:<type>`. */
 export const PALETTE_DRAG = "application/x-infopanel-kind";
