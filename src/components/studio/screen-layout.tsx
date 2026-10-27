@@ -44,13 +44,25 @@ export function SizeFitSection({
   profile,
   updateProfile,
   windowSize,
+  onScaleFree,
 }: {
   profile: ProfileView;
   updateProfile: UpdateProfile;
   /** The studio window, for "Use this window's size". */
   windowSize: { width: number; height: number };
+  /**
+   * The screen has Free pages: a new size keeps their items where they are (Keep positions), and the toast offers
+   * Scale contents, which scales them from the size before.
+   */
+  onScaleFree?: (from: { width: number; height: number }) => void;
 }) {
-  const patch = (p: Partial<ProfileView>) => updateProfile((cur) => ({ ...cur, ...p }), `profile:${Object.keys(p).join()}`);
+  const toast = useToast();
+  const patch = (p: Partial<ProfileView>) => {
+    const from = { width: profile.width, height: profile.height };
+    updateProfile((cur) => ({ ...cur, ...p }), `profile:${Object.keys(p).join()}`);
+    const resized = (p.width !== undefined && p.width !== from.width) || (p.height !== undefined && p.height !== from.height);
+    if (resized && onScaleFree) toast("Free pages kept every item where it was.", { action: { label: "Scale contents", onClick: () => onScaleFree(from) }, ms: 6000 });
+  };
   const differs = profile.width !== windowSize.width || profile.height !== windowSize.height;
   return (
     <div className="space-y-3">

@@ -17,7 +17,8 @@ export const PALETTE_DRAG = "application/x-infopanel-kind";
 /** What a palette button adds: an InfoPanel kind or a studio element. */
 export type AddEntry = { kind: "item"; entry: PaletteEntry } | { kind: "element"; entry: ElementEntry };
 
-const idOf = (a: AddEntry) => (a.kind === "item" ? a.entry.kind : `element:${a.entry.type}`);
+/** The drag id of an entry (`PALETTE_DRAG`): its kind, or `element:<type>`. */
+export const idOf = (a: AddEntry) => (a.kind === "item" ? a.entry.kind : `element:${a.entry.type}`);
 
 /** The entry a palette drag carries; null for anything else. */
 export function paletteEntryOf(data: string): AddEntry | null {

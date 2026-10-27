@@ -141,6 +141,11 @@ export interface ProfilePage {
    * placement: a CANVAS_ID placement spanning the whole grid (`normalizePages` drops the flag otherwise).
    */
   layout?: PageLayout;
+  /**
+   * What the page's canvas held besides its items when it was last Free (its InfoPanel profile, files, fonts and
+   * palette): a switch to Grid keeps it here and a switch back to Free starts from it (`lib/page-layout.ts`).
+   */
+  freeCanvas?: Omit<StoredCanvas, "items">;
 }
 
 /** A page's layout: zones on the grid's cells, or one canvas placed in pixels. */

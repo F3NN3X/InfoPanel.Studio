@@ -10,7 +10,7 @@ import { modules } from "@/modules";
 import { useSensorCatalog } from "@/lib/catalog";
 import type { Placement, ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { choiceFor, readChoices, rowsOf, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
+import { choiceFor, ON_INFOPANEL_KEY, rowsOf, startChoices, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { Converted, ReportRow } from "@/lib/infopanel/native/convert-view";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
@@ -69,7 +69,7 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
   const sensors = useSensorCatalog().sensors as unknown as Record<string, DataApiValue>;
   const zones = profile.placements.filter((p) => (scope === "zone" ? p.id === zoneId : p.visible));
   const rows = zones.flatMap((p) => rowsOf(p, titleOf));
-  const [choices, setChoices] = useState<Record<string, Choices>>(() => Object.fromEntries(zones.map((p) => [p.id, readChoices(p.settings)])));
+  const [choices, setChoices] = useState<Record<string, Choices>>(() => Object.fromEntries(zones.map((p) => [p.id, startChoices(p.settings)])));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<readonly ReportRow[] | null>(null);
@@ -86,7 +86,9 @@ function ConvertBody({ scope, profile, zoneId, onRemember, onConverted, onDone, 
       const withChoices: Placement[] = zones.map((p) => {
         const own = rows.filter((r) => r.zoneId === p.id);
         const picked = Object.fromEntries(own.map((r) => [r.key, choiceFor(r, choices[p.id] ?? {})]));
-        const settings = writeChoices(p.settings, picked, own.map((r) => r.key));
+        const written = writeChoices(p.settings, picked, own.map((r) => r.key));
+        // A module zone's pick is its On InfoPanel rule too, so the inspector and the next conversion agree.
+        const settings = picked.zone ? { ...written, [ON_INFOPANEL_KEY]: picked.zone } : written;
         onRemember(p.id, settings);
         return { ...p, settings };
       });

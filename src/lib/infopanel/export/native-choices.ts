@@ -10,10 +10,22 @@ import type { ModuleSettings } from "../../../modules/types.ts";
 import { choicesFor, MODULE_TIERS, notCompatible, tierOf, type NativeChoice, type TierEntry } from "../native/tiers.ts";
 
 export const IP_EXPORT_KEY = "ipExport";
+/**
+ * A grid widget's own export rule (one-editor SPEC §7.4), set in its inspector's On InfoPanel section: the Convert
+ * dialog starts from it, and a switch to Free carries it onto the widget item (`WidgetItem.onInfoPanel`).
+ */
+export const ON_INFOPANEL_KEY = "$onInfoPanel";
 
 export type Choices = Readonly<Record<string, NativeChoice>>;
 
 const CHOICES: readonly NativeChoice[] = ["recreate", "snapshot", "leave"];
+
+/** A zone's choices as the Convert dialog starts from them: the remembered ones, its On InfoPanel rule over the zone's own. */
+export function startChoices(settings: ModuleSettings | undefined): Choices {
+  const rule = settings?.[ON_INFOPANEL_KEY];
+  const own = readChoices(settings);
+  return typeof rule === "string" && CHOICES.includes(rule as NativeChoice) ? { ...own, zone: rule as NativeChoice } : own;
+}
 
 /** The stored choices; anything unreadable or unknown is dropped. */
 export function readChoices(settings: ModuleSettings | undefined): Choices {

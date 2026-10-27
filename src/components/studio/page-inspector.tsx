@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from "react";
 import { Cast, CircleHelp, Copy, Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
-import type { MonitorProfile, ProfilePage } from "@/lib/layout";
+import type { MonitorProfile, PageLayout, ProfilePage } from "@/lib/layout";
 import { SECTION_IDS, type SectionId } from "@/lib/theme-model";
 import { cn } from "@/lib/utils";
 import { sectionIconById } from "./inspector/section-icons";
+import { LayoutControl } from "./layout-control";
 import { LinkRow } from "./link-row";
 import { pageIcon } from "./page-icons";
-import { cycleLabel } from "./page-tabs";
+import { cycleLabel, layoutOf } from "./page-tabs";
 import { sectionInherit } from "./section-inherit";
 import { sectionTitle } from "./theme-editor-model";
 import type { InheritanceContext } from "./use-inheritance";
@@ -26,6 +27,10 @@ interface PageInspectorProps {
   /** LIVE: send the kiosks to this page now (runtime, never saved). */
   onShowOnKiosks: () => void;
   onHelp: () => void;
+  /** Layout (one-editor SPEC §6.1): switch the page to Grid or Free, one undo step. */
+  onLayout?: (id: string, layout: PageLayout) => void;
+  /** Why the page can't switch (its content isn't loaded yet). */
+  layoutDisabled?: string;
 }
 
 const SECTION_LABEL = "text-[10.5px] font-semibold uppercase tracking-[0.06em] text-ui-4";
@@ -99,7 +104,7 @@ function Block({ label, children, labelClassName }: { label: string; children: R
  * LinkRow (Screens owns order and rotation), the sections the page customises over its screen's theme with the
  * way into Theme at page scope, LIVE "Show on kiosks now", and Duplicate / Delete page.
  */
-export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp }: PageInspectorProps) {
+export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp, onLayout, layoutDisabled }: PageInspectorProps) {
   const Icon = pageIcon(page.icon);
   const custom = SECTION_IDS.filter((sec) => page.widgetTheme?.follow?.[sec] === false);
   const zones = page.placements.length;
@@ -121,6 +126,11 @@ export function PageInspector({ profile, page, inherit, onRename, onIcon, onDupl
       </div>
       <div className="h-px shrink-0 bg-ui-subtle" />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        {onLayout && (
+          <Block label="Layout">
+            <LayoutControl layout={layoutOf(page)} onChange={(to) => onLayout(page.id, to)} disabled={layoutDisabled} />
+          </Block>
+        )}
         <section className="space-y-1 border-b border-[#1c1c21] px-4 py-3">
           <NameRow key={`${page.id}:${page.name}`} page={page} onRename={(name) => onRename(page.id, name)} />
           <div className="flex min-h-7 items-center gap-2.5 text-[12px] text-ui-3">

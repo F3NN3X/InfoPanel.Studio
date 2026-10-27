@@ -75,6 +75,8 @@ export interface FreeAdd {
   items: (query: string) => ReactNode;
   /** On a screen made for InfoPanel: a widget's Export check icon. */
   status?: (item: AddItem) => ReactNode;
+  /** A grid page (SPEC §5.3): an InfoPanel item makes a free area where it goes, and Layouts still apply. */
+  grid?: boolean;
 }
 
 const FILTERS: { value: AddFilter; label: string }[] = [
@@ -294,7 +296,7 @@ export function AddPanel({
       <div role="tablist" aria-label="What to add" className="mx-2.5 mt-2.5 flex shrink-0 gap-4 border-b border-ui-subtle">
         {KINDS.map((k) => {
           // Layouts arrange a grid page: none on a Free page.
-          const off = !!free && k.kind === "layout";
+          const off = !!free && !free.grid && k.kind === "layout";
           return (
             <button
               key={k.kind}
@@ -450,7 +452,10 @@ export function AddPanel({
         )}
         {freeItems && (
           <section aria-label="InfoPanel items" className="px-1 pt-1">
-            <div className="sticky top-0 z-10 bg-ui-panel px-0.5 pb-0.5 pt-2.5 font-ui-mono text-[10px] uppercase tracking-[0.06em] text-[#8a8a94]">InfoPanel items</div>
+            <div className="sticky top-0 z-10 flex items-baseline gap-2 bg-ui-panel px-0.5 pb-0.5 pt-2.5">
+              <span className="font-ui-mono text-[10px] uppercase tracking-[0.06em] text-[#8a8a94]">InfoPanel items</span>
+              {free?.grid && <span className="text-[11px] text-ui-warning">Makes a free area here</span>}
+            </div>
             {freeItems}
           </section>
         )}

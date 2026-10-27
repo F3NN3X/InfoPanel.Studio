@@ -19,7 +19,10 @@ import { islandReserve } from "@/components/island/island-model";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
-import { BLANK_MODULE, SCROLL_ROW_H, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, SCROLL_ROW_H, type ProfileView, type Placement } from "@/lib/layout";
+
+/** The Add palette's drag type (`PALETTE_DRAG` in infopanel/edit/add-palette.tsx), kept here so the palette stays lazy. */
+const PALETTE_MIME = "application/x-infopanel-kind";
 import { fontStack, resolveFont } from "@/lib/general";
 import {
   cellAt as gridCellAt,
@@ -131,6 +134,11 @@ interface StudioCanvasProps {
    * A library item was dropped: at the ghost's box, or null when the ghost said no room; `cell`
    * is the cell under the pointer (a style card applies to the zone there).
    */
+  /**
+   * An InfoPanel item or element from Add (its `PALETTE_DRAG` id) dropped on the grid (one-editor SPEC §5.3): on an
+   * empty cell it makes a free area there, on a free area (`inCanvas`) it goes into it.
+   */
+  onPaletteDrop?: (data: string, cell: { col: number; row: number }, inCanvas: CanvasPoint | null) => void;
   /** `inCanvas`: the drop point as a fraction of a canvas zone's profile, when it fell on one. */
   onDropItem: (item: CanvasDrop, rect: ZoneRect | null, cell: { col: number; row: number } | null, inCanvas: CanvasPoint | null) => void;
   /** The Add panel row a widget or panel drag carries: its ghost shrinks to fit and fills blank zones. */
@@ -190,6 +198,7 @@ export function StudioCanvas({
   onPickWidget,
   dropSizeOf,
   onDropItem,
+  onPaletteDrop,
   addItemOf,
   onAddDrop,
   targetZoneId,
@@ -374,8 +383,22 @@ export function StudioCanvas({
   const isLibraryDrag = (e: DragEvent) =>
     e.dataTransfer.types.includes(DND_MIME) || e.dataTransfer.types.includes(DND_MIME_PANEL) || e.dataTransfer.types.includes(LIBRARY_MIME);
 
+  /** The zone that covers a cell, if any. */
+  const zoneAt = (cell: { col: number; row: number }) =>
+    profile.placements.find((p) => p.visible && cell.col >= p.colStart && cell.col < p.colStart + p.colSpan && cell.row >= p.rowStart && cell.row < p.rowStart + p.rowSpan);
+  const isPaletteDrag = (e: DragEvent) => onPaletteDrop !== undefined && e.dataTransfer.types.includes(PALETTE_MIME);
+
   /** Library drag over the board: the ghost follows the pointer's cell. */
   const onCanvasDragOver = (e: DragEvent) => {
+    if (isPaletteDrag(e)) {
+      e.preventDefault();
+      const cell = cellAt(e.clientX, e.clientY);
+      const under = cell ? zoneAt(cell) : undefined;
+      // A free area takes the item itself; an empty cell shows where the new one goes.
+      const next = !cell || under?.module === CANVAS_ID ? null : { rect: { col: cell.col, row: cell.row, cols: 1, rows: 1 }, ok: !under, label: under ? "No room there" : "Makes a free area here" };
+      setDropPreview((prev) => (prev?.ok === next?.ok && prev?.rect.col === next?.rect.col && prev?.rect.row === next?.rect.row ? prev : next));
+      return;
+    }
     if (!isLibraryDrag(e)) return;
     e.preventDefault();
     const cell = cellAt(e.clientX, e.clientY);
@@ -418,6 +441,12 @@ export function StudioCanvas({
     dragItem.current = null;
     setDropPreview(null);
     const read = (type: string) => e.dataTransfer.getData(type);
+    const palette = onPaletteDrop ? read(PALETTE_MIME) : "";
+    if (palette) {
+      const cell = cellAt(e.clientX, e.clientY);
+      if (cell) onPaletteDrop?.(palette, cell, canvasPointAt(e.clientX, e.clientY));
+      return;
+    }
     const item = libraryItemOf(read) ?? myLibraryDropOf(read);
     if (!item) return;
     // Sized from the dropped item itself: a drag from another window had no ghost size.

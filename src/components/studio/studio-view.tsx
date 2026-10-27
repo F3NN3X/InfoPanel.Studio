@@ -7,8 +7,12 @@ import {
   CANVAS_ID,
   resolveProfile,
   type DashboardConfig,
+  type MadeFor,
+  type PageLayout,
+  type Placement,
   type ProfileView,
 } from "@/lib/layout";
+import { isFreePage } from "@/lib/free-pages";
 import { resolveBackground } from "@/lib/appearance";
 import { useSensorCatalog } from "@/lib/catalog";
 import { buildDataModel } from "@/lib/data-points";
@@ -32,7 +36,14 @@ import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
 import { useAddPanel } from "./use-add-panel";
 import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
-import { freeCanvasOf, madeForInfoPanel, screenKind } from "@/lib/screens/list";
+import { madeForInfoPanel, screenKind } from "@/lib/screens/list";
+import { MadeForControl } from "./made-for-control";
+import { ToGridDialog } from "./layout-control";
+import { useStoredFlag } from "./use-stored-flag";
+import { useAddFilter } from "./add-prefs";
+import { ADD_TOAST_MS } from "./use-add-panel";
+import type { CanvasPoint } from "./drop-ghost";
+import { firstFreeRect } from "./zone-geometry";
 import { withScreenPerformance } from "./screens-model";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
@@ -42,7 +53,7 @@ import { QuickBar } from "./quick-bar";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { useInfoPanelIo } from "./infopanel-io";
 import { ExportSheet } from "./export-sheet";
-import { onFileDoor, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
+import { onFileDoor, openConvertDialog, openExportSheet, openImportDoor, openNewInfoPanel, type ExportRequest } from "./file-doors";
 import { canvasPlaces } from "@/components/infopanel/edit/canvas-places";
 import type { NewChoice, NewProfile, NewScreen } from "@/components/templates/new-page";
 import type { WizardKind } from "@/components/templates/recent-templates";
@@ -89,6 +100,15 @@ import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 
 /** The Export sheet's request while it is closed (a stable object, so its rows keep their state). */
 const NO_REQUEST: ExportRequest = {};
+
+/** A grid page's Export check and On InfoPanel lines: the export model loads only for a screen made for InfoPanel. */
+const GridCheckPill = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridCheckPill })));
+const GridCheckPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridCheckPanel })));
+const GridOnInfoPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridOnInfoPanel })));
+/** A grid page's InfoPanel items in Add, loaded when the panel first lists them. */
+const GridPalette = lazy(() => import("@/components/infopanel/edit/grid-palette"));
+/** How many InfoPanel item kinds Add offers (`PALETTE.length` in editor/create.ts; kept here so the palette stays lazy). */
+export const INFOPANEL_ITEM_KINDS = 14;
 
 /** The canvas editor (A5): Edit on a Free page or a free area, loaded when one is first opened. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
@@ -342,8 +362,10 @@ function StudioViewBody({
     // still the open one: an import onto another screen opens its own zone in the same commit.
     if (editingCanvas && !canvasZone) setEditingCanvas((open) => (open === editingCanvas ? null : open));
   }, [editingCanvas, canvasZone]);
-  /** A Free page (one canvas filling the screen, as every InfoPanel profile is) is edited in the canvas editor. */
-  const freeZone = freeCanvasOf(profile, profile);
+  /** The stored page on the canvas. */
+  const storedPage = storedProfile.pages.find((p) => p.id === profile.pageId) ?? storedProfile.pages[0];
+  /** A Free page (its layout, one canvas filling the screen, as every InfoPanel profile's) is edited in the canvas editor. */
+  const freeZone = isFreePage(profile, storedPage) ? profile.placements[0] : null;
   /** What Edit's canvas editor shows: the Free page's canvas, else the free area opened from the grid. */
   const activeCanvas = freeZone?.canvas ? (freeZone as typeof freeZone & { canvas: NonNullable<typeof freeZone.canvas> }) : canvasZone?.canvas ? (canvasZone as typeof canvasZone & { canvas: NonNullable<typeof canvasZone.canvas> }) : undefined;
   /**
@@ -451,7 +473,125 @@ function StudioViewBody({
   const pageFont = fontStack(resolveFont(useGeneral(), profile));
   const addTarget = blankZoneId && selected ? { id: blankZoneId, cols: selected.colSpan, rows: selected.rowSpan } : undefined;
 
-  const inspectorAside = (
+  /** The screen is made for InfoPanel (SPEC §5.1): the Export check, the badges and the On InfoPanel lines show. */
+  const checkOn = madeForInfoPanel(storedProfile);
+  const setMadeFor = (madeFor: MadeFor) =>
+    setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === storedProfile.id ? { ...p, madeFor } : p)) }));
+
+  /** Grid ↔ Free (SPEC §6): one undo step, the selection cleared, a toast with Undo. Free → Grid asks first when it makes a free area. */
+  const [confirmToGrid, setConfirmToGrid] = useStoredFlag("studio.confirmToGrid", true);
+  const [toGridAsk, setToGridAsk] = useState<{ pageId: string; parts: number } | null>(null);
+  const commitLayout = (pageId: string, to: PageLayout) =>
+    void import("@/lib/page-layout").then(({ switchLayout }) => {
+      let message = "";
+      let refused = "";
+      setConfig((c) => {
+        const r = switchLayout(c, storedProfile.id, pageId, to, zoneName);
+        if ("refused" in r) {
+          refused = r.refused;
+          return c;
+        }
+        message = r.result.message;
+        return r.config;
+      });
+      if (refused) return toast(refused);
+      setEditingCanvas(null);
+      setCanvasSelection(undefined);
+      sel.select(null);
+      if (pageId !== currentPageId) onPageChange(pageId);
+      toast(message, { action: { label: "Undo", onClick: history.undo }, ms: ADD_TOAST_MS });
+    });
+  const switchPageLayout = (pageId: string, to: PageLayout) => {
+    if (to === "free" || !confirmToGrid) return commitLayout(pageId, to);
+    void import("@/lib/page-layout").then(({ switchLayout }) => {
+      const r = switchLayout(config, storedProfile.id, pageId, to, zoneName);
+      if ("refused" in r) return toast(r.refused);
+      if (r.result.kept > 0) setToGridAsk({ pageId, parts: r.result.kept });
+      else commitLayout(pageId, to);
+    });
+  };
+  /** Switching waits for a page's canvases to load (SPEC §11). */
+  const layoutDisabled = storedPage.placements.some((p) => p.module === CANVAS_ID && !p.canvas) ? "This page's content isn't loaded yet." : undefined;
+  /** A page added from a Free page is Free too (SPEC §9). */
+  const addPage = () => {
+    if (!freeZone) return edit.addNewPage();
+    void import("@/lib/page-layout").then(({ newFreePage }) => {
+      const page = newFreePage(storedProfile, storedPage, `Page ${storedProfile.pages.length + 1}`);
+      edit.updateStored((p) => ({ ...p, pages: [...p.pages, page] }));
+      onPageChange(page.id);
+    });
+  };
+
+  /** The grid page's Export check in the inspector: the header pill opens it; selecting anything or Esc closes it. */
+  const [gridCheckOpen, setGridCheckOpen] = useState(false);
+  const gridCheckShown = gridCheckOpen && checkOn && !freeZone;
+  useEffect(() => {
+    if (sel.primaryId) setGridCheckOpen(false);
+  }, [sel.primaryId]);
+  const toggleGridCheck = () => {
+    sel.select(null);
+    setGridCheckOpen((o) => !o);
+    studioLayout.showInspector();
+  };
+
+  /**
+   * An InfoPanel item or element on a grid page (SPEC §5.3): into the free area it was dropped on (or the selected
+   * one, for a click), else into a new free area on the cell it was dropped on (or the first free cell). The canvas
+   * editor opens on the area and adds it there.
+   */
+  const [pendingAdd, setPendingAdd] = useState<{ zoneId: string; data: string; at?: { x: number; y: number } } | null>(null);
+  useEffect(() => {
+    if (pendingAdd && editingCanvas !== pendingAdd.zoneId) setPendingAdd(null);
+  }, [editingCanvas]);
+  const addPaletteItem = (data: string, cell?: { col: number; row: number }, inCanvas?: CanvasPoint | null) => {
+    const areaId = inCanvas?.zoneId ?? (!cell && selected?.module === CANVAS_ID ? selected.id : undefined);
+    const area = areaId ? profile.placements.find((p) => p.id === areaId && p.module === CANVAS_ID && p.canvas) : undefined;
+    if (area?.canvas) {
+      const at = inCanvas ? { x: inCanvas.fx * Number(area.canvas.profile.Width), y: inCanvas.fy * Number(area.canvas.profile.Height) } : undefined;
+      setPendingAdd({ zoneId: area.id, data, at });
+      editCanvasZone(area.id);
+      return;
+    }
+    const covered = (c: { col: number; row: number }) =>
+      profile.placements.some((p) => c.col >= p.colStart && c.col < p.colStart + p.colSpan && c.row >= p.rowStart && c.row < p.rowStart + p.rowSpan);
+    const rect = cell ? (covered(cell) ? null : { col: cell.col, row: cell.row, cols: 1, rows: 1 }) : firstFreeRect(profile.cols, profile.rows, { cols: 1, rows: 1 }, profile.placements);
+    if (!rect) return toast(cell ? "No room there" : "No free cell on this page for a free area");
+    void import("@/lib/page-layout").then(({ freeArea }) => {
+      const zone = freeArea(profile, { colStart: rect.col, rowStart: rect.row, colSpan: rect.cols, rowSpan: rect.rows });
+      edit.updateProfile((v) => ({ ...v, placements: [...v.placements, zone] }));
+      setPendingAdd({ zoneId: zone.id, data });
+      editCanvasZone(zone.id);
+      toast("Made a free area for it. Done goes back to the grid.");
+    });
+  };
+  const [addFilter, setAddFilter] = useAddFilter();
+
+  /** A grid widget's On InfoPanel section, on a screen made for InfoPanel. */
+  const onInfoPanelOf = checkOn
+    ? (zone: Placement) =>
+        zone.module === CANVAS_ID || zone.module === BLANK_MODULE ? null : (
+          <Suspense fallback={null}>
+            <GridOnInfoPanel zone={zone} name={zoneName(zone)} onSettings={(settings) => edit.updatePlacement(zone.id, (p) => ({ ...p, settings }))} />
+          </Suspense>
+        )
+    : undefined;
+
+  const inspectorAside = gridCheckShown ? (
+    <aside aria-label="Export check" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
+      <Suspense fallback={null}>
+        <GridCheckPanel
+          profile={profile}
+          nameOf={zoneName}
+          onSelect={(id) => {
+            setGridCheckOpen(false);
+            focusZone(id);
+          }}
+          onConvert={() => openConvertDialog("screen")}
+          onClose={() => setGridCheckOpen(false)}
+        />
+      </Suspense>
+    </aside>
+  ) : (
     <StudioInspector
       config={config}
       profile={profile}
@@ -468,6 +608,9 @@ function StudioViewBody({
       }}
       onEditCanvas={editCanvasZone}
       onEditGauge={(zoneId) => openGauge({ kind: "widget", zoneId })}
+      onLayout={switchPageLayout}
+      layoutDisabled={layoutDisabled}
+      onInfoPanelOf={onInfoPanelOf}
     />
   );
 
@@ -491,6 +634,17 @@ function StudioViewBody({
         previewOnHover: addPreviewOnHover,
         appearance,
         pageStyle: { ...themeScope, fontFamily: pageFont },
+        free: {
+          filter: addFilter,
+          onFilter: setAddFilter,
+          itemCount: INFOPANEL_ITEM_KINDS,
+          grid: true,
+          items: (query) => (
+            <Suspense fallback={null}>
+              <GridPalette query={query} onAdd={(data) => addPaletteItem(data)} />
+            </Suspense>
+          ),
+        },
       }}
       layers={{
         placements: profile.placements,
@@ -639,6 +793,7 @@ function StudioViewBody({
       onDragCancel={history.cancel}
       dropSizeOf={(d) => (d.kind === "mylib" ? librarySizeOf(d.item, profile) : edit.dropSizeOf(d))}
       onDropItem={(d, rect, cell, inCanvas) => (d.kind === "mylib" ? void dropLibraryItem(libraryBridge, d, rect, cell, inCanvas) : edit.dropItem(d, rect))}
+      onPaletteDrop={addPaletteItem}
       addItemOf={addPanel.itemOf}
       onAddDrop={addPanel.drop}
       targetZoneId={blankZoneId}
@@ -696,7 +851,7 @@ function StudioViewBody({
         pages={storedProfile.pages}
         current={profile.pageId ?? storedProfile.pages[0].id}
         onSelect={onPageChange}
-        onAdd={edit.addNewPage}
+        onAdd={addPage}
         onRename={edit.renamePageTo}
         onMove={edit.movePageTo}
         onDuplicate={edit.duplicateCurrentPage}
@@ -715,6 +870,18 @@ function StudioViewBody({
         kioskPage={control?.profiles[storedProfile.id]?.page}
         rotation={rotating ? `every ${cycleLabel(storedProfile.rotate?.seconds ?? 0)}` : "paused"}
         onOpenLive={() => ui.setLiveOpen(true)}
+        onLayout={switchPageLayout}
+        extra={
+          <>
+            {checkOn && !freeZone && (
+              <Suspense fallback={null}>
+                <GridCheckPill profile={profile} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
+              </Suspense>
+            )}
+            {!checkOn && <span className="whitespace-nowrap text-[11.5px] text-ui-5">Studio panels only · no export check</span>}
+            <MadeForControl value={storedProfile.madeFor} onChange={setMadeFor} />
+          </>
+        }
       />
   );
   const mainEl = showSources ? (
@@ -752,7 +919,9 @@ function StudioViewBody({
           leftWidth: ui.leftWidth,
           pageTabs: pageTabsEl,
         }}
-        checkOn={madeForInfoPanel(storedProfile)}
+        checkOn={checkOn}
+        onLayout={freeZone ? () => switchPageLayout(currentPageId, "grid") : undefined}
+        initialAdd={pendingAdd?.zoneId === activeCanvas.id ? pendingAdd : undefined}
         onExport={() => io.openExport(activeCanvas)}
         initialSelection={canvasSelection}
         unbound={unboundNote?.zoneId === activeCanvas.id ? unboundNote.labels : undefined}
@@ -1053,6 +1222,17 @@ function StudioViewBody({
         onClose={() => ui.setIconPage(null)}
       />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
+      <ToGridDialog
+        key={toGridAsk?.pageId ?? "none"}
+        parts={toGridAsk?.parts ?? null}
+        onCancel={() => setToGridAsk(null)}
+        onConfirm={(askAgain) => {
+          const ask = toGridAsk;
+          setToGridAsk(null);
+          if (!askAgain) setConfirmToGrid(false);
+          if (ask) commitLayout(ask.pageId, "grid");
+        }}
+      />
       {io.dialogs}
       {importDoor}
       {setup && (
