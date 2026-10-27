@@ -55,6 +55,29 @@ export interface ItemImport {
   original?: OriginalBinding;
   /** A Studio widget on a Free page (one-editor SPEC §3.3): only on an Image, which is its box. */
   widget?: WidgetItem;
+  /** A free area a Grid → Free switch turned into this Group (`lib/page-layout.ts`): only on a Group. */
+  area?: AreaRecord;
+}
+
+/**
+ * What a free area (a canvas zone on a grid page) was, kept on the Group a switch to Free made of it, so a switch
+ * back to Grid puts it back as it was. Kept loose here, as `WidgetItem` is.
+ */
+export interface AreaRecord {
+  /** The zone without its canvas: its id, cells, visibility and settings. */
+  zone: Record<string, unknown>;
+  /** Its canvas without the items; with them only when the switch scaled them, to put back while they are untouched. */
+  canvas: Record<string, unknown>;
+  /** The size the Group stands for on the page's canvas (px); the Group's X / Y is its corner. */
+  w: number;
+  h: number;
+  /** The area's scale onto the page's canvas (1: the items kept their size). */
+  k: number;
+  /** Where the area's canvas corner sits from the Group's corner, in the page canvas's px. */
+  x: number;
+  y: number;
+  /** A fingerprint of the children as the switch made them (relative to the Group), when it scaled them. */
+  made?: string;
 }
 
 /**
@@ -65,6 +88,8 @@ export interface ItemImport {
 export interface WidgetItem {
   /** Registry module id, or `panel` (PANEL_ID) for a saved Panel. */
   module: string;
+  /** The grid zone's id it was on a Grid page, kept so a switch back gives the zone (alerts and links name it) its id. */
+  id?: string;
   settings?: Record<string, string | number | boolean>;
   design?: { accent?: string; background?: "none" | "panel" | "bordered"; header?: boolean };
   follow?: Record<string, boolean>;
@@ -164,9 +189,9 @@ function encodeFields(schema: Schema, obj: Record<string, unknown>): Record<stri
   return out;
 }
 
-/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots, widget), as `$`. */
+/** The lab's fields on an item (native, vector, vectorBaked, element, elementBaked, slots, widget, area), as `$`. */
 function labImport(item: DisplayItem): ItemImport {
-  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string; slots?: Record<string, SlotRef>; widget?: WidgetItem };
+  const lab = item as { native?: boolean; vector?: unknown; vectorBaked?: string; element?: ElementSpec; elementBaked?: string; driveId?: string; slots?: Record<string, SlotRef>; widget?: WidgetItem; area?: AreaRecord };
   return {
     ...(lab.native ? { mode: "native" as const } : {}),
     ...(lab.vector !== undefined ? { vector: normalizeGauge(lab.vector) } : {}),
@@ -176,6 +201,7 @@ function labImport(item: DisplayItem): ItemImport {
     ...(typeof lab.driveId === "string" ? { driveId: lab.driveId } : {}),
     ...(lab.slots && Object.keys(lab.slots).length ? { slots: lab.slots } : {}),
     ...(lab.widget ? { widget: lab.widget } : {}),
+    ...(lab.area ? { area: lab.area } : {}),
   };
 }
 
@@ -367,6 +393,7 @@ export function decodeWidget(raw: unknown): WidgetItem | null {
   const panelOk = panel !== null && Array.isArray(panel.widgets) && JSON.stringify(panel).length <= MAX_PANEL_JSON;
   return {
     module: o.module,
+    ...(typeof o.id === "string" && /^[\w:.-]{1,200}$/.test(o.id) ? { id: o.id } : {}),
     ...(Object.keys(settings).length ? { settings } : {}),
     ...(Object.keys(design).length ? { design } : {}),
     ...(Object.keys(follow).length ? { follow } : {}),
@@ -388,6 +415,9 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
   // A widget only on an Image, its box.
   const widget = o.widget !== undefined && kind === "Image" ? decodeWidget(o.widget) : null;
   if (o.widget !== undefined && !widget) report("$.widget", o.widget);
+  // A free area's record only on a Group, the one a switch to Free made.
+  const area = o.area !== undefined && kind === "Group" ? decodeArea(o.area) : null;
+  if (o.area !== undefined && !area) report("$.area", o.area);
   const via = typeof o.via === "string" && ["exact", "name", "suggested", "chosen", "unbound", "unresolved"].includes(o.via) ? (o.via as Status) : undefined;
   return {
     ...(o.mode === "native" ? { mode: "native" as const } : {}),
@@ -401,7 +431,19 @@ function decodeImport(raw: unknown, kind: ItemKind, report: (field: string, valu
     ...(typeof o.driveId === "string" && kind === "Group" && o.driveId.length <= 200 ? { driveId: o.driveId } : {}),
     ...(slots && Object.keys(slots).length ? { slots } : {}),
     ...(widget ? { widget } : {}),
+    ...(area ? { area } : {}),
   };
+}
+
+/** A stored free area record: null unless it holds the zone, its canvas, a size and a scale. */
+function decodeArea(raw: unknown): AreaRecord | null {
+  const o = obj(raw);
+  const zone = obj(o?.zone);
+  const canvas = obj(o?.canvas);
+  const num = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0;
+  const at = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  if (!o || !zone || !canvas || canvas.format !== STORED_FORMAT || !num(o.w) || !num(o.h) || !num(o.k)) return null;
+  return { zone, canvas, w: o.w as number, h: o.h as number, k: o.k as number, x: at(o.x), y: at(o.y), ...(typeof o.made === "string" ? { made: o.made } : {}) };
 }
 
 const MAX_DEPTH = 32;
@@ -429,6 +471,7 @@ function decodeItem(raw: unknown, path: string, issues: Issue[], depth: number, 
   if ($.driveId) item.driveId = $.driveId;
   if ($.slots) item.slots = $.slots;
   if ($.widget) item.widget = $.widget;
+  if ($.area) item.area = $.area;
   const rec = importRecord($);
   return { ...(item as unknown as DisplayItem), ...(rec ? { $import: rec } : {}) };
 }

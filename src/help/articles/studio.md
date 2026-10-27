@@ -61,9 +61,24 @@ The setting follows you: the app window and a studio in a browser read the same 
 
 ## Pages
 
-A screen can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Duplicate, Page settings and Delete. The last page can't be deleted.
+A screen can have several pages. The strip above the canvas shows them: press **+** to add a page, double-click a tab to rename it, drag a tab to reorder. A tab's menu has Rename, Icon…, Duplicate, Layout, Page settings and Delete. The last page can't be deleted.
 
 With two or more pages, the kiosk can rotate them. Set it up in **Screens**, under **Rotation**: turn on **Rotate pages** and type **Every** (3 to 3600 seconds; the default is 15). In **Pages · order & rotation**, switch each page in or out of the rotation and drag them into order. A touch or remote switch pauses rotation for 30 seconds. The right end of the page strip shows which page the kiosks show and how often they switch. Pause or resume rotation from **Live**.
+
+## Grid or Free
+
+Each page is **Grid** or **Free**, and its tab shows which with a small icon. On a Grid page, widgets snap to the cells. On a Free page they sit at any pixel, among InfoPanel items, as on an InfoPanel profile. A screen can mix both kinds, and the kiosk rotates through them as usual. A page added from a Free page is Free too.
+
+Switch a page with **Layout** in its tab menu, or with **Layout** at the top of the page settings (select nothing to see them):
+
+- **Grid → Free** keeps every widget where it is, in pixels. A canvas zone on the page becomes a group of its items. The page looks the same on the kiosk.
+- **Free → Grid** snaps each widget to the nearest cells. InfoPanel items, widgets that overlap one placed before them, and locked or rotated widgets stay together in one free area over the cells they cover, where you can still edit them freely. When that happens, a dialog asks first; **Don't ask again** turns it off.
+
+Nothing is lost either way. Settings, sensors and each widget's On InfoPanel choice go with it, and switching back gives the page you started from. Each switch is one undo step, and its message has **Undo**. A page whose content hasn't loaded yet can't switch.
+
+## Made for
+
+The **Made for** button at the right of the page strip says who the screen is for. **Studio panels** is for screens shown by Studio. **InfoPanel too** also checks what would export to the InfoPanel app: the **Export check** appears next to it, parts get their export marks, and the inspector shows each one's **On InfoPanel** line. On a Grid page the check lists every zone and says the page is converted when you export; **Review conversion…** and **Export .infopanel** open the conversion with each widget's choice already set. A change is one undo step. Imported InfoPanel profiles start as **InfoPanel too**, other screens as **Studio panels**.
 
 ## Inspector
 

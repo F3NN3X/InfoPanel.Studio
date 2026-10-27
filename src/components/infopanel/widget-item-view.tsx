@@ -6,7 +6,7 @@
  */
 import { memo, useMemo, type CSSProperties } from "react";
 import type { ModuleSettings, SensorMap } from "@/modules/types";
-import type { ProfileView } from "@/lib/layout";
+import { BLANK_MODULE, type ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import type { WidgetItem } from "@/lib/infopanel/import/stored";
 import { knownWidget, placementContent, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
@@ -45,6 +45,8 @@ export function sameValues(a: SensorMap, b: SensorMap, prefixes: readonly string
 
 function Body({ widget, name, sensors, appearance, tag = false }: WidgetItemViewProps) {
   const zone = useMemo(() => widgetPlacement({ ...widget, settings: widget.settings as ModuleSettings | undefined }), [widget]);
+  // A blank zone a switch to Free kept (lib/page-layout.ts): open space, as on the grid.
+  if (widget.module === BLANK_MODULE) return null;
   if (!knownWidget(widget.module)) {
     return (
       <div className="grid h-full w-full place-items-center rounded-lg border border-dashed border-[#55555e] bg-[#2a2a30]/70 p-2 text-center text-[11px] text-[#a1a1aa]">

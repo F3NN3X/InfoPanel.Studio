@@ -23,7 +23,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema.ts";
 import { TEMPLATES } from "@/lib/infopanel/templates/catalog.ts";
 import { instantiate } from "@/lib/infopanel/templates/instantiate.ts";
 import { MOCK_SENSORS } from "@/lib/infopanel/templates/mock.ts";
-import { CANVAS_ID, type Placement } from "@/lib/layout";
+import { CANVAS_ID, type MonitorProfile, type Placement } from "@/lib/layout";
 import { palette, profile } from "./elements/fixture.ts";
 
 const withSpec = (item: DisplayItem, patch: Partial<ElementSpec>) => applyElement({ ...item, element: { ...elementOf(item)!, ...patch } } as unknown as DisplayItem);
@@ -135,8 +135,16 @@ describe("a page's check", () => {
     expect(freeCanvasOf(screen, free)?.id).toBe("z");
     expect(freeCanvasOf(screen, { placements: [zone("z", CANVAS_ID)] })).toBeNull();
     expect(freeCanvasOf(screen, { placements: [...free.placements, zone("w", "Weather")] })).toBeNull();
-    expect(madeForInfoPanel({ ...screen, pages: [{ id: "a", name: "A", ...free }] })).toBe(true);
-    expect(madeForInfoPanel({ ...screen, pages: [{ id: "a", name: "A", ...free }, { id: "b", name: "B", placements: [] }] })).toBe(false);
+  });
+
+  it("is on for a screen made for InfoPanel only, whatever its pages are (decision D5)", () => {
+    const allFree: MonitorProfile = { id: "s", name: "S", width: 800, height: 480, fit: "fill", ...screen, pages: [{ id: "a", name: "A", ...free }] };
+    const mixed: MonitorProfile = { ...allFree, pages: [...allFree.pages, { id: "b", name: "B", placements: [] }] };
+    expect(madeForInfoPanel({ ...allFree, madeFor: "infopanel" })).toBe(true);
+    expect(madeForInfoPanel({ ...mixed, madeFor: "infopanel" })).toBe(true);
+    // An all-Free screen made for Studio panels, or one that never said (unset = Studio), has no check.
+    expect(madeForInfoPanel({ ...allFree, madeFor: "studio" })).toBe(false);
+    expect(madeForInfoPanel(allFree)).toBe(false);
   });
 });
 

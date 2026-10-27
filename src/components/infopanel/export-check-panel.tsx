@@ -2,7 +2,7 @@
  * The Export check's faces (one-editor SPEC §7.2, §8, §5.1): the status icons and canvas badges, the header pill,
  * the live panel in the inspector, and the grouped list the export dialog shows too. All read one `exportCheck`.
  */
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { Ban, Check, Download, Image, Triangle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_LABEL, STATUS_ORDER, STATUS_SHORT, type CheckRow, type CheckStatus, type ExportCheck } from "@/lib/infopanel/export-check";
@@ -108,7 +108,7 @@ export function CheckGroups({ rows, onSelect, skipOk = false }: { rows: readonly
 }
 
 /** The live Export check in the inspector: a stacked bar, the groups (a row selects its part), and Export. */
-export function ExportCheckPanel({ check, onSelect, onExport }: { check: ExportCheck; onSelect: (path: string) => void; onExport: () => void }) {
+export function ExportCheckPanel({ check, onSelect, onExport, notice }: { check: ExportCheck; onSelect: (path: string) => void; onExport: () => void; notice?: ReactNode }) {
   const total = check.rows.length;
   return (
     <div className="flex min-h-0 flex-1 flex-col font-ui" data-help-article="infopanel-editor">
@@ -118,6 +118,7 @@ export function ExportCheckPanel({ check, onSelect, onExport }: { check: ExportC
           <span className="text-[11px] text-ui-success">Live</span>
         </div>
         <p className="text-[11.5px] leading-snug text-ui-4">What happens to each part when you export to InfoPanel. Updates as you edit.</p>
+        {notice}
         {total > 0 && (
           <div className="flex h-1.5 gap-0.5" aria-hidden>
             {STATUS_ORDER.slice()

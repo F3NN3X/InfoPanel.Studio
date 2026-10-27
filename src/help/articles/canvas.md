@@ -8,7 +8,9 @@ verified: 1.3.0-beta.35
 
 A free-form editor over the imported profile. Every edit stays valid for export back to InfoPanel.
 
-The editor is **Edit** on the rail, the same view that edits a grid screen; see [The InfoPanel editor](infopanel-editor) for adding items, choosing sensors and the profile settings. An InfoPanel profile opens in it from its card in Screens. To edit a canvas zone on a grid screen, select it and press **Edit items** on the note about the InfoPanel profile in the inspector, or double-click it. Press **Done** to go back to the grid.
+The editor is **Edit** on the rail, the same view that edits a grid screen, and it opens on every Free page (see [Grid or Free](studio#grid-or-free)); see [The InfoPanel editor](infopanel-editor) for adding items, choosing sensors and the profile settings. An InfoPanel profile opens in it from its card in Screens. To edit a canvas zone on a grid screen, select it and press **Edit items** on the note about the InfoPanel profile in the inspector, or double-click it. Press **Done** to go back to the grid.
+
+Dragging an InfoPanel item or element from **Add** onto an empty cell of a grid page makes a canvas zone on that cell, the cell's size, and opens it here with the item in it. Dropped on a canvas zone, it goes into that zone. A click on one adds it to the selected canvas zone, or to a new one on the first free cell. In Add, the group says **Makes a free area here** on a grid page.
 
 ## Selecting and moving
 

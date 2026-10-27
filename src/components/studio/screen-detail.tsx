@@ -149,7 +149,19 @@ export function ScreenDetail({
       </Group>
 
       <Group id="size" label="SIZE & FIT">
-        <SizeFitSection profile={profile} updateProfile={updateProfile} windowSize={windowSize} />
+        <SizeFitSection
+          profile={profile}
+          updateProfile={updateProfile}
+          windowSize={windowSize}
+          onScaleFree={
+            stored.pages.some((pg) => pg.layout === "free")
+              ? (from) =>
+                  void import("@/lib/page-layout").then(({ scaleFreePages }) =>
+                    setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === stored.id ? scaleFreePages(p, from) : p)) })),
+                  )
+              : undefined
+          }
+        />
       </Group>
 
       <Group id="grid" label="GRID">

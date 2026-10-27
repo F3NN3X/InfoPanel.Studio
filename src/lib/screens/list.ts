@@ -32,9 +32,8 @@ export function freeCanvasOf(profile: Pick<MonitorProfile, "cols" | "rows">, pag
   return only.colStart === 1 && only.rowStart === 1 && only.colSpan === profile.cols && only.rowSpan === profile.rows ? only : null;
 }
 
-/** Until a screen says who it is made for (phase 3), one whose pages are all Free is made for InfoPanel. */
-export const madeForInfoPanel = (profile: Pick<MonitorProfile, "cols" | "rows" | "pages">): boolean =>
-  profile.pages.length > 0 && profile.pages.every((page) => freeCanvasOf(profile, page) !== null);
+/** A screen made for InfoPanel (SPEC §5.1, decision D5): the export marks, the Export check and the On InfoPanel lines show. */
+export const madeForInfoPanel = (profile: Pick<MonitorProfile, "madeFor">): boolean => profile.madeFor === "infopanel";
 
 /** One row of the list. `order` is where it sits in the config or the Library (the manual sort). */
 export interface ListEntry {

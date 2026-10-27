@@ -39,9 +39,10 @@ import { LeftPanelFrame, type LeftTab } from "@/components/studio/design-left-pa
 import { StudioShell } from "@/components/studio/studio-shell";
 import type { useStudioLayout } from "@/components/studio/use-studio-layout";
 import { withCanvas } from "@/components/studio/import-actions";
+import { withFreeCanvas } from "@/lib/free-pages";
 import { ExportCheckContext, ExportCheckPanel, ExportCheckPill, type ExportCheckState } from "../export-check-panel";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
-import { AddPalette, ITEM_COUNT, PaletteGroups, type AddEntry } from "./add-palette";
+import { AddPalette, ITEM_COUNT, PaletteGroups, paletteEntryOf, type AddEntry } from "./add-palette";
 import { AddPanel } from "@/components/studio/add-panel";
 import { addCatalog, sameDrop, type AddItem } from "@/components/studio/add-catalog";
 import { freeSize } from "@/components/studio/add-place";
@@ -105,6 +106,13 @@ export interface CanvasEditorProps {
   onDismissUnbound?: () => void;
   /** Studio widgets on the page (one-editor SPEC §3.3): on a Free page, Add offers them beside InfoPanel items. */
   widgetHost?: WidgetHost;
+  /** A Free page's Layout control (SPEC §6.1): switch the page to Grid. */
+  onLayout?: () => void;
+  /**
+   * An InfoPanel item or element to add as the editor opens (a palette drag id, `PALETTE_DRAG`): one dropped or
+   * clicked on a grid page, which made this free area for it (SPEC §5.3). `at` is where, in the canvas's px.
+   */
+  initialAdd?: { data: string; at?: { x: number; y: number } };
 }
 
 const isTyping = (el: Element | null) =>
@@ -119,9 +127,11 @@ interface PickFor {
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, initialAdd }: CanvasEditorProps) {
   const toast = useToast();
-  const editor = useCanvasEditor(zone, setConfig, withCanvas, initialSelection, toast);
+  /** A Free page (not a free area opened from a grid page) takes Studio widgets too, and its size is the screen's. */
+  const freePage = !onDone && widgetHost !== undefined;
+  const editor = useCanvasEditor(zone, setConfig, freePage ? withFreeCanvas : withCanvas, initialSelection, toast);
   const [showModes, setShowModes] = useState(false);
   const [compareOn, setCompareOn] = useState(false);
   // The screenshot the canvas kept at import is Compare's start; "choose another" replaces it.
@@ -167,8 +177,6 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     if (entry.file) return setFileFor({ entry, place });
     askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile, editor.palette), place));
   };
-  /** A Free page (not a free area opened from a grid page) takes Studio widgets too. */
-  const freePage = !onDone && widgetHost !== undefined;
   const catalog = useMemo(() => addCatalog(widgetHost?.config.panelPresets), [widgetHost?.config.panelPresets]);
   const [recent, pushRecent] = useRecentWidgets();
   const [addFilter, setAddFilter] = useAddFilter();
@@ -326,6 +334,16 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
 
+  // The item a grid page's drop or click made this free area for, added once it is open.
+  const added = useRef(false);
+  useEffect(() => {
+    if (added.current || !initialAdd) return;
+    added.current = true;
+    const entry = paletteEntryOf(initialAdd.data);
+    if (entry) onAdd(entry, initialAdd.at ? { at: initialAdd.at } : undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // The screenshot's object URL goes with the editor.
   const shot = useRef(compare);
   shot.current = compare;
@@ -356,7 +374,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
         onEditGauge={onEditGauge}
       />
     ) : (
-      <ProfileSettings editor={editor} />
+      <ProfileSettings editor={editor} onLayout={freePage ? onLayout : undefined} />
     );
   const inspector = (
     <aside

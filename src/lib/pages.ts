@@ -7,6 +7,7 @@ import {
   type ProfilePage,
   type ProfileView,
 } from "./layout";
+import { fitFreePages } from "./free-pages";
 
 /**
  * Profile pages — a profile holds one or more pages, each with its own
@@ -37,7 +38,10 @@ export function profileWithPage(profile: MonitorProfile, pageId?: string): Profi
   return { ...rest, placements: page.placements, pageId: page.id, ...(page.widgetTheme ? { pageTheme: page.widgetTheme } : {}) };
 }
 
-/** The view's profile fields back on the profile, its zones and page theme into its page. */
+/**
+ * The view's profile fields back on the profile, its zones and page theme into its page. A change to the screen's
+ * size or grid carries over to its Free pages (`fitFreePages`), so they stay Free.
+ */
 export function applyView(profile: MonitorProfile, view: ProfileView): MonitorProfile {
   const { placements, pageId, pageTheme, ...rest } = view;
   const target = pageOf(profile, pageId).id;
@@ -45,10 +49,10 @@ export function applyView(profile: MonitorProfile, view: ProfileView): MonitorPr
     const { widgetTheme: _old, ...page } = p;
     return { ...page, placements, ...(pageTheme ? { widgetTheme: pageTheme } : {}) };
   };
-  return {
+  return fitFreePages(profile, {
     ...rest,
     pages: profile.pages.map((p) => (p.id === target ? onto(p) : p)),
-  };
+  });
 }
 
 /**

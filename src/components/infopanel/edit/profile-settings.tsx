@@ -13,6 +13,7 @@ import { fromCss, toCss } from "@/components/studio/inspector/infopanel-defs";
 import type { CanvasEditor } from "./use-canvas-editor";
 import { dotnetFloat } from "@/lib/infopanel/export/write";
 import { argbOf, SLOT_LABEL, SLOTS, type Slot } from "@/lib/infopanel/elements/palette";
+import { LayoutControl } from "@/components/studio/layout-control";
 
 type Field = keyof typeof PROFILE;
 
@@ -143,7 +144,13 @@ function PaletteRow({ slot, value, onSet }: { slot: Slot; value: string; onSet: 
   );
 }
 
-export function ProfileSettings({ editor }: { editor: CanvasEditor }) {
+interface ProfileSettingsProps {
+  editor: CanvasEditor;
+  /** On a Free page (one-editor SPEC §6.1): Layout, to switch the page to Grid. Its size is the screen's then. */
+  onLayout?: () => void;
+}
+
+export function ProfileSettings({ editor, onLayout }: ProfileSettingsProps) {
   const { profile } = editor.open;
   const key = (f: Field) => `canvas-profile:${editor.zone.id}:${f}`;
   const commit = (f: Field, raw: unknown): string | null => {
@@ -174,11 +181,17 @@ export function ProfileSettings({ editor }: { editor: CanvasEditor }) {
           InfoPanel profile · {profile.Width} × {profile.Height}
         </div>
       </div>
+      {onLayout && (
+        <section aria-label="Layout" className="border-b border-ui-subtle px-4 py-3">
+          <div className="mb-2 text-[12px] font-semibold text-ui-1">Layout</div>
+          <LayoutControl layout="free" onChange={onLayout} />
+        </section>
+      )}
       {SECTIONS.map((s) => (
         <section key={s.title} aria-label={s.title} className="border-b border-ui-subtle px-4 py-3">
           <div className="mb-2 text-[12px] font-semibold text-ui-1">{s.title}</div>
           <div className={cn("gap-2", s.title === "Profile" ? "grid grid-cols-2 [&>*:first-child]:col-span-2" : "flex flex-col")}>{s.fields.map(row)}</div>
-          {s.note && <p className="mt-2 text-[11.5px] leading-snug text-ui-4">{s.note}</p>}
+          {s.note && <p className="mt-2 text-[11.5px] leading-snug text-ui-4">{s.title === "Profile" && onLayout ? "Resizing resizes the screen too, and keeps every item where it is." : s.note}</p>}
         </section>
       ))}
       <section aria-label="Palette" className="border-b border-ui-subtle px-4 py-3">

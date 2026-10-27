@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { choiceFor, IP_EXPORT_KEY, notices, readChoices, rowsOf, writeChoices } from "../../../../src/lib/infopanel/export/native-choices.ts";
+import { choiceFor, IP_EXPORT_KEY, notices, ON_INFOPANEL_KEY, readChoices, rowsOf, startChoices, writeChoices } from "../../../../src/lib/infopanel/export/native-choices.ts";
 import { CONFIG_VERSION, mergeConfig, type DashboardConfig, type Placement } from "../../../../src/lib/layout.ts";
 
 const title = (id: string) => id;
@@ -17,6 +17,13 @@ describe("choices storage", () => {
     expect(readChoices({ [IP_EXPORT_KEY]: "{not json" })).toEqual({});
     expect(readChoices({ [IP_EXPORT_KEY]: '["leave"]' })).toEqual({});
     expect(readChoices({ [IP_EXPORT_KEY]: '{"zone":"live","w":"snapshot"}' })).toEqual({ w: "snapshot" });
+  });
+
+  it("starts the Convert dialog from a grid widget's On InfoPanel rule (one-editor SPEC §7.4)", () => {
+    const remembered = writeChoices(undefined, { zone: "snapshot", w1: "leave" }, ["zone", "w1"]);
+    expect(startChoices({ ...remembered, [ON_INFOPANEL_KEY]: "recreate" })).toEqual({ zone: "recreate", w1: "leave" });
+    expect(startChoices(remembered)).toEqual({ zone: "snapshot", w1: "leave" });
+    expect(startChoices({ [ON_INFOPANEL_KEY]: "live" })).toEqual({});
   });
 
   // Saved data: the choices live in the config the user saves and loads, across versions.

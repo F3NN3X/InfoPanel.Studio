@@ -1,4 +1,5 @@
-import type { DashboardConfig, ProfileView } from "@/lib/layout";
+import type { ReactNode } from "react";
+import type { DashboardConfig, PageLayout, Placement, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { PageInspector } from "./page-inspector";
@@ -30,6 +31,11 @@ interface StudioInspectorProps {
   onEditCanvas?: (zoneId: string) => void;
   /** Open a Custom gauge zone's spec in Gauges. */
   onEditGauge?: (zoneId: string) => void;
+  /** The Page inspector's Layout (one-editor SPEC §6.1), and why it is off. */
+  onLayout?: (pageId: string, layout: PageLayout) => void;
+  layoutDisabled?: string;
+  /** A zone's On InfoPanel section, on a screen made for InfoPanel (SPEC §5.5). */
+  onInfoPanelOf?: (zone: Placement) => ReactNode;
 }
 
 /**
@@ -49,6 +55,9 @@ export function StudioInspector({
   onOpenPoint,
   onEditCanvas,
   onEditGauge,
+  onLayout,
+  layoutDisabled,
+  onInfoPanelOf,
 }: StudioInspectorProps) {
   const { selected, selectedWidgetId, selection } = sel;
   const { mode, sheet, setFloatOpen } = ui.studioLayout;
@@ -123,6 +132,7 @@ export function StudioInspector({
         onOpenExplorer={openExplorer}
         onEditCanvas={onEditCanvas && (() => onEditCanvas(selected.id))}
         onEditGauge={onEditGauge && (() => onEditGauge(selected.id))}
+        onInfoPanel={onInfoPanelOf?.(selected)}
       />
     ) : (
       <PageInspector
@@ -135,6 +145,8 @@ export function StudioInspector({
         onDelete={ui.setDeletingPage}
         onShowOnKiosks={() => onShowOnKiosks(page.id)}
         onHelp={onHelp}
+        onLayout={onLayout}
+        layoutDisabled={layoutDisabled}
       />
     );
 

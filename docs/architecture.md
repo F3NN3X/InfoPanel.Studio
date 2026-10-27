@@ -529,8 +529,8 @@ Live sensor source is disabled. The rest of spec §10 is listed in `docs/redesig
 
 ### Editing a canvas zone: Edit
 
-There is one editor view, Edit (rail item `design`). On a grid screen it shows the grid; on a screen whose page is
-one free canvas zone (`freeCanvasOf` in `lib/screens/list.ts`) it hosts the canvas editor
+There is one editor view, Edit (rail item `design`). On a grid page it shows the grid; on a Free page
+(`isFreePage` in `lib/free-pages.ts`: the page's `layout` and its one canvas zone filling the grid) it hosts the canvas editor
 (`src/components/infopanel/edit/canvas-editor.tsx`, lazy-loaded) in the same studio shell: the rail, the left panel
 frame (`LeftPanelFrame`, Layers and Add tabs), the page tabs and the inspector column. Double-clicking a canvas zone
 on a grid, or the canvas zone inspector's "Edit items", opens the editor on that zone; there Done or Esc (with
@@ -540,11 +540,26 @@ so a Library drag can land in it. InfoPanel profiles are listed in Screens (All,
 `lib/screens/list.ts`); the old `infopanel` view is a route alias in `use-studio-ui.ts` that opens Screens on the
 InfoPanel filter, or Edit on a named profile.
 
+Grid ↔ Free (`lib/page-layout.ts`, lazy-loaded): `toFree` puts each zone on one canvas the screen's size where the
+kiosk draws it (`gridArea` / `cellBox` and the canvas zone's fit), a widget, panel or blank zone as a widget item
+that keeps its zone id and its `$onInfoPanel` rule, a canvas zone as a Group of its items whose `$.area` record keeps
+the zone and its canvas settings. `toGrid` snaps widget items and those Groups to the nearest cells; what can't be a
+zone (InfoPanel items, an overlap, a locked or rotated widget) goes into one canvas zone over the cells it covers,
+marked `$fromFree` so the next `toFree` unwraps it in place, and the page keeps its canvas's settings as
+`ProfilePage.freeCanvas`. The studio commits a switch as one history step (`switchLayout`); Free → Grid asks first
+when it makes a free area (`studio.confirmToGrid`). `fitFreePages`, run by `applyView`, keeps Free pages spanning
+the grid and sized to the screen after a resize (items kept in place; `scaleFreePages` is the Scale contents
+action), and `withFreeCanvas` makes a canvas resize in the editor resize the screen. An InfoPanel item dropped on a
+grid cell makes a free area there (`freeArea`) and opens the editor on it with the item to add (`initialAdd`).
+
 The Export check (`lib/infopanel/export-check.ts`) classifies each item and, on a screen with widgets, each widget,
 as exports as is, approximated, becomes a picture or left out, and names the studio-only looks it loses. The editor
-shows it on a screen made for InfoPanel (`madeForInfoPanel`): the toolbar pill, the check panel in the inspector
+shows it on a screen made for InfoPanel (`madeForInfoPanel`, which reads `MonitorProfile.madeFor`; the Made for
+control in the page strip sets it): the toolbar pill, the check panel in the inspector
 column (`export-check-panel.tsx`), marks in Layers, on the canvas and on inspector fields. The Export window reads
-the same check, so the two can't disagree.
+the same check, so the two can't disagree. On a grid page the pill, the panel and each widget's On InfoPanel
+section come from `components/infopanel/grid-export.tsx`, loaded only on a screen made for InfoPanel; the rule is
+stored as the zone's `settings.$onInfoPanel`, and the Convert dialog starts from it (`startChoices`).
 
 - **Document model**: the page edits one canvas zone's stored form (`Placement.canvas`), the single source of
   truth for that document; the zone is on the screen and page Design shows, so `withCanvas` writes it back. A
@@ -725,12 +740,13 @@ least one widget is visible.
   and `sampleVersion` (set on the profiles earlier versions shipped; kept, no
   longer read). `madeFor?` (`"studio"` or `"infopanel"`, v14) records what the
   profile was made for: the v14 step sets `infopanel` on a profile whose every
-  page is free, and an imported .infopanel profile gets it. The studio still
-  derives "made for InfoPanel" from the pages (`madeForInfoPanel`).
+  page is free, and an imported .infopanel profile gets it. Every gate reads it
+  (`madeForInfoPanel`): unset or `studio` hides the Export check and its marks.
 - `ProfilePage.layout?` (`PageLayout`, v14): `"free"` marks a free page, one
   canvas zone filling the page; `"grid"` or none is a grid page. The v14 step (`migrateProfileV14`,
   `settings-migrate.ts`) sets it on every page that is one full-size canvas
-  zone, and an invalid value is dropped on load.
+  zone, and an invalid value is dropped on load. `freeCanvas?` keeps a page's canvas
+  settings (profile, files, fonts, palette) while it is a grid page, for the next switch to Free.
 - A free page's canvas holds Studio widgets as items (`$.widget` on an `Image`
   item: `module`, `settings`, `design`, `follow`, `panel`, `onInfoPanel`,
   `lib/infopanel/native/widget-item.ts`). The kiosk and the editor draw the

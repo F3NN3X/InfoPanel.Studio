@@ -101,6 +101,8 @@ export function itemRows(items: readonly DisplayItem[], imported: boolean, prefi
   return items.flatMap((item, i) => {
     const path = prefix ? `${prefix}.${i}` : String(i);
     if (item.kind === "Group" && !elementOf(item)) return itemRows(item.DisplayItems, imported, path);
+    // A blank zone a switch to Free kept is open space, nothing to export (as on the grid).
+    if (widgetOf(item)?.module === BLANK_MODULE) return [];
     return [widgetItemRow(item, path) ?? itemRow(item, path, imported)];
   });
 }
