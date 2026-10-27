@@ -1,8 +1,11 @@
 import { useCallback, useState } from "react";
 
-/** The Add panel's Recent group (handoff SPEC §3.3): the last widgets added, in this browser. */
+/**
+ * The Add panel's Recently used section (Edit v3 SPEC §9.2, decision Q9): the last adds of any kind (a widget row's
+ * id, `item:{Kind}`, `element:{type}`: `add-tiles.ts` keys), global across the app, in this browser.
+ */
 export const RECENT_KEY = "studio.addPanel.recent";
-export const RECENT_MAX = 3;
+export const RECENT_MAX = 4;
 
 /** The stored ids (newest first); anything but an array of strings = none. */
 export function parseRecent(raw: string | null): string[] {
@@ -14,13 +17,13 @@ export function parseRecent(raw: string | null): string[] {
   }
 }
 
-/** `id` moved to the front, without repeats, at most three. */
+/** `id` moved to the front, without repeats, at most four. */
 export function withRecent(list: string[], id: string): string[] {
   return [id, ...list.filter((x) => x !== id)].slice(0, RECENT_MAX);
 }
 
-/** The Recent ids and `push` (on every widget add). */
-export function useRecentWidgets() {
+/** The Recently used keys and `push` (on every add). */
+export function useRecentAdds() {
   const [recent, setRecent] = useState(() => {
     try {
       return parseRecent(localStorage.getItem(RECENT_KEY));

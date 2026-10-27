@@ -74,7 +74,7 @@ A template's colours come from the profile's palette (see The palette, below), s
 
 ## The page
 
-- **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** lists the Studio widgets first, then InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, and the studio's **Elements**. **Layers** is the item tree, the top item first, with a lock, an eye and the Export check's mark on each row (see [Layers](studio#layers)). See Groups, and Studio widgets on a profile.
+- **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** lists InfoPanel's 14 item kinds first, in four groups, Text, Data, Media and Layout, then the studio's **Elements** and the Studio widgets (see [Add](studio#add)). **Layers** is the item tree, the top item first, with a lock, an eye and the Export check's mark on each row (see [Layers](studio#layers)). See Groups, and Studio widgets on a profile.
 - The canvas, in the middle, with the page tabs and the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
 - The inspector, on the right, headed **Item**. With nothing selected it shows the profile's settings. The **Export check** pill at the right of the page tabs shows the check there instead (see The Export check).
 
@@ -145,7 +145,7 @@ A Card or Divider changes badge as you change it: a shadow, glow or gradient mak
 
 ## Studio widgets on a profile
 
-A profile's page can hold the studio's own widgets among its InfoPanel items. In **Add**, **Show** picks **All**, **Widgets** or **InfoPanel items**, and the search covers both. Click a widget to put it in the middle of the canvas, or drag it to where you want it. It starts at the size it would take in a grid cell, smaller if the canvas is small. A message says what it becomes on export, with **Undo**. **Layouts** is greyed out here: layouts arrange a grid page.
+A profile's page can hold the studio's own widgets among its InfoPanel items. In **Add**, **Show** picks **All**, **Widgets** or **InfoPanel items**, and the search covers both. Click a widget to put it in the middle of the canvas, or drag it to where you want it. It starts at the size it would take in a grid cell, smaller if the canvas is small. A message says what it becomes on export, with **Undo** and **Change**. **Layouts** is greyed out here, because layouts replace the widgets while the items stay on top.
 
 A widget is a layer like any item. It moves, resizes, snaps, groups, locks and hides the same way, and Layers shows it with its widget icon and the word *widget*. The kiosk draws it live from the Data API, and so does the canvas, whatever the **Sensors** control is set to.
 

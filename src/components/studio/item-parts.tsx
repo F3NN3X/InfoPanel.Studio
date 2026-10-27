@@ -6,10 +6,11 @@
  * once. While a part moves freely its start box shows dashed and a readout of its box follows it. Every change goes
  * through the page model's ops (`onOps`), and a drag is one undo step. A selected page group shows one accent box
  * around its members with a `{name} · group` chip (SPEC §7.1): dragging it moves the group (by cells when it holds a
- * widget, `layer-actions.ts` `groupMoveOps`), double-clicking it selects the part under the pointer. Coordinates are
- * the page's design px.
+ * widget, `layer-actions.ts` `groupMoveOps`), double-clicking it selects the part under the pointer. A press on a part
+ * inside a group, a widget's too (`pressRef`), selects its outermost group first and drags it (SPEC §10.3 note).
+ * Coordinates are the page's design px.
  */
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type MutableRefObject, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import type { MonitorProfile, Placement, ProfilePage, ProfileView } from "@/lib/layout";
 import { boxOf, findNode, partsOf, type GroupNode, type PageModel, type PageOp, type PartNode, type PixelBox } from "@/lib/page-model/model";
 import { lockedInTree, unionBox } from "@/lib/page-model/layer-actions";
@@ -68,6 +69,8 @@ interface ItemPartsProps {
   badgeOf?: (p: Placement) => ReactNode;
   /** The selected page groups, drawn as one box each that drags the group. */
   groups?: GroupMoves;
+  /** Filled with the press on a grouped widget (the canvas's zones call it). */
+  pressRef?: MutableRefObject<PressGrouped | null>;
 }
 
 export interface GroupMoves {
@@ -78,8 +81,13 @@ export interface GroupMoves {
   onRefused: () => void;
   /** Double-click inside a group's box: select the part there. */
   onPick: (id: string) => void;
+  /** A press on a part inside a group selects its outermost group first (`toggle`: Shift / Ctrl adds it). */
+  onSelectGroup: (id: string, toggle: boolean) => void;
   onContextMenu?: (x: number, y: number) => void;
 }
+
+/** A press on a widget (it isn't drawn here): true when it was in a group, which the press then selected and drags. */
+export type PressGrouped = (e: ReactPointerEvent, partId: string) => boolean;
 
 interface Drag {
   starts: Start[];
@@ -92,7 +100,7 @@ interface Drag {
   moved: boolean;
 }
 
-export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, onDragBegin, onDragCommit, onDragCancel, onGesture, onContextMenu, badgeOf, groups }: ItemPartsProps) {
+export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, onDragBegin, onDragCommit, onDragCancel, onGesture, onContextMenu, badgeOf, groups, pressRef }: ItemPartsProps) {
   const model = useMemo(() => readPlacements(profile as unknown as MonitorProfile, page), [profile, page]);
   const inHidden = useMemo(() => hiddenByGroups(page), [page]);
   const byId = useMemo(() => new Map(page.placements.map((p) => [p.id, p])), [page]);
@@ -112,6 +120,9 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
     e.stopPropagation();
     const toggle = isToggleClick(e);
     const selected = selectedIds.includes(part.id);
+    // A part in a group: the press takes its outermost group (double-click picks the part inside).
+    const outer = selected ? null : outermostGroup(part.id);
+    if (outer) return pressGroup(e, outer, toggle);
     if (toggle || !selected) onSelect(part.id, toggle);
     if (toggle) return;
     // A press on a selected part moves the whole selection; on another part, that part alone.
@@ -168,14 +179,45 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
     );
   };
 
-  /** A drag on a selected group's box: the group moves as one, Alt as for an item; one undo step. */
-  const startGroup = (e: ReactPointerEvent, group: GroupNode) => {
+  /** The outermost group a node sits in (none at the top level). */
+  const outermostGroup = (id: string): string | null => {
+    let at = findNode(model.root, id)?.parentId ?? null;
+    let outer: string | null = null;
+    for (let n = 0; at !== null && n < 64; n++) {
+      outer = at;
+      at = findNode(model.root, at)?.parentId ?? null;
+    }
+    return outer;
+  };
+
+  /** A press on a part inside a group (SPEC §10.3 note): its outermost group is selected, and the press drags it. */
+  const pressGroup = (e: ReactPointerEvent, outer: string, toggle: boolean) => {
+    if (!groups) return;
+    groups.onSelectGroup(outer, toggle);
+    const node = findNode(model.root, outer)?.node;
+    if (!toggle && node?.type === "group") startGroup(e, node, [outer], true);
+  };
+  if (pressRef) {
+    pressRef.current = (e, partId) => {
+      const outer = groups && e.button === 0 ? outermostGroup(partId) : null;
+      if (!outer) return false;
+      e.preventDefault();
+      e.stopPropagation();
+      pressGroup(e, outer, isToggleClick(e));
+      return true;
+    };
+  }
+
+  /**
+   * A drag on a selected group's box: the group moves as one, Alt as for an item; one undo step. `fromPart`: the press
+   * was on a part and selected the group, so the click that ends it lands on the new box and mustn't deselect.
+   */
+  const startGroup = (e: ReactPointerEvent, group: GroupNode, ids: readonly string[] = groups?.selected ?? [], fromPart = false) => {
     if (e.button !== 0 || !groups) return;
     e.preventDefault();
     e.stopPropagation();
     if (lockedInTree(model, group.id)) return;
     const from = model;
-    const ids = groups.selected;
     const d = { x: e.clientX, y: e.clientY, moved: false, ok: true, alt: e.altKey };
     stop.current = trackPointer(
       (ev) => {
@@ -189,10 +231,11 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
         d.ok = groups.onMove(from, ids, (ev.clientX - d.x) / zoom, (ev.clientY - d.y) / zoom, placesFreely(from.snapItems, d.alt), `group-drag:${group.id}`);
       },
       (cancelled) => {
-        if (!d.moved) return;
+        if (!d.moved && !fromPart) return;
         const swallow = (c: MouseEvent) => c.stopPropagation();
         window.addEventListener("click", swallow, true);
         setTimeout(() => window.removeEventListener("click", swallow, true), 0);
+        if (!d.moved) return;
         onGesture(null);
         if (cancelled) return onDragCancel();
         onDragCommit();
@@ -218,9 +261,8 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
   });
 
   const primary = selectedIds.at(-1);
-  return (
-    <div data-item-parts="" className="pointer-events-none absolute inset-0 z-[5]">
-      {groupBoxes.map(({ node, box }) => (
+  // Drawn over the parts, so a press inside a selected group drags the group and a double-click reaches its box.
+  const boxes = groupBoxes.map(({ node, box }) => (
         <div
           key={node.id}
           data-shot-skip
@@ -250,7 +292,9 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
             </span>
           </span>
         </div>
-      ))}
+  ));
+  return (
+    <div data-item-parts="" className="pointer-events-none absolute inset-0 z-[5]">
       {drag?.free && (
         <div
           data-shot-skip
@@ -317,6 +361,7 @@ export function ItemParts({ profile, page, zoom, selectedIds, onSelect, onOps, o
           </div>
         );
       })}
+      {boxes}
     </div>
   );
 }

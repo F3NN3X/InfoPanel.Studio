@@ -11,7 +11,7 @@ import { isFreePage } from "@/lib/free-pages";
 import { LayoutControl, ToGridDialog } from "@/components/studio/layout-control";
 import { MadeForControl } from "@/components/studio/made-for-control";
 import { layoutOf, pageMenuEntries } from "@/components/studio/page-tabs";
-import { INFOPANEL_ITEM_KINDS } from "@/components/studio/studio-view";
+import { ITEM_TILES } from "@/components/studio/add-tiles";
 import { PALETTE } from "@/lib/infopanel/editor/create";
 
 const screenProfile: MonitorProfile = {
@@ -115,6 +115,6 @@ describe("Made for", () => {
   });
 });
 
-it("counts the InfoPanel item kinds Add offers on a grid page as the palette has them", () => {
-  expect(INFOPANEL_ITEM_KINDS).toBe(PALETTE.length);
+it("offers every InfoPanel item kind in Add as the palette has them, in its order", () => {
+  expect(ITEM_TILES.map((t) => t.data)).toEqual(PALETTE.map((p) => p.kind));
 });

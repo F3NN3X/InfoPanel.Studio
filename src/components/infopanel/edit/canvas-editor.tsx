@@ -42,23 +42,24 @@ import { withCanvas } from "@/components/studio/import-actions";
 import { withFreeCanvas } from "@/lib/free-pages";
 import { ExportCheckContext, ExportCheckPanel, ExportCheckPill, type ExportCheckState } from "../export-check-panel";
 import { RemapDialog, useRemapIndex } from "../remap-dialog";
-import { AddPalette, ITEM_COUNT, PaletteGroups, paletteEntryOf, type AddEntry } from "./add-palette";
+import { AddPalette, idOf, paletteEntryOf, type AddEntry } from "./add-palette";
 import { AddPanel } from "@/components/studio/add-panel";
 import { addCatalog, sameDrop, type AddItem } from "@/components/studio/add-catalog";
 import { freeSize } from "@/components/studio/add-place";
-import { useAddFilter, useAddListDensity, useAddPreviewOnHover } from "@/components/studio/add-prefs";
-import { useRecentWidgets } from "@/components/studio/add-recent";
-import { ADD_TOAST_MS } from "@/components/studio/use-add-panel";
+import { useAddListDensity, useAddPreviewOnHover, type AddFilter } from "@/components/studio/add-prefs";
+import { useRecentAdds } from "@/components/studio/add-recent";
+import { ELEMENT_TILES, ITEM_TILES, partKey, widgetTile } from "@/components/studio/add-tiles";
+import { AddToast, focusOnInfoPanel } from "@/components/studio/add-toast";
+import { useAddToast } from "@/components/studio/use-add-panel";
+import { addStatusKit } from "./add-status";
 import { deletePanelPreset, renamePanelPreset } from "@/components/studio/panel-preset-actions";
 import { mergePrefixes, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
-import { widgetItemRow, type CheckStatus } from "@/lib/infopanel/export-check";
 import { isWidgetItem, newWidgetItem, widgetOf, widgetPaths } from "@/lib/infopanel/native/widget-item";
 import { cellOfWidget, holdsWidget, moveOnCells, resizeOnCells } from "@/lib/infopanel/editor/cells";
 import { canvasGrid } from "@/lib/page-model/canvas-adapter";
 import { cellsForAdd } from "@/lib/page-model/gesture";
 import { cellRect, trackOf, type PageGrid } from "@/lib/page-model/model";
-import { StatusIcon } from "../export-check-panel";
-import { addedMessage, widgetRecordFor } from "./widget-add";
+import { widgetRecordFor } from "./widget-add";
 import { WidgetItemInspector, type WidgetHost } from "./widget-item-inspector";
 import type { WidgetDrop } from "./edit-canvas";
 import { canvasKeyAction } from "./canvas-keys";
@@ -116,11 +117,8 @@ export interface CanvasEditorProps {
   widgetHost?: WidgetHost;
   /** A Free page's Layout control (SPEC §6.1): switch the page to Grid. */
   onLayout?: () => void;
-  /**
-   * An InfoPanel item or element to add as the editor opens (a palette drag id, `PALETTE_DRAG`): one dropped or
-   * clicked on a grid page, which made this free area for it (SPEC §5.3). `at` is where, in the canvas's px.
-   */
-  initialAdd?: { data: string; at?: { x: number; y: number } };
+  /** A fixture's Add state: the segment, the tile whose card is open, Recently used, and the add toast for the selected widget. */
+  addStart?: { segment?: AddFilter; hoverTile?: string; recent?: string[]; toast?: "addw" };
 }
 
 const isTyping = (el: Element | null) =>
@@ -160,7 +158,7 @@ function resizeByCell(ed: CanvasEditor, grid: PageGrid, dx: number, dy: number) 
   if (b) ed.commit(setBox(ed.committed, path, { ...b, width: Math.max(1, b.width + dx * (t.w + grid.gap)), height: Math.max(1, b.height + dy * (t.h + grid.gap)) }), key);
 }
 
-export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, initialAdd }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, addStart }: CanvasEditorProps) {
   const toast = useToast();
   /** A Free page (not a free area opened from a grid page) takes Studio widgets too, and its size is the screen's. */
   const freePage = !onDone && widgetHost !== undefined;
@@ -214,10 +212,21 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     askSensor(entry, editor.add(newItem(entry.kind, editor.open.profile, editor.palette), place));
   };
   const catalog = useMemo(() => addCatalog(widgetHost?.config.panelPresets), [widgetHost?.config.panelPresets]);
-  const [recent, pushRecent] = useRecentWidgets();
-  const [addFilter, setAddFilter] = useAddFilter();
+  const [recent, pushRecent] = useRecentAdds();
   const [addDensity] = useAddListDensity();
   const [addPreview] = useAddPreviewOnHover();
+  /** Add's statuses and toast wording on a screen made for InfoPanel. */
+  const addKit = useMemo(() => (checkOn ? addStatusKit(catalog.widget, widgetHost?.config.panelPresets) : null), [checkOn, catalog, widgetHost?.config.panelPresets]);
+  const addToast = useAddToast(editor.committed);
+  /** An InfoPanel item or element from Add (a click or Enter): the palette's add, then the toast on an InfoPanel screen. */
+  const addPart = (data: string, place?: DropPlace) => {
+    const entry = paletteEntryOf(data);
+    const tile = [...ITEM_TILES, ...ELEMENT_TILES].find((t) => t.data === data);
+    if (!entry || !tile) return;
+    onAdd(entry, place);
+    pushRecent(partKey(data));
+    if (addKit) addToast.show(addKit.added(tile), true);
+  };
   /** A Studio widget from Add (a click, Enter or a drop at `at`): a widget item at its default size, selected, one step. */
   const addWidget = (row: AddItem, at?: { x: number; y: number }) => {
     const widget = widgetRecordFor(row, widgetHost?.config.panelPresets);
@@ -235,23 +244,22 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
       editor.add(newWidgetItem(widget, { x: 0, y: 0, ...size }, row.name), at ? { at } : undefined);
     }
     if (row.kind === "widget") pushRecent(row.id);
-    if (checkOn) toast(addedMessage(row.name, widget), { action: { label: "Undo", onClick: history.undo }, ms: ADD_TOAST_MS });
+    if (addKit && row.kind !== "layout") addToast.show(addKit.added(widgetTile(row)), true, true);
   };
   const placeWidget = (drop: WidgetDrop, at: { x: number; y: number }) => {
     const row = [...catalog.widget, ...catalog.panel].find((i) => sameDrop(i.drop, drop));
     if (row) addWidget(row, at);
   };
-  /** Each Add row's Export check status, on a screen made for InfoPanel. */
-  const rowStatus = useMemo(() => {
-    if (!checkOn) return undefined;
-    const byId = new Map<string, CheckStatus>();
-    for (const row of [...catalog.widget, ...catalog.panel]) {
-      const widget = widgetRecordFor(row, widgetHost?.config.panelPresets);
-      const r = widget && widgetItemRow(newWidgetItem(widget, { x: 0, y: 0, w: 1, h: 1 }, row.name), "0");
-      if (r) byId.set(`${row.kind}:${row.id}`, r.status);
-    }
-    return byId;
-  }, [checkOn, catalog, widgetHost?.config.panelPresets]);
+  // A fixture's toast: the one adding the selected widget raised (the reference's state 3).
+  const startToast = useRef(addStart?.toast);
+  useEffect(() => {
+    if (!startToast.current || !addKit) return;
+    startToast.current = undefined;
+    const widget = editor.selection.length === 1 ? widgetOf(itemAt(editor.committed, editor.selection[0])) : null;
+    const row = widget && catalog.widget.find((w) => w.id === widget.module);
+    if (row) addToast.show(addKit.added(widgetTile(row)), true, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addKit]);
   // Live values for the Studio widgets' own keys, one subscription for the page (no stream per widget).
   const widgetKeys = useMemo(
     () => mergePrefixes(widgetPaths(editor.committed).map((p) => placementPrefixes(widgetPlacement(widgetOf(itemAt(editor.committed, p))!)))),
@@ -407,16 +415,6 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
 
-  // The item a grid page's drop or click made this free area for, added once it is open.
-  const added = useRef(false);
-  useEffect(() => {
-    if (added.current || !initialAdd) return;
-    added.current = true;
-    const entry = paletteEntryOf(initialAdd.data);
-    if (entry) onAdd(entry, initialAdd.at ? { at: initialAdd.at } : undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // The screenshot's object URL goes with the editor.
   const shot = useRef(compare);
   shot.current = compare;
@@ -475,7 +473,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
       ) : freePage && widgetHost ? (
         <AddPanel
           catalog={catalog}
-          recent={recent}
+          recent={addStart?.recent ?? recent}
           onClearTarget={() => {}}
           onAdd={(row) => addWidget(row)}
           onRenamePreset={(id, to) => setConfig((c) => renamePanelPreset(c, id, to))}
@@ -483,16 +481,11 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           density={addDensity}
           previewOnHover={addPreview}
           appearance={widgetHost.appearance}
-          free={{
-            filter: addFilter,
-            onFilter: setAddFilter,
-            itemCount: ITEM_COUNT,
-            items: (query) => <PaletteGroups onAdd={onAdd} query={query} status={checkOn ? () => <StatusIcon status="ok" /> : undefined} />,
-            status: rowStatus && ((row) => {
-              const s = rowStatus.get(`${row.kind}:${row.id}`);
-              return s ? <StatusIcon status={s} className="h-[11px] w-[11px]" /> : null;
-            }),
-          }}
+          onAddPart={(data) => addPart(data)}
+          infoPanel={checkOn}
+          status={addKit}
+          layoutsOff="Layouts replace the widgets. Items stay on top."
+          start={addStart && { segment: addStart.segment, hoverTile: addStart.hoverTile }}
         />
       ) : (
         <AddPalette onAdd={onAdd} />
@@ -532,23 +525,41 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
         )}
         {showModes && <ModesStrip editor={editor} />}
         {compareOn && <CompareStrip compare={compare} onCompare={setCompare} />}
-        <EditCanvas
-          editor={editor}
-          ctx={view.ctx}
-          values={view.values}
-          showModes={showModes}
-          profileId={profileId}
-          compare={compareOn ? compare : null}
-          onRefused={toast}
-          onCompareFailed={() => setCompare(null)}
-          onPlace={onAdd}
-          onComponent={(item, at) => void placeComponent(item, at)}
-          onOpenSettings={openSettings}
-          widgets={widgetHost && { sensors: widgetSensors, appearance: widgetHost.appearance, scope: widgetHost.scope }}
-          onPlaceWidget={freePage ? placeWidget : undefined}
-          grid={grid}
-          snapItems={snapItems}
-        />
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <EditCanvas
+            editor={editor}
+            ctx={view.ctx}
+            values={view.values}
+            showModes={showModes}
+            profileId={profileId}
+            compare={compareOn ? compare : null}
+            onRefused={toast}
+            onCompareFailed={() => setCompare(null)}
+            onPlace={(entry, place) => addPart(idOf(entry), place)}
+            onComponent={(item, at) => void placeComponent(item, at)}
+            onOpenSettings={openSettings}
+            widgets={widgetHost && { sensors: widgetSensors, appearance: widgetHost.appearance, scope: widgetHost.scope }}
+            onPlaceWidget={freePage ? placeWidget : undefined}
+            grid={grid}
+            snapItems={snapItems}
+          />
+          {/* Top centre of the canvas (Edit v3 SPEC §9.6). */}
+          {addToast.toast && (
+            <div className="pointer-events-none absolute inset-x-0 top-3.5 z-40 flex justify-center">
+              <AddToast
+                toast={addToast.toast}
+                onUndo={() => {
+                  addToast.clear();
+                  history.undo();
+                }}
+                onChange={() => {
+                  layout.showInspector();
+                  focusOnInfoPanel();
+                }}
+              />
+            </div>
+          )}
+        </div>
         <p className="shrink-0 truncate border-t border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[11.5px] text-ui-4">
           {grid ? "Arrows move a cell · Alt+Arrows nudge items 1 px · Ctrl+G group · Ctrl+] forward" : "Drag to move. Arrows nudge 1 px, Shift+arrows 10 px. Hold Alt to stop snapping, Shift to keep one axis or the shape."}
         </p>

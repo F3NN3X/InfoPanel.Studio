@@ -23,10 +23,10 @@ export function previewTop(rowTop: number, windowHeight: number): number {
 }
 
 /** A widget's native size and the scale (never above 1) that fits it in the stage. */
-export function previewScale(w: number, h: number): { width: number; height: number; scale: number } {
+export function previewScale(w: number, h: number, stage = { w: STAGE_W, h: STAGE_H }): { width: number; height: number; scale: number } {
   const width = w * CELL + (w - 1) * CELL_GAP;
   const height = h * CELL + (h - 1) * CELL_GAP;
-  return { width, height, scale: Math.min(1, STAGE_W / width, STAGE_H / height) };
+  return { width, height, scale: Math.min(1, stage.w / width, stage.h / height) };
 }
 
 /** A failed widget shows its icon and "Preview unavailable", never the error. */
@@ -49,9 +49,9 @@ function StageNote({ item, text }: { item: AddItem; text: string }) {
   );
 }
 
-/** The real widget at its default size, live, under the page's theme. */
-function WidgetStage({ item, appearance, pageStyle }: { item: AddItem; appearance?: Appearance; pageStyle?: CSSProperties }) {
-  const { width, height, scale } = previewScale(item.w, item.h);
+/** The real widget at its default size, live, under the page's theme, scaled into `stage` (px). */
+export function WidgetStage({ item, appearance, pageStyle, stage }: { item: AddItem; appearance?: Appearance; pageStyle?: CSSProperties; stage?: { w: number; h: number } }) {
+  const { width, height, scale } = previewScale(item.w, item.h, stage);
   // A view row adds the widget with that view set: preview it the same way.
   const settings = item.drop.kind === "module" ? item.drop.settings : undefined;
   const placement: Placement = { id: `add-preview:${item.id}`, module: item.drop.id, settings, colStart: 1, rowStart: 1, colSpan: item.w, rowSpan: item.h, visible: true };

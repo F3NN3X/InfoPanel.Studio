@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { ITEM_ID, type MonitorProfile, type Placement } from "@/lib/layout";
 import { applyOps, cellRect, findNode, type PageGrid, type PartNode } from "@/lib/page-model";
-import { arrowOps, cellsForAdd, moveCells, moveOps, placesFreely, resizeOps, type Start } from "@/lib/page-model/gesture";
+import { arrowOps, cellsForAdd, moveCells, moveOps, placeForAdd, placesFreely, resizeOps, type Start } from "@/lib/page-model/gesture";
 import { applyPlacements, readPlacements } from "@/lib/page-model/placements-adapter";
 
 // 8 × 5 cells of 100 px, no gap or padding (an imported profile's grid, SPEC §3.7).
@@ -113,5 +113,19 @@ describe("arrow keys (SPEC §14, acceptance 26)", () => {
   it("Shift+Arrows resize one cell", () => {
     expect(arrowOps(GRID, [widget("w", 2, 2)], key(1, 0, false, true))).toEqual([{ type: "resize", id: "w", to: { cols: 3, rows: 1 } }]);
     expect(arrowOps(GRID, [widget("w", 2, 2)], key(-1, 0, false, true))).toEqual([{ type: "resize", id: "w", to: { cols: 1, rows: 1 } }]);
+  });
+});
+
+describe("An item or element added from Add (SPEC §7.4)", () => {
+  it("centres its box on the point and snaps it to the cells nearest the box", () => {
+    expect(placeForAdd(GRID, { x: 450, y: 250 }, { w: 180, h: 90 }, false)).toEqual({ cell: { col: 5, row: 3, cols: 2, rows: 1 } });
+  });
+
+  it("lands at the exact pixel when free (Alt, or the page's Snap items off)", () => {
+    expect(placeForAdd(GRID, { x: 450, y: 250 }, { w: 181, h: 90 }, true)).toEqual({ px: { x: 360, y: 205, w: 181, h: 90 } });
+  });
+
+  it("takes at least one cell, at the page's corner", () => {
+    expect(placeForAdd(GRID, { x: 0, y: 0 }, { w: 0, h: 0 }, false)).toEqual({ cell: { col: 1, row: 1, cols: 1, rows: 1 } });
   });
 });

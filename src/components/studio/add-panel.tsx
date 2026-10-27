@@ -1,16 +1,23 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Segmented } from "@/components/ui/segmented";
-import type { AddFilter } from "./add-prefs";
-import { FilePlus2, FileUp, LayoutGrid, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
+import { useAddChip, useAddFilter, type AddFilter } from "./add-prefs";
+import { FilePlus2, FileUp, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { iconFor } from "@/widgets/core/icons";
-import { addGroups, categoriesOf, fitsIn, searchItems, sizeText, type AddCatalog, type AddItem, type AddKind } from "./add-catalog";
+import { addGroups, fitsIn, searchItems, sizeText, type AddCatalog, type AddItem, type AddKind } from "./add-catalog";
 import type { AddListDensity } from "./add-prefs";
 import { AddPreview, previewTop } from "./add-preview";
 import { AddRow, type RowTag } from "./add-row";
+import { TileCard, cardTop, type AddStatusKit } from "./add-tile-card";
+import { AddTileGrid, tileId } from "./add-tile-grid";
+import { addSections, chipsFor, ELEMENT_TILES, ITEM_TILES, moveInGrid, tileRows, widgetTile, type AddTile } from "./add-tiles";
 
-/** The Add tab (handoff SPEC §4–§9): find a widget, panel or layout and add, drop or fill a blank zone with it. */
+/**
+ * The Add tab (Edit v3 SPEC §9): Studio widgets, InfoPanel items and studio elements as a tile grid with a details card
+ * on hover, and the Panels and Layouts lists. A click or Enter adds (a widget fills the selected blank zone), a drag
+ * places on the canvas.
+ */
 
 const KINDS: { kind: AddKind; label: string; one: string }[] = [
   { kind: "widget", label: "Widgets", one: "widget" },
@@ -18,25 +25,21 @@ const KINDS: { kind: AddKind; label: string; one: string }[] = [
   { kind: "layout", label: "Layouts", one: "layout" },
 ];
 
-/** Each category chip's icon (Material Symbols names, `iconFor`). */
-const CHIP_ICONS: Record<string, string> = {
-  System: "monitor_heart",
-  Hardware: "memory",
-  Storage: "hard_drive",
-  Network: "lan",
-  Media: "music_note",
-  Audio: "graphic_eq",
-  Info: "schedule",
-  Gaming: "stadia_controller",
-  Generic: "sensors",
-};
+const SEGMENTS: { value: AddFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "widgets", label: "Widgets" },
+  { value: "items", label: "InfoPanel items" },
+];
 
-/** The leave delay before the card hides (another row cancels it). */
+/** The leave delay before the card hides (another tile cancels it). */
 const HIDE_MS = 120;
+/** The rest on a tile before its card opens (instant while one is open, and for the keys). */
+const OPEN_MS = 250;
+/** How long a just-added tile stays highlighted. */
+const ADDED_MS = 1500;
 /** The sticky group header's height: a highlighted row scrolls into view below it. */
 const HEADER_H = 30;
 
-const KEYCAP = "rounded-[3px] border border-ui-strong px-1 font-ui-mono text-[10px] leading-[14px] text-[#8a8a94]";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[oklch(0.72_0.15_255)]";
 
 const isTyping = (el: EventTarget | null) =>
@@ -44,12 +47,15 @@ const isTyping = (el: EventTarget | null) =>
 
 export interface AddPanelProps {
   catalog: AddCatalog;
+  /** Recently used tile keys, newest first. */
   recent: string[];
   /** The selected blank zone (clicks fill it). */
   target?: { id: string; cols: number; rows: number };
   onClearTarget: () => void;
-  /** The add path: fills the target when set, else auto-places. */
+  /** A widget, panel or layout's add path: fills the target when set, else auto-places. */
   onAdd: (item: AddItem) => void;
+  /** An InfoPanel item's or element's add, by its palette drag id; none: the panel offers widgets only. */
+  onAddPart?: (data: string) => void;
   onRenamePreset: (id: string, name: string) => void;
   onDeletePreset: (id: string) => void;
   /** "Canvas from a file…" under Layouts › Empty: the Import door. */
@@ -61,32 +67,17 @@ export interface AddPanelProps {
   /** What the preview renders the widget under: the page's style and theme. */
   appearance?: Appearance;
   pageStyle?: CSSProperties;
-  /** A Free page (one-editor SPEC §5.3): the InfoPanel items join the widgets, with a filter; layouts don't apply. */
-  free?: FreeAdd;
+  /** The screen is made for InfoPanel: items come first, and tiles sort by and show their status (the kit, once loaded). */
+  infoPanel?: boolean;
+  status?: AddStatusKit | null;
+  /** Layouts can't apply on this page: the tab is disabled with this tooltip. */
+  layoutsOff?: string;
+  /** A fixture's state: the segment and the tile whose card is open. */
+  start?: { segment?: AddFilter; hoverTile?: string };
 }
-
-/** The merged Add panel's InfoPanel side, given by the canvas editor (it keeps the InfoPanel model out of this bundle). */
-export interface FreeAdd {
-  filter: AddFilter;
-  onFilter: (filter: AddFilter) => void;
-  /** The InfoPanel item kinds offered (the header's count). */
-  itemCount: number;
-  /** The InfoPanel items and Elements matching a query, as the palette's groups. */
-  items: (query: string) => ReactNode;
-  /** On a screen made for InfoPanel: a widget's Export check icon. */
-  status?: (item: AddItem) => ReactNode;
-  /** A grid page (SPEC §5.3): an InfoPanel item makes a free area where it goes, and Layouts still apply. */
-  grid?: boolean;
-}
-
-const FILTERS: { value: AddFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "widgets", label: "Widgets" },
-  { value: "items", label: "InfoPanel items" },
-];
 
 interface Highlight {
-  index: number;
+  key: string;
   via: "mouse" | "key";
 }
 
@@ -96,6 +87,7 @@ export function AddPanel({
   target,
   onClearTarget,
   onAdd,
+  onAddPart,
   onRenamePreset,
   onDeletePreset,
   onImportCanvas,
@@ -104,88 +96,175 @@ export function AddPanel({
   previewOnHover,
   appearance,
   pageStyle,
-  free,
+  infoPanel = false,
+  status,
+  layoutsOff,
+  start,
 }: AddPanelProps) {
   const [kind, setKind] = useState<AddKind>("widget");
-  const [category, setCategory] = useState("All");
+  const [segment, setSegment] = useAddFilter();
+  const [storedChip, setChip] = useAddChip();
   const [query, setQuery] = useState("");
   const [hl, setHl] = useState<Highlight | null>(null);
-  /** The preview's place (viewport px), when shown. */
+  /** The card's place (viewport px), when shown. */
   const [card, setCard] = useState<{ left: number; top: number } | null>(null);
+  const [justAdded, setJustAdded] = useState<string>();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const chipsRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(hideTimer.current), []);
+  const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const addedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(
+    () => () => {
+      clearTimeout(hideTimer.current);
+      clearTimeout(openTimer.current);
+      clearTimeout(addedTimer.current);
+    },
+    [],
+  );
   const compact = density === "compact";
+  const tiles = kind === "widget";
+  const seg: AddFilter = onAddPart ? segment : "widgets";
 
+  // The Widgets tab's tiles: widgets, and the InfoPanel items and elements where the page takes them.
+  const widgetTiles = useMemo(() => catalog.widget.map(widgetTile), [catalog.widget]);
+  const chips = chipsFor(seg, catalog.widget);
+  const chip = chips.includes(storedChip) ? storedChip : "All";
+  const sections = useMemo(
+    () =>
+      tiles
+        ? addSections({
+            widgets: widgetTiles,
+            items: onAddPart ? ITEM_TILES : [],
+            elements: onAddPart ? ELEMENT_TILES : [],
+            segment: seg,
+            chip,
+            query,
+            recent,
+            infoPanel,
+            status: status?.of,
+          })
+        : [],
+    [tiles, widgetTiles, onAddPart, seg, chip, query, recent, infoPanel, status],
+  );
+  /** The tiles in list order, and the rows the arrow keys move through (the grid's columns, measured). */
+  const [cols, setCols] = useState(3);
+  const grid = useMemo(() => tileRows(sections, cols), [sections, cols]);
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLElement>("[data-add-grid]");
+    if (!el) return;
+    const measure = () => setCols(Math.max(1, getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length));
+    measure();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [sections]);
+
+  // The Panels and Layouts tabs: the rows.
   const items = catalog[kind];
-  // On a Free page the InfoPanel items filter hides the widgets.
-  const hideWidgets = free?.filter === "items" && kind === "widget";
-  const groups = useMemo(() => (hideWidgets ? [] : addGroups(kind, items, { query, category, recent })), [hideWidgets, kind, items, query, category, recent]);
+  const groups = useMemo(() => (tiles ? [] : addGroups(kind, items, { query, category: "All", recent })), [tiles, kind, items, query, recent]);
   const rows = useMemo(() => groups.flatMap((g, gi) => g.items.map((item) => ({ item, gi }))), [groups]);
   const optionId = (i: number) => `add-opt-${rows[i].gi}-${rows[i].item.id}`;
-  const current = hl && rows[hl.index] ? rows[hl.index].item : undefined;
+  const rowIndex = hl && !tiles ? rows.findIndex((_, i) => optionId(i) === hl.key) : -1;
+  const currentRow = rowIndex >= 0 ? rows[rowIndex].item : undefined;
+  const currentTile = hl && tiles ? grid.tiles.find((t) => t.key === hl.key) : undefined;
 
-  /** Clear the highlight and hide the card (a query, kind or category change, an add, a drag). */
+  /** Clear the highlight and hide the card (a query, kind, segment or chip change, an add, a drag). */
   const reset = () => {
     clearTimeout(hideTimer.current);
+    clearTimeout(openTimer.current);
     setHl(null);
     setCard(null);
   };
 
-  /** Show the card beside row `index`. */
-  const place = (index: number) => {
-    const row = listRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(optionId(index))}"]`);
+  /** The card beside the element `el` (a tile's row, or a list row). */
+  const place = (el: HTMLElement) => {
     const panel = rootRef.current?.closest("aside") ?? rootRef.current;
-    if (!row || !panel) return;
-    setCard({ left: panel.getBoundingClientRect().right + 10, top: previewTop(row.getBoundingClientRect().top, window.innerHeight) });
+    if (!panel) return;
+    const top = el.getBoundingClientRect().top;
+    setCard(tiles ? { left: panel.getBoundingClientRect().right + 8, top: cardTop(top, window.innerHeight) } : { left: panel.getBoundingClientRect().right + 10, top: previewTop(top, window.innerHeight) });
   };
+  const elOf = (key: string) => listRef.current?.querySelector<HTMLElement>(`[id="${CSS.escape(key)}"]`) ?? null;
 
-  const hover = (index: number) => {
+  /** The pointer on a tile or row: its card after a rest, at once while one is open. */
+  const hover = (key: string, el: HTMLElement) => {
     clearTimeout(hideTimer.current);
-    setHl({ index, via: "mouse" });
-    if (previewOnHover) place(index);
-    else setCard(null);
+    clearTimeout(openTimer.current);
+    setHl({ key, via: "mouse" });
+    if (!previewOnHover) return setCard(null);
+    if (card || !tiles) return place(el);
+    openTimer.current = setTimeout(() => place(el), OPEN_MS);
   };
 
-  /** Keep a keyboard-highlighted row in view below the sticky header (scrollTop, not scrollIntoView). */
-  const reveal = (index: number) => {
+  /** Keep a keyboard-highlighted tile or row in view (scrollTop, not scrollIntoView). */
+  const reveal = (el: HTMLElement) => {
     const list = listRef.current;
-    const row = list?.querySelector<HTMLElement>(`[id="${CSS.escape(optionId(index))}"]`);
-    if (!list || !row) return;
-    const top = row.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
-    if (top - HEADER_H < list.scrollTop) list.scrollTop = top - HEADER_H;
-    else if (top + row.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = top + row.offsetHeight - list.clientHeight;
+    if (!list) return;
+    const top = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    const head = tiles ? 0 : HEADER_H;
+    if (top - head < list.scrollTop) list.scrollTop = top - head;
+    else if (top + el.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = top + el.offsetHeight - list.clientHeight;
   };
 
-  const move = (step: 1 | -1) => {
-    if (rows.length === 0) return;
-    const index = hl === null ? (step === 1 ? 0 : rows.length - 1) : Math.max(0, Math.min(rows.length - 1, hl.index + step));
-    setHl({ index, via: "key" });
-    reveal(index);
-    place(index);
+  /** An arrow key: the tiles move in 2D, the rows up and down; the card follows at once. */
+  const move = (key: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown") => {
+    let next: string | null = null;
+    if (tiles) {
+      const at = currentTile ? grid.tiles.indexOf(currentTile) : null;
+      const i = moveInGrid(grid.rows, at, key);
+      next = i === null ? null : tileId(grid.tiles[i]);
+    } else {
+      if (key === "ArrowLeft" || key === "ArrowRight" || rows.length === 0) return;
+      const step = key === "ArrowDown" ? 1 : -1;
+      const i = rowIndex < 0 ? (step === 1 ? 0 : rows.length - 1) : Math.max(0, Math.min(rows.length - 1, rowIndex + step));
+      next = optionId(i);
+    }
+    if (!next) return;
+    const nextKey = tiles ? grid.tiles.find((t) => tileId(t) === next)!.key : next;
+    setHl({ key: nextKey, via: "key" });
+    clearTimeout(openTimer.current);
+    const el = elOf(next);
+    if (el) {
+      reveal(el);
+      place(el);
+    }
+  };
+
+  const flash = (key: string) => {
+    clearTimeout(addedTimer.current);
+    setJustAdded(key);
+    addedTimer.current = setTimeout(() => setJustAdded(undefined), ADDED_MS);
   };
 
   const add = (item: AddItem) => {
     reset();
     onAdd(item);
   };
+  const addTile = (tile: AddTile) => {
+    reset();
+    flash(tile.key);
+    if (tile.widget) onAdd(tile.widget);
+    else if (tile.data) onAddPart?.(tile.data);
+  };
 
   const pickKind = (next: AddKind) => {
     setKind(next);
-    setCategory("All");
     reset();
     if (listRef.current) listRef.current.scrollTop = 0;
   };
 
-  const pickCategory = (next: string, chip: HTMLElement) => {
-    setCategory(next);
+  const pickSegment = (next: AddFilter) => {
+    setSegment(next);
+    setChip("All");
     reset();
     if (listRef.current) listRef.current.scrollTop = 0;
-    const row = chipsRef.current;
-    row?.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+  };
+
+  const pickChip = (next: string) => {
+    setChip(next);
+    reset();
+    if (listRef.current) listRef.current.scrollTop = 0;
   };
 
   const changeQuery = (next: string) => {
@@ -193,7 +272,7 @@ export function AddPanel({
     reset();
   };
 
-  // "/" anywhere in Design (outside a field) goes to search.
+  // "/" anywhere in Edit (outside a field) goes to search.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target) || document.querySelector("[role=dialog]")) return;
@@ -209,31 +288,39 @@ export function AddPanel({
     if (target?.id) inputRef.current?.focus({ preventScroll: true });
   }, [target?.id]);
 
-  // A vertical wheel over the chips scrolls them sideways.
+  // A fixture's state: its segment, and the card of its tile, open.
   useEffect(() => {
-    const row = chipsRef.current;
-    if (!row) return;
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      e.preventDefault();
-      row.scrollLeft += e.deltaY;
-    };
-    row.addEventListener("wheel", onWheel, { passive: false });
-    return () => row.removeEventListener("wheel", onWheel);
-  });
+    if (start?.segment) setSegment(start.segment);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!start?.hoverTile) return;
+    const tile = grid.tiles.find((t) => t.name === start.hoverTile);
+    const el = tile && elOf(tileId(tile));
+    if (!tile || !el) return;
+    setHl({ key: tile.key, via: "mouse" });
+    place(el);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start?.hoverTile, grid.tiles.length > 0]);
 
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || ((e.key === "ArrowLeft" || e.key === "ArrowRight") && tiles && (e.currentTarget !== inputRef.current || hl?.via === "key" || !query))) {
       e.preventDefault();
-      move(e.key === "ArrowDown" ? 1 : -1);
+      move(e.key);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const item = current ?? rows[0]?.item;
-      if (item) add(item);
+      if (tiles) {
+        const tile = currentTile ?? grid.tiles[0];
+        if (tile) addTile(tile);
+      } else {
+        const item = currentRow ?? rows[0]?.item;
+        if (item) add(item);
+      }
     } else if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      if (query) changeQuery("");
+      if (card) reset();
+      else if (query) changeQuery("");
       else if (target) onClearTarget();
       else inputRef.current?.blur();
     }
@@ -246,20 +333,19 @@ export function AddPanel({
   };
 
   const counts = { widget: catalog.widget.length, panel: catalog.panel.length, layout: catalog.layout.length };
-  const showChips = kind === "widget" && !query.trim() && !hideWidgets;
   const sensor = catalog.widget.find((w) => w.id === "SensorValue");
+  const empty = query.trim() !== "" && (tiles ? grid.tiles.length === 0 : rows.length === 0);
   /** Another kind with hits for the query (Widgets, Panels, Layouts order). */
-  const elsewhere = rows.length === 0 && query.trim() ? KINDS.filter((k) => k.kind !== kind).map((k) => ({ ...k, n: searchItems(catalog[k.kind], query).length })).find((k) => k.n > 0) : undefined;
-  const placeholder = kind === "widget" ? (free ? "Search widgets and items" : `Search ${counts.widget} widgets`) : kind === "panel" ? "Search panels" : "Search layouts";
-  /** The InfoPanel items under the widgets on a Free page (unless the filter is Widgets). */
-  const freeItems = free && kind === "widget" && free.filter !== "widgets" ? free.items(query) : null;
+  const elsewhere = empty ? KINDS.filter((k) => k.kind !== kind).map((k) => ({ ...k, n: searchItems(catalog[k.kind], query).length })).find((k) => k.n > 0) : undefined;
+  const placeholder = onAddPart ? "Search widgets and items" : kind === "widget" ? `Search ${counts.widget} widgets` : kind === "panel" ? "Search panels" : "Search layouts";
   const listId = "add-panel-list";
+  const activeId = hl ? (tiles ? (currentTile ? tileId(currentTile) : undefined) : currentRow ? hl.key : undefined) : undefined;
 
   return (
     <div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 px-2.5 pt-2.5">
-        <label className="flex h-[34px] items-center gap-2 rounded-[8px] border border-ui-default bg-ui-tile px-2.5 focus-within:border-[#3f3f48]">
-          <Search className="h-[18px] w-[18px] shrink-0 text-[#7c7c86]" strokeWidth={1.75} aria-hidden />
+        <label className="flex h-8 items-center gap-2 rounded-[8px] border border-ui-default bg-ui-tile px-2.5 focus-within:border-[#3f3f48]">
+          <Search className="h-4 w-4 shrink-0 text-[#7c7c86]" strokeWidth={1.75} aria-hidden />
           <input
             ref={inputRef}
             role="combobox"
@@ -267,12 +353,12 @@ export function AddPanel({
             aria-expanded
             aria-controls={listId}
             aria-autocomplete="list"
-            aria-activedescendant={current && hl ? optionId(hl.index) : undefined}
+            aria-activedescendant={activeId}
             value={query}
             onChange={(e) => changeQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-ui-1 outline-none placeholder:text-[#6f6f79]"
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ui-1 outline-none placeholder:text-[#6f6f79]"
           />
           {query ? (
             <button
@@ -293,66 +379,59 @@ export function AddPanel({
         </label>
       </div>
 
-      <div role="tablist" aria-label="What to add" className="mx-2.5 mt-2.5 flex shrink-0 gap-4 border-b border-ui-subtle">
+      <div role="tablist" aria-label="What to add" className="mx-2.5 mt-2 flex shrink-0 gap-4 border-b border-ui-subtle">
         {KINDS.map((k) => {
-          // Layouts arrange a grid page: none on a Free page.
-          const off = !!free && !free.grid && k.kind === "layout";
+          const off = k.kind === "layout" ? layoutsOff : undefined;
           return (
             <button
               key={k.kind}
               type="button"
               role="tab"
               aria-selected={kind === k.kind}
-              disabled={off}
-              title={off ? "Layouts arrange a grid page." : undefined}
+              disabled={off !== undefined}
+              title={off}
               onClick={() => pickKind(k.kind)}
               className={cn(
-                "-mb-px flex h-[30px] items-center gap-1.5 text-[12.5px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
+                "-mb-px flex h-7 items-center gap-1.5 text-[12px] font-medium disabled:cursor-not-allowed disabled:opacity-40",
                 FOCUS,
                 kind === k.kind ? "text-ui-1 shadow-[inset_0_-2px_0_#ededf0]" : "text-[#7c7c86] hover:text-ui-2"
               )}
             >
               {k.label}
-              <span className="font-ui-mono text-[10.5px] font-normal text-[#6f6f79]">
-                {free && k.kind === "widget" ? `${counts.widget} · ${free.itemCount} items` : counts[k.kind]}
+              <span className="font-ui-mono text-[10px] font-normal text-[#6f6f79]">
+                {onAddPart && k.kind === "widget" ? `${counts.widget} · ${ITEM_TILES.length} items` : counts[k.kind]}
               </span>
             </button>
           );
         })}
       </div>
 
-      {free && kind === "widget" && (
-        <div className="shrink-0 px-2.5 pt-2.5">
-          <Segmented label="Show" className="w-full flex-nowrap [&>button]:flex-1" value={free.filter} onChange={(f) => { free.onFilter(f); reset(); }} options={FILTERS} />
+      {tiles && onAddPart && (
+        <div className="shrink-0 px-2.5 pt-2">
+          <Segmented label="Show" className="h-7 w-full flex-nowrap items-stretch [&>button]:flex-1 [&>button]:py-0" value={seg} onChange={pickSegment} options={SEGMENTS} />
         </div>
       )}
 
-      {showChips && (
-        <div className="relative shrink-0">
-          <div ref={chipsRef} className="add-chips flex gap-1.5 overflow-x-auto px-2.5 pb-0.5 pt-2.5">
-            {["All", ...categoriesOf(catalog.widget)].map((c) => {
-              const Icon = c === "All" ? LayoutGrid : iconFor(CHIP_ICONS[c] ?? "sensors");
-              const on = c === category;
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={(e) => pickCategory(c, e.currentTarget)}
-                  className={cn(
-                    "flex h-[26px] shrink-0 items-center gap-[5px] rounded-[13px] border pl-2 pr-2.5 text-[12px]",
-                    FOCUS,
-                    on ? "border-[#ededf0] bg-[#ededf0] text-[#0c0c0e]" : "border-[#26262c] text-[#a1a1aa] hover:text-ui-1"
-                  )}
-                >
-                  <Icon className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden />
-                  {c}
-                </button>
-              );
-            })}
-            <span aria-hidden className="w-6 shrink-0" />
-          </div>
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-9 bg-gradient-to-r from-transparent to-ui-panel" />
+      {tiles && !query.trim() && (
+        <div className="add-chips flex h-6 shrink-0 gap-1 overflow-x-auto px-2.5 mt-2">
+          {chips.map((c) => {
+            const on = c === chip;
+            return (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={on}
+                onClick={() => pickChip(c)}
+                className={cn(
+                  "flex h-6 shrink-0 items-center rounded-full border px-[9px] text-[11px]",
+                  FOCUS,
+                  on ? "border-[#ededf0] bg-[#ededf0] text-[#0c0c0e]" : "border-[#26262d] text-ui-3 hover:text-ui-1"
+                )}
+              >
+                {c}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -381,15 +460,19 @@ export function AddPanel({
         ref={listRef}
         id={listId}
         role="listbox"
+        tabIndex={-1}
         aria-label={KINDS.find((k) => k.kind === kind)?.label}
-        onWheel={() => card && hl?.via === "mouse" && setCard(null)}
+        onKeyDown={onKeyDown}
+        onWheel={() => card && reset()}
+        onScroll={() => card && hl?.via === "mouse" && reset()}
         onMouseLeave={() => {
+          clearTimeout(openTimer.current);
           clearTimeout(hideTimer.current);
           hideTimer.current = setTimeout(reset, HIDE_MS);
         }}
-        className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto px-1.5 pb-3 pt-1"
+        className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto px-1.5 pb-3 outline-none"
       >
-        {rows.length === 0 && query.trim() && !freeItems ? (
+        {empty ? (
           <div className="flex flex-col items-start gap-2.5 px-2 py-5">
             <div className="text-[12.5px] font-medium text-ui-1">Nothing matches “{query.trim()}”</div>
             <p className="text-[12px] leading-[1.5] text-[#8a8a94]">
@@ -415,6 +498,17 @@ export function AddPanel({
               </button>
             )}
           </div>
+        ) : tiles ? (
+          <AddTileGrid
+            sections={sections}
+            highlighted={hl?.key}
+            justAdded={justAdded}
+            dimmed={target ? (t) => !t.widget || !fitsIn(t.widget, target.cols, target.rows) : undefined}
+            status={infoPanel ? status : null}
+            onAdd={addTile}
+            onHover={(tile, el) => hover(tile.key, el)}
+            onDragStart={reset}
+          />
         ) : (
           groups.map((g, gi) => (
             <section key={`${gi}:${g.title}`} aria-label={g.title}>
@@ -424,20 +518,23 @@ export function AddPanel({
               </div>
               {g.items.map((item) => {
                 const index = rows.findIndex((r) => r.gi === gi && r.item === item);
+                const id = optionId(index);
                 return (
                   <AddRow
                     key={item.id}
                     item={item}
-                    id={optionId(index)}
-                    highlighted={hl?.index === index}
+                    id={id}
+                    highlighted={hl?.key === id}
                     compact={compact}
                     tag={tagOf(item)}
                     onPick={() => add(item)}
-                    onHover={() => hover(index)}
+                    onHover={() => {
+                      const el = elOf(id);
+                      if (el) hover(id, el);
+                    }}
                     onDragStart={reset}
                     onRename={item.saved ? (name) => onRenamePreset(item.id, name) : undefined}
                     onDelete={item.saved ? () => onDeletePreset(item.id) : undefined}
-                    status={free?.status?.(item)}
                   />
                 );
               })}
@@ -450,37 +547,17 @@ export function AddPanel({
             </section>
           ))
         )}
-        {freeItems && (
-          <section aria-label="InfoPanel items" className="px-1 pt-1">
-            <div className="sticky top-0 z-10 flex items-baseline gap-2 bg-ui-panel px-0.5 pb-0.5 pt-2.5">
-              <span className="font-ui-mono text-[10px] uppercase tracking-[0.06em] text-[#8a8a94]">InfoPanel items</span>
-              {free?.grid && <span className="text-[11px] text-ui-warning">Makes a free area here</span>}
-            </div>
-            {freeItems}
-          </section>
-        )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap border-t border-ui-subtle px-3 py-2 text-[11px] text-[#6f6f79]">
-        <span>
-          <kbd className={KEYCAP}>↑↓</kbd> browse
-        </span>
-        <span>
-          <kbd className={KEYCAP}>Enter</kbd> add
-        </span>
-        <span>Drag to place</span>
+      <div className="flex h-7 shrink-0 items-center gap-2.5 overflow-hidden whitespace-nowrap border-t border-ui-subtle px-3 text-[10.5px] text-[#6f6f79]">
+        <span>Hover for details</span>
+        <span>←↑→↓ browse</span>
+        <span>Enter add</span>
       </div>
 
-      {current && card && hl && (
-        <AddPreview
-          item={current}
-          left={card.left}
-          top={card.top}
-          via={hl.via}
-          target={target}
-          appearance={appearance}
-          pageStyle={pageStyle}
-        />
+      {currentTile && card && <TileCard tile={currentTile} left={card.left} top={card.top} status={infoPanel ? status ?? undefined : undefined} appearance={appearance} pageStyle={pageStyle} />}
+      {currentRow && card && hl && (
+        <AddPreview item={currentRow} left={card.left} top={card.top} via={hl.via} target={target} appearance={appearance} pageStyle={pageStyle} />
       )}
     </div>
   );

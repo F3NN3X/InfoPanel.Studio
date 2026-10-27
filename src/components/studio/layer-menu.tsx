@@ -82,7 +82,8 @@ export function layerMenuEntries(host: LayerMenuHost): ContextMenuEntry[] {
   ];
 }
 
-/** The layer menu at a viewport point. */
-export function LayerMenu({ x, y, host, onClose }: { x: number; y: number; host: LayerMenuHost; onClose: () => void }) {
-  return <ContextMenu x={x} y={y} width={230} testId="layer-menu" entries={layerMenuEntries(host)} onClose={onClose} />;
+/** The layer menu at a viewport point; `extra` rows (a widget's own) go below its last section. */
+export function LayerMenu({ x, y, host, extra, onClose }: { x: number; y: number; host: LayerMenuHost; extra?: ContextMenuEntry[]; onClose: () => void }) {
+  const entries = layerMenuEntries(host);
+  return <ContextMenu x={x} y={y} width={230} testId="layer-menu" entries={extra?.length ? [...entries, "separator", ...extra] : entries} onClose={onClose} />;
 }

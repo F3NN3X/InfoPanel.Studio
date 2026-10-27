@@ -17,11 +17,13 @@ import {
   type DashboardConfig,
   type MonitorProfile,
   type PageRotate,
+  type ProfilePage,
   type ProfileView,
   type Placement,
 } from "@/lib/layout";
 import { findPanelPreset } from "@/lib/panelPresets";
-import type { PageOp } from "@/lib/page-model/model";
+import type { PageOp, PartNode } from "@/lib/page-model/model";
+import type { StoredItem } from "@/lib/infopanel/import/stored";
 import { applyPlacements } from "@/lib/page-model/placements-adapter";
 import { sampleLayout } from "@/lib/sample-layout";
 import { updateStylePreset } from "@/lib/style-presets";
@@ -93,6 +95,26 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
       const next = applyPlacements(p, page, ops);
       return next === page ? p : { ...p, pages: p.pages.map((pg) => (pg === page ? next : pg)) };
     }, key);
+
+  /**
+   * A new InfoPanel item or element on the page on the canvas (Edit v3 SPEC §7.4): the part on top, inside `parentId`
+   * when a group is selected, and the page's store (files, fonts) the item draws with; one undo step.
+   */
+  const addPagePart = (part: PartNode, parentId: string | null, store: ProfilePage["freeCanvas"]) =>
+    updateStored((p) => {
+      const page = pageOf(p, profile.pageId);
+      const next = applyPlacements(p, { ...page, freeCanvas: store }, [{ type: "add", part, parentId }]);
+      return { ...p, pages: p.pages.map((pg) => (pg === page ? next : pg)) };
+    });
+
+  /** An item placement's stored item replaced (a new part's sensor, once chosen). */
+  const setPagePartItem = (id: string, item: StoredItem) =>
+    updateStored((p) => {
+      const page = pageOf(p, profile.pageId);
+      if (!page.placements.some((x) => x.id === id)) return p;
+      const next = { ...page, placements: page.placements.map((x) => (x.id === id ? { ...x, item } : x)) };
+      return { ...p, pages: p.pages.map((pg) => (pg === page ? next : pg)) };
+    });
 
   /** Generic placement mutation (settings, design, ...). */
   const updatePlacement = (id: string, fn: (p: Placement) => Placement, key?: string) =>
@@ -440,6 +462,8 @@ export function useStudioMutations({ config, profile, setConfig, sel, onPresetSa
     updateProfile,
     updateStored,
     applyPageOps,
+    addPagePart,
+    setPagePartItem,
     updatePlacement,
     updateSelected,
     addPlacement,

@@ -71,8 +71,10 @@ interface PlacementFrameProps {
   onZoneDragCancel?: (id: string) => void;
   /** Being moved or resized: lifted with a shadow. */
   ghost?: boolean;
-  /** Right-click (viewport px): the studio opens the zone menu. */
+  /** Right-click (viewport px): the studio opens the layer menu. */
   onContextMenu?: (x: number, y: number) => void;
+  /** A press on a zone in a page group: true when it selected the group instead (and drags it). */
+  onPressGrouped?: (e: ReactPointerEvent) => boolean;
   /** A click (no drag) on the zone while it is already the Add panel's target: it stops being one. */
   onSelectAgain?: () => void;
   /** Open the widget picker (the blank zone's "Pick a widget"). */
@@ -127,6 +129,7 @@ export function PlacementFrame({
   onZoneDragCancel,
   ghost,
   onContextMenu,
+  onPressGrouped,
   onPickWidget,
   onSelectAgain,
   selected,
@@ -175,6 +178,8 @@ export function PlacementFrame({
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest("button, input, select, a, [data-no-drag]")) return;
+    // In a group: the press takes the outermost group first (Edit v3 SPEC §10.3 note).
+    if (onPressGrouped?.(e)) return;
     e.preventDefault();
     // Shift / Ctrl / ⌘: toggle the zone in the selection (no drag).
     if (isToggleClick(e)) {

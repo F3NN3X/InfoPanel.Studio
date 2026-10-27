@@ -549,8 +549,10 @@ marked `$fromFree` so the next `toFree` unwraps it in place, and the page keeps 
 `ProfilePage.freeCanvas`. The studio commits a switch as one history step (`switchLayout`); Free → Grid asks first
 when it makes a free area (`studio.confirmToGrid`). `fitFreePages`, run by `applyView`, keeps Free pages spanning
 the grid and sized to the screen after a resize (items kept in place; `scaleFreePages` is the Scale contents
-action), and `withFreeCanvas` makes a canvas resize in the editor resize the screen. An InfoPanel item dropped on a
-grid cell makes a free area there (`freeArea`) and opens the editor on it with the item to add (`initialAdd`).
+action), and `withFreeCanvas` makes a canvas resize in the editor resize the screen. An InfoPanel item or element
+added on a screen's page becomes an item placement (`infopanel/edit/grid-item-add.ts`: `newPagePart` stores it in the
+page's form, its fonts joined into `freeCanvas`; `placeForAdd` in `page-model/gesture.ts` snaps it to cells, or to the
+pixel with Alt on the drop), into the selected group, through `addPagePart` in one history step.
 
 The page model (`lib/page-model/`, Edit v3 SPEC §3.4) is the one shape the editor will work on for every page: a
 `PageModel` is a tree of parts (widget, item, element) and groups, top first, each part on cells (`cell`) or placed
@@ -1489,8 +1491,11 @@ view at a time: **Screens**, **Design**, **Theme**, **Library**, **Gauges**, **A
 with Help and Settings at the foot (each opens its own page or window). Design's left panel
 (`design-left-panel.tsx`) is **Layers** (`layers-tree.tsx`, the page's parts and groups top first, see the page
 model above) | **Add** (`add-panel.tsx` over `use-add-panel.ts` and `add-catalog.ts`: search, category chips
-and widget / layout / panel rows that drag (HTML5 drag, MIME in `studio-modules.ts`) or click to place;
-`searchItems` and `categoriesOf` filter). `insert-panel.tsx` keeps `filterInsertables`, `InsertFilters` and
+and, on the Widgets tab, a tile grid of widgets, InfoPanel items and elements (`add-tiles.ts`: sections, Recently used,
+search and the 2D arrow-key order; `add-tile-grid.tsx`; the details card `add-tile-card.tsx`, its item render the lazy
+`infopanel/edit/add-item-stage.tsx` and its Export check status the lazy `infopanel/edit/add-status.tsx`; the add
+message `add-toast.tsx`), panel and layout rows on the other tabs. Tiles and rows drag (HTML5 drag, MIME in
+`studio-modules.ts`, `PALETTE_DRAG_MIME` for items) or click to place; `searchItems` and `categoriesOf` filter). `insert-panel.tsx` keeps `filterInsertables`, `InsertFilters` and
 `InsertList` for the widget picker and the palette. Screens are the cards of `screens-view.tsx`: the
 a card per screen (the launch rule, `resolveProfile`'s Auto, is Settings › Dashboard › Startup screen).
 

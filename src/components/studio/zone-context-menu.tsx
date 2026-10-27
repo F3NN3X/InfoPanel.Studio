@@ -143,20 +143,39 @@ interface StudioContextMenuProps {
   onClose: () => void;
 }
 
+type ZoneMenuDeps = Omit<StudioContextMenuProps, "menu" | "onClose">;
+
+/** The zone menu of the selected zones. */
+function zoneSpec({ sel, canPasteStyle, canStep, canArrange, otherPages }: ZoneMenuDeps): MenuSpec {
+  const zone = sel.selected!;
+  return zoneMenu({
+    count: sel.selection.length,
+    panel: Boolean(zone.panel),
+    convertible: ![CANVAS_ID, BLANK_MODULE, CARDS_ID].includes(zone.module),
+    anyVisible: sel.selection.some((p) => p.visible),
+    canPasteStyle,
+    canStep,
+    canArrange,
+    otherPages,
+  });
+}
+
+/** The zone menu's rows the layer menu has its own of (Duplicate, Hide / Show, Delete). */
+const IN_LAYER_MENU: readonly MenuItemId[] = ["duplicate", "visible", "remove"];
+
+/**
+ * A widget's rows under the layer menu on the canvas (Edit v3 DECISIONS after phase 4): the zone menu's rows the layer
+ * menu doesn't have, in their order, separators kept between what is left.
+ */
+export function zoneMenuExtras(deps: ZoneMenuDeps): ContextMenuEntry[] {
+  if (!deps.sel.selected) return [];
+  const rows = zoneSpec(deps).filter((e) => e === "separator" || !IN_LAYER_MENU.includes(e.id));
+  const tidy = rows.filter((e, i) => e !== "separator" || (i > 0 && i < rows.length - 1 && rows[i - 1] !== "separator"));
+  return entriesOf(tidy, deps.onRun);
+}
+
 /** The zone menu (selection) or the canvas menu, as a right-click popup. */
-export function StudioContextMenu({ menu, sel, canPasteStyle, canStep, canArrange, otherPages, onRun, onClose }: StudioContextMenuProps) {
-  const spec =
-    menu.kind === "canvas" || !sel.selected
-      ? canvasMenu()
-      : zoneMenu({
-          count: sel.selection.length,
-          panel: Boolean(sel.selected.panel),
-          convertible: ![CANVAS_ID, BLANK_MODULE, CARDS_ID].includes(sel.selected.module),
-          anyVisible: sel.selection.some((p) => p.visible),
-          canPasteStyle,
-          canStep,
-          canArrange,
-          otherPages,
-        });
-  return <ContextMenu x={menu.x} y={menu.y} entries={entriesOf(spec, onRun)} onClose={onClose} />;
+export function StudioContextMenu({ menu, onClose, ...deps }: StudioContextMenuProps) {
+  const spec = menu.kind === "canvas" || !deps.sel.selected ? canvasMenu() : zoneSpec(deps);
+  return <ContextMenu x={menu.x} y={menu.y} entries={entriesOf(spec, deps.onRun)} onClose={onClose} />;
 }

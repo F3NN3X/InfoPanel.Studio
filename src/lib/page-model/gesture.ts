@@ -4,7 +4,7 @@
  * that holds Alt (with the page's Snap items off the other way round). Every op is absolute, from where the parts were
  * when the gesture started, so a drag can apply its latest ops again and again inside one undo step. Pure.
  */
-import { boxOf, cellsOverlap, nearestCells, trackOf, type CellBox, type PageGrid, type PageOp, type PartNode, type PixelBox } from "./model.ts";
+import { boxOf, cellsOverlap, nearestCells, trackOf, type CellBox, type PageGrid, type PageOp, type PartNode, type PartPlace, type PixelBox } from "./model.ts";
 
 /** A resize handle: the edges it moves. */
 export type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -97,6 +97,17 @@ export function cellsForAdd(grid: PageGrid, at: { x: number; y: number } | null,
     }
   }
   return best;
+}
+
+/**
+ * Where an item or element added at a point goes (SPEC §7.4): its box centred there, snapped to the cells nearest
+ * it, or placed freely to the pixel (`free`: Alt on the drop, or the page's Snap items off).
+ */
+export function placeForAdd(grid: PageGrid, at: { x: number; y: number }, size: { w: number; h: number }, free: boolean): PartPlace {
+  const w = Math.max(1, Math.round(size.w));
+  const h = Math.max(1, Math.round(size.h));
+  const box = { x: Math.round(at.x - w / 2), y: Math.round(at.y - h / 2), w, h };
+  return free ? { px: box } : { cell: nearestCells(grid, box) };
 }
 
 /** A key press on the selection (SPEC §14): which arrow, and Alt and Shift as held. */

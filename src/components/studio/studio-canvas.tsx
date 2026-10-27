@@ -19,13 +19,11 @@ import { islandReserve } from "@/components/island/island-model";
 import type { ActiveAlert } from "@/lib/alerts";
 import type { PageBackground as Background } from "@/lib/appearance";
 import type { Appearance } from "@/lib/style-resolve";
-import { BLANK_MODULE, CANVAS_ID, SCROLL_ROW_H, type ProfilePage, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, SCROLL_ROW_H, type ProfilePage, type ProfileView, type Placement } from "@/lib/layout";
 import { withItemLayers } from "@/lib/page-model/items-layer";
 import type { PageOp } from "@/lib/page-model/model";
 import { AltHint } from "./alt-hint";
-
-/** The Add palette's drag type (`PALETTE_DRAG` in infopanel/edit/add-palette.tsx), kept here so the palette stays lazy. */
-const PALETTE_MIME = "application/x-infopanel-kind";
+import { PALETTE_DRAG_MIME as PALETTE_MIME } from "./add-tiles";
 import { fontStack, resolveFont } from "@/lib/general";
 import {
   cellAt as gridCellAt,
@@ -42,7 +40,7 @@ import { pastDragThreshold, trackPointer } from "./pointer-drag";
 import { LivePlacement } from "./placement-content";
 import { RulerLabels } from "./rulers";
 import { ScreenFold } from "./screen-fold";
-import { ItemParts, useAltHeld, type GroupMoves, type ItemGesture } from "./item-parts";
+import { ItemParts, useAltHeld, type GroupMoves, type ItemGesture, type PressGrouped } from "./item-parts";
 import { EmptyLayoutCard, QuickTipsCard } from "./canvas-cards";
 import { canvasPointAt, canvasTakesDrop, dropGhost, dropSize, libraryItemOf, myLibraryDropOf, type CanvasDrop, type CanvasPoint, type LibraryItem } from "./drop-ghost";
 import { addGhost, type Ghost } from "./add-place";
@@ -141,10 +139,10 @@ interface StudioCanvasProps {
    * is the cell under the pointer (a style card applies to the zone there).
    */
   /**
-   * An InfoPanel item or element from Add (its `PALETTE_DRAG` id) dropped on the grid (one-editor SPEC §5.3): on an
-   * empty cell it makes a free area there, on a free area (`inCanvas`) it goes into it.
+   * An InfoPanel item or element from Add (its `PALETTE_DRAG` id) dropped on the page (Edit v3 SPEC §7.4): where it
+   * fell in page px, and whether Alt was held (it goes free).
    */
-  onPaletteDrop?: (data: string, cell: { col: number; row: number }, inCanvas: CanvasPoint | null) => void;
+  onPartDrop?: (data: string, at: { x: number; y: number }, alt: boolean) => void;
   /** `inCanvas`: the drop point as a fraction of a canvas zone's profile, when it fell on one. */
   onDropItem: (item: CanvasDrop, rect: ZoneRect | null, cell: { col: number; row: number } | null, inCanvas: CanvasPoint | null) => void;
   /** The Add panel row a widget or panel drag carries: its ghost shrinks to fit and fills blank zones. */
@@ -157,7 +155,7 @@ interface StudioCanvasProps {
   onClearTarget?: () => void;
   /** The zone just added: a 2 px accent ring that fades (`seq` replays it). */
   flash?: { zoneId: string; seq: number } | null;
-  /** Bottom centre of the canvas (the Add panel's toast). */
+  /** Top centre of the canvas (the Add panel's toast). */
   toast?: ReactNode;
   /** Right-click (viewport px) on a zone, or on empty canvas (null). */
   onContextMenu: (id: string | null, x: number, y: number) => void;
@@ -217,7 +215,7 @@ export function StudioCanvas({
   onPickWidget,
   dropSizeOf,
   onDropItem,
-  onPaletteDrop,
+  onPartDrop,
   addItemOf,
   onAddDrop,
   targetZoneId,
@@ -234,6 +232,8 @@ export function StudioCanvas({
 }: StudioCanvasProps) {
   /** An item gesture in flight (Alt, free): the hint and the faded cell lines. */
   const [gesture, setGesture] = useState<ItemGesture | null>(null);
+  /** A press on a widget in a page group: the item layer selects the group and drags it. */
+  const pressGrouped = useRef<PressGrouped | null>(null);
   const [zoneDrag, setZoneDrag] = useState<{
     id: string;
     /** The zones moving with it (just `id` unless a selection moves). */
@@ -408,19 +408,22 @@ export function StudioCanvas({
   const isLibraryDrag = (e: DragEvent) =>
     e.dataTransfer.types.includes(DND_MIME) || e.dataTransfer.types.includes(DND_MIME_PANEL) || e.dataTransfer.types.includes(LIBRARY_MIME);
 
-  /** The zone that covers a cell, if any. */
-  const zoneAt = (cell: { col: number; row: number }) =>
-    profile.placements.find((p) => p.visible && cell.col >= p.colStart && cell.col < p.colStart + p.colSpan && cell.row >= p.rowStart && cell.row < p.rowStart + p.rowSpan);
-  const isPaletteDrag = (e: DragEvent) => onPaletteDrop !== undefined && e.dataTransfer.types.includes(PALETTE_MIME);
+  const isPaletteDrag = (e: DragEvent) => onPartDrop !== undefined && e.dataTransfer.types.includes(PALETTE_MIME);
+  /** A screen point in the page's design px (the page is drawn zoomed). */
+  const pagePointAt = (x: number, y: number): { x: number; y: number } | null => {
+    const r = pageEl?.getBoundingClientRect();
+    if (!r || r.width <= 0 || profile.width <= 0) return null;
+    const k = r.width / profile.width;
+    return { x: (x - r.left) / k, y: (y - r.top) / k };
+  };
 
   /** Library drag over the board: the ghost follows the pointer's cell. */
   const onCanvasDragOver = (e: DragEvent) => {
     if (isPaletteDrag(e)) {
+      // An item or element may sit on anything: it snaps to the cell under it, or goes free with Alt (no ghost).
       e.preventDefault();
-      const cell = cellAt(e.clientX, e.clientY);
-      const under = cell ? zoneAt(cell) : undefined;
-      // A free area takes the item itself; an empty cell shows where the new one goes.
-      const next = !cell || under?.module === CANVAS_ID ? null : { rect: { col: cell.col, row: cell.row, cols: 1, rows: 1 }, ok: !under, label: under ? "No room there" : "Makes a free area here" };
+      const cell = e.altKey ? null : cellAt(e.clientX, e.clientY);
+      const next = cell ? { rect: { col: cell.col, row: cell.row, cols: 1, rows: 1 }, ok: true } : null;
       setDropPreview((prev) => (prev?.ok === next?.ok && prev?.rect.col === next?.rect.col && prev?.rect.row === next?.rect.row ? prev : next));
       return;
     }
@@ -466,10 +469,10 @@ export function StudioCanvas({
     dragItem.current = null;
     setDropPreview(null);
     const read = (type: string) => e.dataTransfer.getData(type);
-    const palette = onPaletteDrop ? read(PALETTE_MIME) : "";
+    const palette = onPartDrop ? read(PALETTE_MIME) : "";
     if (palette) {
-      const cell = cellAt(e.clientX, e.clientY);
-      if (cell) onPaletteDrop?.(palette, cell, canvasPointAt(e.clientX, e.clientY));
+      const at = pagePointAt(e.clientX, e.clientY);
+      if (at) onPartDrop?.(palette, at, e.altKey);
       return;
     }
     const item = libraryItemOf(read) ?? myLibraryDropOf(read);
@@ -743,6 +746,7 @@ export function StudioCanvas({
                           onSelectAgain={p.id === targetZoneId ? onClearTarget : undefined}
                           onOpenSettings={onOpenSettings && (() => onOpenSettings(p.id))}
                           onSelectWidget={p.panel ? (widgetId) => onSelectWidget(p.id, widgetId) : undefined}
+                          onPressGrouped={p.groupId && !selectedIds.includes(p.id) ? (e) => pressGrouped.current?.(e, p.id) ?? false : undefined}
                           onPickWidget={() => onPickWidget(p.id)}
                           onContextMenu={(x, y) => onContextMenu(p.id, x, y)}
                           badge={badgeOf?.(p)}
@@ -778,6 +782,7 @@ export function StudioCanvas({
                     onContextMenu={items.onContextMenu}
                     badgeOf={items.badgeOf}
                     groups={items.groups}
+                    pressRef={pressGrouped}
                   />
                 )}
               </div>
@@ -823,8 +828,8 @@ export function StudioCanvas({
         <AltHint widget={zoneDrag !== null} className="absolute left-1/2 top-3 z-40 -translate-x-1/2" />
       )}
 
-      {/* Above the zoom bar (bottom-4, 36 px tall), not on it. */}
-      {toast && <div className="pointer-events-none absolute inset-x-0 bottom-16 z-40 flex justify-center">{toast}</div>}
+      {/* Top centre of the canvas (Edit v3 SPEC §9.6). */}
+      {toast && <div className="pointer-events-none absolute inset-x-0 top-3.5 z-40 flex justify-center">{toast}</div>}
 
       {/* Zone-drag ghost: follows the pointer (outside the zoomed canvas)
           so the zone being moved/resized is always visibly tracked. */}

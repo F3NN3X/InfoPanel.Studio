@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardConfig } from "@/lib/layout";
 import { addCatalog, sameDrop, type AddItem } from "./add-catalog";
 import type { Ghost } from "./add-place";
-import { useRecentWidgets } from "./add-recent";
+import { useRecentAdds } from "./add-recent";
+import type { AddStatusKit } from "./add-tile-card";
+import { widgetTile } from "./add-tiles";
 import type { AddToastState } from "./add-toast";
 import type { LibraryItem } from "./drop-ghost";
 import type { AddOutcome } from "./use-studio-mutations";
@@ -10,6 +12,33 @@ import type { ZoneRect } from "./zone-geometry";
 
 /** How long the Add panel's toast stays up. */
 export const ADD_TOAST_MS = 4000;
+
+/**
+ * The Add toast's state (Edit v3 SPEC §9.6): `show` raises it for a while; it goes as soon as another edit lands after
+ * an add, since its Undo would then undo that edit instead. `changes` is what edits change (the config, the canvas's items).
+ */
+export function useAddToast(changes: unknown) {
+  const [toast, setToast] = useState<AddToastState | null>(null);
+  const seq = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const ownChange = useRef(false);
+  useEffect(() => {
+    if (ownChange.current) {
+      ownChange.current = false;
+      return;
+    }
+    setToast((t) => (t?.added ? null : t));
+  }, [changes]);
+  /** Raise the toast; an add's (`added`) is expected to change `changes` once, which keeps it. */
+  const show = useCallback((message: string, added: boolean, change = false) => {
+    clearTimeout(timer.current);
+    if (added) ownChange.current = true;
+    setToast({ id: ++seq.current, message, added, change });
+    timer.current = setTimeout(() => setToast(null), ADD_TOAST_MS);
+  }, []);
+  return { toast, show, seq, clear: () => setToast(null) };
+}
 
 interface AddPanelDeps {
   config: DashboardConfig;
@@ -19,44 +48,29 @@ interface AddPanelDeps {
   targetZoneId?: string;
   /** The studio's undo (the toast's Undo). */
   undo: () => void;
+  /** On a screen made for InfoPanel, once loaded: the tiles' statuses, and the toast says what an export makes of the part. */
+  kitFor?: (widgets: AddItem[]) => AddStatusKit;
 }
 
 /**
- * The Add panel's state shared with the canvas (handoff SPEC §7): the catalog, Recent, the toast and the added
+ * The Add panel's state shared with the canvas (handoff SPEC §7): the catalog, Recently used, the toast and the added
  * zone's flash, and `add` for a click, Enter or a drop. Each add is one undo step.
  */
-export function useAddPanel({ config, addFromPanel, targetZoneId, undo }: AddPanelDeps) {
+export function useAddPanel({ config, addFromPanel, targetZoneId, undo, kitFor }: AddPanelDeps) {
   const catalog = useMemo(() => addCatalog(config.panelPresets), [config.panelPresets]);
-  const [recent, pushRecent] = useRecentWidgets();
-  const [toast, setToast] = useState<AddToastState | null>(null);
+  const status = useMemo(() => kitFor?.(catalog.widget) ?? null, [kitFor, catalog]);
+  const [recent, pushRecent] = useRecentAdds();
+  const { toast, show, seq, clear } = useAddToast(config);
   const [flash, setFlash] = useState<{ zoneId: string; seq: number } | null>(null);
-  const seq = useRef(0);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-
-  const show = useCallback((message: string, added: boolean) => {
-    clearTimeout(timer.current);
-    setToast({ id: ++seq.current, message, added });
-    timer.current = setTimeout(() => setToast(null), ADD_TOAST_MS);
-  }, []);
-
-  // Undo undoes the latest step: once another edit lands after the add, the toast's Undo would undo that instead.
-  const ownChange = useRef(false);
-  useEffect(() => {
-    if (ownChange.current) {
-      ownChange.current = false;
-      return;
-    }
-    setToast((t) => (t?.added ? null : t));
-  }, [config]);
 
   const finish = (item: AddItem, outcome: AddOutcome | null) => {
     if (!outcome) return;
     if (!outcome.added) return show(outcome.message, false);
-    ownChange.current = true;
     if (item.kind === "widget") pushRecent(item.id);
     setFlash({ zoneId: outcome.zoneId, seq: seq.current + 1 });
-    show(outcome.message, true);
+    // A widget on a screen made for InfoPanel: what an export makes of it, and Change for its On InfoPanel choice.
+    if (status && item.kind !== "layout") show(status.added(widgetTile(item)), true, true);
+    else show(outcome.message, true);
   };
 
   /** A click or Enter: fills the target when one is set, else auto-places. */
@@ -74,11 +88,11 @@ export function useAddPanel({ config, addFromPanel, targetZoneId, undo }: AddPan
   );
 
   const undoAdd = () => {
-    setToast(null);
+    clear();
     undo();
   };
 
-  return { catalog, recent, toast, flash, add, drop, itemOf, undoAdd };
+  return { catalog, status, recent, pushRecent, toast, show, flash, add, drop, itemOf, undoAdd };
 }
 
 export type AddPanelState = ReturnType<typeof useAddPanel>;

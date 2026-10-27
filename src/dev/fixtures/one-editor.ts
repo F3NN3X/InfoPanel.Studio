@@ -15,7 +15,8 @@ import type { Fixture, FixtureName } from "./types";
  * profile on a Free page). What today's model can't hold yet, for the phases that add it:
  *  - sensor bindings: the items have none, so values read as placeholders, not 54 / 61 / 1240;
  *  - nested groups (the schema keeps a group out of a group): not needed by these states;
- *  - the per-state UI (Add segment, hover card, toast, Alt drag, layer menu): carried on the Fixture, read by later phases.
+ *  - the per-state UI: Add's segment, hover card, Recently used and toast are read by Edit (phase 5); the Alt drag and
+ *    layer menu are carried on the Fixture for later phases.
  */
 
 const NOW = new Date("2026-10-27T00:00:00Z");
@@ -152,10 +153,13 @@ function neonFixture(order: (p: Parts) => DisplayItem[], select: string | null, 
   };
 }
 
+/** The reference's Recently used: Weather and a gauge (the registry's Custom gauge stands in for its CPU gauge). */
+const RECENT = ["Weather", "CustomGauge"];
+
 const BUILD: Record<FixtureName, () => Fixture> = {
   screen: () => deskFixture("studio", ["weather"], "layers"),
   profile: () => neonFixture(profileItems, "CPU temp", "layers"),
-  addw: () => neonFixture((p) => [...profileItems(p), p.weather], "Weather", "add", { addSegment: "all", toast: "addw" }),
+  addw: () => neonFixture((p) => [...profileItems(p), p.weather], "Weather", "add", { addSegment: "all", toast: "addw", recent: RECENT }),
   alt: () => deskFixture("studio", ["cpu"], "layers", { altDrag: { part: "Title text" } }, true),
   export: () => deskFixture("infopanel", [], "layers"),
   layersF: () =>
@@ -166,7 +170,7 @@ const BUILD: Record<FixtureName, () => Fixture> = {
       { contextMenuFor: "Weather" }
     ),
   layersG: () => deskFixture("studio", [], "layers", {}, true),
-  hover: () => neonFixture(profileItems, null, "add", { addSegment: "w", hoverTile: "Weather" }),
+  hover: () => neonFixture(profileItems, null, "add", { addSegment: "widgets", hoverTile: "Weather", recent: RECENT }),
 };
 
 /** The fixture `name` of `?fixture=one-editor/<name>`, or undefined for an unknown name. */

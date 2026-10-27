@@ -7,6 +7,7 @@ import {
   CANVAS_ID,
   ITEM_ID,
   resolveProfile,
+  uid,
   type DashboardConfig,
   type MadeFor,
   type PageLayout,
@@ -41,10 +42,11 @@ import { madeForInfoPanel, screenKind } from "@/lib/screens/list";
 import { MadeForControl } from "./made-for-control";
 import { ToGridDialog } from "./layout-control";
 import { useStoredFlag } from "./use-stored-flag";
-import { useAddFilter } from "./add-prefs";
 import { ADD_TOAST_MS } from "./use-add-panel";
-import type { CanvasPoint } from "./drop-ghost";
-import { firstFreeRect } from "./zone-geometry";
+import { focusOnInfoPanel } from "./add-toast";
+import { ELEMENT_TILES, ITEM_TILES, partKey } from "./add-tiles";
+import { placeForAdd, placesFreely } from "@/lib/page-model/gesture";
+import type { StoredItem } from "@/lib/infopanel/import/stored";
 import { withScreenPerformance } from "./screens-model";
 import { StatusBar } from "./status-bar";
 import { useStatusBar } from "./use-status-bar";
@@ -72,7 +74,8 @@ import { LayerSection } from "./layer-section";
 import { findNode, walk, type GroupNode } from "@/lib/page-model/model";
 import { useInspectorFollowsSelection, useStudioUi } from "./use-studio-ui";
 import { SelectionChip } from "./selection-chip";
-import { StudioContextMenu, useContextMenu } from "./zone-context-menu";
+import { StudioContextMenu, useContextMenu, zoneMenuExtras } from "./zone-context-menu";
+import type { ArrangeOp } from "./zone-arrange";
 import { widgetName } from "./widget-kinds";
 import { WidgetPickerDialog } from "./widget-picker-dialog";
 import { kiosksOf, postControl, useControl, type ControlDisplay } from "@/lib/control";
@@ -122,10 +125,10 @@ interface CheckKit {
 }
 const loadCheckKit = (): Promise<CheckKit> =>
   Promise.all([import("@/lib/infopanel/export-check"), import("@/components/infopanel/export-check-panel")]).then(([c, p]) => ({ exportCheck: c.exportCheck, StatusIcon: p.StatusIcon }));
-/** A grid page's InfoPanel items in Add, loaded when the panel first lists them. */
-const GridPalette = lazy(() => import("@/components/infopanel/edit/grid-palette"));
-/** How many InfoPanel item kinds Add offers (`PALETTE.length` in editor/create.ts; kept here so the palette stays lazy). */
-export const INFOPANEL_ITEM_KINDS = 14;
+/** A new part's sensor picker on a screen page, loaded with the first item that asks for one. */
+const SensorPicker = lazy(() => import("@/components/infopanel/edit/sensor-picker").then((m) => ({ default: m.SensorPicker })));
+/** Add's Export check statuses, loaded on a screen made for InfoPanel. */
+type AddStatusModule = typeof import("@/components/infopanel/edit/add-status");
 
 /** The canvas editor (A5): Edit on a Free page or a free area, loaded when one is first opened. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
@@ -426,8 +429,25 @@ function StudioViewBody({
     showLayers: () => ui.setLeftTab("layers"),
     toast,
   });
-  /** The layer menu, opened on a part or a group's box on the canvas (Layers opens its own). */
-  const [layerMenu, setLayerMenu] = useState<{ x: number; y: number } | null>(null);
+  /** The layer menu, opened on a part or a group's box on the canvas (Layers opens its own); on a widget, `zone`. */
+  const [layerMenu, setLayerMenu] = useState<{ x: number; y: number; zone?: boolean } | null>(null);
+  /** Right-click on a widget on the canvas: the layer menu, the zone menu's other rows under it (DECISIONS after phase 4). */
+  const openPartMenu = (id: string, x: number, y: number) => {
+    if (!layers.selection.includes(id)) {
+      items.clear();
+      layers.clearGroups();
+      sel.select(id);
+    }
+    setLayerMenu({ x, y, zone: true });
+  };
+  /** What the zone menu's rows need (the canvas's empty-space menu, and a widget's rows under the layer menu). */
+  const zoneMenuDeps = {
+    canPasteStyle: ui.styleClipboard !== null,
+    canStep: (cols: number, rows: number) => selected !== null && edit.resizeSelected({ cols: selected.colSpan + cols, rows: selected.rowSpan + rows }) !== null,
+    canArrange: (op: ArrangeOp) => edit.arrangement(op) !== null,
+    otherPages: storedProfile.pages.filter((p) => p.id !== profile.pageId),
+    onRun: runCommand,
+  };
   /** A Free page (its layout, one canvas filling the screen, as every InfoPanel profile's) is edited in the canvas editor. */
   const freeZone = isFreePage(profile, storedPage) ? profile.placements[0] : null;
   /** What Edit's canvas editor shows: the Free page's canvas, else the free area opened from the grid. */
@@ -535,8 +555,17 @@ function StudioViewBody({
   const canvasTheme = ownTheme ? resolveTheme(config, profile) : null;
   const themeScope = canvasTheme ? (themeVars(canvasTheme.tokens, canvasTheme.radius) as CSSProperties) : undefined;
 
-  /** The Add panel (handoff SPEC): its catalog, Recent, toast and flash; a click fills the selected blank zone. */
-  const addPanel = useAddPanel({ config, addFromPanel: edit.addFromPanel, targetZoneId: blankZoneId, undo: history.undo });
+  /** Add's statuses on a screen made for InfoPanel (the module loads with the first such screen). */
+  const [addStatus, setAddStatus] = useState<AddStatusModule | null>(null);
+  useEffect(() => {
+    if (checkOnScreen && !addStatus) void import("@/components/infopanel/edit/add-status").then(setAddStatus);
+  }, [checkOnScreen, addStatus]);
+  const kitFor = useMemo(
+    () => (checkOnScreen && addStatus ? (widgets: Parameters<AddStatusModule["addStatusKit"]>[0]) => addStatus.addStatusKit(widgets, config.panelPresets) : undefined),
+    [checkOnScreen, addStatus, config.panelPresets],
+  );
+  /** The Add panel (Edit v3 SPEC §9): its catalog, Recently used, toast and flash; a click fills the selected blank zone. */
+  const addPanel = useAddPanel({ config, addFromPanel: edit.addFromPanel, targetZoneId: blankZoneId, undo: history.undo, kitFor });
   const [addDensity] = useAddListDensity();
   const [addPreviewOnHover] = useAddPreviewOnHover();
   const pageFont = fontStack(resolveFont(useGeneral(), profile));
@@ -613,37 +642,50 @@ function StudioViewBody({
     studioLayout.showInspector();
   };
 
+  /** The middle of the part of the board in view, in page px (where a clicked item goes). */
+  const boardCentre = (): { x: number; y: number } | null => {
+    const page = ui.scrollRef.current?.querySelector<HTMLElement>("[data-studio-page]");
+    const view = ui.scrollRef.current;
+    if (!page || !view || profile.width <= 0) return null;
+    const p = page.getBoundingClientRect();
+    const v = view.getBoundingClientRect();
+    const [l, r, t, b] = [Math.max(p.left, v.left), Math.min(p.right, v.right), Math.max(p.top, v.top), Math.min(p.bottom, v.bottom)];
+    if (r <= l || b <= t) return null;
+    const k = p.width / profile.width;
+    return { x: ((l + r) / 2 - p.left) / k, y: ((t + b) / 2 - p.top) / k };
+  };
+  /** A new part asking for its sensor (the picker binds it, one more undo step). */
+  const [pickSensor, setPickSensor] = useState<{ id: string; label: string; pluginOnly: boolean; item: StoredItem } | null>(null);
   /**
-   * An InfoPanel item or element on a grid page (SPEC §5.3): into the free area it was dropped on (or the selected
-   * one, for a click), else into a new free area on the cell it was dropped on (or the first free cell). The canvas
-   * editor opens on the area and adds it there.
+   * An InfoPanel item or element from Add on a screen page (Edit v3 SPEC §7.4, DECISIONS after phase 3): an item
+   * placement, never a free area. A click puts it in the middle of the board in view, a drop where it lands; snapped
+   * to the cells nearest it, or placed freely with Alt (the page's Snap items off: the other way round). On top, or on
+   * top inside the selected group; selected; one undo step. A sensor kind then asks for its sensor.
    */
-  const [pendingAdd, setPendingAdd] = useState<{ zoneId: string; data: string; at?: { x: number; y: number } } | null>(null);
-  useEffect(() => {
-    if (pendingAdd && editingCanvas !== pendingAdd.zoneId) setPendingAdd(null);
-  }, [editingCanvas]);
-  const addPaletteItem = (data: string, cell?: { col: number; row: number }, inCanvas?: CanvasPoint | null) => {
-    const areaId = inCanvas?.zoneId ?? (!cell && selected?.module === CANVAS_ID ? selected.id : undefined);
-    const area = areaId ? profile.placements.find((p) => p.id === areaId && p.module === CANVAS_ID && p.canvas) : undefined;
-    if (area?.canvas) {
-      const at = inCanvas ? { x: inCanvas.fx * Number(area.canvas.profile.Width), y: inCanvas.fy * Number(area.canvas.profile.Height) } : undefined;
-      setPendingAdd({ zoneId: area.id, data, at });
-      editCanvasZone(area.id);
-      return;
-    }
-    const covered = (c: { col: number; row: number }) =>
-      profile.placements.some((p) => c.col >= p.colStart && c.col < p.colStart + p.colSpan && c.row >= p.rowStart && c.row < p.rowStart + p.rowSpan);
-    const rect = cell ? (covered(cell) ? null : { col: cell.col, row: cell.row, cols: 1, rows: 1 }) : firstFreeRect(profile.cols, profile.rows, { cols: 1, rows: 1 }, profile.placements);
-    if (!rect) return toast(cell ? "No room there" : "No free cell on this page for a free area");
-    void import("@/lib/page-layout").then(({ freeArea }) => {
-      const zone = freeArea(profile, { colStart: rect.col, rowStart: rect.row, colSpan: rect.cols, rowSpan: rect.rows });
-      edit.updateProfile((v) => ({ ...v, placements: [...v.placements, zone] }));
-      setPendingAdd({ zoneId: zone.id, data });
-      editCanvasZone(zone.id);
-      toast("Made a free area for it. Done goes back to the grid.");
+  const addPart = (data: string, drop?: { at: { x: number; y: number }; alt: boolean }) => {
+    const tile = [...ITEM_TILES, ...ELEMENT_TILES].find((t) => t.data === data);
+    if (!tile) return;
+    // A page group has no item of its own: the Group tile groups the selection (Ctrl+G).
+    if (data === "Group") return layers.run("group");
+    const { model, groups: selectedGroups } = layers;
+    const grid = model.grid;
+    const at = drop?.at ?? boardCentre() ?? { x: grid.width / 2, y: grid.height / 2 };
+    const free = placesFreely(model.snapItems, drop?.alt ?? false);
+    const parentId = selectedGroups.length === 1 ? selectedGroups[0] : null;
+    void import("@/components/infopanel/edit/grid-item-add").then(({ newPagePart, partOf }) => {
+      const made = newPagePart(data, storedPage, { width: profile.width, height: profile.height });
+      const entry = partOf(data);
+      if (!made || !entry) return;
+      const id = uid("item");
+      const name = typeof made.item.Name === "string" && made.item.Name ? made.item.Name : entry.label;
+      edit.addPagePart({ type: "part", id, kind: tile.kind === "element" ? "element" : "item", name, place: placeForAdd(grid, at, made, free), ref: { backing: "item", item: made.item } }, parentId, made.store);
+      layers.clearGroups();
+      items.select(id, false);
+      addPanel.pushRecent(partKey(data));
+      if (addPanel.status) addPanel.show(addPanel.status.added(tile), true);
+      if (entry.sensor) setPickSensor({ id, label: entry.label, pluginOnly: entry.pluginOnly, item: made.item });
     });
   };
-  const [addFilter, setAddFilter] = useAddFilter();
 
   /** A grid widget's On InfoPanel section, on a screen made for InfoPanel. */
   const onInfoPanelOf = checkOn
@@ -728,10 +770,11 @@ function StudioViewBody({
       width={ui.leftWidth}
       add={{
         catalog: addPanel.catalog,
-        recent: addPanel.recent,
+        recent: fixture?.recent ?? addPanel.recent,
         target: addTarget,
         onClearTarget: () => sel.select(null),
         onAdd: addPanel.add,
+        onAddPart: (data) => addPart(data),
         onRenamePreset: edit.renameSavedPanel,
         onDeletePreset: edit.deleteSavedPanel,
         onImportCanvas: () => openImportDoor({ prefer: "canvas-zone" }),
@@ -740,17 +783,9 @@ function StudioViewBody({
         previewOnHover: addPreviewOnHover,
         appearance,
         pageStyle: { ...themeScope, fontFamily: pageFont },
-        free: {
-          filter: addFilter,
-          onFilter: setAddFilter,
-          itemCount: INFOPANEL_ITEM_KINDS,
-          grid: true,
-          items: (query) => (
-            <Suspense fallback={null}>
-              <GridPalette query={query} onAdd={(data) => addPaletteItem(data)} />
-            </Suspense>
-          ),
-        },
+        infoPanel: checkOn,
+        status: addPanel.status,
+        start: fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile },
       }}
       layers={layers.host}
     />
@@ -899,14 +934,25 @@ function StudioViewBody({
       onDragCancel={history.cancel}
       dropSizeOf={(d) => (d.kind === "mylib" ? librarySizeOf(d.item, profile) : edit.dropSizeOf(d))}
       onDropItem={(d, rect, cell, inCanvas) => (d.kind === "mylib" ? void dropLibraryItem(libraryBridge, d, rect, cell, inCanvas) : edit.dropItem(d, rect))}
-      onPaletteDrop={addPaletteItem}
+      onPartDrop={(data, at, alt) => addPart(data, { at, alt })}
       addItemOf={addPanel.itemOf}
       onAddDrop={addPanel.drop}
       targetZoneId={blankZoneId}
       onClearTarget={() => sel.select(null)}
       flash={addPanel.flash}
-      toast={addPanel.toast && <AddToast toast={addPanel.toast} onUndo={addPanel.undoAdd} />}
-      onContextMenu={menus.open}
+      toast={
+        addPanel.toast && (
+          <AddToast
+            toast={addPanel.toast}
+            onUndo={addPanel.undoAdd}
+            onChange={() => {
+              studioLayout.showInspector();
+              focusOnInfoPanel();
+            }}
+          />
+        )
+      }
+      onContextMenu={(id, x, y) => (id === null ? menus.open(null, x, y) : openPartMenu(id, x, y))}
       onOpenAdd={() => ui.openDrawer("add")}
       onUseSample={() => runCommand({ type: "sample-layout" })}
       islandAlerts={islandTestAlerts}
@@ -933,6 +979,10 @@ function StudioViewBody({
           onMove: layers.moveGroups,
           onRefused: layers.refuseGroupMove,
           onPick: (id) => layers.host.select(id, "only", []),
+          onSelectGroup: (id, toggle) => {
+            setGridCheckOpen(false);
+            layers.host.select(id, toggle ? "toggle" : "only", []);
+          },
           onContextMenu: (x, y) => setLayerMenu({ x, y }),
         },
         onOps: edit.applyPageOps,
@@ -1067,7 +1117,7 @@ function StudioViewBody({
         checkOn={checkOn}
         checkRequest={checkRequest}
         onLayout={freeZone ? () => switchPageLayout(currentPageId, "grid") : undefined}
-        initialAdd={pendingAdd?.zoneId === activeCanvas.id ? pendingAdd : undefined}
+        addStart={fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, recent: fixture.recent, toast: fixture.toast }}
         onExport={() => io.openExport(activeCanvas)}
         initialSelection={canvasSelection}
         unbound={unboundNote?.zoneId === activeCanvas.id ? unboundNote.labels : undefined}
@@ -1351,23 +1401,41 @@ function StudioViewBody({
         commands={commands}
         onRun={(command) => runCommand(command.action)}
       />
+      {pickSensor && (
+        <Suspense fallback={null}>
+          <SensorPicker
+            open
+            onOpenChange={(open) => !open && setPickSensor(null)}
+            title={`Choose a sensor for ${pickSensor.label}`}
+            pluginOnly={pickSensor.pluginOnly}
+            current={null}
+            onPick={(sensor) => {
+              // The item as the page holds it now (at its box), else as it was made.
+              const id = pickSensor.id;
+              const item = storedPage.placements.find((p) => p.id === id)?.item ?? pickSensor.item;
+              void import("@/components/infopanel/edit/grid-item-add").then(({ boundPagePart }) =>
+                edit.setPagePartItem(id, boundPagePart(storedPage, item, sensor, { width: profile.width, height: profile.height })),
+              );
+            }}
+          />
+        </Suspense>
+      )}
       {layerMenu && (
         <Suspense fallback={null}>
-          <LayerMenu x={layerMenu.x} y={layerMenu.y} host={{ ...layers.host.menu, rename: layers.selection.length === 1 ? layers.requestRename : undefined }} onClose={() => setLayerMenu(null)} />
+          <LayerMenu
+            x={layerMenu.x}
+            y={layerMenu.y}
+            host={{ ...layers.host.menu, rename: layers.selection.length === 1 ? layers.requestRename : undefined }}
+            extra={layerMenu.zone && sel.selected ? zoneMenuExtras({ sel, ...zoneMenuDeps }) : undefined}
+            onClose={() => setLayerMenu(null)}
+          />
         </Suspense>
       )}
       {menus.menu && (
         <StudioContextMenu
           menu={menus.menu}
           sel={sel}
-          canPasteStyle={ui.styleClipboard !== null}
-          canStep={(cols, rows) =>
-            selected !== null &&
-            edit.resizeSelected({ cols: selected.colSpan + cols, rows: selected.rowSpan + rows }) !== null
-          }
-          canArrange={(op) => edit.arrangement(op) !== null}
-          otherPages={storedProfile.pages.filter((p) => p.id !== profile.pageId)}
-          onRun={runCommand}
+          {...zoneMenuDeps}
           onClose={menus.close}
         />
       )}
