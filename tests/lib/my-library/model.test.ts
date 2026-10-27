@@ -12,11 +12,13 @@ import {
   duplicateGroups,
   flagOf,
   hashOf,
+  isUsed,
   metaLine,
   roleOf,
   search,
   sortItems,
   topTags,
+  usedHashes,
   type MediaMeta,
 } from "@/lib/my-library/model";
 import { contrast, hslTokenToRgb, hueDistance, suggestBackgrounds } from "@/lib/my-library/theme-suggest";
@@ -143,8 +145,24 @@ describe("collections", () => {
   it("counts the cleanup banner and flags cards", () => {
     expect(cleanupCounts(index)).toMatchObject({ duplicates: 2, unused: 4, large: 2 });
     expect(flagOf(b, index)).toBe("Duplicate");
-    expect(flagOf(g, index)).toBe("Unused");
+    expect(flagOf(g, index)).toBe("Not used");
     expect(flagOf(buildIndex([a]).items[0], buildIndex([a]))).toBeNull();
+  });
+
+  it("counts a file the config names as used, though no copy was placed (a background, an image widget)", () => {
+    const used = usedHashes({ profiles: [{ background: { type: "image", src: `/api/assets/${H("b")}.png` } }] });
+    const withUse = buildIndex([a, b, c, d, g, f], [], used);
+    expect(isUsed(b, withUse)).toBe(true);
+    expect(flagOf(b, withUse)).toBe("Duplicate");
+    // d shares a's bytes: the config naming that hash makes both used.
+    expect(isUsed(d, buildIndex([d], [], usedHashes({ src: `${H("a")}.jpg` })))).toBe(true);
+    expect(collectionItems("unused", withUse).map((i) => i.name)).toEqual(["copy.jpg", "CPU arc", "Orbitron"]);
+    expect(cleanupCounts(withUse).unused).toBe(3);
+  });
+
+  it("never counts an item without a file as used through the config", () => {
+    expect(isUsed(g, buildIndex([g], [], usedHashes({ any: H("a") })))).toBe(false);
+    expect(usedHashes({ text: "no hashes here", short: "abc123" }).size).toBe(0);
   });
 
   it("searches everything: every word must match, ignoring case", () => {

@@ -18,10 +18,13 @@ import {
   Layers,
   LayoutDashboard,
   LayoutGrid,
+  LayoutTemplate,
   Paintbrush,
   Shapes,
   Sparkles,
   SprayCan,
+  SwatchBook,
+  Trash2,
   Type,
   Wallpaper,
   type LucideIcon,
@@ -52,6 +55,8 @@ export const COLLECTION_ICON: Record<CollectionId, LucideIcon> = {
   styles: Paintbrush,
   canvases: Layers,
   components: Shapes,
+  skins: SwatchBook,
+  templates: LayoutTemplate,
 };
 
 /* ---- sidebar ---- */
@@ -248,6 +253,8 @@ export interface GridViewProps {
   uploadTile: boolean;
   /** The collection's hint line (SPEC §10.4). */
   hint?: string;
+  /** A collection-wide action in the header (Not used: remove them all). */
+  action?: { label: string; title?: string; disabled?: boolean; onRun: () => void };
 }
 
 export function GridView(p: GridViewProps) {
@@ -273,6 +280,18 @@ export function GridView(p: GridViewProps) {
           </button>
         ))}
         <span className="flex-1" />
+        {p.action && (
+          <button
+            type="button"
+            onClick={p.action.onRun}
+            disabled={p.action.disabled}
+            title={p.action.title}
+            className="flex h-[28px] items-center gap-1.5 rounded-[7px] border border-ui-default px-2.5 text-[12px] text-ui-1 hover:bg-ui-hover hover:text-ui-danger disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {p.action.label}
+          </button>
+        )}
         <label className="flex items-center gap-1.5 text-[11.5px] text-ui-4">
           <span className="sr-only">Sort</span>
           <select
@@ -296,14 +315,14 @@ export function GridView(p: GridViewProps) {
             <span className="flex-1">
               {[
                 c.duplicates && `${c.duplicates} duplicate${c.duplicates === 1 ? "" : "s"}`,
-                c.unused && `${c.unused} unused`,
+                c.unused && `${c.unused} not used`,
                 c.large && `${c.large} large file${c.large === 1 ? "" : "s"}`,
               ]
                 .filter(Boolean)
                 .join(" · ")}
             </span>
             {c.duplicates > 0 && <BannerButton onClick={() => p.onCollection("duplicates")}>Duplicates</BannerButton>}
-            {c.unused > 0 && <BannerButton onClick={() => p.onCollection("unused")}>Unused</BannerButton>}
+            {c.unused > 0 && <BannerButton onClick={() => p.onCollection("unused")}>Not used</BannerButton>}
             {c.large > 0 && <BannerButton onClick={() => p.onCollection("large")}>Large files</BannerButton>}
           </div>
         )}

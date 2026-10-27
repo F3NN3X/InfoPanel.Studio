@@ -1,16 +1,18 @@
 /**
  * My library's state on the Library page (spec §3): the server's items plus the config's own
- * saved panels, Styles and Themes and the built-ins (shown as items), the upload queue
+ * saved panels, Styles and Themes and the built-ins (palettes, Styles, skins, panels, and the template
+ * looks and screen templates once their catalog loads), the upload queue
  * behind the tray, and the item actions that change the library (copies, variants, merges).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Asset } from "@/lib/assets";
 import type { DashboardConfig } from "@/lib/layout";
 import { createLibraryItem, deleteLibraryItem, getLibraryItem, listLibrary, updateLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
-import { configItems } from "@/lib/my-library/config-items";
+import { builtinItems, configItems, type BuiltinSources } from "@/lib/my-library/config-items";
 import { isConfigItem } from "@/lib/my-library/model";
 import { addFileToLibrary } from "./add-file";
-import { removeItem, type RemoveResult } from "./remove-item";
+import { uploadName } from "./adopt-uploads";
+import { removeBlocked, removeItem, type RemoveResult } from "./remove-item";
 
 /** One file in the upload tray. */
 export interface UploadRow {
@@ -31,13 +33,16 @@ export interface MyLibrary {
   clearUploads(): void;
   /** Add files: images, videos, SVG and fonts become items. `uploaded`: files already in the asset store, by asset id. */
   addFiles(files: readonly File[], uploaded?: ReadonlyMap<File, string>): void;
-  /** Add files already in the asset store (older loose uploads) as items; the counts of what happened. */
+  /** Add files already in the asset store (loose uploads) as items, keeping each stored file; the counts of what happened. */
   importAssets(assets: readonly Asset[]): Promise<{ added: number; duplicates: number; failed: number }>;
   /** A copy was placed (the item's copy count goes up by one). */
   addCopy(item: LibraryItem, copy: LibraryCopy): void;
   duplicate(item: LibraryItem): Promise<LibraryItem | null>;
   rename(item: LibraryItem, name: string): void;
-  /** Remove the item and the files nothing else uses (`inUse`: the studio's config, scanned for hashes). */
+  /**
+   * Remove the item and the files nothing else uses (`inUse`: the studio's config, scanned for hashes). An image,
+   * video or SVG whose file is in use stays (`refused`).
+   */
   remove(item: LibraryItem, inUse?: () => string): Promise<RemoveResult>;
   update(item: LibraryItem, patch: Partial<Pick<LibraryItem, "name" | "meta" | "files" | "data">>): Promise<void>;
   /** Merge a duplicate group into its first item: the copies move over, the rest go. */
@@ -56,6 +61,18 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   const running = useRef(0);
   const known = useRef<LibraryItem[]>([]);
   known.current = server;
+  const [sources, setSources] = useState<BuiltinSources>({});
+  useEffect(() => {
+    let live = true;
+    // The screen templates are a large catalog: their looks and the templates themselves come on demand.
+    void Promise.all([import("@/lib/screen-templates/template-presets"), import("@/lib/screen-templates/catalog")]).then(
+      ([looks, catalog]) => live && setSources({ looks: looks.TEMPLATE_PRESETS, templates: catalog.SCREEN_TEMPLATES }),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const refresh = useCallback(() => {
     listLibrary().then(
@@ -113,7 +130,8 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     upsert(await updateLibraryItem(item.id, patch));
   };
 
-  const items = useMemo(() => [...server, ...configItems(config)], [server, config.panelPresets, config.stylePresets, config.appearancePresets]);
+  const builtins = useMemo(() => builtinItems(sources), [sources]);
+  const items = useMemo(() => [...server, ...configItems(config), ...builtins], [server, config.panelPresets, config.stylePresets, config.appearancePresets, builtins]);
 
   return {
     items,
@@ -128,9 +146,8 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
       for (const asset of assets) {
         try {
           const blob = await (await fetch(asset.url)).blob();
-          // The asset store keeps no original name: "Upload 1a2b3c4d.png" reads better than the 64-hex id.
-          const name = `Upload ${asset.id.slice(0, 8)}${asset.id.includes(".") ? asset.id.slice(asset.id.lastIndexOf(".")) : ""}`;
-          const r = await addFileToLibrary(new File([blob], name, { type: asset.type }), known.current, asset.id);
+          // The asset store keeps no original name; the stored file is kept as it is (its id is passed on).
+          const r = await addFileToLibrary(new File([blob], uploadName(asset), { type: asset.type }), known.current, asset.id);
           if (r.state === "done") {
             known.current = [r.item, ...known.current];
             upsert(r.item);
@@ -164,6 +181,8 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
     rename: (item, name) => void update(item, { name }),
     remove: async (item, inUse = () => "") => {
       if (isConfigItem(item)) return { deleted: 0, kept: 0 };
+      const refused = await removeBlocked(item, inUse);
+      if (refused) return { deleted: 0, kept: 0, refused };
       setServer((list) => list.filter((i) => i.id !== item.id));
       try {
         return await removeItem(item, inUse);

@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Asset } from "@/lib/assets";
 import type { LibraryItem } from "@/lib/library";
-import { LooseUploads, canvasHashes, looseAssets } from "@/components/library/loose-uploads";
+import { canvasHashes, looseAssets, uploadName, useAdoptUploads, type AdoptUploadsOptions } from "@/components/library/adopt-uploads";
 
-const api = vi.hoisted(() => ({ listAssets: vi.fn(), unusedAssets: vi.fn() }));
+const api = vi.hoisted(() => ({ listAssets: vi.fn() }));
 const lib = vi.hoisted(() => ({ getLibraryItem: vi.fn() }));
 vi.mock("@/lib/library", async (importOriginal) => ({ ...(await importOriginal<object>()), ...lib }));
 vi.mock("@/lib/assets", async (importOriginal) => ({ ...(await importOriginal<object>()), ...api }));
@@ -14,7 +14,10 @@ const id = (c: string) => `${c.repeat(64)}.png`;
 const asset = (c: string): Asset => ({ id: id(c), url: `/api/assets/${id(c)}`, type: "image/png", kind: "image", size: 1, mtime: 1 });
 const item = { id: "i", kind: "image", name: "a", createdAt: "", updatedAt: "", files: [id("a")], meta: {}, copies: [] } as LibraryItem;
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 const noCanvas = { profiles: [] };
 const withCanvas = (z: object) => ({ profiles: [{ pages: [{ placements: [z] }] }] }) as never;
@@ -58,41 +61,68 @@ describe("looseAssets", () => {
   });
 });
 
-describe("LooseUploads", () => {
-  it("is hidden when every upload is an item", async () => {
-    api.listAssets.mockResolvedValue([asset("a")]);
-    const { container } = render(<LooseUploads items={[item]} config={noCanvas} ready onImport={vi.fn()} onResult={vi.fn()} />);
-    await waitFor(() => expect(api.listAssets).toHaveBeenCalled());
-    expect(container.textContent).toBe("");
-  });
+describe("useAdoptUploads", () => {
+  const adopted = (r: { added: number }) => vi.fn().mockResolvedValue({ added: r.added, duplicates: 0, failed: 0 });
+  const mount = (props: Partial<AdoptUploadsOptions> & Pick<AdoptUploadsOptions, "adopt">) =>
+    renderHook((p: AdoptUploadsOptions) => useAdoptUploads(p), { initialProps: { items: [item], config: noCanvas, ready: true, ...props } });
+  const settle = () => new Promise((r) => setTimeout(r, 20));
 
-  it("offers a review of the loose ones with a count; Add imports the selected", async () => {
+  it("brings the uploads no item holds into My library, once, and says how many", async () => {
     api.listAssets.mockResolvedValue([asset("a"), asset("b"), asset("c")]);
-    api.unusedAssets.mockResolvedValue([asset("b"), asset("c")]);
-    const onImport = vi.fn().mockResolvedValue({ added: 2, duplicates: 0, failed: 0 });
-    const onResult = vi.fn();
-    const { findByText, getByText, findByRole } = render(<LooseUploads items={[item]} config={noCanvas} ready onImport={onImport} onResult={onResult} />);
-    await findByText(/2 uploaded files aren't in My library/);
-    fireEvent.click(getByText("Review…"));
-    fireEvent.click(await findByRole("button", { name: "Select all" }));
-    fireEvent.click(getByText("Add to My library"));
-    await waitFor(() => expect(onResult).toHaveBeenCalledWith("Added 2 uploaded files to My library"));
-    expect(onImport.mock.calls[0][0].map((a: Asset) => a.id)).toEqual([id("b"), id("c")]);
+    const adopt = adopted({ added: 2 });
+    const onAdopted = vi.fn();
+    const { rerender } = mount({ adopt, onAdopted });
+    await waitFor(() => expect(adopt).toHaveBeenCalledOnce());
+    expect(adopt.mock.calls[0][0].map((a: Asset) => a.id)).toEqual([id("b"), id("c")]);
+    await waitFor(() => expect(onAdopted).toHaveBeenCalledWith(2));
+    // A re-render before the new items arrive (or after a failed add) doesn't try the same files again.
+    rerender({ items: [item], config: noCanvas, ready: true, adopt, onAdopted });
+    await settle();
+    expect(adopt).toHaveBeenCalledOnce();
   });
 
-  it("does not offer the frames of a gauge whose data the list left out", async () => {
+  it("is idempotent: with every upload an item there is nothing to adopt", async () => {
+    api.listAssets.mockResolvedValue([asset("a"), asset("b")]);
+    const adopt = adopted({ added: 0 });
+    const held = { ...item, id: "j", files: [id("b")] };
+    mount({ adopt, items: [item, held] });
+    await waitFor(() => expect(api.listAssets).toHaveBeenCalled());
+    await settle();
+    expect(adopt).not.toHaveBeenCalled();
+  });
+
+  it("names an adopted upload from its stored id, keeping the extension", () => {
+    expect(uploadName({ id: id("1") })).toBe("Upload 11111111.png");
+    expect(uploadName({ id: "abcdef0123" })).toBe("Upload abcdef01");
+  });
+
+  it("never takes the frames of a gauge whose data the list left out", async () => {
     api.listAssets.mockResolvedValue([asset("b")]);
     lib.getLibraryItem.mockResolvedValue({ data: { frames: [{ id: id("b"), name: "0.png" }] } });
     const big = { ...item, id: "g", kind: "gauge", files: [], dataSize: 300000 } as LibraryItem;
-    const { container } = render(<LooseUploads items={[big]} config={noCanvas} ready onImport={vi.fn()} onResult={vi.fn()} />);
+    const adopt = adopted({ added: 0 });
+    mount({ adopt, items: [big] });
     await waitFor(() => expect(lib.getLibraryItem).toHaveBeenCalledWith("g"));
-    await new Promise((r) => setTimeout(r, 20));
-    expect(container.textContent).toBe("");
+    await settle();
+    expect(adopt).not.toHaveBeenCalled();
   });
 
-  it("waits for the library list", () => {
-    api.listAssets.mockClear();
-    render(<LooseUploads items={[]} config={noCanvas} ready={false} onImport={vi.fn()} onResult={vi.fn()} />);
+  it("adopts nothing while a gauge's data won't load (its frames are unknown)", async () => {
+    api.listAssets.mockResolvedValue([asset("b")]);
+    lib.getLibraryItem.mockRejectedValue(new Error("down"));
+    const big = { ...item, id: "g", kind: "gauge", files: [], dataSize: 300000 } as LibraryItem;
+    const adopt = adopted({ added: 0 });
+    mount({ adopt, items: [big] });
+    await waitFor(() => expect(lib.getLibraryItem).toHaveBeenCalled());
+    await settle();
+    expect(adopt).not.toHaveBeenCalled();
+  });
+
+  it("waits for the library list", async () => {
+    const adopt = adopted({ added: 0 });
+    mount({ adopt, items: [], ready: false });
+    await settle();
     expect(api.listAssets).not.toHaveBeenCalled();
+    expect(adopt).not.toHaveBeenCalled();
   });
 });

@@ -121,6 +121,8 @@ function initialSelection(kind: WizardKind, initial: NewChoice | undefined, carr
     if (initial.library) return { type: "library", id: LIBRARY_ID + initial.library };
     return initial.template ? { type: "template", id: initial.template } : { type: "blank" };
   }
+  // A screen template picked in the Library opens on that template.
+  if (initial?.template) return { type: "template", id: initial.template };
   return { type: "template", id: carry ?? recent[0] ?? FALLBACK[kind] };
 }
 
