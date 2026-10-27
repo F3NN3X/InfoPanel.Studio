@@ -4,7 +4,7 @@
 // to start from, and an InfoPanel item dropped on the grid goes into the free area made for it.
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GridCheckPanel, GridOnInfoPanel } from "@/components/infopanel/grid-export";
+import { GridBadge, GridCheckPanel, GridOnInfoPanel } from "@/components/infopanel/grid-export";
 import { ToastProvider } from "@/components/ui/toast";
 import { HostedEditor } from "@tests/components/infopanel/edit/hosted-editor";
 import { withCanvas } from "@/components/studio/import-actions";
@@ -40,6 +40,35 @@ describe("the Export check on a grid page", () => {
     render(<GridCheckPanel profile={view} nameOf={() => "Weather"} onSelect={vi.fn()} onConvert={vi.fn()} onClose={onClose} />);
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("takes Esc before the studio's shortcuts, which take it on the window too, but leaves it to a dialog over it", () => {
+    const studioKeys = (e: KeyboardEvent) => e.preventDefault();
+    window.addEventListener("keydown", studioKeys);
+    try {
+      const onClose = vi.fn();
+      render(<GridCheckPanel profile={view} nameOf={() => "Weather"} onSelect={vi.fn()} onConvert={vi.fn()} onClose={onClose} />);
+      fireEvent.keyDown(document.body, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(1);
+      const dialog = document.body.appendChild(document.createElement("div"));
+      dialog.setAttribute("role", "dialog");
+      fireEvent.keyDown(document.body, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(1);
+      dialog.remove();
+    } finally {
+      window.removeEventListener("keydown", studioKeys);
+    }
+  });
+});
+
+describe("a grid zone's badge", () => {
+  it("shows its status as a Studio widget", () => {
+    const { container, rerender } = render(<GridBadge zone={weather} name="Weather" />);
+    expect(container.querySelector('[data-testid="canvas-badge"]')?.getAttribute("data-status")).toBe("pic");
+    rerender(<GridBadge zone={{ ...weather, module: "Clock" }} name="Clock" />);
+    expect(container.querySelector('[data-testid="canvas-badge"]')?.getAttribute("data-status")).toBe("ok");
+    rerender(<GridBadge zone={{ ...weather, settings: { $onInfoPanel: "leave" } }} name="Weather" />);
+    expect(screen.getByLabelText("Left out")).toBeTruthy();
   });
 });
 

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Cast, Check, Copy, LayoutPanelTop, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
+import { Cast, Check, Copy, LayoutDashboard, LayoutPanelTop, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Shapes, Trash2 } from "lucide-react";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { IconButton } from "@/components/ui/icon-button";
 import type { PageLayout, ProfilePage } from "@/lib/layout";
@@ -31,7 +31,7 @@ interface PageTabsProps {
   onPageSettings: (id: string) => void;
   /** Layout ▸ Grid / Free (one-editor SPEC §6): switch the page; unset hides the submenu. */
   onLayout?: (id: string, layout: PageLayout) => void;
-  /** Before the kiosk chip: the screen's Made for and, on a screen made for InfoPanel, the Export check. */
+  /** Before the kiosk chip: the screen's Made for, then the Export check pill (made for InfoPanel) or the Studio note. */
   extra?: ReactNode;
   /** The page being renamed inline (the palette asks for this too). */
   renamingId: string | null;
@@ -140,11 +140,11 @@ function DeleteDialog({
 }
 
 /**
- * The strip above the canvas (SPEC §6.2, 38 px): the left-panel toggle, one
- * tab per page of the profile (click to switch, double-click to rename, drag
+ * The strip above the canvas (Edit v3 SPEC §6.2, 40 px): the left-panel toggle, one
+ * tab per page of the profile with its icon (click to switch, double-click to rename, drag
  * to reorder; the page the kiosk shows has a green cast icon), "+" to add one,
- * a "⋯" / right-click menu (rename, icon, duplicate, delete, page settings)
- * and, at the right, the dashed chip that says what the kiosks show and opens Live.
+ * a "⋯" / right-click menu (rename, icon, duplicate, delete, page settings),
+ * the screen's Made for and Export check (`extra`) and the dashed chip that says what the kiosks show and opens Live.
  */
 export function PageTabs({
   pages,
@@ -223,7 +223,7 @@ export function PageTabs({
   const marker = <span aria-hidden className="h-4 w-0.5 shrink-0 rounded-full bg-ui-accent" />;
 
   return (
-    <div className="flex h-[38px] shrink-0 items-center gap-1 overflow-hidden border-b border-ui-subtle bg-ui-panel px-2 font-ui text-[12px]">
+    <div className="flex h-10 shrink-0 items-center gap-1 overflow-hidden border-b border-ui-subtle bg-ui-panel px-2 font-ui text-[12px]">
       <IconButton
         label={leftOpen ? "Hide the left panel" : "Show the left panel"}
         className="h-7 w-7"
@@ -234,8 +234,7 @@ export function PageTabs({
       </IconButton>
       <div ref={rowRef} role="tablist" aria-label="Pages" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
         {pages.map((page) => {
-          const Icon = pageIcon(page.icon);
-          const kind = LAYOUT_UI[layoutOf(page)];
+          const Icon = pageIcon(page.icon) ?? LayoutDashboard;
           const active = page.id === current;
           return (
             <Fragment key={page.id}>
@@ -248,8 +247,8 @@ export function PageTabs({
                   openMenu(page.id, e.clientX, e.clientY);
                 }}
                 className={cn(
-                  "group flex h-7 shrink-0 items-center rounded-md transition-colors",
-                  active ? "bg-ui-active text-ui-1" : "text-ui-3 hover:bg-ui-hover hover:text-ui-1",
+                  "group flex h-7 shrink-0 items-center rounded-[7px] transition-colors",
+                  active ? "bg-ui-hover text-ui-1" : "text-ui-3 hover:bg-ui-hover hover:text-ui-1",
                   drag?.id === page.id && "opacity-50"
                 )}
               >
@@ -273,12 +272,9 @@ export function PageTabs({
                       onClick={() => !dragged.current && onSelect(page.id)}
                       onDoubleClick={() => onRenamingChange(page.id)}
                       title="Double-click to rename, drag to reorder"
-                      className="flex h-7 max-w-44 items-center gap-1.5 rounded-md pl-2.5 pr-1 outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60"
+                      className="flex h-7 max-w-44 items-center gap-1.5 rounded-[7px] pl-2.5 pr-1 outline-none focus-visible:ring-2 focus-visible:ring-ui-accent/60"
                     >
-                      <kind.icon aria-label={kind.tip} className="h-3.5 w-3.5 shrink-0 text-ui-4">
-                        <title>{kind.tip}</title>
-                      </kind.icon>
-                      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+                      <Icon className="h-[15px] w-[15px] shrink-0" />
                       <span className="truncate">{page.name}</span>
                       {kioskPage === page.id && (
                         <Cast aria-label="Shown on the kiosk" className="h-3.5 w-3.5 shrink-0 text-[oklch(0.78_0.15_150)]">

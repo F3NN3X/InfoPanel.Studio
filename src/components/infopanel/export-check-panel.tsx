@@ -3,13 +3,13 @@
  * the live panel in the inspector, and the grouped list the export dialog shows too. All read one `exportCheck`.
  */
 import { createContext, useContext, type ReactNode } from "react";
-import { Ban, Check, Download, Image, Triangle, type LucideIcon } from "lucide-react";
+import { Ban, Check, Image, Triangle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_LABEL, STATUS_ORDER, STATUS_SHORT, type CheckRow, type CheckStatus, type ExportCheck } from "@/lib/infopanel/export-check";
 
 export const STATUS_UI: Record<CheckStatus, { icon: LucideIcon; text: string; bg: string; border: string }> = {
-  ok: { icon: Check, text: "text-ui-success", bg: "bg-ui-success", border: "border-ui-success" },
-  approx: { icon: Triangle, text: "text-ui-warning", bg: "bg-ui-warning", border: "border-ui-warning" },
+  ok: { icon: Check, text: "text-ui-ok", bg: "bg-ui-ok", border: "border-ui-ok" },
+  approx: { icon: Triangle, text: "text-ui-warn", bg: "bg-ui-warn", border: "border-ui-warn" },
   pic: { icon: Image, text: "text-ui-info", bg: "bg-ui-info", border: "border-ui-info" },
   out: { icon: Ban, text: "text-ui-danger", bg: "bg-ui-danger", border: "border-ui-danger" },
 };
@@ -34,10 +34,25 @@ export function StatusIcon({ status, className }: { status: CheckStatus; classNa
   );
 }
 
+/** A part's badge on the canvas (Edit v3 SPEC §7.1): a 16 px circle with its status glyph, 4 px in from its top-right. */
+export function CheckBadge({ status }: { status: CheckStatus }) {
+  const { icon: Icon, text, border } = STATUS_UI[status];
+  return (
+    <span
+      data-testid="canvas-badge"
+      data-status={status}
+      aria-label={STATUS_LABEL[status]}
+      className={cn("absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full border bg-ui-chrome", text, border)}
+    >
+      <Icon className="h-[11px] w-[11px]" strokeWidth={2.25} />
+    </span>
+  );
+}
+
 /** The amber mark on a studio-only look that is set (decision D4). */
 export function ApproxMark() {
   return (
-    <span title="Approximated on InfoPanel" aria-label="Approximated on InfoPanel" className="inline-flex shrink-0 text-ui-warning">
+    <span title="Approximated on InfoPanel" aria-label="Approximated on InfoPanel" className="inline-flex shrink-0 text-ui-warn">
       <Triangle className="h-[13px] w-[13px]" strokeWidth={2} />
     </span>
   );
@@ -50,6 +65,7 @@ export function ExportCheckPill({ check, open, onClick }: { check: ExportCheck; 
     <button
       type="button"
       aria-pressed={open}
+      data-testid="export-pill"
       onClick={onClick}
       title="What happens to each part when you export to InfoPanel"
       className={cn(
@@ -91,11 +107,11 @@ export function CheckGroups({ rows, onSelect, skipOk = false }: { rows: readonly
                 </>
               );
               return onSelect ? (
-                <button key={r.path} type="button" onClick={() => onSelect(r.path)} className="rounded-[6px] bg-ui-hover px-2.5 py-1.5 text-left hover:bg-ui-active">
+                <button key={r.path} type="button" onClick={() => onSelect(r.path)} className="rounded-[6px] bg-ui-raised px-2.5 py-1.5 text-left hover:bg-ui-hover">
                   {body}
                 </button>
               ) : (
-                <div key={r.path} className="rounded-[6px] bg-ui-hover px-2.5 py-1.5">
+                <div key={r.path} className="rounded-[6px] bg-ui-raised px-2.5 py-1.5">
                   {body}
                 </div>
               );
@@ -111,11 +127,11 @@ export function CheckGroups({ rows, onSelect, skipOk = false }: { rows: readonly
 export function ExportCheckPanel({ check, onSelect, onExport, notice }: { check: ExportCheck; onSelect: (path: string) => void; onExport: () => void; notice?: ReactNode }) {
   const total = check.rows.length;
   return (
-    <div className="flex min-h-0 flex-1 flex-col font-ui" data-help-article="infopanel-editor">
+    <div className="flex min-h-0 flex-1 flex-col font-ui" data-help-article="infopanel-editor" data-testid="export-check">
       <div className="flex flex-col gap-2 border-b border-ui-subtle px-4 pb-3 pt-3.5">
         <div className="flex items-center">
           <h2 className="flex-1 text-[13px] font-semibold text-ui-1">Export check</h2>
-          <span className="text-[11px] text-ui-success">Live</span>
+          <span className="text-[11px] text-ui-ok">Live</span>
         </div>
         <p className="text-[11.5px] leading-snug text-ui-4">What happens to each part when you export to InfoPanel. Updates as you edit.</p>
         {notice}
@@ -137,9 +153,8 @@ export function ExportCheckPanel({ check, onSelect, onExport, notice }: { check:
         <button
           type="button"
           onClick={onExport}
-          className="flex h-8 w-full items-center justify-center gap-1.5 rounded-[7px] bg-ui-accent text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90"
+          className="flex h-8 w-full items-center justify-center rounded-[7px] bg-ui-accent text-[12.5px] font-semibold text-ui-inverse-fg hover:opacity-90"
         >
-          <Download className="h-4 w-4" />
           Export .infopanel
         </button>
         <span className="text-[11px] text-ui-4">Export writes a copy. Your screen isn’t changed.</span>

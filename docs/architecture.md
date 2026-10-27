@@ -555,10 +555,11 @@ grid cell makes a free area there (`freeArea`) and opens the editor on it with t
 The Export check (`lib/infopanel/export-check.ts`) classifies each item and, on a screen with widgets, each widget,
 as exports as is, approximated, becomes a picture or left out, and names the studio-only looks it loses. The editor
 shows it on a screen made for InfoPanel (`madeForInfoPanel`, which reads `MonitorProfile.madeFor`; the Made for
-control in the page strip sets it): the toolbar pill, the check panel in the inspector
-column (`export-check-panel.tsx`), marks in Layers, on the canvas and on inspector fields. The Export window reads
-the same check, so the two can't disagree. On a grid page the pill, the panel and each widget's On InfoPanel
-section come from `components/infopanel/grid-export.tsx`, loaded only on a screen made for InfoPanel; the rule is
+control in the page strip sets it): the pill after Made for in the page strip (the canvas editor hands its pill to
+the studio's `PageTabs` through `EditorShell.pageTabs`), the check panel in the inspector column
+(`export-check-panel.tsx`), marks in Layers, a badge on every part on the canvas and marks on inspector fields. The
+Export window reads the same check, so the two can't disagree. On a grid page the pill, the panel, each zone's badge
+(`PlacementFrame`'s `badge`) and each widget's On InfoPanel section come from `components/infopanel/grid-export.tsx`, loaded only on a screen made for InfoPanel; the rule is
 stored as the zone's `settings.$onInfoPanel`, and the Convert dialog starts from it (`startChoices`).
 
 - **Document model**: the page edits one canvas zone's stored form (`Placement.canvas`), the single source of

@@ -12,6 +12,8 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Not used** replaces Unused, and now counts a file shown as a background or in a widget as used. In Not used, **Remove these files…** removes the images, videos and SVGs listed, after a confirm; a file a screen uses always stays.
 - **Skins and templates no longer drag.** They had nothing to drop on; use their buttons.
 - **A used file can't be removed.** Removing an image, video or SVG that a screen still shows keeps it and says why.
+- **Edit's title bar and page tabs.** The title bar shows the screen, its size and the page, then a tag: **Imported from InfoPanel** or **Screen** (it was in the InfoPanel canvas toolbar). The page tabs show each page's icon instead of a Grid or Free icon, and end with **Made for** and then the **Export check** pill on every page, a Free page's too, or "Studio panels only · no export check".
+- **Every part gets an Export check mark.** On a screen made for InfoPanel, every part on the canvas carries its status in its top-right corner, the parts that export as is included, and grid widgets now have marks too. Esc now closes a grid page's Export check.
 
 ### Added
 

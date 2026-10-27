@@ -26,6 +26,7 @@ export function MadeForControl({ value = "studio", onChange }: MadeForControlPro
     <Menu.Root>
       <Menu.Trigger
         aria-label={`Made for: ${current.label}`}
+        data-testid="made-for"
         className="flex h-[26px] shrink-0 items-center gap-1.5 rounded-[7px] border border-ui-default bg-ui-raised pl-2.5 pr-1.5 text-[11.5px] text-ui-1 transition-colors hover:bg-ui-hover data-popup-open:bg-ui-hover"
       >
         <span className="text-ui-4">Made for</span>

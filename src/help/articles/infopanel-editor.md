@@ -3,7 +3,7 @@ id: infopanel-editor
 title: The InfoPanel editor
 icon: dashboard_customize
 related: [canvas, import, remap]
-verified: 1.3.0-beta.35
+verified: 1.3.0-beta.36
 ---
 
 Build profiles for InfoPanel itself: its own item kinds and sensor bindings, saved as an .infopanel file that InfoPanel imports.
@@ -76,7 +76,7 @@ A template's colours come from the profile's palette (see The palette, below), s
 
 - **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** lists the Studio widgets first, then InfoPanel's 14 item kinds in four groups, Text, Data, Media and Layout, and the studio's **Elements**. **Layers** is the item tree, with a lock and a visibility checkbox on each row and a mark for how the item exports. See Groups, and Studio widgets on a profile.
 - The canvas, in the middle, with the page tabs and the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
-- The inspector, on the right, headed **Item**. With nothing selected it shows the profile's settings. The **Export check** button in the toolbar shows the check there instead (see The Export check).
+- The inspector, on the right, headed **Item**. With nothing selected it shows the profile's settings. The **Export check** pill at the right of the page tabs shows the check there instead (see The Export check).
 
 ## Adding items
 
@@ -161,15 +161,15 @@ The export draws each widget itself, out of sight and in the screen's theme, so 
 
 ## The Export check
 
-On a screen made for InfoPanel (**Made for** › **InfoPanel too**, see [Made for](studio#made-for)), the toolbar has an **Export check** button after the profile's tag. It counts the parts of the profile by what they become in the .infopanel file, and it updates as you edit:
+On a screen made for InfoPanel (**Made for** › **InfoPanel too**, see [Made for](studio#made-for)), the page tabs end with an **Export check** pill, after **Made for**. It counts the parts of the profile by what they become in the .infopanel file, and it updates as you edit:
 
 - **Exports as is**: InfoPanel reads it as it is. Elements baked into images or gauge frames count here too.
 - **Approximated**: InfoPanel gets the closest item it has, without a look the studio adds.
 - **Becomes a picture** and **Left out**: a Studio widget on the page, by its On InfoPanel choice, or a dashboard widget on the screen that InfoPanel can't draw. A widget this version doesn't have counts as left out, marked "Not available in this version".
 
-Click the button to show the check in place of the inspector, grouped by those four. Each part says what it loses, and a click on it selects it. **Export .infopanel** at the bottom opens the Export window, which lists the same parts. Esc or the button again closes the check.
+Click the pill to show the check in place of the inspector, grouped by those four. Each part says what it loses, and a click on it selects it. **Export .infopanel** at the bottom opens the Export window, which lists the same parts. Esc or the pill again closes the check, and so does selecting anything.
 
-The parts that don't export as is are marked on the canvas and in **Layers**. In the inspector, a setting that InfoPanel can't draw has an Approximated mark beside it, and the header has a line saying what happens on InfoPanel. These looks are:
+Every part on the canvas has a small round mark in its top-right corner with its status, and **Layers** shows the same mark on each row. In the inspector, a setting that InfoPanel can't draw has an Approximated mark beside it, and the header has a line saying what happens on InfoPanel. These looks are:
 
 - **Background blur** on a Card: baked into the card's picture, so values behind it aren't blurred.
 - **Blurred shadow** on Shadow text: becomes a sharp copy.

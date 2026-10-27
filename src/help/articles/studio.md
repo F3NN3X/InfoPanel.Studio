@@ -3,7 +3,7 @@ id: studio
 title: The studio
 icon: space_dashboard
 related: [zones, widget-settings, shortcuts]
-verified: 1.3.0-beta.35
+verified: 1.3.0-beta.36
 ---
 
 The editor window: a rail of views on the left, the work area in the middle, and an inspector for settings in Edit.
@@ -26,8 +26,9 @@ On a phone, Screens and the views after Library are under **More**. Under 960 px
 
 ## The title bar
 
-- The settings button beside the screen name opens **Screens** on that screen.
-- The screen name opens a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**. Which screen your displays open is set in **Settings › Dashboard › Startup screen**. See [Screens and the grid](profiles#which-screen-opens).
+- The settings button after the screen's tag opens **Screens** on that screen.
+- The screen name, its size and the page you're on open a list of your screens, each with its size, and the pages of the current one. Pick one to edit it. **Manage screens…** opens **Screens**. Which screen your displays open is set in **Settings › Dashboard › Startup screen**. See [Screens and the grid](profiles#which-screen-opens).
+- A tag beside the screen name says what the screen is: **Imported from InfoPanel** for a profile brought in from an .infopanel file or the InfoPanel app, otherwise **Screen**.
 - The search box in the middle opens the command palette (`Ctrl+K`). Besides actions it lists every setting and one entry for each view.
 - **Undo** and **Redo**, **Import**, **Export & back up** and **Save**. See [Importing and exporting](import).
 - **Live** shows how many kiosks are connected and opens the controls for them: show a page now, pause rotation, dim, mute alerts for an hour, switch the Dynamic Island and reload every kiosk. None of it is part of your design, so Save doesn't change it. **Open kiosk view** shows the kiosk in the Studio; in the desktop app it resizes the window to the screen's exact size, and moving the pointer to the top edge brings a strip with **Back to studio**, **Minimize** and **Close**.
@@ -78,7 +79,7 @@ Nothing is lost either way. Settings, sensors and each widget's On InfoPanel cho
 
 ## Made for
 
-The **Made for** button at the right of the page strip says who the screen is for. **Studio panels** is for screens shown by Studio. **InfoPanel too** also checks what would export to the InfoPanel app: the **Export check** appears next to it, parts get their export marks, and the inspector shows each one's **On InfoPanel** line. On a Grid page the check lists every zone and says the page is converted when you export; **Review conversion…** and **Export .infopanel** open the conversion with each widget's choice already set. A change is one undo step. Imported InfoPanel profiles start as **InfoPanel too**, other screens as **Studio panels**.
+The **Made for** button at the right of the page strip says who the screen is for. **Studio panels** is for screens shown by Studio. **InfoPanel too** also checks what would export to the InfoPanel app: the **Export check** pill appears after it, every part on the canvas gets a mark with its status, and the inspector shows each one's **On InfoPanel** line. On a Grid page the check lists every zone and says the page is converted when you export; **Review conversion…** and **Export .infopanel** open the conversion with each widget's choice already set. A change is one undo step. Imported InfoPanel profiles start as **InfoPanel too**, other screens as **Studio panels**.
 
 ## Inspector
 

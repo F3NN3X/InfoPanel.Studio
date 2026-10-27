@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { EyeOff, Plus } from "lucide-react";
-import { BLANK_MODULE, type ProfileView, type Placement } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, type ProfileView, type Placement } from "@/lib/layout";
 import { profileGap, trackPitch } from "@/lib/profile-grid";
 import { hexToHsl } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -97,6 +97,8 @@ interface PlacementFrameProps {
    * space. A double-click on an unselected zone is select-then-pick.
    */
   onSelectWidget?: (widgetId: string | null) => void;
+  /** The zone's Export check badge (studio view, a screen made for InfoPanel): its top-right corner, screen-sized at any zoom. */
+  badge?: ReactNode;
   children: ReactNode;
 }
 
@@ -133,6 +135,7 @@ export function PlacementFrame({
   onSelect,
   onOpenSettings,
   onSelectWidget,
+  badge,
   children,
 }: PlacementFrameProps) {
   const span = clampSpan(placement.colSpan, profile.cols);
@@ -280,6 +283,8 @@ export function PlacementFrame({
           : {}),
       }}
       data-zone-id={studio ? placement.id : undefined}
+      data-testid={studio ? "canvas-part" : undefined}
+      data-kind={studio && placement.module !== CANVAS_ID ? "widget" : undefined}
       data-shot-skip={!placement.visible ? "" : undefined}
       // Clicks the press doesn't handle (a control in the zone, a handle).
       onClick={(e) => {
@@ -339,6 +344,12 @@ export function PlacementFrame({
                 <EyeOff className="h-3.5 w-3.5" />
               </span>
             </div>
+          )}
+
+          {badge && (
+            <span data-shot-skip className="pointer-events-none absolute right-0 top-0 z-[16] origin-top-right" style={{ scale: String(1 / zoom) }}>
+              {badge}
+            </span>
           )}
 
           {/* Resize (the studio clamps to the grid + no overlap): invisible edges, the knob at the corner */}

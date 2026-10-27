@@ -127,7 +127,9 @@
   --ui-success: oklch(0.75 0.15 150);
   --ui-warning: oklch(0.8 0.15 75);
   --ui-danger: oklch(0.72 0.17 25);
-  /* The Export check's "Becomes a picture" (ok, approximated and left out use success, warning and danger). */
+  /* The Export check's statuses (Edit v3 SPEC §11.2): exports as is, approximated, becomes a picture; left out is danger. */
+  --ui-ok: oklch(0.78 0.14 155);
+  --ui-warn: oklch(0.82 0.13 80);
   --ui-info: oklch(0.78 0.11 245);
   --ui-dot-profile: oklch(0.74 0.13 300);
   --ui-dot-dashboard: oklch(0.76 0.11 190);
@@ -163,6 +165,8 @@
   --color-ui-success: var(--ui-success);
   --color-ui-warning: var(--ui-warning);
   --color-ui-danger: var(--ui-danger);
+  --color-ui-ok: var(--ui-ok);
+  --color-ui-warn: var(--ui-warn);
   --color-ui-info: var(--ui-info);
   --color-ui-dot-profile: var(--ui-dot-profile);
   --color-ui-dot-dashboard: var(--ui-dot-dashboard);
