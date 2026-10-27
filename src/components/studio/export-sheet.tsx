@@ -201,7 +201,7 @@ export function ExportSheet({ open, request, config, screen, pageName, pageCanva
               title="Export a page for InfoPanel"
               detail={`${pageName} as an .infopanel canvas`}
               picked={request.row === "page"}
-              blocked={pageCanvas ? undefined : "This page has no canvas zone. Import an InfoPanel profile first, or open a page that has one."}
+              blocked={pageCanvas ? undefined : "This page has no InfoPanel profile on it. Import an InfoPanel profile first, or open a page that has one."}
               copy={pageCanvas?.canvas ? { name: `${pageName}.canvas.json`, text: JSON.stringify(pageCanvas.canvas, null, 2) } : undefined}
               copied={copied === "page"}
               actions={

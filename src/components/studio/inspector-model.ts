@@ -116,6 +116,8 @@ export type InspectorContext =
       unknown: boolean;
       /** A studio element: its spec's settings come first, as the Element section. */
       element?: string;
+      /** The Place row has the box (Edit v3 SPEC §10.2): no Position section. */
+      placeRow?: boolean;
     };
 
 /** The context of a selected widget zone. */
@@ -160,7 +162,7 @@ export interface SectionExtra {
 const EXTRA_TERMS: Record<ExtraKind, string[]> = {
   widgetPicker: ["Widget type", "Change widget"],
   visible: ["Visible", "Hide"],
-  zoneFrame: ["Zone frame", "Frame accent", "Frame background", "Title header"],
+  zoneFrame: ["Widget frame", "Frame accent", "Frame background", "Title header"],
 };
 
 const extra = (kind: ExtraKind, more = false, count = 1): SectionExtra => ({ kind, more, count });
@@ -335,10 +337,10 @@ function panelSections(context: Extract<InspectorContext, { kind: "panel" }>): I
 }
 
 const blankSections = (): InspectorSection[] => [
-  section({ id: "pick", title: "Widget", tab: "show", special: "blankPick", terms: ["Pick a widget", "Blank zone"] }),
+  section({ id: "pick", title: "Widget", tab: "show", special: "blankPick", terms: ["Pick a widget", "Blank space"] }),
   section({
     id: "frame",
-    title: "Zone frame",
+    title: "Widget frame",
     tab: "show",
     special: "zoneFrame",
     terms: EXTRA_TERMS.zoneFrame,
@@ -397,7 +399,7 @@ function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel
   return [
     ...(context.element ? [ip("ip-element", context.element, "ipElement", ["Element", "Ring", "Card", "Glow", "Icon", "Cores", "Palette", "Gradient"])] : []),
     ...(context.group ? [] : [ip("ip-mode", "Draw as", "ipMode", ["Native", "InfoPanel", "Faithful", "Mode", "Convert"])]),
-    ...(context.group
+    ...(context.group || context.placeRow
       ? []
       : [{ ...ip("ip-position", "Position", "ipPosition", ["X", "Y", "W", "H", "Width", "Height", "Rotation", "Flip"]), settings: position?.defs ?? [] }]),
     ...(context.bound ? [{ ...ip("ip-binding", "Sensor", "ipSensor", ["Sensor", "Remap", "Data API key"]), tab: IP_TAB_OF["ip-binding"] }] : []),
@@ -618,7 +620,7 @@ export interface InspectorNote {
 
 /** The banners and context notes of a tab (whether a section follows the theme is its Follow bar). */
 export function inspectorNotes(context: InspectorContext, tab: TabId | undefined): InspectorNote[] {
-  if (context.kind === "blank") return [{ kind: "blank", text: "This zone is blank. Pick a widget or a panel to fill it." }];
+  if (context.kind === "blank") return [{ kind: "blank", text: "This space is blank. Pick a widget or a panel to fill it." }];
   if (context.kind === "theme") {
     return context.scope === "base"
       ? [{ kind: "theme", text: "The base under every screen's theme: what a screen leaves unset. It has no locks." }]

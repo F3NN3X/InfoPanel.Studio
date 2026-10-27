@@ -280,7 +280,7 @@ describe("panel sections", () => {
 describe("blank zone and several zones", () => {
   it("shows the Widget card and the zone frame, without tabs", () => {
     const sections = sectionsFor({ kind: "blank" });
-    expect(titles(sections)).toEqual(["Widget", "Zone frame"]);
+    expect(titles(sections)).toEqual(["Widget", "Widget frame"]);
     expect(sections[0].special).toBe("blankPick");
     expect(inspectorNotes({ kind: "blank" }, undefined)[0].kind).toBe("blank");
   });

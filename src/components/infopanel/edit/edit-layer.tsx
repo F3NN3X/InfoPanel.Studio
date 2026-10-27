@@ -35,6 +35,7 @@ import type { DisplayItem } from "@/lib/infopanel/schema";
 import type { ModeState } from "@/lib/infopanel/canvas-edit";
 import { cn } from "@/lib/utils";
 import { elementOf } from "@/lib/infopanel/elements/apply";
+import { widgetBox } from "@/lib/infopanel/import/stored";
 import { STATUS_UI, useExportCheck } from "../export-check-panel";
 import type { CanvasEditor } from "./use-canvas-editor";
 
@@ -419,7 +420,20 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes, grid
       })}
       {editor.selection.map((p) => {
         const b = boxes[p];
-        if (!b) return null;
+        if (!b) {
+          // A hidden part isn't drawn (SPEC §7.1): selected from Layers, a dashed outline at its stored box.
+          const hiddenItem = itemAt(editor.items, p);
+          const at = hiddenItem?.Hidden && hiddenItem.kind !== "Group" ? widgetBox(hiddenItem) : null;
+          if (!at || at.w <= 0 || at.h <= 0) return null;
+          return (
+            <div
+              key={p}
+              data-selected-path={p}
+              data-hidden=""
+              style={{ position: "absolute", left: at.x, top: at.y, width: at.w, height: at.h, outline: `${1.5 * zoomK}px dashed ${ACCENT}`, outlineOffset: zoomK, pointerEvents: "none" }}
+            />
+          );
+        }
         // A group (Edit v3 SPEC §7.1): one box around its members, 3 px out, with a "{name} · group" chip above it.
         const selectedItem = itemAt(editor.items, p);
         const group = selectedItem?.kind === "Group" && !elementOf(selectedItem) ? selectedItem : null;

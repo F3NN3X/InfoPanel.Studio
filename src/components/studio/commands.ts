@@ -191,7 +191,7 @@ function generalCommands(s: CommandState): Command[] {
     general("zoom-in", "Zoom in", { type: "zoom-in" }, KEYS.zoomIn),
     general("zoom-out", "Zoom out", { type: "zoom-out" }, KEYS.zoomOut),
     ...(s.placements.length > 0
-      ? [general("select-all", "Select all zones", { type: "select-all" }, KEYS.selectAll)]
+      ? [general("select-all", "Select all widgets", { type: "select-all" }, KEYS.selectAll)]
       : []),
   ];
 }
@@ -228,25 +228,25 @@ function selectionCommands(selection: Placement[]): Command[] {
   const zone = (id: string, label: string, action: CommandAction, hint?: string): Command => ({
     id: `zone:${id}`,
     label,
-    group: "Selected zones",
+    group: "Selected widgets",
     hint,
     action,
   });
   return [
-    zone("duplicate", `Duplicate ${n} zones`, { type: "duplicate" }, KEYS.duplicate),
+    zone("duplicate", `Duplicate ${n} widgets`, { type: "duplicate" }, KEYS.duplicate),
     zone(
       "visible",
-      `${selection.some((p) => p.visible) ? "Hide" : "Show"} ${n} zones`,
+      `${selection.some((p) => p.visible) ? "Hide" : "Show"} ${n} widgets`,
       { type: "toggle-visible" },
       KEYS.hide
     ),
-    zone("remove", `Remove ${n} zones`, { type: "remove" }, KEYS.remove),
+    zone("remove", `Remove ${n} widgets`, { type: "remove" }, KEYS.remove),
     zone("align-left", "Align left", { type: "arrange", op: "align-left" }, KEYS.alignLeft),
     zone("align-right", "Align right", { type: "arrange", op: "align-right" }, KEYS.alignRight),
     zone("align-top", "Align top", { type: "arrange", op: "align-top" }, KEYS.alignTop),
     zone("align-bottom", "Align bottom", { type: "arrange", op: "align-bottom" }, KEYS.alignBottom),
-    zone("match-width", "Match width of the primary zone", { type: "arrange", op: "match-width" }),
-    zone("match-height", "Match height of the primary zone", { type: "arrange", op: "match-height" }),
+    zone("match-width", "Match width of the primary widget", { type: "arrange", op: "match-width" }),
+    zone("match-height", "Match height of the primary widget", { type: "arrange", op: "match-height" }),
     ...(n >= 3
       ? [
           zone("distribute-h", "Distribute horizontally", { type: "arrange", op: "distribute-h" }, KEYS.distributeH),
@@ -261,7 +261,7 @@ function styleCommands(): Command[] {
   const style = (id: string, label: string, action: CommandAction, hint?: string): Command => ({
     id: `style:${id}`,
     label,
-    group: "Zone style",
+    group: "Widget style",
     hint,
     action,
   });
@@ -283,21 +283,21 @@ function selectedCommands(selected: Placement, widgetKeys: boolean, context: Ins
   const zone = (id: string, label: string, action: CommandAction, hint?: string): Command => ({
     id: `zone:${id}`,
     label,
-    group: "Selected zone",
+    group: "Selected widget",
     hint,
     action,
   });
   return [
     zone("pick", "Pick widget…", { type: "pick-widget" }),
     ...(selected.panel ? [zone("save-preset", "Save as Panel", { type: "save-panel-preset" })] : []),
-    zone("duplicate", "Duplicate zone", { type: "duplicate" }, widgetKeys ? undefined : KEYS.duplicate),
+    zone("duplicate", "Duplicate widget", { type: "duplicate" }, widgetKeys ? undefined : KEYS.duplicate),
     zone(
       "visible",
-      selected.visible ? "Hide zone" : "Show zone",
+      selected.visible ? "Hide widget" : "Show widget",
       { type: "toggle-visible" },
       KEYS.hide
     ),
-    zone("remove", "Remove zone", { type: "remove" }, widgetKeys ? undefined : KEYS.remove),
+    zone("remove", "Remove widget", { type: "remove" }, widgetKeys ? undefined : KEYS.remove),
     ...(has.has("header") ? [zone("card:header", "Go to Header settings", { type: "goto-card", id: "header" })] : []),
     ...(has.has("colors") ? [zone("card:colors", "Go to Colors (style)", { type: "goto-card", id: "colors" })] : []),
   ];
@@ -396,7 +396,7 @@ export function buildCommands(s: CommandState): Command[] {
       : s.selected
         ? selectedCommands(s.selected, s.widget !== null, s.context)
         : []),
-    ...(s.context ? settingCommands(s.context, s.selected ? "Selected zone" : "Dashboard") : []),
+    ...(s.context ? settingCommands(s.context, s.selected ? "Selected widget" : "Dashboard") : []),
     ...themeSettingCommands(),
     ...(s.selected ? styleCommands() : []),
     ...selectWidgetCommands(widgets),
@@ -440,8 +440,8 @@ export function buildCommands(s: CommandState): Command[] {
     ...sortZones(s.placements).map(
       (p): Command => ({
         id: `select:${p.id}`,
-        label: `Select zone: ${placementTitle(p)}`,
-        group: "Zones",
+        label: `Select widget: ${placementTitle(p)}`,
+        group: "Widgets",
         hint: `C${p.colStart} · R${p.rowStart}`,
         action: { type: "select", id: p.id },
       })

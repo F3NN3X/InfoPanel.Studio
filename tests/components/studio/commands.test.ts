@@ -87,7 +87,7 @@ describe("buildCommands", () => {
       context: { kind: "widget", defs: [glow, threshold] },
     });
     const byId = new Map(commands.map((c) => [c.id, c]));
-    expect(byId.get("zone:visible")?.label).toBe("Show zone");
+    expect(byId.get("zone:visible")?.label).toBe("Show widget");
     expect(byId.has("zone:duplicate")).toBe(true);
     expect(byId.has("zone:remove")).toBe(true);
     expect(byId.has("zone:pick")).toBe(true);
@@ -128,17 +128,17 @@ describe("buildCommands with several zones selected", () => {
 
   it("offers hide, duplicate, remove and align for the whole selection only; distribute needs three zones", () => {
     const list = buildCommands({ ...base, selected: b, selection: [a, b] });
-    const group = list.filter((c) => c.group === "Selected zones");
+    const group = list.filter((c) => c.group === "Selected widgets");
     expect(group.map((c) => c.label)).toEqual([
-      "Duplicate 2 zones",
-      "Hide 2 zones",
-      "Remove 2 zones",
+      "Duplicate 2 widgets",
+      "Hide 2 widgets",
+      "Remove 2 widgets",
       "Align left",
       "Align right",
       "Align top",
       "Align bottom",
-      "Match width of the primary zone",
-      "Match height of the primary zone",
+      "Match width of the primary widget",
+      "Match height of the primary widget",
     ]);
     const three = buildCommands({ ...base, selected: b, selection: [a, b, zone("c", 5, 5)] });
     expect(three.filter((c) => c.id.startsWith("zone:distribute")).map((c) => c.action)).toEqual([

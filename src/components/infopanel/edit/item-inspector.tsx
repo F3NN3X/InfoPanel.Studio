@@ -89,7 +89,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [query, setQuery] = useState("");
   const kind = item.kind as ItemKind;
-  const groups = ipGroups(kind);
+  const groups = ipGroups(kind, place !== undefined);
   const element = elementOf(item);
   const badge = badgeOf(item);
   const check = useExportCheck();
@@ -101,6 +101,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
     bound: isBound(item),
     unknown: Object.keys(item.unknown).length > 0,
     ...(element ? { element: ELEMENTS.find((e) => e.type === element.type)?.label ?? "Element" } : {}),
+    ...(place !== undefined ? { placeRow: true } : {}),
   };
   const editKey = (field: string) => `canvas-field:${editor.zone.id}:${path}:${field}`;
   const setError = (field: string, reason: string | null) =>
@@ -179,7 +180,7 @@ function ItemFields({ editor, path, item, live, onRemap, onBindSensor, sensors, 
       case "ipMode":
         return { body: <DrawAs editor={editor} path={path} /> };
       case "ipPosition":
-        return { top: <PositionGrid editor={editor} path={path} item={item} boxInPlace={place !== undefined} />, bottom: errorsOf(s) };
+        return { top: <PositionGrid editor={editor} path={path} item={item} />, bottom: errorsOf(s) };
       case "ipSensor":
         return {
           body: (
@@ -421,13 +422,13 @@ function GeoInput({ label, value, onCommit }: { label: string; value: number; on
 const GRID: GeoField[] = ["X", "Y", "Width", "Height"];
 const GRID_LABEL: Record<GeoField, string> = { X: "X", Y: "Y", Width: "W", Height: "H" };
 
-/** X / Y / W / H (unless the Place row has them, `boxInPlace`), then rotation and flip. */
-function PositionGrid({ editor, path, item, boxInPlace }: { editor: CanvasEditor; path: Path; item: DisplayItem; boxInPlace: boolean }) {
+/** X / Y / W / H, then rotation and flip (without the Place row: with it, there is no Position section). */
+function PositionGrid({ editor, path, item }: { editor: CanvasEditor; path: Path; item: DisplayItem }) {
   const has = (f: string) => valueOf(item, f) !== null;
   const set = (field: string, value: unknown) => editor.setField(path, field, value, `canvas-field:${editor.zone.id}:${path}:${field}`);
   return (
     <div className="space-y-2.5 px-4 pb-2">
-      {!boxInPlace && <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {GRID.filter(has).map((f) => (
           <GeoInput
             key={f}
@@ -441,7 +442,7 @@ function PositionGrid({ editor, path, item, boxInPlace }: { editor: CanvasEditor
             }}
           />
         ))}
-      </div>}
+      </div>
       <div className="grid grid-cols-4 items-end gap-2">
         {has("Rotation") && (
           <GeoInput

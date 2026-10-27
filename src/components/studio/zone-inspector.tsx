@@ -305,7 +305,7 @@ export function ZoneInspector({
       case "widgetPicker":
         return { at: "top", node: <WidgetPicker placement={zone} onPickWidget={onPickWidget} /> };
       case "visible":
-        return { at: "bottom", node: <ToggleRow label="Visible" hint="Hidden zones stay editable but do not show in kiosk mode" value={zone.visible} onChange={onToggleVisible} /> };
+        return { at: "bottom", node: <ToggleRow label="Visible" hint="The eye in Layers: a hidden widget isn't drawn in Edit, Preview or the kiosk" value={zone.visible} onChange={onToggleVisible} /> };
       case "zoneFrame":
         // A panel draws its own card (Surface): no frame background around it.
         return { at: "more", node: frameFields(!zone.panel) };
@@ -419,7 +419,7 @@ export function ZoneInspector({
       : undefined;
   const Icon = moduleIcon(zone.module);
 
-  const typeName = blank ? "Blank zone" : item ? "Panel item" : zone.panel ? "Panel" : (mod?.title ?? zone.module);
+  const typeName = blank ? "Blank space" : item ? "Panel item" : zone.panel ? "Panel" : (mod?.title ?? zone.module);
   const header = (changed: number) => (
     <>
       <ZoneHeader

@@ -848,7 +848,7 @@ export function StudioCanvas({
           className="pointer-events-none fixed z-50 rounded-md border border-ui-menu bg-ui-raised px-2 py-1 font-ui text-[11px] font-medium text-ui-1 shadow-ui-float"
           style={{ left: zoneDrag.x + 14, top: zoneDrag.y + 14 }}
         >
-          {zoneDrag.ids.length > 1 ? `${zoneDrag.ids.length} zones` : placementTitle(dragged)}{" "}
+          {zoneDrag.ids.length > 1 ? `${zoneDrag.ids.length} widgets` : placementTitle(dragged)}{" "}
           <span className="font-ui-mono tabular-nums text-ui-3">
             → C{zoneDrag.rect.col} · R{zoneDrag.rect.row} · {zoneDrag.rect.cols}×{zoneDrag.rect.rows}
           </span>

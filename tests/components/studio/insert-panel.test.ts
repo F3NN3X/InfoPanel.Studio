@@ -61,7 +61,7 @@ describe("insertables with saved panels", () => {
       rows: 2,
     });
     expect(list.filter((i) => i.category === "Layouts").map((i) => i.title)).toEqual([
-      "Blank zone",
+      "Blank space",
       "Row of stats",
       "2×2 stats",
       "Hero overlay",

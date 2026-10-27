@@ -139,7 +139,7 @@ export function SettingField({
           <>
             {mixed && (
               <span
-                title="The selected zones differ here: the value shown is the primary zone's, and a change sets it on all of them"
+                title="The selected widgets differ here: the value shown is the primary widget's, and a change sets it on all of them"
                 className="shrink-0 rounded-[5px] bg-[#1e1e24] px-1.5 py-px text-[10px] font-medium text-ui-3"
               >
                 Mixed

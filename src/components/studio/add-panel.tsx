@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { Segmented } from "@/components/ui/segmented";
 import { useAddChip, useAddFilter, type AddFilter } from "./add-prefs";
 import { FilePlus2, FileUp, Search, SquareDashedMousePointer, X, type LucideIcon } from "lucide-react";
@@ -73,8 +73,50 @@ export interface AddPanelProps {
   status?: AddStatusKit | null;
   /** Layouts can't apply on this page: the tab is disabled with this tooltip. */
   layoutsOff?: string;
-  /** A fixture's state: the segment and the tile whose card is open. */
-  start?: { segment?: AddFilter; hoverTile?: string };
+  /** A fixture's state: the segment, the tile whose card is open, and the tile just added (its highlight). */
+  start?: { segment?: AddFilter; hoverTile?: string; added?: string };
+}
+
+/** How far the chip row fades at an edge with more chips past it. */
+const FADE_PX = 24;
+
+/**
+ * The category chips: one row that scrolls sideways (the wheel scrolls it too), fading at an edge with more chips past
+ * it, so a cut-off chip reads as "more this way" (sign-off round 1).
+ */
+function ChipRow({ chips, children }: { chips: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState({ start: false, end: false });
+  const measure = () => {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.scrollLeft > 1;
+    const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setEdge((e) => (e.start === start && e.end === end ? e : { start, end }));
+  };
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    const ro = el && typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (el) ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [chips]);
+  const mask = `linear-gradient(to right, ${edge.start ? `transparent, #000 ${FADE_PX}px` : "#000, #000"}, ${edge.end ? `#000 calc(100% - ${FADE_PX}px), transparent` : "#000"})`;
+  return (
+    <div
+      ref={ref}
+      data-fade={[edge.start && "start", edge.end && "end"].filter(Boolean).join(" ") || undefined}
+      onScroll={measure}
+      onWheel={(e) => {
+        const el = ref.current;
+        if (el && Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY;
+      }}
+      style={{ maskImage: mask, WebkitMaskImage: mask }}
+      className="add-chips mt-2 flex h-6 shrink-0 gap-1 overflow-x-auto px-2.5"
+    >
+      {children}
+    </div>
+  );
 }
 
 interface Highlight {
@@ -308,6 +350,11 @@ export function AddPanel({
     place(el);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start?.hoverTile, grid.tiles.length > 0]);
+  useEffect(() => {
+    const tile = start?.added ? grid.tiles.find((t) => t.name === start.added) : undefined;
+    if (tile) flash(tile.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start?.added, grid.tiles.length > 0]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp" || ((e.key === "ArrowLeft" || e.key === "ArrowRight") && tiles && (e.currentTarget !== inputRef.current || hl?.via === "key" || !query))) {
@@ -419,7 +466,7 @@ export function AddPanel({
       )}
 
       {tiles && !query.trim() && (
-        <div className="add-chips flex h-6 shrink-0 gap-1 overflow-x-auto px-2.5 mt-2">
+        <ChipRow chips={chips.join(" ")}>
           {chips.map((c) => {
             const on = c === chip;
             return (
@@ -438,7 +485,7 @@ export function AddPanel({
               </button>
             );
           })}
-        </div>
+        </ChipRow>
       )}
 
       {target && (
@@ -446,7 +493,7 @@ export function AddPanel({
           <SquareDashedMousePointer className="h-[18px] w-[18px] shrink-0 text-[oklch(0.82_0.12_255)]" strokeWidth={1.75} aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12.5px] font-medium text-ui-1">
-              Filling blank zone · <span className="font-ui-mono text-[11.5px]">{sizeText(target.cols, target.rows)}</span>
+              Filling blank space · <span className="font-ui-mono text-[11.5px]">{sizeText(target.cols, target.rows)}</span>
             </div>
             <div className="truncate text-[11.5px] text-[#a1a1aa]">Click a widget to fill it.</div>
           </div>

@@ -6,7 +6,7 @@ related: [widget-settings, sensors, panels]
 verified: 1.3.0-beta.36
 ---
 
-Ready-made modules that read sensors and adapt to their zone.
+Ready-made modules that read sensors and adapt to their size.
 
 ## The widget list
 
@@ -18,7 +18,7 @@ On an InfoPanel profile, **Add** lists InfoPanel's items above the widgets, and 
 
 ## Adapting to size
 
-Most widgets pick a layout from the space they get. In **Show › Fit**, **Small zones** decides what happens when the zone is small:
+Most widgets pick a layout from the space they get. In **Show › Fit**, **Small sizes** decides what happens when the widget is small:
 
 - **Auto**: the widget decides.
 - **Full**: always the full layout, scaled down.
@@ -27,7 +27,7 @@ Most widgets pick a layout from the space they get. In **Show › Fit**, **Small
 
 Which choices appear depends on the widget. **Density** (Auto, Roomy, Standard, Compact, Minimal) sits under **More**.
 
-In a large zone the widget grows with it: its text, numbers and graphs get bigger, up to two and a half times, instead of leaving the card mostly empty. **Size (%)** under **Shape & spacing** makes it bigger or smaller on top of that. A single reading (the Sensor widget) and the Status Bar size their text to fit their box.
+A large widget grows with its cells: its text, numbers and graphs get bigger, up to two and a half times, instead of leaving the card mostly empty. **Size (%)** under **Shape & spacing** makes it bigger or smaller on top of that. A single reading (the Sensor widget) and the Status Bar size their text to fit their box.
 
 ## Time and status widgets
 
@@ -49,7 +49,7 @@ Three more views are ready-made, and each one is also listed in **Add** as its o
 - **Orbit** puts a load ring at each end, with the temperature and power beside it, and the FPS in the middle.
 - **Ticker** is one line of text: CPU, GPU, FPS and the time.
 
-They are built from items you can use in your own bars: CPU ring, GPU ring, CPU double ring, GPU double ring, FPS, frame time, and the CPU, GPU and FPS lines. The CPU and GPU are found by role, so they work on any PC. **FPS** reads the RTSS or PresentMon plugin; with no game running it shows a dash, and the FPS line leaves itself out. When the zone is narrow, the bar drops the least important item first (the frame time, the time, the FPS, then the GPU) and never overlaps. The sizes follow the zone's height, so they suit a strip of 12 × 1 and similar. Choosing a preset in the **View** control changes the frame only; add the preset from **Add** to get its items.
+They are built from items you can use in your own bars: CPU ring, GPU ring, CPU double ring, GPU double ring, FPS, frame time, and the CPU, GPU and FPS lines. The CPU and GPU are found by role, so they work on any PC. **FPS** reads the RTSS or PresentMon plugin; with no game running it shows a dash, and the FPS line leaves itself out. When the widget is narrow, the bar drops the least important item first (the frame time, the time, the FPS, then the GPU) and never overlaps. The sizes follow the widget's height, so they suit a strip of 12 × 1 and similar. Choosing a preset in the **View** control changes the frame only; add the preset from **Add** to get its items.
 
 ## Tint
 

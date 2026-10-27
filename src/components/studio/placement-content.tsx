@@ -119,7 +119,7 @@ export function placementContent(
   if (p.module === BLANK_MODULE) {
     // A drawn, unfilled zone: nothing to render (the kiosk shows open
     // space, the studio shows the dashed zone chrome).
-    return { content: null, hasData: false, title: "Blank zone" };
+    return { content: null, hasData: false, title: "Blank space" };
   }
   if (p.module === CANVAS_ID) {
     // Drawn as InfoPanel draws it: the dashboard style does not reach the canvas.

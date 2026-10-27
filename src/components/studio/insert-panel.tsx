@@ -73,7 +73,7 @@ export type Insertable =
 const BLANK_ZONE: Insertable = {
   kind: "module",
   id: BLANK_MODULE,
-  title: "Blank zone",
+  title: "Blank space",
   description: "Pick a widget later",
   cols: 2,
   rows: 1,

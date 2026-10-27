@@ -26,7 +26,7 @@ const savedText = async (scratch: Scratch) => (await fetch(`${scratch.base}/api/
 test("closing the tab inside the save delay never loses the edit silently", async ({ page, scratch }) => {
   await openStudio(page, scratch);
   await page.locator(`[data-zone-id="${manifest.zones.light[1]}"]`).click();
-  const name = page.getByLabel("Zone name");
+  const name = page.getByLabel("Widget name");
   await name.fill("Closed tab edit");
   await name.press("Enter");
   let prompted = false;
@@ -48,7 +48,7 @@ test("hiding the tab saves the pending edit at once, and leaving after that does
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 60_000));
   await page.locator(`[data-zone-id="${manifest.zones.light[1]}"]`).click();
-  const name = page.getByLabel("Zone name");
+  const name = page.getByLabel("Widget name");
   await name.fill("Hidden tab edit");
   await name.press("Enter");
   // The edit's own push waits 400 ms; the hide's goes out at once.

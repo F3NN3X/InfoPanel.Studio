@@ -14,6 +14,8 @@ export type ContextMenuEntry =
       /** Red row (delete). */
       danger?: boolean;
       disabled?: boolean;
+      /** Tooltip (a disabled row's reason); on the row's wrapper too, as a disabled button may not show one. */
+      title?: string;
       /** Rows of a flyout opened beside this one (then the row itself picks nothing). */
       submenu?: ContextMenuEntry[];
       onSelect?: () => void;
@@ -107,11 +109,12 @@ export function ContextMenu({ x, y, entries, onClose, width = MENU_WIDTH, testId
       e === "separator" ? (
         <div key={i} role="separator" className="mx-0.5 my-1 h-px bg-[#26262c]" />
       ) : (
-        <div key={e.id} className="relative" onMouseEnter={() => level === 0 && setOpenSub(e.submenu && !e.disabled ? e.id : null)}>
+        <div key={e.id} className="relative" title={e.title} onMouseEnter={() => level === 0 && setOpenSub(e.submenu && !e.disabled ? e.id : null)}>
           <button
             type="button"
             role="menuitem"
             disabled={e.disabled}
+            title={e.title}
             data-sub-trigger={e.submenu ? e.id : undefined}
             aria-haspopup={e.submenu ? "menu" : undefined}
             aria-expanded={e.submenu ? openSub === e.id : undefined}

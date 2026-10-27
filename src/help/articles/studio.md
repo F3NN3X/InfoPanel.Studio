@@ -37,11 +37,11 @@ The status bar under the work area shows the Data API (connected, slow or unreac
 
 ## Canvas
 
-Shows the selected screen at its real size, scaled to fit the window. Grid lines appear while you drag. Click a zone to select it; click empty space to select nothing and see the page's settings. Right-click a zone for its menu (change widget, edit style, bind data, duplicate, hide, move to page, copy and paste style, make this the theme for…, size steps, delete) or empty canvas for **Add widget…**, **Select all**, **Zoom to fit** and **Edit theme**.
+Shows the selected screen at its real size, scaled to fit the window. Grid lines appear while you drag. Click a widget to select it; click empty space to select nothing and see the page's settings. Right-click a widget for its menu (change widget, edit style, bind data, duplicate, hide, move to page, copy and paste style, make this the theme for…, size steps, delete) or empty canvas for **Add widget…**, **Select all**, **Zoom to fit** and **Edit theme**.
 
 The bar under the canvas toggles the left panel, the grid and rulers, zooms in and out, and has **Fit** and the resolution button. On a screen made for InfoPanel too it also has **Studio | InfoPanel**: **InfoPanel** draws the page as it exports, with the parts the export leaves out hidden (they keep their cells), and **Studio** goes back. It changes only what you see.
 
-An empty page shows **Drop widgets or InfoPanel items here**, with **Add**, **Import .infopanel** and **Use sample layout**. A widget this version doesn't have, saved by a newer or older one, shows as a grey box that says **Widget not available in this version**; it's kept as it is when you save. A page whose InfoPanel content didn't load says *This page's content isn't loaded yet.* and can't be moved until it does.
+An empty page shows **Drop widgets or InfoPanel items here**, with **Add** and **Import .infopanel**, and **Use sample layout** as a link under them. A widget this version doesn't have, saved by a newer or older one, shows as a grey box that says **Widget not available in this version**; it's kept as it is when you save. A page whose InfoPanel content didn't load says *This page's content isn't loaded yet.* and can't be moved until it does.
 
 To move around, hold `Space` and drag, or drag with the middle mouse button, to pan the canvas at any zoom. **Fit** puts it back. `Ctrl` + mouse wheel zooms.
 
@@ -81,7 +81,7 @@ The rest of the screen's settings (fit, padding, performance, the island and whi
 
 ## Made for
 
-The **Made for** button at the right of the page strip says who the screen is for. **Studio panels** is for screens shown by Studio. **InfoPanel too** also checks what would export to the InfoPanel app: the **Export check** pill appears after it, every part on the canvas gets a mark with its status, and the inspector shows each one's **On InfoPanel** line. On a Grid page the check lists every zone and says the page is converted when you export; **Review conversion…** and **Export .infopanel** open the conversion with each widget's choice already set. A change is one undo step. Imported InfoPanel profiles start as **InfoPanel too**, other screens as **Studio panels**.
+The **Made for** button at the right of the page strip says who the screen is for. **Studio panels** is for screens shown by Studio. **InfoPanel too** also checks what would export to the InfoPanel app: the **Export check** pill appears after it, every part on the canvas gets a mark with its status, and the inspector shows each one's **On InfoPanel** line. On a screen's page the check lists every widget and says the page is converted when you export; **Review conversion…** and **Export .infopanel** open the conversion with each widget's choice already set. A change is one undo step. Imported InfoPanel profiles start as **InfoPanel too**, other screens as **Studio panels**.
 
 ## InfoPanel items on a page
 
@@ -130,14 +130,14 @@ On a screen made for InfoPanel, each item has its Export check mark, and **Conve
 
 **Layers** lists every part of the page, the top one first: widgets, InfoPanel items, elements and groups. A group can hold any mix of them, and groups can hold groups. A screen's page and an InfoPanel profile use the same tree.
 
-Each row has the part's icon, its name and what it is (*widget*, *item*, *element* or *group* with its count). An item placed freely has a move mark. On a screen made for InfoPanel the row also shows its Export check status. Every row ends with a lock and an eye, and a hidden row is dimmed.
+Each row has the part's icon, its name and what it is (*widget*, *item*, *element* or *group* with its count). An item placed freely has a move mark. On a screen made for InfoPanel the row also shows its Export check status. Every row ends with a lock and an eye, and a hidden row is dimmed. A hidden part isn't drawn in Edit, Preview or the kiosk. Select it in Layers and the canvas shows a dashed outline where it sits.
 
 - Click a row to select it. `Ctrl`+click adds or removes a row and `Shift`+click selects a range. One selection can hold widgets, items and groups together, on the canvas too.
 - From the keyboard, `Tab` reaches the selected row. The up and down arrows move between rows, `Shift`+arrow selects as it goes, `Enter` or `Space` selects the row and `Ctrl+Space` adds or removes it.
 - Double-click a name, or press `F2`, to rename it. `Enter` keeps the new name and `Esc` drops it. A widget's new name shows in the inspector too.
 - Drag a row between two rows to change what is drawn on top. Drop it on the middle of a group to put it inside, on top. A line or an outline shows where it lands. Reordering never moves a part on the page.
 - On the canvas, a click on a part in a group selects the outermost group; double-click to select the part itself.
-- Right-click a row, or any part on the canvas, widgets included, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate and Delete. A widget's menu goes on below with the widget's own commands, such as Change widget, Edit style and Bind data. The inspector's **Layer** section has the four order buttons and the group the part sits in.
+- Right-click a row, or any part on the canvas, widgets included, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate and Delete. On a screen's page **Save to Library** is there too, greyed out with *Coming soon*, as it is in a group's inspector. A widget's menu goes on below with the widget's own commands, such as Change widget, Edit style and Bind data. The inspector's **Layer** section has the four order buttons and the group the part sits in.
 - Select a group and the canvas draws one box around its parts, with its name above it. Drag the box to move the group. A group with a widget in it moves by whole cells; when a widget would land on a widget outside the group, the group stays put and a message says "Not enough room to move the group." A group of items and elements snaps to the cells, or goes to the pixel while you hold `Alt`. Double-click inside the box to select the part under the pointer.
 - A locked part can't be moved, resized or deleted on the canvas. You can still reorder it in Layers.
 - When the screen is exported to InfoPanel, each group becomes an InfoPanel Group with the same name and parts, so the profile has the same tree.
@@ -157,7 +157,7 @@ The settings for whatever is selected. Where it sits depends on the width of the
 | Window width | Inspector |
 |---|---|
 | 960 px or more | Docked as a column on the right. `Ctrl+\` collapses it. |
-| 600 to 959 px | A floating card. Open it with **All settings**, by double-clicking a zone, or with `Ctrl+\`. |
+| 600 to 959 px | A floating card. Open it with **All settings**, by double-clicking a widget, or with `Ctrl+\`. |
 | Under 600 px | A bottom sheet that you can pull to peek, half or full height. |
 
 A selected widget's inspector starts with **Studio widget** under its name and **PLACE ON GRID**: its column, row, width and height in cells. Type a value and press Enter; a box turns red when the widget can't go there because another widget is in the way. The tabs **Show**, **Style**, **Data** and **Behaviour** follow, then **LAYER** and, on a screen made for InfoPanel, **On InfoPanel**.

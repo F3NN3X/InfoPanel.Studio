@@ -317,7 +317,7 @@ export const GROUP_B: DashboardModule[] = [
     Component: lazyWidget(() => import("../NetworkAdapters")),
     settings: [
       boolSetting("showDown", "Show adapters that are down", false, { group: "Adapters" }),
-      enumSetting("showIpv6", "IPv6 count", "auto", [{ value: "auto", label: "Large zones" }, { value: "show", label: "Show" }, { value: "hide", label: "Hide" }], { group: "Addresses" }),
+      enumSetting("showIpv6", "IPv6 count", "auto", [{ value: "auto", label: "Large sizes" }, { value: "show", label: "Show" }, { value: "hide", label: "Hide" }], { group: "Addresses" }),
       boolSetting("hideIp", "Blur addresses", false, { group: "Addresses", hint: "Privacy: addresses stay blurred" }),
     ],
     toProps: (s): Partial<NetworkAdapters.NetworkAdaptersProps> => ({ ...pass<Partial<NetworkAdapters.NetworkAdaptersProps>>("showDown", "hideIp")(s), showIpv6: s.showIpv6 === "show" ? true : s.showIpv6 === "hide" ? false : undefined }),

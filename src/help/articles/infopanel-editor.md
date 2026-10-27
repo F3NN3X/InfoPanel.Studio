@@ -20,7 +20,7 @@ An .infopanel file imported onto a screen's page doesn't open a separate editor.
 
 ## What the page edits
 
-Each InfoPanel profile lives in a canvas zone on a screen. The page edits that zone, so every change is one step in the studio's undo history and saves with the dashboard. An InfoPanel profile in the Library is a saved copy: **Edit profile** opens the zone made from it in Edit, or places it as a new screen first. Editing the zone doesn't change the Library copy until you choose **Update in Library** (see Saving to the Library).
+Each InfoPanel profile lives on a page of a screen. Edit changes that page, so every change is one step in the studio's undo history and saves with the dashboard. An InfoPanel profile in the Library is a saved copy: **Edit profile** opens the page made from it in Edit, or places it as a new screen first. Editing the page doesn't change the Library copy until you choose **Update in Library** (see Saving to the Library).
 
 ## A new profile
 
@@ -49,7 +49,7 @@ A template is a finished profile made from the editor's own items and elements, 
 | Clock | A large clock inside a ring of 60 segments that counts the seconds |
 | Cores | One bar per CPU core or thread, under the CPU temperature |
 | Deck | A second-screen dashboard of cards: CPU and GPU rings, FPS with a frame-time histogram, the clock, memory, three graphs and the network |
-| Meters | A wide pill in three zones: double rings, rows with thin bars, and FPS with a line graph |
+| Meters | A wide pill in three parts: double rings, rows with thin bars, and FPS with a line graph |
 | Orbit | A pill with a load ring at each end, the temperatures and power beside them, and FPS in the middle |
 | Tower | A tall card with FPS, CPU and GPU as lists of readings, each with a small graph |
 | Ticker | One long pill of text: CPU, GPU, FPS and the time |
@@ -149,7 +149,7 @@ A profile's page can hold the studio's own widgets among its InfoPanel items. In
 
 A widget is a layer like any item. It moves, resizes, snaps, groups, locks and hides the same way, and Layers shows it with its widget icon and the word *widget*. The kiosk draws it live from the Data API, and so does the canvas, whatever the **Sensors** control is set to.
 
-Its inspector has the widget's own settings, as in a grid zone, plus **Place** (X, Y, width and height in px) and **On InfoPanel**, which says what the export makes of it:
+Its inspector has the widget's own settings, as on a grid page, plus **Place** (X, Y, width and height in px) and **On InfoPanel**, which says what the export makes of it:
 
 - **Recreate**: a picture of the widget with its values put back on top as InfoPanel items, bound to the same sensors. It arrives in InfoPanel as one Group named after the widget.
 - **Snapshot**: a still picture of the widget as it looks when you export.
@@ -269,7 +269,7 @@ Then **Name**, **Size**, **Columns × rows**, **Background**, **Palette** and **
 
 ## Saving to the Library
 
-**Save to Library**, in the **Drawing** section of the page's settings, keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
+**Save to Library**, in the **Preview** section of the page's settings, keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
 
 New profiles can start from a Library profile, and **Edit profile** in the Library opens one here. Removing an item from the Library never deletes a file that a profile on a screen still uses.
 
@@ -298,21 +298,21 @@ The Export window ends with what the other PC needs.
 
 ## Converting dashboard widgets
 
-InfoPanel can't draw the dashboard's widgets, so a zone or a whole screen can be rebuilt from InfoPanel's own items. Right-click a zone and choose **Convert zone to InfoPanel (experimental)…**, open the command palette and choose **Convert screen to InfoPanel profile (experimental)…**, or use **Convert to InfoPanel profile (experimental)** in a screen card's menu in Screens. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
+InfoPanel can't draw the dashboard's widgets, so a widget or a whole screen can be rebuilt from InfoPanel's own items. Right-click a widget and choose **Convert widget to InfoPanel (experimental)…**, open the command palette and choose **Convert screen to InfoPanel profile (experimental)…**, or use **Convert to InfoPanel profile (experimental)** in a screen card's menu in Screens. Native widgets are rebuilt from InfoPanel items, so they may look slightly different.
 
 Conversion is experimental and stays as it is: the dashboard's own screens are where new widgets and effects go, and many of them have no InfoPanel equivalent. Use it for a plain InfoPanel copy of a screen, not a faithful one.
 
 For each widget you choose what it becomes:
 
-- **Recreate** rebuilds it. A widget keeps its look: it becomes a picture of itself with its values taken out, and each value goes on top as an InfoPanel item at the same place, in the same font, size and colour, bound to the same sensor. Bars become Bars, rings and level meters become Gauges, sparklines become Graphs (they start empty, as InfoPanel keeps its own history), and the time and date become a Clock and a Calendar. Anything else that moves (a weather animation, a tile's colour) stays as it was when you converted. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. A widget whose values the conversion can't read yet is built from the readings it shows instead: hardware by role, plugins by their entries, on a plain card. The page's background is one picture under everything, and a canvas zone on the page keeps its InfoPanel items, scaled to its zone.
+- **Recreate** rebuilds it. A widget keeps its look: it becomes a picture of itself with its values taken out, and each value goes on top as an InfoPanel item at the same place, in the same font, size and colour, bound to the same sensor. Bars become Bars, rings and level meters become Gauges, sparklines become Graphs (they start empty, as InfoPanel keeps its own history), and the time and date become a Clock and a Calendar. Anything else that moves (a weather animation, a tile's colour) stays as it was when you converted. A panel's widgets become Values, Bars, Gauges, Graphs, Tables, Text, Images, Clocks and Shapes at the places they were drawn. A widget whose values the conversion can't read yet is built from the readings it shows instead: hardware by role, plugins by their entries, on a plain card. The page's background is one picture under everything, and an imported InfoPanel profile on the page keeps its items, scaled to its cells.
 - **Static snapshot** is a picture of the widget as it is now. It never updates.
 - **Leave out** drops it.
 
-Recreate is the default. A widget whose readings aren't on this PC goes as a snapshot, and the report says so. Your choices are kept on the zone, so the next conversion starts from them. On a screen made for InfoPanel, a widget's **On InfoPanel** choice in its inspector is where the conversion starts too, and a choice made here sets it. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
+Recreate is the default. A widget whose readings aren't on this PC goes as a snapshot, and the report says so. Your choices are kept on the widget, so the next conversion starts from them. On a screen made for InfoPanel, a widget's **On InfoPanel** choice in its inspector is where the conversion starts too, and a choice made here sets it. A reading the dashboard pushes itself (the system load, Spotify) has no InfoPanel reading of its own: it is bound to the matching hardware or Spotify plugin reading, or left unbound with a note.
 
 Coding Agents, Countdown, Timer, Web Page, WaveLink, Day Planner, Radial Clock Stack and On-Air Beacon aren't InfoPanel data. They can't be converted, and the window says each one is left out.
 
-A zone lands as an InfoPanel canvas zone in a free cell of the page, and is saved to the Library as a component you can place on any InfoPanel profile. A screen becomes a new profile with one canvas zone. The window ends with a report of what each widget became. Export the result with **Export & back up**.
+A widget lands as InfoPanel items in free cells of the page, and is saved to the Library as a component you can place on any InfoPanel profile. A screen becomes a new InfoPanel profile. The window ends with a report of what each widget became. Export the result with **Export & back up**.
 
 ## What InfoPanel can't do
 

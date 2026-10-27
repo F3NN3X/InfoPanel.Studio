@@ -238,7 +238,7 @@ export function IslandSection({ island, previewBus, onChange, onOpenExplorer, li
           )}
           <ToggleRow
             label="Reserve space"
-            hint="Start the zones under the island instead of overlaying the top row"
+            hint="Start the widgets under the island instead of overlaying the top row"
             value={v.reserve}
             onChange={(reserve) => onChange({ reserve })}
           />

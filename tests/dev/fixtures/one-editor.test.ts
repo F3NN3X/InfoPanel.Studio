@@ -23,7 +23,8 @@ describe("the one-editor fixtures", () => {
     const page = profile.pages.find((p) => p.id === fixture.route.pageId)!;
     expect(page).toBeDefined();
     expect(fixture.config.activeProfile).toBe(profile.id);
-    for (const id of fixture.selection) expect(page.placements.some((p) => p.id === id), id).toBe(true);
+    // A selected id is a part on the page or one of its groups (layersG opens with Overlay selected).
+    for (const id of fixture.selection) expect(page.placements.some((p) => p.id === id) || (page.groups ?? []).some((g) => g.id === id), id).toBe(true);
     // A saved config merged back keeps every placement and canvas.
     const merged = mergeConfig(JSON.parse(JSON.stringify(fixture.config)));
     expect(merged.profiles[0].pages[0].placements.map((p) => p.id)).toEqual(page.placements.map((p) => p.id));
@@ -65,5 +66,19 @@ describe("the one-editor fixtures", () => {
     expect(widgetOf(added)?.cell).toEqual({ col: 7, row: 5, cols: 2, rows: 1 });
     const right = items("layersF").find((i) => i.Name === "Right column");
     expect(right?.kind === "Group" && right.DisplayItems.map((i) => i.Name)).toEqual(["Fan gauge", "Weather"]);
+  });
+
+  // Sign-off round 1: each state opens as its reference does.
+  it("opens alt, layersF, layersG and addw on the reference's selection", () => {
+    const alt = oneEditorFixture("alt")!;
+    const altPage = alt.config.profiles[0].pages[0];
+    expect(alt.selection).toEqual(["title"]);
+    expect(altPage.groups ?? []).toEqual([]);
+    expect(altPage.placements.find((p) => p.id === "title")?.groupId).toBeUndefined();
+    expect(oneEditorFixture("layersG")!.selection).toEqual(["overlay"]);
+    const layersF = oneEditorFixture("layersF")!;
+    const items = openCanvas(layersF.config.profiles[0].pages[0].placements[0].canvas!).items;
+    expect(itemAt(items, layersF.canvasSelection![0])?.Name).toBe("Weather");
+    expect(oneEditorFixture("addw")!.added).toBe("Weather");
   });
 });

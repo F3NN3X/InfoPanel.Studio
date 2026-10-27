@@ -366,8 +366,10 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       });
       expect(under).toBe(true);
     },
+    // The reference's state: Weather selected, its menu open (the fixture's contextMenuFor).
     [CHECKS.layersF[2].text]: async (page) => {
-      await layersRow(page, "Fan gauge").click({ button: "right" });
+      await expect(page.getByTestId("inspector-kind")).toHaveText("Studio widget");
+      await layersRow(page, "Weather").click({ button: "right" });
       const menu = page.getByTestId("layer-menu");
       await expect(menu.getByRole("menuitem")).toHaveText([
         /^Bring to front/, /^Bring forward/, /^Send backward/, /^Send to back/,
@@ -401,6 +403,10 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await expect(page.getByTestId("group-chip")).toHaveText("Temps · group");
       await expect(page.locator("[data-selected-path]")).toHaveCount(1);
       await expect(layersRow(page, "CPU temp")).toHaveClass(/bg-ui-accent\/7/);
+      // SPEC §10.3, sign-off round 1: the group inspector has no tabs, as on a screen's page.
+      await expect(page.getByTestId("inspector-kind")).toHaveText("Group · 4 items");
+      await expect(page.getByRole("button", { name: "Select contents" })).toBeVisible();
+      await expect(page.getByRole("complementary", { name: "Item" }).getByRole("tab")).toHaveCount(0);
       await shoot(page, "layersF-group");
     },
     [CHECKS.layersF[5].text]: async (page) => {
@@ -447,6 +453,9 @@ const BUILT: Partial<Record<FixtureName, Record<string, (page: Page) => Promise<
       await expect(page.getByTestId("layers-row").first()).toBeVisible();
       const names = await page.getByTestId("layers-row").evaluateAll((els) => els.map((e) => (e.getAttribute("data-kind") === "group" ? e.textContent?.replace(/group.*$/, "") : null)).filter(Boolean));
       expect(names).toEqual(["Overlay", "Gauges"]);
+      // The fixture opens with Overlay selected (its box takes the pointer); with nothing selected, Title text is on top.
+      await page.keyboard.press("Escape");
+      await expect(page.locator('[data-group-box="overlay"]')).toHaveCount(0);
       const title = (await page.locator('[data-part-id="title"]').boundingBox())!;
       const top = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("[data-part-id]")?.getAttribute("data-part-id") ?? null, [title.x + title.width / 2, title.y + title.height / 2]);
       expect(top).toBe("title");
@@ -751,21 +760,43 @@ test("one-editor/export: the zoom bar's InfoPanel view hides what the export lea
   await expect(page.locator("[data-zone-id]")).toHaveCount(5);
 });
 
-// Decision Q10 (after phase 6): the slim strip over an imported canvas is gone; Draw all as, Show modes, Sensors and
-// Compare sit in the page settings, and the view toggle in the zoom bar, so both page kinds share one chrome.
+// Decision Q10 (after phase 6): the slim strip over an imported canvas is gone; Show modes, Sensors and Compare sit in
+// the page settings' Preview section, and the view toggle in the zoom bar, so both page kinds share one chrome. Sign-off
+// round 1: Draw all as is gone (the zoom bar's Studio | InfoPanel does it), and the item inspector has no Position.
 test("one-editor/profile: no strip over the canvas; its tools are in the page settings", async ({ page, scratch }) => {
   await openFixture(page, scratch.base, "profile");
   await expect(page.getByRole("toolbar", { name: "Canvas items" })).toHaveCount(0);
   await expect(page.getByTestId("export-view")).toBeVisible();
+  await expect(page.getByTestId("inspector-place")).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Draw as" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Position/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
-  const drawing = page.getByRole("region", { name: "Drawing" });
-  await expect(drawing.getByRole("radiogroup", { name: "Draw all as" })).toBeVisible();
+  const drawing = page.getByRole("region", { name: "Preview" });
+  await expect(page.getByRole("radiogroup", { name: "Draw all as" })).toHaveCount(0);
   await expect(drawing.getByRole("radiogroup", { name: "Sensors" })).toBeVisible();
   await drawing.getByRole("switch", { name: "Show modes" }).click();
   await expect(drawing).toContainText("Native widget");
   await drawing.getByRole("switch", { name: "Compare" }).click();
   await expect(drawing.getByRole("button", { name: /InfoPanel screenshot|Change screenshot/ })).toBeVisible();
   await shoot(page, "profile-page-drawing");
+});
+
+// SPEC §7.1, sign-off round 1: a hidden widget isn't drawn in Edit; selected from Layers it shows a dashed outline at
+// its box, and its eye brings it back.
+test("one-editor/screen: a hidden widget isn't drawn; Layers selects it as an outline", async ({ page, scratch }) => {
+  await openFixture(page, scratch.base, "screen");
+  const clock = page.locator('[data-zone-id="clock"]');
+  const before = (await clock.boundingBox())!;
+  await expect(clock.locator("*")).not.toHaveCount(0);
+  await layersRow(page, "Clock").hover();
+  await page.getByRole("button", { name: "Hide Clock" }).click();
+  await expect(clock).toHaveAttribute("data-hidden", "");
+  await expect(clock.locator("*")).toHaveCount(0);
+  await layersRow(page, "Clock").click();
+  await expect(clock.locator("[data-hidden-zone]")).toBeVisible();
+  expect(await clock.boundingBox()).toEqual(before);
+  await page.getByRole("button", { name: "Show Clock" }).click();
+  await expect(clock).not.toHaveAttribute("data-hidden");
 });
 
 // SPEC §7.1, acceptance 18: a locked widget is drawn but can't be moved on the canvas.

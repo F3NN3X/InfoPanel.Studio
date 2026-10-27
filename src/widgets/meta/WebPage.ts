@@ -11,5 +11,5 @@ export const meta: WidgetMeta = {
   minSize: [4, 2],
   blurb: "A web page or video in a frame",
   tags: "web youtube iframe browser",
-  description: "Embeds a web page or YouTube video in a frame that fills the zone.",
+  description: "Embeds a web page or YouTube video in a frame that fills the widget.",
 };

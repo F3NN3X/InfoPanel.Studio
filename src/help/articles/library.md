@@ -26,7 +26,7 @@ Every image or video you upload is in My library, wherever you uploaded it: Add 
 
 A component is a piece of an InfoPanel profile you saved to reuse: a few items, a group, or an element such as a Row or Drives. Save one in Edit on an InfoPanel profile (see [InfoPanel profiles in Edit](infopanel-editor)). **Components** lists them with a thumbnail of each. A component isn't a profile, so it doesn't appear under InfoPanel profiles or in Screens.
 
-Drag a component onto the screen to get a canvas zone of its own, or onto a canvas zone to merge its items there. **Place on this page** does the first in the free cell that draws it largest. Each placement counts as a copy, so the component shows as used, and removing it from the Library never deletes a file a placed copy still draws.
+Drag a component onto the screen to get an InfoPanel group of its own, or onto an imported profile's page to merge its items there. **Place on this page** does the first in the free cell that draws it largest. Each placement counts as a copy, so the component shows as used, and removing it from the Library never deletes a file a placed copy still draws.
 
 ## Themes, skins and Styles
 
@@ -52,7 +52,7 @@ A screen template is a ready-made screen. **New screen from this** opens the New
 
 ## The right-click menu
 
-Right-click an item. The first row depends on what it is: Set as background, Open in editor (a gauge opens in Gauges), Edit profile, Edit in Theme, Apply to selection, Add to screen, New screen from this, Show font or Add to canvas. An InfoPanel template offers New InfoPanel profile from this, and an Island look Apply to this screen. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Edit profile opens Edit on the screen and page that use the profile, or, for a profile nothing uses yet, brings it in as a new screen and opens it there. The cards show the profile itself. Save one from Edit with **Save to Library**; Add to this page… puts it in a canvas zone on the current page. Your own items have **Rename** and **Remove from library…** (`Delete`); a saved panel has **Delete**. Built-in items have neither. Skins, screen templates, InfoPanel templates, Island looks and built-in fonts don't drag onto the canvas: use their buttons.
+Right-click an item. The first row depends on what it is: Set as background, Open in editor (a gauge opens in Gauges), Edit profile, Edit in Theme, Apply to selection, Add to screen, New screen from this, Show font or Add to canvas. An InfoPanel template offers New InfoPanel profile from this, and an Island look Apply to this screen. Other rows can include Add to canvas, Duplicate, Optimise, Export .gauge.json, Export… and, on a canvas, Add to this page…. Edit profile opens Edit on the screen and page that use the profile, or, for a profile nothing uses yet, brings it in as a new screen and opens it there. The cards show the profile itself. Save one from Edit with **Save to Library**; Add to this page… puts it on the current page. Your own items have **Rename** and **Remove from library…** (`Delete`); a saved panel has **Delete**. Built-in items have neither. Skins, screen templates, InfoPanel templates, Island looks and built-in fonts don't drag onto the canvas: use their buttons.
 
 ## Removing an item
 

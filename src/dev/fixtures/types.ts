@@ -5,7 +5,7 @@ export type FixtureLeftTab = "layers" | "add";
 
 /** What the studio does on its first render when a fixture is loaded (the rest of the Fixture is read by the App). */
 export interface FixtureStart {
-  /** Zone ids to select on a grid page. */
+  /** Part and group ids to select on a grid page (a zone, an item placement or a page group). */
   selection: string[];
   /** Item paths to select in the canvas editor of a Free page (`canvas-edit` paths, "0", "1.2"). */
   canvasSelection?: string[];
@@ -16,6 +16,8 @@ export interface FixtureStart {
   recent?: string[];
   /** The toast after adding the selected widget (the reference's state 3). */
   toast?: "addw";
+  /** The tile just added, by name: Add's 1.5 s highlight on it (the reference's state 3). */
+  added?: string;
 }
 
 /**

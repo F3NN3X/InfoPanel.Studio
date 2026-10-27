@@ -38,7 +38,7 @@ import { useAddListDensity, useAddPreviewOnHover } from "./add-prefs";
 import { useAddPanel } from "./use-add-panel";
 import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
-import { madeForInfoPanel, screenKind } from "@/lib/screens/list";
+import { importedFromInfoPanel, madeForInfoPanel, screenKind } from "@/lib/screens/list";
 import { MadeForControl } from "./made-for-control";
 import { focusOnInfoPanel } from "./add-toast";
 import { ELEMENT_TILES, ITEM_TILES, partKey } from "./add-tiles";
@@ -258,7 +258,6 @@ function StudioViewBody({
     if (!start) return;
     ui.setMode("design");
     ui.setLeftTab(start.leftTab);
-    for (const id of start.selection) sel.select(id, "toggle");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useInspectorFollowsSelection(ui, sel.primaryId, selectedWidgetId);
@@ -418,6 +417,12 @@ function StudioViewBody({
     showLayers: () => ui.setLeftTab("layers"),
     toast,
   });
+  // The fixture's selection, through Layers so a page group or an item placement is selected as a click on its row
+  // would; after Layers' own effects, which clear its group selection on mount.
+  useEffect(() => {
+    for (const id of fixtureStart.current?.selection ?? []) layers.host.select(id, "toggle", []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /** The layer menu, opened on a part or a group's box on the canvas (Layers opens its own); on a widget, `zone`. */
   const [layerMenu, setLayerMenu] = useState<{ x: number; y: number; zone?: boolean } | null>(null);
   /** Right-click on a widget on the canvas: the layer menu, the zone menu's other rows under it (DECISIONS after phase 4). */
@@ -791,7 +796,7 @@ function StudioViewBody({
         pageStyle: { ...themeScope, fontFamily: pageFont },
         infoPanel: checkOn,
         status: addPanel.status,
-        start: fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile },
+        start: fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, added: fixture.added },
       }}
       layers={layers.host}
     />
@@ -1072,6 +1077,7 @@ function StudioViewBody({
         deletingId={ui.deletingPage}
         onDeletingChange={ui.setDeletingPage}
         kioskPage={control?.profiles[storedProfile.id]?.page}
+        imported={importedFromInfoPanel(storedProfile)}
         extra={
           <>
             <MadeForControl value={storedProfile.madeFor} onChange={setMadeFor} />
@@ -1124,7 +1130,7 @@ function StudioViewBody({
         checkOn={checkOn}
         exportView={exportView}
         checkRequest={checkRequest}
-        addStart={fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, recent: fixture.recent, toast: fixture.toast }}
+        addStart={fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, recent: fixture.recent, toast: fixture.toast, added: fixture.added }}
         onExport={() => io.openExport(activeCanvas)}
         initialSelection={canvasSelection}
         unbound={unboundNote?.zoneId === activeCanvas.id ? unboundNote.labels : undefined}

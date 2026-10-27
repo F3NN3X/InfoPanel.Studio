@@ -223,7 +223,7 @@ export function RemapPanel({ groups, resolved, index, overrides, onOverrides, on
           </button>
         )}
         {counts.unresolved > 0 && (
-          <button type="button" className={GHOST} title="Each can still be remapped later from the zone" onClick={() => onOverrides(leaveUnresolved(rows, overrides))}>
+          <button type="button" className={GHOST} title="Each can still be remapped later from the page" onClick={() => onOverrides(leaveUnresolved(rows, overrides))}>
             <CircleSlash className="h-4 w-4 text-ui-4" /> Leave {counts.unresolved} unresolved unbound
           </button>
         )}

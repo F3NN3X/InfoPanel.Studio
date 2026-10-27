@@ -19,7 +19,8 @@ import { useSensors } from "@/hooks/useSensors";
 import { getCatalog, useSensorCatalog } from "@/lib/catalog";
 import { editKeyOf } from "@/lib/infopanel/canvas-edit";
 import { namedFor, newItem, type PaletteEntry } from "@/lib/infopanel/editor/create";
-import { applyElement } from "@/lib/infopanel/elements/apply";
+import { applyElement, elementOf } from "@/lib/infopanel/elements/apply";
+import type { DisplayItem } from "@/lib/infopanel/schema";
 import { detectCores } from "@/lib/infopanel/elements/cores";
 import { detectDrives } from "@/lib/infopanel/elements/drives";
 import { elementSize, isComposite, newComposite, newCores, newElement, type ElementEntry } from "@/lib/infopanel/elements/create";
@@ -75,6 +76,7 @@ import { ItemInspector } from "./item-inspector";
 import { LayersTree } from "@/components/studio/layers-tree";
 import { useCanvasLayers } from "./canvas-layers";
 import { LayerSection } from "@/components/studio/layer-section";
+import { contentsLine, GroupInspectorView } from "@/components/studio/group-inspector";
 import { SaveComponentDialog } from "./save-component-dialog";
 import { ProfileSettings } from "./profile-settings";
 import { SensorPicker } from "./sensor-picker";
@@ -120,8 +122,8 @@ export interface CanvasEditorProps {
   widgetHost?: WidgetHost;
   /** `Studio | InfoPanel` in the zoom bar (decision Q10), shown with the check on. */
   exportView?: ExportView;
-  /** A fixture's Add state: the segment, the tile whose card is open, Recently used, and the add toast for the selected widget. */
-  addStart?: { segment?: AddFilter; hoverTile?: string; recent?: string[]; toast?: "addw" };
+  /** A fixture's Add state: the segment, the tile whose card is open, Recently used, the add toast for the selected widget and the tile it highlights. */
+  addStart?: { segment?: AddFilter; hoverTile?: string; recent?: string[]; toast?: "addw"; added?: string };
 }
 
 const isTyping = (el: Element | null) =>
@@ -132,6 +134,21 @@ interface PickFor {
   label: string;
   pluginOnly: boolean;
   fresh: boolean;
+}
+
+/** What a group holds, every level down: its Studio widgets, elements and other items ("1 widget, 2 items"). */
+function canvasContents(items: readonly DisplayItem[]): string {
+  const n = { widget: 0, item: 0, element: 0 };
+  const walk = (list: readonly DisplayItem[]) => {
+    for (const it of list) {
+      if (isWidgetItem(it)) n.widget++;
+      else if (elementOf(it)) n.element++;
+      else if (it.kind === "Group") walk(it.DisplayItems);
+      else n.item++;
+    }
+  };
+  walk(items);
+  return contentsLine(n);
 }
 
 const hasOverlay = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
@@ -318,11 +335,11 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
   const checkState: ExportCheckState = useMemo(() => ({ on: checkOn, byPath: new Map(check.rows.map((r) => [r.path, r])) }), [checkOn, check]);
   const leftOut = useMemo(() => new Set(check.rows.filter((r) => r.status === "out").map((r) => r.path)), [check]);
 
-  // Live needs the Data API: when it is not reachable the toolbar disables it and the editor leaves it.
+  // Live needs the Data API: when it is not reachable the Sensors control disables it and the editor leaves it. No
+  // toast: the status bar says `Data API · unreachable`, and nothing may cover the header.
   useEffect(() => {
     if (!unreachable || editor.sensorMode !== "live") return;
     editor.setSensorMode("unbound");
-    toast("Data API not reachable: sensors set to Unbound");
   }, [unreachable, editor.sensorMode]);
 
   // Live values for the keys the items read, from the shared sensor store (no stream per item).
@@ -491,6 +508,8 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
         setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === storedScreen.id ? r.profile : p)) }));
       },
     };
+  const selectedBox = single?.kind === "Group" ? editor.boxes[editor.selection[0]] : undefined;
+  const groupBox = selectedBox && { x: Math.round(selectedBox.x), y: Math.round(selectedBox.y), w: Math.round(selectedBox.width), h: Math.round(selectedBox.height) };
   const inspectorBody =
     checkOpen && checkOn ? (
       <ExportCheckPanel
@@ -500,6 +519,21 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
           editor.select([path]);
         }}
         onExport={() => onExport?.()}
+      />
+    ) : single && single.kind === "Group" && !elementOf(single) ? (
+      // A group (SPEC §10.3, sign-off round 1): no tabs, as on a screen's page; its box as the selection draws it.
+      <GroupInspectorView
+        name={single.Name || "Group"}
+        contents={canvasContents(single.DisplayItems)}
+        hidden={single.Hidden === true}
+        locked={single.IsLocked === true}
+        place={groupBox && <PlaceRow px={groupBox} />}
+        onToggleHidden={() => editor.setField(editor.selection[0], "Hidden", !single.Hidden)}
+        onDelete={editor.remove}
+        onSelectContents={single.DisplayItems.length > 0 ? () => editor.select(single.DisplayItems.map((_, i) => `${editor.selection[0]}.${i}`)) : undefined}
+        onUngroup={editor.ungroup}
+        onSaveToLibrary={openSave}
+        layer={layerSection}
       />
     ) : single && widgetHost && isWidgetItem(single) ? (
       <WidgetItemInspector key={editor.selection[0]} editor={editor} path={editor.selection[0]} item={single} host={widgetHost} place={placeOf(editor.selection[0])} after={layerSection} />
@@ -567,7 +601,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, hidd
           infoPanel={checkOn}
           status={addKit}
           layoutsOff="Layouts add Studio panel areas. Imported profiles keep InfoPanel's layout."
-          start={addStart && { segment: addStart.segment, hoverTile: addStart.hoverTile }}
+          start={addStart && { segment: addStart.segment, hoverTile: addStart.hoverTile, added: addStart.added }}
         />
       ) : (
         <AddPalette onAdd={onAdd} />

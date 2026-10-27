@@ -103,7 +103,7 @@ export function usePanelSheet({
     panelCards.push({
       id: "panel:layout",
       title: "Layout",
-      hint: "How the widgets are arranged and how the panel fits its zone",
+      hint: "How the widgets are arranged and how the panel fits its space",
       terms: [
         "Layout", "Stack", "Grid", "Overlay", "Direction", "Wrap", "Alignment", "Columns", "Column sizes",
         "Row sizes", "Cell alignment", "Band alignment", "Bottom band columns",

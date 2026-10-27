@@ -59,7 +59,7 @@ describe("addCatalog", () => {
     expect(sameDrop(now.drop, { ...now.drop, settings: { ...now.drop.settings } })).toBe(true);
   });
 
-  it("splits panels into My panels and presets, and layouts into Blank zone and starters", () => {
+  it("splits panels into My panels and presets, and layouts into Blank space and starters", () => {
     const saved: UserPanelPreset = {
       id: "mine",
       name: "Session",

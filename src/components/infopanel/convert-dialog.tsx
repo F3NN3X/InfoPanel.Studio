@@ -101,12 +101,12 @@ function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, on
       setReport(result.report);
       if (result.items.length === 0) return;
       const box = scope === "zone" ? zones[0] : undefined;
-      const name = scope === "screen" ? `${profile.name} (InfoPanel)` : `${box ? titleOf(box.module) : "Zone"} (InfoPanel)`;
+      const name = scope === "screen" ? `${profile.name} (InfoPanel)` : `${box ? titleOf(box.module) : "Widget"} (InfoPanel)`;
       const size = result.size;
       const canvas = await canvasFromItems(result.items, result.assets, { name, ...size });
       const why = onConverted({ scope, canvas, name, size });
       if (why) setError(why);
-      else onDone(`Converted ${scope === "screen" ? "the screen" : "the zone"} to InfoPanel · ${result.report.length} widgets`);
+      else onDone(`Converted ${scope === "screen" ? "the screen" : "the widget"} to InfoPanel · ${result.report.length} widgets`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -117,7 +117,7 @@ function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, on
   return (
     <>
       <div className="flex items-center border-b border-ui-subtle px-5 py-4">
-        <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile (experimental)" : "Convert zone to InfoPanel (experimental)"}</Dialog.Title>
+        <Dialog.Title className="flex-1 text-[15px] font-semibold text-ui-1">{scope === "screen" ? "Convert screen to InfoPanel profile (experimental)" : "Convert widget to InfoPanel (experimental)"}</Dialog.Title>
         <Dialog.Close title="Close" className="grid h-7 w-7 place-items-center rounded-md text-ui-4 hover:bg-ui-hover hover:text-ui-1">
           <X className="h-5 w-5" />
         </Dialog.Close>

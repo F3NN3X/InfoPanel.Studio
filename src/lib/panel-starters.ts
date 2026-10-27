@@ -99,7 +99,7 @@ export const layoutStarters: PanelPreset[] = [
   {
     id: "layout-clock",
     title: "Clock + date",
-    description: "Time over date, centered in the zone",
+    description: "Time over date, centered in its space",
     blurb: "Time over date",
     colSpan: 2,
     rowSpan: 1,

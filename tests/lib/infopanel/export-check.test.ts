@@ -39,7 +39,7 @@ const screen = { cols: 2, rows: 1 };
 describe("an InfoPanel item's status", () => {
   it("is as is for a plain item, worded by where it came from", () => {
     const text = newItem("Text", profile, palette);
-    expect(itemRows([text], true)).toEqual([{ path: "0", name: "Custom Text", kind: "item", status: "ok", why: "Original InfoPanel item" }]);
+    expect(itemRows([text], true)).toEqual([{ path: "0", name: "Custom Text", kind: "item", status: "ok", why: "Unchanged from the imported profile." }]);
     expect(itemRows([text], false)[0].why).toBe("InfoPanel Text item");
   });
 

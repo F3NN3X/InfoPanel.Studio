@@ -18,7 +18,7 @@ export function panelLayoutName(layout: string | undefined): string {
 
 export function zoneMeta(zone: Placement, info: { dataPoints: number; min: { cols: number; rows: number } }): string {
   const size = `${zone.colSpan}×${zone.rowSpan}`;
-  if (zone.module === BLANK_MODULE) return `Blank zone · ${size}`;
+  if (zone.module === BLANK_MODULE) return `Blank space · ${size}`;
   if (zone.panel) {
     return `Panel · ${panelLayoutName(zone.panel.layout)} · ${plural(zone.panel.widgets.length, "widget")}`;
   }
@@ -27,7 +27,7 @@ export function zoneMeta(zone: Placement, info: { dataPoints: number; min: { col
 
 /** The name the header shows: a widget's custom title, else its kind's name. */
 export function zoneName(zone: Placement): string {
-  if (zone.module === BLANK_MODULE) return "Blank zone";
+  if (zone.module === BLANK_MODULE) return "Blank space";
   if (zone.name) return zone.name;
   if (zone.panel) return placementTitle(zone);
   const label = String(zone.settings?.label ?? "").trim();

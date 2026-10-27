@@ -10,7 +10,7 @@ import { BLANK_MODULE, type ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import type { WidgetItem } from "@/lib/infopanel/import/stored";
 import { knownWidget, placementContent, placementPrefixes, UnavailableWidget, widgetPlacement } from "@/components/studio/placement-content";
-import { PlacementFrame } from "@/components/studio/placement-frame";
+import { NoLiveData, PlacementFrame } from "@/components/studio/placement-frame";
 import { IpTagCtx } from "@/widgets/core/primitives";
 
 /** The one-cell grid a widget item's frame fills. */
@@ -31,6 +31,11 @@ export interface WidgetItemViewProps {
    * items over a picture of the rest. The editor and the export's offscreen drawing tag; the kiosk doesn't.
    */
   tag?: boolean;
+  /**
+   * Drawn in the editor: with no live data yet it shows the grid editor's stand-in rather than nothing, so the widget
+   * is there to select and move. The kiosk and Preview leave such a widget out, as they do a grid zone.
+   */
+  editing?: boolean;
 }
 
 /** Whether two sensor maps hold the same values under `prefixes` (null: every key). */
@@ -43,12 +48,19 @@ export function sameValues(a: SensorMap, b: SensorMap, prefixes: readonly string
   return true;
 }
 
-function Body({ widget, name, sensors, appearance, tag = false }: WidgetItemViewProps) {
+function Body({ widget, name, sensors, appearance, tag = false, editing = false }: WidgetItemViewProps) {
   const zone = useMemo(() => widgetPlacement({ ...widget, settings: widget.settings as ModuleSettings | undefined }), [widget]);
   // A blank zone a switch to Free kept (lib/page-layout.ts): open space, as on the grid.
   if (widget.module === BLANK_MODULE) return null;
   if (!knownWidget(widget.module)) return <UnavailableWidget />;
   const r = placementContent(zone, sensors, [], appearance);
+  if (editing && !r.hasData) {
+    return (
+      <div style={FILL}>
+        <NoLiveData title={name || r.title} />
+      </div>
+    );
+  }
   return (
     <div style={FILL}>
       <PlacementFrame placement={zone} profile={ONE_CELL} studio={false} hasData={r.hasData} title={name || r.title} scope={r.scope}>
@@ -60,6 +72,6 @@ function Body({ widget, name, sensors, appearance, tag = false }: WidgetItemView
 
 /** Memoised per item on its widget, box, theme and the values of its own keys (the plan's perf risk). */
 export const WidgetItemView = memo(Body, (a, b) => {
-  if (a.widget !== b.widget || a.tag !== b.tag || a.name !== b.name || a.width !== b.width || a.height !== b.height || a.appearance !== b.appearance) return false;
+  if (a.widget !== b.widget || a.tag !== b.tag || a.editing !== b.editing || a.name !== b.name || a.width !== b.width || a.height !== b.height || a.appearance !== b.appearance) return false;
   return sameValues(a.sensors, b.sensors, placementPrefixes(widgetPlacement(a.widget)));
 });

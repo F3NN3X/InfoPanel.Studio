@@ -101,7 +101,7 @@ export function InsertRow({
   const [renaming, setRenaming] = useState(false);
   const Icon = cardIcon(item);
   const draggable = context === "drawer" && !renaming;
-  const hint = context === "drawer" ? "Drag onto the canvas, or click to add" : "Click to use it for this zone";
+  const hint = context === "drawer" ? "Drag onto the canvas, or click to add" : "Click to use it for this space";
   return (
     <div
       role="button"

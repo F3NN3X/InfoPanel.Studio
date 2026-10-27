@@ -10,7 +10,7 @@ interface ZoneFrameFieldsProps {
 
 /** Search text for the zone frame rows. */
 export const ZONE_FRAME_TERMS = [
-  "Zone frame",
+  "Widget frame",
   "Frame accent",
   "Frame background",
   "Frame title header",

@@ -160,7 +160,7 @@ interface ProfileSettingsProps {
   /** Remap sensors (decision Q10), and how many binding groups still need a look. */
   onRemap?: () => void;
   remapCount?: number;
-  /** How the canvas draws (Draw all as, Show modes, Sensors, Compare, Save to Library), under the page's rows. */
+  /** The Preview section (Show modes, Sensors, Compare, Save to Library), under the page's rows. */
   drawing?: ReactNode;
 }
 

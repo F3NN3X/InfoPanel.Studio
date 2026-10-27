@@ -112,8 +112,8 @@ export function AddPreview({ item, left, top, via, target, appearance, pageStyle
   const action = !target
     ? `${via === "key" ? "Enter" : "Click"} to add · drag to place`
     : fits
-      ? `Click to fill the ${zone} zone`
-      : `Too big for the ${zone} zone`;
+      ? `Click to fill the ${zone} space`
+      : `Too big for the ${zone} space`;
   return createPortal(
     <div
       aria-hidden

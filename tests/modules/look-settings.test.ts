@@ -27,7 +27,7 @@ describe("look settings", () => {
     expect(values(STYLE_SETTINGS, "graph")).toEqual(["auto", "area", "line", "step", "bars", "dots", "braille"]);
     expect(values(STYLE_SETTINGS, "meter")).toEqual(["auto", "bar", "pill", "segments", "blocks", "hair", "wave", "square"]);
     expect(values(STANDARD_SETTINGS, "compact")).toEqual(["auto", "full", "card", "dense"]);
-    expect(find(STANDARD_SETTINGS, "compact").label).toBe("Small zones");
+    expect(find(STANDARD_SETTINGS, "compact").label).toBe("Small sizes");
     expect(values(STANDARD_SETTINGS, "sizeTier")).toEqual(["auto", "lg", "md", "sm", "xs"]);
     for (const key of ["compact", "sizeTier", "variant", "compactView", "layout", "autoScale"]) expect(PROFILE_STYLE_KEYS.has(key), key).toBe(false);
   });

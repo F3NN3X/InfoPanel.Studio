@@ -119,7 +119,7 @@ export async function runImport(files: readonly DoorFile[], choices: DoorChoices
     const screen = importedProfile(working, parsed.profile);
     working = { ...working, profiles: [...working.profiles, screen] };
     ctx.addScreen(screen);
-    result.done.push(`Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} canvas zones left out (their canvas is not in the file)` : ""}`);
+    result.done.push(`Added screen ${screen.name}${parsed.skippedCanvases ? ` · ${parsed.skippedCanvases} InfoPanel pages left out (their profile is not in the file)` : ""}`);
     result.go = { to: "screens" };
   }
 

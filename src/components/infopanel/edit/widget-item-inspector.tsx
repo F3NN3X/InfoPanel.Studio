@@ -52,7 +52,8 @@ interface WidgetItemInspectorProps {
 export function WidgetItemInspector({ editor, path, item, host, place, after }: WidgetItemInspectorProps) {
   const toast = useToast();
   const widget = widgetOf(item)!;
-  const zone = useMemo(() => zoneOfWidget(widget, path), [widget, path]);
+  // Visible is the item's Hidden, the eye in Layers: one state (sign-off round 1), so saved data keeps its shape.
+  const zone = useMemo(() => ({ ...zoneOfWidget(widget, path), visible: item.Hidden !== true }), [widget, path, item.Hidden]);
   const [query, setQuery] = useState("");
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<Widget | null>(null);
