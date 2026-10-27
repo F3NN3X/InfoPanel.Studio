@@ -10,7 +10,7 @@ import type { Verdict } from "@/lib/infopanel/font-licence";
 import type { LibraryItem, LibraryKind } from "@/lib/library";
 import { aspectTag, hamming, type PixelStats } from "./analyse";
 import { isComponent, isProfileItem } from "./component-meta";
-import { BUILTIN_STYLE, BUILTIN_THEME, CONFIG_PREFIXES } from "./config-items";
+import { CONFIG_PREFIXES, isBuiltinItem } from "./config-items";
 
 export type Licence = Verdict;
 
@@ -121,6 +121,7 @@ export type CollectionId =
   | "duplicates"
   | "suggested"
   | "themes"
+  | "skins"
   | "media"
   | "images"
   | "videos"
@@ -132,7 +133,8 @@ export type CollectionId =
   | "panels"
   | "styles"
   | "canvases"
-  | "components";
+  | "components"
+  | "templates";
 
 export interface Collection {
   id: CollectionId;
@@ -147,11 +149,12 @@ export interface Collection {
 export const COLLECTIONS: Collection[] = [
   { id: "all", label: "All items", section: "Smart" },
   { id: "recent", label: "Recent", section: "Smart" },
-  { id: "unused", label: "Unused", section: "Smart" },
+  { id: "unused", label: "Not used", section: "Smart" },
   { id: "large", label: "Large files", section: "Smart" },
   { id: "duplicates", label: "Duplicates", section: "Smart" },
   { id: "suggested", label: "Suggested for theme", section: "Smart" },
   { id: "themes", label: "Themes", section: "Library", hint: "A Theme is a whole look. Apply one in Theme at any scope." },
+  { id: "skins", label: "Skins", section: "Library", hint: "A skin is how every widget is drawn: its card, fonts and graphs. Apply one at any scope." },
   { id: "styles", label: "Styles", section: "Library", hint: "A Style is one widget’s look. Apply from a widget’s Style tab." },
   { id: "panels", label: "Panels", section: "Library", hint: "Reusable widget groups. Drag onto the canvas from Design › Add." },
   { id: "gauges", label: "Gauges", section: "Library", hint: "Open a gauge to edit it in Gauges." },
@@ -164,6 +167,7 @@ export const COLLECTIONS: Collection[] = [
   { id: "fonts", label: "Fonts", section: "Library", hint: "Fonts appear in every Typography picker." },
   { id: "components", label: "Components", section: "Library", hint: "Pieces of an InfoPanel profile. Drag one onto the screen or onto an InfoPanel profile in Edit, or save one from a selection there." },
   { id: "canvases", label: "InfoPanel profiles", section: "Library", hint: "Profiles for the InfoPanel app. Edit opens one in Edit; a new profile can start from one." },
+  { id: "templates", label: "Screen templates", section: "Library", hint: "Ready-made screens. New screen from this opens the New screen page on it." },
 ];
 
 /** The hint line of a collection (a sub-kind of Media shows Media's); none for the smart ones. */
@@ -186,10 +190,14 @@ export interface LibraryIndex {
   groupOf: Map<string, LibraryItem[]>;
   /** The theme's top backgrounds, best first, with their reason. */
   suggested: { item: LibraryItem; reason: string }[];
+  /** The file hashes the studio's config names (a background, an image widget, a canvas's files). */
+  used: ReadonlySet<string>;
 }
 
 const KIND_OF: Partial<Record<CollectionId, LibraryKind>> = {
   themes: "theme",
+  skins: "skin",
+  templates: "template",
   images: "image",
   videos: "video",
   svg: "svg",
@@ -213,7 +221,7 @@ export function inCollection(item: LibraryItem, id: CollectionId, index: Library
     case "recent":
       return now - Date.parse(item.updatedAt || item.createdAt) <= RECENT_MS;
     case "unused":
-      return item.copies.length === 0;
+      return !isUsed(item, index);
     case "large":
       return (m.size ?? 0) > LARGE_BYTES;
     case "duplicates":
@@ -277,11 +285,26 @@ export function duplicateGroups(items: readonly LibraryItem[]): LibraryItem[][] 
     .map((g) => [...g].sort((x, y) => Date.parse(x.createdAt) - Date.parse(y.createdAt)));
 }
 
-export function buildIndex(items: LibraryItem[], suggested: LibraryIndex["suggested"] = []): LibraryIndex {
+export function buildIndex(items: LibraryItem[], suggested: LibraryIndex["suggested"] = [], used: ReadonlySet<string> = new Set()): LibraryIndex {
   const duplicates = duplicateGroups(items);
   const groupOf = new Map<string, LibraryItem[]>();
   for (const g of duplicates) for (const i of g) groupOf.set(i.id, g);
-  return { items, duplicates, groupOf, suggested };
+  return { items, duplicates, groupOf, suggested, used };
+}
+
+/** Every file hash a config names: asset ids and URLs carry the 64-hex SHA-256. */
+export function usedHashes(config: unknown): Set<string> {
+  return new Set(JSON.stringify(config).match(/[a-f0-9]{64}/g) ?? []);
+}
+
+/**
+ * In use: a copy is placed, or the config names its file (an upload set as a background or picked in an
+ * image widget counts no copy). An item that holds no file of its own is used only through its copies.
+ */
+export function isUsed(item: LibraryItem, index: Pick<LibraryIndex, "used">): boolean {
+  if (item.copies.length > 0) return true;
+  const hash = hashOf(item);
+  return hash !== undefined && index.used.has(hash);
 }
 
 /** The banner and "Needs attention" counts: extra copies, unused items, large files. */
@@ -289,16 +312,16 @@ export function cleanupCounts(index: LibraryIndex): { duplicates: number; unused
   const large = index.items.filter((i) => (metaOf(i).size ?? 0) > LARGE_BYTES);
   return {
     duplicates: index.duplicates.reduce((n, g) => n + g.length - 1, 0),
-    unused: index.items.filter((i) => i.copies.length === 0).length,
+    unused: index.items.filter((i) => !isUsed(i, index)).length,
     large: large.length,
     largeBytes: large.reduce((n, i) => n + (metaOf(i).size ?? 0), 0),
   };
 }
 
 /** A card's flag chip. */
-export function flagOf(item: LibraryItem, index: LibraryIndex): "Duplicate" | "Unused" | null {
+export function flagOf(item: LibraryItem, index: LibraryIndex): "Duplicate" | "Not used" | null {
   if (index.groupOf.has(item.id)) return "Duplicate";
-  return item.copies.length === 0 ? "Unused" : null;
+  return isUsed(item, index) ? null : "Not used";
 }
 
 /* ---- search, tags, sort ---- */
@@ -313,6 +336,8 @@ export const KIND_LABEL: Record<LibraryKind, string> = {
   style: "Style",
   canvas: "Canvas",
   theme: "Theme",
+  skin: "Skin",
+  template: "Screen template",
 };
 
 /** Every word a search can match for an item: name, kind, type, pixel size and tags. */
@@ -388,6 +413,10 @@ export function metaLine(item: LibraryItem): string {
       return "Style";
     case "theme":
       return "Theme";
+    case "skin":
+      return "Skin";
+    case "template":
+      return [px, "Screen template"].filter(Boolean).join(" · ");
     case "canvas":
       if (isComponent(item)) return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Component";
       return [px, m.items !== undefined ? `${m.items} items` : null].filter(Boolean).join(" · ") || "Canvas";
@@ -396,12 +425,12 @@ export function metaLine(item: LibraryItem): string {
   }
 }
 
-/** An item the config or the app supplies (saved Themes, Styles and Panels, the built-ins): read-only, never removed from here. */
+/** An item the config or the app supplies (saved Themes, Styles and Panels, the built-ins): kept in the config, never on the server. */
 export const isConfigItem = (item: Pick<LibraryItem, "id">): boolean => CONFIG_PREFIXES.some((p) => item.id.startsWith(p));
 
 /** A card's tag: Built-in (muted) for what ships with the app, else what the item is (accent). */
 export function cardTag(item: Pick<LibraryItem, "id" | "kind" | "meta">): { text: string; builtin: boolean } {
-  if (item.id.startsWith(BUILTIN_THEME) || item.id.startsWith(BUILTIN_STYLE)) return { text: "Built-in", builtin: true };
+  if (isBuiltinItem(item)) return { text: "Built-in", builtin: true };
   const m = metaOf(item);
   switch (item.kind) {
     case "image":

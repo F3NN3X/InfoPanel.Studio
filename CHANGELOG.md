@@ -6,10 +6,17 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Every upload is in My library.** Images and videos uploaded before the Library, or straight into a background or an image widget, are added to My library when you open it, each keeping its file. The "uploaded files aren't in My library" banner and its Review window are gone.
+- **Not used** replaces Unused, and now counts a file shown as a background or in a widget as used. In Not used, **Remove these files…** removes the images, videos and SVGs listed, after a confirm; a file a screen uses always stays.
+- **A used file can't be removed.** Removing an image, video or SVG that a screen still shows keeps it and says why.
+
 ### Added
 
 - **A note when a newer beta exists.** On the Stable channel, Settings › Updates shows the newest beta's version when it is newer than yours and than Stable's own, with **Switch to Beta and check**. Stable still never downloads a beta.
 - **Widget QA and the InfoPanel lab, in debug mode only.** With debug mode on and the server restarted, the server serves Widget QA at `/widget-qa` and the InfoPanel lab at `/lab/`, and Settings › Diagnostics links both to your browser. With it off the server answers 404 for both. The lab is a separate build (`dist/lab/`, about 1.4 MB, 0.25 MB compressed) that the studio and kiosk never load; in the app it works on the `.infopanel` files you open, without the corpus, installed-profile list, gauge library or font proxy of `npm run lab`.
+- **The Library has everything.** New collections for **Skins** and **Screen templates**, and the built-in panels and the screen templates' looks sit beside your own panels and Themes, tagged **Built-in**. A skin applies to All screens, a screen or a page, and duplicates into a Theme of your own. A screen template's **New screen from this** opens the New screen page on it. Saved panels can be renamed, duplicated and deleted in the Library, and a built-in panel duplicated into one of your own.
 
 ### Fixed
 

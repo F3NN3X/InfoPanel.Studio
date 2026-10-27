@@ -1,13 +1,17 @@
 /**
  * The Library items the config and the app supply, shown beside the server's: saved panels, Styles and
- * Themes (the config's `panelPresets`, `stylePresets`, `appearancePresets`) and the built-in Styles and
- * palettes. They are read-only stand-ins: renamed and removed where they live, never from the Library.
+ * Themes (the config's `panelPresets`, `stylePresets`, `appearancePresets`), the built-in Styles and
+ * palettes, and (`builtinItems`) the skins, template looks, built-in panels and screen templates. They are
+ * stand-ins: a saved one is renamed and deleted in the config it lives in, a built-in never.
  */
-import { presetTokens } from "@/lib/appearance-presets";
+import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import { BUILTIN_STYLES } from "@/lib/builtin-styles";
 import type { DashboardConfig } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
+import { panelPresets } from "@/lib/panelPresets";
+import type { ScreenTemplate } from "@/lib/screen-templates/kit";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
+import { SKIN_PACKS } from "@/widgets/core/theme";
 
 /** Config presets shown as library items carry these id prefixes; they live in the config, not the library. */
 export const CONFIG_PANEL = "cfg-panel:";
@@ -16,7 +20,16 @@ export const CONFIG_THEME = "cfg-theme:";
 /** The built-ins: palettes and Styles that ship with the app. */
 export const BUILTIN_THEME = "builtin-theme:";
 export const BUILTIN_STYLE = "builtin-style:";
-export const CONFIG_PREFIXES: readonly string[] = [CONFIG_PANEL, CONFIG_STYLE, CONFIG_THEME, BUILTIN_THEME, BUILTIN_STYLE];
+/** The skins, the screen templates' looks (built-in Themes), the built-in panels and the screen templates. */
+export const BUILTIN_SKIN = "builtin-skin:";
+export const BUILTIN_LOOK = "builtin-look:";
+export const BUILTIN_PANEL = "builtin-panel:";
+export const BUILTIN_TEMPLATE = "builtin-template:";
+export const BUILTIN_PREFIXES: readonly string[] = [BUILTIN_THEME, BUILTIN_STYLE, BUILTIN_SKIN, BUILTIN_LOOK, BUILTIN_PANEL, BUILTIN_TEMPLATE];
+export const CONFIG_PREFIXES: readonly string[] = [CONFIG_PANEL, CONFIG_STYLE, CONFIG_THEME, ...BUILTIN_PREFIXES];
+
+/** Something that ships with the app: shown, applied and duplicated, never renamed or deleted. */
+export const isBuiltinItem = (item: Pick<LibraryItem, "id">): boolean => BUILTIN_PREFIXES.some((p) => item.id.startsWith(p));
 
 const AT = "1970-01-01T00:00:00.000Z";
 
@@ -39,4 +52,41 @@ export function configItems(config: Source): LibraryItem[] {
   const builtinThemes = THEME_PRESETS.map((t, i) => stand(BUILTIN_THEME + t.name, "theme", t.label, { source: "builtin", swatch: swatchOf(t.tokens) }, t, i));
   const builtinStyles = BUILTIN_STYLES.map((s, i) => stand(BUILTIN_STYLE + s.id, "style", s.name, { source: "builtin" }, s, i));
   return [...panels, ...styles, ...themes, ...builtinThemes, ...builtinStyles];
+}
+
+/** What a skin item carries: the widget style it sets (the Theme page's Start from › Skins writes the same). */
+export interface SkinData {
+  name: string;
+  description: string;
+  settings: { skin: string; surface: "auto" };
+}
+
+/** The look catalogs that load on demand (the screen templates are large): absent until loaded. */
+export interface BuiltinSources {
+  looks?: readonly AppearancePreset[];
+  templates?: readonly ScreenTemplate[];
+}
+
+/** A skin's name as people write it ("macOS", "TUI"); the rest just capitalised. */
+const SKIN_NAMES: Record<string, string> = { tui: "TUI", macos: "macOS", ios: "iOS", hud: "HUD" };
+const skinName = (name: string) => SKIN_NAMES[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
+
+/**
+ * Below the config's own items under "Recently added" (stamped before the epoch), each catalog in its own order:
+ * the user's saved Themes and panels come first, then the palettes, then these.
+ */
+const builtinOrder = (i: number) => -1000 - i;
+
+/** The skins and built-in panels, then the template looks and screen templates once loaded, as library items. */
+export function builtinItems({ looks = [], templates = [] }: BuiltinSources = {}): LibraryItem[] {
+  const skins = SKIN_PACKS.map((p, i) => {
+    const data: SkinData = { name: p.name, description: p.description, settings: { skin: p.name, surface: "auto" } };
+    return stand(BUILTIN_SKIN + p.name, "skin", skinName(p.name), { source: "builtin" }, data, builtinOrder(i));
+  });
+  const panels = panelPresets.map((p, i) => stand(BUILTIN_PANEL + p.id, "panel", p.title, { cols: p.colSpan, rows: p.rowSpan, source: "builtin" }, p, builtinOrder(i)));
+  const lookItems = looks.map((t, i) => stand(BUILTIN_LOOK + t.id, "theme", t.name, { source: "builtin", swatch: swatchOf(presetTokens(t)) }, t, builtinOrder(i)));
+  const templateItems = templates.map((t, i) =>
+    stand(BUILTIN_TEMPLATE + t.id, "template", t.name, { source: "builtin", width: t.size.width, height: t.size.height }, t, builtinOrder(i)),
+  );
+  return [...skins, ...panels, ...lookItems, ...templateItems];
 }

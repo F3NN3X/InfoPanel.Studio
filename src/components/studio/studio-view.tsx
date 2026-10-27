@@ -382,6 +382,11 @@ function StudioViewBody({
     ui.setMode("screens");
   };
   const openNewScreen = () => setNewPage({ kind: "screen", back: "screens" });
+  /** A screen template's "New screen from this" in the Library: the New page on that template, back to the Library. */
+  const openNewScreenFrom = (template: string, variant: string) => {
+    setNewPage({ kind: "screen", initial: { template, variant }, back: "library" });
+    ui.setMode("screens");
+  };
   const switchNewKind = (kind: WizardKind) => setNewPage((p) => p && { ...p, kind, initial: undefined });
   useEffect(() => onFileDoor((e) => e.type === "new-infopanel" && openNewProfile()), []);
   // Leaving the page's view (the rail, a link) drops the page.
@@ -1016,6 +1021,7 @@ function StudioViewBody({
         profileName={storedProfile.name}
         onImport={(source, dest) => io.openImport(dest, source, true)}
         onOpenGauge={(itemId) => openGauge({ kind: "library", itemId })}
+        onNewScreen={openNewScreenFrom}
         onExportCanvas={(item) =>
           void dataOf<StoredCanvas>(item).then((canvas) =>
             canvas
