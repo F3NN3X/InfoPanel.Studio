@@ -289,7 +289,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string; label: str
     ],
   },
   {
-    title: "InfoPanel editor",
+    title: "InfoPanel profiles",
     items: [
       { keys: "Arrows", label: "Nudge 1 px" },
       { keys: "Shift+Arrows", label: "Nudge 10 px" },

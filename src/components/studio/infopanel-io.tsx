@@ -87,7 +87,7 @@ export function useInfoPanelIo({ config, profile, setConfig, selectedId, onLande
       zoneId = r.zoneId;
     }
     onLanded(zoneId, c.dest === "new");
-    toast(`Imported ${c.name} · ${c.dest === "new" ? `new profile ${c.size.width} × ${c.size.height}` : `canvas zone in ${profile.name}`} · 1 undo step`);
+    toast(`Imported ${c.name} · ${c.dest === "new" ? `new profile ${c.size.width} × ${c.size.height}` : `a group on ${profile.name}`} · 1 undo step`);
     if (c.toLibrary) {
       createLibraryItem({
         kind: "canvas",

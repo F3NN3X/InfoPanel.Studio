@@ -1,6 +1,6 @@
 ---
 id: infopanel-editor
-title: The InfoPanel editor
+title: InfoPanel profiles in Edit
 icon: dashboard_customize
 related: [canvas, import, remap]
 verified: 1.3.0-beta.36
@@ -16,7 +16,7 @@ Profiles you saved to the [Library](library) that aren't on a screen yet are in 
 
 A profile's card has the same menu as any screen's. **Rename** renames the profile with the screen, in one undo step.
 
-On a grid screen, **Edit items** on a canvas zone opens that zone in Edit, and **Done** goes back to the grid. Undo covers both: one Ctrl+Z history holds the grid and the canvas edits in the order you made them.
+An .infopanel file imported onto a screen's page doesn't open a separate editor. Its items join the page as a group, at the pixels the file had them, and you edit them like any other item there (see [InfoPanel items on a page](studio#infopanel-items-on-a-page)).
 
 ## What the page edits
 
@@ -75,8 +75,8 @@ A template's colours come from the profile's palette (see The palette, below), s
 ## The page
 
 - **Layers** and **Add**, two tabs on the left, as on a grid screen. **Add** lists InfoPanel's 14 item kinds first, in four groups, Text, Data, Media and Layout, then the studio's **Elements** and the Studio widgets (see [Add](studio#add)). **Layers** is the item tree, the top item first, with a lock, an eye and the Export check's mark on each row (see [Layers](studio#layers)). See Groups, and Studio widgets on a profile.
-- The canvas, in the middle, with the page tabs and the toolbar above it and a line of key hints below it. See [Editing a canvas](canvas) for the toolbar.
-- The inspector, on the right, headed **Item**. With nothing selected it shows the profile's settings. The **Export check** pill at the right of the page tabs shows the check there instead (see The Export check).
+- The canvas, in the middle, with the page tabs and a strip of view controls above it and a line of key hints below it. See [Editing a canvas](canvas) for the strip.
+- The inspector, on the right. A selected item shows **InfoPanel item** or **Element** under its name, then where it sits: **POSITION AND SIZE (PX)** with **Placed freely** for an item at its imported pixels, or **PLACE ON GRID** with **On grid** once it sits on the cells. **Snap to grid** puts it on the nearest cells and keeps it there; typing a new X or Y, or dragging it off the cells, places it freely again. Its fields follow on the **Item**, **Sensor** and **Look** tabs, then **LAYER** and its **On InfoPanel** line. With nothing selected it shows the page's settings (see Profile settings). The **Export check** pill at the right of the page tabs shows the check there instead (see The Export check).
 
 ## Adding items
 
@@ -145,7 +145,7 @@ A Card or Divider changes badge as you change it: a shadow, glow or gradient mak
 
 ## Studio widgets on a profile
 
-A profile's page can hold the studio's own widgets among its InfoPanel items. In **Add**, **Show** picks **All**, **Widgets** or **InfoPanel items**, and the search covers both. Click a widget to put it in the middle of the canvas, or drag it to where you want it. It starts at the size it would take in a grid cell, smaller if the canvas is small. A message says what it becomes on export, with **Undo** and **Change**. **Layouts** is greyed out here, because layouts replace the widgets while the items stay on top.
+A profile's page can hold the studio's own widgets among its InfoPanel items. In **Add**, **Show** picks **All**, **Widgets** or **InfoPanel items**, and the search covers both. Click a widget to put it in the middle of the canvas, or drag it to where you want it. It starts at the size it would take in a grid cell, smaller if the canvas is small. A message says what it becomes on export, with **Undo** and **Change**. **Layouts** is greyed out here. A layout adds Studio panel areas, and an imported profile keeps the layout it came with from InfoPanel.
 
 A widget is a layer like any item. It moves, resizes, snaps, groups, locks and hides the same way, and Layers shows it with its widget icon and the word *widget*. The kiosk draws it live from the Data API, and so does the canvas, whatever the **Sensors** control is set to.
 
@@ -224,8 +224,8 @@ Ctrl+] / Ctrl+[ — Bring forward / send backward
 
 A group holds items and moves as one. Its children keep their own X and Y, measured on the canvas, as InfoPanel stores them: a group never offsets what is in it, so grouping, ungrouping and moving items between groups never shifts anything on the canvas. Groups can hold groups.
 
-- **Group** (`Ctrl+G`, the toolbar, or **Group selection** in the Layers menu) wraps the selected items in a new group, at the place of the first of them in **Layers**. Items from different groups can be grouped together. They keep their order.
-- **Ungroup** (`Ctrl+Shift+G`, the toolbar or the menu) puts the children back in the group's place. A hidden or locked group leaves its children hidden or locked.
+- **Group** (`Ctrl+G`, or **Group selection** in the Layers menu) wraps the selected items in a new group, at the place of the first of them in **Layers**. Items from different groups can be grouped together. They keep their order.
+- **Ungroup** (`Ctrl+Shift+G`, or the menu) puts the children back in the group's place. A hidden or locked group leaves its children hidden or locked.
 - **Layers** lists the top item first. The last row is drawn first, at the back. A group's items are drawn at the group's place, in their own order.
 - Drag a row in **Layers** to reorder it. Drop on the upper or lower edge of a row to go above or below it, on the middle of a group to go inside it on top, or on the empty space under the list to go to the back of the top level. A line or a box shows where it will land. Drag out of a group the same way. Several selected rows move together, in their order.
 - A group can't go inside itself or inside anything it holds. When a drop isn't allowed, **Layers** says why.
@@ -263,25 +263,27 @@ If your InfoPanel build doesn't report sensor ids, a choice binds the preview on
 
 ## Profile settings
 
-Name, width and height, background, font, font size, text colour, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is, and on a Free page it resizes the screen too. **Layout** at the top switches the page to Grid (see [Grid or Free](studio#grid-or-free)).
+Click an empty part of the canvas and the inspector shows the page as **Page · {name}**. **GRID** has **Snap items to grid** and the `Alt` hint, as on any page (see [Page settings](studio#page-settings)). Turning it on or off never moves an item.
+
+Then **Name**, **Size**, **Columns × rows**, **Background**, **Palette** and **Fonts** (the fonts the items use), and **Remap sensors**, which opens [Sensor remap](remap) with a count of the sensors that need a look. Columns × rows changes the grid that widgets and snapped items use; items at their imported pixels stay where they are. Under them are the font, font size, text colour, font scale, **Show FPS**, **OpenGL**, and the web view: **Show a web page**, its URL, **Interactive**, **Disable cache**, **Refresh every (s)** and **Max FPS**. A value InfoPanel would refuse shows a message and isn't stored. Changing the size keeps every item where it is and resizes the screen too.
 
 ## Saving to the Library
 
-**Save to Library** in the toolbar keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
+**Save to Library** in the strip above the canvas keeps the profile in the Library's **InfoPanel profiles**. Once the profile has an item there, whether you saved it here or opened it from the Library, the button reads **Update in Library** and replaces the item's profile and files with what you have now. The item keeps its name.
 
 New profiles can start from a Library profile, and **Edit profile** in the Library opens one here. Removing an item from the Library never deletes a file that a profile on a screen still uses.
 
 ## Components
 
-Select items, a group or an element and choose **Save as component** (`Ctrl+Shift+S`, the toolbar or the Layers menu). Name it, and it goes to the Library's **Components**. A part of an element such as a Row is saved with the whole element. The component keeps the files its items use, the palette slots they follow, and for each sensor the role it fills (CPU load, GPU temperature and so on) when it matches one.
+Select items, a group or an element and choose **Save as component** (`Ctrl+Shift+S`, or the Layers menu). Name it, and it goes to the Library's **Components**. A part of an element such as a Row is saved with the whole element. The component keeps the files its items use, the palette slots they follow, and for each sensor the role it fills (CPU load, GPU temperature and so on) when it matches one.
 
 Drag a component from the Library onto the canvas. Its items land where you drop them, in front, as one undo step. A file already in the profile is reused, and a different file with the same name gets a new one. Colours that follow a palette slot take this profile's colour for that slot; fixed colours stay as they were.
 
-Sensors the profile can't find are matched by role on this PC. Any that still don't match open Remap. A component placed on a screen's grid becomes a canvas zone of its own, with its own copy of the items.
+Sensors the profile can't find are matched by role on this PC. Any that still don't match open Remap. A component placed on a screen's page becomes a group of its own, with its own copy of the items.
 
 ## Exporting
 
-Export the zone as an .infopanel file from **Export & back up**. A remap choice changes the item's InfoPanel binding too, so the file carries the sensor you chose.
+Export the profile as an .infopanel file from **Export & back up**. A remap choice changes the item's InfoPanel binding too, so the file carries the sensor you chose.
 
 With **Bake stale gauges and elements first** on, the Export window makes the frames and images for every gauge and element whose look changed, and shows its progress. It also lists every Approximated element with what it loses.
 

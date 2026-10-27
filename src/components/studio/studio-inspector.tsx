@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { DashboardConfig, PageLayout, Placement, ProfileView } from "@/lib/layout";
+import type { DashboardConfig, Placement, ProfileView } from "@/lib/layout";
 import type { Appearance } from "@/lib/style-resolve";
 import { cn } from "@/lib/utils";
 import { PageInspector } from "./page-inspector";
@@ -27,13 +27,10 @@ interface StudioInspectorProps {
   onShowOnKiosks: (pageId: string) => void;
   /** Open a data point in Sources mode (a Bound data row); without it, Sources just opens. */
   onOpenPoint?: (key: string) => void;
-  /** Open a canvas zone's items in the canvas editor. */
-  onEditCanvas?: (zoneId: string) => void;
   /** Open a Custom gauge zone's spec in Gauges. */
   onEditGauge?: (zoneId: string) => void;
-  /** The Page inspector's Layout (one-editor SPEC §6.1), and why it is off. */
-  onLayout?: (pageId: string, layout: PageLayout) => void;
-  layoutDisabled?: string;
+  /** The Page inspector's GRID and screen rows (Edit v3 SPEC §10.1). */
+  pageSettings: Pick<Parameters<typeof PageInspector>[0], "onSnapItems" | "onSize" | "onGrid" | "onGap">;
   /** A zone's On InfoPanel section, on a screen made for InfoPanel (SPEC §5.5). */
   onInfoPanelOf?: (zone: Placement) => ReactNode;
   /** A zone's LAYER section (Edit v3 SPEC §10.2). */
@@ -55,10 +52,8 @@ export function StudioInspector({
   onHelp,
   onShowOnKiosks,
   onOpenPoint,
-  onEditCanvas,
   onEditGauge,
-  onLayout,
-  layoutDisabled,
+  pageSettings,
   onInfoPanelOf,
   layerOf,
 }: StudioInspectorProps) {
@@ -133,7 +128,6 @@ export function StudioInspector({
         onSavePanelPreset={edit.savePanelAsPreset}
         onOpenPoint={onOpenPoint ?? openExplorer}
         onOpenExplorer={openExplorer}
-        onEditCanvas={onEditCanvas && (() => onEditCanvas(selected.id))}
         onEditGauge={onEditGauge && (() => onEditGauge(selected.id))}
         onInfoPanel={onInfoPanelOf?.(selected)}
         layer={layerOf?.(selected)}
@@ -148,9 +142,7 @@ export function StudioInspector({
         onDuplicate={edit.duplicateCurrentPage}
         onDelete={ui.setDeletingPage}
         onShowOnKiosks={() => onShowOnKiosks(page.id)}
-        onHelp={onHelp}
-        onLayout={onLayout}
-        layoutDisabled={layoutDisabled}
+        {...pageSettings}
       />
     );
 

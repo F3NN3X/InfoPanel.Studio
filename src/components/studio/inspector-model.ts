@@ -57,6 +57,20 @@ export const TAB_LABELS: Record<TabId, string> = {
 const ZONE_TABS: readonly TabId[] = ["show", "style", "data", "behaviour"];
 /** The theme editor's: no Show tab (SPEC §7). */
 const THEME_TABS: readonly TabId[] = ["style", "data", "behaviour"];
+/** An InfoPanel item's (Edit v3 SPEC §10.2): Item, Sensor and Look, named so by the item inspector. */
+const IP_TABS: readonly TabId[] = ["show", "data", "style"];
+/** Which of an item's tabs a field group goes on: what it reads on Sensor, how it looks on Look, the rest on Item. */
+const IP_TAB_OF: Record<string, TabId> = {
+  "ip-binding": "data",
+  "ip-sensor": "data",
+  "ip-value": "data",
+  "ip-thresholds": "data",
+  "ip-text": "style",
+  "ip-glow": "style",
+  "ip-chart": "style",
+  "ip-gradient": "style",
+  "ip-colours": "style",
+};
 
 export type PanelLayoutKind = "stack" | "grid" | "overlay";
 
@@ -182,9 +196,11 @@ export function inspectorTabs(context: InspectorContext): { id: TabId; label: st
   const ids =
     context.kind === "theme"
       ? THEME_TABS
-      : context.kind === "blank" || context.kind === "multi" || context.kind === "infopanel"
-        ? []
-        : ZONE_TABS;
+      : context.kind === "infopanel"
+        ? IP_TABS
+        : context.kind === "blank" || context.kind === "multi"
+          ? []
+          : ZONE_TABS;
   return ids.map((id) => ({ id, label: TAB_LABELS[id] }));
 }
 
@@ -384,11 +400,11 @@ function infopanelSections(context: Extract<InspectorContext, { kind: "infopanel
     ...(context.group
       ? []
       : [{ ...ip("ip-position", "Position", "ipPosition", ["X", "Y", "W", "H", "Width", "Height", "Rotation", "Flip"]), settings: position?.defs ?? [] }]),
-    ...(context.bound ? [ip("ip-binding", "Sensor", "ipSensor", ["Sensor", "Remap", "Data API key"])] : []),
+    ...(context.bound ? [{ ...ip("ip-binding", "Sensor", "ipSensor", ["Sensor", "Remap", "Data API key"]), tab: IP_TAB_OF["ip-binding"] }] : []),
     ...context.groups
       .filter((g) => g !== position)
       // An advanced group's fields all sit behind its "More (n)"; Binding details is a collapsed section of its own.
-      .map((g) => section({ id: g.id, title: g.title, tab: "show", settings: g.advanced && g.id !== "ip-sensor" ? g.defs.map((d) => ({ ...d, more: true })) : g.defs })),
+      .map((g) => section({ id: g.id, title: g.title, tab: IP_TAB_OF[g.id] ?? "show", settings: g.advanced && g.id !== "ip-sensor" ? g.defs.map((d) => ({ ...d, more: true })) : g.defs })),
     ...(context.unknown ? [ip("ip-unknown", "Unknown fields", "ipUnknown", ["Unknown", "Kept"])] : []),
   ];
 }

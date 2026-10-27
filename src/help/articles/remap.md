@@ -3,7 +3,7 @@ id: remap
 title: Sensor remap
 icon: swap_horiz
 related: [import, sensors]
-verified: 1.3.0-beta.33
+verified: 1.3.0-beta.36
 ---
 
 Profiles from another PC read other hardware. Remap points them at yours.
@@ -29,6 +29,6 @@ Bindings are grouped by the sensor they read, so one choice fixes every item tha
    followed when its reading has the same id and name, so a profile made with the old plugin finds the new one.
 
 Import waits until no group is Unresolved. **Leave N unresolved unbound** settles them all at once; the items show
-"-" until you remap them from the canvas editor.
+"-" until you remap them in Edit.
 
-**Reset to automatic** takes a group back to the sensor the profile came with, then matches it again. **Leave unbound** empties it on purpose. Reopen remap any time from the canvas editor.
+**Reset to automatic** takes a group back to the sensor the profile came with, then matches it again. **Leave unbound** empties it on purpose. Reopen it any time with **Remap sensors** in the page's settings in Edit.

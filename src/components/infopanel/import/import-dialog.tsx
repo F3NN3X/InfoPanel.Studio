@@ -411,7 +411,7 @@ function ImportBody({ onClose, profileName, profileSize, initialDest = "new", on
     state ? MODE_LABEL[state.mode] : "",
     state ? `${state.report.items.total} items` : "",
     state ? (state.online ? `${state.unresolved} unresolved` : "Data API offline") : "",
-    choices.dest === "new" ? "New screen" : "Canvas zone",
+    choices.dest === "new" ? "New screen" : "A group",
   ];
   const footNote =
     step === 0 && uploading

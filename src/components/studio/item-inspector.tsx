@@ -18,8 +18,11 @@ interface ItemInspectorProps {
   zone: Placement;
   widget: Widget;
   appearance: Appearance;
-  /** The zone's header (name, actions, placement row, the Panel › widget crumbs). */
+  /** The zone's header (name, actions, the Panel › widget crumbs). */
   header: (changed: number) => ReactNode;
+  /** The zone's Place row, and its LAYER and On InfoPanel after the sections. */
+  place?: ReactNode;
+  after?: ReactNode;
   /** The panel's Bound data block (its picker binds the widget; "Bind data…" opens it). */
   bound: ReactNode;
   /** Mutate the panel zone; changes with the same `key` coalesce in undo. */
@@ -80,6 +83,8 @@ export function ItemInspector({
   widget,
   appearance,
   header,
+  place,
+  after,
   bound,
   update,
   onChangeKind,
@@ -139,6 +144,9 @@ export function ItemInspector({
       onQuery={onQuery}
       jumpTo={jumpTo}
       identity={identity}
+      place={place}
+      after={after}
+      underline
     />
   );
 }

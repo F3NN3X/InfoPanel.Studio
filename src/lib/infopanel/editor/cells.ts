@@ -6,9 +6,10 @@
 import { widgetBox, widgetOf } from "../import/stored.ts";
 import { widgetOnCell, widgetPaths } from "../native/widget-item.ts";
 import type { DisplayItem } from "../schema.ts";
-import { cellRect, nearestCells, trackOf, type CellBox, type PageGrid, type PixelBox } from "../../page-model/model.ts";
+import { cellRect, clampCell, nearestCells, trackOf, type CellBox, type PageGrid, type PixelBox } from "../../page-model/model.ts";
 import { cellFree, moveCells } from "../../page-model/gesture.ts";
-import { itemAt, moveBy, topmost, updateAt, type Path } from "./ops.ts";
+import { roughSize } from "./create.ts";
+import { itemAt, moveBy, topmost, updateAt, withBox, type Path } from "./ops.ts";
 
 /** A widget item's cells: its record's, else the cells nearest its box. */
 export const cellOfWidget = (grid: PageGrid, item: DisplayItem): CellBox => widgetOf(item)?.cell ?? nearestCells(grid, widgetBox(item));
@@ -52,4 +53,79 @@ export function resizeOnCells(grid: PageGrid, items: readonly DisplayItem[], pat
   const cell = nearestCells(grid, box);
   if (!cellFree(grid, cell, others.map((p) => cellOfWidget(grid, itemAt(items, p)!)))) return null;
   return updateAt(items, path, (it) => widgetOnCell(it, cell, cellRect(grid, cell)));
+}
+
+/* ---- items on cells ---- */
+
+/** An item as the editor holds it, with its cells when it sits on the page's grid (`$.cell`). */
+type OnCells = DisplayItem & { cell?: CellBox };
+
+/** Where an item sits: X / Y always, its size where it keeps one (a picture's by its Scale), else null. */
+function heldBox(item: DisplayItem): { x: number; y: number; w: number | null; h: number | null } {
+  const o = item as unknown as Record<string, unknown>;
+  const n = (k: string) => (typeof o[k] === "number" ? (o[k] as number) : 0);
+  const scale = n("Scale") > 0 ? n("Scale") / 100 : 1;
+  return { x: n("X"), y: n("Y"), w: n("Width") > 0 ? n("Width") * scale : null, h: n("Height") > 0 ? n("Height") * scale : null };
+}
+
+/** Whether an item's box is `cell`'s box, to the pixel (a size the item doesn't keep counts as matching). */
+function onCellBox(grid: PageGrid, item: DisplayItem, cell: CellBox): boolean {
+  const b = heldBox(item);
+  const c = cellRect(grid, cell);
+  // To the pixel: a stored box is the cell box rounded, so within half a pixel of it.
+  const near = (a: number, z: number) => Math.abs(a - z) <= 0.5;
+  return near(b.x, c.x) && near(b.y, c.y) && (b.w === null || near(b.w, c.w)) && (b.h === null || near(b.h, c.h));
+}
+
+/**
+ * The items with every `$.cell` true to where its item is (Edit v3 SPEC §3.3): an item on cells that a drag, a nudge
+ * or a typed X moved stays on cells while its box is a cell box (the cells it is on now), else it is placed freely.
+ * Items without a cell, and the ones still on theirs, are the same objects; nothing changed gives the same list.
+ */
+export function settleCells(grid: PageGrid, items: readonly DisplayItem[]): DisplayItem[] {
+  let changed = false;
+  const out = items.map((item) => {
+    let next = item as OnCells;
+    if (item.kind === "Group" && item.DisplayItems.length > 0) {
+      const kids = settleCells(grid, item.DisplayItems);
+      if (kids !== item.DisplayItems) next = { ...item, DisplayItems: kids };
+    }
+    const cell = next.cell;
+    if (cell && next.kind !== "Group" && !onCellBox(grid, next, cell)) {
+      const b = heldBox(next);
+      const was = cellRect(grid, cell);
+      const near = nearestCells(grid, { x: b.x, y: b.y, w: b.w ?? was.w, h: b.h ?? was.h });
+      if (onCellBox(grid, next, near)) next = { ...next, cell: near } as OnCells;
+      else {
+        const { cell: _gone, ...rest } = next;
+        next = rest as OnCells;
+      }
+    }
+    if (next !== item) changed = true;
+    return next;
+  });
+  return changed ? out : (items as DisplayItem[]);
+}
+
+/** The item at `path` on `cell` (Snap to grid, a typed COL / ROW / W / H): its box the cells' box, `$.cell` set. */
+export function itemOnCells(grid: PageGrid, items: readonly DisplayItem[], path: Path, cell: CellBox): DisplayItem[] {
+  const c = clampCell(grid, cell);
+  const r = cellRect(grid, c);
+  return updateAt(items, path, (it) => ({ ...withBox(it, { x: r.x, y: r.y, width: r.w, height: r.h }), cell: c }) as OnCells);
+}
+
+/** The cells the parts that aren't widgets cover (every cell their boxes touch), which a widget's Add keeps off. */
+export function itemCells(grid: PageGrid, items: readonly DisplayItem[], fontScale: number): CellBox[] {
+  const out: CellBox[] = [];
+  for (const item of items) {
+    if (item.Hidden || widgetOf(item)) continue;
+    if (item.kind === "Group") {
+      out.push(...itemCells(grid, item.DisplayItems, fontScale));
+      continue;
+    }
+    const { width, height } = roughSize(item, fontScale);
+    const b = heldBox(item);
+    out.push(nearestCells(grid, { x: b.x, y: b.y, w: b.w ?? width, h: b.h ?? height }, true));
+  }
+  return out;
 }

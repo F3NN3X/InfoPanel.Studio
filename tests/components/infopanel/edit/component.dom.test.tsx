@@ -39,7 +39,7 @@ const history = { canUndo: false, canRedo: false, undo: vi.fn(), redo: vi.fn() }
 const mount = (setConfig = vi.fn()) =>
   render(
     <ToastProvider>
-      <HostedEditor tab="layers" zone={zone} setConfig={setConfig} history={history} onDone={vi.fn()} profileId="p1" />
+      <HostedEditor tab="layers" zone={zone} setConfig={setConfig} history={history} profileId="p1" />
     </ToastProvider>,
   );
 const row = (name: string) => screen.getAllByRole("treeitem").find((r) => r.textContent?.includes(name))!;

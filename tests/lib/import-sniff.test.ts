@@ -119,11 +119,11 @@ describe("destinationsOf", () => {
     expect(destinationsOf("config", here).map((d) => d.id)).toEqual(["replace", "add-screens"]);
   });
 
-  it("offers a new screen first for an InfoPanel file, then a canvas zone on the current page", () => {
+  it("offers a new screen first for an InfoPanel file, then a group on the current page", () => {
     for (const kind of ["infopanel", "canvas-zip"] as const) {
       const ds = destinationsOf(kind, here);
       expect(ds.map((d) => d.id)).toEqual(["new-screen", "canvas-zone"]);
-      expect(ds[1].title).toBe("Canvas zone on “Main”");
+      expect(ds[1].title).toBe("A group on “Main”");
     }
   });
 

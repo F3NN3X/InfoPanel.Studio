@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CANVAS_ID, defaultConfig, mergeConfig, newProfile, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
+import { CANVAS_ID, ITEM_ID, defaultConfig, mergeConfig, newProfile, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import { profileWithPage } from "@/lib/pages";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { canvasRect, canvasZoneOf, countItems, importAsProfile, importIntoProfile, withCanvas } from "@/components/studio/import-actions";
@@ -76,12 +76,20 @@ describe("canvasRect", () => {
 });
 
 describe("importIntoProfile", () => {
-  it("adds a canvas zone to the page on the canvas, as one config change", () => {
+  // Edit v3 SPEC §3.8 (phase 6): no free area is made any more; the profile lands as a group of its items, at the
+  // pixels the cells it draws largest in would draw them.
+  it("adds the profile's items to the page as a group named after it, as one config change, and no free area", () => {
     const c = config();
-    const r = importIntoProfile(c, view(c), canvas(), { width: 1920, height: 550 })!;
-    const zones = r.config.profiles[0].pages[0].placements;
-    expect(zones).toHaveLength(1);
-    expect(zones[0]).toMatchObject({ id: r.zoneId, module: CANVAS_ID, colSpan: 12, rowSpan: 4, canvas: canvas() });
+    const two = { ...canvas(), items: [{ kind: "Text", Name: "A", X: 100, Y: 50 }, { kind: "Text", Name: "B", X: 300, Y: 150 }] } as unknown as StoredCanvas;
+    const r = importIntoProfile(c, view(c), two, { width: 1920, height: 550 })!;
+    const page = r.config.profiles[0].pages[0];
+    expect(page.placements.some((p) => p.module === CANVAS_ID)).toBe(false);
+    expect(page.groups).toEqual([expect.objectContaining({ id: r.zoneId, name: "Arc" })]);
+    const [a, b] = ["A", "B"].map((n) => page.placements.find((p) => p.item?.Name === n)!);
+    expect([a.module, b.module]).toEqual([ITEM_ID, ITEM_ID]);
+    expect([a.groupId, b.groupId]).toEqual([r.zoneId, r.zoneId]);
+    // 1920 × 550 fills the 12 × 4 cells' width (1920 px), so the items keep their pixels' distances.
+    expect([b.px!.x - a.px!.x, b.px!.y - a.px!.y]).toEqual([200, 100]);
     expect(r.config.activeProfile).toBe("main");
   });
 

@@ -1,11 +1,10 @@
 /**
- * The canvas editor (A5, spec §7), Edit's body on a Free page (one canvas filling the screen) or on a free area
- * opened from a grid page (one-editor SPEC §5). It sits in the studio's own shell, with Design's slots and widths:
- * the left panel's Layers | Add tabs hold the item tree and the Add palette, the page tabs, toolbar and canvas fill
- * the middle, and the inspector column shows the item, the profile's settings with nothing selected, or the Export
- * check. It edits one canvas zone's stored form, and every edit goes through the studio's one history, so undo,
- * redo and auto-save work as anywhere in the studio. Lazy-loaded: the InfoPanel model stays out of the studio's
- * first bundle.
+ * The canvas editor (A5, spec §7), Edit's body on an imported profile's page (one canvas filling the screen, Edit v3
+ * SPEC §3.4). It sits in the studio's own shell, with Design's slots and widths: the left panel's Layers | Add tabs
+ * hold the item tree and the Add tiles, the page tabs, the canvas's view strip and the canvas fill the middle, and
+ * the inspector column shows the part, the page's settings with nothing selected, or the Export check. It edits the
+ * canvas zone's stored form, and every edit goes through the studio's one history, so undo, redo and auto-save work
+ * as anywhere in the studio. Lazy-loaded: the InfoPanel model stays out of the studio's first bundle.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
@@ -55,10 +54,14 @@ import { addStatusKit } from "./add-status";
 import { deletePanelPreset, renamePanelPreset } from "@/components/studio/panel-preset-actions";
 import { mergePrefixes, placementPrefixes, widgetPlacement } from "@/components/studio/placement-content";
 import { isWidgetItem, newWidgetItem, widgetOf, widgetPaths } from "@/lib/infopanel/native/widget-item";
-import { cellOfWidget, holdsWidget, moveOnCells, resizeOnCells } from "@/lib/infopanel/editor/cells";
+import { cellOfWidget, holdsWidget, itemCells, itemOnCells, moveOnCells, resizeOnCells, settleCells } from "@/lib/infopanel/editor/cells";
 import { canvasGrid } from "@/lib/page-model/canvas-adapter";
 import { cellsForAdd } from "@/lib/page-model/gesture";
-import { cellRect, trackOf, type PageGrid } from "@/lib/page-model/model";
+import { applyPage, cellRect, clampCell, nearestCells, trackOf, type PageGrid } from "@/lib/page-model";
+import { regrid } from "@/lib/page-model/regrid";
+import { PlaceRow, type CellPatch, type PxPatch } from "@/components/studio/place-row";
+import { zoneName } from "@/components/studio/inspector/zone-meta";
+import { checkGeometry } from "@/lib/infopanel/canvas-edit";
 import { widgetRecordFor } from "./widget-add";
 import { WidgetItemInspector, type WidgetHost } from "./widget-item-inspector";
 import type { WidgetDrop } from "./edit-canvas";
@@ -94,8 +97,6 @@ export interface CanvasEditorProps {
   setConfig: HistorySetter;
   history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void };
   shell: EditorShell;
-  /** Back to the grid page a free area is on (Done); none on a Free page, which is the page itself. */
-  onDone?: () => void;
   /** Another view (the Library) covers the editor: it stays mounted, draws nothing, and its keys do nothing. */
   hidden?: boolean;
   /** The screen is made for InfoPanel: the Export check pill, the badges and the On InfoPanel lines show. */
@@ -113,10 +114,8 @@ export interface CanvasEditorProps {
   /** A new profile's template sensors that weren't found on this machine, shown with Remap until dismissed. */
   unbound?: readonly string[];
   onDismissUnbound?: () => void;
-  /** Studio widgets on the page (one-editor SPEC §3.3): on a Free page, Add offers them beside InfoPanel items. */
+  /** Studio widgets on the page (Edit v3 SPEC §3.6): Add offers them beside InfoPanel items. */
   widgetHost?: WidgetHost;
-  /** A Free page's Layout control (SPEC §6.1): switch the page to Grid. */
-  onLayout?: () => void;
   /** A fixture's Add state: the segment, the tile whose card is open, Recently used, and the add toast for the selected widget. */
   addStart?: { segment?: AddFilter; hoverTile?: string; recent?: string[]; toast?: "addw" };
 }
@@ -158,14 +157,17 @@ function resizeByCell(ed: CanvasEditor, grid: PageGrid, dx: number, dy: number) 
   if (b) ed.commit(setBox(ed.committed, path, { ...b, width: Math.max(1, b.width + dx * (t.w + grid.gap)), height: Math.max(1, b.height + dy * (t.h + grid.gap)) }), key);
 }
 
-export default function CanvasEditorView({ zone, setConfig, history, shell, onDone, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, onLayout, addStart }: CanvasEditorProps) {
+export default function CanvasEditorView({ zone, setConfig, history, shell, hidden = false, checkOn = false, checkRequest = 0, onExport, profileId, initialSelection, onEditGauge, unbound, onDismissUnbound, widgetHost, addStart }: CanvasEditorProps) {
   const toast = useToast();
-  /** A Free page (not a free area opened from a grid page) takes Studio widgets too, and its size is the screen's. */
-  const freePage = !onDone && widgetHost !== undefined;
-  const editor = useCanvasEditor(zone, setConfig, freePage ? withFreeCanvas : withCanvas, initialSelection, toast);
+  /** The page (a canvas filling the screen) takes Studio widgets too, and its size is the screen's. */
+  const freePage = widgetHost !== undefined;
   /** The page's grid over a canvas filling the screen (Edit v3 SPEC §3.7): cell lines, cell snapping, widgets on cells. */
   const grid = useMemo(() => (freePage && widgetHost ? canvasGrid(widgetHost.profile, zone.canvas) : undefined), [freePage, widgetHost?.profile, zone.canvas]);
-  const snapItems = widgetHost?.config.profiles.find((p) => p.id === widgetHost.profile.id)?.pages.find((pg) => pg.id === widgetHost.profile.pageId)?.snapItems !== false;
+  // An item on cells that a commit moved off them is placed freely, or on the cells it is on now (SPEC §3.3).
+  const editor = useCanvasEditor(zone, setConfig, freePage ? withFreeCanvas : withCanvas, initialSelection, toast, grid ? (items) => settleCells(grid, items) : undefined);
+  const storedScreen = widgetHost?.config.profiles.find((p) => p.id === widgetHost.profile.id);
+  const storedPage = storedScreen?.pages.find((pg) => pg.id === widgetHost?.profile.pageId) ?? storedScreen?.pages[0];
+  const snapItems = storedPage?.snapItems !== false;
   const [showModes, setShowModes] = useState(false);
   const [compareOn, setCompareOn] = useState(false);
   // The screenshot the canvas kept at import is Compare's start; "choose another" replaces it.
@@ -235,7 +237,10 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
     if (grid) {
       // On the page's cells: under the pointer, or the first free ones; the nearest free cells when others sit there.
       const others = widgetPaths(editor.committed).map((p) => cellOfWidget(grid, itemAt(editor.committed, p)!));
-      const cell = cellsForAdd(grid, at ?? null, { cols: row.w, rows: row.h }, others);
+      const span = { cols: row.w, rows: row.h };
+      // A click takes the first free cells no item covers, else the first free cells (DECISIONS after phase 5).
+      const covered = at ? [] : itemCells(grid, editor.committed, Number(editor.open.profile.FontScale) || 1);
+      const cell = cellsForAdd(grid, at ?? null, span, [...others, ...covered]) ?? cellsForAdd(grid, at ?? null, span, others);
       if (!cell) return toast("No free cells here.");
       const box = cellRect(grid, cell);
       editor.add(newWidgetItem({ ...widget, cell }, box, row.name), { at: { x: box.x + box.w / 2, y: box.y + box.h / 2 } });
@@ -363,8 +368,8 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
   /** F2: each new value renames the selected part in Layers. */
   const [renameRequest, setRenameRequest] = useState(0);
   const layers = useCanvasLayers(editor, grid, renameRequest, checkState);
-  const latest = useRef({ editor, onDone, hidden, openSave, checkOpen, grid, layers });
-  latest.current = { editor, onDone, hidden, openSave, checkOpen, grid, layers };
+  const latest = useRef({ editor, hidden, openSave, checkOpen, grid, layers });
+  latest.current = { editor, hidden, openSave, checkOpen, grid, layers };
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || latest.current.hidden) return;
@@ -374,7 +379,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
       );
       if (!action) return;
       e.preventDefault();
-      const { editor: ed, onDone: done, grid: g } = latest.current;
+      const { editor: ed, grid: g } = latest.current;
       switch (action.type) {
         case "duplicate":
           return ed.duplicate();
@@ -406,7 +411,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           return ed.reorder(-1);
         case "escape":
           if (latest.current.checkOpen) return setCheckOpen(false);
-          return ed.selection.length ? ed.select([]) : done?.();
+          return ed.selection.length ? ed.select([]) : undefined;
         case "block":
           return;
       }
@@ -423,6 +428,62 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
   const name = editor.open.profile.Name || editor.open.stored.source.name;
   if (hidden) return null;
   const floating = layout.mode === "floating";
+  // The LAYER section under one selected part or group (Edit v3 SPEC §10.2): z-order and the group it sits in.
+  const layerPath = !(checkOpen && checkOn) && editor.selection.length === 1 ? editor.selection[0] : null;
+  const layerSection = layerPath !== null && (
+    <LayerSection
+      onAction={layers.menu.run}
+      groups={layers.menu.groups.filter((g) => g.id !== layerPath && !g.id.startsWith(`${layerPath}.`))}
+      inGroup={layerPath.includes(".") ? layerPath.split(".").slice(0, -1).join(".") : null}
+      onInGroup={(g) => (g === "new" ? editor.group() : g === null ? editor.move("", editor.committed.length) : layers.menu.moveToGroup(g))}
+    />
+  );
+  /** The Place row of the one selected part (SPEC §10.2): a widget on its cells, an item on its `$.cell` or in px. */
+  const placeOf = (path: Path): ReactNode => {
+    const item = itemAt(editor.committed, path);
+    if (!grid || !item || item.kind === "Group") return undefined;
+    const locked = item.IsLocked === true;
+    if (isWidgetItem(item)) {
+      const c = cellOfWidget(grid, item);
+      const onCells = (patch: CellPatch) => {
+        const next = resizeOnCells(grid, editor.committed, path, cellRect(grid, clampCell(grid, { ...c, ...patch })));
+        if (!next) return false;
+        editor.commit(next);
+        return true;
+      };
+      return <PlaceRow cell={c} onCells={onCells} disabled={locked} />;
+    }
+    const cell = (item as { cell?: { col: number; row: number; cols: number; rows: number } }).cell;
+    if (cell) return <PlaceRow cell={cell} onCells={(patch) => editor.commit(itemOnCells(grid, editor.committed, path, { ...cell, ...patch }))} disabled={locked} />;
+    const b = editor.boxes[path];
+    const o = item as unknown as Record<string, number>;
+    const px = b ? { x: b.x, y: b.y, w: b.width, h: b.height } : { x: o.X, y: o.Y, w: o.Width || 0, h: o.Height || 0 };
+    const onPx = (patch: PxPatch) => {
+      const field = { x: "X", y: "Y", w: "Width", h: "Height" } as const;
+      const [key, value] = Object.entries(patch)[0] as [keyof PxPatch, number];
+      const r = checkGeometry(item.kind, field[key], String(value));
+      if (!r.ok) return false;
+      editor.setField(path, field[key], key === "w" || key === "h" ? Math.max(1, r.value) : r.value);
+      return true;
+    };
+    const onSnap = () => editor.commit(itemOnCells(grid, editor.committed, path, nearestCells(grid, px)));
+    return <PlaceRow px={px} onPx={onPx} onSnap={onSnap} disabled={locked} />;
+  };
+  /** The page's settings with nothing selected: Snap items to grid and Columns × rows act on the screen's page. */
+  const pageSettings = widgetHost &&
+    storedScreen &&
+    storedPage && {
+      name: storedPage.name,
+      snapItems,
+      onSnapItems: (on: boolean) => setConfig((c) => applyPage(c, storedScreen.id, storedPage.id, [{ type: "setSnapItems", snapItems: on }])),
+      cols: storedScreen.cols,
+      rows: storedScreen.rows,
+      onGrid: (cols: number, rows: number) => {
+        const r = regrid(storedScreen, cols, rows, zoneName);
+        if ("refused" in r) return toast(r.refused);
+        setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === storedScreen.id ? r.profile : p)) }));
+      },
+    };
   const inspectorBody =
     checkOpen && checkOn ? (
       <ExportCheckPanel
@@ -434,7 +495,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
         onExport={() => onExport?.()}
       />
     ) : single && widgetHost && isWidgetItem(single) ? (
-      <WidgetItemInspector key={editor.selection[0]} editor={editor} path={editor.selection[0]} item={single} host={widgetHost} />
+      <WidgetItemInspector key={editor.selection[0]} editor={editor} path={editor.selection[0]} item={single} host={widgetHost} place={placeOf(editor.selection[0])} after={layerSection} />
     ) : hasSelection ? (
       <ItemInspector
         editor={editor}
@@ -443,27 +504,23 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
         onRemap={() => setRemapOpen(true)}
         onBindSensor={single && "SensorType" in single ? (sensor) => editor.bind(editor.selection[0], sensor) : undefined}
         onEditGauge={onEditGauge}
+        place={single ? placeOf(editor.selection[0]) : undefined}
+        after={layerSection}
+        actions={{
+          onToggleHidden: () => single && editor.setField(editor.selection[0], "Hidden", !single.Hidden),
+          onDuplicate: editor.duplicate,
+          onDelete: editor.remove,
+        }}
       />
     ) : (
-      <ProfileSettings editor={editor} onLayout={freePage ? onLayout : undefined} />
+      <ProfileSettings editor={editor} page={pageSettings || undefined} onRemap={() => setRemapOpen(true)} remapCount={remapCount} />
     );
-  // The LAYER section under one selected part or group (Edit v3 SPEC §10.2): z-order and the group it sits in.
-  const layerPath = !(checkOpen && checkOn) && editor.selection.length === 1 ? editor.selection[0] : null;
-  const layerSection = layerPath !== null && (
-    <LayerSection
-      onAction={layers.menu.run}
-      groups={layers.menu.groups.filter((g) => g.id !== layerPath && !g.id.startsWith(`${layerPath}.`))}
-      inGroup={layerPath.includes(".") ? layerPath.split(".").slice(0, -1).join(".") : null}
-      onInGroup={(g) => (g === "new" ? editor.group() : g === null ? editor.move("", editor.committed.length) : layers.menu.moveToGroup(g))}
-    />
-  );
   const inspector = (
     <aside
       aria-label={checkOpen && checkOn ? "Export check" : "Item"}
       className={cn("flex flex-col overflow-y-auto bg-ui-panel font-ui", floating ? "h-full w-full" : "w-[320px] shrink-0 border-l border-ui-subtle")}
     >
       {inspectorBody}
-      {layerSection}
     </aside>
   );
   const drawer = shell.leftOpen && (
@@ -484,7 +541,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           onAddPart={(data) => addPart(data)}
           infoPanel={checkOn}
           status={addKit}
-          layoutsOff="Layouts replace the widgets. Items stay on top."
+          layoutsOff="Layouts add Studio panel areas. Imported profiles keep InfoPanel's layout."
           start={addStart && { segment: addStart.segment, hoverTile: addStart.hoverTile }}
         />
       ) : (
@@ -498,17 +555,12 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <CanvasToolbar
           editor={editor}
-          history={history}
           showModes={showModes}
           onShowModes={setShowModes}
           compare={compareOn}
           onCompare={setCompareOn}
-          remapCount={remapCount}
-          onRemap={() => setRemapOpen(true)}
           apiUnreachable={unreachable}
           library={libraryLink}
-          onSaveComponent={openSave}
-          onDone={onDone}
         />
         {unbound && unbound.length > 0 && (
           <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">

@@ -292,7 +292,7 @@ export function SaveStep({
   const drawnNative = state.mode === "infopanel" ? 0 : native;
   const dests: { value: Dest; title: string; text: string }[] = [
     { value: "new", title: "New profile", text: `${profile.Width} × ${profile.Height}, the canvas fills it` },
-    { value: "zone", title: `Canvas zone in “${profileName}”`, text: `Sits beside your widgets; ${profileSize.width} × ${profileSize.height}` },
+    { value: "zone", title: `A group on “${profileName}”`, text: `Its items join your widgets; ${profileSize.width} × ${profileSize.height}` },
   ];
   return (
     <div className="flex max-w-[560px] flex-col gap-4">

@@ -1,18 +1,19 @@
 import { useState, type ReactNode } from "react";
-import { Cast, CircleHelp, Copy, Trash2 } from "lucide-react";
-import { IconButton } from "@/components/ui/icon-button";
-import { ITEM_ID, type MonitorProfile, type PageLayout, type ProfilePage } from "@/lib/layout";
+import { Cast, Copy, Trash2 } from "lucide-react";
+import type { MonitorProfile, ProfilePage } from "@/lib/layout";
+import { profileGap } from "@/lib/profile-grid";
+import { resolveTheme, THEME_PRESETS } from "@/lib/theme";
 import { SECTION_IDS, type SectionId } from "@/lib/theme-model";
 import { cn } from "@/lib/utils";
+import { sameTokens } from "./appearance-actions";
 import { sectionIconById } from "./inspector/section-icons";
-import { LayoutControl } from "./layout-control";
-import { LinkRow } from "./link-row";
+import { sizeChoice, sizeOfChoice, sizeOptions } from "./inspector/profile-grid";
+import { ColsRows, NumberInput, PageHeader, PageRow, SnapSection } from "./page-settings-parts";
 import { pageIcon } from "./page-icons";
-import { cycleLabel, layoutOf } from "./page-tabs";
+import { cycleLabel } from "./page-tabs";
 import { sectionInherit } from "./section-inherit";
 import { sectionTitle } from "./theme-editor-model";
 import type { InheritanceContext } from "./use-inheritance";
-import { CloseButton, HeaderIcon } from "./zone-inspector-parts";
 
 interface PageInspectorProps {
   profile: MonitorProfile;
@@ -26,14 +27,16 @@ interface PageInspectorProps {
   onDelete: (id: string) => void;
   /** LIVE: send the kiosks to this page now (runtime, never saved). */
   onShowOnKiosks: () => void;
-  onHelp: () => void;
-  /** Layout (one-editor SPEC §6.1): switch the page to Grid or Free, one undo step. */
-  onLayout?: (id: string, layout: PageLayout) => void;
-  /** Why the page can't switch (its content isn't loaded yet). */
-  layoutDisabled?: string;
+  /** Snap items to grid (Edit v3 SPEC §10.1), one undo step. */
+  onSnapItems: (on: boolean) => void;
+  /** The screen's size, Columns × rows (refused when a widget wouldn't fit, decision Q5) and gap. */
+  onSize: (width: number, height: number) => void;
+  onGrid: (cols: number, rows: number) => void;
+  onGap: (gap: number) => void;
 }
 
 const SECTION_LABEL = "text-[10.5px] font-semibold uppercase tracking-[0.06em] text-ui-4";
+const SELECT = "h-7 max-w-[150px] rounded-md border border-ui-default bg-ui-app px-1.5 font-ui-mono text-[12px] text-ui-1 outline-none focus:border-ui-accent";
 const ACTION =
   "flex h-8 items-center justify-center gap-1.5 rounded-[7px] border border-ui-strong bg-ui-raised px-3 text-[12.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40";
 
@@ -45,6 +48,18 @@ function rotationText(profile: MonitorProfile, page: ProfilePage): string {
   return included ? `Included · every ${cycleLabel(rotate.seconds)}` : "Not included";
 }
 
+/** The screen's theme by name: a saved Theme with its colours, else the built-in palette, else Custom; and a swatch. */
+function themeOf(inherit: InheritanceContext, profile: MonitorProfile): { name: string; swatch: string } {
+  const { tokens } = resolveTheme(inherit.config, profile);
+  const tokensOf = (theme: NonNullable<typeof inherit.config.appearancePresets>[number]["theme"]) =>
+    typeof theme === "string" ? THEME_PRESETS.find((p) => p.name === theme)?.tokens : theme;
+  const saved = inherit.config.appearancePresets?.find((p) => {
+    const t = tokensOf(p.theme);
+    return t !== undefined && sameTokens(t, tokens);
+  })?.name;
+  return { name: saved ?? THEME_PRESETS.find((p) => sameTokens(p.tokens, tokens))?.label ?? "Custom", swatch: `hsl(${tokens.background})` };
+}
+
 /** The page's Name: committed on Enter or blur, so a rename is one undo step. */
 function NameRow({ page, onRename }: { page: ProfilePage; onRename: (name: string) => void }) {
   const [draft, setDraft] = useState(page.name);
@@ -54,8 +69,8 @@ function NameRow({ page, onRename }: { page: ProfilePage; onRename: (name: strin
     else setDraft(page.name);
   };
   return (
-    <label className="flex min-h-7 items-center gap-2.5 text-[12px] text-ui-3">
-      <span className="w-12 shrink-0">Name</span>
+    <label className="flex min-h-7 items-center justify-between gap-2.5 text-[12px] text-ui-4">
+      <span className="shrink-0">Name</span>
       <input
         value={draft}
         aria-label="Page name"
@@ -70,7 +85,7 @@ function NameRow({ page, onRename }: { page: ProfilePage; onRename: (name: strin
             e.currentTarget.blur();
           }
         }}
-        className="h-7 min-w-0 flex-1 rounded-md border border-ui-strong bg-ui-app px-2 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent"
+        className="h-7 min-w-0 max-w-[170px] flex-1 rounded-md border border-transparent bg-transparent px-1.5 text-right text-[12px] text-ui-1 outline-none hover:border-ui-default focus:border-ui-accent"
       />
     </label>
   );
@@ -100,58 +115,76 @@ function Block({ label, children, labelClassName }: { label: string; children: R
 }
 
 /**
- * The inspector with nothing selected (SPEC §6.4): the page being edited. Its Name and Icon, the Rotation
- * LinkRow (Screens owns order and rotation), the sections the page customises over its screen's theme with the
- * way into Theme at page scope, LIVE "Show on kiosks now", and Duplicate / Delete page.
+ * The inspector with nothing selected (Edit v3 SPEC §10.1): the page being edited. GRID with Snap items to grid and
+ * the Alt hint; Name, Size, Columns × rows, Gap, Theme and Rotation (Screens keeps the rest of the screen's settings,
+ * the breadcrumb's Screen settings…); then the page's Icon, the sections it customises over its screen's theme, LIVE
+ * "Show on kiosks now", and Duplicate / Delete page.
  */
-export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onHelp, onLayout, layoutDisabled }: PageInspectorProps) {
+export function PageInspector({ profile, page, inherit, onRename, onIcon, onDuplicate, onDelete, onShowOnKiosks, onSnapItems, onSize, onGrid, onGap }: PageInspectorProps) {
   const Icon = pageIcon(page.icon);
   const custom = SECTION_IDS.filter((sec) => page.widgetTheme?.follow?.[sec] === false);
-  // The grid's zones: a page's InfoPanel items (v15 item placements) aren't zones.
-  const zones = page.placements.filter((p) => p.module !== ITEM_ID).length;
   const pageScope = { kind: "page", pageId: page.id } as const;
+  const theme = themeOf(inherit, profile);
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div data-inspector-header="" className="flex shrink-0 items-center gap-2.5 pb-2.5 pl-4 pr-3 pt-3">
-        <HeaderIcon>{Icon ? <Icon /> : <Cast />}</HeaderIcon>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[14px] font-semibold leading-4 text-ui-1">Page · {page.name}</div>
-          <div className="truncate text-[11px] text-[#8a8a94]">
-            {profile.name} · {zones} {zones === 1 ? "zone" : "zones"}
-          </div>
-        </div>
-        <IconButton label="Help (F1)" onClick={onHelp}>
-          <CircleHelp className="h-4 w-4" />
-        </IconButton>
-        <CloseButton />
-      </div>
-      <div className="h-px shrink-0 bg-ui-subtle" />
+      <PageHeader name={page.name} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
-        {onLayout && (
-          <Block label="Layout">
-            <LayoutControl layout={layoutOf(profile, page)} onChange={(to) => onLayout(page.id, to)} disabled={layoutDisabled} />
-          </Block>
-        )}
-        <section className="space-y-1 border-b border-[#1c1c21] px-4 py-3">
+        <SnapSection snapItems={page.snapItems !== false} onSnapItems={onSnapItems} />
+        <section className="flex flex-col gap-1.5 border-b border-[#1c1c21] px-3.5 py-3">
           <NameRow key={`${page.id}:${page.name}`} page={page} onRename={(name) => onRename(page.id, name)} />
-          <div className="flex min-h-7 items-center gap-2.5 text-[12px] text-ui-3">
-            <span className="w-12 shrink-0">Icon</span>
+          <PageRow label="Size">
+            <select
+              aria-label="Size"
+              value={sizeChoice(profile.width, profile.height)}
+              onChange={(e) => {
+                const size = sizeOfChoice(e.target.value);
+                if (size) onSize(size.width, size.height);
+              }}
+              className={SELECT}
+            >
+              {sizeOptions(profile.width, profile.height).map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label.replace("×", " × ")}
+                </option>
+              ))}
+            </select>
+          </PageRow>
+          <ColsRows cols={profile.cols} rows={profile.rows} onGrid={onGrid} />
+          <PageRow label="Gap">
+            <NumberInput label="Gap" value={profile.gap ?? profileGap(profile)} min={0} max={64} onCommit={onGap} />
+            <span className="text-ui-4">px</span>
+          </PageRow>
+          <PageRow label="Theme" swatch={theme.swatch}>
+            <button
+              type="button"
+              title="Edit in Theme"
+              onClick={() => inherit.navigateTo({ view: "theme", themeScope: { kind: "profile" }, profileId: profile.id })}
+              className="truncate rounded-sm hover:underline"
+            >
+              {theme.name}
+            </button>
+          </PageRow>
+          <PageRow label="Rotation">
+            <button
+              type="button"
+              title="Page order and rotation live in Screens"
+              onClick={() => inherit.navigateTo({ view: "screens", profileId: profile.id, section: "rotation" })}
+              className="truncate rounded-sm hover:underline"
+            >
+              {rotationText(profile, page)}
+            </button>
+          </PageRow>
+          <div className="flex min-h-7 items-center justify-between gap-2.5 text-[12px] text-ui-4">
+            <span className="shrink-0">Icon</span>
             <button
               type="button"
               onClick={() => onIcon(page.id)}
-              className="flex h-7 items-center gap-1.5 rounded-md border border-ui-strong bg-ui-app px-2 text-[12.5px] text-ui-1 hover:bg-ui-hover"
+              className="flex h-7 items-center gap-1.5 rounded-md border border-ui-default bg-ui-app px-2 text-[12px] text-ui-1 hover:bg-ui-hover"
             >
               {Icon ? <Icon className="h-4 w-4" /> : null}
               {page.icon ?? "None"}
             </button>
           </div>
-          <LinkRow
-            label="Rotation"
-            value={rotationText(profile, page)}
-            note="Page order and rotation live in"
-            link="Screens"
-            onNavigate={() => inherit.navigateTo({ view: "screens", profileId: profile.id, section: "rotation" })}
-          />
         </section>
 
         <Block label="This page's look">

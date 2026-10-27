@@ -38,7 +38,7 @@ describe("composite elements", () => {
   it.each(TYPES.map((t, i) => [t, i] as const))("shows %s's settings and badge in the inspector", (_t, index) => {
     render(
       <ToastProvider>
-        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} onDone={vi.fn()} profileId="p1" initialSelection={[String(index)]} />
+        <HostedEditor zone={zone} setConfig={vi.fn()} history={history} profileId="p1" initialSelection={[String(index)]} />
       </ToastProvider>,
     );
     const inspector = screen.getByRole("complementary", { name: "Item" });

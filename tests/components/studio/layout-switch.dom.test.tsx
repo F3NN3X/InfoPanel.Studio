@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// Grid ↔ Free in the studio (one-editor SPEC §6, acceptance 9) and Made for (§5.1): a switch is one undo step that
-// redo restores, the Layout control and the page tab menu offer it, and Made for is one choice of two.
+// Grid ↔ Free (one-editor SPEC §6): the stored switch stays one undo step that redo restores, but Edit v3 (SPEC §1,
+// acceptance 5) has one kind of page, so no UI offers it: not the page tab menu, not the page inspector, which shows
+// GRID with Snap items to grid instead (§10.1). Made for (§5.1) is one choice of two.
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -8,9 +9,10 @@ import { useConfigHistory } from "@/hooks/use-config-history";
 import { CANVAS_ID, type DashboardConfig, type MonitorProfile } from "@/lib/layout";
 import { switchLayout } from "@/lib/page-layout";
 import { isFreePage } from "@/lib/free-pages";
-import { LayoutControl, ToGridDialog } from "@/components/studio/layout-control";
 import { MadeForControl } from "@/components/studio/made-for-control";
-import { layoutOf, pageMenuEntries } from "@/components/studio/page-tabs";
+import { pageMenuEntries } from "@/components/studio/page-tabs";
+import { PageInspector } from "@/components/studio/page-inspector";
+import { THEME_PRESETS } from "@/lib/theme";
 import { ITEM_TILES } from "@/components/studio/add-tiles";
 import { PALETTE } from "@/lib/infopanel/editor/create";
 
@@ -53,54 +55,47 @@ describe("a layout switch", () => {
   });
 });
 
-describe("the Layout control", () => {
-  it("switches to the other layout only, and says what the switch does", () => {
-    const onChange = vi.fn();
-    render(<LayoutControl layout="grid" onChange={onChange} />);
-    expect(screen.getByText(/Grid → Free keeps every widget exactly where it is/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("radio", { name: /Grid/ }));
-    expect(onChange).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("radio", { name: /Free/ }));
-    expect(onChange).toHaveBeenCalledWith("free");
-  });
-
-  it("is off while the page's content isn't loaded", () => {
-    render(<LayoutControl layout="free" onChange={vi.fn()} disabled="This page's content isn't loaded yet." />);
-    expect(screen.getByRole("radio", { name: /Grid/ }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText("This page's content isn't loaded yet.")).toBeTruthy();
-  });
-
-  it("asks before a Free → Grid that makes a free area, with Don't ask again", () => {
-    const onConfirm = vi.fn();
-    render(<ToGridDialog parts={3} onConfirm={onConfirm} onCancel={vi.fn()} />);
-    expect(screen.getByText(/3 parts overlap or are InfoPanel items/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("checkbox", { name: "Don't ask again" }));
-    fireEvent.click(screen.getByRole("button", { name: "Switch to Grid" }));
-    expect(onConfirm).toHaveBeenCalledWith(false);
-  });
-});
-
-describe("the page tab menu", () => {
-  it("has Layout ▸ Grid / Free, the current one checked and picking it a no-op", () => {
-    const layout = vi.fn();
+describe("no Grid / Free anywhere (acceptance 5)", () => {
+  it("the page tab menu has no Layout entry, whatever the page holds", () => {
     const noop = () => {};
-    const entries = pageMenuEntries(screenProfile.pages, { rename: noop, icon: noop, duplicate: noop, remove: noop, settings: noop, layout }, "grid");
-    const sub = entries.find((e) => e !== "separator" && e.id === "layout");
-    if (!sub || sub === "separator" || !sub.submenu) throw new Error("no Layout submenu");
-    const [grid, free] = sub.submenu as Exclude<(typeof sub.submenu)[number], "separator">[];
-    expect([grid.label, free.label]).toEqual(["Grid", "Free"]);
-    expect(grid.icon).toBeTruthy();
-    grid.onSelect?.();
-    free.onSelect?.();
-    expect(layout).toHaveBeenCalledTimes(1);
-    expect(layout).toHaveBeenCalledWith("free");
-    // Without a layout action the submenu isn't offered.
-    expect(pageMenuEntries(screenProfile.pages, { rename: noop, icon: noop, duplicate: noop, remove: noop, settings: noop }).some((e) => e !== "separator" && e.id === "layout")).toBe(false);
-    // Read from the page's shape (v15 keeps no flag): one canvas spanning the grid is Free, anything else Grid.
-    const canvasZone = { id: "c", module: CANVAS_ID, colStart: 1, rowStart: 1, colSpan: 4, rowSpan: 3, visible: true };
-    expect(layoutOf({ cols: 4, rows: 3 }, { placements: [canvasZone] })).toBe("free");
-    expect(layoutOf({ cols: 4, rows: 3 }, { placements: [{ ...canvasZone, colSpan: 3 }] })).toBe("grid");
-    expect(layoutOf({ cols: 4, rows: 3 }, { placements: [] })).toBe("grid");
+    const entries = pageMenuEntries(screenProfile.pages, { rename: noop, icon: noop, duplicate: noop, remove: noop, settings: noop });
+    const ids = entries.map((e) => (e === "separator" ? "-" : e.id));
+    expect(ids).toEqual(["rename", "icon", "duplicate", "delete", "-", "settings"]);
+  });
+
+  it("the page inspector shows GRID with Snap items to grid and no layout choice", () => {
+    const onSnapItems = vi.fn();
+    const onGrid = vi.fn();
+    const config = { ...start, theme: THEME_PRESETS[0].tokens } as DashboardConfig;
+    render(
+      <PageInspector
+        profile={screenProfile}
+        page={screenProfile.pages[0]}
+        inherit={{ config, setConfig: vi.fn(), navigateTo: vi.fn() }}
+        onRename={vi.fn()}
+        onIcon={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onShowOnKiosks={vi.fn()}
+        onSnapItems={onSnapItems}
+        onSize={vi.fn()}
+        onGrid={onGrid}
+        onGap={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Page · Main")).toBeTruthy();
+    expect(screen.getByText("Nothing selected")).toBeTruthy();
+    const snap = screen.getByRole("switch", { name: "Snap items to grid" });
+    expect(snap.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText(/Widgets always snap to cells and never overlap/)).toBeTruthy();
+    fireEvent.click(snap);
+    expect(onSnapItems).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("radio", { name: /Grid|Free/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/free area|Layout/i);
+    const cols = screen.getByRole("textbox", { name: "Columns" });
+    fireEvent.change(cols, { target: { value: "6" } });
+    fireEvent.blur(cols);
+    expect(onGrid).toHaveBeenCalledWith(6, 3);
   });
 });
 

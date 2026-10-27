@@ -10,7 +10,6 @@ import {
   uid,
   type DashboardConfig,
   type MadeFor,
-  type PageLayout,
   type Placement,
   type ProfileView,
 } from "@/lib/layout";
@@ -40,9 +39,6 @@ import { useGeneral } from "@/hooks/use-general";
 import { fontStack, resolveFont } from "@/lib/general";
 import { madeForInfoPanel, screenKind } from "@/lib/screens/list";
 import { MadeForControl } from "./made-for-control";
-import { ToGridDialog } from "./layout-control";
-import { useStoredFlag } from "./use-stored-flag";
-import { ADD_TOAST_MS } from "./use-add-panel";
 import { focusOnInfoPanel } from "./add-toast";
 import { ELEMENT_TILES, ITEM_TILES, partKey } from "./add-tiles";
 import { placeForAdd, placesFreely } from "@/lib/page-model/gesture";
@@ -117,6 +113,8 @@ const GridOnInfoPanel = lazy(() => import("@/components/infopanel/grid-export").
 const GridBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridBadge })));
 const GridItemBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridItemBadge })));
 const GroupInspector = lazy(() => import("./group-inspector").then((m) => ({ default: m.GroupInspector })));
+/** One InfoPanel item or element selected on a screen's page: its inspector (Edit v3 SPEC §10.2), with the item model. */
+const PageItemInspector = lazy(() => import("@/components/infopanel/edit/page-item-inspector"));
 const LayerMenu = lazy(() => import("./layer-menu").then((m) => ({ default: m.LayerMenu })));
 /** The Export check and its status icon, loaded on a screen made for InfoPanel (Layers' row statuses). */
 interface CheckKit {
@@ -130,7 +128,7 @@ const SensorPicker = lazy(() => import("@/components/infopanel/edit/sensor-picke
 /** Add's Export check statuses, loaded on a screen made for InfoPanel. */
 type AddStatusModule = typeof import("@/components/infopanel/edit/add-status");
 
-/** The canvas editor (A5): Edit on a Free page or a free area, loaded when one is first opened. */
+/** The canvas editor (A5): Edit on an imported profile's page (one canvas filling the screen), loaded when one is first opened. */
 const CanvasEditorView = lazy(() => import("@/components/infopanel/edit/canvas-editor"));
 /** The New page loads when it opens, and its templates after it (`wizard-kit.ts`). */
 const NewPage = lazy(() => import("@/components/templates/new-page"));
@@ -350,11 +348,10 @@ function StudioViewBody({
     setPendingZone(null);
     focusZone(pendingZone);
     if (openOnLand.current === pendingZone) {
-      // A fresh import, or a new profile, opens its canvas zone in Edit (spec §4).
+      // A fresh import, or a new profile, opens in Edit (spec §4).
       openOnLand.current = null;
       ui.setMode("design");
       setCanvasSelection(undefined);
-      setEditingCanvas(pendingZone);
     }
     const zone = profile.placements.find((p) => p.id === pendingZone);
     const section = islandSectionId(modules.find((m) => m.id === zone?.module));
@@ -366,36 +363,20 @@ function StudioViewBody({
     setConfig,
     selectedId: sel.primaryId ?? undefined,
     onLanded: (zoneId, newProfile) => {
-      if (newProfile) ui.fitZoom();
+      // An import onto this page lands as a group of its items: selected in Layers.
+      if (!newProfile) return setPendingGroup(zoneId);
+      ui.fitZoom();
       openOnLand.current = zoneId;
       setPendingZone(zoneId);
     },
     onSelectProfile: selectProfile,
   });
-  /**
-   * A free area opened from a grid page (double-click, the inspector's Edit): one canvas zone on the screen and page
-   * Edit shows. Its stored form in the config is the one source of truth, so the studio's history undoes every edit.
-   * It closes when the zone goes (an undo past its import, another screen or page).
-   */
-  const [editingCanvas, setEditingCanvas] = useState<string | null>(null);
   const onRail = (item: RailItem) => {
     setNewPage(null);
     ui.onRail(item);
   };
-  /** Edit a canvas zone of the page Edit shows: the canvas editor opens on it. */
-  const editCanvasZone = (zoneId: string) => {
-    setCanvasSelection(undefined);
-    setEditingCanvas(zoneId);
-    ui.setMode("design");
-  };
   /** Items the editor opens with selected (the Library's "uses"). */
   const [canvasSelection, setCanvasSelection] = useState<string[] | undefined>(fixture?.canvasSelection);
-  const canvasZone = editingCanvas ? profile.placements.find((p) => p.id === editingCanvas && p.module === CANVAS_ID && p.canvas) : undefined;
-  useEffect(() => {
-    // Leaving the page keeps the area open (the rail brings it back); the zone going closes it. Only if it is
-    // still the open one: an import onto another screen opens its own zone in the same commit.
-    if (editingCanvas && !canvasZone) setEditingCanvas((open) => (open === editingCanvas ? null : open));
-  }, [editingCanvas, canvasZone]);
   /** The stored page on the canvas. */
   const storedPage = storedProfile.pages.find((p) => p.id === profile.pageId) ?? storedProfile.pages[0];
   /** The page's InfoPanel items and elements selected on the canvas (selecting one clears the zones, and back). */
@@ -450,8 +431,8 @@ function StudioViewBody({
   };
   /** A Free page (its layout, one canvas filling the screen, as every InfoPanel profile's) is edited in the canvas editor. */
   const freeZone = isFreePage(profile, storedPage) ? profile.placements[0] : null;
-  /** What Edit's canvas editor shows: the Free page's canvas, else the free area opened from the grid. */
-  const activeCanvas = freeZone?.canvas ? (freeZone as typeof freeZone & { canvas: NonNullable<typeof freeZone.canvas> }) : canvasZone?.canvas ? (canvasZone as typeof canvasZone & { canvas: NonNullable<typeof canvasZone.canvas> }) : undefined;
+  /** What Edit's canvas editor shows: the page's canvas, when it is one filling the screen (an imported profile's). */
+  const activeCanvas = freeZone?.canvas ? (freeZone as typeof freeZone & { canvas: NonNullable<typeof freeZone.canvas> }) : undefined;
   /**
    * The New page (New screen, New InfoPanel profile): a page over Screens, for either kind. "New InfoPanel profile…"
    * makes a new screen (not made active) opened in Edit, a template's sensors not found on this machine listed there
@@ -501,7 +482,6 @@ function StudioViewBody({
   };
   /** Bumped to reopen the editor with new initial selection (the Library's "uses" while it is mounted). */
   const [editorEpoch, setEditorEpoch] = useState(0);
-  const isCanvasZone = (id: string) => profile.placements.some((p) => p.id === id && p.module === CANVAS_ID && p.canvas);
 
   /** The gauge the Gauges view opens in its editor ("Edit gauge…" from a zone, a canvas item or the Library). */
   const [gaugeToOpen, setGaugeToOpen] = useState<GaugeSource | null>(null);
@@ -576,41 +556,29 @@ function StudioViewBody({
   const setMadeFor = (madeFor: MadeFor) =>
     setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === storedProfile.id ? { ...p, madeFor } : p)) }));
 
-  /** Grid ↔ Free (SPEC §6): one undo step, the selection cleared, a toast with Undo. Free → Grid asks first when it makes a free area. */
-  const [confirmToGrid, setConfirmToGrid] = useStoredFlag("studio.confirmToGrid", true);
-  const [toGridAsk, setToGridAsk] = useState<{ pageId: string; parts: number } | null>(null);
-  const commitLayout = (pageId: string, to: PageLayout) =>
-    void import("@/lib/page-layout").then(({ switchLayout }) => {
-      let message = "";
-      let refused = "";
-      setConfig((c) => {
-        const r = switchLayout(c, storedProfile.id, pageId, to, zoneName);
-        if ("refused" in r) {
-          refused = r.refused;
-          return c;
-        }
-        message = r.result.message;
-        return r.config;
-      });
-      if (refused) return toast(refused);
-      setEditingCanvas(null);
-      setCanvasSelection(undefined);
-      sel.select(null);
-      if (pageId !== currentPageId) onPageChange(pageId);
-      toast(message, { action: { label: "Undo", onClick: history.undo }, ms: ADD_TOAST_MS });
-    });
-  const switchPageLayout = (pageId: string, to: PageLayout) => {
-    if (to === "free" || !confirmToGrid) return commitLayout(pageId, to);
-    void import("@/lib/page-layout").then(({ switchLayout }) => {
-      const r = switchLayout(config, storedProfile.id, pageId, to, zoneName);
-      if ("refused" in r) return toast(r.refused);
-      if (r.result.kept > 0) setToGridAsk({ pageId, parts: r.result.kept });
-      else commitLayout(pageId, to);
-    });
+  /** The page inspector's GRID and screen rows (Edit v3 SPEC §10.1): each one undo step; a grid widgets don't fit in is refused (Q5). */
+  const pageSettings = {
+    onSnapItems: (on: boolean) => edit.applyPageOps([{ type: "setSnapItems", snapItems: on }]),
+    onSize: (width: number, height: number) => edit.updateStored((p) => ({ ...p, width, height }), "profile:size"),
+    // Loaded on use: its canvas adapter and widget-item model stay out of the studio's first download.
+    onGrid: (cols: number, rows: number) =>
+      void import("@/lib/page-model/regrid").then(({ regrid }) => {
+        const r = regrid(storedProfile, cols, rows, zoneName);
+        if ("refused" in r) return toast(r.refused);
+        edit.updateStored(() => r.profile);
+      }),
+    onGap: (gap: number) => edit.updateStored((p) => ({ ...p, gap }), "profile:gap"),
   };
-  /** Switching waits for a page's canvases to load (SPEC §11). */
-  const layoutDisabled = storedPage.placements.some((p) => p.module === CANVAS_ID && !p.canvas) ? "This page's content isn't loaded yet." : undefined;
-  /** A page added from a Free page is Free too (SPEC §9). */
+  /** An import onto this page: its group, selected in Layers once it is on the page. */
+  const [pendingGroup, setPendingGroup] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingGroup || !(storedPage.groups ?? []).some((g) => g.id === pendingGroup)) return;
+    setPendingGroup(null);
+    ui.setMode("design");
+    ui.setLeftTab("layers");
+    layers.selectMany([pendingGroup]);
+  }, [pendingGroup, storedPage.groups]);
+  /** A page added to an imported profile is one canvas filling the screen too. */
   const addPage = () => {
     if (!freeZone) return edit.addNewPage();
     void import("@/lib/page-layout").then(({ newFreePage }) => {
@@ -656,6 +624,8 @@ function StudioViewBody({
   };
   /** A new part asking for its sensor (the picker binds it, one more undo step). */
   const [pickSensor, setPickSensor] = useState<{ id: string; label: string; pluginOnly: boolean; item: StoredItem } | null>(null);
+  /** A new Image or Sensor image asking for its file in its inspector, and the sensor a Sensor image asks for after it. */
+  const [askFile, setAskFile] = useState<{ id: string; sensorNext: NonNullable<typeof pickSensor> | null } | null>(null);
   /**
    * An InfoPanel item or element from Add on a screen page (Edit v3 SPEC §7.4, DECISIONS after phase 3): an item
    * placement, never a free area. A click puts it in the middle of the board in view, a drop where it lands; snapped
@@ -683,7 +653,9 @@ function StudioViewBody({
       items.select(id, false);
       addPanel.pushRecent(partKey(data));
       if (addPanel.status) addPanel.show(addPanel.status.added(tile), true);
-      if (entry.sensor) setPickSensor({ id, label: entry.label, pluginOnly: entry.pluginOnly, item: made.item });
+      const sensor = entry.sensor ? { id, label: entry.label, pluginOnly: entry.pluginOnly, item: made.item } : null;
+      if (entry.file) setAskFile({ id, sensorNext: sensor });
+      else if (sensor) setPickSensor(sensor);
     });
   };
 
@@ -706,6 +678,10 @@ function StudioViewBody({
     if (node?.type === "group") walk(node.children, (n) => inside.add(n.id));
     return layers.groupList.filter((g) => !inside.has(g.id));
   };
+  /** The one InfoPanel item or element selected on the page: its inspector (SPEC §10.2). */
+  const itemId = layers.selection.length === 1 && items.ids.length === 1 ? items.ids[0] : null;
+  const itemPlacement = itemId ? storedPage.placements.find((p): p is Placement & { item: StoredItem } => p.id === itemId && p.module === ITEM_ID && p.item !== undefined) : undefined;
+  const itemNode = itemPlacement ? findNode(layers.model.root, itemPlacement.id)?.node : undefined;
   const inspectorAside = gridCheckShown ? (
     <aside aria-label="Export check" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-y-auto bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-ui-subtle bg-ui-panel font-ui"}>
       <Suspense fallback={null}>
@@ -738,6 +714,30 @@ function StudioViewBody({
         />
       </Suspense>
     </aside>
+  ) : itemPlacement && itemNode?.type === "part" ? (
+    <aside aria-label="Inspector" className={studioLayout.mode !== "docked" ? "flex h-full w-full flex-col overflow-hidden bg-ui-panel font-ui" : "flex w-[320px] shrink-0 flex-col overflow-hidden border-l border-ui-subtle bg-ui-panel font-ui"}>
+      <Suspense fallback={null}>
+        <PageItemInspector
+          key={itemPlacement.id}
+          profile={storedProfile}
+          page={storedPage}
+          placement={itemPlacement}
+          place={itemNode.place}
+          setConfig={setConfig}
+          onOps={edit.applyPageOps}
+          checkOn={checkOn}
+          layer={<LayerSection onAction={layers.run} groups={groupsFor(itemPlacement.id)} inGroup={itemPlacement.groupId ?? null} onInGroup={layers.moveInto} />}
+          onDuplicate={() => layers.run("duplicate")}
+          onDelete={() => layers.run("delete")}
+          askFile={askFile?.id === itemPlacement.id}
+          onFileDone={(picked) => {
+            const next = askFile?.sensorNext;
+            setAskFile(null);
+            if (picked && next) setPickSensor(next);
+          }}
+        />
+      </Suspense>
+    </aside>
   ) : (
     <StudioInspector
       config={config}
@@ -753,10 +753,8 @@ function StudioViewBody({
         setFocusPointKey(key);
         ui.setMode("sources");
       }}
-      onEditCanvas={editCanvasZone}
       onEditGauge={(zoneId) => openGauge({ kind: "widget", zoneId })}
-      onLayout={switchPageLayout}
-      layoutDisabled={layoutDisabled}
+      pageSettings={pageSettings}
       onInfoPanelOf={onInfoPanelOf}
       layerOf={(zone) => <LayerSection onAction={layers.run} groups={layers.groupList} inGroup={zone.groupId ?? null} onInGroup={layers.moveInto} />}
     />
@@ -917,7 +915,7 @@ function StudioViewBody({
         // A blank zone picked on the canvas is the Add panel's target: the panel shows, its search takes the cursor.
         if (how !== "toggle" && profile.placements.find((p) => p.id === id)?.module === BLANK_MODULE) ui.setLeftTab("add");
       }}
-      onOpenSettings={(id) => (isCanvasZone(id) ? editCanvasZone(id) : studioLayout.showInspector())}
+      onOpenSettings={() => studioLayout.showInspector()}
       inset={studioLayout.layout.inset}
       selectedWidgetId={selectedWidgetId}
       onSelectWidget={sel.selectWidget}
@@ -1044,7 +1042,6 @@ function StudioViewBody({
         leftOpen={ui.leftOpen}
         onToggleLeft={ui.toggleLeft}
         pages={storedProfile.pages}
-        grid={storedProfile}
         current={profile.pageId ?? storedProfile.pages[0].id}
         onSelect={onPageChange}
         onAdd={addPage}
@@ -1064,7 +1061,6 @@ function StudioViewBody({
         deletingId={ui.deletingPage}
         onDeletingChange={ui.setDeletingPage}
         kioskPage={control?.profiles[storedProfile.id]?.page}
-        onLayout={switchPageLayout}
         extra={
           <>
             <MadeForControl value={storedProfile.madeFor} onChange={setMadeFor} />
@@ -1092,7 +1088,7 @@ function StudioViewBody({
     </>
   );
 
-  /** Edit shows the canvas editor in the studio's shell on a Free page or an opened free area. */
+  /** Edit shows the canvas editor in the studio's shell on an imported profile's page. */
   const editorShown = !fullPage && activeCanvas !== undefined;
   // Mounted in Edit, and kept (drawing nothing) while the Library covers it, so a Library drag can land in it and the selection survives.
   const canvasEditor = activeCanvas && (editorShown || showLibrary) && (
@@ -1116,7 +1112,6 @@ function StudioViewBody({
         }}
         checkOn={checkOn}
         checkRequest={checkRequest}
-        onLayout={freeZone ? () => switchPageLayout(currentPageId, "grid") : undefined}
         addStart={fixture && { segment: fixture.addSegment, hoverTile: fixture.hoverTile, recent: fixture.recent, toast: fixture.toast }}
         onExport={() => io.openExport(activeCanvas)}
         initialSelection={canvasSelection}
@@ -1134,16 +1129,6 @@ function StudioViewBody({
           onSaveStyle: edit.saveStylePreset,
           onUpdateStyle: edit.updateSavedStyle,
         }}
-        onDone={
-          freeZone
-            ? undefined
-            : () => {
-                const id = activeCanvas.id;
-                setEditingCanvas(null);
-                setCanvasSelection(undefined);
-                focusZone(id);
-              }
-        }
       />
     </Suspense>
   );
@@ -1227,11 +1212,11 @@ function StudioViewBody({
         assets={{
           zones: canvasZones,
           setConfig,
-          onSelectUses: (zoneId, paths) => {
+          // The page's canvas (an imported profile's) reopens with those items selected.
+          onSelectUses: (_zoneId, paths) => {
             ui.setMode("design");
             setCanvasSelection(paths);
             setEditorEpoch((n) => n + 1);
-            setEditingCanvas(zoneId);
           },
         }}
       />
@@ -1445,17 +1430,6 @@ function StudioViewBody({
         onClose={() => ui.setIconPage(null)}
       />
       <ShortcutsDialog open={ui.shortcutsOpen} onOpenChange={ui.setShortcutsOpen} />
-      <ToGridDialog
-        key={toGridAsk?.pageId ?? "none"}
-        parts={toGridAsk?.parts ?? null}
-        onCancel={() => setToGridAsk(null)}
-        onConfirm={(askAgain) => {
-          const ask = toGridAsk;
-          setToGridAsk(null);
-          if (!askAgain) setConfirmToGrid(false);
-          if (ask) commitLayout(ask.pageId, "grid");
-        }}
-      />
       {io.dialogs}
       {importDoor}
       {setup && (
