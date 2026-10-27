@@ -6,8 +6,8 @@
  * resize snaps to the canvas and the other items with guides drawn (Alt: off), Shift keeps a move
  * on one axis and a resize in proportion. A selected item gets an accent outline, and its size while
  * it is dragged or resized (its mode and kind are in the inspector); Show modes tints every item. On a screen made for
- * InfoPanel each part that won't export as is carries its Export check badge in its top-right corner (a check mark on
- * every part that does covered small text; Layers lists those). Coordinates are profile pixels.
+ * InfoPanel every part (never a group) carries its Export check badge in its top-right corner (Edit v3 SPEC §7.1).
+ * Coordinates are profile pixels.
  * Ported from the lab's EditLayer.
  */
 import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
@@ -113,7 +113,7 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
   /** Profile pixels per screen pixel, so handles and labels keep their screen size at any zoom. */
   const [zoomK, setZoomK] = useState(1);
   const check = useExportCheck();
-  const badged = check.on ? [...check.byPath.values()].filter((r) => r.status !== "ok").map((r) => r.path) : [];
+  const badged = check.on ? [...check.byPath.keys()] : [];
   const measured = showModes || badged.length ? [...new Set([...(showModes ? editor.modes.keys() : []), ...badged, ...editor.selection])] : editor.selection;
 
   useLayoutEffect(() => {
@@ -308,6 +308,8 @@ export function EditLayer({ editor, profileWidth, profileHeight, showModes }: Ed
           <span
             key={`badge-${p}`}
             data-check-badge={row.status}
+            data-testid="canvas-badge"
+            data-status={row.status}
             className={cn("pointer-events-none absolute grid place-items-center rounded-full border bg-ui-chrome", text, border)}
             style={{ left: b.x + b.width - pad - 4 * zoomK - size, top: b.y + pad + 4 * zoomK, width: size, height: size, borderWidth: zoomK }}
           >

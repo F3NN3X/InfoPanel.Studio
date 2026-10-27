@@ -78,8 +78,8 @@ export interface EditorShell {
   leftTab: LeftTab;
   onLeftTab: (tab: LeftTab) => void;
   leftWidth: number;
-  /** The studio's page tabs, over the toolbar. */
-  pageTabs?: ReactNode;
+  /** The studio's page tabs, over the toolbar, with the editor's Export check pill in them (none when the check is off). */
+  pageTabs?: (pill: ReactNode) => ReactNode;
 }
 
 export interface CanvasEditorProps {
@@ -417,7 +417,7 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
   );
   const main = (
     <>
-      {shell.pageTabs}
+      {shell.pageTabs?.(checkOn ? <ExportCheckPill check={check} open={checkOpen} onClick={toggleCheck} /> : null)}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <CanvasToolbar
           editor={editor}
@@ -432,8 +432,6 @@ export default function CanvasEditorView({ zone, setConfig, history, shell, onDo
           library={libraryLink}
           onSaveComponent={openSave}
           onDone={onDone}
-          imported={isImported(editor.open.stored)}
-          check={checkOn ? <ExportCheckPill check={check} open={checkOpen} onClick={toggleCheck} /> : undefined}
         />
         {unbound && unbound.length > 0 && (
           <div role="status" className="flex shrink-0 items-center gap-3 border-b border-ui-subtle bg-ui-panel px-4 py-1.5 font-ui text-[12px] text-ui-2">

@@ -32,6 +32,17 @@ export function freeCanvasOf(profile: Pick<MonitorProfile, "cols" | "rows">, pag
   return only.colStart === 1 && only.rowStart === 1 && only.colSpan === profile.cols && only.rowSpan === profile.rows ? only : null;
 }
 
+/**
+ * A screen imported from InfoPanel (Edit v3 SPEC §6.1, the title bar's kind tag): a page that is one canvas whose
+ * source is a file, the corpus or the installed app. A canvas made here, or one still loading, doesn't count.
+ */
+export function importedFromInfoPanel(profile: Pick<MonitorProfile, "cols" | "rows" | "pages">): boolean {
+  return profile.pages.some((page) => {
+    const origin = freeCanvasOf(profile, page)?.canvas?.source.origin;
+    return origin !== undefined && origin !== "new";
+  });
+}
+
 /** A screen made for InfoPanel (SPEC §5.1, decision D5): the export marks, the Export check and the On InfoPanel lines show. */
 export const madeForInfoPanel = (profile: Pick<MonitorProfile, "madeFor">): boolean => profile.madeFor === "infopanel";
 

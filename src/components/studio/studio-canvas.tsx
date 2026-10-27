@@ -163,6 +163,8 @@ interface StudioCanvasProps {
   selectionChip?: ReactNode;
   /** Alerts the profile's island shows (test alerts: the canvas is not a kiosk). */
   islandAlerts?: readonly ActiveAlert[];
+  /** A zone's Export check badge, on a screen made for InfoPanel (Edit v3 SPEC §7.1). */
+  badgeOf?: (zone: Placement) => ReactNode;
 }
 
 /**
@@ -210,6 +212,7 @@ export function StudioCanvas({
   onUseSample,
   selectionChip,
   islandAlerts = NO_ALERTS,
+  badgeOf,
 }: StudioCanvasProps) {
   const [zoneDrag, setZoneDrag] = useState<{
     id: string;
@@ -716,6 +719,7 @@ export function StudioCanvas({
                           onSelectWidget={p.panel ? (widgetId) => onSelectWidget(p.id, widgetId) : undefined}
                           onPickWidget={() => onPickWidget(p.id)}
                           onContextMenu={(x, y) => onContextMenu(p.id, x, y)}
+                          badge={badgeOf?.(p)}
                         >
                           {content}
                         </PlacementFrame>

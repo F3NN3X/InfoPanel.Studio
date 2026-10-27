@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from "react";
 import { useConfigHistory, type AdoptChange } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
 import { ThemeEditor } from "./theme-editor";
@@ -106,6 +106,7 @@ const NO_REQUEST: ExportRequest = {};
 const GridCheckPill = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridCheckPill })));
 const GridCheckPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridCheckPanel })));
 const GridOnInfoPanel = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridOnInfoPanel })));
+const GridBadge = lazy(() => import("@/components/infopanel/grid-export").then((m) => ({ default: m.GridBadge })));
 /** A grid page's InfoPanel items in Add, loaded when the panel first lists them. */
 const GridPalette = lazy(() => import("@/components/infopanel/edit/grid-palette"));
 /** How many InfoPanel item kinds Add offers (`PALETTE.length` in editor/create.ts; kept here so the palette stays lazy). */
@@ -823,6 +824,16 @@ function StudioViewBody({
       onOpenAdd={() => ui.openDrawer("add")}
       onUseSample={() => runCommand({ type: "sample-layout" })}
       islandAlerts={islandTestAlerts}
+      badgeOf={
+        checkOn
+          ? (zone) =>
+              zone.module === CANVAS_ID || zone.module === BLANK_MODULE || !zone.visible ? null : (
+                <Suspense fallback={null}>
+                  <GridBadge zone={zone} name={zoneName(zone)} />
+                </Suspense>
+              )
+          : undefined
+      }
       selectionChip={
         selected && (
           <SelectionChip
@@ -862,8 +873,9 @@ function StudioViewBody({
   const rotateEntry = control?.profiles[storedProfile.id];
   const rotating = (rotateEntry?.rotating ?? storedProfile.rotate?.enabled === true) && storedProfile.pages.length >= 2;
 
-  // The page tabs sit above the canvas in Edit, a grid page's or a Free page's.
-  const pageTabsEl = (
+  // The page tabs sit above the canvas in Edit, a grid page's or a Free page's. The pill is the Export check of what
+  // the canvas shows: the grid page's, or the canvas editor's (a Free page, an opened free area).
+  const pageTabsFor = (pill: ReactNode) => (
       <PageTabs
         leftOpen={ui.leftOpen}
         onToggleLeft={ui.toggleLeft}
@@ -892,17 +904,18 @@ function StudioViewBody({
         onLayout={switchPageLayout}
         extra={
           <>
-            {checkOn && !freeZone && (
-              <Suspense fallback={null}>
-                <GridCheckPill profile={profile} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
-              </Suspense>
-            )}
-            {!checkOn && <span className="whitespace-nowrap text-[11.5px] text-ui-5">Studio panels only · no export check</span>}
             <MadeForControl value={storedProfile.madeFor} onChange={setMadeFor} />
+            {checkOn ? pill : <span className="whitespace-nowrap text-[11.5px] text-ui-5">Studio panels only · no export check</span>}
           </>
         }
       />
   );
+  const gridPill = checkOn && !freeZone && (
+    <Suspense fallback={null}>
+      <GridCheckPill profile={profile} nameOf={zoneName} open={gridCheckShown} onClick={toggleGridCheck} />
+    </Suspense>
+  );
+  const pageTabsEl = pageTabsFor(gridPill);
   const mainEl = showSources ? (
     canvasEl
   ) : (
@@ -936,7 +949,7 @@ function StudioViewBody({
           leftTab: ui.leftTab,
           onLeftTab: ui.setLeftTab,
           leftWidth: ui.leftWidth,
-          pageTabs: pageTabsEl,
+          pageTabs: pageTabsFor,
         }}
         checkOn={checkOn}
         onLayout={freeZone ? () => switchPageLayout(currentPageId, "grid") : undefined}

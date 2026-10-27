@@ -32,7 +32,7 @@ interface OnInfoPanelSectionProps {
 
 export function OnInfoPanelSection({ row, choice, children }: OnInfoPanelSectionProps) {
   return (
-    <div role="note" aria-label="On InfoPanel" data-on-infopanel="" className="rounded-[8px] border border-ui-default px-2.5 py-2 text-[11.5px]">
+    <div role="note" aria-label="On InfoPanel" data-on-infopanel="" data-testid="on-infopanel" className="rounded-[8px] border border-ui-default px-2.5 py-2 text-[11.5px]">
       <div className="flex items-center gap-1.5 text-ui-1">
         <StatusIcon status={row.status} />
         <span>

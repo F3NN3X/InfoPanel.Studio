@@ -1,10 +1,11 @@
 import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
-import { FileInput, FileOutput, MoreHorizontal, Radio, Redo2, Search, SlidersHorizontal, Undo2 } from "lucide-react";
+import { Download, FileInput, FileOutput, MoreHorizontal, Radio, Redo2, Search, SlidersHorizontal, Tv, Undo2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { isTauri } from "@/lib/desktop";
 import type { ControlKiosk, ControlState } from "@/lib/control";
 import type { MonitorProfile } from "@/lib/layout";
+import { importedFromInfoPanel } from "@/lib/screens/list";
 import { cn } from "@/lib/utils";
 import { LiveControl } from "./live-popover";
 import { ScreenSwitcher } from "./screen-switcher";
@@ -122,8 +123,20 @@ function FileButton({ label, icon, onClick }: { label: string; icon: ReactNode; 
   );
 }
 
+/** The screen's kind beside the breadcrumb (Edit v3 SPEC §6.1): imported from InfoPanel, or a screen made here. */
+function KindTag({ profile }: { profile: MonitorProfile }) {
+  const imported = importedFromInfoPanel(profile);
+  const Icon = imported ? Download : Tv;
+  return (
+    <span className="flex h-5 shrink-0 items-center gap-1 rounded-[5px] border border-ui-default bg-ui-hover px-1.5 text-[11px] text-ui-3 max-[959px]:hidden">
+      <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} />
+      {imported ? "Imported from InfoPanel" : "Screen"}
+    </span>
+  );
+}
+
 /**
- * The studio's title bar (40 px; the window's title bar on desktop): mark, screen / page switcher, the command
+ * The studio's title bar (40 px; the window's title bar on desktop): mark, screen / page breadcrumb and kind tag, the command
  * entry, undo / redo, Import, Export, Live, Save, the phone's "⋯" menu and the window controls.
  */
 export function StudioTopBar(props: StudioTopBarProps) {
@@ -146,6 +159,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
         onSelect={props.onSelectScreen}
         onManage={props.onManageScreens}
       />
+      <KindTag profile={profile} />
       <IconButton label={`${profile.name} settings`} size={28} onClick={props.onScreenSettings}>
         <SlidersHorizontal className="h-[15px] w-[15px]" strokeWidth={1.75} />
       </IconButton>
@@ -154,7 +168,7 @@ export function StudioTopBar(props: StudioTopBarProps) {
           type="button"
           onClick={onPalette}
           title={`Search settings or run a command (${KEYS.palette})`}
-          className="flex h-8 min-w-8 max-w-[340px] flex-1 items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app px-2 text-[12.5px] text-ui-4 transition-colors hover:border-ui-strong hover:text-ui-3 max-[959px]:flex-none max-[959px]:justify-center max-[959px]:px-0 max-[959px]:w-8"
+          className="flex h-8 min-w-8 max-w-[380px] flex-1 items-center gap-2 rounded-[7px] border border-ui-default bg-ui-app px-2 text-[12.5px] text-ui-4 transition-colors hover:border-ui-strong hover:text-ui-3 max-[959px]:flex-none max-[959px]:justify-center max-[959px]:px-0 max-[959px]:w-8"
         >
           <Search className="h-4 w-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate text-left max-[959px]:sr-only">Search settings or run a command</span>

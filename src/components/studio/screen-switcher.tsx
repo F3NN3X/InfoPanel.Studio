@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { ChevronsUpDown, Monitor } from "lucide-react";
+import { Monitor } from "lucide-react";
 import type { MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ interface ScreenSwitcherProps {
 const ROW = "flex w-full items-center gap-2 rounded-md px-2 text-left outline-none hover:bg-ui-hover focus-visible:bg-ui-hover";
 
 /**
- * The title bar's screen / page switcher (SPEC §3.1): every screen with its size, the current screen's
+ * The title bar's breadcrumb (Edit v3 SPEC §6.1), which switches screen and page: every screen with its size, the current screen's
  * pages beneath it, and Manage screens…. Choosing a page switches screen and page.
  */
 export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage }: ScreenSwitcherProps) {
@@ -35,16 +35,15 @@ export function ScreenSwitcher({ profiles, profile, pageId, onSelect, onManage }
         title="Switch screen or page"
         className="flex h-7 min-w-0 shrink items-center gap-1.5 whitespace-nowrap rounded-[7px] border border-ui-default bg-ui-raised px-2 text-[12.5px] text-ui-1 transition-colors hover:bg-ui-hover"
       >
-        <Monitor className="h-4 w-4 shrink-0 text-ui-3" strokeWidth={1.75} />
+        <Monitor className="h-[15px] w-[15px] shrink-0 text-ui-3" strokeWidth={1.75} />
         <span className="truncate font-semibold">{profile.name}</span>
-        <span className="font-ui-mono text-[11px] text-ui-4 max-[959px]:hidden">
+        <span className="font-ui-mono text-[10.5px] text-ui-5 max-[959px]:hidden">
           {profile.width}×{profile.height}
         </span>
         <span aria-hidden className="text-ui-5">
           /
         </span>
-        <span className="truncate text-ui-2">{page.name}</span>
-        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ui-4" />
+        <span className="truncate text-ui-1">{page.name}</span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[80]">

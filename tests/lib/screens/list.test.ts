@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CANVAS_ID, newProfile, type MonitorProfile, type Placement } from "@/lib/layout";
-import { filterEntries, savedEntries, screenEntries, screenKind, sortEntries } from "@/lib/screens/list";
+import { newStored, type StoredCanvas } from "@/lib/infopanel/import/stored";
+import { filterEntries, importedFromInfoPanel, savedEntries, screenEntries, screenKind, sortEntries } from "@/lib/screens/list";
 
 const zone = (id: string, module: string): Placement => ({ id, module, colStart: 1, rowStart: 1, colSpan: 2, rowSpan: 1, visible: true });
 const screen = (id: string, name: string, w: number, h: number, modules: string[], updatedAt?: string): MonitorProfile => {
@@ -19,6 +20,28 @@ const names = (list: { name: string }[]) => list.map((e) => e.name);
 describe("screenKind", () => {
   it("tells Studio, InfoPanel and Mixed by the zones; an empty screen is a Studio one", () => {
     expect(profiles.map(screenKind)).toEqual(["infopanel", "dashboard", "mixed", "dashboard"]);
+  });
+});
+
+describe("importedFromInfoPanel", () => {
+  /** A screen whose one page is a canvas filling it, from `origin`; `full: false` puts it on part of the grid (a free area). */
+  const withCanvas = (origin: StoredCanvas["source"]["origin"] | null, full = true): MonitorProfile => {
+    const base = newProfile("P", 800, 480);
+    const stored = newStored({ name: "P", width: 800, height: 480 });
+    const canvas = origin ? { ...stored, source: { ...stored.source, origin } } : undefined;
+    const area: Placement = { ...zone("c", CANVAS_ID), colSpan: full ? base.cols : 1, rowSpan: full ? base.rows : 1, ...(canvas ? { canvas } : {}) };
+    return { ...base, pages: [{ ...base.pages[0], placements: [area] }] };
+  };
+
+  it("is true for a full-page canvas from a file, the corpus or the installed app", () => {
+    expect((["file", "corpus", "installed"] as const).map((o) => importedFromInfoPanel(withCanvas(o)))).toEqual([true, true, true]);
+  });
+
+  it("is false for a canvas made here, one not loaded yet, a free area and a grid screen", () => {
+    expect(importedFromInfoPanel(withCanvas("new"))).toBe(false);
+    expect(importedFromInfoPanel(withCanvas(null))).toBe(false);
+    expect(importedFromInfoPanel(withCanvas("file", false))).toBe(false);
+    expect(importedFromInfoPanel(profiles[1])).toBe(false);
   });
 });
 

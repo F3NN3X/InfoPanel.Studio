@@ -1,6 +1,5 @@
 /**
- * The canvas zone editor's toolbar (spec §7), left to right: the profile's kind (imported from InfoPanel, or made
- * here) and the Export check pill, undo / redo (the studio's history), duplicate, group, ungroup, draw order, delete,
+ * The canvas zone editor's toolbar (spec §7), left to right: undo / redo (the studio's history), duplicate, group, ungroup, draw order, delete,
  * Draw all as, Show modes, the sensor source, Remap with its badge, Compare; then Save to Library, and Done on a free
  * area of a grid page. Show modes and Compare open a strip below it. When the row does not fit, the sensor source and
  * Compare move into a "More" menu.
@@ -13,11 +12,9 @@ import {
   Check,
   Contrast,
   Copy,
-  Download,
   Group,
   Layers,
   Library,
-  Monitor,
   MoreHorizontal,
   PackagePlus,
   Redo2,
@@ -111,13 +108,9 @@ export interface CanvasToolbarProps {
   onSaveComponent?: () => void;
   /** Back to the grid page (a free area); a Free page has none. */
   onDone?: () => void;
-  /** The canvas came from InfoPanel (the kind tag says so). */
-  imported?: boolean;
-  /** The Export check pill, when the screen is made for InfoPanel. */
-  check?: ReactNode;
 }
 
-export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onSaveComponent, onDone, imported = false, check }: CanvasToolbarProps) {
+export function CanvasToolbar({ editor, history, showModes, onShowModes, compare, onCompare, remapCount, onRemap, apiUnreachable, library, onSaveComponent, onDone }: CanvasToolbarProps) {
   const { selection } = editor;
   const single = selection.length === 1 ? itemAt(editor.committed, selection[0]) : undefined;
   const mode = allMode(editor.modes);
@@ -146,15 +139,6 @@ export function CanvasToolbar({ editor, history, showModes, onShowModes, compare
   ];
   return (
     <div ref={ref} role="toolbar" aria-label="Canvas items" className="flex h-12 shrink-0 items-center gap-1 overflow-x-auto border-b border-ui-subtle bg-ui-panel px-3 font-ui">
-      <span
-        title={imported ? "This profile came from InfoPanel" : "A profile made in the studio"}
-        className="flex h-5 shrink-0 items-center gap-1 rounded-[5px] border border-ui-default bg-ui-hover px-1.5 text-[11px] text-ui-3"
-      >
-        {imported ? <Download className="h-[13px] w-[13px]" /> : <Monitor className="h-[13px] w-[13px]" />}
-        {imported ? "Imported from InfoPanel" : "Screen"}
-      </span>
-      {check}
-      <Sep />
       <ToolButton icon={Undo2} label="Undo (Ctrl+Z)" onClick={history.undo} disabled={!history.canUndo} />
       <ToolButton icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={history.redo} disabled={!history.canRedo} />
       <Sep />

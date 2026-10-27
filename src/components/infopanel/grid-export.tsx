@@ -11,11 +11,16 @@ import { tierOf, type NativeChoice } from "@/lib/infopanel/native/tiers";
 import { widgetChoices } from "@/lib/infopanel/native/widget-item";
 import { ON_INFOPANEL_KEY } from "@/lib/infopanel/export/native-choices";
 import { choiceHelp, OnInfoPanelSection } from "@/components/studio/inspector/on-infopanel-section";
-import { ExportCheckPanel, ExportCheckPill } from "./export-check-panel";
+import { CheckBadge, ExportCheckPanel, ExportCheckPill } from "./export-check-panel";
 
 type NameOf = (zone: Placement) => string;
 
 const useCheck = (profile: ProfileView, nameOf: NameOf) => useMemo(() => exportCheck(profile, profile, nameOf), [profile, nameOf]);
+
+/** A grid zone's badge on the canvas: its status as a Studio widget. */
+export function GridBadge({ zone, name }: { zone: Placement; name: string }) {
+  return <CheckBadge status={widgetRow(zone, name).status} />;
+}
 
 export function GridCheckPill({ profile, nameOf, open, onClick }: { profile: ProfileView; nameOf: NameOf; open: boolean; onClick: () => void }) {
   return <ExportCheckPill check={useCheck(profile, nameOf)} open={open} onClick={onClick} />;
@@ -33,11 +38,16 @@ interface GridCheckPanelProps {
 
 export function GridCheckPanel({ profile, nameOf, onSelect, onConvert, onClose }: GridCheckPanelProps) {
   const check = useCheck(profile, nameOf);
-  // Esc closes it, as selecting anything does.
+  // Esc closes it, as selecting anything does: in the capture phase, before the studio's shortcuts take the key, and
+  // not while a dialog or menu is open over it (Esc is theirs).
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      e.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
   return (
     <ExportCheckPanel
