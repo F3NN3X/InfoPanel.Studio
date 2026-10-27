@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { FIXTURE_NAMES, type FixtureName } from "@/dev/fixtures/types";
+import { DEFAULT_DATA_API as DATA_API } from "../../e2e/fixtures";
 import { CHECKS } from "./checks";
 import { expect, openFixture, shoot, test } from "./harness";
 
@@ -758,6 +759,37 @@ test("one-editor/export: the zoom bar's InfoPanel view hides what the export lea
   await shoot(page, "export-infopanel-view");
   await view.getByRole("radio", { name: "Studio" }).click();
   await expect(page.locator("[data-zone-id]")).toHaveCount(5);
+});
+
+// Sign-off round 2: the InfoPanel view draws the export's own conversion over the page. With readings for the gauges
+// (a Data API that answers this test only), the CPU gauge (Recreate) is a picture with an InfoPanel Gauge and Sensor
+// on top, the GPU gauge set to Snapshot is a picture alone, Clock is InfoPanel's clock items, Weather (no reading
+// here) a picture, and Coding agents is nothing. `data-view-parts` names what the layer draws, top level, bottom first.
+test("one-editor/export: the InfoPanel view draws the page as the export converts it", async ({ page, scratch }) => {
+  const reading = (name: string, value: number, ref: string) => ({ name, unit: "°C", value, ref });
+  const sensors = {
+    "hwinfo.cpu_package": reading("CPU Package", 61, "hwinfo:-1/4144394256/0/16777223"),
+    "hwinfo.gpu_temperature": reading("GPU Temperature", 35, "hwinfo:-1/3758104576/0/16777216"),
+  };
+  await page.route(DATA_API, (route) => {
+    const url = new URL(route.request().url());
+    const body = { timestamp: Date.now(), sensors };
+    if (url.pathname === "/events") return route.fulfill({ contentType: "text/event-stream", body: `data: ${JSON.stringify(body)}\n\n` });
+    if (url.pathname === "/api/sensors") return route.fulfill({ json: body });
+    if (url.pathname === "/api/sources") return route.fulfill({ json: { plugins: [] } });
+    return route.fulfill({ json: {} });
+  });
+  await openFixture(page, scratch.base, "export");
+  await page.getByTestId("layers-row").filter({ hasText: "GPU gauge" }).click();
+  await page.getByTestId("on-infopanel").getByRole("radio", { name: "Snapshot" }).click();
+  await page.getByTestId("export-view").getByRole("radio", { name: "InfoPanel" }).click();
+  const layer = page.locator("[data-infopanel-view]");
+  await expect(layer).toHaveAttribute("data-view-parts", /Clock/);
+  const parts = ((await layer.getAttribute("data-view-parts")) ?? "").split("|").map((p) => p.slice(p.indexOf(":") + 1));
+  expect(parts).toEqual(["Image", "Group[Image,Gauge,Sensor]", "Image", "Group[Image,Clock,Clock,Calendar]", "Image"]);
+  await expect(layer.locator("[data-path]").first()).toBeAttached();
+  await expect(page.getByTestId("canvas-badge")).toHaveCount(4);
+  await shoot(page, "export-infopanel-view-drawn");
 });
 
 // Decision Q10 (after phase 6): the slim strip over an imported canvas is gone; Show modes, Sensors and Compare sit in

@@ -966,6 +966,7 @@ function StudioViewBody({
       onContextMenu={(id, x, y) => (id === null ? menus.open(null, x, y) : openPartMenu(id, x, y))}
       onOpenAdd={() => ui.openDrawer("add")}
       leftOut={leftOut}
+      infoPanelView={checkOnScreen && infoPanelView ? { screen: storedProfile, page: storedPage } : undefined}
       onImport={() => openImportDoor({ prefer: "canvas-zone" })}
       onNoRoom={() => toast("No free cells here.")}
       onUseSample={() => runCommand({ type: "sample-layout" })}

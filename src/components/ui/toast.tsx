@@ -19,7 +19,10 @@ export function useToast(): ShowToast {
   return useContext(ToastContext);
 }
 
-/** Hosts the toast: top-centre (14px under the top bar), inverse colours, gone after ~1.8 s. */
+/**
+ * Hosts the toast: bottom-centre, just above the status bar (never over the title bar or a screen's header and tabs),
+ * and above the canvas zoom bar where one is shown (`data-toast-above`); inverse colours, gone after ~1.8 s.
+ */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<{ id: number; message: string; action?: ToastOptions["action"] } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -41,7 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           key={toast.id}
           role="status"
           className={cn(
-            "fixed left-1/2 top-[62px] z-[100] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-ui-inverse px-3 py-[7px] font-ui text-xs font-medium text-ui-inverse-fg shadow-ui-float",
+            "fixed bottom-[38px] left-1/2 z-[100] [:root:has([data-toast-above])_&]:bottom-[86px] flex -translate-x-1/2 items-center gap-3 rounded-lg bg-ui-inverse px-3 py-[7px] font-ui text-xs font-medium text-ui-inverse-fg shadow-ui-float",
             !toast.action && "pointer-events-none"
           )}
         >

@@ -73,6 +73,8 @@ export function ZoomToolbar({
 }: ZoomToolbarProps) {
   return (
     <div
+      // The app's toast rides above this bar rather than over it.
+      data-toast-above=""
       style={bottom === undefined ? undefined : { bottom }}
       className={cn(
         // Narrower than the canvas (a phone), it scrolls sideways rather than widening the studio.

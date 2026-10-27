@@ -599,7 +599,9 @@ Export window reads the same check, so the two can't disagree. On a grid page th
 stored as the zone's `settings.$onInfoPanel`, and the Convert dialog starts from it (`startChoices`).
 The zoom bar's `Studio | InfoPanel` (`ExportView` in `studio/zoom-toolbar.tsx`, shown on a screen made for InfoPanel)
 is a view only: on a grid page the canvas skips the zones the check leaves out (`StudioCanvas` `leftOut`, their cells
-stay taken); on an imported profile the canvas draws `asExported` (`lib/infopanel/export-view.ts`: no native drawing,
+stay taken) and draws the export's own conversion over the rest (`studio/infopanel-view-layer.tsx`, loaded with the
+view: `convertView` with each zone's start choices from `withExportChoices`, drawn by `ProfileView` above the zones and
+below the selection and badges, converted again when the page changes); on an imported profile the canvas draws `asExported` (`lib/infopanel/export-view.ts`: no native drawing,
 no letter spacing, left-out parts hidden) while edits still go to the stored items. An imported profile has no strip
 over its canvas: Show modes, Sensors, Compare and Save to Library are the page settings' Preview section
 (`infopanel/edit/canvas-toolbar.tsx`); the zoom bar's view replaces Draw all as. A widget item draws through

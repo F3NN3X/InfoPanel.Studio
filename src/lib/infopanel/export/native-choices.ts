@@ -90,3 +90,18 @@ export function choiceFor(r: ExportRow, stored: Choices): NativeChoice {
 
 /** The notice lines for widgets that can't go to InfoPanel at all, one per widget. */
 export const notices = (rows: readonly ExportRow[]): string[] => rows.filter((r) => r.entry.tier === "native-only").map((r) => notCompatible(r.name));
+
+/** The profile look a conversion styles its new items from (the Convert dialog's and the InfoPanel view's). */
+export const CONVERT_LOOK = { Font: "Segoe UI", FontSize: 20, Color: "#FFFFFFFF", BackgroundColor: "#FF0A0A0C" };
+
+/**
+ * The zone as an export reads it, with nothing asked: each row's choice as the Convert dialog would start it (the
+ * remembered one, else the zone's On InfoPanel rule, else the default) written into its settings.
+ */
+export function withExportChoices(p: Placement, titleOf: (moduleId: string) => string): Placement {
+  const rows = rowsOf(p, titleOf);
+  if (rows.length === 0) return p;
+  const start = startChoices(p.settings);
+  const picked = Object.fromEntries(rows.map((r) => [r.key, choiceFor(r, start)]));
+  return { ...p, settings: writeChoices(p.settings, picked, rows.map((r) => r.key)) };
+}

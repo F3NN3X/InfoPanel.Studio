@@ -7,6 +7,7 @@ import { fontSizeOf, type ConvertContext } from "../../../../src/lib/infopanel/n
 import { createElement } from "react";
 import { IpTagCtx } from "../../../../src/widgets/core/primitives.tsx";
 import { TEMPLATE_MODULES } from "../../../../src/widgets/registry.ts";
+import SensorValue, { type SensorValueProps } from "../../../../src/widgets/SensorValue.tsx";
 import { fixtureSensors } from "../../../../src/widgets/__fixtures__/index.ts";
 import type { ModuleSettings } from "../../../../src/modules/types.ts";
 
@@ -186,6 +187,18 @@ describe("tagged widgets", () => {
     const render = (on: boolean) => renderToStaticMarkup(createElement(IpTagCtx.Provider, { value: on }, mod.render(fixtureSensors(), settings) as never));
     expect(render(false)).not.toContain("data-ip-");
     expect(render(true)).toContain("data-ip-key");
+  });
+
+  it("a Sensor gauge tags its ring and value, the unit only where it is inside the value", () => {
+    const render = (props: Partial<SensorValueProps>, on = true) =>
+      renderToStaticMarkup(createElement(IpTagCtx.Provider, { value: on }, createElement(SensorValue, { data: { "hwinfo.cpu": "61 °C" }, sensor: "hwinfo.cpu", display: "gauge", ...props })));
+    expect(render({}, false)).not.toContain("data-ip-");
+    const below = render({});
+    expect(below).toContain('data-ip-kind="ring"');
+    expect(below).toMatch(/data-ip-kind="value" data-ip-unit="" data-ip-decimals="0"/);
+    expect(render({ labelInside: true })).toMatch(/data-ip-kind="value" data-ip-unit="°C"/);
+    // A ring that doesn't start at 0 draws something other than the reading: left as a picture.
+    expect(render({ min: 20 })).not.toContain("data-ip-key");
   });
 });
 

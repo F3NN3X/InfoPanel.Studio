@@ -10,7 +10,7 @@ import { modules } from "@/modules";
 import { useSensorCatalog } from "@/lib/catalog";
 import { ITEM_ID, type Placement, type ProfilePage, type ProfileView } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { choiceFor, ON_INFOPANEL_KEY, rowsOf, startChoices, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
+import { choiceFor, CONVERT_LOOK, ON_INFOPANEL_KEY, rowsOf, startChoices, writeChoices, type Choices } from "@/lib/infopanel/export/native-choices";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { Converted, ReportRow } from "@/lib/infopanel/native/convert-view";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
@@ -42,7 +42,6 @@ export interface ConvertDialogProps {
   onDone: (message: string) => void;
 }
 
-const LOOK = { Font: "Segoe UI", FontSize: 20, Color: "#FFFFFFFF", BackgroundColor: "#FF0A0A0C" };
 const titleOf = (id: string) => modules.find((m) => m.id === id)?.title ?? id;
 
 function Report({ rows }: { rows: readonly ReportRow[] }) {
@@ -97,7 +96,7 @@ function ConvertBody({ scope, profile, zoneId, page, onRemember, onConverted, on
         return { ...p, settings };
       });
       const [{ convertView }, { canvasFromItems }] = await Promise.all([import("@/lib/infopanel/native/convert-view"), import("@/lib/infopanel/native/to-canvas")]);
-      const result: Converted = await convertView({ placements: withChoices, scope: document, sensors, look: LOOK, titleOf, ...(scope === "zone" ? { only: zoneId } : {}), ...(itemPage ? { page: { screen: profile, page: itemPage } } : {}) });
+      const result: Converted = await convertView({ placements: withChoices, scope: document, sensors, look: CONVERT_LOOK, titleOf, ...(scope === "zone" ? { only: zoneId } : {}), ...(itemPage ? { page: { screen: profile, page: itemPage } } : {}) });
       setReport(result.report);
       if (result.items.length === 0) return;
       const box = scope === "zone" ? zones[0] : undefined;
