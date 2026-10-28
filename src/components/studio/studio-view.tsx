@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from "react";
 import { useConfigHistory, type AdoptChange } from "@/hooks/use-config-history";
 import { ToastProvider } from "@/components/ui/toast";
-import { ThemeEditor } from "./theme-editor";
 import {
   BLANK_MODULE,
   CANVAS_ID,
@@ -141,6 +140,8 @@ const NO_DISPLAYS: readonly ControlDisplay[] = [];
 const ScreensView = lazy(() => import("./screens-view").then((m) => ({ default: m.ScreensView })));
 /** The Library page (A6), loaded when the rail first opens it. */
 const LibraryPage = lazy(() => import("@/components/library/library-page"));
+/** Theme, its own chunk (the theme card, the pickers and the apply rule). */
+const ThemeEditor = lazy(() => import("./theme-editor").then((m) => ({ default: m.ThemeEditor })));
 /** The Gauges view (A7), loaded when the rail first opens it. */
 const GaugesPage = lazy(() => import("@/components/gauges/gauges-page"));
 
@@ -1181,11 +1182,10 @@ function StudioViewBody({
   const canvasZones = profile.placements.filter(
     (z): z is typeof z & { canvas: NonNullable<typeof z.canvas> } => z.module === CANVAS_ID && !!z.canvas,
   );
-  /** A saved Theme's "Edit in Theme": applied to All screens (one undo step), then Theme opens there in its Editing state. */
+  /** A saved Theme's "Edit in Theme": applied to All screens (one undo step), then Theme opens there, the card naming it. */
   const editInTheme = (preset: AppearancePreset) => {
     void import("@/lib/theme-apply").then((m) => setConfig((c) => m.applyTheme(c, preset, { kind: "all" }, { includeBackground: true })));
     ui.openTheme({ kind: "base" });
-    ui.setThemeEditing(preset.id);
   };
   /** A Library profile's "Edit profile": the InfoPanel editor on the first zone made from it, else it comes in as a new screen (no import dialog, it is already stored) that opens in the editor. */
   const editCanvas = async (item: LibraryItem) => {
@@ -1300,7 +1300,8 @@ function StudioViewBody({
       ? (profile.pageId ?? storedProfile.pages[0].id)
       : themeProfile.pages[0].id;
   const themeEl = showTheme && (
-    <ThemeEditor
+    <Suspense fallback={<div className="flex-1 bg-ui-app" />}>
+      <ThemeEditor
       config={config}
       scope={ui.themeScope}
       profileId={themeProfile.id}
@@ -1311,9 +1312,8 @@ function StudioViewBody({
       navRequest={ui.navRequest}
       jumpTo={ui.inspectorJump}
       presets={appearancePresets}
-      editingId={ui.themeEditing}
-      onStopEditing={() => ui.setThemeEditing(undefined)}
     />
+    </Suspense>
   );
 
   const preview = usePreviewData();

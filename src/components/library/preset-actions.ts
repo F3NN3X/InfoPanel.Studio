@@ -8,15 +8,13 @@ import { Copy, Paintbrush, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { deleteAppearancePreset, duplicateAppearancePreset, renameAppearancePreset, type ThemeTarget } from "@/lib/appearance-preset-apply";
 import { withoutZoneLook, type AppearancePreset } from "@/lib/appearance-presets";
 import { applyTheme } from "@/lib/theme-apply";
-import { uid, type DashboardConfig, type StylePreset } from "@/lib/layout";
+import { uid, type StylePreset } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { BUILTIN_LOOK, BUILTIN_THEME, CONFIG_STYLE, CONFIG_THEME, isBuiltinItem, type SkinData } from "@/lib/my-library/config-items";
-import { sectionsWithValues } from "@/lib/theme-model";
 import { deleteStylePreset, duplicateStylePreset, renameStylePreset, updateStylePreset } from "@/lib/style-presets";
 import type { ThemePreset } from "@/lib/theme";
 import type { ModuleSettings } from "@/modules/types";
-import { scopeOfAt, withTokens, type ThemeAt } from "@/components/studio/theme-cards";
-import { withPageFollow, withScopeValues } from "@/components/studio/theme-editor-model";
+import { withLookAt, withTokens, type ThemeAt } from "@/components/studio/theme-cards";
 import { applyStyle, type StudioBridge } from "./library-actions";
 import type { DetailAction } from "./library-detail";
 
@@ -76,20 +74,6 @@ export function presetPrimary(item: LibraryItem, ctx: PresetContext): DetailActi
   };
 }
 
-/**
- * The skin's widget style at a Theme level (the Theme page's Start from › Skins writes the same). A page uses its own
- * values only in the sections it customises, so it customises the ones the skin writes, as applying a Theme to a page
- * does; a section its screen locks stays the screen's.
- */
-function withSkin(c: DashboardConfig, profileId: string, at: ThemeAt, data: SkinData): DashboardConfig {
-  const written = withScopeValues(c, profileId, scopeOfAt(at), (st) => ({ ...st, ...data.settings }));
-  if (at.level !== "page") return written;
-  const locks = written.profiles.find((p) => p.id === profileId)?.widgetTheme?.locks;
-  return sectionsWithValues(data.settings)
-    .filter((sec) => locks?.[sec] !== true)
-    .reduce((cfg, sec) => withPageFollow(cfg, profileId, at.pageId, sec, false), written);
-}
-
 /** A Theme's or a skin's "Apply to…" scopes: All screens, this screen, this page (a palette has no page level). */
 export function presetScopes(item: LibraryItem, ctx: PresetContext): ScopeChoice[] {
   if (!isTheme(item) && !isSkin(item)) return [];
@@ -100,7 +84,7 @@ export function presetScopes(item: LibraryItem, ctx: PresetContext): ScopeChoice
   const apply = (target: ThemeTarget, where: string) => {
     if (isSkin(item)) {
       const at: ThemeAt = target.kind === "all" ? { level: "all" } : target.kind === "profile" ? { level: "screen", profileId: bridge.profileId } : { level: "page", profileId: bridge.profileId, pageId: target.pageId };
-      bridge.setConfig((c) => withSkin(c, bridge.profileId, at, item.data as SkinData));
+      bridge.setConfig((c) => withLookAt(c, at, (item.data as SkinData).settings));
     } else if (palette) {
       const tokens = (item.data as ThemePreset).tokens;
       bridge.setConfig((c) => withTokens(c, target.kind === "all" ? { level: "all" } : { level: "screen", profileId: bridge.profileId }, tokens));

@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { Box, ChevronRight, CircleDot, Link2, Lock, Pencil, type LucideIcon } from "lucide-react";
+import { Box, ChevronRight, Link2, Lock, Palette, Pencil, type LucideIcon } from "lucide-react";
 import { LEVEL_LABELS, type InheritLevel, type InheritState } from "@/lib/inheritance";
 import { cn } from "@/lib/utils";
 import { ITEM, POPUP, SEPARATOR } from "./menu-styles";
@@ -7,11 +7,14 @@ import { ITEM, POPUP, SEPARATOR } from "./menu-styles";
 /** Where "Make this the theme for… ▸" writes a widget's custom sections. */
 export type MakeThemeTarget = "all" | "screen" | "page";
 
+/** A chip's state: where the value comes from, or (Theme) from the theme applied at this level. */
+export type ChipState = InheritState | "theme";
+
 export interface InheritChipProps {
-  state: InheritState;
+  state: ChipState;
   /** The level the chip names (inherited: the source; custom: Reset's target; locked: the lock's). */
   from?: InheritLevel;
-  /** That level's own name ("Desk bar", "Gaming"): the tooltip and the menu. */
+  /** That level's own name ("Desk bar", "Gaming"): a screen's chip text, the tooltip and the menu. */
   fromName?: string;
   /** The parent's value as text, for the menu's first line ("#3D8BFF"). */
   parentText?: string;
@@ -30,37 +33,48 @@ interface ChipLook {
   className: string;
 }
 
+/** The handoff's chip colors (SPEC §4.6): changed here, inherited (dashed), locked. */
+const CHANGED = "border-[#3b82f6] bg-[#0b1530] text-[#93c5fd]";
+const INHERITED = "border-dashed border-[#3f3f46] text-[#a1a1aa]";
+export const LOCKED = "border-[#b45309] bg-[#2a1d05] text-[#fcd34d]";
+
 /** Each state has its own icon, wording and border style, so color never carries it alone (SPEC §5). */
-const LOOK: Readonly<Record<InheritState, ChipLook>> = {
+const LOOK: Readonly<Record<ChipState, ChipLook>> = {
   inherited: {
     icon: Link2,
     text: (level) => `From ${level}`,
-    tip: (name) => `Inherited — the value comes from ${name}. Change it here to customise.`,
-    className: "border-dashed border-[#4a4a53] text-[#b4b4bc]",
+    tip: (name) => `Inherited — the value comes from ${name}. Change it here to make it this level's own.`,
+    className: INHERITED,
+  },
+  theme: {
+    icon: Palette,
+    text: () => "From theme",
+    tip: () => "The value comes from the theme applied at this level.",
+    className: INHERITED,
   },
   custom: {
     icon: Pencil,
-    text: () => "Custom here",
-    tip: (name) => `Overridden at this level. Reset to go back to ${name}.`,
-    className: "border-ui-accent/60 bg-ui-accent/16 text-[oklch(0.88_0.08_255)]",
+    text: () => "Changed here",
+    tip: (name) => `Changed at this level. Reset to go back to ${name}.`,
+    className: CHANGED,
   },
   locked: {
     icon: Lock,
-    text: (level) => `Locked by ${level}`,
+    text: () => "Locked",
     tip: (name) => `${name} forces this section everywhere below it. Edit or unlock it there.`,
-    className: "border-ui-warning/55 bg-ui-warning/12 text-[oklch(0.88_0.10_85)]",
+    className: LOCKED,
   },
   base: {
-    icon: CircleDot,
-    text: () => "Set here",
+    icon: Pencil,
+    text: () => "Changed here",
     tip: () => "This is the base value everything below inherits.",
-    className: "border-ui-menu bg-ui-hover text-ui-1",
+    className: CHANGED,
   },
   builtin: {
     icon: Box,
-    text: () => "Built-in default",
+    text: () => "Built-in",
     tip: () => "Not set anywhere yet — using the built-in default.",
-    className: "border-dashed border-[#3a3a42] text-ui-4",
+    className: INHERITED,
   },
 };
 
@@ -75,7 +89,7 @@ const levelWithName = (level: string, from: InheritLevel | undefined, name: stri
   from && from !== "all" && name ? `${level} · ${name}` : level;
 
 /** The menu's muted first line: the parent's value and where it comes from. */
-function parentLine(state: InheritState, value: string | undefined, source: string): string | undefined {
+function parentLine(state: ChipState, value: string | undefined, source: string): string | undefined {
   if (!value) return undefined;
   if (state === "base") return `Without it: ${value} (built-in)`;
   if (state === "builtin") return `${value} (built-in)`;
@@ -94,6 +108,8 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
   const Icon = look.icon;
   const level = LEVEL_LABELS[from ?? "all"];
   const name = fromName ?? level;
+  // A screen's chip names it ("From Desk bar"); a page or panel keeps its level.
+  const shown = from === "screen" && fromName ? fromName : level;
   const source = levelWithName(level, from, fromName);
   const line = parentLine(state, parentText, source);
   return (
@@ -107,7 +123,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
         )}
       >
         <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} aria-hidden />
-        {look.text(level)}
+        {look.text(shown)}
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner className="z-50" sideOffset={4} align="start">
@@ -151,7 +167,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
                 {line && <div className={SEPARATOR} />}
                 {onCustomise && (
                   <Menu.Item className={ITEM} onClick={onCustomise}>
-                    Customise here
+                    Change here
                   </Menu.Item>
                 )}
                 {onJump && (
@@ -161,6 +177,7 @@ export function InheritChip({ state, from, fromName, parentText, onReset, onJump
                 )}
               </>
             )}
+            {state === "theme" && <div className="px-2 py-1.5 text-[11px] leading-snug text-ui-4">{look.tip(name)}</div>}
             {state === "locked" && onJump && (
               <>
                 {line && <div className={SEPARATOR} />}

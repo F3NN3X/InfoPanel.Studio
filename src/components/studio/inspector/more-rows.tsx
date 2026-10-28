@@ -40,10 +40,13 @@ export function MoreRows({
   count,
   children,
   className,
+  label,
 }: {
   storeKey: string;
   count: number;
   children: ReactNode;
+  /** The closed link's text (default "More (n)"). */
+  label?: string;
   /** The link's own spacing (a field row's inset by default). */
   className?: string;
 }) {
@@ -61,7 +64,7 @@ export function MoreRows({
           className
         )}
       >
-        {open ? "Less" : `More (${count})`}
+        {open ? "Less" : (label ?? `More (${count})`)}
       </button>
     </>
   );

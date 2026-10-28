@@ -4,9 +4,10 @@ import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placemen
 import { DEFAULT_THEME } from "@/lib/theme";
 import {
   cardInherit,
-  cardsAt,
+  cardSet,
   customiseCard,
   resetCard,
+  THEME_CARDS,
   themeCard,
   withCardLock,
   withPageFont,
@@ -47,39 +48,16 @@ const GAMING: ThemeAt = { level: "page", profileId: "desk", pageId: "gaming" };
 const desk = (c: DashboardConfig) => c.profiles[0];
 const ids = (cards: { id: string }[]) => cards.map((c) => c.id);
 
-describe("which cards a scope edits", () => {
-  it("All screens and a screen list the ten cards in order", () => {
-    const order = ["colors", "type", "spacing", "surface", "border", "background", "format", "thresholds", "motion", "css"];
-    expect(ids(cardsAt(setup(), ALL).cards)).toEqual(order);
-    expect(ids(cardsAt(setup(), SCREEN).cards)).toEqual(order);
-    expect(cardsAt(setup(), SCREEN).customise).toEqual([]);
+describe("the fine-tune sections", () => {
+  it("are the eight sections in order, with no background (a theme part now)", () => {
+    expect(ids([...THEME_CARDS])).toEqual(["colors", "type", "spacing", "surface", "format", "thresholds", "motion", "css"]);
+    expect(themeCard("surface").sections).toEqual(["surface", "skin", "border"]);
   });
 
-  it("a page lists only what it customises; the rest can be customised, with the reasons it can't", () => {
-    let c = withPageFollow(setup(), "desk", "gaming", "border", false);
-    c = withCardLock(c, "desk", themeCard("thresholds"), true);
-    const { cards, customise } = cardsAt(c, GAMING);
-    expect(ids(cards)).toEqual(["border"]);
-    const why = Object.fromEntries(customise.map((o) => [o.card.id, o.disabled ?? o.note ?? ""]));
-    expect(why).toEqual({
-      // PLAN decision 13: the widget colors are a page's; the tokens stay with the screen (a LinkRow).
-      colors: "",
-      type: "",
-      spacing: "Spacing only",
-      surface: "",
-      background: "Set per screen",
-      format: "",
-      thresholds: "Locked by Screen",
-      motion: "",
-      css: "",
-    });
-    expect(customise.filter((o) => o.disabled).map((o) => o.card.id)).toEqual(["background", "thresholds"]);
-  });
-
-  it("customising a card on a page turns its sections custom (both of Colors), never a locked one", () => {
+  it("changing a section on a page turns its sections custom (both of Colors), never a locked one", () => {
     let c = customiseCard(setup(), GAMING, themeCard("colors"));
     expect(desk(c).pages[1].widgetTheme?.follow).toEqual({ colors: false, palette: false });
-    expect(ids(cardsAt(c, GAMING).cards)).toEqual(["colors"]);
+    expect(THEME_CARDS.filter((card) => cardSet(c, GAMING, card)).map((card) => card.id)).toEqual(["colors"]);
     c = withCardLock(setup(), "desk", themeCard("motion"), true);
     expect(customiseCard(c, GAMING, themeCard("motion"))).toEqual(c);
   });
@@ -88,14 +66,16 @@ describe("which cards a scope edits", () => {
 describe("a card's chip", () => {
   it("All screens: built-in until set, then Set here", () => {
     expect(cardInherit(setup(), ALL, themeCard("colors")).state).toBe("builtin");
-    expect(cardInherit(withToken(setup(), ALL, "primary", "1 2% 3%"), ALL, themeCard("colors")).state).toBe("base");
+    // The palette is a theme part: a token leaves Colors built-in, a widget color sets it.
+    expect(cardInherit(withToken(setup(), ALL, "primary", "1 2% 3%"), ALL, themeCard("colors")).state).toBe("builtin");
+    expect(cardInherit(withScopeValues(setup(), "", { kind: "base" }, () => ({ accent: "#00ff00" })), ALL, themeCard("colors")).state).toBe("base");
     expect(cardInherit(withScopeValues(setup(), "", { kind: "base" }, () => ({ smoothing: "smooth" })), ALL, themeCard("motion")).state).toBe("base");
   });
 
-  it("a screen: inherited from All screens until it owns a store of the card, then Custom here", () => {
+  it("a screen: inherited from All screens until it owns a value of the card, then Custom here", () => {
     expect(cardInherit(setup(), SCREEN, themeCard("colors"))).toMatchObject({ state: "inherited", from: "all" });
-    // Either store makes the screen's Colors custom: a token, or a widget color.
-    expect(cardInherit(withToken(setup(), SCREEN, "primary", "1 2% 3%"), SCREEN, themeCard("colors")).state).toBe("custom");
+    // A token is the palette, a theme part: only a widget color makes the screen's Colors its own.
+    expect(cardInherit(withToken(setup(), SCREEN, "primary", "1 2% 3%"), SCREEN, themeCard("colors")).state).toBe("inherited");
     const widget = withScopeValues(setup(), "desk", { kind: "profile" }, () => ({ s1: "#00ff00" }));
     expect(cardInherit(widget, SCREEN, themeCard("colors")).state).toBe("custom");
   });
@@ -135,16 +115,15 @@ describe("the two-level stores", () => {
     expect(desk(resetCard(screen, SCREEN, themeCard("type")))).not.toHaveProperty("font");
   });
 
-  it("Colors and Shape & spacing keep the tokens and the radius apart on a screen", () => {
-    let c = { ...setup(), radius: 0.75 };
-    c = customiseCard(c, SCREEN, themeCard("colors"));
-    expect(desk(c).theme).toEqual(DEFAULT_THEME);
-    expect(desk(c)).not.toHaveProperty("radius");
-    c = customiseCard(c, SCREEN, themeCard("spacing"));
-    expect(desk(c).radius).toBe(0.75);
-    const reset = resetCard(c, SCREEN, themeCard("colors"));
-    expect(desk(reset)).not.toHaveProperty("theme");
-    expect(desk(reset).radius).toBe(0.75);
+  it("Colors and Shape & spacing leave a screen's palette and corners alone (theme parts)", () => {
+    let c = withToken({ ...setup(), radius: 0.75 }, SCREEN, "primary", "1 2% 3%");
+    c = { ...c, profiles: [{ ...desk(c), radius: 1 }] };
+    const changed = customiseCard(customiseCard(c, SCREEN, themeCard("colors")), SCREEN, themeCard("spacing"));
+    expect(desk(changed).theme).toEqual(desk(c).theme);
+    expect(desk(changed).radius).toBe(1);
+    const reset = resetCard(resetCard(c, SCREEN, themeCard("colors")), SCREEN, themeCard("spacing"));
+    expect(desk(reset).theme?.primary).toBe("1 2% 3%");
+    expect(desk(reset).radius).toBe(1);
   });
 
   it("a token edit on a screen starts from what it shows", () => {

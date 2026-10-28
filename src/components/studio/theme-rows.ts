@@ -21,3 +21,26 @@ export const ADVANCED_TOKENS: TokenRow[] = [
   ["border", "Border"],
   ["ring", "Ring"],
 ];
+
+/** All 19 tokens in the theme's own order (Colors › More, handoff SPEC §4.3.2). */
+export const ALL_TOKENS: TokenRow[] = [
+  ["background", "Background"],
+  ["foreground", "Foreground"],
+  ["card", "Card"],
+  ["card-foreground", "Card text"],
+  ["popover", "Popover"],
+  ["popover-foreground", "Popover text"],
+  ["primary", "Primary"],
+  ["primary-foreground", "Primary text"],
+  ["secondary", "Secondary"],
+  ["secondary-foreground", "Secondary text"],
+  ["muted", "Muted"],
+  ["muted-foreground", "Muted text"],
+  ["accent", "Accent"],
+  ["accent-foreground", "Accent text"],
+  ["destructive", "Destructive"],
+  ["destructive-foreground", "Destructive text"],
+  ["border", "Border"],
+  ["input", "Input"],
+  ["ring", "Ring"],
+];

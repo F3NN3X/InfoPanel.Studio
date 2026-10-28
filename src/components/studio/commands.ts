@@ -52,7 +52,7 @@ export type CommandAction =
   | { type: "navigate"; target: NavTarget }
   | { type: "follow-all" }
   | { type: "toggle-enforce" }
-  | { type: "apply-appearance"; id: string }
+  | { type: "apply-appearance"; id: string; background: boolean }
   | { type: "goto-setting"; section: string; key?: string }
   /** A theme editor row: Studio › Theme at its current scope, that section and row. */
   | { type: "goto-theme-setting"; section: string; key: string }
@@ -112,8 +112,10 @@ export interface CommandState {
   showGrid: boolean;
   /** Every section of the profile theme is locked (the palette's lock-all). */
   enforced: boolean;
-  /** The saved Themes (applied to All screens). */
+  /** The saved themes (applied at the level Theme is set to). */
   appearancePresets: { id: string; name: string }[];
+  /** That level's name, the themes' hint (All screens when unset). */
+  themeLevel?: string;
   /** The screen is made for InfoPanel: the palette offers its Export check. */
   exportCheck?: boolean;
 }
@@ -402,15 +404,16 @@ export function buildCommands(s: CommandState): Command[] {
     ...selectWidgetCommands(widgets),
     ...generalCommands(s),
     ...pageCommands(s),
-    ...s.appearancePresets.map(
-      (p): Command => ({
-        id: `appearance:${p.id}`,
-        label: `Apply theme: ${p.name}`,
+    ...s.appearancePresets.flatMap((p): Command[] => [
+      { id: `appearance:${p.id}`, label: `Apply theme: ${p.name}`, group: "Themes", hint: s.themeLevel ?? "All screens", action: { type: "apply-appearance", id: p.id, background: false } },
+      {
+        id: `appearance-bg:${p.id}`,
+        label: `Apply theme with background: ${p.name}`,
         group: "Themes",
-        hint: "All screens",
-        action: { type: "apply-appearance", id: p.id },
-      })
-    ),
+        hint: s.themeLevel ?? "All screens",
+        action: { type: "apply-appearance", id: p.id, background: true },
+      },
+    ]),
     ...s.insertables.map(
       (item): Command => ({
         id: `add:${item.kind}:${item.id}`,

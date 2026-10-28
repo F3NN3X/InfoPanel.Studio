@@ -3,17 +3,15 @@ import { GENERAL_DEFAULTS, withGeneral, type GeneralFont } from "@/lib/general";
 import { LEVEL_LABELS, type InheritLevel, type InheritState } from "@/lib/inheritance";
 import type { DashboardConfig, MonitorProfile, ProfilePage } from "@/lib/layout";
 import { DEFAULT_THEME, resolveTheme, type ThemeTokens } from "@/lib/theme";
-import { SECTION_KEYS, type SectionId } from "@/lib/theme-model";
+import { SECTION_KEYS, sectionsWithValues, type SectionId } from "@/lib/theme-model";
 import type { ModuleSettings } from "@/modules/types";
 import { customiseInheritance, resetInheritance } from "./inheritance-actions";
 import { withLock, withPageFollow, withScopeValues, type ThemeScope } from "./theme-editor-model";
 
 /**
- * Theme's section cards as data (SPEC §7.2): the ten cards in their order,
- * the stores each one writes (widget-style sections, and the two-level color
- * tokens, corner radius, page font and background), its chip at a scope, which
- * cards a page may customise and why not, and the edits (Reset to inherited,
- * Customise here, the lock, the two-level writes). Pure config → config.
+ * Theme's fine-tune sections as data (handoff SPEC §4.3.2): the eight sections in their order, the stores each
+ * one writes (widget-style sections, and the page font), its chip at a scope, and the edits (Reset to inherited,
+ * Change here, the lock, the two-level writes of the theme parts). Pure config → config.
  */
 
 /** The level Theme edits, with the ids that find it. */
@@ -22,40 +20,37 @@ export type ThemeAt =
   | { level: "screen"; profileId: string }
   | { level: "page"; profileId: string; pageId: string };
 
-export type ThemeCardId = "colors" | "type" | "spacing" | "surface" | "border" | "background" | "format" | "thresholds" | "motion" | "css";
+export type ThemeCardId = "colors" | "type" | "spacing" | "surface" | "format" | "thresholds" | "motion" | "css";
 
-/** The two-level data a card holds besides its widget-style sections (All screens → Screen, no page level). */
+/** The two-level data (All screens → Screen, no page level): the theme's palette, corners and background, and the page font. */
 export type TwoLevel = "tokens" | "radius" | "font" | "background";
 
 export interface ThemeCard {
   id: ThemeCardId;
-  /** The step number in the list (1 is Start from). */
-  step: number;
   title: string;
   /** The widget-style sections it covers (its chip, lock, Reset and exceptions). */
   sections: readonly SectionId[];
-  data?: TwoLevel;
+  /** The page font (Text): the one two-level datum that is fine-tune, not a theme part. */
+  data?: "font";
   /** A lock toggle in its header at Screen scope. */
   lockable: boolean;
 }
 
 /**
- * The cards, in order. Colors holds the color tokens and the widget colors (two stores, PLAN decision 13);
- * Typography the page font and the widget type; Shape & spacing the corner radius and the widget spacing.
- * Surface & effects also covers the skin section (its skin, stroke, graph and meter rows): the skin is picked in
- * Start from, and locks with the surface.
+ * The sections, in order. Colors holds the widget colors (the palette's tokens are a theme part, shown under its
+ * More); Text the page font and the widget type; Shape & spacing the widget spacing (the corners are a theme part).
+ * Surface & border also covers the skin section (its stroke, graph and meter rows): the skin is a theme part, and
+ * locks with the surface. The background is a theme part, not a section.
  */
 export const THEME_CARDS: readonly ThemeCard[] = [
-  { id: "colors", step: 2, title: "Colors", sections: ["colors", "palette"], data: "tokens", lockable: true },
-  { id: "type", step: 3, title: "Typography", sections: ["type"], data: "font", lockable: true },
-  { id: "spacing", step: 4, title: "Shape & spacing", sections: ["spacing"], data: "radius", lockable: true },
-  { id: "surface", step: 5, title: "Surface & effects", sections: ["surface", "skin"], lockable: true },
-  { id: "border", step: 6, title: "Border & glow", sections: ["border"], lockable: true },
-  { id: "background", step: 7, title: "Background", sections: [], data: "background", lockable: false },
-  { id: "format", step: 8, title: "Units & format", sections: ["format"], lockable: true },
-  { id: "thresholds", step: 9, title: "Thresholds", sections: ["thresholds"], lockable: true },
-  { id: "motion", step: 10, title: "Motion", sections: ["motion"], lockable: true },
-  { id: "css", step: 11, title: "Advanced (custom CSS)", sections: ["css"], lockable: false },
+  { id: "colors", title: "Colors", sections: ["colors", "palette"], lockable: true },
+  { id: "type", title: "Text", sections: ["type"], data: "font", lockable: true },
+  { id: "spacing", title: "Shape & spacing", sections: ["spacing"], lockable: true },
+  { id: "surface", title: "Surface & border", sections: ["surface", "skin", "border"], lockable: true },
+  { id: "format", title: "Units & format", sections: ["format"], lockable: true },
+  { id: "thresholds", title: "Thresholds", sections: ["thresholds"], lockable: true },
+  { id: "motion", title: "Motion", sections: ["motion"], lockable: true },
+  { id: "css", title: "Custom CSS", sections: ["css"], lockable: false },
 ];
 
 export const themeCard = (id: ThemeCardId): ThemeCard => THEME_CARDS.find((c) => c.id === id)!;
@@ -106,7 +101,7 @@ export function dataSet(config: DashboardConfig, data: TwoLevel, profile?: Monit
   }
 }
 
-/** Whether a level sets anything of a card: All screens or a screen holds a value of it, a page customises a section of it. */
+/** Whether a level sets anything of a card: All screens or a screen holds a value of it, a page changes a section of it. */
 export function cardSet(config: DashboardConfig, at: ThemeAt, card: ThemeCard): boolean {
   if (at.level === "all") return card.sections.some((sec) => valuesSet(config.style, sec)) || (card.data !== undefined && dataSet(config, card.data));
   const profile = profileOf(config, at.profileId);
@@ -125,7 +120,7 @@ export function cardLocked(config: DashboardConfig, profileId: string, card: The
   return card.sections.length > 0 && card.sections.every((sec) => locks?.[sec] === true);
 }
 
-/** How many cards a level sets (the scope bar's "N own"). */
+/** How many sections a level sets (a screen's "N own"). */
 export const ownCount = (config: DashboardConfig, at: ThemeAt): number => THEME_CARDS.filter((card) => cardSet(config, at, card)).length;
 
 export interface CardInherit {
@@ -151,27 +146,6 @@ export function cardInherit(config: DashboardConfig, at: ThemeAt, card: ThemeCar
     fromName: profileOf(config, at.profileId)?.name,
     keptOverride: locked && set,
   };
-}
-
-/** A card in the page's "Customise a section for this page" list, with why it can't be or what it holds. */
-export interface PageCardOption {
-  card: ThemeCard;
-  /** Disabled, and why ("Set per screen", "Locked by Screen"). */
-  disabled?: string;
-  /** Allowed, with a limit ("Spacing only": the corner radius stays at screen level). */
-  note?: string;
-}
-
-/** The cards Theme lists at a scope: all of them, or a page's customised ones plus the rest as the Customise list. */
-export function cardsAt(config: DashboardConfig, at: ThemeAt): { cards: ThemeCard[]; customise: PageCardOption[] } {
-  if (at.level !== "page") return { cards: [...THEME_CARDS], customise: [] };
-  const cards = THEME_CARDS.filter((card) => cardSet(config, at, card));
-  const customise = THEME_CARDS.filter((card) => !cards.includes(card)).map((card): PageCardOption => {
-    if (card.sections.length === 0) return { card, disabled: "Set per screen" };
-    if (cardLocked(config, at.profileId, card)) return { card, disabled: "Locked by Screen" };
-    return card.id === "spacing" ? { card, note: "Spacing only" } : { card };
-  });
-  return { cards, customise };
 }
 
 // -- edits ------------------------------------------------------------------------
@@ -221,14 +195,14 @@ function customiseData(config: DashboardConfig, profileId: string, data: TwoLeve
 
 /**
  * Reset to inherited: All screens back to the built-in defaults, a screen back to All screens (its values for the
- * card dropped), a page following its screen again (its values stay stored, they return on Customise).
+ * card dropped), a page following its screen again (its values stay stored, they return on Change here).
  */
 export function resetCard(config: DashboardConfig, at: ThemeAt, card: ThemeCard): DashboardConfig {
   const sections = card.sections.reduce((c, sec) => resetInheritance(c, sec, at), config);
   return card.data && at.level !== "page" ? resetData(sections, at, card.data) : sections;
 }
 
-/** Customise here: a screen copies All screens' values of the card, a page stops following its unlocked sections. */
+/** Change here: a screen copies All screens' values of the card, a page stops following its unlocked sections. */
 export function customiseCard(config: DashboardConfig, at: ThemeAt, card: ThemeCard): DashboardConfig {
   if (at.level === "all") return config;
   if (at.level === "page") {
@@ -247,6 +221,20 @@ export const withCardLock = (config: DashboardConfig, profileId: string, card: T
 export const withValuesAt = (config: DashboardConfig, at: ThemeAt, fn: (values: ModuleSettings) => ModuleSettings): DashboardConfig =>
   withScopeValues(config, at.level === "all" ? "" : at.profileId, scopeOfAt(at), fn);
 
+/**
+ * Style values written at a level (a skin and its surface): merged into its values. A page uses its own values only
+ * in the sections it changes, so it changes the ones the values are in, as applying a theme to a page does; a section
+ * its screen locks stays the screen's.
+ */
+export function withLookAt(config: DashboardConfig, at: ThemeAt, settings: ModuleSettings): DashboardConfig {
+  const written = withValuesAt(config, at, (values) => ({ ...values, ...settings }));
+  if (at.level !== "page") return written;
+  const locks = profileOf(written, at.profileId)?.widgetTheme?.locks;
+  return sectionsWithValues(settings)
+    .filter((sec) => locks?.[sec] !== true)
+    .reduce((c, sec) => withPageFollow(c, at.profileId, at.pageId, sec, false), written);
+}
+
 type TwoLevelAt = Exclude<ThemeAt, { level: "page" }>;
 
 /** One color token: All screens', or the screen's own set (starting from what it shows). */
@@ -255,7 +243,7 @@ export function withToken(config: DashboardConfig, at: TwoLevelAt, key: keyof Th
   return withProfile(config, at.profileId, (p) => ({ ...p, theme: { ...resolveTheme(config, p).tokens, [key]: value } }));
 }
 
-/** Every color token at once (a palette from Start from). */
+/** Every color token at once (a palette from the Palette picker). */
 export function withTokens(config: DashboardConfig, at: TwoLevelAt, tokens: ThemeTokens): DashboardConfig {
   if (at.level === "all") return { ...config, theme: { ...tokens } };
   return withProfile(config, at.profileId, (p) => ({ ...p, theme: { ...tokens } }));
