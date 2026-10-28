@@ -35,6 +35,8 @@ Click a part to change it: **Palette** and **Skin** open their pickers, **Corner
 
 Once you change a part after applying a saved theme, a bar says "Changed here. Updating ‹name› also changes ‹places›." **Update ‹name›** saves the theme and refreshes every level that uses it (each keeps what it changed since); **Save as new** saves a new theme. For a template's look the bar offers **Save as theme**, which saves "‹Template · Variant› copy".
 
+To give other screens the same theme, open **Switch theme** at a screen and choose **Apply to other screens…**: tick the screens (or **Select all**) and press **Apply**. Each screen follows the usual rules, **Keep my background** included, and one Undo takes it all back. The command palette's **Apply theme to all screens: ‹name›** does the same for every screen.
+
 ## Switch theme
 
 **Switch theme** opens every theme you can apply, filtered by **All**, **Saved**, **Templates** or **Light**. Your saved themes come first; each **⋯** says which levels use it (or "Not in use") and has **Rename**, **Duplicate** and **Delete**. Then one row for each screen template with a chip for each variant. Meters, Orbit and Ticker look the same, so they are one row, tagged "also Orbit, Ticker".

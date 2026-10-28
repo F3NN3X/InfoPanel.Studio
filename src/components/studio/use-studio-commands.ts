@@ -25,6 +25,7 @@ import type { StudioSelection } from "./use-studio-selection";
 import { useStudioShortcuts, type ShortcutAction } from "./use-studio-shortcuts";
 import type { StudioUi } from "./use-studio-ui";
 import { validScope } from "./theme-editor-model";
+import { getKeepBackground } from "./theme-keep-background";
 import { commandThemeAt } from "./theme-view-model";
 
 interface CommandDeps {
@@ -242,6 +243,10 @@ export function useStudioCommands({
       case "apply-appearance": {
         const preset = appearancePresets.presets.find((p) => p.id === action.id);
         return preset && appearancePresets.apply(preset, themeAt, action.keepBackground);
+      }
+      case "apply-appearance-all": {
+        const preset = appearancePresets.presets.find((p) => p.id === action.id);
+        return preset && appearancePresets.applyToScreens(preset, config.profiles.map((p) => p.id), getKeepBackground());
       }
     }
     if (!selected) return;

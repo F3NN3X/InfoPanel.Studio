@@ -49,7 +49,7 @@ import { exceptionsOf, widgetOverrides } from "./theme-exceptions";
 import { FineTuneHeader, FineTuneRow, RowsLabel } from "./theme-fine-tune";
 import { changedHere, fineTuneChip, fineTuneHeading, fineTuneSummary, resetFineTune } from "./theme-fine-tune-model";
 import { ThemeLookCard } from "./theme-look-card";
-import { appliedToast, paletteToast, paletteUsedBy, resetToast, savedToast, skinToast } from "./theme-messages";
+import { appliedToast, appliedToScreensToast, paletteToast, paletteUsedBy, resetToast, savedToast, skinToast } from "./theme-messages";
 import { PalettePicker } from "./theme-palette-picker";
 import { BackgroundPicker, SkinPicker } from "./theme-part-pickers";
 import { SwitchThemePicker } from "./theme-pickers";
@@ -266,6 +266,13 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
       ...(widgets > 0 ? { follow: { label: "Make them follow", run: () => setConfig((c) => followAll(c, widgetsKeeping(c, at, p))) } } : {}),
     });
   };
+  /** The screen's theme on it and the ticked screens: one change, one undo step. */
+  const applyToScreens = (profileIds: readonly string[], keepBackground: boolean) => {
+    if (!state.theme) return;
+    presets.applyToScreens(state.theme, [profile.id, ...profileIds], keepBackground);
+    setDrill("main");
+    show(appliedToScreensToast(state.theme.name, profileIds.length + 1, keepBackground));
+  };
   const resetTo = (p: AppearancePreset, themeName: string) => {
     presets.reset(p, at);
     show(resetToast(themeName, at.level, levelName, profile.name));
@@ -415,6 +422,8 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             counts={themeCounts(presets.presets.length, rows ?? [])}
             usedBy={(id) => usedByText(themeUses(config, id))}
             onApply={applyPreset}
+            otherScreens={at.level === "screen" && state.theme ? config.profiles.filter((p) => p.id !== profile.id).map((p) => ({ id: p.id, name: p.name, size: `${p.width}×${p.height}` })) : undefined}
+            onApplyToScreens={applyToScreens}
             onRename={presets.rename}
             onDuplicate={presets.duplicate}
             onDelete={presets.remove}
