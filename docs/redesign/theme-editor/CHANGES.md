@@ -248,3 +248,19 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
   theme part, so editing one shows the Update bar, not "Changed here" on Colors.
 - The preview's Make all follow acts on the widgets that differ on the page shown, the ones the pill counts; a
   screen's or page's own sections are reset from their fine-tune chips.
+
+## PR · Apply a theme to other screens
+
+With each screen owning its look, one action gives several screens the same theme.
+
+- **Switch theme › Apply to other screens…** (screen level, when the screen has a theme): a list of the other screens
+  (name and size, Select all) and Apply. It runs `applyThemeToScreens` (`theme-apply.ts`: `applyTheme` per screen, so the
+  first-pick rule and Keep my background hold per screen) in one `setConfig`, one undo step. Toast: "‹Theme› applied to N
+  screens." with Undo. Not shown at page level. The theme applied is the one the current screen shows; the current screen is
+  included.
+- **Command palette:** "Apply theme to all screens: ‹name›", one undo step, honouring the session's Keep my background
+  choice (now held in `theme-keep-background.ts`, shared by Switch theme and the command).
+- **Update ‹name›** already refreshes every screen that uses the theme, each keeping its own changes; its copy names screens
+  (there is no All screens level). Unchanged.
+- **Tests:** `tests/lib/theme-apply.test.ts` (`applyThemeToScreens`), `tests/components/studio/commands.test.ts`,
+  `tests/e2e/theme-switch.spec.ts` (Apply to other screens, then Undo).

@@ -4,6 +4,8 @@ import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import { variantName, type TemplateThemeRow } from "@/lib/screen-templates/template-rows";
 import { cn } from "@/lib/utils";
 import { AppearancePreview } from "./appearance-preview";
+import ScreensList from "./theme-screens-list";
+import { getKeepBackground, setKeepBackground } from "./theme-keep-background";
 import { ThemeNameInput } from "./theme-name-input";
 import { filteredThemes, rowTag, templatesHeading, type ThemeFilter } from "./theme-view-model";
 
@@ -31,9 +33,6 @@ export function PickerShell({ title, help, onBack, footer, children }: { title: 
     </div>
   );
 }
-
-/** "Keep my background", remembered for the session (owner decision 6): not stored, off when the studio opens. */
-let keepBackgroundPref = false;
 
 /** The theme's accent: its widget accent, else its primary color. */
 const accentOf = (p: AppearancePreset): string => (typeof p.style.accent === "string" && p.style.accent ? p.style.accent : `hsl(${presetTokens(p).primary})`);
@@ -68,6 +67,10 @@ interface SwitchThemeProps {
   /** + Save current look as a theme. */
   onSaveCurrent: (name: string) => void;
   onBack: () => void;
+  /** The other screens the current theme can be applied to; none (a page, or no theme here) hides the action. */
+  otherScreens?: readonly { id: string; name: string; size: string }[];
+  /** Apply the current theme to the ticked screens (and this one). */
+  onApplyToScreens?: (profileIds: readonly string[], keepBackground: boolean) => void;
 }
 
 const FILTERS: { id: ThemeFilter; label: string }[] = [
@@ -84,7 +87,8 @@ const FILTERS: { id: ThemeFilter; label: string }[] = [
  */
 export function SwitchThemePicker(p: SwitchThemeProps) {
   const [filter, setFilter] = useState<ThemeFilter>("all");
-  const [keep, setKeep] = useState(keepBackgroundPref);
+  const [keep, setKeep] = useState(getKeepBackground);
+  const [toScreens, setToScreens] = useState(false);
   const [menuFor, setMenuFor] = useState<string>();
   const [renaming, setRenaming] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -104,7 +108,7 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
               type="checkbox"
               checked={keep}
               onChange={(e) => {
-                keepBackgroundPref = e.target.checked;
+                setKeepBackground(e.target.checked);
                 setKeep(e.target.checked);
               }}
               className="peer sr-only"
@@ -121,6 +125,14 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
             Keep my background
           </label>
           <p className="text-[12px] text-[#71717a]">{keep ? "Your background stays." : "A theme with a background replaces yours."}</p>
+          {p.otherScreens && p.otherScreens.length > 0 && p.onApplyToScreens && (
+            <>
+              <button type="button" onClick={() => setToScreens(!toScreens)} className={cn(ACTION, "self-start")}>
+                Apply to other screens…
+              </button>
+              {toScreens && <ScreensList screens={p.otherScreens} onApply={(ids) => p.onApplyToScreens?.(ids, keep)} />}
+            </>
+          )}
           <div className="flex items-center gap-3 text-[12px]">
             <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[#71717a]">{p.counts}</span>
             {saving ? (

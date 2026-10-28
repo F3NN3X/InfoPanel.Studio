@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Added
+
+- **Apply to other screens… in Switch theme.** With each screen owning its look, one action gives several screens the same theme: tick the screens (or Select all) and Apply. It follows the usual rules per screen (the first theme on a screen replaces its look, Keep my background is honored) and is one undo step. The command palette has **Apply theme to all screens: ‹name›**.
+
 ### Fixed
 
 - **Switching theme on a screen saved before 1.3.0-beta.37 now applies the theme.** Such a screen had no record of the last theme, so every value it held counted as yours and stayed: Paper · Ink left a black screen with see-through cards. The first theme picked on a screen, page or All screens with no record now replaces its look, as Reset does (a theme without a background leaves yours). Later picks keep what you changed since, as before.

@@ -11,6 +11,7 @@ import { templatePreset, variantOf } from "@/lib/screen-templates/looks";
 import { DEFAULT_THEME, THEME_PRESETS } from "@/lib/theme";
 import {
   applyTheme,
+  applyThemeToScreens,
   resetToTheme,
   saveAsTheme,
   themeState,
@@ -309,5 +310,34 @@ describe("dashboards saved before the snapshot", () => {
     expect(loaded.profiles.map((p) => p.appliedTheme?.id)).toEqual(["desk", "desk"]);
     const round = mergeConfig(JSON.parse(JSON.stringify(applyTheme(config(), night, PAGE))) as StoredConfig);
     expect(round.profiles[0].pages[0].appliedTheme).toEqual({ id: "night", name: "night", values: night.style });
+  });
+
+  describe("applyThemeToScreens", () => {
+    const three = () => config({ profiles: [profile("p1"), profile("p2"), profile("p3")] });
+
+    it("applies to each listed screen, leaves the others untouched, and ignores unknown ids", () => {
+      const before = three();
+      const out = applyThemeToScreens(before, desk, ["p1", "p3", "nope", "p1"]);
+      expect(out.profiles.map((p) => p.appliedTheme?.id)).toEqual(["desk", undefined, "desk"]);
+      expect(out.profiles[1]).toBe(before.profiles[1]);
+      expect(out.profiles[0]).toEqual(applyTheme(before, desk, P1).profiles[0]);
+    });
+
+    it("follows the first-pick rule per screen", () => {
+      const own = (p: MonitorProfile) => ({ ...p, widgetTheme: { values: { accent: "#00ff00" } } });
+      const themed = withP(applyTheme(three(), night, P1), "p1", own);
+      const out = applyThemeToScreens(withP(themed, "p2", own), desk, ["p1", "p2"]);
+      // p1 has a snapshot: its own accent stays; p2 has none, so the first pick replaces its look.
+      expect(out.profiles[0].widgetTheme?.values?.accent).toBe("#00ff00");
+      expect(out.profiles[1].widgetTheme?.values?.accent).toBe("#38bdf8");
+    });
+
+    it("keeps each screen's background when asked", () => {
+      const bg = { type: "color", color: "#222222" } as const;
+      const c = config({ profiles: [profile("p1", { background: bg }), profile("p2", { background: bg })] });
+      const out = applyThemeToScreens(c, desk, ["p1", "p2"], { keepBackground: true });
+      expect(out.profiles.map((p) => p.background)).toEqual([bg, bg]);
+      expect(applyThemeToScreens(c, desk, ["p1", "p2"]).profiles.map((p) => p.background)).toEqual([desk.background, desk.background]);
+    });
   });
 });

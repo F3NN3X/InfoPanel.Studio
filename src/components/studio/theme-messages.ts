@@ -41,6 +41,12 @@ export function appliedToast(name: string, level: ThemeLevel, outcome: AppliedOu
   return { title: `Applied ${name}.`, sub: `${parts}${keptText}${widgetText}` };
 }
 
+/** The toast after a theme is applied to several screens at once (the current one and at least one more). */
+export const appliedToScreensToast = (name: string, screens: number, keepBackground: boolean): ToastText => ({
+  title: `${name} applied to ${screens} screens.`,
+  sub: keepBackground ? "Backgrounds kept." : "Backgrounds included.",
+});
+
 export const paletteToast = (name: string): ToastText => ({ title: `Palette changed to ${name}.`, sub: "Skin, corners, background and fine-tune kept." });
 
 /** A page's skin: its palette, corners and background are its screen's (owner decision 1). */

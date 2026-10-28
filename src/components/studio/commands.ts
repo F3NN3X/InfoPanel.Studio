@@ -52,6 +52,7 @@ export type CommandAction =
   | { type: "follow-all" }
   | { type: "toggle-enforce" }
   | { type: "apply-appearance"; id: string; keepBackground: boolean }
+  | { type: "apply-appearance-all"; id: string }
   | { type: "goto-setting"; section: string; key?: string }
   /** A theme editor row: Studio › Theme at its current scope, that section and row. */
   | { type: "goto-theme-setting"; section: string; key: string }
@@ -411,6 +412,7 @@ export function buildCommands(s: CommandState): Command[] {
         hint: s.themeLevel ?? "This screen",
         action: { type: "apply-appearance", id: p.id, keepBackground: true },
       },
+      { id: `appearance-all:${p.id}`, label: `Apply theme to all screens: ${p.name}`, group: "Themes", action: { type: "apply-appearance-all", id: p.id } },
     ]),
     ...s.insertables.map(
       (item): Command => ({

@@ -226,6 +226,14 @@ function applyAt(config: DashboardConfig, preset: AppearancePreset, target: Them
 export const applyTheme = (config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget, options: ApplyThemeOptions = {}): DashboardConfig =>
   applyAt(config, preset, target, "pick", options.keepBackground === true);
 
+/** Apply a theme to several screens at once (one config, so one undo step); ids that name no screen are ignored. */
+export function applyThemeToScreens(config: DashboardConfig, preset: AppearancePreset, profileIds: readonly string[], options: ApplyThemeOptions = {}): DashboardConfig {
+  const known = new Set(config.profiles.map((p) => p.id));
+  return [...new Set(profileIds)]
+    .filter((profileId) => known.has(profileId))
+    .reduce((c, profileId) => applyTheme(c, preset, { kind: "profile", profileId }, options), config);
+}
+
 /** A snapshot reduced to its writes into the widgets (Reset clears the rest of the level). */
 const writesOnly = (applied: AppliedTheme | undefined): { appliedTheme?: AppliedTheme } => (applied ? { appliedTheme: { ...applied, values: {} } } : {});
 
