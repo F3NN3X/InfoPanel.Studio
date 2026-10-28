@@ -255,6 +255,35 @@ pub fn show_main(app: &AppHandle) {
     let _ = window.set_focus();
 }
 
+/// Replaces the studio window after its WebView2 browser process exited: the old webview draws black
+/// and refuses every call, and hiding or resuming it doesn't help. Its page died with it, so there is
+/// nothing to flush. Shown again if it was shown; a hidden one waits for the tray, like a released one.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn rebuild_main(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(MAIN) else {
+        return;
+    };
+    let shown = window.is_visible().unwrap_or(true);
+    crate::release::mark_rebuilding(true);
+    if let Err(e) = window.destroy() {
+        crate::release::mark_rebuilding(false);
+        log::warn!("could not rebuild the studio window: {e}");
+        return;
+    }
+    crate::webview2::forget();
+    if !shown {
+        return;
+    }
+    // The destroy lands on the event loop; wait for the old window to be gone before making the new one.
+    for _ in 0..40 {
+        if app.get_webview_window(MAIN).is_none() {
+            return show_main(app);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    log::warn!("the old studio window was not gone after 2 s; open it from the tray");
+}
+
 /// The start page, at the local pages' origin (`http://tauri.localhost` on Windows).
 fn start_page_url() -> Url {
     let base = if cfg!(windows) {

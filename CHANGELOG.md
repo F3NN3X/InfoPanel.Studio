@@ -6,6 +6,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Fixed
+
+- **The studio window no longer stays black after WebView2 crashes.** When WebView2's browser process exits, the studio window is rebuilt and shown again (at most once a minute), instead of staying black until the app restarts. Hiding it to the tray and opening it again didn't help before.
+
 ## [1.3.0-beta.36] - 2026-10-27
 
 ### Changed
