@@ -1,8 +1,8 @@
 /**
  * The inspector for a group (Edit v3 SPEC §10.3): its name and what it holds, the box of its members (on the grid when
  * every member is on cells, else in px), the note that it moves, hides and locks as one, Select contents and Ungroup,
- * and the LAYER section. No tabs: a group has no settings of its own (sign-off round 1). A screen's page lists Save to
- * Library but off, `Coming soon`; an imported profile's page saves the group as a component.
+ * Save to Library (the group as a component, on every page) and the LAYER section. No tabs: a group has no settings of
+ * its own (sign-off round 1).
  */
 import type { ReactNode } from "react";
 import { BookmarkPlus, Eye, EyeOff, Folder, FolderMinus, SquareDashedMousePointer, Trash2 } from "lucide-react";
@@ -42,10 +42,11 @@ interface GroupInspectorProps {
   onAction: (action: LayerAction) => void;
   onInGroup: (groupId: string | null | "new") => void;
   onSelectContents: () => void;
+  onSaveToLibrary: () => void;
 }
 
 /** A page group on a screen's page. */
-export function GroupInspector({ model, group, inGroup, groups, onAction, onInGroup, onSelectContents }: GroupInspectorProps) {
+export function GroupInspector({ model, group, inGroup, groups, onAction, onInGroup, onSelectContents, onSaveToLibrary }: GroupInspectorProps) {
   const parts = partsOf(group.children);
   const box = unionBox(model, group);
   const onGrid = parts.length > 0 && parts.every((p) => "cell" in p.place);
@@ -61,6 +62,7 @@ export function GroupInspector({ model, group, inGroup, groups, onAction, onInGr
       onDelete={() => onAction("delete")}
       onSelectContents={group.children.length > 0 ? onSelectContents : undefined}
       onUngroup={() => onAction("ungroup")}
+      onSaveToLibrary={onSaveToLibrary}
       layer={<LayerSection onAction={onAction} groups={groups} inGroup={inGroup} onInGroup={onInGroup} />}
     />
   );
@@ -79,8 +81,8 @@ interface GroupInspectorViewProps {
   /** Select its parts; unset: it has none. */
   onSelectContents?: () => void;
   onUngroup: () => void;
-  /** Save the group to the Library where the page can; unset: listed but off, `Coming soon`. */
-  onSaveToLibrary?: () => void;
+  /** Save the group to the Library as a component. */
+  onSaveToLibrary: () => void;
   /** The LAYER section. */
   layer: ReactNode;
 }
@@ -120,8 +122,8 @@ export function GroupInspectorView({ name, contents, hidden, locked, place, onTo
           Ungroup
         </button>
       </div>
-      <div className="flex px-3.5 pb-3" title={onSaveToLibrary ? undefined : "Coming soon"}>
-        <button type="button" className={ACTION} onClick={onSaveToLibrary} disabled={!onSaveToLibrary}>
+      <div className="flex px-3.5 pb-3">
+        <button type="button" className={ACTION} onClick={onSaveToLibrary}>
           <BookmarkPlus className="h-3.5 w-3.5" />
           Save to Library
         </button>

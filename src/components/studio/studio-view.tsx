@@ -724,6 +724,7 @@ function StudioViewBody({
           onAction={layers.run}
           onInGroup={layers.moveInto}
           onSelectContents={() => layers.selectMany(groupNode.children.map((c) => c.id))}
+          onSaveToLibrary={() => layers.saveToLibrary?.()}
         />
       </Suspense>
     </aside>
@@ -1432,6 +1433,7 @@ function StudioViewBody({
           />
         </Suspense>
       )}
+      {layers.saveDialog}
       {layerMenu && (
         <Suspense fallback={null}>
           <LayerMenu
