@@ -89,6 +89,7 @@ A page can hold InfoPanel items and elements on top of its widgets. Add puts the
 
 - Drag it and it snaps to the cells. Hold `Alt` while you drag to place it to the pixel, on top of a widget if you like: the cell lines fade, a hint says **Placing freely**, a readout under the item shows its X, Y, W and H, and a dashed box marks where it started. Press or release `Alt` during the drag to switch.
 - Drag a handle to resize it, the same way.
+- An item you placed freely keeps its size when you drag it again without `Alt`. Its corner snaps to a cell, and a resize snaps only the edge you drag. To put it back on the cells, use **Snap to grid** in its inspector.
 - Widgets always sit on the cells and never on another widget. With `Alt` held, a widget's drag says **Widgets always sit on the grid**.
 - On Linux, use `Ctrl+Alt` if the window manager takes `Alt`+drag. On a Mac, `Alt` is `Option`.
 

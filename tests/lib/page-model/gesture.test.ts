@@ -23,9 +23,17 @@ describe("moving parts by a pointer delta", () => {
     for (const free of [false, true]) expect(moveOps(GRID, [widget("w", 1, 1)], 137, 160, free)).toEqual([{ type: "move", id: "w", to: { col: 2, row: 3 } }]);
   });
 
-  it("places an item with Alt at the exact pixel, and snaps it to the nearest cells without (acceptance 8)", () => {
+  it("places an item with Alt at the exact pixel, and snaps one on cells to the nearest cells without (acceptance 8)", () => {
     expect(moveOps(GRID, [freeItem("t", 10, 10)], 33.4, 7.6, true)).toEqual([{ type: "move", id: "t", to: { x: 43, y: 18 } }]);
-    expect(moveOps(GRID, [freeItem("t", 10, 10)], 133, 7, false)).toEqual([{ type: "move", id: "t", to: { col: 2, row: 1 } }]);
+    expect(moveOps(GRID, [cellItem("t", 1, 1)], 133, 7, false)).toEqual([{ type: "move", id: "t", to: { col: 2, row: 1 } }]);
+  });
+
+  // User decision (2026-10-28), replacing SPEC §7.3's "without Alt it becomes / stays on grid" for items already
+  // placed freely: a shape tuned to the pixel with Alt must not change when it is moved again.
+  it("keeps an item placed freely at its size without Alt: only its corner snaps, to the nearest cell's", () => {
+    expect(moveOps(GRID, [freeItem("t", 10, 10)], 133, 7, false)).toEqual([{ type: "move", id: "t", to: { x: 100, y: 0 } }]);
+    // The last cell at most: the corner never snaps past the grid.
+    expect(moveOps(GRID, [freeItem("t", 10, 10)], 2000, 2000, false)).toEqual([{ type: "move", id: "t", to: { x: 700, y: 400 } }]);
   });
 
   it("leaves a locked part where it is", () => {
@@ -50,6 +58,17 @@ describe("moving parts by a pointer delta", () => {
     expect(next.placements.find((p) => p.id === "w")).toMatchObject({ colStart: 1, rowStart: 1 });
     expect(next.placements.find((p) => p.id === "w")).not.toHaveProperty("px");
   });
+
+  it("an item sized with Alt and then moved without it keeps its pixel size in the page model", () => {
+    const profile: MonitorProfile = { id: "s", name: "S", width: 800, height: 500, cols: 8, rows: 5, fit: "fill", gap: 0, padding: 0, pages: [] };
+    const shape = { kind: "Shape", Name: "S", X: 10, Y: 10, Width: 60, Height: 30, unknown: {} };
+    const page = { id: "p", name: "P", placements: [{ id: "s", module: ITEM_ID, colStart: 1, rowStart: 1, colSpan: 1, rowSpan: 1, visible: true, item: shape, px: { x: 10, y: 10, w: 60, h: 30 } }] as Placement[] };
+    const model = readPlacements(profile, page);
+    const sized = applyPlacements(profile, page, resizeOps(model.grid, findNode(model.root, "s")!.node as PartNode, "se", 17, 3, true));
+    const again = readPlacements(profile, sized);
+    const moved = applyPlacements(profile, sized, moveOps(again.grid, [findNode(again.root, "s")!.node as PartNode], 130, 95, false));
+    expect(moved.placements[0]).toMatchObject({ px: { x: 100, y: 100, w: 77, h: 33 }, item: { X: 100, Y: 100, Width: 77, Height: 33 } });
+  });
 });
 
 describe("resizing a part", () => {
@@ -61,6 +80,24 @@ describe("resizing a part", () => {
     expect(resizeOps(GRID, widget("w", 1, 1), "e", 120, 0, true)).toEqual([
       { type: "move", id: "w", to: { col: 1, row: 1 } },
       { type: "resize", id: "w", to: { cols: 3, rows: 1 } },
+    ]);
+  });
+
+  it("keeps an item placed freely when snapped: only the edges dragged go to grid lines, the others keep their pixels", () => {
+    // The south-east corner dragged to (85, 45): the right and bottom edges go to the cell ends nearest them (100, 100).
+    expect(resizeOps(GRID, freeItem("t", 10, 10), "se", 15, 5, false)).toEqual([
+      { type: "move", id: "t", to: { x: 10, y: 10 } },
+      { type: "resize", id: "t", to: { w: 90, h: 90 } },
+    ]);
+    // The west edge dragged to x 80 snaps to 100; the east edge (160) and the top and height stay.
+    expect(resizeOps(GRID, freeItem("t", 110, 110, 50, 50), "w", -30, 0, false)).toEqual([
+      { type: "move", id: "t", to: { x: 100, y: 110 } },
+      { type: "resize", id: "t", to: { w: 60, h: 50 } },
+    ]);
+    // One on cells still snaps to the cells nearest the box.
+    expect(resizeOps(GRID, cellItem("t", 1, 1), "e", 120, 0, false)).toEqual([
+      { type: "move", id: "t", to: { col: 1, row: 1 } },
+      { type: "resize", id: "t", to: { cols: 2, rows: 1 } },
     ]);
   });
 

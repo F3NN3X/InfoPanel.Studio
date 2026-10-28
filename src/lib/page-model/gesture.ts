@@ -1,7 +1,8 @@
 /**
  * What a drag, a resize or a key press does to parts of the page model (Edit v3 SPEC §7.3, §14), as model ops: a
  * widget always lands on cells; an item or element snaps to cells, or is placed freely to the pixel for the gesture
- * that holds Alt (with the page's Snap items off the other way round). Every op is absolute, from where the parts were
+ * that holds Alt (with the page's Snap items off the other way round); one already placed freely keeps its pixel size
+ * when a later gesture snaps (user decision, 2026-10-28: a fine-tuned shape never changes). Every op is absolute, from where the parts were
  * when the gesture started, so a drag can apply its latest ops again and again inside one undo step. Pure.
  */
 import { boxOf, cellsOverlap, nearestCells, trackOf, type CellBox, type PageGrid, type PageOp, type PartNode, type PartPlace, type PixelBox } from "./model.ts";
@@ -17,12 +18,31 @@ export type Start = Pick<PartNode, "id" | "kind" | "place" | "locked">;
 
 const shifted = (b: PixelBox, dx: number, dy: number): PixelBox => ({ ...b, x: b.x + dx, y: b.y + dy });
 
-/** The ops that move parts by a pointer delta (page px) from where they started; locked parts stay. */
+/** The grid line nearest `at` on one axis: a cell's start, or its end with `end`. */
+function lineNear(grid: PageGrid, axis: "x" | "y", at: number, end: boolean): number {
+  const t = trackOf(grid);
+  const track = axis === "x" ? t.w : t.h;
+  const count = axis === "x" ? grid.cols : grid.rows;
+  const pitch = track + grid.gap;
+  const first = grid.padding + (end ? track : 0);
+  if (pitch <= 0) return first;
+  const k = Math.max(0, Math.min(count - 1, Math.round((at - first) / pitch)));
+  return first + k * pitch;
+}
+
+/**
+ * The ops that move parts by a pointer delta (page px) from where they started; locked parts stay. Without Alt, an
+ * item placed freely stays placed freely at its size, its corner on the nearest cell's (so a shape tuned to the pixel
+ * keeps it); one on cells snaps to the cells nearest it.
+ */
 export function moveOps(grid: PageGrid, starts: readonly Start[], dx: number, dy: number, free: boolean): PageOp[] {
   return starts.flatMap((s): PageOp[] => {
     if (s.locked) return [];
     const box = shifted(boxOf(grid, s.place), dx, dy);
     if (free && s.kind !== "widget") return [{ type: "move", id: s.id, to: { x: Math.round(box.x), y: Math.round(box.y) } }];
+    if (s.kind !== "widget" && "px" in s.place) {
+      return [{ type: "move", id: s.id, to: { x: Math.round(lineNear(grid, "x", box.x, false)), y: Math.round(lineNear(grid, "y", box.y, false)) } }];
+    }
     const cell = nearestCells(grid, box);
     return [{ type: "move", id: s.id, to: { col: cell.col, row: cell.row } }];
   });
@@ -44,11 +64,28 @@ export function resizedBox(box: PixelBox, handle: Handle, dx: number, dy: number
   return out;
 }
 
-/** The ops that resize one part by dragging `handle`: to the pixel when free, else to the cells nearest the box. */
+/** A resized box with the edges `handle` moves on the nearest grid lines; the other edges stay where they were. */
+function snapEdges(grid: PageGrid, box: PixelBox, handle: Handle): PixelBox {
+  let { x, y } = box;
+  let r = box.x + box.w;
+  let b = box.y + box.h;
+  if (handle.includes("w")) x = Math.min(lineNear(grid, "x", x, false), r - 1);
+  if (handle.includes("e")) r = Math.max(lineNear(grid, "x", r, true), x + 1);
+  if (handle.includes("n")) y = Math.min(lineNear(grid, "y", y, false), b - 1);
+  if (handle.includes("s")) b = Math.max(lineNear(grid, "y", b, true), y + 1);
+  return { x, y, w: r - x, h: b - y };
+}
+
+/**
+ * The ops that resize one part by dragging `handle`: to the pixel when free, else to the cells nearest the box. Without
+ * Alt, an item placed freely stays placed freely: only the edges dragged snap to grid lines, the others keep their pixels.
+ */
 export function resizeOps(grid: PageGrid, start: Start, handle: Handle, dx: number, dy: number, free: boolean): PageOp[] {
   if (start.locked) return [];
-  const box = resizedBox(boxOf(grid, start.place), handle, dx, dy);
-  if (free && start.kind !== "widget") {
+  const resized = resizedBox(boxOf(grid, start.place), handle, dx, dy);
+  const keepsPx = !free && start.kind !== "widget" && "px" in start.place;
+  const box = keepsPx ? snapEdges(grid, resized, handle) : resized;
+  if ((free || keepsPx) && start.kind !== "widget") {
     const px = { x: Math.round(box.x), y: Math.round(box.y), w: Math.round(box.w), h: Math.round(box.h) };
     return [
       { type: "move", id: start.id, to: { x: px.x, y: px.y } },
