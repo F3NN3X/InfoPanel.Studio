@@ -171,7 +171,7 @@ export const COLLECTIONS: Collection[] = [
   { id: "svg", label: "SVG templates", section: "Library", parent: "media" },
   { id: "fonts", label: "Fonts", section: "Library", hint: "Fonts appear in every Typography picker." },
   { id: "builtinfonts", label: "Built-in fonts", section: "Library", parent: "fonts", hint: "The fonts every Typography picker offers. Google fonts load when used; offline a system font stands in." },
-  { id: "components", label: "Components", section: "Library", hint: "Pieces of an InfoPanel profile. Drag one onto the screen or onto an InfoPanel profile in Edit, or save one from a selection there." },
+  { id: "components", label: "Components", section: "Library", hint: "Pieces of a page saved from a selection in Edit. Drag one onto a screen or onto an InfoPanel profile." },
   { id: "canvases", label: "InfoPanel profiles", section: "Library", hint: "Profiles for the InfoPanel app. Edit opens one in Edit; a new profile can start from one." },
   { id: "templates", label: "Screen templates", section: "Library", hint: "Ready-made screens. New screen from this opens the New screen page on it; Duplicate adds one to Screens at once." },
   { id: "ptemplates", label: "InfoPanel templates", section: "Library", hint: "Ready-made InfoPanel profiles. New InfoPanel profile from this opens the New page on one." },

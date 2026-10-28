@@ -1,10 +1,11 @@
 import { onPage } from "@/lib/pages";
-import { CANVAS_ID, SCROLL_ROW_H, newProfile, uid, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
+import { BLANK_MODULE, CANVAS_ID, ITEM_ID, SCROLL_ROW_H, newProfile, uid, type DashboardConfig, type Placement, type ProfileView } from "@/lib/layout";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import { withProfile } from "./profile-actions";
 import { firstFreeRect, type ZoneRect } from "./zone-geometry";
 import { canvasAsGroup } from "@/lib/page-model/canvas-group";
 import { cellCount } from "@/lib/page-model/migrate";
+import { cellsOverlap } from "@/lib/page-model/model";
 
 /** A canvas zone holding `canvas` in `rect`. */
 function canvasZone(id: string, canvas: StoredCanvas, rect: ZoneRect): Placement {
@@ -62,7 +63,8 @@ export function canvasRect(view: ProfileView, width: number, height: number): Zo
 /**
  * An InfoPanel profile or component added to one page of a profile (one undo step), in the cells it draws largest
  * in: its items become item placements at the pixels it draws them, in a group named after it (Edit v3 SPEC §3.8, as
- * v15 converts a free area; none is made any more). `zoneId` is the group's id. Null when the page has no room.
+ * v15 converts a free area; none is made any more), a widget item a widget on the nearest free cells. `zoneId` is the
+ * group's id. Null when the page has no room, for the canvas or for a widget it holds.
  */
 export function importIntoProfile(
   config: DashboardConfig,
@@ -75,7 +77,7 @@ export function importIntoProfile(
   if (!rect) return null;
   const zoneId = uid(CANVAS_ID);
   const add = onPage(view.pageId, (v) => ({ ...v, placements: [...v.placements, canvasZone(zoneId, canvas, rect)] }));
-  const made: { groupId: string | null } = { groupId: null };
+  const made: { groupId: string | null; collides: boolean } = { groupId: null, collides: false };
   const profiles = config.profiles.map((p) => {
     if (p.id !== view.id) return p;
     const added = add(p);
@@ -83,11 +85,23 @@ export function importIntoProfile(
       if (!pg.placements.some((z) => z.id === zoneId)) return pg;
       const r = canvasAsGroup(added, pg, zoneId);
       made.groupId = r.groupId;
+      made.collides = widgetsCollide(r.page.placements, pg.placements);
       return r.page;
     });
     return { ...added, pages };
   });
-  return made.groupId ? { config: { ...config, profiles }, zoneId: made.groupId } : null;
+  // A widget it holds (a component saved from a screen's page) never lands on another (decision Q3): no room, no add.
+  return made.groupId && !made.collides ? { config: { ...config, profiles }, zoneId: made.groupId } : null;
+}
+
+const isWidget = (p: Placement) => p.module !== ITEM_ID && p.module !== BLANK_MODULE && p.module !== CANVAS_ID;
+const cellsOf = (p: Placement) => ({ col: p.colStart, row: p.rowStart, cols: p.colSpan, rows: p.rowSpan });
+
+/** Whether a widget added to the page (not in `before`) shares a cell with another widget. */
+function widgetsCollide(placements: readonly Placement[], before: readonly Placement[]): boolean {
+  const old = new Set(before.map((p) => p.id));
+  const widgets = placements.filter(isWidget);
+  return widgets.some((a) => !old.has(a.id) && widgets.some((b) => b !== a && cellsOverlap(cellsOf(a), cellsOf(b))));
 }
 
 /** The canvas zone of a profile view the Export dialog writes: the selected one, else the first. */
