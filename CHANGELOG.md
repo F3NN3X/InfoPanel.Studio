@@ -6,6 +6,13 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 
 ## [Unreleased]
 
+### Changed
+
+- **Applying a theme adds to your look.** A saved theme or a template's look now sets the palette, skin and corners, and replaces only the style values the last theme set. Values you changed since are kept. Before, it replaced the level's whole widget style. On a page it sets the skin and style values; the palette, corners and background stay the screen's.
+- **The background comes with a theme only when you tick Include background.** The command palette's *Apply theme* no longer adds one where none was set.
+- **A template variant applied in Theme matches a new screen made from it.** Smoke, Tint and Float now set their card opacity, and variants swap their colors in the widgets, at a screen or a page. Switching to another theme takes that back; widget values you changed since stay.
+- **Update ‹name› updates everywhere the theme is used.** Each screen or page that last applied it gets the new version and keeps what it changed since. *Save as Theme* makes that level use the new theme.
+
 ### Added
 
 - **Save to Library on a screen's page.** Select widgets, items, elements or groups, in any mix, and choose **Save to Library** in the layer menu or a group's inspector, or press `Ctrl+Shift+S`. It goes to the Library's Components with the same name dialog as on an InfoPanel profile. Parts keep their places relative to each other, widgets their settings, look and any name you gave them, groups their names and what they hold, and hidden parts stay hidden; only the files they use go with them. Dragged back onto a screen's page, it lands as a group with its widgets on the nearest free cells, or isn't added when a widget has no room. In an InfoPanel profile its widgets stay Studio widgets. It replaces the greyed-out *Coming soon* row.

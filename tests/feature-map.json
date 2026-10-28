@@ -385,6 +385,7 @@
       "paths": [
         "src/lib/theme*.ts",
         "src/lib/appearance*.ts",
+        "src/lib/applied-theme.ts",
         "src/lib/style-*.ts",
         "src/lib/builtin-styles.ts",
         "src/lib/inheritance.ts",

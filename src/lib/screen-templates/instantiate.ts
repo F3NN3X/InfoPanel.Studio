@@ -16,7 +16,8 @@ import { MAIN_PAGE_ID } from "../pages";
 import { sectionsWithValues } from "../theme-model";
 import { placePage, type Placed } from "./fallback";
 import { REFERENCE, type ScreenTemplate, type ShapeLayout, type Size, type Variant } from "./kit";
-import { templatePreset, variantOf } from "./looks";
+import type { AppliedTheme, ZoneWrite } from "../applied-theme";
+import { swapColors, templatePreset, variantOf } from "./looks";
 
 export interface TemplateInput {
   name: string;
@@ -32,6 +33,12 @@ export interface Instance {
   profile: MonitorProfile;
   /** The roles nothing on this machine matched, in plain words ("GPU power"), in template order. */
   unbound: string[];
+  /**
+   * The screen's theme snapshot: the template theme it was made with, and what its variant wrote into the zones, so
+   * switching the screen to another theme takes that back (`lib/theme-apply.ts`). Kept apart from `profile`, whose
+   * placement ids are new each time.
+   */
+  applied: AppliedTheme;
 }
 
 /** The classes a template's layouts stand in for when it has none of a size's own, nearest first. */
@@ -73,20 +80,11 @@ const ZOOM_MAX = 1;
 export const zoneZoom = (design: Size, width: number, height: number): number =>
   Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min(width / design.width, height / design.height)));
 
-const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 /** The settings with the variant's colours swapped wherever a value holds them, and its own values set where a zone has the key. */
 function recolored(settings: ModuleSettings | undefined, v: Variant | undefined): ModuleSettings | undefined {
   if (!settings || !v) return settings;
-  const swap = Object.entries(v.swap ?? {});
-  const pattern = swap.length > 0 ? new RegExp(swap.map(([from]) => escaped(from)).join("|"), "gi") : undefined;
-  const to = new Map(swap.map(([from, hex]) => [from.toLowerCase(), hex]));
-  return Object.fromEntries(
-    Object.entries(settings).map(([key, value]) => [
-      key,
-      key in (v.zones ?? {}) ? v.zones![key] : pattern && typeof value === "string" ? value.replace(pattern, (m) => to.get(m.toLowerCase()) ?? m) : value,
-    ]),
-  );
+  const swapped = swapColors(settings, v.swap);
+  return Object.fromEntries(Object.entries(swapped).map(([key, value]) => [key, key in (v.zones ?? {}) ? v.zones![key] : value]));
 }
 
 export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
@@ -115,9 +113,13 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
     const unit = role ? ROLE_INFO[role].unit : "";
     return z.module === "SensorValue" && unit && bound.sensor && input.sensors?.[bound.sensor]?.unit === "" ? { unit } : {};
   };
+  const zones: Record<string, ZoneWrite> = {};
   const placement = ({ zone: z, at, bound, roles, label }: Placed): Placement => {
     const [col, row, cols, rows] = at;
     const base = recolored(z.settings, variant);
+    const id = uid(z.module);
+    const write = z.settings && base ? zoneWrite(z.settings, base) : undefined;
+    if (write) zones[id] = write;
     const settings = { ...base, ...(label !== undefined && typeof base?.label === "string" ? { label } : {}), ...(base?.unit === undefined ? unitOf(z, bound, roles) : {}), ...bound,
       // A zone's Size % is set for the template's own size, so it follows the screen's size from there.
       ...(typeof base?.scale === "number" ? { scale: Math.round(base.scale * zoom) } : {}),
@@ -125,7 +127,7 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
     // A zone's own look values (a bigger clock, its own surface) apply only in the sections it customises.
     const own = sectionsWithValues(base);
     return {
-      id: uid(z.module),
+      id,
       module: z.module,
       colStart: (col - 1) * kx + 1,
       rowStart: (row - 1) * ky + 1,
@@ -161,5 +163,21 @@ export function instantiate(t: ScreenTemplate, input: TemplateInput): Instance {
   };
   const wanted = layout.pages.flat().flatMap((z) => Object.values(z.roles ?? {}));
   const unbound = [...new Set(wanted)].filter((role) => keyOf(role) === undefined).map((role) => ROLE_INFO[role].label);
-  return { profile, unbound };
+  const applied: AppliedTheme = {
+    id: look.id,
+    name: look.name,
+    tokens: presetTokens(look),
+    radius: look.radius,
+    ...(look.background ? { background: { ...look.background } } : {}),
+    values: style,
+    ...(Object.keys(zones).length > 0 ? { zones } : {}),
+  };
+  return { profile, unbound, applied };
+}
+
+/** What a variant changed in a zone's settings (none when it changed nothing). */
+function zoneWrite(before: ModuleSettings, after: ModuleSettings): ZoneWrite | undefined {
+  const keys = Object.keys(after).filter((key) => after[key] !== before[key]);
+  if (keys.length === 0) return undefined;
+  return { was: Object.fromEntries(keys.map((key) => [key, before[key]])), now: Object.fromEntries(keys.map((key) => [key, after[key]])) };
 }

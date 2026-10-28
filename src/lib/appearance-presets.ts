@@ -1,8 +1,8 @@
 import { THEME_SETTINGS } from "@/modules/standard-settings";
 import { ALIGN_CODES } from "@/modules/setting-readers";
 import { migrateStyleV7 } from "./settings-migrate";
-import { THEMED_KEYS } from "./theme-model";
-import type { ModuleSetting, ModuleSettings } from "@/modules/types";
+import { THEMED_KEYS, themedOf } from "./theme-model";
+import { settingKeys, type ModuleSetting, type ModuleSettings } from "@/modules/types";
 import { color, normalizeBackground, type PageBackground } from "./appearance";
 import { DEFAULT_THEME, THEME_PRESETS, type ThemePresetName, type ThemeTokens } from "./theme";
 
@@ -30,6 +30,23 @@ export interface AppearancePreset {
   style: ModuleSettings;
   /** A suggested page background (complete, as stored on the config). */
   background?: PageBackground;
+  /** A template theme's changes to the zones' own settings (built-in only: never stored, see `ZoneLook`). */
+  zoneLook?: ZoneLook;
+}
+
+/**
+ * What a template variant writes into the zones' own settings besides the preset (`looks.ts`): its colour swaps and
+ * its values (a card's opacity), set where a zone has the key.
+ */
+export interface ZoneLook {
+  swap?: Readonly<Record<string, string>>;
+  values?: ModuleSettings;
+}
+
+/** A built-in preset kept as a saved one: what the zones get stays with the template. */
+export function withoutZoneLook(preset: AppearancePreset): AppearancePreset {
+  const { zoneLook: _zones, ...rest } = preset;
+  return rest;
 }
 
 /**
@@ -42,6 +59,19 @@ export const isBuiltinPreset = (id: string): boolean => id.startsWith("builtin:"
 export function presetTokens(preset: Pick<AppearancePreset, "theme">): ThemeTokens {
   if (typeof preset.theme !== "string") return preset.theme;
   return THEME_PRESETS.find((p) => p.name === preset.theme)?.tokens ?? DEFAULT_THEME;
+}
+
+/** The value of every look key when nothing sets it (what a screen writes over All screens' keys a theme leaves unset). */
+export const LOOK_DEFAULTS: ModuleSettings = Object.fromEntries(THEME_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, s.default])));
+
+/**
+ * The style values a theme writes at a level: its own, and at a screen (`shadow`: All screens' style) the defaults of
+ * the keys All screens sets that it doesn't, so the screen shows the theme rather than a blend.
+ */
+export function themeValues(preset: Pick<AppearancePreset, "style">, shadow?: ModuleSettings): ModuleSettings {
+  const style = themedOf(preset.style);
+  const shadowed = Object.keys(shadow ?? {}).filter((key) => !(key in style) && key in LOOK_DEFAULTS);
+  return { ...Object.fromEntries(shadowed.map((key) => [key, LOOK_DEFAULTS[key]])), ...style };
 }
 
 /* ---------------- validation ---------------- */

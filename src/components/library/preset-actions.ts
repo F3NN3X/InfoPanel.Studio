@@ -5,8 +5,9 @@
  * applied and duplicated, nothing more; a skin's copy is a saved Theme with that skin.
  */
 import { Copy, Paintbrush, Pencil, RefreshCw, Trash2 } from "lucide-react";
-import { applyThemeAt, deleteAppearancePreset, duplicateAppearancePreset, renameAppearancePreset, type ThemeTarget } from "@/lib/appearance-preset-apply";
-import type { AppearancePreset } from "@/lib/appearance-presets";
+import { deleteAppearancePreset, duplicateAppearancePreset, renameAppearancePreset, type ThemeTarget } from "@/lib/appearance-preset-apply";
+import { withoutZoneLook, type AppearancePreset } from "@/lib/appearance-presets";
+import { applyTheme } from "@/lib/theme-apply";
 import { uid, type DashboardConfig, type StylePreset } from "@/lib/layout";
 import type { LibraryItem } from "@/lib/library";
 import { BUILTIN_LOOK, BUILTIN_THEME, CONFIG_STYLE, CONFIG_THEME, isBuiltinItem, type SkinData } from "@/lib/my-library/config-items";
@@ -103,7 +104,7 @@ export function presetScopes(item: LibraryItem, ctx: PresetContext): ScopeChoice
     } else if (palette) {
       const tokens = (item.data as ThemePreset).tokens;
       bridge.setConfig((c) => withTokens(c, target.kind === "all" ? { level: "all" } : { level: "screen", profileId: bridge.profileId }, tokens));
-    } else bridge.setConfig((c) => applyThemeAt(c, item.data as AppearancePreset, target, { includeBackground: isLook(item) }));
+    } else bridge.setConfig((c) => applyTheme(c, item.data as AppearancePreset, target, { includeBackground: isLook(item) }));
     done(where);
   };
   return [
@@ -148,7 +149,7 @@ export function presetSecondary(item: LibraryItem, ctx: PresetContext): DetailAc
         const copy: AppearancePreset = { id, name: `${item.name} skin`, description: "Saved theme", theme: { ...bridge.config.theme }, radius: bridge.config.radius, style: { ...skin.settings } };
         bridge.setConfig((c) => ({ ...c, appearancePresets: [...(c.appearancePresets ?? []), copy] }));
       } else if (isLook(item)) {
-        const look = item.data as AppearancePreset;
+        const look = withoutZoneLook(item.data as AppearancePreset);
         bridge.setConfig((c) => ({ ...c, appearancePresets: [...(c.appearancePresets ?? []), { ...structuredClone(look), id, name: `${look.name} copy` }] }));
       } else if (builtin(item)) {
         if (theme) {

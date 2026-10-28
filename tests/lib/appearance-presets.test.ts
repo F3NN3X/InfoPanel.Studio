@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { PROFILE_STYLE_KEYS } from "@/modules/standard-settings";
 import {
   applyAppearancePreset,
-  applyThemeAt,
   duplicateAppearancePreset,
   presetFromCurrent,
   saveThemeAt,
@@ -16,6 +15,7 @@ import {
   type AppearancePreset,
 } from "@/lib/appearance-presets";
 import { normalizeBackground } from "@/lib/appearance";
+import { applyTheme } from "@/lib/theme-apply";
 import type { DashboardConfig, MonitorProfile, Placement } from "@/lib/layout";
 import { mainPage } from "@/lib/pages";
 import { DEFAULT_THEME, THEME_PRESETS } from "@/lib/theme";
@@ -198,7 +198,7 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
       ],
     });
     const seeded = { ...c, profiles: [{ ...c.profiles[0], pages: [{ ...pageOf(c), widgetTheme: { values: { surfaceOpacity: 40, font: "mono" } } }] }, c.profiles[1]] };
-    const out = applyThemeAt(seeded, glass, PAGE);
+    const out = applyTheme(seeded, glass, PAGE);
     const theme = pageOf(out).widgetTheme!;
     // Surface (all three keys replaced) is customised; the locked Border & glow is not written.
     expect(theme.values).toEqual({ font: "mono", surface: "glass", surfaceOpacity: 60, blur: "16" });
@@ -212,9 +212,9 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
 
   it("never writes the background with Include background off, and always with it on", () => {
     const c = config({ background: { type: "color", color: "#101010" } });
-    expect(applyThemeAt(c, glass, ALL, { includeBackground: false }).background).toEqual(c.background);
-    expect(applyThemeAt(c, glass, ALL, { includeBackground: true }).background).toEqual(glass.background);
-    expect(applyThemeAt(config(), glass, P1, { includeBackground: false }).profiles[0].background).toBeUndefined();
+    expect(applyTheme(c, glass, ALL, { includeBackground: false }).background).toEqual(c.background);
+    expect(applyTheme(c, glass, ALL, { includeBackground: true }).background).toEqual(glass.background);
+    expect(applyTheme(config(), glass, P1, { includeBackground: false }).profiles[0].background).toBeUndefined();
   });
 
   it("saves a page's resolved look: its customised sections over its screen's, the screen's tokens", () => {
@@ -248,7 +248,7 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
     const preset = saved.appearancePresets![0];
     expect(preset).toMatchObject({ id: "u1", name: "Desk", radius: 1, style: { surface: "glass", accent: "#0000ff" } });
     expect(preset.background).toBeUndefined();
-    const all = applyThemeAt(saved, preset, ALL);
+    const all = applyTheme(saved, preset, ALL);
     expect(all.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
     expect(all.radius).toBe(1);
     expect(all.style).toEqual({ surface: "glass", accent: "#0000ff" });
