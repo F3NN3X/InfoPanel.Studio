@@ -98,5 +98,9 @@ export const SCREEN_KIT: ScreenKit = {
   Thumb,
   Host: TemplateShotHost,
   Preview,
-  make: (entry, { name, width, height, palette, sensors }) => instantiate(templateOf(entry), { name, width, height, variant: palette, sensors: asApi(sensors) }),
+  make: (entry, { name, width, height, palette, sensors }) => {
+    // The screen counts as having its template theme applied, so a later theme switch takes the variant's zone writes back.
+    const { profile, unbound, applied } = instantiate(templateOf(entry), { name, width, height, variant: palette, sensors: asApi(sensors) });
+    return { profile: { ...profile, appliedTheme: applied }, unbound };
+  },
 };

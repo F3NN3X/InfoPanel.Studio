@@ -1,6 +1,7 @@
 import { DEFAULT_THEME, normalizeThemePatch, type ThemeTokens } from "./theme";
 import { normalizeBackground, type PageBackground } from "./appearance";
 import { normalizeAppearancePresets, type AppearancePreset } from "./appearance-presets";
+import { guessAppliedThemes, normalizeAppliedTheme, type AppliedTheme } from "./applied-theme";
 import type { ModuleSettings } from "@/modules/types";
 import type { SectionFlags, WidgetTheme } from "./theme-model";
 import {
@@ -188,6 +189,8 @@ export interface ProfilePage {
   freeCanvas?: Omit<StoredCanvas, "items">;
   /** Items and elements snap to cells while dragging (Edit v3 SPEC §3.2). Unset = true. Widgets always snap. */
   snapItems?: boolean;
+  /** What the theme last applied to this page wrote (its skin and style values, `lib/applied-theme.ts`); unset = none. */
+  appliedTheme?: AppliedTheme;
   /** The page's groups (§3.5); a canvas-backed page keeps its groups as the canvas's Group items. */
   groups?: PageGroup[];
 }
@@ -267,6 +270,8 @@ export interface MonitorProfile {
   updatedAt?: string;
   /** Who this screen is for; unset = "studio". "infopanel" turns on the export marks and the Export check. */
   madeFor?: MadeFor;
+  /** What the theme last applied to this screen wrote (`lib/applied-theme.ts`); unset = none. */
+  appliedTheme?: AppliedTheme;
 }
 
 /**
@@ -349,6 +354,8 @@ export interface DashboardConfig {
   style?: ModuleSettings;
   /** Whole looks the user saved (saved Themes; see appearance-presets.ts). */
   appearancePresets?: AppearancePreset[];
+  /** What the theme last applied to All screens wrote (`lib/applied-theme.ts`); unset = none. */
+  appliedTheme?: AppliedTheme;
   /** Font, clock format, locale, motion and kiosk cursor (see general.ts). */
   general?: GeneralSettings;
   /** Alert rules (see alerts.ts); absent = none. */
@@ -480,7 +487,7 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
       typeof page.id === "string" && page.id && !seen.has(page.id) ? page.id : uid("page");
     seen.add(id);
     // v15 stores no page layout (it reads from the page's shape); a v14 flag goes.
-    const { layout: _layout, groups: rawGroups, snapItems, ...rest } = page as ProfilePage & { layout?: unknown };
+    const { layout: _layout, groups: rawGroups, snapItems, appliedTheme, ...rest } = page as ProfilePage & { layout?: unknown };
     const groups = normalizeGroups(rawGroups);
     const known = new Set(groups.map((g) => g.id));
     const placements = normalizePlacements(page.placements ?? [], cols, rows).map((pl) => {
@@ -495,6 +502,7 @@ function normalizePages(p: StoredProfile, cols: number, rows: number): ProfilePa
       placements,
       ...(groups.length ? { groups } : {}),
       ...(snapItems === false ? { snapItems } : {}),
+      ...(normalizeAppliedTheme(appliedTheme) ? { appliedTheme: normalizeAppliedTheme(appliedTheme) } : {}),
     };
   });
 }
@@ -579,6 +587,7 @@ function profileExtras(p: StoredProfile): Partial<MonitorProfile> {
     performance: normalizePerformance(p.performance),
     font: normalizeFont(p.font),
     madeFor: p.madeFor === "studio" || p.madeFor === "infopanel" ? p.madeFor : undefined,
+    appliedTheme: normalizeAppliedTheme(p.appliedTheme),
     updatedAt: typeof p.updatedAt === "string" && !Number.isNaN(Date.parse(p.updatedAt)) ? p.updatedAt : undefined,
   };
 }
@@ -682,7 +691,8 @@ export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfi
   let activeProfile = parsed.activeProfile ?? defaults.activeProfile;
   if (activeProfile !== "auto" && !byId.has(activeProfile))
     activeProfile = "auto";
-  return {
+  // A dashboard saved before levels kept their theme snapshot gets one where a level shows exactly a saved theme.
+  return guessAppliedThemes({
     version: CONFIG_VERSION,
     activeProfile,
     sourcePrefs: parsed.sourcePrefs,
@@ -697,9 +707,10 @@ export function mergeConfig(input: StoredConfig, log?: string[]): DashboardConfi
     background: normalizeBackground(parsed.background),
     style: v7.style,
     appearancePresets: normalizeAppearancePresets(parsed.appearancePresets),
+    appliedTheme: normalizeAppliedTheme(parsed.appliedTheme),
     general: normalizeGeneral(v7.general),
     alerts: normalizeAlerts(parsed.alerts),
-  };
+  });
 }
 
 /** Load the saved config, merged over defaults (tolerates missing fields). */

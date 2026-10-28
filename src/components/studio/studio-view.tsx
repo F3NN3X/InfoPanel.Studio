@@ -99,7 +99,6 @@ import { useToast } from "@/components/ui/toast";
 import { createLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
 import { canvasItem } from "@/lib/my-library/canvas-link";
 import { findCanvasUse } from "@/lib/my-library/canvas-use";
-import { applyThemeAt } from "@/lib/appearance-preset-apply";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { FixtureStart } from "@/dev/fixtures/types";
@@ -1184,7 +1183,7 @@ function StudioViewBody({
   );
   /** A saved Theme's "Edit in Theme": applied to All screens (one undo step), then Theme opens there in its Editing state. */
   const editInTheme = (preset: AppearancePreset) => {
-    setConfig((c) => applyThemeAt(c, preset, { kind: "all" }, { includeBackground: true }));
+    void import("@/lib/theme-apply").then((m) => setConfig((c) => m.applyTheme(c, preset, { kind: "all" }, { includeBackground: true })));
     ui.openTheme({ kind: "base" });
     ui.setThemeEditing(preset.id);
   };

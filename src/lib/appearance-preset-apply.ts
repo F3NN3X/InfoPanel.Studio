@@ -1,10 +1,9 @@
-import { THEME_SETTINGS } from "@/modules/standard-settings";
-import { settingKeys, type ModuleSettings } from "@/modules/types";
+import type { ModuleSettings } from "@/modules/types";
 import type { BackgroundScope, PageBackground } from "./appearance";
-import { presetTokens, type AppearancePreset } from "./appearance-presets";
+import { LOOK_DEFAULTS, presetTokens, withoutZoneLook, type AppearancePreset } from "./appearance-presets";
 import type { DashboardConfig } from "./layout";
 import { resolveTheme } from "./theme";
-import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withSectionFlag, withThemeValues, type ThemeLevels } from "./theme-model";
+import { pageCustom, SECTION_IDS, SECTION_KEYS, themedOf, withThemeValues, type ThemeLevels } from "./theme-model";
 
 /**
  * Applying a Theme (an appearance preset), and saving one.
@@ -59,10 +58,6 @@ function nextBackground(
   return write ? { ...preset.background } : current;
 }
 
-const LOOK_DEFAULTS: ModuleSettings = Object.fromEntries(
-  THEME_SETTINGS.flatMap((s) => settingKeys(s).map((key) => [key, s.default]))
-);
-
 /** A profile's style for a preset: the dashboard's keys it leaves unset reset to their defaults. */
 function profileStyle(config: DashboardConfig, style: ModuleSettings): ModuleSettings {
   const shadowed = Object.keys(config.style ?? {}).filter((key) => !(key in style) && key in LOOK_DEFAULTS);
@@ -107,45 +102,6 @@ export function applyAppearancePreset(
         : p
     ),
   };
-}
-
-/** A preset's widget style written as a page's own, section by section (see the module comment). */
-function applyToPage(config: DashboardConfig, preset: AppearancePreset, profileId: string, pageId: string): DashboardConfig {
-  const style = themedOf(preset.style);
-  return {
-    ...config,
-    profiles: config.profiles.map((p) => {
-      if (p.id !== profileId) return p;
-      const secs = SECTION_IDS.filter((sec) => p.widgetTheme?.locks?.[sec] !== true && SECTION_KEYS[sec].some((key) => key in style));
-      const keys = new Set(secs.flatMap((sec) => SECTION_KEYS[sec]));
-      return {
-        ...p,
-        pages: p.pages.map((pg) => {
-          if (pg.id !== pageId) return pg;
-          const kept = Object.entries(pg.widgetTheme?.values ?? {}).filter(([key]) => !keys.has(key));
-          const values = { ...Object.fromEntries(kept), ...Object.fromEntries(Object.entries(style).filter(([key]) => keys.has(key))) };
-          const theme = secs.reduce(
-            (t, sec) => withSectionFlag(t, "follow", sec, false),
-            withThemeValues(pg.widgetTheme, orNone(values))
-          );
-          const { widgetTheme: _old, ...rest } = pg;
-          return theme ? { ...rest, widgetTheme: theme } : rest;
-        }),
-      };
-    }),
-  };
-}
-
-/** Apply a Theme at any of Theme's scopes ("Apply a theme here…"); `includeBackground` unset = only where none is set. */
-export function applyThemeAt(
-  config: DashboardConfig,
-  preset: AppearancePreset,
-  target: ThemeTarget,
-  options: ApplyOptions = {}
-): DashboardConfig {
-  return target.kind === "page"
-    ? applyToPage(config, preset, target.profileId, target.pageId)
-    : applyAppearancePreset(config, preset, target, options);
 }
 
 /* ---------------- the user's presets ---------------- */
@@ -243,7 +199,7 @@ export function duplicateAppearancePreset(config: DashboardConfig, id: string, c
 /** A built-in Theme kept as the user's own, named "‹name› copy", at the end of the saved Themes: free to rename and edit. */
 export const saveCopyOfPreset = (config: DashboardConfig, preset: AppearancePreset, copyId: string): DashboardConfig => ({
   ...config,
-  appearancePresets: [...(config.appearancePresets ?? []), { ...structuredClone(preset), id: copyId, name: `${preset.name} copy` }],
+  appearancePresets: [...(config.appearancePresets ?? []), { ...structuredClone(withoutZoneLook(preset)), id: copyId, name: `${preset.name} copy` }],
 });
 
 export function renameAppearancePreset(config: DashboardConfig, id: string, name: string): DashboardConfig {
