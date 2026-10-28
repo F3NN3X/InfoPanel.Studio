@@ -3,6 +3,7 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import { resolveFont, resolveGeneral } from "@/lib/general";
 import { createIslandBus } from "@/lib/island/bus";
 import { withIsland, type IslandConfig } from "@/lib/island/config";
+import { withIslandLook } from "@/lib/island/looks";
 import type { DashboardConfig, MonitorProfile } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { modules } from "@/modules";
@@ -84,6 +85,7 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
       island={island}
       previewBus={previewBus}
       onChange={patchIsland}
+      onLook={(look) => setConfig((c) => withIslandLook(c, look, profile.id))}
       onOpenExplorer={onOpenExplorer}
       links={{
         font: (

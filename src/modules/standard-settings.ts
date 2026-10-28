@@ -59,7 +59,7 @@ const APP_SURFACE_OPTIONS = [
   { value: "glass", label: "Glass" },
   { value: "matte-light", label: "Matte (light)" },
   { value: "matte-dark", label: "Matte (dark)" },
-  { value: "theme", label: "Theme" },
+  { value: "theme", label: "Match theme" },
 ];
 
 /** Size, alignment, spacing, colors and type — every widget gets these. */

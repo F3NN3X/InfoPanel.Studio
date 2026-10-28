@@ -98,7 +98,6 @@ import { useToast } from "@/components/ui/toast";
 import { createLibraryItem, type LibraryCopy, type LibraryItem } from "@/lib/library";
 import { canvasItem } from "@/lib/my-library/canvas-link";
 import { findCanvasUse } from "@/lib/my-library/canvas-use";
-import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { StoredCanvas } from "@/lib/infopanel/import/stored";
 import type { FixtureStart } from "@/dev/fixtures/types";
 
@@ -1182,11 +1181,6 @@ function StudioViewBody({
   const canvasZones = profile.placements.filter(
     (z): z is typeof z & { canvas: NonNullable<typeof z.canvas> } => z.module === CANVAS_ID && !!z.canvas,
   );
-  /** A saved Theme's "Edit in Theme": applied to All screens (one undo step), then Theme opens there, the card naming it. */
-  const editInTheme = (preset: AppearancePreset) => {
-    void import("@/lib/theme-apply").then((m) => setConfig((c) => m.applyTheme(c, preset, { kind: "all" }, { includeBackground: true })));
-    ui.openTheme({ kind: "base" });
-  };
   /** A Library profile's "Edit profile": the InfoPanel editor on the first zone made from it, else it comes in as a new screen (no import dialog, it is already stored) that opens in the editor. */
   const editCanvas = async (item: LibraryItem) => {
     const stored = await dataOf<StoredCanvas>(item);
@@ -1211,9 +1205,8 @@ function StudioViewBody({
         key={libraryEpoch}
         bridge={libraryBridge}
         request={ui.libraryRequest}
-        pageId={currentPageId}
         selectionStyle={selected ? ownStyle(selected, appearance) : null}
-        onEditInTheme={editInTheme}
+        onOpenTheme={() => ui.navigateTo({ view: "theme" })}
         onEditCanvas={(item) => void editCanvas(item)}
         onShowCanvas={() => {
           // Edit: the canvas editor when one is open, where a component dragged out of the Library lands.

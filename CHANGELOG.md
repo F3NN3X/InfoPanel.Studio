@@ -18,6 +18,10 @@ version as its notes, so move **Unreleased** under a new `## [X.Y.Z] - YYYY-MM-D
 - **Apply theme from the command palette at the level Theme is set to**, with **Apply theme with background** as a second command.
 - **Theme's preview shows what differs.** Pick any page of the screen above the preview to look at it; the level you edit stays. Widgets that don't follow the level carry a blue tag with the section they change, which **N widgets differ · hide tags** hides. Click a widget to see what it uses of its own, with **Use theme's value** and **Open in Edit ↗**; with none selected, **Make all follow**. Colors and card opacity a template variant set in a widget count as the theme's, not as a difference. The *Exceptions* list is gone: a screen's or page's own sections show as **Changed here** in fine-tune.
 - **Theme's messages show above the preview** with **Undo**, and **Reset to ‹name›** after a theme applied with fine-tune kept.
+- **One Library.** Themes, palettes and skins are no longer in the Library; a row at the end of its sidebar, **Themes, palettes and skins are in Theme →**, opens Theme. Saved Styles stay in the Library, where you can rename, duplicate and delete them.
+- **Island looks moved into the island settings.** The six looks are buttons at the top of **Look** in Alerts & Island › Island and apply to the screen you are editing in one undo step. **Glass** is now **Frosted pill**, **Paper** is **Light pill** and **Theme card** is **Match theme**.
+- **Widget Styles renamed.** *Default* is **Follow theme**, *Dark* **Matte dark**, *Light* **Matte light**, *Vivid* **Frosted** and *Mono* **Monochrome**. The surface material *Theme* is now **Match theme**.
+- **A screen's Theme row in the page settings names its theme like the theme card:** the theme, **Changed from ‹name›**, **‹name› (deleted)** or **Custom look**.
 
 ### Added
 

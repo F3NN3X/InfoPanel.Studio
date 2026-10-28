@@ -9,13 +9,13 @@ export interface BuiltinStyle {
 
 /**
  * The five former "Style preset" choices, now built-in Styles (config v10 drops the zone's `preset` key). They
- * carry look keys only: the `tint` the old Dark / Light / Vivid / Mono options also wrote is gone. Default is the
+ * carry look keys only: the `tint` the old Dark / Light / Vivid / Mono options also wrote is gone. Follow theme is the
  * empty look, so applying it clears the widget's own style.
  */
 export const BUILTIN_STYLES: readonly BuiltinStyle[] = [
-  { id: "default", name: "Default", settings: {} },
-  { id: "dark", name: "Dark", settings: { surface: "matte-dark" } },
-  { id: "light", name: "Light", settings: { surface: "matte-light" } },
-  { id: "vivid", name: "Vivid", settings: { surface: "glass" } },
-  { id: "mono", name: "Mono", settings: { surface: "matte-dark", accent: "#fafafa" } },
+  { id: "default", name: "Follow theme", settings: {} },
+  { id: "dark", name: "Matte dark", settings: { surface: "matte-dark" } },
+  { id: "light", name: "Matte light", settings: { surface: "matte-light" } },
+  { id: "vivid", name: "Frosted", settings: { surface: "glass" } },
+  { id: "mono", name: "Monochrome", settings: { surface: "matte-dark", accent: "#fafafa" } },
 ];

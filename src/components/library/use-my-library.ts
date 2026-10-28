@@ -1,7 +1,7 @@
 /**
  * My library's state on the Library page (spec §3): the server's items plus the config's own
- * saved panels, Styles and Themes and the built-ins (palettes, Styles, skins, panels, and the template
- * looks, screen templates and InfoPanel templates once their catalogs load), the upload queue
+ * saved panels and Styles and the built-ins (Styles, panels, and the screen templates and InfoPanel
+ * templates once their catalogs load), the upload queue
  * behind the tray, and the item actions that change the library (copies, variants, merges).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -51,7 +51,7 @@ export interface MyLibrary {
 
 const WORKERS = 2;
 
-export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets" | "appearancePresets">): MyLibrary {
+export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "stylePresets">): MyLibrary {
   const [server, setServer] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +64,9 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   const [sources, setSources] = useState<BuiltinSources>({});
   useEffect(() => {
     let live = true;
-    // The screen and InfoPanel templates are large catalogs: their looks and the templates themselves come on demand.
-    void Promise.all([import("@/lib/screen-templates/template-presets"), import("@/lib/screen-templates/catalog"), import("@/lib/infopanel/templates/catalog")]).then(
-      ([looks, catalog, profiles]) => live && setSources({ looks: looks.TEMPLATE_PRESETS, templates: catalog.SCREEN_TEMPLATES, profileTemplates: profiles.TEMPLATES }),
+    // The screen and InfoPanel templates are large catalogs: they come on demand.
+    void Promise.all([import("@/lib/screen-templates/catalog"), import("@/lib/infopanel/templates/catalog")]).then(
+      ([catalog, profiles]) => live && setSources({ templates: catalog.SCREEN_TEMPLATES, profileTemplates: profiles.TEMPLATES }),
       () => {},
     );
     return () => {
@@ -131,7 +131,7 @@ export function useMyLibrary(config: Pick<DashboardConfig, "panelPresets" | "sty
   };
 
   const builtins = useMemo(() => builtinItems(sources), [sources]);
-  const items = useMemo(() => [...server, ...configItems(config), ...builtins], [server, config.panelPresets, config.stylePresets, config.appearancePresets, builtins]);
+  const items = useMemo(() => [...server, ...configItems(config), ...builtins], [server, config.panelPresets, config.stylePresets, builtins]);
 
   return {
     items,

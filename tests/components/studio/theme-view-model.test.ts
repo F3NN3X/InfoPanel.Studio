@@ -13,6 +13,7 @@ import {
   resetText,
   rowTag,
   skinLabel,
+  themeLabel,
   themeLinkOf,
   updateBarText,
   usedByText,
@@ -37,6 +38,14 @@ describe("the theme card", () => {
     expect(kindLine(TEMPLATE, [], "MyDefault")).toBe("From a screen template · applied to MyDefault");
     expect([cardName(state({})), kindLine(state({}), [], "x")]).toEqual(["Custom look", "not saved"]);
     expect(cardName(state({ applied: applied("look-x", "Night"), deleted: true }))).toBe("Night (deleted)");
+  });
+
+  it("names a level's theme by one rule: the theme, Changed from it, (deleted), or Custom look", () => {
+    expect(themeLabel(DESK)).toBe("Desk");
+    expect(themeLabel({ ...DESK, changed: ["skin"] })).toBe("Changed from Desk");
+    expect(themeLabel({ ...TEMPLATE, changed: ["palette"] })).toBe("Changed from Terminal · Amber");
+    expect(themeLabel(state({ applied: applied("look-x", "Night"), deleted: true, changed: ["corners"] }))).toBe("Night (deleted)");
+    expect(themeLabel(state({}))).toBe("Custom look");
   });
 
   it("shows the Update bar only once a part changed, naming the other uses when there are some", () => {

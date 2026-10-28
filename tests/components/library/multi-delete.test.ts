@@ -68,7 +68,7 @@ describe("planDelete", () => {
   });
 
   it("deletes everything else picked: saved config items and items of other kinds", () => {
-    const [saved] = configItems({ panelPresets: [], stylePresets: [{ id: "s1", name: "Mine", settings: {} }], appearancePresets: [] });
+    const [saved] = configItems({ panelPresets: [], stylePresets: [{ id: "s1", name: "Mine", settings: {} }] });
     const gauge = file("g", { kind: "gauge", files: [], copies: [{ profileId: "p" }] });
     const plan = planDelete([saved, gauge], new Set());
     expect(plan.remove).toHaveLength(2);
@@ -81,20 +81,18 @@ describe("planDelete", () => {
 });
 
 describe("deleteConfigItems", () => {
-  it("deletes saved Themes, Styles and panels in one edit and leaves everything else", () => {
+  it("deletes saved Styles and panels in one edit and leaves everything else", () => {
     const base = defaultConfig();
     const config = {
       ...base,
       panelPresets: [{ id: "p1", name: "P" }, { id: "p2", name: "P2" }] as never,
       stylePresets: [{ id: "s1", name: "S", settings: {} }],
-      appearancePresets: [{ id: "t1", name: "T", description: "", theme: "ocean" as const, radius: 0.5, style: {} }, { id: "t2", name: "T2", description: "", theme: "ocean" as const, radius: 0.5, style: {} }],
     };
     const items = configItems(config).filter((i) => isSavedInConfig(i));
-    const pick = items.filter((i) => ["P", "S", "T"].includes(i.name));
+    const pick = items.filter((i) => ["P", "S"].includes(i.name));
     const next = deleteConfigItems(config, pick);
     expect(next.panelPresets?.map((p) => p.id)).toEqual(["p2"]);
     expect(next.stylePresets).toBeUndefined();
-    expect(next.appearancePresets?.map((p) => p.id)).toEqual(["t2"]);
     expect(next.profiles).toBe(config.profiles);
   });
 

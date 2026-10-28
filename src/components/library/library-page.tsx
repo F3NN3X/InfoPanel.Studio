@@ -1,10 +1,10 @@
 /**
  * The Library page (spec §3, §10.4), opened from the rail: a 56 px header (title and tagline, search
  * everything, [Grid | Shelves], the "Used by" screen filter, Add files…) over the collections
- * sidebar (smart collections, then Themes · Skins · Styles · Panels · Gauges · Media · Fonts (and the built-in ones) ·
- * Components · InfoPanel profiles · Screen templates · InfoPanel templates · Island looks), the grid or shelves, and the detail pane. Fonts are a collection with
+ * sidebar (smart collections, then Styles · Panels · Gauges · Media · Fonts (and the built-in ones) ·
+ * Components · InfoPanel profiles · Screen templates · InfoPanel templates, and a row to Theme, where Themes, palettes and skins are), the grid or shelves, and the detail pane. Fonts are a collection with
  * its own view; a gauge opens in the Gauges view; a screen template opens the New screen page (Duplicate adds the screen at once), an InfoPanel template the New profile
- * page, an Island look applies to a screen; ticked cards (Select, Ctrl, Shift) are deleted together; the edited
+ * page; ticked cards (Select, Ctrl, Shift) are deleted together; the edited
  * screen's canvas files are one button away. Every upload is an item (`useAdoptUploads`). Lazy-loaded.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,7 +19,6 @@ import {
   LayoutGrid,
   MonitorPlay,
   Pencil,
-  Pill,
   Plus,
   Rows3,
   Search,
@@ -32,7 +31,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu";
 import { formatBytes } from "@/lib/assets";
-import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { LibraryCopy, LibraryItem } from "@/lib/library";
 import type { ModuleSettings } from "@/modules/types";
 import { THEME_PRESETS, type ThemeTokens } from "@/lib/theme";
@@ -58,17 +56,15 @@ import { suggestBackgrounds } from "@/lib/my-library/theme-suggest";
 import { downloadSpec } from "@/components/gauges/gauge-files";
 import { gaugeDataOf } from "@/lib/gauge-studio/model";
 import { pickedAfterClick, planDelete, deleteConfigItems, isSavedInConfig, type ClickMod, type DeletePlan } from "./multi-delete";
-import { withIslandLook } from "./island-look-actions";
 import { useSensorCatalog } from "@/lib/catalog";
 import { instantiate as instantiateScreen } from "@/lib/screen-templates/instantiate";
 import type { NewScreen } from "@/components/templates/new-page";
 import type { Template } from "@/lib/infopanel/templates/kit";
 import type { DataApiValue } from "@/lib/infopanel/sensors";
-import type { IslandLookPreset } from "@/lib/island/looks";
 import { addToProfile, dataOf, duplicatePanel, isSavedPanel, setAsBackground, useForSelection, useForSelectionBlocked, type StudioBridge } from "./library-actions";
 import { LibraryDetail, type DetailAction } from "./library-detail";
 import { PresetDetail } from "./preset-detail";
-import { isPresetItem, presetPrimary, presetScopes, presetSecondary, renamePreset, type PresetContext } from "./preset-actions";
+import { isPresetItem, presetPrimary, presetSecondary, renamePreset, type PresetContext } from "./preset-actions";
 import { GridView, LibrarySidebar, ShelvesView } from "./library-views";
 import { openImportDoor, openNewInfoPanel } from "@/components/studio/file-doors";
 import { optimiseItem } from "./optimise";
@@ -93,14 +89,12 @@ import { useHoldZoneShortcuts } from "./use-hold-zone-shortcuts";
 
 export interface LibraryPageProps {
   bridge: StudioBridge;
-  /** A link to a collection ("All themes in Library ↗", "Edit gauge…"); `seq` makes a repeat count. */
+  /** A link to a collection ("Edit gauge…"); `seq` makes a repeat count. */
   request?: { collection: CollectionId; seq: number };
-  /** The page on the canvas (a Theme's "Apply to… this page"). */
-  pageId: string;
   /** The look the selected widget has of its own (a Style's "Update from selection"); null = nothing selected. */
   selectionStyle: ModuleSettings | null;
-  /** A saved Theme's "Edit in Theme": Theme opens at All screens with it applied. */
-  onEditInTheme: (preset: AppearancePreset) => void;
+  /** The "Themes, palettes and skins are in Theme" row. */
+  onOpenTheme: () => void;
   /** A profile's primary action: Edit, on the zone that uses it (else it comes in as a new screen). */
   onEditCanvas: (item: LibraryItem) => void;
   /** A card dragged onto "Drop on the canvas": the page makes way so the drag goes on to the canvas. */
@@ -219,9 +213,7 @@ export default function LibraryPage(p: LibraryPageProps) {
 
   const presetCtx: PresetContext = {
     bridge,
-    pageId: p.pageId,
     selectionStyle: p.selectionStyle,
-    onEditInTheme: p.onEditInTheme,
     select: setSelectedId,
     rename: (id) => {
       setSelectedId(id);
@@ -241,8 +233,6 @@ export default function LibraryPage(p: LibraryPageProps) {
           ? { label: "Place on this page", icon: Plus, run: () => void addComponentZone(bridge, item) }
           : { label: "Edit profile", icon: MonitorPlay, run: () => p.onEditCanvas(item) };
       case "style":
-      case "theme":
-      case "skin":
         return presetPrimary(item, presetCtx);
       case "template": {
         const t = item.data as ScreenTemplate;
@@ -255,19 +245,6 @@ export default function LibraryPage(p: LibraryPageProps) {
       case "ptemplate": {
         const t = item.data as Template;
         return { label: "New InfoPanel profile from this", icon: MonitorPlay, run: () => p.onNewProfile(t.id, t.variants[0]?.id ?? ""), title: "Opens the New page on this template" };
-      }
-      case "island": {
-        const look = (item.data as IslandLookPreset).look;
-        const screen = p.bridge.config.profiles.find((x) => x.id === bridge.profileId);
-        return {
-          label: "Apply to this screen",
-          icon: Pill,
-          run: () => {
-            bridge.setConfig((c) => withIslandLook(c, look, bridge.profileId));
-            bridge.toast(`Applied ${item.name} to ${screen?.name ?? "this screen"}`);
-          },
-          title: "Sets the island’s shape, color, border and weight, and turns it on",
-        };
       }
       case "svg":
         return { label: "Add to canvas", icon: Plus, run: () => void addToProfile(bridge, item) };
@@ -295,19 +272,6 @@ export default function LibraryPage(p: LibraryPageProps) {
           icon: Copy,
           title: "Adds a new screen made from this template to Screens. The template itself stays as it is.",
           run: () => p.onAddScreen(instantiateScreen(t, { name: `${t.name} copy`, width: t.size.width, height: t.size.height, variant: t.variants?.[0]?.id, sensors: sensors as unknown as Record<string, DataApiValue> })),
-        },
-      ];
-    }
-    if (item.kind === "island") {
-      const look = (item.data as IslandLookPreset).look;
-      return [
-        {
-          label: "Apply to all screens",
-          icon: Pill,
-          run: () => {
-            bridge.setConfig((c) => withIslandLook(c, look, "all"));
-            bridge.toast(`Applied ${item.name} to all screens`);
-          },
         },
       ];
     }
@@ -408,7 +372,7 @@ export default function LibraryPage(p: LibraryPageProps) {
   const summary = (verb: string, r: { removed: number; stayed: number; failed: number }) =>
     [`${verb} ${r.removed} item${r.removed === 1 ? "" : "s"}`, r.stayed && `${r.stayed} kept: a screen uses ${r.stayed === 1 ? "its file" : "their files"}`, r.failed && `${r.failed} failed`].filter(Boolean).join("; ");
   const removeMany = async (items: readonly LibraryItem[]) => toast(summary("Removed", await removeEach(items)));
-  /** The multi-delete: saved Themes, Styles and panels from the config in one edit, the rest through the Library's remove. */
+  /** The multi-delete: saved Styles and panels from the config in one edit, the rest through the Library's remove. */
   const deletePicked = async (items: readonly LibraryItem[]) => {
     const own = items.filter(isSavedInConfig);
     if (own.length > 0) p.bridge.setConfig((c) => deleteConfigItems(c, own));
@@ -486,9 +450,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           key={item.id}
           item={item}
           sheet={sheet}
-          config={p.bridge.config}
           primary={primaryOf(item)}
-          scopes={presetScopes(item, presetCtx)}
           secondary={secondaryOf(item)}
           focusName={renameId === item.id}
           onFocusedName={focusedName}
@@ -638,7 +600,7 @@ export default function LibraryPage(p: LibraryPageProps) {
           />
         ) : (
           <>
-            <LibrarySidebar active={searching || showFiles ? null : collection} counts={counts} onPick={pickCollection} />
+            <LibrarySidebar active={searching || showFiles ? null : collection} counts={counts} onPick={pickCollection} onOpenTheme={p.onOpenTheme} />
             {fonts ? (
               <FontsView fonts={collectionItems("fonts", index)} library={lib} zones={p.assets.zones} setConfig={p.assets.setConfig} onSelectItems={p.assets.onSelectUses} />
             ) : (

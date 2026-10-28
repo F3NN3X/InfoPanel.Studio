@@ -2,10 +2,10 @@ import { useState, type ReactNode } from "react";
 import { Cast, Copy, Trash2 } from "lucide-react";
 import type { MonitorProfile, ProfilePage } from "@/lib/layout";
 import { profileGap } from "@/lib/profile-grid";
-import { resolveTheme, THEME_PRESETS } from "@/lib/theme";
+import { resolveTheme } from "@/lib/theme";
+import { themeState } from "@/lib/theme-state";
 import { SECTION_IDS, type SectionId } from "@/lib/theme-model";
 import { cn } from "@/lib/utils";
-import { sameTokens } from "./appearance-actions";
 import { sectionIconById } from "./inspector/section-icons";
 import { sizeChoice, sizeOfChoice, sizeOptions } from "./inspector/profile-grid";
 import { ColsRows, NumberInput, PageHeader, PageRow, SnapSection } from "./page-settings-parts";
@@ -13,6 +13,7 @@ import { pageIcon } from "./page-icons";
 import { cycleLabel } from "./page-tabs";
 import { sectionInherit } from "./section-inherit";
 import { sectionTitle } from "./theme-editor-model";
+import { themeLabel } from "./theme-view-model";
 import type { InheritanceContext } from "./use-inheritance";
 
 interface PageInspectorProps {
@@ -48,16 +49,16 @@ function rotationText(profile: MonitorProfile, page: ProfilePage): string {
   return included ? `Included · every ${cycleLabel(rotate.seconds)}` : "Not included";
 }
 
-/** The screen's theme by name: a saved Theme with its colours, else the built-in palette, else Custom; and a swatch. */
+/**
+ * The screen's theme by name, from the snapshot of the theme it last applied, and a swatch. A screen that holds no look
+ * of its own shows All screens'; one with a look of its own but no snapshot is a custom look.
+ */
 function themeOf(inherit: InheritanceContext, profile: MonitorProfile): { name: string; swatch: string } {
-  const { tokens } = resolveTheme(inherit.config, profile);
-  const tokensOf = (theme: NonNullable<typeof inherit.config.appearancePresets>[number]["theme"]) =>
-    typeof theme === "string" ? THEME_PRESETS.find((p) => p.name === theme)?.tokens : theme;
-  const saved = inherit.config.appearancePresets?.find((p) => {
-    const t = tokensOf(p.theme);
-    return t !== undefined && sameTokens(t, tokens);
-  })?.name;
-  return { name: saved ?? THEME_PRESETS.find((p) => sameTokens(p.tokens, tokens))?.label ?? "Custom", swatch: `hsl(${tokens.background})` };
+  const { config } = inherit;
+  const own = themeState(config, { kind: "profile", profileId: profile.id });
+  const holdsLook = profile.theme !== undefined || profile.radius !== undefined || profile.background !== undefined || profile.widgetTheme?.values !== undefined;
+  const state = own.applied || holdsLook ? own : themeState(config, { kind: "all" });
+  return { name: themeLabel(state), swatch: `hsl(${resolveTheme(config, profile).tokens.background})` };
 }
 
 /** The page's Name: committed on Enter or blur, so a rename is one undo step. */

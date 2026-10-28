@@ -1,8 +1,6 @@
 import type { BackgroundScope } from "@/lib/appearance";
-import { presetTokens, type AppearancePreset } from "@/lib/appearance-presets";
 import type { DashboardConfig, MonitorProfile, ProfileView } from "@/lib/layout";
-import { allLocked, themedOf, withAllLocked } from "@/lib/theme-model";
-import type { ThemeTokens } from "@/lib/theme";
+import { allLocked, withAllLocked } from "@/lib/theme-model";
 import type { ModuleSettings } from "@/modules/types";
 import { setProfileStyle } from "./studio-actions";
 
@@ -64,37 +62,4 @@ export function toggleEnforce(config: DashboardConfig, profile: Pick<ProfileView
   const on = !allLocked(profile.widgetTheme);
   const lock = (p: MonitorProfile): MonitorProfile => ({ ...p, widgetTheme: withAllLocked(p.widgetTheme, on) });
   return { ...config, profiles: config.profiles.map((p) => (p.id === profile.id ? lock(p) : p)) };
-}
-
-/** Whether two sets of colour tokens hold the same values, whatever the key order. */
-export function sameTokens(a: ThemeTokens, b: ThemeTokens): boolean {
-  const keys = Object.keys(a) as (keyof ThemeTokens)[];
-  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
-}
-
-/** A look: the colour tokens, corner radius and widget style a scope shows. */
-export interface Look {
-  tokens: ThemeTokens;
-  radius: number;
-  style: ModuleSettings | undefined;
-}
-
-/**
- * Whether a look is the preset: same theme colours, corner radius and every style key the preset sets. A preset
- * with no style keys matches only a look with none either, so a plain palette is not every saved Theme.
- */
-export function presetMatches(p: AppearancePreset, look: Look): boolean {
-  const own = Object.entries(p.style);
-  const plain = Object.keys(themedOf(look.style ?? {})).length === 0;
-  return (
-    p.radius === look.radius &&
-    sameTokens(presetTokens(p), look.tokens) &&
-    own.every(([key, value]) => look.style?.[key] === value) &&
-    (own.length > 0 || plain)
-  );
-}
-
-/** The preset the current look is (the first match; undefined = a custom look). */
-export function activePresetId(presets: readonly AppearancePreset[], look: Look): string | undefined {
-  return presets.find((p) => presetMatches(p, look))?.id;
 }
