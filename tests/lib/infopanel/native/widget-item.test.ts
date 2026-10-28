@@ -138,6 +138,9 @@ describe("$.widget in the stored form", () => {
       }),
     ).toEqual({ module: "Clock", settings: { ok: "x", n: 2 }, design: { accent: "#fff" }, follow: { colors: false } });
     expect(decodeWidget({ module: "panel", panel: { widgets: [] } })).toEqual({ module: "panel", panel: { widgets: [] } });
+    // Its own name: kept up to 200 characters; empty, too long or not a string is dropped.
+    expect(decodeWidget({ module: "Clock", name: "Desk clock" })).toEqual({ module: "Clock", name: "Desk clock" });
+    for (const name of ["", "n".repeat(201), 5]) expect(decodeWidget({ module: "Clock", name })).toEqual({ module: "Clock" });
   });
 
   it("is listed by the zone's subscription straight from the JSON", () => {

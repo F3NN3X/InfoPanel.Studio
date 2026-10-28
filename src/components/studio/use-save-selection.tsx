@@ -46,7 +46,7 @@ export function useSaveSelection({ profile, page, model, selection, nameOf, toas
   const only = top.length === 1 ? findNode(model.root, top[0])?.node : undefined;
   const dialog = open ? (
     <Suspense fallback={null}>
-      <SaveComponentDialog open onOpenChange={setOpen} count={top.length} initialName={only?.name || "Component"} onSave={save} />
+      <SaveComponentDialog open onOpenChange={setOpen} count={top.length} initialName={only?.name || "Component"} onSave={save} helpArticle="library" />
     </Suspense>
   ) : null;
   return {

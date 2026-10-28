@@ -12,11 +12,13 @@ interface SaveComponentDialogProps {
   count: number;
   initialName: string;
   onSave: (name: string) => void;
+  /** The Help article F1 opens: the InfoPanel editor's unless the caller names another. */
+  helpArticle?: string;
 }
 
 const INPUT = "h-8 w-full min-w-0 rounded-[7px] border border-ui-default bg-ui-raised px-2.5 text-[12.5px] text-ui-1 outline-none focus:border-ui-accent";
 
-export function SaveComponentDialog({ open, onOpenChange, count, initialName, onSave }: SaveComponentDialogProps) {
+export function SaveComponentDialog({ open, onOpenChange, count, initialName, onSave, helpArticle = "infopanel-editor" }: SaveComponentDialogProps) {
   const [name, setName] = useState(initialName);
   const ok = name.trim() !== "";
   return (
@@ -24,7 +26,7 @@ export function SaveComponentDialog({ open, onOpenChange, count, initialName, on
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
         <Dialog.Popup
-          data-help-article="infopanel-editor"
+          data-help-article={helpArticle}
           className="fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[14px] border border-ui-strong bg-ui-panel font-ui text-ui-1 shadow-ui-modal outline-none"
         >
           <form

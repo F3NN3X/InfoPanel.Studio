@@ -37,7 +37,7 @@ function flags(item: StoredItem, node: LayerNode): StoredItem {
 /** A widget's record for a component: no zone id, as every copy placed gets its own. */
 function widgetRecord(p: Placement): WidgetItem {
   const { id: _id, ...widget } = widgetOfZone(p);
-  return widget;
+  return p.name ? { ...widget, name: p.name } : widget;
 }
 
 function partItem(model: PageModel, part: PartNode, nameOf: (p: Placement) => string): StoredItem | null {

@@ -117,6 +117,8 @@ export interface WidgetItem {
   onInfoPanel?: NativeChoice;
   /** The cells it sits on (Edit v3 SPEC §3.6); the Image's X / Y / Width / Height are their box, kept in step. */
   cell?: CellBox;
+  /** Its own name on a screen's page (`Placement.name`), kept by a component saved there so placing it back keeps it. */
+  name?: string;
 }
 
 // Here rather than in native/widget-item.ts, so the kiosk draws widget items without loading the export tiers.
@@ -426,6 +428,7 @@ export function decodeWidget(raw: unknown): WidgetItem | null {
     ...(panelOk ? { panel } : {}),
     ...(CHOICES.includes(o.onInfoPanel as NativeChoice) ? { onInfoPanel: o.onInfoPanel as NativeChoice } : {}),
     ...(cell ? { cell } : {}),
+    ...(typeof o.name === "string" && o.name && o.name.length <= 200 ? { name: o.name } : {}),
   };
 }
 

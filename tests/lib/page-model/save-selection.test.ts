@@ -19,7 +19,7 @@ const zone = (id: string, module: string, c: [number, number, number, number], e
 });
 const logo = { kind: "Image", Name: "Logo", X: 0, Y: 200, Width: 600, Height: 200, Scale: 100, FilePath: "logo.png", RelativePath: true, unknown: {} } as StoredItem;
 
-/** 1200 × 600 on 6 × 3 cells of 200 px: Stats (a picture placed freely and the group Gauges: a CPU widget and a hidden Weather), a Net widget, a Clock. */
+/** 1200 × 600 on 6 × 3 cells of 200 px: Stats (a picture placed freely and the group Gauges: a CPU widget and a hidden Weather), a Net widget renamed Uplink, a Clock. */
 function screen(): MonitorProfile {
   const groups: PageGroup[] = [
     { id: "g-stats", name: "Stats" },
@@ -41,7 +41,7 @@ function screen(): MonitorProfile {
       zone("cpu", "CpuMonitor", [1, 1, 1, 1], { groupId: "g-gauges", settings: { decimals: 1, label: "CPU" }, design: { accent: "#ff3300" } }),
       zone("weather", "Weather", [2, 1, 1, 1], { groupId: "g-gauges", visible: false }),
       zone("logo", ITEM_ID, [1, 2, 3, 1], { groupId: "g-stats", item: logo, px: { x: 0, y: 200, w: 600, h: 200 } }),
-      zone("net", "Network", [3, 1, 1, 1]),
+      zone("net", "Network", [3, 1, 1, 1], { name: "Uplink" }),
       zone("clock", "Clock", [6, 3, 1, 1]),
     ],
   };
@@ -69,7 +69,7 @@ const itemShape = (items: readonly DisplayItem[]): Shape[] =>
   }));
 
 const TREE: Shape[] = [
-  { name: "Network", kind: "widget" },
+  { name: "Uplink", kind: "widget" },
   {
     name: "Stats",
     kind: "group",
@@ -93,7 +93,7 @@ describe("saving a selection on a screen's page", () => {
     // Re-based to the bounds' corner, each at its drawn box.
     expect([cpu.X, cpu.Y, weather.X, net.X, pic.X, pic.Y]).toEqual([0, 0, 200, 400, 0, 200]);
     expect(widgetOf(cpu)).toEqual({ module: "CpuMonitor", settings: { decimals: 1, label: "CPU" }, design: { accent: "#ff3300" } });
-    expect(widgetOf(net)?.module).toBe("Network");
+    expect(widgetOf(net)).toMatchObject({ module: "Network", name: "Uplink" });
   });
 
   it("is null with nothing selected", () => {
@@ -116,7 +116,9 @@ describe("placing it back", () => {
     expect(wrapper.type === "group" && shapeOf(wrapper.children)).toEqual(TREE);
     const by = (module: string) => out.pages[0].placements.find((p) => p.module === module)!;
     expect(by("CpuMonitor")).toMatchObject({ colStart: 2, rowStart: 2, colSpan: 1, rowSpan: 1, settings: { decimals: 1, label: "CPU" }, design: { accent: "#ff3300" } });
-    expect(by("Network")).toMatchObject({ colStart: 4, rowStart: 2 });
+    // A widget renamed here keeps its name; one that wasn't has none of its own (its widget's name shows).
+    expect(by("Network")).toMatchObject({ colStart: 4, rowStart: 2, name: "Uplink" });
+    expect(by("CpuMonitor").name).toBeUndefined();
     expect(by("Weather").visible).toBe(false);
     expect(by(ITEM_ID)).toMatchObject({ px: { x: 200, y: 400, w: 600, h: 200 }, item: { FilePath: "logo.png" } });
     expect(out.pages[0].freeCanvas?.assets.map((a) => a.name)).toEqual(["logo.png"]);
