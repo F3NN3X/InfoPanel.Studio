@@ -3,7 +3,8 @@
  * one selection that holds widgets (the zone selection), InfoPanel items and elements (the item selection) and page
  * groups together, and every Layers change, menu action and layer key as page model ops, each one undo step. Keys:
  * with an item or a group in the selection every SPEC §14 key acts here, ahead of the zone shortcuts; with only
- * widgets, the keys the zone shortcuts don't have (Ctrl+] / [, Ctrl+G, Ctrl+L, Ctrl+H, F2).
+ * widgets, the keys the zone shortcuts don't have (Ctrl+] / [, Ctrl+G, Ctrl+L, Ctrl+H, F2). Ctrl+Shift+S saves the
+ * selection to the Library, whatever it holds.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Shapes, type LucideIcon } from "lucide-react";
@@ -20,6 +21,7 @@ import type { StudioSelection } from "./use-studio-selection";
 import { zoneName } from "./inspector/zone-meta";
 import { hasOverlay, isTyping, treeKey } from "./use-studio-shortcuts";
 import { moduleIcon } from "./zone-icons";
+import { useSaveSelection } from "./use-save-selection";
 
 interface PageLayersDeps {
   profile: MonitorProfile;
@@ -84,6 +86,8 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
   const groups = groupSel.filter((id) => findNode(model.root, id)?.node.type === "group");
   const base = [...zones.selectedIds, ...items.ids, ...groups];
   const selection = last && base.includes(last) ? [...base.filter((id) => id !== last), last] : base;
+
+  const save = useSaveSelection({ profile, page, model, selection, nameOf: zoneName, toast });
 
   const kindOf = (id: string, m: PageModel = model): "group" | "widget" | "item" | null => {
     const n = findNode(m.root, id)?.node;
@@ -189,7 +193,7 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
       const ops = dropOps(model, ids, parentId, index);
       if (ops) apply(ops);
     },
-    menu: { available: layerActionsFor(model, selection), groups: groupList, run, moveToGroup: (id) => moveInto(id ?? "new"), saveToLibrarySoon: true },
+    menu: { available: layerActionsFor(model, selection), groups: groupList, run, moveToGroup: (id) => moveInto(id ?? "new"), saveToLibrary: save.open },
     iconOf,
     statusIcon,
     renameRequest,
@@ -200,6 +204,11 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
   onKey.current = (e) => {
     if (selection.length === 0 || e.defaultPrevented || e.isComposing || dragging() || isTyping(document.activeElement) || treeKey(e, document.activeElement) || hasOverlay()) return;
     const ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl && e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
+      // Taken here, so the studio's Ctrl+S doesn't save the screen as well.
+      e.preventDefault();
+      return save.open?.();
+    }
     if (e.key === "F2" && !ctrl && !e.altKey && !e.shiftKey) {
       e.preventDefault();
       showLayers();
@@ -254,6 +263,10 @@ export function usePageLayers({ profile, page, zones, items, focusZone, applyPag
     groupList,
     moveGroups,
     refuseGroupMove: () => toast("Not enough room to move the group."),
+    /** Save the selection to the Library (the name dialog); unset with nothing selected. */
+    saveToLibrary: save.open,
+    /** The name dialog, while open. */
+    saveDialog: save.dialog,
   };
 }
 

@@ -137,10 +137,11 @@ Each row has the part's icon, its name and what it is (*widget*, *item*, *elemen
 - Double-click a name, or press `F2`, to rename it. `Enter` keeps the new name and `Esc` drops it. A widget's new name shows in the inspector too.
 - Drag a row between two rows to change what is drawn on top. Drop it on the middle of a group to put it inside, on top. A line or an outline shows where it lands. Reordering never moves a part on the page.
 - On the canvas, a click on a part in a group selects the outermost group; double-click to select the part itself.
-- Right-click a row, or any part on the canvas, widgets included, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate and Delete. On a screen's page **Save to Library** is there too, greyed out with *Coming soon*, as it is in a group's inspector. A widget's menu goes on below with the widget's own commands, such as Change widget, Edit style and Bind data. The inspector's **Layer** section has the four order buttons and the group the part sits in.
+- Right-click a row, or any part on the canvas, widgets included, for the layer menu: Bring to front, Bring forward, Send backward, Send to back, Group selection, Ungroup, Move to group, Snap to grid, Lock, Hide, Rename, Duplicate, Delete and **Save to Library**. A widget's menu goes on below with the widget's own commands, such as Change widget, Edit style and Bind data. The inspector's **Layer** section has the four order buttons and the group the part sits in.
 - Select a group and the canvas draws one box around its parts, with its name above it. Drag the box to move the group. A group with a widget in it moves by whole cells; when a widget would land on a widget outside the group, the group stays put and a message says "Not enough room to move the group." A group of items and elements snaps to the cells, or goes to the pixel while you hold `Alt`. Double-click inside the box to select the part under the pointer.
 - A locked part can't be moved, resized or deleted on the canvas. You can still reorder it in Layers.
 - When the screen is exported to InfoPanel, each group becomes an InfoPanel Group with the same name and parts, so the profile has the same tree.
+- **Save to Library** (`Ctrl+Shift+S`, the layer menu, or the button in a group's inspector) saves what is selected as a component in the Library's **Components**. Widgets, items, elements and groups can be mixed. Each part keeps its place relative to the others, a widget keeps its settings and look, a group keeps its name and what is inside it, and a hidden part stays hidden. The component takes only the files its parts use. Drag it back onto any screen's page and it lands as a group named after it, its widgets on the nearest free cells. When a widget has no free cells left, nothing is added and a message says so. Dropped into an InfoPanel profile, its widgets stay Studio widgets.
 
 | Keys | Action |
 |---|---|
@@ -149,6 +150,7 @@ Each row has the part's icon, its name and what it is (*widget*, *item*, *elemen
 | `Ctrl+G` / `Ctrl+Shift+G` | Group / ungroup |
 | `Ctrl+L` / `Ctrl+H` | Lock / hide |
 | `F2` | Rename |
+| `Ctrl+Shift+S` | Save the selection to the Library |
 
 ## Inspector
 
