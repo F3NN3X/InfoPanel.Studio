@@ -32,8 +32,8 @@ export function PickerShell({ title, help, onBack, footer, children }: { title: 
   );
 }
 
-/** "Include background", remembered for the session (owner decision 6): not stored, off when the studio opens. */
-let includeBackgroundPref = false;
+/** "Keep my background", remembered for the session (owner decision 6): not stored, off when the studio opens. */
+let keepBackgroundPref = false;
 
 /** The theme's accent: its widget accent, else its primary color. */
 const accentOf = (p: AppearancePreset): string => (typeof p.style.accent === "string" && p.style.accent ? p.style.accent : `hsl(${presetTokens(p).primary})`);
@@ -61,7 +61,7 @@ interface SwitchThemeProps {
   counts: string;
   /** A saved theme's "used by" line. */
   usedBy: (id: string) => string;
-  onApply: (preset: AppearancePreset, includeBackground: boolean) => void;
+  onApply: (preset: AppearancePreset, keepBackground: boolean) => void;
   onRename: (id: string, name: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
@@ -79,33 +79,33 @@ const FILTERS: { id: ThemeFilter; label: string }[] = [
 
 /**
  * Switch theme (handoff SPEC §4.3.3): the filters, the saved themes (each with ⋯: who uses it, Rename, Duplicate,
- * Delete), one row per template with its variant chips, and the footer's Include background, counts and Save.
+ * Delete), one row per template with its variant chips, and the footer's Keep my background, counts and Save.
  * Picking applies at once; the editor goes back to Main and toasts.
  */
 export function SwitchThemePicker(p: SwitchThemeProps) {
   const [filter, setFilter] = useState<ThemeFilter>("all");
-  const [include, setInclude] = useState(includeBackgroundPref);
+  const [keep, setKeep] = useState(keepBackgroundPref);
   const [menuFor, setMenuFor] = useState<string>();
   const [renaming, setRenaming] = useState<string>();
   const [saving, setSaving] = useState(false);
   /** The variant last chosen per template (the row applies it). */
   const [variant, setVariant] = useState<Record<string, number>>({});
   const shown = filteredThemes(filter, p.saved, p.rows ?? []);
-  const apply = (preset: AppearancePreset) => p.onApply(preset, include);
+  const apply = (preset: AppearancePreset) => p.onApply(preset, keep);
   return (
     <PickerShell
       title="Switch theme"
-      help="A theme sets the palette, skin and corners, plus the background if you tick it below. Picking one adds to what you have. Fine-tune changes stay."
+      help="A theme sets the palette, skin, corners and background. The first theme on a screen or page replaces its look; after that, picking one keeps your fine-tune changes."
       onBack={p.onBack}
       footer={
         <>
           <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ui-1">
             <input
               type="checkbox"
-              checked={include}
+              checked={keep}
               onChange={(e) => {
-                includeBackgroundPref = e.target.checked;
-                setInclude(e.target.checked);
+                keepBackgroundPref = e.target.checked;
+                setKeep(e.target.checked);
               }}
               className="peer sr-only"
             />
@@ -113,14 +113,14 @@ export function SwitchThemePicker(p: SwitchThemeProps) {
               aria-hidden
               className={cn(
                 "flex h-4 w-4 items-center justify-center rounded-[4px] border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ui-accent",
-                include ? "border-[#3b82f6] bg-[#3b82f6] text-white" : "border-[#52525b]"
+                keep ? "border-[#3b82f6] bg-[#3b82f6] text-white" : "border-[#52525b]"
               )}
             >
-              {include && <Check className="h-3 w-3" strokeWidth={3} />}
+              {keep && <Check className="h-3 w-3" strokeWidth={3} />}
             </span>
-            Include background
+            Keep my background
           </label>
-          <p className="text-[12px] text-[#71717a]">{include ? "The theme's background replaces yours." : "Your background stays."}</p>
+          <p className="text-[12px] text-[#71717a]">{keep ? "Your background stays." : "A theme with a background replaces yours."}</p>
           <div className="flex items-center gap-3 text-[12px]">
             <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[#71717a]">{p.counts}</span>
             {saving ? (

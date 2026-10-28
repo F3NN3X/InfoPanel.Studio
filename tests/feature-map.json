@@ -404,9 +404,10 @@
         "tests/lib/inheritance.test.ts",
         "tests/lib/effects/**",
         "tests/lib/fonts.test.ts",
-        "tests/modules/**"
+        "tests/modules/**",
+        "tests/e2e/theme-switch.spec.ts"
       ],
-      "checks": ["typecheck", "unit"]
+      "checks": ["typecheck", "unit", "e2e"]
     },
     {
       "id": "layout-kiosk",
@@ -486,7 +487,8 @@
         "tests/e2e/screens-manager.spec.ts",
         "tests/e2e/browser-studio.spec.ts",
         "tests/e2e/studio-basics.spec.ts",
-        "tests/e2e/frozen-preview.spec.ts"
+        "tests/e2e/frozen-preview.spec.ts",
+        "tests/e2e/theme-switch.spec.ts"
       ],
       "checks": ["typecheck", "unit", "e2e"]
     },

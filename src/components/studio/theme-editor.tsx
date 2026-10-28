@@ -44,7 +44,7 @@ import {
 } from "./theme-cards";
 import { scopeAppearance, scopeId, scopeLookValues, validScope, withLockAll, type ThemeScope } from "./theme-editor-model";
 import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
-import { differencesOf, followAll } from "./theme-differences";
+import { differencesOf, followAll, widgetCount, widgetsKeeping } from "./theme-differences";
 import { exceptionsOf, widgetOverrides } from "./theme-exceptions";
 import { FineTuneHeader, FineTuneRow, RowsLabel } from "./theme-fine-tune";
 import { changedHere, fineTuneChip, fineTuneHeading, fineTuneSummary, resetFineTune } from "./theme-fine-tune-model";
@@ -252,13 +252,18 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const palette = paletteName(theme.tokens, config.palettes);
   const saved = state.theme && kind === "saved" ? state.theme : undefined;
 
-  const applyPreset = (p: AppearancePreset, includeBackground: boolean) => {
-    const kept = state.own.length;
-    presets.apply(p, at, at.level !== "page" && includeBackground);
+  const applyPreset = (p: AppearancePreset, keepBackground: boolean) => {
+    // A level with no snapshot has nothing of its own: the pick replaces its look.
+    const replaced = !state.applied;
+    const kept = replaced ? 0 : state.own.length;
+    const widgets = widgetCount(widgetsKeeping(config, at, p));
+    presets.apply(p, at, keepBackground);
     setDrill("main");
+    const background = at.level !== "page" && !keepBackground && p.background !== undefined;
     show({
-      ...appliedToast(p.name, at.level, at.level !== "page" && includeBackground, kept, profile.name),
+      ...appliedToast(p.name, at.level, { replaced, background, kept, widgets }, profile.name),
       ...(kept > 0 ? { reset: { label: `Reset to ${p.name}`, run: () => resetTo(p, p.name) } } : {}),
+      ...(widgets > 0 ? { follow: { label: "Make them follow", run: () => setConfig((c) => followAll(c, widgetsKeeping(c, at, p))) } } : {}),
     });
   };
   const resetTo = (p: AppearancePreset, themeName: string) => {

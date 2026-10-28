@@ -11,16 +11,34 @@ export interface ToastText {
   sub: string;
 }
 
-/** The toast after a theme is applied (SPEC §5.4); `kept` counts the fine-tune sections the level keeps. */
-export function appliedToast(name: string, level: ThemeLevel, includeBackground: boolean, kept: number, screen: string): ToastText {
+/** What a theme pick did at a level, for its toast. */
+export interface AppliedOutcome {
+  /** The level had no snapshot, so the pick replaced its look. */
+  replaced: boolean;
+  /** The theme's background came with it. */
+  background: boolean;
+  /** The fine-tune sections the level keeps. */
+  kept: number;
+  /** The widgets that keep their own look where the theme sets one. */
+  widgets: number;
+}
+
+const REPLACED: Record<ThemeLevel, string> = { all: "Replaced the look of All screens", screen: "Replaced this screen's look", page: "Replaced this page's look" };
+
+/** The toast after a theme is applied (SPEC §5.4). */
+export function appliedToast(name: string, level: ThemeLevel, outcome: AppliedOutcome, screen: string): ToastText {
+  const { replaced, background, kept, widgets } = outcome;
   const parts =
     level === "page"
-      ? `Skin changed. ${pageParts(screen)}`
-      : includeBackground
-        ? "Palette, skin, corners and background changed."
-        : "Palette, skin and corners changed. Background kept.";
+      ? `${replaced ? `${REPLACED.page}.` : "Skin changed."} ${pageParts(screen)}`
+      : replaced
+        ? `${REPLACED[level]}${background ? ", background included." : ". Background kept."}`
+        : background
+          ? "Palette, skin, corners and background changed."
+          : "Palette, skin and corners changed. Background kept.";
   const keptText = kept > 0 ? ` ${kept} fine-tune ${kept === 1 ? "change" : "changes"} kept.` : "";
-  return { title: `Applied ${name}.`, sub: `${parts}${keptText}` };
+  const widgetText = widgets > 0 ? ` ${widgets} ${widgets === 1 ? "widget keeps its" : "widgets keep their"} own look.` : "";
+  return { title: `Applied ${name}.`, sub: `${parts}${keptText}${widgetText}` };
 }
 
 export const paletteToast = (name: string): ToastText => ({ title: `Palette changed to ${name}.`, sub: "Skin, corners, background and fine-tune kept." });

@@ -241,7 +241,7 @@ export function useStudioCommands({
         return edit.moveSelectionToPage(action.id);
       case "apply-appearance": {
         const preset = appearancePresets.presets.find((p) => p.id === action.id);
-        return preset && appearancePresets.apply(preset, themeAt, action.background);
+        return preset && appearancePresets.apply(preset, themeAt, action.keepBackground);
       }
     }
     if (!selected) return;

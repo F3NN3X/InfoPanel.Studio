@@ -8,9 +8,10 @@ const LINK = "shrink-0 rounded-sm text-[13px] hover:underline focus-visible:outl
 /** How long a toast waits for the change it reports (a theme applies once its chunk has loaded). */
 const LAND_MS = 2000;
 
-/** A toast row: its text and, after a theme applied with fine-tune kept, Reset to ‹name›. */
+/** A toast row: its text and, after a theme applied, Reset to ‹name› (fine-tune kept) and Make them follow (widgets kept). */
 export interface ThemeToast extends ToastText {
   reset?: { label: string; run: () => void };
+  follow?: { label: string; run: () => void };
 }
 
 /**
@@ -50,7 +51,7 @@ interface ThemeToastRowProps {
   onDismiss: () => void;
 }
 
-/** The toast row under the preview's header (SPEC §4.4): green dot, title and sub-line, Reset to ‹name›, Undo and ✕. */
+/** The toast row under the preview's header (SPEC §4.4): green dot, title and sub-line, Reset to ‹name›, Make them follow, Undo and ✕. */
 export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) {
   return (
     <div role="status" className="flex w-full items-center gap-3 rounded-[9px] border border-ui-strong bg-[#131316] px-3 py-[9px] text-[13px]">
@@ -61,6 +62,11 @@ export function ThemeToastRow({ toast, onUndo, onDismiss }: ThemeToastRowProps) 
       {toast.reset && (
         <button type="button" className={`${LINK} text-[#60a5fa]`} onClick={toast.reset.run}>
           {toast.reset.label}
+        </button>
+      )}
+      {toast.follow && (
+        <button type="button" className={`${LINK} text-[#60a5fa]`} onClick={toast.follow.run}>
+          {toast.follow.label}
         </button>
       )}
       <button

@@ -14,8 +14,8 @@ import type { ThemeAt } from "./theme-cards";
 export interface AppearancePresetsApi {
   /** The user's saved Themes (`config.appearancePresets`). */
   presets: AppearancePreset[];
-  /** Apply a Theme at a scope, adding to its look (one undo step); the background only when included. */
-  apply: (preset: AppearancePreset, at: ThemeAt, includeBackground?: boolean) => void;
+  /** Apply a Theme at a scope, adding to its look (one undo step); its background unless the scope keeps its own. */
+  apply: (preset: AppearancePreset, at: ThemeAt, keepBackground?: boolean) => void;
   /** Reset a scope to exactly a Theme, its background included and its fine-tune cleared (one undo step). */
   reset: (preset: AppearancePreset, at: ThemeAt) => void;
   /** Save a scope's resolved look as a Theme, which the scope then counts as applied. */
@@ -43,7 +43,7 @@ const themeApply = () => import("@/lib/theme-apply");
 export function useAppearancePresets(config: DashboardConfig, setConfig: HistorySetter): AppearancePresetsApi {
   return {
     presets: config.appearancePresets ?? [],
-    apply: (preset, at, includeBackground) => void themeApply().then((m) => setConfig((c) => m.applyTheme(c, preset, themeTarget(at), { includeBackground }))),
+    apply: (preset, at, keepBackground) => void themeApply().then((m) => setConfig((c) => m.applyTheme(c, preset, themeTarget(at), { keepBackground }))),
     reset: (preset, at) => void themeApply().then((m) => setConfig((c) => m.resetToTheme(c, preset, themeTarget(at)))),
     save: (at, name, includeBackground) => {
       const id = uid("look");

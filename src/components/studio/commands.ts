@@ -52,7 +52,7 @@ export type CommandAction =
   | { type: "navigate"; target: NavTarget }
   | { type: "follow-all" }
   | { type: "toggle-enforce" }
-  | { type: "apply-appearance"; id: string; background: boolean }
+  | { type: "apply-appearance"; id: string; keepBackground: boolean }
   | { type: "goto-setting"; section: string; key?: string }
   /** A theme editor row: Studio › Theme at its current scope, that section and row. */
   | { type: "goto-theme-setting"; section: string; key: string }
@@ -405,13 +405,13 @@ export function buildCommands(s: CommandState): Command[] {
     ...generalCommands(s),
     ...pageCommands(s),
     ...s.appearancePresets.flatMap((p): Command[] => [
-      { id: `appearance:${p.id}`, label: `Apply theme: ${p.name}`, group: "Themes", hint: s.themeLevel ?? "All screens", action: { type: "apply-appearance", id: p.id, background: false } },
+      { id: `appearance:${p.id}`, label: `Apply theme: ${p.name}`, group: "Themes", hint: s.themeLevel ?? "All screens", action: { type: "apply-appearance", id: p.id, keepBackground: false } },
       {
-        id: `appearance-bg:${p.id}`,
-        label: `Apply theme with background: ${p.name}`,
+        id: `appearance-keep-bg:${p.id}`,
+        label: `Apply theme, keep background: ${p.name}`,
         group: "Themes",
         hint: s.themeLevel ?? "All screens",
-        action: { type: "apply-appearance", id: p.id, background: true },
+        action: { type: "apply-appearance", id: p.id, keepBackground: true },
       },
     ]),
     ...s.insertables.map(

@@ -1,8 +1,10 @@
+import type { AppearancePreset } from "@/lib/appearance-presets";
 import type { DashboardConfig, Placement } from "@/lib/layout";
-import { SECTION_KEYS } from "@/lib/theme-model";
+import { SECTION_KEYS, themedOf } from "@/lib/theme-model";
 import { skinLabel } from "@/lib/theme-skins";
 import type { ModuleSetting } from "@/modules/types";
-import { makeFollow, type ThemeException } from "./theme-exceptions";
+import type { ThemeAt } from "./theme-cards";
+import { exceptionsOf, makeFollow, type ThemeException } from "./theme-exceptions";
 import { THEME_EDITOR_SETTINGS } from "./theme-editor-settings";
 import { listText } from "./theme-view-model";
 
@@ -39,6 +41,20 @@ export function themeOwned(config: DashboardConfig, ex: ThemeException): boolean
 /** The exceptions without the theme's own writes. */
 export const differencesOf = (config: DashboardConfig, exceptions: readonly ThemeException[]): ThemeException[] =>
   exceptions.filter((ex) => !themeOwned(config, ex));
+
+/**
+ * The widgets' differences at a level in the sections a theme sets: after a pick they keep their own look there (the
+ * toast's "N widgets keep their own look" and its Make them follow). A section the screen locks shows the screen's.
+ */
+export function widgetsKeeping(config: DashboardConfig, at: ThemeAt, preset: AppearancePreset): ThemeException[] {
+  const set = new Set(Object.keys(themedOf(preset.style)));
+  return differencesOf(config, exceptionsOf(config, at)).filter(
+    (ex) => ex.kind === "widget" && !ex.ignored && ex.card.sections.some((sec) => SECTION_KEYS[sec].some((key) => set.has(key)))
+  );
+}
+
+/** How many widgets a list of differences names. */
+export const widgetCount = (differences: readonly ThemeException[]): number => new Set(differences.map((ex) => `${ex.page?.id}:${ex.zone?.id}`)).size;
 
 /** A widget on the previewed page that differs, with each card it differs in. */
 export interface WidgetDifference {

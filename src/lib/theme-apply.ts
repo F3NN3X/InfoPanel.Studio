@@ -16,9 +16,11 @@ export { levelApplied, themeState, type ThemePart, type ThemeState } from "./the
  * and only Reset replaces it. Pure config → config; the studio sets each result in one call (one undo step).
  *
  * A pick writes the theme's palette, skin and corners (a page: its skin and style values only; its palette, corners
- * and background are its screen's), the background only when asked, and its other style values where the level
- * still holds what the last theme wrote. What it wrote is stored at the level as its snapshot (`AppliedTheme`):
- * a value that still equals the snapshot is the theme's, one that differs is the level's own and stays. A template
+ * and background are its screen's), its background unless the level keeps its own, and its other style values where
+ * the level still holds what the last theme wrote. What it wrote is stored at the level as its snapshot (`AppliedTheme`):
+ * a value that still equals the snapshot is the theme's, one that differs is the level's own and stays. A level with
+ * no snapshot (saved before snapshots, or never themed) has nothing of its own: the first pick replaces its look, as
+ * Reset does, except that a theme without a background leaves the level's. A template
  * variant also writes into the widgets' own settings (its colour swaps and card opacity); the snapshot keeps what
  * those were, so the next theme or Reset puts them back.
  *
@@ -27,8 +29,8 @@ export { levelApplied, themeState, type ThemePart, type ThemeState } from "./the
  */
 
 export interface ApplyThemeOptions {
-  /** Replace the level's background with the theme's (off by default: the background stays). */
-  includeBackground?: boolean;
+  /** Keep the level's background (off by default: a theme that has a background brings it). */
+  keepBackground?: boolean;
 }
 
 /** A pick writes its parts; a refresh (Update) only where the level still shows what the theme wrote. */
@@ -50,6 +52,9 @@ const omit = (values: ModuleSettings | undefined, keys: readonly string[]): Modu
 /** Whether a level's value is still the one the last theme wrote (the Default skin's two spellings are one). */
 const theirs = (key: string, value: unknown, written: unknown): boolean =>
   key === "skin" && value !== undefined && written !== undefined ? sameSkin(value, written) : value === written;
+
+/** What the last theme wrote at a level; with no snapshot, everything it holds (the first pick replaces it). */
+const writtenAt = (last: AppliedTheme | undefined, values: ModuleSettings): ModuleSettings => last?.values ?? values;
 
 /** A level's values with a theme's merged in: what still equals the last theme's (`written`) becomes `next`'s, the rest stays. */
 function merged(values: ModuleSettings, written: ModuleSettings, next: ModuleSettings, force: ReadonlySet<string>): ModuleSettings {
@@ -133,40 +138,41 @@ const withProfile = (config: DashboardConfig, profileId: string, fn: (p: Monitor
 /** A profile without a key (absent, not undefined). */
 const without = <T extends object>(holder: T, key: keyof T): T => Object.fromEntries(Object.entries(holder).filter(([k]) => k !== key)) as T;
 
-/** The background a level gets: the theme's when included, else (a refresh) the theme's new one where it still shows the old. */
-function nextBackground(current: PageBackground | undefined, preset: AppearancePreset, last: AppliedTheme | undefined, mode: Mode, include: boolean) {
-  if (mode === "pick") return include && preset.background ? { value: { ...preset.background }, written: true } : { value: current, written: false };
+/** The background a level gets: a pick's theme's unless kept, a refresh's where the level still shows the theme's old one. */
+function nextBackground(current: PageBackground | undefined, preset: AppearancePreset, last: AppliedTheme | undefined, mode: Mode, keep: boolean) {
+  if (mode === "pick") return !keep && preset.background ? { value: { ...preset.background }, written: true } : { value: current, written: false };
   const theirs = last?.background !== undefined && sameBackground(current, last.background);
   return theirs && preset.background ? { value: { ...preset.background }, written: true } : { value: current, written: theirs };
 }
 
 
-function atAll(config: DashboardConfig, preset: AppearancePreset, mode: Mode, include: boolean): DashboardConfig {
+function atAll(config: DashboardConfig, preset: AppearancePreset, mode: Mode, keep: boolean): DashboardConfig {
   const last = config.appliedTheme;
   const next = themeValues(preset);
   const tokens = presetTokens(preset);
   const keepTokens = mode === "refresh" && !sameValues(config.theme, last?.tokens);
   const keepRadius = mode === "refresh" && config.radius !== last?.radius;
-  const bg = nextBackground(config.background, preset, last, mode, include);
+  const bg = nextBackground(config.background, preset, last, mode, keep);
   return {
     ...config,
     theme: keepTokens ? config.theme : { ...tokens },
     radius: keepRadius ? config.radius : preset.radius,
-    style: orNone(merged(config.style ?? {}, last?.values ?? {}, next, mode === "pick" ? PART_KEYS : NONE)),
+    style: orNone(merged(config.style ?? {}, writtenAt(last, config.style ?? {}), next, mode === "pick" ? PART_KEYS : NONE)),
     background: bg.value,
     appliedTheme: snapshot(preset, { tokens: { ...tokens }, radius: preset.radius, ...(bg.written && preset.background ? { background: { ...preset.background } } : {}), values: next }),
   };
 }
 
-function atScreen(config: DashboardConfig, profileId: string, preset: AppearancePreset, mode: Mode, include: boolean): DashboardConfig {
+function atScreen(config: DashboardConfig, profileId: string, preset: AppearancePreset, mode: Mode, keep: boolean): DashboardConfig {
   return withProfile(config, profileId, (p) => {
     const last = p.appliedTheme;
     const next = themeValues(preset, config.style);
     const tokens = presetTokens(preset);
     const keepTokens = mode === "refresh" && !sameValues(p.theme, last?.tokens);
     const keepRadius = mode === "refresh" && p.radius !== last?.radius;
-    const bg = nextBackground(p.background, preset, last, mode, include);
-    const values = merged(p.widgetTheme?.values ?? {}, last?.values ?? {}, next, mode === "pick" ? PART_KEYS : NONE);
+    const bg = nextBackground(p.background, preset, last, mode, keep);
+    const own = p.widgetTheme?.values ?? {};
+    const values = merged(own, writtenAt(last, own), next, mode === "pick" ? PART_KEYS : NONE);
     const { pages, zones } = mode === "pick" ? rezonedPages(p.pages, preset.zoneLook, last?.zones) : { pages: p.pages, zones: last?.zones };
     const out: MonitorProfile = {
       ...p,
@@ -202,7 +208,8 @@ function mergedPage(theme: WidgetTheme | undefined, locks: WidgetTheme["locks"],
     const next = pick(style, keys);
     Object.assign(written, next);
     if (!custom && Object.keys(next).length === 0) continue;
-    const values = merged(custom ? pick(out?.values, keys) : {}, pick(last?.values, keys), next, mode === "pick" ? PART_KEYS : NONE);
+    const own = custom ? pick(out?.values, keys) : {};
+    const values = merged(own, last ? pick(last.values, keys) : own, next, mode === "pick" ? PART_KEYS : NONE);
     out = withThemeValues(out, orNone({ ...omit(out?.values, keys), ...values }));
     out = withSectionFlag(out, "follow", sec, Object.keys(values).length === 0);
   }
@@ -227,15 +234,15 @@ function atPage(config: DashboardConfig, profileId: string, pageId: string, pres
   });
 }
 
-function applyAt(config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget, mode: Mode, include: boolean): DashboardConfig {
-  if (target.kind === "all") return atAll(config, preset, mode, include);
-  if (target.kind === "profile") return atScreen(config, target.profileId, preset, mode, include);
+function applyAt(config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget, mode: Mode, keep: boolean): DashboardConfig {
+  if (target.kind === "all") return atAll(config, preset, mode, keep);
+  if (target.kind === "profile") return atScreen(config, target.profileId, preset, mode, keep);
   return atPage(config, target.profileId, target.pageId, preset, mode);
 }
 
 /** Apply a theme at a level, adding to its look (see the module comment). */
 export const applyTheme = (config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget, options: ApplyThemeOptions = {}): DashboardConfig =>
-  applyAt(config, preset, target, "pick", options.includeBackground === true);
+  applyAt(config, preset, target, "pick", options.keepBackground === true);
 
 /** A snapshot reduced to its writes into the widgets (Reset clears the rest of the level). */
 const writesOnly = (applied: AppliedTheme | undefined): { appliedTheme?: AppliedTheme } => (applied ? { appliedTheme: { ...applied, values: {} } } : {});
@@ -248,7 +255,7 @@ const writesOnly = (applied: AppliedTheme | undefined): { appliedTheme?: Applied
 export function resetToTheme(config: DashboardConfig, preset: AppearancePreset, target: ThemeTarget): DashboardConfig {
   if (target.kind === "all") {
     const { appliedTheme: _old, ...rest } = config;
-    return applyTheme({ ...rest, style: undefined, background: undefined }, preset, target, { includeBackground: true });
+    return applyTheme({ ...rest, style: undefined, background: undefined }, preset, target);
   }
   // The snapshot keeps only what the last theme wrote into the widgets, so the pick takes that back.
   if (target.kind === "profile") {
@@ -256,7 +263,7 @@ export function resetToTheme(config: DashboardConfig, preset: AppearancePreset, 
       const { background: _bg, ...rest } = p;
       return { ...rest, widgetTheme: withThemeValues(p.widgetTheme, undefined), ...writesOnly(p.appliedTheme) };
     });
-    return applyTheme(cleared, preset, target, { includeBackground: true });
+    return applyTheme(cleared, preset, target);
   }
   const cleared = withProfile(config, target.profileId, (p) => {
     const locks = p.widgetTheme?.locks;
@@ -301,7 +308,7 @@ export function updateThemeEverywhere(config: DashboardConfig, id: string, from:
   const saved = updateAppearancePreset(config, id, from);
   const preset = saved.appearancePresets?.find((p) => p.id === id);
   if (!preset) return config;
-  return themeUses(saved, id).reduce((c, use) => applyAt(c, preset, use.target, "refresh", false), saved);
+  return themeUses(saved, id).reduce((c, use) => applyAt(c, preset, use.target, "refresh", true), saved);
 }
 
 /**

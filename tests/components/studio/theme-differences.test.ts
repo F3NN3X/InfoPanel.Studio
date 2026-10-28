@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { AppearancePreset } from "@/lib/appearance-presets";
 import { defaultConfig, type DashboardConfig, type MonitorProfile, type Placement } from "@/lib/layout";
 import type { ThemeAt } from "@/components/studio/theme-cards";
-import { differenceSummary, differencesOf, differencesPill, followAll, pageDifferences } from "@/components/studio/theme-differences";
+import { differenceSummary, differencesOf, differencesPill, followAll, pageDifferences, widgetCount, widgetsKeeping } from "@/components/studio/theme-differences";
 import { exceptionsOf } from "@/components/studio/theme-exceptions";
 
 const zone = (id: string, extra: Partial<Placement> = {}): Placement => ({
@@ -104,5 +105,18 @@ describe("the preview", () => {
     const blurred = followAll(c, diffsOf(c)).profiles[0].pages[0].placements.find((z) => z.id === "blurred");
     expect(blurred?.settings).toEqual({ surfaceOpacity: 60 });
     expect(blurred?.follow).toEqual({ surface: false });
+  });
+});
+
+describe("after a theme pick", () => {
+  const preset = (style: Record<string, string>): AppearancePreset => ({ id: "t", name: "T", description: "", theme: "zinc", radius: 0.5, style });
+
+  it("names the widgets that keep their own look in the sections the theme sets, and Make them follow clears them", () => {
+    const c = setup();
+    expect(widgetsKeeping(c, SCREEN, preset({ accent: "#2563eb" })).map((ex) => ex.key)).toEqual(["widget:main:red:colors"]);
+    const both = widgetsKeeping(c, SCREEN, preset({ accent: "#2563eb", surface: "theme" }));
+    expect(widgetCount(both)).toBe(2);
+    expect(widgetsKeeping(followAll(c, both), SCREEN, preset({ accent: "#2563eb", surface: "theme" }))).toEqual([]);
+    expect(widgetsKeeping(c, SCREEN, preset({ font: "inter" }))).toEqual([]);
   });
 });
