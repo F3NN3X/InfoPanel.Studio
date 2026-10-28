@@ -4,7 +4,7 @@ import type { HistorySetter } from "@/hooks/use-config-history";
 import type { AppearancePreset } from "@/lib/appearance-presets";
 import { useSensorCatalog } from "@/lib/catalog";
 import { FONT_CATALOG } from "@/lib/fonts";
-import { GENERAL_DEFAULTS, resolveFont, type GeneralFont } from "@/lib/general";
+import { resolveFont, type GeneralFont } from "@/lib/general";
 import { resolveInheritance, valueText } from "@/lib/inheritance";
 import { uid, type DashboardConfig } from "@/lib/layout";
 import { deletePalette, duplicatePalette, paletteName, paletteUsers, renamePalette, savePalette } from "@/lib/palettes";
@@ -125,7 +125,7 @@ const DataRow = ({ children }: { children: ReactNode }) => <div className="py-[3
 
 /**
  * Theme (handoff SPEC §4): the live look of a level. The header holds the title, "Live look of" and the level
- * control (All screens · ‹screen› · ‹page›), the level help and Lock all at Screen level; the 360 px column the theme
+ * control (‹screen› · ‹page›), the level help and Lock all at Screen level; the 360 px column the theme
  * card and the fine-tune list, or a picker drilled into (Switch theme, Palette, Skin, Background); the right area the
  * preview of the screen's pages with what differs from the level, and the toast row.
  */
@@ -176,7 +176,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
     else if (link?.section) openSection(link.section);
   };
 
-  // A link ("Edit All screens ↗", a LinkRow, Change a section…) opens its place; useNavFocus focuses it.
+  // A link ("Edit Screen ↗", a LinkRow, Change a section…) opens its place; useNavFocus focuses it.
   useEffect(() => {
     if (!navRequest || navRequest.seq <= handledNav || navRequest.target.view !== "theme") return;
     handledNav = navRequest.seq;
@@ -204,7 +204,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   }, [jumpTo?.seq]);
 
   const pick = (level: ThemeAt["level"], toProfile: string, toPage: string) =>
-    onPick(level === "all" ? { kind: "base" } : level === "screen" ? { kind: "profile" } : { kind: "page", pageId: toPage }, toProfile, toPage);
+    onPick(level === "screen" ? { kind: "profile" } : { kind: "page", pageId: toPage }, toProfile, toPage);
   /** Another level of this screen with a section open (a chip's Edit ‹level› ↗). */
   const goTo = (level: ThemeAt["level"], card: ThemeCard) => {
     pick(level, profile.id, page.id);
@@ -234,12 +234,12 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
   const effective = shownValues(values, THEME_EDITOR_SETTINGS);
   const sections = visibleSections(allSections({ kind: "theme", scope: scope.kind }), (def) => isVisible(def, effective));
   // What below the level doesn't follow it; values a theme wrote into widgets are the theme's (owner rule).
-  const exceptions = differencesOf(config, exceptionsOf(config, at));
-  const theme = resolveTheme(config, at.level === "all" ? undefined : profile);
-  const background = at.level === "all" ? config.background : (profile.background ?? config.background);
-  const font = at.level === "all" ? (config.general?.font ?? GENERAL_DEFAULTS.font) : resolveFont({ font: config.general?.font ?? GENERAL_DEFAULTS.font }, profile);
+  const exceptions = differencesOf(exceptionsOf(config, at));
+  const theme = resolveTheme(profile);
+  const background = profile.background;
+  const font = resolveFont(profile);
   const fontLabel = FONTS.find((f) => f.value === font)?.label ?? font;
-  const levelName = at.level === "all" ? "All screens" : at.level === "screen" ? profile.name : page.name;
+  const levelName = at.level === "screen" ? profile.name : page.name;
   const shownStyle: ModuleSettings = { ...values.inherited, ...values.own };
 
   // The theme applied here, where else it is used, and what changed since (the card, the Update bar, the chips).
@@ -352,7 +352,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
           ))}
         {card.id === "motion" && effective.smoothing === "smooth" && (
           <SmoothOffNote
-            screens={smoothOffScreens(config).filter((s) => at.level === "all" || s.id === profile.id)}
+            screens={smoothOffScreens(config).filter((s) => s.id === profile.id)}
             onOpenScreen={(id) => navigateTo({ view: "screens", profileId: id, section: "performance" })}
           />
         )}
@@ -393,7 +393,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
         help={HELP[card.id]}
         onChange={chip.state === "inherited" ? () => setConfig((c) => customiseCard(c, at, card)) : undefined}
         onReset={() => setConfig((c) => resetFineTune(c, at, card, state))}
-        onJump={chip.from && chip.state !== "custom" && chip.state !== "base" ? () => goTo(chip.from === "all" ? "all" : "screen", card) : undefined}
+        onJump={chip.from && chip.state !== "custom" && chip.state !== "base" ? () => goTo("screen", card) : undefined}
         flash={flash === card.id}
       >
         {rowsOf(card)}
@@ -463,7 +463,7 @@ export function ThemeEditor({ config, scope: requested, profileId, pageId, onPic
             themes={state.theme?.background}
             tokens={theme.tokens}
             onChange={(bg) => twoLevel && setConfig((c) => withBackgroundAt(c, twoLevel, bg), key("background"))}
-            copyLabel={at.level === "all" ? "All screens › Background" : `${profile.name} › Background`}
+            copyLabel={`${profile.name} › Background`}
             profileId={profile.id}
             onOpenLibrary={() => navigateTo({ view: "library", tab: "media" })}
             onBack={toMain}

@@ -71,13 +71,13 @@ export function IslandTab({ config, setConfig, current, onOpenZone, onOpenExplor
   const widgets = useMemo(() => islandWidgets(profile, modules).filter((w) => w.on), [profile]);
   const unplaced = useMemo(() => unplacedIslandWidgets(profile, modules), [profile]);
   const rules = islandRules(alertsOf(config), profile.id);
-  const general = resolveGeneral(config);
+  const general = resolveGeneral(config, profile);
   const multiPage = profile.pages.length > 1;
 
   const patchIsland = (patch: Partial<IslandConfig>) =>
     setConfig((c) => ({ ...c, profiles: c.profiles.map((p) => (p.id === profile.id ? withIsland(p, patch) : p)) }), "profile:island");
 
-  const font = islandFontLink(island, resolveFont(general, profile));
+  const font = islandFontLink(island, resolveFont(profile));
   const clock = islandClockLink(island, general);
 
   return (

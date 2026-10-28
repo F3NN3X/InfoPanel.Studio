@@ -163,13 +163,14 @@ levels. The Dynamic Island reads the resolved settings too
 Every layered setting resolves the same way, lowest first; the first level
 that sets a value wins from the right:
 
-| Setting | App default | Dashboard (`DashboardConfig`) | Profile (`MonitorProfile`) | Widget (`Placement`) | Resolved by |
+| Setting | App default | App (`DashboardConfig`) | Profile (`MonitorProfile`) | Widget (`Placement`) | Resolved by |
 |---|---|---|---|---|---|
-| Themed keys (surface, accent, font, units, thresholds, …) | `THEME_DEFAULTS` | `style` | `widgetTheme.values` (and per-section `locks`); a page's `widgetTheme` (`values`, `follow`) over it | `settings`, per section unless `follow[section]` is not `false` or the profile locks it | `resolveStyle` (style-resolve.ts) |
-| Theme colours, corner radius | `DEFAULT_THEME`, 0.5 rem | `theme`, `radius` | `theme` (partial, over the dashboard's), `radius` | - | `resolveTheme` (theme.ts) |
-| Page background | none (the theme's page colour) | `background` | `background` (`{ type: "none" }` turns it off) | - (a widget's own background image is a look key) | `resolveBackground` (appearance.ts) |
+| Themed keys (surface, accent, font, units, thresholds, …) | `THEME_DEFAULTS` | `general.clock` (the clock only) | `widgetTheme.values` (and per-section `locks`); a page's `widgetTheme` (`values`, `follow`) over it | `settings`, per section unless `follow[section]` is not `false` or the profile locks it | `resolveStyle` (style-resolve.ts) |
+| Theme colours, corner radius | `DEFAULT_THEME`, `DEFAULT_RADIUS` (0.5 rem) | - | `theme` (partial, over the built-in), `radius` | - | `resolveTheme` (theme.ts) |
+| Page background | none (the theme's page colour) | - | `background` | - (a widget's own background image is a look key) | `resolveBackground` (appearance.ts) |
 | Grid gap, padding | 12 px; padding per mode (`profilePadding`) | - | `gap`, `padding` | - | `profileGap` / `profilePadding` (profile-grid.ts) |
-| General (font, clock, locale, motion, cursor) | `GENERAL_DEFAULTS` | `general` | - | - (a widget's Font look key beats the page font) | `resolveGeneral` (general.ts) |
+| General (clock, locale, cursor, kiosk nav) | `GENERAL_DEFAULTS` | `general` | - | - | `resolveGeneral` (general.ts) |
+| Page font, performance (fps, motion, rendering) | `GENERAL_DEFAULTS` | - | `font`, `performance` | - (a widget's Font look key beats the page font) | `resolveGeneral(config, profile)` (general.ts) |
 
 ### The render pipeline of a module zone
 
@@ -283,7 +284,7 @@ option's `applies`), so a skin shows whole until a surface is chosen again.
 The other look keys that override a skin token when set: accent, font,
 value weight, graph, meter, stroke. The card's corner is the look's `radius`,
 else the screen's (`var(--radius)`, Theme › Shape & spacing › Corners at the screen scope, falling back to
-the dashboard `radius`), like panels;
+`DEFAULT_RADIUS`), like panels;
 the skins' `radius` token no longer reaches the shell. Theme › Surface & effects
 also sets the global `surfaceOpacity` and `blur` (Opacity and Blur), which let a page image or video show
 through the cards. `smoothing` (Graph updates: Stepped / Smooth) sets `SkinCtx.smooth`; `Spark` then
@@ -769,22 +770,22 @@ least one widget is visible.
 
 ### Types (`src/lib/layout.ts`)
 
-- `DashboardConfig` - `version: 15` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
-  `profiles`, `theme`, `radius`, `dataApiUrl?`, `stylePresets?`,
-  `panelPresets?`, `sourcePrefs?`, `background?` (the page background),
-  `style?` (the dashboard style, every profile), `styleEnforce?`
+- `DashboardConfig` - `version: 16` (`CONFIG_VERSION`; the steps are listed above it in `layout.ts`), `activeProfile` (a profile id or `"auto"`),
+  `profiles`, `dataApiUrl?`, `stylePresets?`,
+  `panelPresets?`, `sourcePrefs?`, `styleEnforce?`
   (force the global style on every widget), `appearancePresets?` (the
-  user's saved appearance presets) and `general?` (see below).
+  user's saved appearance presets) and `general?` (app-wide only, see below). Since v16 there is no
+  dashboard look: each profile owns its theme, radius, background, font, style and performance.
 - `MonitorProfile` - `id`, `name`, design `width`/`height`, `cols`, `rows`,
   `fit` (`"scroll"` with fixed `SCROLL_ROW_H` = 120 px rows, or `"fill"` to
   fill the viewport; the studio fits its zoom to the design size in both modes
   (`pageSize`, `use-studio-layout.ts`) and marks where a scroll page's screen ends
   with `ScreenFold`), `pages` (at least one `ProfilePage`: `id`, `name`,
-  `icon?`, `placements`), `rotate?` (`PageRotate`, auto-rotate), optional `style` (profile style, over
-  the dashboard's), `styleEnforce` (overrides the dashboard's when set),
-  `background` (replaces the dashboard's; `{ type: "none" }` turns it off
-  for the profile), `theme` (a partial `ThemeTokens` over the dashboard's
-  theme) and `radius` (rem), `gap` and `padding` (px, see `profile-grid.ts`)
+  `icon?`, `placements`), `rotate?` (`PageRotate`, auto-rotate), optional `style` (profile style),
+  `styleEnforce` (overrides the dashboard's when set),
+  `background` (the page background), `theme` (a partial `ThemeTokens` over `DEFAULT_THEME`; the v16 step writes all
+  19), `radius` (rem), `font?` (the page font), `performance?` (`ScreenPerformance`: `maxFps`, `motion` and the
+  rendering switches `ringGlide`, `blurLimit`, `innerBlur`, `liveGlow`), `gap` and `padding` (px, see `profile-grid.ts`)
   and `sampleVersion` (set on the profiles earlier versions shipped; kept, no
   longer read). `madeFor?` (`"studio"` or `"infopanel"`, v14) records what the
   profile was made for: the v14 step sets `infopanel` on a profile whose every
@@ -826,11 +827,18 @@ least one widget is visible.
   A profile has `widgetTheme?` (the widget theme: `values` and `locks`), a
   page has `widgetTheme?` (`values` and `follow`).
 - `StylePreset` - `{ id, name, settings }`, a named set of look-only keys.
-- `GeneralSettings` (`src/lib/general.ts`) - `font?` (`system`, `sans`,
-  `rounded`, `serif`, `mono`), `hour12?` (unset = the locale's choice),
-  `showSeconds?`, `locale?` (a BCP 47 tag, `""` = the system's), `motion?`
-  (`system`, `reduce`, `full`), `hideCursor?` and `kioskPageNav?` (kiosk page dots and swipe). Stored sparse;
-  `resolveGeneral` fills `GENERAL_DEFAULTS`.
+- `GeneralSettings` (`src/lib/general.ts`) - app-wide only: `clock?` (`"12"` / `"24"`, unset = the locale's choice;
+  it is also the base of every widget's clock look key), `showSeconds?`, `locale?` (a BCP 47 tag, `""` = the
+  system's), `hideCursor?`, `kioskPageNav?` (kiosk page dots and swipe) and `kioskRefresh?`. Stored sparse;
+  `resolveGeneral(config, profile?)` fills `GENERAL_DEFAULTS` and lays the profile's `font` and `performance` over it.
+- The v16 step (`migrateScreensV16`, `lib/screen-look-migrate.ts`, run in `mergeConfig` for a config before v16):
+  the dashboard's `theme`, `radius`, `background`, `style`, `appliedTheme` and `general` font and performance move
+  onto every profile (`screenWithLook`: the dashboard's tokens under the profile's own, all 19 written; the
+  profile's radius, background and font kept when set, a dashboard background of `none` left unset; style values
+  under the profile's own, without `clock`; performance merged; the dashboard's theme snapshot only on a profile
+  that had no look of its own). `style.clock` becomes `general.clock`. The resolved look of every screen is
+  unchanged. The server copies the older `config.json` to `config.backup-before-v16.json` before the first save
+  that raises the version (`version_backup_name`, `config_guard.rs`), and an older build refuses to save over v16.
 - `PageBackground` (`src/lib/appearance.ts`) - `type` (`none`, `color`,
   `gradient`, `image`, `video`), `color` (the color, or the fill behind an
   image), `gradient` `{ from, to, angle }`, `src`, `fit` (`cover`,
@@ -864,29 +872,20 @@ least one widget is visible.
 pure config → config, and the studio sets its result in one `setConfig`
 call without a coalescing key, so one undo step reverts a whole preset:
 
-- scope `{ kind: "all" }` writes `theme` (the preset's tokens), `radius`
-  and `style` (replaced wholesale);
 - scope `{ kind: "profile" }` writes the profile's `theme` (the preset's
-  full tokens), `radius` and `style`; the dashboard and the other profiles
-  are untouched. Look keys the dashboard style sets but the preset doesn't
-  are written as their setting defaults, so the profile shows the preset
-  rather than a blend;
+  full tokens), `radius` and `style`; the other profiles are untouched;
 - the preset's `background` goes to the same scope when `includeBackground`
   is true or, when it is unset, only if the scope has none yet (unset, an
-  empty media background, or the dashboard's `"none"`; a profile's `"none"`
-  is a choice and stays). A preset without a background never clears one;
+  empty media background or `"none"`). A preset without a background never clears one;
 - placements (and with them all content keys) are never touched.
 
 `countOverrides(config, scope)` counts the widgets whose own look keys show
-over the theme (a section not following, not locked); `countProfileOverrides`
-counts, for "all", profiles with their own look (style, theme or radius).
+over the theme (a section not following, not locked).
 `clearOverrides` sets those widgets' sections to follow (their values
-stay) and, for "all", drops the profiles' styles, themes and radii.
-`presetFromCurrent` captures the resolved theme of the scope (a profile's
-own colours over the dashboard's). `saveAppearancePreset`, `renameAppearancePreset` and
+stay). `presetFromCurrent` captures the resolved theme of the scope. `saveAppearancePreset`, `renameAppearancePreset` and
 `deleteAppearancePreset` manage the user's list. The studio wires them through `useAppearancePresets`
 (`src/components/studio/use-appearance-presets.ts`); the palette's
-**Apply theme: …** commands apply to All screens.
+**Apply theme: …** commands apply to the level Theme is set to, else the screen in Design.
 
 `isValidStyleValue` / `invalidStyleKeys` check look values against the
 options of `PROFILE_STYLE_SETTINGS` (select options, number bounds, CSS
@@ -932,12 +931,12 @@ for both the local copy and the server copy:
   for older builds);
 - keeps `style` when it is an object and `styleEnforce` when it is a
   boolean;
-- keeps `general` through `normalizeGeneral` (known fonts and motion
-  values, booleans, and a locale only when
+- keeps `general` through `normalizeGeneral` (known clock values,
+  booleans, and a locale only when
   `Intl.DateTimeFormat.supportedLocalesOf` accepts it), and per profile a
   `theme` of token strings (`normalizeThemePatch`), a finite `radius`, and
   `gap` / `padding` rounded and clamped to 0-200 px (`normalizeSpacing`);
-- keeps the dashboard's and each profile's `background` only when
+- keeps each profile's `background` only when
   `normalizeBackground` accepts it (an object with a known `type`); invalid
   fields are dropped, numbers clamped, and a `src` must be http(s), a path or
   a `data:` image or video;
@@ -1203,18 +1202,17 @@ profile's `padding`, else the page defaults (a `fill` kiosk page 0, a
 of the profile's design size with the kiosk padding and puts the grid inside
 it; the selection chip re-measures when gap or padding change.
 
-**Theme** (`src/lib/theme.ts`). `resolveTheme(config, profile)` lays a
-profile's own `theme` / `radius` over the dashboard's; `themeVars` turns
+**Theme** (`src/lib/theme.ts`). `resolveTheme(profile)` lays a
+profile's own `theme` / `radius` over `DEFAULT_THEME` and `DEFAULT_RADIUS`; `themeVars` turns
 tokens into `--background`, …, `--radius`. The kiosk and dashboard page
 write the shown profile's theme to `:root` (`applyTheme`). The studio keeps
-the dashboard theme on `:root` for its own chrome and, for a profile with its
-own theme, sets the profile's variables on the canvas page element
+the built-in theme on `:root` for its own chrome and sets the shown profile's variables on the canvas page element
 (`data-theme-scope`, painted `bg-background`); `index.css` re-declares the
 colours derived from tokens (meters, waveforms) under `[data-theme-scope]`,
 since a `var()` inside a custom property resolves where it is declared.
 
 **General settings** (`src/lib/general.ts`, `src/hooks/use-general.tsx`).
-`App.tsx` resolves `config.general` and provides it through
+`App.tsx` resolves `resolveGeneral(config, shownProfile)` and provides it through
 `GeneralProvider` to the kiosk page and the studio; `useGeneral()` reads it
 (defaults outside a provider).
 
@@ -1399,8 +1397,8 @@ Fill, built from the shared rows and written back by `withItemValues`.
 format, thresholds), so the renderer and the inspector agree.
 
 *Theme* (`theme-editor.tsx`, the Theme view; `theme-cards.ts`, `theme-editor-model.ts`,
-`theme-editor-settings.ts`, `theme-exceptions.ts`). The scope is All screens, a screen or a page
-(`ThemeScope`: `base`, `profile`, `page`; `theme-scope-bar.tsx`). `THEME_CARDS` are the ten section cards: each
+`theme-editor-settings.ts`, `theme-exceptions.ts`). The scope is a screen or a page
+(`ThemeScope`: `profile`, `page`; `theme-scope-bar.tsx`). `THEME_CARDS` are the ten section cards: each
 names the widget-style sections it covers and the two-level data it also holds (color tokens, corner radius,
 page font, background). Pure scope edits: `withScopeValues`, `withLock` / `withLockAll` / `withCardLock`,
 `withPageFollow`, `customiseCard`, `resetCard`, and `withToken`, `withThemeRadius`, `withPageFont`,

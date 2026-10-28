@@ -5,8 +5,8 @@ import { METER_BALLISTICS } from "@/widgets/registry/audio-settings";
 import { formatSetting, thresholdSetting } from "@/widgets/registry/settings-kit";
 
 /**
- * The rows of the theme editor (SPEC §7): every themed key a screen, a
- * page or All screens sets. Style = the look sections (the CSS
+ * The rows of the theme editor (SPEC §7): every themed key a screen or a
+ * page sets. Style = the look sections (the CSS
  * row out of More: it is the section) and Status & series colors (the
  * palette roles); Data = Units & format, all four rows; Behaviour =
  * Thresholds of every quantity and Motion. Each row files itself by

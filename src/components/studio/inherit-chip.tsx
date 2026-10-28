@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { ITEM, POPUP, SEPARATOR } from "./menu-styles";
 
 /** Where "Make this the theme for… ▸" writes a widget's custom sections. */
-export type MakeThemeTarget = "all" | "screen" | "page";
+export type MakeThemeTarget = "screen" | "page";
 
 /** A chip's state: where the value comes from, or (Theme) from the theme applied at this level. */
 export type ChipState = InheritState | "theme";
@@ -67,7 +67,7 @@ const LOOK: Readonly<Record<ChipState, ChipLook>> = {
   base: {
     icon: Pencil,
     text: () => "Changed here",
-    tip: () => "This is the base value everything below inherits.",
+    tip: () => "This is the screen's own value everything below inherits.",
     className: CHANGED,
   },
   builtin: {
@@ -79,14 +79,13 @@ const LOOK: Readonly<Record<ChipState, ChipLook>> = {
 };
 
 const MAKE_THEME: { target: MakeThemeTarget; label: string }[] = [
-  { target: "all", label: "All screens" },
   { target: "screen", label: "This screen" },
   { target: "page", label: "This page" },
 ];
 
-/** "Page · Gaming"; All screens has no other name. */
+/** "Page · Gaming". */
 const levelWithName = (level: string, from: InheritLevel | undefined, name: string | undefined): string =>
-  from && from !== "all" && name ? `${level} · ${name}` : level;
+  from && name ? `${level} · ${name}` : level;
 
 /** The menu's muted first line: the parent's value and where it comes from. */
 function parentLine(state: ChipState, value: string | undefined, source: string): string | undefined {
@@ -106,7 +105,7 @@ function parentLine(state: ChipState, value: string | undefined, source: string)
 export function InheritChip({ state, from, fromName, parentText, onReset, onJump, onCustomise, onMakeTheme, className }: InheritChipProps) {
   const look = LOOK[state];
   const Icon = look.icon;
-  const level = LEVEL_LABELS[from ?? "all"];
+  const level = LEVEL_LABELS[from ?? "screen"];
   const name = fromName ?? level;
   // A screen's chip names it ("From Desk bar"); a page or panel keeps its level.
   const shown = from === "screen" && fromName ? fromName : level;

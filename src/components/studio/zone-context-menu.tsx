@@ -73,7 +73,6 @@ const ICONS: Record<MenuItemId, ReactNode> = {
   "distribute-h": <AlignHorizontalDistributeCenter />,
   "distribute-v": <AlignVerticalDistributeCenter />,
   "follow-global": <Globe />,
-  "global-all": <Globe />,
   "global-profile": <Globe />,
   deselect: <X />,
   remove: <Trash2 />,

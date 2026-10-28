@@ -45,22 +45,14 @@ function setup(): DashboardConfig {
   return withScopeValues({ ...c, profiles: [desk] }, "desk", { kind: "profile" }, () => ({ s1: "#00ff00" }));
 }
 
-const ALL: ThemeAt = { level: "all" };
 const SCREEN: ThemeAt = { level: "screen", profileId: "desk" };
 const GAMING: ThemeAt = { level: "page", profileId: "desk", pageId: "gaming" };
 const desk = (c: DashboardConfig) => c.profiles[0];
 const keys = (c: DashboardConfig, at: ThemeAt) => exceptionsOf(c, at).map((ex) => ex.key);
 
 describe("what each scope lists", () => {
-  it("All screens: the screen, its pages and widgets; a screen: pages and widgets; a page: its widgets", () => {
+  it("a screen: its pages and widgets; a page: its widgets", () => {
     const c = setup();
-    expect(keys(c, ALL)).toEqual([
-      "screen:desk:colors",
-      "widget:main:cpu:colors",
-      "widget:main:gpu:motion",
-      "page:gaming:surface",
-      "widget:gaming:cpu2:type",
-    ]);
     expect(keys(c, SCREEN)).toEqual(["widget:main:cpu:colors", "widget:main:gpu:motion", "page:gaming:surface", "widget:gaming:cpu2:type"]);
     expect(keys(c, GAMING)).toEqual(["widget:gaming:cpu2:type"]);
   });
@@ -85,12 +77,10 @@ describe("Make it follow", () => {
     expect(keys(out, SCREEN)).toEqual(["widget:main:gpu:motion", "page:gaming:surface", "widget:gaming:cpu2:type"]);
   });
 
-  it("a page follows its screen again; a screen drops its own values for the card", () => {
+  it("a page follows its screen again", () => {
     const c = setup();
     const page = makeFollow(c, exceptionsOf(c, SCREEN).find((e) => e.kind === "page")!);
     expect(desk(page).pages[1].widgetTheme).toEqual({ values: { glow: "soft" } });
-    const screen = makeFollow(c, exceptionsOf(c, ALL).find((e) => e.kind === "screen")!);
-    expect(desk(screen).widgetTheme?.values).toBeUndefined();
   });
 });
 
@@ -103,25 +93,19 @@ describe("Make all follow respects the scope", () => {
     expect(desk(out).pages[0]).toEqual(desk(setup()).pages[0]);
   });
 
-  it("a screen clears its pages and widgets but keeps its own look; All screens clears the screen too", () => {
+  it("a screen clears its pages and widgets but keeps its own look", () => {
     const screen = makeAllFollow(setup(), SCREEN);
     expect(exceptionsOf(screen, SCREEN)).toEqual([]);
     expect(desk(screen).widgetTheme?.values).toEqual({ s1: "#00ff00" });
-    const all = makeAllFollow(setup(), ALL);
-    expect(exceptionsOf(all, ALL)).toEqual([]);
-    expect(desk(all).widgetTheme?.values).toBeUndefined();
   });
 });
 
 describe("the preview", () => {
-  it("draws All screens without the screen's and pages' own look, a screen without its pages'", () => {
+  it("draws a screen without its pages' own look, a page as it is", () => {
     const c = withPageFollow(setup(), "desk", "main", "colors", false);
-    const all = previewProfile(desk(c), ALL);
-    expect(all).not.toHaveProperty("theme");
-    expect(all.pages.every((pg) => pg.widgetTheme === undefined)).toBe(true);
-    // Widgets keep their own (they get the badge).
-    expect(all.pages[0].placements[0].follow).toEqual({ colors: false });
     const screen = previewProfile(desk(c), SCREEN);
+    // Widgets keep their own (they get the badge).
+    expect(screen.pages[0].placements[0].follow).toEqual({ colors: false });
     expect(screen.theme).toEqual(desk(c).theme);
     expect(screen.pages.every((pg) => pg.widgetTheme === undefined)).toBe(true);
     expect(previewProfile(desk(c), GAMING)).toBe(desk(c));

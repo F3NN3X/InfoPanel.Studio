@@ -17,11 +17,11 @@ Widget or panel — What sits on the cells
 
 ## Dashboard
 
-Everything you build: the theme for all screens, the page background, fonts and your saved themes, palettes, Styles and Panels. There is one dashboard per install, and it exports as one file.
+Everything you build: your screens and your saved themes, palettes, Styles and Panels. There is one dashboard per install, and it exports as one file.
 
 ## Screen
 
-A design for one display size (a profile in files and InfoPanel), with its own grid (columns × rows), fit mode, gap and padding. A screen can inherit the theme for all screens or set its own. With **Best fit for the window** (Settings › Dashboard › Startup screen), each display opens the screen closest to its window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
+A design for one display size (a profile in files and InfoPanel), with its own grid (columns × rows), fit mode, gap and padding. Each screen has its own theme, background and performance settings. With **Best fit for the window** (Settings › Dashboard › Startup screen), each display opens the screen closest to its window size, so one dashboard can serve a 1920 × 550 strip and a 1024 × 600 panel.
 
 ## Cells
 
@@ -37,4 +37,4 @@ A widget you compose from small **panel widgets** (stat, gauge, bar, clock, imag
 
 ## How looks are decided
 
-Looks flow downward. A widget follows its page, which follows its screen, which follows All screens, unless you customize a section on the widget itself. Content (which sensor, what to show) always belongs to the widget. See [Themes](themes).
+Looks flow downward. A widget follows its page, which follows its screen, unless you customize a section on the widget itself. Content (which sensor, what to show) always belongs to the widget. See [Themes](themes).

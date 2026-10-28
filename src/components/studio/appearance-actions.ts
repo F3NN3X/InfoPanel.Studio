@@ -5,34 +5,16 @@ import type { ModuleSettings } from "@/modules/types";
 import { setProfileStyle } from "./studio-actions";
 
 /**
- * Edits of the widget style at a Theme level: All screens' (`config.style`)
- * style or a profile's theme values, the palette's lock-all of the profile
- * theme, and the widgets' follow choice. Pure config → config updates, each
+ * Edits of the widget style of a screen: its theme values, the palette's
+ * lock-all of the profile theme, and the widgets' follow choice. Pure config → config updates, each
  * one undo step (same-key edits coalesce: `appearance-style:<scope>`).
  */
 
-/** Which global style an edit targets (the page background's scopes). */
+/** Which screen's style an edit targets (the page background's scopes). */
 export type StyleScope = BackgroundScope;
 
-const scopeId = (scope: StyleScope) => (scope.kind === "all" ? "all" : scope.profileId);
-
 /** Undo-coalescing key for style edits in a scope. */
-export const styleKey = (scope: StyleScope): string => `appearance-style:${scopeId(scope)}`;
-
-/** Map the profile a scope targets (the config itself for "all"). */
-function inScope(
-  config: DashboardConfig,
-  scope: StyleScope,
-  all: (c: DashboardConfig) => DashboardConfig,
-  one: (p: MonitorProfile) => MonitorProfile
-): DashboardConfig {
-  if (scope.kind === "all") return all(config);
-  return { ...config, profiles: config.profiles.map((p) => (p.id === scope.profileId ? one(p) : p)) };
-}
-
-/** An empty style is stored as none. */
-const orNone = (style: ModuleSettings): ModuleSettings | undefined =>
-  Object.keys(style).length > 0 ? style : undefined;
+export const styleKey = (scope: StyleScope): string => `appearance-style:${scope.profileId}`;
 
 /** Update the style of a scope. */
 export function withScopeStyle(
@@ -40,12 +22,7 @@ export function withScopeStyle(
   scope: StyleScope,
   fn: (style: ModuleSettings) => ModuleSettings
 ): DashboardConfig {
-  return inScope(
-    config,
-    scope,
-    (c) => ({ ...c, style: orNone(fn(c.style ?? {})) }),
-    (p) => setProfileStyle(p, fn)
-  );
+  return { ...config, profiles: config.profiles.map((p) => (p.id === scope.profileId ? setProfileStyle(p, fn) : p)) };
 }
 
 /** Every widget of a profile follows the theme in every section (their own values stay stored). */

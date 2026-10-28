@@ -250,14 +250,14 @@ export function normalizeThemePatch(input: unknown): Partial<ThemeTokens> | unde
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-/** The theme a profile shows: its own colours / radius over the dashboard's. */
-export function resolveTheme(
-  config: { theme: ThemeTokens; radius: number },
-  profile?: { theme?: Partial<ThemeTokens>; radius?: number }
-): { tokens: ThemeTokens; radius: number } {
+/** The built-in corner radius in rem (shadcn --radius). */
+export const DEFAULT_RADIUS = 0.5;
+
+/** The theme a screen shows: its own colours / radius over the built-in ones (each screen owns its look since config v16). */
+export function resolveTheme(profile?: { theme?: Partial<ThemeTokens>; radius?: number }): { tokens: ThemeTokens; radius: number } {
   return {
-    tokens: profile?.theme ? { ...config.theme, ...profile.theme } : config.theme,
-    radius: profile?.radius ?? config.radius,
+    tokens: profile?.theme ? { ...DEFAULT_THEME, ...profile.theme } : DEFAULT_THEME,
+    radius: profile?.radius ?? DEFAULT_RADIUS,
   };
 }
 

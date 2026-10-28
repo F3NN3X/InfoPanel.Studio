@@ -54,7 +54,7 @@ interface FineTuneRowProps {
   overrides: number;
   /** The help text under the rows. */
   help?: string;
-  /** Change here (a screen copies All screens', a page stops following); none where it can't. */
+  /** Change here (a page stops following); none where it can't (a screen, the top level). */
   onChange?: () => void;
   onReset: () => void;
   /** Edit ‹level› ↗: the level the chip names. */

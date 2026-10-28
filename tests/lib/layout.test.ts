@@ -42,7 +42,7 @@ const userProfile = (extra: Partial<StoredProfile> = {}): StoredProfile => ({
 describe("mergeConfig", () => {
   it("fills a missing config with the defaults: one blank profile", () => {
     const c = mergeConfig({});
-    expect(c.version).toBe(15);
+    expect(c.version).toBe(16);
     expect(c.activeProfile).toBe("auto");
     expect(c.profiles).toHaveLength(1);
     expect(c.profiles[0]).toMatchObject({ id: "main", width: 1920, height: 1080 });
@@ -82,7 +82,7 @@ describe("mergeConfig", () => {
       ],
     };
     const c = mergeConfig({ version: 3, profiles: [stored] });
-    expect(c.version).toBe(15);
+    expect(c.version).toBe(16);
     const [one, two] = c.profiles[0].pages;
     expect(one.placements[0]).toMatchObject({ id: "s", module: "SystemOverview", settings: { coreView: "heatmap", sections: "cpu,gpu,vram,ram" } });
     expect(one.placements[0].settings).not.toHaveProperty("showCores");
@@ -129,13 +129,14 @@ describe("mergeConfig", () => {
   });
 
 
-  it("keeps the dashboard style, its force switch becoming the profiles' locks, dropping malformed ones", () => {
+  it("copies the dashboard style down to the screens, its force switch becoming the profiles' locks, dropping malformed ones", () => {
     const merged = mergeConfig({ profiles: [userProfile()], style: { accent: "#ff0000" }, styleEnforce: true });
-    expect(merged.style).toEqual({ accent: "#ff0000" });
+    expect(merged.profiles[0].widgetTheme?.values).toEqual({ accent: "#ff0000" });
+    expect(merged).not.toHaveProperty("style");
     expect(merged).not.toHaveProperty("styleEnforce");
     expect(merged.profiles[0].widgetTheme?.locks?.colors).toBe(true);
     const bad = mergeConfig({ profiles: [userProfile()], style: ["x"], styleEnforce: "yes" } as never);
-    expect(bad.style).toBeUndefined();
+    expect(bad).not.toHaveProperty("style");
     expect(bad.profiles[0].widgetTheme).toBeUndefined();
   });
 
@@ -196,14 +197,14 @@ describe("mergeConfig", () => {
     expect(mergeConfig({ palettes: [] }).palettes).toBeUndefined();
   });
 
-  it("passes the dashboard and profile backgrounds through, normalized", () => {
+  it("passes the dashboard and profile backgrounds through, normalized (the dashboard's onto the screens without one)", () => {
     const c = mergeConfig({
       background: { type: "image", src: "/bg.png", dim: 140 },
       profiles: [userProfile({ background: { type: "none" } }), { ...userProfile(), id: "other" }],
     });
-    expect(c.background).toEqual({ type: "image", src: "/bg.png", dim: 100 });
+    expect(c).not.toHaveProperty("background");
     expect(c.profiles.find((p) => p.id === "mine")?.background).toEqual({ type: "none" });
-    expect(c.profiles.find((p) => p.id === "other")?.background).toBeUndefined();
+    expect(c.profiles.find((p) => p.id === "other")?.background).toEqual({ type: "image", src: "/bg.png", dim: 100 });
     expect(mergeConfig(JSON.parse(JSON.stringify(c)))).toEqual(JSON.parse(JSON.stringify(c)));
   });
 
@@ -212,18 +213,22 @@ describe("mergeConfig", () => {
       background: { type: "pattern" } as never,
       profiles: [userProfile({ background: "red" as never })],
     });
-    expect(c.background).toBeUndefined();
+    expect(c).not.toHaveProperty("background");
     expect(c.profiles[0].background).toBeUndefined();
   });
 
   it("guards the general settings", () => {
     expect(mergeConfig({}).general).toBeUndefined();
     const c = mergeConfig({ general: { font: "serif", locale: "de-DE", motion: "warp" } as never });
-    expect(c.general).toEqual({ font: "serif", locale: "de-DE" });
+    expect(c.general).toEqual({ locale: "de-DE" });
+    // v16: the page font is the screen's.
+    expect(c.profiles[0].font).toBe("serif");
+    expect(c.profiles[0].performance).toBeUndefined();
   });
 
   it("guards a profile's gap, padding, theme and radius", () => {
     const [mine] = mergeConfig({
+      version: CONFIG_VERSION,
       profiles: [
         userProfile({
           gap: 24.6,
@@ -236,6 +241,7 @@ describe("mergeConfig", () => {
     expect(mine).toMatchObject({ gap: 25, padding: 0, theme: { background: "0 0% 100%" }, radius: 1 });
     expect(mine.theme).not.toHaveProperty("nonsense");
     const [bad] = mergeConfig({
+      version: CONFIG_VERSION,
       profiles: [userProfile({ gap: "wide" as never, theme: "paper" as never, radius: Number.NaN })],
     }).profiles;
     expect(bad.gap).toBeUndefined();

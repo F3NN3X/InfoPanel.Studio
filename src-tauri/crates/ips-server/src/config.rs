@@ -15,7 +15,7 @@ use serde_json::Value;
 use tokio::sync::mpsc;
 
 use crate::canvases::{referenced_canvas_ids, CanvasStore};
-use crate::config_guard::version_refusal;
+use crate::config_guard::{version_backup_name, version_refusal};
 use crate::config_settings::{apply_settings_patch, reapply_settings, SettingsEntry};
 use crate::http::{self, Req};
 use crate::request_guard::{config_write_refusal, Refusal};
@@ -159,12 +159,12 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
         return Ok(http::text(400, "expected a config object"));
     };
     let mut state = config.state.lock().unwrap();
+    let stored_text = if config.file.exists() { Some(store::read_text(&config.file)?) } else { None };
     // An older build must not overwrite a config a newer one saved.
-    if config.file.exists() {
-        if let Some(refusal) = version_refusal(&store::read_text(&config.file)?, &parsed) {
-            return Ok(refused(refusal));
-        }
+    if let Some(refusal) = stored_text.as_deref().and_then(|text| version_refusal(text, &parsed)) {
+        return Ok(refused(refusal));
     }
+    let backup = stored_text.as_deref().and_then(|text| version_backup_name(text, &parsed));
     // A push built before a Settings patch landed gets that patch again.
     let known_rev = req.header("x-settings-rev").map_or(f64::NAN, |v| js::string_to_number(&v));
     if known_rev.is_finite() && state.settings_log.iter().any(|entry| entry.rev as f64 > known_rev) {
@@ -176,6 +176,16 @@ pub async fn handle_config(app: &App, mut req: Req) -> std::io::Result<Response<
     if !missing.is_empty() {
         let first: Vec<&str> = missing.iter().take(5).map(String::as_str).collect();
         return Ok(http::text(422, format!("canvas files missing from the store: {}", first.join(", "))));
+    }
+    // A save that raises the version keeps the file it replaces, once: an older build can't save over it any more.
+    if let Some(name) = backup {
+        let path = config.file.with_file_name(name);
+        // Copied beside it, then renamed: a copy cut short never stands in for the backup.
+        if !path.exists() {
+            let partial = path.with_extension("json.tmp");
+            std::fs::copy(&config.file, &partial)?;
+            std::fs::rename(&partial, &path)?;
+        }
     }
     config.save(&mut state, &body)?;
     Ok(http::json(200, &serde_json::json!({ "ok": true, "version": state.version })))

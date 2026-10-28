@@ -99,7 +99,7 @@ describe("inspectorTabs", () => {
   });
 
   it("has no Show tab in the theme editor, at every scope", () => {
-    for (const scope of ["base", "profile", "page"] as const) {
+    for (const scope of ["profile", "page"] as const) {
       expect(inspectorTabs({ kind: "theme", scope }).map((t) => t.id)).toEqual(["style", "data", "behaviour"]);
     }
   });

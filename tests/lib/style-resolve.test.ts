@@ -10,7 +10,7 @@ const levels: ThemeLevels = { base, profile };
 const CUSTOM = { colors: false, type: false } as const;
 
 describe("resolveStyle", () => {
-  it("layers default → dashboard → profile → own for custom sections", () => {
+  it("layers default → the base layer → profile → own for custom sections", () => {
     const { settings, source } = resolveStyle({ moduleDefaults, levels, own, follow: CUSTOM });
     expect(settings).toEqual({
       surface: "theme",
@@ -23,10 +23,10 @@ describe("resolveStyle", () => {
       layout: "compact",
     });
     expect(source).toEqual({
-      surface: "dashboard",
+      surface: "app",
       padding: "default",
       accent: "own",
-      radius: "dashboard",
+      radius: "app",
       textColor: "profile",
       font: "own",
     });
@@ -51,7 +51,7 @@ describe("resolveStyle", () => {
     const { settings, source } = resolveStyle({ levels: locked, own, follow: CUSTOM });
     expect(settings.accent).toBe("#00ff00");
     expect(settings.font).toBe("mono");
-    expect(source.radius).toBe("dashboard");
+    expect(source.radius).toBe("app");
   });
 
   it("takes a page's values only for the sections the page makes its own", () => {
@@ -97,13 +97,26 @@ describe("resolveWith", () => {
   });
 });
 
-describe("appearanceOf / lockedIn", () => {
-  const config = { style: base, profiles: [{ id: "p", pages: [{ id: "a", name: "Desk" }, { id: "b", name: "Gaming" }] }] };
+describe("the app's clock", () => {
+  it("is the clock where no level sets one; a level's \"auto\" (the locale's) beats it, as before v16", () => {
+    const app = { base: { clock: "12" } };
+    expect(resolveStyle({ levels: app }).settings.clock).toBe("12");
+    expect(resolveStyle({ levels: app }).source.clock).toBe("app");
+    expect(resolveStyle({ levels: { ...app, profile: { values: { clock: "24" } } } }).settings.clock).toBe("24");
+    expect(resolveStyle({ levels: { ...app, profile: { values: { clock: "auto" } } } }).settings.clock).toBe("auto");
+    expect(resolveStyle({ levels: app, own: { clock: "auto" }, follow: { format: false } }).settings.clock).toBe("auto");
+    // With no app clock and no level's, the module default.
+    expect(resolveStyle({ moduleDefaults: { clock: "auto" }, levels: { profile: { values: { clock: "auto" } } } }).settings.clock).toBe("auto");
+  });
+});
 
-  it("collects the levels and the names a Follow bar shows", () => {
+describe("appearanceOf / lockedIn", () => {
+  const config = { general: { clock: "24" as const }, profiles: [{ id: "p", pages: [{ id: "a", name: "Desk" }, { id: "b", name: "Gaming" }] }] };
+
+  it("collects the levels (the base: the app's clock) and the names a Follow bar shows", () => {
     const page = { values: { accent: "#123456" }, follow: { colors: false } };
     expect(appearanceOf(config, { id: "p", name: "Main", widgetTheme: profile, pageId: "b", pageTheme: page })).toEqual({
-      base,
+      base: { clock: "24" },
       profile,
       page,
       profileName: "Main",
@@ -125,7 +138,7 @@ describe("zoneResolver", () => {
     const z1 = { id: "z1", settings: { accent: "#0000ff" }, follow: { colors: false } };
     const z2 = { id: "z2", settings: { accent: "#0000ff" } };
     const resolve = zoneResolver(
-      { style: base },
+      { general: { clock: "12" } },
       {
         widgetTheme: profile,
         pages: [

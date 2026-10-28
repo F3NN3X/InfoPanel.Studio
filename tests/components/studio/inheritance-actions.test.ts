@@ -27,10 +27,9 @@ function config(opts: { screen?: WidgetTheme; page?: WidgetTheme; zone?: Placeme
     pages: [{ id: "gaming", name: "Gaming", placements: [opts.zone ?? zone()], ...(opts.page ? { widgetTheme: opts.page } : {}) }],
     ...opts.profile,
   };
-  return { ...base, style: { accent: "#111111", font: "inter" }, general: { font: "inter", maxFps: 30 }, profiles: [profile] };
+  return { ...base, profiles: [profile] };
 }
 
-const ALL: InheritScope = { level: "all" };
 const SCREEN: InheritScope = { level: "screen", profileId: "desk" };
 const PAGE: InheritScope = { level: "page", profileId: "desk", pageId: "gaming" };
 const WIDGET: InheritScope = { level: "widget", profileId: "desk", pageId: "gaming", zoneId: "z1" };
@@ -39,25 +38,13 @@ const stateAfter = (c: DashboardConfig, path: InheritPath, scope: InheritScope) 
 const profileOf = (c: DashboardConfig) => c.profiles[0];
 
 describe("customise / reset: widget-style sections", () => {
-  it("All screens: Reset to built-in drops only the section's keys", () => {
-    const reset = resetInheritance(config(), "colors", ALL);
-    expect(reset.style).toEqual({ font: "inter" });
-    expect(stateAfter(reset, "colors", ALL)).toBe("builtin");
-    expect(customiseInheritance(config(), "colors", ALL)).toEqual(config());
-  });
-
-  it("Screen: customise copies All screens' keys, reset drops the screen's", () => {
-    const own = customiseInheritance(config({ screen: { values: { font: "geist" } } }), "colors", SCREEN);
-    expect(profileOf(own).widgetTheme?.values).toEqual({ font: "geist", accent: "#111111" });
-    expect(stateAfter(own, "colors", SCREEN)).toBe("custom");
-    const back = resetInheritance(own, "colors", SCREEN);
-    expect(profileOf(back).widgetTheme?.values).toEqual({ font: "geist" });
-    expect(stateAfter(back, "colors", SCREEN)).toBe("inherited");
-  });
-
-  it("Screen: customise with nothing set above leaves the config as it is", () => {
-    const c = config();
-    expect(customiseInheritance(c, "motion", SCREEN)).toBe(c);
+  it("Screen (the top level): Reset to built-in drops only the section's keys; customise changes nothing", () => {
+    const c = config({ screen: { values: { accent: "#111111", font: "inter" } } });
+    const reset = resetInheritance(c, "colors", SCREEN);
+    expect(profileOf(reset).widgetTheme?.values).toEqual({ font: "inter" });
+    expect(stateAfter(reset, "colors", SCREEN)).toBe("builtin");
+    expect(stateAfter(c, "colors", SCREEN)).toBe("base");
+    expect(customiseInheritance(c, "colors", SCREEN)).toBe(c);
   });
 
   it("Page: customise and reset flip the page's follow flag; its values stay stored", () => {
@@ -86,25 +73,24 @@ describe("customise / reset: widget-style sections", () => {
   });
 });
 
-describe("customise / reset: two-level data", () => {
-  it("page font: a screen takes the dashboard's font, and Reset drops it", () => {
-    const own = customiseInheritance(config(), "font", SCREEN);
-    expect(profileOf(own).font).toBe("inter");
-    expect(stateAfter(own, "font", SCREEN)).toBe("custom");
+describe("customise / reset: the screen's data", () => {
+  it("page font: Reset drops the screen's own; there is nothing to customise", () => {
+    const own = config({ profile: { font: "inter" } });
+    expect(stateAfter(own, "font", SCREEN)).toBe("base");
     const back = resetInheritance(own, "font", SCREEN);
     expect(profileOf(back)).not.toHaveProperty("font");
-    expect(resetInheritance(config(), "font", ALL).general).toEqual({ maxFps: 30 });
+    expect(stateAfter(back, "font", SCREEN)).toBe("builtin");
+    expect(customiseInheritance(config(), "font", SCREEN)).toEqual(config());
   });
 
-  it("tokens, background and performance: the screen switch, and All screens back to built-in", () => {
-    const own = customiseInheritance(config(), "tokens", SCREEN);
-    expect(profileOf(own).theme).toEqual(DEFAULT_THEME);
-    expect(stateAfter(resetInheritance(own, "tokens", SCREEN), "tokens", SCREEN)).toBe("inherited");
-    expect(stateAfter(resetInheritance({ ...config(), radius: 1 }, "tokens", ALL), "tokens", ALL)).toBe("builtin");
-    expect(profileOf(customiseInheritance(config(), "performance", SCREEN)).performance).toEqual({ maxFps: 30, motion: "system" });
-    expect(resetInheritance(config(), "performance", ALL).general).toEqual({ font: "inter" });
-    const bg = resetInheritance({ ...config(), background: { type: "color", color: "#123456" } }, "background", ALL);
-    expect(bg.background).toBeUndefined();
+  it("tokens, background and performance: Reset puts the screen back to the built-in values", () => {
+    const own = config({ profile: { theme: { ...DEFAULT_THEME, primary: "1 2% 3%" }, radius: 1, background: { type: "color", color: "#123456" }, performance: { maxFps: 30, ringGlide: true } } });
+    const tokens = resetInheritance(own, "tokens", SCREEN);
+    expect(profileOf(tokens)).not.toHaveProperty("theme");
+    expect(profileOf(tokens)).not.toHaveProperty("radius");
+    expect(stateAfter(tokens, "tokens", SCREEN)).toBe("builtin");
+    expect(profileOf(resetInheritance(own, "background", SCREEN))).not.toHaveProperty("background");
+    expect(profileOf(resetInheritance(own, "performance", SCREEN))).not.toHaveProperty("performance");
   });
 
   it("pages and widgets have no level of their own: nothing changes", () => {
@@ -118,18 +104,18 @@ describe("inheritanceJump", () => {
   const jump = (c: DashboardConfig, path: InheritPath, scope: InheritScope) => inheritanceJump(resolveInheritance(c, path, scope), path, scope);
 
   it("opens Theme at the level the chip names, with the section", () => {
-    expect(jump(config(), "colors", WIDGET)).toEqual({ view: "theme", themeScope: { kind: "base" }, profileId: "desk", section: "colors" });
+    expect(jump(config(), "colors", WIDGET)).toEqual({ view: "theme", themeScope: { kind: "profile" }, profileId: "desk", section: "colors" });
     const page = config({ page: { follow: { colors: false } } });
     expect(jump(page, "colors", WIDGET)).toMatchObject({ themeScope: { kind: "page", pageId: "gaming" } });
     expect(jump(config({ screen: { locks: { colors: true } } }), "colors", PAGE)).toMatchObject({ themeScope: { kind: "profile" } });
-    expect(jump(config(), "font", SCREEN)).toMatchObject({ view: "theme", themeScope: { kind: "base" }, section: "type" });
+    expect(jump(config(), "font", PAGE)).toMatchObject({ view: "theme", themeScope: { kind: "profile" }, section: "type" });
   });
 
-  it("performance goes to Settings › Dashboard or the screen in Screens; All screens goes nowhere", () => {
-    expect(jump(config(), "performance", SCREEN)).toEqual({ view: "settings", tab: "dashboard", section: "performance" });
+  it("performance goes to the screen in Screens; a screen's own chip goes nowhere", () => {
     const own = config({ profile: { performance: { maxFps: 15 } } });
     expect(jump(own, "performance", PAGE)).toEqual({ view: "screens", profileId: "desk", section: "performance" });
-    expect(jump(config(), "colors", ALL)).toBeUndefined();
+    expect(jump(own, "performance", SCREEN)).toBeUndefined();
+    expect(jump(config(), "colors", SCREEN)).toBeUndefined();
   });
 });
 
@@ -144,20 +130,14 @@ describe("Make this the theme for…", () => {
     expect(makeThemeSections({ ...custom(), profiles: [{ ...profileOf(custom()), widgetTheme: { locks: { colors: true } } }] }, WIDGET)).toEqual(["border"]);
   });
 
-  it("All screens: the values move into the base style, and the widget follows again with them gone", () => {
-    const c = makeTheme(custom(), WIDGET, "all");
-    expect(c.style).toEqual({ accent: "#ff6a3d", font: "inter", glow: "soft" });
-    expect(zoneOf(c)).not.toHaveProperty("follow");
-    expect(zoneOf(c).settings).toEqual({ label: "CPU" });
-    expect(stateAfter(c, "colors", WIDGET)).toBe("inherited");
-    expect(resolveInheritance(c, "colors", WIDGET).resolvedValue).toMatchObject({ accent: "#ff6a3d" });
-  });
-
-  it("This screen: the values move into the screen's theme", () => {
+  it("This screen: the values move into the screen's theme, and the widget follows again with them gone", () => {
     const c = makeTheme(custom(), WIDGET, "screen");
     expect(profileOf(c).widgetTheme?.values).toEqual({ accent: "#ff6a3d", glow: "soft" });
-    expect(c.style).toEqual(custom().style);
-    expect(stateAfter(c, "colors", SCREEN)).toBe("custom");
+    expect(zoneOf(c)).not.toHaveProperty("follow");
+    expect(zoneOf(c).settings).toEqual({ label: "CPU" });
+    expect(stateAfter(c, "colors", SCREEN)).toBe("base");
+    expect(stateAfter(c, "colors", WIDGET)).toBe("inherited");
+    expect(resolveInheritance(c, "colors", WIDGET).resolvedValue).toMatchObject({ accent: "#ff6a3d" });
   });
 
   it("This page: the values move into the page's theme and the page customises those sections", () => {
@@ -171,6 +151,6 @@ describe("Make this the theme for…", () => {
 
   it("changes nothing when the widget has no custom section", () => {
     const c = config();
-    expect(makeTheme(c, WIDGET, "all")).toBe(c);
+    expect(makeTheme(c, WIDGET, "screen")).toBe(c);
   });
 });

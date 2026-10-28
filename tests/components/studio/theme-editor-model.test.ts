@@ -63,16 +63,14 @@ const rendered = (c: DashboardConfig, pageId: string, id: string) => {
 
 describe("theme scopes", () => {
 
-  it("edits the all-profiles base, the profile theme or one page theme", () => {
-    let c = withScopeValues(setup(), "desk", { kind: "base" }, (v) => ({ ...v, accent: "#111111" }));
-    expect(c.style).toEqual({ accent: "#111111" });
-    c = withScopeValues(c, "desk", PROFILE, (v) => ({ ...v, accent: "#222222" }));
+  it("edits the profile theme or one page theme", () => {
+    let c = withScopeValues(setup(), "desk", PROFILE, (v) => ({ ...v, accent: "#222222" }));
     expect(desk(c).widgetTheme?.values).toEqual({ accent: "#222222" });
     c = withScopeValues(c, "desk", GAMING, (v) => ({ ...v, accent: "#333333" }));
     expect(desk(c).pages[1].widgetTheme?.values).toEqual({ accent: "#333333" });
     expect(desk(c).pages[0].widgetTheme).toBeUndefined();
     // Clearing the last value stores none.
-    expect(withScopeValues(c, "desk", { kind: "base" }, () => ({})).style).toBeUndefined();
+    expect(desk(withScopeValues(c, "desk", PROFILE, () => ({}))).widgetTheme).toBeUndefined();
     expect(desk(withScopeValues(c, "desk", GAMING, () => ({}))).pages[1].widgetTheme).toBeUndefined();
   });
 

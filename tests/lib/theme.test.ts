@@ -2,18 +2,16 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_THEME, normalizeThemePatch, resolveTheme, themeVars } from "@/lib/theme";
 
 describe("resolveTheme", () => {
-  const config = { theme: DEFAULT_THEME, radius: 0.5 };
-
-  it("is the dashboard's theme without a profile theme", () => {
-    expect(resolveTheme(config)).toEqual({ tokens: DEFAULT_THEME, radius: 0.5 });
-    expect(resolveTheme(config, {}).tokens).toBe(DEFAULT_THEME);
+  it("is the built-in theme without a screen theme", () => {
+    expect(resolveTheme()).toEqual({ tokens: DEFAULT_THEME, radius: 0.5 });
+    expect(resolveTheme({}).tokens).toBe(DEFAULT_THEME);
   });
 
-  it("lays a profile's own colours and radius over it", () => {
-    const t = resolveTheme(config, { theme: { background: "0 0% 100%" }, radius: 1 });
+  it("lays a screen's own colours and radius over it", () => {
+    const t = resolveTheme({ theme: { background: "0 0% 100%" }, radius: 1 });
     expect(t.tokens).toEqual({ ...DEFAULT_THEME, background: "0 0% 100%" });
     expect(t.radius).toBe(1);
-    expect(resolveTheme(config, { radius: 0 }).radius).toBe(0);
+    expect(resolveTheme({ radius: 0 }).radius).toBe(0);
   });
 });
 

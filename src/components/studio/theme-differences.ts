@@ -17,9 +17,9 @@ import { listText } from "./theme-view-model";
  */
 
 /** What the themes of a widget's screen and page wrote into it and it still holds. */
-function themeWritten(config: DashboardConfig, ex: ThemeException): Set<string> {
+function themeWritten(ex: ThemeException): Set<string> {
   const zone = ex.zone!;
-  const writes = [config.appliedTheme, ex.profile.appliedTheme, ex.page?.appliedTheme].map((t) => t?.zones?.[zone.id]?.now ?? {});
+  const writes = [ex.profile.appliedTheme, ex.page?.appliedTheme].map((t) => t?.zones?.[zone.id]?.now ?? {});
   return new Set(Object.keys(zone.settings ?? {}).filter((key) => writes.some((now) => now[key] !== undefined && now[key] === zone.settings![key])));
 }
 
@@ -31,16 +31,15 @@ function ownKeys(ex: ThemeException): string[] {
 }
 
 /** Whether an exception is only a theme's writes (owner rule): a widget whose own values of the card a theme wrote. */
-export function themeOwned(config: DashboardConfig, ex: ThemeException): boolean {
+export function themeOwned(ex: ThemeException): boolean {
   if (ex.kind !== "widget") return false;
   const own = ownKeys(ex);
-  const written = themeWritten(config, ex);
+  const written = themeWritten(ex);
   return own.length > 0 && own.every((key) => written.has(key));
 }
 
 /** The exceptions without the theme's own writes. */
-export const differencesOf = (config: DashboardConfig, exceptions: readonly ThemeException[]): ThemeException[] =>
-  exceptions.filter((ex) => !themeOwned(config, ex));
+export const differencesOf = (exceptions: readonly ThemeException[]): ThemeException[] => exceptions.filter((ex) => !themeOwned(ex));
 
 /**
  * The widgets' differences at a level in the sections a theme sets: after a pick they keep their own look there (the
@@ -48,7 +47,7 @@ export const differencesOf = (config: DashboardConfig, exceptions: readonly Them
  */
 export function widgetsKeeping(config: DashboardConfig, at: ThemeAt, preset: AppearancePreset): ThemeException[] {
   const set = new Set(Object.keys(themedOf(preset.style)));
-  return differencesOf(config, exceptionsOf(config, at)).filter(
+  return differencesOf(exceptionsOf(config, at)).filter(
     (ex) => ex.kind === "widget" && !ex.ignored && ex.card.sections.some((sec) => SECTION_KEYS[sec].some((key) => set.has(key)))
   );
 }
@@ -94,10 +93,10 @@ function valueText(key: string, value: unknown): string {
  * The selection bar's summary: "Uses its own Units & format: decimals 1. Everything else follows Main." (the
  * values it holds of its own, none written by a theme), or what it follows when it differs nowhere.
  */
-export function differenceSummary(config: DashboardConfig, zone: Placement, diff: WidgetDifference | undefined, levelName: string): string {
+export function differenceSummary(zone: Placement, diff: WidgetDifference | undefined, levelName: string): string {
   if (!diff) return `Follows ${levelName} everywhere.`;
   const values = diff.exceptions.flatMap((ex) => {
-    const written = themeWritten(config, ex);
+    const written = themeWritten(ex);
     return ownKeys(ex)
       .filter((key) => !written.has(key))
       .map((key) => valueText(key, zone.settings![key]));
@@ -111,7 +110,7 @@ export function differenceSummary(config: DashboardConfig, zone: Placement, diff
  * stay; only the widget's own values in it go.
  */
 function followOne(config: DashboardConfig, ex: ThemeException): DashboardConfig {
-  const written = ex.kind === "widget" ? themeWritten(config, ex) : new Set<string>();
+  const written = ex.kind === "widget" ? themeWritten(ex) : new Set<string>();
   if (written.size === 0) return makeFollow(config, ex);
   const drop = new Set(ownKeys(ex).filter((key) => !written.has(key)));
   const zone = ex.zone!;

@@ -73,8 +73,8 @@ describe("v6: profile style and force", () => {
     expect("styleEnforce" in c.profiles[0]).toBe(false);
   });
 
-  it("keeps the dashboard style as the base layer, themed keys only", () => {
-    expect(mergeConfig(v5([], { style: { accent: "#fff", variant: "studio" } })).style).toEqual({ accent: "#fff" });
+  it("keeps the dashboard style's themed keys only (since v16 on each screen)", () => {
+    expect(mergeConfig(v5([], { style: { accent: "#fff", variant: "studio" } })).profiles[0].widgetTheme?.values).toEqual({ accent: "#fff" });
   });
 
   it("writes the old global variant / compactView / autoScale into the widgets that rendered with them", () => {

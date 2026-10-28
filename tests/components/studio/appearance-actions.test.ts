@@ -33,29 +33,20 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig =>
-  ({ version: 3, activeProfile: "auto", profiles: [profile("p1"), profile("p2")], theme: {}, radius: 0.5, ...extra }) as DashboardConfig;
+  ({ version: 3, activeProfile: "auto", profiles: [profile("p1"), profile("p2")], ...extra }) as DashboardConfig;
 
-const ALL = { kind: "all" } as const;
 const P1 = { kind: "profile", profileId: "p1" } as const;
 
 describe("scope keys", () => {
   it("coalesce per scope", () => {
-    expect(styleKey(ALL)).toBe("appearance-style:all");
     expect(styleKey(P1)).toBe("appearance-style:p1");
+    expect(styleKey({ kind: "profile", profileId: "p2" })).toBe("appearance-style:p2");
   });
 });
 
 describe("withScopeStyle", () => {
-  it("edits the dashboard style and stores an empty one as none", () => {
-    const set = withScopeStyle(config(), ALL, (s) => ({ ...s, accent: "#00ff00" }));
-    expect(set.style).toEqual({ accent: "#00ff00" });
-    expect(set.profiles[0].widgetTheme).toBeUndefined();
-    expect(withScopeStyle(set, ALL, () => ({})).style).toBeUndefined();
-  });
-
   it("edits one profile's theme values only, and keeps its locks", () => {
     const set = withScopeStyle(config(), P1, (s) => ({ ...s, radius: "8" }));
-    expect(set.style).toBeUndefined();
     expect(set.profiles.map((p) => p.widgetTheme)).toEqual([{ values: { radius: "8" } }, undefined]);
     const locked = withScopeStyle(toggleEnforce(config(), { id: "p1" }), P1, () => ({}));
     expect(allLocked(locked.profiles[0].widgetTheme)).toBe(true);

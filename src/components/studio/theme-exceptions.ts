@@ -3,8 +3,8 @@ import { cardSet, resetCard, THEME_CARDS, type ThemeAt, type ThemeCard } from ".
 import { resetInheritance } from "./inheritance-actions";
 
 /**
- * Theme's Exceptions (SPEC §7.3): what below the current scope doesn't follow it, per card. All screens lists the
- * screens, pages and widgets that set their own; a screen its pages and widgets; a page its widgets (never the page's
+ * Theme's Exceptions (SPEC §7.3): what below the current scope doesn't follow it, per card. A screen lists its pages
+ * and widgets that set their own; a page its widgets (never the page's
  * own sections). Make it follow resets exactly that one; Make all follow every listed one. Also the preview's
  * levels (the page rendered at the scope); its tags are `theme-differences.ts`. Pure.
  */
@@ -12,7 +12,7 @@ import { resetInheritance } from "./inheritance-actions";
 export interface ThemeException {
   /** Unique in the list. */
   key: string;
-  kind: "screen" | "page" | "widget";
+  kind: "page" | "widget";
   card: ThemeCard;
   profile: MonitorProfile;
   page?: ProfilePage;
@@ -41,21 +41,9 @@ function pageCards(config: DashboardConfig, profile: MonitorProfile, page: Profi
 
 /** The exceptions at a scope, screens first, then each page and its widgets. */
 export function exceptionsOf(config: DashboardConfig, at: ThemeAt): ThemeException[] {
-  const profiles = at.level === "all" ? config.profiles : config.profiles.filter((p) => p.id === at.profileId);
-  return profiles.flatMap((profile) => {
-    const screen: ThemeException[] =
-      at.level === "all"
-        ? THEME_CARDS.filter((card) => cardSet(config, { level: "screen", profileId: profile.id }, card)).map((card) => ({
-            key: `screen:${profile.id}:${card.id}`,
-            kind: "screen",
-            card,
-            profile,
-            ignored: false,
-          }))
-        : [];
+  return config.profiles.filter((p) => p.id === at.profileId).flatMap((profile) => {
     const pages = profile.pages.filter((pg) => at.level !== "page" || pg.id === at.pageId);
     return [
-      ...screen,
       ...pages.flatMap((page) => [
         ...(at.level === "page"
           ? []
@@ -72,12 +60,8 @@ export function exceptionsOf(config: DashboardConfig, at: ThemeAt): ThemeExcepti
   });
 }
 
-/**
- * Make it follow: a screen resets the card to All screens (its values for it dropped), a page or widget follows
- * again (its own values stay stored, as Reset to inherited does).
- */
+/** Make it follow: a page or widget follows again (its own values stay stored, as Reset to inherited does). */
 export function makeFollow(config: DashboardConfig, ex: ThemeException): DashboardConfig {
-  if (ex.kind === "screen") return resetCard(config, { level: "screen", profileId: ex.profile.id }, ex.card);
   if (ex.kind === "page") return resetCard(config, { level: "page", profileId: ex.profile.id, pageId: ex.page!.id }, ex.card);
   const scope = { level: "widget", profileId: ex.profile.id, pageId: ex.page!.id, zoneId: ex.zone!.id } as const;
   return ex.card.sections.reduce((c, sec) => resetInheritance(c, sec, scope), config);
@@ -96,13 +80,9 @@ const pageLevel = (page: ProfilePage): ProfilePage => {
 };
 
 /**
- * The screen as the preview draws it at a scope: All screens without the screen's and pages' own look, a screen
- * without its pages' (widgets keep theirs: they are the badged exceptions).
+ * The screen as the preview draws it at a scope: a screen without its pages' own look (widgets keep theirs: they are
+ * the badged exceptions), a page as it is.
  */
 export function previewProfile(profile: MonitorProfile, at: ThemeAt): MonitorProfile {
-  if (at.level === "page") return profile;
-  const pages = profile.pages.map(pageLevel);
-  if (at.level === "screen") return { ...profile, pages };
-  const { theme: _t, radius: _r, font: _f, background: _b, widgetTheme: _w, ...rest } = profile;
-  return { ...rest, pages };
+  return at.level === "page" ? profile : { ...profile, pages: profile.pages.map(pageLevel) };
 }

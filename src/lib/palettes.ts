@@ -1,7 +1,7 @@
 import { presetTokens } from "./appearance-presets";
 import { sameValues } from "./applied-theme";
 import type { DashboardConfig, SavedPalette } from "./layout";
-import { THEME_PRESETS, type ThemeTokens } from "./theme";
+import { resolveTheme, THEME_PRESETS, type ThemeTokens } from "./theme";
 
 /**
  * The user's saved palettes (`config.palettes`, handoff SPEC §4.3.3, §8 items 6 and 12): save the current colors,
@@ -38,15 +38,11 @@ export function deletePalette(config: DashboardConfig, id: string): DashboardCon
   return withPalettes(config, config.palettes.filter((p) => p.id !== id));
 }
 
-/**
- * Who uses tokens: the saved themes holding them, then All screens and each screen with a palette of its own that
- * shows them (a screen without one shows All screens'). Pages hold no palette.
- */
+/** Who uses tokens: the saved themes holding them, then each screen that shows them. Pages hold no palette. */
 export function paletteUsers(config: DashboardConfig, tokens: ThemeTokens): string[] {
   const themes = (config.appearancePresets ?? []).filter((p) => sameValues(presetTokens(p), tokens)).map((p) => p.name);
-  const all = sameValues(config.theme, tokens) ? ["All screens"] : [];
-  const screens = config.profiles.filter((p) => p.theme && sameValues({ ...config.theme, ...p.theme }, tokens)).map((p) => p.name);
-  return [...themes, ...all, ...screens];
+  const screens = config.profiles.filter((p) => sameValues(resolveTheme(p).tokens, tokens)).map((p) => p.name);
+  return [...themes, ...screens];
 }
 
 /** The name tokens go by: the built-in they equal, else the user's palette, else Custom. */

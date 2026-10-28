@@ -221,6 +221,6 @@ describe("ops on a screen page", () => {
     expect(applyPage(config, "desk", "nope", [{ type: "remove", id: "cpu" }])).toBe(config);
     const next = applyPage(config, "desk", "main", [{ type: "remove", id: "cpu" }]);
     expect(partsOf(readPage(next.profiles[0], next.profiles[0].pages[0])!.root).map((p) => p.id)).not.toContain("cpu");
-    expect(next.theme).toBe(config.theme);
+    expect(next.profiles[0].theme).toBe(config.profiles[0].theme);
   });
 });

@@ -23,7 +23,7 @@ const DIALOG_BUTTON =
 
 /** Confirm moving a widget's custom sections into a scope's theme, listing them. */
 export function MakeThemeDialog({ pending, screenName, pageName, onConfirm, onClose }: MakeThemeDialogProps) {
-  const where = pending?.target === "all" ? "all screens" : pending?.target === "screen" ? screenName : pageName;
+  const where = pending?.target === "screen" ? screenName : pageName;
   // The widget colors sit in the Colors card: list each card once.
   const titles = [...new Set((pending?.sections ?? []).map((sec) => (sec === "palette" ? "Colors" : sectionTitle(sec))))];
   return (

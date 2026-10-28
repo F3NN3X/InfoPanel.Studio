@@ -49,10 +49,10 @@ const groupNamed = (page: ProfilePage, name: string) => page.groups!.find((g) =>
 
 describe("v15: the version", () => {
   it("is stamped, and a v15 config loads again identical", () => {
-    expect(CONFIG_VERSION).toBe(15);
+    expect(CONFIG_VERSION).toBeGreaterThanOrEqual(15);
     const box = cellBox(probe, zone("a", CANVAS_ID, [3, 2, 2, 2]));
     const out = load(v14([{ id: "s", name: "Desk", ...FILL, pages: [{ id: "pg", name: "Main", placements: [zone("clock", "Clock", [1, 1, 1, 1]), zone("area", CANVAS_ID, [3, 2, 2, 2], { canvas: areaCanvas(box.width, box.height) })] }] }]));
-    expect(out.version).toBe(15);
+    expect(out.version).toBe(CONFIG_VERSION);
     expect(load(JSON.parse(JSON.stringify(out)) as StoredConfig)).toEqual(out);
   });
 });

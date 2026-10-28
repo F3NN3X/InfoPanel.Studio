@@ -15,26 +15,21 @@ function setup(): DashboardConfig {
   return { ...c, profiles: [desk], appearancePresets: [DESK] };
 }
 
-const ALL: ThemeAt = { level: "all" };
 const SCREEN: ThemeAt = { level: "screen", profileId: "desk" };
 const MAIN: ThemeAt = { level: "page", profileId: "desk", pageId: "main" };
 const chip = (c: DashboardConfig, at: ThemeAt, id: Parameters<typeof themeCard>[0]) => fineTuneChip(c, at, themeCard(id), themeState(c, themeTarget(at)));
 
 describe("a fine-tune section's chip", () => {
-  it("All screens: Built-in with nothing set, From theme for what a theme wrote, Changed here once changed", () => {
-    expect(chip(setup(), ALL, "colors").state).toBe("builtin");
-    const applied = applyTheme(setup(), DESK, { kind: "all" });
-    expect(chip(applied, ALL, "colors").state).toBe("theme");
-    expect(chip(applied, ALL, "motion").state).toBe("builtin");
-    const changed = withScopeValues(applied, "", { kind: "base" }, (v) => ({ ...v, accent: "#ff0000" }));
-    expect(chip(changed, ALL, "colors").state).toBe("base");
-  });
-
-  it("a screen: From All screens, From theme, Changed here; the page font is always its own", () => {
-    expect(chip(setup(), SCREEN, "type")).toMatchObject({ state: "inherited", from: "all" });
+  it("a screen: Built-in with nothing set, From theme for what a theme wrote, Changed here once changed", () => {
+    expect(chip(setup(), SCREEN, "colors").state).toBe("builtin");
     const applied = applyTheme(setup(), DESK, { kind: "profile", profileId: "desk" });
+    expect(chip(applied, SCREEN, "colors").state).toBe("theme");
     expect(chip(applied, SCREEN, "surface").state).toBe("theme");
-    expect(chip(withPageFont(applied, SCREEN, "mono"), SCREEN, "type").state).toBe("custom");
+    expect(chip(applied, SCREEN, "motion").state).toBe("builtin");
+    const changed = withScopeValues(applied, "desk", { kind: "profile" }, (v) => ({ ...v, accent: "#ff0000" }));
+    expect(chip(changed, SCREEN, "colors").state).toBe("base");
+    // The page font is the screen's own once set.
+    expect(chip(withPageFont(applied, SCREEN, "mono"), SCREEN, "type").state).toBe("base");
   });
 
   it("a page: From the screen until it changes a section, Locked under the screen's lock", () => {

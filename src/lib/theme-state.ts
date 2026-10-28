@@ -17,7 +17,6 @@ export type ThemePart = "palette" | "skin" | "corners" | "background";
 
 /** The snapshot a level holds. */
 export function levelApplied(config: DashboardConfig, target: ThemeTarget): AppliedTheme | undefined {
-  if (target.kind === "all") return config.appliedTheme;
   const p = config.profiles.find((x) => x.id === target.profileId);
   return target.kind === "profile" ? p?.appliedTheme : p?.pages.find((pg) => pg.id === target.pageId)?.appliedTheme;
 }
@@ -51,11 +50,11 @@ export function themeState(config: DashboardConfig, target: ThemeTarget, templat
     const skinChanged = skin === undefined ? written.skin !== undefined : !sameSkin(skin, written.skin);
     return { applied, theme, deleted, changed: applied && skinChanged ? ["skin"] : [], own };
   }
-  const p = target.kind === "profile" ? config.profiles.find((x) => x.id === target.profileId) : undefined;
-  const values = target.kind === "all" ? config.style : p?.widgetTheme?.values;
-  const tokens = target.kind === "all" ? config.theme : p?.theme;
-  const radius = target.kind === "all" ? config.radius : p?.radius;
-  const background = target.kind === "all" ? config.background : p?.background;
+  const p = config.profiles.find((x) => x.id === target.profileId);
+  const values = p?.widgetTheme?.values;
+  const tokens = p?.theme;
+  const radius = p?.radius;
+  const background = p?.background;
   const own = SECTION_IDS.filter((sec) => sec !== "skin" && differs(values, sec));
   if (!applied) return { applied, theme, deleted, changed: [], own };
   const changed: ThemePart[] = [];

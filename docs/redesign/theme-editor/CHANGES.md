@@ -208,6 +208,30 @@ The Theme rail view is rebuilt around the live look of a level (handoff SPEC §4
   `tests/e2e/theme-switch.spec.ts` (a black screen with see-through cards → Paper · Ink → Paper's background and white
   cards → Undo), on the `styles-themes` (now with `e2e`) and `studio` features.
 
+## PR · Screens own their look (config v16)
+
+- **No All screens level.** The dashboard's `theme`, `radius`, `background`, `style` and `appliedTheme` are gone from
+  `DashboardConfig`; each screen owns its look. Theme's level bar is the screen and its page (`ThemeScope`: `profile`,
+  `page`), a screen is the top level (its sections read Built-in or Set here, Change here does nothing there), and
+  Switch theme, Make this the theme for… and the command palette's theme commands no longer offer All screens.
+- **Migration** (`lib/screen-look-migrate.ts`, `migrateScreensV16`, run in `mergeConfig` before v16): every screen gets
+  the dashboard's look merged under its own (all 19 tokens, radius, background unless the dashboard's was `none`, page
+  font, style values without `clock`, performance), and the dashboard's theme snapshot when the screen had no look of
+  its own. Snapshots are guessed per screen before the move (`guessApplied`, the dashboard's style as the shadow).
+  `style.clock` becomes `general.clock`. The resolved look of every screen is unchanged; checked on the owner's v15
+  config (5 screens, 41 widgets) and the v11 perf fixture.
+- **App-wide settings** (`GeneralSettings`): `clock`, `showSeconds`, `locale`, `hideCursor`, `kioskPageNav`,
+  `kioskRefresh`. The clock is the base under every widget's clock key (source "app", "From the app settings"); a
+  clock of "auto" at any level falls through to it. Page font and performance (fps, motion and the rendering switches
+  Ring glides, Limit blur, Blur inside widgets, Live graph glow) are each screen's own, in Screens › Performance;
+  Settings › Dashboard › Performance keeps Refresh kiosk pages and links to Screens.
+- **Server:** before the first save that raises the version, `ips-server` copies `config.json` to
+  `config.backup-before-v16.json` (never over an existing one). `config_settings` accepts `general.clock` and the
+  screens' rendering switches and still accepts the older keys the frozen parity cases send.
+- **Tests:** `tests/lib/settings-migrate.v16.test.ts` (field by field, snapshots, resolved-look equivalence),
+  `tests/e2e/screens-own-look.spec.ts` (kiosk before and after the studio's first save, the backup, no All screens
+  level), Rust unit and route tests for the backup. Tests that set or read the dashboard look now set the screen's.
+
 ## Decisions made while grounding the spec
 
 - A page can't hold a palette, corners or background. At page level these parts are read-only and say "Palette, corners

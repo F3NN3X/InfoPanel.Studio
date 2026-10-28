@@ -17,7 +17,7 @@ const zone = (follow?: Placement["follow"], settings?: Placement["settings"]): P
 });
 
 /** One screen "Desk bar" with a page "Gaming" holding one widget. */
-function config(opts: { style?: DashboardConfig["style"]; screen?: WidgetTheme; page?: WidgetTheme; zone?: Placement; profile?: Partial<MonitorProfile> } = {}): DashboardConfig {
+function config(opts: { screen?: WidgetTheme; page?: WidgetTheme; zone?: Placement; profile?: Partial<MonitorProfile> } = {}): DashboardConfig {
   const base = defaultConfig();
   const profile: MonitorProfile = {
     ...base.profiles[0],
@@ -27,42 +27,38 @@ function config(opts: { style?: DashboardConfig["style"]; screen?: WidgetTheme; 
     pages: [{ id: "gaming", name: "Gaming", placements: [opts.zone ?? zone()], ...(opts.page ? { widgetTheme: opts.page } : {}) }],
     ...opts.profile,
   };
-  return { ...base, ...(opts.style ? { style: opts.style } : {}), profiles: [profile] };
+  return { ...base, profiles: [profile] };
 }
 
-const ALL: InheritScope = { level: "all" };
 const SCREEN: InheritScope = { level: "screen", profileId: "desk" };
 const PAGE: InheritScope = { level: "page", profileId: "desk", pageId: "gaming" };
 const WIDGET: InheritScope = { level: "widget", profileId: "desk", pageId: "gaming", zoneId: "z1" };
 
-describe("styleInheritance: All screens", () => {
-  it("is built-in until All screens sets a key of the section, then base", () => {
-    expect(styleInheritance(config(), ALL, "colors")).toMatchObject({ state: "builtin" });
-    expect(styleInheritance(config(), ALL, "colors")).not.toHaveProperty("from");
-    const set = styleInheritance(config({ style: { accent: "#3d8bff" } }), ALL, "colors");
+describe("styleInheritance: Screen (the top level)", () => {
+  it("is built-in until the screen sets a key of the section, then base", () => {
+    expect(styleInheritance(config(), SCREEN, "colors")).toMatchObject({ state: "builtin" });
+    expect(styleInheritance(config(), SCREEN, "colors")).not.toHaveProperty("from");
+    const set = styleInheritance(config({ screen: { values: { accent: "#3d8bff" } } }), SCREEN, "colors");
     expect(set).toMatchObject({ state: "base", resolvedValue: { accent: "#3d8bff" }, parentValue: { accent: "" } });
     // Another section's key does not set this one.
-    expect(styleInheritance(config({ style: { accent: "#3d8bff" } }), ALL, "type").state).toBe("builtin");
+    expect(styleInheritance(config({ screen: { values: { accent: "#3d8bff" } } }), SCREEN, "type").state).toBe("builtin");
   });
-});
 
-describe("styleInheritance: Screen", () => {
-  it("inherits from All screens until the screen holds a value for the section", () => {
-    const c = config({ style: { accent: "#111111" } });
-    expect(styleInheritance(c, SCREEN, "colors")).toMatchObject({ state: "inherited", from: "all", fromName: "All screens", resolvedValue: { accent: "#111111" } });
-    const own = styleInheritance(config({ style: { accent: "#111111" }, screen: { values: { accent: "#222222" } } }), SCREEN, "colors");
-    expect(own).toMatchObject({ state: "custom", from: "all", resolvedValue: { accent: "#222222" }, parentValue: { accent: "#111111" } });
+  it("reads the app's clock under the screen's Units & format", () => {
+    const c: DashboardConfig = { ...config(), general: { clock: "12" } };
+    expect(styleInheritance(c, SCREEN, "format")).toMatchObject({ state: "builtin", resolvedValue: { clock: "12" }, parentValue: { clock: "12" } });
+    expect(styleInheritance({ ...c, profiles: config({ screen: { values: { clock: "24" } } }).profiles }, SCREEN, "format").resolvedValue).toMatchObject({ clock: "24" });
   });
 });
 
 describe("styleInheritance: Page", () => {
-  it("inherits from the screen when it sets the section, else from All screens", () => {
+  it("inherits from the screen", () => {
     expect(styleInheritance(config({ screen: { values: { accent: "#222222" } } }), PAGE, "colors")).toMatchObject({
       state: "inherited",
       from: "screen",
       fromName: "Desk bar",
     });
-    expect(styleInheritance(config(), PAGE, "colors")).toMatchObject({ state: "inherited", from: "all", fromName: "All screens" });
+    expect(styleInheritance(config(), PAGE, "colors")).toMatchObject({ state: "inherited", from: "screen", fromName: "Desk bar" });
   });
 
   it("is custom where the page customises the section", () => {
@@ -90,18 +86,18 @@ describe("styleInheritance: Page", () => {
 });
 
 describe("styleInheritance: Widget", () => {
-  it("inherits from the page, the screen or All screens: the nearest level that sets the section", () => {
+  it("inherits from the page where it customises the section, else the screen", () => {
     const page = config({ page: { values: { accent: "#333333" }, follow: { colors: false } } });
     expect(styleInheritance(page, WIDGET, "colors")).toMatchObject({ state: "inherited", from: "page", fromName: "Gaming", resolvedValue: { accent: "#333333" } });
-    expect(styleInheritance(config({ screen: { values: { accent: "#222222" } } }), WIDGET, "colors")).toMatchObject({ from: "screen" });
-    expect(styleInheritance(config({ style: { accent: "#111111" } }), WIDGET, "colors")).toMatchObject({ from: "all", resolvedValue: { accent: "#111111" } });
+    expect(styleInheritance(config({ screen: { values: { accent: "#222222" } } }), WIDGET, "colors")).toMatchObject({ from: "screen", resolvedValue: { accent: "#222222" } });
+    expect(styleInheritance(config(), WIDGET, "colors")).toMatchObject({ from: "screen" });
   });
 
   it("is custom with its own values over the theme's", () => {
-    const c = config({ style: { accent: "#111111" }, zone: zone({ colors: false }, { accent: "#ff6a3d" }) });
+    const c = config({ screen: { values: { accent: "#111111" } }, zone: zone({ colors: false }, { accent: "#ff6a3d" }) });
     expect(styleInheritance(c, WIDGET, "colors")).toMatchObject({
       state: "custom",
-      from: "all",
+      from: "screen",
       resolvedValue: { accent: "#ff6a3d", textColor: "" },
       parentValue: { accent: "#111111" },
     });
@@ -119,50 +115,42 @@ describe("styleInheritance: Widget", () => {
 });
 
 describe("dataInheritance", () => {
-  it("tokens and radius: built-in until changed, then base; a screen's own is custom", () => {
-    expect(dataInheritance(config(), ALL, "tokens").state).toBe("builtin");
-    const changed: DashboardConfig = { ...config(), radius: 0.75 };
-    expect(dataInheritance(changed, ALL, "tokens")).toMatchObject({ state: "base", resolvedValue: { radius: 0.75 }, parentValue: { radius: 0.5 } });
-    expect(dataInheritance(changed, SCREEN, "tokens")).toMatchObject({ state: "inherited", from: "all", resolvedValue: { radius: 0.75 } });
+  it("tokens and radius: built-in until the screen holds its own, then base", () => {
+    expect(dataInheritance(config(), SCREEN, "tokens")).toMatchObject({ state: "builtin", resolvedValue: { tokens: DEFAULT_THEME, radius: 0.5 } });
+    expect(dataInheritance(config({ profile: { radius: 0.75 } }), SCREEN, "tokens")).toMatchObject({ state: "base", resolvedValue: { radius: 0.75 }, parentValue: { radius: 0.5 } });
     const own = dataInheritance(config({ profile: { theme: { primary: "1 2% 3%" } } }), SCREEN, "tokens");
-    expect(own).toMatchObject({ state: "custom", from: "all", resolvedValue: { tokens: { ...DEFAULT_THEME, primary: "1 2% 3%" } }, parentValue: { tokens: DEFAULT_THEME } });
+    expect(own).toMatchObject({ state: "base", resolvedValue: { tokens: { ...DEFAULT_THEME, primary: "1 2% 3%" } }, parentValue: { tokens: DEFAULT_THEME } });
+    expect(own).not.toHaveProperty("from");
   });
 
   it("background: a screen's `none` is its own", () => {
-    const c: DashboardConfig = { ...config({ profile: { background: { type: "none" } } }), background: { type: "color", color: "#123456" } };
-    expect(dataInheritance(c, ALL, "background")).toMatchObject({ state: "base", resolvedValue: { type: "color" } });
-    expect(dataInheritance(c, SCREEN, "background")).toMatchObject({ state: "custom", resolvedValue: undefined, parentValue: { type: "color" } });
-    expect(dataInheritance(config(), ALL, "background")).toMatchObject({ state: "builtin", resolvedValue: undefined });
+    expect(dataInheritance(config({ profile: { background: { type: "none" } } }), SCREEN, "background")).toMatchObject({ state: "base", resolvedValue: undefined });
+    expect(dataInheritance(config({ profile: { background: { type: "color", color: "#123456" } } }), SCREEN, "background")).toMatchObject({ state: "base", resolvedValue: { type: "color" } });
+    expect(dataInheritance(config(), SCREEN, "background")).toMatchObject({ state: "builtin", resolvedValue: undefined });
   });
 
-  it("performance: the screen's own keys over the dashboard's", () => {
-    const c: DashboardConfig = { ...config({ profile: { performance: { maxFps: 30 } } }), general: { maxFps: 15, motion: "reduce" } };
-    expect(dataInheritance(c, ALL, "performance")).toMatchObject({ state: "base", resolvedValue: { maxFps: 15, motion: "reduce" } });
-    expect(dataInheritance(c, SCREEN, "performance")).toMatchObject({ state: "custom", resolvedValue: { maxFps: 30, motion: "reduce" } });
-    expect(dataInheritance(config(), ALL, "performance")).toMatchObject({ state: "builtin", resolvedValue: { maxFps: 60, motion: "system" } });
+  it("performance: the screen's own keys over the defaults", () => {
+    expect(dataInheritance(config({ profile: { performance: { maxFps: 30 } } }), SCREEN, "performance")).toMatchObject({ state: "base", resolvedValue: { maxFps: 30, motion: "system" } });
+    expect(dataInheritance(config(), SCREEN, "performance")).toMatchObject({ state: "builtin", resolvedValue: { maxFps: 60, motion: "system" } });
   });
 
-  it("page font: the screen's own, else general.font, else the built-in", () => {
-    expect(dataInheritance(config(), ALL, "font")).toMatchObject({ state: "builtin", resolvedValue: "system" });
-    const global: DashboardConfig = { ...config(), general: { font: "inter" } };
-    expect(dataInheritance(global, ALL, "font")).toMatchObject({ state: "base", resolvedValue: "inter" });
-    expect(dataInheritance(global, SCREEN, "font")).toMatchObject({ state: "inherited", from: "all", resolvedValue: "inter" });
-    const own: DashboardConfig = { ...config({ profile: { font: "geist" } }), general: { font: "inter" } };
-    expect(dataInheritance(own, SCREEN, "font")).toMatchObject({ state: "custom", resolvedValue: "geist", parentValue: "inter" });
+  it("page font: the screen's own, else the built-in", () => {
+    expect(dataInheritance(config(), SCREEN, "font")).toMatchObject({ state: "builtin", resolvedValue: "system" });
+    expect(dataInheritance(config({ profile: { font: "geist" } }), SCREEN, "font")).toMatchObject({ state: "base", resolvedValue: "geist", parentValue: "system" });
   });
 
   it("a page or widget reads its screen's value, inherited (no level of its own)", () => {
-    const own: DashboardConfig = { ...config({ profile: { font: "geist" } }), general: { font: "inter" } };
+    const own = config({ profile: { font: "geist" } });
     expect(dataInheritance(own, PAGE, "font")).toMatchObject({ state: "inherited", from: "screen", fromName: "Desk bar", resolvedValue: "geist" });
-    expect(dataInheritance({ ...config(), general: { font: "inter" } }, WIDGET, "font")).toMatchObject({ state: "inherited", from: "all" });
+    expect(dataInheritance(config(), WIDGET, "font")).toMatchObject({ state: "inherited", from: "screen", resolvedValue: "system" });
   });
 });
 
 describe("resolveInheritance / valueText", () => {
   it("routes sections and data paths, and words the value", () => {
-    const c: DashboardConfig = { ...config({ style: { accent: "#3d8bff" } }), general: { maxFps: 30 } };
-    expect(valueText("colors", resolveInheritance(c, "colors", ALL).resolvedValue)).toBe("#3d8bff");
-    expect(valueText("performance", resolveInheritance(c, "performance", ALL).resolvedValue)).toBe("30 fps");
-    expect(valueText("background", resolveInheritance(c, "background", ALL).resolvedValue)).toBe("none");
+    const c = config({ screen: { values: { accent: "#3d8bff" } }, profile: { performance: { maxFps: 30 } } });
+    expect(valueText("colors", resolveInheritance(c, "colors", SCREEN).resolvedValue)).toBe("#3d8bff");
+    expect(valueText("performance", resolveInheritance(c, "performance", SCREEN).resolvedValue)).toBe("30 fps");
+    expect(valueText("background", resolveInheritance(c, "background", SCREEN).resolvedValue)).toBe("none");
   });
 });

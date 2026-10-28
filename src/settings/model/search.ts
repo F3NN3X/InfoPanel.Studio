@@ -84,13 +84,7 @@ export const SEARCH_INDEX: SearchEntry[] = [
 
 /** The Dashboard and Studio rows search finds, in the window on the Studio's server. */
 export const PREFERENCES_INDEX: SearchEntry<PageId>[] = [
-  { row: "performance", label: "Frame-rate cap", section: "dashboard" },
-  { row: "performance", label: "Animations", section: "dashboard" },
   { row: "performance", label: "Refresh kiosk pages", section: "dashboard" },
-  { row: "performance", label: "Ring glides", section: "dashboard" },
-  { row: "performance", label: "Limit blur", section: "dashboard" },
-  { row: "performance", label: "Blur inside widgets", section: "dashboard" },
-  { row: "performance", label: "Live graph glow", section: "dashboard" },
   { row: "clock", label: "Clock (12 / 24 h)", section: "dashboard" },
   { row: "clock", label: "Show seconds", section: "dashboard" },
   { row: "clock", label: "Date locale", section: "dashboard" },

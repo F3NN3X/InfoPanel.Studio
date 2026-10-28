@@ -83,7 +83,7 @@ export function sectionInherit({ sections, title, scope, alsoScopes = [], ctx, o
   const states = sections.map((sec) => resolveInheritance(ctx.config, sec, scope));
   const main = lead(states);
   const mainPath = sections[states.indexOf(main)];
-  const level = LEVEL_LABELS[main.from ?? "all"];
+  const level = LEVEL_LABELS[main.from ?? "screen"];
   const targets = [scope, ...alsoScopes];
   const each = (write: (config: DashboardConfig, sec: SectionId, at: InheritScope) => DashboardConfig) => () =>
     ctx.setConfig((c) => targets.reduce((cfg, at) => sections.reduce((acc, sec) => write(acc, sec, at), cfg), c));

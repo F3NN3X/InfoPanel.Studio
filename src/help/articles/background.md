@@ -18,9 +18,9 @@ A color, gradient, image or video behind all widgets.
 
 Every type also has **Dim**, **Tint**, **Tint opacity** and **Blur** (in px), which keep text readable over busy pictures.
 
-## All screens and one screen
+## Each screen's background
 
-Open **Theme › Background**. At **All screens** it edits the background every screen shares. At a screen, editing it gives that screen its own, starting from the shared one; choose **None** there for no background on that screen only. **Reset to inherited** drops the screen's own background. A page has no background of its own.
+Open **Theme › Background** at a screen. Each screen has its own background; choose **None** for no background on that screen. A page has no background of its own.
 
 The type and Dim show first. Fit, position, fill, tint, blur and the video options are under **More**.
 

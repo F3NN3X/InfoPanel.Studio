@@ -219,9 +219,10 @@ export default function App({ fixture }: AppProps = {}) {
   const reserve = islandReserve(islandConfig, islandPage);
   const pageIsland = useMemo(() => ({ island, page: islandPage }), [island, islandPage]);
   const fill = profile.fit === "fill";
-  const background = resolveBackground(config, profile);
+  const background = resolveBackground(profile);
   const appearance = appearanceOf(config, profile);
-  const general = useMemo(() => resolveGeneral({ general: config.general, style: config.style }), [config.general, config.style]);
+  // The app settings under the shown screen's page font and performance.
+  const general = useMemo(() => resolveGeneral(config, stored), [config, stored]);
   // Max FPS and motion: the ?fps= / ?animations= / ?motion= overrides (kiosk pages) over the shown profile's.
   const perfOverride = useMemo(
     () => ({ ...stored.performance, ...(kiosk ? performanceFromSearch(window.location.search) : undefined) }),
@@ -448,17 +449,14 @@ export default function App({ fixture }: AppProps = {}) {
   // client reconnect to the new base.
   useEffect(() => setApiBase(config.dataApiUrl), [config.dataApiUrl]);
 
-  // Apply the theme as CSS variables on :root: the shown profile's (its
-  // own colours over the dashboard's). The studio's chrome keeps the
-  // dashboard theme; its canvas scopes the edited profile's.
+  // Apply the theme as CSS variables on :root: the shown screen's. The
+  // studio's chrome has its own ui-* tokens (:root keeps the built-in
+  // theme); its canvas scopes the edited screen's.
   const shownTheme = studio ? undefined : profile;
   useEffect(() => {
-    const { tokens, radius } = resolveTheme(
-      { theme: config.theme, radius: config.radius },
-      shownTheme && { theme: shownTheme.theme, radius: shownTheme.radius }
-    );
+    const { tokens, radius } = resolveTheme(shownTheme && { theme: shownTheme.theme, radius: shownTheme.radius });
     applyTheme(tokens, radius);
-  }, [config.theme, config.radius, shownTheme?.theme, shownTheme?.radius]);
+  }, [shownTheme?.theme, shownTheme?.radius]);
 
   // Track window size for automatic profile selection.
   useEffect(() => {
@@ -688,7 +686,7 @@ export default function App({ fixture }: AppProps = {}) {
           ...(pageNav && { paddingBottom: Math.max(profilePadding(profile, kiosk), PAGE_DOTS_STRIP_PX) }),
           // Vertical scrolling stays with the browser; horizontal moves reach the swipe.
           ...(pageNav && { touchAction: "pan-y" }),
-          fontFamily: fontStack(resolveFont(general, profile)),
+          fontFamily: fontStack(resolveFont(profile)),
         }}
         onPointerDown={onKioskPointerDown}
         onPointerUp={onKioskPointerUp}

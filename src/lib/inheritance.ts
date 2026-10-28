@@ -2,7 +2,8 @@ import type { ModuleSettings } from "@/modules/types";
 import { resolveBackground, type PageBackground } from "./appearance";
 import { GENERAL_DEFAULTS, resolveFont, type GeneralFont, type MotionChoice } from "./general";
 import type { DashboardConfig, MonitorProfile, Placement, ProfilePage } from "./layout";
-import { DEFAULT_THEME, resolveTheme, type ThemeTokens } from "./theme";
+import { appLayer } from "./style-resolve";
+import { DEFAULT_RADIUS, DEFAULT_THEME, resolveTheme, type ThemeTokens } from "./theme";
 import {
   isLocked,
   pageCustom,
@@ -16,11 +17,12 @@ import {
  * Where a setting's value comes from, per section, for the inheritance
  * chip (SPEC §5) — one call over the existing resolvers:
  *
- * - the 11 widget-style sections (`theme-model.ts`): built-in → All screens
- *   (`config.style`) → Screen (`widgetTheme.values` + locks) → Page (a
- *   section the page customises) → Widget (`follow[section] === false`);
- * - the two-level data (`resolveTheme`, `resolveBackground`,
- *   `resolvePerformance`, `resolveFont`): All screens → Screen.
+ * - the 11 widget-style sections (`theme-model.ts`): built-in (and the
+ *   app's clock) → Screen (`widgetTheme.values` + locks) → Page (a section
+ *   the page customises) → Widget (`follow[section] === false`);
+ * - the screen's data (`resolveTheme`, `resolveBackground`, its
+ *   performance, `resolveFont`): built-in → Screen; its pages and widgets
+ *   read the screen's.
  *
  * A level "sets" a widget-style section when it holds a value for any of
  * its keys (a page or widget: when it customises it). Pure; the edits are
@@ -30,13 +32,13 @@ import {
 /** The chip's states (SPEC §5). */
 export type InheritState = "inherited" | "custom" | "locked" | "base" | "builtin";
 
-/** The level a chip names: All screens, Screen or Page; a panel's widget (an item) also has its Panel. */
-export type InheritLevel = "all" | "screen" | "page" | "panel";
+/** The level a chip names: Screen or Page; a panel's widget (an item) also has its Panel. */
+export type InheritLevel = "screen" | "page" | "panel";
 
-/** The two-level data: color tokens + corner radius, the page background, performance and the page font. */
+/** The screen's data: color tokens + corner radius, the page background, performance and the page font. */
 export type DataPath = "tokens" | "background" | "performance" | "font";
 
-/** What a chip describes: a widget-style section, or one of the two-level data. */
+/** What a chip describes: a widget-style section, or one of the screen's data. */
 export type InheritPath = SectionId | DataPath;
 
 export const DATA_PATHS: readonly DataPath[] = ["tokens", "background", "performance", "font"];
@@ -45,7 +47,6 @@ export const isDataPath = (path: InheritPath): path is DataPath => DATA_PATHS.in
 
 /** The level a chip sits at, with the ids that find it in the config. */
 export type InheritScope =
-  | { level: "all" }
   | { level: "screen"; profileId: string }
   | { level: "page"; profileId: string; pageId: string }
   | { level: "widget"; profileId: string; pageId: string; zoneId: string };
@@ -69,10 +70,10 @@ export interface Inheritance {
   state: InheritState;
   /**
    * The level the value comes from (inherited), the one Reset returns to
-   * (custom) or the lock's (locked); none at All screens.
+   * (custom) or the lock's (locked); none at a screen (the top level).
    */
   from?: InheritLevel;
-  /** That level's name: "All screens", the screen's or the page's name. */
+  /** That level's name: the screen's or the page's name. */
   fromName?: string;
   /** What shows at this scope. */
   resolvedValue: InheritValue;
@@ -83,14 +84,10 @@ export interface Inheritance {
 }
 
 export const LEVEL_LABELS: Readonly<Record<InheritLevel, string>> = {
-  all: "All screens",
   screen: "Screen",
   page: "Page",
   panel: "Panel",
 };
-
-/** The default corner radius (rem), as `defaultConfig` stores it. */
-const DEFAULT_RADIUS = 0.5;
 
 const sets = (values: ModuleSettings | undefined, sec: SectionId): boolean =>
   SECTION_KEYS[sec].some((key) => values?.[key] !== undefined);
@@ -110,7 +107,6 @@ interface Found {
 }
 
 function find(config: DashboardConfig, scope: InheritScope): Found {
-  if (scope.level === "all") return {};
   const profile = config.profiles.find((p) => p.id === scope.profileId);
   if (scope.level === "screen") return { profile };
   const page = profile?.pages.find((pg) => pg.id === scope.pageId);
@@ -120,29 +116,17 @@ function find(config: DashboardConfig, scope: InheritScope): Found {
 
 const named = (level: InheritLevel, found: Found): Pick<Inheritance, "from" | "fromName"> => ({
   from: level,
-  fromName: level === "all" ? LEVEL_LABELS.all : level === "screen" ? found.profile?.name : found.page?.name,
+  fromName: level === "screen" ? found.profile?.name : found.page?.name,
 });
 
 /** A widget-style section at a scope (see the module comment). */
 export function styleInheritance(config: DashboardConfig, scope: InheritScope, sec: SectionId): Inheritance {
   const found = find(config, scope);
-  const base: ThemeLevels = { base: config.style };
-  if (scope.level === "all" || !found.profile) {
+  const base: ThemeLevels = { base: appLayer(config.general) };
+  const screen: ThemeLevels = { ...base, profile: found.profile?.widgetTheme };
+  if (scope.level === "screen" || !found.profile) {
     return {
-      state: sets(config.style, sec) ? "base" : "builtin",
-      resolvedValue: sectionValues(base, sec),
-      parentValue: sectionValues({}, sec),
-      keptOverride: false,
-    };
-  }
-  const screen: ThemeLevels = { ...base, profile: found.profile.widgetTheme };
-  const screenSets = sets(found.profile.widgetTheme?.values, sec);
-  /** The nearest level above the screen that sets the section: the screen, else All screens. */
-  const aboveScreen = (): InheritLevel => (screenSets ? "screen" : "all");
-  if (scope.level === "screen") {
-    return {
-      state: screenSets ? "custom" : "inherited",
-      ...named("all", found),
+      state: sets(found.profile?.widgetTheme?.values, sec) ? "base" : "builtin",
       resolvedValue: sectionValues(screen, sec),
       parentValue: sectionValues(base, sec),
       keptOverride: false,
@@ -154,7 +138,7 @@ export function styleInheritance(config: DashboardConfig, scope: InheritScope, s
     const own = found.page?.widgetTheme?.follow?.[sec] === false;
     return {
       state: locked ? "locked" : own ? "custom" : "inherited",
-      ...named(locked ? "screen" : aboveScreen(), found),
+      ...named("screen", found),
       resolvedValue: sectionValues(levels, sec),
       parentValue: sectionValues(screen, sec),
       keptOverride: locked && own,
@@ -162,7 +146,7 @@ export function styleInheritance(config: DashboardConfig, scope: InheritScope, s
   }
   const zone = found.zone;
   const own = zone?.follow?.[sec] === false;
-  const parent: InheritLevel = locked ? "screen" : pageCustom(levels, sec) ? "page" : aboveScreen();
+  const parent: InheritLevel = !locked && pageCustom(levels, sec) ? "page" : "screen";
   return {
     state: locked ? "locked" : own ? "custom" : "inherited",
     ...named(parent, found),
@@ -172,21 +156,7 @@ export function styleInheritance(config: DashboardConfig, scope: InheritScope, s
   };
 }
 
-/** Whether All screens sets a two-level value (else the built-in default shows). */
-function allSets(config: DashboardConfig, path: DataPath): boolean {
-  switch (path) {
-    case "tokens":
-      return config.radius !== DEFAULT_RADIUS || JSON.stringify(config.theme) !== JSON.stringify(DEFAULT_THEME);
-    case "background":
-      return config.background !== undefined;
-    case "performance":
-      return config.general?.maxFps !== undefined || config.general?.motion !== undefined;
-    case "font":
-      return config.general?.font !== undefined;
-  }
-}
-
-/** Whether a screen holds its own value (the profile scope's switch: present = its own). */
+/** Whether a screen holds its own value (else the built-in default shows). */
 function screenSets(profile: MonitorProfile, path: DataPath): boolean {
   switch (path) {
     case "tokens":
@@ -200,21 +170,20 @@ function screenSets(profile: MonitorProfile, path: DataPath): boolean {
   }
 }
 
-/** A two-level value at All screens (`profile` unset) or on a screen. */
-function dataValue(config: DashboardConfig, path: DataPath, profile?: MonitorProfile): InheritValue {
-  const general = { ...GENERAL_DEFAULTS, ...config.general };
+/** A screen's value of its data. */
+function dataValue(path: DataPath, profile: MonitorProfile): InheritValue {
   switch (path) {
     case "tokens":
-      return resolveTheme(config, profile);
+      return resolveTheme(profile);
     case "background":
-      return resolveBackground(config, profile ?? {});
+      return resolveBackground(profile);
     case "performance":
       return {
-        maxFps: profile?.performance?.maxFps ?? general.maxFps,
-        motion: profile?.performance?.motion ?? general.motion,
+        maxFps: profile.performance?.maxFps ?? GENERAL_DEFAULTS.maxFps,
+        motion: profile.performance?.motion ?? GENERAL_DEFAULTS.motion,
       };
     case "font":
-      return resolveFont(general, profile);
+      return resolveFont(profile);
   }
 }
 
@@ -228,33 +197,17 @@ const builtinValue = (path: DataPath): InheritValue =>
         : GENERAL_DEFAULTS.font;
 
 /**
- * Two-level data at a scope. A page or widget has no level of its own
- * (SPEC §4.2): it reads its screen's value, inherited from the screen when
- * the screen holds one, else from All screens.
+ * A screen's data at a scope. A page or widget has no level of its own
+ * (SPEC §4.2): it reads its screen's value, inherited from the screen.
  */
 export function dataInheritance(config: DashboardConfig, scope: InheritScope, path: DataPath): Inheritance {
   const { profile } = find(config, scope);
-  if (scope.level === "all" || !profile) {
-    return {
-      state: allSets(config, path) ? "base" : "builtin",
-      resolvedValue: dataValue(config, path),
-      parentValue: builtinValue(path),
-      keptOverride: false,
-    };
-  }
-  const own = screenSets(profile, path);
-  const found = { profile };
+  if (!profile) return { state: "builtin", resolvedValue: builtinValue(path), parentValue: builtinValue(path), keptOverride: false };
+  const value = dataValue(path, profile);
   if (scope.level === "screen") {
-    return {
-      state: own ? "custom" : "inherited",
-      ...named("all", found),
-      resolvedValue: dataValue(config, path, profile),
-      parentValue: dataValue(config, path),
-      keptOverride: false,
-    };
+    return { state: screenSets(profile, path) ? "base" : "builtin", resolvedValue: value, parentValue: builtinValue(path), keptOverride: false };
   }
-  const value = dataValue(config, path, profile);
-  return { state: "inherited", ...named(own ? "screen" : "all", found), resolvedValue: value, parentValue: value, keptOverride: false };
+  return { state: "inherited", ...named("screen", { profile }), resolvedValue: value, parentValue: value, keptOverride: false };
 }
 
 /** Any chip's resolution. */

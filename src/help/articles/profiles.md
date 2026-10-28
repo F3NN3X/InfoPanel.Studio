@@ -81,7 +81,7 @@ Select a screen's card in **Screens**. The panel on the right holds the settings
 | **Grid** | 2 to 24 columns and 1 to 24 rows. A change that would push a widget off the grid is refused. The preview draws the grid with its gap and padding. **Gap** (default 12 px) and **Edge padding** go to 64 px on the sliders, and the boxes accept up to 200. |
 | **Shown on** | Whether the app opens on this screen, with a **Settings ↗** link to where that is chosen, which kiosks show it now, and **Copy kiosk link**. |
 | **Rotation** | **Rotate pages** and **Every** (3 to 3600 seconds) step the kiosk through the pages. |
-| **Performance** | The frame-rate cap and **Animations** for this screen. The chip says whether they come from **Settings › Dashboard** (all screens) or are this screen's own. |
+| **Performance** | The frame-rate cap, **Animations** and the rendering switches (**Ring glides**, **Limit blur**, **Blur inside widgets**, **Live graph glow**) for this screen. The chip says whether they are the built-in values or changed here. |
 | **Pages · order & rotation** | **Add page**, drag a page's handle to reorder it (the page tabs follow), switch it in or out of the rotation, or **Open** it in Edit. |
 
 The theme, skin and background are in **Theme**: pick the screen at the top and change a part or a fine-tune section to give this screen its own. See [Themes](themes#the-theme-view).

@@ -25,7 +25,6 @@ export type MenuItemId =
   | "arrange"
   | ArrangeOp
   | "follow-global"
-  | "global-all"
   | "global-profile"
   | "deselect"
   | "remove"
@@ -125,7 +124,6 @@ export function zoneMenu(s: ZoneMenuState): MenuSpec {
     { id: "follow-global", label: "Follow the theme" },
     ...(single
       ? [
-          { id: "global-all" as const, label: "Make this the theme for all screens" },
           { id: "global-profile" as const, label: "Make this the theme for this screen" },
           "separator" as const,
           ...STEPS.map(({ id, label, hint, cols, rows }) => ({ id, label, hint, disabled: !s.canStep(cols, rows) })),
@@ -189,10 +187,8 @@ export function menuAction(id: Exclude<MenuItemId, "move-to-page" | "arrange">):
       return { type: "paste-style" };
     case "follow-global":
       return { type: "follow-global" };
-    case "global-all":
-      return { type: "use-global", target: "all" };
     case "global-profile":
-      return { type: "use-global", target: "profile" };
+      return { type: "use-global" };
     case "deselect":
       return { type: "deselect" };
     case "remove":

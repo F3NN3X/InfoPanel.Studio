@@ -60,10 +60,10 @@ describe("look settings", () => {
     expect(categoryTab(motion)).toBe("behaviour");
   });
 
-  it("resolve dashboard, then profile, then the widget, with source dots", () => {
+  it("resolve the base layer, then profile, then the widget, with source dots", () => {
     const base = { skin: "tui" };
     const profile = { values: { skin: "hud" } };
-    expect(resolveStyle({ levels: { base } })).toMatchObject({ settings: { skin: "tui" }, source: { skin: "dashboard" } });
+    expect(resolveStyle({ levels: { base } })).toMatchObject({ settings: { skin: "tui" }, source: { skin: "app" } });
     expect(resolveStyle({ levels: { base, profile } })).toMatchObject({ settings: { skin: "hud" }, source: { skin: "profile" } });
     const own = { skin: "ink" };
     const custom = { skin: false };

@@ -107,7 +107,7 @@ export function ProfileShots({ profiles, dashboard, editedId, canvasIsFirstPage,
   const profileIds = useMemo(() => profiles.map((p) => p.id), [profiles]);
   const revs = useMemo(
     () => Object.fromEntries(profiles.map((p) => [p.id, profileRev(p, dashboard)])),
-    [profiles, dashboard.background, dashboard.theme, dashboard.radius, dashboard.style]
+    [profiles, dashboard.general?.clock]
   );
   const [job, setJob] = useState<{ profile: MonitorProfile; rev: string } | null>(null);
   /** `id:rev` of the shots that could not be taken, so they are not retried in a loop. */

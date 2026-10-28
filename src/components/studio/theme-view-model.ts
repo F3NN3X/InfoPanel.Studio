@@ -19,8 +19,7 @@ export type ThemeDrill = "main" | "themes" | "palette" | "skin" | "background";
 
 /** The level help beside the level control; a page adds where its parts come from. */
 export function levelHelp(level: ThemeLevel, screen: string, page: string): string {
-  if (level === "all") return "The base theme for every screen";
-  if (level === "screen") return `What ${screen} changes from All screens`;
+  if (level === "screen") return `The look of ${screen}`;
   return `What ${page} changes from ${screen}. ${pageParts(screen)}`;
 }
 
@@ -31,7 +30,7 @@ export const pageParts = (screen: string): string => `Palette, corners and backg
 export const listText = (items: readonly string[]): string =>
   items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 
-/** Where a theme is used, in words: "All screens, MyDefault and the Gaming and Work pages". */
+/** Where a theme is used, in words: "Wall, MyDefault and the Gaming and Work pages". */
 export function placesText(uses: readonly ThemeUse[]): string {
   const pages = uses.filter((u) => u.target.kind === "page").map((u) => u.name);
   const others = uses.filter((u) => u.target.kind !== "page").map((u) => u.name);
@@ -168,10 +167,9 @@ export function themeLinkOf(id: string | undefined): ThemeLink | undefined {
 }
 
 /**
- * The level the command palette's "Apply theme" uses: the one Theme is set to, on its screen and page, or All
- * screens before Theme has been opened (owner decision 5).
+ * The level the command palette's "Apply theme" uses: the one Theme is set to, on its screen and page, or the
+ * screen before Theme has been opened (owner decision 5).
  */
 export function commandThemeAt(scope: ThemeScope | undefined, profileId: string): ThemeAt {
-  if (!scope || scope.kind === "base") return { level: "all" };
-  return scope.kind === "profile" ? { level: "screen", profileId } : { level: "page", profileId, pageId: scope.pageId };
+  return scope?.kind === "page" ? { level: "page", profileId, pageId: scope.pageId } : { level: "screen", profileId };
 }

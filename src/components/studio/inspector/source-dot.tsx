@@ -4,7 +4,7 @@ import { SET_HERE, type SettingState } from "../settings-model";
 /** The dot of each source state (README §5.6); `default` is an empty outline. */
 const DOT: Record<SettingState, string> = {
   default: "border border-[#34343b]",
-  dashboard: "bg-ui-dot-dashboard",
+  app: "bg-ui-dot-dashboard",
   profile: "bg-ui-dot-profile",
   here: "bg-ui-accent",
   overriding: "bg-ui-accent shadow-[0_0_0_2px_var(--ui-bg-panel),0_0_0_3px_var(--ui-accent)]",
@@ -14,7 +14,7 @@ const DOT: Record<SettingState, string> = {
 /** What each dot means (its tooltip, and the footer's legend). */
 export const DOT_MEANING: Record<SettingState, string> = {
   default: "Default",
-  dashboard: "From All screens",
+  app: "From the app settings",
   profile: "From the screen's theme",
   here: "Changed here",
   overriding: "Changed here, overriding a global value",
@@ -22,7 +22,7 @@ export const DOT_MEANING: Record<SettingState, string> = {
 };
 
 /** The legend order (a zone's own values that don't apply show no dot: their section follows the theme). */
-export const DOT_LEGEND: readonly SettingState[] = ["default", "dashboard", "profile", "here", "overriding"];
+export const DOT_LEGEND: readonly SettingState[] = ["default", "app", "profile", "here", "overriding"];
 
 /** The 7 px source dot before a field's label; a "changed here" dot is a reset button. */
 export function SourceDot({ state, onReset }: { state: SettingState; onReset?: () => void }) {

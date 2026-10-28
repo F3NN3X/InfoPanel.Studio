@@ -6,8 +6,7 @@ const config = (): DashboardConfig => {
   const base = defaultConfig();
   return {
     ...base,
-    general: { font: "inter", maxFps: 30 },
-    style: { clock: "24", surface: "glass" },
+    general: { locale: "de-DE", clock: "24" },
     profiles: [
       { ...base.profiles[0], id: "desk", performance: { maxFps: 30 } },
       { ...base.profiles[0], id: "wall" },
@@ -16,29 +15,26 @@ const config = (): DashboardConfig => {
 };
 
 describe("withSettingsPatch", () => {
-  it("sets and clears general keys, keeping the page font and every other key", () => {
+  it("sets and clears general keys, keeping every other key", () => {
     const before = config();
-    const next = withSettingsPatch(before, { general: { maxFps: null, hideCursor: true } });
-    expect(next.general).toEqual({ font: "inter", hideCursor: true });
+    const next = withSettingsPatch(before, { general: { clock: null, hideCursor: true } });
+    expect(next.general).toEqual({ locale: "de-DE", hideCursor: true });
     expect(next.profiles).toBe(before.profiles);
-    expect(next.style).toBe(before.style);
   });
 
-  it("drops general and style once their last key is cleared", () => {
-    const bare = { ...config(), general: { maxFps: 30 }, style: { clock: "24" } };
-    const next = withSettingsPatch(bare, { general: { maxFps: null }, style: { clock: null } });
-    expect(next.general).toBeUndefined();
-    expect(next.style).toBeUndefined();
+  it("drops general once its last key is cleared", () => {
+    const bare = { ...config(), general: { clock: "24" as const } };
+    expect(withSettingsPatch(bare, { general: { clock: null } }).general).toBeUndefined();
   });
 
-  it("sets the clock without touching the rest of the all-screens style", () => {
-    expect(withSettingsPatch(config(), { style: { clock: "12" } }).style).toEqual({ clock: "12", surface: "glass" });
+  it("sets the app's clock without touching the rest of general", () => {
+    expect(withSettingsPatch(config(), { general: { clock: "12" } }).general).toEqual({ locale: "de-DE", clock: "12" });
   });
 
   it("replaces or resets one screen's performance and leaves the others as they are", () => {
     const before = config();
-    const set = withSettingsPatch(before, { profiles: { wall: { performance: { motion: "reduce" } } } });
-    expect(set.profiles[1].performance).toEqual({ motion: "reduce" });
+    const set = withSettingsPatch(before, { profiles: { wall: { performance: { motion: "reduce", ringGlide: true } } } });
+    expect(set.profiles[1].performance).toEqual({ motion: "reduce", ringGlide: true });
     expect(set.profiles[0]).toBe(before.profiles[0]);
     const reset = withSettingsPatch(before, { profiles: { desk: { performance: null } } });
     expect(reset.profiles[0]).not.toHaveProperty("performance");
@@ -53,13 +49,13 @@ describe("withSettingsPatch", () => {
     expect(withSettingsPatch(fixed, { activeProfile: null }).activeProfile).toBe("auto");
     expect(withSettingsPatch(fixed, { activeProfile: "auto" }).activeProfile).toBe("auto");
     expect(withSettingsPatch(fixed, { activeProfile: "gone" }).activeProfile).toBe("wall");
-    expect(withSettingsPatch(fixed, { general: { maxFps: 15 } }).activeProfile).toBe("wall");
+    expect(withSettingsPatch(fixed, { general: { hideCursor: true } }).activeProfile).toBe("wall");
   });
 
   it("ignores a screen the config does not have, and leaves the input untouched", () => {
     const before = config();
     const next = withSettingsPatch(before, { profiles: { gone: { performance: null } } });
     expect(next.profiles).toEqual(before.profiles);
-    expect(before.general).toEqual({ font: "inter", maxFps: 30 });
+    expect(before.general).toEqual({ locale: "de-DE", clock: "24" });
   });
 });

@@ -29,7 +29,6 @@ const BUTTON =
   "flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-[7px] border border-ui-strong bg-ui-raised px-2 text-[11.5px] font-medium text-ui-2 transition-colors hover:bg-ui-hover hover:text-ui-1 disabled:pointer-events-none disabled:opacity-40 data-popup-open:bg-ui-hover data-popup-open:text-ui-1";
 
 const MAKE_THEME: { target: MakeThemeTarget; label: string }[] = [
-  { target: "all", label: "All screens" },
   { target: "screen", label: "This screen" },
   { target: "page", label: "This page" },
 ];

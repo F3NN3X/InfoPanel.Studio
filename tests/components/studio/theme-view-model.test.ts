@@ -20,9 +20,9 @@ import {
 } from "@/components/studio/theme-view-model";
 import { paletteName } from "@/lib/palettes";
 
-const use = (name: string, kind: "all" | "profile" | "page"): ThemeUse => ({
+const use = (name: string, kind: "profile" | "page"): ThemeUse => ({
   name,
-  target: kind === "all" ? { kind } : kind === "profile" ? { kind, profileId: name } : { kind, profileId: "desk", pageId: name },
+  target: kind === "profile" ? { kind, profileId: name } : { kind, profileId: "desk", pageId: name },
 });
 const applied = (id: string, name: string) => ({ id, name, values: {} });
 const state = (s: Partial<ThemeState>): ThemeState => ({ deleted: false, changed: [], own: [], ...s });
@@ -34,7 +34,7 @@ describe("the theme card", () => {
     const others = [use("Gaming", "page"), use("Work", "page")];
     expect(kindLine(DESK, others, "MyDefault")).toBe("Saved theme · also on the Gaming and Work pages");
     expect(kindLine(DESK, [], "MyDefault")).toBe("Saved theme · only here");
-    expect(kindLine(DESK, [use("All screens", "all"), use("Gaming", "page")], "MyDefault")).toBe("Saved theme · also on All screens and the Gaming page");
+    expect(kindLine(DESK, [use("Wall", "profile"), use("Gaming", "page")], "MyDefault")).toBe("Saved theme · also on Wall and the Gaming page");
     expect(kindLine(TEMPLATE, [], "MyDefault")).toBe("From a screen template · applied to MyDefault");
     expect([cardName(state({})), kindLine(state({}), [], "x")]).toEqual(["Custom look", "not saved"]);
     expect(cardName(state({ applied: applied("look-x", "Night"), deleted: true }))).toBe("Night (deleted)");
@@ -120,8 +120,8 @@ describe("links into Theme", () => {
 });
 
 describe("the command palette's level", () => {
-  it("is All screens until Theme is opened, then Theme's level", () => {
-    expect(commandThemeAt(undefined, "desk")).toEqual({ level: "all" });
+  it("is the screen until Theme is opened, then Theme's level", () => {
+    expect(commandThemeAt(undefined, "desk")).toEqual({ level: "screen", profileId: "desk" });
     expect(commandThemeAt({ kind: "profile" }, "desk")).toEqual({ level: "screen", profileId: "desk" });
     expect(commandThemeAt({ kind: "page", pageId: "gaming" }, "desk")).toEqual({ level: "page", profileId: "desk", pageId: "gaming" });
   });

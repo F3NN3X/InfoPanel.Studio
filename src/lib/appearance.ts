@@ -2,9 +2,8 @@ import type { CSSProperties } from "react";
 import type { DashboardConfig, MonitorProfile } from "./layout";
 
 /**
- * Page appearance — the background behind the zone grid. The dashboard
- * has one (`config.background`, shared by every profile); a profile can
- * replace it (`profile.background`) or turn it off (`{ type: "none" }`).
+ * Page appearance — the background behind the zone grid: each screen's own
+ * (`profile.background`; `{ type: "none" }` or unset: none, since config v16).
  * Values are stored sparse: anything unset falls back to the defaults
  * below when the layers are built.
  */
@@ -156,15 +155,10 @@ export function normalizeBackground(input: unknown): PageBackground | undefined 
 /* ---------------- resolution ---------------- */
 
 /**
- * The background a profile shows: its own when set (`{ type: "none" }`
- * turns the dashboard's off for it), else the dashboard's. `undefined`
- * means no background — the theme's page color shows.
+ * The background a screen shows: its own (`{ type: "none" }` or unset: none — the theme's page color shows).
  */
-export function resolveBackground(
-  config: Pick<DashboardConfig, "background">,
-  profile: Pick<MonitorProfile, "background">
-): PageBackground | undefined {
-  const bg = profile.background ?? config.background;
+export function resolveBackground(profile: Pick<MonitorProfile, "background">): PageBackground | undefined {
+  const bg = profile.background;
   if (!bg || bg.type === "none") return undefined;
   // An image / video with no file yet shows its fill color, or nothing.
   if ((bg.type === "image" || bg.type === "video") && !bg.src)
@@ -172,12 +166,12 @@ export function resolveBackground(
   return bg;
 }
 
-/** Where a background edit goes: the dashboard, or one profile. */
-export type BackgroundScope = { kind: "all" } | { kind: "profile"; profileId: string };
+/** Where a background edit goes: one screen. */
+export type BackgroundScope = { kind: "profile"; profileId: string };
 
 /** Undo-coalescing key for edits in a scope. */
 export function backgroundKey(scope: BackgroundScope): string {
-  return scope.kind === "all" ? "background:all" : `background:${scope.profileId}`;
+  return `background:${scope.profileId}`;
 }
 
 /** Set (or clear, `undefined`) the background of a scope. */
@@ -186,7 +180,6 @@ export function withBackground(
   scope: BackgroundScope,
   bg: PageBackground | undefined
 ): DashboardConfig {
-  if (scope.kind === "all") return { ...config, background: bg };
   return {
     ...config,
     profiles: config.profiles.map((p) =>

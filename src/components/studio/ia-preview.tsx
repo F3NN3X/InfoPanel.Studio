@@ -26,20 +26,19 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** A sample: All screens sets the accent, Desk bar locks Typography, Gaming customises Colors, one widget keeps own Typography. */
+/** A sample: Desk bar sets the accent and locks Typography, Gaming customises Colors, one widget keeps own Typography. */
 function sampleConfig(): DashboardConfig {
   const base = defaultConfig();
   const profile = base.profiles[0];
   return {
     ...base,
-    style: { accent: "#3d8bff" },
-    general: { font: "inter" },
     profiles: [
       {
         ...profile,
         id: "desk",
         name: "Desk bar",
-        widgetTheme: { values: { font: "geist" }, locks: { type: true } },
+        font: "inter",
+        widgetTheme: { values: { accent: "#3d8bff", font: "geist" }, locks: { type: true } },
         pages: [
           {
             id: "gaming",
@@ -56,7 +55,6 @@ function sampleConfig(): DashboardConfig {
 }
 
 const SCOPES: { label: string; scope: InheritScope }[] = [
-  { label: "All screens", scope: { level: "all" } },
   { label: "Screen · Desk bar", scope: { level: "screen", profileId: "desk" } },
   { label: "Page · Gaming", scope: { level: "page", profileId: "desk", pageId: "gaming" } },
   { label: "Widget · CPU", scope: { level: "widget", profileId: "desk", pageId: "gaming", zoneId: "cpu" } },
@@ -145,7 +143,6 @@ function Gallery() {
 
         <Section title="InheritChip: every state">
           <div className="flex flex-wrap items-center gap-2">
-            <InheritChip state="inherited" from="all" parentText="#3D8BFF" onCustomise={() => toast("Change here")} onJump={() => toast("Edit All screens")} />
             <InheritChip state="inherited" from="screen" fromName="Desk bar" parentText="#3D8BFF" onCustomise={() => toast("Change here")} onJump={() => toast("Edit Screen")} />
             <InheritChip state="inherited" from="page" fromName="Gaming" parentText="#FF6A3D" onCustomise={() => toast("Change here")} onJump={() => toast("Edit Page")} />
             <InheritChip state="custom" from="page" fromName="Gaming" parentText="#3D8BFF" onReset={() => toast("Reset")} onJump={() => toast("Edit Page")} onMakeTheme={(t) => toast(`Make theme: ${t}`)} />
@@ -193,7 +190,7 @@ function Gallery() {
 
         <Section title="LinkRow">
           <div className="max-w-[320px] space-y-2">
-            <LinkRow label="Frame-rate cap" value="60 fps" mono from="Dashboard" link="Settings" onNavigate={() => go({ view: "settings", tab: "dashboard", section: "performance" })} />
+            <LinkRow label="Frame-rate cap" value="60 fps" mono from="Screen" link="Screens" onNavigate={() => go({ view: "screens", section: "performance" })} />
             <LinkRow label="Font" value="Geist" from="Theme" link="Theme" onNavigate={() => go({ view: "theme", section: "type" })} />
             <LinkRow label="Rotation" value="Included · every 20 s" note="Page order and rotation live in" link="Screens" onNavigate={() => go({ view: "screens", section: "pages" })} />
           </div>

@@ -17,11 +17,18 @@ describe("resolveGeneral", () => {
     expect(GENERAL_DEFAULTS.showSeconds).toBe(true);
   });
 
-  it("keeps the set keys over the defaults, the 12-hour switch from the style's clock (config v7)", () => {
-    const g = resolveGeneral({ general: { font: "serif", motion: "reduce" }, style: { clock: "12" } });
-    expect(g).toMatchObject({ font: "serif", hour12: true, motion: "reduce", showSeconds: true, locale: "" });
-    expect(resolveGeneral({ style: { clock: "24" } }).hour12).toBe(false);
-    expect(resolveGeneral({ style: { clock: "auto" } }).hour12).toBeUndefined();
+  it("keeps the set keys over the defaults, the 12-hour switch from the app's clock (config v16)", () => {
+    const g = resolveGeneral({ general: { locale: "de-DE", clock: "12" } });
+    expect(g).toMatchObject({ font: "system", hour12: true, motion: "system", showSeconds: true, locale: "de-DE" });
+    expect(g).not.toHaveProperty("clock");
+    expect(resolveGeneral({ general: { clock: "24" } }).hour12).toBe(false);
+    expect(resolveGeneral({ general: {} }).hour12).toBeUndefined();
+  });
+
+  it("adds a screen's page font and performance over the defaults", () => {
+    const g = resolveGeneral({ general: { showSeconds: false } }, { font: "serif", performance: { maxFps: 15, motion: "reduce", blurLimit: false } });
+    expect(g).toMatchObject({ font: "serif", maxFps: 15, motion: "reduce", blurLimit: false, ringGlide: false, showSeconds: false });
+    expect(resolveGeneral({}, {})).toEqual(GENERAL_DEFAULTS);
   });
 });
 
@@ -44,24 +51,21 @@ describe("kioskRefresh", () => {
   });
 });
 
-describe("rendering options", () => {
-  it("default ringGlide, innerBlur and liveGlow off and blurLimit on, and are kept only as booleans", () => {
-    expect(GENERAL_DEFAULTS).toMatchObject({ ringGlide: false, blurLimit: true, innerBlur: false, liveGlow: false });
-    expect(resolveGeneral({ general: { blurLimit: false } }).blurLimit).toBe(false);
-    for (const key of ["ringGlide", "blurLimit", "innerBlur", "liveGlow"] as const) {
-      expect(normalizeGeneral({ [key]: true })).toEqual({ [key]: true });
-      expect(normalizeGeneral({ [key]: false })).toEqual({ [key]: false });
-      for (const bad of ["yes", 1, null]) expect(normalizeGeneral({ [key]: bad })).toBeUndefined();
-    }
+describe("rendering options and maxFps (each screen's since config v16)", () => {
+  it("default ringGlide, innerBlur and liveGlow off, blurLimit on and 60 fps", () => {
+    expect(GENERAL_DEFAULTS).toMatchObject({ ringGlide: false, blurLimit: true, innerBlur: false, liveGlow: false, maxFps: 60 });
+  });
+
+  it("are no longer kept in the app settings", () => {
+    expect(normalizeGeneral({ maxFps: 15, motion: "full", ringGlide: true, blurLimit: false, font: "mono" })).toBeUndefined();
   });
 });
 
-describe("maxFps", () => {
-  it("defaults to 60 and is kept only as a valid choice", () => {
-    expect(GENERAL_DEFAULTS.maxFps).toBe(60);
-    expect(resolveGeneral({ general: { maxFps: 15 } }).maxFps).toBe(15);
-    for (const fps of [5, 15, 30, 60, 0]) expect(normalizeGeneral({ maxFps: fps })).toEqual({ maxFps: fps });
-    for (const bad of [24, -1, "30", null, 1000]) expect(normalizeGeneral({ maxFps: bad })).toBeUndefined();
+describe("clock", () => {
+  it("is kept only as 12 or 24", () => {
+    expect(normalizeGeneral({ clock: "12" })).toEqual({ clock: "12" });
+    expect(normalizeGeneral({ clock: "24" })).toEqual({ clock: "24" });
+    for (const bad of ["auto", 12, true, null]) expect(normalizeGeneral({ clock: bad })).toBeUndefined();
   });
 });
 
@@ -85,11 +89,8 @@ describe("normalizeGeneral", () => {
         extra: 1,
       })
     ).toEqual({ showSeconds: false, locale: "de-DE", hideCursor: true });
-    // The 12 / 24 h switch moved into the themed clock (config v7): a stored one is not kept here.
-    expect(normalizeGeneral({ font: "mono", motion: "full", hour12: false })).toEqual({
-      font: "mono",
-      motion: "full",
-    });
+    // The 12 / 24 h switch moved into the themed clock (config v7), then `clock` (v16): a stored `hour12` is not kept here.
+    expect(normalizeGeneral({ showSeconds: true, hour12: false })).toEqual({ showSeconds: true });
   });
 
   it("validates the locale", () => {
@@ -103,10 +104,10 @@ describe("normalizeGeneral", () => {
 
 describe("withGeneral", () => {
   it("sets a key and clears it back to the default", () => {
-    const g = withGeneral(undefined, "font", "serif");
-    expect(g).toEqual({ font: "serif" });
-    expect(withGeneral(g, "motion", "full")).toEqual({ font: "serif", motion: "full" });
-    expect(withGeneral(g, "font", undefined)).toBeUndefined();
+    const g = withGeneral(undefined, "locale", "de-DE");
+    expect(g).toEqual({ locale: "de-DE" });
+    expect(withGeneral(g, "clock", "24")).toEqual({ locale: "de-DE", clock: "24" });
+    expect(withGeneral(g, "locale", undefined)).toBeUndefined();
   });
 });
 
@@ -122,10 +123,10 @@ describe("fontStack", () => {
 });
 
 describe("resolveFont", () => {
-  it("takes the screen's own page font over the dashboard's (SPEC §11.1)", () => {
-    expect(resolveFont({ font: "inter" }, { font: "geist" })).toBe("geist");
-    expect(resolveFont({ font: "inter" }, {})).toBe("inter");
-    expect(resolveFont(GENERAL_DEFAULTS)).toBe("system");
+  it("takes the screen's own page font, else the built-in one (SPEC §11.1)", () => {
+    expect(resolveFont({ font: "geist" })).toBe("geist");
+    expect(resolveFont({})).toBe("system");
+    expect(resolveFont()).toBe("system");
   });
 });
 

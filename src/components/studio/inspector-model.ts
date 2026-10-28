@@ -74,8 +74,8 @@ const IP_TAB_OF: Record<string, TabId> = {
 
 export type PanelLayoutKind = "stack" | "grid" | "overlay";
 
-/** The level the theme editor edits: the all-profiles base, the profile theme or a page theme. */
-export type ThemeScopeKind = "base" | "profile" | "page";
+/** The level the theme editor edits: the profile theme or a page theme. */
+export type ThemeScopeKind = "profile" | "page";
 
 /** What is selected, with what the sections depend on. */
 export type InspectorContext =
@@ -535,7 +535,7 @@ export function sourceState(def: ModuleSetting, values: LookValues): SettingStat
   if (!applies) return settingStateOf(def, values.own, values.inherited, values.inheritedFrom);
   const own = values.own && Object.fromEntries(Object.entries(values.own).filter(([key]) => def.perWidget || applies(themeKeyOf(def, key))));
   const state = settingStateOf(def, own, values.inherited, values.inheritedFrom);
-  return state === "overriding" ? "here" : state === "dashboard" || state === "profile" ? "default" : state;
+  return state === "overriding" ? "here" : state === "app" || state === "profile" ? "default" : state;
 }
 
 /** A widget's values: its settings over the theme it follows (`resolveStyle`). */
@@ -619,11 +619,7 @@ export interface InspectorNote {
 /** The banners and context notes of a tab (whether a section follows the theme is its Follow bar). */
 export function inspectorNotes(context: InspectorContext, tab: TabId | undefined): InspectorNote[] {
   if (context.kind === "blank") return [{ kind: "blank", text: "This space is blank. Pick a widget or a panel to fill it." }];
-  if (context.kind === "theme") {
-    return context.scope === "base"
-      ? [{ kind: "theme", text: "The base under every screen's theme: what a screen leaves unset. It has no locks." }]
-      : [];
-  }
+  if (context.kind === "theme") return [];
   if (tab !== "style") return [];
   const notes: InspectorNote[] = [];
   if (context.kind === "widget" && context.reducedStyle) {

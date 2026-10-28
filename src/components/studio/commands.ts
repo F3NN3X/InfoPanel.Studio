@@ -1,5 +1,4 @@
 import type { MonitorProfile, Placement, Widget } from "@/lib/layout";
-import type { AppearanceTarget } from "./inspector/profile-scope";
 import { allSections, type InspectorContext } from "./inspector-model";
 import type { NavTarget } from "./studio-nav";
 import { placementTitle } from "./studio-modules";
@@ -56,7 +55,7 @@ export type CommandAction =
   | { type: "goto-setting"; section: string; key?: string }
   /** A theme editor row: Studio › Theme at its current scope, that section and row. */
   | { type: "goto-theme-setting"; section: string; key: string }
-  | { type: "use-global"; target: AppearanceTarget }
+  | { type: "use-global" }
   | { type: "edit-style" }
   | { type: "bind-data" }
   /** Theme, as the rail opens it, at a card (Background, Typography) or the first. */
@@ -114,7 +113,7 @@ export interface CommandState {
   enforced: boolean;
   /** The saved themes (applied at the level Theme is set to). */
   appearancePresets: { id: string; name: string }[];
-  /** That level's name, the themes' hint (All screens when unset). */
+  /** That level's name, the themes' hint (This screen when unset). */
   themeLevel?: string;
   /** The screen is made for InfoPanel: the palette offers its Export check. */
   exportCheck?: boolean;
@@ -271,8 +270,7 @@ function styleCommands(): Command[] {
     style("copy", "Copy style", { type: "copy-style" }, KEYS.copyStyle),
     style("paste", "Paste style", { type: "paste-style" }, KEYS.pasteStyle),
     style("follow", "Make it follow", { type: "follow-global" }),
-    style("global-all", "Make this the theme for all screens", { type: "use-global", target: "all" }),
-    style("global-profile", "Make this the theme for this screen", { type: "use-global", target: "profile" }),
+    style("global-profile", "Make this the theme for this screen", { type: "use-global" }),
   ];
 }
 
@@ -405,12 +403,12 @@ export function buildCommands(s: CommandState): Command[] {
     ...generalCommands(s),
     ...pageCommands(s),
     ...s.appearancePresets.flatMap((p): Command[] => [
-      { id: `appearance:${p.id}`, label: `Apply theme: ${p.name}`, group: "Themes", hint: s.themeLevel ?? "All screens", action: { type: "apply-appearance", id: p.id, keepBackground: false } },
+      { id: `appearance:${p.id}`, label: `Apply theme: ${p.name}`, group: "Themes", hint: s.themeLevel ?? "This screen", action: { type: "apply-appearance", id: p.id, keepBackground: false } },
       {
         id: `appearance-keep-bg:${p.id}`,
         label: `Apply theme, keep background: ${p.name}`,
         group: "Themes",
-        hint: s.themeLevel ?? "All screens",
+        hint: s.themeLevel ?? "This screen",
         action: { type: "apply-appearance", id: p.id, keepBackground: true },
       },
     ]),

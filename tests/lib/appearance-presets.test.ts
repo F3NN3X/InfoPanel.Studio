@@ -14,7 +14,7 @@ import {
   presetTokens,
   type AppearancePreset,
 } from "@/lib/appearance-presets";
-import { normalizeBackground } from "@/lib/appearance";
+import { normalizeBackground, type PageBackground } from "@/lib/appearance";
 import { applyTheme } from "@/lib/theme-apply";
 import type { DashboardConfig, MonitorProfile, Placement } from "@/lib/layout";
 import { mainPage } from "@/lib/pages";
@@ -49,16 +49,14 @@ const profile = (id: string, extra: Partial<MonitorProfile> = {}): MonitorProfil
 });
 
 const config = (extra: Partial<DashboardConfig> = {}): DashboardConfig => ({
-  version: 15,
+  version: 16,
   activeProfile: "auto",
   profiles: [profile("p1"), profile("p2")],
-  theme: DEFAULT_THEME,
-  radius: 0.5,
   ...extra,
 });
 
-const ALL = { kind: "all" } as const;
 const P1 = { kind: "profile", profileId: "p1" } as const;
+const P2 = { kind: "profile", profileId: "p2" } as const;
 // Saved themes as the user would store them (the former Glass and Light built-ins).
 const glass: AppearancePreset = {
   id: "look-glass",
@@ -106,38 +104,22 @@ describe("isValidStyleValue", () => {
   });
 });
 
-describe("applyAppearancePreset — All profiles", () => {
-  it("sets theme, radius and replaces the dashboard style", () => {
-    const next = applyAppearancePreset(config({ style: { textColor: "#ff0000" } }), light, ALL);
-    expect(next.theme).toEqual(THEME_PRESETS.find((t) => t.name === "paper")!.tokens);
-    expect(next.radius).toBe(0.75);
-    expect(next.style).toEqual({ surface: "theme" });
-  });
-
-  it("writes the background only into an empty scope unless asked", () => {
-    expect(applyAppearancePreset(config(), glass, ALL).background).toEqual(glass.background);
-    const empty = config({ background: { type: "image" } });
-    expect(applyAppearancePreset(empty, glass, ALL).background).toEqual(glass.background);
-    const mine = { type: "color" as const, color: "#123456" };
-    expect(applyAppearancePreset(config({ background: mine }), glass, ALL).background).toBe(mine);
-    expect(
-      applyAppearancePreset(config({ background: mine }), glass, ALL, { includeBackground: true }).background
-    ).toEqual(glass.background);
-    expect(
-      applyAppearancePreset(config(), glass, ALL, { includeBackground: false }).background
-    ).toBeUndefined();
-  });
-
-});
-
 describe("applyAppearancePreset — This profile", () => {
-  it("writes the profile's theme, theme values and background, not the dashboard's or other profiles", () => {
+  it("writes the background only into an empty scope (unset, none or media without a file) unless asked", () => {
+    const bgOf = (bg: PageBackground | undefined, options?: { includeBackground?: boolean }) =>
+      applyAppearancePreset(config({ profiles: [profile("p1", { background: bg }), profile("p2")] }), glass, P1, options).profiles[0].background;
+    expect(bgOf(undefined)).toEqual(glass.background);
+    expect(bgOf({ type: "image" })).toEqual(glass.background);
+    expect(bgOf({ type: "none" })).toEqual(glass.background);
+    const mine = { type: "color" as const, color: "#123456" };
+    expect(bgOf(mine)).toBe(mine);
+    expect(bgOf(mine, { includeBackground: true })).toEqual(glass.background);
+    expect(bgOf(undefined, { includeBackground: false })).toBeUndefined();
+  });
+
+  it("writes the profile's theme, theme values and background, not other profiles", () => {
     const before = config();
     const next = applyAppearancePreset(before, glass, P1);
-    expect(next.theme).toBe(before.theme);
-    expect(next.radius).toBe(before.radius);
-    expect(next.style).toBeUndefined();
-    expect(next.background).toBeUndefined();
     expect(next.profiles[0].theme).toEqual(presetTokens(glass));
     expect(next.profiles[0].radius).toBe(glass.radius);
     expect(next.profiles[0].widgetTheme).toEqual({ values: glass.style });
@@ -146,26 +128,27 @@ describe("applyAppearancePreset — This profile", () => {
     expect(next.profiles[1]).toBe(before.profiles[1]);
   });
 
-  it("resets the dashboard's look keys the preset leaves unset", () => {
-    const next = applyAppearancePreset(config({ style: { glow: "strong", surface: "glass" } }), light, P1);
-    expect(next.profiles[0].widgetTheme?.values).toEqual({ glow: "none", surface: "theme" });
+  it("replaces the screen's style with the preset's", () => {
+    const next = applyAppearancePreset(config({ profiles: [profile("p1", { widgetTheme: { values: { glow: "strong", surface: "glass" } } }), profile("p2")] }), light, P1);
+    expect(next.profiles[0].widgetTheme?.values).toEqual({ surface: "theme" });
   });
 
 });
 
 describe("the user's presets", () => {
-  it("captures the current look of a scope", () => {
+  it("captures the current look of a screen", () => {
     const c = config({
-      style: { surface: "glass", accent: "#00ff00" },
-      background: { type: "color", color: "#101010" },
-      profiles: [profile("p1", { widgetTheme: { values: { accent: "#0000ff" } }, background: { type: "none" } })],
+      profiles: [
+        profile("p1", { widgetTheme: { values: { surface: "glass", accent: "#00ff00" } }, background: { type: "color", color: "#101010" } }),
+        profile("p2", { widgetTheme: { values: { accent: "#0000ff" } }, background: { type: "none" } }),
+      ],
     });
-    const all = presetFromCurrent(c, ALL, "u1", "Mine");
-    expect(all).toMatchObject({ id: "u1", name: "Mine", radius: 0.5, style: { surface: "glass", accent: "#00ff00" } });
-    expect(all.background).toEqual({ type: "color", color: "#101010" });
-    const one = presetFromCurrent(c, P1, "u2", "Mine");
-    expect(one.style).toEqual({ surface: "glass", accent: "#0000ff" });
-    expect(one.background).toBeUndefined();
+    const mine = presetFromCurrent(c, P1, "u1", "Mine");
+    expect(mine).toMatchObject({ id: "u1", name: "Mine", radius: 0.5, style: { surface: "glass", accent: "#00ff00" } });
+    expect(mine.background).toEqual({ type: "color", color: "#101010" });
+    const other = presetFromCurrent(c, P2, "u2", "Mine");
+    expect(other.style).toEqual({ accent: "#0000ff" });
+    expect(other.background).toBeUndefined();
   });
 
   it("captures a profile's own theme colours and radius", () => {
@@ -176,13 +159,13 @@ describe("the user's presets", () => {
   });
 
   it("round-trips: applying a saved look reproduces it", () => {
-    const c = config({ style: { surface: "matte-dark", glow: "soft" }, radius: 1 });
-    const preset = presetFromCurrent(c, ALL, "u1", "Mine");
-    const other = applyAppearancePreset(c, light, ALL);
-    const back = applyAppearancePreset(other, preset, ALL);
-    expect(back.style).toEqual(c.style);
+    const c = config({ profiles: [profile("p1", { widgetTheme: { values: { surface: "matte-dark", glow: "soft" } }, radius: 1 }), profile("p2")] });
+    const preset = presetFromCurrent(c, P1, "u1", "Mine");
+    const other = applyAppearancePreset(c, light, P1);
+    const back = applyAppearancePreset(other, preset, P1).profiles[0];
+    expect(back.widgetTheme?.values).toEqual(c.profiles[0].widgetTheme?.values);
     expect(back.radius).toBe(1);
-    expect(back.theme).toEqual(c.theme);
+    expect(back.theme).toEqual(DEFAULT_THEME);
   });
 });
 
@@ -203,24 +186,22 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
     // Surface (all three keys replaced) is customised; the locked Border & glow is not written.
     expect(theme.values).toEqual({ font: "mono", surface: "glass", surfaceOpacity: 60, blur: "16" });
     expect(theme.follow).toEqual({ surface: false });
-    // A page has no tokens, radius or background: the config and the screen keep theirs.
-    expect(out.theme).toEqual(seeded.theme);
+    // A page has no tokens, radius or background: the screen keeps its own.
     expect(out.profiles[0].theme).toBeUndefined();
     expect(out.profiles[0].background).toBeUndefined();
-    expect(out.background).toBeUndefined();
   });
 
   it("never writes the background with Keep my background on, and always with it off", () => {
-    const c = config({ background: { type: "color", color: "#101010" } });
-    expect(applyTheme(c, glass, ALL, { keepBackground: true }).background).toEqual(c.background);
-    expect(applyTheme(c, glass, ALL, { keepBackground: false }).background).toEqual(glass.background);
+    const bg = { type: "color" as const, color: "#101010" };
+    const c = config({ profiles: [profile("p1"), profile("p2", { background: bg })] });
+    expect(applyTheme(c, glass, P2, { keepBackground: true }).profiles[1].background).toEqual(bg);
+    expect(applyTheme(c, glass, P2, { keepBackground: false }).profiles[1].background).toEqual(glass.background);
     expect(applyTheme(config(), glass, P1, { keepBackground: true }).profiles[0].background).toBeUndefined();
   });
 
   it("saves a page's resolved look: its customised sections over its screen's, the screen's tokens", () => {
     const c = config({
-      style: { accent: "#00ff00", surface: "matte-dark" },
-      profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, widgetTheme: { values: { accent: "#0000ff" } } }), profile("p2")],
+      profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, widgetTheme: { values: { accent: "#0000ff", surface: "matte-dark" } } }), profile("p2")],
     });
     const custom = {
       ...c,
@@ -239,29 +220,27 @@ describe("Theme's scopes (Apply a theme here…, Save as Theme)", () => {
     expect(t).not.toHaveProperty("font");
   });
 
-  it("round-trips: a screen saved as a Theme, applied to All screens, reproduces its look", () => {
+  it("round-trips: a screen saved as a Theme, applied to another screen, reproduces its look", () => {
     const c = config({
-      style: { surface: "glass" },
-      profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, widgetTheme: { values: { accent: "#0000ff" } }, background: { type: "color", color: "#202020" } }), profile("p2")],
+      profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, widgetTheme: { values: { surface: "glass", accent: "#0000ff" } }, background: { type: "color", color: "#202020" } }), profile("p2")],
     });
     const saved = saveThemeAt(c, P1, "u1", "Desk", false);
     const preset = saved.appearancePresets![0];
     expect(preset).toMatchObject({ id: "u1", name: "Desk", radius: 1, style: { surface: "glass", accent: "#0000ff" } });
     expect(preset.background).toBeUndefined();
-    const all = applyTheme(saved, preset, ALL);
-    expect(all.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
-    expect(all.radius).toBe(1);
-    expect(all.style).toEqual({ surface: "glass", accent: "#0000ff" });
+    const other = applyTheme(saved, preset, P2).profiles[1];
+    expect(other.theme).toEqual({ ...DEFAULT_THEME, primary: "1 2% 3%" });
+    expect(other.radius).toBe(1);
+    expect(other.widgetTheme?.values).toEqual({ surface: "glass", accent: "#0000ff" });
     expect(saveThemeAt(c, P1, "u2", "Desk").appearancePresets![0].background).toEqual({ type: "color", color: "#202020" });
   });
 });
 
 describe("updateAppearancePreset", () => {
   const c = config({
-    style: { surface: "glass" },
-    profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, background: { type: "color", color: "#202020" } }), profile("p2")],
+    profiles: [profile("p1", { theme: { primary: "1 2% 3%" }, radius: 1, widgetTheme: { values: { surface: "glass" } }, background: { type: "color", color: "#202020" } }), profile("p2")],
   });
-  const withTwo = saveThemeAt(saveThemeAt(c, ALL, "a", "Alpha", false), P1, "b", "Beta", false);
+  const withTwo = saveThemeAt(saveThemeAt(c, P2, "a", "Alpha", false), P1, "b", "Beta", false);
 
   it("overwrites the look in place, keeping the id, name, description and the other Themes", () => {
     const updated = updateAppearancePreset(withTwo, "a", P1);
@@ -276,17 +255,17 @@ describe("updateAppearancePreset", () => {
     expect(updateAppearancePreset(withTwo, "a", P1).appearancePresets![0].background).toBeUndefined();
     expect(updateAppearancePreset(withTwo, "a", P1, true).appearancePresets![0].background).toEqual({ type: "color", color: "#202020" });
     const withBg = saveThemeAt(c, P1, "c", "Gamma", true);
-    expect(updateAppearancePreset(withBg, "c", ALL).appearancePresets![0].background).toBeUndefined();
+    expect(updateAppearancePreset(withBg, "c", P2).appearancePresets![0].background).toBeUndefined();
   });
 
   it("leaves the config as it was for an unknown id", () => {
-    expect(updateAppearancePreset(withTwo, "nope", ALL)).toBe(withTwo);
+    expect(updateAppearancePreset(withTwo, "nope", P2)).toBe(withTwo);
   });
 });
 
 describe("duplicateAppearancePreset", () => {
   it("copies a saved Theme right after it under a new id", () => {
-    const c = saveThemeAt(saveThemeAt(config(), ALL, "a", "Alpha"), ALL, "b", "Beta");
+    const c = saveThemeAt(saveThemeAt(config(), P1, "a", "Alpha"), P1, "b", "Beta");
     const copy = duplicateAppearancePreset(c, "a", "a2").appearancePresets!;
     expect(copy.map((p) => [p.id, p.name])).toEqual([["a", "Alpha"], ["a2", "Alpha copy"], ["b", "Beta"]]);
     expect(copy[1].theme).not.toBe(copy[0].theme);

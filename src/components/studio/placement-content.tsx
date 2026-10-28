@@ -199,7 +199,7 @@ export function placementContent(
 
 interface LivePlacementProps {
   placement: Placement;
-  /** The theme (all-profiles style, profile and page theme). */
+  /** The theme (the app's clock, profile and page theme). */
   appearance?: Appearance;
   /** On the studio canvas (see `placementContent`). */
   studio?: boolean;
